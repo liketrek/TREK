@@ -1,4 +1,3 @@
-import { createZodDto } from 'nestjs-zod';
 import {
   placeBulkDeleteRequestSchema,
   placeBulkUpdateRequestSchema,
@@ -10,6 +9,8 @@ import {
   placeRatingRequestSchema,
   placeUpdateRequestSchema,
 } from '@trek/shared';
+
+import { createZodDto } from 'nestjs-zod';
 
 /**
  * Server-side createZodDto wrappers over the @trek/shared places contracts.

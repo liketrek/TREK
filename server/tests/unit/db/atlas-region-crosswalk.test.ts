@@ -9,11 +9,12 @@
  * running all migrations, seeding rows, rewinding schema_version by one, and re-running
  * so only the last (reconciliation) migration fires.
  */
-import { describe, it, expect } from 'vitest';
-import Database from 'better-sqlite3';
-import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
+import { createTables } from '../../../src/db/schema';
 import { createUser } from '../../helpers/factories';
+
+import Database from 'better-sqlite3';
+import { describe, it, expect } from 'vitest';
 
 function freshDb() {
   const db = new Database(':memory:');
@@ -25,9 +26,12 @@ function freshDb() {
 }
 
 function mark(db: Database.Database, userId: number, code: string, name: string, country = 'NO') {
-  db.prepare(
-    'INSERT INTO visited_regions (user_id, region_code, region_name, country_code) VALUES (?, ?, ?, ?)'
-  ).run(userId, code, name, country);
+  db.prepare('INSERT INTO visited_regions (user_id, region_code, region_name, country_code) VALUES (?, ?, ?, ?)').run(
+    userId,
+    code,
+    name,
+    country,
+  );
 }
 
 // The visited_regions reconciliation (#1119) is pinned at schema version 135.

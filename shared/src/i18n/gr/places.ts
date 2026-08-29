@@ -98,7 +98,8 @@ const places: TranslationStrings = {
   'places.details.facts': 'Καλό να ξέρεις',
   'places.details.nothing': 'Δεν βρέθηκε τίποτα για αυτήν την τοποθεσία.',
   'places.details.noKeyTitle': 'Διατίθενται περισσότερες λεπτομέρειες',
-  'places.details.noKeyHint': 'Χωρίς κλειδί Google API, αυτή η εγκατάσταση χρησιμοποιεί μόνο ελεύθερες πηγές. Ζητήστε από τον διαχειριστή TREK να προσθέσει ένα για βαθμολογίες, ώρες λειτουργίας και φωτογραφίες.',
+  'places.details.noKeyHint':
+    'Χωρίς κλειδί Google API, αυτή η εγκατάσταση χρησιμοποιεί μόνο ελεύθερες πηγές. Ζητήστε από τον διαχειριστή TREK να προσθέσει ένα για βαθμολογίες, ώρες λειτουργίας και φωτογραφίες.',
   'places.details.aboutBrand': 'Σχετικά με την αλυσίδα',
   'places.details.aboutBrandNote': 'Περιγράφει την αλυσίδα, όχι αυτό το κατάστημα.',
   'places.details.fact.rating': 'Βαθμολογία',

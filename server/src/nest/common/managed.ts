@@ -1,6 +1,6 @@
-import { SetMetadata } from '@nestjs/common';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
 import { byCodeUnit } from './compare';
+import { SetMetadata } from '@nestjs/common';
 
 /** Metadata key `@ManagedForbidden()` writes. */
 export const MANAGED_FORBIDDEN = 'trek:managed-forbidden';
@@ -104,11 +104,7 @@ export const MANAGED_LOCKED_SETTING_KEYS = [
  * the assignment test can tell "deliberately outside both source lists" from
  * "somebody removed a key and left the assignment behind".
  */
-export const MANAGED_LOCKED_PROFILE_KEYS = [
-  'maps_api_key',
-  'openweather_api_key',
-  'unsplash_api_key',
-] as const;
+export const MANAGED_LOCKED_PROFILE_KEYS = ['maps_api_key', 'openweather_api_key', 'unsplash_api_key'] as const;
 
 /**
  * The settings that stay with the instance admin in every mode.

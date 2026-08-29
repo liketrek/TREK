@@ -283,12 +283,14 @@ const journey: TranslationStrings = {
   'journey.studio.zoomOut': 'Zoom out', // en-fallback
   'journey.studio.zoomFit': 'Fit to view', // en-fallback
   'journey.studio.downloadSpread': 'Скачать этот разворот',
-  'journey.studio.downloadSpreadHint': 'Сохраняет оформление разворота в файл, без фотографий, чтобы поделиться им или использовать снова',
+  'journey.studio.downloadSpreadHint':
+    'Сохраняет оформление разворота в файл, без фотографий, чтобы поделиться им или использовать снова',
   'journey.studio.importSpread': 'Импорт',
   'journey.studio.importSpreadHint': 'Добавляет разворот из скачанного файла оформления',
   'journey.studio.importSpreadFailed': 'Этот файл не является разворотом TREK Studio',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': 'Вёрстка книги требует места, поэтому Студия работает только на компьютере, и создание PDF тоже. Всё остальное в путешествии здесь работает как обычно.', // en-fallback
+  'journey.studio.desktopOnlyHint':
+    'Вёрстка книги требует места, поэтому Студия работает только на компьютере, и создание PDF тоже. Всё остальное в путешествии здесь работает как обычно.', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
   'journey.studio.bookView': 'Book view', // en-fallback
   'journey.studio.multiple': 'Several', // en-fallback
@@ -352,7 +354,8 @@ const journey: TranslationStrings = {
   'journey.studio.sampleSubheading': 'A subheading', // en-fallback
   'journey.studio.sampleBody': 'Write something about this day.', // en-fallback
   'journey.studio.sampleCaption': 'Caption', // en-fallback
-  'journey.studio.templatesCoverHint': 'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
+  'journey.studio.templatesCoverHint':
+    'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
   'journey.studio.tpl.heroStory': 'Hero and story', // en-fallback
   'journey.studio.tpl.fullBleed': 'One picture, full spread', // en-fallback
   'journey.studio.tpl.twoUp': 'Two full pages', // en-fallback
@@ -534,7 +537,8 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceVector': 'Контуры',
   'journey.studio.mapSourceRelief': 'Рельеф',
   'journey.studio.mapSourceSatellite': 'Спутник',
-  'journey.studio.mapSourceSatelliteHint': 'Sentinel-2 без облаков, печатать можно свободно с указанием источника. Чёткость вплоть до городской улицы.',
+  'journey.studio.mapSourceSatelliteHint':
+    'Sentinel-2 без облаков, печатать можно свободно с указанием источника. Чёткость вплоть до городской улицы.',
   'journey.studio.routeLook': 'Линия',
   'journey.studio.routeStyle': 'Вид',
   'journey.studio.routePlain': 'Обычная',
@@ -557,9 +561,11 @@ const journey: TranslationStrings = {
   'journey.studio.roadsAgain': 'Проложить заново',
   'journey.studio.roadsClear': 'Сбросить',
   'journey.studio.roadsBusy': 'Запрос',
-  'journey.studio.roadsHint': 'Спросить у сервиса маршрутов, по каким дорогам пройден каждый участок. Длинные участки остаются как есть.',
+  'journey.studio.roadsHint':
+    'Спросить у сервиса маршрутов, по каким дорогам пройден каждый участок. Длинные участки остаются как есть.',
   'journey.studio.roadsHave': 'Дороги сохранены в этой книге, поэтому та же линия печатается и без сети.',
-  'journey.studio.mapSourceReliefHint': 'Затенённый рельеф NASA, печатать можно свободно. Подходит для страны или континента, для одного города слишком груб.',
+  'journey.studio.mapSourceReliefHint':
+    'Затенённый рельеф NASA, печатать можно свободно. Подходит для страны или континента, для одного города слишком груб.',
   'journey.studio.mapPrintDpi': 'Печать около',
   'journey.studio.mapPrintDpiLow': 'при таком размере размыто, попробуйте шире охват или другой источник',
   'journey.studio.mapPerTrip': 'По одной поездке',

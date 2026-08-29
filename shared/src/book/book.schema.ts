@@ -34,7 +34,12 @@ import { z } from 'zod';
  * millimetre, and the editor and the PDF renderer both try to draw a sheet a
  * thousand kilometres wide.
  */
-const mm = z.number().finite().min(-10000).max(10000).transform(v => Math.round(v * 100) / 100);
+const mm = z
+  .number()
+  .finite()
+  .min(-10000)
+  .max(10000)
+  .transform((v) => Math.round(v * 100) / 100);
 
 const hex = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'expected #rrggbb');
 
@@ -52,26 +57,77 @@ const hex = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'expected #rrggbb');
  * editor still parses.
  */
 export const BOOK_SHAPES = [
-  'rect', 'ellipse', 'line', 'triangle',
+  'rect',
+  'ellipse',
+  'line',
+  'triangle',
 
-  'triangle-down', 'diamond', 'parallelogram', 'trapezoid',
-  'pentagon', 'hexagon', 'hexagon-flat', 'heptagon', 'octagon',
-  'arch', 'half-circle', 'quarter-circle', 'capsule', 'squircle',
+  'triangle-down',
+  'diamond',
+  'parallelogram',
+  'trapezoid',
+  'pentagon',
+  'hexagon',
+  'hexagon-flat',
+  'heptagon',
+  'octagon',
+  'arch',
+  'half-circle',
+  'quarter-circle',
+  'capsule',
+  'squircle',
 
-  'star-4', 'star-5', 'star-6', 'star-8', 'star-12', 'burst', 'seal', 'sparkle',
+  'star-4',
+  'star-5',
+  'star-6',
+  'star-8',
+  'star-12',
+  'burst',
+  'seal',
+  'sparkle',
 
-  'arrow-right', 'arrow-left', 'arrow-up', 'arrow-down', 'arrow-both',
-  'chevron-right', 'chevron-left', 'arrow-bent',
+  'arrow-right',
+  'arrow-left',
+  'arrow-up',
+  'arrow-down',
+  'arrow-both',
+  'chevron-right',
+  'chevron-left',
+  'arrow-bent',
 
-  'bubble-round', 'bubble-square', 'bubble-oval', 'bubble-think',
+  'bubble-round',
+  'bubble-square',
+  'bubble-oval',
+  'bubble-think',
 
-  'heart', 'cloud', 'cloud-puffy', 'drop', 'moon', 'sun',
-  'flower-5', 'flower-6', 'leaf', 'cross', 'plus', 'shield', 'gear',
-  'ticket', 'wave', 'mountain', 'compass', 'pin',
+  'heart',
+  'cloud',
+  'cloud-puffy',
+  'drop',
+  'moon',
+  'sun',
+  'flower-5',
+  'flower-6',
+  'leaf',
+  'cross',
+  'plus',
+  'shield',
+  'gear',
+  'ticket',
+  'wave',
+  'mountain',
+  'compass',
+  'pin',
 
-  'blob-1', 'blob-2', 'blob-3', 'blob-4',
+  'blob-1',
+  'blob-2',
+  'blob-3',
+  'blob-4',
 
-  'banner-ribbon', 'banner-pennant', 'banner-bookmark', 'banner-flag',
+  'banner-ribbon',
+  'banner-pennant',
+  'banner-bookmark',
+  'banner-flag',
 ] as const;
 export type BookShapeId = (typeof BOOK_SHAPES)[number];
 
@@ -83,9 +139,7 @@ export type BookShapeId = (typeof BOOK_SHAPES)[number];
  * at bundled faces rather than at whatever the rendering machine happened to
  * have installed. See client/src/components/Studio/bookFonts.ts.
  */
-export const BOOK_FONTS_IDS = [
-  'sans', 'inter', 'serif', 'garamond', 'playfair', 'display', 'bebas',
-] as const;
+export const BOOK_FONTS_IDS = ['sans', 'inter', 'serif', 'garamond', 'playfair', 'display', 'bebas'] as const;
 export type BookFontFamily = (typeof BOOK_FONTS_IDS)[number];
 
 export const bookFrameSchema = z.object({
@@ -93,8 +147,8 @@ export const bookFrameSchema = z.object({
   x: mm,
   /** Millimetres from the top edge of the spread. */
   y: mm,
-  w: mm.refine(v => v > 0, 'width must be positive'),
-  h: mm.refine(v => v > 0, 'height must be positive'),
+  w: mm.refine((v) => v > 0, 'width must be positive'),
+  h: mm.refine((v) => v > 0, 'height must be positive'),
 });
 export type BookFrame = z.infer<typeof bookFrameSchema>;
 
@@ -162,7 +216,15 @@ export const bookTextElementSchema = z.object({
   /** Where this text came from, when it came from the journey. */
   binding: z
     .object({
-      source: z.enum(['journey.title', 'journey.subtitle', 'entry.title', 'entry.story', 'entry.location', 'entry.date', 'photo.caption']),
+      source: z.enum([
+        'journey.title',
+        'journey.subtitle',
+        'entry.title',
+        'entry.story',
+        'entry.location',
+        'entry.date',
+        'photo.caption',
+      ]),
       entryId: z.number().int().optional(),
       photoId: z.number().int().optional(),
       /**
@@ -371,19 +433,21 @@ export const bookMapElementSchema = z.object({
    * points — a book page cannot resolve four hundred stops anyway.
    */
   points: z
-    .array(z.object({
-      lat: z.number().min(-90).max(90),
-      lng: z.number().min(-180).max(180),
-      label: z.string().max(120).default(''),
-      /**
-       * One photograph from this stop, for a marker that shows it.
-       *
-       * `trek_photos.id`, never a resolved URL, for the same reason a photo
-       * element stores an id: a book has to survive a provider change. Null is
-       * ordinary and means the marker is a dot.
-       */
-      photoId: z.number().int().positive().nullable().default(null),
-    }))
+    .array(
+      z.object({
+        lat: z.number().min(-90).max(90),
+        lng: z.number().min(-180).max(180),
+        label: z.string().max(120).default(''),
+        /**
+         * One photograph from this stop, for a marker that shows it.
+         *
+         * `trek_photos.id`, never a resolved URL, for the same reason a photo
+         * element stores an id: a book has to survive a provider change. Null is
+         * ordinary and means the marker is a dot.
+         */
+        photoId: z.number().int().positive().nullable().default(null),
+      }),
+    )
     .max(400)
     .default([]),
   /**
@@ -428,7 +492,12 @@ export const bookMapElementSchema = z.object({
    * road is rerouted, and prints empty when the export runs offline.
    */
   roads: z
-    .array(z.array(z.tuple([z.number().min(-90).max(90), z.number().min(-180).max(180)])).max(200).nullable())
+    .array(
+      z
+        .array(z.tuple([z.number().min(-90).max(90), z.number().min(-180).max(180)]))
+        .max(200)
+        .nullable(),
+    )
     .max(400)
     .default([]),
   /**
@@ -510,10 +579,12 @@ export const bookStatsElementSchema = z.object({
    * required and every stats element written so far would fail, then be thrown
    * away as unreadable.
    */
-  values: z.record(z.string(), z.number().finite()).default({})
-    .transform(v => Object.fromEntries(
-      Object.entries(v).filter(([k]) => (BOOK_METRICS as readonly string[]).includes(k)),
-    )),
+  values: z
+    .record(z.string(), z.number().finite())
+    .default({})
+    .transform((v) =>
+      Object.fromEntries(Object.entries(v).filter(([k]) => (BOOK_METRICS as readonly string[]).includes(k))),
+    ),
 });
 
 export const bookCountriesElementSchema = z.object({
@@ -533,7 +604,14 @@ export const bookCountriesElementSchema = z.object({
 });
 
 export const BOOK_BADGES = [
-  'flag', 'date', 'day', 'coords', 'country', 'distance', 'weather', 'altitude',
+  'flag',
+  'date',
+  'day',
+  'coords',
+  'country',
+  'distance',
+  'weather',
+  'altitude',
   'mood',
 ] as const;
 export type BookBadgeVariant = (typeof BOOK_BADGES)[number];
@@ -622,7 +700,10 @@ export const bookIconElementSchema = z.object({
   ...elementBase,
   kind: z.literal('icon'),
   /** A lucide export name, PascalCase — "Compass", "Plane", "MountainSnow". */
-  name: z.string().regex(/^[A-Z][A-Za-z0-9]*$/, 'expected a lucide icon name').max(60),
+  name: z
+    .string()
+    .regex(/^[A-Z][A-Za-z0-9]*$/, 'expected a lucide icon name')
+    .max(60),
   color: hex.default('#111827'),
   /**
    * How heavy the drawing is, against lucide's own 24-unit grid — not
@@ -646,11 +727,13 @@ export const bookListElementSchema = z.object({
   ...typeset,
   kind: z.literal('list'),
   items: z
-    .array(z.object({
-      text: z.string().max(400),
-      /** Which column the line belongs to, and which mark it gets. */
-      tone: z.enum(['pro', 'con', 'plain']).default('plain'),
-    }))
+    .array(
+      z.object({
+        text: z.string().max(400),
+        /** Which column the line belongs to, and which mark it gets. */
+        tone: z.enum(['pro', 'con', 'plain']).default('plain'),
+      }),
+    )
     .max(60)
     .default([]),
   /** Pros beside cons, or one column with the marks inline. */
@@ -749,7 +832,9 @@ export const bookPageNumbersSchema = z.object({
 export type BookPageNumbers = z.infer<typeof bookPageNumbersSchema>;
 
 export const bookPageSetupSchema = z.object({
-  preset: z.enum(['square-210', 'square-300', 'a4-landscape', 'a4-portrait', 'a5-landscape', 'custom']).default('square-210'),
+  preset: z
+    .enum(['square-210', 'square-300', 'a4-landscape', 'a4-portrait', 'a5-landscape', 'custom'])
+    .default('square-210'),
   /**
    * A single page. A double spread is drawn twice this wide.
    *
@@ -759,10 +844,22 @@ export const bookPageSetupSchema = z.object({
    * book is what the server writes back. A nonsense dimension degrading to the
    * preset is the smaller loss by a long way.
    */
-  pageWidth: mm.refine(v => v > 0, 'page width must be positive').catch(210).default(210),
-  pageHeight: mm.refine(v => v > 0, 'page height must be positive').catch(210).default(210),
-  bleed: mm.refine(v => v >= 0, 'bleed cannot be negative').catch(3).default(3),
-  safe: mm.refine(v => v >= 0, 'safe margin cannot be negative').catch(5).default(5),
+  pageWidth: mm
+    .refine((v) => v > 0, 'page width must be positive')
+    .catch(210)
+    .default(210),
+  pageHeight: mm
+    .refine((v) => v > 0, 'page height must be positive')
+    .catch(210)
+    .default(210),
+  bleed: mm
+    .refine((v) => v >= 0, 'bleed cannot be negative')
+    .catch(3)
+    .default(3),
+  safe: mm
+    .refine((v) => v >= 0, 'safe margin cannot be negative')
+    .catch(5)
+    .default(5),
   pageNumbers: bookPageNumbersSchema.default(() => bookPageNumbersSchema.parse({})),
 });
 export type BookPageSetup = z.infer<typeof bookPageSetupSchema>;
@@ -814,16 +911,16 @@ function withoutUnreadableElements(raw: unknown): unknown {
   if (!Array.isArray(doc.spreads)) return raw;
 
   const readable = (list: unknown) =>
-    (Array.isArray(list)
-      // Trimmed to the cap as well as filtered: a spread that grew past 60
-      // fails the array the same way an unreadable element fails the union, and
-      // losing the sixty-first decoration beats losing the book.
-      ? list.filter(el => bookElementSchema.safeParse(el).success).slice(0, MAX_SPREAD_ELEMENTS)
-      : list);
+    Array.isArray(list)
+      ? // Trimmed to the cap as well as filtered: a spread that grew past 60
+        // fails the array the same way an unreadable element fails the union, and
+        // losing the sixty-first decoration beats losing the book.
+        list.filter((el) => bookElementSchema.safeParse(el).success).slice(0, MAX_SPREAD_ELEMENTS)
+      : list;
 
   return {
     ...doc,
-    spreads: doc.spreads.map(sp => {
+    spreads: doc.spreads.map((sp) => {
       if (!sp || typeof sp !== 'object') return sp;
       const spread = sp as { elements?: unknown; parked?: unknown };
       return { ...spread, elements: readable(spread.elements), parked: readable(spread.parked) };

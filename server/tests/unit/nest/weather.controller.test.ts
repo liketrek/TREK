@@ -1,8 +1,9 @@
-import { describe, it, expect, vi } from 'vitest';
-import { HttpException } from '@nestjs/common';
 import { WeatherController } from '../../../src/nest/weather/weather.controller';
 import { ApiError } from '../../../src/nest/weather/weather.impl';
 import type { WeatherService } from '../../../src/nest/weather/weather.service';
+import { HttpException } from '@nestjs/common';
+
+import { describe, it, expect, vi } from 'vitest';
 
 function makeController(svc: Partial<WeatherService>) {
   return new WeatherController(svc as WeatherService);

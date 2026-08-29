@@ -6,6 +6,10 @@
  * service is mocked; its own behavior is pinned in tests/unit/systemNotices/
  * and the integration suite.
  */
+import type { AddonsService } from '../../../src/nest/addons/addons.service';
+import type { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
+import { SystemNoticesService } from '../../../src/nest/system-notices/system-notices.service';
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const { mockGetActive, mockDismiss } = vi.hoisted(() => ({ mockGetActive: vi.fn(), mockDismiss: vi.fn() }));
@@ -14,12 +18,11 @@ vi.mock('../../../src/systemNotices/service', () => ({
   dismissNotice: mockDismiss,
 }));
 
-import { SystemNoticesService } from '../../../src/nest/system-notices/system-notices.service';
-import type { AddonsService } from '../../../src/nest/addons/addons.service';
-import type { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
-
 const isAddonEnabled = vi.fn((id: string) => id === 'journey');
-const svc = new SystemNoticesService({ isAddonEnabled } as unknown as AddonsService, { isManaged: () => false } as unknown as RuntimeEnvService);
+const svc = new SystemNoticesService(
+  { isAddonEnabled } as unknown as AddonsService,
+  { isManaged: () => false } as unknown as RuntimeEnvService,
+);
 
 beforeEach(() => {
   mockGetActive.mockReset();
@@ -52,7 +55,10 @@ describe('SystemNoticesService', () => {
     vi.resetModules();
     vi.doMock('../../../src/nest/addons/addons.service', () => ({ AddonsService: undefined }));
     const { SystemNoticesService: Reloaded } = await import('../../../src/nest/system-notices/system-notices.service');
-    const inst = new Reloaded({ isAddonEnabled } as unknown as AddonsService, { isManaged: () => false } as unknown as RuntimeEnvService);
+    const inst = new Reloaded(
+      { isAddonEnabled } as unknown as AddonsService,
+      { isManaged: () => false } as unknown as RuntimeEnvService,
+    );
     mockGetActive.mockReturnValue([]);
     inst.getActiveFor(1);
     expect(mockGetActive).toHaveBeenCalledWith(1, expect.any(Function), false);

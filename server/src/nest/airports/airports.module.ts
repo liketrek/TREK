@@ -1,8 +1,8 @@
-import { Module } from '@nestjs/common';
-import { AirportsController } from './airports.controller';
-import { AirportsService } from './airports.service';
 import { DatabaseModule } from '../database/database.module';
+import { AirportsController } from './airports.controller';
 import { AirportsMcp } from './airports.mcp';
+import { AirportsService } from './airports.service';
+import { Module } from '@nestjs/common';
 
 /** Airports domain (L2 leaf module). Registered in AppModule.
  *  DatabaseModule is imported explicitly: the flight-endpoint backfill needs the

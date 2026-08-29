@@ -3,6 +3,18 @@
  * Moved 1:1 with the fold; the free functions became methods.
  * Covers error paths: access denied, disabled provider, no providers enabled.
  */
+import { runMigrations } from '../../../src/db/migrations';
+import { createTables } from '../../../src/db/schema';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import type { ImmichService } from '../../../src/nest/memories/immich.service';
+import { MemoriesAccessService } from '../../../src/nest/memories/memories-access.service';
+import type { SynologyService } from '../../../src/nest/memories/synology.service';
+import { UnifiedMemoriesService } from '../../../src/nest/memories/unified-memories.service';
+import { TrekPhotosRepository } from '../../../src/nest/photos/trek-photos.repository';
+import { createUser, createTrip } from '../../helpers/factories';
+import { notificationsStub } from '../../helpers/notifications';
+import { resetTestDb } from '../../helpers/test-db';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // ── DB setup ─────────────────────────────────────────────────────────────────
@@ -19,11 +31,15 @@ const { testDb, dbMock } = vi.hoisted(() => {
     reinitialize: () => {},
     getPlaceWithTags: () => null,
     canAccessTrip: (tripId: any, userId: number) =>
-      db.prepare(`
+      db
+        .prepare(
+          `
         SELECT t.id FROM trips t
         LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ?
         WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)
-      `).get(userId, tripId, userId),
+      `,
+        )
+        .get(userId, tripId, userId),
     isOwner: (tripId: any, userId: number) =>
       !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
   };
@@ -37,18 +53,6 @@ vi.mock('../../../src/config', () => ({
   updateJwtSecret: () => {},
 }));
 vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn() }));
-
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip } from '../../helpers/factories';
-import { UnifiedMemoriesService } from '../../../src/nest/memories/unified-memories.service';
-import { MemoriesAccessService } from '../../../src/nest/memories/memories-access.service';
-import { TrekPhotosRepository } from '../../../src/nest/photos/trek-photos.repository';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import type { ImmichService } from '../../../src/nest/memories/immich.service';
-import type { SynologyService } from '../../../src/nest/memories/synology.service';
-import { notificationsStub } from '../../helpers/notifications';
 
 // The album-sync paths are the providers' half and have their own suites; these
 // cases never reach them, so stubs keep the graph small.
@@ -144,9 +148,11 @@ describe('addTripPhotos', () => {
     const trip = createTrip(testDb, user.id);
 
     // Insert a disabled provider
-    testDb.prepare(
-      'INSERT OR IGNORE INTO photo_providers (id, name, description, icon, enabled, sort_order) VALUES (?, ?, ?, ?, ?, ?)'
-    ).run('disabled-prov', 'Disabled', 'Disabled provider', 'Image', 0, 99);
+    testDb
+      .prepare(
+        'INSERT OR IGNORE INTO photo_providers (id, name, description, icon, enabled, sort_order) VALUES (?, ?, ?, ?, ?, ?)',
+      )
+      .run('disabled-prov', 'Disabled', 'Disabled provider', 'Image', 0, 99);
 
     const result = await addTripPhotos(
       String(trip.id),
@@ -212,9 +218,11 @@ describe('createTripAlbumLink', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
 
-    testDb.prepare(
-      'INSERT OR IGNORE INTO photo_providers (id, name, description, icon, enabled, sort_order) VALUES (?, ?, ?, ?, ?, ?)'
-    ).run('disabled-prov2', 'Disabled2', 'desc', 'Image', 0, 100);
+    testDb
+      .prepare(
+        'INSERT OR IGNORE INTO photo_providers (id, name, description, icon, enabled, sort_order) VALUES (?, ?, ?, ?, ?, ?)',
+      )
+      .run('disabled-prov2', 'Disabled2', 'desc', 'Image', 0, 100);
 
     const result = createTripAlbumLink(String(trip.id), user.id, 'disabled-prov2', 'album-1', 'My Album');
     expect(result.success).toBe(false);

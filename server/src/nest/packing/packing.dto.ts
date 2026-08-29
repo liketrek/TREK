@@ -1,4 +1,3 @@
-import { createZodDto } from 'nestjs-zod';
 import {
   packingCreateItemRequestSchema,
   packingUpdateItemRequestSchema,
@@ -12,6 +11,8 @@ import {
   packingApplyTemplateRequestSchema,
   packingCategoryAssigneesRequestSchema,
 } from '@trek/shared';
+
+import { createZodDto } from 'nestjs-zod';
 
 /**
  * Server-side createZodDto wrappers over the @trek/shared packing contracts.

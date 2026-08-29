@@ -14,14 +14,11 @@
  * on http://localhost:9000 must keep working, so loopback and LAN stay allowed
  * while link-local and the cloud-metadata range never are.
  */
-import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { describe, it, expect } from 'vitest';
 
-const SOURCE = readFileSync(
-  join(__dirname, '../../../src/nest/oidc/oidc.service.ts'),
-  'utf8',
-);
+const SOURCE = readFileSync(join(__dirname, '../../../src/nest/oidc/oidc.service.ts'), 'utf8');
 
 describe('OIDC outbound calls', () => {
   it('OIDC-SSRF-001: no bare fetch( is left in the service', () => {

@@ -430,7 +430,8 @@ const admin: TranslationStrings = {
   'admin.plugins.changeVersion': 'Змінити версію…',
   'admin.plugins.noVersions': 'У реєстрі не знайдено опублікованих версій.',
   'admin.plugins.downgradeTitle': 'Відкотити цей плагін?',
-  'admin.plugins.downgradeBody': 'Перехід з v{from} на v{to}: дані, записані новішою версією, залишаються, і старіша версія може їх не розуміти.',
+  'admin.plugins.downgradeBody':
+    'Перехід з v{from} на v{to}: дані, записані новішою версією, залишаються, і старіша версія може їх не розуміти.',
   'admin.plugins.downgradeConfirm': 'Відкотити',
   'admin.plugins.updatesHeld': 'Оновлення призупинено на v{version}',
   'admin.plugins.resumeUpdates': 'Відновити оновлення',

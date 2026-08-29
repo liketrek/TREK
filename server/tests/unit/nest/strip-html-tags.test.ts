@@ -8,8 +8,9 @@
  * cases below are written against the regex rather than against what a tidy tag
  * stripper would do.
  */
-import { describe, it, expect } from 'vitest';
 import { stripHtmlTags } from '../../../src/nest/common/stripHtmlTags';
+
+import { describe, it, expect } from 'vitest';
 
 /** The pattern this function replaced — the oracle for every case here. */
 const oracle = (s: string, repl = '') => s.replace(/<[^>]+>/g, repl);

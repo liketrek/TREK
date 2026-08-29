@@ -15,13 +15,13 @@
  *   beforeEach(() => resetTestDb(testDb));
  *   afterAll(() => testDb.close());
  */
-
-import Database from 'better-sqlite3';
-import type { INestApplication } from '@nestjs/common';
-import { createTables } from '../../src/db/schema';
 import { runMigrations } from '../../src/db/migrations';
+import { createTables } from '../../src/db/schema';
 import { AuthPublicController } from '../../src/nest/auth/auth-public.controller';
 import type { RateLimitService } from '../../src/nest/common/rate-limit.service';
+import type { INestApplication } from '@nestjs/common';
+
+import Database from 'better-sqlite3';
 
 // Tables to clear on reset, child-before-parent to be safe (FK checks are OFF during reset).
 // Keep in sync with schema.ts + migrations.ts. Intentionally excluded: categories, addons,
@@ -124,19 +124,83 @@ const DEFAULT_CATEGORIES = [
 ];
 
 const DEFAULT_ADDONS = [
-  { id: 'packing',   name: 'Packing List',    description: 'Pack your bags',            type: 'trip',        icon: 'ListChecks',  enabled: 1, sort_order: 0  },
-  { id: 'budget',    name: 'Costs',           description: 'Track and split trip expenses', type: 'trip',     icon: 'Wallet',      enabled: 1, sort_order: 1  },
-  { id: 'documents', name: 'Documents',       description: 'Manage travel documents',    type: 'trip',        icon: 'FileText',    enabled: 1, sort_order: 2  },
-  { id: 'vacay',     name: 'Vacay',           description: 'Vacation day planner',       type: 'global',      icon: 'CalendarDays',enabled: 1, sort_order: 10 },
-  { id: 'atlas',     name: 'Atlas',           description: 'Visited countries map',      type: 'global',      icon: 'Globe',       enabled: 1, sort_order: 11 },
-  { id: 'mcp',       name: 'MCP',             description: 'AI assistant integration',   type: 'integration', icon: 'Terminal',    enabled: 0, sort_order: 12 },
-  { id: 'naver_list_import', name: 'Naver List Import', description: 'Import places from shared Naver Maps lists', type: 'trip', icon: 'Link2', enabled: 0, sort_order: 13 },
-  { id: 'collab',    name: 'Collab',          description: 'Notes, polls, live chat',    type: 'trip',        icon: 'Users',       enabled: 1, sort_order: 6  },
+  {
+    id: 'packing',
+    name: 'Packing List',
+    description: 'Pack your bags',
+    type: 'trip',
+    icon: 'ListChecks',
+    enabled: 1,
+    sort_order: 0,
+  },
+  {
+    id: 'budget',
+    name: 'Costs',
+    description: 'Track and split trip expenses',
+    type: 'trip',
+    icon: 'Wallet',
+    enabled: 1,
+    sort_order: 1,
+  },
+  {
+    id: 'documents',
+    name: 'Documents',
+    description: 'Manage travel documents',
+    type: 'trip',
+    icon: 'FileText',
+    enabled: 1,
+    sort_order: 2,
+  },
+  {
+    id: 'vacay',
+    name: 'Vacay',
+    description: 'Vacation day planner',
+    type: 'global',
+    icon: 'CalendarDays',
+    enabled: 1,
+    sort_order: 10,
+  },
+  {
+    id: 'atlas',
+    name: 'Atlas',
+    description: 'Visited countries map',
+    type: 'global',
+    icon: 'Globe',
+    enabled: 1,
+    sort_order: 11,
+  },
+  {
+    id: 'mcp',
+    name: 'MCP',
+    description: 'AI assistant integration',
+    type: 'integration',
+    icon: 'Terminal',
+    enabled: 0,
+    sort_order: 12,
+  },
+  {
+    id: 'naver_list_import',
+    name: 'Naver List Import',
+    description: 'Import places from shared Naver Maps lists',
+    type: 'trip',
+    icon: 'Link2',
+    enabled: 0,
+    sort_order: 13,
+  },
+  {
+    id: 'collab',
+    name: 'Collab',
+    description: 'Notes, polls, live chat',
+    type: 'trip',
+    icon: 'Users',
+    enabled: 1,
+    sort_order: 6,
+  },
 ];
 
 const DEFAULT_PHOTO_PROVIDERS = [
-  { id: 'immich',         name: 'Immich',          enabled: 1 },
-  { id: 'synologyphotos', name: 'Synology Photos',  enabled: 1 },
+  { id: 'immich', name: 'Immich', enabled: 1 },
+  { id: 'synologyphotos', name: 'Synology Photos', enabled: 1 },
 ];
 
 /**
@@ -165,7 +229,7 @@ export function setCollabFeature(
   feature: 'chat' | 'notes' | 'polls' | 'whatsnext',
   enabled: boolean,
 ): void {
-  db.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)").run(
+  db.prepare('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)').run(
     `collab_${feature}_enabled`,
     enabled ? 'true' : 'false',
   );
@@ -175,13 +239,19 @@ function seedDefaults(db: Database.Database): void {
   const insertCat = db.prepare('INSERT OR IGNORE INTO categories (name, color, icon) VALUES (?, ?, ?)');
   for (const cat of DEFAULT_CATEGORIES) insertCat.run(cat.name, cat.color, cat.icon);
 
-  const insertAddon = db.prepare('INSERT OR IGNORE INTO addons (id, name, description, type, icon, enabled, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)');
+  const insertAddon = db.prepare(
+    'INSERT OR IGNORE INTO addons (id, name, description, type, icon, enabled, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)',
+  );
   for (const a of DEFAULT_ADDONS) insertAddon.run(a.id, a.name, a.description, a.type, a.icon, a.enabled, a.sort_order);
 
   try {
-    const insertProvider = db.prepare('INSERT OR IGNORE INTO photo_providers (id, name, description, icon, enabled, sort_order) VALUES (?, ?, ?, ?, ?, ?)');
+    const insertProvider = db.prepare(
+      'INSERT OR IGNORE INTO photo_providers (id, name, description, icon, enabled, sort_order) VALUES (?, ?, ?, ?, ?, ?)',
+    );
     for (const p of DEFAULT_PHOTO_PROVIDERS) insertProvider.run(p.id, p.name, p.id, 'Image', p.enabled, 0);
-  } catch { /* table may not exist in very old schemas */ }
+  } catch {
+    /* table may not exist in very old schemas */
+  }
 }
 
 /**
@@ -206,7 +276,7 @@ export function createTestDb(): Database.Database {
 export function resetTestDb(db: Database.Database): void {
   db.exec('PRAGMA foreign_keys = OFF');
   const existingTables = new Set(
-    (db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all() as { name: string }[]).map(r => r.name)
+    (db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all() as { name: string }[]).map((r) => r.name),
   );
   for (const table of RESET_TABLES) {
     if (existingTables.has(table)) {
@@ -253,29 +323,39 @@ export function buildDbMock(testDb: Database.Database) {
         category_icon: string | null;
         [key: string]: unknown;
       }
-      const place = testDb.prepare(`
+      const place = testDb
+        .prepare(
+          `
         SELECT p.*, c.name as category_name, c.color as category_color, c.icon as category_icon
         FROM places p
         LEFT JOIN categories c ON p.category_id = c.id
         WHERE p.id = ?
-      `).get(placeId) as PlaceRow | undefined;
+      `,
+        )
+        .get(placeId) as PlaceRow | undefined;
 
       if (!place) return null;
 
-      const tags = testDb.prepare(`
+      const tags = testDb
+        .prepare(
+          `
         SELECT t.* FROM tags t
         JOIN place_tags pt ON t.id = pt.tag_id
         WHERE pt.place_id = ?
-      `).all(placeId);
+      `,
+        )
+        .all(placeId);
 
       return {
         ...place,
-        category: place.category_id ? {
-          id: place.category_id,
-          name: place.category_name,
-          color: place.category_color,
-          icon: place.category_icon,
-        } : null,
+        category: place.category_id
+          ? {
+              id: place.category_id,
+              name: place.category_name,
+              color: place.category_color,
+              icon: place.category_icon,
+            }
+          : null,
         tags,
       };
     },

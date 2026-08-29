@@ -1,8 +1,8 @@
-import { Module } from '@nestjs/common';
 import { AddonsModule } from '../addons/addons.module';
+import { AppConfigModule } from '../app-config/app-config.module';
 import { SystemNoticesController } from './system-notices.controller';
 import { SystemNoticesService } from './system-notices.service';
-import { AppConfigModule } from '../app-config/app-config.module';
+import { Module } from '@nestjs/common';
 
 /** System-notices domain. Registered in AppModule. */
 @Module({

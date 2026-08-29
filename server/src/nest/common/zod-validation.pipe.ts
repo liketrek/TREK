@@ -1,4 +1,5 @@
 import { HttpException } from '@nestjs/common';
+
 import { createZodValidationPipe } from 'nestjs-zod';
 
 /**
@@ -24,18 +25,13 @@ interface ZodIssueLike {
 }
 
 function isZodErrorLike(error: unknown): error is { issues: ZodIssueLike[] } {
-  return (
-    typeof error === 'object' && error !== null &&
-    Array.isArray((error as { issues?: unknown }).issues)
-  );
+  return typeof error === 'object' && error !== null && Array.isArray((error as { issues?: unknown }).issues);
 }
 
 export const ZodValidationPipe = createZodValidationPipe({
   createValidationException: (error: unknown): Error => {
     if (isZodErrorLike(error)) {
-      const message = error.issues
-        .map((i) => `${i.path.map(String).join('.') || 'body'}: ${i.message}`)
-        .join('; ');
+      const message = error.issues.map((i) => `${i.path.map(String).join('.') || 'body'}: ${i.message}`).join('; ');
       return new HttpException({ error: message }, 400);
     }
     return new HttpException({ error: 'Validation failed' }, 400);

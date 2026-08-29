@@ -1,7 +1,8 @@
-import bcrypt from 'bcryptjs';
-import crypto from 'crypto';
 import { User } from '../../types';
 import { decrypt_api_key } from '../common/crypto/apiKeyCrypto';
+
+import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 
 /**
  * Pure half of the auth domain (no DB, no injected deps) — the DB half lives
@@ -30,12 +31,28 @@ export const DUMMY_PASSWORD_HASH = bcrypt.hashSync('__trek_no_such_user__', BCRY
 export const MFA_BACKUP_CODE_COUNT = 10;
 
 export const ADMIN_SETTINGS_KEYS = [
-  'allow_registration', 'allowed_file_types', 'require_mfa',
-  'smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass', 'smtp_from', 'smtp_skip_tls_verify',
-  'notification_channels', 'admin_webhook_url', 'admin_ntfy_server', 'admin_ntfy_topic', 'admin_ntfy_token',
+  'allow_registration',
+  'allowed_file_types',
+  'require_mfa',
+  'smtp_host',
+  'smtp_port',
+  'smtp_user',
+  'smtp_pass',
+  'smtp_from',
+  'smtp_skip_tls_verify',
+  'notification_channels',
+  'admin_webhook_url',
+  'admin_ntfy_server',
+  'admin_ntfy_topic',
+  'admin_ntfy_token',
   'notify_trip_reminder',
-  'password_login', 'password_registration', 'oidc_login', 'oidc_registration',
-  'passkey_login', 'webauthn_rp_id', 'webauthn_origins',
+  'password_login',
+  'password_registration',
+  'oidc_login',
+  'oidc_registration',
+  'passkey_login',
+  'webauthn_rp_id',
+  'webauthn_origins',
 ];
 
 // ---------------------------------------------------------------------------
@@ -83,7 +100,9 @@ export function mask_stored_api_key(key: string | null | undefined): string | nu
 // ---------------------------------------------------------------------------
 
 export function normalizeBackupCode(input: string): string {
-  return String(input || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  return String(input || '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '');
 }
 
 // Legacy SHA-256 hex hash. Kept so existing stored hashes (from before
@@ -116,8 +135,11 @@ export function matchBackupCode(plaintext: string, storedHash: string): boolean 
   if (!storedHash) return false;
   if (storedHash.startsWith('$2')) {
     // bcrypt hash — compareSync is constant-time internally.
-    try { return bcrypt.compareSync(normalizeBackupCode(plaintext), storedHash); }
-    catch { return false; }
+    try {
+      return bcrypt.compareSync(normalizeBackupCode(plaintext), storedHash);
+    } catch {
+      return false;
+    }
   }
   // Legacy SHA-256 hex. Compare the SHA-256 of the input against the
   // stored hex with a constant-time comparator so timing can't leak.
@@ -140,7 +162,7 @@ export function parseBackupCodeHashes(raw: string | null | undefined): string[] 
   if (!raw) return [];
   try {
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.filter(v => typeof v === 'string') : [];
+    return Array.isArray(parsed) ? parsed.filter((v) => typeof v === 'string') : [];
   } catch {
     return [];
   }

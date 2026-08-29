@@ -283,12 +283,14 @@ const journey: TranslationStrings = {
   'journey.studio.zoomOut': 'Zoom out', // en-fallback
   'journey.studio.zoomFit': 'Fit to view', // en-fallback
   'journey.studio.downloadSpread': 'Tải trang đôi này về',
-  'journey.studio.downloadSpreadHint': 'Lưu thiết kế của trang đôi này thành tệp, không kèm ảnh, để chia sẻ hoặc dùng lại',
+  'journey.studio.downloadSpreadHint':
+    'Lưu thiết kế của trang đôi này thành tệp, không kèm ảnh, để chia sẻ hoặc dùng lại',
   'journey.studio.importSpread': 'Nhập',
   'journey.studio.importSpreadHint': 'Thêm một trang đôi từ tệp thiết kế đã tải về',
   'journey.studio.importSpreadFailed': 'Tệp đó không phải trang đôi của TREK Studio',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': 'Dàn một cuốn sách cần chỗ để làm việc, nên Studio chỉ có trên máy tính, và việc tạo PDF cũng vậy. Mọi thứ khác của hành trình vẫn dùng bình thường ở đây.', // en-fallback
+  'journey.studio.desktopOnlyHint':
+    'Dàn một cuốn sách cần chỗ để làm việc, nên Studio chỉ có trên máy tính, và việc tạo PDF cũng vậy. Mọi thứ khác của hành trình vẫn dùng bình thường ở đây.', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
   'journey.studio.bookView': 'Book view', // en-fallback
   'journey.studio.multiple': 'Several', // en-fallback
@@ -352,7 +354,8 @@ const journey: TranslationStrings = {
   'journey.studio.sampleSubheading': 'A subheading', // en-fallback
   'journey.studio.sampleBody': 'Write something about this day.', // en-fallback
   'journey.studio.sampleCaption': 'Caption', // en-fallback
-  'journey.studio.templatesCoverHint': 'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
+  'journey.studio.templatesCoverHint':
+    'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
   'journey.studio.tpl.heroStory': 'Hero and story', // en-fallback
   'journey.studio.tpl.fullBleed': 'One picture, full spread', // en-fallback
   'journey.studio.tpl.twoUp': 'Two full pages', // en-fallback
@@ -534,7 +537,8 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceVector': 'Đường viền',
   'journey.studio.mapSourceRelief': 'Địa hình',
   'journey.studio.mapSourceSatellite': 'Vệ tinh',
-  'journey.studio.mapSourceSatelliteHint': 'Ảnh Sentinel-2 không mây, được in miễn phí nếu ghi công. Rõ đến từng con phố.',
+  'journey.studio.mapSourceSatelliteHint':
+    'Ảnh Sentinel-2 không mây, được in miễn phí nếu ghi công. Rõ đến từng con phố.',
   'journey.studio.routeLook': 'Nét lộ trình',
   'journey.studio.routeStyle': 'Kiểu nét',
   'journey.studio.routePlain': 'Đơn giản',
@@ -564,7 +568,8 @@ const journey: TranslationStrings = {
   'journey.studio.mapScope': 'Hiển thị',
   'journey.studio.mapPrintDpi': 'In ở khoảng',
   'journey.studio.mapPrintDpiLow': 'hơi mờ ở kích thước này, thử khung nhìn rộng hơn hoặc nguồn khác',
-  'journey.studio.mapSourceReliefHint': 'Ảnh địa hình đổ bóng của NASA, được in miễn phí. Hợp cho một quốc gia hay châu lục, quá thô cho một thành phố.',
+  'journey.studio.mapSourceReliefHint':
+    'Ảnh địa hình đổ bóng của NASA, được in miễn phí. Hợp cho một quốc gia hay châu lục, quá thô cho một thành phố.',
   'journey.studio.mapSourceTiles': 'Ô bản đồ',
   'journey.studio.mapSourceStatic': 'Mapbox',
   'journey.studio.mapSourceHint': 'Tải khi kết xuất và in kèm ghi công',

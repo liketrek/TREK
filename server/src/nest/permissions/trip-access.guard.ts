@@ -1,9 +1,10 @@
-import { CanActivate, ExecutionContext, HttpException, Injectable, SetMetadata } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import type { Request } from 'express';
+import type { User } from '../../types';
 import { DatabaseService, type TripAccess } from '../database/database.service';
 import { PermissionsService } from './permissions.service';
-import type { User } from '../../types';
+import { CanActivate, ExecutionContext, HttpException, Injectable, SetMetadata } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+
+import type { Request } from 'express';
 
 /** Where the guard parks the resolved trip row for `@Trip()` to pick up. */
 export const TRIP_REQUEST_KEY = 'trekTrip';

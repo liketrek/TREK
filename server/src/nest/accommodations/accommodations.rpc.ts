@@ -1,11 +1,11 @@
-import { accommodationCreateRequestSchema, accommodationUpdateRequestSchema } from '@trek/shared';
-import { PluginController, PluginMethod } from '../plugins/host/rpc-kit/decorators';
 import { PluginGuards } from '../plugins/host/plugin-guards.service';
 import { BadParams, ForbiddenResource } from '../plugins/host/rpc-errors';
-import { num, schemaMessage } from '../plugins/host/rpc-params';
+import { PluginController, PluginMethod } from '../plugins/host/rpc-kit/decorators';
 import type { PluginRpcContext } from '../plugins/host/rpc-kit/types';
+import { num, schemaMessage } from '../plugins/host/rpc-params';
 import { RealtimeService } from '../realtime/realtime.service';
 import { AccommodationsService } from './accommodations.service';
+import { accommodationCreateRequestSchema, accommodationUpdateRequestSchema } from '@trek/shared';
 
 /**
  * Accommodations hold db:write:accommodations but are gated on 'day_edit', NOT on
@@ -51,7 +51,8 @@ export class AccommodationsRpc {
     const placeId = Math.trunc(Number(input.place_id));
     const startDayId = Math.trunc(Number(input.start_day_id));
     const endDayId = Math.trunc(Number(input.end_day_id));
-    if (!placeId || !startDayId || !endDayId) throw new BadParams('place_id, start_day_id, and end_day_id are required');
+    if (!placeId || !startDayId || !endDayId)
+      throw new BadParams('place_id, start_day_id, and end_day_id are required');
     // Verifies the place and both days belong to this trip.
     const errors = this.days.validateAccommodationRefs(tripId, placeId, startDayId, endDayId);
     if (errors.length > 0) throw new ForbiddenResource(errors[0].message);
@@ -81,7 +82,16 @@ export class AccommodationsRpc {
     this.guards.requireTripEdit(tripId, actor, ACCOMMODATION_EDIT_ACTION);
     const existing = this.days.getAccommodation(accommodationId, tripId);
     if (!existing) throw new ForbiddenResource(`no accommodation ${accommodationId} on trip ${tripId}`);
-    const input = parsed.data as { place_id?: number; start_day_id?: number; end_day_id?: number; check_in?: string; check_in_end?: string; check_out?: string; confirmation?: string; notes?: string };
+    const input = parsed.data as {
+      place_id?: number;
+      start_day_id?: number;
+      end_day_id?: number;
+      check_in?: string;
+      check_in_end?: string;
+      check_out?: string;
+      confirmation?: string;
+      notes?: string;
+    };
     const errors = this.days.validateAccommodationRefs(tripId, input.place_id, input.start_day_id, input.end_day_id);
     if (errors.length > 0) throw new ForbiddenResource(errors[0].message);
     const accommodation = this.days.updateAccommodation(accommodationId, existing, input);
@@ -100,7 +110,8 @@ export class AccommodationsRpc {
     }
     // Deleting a block can take its partner reservation and budget item with it.
     const { linkedReservationIds, deletedBudgetItemIds } = this.days.deleteAccommodation(accommodationId);
-    for (const reservationId of linkedReservationIds) this.realtime.broadcast(tripId, 'reservation:deleted', { reservationId });
+    for (const reservationId of linkedReservationIds)
+      this.realtime.broadcast(tripId, 'reservation:deleted', { reservationId });
     for (const itemId of deletedBudgetItemIds) this.realtime.broadcast(tripId, 'budget:deleted', { itemId });
     this.realtime.broadcast(tripId, 'accommodation:deleted', { accommodationId });
     return { deleted: true };

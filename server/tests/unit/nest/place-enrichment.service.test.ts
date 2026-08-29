@@ -5,6 +5,19 @@
  * cache, so both are injected as stubs and every provider branch is driven from
  * the test. The SSRF guard is mocked the same way maps.service.test.ts mocks it.
  */
+import { db } from '../../../src/db/database';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import type { MapsService } from '../../../src/nest/maps/maps.service';
+import {
+  candidateKey,
+  PlaceEnrichmentService,
+  creditLine,
+  collectFacts,
+  collectHours,
+  collectRating,
+} from '../../../src/nest/place-enrichment/place-enrichment.service';
+import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 /** Whatever the statement under test selects: a settings row, a cache row, or nothing. */
@@ -40,19 +53,6 @@ vi.mock('../../../src/utils/ssrfGuard', () => ({
 
 vi.mock('../../../src/config', () => ({ JWT_SECRET: 'test-secret', ENCRYPTION_KEY: '0'.repeat(64) }));
 
-import { db } from '../../../src/db/database';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import {
-  candidateKey,
-  PlaceEnrichmentService,
-  creditLine,
-  collectFacts,
-  collectHours,
-  collectRating,
-} from '../../../src/nest/place-enrichment/place-enrichment.service';
-import type { MapsService } from '../../../src/nest/maps/maps.service';
-import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
-
 const REQ = { lat: 50.9, lng: 6.96, name: 'Museum Ludwig', placeId: 'ChIJmuseum' };
 const OSM_REQ = { ...REQ, placeId: 'way:12345' };
 
@@ -66,14 +66,20 @@ function mapsStub(over: Partial<Record<keyof MapsService, unknown>> = {}) {
     fetchGooglePhotoBytes: vi.fn(async () => null as Buffer | null),
     fetchCommonsCandidates: vi.fn(async () => [] as any[]),
     fetchEditorialSummary: vi.fn(async () => null as string | null),
-    fetchWikiExtract: vi.fn(async () => null as { text: string; sourceUrl: string; source: 'wikivoyage' | 'wikipedia' } | null),
+    fetchWikiExtract: vi.fn(
+      async () => null as { text: string; sourceUrl: string; source: 'wikivoyage' | 'wikipedia' } | null,
+    ),
     fetchCommonsCategoryCandidates: vi.fn(async () => [] as any[]),
     fetchWikidataCandidates: vi.fn(async () => ({ candidates: [] as any[], commonsCategory: null as string | null })),
     fetchCommonsFilesByName: vi.fn(async () => new Map<string, any>()),
     fetchWikiLeadImageName: vi.fn(async () => null as string | null),
-    resolveOsmIdentity: vi.fn(async () => null as { tags: Record<string, string>; osmUrl: string | null; matchedName: string } | null),
+    resolveOsmIdentity: vi.fn(
+      async () => null as { tags: Record<string, string>; osmUrl: string | null; matchedName: string } | null,
+    ),
     fetchWikidataSitelinks: vi.fn(async () => ({}) as Record<string, string>),
-    fetchWikiExtractFor: vi.fn(async () => null as { text: string; sourceUrl: string; source: 'wikivoyage' | 'wikipedia' } | null),
+    fetchWikiExtractFor: vi.fn(
+      async () => null as { text: string; sourceUrl: string; source: 'wikivoyage' | 'wikipedia' } | null,
+    ),
     details: vi.fn(async () => ({ place: null })),
     ...over,
   } as unknown as MapsService;
@@ -236,7 +242,11 @@ describe('collectPhotos', () => {
   it('ENRICH-008: reuses a cached candidate instead of downloading it again', async () => {
     const maps = mapsStub({ fetchCommonsCandidates: vi.fn(async () => [commonsCandidate()]) });
     const cache = cacheStub({
-      get: vi.fn(() => ({ photoUrl: '/api/maps/place-photo/ChIJmuseum~p0/bytes', filePath: '/tmp/x', attribution: 'Alice' })),
+      get: vi.fn(() => ({
+        photoUrl: '/api/maps/place-photo/ChIJmuseum~p0/bytes',
+        filePath: '/tmp/x',
+        attribution: 'Alice',
+      })),
     });
 
     const out = await make(maps, cache).enrich(1, REQ);
@@ -278,7 +288,11 @@ describe('collectPhotos', () => {
 
   it('ENRICH-011: drops a candidate the cache refuses to store', async () => {
     const maps = mapsStub({ fetchCommonsCandidates: vi.fn(async () => [commonsCandidate()]) });
-    const cache = cacheStub({ put: vi.fn(async () => { throw new Error('disk full'); }) });
+    const cache = cacheStub({
+      put: vi.fn(async () => {
+        throw new Error('disk full');
+      }),
+    });
     const err = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     const out = await make(maps, cache).enrich(1, REQ);
@@ -510,7 +524,11 @@ describe('collectDescription', () => {
   });
 
   it('ENRICH-020: survives a details lookup that throws', async () => {
-    const maps = mapsStub({ details: vi.fn(async () => { throw new Error('overpass down'); }) });
+    const maps = mapsStub({
+      details: vi.fn(async () => {
+        throw new Error('overpass down');
+      }),
+    });
 
     const out = await make(maps, cacheStub()).enrich(1, OSM_REQ);
 
@@ -534,7 +552,17 @@ describe('result cache', () => {
     const cache = cacheStub({ get: vi.fn(() => ({ photoUrl: '/x', filePath: '/tmp/x', attribution: null })) });
     mockDbGet.mockImplementation((sql: string) =>
       String(sql).includes('place_details_cache')
-        ? cachedRow([{ key: 'ChIJmuseum~p0', url: '/x', attribution: null, license: null, licenseUrl: null, sourceUrl: null, source: 'wikimedia' }])
+        ? cachedRow([
+            {
+              key: 'ChIJmuseum~p0',
+              url: '/x',
+              attribution: null,
+              license: null,
+              licenseUrl: null,
+              sourceUrl: null,
+              source: 'wikimedia',
+            },
+          ])
         : undefined,
     );
 
@@ -571,7 +599,17 @@ describe('result cache', () => {
     });
     mockDbGet.mockImplementation((sql: string) =>
       String(sql).includes('place_details_cache')
-        ? cachedRow([{ key: 'ChIJmuseum~p0', url: '/x', attribution: null, license: null, licenseUrl: null, sourceUrl: null, source: 'wikimedia' }])
+        ? cachedRow([
+            {
+              key: 'ChIJmuseum~p0',
+              url: '/x',
+              attribution: null,
+              license: null,
+              licenseUrl: null,
+              sourceUrl: null,
+              source: 'wikimedia',
+            },
+          ])
         : undefined,
     );
 
@@ -586,7 +624,17 @@ describe('result cache', () => {
     const cache = cacheStub({ get: vi.fn(() => ({ photoUrl: '/x', filePath: '/tmp/x', attribution: null })) });
     mockDbGet.mockImplementation((sql: string) =>
       String(sql).includes('place_details_cache')
-        ? cachedRow([{ key: 'ChIJmuseum~p0', url: '/x', attribution: null, license: null, licenseUrl: null, sourceUrl: null, source: 'wikimedia' }])
+        ? cachedRow([
+            {
+              key: 'ChIJmuseum~p0',
+              url: '/x',
+              attribution: null,
+              license: null,
+              licenseUrl: null,
+              sourceUrl: null,
+              source: 'wikimedia',
+            },
+          ])
         : undefined,
     );
 
@@ -634,7 +682,9 @@ describe('result cache', () => {
 
   it('ENRICH-026: keeps working when the cache write fails', async () => {
     const maps = mapsStub({ fetchCommonsCandidates: vi.fn(async () => [commonsCandidate()]) });
-    mockDbRun.mockImplementation(() => { throw new Error('db locked'); });
+    mockDbRun.mockImplementation(() => {
+      throw new Error('db locked');
+    });
     const err = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     const out = await make(maps, cacheStub()).enrich(1, REQ);
@@ -877,8 +927,8 @@ describe('picture source ladder', () => {
     const maps = mapsStub({
       details: withTags({ wikipedia: 'de:Flughafen Hamburg' }),
       fetchWikiLeadImageName: vi.fn(async () => 'Hamburg airport terminals.jpg'),
-      fetchCommonsFilesByName: vi.fn(async () =>
-        new Map([['hamburg airport terminals.jpg', commonsCandidate({ attribution: 'Alice' })]]),
+      fetchCommonsFilesByName: vi.fn(
+        async () => new Map([['hamburg airport terminals.jpg', commonsCandidate({ attribution: 'Alice' })]]),
       ),
     });
 
@@ -920,7 +970,7 @@ describe('picture source ladder', () => {
     expect(out.photos.every((p) => p.source === 'google')).toBe(true);
   });
 
-  it('ENRICH-065: keeps the coordinate search off the critical path of Google\'s listing', async () => {
+  it("ENRICH-065: keeps the coordinate search off the critical path of Google's listing", async () => {
     // Waiting for the listing before deciding put two round trips end to end,
     // which is what pushed this endpoint past the client timeout once before.
     const order: string[] = [];

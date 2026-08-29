@@ -1,5 +1,5 @@
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import type { McpAttachOptions, McpRegistry } from '../nest-mcp';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 
 /**
  * Attaches the MCP surface to a session's server.
@@ -12,6 +12,14 @@ import type { McpAttachOptions, McpRegistry } from '../nest-mcp';
  * createTestRegistry()'s build. A null registry (direct callers without either)
  * skips the attach.
  */
-export function registerTools(registry: McpRegistry | null, server: McpServer, userId: number, scopes: string[] | null, isStaticToken = false, getDeprecationNotice: () => string | null = () => null, onInvoke?: McpAttachOptions['onInvoke']): void {
+export function registerTools(
+  registry: McpRegistry | null,
+  server: McpServer,
+  userId: number,
+  scopes: string[] | null,
+  isStaticToken = false,
+  getDeprecationNotice: () => string | null = () => null,
+  onInvoke?: McpAttachOptions['onInvoke'],
+): void {
   if (registry) registry.attach(server, { userId, scopes, isStaticToken, getDeprecationNotice }, { onInvoke });
 }

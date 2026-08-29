@@ -7,6 +7,16 @@
  * post-write re-selects). Uses a real in-memory SQLite DB so SQL logic is
  * exercised faithfully.
  */
+import { runMigrations } from '../../../src/db/migrations';
+import { createTables } from '../../../src/db/schema';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { DayNotesService } from '../../../src/nest/day-notes/day-notes.service';
+import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import type { DayNote } from '../../../src/types';
+import { createUser, createTrip, createDay, addTripMember } from '../../helpers/factories';
+import { resetTestDb } from '../../helpers/test-db';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // ── DB setup ──────────────────────────────────────────────────────────────────
@@ -23,11 +33,15 @@ const { testDb, dbMock } = vi.hoisted(() => {
     reinitialize: () => {},
     getPlaceWithTags: () => null,
     canAccessTrip: (tripId: number | string, userId: number) =>
-      db.prepare(`
+      db
+        .prepare(
+          `
         SELECT t.id, t.user_id FROM trips t
         LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ?
         WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)
-      `).get(userId, tripId, userId),
+      `,
+        )
+        .get(userId, tripId, userId),
     isOwner: (tripId: number | string, userId: number) =>
       !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
   };
@@ -42,17 +56,11 @@ vi.mock('../../../src/config', () => ({
 }));
 vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn() }));
 
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, createDay, addTripMember } from '../../helpers/factories';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { DayNotesService } from '../../../src/nest/day-notes/day-notes.service';
-import type { DayNote } from '../../../src/types';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-
-const svc = new DayNotesService(new DatabaseService(testDb), new PermissionsService(new DatabaseService(testDb)), new RealtimeService());
+const svc = new DayNotesService(
+  new DatabaseService(testDb),
+  new PermissionsService(new DatabaseService(testDb)),
+  new RealtimeService(),
+);
 
 beforeAll(() => {
   createTables(testDb);
@@ -120,7 +128,14 @@ describe('create', () => {
   it('DAYNOTE-SVC-005: inserts and returns the re-selected row', () => {
     const { trip, day } = seedTripAndDay();
     const note = svc.create(day.id, trip.id, 'Lunch', '12:00', '🍜', 2) as DayNote;
-    expect(note).toMatchObject({ day_id: day.id, trip_id: trip.id, text: 'Lunch', time: '12:00', icon: '🍜', sort_order: 2 });
+    expect(note).toMatchObject({
+      day_id: day.id,
+      trip_id: trip.id,
+      text: 'Lunch',
+      time: '12:00',
+      icon: '🍜',
+      sort_order: 2,
+    });
     expect(note.id).toBeGreaterThan(0);
     const row = testDb.prepare('SELECT * FROM day_notes WHERE id = ?').get(note.id);
     expect(row).toEqual(note);

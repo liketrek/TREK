@@ -1,19 +1,20 @@
-import pathMod from 'node:path';
-import { randomUUID } from 'node:crypto';
-import { Readable } from 'node:stream';
-import { PluginController, PluginMethod } from '../plugins/host/rpc-kit/decorators';
-import { PluginGuards } from '../plugins/host/plugin-guards.service';
-import { BadParams, ForbiddenResource } from '../plugins/host/rpc-errors';
-import { asPayload, num } from '../plugins/host/rpc-params';
-import type { PluginRpcContext } from '../plugins/host/rpc-kit/types';
-import { RealtimeService } from '../realtime/realtime.service';
-import { DatabaseService } from '../database/database.service';
 import { readEnv } from '../../app-config';
 import { isDemoEmail } from '../common/demo';
-import { BLOCKED_EXTENSIONS } from './files.constants';
-import { FilesService } from './files.service';
+import { DatabaseService } from '../database/database.service';
+import { PluginGuards } from '../plugins/host/plugin-guards.service';
+import { BadParams, ForbiddenResource } from '../plugins/host/rpc-errors';
+import { PluginController, PluginMethod } from '../plugins/host/rpc-kit/decorators';
+import type { PluginRpcContext } from '../plugins/host/rpc-kit/types';
+import { asPayload, num } from '../plugins/host/rpc-params';
+import { RealtimeService } from '../realtime/realtime.service';
 import { StorageService } from '../storage/storage.service';
 import { StorageNotFoundError, StorageInvalidKeyError, type ObjectStat } from '../storage/storage.types';
+import { BLOCKED_EXTENSIONS } from './files.constants';
+import { FilesService } from './files.service';
+
+import { randomUUID } from 'node:crypto';
+import pathMod from 'node:path';
+import { Readable } from 'node:stream';
 
 /** Files use three separate rights, one per operation, unlike every other domain. */
 const UPLOAD_ACTION = 'file_upload';
@@ -151,7 +152,9 @@ export class FilesRpc {
     // demo instance, not even through a plugin's db:write:files. The email is only
     // resolved when demo mode is actually on, so self-hosted installs pay nothing.
     if (readEnv().demo.enabled) {
-      const uploader = this.db.prepare('SELECT email FROM users WHERE id = ?').get(actingUserId) as { email?: string } | undefined;
+      const uploader = this.db.prepare('SELECT email FROM users WHERE id = ?').get(actingUserId) as
+        | { email?: string }
+        | undefined;
       if (isDemoEmail(uploader?.email)) throw new ForbiddenResource('Uploads are disabled in demo mode.');
     }
     const original = pathMod.basename(input.name);
@@ -214,7 +217,11 @@ export class FilesRpc {
     this.guards.requireTripEdit(tripId, actor, EDIT_ACTION);
     const current = this.files.getFileById(fileId, tripId);
     if (!current) throw new ForbiddenResource(`no file ${fileId} on trip ${tripId}`);
-    const input = asPayload(params.input) as { description?: string; place_id?: number | null; reservation_id?: number | null };
+    const input = asPayload(params.input) as {
+      description?: string;
+      place_id?: number | null;
+      reservation_id?: number | null;
+    };
     const foreign = this.files.findForeignLinkTarget(tripId, {
       reservation_id: input.reservation_id ?? null,
       place_id: input.place_id ?? null,
@@ -224,7 +231,8 @@ export class FilesRpc {
       description: input.description,
       // null clears the link, undefined leaves it alone: the two are distinct here.
       place_id: input.place_id != null ? String(input.place_id) : input.place_id === null ? null : undefined,
-      reservation_id: input.reservation_id != null ? String(input.reservation_id) : input.reservation_id === null ? null : undefined,
+      reservation_id:
+        input.reservation_id != null ? String(input.reservation_id) : input.reservation_id === null ? null : undefined,
     });
     this.realtime.broadcast(tripId, 'file:updated', { file }, undefined);
     return file;

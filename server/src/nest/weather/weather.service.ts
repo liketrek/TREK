@@ -1,6 +1,6 @@
+import { getWeather, getDetailedWeather, startCacheCleanup, stopCacheCleanup } from './weather.impl';
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import type { WeatherResult } from '@trek/shared';
-import { getWeather, getDetailedWeather, startCacheCleanup, stopCacheCleanup } from './weather.impl';
 
 /**
  * The weather domain's container face, and the owner of the cache sweep's

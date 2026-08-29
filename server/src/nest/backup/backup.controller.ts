@@ -1,3 +1,16 @@
+import { readEnv } from '../../app-config';
+import type { User } from '../../types';
+import { RuntimeEnvService } from '../app-config/runtime-env.service';
+import { AuditService } from '../audit/audit.service';
+import { getClientIp } from '../audit/client-ip';
+import { AdminGuard } from '../auth/admin.guard';
+import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { ManagedForbidden, isManagedBlocked, MANAGED_FORBIDDEN_ERROR } from '../common/managed';
+import { StorageNotFoundError } from '../storage/storage.types';
+import { AutoBackupJob } from './auto-backup.job';
+import { AutoBackupSettingsDto } from './backup.dto';
+import { BackupService } from './backup.service';
 import {
   Body,
   Controller,
@@ -15,21 +28,9 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+
 import type { Request, Response } from 'express';
 import fs from 'fs';
-import { readEnv } from '../../app-config';
-import type { User } from '../../types';
-import { BackupService } from './backup.service';
-import { AutoBackupJob } from './auto-backup.job';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { AdminGuard } from '../auth/admin.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
-import { AutoBackupSettingsDto } from './backup.dto';
-import { getClientIp } from '../audit/client-ip';
-import { AuditService } from '../audit/audit.service';
-import { StorageNotFoundError } from '../storage/storage.types';
-import { ManagedForbidden, isManagedBlocked, MANAGED_FORBIDDEN_ERROR } from '../common/managed';
-import { RuntimeEnvService } from '../app-config/runtime-env.service';
 
 /**
  * /api/backup — admin-only database backup management (list, create, download,
@@ -67,7 +68,13 @@ export class BackupController {
     }
     try {
       const backup = await this.backup.createBackup();
-      this.audit.writeAudit({ userId: user.id, action: 'backup.create', resource: backup.filename, ip: getClientIp(req), details: { size: backup.size } });
+      this.audit.writeAudit({
+        userId: user.id,
+        action: 'backup.create',
+        resource: backup.filename,
+        ip: getClientIp(req),
+        details: { size: backup.size },
+      });
       return { success: true, backup };
     } catch {
       throw new HttpException({ error: 'Error creating backup' }, 500);
@@ -117,14 +124,17 @@ export class BackupController {
     }
   }
 
-  @ManagedForbidden(
-    'restoring from an uploaded archive replaces the database and the encryption key',
-    { enforcedInHandler: true },
-  )
+  @ManagedForbidden('restoring from an uploaded archive replaces the database and the encryption key', {
+    enforcedInHandler: true,
+  })
   @Post('upload-restore')
   @HttpCode(200) // Express answers upload-restore with res.json (200).
   @UseInterceptors(FileInterceptor('backup'))
-  async uploadRestore(@CurrentUser() user: User, @UploadedFile() file: Express.Multer.File | undefined, @Req() req: Request) {
+  async uploadRestore(
+    @CurrentUser() user: User,
+    @UploadedFile() file: Express.Multer.File | undefined,
+    @Req() req: Request,
+  ) {
     // Checked here rather than in the guard: a guard runs before the multipart
     // parser, so throwing there leaves the body unread and the client sees an
     // ECONNRESET instead of this 403 (PROFILE-015). The marker above still puts
@@ -142,7 +152,12 @@ export class BackupController {
       if (!result.success) {
         throw new HttpException({ error: result.error }, result.status || 400);
       }
-      this.audit.writeAudit({ userId: user.id, action: 'backup.upload_restore', resource: origName, ip: getClientIp(req) });
+      this.audit.writeAudit({
+        userId: user.id,
+        action: 'backup.upload_restore',
+        resource: origName,
+        ip: getClientIp(req),
+      });
       return { success: true };
     } catch (err) {
       if (err instanceof HttpException) throw err;
@@ -167,12 +182,20 @@ export class BackupController {
   updateAutoSettings(@CurrentUser() user: User, @Body() body: AutoBackupSettingsDto, @Req() req: Request) {
     try {
       const settings = this.autoBackup.updateAutoSettings(body || {});
-      this.audit.writeAudit({ userId: user.id, action: 'backup.auto_settings', ip: getClientIp(req), details: { enabled: settings.enabled, interval: settings.interval, keep_days: settings.keep_days } });
+      this.audit.writeAudit({
+        userId: user.id,
+        action: 'backup.auto_settings',
+        ip: getClientIp(req),
+        details: { enabled: settings.enabled, interval: settings.interval, keep_days: settings.keep_days },
+      });
       return { settings };
     } catch (err) {
       console.error('[backup] PUT auto-settings:', err);
       const msg = err instanceof Error ? err.message : String(err);
-      throw new HttpException({ error: 'Could not save auto-backup settings', detail: !readEnv().app.isProduction ? msg : undefined }, 500);
+      throw new HttpException(
+        { error: 'Could not save auto-backup settings', detail: !readEnv().app.isProduction ? msg : undefined },
+        500,
+      );
     }
   }
 

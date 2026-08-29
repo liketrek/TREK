@@ -1,24 +1,37 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpException, Param, Post, Put, Req, UseGuards } from '@nestjs/common';
-import type { Request } from 'express';
-import type { StorageUsage } from '@trek/shared';
-import { redactStorageSecrets } from './storage-secrets';
 import type { User } from '../../types';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { AdminGuard } from '../auth/admin.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
 import { AuditService } from '../audit/audit.service';
 import { getClientIp } from '../audit/client-ip';
+import { AdminGuard } from '../auth/admin.guard';
+import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ManagedForbidden } from '../common/managed';
-import { StorageAdminService } from './storage-admin.service';
 import { StorageConfigDto, StorageMigrationRequestDto, StorageTestRequestDto } from './storage-admin.dto';
+import { StorageAdminService } from './storage-admin.service';
 import {
   BackfillBusyError,
   BackfillTargetError,
   MigrationRequestError,
   MigrationTargetError,
 } from './storage-jobs.service';
+import { redactStorageSecrets } from './storage-secrets';
 import { StatsBusyError } from './storage-stats.service';
 import { StorageConflictError } from './storage.types';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpException,
+  Param,
+  Post,
+  Put,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+import type { StorageUsage } from '@trek/shared';
+
+import type { Request } from 'express';
 
 /**
  * /api/admin/storage — the admin surface over the storage registry (spec:
@@ -124,7 +137,11 @@ export class StorageAdminController {
   /** Start a category migration: copy → flip → delta sweep. One storage job at a time. */
   @Post('migrations')
   @HttpCode(200)
-  migrationStart(@CurrentUser() user: User, @Body() body: StorageMigrationRequestDto, @Req() req: Request): { started: true } {
+  migrationStart(
+    @CurrentUser() user: User,
+    @Body() body: StorageMigrationRequestDto,
+    @Req() req: Request,
+  ): { started: true } {
     const { category, to } = body;
     try {
       this.service.startMigration(category, to);
@@ -144,7 +161,11 @@ export class StorageAdminController {
   }
 
   @Delete('migrations/:category')
-  migrationCancel(@CurrentUser() user: User, @Param('category') category: string, @Req() req: Request): { cancelled: true } {
+  migrationCancel(
+    @CurrentUser() user: User,
+    @Param('category') category: string,
+    @Req() req: Request,
+  ): { cancelled: true } {
     if (!this.service.cancelMigration(category)) {
       throw new HttpException({ error: `no running migration for '${category}'` }, 404);
     }

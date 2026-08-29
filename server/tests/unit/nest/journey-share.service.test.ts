@@ -2,6 +2,18 @@
  * Unit tests for JourneyShareService — JOURNEY-SHARE-001 through JOURNEY-SHARE-018.
  * Uses a real in-memory SQLite DB so SQL logic is exercised faithfully.
  */
+import { db as dbConn } from '../../../src/db/database';
+import { runMigrations } from '../../../src/db/migrations';
+import { createTables } from '../../../src/db/schema';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
+import { JourneyShareService } from '../../../src/nest/journey/journey-share.service';
+import { TrekPhotosRepository } from '../../../src/nest/photos/trek-photos.repository';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { SettingsService } from '../../../src/nest/settings/settings.service';
+import { createUser, createJourney, createJourneyEntry, addJourneyContributor } from '../../helpers/factories';
+import { resetTestDb } from '../../helpers/test-db';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // -- DB setup -----------------------------------------------------------------
@@ -30,18 +42,6 @@ vi.mock('../../../src/config', () => ({
   updateJwtSecret: () => {},
 }));
 
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createJourney, createJourneyEntry, addJourneyContributor } from '../../helpers/factories';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import { TrekPhotosRepository } from '../../../src/nest/photos/trek-photos.repository';
-import { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
-import { JourneyShareService } from '../../../src/nest/journey/journey-share.service';
-import { SettingsService } from '../../../src/nest/settings/settings.service';
-import { db as dbConn } from '../../../src/db/database';
-
 const dbs = new DatabaseService(dbConn);
 const svc = new JourneyShareService(
   dbs,
@@ -67,32 +67,48 @@ afterAll(() => {
 /** Insert a trek_photos + journey_photos (gallery) + journey_entry_photos row and return the trek_photos id (used as photoId in public URLs). */
 function insertJourneyPhoto(
   entryId: number,
-  opts: { filePath?: string; assetId?: string; ownerId?: number } = {}
+  opts: { filePath?: string; assetId?: string; ownerId?: number } = {},
 ): number {
   const provider = opts.assetId ? 'immich' : 'local';
   const filePath = !opts.assetId ? (opts.filePath ?? '/photos/test.jpg') : null;
-  const trekResult = testDb.prepare(`
+  const trekResult = testDb
+    .prepare(
+      `
     INSERT INTO trek_photos (provider, asset_id, file_path, owner_id, created_at)
     VALUES (?, ?, ?, ?, ?)
-  `).run(provider, opts.assetId ?? null, filePath, opts.ownerId ?? null, Date.now());
+  `,
+    )
+    .run(provider, opts.assetId ?? null, filePath, opts.ownerId ?? null, Date.now());
   const trekId = trekResult.lastInsertRowid as number;
 
   // Look up journey_id from entry so gallery row is keyed to the journey (not entry).
-  const entryRow = testDb.prepare('SELECT journey_id FROM journey_entries WHERE id = ?').get(entryId) as { journey_id: number };
+  const entryRow = testDb.prepare('SELECT journey_id FROM journey_entries WHERE id = ?').get(entryId) as {
+    journey_id: number;
+  };
   const journeyId = entryRow.journey_id;
   const now = Date.now();
 
-  testDb.prepare(`
+  testDb
+    .prepare(
+      `
     INSERT OR IGNORE INTO journey_photos (journey_id, photo_id, caption, sort_order, created_at)
     VALUES (?, ?, NULL, 0, ?)
-  `).run(journeyId, trekId, now);
+  `,
+    )
+    .run(journeyId, trekId, now);
 
-  const galleryRow = testDb.prepare('SELECT id FROM journey_photos WHERE journey_id = ? AND photo_id = ?').get(journeyId, trekId) as { id: number };
+  const galleryRow = testDb
+    .prepare('SELECT id FROM journey_photos WHERE journey_id = ? AND photo_id = ?')
+    .get(journeyId, trekId) as { id: number };
 
-  testDb.prepare(`
+  testDb
+    .prepare(
+      `
     INSERT OR IGNORE INTO journey_entry_photos (entry_id, journey_photo_id, sort_order, created_at)
     VALUES (?, ?, 0, ?)
-  `).run(entryId, galleryRow.id, now);
+  `,
+    )
+    .run(entryId, galleryRow.id, now);
 
   // Return trek_photos.id — this is p.photo_id in the public API response
   // and the value the client sends to /api/public/journey/:token/photos/:photoId/:kind
@@ -321,7 +337,11 @@ describe('validateShareTokenForPhoto', () => {
     const journey = createJourney(testDb, user.id);
     const entry = createJourneyEntry(testDb, journey.id, user.id);
     const photoId = insertJourneyPhoto(entry.id, { ownerId: user.id });
-    const { token } = svc.createOrUpdateJourneyShareLink(journey.id, user.id, { share_timeline: true, share_gallery: false, share_map: true });
+    const { token } = svc.createOrUpdateJourneyShareLink(journey.id, user.id, {
+      share_timeline: true,
+      share_gallery: false,
+      share_map: true,
+    });
 
     expect(svc.validateShareTokenForPhoto(token, photoId)).toBeNull();
   });
@@ -336,7 +356,9 @@ describe('validateShareTokenForPhoto', () => {
 
     // Pre-populate trek_photos to push the autoincrement higher
     for (let i = 0; i < 5; i++) {
-      testDb.prepare(`INSERT INTO trek_photos (provider, asset_id, owner_id, created_at) VALUES ('immich', ?, ?, ?)`).run(`bulk-asset-${i}`, user.id, Date.now());
+      testDb
+        .prepare(`INSERT INTO trek_photos (provider, asset_id, owner_id, created_at) VALUES ('immich', ?, ?, ?)`)
+        .run(`bulk-asset-${i}`, user.id, Date.now());
     }
 
     // This trek_photos row gets a high id (e.g. 6) while journey_photos id will be 1
@@ -377,7 +399,11 @@ describe('validateShareTokenForAsset', () => {
     const journey = createJourney(testDb, user.id);
     const entry = createJourneyEntry(testDb, journey.id, user.id);
     insertJourneyPhoto(entry.id, { assetId: 'immich-asset-999', ownerId: user.id });
-    const { token } = svc.createOrUpdateJourneyShareLink(journey.id, user.id, { share_timeline: true, share_gallery: false, share_map: true });
+    const { token } = svc.createOrUpdateJourneyShareLink(journey.id, user.id, {
+      share_timeline: true,
+      share_gallery: false,
+      share_map: true,
+    });
 
     expect(svc.validateShareTokenForAsset(token, 'immich-asset-999')).toBeNull();
   });
@@ -486,7 +512,8 @@ describe('getPublicJourney', () => {
       entry_date: '2026-04-01',
     });
     // Set tags on the entry directly
-    testDb.prepare('UPDATE journey_entries SET tags = ? WHERE id = ?')
+    testDb
+      .prepare('UPDATE journey_entries SET tags = ? WHERE id = ?')
       .run(JSON.stringify(['food', 'culture']), entry.id);
     insertJourneyPhoto(entry.id, { filePath: '/photos/a.jpg' });
     insertJourneyPhoto(entry.id, { filePath: '/photos/b.jpg' });
@@ -518,12 +545,20 @@ describe('getPublicJourney', () => {
     const { user } = createUser(testDb);
     const journey = createJourney(testDb, user.id, { title: 'Secret' });
     const entry = createJourneyEntry(testDb, journey.id, user.id, {
-      type: 'entry', title: 'Day 1', story: 'private notes', entry_date: '2026-05-01', location_name: 'Paris',
+      type: 'entry',
+      title: 'Day 1',
+      story: 'private notes',
+      entry_date: '2026-05-01',
+      location_name: 'Paris',
     });
-    testDb.prepare('UPDATE journey_entries SET location_lat = ?, location_lng = ? WHERE id = ?').run(48.8566, 2.3522, entry.id);
+    testDb
+      .prepare('UPDATE journey_entries SET location_lat = ?, location_lng = ? WHERE id = ?')
+      .run(48.8566, 2.3522, entry.id);
     insertJourneyPhoto(entry.id);
     const { token } = svc.createOrUpdateJourneyShareLink(journey.id, user.id, {
-      share_timeline: false, share_gallery: false, share_map: false,
+      share_timeline: false,
+      share_gallery: false,
+      share_map: false,
     });
 
     const result = svc.getPublicJourney(token)!;
@@ -536,11 +571,19 @@ describe('getPublicJourney', () => {
     const { user } = createUser(testDb);
     const journey = createJourney(testDb, user.id);
     const entry = createJourneyEntry(testDb, journey.id, user.id, {
-      type: 'entry', title: 'Day 1', story: 'notes', entry_date: '2026-05-01', location_name: 'Paris',
+      type: 'entry',
+      title: 'Day 1',
+      story: 'notes',
+      entry_date: '2026-05-01',
+      location_name: 'Paris',
     });
-    testDb.prepare('UPDATE journey_entries SET location_lat = ?, location_lng = ? WHERE id = ?').run(48.8566, 2.3522, entry.id);
+    testDb
+      .prepare('UPDATE journey_entries SET location_lat = ?, location_lng = ? WHERE id = ?')
+      .run(48.8566, 2.3522, entry.id);
     const { token } = svc.createOrUpdateJourneyShareLink(journey.id, user.id, {
-      share_timeline: true, share_gallery: true, share_map: false,
+      share_timeline: true,
+      share_gallery: true,
+      share_map: false,
     });
 
     const result = svc.getPublicJourney(token)!;
@@ -555,11 +598,19 @@ describe('getPublicJourney', () => {
     const { user } = createUser(testDb);
     const journey = createJourney(testDb, user.id);
     const entry = createJourneyEntry(testDb, journey.id, user.id, {
-      type: 'entry', title: 'Day 1', story: 'private notes', entry_date: '2026-05-01', location_name: 'Paris',
+      type: 'entry',
+      title: 'Day 1',
+      story: 'private notes',
+      entry_date: '2026-05-01',
+      location_name: 'Paris',
     });
-    testDb.prepare('UPDATE journey_entries SET location_lat = ?, location_lng = ? WHERE id = ?').run(48.8566, 2.3522, entry.id);
+    testDb
+      .prepare('UPDATE journey_entries SET location_lat = ?, location_lng = ? WHERE id = ?')
+      .run(48.8566, 2.3522, entry.id);
     const { token } = svc.createOrUpdateJourneyShareLink(journey.id, user.id, {
-      share_timeline: false, share_gallery: false, share_map: true,
+      share_timeline: false,
+      share_gallery: false,
+      share_map: true,
     });
 
     const result = svc.getPublicJourney(token)!;
@@ -576,14 +627,20 @@ describe('getPublicJourney', () => {
     const { user } = createUser(testDb);
     const journey = createJourney(testDb, user.id);
     const entry = createJourneyEntry(testDb, journey.id, user.id, {
-      type: 'entry', title: 'Day 1', story: 'notes', entry_date: '2026-05-01',
+      type: 'entry',
+      title: 'Day 1',
+      story: 'notes',
+      entry_date: '2026-05-01',
     });
     const trekId = insertJourneyPhoto(entry.id, { ownerId: user.id });
-    testDb.prepare('UPDATE trek_photos SET lat = ?, lng = ?, taken_at = ? WHERE id = ?')
+    testDb
+      .prepare('UPDATE trek_photos SET lat = ?, lng = ?, taken_at = ? WHERE id = ?')
       .run(48.8584, 2.2945, '2026-05-01T10:00:00Z', trekId);
 
     const { token } = svc.createOrUpdateJourneyShareLink(journey.id, user.id, {
-      share_timeline: true, share_gallery: true, share_map: false,
+      share_timeline: true,
+      share_gallery: true,
+      share_map: false,
     });
 
     const result = svc.getPublicJourney(token)!;
@@ -603,14 +660,17 @@ describe('getPublicJourney', () => {
     const { user } = createUser(testDb);
     const journey = createJourney(testDb, user.id);
     const entry = createJourneyEntry(testDb, journey.id, user.id, {
-      type: 'entry', title: 'Day 1', entry_date: '2026-05-01',
+      type: 'entry',
+      title: 'Day 1',
+      entry_date: '2026-05-01',
     });
     const trekId = insertJourneyPhoto(entry.id, { ownerId: user.id });
-    testDb.prepare('UPDATE trek_photos SET lat = ?, lng = ? WHERE id = ?')
-      .run(48.8584, 2.2945, trekId);
+    testDb.prepare('UPDATE trek_photos SET lat = ?, lng = ? WHERE id = ?').run(48.8584, 2.2945, trekId);
 
     const { token } = svc.createOrUpdateJourneyShareLink(journey.id, user.id, {
-      share_timeline: true, share_gallery: true, share_map: true,
+      share_timeline: true,
+      share_gallery: true,
+      share_map: true,
     });
 
     const gallery = svc.getPublicJourney(token)!.gallery as Record<string, unknown>[];
@@ -622,11 +682,16 @@ describe('getPublicJourney', () => {
     const { user } = createUser(testDb);
     const journey = createJourney(testDb, user.id);
     const entry = createJourneyEntry(testDb, journey.id, user.id, {
-      type: 'entry', title: 'Day 1', story: 'notes', entry_date: '2026-05-01',
+      type: 'entry',
+      title: 'Day 1',
+      story: 'notes',
+      entry_date: '2026-05-01',
     });
     insertJourneyPhoto(entry.id, { ownerId: user.id });
     const { token } = svc.createOrUpdateJourneyShareLink(journey.id, user.id, {
-      share_timeline: true, share_gallery: false, share_map: true,
+      share_timeline: true,
+      share_gallery: false,
+      share_map: true,
     });
 
     const result = svc.getPublicJourney(token)!;
@@ -641,9 +706,13 @@ describe('getPublicJourney', () => {
     const { token } = svc.createOrUpdateJourneyShareLink(journey.id, user.id, { share_map: true });
 
     expect(svc.getPublicJourney(token)!.cartoApiKey).toBe('');
-    testDb.prepare("INSERT INTO app_settings (key, value) VALUES ('default_user_setting_carto_api_key', 'instance-key')").run();
+    testDb
+      .prepare("INSERT INTO app_settings (key, value) VALUES ('default_user_setting_carto_api_key', 'instance-key')")
+      .run();
     expect(svc.getPublicJourney(token)!.cartoApiKey).toBe('instance-key');
-    testDb.prepare("INSERT INTO settings (user_id, key, value) VALUES (?, 'carto_api_key', ' owner-key ')").run(user.id);
+    testDb
+      .prepare("INSERT INTO settings (user_id, key, value) VALUES (?, 'carto_api_key', ' owner-key ')")
+      .run(user.id);
     expect(svc.getPublicJourney(token)!.cartoApiKey).toBe('owner-key');
   });
 });

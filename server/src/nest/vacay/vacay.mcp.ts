@@ -1,16 +1,25 @@
-import {
-  McpController, Tool, Resource, ResourceTemplate, type McpContext,
-  TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_OPEN_WORLD_READONLY,
-  TOOL_ANNOTATIONS_WRITE, TOOL_ANNOTATIONS_DELETE,
-  TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  demoDenied, errorResult, ok,
-} from '../../nest-mcp';
-import { z } from 'zod';
-import { AuthService } from '../auth/auth.service';
 import { ADDON_IDS } from '../../addons';
-import { VacayService } from './vacay.service';
+import {
+  McpController,
+  Tool,
+  Resource,
+  ResourceTemplate,
+  type McpContext,
+  TOOL_ANNOTATIONS_READONLY,
+  TOOL_ANNOTATIONS_OPEN_WORLD_READONLY,
+  TOOL_ANNOTATIONS_WRITE,
+  TOOL_ANNOTATIONS_DELETE,
+  TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+  demoDenied,
+  errorResult,
+  ok,
+} from '../../nest-mcp';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
+import { AuthService } from '../auth/auth.service';
+import { VacayService } from './vacay.service';
+
+import { z } from 'zod';
 
 /** Legacy registrar gate: the whole vacay surface rides the vacay addon. */
 const vacayAddonOn = addonGate(ADDON_IDS.VACAY);
@@ -65,8 +74,18 @@ export class VacayMcp {
     access: { group: 'vacay', mode: 'write' },
   })
   async updateVacayPlan(
-    { block_weekends, holidays_enabled, holidays_region, company_holidays_enabled, carry_over_enabled }: {
-      block_weekends?: boolean; holidays_enabled?: boolean; holidays_region?: string | null; company_holidays_enabled?: boolean; carry_over_enabled?: boolean;
+    {
+      block_weekends,
+      holidays_enabled,
+      holidays_region,
+      company_holidays_enabled,
+      carry_over_enabled,
+    }: {
+      block_weekends?: boolean;
+      holidays_enabled?: boolean;
+      holidays_region?: string | null;
+      company_holidays_enabled?: boolean;
+      carry_over_enabled?: boolean;
     },
     ctx: McpContext,
   ) {
@@ -74,7 +93,11 @@ export class VacayMcp {
     const planId = this.vacay.getActivePlanId(ctx.userId);
     // updatePlan already returns the fully-hydrated { plan }; surface it so the
     // AI consumer sees the updated plan, matching get_vacay_plan.
-    const result = await this.vacay.updatePlan(planId, { block_weekends, holidays_enabled, holidays_region, company_holidays_enabled, carry_over_enabled }, undefined);
+    const result = await this.vacay.updatePlan(
+      planId,
+      { block_weekends, holidays_enabled, holidays_region, company_holidays_enabled, carry_over_enabled },
+      undefined,
+    );
     return ok(result);
   }
 
@@ -182,7 +205,8 @@ export class VacayMcp {
 
   @Tool({
     name: 'dissolve_vacay_plan',
-    description: 'Dissolve the shared plan — all members are removed and everyone returns to their own individual plan.',
+    description:
+      'Dissolve the shared plan — all members are removed and everyone returns to their own individual plan.',
     inputSchema: {},
     annotations: TOOL_ANNOTATIONS_DELETE,
     when: vacayAddonOn,
@@ -424,7 +448,8 @@ export class VacayMcp {
 
   @Tool({
     name: 'list_vacay_shares',
-    description: 'List read-only calendar shares: who the current user shares their vacation calendar with, and which calendars are shared with them.',
+    description:
+      'List read-only calendar shares: who the current user shares their vacation calendar with, and which calendars are shared with them.',
     inputSchema: {},
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: vacayAddonOn,
@@ -455,7 +480,8 @@ export class VacayMcp {
 
   @Tool({
     name: 'unshare_vacay_calendar',
-    description: 'Remove a read-only calendar share the current user is part of (revoke as owner, or remove a calendar shared with them).',
+    description:
+      'Remove a read-only calendar share the current user is part of (revoke as owner, or remove a calendar shared with them).',
     inputSchema: {
       shareId: z.number().int().positive(),
     },
@@ -473,7 +499,8 @@ export class VacayMcp {
 
   @Tool({
     name: 'get_shared_vacay_calendars',
-    description: 'Get the read-only vacation calendars shared with the current user for a year (entries and company holidays per sharer).',
+    description:
+      'Get the read-only vacation calendars shared with the current user for a year (entries and company holidays per sharer).',
     inputSchema: {
       year: z.number().int(),
     },
@@ -500,11 +527,13 @@ export class VacayMcp {
   async vacayPlanResource(uri: URL, ctx: McpContext) {
     const plan = this.vacay.getPlanData(ctx.userId);
     return {
-      contents: [{
-        uri: uri.href,
-        mimeType: 'application/json',
-        text: JSON.stringify(plan, null, 2),
-      }],
+      contents: [
+        {
+          uri: uri.href,
+          mimeType: 'application/json',
+          text: JSON.stringify(plan, null, 2),
+        },
+      ],
     };
   }
 
@@ -520,11 +549,13 @@ export class VacayMcp {
     const planId = this.vacay.getActivePlanId(ctx.userId);
     const entries = this.vacay.getEntries(planId, Array.isArray(year) ? year[0] : year, ctx.userId);
     return {
-      contents: [{
-        uri: uri.href,
-        mimeType: 'application/json',
-        text: JSON.stringify(entries, null, 2),
-      }],
+      contents: [
+        {
+          uri: uri.href,
+          mimeType: 'application/json',
+          text: JSON.stringify(entries, null, 2),
+        },
+      ],
     };
   }
 
@@ -539,11 +570,13 @@ export class VacayMcp {
   async vacayHolidaysResource(uri: URL, { year }: { year: string | string[] }, ctx: McpContext) {
     const plan = this.vacay.getActivePlan(ctx.userId);
     const json = (data: unknown) => ({
-      contents: [{
-        uri: uri.href,
-        mimeType: 'application/json',
-        text: JSON.stringify(data, null, 2),
-      }],
+      contents: [
+        {
+          uri: uri.href,
+          mimeType: 'application/json',
+          text: JSON.stringify(data, null, 2),
+        },
+      ],
     });
     if (!plan.holidays_enabled || !plan.holidays_region) return json([]);
     const yearStr = Array.isArray(year) ? year[0] : year;

@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import type { NestMiddleware } from '@nestjs/common';
+
 import type { Request, Response, NextFunction } from 'express';
 
 /**

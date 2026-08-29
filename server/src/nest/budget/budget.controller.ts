@@ -1,3 +1,21 @@
+import type { User } from '../../types';
+import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import type { TripAccess } from '../database/database.service';
+import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
+import { Trip } from '../permissions/trip.decorator';
+import {
+  BudgetCreateItemDto,
+  BudgetUpdateItemDto,
+  BudgetUpdatePayersDto,
+  BudgetUpdateMembersDto,
+  BudgetToggleMemberPaidDto,
+  BudgetReorderItemsDto,
+  BudgetReorderCategoriesDto,
+  BudgetCreateSettlementDto,
+  BudgetUpdateSettlementDto,
+} from './budget.dto';
+import { BudgetService } from './budget.service';
 import {
   Body,
   Controller,
@@ -11,24 +29,6 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import type { User } from '../../types';
-import { BudgetService } from './budget.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
-import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
-import { Trip } from '../permissions/trip.decorator';
-import type { TripAccess } from '../database/database.service';
-import {
-  BudgetCreateItemDto,
-  BudgetUpdateItemDto,
-  BudgetUpdatePayersDto,
-  BudgetUpdateMembersDto,
-  BudgetToggleMemberPaidDto,
-  BudgetReorderItemsDto,
-  BudgetReorderCategoriesDto,
-  BudgetCreateSettlementDto,
-  BudgetUpdateSettlementDto,
-} from './budget.dto';
 
 /**
  * /api/trips/:tripId/budget — trip-scoped expense planner.
@@ -53,8 +53,6 @@ import {
 @UseGuards(JwtAuthGuard, TripAccessGuard)
 export class BudgetController {
   constructor(private readonly budget: BudgetService) {}
-
-
 
   @Get()
   list(@CurrentUser() user: User, @Param('tripId') tripId: string) {
@@ -212,7 +210,12 @@ export class BudgetController {
     if (!result) {
       throw new HttpException({ error: 'Budget item not found' }, 404);
     }
-    this.budget.broadcast(tripId, 'budget:members-updated', { itemId: Number(id), members: result.members, persons: result.item.persons }, socketId);
+    this.budget.broadcast(
+      tripId,
+      'budget:members-updated',
+      { itemId: Number(id), members: result.members, persons: result.item.persons },
+      socketId,
+    );
     return { members: result.members, item: result.item };
   }
 
@@ -244,7 +247,12 @@ export class BudgetController {
     @Headers('x-socket-id') socketId?: string,
   ) {
     const member = this.budget.toggleMemberPaid(id, tripId, userId, body.paid);
-    this.budget.broadcast(tripId, 'budget:member-paid-updated', { itemId: Number(id), userId: Number(userId), paid: body.paid ? 1 : 0 }, socketId);
+    this.budget.broadcast(
+      tripId,
+      'budget:member-paid-updated',
+      { itemId: Number(id), userId: Number(userId), paid: body.paid ? 1 : 0 },
+      socketId,
+    );
     return { member };
   }
 

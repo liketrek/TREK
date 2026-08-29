@@ -1,21 +1,10 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Headers,
-  HttpException,
-  Param,
-  Post,
-  Put,
-  UseGuards,
-} from '@nestjs/common';
 import type { User } from '../../types';
-import { DaysService, DayReorderError } from './days.service';
-import { DayCreateDto, DayReorderDto, DayTransportDto, DayUpdateDto } from './days.dto';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
+import { DayCreateDto, DayReorderDto, DayTransportDto, DayUpdateDto } from './days.dto';
+import { DaysService, DayReorderError } from './days.service';
+import { Body, Controller, Delete, Get, Headers, HttpException, Param, Post, Put, UseGuards } from '@nestjs/common';
 
 /**
  * /api/trips/:tripId/days — trip itinerary days.
@@ -49,9 +38,10 @@ export class DaysController {
   ) {
     // A `position` means "insert a new empty day here" (which on a dated trip
     // extends the trip and re-pins dates); without it, the legacy append.
-    const day = body.position !== undefined
-      ? this.days.insert(tripId, body.position)
-      : this.days.create(tripId, body.date, body.notes);
+    const day =
+      body.position !== undefined
+        ? this.days.insert(tripId, body.position)
+        : this.days.create(tripId, body.date, body.notes);
     // An insert can shuffle dates/positions of other days, so collaborators
     // refetch the whole list; a plain append only needs the new day.
     const event = body.position !== undefined ? 'day:reordered' : 'day:created';

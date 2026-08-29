@@ -1,15 +1,29 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpException, Param, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
-import type { Request, Response } from 'express';
-import { OauthService } from './oauth.service';
-import { RateLimitService } from '../common/rate-limit.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CookieAuthGuard } from '../auth/cookie-auth.guard';
-import { OptionalJwtGuard } from '../auth/optional-jwt.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
-import { getClientIp } from '../audit/client-ip';
 import type { User } from '../../types';
-import type { AuthorizeParams } from './oauth.service';
+import { getClientIp } from '../audit/client-ip';
+import { CookieAuthGuard } from '../auth/cookie-auth.guard';
+import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { OptionalJwtGuard } from '../auth/optional-jwt.guard';
+import { RateLimitService } from '../common/rate-limit.service';
 import { OauthClientCreateDto, OauthConsentDto } from './oauth.dto';
+import { OauthService } from './oauth.service';
+import type { AuthorizeParams } from './oauth.service';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpException,
+  Param,
+  Post,
+  Query,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
+
+import type { Request, Response } from 'express';
 
 const MIN = 60_000;
 
@@ -23,7 +37,10 @@ const MIN = 60_000;
  */
 @Controller('api/oauth')
 export class OauthApiController {
-  constructor(private readonly oauth: OauthService, private readonly rl: RateLimitService) {}
+  constructor(
+    private readonly oauth: OauthService,
+    private readonly rl: RateLimitService,
+  ) {}
 
   private requireMcp403(): void {
     if (!this.oauth.mcpEnabled()) {
@@ -35,7 +52,10 @@ export class OauthApiController {
   @UseGuards(OptionalJwtGuard)
   validate(@Req() req: Request, @Query() params: Partial<AuthorizeParams>, @Res({ passthrough: true }) res: Response) {
     if (!this.rl.check('oauth_validate', req.ip || 'unknown', 30, MIN, Date.now())) {
-      throw new HttpException({ error: 'too_many_requests', error_description: 'Too many attempts. Please try again later.' }, 429);
+      throw new HttpException(
+        { error: 'too_many_requests', error_description: 'Too many attempts. Please try again later.' },
+        429,
+      );
     }
     if (!this.oauth.mcpEnabled()) {
       // 404 (not 403) with an empty body so anonymous callers can't fingerprint the feature.
@@ -110,7 +130,10 @@ export class OauthApiController {
       codeChallengeMethod: 'S256',
     });
     if (!code) {
-      throw new HttpException({ error: 'server_error', error_description: 'Authorization server is temporarily unavailable' }, 503);
+      throw new HttpException(
+        { error: 'server_error', error_description: 'Authorization server is temporarily unavailable' },
+        503,
+      );
     }
     const url = new URL(body.redirect_uri);
     url.searchParams.set('code', code);
@@ -130,7 +153,14 @@ export class OauthApiController {
   @UseGuards(CookieAuthGuard)
   createClient(@CurrentUser() user: User, @Body() body: OauthClientCreateDto, @Req() req: Request) {
     this.requireMcp403();
-    const result = this.oauth.createOAuthClient(user.id, body.name, body.redirect_uris ?? [], body.allowed_scopes, getClientIp(req), { allowsClientCredentials: body.allows_client_credentials });
+    const result = this.oauth.createOAuthClient(
+      user.id,
+      body.name,
+      body.redirect_uris ?? [],
+      body.allowed_scopes,
+      getClientIp(req),
+      { allowsClientCredentials: body.allows_client_credentials },
+    );
     if (result.error) {
       throw new HttpException({ error: result.error }, result.status || 400);
     }

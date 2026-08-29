@@ -140,6 +140,7 @@ const storage: TranslationStrings = {
   'storage.migrate.cancel': 'Ακύρωση μετακίνησης',
   'storage.migrate.promptCancel': 'Ακύρωση',
   'storage.migrate.queued': 'Σε αναμονή: {categories}',
-  'storage.migrate.queueDropped': 'Δεν ήταν δυνατή η έναρξη της επόμενης μετακίνησης — η υπόλοιπη ουρά διαγράφηκε: {categories}',
+  'storage.migrate.queueDropped':
+    'Δεν ήταν δυνατή η έναρξη της επόμενης μετακίνησης — η υπόλοιπη ουρά διαγράφηκε: {categories}',
 };
 export default storage;

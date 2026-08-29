@@ -1,21 +1,10 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Headers,
-  HttpException,
-  Param,
-  Post,
-  Put,
-  UseGuards,
-} from '@nestjs/common';
 import type { User } from '../../types';
-import { AccommodationsService } from './accommodations.service';
-import { AccommodationCreateDto, AccommodationUpdateDto } from './accommodations.dto';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
+import { AccommodationCreateDto, AccommodationUpdateDto } from './accommodations.dto';
+import { AccommodationsService } from './accommodations.service';
+import { Body, Controller, Delete, Get, Headers, HttpException, Param, Post, Put, UseGuards } from '@nestjs/common';
 
 type AccommodationBody = {
   place_id?: number;
@@ -46,8 +35,6 @@ type AccommodationBody = {
 export class AccommodationsController {
   constructor(private readonly accommodations: AccommodationsService) {}
 
-
-
   @Get()
   list(@CurrentUser() user: User, @Param('tripId') tripId: string) {
     return { accommodations: this.accommodations.list(tripId) };
@@ -70,7 +57,16 @@ export class AccommodationsController {
     if (errors.length > 0) {
       throw new HttpException({ error: errors[0].message }, 404);
     }
-    const accommodation = this.accommodations.create(tripId, { place_id, start_day_id, end_day_id, check_in, check_in_end, check_out, confirmation, notes } as never);
+    const accommodation = this.accommodations.create(tripId, {
+      place_id,
+      start_day_id,
+      end_day_id,
+      check_in,
+      check_in_end,
+      check_out,
+      confirmation,
+      notes,
+    } as never);
     this.accommodations.broadcast(tripId, 'accommodation:created', { accommodation }, socketId);
     this.accommodations.broadcast(tripId, 'reservation:created', {}, socketId);
     return { accommodation };
@@ -95,7 +91,11 @@ export class AccommodationsController {
     if (errors.length > 0) {
       throw new HttpException({ error: errors[0].message }, 404);
     }
-    const accommodation = this.accommodations.update(id, existing as never, { place_id, start_day_id, end_day_id, check_in, check_in_end, check_out, confirmation, notes } as never);
+    const accommodation = this.accommodations.update(
+      id,
+      existing as never,
+      { place_id, start_day_id, end_day_id, check_in, check_in_end, check_out, confirmation, notes } as never,
+    );
     this.accommodations.broadcast(tripId, 'accommodation:updated', { accommodation }, socketId);
     return { accommodation };
   }

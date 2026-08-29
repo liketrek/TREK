@@ -4,6 +4,24 @@
  * to slots while content rides along by id, booking-date re-stamp, permutation
  * validation, the accommodation-inversion guard, and insert (dated + dateless).
  */
+import { runMigrations } from '../../src/db/migrations';
+import { createTables } from '../../src/db/schema';
+import { DatabaseService } from '../../src/nest/database/database.service';
+import { DaysService, DayReorderError } from '../../src/nest/days/days.service';
+import { PermissionsService } from '../../src/nest/permissions/permissions.service';
+import { QueryHelpersService } from '../../src/nest/query-helpers/query-helpers.service';
+import { RealtimeService } from '../../src/nest/realtime/realtime.service';
+import {
+  createUser,
+  createTrip,
+  createPlace,
+  createDay,
+  createDayAssignment,
+  createReservation,
+  createDayAccommodation,
+} from '../helpers/factories';
+import { resetTestDb } from '../helpers/test-db';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 const { testDb, dbMock } = vi.hoisted(() => {
@@ -24,17 +42,12 @@ vi.mock('../../src/config', () => ({
   DEFAULT_LANGUAGE: 'en',
 }));
 
-import { createTables } from '../../src/db/schema';
-import { runMigrations } from '../../src/db/migrations';
-import { resetTestDb } from '../helpers/test-db';
-import { createUser, createTrip, createPlace, createDay, createDayAssignment, createReservation, createDayAccommodation } from '../helpers/factories';
-import { DatabaseService } from '../../src/nest/database/database.service';
-import { PermissionsService } from '../../src/nest/permissions/permissions.service';
-import { DaysService, DayReorderError } from '../../src/nest/days/days.service';
-import { RealtimeService } from '../../src/nest/realtime/realtime.service';
-import { QueryHelpersService } from '../../src/nest/query-helpers/query-helpers.service';
-
-const svc = new DaysService(new DatabaseService(testDb), new PermissionsService(new DatabaseService(testDb)), new RealtimeService(), new QueryHelpersService(new DatabaseService(testDb)));
+const svc = new DaysService(
+  new DatabaseService(testDb),
+  new PermissionsService(new DatabaseService(testDb)),
+  new RealtimeService(),
+  new QueryHelpersService(new DatabaseService(testDb)),
+);
 const reorderDays = (tripId: number, orderedIds: number[]) => svc.reorder(tripId, orderedIds);
 const insertDay = (tripId: number, position?: number) => svc.insert(tripId, position);
 
@@ -53,8 +66,11 @@ beforeEach(() => {
 afterAll(() => testDb.close());
 
 const orderedDays = (tripId: number) =>
-  testDb.prepare('SELECT id, day_number, date FROM days WHERE trip_id = ? ORDER BY day_number').all(tripId) as
-    { id: number; day_number: number; date: string | null }[];
+  testDb.prepare('SELECT id, day_number, date FROM days WHERE trip_id = ? ORDER BY day_number').all(tripId) as {
+    id: number;
+    day_number: number;
+    date: string | null;
+  }[];
 
 describe('reorderDays', () => {
   it('permutes positions, pins dates to slots, and content rides along by id', () => {
@@ -67,15 +83,15 @@ describe('reorderDays', () => {
     reorderDays(trip.id, [d2.id, d1.id, d3.id]);
 
     const after = orderedDays(trip.id);
-    expect(after.map(d => d.id)).toEqual([d2.id, d1.id, d3.id]);
+    expect(after.map((d) => d.id)).toEqual([d2.id, d1.id, d3.id]);
     // Dates stay pinned to their calendar slots
-    expect(after.map(d => d.date)).toEqual(['2026-03-01', '2026-03-02', '2026-03-03']);
+    expect(after.map((d) => d.date)).toEqual(['2026-03-01', '2026-03-02', '2026-03-03']);
     // The place rides along with its day row (still attached to d2.id, now at slot 1)
     const onD2 = testDb.prepare('SELECT * FROM day_assignments WHERE day_id = ?').all(d2.id);
     expect(onD2).toHaveLength(1);
   });
 
-  it('re-stamps a booking\'s date onto its day\'s new date, keeping the time', () => {
+  it("re-stamps a booking's date onto its day's new date, keeping the time", () => {
     const trip = createTrip(testDb, userId, { start_date: '2026-03-01', end_date: '2026-03-03' });
     const [d1, d2, d3] = orderedDays(trip.id);
     const res = createReservation(testDb, trip.id, { day_id: d2.id, type: 'restaurant' });
@@ -83,7 +99,9 @@ describe('reorderDays', () => {
 
     reorderDays(trip.id, [d2.id, d1.id, d3.id]); // d2 moves to the 2026-03-01 slot
 
-    const r = testDb.prepare('SELECT reservation_time FROM reservations WHERE id = ?').get(res.id) as { reservation_time: string };
+    const r = testDb.prepare('SELECT reservation_time FROM reservations WHERE id = ?').get(res.id) as {
+      reservation_time: string;
+    };
     expect(r.reservation_time).toBe('2026-03-01T19:00');
   });
 
@@ -103,7 +121,7 @@ describe('reorderDays', () => {
     expect(() => reorderDays(trip.id, [d2.id, d3.id, d1.id])).toThrow(DayReorderError);
 
     // Transaction rolled back: original order intact
-    expect(orderedDays(trip.id).map(d => d.id)).toEqual([d1.id, d2.id, d3.id]);
+    expect(orderedDays(trip.id).map((d) => d.id)).toEqual([d1.id, d2.id, d3.id]);
   });
 });
 
@@ -120,7 +138,7 @@ describe('insertDay', () => {
     expect(after).toHaveLength(4);
     expect(after[0].id).toBe(created.id);
     expect(after[0].date).toBeNull();
-    expect(after.slice(1).map(d => d.id)).toEqual([d1.id, d2.id, d3.id]);
+    expect(after.slice(1).map((d) => d.id)).toEqual([d1.id, d2.id, d3.id]);
   });
 
   it('inserts at the front of a dated trip: dates stay contiguous and the trip extends', () => {
@@ -132,9 +150,9 @@ describe('insertDay', () => {
     const after = orderedDays(trip.id);
     expect(after).toHaveLength(4);
     expect(after[0].id).toBe(created.id);
-    expect(after.map(d => d.date)).toEqual(['2026-03-01', '2026-03-02', '2026-03-03', '2026-03-04']);
+    expect(after.map((d) => d.date)).toEqual(['2026-03-01', '2026-03-02', '2026-03-03', '2026-03-04']);
     // Old content shifted down a slot
-    expect(after.slice(1).map(d => d.id)).toEqual([d1.id, d2.id, d3.id]);
+    expect(after.slice(1).map((d) => d.id)).toEqual([d1.id, d2.id, d3.id]);
     // Trip range extended by one day
     const t = testDb.prepare('SELECT end_date FROM trips WHERE id = ?').get(trip.id) as { end_date: string };
     expect(t.end_date).toBe('2026-03-04');

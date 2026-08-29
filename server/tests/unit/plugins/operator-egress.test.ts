@@ -12,6 +12,16 @@
  *   - it is always the ADMIN, never an end user, who widens it;
  *   - changing the set RE-SPAWNS the plugin, because the child's guard is install-once.
  */
+import { db as dbConn } from '../../../src/db/database';
+import { runMigrations } from '../../../src/db/migrations';
+import { createTables } from '../../../src/db/schema';
+import { AddonsService } from '../../../src/nest/addons/addons.service';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { parseManifest, ManifestError } from '../../../src/nest/plugins/install/manifest';
+import { PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.service';
+import { makeHostAllow } from '../../../src/nest/plugins/runtime/egress-policy';
+import { createPluginRuntime } from '../../helpers/plugin-host';
+
 import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
 
 const { testDb, dbMock } = vi.hoisted(() => {
@@ -20,28 +30,28 @@ const { testDb, dbMock } = vi.hoisted(() => {
   return { testDb: db, dbMock: { db, closeDb: () => {}, reinitialize: () => {}, canAccessTrip: () => null } };
 });
 vi.mock('../../../src/db/database', () => dbMock);
-import { db as dbConn } from '../../../src/db/database';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-vi.mock('../../../src/config', () => ({ JWT_SECRET: 'x'.repeat(40), ENCRYPTION_KEY: 'a'.repeat(64), updateJwtSecret: () => {} }));
 
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.service';
-import { createPluginRuntime } from '../../helpers/plugin-host';
-import { parseManifest, ManifestError } from '../../../src/nest/plugins/install/manifest';
-import { makeHostAllow } from '../../../src/nest/plugins/runtime/egress-policy';
-import { AddonsService } from '../../../src/nest/addons/addons.service';
+vi.mock('../../../src/config', () => ({
+  JWT_SECRET: 'x'.repeat(40),
+  ENCRYPTION_KEY: 'a'.repeat(64),
+  updateJwtSecret: () => {},
+}));
 
 function install(id: string, operatorEgress: boolean, perms: string[] = ['http:outbound:gotify.net']) {
-  testDb.prepare(
-    `INSERT OR REPLACE INTO plugins (id, name, status, enabled, version, permissions, granted_permissions, capabilities, config, operator_egress)
+  testDb
+    .prepare(
+      `INSERT OR REPLACE INTO plugins (id, name, status, enabled, version, permissions, granted_permissions, capabilities, config, operator_egress)
      VALUES (?, ?, 'inactive', 0, '1.0.0', ?, ?, '{}', '{}', ?)`,
-  ).run(id, id, JSON.stringify(perms), JSON.stringify(perms), operatorEgress ? 1 : 0);
+    )
+    .run(id, id, JSON.stringify(perms), JSON.stringify(perms), operatorEgress ? 1 : 0);
 }
 
 let rt: PluginRuntimeService;
 
-beforeAll(() => { createTables(testDb); runMigrations(testDb); });
+beforeAll(() => {
+  createTables(testDb);
+  runMigrations(testDb);
+});
 beforeEach(() => {
   testDb.prepare('DELETE FROM plugins').run();
   testDb.prepare('DELETE FROM plugin_egress_hosts').run();
@@ -62,7 +72,9 @@ describe('operator-supplied egress hosts', () => {
     expect(rt.wantsOperatorEgress('sneaky')).toBe(false);
     // This is the load-bearing check: without it an admin could silently widen egress for
     // ANY plugin, and the install-time consent would stop bounding what's possible.
-    await expect(rt.setOperatorEgressHosts('sneaky', ['evil.example.com'])).rejects.toThrow(/did not declare operatorEgress/);
+    await expect(rt.setOperatorEgressHosts('sneaky', ['evil.example.com'])).rejects.toThrow(
+      /did not declare operatorEgress/,
+    );
     expect(rt.operatorEgressHosts('sneaky')).toEqual([]);
   });
 
@@ -77,9 +89,9 @@ describe('operator-supplied egress hosts', () => {
 
   it('OEG-004 — hosts are normalized and de-duplicated', async () => {
     install('gotify', true);
-    expect(await rt.setOperatorEgressHosts('gotify', ['Gotify.MyDomain.com', 'gotify.mydomain.com.', ' ', ''])).toEqual([
-      'gotify.mydomain.com',
-    ]);
+    expect(await rt.setOperatorEgressHosts('gotify', ['Gotify.MyDomain.com', 'gotify.mydomain.com.', ' ', ''])).toEqual(
+      ['gotify.mydomain.com'],
+    );
   });
 
   it('OEG-005 — setting the list replaces it (a removed host is really gone)', async () => {
@@ -90,16 +102,37 @@ describe('operator-supplied egress hosts', () => {
   });
 
   it('OEG-006 — the manifest rejects operatorEgress without an outbound permission', () => {
-    const base = { id: 'chan', name: 'Chan', version: '1.0.0', apiVersion: 1, type: 'integration', nativeModules: false };
-    expect(() => parseManifest({ ...base, permissions: ['db:own'], operatorEgress: true })).toThrow(/requires an http:outbound/);
+    const base = {
+      id: 'chan',
+      name: 'Chan',
+      version: '1.0.0',
+      apiVersion: 1,
+      type: 'integration',
+      nativeModules: false,
+    };
+    expect(() => parseManifest({ ...base, permissions: ['db:own'], operatorEgress: true })).toThrow(
+      /requires an http:outbound/,
+    );
     expect(() => parseManifest({ ...base, permissions: [], operatorEgress: 'yes' })).toThrow(ManifestError);
     // …and accepts the real thing.
-    const m = parseManifest({ ...base, permissions: ['http:outbound:gotify.net'], egress: ['gotify.net'], operatorEgress: true });
+    const m = parseManifest({
+      ...base,
+      permissions: ['http:outbound:gotify.net'],
+      egress: ['gotify.net'],
+      operatorEgress: true,
+    });
     expect(m.operatorEgress).toBe(true);
   });
 
   it('OEG-009 — an operatorEgress plugin may ship an EMPTY egress[]; anyone else may not', () => {
-    const base = { id: 'chan', name: 'Chan', version: '1.0.0', apiVersion: 1, type: 'integration', nativeModules: false };
+    const base = {
+      id: 'chan',
+      name: 'Chan',
+      version: '1.0.0',
+      apiVersion: 1,
+      type: 'integration',
+      nativeModules: false,
+    };
     // A self-hosted target (Gotify, ntfy) has no host the author can name at publish time.
     const m = parseManifest({ ...base, permissions: ['http:outbound'], operatorEgress: true });
     expect(m.egress).toEqual([]);
@@ -128,14 +161,19 @@ describe('operator-supplied egress hosts', () => {
 
 describe('settings-page actions (runtime)', () => {
   function declareAction(id: string, key: string) {
-    testDb.prepare('INSERT OR REPLACE INTO plugin_actions (plugin_id, action_key, label, hint, danger, sort_order) VALUES (?, ?, ?, NULL, 0, 0)')
+    testDb
+      .prepare(
+        'INSERT OR REPLACE INTO plugin_actions (plugin_id, action_key, label, hint, danger, sort_order) VALUES (?, ?, ?, NULL, 0, 0)',
+      )
       .run(id, key, key);
   }
 
   it('ACT-001 — actionsOf returns the declared descriptors', () => {
     install('p', false);
     declareAction('p', 'testConnection');
-    expect(rt.actionsOf('p')).toEqual([{ key: 'testConnection', label: 'testConnection', hint: undefined, danger: false }]);
+    expect(rt.actionsOf('p')).toEqual([
+      { key: 'testConnection', label: 'testConnection', hint: undefined, danger: false },
+    ]);
   });
 
   it('ACT-002 — invoking an action the plugin never declared is REFUSED', async () => {
@@ -168,13 +206,13 @@ describe('the admin list surfaces operator egress (so the chip can be shown)', (
     };
 
     const before = listPlugins();
-    expect(before.find(p => p.id === 'gotify')).toMatchObject({ operatorEgress: true, egressHostCount: 0 });
+    expect(before.find((p) => p.id === 'gotify')).toMatchObject({ operatorEgress: true, egressHostCount: 0 });
     // A plugin that never asked for it must never invite the admin to add hosts.
-    expect(before.find(p => p.id === 'plain')).toMatchObject({ operatorEgress: false, egressHostCount: 0 });
+    expect(before.find((p) => p.id === 'plain')).toMatchObject({ operatorEgress: false, egressHostCount: 0 });
 
     await rt.setOperatorEgressHosts('gotify', ['a.example.com', 'b.example.com']);
     const after = listPlugins();
-    expect(after.find(p => p.id === 'gotify')!.egressHostCount).toBe(2);
+    expect(after.find((p) => p.id === 'gotify')!.egressHostCount).toBe(2);
     delete process.env.TREK_PLUGINS_ENABLED;
   });
 });

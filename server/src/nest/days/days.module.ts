@@ -1,15 +1,15 @@
-import { Module } from '@nestjs/common';
-import { DaysController } from './days.controller';
-import { DaysService } from './days.service';
-import { DaysMcp } from './days.mcp';
-import { DaysRpc } from './days.rpc';
-import { PluginGuardsModule } from '../plugins/host/plugin-guards.module';
-import { RealtimeModule } from '../realtime/realtime.module';
-import { PermissionsModule } from '../permissions/permissions.module';
-import { QueryHelpersModule } from '../query-helpers/query-helpers.module';
-import { PlacesModule } from '../places/places.module';
 import { AuthModule } from '../auth/auth.module';
 import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
+import { PermissionsModule } from '../permissions/permissions.module';
+import { PlacesModule } from '../places/places.module';
+import { PluginGuardsModule } from '../plugins/host/plugin-guards.module';
+import { QueryHelpersModule } from '../query-helpers/query-helpers.module';
+import { RealtimeModule } from '../realtime/realtime.module';
+import { DaysController } from './days.controller';
+import { DaysMcp } from './days.mcp';
+import { DaysRpc } from './days.rpc';
+import { DaysService } from './days.service';
+import { Module } from '@nestjs/common';
 
 /**
  * Days (S6 — Phase 2 trip sub-domain), mounted at /api/trips/:tripId/days.
@@ -21,7 +21,15 @@ import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
  * own domain now (day-notes/).
  */
 @Module({
-  imports: [McpSharedModule, PermissionsModule, QueryHelpersModule, PlacesModule, AuthModule, RealtimeModule, PluginGuardsModule],
+  imports: [
+    McpSharedModule,
+    PermissionsModule,
+    QueryHelpersModule,
+    PlacesModule,
+    AuthModule,
+    RealtimeModule,
+    PluginGuardsModule,
+  ],
   controllers: [DaysController],
   providers: [DaysService, DaysMcp, DaysRpc],
   exports: [DaysService],

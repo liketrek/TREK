@@ -1,12 +1,13 @@
-import { Controller, Get, HttpException, Param, Res, UseGuards } from '@nestjs/common';
-import type { Response } from 'express';
-import path from 'node:path';
-import { JourneyService } from './journey.service';
-import { StorageService } from '../storage/storage.service';
+import { ADDON_IDS } from '../../addons';
 import { AddonGuard } from '../addons/addon.guard';
 import { RequireAddon } from '../addons/require-addon.decorator';
-import { ADDON_IDS } from '../../addons';
 import { Public } from '../auth/public.decorator';
+import { StorageService } from '../storage/storage.service';
+import { JourneyService } from './journey.service';
+import { Controller, Get, HttpException, Param, Res, UseGuards } from '@nestjs/common';
+
+import type { Response } from 'express';
+import path from 'node:path';
 
 /**
  * /api/public/journey — unauthenticated, share-token validated read + photo
@@ -42,12 +43,22 @@ export class JourneyPublicController {
   }
 
   @Get(':token/photos/:photoId/:kind')
-  async photo(@Param('token') token: string, @Param('photoId') photoId: string, @Param('kind') kind: string, @Res() res: Response): Promise<void> {
+  async photo(
+    @Param('token') token: string,
+    @Param('photoId') photoId: string,
+    @Param('kind') kind: string,
+    @Res() res: Response,
+  ): Promise<void> {
     const valid = this.journey.validateShareTokenForPhoto(token, Number(photoId));
     if (!valid) {
       throw new HttpException({ error: 'Not found' }, 404);
     }
-    await this.journey.streamPhoto(res, valid.ownerId, Number(photoId), kind === 'thumbnail' ? 'thumbnail' : 'original');
+    await this.journey.streamPhoto(
+      res,
+      valid.ownerId,
+      Number(photoId),
+      kind === 'thumbnail' ? 'thumbnail' : 'original',
+    );
   }
 
   @Get(':token/photo/:provider/:assetId/:ownerId/:kind')

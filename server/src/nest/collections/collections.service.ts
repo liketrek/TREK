@@ -1,10 +1,7 @@
-import path from 'path';
-import { Injectable } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { PermissionsService } from '../permissions/permissions.service';
-import { RealtimeService } from '../realtime/realtime.service';
 import { reclaimPlaceImage } from '../places/place-image';
-import { StorageService } from '../storage/storage.service';
 import {
   COORD_DEDUP_TOLERANCE,
   externalIdsOf,
@@ -12,6 +9,9 @@ import {
   trackInsertedInDedupSet,
   type DedupSet,
 } from '../places/places.helpers';
+import { RealtimeService } from '../realtime/realtime.service';
+import { StorageService } from '../storage/storage.service';
+import { Injectable } from '@nestjs/common';
 import type {
   Collection,
   CollectionDetailResponse,
@@ -30,7 +30,8 @@ import type {
   CollectionLabel,
   CollectionImportablesResponse,
 } from '@trek/shared';
-import { NotificationsService } from '../notifications/notifications.service';
+
+import path from 'path';
 
 /** Links are stored as a JSON TEXT column; parse on read, stringify on write. */
 function parseLinks(raw: unknown): CollectionLink[] | undefined {
@@ -46,7 +47,6 @@ function parseLinks(raw: unknown): CollectionLink[] | undefined {
 function serializeLinks(links: CollectionLink[] | undefined): string | null {
   return links && links.length ? JSON.stringify(links) : null;
 }
-
 
 // ---------------------------------------------------------------------------
 // Errors — thrown as plain Errors carrying a status; TrekExceptionFilter maps
@@ -109,21 +109,31 @@ export class CollectionsService {
   // -------------------------------------------------------------------------
 
   accessibleCollectionIds(userId: number): number[] {
-    const rows = this.db.all<{ id: number }>(`
+    const rows = this.db.all<{ id: number }>(
+      `
     SELECT id FROM collections WHERE owner_id = ?
     UNION
     SELECT collection_id FROM collection_members WHERE user_id = ? AND status = 'accepted'
-  `, userId, userId);
-    return rows.map(r => r.id);
+  `,
+      userId,
+      userId,
+    );
+    return rows.map((r) => r.id);
   }
 
   private isVisible(userId: number, collectionId: number): boolean {
-    const row = this.db.get(`
+    const row = this.db.get(
+      `
     SELECT 1 FROM collections WHERE id = ? AND owner_id = ?
     UNION
     SELECT 1 FROM collection_members WHERE collection_id = ? AND user_id = ? AND status = 'accepted'
     LIMIT 1
-  `, collectionId, userId, collectionId, userId);
+  `,
+      collectionId,
+      userId,
+      collectionId,
+      userId,
+    );
     return !!row;
   }
 
@@ -142,7 +152,8 @@ export class CollectionsService {
     if (this.isOwner(userId, collectionId)) return 'owner';
     const row = this.db.get<{ role: string }>(
       "SELECT role FROM collection_members WHERE collection_id = ? AND user_id = ? AND status = 'accepted'",
-      collectionId, userId,
+      collectionId,
+      userId,
     );
     if (!row) return null;
     return row.role === 'admin' || row.role === 'viewer' ? row.role : 'editor';
@@ -173,16 +184,21 @@ export class CollectionsService {
   // Hydration helpers
   // -------------------------------------------------------------------------
 
-  private loadTagsByCollectionPlaceIds(placeIds: number[]): Record<number, { id: number; name: string; color: string }[]> {
+  private loadTagsByCollectionPlaceIds(
+    placeIds: number[],
+  ): Record<number, { id: number; name: string; color: string }[]> {
     const out: Record<number, { id: number; name: string; color: string }[]> = {};
     if (placeIds.length === 0) return out;
     const placeholders = placeIds.map(() => '?').join(',');
-    const rows = this.db.all<{ pid: number; id: number; name: string; color: string }>(`
+    const rows = this.db.all<{ pid: number; id: number; name: string; color: string }>(
+      `
     SELECT cpt.collection_place_id AS pid, t.id, t.name, t.color
     FROM collection_place_tags cpt
     JOIN tags t ON t.id = cpt.tag_id
     WHERE cpt.collection_place_id IN (${placeholders})
-  `, ...placeIds);
+  `,
+      ...placeIds,
+    );
     for (const r of rows) {
       if (!out[r.pid]) out[r.pid] = [];
       out[r.pid].push({ id: r.id, name: r.name, color: r.color });
@@ -215,16 +231,21 @@ export class CollectionsService {
   }
 
   /** Per-voter rating rows (#1435), batched (mirrors loadTagsByCollectionPlaceIds). */
-  private loadRatingsByCollectionPlaceIds(placeIds: number[]): Record<number, { user_id: number; username: string; avatar: string | null; rating: number }[]> {
+  private loadRatingsByCollectionPlaceIds(
+    placeIds: number[],
+  ): Record<number, { user_id: number; username: string; avatar: string | null; rating: number }[]> {
     const out: Record<number, { user_id: number; username: string; avatar: string | null; rating: number }[]> = {};
     if (placeIds.length === 0) return out;
-    const rows = this.db.all<{ pid: number; user_id: number; username: string; avatar: string | null; rating: number }>(`
+    const rows = this.db.all<{ pid: number; user_id: number; username: string; avatar: string | null; rating: number }>(
+      `
     SELECT cpr.collection_place_id AS pid, cpr.user_id, u.username, u.avatar, cpr.rating
     FROM collection_place_ratings cpr
     JOIN users u ON u.id = cpr.user_id
     WHERE cpr.collection_place_id IN (${placeIds.map(() => '?').join(',')})
     ORDER BY cpr.created_at
-  `, ...placeIds);
+  `,
+      ...placeIds,
+    );
     for (const { pid, ...rest } of rows) {
       if (!out[pid]) out[pid] = [];
       out[pid].push(rest);
@@ -233,11 +254,11 @@ export class CollectionsService {
   }
 
   private hydratePlaces(rows: PlaceRow[]): CollectionPlace[] {
-    const ids = rows.map(r => r.id);
+    const ids = rows.map((r) => r.id);
     const tagsByPlace = this.loadTagsByCollectionPlaceIds(ids);
     const labelsByPlace = this.loadLabelIdsByPlaceIds(ids);
     const ratingsByPlace = this.loadRatingsByCollectionPlaceIds(ids);
-    return rows.map(r => {
+    return rows.map((r) => {
       const { category_name, category_color, category_icon, ...rest } = r;
       const ratings = ratingsByPlace[r.id] || [];
       return {
@@ -256,34 +277,46 @@ export class CollectionsService {
   }
 
   private getPlaceById(placeId: number): CollectionPlace {
-    const row = this.db.get<PlaceRow>(`
+    const row = this.db.get<PlaceRow>(
+      `
     SELECT cp.*, c.name AS category_name, c.color AS category_color, c.icon AS category_icon
     FROM collection_places cp
     LEFT JOIN categories c ON cp.category_id = c.id
     WHERE cp.id = ?
-  `, placeId);
+  `,
+      placeId,
+    );
     if (!row) httpError(404, 'Place not found');
     return this.hydratePlaces([row])[0];
   }
 
   private collectionIdOfPlace(placeId: number): number {
-    const row = this.db.get<{ collection_id: number }>('SELECT collection_id FROM collection_places WHERE id = ?', placeId);
+    const row = this.db.get<{ collection_id: number }>(
+      'SELECT collection_id FROM collection_places WHERE id = ?',
+      placeId,
+    );
     if (!row) httpError(404, 'Place not found');
     return row.collection_id;
   }
 
   private buildMembers(collectionId: number): CollectionMember[] {
-    const owner = this.db.get<Omit<CollectionMember, 'status' | 'is_owner'>>(`
+    const owner = this.db.get<Omit<CollectionMember, 'status' | 'is_owner'>>(
+      `
     SELECT u.id AS user_id, u.username, u.email, u.avatar
     FROM collections col JOIN users u ON u.id = col.owner_id
     WHERE col.id = ?
-  `, collectionId);
-    const members = this.db.all<Omit<CollectionMember, 'is_owner'>>(`
+  `,
+      collectionId,
+    );
+    const members = this.db.all<Omit<CollectionMember, 'is_owner'>>(
+      `
     SELECT u.id AS user_id, u.username, u.email, u.avatar, cm.status, cm.role
     FROM collection_members cm JOIN users u ON u.id = cm.user_id
     WHERE cm.collection_id = ?
     ORDER BY u.username
-  `, collectionId);
+  `,
+      collectionId,
+    );
     const result: CollectionMember[] = [];
     if (owner) result.push({ ...owner, status: 'accepted', role: 'admin', is_owner: true });
     for (const m of members) result.push({ ...m, is_owner: false });
@@ -293,7 +326,10 @@ export class CollectionsService {
   private getCollectionRow(id: number): Collection {
     const col = this.db.get<Collection & { links?: unknown }>('SELECT * FROM collections WHERE id = ?', id);
     if (!col) httpError(404, 'Collection not found');
-    const placeCount = this.db.get<{ n: number }>('SELECT COUNT(*) AS n FROM collection_places WHERE collection_id = ?', id)!.n;
+    const placeCount = this.db.get<{ n: number }>(
+      'SELECT COUNT(*) AS n FROM collection_places WHERE collection_id = ?',
+      id,
+    )!.n;
     return { ...col, links: parseLinks(col.links), place_count: placeCount, members: this.buildMembers(id) };
   }
 
@@ -304,20 +340,28 @@ export class CollectionsService {
   listCollections(userId: number): CollectionListResponse {
     const ids = this.accessibleCollectionIds(userId);
     const collections: Collection[] = ids
-      .map(id => {
+      .map((id) => {
         const col = this.getCollectionRow(id);
         return { ...col, is_owner: col.owner_id === userId };
       })
       .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.id - b.id);
 
-    const incomingInvites = this.db.all<{ collection_id: number; name: string; from_id: number; from_username: string }>(`
+    const incomingInvites = this.db
+      .all<{ collection_id: number; name: string; from_id: number; from_username: string }>(
+        `
     SELECT cm.collection_id, c.name, u.id AS from_id, u.username AS from_username
     FROM collection_members cm
     JOIN collections c ON c.id = cm.collection_id
     JOIN users u ON u.id = c.owner_id
     WHERE cm.user_id = ? AND cm.status = 'pending'
-  `, userId)
-      .map(r => ({ collection_id: r.collection_id, name: r.name, from: { id: r.from_id, username: r.from_username } }));
+  `,
+        userId,
+      )
+      .map((r) => ({
+        collection_id: r.collection_id,
+        name: r.name,
+        from: { id: r.from_id, username: r.from_username },
+      }));
 
     return { collections, incomingInvites };
   }
@@ -325,13 +369,16 @@ export class CollectionsService {
   getCollection(userId: number, id: number): CollectionDetailResponse {
     this.assertAccess(userId, id);
     const collection = this.getCollectionRow(id);
-    const rows = this.db.all<PlaceRow>(`
+    const rows = this.db.all<PlaceRow>(
+      `
     SELECT cp.*, c.name AS category_name, c.color AS category_color, c.icon AS category_icon
     FROM collection_places cp
     LEFT JOIN categories c ON cp.category_id = c.id
     WHERE cp.collection_id = ?
     ORDER BY cp.sort_order, cp.created_at
-  `, id);
+  `,
+      id,
+    );
     return {
       collection: { ...collection, is_owner: collection.owner_id === userId, labels: this.loadLabelsByCollection(id) },
       places: this.hydratePlaces(rows),
@@ -339,8 +386,12 @@ export class CollectionsService {
   }
 
   createCollection(userId: number, body: CollectionCreateRequest): Collection {
-    const max = this.db.get<{ m: number }>('SELECT COALESCE(MAX(sort_order), -1) AS m FROM collections WHERE owner_id = ?', userId)!.m;
-    const result = this.db.run(`
+    const max = this.db.get<{ m: number }>(
+      'SELECT COALESCE(MAX(sort_order), -1) AS m FROM collections WHERE owner_id = ?',
+      userId,
+    )!.m;
+    const result = this.db.run(
+      `
     INSERT INTO collections (owner_id, name, description, color, icon, cover_image, links, sort_order)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `,
@@ -361,15 +412,36 @@ export class CollectionsService {
     this.assertCanEdit(userId, id);
     const updates: string[] = [];
     const params: (string | number | null)[] = [];
-    if (body.name !== undefined) { updates.push('name = ?'); params.push(body.name); }
-    if (body.description !== undefined) { updates.push('description = ?'); params.push(body.description ?? null); }
-    if (body.color !== undefined) { updates.push('color = ?'); params.push(body.color ?? null); }
-    if (body.icon !== undefined) { updates.push('icon = ?'); params.push(body.icon ?? null); }
-    if (body.cover_image !== undefined) { updates.push('cover_image = ?'); params.push(body.cover_image ?? null); }
-    if (body.links !== undefined) { updates.push('links = ?'); params.push(serializeLinks(body.links)); }
-    if (body.sort_order !== undefined) { updates.push('sort_order = ?'); params.push(body.sort_order); }
+    if (body.name !== undefined) {
+      updates.push('name = ?');
+      params.push(body.name);
+    }
+    if (body.description !== undefined) {
+      updates.push('description = ?');
+      params.push(body.description ?? null);
+    }
+    if (body.color !== undefined) {
+      updates.push('color = ?');
+      params.push(body.color ?? null);
+    }
+    if (body.icon !== undefined) {
+      updates.push('icon = ?');
+      params.push(body.icon ?? null);
+    }
+    if (body.cover_image !== undefined) {
+      updates.push('cover_image = ?');
+      params.push(body.cover_image ?? null);
+    }
+    if (body.links !== undefined) {
+      updates.push('links = ?');
+      params.push(serializeLinks(body.links));
+    }
+    if (body.sort_order !== undefined) {
+      updates.push('sort_order = ?');
+      params.push(body.sort_order);
+    }
     if (updates.length > 0) {
-      updates.push("updated_at = CURRENT_TIMESTAMP");
+      updates.push('updated_at = CURRENT_TIMESTAMP');
       params.push(id);
       this.db.run(`UPDATE collections SET ${updates.join(', ')} WHERE id = ?`, ...params);
     }
@@ -379,9 +451,16 @@ export class CollectionsService {
   }
 
   /** Set (or clear) a list's cover image, reclaiming the previous file. */
-  async setCollectionCover(userId: number, id: number, coverUrl: string | null, socketId?: string): Promise<Collection> {
+  async setCollectionCover(
+    userId: number,
+    id: number,
+    coverUrl: string | null,
+    socketId?: string,
+  ): Promise<Collection> {
     this.assertCanEdit(userId, id);
-    const prev = this.db.get<{ cover_image: string | null }>('SELECT cover_image FROM collections WHERE id = ?', id)?.cover_image ?? null;
+    const prev =
+      this.db.get<{ cover_image: string | null }>('SELECT cover_image FROM collections WHERE id = ?', id)
+        ?.cover_image ?? null;
     this.db.run('UPDATE collections SET cover_image = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', coverUrl, id);
     if (prev && prev !== coverUrl) await this.deleteOldCollectionCover(prev);
     this.notifyCollectionUsers(id, socketId, 'collections:updated');
@@ -394,14 +473,22 @@ export class CollectionsService {
     if (!this.isOwner(userId, id)) httpError(403, 'Only the owner can delete this list');
 
     // Snapshot recipients BEFORE the cascade wipes collection_members.
-    const accepted = this.db.all<{ user_id: number }>("SELECT user_id FROM collection_members WHERE collection_id = ? AND status = 'accepted'", id).map(r => r.user_id);
-    const pending = this.db.all<{ user_id: number }>("SELECT user_id FROM collection_members WHERE collection_id = ? AND status = 'pending'", id).map(r => r.user_id);
+    const accepted = this.db
+      .all<{
+        user_id: number;
+      }>("SELECT user_id FROM collection_members WHERE collection_id = ? AND status = 'accepted'", id)
+      .map((r) => r.user_id);
+    const pending = this.db
+      .all<{
+        user_id: number;
+      }>("SELECT user_id FROM collection_members WHERE collection_id = ? AND status = 'pending'", id)
+      .map((r) => r.user_id);
 
     this.db.run('DELETE FROM collections WHERE id = ?', id); // CASCADE drops members + places + tags
 
     [...new Set([...accepted, ...pending])]
-      .filter(uid => uid !== userId)
-      .forEach(uid => this.realtime.broadcastToUser(uid, { type: 'collections:deleted', collectionId: id }));
+      .filter((uid) => uid !== userId)
+      .forEach((uid) => this.realtime.broadcastToUser(uid, { type: 'collections:deleted', collectionId: id }));
   }
 
   reorderCollections(userId: number, orderedIds: number[]): void {
@@ -424,20 +511,33 @@ export class CollectionsService {
   ): { id: number; name: string } | null {
     const normalizedName = candidate.name?.trim().toLowerCase();
     if (normalizedName) {
-      const dup = this.db.get<{ id: number; name: string }>(`
+      const dup = this.db.get<{ id: number; name: string }>(
+        `
       SELECT id, name FROM collection_places
       WHERE collection_id = ? AND lower(trim(name)) = ?
       ORDER BY id ASC LIMIT 1
-    `, collectionId, normalizedName);
+    `,
+        collectionId,
+        normalizedName,
+      );
       if (dup) return dup;
     }
     if (candidate.lat != null && candidate.lng != null) {
-      return this.db.get<{ id: number; name: string }>(`
+      return (
+        this.db.get<{ id: number; name: string }>(
+          `
       SELECT id, name FROM collection_places
       WHERE collection_id = ? AND lat IS NOT NULL AND lng IS NOT NULL
         AND abs(lat - ?) <= ? AND abs(lng - ?) <= ?
       ORDER BY id ASC LIMIT 1
-    `, collectionId, candidate.lat, COORD_DEDUP_TOLERANCE, candidate.lng, COORD_DEDUP_TOLERANCE) || null;
+    `,
+          collectionId,
+          candidate.lat,
+          COORD_DEDUP_TOLERANCE,
+          candidate.lng,
+          COORD_DEDUP_TOLERANCE,
+        ) || null
+      );
     }
     return null;
   }
@@ -461,15 +561,20 @@ export class CollectionsService {
       `SELECT id, user_id FROM tags WHERE id IN (${unique.map(() => '?').join(',')})`,
       ...unique,
     );
-    const stmt = this.db.prepare('INSERT OR IGNORE INTO collection_place_tags (collection_place_id, tag_id) VALUES (?, ?)');
+    const stmt = this.db.prepare(
+      'INSERT OR IGNORE INTO collection_place_tags (collection_place_id, tag_id) VALUES (?, ?)',
+    );
     for (const t of owned) if (eligible.has(t.user_id)) stmt.run(collectionPlaceId, t.id);
   }
 
   /** Owner + accepted members — the users whose votes may live in this list. */
   private collectionMemberIds(collectionId: number): Set<number> {
     const ids = new Set<number>([this.ownerOf(collectionId)]);
-    const rows = this.db.all<{ user_id: number }>("SELECT user_id FROM collection_members WHERE collection_id = ? AND status = 'accepted'", collectionId);
-    rows.forEach(r => ids.add(r.user_id));
+    const rows = this.db.all<{ user_id: number }>(
+      "SELECT user_id FROM collection_members WHERE collection_id = ? AND status = 'accepted'",
+      collectionId,
+    );
+    rows.forEach((r) => ids.add(r.user_id));
     return ids;
   }
 
@@ -480,8 +585,13 @@ export class CollectionsService {
    */
   private copyTripRatings(sourcePlaceId: number, collectionPlaceId: number, collectionId: number): void {
     const eligible = this.collectionMemberIds(collectionId);
-    const rows = this.db.all<{ user_id: number; rating: number }>('SELECT user_id, rating FROM place_ratings WHERE place_id = ?', sourcePlaceId);
-    const ins = this.db.prepare('INSERT OR IGNORE INTO collection_place_ratings (collection_place_id, user_id, rating) VALUES (?, ?, ?)');
+    const rows = this.db.all<{ user_id: number; rating: number }>(
+      'SELECT user_id, rating FROM place_ratings WHERE place_id = ?',
+      sourcePlaceId,
+    );
+    const ins = this.db.prepare(
+      'INSERT OR IGNORE INTO collection_place_ratings (collection_place_id, user_id, rating) VALUES (?, ?, ?)',
+    );
     for (const r of rows) {
       if (eligible.has(r.user_id)) ins.run(collectionPlaceId, r.user_id, r.rating);
     }
@@ -491,7 +601,11 @@ export class CollectionsService {
     this.assertCanEdit(userId, body.collection_id);
 
     if (!body.force) {
-      const dup = this.findDuplicateCollectionPlace(body.collection_id, { name: body.name, lat: body.lat, lng: body.lng });
+      const dup = this.findDuplicateCollectionPlace(body.collection_id, {
+        name: body.name,
+        lat: body.lat,
+        lng: body.lng,
+      });
       if (dup) return { duplicate: true, duplicateOf: dup };
     }
 
@@ -499,19 +613,35 @@ export class CollectionsService {
     // Insert + tags + ratings-copy are one logical write — atomic since the
     // post-fold quirk pass (the relocation carried them un-transacted).
     const placeId = this.db.transaction(() => {
-      const result = this.db.run(`
+      const result = this.db.run(
+        `
     INSERT INTO collection_places (
       collection_id, owner_id, saved_by, name, description, lat, lng, address,
       category_id, price, currency, notes, image_url, google_place_id, google_ftid,
       osm_id, website, phone, status, source_trip_id, source_place_id, links
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `,
-        body.collection_id, ownerId, userId,
-        body.name, body.description ?? null, body.lat ?? null, body.lng ?? null, body.address ?? null,
-        body.category_id ?? null, body.price ?? null, body.currency ?? null, body.notes ?? null,
-        body.image_url ?? null, body.google_place_id ?? null, body.google_ftid ?? null,
-        body.osm_id ?? null, body.website ?? null, body.phone ?? null,
-        body.status ?? 'idea', body.source_trip_id ?? null, body.source_place_id ?? null,
+        body.collection_id,
+        ownerId,
+        userId,
+        body.name,
+        body.description ?? null,
+        body.lat ?? null,
+        body.lng ?? null,
+        body.address ?? null,
+        body.category_id ?? null,
+        body.price ?? null,
+        body.currency ?? null,
+        body.notes ?? null,
+        body.image_url ?? null,
+        body.google_place_id ?? null,
+        body.google_ftid ?? null,
+        body.osm_id ?? null,
+        body.website ?? null,
+        body.phone ?? null,
+        body.status ?? 'idea',
+        body.source_trip_id ?? null,
+        body.source_place_id ?? null,
         serializeLinks(body.links),
       );
 
@@ -523,7 +653,8 @@ export class CollectionsService {
       // member could harvest co-members' votes on places in trips they cannot access
       // (mirrors the canAccessTrip gate in saveFromTripPlace).
       if (
-        body.source_place_id && body.source_trip_id &&
+        body.source_place_id &&
+        body.source_trip_id &&
         this.db.canAccessTrip(body.source_trip_id, userId) &&
         this.db.get('SELECT 1 FROM places WHERE id = ? AND trip_id = ?', body.source_place_id, body.source_trip_id)
       ) {
@@ -536,35 +667,48 @@ export class CollectionsService {
   }
 
   saveFromTripPlace(
-    userId: number, collectionId: number, tripId: number, placeId: number, force?: boolean, socketId?: string,
+    userId: number,
+    collectionId: number,
+    tripId: number,
+    placeId: number,
+    force?: boolean,
+    socketId?: string,
   ): CollectionSaveResult {
     this.assertCanEdit(userId, collectionId);
     if (!this.db.canAccessTrip(tripId, userId)) httpError(404, 'Trip not found');
 
-    const place = this.db.get<Record<string, unknown>>('SELECT * FROM places WHERE id = ? AND trip_id = ?', placeId, tripId);
+    const place = this.db.get<Record<string, unknown>>(
+      'SELECT * FROM places WHERE id = ? AND trip_id = ?',
+      placeId,
+      tripId,
+    );
     if (!place) httpError(404, 'Place not found');
 
-    return this.savePlace(userId, {
-      collection_id: collectionId,
-      name: place.name as string,
-      description: (place.description as string | null) ?? null,
-      lat: (place.lat as number | null) ?? null,
-      lng: (place.lng as number | null) ?? null,
-      address: (place.address as string | null) ?? null,
-      category_id: (place.category_id as number | null) ?? null,
-      price: (place.price as number | null) ?? null,
-      currency: (place.currency as string | null) ?? null,
-      notes: (place.notes as string | null) ?? null,
-      image_url: (place.image_url as string | null) ?? null,
-      google_place_id: (place.google_place_id as string | null) ?? null,
-      google_ftid: (place.google_ftid as string | null) ?? null,
-      osm_id: (place.osm_id as string | null) ?? null,
-      website: (place.website as string | null) ?? null,
-      phone: (place.phone as string | null) ?? null,
-      source_trip_id: tripId,
-      source_place_id: placeId,
-      force,
-    }, socketId);
+    return this.savePlace(
+      userId,
+      {
+        collection_id: collectionId,
+        name: place.name as string,
+        description: (place.description as string | null) ?? null,
+        lat: (place.lat as number | null) ?? null,
+        lng: (place.lng as number | null) ?? null,
+        address: (place.address as string | null) ?? null,
+        category_id: (place.category_id as number | null) ?? null,
+        price: (place.price as number | null) ?? null,
+        currency: (place.currency as string | null) ?? null,
+        notes: (place.notes as string | null) ?? null,
+        image_url: (place.image_url as string | null) ?? null,
+        google_place_id: (place.google_place_id as string | null) ?? null,
+        google_ftid: (place.google_ftid as string | null) ?? null,
+        osm_id: (place.osm_id as string | null) ?? null,
+        website: (place.website as string | null) ?? null,
+        phone: (place.phone as string | null) ?? null,
+        source_trip_id: tripId,
+        source_place_id: placeId,
+        force,
+      },
+      socketId,
+    );
   }
 
   /** The trip's places as offered to the bulk import, each already carrying the verdict
@@ -582,9 +726,17 @@ export class CollectionsService {
     // One row per place: a place can sit on several days, so the day columns resolve to the
     // earliest one rather than multiplying the place out across its assignments.
     const rows = this.db.all<{
-      place_id: number; name: string; address: string | null; lat: number | null; lng: number | null;
-      category_id: number | null; image_url: string | null; day_number: number | null; date: string | null;
-    }>(`
+      place_id: number;
+      name: string;
+      address: string | null;
+      lat: number | null;
+      lng: number | null;
+      category_id: number | null;
+      image_url: string | null;
+      day_number: number | null;
+      date: string | null;
+    }>(
+      `
       SELECT p.id AS place_id, p.name, p.address, p.lat, p.lng, p.category_id, p.image_url,
              (SELECT MIN(d.day_number) FROM day_assignments da
                 JOIN days d ON d.id = da.day_id
@@ -596,12 +748,15 @@ export class CollectionsService {
         FROM places p
        WHERE p.trip_id = ?
        ORDER BY p.name COLLATE NOCASE
-    `, tripId);
+    `,
+      tripId,
+    );
 
     return {
-      places: rows.map(r => ({
+      places: rows.map((r) => ({
         ...r,
-        already_in_list: this.findDuplicateCollectionPlace(collectionId, { name: r.name, lat: r.lat, lng: r.lng }) != null,
+        already_in_list:
+          this.findDuplicateCollectionPlace(collectionId, { name: r.name, lat: r.lat, lng: r.lng }) != null,
         scheduled: r.day_number != null,
       })),
     };
@@ -611,7 +766,12 @@ export class CollectionsService {
    *  one WS notify (vs saving each place individually). Mirrors saveFromTripPlace's
    *  field mapping + dedup; skips duplicates unless force. Status starts at 'idea'. */
   saveFromTripPlaces(
-    userId: number, collectionId: number, tripId: number, placeIds: number[], force?: boolean, socketId?: string,
+    userId: number,
+    collectionId: number,
+    tripId: number,
+    placeIds: number[],
+    force?: boolean,
+    socketId?: string,
   ): { copied: number; skipped: { id: number; name: string }[] } {
     this.assertCanEdit(userId, collectionId);
     if (!this.db.canAccessTrip(tripId, userId)) httpError(404, 'Trip not found');
@@ -629,7 +789,11 @@ export class CollectionsService {
     // The whole batch is one logical write — atomic since the post-fold quirk pass.
     this.db.transaction(() => {
       for (const placeId of placeIds) {
-        const p = this.db.get<Record<string, unknown>>('SELECT * FROM places WHERE id = ? AND trip_id = ?', placeId, tripId);
+        const p = this.db.get<Record<string, unknown>>(
+          'SELECT * FROM places WHERE id = ? AND trip_id = ?',
+          placeId,
+          tripId,
+        );
         if (!p) continue;
         const name = p.name as string;
         const lat = (p.lat as number | null) ?? null;
@@ -639,12 +803,26 @@ export class CollectionsService {
           continue;
         }
         const res = insert.run(
-          collectionId, ownerId, userId,
-          name, (p.description as string | null) ?? null, lat, lng, (p.address as string | null) ?? null,
-          (p.category_id as number | null) ?? null, (p.price as number | null) ?? null, (p.currency as string | null) ?? null, (p.notes as string | null) ?? null,
-          (p.image_url as string | null) ?? null, (p.google_place_id as string | null) ?? null, (p.google_ftid as string | null) ?? null,
-          (p.osm_id as string | null) ?? null, (p.website as string | null) ?? null, (p.phone as string | null) ?? null,
-          tripId, placeId,
+          collectionId,
+          ownerId,
+          userId,
+          name,
+          (p.description as string | null) ?? null,
+          lat,
+          lng,
+          (p.address as string | null) ?? null,
+          (p.category_id as number | null) ?? null,
+          (p.price as number | null) ?? null,
+          (p.currency as string | null) ?? null,
+          (p.notes as string | null) ?? null,
+          (p.image_url as string | null) ?? null,
+          (p.google_place_id as string | null) ?? null,
+          (p.google_ftid as string | null) ?? null,
+          (p.osm_id as string | null) ?? null,
+          (p.website as string | null) ?? null,
+          (p.phone as string | null) ?? null,
+          tripId,
+          placeId,
         );
         this.copyTripRatings(placeId, Number(res.lastInsertRowid), collectionId);
         copied++;
@@ -654,34 +832,73 @@ export class CollectionsService {
     return { copied, skipped };
   }
 
-  async updatePlace(userId: number, placeId: number, body: CollectionPlaceUpdateRequest, socketId?: string): Promise<CollectionPlace> {
+  async updatePlace(
+    userId: number,
+    placeId: number,
+    body: CollectionPlaceUpdateRequest,
+    socketId?: string,
+  ): Promise<CollectionPlace> {
     const currentCollection = this.collectionIdOfPlace(placeId);
     this.assertCanEdit(userId, currentCollection);
 
     // Capture the previous thumbnail so a replaced/cleared custom upload (#1136)
     // can be reclaimed once nothing references it any more.
-    const prevImage = body.image_url !== undefined
-      ? this.db.get<{ image_url: string | null }>('SELECT image_url FROM collection_places WHERE id = ?', placeId)?.image_url ?? null
-      : null;
+    const prevImage =
+      body.image_url !== undefined
+        ? (this.db.get<{ image_url: string | null }>('SELECT image_url FROM collection_places WHERE id = ?', placeId)
+            ?.image_url ?? null)
+        : null;
 
     const updates: string[] = [];
     const params: (string | number | null)[] = [];
-    if (body.name !== undefined) { updates.push('name = ?'); params.push(body.name); }
-    if (body.description !== undefined) { updates.push('description = ?'); params.push(body.description ?? null); }
-    if (body.notes !== undefined) { updates.push('notes = ?'); params.push(body.notes ?? null); }
-    if (body.lat !== undefined) { updates.push('lat = ?'); params.push(body.lat ?? null); }
-    if (body.lng !== undefined) { updates.push('lng = ?'); params.push(body.lng ?? null); }
-    if (body.address !== undefined) { updates.push('address = ?'); params.push(body.address ?? null); }
-    if (body.status !== undefined) { updates.push('status = ?'); params.push(body.status); }
-    if (body.category_id !== undefined) { updates.push('category_id = ?'); params.push(body.category_id ?? null); }
-    if (body.image_url !== undefined) { updates.push('image_url = ?'); params.push(body.image_url ?? null); }
-    if (body.links !== undefined) { updates.push('links = ?'); params.push(serializeLinks(body.links)); }
+    if (body.name !== undefined) {
+      updates.push('name = ?');
+      params.push(body.name);
+    }
+    if (body.description !== undefined) {
+      updates.push('description = ?');
+      params.push(body.description ?? null);
+    }
+    if (body.notes !== undefined) {
+      updates.push('notes = ?');
+      params.push(body.notes ?? null);
+    }
+    if (body.lat !== undefined) {
+      updates.push('lat = ?');
+      params.push(body.lat ?? null);
+    }
+    if (body.lng !== undefined) {
+      updates.push('lng = ?');
+      params.push(body.lng ?? null);
+    }
+    if (body.address !== undefined) {
+      updates.push('address = ?');
+      params.push(body.address ?? null);
+    }
+    if (body.status !== undefined) {
+      updates.push('status = ?');
+      params.push(body.status);
+    }
+    if (body.category_id !== undefined) {
+      updates.push('category_id = ?');
+      params.push(body.category_id ?? null);
+    }
+    if (body.image_url !== undefined) {
+      updates.push('image_url = ?');
+      params.push(body.image_url ?? null);
+    }
+    if (body.links !== undefined) {
+      updates.push('links = ?');
+      params.push(serializeLinks(body.links));
+    }
 
     let movedTo: number | null = null;
     if (body.collection_id !== undefined && body.collection_id !== currentCollection) {
       this.assertCanEdit(userId, body.collection_id);
-      updates.push('collection_id = ?'); params.push(body.collection_id);
-      updates.push('owner_id = ?'); params.push(this.ownerOf(body.collection_id));
+      updates.push('collection_id = ?');
+      params.push(body.collection_id);
+      updates.push('owner_id = ?');
+      params.push(this.ownerOf(body.collection_id));
       movedTo = body.collection_id;
     }
 
@@ -689,7 +906,7 @@ export class CollectionsService {
     // since the post-fold quirk pass.
     this.db.transaction(() => {
       if (updates.length > 0) {
-        updates.push("updated_at = CURRENT_TIMESTAMP");
+        updates.push('updated_at = CURRENT_TIMESTAMP');
         params.push(placeId);
         this.db.run(`UPDATE collection_places SET ${updates.join(', ')} WHERE id = ?`, ...params);
       }
@@ -717,7 +934,11 @@ export class CollectionsService {
   setStatus(userId: number, placeId: number, status: CollectionStatus, socketId?: string): CollectionPlace {
     const collectionId = this.collectionIdOfPlace(placeId);
     this.assertCanEdit(userId, collectionId);
-    this.db.run("UPDATE collection_places SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", status, placeId);
+    this.db.run(
+      'UPDATE collection_places SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      status,
+      placeId,
+    );
     this.notifyCollectionUsers(collectionId, socketId, 'collections:updated');
     return this.getPlaceById(placeId);
   }
@@ -731,12 +952,21 @@ export class CollectionsService {
     const collectionId = this.collectionIdOfPlace(placeId);
     this.assertAccess(userId, collectionId);
     if (rating === null) {
-      this.db.run('DELETE FROM collection_place_ratings WHERE collection_place_id = ? AND user_id = ?', placeId, userId);
+      this.db.run(
+        'DELETE FROM collection_place_ratings WHERE collection_place_id = ? AND user_id = ?',
+        placeId,
+        userId,
+      );
     } else {
-      this.db.run(`
+      this.db.run(
+        `
       INSERT INTO collection_place_ratings (collection_place_id, user_id, rating) VALUES (?, ?, ?)
       ON CONFLICT(collection_place_id, user_id) DO UPDATE SET rating = excluded.rating
-    `, placeId, userId, rating);
+    `,
+        placeId,
+        userId,
+        rating,
+      );
     }
     this.notifyCollectionUsers(collectionId, socketId, 'collections:updated');
     return this.getPlaceById(placeId);
@@ -745,7 +975,9 @@ export class CollectionsService {
   async deletePlace(userId: number, placeId: number, socketId?: string): Promise<void> {
     const collectionId = this.collectionIdOfPlace(placeId);
     this.assertCanDelete(userId, collectionId);
-    const image = this.db.get<{ image_url: string | null }>('SELECT image_url FROM collection_places WHERE id = ?', placeId)?.image_url ?? null;
+    const image =
+      this.db.get<{ image_url: string | null }>('SELECT image_url FROM collection_places WHERE id = ?', placeId)
+        ?.image_url ?? null;
     this.db.run('DELETE FROM collection_places WHERE id = ?', placeId); // CASCADE drops tags. NO photo-cache reclaim.
     await reclaimPlaceImage(this.storage, image);
     this.notifyCollectionUsers(collectionId, socketId, 'collections:updated');
@@ -762,7 +994,10 @@ export class CollectionsService {
     for (const id of ids) {
       const collectionId = this.collectionIdOfPlace(id);
       this.assertCanDelete(userId, collectionId);
-      images.push(this.db.get<{ image_url: string | null }>('SELECT image_url FROM collection_places WHERE id = ?', id)?.image_url ?? null);
+      images.push(
+        this.db.get<{ image_url: string | null }>('SELECT image_url FROM collection_places WHERE id = ?', id)
+          ?.image_url ?? null,
+      );
       touched.add(collectionId);
     }
     this.db.transaction(() => {
@@ -772,7 +1007,7 @@ export class CollectionsService {
       }
     });
     for (const image of images) await reclaimPlaceImage(this.storage, image);
-    touched.forEach(cid => this.notifyCollectionUsers(cid, socketId, 'collections:updated'));
+    touched.forEach((cid) => this.notifyCollectionUsers(cid, socketId, 'collections:updated'));
     return deleted;
   }
 
@@ -795,13 +1030,15 @@ export class CollectionsService {
     this.db.transaction(() => {
       for (const id of ids) {
         const res = this.db.run(
-          "UPDATE collection_places SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND status IS NOT ?",
-          status, id, status,
+          'UPDATE collection_places SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND status IS NOT ?',
+          status,
+          id,
+          status,
         );
         updated += res.changes;
       }
     });
-    if (updated > 0) touched.forEach(cid => this.notifyCollectionUsers(cid, socketId, 'collections:updated'));
+    if (updated > 0) touched.forEach((cid) => this.notifyCollectionUsers(cid, socketId, 'collections:updated'));
     return { updated };
   }
 
@@ -825,14 +1062,26 @@ export class CollectionsService {
     if (!this.db.canAccessTrip(tripId, userId)) httpError(404, 'Trip not found');
 
     const sources = placeIds.length
-      ? this.db.all<{ id: number; name: string; lat: number | null; lng: number | null; google_place_id: string | null; google_ftid: string | null; osm_id: string | null }>(`
+      ? this.db.all<{
+          id: number;
+          name: string;
+          lat: number | null;
+          lng: number | null;
+          google_place_id: string | null;
+          google_ftid: string | null;
+          osm_id: string | null;
+        }>(
+          `
         SELECT id, name, lat, lng, google_place_id, google_ftid, osm_id
         FROM places WHERE trip_id = ? AND id IN (${placeIds.map(() => '?').join(',')})
-      `, tripId, ...placeIds)
+      `,
+          tripId,
+          ...placeIds,
+        )
       : [];
     if (sources.length === 0) return { updated: 0, places: 0 };
 
-    const editable = this.accessibleCollectionIds(userId).filter(cid => {
+    const editable = this.accessibleCollectionIds(userId).filter((cid) => {
       const role = this.roleOf(userId, cid);
       return role !== null && role !== 'viewer';
     });
@@ -862,29 +1111,59 @@ export class CollectionsService {
   private matchingCollectionPlaces(
     collectionIds: number[],
     tripId: number,
-    place: { id: number; lat: number | null; lng: number | null; google_place_id: string | null; google_ftid: string | null; osm_id: string | null },
+    place: {
+      id: number;
+      lat: number | null;
+      lng: number | null;
+      google_place_id: string | null;
+      google_ftid: string | null;
+      osm_id: string | null;
+    },
   ): Array<{ id: number }> {
     const conditions: string[] = ['(cp.source_trip_id = ? AND cp.source_place_id = ?)'];
     const params: (string | number)[] = [...collectionIds, tripId, place.id];
-    if (place.google_place_id) { conditions.push('cp.google_place_id = ?'); params.push(place.google_place_id); }
-    if (place.google_ftid) { conditions.push('cp.google_ftid = ?'); params.push(place.google_ftid); }
-    if (place.osm_id) { conditions.push('cp.osm_id = ?'); params.push(place.osm_id); }
+    if (place.google_place_id) {
+      conditions.push('cp.google_place_id = ?');
+      params.push(place.google_place_id);
+    }
+    if (place.google_ftid) {
+      conditions.push('cp.google_ftid = ?');
+      params.push(place.google_ftid);
+    }
+    if (place.osm_id) {
+      conditions.push('cp.osm_id = ?');
+      params.push(place.osm_id);
+    }
     if (place.lat != null && place.lng != null) {
       conditions.push('(cp.lat IS NOT NULL AND cp.lng IS NOT NULL AND abs(cp.lat - ?) <= ? AND abs(cp.lng - ?) <= ?)');
       params.push(place.lat, COORD_DEDUP_TOLERANCE, place.lng, COORD_DEDUP_TOLERANCE);
     }
-    return this.db.all<{ id: number }>(`
+    return this.db.all<{ id: number }>(
+      `
       SELECT cp.id FROM collection_places cp
       WHERE cp.collection_id IN (${collectionIds.map(() => '?').join(',')}) AND (${conditions.join(' OR ')})
-    `, ...params);
+    `,
+      ...params,
+    );
   }
 
   /** Set (or clear) a saved place's custom thumbnail, reclaiming the previous upload. */
-  async setPlaceImage(userId: number, placeId: number, imageUrl: string | null, socketId?: string): Promise<CollectionPlace> {
+  async setPlaceImage(
+    userId: number,
+    placeId: number,
+    imageUrl: string | null,
+    socketId?: string,
+  ): Promise<CollectionPlace> {
     const collectionId = this.collectionIdOfPlace(placeId);
     this.assertCanEdit(userId, collectionId);
-    const prev = this.db.get<{ image_url: string | null }>('SELECT image_url FROM collection_places WHERE id = ?', placeId)?.image_url ?? null;
-    this.db.run('UPDATE collection_places SET image_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', imageUrl, placeId);
+    const prev =
+      this.db.get<{ image_url: string | null }>('SELECT image_url FROM collection_places WHERE id = ?', placeId)
+        ?.image_url ?? null;
+    this.db.run(
+      'UPDATE collection_places SET image_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      imageUrl,
+      placeId,
+    );
     if (prev !== imageUrl) await reclaimPlaceImage(this.storage, prev);
     this.notifyCollectionUsers(collectionId, socketId, 'collections:updated');
     return this.getPlaceById(placeId);
@@ -894,7 +1173,10 @@ export class CollectionsService {
   // Copy to trip
   // -------------------------------------------------------------------------
 
-  copyToTrip(userId: number, body: CollectionCopyToTripRequest): { copied: number; skipped: { id: number; name: string }[] } {
+  copyToTrip(
+    userId: number,
+    body: CollectionCopyToTripRequest,
+  ): { copied: number; skipped: { id: number; name: string }[] } {
     const trip = this.db.canAccessTrip(body.trip_id, userId);
     if (!trip) httpError(404, 'Trip not found');
     const role = this.db.get<{ role: string }>('SELECT role FROM users WHERE id = ?', userId)?.role ?? 'user';
@@ -906,21 +1188,42 @@ export class CollectionsService {
     // so copying never surfaces a collection member with no tie to the trip.
     // Symmetric with copyTripRatings' collection-member filter (#1435).
     const tripMemberIds = new Set<number>([trip.user_id]);
-    for (const r of this.db.all<{ user_id: number }>('SELECT user_id FROM trip_members WHERE trip_id = ?', body.trip_id)) {
+    for (const r of this.db.all<{ user_id: number }>(
+      'SELECT user_id FROM trip_members WHERE trip_id = ?',
+      body.trip_id,
+    )) {
       tripMemberIds.add(r.user_id);
     }
 
     // Visibility on every SOURCE place — no cross-user exfiltration via copy.
-    const sources: Array<{ id: number; name: string; description: string | null; lat: number | null; lng: number | null;
-      address: string | null; category_id: number | null; price: number | null; currency: string | null;
-      notes: string | null; image_url: string | null; google_place_id: string | null; google_ftid: string | null;
-      osm_id: string | null; website: string | null; phone: string | null; collection_id: number }> = [];
+    const sources: Array<{
+      id: number;
+      name: string;
+      description: string | null;
+      lat: number | null;
+      lng: number | null;
+      address: string | null;
+      category_id: number | null;
+      price: number | null;
+      currency: string | null;
+      notes: string | null;
+      image_url: string | null;
+      google_place_id: string | null;
+      google_ftid: string | null;
+      osm_id: string | null;
+      website: string | null;
+      phone: string | null;
+      collection_id: number;
+    }> = [];
     for (const pid of body.place_ids) {
-      const row = this.db.get<(typeof sources)[number]>(`
+      const row = this.db.get<(typeof sources)[number]>(
+        `
       SELECT id, collection_id, name, description, lat, lng, address, category_id, price, currency,
              notes, image_url, google_place_id, google_ftid, osm_id, website, phone
       FROM collection_places WHERE id = ?
-    `, pid);
+    `,
+        pid,
+      );
       if (!row) httpError(404, 'Place not found');
       this.assertAccess(userId, row.collection_id);
       sources.push(row);
@@ -929,8 +1232,12 @@ export class CollectionsService {
     // Trip dedup set — same helpers the importers use, so a place renamed in the
     // trip is still recognised by its provider id when it is copied again (#1550).
     const existing = this.db.all<{
-      name: string | null; lat: number | null; lng: number | null;
-      google_place_id: string | null; google_ftid: string | null; osm_id: string | null;
+      name: string | null;
+      lat: number | null;
+      lng: number | null;
+      google_place_id: string | null;
+      google_ftid: string | null;
+      osm_id: string | null;
     }>('SELECT name, lat, lng, google_place_id, google_ftid, osm_id FROM places WHERE trip_id = ?', body.trip_id);
     const dedup: DedupSet = { names: new Set(), coords: [], externalIds: new Set() };
     for (const r of existing) {
@@ -945,31 +1252,63 @@ export class CollectionsService {
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
     const insertTag = this.db.prepare('INSERT OR IGNORE INTO place_tags (place_id, tag_id) VALUES (?, ?)');
-    const insertRating = this.db.prepare('INSERT OR IGNORE INTO place_ratings (place_id, user_id, rating) VALUES (?, ?, ?)');
+    const insertRating = this.db.prepare(
+      'INSERT OR IGNORE INTO place_ratings (place_id, user_id, rating) VALUES (?, ?, ?)',
+    );
 
     let copied = 0;
     const skipped: { id: number; name: string }[] = [];
     // The whole copy is one logical write — atomic since the post-fold quirk pass.
     this.db.transaction(() => {
       for (const s of sources) {
-        if (!body.force && isPlaceDuplicate({
-          name: s.name, lat: s.lat, lng: s.lng,
-          google_place_id: s.google_place_id, google_ftid: s.google_ftid, osm_id: s.osm_id,
-        }, dedup)) {
+        if (
+          !body.force &&
+          isPlaceDuplicate(
+            {
+              name: s.name,
+              lat: s.lat,
+              lng: s.lng,
+              google_place_id: s.google_place_id,
+              google_ftid: s.google_ftid,
+              osm_id: s.osm_id,
+            },
+            dedup,
+          )
+        ) {
           skipped.push({ id: s.id, name: s.name });
           continue;
         }
         const res = insertPlace.run(
-          body.trip_id, s.name, s.description, s.lat, s.lng, s.address, s.category_id, s.price,
-          s.currency, s.notes, s.image_url, s.google_place_id, s.google_ftid, s.website, s.phone, s.osm_id,
+          body.trip_id,
+          s.name,
+          s.description,
+          s.lat,
+          s.lng,
+          s.address,
+          s.category_id,
+          s.price,
+          s.currency,
+          s.notes,
+          s.image_url,
+          s.google_place_id,
+          s.google_ftid,
+          s.website,
+          s.phone,
+          s.osm_id,
         );
         const newPlaceId = Number(res.lastInsertRowid);
-        const tagIds = this.db.all<{ tag_id: number }>('SELECT tag_id FROM collection_place_tags WHERE collection_place_id = ?', s.id);
+        const tagIds = this.db.all<{ tag_id: number }>(
+          'SELECT tag_id FROM collection_place_tags WHERE collection_place_id = ?',
+          s.id,
+        );
         for (const t of tagIds) insertTag.run(newPlaceId, t.tag_id);
         // Ratings travel into the trip too (#1435), but only for trip members — a
         // collection voter who isn't on the trip stays out of it. Trip members keep
         // voting there; nothing is mirrored back.
-        const votes = this.db.all<{ user_id: number; rating: number }>('SELECT user_id, rating FROM collection_place_ratings WHERE collection_place_id = ?', s.id);
+        const votes = this.db.all<{ user_id: number; rating: number }>(
+          'SELECT user_id, rating FROM collection_place_ratings WHERE collection_place_id = ?',
+          s.id,
+        );
         for (const v of votes) if (tripMemberIds.has(v.user_id)) insertRating.run(newPlaceId, v.user_id, v.rating);
 
         trackInsertedInDedupSet(s, dedup);
@@ -993,8 +1332,14 @@ export class CollectionsService {
 
     const conditions: string[] = [];
     const params: (string | number)[] = [...ids];
-    if (query.google_place_id) { conditions.push('cp.google_place_id = ?'); params.push(query.google_place_id); }
-    if (query.google_ftid) { conditions.push('cp.google_ftid = ?'); params.push(query.google_ftid); }
+    if (query.google_place_id) {
+      conditions.push('cp.google_place_id = ?');
+      params.push(query.google_place_id);
+    }
+    if (query.google_ftid) {
+      conditions.push('cp.google_ftid = ?');
+      params.push(query.google_ftid);
+    }
     // Coordinate proximity is the location signal. A bare NAME match is deliberately
     // NOT a condition on its own — "Starbucks" (or any repeated name) would otherwise
     // false-positive the inspector's "already saved" bookmark. When coords are given
@@ -1006,16 +1351,19 @@ export class CollectionsService {
     }
     if (conditions.length === 0) return { saved: false, lists: [] };
 
-    const rows = this.db.all<{ place_id: number; collection_id: number; name: string; status: CollectionStatus }>(`
+    const rows = this.db.all<{ place_id: number; collection_id: number; name: string; status: CollectionStatus }>(
+      `
     SELECT cp.id AS place_id, cp.collection_id, c.name, cp.status
     FROM collection_places cp
     JOIN collections c ON c.id = cp.collection_id
     WHERE cp.collection_id IN (${placeholders}) AND (${conditions.join(' OR ')})
-  `, ...params);
+  `,
+      ...params,
+    );
 
     return {
       saved: rows.length > 0,
-      lists: rows.map(r => {
+      lists: rows.map((r) => {
         const role = this.roleOf(userId, r.collection_id);
         return {
           collection_id: r.collection_id,
@@ -1035,14 +1383,21 @@ export class CollectionsService {
   notifyCollectionUsers(
     collectionId: number,
     excludeSid: string | undefined,
-    event: 'collections:updated' | 'collections:accepted' | 'collections:declined' | 'collections:left' = 'collections:updated',
+    event:
+      | 'collections:updated'
+      | 'collections:accepted'
+      | 'collections:declined'
+      | 'collections:left' = 'collections:updated',
   ): void {
     const owner = this.db.get<{ owner_id: number }>('SELECT owner_id FROM collections WHERE id = ?', collectionId);
     if (!owner) return;
     const userIds = [owner.owner_id];
-    const members = this.db.all<{ user_id: number }>("SELECT user_id FROM collection_members WHERE collection_id = ? AND status = 'accepted'", collectionId);
-    members.forEach(m => userIds.push(m.user_id));
-    userIds.forEach(id => this.realtime.broadcastToUser(id, { type: event, collectionId }, excludeSid));
+    const members = this.db.all<{ user_id: number }>(
+      "SELECT user_id FROM collection_members WHERE collection_id = ? AND status = 'accepted'",
+      collectionId,
+    );
+    members.forEach((m) => userIds.push(m.user_id));
+    userIds.forEach((id) => this.realtime.broadcastToUser(id, { type: event, collectionId }, excludeSid));
   }
 
   // -------------------------------------------------------------------------
@@ -1052,21 +1407,29 @@ export class CollectionsService {
   // -------------------------------------------------------------------------
 
   private collectionIdOfLabel(labelId: number): number {
-    const row = this.db.get<{ collection_id: number }>('SELECT collection_id FROM collection_labels WHERE id = ?', labelId);
+    const row = this.db.get<{ collection_id: number }>(
+      'SELECT collection_id FROM collection_labels WHERE id = ?',
+      labelId,
+    );
     if (!row) httpError(404, 'Label not found');
     return row.collection_id;
   }
 
   private getLabelById(labelId: number): CollectionLabel {
-    return this.db.get<CollectionLabel>('SELECT id, collection_id, name, color, sort_order FROM collection_labels WHERE id = ?', labelId) as CollectionLabel;
+    return this.db.get<CollectionLabel>(
+      'SELECT id, collection_id, name, color, sort_order FROM collection_labels WHERE id = ?',
+      labelId,
+    ) as CollectionLabel;
   }
 
   /** Replace a place's label assignments, keeping only labels of `collectionId`. */
   private setPlaceLabels(placeId: number, collectionId: number, labelIds: number[]): void {
     this.db.run('DELETE FROM collection_place_labels WHERE collection_place_id = ?', placeId);
     if (labelIds.length === 0) return;
-    const valid = new Set(this.loadLabelsByCollection(collectionId).map(l => l.id));
-    const stmt = this.db.prepare('INSERT OR IGNORE INTO collection_place_labels (collection_place_id, label_id) VALUES (?, ?)');
+    const valid = new Set(this.loadLabelsByCollection(collectionId).map((l) => l.id));
+    const stmt = this.db.prepare(
+      'INSERT OR IGNORE INTO collection_place_labels (collection_place_id, label_id) VALUES (?, ?)',
+    );
     for (const id of labelIds) if (valid.has(id)) stmt.run(placeId, id);
   }
 
@@ -1074,19 +1437,43 @@ export class CollectionsService {
     this.assertCanEdit(userId, collectionId);
     const trimmed = name.trim();
     if (!trimmed) httpError(400, 'Label name is required');
-    const count = this.db.get<{ n: number }>('SELECT COUNT(*) AS n FROM collection_labels WHERE collection_id = ?', collectionId)!.n;
-    if (count >= MAX_LABELS_PER_COLLECTION) httpError(400, `A list can have at most ${MAX_LABELS_PER_COLLECTION} labels`);
-    if (this.db.get('SELECT 1 FROM collection_labels WHERE collection_id = ? AND lower(name) = lower(?)', collectionId, trimmed)) {
+    const count = this.db.get<{ n: number }>(
+      'SELECT COUNT(*) AS n FROM collection_labels WHERE collection_id = ?',
+      collectionId,
+    )!.n;
+    if (count >= MAX_LABELS_PER_COLLECTION)
+      httpError(400, `A list can have at most ${MAX_LABELS_PER_COLLECTION} labels`);
+    if (
+      this.db.get(
+        'SELECT 1 FROM collection_labels WHERE collection_id = ? AND lower(name) = lower(?)',
+        collectionId,
+        trimmed,
+      )
+    ) {
       httpError(409, 'A label with this name already exists');
     }
-    const nextSort = this.db.get<{ m: number }>('SELECT COALESCE(MAX(sort_order), -1) AS m FROM collection_labels WHERE collection_id = ?', collectionId)!.m + 1;
-    const res = this.db.run('INSERT INTO collection_labels (collection_id, name, color, sort_order) VALUES (?, ?, ?, ?)',
-      collectionId, trimmed, color ?? '#6366f1', nextSort);
+    const nextSort =
+      this.db.get<{ m: number }>(
+        'SELECT COALESCE(MAX(sort_order), -1) AS m FROM collection_labels WHERE collection_id = ?',
+        collectionId,
+      )!.m + 1;
+    const res = this.db.run(
+      'INSERT INTO collection_labels (collection_id, name, color, sort_order) VALUES (?, ?, ?, ?)',
+      collectionId,
+      trimmed,
+      color ?? '#6366f1',
+      nextSort,
+    );
     this.notifyCollectionUsers(collectionId, socketId, 'collections:updated');
     return this.getLabelById(Number(res.lastInsertRowid));
   }
 
-  updateLabel(userId: number, labelId: number, body: { name?: string; color?: string; sort_order?: number }, socketId?: string): CollectionLabel {
+  updateLabel(
+    userId: number,
+    labelId: number,
+    body: { name?: string; color?: string; sort_order?: number },
+    socketId?: string,
+  ): CollectionLabel {
     const collectionId = this.collectionIdOfLabel(labelId);
     this.assertCanEdit(userId, collectionId);
     const updates: string[] = [];
@@ -1094,13 +1481,27 @@ export class CollectionsService {
     if (body.name !== undefined) {
       const trimmed = body.name.trim();
       if (!trimmed) httpError(400, 'Label name is required');
-      if (this.db.get('SELECT 1 FROM collection_labels WHERE collection_id = ? AND lower(name) = lower(?) AND id != ?', collectionId, trimmed, labelId)) {
+      if (
+        this.db.get(
+          'SELECT 1 FROM collection_labels WHERE collection_id = ? AND lower(name) = lower(?) AND id != ?',
+          collectionId,
+          trimmed,
+          labelId,
+        )
+      ) {
         httpError(409, 'A label with this name already exists');
       }
-      updates.push('name = ?'); params.push(trimmed);
+      updates.push('name = ?');
+      params.push(trimmed);
     }
-    if (body.color !== undefined) { updates.push('color = ?'); params.push(body.color); }
-    if (body.sort_order !== undefined) { updates.push('sort_order = ?'); params.push(body.sort_order); }
+    if (body.color !== undefined) {
+      updates.push('color = ?');
+      params.push(body.color);
+    }
+    if (body.sort_order !== undefined) {
+      updates.push('sort_order = ?');
+      params.push(body.sort_order);
+    }
     if (updates.length > 0) {
       params.push(labelId);
       this.db.run(`UPDATE collection_labels SET ${updates.join(', ')} WHERE id = ?`, ...params);
@@ -1119,7 +1520,13 @@ export class CollectionsService {
   /** Bulk add (or remove) one or more labels across a selection of places.
    *  Places are grouped by list so each list is permission-checked once, and only
    *  labels that belong to that list are applied. */
-  assignLabels(userId: number, labelIds: number[], placeIds: number[], remove: boolean, socketId?: string): { changed: number } {
+  assignLabels(
+    userId: number,
+    labelIds: number[],
+    placeIds: number[],
+    remove: boolean,
+    socketId?: string,
+  ): { changed: number } {
     const byCollection = new Map<number, number[]>();
     for (const pid of placeIds) {
       const cid = this.collectionIdOfPlace(pid);
@@ -1136,14 +1543,18 @@ export class CollectionsService {
     const notified: number[] = [];
     this.db.transaction(() => {
       for (const [cid, pids] of byCollection) {
-        const valid = new Set(this.loadLabelsByCollection(cid).map(l => l.id));
-        const applicable = labelIds.filter(id => valid.has(id));
+        const valid = new Set(this.loadLabelsByCollection(cid).map((l) => l.id));
+        const applicable = labelIds.filter((id) => valid.has(id));
         if (applicable.length === 0) continue;
         if (remove) {
-          const del = this.db.prepare('DELETE FROM collection_place_labels WHERE collection_place_id = ? AND label_id = ?');
+          const del = this.db.prepare(
+            'DELETE FROM collection_place_labels WHERE collection_place_id = ? AND label_id = ?',
+          );
           for (const pid of pids) for (const lid of applicable) changed += del.run(pid, lid).changes;
         } else {
-          const ins = this.db.prepare('INSERT OR IGNORE INTO collection_place_labels (collection_place_id, label_id) VALUES (?, ?)');
+          const ins = this.db.prepare(
+            'INSERT OR IGNORE INTO collection_place_labels (collection_place_id, label_id) VALUES (?, ?)',
+          );
           for (const pid of pids) for (const lid of applicable) changed += ins.run(pid, lid).changes;
         }
         notified.push(cid);
@@ -1158,7 +1569,11 @@ export class CollectionsService {
   // -------------------------------------------------------------------------
 
   sendInvite(
-    collectionId: number, inviterId: number, inviterUsername: string, inviterEmail: string, targetUserId: number,
+    collectionId: number,
+    inviterId: number,
+    inviterUsername: string,
+    inviterEmail: string,
+    targetUserId: number,
     role: 'viewer' | 'editor' | 'admin' = 'editor',
   ): { error?: string; status?: number } {
     if (!this.isOwner(inviterId, collectionId)) return { error: 'Not allowed', status: 403 };
@@ -1167,27 +1582,56 @@ export class CollectionsService {
     const targetUser = this.db.get('SELECT id, username FROM users WHERE id = ?', targetUserId);
     if (!targetUser) return { error: 'User not found', status: 404 };
 
-    const existing = this.db.get<{ id: number; status: string }>('SELECT id, status FROM collection_members WHERE collection_id = ? AND user_id = ?', collectionId, targetUserId);
+    const existing = this.db.get<{ id: number; status: string }>(
+      'SELECT id, status FROM collection_members WHERE collection_id = ? AND user_id = ?',
+      collectionId,
+      targetUserId,
+    );
     if (existing) {
       if (existing.status === 'accepted') return { error: 'Already a member', status: 400 };
       if (existing.status === 'pending') return { error: 'Invite already pending', status: 400 };
     }
 
-    this.db.run("INSERT INTO collection_members (collection_id, user_id, status, role) VALUES (?, ?, 'pending', ?)", collectionId, targetUserId, role);
+    this.db.run(
+      "INSERT INTO collection_members (collection_id, user_id, status, role) VALUES (?, ?, 'pending', ?)",
+      collectionId,
+      targetUserId,
+      role,
+    );
 
-    this.realtime.broadcastToUser(targetUserId, { type: 'collections:invite', from: { id: inviterId, username: inviterUsername }, collectionId });
+    this.realtime.broadcastToUser(targetUserId, {
+      type: 'collections:invite',
+      from: { id: inviterId, username: inviterUsername },
+      collectionId,
+    });
 
     // Injected, not a lazy import of the old notifications bridge. The laziness bought
     // nothing the module graph does not already give — NotificationsModule
     // reaches nothing in this direction — and it hid the edge while handing the
     // send a second NotificationsService built outside the container.
-    this.notifications.send({ event: 'collection_invite', actorId: inviterId, scope: 'user', targetId: targetUserId, params: { actor: inviterEmail, collectionId: String(collectionId) } }).catch(() => {});
+    this.notifications
+      .send({
+        event: 'collection_invite',
+        actorId: inviterId,
+        scope: 'user',
+        targetId: targetUserId,
+        params: { actor: inviterEmail, collectionId: String(collectionId) },
+      })
+      .catch(() => {});
 
     return {};
   }
 
-  acceptInvite(userId: number, collectionId: number, socketId: string | undefined): { error?: string; status?: number } {
-    const invite = this.db.get<{ id: number }>("SELECT id FROM collection_members WHERE collection_id = ? AND user_id = ? AND status = 'pending'", collectionId, userId);
+  acceptInvite(
+    userId: number,
+    collectionId: number,
+    socketId: string | undefined,
+  ): { error?: string; status?: number } {
+    const invite = this.db.get<{ id: number }>(
+      "SELECT id FROM collection_members WHERE collection_id = ? AND user_id = ? AND status = 'pending'",
+      collectionId,
+      userId,
+    );
     if (!invite) return { error: 'No pending invite', status: 404 };
     this.db.run("UPDATE collection_members SET status = 'accepted' WHERE id = ?", invite.id);
     this.notifyCollectionUsers(collectionId, socketId, 'collections:accepted');
@@ -1195,19 +1639,31 @@ export class CollectionsService {
   }
 
   declineInvite(userId: number, collectionId: number, socketId: string | undefined): void {
-    this.db.run("DELETE FROM collection_members WHERE collection_id = ? AND user_id = ? AND status = 'pending'", collectionId, userId);
+    this.db.run(
+      "DELETE FROM collection_members WHERE collection_id = ? AND user_id = ? AND status = 'pending'",
+      collectionId,
+      userId,
+    );
     this.notifyCollectionUsers(collectionId, socketId, 'collections:declined');
   }
 
   cancelInvite(collectionId: number, ownerId: number, targetUserId: number): void {
     if (!this.isOwner(ownerId, collectionId)) httpError(403, 'Not allowed');
-    this.db.run("DELETE FROM collection_members WHERE collection_id = ? AND user_id = ? AND status = 'pending'", collectionId, targetUserId);
+    this.db.run(
+      "DELETE FROM collection_members WHERE collection_id = ? AND user_id = ? AND status = 'pending'",
+      collectionId,
+      targetUserId,
+    );
     this.realtime.broadcastToUser(targetUserId, { type: 'collections:cancelled', collectionId });
   }
 
   leaveCollection(userId: number, collectionId: number, socketId: string | undefined): void {
     if (this.isOwner(userId, collectionId)) httpError(400, 'Owner cannot leave; delete the list');
-    this.db.run("DELETE FROM collection_members WHERE collection_id = ? AND user_id = ? AND status = 'accepted'", collectionId, userId);
+    this.db.run(
+      "DELETE FROM collection_members WHERE collection_id = ? AND user_id = ? AND status = 'accepted'",
+      collectionId,
+      userId,
+    );
     this.notifyCollectionUsers(collectionId, socketId, 'collections:left');
   }
 
@@ -1215,34 +1671,59 @@ export class CollectionsService {
   removeMember(ownerId: number, collectionId: number, targetUserId: number): void {
     if (!this.isOwner(ownerId, collectionId)) httpError(403, 'Not allowed');
     if (targetUserId === ownerId) httpError(400, 'Owner cannot be removed');
-    const res = this.db.run("DELETE FROM collection_members WHERE collection_id = ? AND user_id = ? AND status = 'accepted'", collectionId, targetUserId);
+    const res = this.db.run(
+      "DELETE FROM collection_members WHERE collection_id = ? AND user_id = ? AND status = 'accepted'",
+      collectionId,
+      targetUserId,
+    );
     if (res.changes === 0) httpError(404, 'Member not found');
     this.notifyCollectionUsers(collectionId, undefined, 'collections:left'); // refresh remaining members
     this.realtime.broadcastToUser(targetUserId, { type: 'collections:removed', collectionId }); // bounce the removed user
   }
 
   /** Owner changes an accepted member's permission role (viewer/editor/admin). */
-  setMemberRole(ownerId: number, collectionId: number, targetUserId: number, role: 'viewer' | 'editor' | 'admin'): void {
+  setMemberRole(
+    ownerId: number,
+    collectionId: number,
+    targetUserId: number,
+    role: 'viewer' | 'editor' | 'admin',
+  ): void {
     if (!this.isOwner(ownerId, collectionId)) httpError(403, 'Not allowed');
-    const res = this.db.run("UPDATE collection_members SET role = ? WHERE collection_id = ? AND user_id = ? AND status = 'accepted'", role, collectionId, targetUserId);
+    const res = this.db.run(
+      "UPDATE collection_members SET role = ? WHERE collection_id = ? AND user_id = ? AND status = 'accepted'",
+      role,
+      collectionId,
+      targetUserId,
+    );
     if (res.changes === 0) httpError(404, 'Member not found');
     this.notifyCollectionUsers(collectionId, undefined, 'collections:updated'); // re-gate the member live
     this.realtime.broadcastToUser(targetUserId, { type: 'collections:updated', collectionId });
   }
 
   availableUsers(ownerId: number, collectionId: number): { id: number; username: string }[] {
-    return this.db.all<{ id: number; username: string }>(`
+    return this.db.all<{ id: number; username: string }>(
+      `
     SELECT u.id, u.username FROM users u
     WHERE u.id != ?
       AND u.id NOT IN (SELECT user_id FROM collection_members WHERE collection_id = ?)
       AND u.is_guest = 0
     ORDER BY u.username
-  `, ownerId, collectionId);
+  `,
+      ownerId,
+      collectionId,
+    );
   }
 
-  findMembershipForUser(userId: number, collectionId: number): { is_member: boolean; is_owner: boolean; status: string | null } {
+  findMembershipForUser(
+    userId: number,
+    collectionId: number,
+  ): { is_member: boolean; is_owner: boolean; status: string | null } {
     if (this.isOwner(userId, collectionId)) return { is_member: true, is_owner: true, status: 'accepted' };
-    const row = this.db.get<{ status: string }>('SELECT status FROM collection_members WHERE collection_id = ? AND user_id = ?', collectionId, userId);
+    const row = this.db.get<{ status: string }>(
+      'SELECT status FROM collection_members WHERE collection_id = ? AND user_id = ?',
+      collectionId,
+      userId,
+    );
     return { is_member: row?.status === 'accepted', is_owner: false, status: row?.status ?? null };
   }
 }

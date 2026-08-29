@@ -283,12 +283,14 @@ const journey: TranslationStrings = {
   'journey.studio.zoomOut': 'Zoom out', // en-fallback
   'journey.studio.zoomFit': 'Fit to view', // en-fallback
   'journey.studio.downloadSpread': '이 펼침면 내려받기',
-  'journey.studio.downloadSpreadHint': '이 펼침면의 디자인을 사진 없이 파일로 저장합니다. 공유하거나 다시 쓸 수 있습니다',
+  'journey.studio.downloadSpreadHint':
+    '이 펼침면의 디자인을 사진 없이 파일로 저장합니다. 공유하거나 다시 쓸 수 있습니다',
   'journey.studio.importSpread': '가져오기',
   'journey.studio.importSpreadHint': '내려받은 디자인 파일에서 펼침면을 추가합니다',
   'journey.studio.importSpreadFailed': '이 파일은 TREK 스튜디오 펼침면이 아닙니다',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': '책을 만들려면 작업할 공간이 필요해서 스튜디오는 데스크톱에서만 쓸 수 있고, PDF 만들기도 마찬가지입니다. 여정의 나머지 기능은 여기에서도 평소처럼 작동합니다.', // en-fallback
+  'journey.studio.desktopOnlyHint':
+    '책을 만들려면 작업할 공간이 필요해서 스튜디오는 데스크톱에서만 쓸 수 있고, PDF 만들기도 마찬가지입니다. 여정의 나머지 기능은 여기에서도 평소처럼 작동합니다.', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
   'journey.studio.bookView': 'Book view', // en-fallback
   'journey.studio.multiple': 'Several', // en-fallback
@@ -352,7 +354,8 @@ const journey: TranslationStrings = {
   'journey.studio.sampleSubheading': 'A subheading', // en-fallback
   'journey.studio.sampleBody': 'Write something about this day.', // en-fallback
   'journey.studio.sampleCaption': 'Caption', // en-fallback
-  'journey.studio.templatesCoverHint': 'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
+  'journey.studio.templatesCoverHint':
+    'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
   'journey.studio.tpl.heroStory': 'Hero and story', // en-fallback
   'journey.studio.tpl.fullBleed': 'One picture, full spread', // en-fallback
   'journey.studio.tpl.twoUp': 'Two full pages', // en-fallback
@@ -534,7 +537,8 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceVector': '윤곽선',
   'journey.studio.mapSourceRelief': '음영 지형',
   'journey.studio.mapSourceSatellite': '위성 사진',
-  'journey.studio.mapSourceSatelliteHint': '구름 없는 Sentinel-2 이미지로, 출처를 밝히면 무료로 인쇄할 수 있습니다. 도시의 거리까지 선명합니다.',
+  'journey.studio.mapSourceSatelliteHint':
+    '구름 없는 Sentinel-2 이미지로, 출처를 밝히면 무료로 인쇄할 수 있습니다. 도시의 거리까지 선명합니다.',
   'journey.studio.routeLook': '경로 선',
   'journey.studio.routeStyle': '그리기 방식',
   'journey.studio.routePlain': '단선',
@@ -559,7 +563,8 @@ const journey: TranslationStrings = {
   'journey.studio.roadsBusy': '요청 중',
   'journey.studio.roadsHint': '경로 안내 서비스에 각 구간을 실제로 달린 길을 요청합니다. 긴 구간은 그대로 둡니다.',
   'journey.studio.roadsHave': '도로는 이 책에 저장되므로 오프라인에서도 같은 선으로 인쇄됩니다.',
-  'journey.studio.mapSourceReliefHint': 'NASA 음영 기복 이미지로 라이선스 없이 인쇄할 수 있습니다. 국가나 대륙에 적합하고 도시 하나에는 너무 거칩니다.',
+  'journey.studio.mapSourceReliefHint':
+    'NASA 음영 기복 이미지로 라이선스 없이 인쇄할 수 있습니다. 국가나 대륙에 적합하고 도시 하나에는 너무 거칩니다.',
   'journey.studio.mapPrintDpi': '인쇄 해상도 약',
   'journey.studio.mapPrintDpiLow': '이 크기에서는 흐릿합니다. 범위를 넓히거나 다른 소스를 사용해 보세요',
   'journey.studio.mapPerTrip': '여행별',

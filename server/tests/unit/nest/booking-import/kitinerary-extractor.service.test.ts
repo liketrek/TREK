@@ -1,3 +1,6 @@
+import { KitineraryExtractorService } from '../../../../src/nest/booking-import/kitinerary-extractor.service';
+
+import { join } from 'node:path';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 /**
@@ -30,9 +33,6 @@ vi.mock('node:fs', () => ({
 vi.mock('node:child_process', () => ({ execFileSync, execFile }));
 vi.mock('../../../../src/app-config', () => ({ readEnv }));
 
-import { join } from 'node:path';
-import { KitineraryExtractorService } from '../../../../src/nest/booking-import/kitinerary-extractor.service';
-
 // The probe builds candidates with path.join, so the expectations have to as
 // well — on Windows the separator is a backslash and a hardcoded '/usr/...'
 // string would never match.
@@ -49,7 +49,9 @@ beforeEach(() => {
   vi.clearAllMocks();
   existsSync.mockReturnValue(false);
   readdirSync.mockReturnValue([]);
-  execFileSync.mockImplementation(() => { throw new Error('command not found'); });
+  execFileSync.mockImplementation(() => {
+    throw new Error('command not found');
+  });
 });
 
 describe('KitineraryExtractorService binary probe', () => {
@@ -74,7 +76,9 @@ describe('KitineraryExtractorService binary probe', () => {
   });
 
   it('KIT-EXT-004: survives a system with no /usr/lib at all', () => {
-    readdirSync.mockImplementation(() => { throw new Error('ENOENT'); });
+    readdirSync.mockImplementation(() => {
+      throw new Error('ENOENT');
+    });
     expect(boot().isAvailable()).toBe(false);
   });
 
@@ -92,7 +96,9 @@ describe('KitineraryExtractorService binary probe', () => {
 
     expect(boot({ searchPath: ['/usr/local/bin'] }).isAvailable()).toBe(true);
     expect(execFileSync).toHaveBeenCalledWith(
-      onPath('/usr/local/bin'), ['--version'], expect.objectContaining({ timeout: 3000 }),
+      onPath('/usr/local/bin'),
+      ['--version'],
+      expect.objectContaining({ timeout: 3000 }),
     );
   });
 
@@ -100,14 +106,18 @@ describe('KitineraryExtractorService binary probe', () => {
     existsSync.mockImplementation((p: string) => p === onPath('/opt/tools'));
     execFileSync.mockReturnValue(Buffer.from(''));
     execFile.mockImplementation((_b: string, _a: string[], _o: unknown, cb: (e: null, r: unknown) => void) =>
-      cb(null, { stdout: '[]', stderr: '' }));
+      cb(null, { stdout: '[]', stderr: '' }),
+    );
 
     // An unqualified name would be re-resolved through PATH on every extraction,
     // so what the probe stores has to be the concrete file it verified.
     await boot({ searchPath: ['/opt/tools'] }).extract(Buffer.from(''), 'x.pdf');
 
     expect(execFile).toHaveBeenCalledWith(
-      onPath('/opt/tools'), [expect.any(String)], expect.anything(), expect.anything(),
+      onPath('/opt/tools'),
+      [expect.any(String)],
+      expect.anything(),
+      expect.anything(),
     );
   });
 
@@ -119,8 +129,6 @@ describe('KitineraryExtractorService binary probe', () => {
     });
 
     expect(boot({ searchPath: ['/broken', '/good'] }).isAvailable()).toBe(true);
-    expect(execFileSync).toHaveBeenLastCalledWith(
-      onPath('/good'), ['--version'], expect.anything(),
-    );
+    expect(execFileSync).toHaveBeenLastCalledWith(onPath('/good'), ['--version'], expect.anything());
   });
 });

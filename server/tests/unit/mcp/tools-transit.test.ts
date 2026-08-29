@@ -1,8 +1,11 @@
 import { runMigrations } from '../../../src/db/migrations';
 import { createTables } from '../../../src/db/schema';
+import { DatabaseService } from '../../../src/nest/database/database.service';
 import { invalidatePermissionsCache } from '../../../src/nest/permissions/permissions-cache';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { DatabaseService } from '../../../src/nest/database/database.service';
+import { ReservationsService } from '../../../src/nest/reservations/reservations.service';
+import type { TransitPlace } from '../../../src/nest/transit/transit.helpers';
+import { TransitService } from '../../../src/nest/transit/transit.service';
 import { addTripMember, createDay, createTrip, createUser } from '../../helpers/factories';
 import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
 import { resetTestDb } from '../../helpers/test-db';
@@ -41,10 +44,6 @@ vi.mock('../../../src/config', () => ({
   ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
   updateJwtSecret: () => {},
 }));
-
-import { ReservationsService } from '../../../src/nest/reservations/reservations.service';
-import type { TransitPlace } from '../../../src/nest/transit/transit.helpers';
-import { TransitService } from '../../../src/nest/transit/transit.service';
 
 // savePermissions is no longer bridged; write through a service instance — the
 // permissions cache is module-scoped, so the MCP _shared checkPermission path

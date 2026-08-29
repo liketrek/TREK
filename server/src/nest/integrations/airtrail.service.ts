@@ -1,12 +1,12 @@
-import { Injectable } from '@nestjs/common';
-import type { AirtrailFlight } from '@trek/shared';
-import { DatabaseService } from '../database/database.service';
+import { checkSsrf } from '../../utils/ssrfGuard';
 import { AuditService } from '../audit/audit.service';
 import { maybe_encrypt_api_key, decrypt_api_key } from '../common/crypto/apiKeyCrypto';
-import { checkSsrf } from '../../utils/ssrfGuard';
+import { DatabaseService } from '../database/database.service';
 import { AirtrailAuthError, AirtrailRequestError, type AirtrailCreds } from './airtrail.client';
 import { AirtrailClient } from './airtrail.client';
 import { normalizeFlight } from './airtrail.mapper';
+import { Injectable } from '@nestjs/common';
+import type { AirtrailFlight } from '@trek/shared';
 
 const KEY_MASK = '••••••••';
 
@@ -118,12 +118,19 @@ export class AirtrailService {
     if (newKey !== undefined) {
       this.db.run(
         'UPDATE users SET airtrail_url = ?, airtrail_api_key = ?, airtrail_allow_insecure_tls = ?, airtrail_write_enabled = ? WHERE id = ?',
-        trimmedUrl || null, newKey, allowInsecureTls ? 1 : 0, writeEnabled ? 1 : 0, userId,
+        trimmedUrl || null,
+        newKey,
+        allowInsecureTls ? 1 : 0,
+        writeEnabled ? 1 : 0,
+        userId,
       );
     } else {
       this.db.run(
         'UPDATE users SET airtrail_url = ?, airtrail_allow_insecure_tls = ?, airtrail_write_enabled = ? WHERE id = ?',
-        trimmedUrl || null, allowInsecureTls ? 1 : 0, writeEnabled ? 1 : 0, userId,
+        trimmedUrl || null,
+        allowInsecureTls ? 1 : 0,
+        writeEnabled ? 1 : 0,
+        userId,
       );
       // Clearing the URL with no key left makes the connection meaningless — drop the key too.
       if (!trimmedUrl) {
@@ -145,9 +152,7 @@ export class AirtrailService {
   }
 
   /** Live check using the stored connection. */
-  async getConnectionStatus(
-    userId: number,
-  ): Promise<{ connected: boolean; flightCount?: number; error?: string }> {
+  async getConnectionStatus(userId: number): Promise<{ connected: boolean; flightCount?: number; error?: string }> {
     const creds = this.getAirtrailCredentials(userId);
     if (!creds) return { connected: false, error: 'Not configured' };
     return this.probe(creds);

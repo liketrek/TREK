@@ -8,13 +8,14 @@
  *
  * These tests pin all three, plus the argument shape each hook is handed.
  */
-import { describe, it, expect, vi } from 'vitest';
-import { expectRegisteredProvider } from '../../helpers/module-providers';
-import { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
-import { PluginsRuntimeModule } from '../../../src/nest/plugins/plugins-runtime.module';
 import { createTestPluginRegistry } from '../../../src/nest/plugins/host/rpc-kit/testing';
-import { HOOK_PERMISSION } from '../../../src/nest/plugins/protocol/envelope';
+import { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
 import type { PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.service';
+import { PluginsRuntimeModule } from '../../../src/nest/plugins/plugins-runtime.module';
+import { HOOK_PERMISSION } from '../../../src/nest/plugins/protocol/envelope';
+import { expectRegisteredProvider } from '../../helpers/module-providers';
+
+import { describe, it, expect, vi } from 'vitest';
 
 type Invocation = [string, string, string, unknown[], number | undefined, number];
 
@@ -132,7 +133,14 @@ describe('PluginHooks contracts', () => {
     const { hooks: h, invokeHook } = hooks();
     const message = { event: 'trip_reminder', title: 't', body: 'b' };
     await h.sendNotification('p', message, { token: 'x' });
-    expect(invokeHook).toHaveBeenCalledWith('p', 'notificationChannel', 'send', [message, { token: 'x' }], undefined, 8000);
+    expect(invokeHook).toHaveBeenCalledWith(
+      'p',
+      'notificationChannel',
+      'send',
+      [message, { token: 'x' }],
+      undefined,
+      8000,
+    );
     await h.testNotification('p', { token: 'x' });
     expect(invokeHook).toHaveBeenCalledWith('p', 'notificationChannel', 'test', [{ token: 'x' }], undefined, 8000);
   });

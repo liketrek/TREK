@@ -3,7 +3,6 @@
  * by constructor rather than reflect-metadata, so these tests run without a Nest app
  * and without any polyfill import order to get right.
  */
-import { describe, it, expect } from 'vitest';
 import {
   addEntry,
   getEntry,
@@ -12,6 +11,8 @@ import {
   type ClassRef,
 } from '../../../../src/nest/plugins/host/rpc-kit/metadata';
 import type { PluginRpcEntry } from '../../../../src/nest/plugins/host/rpc-kit/types';
+
+import { describe, it, expect } from 'vitest';
 
 const methodEntry = (methodName: string, method: 'tags.list' | 'tags.create' = 'tags.list'): PluginRpcEntry => ({
   kind: 'method',

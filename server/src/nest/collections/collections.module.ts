@@ -1,19 +1,19 @@
-import { Module } from '@nestjs/common';
-import { CollectionsController } from './collections.controller';
-import { CollectionsService } from './collections.service';
-import { CollectionsRpc } from './collections.rpc';
-import { PluginGuardsModule } from '../plugins/host/plugin-guards.module';
-import { AppConfigModule } from '../app-config/app-config.module';
-import { CollectionsMcp } from './collections.mcp';
 import { AddonsModule } from '../addons/addons.module';
-import { PermissionsModule } from '../permissions/permissions.module';
+import { AppConfigModule } from '../app-config/app-config.module';
 import { AuthModule } from '../auth/auth.module';
 import { NotificationsModule } from '../notifications/notifications.module';
-import { MulterModule } from '@nestjs/platform-express';
+import { PermissionsModule } from '../permissions/permissions.module';
+import { PluginGuardsModule } from '../plugins/host/plugin-guards.module';
+import { buildStorageUploadOptions } from '../storage/storage-upload.factory';
 import { StorageModule } from '../storage/storage.module';
 import { StorageService } from '../storage/storage.service';
-import { buildStorageUploadOptions } from '../storage/storage-upload.factory';
+import { CollectionsController } from './collections.controller';
 import { MAX_COVER_SIZE } from './collections.controller';
+import { CollectionsMcp } from './collections.mcp';
+import { CollectionsRpc } from './collections.rpc';
+import { CollectionsService } from './collections.service';
+import { Module } from '@nestjs/common';
+import { MulterModule } from '@nestjs/platform-express';
 
 /** Collections domain (saved-places library). Registered in AppModule.
  *  Exports CollectionsService for in-container consumers (PluginsModule's
@@ -35,7 +35,13 @@ import { MAX_COVER_SIZE } from './collections.controller';
         }),
     }),
     StorageModule,
-    NotificationsModule, AddonsModule, PermissionsModule, AuthModule, AppConfigModule, PluginGuardsModule],
+    NotificationsModule,
+    AddonsModule,
+    PermissionsModule,
+    AuthModule,
+    AppConfigModule,
+    PluginGuardsModule,
+  ],
   controllers: [CollectionsController],
   providers: [CollectionsService, CollectionsMcp, CollectionsRpc],
   exports: [CollectionsService],

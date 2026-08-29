@@ -1,9 +1,10 @@
-import { Controller, Get, Res } from '@nestjs/common';
-import type { Response } from 'express';
-import { KitineraryExtractorService } from '../booking-import/kitinerary-extractor.service';
-import { AddonsService } from '../addons/addons.service';
 import { ADDON_IDS } from '../../addons';
+import { AddonsService } from '../addons/addons.service';
 import { Public } from '../auth/public.decorator';
+import { KitineraryExtractorService } from '../booking-import/kitinerary-extractor.service';
+import { Controller, Get, Res } from '@nestjs/common';
+
+import type { Response } from 'express';
 
 /** Exposes the container probe and the server feature flags consumed by the
  *  frontend to show/hide optional UI. */

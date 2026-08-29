@@ -1,4 +1,3 @@
-import { describe, it, expect, afterEach, vi } from 'vitest';
 import {
   hostVersion,
   normalizedHost,
@@ -7,6 +6,8 @@ import {
   hostSatisfies,
   __resetHostWarningForTests,
 } from '../../../src/nest/plugins/install/host-compat';
+
+import { describe, it, expect, afterEach, vi } from 'vitest';
 
 /**
  * The TREK-version gate (#plugins). Every install front door and the activation gate

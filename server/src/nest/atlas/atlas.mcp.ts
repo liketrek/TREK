@@ -1,15 +1,22 @@
-import {
-  McpController, Tool, Resource, type McpContext,
-  TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
-  TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  demoDenied, ok,
-} from '../../nest-mcp';
-import { z } from 'zod';
 import { ADDON_IDS } from '../../addons';
-import { AtlasService, BucketItemExistsError } from './atlas.service';
+import {
+  McpController,
+  Tool,
+  Resource,
+  type McpContext,
+  TOOL_ANNOTATIONS_READONLY,
+  TOOL_ANNOTATIONS_WRITE,
+  TOOL_ANNOTATIONS_DELETE,
+  TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+  demoDenied,
+  ok,
+} from '../../nest-mcp';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
 import { AuthService } from '../auth/auth.service';
+import { AtlasService, BucketItemExistsError } from './atlas.service';
+
+import { z } from 'zod';
 
 /** Legacy registrar gate: the whole atlas surface (tools AND resources) rides
  *  the atlas addon — unlike the REST controller, which is deliberately ungated
@@ -23,11 +30,13 @@ function bucketDuplicateResult() {
 
 function jsonContent(uri: string, data: unknown) {
   return {
-    contents: [{
-      uri,
-      mimeType: 'application/json',
-      text: JSON.stringify(data, null, 2),
-    }],
+    contents: [
+      {
+        uri,
+        mimeType: 'application/json',
+        text: JSON.stringify(data, null, 2),
+      },
+    ],
   };
 }
 
@@ -75,7 +84,14 @@ export class AtlasMcp {
     access: { group: 'atlas', mode: 'write' },
   })
   async createBucketListItem(
-    { name, lat, lng, country_code, notes, target_date }: { name: string; lat?: number; lng?: number; country_code?: string; notes?: string; target_date?: string | null },
+    {
+      name,
+      lat,
+      lng,
+      country_code,
+      notes,
+      target_date,
+    }: { name: string; lat?: number; lng?: number; country_code?: string; notes?: string; target_date?: string | null },
     ctx: McpContext,
   ) {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
@@ -216,7 +232,7 @@ export class AtlasMcp {
 
   @Tool({
     name: 'get_country_atlas_places',
-    description: 'Get places saved in the user\'s atlas for a specific country.',
+    description: "Get places saved in the user's atlas for a specific country.",
     inputSchema: {
       countryCode: z.string().describe('ISO 3166-1 alpha-2 country code'),
     },
@@ -248,7 +264,15 @@ export class AtlasMcp {
     access: { group: 'atlas', mode: 'write' },
   })
   async updateBucketListItem(
-    { itemId, name, notes, lat, lng, country_code, target_date }: {
+    {
+      itemId,
+      name,
+      notes,
+      lat,
+      lng,
+      country_code,
+      target_date,
+    }: {
       itemId: number;
       name?: string;
       notes?: string;

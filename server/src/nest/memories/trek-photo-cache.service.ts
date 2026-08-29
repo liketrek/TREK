@@ -1,10 +1,11 @@
-import crypto from 'node:crypto';
-import { Readable } from 'node:stream';
-import { Injectable } from '@nestjs/common';
-import { Response } from 'express';
 import { DatabaseService } from '../database/database.service';
 import { StorageService } from '../storage/storage.service';
 import { StorageNotFoundError } from '../storage/storage.types';
+import { Injectable } from '@nestjs/common';
+
+import { Response } from 'express';
+import crypto from 'node:crypto';
+import { Readable } from 'node:stream';
 
 export const CACHE_TTL = 60 * 60 * 1000; // 1 hour
 
@@ -40,7 +41,8 @@ export class TrekPhotoCacheService {
 
   async getFresh(key: string): Promise<{ contentType: string } | null> {
     const row = this.db.get<{ content_type: string; fetched_at: number }>(
-      'SELECT content_type, fetched_at FROM trek_photo_cache_meta WHERE cache_key = ?', key,
+      'SELECT content_type, fetched_at FROM trek_photo_cache_meta WHERE cache_key = ?',
+      key,
     );
 
     if (!row) return null;
@@ -63,7 +65,9 @@ export class TrekPhotoCacheService {
 
     this.db.run(
       'INSERT OR REPLACE INTO trek_photo_cache_meta (cache_key, content_type, fetched_at) VALUES (?, ?, ?)',
-      key, contentType, Date.now(),
+      key,
+      contentType,
+      Date.now(),
     );
   }
 
@@ -97,7 +101,8 @@ export class TrekPhotoCacheService {
   async sweepExpired(): Promise<void> {
     const cutoff = Date.now() - CACHE_TTL * 2;
     const stale = this.db.all<{ cache_key: string }>(
-      'SELECT cache_key FROM trek_photo_cache_meta WHERE fetched_at < ?', cutoff,
+      'SELECT cache_key FROM trek_photo_cache_meta WHERE fetched_at < ?',
+      cutoff,
     );
 
     for (const row of stale) {
@@ -115,7 +120,9 @@ export class TrekPhotoCacheService {
       const key = stat.key.slice(0, -'.bin'.length);
       const row = this.db.get('SELECT 1 FROM trek_photo_cache_meta WHERE cache_key = ?', key);
       if (!row) {
-        await this.storage.delete('photos-trek', stat.key).catch(() => { /* race */ });
+        await this.storage.delete('photos-trek', stat.key).catch(() => {
+          /* race */
+        });
       }
     }
   }

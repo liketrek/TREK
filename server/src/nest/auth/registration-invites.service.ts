@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
-import crypto from 'crypto';
 import { DatabaseService } from '../database/database.service';
+import { Injectable } from '@nestjs/common';
+
+import crypto from 'crypto';
 
 /**
  * Registration invites: the tokens an admin hands out so someone can create an
@@ -62,17 +63,24 @@ export class RegistrationInvitesService {
 
     const ins = this.db.run(
       'INSERT INTO invite_tokens (token, max_uses, expires_at, created_by, trip_id) VALUES (?, ?, ?, ?, ?)',
-      token, uses, expiresAt, createdBy, tripId,
+      token,
+      uses,
+      expiresAt,
+      createdBy,
+      tripId,
     );
 
     const inviteId = Number(ins.lastInsertRowid);
-    const invite = this.db.get(`
+    const invite = this.db.get(
+      `
     SELECT i.*, u.username as created_by_name, t.title as trip_title
     FROM invite_tokens i
     JOIN users u ON i.created_by = u.id
     LEFT JOIN trips t ON i.trip_id = t.id
     WHERE i.id = ?
-  `, inviteId);
+  `,
+      inviteId,
+    );
 
     return { invite, inviteId, uses, expiresInDays: data.expires_in_days ?? null, tripId };
   }

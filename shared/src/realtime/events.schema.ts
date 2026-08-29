@@ -298,12 +298,14 @@ export const TREK_WS_EVENTS = {
     scope: 'user',
     payload: z.object({
       journeyId: id,
-      peers: z.array(z.object({
-        socketId: z.number(),
-        userId: id,
-        username: z.string(),
-        avatar: z.string().nullable().optional(),
-      })),
+      peers: z.array(
+        z.object({
+          socketId: z.number(),
+          userId: id,
+          username: z.string(),
+          avatar: z.string().nullable().optional(),
+        }),
+      ),
     }),
   },
 

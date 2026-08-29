@@ -437,7 +437,8 @@ const admin: TranslationStrings = {
   'admin.plugins.changeVersion': 'Verzióváltás…',
   'admin.plugins.noVersions': 'Nem található publikált verzió a jegyzékben.',
   'admin.plugins.downgradeTitle': 'Visszaállítod ezt a bővítményt?',
-  'admin.plugins.downgradeBody': 'Váltás v{from} verzióról v{to} verzióra: az újabb verzió által írt adatok megmaradnak, és a régebbi verzió lehet, hogy nem érti őket.',
+  'admin.plugins.downgradeBody':
+    'Váltás v{from} verzióról v{to} verzióra: az újabb verzió által írt adatok megmaradnak, és a régebbi verzió lehet, hogy nem érti őket.',
   'admin.plugins.downgradeConfirm': 'Visszaállítás',
   'admin.plugins.updatesHeld': 'Frissítések szüneteltetve a v{version} verzión',
   'admin.plugins.resumeUpdates': 'Frissítések folytatása',

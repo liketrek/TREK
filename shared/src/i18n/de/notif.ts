@@ -29,7 +29,8 @@ const notif: TranslationStrings = {
   'notif.version_available.text': 'TREK {version} ist jetzt verfügbar',
   'notif.replica_failure.title': 'Speicher-Replik-Fehler',
   'notif.replica_failure.text': "Schreibvorgang auf Replik '{backend}' fehlgeschlagen: {op} von {key} — {error}",
-  'notif.replica_failure.textSuppressed': "Schreibvorgang auf Replik '{backend}' fehlgeschlagen: {op} von {key} — {error}. Seit der letzten Benachrichtigung wurden {suppressed} weitere Fehler unterdrückt.",
+  'notif.replica_failure.textSuppressed':
+    "Schreibvorgang auf Replik '{backend}' fehlgeschlagen: {op} von {key} — {error}. Seit der letzten Benachrichtigung wurden {suppressed} weitere Fehler unterdrückt.",
   'notif.action.view_trip': 'Reise ansehen',
   'notif.action.view_collab': 'Nachrichten ansehen',
   'notif.action.view_packing': 'Packliste ansehen',

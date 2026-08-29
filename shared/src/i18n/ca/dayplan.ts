@@ -61,7 +61,7 @@ const dayplan: TranslationStrings = {
   'dayplan.gpxPlaces': 'Només els llocs',
   'dayplan.gpxDays': 'Dies com a rutes',
   'dayplan.gpxEmpty': 'Encara no hi ha res per exportar',
-  'dayplan.gpxFailed': 'L\'exportació GPX ha fallat',
+  'dayplan.gpxFailed': "L'exportació GPX ha fallat",
   'dayplan.pdfError': "No s'ha pogut exportar el PDF",
   'dayplan.cannotReorderTransport': 'Les reserves amb hora fixa no es poden reordenar',
   'dayplan.confirmRemoveTimeTitle': "Vols eliminar l'hora?",

@@ -11,22 +11,24 @@
  * reason this function exists at all: a reset bumps users.password_version and
  * every JWT carrying the prior value has to stop working.
  */
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { db } from '../../../../src/db/database';
+import { extractToken, verifyJwtAndLoadUser } from '../../../../src/nest/auth/jwt-verify';
+
+import type { Request } from 'express';
 import jwt from 'jsonwebtoken';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 
 vi.mock('../../../../src/db/database', () => ({
   db: { prepare: vi.fn(() => ({ get: vi.fn(), all: vi.fn() })) },
 }));
 vi.mock('../../../../src/config', () => ({ JWT_SECRET: 'test-secret' }));
 
-import { extractToken, verifyJwtAndLoadUser } from '../../../../src/nest/auth/jwt-verify';
-import { db } from '../../../../src/db/database';
-import type { Request } from 'express';
-
-function makeReq(overrides: {
-  cookies?: Record<string, string>;
-  headers?: Record<string, string>;
-} = {}): Request {
+function makeReq(
+  overrides: {
+    cookies?: Record<string, string>;
+    headers?: Record<string, string>;
+  } = {},
+): Request {
   return {
     cookies: overrides.cookies || {},
     headers: overrides.headers || {},
@@ -88,7 +90,9 @@ describe('verifyJwtAndLoadUser', () => {
   });
 
   it('AUTH-JWT-004: returns null for an expired token', () => {
-    const expired = jwt.sign({ id: 1, exp: Math.floor(Date.now() / 1000) - 3600 }, 'test-secret', { algorithm: 'HS256' });
+    const expired = jwt.sign({ id: 1, exp: Math.floor(Date.now() / 1000) - 3600 }, 'test-secret', {
+      algorithm: 'HS256',
+    });
     expect(verifyJwtAndLoadUser(expired)).toBeNull();
   });
 

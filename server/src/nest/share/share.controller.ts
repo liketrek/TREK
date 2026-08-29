@@ -1,15 +1,16 @@
-import { Body, Controller, Delete, Get, HttpException, Param, Post, Res, UseGuards } from '@nestjs/common';
-import type { Response } from 'express';
-import type { Readable } from 'node:stream';
-import { pipeline } from 'node:stream/promises';
 import type { User } from '../../types';
-import { ShareService } from './share.service';
+import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { Public } from '../auth/public.decorator';
 import { StorageService } from '../storage/storage.service';
 import { isClientAbortError } from '../storage/storage.types';
 import { ShareLinkDto } from './share.dto';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
-import { Public } from '../auth/public.decorator';
+import { ShareService } from './share.service';
+import { Body, Controller, Delete, Get, HttpException, Param, Post, Res, UseGuards } from '@nestjs/common';
+
+import type { Response } from 'express';
+import type { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
 
 /**
  * /api/trips/:tripId/share-link — manage a trip's public read-only share token.
@@ -98,7 +99,11 @@ export class SharedController {
    * are always JPEG.
    */
   @Get(':token/place-photo/:placeId/bytes')
-  async placePhotoBytes(@Param('token') token: string, @Param('placeId') placeId: string, @Res() res: Response): Promise<void> {
+  async placePhotoBytes(
+    @Param('token') token: string,
+    @Param('placeId') placeId: string,
+    @Res() res: Response,
+  ): Promise<void> {
     const key = await this.share.getSharedPlacePhotoKey(token, placeId);
     if (!key) {
       this.emptyPhoto(res);

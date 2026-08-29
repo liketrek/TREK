@@ -9,6 +9,16 @@
  * duplicate login (107) or an unknown SID (119), and the service is supposed to
  * re-login once and repeat the call — had no case at all.
  */
+import { runMigrations } from '../../../src/db/migrations';
+// The service fires the session-cleared notice and .catch()es it, so the stub
+// has to be a promise.
+
+import { createTables } from '../../../src/db/schema';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import type { MemoriesAccessService } from '../../../src/nest/memories/memories-access.service';
+import { SynologyService } from '../../../src/nest/memories/synology.service';
+import { notificationsStub } from '../../helpers/notifications';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 const { testDb, dbMock } = vi.hoisted(() => {
@@ -17,7 +27,14 @@ const { testDb, dbMock } = vi.hoisted(() => {
   db.exec('PRAGMA journal_mode = WAL');
   return {
     testDb: db,
-    dbMock: { db, closeDb: () => {}, reinitialize: () => {}, canAccessTrip: () => null, isOwner: () => false, getPlaceWithTags: () => null },
+    dbMock: {
+      db,
+      closeDb: () => {},
+      reinitialize: () => {},
+      canAccessTrip: () => null,
+      isOwner: () => false,
+      getPlaceWithTags: () => null,
+    },
   };
 });
 vi.mock('../../../src/db/database', () => dbMock);
@@ -39,41 +56,76 @@ const { safeFetch, checkSsrf, SsrfBlockedError } = vi.hoisted(() => {
   return { safeFetch: vi.fn(), checkSsrf: vi.fn(), SsrfBlockedError };
 });
 vi.mock('../../../src/utils/ssrfGuard', () => ({
-  safeFetch, checkSsrf, SsrfBlockedError, createPinnedDispatcher: vi.fn(() => ({})),
+  safeFetch,
+  checkSsrf,
+  SsrfBlockedError,
+  createPinnedDispatcher: vi.fn(() => ({})),
 }));
-// The service fires the session-cleared notice and .catch()es it, so the stub
-// has to be a promise.
-
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { SynologyService } from '../../../src/nest/memories/synology.service';
-import type { MemoriesAccessService } from '../../../src/nest/memories/memories-access.service';
-import { notificationsStub } from '../../helpers/notifications';
 
 const access = { getAlbumLinkForSync: vi.fn(), updateSyncTimeForAlbumLink: vi.fn() };
-const svc = new SynologyService(new DatabaseService(testDb), access as unknown as MemoriesAccessService, notificationsStub());
+const svc = new SynologyService(
+  new DatabaseService(testDb),
+  access as unknown as MemoriesAccessService,
+  notificationsStub(),
+);
 
 const USER = 1;
 
 function seedUser(id: number, cols: Partial<Record<string, unknown>> = {}): void {
-  const base = { synology_url: 'https://nas.test', synology_username: 'ada', synology_password: 'pw', synology_sid: 'sid-1', synology_did: null, synology_skip_ssl: 1 };
+  const base = {
+    synology_url: 'https://nas.test',
+    synology_username: 'ada',
+    synology_password: 'pw',
+    synology_sid: 'sid-1',
+    synology_did: null,
+    synology_skip_ssl: 1,
+  };
   const row = { ...base, ...cols };
-  testDb.prepare(
-    `INSERT OR REPLACE INTO users (id, username, email, password_hash, synology_url, synology_username, synology_password, synology_sid, synology_did, synology_skip_ssl)
-     VALUES (?, ?, ?, 'x', ?, ?, ?, ?, ?, ?)`
-  ).run(id, `u${id}`, `u${id}@example.test`, row.synology_url, row.synology_username, row.synology_password, row.synology_sid, row.synology_did, row.synology_skip_ssl);
+  testDb
+    .prepare(
+      `INSERT OR REPLACE INTO users (id, username, email, password_hash, synology_url, synology_username, synology_password, synology_sid, synology_did, synology_skip_ssl)
+     VALUES (?, ?, ?, 'x', ?, ?, ?, ?, ?, ?)`,
+    )
+    .run(
+      id,
+      `u${id}`,
+      `u${id}@example.test`,
+      row.synology_url,
+      row.synology_username,
+      row.synology_password,
+      row.synology_sid,
+      row.synology_did,
+      row.synology_skip_ssl,
+    );
 }
 
 /** A Synology API envelope: { success, data } or { success:false, error:{ code } }. */
 function api(data: unknown) {
-  return { ok: true, status: 200, headers: { get: () => 'application/json' }, json: async () => ({ success: true, data }), arrayBuffer: async () => Buffer.from('x') };
+  return {
+    ok: true,
+    status: 200,
+    headers: { get: () => 'application/json' },
+    json: async () => ({ success: true, data }),
+    arrayBuffer: async () => Buffer.from('x'),
+  };
 }
 function apiError(code: number) {
-  return { ok: true, status: 200, headers: { get: () => 'application/json' }, json: async () => ({ success: false, error: { code } }), arrayBuffer: async () => Buffer.from('x') };
+  return {
+    ok: true,
+    status: 200,
+    headers: { get: () => 'application/json' },
+    json: async () => ({ success: false, error: { code } }),
+    arrayBuffer: async () => Buffer.from('x'),
+  };
 }
 function httpError(status: number) {
-  return { ok: false, status, headers: { get: () => null }, json: async () => ({}), arrayBuffer: async () => Buffer.from('x') };
+  return {
+    ok: false,
+    status,
+    headers: { get: () => null },
+    json: async () => ({}),
+    arrayBuffer: async () => Buffer.from('x'),
+  };
 }
 
 beforeAll(() => {
@@ -117,7 +169,11 @@ describe('credentials', () => {
 
   it('SYNO-U005: settings report the URL, the username and a live session', async () => {
     const result = await svc.getSynologySettings(USER);
-    expect(result.success && result.data).toMatchObject({ synology_url: 'https://nas.test', synology_username: 'ada', connected: true });
+    expect(result.success && result.data).toMatchObject({
+      synology_url: 'https://nas.test',
+      synology_username: 'ada',
+      connected: true,
+    });
   });
 });
 
@@ -125,8 +181,8 @@ describe('the session', () => {
   it('SYNO-U010: a cached SID is used without logging in', async () => {
     safeFetch.mockResolvedValue(api({ list: [] }));
     await svc.searchSynologyPhotos(USER);
-    const bodies = safeFetch.mock.calls.map(c => String((c[1] as { body: URLSearchParams }).body));
-    expect(bodies.some(b => b.includes('SYNO.API.Auth'))).toBe(false);
+    const bodies = safeFetch.mock.calls.map((c) => String((c[1] as { body: URLSearchParams }).body));
+    expect(bodies.some((b) => b.includes('SYNO.API.Auth'))).toBe(false);
   });
 
   it('SYNO-U011: a SID that will not decrypt is cleared and a fresh login happens', async () => {
@@ -143,7 +199,10 @@ describe('the session', () => {
     seedUser(4, { synology_sid: null });
     safeFetch.mockResolvedValue(api({}));
     const result = await svc.searchSynologyPhotos(4);
-    expect(result).toEqual({ success: false, error: { message: 'Failed to get session ID from Synology', status: 500 } });
+    expect(result).toEqual({
+      success: false,
+      error: { message: 'Failed to get session ID from Synology', status: 500 },
+    });
   });
 
   it('SYNO-U013: a stored device id rides along so a trusted device skips OTP', async () => {
@@ -157,9 +216,9 @@ describe('the session', () => {
 
   it.each([106, 107, 119])('SYNO-U014: error %i clears the SID, re-logs in and repeats the call', async (code) => {
     safeFetch
-      .mockResolvedValueOnce(apiError(code))       // the call, with a dead SID
+      .mockResolvedValueOnce(apiError(code)) // the call, with a dead SID
       .mockResolvedValueOnce(api({ sid: 'sid-2' })) // the re-login
-      .mockResolvedValueOnce(api({ list: [] }));    // the retry
+      .mockResolvedValueOnce(api({ list: [] })); // the retry
 
     const result = await svc.searchSynologyPhotos(USER);
 
@@ -180,7 +239,10 @@ describe('the API envelope', () => {
   it('SYNO-U020: an HTTP failure carries the upstream status', async () => {
     safeFetch.mockResolvedValue(httpError(502));
     const result = await svc.searchSynologyPhotos(USER);
-    expect(result).toEqual({ success: false, error: { message: 'Synology API request failed with status 502', status: 502 } });
+    expect(result).toEqual({
+      success: false,
+      error: { message: 'Synology API request failed with status 502', status: 502 },
+    });
   });
 
   it('SYNO-U021: a known app error code becomes its documented message at HTTP 400', async () => {
@@ -196,7 +258,7 @@ describe('the API envelope', () => {
     expect((result as { error: { message: string } }).error.message).toContain('99999');
   });
 
-  it('SYNO-U023: an SSRF block is a 400 with the guard\'s own message', async () => {
+  it("SYNO-U023: an SSRF block is a 400 with the guard's own message", async () => {
     safeFetch.mockRejectedValue(new SsrfBlockedError('blocked host'));
     const result = await svc.searchSynologyPhotos(USER);
     expect(result).toEqual({ success: false, error: { message: 'blocked host', status: 400 } });
@@ -219,7 +281,10 @@ describe('updateSynologySettings', () => {
   it('SYNO-U031: keeps the stored password when none is supplied', async () => {
     safeFetch.mockResolvedValue(api({ sid: 's' }));
     await svc.updateSynologySettings(USER, 'https://nas2.test', 'ada');
-    const row = testDb.prepare('SELECT synology_password, synology_url FROM users WHERE id = ?').get(USER) as { synology_password: string; synology_url: string };
+    const row = testDb.prepare('SELECT synology_password, synology_url FROM users WHERE id = ?').get(USER) as {
+      synology_password: string;
+      synology_url: string;
+    };
     expect(row.synology_password).toBe('pw');
     expect(row.synology_url).toBe('https://nas2.test');
   });
@@ -250,14 +315,16 @@ describe('listSynologyAlbums', () => {
     safeFetch
       .mockResolvedValueOnce(api({ list: [{ id: 1, name: 'Personal', item_count: 2 }] }))
       .mockResolvedValueOnce(api({ list: [{ id: 2, name: 'Shared', item_count: 1, passphrase: 'p2' }] }))
-      .mockResolvedValueOnce(api({ list: [{ id: 3, name: 'WithMe', item_count: 3, sharing_info: { passphrase: 'p3' } }] }));
+      .mockResolvedValueOnce(
+        api({ list: [{ id: 3, name: 'WithMe', item_count: 3, sharing_info: { passphrase: 'p3' } }] }),
+      );
 
     const result = await svc.listSynologyAlbums(USER);
 
     const albums = (result as { data: { albums: { id: string; passphrase?: string }[] } }).data.albums;
-    expect(albums.map(a => a.id).sort()).toEqual(['1', '2', '3']);
-    expect(albums.find(a => a.id === '2')!.passphrase).toBe('p2');
-    expect(albums.find(a => a.id === '3')!.passphrase).toBe('p3');
+    expect(albums.map((a) => a.id).sort()).toEqual(['1', '2', '3']);
+    expect(albums.find((a) => a.id === '2')!.passphrase).toBe('p2');
+    expect(albums.find((a) => a.id === '3')!.passphrase).toBe('p3');
   });
 
   it('SYNO-U051: a partial source failure still returns the albums that came back', async () => {
@@ -294,7 +361,14 @@ describe('listSynologyAlbums', () => {
 
 describe('getSynologyAlbumPhotos', () => {
   it('SYNO-U060: pages until a short page and keys assets by the thumbnail cache key', async () => {
-    const page = (n: number) => api({ list: Array.from({ length: n }, (_, i) => ({ id: i, time: 1700000000, additional: { thumbnail: { cache_key: `ck-${i}` } } })) });
+    const page = (n: number) =>
+      api({
+        list: Array.from({ length: n }, (_, i) => ({
+          id: i,
+          time: 1700000000,
+          additional: { thumbnail: { cache_key: `ck-${i}` } },
+        })),
+      });
     safeFetch.mockResolvedValueOnce(page(50)).mockResolvedValueOnce(page(3));
 
     const result = await svc.getSynologyAlbumPhotos(USER, '7');
@@ -322,17 +396,24 @@ describe('getSynologyAlbumPhotos', () => {
 
 describe('collectSynologyAlbumSelection', () => {
   it('SYNO-U070: fails when the album link does not resolve', async () => {
-    access.getAlbumLinkForSync.mockReturnValue({ success: false, error: { message: 'Album link not found', status: 404 } });
+    access.getAlbumLinkForSync.mockReturnValue({
+      success: false,
+      error: { message: 'Album link not found', status: 404 },
+    });
     const result = await svc.collectSynologyAlbumSelection(USER, '1', 'l1');
     expect(result.success).toBe(false);
   });
 
   it('SYNO-U071: returns the cache keys as the selection, with the raw total', async () => {
     access.getAlbumLinkForSync.mockReturnValue({ success: true, data: { albumId: '7', passphrase: undefined } });
-    safeFetch.mockResolvedValue(api({ list: [
-      { id: 1, additional: { thumbnail: { cache_key: 'ck-1' } } },
-      { id: 2, additional: { thumbnail: { cache_key: '' } } },
-    ] }));
+    safeFetch.mockResolvedValue(
+      api({
+        list: [
+          { id: 1, additional: { thumbnail: { cache_key: 'ck-1' } } },
+          { id: 2, additional: { thumbnail: { cache_key: '' } } },
+        ],
+      }),
+    );
 
     const result = await svc.collectSynologyAlbumSelection(USER, '1', 'l1');
 

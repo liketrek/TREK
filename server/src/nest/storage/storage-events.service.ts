@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
 import type { ReplicaFailure } from './drivers/mirror.driver';
+import { Injectable } from '@nestjs/common';
 
 /**
  * In-process pub/sub for storage health events. Exists so consumers OUTSIDE

@@ -14,7 +14,6 @@
  * call, which is what keeps the runtime env-mutation semantics the test suite
  * depends on. Zod validation runs once at boot (env.schema.ts), never here.
  */
-import { SUPPORTED_LANGUAGE_CODES } from '@trek/shared';
 import {
   csvList,
   csvListFiltered,
@@ -28,6 +27,7 @@ import {
   resolveSessionTtlMs,
   stripTrailingSlashes,
 } from './parsers';
+import { SUPPORTED_LANGUAGE_CODES } from '@trek/shared';
 
 export type RawEnv = Record<string, string | undefined>;
 
@@ -239,7 +239,7 @@ export function deriveIntegrations(raw: RawEnv) {
     // get a list and never re-implement the delimiter.
     searchPath: (raw.PATH || raw.Path || '')
       .split(process.platform === 'win32' ? ';' : ':')
-      .map(p => p.trim())
+      .map((p) => p.trim())
       .filter(Boolean),
   };
 }

@@ -1,6 +1,6 @@
-import { createParamDecorator, type ExecutionContext } from '@nestjs/common';
 import type { TripAccess } from '../database/database.service';
 import { TRIP_REQUEST_KEY } from './trip-access.guard';
+import { createParamDecorator, type ExecutionContext } from '@nestjs/common';
 
 /**
  * The trip row `TripAccessGuard` resolved for this request.

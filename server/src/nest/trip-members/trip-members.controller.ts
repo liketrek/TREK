@@ -1,3 +1,12 @@
+import type { User } from '../../types';
+import { AuditService } from '../audit/audit.service';
+import { getClientIp } from '../audit/client-ip';
+import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { NotFoundError, ValidationError } from '../common/domain-errors';
+import { RequireTripOwner, TripOwnerGuard } from '../permissions/trip-owner.guard';
+import { TripAddMemberDto, TripTransferOwnershipDto, TripCreateGuestDto, TripRenameGuestDto } from '../trips/trips.dto';
+import { TripMembersService } from './trip-members.service';
 import {
   Body,
   Controller,
@@ -12,16 +21,8 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+
 import type { Request } from 'express';
-import type { User } from '../../types';
-import { TripMembersService } from './trip-members.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
-import { RequireTripOwner, TripOwnerGuard } from '../permissions/trip-owner.guard';
-import { getClientIp } from '../audit/client-ip';
-import { AuditService } from '../audit/audit.service';
-import { NotFoundError, ValidationError } from '../common/domain-errors';
-import { TripAddMemberDto, TripTransferOwnershipDto, TripCreateGuestDto, TripRenameGuestDto } from '../trips/trips.dto';
 
 /**
  * /api/trips/:id/{members,transfer,guests} — who is on a trip.
@@ -44,7 +45,10 @@ import { TripAddMemberDto, TripTransferOwnershipDto, TripCreateGuestDto, TripRen
 @Controller('api/trips')
 @UseGuards(JwtAuthGuard)
 export class TripMembersController {
-  constructor(private readonly roster: TripMembersService, private readonly audit: AuditService) {}
+  constructor(
+    private readonly roster: TripMembersService,
+    private readonly audit: AuditService,
+  ) {}
 
   @Get(':id/members')
   members(@CurrentUser() user: User, @Param('id') id: string) {
@@ -85,7 +89,10 @@ export class TripMembersController {
       throw new HttpException({ error: 'Trip not found' }, 404);
     }
     const targetId = Number.parseInt(userId);
-    if (targetId !== user.id && !this.roster.can('member_manage', user.role, access.user_id, user.id, access.user_id !== user.id)) {
+    if (
+      targetId !== user.id &&
+      !this.roster.can('member_manage', user.role, access.user_id, user.id, access.user_id !== user.id)
+    ) {
       throw new HttpException({ error: 'No permission to remove members' }, 403);
     }
     this.roster.removeMember(id, targetId);
@@ -105,7 +112,12 @@ export class TripMembersController {
     const { newOwnerId } = body;
     try {
       const result = this.roster.transferOwnership(id, newOwnerId, user.id);
-      this.audit.writeAudit({ userId: user.id, action: 'trip.transfer_ownership', ip: getClientIp(req), details: { tripId: Number(id), trip: result.tripTitle, from: result.fromEmail, to: result.toEmail } });
+      this.audit.writeAudit({
+        userId: user.id,
+        action: 'trip.transfer_ownership',
+        ip: getClientIp(req),
+        details: { tripId: Number(id), trip: result.tripTitle, from: result.fromEmail, to: result.toEmail },
+      });
       // Nudge everyone viewing the trip to re-read it so the new ownership and the
       // recomputed permissions take effect live.
       const updatedTrip = this.roster.getTripForViewer(id, user.id);
@@ -137,7 +149,12 @@ export class TripMembersController {
   @Put(':id/guests/:userId')
   @UseGuards(TripOwnerGuard)
   @RequireTripOwner('Only the owner can manage guests', { param: 'id' })
-  renameGuest(@CurrentUser() user: User, @Param('id') id: string, @Param('userId') userId: string, @Body() body: TripRenameGuestDto) {
+  renameGuest(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Param('userId') userId: string,
+    @Body() body: TripRenameGuestDto,
+  ) {
     try {
       if (!this.roster.renameGuest(id, Number.parseInt(userId), body.name)) {
         throw new HttpException({ error: 'Guest not found' }, 404);

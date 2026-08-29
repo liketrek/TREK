@@ -2,7 +2,6 @@
  * Pure dependency-reasoning helpers (#plugins). Parsing, addon/plugin gating,
  * dependent lookup, and cycle-safe enable ordering.
  */
-import { describe, it, expect } from 'vitest';
 import {
   parseDependencies,
   disabledRequiredAddons,
@@ -14,11 +13,23 @@ import {
   type PluginDepRow,
 } from '../../../src/nest/plugins/dependencies';
 
-const row = (id: string, opts: Partial<PluginDepRow> & { deps?: { requiredAddons?: string[]; pluginDependencies?: { id: string; version: string }[] } } = {}): PluginDepRow => ({
+import { describe, it, expect } from 'vitest';
+
+const row = (
+  id: string,
+  opts: Partial<PluginDepRow> & {
+    deps?: { requiredAddons?: string[]; pluginDependencies?: { id: string; version: string }[] };
+  } = {},
+): PluginDepRow => ({
   id,
   version: opts.version ?? '1.0.0',
   enabled: opts.enabled ?? 0,
-  dependencies: opts.deps ? JSON.stringify({ requiredAddons: opts.deps.requiredAddons ?? [], pluginDependencies: opts.deps.pluginDependencies ?? [] }) : (opts.dependencies ?? '{}'),
+  dependencies: opts.deps
+    ? JSON.stringify({
+        requiredAddons: opts.deps.requiredAddons ?? [],
+        pluginDependencies: opts.deps.pluginDependencies ?? [],
+      })
+    : (opts.dependencies ?? '{}'),
 });
 const map = (...rows: PluginDepRow[]) => new Map(rows.map((r) => [r.id, r]));
 
@@ -29,7 +40,12 @@ describe('parseDependencies', () => {
     expect(parseDependencies('{}')).toEqual({ requiredAddons: [], pluginDependencies: [] });
   });
   it('filters non-string addons and malformed deps', () => {
-    const d = parseDependencies(JSON.stringify({ requiredAddons: ['budget', 5], pluginDependencies: [{ id: 'koffi', version: '^1' }, { id: 'x' }] }));
+    const d = parseDependencies(
+      JSON.stringify({
+        requiredAddons: ['budget', 5],
+        pluginDependencies: [{ id: 'koffi', version: '^1' }, { id: 'x' }],
+      }),
+    );
     expect(d.requiredAddons).toEqual(['budget']);
     expect(d.pluginDependencies).toEqual([{ id: 'koffi', version: '^1' }]);
   });
@@ -44,7 +60,16 @@ describe('disabledRequiredAddons', () => {
 });
 
 describe('resolveDependencyState', () => {
-  const deps = parseDependencies(JSON.stringify({ requiredAddons: [], pluginDependencies: [{ id: 'a', version: '>=1.0.0' }, { id: 'b', version: '^2.0.0' }, { id: 'c', version: '^1.0.0' }] }));
+  const deps = parseDependencies(
+    JSON.stringify({
+      requiredAddons: [],
+      pluginDependencies: [
+        { id: 'a', version: '>=1.0.0' },
+        { id: 'b', version: '^2.0.0' },
+        { id: 'c', version: '^1.0.0' },
+      ],
+    }),
+  );
   it('classifies missing / mismatch / satisfied (active + disabled)', () => {
     const installed = map(
       row('a', { version: '1.5.0', enabled: 1 }), // satisfied + active
@@ -58,7 +83,10 @@ describe('resolveDependencyState', () => {
     expect(s.satisfiedDisabled).toEqual([]);
   });
   it('reports a satisfied-but-disabled dep as an auto-enable candidate', () => {
-    const s = resolveDependencyState(parseDependencies(JSON.stringify({ requiredAddons: [], pluginDependencies: [{ id: 'a', version: '^1.0.0' }] })), map(row('a', { version: '1.2.0', enabled: 0 })));
+    const s = resolveDependencyState(
+      parseDependencies(JSON.stringify({ requiredAddons: [], pluginDependencies: [{ id: 'a', version: '^1.0.0' }] })),
+      map(row('a', { version: '1.2.0', enabled: 0 })),
+    );
     expect(s.satisfiedDisabled).toEqual(['a']);
   });
 });

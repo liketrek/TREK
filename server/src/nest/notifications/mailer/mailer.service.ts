@@ -1,11 +1,12 @@
-import { Injectable } from '@nestjs/common';
-import nodemailer from 'nodemailer';
-import { PASSWORD_RESET_I18N } from '@trek/shared/i18n/externalNotifications';
 import { readEnv } from '../../../app-config';
 import { logError, logInfo, logDebug, logWarn } from '../../audit/audit-log.logger';
 import { decrypt_api_key } from '../../common/crypto/apiKeyCrypto';
 import { DatabaseService } from '../../database/database.service';
 import { buildEmailHtml, buildPasswordResetHtml } from './email-html';
+import { Injectable } from '@nestjs/common';
+import { PASSWORD_RESET_I18N } from '@trek/shared/i18n/externalNotifications';
+
+import nodemailer from 'nodemailer';
 
 interface SmtpConfig {
   host: string;
@@ -99,15 +100,17 @@ export class MailerService {
 
   getUserEmail(userId: number): string | null {
     // Defense-in-depth (#1362): a guest's synthetic email must never be emailed.
-    return this.db.get<{ email: string }>(
-      'SELECT email FROM users WHERE id = ? AND COALESCE(is_guest, 0) = 0', userId,
-    )?.email || null;
+    return (
+      this.db.get<{ email: string }>('SELECT email FROM users WHERE id = ? AND COALESCE(is_guest, 0) = 0', userId)
+        ?.email || null
+    );
   }
 
   getUserLanguage(userId: number): string {
-    return this.db.get<{ value: string }>(
-      "SELECT value FROM settings WHERE user_id = ? AND key = 'language'", userId,
-    )?.value || 'en';
+    return (
+      this.db.get<{ value: string }>("SELECT value FROM settings WHERE user_id = ? AND key = 'language'", userId)
+        ?.value || 'en'
+    );
   }
 
   /**

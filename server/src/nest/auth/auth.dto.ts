@@ -1,4 +1,3 @@
-import { createZodDto } from 'nestjs-zod';
 import {
   registerRequestSchema,
   loginRequestSchema,
@@ -20,6 +19,8 @@ import {
   passkeyRenameRequestSchema,
   passkeyDeleteRequestSchema,
 } from '@trek/shared';
+
+import { createZodDto } from 'nestjs-zod';
 
 /**
  * Server-side createZodDto wrappers over the @trek/shared auth contracts. The

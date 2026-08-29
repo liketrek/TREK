@@ -15,8 +15,17 @@
  * realtime mock `src/websocket` and never look at the bytes. So: if a change makes
  * these fail, it is a breaking change for every deployed client.
  */
-import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
+import { buildApp, getHttpServer } from '../../src/bootstrap';
+import { runMigrations } from '../../src/db/migrations';
+import { createTables } from '../../src/db/schema';
+import { createEphemeralToken } from '../../src/nest/auth/ephemeral-tokens';
+import { broadcast, broadcastToUser } from '../../src/websocket';
+import { createUser, createTrip } from '../helpers/factories';
+import { resetTestDb } from '../helpers/test-db';
+import type { INestApplication } from '@nestjs/common';
+
 import http from 'http';
+import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
 import WebSocket from 'ws';
 
 const { testDb, dbMock } = vi.hoisted(() => {
@@ -31,7 +40,11 @@ const { testDb, dbMock } = vi.hoisted(() => {
     reinitialize: () => {},
     getPlaceWithTags: () => null,
     canAccessTrip: (tripId: any, userId: number) =>
-      db.prepare(`SELECT t.id, t.user_id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)`).get(userId, tripId, userId),
+      db
+        .prepare(
+          `SELECT t.id, t.user_id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)`,
+        )
+        .get(userId, tripId, userId),
     isOwner: (tripId: any, userId: number) =>
       !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
   };
@@ -49,15 +62,6 @@ vi.mock('../../src/config', () => ({
   DEFAULT_LANGUAGE: 'en',
 }));
 
-import type { INestApplication } from '@nestjs/common';
-import { buildApp, getHttpServer } from '../../src/bootstrap';
-import { createTables } from '../../src/db/schema';
-import { runMigrations } from '../../src/db/migrations';
-import { resetTestDb } from '../helpers/test-db';
-import { createUser, createTrip } from '../helpers/factories';
-import { broadcast, broadcastToUser } from '../../src/websocket';
-import { createEphemeralToken } from '../../src/nest/auth/ephemeral-tokens';
-
 let server: http.Server;
 let wsUrl: string;
 let nestApp: INestApplication;
@@ -68,13 +72,13 @@ beforeAll(async () => {
   nestApp = await buildApp();
   // buildApp binds /ws to the server it creates, before app.init().
   server = getHttpServer();
-  await new Promise<void>(resolve => server.listen(0, resolve));
+  await new Promise<void>((resolve) => server.listen(0, resolve));
   const addr = server.address() as { port: number };
   wsUrl = `ws://127.0.0.1:${addr.port}/ws`;
 });
 
 afterAll(async () => {
-  await new Promise<void>((resolve, reject) => server.close(err => err ? reject(err) : resolve()));
+  await new Promise<void>((resolve, reject) => server.close((err) => (err ? reject(err) : resolve())));
   await nestApp.close();
   testDb.close();
 });
@@ -89,13 +93,17 @@ class Frames {
     ws.on('message', (data) => {
       const msg = JSON.parse(data.toString());
       const waiter = this.waiters.shift();
-      if (waiter) waiter(msg); else this.buffer.push(msg);
+      if (waiter) waiter(msg);
+      else this.buffer.push(msg);
     });
   }
   next(timeoutMs = 3000): Promise<any> {
     if (this.buffer.length) return Promise.resolve(this.buffer.shift());
     return new Promise((resolve, reject) => {
-      const waiter = (m: any) => { clearTimeout(timer); resolve(m); };
+      const waiter = (m: any) => {
+        clearTimeout(timer);
+        resolve(m);
+      };
       // Drop the waiter on timeout, otherwise it stays queued and swallows the
       // next frame — which matters here because nextOrNull() times out by design.
       const timer = setTimeout(() => {
@@ -108,10 +116,18 @@ class Frames {
   }
   /** Resolves to null when nothing arrives — used to assert silence. */
   async nextOrNull(timeoutMs = 400): Promise<any | null> {
-    try { return await this.next(timeoutMs); } catch { return null; }
+    try {
+      return await this.next(timeoutMs);
+    } catch {
+      return null;
+    }
   }
-  send(msg: object) { this.ws.send(JSON.stringify(msg)); }
-  close() { this.ws.close(); }
+  send(msg: object) {
+    this.ws.send(JSON.stringify(msg));
+  }
+  close() {
+    this.ws.close();
+  }
 }
 
 function connect(token: string): Promise<Frames> {
@@ -125,9 +141,9 @@ function connect(token: string): Promise<Frames> {
 
 async function connectAndJoin(userId: number, tripId: number) {
   const frames = await connect(createEphemeralToken(userId, 'ws')!);
-  await frames.next();                       // welcome
+  await frames.next(); // welcome
   frames.send({ type: 'join', tripId });
-  await frames.next();                       // joined
+  await frames.next(); // joined
   return frames;
 }
 

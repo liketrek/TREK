@@ -1,10 +1,9 @@
-import { Injectable } from '@nestjs/common';
-import type { Response } from 'express';
-import { SynologyService } from '../synology.service';
 import type { AssetInfo, ServiceResult } from '../memories.helpers';
-import type {
-  PhotoAssetKind, PhotoAssetRef, PhotoBytes, PhotoFetchError, PhotoProvider,
-} from '../photo-provider';
+import type { PhotoAssetKind, PhotoAssetRef, PhotoBytes, PhotoFetchError, PhotoProvider } from '../photo-provider';
+import { SynologyService } from '../synology.service';
+import { Injectable } from '@nestjs/common';
+
+import type { Response } from 'express';
 
 /**
  * Synology Photos behind the PhotoProvider interface.
@@ -20,7 +19,15 @@ export class SynologyPhotoProvider implements PhotoProvider {
   constructor(private readonly synology: SynologyService) {}
 
   streamAsset(res: Response, ref: PhotoAssetRef, kind: PhotoAssetKind): Promise<void> {
-    return this.synology.streamSynologyAsset(res, ref.userId, ref.ownerId, ref.assetId, kind, undefined, ref.passphrase);
+    return this.synology.streamSynologyAsset(
+      res,
+      ref.userId,
+      ref.ownerId,
+      ref.assetId,
+      kind,
+      undefined,
+      ref.passphrase,
+    );
   }
 
   fetchThumbnailBytes(ref: PhotoAssetRef): Promise<PhotoBytes | PhotoFetchError> {

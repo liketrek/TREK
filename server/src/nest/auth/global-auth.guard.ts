@@ -1,9 +1,10 @@
+import { extractToken, verifyJwtAndLoadUser } from './jwt-verify';
+import { IS_PUBLIC, OPTIONAL_AUTH } from './public.decorator';
 import { CanActivate, ExecutionContext, HttpException, Injectable } from '@nestjs/common';
 import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { Reflector } from '@nestjs/core';
+
 import type { Request } from 'express';
-import { extractToken, verifyJwtAndLoadUser } from './jwt-verify';
-import { IS_PUBLIC, OPTIONAL_AUTH } from './public.decorator';
 
 /**
  * Default-deny. Registered as an APP_GUARD, so a route is authenticated unless

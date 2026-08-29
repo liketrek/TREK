@@ -4,8 +4,15 @@
  * pattern the integration suite relies on), and RuntimeEnvService must stay
  * live within a single app's lifetime.
  */
-import { describe, it, expect, vi, afterEach, beforeAll } from 'vitest';
+import { buildApp } from '../../src/bootstrap';
+import { runMigrations } from '../../src/db/migrations';
+import { createTables } from '../../src/db/schema';
+import { httpConfig, RuntimeEnvService } from '../../src/nest/app-config';
+import { resetTestDb } from '../helpers/test-db';
 import type { INestApplication } from '@nestjs/common';
+import type { ConfigType } from '@nestjs/config';
+
+import { describe, it, expect, vi, afterEach, beforeAll } from 'vitest';
 
 const { testDb, dbMock } = vi.hoisted(() => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -36,13 +43,6 @@ vi.mock('../../src/config', () => ({
   DEFAULT_LANGUAGE: 'en',
 }));
 vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
-
-import { createTables } from '../../src/db/schema';
-import { runMigrations } from '../../src/db/migrations';
-import { resetTestDb } from '../helpers/test-db';
-import { buildApp } from '../../src/bootstrap';
-import { httpConfig, RuntimeEnvService } from '../../src/nest/app-config';
-import type { ConfigType } from '@nestjs/config';
 
 describe('AppConfigModule in the real buildApp()', () => {
   let app: INestApplication | undefined;

@@ -1,9 +1,9 @@
-import { Injectable } from '@nestjs/common';
-import { DatabaseService } from '../database/database.service';
-import { ReservationsService } from '../reservations/reservations.service';
-import { addDays } from '../days/days.service';
-import { resolveTimeZone } from '../common/timezoneService';
 import { NotFoundError } from '../common/domain-errors';
+import { resolveTimeZone } from '../common/timezoneService';
+import { DatabaseService } from '../database/database.service';
+import { addDays } from '../days/days.service';
+import { ReservationsService } from '../reservations/reservations.service';
+import { Injectable } from '@nestjs/common';
 
 /** The VCALENDAR preamble every TREK calendar starts with, single-trip or merged. */
 export const CALENDAR_HEADER =
@@ -164,12 +164,13 @@ export class CalendarService {
       )
       .all(tripId) as any[];
 
-    const esc = (s: string) => s
-      .replaceAll(/\\/g, '\\\\')
-      .replaceAll(';', '\\;')
-      .replaceAll(',', '\\,')
-      .replace(/\r?\n/g, '\\n')
-      .replaceAll(/\r/g, '');
+    const esc = (s: string) =>
+      s
+        .replaceAll(/\\/g, '\\\\')
+        .replaceAll(';', '\\;')
+        .replaceAll(',', '\\,')
+        .replace(/\r?\n/g, '\\n')
+        .replaceAll(/\r/g, '');
     const fmtDate = (d: string) => d.replaceAll('-', '');
     const now = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
     const uid = (id: number, type: string) => `trek-${type}-${id}@trek`;
@@ -202,12 +203,7 @@ export class CalendarService {
     // Emit a DTSTART/DTEND line, attaching TZID when the event's zone is known so
     // subscribers see the time in TREK's zone. Falls back to a floating local time
     // (unchanged behavior) when no zone resolves or the value is not a date-time.
-    const dtLine = (
-      prop: 'DTSTART' | 'DTEND',
-      wallClock: string,
-      zone: string | null,
-      refDate?: string,
-    ): string => {
+    const dtLine = (prop: 'DTSTART' | 'DTEND', wallClock: string, zone: string | null, refDate?: string): string => {
       const val = fmtDateTime(wallClock, refDate);
       if (zone && isValidTimeZone(zone) && /^\d{8}T\d{6}$/.test(val)) {
         if (!usedZones.has(zone)) usedZones.set(zone, val.slice(0, 8));
@@ -234,7 +230,9 @@ export class CalendarService {
     for (const day of days) {
       if (!day.date) continue;
 
-      const assignments = this.db.prepare(`
+      const assignments = this.db
+        .prepare(
+          `
         SELECT da.*, p.name as place_name, p.address as place_address,
           p.lat as place_lat, p.lng as place_lng,
           COALESCE(da.assignment_time, p.place_time) as effective_time,
@@ -243,14 +241,16 @@ export class CalendarService {
         JOIN places p ON da.place_id = p.id
         WHERE da.day_id = ?
         ORDER BY da.order_index ASC, da.created_at ASC
-      `).all(day.id) as any[];
+      `,
+        )
+        .all(day.id) as any[];
 
-      const notes = this.db.prepare(
-        'SELECT * FROM day_notes WHERE day_id = ? ORDER BY sort_order ASC, created_at ASC'
-      ).all(day.id) as any[];
+      const notes = this.db
+        .prepare('SELECT * FROM day_notes WHERE day_id = ? ORDER BY sort_order ASC, created_at ASC')
+        .all(day.id) as any[];
 
-      const timed = assignments.filter(a => a.effective_time);
-      const untimed = assignments.filter(a => !a.effective_time);
+      const timed = assignments.filter((a) => a.effective_time);
+      const untimed = assignments.filter((a) => !a.effective_time);
 
       // Timed assignments → individual events
       for (const a of timed) {
@@ -281,19 +281,25 @@ export class CalendarService {
 
         let desc = '';
         if (untimed.length > 0) {
-          desc += untimed.map(a => {
-            let line = `• ${a.place_name}`;
-            if (a.place_address) line += ` (${a.place_address})`;
-            if (a.notes) line += ` — ${a.notes}`;
-            return line;
-          }).join('\n');
+          desc += untimed
+            .map((a) => {
+              let line = `• ${a.place_name}`;
+              if (a.place_address) line += ` (${a.place_address})`;
+              if (a.notes) line += ` — ${a.notes}`;
+              return line;
+            })
+            .join('\n');
         }
         if (notes.length > 0) {
           if (desc) desc += '\n\n';
-          desc += 'Notes:\n' + notes.map(n => {
-            const line = n.time ? `${n.time} — ${n.text}` : `• ${n.text}`;
-            return line;
-          }).join('\n');
+          desc +=
+            'Notes:\n' +
+            notes
+              .map((n) => {
+                const line = n.time ? `${n.time} — ${n.text}` : `• ${n.text}`;
+                return line;
+              })
+              .join('\n');
         }
         if (desc) ev += `DESCRIPTION:${esc(desc)}\r\n`;
         ev += `END:VEVENT\r\n`;
@@ -325,11 +331,12 @@ export class CalendarService {
       // Dropping that +1 hides the departure day; it is not a stray off-by-one
       // (#1869).
       if (isDate(r.stay_start_date)) {
-        const lastDay = isDate(r.stay_end_date) && r.stay_end_date >= r.stay_start_date
-          ? r.stay_end_date
-          : r.stay_start_date;
-        return `DTSTART;VALUE=DATE:${fmtDate(r.stay_start_date)}\r\n` +
-          `DTEND;VALUE=DATE:${fmtDate(addDays(lastDay, 1))}\r\n`;
+        const lastDay =
+          isDate(r.stay_end_date) && r.stay_end_date >= r.stay_start_date ? r.stay_end_date : r.stay_start_date;
+        return (
+          `DTSTART;VALUE=DATE:${fmtDate(r.stay_start_date)}\r\n` +
+          `DTEND;VALUE=DATE:${fmtDate(addDays(lastDay, 1))}\r\n`
+        );
       }
 
       const eps = endpointsMap.get(r.id);
@@ -381,8 +388,10 @@ export class CalendarService {
         // used, because DTSTART;VALUE=DATE and a timed DTEND may not be mixed.
         const endDatePart = r.reservation_end_time ? String(r.reservation_end_time).split('T')[0] : '';
         if (isDate(endDatePart) && endDatePart >= r.reservation_time) {
-          return `DTSTART;VALUE=DATE:${fmtDate(r.reservation_time)}\r\n` +
-            `DTEND;VALUE=DATE:${fmtDate(addDays(endDatePart, 1))}\r\n`;
+          return (
+            `DTSTART;VALUE=DATE:${fmtDate(r.reservation_time)}\r\n` +
+            `DTEND;VALUE=DATE:${fmtDate(addDays(endDatePart, 1))}\r\n`
+          );
         }
         return `DTSTART;VALUE=DATE:${fmtDate(r.reservation_time)}\r\n`;
       }
@@ -427,7 +436,10 @@ export class CalendarService {
         // Endpoint-based transport without route metadata: derive it from endpoints.
         const eps = endpointsMap.get(r.id);
         if (eps && eps.length > 1) {
-          const stops = [...eps].sort((a, b) => a.sequence - b.sequence).map(e => e.code || e.name).filter(Boolean);
+          const stops = [...eps]
+            .sort((a, b) => a.sequence - b.sequence)
+            .map((e) => e.code || e.name)
+            .filter(Boolean);
           if (stops.length > 1) desc += `\nRoute: ${stops.join(' → ')}`;
         }
       }
@@ -450,7 +462,9 @@ export class CalendarService {
     // keyed by the stay, that emitted the same UID twice and clients then pick one
     // of the duplicates at random (#1869). Lowest id wins so the title is stable
     // across exports.
-    const stays = this.db.prepare(`
+    const stays = this.db
+      .prepare(
+        `
       SELECT a.id, a.check_in, a.check_in_end, a.check_out,
              sd.date AS start_date, ed.date AS end_date,
              p.name AS place_name, p.address AS place_address, p.lat AS place_lat, p.lng AS place_lng,
@@ -463,7 +477,9 @@ export class CalendarService {
       LEFT JOIN places p ON a.place_id = p.id
       WHERE a.trip_id = ?
       ORDER BY a.id ASC
-    `).all(tripId) as any[];
+    `,
+      )
+      .all(tripId) as any[];
 
     for (const stay of stays) {
       const name = stay.reservation_title || stay.place_name || 'Accommodation';
@@ -527,13 +543,19 @@ export class CalendarService {
       // one endpoint, so a lone endpoint is never treated as both sides.
       const eps = endpointsMap.get(r.id);
       const ordered = eps && eps.length > 0 ? [...eps].sort((a, b) => a.sequence - b.sequence) : [];
-      const roleFrom = ordered.find(e => e.role === 'from');
-      const roleTo = ordered.find(e => e.role === 'to');
+      const roleFrom = ordered.find((e) => e.role === 'from');
+      const roleTo = ordered.find((e) => e.role === 'to');
       const noRoles = !roleFrom && !roleTo;
       const pickupEp = roleFrom ?? (noRoles && ordered.length > 1 ? ordered[0] : undefined);
       const dropEp = roleTo ?? (noRoles && ordered.length > 1 ? ordered[ordered.length - 1] : undefined);
 
-      const carMarker = (kind: 'pickup' | 'dropoff', summary: string, date: string, time: string, zone: string | null) => {
+      const carMarker = (
+        kind: 'pickup' | 'dropoff',
+        summary: string,
+        date: string,
+        time: string,
+        zone: string | null,
+      ) => {
         let ev = `BEGIN:VEVENT\r\nUID:${uid(r.id, kind)}\r\nDTSTAMP:${now}\r\n`;
         ev += dtLine('DTSTART', time, zone, `${date}T00:00`);
         ev += `SUMMARY:${esc(summary)}\r\n`;
@@ -551,17 +573,17 @@ export class CalendarService {
       const pickupTime = pickupUsable ? pickupEp!.local_time : timeOf(r.reservation_time);
       if (isDate(pickupDate) && isTime(pickupTime)) {
         const zone = pickupUsable
-          ? (pickupEp!.timezone || resolveTimeZone(pickupEp!.lat, pickupEp!.lng))
+          ? pickupEp!.timezone || resolveTimeZone(pickupEp!.lat, pickupEp!.lng)
           : resolveTimeZone(r.place_lat, r.place_lng);
         carMarker('pickup', `Pickup: ${r.title}`, pickupDate!, pickupTime!, zone);
       }
 
       const dropUsable = dropEp && isDate(dropEp.local_date) && isTime(dropEp.local_time);
-      const dropDate = dropUsable ? dropEp!.local_date : (dateOf(r.reservation_end_time) || dateOf(r.reservation_time));
+      const dropDate = dropUsable ? dropEp!.local_date : dateOf(r.reservation_end_time) || dateOf(r.reservation_time);
       const dropTime = dropUsable ? dropEp!.local_time : timeOf(r.reservation_end_time);
       if (isDate(dropDate) && isTime(dropTime)) {
         const zone = dropUsable
-          ? (dropEp!.timezone || resolveTimeZone(dropEp!.lat, dropEp!.lng))
+          ? dropEp!.timezone || resolveTimeZone(dropEp!.lat, dropEp!.lng)
           : resolveTimeZone(r.place_lat, r.place_lng);
         carMarker('dropoff', `Drop-off: ${r.title}`, dropDate!, dropTime!, zone);
       }

@@ -8,6 +8,14 @@
  * suite's fs mock: the import-time mkdir lives there now, and mocking it lets
  * the exact log-line formats be asserted).
  */
+import { runMigrations } from '../../../src/db/migrations';
+import { createTables } from '../../../src/db/schema';
+import { logInfo, logDebug, logError } from '../../../src/nest/audit/audit-log.logger';
+import { AuditService } from '../../../src/nest/audit/audit.service';
+import { getClientIp } from '../../../src/nest/audit/client-ip';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+
+import type { Request } from 'express';
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // ── DB setup ──────────────────────────────────────────────────────────────────
@@ -35,14 +43,6 @@ vi.mock('../../../src/nest/audit/audit-log.logger', () => ({
   logWarn: vi.fn(),
 }));
 
-import type { Request } from 'express';
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { AuditService } from '../../../src/nest/audit/audit.service';
-import { getClientIp } from '../../../src/nest/audit/client-ip';
-import { logInfo, logDebug, logError } from '../../../src/nest/audit/audit-log.logger';
-
 const svc = new AuditService(new DatabaseService(testDb));
 
 beforeAll(() => {
@@ -60,11 +60,13 @@ afterAll(() => {
   testDb.close();
 });
 
-function makeReq(options: {
-  ip?: string;
-  xff?: string | string[];
-  remoteAddress?: string;
-} = {}): Request {
+function makeReq(
+  options: {
+    ip?: string;
+    xff?: string | string[];
+    remoteAddress?: string;
+  } = {},
+): Request {
   return {
     ip: options.ip,
     headers: {
@@ -114,9 +116,9 @@ describe('getClientIp', () => {
 // ── writeAudit (real DB) ──────────────────────────────────────────────────────
 
 function seedUser(id: number, email: string): void {
-  testDb.prepare(
-    "INSERT INTO users (id, username, email, password_hash, role) VALUES (?, ?, ?, 'x', 'user')"
-  ).run(id, `u${id}`, email);
+  testDb
+    .prepare("INSERT INTO users (id, username, email, password_hash, role) VALUES (?, ?, ?, 'x', 'user')")
+    .run(id, `u${id}`, email);
 }
 
 describe('writeAudit', () => {
@@ -124,7 +126,13 @@ describe('writeAudit', () => {
     seedUser(1, 'a@b.c');
     svc.writeAudit({ userId: 1, action: 'trip.create', resource: 'trip', details: { title: 'Rome' }, ip: '1.2.3.4' });
     const row = testDb.prepare('SELECT user_id, action, resource, details, ip FROM audit_log').get();
-    expect(row).toEqual({ user_id: 1, action: 'trip.create', resource: 'trip', details: '{"title":"Rome"}', ip: '1.2.3.4' });
+    expect(row).toEqual({
+      user_id: 1,
+      action: 'trip.create',
+      resource: 'trip',
+      details: '{"title":"Rome"}',
+      ip: '1.2.3.4',
+    });
     expect(logInfo).toHaveBeenCalledWith('a@b.c created trip "Rome" ip=1.2.3.4');
   });
 
@@ -173,7 +181,12 @@ describe('writeAudit', () => {
 
   it('AUDIT-SVC-012: debugDetails wins the debug line; detailsJson is the fallback', () => {
     seedUser(1, 'a@b.c');
-    svc.writeAudit({ userId: 1, action: 'settings.app_update', details: { require_mfa: true }, debugDetails: { raw: 1 } });
+    svc.writeAudit({
+      userId: 1,
+      action: 'settings.app_update',
+      details: { require_mfa: true },
+      debugDetails: { raw: 1 },
+    });
     expect(logDebug).toHaveBeenLastCalledWith('AUDIT settings.app_update userId=1 {"raw":1}');
     svc.writeAudit({ userId: 1, action: 'settings.app_update', details: { require_mfa: true } });
     expect(logDebug).toHaveBeenLastCalledWith('AUDIT settings.app_update userId=1 {"require_mfa":true}');
@@ -206,10 +219,14 @@ describe('writeAudit', () => {
 
   it('AUDIT-SVC-014: buildInfoSummary variants (settings parts, login empty brief)', () => {
     seedUser(1, 'a@b.c');
-    svc.writeAudit({ userId: 1, action: 'settings.app_update', details: { notification_channel: 'smtp', require_mfa: false }, ip: '1.1.1.1' });
+    svc.writeAudit({
+      userId: 1,
+      action: 'settings.app_update',
+      details: { notification_channel: 'smtp', require_mfa: false },
+      ip: '1.1.1.1',
+    });
     expect(logInfo).toHaveBeenLastCalledWith('a@b.c updated settings (channel=smtp, mfa=false) ip=1.1.1.1');
     svc.writeAudit({ userId: 1, action: 'user.login', details: { anything: true }, ip: '1.1.1.1' });
     expect(logInfo).toHaveBeenLastCalledWith('a@b.c logged in ip=1.1.1.1');
   });
 });
-

@@ -1,13 +1,20 @@
-import {
-  McpController, Tool, ResourceTemplate, type McpContext,
-  TOOL_ANNOTATIONS_WRITE, TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  demoDenied, ok,
-} from '../../nest-mcp';
-import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
-import { z } from 'zod';
-import { AuthService } from '../auth/auth.service';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
+import {
+  McpController,
+  Tool,
+  ResourceTemplate,
+  type McpContext,
+  TOOL_ANNOTATIONS_WRITE,
+  TOOL_ANNOTATIONS_DELETE,
+  TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+  demoDenied,
+  ok,
+} from '../../nest-mcp';
+import { AuthService } from '../auth/auth.service';
+import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { DayNotesService } from './day-notes.service';
+
+import { z } from 'zod';
 
 function parseId(value: string | string[]): number | null {
   const n = Number(Array.isArray(value) ? value[0] : value);
@@ -52,7 +59,8 @@ export class DayNotesMcp {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.notes.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!this.guards.hasTripPermission('day_edit', tripId, ctx.userId)) return permissionDenied();
-    if (!this.notes.dayExists(dayId, tripId)) return { content: [{ type: 'text' as const, text: 'Day not found.' }], isError: true };
+    if (!this.notes.dayExists(dayId, tripId))
+      return { content: [{ type: 'text' as const, text: 'Day not found.' }], isError: true };
     const note = this.notes.create(dayId, tripId, text, time, icon);
     this.guards.safeBroadcast(tripId, 'dayNote:created', { dayId, note });
     return ok({ note });
@@ -66,14 +74,26 @@ export class DayNotesMcp {
       dayId: z.number().int().positive(),
       noteId: z.number().int().positive(),
       text: z.string().min(1).max(500).optional(),
-      time: z.string().max(250).nullable().optional().describe('Time label (e.g. "09:00" or "Morning"), or null to clear'),
+      time: z
+        .string()
+        .max(250)
+        .nullable()
+        .optional()
+        .describe('Time label (e.g. "09:00" or "Morning"), or null to clear'),
       icon: z.string().max(64).optional().describe('Emoji icon for the note'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     access: { group: 'trips', mode: 'write' },
   })
   async updateDayNote(
-    { tripId, dayId, noteId, text, time, icon }: { tripId: number; dayId: number; noteId: number; text?: string; time?: string | null; icon?: string },
+    {
+      tripId,
+      dayId,
+      noteId,
+      text,
+      time,
+      icon,
+    }: { tripId: number; dayId: number; noteId: number; text?: string; time?: string | null; icon?: string },
     ctx: McpContext,
   ) {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
@@ -115,25 +135,33 @@ export class DayNotesMcp {
     mimeType: 'application/json',
     access: { group: 'trips', mode: 'read' },
   })
-  async dayNotesResource(uri: URL, { tripId, dayId }: { tripId: string | string[]; dayId: string | string[] }, ctx: McpContext) {
+  async dayNotesResource(
+    uri: URL,
+    { tripId, dayId }: { tripId: string | string[]; dayId: string | string[] },
+    ctx: McpContext,
+  ) {
     const tId = parseId(tripId);
     const dId = parseId(dayId);
     if (tId === null || dId === null || !this.notes.verifyTripAccess(tId, ctx.userId)) {
       return {
-        contents: [{
-          uri: uri.href,
-          mimeType: 'application/json',
-          text: JSON.stringify({ error: 'Trip not found or access denied' }),
-        }],
+        contents: [
+          {
+            uri: uri.href,
+            mimeType: 'application/json',
+            text: JSON.stringify({ error: 'Trip not found or access denied' }),
+          },
+        ],
       };
     }
     const notes = this.notes.list(dId, tId);
     return {
-      contents: [{
-        uri: uri.href,
-        mimeType: 'application/json',
-        text: JSON.stringify(notes, null, 2),
-      }],
+      contents: [
+        {
+          uri: uri.href,
+          mimeType: 'application/json',
+          text: JSON.stringify(notes, null, 2),
+        },
+      ],
     };
   }
 }

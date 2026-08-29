@@ -4,14 +4,27 @@
  * real (DI-native) SQL — trips/trip_members/days DDL below; auditLog, demo, the
  * permission check, canAccessTrip and the WebSocket broadcast are mocked.
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi, type MockInstance } from 'vitest';
-import request from 'supertest';
+// TripsService itself is real since the trip fold — no tripService mock; the
+// trips/trip_members/days DDL above serves its SQL.
+// bundle()'s days + accommodations now run DaysService's real SQL (DI-injected,
+// no mock) — the days/places/day_accommodations/reservations DDL above serves them.
+// bundle()'s places now run PlacesService's real SQL (DI-injected since the
+// place fold, no mock) — the places/categories/tags DDL above serves them.
+// bundle()'s budget items come from the DI-injected BudgetService since the
+// budget fold — stubbed via a container spy in beforeAll (no budget DDL here).
+import { BudgetService } from '../../src/nest/budget/budget.service';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { DatabaseModule } from '../../src/nest/database/database.module';
+import { PermissionsService } from '../../src/nest/permissions/permissions.service';
+import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
+import { TripsModule } from '../../src/nest/trips/trips.module';
+import { seedUser, sessionCookie } from './harness';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
-import { DatabaseModule } from '../../src/nest/database/database.module';
-import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
-import { Test } from '@nestjs/testing';
-import { seedUser, sessionCookie } from './harness';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi, type MockInstance } from 'vitest';
 
 const { db } = vi.hoisted(() => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -72,15 +85,21 @@ const { db } = vi.hoisted(() => {
     confirmation_number TEXT, notes TEXT, url TEXT, accommodation_id TEXT, metadata TEXT,
     needs_review INTEGER DEFAULT 0, day_plan_position REAL, external_source TEXT, sync_enabled INTEGER,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
-  tmp.exec('CREATE TABLE days (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL, day_number INTEGER, date TEXT);');
+  tmp.exec(
+    'CREATE TABLE days (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL, day_number INTEGER, date TEXT);',
+  );
   tmp.exec(`CREATE TABLE places (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL, name TEXT,
     image_url TEXT, address TEXT, lat REAL, lng REAL, category_id INTEGER, description TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
   // PlacesService.list joins categories and batch-loads tags/ratings.
   tmp.exec('CREATE TABLE categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, color TEXT, icon TEXT);');
   tmp.exec('CREATE TABLE tags (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, color TEXT, created_at DATETIME);');
-  tmp.exec('CREATE TABLE place_tags (place_id INTEGER NOT NULL, tag_id INTEGER NOT NULL, PRIMARY KEY (place_id, tag_id));');
-  tmp.exec('CREATE TABLE place_ratings (place_id INTEGER NOT NULL, user_id INTEGER NOT NULL, rating INTEGER, created_at DATETIME, UNIQUE(place_id, user_id));');
+  tmp.exec(
+    'CREATE TABLE place_tags (place_id INTEGER NOT NULL, tag_id INTEGER NOT NULL, PRIMARY KEY (place_id, tag_id));',
+  );
+  tmp.exec(
+    'CREATE TABLE place_ratings (place_id INTEGER NOT NULL, user_id INTEGER NOT NULL, rating INTEGER, created_at DATETIME, UNIQUE(place_id, user_id));',
+  );
   tmp.exec(`CREATE TABLE day_accommodations (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL,
     place_id INTEGER, start_day_id INTEGER, end_day_id INTEGER, check_in TEXT, check_in_end TEXT,
     check_out TEXT, confirmation TEXT, notes TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
@@ -104,39 +123,37 @@ const { db } = vi.hoisted(() => {
 
 const { canAccessTrip } = vi.hoisted(() => ({ canAccessTrip: vi.fn() }));
 vi.mock('../../src/db/database', () => ({
-  db, canAccessTrip, isOwner: vi.fn(() => true), getPlaceWithTags: vi.fn(), closeDb: () => {}, reinitialize: () => {},
+  db,
+  canAccessTrip,
+  isOwner: vi.fn(() => true),
+  getPlaceWithTags: vi.fn(),
+  closeDb: () => {},
+  reinitialize: () => {},
 }));
 vi.mock('../../src/websocket', () => ({ broadcast: vi.fn() }));
 // The audit domain is DI-native now: writeAudit runs for real against the temp
 // db's audit_log table; only the file logger is silenced.
-vi.mock('../../src/nest/audit/audit-log.logger', () => ({ LOG_LEVEL: 'error', logInfo: vi.fn(), logDebug: vi.fn(), logError: vi.fn(), logWarn: vi.fn() }));
+vi.mock('../../src/nest/audit/audit-log.logger', () => ({
+  LOG_LEVEL: 'error',
+  logInfo: vi.fn(),
+  logDebug: vi.fn(),
+  logError: vi.fn(),
+  logWarn: vi.fn(),
+}));
 vi.mock('../../src/nest/common/demo', () => ({ isDemoEmail: vi.fn(() => false) }));
-
-import { PermissionsService } from '../../src/nest/permissions/permissions.service';
 
 // Since the permissions DI migration, the check is a spy on the container's
 // PermissionsService singleton (created in beforeAll, after build()).
 let checkPermission: MockInstance;
-
-// TripsService itself is real since the trip fold — no tripService mock; the
-// trips/trip_members/days DDL above serves its SQL.
-// bundle()'s days + accommodations now run DaysService's real SQL (DI-injected,
-// no mock) — the days/places/day_accommodations/reservations DDL above serves them.
-// bundle()'s places now run PlacesService's real SQL (DI-injected since the
-// place fold, no mock) — the places/categories/tags DDL above serves them.
-// bundle()'s budget items come from the DI-injected BudgetService since the
-// budget fold — stubbed via a container spy in beforeAll (no budget DDL here).
-
-import { BudgetService } from '../../src/nest/budget/budget.service';
-import { TripsModule } from '../../src/nest/trips/trips.module';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
 
 describe('Trips e2e (real auth guard + temp SQLite)', () => {
   let server: Server;
   let app: Awaited<ReturnType<typeof build>>;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, RealtimeModule, TripsModule] }).compile();
+    const moduleRef = await Test.createTestingModule({
+      imports: [DatabaseModule, RealtimeModule, TripsModule],
+    }).compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
     nest.useGlobalFilters(new TrekExceptionFilter());
@@ -178,7 +195,14 @@ describe('Trips e2e (real auth guard + temp SQLite)', () => {
     const res = await request(server).get('/api/trips').set('Cookie', sessionCookie(1));
     expect(res.status).toBe(200);
     expect(res.body.trips).toHaveLength(1);
-    expect(res.body.trips[0]).toMatchObject({ id: tripId, title: 'T', is_owner: 1, day_count: 0, place_count: 0, shared_count: 0 });
+    expect(res.body.trips[0]).toMatchObject({
+      id: tripId,
+      title: 'T',
+      is_owner: 1,
+      day_count: 0,
+      place_count: 0,
+      shared_count: 0,
+    });
   });
 
   it('201 create (real insert + day generation), 403 without permission', async () => {
@@ -186,7 +210,9 @@ describe('Trips e2e (real auth guard + temp SQLite)', () => {
     expect(ok.status).toBe(201);
     // The dateless create seeds the default 7 placeholder days.
     expect(ok.body.trip).toMatchObject({ title: 'T', currency: 'EUR', day_count: 7, is_owner: 1 });
-    const dayRows = db.prepare('SELECT COUNT(*) AS n FROM days WHERE trip_id = ?').get(ok.body.trip.id) as { n: number };
+    const dayRows = db.prepare('SELECT COUNT(*) AS n FROM days WHERE trip_id = ?').get(ok.body.trip.id) as {
+      n: number;
+    };
     expect(dayRows.n).toBe(7);
     // The DI-native AuditService wrote the real row (audit_log DDL above).
     const audit = db.prepare("SELECT user_id FROM audit_log WHERE action = 'trip.create'").get() as { user_id: number };
@@ -204,8 +230,11 @@ describe('Trips e2e (real auth guard + temp SQLite)', () => {
 
   describe('GET /active (startup destination)', () => {
     const seedDated = (title: string, start: string, end: string) =>
-      Number(db.prepare('INSERT INTO trips (user_id, title, start_date, end_date) VALUES (1, ?, ?, ?)')
-        .run(title, start, end).lastInsertRowid);
+      Number(
+        db
+          .prepare('INSERT INTO trips (user_id, title, start_date, end_date) VALUES (1, ?, ?, ?)')
+          .run(title, start, end).lastInsertRowid,
+      );
 
     it('401 without a cookie', async () => {
       expect((await request(server).get('/api/trips/active')).status).toBe(401);
@@ -217,7 +246,9 @@ describe('Trips e2e (real auth guard + temp SQLite)', () => {
       const running = seedDated('Running', '2000-01-01', '2999-12-31');
       const res = await request(server).get('/api/trips/active').set('Cookie', sessionCookie(1));
       expect(res.status).toBe(200);
-      expect(res.body).toEqual({ trip: { id: running, title: 'Running', start_date: '2000-01-01', end_date: '2999-12-31' } });
+      expect(res.body).toEqual({
+        trip: { id: running, title: 'Running', start_date: '2000-01-01', end_date: '2999-12-31' },
+      });
     });
 
     it('answers { trip: null } when the user has no trip at all', async () => {
@@ -243,12 +274,21 @@ describe('Trips e2e (real auth guard + temp SQLite)', () => {
   it('200 delete cleans up synced journey entries (real SQL)', async () => {
     const tripId = seedTrip('D');
     db.prepare("INSERT INTO journey_entries (journey_id, source_trip_id, type) VALUES (1, ?, 'skeleton')").run(tripId);
-    const filledId = Number(db.prepare("INSERT INTO journey_entries (journey_id, source_trip_id, type) VALUES (1, ?, 'story')").run(tripId).lastInsertRowid);
+    const filledId = Number(
+      db.prepare("INSERT INTO journey_entries (journey_id, source_trip_id, type) VALUES (1, ?, 'story')").run(tripId)
+        .lastInsertRowid,
+    );
     const res = await request(server).delete(`/api/trips/${tripId}`).set('Cookie', sessionCookie(1));
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ success: true });
     expect(db.prepare('SELECT id FROM trips WHERE id = ?').get(tripId)).toBeUndefined();
     expect(db.prepare("SELECT id FROM journey_entries WHERE type = 'skeleton'").get()).toBeUndefined();
-    expect((db.prepare('SELECT source_trip_id FROM journey_entries WHERE id = ?').get(filledId) as { source_trip_id: number | null }).source_trip_id).toBeNull();
+    expect(
+      (
+        db.prepare('SELECT source_trip_id FROM journey_entries WHERE id = ?').get(filledId) as {
+          source_trip_id: number | null;
+        }
+      ).source_trip_id,
+    ).toBeNull();
   });
 });

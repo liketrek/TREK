@@ -1,7 +1,7 @@
-import { Module } from '@nestjs/common';
-import { PermissionsModule } from '../../permissions/permissions.module';
 import { AddonsModule } from '../../addons/addons.module';
+import { PermissionsModule } from '../../permissions/permissions.module';
 import { PluginGuards } from './plugin-guards.service';
+import { Module } from '@nestjs/common';
 
 /**
  * A leaf module whose only job is to hand PluginGuards to the domain modules.

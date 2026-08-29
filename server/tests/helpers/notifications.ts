@@ -1,10 +1,10 @@
 import { DatabaseService } from '../../src/nest/database/database.service';
-import { RealtimeService } from '../../src/nest/realtime/realtime.service';
 import { MailerService } from '../../src/nest/notifications/mailer/mailer.service';
 import { NotificationPreferencesService } from '../../src/nest/notifications/notification-preferences.service';
 import { NotificationsService } from '../../src/nest/notifications/notifications.service';
 import { NtfyService } from '../../src/nest/notifications/transports/ntfy.service';
 import { WebhookService } from '../../src/nest/notifications/transports/webhook.service';
+import { RealtimeService } from '../../src/nest/realtime/realtime.service';
 
 /**
  * A NotificationsService wired the way Nest wires it.

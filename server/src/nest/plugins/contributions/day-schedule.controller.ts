@@ -1,10 +1,11 @@
-import { Controller, Get, Param, Req, UseGuards } from '@nestjs/common';
-import type { Request } from 'express';
-import { DatabaseService } from '../../database/database.service';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import { DatabaseService } from '../../database/database.service';
 import { pluginsEnabled } from '../kill-switch';
 import { PluginHooks } from '../plugin-hooks.service';
 import { stripEmoji } from '../text-sanitize';
+import { Controller, Get, Param, Req, UseGuards } from '@nestjs/common';
+
+import type { Request } from 'express';
 
 /**
  * GET /api/day-schedule/:tripId — bounded time contributions plugins attach to the
@@ -58,7 +59,8 @@ function normalize(pluginId: string, tripDayIds: ReadonlySet<number>, raw: unkno
     const assignmentId = Number.isInteger(it.assignmentId) ? (it.assignmentId as number) : undefined;
     const reservationId = Number.isInteger(it.reservationId) ? (it.reservationId as number) : undefined;
     const minutesRaw = Number(it.minutes);
-    const minutes = Number.isFinite(minutesRaw) && minutesRaw > 0 ? Math.min(Math.round(minutesRaw), MAX_MINUTES) : undefined;
+    const minutes =
+      Number.isFinite(minutesRaw) && minutesRaw > 0 ? Math.min(Math.round(minutesRaw), MAX_MINUTES) : undefined;
     out.push({
       pluginId,
       id,
@@ -95,7 +97,9 @@ export class DayScheduleController {
 
     const ids = this.hooks.providersOf('dayScheduleProvider');
     if (ids.length === 0) return { items: [] };
-    const dayRows = this.dbs.connection.prepare('SELECT id FROM days WHERE trip_id = ?').all(tripId) as Array<{ id: number }>;
+    const dayRows = this.dbs.connection.prepare('SELECT id FROM days WHERE trip_id = ?').all(tripId) as Array<{
+      id: number;
+    }>;
     const tripDayIds: ReadonlySet<number> = new Set(dayRows.map((d) => d.id));
 
     const perProvider = await Promise.all(

@@ -1,7 +1,8 @@
-import dns from 'node:dns/promises';
-import { Agent } from 'undici';
 import { readEnv } from '../app-config';
 import { embeddedTransitionIpv4, expandIpv6 } from './ipv6';
+
+import dns from 'node:dns/promises';
+import { Agent } from 'undici';
 
 // Frozen at import on purpose (legacy timing; tests reload the module to change it).
 const ALLOW_INTERNAL_NETWORK = readEnv().net.allowInternalNetwork;
@@ -45,7 +46,7 @@ function isAlwaysBlocked(ip: string): boolean {
     // reaches a local service without naming one, and it has enough spellings
     // (`::`, `::0`, `0:0:0:0:0:0:0:0`) that only the expanded hextets settle it.
     // The `0.` check above never saw any of them: they begin with a colon.
-    if (hextets.every(h => h === 0)) return true;
+    if (hextets.every((h) => h === 0)) return true;
     // fe80::/10 spans fe80: through febf:, not just the four characters 'fe80'.
     if ((hextets[0] & 0xffc0) === 0xfe80) return true;
     // A mapped address inherits the verdict of the IPv4 it carries.

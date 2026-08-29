@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
 import { getAppUrl, readEnv } from '../../app-config';
 import { DatabaseService } from '../database/database.service';
+import { Injectable } from '@nestjs/common';
 
 function hostOf(url: string): string | null {
   try {

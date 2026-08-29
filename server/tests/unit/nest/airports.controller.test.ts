@@ -1,16 +1,23 @@
-import { describe, it, expect, vi } from 'vitest';
-import { HttpException } from '@nestjs/common';
 import { AirportsController } from '../../../src/nest/airports/airports.controller';
 import type { AirportsService } from '../../../src/nest/airports/airports.service';
+import { HttpException } from '@nestjs/common';
 import type { Airport } from '@trek/shared';
+
+import { describe, it, expect, vi } from 'vitest';
 
 function makeController(svc: Partial<AirportsService>) {
   return new AirportsController(svc as AirportsService);
 }
 
 const BER: Airport = {
-  iata: 'BER', icao: 'EDDB', name: 'Berlin Brandenburg', city: 'Berlin',
-  country: 'DE', lat: 52.36, lng: 13.5, tz: 'Europe/Berlin',
+  iata: 'BER',
+  icao: 'EDDB',
+  name: 'Berlin Brandenburg',
+  city: 'Berlin',
+  country: 'DE',
+  lat: 52.36,
+  lng: 13.5,
+  tz: 'Europe/Berlin',
 };
 
 /** Run `fn`, expecting an HttpException; return its { status, body }. */

@@ -29,7 +29,8 @@ const notif: TranslationStrings = {
   'notif.version_available.text': 'A TREK {version} elérhető',
   'notif.replica_failure.title': 'Tárhely-replika hiba',
   'notif.replica_failure.text': "Sikertelen írás a(z) '{backend}' replikán: {op} / {key} — {error}",
-  'notif.replica_failure.textSuppressed': "Sikertelen írás a(z) '{backend}' replikán: {op} / {key} — {error}. Az utolsó értesítés óta {suppressed} további hiba lett elnyomva.",
+  'notif.replica_failure.textSuppressed':
+    "Sikertelen írás a(z) '{backend}' replikán: {op} / {key} — {error}. Az utolsó értesítés óta {suppressed} további hiba lett elnyomva.",
   'notif.action.view_trip': 'Utazás megtekintése',
   'notif.action.view_collab': 'Üzenetek megtekintése',
   'notif.action.view_packing': 'Csomagolás megtekintése',

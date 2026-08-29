@@ -1,3 +1,15 @@
+import { logError } from '../../../src/nest/audit/audit-log.logger';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { getEventText, buildEmailHtml } from '../../../src/nest/notifications/mailer/email-html';
+import {
+  NtfyService,
+  resolveNtfyUrl,
+  resolveAdminNtfyUrl,
+  type NtfyConfig,
+} from '../../../src/nest/notifications/transports/ntfy.service';
+import { WebhookService, buildWebhookBody } from '../../../src/nest/notifications/transports/webhook.service';
+import { checkSsrf } from '../../../src/utils/ssrfGuard';
+
 import { describe, it, expect, vi, afterEach, afterAll, beforeEach } from 'vitest';
 
 vi.mock('../../../src/db/database', () => ({
@@ -24,20 +36,15 @@ vi.mock('../../../src/utils/ssrfGuard', () => ({
   createPinnedDispatcher: vi.fn(() => ({})),
 }));
 
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { getEventText, buildEmailHtml } from '../../../src/nest/notifications/mailer/email-html';
-import { WebhookService, buildWebhookBody } from '../../../src/nest/notifications/transports/webhook.service';
-import { NtfyService, resolveNtfyUrl, resolveAdminNtfyUrl, type NtfyConfig } from '../../../src/nest/notifications/transports/ntfy.service';
-
 // The transports are providers now; the db stub below is the same one the
 // module-level `db` mock used to supply, handed in instead of imported.
-const stubDb = { prepare: () => ({ get: () => undefined, all: () => [], run: () => undefined }) } as unknown as ConstructorParameters<typeof DatabaseService>[0];
+const stubDb = {
+  prepare: () => ({ get: () => undefined, all: () => [], run: () => undefined }),
+} as unknown as ConstructorParameters<typeof DatabaseService>[0];
 const webhookSvc = new WebhookService(new DatabaseService(stubDb));
 const ntfySvc = new NtfyService(new DatabaseService(stubDb));
 const sendWebhook = webhookSvc.sendWebhook.bind(webhookSvc);
 const sendNtfy = ntfySvc.sendNtfy.bind(ntfySvc);
-import { checkSsrf } from '../../../src/utils/ssrfGuard';
-import { logError } from '../../../src/nest/audit/audit-log.logger';
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -87,7 +94,15 @@ describe('getEventText', () => {
   });
 
   it('all 7 event types produce non-empty title and body in English', () => {
-    const events = ['trip_invite', 'booking_change', 'trip_reminder', 'vacay_invite', 'photos_shared', 'collab_message', 'packing_tagged'] as const;
+    const events = [
+      'trip_invite',
+      'booking_change',
+      'trip_reminder',
+      'vacay_invite',
+      'photos_shared',
+      'collab_message',
+      'packing_tagged',
+    ] as const;
     for (const event of events) {
       const result = getEventText('en', event, params);
       expect(result.title, `title for ${event}`).toBeTruthy();
@@ -96,7 +111,15 @@ describe('getEventText', () => {
   });
 
   it('all 7 event types produce non-empty title and body in German', () => {
-    const events = ['trip_invite', 'booking_change', 'trip_reminder', 'vacay_invite', 'photos_shared', 'collab_message', 'packing_tagged'] as const;
+    const events = [
+      'trip_invite',
+      'booking_change',
+      'trip_reminder',
+      'vacay_invite',
+      'photos_shared',
+      'collab_message',
+      'packing_tagged',
+    ] as const;
     for (const event of events) {
       const result = getEventText('de', event, params);
       expect(result.title, `de title for ${event}`).toBeTruthy();
@@ -275,7 +298,9 @@ describe('sendWebhook SSRF protection (SEC-017)', () => {
 
   it('blocks loopback address and returns false', async () => {
     vi.mocked(checkSsrf).mockResolvedValueOnce({
-      allowed: false, isPrivate: true, resolvedIp: '127.0.0.1',
+      allowed: false,
+      isPrivate: true,
+      resolvedIp: '127.0.0.1',
       error: 'Requests to loopback and link-local addresses are not allowed',
     });
 
@@ -286,7 +311,9 @@ describe('sendWebhook SSRF protection (SEC-017)', () => {
 
   it('blocks cloud metadata endpoint (169.254.169.254) and returns false', async () => {
     vi.mocked(checkSsrf).mockResolvedValueOnce({
-      allowed: false, isPrivate: true, resolvedIp: '169.254.169.254',
+      allowed: false,
+      isPrivate: true,
+      resolvedIp: '169.254.169.254',
       error: 'Requests to loopback and link-local addresses are not allowed',
     });
 
@@ -297,7 +324,9 @@ describe('sendWebhook SSRF protection (SEC-017)', () => {
 
   it('blocks private network addresses and returns false', async () => {
     vi.mocked(checkSsrf).mockResolvedValueOnce({
-      allowed: false, isPrivate: true, resolvedIp: '192.168.1.1',
+      allowed: false,
+      isPrivate: true,
+      resolvedIp: '192.168.1.1',
       error: 'Requests to private/internal network addresses are not allowed',
     });
 
@@ -308,7 +337,8 @@ describe('sendWebhook SSRF protection (SEC-017)', () => {
 
   it('blocks non-HTTP protocols', async () => {
     vi.mocked(checkSsrf).mockResolvedValueOnce({
-      allowed: false, isPrivate: false,
+      allowed: false,
+      isPrivate: false,
       error: 'Only HTTP and HTTPS URLs are allowed',
     });
 
@@ -320,7 +350,9 @@ describe('sendWebhook SSRF protection (SEC-017)', () => {
     const mockFetch = globalThis.fetch as unknown as ReturnType<typeof vi.fn>;
     mockFetch.mockClear();
     vi.mocked(checkSsrf).mockResolvedValueOnce({
-      allowed: false, isPrivate: true, resolvedIp: '127.0.0.1',
+      allowed: false,
+      isPrivate: true,
+      resolvedIp: '127.0.0.1',
       error: 'blocked',
     });
 
@@ -369,7 +401,9 @@ describe('resolveNtfyUrl', () => {
 
 describe('resolveAdminNtfyUrl', () => {
   it('builds URL from admin topic and server', () => {
-    expect(resolveAdminNtfyUrl({ server: 'https://ntfy.example.com', topic: 'admin-topic', token: null })).toBe('https://ntfy.example.com/admin-topic');
+    expect(resolveAdminNtfyUrl({ server: 'https://ntfy.example.com', topic: 'admin-topic', token: null })).toBe(
+      'https://ntfy.example.com/admin-topic',
+    );
   });
 
   it('returns null when no admin topic', () => {
@@ -381,7 +415,9 @@ describe('resolveAdminNtfyUrl', () => {
   });
 
   it('strips trailing slash from server', () => {
-    expect(resolveAdminNtfyUrl({ server: 'https://ntfy.sh/', topic: 'alerts', token: null })).toBe('https://ntfy.sh/alerts');
+    expect(resolveAdminNtfyUrl({ server: 'https://ntfy.sh/', topic: 'alerts', token: null })).toBe(
+      'https://ntfy.sh/alerts',
+    );
   });
 });
 
@@ -447,7 +483,9 @@ describe('sendNtfy', () => {
 
   it('NTFY-005 — SSRF guard blocks private URL and returns false', async () => {
     vi.mocked(checkSsrf).mockResolvedValueOnce({
-      allowed: false, isPrivate: true, resolvedIp: '192.168.1.1',
+      allowed: false,
+      isPrivate: true,
+      resolvedIp: '192.168.1.1',
       error: 'Requests to private/internal network addresses are not allowed',
     });
 

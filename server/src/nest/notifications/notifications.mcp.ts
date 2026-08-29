@@ -1,19 +1,27 @@
 import {
-  McpController, Tool, Resource, type McpContext,
-  TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
-  demoDenied, ok,
+  McpController,
+  Tool,
+  Resource,
+  type McpContext,
+  TOOL_ANNOTATIONS_READONLY,
+  TOOL_ANNOTATIONS_WRITE,
+  demoDenied,
+  ok,
 } from '../../nest-mcp';
-import { z } from 'zod';
 import { AuthService } from '../auth/auth.service';
 import { NotificationsService } from './notifications.service';
 
+import { z } from 'zod';
+
 function jsonContent(uri: string, data: unknown) {
   return {
-    contents: [{
-      uri,
-      mimeType: 'application/json',
-      text: JSON.stringify(data, null, 2),
-    }],
+    contents: [
+      {
+        uri,
+        mimeType: 'application/json',
+        text: JSON.stringify(data, null, 2),
+      },
+    ],
   };
 }
 
@@ -51,7 +59,11 @@ export class NotificationsMcp {
     { limit, offset, unread_only }: { limit?: number; offset?: number; unread_only?: boolean },
     ctx: McpContext,
   ) {
-    const result = this.notifications.listInApp(ctx.userId, { limit: limit ?? 20, offset: offset ?? 0, unreadOnly: unread_only ?? false });
+    const result = this.notifications.listInApp(ctx.userId, {
+      limit: limit ?? 20,
+      offset: offset ?? 0,
+      unreadOnly: unread_only ?? false,
+    });
     return ok(result);
   }
 

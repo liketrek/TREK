@@ -1,6 +1,6 @@
-import type { LlmExtractionClient, LlmExtractionInput } from '../llm-provider.interface';
 import { safeFetchLlm } from '../../../utils/ssrfGuard';
 import { toReservationList } from '../lenient-json';
+import type { LlmExtractionClient, LlmExtractionInput } from '../llm-provider.interface';
 
 const TIMEOUT_MS = 120_000;
 const MAX_TOKENS = 8192;
@@ -84,7 +84,7 @@ export class AnthropicClient implements LlmExtractionClient {
       throw new Error('Anthropic declined to process this document');
     }
 
-    const toolUse = data.content?.find(b => b.type === 'tool_use' && b.name === TOOL_NAME);
+    const toolUse = data.content?.find((b) => b.type === 'tool_use' && b.name === TOOL_NAME);
     return toReservationList(toolUse?.input?.reservations);
   }
 }

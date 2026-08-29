@@ -1,3 +1,10 @@
+import { db } from '../../../src/db/database';
+import { AuditService } from '../../../src/nest/database/../audit/audit.service';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { AirtrailClient } from '../../../src/nest/integrations/airtrail.client';
+import { AirtrailService } from '../../../src/nest/integrations/airtrail.service';
+import { createUser } from '../../helpers/factories';
+
 import { describe, it, expect, vi } from 'vitest';
 
 // Avoid any real DNS/network from the SSRF guard during saveSettings.
@@ -5,13 +12,6 @@ vi.mock('../../../src/utils/ssrfGuard', () => ({
   checkSsrf: vi.fn(async () => ({ allowed: true, isPrivate: false })),
   safeFetch: vi.fn(),
 }));
-
-import { db } from '../../../src/db/database';
-import { createUser } from '../../helpers/factories';
-import { AirtrailService } from '../../../src/nest/integrations/airtrail.service';
-import { AirtrailClient } from '../../../src/nest/integrations/airtrail.client';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { AuditService } from '../../../src/nest/database/../audit/audit.service';
 
 // The free functions became methods with the airtrail fold; same SQL, same
 // behaviour, one instance over the same db handle.

@@ -1,13 +1,13 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { LlmLocalService } from '../../../../src/nest/llm-parse/llm-local.service';
 import { HttpException } from '@nestjs/common';
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // listModels/pull go through safeFetchLlm (SSRF guard: allows a local/LAN Ollama,
 // blocks the cloud-metadata range). Mock it so the tests never resolve DNS; its
 // (url, init) signature matches the raw fetch it replaced.
 const { safeFetchLlmMock } = vi.hoisted(() => ({ safeFetchLlmMock: vi.fn() }));
 vi.mock('../../../../src/utils/ssrfGuard', () => ({ safeFetchLlm: safeFetchLlmMock }));
-
-import { LlmLocalService } from '../../../../src/nest/llm-parse/llm-local.service';
 
 const svc = () => new LlmLocalService();
 
@@ -37,7 +37,10 @@ describe('LlmLocalService.ollamaRoot', () => {
 
 describe('LlmLocalService.listModels', () => {
   it('returns named models from /api/tags', async () => {
-    const fetchFn = mockFetch(async () => ({ ok: true, json: async () => ({ models: [{ name: 'nuextract', size: 100 }, { name: '' }] }) }));
+    const fetchFn = mockFetch(async () => ({
+      ok: true,
+      json: async () => ({ models: [{ name: 'nuextract', size: 100 }, { name: '' }] }),
+    }));
     const out = await svc().listModels('http://localhost:11434/v1');
     expect(out.models).toEqual([{ name: 'nuextract', size: 100 }]);
     expect(fetchFn.mock.calls[0][0]).toBe('http://localhost:11434/api/tags');

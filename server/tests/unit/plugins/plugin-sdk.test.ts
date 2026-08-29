@@ -3,8 +3,9 @@
  * an RPC call, config is frozen, and log is a fire-and-forget event. Runs
  * in-process against a fake transport (no fork needed).
  */
-import { describe, it, expect, vi } from 'vitest';
 import { createPluginContext, definePlugin, type ChildTransport } from '../../../src/nest/plugins/runtime/plugin-sdk';
+
+import { describe, it, expect, vi } from 'vitest';
 
 function fakeTransport() {
   const rpc = vi.fn(async () => ({ ok: true }));
@@ -55,7 +56,12 @@ describe('createPluginContext', () => {
     expect(rpc).toHaveBeenCalledWith('costs.create', { tripId: 1, input: { name: 'Hotel' }, _inv: 'inv-1' });
 
     await ctx.costs.update(1, 5, { name: 'Hostel' });
-    expect(rpc).toHaveBeenCalledWith('costs.update', { tripId: 1, itemId: 5, input: { name: 'Hostel' }, _inv: 'inv-1' });
+    expect(rpc).toHaveBeenCalledWith('costs.update', {
+      tripId: 1,
+      itemId: 5,
+      input: { name: 'Hostel' },
+      _inv: 'inv-1',
+    });
 
     await ctx.costs.delete(1, 5);
     expect(rpc).toHaveBeenCalledWith('costs.delete', { tripId: 1, itemId: 5, _inv: 'inv-1' });

@@ -1,7 +1,8 @@
+import { readEnv } from '../../app-config';
 import type { INestApplication } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+
 import { cleanupOpenApiDoc } from 'nestjs-zod';
-import { readEnv } from '../../app-config';
 
 /**
  * Swagger UI + OpenAPI spec for the REST API (#1412), gated behind
@@ -21,8 +22,8 @@ export function setupApiDocs(app: INestApplication): void {
   const config = new DocumentBuilder()
     .setTitle('TREK API')
     .setDescription(
-      'The REST API the TREK web app itself runs on. Authenticate with a session JWT — '
-      + 'either the `trek_session` cookie (same browser) or an `Authorization: Bearer <jwt>` header.',
+      'The REST API the TREK web app itself runs on. Authenticate with a session JWT — ' +
+        'either the `trek_session` cookie (same browser) or an `Authorization: Bearer <jwt>` header.',
     )
     .setVersion(version)
     .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, 'session')

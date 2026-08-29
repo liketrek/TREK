@@ -1,7 +1,7 @@
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { AirportsService } from './airports.service';
 import { Controller, Get, HttpException, Param, Query, UseGuards } from '@nestjs/common';
 import type { Airport } from '@trek/shared';
-import { AirportsService } from './airports.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 /**
  * /api/airports — typeahead search + single lookup by IATA code.

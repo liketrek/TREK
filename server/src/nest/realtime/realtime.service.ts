@@ -1,11 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import type {
-  TrekWsPayload,
-  TrekWsPluginEventName,
-  TrekWsTripEventName,
-  TrekWsUserEventName,
-} from '@trek/shared';
 import { broadcast, broadcastToUser, getOnlineUserIds } from '../../websocket';
+import { Injectable } from '@nestjs/common';
+import type { TrekWsPayload, TrekWsPluginEventName, TrekWsTripEventName, TrekWsUserEventName } from '@trek/shared';
 
 /**
  * Injectable facade over the websocket module singleton (roadmap Phase 0 item 3).
@@ -85,9 +80,7 @@ export class RealtimeService {
     payload: { type: TrekWsPluginEventName } & Record<string, unknown>,
     excludeSid?: number | string,
   ): void;
-  broadcastToUser(
-    ...args: [userId: number, payload: Record<string, unknown>, excludeSid?: number | string]
-  ): void {
+  broadcastToUser(...args: [userId: number, payload: Record<string, unknown>, excludeSid?: number | string]): void {
     broadcastToUser(...args);
   }
 

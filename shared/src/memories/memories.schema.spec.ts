@@ -1,4 +1,3 @@
-import { describe, it, expect } from 'vitest';
 import {
   addTripPhotosSchema,
   createAlbumLinkSchema,
@@ -9,6 +8,8 @@ import {
   synologySettingsSchema,
   synologyTestSchema,
 } from './memories.schema';
+
+import { describe, it, expect } from 'vitest';
 
 /**
  * These contracts exist to describe what the endpoints already accept, not to
@@ -87,6 +88,8 @@ describe('unified contracts', () => {
 
   it('leaves the album-link fields untyped — the service validates them, and it answers 400 with its own wording', () => {
     expect(createAlbumLinkSchema.safeParse({}).success).toBe(true);
-    expect(createAlbumLinkSchema.safeParse({ provider: 'synology', album_id: 12, album_name: null }).success).toBe(true);
+    expect(createAlbumLinkSchema.safeParse({ provider: 'synology', album_id: 12, album_name: null }).success).toBe(
+      true,
+    );
   });
 });

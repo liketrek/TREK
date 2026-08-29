@@ -97,7 +97,8 @@ const places: TranslationStrings = {
   'places.details.facts': '알아두면 좋아요',
   'places.details.nothing': '이 장소에 대한 정보를 찾지 못했습니다.',
   'places.details.noKeyTitle': '더 자세한 정보를 볼 수 있습니다',
-  'places.details.noKeyHint': 'Google API 키가 없으면 이 인스턴스는 무료 소스만 사용합니다. 평점, 영업시간, 사진을 보려면 TREK 관리자에게 키 추가를 요청하세요.',
+  'places.details.noKeyHint':
+    'Google API 키가 없으면 이 인스턴스는 무료 소스만 사용합니다. 평점, 영업시간, 사진을 보려면 TREK 관리자에게 키 추가를 요청하세요.',
   'places.details.aboutBrand': '체인 소개',
   'places.details.aboutBrandNote': '이 지점이 아니라 체인에 대한 설명입니다.',
   'places.details.fact.rating': '평점',

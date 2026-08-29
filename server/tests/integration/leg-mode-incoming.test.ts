@@ -3,15 +3,19 @@
  * read-path parity: the field must survive both the single-assignment
  * projection and the day-LIST projection.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-import request from 'supertest';
-import type { Application } from 'express';
+import { buildApp } from '../../src/bootstrap';
+import { runMigrations } from '../../src/db/migrations';
+import { createTables } from '../../src/db/schema';
+import { authCookie } from '../helpers/auth';
+import { createUser, createTrip, createDay, createPlace } from '../helpers/factories';
+import { resetTestDb, resetRateLimits } from '../helpers/test-db';
 import type { INestApplication } from '@nestjs/common';
 
-const Database = require('better-sqlite3');
+import type { Application } from 'express';
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
-import { createTables } from '../../src/db/schema';
-import { runMigrations } from '../../src/db/migrations';
+const Database = require('better-sqlite3');
 
 let testDb: any;
 
@@ -30,7 +34,7 @@ afterAll(() => {
 describe('incoming_leg_transport_mode migration', () => {
   it('adds a nullable incoming_leg_transport_mode column to day_assignments', () => {
     const cols = testDb.prepare(`PRAGMA table_info(day_assignments)`).all() as { name: string }[];
-    expect(cols.map(c => c.name)).toContain('incoming_leg_transport_mode');
+    expect(cols.map((c) => c.name)).toContain('incoming_leg_transport_mode');
   });
 
   // The case above starts from an empty database and runs every migration, so it
@@ -82,13 +86,29 @@ const { testDb2, dbMock } = vi.hoisted(() => {
     closeDb: () => {},
     reinitialize: () => {},
     getPlaceWithTags: (placeId: number) => {
-      const place: any = db.prepare(`SELECT p.*, c.name as category_name, c.color as category_color, c.icon as category_icon FROM places p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id = ?`).get(placeId);
+      const place: any = db
+        .prepare(
+          `SELECT p.*, c.name as category_name, c.color as category_color, c.icon as category_icon FROM places p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id = ?`,
+        )
+        .get(placeId);
       if (!place) return null;
-      const tags = db.prepare(`SELECT t.* FROM tags t JOIN place_tags pt ON t.id = pt.tag_id WHERE pt.place_id = ?`).all(placeId);
-      return { ...place, category: place.category_id ? { id: place.category_id, name: place.category_name, color: place.category_color, icon: place.category_icon } : null, tags };
+      const tags = db
+        .prepare(`SELECT t.* FROM tags t JOIN place_tags pt ON t.id = pt.tag_id WHERE pt.place_id = ?`)
+        .all(placeId);
+      return {
+        ...place,
+        category: place.category_id
+          ? { id: place.category_id, name: place.category_name, color: place.category_color, icon: place.category_icon }
+          : null,
+        tags,
+      };
     },
     canAccessTrip: (tripId: any, userId: number) =>
-      db.prepare(`SELECT t.id, t.user_id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)`).get(userId, tripId, userId),
+      db
+        .prepare(
+          `SELECT t.id, t.user_id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)`,
+        )
+        .get(userId, tripId, userId),
     isOwner: (tripId: any, userId: number) =>
       !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
   };
@@ -106,11 +126,6 @@ vi.mock('../../src/config', () => ({
   DEFAULT_LANGUAGE: 'en',
 }));
 vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
-
-import { buildApp } from '../../src/bootstrap';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
-import { createUser, createTrip, createDay, createPlace } from '../helpers/factories';
-import { authCookie } from '../helpers/auth';
 
 describe('incoming_leg_transport_mode read-path parity', () => {
   let nestApp: INestApplication;
@@ -146,11 +161,11 @@ describe('incoming_leg_transport_mode read-path parity', () => {
     expect(create.status).toBe(201);
     const assignmentId = create.body.assignment.id;
 
-    testDb2.prepare('UPDATE day_assignments SET incoming_leg_transport_mode = ? WHERE id = ?').run('transit', assignmentId);
+    testDb2
+      .prepare('UPDATE day_assignments SET incoming_leg_transport_mode = ? WHERE id = ?')
+      .run('transit', assignmentId);
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/days`)
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/days`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     const foundDay = res.body.days.find((d: any) => d.id === day.id);
     const a = foundDay.assignments.find((x: any) => x.id === assignmentId);
@@ -180,7 +195,9 @@ describe('incoming_leg_transport_mode read-path parity', () => {
         .send({ transport_mode: 'cycling' });
       expect(res.status).toBe(200);
 
-      const row = testDb2.prepare('SELECT leg_transport_mode, incoming_leg_transport_mode FROM day_assignments WHERE id = ?').get(assignmentId);
+      const row = testDb2
+        .prepare('SELECT leg_transport_mode, incoming_leg_transport_mode FROM day_assignments WHERE id = ?')
+        .get(assignmentId);
       expect(row.leg_transport_mode).toBe('cycling');
       expect(row.incoming_leg_transport_mode).toBeNull();
     });
@@ -203,7 +220,9 @@ describe('incoming_leg_transport_mode read-path parity', () => {
         .send({ transport_mode: 'transit', direction: 'incoming' });
       expect(res.status).toBe(200);
 
-      const row = testDb2.prepare('SELECT incoming_leg_transport_mode FROM day_assignments WHERE id = ?').get(assignmentId);
+      const row = testDb2
+        .prepare('SELECT incoming_leg_transport_mode FROM day_assignments WHERE id = ?')
+        .get(assignmentId);
       expect(row.incoming_leg_transport_mode).toBe('transit');
     });
 
@@ -250,13 +269,13 @@ describe('incoming_leg_transport_mode read-path parity', () => {
         .send({ transport_mode: 'transit', direction: 'incoming' })
         .expect(200);
 
-      const row = testDb2.prepare('SELECT leg_transport_mode, incoming_leg_transport_mode FROM day_assignments WHERE id = ?').get(assignmentId);
+      const row = testDb2
+        .prepare('SELECT leg_transport_mode, incoming_leg_transport_mode FROM day_assignments WHERE id = ?')
+        .get(assignmentId);
       expect(row.leg_transport_mode).toBe('cycling');
       expect(row.incoming_leg_transport_mode).toBe('transit');
 
-      const res = await request(app)
-        .get(`/api/trips/${trip.id}/days`)
-        .set('Cookie', authCookie(user.id));
+      const res = await request(app).get(`/api/trips/${trip.id}/days`).set('Cookie', authCookie(user.id));
       expect(res.status).toBe(200);
       const foundDay = res.body.days.find((d: any) => d.id === day.id);
       const a = foundDay.assignments.find((x: any) => x.id === assignmentId);

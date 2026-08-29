@@ -1,11 +1,11 @@
-import express, { Request, Response, NextFunction } from 'express';
-import path from 'node:path';
-
 import { readEnv } from '../../app-config';
-import { verifyJwtAndLoadUser } from '../auth/jwt-verify';
 import { db } from '../../db/database';
+import { verifyJwtAndLoadUser } from '../auth/jwt-verify';
 import { StorageService } from '../storage/storage.service';
 import { StorageInvalidKeyError, StorageNotFoundError, type StorageCategory } from '../storage/storage.types';
+
+import express, { Request, Response, NextFunction } from 'express';
+import path from 'node:path';
 
 // Platform / transport routes extracted verbatim from createApp() (app.ts) so they can be
 // mounted on either the legacy Express app or the NestJS Express instance (strangler A6/A8).
@@ -107,13 +107,17 @@ async function servePhoto(storage: StorageService, req: Request, res: Response):
 
   // Share-token path: require the token to cover the exact trip the
   // photo belongs to. Expired tokens fall through to 401.
-  const photo = db.prepare('SELECT trip_id FROM photos WHERE filename = ?').get(safeName) as { trip_id: number } | undefined;
+  const photo = db.prepare('SELECT trip_id FROM photos WHERE filename = ?').get(safeName) as
+    | { trip_id: number }
+    | undefined;
   if (!photo) {
     res.status(401).send('Authentication required');
     return;
   }
   const share = db
-    .prepare("SELECT trip_id FROM share_tokens WHERE token = ? AND (expires_at IS NULL OR expires_at > datetime('now'))")
+    .prepare(
+      "SELECT trip_id FROM share_tokens WHERE token = ? AND (expires_at IS NULL OR expires_at > datetime('now'))",
+    )
     .get(rawToken) as { trip_id: number } | undefined;
   if (!share || share.trip_id !== photo.trip_id) {
     res.status(401).send('Authentication required');

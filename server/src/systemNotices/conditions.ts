@@ -1,5 +1,6 @@
-import semver from 'semver';
 import type { NoticeCondition, SystemNotice } from './types.js';
+
+import semver from 'semver';
 
 interface ConditionContext {
   user: { login_count: number; first_seen_version: string; role: string; noTrips: number };
@@ -38,10 +39,7 @@ function evaluateOne(condition: NoticeCondition, ctx: ConditionContext): boolean
       if (!noticeVersion) return false;
       // Strip prerelease/build metadata so '3.0.0-pre.42' is treated as '3.0.0'.
       const appVersion = semver.coerce(ctx.currentAppVersion)?.version ?? '0.0.0';
-      return (
-        semver.lt(userVersion, noticeVersion) &&
-        semver.gte(appVersion, noticeVersion)
-      );
+      return semver.lt(userVersion, noticeVersion) && semver.gte(appVersion, noticeVersion);
     }
 
     case 'dateWindow': {
@@ -75,7 +73,7 @@ function evaluateOne(condition: NoticeCondition, ctx: ConditionContext): boolean
 
 /** Returns true only if ALL conditions pass (AND logic). */
 export function evaluate(notice: SystemNotice, ctx: ConditionContext): boolean {
-  return notice.conditions.every(c => evaluateOne(c, ctx));
+  return notice.conditions.every((c) => evaluateOne(c, ctx));
 }
 
 export type { ConditionContext };

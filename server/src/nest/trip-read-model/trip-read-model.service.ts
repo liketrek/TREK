@@ -1,16 +1,16 @@
-import { Injectable } from '@nestjs/common';
-import { DatabaseService } from '../database/database.service';
-import { DaysService } from '../days/days.service';
 import { AccommodationsService } from '../accommodations/accommodations.service';
 import { BudgetService } from '../budget/budget.service';
-import { PackingService } from '../packing/packing.service';
-import { ReservationsService } from '../reservations/reservations.service';
 import { CollabService } from '../collab/collab.service';
-import { PlacesService } from '../places/places.service';
-import { TodoService } from '../todo/todo.service';
+import { DatabaseService } from '../database/database.service';
+import { DaysService } from '../days/days.service';
 import { FilesService } from '../files/files.service';
+import { PackingService } from '../packing/packing.service';
+import { PlacesService } from '../places/places.service';
+import { ReservationsService } from '../reservations/reservations.service';
+import { TodoService } from '../todo/todo.service';
 import { TripMembersService } from '../trip-members/trip-members.service';
 import { withoutFeedToken } from '../trips/trips.service';
+import { Injectable } from '@nestjs/common';
 
 /**
  * The two read aggregates over a trip: the MCP summary and the offline bundle.
@@ -76,7 +76,7 @@ export class TripReadModelService {
     const packing = {
       items: packingItems,
       total: packingItems.length,
-      checked: (packingItems as { checked: number }[]).filter(i => i.checked).length,
+      checked: (packingItems as { checked: number }[]).filter((i) => i.checked).length,
     };
 
     const reservations = this.reservations.list(tripId);

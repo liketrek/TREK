@@ -71,7 +71,8 @@ const common: TranslationStrings = {
   'common.errorRetry': '再試行',
   'common.errorReload': 'ページを再読み込み',
   'common.errorUpdateTitle': '新しいバージョンがあります',
-  'common.errorUpdateBody': 'このタブを開いている間に TREK が更新されました。再読み込みして新しいバージョンを取得してください。',
+  'common.errorUpdateBody':
+    'このタブを開いている間に TREK が更新されました。再読み込みして新しいバージョンを取得してください。',
   'common.errorPluginTitle': 'このプラグインを表示できませんでした',
 };
 export default common;

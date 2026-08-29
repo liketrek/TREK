@@ -1,29 +1,29 @@
-import { Module } from '@nestjs/common';
-import { MemoriesService } from './memories.service';
-import { MemoriesAccessService } from './memories-access.service';
-import { ImmichService } from './immich.service';
-import { SynologyService } from './synology.service';
-import { UnifiedMemoriesService } from './unified-memories.service';
-import { PhotoResolverService } from './photo-resolver.service';
-import { PhotoCaptureBackfillService } from './photo-capture-backfill.service';
-import { ThumbnailService } from './thumbnail.service';
-import { TrekPhotoCacheService } from './trek-photo-cache.service';
-import { TrekPhotoCacheJob } from './trek-photo-cache.job';
-import { JourneyThumbsJob } from './journey-thumbs.job';
-import { SchedulingModule } from '../scheduling/scheduling.module';
-import { UnifiedMemoriesController } from './unified.controller';
-import { ImmichMemoriesController } from './immich.controller';
-import { SynologyMemoriesController } from './synology.controller';
 import { AddonsModule } from '../addons/addons.module';
 import { AuditModule } from '../audit/audit.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { TrekPhotosModule } from '../photos/trek-photos.module';
 import { RealtimeModule } from '../realtime/realtime.module';
+import { SchedulingModule } from '../scheduling/scheduling.module';
+import { StorageModule } from '../storage/storage.module';
+import { ImmichMemoriesController } from './immich.controller';
+import { ImmichService } from './immich.service';
+import { JourneyThumbsJob } from './journey-thumbs.job';
+import { MemoriesAccessService } from './memories-access.service';
+import { MemoriesService } from './memories.service';
+import { PhotoCaptureBackfillService } from './photo-capture-backfill.service';
 import { PHOTO_PROVIDERS } from './photo-provider';
 import { PhotoProviderRegistry } from './photo-provider.registry';
+import { PhotoResolverService } from './photo-resolver.service';
 import { ImmichPhotoProvider } from './providers/immich.provider';
 import { SynologyPhotoProvider } from './providers/synology.provider';
-import { NotificationsModule } from '../notifications/notifications.module';
-import { StorageModule } from '../storage/storage.module';
+import { SynologyMemoriesController } from './synology.controller';
+import { SynologyService } from './synology.service';
+import { ThumbnailService } from './thumbnail.service';
+import { TrekPhotoCacheJob } from './trek-photo-cache.job';
+import { TrekPhotoCacheService } from './trek-photo-cache.service';
+import { UnifiedMemoriesService } from './unified-memories.service';
+import { UnifiedMemoriesController } from './unified.controller';
+import { Module } from '@nestjs/common';
 
 /**
  * Memories (photo-providers) domain — mounted at /api/integrations/memories.
@@ -46,7 +46,15 @@ import { StorageModule } from '../storage/storage.module';
  * adapters themselves so the set is readable in one place.
  */
 @Module({
-  imports: [NotificationsModule, AddonsModule, AuditModule, TrekPhotosModule, RealtimeModule, SchedulingModule, StorageModule],
+  imports: [
+    NotificationsModule,
+    AddonsModule,
+    AuditModule,
+    TrekPhotosModule,
+    RealtimeModule,
+    SchedulingModule,
+    StorageModule,
+  ],
   controllers: [UnifiedMemoriesController, ImmichMemoriesController, SynologyMemoriesController],
   providers: [
     MemoriesService,
@@ -69,6 +77,13 @@ import { StorageModule } from '../storage/storage.module';
       inject: [ImmichPhotoProvider, SynologyPhotoProvider],
     },
   ],
-  exports: [MemoriesAccessService, PhotoResolverService, PhotoCaptureBackfillService, ImmichService, SynologyService, PhotoProviderRegistry],
+  exports: [
+    MemoriesAccessService,
+    PhotoResolverService,
+    PhotoCaptureBackfillService,
+    ImmichService,
+    SynologyService,
+    PhotoProviderRegistry,
+  ],
 })
 export class MemoriesModule {}

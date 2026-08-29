@@ -1,20 +1,27 @@
-import { Injectable, HttpException } from '@nestjs/common';
-import { RealtimeService } from '../realtime/realtime.service';
-import { PermissionsService } from '../permissions/permissions.service';
-import { ReservationsService } from '../reservations/reservations.service';
-import { PlacesService } from '../places/places.service';
-import { BudgetService } from '../budget/budget.service';
-import { AddonsService } from '../addons/addons.service';
 import { ADDON_IDS } from '../../addons';
-import { MapsService } from '../maps/maps.service';
-import { DatabaseService, type TripAccess } from '../database/database.service';
 import type { User } from '../../types';
-import { KitineraryExtractorService } from './kitinerary-extractor.service';
+import { AddonsService } from '../addons/addons.service';
+import { BudgetService } from '../budget/budget.service';
+import { DatabaseService, type TripAccess } from '../database/database.service';
 import { LlmParseService } from '../llm-parse/llm-parse.service';
+import { MapsService } from '../maps/maps.service';
+import { PermissionsService } from '../permissions/permissions.service';
+import { PlacesService } from '../places/places.service';
+import { RealtimeService } from '../realtime/realtime.service';
+import { ReservationsService } from '../reservations/reservations.service';
+import { KitineraryExtractorService } from './kitinerary-extractor.service';
 import { mapReservations } from './kitinerary-mapper';
-import { typeToCostCategory } from '@trek/shared';
-import type { BookingImportPreviewItem, BookingImportPreviewResponse, BookingImportConfirmResponse, BookingImportMode, BookingImportFileReport, Reservation } from '@trek/shared';
 import type { ParsedBookingItem, KiReservation } from './kitinerary.types';
+import { Injectable, HttpException } from '@nestjs/common';
+import { typeToCostCategory } from '@trek/shared';
+import type {
+  BookingImportPreviewItem,
+  BookingImportPreviewResponse,
+  BookingImportConfirmResponse,
+  BookingImportMode,
+  BookingImportFileReport,
+  Reservation,
+} from '@trek/shared';
 
 @Injectable()
 export class BookingImportService {
@@ -39,11 +46,17 @@ export class BookingImportService {
     if (!iso) return null;
     const date = iso.slice(0, 10);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
-    const exact = this.db.prepare('SELECT id FROM days WHERE trip_id = ? AND date = ? LIMIT 1').get(tripId, date) as { id: number } | undefined;
+    const exact = this.db.prepare('SELECT id FROM days WHERE trip_id = ? AND date = ? LIMIT 1').get(tripId, date) as
+      | { id: number }
+      | undefined;
     if (exact) return exact.id;
     // Clamp to the nearest trip day so an out-of-range / unmatched check-in still
     // resolves and the accommodation row is inserted.
-    const nearest = this.db.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY ABS(JULIANDAY(date) - JULIANDAY(?)) ASC, date ASC LIMIT 1').get(tripId, date) as { id: number } | undefined;
+    const nearest = this.db
+      .prepare(
+        'SELECT id FROM days WHERE trip_id = ? ORDER BY ABS(JULIANDAY(date) - JULIANDAY(?)) ASC, date ASC LIMIT 1',
+      )
+      .get(tripId, date) as { id: number } | undefined;
     return nearest?.id ?? null;
   }
 
@@ -103,7 +116,12 @@ export class BookingImportService {
       const key = ep.name.toLowerCase();
       if (cache.has(key)) {
         const hit = cache.get(key);
-        if (hit) { ep.lat = hit.lat; ep.lng = hit.lng; } else { unresolved.push(ep.name); }
+        if (hit) {
+          ep.lat = hit.lat;
+          ep.lng = hit.lng;
+        } else {
+          unresolved.push(ep.name);
+        }
         continue;
       }
 
@@ -117,14 +135,22 @@ export class BookingImportService {
       try {
         for (const q of queries) {
           const hit = (await this.maps.searchNominatim(q, undefined, 'background'))[0];
-          if (hit?.lat != null && hit?.lng != null) { found = { lat: hit.lat, lng: hit.lng }; break; }
+          if (hit?.lat != null && hit?.lng != null) {
+            found = { lat: hit.lat, lng: hit.lng };
+            break;
+          }
         }
       } catch {
         // geocoding failure is non-fatal — the endpoint stays, and is warned about
       }
 
       cache.set(key, found);
-      if (found) { ep.lat = found.lat; ep.lng = found.lng; } else { unresolved.push(ep.name); }
+      if (found) {
+        ep.lat = found.lat;
+        ep.lng = found.lng;
+      } else {
+        unresolved.push(ep.name);
+      }
     }
 
     return unresolved;
@@ -160,7 +186,9 @@ export class BookingImportService {
         try {
           kiItems = await this.extractor.extract(file.buffer, file.originalname);
         } catch (err) {
-          allWarnings.push(`${file.originalname}: extraction failed — ${err instanceof Error ? err.message : String(err)}`);
+          allWarnings.push(
+            `${file.originalname}: extraction failed — ${err instanceof Error ? err.message : String(err)}`,
+          );
         }
       }
 
@@ -187,7 +215,10 @@ export class BookingImportService {
         for (const it of items) {
           const missed = await this.geocodeEndpoints(
             (it as { endpoints?: { name?: string | null; lat?: number | null; lng?: number | null }[] }).endpoints,
-            { location: (it as { location?: string | null }).location, address: (it as { _venue?: { address?: string | null } })._venue?.address },
+            {
+              location: (it as { location?: string | null }).location,
+              address: (it as { _venue?: { address?: string | null } })._venue?.address,
+            },
             geoCache,
           );
           // Kept on the item rather than filtered, so it is still editable in the
@@ -283,16 +314,25 @@ export class BookingImportService {
         // Build create_accommodation for hotel reservations.
         // start_day_id / end_day_id are resolved from check-in/out ISO dates so
         // the accommodation row is actually inserted (createReservation gates on them).
-        let createAccommodation: { place_id?: number; start_day_id?: number; end_day_id?: number; check_in?: string; check_out?: string; confirmation?: string } | undefined;
+        let createAccommodation:
+          | {
+              place_id?: number;
+              start_day_id?: number;
+              end_day_id?: number;
+              check_in?: string;
+              check_out?: string;
+              confirmation?: string;
+            }
+          | undefined;
         if (item.type === 'hotel' && _accommodation) {
           const startDayId = this.resolveDayId(tripId, _accommodation.check_in);
-          const endDayId   = this.resolveDayId(tripId, _accommodation.check_out);
+          const endDayId = this.resolveDayId(tripId, _accommodation.check_out);
           createAccommodation = {
             place_id: placeId,
             start_day_id: startDayId ?? undefined,
-            end_day_id:   endDayId   ?? undefined,
-            check_in:     _accommodation.check_in,
-            check_out:    _accommodation.check_out,
+            end_day_id: endDayId ?? undefined,
+            check_in: _accommodation.check_in,
+            check_out: _accommodation.check_out,
             confirmation: _accommodation.confirmation,
           };
         }
@@ -341,7 +381,10 @@ export class BookingImportService {
 
         created.push(reservation);
       } catch (err) {
-        console.error(`[booking-import] Failed to create reservation "${item.title}":`, err instanceof Error ? err.message : err);
+        console.error(
+          `[booking-import] Failed to create reservation "${item.title}":`,
+          err instanceof Error ? err.message : err,
+        );
       }
     }
 

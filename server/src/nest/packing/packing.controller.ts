@@ -1,22 +1,7 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Headers,
-  HttpCode,
-  HttpException,
-  Param,
-  Post,
-  Put,
-  UseGuards,
-} from '@nestjs/common';
-import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 import type { User } from '../../types';
-import { PackingService } from './packing.service';
-import { isUpdateConflict } from '../common/conflictResult';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { isUpdateConflict } from '../common/conflictResult';
 import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
 import {
   PackingApplyTemplateDto,
@@ -31,9 +16,29 @@ import {
   PackingUpdateBagDto,
   PackingUpdateItemDto,
 } from './packing.dto';
+import { PackingService } from './packing.service';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Headers,
+  HttpCode,
+  HttpException,
+  Param,
+  Post,
+  Put,
+  UseGuards,
+} from '@nestjs/common';
+import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 
 /** A packing item row carrying the privacy fields (#858) used to scope broadcasts. */
-type PackingItemRow = { is_private?: number; owner_id?: number | null; recipients?: { user_id: number }[]; [key: string]: unknown };
+type PackingItemRow = {
+  is_private?: number;
+  owner_id?: number | null;
+  recipients?: { user_id: number }[];
+  [key: string]: unknown;
+};
 
 /**
  * /api/trips/:tripId/packing — trip-scoped packing list (items, bags, templates,
@@ -61,7 +66,6 @@ export class PackingController {
   constructor(private readonly packing: PackingService) {}
 
   /** Loads the trip or throws the legacy 404; returns it for the permission check. */
-
 
   @Get()
   list(@CurrentUser() user: User, @Param('tripId') tripId: string) {
@@ -97,7 +101,18 @@ export class PackingController {
     @Headers('x-socket-id') socketId?: string,
   ) {
     // checked arrives as boolean or legacy 0/1 — the service coerces by truthiness.
-    const item = this.packing.createItem(tripId, { name: body.name, category: body.category, checked: body.checked === undefined ? undefined : !!body.checked, is_private: body.is_private, visibility: body.visibility, recipient_ids: body.recipient_ids }, user.id);
+    const item = this.packing.createItem(
+      tripId,
+      {
+        name: body.name,
+        category: body.category,
+        checked: body.checked === undefined ? undefined : !!body.checked,
+        is_private: body.is_private,
+        visibility: body.visibility,
+        recipient_ids: body.recipient_ids,
+      },
+      user.id,
+    );
     this.packing.emitToViewers(tripId, 'packing:created', { item }, item, socketId);
     return { item };
   }
@@ -131,7 +146,22 @@ export class PackingController {
     // bodyKeys carries which keys the request actually provided (the presence-
     // sentinel protocol); the parsed body only ever holds known schema keys.
     // checked arrives as boolean or legacy 0/1 — normalize to the 0/1 the SQL binds.
-    const updated = this.packing.updateItem(tripId, id, { name, checked: checked === undefined ? undefined : checked ? 1 : 0, category, weight_grams, bag_id, quantity, is_private }, Object.keys(body), ifMatch, user.id);
+    const updated = this.packing.updateItem(
+      tripId,
+      id,
+      {
+        name,
+        checked: checked === undefined ? undefined : checked ? 1 : 0,
+        category,
+        weight_grams,
+        bag_id,
+        quantity,
+        is_private,
+      },
+      Object.keys(body),
+      ifMatch,
+      user.id,
+    );
     if (!updated) {
       throw new HttpException({ error: 'Item not found' }, 404);
     }
@@ -169,7 +199,13 @@ export class PackingController {
     @Body() body: PackingSetSharingDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const updated = this.packing.setItemSharing(tripId, id, user.id, body.visibility, Array.isArray(body.recipient_ids) ? body.recipient_ids : []);
+    const updated = this.packing.setItemSharing(
+      tripId,
+      id,
+      user.id,
+      body.visibility,
+      Array.isArray(body.recipient_ids) ? body.recipient_ids : [],
+    );
     if (!updated) {
       throw new HttpException({ error: 'Item not found' }, 404);
     }
@@ -271,7 +307,12 @@ export class PackingController {
     const { name, color, weight_limit_grams, user_id } = body;
     // bodyKeys carries which keys the request actually provided (the presence-
     // sentinel protocol); the parsed body only ever holds known schema keys.
-    const updated = this.packing.updateBag(tripId, bagId, { name, color, weight_limit_grams, user_id }, Object.keys(body));
+    const updated = this.packing.updateBag(
+      tripId,
+      bagId,
+      { name, color, weight_limit_grams, user_id },
+      Object.keys(body),
+    );
     if (!updated) {
       throw new HttpException({ error: 'Bag not found' }, 404);
     }
@@ -337,11 +378,7 @@ export class PackingController {
 
   @RequirePermission('packing_edit')
   @Post('save-as-template')
-  saveAsTemplate(
-    @CurrentUser() user: User,
-    @Param('tripId') tripId: string,
-    @Body() body: PackingSaveTemplateDto,
-  ) {
+  saveAsTemplate(@CurrentUser() user: User, @Param('tripId') tripId: string, @Body() body: PackingSaveTemplateDto) {
     if (user.role !== 'admin') {
       throw new HttpException({ error: 'Admin access required' }, 403);
     }

@@ -3,12 +3,15 @@
  * the real JwtAuthGuard against a temp SQLite db (seeded via the shared harness).
  * The airport service is mocked so the test doesn't depend on the bundled dataset.
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import request from 'supertest';
+import { AirportsModule } from '../../src/nest/airports/airports.module';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { seedUser, sessionCookie } from './harness';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
-import { Test } from '@nestjs/testing';
-import { seedUser, sessionCookie } from './harness';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
 const { db } = vi.hoisted(() => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -28,12 +31,15 @@ vi.mock('../../src/nest/airports/airports.data', async (importActual) => {
   return { ...actual, searchAirports: mockSearch, findByIata: mockFindByIata };
 });
 
-import { AirportsModule } from '../../src/nest/airports/airports.module';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-
 const BER = {
-  iata: 'BER', icao: 'EDDB', name: 'Berlin Brandenburg', city: 'Berlin',
-  country: 'DE', lat: 52.36, lng: 13.5, tz: 'Europe/Berlin',
+  iata: 'BER',
+  icao: 'EDDB',
+  name: 'Berlin Brandenburg',
+  city: 'Berlin',
+  country: 'DE',
+  lat: 52.36,
+  lng: 13.5,
+  tz: 'Europe/Berlin',
 };
 
 describe('Airports e2e (real auth guard + temp SQLite)', () => {

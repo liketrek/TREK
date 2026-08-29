@@ -21,8 +21,16 @@ export const sessions = new Map<string, McpSession>();
 /** Close both halves of a session and drop it from the map. Close errors are non-fatal:
  *  a transport whose socket is already gone must not block eviction of the map entry. */
 function closeSession(sid: string, session: McpSession): void {
-  try { session.server.close(); } catch { /* ignore */ }
-  try { session.transport.close(); } catch { /* ignore */ }
+  try {
+    session.server.close();
+  } catch {
+    /* ignore */
+  }
+  try {
+    session.transport.close();
+  } catch {
+    /* ignore */
+  }
   sessions.delete(sid);
 }
 

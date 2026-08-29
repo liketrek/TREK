@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
 import { computeJourneyStats, type StatsInputPoint } from '../../../src/nest/journey/journey-stats';
+
+import { describe, it, expect } from 'vitest';
 
 /**
  * Which trip each stop belongs to, and what that lets a book print (#1973).
@@ -16,7 +17,13 @@ import { computeJourneyStats, type StatsInputPoint } from '../../../src/nest/jou
  */
 
 const point = (over: Partial<StatsInputPoint> = {}): StatsInputPoint => ({
-  lat: 64, lng: -22, label: '', date: null, country: null, tripId: null, ...over,
+  lat: 64,
+  lng: -22,
+  label: '',
+  date: null,
+  country: null,
+  tripId: null,
+  ...over,
 });
 
 const base = {
@@ -32,12 +39,9 @@ describe('the trips behind a journey', () => {
   it('carries the trip onto every stop of the route', () => {
     const stats = computeJourneyStats({
       ...base,
-      points: [
-        point({ lat: 64, lng: -22, tripId: 11 }),
-        point({ lat: 38, lng: -9, tripId: 22 }),
-      ],
+      points: [point({ lat: 64, lng: -22, tripId: 11 }), point({ lat: 38, lng: -9, tripId: 22 })],
     });
-    expect(stats.points.map(p => p.tripId)).toEqual([11, 22]);
+    expect(stats.points.map((p) => p.tripId)).toEqual([11, 22]);
   });
 
   it('leaves the trip null for a stop nobody linked to one', () => {
@@ -58,7 +62,10 @@ describe('the trips behind a journey', () => {
         { id: 22, title: 'Portugal', start: '2026-09-04', end: '2026-09-12', points: 0 },
       ],
     });
-    expect(stats.trips.map(t => [t.title, t.points])).toEqual([['Iceland', 2], ['Portugal', 1]]);
+    expect(stats.trips.map((t) => [t.title, t.points])).toEqual([
+      ['Iceland', 2],
+      ['Portugal', 1],
+    ]);
   });
 
   /*
@@ -74,7 +81,7 @@ describe('the trips behind a journey', () => {
         { id: 33, title: 'A trip nobody wrote about', start: null, end: null, points: 0 },
       ],
     });
-    expect(stats.trips.find(t => t.id === 33)!.points).toBe(0);
+    expect(stats.trips.find((t) => t.id === 33)!.points).toBe(0);
   });
 
   /*

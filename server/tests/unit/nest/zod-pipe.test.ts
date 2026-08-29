@@ -1,7 +1,8 @@
+import { ZodValidationPipe } from '../../../src/nest/common/zod-validation.pipe';
+import { HttpException } from '@nestjs/common';
+
 import { describe, it, expect } from 'vitest';
 import { z } from 'zod';
-import { HttpException } from '@nestjs/common';
-import { ZodValidationPipe } from '../../../src/nest/common/zod-validation.pipe';
 
 describe('ZodValidationPipe', () => {
   const pipe = new ZodValidationPipe(z.object({ name: z.string().min(1) }));

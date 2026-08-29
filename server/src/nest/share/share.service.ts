@@ -1,12 +1,13 @@
-import { Injectable } from '@nestjs/common';
-import crypto from 'crypto';
+import type { User } from '../../types';
 import { DatabaseService } from '../database/database.service';
 import type { TripAccess } from '../database/database.service';
 import { PermissionsService } from '../permissions/permissions.service';
-import { QueryHelpersService } from '../query-helpers/query-helpers.service';
 import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
+import { QueryHelpersService } from '../query-helpers/query-helpers.service';
 import { SettingsService } from '../settings/settings.service';
-import type { User } from '../../types';
+import { Injectable } from '@nestjs/common';
+
+import crypto from 'crypto';
 
 type Trip = TripAccess;
 
@@ -92,7 +93,13 @@ export class ShareService {
       if (existing) {
         this.dbs.run(
           'UPDATE share_tokens SET share_map = ?, share_bookings = ?, share_packing = ?, share_budget = ?, share_collab = ?, expires_at = ? WHERE trip_id = ?',
-          share_map ? 1 : 0, share_bookings ? 1 : 0, share_packing ? 1 : 0, share_budget ? 1 : 0, share_collab ? 1 : 0, expiresAt, tripId,
+          share_map ? 1 : 0,
+          share_bookings ? 1 : 0,
+          share_packing ? 1 : 0,
+          share_budget ? 1 : 0,
+          share_collab ? 1 : 0,
+          expiresAt,
+          tripId,
         );
         return { token: existing.token, created: false };
       }
@@ -100,7 +107,15 @@ export class ShareService {
       const token = crypto.randomBytes(24).toString('base64url');
       this.dbs.run(
         'INSERT INTO share_tokens (trip_id, token, created_by, share_map, share_bookings, share_packing, share_budget, share_collab, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        tripId, token, userId, share_map ? 1 : 0, share_bookings ? 1 : 0, share_packing ? 1 : 0, share_budget ? 1 : 0, share_collab ? 1 : 0, expiresAt,
+        tripId,
+        token,
+        userId,
+        share_map ? 1 : 0,
+        share_bookings ? 1 : 0,
+        share_packing ? 1 : 0,
+        share_budget ? 1 : 0,
+        share_collab ? 1 : 0,
+        expiresAt,
       );
       return { token, created: true };
     });
@@ -170,11 +185,12 @@ export class ShareService {
     let places: any[] = [];
     if (permissions.share_map) {
       days = this.dbs.all<any>('SELECT * FROM days WHERE trip_id = ? ORDER BY day_number ASC', tripId);
-      const dayIds = days.map(d => d.id);
+      const dayIds = days.map((d) => d.id);
 
       if (dayIds.length > 0) {
         const ph = dayIds.map(() => '?').join(',');
-        const allAssignments = this.dbs.all<any>(`
+        const allAssignments = this.dbs.all<any>(
+          `
           SELECT da.*, p.id as place_id, p.name as place_name, p.description as place_description,
             p.lat, p.lng, p.address, p.category_id, p.price, p.currency as place_currency,
             COALESCE(da.assignment_time, p.place_time) as place_time,
@@ -186,7 +202,9 @@ export class ShareService {
           LEFT JOIN categories c ON p.category_id = c.id
           WHERE da.day_id IN (${ph})
           ORDER BY da.order_index ASC, da.created_at ASC
-        `, ...dayIds);
+        `,
+          ...dayIds,
+        );
 
         const placeIds = [...new Set(allAssignments.map((a: any) => a.place_id))];
         const tagsByPlace = this.queryHelpers.loadTagsByPlaceIds(placeIds, { compact: true });
@@ -195,20 +213,36 @@ export class ShareService {
         for (const a of allAssignments as any[]) {
           if (!byDay[a.day_id]) byDay[a.day_id] = [];
           byDay[a.day_id].push({
-            id: a.id, day_id: a.day_id, order_index: a.order_index, notes: a.notes,
+            id: a.id,
+            day_id: a.day_id,
+            order_index: a.order_index,
+            notes: a.notes,
             place: {
-              id: a.place_id, name: a.place_name, description: a.place_description,
-              lat: a.lat, lng: a.lng, address: a.address, category_id: a.category_id,
-              price: a.price, place_time: a.place_time, end_time: a.end_time,
-              image_url: rewritePlacePhotoUrl(a.image_url, token), transport_mode: a.transport_mode,
-              category: a.category_id ? { id: a.category_id, name: a.category_name, color: a.category_color, icon: a.category_icon } : null,
+              id: a.place_id,
+              name: a.place_name,
+              description: a.place_description,
+              lat: a.lat,
+              lng: a.lng,
+              address: a.address,
+              category_id: a.category_id,
+              price: a.price,
+              place_time: a.place_time,
+              end_time: a.end_time,
+              image_url: rewritePlacePhotoUrl(a.image_url, token),
+              transport_mode: a.transport_mode,
+              category: a.category_id
+                ? { id: a.category_id, name: a.category_name, color: a.category_color, icon: a.category_icon }
+                : null,
               tags: tagsByPlace[a.place_id] ?? [],
-            }
+            },
           });
         }
         assignments = byDay;
 
-        const allNotes = this.dbs.all<any>(`SELECT * FROM day_notes WHERE day_id IN (${ph}) ORDER BY sort_order ASC, created_at ASC`, ...dayIds);
+        const allNotes = this.dbs.all<any>(
+          `SELECT * FROM day_notes WHERE day_id IN (${ph}) ORDER BY sort_order ASC, created_at ASC`,
+          ...dayIds,
+        );
         const notesByDay: Record<number, any[]> = {};
         for (const n of allNotes as any[]) {
           if (!notesByDay[n.day_id]) notesByDay[n.day_id] = [];
@@ -217,11 +251,16 @@ export class ShareService {
         dayNotes = notesByDay;
       }
 
-      places = this.dbs.all<any>(`
+      places = this.dbs
+        .all<any>(
+          `
         SELECT p.*, c.name as category_name, c.color as category_color, c.icon as category_icon
         FROM places p LEFT JOIN categories c ON p.category_id = c.id
         WHERE p.trip_id = ? ORDER BY p.created_at DESC
-      `, tripId).map((p) => ({ ...p, image_url: rewritePlacePhotoUrl(p.image_url, token) }));
+      `,
+          tripId,
+        )
+        .map((p) => ({ ...p, image_url: rewritePlacePhotoUrl(p.image_url, token) }));
     }
 
     // Bookings — reservations carry per-day positions so the client can render
@@ -229,26 +268,33 @@ export class ShareService {
     let reservations: any[] = [];
     let accommodations: unknown[] = [];
     if (permissions.share_bookings) {
-      const dayPositions = this.dbs.all<{ reservation_id: number; day_id: number; position: number }>(`
+      const dayPositions = this.dbs.all<{ reservation_id: number; day_id: number; position: number }>(
+        `
         SELECT rdp.reservation_id, rdp.day_id, rdp.position
         FROM reservation_day_positions rdp
         JOIN reservations r ON rdp.reservation_id = r.id
         WHERE r.trip_id = ?
-      `, tripId);
+      `,
+        tripId,
+      );
 
       const posMap = new Map<number, Record<number, number>>();
       for (const dp of dayPositions) {
         if (!posMap.has(dp.reservation_id)) posMap.set(dp.reservation_id, {});
         posMap.get(dp.reservation_id)![dp.day_id] = dp.position;
       }
-      reservations = this.dbs.all<any>('SELECT * FROM reservations WHERE trip_id = ? ORDER BY reservation_time ASC', tripId)
+      reservations = this.dbs
+        .all<any>('SELECT * FROM reservations WHERE trip_id = ? ORDER BY reservation_time ASC', tripId)
         .map((r) => ({ ...r, day_positions: posMap.get(r.id) ?? null }));
 
-      accommodations = this.dbs.all(`
+      accommodations = this.dbs.all(
+        `
         SELECT a.*, p.name as place_name, p.address as place_address, p.lat as place_lat, p.lng as place_lng
         FROM day_accommodations a JOIN places p ON a.place_id = p.id
         WHERE a.trip_id = ?
-      `, tripId);
+      `,
+        tripId,
+      );
     }
 
     // Packing — a public viewer is neither owner nor recipient, so only Common items
@@ -268,7 +314,10 @@ export class ShareService {
 
     // Collab messages (only if owner chose to share)
     const collabMessages = permissions.share_collab
-      ? this.dbs.all('SELECT m.*, u.username, u.avatar FROM collab_messages m JOIN users u ON m.user_id = u.id WHERE m.trip_id = ? AND m.deleted = 0 ORDER BY m.created_at', tripId)
+      ? this.dbs.all(
+          'SELECT m.*, u.username, u.avatar FROM collab_messages m JOIN users u ON m.user_id = u.id WHERE m.trip_id = ? AND m.deleted = 0 ORDER BY m.created_at',
+          tripId,
+        )
       : [];
 
     // Display currency the share owner sees in their Costs view. A public viewer has
@@ -280,9 +329,8 @@ export class ShareService {
     // honours per-user → admin-default; we then fall back to trip currency → EUR
     // (`||` on purpose: an empty-string trip currency also falls back).
     let baseCurrency = (trip as { currency?: string }).currency || 'EUR';
-    const ownerSettings: Record<string, unknown> = shareRow.created_by != null
-      ? this.settings.getUserSettings(shareRow.created_by)
-      : {};
+    const ownerSettings: Record<string, unknown> =
+      shareRow.created_by != null ? this.settings.getUserSettings(shareRow.created_by) : {};
     const ownerDefault = ownerSettings['default_currency'];
     if (typeof ownerDefault === 'string' && ownerDefault.trim()) {
       baseCurrency = ownerDefault.trim();
@@ -300,10 +348,19 @@ export class ShareService {
     const cartoApiKey = typeof ownerCartoKey === 'string' ? ownerCartoKey.trim() : '';
 
     return {
-      trip, baseCurrency, cartoApiKey, categories, permissions,
-      days, assignments, dayNotes, places,
-      reservations, accommodations,
-      packing, budget,
+      trip,
+      baseCurrency,
+      cartoApiKey,
+      categories,
+      permissions,
+      days,
+      assignments,
+      dayNotes,
+      places,
+      reservations,
+      accommodations,
+      packing,
+      budget,
       collab: collabMessages,
     };
   }
@@ -329,7 +386,11 @@ export class ShareService {
     if (!shareRow.share_map) return null;
 
     const expectedUrl = `${PLACE_PHOTO_PROXY_PREFIX}${encodeURIComponent(placeId)}/bytes`;
-    const place = this.dbs.get('SELECT 1 FROM places WHERE trip_id = ? AND image_url = ?', shareRow.trip_id, expectedUrl);
+    const place = this.dbs.get(
+      'SELECT 1 FROM places WHERE trip_id = ? AND image_url = ?',
+      shareRow.trip_id,
+      expectedUrl,
+    );
     if (!place) return null;
 
     return this.photoCache.serveKey(placeId);

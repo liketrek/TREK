@@ -5,12 +5,16 @@
  * singleton); tags are user-scoped (no admin gate), so a normal authenticated
  * user can do everything.
  */
-import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
-import request from 'supertest';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { DatabaseModule } from '../../src/nest/database/database.module';
+import { TagsModule } from '../../src/nest/tags/tags.module';
+import { seedUser, sessionCookie } from './harness';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
-import { Test } from '@nestjs/testing';
-import { seedUser, sessionCookie } from './harness';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 
 const { db } = vi.hoisted(() => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -33,10 +37,6 @@ const { db } = vi.hoisted(() => {
 });
 
 vi.mock('../../src/db/database', () => ({ db, closeDb: () => {}, reinitialize: () => {} }));
-
-import { DatabaseModule } from '../../src/nest/database/database.module';
-import { TagsModule } from '../../src/nest/tags/tags.module';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
 
 function insertTag(userId: number, name: string, color = '#10b981'): number {
   const res = db.prepare('INSERT INTO tags (user_id, name, color) VALUES (?, ?, ?)').run(userId, name, color);
@@ -87,7 +87,10 @@ describe('Tags e2e (real auth guard + temp SQLite)', () => {
   });
 
   it('201 on create, echoing the provided color', async () => {
-    const res = await request(server).post('/api/tags').set('Cookie', sessionCookie(1)).send({ name: 'Beach', color: '#ff0000' });
+    const res = await request(server)
+      .post('/api/tags')
+      .set('Cookie', sessionCookie(1))
+      .send({ name: 'Beach', color: '#ff0000' });
     expect(res.status).toBe(201);
     expect(res.body.tag).toMatchObject({ user_id: 1, name: 'Beach', color: '#ff0000' });
     expect(typeof res.body.tag.id).toBe('number');

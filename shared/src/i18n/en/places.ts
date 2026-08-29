@@ -98,7 +98,8 @@ const places: TranslationStrings = {
   'places.details.facts': 'Good to know',
   'places.details.nothing': 'Nothing found for this place.',
   'places.details.noKeyTitle': 'More detail is available',
-  'places.details.noKeyHint': 'Without a Google API key this instance can only use free sources. Ask your TREK administrator to add one for ratings, opening hours and photos.',
+  'places.details.noKeyHint':
+    'Without a Google API key this instance can only use free sources. Ask your TREK administrator to add one for ratings, opening hours and photos.',
   'places.details.aboutBrand': 'About the chain',
   'places.details.aboutBrandNote': 'This describes the chain, not this branch.',
   'places.details.fact.rating': 'Rating',

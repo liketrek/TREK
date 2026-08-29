@@ -5,6 +5,10 @@
  * the old job, unregister is idempotent, and onApplicationShutdown stops
  * everything the registrar owns.
  */
+import type { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
+import { CronRegistrarService } from '../../../src/nest/scheduling/cron-registrar.service';
+import { SchedulerRegistry } from '@nestjs/schedule';
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const h = vi.hoisted(() => ({
@@ -32,10 +36,6 @@ vi.mock('cron', () => ({
     },
   },
 }));
-
-import { SchedulerRegistry } from '@nestjs/schedule';
-import { CronRegistrarService } from '../../../src/nest/scheduling/cron-registrar.service';
-import type { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
 
 function makeRegistrar(isTest: boolean) {
   const registry = new SchedulerRegistry();
@@ -122,12 +122,12 @@ describe('CronRegistrarService', () => {
     registrar.register('a', '0 2 * * *', () => {});
     registrar.register('b', '0 4 * * *', () => {});
     registrar.onApplicationShutdown();
-    expect(h.jobs.every(j => j.stopped)).toBe(true);
+    expect(h.jobs.every((j) => j.stopped)).toBe(true);
     expect(registry.getCronJobs().size).toBe(0);
     expect(registrar.jobCount).toBe(0);
   });
 
-  it("CRONREG-009 — shutdown tolerates the orchestrator having already cleared the registry", () => {
+  it('CRONREG-009 — shutdown tolerates the orchestrator having already cleared the registry', () => {
     // @nestjs/schedule v6 deletes every registry cron job in its own
     // beforeApplicationShutdown, which runs before our onApplicationShutdown.
     const { registrar, registry } = makeRegistrar(false);

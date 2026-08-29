@@ -29,7 +29,8 @@ const notif: TranslationStrings = {
   'notif.version_available.text': 'TREK {version} теперь доступен',
   'notif.replica_failure.title': 'Сбой реплики хранилища',
   'notif.replica_failure.text': "Ошибка записи в реплику '{backend}': {op} для {key} — {error}",
-  'notif.replica_failure.textSuppressed': "Ошибка записи в реплику '{backend}': {op} для {key} — {error}. С момента последнего уведомления подавлено ещё {suppressed} ошибок.",
+  'notif.replica_failure.textSuppressed':
+    "Ошибка записи в реплику '{backend}': {op} для {key} — {error}. С момента последнего уведомления подавлено ещё {suppressed} ошибок.",
   'notif.action.view_trip': 'Открыть поездку',
   'notif.action.view_collab': 'Открыть сообщения',
   'notif.action.view_packing': 'Открыть упаковку',

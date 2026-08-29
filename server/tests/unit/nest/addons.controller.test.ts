@@ -1,6 +1,7 @@
-import { describe, it, expect, vi } from 'vitest';
 import { AddonsController } from '../../../src/nest/addons/addons.controller';
 import type { AddonsService } from '../../../src/nest/addons/addons.service';
+
+import { describe, it, expect, vi } from 'vitest';
 
 function makeService(overrides: Partial<AddonsService> = {}): AddonsService {
   return {

@@ -41,8 +41,7 @@ const rad = (deg: number) => (deg * Math.PI) / 180;
 export function haversine(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
   const dLat = rad(b.lat - a.lat);
   const dLng = rad(b.lng - a.lng);
-  const s = Math.sin(dLat / 2) ** 2
-    + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  const s = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng / 2) ** 2;
   return 2 * EARTH_RADIUS * Math.asin(Math.min(1, Math.sqrt(s)));
 }
 
@@ -119,10 +118,7 @@ export function thinRoute<T>(points: T[], limit = MAX_ROUTE_POINTS): T[] {
  * "Belize, Guatemala, Mexico" is a filing cabinet. Countries whose stops carry
  * no date fall to the end, in the order they appeared.
  */
-export function collectCountries(
-  points: StatsInputPoint[],
-  names: Record<string, string>,
-): JourneyStatsCountry[] {
+export function collectCountries(points: StatsInputPoint[], names: Record<string, string>): JourneyStatsCountry[] {
   const seen = new Map<string, { code: string; places: number; firstVisit: string | null; order: number }>();
   points.forEach((p, i) => {
     if (!p.country) return;
@@ -146,7 +142,7 @@ export function collectCountries(
       if (!a.firstVisit && b.firstVisit) return 1;
       return a.order - b.order;
     })
-    .map(c => ({
+    .map((c) => ({
       code: c.code,
       name: names[c.code] || c.code,
       places: c.places,
@@ -179,15 +175,24 @@ export interface StatsInput {
  */
 export function computeJourneyStats(input: StatsInput): JourneyStats {
   const points = thinRoute(input.points);
-  const dated = points.map(p => isoDay(p.date)).filter((d): d is string => !!d).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  const dated = points
+    .map((p) => isoDay(p.date))
+    .filter((d): d is string => !!d)
+    .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
 
-  const tripStarts = input.tripDates.map(t => isoDay(t.start)).filter((d): d is string => !!d).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
-  const tripEnds = input.tripDates.map(t => isoDay(t.end)).filter((d): d is string => !!d).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  const tripStarts = input.tripDates
+    .map((t) => isoDay(t.start))
+    .filter((d): d is string => !!d)
+    .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  const tripEnds = input.tripDates
+    .map((t) => isoDay(t.end))
+    .filter((d): d is string => !!d)
+    .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
 
   const start = dated[0] ?? tripStarts[0] ?? null;
   const end = dated[dated.length - 1] ?? tripEnds[tripEnds.length - 1] ?? null;
 
-  const geo = points.filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng));
+  const geo = points.filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng));
 
   return {
     journeyId: input.journeyId,
@@ -198,15 +203,17 @@ export function computeJourneyStats(input: StatsInput): JourneyStats {
     places: input.places,
     furthest: Math.round(furthestFromStart(geo)),
     countries: collectCountries(points, input.countryNames),
-    points: points.map((p): JourneyStatsPoint => ({
-      lat: p.lat,
-      lng: p.lng,
-      label: p.label,
-      date: p.date,
-      country: p.country,
-      tripId: p.tripId ?? null,
-      photoId: p.photoId ?? null,
-    })),
+    points: points.map(
+      (p): JourneyStatsPoint => ({
+        lat: p.lat,
+        lng: p.lng,
+        label: p.label,
+        date: p.date,
+        country: p.country,
+        tripId: p.tripId ?? null,
+        photoId: p.photoId ?? null,
+      }),
+    ),
     /*
      * Counted after thinning, not before.
      *
@@ -215,9 +222,9 @@ export function computeJourneyStats(input: StatsInput): JourneyStats {
      * (40)" and then drawing nine would be counting something the reader
      * cannot see.
      */
-    trips: (input.trips ?? []).map(t => ({
+    trips: (input.trips ?? []).map((t) => ({
       ...t,
-      points: points.filter(p => p.tripId === t.id).length,
+      points: points.filter((p) => p.tripId === t.id).length,
     })),
     start,
     end,

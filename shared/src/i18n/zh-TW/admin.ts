@@ -335,7 +335,8 @@ const admin: TranslationStrings = {
     '提供路線規劃設定檔，供規劃工具計算每日路線（例如含充電停靠站的電動車路線規劃）',
   'admin.plugins.perm.hook:day-schedule-provider': '向每日行程附加時間項目（充電停靠站、緩衝時間）',
   'admin.plugins.perm.hook:day-tint-provider': '為每日行程中的日期標示顏色（例如某天屬於旅程的哪一段）',
-  'admin.plugins.perm.geolocation:read': '在其任一檢視開啟時查詢你的即時位置（由 TREK 使用本站台既有的位置權限讀取，不會另外為外掛詢問）',
+  'admin.plugins.perm.geolocation:read':
+    '在其任一檢視開啟時查詢你的即時位置（由 TREK 使用本站台既有的位置權限讀取，不會另外為外掛詢問）',
   'admin.plugins.perm.hook:pdf-section-provider': '向行程 PDF 匯出附加文字段落',
   'admin.plugins.perm.hook:atlas-layer-provider': '在 Atlas 世界地圖上標示國家（例如願望清單或旅遊警示）',
   'admin.plugins.perm.hook:journal-entry-provider': '向日誌條目新增額外列（連結、統計）',

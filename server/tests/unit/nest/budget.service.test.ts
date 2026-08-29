@@ -6,6 +6,14 @@
  * paths themselves are covered by budget.service.db.test.ts (real :memory: DB)
  * and budget.service.calc.test.ts (settlement math over a prepare-stub mock).
  */
+import { db as dbConn } from '../../../src/db/database';
+import { BudgetService } from '../../../src/nest/budget/budget.service';
+// Constructor-injected ExchangeRatesService stub (as in the pre-fold wrapper).
+import type { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock the data + side-effect dependencies the service reaches into directly.
@@ -22,9 +30,6 @@ vi.mock('../../../src/db/database', () => ({
   getPlaceWithTags: () => null,
   isOwner: () => false,
 }));
-import { db as dbConn } from '../../../src/db/database';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 
 const { broadcast } = vi.hoisted(() => ({ broadcast: vi.fn() }));
 vi.mock('../../../src/websocket', () => ({ broadcast }));
@@ -32,13 +37,8 @@ vi.mock('../../../src/websocket', () => ({ broadcast }));
 const checkPermission = vi.fn(() => true);
 const permissionsStub = { checkPermission } as unknown as PermissionsService;
 
-// Constructor-injected ExchangeRatesService stub (as in the pre-fold wrapper).
-import type { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
 const getRates = vi.fn();
 const exchangeRatesStub = { getRates } as unknown as ExchangeRatesService;
-
-import { BudgetService } from '../../../src/nest/budget/budget.service';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 
 function svc() {
   return new BudgetService(new DatabaseService(dbConn), permissionsStub, exchangeRatesStub, new RealtimeService());
@@ -142,7 +142,8 @@ describe('BudgetService', () => {
     // Both wrappers refuse a party who is not on the trip before they freeze
     // anything, so the roster lookup has to answer for these to reach the write
     // at all. Users 1 and 2 are the two parties every case here settles between.
-    const rosterHas = (...userIds: number[]) => dbMock._stmt.all.mockReturnValue(userIds.map(user_id => ({ user_id })));
+    const rosterHas = (...userIds: number[]) =>
+      dbMock._stmt.all.mockReturnValue(userIds.map((user_id) => ({ user_id })));
 
     it('createSettlement freezes the FX rate (await) before the raw insert', async () => {
       const s = svc();
@@ -165,7 +166,12 @@ describe('BudgetService', () => {
       await s.updateSettlement('7', '5', { from_user_id: 1, to_user_id: 2, amount: 12, currency: 'USD' });
       // the settlement's stored currency is threaded through so an unchanged-currency edit keeps the frozen rate (#1445)
       expect(getSpy).toHaveBeenCalledWith('7', '5');
-      expect(freezeSpy).toHaveBeenCalledWith('5', { from_user_id: 1, to_user_id: 2, amount: 12, currency: 'USD' }, undefined, 'USD');
+      expect(freezeSpy).toHaveBeenCalledWith(
+        '5',
+        { from_user_id: 1, to_user_id: 2, amount: 12, currency: 'USD' },
+        undefined,
+        'USD',
+      );
       expect(applySpy).toHaveBeenCalledWith('7', '5', { from_user_id: 1, to_user_id: 2, amount: 12, currency: 'USD' });
     });
 
@@ -197,7 +203,12 @@ describe('BudgetService', () => {
       svc().syncReservationPrice('5', 42, 250, 'sock');
       const writtenMeta = JSON.parse(dbMock._stmt.run.mock.calls[0][0] as string);
       expect(writtenMeta).toEqual({ vendor: 'ACME', price: '250' });
-      expect(broadcast).toHaveBeenCalledWith('5', 'reservation:updated', { reservation: { id: 42, metadata: '{"vendor":"ACME","price":"250"}' } }, 'sock');
+      expect(broadcast).toHaveBeenCalledWith(
+        '5',
+        'reservation:updated',
+        { reservation: { id: 42, metadata: '{"vendor":"ACME","price":"250"}' } },
+        'sock',
+      );
     });
 
     it('starts from an empty object when the reservation has no metadata', () => {
@@ -208,7 +219,9 @@ describe('BudgetService', () => {
     });
 
     it('swallows errors so a sync failure never breaks the budget update', () => {
-      dbMock.prepare.mockImplementationOnce(() => { throw new Error('db gone'); });
+      dbMock.prepare.mockImplementationOnce(() => {
+        throw new Error('db gone');
+      });
       expect(() => svc().syncReservationPrice('5', 42, 250, 'sock')).not.toThrow();
       expect(broadcast).not.toHaveBeenCalled();
     });

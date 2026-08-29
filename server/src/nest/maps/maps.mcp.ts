@@ -1,6 +1,7 @@
 import { McpController, Tool, TOOL_ANNOTATIONS_READONLY, ok, type McpContext } from '../../nest-mcp';
-import { z } from 'zod';
 import { MapsService } from './maps.service';
+
+import { z } from 'zod';
 
 /**
  * Geo MCP tools, moved 1:1 from the legacy registrar in

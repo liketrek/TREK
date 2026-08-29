@@ -84,7 +84,8 @@ const places: TranslationStrings = {
   'places.loadingDetails': 'Hely adatainak betöltése…',
   'places.osmHint':
     'OpenStreetMap keresés aktív (képek, nyitvatartás és értékelések nélkül). Bővített adatokhoz add meg a Google API kulcsot a beállításokban.',
-  'places.osmActive': 'Az OpenStreetMap van használatban. Egy Google API-kulcs értékeléseket és nyitvatartást ad hozzá.',
+  'places.osmActive':
+    'Az OpenStreetMap van használatban. Egy Google API-kulcs értékeléseket és nyitvatartást ad hozzá.',
   'places.details.title': 'Hely részletei',
   'places.details.empty': 'Válassz egy találatot a képekhez és a leíráshoz.',
   'places.details.loading': 'Részletek betöltése...',
@@ -98,7 +99,8 @@ const places: TranslationStrings = {
   'places.details.facts': 'Jó tudni',
   'places.details.nothing': 'Ehhez a helyhez nem található semmi.',
   'places.details.noKeyTitle': 'További részletek érhetők el',
-  'places.details.noKeyHint': 'Google API-kulcs nélkül ez a példány csak szabad forrásokat használ. Kérd a TREK rendszergazdáját, hogy adjon hozzá egyet az értékelésekhez, nyitvatartáshoz és fotókhoz.',
+  'places.details.noKeyHint':
+    'Google API-kulcs nélkül ez a példány csak szabad forrásokat használ. Kérd a TREK rendszergazdáját, hogy adjon hozzá egyet az értékelésekhez, nyitvatartáshoz és fotókhoz.',
   'places.details.aboutBrand': 'A láncról',
   'places.details.aboutBrandNote': 'A láncot írja le, nem ezt az egységet.',
   'places.details.fact.rating': 'Értékelés',

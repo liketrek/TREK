@@ -1,13 +1,27 @@
-import fs from 'node:fs';
-import { randomUUID } from 'node:crypto';
-import { fork, type ChildProcess } from 'node:child_process';
 import { readEnv } from '../../../app-config';
-import { resolveChildEntry, pluginCodeDir, pluginRealCodeDir, pluginPermissionArgs, ensurePluginModuleType } from '../paths';
-import { HOOK_PERMISSION, USER_DATA_PERMISSION, EVENTS_PERMISSION, type Envelope, type RpcError, type RpcRequest } from '../protocol/envelope';
-import type { PluginRpcHost } from '../host/rpc-host';
-import { scheduleJobs, stopJobs, type ScheduledJob } from '../host/plugin-jobs';
 import { SNAPSHOT_GRANT, type PluginEventMeta } from '../../../plugin-event-sink';
+import { scheduleJobs, stopJobs, type ScheduledJob } from '../host/plugin-jobs';
 import { RpcRateLimiter, DEFAULT_RPC_LIMIT, TokenBucket, DEFAULT_LOG_LIMIT } from '../host/rate-limit';
+import type { PluginRpcHost } from '../host/rpc-host';
+import {
+  resolveChildEntry,
+  pluginCodeDir,
+  pluginRealCodeDir,
+  pluginPermissionArgs,
+  ensurePluginModuleType,
+} from '../paths';
+import {
+  HOOK_PERMISSION,
+  USER_DATA_PERMISSION,
+  EVENTS_PERMISSION,
+  type Envelope,
+  type RpcError,
+  type RpcRequest,
+} from '../protocol/envelope';
+
+import { fork, type ChildProcess } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
+import fs from 'node:fs';
 
 export interface PluginRouteInfo {
   i: number;
@@ -93,7 +107,6 @@ const DEFAULTS: Required<SupervisorTuning> = {
   maxRssBytes: readEnv().plugins.maxRssMb * 1024 * 1024,
 };
 
-
 export class PluginSupervisor {
   private running = new Map<string, Supervised>();
   private sweep: ReturnType<typeof setInterval> | null = null;
@@ -104,8 +117,11 @@ export class PluginSupervisor {
   // (no persistence, so no DB writes on the broadcast fast-path), bounded per plugin
   // and TTL'd. Grants + snapshot gating are re-evaluated at replay time from the
   // CURRENT grant set, never trusted from when the event was buffered.
-  private readonly pendingEvents = new Map<string, Array<{ tripId: number; event: string; meta?: PluginEventMeta; expiresAt: number }>>();
-  private static readonly EVENT_BUFFER_MAX = 200;        // events held per plugin (drop oldest past this)
+  private readonly pendingEvents = new Map<
+    string,
+    Array<{ tripId: number; event: string; meta?: PluginEventMeta; expiresAt: number }>
+  >();
+  private static readonly EVENT_BUFFER_MAX = 200; // events held per plugin (drop oldest past this)
   private static readonly EVENT_BUFFER_TTL_MS = 15 * 60_000; // a buffered event older than this is dropped unreplayed
 
   constructor(
@@ -117,7 +133,12 @@ export class PluginSupervisor {
   }
 
   /** Spawn a plugin and resolve once it reports `loaded` (or reject on load error). */
-  activate(id: string, granted: ReadonlySet<string>, config: Record<string, unknown> = {}, egress: string[] = []): Promise<void> {
+  activate(
+    id: string,
+    granted: ReadonlySet<string>,
+    config: Record<string, unknown> = {},
+    egress: string[] = [],
+  ): Promise<void> {
     const existing = this.running.get(id);
     if (existing) {
       // A live plugin (starting/active) is idempotent — already activated.
@@ -261,7 +282,8 @@ export class PluginSupervisor {
   subscribersOf(sourceId: string, event: string): string[] {
     const out: string[] = [];
     for (const [id, sup] of this.running) {
-      if (sup.status === 'active' && sup.subscriptions.some((s) => s.plugin === sourceId && s.event === event)) out.push(id);
+      if (sup.status === 'active' && sup.subscriptions.some((s) => s.plugin === sourceId && s.event === event))
+        out.push(id);
     }
     return out;
   }
@@ -297,7 +319,12 @@ export class PluginSupervisor {
     const { snapshot, ...hint } = meta ?? {};
     const grant = hint.entity ? SNAPSHOT_GRANT[hint.entity] : undefined;
     const withSnapshot = snapshot !== undefined && grant !== undefined && sup.granted.has(grant);
-    this.invoke(sup.id, 'invoke.event', { event, tripId, ...hint, ...(withSnapshot ? { snapshot } : {}) }, { actingUserId: undefined, timeoutMs: 5000 }).catch(() => {
+    this.invoke(
+      sup.id,
+      'invoke.event',
+      { event, tripId, ...hint, ...(withSnapshot ? { snapshot } : {}) },
+      { actingUserId: undefined, timeoutMs: 5000 },
+    ).catch(() => {
       /* a subscriber that errors or times out is ignored — events are best-effort */
     });
   }
@@ -305,7 +332,10 @@ export class PluginSupervisor {
   /** Append an event to a subscriber's bounded redelivery buffer (drop-oldest past the cap). */
   private bufferEvent(id: string, tripId: number, event: string, meta?: PluginEventMeta): void {
     let q = this.pendingEvents.get(id);
-    if (!q) { q = []; this.pendingEvents.set(id, q); }
+    if (!q) {
+      q = [];
+      this.pendingEvents.set(id, q);
+    }
     q.push({ tripId, event, meta, expiresAt: Date.now() + PluginSupervisor.EVENT_BUFFER_TTL_MS });
     if (q.length > PluginSupervisor.EVENT_BUFFER_MAX) q.splice(0, q.length - PluginSupervisor.EVENT_BUFFER_MAX);
   }
@@ -335,9 +365,11 @@ export class PluginSupervisor {
   deliverScheduled(id: string, name: string, payload: unknown): void {
     const sup = this.running.get(id);
     if (!sup || sup.status !== 'active') return;
-    void this.invoke(id, 'invoke.scheduled', { name, payload }, { actingUserId: undefined, timeoutMs: 60_000 }).catch(() => {
-      /* a scheduled task that errors/times out is ignored — best-effort like jobs */
-    });
+    void this.invoke(id, 'invoke.scheduled', { name, payload }, { actingUserId: undefined, timeoutMs: 60_000 }).catch(
+      () => {
+        /* a scheduled task that errors/times out is ignored — best-effort like jobs */
+      },
+    );
   }
 
   /**
@@ -367,11 +399,19 @@ export class PluginSupervisor {
    * gated by the same hook:user-data grant. Returns the plugin's exported payload,
    * or undefined if it is inactive, ungranted, doesn't implement the hook, or errors.
    */
-  async collectUserExport(id: string, userId: number): Promise<{ ok: true; data: unknown } | { ok: false } | undefined> {
+  async collectUserExport(
+    id: string,
+    userId: number,
+  ): Promise<{ ok: true; data: unknown } | { ok: false } | undefined> {
     const sup = this.running.get(id);
     if (!sup || sup.status !== 'active' || !sup.granted.has(USER_DATA_PERMISSION)) return undefined; // not applicable
     try {
-      const res = (await this.invoke(id, 'invoke.exportUserData', { userId }, { actingUserId: undefined, timeoutMs: 30_000 })) as { data?: unknown } | undefined;
+      const res = (await this.invoke(
+        id,
+        'invoke.exportUserData',
+        { userId },
+        { actingUserId: undefined, timeoutMs: 30_000 },
+      )) as { data?: unknown } | undefined;
       return { ok: true, data: res?.data };
     } catch {
       return { ok: false }; // errored/timed out — the caller flags this as incomplete, not "no data"
@@ -530,7 +570,12 @@ export class PluginSupervisor {
       // sweep. A throttled call is refused with HOST_ERROR (retryable) rather than
       // executed; a legitimate plugin never hits the generous burst.
       if (!sup.rpcLimiter.tryAcquire(Date.now())) {
-        sup.child?.send({ k: 'res', id: req.id, ok: false, error: { code: 'HOST_ERROR', message: 'rate limit exceeded — slow down ctx.* calls' } } satisfies RpcError);
+        sup.child?.send({
+          k: 'res',
+          id: req.id,
+          ok: false,
+          error: { code: 'HOST_ERROR', message: 'rate limit exceeded — slow down ctx.* calls' },
+        } satisfies RpcError);
         return;
       }
       const inv = req.params as { _inv?: unknown } | undefined;
@@ -559,7 +604,11 @@ export class PluginSupervisor {
     if (msg.k === 'evt') {
       switch (msg.topic) {
         case 'hello':
-          sup.child?.send({ k: 'evt', topic: 'init', data: { config: sup.config, egress: sup.egress } } satisfies Envelope);
+          sup.child?.send({
+            k: 'evt',
+            topic: 'init',
+            data: { config: sup.config, egress: sup.egress },
+          } satisfies Envelope);
           break;
         case 'heartbeat': {
           sup.lastBeat = Date.now();
@@ -576,8 +625,12 @@ export class PluginSupervisor {
           if (this.running.get(sup.id) !== sup || sup.status !== 'starting') break;
           sup.lastBeat = Date.now();
           const d = msg.data as {
-            routes?: PluginRouteInfo[]; jobs?: ScheduledJob[]; hooks?: string[]; events?: string[];
-            exports?: string[]; subscriptions?: Array<{ plugin: string; event: string }>;
+            routes?: PluginRouteInfo[];
+            jobs?: ScheduledJob[];
+            hooks?: string[];
+            events?: string[];
+            exports?: string[];
+            subscriptions?: Array<{ plugin: string; event: string }>;
           };
           sup.routes = d.routes ?? [];
           sup.jobs = Array.isArray(d.jobs)
@@ -587,7 +640,10 @@ export class PluginSupervisor {
           sup.events = d.events ?? [];
           sup.exports = Array.isArray(d.exports) ? d.exports.filter((e): e is string => typeof e === 'string') : [];
           sup.subscriptions = Array.isArray(d.subscriptions)
-            ? d.subscriptions.filter((s): s is { plugin: string; event: string } => !!s && typeof s.plugin === 'string' && typeof s.event === 'string')
+            ? d.subscriptions.filter(
+                (s): s is { plugin: string; event: string } =>
+                  !!s && typeof s.plugin === 'string' && typeof s.event === 'string',
+              )
             : [];
           this.clearActivationTimer(sup);
           this.setStatus(sup, 'active');
@@ -596,7 +652,9 @@ export class PluginSupervisor {
           // egress. Wrapped so a scheduling hiccup can never break activation.
           try {
             sup.jobTasks = scheduleJobs(sup.granted, sup.jobs, (jobId) => {
-              void this.invoke(sup.id, 'invoke.job', { jobId }, { actingUserId: undefined, timeoutMs: 60_000 }).catch(() => {});
+              void this.invoke(sup.id, 'invoke.job', { jobId }, { actingUserId: undefined, timeoutMs: 60_000 }).catch(
+                () => {},
+              );
             });
           } catch {
             /* a scheduler error must never stop a plugin from going live */

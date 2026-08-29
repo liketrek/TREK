@@ -100,7 +100,8 @@ const places: TranslationStrings = {
   'places.details.facts': 'Bilmekte fayda var',
   'places.details.nothing': 'Bu yer için bir şey bulunamadı.',
   'places.details.noKeyTitle': 'Daha fazla ayrıntı mevcut',
-  'places.details.noKeyHint': 'Google API anahtarı olmadan bu örnek yalnızca özgür kaynakları kullanır. Puanlar, açılış saatleri ve fotoğraflar için TREK yöneticinizden bir anahtar eklemesini isteyin.',
+  'places.details.noKeyHint':
+    'Google API anahtarı olmadan bu örnek yalnızca özgür kaynakları kullanır. Puanlar, açılış saatleri ve fotoğraflar için TREK yöneticinizden bir anahtar eklemesini isteyin.',
   'places.details.aboutBrand': 'Zincir hakkında',
   'places.details.aboutBrandNote': 'Bu şubeyi değil, zinciri anlatır.',
   'places.details.fact.rating': 'Puan',

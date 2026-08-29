@@ -34,7 +34,12 @@ function ed25519KeyFromRaw(raw: Buffer): crypto.KeyObject {
  * A bare 32-byte base64 key (44 chars) is also accepted for simple deployments.
  */
 function parseMinisignPubKey(pub: string): { key: crypto.KeyObject; keyId: Buffer | null } {
-  const line = pub.trim().split(/\r?\n/).map((l) => l.trim()).filter((l) => l && !l.startsWith('untrusted comment')).pop();
+  const line = pub
+    .trim()
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l && !l.startsWith('untrusted comment'))
+    .pop();
   if (!line) throw new SignatureError('empty public key');
   const buf = Buffer.from(line, 'base64');
   if (buf.length === 32) return { key: ed25519KeyFromRaw(buf), keyId: null };
@@ -51,7 +56,12 @@ function parseMinisignPubKey(pub: string): { key: crypto.KeyObject; keyId: Buffe
  * raw bytes) is also accepted.
  */
 function parseMinisignSignature(sig: string): { algo: 'Ed' | 'ED' | 'raw'; keyId: Buffer | null; signature: Buffer } {
-  const line = sig.trim().split(/\r?\n/).map((l) => l.trim()).filter((l) => l && !l.startsWith('untrusted comment')).shift();
+  const line = sig
+    .trim()
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l && !l.startsWith('untrusted comment'))
+    .shift();
   if (!line) throw new SignatureError('empty signature');
   const buf = Buffer.from(line, 'base64');
   if (buf.length === 64) return { algo: 'raw', keyId: null, signature: buf };
@@ -77,8 +87,7 @@ export function verifyAuthorSignature(bytes: Buffer, signatureB64: string, publi
   // If both carry a key id, they must match the same key (catches a wrong-key mixup).
   if (keyId && sigKeyId && !keyId.equals(sigKeyId)) return false;
 
-  const message =
-    algo === 'ED' ? crypto.createHash('blake2b512').update(bytes).digest() : bytes;
+  const message = algo === 'ED' ? crypto.createHash('blake2b512').update(bytes).digest() : bytes;
   try {
     return crypto.verify(null, message, key, signature);
   } catch {

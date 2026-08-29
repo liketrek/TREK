@@ -1,3 +1,12 @@
+import { runMigrations } from '../../../src/db/migrations';
+import { createTables } from '../../../src/db/schema';
+import { RegistrationInvitesService } from '../../../src/nest/auth/registration-invites.service';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { createUser, createAdmin, createTrip, createInviteToken } from '../../helpers/factories';
+import { resetTestDb } from '../../helpers/test-db';
+
+import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
+
 /**
  * registration-invites.service.test.ts
  *
@@ -19,19 +28,19 @@ const { testDb, dbMock } = vi.hoisted(() => {
 
 vi.mock('../../../src/db/database', () => dbMock);
 
-import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createAdmin, createTrip, createInviteToken } from '../../helpers/factories';
-import { RegistrationInvitesService } from '../../../src/nest/auth/registration-invites.service';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-
 const svc = new RegistrationInvitesService(new DatabaseService(testDb));
 
-beforeAll(() => { createTables(testDb); runMigrations(testDb); });
-beforeEach(() => { resetTestDb(testDb); vi.clearAllMocks(); });
-afterAll(() => { testDb.close(); });
+beforeAll(() => {
+  createTables(testDb);
+  runMigrations(testDb);
+});
+beforeEach(() => {
+  resetTestDb(testDb);
+  vi.clearAllMocks();
+});
+afterAll(() => {
+  testDb.close();
+});
 
 // ── Invites ───────────────────────────────────────────────────────────────────
 
@@ -74,7 +83,10 @@ describe('Invites', () => {
 describe('Invites — trip binding', () => {
   it('ADMIN-SVC-073 — createInvite 404s on a trip_id that does not resolve', () => {
     const { user: admin } = createAdmin(testDb);
-    expect(svc.createInvite(admin.id, { trip_id: 99999 }) as any).toMatchObject({ status: 404, error: 'Trip not found' });
+    expect(svc.createInvite(admin.id, { trip_id: 99999 }) as any).toMatchObject({
+      status: 404,
+      error: 'Trip not found',
+    });
     expect(svc.createInvite(admin.id, { trip_id: 'not-a-number' }) as any).toMatchObject({ status: 404 });
     expect(testDb.prepare('SELECT COUNT(*) as c FROM invite_tokens').get()).toEqual({ c: 0 });
     // An absent/blank binding is still a plain registration invite.

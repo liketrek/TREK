@@ -1,8 +1,8 @@
-import { Module } from '@nestjs/common';
+import { MemoriesModule } from '../memories/memories.module';
 import { PhotosController } from './photos.controller';
 import { PhotosService } from './photos.service';
 import { TrekPhotosModule } from './trek-photos.module';
-import { MemoriesModule } from '../memories/memories.module';
+import { Module } from '@nestjs/common';
 
 /**
  * /api/photos — the trek_photo read surface. Access control and the byte

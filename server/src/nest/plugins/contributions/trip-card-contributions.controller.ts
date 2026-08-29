@@ -1,10 +1,11 @@
-import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
-import type { Request } from 'express';
-import { DatabaseService } from '../../database/database.service';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import { DatabaseService } from '../../database/database.service';
 import { pluginsEnabled } from '../kill-switch';
 import { PluginHooks } from '../plugin-hooks.service';
 import { stripEmoji } from '../text-sanitize';
+import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
+
+import type { Request } from 'express';
 
 /**
  * GET /api/trip-card-contributions?tripIds=1,2,3 — host-rendered badges that plugins
@@ -22,11 +23,20 @@ import { stripEmoji } from '../text-sanitize';
  * contributes nothing.
  */
 type Tone = 'default' | 'success' | 'warn' | 'danger';
-interface TripCardBadge { pluginId: string; tripId: number; id: string; label: string; value?: string; icon?: string; tone: Tone; url?: string; }
+interface TripCardBadge {
+  pluginId: string;
+  tripId: number;
+  id: string;
+  label: string;
+  value?: string;
+  icon?: string;
+  tone: Tone;
+  url?: string;
+}
 
 const TONES: ReadonlySet<string> = new Set(['default', 'success', 'warn', 'danger']);
-const MAX_TRIP_IDS = 60;         // a dashboard never shows more cards than this
-const MAX_BADGES_PER_TRIP = 4;  // per provider PER card — so one badge on every card always fits
+const MAX_TRIP_IDS = 60; // a dashboard never shows more cards than this
+const MAX_BADGES_PER_TRIP = 4; // per provider PER card — so one badge on every card always fits
 const MAX_BADGES_TOTAL = MAX_TRIP_IDS * MAX_BADGES_PER_TRIP; // overall abuse bound
 const LABEL_MAX = 64;
 const VALUE_MAX = 256;

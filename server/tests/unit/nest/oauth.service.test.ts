@@ -8,8 +8,21 @@
  * it; mcpEnabled/mcpSafeUrl, the module metadata and the bridge seam are
  * pinned at the bottom.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+import { ADDON_IDS } from '../../../src/addons';
+import { getMcpSafeUrl } from '../../../src/app-config';
+import { runMigrations } from '../../../src/db/migrations';
+import { createTables } from '../../../src/db/schema';
+import { revokeUserSessionsForClient } from '../../../src/mcp/sessionManager';
+import type { AddonsService } from '../../../src/nest/addons/addons.service';
+import { AuditService } from '../../../src/nest/audit/audit.service';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { MAX_PENDING_CODES, sweepPendingCodes } from '../../../src/nest/oauth/oauth.pending-codes';
+import { OauthService } from '../../../src/nest/oauth/oauth.service';
+import { createUser } from '../../helpers/factories';
+import { resetTestDb } from '../../helpers/test-db';
+
 import crypto from 'crypto';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 const { testDb, dbMock } = vi.hoisted(() => {
   const Database = require('better-sqlite3');
@@ -23,7 +36,11 @@ const { testDb, dbMock } = vi.hoisted(() => {
     reinitialize: () => {},
     getPlaceWithTags: () => null,
     canAccessTrip: (tripId: any, userId: number) =>
-      db.prepare(`SELECT t.id, t.user_id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)`).get(userId, tripId, userId),
+      db
+        .prepare(
+          `SELECT t.id, t.user_id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)`,
+        )
+        .get(userId, tripId, userId),
     isOwner: (tripId: any, userId: number) =>
       !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
   };
@@ -41,30 +58,22 @@ vi.mock('../../../src/nest/common/crypto/apiKeyCrypto', () => ({
   decrypt_api_key: (v: string) => v,
   maybe_encrypt_api_key: (v: string) => v,
 }));
-vi.mock('../../../src/mcp/sessionManager', () => ({ revokeUserSessions: vi.fn(), revokeUserSessionsForClient: vi.fn(), sessions: new Map() }));
-import { revokeUserSessionsForClient } from '../../../src/mcp/sessionManager';
+vi.mock('../../../src/mcp/sessionManager', () => ({
+  revokeUserSessions: vi.fn(),
+  revokeUserSessionsForClient: vi.fn(),
+  sessions: new Map(),
+}));
+
 vi.mock('../../../src/demo/demo-reset', () => ({ saveBaseline: vi.fn() }));
 
 const { isAddonEnabled } = vi.hoisted(() => ({ isAddonEnabled: vi.fn().mockReturnValue(true) }));
 
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser } from '../../helpers/factories';
 // PKCE helper — generates a valid code_verifier + code_challenge pair (RFC 7636)
 function makePkce() {
-  const verifier = crypto.randomBytes(32).toString('base64url');   // 43 chars
+  const verifier = crypto.randomBytes(32).toString('base64url'); // 43 chars
   const challenge = crypto.createHash('sha256').update(verifier).digest('base64url'); // 43 chars
   return { verifier, challenge };
 }
-
-import { OauthService } from '../../../src/nest/oauth/oauth.service';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { AuditService } from '../../../src/nest/audit/audit.service';
-import type { AddonsService } from '../../../src/nest/addons/addons.service';
-import { getMcpSafeUrl } from '../../../src/app-config';
-import { ADDON_IDS } from '../../../src/addons';
-import { MAX_PENDING_CODES, sweepPendingCodes } from '../../../src/nest/oauth/oauth.pending-codes';
 
 const dbs = new DatabaseService(testDb);
 // Stubbed rather than real: every case drives the MCP gate through this one
@@ -117,7 +126,7 @@ afterAll(() => {
 
 function makeClient(
   userId: number,
-  overrides: Partial<{ name: string; redirectUris: string[]; scopes: string[] }> = {}
+  overrides: Partial<{ name: string; redirectUris: string[]; scopes: string[] }> = {},
 ) {
   return createOAuthClient(
     userId,
@@ -144,9 +153,7 @@ describe('createOAuthClient', () => {
   it('client_id is a UUID', () => {
     const { user } = createUser(testDb);
     const result = makeClient(user.id);
-    expect(result.client!.client_id).toMatch(
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
-    );
+    expect(result.client!.client_id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
   });
 
   it('returns 400 error if name is empty', () => {
@@ -245,7 +252,11 @@ describe('listOAuthClients', () => {
 
   it('returns created clients with redirect_uris and allowed_scopes as arrays', () => {
     const { user } = createUser(testDb);
-    makeClient(user.id, { name: 'Client A', redirectUris: ['https://a.com/cb'], scopes: ['trips:read', 'budget:read'] });
+    makeClient(user.id, {
+      name: 'Client A',
+      redirectUris: ['https://a.com/cb'],
+      scopes: ['trips:read', 'budget:read'],
+    });
     const clients = listOAuthClients(user.id);
     expect(clients).toHaveLength(1);
     expect(clients[0].name).toBe('Client A');
@@ -563,14 +574,16 @@ describe('validateAuthorizeRequest', () => {
   // Use a proper 43-char S256 code_challenge to pass H1 format validation
   const { challenge: VALID_CHALLENGE } = makePkce();
 
-  function makeParams(overrides: Partial<{
-    response_type: string;
-    client_id: string;
-    redirect_uri: string;
-    scope: string;
-    code_challenge: string;
-    code_challenge_method: string;
-  }> = {}) {
+  function makeParams(
+    overrides: Partial<{
+      response_type: string;
+      client_id: string;
+      redirect_uri: string;
+      scope: string;
+      code_challenge: string;
+      code_challenge_method: string;
+    }> = {},
+  ) {
     return {
       response_type: 'code',
       client_id: '',
@@ -617,7 +630,7 @@ describe('validateAuthorizeRequest', () => {
 
     const result = validateAuthorizeRequest(
       makeParams({ client_id: clientId, redirect_uri: 'https://evil.com/callback' }),
-      user.id
+      user.id,
     );
     expect(result.valid).toBe(false);
     expect(result.error).toBe('invalid_redirect_uri');
@@ -628,10 +641,7 @@ describe('validateAuthorizeRequest', () => {
     const created = makeClient(user.id, { scopes: ['trips:read'] });
     const clientId = created.client!.client_id as string;
 
-    const result = validateAuthorizeRequest(
-      makeParams({ client_id: clientId, scope: 'budget:write' }),
-      user.id
-    );
+    const result = validateAuthorizeRequest(makeParams({ client_id: clientId, scope: 'budget:write' }), user.id);
     expect(result.valid).toBe(false);
     expect(result.error).toBe('invalid_scope');
   });
@@ -1011,14 +1021,17 @@ describe('validateAuthorizeRequest — PKCE format (H1)', () => {
     const created = makeClient(user.id);
     const clientId = created.client!.client_id as string;
 
-    const result = validateAuthorizeRequest({
-      response_type: 'code',
-      client_id: clientId,
-      redirect_uri: 'https://example.com/callback',
-      scope: 'trips:read',
-      code_challenge: 'tooshort',
-      code_challenge_method: 'S256',
-    }, user.id);
+    const result = validateAuthorizeRequest(
+      {
+        response_type: 'code',
+        client_id: clientId,
+        redirect_uri: 'https://example.com/callback',
+        scope: 'trips:read',
+        code_challenge: 'tooshort',
+        code_challenge_method: 'S256',
+      },
+      user.id,
+    );
     expect(result.valid).toBe(false);
     expect(result.error).toBe('invalid_request');
   });
@@ -1030,14 +1043,17 @@ describe('validateAuthorizeRequest — PKCE format (H1)', () => {
 
     // 43 chars but includes '=' which is not base64url
     const badChallenge = '='.repeat(43);
-    const result = validateAuthorizeRequest({
-      response_type: 'code',
-      client_id: clientId,
-      redirect_uri: 'https://example.com/callback',
-      scope: 'trips:read',
-      code_challenge: badChallenge,
-      code_challenge_method: 'S256',
-    }, user.id);
+    const result = validateAuthorizeRequest(
+      {
+        response_type: 'code',
+        client_id: clientId,
+        redirect_uri: 'https://example.com/callback',
+        scope: 'trips:read',
+        code_challenge: badChallenge,
+        code_challenge_method: 'S256',
+      },
+      user.id,
+    );
     expect(result.valid).toBe(false);
     expect(result.error).toBe('invalid_request');
   });
@@ -1054,14 +1070,17 @@ describe('validateAuthorizeRequest — unauthenticated strips client info (H3)',
     const clientId = created.client!.client_id as string;
     const { challenge } = makePkce();
 
-    const result = validateAuthorizeRequest({
-      response_type: 'code',
-      client_id: clientId,
-      redirect_uri: 'https://example.com/callback',
-      scope: 'trips:read',
-      code_challenge: challenge,
-      code_challenge_method: 'S256',
-    }, null /* unauthenticated */);
+    const result = validateAuthorizeRequest(
+      {
+        response_type: 'code',
+        client_id: clientId,
+        redirect_uri: 'https://example.com/callback',
+        scope: 'trips:read',
+        code_challenge: challenge,
+        code_challenge_method: 'S256',
+      },
+      null /* unauthenticated */,
+    );
 
     expect(result.valid).toBe(true);
     expect(result.loginRequired).toBe(true);
@@ -1138,12 +1157,17 @@ describe('branches the legacy suite could not reach', () => {
   });
 
   it('refreshTokens rejects an unknown client before touching the token', () => {
-    expect(refreshTokens('trekrf_whatever', 'no-such-client', 'secret')).toEqual({ error: 'invalid_client', status: 401 });
+    expect(refreshTokens('trekrf_whatever', 'no-such-client', 'secret')).toEqual({
+      error: 'invalid_client',
+      status: 401,
+    });
   });
 
   it('refreshTokens skips the secret check for a public client', () => {
     const { user } = createUser(testDb);
-    const created = createOAuthClient(user.id, 'Public', ['https://example.com/callback'], ['trips:read'], null, { isPublic: true });
+    const created = createOAuthClient(user.id, 'Public', ['https://example.com/callback'], ['trips:read'], null, {
+      isPublic: true,
+    });
     const clientId = (created.client as { client_id: string }).client_id;
     const tokens = issueTokens(clientId, user.id, ['trips:read']);
 
@@ -1155,7 +1179,9 @@ describe('branches the legacy suite could not reach', () => {
 
   it('authenticateClient identifies a public client by id alone and rejects a missing secret otherwise', () => {
     const { user } = createUser(testDb);
-    const pub = createOAuthClient(user.id, 'Public', ['https://example.com/callback'], ['trips:read'], null, { isPublic: true });
+    const pub = createOAuthClient(user.id, 'Public', ['https://example.com/callback'], ['trips:read'], null, {
+      isPublic: true,
+    });
     const pubId = (pub.client as { client_id: string }).client_id;
     const conf = makeClient(user.id, { name: 'Confidential' });
     const confId = (conf.client as { client_id: string }).client_id;
@@ -1170,17 +1196,24 @@ describe('branches the legacy suite could not reach', () => {
     const clientId = (created.client as { client_id: string }).client_id;
     const { challenge } = makePkce();
 
-    const result = validateAuthorizeRequest({
-      response_type: 'code',
-      client_id: clientId,
-      redirect_uri: 'https://example.com/callback',
-      scope: 'trips:read',
-      code_challenge: challenge,
-      code_challenge_method: 'S256',
-      resource: 'https://evil.example.org/mcp',
-    }, user.id);
+    const result = validateAuthorizeRequest(
+      {
+        response_type: 'code',
+        client_id: clientId,
+        redirect_uri: 'https://example.com/callback',
+        scope: 'trips:read',
+        code_challenge: challenge,
+        code_challenge_method: 'S256',
+        resource: 'https://evil.example.org/mcp',
+      },
+      user.id,
+    );
 
-    expect(result).toEqual({ valid: false, error: 'invalid_target', error_description: 'Requested resource must be the TREK MCP endpoint' });
+    expect(result).toEqual({
+      valid: false,
+      error: 'invalid_target',
+      error_description: 'Requested resource must be the TREK MCP endpoint',
+    });
   });
 
   it('validateAuthorizeRequest accepts the MCP endpoint passed explicitly, trailing slash and all', () => {
@@ -1190,15 +1223,18 @@ describe('branches the legacy suite could not reach', () => {
     const { challenge } = makePkce();
     const mcpResource = getMcpSafeUrl().replace(/\/+$/, '') + '/mcp';
 
-    const result = validateAuthorizeRequest({
-      response_type: 'code',
-      client_id: clientId,
-      redirect_uri: 'https://example.com/callback',
-      scope: 'trips:read',
-      code_challenge: challenge,
-      code_challenge_method: 'S256',
-      resource: mcpResource + '/',
-    }, user.id);
+    const result = validateAuthorizeRequest(
+      {
+        response_type: 'code',
+        client_id: clientId,
+        redirect_uri: 'https://example.com/callback',
+        scope: 'trips:read',
+        code_challenge: challenge,
+        code_challenge_method: 'S256',
+        resource: mcpResource + '/',
+      },
+      user.id,
+    );
 
     expect(result.valid).toBe(true);
     expect(result.resource).toBe(mcpResource);
@@ -1253,12 +1289,18 @@ describe('OauthModule', () => {
 describe('admin OAuth sessions', () => {
   it('ADMIN-SVC-074 — listAllOAuthSessions survives a row with malformed scopes JSON', () => {
     const { user } = createUser(testDb);
-    testDb.prepare("INSERT INTO oauth_clients (client_id, client_secret_hash, name) VALUES ('c1', 'hash', 'Client')").run();
-    testDb.prepare(`
+    testDb
+      .prepare("INSERT INTO oauth_clients (client_id, client_secret_hash, name) VALUES ('c1', 'hash', 'Client')")
+      .run();
+    testDb
+      .prepare(
+        `
       INSERT INTO oauth_tokens (client_id, user_id, access_token_hash, refresh_token_hash, scopes,
                                 access_token_expires_at, refresh_token_expires_at)
       VALUES ('c1', ?, 'ahash', 'rhash', 'not-json{', datetime('now', '+1 hour'), datetime('now', '+1 day'))
-    `).run(user.id);
+    `,
+      )
+      .run(user.id);
 
     const sessions = svc.listAllOAuthSessions() as any[];
     expect(sessions).toHaveLength(1);

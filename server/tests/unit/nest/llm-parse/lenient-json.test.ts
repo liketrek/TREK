@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
-
 import { parseLenientJson, toReservationList } from '../../../../src/nest/llm-parse/lenient-json';
+
+import { describe, it, expect } from 'vitest';
 
 describe('parseLenientJson', () => {
   it('parses strict JSON', () => {
@@ -80,8 +80,9 @@ describe('toReservationList', () => {
   });
 
   it('takes the relaxed JSON a model might emit inside that string', () => {
-    expect(toReservationList("[{'@type': 'FlightReservation', flightNumber: 'LH400',}]"))
-      .toEqual([{ '@type': 'FlightReservation', flightNumber: 'LH400' }]);
+    expect(toReservationList("[{'@type': 'FlightReservation', flightNumber: 'LH400',}]")).toEqual([
+      { '@type': 'FlightReservation', flightNumber: 'LH400' },
+    ]);
   });
 
   /*

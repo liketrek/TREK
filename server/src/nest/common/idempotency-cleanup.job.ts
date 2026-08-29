@@ -1,8 +1,8 @@
-import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
 import { logInfo, logError } from '../audit/audit-log.logger';
 import { DatabaseService } from '../database/database.service';
 import { CronRegistrarService } from '../scheduling/cron-registrar.service';
 import { purgeExpiredIdempotencyKeys } from './idempotency-cleanup';
+import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
 
 /**
  * Nightly 3 AM purge of expired idempotency keys (moved from src/scheduler.ts).

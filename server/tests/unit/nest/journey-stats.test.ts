@@ -5,7 +5,6 @@
  * database — which is the whole reason the arithmetic lives apart from the
  * service that fetches the rows.
  */
-import { describe, it, expect } from 'vitest';
 import {
   collectCountries,
   computeJourneyStats,
@@ -19,8 +18,15 @@ import {
   type StatsInputPoint,
 } from '../../../src/nest/journey/journey-stats';
 
+import { describe, it, expect } from 'vitest';
+
 const point = (over: Partial<StatsInputPoint> = {}): StatsInputPoint => ({
-  lat: 0, lng: 0, label: '', date: null, country: null, ...over,
+  lat: 0,
+  lng: 0,
+  label: '',
+  date: null,
+  country: null,
+  ...over,
 });
 
 describe('haversine', () => {
@@ -158,7 +164,10 @@ describe('thinRoute', () => {
   });
 
   it('spaces what it keeps evenly rather than dropping a run', () => {
-    const thinned = thinRoute(Array.from({ length: 100 }, (_, i) => i), 5);
+    const thinned = thinRoute(
+      Array.from({ length: 100 }, (_, i) => i),
+      5,
+    );
     expect(thinned).toEqual([0, 25, 50, 74, 99]);
   });
 });
@@ -170,7 +179,7 @@ describe('collectCountries', () => {
       point({ country: 'MX', date: '2026-03-01' }),
       point({ country: 'BZ', date: '2026-03-05' }),
     ];
-    expect(collectCountries(points, {}).map(c => c.code)).toEqual(['MX', 'BZ', 'GT']);
+    expect(collectCountries(points, {}).map((c) => c.code)).toEqual(['MX', 'BZ', 'GT']);
   });
 
   it('counts the stops in each country', () => {
@@ -185,10 +194,7 @@ describe('collectCountries', () => {
   });
 
   it('takes the earliest date as the first visit, whatever order the stops arrive in', () => {
-    const points = [
-      point({ country: 'FR', date: '2026-07-08' }),
-      point({ country: 'FR', date: '2026-05-28' }),
-    ];
+    const points = [point({ country: 'FR', date: '2026-07-08' }), point({ country: 'FR', date: '2026-05-28' })];
     expect(collectCountries(points, {})[0].firstVisit).toBe('2026-05-28');
   });
 
@@ -204,12 +210,8 @@ describe('collectCountries', () => {
   });
 
   it('puts undated countries after dated ones, in the order they appeared', () => {
-    const points = [
-      point({ country: 'NO' }),
-      point({ country: 'SE', date: '2026-01-02' }),
-      point({ country: 'DK' }),
-    ];
-    expect(collectCountries(points, {}).map(c => c.code)).toEqual(['SE', 'NO', 'DK']);
+    const points = [point({ country: 'NO' }), point({ country: 'SE', date: '2026-01-02' }), point({ country: 'DK' })];
+    expect(collectCountries(points, {}).map((c) => c.code)).toEqual(['SE', 'NO', 'DK']);
   });
 
   it('uses the supplied name and falls back to the code', () => {
@@ -241,10 +243,7 @@ describe('computeJourneyStats', () => {
   it('takes its dates from the stops when they have them', () => {
     const stats = computeJourneyStats({
       ...base,
-      points: [
-        point({ lat: 64, lng: -22, date: '2026-06-02' }),
-        point({ lat: 65, lng: -18, date: '2026-06-15' }),
-      ],
+      points: [point({ lat: 64, lng: -22, date: '2026-06-02' }), point({ lat: 65, lng: -18, date: '2026-06-15' })],
     });
     expect(stats.start).toBe('2026-06-02');
     expect(stats.end).toBe('2026-06-15');
@@ -332,7 +331,13 @@ describe('computeJourneyStats', () => {
       // `tripId` is null when the stop came from an entry nobody linked to a
       // trip, which is every stop here — the field is what lets a book print a
       // map of one trip out of several.
-      lat: 64, lng: -22, label: 'Reykjavík', date: '2026-06-02', country: 'IS', tripId: null, photoId: null,
+      lat: 64,
+      lng: -22,
+      label: 'Reykjavík',
+      date: '2026-06-02',
+      country: 'IS',
+      tripId: null,
+      photoId: null,
     });
   });
 
@@ -341,14 +346,18 @@ describe('computeJourneyStats', () => {
       ...base,
       points: [point({ lat: 64, lng: -22, country: 'IS', date: '2026-06-02' })],
     });
-    expect(stats.countries).toEqual([
-      { code: 'IS', name: 'Iceland', places: 1, firstVisit: '2026-06-02' },
-    ]);
+    expect(stats.countries).toEqual([{ code: 'IS', name: 'Iceland', places: 1, firstVisit: '2026-06-02' }]);
   });
 
   it('is all zeroes and empty lists for a journey with nothing in it', () => {
     const stats = computeJourneyStats({
-      journeyId: 1, points: [], entries: 0, photos: 0, places: 0, tripDates: [], countryNames: {},
+      journeyId: 1,
+      points: [],
+      entries: 0,
+      photos: 0,
+      places: 0,
+      tripDates: [],
+      countryNames: {},
     });
     expect(stats).toEqual({
       journeyId: 1,

@@ -1,7 +1,7 @@
-import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { StorageEventsService } from '../storage/storage-events.service';
 import { NotificationsService } from './notifications.service';
 import { ReplicaFailureDebouncer } from './replica-failure-debouncer';
+import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 
 const DEBOUNCE_WINDOW_MS = 60 * 60 * 1000;
 
@@ -40,9 +40,7 @@ export class StorageHealthNotifierService implements OnApplicationBootstrap {
           },
         })
         .catch((err: unknown) => {
-          this.logger.error(
-            `replica_failure notification failed: ${err instanceof Error ? err.message : String(err)}`,
-          );
+          this.logger.error(`replica_failure notification failed: ${err instanceof Error ? err.message : String(err)}`);
         });
     });
   }

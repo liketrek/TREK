@@ -1,3 +1,12 @@
+import { runMigrations } from '../../../src/db/migrations';
+import { createTables } from '../../../src/db/schema';
+import { logWarn } from '../../../src/nest/audit/audit-log.logger';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { MailerService } from '../../../src/nest/notifications/mailer/mailer.service';
+import { resetTestDb } from '../../helpers/test-db';
+
+import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
+
 /**
  * mailer.service.test.ts
  *
@@ -39,14 +48,6 @@ vi.mock('../../../src/nest/audit/audit-log.logger', () => ({
   logError: vi.fn(),
   logWarn: vi.fn(),
 }));
-
-import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { resetTestDb } from '../../helpers/test-db';
-import { MailerService } from '../../../src/nest/notifications/mailer/mailer.service';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { logWarn } from '../../../src/nest/audit/audit-log.logger';
 
 function setAppSetting(key: string, value: string): void {
   testDb.prepare('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)').run(key, value);

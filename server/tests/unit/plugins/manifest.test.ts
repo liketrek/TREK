@@ -2,8 +2,9 @@
  * trek-plugin.json validation (#plugins, M4). Rejects invalid ids/versions/types,
  * unknown permissions, native modules, and http:outbound without egress.
  */
-import { describe, it, expect } from 'vitest';
 import { parseManifest, ManifestError } from '../../../src/nest/plugins/install/manifest';
+
+import { describe, it, expect } from 'vitest';
 
 const base = { id: 'flight-tracker', name: 'Flight', version: '1.2.0', type: 'widget', apiVersion: 1 };
 const withApi = (apiVersion: unknown) => ({ ...base, apiVersion, trek: '>=3.2.0 <4.0.0' });
@@ -73,7 +74,11 @@ describe('parseManifest', () => {
   });
 
   it('accepts exact, single-label (self-hoster sibling), and wildcard outbound hosts', () => {
-    const m = parseManifest({ ...base, permissions: ['http:outbound:api.x.com', 'http:outbound:*.example.com', 'http:outbound:redis'], egress: ['api.x.com', '*.example.com', 'redis'] });
+    const m = parseManifest({
+      ...base,
+      permissions: ['http:outbound:api.x.com', 'http:outbound:*.example.com', 'http:outbound:redis'],
+      egress: ['api.x.com', '*.example.com', 'redis'],
+    });
     expect(m.permissions).toContain('http:outbound:*.example.com');
     expect(m.permissions).toContain('http:outbound:redis');
   });
@@ -87,11 +92,31 @@ describe('parseManifest', () => {
     ['unknown perm', { ...base, permissions: ['fs:read'] }, /unknown permission/],
     ['outbound no egress', { ...base, permissions: ['http:outbound'] }, /egress\[\] is empty/],
     ['wildcard egress', { ...base, permissions: ['http:outbound'], egress: ['*'] }, /bare "\*"/],
-    ['allow-all outbound host', { ...base, permissions: ['http:outbound:*'], egress: ['x.com'] }, /invalid http:outbound host/],
-    ['degenerate wildcard host', { ...base, permissions: ['http:outbound:*.'], egress: ['x.com'] }, /invalid http:outbound host/],
-    ['whole-TLD outbound host', { ...base, permissions: ['http:outbound:*.com'], egress: ['x.com'] }, /invalid http:outbound host/],
-    ['host with a space', { ...base, permissions: ['http:outbound:legit.com x'], egress: ['legit.com'] }, /invalid http:outbound host/],
-    ['bad egress host', { ...base, permissions: ['http:outbound:api.x.com'], egress: ['api.x.com', 'no spaces here'] }, /invalid egress host/],
+    [
+      'allow-all outbound host',
+      { ...base, permissions: ['http:outbound:*'], egress: ['x.com'] },
+      /invalid http:outbound host/,
+    ],
+    [
+      'degenerate wildcard host',
+      { ...base, permissions: ['http:outbound:*.'], egress: ['x.com'] },
+      /invalid http:outbound host/,
+    ],
+    [
+      'whole-TLD outbound host',
+      { ...base, permissions: ['http:outbound:*.com'], egress: ['x.com'] },
+      /invalid http:outbound host/,
+    ],
+    [
+      'host with a space',
+      { ...base, permissions: ['http:outbound:legit.com x'], egress: ['legit.com'] },
+      /invalid http:outbound host/,
+    ],
+    [
+      'bad egress host',
+      { ...base, permissions: ['http:outbound:api.x.com'], egress: ['api.x.com', 'no spaces here'] },
+      /invalid egress host/,
+    ],
     ['not an object', 'nope', /not an object/],
     ['missing name', { id: 'x-plugin', version: '1.0.0', type: 'page' }, /missing\/invalid "name"/],
   ])('rejects: %s', (_label, input, re) => {
@@ -112,8 +137,9 @@ describe('apiVersion', () => {
     expect(parseManifest(withApi(2)).apiVersion).toBe(2);
   });
   it('refuses a future apiVersion on install paths (requireTrek)', () => {
-    expect(() => parseManifest(withApi(2), { requireTrek: true }))
-      .toThrow('plugin requires plugin-API v2; this TREK supports v1');
+    expect(() => parseManifest(withApi(2), { requireTrek: true })).toThrow(
+      'plugin requires plugin-API v2; this TREK supports v1',
+    );
   });
 });
 
@@ -135,11 +161,30 @@ describe('parseManifest capabilities', () => {
     const m = parseManifest({ ...base, capabilities: { routeProfiles: [{ id: 'ev', label: '  EV  ', icon: 'zap' }] } });
     expect(m.capabilities.routeProfiles).toEqual([{ id: 'ev', label: 'EV', icon: 'zap' }]);
     // id must be lowercase kebab, ≤24 chars; label required ≤40; max 3; no duplicates
-    expect(() => parseManifest({ ...base, capabilities: { routeProfiles: [{ id: 'EV', label: 'x' }] } })).toThrow(ManifestError);
+    expect(() => parseManifest({ ...base, capabilities: { routeProfiles: [{ id: 'EV', label: 'x' }] } })).toThrow(
+      ManifestError,
+    );
     expect(() => parseManifest({ ...base, capabilities: { routeProfiles: [{ id: 'ev' }] } })).toThrow(ManifestError);
-    expect(() => parseManifest({ ...base, capabilities: { routeProfiles: [{ id: 'ev', label: 'L'.repeat(41) }] } })).toThrow(ManifestError);
-    expect(() => parseManifest({ ...base, capabilities: { routeProfiles: [{ id: 'ev', label: 'a' }, { id: 'ev', label: 'b' }] } })).toThrow(ManifestError);
-    expect(() => parseManifest({ ...base, capabilities: { routeProfiles: [1, 2, 3, 4].map(i => ({ id: `p${i}`, label: 'x' })) } })).toThrow(ManifestError);
+    expect(() =>
+      parseManifest({ ...base, capabilities: { routeProfiles: [{ id: 'ev', label: 'L'.repeat(41) }] } }),
+    ).toThrow(ManifestError);
+    expect(() =>
+      parseManifest({
+        ...base,
+        capabilities: {
+          routeProfiles: [
+            { id: 'ev', label: 'a' },
+            { id: 'ev', label: 'b' },
+          ],
+        },
+      }),
+    ).toThrow(ManifestError);
+    expect(() =>
+      parseManifest({
+        ...base,
+        capabilities: { routeProfiles: [1, 2, 3, 4].map((i) => ({ id: `p${i}`, label: 'x' })) },
+      }),
+    ).toThrow(ManifestError);
     expect(() => parseManifest({ ...base, capabilities: { routeProfiles: 'ev' } })).toThrow(ManifestError);
   });
 
@@ -165,17 +210,26 @@ describe('parseManifest capabilities', () => {
   });
 
   it('parses tripPage replaces + position, deduplicated', () => {
-    const m = parseManifest({ ...base, capabilities: { tripPage: { replaces: ['transports', 'buchungen', 'transports'], position: 1 } } });
+    const m = parseManifest({
+      ...base,
+      capabilities: { tripPage: { replaces: ['transports', 'buchungen', 'transports'], position: 1 } },
+    });
     expect(m.capabilities.tripPage).toEqual({ replaces: ['transports', 'buchungen'], position: 1 });
     // either half stands alone
-    expect(parseManifest({ ...base, capabilities: { tripPage: { position: 0 } } }).capabilities.tripPage).toEqual({ position: 0 });
+    expect(parseManifest({ ...base, capabilities: { tripPage: { position: 0 } } }).capabilities.tripPage).toEqual({
+      position: 0,
+    });
     expect(parseManifest({ ...base, capabilities: { tripPage: {} } }).capabilities.tripPage).toBeUndefined();
   });
 
   it("refuses to replace 'plan', unknown tabs and out-of-range positions", () => {
     expect(() => parseManifest({ ...base, capabilities: { tripPage: { replaces: ['plan'] } } })).toThrow(ManifestError);
-    expect(() => parseManifest({ ...base, capabilities: { tripPage: { replaces: ['settings'] } } })).toThrow(ManifestError);
-    expect(() => parseManifest({ ...base, capabilities: { tripPage: { replaces: 'transports' } } })).toThrow(ManifestError);
+    expect(() => parseManifest({ ...base, capabilities: { tripPage: { replaces: ['settings'] } } })).toThrow(
+      ManifestError,
+    );
+    expect(() => parseManifest({ ...base, capabilities: { tripPage: { replaces: 'transports' } } })).toThrow(
+      ManifestError,
+    );
     expect(() => parseManifest({ ...base, capabilities: { tripPage: { position: -1 } } })).toThrow(ManifestError);
     expect(() => parseManifest({ ...base, capabilities: { tripPage: { position: 2.5 } } })).toThrow(ManifestError);
     expect(() => parseManifest({ ...base, capabilities: { tripPage: { position: 99 } } })).toThrow(ManifestError);
@@ -204,13 +258,25 @@ describe('parseManifest dependencies', () => {
   });
 
   it('rejects an invalid dependency version range', () => {
-    expect(() => parseManifest({ ...base, pluginDependencies: [{ id: 'koffi', version: 'not-a-range' }] })).toThrow(ManifestError);
+    expect(() => parseManifest({ ...base, pluginDependencies: [{ id: 'koffi', version: 'not-a-range' }] })).toThrow(
+      ManifestError,
+    );
   });
 
   it('rejects a self dependency, a reserved id, and duplicates', () => {
     expect(() => parseManifest({ ...base, pluginDependencies: [{ id: base.id, version: '*' }] })).toThrow(/itself/);
-    expect(() => parseManifest({ ...base, pluginDependencies: [{ id: 'registry', version: '*' }] })).toThrow(/reserved/);
-    expect(() => parseManifest({ ...base, pluginDependencies: [{ id: 'koffi', version: '*' }, { id: 'koffi', version: '^1' }] })).toThrow(/duplicate/);
+    expect(() => parseManifest({ ...base, pluginDependencies: [{ id: 'registry', version: '*' }] })).toThrow(
+      /reserved/,
+    );
+    expect(() =>
+      parseManifest({
+        ...base,
+        pluginDependencies: [
+          { id: 'koffi', version: '*' },
+          { id: 'koffi', version: '^1' },
+        ],
+      }),
+    ).toThrow(/duplicate/);
   });
 });
 
@@ -239,24 +305,39 @@ describe('capabilities.notificationChannel', () => {
   });
 
   it('accepts a narrowed event list', () => {
-    const m = parseManifest({ ...base, capabilities: { notificationChannel: { events: ['trip_invite', 'booking_change'] } } });
+    const m = parseManifest({
+      ...base,
+      capabilities: { notificationChannel: { events: ['trip_invite', 'booking_change'] } },
+    });
     expect(m.capabilities.notificationChannel?.events).toEqual(['trip_invite', 'booking_change']);
   });
 
   it('rejects an admin-scoped event — a plugin channel can never carry one', () => {
-    expect(() => parseManifest({ ...base, capabilities: { notificationChannel: { events: ['version_available'] } } }))
-      .toThrow(/not a plugin-deliverable event/);
+    expect(() =>
+      parseManifest({ ...base, capabilities: { notificationChannel: { events: ['version_available'] } } }),
+    ).toThrow(/not a plugin-deliverable event/);
   });
 
   it('rejects a non-array events field', () => {
-    expect(() => parseManifest({ ...base, capabilities: { notificationChannel: { events: 'trip_invite' } } }))
-      .toThrow(ManifestError);
+    expect(() => parseManifest({ ...base, capabilities: { notificationChannel: { events: 'trip_invite' } } })).toThrow(
+      ManifestError,
+    );
   });
 });
 
 describe('select field options', () => {
-  const base = { id: 'sel', name: 'Sel', version: '1.0.0', apiVersion: 1, type: 'integration', nativeModules: false, permissions: [] };
-  const opts = (options: unknown) => parseManifest({ ...base, settings: [{ key: 'priority', input_type: 'select', scope: 'user', options }] }).settings[0].options;
+  const base = {
+    id: 'sel',
+    name: 'Sel',
+    version: '1.0.0',
+    apiVersion: 1,
+    type: 'integration',
+    nativeModules: false,
+    permissions: [],
+  };
+  const opts = (options: unknown) =>
+    parseManifest({ ...base, settings: [{ key: 'priority', input_type: 'select', scope: 'user', options }] })
+      .settings[0].options;
 
   it('keeps a proper { value, label } list', () => {
     expect(opts([{ value: '5', label: 'Normal' }])).toEqual([{ value: '5', label: 'Normal' }]);
@@ -265,8 +346,14 @@ describe('select field options', () => {
   it('coerces a bare string/number list instead of rendering blank options', () => {
     // The obvious thing to write — and it used to be cast straight through, so the
     // client read o.value/o.label as undefined and every dropdown entry was EMPTY.
-    expect(opts(['1', '5'])).toEqual([{ value: '1', label: '1' }, { value: '5', label: '5' }]);
-    expect(opts([1, 5])).toEqual([{ value: '1', label: '1' }, { value: '5', label: '5' }]);
+    expect(opts(['1', '5'])).toEqual([
+      { value: '1', label: '1' },
+      { value: '5', label: '5' },
+    ]);
+    expect(opts([1, 5])).toEqual([
+      { value: '1', label: '1' },
+      { value: '5', label: '5' },
+    ]);
   });
 
   it('defaults a missing label to the value rather than leaving it blank', () => {
@@ -281,10 +368,24 @@ describe('select field options', () => {
 });
 
 describe('settings-page actions', () => {
-  const base = { id: 'act', name: 'Act', version: '1.0.0', apiVersion: 1, type: 'integration', nativeModules: false, permissions: [] };
+  const base = {
+    id: 'act',
+    name: 'Act',
+    version: '1.0.0',
+    apiVersion: 1,
+    type: 'integration',
+    nativeModules: false,
+    permissions: [],
+  };
 
   it('parses actions with label/hint/danger', () => {
-    const m = parseManifest({ ...base, actions: [{ key: 'testConnection', label: 'Test connection', hint: 'Pings the API.' }, { key: 'purge', label: 'Purge', danger: true }] });
+    const m = parseManifest({
+      ...base,
+      actions: [
+        { key: 'testConnection', label: 'Test connection', hint: 'Pings the API.' },
+        { key: 'purge', label: 'Purge', danger: true },
+      ],
+    });
     expect(m.actions).toEqual([
       { key: 'testConnection', label: 'Test connection', hint: 'Pings the API.', danger: false },
       { key: 'purge', label: 'Purge', hint: undefined, danger: true },
@@ -302,7 +403,9 @@ describe('settings-page actions', () => {
     expect(() => parseManifest({ ...base, actions: [{ key: '__proto__' }] })).toThrow(ManifestError);
     expect(() => parseManifest({ ...base, actions: [{ key: 'a' }, { key: 'a' }] })).toThrow(/duplicate action/);
     expect(() => parseManifest({ ...base, actions: 'nope' })).toThrow(/must be an array/);
-    expect(() => parseManifest({ ...base, actions: Array.from({ length: 9 }, (_, i) => ({ key: `a${i}` })) })).toThrow(/at most 8/);
+    expect(() => parseManifest({ ...base, actions: Array.from({ length: 9 }, (_, i) => ({ key: `a${i}` })) })).toThrow(
+      /at most 8/,
+    );
   });
 
   it('defaults to no actions', () => {

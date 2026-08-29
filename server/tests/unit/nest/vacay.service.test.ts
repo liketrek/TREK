@@ -1,3 +1,14 @@
+import { runMigrations } from '../../../src/db/migrations';
+// shareCalendar fires a notification after inserting — keep that out of unit scope
+
+import { createTables } from '../../../src/db/schema';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { VacayService } from '../../../src/nest/vacay/vacay.service';
+import { createUser } from '../../helpers/factories';
+import { notificationsStub } from '../../helpers/notifications';
+import { resetTestDb } from '../../helpers/test-db';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // ── DB setup (real in-memory SQLite) ─────────────────────────────────────────
@@ -25,17 +36,6 @@ vi.mock('../../../src/config', () => ({
 }));
 // Mock websocket so notifyPlanUsers doesn't throw
 vi.mock('../../../src/websocket', () => ({ broadcastToUser: vi.fn() }));
-// shareCalendar fires a notification after inserting — keep that out of unit scope
-
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser } from '../../helpers/factories';
-
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { VacayService } from '../../../src/nest/vacay/vacay.service';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import { notificationsStub } from '../../helpers/notifications';
 
 // VACAY-SVC-001 through VACAY-SVC-066 moved 1:1 from the legacy
 // tests/unit/services/vacayService.test.ts (the named-function imports became
@@ -56,10 +56,13 @@ beforeEach(() => {
   resetTestDb(testDb);
   // Stub fetch with empty holiday list by default so updatePlan / applyHolidayCalendars
   // never makes real network calls.
-  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-    ok: true,
-    json: async () => [],
-  }));
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [],
+    }),
+  );
 });
 
 afterAll(() => {
@@ -71,9 +74,9 @@ afterAll(() => {
 
 /** Insert a vacay_plan_members row directly (no service factory for it). */
 function insertMember(planId: number, userId: number, status: 'pending' | 'accepted'): void {
-  testDb.prepare(
-    "INSERT INTO vacay_plan_members (plan_id, user_id, status) VALUES (?, ?, ?)"
-  ).run(planId, userId, status);
+  testDb
+    .prepare('INSERT INTO vacay_plan_members (plan_id, user_id, status) VALUES (?, ?, ?)')
+    .run(planId, userId, status);
 }
 
 /** Fast helper: create a user and immediately materialise their own plan. */
@@ -116,9 +119,7 @@ describe('getOwnPlan', () => {
     const plan = svc.getOwnPlan(user.id);
     const yr = new Date().getFullYear();
 
-    const row = testDb
-      .prepare('SELECT * FROM vacay_years WHERE plan_id = ? AND year = ?')
-      .get(plan.id, yr);
+    const row = testDb.prepare('SELECT * FROM vacay_years WHERE plan_id = ? AND year = ?').get(plan.id, yr);
 
     expect(row).toBeDefined();
   });
@@ -192,8 +193,8 @@ describe('getPlanUsers', () => {
     const users = svc.getPlanUsers(plan.id);
 
     expect(users).toHaveLength(2);
-    expect(users.map(u => u.id)).toContain(owner.id);
-    expect(users.map(u => u.id)).toContain(member.id);
+    expect(users.map((u) => u.id)).toContain(owner.id);
+    expect(users.map((u) => u.id)).toContain(member.id);
   });
 
   it('VACAY-SVC-010: pending membership members are NOT included in plan users', () => {
@@ -202,7 +203,7 @@ describe('getPlanUsers', () => {
     insertMember(plan.id, pendingUser.id, 'pending');
 
     const users = svc.getPlanUsers(plan.id);
-    expect(users.map(u => u.id)).not.toContain(pendingUser.id);
+    expect(users.map((u) => u.id)).not.toContain(pendingUser.id);
   });
 
   it('VACAY-SVC-011: returns empty array for a non-existent plan id', () => {
@@ -220,9 +221,7 @@ describe('migrateHolidayCalendars', () => {
 
     await svc.migrateHolidayCalendars(plan.id, planRow);
 
-    const rows = testDb
-      .prepare('SELECT * FROM vacay_holiday_calendars WHERE plan_id = ?')
-      .all(plan.id);
+    const rows = testDb.prepare('SELECT * FROM vacay_holiday_calendars WHERE plan_id = ?').all(plan.id);
     expect(rows).toHaveLength(0);
   });
 
@@ -232,9 +231,9 @@ describe('migrateHolidayCalendars', () => {
 
     await svc.migrateHolidayCalendars(plan.id, planRow);
 
-    const rows = testDb
-      .prepare('SELECT * FROM vacay_holiday_calendars WHERE plan_id = ?')
-      .all(plan.id) as { region: string }[];
+    const rows = testDb.prepare('SELECT * FROM vacay_holiday_calendars WHERE plan_id = ?').all(plan.id) as {
+      region: string;
+    }[];
     expect(rows).toHaveLength(1);
     expect(rows[0].region).toBe('DE');
   });
@@ -247,9 +246,7 @@ describe('migrateHolidayCalendars', () => {
     // Call a second time — should NOT insert another row
     await svc.migrateHolidayCalendars(plan.id, planRow);
 
-    const rows = testDb
-      .prepare('SELECT * FROM vacay_holiday_calendars WHERE plan_id = ?')
-      .all(plan.id);
+    const rows = testDb.prepare('SELECT * FROM vacay_holiday_calendars WHERE plan_id = ?').all(plan.id);
     expect(rows).toHaveLength(1);
   });
 });
@@ -262,9 +259,9 @@ describe('updatePlan', () => {
 
     await svc.updatePlan(plan.id, { block_weekends: true }, undefined);
 
-    const updated = testDb
-      .prepare('SELECT block_weekends FROM vacay_plans WHERE id = ?')
-      .get(plan.id) as { block_weekends: number };
+    const updated = testDb.prepare('SELECT block_weekends FROM vacay_plans WHERE id = ?').get(plan.id) as {
+      block_weekends: number;
+    };
     expect(updated.block_weekends).toBe(1);
   });
 
@@ -273,9 +270,9 @@ describe('updatePlan', () => {
 
     await svc.updatePlan(plan.id, { holidays_enabled: true }, undefined);
 
-    const updated = testDb
-      .prepare('SELECT holidays_enabled FROM vacay_plans WHERE id = ?')
-      .get(plan.id) as { holidays_enabled: number };
+    const updated = testDb.prepare('SELECT holidays_enabled FROM vacay_plans WHERE id = ?').get(plan.id) as {
+      holidays_enabled: number;
+    };
     expect(updated.holidays_enabled).toBe(1);
   });
 
@@ -441,14 +438,20 @@ describe('addYear', () => {
     // Enable carry-over and seed some entries for the current year
     testDb.prepare('UPDATE vacay_plans SET carry_over_enabled = 1 WHERE id = ?').run(plan.id);
     // Ensure current year row exists with 10 vacation days
-    testDb.prepare(`
+    testDb
+      .prepare(
+        `
       INSERT OR REPLACE INTO vacay_user_years (user_id, plan_id, year, vacation_days, carried_over)
       VALUES (?, ?, ?, 10, 0)
-    `).run(user.id, plan.id, currentYear);
+    `,
+      )
+      .run(user.id, plan.id, currentYear);
     // Add 3 entries (used days) in the current year
     for (let day = 1; day <= 3; day++) {
       const dateStr = `${currentYear}-06-0${day}`;
-      testDb.prepare('INSERT OR IGNORE INTO vacay_entries (plan_id, user_id, date, note) VALUES (?, ?, ?, ?)').run(plan.id, user.id, dateStr, '');
+      testDb
+        .prepare('INSERT OR IGNORE INTO vacay_entries (plan_id, user_id, date, note) VALUES (?, ?, ?, ?)')
+        .run(plan.id, user.id, dateStr, '');
     }
 
     svc.addYear(plan.id, nextYear, undefined);
@@ -474,13 +477,11 @@ describe('deleteYear', () => {
 
     svc.deleteYear(plan.id, targetYear, undefined);
 
-    const yearRow = testDb
-      .prepare('SELECT * FROM vacay_years WHERE plan_id = ? AND year = ?')
-      .get(plan.id, targetYear);
+    const yearRow = testDb.prepare('SELECT * FROM vacay_years WHERE plan_id = ? AND year = ?').get(plan.id, targetYear);
     expect(yearRow).toBeUndefined();
 
     const entries = testDb
-      .prepare("SELECT * FROM vacay_entries WHERE plan_id = ? AND date LIKE ?")
+      .prepare('SELECT * FROM vacay_entries WHERE plan_id = ? AND date LIKE ?')
       .all(plan.id, `${targetYear}-%`);
     expect(entries).toHaveLength(0);
   });
@@ -764,9 +765,9 @@ describe('getAvailableUsers', () => {
 
     const available = svc.getAvailableUsers(owner.id, plan.id) as { id: number }[];
 
-    expect(available.map(u => u.id)).toContain(unrelated.id);
+    expect(available.map((u) => u.id)).toContain(unrelated.id);
     // Owner themselves should NOT appear (excluded by u.id != ?)
-    expect(available.map(u => u.id)).not.toContain(owner.id);
+    expect(available.map((u) => u.id)).not.toContain(owner.id);
   });
 
   it('VACAY-SVC-043: excludes users who already have an accepted membership in any plan', () => {
@@ -777,7 +778,7 @@ describe('getAvailableUsers', () => {
 
     const available = svc.getAvailableUsers(owner.id, plan.id) as { id: number }[];
 
-    expect(available.map(u => u.id)).not.toContain(alreadyFused.id);
+    expect(available.map((u) => u.id)).not.toContain(alreadyFused.id);
   });
 });
 
@@ -819,8 +820,8 @@ describe('getStats', () => {
     const yr = new Date().getFullYear();
 
     allowWeekends(plan.id);
-    svc.toggleEntry(user.id, plan.id, `${yr}-09-12`, 1);    // full day
-    svc.toggleEntry(user.id, plan.id, `${yr}-09-13`, 0.5);  // half day
+    svc.toggleEntry(user.id, plan.id, `${yr}-09-12`, 1); // full day
+    svc.toggleEntry(user.id, plan.id, `${yr}-09-13`, 0.5); // half day
 
     const stats = svc.getStats(plan.id, yr);
 
@@ -950,7 +951,12 @@ describe('resolveYearWindow', () => {
     // What the settings UI sends when you pick Fiscal/April and then click
     // "Hire date" before typing one — it carries the whole settings object.
     svc.updateYearSettings(user.id, { year_type: 'fiscal', year_start_month: 4, year_start_day: 1 });
-    svc.updateYearSettings(user.id, { year_type: 'anniversary', year_start_month: 4, year_start_day: 1, hire_date: null });
+    svc.updateYearSettings(user.id, {
+      year_type: 'anniversary',
+      year_start_month: 4,
+      year_start_day: 1,
+      hire_date: null,
+    });
 
     expect(svc.resolveYearWindow(user.id, 2026)).toEqual({ start: '2026-01-01', end: '2027-01-01' });
   });
@@ -985,7 +991,9 @@ describe('updateUserYearSettings', () => {
     const saved = svc.updateYearSettings(user.id, { year_type: 'calendar' });
 
     expect(saved.year_type).toBe('calendar');
-    expect(testDb.prepare('SELECT COUNT(*) AS n FROM vacay_user_settings WHERE user_id = ?').get(user.id)).toEqual({ n: 1 });
+    expect(testDb.prepare('SELECT COUNT(*) AS n FROM vacay_user_settings WHERE user_id = ?').get(user.id)).toEqual({
+      n: 1,
+    });
   });
 
   it('VACAY-SVC-045n: clamps an out-of-range month and day instead of storing them', () => {
@@ -1018,7 +1026,11 @@ describe('getYearSettings', () => {
 
     expect(svc.getUserYearSettings(user.id)).toBeUndefined();
     expect(svc.getYearSettings(user.id)).toEqual({
-      user_id: user.id, year_type: 'calendar', year_start_month: 1, year_start_day: 1, hire_date: null,
+      user_id: user.id,
+      year_type: 'calendar',
+      year_start_month: 1,
+      year_start_day: 1,
+      hire_date: null,
     });
   });
 });
@@ -1044,8 +1056,8 @@ describe('usage over a shifted window (#737)', () => {
     const { user, plan } = setupUserWithPlan();
     svc.updateYearSettings(user.id, { year_type: 'fiscal', year_start_month: 7 });
 
-    svc.toggleEntry(user.id, plan.id, '2026-08-10', 1, 'vacation');  // inside, first half
-    svc.toggleEntry(user.id, plan.id, '2027-02-10', 1, 'vacation');  // inside, second half
+    svc.toggleEntry(user.id, plan.id, '2026-08-10', 1, 'vacation'); // inside, first half
+    svc.toggleEntry(user.id, plan.id, '2027-02-10', 1, 'vacation'); // inside, second half
 
     expect(svc.getStats(plan.id, 2026)[0].used).toBe(2);
   });
@@ -1054,8 +1066,8 @@ describe('usage over a shifted window (#737)', () => {
     const { user, plan } = setupUserWithPlan();
     svc.updateYearSettings(user.id, { year_type: 'fiscal', year_start_month: 7 });
 
-    svc.toggleEntry(user.id, plan.id, '2026-06-30', 1, 'vacation');  // last day of the previous period
-    svc.toggleEntry(user.id, plan.id, '2027-07-01', 1, 'vacation');  // first day of the next period
+    svc.toggleEntry(user.id, plan.id, '2026-06-30', 1, 'vacation'); // last day of the previous period
+    svc.toggleEntry(user.id, plan.id, '2027-07-01', 1, 'vacation'); // first day of the next period
 
     expect(svc.getStats(plan.id, 2026)[0].used).toBe(0);
     expect(svc.getStats(plan.id, 2025)[0].used).toBe(1);
@@ -1067,10 +1079,14 @@ describe('usage over a shifted window (#737)', () => {
     const { user, plan } = setupUserWithPlan();
     svc.updateYearSettings(user.id, { year_type: 'fiscal', year_start_month: 7 });
     testDb.prepare('UPDATE vacay_plans SET carry_over_enabled = 1 WHERE id = ?').run(plan.id);
-    testDb.prepare(`
+    testDb
+      .prepare(
+        `
       INSERT OR REPLACE INTO vacay_user_years (user_id, plan_id, year, vacation_days, carried_over)
       VALUES (?, ?, 2030, 10, 0)
-    `).run(user.id, plan.id);
+    `,
+      )
+      .run(user.id, plan.id);
 
     // Two days inside the 2030 period (Jul 2030 – Jun 2031), one of them in 2031.
     svc.toggleEntry(user.id, plan.id, '2030-09-02', 1, 'vacation');
@@ -1088,10 +1104,14 @@ describe('usage over a shifted window (#737)', () => {
     const { user, plan } = setupUserWithPlan();
     svc.updateYearSettings(user.id, { year_type: 'fiscal', year_start_month: 7 });
     testDb.prepare('UPDATE vacay_plans SET carry_over_enabled = 1 WHERE id = ?').run(plan.id);
-    testDb.prepare(`
+    testDb
+      .prepare(
+        `
       INSERT OR REPLACE INTO vacay_user_years (user_id, plan_id, year, vacation_days, carried_over)
       VALUES (?, ?, 2030, 10, 0)
-    `).run(user.id, plan.id);
+    `,
+      )
+      .run(user.id, plan.id);
 
     svc.toggleEntry(user.id, plan.id, '2031-02-03', 1, 'comp');
 
@@ -1108,16 +1128,16 @@ describe('usage over a shifted window (#737)', () => {
     svc.updateYearSettings(user.id, { year_type: 'fiscal', year_start_month: 7 });
     svc.addYear(plan.id, 2026, undefined);
 
-    svc.toggleEntry(user.id, plan.id, '2026-08-10', 1, 'vacation');  // inside
-    svc.toggleEntry(user.id, plan.id, '2027-02-10', 1, 'vacation');  // inside, next calendar year
-    svc.toggleEntry(user.id, plan.id, '2026-06-30', 1, 'vacation');  // previous period, must survive
+    svc.toggleEntry(user.id, plan.id, '2026-08-10', 1, 'vacation'); // inside
+    svc.toggleEntry(user.id, plan.id, '2027-02-10', 1, 'vacation'); // inside, next calendar year
+    svc.toggleEntry(user.id, plan.id, '2026-06-30', 1, 'vacation'); // previous period, must survive
 
     svc.deleteYear(plan.id, 2026, undefined);
 
-    const left = testDb
-      .prepare('SELECT date FROM vacay_entries WHERE plan_id = ? ORDER BY date')
-      .all(plan.id) as { date: string }[];
-    expect(left.map(r => r.date)).toEqual(['2026-06-30']);
+    const left = testDb.prepare('SELECT date FROM vacay_entries WHERE plan_id = ? ORDER BY date').all(plan.id) as {
+      date: string;
+    }[];
+    expect(left.map((r) => r.date)).toEqual(['2026-06-30']);
   });
 });
 
@@ -1128,11 +1148,11 @@ describe('getEntries over a window (#737)', () => {
 
     svc.toggleEntry(user.id, plan.id, '2026-08-10', 1, 'vacation');
     svc.toggleEntry(user.id, plan.id, '2027-02-10', 1, 'vacation');
-    svc.toggleEntry(user.id, plan.id, '2026-06-30', 1, 'vacation');  // previous period
+    svc.toggleEntry(user.id, plan.id, '2026-06-30', 1, 'vacation'); // previous period
 
     const result = svc.getEntries(plan.id, '2026', user.id);
 
-    expect((result.entries as { date: string }[]).map(e => e.date).sort()).toEqual(['2026-08-10', '2027-02-10']);
+    expect((result.entries as { date: string }[]).map((e) => e.date).sort()).toEqual(['2026-08-10', '2027-02-10']);
   });
 
   it('VACAY-SVC-045z: without a viewer it stays on the plain calendar year (MCP reads)', () => {
@@ -1144,16 +1164,16 @@ describe('getEntries over a window (#737)', () => {
 
     const result = svc.getEntries(plan.id, '2026');
 
-    expect((result.entries as { date: string }[]).map(e => e.date)).toEqual(['2026-08-10']);
+    expect((result.entries as { date: string }[]).map((e) => e.date)).toEqual(['2026-08-10']);
   });
 
   it('VACAY-SVC-045aa: a start day past the 1st still loads the whole first month, since the grid renders it', () => {
     const { user, plan } = setupUserWithPlan();
     svc.updateYearSettings(user.id, { year_type: 'fiscal', year_start_month: 4, year_start_day: 6 });
 
-    svc.toggleEntry(user.id, plan.id, '2026-04-02', 1, 'vacation');  // rendered, but counted in the previous period
+    svc.toggleEntry(user.id, plan.id, '2026-04-02', 1, 'vacation'); // rendered, but counted in the previous period
 
-    expect((svc.getEntries(plan.id, '2026', user.id).entries as unknown[])).toHaveLength(1);
+    expect(svc.getEntries(plan.id, '2026', user.id).entries as unknown[]).toHaveLength(1);
     expect(svc.getStats(plan.id, 2026)[0].used).toBe(0);
     expect(svc.getStats(plan.id, 2025)[0].used).toBe(1);
   });
@@ -1186,10 +1206,13 @@ describe('applyHolidayCalendars', () => {
       .run(plan.id, user.id, holidayDate, '');
 
     // Override fetch to return one global holiday matching that entry
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => [{ date: holidayDate, global: true }],
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => [{ date: holidayDate, global: true }],
+      }),
+    );
 
     await svc.applyHolidayCalendars(plan.id);
 
@@ -1380,7 +1403,7 @@ describe('getShareAvailableUsers', () => {
     svc.shareCalendar(owner.id, owner.email, shared.id);
     const { user: unrelated } = createUser(testDb);
 
-    const ids = (svc.getShareAvailableUsers(owner.id) as { id: number }[]).map(u => u.id);
+    const ids = (svc.getShareAvailableUsers(owner.id) as { id: number }[]).map((u) => u.id);
 
     expect(ids).toContain(unrelated.id);
     expect(ids).not.toContain(owner.id);
@@ -1489,7 +1512,9 @@ describe('quirk fixes', () => {
     const broken = failingService('INSERT OR IGNORE INTO vacay_user_years');
     expect(() => broken.acceptInvite(member.id, plan.id, undefined)).toThrow('boom');
 
-    const row = testDb.prepare('SELECT status FROM vacay_plan_members WHERE plan_id = ? AND user_id = ?').get(plan.id, member.id) as { status: string };
+    const row = testDb
+      .prepare('SELECT status FROM vacay_plan_members WHERE plan_id = ? AND user_id = ?')
+      .get(plan.id, member.id) as { status: string };
     expect(row.status).toBe('pending');
   });
 
@@ -1502,7 +1527,9 @@ describe('quirk fixes', () => {
     const broken = failingService('DELETE FROM vacay_user_years');
     expect(() => broken.deleteYear(plan.id, year, undefined)).toThrow('boom');
 
-    expect(testDb.prepare('SELECT id FROM vacay_years WHERE plan_id = ? AND year = ?').get(plan.id, year)).toBeDefined();
+    expect(
+      testDb.prepare('SELECT id FROM vacay_years WHERE plan_id = ? AND year = ?').get(plan.id, year),
+    ).toBeDefined();
     expect(testDb.prepare('SELECT id FROM vacay_entries WHERE plan_id = ?').get(plan.id)).toBeDefined();
   });
 
@@ -1515,7 +1542,10 @@ describe('quirk fixes', () => {
     // Nothing cached: a retry hits the network again.
     expect(await fresh.getCountries()).toEqual({ error: 'Failed to fetch countries' });
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(fetchMock).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ signal: expect.any(AbortSignal) }));
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
   });
 
   it('VACAY-SVC-070a: getHolidays refuses a year or country that is not a plain code', async () => {
@@ -1523,7 +1553,12 @@ describe('quirk fixes', () => {
     vi.stubGlobal('fetch', fetchMock);
     const fresh = new VacayService(new DatabaseService(testDb), new RealtimeService(), notificationsStub());
 
-    for (const [year, country] of [['../../..', 'DE'], ['2026', 'DE/../../x'], ['20xx', 'DE'], ['2026', 'DEU']]) {
+    for (const [year, country] of [
+      ['../../..', 'DE'],
+      ['2026', 'DE/../../x'],
+      ['20xx', 'DE'],
+      ['2026', 'DEU'],
+    ]) {
       expect(await fresh.getHolidays(year, country)).toEqual({ error: 'Failed to fetch holidays' });
     }
     expect(fetchMock).not.toHaveBeenCalled();
@@ -1564,7 +1599,8 @@ describe('quirk fixes', () => {
         headers: { get: () => null },
         body: {
           getReader: () => ({
-            read: async () => (sent ? { done: true } : ((sent = true), { done: false, value: new TextEncoder().encode(payload) })),
+            read: async () =>
+              sent ? { done: true } : ((sent = true), { done: false, value: new TextEncoder().encode(payload) }),
             cancel: async () => undefined,
           }),
           cancel: async () => undefined,
@@ -1612,6 +1648,8 @@ describe('quirk fixes', () => {
     const broken = failingService('INSERT OR IGNORE INTO vacay_user_years');
     expect(() => broken.addYear(plan.id, year + 1, undefined)).toThrow('boom');
     // And atomically: the failed year was not half-added.
-    expect(testDb.prepare('SELECT id FROM vacay_years WHERE plan_id = ? AND year = ?').get(plan.id, year + 1)).toBeUndefined();
+    expect(
+      testDb.prepare('SELECT id FROM vacay_years WHERE plan_id = ? AND year = ?').get(plan.id, year + 1),
+    ).toBeUndefined();
   });
 });

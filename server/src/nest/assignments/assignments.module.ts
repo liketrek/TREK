@@ -1,14 +1,14 @@
-import { Module } from '@nestjs/common';
-import { PermissionsModule } from '../permissions/permissions.module';
+import { AuthModule } from '../auth/auth.module';
 import { DaysModule } from '../days/days.module';
-import { DayAssignmentsController, AssignmentOpsController } from './assignments.controller';
-import { AssignmentsDomainModule } from './assignments-domain.module';
-import { ItineraryRpc } from './itinerary.rpc';
+import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
+import { PermissionsModule } from '../permissions/permissions.module';
 import { PluginGuardsModule } from '../plugins/host/plugin-guards.module';
 import { RealtimeModule } from '../realtime/realtime.module';
+import { AssignmentsDomainModule } from './assignments-domain.module';
+import { DayAssignmentsController, AssignmentOpsController } from './assignments.controller';
 import { AssignmentsMcp } from './assignments.mcp';
-import { AuthModule } from '../auth/auth.module';
-import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
+import { ItineraryRpc } from './itinerary.rpc';
+import { Module } from '@nestjs/common';
 
 /**
  * Assignments domain (S7 — Phase 2 trip sub-domain). The day-assignments mount
@@ -21,7 +21,15 @@ import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
 @Module({
   // DaysModule: AssignmentsMcp injects DaysService for the target-day checks.
   // PermissionsModule: the controllers' TripAccessGuard injects PermissionsService.
-  imports: [McpSharedModule, AssignmentsDomainModule, DaysModule, PermissionsModule, AuthModule, RealtimeModule, PluginGuardsModule],
+  imports: [
+    McpSharedModule,
+    AssignmentsDomainModule,
+    DaysModule,
+    PermissionsModule,
+    AuthModule,
+    RealtimeModule,
+    PluginGuardsModule,
+  ],
   controllers: [DayAssignmentsController, AssignmentOpsController],
   providers: [AssignmentsMcp, ItineraryRpc],
   exports: [AssignmentsDomainModule],

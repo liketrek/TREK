@@ -1,8 +1,9 @@
-import { Controller, Get, HttpException, Query, Req, UseGuards } from '@nestjs/common';
-import type { Request } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RateLimitService } from '../common/rate-limit.service';
 import { TransitService } from './transit.service';
+import { Controller, Get, HttpException, Query, Req, UseGuards } from '@nestjs/common';
+
+import type { Request } from 'express';
 
 const RL_WINDOW = 15 * 60 * 1000;
 
@@ -42,7 +43,9 @@ export class TransitController {
     this.limit('transit_geocode', req, 300);
     try {
       return await this.transit.geocode(q || '', lang, near);
-    } catch (err) { this.rethrow(err); }
+    } catch (err) {
+      this.rethrow(err);
+    }
   }
 
   @Get('plan')
@@ -65,6 +68,8 @@ export class TransitController {
         modes,
         maxTransfers: maxTransfers !== undefined && maxTransfers !== '' ? Number(maxTransfers) : undefined,
       });
-    } catch (err) { this.rethrow(err); }
+    } catch (err) {
+      this.rethrow(err);
+    }
   }
 }

@@ -1,6 +1,6 @@
-import { Module } from '@nestjs/common';
-import { TokenService } from './token.service';
 import { EphemeralTokenModule } from '../auth/ephemeral-token.module';
+import { TokenService } from './token.service';
+import { Module } from '@nestjs/common';
 
 /**
  * Tokens that are not the login JWT: the long-lived MCP tokens a user manages

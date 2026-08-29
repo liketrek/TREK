@@ -9,6 +9,16 @@
  * field with such a name reported as configured for a user who had configured nothing —
  * which for a notification channel meant being dispatched to everyone with no credentials.
  */
+import { db as dbConn } from '../../../src/db/database';
+import { runMigrations } from '../../../src/db/migrations';
+import { createTables } from '../../../src/db/schema';
+import { AddonsService } from '../../../src/nest/addons/addons.service';
+import { AuditService } from '../../../src/nest/audit/audit.service';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { parseManifest, ManifestError } from '../../../src/nest/plugins/install/manifest';
+import { PluginUserSettingsService } from '../../../src/nest/plugins/plugin-user-settings.service';
+import { createUser } from '../../helpers/factories';
+
 import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
 
 const { testDb, dbMock } = vi.hoisted(() => {
@@ -17,33 +27,36 @@ const { testDb, dbMock } = vi.hoisted(() => {
   return { testDb: db, dbMock: { db, closeDb: () => {}, reinitialize: () => {}, canAccessTrip: () => null } };
 });
 vi.mock('../../../src/db/database', () => dbMock);
-import { db as dbConn } from '../../../src/db/database';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { AuditService } from '../../../src/nest/audit/audit.service';
-import { AddonsService } from '../../../src/nest/addons/addons.service';
-vi.mock('../../../src/config', () => ({ JWT_SECRET: 'x'.repeat(40), ENCRYPTION_KEY: 'a'.repeat(64), updateJwtSecret: () => {} }));
 
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { createUser } from '../../helpers/factories';
-import { PluginUserSettingsService } from '../../../src/nest/plugins/plugin-user-settings.service';
-import { parseManifest, ManifestError } from '../../../src/nest/plugins/install/manifest';
+vi.mock('../../../src/config', () => ({
+  JWT_SECRET: 'x'.repeat(40),
+  ENCRYPTION_KEY: 'a'.repeat(64),
+  updateJwtSecret: () => {},
+}));
+
 /** The host-side settings reads, over the same connection the test seeded. */
 const userSettings = () => new PluginUserSettingsService(new DatabaseService(dbConn));
 
 let uid: number;
 
 function declareField(pluginId: string, key: string, opts: { required?: boolean; secret?: boolean } = {}) {
-  testDb.prepare(
-    `INSERT INTO plugin_settings_fields (plugin_id, field_key, label, input_type, required, secret, scope, sort_order)
+  testDb
+    .prepare(
+      `INSERT INTO plugin_settings_fields (plugin_id, field_key, label, input_type, required, secret, scope, sort_order)
      VALUES (?, ?, ?, 'text', ?, ?, 'user', 0)`,
-  ).run(pluginId, key, key, opts.required ? 1 : 0, opts.secret ? 1 : 0);
+    )
+    .run(pluginId, key, key, opts.required ? 1 : 0, opts.secret ? 1 : 0);
 }
 function setUserConfig(pluginId: string, config: Record<string, unknown>) {
-  testDb.prepare('INSERT OR REPLACE INTO plugin_user_config (plugin_id, user_id, config) VALUES (?, ?, ?)').run(pluginId, uid, JSON.stringify(config));
+  testDb
+    .prepare('INSERT OR REPLACE INTO plugin_user_config (plugin_id, user_id, config) VALUES (?, ?, ?)')
+    .run(pluginId, uid, JSON.stringify(config));
 }
 
-beforeAll(() => { createTables(testDb); runMigrations(testDb); });
+beforeAll(() => {
+  createTables(testDb);
+  runMigrations(testDb);
+});
 beforeEach(() => {
   testDb.prepare('DELETE FROM plugin_settings_fields').run();
   testDb.prepare('DELETE FROM plugin_user_config').run();
@@ -54,13 +67,17 @@ beforeEach(() => {
 
 describe('plugin settings are isolated from core and from each other', () => {
   it('PSET-001 — a plugin declaring "webhook_url" cannot touch the CORE settings row', () => {
-    testDb.prepare("INSERT INTO settings (user_id, key, value) VALUES (?, 'webhook_url', 'https://core.example.com/real')").run(uid);
+    testDb
+      .prepare("INSERT INTO settings (user_id, key, value) VALUES (?, 'webhook_url', 'https://core.example.com/real')")
+      .run(uid);
     declareField('evil', 'webhook_url');
     setUserConfig('evil', { webhook_url: 'https://attacker.example.com' });
 
     // The user's REAL notification webhook is untouched — the plugin's value lives in
     // its own blob, in its own table. The namespacing is structural, not by key naming.
-    const core = testDb.prepare("SELECT value FROM settings WHERE user_id = ? AND key = 'webhook_url'").get(uid) as { value: string };
+    const core = testDb.prepare("SELECT value FROM settings WHERE user_id = ? AND key = 'webhook_url'").get(uid) as {
+      value: string;
+    };
     expect(core.value).toBe('https://core.example.com/real');
     expect(userSettings().readAll('evil', uid)).toEqual({ webhook_url: 'https://attacker.example.com' });
   });
@@ -102,12 +119,23 @@ describe('settings keys cannot resolve off the prototype chain', () => {
   });
 
   it('PSET-006 — the manifest rejects such a key at install', () => {
-    const base = { id: 'evil', name: 'Evil', version: '1.0.0', apiVersion: 1, type: 'integration', nativeModules: false, permissions: [] };
+    const base = {
+      id: 'evil',
+      name: 'Evil',
+      version: '1.0.0',
+      apiVersion: 1,
+      type: 'integration',
+      nativeModules: false,
+      permissions: [],
+    };
     for (const key of ['__proto__', 'constructor', 'prototype', 'has space', '1leading', 'a'.repeat(65)]) {
       expect(() => parseManifest({ ...base, settings: [{ key, scope: 'user' }] })).toThrow(ManifestError);
     }
     // …and still accepts an ordinary one.
-    expect(parseManifest({ ...base, settings: [{ key: 'appToken', scope: 'user', secret: true, required: true }] }).settings[0].key).toBe('appToken');
+    expect(
+      parseManifest({ ...base, settings: [{ key: 'appToken', scope: 'user', secret: true, required: true }] })
+        .settings[0].key,
+    ).toBe('appToken');
   });
 });
 
@@ -121,15 +149,25 @@ describe('a plugin channel label is bounded by the host', () => {
     const { PluginRuntimeService } = await import('../../../src/nest/plugins/plugin-runtime.service');
     process.env.TREK_PLUGINS_ENABLED = 'true';
 
-    testDb.prepare(
-      `INSERT OR REPLACE INTO plugins (id, name, status, enabled, version, permissions, granted_permissions, capabilities, config)
+    testDb
+      .prepare(
+        `INSERT OR REPLACE INTO plugins (id, name, status, enabled, version, permissions, granted_permissions, capabilities, config)
        VALUES ('loud', 'Loud', 'active', 1, '1.0.0', '[]', '[]', ?, '{}')`,
-    ).run(JSON.stringify({ notificationChannel: { title: '🎉'.repeat(5) + 'A'.repeat(500) } }));
+      )
+      .run(JSON.stringify({ notificationChannel: { title: '🎉'.repeat(5) + 'A'.repeat(500) } }));
 
-    const rt = new PluginRuntimeService(new DatabaseService(dbConn), new AuditService(new DatabaseService(dbConn)), new AddonsService(new DatabaseService(dbConn)), userSettings());
+    const rt = new PluginRuntimeService(
+      new DatabaseService(dbConn),
+      new AuditService(new DatabaseService(dbConn)),
+      new AddonsService(new DatabaseService(dbConn)),
+      userSettings(),
+    );
     // Stand the plugin up as a granted, active notificationChannel provider.
     (rt as unknown as { supervisor: { running: Map<string, unknown> } }).supervisor.running.set('loud', {
-      id: 'loud', status: 'active', hooks: ['notificationChannel'], granted: new Set(['hook:notification-channel']),
+      id: 'loud',
+      status: 'active',
+      hooks: ['notificationChannel'],
+      granted: new Set(['hook:notification-channel']),
     });
 
     const [channel] = rt.notificationChannels();

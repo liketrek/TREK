@@ -431,7 +431,8 @@ const admin: TranslationStrings = {
   'admin.plugins.changeVersion': 'Versie wijzigen…',
   'admin.plugins.noVersions': 'Geen gepubliceerde versies gevonden in het register.',
   'admin.plugins.downgradeTitle': 'Deze plugin terugdraaien?',
-  'admin.plugins.downgradeBody': 'Overschakelen van v{from} naar v{to}: gegevens die door de nieuwere versie zijn geschreven blijven staan, en de oudere versie begrijpt ze mogelijk niet.',
+  'admin.plugins.downgradeBody':
+    'Overschakelen van v{from} naar v{to}: gegevens die door de nieuwere versie zijn geschreven blijven staan, en de oudere versie begrijpt ze mogelijk niet.',
   'admin.plugins.downgradeConfirm': 'Terugdraaien',
   'admin.plugins.updatesHeld': 'Updates gepauzeerd op v{version}',
   'admin.plugins.resumeUpdates': 'Updates hervatten',

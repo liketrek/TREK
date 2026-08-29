@@ -1,11 +1,11 @@
-import { Module } from '@nestjs/common';
 import { AddonsModule } from '../addons/addons.module';
 import { AuditModule } from '../audit/audit.module';
 import { RealtimeModule } from '../realtime/realtime.module';
 import { ReservationsReadModule } from '../reservations/reservations-read.module';
-import { AirtrailClient } from './airtrail.client';
 import { AirtrailLinkService } from './airtrail-link.service';
+import { AirtrailClient } from './airtrail.client';
 import { AirtrailService } from './airtrail.service';
+import { Module } from '@nestjs/common';
 
 /**
  * The AirTrail pieces ReservationsModule may inject: the HTTP client, the

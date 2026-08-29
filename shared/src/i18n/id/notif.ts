@@ -29,7 +29,8 @@ const notif: TranslationStrings = {
   'notif.version_available.text': 'TREK {version} kini tersedia',
   'notif.replica_failure.title': 'Kegagalan replika penyimpanan',
   'notif.replica_failure.text': "Penulisan replika gagal pada '{backend}': {op} dari {key} — {error}",
-  'notif.replica_failure.textSuppressed': "Penulisan replika gagal pada '{backend}': {op} dari {key} — {error}. {suppressed} kegagalan lainnya diabaikan sejak notifikasi terakhir.",
+  'notif.replica_failure.textSuppressed':
+    "Penulisan replika gagal pada '{backend}': {op} dari {key} — {error}. {suppressed} kegagalan lainnya diabaikan sejak notifikasi terakhir.",
   'notif.action.view_trip': 'Lihat Perjalanan',
   'notif.action.view_collab': 'Lihat Pesan',
   'notif.action.view_packing': 'Lihat Perlengkapan',

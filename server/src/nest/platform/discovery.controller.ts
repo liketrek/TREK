@@ -1,10 +1,11 @@
-import { All, Controller, Get, NotFoundException, Req, Res } from '@nestjs/common';
-import type { Request, Response } from 'express';
-import { Public } from '../auth/public.decorator';
-import { DiscoveryMetadataService } from './discovery-metadata.service';
-import { AddonsService } from '../addons/addons.service';
 import { ADDON_IDS } from '../../addons';
 import { ALL_SCOPES } from '../../mcp/scopes';
+import { AddonsService } from '../addons/addons.service';
+import { Public } from '../auth/public.decorator';
+import { DiscoveryMetadataService } from './discovery-metadata.service';
+import { All, Controller, Get, NotFoundException, Req, Res } from '@nestjs/common';
+
+import type { Request, Response } from 'express';
 
 /**
  * The hand-rolled halves of OAuth discovery (the SDK metadata router itself is
@@ -51,11 +52,11 @@ export class DiscoveryController {
     }
     const meta = this.meta.getOAuthMetadata();
     res.json({
-      resource:                 `${meta.issuer}/mcp`,
-      authorization_servers:    [meta.issuer],
+      resource: `${meta.issuer}/mcp`,
+      authorization_servers: [meta.issuer],
       bearer_methods_supported: ['header'],
-      scopes_supported:         ALL_SCOPES,
-      resource_name:            'TREK MCP',
+      scopes_supported: ALL_SCOPES,
+      resource_name: 'TREK MCP',
     });
   }
 

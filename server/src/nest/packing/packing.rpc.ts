@@ -1,12 +1,12 @@
-import { packingCreateItemRequestSchema, packingUpdateItemRequestSchema } from '@trek/shared';
-import { PluginController, PluginMethod } from '../plugins/host/rpc-kit/decorators';
+import { isUpdateConflict } from '../common/conflictResult';
 import { PluginGuards } from '../plugins/host/plugin-guards.service';
 import { BadParams, ForbiddenResource } from '../plugins/host/rpc-errors';
-import { asPayload, num, schemaMessage } from '../plugins/host/rpc-params';
+import { PluginController, PluginMethod } from '../plugins/host/rpc-kit/decorators';
 import type { PluginRpcContext } from '../plugins/host/rpc-kit/types';
+import { asPayload, num, schemaMessage } from '../plugins/host/rpc-params';
 import { RealtimeService } from '../realtime/realtime.service';
 import { PackingService } from './packing.service';
-import { isUpdateConflict } from '../common/conflictResult';
+import { packingCreateItemRequestSchema, packingUpdateItemRequestSchema } from '@trek/shared';
 
 /** Packing rides on the app's own 'packing_edit' permission, exactly like the REST path. */
 const PACKING_EDIT_ACTION = 'packing_edit';
@@ -63,7 +63,14 @@ export class PackingRpc {
     // Read the privacy BEFORE the write, so a public/private toggle routes correctly.
     const before = this.packing.getItemPrivacy(tripId, itemId);
     const input = parsed.data as Record<string, unknown>;
-    const updated = this.packing.updateItem(String(tripId), String(itemId), input as never, Object.keys(input), undefined, actor);
+    const updated = this.packing.updateItem(
+      String(tripId),
+      String(itemId),
+      input as never,
+      Object.keys(input),
+      undefined,
+      actor,
+    );
     if (!updated) throw new ForbiddenResource(`no packing item ${itemId} on trip ${tripId}`);
     if (isUpdateConflict(updated)) throw new BadParams('packing item was modified concurrently');
     this.packing.broadcastUpdate(String(tripId), itemId, updated as PrivacyItem, !!before?.is_private, undefined);
@@ -86,7 +93,11 @@ export class PackingRpc {
   listBags(params: Record<string, unknown>, ctx: PluginRpcContext): unknown[] {
     // Note the permission: the envelope really does gate this READ on the write
     // grant. The decorator makes the oddity visible instead of burying it.
-    return this.guards.tripRead(params, ctx, () => this.packing.listBags(String(num(params.tripId, 'tripId'))) as unknown[]);
+    return this.guards.tripRead(
+      params,
+      ctx,
+      () => this.packing.listBags(String(num(params.tripId, 'tripId'))) as unknown[],
+    );
   }
 
   @PluginMethod('packing.createBag', { permission: 'db:write:packing' })
@@ -96,7 +107,10 @@ export class PackingRpc {
     const input = asPayload(params.input);
     if (typeof input.name !== 'string' || input.name.trim() === '') throw new BadParams('bag name is required');
     this.guards.requireTripEdit(tripId, actor, PACKING_EDIT_ACTION);
-    const bag = this.packing.createBag(String(tripId), { name: input.name, color: typeof input.color === 'string' ? input.color : undefined });
+    const bag = this.packing.createBag(String(tripId), {
+      name: input.name,
+      color: typeof input.color === 'string' ? input.color : undefined,
+    });
     this.realtime.broadcast(tripId, 'packing:bag-created', { bag }, undefined);
     return bag;
   }

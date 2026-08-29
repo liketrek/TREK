@@ -1,10 +1,11 @@
-import { Injectable } from '@nestjs/common';
-import crypto from 'crypto';
+import type { User } from '../../types';
 import { DatabaseService } from '../database/database.service';
 import type { TripAccess } from '../database/database.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { TripMembershipService } from '../trip-membership/trip-membership.service';
-import type { User } from '../../types';
+import { Injectable } from '@nestjs/common';
+
+import crypto from 'crypto';
 
 type Trip = TripAccess;
 
@@ -60,9 +61,7 @@ export class TripInviteService {
     // Any non-positive/absent value (0, negatives, NaN, null, undefined) means
     // "no expiry" — deliberate: the UI sends null when no bound was chosen.
     const expiresAt =
-      expiresInDays && expiresInDays > 0
-        ? new Date(Date.now() + expiresInDays * 86400000).toISOString()
-        : null;
+      expiresInDays && expiresInDays > 0 ? new Date(Date.now() + expiresInDays * 86400000).toISOString() : null;
 
     // Probe + write + re-select are one atomic unit so a concurrent rotation
     // can't interleave between them (the trip_id UNIQUE constraint would turn
@@ -72,12 +71,18 @@ export class TripInviteService {
       if (existing) {
         this.dbs.run(
           'UPDATE trip_invite_tokens SET token = ?, expires_at = ?, created_by = ?, created_at = CURRENT_TIMESTAMP WHERE trip_id = ?',
-          token, expiresAt, createdBy, tripId,
+          token,
+          expiresAt,
+          createdBy,
+          tripId,
         );
       } else {
         this.dbs.run(
           'INSERT INTO trip_invite_tokens (trip_id, token, created_by, expires_at) VALUES (?, ?, ?, ?)',
-          tripId, token, createdBy, expiresAt,
+          tripId,
+          token,
+          createdBy,
+          expiresAt,
         );
       }
       return this.get(tripId)!;
@@ -114,5 +119,7 @@ export class TripInviteService {
 
   /** Join the resolved trip as the current (authenticated, non-guest) user.
    *  invited_by is null — they joined via a link, not a personal invite. */
-  join(tripId: number, userId: number) { return this.membership.joinTripAsMember(tripId, userId, null); }
+  join(tripId: number, userId: number) {
+    return this.membership.joinTripAsMember(tripId, userId, null);
+  }
 }

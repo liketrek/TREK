@@ -1,9 +1,10 @@
-import { describe, it, expect, vi } from 'vitest';
-import { HttpException } from '@nestjs/common';
-import type { CallHandler, ExecutionContext } from '@nestjs/common';
-import { from, of, lastValueFrom } from 'rxjs';
 import { IdempotencyInterceptor } from '../../../src/nest/common/idempotency.interceptor';
 import type { DatabaseService } from '../../../src/nest/database/database.service';
+import { HttpException } from '@nestjs/common';
+import type { CallHandler, ExecutionContext } from '@nestjs/common';
+
+import { from, of, lastValueFrom } from 'rxjs';
+import { describe, it, expect, vi } from 'vitest';
 
 type ReqShape = {
   method: string;
@@ -64,7 +65,10 @@ describe('IdempotencyInterceptor (parity with the legacy applyIdempotency middle
     const db = makeDb();
     const h = handler('done');
     await lastValueFrom(
-      new IdempotencyInterceptor(db).intercept(ctx({ method: 'POST', headers: { 'x-idempotency-key': 'k' } }, makeRes()), h),
+      new IdempotencyInterceptor(db).intercept(
+        ctx({ method: 'POST', headers: { 'x-idempotency-key': 'k' } }, makeRes()),
+        h,
+      ),
     );
     expect(h.handle).toHaveBeenCalled();
     expect(db.get).not.toHaveBeenCalled();
@@ -102,10 +106,7 @@ describe('IdempotencyInterceptor (parity with the legacy applyIdempotency middle
     expect(res.status).toHaveBeenCalledWith(201);
     expect(out).toEqual({ id: 5 });
     expect(h.handle).not.toHaveBeenCalled();
-    expect(db.get).toHaveBeenCalledWith(
-      expect.stringContaining('idempotency_keys'),
-      'k', 1, 'POST', '/api/categories',
-    );
+    expect(db.get).toHaveBeenCalledWith(expect.stringContaining('idempotency_keys'), 'k', 1, 'POST', '/api/categories');
   });
 
   it('captures a successful JSON response under the key', async () => {
@@ -125,7 +126,13 @@ describe('IdempotencyInterceptor (parity with the legacy applyIdempotency middle
     expect(run).toHaveBeenCalledTimes(1);
     expect(run).toHaveBeenCalledWith(
       expect.stringContaining('INSERT OR IGNORE INTO idempotency_keys'),
-      'k', 1, 'POST', '/api/categories', 201, '{"created":true}', expect.any(Number),
+      'k',
+      1,
+      'POST',
+      '/api/categories',
+      201,
+      '{"created":true}',
+      expect.any(Number),
     );
   });
 
@@ -186,7 +193,9 @@ describe('IdempotencyInterceptor (parity with the legacy applyIdempotency middle
     // in-flight map both of these would miss the SELECT and both would run.
     const rows = new Map<string, { status_code: number; response_body: string }>();
     const db = makeDb({
-      get: vi.fn((_sql: string, ...params: unknown[]) => rows.get(String(params[0]))) as unknown as DatabaseService['get'],
+      get: vi.fn((_sql: string, ...params: unknown[]) =>
+        rows.get(String(params[0])),
+      ) as unknown as DatabaseService['get'],
       run: vi.fn((_sql: string, ...params: unknown[]) => {
         rows.set(String(params[0]), { status_code: Number(params[4]), response_body: String(params[5]) });
         return {} as never;
@@ -196,13 +205,31 @@ describe('IdempotencyInterceptor (parity with the legacy applyIdempotency middle
 
     // The first handler is still running when the second request arrives.
     let finish!: (value: unknown) => void;
-    const slow = { handle: vi.fn(() => from(new Promise((resolve) => { finish = resolve; }))) };
+    const slow = {
+      handle: vi.fn(() =>
+        from(
+          new Promise((resolve) => {
+            finish = resolve;
+          }),
+        ),
+      ),
+    };
     const firstRes = makeRes();
-    const first = lastValueFrom(interceptor.intercept(ctx({ method: 'POST', headers: { 'x-idempotency-key': 'k' }, path: '/api/places', user: { id: 1 } }, firstRes), slow));
+    const first = lastValueFrom(
+      interceptor.intercept(
+        ctx({ method: 'POST', headers: { 'x-idempotency-key': 'k' }, path: '/api/places', user: { id: 1 } }, firstRes),
+        slow,
+      ),
+    );
 
     const secondHandler = handler({ id: 'second' });
     const secondRes = makeRes();
-    const second = lastValueFrom(interceptor.intercept(ctx({ method: 'POST', headers: { 'x-idempotency-key': 'k' }, path: '/api/places', user: { id: 1 } }, secondRes), secondHandler));
+    const second = lastValueFrom(
+      interceptor.intercept(
+        ctx({ method: 'POST', headers: { 'x-idempotency-key': 'k' }, path: '/api/places', user: { id: 1 } }, secondRes),
+        secondHandler,
+      ),
+    );
 
     // The order Nest uses, and the one that makes this test worth having: the
     // handler's observable completes FIRST, and the response - which is what
@@ -227,17 +254,29 @@ describe('IdempotencyInterceptor (parity with the legacy applyIdempotency middle
     const interceptor = new IdempotencyInterceptor(db);
 
     let finish!: (value: unknown) => void;
-    const slow = { handle: vi.fn(() => from(new Promise((resolve) => { finish = resolve; }))) };
-    const first = lastValueFrom(interceptor.intercept(
-      ctx({ method: 'POST', headers: { 'x-idempotency-key': 'k' }, path: '/api/places', user: { id: 1 } }, makeRes()),
-      slow,
-    ));
+    const slow = {
+      handle: vi.fn(() =>
+        from(
+          new Promise((resolve) => {
+            finish = resolve;
+          }),
+        ),
+      ),
+    };
+    const first = lastValueFrom(
+      interceptor.intercept(
+        ctx({ method: 'POST', headers: { 'x-idempotency-key': 'k' }, path: '/api/places', user: { id: 1 } }, makeRes()),
+        slow,
+      ),
+    );
 
     const secondHandler = handler({ id: 'second' });
-    const second = lastValueFrom(interceptor.intercept(
-      ctx({ method: 'POST', headers: { 'x-idempotency-key': 'k' }, path: '/api/places', user: { id: 1 } }, makeRes()),
-      secondHandler,
-    ));
+    const second = lastValueFrom(
+      interceptor.intercept(
+        ctx({ method: 'POST', headers: { 'x-idempotency-key': 'k' }, path: '/api/places', user: { id: 1 } }, makeRes()),
+        secondHandler,
+      ),
+    );
 
     // Nothing writes a response here, so the waiter is freed by the backstop in
     // finalize, which defers a full tick past the response write.
@@ -253,7 +292,10 @@ describe('IdempotencyInterceptor (parity with the legacy applyIdempotency middle
     const h = handler('done');
     await lastValueFrom(
       new IdempotencyInterceptor(db).intercept(
-        ctx({ method: 'PATCH', headers: { 'x-idempotency-key': 'k' }, path: '/api/categories/1', user: { id: 1 } }, res),
+        ctx(
+          { method: 'PATCH', headers: { 'x-idempotency-key': 'k' }, path: '/api/categories/1', user: { id: 1 } },
+          res,
+        ),
         h,
       ),
     );

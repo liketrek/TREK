@@ -1,8 +1,8 @@
-import { Injectable } from '@nestjs/common';
-import type { SystemNoticeDto } from '@trek/shared';
 import { getActiveNoticesFor, dismissNotice } from '../../systemNotices/service';
 import { AddonsService } from '../addons/addons.service';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
+import { Injectable } from '@nestjs/common';
+import type { SystemNoticeDto } from '@trek/shared';
 
 /**
  * Thin Nest wrapper around the existing system-notices service. The condition

@@ -29,7 +29,8 @@ const notif: TranslationStrings = {
   'notif.version_available.text': 'Το TREK {version} είναι τώρα διαθέσιμο',
   'notif.replica_failure.title': 'Αποτυχία αντιγράφου αποθήκευσης',
   'notif.replica_failure.text': "Η εγγραφή στο αντίγραφο '{backend}' απέτυχε: {op} του {key} — {error}",
-  'notif.replica_failure.textSuppressed': "Η εγγραφή στο αντίγραφο '{backend}' απέτυχε: {op} του {key} — {error}. {suppressed} επιπλέον αποτυχίες αποκρύφθηκαν από την τελευταία ειδοποίηση.",
+  'notif.replica_failure.textSuppressed':
+    "Η εγγραφή στο αντίγραφο '{backend}' απέτυχε: {op} του {key} — {error}. {suppressed} επιπλέον αποτυχίες αποκρύφθηκαν από την τελευταία ειδοποίηση.",
   'notif.action.view_trip': 'Προβολή Ταξιδιού',
   'notif.action.view_collab': 'Προβολή Μηνυμάτων',
   'notif.action.view_packing': 'Προβολή Αποσκευών',

@@ -1,14 +1,20 @@
-import { Inject, Injectable } from '@nestjs/common';
 import { DatabaseService } from '../../database/database.service';
+import { appendAudit } from './plugin-audit';
+import { getPluginDataDb } from './plugin-host-state';
 import { PluginRpcHost } from './rpc-host';
 import type { PluginRpcRegistry } from './rpc-kit/registry';
 import { PluginRpcRegistryService } from './rpc-kit/registry.service';
-import { appendAudit } from './plugin-audit';
-import { getPluginDataDb } from './plugin-host-state';
+import { Inject, Injectable } from '@nestjs/common';
 
 /** Routes inter-plugin calls/events; supplied by PluginRuntimeService (owns the supervisor). */
 export interface PluginCallRouter {
-  callPlugin(callerId: string, targetId: string, fn: string, args: unknown, actingUserId: number | undefined): Promise<unknown>;
+  callPlugin(
+    callerId: string,
+    targetId: string,
+    fn: string,
+    args: unknown,
+    actingUserId: number | undefined,
+  ): Promise<unknown>;
   emitPluginEvent(sourceId: string, event: string, payload: unknown): void;
 }
 

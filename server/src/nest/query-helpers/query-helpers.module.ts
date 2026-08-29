@@ -1,5 +1,5 @@
-import { Module } from '@nestjs/common';
 import { QueryHelpersService } from './query-helpers.service';
+import { Module } from '@nestjs/common';
 
 /** Shared batch loaders for the list endpoints. No controller or MCP surface of
  *  its own — assignments, days, places and share import it for the loaders.

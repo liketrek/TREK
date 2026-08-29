@@ -96,7 +96,8 @@ const places: TranslationStrings = {
   'places.details.facts': '值得一看',
   'places.details.nothing': '找不到此地點的資訊。',
   'places.details.noKeyTitle': '可取得更多詳細資訊',
-  'places.details.noKeyHint': '沒有 Google API 金鑰時，此執行個體僅使用免費來源。請聯絡 TREK 管理員新增金鑰，以取得評分、營業時間與照片。',
+  'places.details.noKeyHint':
+    '沒有 Google API 金鑰時，此執行個體僅使用免費來源。請聯絡 TREK 管理員新增金鑰，以取得評分、營業時間與照片。',
   'places.details.aboutBrand': '關於該連鎖品牌',
   'places.details.aboutBrandNote': '描述的是連鎖品牌，而非本分店。',
   'places.details.fact.rating': '評分',

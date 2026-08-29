@@ -3,34 +3,70 @@
  * SSRF/private-IP blocking, declared-host allowlisting, and connect() arg
  * classification.
  */
-import { describe, it, expect } from 'vitest';
-import net from 'node:net';
 import {
-  isBlockedIp, makeHostAllow, classifyConnect, unwrapConnectArgs, dgramSendTarget, dgramConnectTarget,
+  isBlockedIp,
+  makeHostAllow,
+  classifyConnect,
+  unwrapConnectArgs,
+  dgramSendTarget,
+  dgramConnectTarget,
 } from '../../../src/nest/plugins/runtime/egress-policy';
+
+import net from 'node:net';
+import { describe, it, expect } from 'vitest';
 
 const isIP = (s: string) => net.isIP(s) !== 0;
 
 describe('isBlockedIp', () => {
   it.each([
-    '0.0.0.0', '10.1.2.3', '127.0.0.1', '172.16.0.1', '172.31.255.255',
-    '192.168.1.1', '169.254.169.254', '100.64.0.1', '224.0.0.1', '255.255.255.255',
-    '::1', '::', 'fe80::1', 'fc00::1', 'fd12:3456::1', '::ffff:127.0.0.1', '::ffff:10.0.0.1',
+    '0.0.0.0',
+    '10.1.2.3',
+    '127.0.0.1',
+    '172.16.0.1',
+    '172.31.255.255',
+    '192.168.1.1',
+    '169.254.169.254',
+    '100.64.0.1',
+    '224.0.0.1',
+    '255.255.255.255',
+    '::1',
+    '::',
+    'fe80::1',
+    'fc00::1',
+    'fd12:3456::1',
+    '::ffff:127.0.0.1',
+    '::ffff:10.0.0.1',
     // non-canonical IPv6 spellings must be blocked too (canonicalization)
-    '0::1', '::ffff:a9fe:a9fe', '::ffff:169.254.169.254', '0:0:0:0:0:0:0:1', 'fD00::1', '::ffff:7f00:1',
+    '0::1',
+    '::ffff:a9fe:a9fe',
+    '::ffff:169.254.169.254',
+    '0:0:0:0:0:0:0:1',
+    'fD00::1',
+    '::ffff:7f00:1',
     // IPv6 transition addresses (NAT64/6to4/Teredo) embedding a blocked IPv4
-    '64:ff9b::a9fe:a9fe', '64:ff9b::7f00:1', '64:ff9b::a00:1', // NAT64 → metadata / loopback / 10.x
-    '2002:a9fe:a9fe::', '2002:7f00:1::', // 6to4 → metadata / loopback
+    '64:ff9b::a9fe:a9fe',
+    '64:ff9b::7f00:1',
+    '64:ff9b::a00:1', // NAT64 → metadata / loopback / 10.x
+    '2002:a9fe:a9fe::',
+    '2002:7f00:1::', // 6to4 → metadata / loopback
     '2001::5601:5601', // Teredo → 169.254.169.254
   ])('blocks %s', (ip) => {
     expect(isBlockedIp(ip)).toBe(true);
   });
 
   it.each([
-    '8.8.8.8', '1.1.1.1', '140.82.121.3', '172.15.0.1', '172.32.0.1',
-    '100.63.0.1', '100.128.0.1', '2606:4700::1111', '::ffff:8.8.8.8',
+    '8.8.8.8',
+    '1.1.1.1',
+    '140.82.121.3',
+    '172.15.0.1',
+    '172.32.0.1',
+    '100.63.0.1',
+    '100.128.0.1',
+    '2606:4700::1111',
+    '::ffff:8.8.8.8',
     // transition addresses to a public IPv4 are legitimate egress, not blocked
-    '64:ff9b::808:808', '2002:808:808::',
+    '64:ff9b::808:808',
+    '2002:808:808::',
   ])('allows public %s', (ip) => {
     expect(isBlockedIp(ip)).toBe(false);
   });
@@ -78,7 +114,10 @@ describe('classifyConnect', () => {
   });
 
   it('classifies an options object with a hostname', () => {
-    expect(classifyConnect([{ host: 'api.example.com', port: 443 }], isIP)).toEqual({ kind: 'hostname', host: 'api.example.com' });
+    expect(classifyConnect([{ host: 'api.example.com', port: 443 }], isIP)).toEqual({
+      kind: 'hostname',
+      host: 'api.example.com',
+    });
   });
 
   it('classifies an options object with a literal IP', () => {

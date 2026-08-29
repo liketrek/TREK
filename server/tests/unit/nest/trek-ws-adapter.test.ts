@@ -1,3 +1,7 @@
+import { TrekWsAdapter } from '../../../src/nest/realtime/trek-ws.adapter';
+import { getServer } from '../../../src/nest/realtime/ws-state';
+
+import type { Server as HttpServer } from 'node:http';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 /**
@@ -16,7 +20,12 @@ const { wsOrigins, logError } = vi.hoisted(() => ({
   wsOrigins: { value: null as string[] | null },
   logError: vi.fn(),
 }));
-vi.mock('../../../src/nest/audit/audit-log.logger', () => ({ logError, logInfo: vi.fn(), logDebug: vi.fn(), logWarn: vi.fn() }));
+vi.mock('../../../src/nest/audit/audit-log.logger', () => ({
+  logError,
+  logInfo: vi.fn(),
+  logDebug: vi.fn(),
+  logWarn: vi.fn(),
+}));
 vi.mock('../../../src/app-config', async (importOriginal) => {
   const actual = (await importOriginal()) as Record<string, unknown>;
   return {
@@ -24,16 +33,12 @@ vi.mock('../../../src/app-config', async (importOriginal) => {
     readEnv: () => ({
       ...(actual.readEnv as () => { http: Record<string, unknown> })(),
       http: {
-        ...((actual.readEnv as () => { http: Record<string, unknown> })().http),
+        ...(actual.readEnv as () => { http: Record<string, unknown> })().http,
         wsOrigins: wsOrigins.value,
       },
     }),
   };
 });
-
-import { TrekWsAdapter } from '../../../src/nest/realtime/trek-ws.adapter';
-import { getServer } from '../../../src/nest/realtime/ws-state';
-import type { Server as HttpServer } from 'node:http';
 
 type MessageListener = (buffer: Buffer) => void;
 
@@ -44,7 +49,9 @@ function fakeSocket() {
     readyState: 1,
     sent,
     terminate: vi.fn(),
-    send: (raw: string) => { sent.push(raw); },
+    send: (raw: string) => {
+      sent.push(raw);
+    },
     on: (event: string, fn: MessageListener) => {
       (listeners[event] ??= []).push(fn);
     },
@@ -66,9 +73,27 @@ let handlers: { message: string; callback: (data: unknown, socket: unknown) => u
 beforeEach(() => {
   handled = [];
   handlers = [
-    { message: 'join', callback: (data) => { handled.push(data); return { type: 'joined' }; } },
-    { message: 'leave', callback: (data) => { handled.push(data); return undefined; } },
-    { message: 'book:cursor', callback: (data) => { handled.push(data); return undefined; } },
+    {
+      message: 'join',
+      callback: (data) => {
+        handled.push(data);
+        return { type: 'joined' };
+      },
+    },
+    {
+      message: 'leave',
+      callback: (data) => {
+        handled.push(data);
+        return undefined;
+      },
+    },
+    {
+      message: 'book:cursor',
+      callback: (data) => {
+        handled.push(data);
+        return undefined;
+      },
+    },
   ];
 });
 

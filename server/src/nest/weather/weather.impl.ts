@@ -113,40 +113,96 @@ interface OpenMeteoForecast {
 // ── WMO code mappings ───────────────────────────────────────────────────
 
 const WMO_MAP: Record<number, string> = {
-  0: 'Clear', 1: 'Clear', 2: 'Clouds', 3: 'Clouds',
-  45: 'Fog', 48: 'Fog',
-  51: 'Drizzle', 53: 'Drizzle', 55: 'Drizzle', 56: 'Drizzle', 57: 'Drizzle',
-  61: 'Rain', 63: 'Rain', 65: 'Rain', 66: 'Rain', 67: 'Rain',
-  71: 'Snow', 73: 'Snow', 75: 'Snow', 77: 'Snow',
-  80: 'Rain', 81: 'Rain', 82: 'Rain',
-  85: 'Snow', 86: 'Snow',
-  95: 'Thunderstorm', 96: 'Thunderstorm', 99: 'Thunderstorm',
+  0: 'Clear',
+  1: 'Clear',
+  2: 'Clouds',
+  3: 'Clouds',
+  45: 'Fog',
+  48: 'Fog',
+  51: 'Drizzle',
+  53: 'Drizzle',
+  55: 'Drizzle',
+  56: 'Drizzle',
+  57: 'Drizzle',
+  61: 'Rain',
+  63: 'Rain',
+  65: 'Rain',
+  66: 'Rain',
+  67: 'Rain',
+  71: 'Snow',
+  73: 'Snow',
+  75: 'Snow',
+  77: 'Snow',
+  80: 'Rain',
+  81: 'Rain',
+  82: 'Rain',
+  85: 'Snow',
+  86: 'Snow',
+  95: 'Thunderstorm',
+  96: 'Thunderstorm',
+  99: 'Thunderstorm',
 };
 
 const WMO_DESCRIPTION_DE: Record<number, string> = {
-  0: 'Klar', 1: 'Uberwiegend klar', 2: 'Teilweise bewolkt', 3: 'Bewolkt',
-  45: 'Nebel', 48: 'Nebel mit Reif',
-  51: 'Leichter Nieselregen', 53: 'Nieselregen', 55: 'Starker Nieselregen',
-  56: 'Gefrierender Nieselregen', 57: 'Starker gefr. Nieselregen',
-  61: 'Leichter Regen', 63: 'Regen', 65: 'Starker Regen',
-  66: 'Gefrierender Regen', 67: 'Starker gefr. Regen',
-  71: 'Leichter Schneefall', 73: 'Schneefall', 75: 'Starker Schneefall', 77: 'Schneekorner',
-  80: 'Leichte Regenschauer', 81: 'Regenschauer', 82: 'Starke Regenschauer',
-  85: 'Leichte Schneeschauer', 86: 'Starke Schneeschauer',
-  95: 'Gewitter', 96: 'Gewitter mit Hagel', 99: 'Starkes Gewitter mit Hagel',
+  0: 'Klar',
+  1: 'Uberwiegend klar',
+  2: 'Teilweise bewolkt',
+  3: 'Bewolkt',
+  45: 'Nebel',
+  48: 'Nebel mit Reif',
+  51: 'Leichter Nieselregen',
+  53: 'Nieselregen',
+  55: 'Starker Nieselregen',
+  56: 'Gefrierender Nieselregen',
+  57: 'Starker gefr. Nieselregen',
+  61: 'Leichter Regen',
+  63: 'Regen',
+  65: 'Starker Regen',
+  66: 'Gefrierender Regen',
+  67: 'Starker gefr. Regen',
+  71: 'Leichter Schneefall',
+  73: 'Schneefall',
+  75: 'Starker Schneefall',
+  77: 'Schneekorner',
+  80: 'Leichte Regenschauer',
+  81: 'Regenschauer',
+  82: 'Starke Regenschauer',
+  85: 'Leichte Schneeschauer',
+  86: 'Starke Schneeschauer',
+  95: 'Gewitter',
+  96: 'Gewitter mit Hagel',
+  99: 'Starkes Gewitter mit Hagel',
 };
 
 const WMO_DESCRIPTION_EN: Record<number, string> = {
-  0: 'Clear sky', 1: 'Mainly clear', 2: 'Partly cloudy', 3: 'Overcast',
-  45: 'Fog', 48: 'Rime fog',
-  51: 'Light drizzle', 53: 'Drizzle', 55: 'Heavy drizzle',
-  56: 'Freezing drizzle', 57: 'Heavy freezing drizzle',
-  61: 'Light rain', 63: 'Rain', 65: 'Heavy rain',
-  66: 'Freezing rain', 67: 'Heavy freezing rain',
-  71: 'Light snowfall', 73: 'Snowfall', 75: 'Heavy snowfall', 77: 'Snow grains',
-  80: 'Light rain showers', 81: 'Rain showers', 82: 'Heavy rain showers',
-  85: 'Light snow showers', 86: 'Heavy snow showers',
-  95: 'Thunderstorm', 96: 'Thunderstorm with hail', 99: 'Severe thunderstorm with hail',
+  0: 'Clear sky',
+  1: 'Mainly clear',
+  2: 'Partly cloudy',
+  3: 'Overcast',
+  45: 'Fog',
+  48: 'Rime fog',
+  51: 'Light drizzle',
+  53: 'Drizzle',
+  55: 'Heavy drizzle',
+  56: 'Freezing drizzle',
+  57: 'Heavy freezing drizzle',
+  61: 'Light rain',
+  63: 'Rain',
+  65: 'Heavy rain',
+  66: 'Freezing rain',
+  67: 'Heavy freezing rain',
+  71: 'Light snowfall',
+  73: 'Snowfall',
+  75: 'Heavy snowfall',
+  77: 'Snow grains',
+  80: 'Light rain showers',
+  81: 'Rain showers',
+  82: 'Heavy rain showers',
+  85: 'Light snow showers',
+  86: 'Heavy snow showers',
+  95: 'Thunderstorm',
+  96: 'Thunderstorm with hail',
+  99: 'Severe thunderstorm with hail',
 };
 
 // ── Cache management ────────────────────────────────────────────────────
@@ -194,9 +250,9 @@ export function stopCacheCleanup(): void {
   cleanupTimer = null;
 }
 
-const TTL_FORECAST_MS = 60 * 60 * 1000;      // 1 hour
-const TTL_CURRENT_MS  = 15 * 60 * 1000;      // 15 minutes
-const TTL_CLIMATE_MS  = 24 * 60 * 60 * 1000; // 24 hours
+const TTL_FORECAST_MS = 60 * 60 * 1000; // 1 hour
+const TTL_CURRENT_MS = 15 * 60 * 1000; // 15 minutes
+const TTL_CLIMATE_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 export function cacheKey(lat: string, lng: string, date?: string): string {
   const rlat = Number.parseFloat(lat).toFixed(2);
@@ -282,9 +338,7 @@ async function _getWeatherImpl(
       // With a time in hand, ask for the hourly series too: a journal entry made at
       // 14:30 wants the weather of that hour, not the day's high and low averaged
       // together, which is what a rainy morning and a bright afternoon collapse to.
-      const hourParam = hourIndexFromTime(time) != null
-        ? '&hourly=temperature_2m,weathercode'
-        : '';
+      const hourParam = hourIndexFromTime(time) != null ? '&hourly=temperature_2m,weathercode' : '';
       const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}&start_date=${dateStr}&end_date=${dateStr}&daily=temperature_2m_max,temperature_2m_min,weathercode,precipitation_sum${hourParam}&timezone=auto`;
       const { response, data } = await fetchOpenMeteo(url);
 
@@ -293,7 +347,8 @@ async function _getWeatherImpl(
       }
 
       const hourIdx = hourIndexFromTime(time);
-      const hourly = (data as { hourly?: { temperature_2m?: (number | null)[]; weathercode?: (number | null)[] } }).hourly;
+      const hourly = (data as { hourly?: { temperature_2m?: (number | null)[]; weathercode?: (number | null)[] } })
+        .hourly;
       if (hourIdx != null && hourly?.temperature_2m?.[hourIdx] != null) {
         const temp = hourly.temperature_2m[hourIdx]!;
         const code = hourly.weathercode?.[hourIdx] ?? undefined;
@@ -353,7 +408,10 @@ async function _getWeatherImpl(
         return { temp: 0, main: '', description: '', type: '', error: 'no_forecast' };
       }
 
-      let sumMax = 0, sumMin = 0, sumPrecip = 0, count = 0;
+      let sumMax = 0,
+        sumMin = 0,
+        sumPrecip = 0,
+        count = 0;
       for (let i = 0; i < daily.time.length; i++) {
         if (daily.temperature_2m_max[i] != null && daily.temperature_2m_min[i] != null) {
           sumMax += daily.temperature_2m_max[i];
@@ -433,17 +491,16 @@ export async function getWeather(
   if (existing !== undefined) return existing;
   const promise = _getWeatherImpl(lat, lng, date, lang, time);
   inFlight.set(inFlightKey, promise);
-  try { return await promise; } finally { inFlight.delete(inFlightKey); }
+  try {
+    return await promise;
+  } finally {
+    inFlight.delete(inFlightKey);
+  }
 }
 
 // ── getDetailedWeather ──────────────────────────────────────────────────
 
-async function _getDetailedWeatherImpl(
-  lat: string,
-  lng: string,
-  date: string,
-  lang: string,
-): Promise<WeatherResult> {
+async function _getDetailedWeatherImpl(lat: string, lng: string, date: string, lang: string): Promise<WeatherResult> {
   const ck = `detailed_${cacheKey(lat, lng, date)}`;
 
   const cached = getCached(ck);
@@ -463,11 +520,12 @@ async function _getDetailedWeatherImpl(
     if (new Date(refYear, targetDate.getMonth(), targetDate.getDate()) > yesterday) refYear--;
     const refDateStr = `${refYear}-${String(targetDate.getMonth() + 1).padStart(2, '0')}-${String(targetDate.getDate()).padStart(2, '0')}`;
 
-    const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}`
-      + `&start_date=${refDateStr}&end_date=${refDateStr}`
-      + `&hourly=temperature_2m,precipitation,weathercode,windspeed_10m,relativehumidity_2m`
-      + `&daily=temperature_2m_max,temperature_2m_min,weathercode,precipitation_sum,windspeed_10m_max,sunrise,sunset`
-      + `&timezone=auto`;
+    const url =
+      `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}` +
+      `&start_date=${refDateStr}&end_date=${refDateStr}` +
+      `&hourly=temperature_2m,precipitation,weathercode,windspeed_10m,relativehumidity_2m` +
+      `&daily=temperature_2m_max,temperature_2m_min,weathercode,precipitation_sum,windspeed_10m_max,sunrise,sunset` +
+      `&timezone=auto`;
     const { response, data } = await fetchOpenMeteo(url);
 
     if (!response.ok || data.error) {
@@ -502,7 +560,8 @@ async function _getDetailedWeatherImpl(
       }
     }
 
-    let sunrise: string | null = null, sunset: string | null = null;
+    let sunrise: string | null = null,
+      sunset: string | null = null;
     if (daily.sunrise?.[idx]) sunrise = daily.sunrise[idx].split('T')[1]?.slice(0, 5);
     if (daily.sunset?.[idx]) sunset = daily.sunset[idx].split('T')[1]?.slice(0, 5);
 
@@ -525,10 +584,11 @@ async function _getDetailedWeatherImpl(
   }
 
   // Forecast path (<= 16 days)
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}`
-    + `&hourly=temperature_2m,precipitation_probability,precipitation,weathercode,windspeed_10m,relativehumidity_2m`
-    + `&daily=temperature_2m_max,temperature_2m_min,weathercode,sunrise,sunset,precipitation_probability_max,precipitation_sum,windspeed_10m_max`
-    + `&timezone=auto&start_date=${dateStr}&end_date=${dateStr}`;
+  const url =
+    `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}` +
+    `&hourly=temperature_2m,precipitation_probability,precipitation,weathercode,windspeed_10m,relativehumidity_2m` +
+    `&daily=temperature_2m_max,temperature_2m_min,weathercode,sunrise,sunset,precipitation_probability_max,precipitation_sum,windspeed_10m_max` +
+    `&timezone=auto&start_date=${dateStr}&end_date=${dateStr}`;
 
   const { response, data } = await fetchOpenMeteo(url);
 
@@ -604,7 +664,11 @@ export async function getDetailedWeather(
   if (existing !== undefined) return existing;
   const promise = _getDetailedWeatherImpl(lat, lng, date, lang);
   inFlight.set(inFlightKey, promise);
-  try { return await promise; } finally { inFlight.delete(inFlightKey); }
+  try {
+    return await promise;
+  } finally {
+    inFlight.delete(inFlightKey);
+  }
 }
 
 // ── ApiError ────────────────────────────────────────────────────────────

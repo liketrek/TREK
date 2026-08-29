@@ -4,12 +4,16 @@
  * service is mocked so the test doesn't depend on the static registry or the
  * dismissal tables; it focuses on routing, auth, status codes and bodies.
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import request from 'supertest';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { DatabaseModule } from '../../src/nest/database/database.module';
+import { SystemNoticesModule } from '../../src/nest/system-notices/system-notices.module';
+import { seedUser, sessionCookie } from './harness';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
-import { Test } from '@nestjs/testing';
-import { seedUser, sessionCookie } from './harness';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
 const { db } = vi.hoisted(() => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -29,13 +33,13 @@ vi.mock('../../src/systemNotices/service', () => ({
   dismissNotice: mockDismiss,
 }));
 
-import { SystemNoticesModule } from '../../src/nest/system-notices/system-notices.module';
-import { DatabaseModule } from '../../src/nest/database/database.module';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-
 const notice = {
-  id: 'welcome', display: 'modal', severity: 'info',
-  titleKey: 'notice.welcome.title', bodyKey: 'notice.welcome.body', dismissible: true,
+  id: 'welcome',
+  display: 'modal',
+  severity: 'info',
+  titleKey: 'notice.welcome.title',
+  bodyKey: 'notice.welcome.body',
+  dismissible: true,
 };
 
 describe('System-notices e2e (real auth guard + temp SQLite)', () => {

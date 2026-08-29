@@ -18,7 +18,6 @@
  * sanctioned pattern for NEW Nest consumers of boot-stable config, not dead
  * scaffolding to prune.
  */
-import { registerAs } from '@nestjs/config';
 import {
   deriveBackup,
   deriveDb,
@@ -29,6 +28,7 @@ import {
   derivePaths,
   deriveSession,
 } from '../../app-config';
+import { registerAs } from '@nestjs/config';
 
 /**
  * http is snapshot-consumed only by the pre-init Express layer (bootstrap

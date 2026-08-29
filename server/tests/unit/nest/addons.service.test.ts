@@ -1,3 +1,7 @@
+import { db as dbConn } from '../../../src/db/database';
+import { AddonsService } from '../../../src/nest/addons/addons.service';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Three distinct prepare(...).all() reads (addons, photo_providers, photo_provider_fields).
@@ -7,13 +11,9 @@ const { dbMock } = vi.hoisted(() => {
   return { dbMock: { prepare: vi.fn(() => stmt), _stmt: stmt } };
 });
 vi.mock('../../../src/db/database', () => ({ db: dbMock, closeDb: () => {}, reinitialize: () => {} }));
-import { db as dbConn } from '../../../src/db/database';
-import { DatabaseService } from '../../../src/nest/database/database.service';
 
 const { getPhotoProviderConfig } = vi.hoisted(() => ({ getPhotoProviderConfig: vi.fn(() => ({})) }));
 vi.mock('../../../src/nest/memories/memories.helpers', () => ({ getPhotoProviderConfig }));
-
-import { AddonsService } from '../../../src/nest/addons/addons.service';
 
 function svc() {
   return new AddonsService(new DatabaseService(dbConn));
@@ -95,11 +95,7 @@ describe('AddonsService.list', () => {
   });
 
   it('maps a photo provider with no fields to an empty fields array (the || [] fallback)', () => {
-    feedReads(
-      [],
-      [{ id: 'immich', name: 'Immich', icon: 'image', enabled: 1, sort_order: 0 }],
-      [],
-    );
+    feedReads([], [{ id: 'immich', name: 'Immich', icon: 'image', enabled: 1, sort_order: 0 }], []);
     getPhotoProviderConfig.mockReturnValue({ baseUrl: 'http://x' });
 
     const res = svc().list();
@@ -118,11 +114,7 @@ describe('AddonsService.list', () => {
   });
 
   it('coerces a disabled photo provider enabled flag to false', () => {
-    feedReads(
-      [],
-      [{ id: 'synology', name: 'Synology', icon: 'image', enabled: 0, sort_order: 1 }],
-      [],
-    );
+    feedReads([], [{ id: 'synology', name: 'Synology', icon: 'image', enabled: 0, sort_order: 1 }], []);
 
     const res = svc().list();
     expect((res.addons[0] as { enabled: boolean }).enabled).toBe(false);

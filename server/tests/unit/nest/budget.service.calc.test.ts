@@ -7,6 +7,14 @@
  * update is exercised as applySettlementUpdate (the no-freeze write the REST
  * updateSettlement wraps).
  */
+import { BudgetService } from '../../../src/nest/budget/budget.service';
+import type { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import type { BudgetItem, BudgetItemMember, BudgetItemPayer } from '../../../src/types';
+
+import type Database from 'better-sqlite3';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // ── DB mock setup ────────────────────────────────────────────────────────────
@@ -40,14 +48,6 @@ vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn() }));
 
 const mockRates = { getRates: vi.fn() };
 
-import { BudgetService } from '../../../src/nest/budget/budget.service';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import type { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
-import type { BudgetItem, BudgetItemMember, BudgetItemPayer } from '../../../src/types';
-import type Database from 'better-sqlite3';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-
 /**
  * A prepared-statement stub.
  *
@@ -75,24 +75,46 @@ function makeItem(id: number, total_price: number, trip_id = 1): BudgetItem {
   return { id, trip_id, name: `Item ${id}`, total_price, category: 'other' } as BudgetItem;
 }
 
-function makeMember(budget_item_id: number, user_id: number, username: string): BudgetItemMember & { budget_item_id: number } {
+function makeMember(
+  budget_item_id: number,
+  user_id: number,
+  username: string,
+): BudgetItemMember & { budget_item_id: number } {
   return { budget_item_id, user_id, paid: 0, username, avatar: null } as BudgetItemMember & { budget_item_id: number };
 }
 
-function makePayer(budget_item_id: number, user_id: number, amount: number, username: string): BudgetItemPayer & { budget_item_id: number } {
+function makePayer(
+  budget_item_id: number,
+  user_id: number,
+  amount: number,
+  username: string,
+): BudgetItemPayer & { budget_item_id: number } {
   return { budget_item_id, user_id, amount, username, avatar: null } as BudgetItemPayer & { budget_item_id: number };
 }
 
 // A raw budget_settlements row as listSettlements reads it (joined usernames/avatars).
 function makeSettlementRow(
-  id: number, from_user_id: number, to_user_id: number, amount: number,
-  currency: string | null = null, exchange_rate = 1,
+  id: number,
+  from_user_id: number,
+  to_user_id: number,
+  amount: number,
+  currency: string | null = null,
+  exchange_rate = 1,
 ) {
   return {
-    id, trip_id: 1, from_user_id, to_user_id, amount, currency, exchange_rate,
-    created_at: '2026-01-01', created_by_user_id: from_user_id,
-    from_username: `u${from_user_id}`, from_avatar: null,
-    to_username: `u${to_user_id}`, to_avatar: null,
+    id,
+    trip_id: 1,
+    from_user_id,
+    to_user_id,
+    amount,
+    currency,
+    exchange_rate,
+    created_at: '2026-01-01',
+    created_by_user_id: from_user_id,
+    from_username: `u${from_user_id}`,
+    from_avatar: null,
+    to_username: `u${to_user_id}`,
+    to_avatar: null,
   };
 }
 
@@ -148,30 +170,22 @@ describe('calculateSettlement', () => {
   });
 
   it('returns no flows when no one has paid', () => {
-    setupDb(
-      [makeItem(1, 100)],
-      [makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob')],
-      [],
-    );
+    setupDb([makeItem(1, 100)], [makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob')], []);
     const result = budget.calculateSettlement(1);
     expect(result.flows).toEqual([]);
   });
 
   it('2 members, 1 payer: payer is owed half, non-payer owes half', () => {
     // Item: $100. Alice paid all, [Alice, Bob] split. Each owes $50. Alice net: +$50. Bob: -$50.
-    setupDb(
-      [makeItem(1, 100)],
-      [makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob')],
-      [makePayer(1, 1, 100, 'alice')],
-    );
+    setupDb([makeItem(1, 100)], [makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob')], [makePayer(1, 1, 100, 'alice')]);
     const result = budget.calculateSettlement(1);
-    const alice = result.balances.find(b => b.user_id === 1)!;
-    const bob = result.balances.find(b => b.user_id === 2)!;
+    const alice = result.balances.find((b) => b.user_id === 1)!;
+    const bob = result.balances.find((b) => b.user_id === 2)!;
     expect(alice.balance).toBe(50);
     expect(bob.balance).toBe(-50);
     expect(result.flows).toHaveLength(1);
     expect(result.flows[0].from.user_id).toBe(2); // Bob owes
-    expect(result.flows[0].to.user_id).toBe(1);   // Alice is owed
+    expect(result.flows[0].to.user_id).toBe(1); // Alice is owed
     expect(result.flows[0].amount).toBe(50);
   });
 
@@ -183,9 +197,9 @@ describe('calculateSettlement', () => {
       [makePayer(1, 1, 90, 'alice')],
     );
     const result = budget.calculateSettlement(1);
-    const alice = result.balances.find(b => b.user_id === 1)!;
-    const bob = result.balances.find(b => b.user_id === 2)!;
-    const carol = result.balances.find(b => b.user_id === 3)!;
+    const alice = result.balances.find((b) => b.user_id === 1)!;
+    const bob = result.balances.find((b) => b.user_id === 2)!;
+    const carol = result.balances.find((b) => b.user_id === 3)!;
     expect(alice.balance).toBe(60);
     expect(bob.balance).toBe(-30);
     expect(carol.balance).toBe(-30);
@@ -210,15 +224,11 @@ describe('calculateSettlement', () => {
 
   it('flow direction: from is debtor (owes), to is creditor (is owed)', () => {
     // Alice paid $100 for 2 people. Bob owes Alice $50.
-    setupDb(
-      [makeItem(1, 100)],
-      [makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob')],
-      [makePayer(1, 1, 100, 'alice')],
-    );
+    setupDb([makeItem(1, 100)], [makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob')], [makePayer(1, 1, 100, 'alice')]);
     const result = budget.calculateSettlement(1);
     const flow = result.flows[0];
-    expect(flow.from.username).toBe('bob');   // debtor
-    expect(flow.to.username).toBe('alice');   // creditor
+    expect(flow.from.username).toBe('bob'); // debtor
+    expect(flow.to.username).toBe('alice'); // creditor
   });
 
   it('amounts are rounded to 2 decimal places', () => {
@@ -247,15 +257,12 @@ describe('calculateSettlement', () => {
     // Final: Alice: +50 - 30 = +20, Bob: -50 + 30 = -20
     setupDb(
       [makeItem(1, 100), makeItem(2, 60)],
-      [
-        makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob'),
-        makeMember(2, 1, 'alice'), makeMember(2, 2, 'bob'),
-      ],
+      [makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob'), makeMember(2, 1, 'alice'), makeMember(2, 2, 'bob')],
       [makePayer(1, 1, 100, 'alice'), makePayer(2, 2, 60, 'bob')],
     );
     const result = budget.calculateSettlement(1);
-    const alice = result.balances.find(b => b.user_id === 1)!;
-    const bob = result.balances.find(b => b.user_id === 2)!;
+    const alice = result.balances.find((b) => b.user_id === 1)!;
+    const bob = result.balances.find((b) => b.user_id === 2)!;
     expect(alice.balance).toBe(20);
     expect(bob.balance).toBe(-20);
     expect(result.flows).toHaveLength(1);
@@ -266,19 +273,37 @@ describe('calculateSettlement', () => {
     // bob paid alice 30 but every expense behind it was deleted: alice now owes bob.
     mockDb.db.prepare.mockImplementation((sql: string) => {
       if (sql.includes('FROM budget_settlements')) {
-        return stmt({ all: vi.fn(() => [
-          { id: 1, trip_id: 1, from_user_id: 2, to_user_id: 1, amount: 30, from_username: 'bob', to_username: 'alice', from_avatar: null, to_avatar: null },
-        ]), get: vi.fn(), run: vi.fn() });
+        return stmt({
+          all: vi.fn(() => [
+            {
+              id: 1,
+              trip_id: 1,
+              from_user_id: 2,
+              to_user_id: 1,
+              amount: 30,
+              from_username: 'bob',
+              to_username: 'alice',
+              from_avatar: null,
+              to_avatar: null,
+            },
+          ]),
+          get: vi.fn(),
+          run: vi.fn(),
+        });
       }
       return stmt({ all: vi.fn(() => []), get: vi.fn(), run: vi.fn() });
     });
     const result = budget.calculateSettlement(1);
-    const alice = result.balances.find(b => b.user_id === 1)!;
-    const bob = result.balances.find(b => b.user_id === 2)!;
+    const alice = result.balances.find((b) => b.user_id === 1)!;
+    const bob = result.balances.find((b) => b.user_id === 2)!;
     expect(bob.balance).toBe(30);
     expect(alice.balance).toBe(-30);
     expect(result.flows).toEqual([
-      expect.objectContaining({ amount: 30, from: expect.objectContaining({ user_id: 1 }), to: expect.objectContaining({ user_id: 2 }) }),
+      expect.objectContaining({
+        amount: 30,
+        from: expect.objectContaining({ user_id: 1 }),
+        to: expect.objectContaining({ user_id: 2 }),
+      }),
     ]);
   });
 
@@ -292,7 +317,7 @@ describe('calculateSettlement', () => {
       [makePayer(1, 1, 110, 'alice')],
     );
     const result = budget.calculateSettlement(1, { base: 'EUR', tripCurrency: 'EUR', rates: { EUR: 1, USD: 1.2 } });
-    const bob = result.balances.find(b => b.user_id === 2)!;
+    const bob = result.balances.find((b) => b.user_id === 2)!;
     // 110 / 1.1 = 100 EUR; Bob owes half = 50 (frozen). With the live 1.2 it would be ~45.83.
     expect(bob.balance).toBeCloseTo(-50, 2);
   });
@@ -304,7 +329,7 @@ describe('calculateSettlement', () => {
       [makePayer(1, 1, 120, 'alice')],
     );
     const result = budget.calculateSettlement(1, { base: 'EUR', tripCurrency: 'EUR', rates: { EUR: 1, USD: 1.2 } });
-    const bob = result.balances.find(b => b.user_id === 2)!;
+    const bob = result.balances.find((b) => b.user_id === 2)!;
     // 120 / 1.2 (live) = 100 EUR; Bob owes 50 — unchanged behaviour for pre-#1335 rows.
     expect(bob.balance).toBeCloseTo(-50, 2);
   });
@@ -321,7 +346,7 @@ describe('calculateSettlement', () => {
       [makeSettlementRow(1, 2, 1, 62.5, 'USD', 1.25)],
     );
     const result = budget.calculateSettlement(1, { base: 'USD', tripCurrency: 'EUR', rates: { USD: 1, EUR: 0.5 } });
-    const bob = result.balances.find(b => b.user_id === 2)!;
+    const bob = result.balances.find((b) => b.user_id === 2)!;
     expect(bob.balance).toBeCloseTo(0, 2); // settled — no residual re-opens
   });
 
@@ -336,7 +361,7 @@ describe('calculateSettlement', () => {
       [makeSettlementRow(1, 2, 1, 62.5, null, 1)],
     );
     const result = budget.calculateSettlement(1, { base: 'USD', tripCurrency: 'EUR', rates: { USD: 1, EUR: 0.5 } });
-    const bob = result.balances.find(b => b.user_id === 2)!;
+    const bob = result.balances.find((b) => b.user_id === 2)!;
     // settleToTrip(62.5) = 62.5 * 0.5 = 31.25 EUR; balance -50 + 31.25 = -18.75 EUR → reopens.
     expect(Math.abs(bob.balance)).toBeGreaterThan(1);
   });
@@ -354,7 +379,7 @@ describe('calculateSettlement', () => {
       [makePayer(1, 1, 45, 'alice'), makePayer(1, 2, 45, 'bob')],
     );
     const result = budget.calculateSettlement(1);
-    const balance = (uid: number) => result.balances.find(b => b.user_id === uid)!.balance;
+    const balance = (uid: number) => result.balances.find((b) => b.user_id === uid)!.balance;
 
     expect(balance(1)).toBeCloseTo(15, 2);
     expect(balance(2)).toBeCloseTo(15, 2);
@@ -370,7 +395,7 @@ describe('calculateSettlement', () => {
       [makePayer(1, 1, 70, 'alice'), makePayer(1, 2, 30, 'bob')],
     );
     const result = budget.calculateSettlement(1);
-    const balance = (uid: number) => result.balances.find(b => b.user_id === uid)!.balance;
+    const balance = (uid: number) => result.balances.find((b) => b.user_id === uid)!.balance;
 
     expect(balance(1)).toBeCloseTo(20, 2);
     expect(balance(2)).toBeCloseTo(-20, 2);
@@ -385,17 +410,22 @@ describe('calculateSettlement', () => {
     setupDb(
       [makeItem(1, 90), makeItem(2, 55)],
       [
-        makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob'), makeMember(1, 3, 'carol'),
-        makeMember(2, 1, 'alice'), makeMember(2, 3, 'carol'),
+        makeMember(1, 1, 'alice'),
+        makeMember(1, 2, 'bob'),
+        makeMember(1, 3, 'carol'),
+        makeMember(2, 1, 'alice'),
+        makeMember(2, 3, 'carol'),
       ],
       [
-        makePayer(1, 1, 45, 'alice'), makePayer(1, 2, 45, 'bob'),
-        makePayer(2, 2, 25, 'bob'), makePayer(2, 3, 30, 'carol'),
+        makePayer(1, 1, 45, 'alice'),
+        makePayer(1, 2, 45, 'bob'),
+        makePayer(2, 2, 25, 'bob'),
+        makePayer(2, 3, 30, 'carol'),
       ],
     );
     const result = budget.calculateSettlement(1);
 
-    expect(centSum(result.balances.map(b => b.balance))).toBe(0);
+    expect(centSum(result.balances.map((b) => b.balance))).toBe(0);
   });
 
   it('3 payers on one bill: an odd total still splits to the cent', () => {
@@ -408,7 +438,7 @@ describe('calculateSettlement', () => {
     );
     const result = budget.calculateSettlement(1);
 
-    expect(centSum(result.balances.map(b => b.balance))).toBe(0);
+    expect(centSum(result.balances.map((b) => b.balance))).toBe(0);
   });
 });
 
@@ -430,13 +460,17 @@ describe('calculateSettlement — cent-exact settle-up (#1382)', () => {
       [makeSettlementRow(1, 2, 1, 9.99), makeSettlementRow(2, 3, 1, 10)],
     );
     const result = budget.calculateSettlement(1);
-    const balance = (uid: number) => result.balances.find(b => b.user_id === uid)!.balance;
+    const balance = (uid: number) => result.balances.find((b) => b.user_id === uid)!.balance;
 
     expect(balance(1)).toBe(0.01);
     expect(balance(2)).toBe(-0.01);
     expect(balance(3)).toBe(0);
     expect(result.flows).toEqual([
-      expect.objectContaining({ amount: 0.01, from: expect.objectContaining({ user_id: 2 }), to: expect.objectContaining({ user_id: 1 }) }),
+      expect.objectContaining({
+        amount: 0.01,
+        from: expect.objectContaining({ user_id: 2 }),
+        to: expect.objectContaining({ user_id: 1 }),
+      }),
     ]);
   });
 
@@ -456,7 +490,7 @@ describe('calculateSettlement — cent-exact settle-up (#1382)', () => {
     setupDb(items, members, payers, booked);
 
     const after = budget.calculateSettlement(1);
-    expect(after.balances.map(b => b.balance)).toEqual([0, 0, 0]);
+    expect(after.balances.map((b) => b.balance)).toEqual([0, 0, 0]);
     expect(after.flows).toEqual([]);
   });
 
@@ -471,9 +505,10 @@ describe('calculateSettlement — cent-exact settle-up (#1382)', () => {
     );
     const result = budget.calculateSettlement(1, { base: 'EUR', tripCurrency: 'EUR', rates: { EUR: 1, USD: 1.1 } });
 
-    expect(centSum(result.balances.map(b => b.balance))).toBe(0);
-    expect(centSum(result.flows.map(f => f.amount)))
-      .toBe(Math.round(result.balances.find(b => b.user_id === 1)!.balance * 100));
+    expect(centSum(result.balances.map((b) => b.balance))).toBe(0);
+    expect(centSum(result.flows.map((f) => f.amount))).toBe(
+      Math.round(result.balances.find((b) => b.user_id === 1)!.balance * 100),
+    );
   });
 
   it('#1382 a display currency of its own neither invents nor loses a cent', () => {
@@ -487,13 +522,18 @@ describe('calculateSettlement — cent-exact settle-up (#1382)', () => {
       [makePayer(1, 1, 100, 'alice')],
     );
     for (const eurPerUsd of [0.855, 0.9312, 0.94]) {
-      const result = budget.calculateSettlement(1, { base: 'USD', tripCurrency: 'EUR', rates: { USD: 1, EUR: eurPerUsd } });
+      const result = budget.calculateSettlement(1, {
+        base: 'USD',
+        tripCurrency: 'EUR',
+        rates: { USD: 1, EUR: eurPerUsd },
+      });
 
-      expect(centSum(result.balances.map(b => b.balance))).toBe(0);
+      expect(centSum(result.balances.map((b) => b.balance))).toBe(0);
       for (const b of result.balances) {
         // What settle-up would move for this person has to be their balance exactly.
-        const moved = centSum(result.flows.filter(f => f.to.user_id === b.user_id).map(f => f.amount))
-          - centSum(result.flows.filter(f => f.from.user_id === b.user_id).map(f => f.amount));
+        const moved =
+          centSum(result.flows.filter((f) => f.to.user_id === b.user_id).map((f) => f.amount)) -
+          centSum(result.flows.filter((f) => f.from.user_id === b.user_id).map((f) => f.amount));
         expect(moved).toBe(Math.round(b.balance * 100));
       }
     }
@@ -503,14 +543,10 @@ describe('calculateSettlement — cent-exact settle-up (#1382)', () => {
     // Nobody is down as a payer, so there is nothing to divide between the payers —
     // the recorded total stands in, and the expense keeps showing up as outstanding
     // rather than quietly netting to zero.
-    setupDb(
-      [makeItem(1, 90)],
-      [makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob'), makeMember(1, 3, 'carol')],
-      [],
-    );
+    setupDb([makeItem(1, 90)], [makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob'), makeMember(1, 3, 'carol')], []);
     const result = budget.calculateSettlement(1);
 
-    expect(result.balances.map(b => b.balance)).toEqual([-30, -30, -30]);
+    expect(result.balances.map((b) => b.balance)).toEqual([-30, -30, -30]);
     expect(result.flows).toEqual([]);
   });
 });
@@ -518,8 +554,7 @@ describe('calculateSettlement — cent-exact settle-up (#1382)', () => {
 // ── freezeForeignRate (write-path FX freeze, #1445) ───────────────────────────
 
 describe('freezeForeignRate', () => {
-  const tripRow = (currency: string) =>
-    stmt({ get: vi.fn(() => ({ currency })), all: vi.fn(), run: vi.fn() });
+  const tripRow = (currency: string) => stmt({ get: vi.fn(() => ({ currency })), all: vi.fn(), run: vi.fn() });
 
   it('freezes the live rate for a foreign currency into exchange_rate', async () => {
     mockDb.db.prepare.mockImplementation((sql: string) => {
@@ -535,7 +570,8 @@ describe('freezeForeignRate', () => {
 
   it('leaves the rate unset when the currency equals the trip currency', async () => {
     mockDb.db.prepare.mockImplementation((sql: string) =>
-      sql.includes('FROM trips') ? tripRow('EUR') : stmt({ get: vi.fn(), all: vi.fn(() => []), run: vi.fn() }));
+      sql.includes('FROM trips') ? tripRow('EUR') : stmt({ get: vi.fn(), all: vi.fn(() => []), run: vi.fn() }),
+    );
     const data: { currency?: string | null; exchange_rate?: number } = { currency: 'EUR' };
     await budget.freezeForeignRate(1, data);
     expect(mockRates.getRates).not.toHaveBeenCalled();
@@ -551,7 +587,8 @@ describe('freezeForeignRate', () => {
 
   it('degrades to live rates (no freeze) when the rate fetch fails', async () => {
     mockDb.db.prepare.mockImplementation((sql: string) =>
-      sql.includes('FROM trips') ? tripRow('EUR') : stmt({ get: vi.fn(), all: vi.fn(() => []), run: vi.fn() }));
+      sql.includes('FROM trips') ? tripRow('EUR') : stmt({ get: vi.fn(), all: vi.fn(() => []), run: vi.fn() }),
+    );
     mockRates.getRates.mockResolvedValue(null);
     const data: { currency?: string | null; exchange_rate?: number } = { currency: 'USD' };
     await budget.freezeForeignRate(1, data);
@@ -560,7 +597,8 @@ describe('freezeForeignRate', () => {
 
   it('does not re-freeze on update when the currency is unchanged', async () => {
     mockDb.db.prepare.mockImplementation((sql: string) => {
-      if (sql.includes('FROM budget_items')) return stmt({ get: vi.fn(() => ({ currency: 'USD' })), all: vi.fn(), run: vi.fn() });
+      if (sql.includes('FROM budget_items'))
+        return stmt({ get: vi.fn(() => ({ currency: 'USD' })), all: vi.fn(), run: vi.fn() });
       if (sql.includes('FROM trips')) return tripRow('EUR');
       return stmt({ get: vi.fn(), all: vi.fn(() => []), run: vi.fn() });
     });
@@ -572,7 +610,8 @@ describe('freezeForeignRate', () => {
 
   it('does not re-freeze a settlement edit when its stored currency is unchanged (#1445)', async () => {
     mockDb.db.prepare.mockImplementation((sql: string) =>
-      sql.includes('FROM trips') ? tripRow('EUR') : stmt({ get: vi.fn(), all: vi.fn(() => []), run: vi.fn() }));
+      sql.includes('FROM trips') ? tripRow('EUR') : stmt({ get: vi.fn(), all: vi.fn(() => []), run: vi.fn() }),
+    );
     const data: { currency?: string | null; exchange_rate?: number } = { currency: 'USD' };
     // the settlement already holds USD — pass it as existingCurrency → keep the frozen rate
     await budget.freezeForeignRate(1, data, undefined, 'USD');
@@ -582,7 +621,8 @@ describe('freezeForeignRate', () => {
 
   it('re-freezes a settlement edit when its currency actually changes', async () => {
     mockDb.db.prepare.mockImplementation((sql: string) =>
-      sql.includes('FROM trips') ? tripRow('EUR') : stmt({ get: vi.fn(), all: vi.fn(() => []), run: vi.fn() }));
+      sql.includes('FROM trips') ? tripRow('EUR') : stmt({ get: vi.fn(), all: vi.fn(() => []), run: vi.fn() }),
+    );
     mockRates.getRates.mockResolvedValue({ EUR: 1, USD: 1.25 });
     const data: { currency?: string | null; exchange_rate?: number } = { currency: 'USD' };
     await budget.freezeForeignRate(1, data, undefined, 'GBP'); // was GBP → now USD → re-freeze
@@ -615,9 +655,21 @@ describe('applySettlementUpdate', () => {
       if (sql.includes('FROM budget_settlements')) {
         // Quirk fix: the re-select is a targeted single-row get, not a full
         // listSettlements scan.
-        return stmt({ get: vi.fn(() => (
-          { id: 7, trip_id: 1, from_user_id: 2, to_user_id: 1, amount: 10.13, from_username: 'bob', to_username: 'alice', from_avatar: null, to_avatar: null }
-        )), all: vi.fn(() => []), run: vi.fn() });
+        return stmt({
+          get: vi.fn(() => ({
+            id: 7,
+            trip_id: 1,
+            from_user_id: 2,
+            to_user_id: 1,
+            amount: 10.13,
+            from_username: 'bob',
+            to_username: 'alice',
+            from_avatar: null,
+            to_avatar: null,
+          })),
+          all: vi.fn(() => []),
+          run: vi.fn(),
+        });
       }
       return stmt({ get: vi.fn(), all: vi.fn(() => []), run: vi.fn() });
     });

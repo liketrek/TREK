@@ -5,6 +5,16 @@
  * tests/unit/services/inAppNotificationPrefs.test.ts when the in-app store
  * SQL folded into nest/notifications).
  */
+import { runMigrations } from '../../../src/db/migrations';
+import { createTables } from '../../../src/db/schema';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { registerAction } from '../../../src/nest/notifications/in-app-actions';
+import { NotificationsService } from '../../../src/nest/notifications/notifications.service';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { createUser, createAdmin, disableNotificationPref } from '../../helpers/factories';
+import { makeNotificationsService, makeNotificationPreferencesService } from '../../helpers/notifications';
+import { resetTestDb } from '../../helpers/test-db';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 const { testDb, dbMock } = vi.hoisted(() => {
@@ -36,16 +46,6 @@ const { broadcastMock } = vi.hoisted(() => ({ broadcastMock: vi.fn() }));
 // RealtimeService imports both names from src/websocket, so the mock must
 // export both even though only broadcastToUser is asserted here.
 vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: broadcastMock }));
-
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createAdmin, disableNotificationPref } from '../../helpers/factories';
-import { registerAction } from '../../../src/nest/notifications/in-app-actions';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import { NotificationsService } from '../../../src/nest/notifications/notifications.service';
-import { makeNotificationsService, makeNotificationPreferencesService } from '../../helpers/notifications';
 
 const notifications = makeNotificationsService(new DatabaseService(testDb));
 const createNotification = notifications.createNotification.bind(notifications);
@@ -114,7 +114,8 @@ describe('createNotification — preference filtering', () => {
     disableNotificationPref(testDb, recipient2.id, 'trip_invite', 'inapp');
 
     // Use a trip to target both members
-    const tripId = (testDb.prepare('INSERT INTO trips (title, user_id) VALUES (?, ?)').run('Test Trip', sender.id)).lastInsertRowid as number;
+    const tripId = testDb.prepare('INSERT INTO trips (title, user_id) VALUES (?, ?)').run('Test Trip', sender.id)
+      .lastInsertRowid as number;
     testDb.prepare('INSERT INTO trip_members (trip_id, user_id) VALUES (?, ?)').run(tripId, recipient1.id);
     testDb.prepare('INSERT INTO trip_members (trip_id, user_id) VALUES (?, ?)').run(tripId, recipient2.id);
 
@@ -173,11 +174,13 @@ describe('createNotification — preference filtering', () => {
         navigate_target: '/trips/99',
       },
       recipient.id,
-      { username: 'admin', avatar: null }
+      { username: 'admin', avatar: null },
     );
 
     expect(id).toBeTypeOf('number');
-    const row = testDb.prepare('SELECT * FROM notifications WHERE id = ?').get(id) as { recipient_id: number; navigate_target: string } | undefined;
+    const row = testDb.prepare('SELECT * FROM notifications WHERE id = ?').get(id) as
+      | { recipient_id: number; navigate_target: string }
+      | undefined;
     expect(row).toBeDefined();
     expect(row!.recipient_id).toBe(recipient.id);
     expect(row!.navigate_target).toBe('/trips/99');
@@ -218,7 +221,9 @@ describe('createNotification — preference filtering', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function insertBooleanNotification(recipientId: number, senderId: number | null = null): number {
-  const result = testDb.prepare(`
+  const result = testDb
+    .prepare(
+      `
     INSERT INTO notifications (
       type, scope, target, sender_id, recipient_id,
       title_key, title_params, text_key, text_params,
@@ -227,17 +232,23 @@ function insertBooleanNotification(recipientId: number, senderId: number | null 
       'notif.action.accept', 'notif.action.decline',
       '{"action":"test_approve","payload":{}}', '{"action":"test_deny","payload":{}}'
     )
-  `).run(recipientId, senderId, recipientId);
+  `,
+    )
+    .run(recipientId, senderId, recipientId);
   return result.lastInsertRowid as number;
 }
 
 function insertSimpleNotification(recipientId: number): number {
-  const result = testDb.prepare(`
+  const result = testDb
+    .prepare(
+      `
     INSERT INTO notifications (
       type, scope, target, sender_id, recipient_id,
       title_key, title_params, text_key, text_params
     ) VALUES ('simple', 'user', ?, NULL, ?, 'notif.test.title', '{}', 'notif.test.text', '{}')
-  `).run(recipientId, recipientId);
+  `,
+    )
+    .run(recipientId, recipientId);
   return result.lastInsertRowid as number;
 }
 
@@ -318,7 +329,9 @@ describe('respondToBoolean', () => {
       calls.push('run');
       await new Promise((resolve) => setImmediate(resolve));
     });
-    const id = testDb.prepare(`
+    const id = testDb
+      .prepare(
+        `
       INSERT INTO notifications (
         type, scope, target, sender_id, recipient_id,
         title_key, title_params, text_key, text_params,
@@ -327,7 +340,9 @@ describe('respondToBoolean', () => {
         'notif.action.accept', 'notif.action.decline',
         '{"action":"slow_approve","payload":{}}', '{"action":"slow_approve","payload":{}}'
       )
-    `).run(user.id, user.id).lastInsertRowid as number;
+    `,
+      )
+      .run(user.id, user.id).lastInsertRowid as number;
 
     const [first, second] = await Promise.all([
       respondToBoolean(id, user.id, 'positive'),
@@ -346,7 +361,9 @@ describe('respondToBoolean', () => {
     registerAction('flaky_approve', async () => {
       if (shouldFail) throw new Error('downstream unavailable');
     });
-    const id = testDb.prepare(`
+    const id = testDb
+      .prepare(
+        `
       INSERT INTO notifications (
         type, scope, target, sender_id, recipient_id,
         title_key, title_params, text_key, text_params,
@@ -355,11 +372,16 @@ describe('respondToBoolean', () => {
         'notif.action.accept', 'notif.action.decline',
         '{"action":"flaky_approve","payload":{}}', '{"action":"flaky_approve","payload":{}}'
       )
-    `).run(user.id, user.id).lastInsertRowid as number;
+    `,
+      )
+      .run(user.id, user.id).lastInsertRowid as number;
 
     const failed = await respondToBoolean(id, user.id, 'positive');
     expect(failed).toEqual({ success: false, error: 'downstream unavailable' });
-    const row = testDb.prepare('SELECT response, is_read FROM notifications WHERE id = ?').get(id) as { response: string | null; is_read: number };
+    const row = testDb.prepare('SELECT response, is_read FROM notifications WHERE id = ?').get(id) as {
+      response: string | null;
+      is_read: number;
+    };
     expect(row.response).toBeNull();
     expect(row.is_read).toBe(0);
 

@@ -67,14 +67,19 @@ export function keyFingerprint(pubkey: string | null | undefined): string | null
  * old code. A blocked update is not a broken runtime, and conflating them would
  * make the isolation-health dot lie.
  */
-export function setUpdateBlock(conn: Database.Database, id: string, code: SignatureCode, detail: string, version: string | null): void {
+export function setUpdateBlock(
+  conn: Database.Database,
+  id: string,
+  code: SignatureCode,
+  detail: string,
+  version: string | null,
+): void {
   try {
-    conn.prepare('UPDATE plugins SET update_block_code = ?, update_block_detail = ?, update_block_version = ? WHERE id = ?').run(
-      code,
-      detail,
-      version,
-      id,
-    );
+    conn
+      .prepare(
+        'UPDATE plugins SET update_block_code = ?, update_block_detail = ?, update_block_version = ? WHERE id = ?',
+      )
+      .run(code, detail, version, id);
   } catch {
     // Columns absent (a slimmed test app) — the block is a nicety, never a gate.
   }
@@ -86,7 +91,11 @@ export function setUpdateBlock(conn: Database.Database, id: string, code: Signat
  * to prevent. (Uninstall drops the row entirely, so it needs no explicit clear.) */
 export function clearUpdateBlock(conn: Database.Database, id: string): void {
   try {
-    conn.prepare('UPDATE plugins SET update_block_code = NULL, update_block_detail = NULL, update_block_version = NULL WHERE id = ?').run(id);
+    conn
+      .prepare(
+        'UPDATE plugins SET update_block_code = NULL, update_block_detail = NULL, update_block_version = NULL WHERE id = ?',
+      )
+      .run(id);
   } catch {
     // See setUpdateBlock.
   }

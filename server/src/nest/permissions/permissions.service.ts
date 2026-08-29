@@ -1,11 +1,11 @@
-import { Injectable } from '@nestjs/common';
-import { DatabaseService } from '../database/database.service';
 import { logError } from '../audit/audit-log.logger';
+import { DatabaseService } from '../database/database.service';
 import {
   getPermissionsCache,
   setPermissionsCache,
   invalidatePermissionsCache as invalidateSharedCache,
 } from './permissions-cache';
+import { Injectable } from '@nestjs/common';
 
 /**
  * Permission levels (hierarchical, higher includes lower):
@@ -25,43 +25,43 @@ export interface PermissionAction {
 // All configurable actions with their defaults matching upstream behavior
 export const PERMISSION_ACTIONS: PermissionAction[] = [
   // Trip management
-  { key: 'trip_create',        defaultLevel: 'everybody',   allowedLevels: ['admin', 'everybody'] },
-  { key: 'trip_edit',          defaultLevel: 'trip_owner',   allowedLevels: ['trip_owner', 'trip_member'] },
-  { key: 'trip_delete',        defaultLevel: 'trip_owner',   allowedLevels: ['admin', 'trip_owner'] },
-  { key: 'trip_archive',       defaultLevel: 'trip_owner',   allowedLevels: ['trip_owner', 'trip_member'] },
-  { key: 'trip_cover_upload',  defaultLevel: 'trip_owner',   allowedLevels: ['trip_owner', 'trip_member'] },
+  { key: 'trip_create', defaultLevel: 'everybody', allowedLevels: ['admin', 'everybody'] },
+  { key: 'trip_edit', defaultLevel: 'trip_owner', allowedLevels: ['trip_owner', 'trip_member'] },
+  { key: 'trip_delete', defaultLevel: 'trip_owner', allowedLevels: ['admin', 'trip_owner'] },
+  { key: 'trip_archive', defaultLevel: 'trip_owner', allowedLevels: ['trip_owner', 'trip_member'] },
+  { key: 'trip_cover_upload', defaultLevel: 'trip_owner', allowedLevels: ['trip_owner', 'trip_member'] },
 
   // Member management
-  { key: 'member_manage',      defaultLevel: 'trip_owner',   allowedLevels: ['admin', 'trip_owner', 'trip_member'] },
+  { key: 'member_manage', defaultLevel: 'trip_owner', allowedLevels: ['admin', 'trip_owner', 'trip_member'] },
 
   // Files
-  { key: 'file_upload',        defaultLevel: 'trip_member',  allowedLevels: ['admin', 'trip_owner', 'trip_member'] },
-  { key: 'file_edit',          defaultLevel: 'trip_member',  allowedLevels: ['trip_owner', 'trip_member'] },
-  { key: 'file_delete',        defaultLevel: 'trip_member',  allowedLevels: ['trip_owner', 'trip_member'] },
+  { key: 'file_upload', defaultLevel: 'trip_member', allowedLevels: ['admin', 'trip_owner', 'trip_member'] },
+  { key: 'file_edit', defaultLevel: 'trip_member', allowedLevels: ['trip_owner', 'trip_member'] },
+  { key: 'file_delete', defaultLevel: 'trip_member', allowedLevels: ['trip_owner', 'trip_member'] },
 
   // Places
-  { key: 'place_edit',         defaultLevel: 'trip_member',  allowedLevels: ['trip_owner', 'trip_member'] },
+  { key: 'place_edit', defaultLevel: 'trip_member', allowedLevels: ['trip_owner', 'trip_member'] },
 
   // Budget
-  { key: 'budget_edit',        defaultLevel: 'trip_member',  allowedLevels: ['trip_owner', 'trip_member'] },
+  { key: 'budget_edit', defaultLevel: 'trip_member', allowedLevels: ['trip_owner', 'trip_member'] },
 
   // Packing
-  { key: 'packing_edit',       defaultLevel: 'trip_member',  allowedLevels: ['trip_owner', 'trip_member'] },
+  { key: 'packing_edit', defaultLevel: 'trip_member', allowedLevels: ['trip_owner', 'trip_member'] },
 
   // Reservations
-  { key: 'reservation_edit',   defaultLevel: 'trip_member',  allowedLevels: ['trip_owner', 'trip_member'] },
+  { key: 'reservation_edit', defaultLevel: 'trip_member', allowedLevels: ['trip_owner', 'trip_member'] },
 
   // Day notes & schedule
-  { key: 'day_edit',           defaultLevel: 'trip_member',  allowedLevels: ['trip_owner', 'trip_member'] },
+  { key: 'day_edit', defaultLevel: 'trip_member', allowedLevels: ['trip_owner', 'trip_member'] },
 
   // Collaboration (notes, polls, messages)
-  { key: 'collab_edit',        defaultLevel: 'trip_member',  allowedLevels: ['trip_owner', 'trip_member'] },
+  { key: 'collab_edit', defaultLevel: 'trip_member', allowedLevels: ['trip_owner', 'trip_member'] },
 
   // Share link management
-  { key: 'share_manage',       defaultLevel: 'trip_owner',   allowedLevels: ['trip_owner', 'trip_member'] },
+  { key: 'share_manage', defaultLevel: 'trip_owner', allowedLevels: ['trip_owner', 'trip_member'] },
 ];
 
-const ACTIONS_MAP = new Map(PERMISSION_ACTIONS.map(a => [a.key, a]));
+const ACTIONS_MAP = new Map(PERMISSION_ACTIONS.map((a) => [a.key, a]));
 
 // The in-memory cache is deliberately MODULE-scoped, not instance state, and
 // lives in ./permissions-cache: two service instances exist at runtime (the
@@ -81,7 +81,7 @@ export class PermissionsService {
     const cache = new Map<string, PermissionLevel>();
     try {
       const rows = this.dbs.all<{ key: string; value: string }>(
-        "SELECT key, value FROM app_settings WHERE key LIKE 'perm_%'"
+        "SELECT key, value FROM app_settings WHERE key LIKE 'perm_%'",
       );
       for (const row of rows) {
         const actionKey = row.key.replace('perm_', '');
@@ -167,7 +167,7 @@ export class PermissionsService {
     userRole: string,
     tripUserId: number | null,
     userId: number,
-    isMember: boolean
+    isMember: boolean,
   ): boolean {
     // Admins always pass
     if (userRole === 'admin') return true;

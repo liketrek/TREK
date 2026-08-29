@@ -490,7 +490,8 @@ const admin: TranslationStrings = {
   'admin.plugins.changeVersion': 'Byt version…',
   'admin.plugins.noVersions': 'Inga publicerade versioner hittades i registret.',
   'admin.plugins.downgradeTitle': 'Rulla tillbaka detta tillägg?',
-  'admin.plugins.downgradeBody': 'Byte från v{from} till v{to}: data som skrivits av den nyare versionen finns kvar, och den äldre versionen kanske inte förstår dem.',
+  'admin.plugins.downgradeBody':
+    'Byte från v{from} till v{to}: data som skrivits av den nyare versionen finns kvar, och den äldre versionen kanske inte förstår dem.',
   'admin.plugins.downgradeConfirm': 'Rulla tillbaka',
   'admin.plugins.updatesHeld': 'Uppdateringar pausade vid v{version}',
   'admin.plugins.resumeUpdates': 'Återuppta uppdateringar',

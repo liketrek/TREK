@@ -10,10 +10,11 @@
  * repaired — a fixed step never replays, so the damage is undone by a migration
  * of its own at the end of the array.
  */
-import { describe, it, expect } from 'vitest';
-import Database from 'better-sqlite3';
-import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
+import { createTables } from '../../../src/db/schema';
+
+import Database from 'better-sqlite3';
+import { describe, it, expect } from 'vitest';
 
 function makeDbWithNotes(): Database.Database {
   const db = new Database(':memory:');
@@ -24,9 +25,12 @@ function makeDbWithNotes(): Database.Database {
   // Minimal FK chain: user -> trip -> budget_items rows.
   db.prepare("INSERT INTO users (id, username, email, password_hash) VALUES (1, 'u', 'u@example.test', 'x')").run();
   db.prepare("INSERT INTO trips (id, user_id, title) VALUES (1, 1, 'T')").run();
-  db.prepare(
-    'INSERT INTO budget_items (id, trip_id, name, note) VALUES (1, 1, ?, ?), (2, 1, ?, ?)',
-  ).run('Dinner', 'TICKETJSON:{"items":[]}', 'Museum', 'ticketjson: buy at the door');
+  db.prepare('INSERT INTO budget_items (id, trip_id, name, note) VALUES (1, 1, ?, ?), (2, 1, ?, ?)').run(
+    'Dinner',
+    'TICKETJSON:{"items":[]}',
+    'Museum',
+    'ticketjson: buy at the door',
+  );
   return db;
 }
 
@@ -81,12 +85,27 @@ describe('recovering what the case-insensitive match destroyed', () => {
     // Row 1: what the LIKE match left behind for "ticketjson: buy at the door".
     // Row 2: an actual receipt. Row 3: a receipt on a row whose owner has since
     // written a note.
-    db.prepare('INSERT INTO budget_items (id, trip_id, name, note, ticket_json) VALUES (?, ?, ?, ?, ?)')
-      .run(1, 1, 'Museum', null, ' buy at the door');
-    db.prepare('INSERT INTO budget_items (id, trip_id, name, note, ticket_json) VALUES (?, ?, ?, ?, ?)')
-      .run(2, 1, 'Dinner', null, '{"items":[{"name":"Beer","price":"4.50","parts":[1]}]}');
-    db.prepare('INSERT INTO budget_items (id, trip_id, name, note, ticket_json) VALUES (?, ?, ?, ?, ?)')
-      .run(3, 1, 'Taxi', 'split at the hotel', '{"items":[]}');
+    db.prepare('INSERT INTO budget_items (id, trip_id, name, note, ticket_json) VALUES (?, ?, ?, ?, ?)').run(
+      1,
+      1,
+      'Museum',
+      null,
+      ' buy at the door',
+    );
+    db.prepare('INSERT INTO budget_items (id, trip_id, name, note, ticket_json) VALUES (?, ?, ?, ?, ?)').run(
+      2,
+      1,
+      'Dinner',
+      null,
+      '{"items":[{"name":"Beer","price":"4.50","parts":[1]}]}',
+    );
+    db.prepare('INSERT INTO budget_items (id, trip_id, name, note, ticket_json) VALUES (?, ?, ?, ?, ?)').run(
+      3,
+      1,
+      'Taxi',
+      'split at the hotel',
+      '{"items":[]}',
+    );
 
     // 196 = the version just before the recovery step (migration #197).
     db.prepare('UPDATE schema_version SET version = ?').run(196);

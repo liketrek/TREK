@@ -1,3 +1,8 @@
+import { db as dbConn } from '../../../src/db/database';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { PlaceDetailsController } from '../../../src/nest/plugins/contributions/place-details.controller';
+import type { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const { canAccessTrip, placeTrip, pluginsEnabled } = vi.hoisted(() => ({
@@ -9,26 +14,27 @@ vi.mock('../../../src/db/database', () => ({
   db: { prepare: () => ({ get: (placeId: number) => placeTrip(placeId) }) },
   canAccessTrip,
 }));
-import { db as dbConn } from '../../../src/db/database';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 
-import { PlaceDetailsController } from '../../../src/nest/plugins/contributions/place-details.controller';
-import type { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
+vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const req = (id?: number) => ({ user: id === undefined ? undefined : { id } }) as any;
 function controller(over: Partial<PluginHooks> = {}) {
   const runtime = {
     providersOf: vi.fn(() => ['p1', 'p2']),
-    placeDetails: vi.fn(async (id: string) => (id === 'p2' ? [{ label: 'Rating', value: '4.5' }] : [{ label: 'Reviews', value: '12', url: 'https://x' }])),
+    placeDetails: vi.fn(async (id: string) =>
+      id === 'p2' ? [{ label: 'Rating', value: '4.5' }] : [{ label: 'Reviews', value: '12', url: 'https://x' }],
+    ),
     ...over,
   } as unknown as PluginHooks;
   return { c: new PlaceDetailsController(runtime, new DatabaseService(dbConn)), runtime };
 }
 
 describe('PlaceDetailsController', () => {
-  beforeEach(() => { pluginsEnabled.mockReturnValue(true); canAccessTrip.mockReturnValue({ id: 1 } as never); });
+  beforeEach(() => {
+    pluginsEnabled.mockReturnValue(true);
+    canAccessTrip.mockReturnValue({ id: 1 } as never);
+  });
 
   it('returns [] when the runtime is disabled (no plugin calls)', async () => {
     pluginsEnabled.mockReturnValue(false);
@@ -67,8 +73,8 @@ describe('PlaceDetailsController', () => {
       placeDetails: vi.fn(async () => [
         { label: 'x'.repeat(200), value: 'y'.repeat(500), url: 'javascript:alert(1)' },
         { label: 'Site', url: 'https://ok.example' },
-        { value: 'no label' },   // dropped
-        'not an object',         // dropped
+        { value: 'no label' }, // dropped
+        'not an object', // dropped
         { label: 'Mail', url: 'mailto:a@b.c' },
       ]) as unknown as PluginHooks['placeDetails'],
     });
@@ -84,9 +90,7 @@ describe('PlaceDetailsController', () => {
     const { c } = controller({
       providersOf: vi.fn(() => ['flood', 'empty']),
       placeDetails: vi.fn(async (id: string) =>
-        id === 'flood'
-          ? Array.from({ length: 50 }, (_v, i) => ({ label: `r${i}` }))
-          : [{ value: 'no label' }, 'junk'],
+        id === 'flood' ? Array.from({ length: 50 }, (_v, i) => ({ label: `r${i}` })) : [{ value: 'no label' }, 'junk'],
       ) as unknown as PluginHooks['placeDetails'],
     });
     const res = await c.get('7', req(5));

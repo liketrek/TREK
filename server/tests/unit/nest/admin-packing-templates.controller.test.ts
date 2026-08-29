@@ -4,14 +4,15 @@
  * envelope, same create-201 split, same audit actions — these cases came over from
  * admin.controller.test.ts with the routes.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { HttpException } from '@nestjs/common';
+import type { AuditService } from '../../../src/nest/audit/audit.service';
 import { AdminPackingTemplatesController } from '../../../src/nest/packing/admin-packing-templates.controller';
 import { PackingModule } from '../../../src/nest/packing/packing.module';
 import type { PackingService } from '../../../src/nest/packing/packing.service';
-import type { AuditService } from '../../../src/nest/audit/audit.service';
 import type { User } from '../../../src/types';
 import { expectRegisteredController } from '../../helpers/module-providers';
+import { HttpException } from '@nestjs/common';
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const user = { id: 1, role: 'admin' } as User;
 const req = { headers: {}, socket: {} } as never;
@@ -70,7 +71,10 @@ describe('AdminPackingTemplatesController', () => {
 
   it('PACKTPL-003 an error without a status defaults to 400', () => {
     const { c } = controller(offContract('createTemplateCategory', () => ({ error: 'name required' })));
-    expect(thrown(() => c.createCategory('1', { name: '' }))).toEqual({ status: 400, body: { error: 'name required' } });
+    expect(thrown(() => c.createCategory('1', { name: '' }))).toEqual({
+      status: 400,
+      body: { error: 'name required' },
+    });
   });
 
   it('PACKTPL-004 create audits with the new template id', () => {

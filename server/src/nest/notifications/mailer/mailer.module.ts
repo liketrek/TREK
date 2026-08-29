@@ -1,5 +1,5 @@
-import { Module } from '@nestjs/common';
 import { MailerService } from './mailer.service';
+import { Module } from '@nestjs/common';
 
 /**
  * Outgoing SMTP. A leaf module on purpose: AuthModule imports it for the

@@ -1,7 +1,4 @@
-import {
-  McpController, Tool, Resource, type McpContext,
-  TOOL_ANNOTATIONS_READONLY, ok,
-} from '../../nest-mcp';
+import { McpController, Tool, Resource, type McpContext, TOOL_ANNOTATIONS_READONLY, ok } from '../../nest-mcp';
 import { CategoriesService } from './categories.service';
 
 /**
@@ -19,7 +16,8 @@ export class CategoriesMcp {
 
   @Tool({
     name: 'list_categories',
-    description: 'List all available place categories with their id, name, icon and color. Use category_id when creating or updating places.',
+    description:
+      'List all available place categories with their id, name, icon and color. Use category_id when creating or updating places.',
     inputSchema: {},
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: { group: 'places', mode: 'read' },
@@ -38,11 +36,13 @@ export class CategoriesMcp {
   async categoriesResource(uri: URL, _ctx: McpContext) {
     const categories = this.categories.list();
     return {
-      contents: [{
-        uri: uri.href,
-        mimeType: 'application/json',
-        text: JSON.stringify(categories, null, 2),
-      }],
+      contents: [
+        {
+          uri: uri.href,
+          mimeType: 'application/json',
+          text: JSON.stringify(categories, null, 2),
+        },
+      ],
     };
   }
 }

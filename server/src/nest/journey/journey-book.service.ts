@@ -1,8 +1,8 @@
+import { DatabaseService } from '../database/database.service';
+import { JourneyDomainService } from './journey-domain.service';
 import { Injectable } from '@nestjs/common';
 import type { BookRecord, BookSummary } from '@trek/shared';
 import { normalizeBookDocument } from '@trek/shared';
-import { DatabaseService } from '../database/database.service';
-import { JourneyDomainService } from './journey-domain.service';
 
 /**
  * Storing TREK Studio books.
@@ -75,14 +75,16 @@ export class JourneyBookService {
   listBooks(journeyId: number, userId: number): BookSummary[] | null {
     if (!this.canAccess(journeyId, userId)) return null;
     const rows = this.db
-      .prepare(`
+      .prepare(
+        `
         SELECT id, journey_id, title, version, updated_at, updated_by
           FROM journey_books
          WHERE journey_id = ?
          ORDER BY updated_at DESC, id DESC
-      `)
+      `,
+      )
       .all(journeyId) as Omit<BookRow, 'document'>[];
-    return rows.map(r => ({
+    return rows.map((r) => ({
       id: r.id,
       journeyId: r.journey_id,
       title: r.title,
@@ -102,13 +104,15 @@ export class JourneyBookService {
   getBook(journeyId: number, userId: number): BookRecord | null {
     if (!this.canAccess(journeyId, userId)) return null;
     const row = this.db
-      .prepare(`
+      .prepare(
+        `
         SELECT id, journey_id, title, document, version, updated_at, updated_by
           FROM journey_books
          WHERE journey_id = ?
          ORDER BY id ASC
          LIMIT 1
-      `)
+      `,
+      )
       .get(journeyId) as BookRow | undefined;
     return row ? this.toRecord(row) : null;
   }
@@ -134,10 +138,12 @@ export class JourneyBookService {
 
     if (!existing) {
       const result = this.db
-        .prepare(`
+        .prepare(
+          `
           INSERT INTO journey_books (journey_id, title, document, version, created_by, updated_by, updated_at)
           VALUES (?, ?, ?, 1, ?, ?, CURRENT_TIMESTAMP)
-        `)
+        `,
+        )
         .run(journeyId, input.title, document, userId, userId);
       return { record: this.byId(Number(result.lastInsertRowid))! };
     }
@@ -155,12 +161,14 @@ export class JourneyBookService {
      */
     const base = input.baseVersion ?? existing.version;
     const result = this.db
-      .prepare(`
+      .prepare(
+        `
         UPDATE journey_books
            SET title = ?, document = ?, version = version + 1,
                updated_by = ?, updated_at = CURRENT_TIMESTAMP
          WHERE id = ? AND version = ?
-      `)
+      `,
+      )
       .run(input.title, document, userId, existing.id, base);
 
     if (result.changes === 0) {
@@ -171,9 +179,7 @@ export class JourneyBookService {
 
   deleteBook(journeyId: number, userId: number): boolean | null {
     if (!this.canWrite(journeyId, userId)) return null;
-    const result = this.db
-      .prepare('DELETE FROM journey_books WHERE journey_id = ?')
-      .run(journeyId);
+    const result = this.db.prepare('DELETE FROM journey_books WHERE journey_id = ?').run(journeyId);
     return result.changes > 0;
   }
 
@@ -199,10 +205,12 @@ export class JourneyBookService {
 
   private byId(id: number): BookRecord | null {
     const row = this.db
-      .prepare(`
+      .prepare(
+        `
         SELECT id, journey_id, title, document, version, updated_at, updated_by
           FROM journey_books WHERE id = ?
-      `)
+      `,
+      )
       .get(id) as BookRow | undefined;
     return row ? this.toRecord(row) : null;
   }

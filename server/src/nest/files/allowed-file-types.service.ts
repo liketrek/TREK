@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import { DEFAULT_ALLOWED_EXTENSIONS } from './files.constants';
+import { Injectable } from '@nestjs/common';
 
 /**
  * The operator's allowed-extension list, on its own.
@@ -18,9 +18,7 @@ export class AllowedFileTypesService {
   /** Comma-separated, as the admin panel stores it. `*` means anything. */
   get(): string {
     try {
-      const row = this.db.get<{ value: string }>(
-        "SELECT value FROM app_settings WHERE key = 'allowed_file_types'",
-      );
+      const row = this.db.get<{ value: string }>("SELECT value FROM app_settings WHERE key = 'allowed_file_types'");
       return row?.value || DEFAULT_ALLOWED_EXTENSIONS;
     } catch {
       return DEFAULT_ALLOWED_EXTENSIONS;

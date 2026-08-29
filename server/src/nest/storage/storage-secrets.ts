@@ -1,3 +1,5 @@
+import { decrypt_api_key, maybe_encrypt_api_key } from '../common/crypto/apiKeyCrypto';
+import { StorageBackendError } from './storage.types';
 import {
   MASKED_SETTING_VALUE,
   storageSecretFields,
@@ -5,8 +7,6 @@ import {
   type StorageBackendTypeId,
   type StorageConfig,
 } from '@trek/shared';
-import { decrypt_api_key, maybe_encrypt_api_key } from '../common/crypto/apiKeyCrypto';
-import { StorageBackendError } from './storage.types';
 
 /**
  * Secret-field plumbing for admin-managed storage config (spec:

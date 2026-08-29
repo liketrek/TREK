@@ -39,7 +39,10 @@ export const mapsAutocompleteRequestSchema = z.object({
    * characters; anything else is dropped rather than forwarded, so a bad token
    * degrades to per-request billing instead of failing the search.
    */
-  sessionToken: z.string().regex(/^[A-Za-z0-9_-]{1,36}$/).optional(),
+  sessionToken: z
+    .string()
+    .regex(/^[A-Za-z0-9_-]{1,36}$/)
+    .optional(),
 });
 export type MapsAutocompleteRequest = z.infer<typeof mapsAutocompleteRequestSchema>;
 

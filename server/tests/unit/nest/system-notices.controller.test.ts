@@ -1,9 +1,10 @@
-import { describe, it, expect, vi } from 'vitest';
-import { HttpException } from '@nestjs/common';
 import { SystemNoticesController } from '../../../src/nest/system-notices/system-notices.controller';
 import type { SystemNoticesService } from '../../../src/nest/system-notices/system-notices.service';
 import type { User } from '../../../src/types';
+import { HttpException } from '@nestjs/common';
 import type { SystemNoticeDto } from '@trek/shared';
+
+import { describe, it, expect, vi } from 'vitest';
 
 function makeController(svc: Partial<SystemNoticesService>) {
   return new SystemNoticesController(svc as SystemNoticesService);
@@ -12,8 +13,12 @@ function makeController(svc: Partial<SystemNoticesService>) {
 const user = { id: 7 } as User;
 
 const notice: SystemNoticeDto = {
-  id: 'welcome', display: 'modal', severity: 'info',
-  titleKey: 'notice.welcome.title', bodyKey: 'notice.welcome.body', dismissible: true,
+  id: 'welcome',
+  display: 'modal',
+  severity: 'info',
+  titleKey: 'notice.welcome.title',
+  bodyKey: 'notice.welcome.body',
+  dismissible: true,
 };
 
 /** Run `fn`, expecting an HttpException; return its { status, body }. */

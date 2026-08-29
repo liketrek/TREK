@@ -1,6 +1,7 @@
-import { CanActivate, ExecutionContext, HttpException, Injectable } from '@nestjs/common';
-import type { Request } from 'express';
 import { extractToken, verifyJwtAndLoadUser } from './jwt-verify';
+import { CanActivate, ExecutionContext, HttpException, Injectable } from '@nestjs/common';
+
+import type { Request } from 'express';
 
 /**
  * Validates TREK's existing JWT session — the same httpOnly `trek_session`

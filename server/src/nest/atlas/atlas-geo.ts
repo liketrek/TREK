@@ -1,9 +1,9 @@
 import { Place } from '../../types';
+import { cacheKeyFor, getCached, nominatimFetch, setCached } from '../geo/nominatim.client';
 
 import fs from 'fs';
 import path from 'path';
 import zlib from 'zlib';
-import { cacheKeyFor, getCached, nominatimFetch, setCached } from '../geo/nominatim.client';
 
 // ── Pure geo machinery for the atlas domain ─────────────────────────────────
 //
@@ -556,7 +556,10 @@ type Box = [number, number, number, number]; // [minLng, minLat, maxLng, maxLat]
 // archipelago-style region — Illes Balears, Canarias, … — gets one tight box per island
 // group rather than one box spanning the whole span between them). Used to resolve admin1
 // regions against the bundle, which are parsed per country on demand rather than held whole.
-function compactGeomFromGeometry(geometry: { type: string; coordinates: unknown }): { geom: CompactGeom; boxes: Box[] } {
+function compactGeomFromGeometry(geometry: { type: string; coordinates: unknown }): {
+  geom: CompactGeom;
+  boxes: Box[];
+} {
   const parts = (geometry.type === 'Polygon' ? [geometry.coordinates] : geometry.coordinates) as number[][][][];
   const rings: Float64Array[] = [];
   const polyRingCounts: number[] = [];
@@ -571,7 +574,10 @@ function compactGeomFromGeometry(geometry: { type: string; coordinates: unknown 
       }
       rings.push(flat);
     }
-    let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity;
+    let minLng = Infinity,
+      minLat = Infinity,
+      maxLng = -Infinity,
+      maxLat = -Infinity;
     for (const [lng, lat] of part[0]) {
       if (lng < minLng) minLng = lng;
       if (lng > maxLng) maxLng = lng;
@@ -680,7 +686,9 @@ function getCountryBoxIndex(): Map<string, Box[]> {
 export function isPointInCountryBox(countryCode: string, lat: number, lng: number): boolean {
   const boxes = getCountryBoxIndex().get(countryCode.toUpperCase());
   if (!boxes) return false;
-  return boxes.some(([minLng, minLat, maxLng, maxLat]) => lat >= minLat && lat <= maxLat && lng >= minLng && lng <= maxLng);
+  return boxes.some(
+    ([minLng, minLat, maxLng, maxLat]) => lat >= minLat && lat <= maxLat && lng >= minLng && lng <= maxLng,
+  );
 }
 
 export function getCountryFromCoords(lat: number, lng: number): string | null {
@@ -881,7 +889,13 @@ async function fetchNominatimAddress(lat: number, lng: number, zoom: number): Pr
   try {
     const res = await nominatimFetch(
       'reverse',
-      new URLSearchParams({ lat: String(lat), lon: String(lng), format: 'json', zoom: String(zoom), 'accept-language': 'en' }),
+      new URLSearchParams({
+        lat: String(lat),
+        lon: String(lng),
+        format: 'json',
+        zoom: String(zoom),
+        'accept-language': 'en',
+      }),
       { lane: 'background', timeoutMs: 10_000 },
     );
     if (!res.ok) return null;
@@ -925,7 +939,11 @@ function buildRegionInfo(address: Record<string, string>, preferFinest: boolean)
   };
 }
 
-export async function reverseGeocodeRegion(lat: number, lng: number, placeAddress?: string | null): Promise<RegionInfo | null> {
+export async function reverseGeocodeRegion(
+  lat: number,
+  lng: number,
+  placeAddress?: string | null,
+): Promise<RegionInfo | null> {
   const key = cacheKeyFor(lat, lng, 'region');
   if (regionCache.has(key)) return regionCache.get(key)!;
 

@@ -1,6 +1,7 @@
-import type Database from 'better-sqlite3';
-import { PluginDataDb } from './plugin-data.service';
 import { DailyBudget, DEFAULT_DAILY_BUDGET } from './daily-budget';
+import { PluginDataDb } from './plugin-data.service';
+
+import type Database from 'better-sqlite3';
 
 /**
  * Process-wide plugin host state, deliberately module-level (NOT a Nest
@@ -50,9 +51,12 @@ export function budgetFor(id: string, conn: Database.Database): DailyBudget {
     const now = Date.now();
     const since = new Date(now).toISOString().slice(0, 10) + 'T00:00:00';
     const rows = conn
-      .prepare("SELECT method, COUNT(*) AS n FROM plugin_capability_audit WHERE plugin_id = ? AND code = 'ok' AND ts >= ? AND method IN ('ai.complete','ai.extract','notify.send') GROUP BY method")
+      .prepare(
+        "SELECT method, COUNT(*) AS n FROM plugin_capability_audit WHERE plugin_id = ? AND code = 'ok' AND ts >= ? AND method IN ('ai.complete','ai.extract','notify.send') GROUP BY method",
+      )
       .all(id, since) as Array<{ method: string; n: number }>;
-    let ai = 0, notify = 0;
+    let ai = 0,
+      notify = 0;
     for (const r of rows) {
       if (r.method === 'notify.send') notify += r.n;
       else ai += r.n; // ai.complete + ai.extract

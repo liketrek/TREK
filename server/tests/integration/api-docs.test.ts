@@ -4,9 +4,15 @@
  * off-by-default behaviour, and the CSP staying intact on the docs routes.
  * Boots the real buildApp() like bootstrap.test.ts.
  */
-import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
-import request from 'supertest';
+import { buildApp } from '../../src/bootstrap';
+import { runMigrations } from '../../src/db/migrations';
+import { createTables } from '../../src/db/schema';
+import { apiDocsEnabled } from '../../src/nest/common/api-docs.kill-switch';
+import { resetTestDb } from '../helpers/test-db';
 import type { INestApplication } from '@nestjs/common';
+
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 
 const { testDb, dbMock } = vi.hoisted(() => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -37,12 +43,6 @@ vi.mock('../../src/config', () => ({
   DEFAULT_LANGUAGE: 'en',
 }));
 vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
-
-import { createTables } from '../../src/db/schema';
-import { runMigrations } from '../../src/db/migrations';
-import { resetTestDb } from '../helpers/test-db';
-import { buildApp } from '../../src/bootstrap';
-import { apiDocsEnabled } from '../../src/nest/common/api-docs.kill-switch';
 
 describe('API-DOCS (#1412) — flag-gated OpenAPI surface', () => {
   let app: INestApplication;

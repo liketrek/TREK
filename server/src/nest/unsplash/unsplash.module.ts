@@ -1,7 +1,7 @@
-import { Module } from '@nestjs/common';
-import { UnsplashService } from './unsplash.service';
 import { AppConfigModule } from '../app-config/app-config.module';
 import { StorageModule } from '../storage/storage.module';
+import { UnsplashService } from './unsplash.service';
+import { Module } from '@nestjs/common';
 
 /** Unsplash cover search and download. No controller of its own — trips and
  *  places both reach it. Deliberately NOT @Global, matching PermissionsModule:

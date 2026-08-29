@@ -4,16 +4,24 @@
  * CronRegistrarService idiom pinned in tests/unit/nest/admin-jobs.test.ts;
  * the tick error-containment mirrors VersionCheckJob/DemoResetJob there.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Logger } from '@nestjs/common';
-import { StorageUsageScanJob } from '../../../../src/nest/storage/storage-usage-scan.job';
-import type { StorageStatsService } from '../../../../src/nest/storage/storage-stats.service';
 import type { CronRegistrarService } from '../../../../src/nest/scheduling/cron-registrar.service';
+import type { StorageStatsService } from '../../../../src/nest/storage/storage-stats.service';
+import { StorageUsageScanJob } from '../../../../src/nest/storage/storage-usage-scan.job';
+import { Logger } from '@nestjs/common';
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 function registrarStub(enabled = true) {
   return {
     isEnabled: vi.fn(() => enabled),
-    register: vi.fn((_name: string, _expression: string, _onTick: () => void | Promise<void>, _opts?: { timezone?: 'app' | 'none' }) => enabled),
+    register: vi.fn(
+      (
+        _name: string,
+        _expression: string,
+        _onTick: () => void | Promise<void>,
+        _opts?: { timezone?: 'app' | 'none' },
+      ) => enabled,
+    ),
     unregister: vi.fn(),
   };
 }

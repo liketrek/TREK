@@ -1,5 +1,5 @@
-import { Module } from '@nestjs/common';
 import { EphemeralTokenService } from './ephemeral-token.service';
+import { Module } from '@nestjs/common';
 
 /**
  * A leaf module whose only job is to hand EphemeralTokenService out.

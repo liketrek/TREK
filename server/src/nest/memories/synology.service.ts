@@ -1,8 +1,7 @@
-import { Injectable } from '@nestjs/common';
-import { Response } from 'express';
-import { decrypt_api_key, encrypt_api_key, maybe_encrypt_api_key } from '../common/crypto/apiKeyCrypto';
 import { safeFetch, SsrfBlockedError, checkSsrf } from '../../utils/ssrfGuard';
+import { decrypt_api_key, encrypt_api_key, maybe_encrypt_api_key } from '../common/crypto/apiKeyCrypto';
 import { DatabaseService } from '../database/database.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { MemoriesAccessService } from './memories-access.service';
 import {
   fail,
@@ -16,7 +15,9 @@ import {
   type ServiceResult,
   type StatusResult,
 } from './memories.helpers';
-import { NotificationsService } from '../notifications/notifications.service';
+import { Injectable } from '@nestjs/common';
+
+import { Response } from 'express';
 
 const SYNOLOGY_PROVIDER = 'synologyphotos';
 // Users provide the full base URL including the Photos app path (e.g. https://nas:5001/photo).
@@ -26,94 +27,93 @@ const SYNOLOGY_ENDPOINT_PATH = '/webapi/entry.cgi';
 const SYNOLOGY_DEVICE_NAME = 'trek';
 
 const SYNOLOGY_ERROR_MESSAGES: Record<number, string> = {
-    101: 'Missing API, method, or version parameter.',
-    102: 'Requested API does not exist.',
-    103: 'Requested method does not exist.',
-    104: 'Requested API version is not supported.',
-    105: 'Insufficient privilege.',
-    106: 'Connection timeout.',
-    107: 'Multiple logins blocked from this IP.',
-    117: 'Manager privilege required.',
-    119: 'Session is invalid or expired.',
-    400: 'Invalid credentials.',
-    401: 'Session expired or account disabled.',
-    402: 'No permission to use this account.',
-    403: 'Two-factor authentication code required.',
-    404: 'Two-factor authentication failed.',
-    406: 'Two-factor authentication is enforced for this account.',
-    407: 'Maximum login attempts reached.',
-    408: 'Password expired.',
-    409: 'Remote password expired.',
-    410: 'Password must be changed before login.',
-    412: 'Guest account cannot log in.',
-    413: 'OTP system files are corrupted.',
-    414: 'Unable to log in.',
-    416: 'Unable to log in.',
-    417: 'OTP system is full.',
-    498: 'System is upgrading.',
-    499: 'System is not ready.',
+  101: 'Missing API, method, or version parameter.',
+  102: 'Requested API does not exist.',
+  103: 'Requested method does not exist.',
+  104: 'Requested API version is not supported.',
+  105: 'Insufficient privilege.',
+  106: 'Connection timeout.',
+  107: 'Multiple logins blocked from this IP.',
+  117: 'Manager privilege required.',
+  119: 'Session is invalid or expired.',
+  400: 'Invalid credentials.',
+  401: 'Session expired or account disabled.',
+  402: 'No permission to use this account.',
+  403: 'Two-factor authentication code required.',
+  404: 'Two-factor authentication failed.',
+  406: 'Two-factor authentication is enforced for this account.',
+  407: 'Maximum login attempts reached.',
+  408: 'Password expired.',
+  409: 'Remote password expired.',
+  410: 'Password must be changed before login.',
+  412: 'Guest account cannot log in.',
+  413: 'OTP system files are corrupted.',
+  414: 'Unable to log in.',
+  416: 'Unable to log in.',
+  417: 'OTP system is full.',
+  498: 'System is upgrading.',
+  499: 'System is not ready.',
 };
 
 interface SynologyUserRecord {
-    synology_url?: string | null;
-    synology_username?: string | null;
-    synology_password?: string | null;
-    synology_sid?: string | null;
-    synology_did?: string | null;
-    synology_skip_ssl?: number | null;
-};
+  synology_url?: string | null;
+  synology_username?: string | null;
+  synology_password?: string | null;
+  synology_sid?: string | null;
+  synology_did?: string | null;
+  synology_skip_ssl?: number | null;
+}
 
 interface SynologyCredentials {
-    synology_url: string;
-    synology_username: string;
-    synology_password: string;
-    synology_skip_ssl: boolean;
+  synology_url: string;
+  synology_username: string;
+  synology_password: string;
+  synology_skip_ssl: boolean;
 }
 
 interface SynologySettings {
-    synology_url: string;
-    synology_username: string;
-    synology_skip_ssl: boolean;
-    connected: boolean;
+  synology_url: string;
+  synology_username: string;
+  synology_skip_ssl: boolean;
+  connected: boolean;
 }
 
 interface ApiCallParams {
-    api: string;
-    method: string;
-    version?: number;
-    [key: string]: unknown;
+  api: string;
+  method: string;
+  version?: number;
+  [key: string]: unknown;
 }
 
 interface SynologyApiResponse<T> {
-    success: boolean;
-    data?: T;
-    error?: { code: number };
+  success: boolean;
+  data?: T;
+  error?: { code: number };
 }
 
-
 interface SynologyPhotoItem {
-    id?: string | number;
-    filename?: string;
-    filesize?: number;
-    time?: number;
-    item_count?: number;
-    name?: string;
-    additional?: {
-        thumbnail?: { cache_key?: string };
-        address?: { city?: string; country?: string; state?: string };
-        resolution?: { width?: number; height?: number };
-        exif?: {
-            camera?: string;
-            lens?: string;
-            focal_length?: string | number;
-            aperture?: string | number;
-            exposure_time?: string | number;
-            iso?: string | number;
-        };
-        gps?: { latitude?: number; longitude?: number };
-        orientation?: number;
-        description?: string;
+  id?: string | number;
+  filename?: string;
+  filesize?: number;
+  time?: number;
+  item_count?: number;
+  name?: string;
+  additional?: {
+    thumbnail?: { cache_key?: string };
+    address?: { city?: string; country?: string; state?: string };
+    resolution?: { width?: number; height?: number };
+    exif?: {
+      camera?: string;
+      lens?: string;
+      focal_length?: string | number;
+      aperture?: string | number;
+      exposure_time?: string | number;
+      iso?: string | number;
     };
+    gps?: { latitude?: number; longitude?: number };
+    orientation?: number;
+    description?: string;
+  };
 }
 
 /**
@@ -133,594 +133,709 @@ export class SynologyService {
   ) {}
 
   private _readSynologyUser(userId: number, columns: string[]): ServiceResult<SynologyUserRecord> {
-      try {
-          const row = this.db.prepare(`SELECT synology_url, synology_username, synology_password, synology_sid, synology_did, synology_skip_ssl FROM users WHERE id = ?`).get(userId) as SynologyUserRecord | undefined;
+    try {
+      const row = this.db
+        .prepare(
+          `SELECT synology_url, synology_username, synology_password, synology_sid, synology_did, synology_skip_ssl FROM users WHERE id = ?`,
+        )
+        .get(userId) as SynologyUserRecord | undefined;
 
-          if (!row) {
-              return fail('User not found', 404);
-          }
-
-          const filtered: SynologyUserRecord = {};
-          for (const column of columns) {
-              filtered[column] = row[column];
-          }
-
-          return success(filtered);
-      } catch {
-          return fail('Failed to read Synology user data', 500);
+      if (!row) {
+        return fail('User not found', 404);
       }
+
+      const filtered: SynologyUserRecord = {};
+      for (const column of columns) {
+        filtered[column] = row[column];
+      }
+
+      return success(filtered);
+    } catch {
+      return fail('Failed to read Synology user data', 500);
+    }
   }
 
   private _getSynologyCredentials(userId: number): ServiceResult<SynologyCredentials> {
-      const user = this._readSynologyUser(userId, ['synology_url', 'synology_username', 'synology_password', 'synology_skip_ssl']);
-      if (!user.success) return user as ServiceResult<SynologyCredentials>;
-      if (!user?.data.synology_url || !user.data.synology_username || !user.data.synology_password) return fail('Synology not configured', 400);
-      const password = decrypt_api_key(user.data.synology_password);
-      if (!password) return fail('Synology credentials corrupted', 500);
-      return success({
-          synology_url: user.data.synology_url,
-          synology_username: user.data.synology_username,
-          synology_password: password,
-          synology_skip_ssl: user.data.synology_skip_ssl !== 0,
-      });
+    const user = this._readSynologyUser(userId, [
+      'synology_url',
+      'synology_username',
+      'synology_password',
+      'synology_skip_ssl',
+    ]);
+    if (!user.success) return user as ServiceResult<SynologyCredentials>;
+    if (!user?.data.synology_url || !user.data.synology_username || !user.data.synology_password)
+      return fail('Synology not configured', 400);
+    const password = decrypt_api_key(user.data.synology_password);
+    if (!password) return fail('Synology credentials corrupted', 500);
+    return success({
+      synology_url: user.data.synology_url,
+      synology_username: user.data.synology_username,
+      synology_password: password,
+      synology_skip_ssl: user.data.synology_skip_ssl !== 0,
+    });
   }
 
-
   private _buildSynologyEndpoint(url: string, params: string): string {
-      const normalized = url.replace(/\/$/, '').match(/^https?:\/\//) ? url.replace(/\/$/, '') : `https://${url.replace(/\/$/, '')}`;
-      return `${normalized}${SYNOLOGY_ENDPOINT_PATH}?${params}`;
+    const normalized = url.replace(/\/$/, '').match(/^https?:\/\//)
+      ? url.replace(/\/$/, '')
+      : `https://${url.replace(/\/$/, '')}`;
+    return `${normalized}${SYNOLOGY_ENDPOINT_PATH}?${params}`;
   }
 
   private _buildSynologyFormBody(params: ApiCallParams): URLSearchParams {
-      const body = new URLSearchParams();
-      for (const [key, value] of Object.entries(params)) {
-          if (value === undefined || value === null) continue;
-          body.append(key, typeof value === 'object' ? JSON.stringify(value) : String(value));
-      }
-      return body;
+    const body = new URLSearchParams();
+    for (const [key, value] of Object.entries(params)) {
+      if (value === undefined || value === null) continue;
+      body.append(key, typeof value === 'object' ? JSON.stringify(value) : String(value));
+    }
+    return body;
   }
 
   private async _fetchSynologyJson<T>(url: string, body: URLSearchParams, skipSsl = true): Promise<ServiceResult<T>> {
-      const endpoint = this._buildSynologyEndpoint(url, `api=${body.get('api')}`);
-      try {
-          const resp = await safeFetch(endpoint, {
-              method: 'POST',
-              headers: {
-                  'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-              },
-              body,
-              signal: AbortSignal.timeout(30000) as any,
-          }, { rejectUnauthorized: !skipSsl });
-          if (!resp.ok) {
-              return fail('Synology API request failed with status ' + resp.status, resp.status);
-          }
-          const response = await resp.json() as SynologyApiResponse<T>;
-          if (!response.success) {
-              const code = response.error.code;
-              const message = SYNOLOGY_ERROR_MESSAGES[code] ?? 'Synology API request failed (code ' + code + ')';
-              // Preserve session error codes (106, 107, 119) for internal retry logic in _requestSynologyApi.
-              // All other Synology app-level codes are mapped to HTTP 400 — they are not HTTP status codes.
-              const httpStatus = [106, 107, 119].includes(code) ? code : 400;
-              return fail(message, httpStatus);
-          }
-          return success(response.data);
-      } catch (error) {
-          if (error instanceof SsrfBlockedError) {
-              return fail(error.message, 400);
-          }
-          return fail('Failed to connect to Synology API', 500);
+    const endpoint = this._buildSynologyEndpoint(url, `api=${body.get('api')}`);
+    try {
+      const resp = await safeFetch(
+        endpoint,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+          },
+          body,
+          signal: AbortSignal.timeout(30000) as any,
+        },
+        { rejectUnauthorized: !skipSsl },
+      );
+      if (!resp.ok) {
+        return fail('Synology API request failed with status ' + resp.status, resp.status);
       }
+      const response = (await resp.json()) as SynologyApiResponse<T>;
+      if (!response.success) {
+        const code = response.error.code;
+        const message = SYNOLOGY_ERROR_MESSAGES[code] ?? 'Synology API request failed (code ' + code + ')';
+        // Preserve session error codes (106, 107, 119) for internal retry logic in _requestSynologyApi.
+        // All other Synology app-level codes are mapped to HTTP 400 — they are not HTTP status codes.
+        const httpStatus = [106, 107, 119].includes(code) ? code : 400;
+        return fail(message, httpStatus);
+      }
+      return success(response.data);
+    } catch (error) {
+      if (error instanceof SsrfBlockedError) {
+        return fail(error.message, 400);
+      }
+      return fail('Failed to connect to Synology API', 500);
+    }
   }
 
-
   private async _loginToSynology(
-      url: string,
-      username: string,
-      password: string,
-      opts: { otp?: string; deviceId?: string; skipSsl?: boolean } = {},
+    url: string,
+    username: string,
+    password: string,
+    opts: { otp?: string; deviceId?: string; skipSsl?: boolean } = {},
   ): Promise<ServiceResult<{ sid: string; did?: string }>> {
-      const { otp, deviceId, skipSsl = false } = opts;
-      const body = new URLSearchParams({
-          api: 'SYNO.API.Auth',
-          method: 'login',
-          version: '6',
-          account: username,
-          passwd: password,
-          format: 'sid',
-          client: 'browser',
-          device_name: SYNOLOGY_DEVICE_NAME,
-      });
-      if (otp && otp.trim()) {
-          body.append('otp_code', otp.trim());
-          body.append('enable_device_token', 'yes');
-      }
-      if (deviceId) {
-          body.append('device_id', deviceId);
-      }
+    const { otp, deviceId, skipSsl = false } = opts;
+    const body = new URLSearchParams({
+      api: 'SYNO.API.Auth',
+      method: 'login',
+      version: '6',
+      account: username,
+      passwd: password,
+      format: 'sid',
+      client: 'browser',
+      device_name: SYNOLOGY_DEVICE_NAME,
+    });
+    if (otp && otp.trim()) {
+      body.append('otp_code', otp.trim());
+      body.append('enable_device_token', 'yes');
+    }
+    if (deviceId) {
+      body.append('device_id', deviceId);
+    }
 
-      const result = await this._fetchSynologyJson<{ sid?: string; did?: string }>(url, body, skipSsl);
-      if (!result.success) {
-          return result as ServiceResult<{ sid: string; did?: string }>;
-      }
-      if (!result.data.sid) {
-          return fail('Failed to get session ID from Synology', 500);
-      }
-      return success({ sid: result.data.sid, did: result.data.did });
+    const result = await this._fetchSynologyJson<{ sid?: string; did?: string }>(url, body, skipSsl);
+    if (!result.success) {
+      return result as ServiceResult<{ sid: string; did?: string }>;
+    }
+    if (!result.data.sid) {
+      return fail('Failed to get session ID from Synology', 500);
+    }
+    return success({ sid: result.data.sid, did: result.data.did });
   }
 
   private async _requestSynologyApi<T>(userId: number, params: ApiCallParams): Promise<ServiceResult<T>> {
-      const creds = this._getSynologyCredentials(userId);
-      if (!creds.success) {
-          return creds as ServiceResult<T>;
-      }
+    const creds = this._getSynologyCredentials(userId);
+    if (!creds.success) {
+      return creds as ServiceResult<T>;
+    }
 
-      const session = await this._getSynologySession(userId);
-      if (!session.success || !session.data) {
-          return session as ServiceResult<T>;
-      }
+    const session = await this._getSynologySession(userId);
+    if (!session.success || !session.data) {
+      return session as ServiceResult<T>;
+    }
 
-      const skipSsl = creds.data.synology_skip_ssl;
-      const body = this._buildSynologyFormBody({ ...params, _sid: session.data });
-      const result = await this._fetchSynologyJson<T>(creds.data.synology_url, body, skipSsl);
-      // 106 = session timeout, 107 = duplicate login kicked us out, 119 = SID not found/invalid
-      if ('error' in result && [106, 107, 119].includes(result.error.status)) {
-          this._clearSynologySID(userId);
-          const retrySession = await this._getSynologySession(userId);
-          if (!retrySession.success || !retrySession.data) {
-              return retrySession as ServiceResult<T>;
-          }
-          return this._fetchSynologyJson<T>(creds.data.synology_url, this._buildSynologyFormBody({ ...params, _sid: retrySession.data }), skipSsl);
+    const skipSsl = creds.data.synology_skip_ssl;
+    const body = this._buildSynologyFormBody({ ...params, _sid: session.data });
+    const result = await this._fetchSynologyJson<T>(creds.data.synology_url, body, skipSsl);
+    // 106 = session timeout, 107 = duplicate login kicked us out, 119 = SID not found/invalid
+    if ('error' in result && [106, 107, 119].includes(result.error.status)) {
+      this._clearSynologySID(userId);
+      const retrySession = await this._getSynologySession(userId);
+      if (!retrySession.success || !retrySession.data) {
+        return retrySession as ServiceResult<T>;
       }
-      return result;
+      return this._fetchSynologyJson<T>(
+        creds.data.synology_url,
+        this._buildSynologyFormBody({ ...params, _sid: retrySession.data }),
+        skipSsl,
+      );
+    }
+    return result;
   }
 
   private _normalizeSynologyPhotoInfo(item: SynologyPhotoItem): AssetInfo {
-      const address = item.additional?.address || {};
-      const exif = item.additional?.exif || {};
-      const gps = item.additional?.gps || {};
+    const address = item.additional?.address || {};
+    const exif = item.additional?.exif || {};
+    const gps = item.additional?.gps || {};
 
-      return {
-          id: String(item.additional?.thumbnail?.cache_key || ''),
-          takenAt: item.time ? new Date(item.time * 1000).toISOString() : null,
-          city: address.city || null,
-          country: address.country || null,
-          state: address.state || null,
-          camera: exif.camera || null,
-          lens: exif.lens || null,
-          focalLength: exif.focal_length || null,
-          aperture: exif.aperture || null,
-          shutter: exif.exposure_time || null,
-          iso: exif.iso || null,
-          lat: typeof gps.latitude === 'number' ? gps.latitude : null,
-          lng: typeof gps.longitude === 'number' ? gps.longitude : null,
-          orientation: item.additional?.orientation || null,
-          description: item.additional?.description || null,
-          width: item.additional?.resolution?.width || null,
-          height: item.additional?.resolution?.height || null,
-          fileSize: item.filesize || null,
-          fileName: item.filename || null,
-      };
+    return {
+      id: String(item.additional?.thumbnail?.cache_key || ''),
+      takenAt: item.time ? new Date(item.time * 1000).toISOString() : null,
+      city: address.city || null,
+      country: address.country || null,
+      state: address.state || null,
+      camera: exif.camera || null,
+      lens: exif.lens || null,
+      focalLength: exif.focal_length || null,
+      aperture: exif.aperture || null,
+      shutter: exif.exposure_time || null,
+      iso: exif.iso || null,
+      lat: typeof gps.latitude === 'number' ? gps.latitude : null,
+      lng: typeof gps.longitude === 'number' ? gps.longitude : null,
+      orientation: item.additional?.orientation || null,
+      description: item.additional?.description || null,
+      width: item.additional?.resolution?.width || null,
+      height: item.additional?.resolution?.height || null,
+      fileSize: item.filesize || null,
+      fileName: item.filename || null,
+    };
   }
 
-
   private _clearSynologySID(userId: number): void {
-      this.db.prepare('UPDATE users SET synology_sid = NULL WHERE id = ?').run(userId);
+    this.db.prepare('UPDATE users SET synology_sid = NULL WHERE id = ?').run(userId);
   }
 
   private _clearSynologySession(userId: number): void {
-      this.db.prepare('UPDATE users SET synology_sid = NULL, synology_did = NULL WHERE id = ?').run(userId);
+    this.db.prepare('UPDATE users SET synology_sid = NULL, synology_did = NULL WHERE id = ?').run(userId);
   }
 
   private _splitPackedSynologyId(rawId: string): { id: string; cacheKey: string; assetId: string } | null {
-      // cache_key format from Synology is "{unit_id}_{timestamp}", e.g. "40808_1633659236".
-      // The first segment must be a non-empty integer (the unit ID used for API calls).
-      if (!/^\d+_.+$/.test(rawId)) return null;
-      const id = rawId.split('_')[0];
-      return { id, cacheKey: rawId, assetId: rawId };
+    // cache_key format from Synology is "{unit_id}_{timestamp}", e.g. "40808_1633659236".
+    // The first segment must be a non-empty integer (the unit ID used for API calls).
+    if (!/^\d+_.+$/.test(rawId)) return null;
+    const id = rawId.split('_')[0];
+    return { id, cacheKey: rawId, assetId: rawId };
   }
 
   private async _getSynologySession(userId: number): Promise<ServiceResult<string>> {
-      const cached = this._readSynologyUser(userId, ['synology_sid', 'synology_did']);
-      if (cached.success && cached.data?.synology_sid) {
-          const decryptedSid = decrypt_api_key(cached.data.synology_sid);
-          if (decryptedSid) return success(decryptedSid);
-          // Decryption failed (e.g. key rotation) — clear the stale SID and re-login
-          this._clearSynologySID(userId);
-      }
+    const cached = this._readSynologyUser(userId, ['synology_sid', 'synology_did']);
+    if (cached.success && cached.data?.synology_sid) {
+      const decryptedSid = decrypt_api_key(cached.data.synology_sid);
+      if (decryptedSid) return success(decryptedSid);
+      // Decryption failed (e.g. key rotation) — clear the stale SID and re-login
+      this._clearSynologySID(userId);
+    }
 
-      const creds = this._getSynologyCredentials(userId);
-      if (!creds.success) {
-          return creds as ServiceResult<string>;
-      }
+    const creds = this._getSynologyCredentials(userId);
+    if (!creds.success) {
+      return creds as ServiceResult<string>;
+    }
 
-      // Use stored device ID to skip OTP on re-login (trusted device flow)
-      const storedDid = cached.success && cached.data?.synology_did
-          ? (decrypt_api_key(cached.data.synology_did) || undefined)
-          : undefined;
+    // Use stored device ID to skip OTP on re-login (trusted device flow)
+    const storedDid =
+      cached.success && cached.data?.synology_did ? decrypt_api_key(cached.data.synology_did) || undefined : undefined;
 
-      const resp = await this._loginToSynology(creds.data.synology_url, creds.data.synology_username, creds.data.synology_password, {
-          deviceId: storedDid,
-          skipSsl: creds.data.synology_skip_ssl,
-      });
+    const resp = await this._loginToSynology(
+      creds.data.synology_url,
+      creds.data.synology_username,
+      creds.data.synology_password,
+      {
+        deviceId: storedDid,
+        skipSsl: creds.data.synology_skip_ssl,
+      },
+    );
 
-      if (!resp.success) {
-          return resp as ServiceResult<string>;
-      }
+    if (!resp.success) {
+      return resp as ServiceResult<string>;
+    }
 
-      this.db.prepare('UPDATE users SET synology_sid = ? WHERE id = ?').run(encrypt_api_key(resp.data.sid), userId);
-      return success(resp.data.sid);
+    this.db.prepare('UPDATE users SET synology_sid = ? WHERE id = ?').run(encrypt_api_key(resp.data.sid), userId);
+    return success(resp.data.sid);
   }
 
   async getSynologySettings(userId: number): Promise<ServiceResult<SynologySettings>> {
-      const creds = this._getSynologyCredentials(userId);
-      if (!creds.success) return creds as ServiceResult<SynologySettings>;
-      const session = await this._getSynologySession(userId);
-      return success({
-          synology_url: creds.data.synology_url || '',
-          synology_username: creds.data.synology_username || '',
-          synology_skip_ssl: creds.data.synology_skip_ssl,
-          connected: session.success,
-      });
+    const creds = this._getSynologyCredentials(userId);
+    if (!creds.success) return creds as ServiceResult<SynologySettings>;
+    const session = await this._getSynologySession(userId);
+    return success({
+      synology_url: creds.data.synology_url || '',
+      synology_username: creds.data.synology_username || '',
+      synology_skip_ssl: creds.data.synology_skip_ssl,
+      connected: session.success,
+    });
   }
 
-  async updateSynologySettings(userId: number, synologyUrl: string, synologyUsername: string, synologyPassword?: string, synologySkipSsl = false): Promise<ServiceResult<string>> {
+  async updateSynologySettings(
+    userId: number,
+    synologyUrl: string,
+    synologyUsername: string,
+    synologyPassword?: string,
+    synologySkipSsl = false,
+  ): Promise<ServiceResult<string>> {
+    const ssrf = await checkSsrf(synologyUrl);
+    if (!ssrf.allowed) {
+      return fail(ssrf.error, 400);
+    }
 
-      const ssrf = await checkSsrf(synologyUrl);
-      if (!ssrf.allowed) {
-          return fail(ssrf.error, 400);
-      }
+    const result = this._readSynologyUser(userId, ['synology_password']);
+    if (!result.success) return result as ServiceResult<string>;
+    const existingEncryptedPassword = result.data?.synology_password || null;
 
-      const result = this._readSynologyUser(userId, ['synology_password'])
-      if (!result.success) return result as ServiceResult<string>;
-      const existingEncryptedPassword = result.data?.synology_password || null;
+    if (!synologyPassword && !existingEncryptedPassword) {
+      return fail('No stored password found. Please provide a password to save settings.', 400);
+    }
 
-      if (!synologyPassword && !existingEncryptedPassword) {
-          return fail('No stored password found. Please provide a password to save settings.', 400);
-      }
+    // Only invalidate the session when the account itself changes (different URL or username).
+    // If the user just tested the connection, testSynologyConnection already stored a fresh
+    // sid + did — clearing them here would force an unnecessary re-login that may fail (MFA).
+    const existing = this._readSynologyUser(userId, ['synology_url', 'synology_username']);
+    const urlChanged = existing.success && existing.data.synology_url !== synologyUrl;
+    const userChanged = existing.success && existing.data.synology_username !== synologyUsername;
+    const sessionCleared = urlChanged || userChanged;
+    if (sessionCleared) {
+      this._clearSynologySession(userId);
+      // Fire-and-forget like unifiedService's photos_shared send — without the
+      // .catch an in-app insert failure became an unhandled rejection.
+      // Injected, not imported from the old notifications bridge — that module built
+      // its own NotificationsService outside the container.
+      this.notifications
+        .send({
+          event: 'synology_session_cleared',
+          actorId: null,
+          params: {},
+          scope: 'user',
+          targetId: userId,
+        })
+        .catch(() => {});
+    }
 
-      // Only invalidate the session when the account itself changes (different URL or username).
-      // If the user just tested the connection, testSynologyConnection already stored a fresh
-      // sid + did — clearing them here would force an unnecessary re-login that may fail (MFA).
-      const existing = this._readSynologyUser(userId, ['synology_url', 'synology_username']);
-      const urlChanged = existing.success && existing.data.synology_url !== synologyUrl;
-      const userChanged = existing.success && existing.data.synology_username !== synologyUsername;
-      const sessionCleared = urlChanged || userChanged;
-      if (sessionCleared) {
-          this._clearSynologySession(userId);
-          // Fire-and-forget like unifiedService's photos_shared send — without the
-          // .catch an in-app insert failure became an unhandled rejection.
-          // Injected, not imported from the old notifications bridge — that module built
-          // its own NotificationsService outside the container.
-          this.notifications.send({
-              event: 'synology_session_cleared',
-              actorId: null,
-              params: {},
-              scope: 'user',
-              targetId: userId,
-          }).catch(() => {});
-      }
+    try {
+      this.db
+        .prepare(
+          'UPDATE users SET synology_url = ?, synology_username = ?, synology_password = ?, synology_skip_ssl = ? WHERE id = ?',
+        )
+        .run(
+          synologyUrl,
+          synologyUsername,
+          synologyPassword ? maybe_encrypt_api_key(synologyPassword) : existingEncryptedPassword,
+          synologySkipSsl ? 1 : 0,
+          userId,
+        );
+    } catch {
+      return fail('Failed to update Synology settings', 500);
+    }
 
-      try {
-          this.db.prepare('UPDATE users SET synology_url = ?, synology_username = ?, synology_password = ?, synology_skip_ssl = ? WHERE id = ?').run(
-              synologyUrl,
-              synologyUsername,
-              synologyPassword ? maybe_encrypt_api_key(synologyPassword) : existingEncryptedPassword,
-              synologySkipSsl ? 1 : 0,
-              userId,
-          );
-      } catch {
-          return fail('Failed to update Synology settings', 500);
-      }
-
-      return success('settings updated');
+    return success('settings updated');
   }
 
   async getSynologyStatus(userId: number): Promise<ServiceResult<StatusResult>> {
-      const sid = await this._getSynologySession(userId);
-      if ('error' in sid) return success({ connected: false, error: sid.error.message });
-      if (!sid.data) return success({ connected: false, error: 'Not connected to Synology' });
-      try {
-          const user = this.db.prepare('SELECT synology_username FROM users WHERE id = ?').get(userId) as { synology_username?: string } | undefined;
-          return success({ connected: true, user: { name: user?.synology_username || 'unknown user' } });
-      } catch (err: unknown) {
-          return success({ connected: true, user: { name: 'unknown user' } });
-      }
+    const sid = await this._getSynologySession(userId);
+    if ('error' in sid) return success({ connected: false, error: sid.error.message });
+    if (!sid.data) return success({ connected: false, error: 'Not connected to Synology' });
+    try {
+      const user = this.db.prepare('SELECT synology_username FROM users WHERE id = ?').get(userId) as
+        | { synology_username?: string }
+        | undefined;
+      return success({ connected: true, user: { name: user?.synology_username || 'unknown user' } });
+    } catch (err: unknown) {
+      return success({ connected: true, user: { name: 'unknown user' } });
+    }
   }
 
-  async testSynologyConnection(userId: number, synologyUrl: string, synologyUsername: string, synologyPassword: string, synologyOtp?: string, synologySkipSsl = false): Promise<ServiceResult<StatusResult>> {
+  async testSynologyConnection(
+    userId: number,
+    synologyUrl: string,
+    synologyUsername: string,
+    synologyPassword: string,
+    synologyOtp?: string,
+    synologySkipSsl = false,
+  ): Promise<ServiceResult<StatusResult>> {
+    const ssrf = await checkSsrf(synologyUrl);
+    if (!ssrf.allowed) {
+      return fail(ssrf.error, 400);
+    }
 
-      const ssrf = await checkSsrf(synologyUrl);
-      if (!ssrf.allowed) {
-          return fail(ssrf.error, 400);
-      }
+    const resp = await this._loginToSynology(synologyUrl, synologyUsername, synologyPassword, {
+      otp: synologyOtp,
+      skipSsl: synologySkipSsl,
+    });
+    if ('error' in resp) {
+      return success({ connected: false, error: resp.error.message });
+    }
 
-      const resp = await this._loginToSynology(synologyUrl, synologyUsername, synologyPassword, { otp: synologyOtp, skipSsl: synologySkipSsl });
-      if ('error' in resp) {
-          return success({ connected: false, error: resp.error.message });
-      }
+    // Persist the session so the OTP code is not required again on save.
+    // The did (device token) allows future re-logins without OTP.
+    this.db.prepare('UPDATE users SET synology_sid = ? WHERE id = ?').run(encrypt_api_key(resp.data.sid), userId);
+    if (resp.data.did) {
+      this.db.prepare('UPDATE users SET synology_did = ? WHERE id = ?').run(encrypt_api_key(resp.data.did), userId);
+    }
 
-      // Persist the session so the OTP code is not required again on save.
-      // The did (device token) allows future re-logins without OTP.
-      this.db.prepare('UPDATE users SET synology_sid = ? WHERE id = ?').run(encrypt_api_key(resp.data.sid), userId);
-      if (resp.data.did) {
-          this.db.prepare('UPDATE users SET synology_did = ? WHERE id = ?').run(encrypt_api_key(resp.data.did), userId);
-      }
-
-      return success({ connected: true, user: { name: synologyUsername } });
+    return success({ connected: true, user: { name: synologyUsername } });
   }
 
   private async _fetchAllSynologyAlbums(userId: number, baseParams: ApiCallParams): Promise<ServiceResult<any[]>> {
-      const pageSize = 100;
-      const all: any[] = [];
-      let offset = 0;
-      while (true) {
-          const result = await this._requestSynologyApi<{ list: any[] }>(userId, { ...baseParams, offset, limit: pageSize });
-          if (!result.success) return result as ServiceResult<any[]>;
-          const items = result.data.list || [];
-          all.push(...items);
-          if (items.length < pageSize) break;
-          offset += pageSize;
-      }
-      return success(all);
+    const pageSize = 100;
+    const all: any[] = [];
+    let offset = 0;
+    while (true) {
+      const result = await this._requestSynologyApi<{ list: any[] }>(userId, {
+        ...baseParams,
+        offset,
+        limit: pageSize,
+      });
+      if (!result.success) return result as ServiceResult<any[]>;
+      const items = result.data.list || [];
+      all.push(...items);
+      if (items.length < pageSize) break;
+      offset += pageSize;
+    }
+    return success(all);
   }
 
   async listSynologyAlbums(userId: number): Promise<ServiceResult<AlbumsList>> {
-      const [personal, shared, sharedWithMe] = await Promise.allSettled([
-          this._fetchAllSynologyAlbums(userId, { api: 'SYNO.Foto.Browse.Album', method: 'list', version: 4 }),
-          this._fetchAllSynologyAlbums(userId, { api: 'SYNO.Foto.Browse.Album', method: 'list', version: 4, category: 'shared' }),
-          this._fetchAllSynologyAlbums(userId, { api: 'SYNO.Foto.Sharing.Misc', method: 'list_shared_with_me_album', version: 1, additional: ['thumbnail', 'sharing_info'] }),
-      ]);
+    const [personal, shared, sharedWithMe] = await Promise.allSettled([
+      this._fetchAllSynologyAlbums(userId, { api: 'SYNO.Foto.Browse.Album', method: 'list', version: 4 }),
+      this._fetchAllSynologyAlbums(userId, {
+        api: 'SYNO.Foto.Browse.Album',
+        method: 'list',
+        version: 4,
+        category: 'shared',
+      }),
+      this._fetchAllSynologyAlbums(userId, {
+        api: 'SYNO.Foto.Sharing.Misc',
+        method: 'list_shared_with_me_album',
+        version: 1,
+        additional: ['thumbnail', 'sharing_info'],
+      }),
+    ]);
 
-      const map = new Map<string, { id: string; albumName: string; assetCount: number; passphrase?: string }>();
+    const map = new Map<string, { id: string; albumName: string; assetCount: number; passphrase?: string }>();
 
-      const addAlbums = (result: PromiseSettledResult<ServiceResult<any[]>>, extractPassphrase: (a: any) => string | undefined) => {
-          if (result.status === 'rejected') return;
-          const value = result.value;
-          if ('error' in value) {
-              console.warn('[Synology] album list partial failure:', value.error.message);
-              return;
-          }
-          for (const album of value.data ?? []) {
-              const id = String(album.id);
-              const passphrase = extractPassphrase(album);
-              map.set(id, { id, albumName: album.name || '', assetCount: album.item_count || 0, passphrase });
-          }
-      };
-
-      addAlbums(personal, () => undefined);
-      addAlbums(shared, (a) => a.passphrase || undefined);
-      addAlbums(sharedWithMe, (a) => a.passphrase || a.sharing_info?.passphrase || undefined);
-
-      if (map.size === 0 && personal.status === 'fulfilled' && !personal.value.success) {
-          return personal.value as ServiceResult<AlbumsList>;
+    const addAlbums = (
+      result: PromiseSettledResult<ServiceResult<any[]>>,
+      extractPassphrase: (a: any) => string | undefined,
+    ) => {
+      if (result.status === 'rejected') return;
+      const value = result.value;
+      if ('error' in value) {
+        console.warn('[Synology] album list partial failure:', value.error.message);
+        return;
       }
+      for (const album of value.data ?? []) {
+        const id = String(album.id);
+        const passphrase = extractPassphrase(album);
+        map.set(id, { id, albumName: album.name || '', assetCount: album.item_count || 0, passphrase });
+      }
+    };
 
-      const albums = [...map.values()].sort((a, b) => a.albumName.localeCompare(b.albumName));
-      return success({ albums });
+    addAlbums(personal, () => undefined);
+    addAlbums(shared, (a) => a.passphrase || undefined);
+    addAlbums(sharedWithMe, (a) => a.passphrase || a.sharing_info?.passphrase || undefined);
+
+    if (map.size === 0 && personal.status === 'fulfilled' && !personal.value.success) {
+      return personal.value as ServiceResult<AlbumsList>;
+    }
+
+    const albums = [...map.values()].sort((a, b) => a.albumName.localeCompare(b.albumName));
+    return success({ albums });
   }
 
+  async getSynologyAlbumPhotos(
+    userId: number,
+    albumId: string,
+    passphrase?: string,
+  ): Promise<ServiceResult<AssetsList>> {
+    const allItems: SynologyPhotoItem[] = [];
+    const pageSize = 50;
+    let offset = 0;
 
-  async getSynologyAlbumPhotos(userId: number, albumId: string, passphrase?: string): Promise<ServiceResult<AssetsList>> {
-      const allItems: SynologyPhotoItem[] = [];
-      const pageSize = 50;
-      let offset = 0;
+    while (true) {
+      const params: ApiCallParams = passphrase
+        ? // 'gps' costs nothing extra on the same call and is the only way a
+          // photo picked from an album can ever reach the map (#1614).
+          {
+            api: 'SYNO.Foto.Browse.Item',
+            method: 'list',
+            version: 1,
+            passphrase,
+            offset,
+            limit: pageSize,
+            additional: ['thumbnail', 'gps'],
+          }
+        : {
+            api: 'SYNO.Foto.Browse.Item',
+            method: 'list',
+            version: 1,
+            album_id: Number(albumId),
+            offset,
+            limit: pageSize,
+            additional: ['thumbnail', 'gps'],
+          };
+      const result = await this._requestSynologyApi<{ list: SynologyPhotoItem[] }>(userId, params);
+      if (!result.success) return result as ServiceResult<AssetsList>;
+      const items = result.data.list || [];
+      allItems.push(...items);
+      if (items.length < pageSize) break;
+      offset += pageSize;
+    }
 
-      while (true) {
-          const params: ApiCallParams = passphrase
-              // 'gps' costs nothing extra on the same call and is the only way a
-              // photo picked from an album can ever reach the map (#1614).
-              ? { api: 'SYNO.Foto.Browse.Item', method: 'list', version: 1, passphrase, offset, limit: pageSize, additional: ['thumbnail', 'gps'] }
-              : { api: 'SYNO.Foto.Browse.Item', method: 'list', version: 1, album_id: Number(albumId), offset, limit: pageSize, additional: ['thumbnail', 'gps'] };
-          const result = await this._requestSynologyApi<{ list: SynologyPhotoItem[] }>(userId, params);
-          if (!result.success) return result as ServiceResult<AssetsList>;
-          const items = result.data.list || [];
-          allItems.push(...items);
-          if (items.length < pageSize) break;
-          offset += pageSize;
-      }
+    const assets = allItems
+      .map((item) => ({
+        id: String(item.additional?.thumbnail?.cache_key || item.id || ''),
+        takenAt: item.time ? new Date(item.time * 1000).toISOString() : '',
+        lat: typeof item.additional?.gps?.latitude === 'number' ? item.additional.gps.latitude : null,
+        lng: typeof item.additional?.gps?.longitude === 'number' ? item.additional.gps.longitude : null,
+      }))
+      .filter((a) => a.id);
 
-      const assets = allItems.map(item => ({
-          id: String(item.additional?.thumbnail?.cache_key || item.id || ''),
-          takenAt: item.time ? new Date(item.time * 1000).toISOString() : '',
-          lat: typeof item.additional?.gps?.latitude === 'number' ? item.additional.gps.latitude : null,
-          lng: typeof item.additional?.gps?.longitude === 'number' ? item.additional.gps.longitude : null,
-      })).filter(a => a.id);
-
-      return success({ assets, total: assets.length, hasMore: false });
+    return success({ assets, total: assets.length, hasMore: false });
   }
 
   /**
    * The Synology half of an album sync — see collectAlbumSelection in
    * immichService for why the trip-side write lives in the unified service now.
    */
-  async collectSynologyAlbumSelection(userId: number, tripId: string, linkId: string): Promise<ServiceResult<{ selection: Selection; total: number }>> {
-      const response = this.access.getAlbumLinkForSync(tripId, linkId, userId);
-      if (!response.success) return response as ServiceResult<{ selection: Selection; total: number }>;
+  async collectSynologyAlbumSelection(
+    userId: number,
+    tripId: string,
+    linkId: string,
+  ): Promise<ServiceResult<{ selection: Selection; total: number }>> {
+    const response = this.access.getAlbumLinkForSync(tripId, linkId, userId);
+    if (!response.success) return response as ServiceResult<{ selection: Selection; total: number }>;
 
-      const { albumId, passphrase } = response.data;
+    const { albumId, passphrase } = response.data;
 
-      const allItems: SynologyPhotoItem[] = [];
-      const pageSize = 50;
-      let offset = 0;
+    const allItems: SynologyPhotoItem[] = [];
+    const pageSize = 50;
+    let offset = 0;
 
-      while (true) {
-          const itemParams: ApiCallParams = passphrase
-              ? { api: 'SYNO.Foto.Browse.Item', method: 'list', version: 1, passphrase, offset, limit: pageSize, additional: ['thumbnail'] }
-              : { api: 'SYNO.Foto.Browse.Item', method: 'list', version: 1, album_id: Number(albumId), offset, limit: pageSize, additional: ['thumbnail'] };
+    while (true) {
+      const itemParams: ApiCallParams = passphrase
+        ? {
+            api: 'SYNO.Foto.Browse.Item',
+            method: 'list',
+            version: 1,
+            passphrase,
+            offset,
+            limit: pageSize,
+            additional: ['thumbnail'],
+          }
+        : {
+            api: 'SYNO.Foto.Browse.Item',
+            method: 'list',
+            version: 1,
+            album_id: Number(albumId),
+            offset,
+            limit: pageSize,
+            additional: ['thumbnail'],
+          };
 
-          const result = await this._requestSynologyApi<{ list: SynologyPhotoItem[] }>(userId, itemParams);
+      const result = await this._requestSynologyApi<{ list: SynologyPhotoItem[] }>(userId, itemParams);
 
-          if (!result.success) return result as ServiceResult<{ selection: Selection; total: number }>;
+      if (!result.success) return result as ServiceResult<{ selection: Selection; total: number }>;
 
-          const items = result.data.list || [];
-          allItems.push(...items);
-          if (items.length < pageSize) break;
-          offset += pageSize;
-      }
+      const items = result.data.list || [];
+      allItems.push(...items);
+      if (items.length < pageSize) break;
+      offset += pageSize;
+    }
 
-      const selection: Selection = {
-          provider: SYNOLOGY_PROVIDER,
-          asset_ids: allItems.map(item => String(item.additional?.thumbnail?.cache_key || '')).filter(id => id),
-          passphrase,
-      };
+    const selection: Selection = {
+      provider: SYNOLOGY_PROVIDER,
+      asset_ids: allItems.map((item) => String(item.additional?.thumbnail?.cache_key || '')).filter((id) => id),
+      passphrase,
+    };
 
-      return success({ selection, total: allItems.length });
+    return success({ selection, total: allItems.length });
   }
 
-  async searchSynologyPhotos(userId: number, from?: string, to?: string, offset = 0, limit = 300): Promise<ServiceResult<AssetsList>> {
-      const params: ApiCallParams = {
-          api: 'SYNO.Foto.Search.Search',
-          method: 'list_item',
-          version: 1,
-          offset,
-          limit,
-          keyword: '.',
-          additional: ['thumbnail', 'address', 'gps'],
-      };
+  async searchSynologyPhotos(
+    userId: number,
+    from?: string,
+    to?: string,
+    offset = 0,
+    limit = 300,
+  ): Promise<ServiceResult<AssetsList>> {
+    const params: ApiCallParams = {
+      api: 'SYNO.Foto.Search.Search',
+      method: 'list_item',
+      version: 1,
+      offset,
+      limit,
+      keyword: '.',
+      additional: ['thumbnail', 'address', 'gps'],
+    };
 
-      if (from || to) {
-          if (from) {
-              params.start_time = Math.floor(new Date(from).getTime() / 1000);
-          }
-          if (to) {
-              params.end_time = Math.floor(new Date(to).getTime() / 1000) + 86400; //adding it as the next day 86400 seconds in day
-          }
+    if (from || to) {
+      if (from) {
+        params.start_time = Math.floor(new Date(from).getTime() / 1000);
       }
+      if (to) {
+        params.end_time = Math.floor(new Date(to).getTime() / 1000) + 86400; //adding it as the next day 86400 seconds in day
+      }
+    }
 
-      // SYNO.Foto.Search.Search list_item does not return a total count — only data.list.
-      // hasMore is inferred: if we got a full page, there may be more.
-      const result = await this._requestSynologyApi<{ list: SynologyPhotoItem[] }>(userId, params);
-      if (!result.success) return result as ServiceResult<AssetsList>;
+    // SYNO.Foto.Search.Search list_item does not return a total count — only data.list.
+    // hasMore is inferred: if we got a full page, there may be more.
+    const result = await this._requestSynologyApi<{ list: SynologyPhotoItem[] }>(userId, params);
+    if (!result.success) return result as ServiceResult<AssetsList>;
 
-      const allItems = result.data.list || [];
-      const assets = allItems.map(item => this._normalizeSynologyPhotoInfo(item));
+    const allItems = result.data.list || [];
+    const assets = allItems.map((item) => this._normalizeSynologyPhotoInfo(item));
 
-      return success({
-          assets,
-          total: allItems.length,
-          hasMore: allItems.length === limit,
-      });
+    return success({
+      assets,
+      total: allItems.length,
+      hasMore: allItems.length === limit,
+    });
   }
 
-  async getSynologyAssetInfo(userId: number, photoId: string, targetUserId: number, passphrase?: string): Promise<ServiceResult<AssetInfo>> {
-      const parsedId = this._splitPackedSynologyId(photoId);
-      if (!parsedId) return fail('Invalid photo ID format', 400);
-      const infoParams: ApiCallParams = {
-          api: 'SYNO.Foto.Browse.Item',
-          method: 'get',
-          version: 5,
-          id: `[${Number(parsedId.id) + 1}]`, //for some reason synology wants id moved by one to get image info
-          additional: ['resolution', 'exif', 'gps', 'address', 'orientation', 'description'],
-      };
-      if (passphrase) infoParams.passphrase = passphrase;
-      const result = await this._requestSynologyApi<{ list: SynologyPhotoItem[] }>(targetUserId, infoParams);
+  async getSynologyAssetInfo(
+    userId: number,
+    photoId: string,
+    targetUserId: number,
+    passphrase?: string,
+  ): Promise<ServiceResult<AssetInfo>> {
+    const parsedId = this._splitPackedSynologyId(photoId);
+    if (!parsedId) return fail('Invalid photo ID format', 400);
+    const infoParams: ApiCallParams = {
+      api: 'SYNO.Foto.Browse.Item',
+      method: 'get',
+      version: 5,
+      id: `[${Number(parsedId.id) + 1}]`, //for some reason synology wants id moved by one to get image info
+      additional: ['resolution', 'exif', 'gps', 'address', 'orientation', 'description'],
+    };
+    if (passphrase) infoParams.passphrase = passphrase;
+    const result = await this._requestSynologyApi<{ list: SynologyPhotoItem[] }>(targetUserId, infoParams);
 
-      if (!result.success) return result as ServiceResult<AssetInfo>;
+    if (!result.success) return result as ServiceResult<AssetInfo>;
 
-      const metadata = result.data.list?.[0];
-      if (!metadata) return fail('Photo not found', 404);
+    const metadata = result.data.list?.[0];
+    if (!metadata) return fail('Photo not found', 404);
 
-      const normalized = this._normalizeSynologyPhotoInfo(metadata);
-      normalized.id = photoId;
-      return success(normalized);
+    const normalized = this._normalizeSynologyPhotoInfo(metadata);
+    normalized.id = photoId;
+    return success(normalized);
   }
 
   async fetchSynologyThumbnailBytes(
-      userId: number,
-      targetUserId: number,
-      photoId: string,
-      passphrase?: string,
+    userId: number,
+    targetUserId: number,
+    photoId: string,
+    passphrase?: string,
   ): Promise<{ bytes: Buffer; contentType: string } | { error: string; status: number }> {
-      const parsedId = this._splitPackedSynologyId(photoId);
-      if (!parsedId) return { error: 'Invalid photo ID format', status: 400 };
+    const parsedId = this._splitPackedSynologyId(photoId);
+    if (!parsedId) return { error: 'Invalid photo ID format', status: 400 };
 
-      const synology_credentials = this._getSynologyCredentials(targetUserId);
-      if (!synology_credentials.success) return { error: 'Credentials error', status: 500 };
+    const synology_credentials = this._getSynologyCredentials(targetUserId);
+    if (!synology_credentials.success) return { error: 'Credentials error', status: 500 };
 
-      const sid = await this._getSynologySession(targetUserId);
-      if (!sid.success) return { error: 'Session error', status: 500 };
-      if (!sid.data) return { error: 'Session ID missing', status: 500 };
+    const sid = await this._getSynologySession(targetUserId);
+    if (!sid.success) return { error: 'Session error', status: 500 };
+    if (!sid.data) return { error: 'Session ID missing', status: 500 };
 
-      const params = new URLSearchParams({
-          api: 'SYNO.Foto.Thumbnail',
-          method: 'get',
-          version: '2',
-          mode: 'download',
-          id: parsedId.id,
-          type: 'unit',
-          // Match the uncached streamSynologyAsset default — 'sm' (240px) looked
-          // pixelated on retina.
-          size: 'm',
-          cache_key: parsedId.cacheKey,
-          _sid: sid.data,
+    const params = new URLSearchParams({
+      api: 'SYNO.Foto.Thumbnail',
+      method: 'get',
+      version: '2',
+      mode: 'download',
+      id: parsedId.id,
+      type: 'unit',
+      // Match the uncached streamSynologyAsset default — 'sm' (240px) looked
+      // pixelated on retina.
+      size: 'm',
+      cache_key: parsedId.cacheKey,
+      _sid: sid.data,
+    });
+    if (passphrase) params.append('passphrase', passphrase);
+
+    const url = this._buildSynologyEndpoint(synology_credentials.data.synology_url, params.toString());
+    try {
+      const resp = await safeFetch(url, undefined, {
+        rejectUnauthorized: !synology_credentials.data.synology_skip_ssl,
       });
-      if (passphrase) params.append('passphrase', passphrase);
-
-      const url = this._buildSynologyEndpoint(synology_credentials.data.synology_url, params.toString());
-      try {
-          const resp = await safeFetch(url, undefined, { rejectUnauthorized: !synology_credentials.data.synology_skip_ssl });
-          if (!resp.ok) return { error: 'Upstream error', status: resp.status };
-          const contentType = resp.headers.get('content-type') || 'image/jpeg';
-          const bytes = Buffer.from(await resp.arrayBuffer());
-          return { bytes, contentType };
-      } catch (error) {
-          console.error('fetchSynologyThumbnailBytes: upstream fetch failed:', error);
-          return { error: 'Proxy error', status: 502 };
-      }
+      if (!resp.ok) return { error: 'Upstream error', status: resp.status };
+      const contentType = resp.headers.get('content-type') || 'image/jpeg';
+      const bytes = Buffer.from(await resp.arrayBuffer());
+      return { bytes, contentType };
+    } catch (error) {
+      console.error('fetchSynologyThumbnailBytes: upstream fetch failed:', error);
+      return { error: 'Proxy error', status: 502 };
+    }
   }
 
   async streamSynologyAsset(
-      response: Response,
-      userId: number,
-      targetUserId: number,
-      photoId: string,
-      kind: 'thumbnail' | 'original',
-      size?: string,
-      passphrase?: string,
+    response: Response,
+    userId: number,
+    targetUserId: number,
+    photoId: string,
+    kind: 'thumbnail' | 'original',
+    size?: string,
+    passphrase?: string,
   ): Promise<void> {
-      const parsedId = this._splitPackedSynologyId(photoId);
-      if (!parsedId) {
-          handleServiceResult(response, fail('Invalid photo ID format', 400));
-          return;
-      }
+    const parsedId = this._splitPackedSynologyId(photoId);
+    if (!parsedId) {
+      handleServiceResult(response, fail('Invalid photo ID format', 400));
+      return;
+    }
 
-      const synology_credentials = this._getSynologyCredentials(targetUserId);
-      if (!synology_credentials.success) {
-          handleServiceResult(response, synology_credentials);
-          return;
-      }
+    const synology_credentials = this._getSynologyCredentials(targetUserId);
+    if (!synology_credentials.success) {
+      handleServiceResult(response, synology_credentials);
+      return;
+    }
 
-      const sid = await this._getSynologySession(targetUserId);
-      if (!sid.success) {
-          handleServiceResult(response, sid);
-          return;
-      }
-      if (!sid.data) {
-          handleServiceResult(response, fail('Failed to retrieve session ID', 500));
-          return;
-      }
+    const sid = await this._getSynologySession(targetUserId);
+    if (!sid.success) {
+      handleServiceResult(response, sid);
+      return;
+    }
+    if (!sid.data) {
+      handleServiceResult(response, fail('Failed to retrieve session ID', 500));
+      return;
+    }
 
-    
-      //size: 'sm' 240px| 'm' 320px| 'xl' 1280px| 'preview' ?
-      // Use Thumbnail API for both thumbnail and original — avoids serving raw HEIC files
-      // (original uses xl size to get a full-resolution JPEG-compatible render).
-      // Thumbnail default is 'm' (~320px) — 'sm' (240px) looked pixelated on
-      // the journey grid on retina screens.
-      const resolvedSize = kind === 'original' ? 'xl' : (size || 'm');
-      const params = new URLSearchParams({
-          api: 'SYNO.Foto.Thumbnail',
-          method: 'get',
-          version: '2',
-          mode: 'download',
-          id: parsedId.id,
-          type: 'unit',
-          size: resolvedSize,
-          cache_key: parsedId.cacheKey,
-          _sid: sid.data,
-      });
-      if (passphrase) params.append('passphrase', passphrase);
+    //size: 'sm' 240px| 'm' 320px| 'xl' 1280px| 'preview' ?
+    // Use Thumbnail API for both thumbnail and original — avoids serving raw HEIC files
+    // (original uses xl size to get a full-resolution JPEG-compatible render).
+    // Thumbnail default is 'm' (~320px) — 'sm' (240px) looked pixelated on
+    // the journey grid on retina screens.
+    const resolvedSize = kind === 'original' ? 'xl' : size || 'm';
+    const params = new URLSearchParams({
+      api: 'SYNO.Foto.Thumbnail',
+      method: 'get',
+      version: '2',
+      mode: 'download',
+      id: parsedId.id,
+      type: 'unit',
+      size: resolvedSize,
+      cache_key: parsedId.cacheKey,
+      _sid: sid.data,
+    });
+    if (passphrase) params.append('passphrase', passphrase);
 
-      const url = this._buildSynologyEndpoint(synology_credentials.data.synology_url, params.toString());
-      await pipeAsset(url, response, undefined, undefined, 'public, max-age=86400', { rejectUnauthorized: !synology_credentials.data.synology_skip_ssl })
+    const url = this._buildSynologyEndpoint(synology_credentials.data.synology_url, params.toString());
+    await pipeAsset(url, response, undefined, undefined, 'public, max-age=86400', {
+      rejectUnauthorized: !synology_credentials.data.synology_skip_ssl,
+    });
   }
 }

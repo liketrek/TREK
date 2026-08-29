@@ -1,5 +1,10 @@
+import type { User } from '../../types';
+import { avatarUrl } from '../common/avatarUrl';
+import { DatabaseService } from '../database/database.service';
+import { stripUserForClient } from './auth.helpers';
+import { AuthService } from './auth.service';
+import { WebauthnConfigService } from './webauthn-config.service';
 import { Injectable } from '@nestjs/common';
-import bcrypt from 'bcryptjs';
 import {
   generateRegistrationOptions,
   verifyRegistrationResponse,
@@ -7,12 +12,8 @@ import {
   verifyAuthenticationResponse,
   type AuthenticatorTransportFuture,
 } from '@simplewebauthn/server';
-import { WebauthnConfigService } from './webauthn-config.service';
-import { avatarUrl } from '../common/avatarUrl';
-import { stripUserForClient } from './auth.helpers';
-import { AuthService } from './auth.service';
-import { DatabaseService } from '../database/database.service';
-import type { User } from '../../types';
+
+import bcrypt from 'bcryptjs';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -105,10 +106,18 @@ export class PasskeyService {
     this.db.run('DELETE FROM webauthn_challenges WHERE expires_at < ?', now);
   }
 
-  private storeChallenge(challenge: string, userId: number | null, type: 'registration' | 'authentication', now: number): void {
+  private storeChallenge(
+    challenge: string,
+    userId: number | null,
+    type: 'registration' | 'authentication',
+    now: number,
+  ): void {
     this.db.run(
       'INSERT INTO webauthn_challenges (challenge, user_id, type, expires_at) VALUES (?, ?, ?, ?)',
-      challenge, userId, type, now + CHALLENGE_TTL_MS,
+      challenge,
+      userId,
+      type,
+      now + CHALLENGE_TTL_MS,
     );
   }
 
@@ -118,10 +127,16 @@ export class PasskeyService {
    * concurrent double-submit of the same assertion can never spend one challenge
    * twice (the replay window a SELECT→await→DELETE ordering would open).
    */
-  private claimChallenge(challenge: string, type: 'registration' | 'authentication', now: number): { user_id: number | null } | null {
+  private claimChallenge(
+    challenge: string,
+    type: 'registration' | 'authentication',
+    now: number,
+  ): { user_id: number | null } | null {
     const row = this.db.get<{ user_id: number | null }>(
       'DELETE FROM webauthn_challenges WHERE challenge = ? AND type = ? AND expires_at > ? RETURNING user_id',
-      challenge, type, now,
+      challenge,
+      type,
+      now,
     );
     return row ?? null;
   }
@@ -148,7 +163,8 @@ export class PasskeyService {
     }
 
     const existing = this.db.all<{ credential_id: string; transports: string | null }>(
-      'SELECT credential_id, transports FROM webauthn_credentials WHERE user_id = ?', userId,
+      'SELECT credential_id, transports FROM webauthn_credentials WHERE user_id = ?',
+      userId,
     );
 
     const now = Date.now();
@@ -219,21 +235,23 @@ export class PasskeyService {
         if (conn.prepare('SELECT id FROM webauthn_credentials WHERE credential_id = ?').get(credential.id)) {
           throw DUPLICATE_CREDENTIAL;
         }
-        conn.prepare(
-          `INSERT INTO webauthn_credentials
+        conn
+          .prepare(
+            `INSERT INTO webauthn_credentials
              (user_id, credential_id, public_key, counter, transports, device_type, backed_up, name, aaguid, last_used_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)`,
-        ).run(
-          userId,
-          credential.id,
-          Buffer.from(credential.publicKey),
-          credential.counter ?? 0,
-          credential.transports ? JSON.stringify(credential.transports) : null,
-          credentialDeviceType ?? null,
-          credentialBackedUp ? 1 : 0,
-          name,
-          aaguid ?? null,
-        );
+          )
+          .run(
+            userId,
+            credential.id,
+            Buffer.from(credential.publicKey),
+            credential.counter ?? 0,
+            credential.transports ? JSON.stringify(credential.transports) : null,
+            credentialDeviceType ?? null,
+            credentialBackedUp ? 1 : 0,
+            name,
+            aaguid ?? null,
+          );
       });
     } catch (err) {
       if (err === DUPLICATE_CREDENTIAL) {
@@ -337,8 +355,12 @@ export class PasskeyService {
 
     // Persist the new counter + last-used and bump login bookkeeping atomically.
     this.db.transaction((conn) => {
-      conn.prepare('UPDATE webauthn_credentials SET counter = ?, last_used_at = CURRENT_TIMESTAMP WHERE id = ?').run(newCounter, cred.id);
-      conn.prepare('UPDATE users SET last_login = CURRENT_TIMESTAMP, login_count = login_count + 1 WHERE id = ?').run(user.id);
+      conn
+        .prepare('UPDATE webauthn_credentials SET counter = ?, last_used_at = CURRENT_TIMESTAMP WHERE id = ?')
+        .run(newCounter, cred.id);
+      conn
+        .prepare('UPDATE users SET last_login = CURRENT_TIMESTAMP, login_count = login_count + 1 WHERE id = ?')
+        .run(user.id);
     });
 
     // A user-verified passkey is phishing-resistant and inherently two-factor
@@ -365,7 +387,12 @@ export class PasskeyService {
     const cleanName = sanitizeName(name);
     if (!cleanName) return { error: 'Name is required', status: 400 };
     // Ownership enforced in SQL (404 on miss, never a 403 that leaks existence).
-    const result = this.db.run('UPDATE webauthn_credentials SET name = ? WHERE id = ? AND user_id = ?', cleanName, Number(id), userId);
+    const result = this.db.run(
+      'UPDATE webauthn_credentials SET name = ? WHERE id = ? AND user_id = ?',
+      cleanName,
+      Number(id),
+      userId,
+    );
     if (result.changes === 0) return { error: 'Passkey not found', status: 404 };
     return { success: true };
   }
@@ -389,7 +416,13 @@ export class PasskeyService {
   }
 
   /** Admin: clear all of a user's passkeys (e.g. on suspected compromise). */
-  adminResetPasskeys(targetUserId: number): { error?: string; status?: number; success?: boolean; deleted?: number; email?: string } {
+  adminResetPasskeys(targetUserId: number): {
+    error?: string;
+    status?: number;
+    success?: boolean;
+    deleted?: number;
+    email?: string;
+  } {
     const target = this.db.get<{ id: number; email: string }>('SELECT id, email FROM users WHERE id = ?', targetUserId);
     if (!target) return { error: 'User not found', status: 404 };
     const result = this.db.run('DELETE FROM webauthn_credentials WHERE user_id = ?', targetUserId);

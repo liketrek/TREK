@@ -5,6 +5,21 @@
  * dedup via reminded_at, the user-vs-trip scope routing, and that a failing
  * tick is contained to a log line.
  */
+import { runMigrations } from '../../../src/db/migrations';
+import { createTables } from '../../../src/db/schema';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import type { NotificationsService } from '../../../src/nest/notifications/notifications.service';
+import { ReminderJobsService } from '../../../src/nest/notifications/reminder-jobs.service';
+import type { CronRegistrarService } from '../../../src/nest/scheduling/cron-registrar.service';
+import {
+  createUser,
+  createTrip,
+  createTodoItem,
+  setAppSetting,
+  setNotificationChannels,
+} from '../../helpers/factories';
+import { notificationsStub } from '../../helpers/notifications';
+
 import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
 
 const { testDb, dbMock } = vi.hoisted(() => {
@@ -15,11 +30,24 @@ const { testDb, dbMock } = vi.hoisted(() => {
   db.exec('PRAGMA foreign_keys = ON');
   return {
     testDb: db,
-    dbMock: { db, closeDb: () => {}, reinitialize: () => {}, getPlaceWithTags: () => null, canAccessTrip: () => undefined, isOwner: () => false },
+    dbMock: {
+      db,
+      closeDb: () => {},
+      reinitialize: () => {},
+      getPlaceWithTags: () => null,
+      canAccessTrip: () => undefined,
+      isOwner: () => false,
+    },
   };
 });
 
-const logMock = vi.hoisted(() => ({ LOG_LEVEL: 'error', logInfo: vi.fn(), logError: vi.fn(), logWarn: vi.fn(), logDebug: vi.fn() }));
+const logMock = vi.hoisted(() => ({
+  LOG_LEVEL: 'error',
+  logInfo: vi.fn(),
+  logError: vi.fn(),
+  logWarn: vi.fn(),
+  logDebug: vi.fn(),
+}));
 
 vi.mock('../../../src/db/database', () => dbMock);
 vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
@@ -29,15 +57,6 @@ vi.mock('../../../src/config', () => ({
   ENCRYPTION_KEY: 'a'.repeat(64),
   updateJwtSecret: () => {},
 }));
-
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { createUser, createTrip, createTodoItem, setAppSetting, setNotificationChannels } from '../../helpers/factories';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { ReminderJobsService } from '../../../src/nest/notifications/reminder-jobs.service';
-import { notificationsStub } from '../../helpers/notifications';
-import type { NotificationsService } from '../../../src/nest/notifications/notifications.service';
-import type { CronRegistrarService } from '../../../src/nest/scheduling/cron-registrar.service';
 
 interface Registered {
   name: string;
@@ -67,7 +86,9 @@ function makeJobs(overrides: { notifications?: NotificationsService } = {}) {
 /** A trip whose start_date sits exactly `days` ahead, with reminders on. */
 function tripWithReminder(userId: number, days: number, title = 'Lisbon'): number {
   const trip = createTrip(testDb, userId, { title });
-  testDb.prepare("UPDATE trips SET reminder_days = ?, start_date = date('now', '+' || ? || ' days') WHERE id = ?").run(days, days, trip.id);
+  testDb
+    .prepare("UPDATE trips SET reminder_days = ?, start_date = date('now', '+' || ? || ' days') WHERE id = ?")
+    .run(days, days, trip.id);
   return trip.id;
 }
 
@@ -91,7 +112,7 @@ describe('ReminderJobsService bootstrap', () => {
   it('RJOB-001 — registers both 9 AM crons under their names', () => {
     const { svc, registered } = makeJobs();
     svc.onApplicationBootstrap();
-    expect(registered.map(r => [r.name, r.expr])).toEqual([
+    expect(registered.map((r) => [r.name, r.expr])).toEqual([
       ['trip-reminders', '0 9 * * *'],
       ['todo-reminders', '0 9 * * *'],
     ]);
@@ -126,7 +147,9 @@ describe('ReminderJobsService bootstrap', () => {
     tripWithReminder(user.id, 5);
     const { svc } = makeJobs();
     svc.onApplicationBootstrap();
-    expect(logMock.logInfo).toHaveBeenCalledWith('Trip reminders: enabled via [email], 1 trip(s) with active reminders');
+    expect(logMock.logInfo).toHaveBeenCalledWith(
+      'Trip reminders: enabled via [email], 1 trip(s) with active reminders',
+    );
   });
 });
 
@@ -145,7 +168,14 @@ describe('trip reminder tick', () => {
     const targets = send.mock.calls.map(([p]) => p.targetId);
     expect(targets).toContain(tripId);
     expect(targets).not.toContain(off.id);
-    expect(send).toHaveBeenCalledWith(expect.objectContaining({ event: 'trip_reminder', scope: 'trip', targetId: tripId, params: expect.objectContaining({ trip: 'Lisbon', tripId: String(tripId) }) }));
+    expect(send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: 'trip_reminder',
+        scope: 'trip',
+        targetId: tripId,
+        params: expect.objectContaining({ trip: 'Lisbon', tripId: String(tripId) }),
+      }),
+    );
     expect(logMock.logInfo).toHaveBeenCalledWith(expect.stringMatching(/^Trip reminders sent for 2 trip\(s\): /));
   });
 
@@ -162,7 +192,17 @@ describe('trip reminder tick', () => {
   it('RJOB-007 — a failing tick is contained to the check-failed log line', async () => {
     const broken = { send: vi.fn() } as unknown as NotificationsService;
     const svc = new ReminderJobsService(
-      { get: () => { throw new Error('db gone'); }, all: () => { throw new Error('db gone'); }, run: () => { throw new Error('db gone'); } } as unknown as DatabaseService,
+      {
+        get: () => {
+          throw new Error('db gone');
+        },
+        all: () => {
+          throw new Error('db gone');
+        },
+        run: () => {
+          throw new Error('db gone');
+        },
+      } as unknown as DatabaseService,
       broken,
       { isEnabled: () => true, register: () => true, unregister: () => {} } as unknown as CronRegistrarService,
     );
@@ -184,9 +224,18 @@ describe('todo reminder tick', () => {
     await svc.todoTick();
 
     expect(send).toHaveBeenCalledTimes(1);
-    expect(send).toHaveBeenCalledWith(expect.objectContaining({ event: 'todo_due', scope: 'trip', targetId: trip.id, params: expect.objectContaining({ todo: 'Pack bags', trip: 'Lisbon' }) }));
+    expect(send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: 'todo_due',
+        scope: 'trip',
+        targetId: trip.id,
+        params: expect.objectContaining({ todo: 'Pack bags', trip: 'Lisbon' }),
+      }),
+    );
     expect(logMock.logInfo).toHaveBeenCalledWith('Todo reminders sent for 1 item(s)');
-    const { reminded_at } = testDb.prepare('SELECT reminded_at FROM todo_items WHERE id = ?').get(todo.id) as { reminded_at: string | null };
+    const { reminded_at } = testDb.prepare('SELECT reminded_at FROM todo_items WHERE id = ?').get(todo.id) as {
+      reminded_at: string | null;
+    };
     expect(reminded_at).not.toBeNull();
 
     // The 20h dedup keeps a second same-day run silent.
@@ -200,11 +249,15 @@ describe('todo reminder tick', () => {
     const { user: assignee } = createUser(testDb, { email: 'b@example.test', username: 'assignee' });
     const trip = createTrip(testDb, user.id, { title: 'Lisbon' });
     const todo = createTodoItem(testDb, trip.id, { name: 'Book train' });
-    testDb.prepare("UPDATE todo_items SET due_date = date('now'), assigned_user_id = ? WHERE id = ?").run(assignee.id, todo.id);
+    testDb
+      .prepare("UPDATE todo_items SET due_date = date('now'), assigned_user_id = ? WHERE id = ?")
+      .run(assignee.id, todo.id);
 
     const { svc, send } = makeJobs();
     await svc.todoTick();
-    expect(send).toHaveBeenCalledWith(expect.objectContaining({ event: 'todo_due', scope: 'user', targetId: assignee.id }));
+    expect(send).toHaveBeenCalledWith(
+      expect.objectContaining({ event: 'todo_due', scope: 'user', targetId: assignee.id }),
+    );
   });
 
   it('RJOB-010 — checked, far-future and past-due todos are not selected', async () => {

@@ -1,9 +1,10 @@
-import { Controller, Get, Param, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
-import type { Request, Response } from 'express';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import { DatabaseService } from '../../database/database.service';
 import { pluginsEnabled } from '../kill-switch';
 import { PluginOAuthService } from './plugin-oauth.service';
-import { DatabaseService } from '../../database/database.service';
+import { Controller, Get, Param, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
+
+import type { Request, Response } from 'express';
 
 /**
  * Host-brokered outbound OAuth endpoints (#plugins). All are gated by JwtAuthGuard —
@@ -25,7 +26,10 @@ export class PluginOAuthController {
   }
 
   @Get(':id/status')
-  status(@Param('id') id: string, @Req() req: Request & { user?: { id: number } }): { configured: boolean; connected: boolean } {
+  status(
+    @Param('id') id: string,
+    @Req() req: Request & { user?: { id: number } },
+  ): { configured: boolean; connected: boolean } {
     const userId = req.user?.id;
     if (!pluginsEnabled() || userId == null || !this.isActive(id)) return { configured: false, connected: false };
     return this.oauth.status(id, userId);

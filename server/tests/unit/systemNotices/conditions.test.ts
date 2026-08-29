@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
 import { evaluate } from '../../../src/systemNotices/conditions.js';
 import type { NoticeCondition, SystemNotice } from '../../../src/systemNotices/types.js';
+
+import { describe, it, expect } from 'vitest';
 
 const baseNotice: SystemNotice = {
   id: 'test',
@@ -90,10 +91,7 @@ describe('role', () => {
 
 describe('AND logic', () => {
   it('requires all conditions to pass', () => {
-    const notice = noticeWith(
-      { kind: 'firstLogin' },
-      { kind: 'role', roles: ['user'] },
-    );
+    const notice = noticeWith({ kind: 'firstLogin' }, { kind: 'role', roles: ['user'] });
     // login_count=1 passes firstLogin, role=user passes role → true
     expect(evaluate(notice, { ...baseCtx, user: { ...baseCtx.user, login_count: 1 } })).toBe(true);
     // login_count=2 fails firstLogin → false

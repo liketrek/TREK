@@ -1,5 +1,5 @@
-import { Inject, Injectable } from '@nestjs/common';
 import { PHOTO_PROVIDERS, type PhotoProvider } from './photo-provider';
+import { Inject, Injectable } from '@nestjs/common';
 
 /**
  * Where the `switch (photo.provider)` went (#584).

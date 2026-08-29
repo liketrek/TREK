@@ -1,20 +1,20 @@
-import { Module } from '@nestjs/common';
-import { MulterModule } from '@nestjs/platform-express';
-import { CollabController, collabNoteFileFilter, MAX_NOTE_FILE_SIZE } from './collab.controller';
-import { CollabService } from './collab.service';
-import { CollabRpc } from './collab.rpc';
+import { AddonsModule } from '../addons/addons.module';
+import { AuthModule } from '../auth/auth.module';
+import { RateLimitModule } from '../common/rate-limit.module';
+import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
+import { NotificationsModule } from '../notifications/notifications.module';
+import { PermissionsModule } from '../permissions/permissions.module';
 import { PluginGuardsModule } from '../plugins/host/plugin-guards.module';
 import { RealtimeModule } from '../realtime/realtime.module';
-import { CollabMcp } from './collab.mcp';
-import { PermissionsModule } from '../permissions/permissions.module';
-import { AuthModule } from '../auth/auth.module';
-import { AddonsModule } from '../addons/addons.module';
-import { NotificationsModule } from '../notifications/notifications.module';
-import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
+import { buildStorageUploadOptions } from '../storage/storage-upload.factory';
 import { StorageModule } from '../storage/storage.module';
 import { StorageService } from '../storage/storage.service';
-import { buildStorageUploadOptions } from '../storage/storage-upload.factory';
-import { RateLimitModule } from '../common/rate-limit.module';
+import { CollabController, collabNoteFileFilter, MAX_NOTE_FILE_SIZE } from './collab.controller';
+import { CollabMcp } from './collab.mcp';
+import { CollabRpc } from './collab.rpc';
+import { CollabService } from './collab.service';
+import { Module } from '@nestjs/common';
+import { MulterModule } from '@nestjs/platform-express';
 
 @Module({
   imports: [
@@ -30,7 +30,15 @@ import { RateLimitModule } from '../common/rate-limit.module';
         }),
     }),
     StorageModule,
-    McpSharedModule, NotificationsModule, PermissionsModule, AuthModule, RealtimeModule, PluginGuardsModule, AddonsModule, RateLimitModule],
+    McpSharedModule,
+    NotificationsModule,
+    PermissionsModule,
+    AuthModule,
+    RealtimeModule,
+    PluginGuardsModule,
+    AddonsModule,
+    RateLimitModule,
+  ],
   controllers: [CollabController],
   providers: [CollabService, CollabMcp, CollabRpc],
   // For in-container consumers (CollabRpc).

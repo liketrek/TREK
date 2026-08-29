@@ -3,6 +3,12 @@
  * list_trip_members, add_trip_member, remove_trip_member,
  * copy_trip, export_trip_ics, get_share_link, create_share_link, delete_share_link.
  */
+import { runMigrations } from '../../../src/db/migrations';
+import { createTables } from '../../../src/db/schema';
+import { createUser, createTrip, addTripMember } from '../../helpers/factories';
+import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
+import { resetTestDb } from '../../helpers/test-db';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 const { testDb, dbMock } = vi.hoisted(() => {
@@ -17,7 +23,11 @@ const { testDb, dbMock } = vi.hoisted(() => {
     reinitialize: () => {},
     getPlaceWithTags: () => null,
     canAccessTrip: (tripId: any, userId: number) =>
-      db.prepare(`SELECT t.id, t.user_id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)`).get(userId, tripId, userId),
+      db
+        .prepare(
+          `SELECT t.id, t.user_id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)`,
+        )
+        .get(userId, tripId, userId),
     isOwner: (tripId: any, userId: number) =>
       !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
   };
@@ -33,12 +43,6 @@ vi.mock('../../../src/config', () => ({
 
 const { broadcastMock } = vi.hoisted(() => ({ broadcastMock: vi.fn() }));
 vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
-
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, addTripMember } from '../../helpers/factories';
-import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
 
 beforeAll(() => {
   createTables(testDb);
@@ -57,7 +61,11 @@ afterAll(() => {
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
   const h = await createMcpHarness({ userId, withResources: false });
-  try { await fn(h); } finally { await h.cleanup(); }
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -179,7 +187,9 @@ describe('Tool: remove_trip_member', () => {
       });
       const data = parseToolResult(result) as any;
       expect(data.success).toBe(true);
-      const row = testDb.prepare('SELECT * FROM trip_members WHERE trip_id = ? AND user_id = ?').get(trip.id, member.id);
+      const row = testDb
+        .prepare('SELECT * FROM trip_members WHERE trip_id = ? AND user_id = ?')
+        .get(trip.id, member.id);
       expect(row).toBeUndefined();
     });
   });
@@ -306,9 +316,11 @@ describe('Tool: get_share_link', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     // Create a share link directly
-    testDb.prepare(
-      'INSERT INTO share_tokens (trip_id, token, created_by, share_map, share_bookings, share_packing, share_budget, share_collab) VALUES (?, ?, ?, 1, 1, 0, 0, 0)'
-    ).run(trip.id, 'test-token-123', user.id);
+    testDb
+      .prepare(
+        'INSERT INTO share_tokens (trip_id, token, created_by, share_map, share_bookings, share_packing, share_budget, share_collab) VALUES (?, ?, ?, 1, 1, 0, 0, 0)',
+      )
+      .run(trip.id, 'test-token-123', user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'get_share_link', arguments: { tripId: trip.id } });
       const data = parseToolResult(result) as any;
@@ -336,9 +348,11 @@ describe('Tool: create_share_link', () => {
   it('updates existing share link permissions', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
-    testDb.prepare(
-      'INSERT INTO share_tokens (trip_id, token, created_by, share_map, share_bookings, share_packing, share_budget, share_collab) VALUES (?, ?, ?, 1, 1, 0, 0, 0)'
-    ).run(trip.id, 'existing-token', user.id);
+    testDb
+      .prepare(
+        'INSERT INTO share_tokens (trip_id, token, created_by, share_map, share_bookings, share_packing, share_budget, share_collab) VALUES (?, ?, ?, 1, 1, 0, 0, 0)',
+      )
+      .run(trip.id, 'existing-token', user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_share_link',
@@ -364,9 +378,11 @@ describe('Tool: delete_share_link', () => {
   it('revokes the share link', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
-    testDb.prepare(
-      'INSERT INTO share_tokens (trip_id, token, created_by, share_map, share_bookings, share_packing, share_budget, share_collab) VALUES (?, ?, ?, 1, 1, 0, 0, 0)'
-    ).run(trip.id, 'to-delete', user.id);
+    testDb
+      .prepare(
+        'INSERT INTO share_tokens (trip_id, token, created_by, share_map, share_bookings, share_packing, share_budget, share_collab) VALUES (?, ?, ?, 1, 1, 0, 0, 0)',
+      )
+      .run(trip.id, 'to-delete', user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'delete_share_link', arguments: { tripId: trip.id } });
       const data = parseToolResult(result) as any;

@@ -1,5 +1,5 @@
-import { DatabaseService } from '../database/database.service';
 import { decrypt_api_key, maybe_encrypt_api_key } from '../common/crypto/apiKeyCrypto';
+import { DatabaseService } from '../database/database.service';
 
 /**
  * The third-party keys that belong to the instance rather than to a person.
@@ -54,7 +54,8 @@ export function writeInstanceApiKey(db: DatabaseService, name: InstanceApiKeyNam
   db.run(
     `INSERT INTO app_settings (key, value) VALUES (?, ?)
      ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
-    name, maybe_encrypt_api_key(value) ?? ''
+    name,
+    maybe_encrypt_api_key(value) ?? '',
   );
 }
 

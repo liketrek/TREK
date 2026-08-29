@@ -7,10 +7,8 @@
  * no business knowing), and a mutation additionally needs its own permission. They
  * moved out of days.controller.test.ts with the check itself.
  */
-import { describe, it, expect, vi } from 'vitest';
-import { HttpException } from '@nestjs/common';
-import { ROUTE_ARGS_METADATA } from '@nestjs/common/constants';
-import { Reflector } from '@nestjs/core';
+import type { DatabaseService } from '../../../src/nest/database/database.service';
+import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import {
   RequirePermission,
   TRIP_PERMISSION_KEY,
@@ -18,9 +16,12 @@ import {
   TripAccessGuard,
 } from '../../../src/nest/permissions/trip-access.guard';
 import { Trip } from '../../../src/nest/permissions/trip.decorator';
-import type { DatabaseService } from '../../../src/nest/database/database.service';
-import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import type { User } from '../../../src/types';
+import { HttpException } from '@nestjs/common';
+import { ROUTE_ARGS_METADATA } from '@nestjs/common/constants';
+import { Reflector } from '@nestjs/core';
+
+import { describe, it, expect, vi } from 'vitest';
 
 const owner = { id: 42, role: 'user' } as User;
 const member = { id: 7, role: 'user' } as User;
@@ -140,7 +141,10 @@ describe('TripAccessGuard', () => {
   it('TRIPGUARD-009 the metadata is read from the handler first, then the class', () => {
     const { guard, reflector } = makeGuard({ action: 'day_edit' });
     guard.canActivate(ctx({ user: owner, params: { tripId: '5' } }));
-    expect(reflector.getAllAndOverride).toHaveBeenCalledWith(TRIP_PERMISSION_KEY, [expect.any(Function), expect.any(Function)]);
+    expect(reflector.getAllAndOverride).toHaveBeenCalledWith(TRIP_PERMISSION_KEY, [
+      expect.any(Function),
+      expect.any(Function),
+    ]);
   });
 
   it('TRIPGUARD-010 @RequirePermission writes the action under the key the guard reads', () => {

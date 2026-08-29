@@ -1,7 +1,7 @@
-import { Module } from '@nestjs/common';
-import { FeaturesController } from './features.controller';
-import { KitineraryExtractorModule } from '../booking-import/kitinerary-extractor.module';
 import { AddonsModule } from '../addons/addons.module';
+import { KitineraryExtractorModule } from '../booking-import/kitinerary-extractor.module';
+import { FeaturesController } from './features.controller';
+import { Module } from '@nestjs/common';
 
 /** Server capability reporting. `GET /api/health/features` tells the client which
  *  optional server-side features are usable, so it can hide the affordances it

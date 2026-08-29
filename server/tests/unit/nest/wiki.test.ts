@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import path from 'path';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // The wiki module picks its source (local disk vs GitHub) once at module load, so each
 // mode needs a fresh import with TREK_WIKI_DIR already set.
@@ -146,7 +146,12 @@ describe('wiki — local wiki on disk', () => {
 
 describe('wiki — GitHub fallback when no wiki is on disk', () => {
   const ok = (body: string): Response =>
-    ({ ok: true, status: 200, text: async () => body, arrayBuffer: async () => new ArrayBuffer(4) }) as unknown as Response;
+    ({
+      ok: true,
+      status: 200,
+      text: async () => body,
+      arrayBuffer: async () => new ArrayBuffer(4),
+    }) as unknown as Response;
 
   it('fetches from GitHub and caches the result', async () => {
     const wiki = await loadWiki(MISSING_WIKI);

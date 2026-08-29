@@ -1,10 +1,11 @@
-import { describe, it, expect } from 'vitest';
 import {
   isNuExtractModel,
   buildNuExtractUserText,
   nuExtractToKiReservations,
   NUEXTRACT_TEMPLATE,
 } from '../../../../src/nest/llm-parse/clients/nuextract';
+
+import { describe, it, expect } from 'vitest';
 
 describe('isNuExtractModel', () => {
   it('matches NuExtract ids case-insensitively', () => {
@@ -171,15 +172,29 @@ describe('nuExtractToKiReservations — remaining reservation types', () => {
   const one = (x: Record<string, unknown>) => nuExtractToKiReservations(x)[0];
 
   it('maps a train into a TrainReservation with stations', () => {
-    const node = one({ type: 'train', vehicle_number: 'ICE 597', from_name: 'Berlin Hbf', to_name: 'München Hbf', departure_time: '2025-05-01T08:00:00' });
+    const node = one({
+      type: 'train',
+      vehicle_number: 'ICE 597',
+      from_name: 'Berlin Hbf',
+      to_name: 'München Hbf',
+      departure_time: '2025-05-01T08:00:00',
+    });
     expect(node['@type']).toBe('TrainReservation');
-    expect(node.reservationFor).toMatchObject({ trainNumber: 'ICE 597', departureStation: { name: 'Berlin Hbf' }, arrivalStation: { name: 'München Hbf' } });
+    expect(node.reservationFor).toMatchObject({
+      trainNumber: 'ICE 597',
+      departureStation: { name: 'Berlin Hbf' },
+      arrivalStation: { name: 'München Hbf' },
+    });
   });
 
   it('maps a bus into a BusReservation with stops', () => {
     const node = one({ type: 'bus', vehicle_number: 'FB42', from_name: 'Köln', to_name: 'Paris' });
     expect(node['@type']).toBe('BusReservation');
-    expect(node.reservationFor).toMatchObject({ busNumber: 'FB42', departureBusStop: { name: 'Köln' }, arrivalBusStop: { name: 'Paris' } });
+    expect(node.reservationFor).toMatchObject({
+      busNumber: 'FB42',
+      departureBusStop: { name: 'Köln' },
+      arrivalBusStop: { name: 'Paris' },
+    });
   });
 
   it('maps a ferry into a BoatReservation, using the operator when no name is given', () => {
@@ -196,15 +211,25 @@ describe('nuExtractToKiReservations — remaining reservation types', () => {
   });
 
   it('maps an event into an EventReservation with a location', () => {
-    const node = one({ type: 'event', name: 'Concert', address: 'Arena', start_time: '2025-05-01T20:00:00', end_time: '2025-05-01T23:00:00' });
+    const node = one({
+      type: 'event',
+      name: 'Concert',
+      address: 'Arena',
+      start_time: '2025-05-01T20:00:00',
+      end_time: '2025-05-01T23:00:00',
+    });
     expect(node['@type']).toBe('EventReservation');
     expect(node.startTime).toBe('2025-05-01T20:00:00');
     expect(node.reservationFor).toMatchObject({ name: 'Concert', location: { address: 'Arena' } });
   });
 
   it('uses the generic name fallback for a nameless restaurant/event with no address', () => {
-    expect((one({ type: 'restaurant', start_time: '2025-05-01T19:30:00' }).reservationFor as Record<string, unknown>).name).toBe('Restaurant');
-    expect((one({ type: 'event', start_time: '2025-05-01T20:00:00' }).reservationFor as Record<string, unknown>).name).toBe('Event');
+    expect(
+      (one({ type: 'restaurant', start_time: '2025-05-01T19:30:00' }).reservationFor as Record<string, unknown>).name,
+    ).toBe('Restaurant');
+    expect(
+      (one({ type: 'event', start_time: '2025-05-01T20:00:00' }).reservationFor as Record<string, unknown>).name,
+    ).toBe('Event');
   });
 
   it('resolves GBP, JPY and a bare ISO code, and leaves an unrecognised currency undefined', () => {
@@ -221,7 +246,10 @@ describe('nuExtractToKiReservations — remaining reservation types', () => {
   });
 
   it('accepts a bare array of reservations', () => {
-    const out = nuExtractToKiReservations([{ type: 'hotel', name: 'A' }, { type: 'train', from_name: 'X', to_name: 'Y' }]);
+    const out = nuExtractToKiReservations([
+      { type: 'hotel', name: 'A' },
+      { type: 'train', from_name: 'X', to_name: 'Y' },
+    ]);
     expect(out.map((n) => n['@type'])).toEqual(['LodgingReservation', 'TrainReservation']);
   });
 });

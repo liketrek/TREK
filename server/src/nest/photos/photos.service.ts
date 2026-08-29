@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common';
-import type { Response } from 'express';
 import { MemoriesAccessService } from '../memories/memories-access.service';
 import { PhotoResolverService } from '../memories/photo-resolver.service';
+import { Injectable } from '@nestjs/common';
+
+import type { Response } from 'express';
 
 /**
  * /api/photos — the trek_photo read surface. Access control comes from the

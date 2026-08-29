@@ -283,12 +283,14 @@ const journey: TranslationStrings = {
   'journey.studio.zoomOut': 'Zoom out', // en-fallback
   'journey.studio.zoomFit': 'Fit to view', // en-fallback
   'journey.studio.downloadSpread': 'Ladda ner det här uppslaget',
-  'journey.studio.downloadSpreadHint': 'Sparar uppslagets design som en fil, utan fotografierna, att dela eller återanvända',
+  'journey.studio.downloadSpreadHint':
+    'Sparar uppslagets design som en fil, utan fotografierna, att dela eller återanvända',
   'journey.studio.importSpread': 'Importera',
   'journey.studio.importSpreadHint': 'Lägger till ett uppslag från en nedladdad designfil',
   'journey.studio.importSpreadFailed': 'Filen är inte ett uppslag från TREK Studio',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': 'Att formge en bok kräver plats, så Studio finns bara på datorn, och det gör pdf:en också. Allt annat i resan fungerar som vanligt här.', // en-fallback
+  'journey.studio.desktopOnlyHint':
+    'Att formge en bok kräver plats, så Studio finns bara på datorn, och det gör pdf:en också. Allt annat i resan fungerar som vanligt här.', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
   'journey.studio.bookView': 'Book view', // en-fallback
   'journey.studio.multiple': 'Several', // en-fallback
@@ -352,7 +354,8 @@ const journey: TranslationStrings = {
   'journey.studio.sampleSubheading': 'A subheading', // en-fallback
   'journey.studio.sampleBody': 'Write something about this day.', // en-fallback
   'journey.studio.sampleCaption': 'Caption', // en-fallback
-  'journey.studio.templatesCoverHint': 'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
+  'journey.studio.templatesCoverHint':
+    'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
   'journey.studio.tpl.heroStory': 'Hero and story', // en-fallback
   'journey.studio.tpl.fullBleed': 'One picture, full spread', // en-fallback
   'journey.studio.tpl.twoUp': 'Two full pages', // en-fallback
@@ -534,7 +537,8 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceVector': 'Konturer',
   'journey.studio.mapSourceRelief': 'Relief',
   'journey.studio.mapSourceSatellite': 'Satellit',
-  'journey.studio.mapSourceSatelliteHint': 'Molnfri Sentinel-2, får tryckas fritt med källhänvisning. Skarp ända ner till en gata i staden.',
+  'journey.studio.mapSourceSatelliteHint':
+    'Molnfri Sentinel-2, får tryckas fritt med källhänvisning. Skarp ända ner till en gata i staden.',
   'journey.studio.routeLook': 'Linjen',
   'journey.studio.routeStyle': 'Linjestil',
   'journey.studio.routePlain': 'Vanlig',
@@ -564,7 +568,8 @@ const journey: TranslationStrings = {
   'journey.studio.mapScope': 'Visning',
   'journey.studio.mapPrintDpi': 'Trycks i ungefär',
   'journey.studio.mapPrintDpiLow': 'oskarpt i den här storleken, prova ett vidare utsnitt eller en annan källa',
-  'journey.studio.mapSourceReliefHint': 'NASA:s reliefskuggning, får tryckas fritt. Bra för ett land eller en kontinent, för grov för en stad.',
+  'journey.studio.mapSourceReliefHint':
+    'NASA:s reliefskuggning, får tryckas fritt. Bra för ett land eller en kontinent, för grov för en stad.',
   'journey.studio.mapSourceTiles': 'Kartrutor',
   'journey.studio.mapSourceStatic': 'Mapbox',
   'journey.studio.mapSourceHint': 'Hämtas vid rendering och trycks med sin källhänvisning',

@@ -1,10 +1,7 @@
-import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
 import { readEnv } from '../../app-config';
 import { logInfo, logError } from '../audit/audit-log.logger';
-import { BackupService } from './backup.service';
 import { CronRegistrarService } from '../scheduling/cron-registrar.service';
 import { StorageService } from '../storage/storage.service';
-import { parseAutoBackupBody } from './backup.impl';
 import {
   buildCronExpression,
   cleanupOldBackups,
@@ -12,6 +9,9 @@ import {
   saveSettings,
   type BackupSettings,
 } from './auto-backup.settings';
+import { parseAutoBackupBody } from './backup.impl';
+import { BackupService } from './backup.service';
+import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
 
 /**
  * The auto-backup cron, in the domain that owns it (moved from
@@ -46,7 +46,9 @@ export class AutoBackupJob implements OnApplicationBootstrap {
     const tz = readEnv().app.tz || 'UTC';
     const armed = this.registrar.register('auto-backup', expression, () => this.runBackup());
     if (armed) {
-      logInfo(`Auto-Backup scheduled: ${settings.interval} (${expression}), tz: ${tz}, retention: ${settings.keep_days === 0 ? 'forever' : settings.keep_days + ' days'}`);
+      logInfo(
+        `Auto-Backup scheduled: ${settings.interval} (${expression}), tz: ${tz}, retention: ${settings.keep_days === 0 ? 'forever' : settings.keep_days + ' days'}`,
+      );
     }
   }
 

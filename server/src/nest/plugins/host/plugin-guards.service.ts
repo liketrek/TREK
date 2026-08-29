@@ -1,10 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { AddonsService } from '../../addons/addons.service';
 import { DatabaseService } from '../../database/database.service';
 import { PermissionsService } from '../../permissions/permissions.service';
-import { AddonsService } from '../../addons/addons.service';
 import { BadParams, ForbiddenResource } from './rpc-errors';
-import { num } from './rpc-params';
 import type { PluginRpcContext } from './rpc-kit/types';
+import { num } from './rpc-params';
+import { Injectable } from '@nestjs/common';
 
 /**
  * The resource gates every plugin RPC handler needs, lifted out of PluginRpcHost's

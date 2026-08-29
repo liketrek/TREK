@@ -1,5 +1,3 @@
-import { describe, it, expect } from 'vitest';
-
 import {
   deriveApp,
   deriveHttp,
@@ -15,6 +13,8 @@ import {
   derivePaths,
   deriveAll,
 } from '../../../src/app-config/derive';
+
+import { describe, it, expect } from 'vitest';
 
 // These tests PIN the exact legacy coercions each derived field replaced.
 // If one fails after an edit, the edit changed runtime behavior — fix the
@@ -245,8 +245,21 @@ describe('deriveAll', () => {
     expect(env.app.port).toBe(4000);
     expect(env.demo.enabled).toBe(true);
     for (const ns of [
-      'app', 'http', 'session', 'demo', 'adminBootstrap', 'oidc', 'smtp', 'mcp',
-      'plugins', 'webauthn', 'integrations', 'backup', 'db', 'paths', 'net',
+      'app',
+      'http',
+      'session',
+      'demo',
+      'adminBootstrap',
+      'oidc',
+      'smtp',
+      'mcp',
+      'plugins',
+      'webauthn',
+      'integrations',
+      'backup',
+      'db',
+      'paths',
+      'net',
     ] as const) {
       expect(env[ns]).toBeDefined();
     }

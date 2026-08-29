@@ -6,8 +6,8 @@ import {
   type RpcRequest,
   type RpcResponse,
 } from '../protocol/envelope';
-import type { PluginDataDb } from './plugin-data.service';
 import { auditResource, isAuditable } from './plugin-audit';
+import type { PluginDataDb } from './plugin-data.service';
 import { BadParams, ForbiddenResource } from './rpc-errors';
 import type { PluginRpcRegistry } from './rpc-kit/registry';
 
@@ -48,7 +48,13 @@ export interface HostDeps {
   /** Publish an event from this host's plugin to its subscribed dependents. */
   emitPluginEvent(event: string, payload: unknown): void;
   /** Optional sink for the capability audit log (host-side, hash-chained). */
-  audit?(entry: { pluginId: string; actingUserId?: number; method: string; resource: string | null; code: string }): void;
+  audit?(entry: {
+    pluginId: string;
+    actingUserId?: number;
+    method: string;
+    resource: string | null;
+    code: string;
+  }): void;
 }
 
 type Handler = (params: Record<string, unknown>, actingUserId: number | undefined) => unknown;

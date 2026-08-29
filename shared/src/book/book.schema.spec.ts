@@ -211,7 +211,9 @@ describe('normalizeBookDocument', () => {
   });
 
   it('drops an element parked a kilometre off the spread rather than the book', () => {
-    const out = normalizeBookDocument(doc([text({ id: 'a' }), text({ id: 'far', frame: { x: 1e9, y: 0, w: 60, h: 40 } })]));
+    const out = normalizeBookDocument(
+      doc([text({ id: 'a' }), text({ id: 'far', frame: { x: 1e9, y: 0, w: 60, h: 40 } })]),
+    );
 
     expect(out.spreads[0]!.elements.map((el) => el.id)).toEqual(['a']);
     expect(out.title).toBe('Iceland, end to end');

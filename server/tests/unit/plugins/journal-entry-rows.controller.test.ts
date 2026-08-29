@@ -5,6 +5,13 @@
  * fail-safe + server-side normalization — row count cap, label/value length caps,
  * a URL-scheme allowlist (no click-XSS).
  */
+import { db as dbConn } from '../../../src/db/database';
+import type { AddonsService } from '../../../src/nest/addons/addons.service';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import type { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
+import { JournalEntryRowsController } from '../../../src/nest/plugins/contributions/journal-entry-rows.controller';
+import type { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const { entryJourney, canAccessJourney, isAddonEnabled, pluginsEnabled } = vi.hoisted(() => ({
@@ -17,14 +24,8 @@ vi.mock('../../../src/db/database', () => ({
   db: { prepare: () => ({ get: (entryId: number) => entryJourney(entryId) }) },
   canAccessTrip: vi.fn(),
 }));
-import { db as dbConn } from '../../../src/db/database';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import type { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
-vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 
-import { JournalEntryRowsController } from '../../../src/nest/plugins/contributions/journal-entry-rows.controller';
-import type { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
-import type { AddonsService } from '../../../src/nest/addons/addons.service';
+vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 
 const addonsStub = { isAddonEnabled } as unknown as AddonsService;
 
@@ -35,7 +36,12 @@ function controller(invoke: (id: string) => unknown, providers = ['p1']) {
     providersOf: vi.fn(() => providers),
     journalRows: vi.fn(async (id: string) => invoke(id)),
   } as unknown as PluginHooks;
-  return { c: new JournalEntryRowsController(runtime, new DatabaseService(dbConn), addonsStub, { canAccessJourney } as unknown as JourneyDomainService), runtime };
+  return {
+    c: new JournalEntryRowsController(runtime, new DatabaseService(dbConn), addonsStub, {
+      canAccessJourney,
+    } as unknown as JourneyDomainService),
+    runtime,
+  };
 }
 const row = (over: Record<string, unknown> = {}) => ({ label: 'Distance', value: '12 km', ...over });
 
@@ -64,19 +70,24 @@ describe('JournalEntryRowsController', () => {
     expect((await controller(() => [row()]).c.get('7', req(undefined))).providers).toEqual([]);
     expect((await controller(() => [row()]).c.get('999', req(5))).providers).toEqual([]); // entry not found
     canAccessJourney.mockReturnValue(null as never);
-    expect((await controller(() => [row()]).c.get('7', req(5))).providers).toEqual([]);   // no access
+    expect((await controller(() => [row()]).c.get('7', req(5))).providers).toEqual([]); // no access
   });
 
   it('keeps valid rows, groups them per plugin, passes the entry + acting user to the hook', async () => {
-    const { c, runtime } = controller(() => [row({ url: 'https://ok.example' }), row({ label: 'Steps', value: '9000', url: 'mailto:x@y.z' })]);
+    const { c, runtime } = controller(() => [
+      row({ url: 'https://ok.example' }),
+      row({ label: 'Steps', value: '9000', url: 'mailto:x@y.z' }),
+    ]);
     const res = await c.get('7', req(5));
-    expect(res.providers).toEqual([{
-      pluginId: 'p1',
-      items: [
-        { label: 'Distance', value: '12 km', url: 'https://ok.example' },
-        { label: 'Steps', value: '9000', url: 'mailto:x@y.z' },
-      ],
-    }]);
+    expect(res.providers).toEqual([
+      {
+        pluginId: 'p1',
+        items: [
+          { label: 'Distance', value: '12 km', url: 'https://ok.example' },
+          { label: 'Steps', value: '9000', url: 'mailto:x@y.z' },
+        ],
+      },
+    ]);
     expect(runtime.journalRows).toHaveBeenCalledWith('p1', 7, 5);
   });
 
@@ -85,15 +96,15 @@ describe('JournalEntryRowsController', () => {
       row({ label: 'L'.repeat(200), value: 'V'.repeat(500), url: 'javascript:alert(1)' }),
       row({ url: '' }),
       row({ url: 'not a url' }),
-      { label: '', value: 'orphan' },        // no label
-      { value: 42 },                         // still no label
-      null,                                  // non-object
+      { label: '', value: 'orphan' }, // no label
+      { value: 42 }, // still no label
+      null, // non-object
     ]);
     const items = (await c.get('7', req(5))).providers[0].items;
     expect(items).toHaveLength(3);
     expect(items[0].label.length).toBe(60);
     expect(items[0].value!.length).toBe(200);
-    expect(items[0].url).toBeUndefined();    // click-XSS scheme dropped
+    expect(items[0].url).toBeUndefined(); // click-XSS scheme dropped
     expect(items[1].url).toBeUndefined();
     expect(items[2].url).toBeUndefined();
     expect(items[2].value).toBe('12 km');
@@ -101,14 +112,17 @@ describe('JournalEntryRowsController', () => {
 
   it('caps at 12 rows per provider, omits empty providers, skips a failing one, tolerates non-arrays', async () => {
     const many = Array.from({ length: 15 }, (_, i) => row({ label: `r${i}` }));
-    const { c } = controller((id) => {
-      if (id === 'bad') throw new Error('boom');
-      if (id === 'empty') return [{ value: 'no label' }]; // normalizes to nothing
-      if (id === 'garbage') return 'not an array';
-      return many;
-    }, ['good', 'bad', 'empty', 'garbage']);
+    const { c } = controller(
+      (id) => {
+        if (id === 'bad') throw new Error('boom');
+        if (id === 'empty') return [{ value: 'no label' }]; // normalizes to nothing
+        if (id === 'garbage') return 'not an array';
+        return many;
+      },
+      ['good', 'bad', 'empty', 'garbage'],
+    );
     const res = await c.get('7', req(5));
-    expect(res.providers).toHaveLength(1);   // only 'good' survives
+    expect(res.providers).toHaveLength(1); // only 'good' survives
     expect(res.providers[0].items).toHaveLength(12);
   });
 });

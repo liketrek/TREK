@@ -8,11 +8,12 @@
  * providersOf only reads status/hooks/granted, so we inject bare Supervised entries
  * into the private running map rather than spawning real children.
  */
-import { describe, it, expect } from 'vitest';
+import { db } from '../../../src/db/database';
+import { DatabaseService } from '../../../src/nest/database/database.service';
 import { PluginSupervisor } from '../../../src/nest/plugins/supervisor/plugin-supervisor';
 import { createPluginRuntime } from '../../helpers/plugin-host';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { db } from '../../../src/db/database';
+
+import { describe, it, expect } from 'vitest';
 
 function makeSupervisor(): PluginSupervisor {
   // createRpcHost is never called on the providersOf path (no spawn).
@@ -104,7 +105,15 @@ describe('runtime.invokeHook defense-in-depth', () => {
     const rt = createPluginRuntime(new DatabaseService(db));
     // one legitimate granted provider exists, so providersOf('placeDetailProvider') = ['ok']
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (rt as any).supervisor.running.set('ok', { id: 'ok', status: 'active', hooks: ['placeDetailProvider'], events: [], granted: new Set(['hook:place-detail-provider']) });
-    await expect(rt.invokeHook('other', 'placeDetailProvider', 'getDetails', [1])).rejects.toThrow(/not a granted provider/);
+    (rt as any).supervisor.running.set('ok', {
+      id: 'ok',
+      status: 'active',
+      hooks: ['placeDetailProvider'],
+      events: [],
+      granted: new Set(['hook:place-detail-provider']),
+    });
+    await expect(rt.invokeHook('other', 'placeDetailProvider', 'getDetails', [1])).rejects.toThrow(
+      /not a granted provider/,
+    );
   });
 });

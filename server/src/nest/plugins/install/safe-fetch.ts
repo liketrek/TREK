@@ -1,6 +1,7 @@
+import { isBlockedIp } from '../runtime/egress-policy';
+
 import { createHash } from 'node:crypto';
 import dns from 'node:dns/promises';
-import { isBlockedIp } from '../runtime/egress-policy';
 
 /**
  * SSRF-hardened download for the plugin installer (#plugins, M4). The primary

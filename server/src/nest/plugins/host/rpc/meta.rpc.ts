@@ -1,9 +1,9 @@
-import { PluginController, PluginMethod } from '../rpc-kit/decorators';
+import { DatabaseService } from '../../../database/database.service';
 import { PluginGuards } from '../plugin-guards.service';
 import { BadParams, ForbiddenResource } from '../rpc-errors';
-import { num, str } from '../rpc-params';
+import { PluginController, PluginMethod } from '../rpc-kit/decorators';
 import type { PluginRpcContext } from '../rpc-kit/types';
-import { DatabaseService } from '../../../database/database.service';
+import { num, str } from '../rpc-params';
 
 /** Core entities a plugin may attach its own db:meta to. */
 const META_ENTITY_TYPES: ReadonlySet<string> = new Set(['trip', 'place', 'day', 'reservation', 'accommodation']);
@@ -76,13 +76,16 @@ export class MetaRpc {
       const { n } = this.db
         .prepare('SELECT COUNT(*) AS n FROM plugin_entity_metadata WHERE plugin_id=? AND entity_type=? AND entity_id=?')
         .get(ctx.pluginId, entityType, entityId) as { n: number };
-      if (n >= META_KEYS_MAX) throw new BadParams(`too many metadata keys on this ${entityType} (max ${META_KEYS_MAX})`);
+      if (n >= META_KEYS_MAX)
+        throw new BadParams(`too many metadata keys on this ${entityType} (max ${META_KEYS_MAX})`);
     }
     this.db
-      .prepare(`INSERT INTO plugin_entity_metadata (plugin_id, entity_type, entity_id, key, value, updated_at)
+      .prepare(
+        `INSERT INTO plugin_entity_metadata (plugin_id, entity_type, entity_id, key, value, updated_at)
                     VALUES (?, ?, ?, ?, ?, datetime('now'))
                     ON CONFLICT(plugin_id, entity_type, entity_id, key)
-                    DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`)
+                    DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
+      )
       .run(ctx.pluginId, entityType, entityId, key, json);
     return { key, value: params.value ?? null };
   }
@@ -91,7 +94,9 @@ export class MetaRpc {
   list(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
     const { entityType, entityId } = this.resolveEntity(params, ctx, false);
     const rows = this.db
-      .prepare('SELECT key, value FROM plugin_entity_metadata WHERE plugin_id=? AND entity_type=? AND entity_id=? ORDER BY key')
+      .prepare(
+        'SELECT key, value FROM plugin_entity_metadata WHERE plugin_id=? AND entity_type=? AND entity_id=? ORDER BY key',
+      )
       .all(ctx.pluginId, entityType, entityId) as Array<{ key: string; value: string }>;
     const out: Record<string, unknown> = {};
     for (const r of rows) {
@@ -145,6 +150,8 @@ export class MetaRpc {
     }
     // The table name comes from a fixed map, never from the request.
     const table = ENTITY_TABLE[entityType];
-    return (this.db.prepare(`SELECT trip_id FROM ${table} WHERE id = ?`).get(entityId) as { trip_id: number } | undefined)?.trip_id;
+    return (
+      this.db.prepare(`SELECT trip_id FROM ${table} WHERE id = ?`).get(entityId) as { trip_id: number } | undefined
+    )?.trip_id;
   }
 }

@@ -1,3 +1,16 @@
+import { runMigrations } from '../../../../src/db/migrations';
+import { createTables } from '../../../../src/db/schema';
+import { DatabaseService } from '../../../../src/nest/database/database.service';
+import {
+  readInstanceApiKey,
+  writeInstanceApiKey,
+  resolveApiKey,
+} from '../../../../src/nest/settings/instance-api-keys';
+import { createUser, createAdmin } from '../../../helpers/factories';
+import { resetTestDb } from '../../../helpers/test-db';
+
+import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
+
 /**
  * instance-api-keys.test.ts — INSTKEY-001 through INSTKEY-008.
  *
@@ -21,18 +34,6 @@ vi.mock('../../../../src/config', () => ({
   JWT_SECRET: 'test-secret',
   ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
 }));
-
-import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
-import { createTables } from '../../../../src/db/schema';
-import { runMigrations } from '../../../../src/db/migrations';
-import { createUser, createAdmin } from '../../../helpers/factories';
-import { resetTestDb } from '../../../helpers/test-db';
-import { DatabaseService } from '../../../../src/nest/database/database.service';
-import {
-  readInstanceApiKey,
-  writeInstanceApiKey,
-  resolveApiKey,
-} from '../../../../src/nest/settings/instance-api-keys';
 
 const db = new DatabaseService(testDb);
 
@@ -69,7 +70,9 @@ describe('instance API keys', () => {
     // "did this change?" is never asked of the stored value.
     expect(storedValue('maps_api_key')).not.toBe(first);
     expect(readInstanceApiKey(db, 'maps_api_key')).toBe('same-key');
-    const rows = testDb.prepare("SELECT COUNT(*) AS n FROM app_settings WHERE key = 'maps_api_key'").get() as { n: number };
+    const rows = testDb.prepare("SELECT COUNT(*) AS n FROM app_settings WHERE key = 'maps_api_key'").get() as {
+      n: number;
+    };
     expect(rows.n).toBe(1);
   });
 

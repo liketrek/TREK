@@ -1,18 +1,7 @@
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
-import {
-  ConnectedSocket,
-  MessageBody,
-  OnGatewayConnection,
-  OnGatewayDisconnect,
-  OnGatewayInit,
-  SubscribeMessage,
-  WebSocketGateway,
-} from '@nestjs/websockets';
-import type { IncomingMessage } from 'node:http';
-import type { WebSocketServer } from 'ws';
-import { DatabaseService } from '../database/database.service';
-import { EphemeralTokenService } from '../auth/ephemeral-token.service';
 import { User } from '../../types';
+import { EphemeralTokenService } from '../auth/ephemeral-token.service';
+import { DatabaseService } from '../database/database.service';
+import { JourneyDomainService } from '../journey/journey-domain.service';
 import {
   bookPeers,
   broadcastToBook,
@@ -27,7 +16,19 @@ import {
   userOf,
   type TrekWebSocket,
 } from './ws-state';
-import { JourneyDomainService } from '../journey/journey-domain.service';
+import { Injectable, OnModuleDestroy } from '@nestjs/common';
+import {
+  ConnectedSocket,
+  MessageBody,
+  OnGatewayConnection,
+  OnGatewayDisconnect,
+  OnGatewayInit,
+  SubscribeMessage,
+  WebSocketGateway,
+} from '@nestjs/websockets';
+
+import type { IncomingMessage } from 'node:http';
+import type { WebSocketServer } from 'ws';
 
 const HEARTBEAT_INTERVAL = 30_000;
 
@@ -51,9 +52,7 @@ const HEARTBEAT_INTERVAL = 30_000;
  */
 @Injectable()
 @WebSocketGateway({ path: '/ws' })
-export class RealtimeGateway
-  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect, OnModuleDestroy
-{
+export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect, OnModuleDestroy {
   private heartbeat: ReturnType<typeof setInterval> | null = null;
 
   constructor(
@@ -139,7 +138,9 @@ export class RealtimeGateway
     socket.isAlive = true;
     const sid = registerSocket(socket, user as User);
     socket.send(JSON.stringify({ type: 'welcome', socketId: sid }));
-    socket.on('pong', () => { socket.isAlive = true; });
+    socket.on('pong', () => {
+      socket.isAlive = true;
+    });
   }
 
   handleDisconnect(socket: TrekWebSocket): void {
@@ -218,7 +219,8 @@ export class RealtimeGateway
    */
   @SubscribeMessage('book:cursor')
   handleBookCursor(
-    @MessageBody() message: {
+    @MessageBody()
+    message: {
       journeyId?: number | string;
       spreadIndex?: number;
       x?: number | null;

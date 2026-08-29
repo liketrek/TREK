@@ -1,11 +1,11 @@
-import { Injectable } from '@nestjs/common';
-import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
-import { RealtimeService } from '../realtime/realtime.service';
+import type { AssignmentRow, Day, DayNote, User } from '../../types';
+import { formatAssignmentWithPlace } from '../common/rowShape';
 import { DatabaseService, type TripAccess } from '../database/database.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { QueryHelpersService } from '../query-helpers/query-helpers.service';
-import { formatAssignmentWithPlace } from '../common/rowShape';
-import type { AssignmentRow, Day, DayNote, User } from '../../types';
+import { RealtimeService } from '../realtime/realtime.service';
+import { Injectable } from '@nestjs/common';
+import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 
 type Trip = TripAccess;
 
@@ -76,7 +76,12 @@ export class DaysService {
     return this.permissions.checkPermission('day_edit', user.role, trip.user_id, user.id, trip.user_id !== user.id);
   }
 
-  broadcast<E extends TrekWsTripEventName>(tripId: string, event: E, payload: TrekWsPayload<E>, socketId: string | undefined): void {
+  broadcast<E extends TrekWsTripEventName>(
+    tripId: string,
+    event: E,
+    payload: TrekWsPayload<E>,
+    socketId: string | undefined,
+  ): void {
     this.realtime.broadcast(tripId, event, payload, socketId);
   }
 
@@ -85,7 +90,8 @@ export class DaysService {
   // -------------------------------------------------------------------------
 
   getAssignmentsForDay(dayId: number | string) {
-    const assignments = this.db.all<AssignmentRow>(`
+    const assignments = this.db.all<AssignmentRow>(
+      `
     SELECT da.*, p.id as place_id, p.name as place_name, p.description as place_description,
       p.lat, p.lng, p.address, p.category_id, p.price, p.currency as place_currency,
       COALESCE(da.assignment_time, p.place_time) as place_time,
@@ -98,14 +104,16 @@ export class DaysService {
     LEFT JOIN categories c ON p.category_id = c.id
     WHERE da.day_id = ?
     ORDER BY da.order_index ASC, da.created_at ASC
-  `, dayId);
+  `,
+      dayId,
+    );
 
     // One batched tag load instead of the legacy per-assignment query; the
     // non-compact loader returns the same full tag rows (t.* minus the join
     // key), so the output shape is unchanged.
-    const tagsByPlaceId = this.queryHelpers.loadTagsByPlaceIds([...new Set(assignments.map(a => a.place_id))]);
+    const tagsByPlaceId = this.queryHelpers.loadTagsByPlaceIds([...new Set(assignments.map((a) => a.place_id))]);
 
-    return assignments.map(a => {
+    return assignments.map((a) => {
       const tags = tagsByPlaceId[a.place_id] || [];
 
       return {
@@ -135,14 +143,16 @@ export class DaysService {
           osm_id: a.osm_id,
           website: a.website,
           phone: a.phone,
-          category: a.category_id ? {
-            id: a.category_id,
-            name: a.category_name,
-            color: a.category_color,
-            icon: a.category_icon,
-          } : null,
+          category: a.category_id
+            ? {
+                id: a.category_id,
+                name: a.category_name,
+                color: a.category_color,
+                icon: a.category_icon,
+              }
+            : null,
           tags,
-        }
+        },
       };
     });
   }
@@ -158,10 +168,11 @@ export class DaysService {
       return { days: [] };
     }
 
-    const dayIds = days.map(d => d.id);
+    const dayIds = days.map((d) => d.id);
     const dayPlaceholders = dayIds.map(() => '?').join(',');
 
-    const allAssignments = this.db.all<AssignmentRow>(`
+    const allAssignments = this.db.all<AssignmentRow>(
+      `
     SELECT da.*, p.id as place_id, p.name as place_name, p.description as place_description,
       p.lat, p.lng, p.address, p.category_id, p.price, p.currency as place_currency,
       COALESCE(da.assignment_time, p.place_time) as place_time,
@@ -174,23 +185,27 @@ export class DaysService {
     LEFT JOIN categories c ON p.category_id = c.id
     WHERE da.day_id IN (${dayPlaceholders})
     ORDER BY da.order_index ASC, da.created_at ASC
-  `, ...dayIds);
+  `,
+      ...dayIds,
+    );
 
-    const placeIds = [...new Set(allAssignments.map(a => a.place_id))];
+    const placeIds = [...new Set(allAssignments.map((a) => a.place_id))];
     const tagsByPlaceId = this.queryHelpers.loadTagsByPlaceIds(placeIds, { compact: true });
 
-    const allAssignmentIds = allAssignments.map(a => a.id);
+    const allAssignmentIds = allAssignments.map((a) => a.id);
     const participantsByAssignment = this.queryHelpers.loadParticipantsByAssignmentIds(allAssignmentIds);
 
     const assignmentsByDayId: Record<number, ReturnType<typeof formatAssignmentWithPlace>[]> = {};
     for (const a of allAssignments) {
       if (!assignmentsByDayId[a.day_id]) assignmentsByDayId[a.day_id] = [];
-      assignmentsByDayId[a.day_id].push(formatAssignmentWithPlace(a, tagsByPlaceId[a.place_id] || [], participantsByAssignment[a.id] || []));
+      assignmentsByDayId[a.day_id].push(
+        formatAssignmentWithPlace(a, tagsByPlaceId[a.place_id] || [], participantsByAssignment[a.id] || []),
+      );
     }
 
     const allNotes = this.db.all<DayNote>(
       `SELECT * FROM day_notes WHERE day_id IN (${dayPlaceholders}) ORDER BY sort_order ASC, created_at ASC`,
-      ...dayIds
+      ...dayIds,
     );
     const notesByDayId: Record<number, DayNote[]> = {};
     for (const note of allNotes) {
@@ -198,7 +213,7 @@ export class DaysService {
       notesByDayId[note.day_id].push(note);
     }
 
-    const daysWithAssignments = days.map(day => ({
+    const daysWithAssignments = days.map((day) => ({
       ...day,
       assignments: assignmentsByDayId[day.id] || [],
       notes_items: notesByDayId[day.id] || [],
@@ -208,12 +223,18 @@ export class DaysService {
   }
 
   create(tripId: string | number, date?: string, notes?: string) {
-    const maxDay = this.db.get<{ max: number | null }>('SELECT MAX(day_number) as max FROM days WHERE trip_id = ?', tripId)!;
+    const maxDay = this.db.get<{ max: number | null }>(
+      'SELECT MAX(day_number) as max FROM days WHERE trip_id = ?',
+      tripId,
+    )!;
     const dayNumber = (maxDay.max || 0) + 1;
 
     const result = this.db.run(
       'INSERT INTO days (trip_id, day_number, date, notes) VALUES (?, ?, ?, ?)',
-      tripId, dayNumber, date || null, notes || null
+      tripId,
+      dayNumber,
+      date || null,
+      notes || null,
     );
 
     const day = this.db.get<Day>('SELECT * FROM days WHERE id = ?', result.lastInsertRowid)!;
@@ -229,10 +250,11 @@ export class DaysService {
     // current value (the legacy version always wrote notes, so setting a title
     // silently wiped the day's notes — the client sends the two fields in
     // separate requests).
-    this.db.run('UPDATE days SET notes = ?, title = ? WHERE id = ?',
-      'notes' in fields ? (fields.notes || null) : (current.notes ?? null),
+    this.db.run(
+      'UPDATE days SET notes = ?, title = ? WHERE id = ?',
+      'notes' in fields ? fields.notes || null : (current.notes ?? null),
       'title' in fields ? (fields.title ?? null) : (current.title ?? null),
-      id
+      id,
     );
     const updatedDay = this.db.get<Day>('SELECT * FROM days WHERE id = ?', id)!;
     return { ...updatedDay, assignments: this.getAssignmentsForDay(id) };
@@ -278,11 +300,14 @@ export class DaysService {
     newDateById: Map<number, string | null>,
   ): void {
     const reservations = this.db.all<{
-      id: number; day_id: number | null; end_day_id: number | null;
-      reservation_time: string | null; reservation_end_time: string | null;
+      id: number;
+      day_id: number | null;
+      end_day_id: number | null;
+      reservation_time: string | null;
+      reservation_end_time: string | null;
     }>(
       'SELECT id, day_id, end_day_id, reservation_time, reservation_end_time FROM reservations WHERE trip_id = ?',
-      tripId
+      tripId,
     );
 
     const setTime = this.db.prepare('UPDATE reservations SET reservation_time = ? WHERE id = ?');
@@ -317,13 +342,16 @@ export class DaysService {
 
   /** A stay must not end before it begins after a reorder/insert. */
   private assertNoInvertedAccommodation(tripId: string | number): void {
-    const spans = this.db.all<{ id: number; start_no: number; end_no: number }>(`
+    const spans = this.db.all<{ id: number; start_no: number; end_no: number }>(
+      `
     SELECT a.id, s.day_number AS start_no, e.day_number AS end_no
     FROM day_accommodations a
     JOIN days s ON a.start_day_id = s.id
     JOIN days e ON a.end_day_id = e.id
     WHERE a.trip_id = ?
-  `, tripId);
+  `,
+      tripId,
+    );
     for (const span of spans) {
       if (span.start_no > span.end_no) {
         throw new DayReorderError('This move would make an accommodation end before it starts.');
@@ -341,13 +369,10 @@ export class DaysService {
    * whole trip still shifts everything together. The linked hotel reservation follows
    * its accommodation's start day in both branches.
    */
-  resyncAccommodationDays(
-    tripId: string | number,
-    prevDateByDayId: Map<number, string | null>,
-  ): void {
+  resyncAccommodationDays(tripId: string | number, prevDateByDayId: Map<number, string | null>): void {
     const stays = this.db.all<{ id: number; start_day_id: number; end_day_id: number }>(
       'SELECT id, start_day_id, end_day_id FROM day_accommodations WHERE trip_id = ?',
-      tripId
+      tripId,
     );
     if (stays.length === 0) return;
 
@@ -366,15 +391,22 @@ export class DaysService {
       if (oldStartDate && oldEndDate) {
         const newStart = dayByDate.get(tripId, oldStartDate) as { id: number; day_number: number } | undefined;
         const newEnd = dayByDate.get(tripId, oldEndDate) as { id: number; day_number: number } | undefined;
-        if (newStart && newEnd && newStart.day_number <= newEnd.day_number
-          && (newStart.id !== stay.start_day_id || newEnd.id !== stay.end_day_id)) {
+        if (
+          newStart &&
+          newEnd &&
+          newStart.day_number <= newEnd.day_number &&
+          (newStart.id !== stay.start_day_id || newEnd.id !== stay.end_day_id)
+        ) {
           updateStay.run(newStart.id, newEnd.id, stay.id);
           stay.start_day_id = newStart.id;
         }
       }
       // Keep the linked reservation on the stay's (possibly re-dated) start day — its
       // reservation_time is a snapshot of that day's date, stale after any range change.
-      const startDayDate = this.db.get<{ date: string | null }>('SELECT date FROM days WHERE id = ?', stay.start_day_id)?.date;
+      const startDayDate = this.db.get<{ date: string | null }>(
+        'SELECT date FROM days WHERE id = ?',
+        stay.start_day_id,
+      )?.date;
       if (startDayDate) {
         restampLinkedRes.run({ dayId: stay.start_day_id, date: startDayDate, accId: stay.id });
       }
@@ -388,17 +420,20 @@ export class DaysService {
   reorder(tripId: string | number, orderedIds: number[]) {
     const rows = this.db.all<{ id: number; day_number: number; date: string | null }>(
       'SELECT id, day_number, date FROM days WHERE trip_id = ? ORDER BY day_number',
-      tripId
+      tripId,
     );
 
-    const existingIds = new Set(rows.map(r => r.id));
-    if (orderedIds.length !== rows.length || !orderedIds.every(id => existingIds.has(id))) {
+    const existingIds = new Set(rows.map((r) => r.id));
+    if (orderedIds.length !== rows.length || !orderedIds.every((id) => existingIds.has(id))) {
       throw new DayReorderError('orderedIds must be a permutation of the trip day ids.');
     }
 
-    const oldDateById = new Map(rows.map(r => [r.id, r.date]));
+    const oldDateById = new Map(rows.map((r) => [r.id, r.date]));
     // Dates stay pinned to slots: position i keeps the i-th date (ascending).
-    const sortedDates = rows.map(r => r.date).filter((d): d is string => !!d).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+    const sortedDates = rows
+      .map((r) => r.date)
+      .filter((d): d is string => !!d)
+      .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
     const isDated = sortedDates.length > 0;
 
     const setDayNumber = this.db.prepare('UPDATE days SET day_number = ? WHERE id = ?');
@@ -430,21 +465,21 @@ export class DaysService {
   insert(tripId: string | number, position?: number) {
     const rows = this.db.all<{ id: number; day_number: number; date: string | null }>(
       'SELECT id, day_number, date FROM days WHERE trip_id = ? ORDER BY day_number',
-      tripId
+      tripId,
     );
     const n = rows.length;
     const pos = Math.min(Math.max(position ?? n + 1, 1), n + 1);
-    const datedRows = rows.filter(r => r.date) as { id: number; day_number: number; date: string }[];
+    const datedRows = rows.filter((r) => r.date) as { id: number; day_number: number; date: string }[];
     const isDated = datedRows.length > 0;
 
     const setDayNumber = this.db.prepare('UPDATE days SET day_number = ? WHERE id = ?');
 
     if (!isDated) {
       const newRowid = this.db.transaction(() => {
-        const toShift = rows.filter(r => r.day_number >= pos);
-        toShift.forEach(r => setDayNumber.run(-r.day_number, r.id));
+        const toShift = rows.filter((r) => r.day_number >= pos);
+        toShift.forEach((r) => setDayNumber.run(-r.day_number, r.id));
         const result = this.db.run('INSERT INTO days (trip_id, day_number, date) VALUES (?, ?, NULL)', tripId, pos);
-        toShift.forEach(r => setDayNumber.run(r.day_number + 1, r.id));
+        toShift.forEach((r) => setDayNumber.run(r.day_number + 1, r.id));
         return result.lastInsertRowid;
       });
       const day = this.db.get<Day>('SELECT * FROM days WHERE id = ?', newRowid)!;
@@ -452,17 +487,22 @@ export class DaysService {
     }
 
     // Dated trip: rebuild N+1 contiguous dates from the earliest date.
-    const start = datedRows.map(r => r.date).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))[0];
+    const start = datedRows.map((r) => r.date).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))[0];
     const dates = Array.from({ length: n + 1 }, (_, i) => addDays(start, i));
-    const oldDateById = new Map(rows.map(r => [r.id, r.date]));
+    const oldDateById = new Map(rows.map((r) => [r.id, r.date]));
     const setDayNumberAndDate = this.db.prepare('UPDATE days SET day_number = ?, date = ? WHERE id = ?');
 
     const newId = this.db.transaction(() => {
       rows.forEach((r, i) => setDayNumber.run(-(i + 1), r.id));
-      const result = this.db.run('INSERT INTO days (trip_id, day_number, date) VALUES (?, ?, ?)', tripId, pos, dates[pos - 1]);
+      const result = this.db.run(
+        'INSERT INTO days (trip_id, day_number, date) VALUES (?, ?, ?)',
+        tripId,
+        pos,
+        dates[pos - 1],
+      );
       const insertedId = Number(result.lastInsertRowid);
 
-      const orderedIds = rows.map(r => r.id);
+      const orderedIds = rows.map((r) => r.id);
       orderedIds.splice(pos - 1, 0, insertedId);
       const newDateById = new Map<number, string | null>();
       orderedIds.forEach((id, i) => {
@@ -479,5 +519,4 @@ export class DaysService {
     const day = this.db.get<Day>('SELECT * FROM days WHERE id = ?', newId)!;
     return { ...day, assignments: [], notes_items: [] };
   }
-
 }

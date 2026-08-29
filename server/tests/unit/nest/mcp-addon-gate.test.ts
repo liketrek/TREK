@@ -1,7 +1,8 @@
-import { describe, it, expect, vi } from 'vitest';
-import { createMcpAddonGate } from '../../../src/nest/addons/mcp-addon-gate';
 import { ADDON_IDS } from '../../../src/addons';
 import type { AddonsService } from '../../../src/nest/addons/addons.service';
+import { createMcpAddonGate } from '../../../src/nest/addons/mcp-addon-gate';
+
+import { describe, it, expect, vi } from 'vitest';
 
 function gate(enabled: boolean) {
   const addons = { isAddonEnabled: vi.fn(() => enabled) };
@@ -12,8 +13,14 @@ function makeRes() {
   const res = {
     statusCode: 200,
     ended: false,
-    status: vi.fn(function (this: typeof res, c: number) { this.statusCode = c; return this; }),
-    end: vi.fn(function (this: typeof res) { this.ended = true; return this; }),
+    status: vi.fn(function (this: typeof res, c: number) {
+      this.statusCode = c;
+      return this;
+    }),
+    end: vi.fn(function (this: typeof res) {
+      this.ended = true;
+      return this;
+    }),
   };
   return res;
 }

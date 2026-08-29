@@ -283,12 +283,14 @@ const journey: TranslationStrings = {
   'journey.studio.zoomOut': 'Zoom out', // en-fallback
   'journey.studio.zoomFit': 'Fit to view', // en-fallback
   'journey.studio.downloadSpread': 'Stáhnout tuto dvoustranu',
-  'journey.studio.downloadSpreadHint': 'Uloží návrh této dvoustrany jako soubor, bez fotografií, ke sdílení nebo dalšímu použití',
+  'journey.studio.downloadSpreadHint':
+    'Uloží návrh této dvoustrany jako soubor, bez fotografií, ke sdílení nebo dalšímu použití',
   'journey.studio.importSpread': 'Importovat',
   'journey.studio.importSpreadHint': 'Přidá dvoustranu ze staženého souboru s návrhem',
   'journey.studio.importSpreadFailed': 'Tento soubor není dvoustrana z TREK Studia',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': 'Sazba knihy potřebuje místo, a tak je Studio jen na počítači, stejně jako tvorba PDF. Všechno ostatní z cesty tu funguje jako obvykle.', // en-fallback
+  'journey.studio.desktopOnlyHint':
+    'Sazba knihy potřebuje místo, a tak je Studio jen na počítači, stejně jako tvorba PDF. Všechno ostatní z cesty tu funguje jako obvykle.', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
   'journey.studio.bookView': 'Book view', // en-fallback
   'journey.studio.multiple': 'Several', // en-fallback
@@ -352,7 +354,8 @@ const journey: TranslationStrings = {
   'journey.studio.sampleSubheading': 'A subheading', // en-fallback
   'journey.studio.sampleBody': 'Write something about this day.', // en-fallback
   'journey.studio.sampleCaption': 'Caption', // en-fallback
-  'journey.studio.templatesCoverHint': 'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
+  'journey.studio.templatesCoverHint':
+    'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
   'journey.studio.tpl.heroStory': 'Hero and story', // en-fallback
   'journey.studio.tpl.fullBleed': 'One picture, full spread', // en-fallback
   'journey.studio.tpl.twoUp': 'Two full pages', // en-fallback
@@ -558,8 +561,10 @@ const journey: TranslationStrings = {
   'journey.studio.pinPhoto': 'Fotky',
   'journey.studio.pinPhotoNone': 'U těchto zastávek zatím nejsou žádné fotky, kreslí se proto jako tečky.',
   'journey.studio.mapSourceSatellite': 'Satelit',
-  'journey.studio.mapSourceSatelliteHint': 'Sentinel-2 bez oblačnosti, volný k tisku s uvedením zdroje. Ostrý až na úroveň ulice.',
-  'journey.studio.mapSourceReliefHint': 'Stínovaný reliéf od NASA, volný k tisku. Vhodný pro zemi nebo kontinent, pro jedno město je příliš hrubý.',
+  'journey.studio.mapSourceSatelliteHint':
+    'Sentinel-2 bez oblačnosti, volný k tisku s uvedením zdroje. Ostrý až na úroveň ulice.',
+  'journey.studio.mapSourceReliefHint':
+    'Stínovaný reliéf od NASA, volný k tisku. Vhodný pro zemi nebo kontinent, pro jedno město je příliš hrubý.',
   'journey.studio.mapPrintDpi': 'Tiskne se přibližně v',
   'journey.studio.mapPrintDpiLow': 'v této velikosti bude neostrá, zkuste širší výřez nebo jiný zdroj',
   'journey.studio.mapPerTrip': 'Každá cesta zvlášť',

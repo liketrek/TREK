@@ -98,7 +98,8 @@ const places: TranslationStrings = {
   'places.details.facts': 'Thông tin hữu ích',
   'places.details.nothing': 'Không tìm thấy gì cho địa điểm này.',
   'places.details.noKeyTitle': 'Có thêm thông tin chi tiết',
-  'places.details.noKeyHint': 'Không có khóa API Google, phiên bản này chỉ dùng nguồn miễn phí. Hãy đề nghị quản trị viên TREK thêm khóa để có xếp hạng, giờ mở cửa và ảnh.',
+  'places.details.noKeyHint':
+    'Không có khóa API Google, phiên bản này chỉ dùng nguồn miễn phí. Hãy đề nghị quản trị viên TREK thêm khóa để có xếp hạng, giờ mở cửa và ảnh.',
   'places.details.aboutBrand': 'Về chuỗi',
   'places.details.aboutBrandNote': 'Mô tả chuỗi, không phải chi nhánh này.',
   'places.details.fact.rating': 'Đánh giá',

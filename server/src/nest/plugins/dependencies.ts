@@ -1,5 +1,6 @@
-import semver from 'semver';
 import type { PluginDependency } from './install/manifest';
+
+import semver from 'semver';
 
 /**
  * Pure dependency-reasoning helpers for the plugin runtime (#plugins). Kept
@@ -38,11 +39,16 @@ export function parseDependencies(raw: string | null | undefined): PluginDepende
   try {
     const o = JSON.parse(raw) as Partial<PluginDependencies>;
     return {
-      requiredAddons: Array.isArray(o.requiredAddons) ? o.requiredAddons.filter((a): a is string => typeof a === 'string') : [],
+      requiredAddons: Array.isArray(o.requiredAddons)
+        ? o.requiredAddons.filter((a): a is string => typeof a === 'string')
+        : [],
       pluginDependencies: Array.isArray(o.pluginDependencies)
         ? o.pluginDependencies.filter(
             (d): d is PluginDependency =>
-              !!d && typeof d === 'object' && typeof (d as PluginDependency).id === 'string' && typeof (d as PluginDependency).version === 'string',
+              !!d &&
+              typeof d === 'object' &&
+              typeof (d as PluginDependency).id === 'string' &&
+              typeof (d as PluginDependency).version === 'string',
           )
         : [],
     };
@@ -76,7 +82,10 @@ export interface DependencyState {
 }
 
 /** Classify each declared plugin dependency against what is installed. */
-export function resolveDependencyState(deps: PluginDependencies, installed: Map<string, PluginDepRow>): DependencyState {
+export function resolveDependencyState(
+  deps: PluginDependencies,
+  installed: Map<string, PluginDepRow>,
+): DependencyState {
   const state: DependencyState = { missing: [], versionMismatch: [], satisfiedDisabled: [], satisfiedActive: [] };
   for (const dep of deps.pluginDependencies) {
     const row = installed.get(dep.id);
@@ -97,7 +106,9 @@ export function resolveDependencyState(deps: PluginDependencies, installed: Map<
 
 /** Plugins whose `pluginDependencies` reference `pluginId` (direct dependents). */
 export function findDependents(pluginId: string, rows: PluginDepRow[]): string[] {
-  return rows.filter((r) => parseDependencies(r.dependencies).pluginDependencies.some((d) => d.id === pluginId)).map((r) => r.id);
+  return rows
+    .filter((r) => parseDependencies(r.dependencies).pluginDependencies.some((d) => d.id === pluginId))
+    .map((r) => r.id);
 }
 
 /**

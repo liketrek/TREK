@@ -1,6 +1,7 @@
-import type { RequestHandler } from 'express';
-import { AddonsService } from './addons.service';
 import { ADDON_IDS } from '../../addons';
+import { AddonsService } from './addons.service';
+
+import type { RequestHandler } from 'express';
 
 /**
  * Gate: 404 (empty body) when the MCP addon is disabled (M2 — prevents feature

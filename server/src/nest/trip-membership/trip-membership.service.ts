@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
+import { Injectable } from '@nestjs/common';
 
 /**
  * Adding an existing user to a trip as a member, plus the leaf membership
@@ -37,12 +37,14 @@ export class TripMembershipService {
    */
   listAccessibleTripIds(userId: number): number[] {
     return this.db
-      .prepare(`
+      .prepare(
+        `
         SELECT t.id FROM trips t
         LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = :userId
         WHERE (t.user_id = :userId OR m.user_id IS NOT NULL)
         ORDER BY t.created_at DESC
-      `)
+      `,
+      )
       .all({ userId })
       .map((r) => (r as { id: number }).id);
   }
@@ -58,11 +60,7 @@ export class TripMembershipService {
    *
    * Returns whether a new membership row was actually created.
    */
-  joinTripAsMember(
-    tripId: number,
-    userId: number,
-    invitedBy: number | null,
-  ): { joined: boolean; tripId: number } {
+  joinTripAsMember(tripId: number, userId: number, invitedBy: number | null): { joined: boolean; tripId: number } {
     const trip = this.db.get<{ id: number; user_id: number }>('SELECT id, user_id FROM trips WHERE id = ?', tripId);
     if (!trip) return { joined: false, tripId };
     // The owner already has full access; never add them as a member.

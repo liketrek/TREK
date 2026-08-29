@@ -5,12 +5,17 @@
  * DatabaseModule (the DATABASE_CONNECTION factory picks up the mocked db
  * singleton): listing is open to any authenticated user; writes are admin-only.
  */
-import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
-import request from 'supertest';
+import { CategoriesModule } from '../../src/nest/categories/categories.module';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
+import { DatabaseModule } from '../../src/nest/database/database.module';
+import { seedUser, sessionCookie } from './harness';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
-import { Test } from '@nestjs/testing';
-import { seedUser, sessionCookie } from './harness';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 
 const { db } = vi.hoisted(() => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -31,11 +36,6 @@ const { db } = vi.hoisted(() => {
 });
 
 vi.mock('../../src/db/database', () => ({ db, closeDb: () => {}, reinitialize: () => {} }));
-
-import { CategoriesModule } from '../../src/nest/categories/categories.module';
-import { DatabaseModule } from '../../src/nest/database/database.module';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
 
 function insertCategory(name: string, color = '#6366f1', icon = '📍', userId = 1): number {
   const res = db
@@ -98,14 +98,20 @@ describe('Categories e2e (real JwtAuthGuard + AdminGuard + temp SQLite)', () => 
   });
 
   it('201 when an admin creates a category, echoing name/color/icon and user_id', async () => {
-    const res = await request(server).post('/api/categories').set('Cookie', sessionCookie(1)).send({ name: 'Food', color: '#fff', icon: '🍔' });
+    const res = await request(server)
+      .post('/api/categories')
+      .set('Cookie', sessionCookie(1))
+      .send({ name: 'Food', color: '#fff', icon: '🍔' });
     expect(res.status).toBe(201);
     expect(res.body.category).toMatchObject({ name: 'Food', color: '#fff', icon: '🍔', user_id: 1 });
     expect(typeof res.body.category.id).toBe('number');
   });
 
   it('201 on create with the #6366f1/📍 defaults when color and icon are omitted', async () => {
-    const res = await request(server).post('/api/categories').set('Cookie', sessionCookie(1)).send({ name: 'Defaults' });
+    const res = await request(server)
+      .post('/api/categories')
+      .set('Cookie', sessionCookie(1))
+      .send({ name: 'Defaults' });
     expect(res.status).toBe(201);
     expect(res.body.category).toMatchObject({ color: '#6366f1', icon: '📍' });
   });
@@ -138,7 +144,10 @@ describe('Categories e2e (real JwtAuthGuard + AdminGuard + temp SQLite)', () => 
 
   it('200 when an admin updates, COALESCE preserving omitted fields', async () => {
     const id = insertCategory('Food', '#fff', '🍔');
-    const res = await request(server).put(`/api/categories/${id}`).set('Cookie', sessionCookie(1)).send({ name: 'Drinks' });
+    const res = await request(server)
+      .put(`/api/categories/${id}`)
+      .set('Cookie', sessionCookie(1))
+      .send({ name: 'Drinks' });
     expect(res.status).toBe(200);
     expect(res.body.category).toMatchObject({ id, name: 'Drinks', color: '#fff', icon: '🍔' });
   });

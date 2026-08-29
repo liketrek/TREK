@@ -1,45 +1,51 @@
-import { Injectable, type OnApplicationBootstrap, type OnModuleDestroy } from '@nestjs/common';
-import semver from 'semver';
-import { DatabaseService } from '../database/database.service';
-import { pluginsEnabled } from './kill-switch';
 import { setPluginEventSink } from '../../plugin-event-sink';
 import { setUserDeletedSink } from '../../plugin-user-lifecycle';
+import { AddonsService } from '../addons/addons.service';
+import { AuditService } from '../audit/audit.service';
+import { decrypt_api_key } from '../common/crypto/apiKeyCrypto';
+import { DatabaseService } from '../database/database.service';
 import { setPluginChannelSource, pluginChannelId } from '../notifications/channel-registry';
 import type { ChannelMessage, ExternalChannel } from '../notifications/notification-events';
-import { PluginUserSettingsService } from './plugin-user-settings.service';
+import type { VersionMismatch, PluginDepRow } from './dependencies';
+import {
+  parseDependencies,
+  disabledRequiredAddons,
+  resolveDependencyState,
+  enableOrder,
+  findDependentsTransitive,
+  DependencyCycleError,
+} from './dependencies';
+import { devLinkEnabled, DEV_LINK_SOURCE } from './dev-link';
+import { removePluginData } from './host/plugin-data.service';
+import { closePluginDataDb } from './host/plugin-host-state';
+import { PluginRpcHostFactory } from './host/plugin-rpc-host.factory';
+import { ForbiddenResource } from './host/rpc-host';
+import { discoverPlugins } from './install/discovery';
+import { hostSatisfies, hostVersion } from './install/host-compat';
 import { PLUGIN_CHANNEL_EVENTS } from './install/manifest';
-import { stripEmoji } from './text-sanitize';
+import { parseJsonText, parseManifest } from './install/manifest';
+import type { PluginDependency } from './install/manifest';
+import { scanForNativeBinaries } from './install/native-scan';
+import { pluginsEnabled } from './kill-switch';
+import { pluginCodeDir, pluginDataDir } from './paths';
 import { applyStagedPluginTrees, setStagedRestoreApplier } from './plugin-backup';
-import { decrypt_api_key } from '../common/crypto/apiKeyCrypto';
+import { PluginUserSettingsService } from './plugin-user-settings.service';
+import { isKnownPermission } from './protocol/envelope';
+import { HTTP_OUTBOUND_PREFIX as HTTP_OUTBOUND, PLUGIN_API_VERSION } from './protocol/envelope';
+import { assertHostCompatible, PluginRegistryService, RegistryError } from './registry/registry.service';
+import { keyFingerprint } from './signature-status';
 import { PluginSupervisor, type PluginRouteInfo } from './supervisor/plugin-supervisor';
+import { stripEmoji } from './text-sanitize';
+import { Injectable, type OnApplicationBootstrap, type OnModuleDestroy } from '@nestjs/common';
+
 import fs from 'node:fs';
 import path from 'node:path';
-import { PluginRpcHostFactory } from './host/plugin-rpc-host.factory';
-import { closePluginDataDb } from './host/plugin-host-state';
-import { ForbiddenResource } from './host/rpc-host';
-import { removePluginData } from './host/plugin-data.service';
-import { isKnownPermission } from './protocol/envelope';
-import { discoverPlugins } from './install/discovery';
-import { parseJsonText, parseManifest } from './install/manifest';
-import { scanForNativeBinaries } from './install/native-scan';
-import { devLinkEnabled, DEV_LINK_SOURCE } from './dev-link';
-import { pluginCodeDir, pluginDataDir } from './paths';
-import { assertHostCompatible, PluginRegistryService, RegistryError } from './registry/registry.service';
-import { hostSatisfies, hostVersion } from './install/host-compat';
-import { keyFingerprint } from './signature-status';
-import { AuditService } from '../audit/audit.service';
-import { AddonsService } from '../addons/addons.service';
-import type { PluginDependency } from './install/manifest';
-import type { VersionMismatch, PluginDepRow } from './dependencies';
-import { parseDependencies, disabledRequiredAddons, resolveDependencyState, enableOrder, findDependentsTransitive, DependencyCycleError } from './dependencies';
-
-import { HTTP_OUTBOUND_PREFIX as HTTP_OUTBOUND, PLUGIN_API_VERSION } from './protocol/envelope';
+import semver from 'semver';
 
 // Mirrors HOST_RE in install/manifest.ts: an exact hostname or a `*.`-prefixed wildcard
 // with a real multi-label suffix. Rejects a bare `*`, a whole-TLD wildcard, a scheme and
 // any embedded space — the string is interpolated into the egress guard and the CSP.
 const EGRESS_HOST_RE = /^(\*\.[a-z0-9-]+(\.[a-z0-9-]+)+|[a-z0-9-]+(\.[a-z0-9-]+)*)$/i;
-
 
 /**
  * Remove `<plugins>/<id>` whether it is a real directory, a POSIX symlink or a
@@ -74,7 +80,11 @@ function removePluginCodeEntry(dest: string): void {
 
 /** Thrown when (re-)activating would grant permissions the admin hasn't consented to. */
 export class PluginConsentRequired extends Error {
-  constructor(message: string, readonly newPermissions: string[] = [], readonly newEgress: string[] = []) {
+  constructor(
+    message: string,
+    readonly newPermissions: string[] = [],
+    readonly newEgress: string[] = [],
+  ) {
     super(message);
   }
 }
@@ -105,7 +115,13 @@ export class PluginDependencyError extends Error {
   constructor(
     message: string,
     readonly code: PluginDependencyCode,
-    readonly detail: { addons?: string[]; missing?: PluginDependency[]; versionMismatch?: VersionMismatch[]; trekRange?: string | null; hostVersion?: string } = {},
+    readonly detail: {
+      addons?: string[];
+      missing?: PluginDependency[];
+      versionMismatch?: VersionMismatch[];
+      trekRange?: string | null;
+      hostVersion?: string;
+    } = {},
   ) {
     super(message);
     this.name = 'PluginDependencyError';
@@ -127,31 +143,43 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
   // emitPluginEvent below (which own the dependency-edge authorization). The
   // arrow reads this.hostFactory lazily at spawn time, so the field-initializer
   // ordering (it runs before the constructor params are assigned) is safe.
-  private readonly supervisor = new PluginSupervisor((id, granted) => {
-    if (!this.hostFactory) throw new Error('PluginRpcHostFactory not provided — tests that activate plugins must pass one');
-    return this.hostFactory.create(id, granted, this);
-  }, {
-    // Both hooks run from child lifecycle EventEmitter callbacks (exit / stderr 'data'),
-    // so a throw here becomes an uncaughtException that has no host-side handler. During a
-    // restore the core DB is briefly CLOSED (closeDb → the this.db proxy throws on access), so a
-    // status/log write in that window would otherwise take the whole process down mid-
-    // restore. Swallow any DB error — a missed status row / log line is never worth a crash.
-    onStatus: (id, status, error) => {
-      try {
-        this.db.prepare('UPDATE plugins SET status = ?, last_error = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(status, error ?? null, id);
-      } catch { /* DB unavailable (e.g. mid-restore) — a status write must never crash the host */ }
+  private readonly supervisor = new PluginSupervisor(
+    (id, granted) => {
+      if (!this.hostFactory)
+        throw new Error('PluginRpcHostFactory not provided — tests that activate plugins must pass one');
+      return this.hostFactory.create(id, granted, this);
     },
-    onLog: (id, level, msg) => {
-      if (level !== 'error' && level !== 'warn') return;
-      try {
-        this.db.prepare('INSERT INTO plugin_error_log (plugin_id, level, message) VALUES (?, ?, ?)').run(id, level, msg);
-        // Retention: a crash-looping plugin emits a stderr line per restart, so an
-        // uncapped table grows without bound in the shared trek.db. Keep only the
-        // most recent LOG_RETENTION rows per plugin (the admin view shows 200).
-        this.pruneErrorLog(id);
-      } catch { /* DB unavailable — a log line must never crash the host */ }
+    {
+      // Both hooks run from child lifecycle EventEmitter callbacks (exit / stderr 'data'),
+      // so a throw here becomes an uncaughtException that has no host-side handler. During a
+      // restore the core DB is briefly CLOSED (closeDb → the this.db proxy throws on access), so a
+      // status/log write in that window would otherwise take the whole process down mid-
+      // restore. Swallow any DB error — a missed status row / log line is never worth a crash.
+      onStatus: (id, status, error) => {
+        try {
+          this.db
+            .prepare('UPDATE plugins SET status = ?, last_error = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+            .run(status, error ?? null, id);
+        } catch {
+          /* DB unavailable (e.g. mid-restore) — a status write must never crash the host */
+        }
+      },
+      onLog: (id, level, msg) => {
+        if (level !== 'error' && level !== 'warn') return;
+        try {
+          this.db
+            .prepare('INSERT INTO plugin_error_log (plugin_id, level, message) VALUES (?, ?, ?)')
+            .run(id, level, msg);
+          // Retention: a crash-looping plugin emits a stderr line per restart, so an
+          // uncapped table grows without bound in the shared trek.db. Keep only the
+          // most recent LOG_RETENTION rows per plugin (the admin view shows 200).
+          this.pruneErrorLog(id);
+        } catch {
+          /* DB unavailable — a log line must never crash the host */
+        }
+      },
     },
-  });
+  );
 
   // Filesystem watchers for dev-linked plugins (id -> watcher), so a rebuild of the
   // author's source auto-reloads. Empty unless dev-link is used.
@@ -199,7 +227,9 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
     try {
       const applied = applyStagedPluginTrees();
       if (applied.length) console.log(`[plugins] applied staged restore: ${applied.join(', ')}`);
-    } catch { /* reconcile must never stop the server from starting */ }
+    } catch {
+      /* reconcile must never stop the server from starting */
+    }
     // Let a live restore apply its staged plugin trees IMMEDIATELY instead of leaving
     // them for an arbitrary future boot: quiesce every plugin (closing its DB handles)
     // then swap. Plugins stay down until the app restart the restore already requires.
@@ -271,14 +301,27 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
       const now = Date.now();
       const ph = active.map(() => '?').join(',');
       const due = this.db
-        .prepare(`SELECT id, plugin_id, name, payload, every_ms FROM plugin_scheduled_tasks WHERE due_at <= ? AND plugin_id IN (${ph}) ORDER BY due_at LIMIT 200`)
-        .all(now, ...active) as Array<{ id: number; plugin_id: string; name: string; payload: string; every_ms: number | null }>;
+        .prepare(
+          `SELECT id, plugin_id, name, payload, every_ms FROM plugin_scheduled_tasks WHERE due_at <= ? AND plugin_id IN (${ph}) ORDER BY due_at LIMIT 200`,
+        )
+        .all(now, ...active) as Array<{
+        id: number;
+        plugin_id: string;
+        name: string;
+        payload: string;
+        every_ms: number | null;
+      }>;
       for (const t of due) {
         if (!this.supervisor.isActive(t.plugin_id)) continue; // leave for a later sweep
-        if (t.every_ms) this.db.prepare('UPDATE plugin_scheduled_tasks SET due_at = ? WHERE id = ?').run(now + t.every_ms, t.id);
+        if (t.every_ms)
+          this.db.prepare('UPDATE plugin_scheduled_tasks SET due_at = ? WHERE id = ?').run(now + t.every_ms, t.id);
         else this.db.prepare('DELETE FROM plugin_scheduled_tasks WHERE id = ?').run(t.id);
         let payload: unknown = null;
-        try { payload = JSON.parse(t.payload); } catch { /* corrupt payload -> null */ }
+        try {
+          payload = JSON.parse(t.payload);
+        } catch {
+          /* corrupt payload -> null */
+        }
         this.supervisor.deliverScheduled(t.plugin_id, t.name, payload);
       }
     } catch {
@@ -292,11 +335,20 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
    * throws — a bookkeeping error must not fail the account deletion that triggered it. */
   private enqueueUserErasure(userId: number): void {
     try {
-      const rows = this.db.prepare('SELECT id, permissions FROM plugins').all() as Array<{ id: string; permissions: string | null }>;
-      const insert = this.db.prepare('INSERT OR IGNORE INTO plugin_user_erasure_queue (plugin_id, user_id) VALUES (?, ?)');
+      const rows = this.db.prepare('SELECT id, permissions FROM plugins').all() as Array<{
+        id: string;
+        permissions: string | null;
+      }>;
+      const insert = this.db.prepare(
+        'INSERT OR IGNORE INTO plugin_user_erasure_queue (plugin_id, user_id) VALUES (?, ?)',
+      );
       for (const r of rows) {
         let perms: unknown;
-        try { perms = JSON.parse(r.permissions ?? '[]'); } catch { perms = []; }
+        try {
+          perms = JSON.parse(r.permissions ?? '[]');
+        } catch {
+          perms = [];
+        }
         if (Array.isArray(perms) && perms.includes('hook:user-data')) insert.run(r.id, userId);
       }
     } catch {
@@ -314,7 +366,9 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
     // running two concurrently would select the SAME rows and deliver an erasure twice.
     // A caller that awaits still waits for a full pass (the in-flight one).
     if (this.drainInFlight !== null) return this.drainInFlight;
-    this.drainInFlight = this.runDrainOnce().finally(() => { this.drainInFlight = null; });
+    this.drainInFlight = this.runDrainOnce().finally(() => {
+      this.drainInFlight = null;
+    });
     return this.drainInFlight;
   }
 
@@ -329,7 +383,9 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
       // exactly those preserved obligations. A deleteData=true uninstall already clears the
       // rows itself, so this only ever needs to catch a truly orphaned data dir.
       const orphans = this.db
-        .prepare('SELECT DISTINCT plugin_id FROM plugin_user_erasure_queue WHERE plugin_id NOT IN (SELECT id FROM plugins)')
+        .prepare(
+          'SELECT DISTINCT plugin_id FROM plugin_user_erasure_queue WHERE plugin_id NOT IN (SELECT id FROM plugins)',
+        )
         .all() as Array<{ plugin_id: string }>;
       for (const { plugin_id } of orphans) {
         if (!fs.existsSync(pluginDataDir(plugin_id))) {
@@ -342,7 +398,9 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
       if (active.length === 0) return;
       const ph = active.map(() => '?').join(',');
       const pending = this.db
-        .prepare(`SELECT id, plugin_id, user_id FROM plugin_user_erasure_queue WHERE plugin_id IN (${ph}) ORDER BY id LIMIT 200`)
+        .prepare(
+          `SELECT id, plugin_id, user_id FROM plugin_user_erasure_queue WHERE plugin_id IN (${ph}) ORDER BY id LIMIT 200`,
+        )
         .all(...active) as Array<{ id: number; plugin_id: string; user_id: number }>;
       for (const row of pending) {
         if (!this.supervisor.isActive(row.plugin_id)) continue; // retry after it reactivates
@@ -357,22 +415,43 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
   /** GDPR portability: aggregate what every granted plugin holds about a user. An active
    * plugin whose export ERRORED and an inactive granted plugin are both flagged `pending`
    * (rather than silently omitted), so the export never reads as complete while missing data. */
-  async exportUserData(userId: number): Promise<Array<{ pluginId: string; data?: unknown; pending?: boolean; settings?: Record<string, unknown>; oauthConnected?: boolean }>> {
-    const out: Array<{ pluginId: string; data?: unknown; pending?: boolean; settings?: Record<string, unknown>; oauthConnected?: boolean }> = [];
+  async exportUserData(userId: number): Promise<
+    Array<{
+      pluginId: string;
+      data?: unknown;
+      pending?: boolean;
+      settings?: Record<string, unknown>;
+      oauthConnected?: boolean;
+    }>
+  > {
+    const out: Array<{
+      pluginId: string;
+      data?: unknown;
+      pending?: boolean;
+      settings?: Record<string, unknown>;
+      oauthConnected?: boolean;
+    }> = [];
     if (!pluginsEnabled()) return out;
-    const rows = this.db.prepare('SELECT id, permissions FROM plugins').all() as Array<{ id: string; permissions: string | null }>;
+    const rows = this.db.prepare('SELECT id, permissions FROM plugins').all() as Array<{
+      id: string;
+      permissions: string | null;
+    }>;
     for (const r of rows) {
       if (this.supervisor.isActive(r.id)) {
         const res = await this.supervisor.collectUserExport(r.id, userId);
-        if (res === undefined) continue;                       // not granted → nothing to export
+        if (res === undefined) continue; // not granted → nothing to export
         if (res.ok) out.push({ pluginId: r.id, data: res.data });
-        else out.push({ pluginId: r.id, pending: true });      // errored/timed out → incomplete, retryable
+        else out.push({ pluginId: r.id, pending: true }); // errored/timed out → incomplete, retryable
       } else {
         // An inactive plugin can't export now — but if it holds hook:user-data it MAY
         // hold this user's data. Flag it as pending (rather than silently omitting it)
         // so the admin knows to reactivate it to complete a data-access request.
         let perms: unknown;
-        try { perms = JSON.parse(r.permissions ?? '[]'); } catch { perms = []; }
+        try {
+          perms = JSON.parse(r.permissions ?? '[]');
+        } catch {
+          perms = [];
+        }
         if (Array.isArray(perms) && perms.includes('hook:user-data')) out.push({ pluginId: r.id, pending: true });
       }
     }
@@ -386,24 +465,41 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
       const byId = new Map(out.map((o) => [o.pluginId, o]));
       const entryFor = (pluginId: string) => {
         let e = byId.get(pluginId);
-        if (!e) { e = { pluginId }; out.push(e); byId.set(pluginId, e); }
+        if (!e) {
+          e = { pluginId };
+          out.push(e);
+          byId.set(pluginId, e);
+        }
         return e;
       };
       const secretKeys = new Map<string, Set<string>>();
-      for (const f of this.db.prepare("SELECT plugin_id, field_key FROM plugin_settings_fields WHERE scope = 'user' AND secret = 1").all() as Array<{ plugin_id: string; field_key: string }>) {
+      for (const f of this.db
+        .prepare("SELECT plugin_id, field_key FROM plugin_settings_fields WHERE scope = 'user' AND secret = 1")
+        .all() as Array<{ plugin_id: string; field_key: string }>) {
         let s = secretKeys.get(f.plugin_id);
-        if (!s) { s = new Set(); secretKeys.set(f.plugin_id, s); }
+        if (!s) {
+          s = new Set();
+          secretKeys.set(f.plugin_id, s);
+        }
         s.add(f.field_key);
       }
-      for (const c of this.db.prepare('SELECT plugin_id, config FROM plugin_user_config WHERE user_id = ?').all(userId) as Array<{ plugin_id: string; config: string }>) {
+      for (const c of this.db
+        .prepare('SELECT plugin_id, config FROM plugin_user_config WHERE user_id = ?')
+        .all(userId) as Array<{ plugin_id: string; config: string }>) {
         let cfg: Record<string, unknown> = {};
-        try { cfg = JSON.parse(c.config || '{}'); } catch { /* ignore */ }
+        try {
+          cfg = JSON.parse(c.config || '{}');
+        } catch {
+          /* ignore */
+        }
         const secrets = secretKeys.get(c.plugin_id) ?? new Set<string>();
         const masked: Record<string, unknown> = {};
         for (const [k, v] of Object.entries(cfg)) masked[k] = secrets.has(k) ? '***' : v;
         entryFor(c.plugin_id).settings = masked;
       }
-      for (const t of this.db.prepare('SELECT DISTINCT plugin_id FROM plugin_oauth_tokens WHERE user_id = ?').all(userId) as Array<{ plugin_id: string }>) {
+      for (const t of this.db
+        .prepare('SELECT DISTINCT plugin_id FROM plugin_oauth_tokens WHERE user_id = ?')
+        .all(userId) as Array<{ plugin_id: string }>) {
         entryFor(t.plugin_id).oauthConnected = true;
       }
     } catch (err) {
@@ -440,9 +536,16 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
     setPluginEventSink(null);
     setUserDeletedSink(null);
     setStagedRestoreApplier(null);
-    if (this.schedulerSweep) { clearInterval(this.schedulerSweep); this.schedulerSweep = null; }
+    if (this.schedulerSweep) {
+      clearInterval(this.schedulerSweep);
+      this.schedulerSweep = null;
+    }
     for (const w of this.linkWatchers.values()) {
-      try { w.close(); } catch { /* ignore */ }
+      try {
+        w.close();
+      } catch {
+        /* ignore */
+      }
     }
     this.linkWatchers.clear();
     await this.supervisor.shutdownAll();
@@ -492,8 +595,18 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
    * missing/mismatched plugin dependency.
    */
   private assertActivatable(id: string, installed: Map<string, PluginDepRow>, consentWiden: boolean): void {
-    const row = this.db.prepare('SELECT permissions, granted_permissions, dependencies, trek_range, api_version FROM plugins WHERE id = ?').get(id) as
-      | { permissions: string; granted_permissions: string; dependencies: string | null; trek_range: string | null; api_version: number | null }
+    const row = this.db
+      .prepare(
+        'SELECT permissions, granted_permissions, dependencies, trek_range, api_version FROM plugins WHERE id = ?',
+      )
+      .get(id) as
+      | {
+          permissions: string;
+          granted_permissions: string;
+          dependencies: string | null;
+          trek_range: string | null;
+          api_version: number | null;
+        }
       | undefined;
     if (!row) throw new Error(`plugin ${id} not found`);
 
@@ -535,17 +648,28 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
     // the declared set without an explicit consent; any later widening needs one.
     const everConsented = !!row.granted_permissions;
     if (everConsented && newGrants.length > 0 && !consentWiden) {
-      const newEgress = newGrants.filter((p) => p.startsWith(HTTP_OUTBOUND)).map((p) => p.slice(HTTP_OUTBOUND.length)).filter(Boolean);
+      const newEgress = newGrants
+        .filter((p) => p.startsWith(HTTP_OUTBOUND))
+        .map((p) => p.slice(HTTP_OUTBOUND.length))
+        .filter(Boolean);
       const newPermissions = newGrants.filter((p) => !p.startsWith(HTTP_OUTBOUND));
-      throw new PluginConsentRequired(`plugin ${id} requests new permissions; explicit re-consent is required`, newPermissions, newEgress);
+      throw new PluginConsentRequired(
+        `plugin ${id} requests new permissions; explicit re-consent is required`,
+        newPermissions,
+        newEgress,
+      );
     }
 
     const deps = parseDependencies(row.dependencies);
     const disabledAddons = disabledRequiredAddons(deps, (id) => this.addons.isAddonEnabled(id));
     if (disabledAddons.length) {
-      throw new PluginDependencyError(`plugin ${id} requires disabled addon(s): ${disabledAddons.join(', ')}`, 'ADDON_DISABLED', {
-        addons: disabledAddons,
-      });
+      throw new PluginDependencyError(
+        `plugin ${id} requires disabled addon(s): ${disabledAddons.join(', ')}`,
+        'ADDON_DISABLED',
+        {
+          addons: disabledAddons,
+        },
+      );
     }
     const state = resolveDependencyState(deps, installed);
     if (state.missing.length || state.versionMismatch.length) {
@@ -564,7 +688,9 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
     if (!row) throw new Error(`plugin ${id} not found`);
     const declared = parseArray(row.permissions).filter(isKnownPermission);
     // Mark it enabled (admin intent) so it reboots after restarts/crashes.
-    this.db.prepare('UPDATE plugins SET granted_permissions = ?, enabled = 1 WHERE id = ?').run(JSON.stringify(declared), id);
+    this.db
+      .prepare('UPDATE plugins SET granted_permissions = ?, enabled = 1 WHERE id = ?')
+      .run(JSON.stringify(declared), id);
     const config = decryptConfig(parseObject(row.config));
     const manifestHosts = declared.filter((p) => p.startsWith(HTTP_OUTBOUND)).map((p) => p.slice(HTTP_OUTBOUND.length));
     // Union in the hosts the ADMIN added post-install. A plugin that talks to a
@@ -581,8 +707,11 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
   /** Hosts an admin added for this plugin (empty unless it declared `operatorEgress`). */
   operatorEgressHosts(id: string): string[] {
     try {
-      return (this.db.prepare('SELECT host FROM plugin_egress_hosts WHERE plugin_id = ? ORDER BY host').all(id) as Array<{ host: string }>)
-        .map((r) => r.host);
+      return (
+        this.db.prepare('SELECT host FROM plugin_egress_hosts WHERE plugin_id = ? ORDER BY host').all(id) as Array<{
+          host: string;
+        }>
+      ).map((r) => r.host);
     } catch {
       return []; // table absent (a slimmed test app) — never block activation
     }
@@ -590,7 +719,9 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
 
   /** Does this plugin's manifest declare that it needs operator-supplied hosts? */
   wantsOperatorEgress(id: string): boolean {
-    const row = this.db.prepare('SELECT operator_egress FROM plugins WHERE id = ?').get(id) as { operator_egress: number } | undefined;
+    const row = this.db.prepare('SELECT operator_egress FROM plugins WHERE id = ?').get(id) as
+      | { operator_egress: number }
+      | undefined;
     return row?.operator_egress === 1;
   }
 
@@ -605,7 +736,10 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
     }
     const clean: string[] = [];
     for (const raw of hosts) {
-      const host = String(raw ?? '').trim().toLowerCase().replace(/\.$/, '');
+      const host = String(raw ?? '')
+        .trim()
+        .toLowerCase()
+        .replace(/\.$/, '');
       if (!host) continue;
       // Same shape the manifest enforces — this string is interpolated into the egress
       // guard AND the iframe CSP connect-src, so a bare `*` or a scheme must never land.
@@ -628,7 +762,9 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
   async deactivate(id: string): Promise<void> {
     await this.supervisor.disable(id);
     closePluginDataDb(id);
-    this.db.prepare("UPDATE plugins SET status = 'inactive', enabled = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(id);
+    this.db
+      .prepare("UPDATE plugins SET status = 'inactive', enabled = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?")
+      .run(id);
   }
 
   /**
@@ -645,7 +781,9 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
     const enabledById = new Map(rows.map((r) => [r.id, r.enabled]));
     // findDependentsTransitive returns nearest-first; reverse so the deepest dependent
     // (the furthest caller) stops before the plugin it depends on.
-    const dependents = findDependentsTransitive(id, rows).filter((d) => enabledById.get(d)).reverse();
+    const dependents = findDependentsTransitive(id, rows)
+      .filter((d) => enabledById.get(d))
+      .reverse();
     const order = [...dependents, id];
     for (const pid of order) await this.deactivate(pid).catch(() => {});
     return order;
@@ -662,7 +800,10 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
    * Install runs first so a failed download/signature/integrity check leaves the
    * currently-running child untouched (it keeps serving the old code from memory).
    */
-  async update(id: string, opts?: { version?: string; retrustKey?: string }): Promise<{ version: string; activated: boolean; newPermissions: string[]; newEgress: string[] }> {
+  async update(
+    id: string,
+    opts?: { version?: string; retrustKey?: string },
+  ): Promise<{ version: string; activated: boolean; newPermissions: string[]; newEgress: string[] }> {
     const before = this.db.prepare('SELECT enabled, granted_permissions, version FROM plugins WHERE id = ?').get(id) as
       | { enabled: number; granted_permissions: string; version: string | null }
       | undefined;
@@ -685,7 +826,10 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
       (this.db.prepare('SELECT permissions FROM plugins WHERE id = ?').get(id) as { permissions: string }).permissions,
     ).filter(isKnownPermission);
     const newGrants = declared.filter((p) => !granted.has(p));
-    const newEgress = newGrants.filter((p) => p.startsWith(HTTP_OUTBOUND)).map((p) => p.slice(HTTP_OUTBOUND.length)).filter(Boolean);
+    const newEgress = newGrants
+      .filter((p) => p.startsWith(HTTP_OUTBOUND))
+      .map((p) => p.slice(HTTP_OUTBOUND.length))
+      .filter(Boolean);
     const newPermissions = newGrants.filter((p) => !p.startsWith(HTTP_OUTBOUND));
 
     if (wasEnabled) await this.deactivate(id); // stop the old child now that new code is in place
@@ -740,7 +884,9 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
     actor: { userId: number | null; ip?: string | null },
   ): Promise<{ version: string; activated: boolean; newPermissions: string[]; newEgress: string[] }> {
     if (!this.registry) throw new Error('registry service unavailable');
-    const before = this.db.prepare('SELECT author_pubkey FROM plugins WHERE id = ?').get(id) as { author_pubkey?: string | null } | undefined;
+    const before = this.db.prepare('SELECT author_pubkey FROM plugins WHERE id = ?').get(id) as
+      | { author_pubkey?: string | null }
+      | undefined;
     const entry = await this.registry.assertRetrustable(id, publicKey); // throws unless SIGNATURE_KEY_CHANGED
 
     const res = await this.update(id, { version, retrustKey: publicKey });
@@ -786,7 +932,9 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
       return { id: staged.id, version: staged.version, replaced };
     } catch (e) {
       // A failure before commitUpload leaves staging behind — clean it up.
-      try { fs.rmSync(staged.stagingDir, { recursive: true, force: true }); } catch {}
+      try {
+        fs.rmSync(staged.stagingDir, { recursive: true, force: true });
+      } catch {}
       throw e;
     }
   }
@@ -807,12 +955,16 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
     const manifest = parseManifest(parseJsonText(fs.readFileSync(manifestPath, 'utf8')), { requireTrek: true });
     assertHostCompatible(manifest.trekRange, manifest.id);
     if (!fs.existsSync(path.join(sourceDir, 'server', 'index.js'))) {
-      throw new Error('no built server/index.js — build the plugin first (the loader runs the compiled artifact, not TS source)');
+      throw new Error(
+        'no built server/index.js — build the plugin first (the loader runs the compiled artifact, not TS source)',
+      );
     }
     if (scanForNativeBinaries(sourceDir).length) throw new Error('directory contains native binaries');
 
     const id = manifest.id;
-    const existing = this.db.prepare('SELECT source_repo FROM plugins WHERE id = ?').get(id) as { source_repo?: string } | undefined;
+    const existing = this.db.prepare('SELECT source_repo FROM plugins WHERE id = ?').get(id) as
+      | { source_repo?: string }
+      | undefined;
     // Never clobber a REAL installed plugin (registry/sideload) — only re-point a link.
     if (existing && existing.source_repo !== DEV_LINK_SOURCE) {
       throw new Error(`a plugin '${id}' is already installed — uninstall it before dev-linking that id`);
@@ -828,12 +980,14 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
     discoverPlugins(this.db); // registers/updates the row from the linked manifest, INACTIVE
     // Same as a sideload: the plugin has left the registry trust model, so a block that
     // described a refused REGISTRY update no longer describes the code that will run.
-    this.db.prepare(
-      `UPDATE plugins SET source_repo = ?, source_commit = NULL, sha256 = NULL, author_pubkey = NULL,
+    this.db
+      .prepare(
+        `UPDATE plugins SET source_repo = ?, source_commit = NULL, sha256 = NULL, author_pubkey = NULL,
                           update_block_code = NULL, update_block_detail = NULL, update_block_version = NULL,
                           status = 'inactive', enabled = 0
        WHERE id = ?`,
-    ).run(DEV_LINK_SOURCE, id);
+      )
+      .run(DEV_LINK_SOURCE, id);
     this.watchLinked(id, sourceDir);
     return { id, version: manifest.version, replaced };
   }
@@ -847,7 +1001,9 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
    */
   async reload(id: string): Promise<void> {
     if (!devLinkEnabled()) throw new Error('dev-link is disabled (set TREK_PLUGINS_DEV_LINK=1)');
-    const row = this.db.prepare('SELECT source_repo FROM plugins WHERE id = ?').get(id) as { source_repo?: string } | undefined;
+    const row = this.db.prepare('SELECT source_repo FROM plugins WHERE id = ?').get(id) as
+      | { source_repo?: string }
+      | undefined;
     if (!row) throw new Error(`plugin ${id} not found`);
     if (row.source_repo !== DEV_LINK_SOURCE) throw new Error(`plugin ${id} is not dev-linked`);
     const wasActive = this.isActive(id);
@@ -878,7 +1034,11 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
   private stopWatch(id: string): void {
     const w = this.linkWatchers.get(id);
     if (w) {
-      try { w.close(); } catch { /* ignore */ }
+      try {
+        w.close();
+      } catch {
+        /* ignore */
+      }
       this.linkWatchers.delete(id);
     }
   }
@@ -893,11 +1053,19 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
     removePluginCodeEntry(pluginCodeDir(id));
     this.db.prepare('DELETE FROM plugins WHERE id = ?').run(id);
     this.db.prepare('DELETE FROM plugin_settings_fields WHERE plugin_id = ?').run(id);
-    try { this.db.prepare('DELETE FROM plugin_actions WHERE plugin_id = ?').run(id); } catch { /* table absent */ }
+    try {
+      this.db.prepare('DELETE FROM plugin_actions WHERE plugin_id = ?').run(id);
+    } catch {
+      /* table absent */
+    }
     // The admin's egress consent dies with the plugin. Unconditional: leaving it would
     // silently grant a LATER plugin that reuses this id the hosts the admin approved for
     // a different one.
-    try { this.db.prepare('DELETE FROM plugin_egress_hosts WHERE plugin_id = ?').run(id); } catch { /* table absent */ }
+    try {
+      this.db.prepare('DELETE FROM plugin_egress_hosts WHERE plugin_id = ?').run(id);
+    } catch {
+      /* table absent */
+    }
     // Scheduled tasks are operational (not user data), so they go unconditionally —
     // a scheduled callback for a plugin that no longer exists must never fire.
     this.db.prepare('DELETE FROM plugin_scheduled_tasks WHERE plugin_id = ?').run(id);
@@ -909,7 +1077,7 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
     if (deleteData) {
       removePluginData(id);
       this.db.prepare('DELETE FROM plugin_error_log WHERE plugin_id = ?').run(id);
-      this.db.prepare("DELETE FROM settings WHERE key LIKE ?").run(`plugin:${id}:%`);
+      this.db.prepare('DELETE FROM settings WHERE key LIKE ?').run(`plugin:${id}:%`);
       this.db.prepare('DELETE FROM plugin_entity_metadata WHERE plugin_id = ?').run(id);
       // Per-user secrets + OAuth tokens/state live in their own tables, NOT under
       // settings — without these a "delete all data" leaves encrypted API keys and
@@ -958,7 +1126,14 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
    * timeout than a route call so a slow provider can't delay the core response;
    * the acting user is host-bound so any trip read the hook makes is membership-checked.
    */
-  invokeHook(id: string, hook: string, fn: string, args: unknown[], actingUserId?: number, timeoutMs = 5000): Promise<unknown> {
+  invokeHook(
+    id: string,
+    hook: string,
+    fn: string,
+    args: unknown[],
+    actingUserId?: number,
+    timeoutMs = 5000,
+  ): Promise<unknown> {
     // Defense-in-depth: only a plugin that both implements the hook AND holds the
     // hook:* grant (providersOf enforces both) may be invoked, even if a caller
     // passes an id directly rather than one returned by providersOf.
@@ -977,12 +1152,20 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
    * `capabilities.provides` AND implemented, as reported at load). The acting user
    * is forwarded, so the target's export runs membership-checked as the caller's user.
    */
-  callPlugin(callerId: string, targetId: string, fn: string, args: unknown, actingUserId: number | undefined): Promise<unknown> {
+  callPlugin(
+    callerId: string,
+    targetId: string,
+    fn: string,
+    args: unknown,
+    actingUserId: number | undefined,
+  ): Promise<unknown> {
     if (!this.supervisor.isActive(targetId)) {
       return Promise.reject(new ForbiddenResource(`plugin ${targetId} is not active`));
     }
     if (!this.dependsOnSatisfied(callerId, targetId)) {
-      return Promise.reject(new ForbiddenResource(`plugin ${callerId} does not declare ${targetId} as a satisfied dependency`));
+      return Promise.reject(
+        new ForbiddenResource(`plugin ${callerId} does not declare ${targetId} as a satisfied dependency`),
+      );
     }
     if (!this.capabilityList(targetId, 'provides').includes(fn) || !this.supervisor.exportsOf(targetId).includes(fn)) {
       return Promise.reject(new ForbiddenResource(`plugin ${targetId} does not export "${fn}"`));
@@ -1002,7 +1185,12 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
     for (const subscriberId of this.supervisor.subscribersOf(sourceId, event)) {
       if (!this.dependsOnSatisfied(subscriberId, sourceId)) continue;
       this.supervisor
-        .invoke(subscriberId, 'invoke.pluginEvent', { source: sourceId, event, payload }, { actingUserId: undefined, timeoutMs: 5000 })
+        .invoke(
+          subscriberId,
+          'invoke.pluginEvent',
+          { source: sourceId, event, payload },
+          { actingUserId: undefined, timeoutMs: 5000 },
+        )
         .catch(() => {
           /* a subscriber that throws/times out must not affect the emitter or peers */
         });
@@ -1012,8 +1200,12 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
   /** True if `caller` declares `target` as a plugin dependency whose range the
    * installed target version satisfies. */
   private dependsOnSatisfied(callerId: string, targetId: string): boolean {
-    const caller = this.db.prepare('SELECT dependencies FROM plugins WHERE id = ?').get(callerId) as { dependencies: string | null } | undefined;
-    const target = this.db.prepare('SELECT version FROM plugins WHERE id = ?').get(targetId) as { version: string | null } | undefined;
+    const caller = this.db.prepare('SELECT dependencies FROM plugins WHERE id = ?').get(callerId) as
+      | { dependencies: string | null }
+      | undefined;
+    const target = this.db.prepare('SELECT version FROM plugins WHERE id = ?').get(targetId) as
+      | { version: string | null }
+      | undefined;
     if (!caller || !target) return false;
     const dep = parseDependencies(caller.dependencies).pluginDependencies.find((d) => d.id === targetId);
     if (!dep) return false;
@@ -1034,7 +1226,9 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
     // module).
     try {
       this.db.prepare('DELETE FROM notification_channel_preferences WHERE channel = ?').run(pluginChannelId(id));
-    } catch { /* no notifications schema here — nothing to retire */ }
+    } catch {
+      /* no notifications schema here — nothing to retire */
+    }
   }
 
   /**
@@ -1054,8 +1248,11 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
         | undefined;
       let cap: { title?: string; events?: string[] } = {};
       try {
-        cap = ((JSON.parse(row?.capabilities || '{}') as Record<string, unknown>).notificationChannel ?? {}) as typeof cap;
-      } catch { /* a malformed capabilities blob just means "no overrides" */ }
+        cap = ((JSON.parse(row?.capabilities || '{}') as Record<string, unknown>).notificationChannel ??
+          {}) as typeof cap;
+      } catch {
+        /* a malformed capabilities blob just means "no overrides" */
+      }
 
       const allowed = new Set(cap.events?.length ? cap.events : PLUGIN_CHANNEL_EVENTS);
 
@@ -1081,7 +1278,10 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
             id,
             'notificationChannel',
             'send',
-            [{ event: msg.event, title: msg.title, body: msg.body, url: msg.url, tripName: msg.tripName }, this.userSettings.readAll(id, userId)],
+            [
+              { event: msg.event, title: msg.title, body: msg.body, url: msg.url, tripName: msg.tripName },
+              this.userSettings.readAll(id, userId),
+            ],
             // No acting user: a notification is host-initiated for an arbitrary
             // recipient, so the hook gets the recipient's config as an argument
             // rather than the right to read anything AS them.
@@ -1090,7 +1290,14 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
           ),
         test: async (userId: number) => {
           try {
-            await this.invokeHook(id, 'notificationChannel', 'test', [this.userSettings.readAll(id, userId)], undefined, 8000);
+            await this.invokeHook(
+              id,
+              'notificationChannel',
+              'test',
+              [this.userSettings.readAll(id, userId)],
+              undefined,
+              8000,
+            );
             return { success: true };
           } catch (e) {
             return { success: false, error: e instanceof Error ? e.message : String(e) };
@@ -1104,8 +1311,13 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
   actionsOf(id: string): Array<{ key: string; label: string; hint?: string; danger: boolean }> {
     try {
       return (
-        this.db.prepare('SELECT action_key, label, hint, danger FROM plugin_actions WHERE plugin_id = ? ORDER BY sort_order').all(id) as Array<{
-          action_key: string; label: string; hint: string | null; danger: number;
+        this.db
+          .prepare('SELECT action_key, label, hint, danger FROM plugin_actions WHERE plugin_id = ? ORDER BY sort_order')
+          .all(id) as Array<{
+          action_key: string;
+          label: string;
+          hint: string | null;
+          danger: number;
         }>
       ).map((r) => ({ key: r.action_key, label: r.label, hint: r.hint ?? undefined, danger: r.danger === 1 }));
     } catch {
@@ -1140,7 +1352,9 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
 
   /** A plugin's declared `capabilities.provides`/`capabilities.emits` (from the DB). */
   private capabilityList(id: string, field: 'provides' | 'emits'): string[] {
-    const row = this.db.prepare('SELECT capabilities FROM plugins WHERE id = ?').get(id) as { capabilities: string } | undefined;
+    const row = this.db.prepare('SELECT capabilities FROM plugins WHERE id = ?').get(id) as
+      | { capabilities: string }
+      | undefined;
     if (!row) return [];
     try {
       const c = JSON.parse(row.capabilities || '{}') as Record<string, unknown>;
@@ -1154,11 +1368,13 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
   /** Trim a plugin's error log to the most recent LOG_RETENTION rows. Cheap: onLog
    * only fires on warn/error, so this never runs on the hot path. */
   private pruneErrorLog(pluginId: string): void {
-    this.db.prepare(
-      `DELETE FROM plugin_error_log WHERE plugin_id = ? AND id NOT IN (
+    this.db
+      .prepare(
+        `DELETE FROM plugin_error_log WHERE plugin_id = ? AND id NOT IN (
          SELECT id FROM plugin_error_log WHERE plugin_id = ? ORDER BY id DESC LIMIT ${LOG_RETENTION}
        )`,
-    ).run(pluginId, pluginId);
+      )
+      .run(pluginId, pluginId);
   }
 }
 

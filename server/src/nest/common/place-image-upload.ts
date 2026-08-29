@@ -1,5 +1,5 @@
-import path from 'path';
 import type { Options } from 'multer';
+import path from 'path';
 
 export const MAX_PLACE_IMAGE_SIZE = 20 * 1024 * 1024; // 20 MB — same cap as covers.
 

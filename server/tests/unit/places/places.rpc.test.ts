@@ -6,23 +6,29 @@
  * the row is deleted, and the id has to be scoped to the trip before the hook runs
  * at all.
  */
-import { describe, it, expect, vi } from 'vitest';
-import { expectRegisteredProvider } from '../../helpers/module-providers';
+import type { AddonsService } from '../../../src/nest/addons/addons.service';
+import type { DatabaseService } from '../../../src/nest/database/database.service';
+import type { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
+import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { PlacesModule } from '../../../src/nest/places/places.module';
+import { PlacesRpc } from '../../../src/nest/places/places.rpc';
+import type { PlacesService } from '../../../src/nest/places/places.service';
+import { PluginGuards } from '../../../src/nest/plugins/host/plugin-guards.service';
 import { PluginRpcHost } from '../../../src/nest/plugins/host/rpc-host';
 import { createTestPluginRegistry } from '../../../src/nest/plugins/host/rpc-kit/testing';
-import { PluginGuards } from '../../../src/nest/plugins/host/plugin-guards.service';
-import { PlacesRpc } from '../../../src/nest/places/places.rpc';
-import { PlacesModule } from '../../../src/nest/places/places.module';
-import type { PlacesService } from '../../../src/nest/places/places.service';
-import type { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
-import type { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import type { DatabaseService } from '../../../src/nest/database/database.service';
-import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import type { AddonsService } from '../../../src/nest/addons/addons.service';
 import type { RpcRequest, RpcError } from '../../../src/nest/plugins/protocol/envelope';
+import type { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { expectRegisteredProvider } from '../../helpers/module-providers';
 import { makeDeps } from '../../helpers/rpc-host-deps';
 
-const req = (method: string, params: Record<string, unknown> = {}): RpcRequest => ({ k: 'req', id: 'x', method, params });
+import { describe, it, expect, vi } from 'vitest';
+
+const req = (method: string, params: Record<string, unknown> = {}): RpcRequest => ({
+  k: 'req',
+  id: 'x',
+  method,
+  params,
+});
 
 /**
  * Trip 1 belongs to user 42; place 7 sits on it.
@@ -44,14 +50,22 @@ function build(opts: { canEdit?: boolean; journeyThrows?: boolean } = {}) {
     linkedExpenseIds: vi.fn(() => []),
   };
   const journey = {
-    onPlaceCreated: vi.fn(() => { if (opts.journeyThrows) throw new Error('journey down'); }),
-    onPlaceUpdated: vi.fn(() => { if (opts.journeyThrows) throw new Error('journey down'); }),
-    onPlaceDeleted: vi.fn(() => { if (opts.journeyThrows) throw new Error('journey down'); }),
+    onPlaceCreated: vi.fn(() => {
+      if (opts.journeyThrows) throw new Error('journey down');
+    }),
+    onPlaceUpdated: vi.fn(() => {
+      if (opts.journeyThrows) throw new Error('journey down');
+    }),
+    onPlaceDeleted: vi.fn(() => {
+      if (opts.journeyThrows) throw new Error('journey down');
+    }),
   };
   const realtime = { broadcast: vi.fn() };
   const guards = new PluginGuards(
     {
-      canAccessTrip: vi.fn((tripId: number, userId: number) => (tripId === 1 && userId === 42 ? { id: 1, user_id: 42 } : undefined)),
+      canAccessTrip: vi.fn((tripId: number, userId: number) =>
+        tripId === 1 && userId === 42 ? { id: 1, user_id: 42 } : undefined,
+      ),
       prepare: vi.fn(() => ({ get: () => ({ role: 'user' }) })),
     } as unknown as DatabaseService,
     { checkPermission: vi.fn(() => opts.canEdit ?? true) } as unknown as PermissionsService,
@@ -64,7 +78,8 @@ function build(opts: { canEdit?: boolean; journeyThrows?: boolean } = {}) {
     realtime as unknown as RealtimeService,
     guards,
   );
-  const host = (...grants: string[]) => new PluginRpcHost('p', new Set(grants), makeDeps(), createTestPluginRegistry([rpc]));
+  const host = (...grants: string[]) =>
+    new PluginRpcHost('p', new Set(grants), makeDeps(), createTestPluginRegistry([rpc]));
   return { places, journey, realtime, host };
 }
 
@@ -73,8 +88,13 @@ describe('PlacesRpc', () => {
     const f = build();
     const host = f.host('db:write:places');
     expect((await host.dispatch(req('places.create', { tripId: 1, input: { name: 'Shrine' } }), 42)).ok).toBe(true);
-    expect(((await host.dispatch(req('places.create', { tripId: 2, input: { name: 'x' } }), 42)) as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
-    const noUser = (await host.dispatch(req('places.create', { tripId: 1, input: { name: 'x' } }), undefined)) as RpcError;
+    expect(
+      ((await host.dispatch(req('places.create', { tripId: 2, input: { name: 'x' } }), 42)) as RpcError).error.code,
+    ).toBe('RESOURCE_FORBIDDEN');
+    const noUser = (await host.dispatch(
+      req('places.create', { tripId: 1, input: { name: 'x' } }),
+      undefined,
+    )) as RpcError;
     expect(noUser.error.message).toBe('place writes require an authenticated user context');
     const denied = (await f.host().dispatch(req('places.create', { tripId: 1, input: { name: 'x' } }), 42)) as RpcError;
     expect(denied.error.code).toBe('PERMISSION_DENIED');
@@ -82,16 +102,18 @@ describe('PlacesRpc', () => {
 
   it('PLACES-RPC-002 an invalid place is BAD_PARAMS with the schema message', async () => {
     const f = build();
-    const res = (await f.host('db:write:places').dispatch(req('places.create', { tripId: 1, input: {} }), 42)) as RpcError;
+    const res = (await f
+      .host('db:write:places')
+      .dispatch(req('places.create', { tripId: 1, input: {} }), 42)) as RpcError;
     expect(res.error.code).toBe('BAD_PARAMS');
     expect(res.error.message).toMatch(/^invalid place: /);
   });
 
   it('PLACES-RPC-003 an oversized field is capped like the REST controller caps it', async () => {
     const f = build();
-    const res = (await f.host('db:write:places').dispatch(
-      req('places.create', { tripId: 1, input: { name: 'x'.repeat(201) } }), 42,
-    )) as RpcError;
+    const res = (await f
+      .host('db:write:places')
+      .dispatch(req('places.create', { tripId: 1, input: { name: 'x'.repeat(201) } }), 42)) as RpcError;
     expect(res.error.message).toBe('name must be 200 characters or fewer');
     expect(f.places.create).not.toHaveBeenCalled();
   });
@@ -99,10 +121,13 @@ describe('PlacesRpc', () => {
   it('PLACES-RPC-004 a place on another trip is refused, naming it', async () => {
     const f = build();
     const host = f.host('db:write:places');
-    expect(((await host.dispatch(req('places.update', { tripId: 1, placeId: 404, input: { name: 'x' } }), 42)) as RpcError).error.message)
-      .toBe('no place 404 on trip 1');
-    expect(((await host.dispatch(req('places.delete', { tripId: 1, placeId: 404 }), 42)) as RpcError).error.message)
-      .toBe('no place 404 on trip 1');
+    expect(
+      ((await host.dispatch(req('places.update', { tripId: 1, placeId: 404, input: { name: 'x' } }), 42)) as RpcError)
+        .error.message,
+    ).toBe('no place 404 on trip 1');
+    expect(
+      ((await host.dispatch(req('places.delete', { tripId: 1, placeId: 404 }), 42)) as RpcError).error.message,
+    ).toBe('no place 404 on trip 1');
   });
 
   it('PLACES-RPC-005 delete runs the journey hook BEFORE the row goes', async () => {
@@ -110,7 +135,9 @@ describe('PlacesRpc', () => {
     await f.host('db:write:places').dispatch(req('places.delete', { tripId: 1, placeId: 7 }), 42);
     // journey_entries.source_place_id is ON DELETE SET NULL. Run the hook afterwards
     // and it finds nothing left to detach, leaving the entries as orphans.
-    expect(f.journey.onPlaceDeleted.mock.invocationCallOrder[0]).toBeLessThan(f.places.remove.mock.invocationCallOrder[0]);
+    expect(f.journey.onPlaceDeleted.mock.invocationCallOrder[0]).toBeLessThan(
+      f.places.remove.mock.invocationCallOrder[0],
+    );
   });
 
   it('PLACES-RPC-006 a foreign place id never reaches the journey hook', async () => {
@@ -125,7 +152,9 @@ describe('PlacesRpc', () => {
     const f = build({ journeyThrows: true });
     const host = f.host('db:write:places');
     expect((await host.dispatch(req('places.create', { tripId: 1, input: { name: 'Shrine' } }), 42)).ok).toBe(true);
-    expect((await host.dispatch(req('places.update', { tripId: 1, placeId: 7, input: { name: 'x' } }), 42)).ok).toBe(true);
+    expect((await host.dispatch(req('places.update', { tripId: 1, placeId: 7, input: { name: 'x' } }), 42)).ok).toBe(
+      true,
+    );
     expect((await host.dispatch(req('places.delete', { tripId: 1, placeId: 7 }), 42)).ok).toBe(true);
   });
 
@@ -135,7 +164,11 @@ describe('PlacesRpc', () => {
     await host.dispatch(req('places.create', { tripId: 1, input: { name: 'Shrine' } }), 42);
     await host.dispatch(req('places.update', { tripId: 1, placeId: 7, input: { name: 'x' } }), 42);
     await host.dispatch(req('places.delete', { tripId: 1, placeId: 7 }), 42);
-    expect(f.realtime.broadcast.mock.calls.map((c) => c[1])).toEqual(['place:created', 'place:updated', 'place:deleted']);
+    expect(f.realtime.broadcast.mock.calls.map((c) => c[1])).toEqual([
+      'place:created',
+      'place:updated',
+      'place:deleted',
+    ]);
     f.realtime.broadcast.mockClear();
     await host.dispatch(req('places.delete', { tripId: 1, placeId: 404 }), 42);
     expect(f.realtime.broadcast).not.toHaveBeenCalled();
@@ -143,7 +176,9 @@ describe('PlacesRpc', () => {
 
   it('PLACES-RPC-009 without the edit right nothing is written', async () => {
     const f = build({ canEdit: false });
-    const res = (await f.host('db:write:places').dispatch(req('places.create', { tripId: 1, input: { name: 'x' } }), 42)) as RpcError;
+    const res = (await f
+      .host('db:write:places')
+      .dispatch(req('places.create', { tripId: 1, input: { name: 'x' } }), 42)) as RpcError;
     expect(res.error.message).toBe('no permission to edit trip 1');
     expect(f.places.create).not.toHaveBeenCalled();
   });
@@ -168,7 +203,9 @@ describe('PlacesRpc', () => {
     // place.get finds it (it exists), but the actual delete comes back false — the
     // race the null/false-vs-Promise bug used to paper over by always being truthy.
     f.places.remove.mockImplementationOnce(() => Promise.resolve(false));
-    const res = (await f.host('db:write:places').dispatch(req('places.delete', { tripId: 1, placeId: 7 }), 42)) as RpcError;
+    const res = (await f
+      .host('db:write:places')
+      .dispatch(req('places.delete', { tripId: 1, placeId: 7 }), 42)) as RpcError;
     expect(res.ok).toBe(false);
     expect(res.error.code).toBe('RESOURCE_FORBIDDEN');
     expect(res.error.message).toBe('no place 7 on trip 1');

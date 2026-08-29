@@ -1,6 +1,6 @@
+import { DatabaseService } from '../database/database.service';
 import { Injectable } from '@nestjs/common';
 import type { Category } from '@trek/shared';
-import { DatabaseService } from '../database/database.service';
 
 /**
  * Categories domain service — owns the category SQL (moved 1:1 from the legacy
@@ -28,10 +28,7 @@ export class CategoriesService {
       icon || '📍',
       userId,
     );
-    return this.db.get<Category>(
-      'SELECT * FROM categories WHERE id = ?',
-      result.lastInsertRowid,
-    ) as Category;
+    return this.db.get<Category>('SELECT * FROM categories WHERE id = ?', result.lastInsertRowid) as Category;
   }
 
   update(id: string | number, name?: string, color?: string, icon?: string): Category {

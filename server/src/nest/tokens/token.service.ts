@@ -1,12 +1,13 @@
-import { Injectable } from '@nestjs/common';
-import { randomBytes, createHash } from 'crypto';
-import { DatabaseService } from '../database/database.service';
-import { EphemeralTokenService } from '../auth/ephemeral-token.service';
 // Import from sessionManager directly, NOT the ../../mcp barrel: the barrel pulls
 // the whole tools fan-out (and via the domain bridges, the Nest services) into
 // every consumer of this module — a nest→mcp→nest module cycle.
 import { revokeUserSessions } from '../../mcp/sessionManager';
 import { User } from '../../types';
+import { EphemeralTokenService } from '../auth/ephemeral-token.service';
+import { DatabaseService } from '../database/database.service';
+import { Injectable } from '@nestjs/common';
+
+import { randomBytes, createHash } from 'crypto';
 
 /**
  * Everything that mints or checks a token that is not the login JWT: the
@@ -35,16 +36,22 @@ export class TokenService {
   listMcpTokens(userId: number) {
     return this.db.all(
       'SELECT id, name, token_prefix, created_at, last_used_at FROM mcp_tokens WHERE user_id = ? ORDER BY created_at DESC',
-      userId
+      userId,
     );
   }
 
-  createMcpToken(userId: number, rawName: unknown): { error?: string; status?: number; token?: Record<string, unknown> } {
+  createMcpToken(
+    userId: number,
+    rawName: unknown,
+  ): { error?: string; status?: number; token?: Record<string, unknown> } {
     const name = rawName as string | undefined;
     if (!name?.trim()) return { error: 'Token name is required', status: 400 };
     if (name.trim().length > 100) return { error: 'Token name must be 100 characters or less', status: 400 };
 
-    const tokenCount = this.db.get<{ count: number }>('SELECT COUNT(*) as count FROM mcp_tokens WHERE user_id = ?', userId)!.count;
+    const tokenCount = this.db.get<{ count: number }>(
+      'SELECT COUNT(*) as count FROM mcp_tokens WHERE user_id = ?',
+      userId,
+    )!.count;
     if (tokenCount >= 10) return { error: 'Maximum of 10 tokens per user reached', status: 400 };
 
     const rawToken = 'trek_' + randomBytes(24).toString('hex');
@@ -53,12 +60,15 @@ export class TokenService {
 
     const result = this.db.run(
       'INSERT INTO mcp_tokens (user_id, name, token_hash, token_prefix) VALUES (?, ?, ?, ?)',
-      userId, name.trim(), tokenHash, tokenPrefix
+      userId,
+      name.trim(),
+      tokenHash,
+      tokenPrefix,
     );
 
     const token = this.db.get(
       'SELECT id, name, token_prefix, created_at, last_used_at FROM mcp_tokens WHERE id = ?',
-      result.lastInsertRowid
+      result.lastInsertRowid,
     );
 
     return { token: { ...(token as object), raw_token: rawToken } };
@@ -70,7 +80,11 @@ export class TokenService {
     this.db.run('DELETE FROM mcp_tokens WHERE id = ?', tokenId);
     // Best-effort, like the changePassword/resetPassword revocations: a session
     // sweep failure must not turn a successful token delete into a 500.
-    try { revokeUserSessions?.(userId); } catch { /* best-effort */ }
+    try {
+      revokeUserSessions?.(userId);
+    } catch {
+      /* best-effort */
+    }
     return { success: true };
   }
 
@@ -81,7 +95,9 @@ export class TokenService {
   createWsToken(userId: number): { error?: string; status?: number; token?: string } {
     // Bind the ws-token to the user's current password_version so a token minted
     // before a password reset is rejected on connect (defence-in-depth session gate).
-    const pv = this.db.get<{ password_version?: number }>('SELECT password_version FROM users WHERE id = ?', userId)?.password_version ?? 0;
+    const pv =
+      this.db.get<{ password_version?: number }>('SELECT password_version FROM users WHERE id = ?', userId)
+        ?.password_version ?? 0;
     const token = this.ephemeral.create(userId, 'ws', { pv });
     if (!token) return { error: 'Service unavailable', status: 503 };
     return { token };
@@ -131,12 +147,15 @@ export class TokenService {
 
   verifyMcpToken(rawToken: string): User | null {
     const hash = createHash('sha256').update(rawToken).digest('hex');
-    const row = this.db.get<User>(`
+    const row = this.db.get<User>(
+      `
     SELECT u.id, u.username, u.email, u.role
     FROM mcp_tokens mt
     JOIN users u ON mt.user_id = u.id
     WHERE mt.token_hash = ?
-  `, hash);
+  `,
+      hash,
+    );
     if (row) {
       this.db.run('UPDATE mcp_tokens SET last_used_at = CURRENT_TIMESTAMP WHERE token_hash = ?', hash);
       return row;

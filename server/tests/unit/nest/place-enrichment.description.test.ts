@@ -7,6 +7,12 @@
  * causes, both pinned here — Google short-circuiting the free chain, and the
  * chain itself only ever starting from an OSM `wikipedia` tag.
  */
+import { db } from '../../../src/db/database';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import type { MapsService } from '../../../src/nest/maps/maps.service';
+import { PlaceEnrichmentService } from '../../../src/nest/place-enrichment/place-enrichment.service';
+import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const { mockDbGet, mockDbRun } = vi.hoisted(() => ({
@@ -35,12 +41,6 @@ vi.mock('../../../src/utils/ssrfGuard', () => ({
 
 vi.mock('../../../src/config', () => ({ JWT_SECRET: 'test-secret', ENCRYPTION_KEY: '0'.repeat(64) }));
 
-import { db } from '../../../src/db/database';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { PlaceEnrichmentService } from '../../../src/nest/place-enrichment/place-enrichment.service';
-import type { MapsService } from '../../../src/nest/maps/maps.service';
-import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
-
 const GOOGLE_REQ = { lat: 53.6323, lng: 10.0067, name: 'Hamburg Airport', placeId: 'ChIJham', lang: 'de' };
 const OSM_REQ = { lat: 52.525, lng: 13.3694, name: 'Berlin Hauptbahnhof', placeId: 'relation:3600565', lang: 'de' };
 
@@ -66,14 +66,19 @@ function mapsStub(over: Partial<Record<keyof MapsService, unknown>> = {}) {
     fetchWikiExtract: vi.fn(async () => null as typeof EXTRACT | null),
     fetchWikiExtractFor: vi.fn(async () => null as typeof EXTRACT | null),
     fetchWikidataSitelinks: vi.fn(async () => ({}) as Record<string, string>),
-    resolveOsmIdentity: vi.fn(async () => null as { tags: Record<string, string>; osmUrl: string | null; matchedName: string } | null),
+    resolveOsmIdentity: vi.fn(
+      async () => null as { tags: Record<string, string>; osmUrl: string | null; matchedName: string } | null,
+    ),
     details: vi.fn(async () => ({ place: null })),
     ...over,
   } as unknown as MapsService;
 }
 
 const cacheStub = () =>
-  ({ get: vi.fn(() => null), put: vi.fn(async () => ({ photoUrl: '/x', filePath: '/x', attribution: null })) }) as unknown as PlacePhotoCacheService;
+  ({
+    get: vi.fn(() => null),
+    put: vi.fn(async () => ({ photoUrl: '/x', filePath: '/x', attribution: null })),
+  }) as unknown as PlacePhotoCacheService;
 
 const make = (maps: MapsService) => new PlaceEnrichmentService(new DatabaseService(db as never), maps, cacheStub());
 
@@ -187,7 +192,12 @@ describe('description source order', () => {
   it('ENRICH-075: keeps the OpenStreetMap description ahead of everything', async () => {
     const maps = mapsStub({
       details: vi.fn(async () => ({
-        place: { source: 'openstreetmap', summary: '  Ein Bahnhof.  ', osm_url: 'https://osm.org/r/1', wikidata: 'Q1097' },
+        place: {
+          source: 'openstreetmap',
+          summary: '  Ein Bahnhof.  ',
+          osm_url: 'https://osm.org/r/1',
+          wikidata: 'Q1097',
+        },
       })),
       fetchWikiExtractFor: vi.fn(async () => EXTRACT),
     });
@@ -200,7 +210,7 @@ describe('description source order', () => {
 });
 
 describe('article language choice', () => {
-  it('ENRICH-076: asks for the reader\'s language before English', async () => {
+  it("ENRICH-076: asks for the reader's language before English", async () => {
     const maps = mapsStub({
       details: vi.fn(async () => ({ place: { source: 'openstreetmap', wikidata: 'Q1097' } })),
       fetchWikidataSitelinks: vi.fn(async () => ({ dewiki: 'Berlin Hauptbahnhof', enwiki: 'Berlin Hauptbahnhof' })),
@@ -209,7 +219,8 @@ describe('article language choice', () => {
 
     await make(maps).enrich(1, OSM_REQ);
 
-    const sites = (maps.fetchWikidataSitelinks as unknown as { mock: { calls: [string, string[]][] } }).mock.calls[0][1];
+    const sites = (maps.fetchWikidataSitelinks as unknown as { mock: { calls: [string, string[]][] } }).mock
+      .calls[0][1];
     expect(sites.slice(0, 2)).toEqual(['dewikivoyage', 'dewiki']);
     expect(sites).toContain('enwiki');
     expect(maps.fetchWikiExtractFor).toHaveBeenCalledWith('wikipedia', 'de', 'Berlin Hauptbahnhof');
@@ -242,7 +253,8 @@ describe('article language choice', () => {
 
     await make(maps).enrich(1, { ...OSM_REQ, lang: 'ko' });
 
-    const sites = (maps.fetchWikidataSitelinks as unknown as { mock: { calls: [string, string[]][] } }).mock.calls[0][1];
+    const sites = (maps.fetchWikidataSitelinks as unknown as { mock: { calls: [string, string[]][] } }).mock
+      .calls[0][1];
     expect(sites.indexOf('dewiki')).toBeLessThan(sites.indexOf('enwiki'));
   });
 
@@ -265,10 +277,7 @@ describe('article language choice', () => {
     const maps = mapsStub({
       details: vi.fn(async () => ({ place: { source: 'openstreetmap', wikidata: 'Q1097' } })),
       fetchWikidataSitelinks: vi.fn(async () => ({ dewikivoyage: 'Nowhere', dewiki: 'Berlin Hauptbahnhof' })),
-      fetchWikiExtractFor: vi
-        .fn()
-        .mockResolvedValueOnce(null)
-        .mockResolvedValueOnce(EXTRACT),
+      fetchWikiExtractFor: vi.fn().mockResolvedValueOnce(null).mockResolvedValueOnce(EXTRACT),
     });
 
     const out = await make(maps).enrich(1, OSM_REQ);
@@ -292,7 +301,7 @@ describe('filling Google gaps from the free sources', () => {
     cuisine: 'pizza;italian',
     wheelchair: 'limited',
     outdoor_seating: 'yes',
-    'opening_hours': 'Mo-Su 11:30-23:00',
+    opening_hours: 'Mo-Su 11:30-23:00',
   };
 
   const googlePlaceAlsoInOsm = (over: Partial<Record<keyof MapsService, unknown>> = {}) =>
@@ -337,5 +346,4 @@ describe('filling Google gaps from the free sources', () => {
 
     expect(out.hours?.weekdayDescriptions).toEqual(['Monday: 09:00-17:00']);
   });
-})
-
+});

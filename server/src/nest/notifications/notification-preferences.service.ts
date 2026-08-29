@@ -1,7 +1,6 @@
-import { Injectable } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
-import { MailerService } from './mailer/mailer.service';
 import { listChannels } from './channel-registry';
+import { MailerService } from './mailer/mailer.service';
 import {
   ADMIN_SCOPED_EVENTS,
   ALL_EVENT_TYPES,
@@ -13,6 +12,7 @@ import {
   type NotifChannel,
   type NotifEventType,
 } from './notification-events';
+import { Injectable } from '@nestjs/common';
 
 export interface PreferencesMatrix {
   preferences: Partial<Record<NotifEventType, Partial<Record<NotifChannel, boolean>>>>;
@@ -46,7 +46,12 @@ export class NotificationPreferencesService {
    * decide for themselves (today: everything except `synology_session_cleared`).
    */
   combosFor(event: NotifEventType): NotifChannel[] {
-    return [INAPP_CHANNEL, ...listChannels().filter(c => c.supportsEvent(event)).map(c => c.id)];
+    return [
+      INAPP_CHANNEL,
+      ...listChannels()
+        .filter((c) => c.supportsEvent(event))
+        .map((c) => c.id),
+    ];
   }
 
   private allCombos(): Record<string, NotifChannel[]> {
@@ -71,8 +76,15 @@ export class NotificationPreferencesService {
   getActiveChannels(): NotifChannel[] {
     const raw = this.getAppSetting('notification_channels') || this.getAppSetting('notification_channel') || 'none';
     if (raw === 'none') return [];
-    const builtins = new Set(listChannels().filter(c => c.source === 'builtin').map(c => c.id));
-    return raw.split(',').map(c => c.trim()).filter(c => builtins.has(c));
+    const builtins = new Set(
+      listChannels()
+        .filter((c) => c.source === 'builtin')
+        .map((c) => c.id),
+    );
+    return raw
+      .split(',')
+      .map((c) => c.trim())
+      .filter((c) => builtins.has(c));
   }
 
   /** Is this channel switched on? Plugin channels are on by virtue of being live. */
@@ -89,7 +101,9 @@ export class NotificationPreferencesService {
   isEnabledForEvent(userId: number, eventType: NotifEventType, channel: NotifChannel): boolean {
     const row = this.db.get<{ enabled: number }>(
       'SELECT enabled FROM notification_channel_preferences WHERE user_id = ? AND event_type = ? AND channel = ?',
-      userId, eventType, channel,
+      userId,
+      eventType,
+      channel,
     );
     return row === undefined || row.enabled === 1;
   }
@@ -161,7 +175,8 @@ export class NotificationPreferencesService {
    */
   getPreferencesMatrix(userId: number, userRole: string, scope: 'user' | 'admin' = 'user'): PreferencesMatrix {
     const rows = this.db.all<{ event_type: string; channel: string; enabled: number }>(
-      'SELECT event_type, channel, enabled FROM notification_channel_preferences WHERE user_id = ?', userId,
+      'SELECT event_type, channel, enabled FROM notification_channel_preferences WHERE user_id = ?',
+      userId,
     );
 
     // Build a lookup from stored rows
@@ -189,9 +204,10 @@ export class NotificationPreferencesService {
     }
 
     // Filter event types by scope
-    const event_types = scope === 'admin'
-      ? ALL_EVENT_TYPES.filter(e => ADMIN_SCOPED_EVENTS.has(e))
-      : ALL_EVENT_TYPES.filter(e => !ADMIN_SCOPED_EVENTS.has(e));
+    const event_types =
+      scope === 'admin'
+        ? ALL_EVENT_TYPES.filter((e) => ADMIN_SCOPED_EVENTS.has(e))
+        : ALL_EVENT_TYPES.filter((e) => !ADMIN_SCOPED_EVENTS.has(e));
 
     return {
       preferences,
@@ -215,7 +231,8 @@ export class NotificationPreferencesService {
   }
 
   private setAdminGlobalPref(event: NotifEventType, channel: AdminGlobalChannel, enabled: boolean): void {
-    this.db.run('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)',
+    this.db.run(
+      'INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)',
       `admin_notif_pref_${event}_${channel}`,
       enabled ? '1' : '0',
     );
@@ -229,10 +246,10 @@ export class NotificationPreferencesService {
     prefs: Partial<Record<string, Partial<Record<string, boolean>>>>,
   ): void {
     const upsert = this.db.prepare(
-      'INSERT OR REPLACE INTO notification_channel_preferences (user_id, event_type, channel, enabled) VALUES (?, ?, ?, ?)'
+      'INSERT OR REPLACE INTO notification_channel_preferences (user_id, event_type, channel, enabled) VALUES (?, ?, ?, ?)',
     );
     const del = this.db.prepare(
-      'DELETE FROM notification_channel_preferences WHERE user_id = ? AND event_type = ? AND channel = ?'
+      'DELETE FROM notification_channel_preferences WHERE user_id = ? AND event_type = ? AND channel = ?',
     );
     for (const [eventType, channels] of Object.entries(prefs)) {
       if (!channels) continue;
@@ -251,10 +268,7 @@ export class NotificationPreferencesService {
    * Bulk-update preferences from the matrix UI.
    * Inserts disabled rows (enabled=0) and removes rows that are enabled (default).
    */
-  setPreferences(
-    userId: number,
-    prefs: Partial<Record<string, Partial<Record<string, boolean>>>>
-  ): void {
+  setPreferences(userId: number, prefs: Partial<Record<string, Partial<Record<string, boolean>>>>): void {
     this.db.transaction(() => this.applyUserChannelPrefs(userId, prefs));
   }
 
@@ -263,10 +277,7 @@ export class NotificationPreferencesService {
    * email/webhook channels are stored globally in app_settings (not per-user).
    * inapp channel remains per-user in notification_channel_preferences.
    */
-  setAdminPreferences(
-    userId: number,
-    prefs: Partial<Record<string, Partial<Record<string, boolean>>>>
-  ): void {
+  setAdminPreferences(userId: number, prefs: Partial<Record<string, Partial<Record<string, boolean>>>>): void {
     // Split global (email/webhook) from per-user (inapp) prefs
     const globalPrefs: Partial<Record<string, Partial<Record<string, boolean>>>> = {};
     const userPrefs: Partial<Record<string, Partial<Record<string, boolean>>>> = {};

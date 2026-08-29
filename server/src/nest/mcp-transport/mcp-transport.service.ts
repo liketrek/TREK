@@ -1,22 +1,23 @@
-import { Injectable } from '@nestjs/common';
-import type { Request, Response } from 'express';
-import { randomUUID } from 'crypto';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
-import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp';
-import { McpRegistryService } from '../../nest-mcp';
-import type { User } from '../../types';
 import { ADDON_IDS } from '../../addons';
 import { getMcpSafeUrl } from '../../app-config';
-import { registerTools } from '../../mcp/tools';
-import { sessions, evictOldestSessionForUser } from '../../mcp/sessionManager';
 import { SESSION_TTL_MS, MAX_SESSIONS_PER_USER, KEEPALIVE_MS, isRateLimited } from '../../mcp';
-import { BASE_MCP_INSTRUCTIONS, STATIC_TOKEN_DEPRECATION_NOTICE } from './mcp-transport.constants';
-import { AuthService } from '../auth/auth.service';
-import { TokenService } from '../tokens/token.service';
-import { OauthService } from '../oauth/oauth.service';
+import { sessions, evictOldestSessionForUser } from '../../mcp/sessionManager';
+import { registerTools } from '../../mcp/tools';
+import { McpRegistryService } from '../../nest-mcp';
+import type { User } from '../../types';
 import { AddonsService } from '../addons/addons.service';
 import { AuditService } from '../audit/audit.service';
 import { getClientIp } from '../audit/client-ip';
+import { AuthService } from '../auth/auth.service';
+import { OauthService } from '../oauth/oauth.service';
+import { TokenService } from '../tokens/token.service';
+import { BASE_MCP_INSTRUCTIONS, STATIC_TOKEN_DEPRECATION_NOTICE } from './mcp-transport.constants';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp';
+import { Injectable } from '@nestjs/common';
+
+import { randomUUID } from 'crypto';
+import type { Request, Response } from 'express';
 
 /**
  * The MCP transport handler behind the container — the former non-Nest
@@ -101,8 +102,10 @@ function trimTrailingSlashes(value: string): string {
 export function setAuthChallenge(res: Response, error = 'invalid_token'): void {
   const base = trimTrailingSlashes(getMcpSafeUrl() || '');
   // RFC 9728 §5: resource with path component /mcp → PRM URL must include the path
-  res.set('WWW-Authenticate',
-      `Bearer realm="TREK MCP", resource_metadata="${base}/.well-known/oauth-protected-resource/mcp", error="${error}"`);
+  res.set(
+    'WWW-Authenticate',
+    `Bearer realm="TREK MCP", resource_metadata="${base}/.well-known/oauth-protected-resource/mcp", error="${error}"`,
+  );
 }
 
 export interface VerifyTokenResult {
@@ -131,7 +134,7 @@ export class McpTransportService {
     const spaceIdx = authHeader.indexOf(' ');
     if (spaceIdx === -1) return null;
     const scheme = authHeader.slice(0, spaceIdx);
-    const token  = authHeader.slice(spaceIdx + 1);
+    const token = authHeader.slice(spaceIdx + 1);
     if (scheme.toLowerCase() !== 'bearer' || !token) return null;
 
     // OAuth 2.1 access token (trekoa_...)
@@ -207,7 +210,9 @@ export class McpTransportService {
       }
       session.lastActivity = Date.now();
       session.lastClientIp = getClientIp(req);
-      armSseKeepalive(res, () => { session.lastActivity = Date.now(); });
+      armSseKeepalive(res, () => {
+        session.lastActivity = Date.now();
+      });
       try {
         await session.transport.handleRequest(req, res, req.body);
       } catch (err) {
@@ -230,7 +235,7 @@ export class McpTransportService {
     // usually a reverse proxy dropping Mcp-Session-Id, or a client that ignores it. Say so,
     // because the visible symptom (sessions piling up to the cap) points nowhere near the cause.
     console.warn(
-        `[MCP] POST without mcp-session-id for user ${user.id} — starting a new session. ` +
+      `[MCP] POST without mcp-session-id for user ${user.id} — starting a new session. ` +
         'If this repeats on every tool call, the Mcp-Session-Id response header is not reaching ' +
         'the client (check that your reverse proxy forwards it).',
     );
@@ -240,26 +245,30 @@ export class McpTransportService {
     if (countSessionsForUser(user.id) >= MAX_SESSIONS_PER_USER) {
       const evicted = evictOldestSessionForUser(user.id);
       if (!evicted) {
-        res.status(429).json(jsonRpcError('Session limit reached. Close an existing session before opening a new one.'));
+        res
+          .status(429)
+          .json(jsonRpcError('Session limit reached. Close an existing session before opening a new one.'));
         return;
       }
-      console.log(`[MCP] Session limit (${MAX_SESSIONS_PER_USER}) reached for user ${user.id} — evicted idle session ${evicted}`);
+      console.log(
+        `[MCP] Session limit (${MAX_SESSIONS_PER_USER}) reached for user ${user.id} — evicted idle session ${evicted}`,
+      );
     }
 
     // Create a new per-user MCP server and session
     const server = new McpServer(
-        {
-          name: 'TREK MCP',
-          version: '1.0.0',
+      {
+        name: 'TREK MCP',
+        version: '1.0.0',
+      },
+      {
+        capabilities: {
+          resources: { listChanged: true },
+          tools: { listChanged: true },
+          prompts: { listChanged: true },
         },
-        {
-          capabilities: {
-            resources: { listChanged: true },
-            tools: { listChanged: true },
-            prompts: { listChanged: true },
-          },
-          instructions: BASE_MCP_INSTRUCTIONS + (isStaticToken ? STATIC_TOKEN_DEPRECATION_NOTICE : ''),
-        }
+        instructions: BASE_MCP_INSTRUCTIONS + (isStaticToken ? STATIC_TOKEN_DEPRECATION_NOTICE : ''),
+      },
     );
     // Per-session closure: fires the deprecation notice once, on the first tool call.
     // Tool results are the only mechanism Claude reliably surfaces to the user;
@@ -301,7 +310,16 @@ export class McpTransportService {
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: () => randomUUID(),
       onsessioninitialized: (sid) => {
-        sessions.set(sid, { server, transport, userId: user.id, scopes, clientId, isStaticToken, lastActivity: Date.now(), lastClientIp: createIp });
+        sessions.set(sid, {
+          server,
+          transport,
+          userId: user.id,
+          scopes,
+          clientId,
+          isStaticToken,
+          lastActivity: Date.now(),
+          lastClientIp: createIp,
+        });
         // The cap was checked before the handler ran, and registration only
         // happens here — so concurrent initializes all passed the same
         // pre-registration count. Re-check now that the entry exists, or the
@@ -311,10 +329,14 @@ export class McpTransportService {
         while (countSessionsForUser(user.id) > MAX_SESSIONS_PER_USER) {
           const dropped = evictOldestSessionForUser(user.id);
           if (!dropped || dropped === sid) break;
-          console.log(`[MCP] Session limit (${MAX_SESSIONS_PER_USER}) exceeded for user ${user.id} — evicted idle session ${dropped}`);
+          console.log(
+            `[MCP] Session limit (${MAX_SESSIONS_PER_USER}) exceeded for user ${user.id} — evicted idle session ${dropped}`,
+          );
         }
         const authMethod = isStaticToken ? 'static-token' : scopes ? `oauth(${scopes.join(',')})` : 'jwt';
-        console.log(`[MCP] Session ${sid} created for user ${user.id} [${authMethod}]. Active sessions: ${sessions.size}`);
+        console.log(
+          `[MCP] Session ${sid} created for user ${user.id} [${authMethod}]. Active sessions: ${sessions.size}`,
+        );
       },
       onsessionclosed: (sid) => {
         sessions.delete(sid);
@@ -341,8 +363,16 @@ export class McpTransportService {
       // with its ~200 registered tools, would otherwise be orphaned: never in `sessions`, never
       // swept, never closed. Reap it here.
       if (!transport.sessionId) {
-        try { server.close(); } catch { /* ignore */ }
-        try { transport.close(); } catch { /* ignore */ }
+        try {
+          server.close();
+        } catch {
+          /* ignore */
+        }
+        try {
+          transport.close();
+        } catch {
+          /* ignore */
+        }
       }
     }
   }

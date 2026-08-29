@@ -6,6 +6,12 @@
  * does not, and a local file gives them up only once its EXIF has been read. These
  * pin the merge rule that keeps a later, emptier answer from erasing an earlier one.
  */
+import { runMigrations } from '../../../src/db/migrations';
+import { createTables } from '../../../src/db/schema';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { TrekPhotosRepository } from '../../../src/nest/photos/trek-photos.repository';
+import { resetTestDb } from '../../helpers/test-db';
+
 import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 
 const { testDb, dbMock } = vi.hoisted(() => {
@@ -13,7 +19,17 @@ const { testDb, dbMock } = vi.hoisted(() => {
   const Database = require('better-sqlite3');
   const db = new Database(':memory:');
   db.exec('PRAGMA foreign_keys = ON');
-  return { testDb: db, dbMock: { db, closeDb: () => {}, reinitialize: () => {}, getPlaceWithTags: () => null, canAccessTrip: () => undefined, isOwner: () => false } };
+  return {
+    testDb: db,
+    dbMock: {
+      db,
+      closeDb: () => {},
+      reinitialize: () => {},
+      getPlaceWithTags: () => null,
+      canAccessTrip: () => undefined,
+      isOwner: () => false,
+    },
+  };
 });
 
 vi.mock('../../../src/db/database', () => dbMock);
@@ -22,12 +38,6 @@ vi.mock('../../../src/config', () => ({
   ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
   updateJwtSecret: () => {},
 }));
-
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { resetTestDb } from '../../helpers/test-db';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { TrekPhotosRepository } from '../../../src/nest/photos/trek-photos.repository';
 
 let repo: TrekPhotosRepository;
 
@@ -49,7 +59,9 @@ function makePhoto(): number {
 
 function read(id: number) {
   return testDb.prepare('SELECT taken_at, lat, lng FROM trek_photos WHERE id = ?').get(id) as {
-    taken_at: string | null; lat: number | null; lng: number | null;
+    taken_at: string | null;
+    lat: number | null;
+    lng: number | null;
   };
 }
 

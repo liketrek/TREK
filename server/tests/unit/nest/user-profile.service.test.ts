@@ -1,3 +1,19 @@
+// ---------------------------------------------------------------------------
+// Imports (after mocks)
+// ---------------------------------------------------------------------------
+import { runMigrations } from '../../../src/db/migrations';
+import { createTables } from '../../../src/db/schema';
+import { UserProfileService } from '../../../src/nest/auth/user-profile.service';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { SEARCH_TEXT_FIELD_MASK } from '../../../src/nest/maps/maps.helpers';
+import { createUser, createAdmin } from '../../helpers/factories';
+import { makeStorageFixture } from '../../helpers/storage-fixture';
+import { resetTestDb } from '../../helpers/test-db';
+
+import fs from 'node:fs';
+import path from 'node:path';
+import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
+
 /**
  * user-profile.service.test.ts
  *
@@ -28,22 +44,6 @@ vi.mock('../../../src/nest/common/crypto/apiKeyCrypto', () => ({
   mask_stored_api_key: vi.fn((v: string | null | undefined) => (v ? '••••••••' : null)),
   encrypt_api_key: vi.fn((v) => v),
 }));
-
-// ---------------------------------------------------------------------------
-// Imports (after mocks)
-// ---------------------------------------------------------------------------
-
-import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createAdmin } from '../../helpers/factories';
-import fs from 'node:fs';
-import path from 'node:path';
-import { UserProfileService } from '../../../src/nest/auth/user-profile.service';
-import { makeStorageFixture } from '../../helpers/storage-fixture';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { SEARCH_TEXT_FIELD_MASK } from '../../../src/nest/maps/maps.helpers';
 
 const avatarsFx = makeStorageFixture('avatars/');
 const profile = new UserProfileService(new DatabaseService(testDb), avatarsFx.storage);
@@ -226,9 +226,7 @@ describe('validateKeys', () => {
     const { user } = createAdmin(testDb);
     testDb.prepare('UPDATE users SET maps_api_key = ? WHERE id = ?').run('test-key', user.id);
 
-    const fetchSpy = vi
-      .spyOn(global, 'fetch')
-      .mockRejectedValueOnce(new Error('Network failure'));
+    const fetchSpy = vi.spyOn(global, 'fetch').mockRejectedValueOnce(new Error('Network failure'));
 
     const result = await profile.validateKeys(user.id);
     expect(result.maps).toBe(false);

@@ -1,7 +1,7 @@
-import { Module } from '@nestjs/common';
-import { RealtimeGateway } from './realtime.gateway';
 import { EphemeralTokenModule } from '../auth/ephemeral-token.module';
 import { JourneyDomainModule } from '../journey/journey-domain.module';
+import { RealtimeGateway } from './realtime.gateway';
+import { Module } from '@nestjs/common';
 
 /**
  * The transport, kept out of RealtimeModule on purpose.

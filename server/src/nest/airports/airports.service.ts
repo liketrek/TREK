@@ -1,7 +1,7 @@
+import { DatabaseService } from '../database/database.service';
+import { searchAirports, findByIata, load } from './airports.data';
 import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
 import type { Airport } from '@trek/shared';
-import { searchAirports, findByIata, load } from './airports.data';
-import { DatabaseService } from '../database/database.service';
 
 /**
  * The in-container face of the airport dataset, plus the flight-endpoint
@@ -33,12 +33,21 @@ export class AirportsService implements OnApplicationBootstrap {
   }
 
   backfillFlightEndpoints(): void {
-    const pending = this.db.prepare(`
+    const pending = this.db
+      .prepare(
+        `
       SELECT r.id, r.metadata, r.reservation_time, r.reservation_end_time
       FROM reservations r
       WHERE r.type = 'flight'
         AND NOT EXISTS (SELECT 1 FROM reservation_endpoints e WHERE e.reservation_id = r.id)
-    `).all() as { id: number; metadata: string | null; reservation_time: string | null; reservation_end_time: string | null }[];
+    `,
+      )
+      .all() as {
+      id: number;
+      metadata: string | null;
+      reservation_time: string | null;
+      reservation_end_time: string | null;
+    }[];
 
     if (pending.length === 0) return;
 
@@ -52,14 +61,28 @@ export class AirportsService implements OnApplicationBootstrap {
     let filled = 0;
     let flagged = 0;
     for (const r of pending) {
-      if (!r.metadata) { markReview.run(r.id); flagged++; continue; }
+      if (!r.metadata) {
+        markReview.run(r.id);
+        flagged++;
+        continue;
+      }
       let meta: any;
-      try { meta = JSON.parse(r.metadata); } catch { markReview.run(r.id); flagged++; continue; }
+      try {
+        meta = JSON.parse(r.metadata);
+      } catch {
+        markReview.run(r.id);
+        flagged++;
+        continue;
+      }
 
       const dep = meta.departure_airport ? findByIata(String(meta.departure_airport).slice(0, 3)) : null;
       const arr = meta.arrival_airport ? findByIata(String(meta.arrival_airport).slice(0, 3)) : null;
 
-      if (!dep || !arr) { markReview.run(r.id); flagged++; continue; }
+      if (!dep || !arr) {
+        markReview.run(r.id);
+        flagged++;
+        continue;
+      }
 
       const split = (iso: string | null) => {
         if (!iso) return { date: null as string | null, time: null as string | null };
@@ -69,8 +92,30 @@ export class AirportsService implements OnApplicationBootstrap {
       const depParts = split(r.reservation_time);
       const arrParts = split(r.reservation_end_time);
 
-      insert.run(r.id, 'from', 0, dep.city ? `${dep.city} (${dep.iata})` : dep.name, dep.iata, dep.lat, dep.lng, dep.tz, depParts.time, depParts.date);
-      insert.run(r.id, 'to', 1, arr.city ? `${arr.city} (${arr.iata})` : arr.name, arr.iata, arr.lat, arr.lng, arr.tz, arrParts.time, arrParts.date);
+      insert.run(
+        r.id,
+        'from',
+        0,
+        dep.city ? `${dep.city} (${dep.iata})` : dep.name,
+        dep.iata,
+        dep.lat,
+        dep.lng,
+        dep.tz,
+        depParts.time,
+        depParts.date,
+      );
+      insert.run(
+        r.id,
+        'to',
+        1,
+        arr.city ? `${arr.city} (${arr.iata})` : arr.name,
+        arr.iata,
+        arr.lat,
+        arr.lng,
+        arr.tz,
+        arrParts.time,
+        arrParts.date,
+      );
       filled++;
     }
 

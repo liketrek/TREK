@@ -18,7 +18,11 @@ import JSON5 from 'json5';
  */
 export function parseLenientJson(content: string | undefined | null): unknown {
   if (!content) return null;
-  const stripped = content.trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
+  const stripped = content
+    .trim()
+    .replace(/^```(?:json)?/i, '')
+    .replace(/```$/, '')
+    .trim();
   try {
     return JSON.parse(stripped);
   } catch {

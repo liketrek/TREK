@@ -4,6 +4,11 @@
  * (runtime off / no user / inactive plugin) and that the callback always redirects to
  * an in-app path with the right status, never leaking an error.
  */
+import { db as dbConn } from '../../../src/db/database';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { PluginOAuthController } from '../../../src/nest/plugins/oauth/plugin-oauth.controller';
+import type { PluginOAuthService } from '../../../src/nest/plugins/oauth/plugin-oauth.service';
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const { pluginsEnabled, getMock } = vi.hoisted(() => ({
@@ -12,16 +17,17 @@ const { pluginsEnabled, getMock } = vi.hoisted(() => ({
 }));
 vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 vi.mock('../../../src/db/database', () => ({ db: { prepare: () => ({ get: getMock }) } }));
-import { db as dbConn } from '../../../src/db/database';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-
-import { PluginOAuthController } from '../../../src/nest/plugins/oauth/plugin-oauth.controller';
-import type { PluginOAuthService } from '../../../src/nest/plugins/oauth/plugin-oauth.service';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const req = (id?: number) => ({ user: id === undefined ? undefined : { id } }) as any;
 function fakeRes() {
-  const res = { redirectedTo: '' as string, redirect(loc: string) { res.redirectedTo = loc; return res; } };
+  const res = {
+    redirectedTo: '' as string,
+    redirect(loc: string) {
+      res.redirectedTo = loc;
+      return res;
+    },
+  };
   return res;
 }
 function ctrl(over: Partial<PluginOAuthService> = {}) {
@@ -36,7 +42,10 @@ function ctrl(over: Partial<PluginOAuthService> = {}) {
 }
 
 describe('PluginOAuthController', () => {
-  beforeEach(() => { pluginsEnabled.mockReturnValue(true); getMock.mockReturnValue({ 1: 1 }); });
+  beforeEach(() => {
+    pluginsEnabled.mockReturnValue(true);
+    getMock.mockReturnValue({ 1: 1 });
+  });
 
   it('status is gated: runtime off / no user / inactive → not configured', () => {
     expect(ctrl().c.status('p', req(5))).toEqual({ configured: true, connected: false });
@@ -60,7 +69,11 @@ describe('PluginOAuthController', () => {
     expect(okRes.redirectedTo).toBe('/settings?oauth=p:connected');
 
     const failRes = fakeRes();
-    await ctrl({ completeCallback: vi.fn(async () => { throw new Error('boom'); }) }).c.callback('p', 'code', 'state', undefined, req(5), failRes as never);
+    await ctrl({
+      completeCallback: vi.fn(async () => {
+        throw new Error('boom');
+      }),
+    }).c.callback('p', 'code', 'state', undefined, req(5), failRes as never);
     expect(failRes.redirectedTo).toBe('/settings?oauth=p:failed'); // never leaks the error
 
     const denyRes = fakeRes();

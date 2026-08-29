@@ -8,10 +8,29 @@
  * what changed is that they now run against three decorated classes and a real
  * in-memory core DB, and that the host is built by the production factory.
  */
-import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
+import { db as mockDb } from '../../../src/db/database';
+import type { AddonsService } from '../../../src/nest/addons/addons.service';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import type { LlmConfigResolver } from '../../../src/nest/llm-parse/llm-config.resolver';
+import type { NotificationsService } from '../../../src/nest/notifications/notifications.service';
+import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { PluginGuards } from '../../../src/nest/plugins/host/plugin-guards.service';
+import { getPluginDataDb, closePluginDataDb } from '../../../src/nest/plugins/host/plugin-host-state';
+import { PluginRpcHostFactory, type PluginCallRouter } from '../../../src/nest/plugins/host/plugin-rpc-host.factory';
+import { PluginRpcRegistryService } from '../../../src/nest/plugins/host/rpc-kit/registry.service';
+import { createTestPluginRegistry } from '../../../src/nest/plugins/host/rpc-kit/testing';
+import { DbRpc } from '../../../src/nest/plugins/host/rpc/db.rpc';
+import { HostSurfaceRpc } from '../../../src/nest/plugins/host/rpc/host-surface.rpc';
+import { MetaRpc } from '../../../src/nest/plugins/host/rpc/meta.rpc';
+import type { PluginOAuthService } from '../../../src/nest/plugins/oauth/plugin-oauth.service';
+import type { PluginUserSettingsService } from '../../../src/nest/plugins/plugin-user-settings.service';
+import type { RpcError, RpcResponse } from '../../../src/nest/plugins/protocol/envelope';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 
 const { broadcast, broadcastToUser } = vi.hoisted(() => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
 // A real in-memory core db, so the metadata SQL and the entity->trip resolution run
@@ -52,25 +71,9 @@ const notifySend = vi.fn(async () => undefined);
 const { llmExtract } = vi.hoisted(() => ({
   llmExtract: vi.fn(async (input: { text?: string }) => [{ text: `answer:${input.text ?? ''}` }]),
 }));
-vi.mock('../../../src/nest/llm-parse/llm-client.factory', () => ({ createLlmClient: vi.fn(() => ({ extract: llmExtract })) }));
-import { PluginRpcHostFactory, type PluginCallRouter } from '../../../src/nest/plugins/host/plugin-rpc-host.factory';
-import { PluginRpcRegistryService } from '../../../src/nest/plugins/host/rpc-kit/registry.service';
-import { createTestPluginRegistry } from '../../../src/nest/plugins/host/rpc-kit/testing';
-import { PluginGuards } from '../../../src/nest/plugins/host/plugin-guards.service';
-import { DbRpc } from '../../../src/nest/plugins/host/rpc/db.rpc';
-import type { PluginUserSettingsService } from '../../../src/nest/plugins/plugin-user-settings.service';
-import { MetaRpc } from '../../../src/nest/plugins/host/rpc/meta.rpc';
-import { HostSurfaceRpc } from '../../../src/nest/plugins/host/rpc/host-surface.rpc';
-import { getPluginDataDb, closePluginDataDb } from '../../../src/nest/plugins/host/plugin-host-state';
-import { db as mockDb } from '../../../src/db/database';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import type { AddonsService } from '../../../src/nest/addons/addons.service';
-import type { NotificationsService } from '../../../src/nest/notifications/notifications.service';
-import type { LlmConfigResolver } from '../../../src/nest/llm-parse/llm-config.resolver';
-import type { PluginOAuthService } from '../../../src/nest/plugins/oauth/plugin-oauth.service';
-import type { RpcError, RpcResponse } from '../../../src/nest/plugins/protocol/envelope';
+vi.mock('../../../src/nest/llm-parse/llm-client.factory', () => ({
+  createLlmClient: vi.fn(() => ({ extract: llmExtract })),
+}));
 
 // Typed from the real method rather than from the always-true body below, so a case that
 // swaps in an implementation reading the action key (HOSTRPC-015) still type-checks.
@@ -80,7 +83,9 @@ const addons = { isAddonEnabled: vi.fn(() => true) } as unknown as AddonsService
 const notifications = { send: notifySend } as unknown as NotificationsService;
 // user 7 has no provider configured; everyone else resolves to a stub config.
 const llmConfig = {
-  resolve: vi.fn((uid: number) => (uid === 7 ? null : { provider: 'openai', model: 'gpt-x', baseUrl: undefined, apiKey: 'sekret' })),
+  resolve: vi.fn((uid: number) =>
+    uid === 7 ? null : { provider: 'openai', model: 'gpt-x', baseUrl: undefined, apiKey: 'sekret' },
+  ),
 } as unknown as LlmConfigResolver;
 const oauth = {
   async getAccessToken(_pid: string, uid: number) {
@@ -140,7 +145,7 @@ afterAll(() => {
   fs.rmSync(tmp, { recursive: true, force: true });
 });
 
-describe('DbRpc — the plugin\'s own sqlite', () => {
+describe("DbRpc — the plugin's own sqlite", () => {
   it('HOSTRPC-001 caches one data db per plugin id', () => {
     expect(getPluginDataDb('wired')).toBe(getPluginDataDb('wired'));
   });
@@ -174,7 +179,7 @@ describe('DbRpc — the plugin\'s own sqlite', () => {
     }
   });
 
-  it('HOSTRPC-005 two plugins never see each other\'s tables', async () => {
+  it("HOSTRPC-005 two plugins never see each other's tables", async () => {
     // The regression this guards: DbRpc is a SINGLETON that serves every plugin, so a
     // handle captured in a field or a closure would hand plugin B the rows of whichever
     // plugin happened to construct it first.
@@ -215,7 +220,7 @@ describe('DbRpc — the plugin\'s own sqlite', () => {
 describe('DbRpc — the unconditional three', () => {
   afterAll(() => closePluginDataDb('open3'));
 
-  it('HOSTRPC-008 plugins.call and events.emit route through the host\'s own router', async () => {
+  it("HOSTRPC-008 plugins.call and events.emit route through the host's own router", async () => {
     const calls: unknown[] = [];
     const emits: unknown[] = [];
     const router: PluginCallRouter = {
@@ -238,7 +243,7 @@ describe('DbRpc — the unconditional three', () => {
     expect(emits).toEqual([{ sourceId: 'open3', event: 'ping', payload: { a: 1 } }]);
   });
 
-  it('HOSTRPC-009 settings.get returns the acting user\'s decrypted value; userless yields undefined', async () => {
+  it("HOSTRPC-009 settings.get returns the acting user's decrypted value; userless yields undefined", async () => {
     const host = makeHost('open3');
     expect((await call(host, 'settings.get', { key: 'apiKey' }, 5)).result).toEqual({ value: 'k-5' });
     expect((await call(host, 'settings.get', { key: 'apiKey' }, undefined)).result).toEqual({ value: undefined });
@@ -260,14 +265,25 @@ describe('MetaRpc — namespaced entity metadata', () => {
 
   it('HOSTRPC-011 round-trips and enforces the key/value/access limits', async () => {
     const host = makeHost('meta', 'db:meta');
-    expect((await call(host, 'meta.set', { entityType: 'trip', entityId: 1, key: 'k', value: { a: 1 } })).ok).toBe(true);
+    expect((await call(host, 'meta.set', { entityType: 'trip', entityId: 1, key: 'k', value: { a: 1 } })).ok).toBe(
+      true,
+    );
     expect((await call(host, 'meta.get', { entityType: 'trip', entityId: 1, key: 'k' })).result).toEqual({ a: 1 });
     expect((await call(host, 'meta.set', { entityType: 'trip', entityId: 1, key: 'k', value: 2 })).ok).toBe(true); // upsert
     expect((await call(host, 'meta.list', { entityType: 'place', entityId: 7 })).ok).toBe(true); // place -> trip 1
-    expect((await call(host, 'meta.delete', { entityType: 'trip', entityId: 1, key: 'k' })).result).toEqual({ deleted: true });
-    expect((await call(host, 'meta.set', { entityType: 'trip', entityId: 1, key: 'x'.repeat(300), value: 1 })).error?.code).toBe('BAD_PARAMS');
-    expect((await call(host, 'meta.set', { entityType: 'trip', entityId: 1, key: 'big', value: 'y'.repeat(70000) })).error?.code).toBe('BAD_PARAMS');
-    expect((await call(host, 'meta.set', { entityType: 'trip', entityId: 2, key: 'k', value: 1 })).error?.code).toBe('RESOURCE_FORBIDDEN');
+    expect((await call(host, 'meta.delete', { entityType: 'trip', entityId: 1, key: 'k' })).result).toEqual({
+      deleted: true,
+    });
+    expect(
+      (await call(host, 'meta.set', { entityType: 'trip', entityId: 1, key: 'x'.repeat(300), value: 1 })).error?.code,
+    ).toBe('BAD_PARAMS');
+    expect(
+      (await call(host, 'meta.set', { entityType: 'trip', entityId: 1, key: 'big', value: 'y'.repeat(70000) })).error
+        ?.code,
+    ).toBe('BAD_PARAMS');
+    expect((await call(host, 'meta.set', { entityType: 'trip', entityId: 2, key: 'k', value: 1 })).error?.code).toBe(
+      'RESOURCE_FORBIDDEN',
+    );
   });
 
   it('HOSTRPC-012 an unreadable value comes back as null rather than throwing', async () => {
@@ -277,7 +293,10 @@ describe('MetaRpc — namespaced entity metadata', () => {
       .prepare("UPDATE plugin_entity_metadata SET value='{not json' WHERE plugin_id='meta' AND key='corrupt'")
       .run();
     expect((await call(host, 'meta.get', { entityType: 'trip', entityId: 1, key: 'corrupt' })).result).toBeNull();
-    const listed = (await call(host, 'meta.list', { entityType: 'trip', entityId: 1 })).result as Record<string, unknown>;
+    const listed = (await call(host, 'meta.list', { entityType: 'trip', entityId: 1 })).result as Record<
+      string,
+      unknown
+    >;
     expect(listed.corrupt).toBeNull();
     await call(host, 'meta.delete', { entityType: 'trip', entityId: 1, key: 'corrupt' });
   });
@@ -293,7 +312,9 @@ describe('MetaRpc — namespaced entity metadata', () => {
   it('HOSTRPC-013 a key that was never set reads as null, and deleting it reports false', async () => {
     const host = makeHost('meta', 'db:meta');
     expect((await call(host, 'meta.get', { entityType: 'trip', entityId: 1, key: 'ghost' })).result).toBeNull();
-    expect((await call(host, 'meta.delete', { entityType: 'trip', entityId: 1, key: 'ghost' })).result).toEqual({ deleted: false });
+    expect((await call(host, 'meta.delete', { entityType: 'trip', entityId: 1, key: 'ghost' })).result).toEqual({
+      deleted: false,
+    });
   });
 
   it('HOSTRPC-014 the per-entity key quota is enforced on new keys only', async () => {
@@ -305,7 +326,9 @@ describe('MetaRpc — namespaced entity metadata', () => {
     expect(overflow.error?.code).toBe('BAD_PARAMS');
     expect(overflow.error?.message).toMatch(/too many metadata keys/);
     // An existing key still updates — the quota counts keys, not writes.
-    expect((await call(host, 'meta.set', { entityType: 'trip', entityId: 1, key: 'k0', value: 'again' })).ok).toBe(true);
+    expect((await call(host, 'meta.set', { entityType: 'trip', entityId: 1, key: 'k0', value: 'again' })).ok).toBe(
+      true,
+    );
     closePluginDataDb('metaquota');
   });
 
@@ -316,7 +339,13 @@ describe('MetaRpc — namespaced entity metadata', () => {
       seen.push(action);
       return true;
     });
-    for (const [entityType, entityId] of [['trip', 1], ['place', 7], ['day', 3], ['reservation', 40], ['accommodation', 11]] as const) {
+    for (const [entityType, entityId] of [
+      ['trip', 1],
+      ['place', 7],
+      ['day', 3],
+      ['reservation', 40],
+      ['accommodation', 11],
+    ] as const) {
       expect((await call(host, 'meta.set', { entityType, entityId, key: 'k', value: 1 })).ok).toBe(true);
     }
     // Accommodations deliberately ride on day_edit, like the accommodation write path.
@@ -331,13 +360,19 @@ describe('MetaRpc — namespaced entity metadata', () => {
 
   it('HOSTRPC-016 an unknown entityType is BAD_PARAMS and a userless context is refused', async () => {
     const host = makeHost('meta', 'db:meta');
-    expect((await call(host, 'meta.set', { entityType: 'user', entityId: 1, key: 'k', value: 1 })).error?.code).toBe('BAD_PARAMS');
-    expect((await call(host, 'meta.get', { entityType: 'trip', entityId: 1, key: 'k' }, undefined)).error?.code).toBe('RESOURCE_FORBIDDEN');
+    expect((await call(host, 'meta.set', { entityType: 'user', entityId: 1, key: 'k', value: 1 })).error?.code).toBe(
+      'BAD_PARAMS',
+    );
+    expect((await call(host, 'meta.get', { entityType: 'trip', entityId: 1, key: 'k' }, undefined)).error?.code).toBe(
+      'RESOURCE_FORBIDDEN',
+    );
     // An entity id that resolves to nothing is refused rather than reported as empty.
-    expect((await call(host, 'meta.get', { entityType: 'reservation', entityId: 999, key: 'k' })).error?.code).toBe('RESOURCE_FORBIDDEN');
+    expect((await call(host, 'meta.get', { entityType: 'reservation', entityId: 999, key: 'k' })).error?.code).toBe(
+      'RESOURCE_FORBIDDEN',
+    );
   });
 
-  it('HOSTRPC-017 one plugin never reads another\'s keys on the same entity', async () => {
+  it("HOSTRPC-017 one plugin never reads another's keys on the same entity", async () => {
     const a = makeHost('meta-a', 'db:meta');
     const b = makeHost('meta-b', 'db:meta');
     await call(a, 'meta.set', { entityType: 'trip', entityId: 1, key: 'shared', value: 'a-value' });
@@ -350,7 +385,9 @@ describe('MetaRpc — namespaced entity metadata', () => {
   it('HOSTRPC-018 without db:meta not one of the four is reachable', async () => {
     const host = makeHost('meta', 'db:read:trips');
     for (const method of ['meta.get', 'meta.set', 'meta.list', 'meta.delete']) {
-      expect((await call(host, method, { entityType: 'trip', entityId: 1, key: 'k' })).error?.code).toBe('PERMISSION_DENIED');
+      expect((await call(host, method, { entityType: 'trip', entityId: 1, key: 'k' })).error?.code).toBe(
+        'PERMISSION_DENIED',
+      );
     }
   });
 });
@@ -385,8 +422,12 @@ describe('HostSurfaceRpc — users, broadcasts, notify, ai, oauth, scheduler', (
     await call(host, 'ws.broadcastToTrip', { tripId: 1, event: 'ping', data: 'primitive' }, 5);
     expect(broadcast).toHaveBeenLastCalledWith(1, 'plugin:surface:ping', { value: 'primitive' });
     broadcast.mockClear();
-    expect((await call(host, 'ws.broadcastToTrip', { tripId: 2, event: 'x', data: {} }, 5)).error?.code).toBe('RESOURCE_FORBIDDEN');
-    expect((await call(host, 'ws.broadcastToTrip', { tripId: 1, event: 'x', data: {} }, undefined)).error?.code).toBe('RESOURCE_FORBIDDEN');
+    expect((await call(host, 'ws.broadcastToTrip', { tripId: 2, event: 'x', data: {} }, 5)).error?.code).toBe(
+      'RESOURCE_FORBIDDEN',
+    );
+    expect((await call(host, 'ws.broadcastToTrip', { tripId: 1, event: 'x', data: {} }, undefined)).error?.code).toBe(
+      'RESOURCE_FORBIDDEN',
+    );
     expect(broadcast).not.toHaveBeenCalled();
   });
 
@@ -394,43 +435,87 @@ describe('HostSurfaceRpc — users, broadcasts, notify, ai, oauth, scheduler', (
     const host = makeHost('surface', 'ws:broadcast:user');
     expect((await call(host, 'ws.broadcastToUser', { userId: 5, event: 'hi', data: { x: 2 } }, 5)).ok).toBe(true);
     expect(broadcastToUser).toHaveBeenCalledWith(5, { type: 'plugin:surface', event: 'hi', x: 2 });
-    expect((await call(host, 'ws.broadcastToUser', { userId: 6, event: 'hi', data: {} }, 5)).error?.code).toBe('RESOURCE_FORBIDDEN');
-    expect((await call(host, 'ws.broadcastToUser', { userId: 5, event: 'hi', data: {} }, undefined)).error?.code).toBe('RESOURCE_FORBIDDEN');
+    expect((await call(host, 'ws.broadcastToUser', { userId: 6, event: 'hi', data: {} }, 5)).error?.code).toBe(
+      'RESOURCE_FORBIDDEN',
+    );
+    expect((await call(host, 'ws.broadcastToUser', { userId: 5, event: 'hi', data: {} }, undefined)).error?.code).toBe(
+      'RESOURCE_FORBIDDEN',
+    );
   });
 
   it('HOSTRPC-022 notify.send forces the recipient and carries the plugin_notification event', async () => {
     const host = makeHost('surface', 'notify:send');
-    expect((await call(host, 'notify.send', { input: { title: 'Delay', body: 'AB123 late', scope: 'user', targetId: 5, link: '/trips/1' } }, 5)).ok).toBe(true);
-    expect(notifySend).toHaveBeenCalledWith(expect.objectContaining({
-      event: 'plugin_notification',
-      actorId: null,
-      scope: 'user',
-      targetId: 5,
-      params: expect.objectContaining({ title: 'Delay', body: 'AB123 late', link: '/trips/1' }),
-    }));
-    expect((await call(host, 'notify.send', { input: { title: 't', body: 'b', scope: 'trip', targetId: 1 } }, 5)).ok).toBe(true);
+    expect(
+      (
+        await call(
+          host,
+          'notify.send',
+          { input: { title: 'Delay', body: 'AB123 late', scope: 'user', targetId: 5, link: '/trips/1' } },
+          5,
+        )
+      ).ok,
+    ).toBe(true);
+    expect(notifySend).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: 'plugin_notification',
+        actorId: null,
+        scope: 'user',
+        targetId: 5,
+        params: expect.objectContaining({ title: 'Delay', body: 'AB123 late', link: '/trips/1' }),
+      }),
+    );
+    expect(
+      (await call(host, 'notify.send', { input: { title: 't', body: 'b', scope: 'trip', targetId: 1 } }, 5)).ok,
+    ).toBe(true);
     // Another user, a trip the acting user isn't in, and the admin scope are all refused.
-    expect((await call(host, 'notify.send', { input: { title: 't', body: 'b', scope: 'user', targetId: 9 } }, 5)).error?.code).toBe('RESOURCE_FORBIDDEN');
-    expect((await call(host, 'notify.send', { input: { title: 't', body: 'b', scope: 'trip', targetId: 2 } }, 5)).error?.code).toBe('RESOURCE_FORBIDDEN');
-    expect((await call(host, 'notify.send', { input: { title: 't', body: 'b', scope: 'admin', targetId: 0 } }, 5)).error?.code).toBe('BAD_PARAMS');
-    expect((await call(host, 'notify.send', { input: { title: 't', body: 'b', scope: 'user', targetId: 5 } }, undefined)).error?.code).toBe('RESOURCE_FORBIDDEN');
+    expect(
+      (await call(host, 'notify.send', { input: { title: 't', body: 'b', scope: 'user', targetId: 9 } }, 5)).error
+        ?.code,
+    ).toBe('RESOURCE_FORBIDDEN');
+    expect(
+      (await call(host, 'notify.send', { input: { title: 't', body: 'b', scope: 'trip', targetId: 2 } }, 5)).error
+        ?.code,
+    ).toBe('RESOURCE_FORBIDDEN');
+    expect(
+      (await call(host, 'notify.send', { input: { title: 't', body: 'b', scope: 'admin', targetId: 0 } }, 5)).error
+        ?.code,
+    ).toBe('BAD_PARAMS');
+    expect(
+      (await call(host, 'notify.send', { input: { title: 't', body: 'b', scope: 'user', targetId: 5 } }, undefined))
+        .error?.code,
+    ).toBe('RESOURCE_FORBIDDEN');
   });
 
   it('HOSTRPC-023 notify.send rejects an off-site link and an empty or emoji-only title', async () => {
     const host = makeHost('surface', 'notify:send');
     const base = { body: 'b', scope: 'user', targetId: 5 };
     for (const link of ['//evil.com', 'https://evil.com/x', '/\\evil.com', 'javascript:alert(1)']) {
-      expect((await call(host, 'notify.send', { input: { ...base, title: 't', link } }, 5)).error?.code).toBe('BAD_PARAMS');
+      expect((await call(host, 'notify.send', { input: { ...base, title: 't', link } }, 5)).error?.code).toBe(
+        'BAD_PARAMS',
+      );
     }
     expect((await call(host, 'notify.send', { input: { ...base, title: '' } }, 5)).error?.code).toBe('BAD_PARAMS');
     // stripEmoji collapses an all-emoji title to '', so it lands on the same refusal.
     expect((await call(host, 'notify.send', { input: { ...base, title: '🎉🎉' } }, 5)).error?.code).toBe('BAD_PARAMS');
-    expect((await call(host, 'notify.send', { input: { ...base, title: 'x'.repeat(201) } }, 5)).error?.code).toBe('BAD_PARAMS');
-    expect((await call(host, 'notify.send', { input: { title: 't', body: 'y'.repeat(1001), scope: 'user', targetId: 5 } }, 5)).error?.code).toBe('BAD_PARAMS');
+    expect((await call(host, 'notify.send', { input: { ...base, title: 'x'.repeat(201) } }, 5)).error?.code).toBe(
+      'BAD_PARAMS',
+    );
+    expect(
+      (
+        await call(
+          host,
+          'notify.send',
+          { input: { title: 't', body: 'y'.repeat(1001), scope: 'user', targetId: 5 } },
+          5,
+        )
+      ).error?.code,
+    ).toBe('BAD_PARAMS');
     // A non-string title or body lands on the same refusal as an empty one, rather
     // than reaching stripEmoji and throwing there.
     expect((await call(host, 'notify.send', { input: { ...base, title: 42 } }, 5)).error?.code).toBe('BAD_PARAMS');
-    expect((await call(host, 'notify.send', { input: { title: 't', body: 42, scope: 'user', targetId: 5 } }, 5)).error?.code).toBe('BAD_PARAMS');
+    expect(
+      (await call(host, 'notify.send', { input: { title: 't', body: 42, scope: 'user', targetId: 5 } }, 5)).error?.code,
+    ).toBe('BAD_PARAMS');
     expect(notifySend).not.toHaveBeenCalled();
   });
 
@@ -444,9 +529,13 @@ describe('HostSurfaceRpc — users, broadcasts, notify, ai, oauth, scheduler', (
     expect((await call(host, 'ai.complete', { prompt: 'hi' }, 7)).error?.code).toBe('BAD_PARAMS');
     expect((await call(host, 'ai.complete', { prompt: '' }, 5)).error?.code).toBe('BAD_PARAMS');
     expect((await call(host, 'ai.complete', { prompt: 'x'.repeat(20001) }, 5)).error?.code).toBe('BAD_PARAMS');
-    expect((await call(host, 'ai.extract', { text: 'x', jsonSchema: 'not-an-object' }, 5)).error?.code).toBe('BAD_PARAMS');
+    expect((await call(host, 'ai.extract', { text: 'x', jsonSchema: 'not-an-object' }, 5)).error?.code).toBe(
+      'BAD_PARAMS',
+    );
     expect((await call(host, 'ai.extract', { text: '', jsonSchema: {} }, 5)).error?.code).toBe('BAD_PARAMS');
-    expect((await call(host, 'ai.extract', { text: 'x'.repeat(20001), jsonSchema: {} }, 5)).error?.code).toBe('BAD_PARAMS');
+    expect((await call(host, 'ai.extract', { text: 'x'.repeat(20001), jsonSchema: {} }, 5)).error?.code).toBe(
+      'BAD_PARAMS',
+    );
     expect((await call(host, 'ai.complete', { prompt: 'hi' }, undefined)).error?.code).toBe('RESOURCE_FORBIDDEN');
     // A non-string prompt/text is the same refusal as an empty one, not a crash.
     expect((await call(host, 'ai.complete', { prompt: 42 }, 5)).error?.code).toBe('BAD_PARAMS');
@@ -455,24 +544,32 @@ describe('HostSurfaceRpc — users, broadcasts, notify, ai, oauth, scheduler', (
     expect((await call(host, 'ai.extract', { text: 'x', jsonSchema: null }, 5)).error?.code).toBe('BAD_PARAMS');
   });
 
-  it('HOSTRPC-025 the plugin\'s system prompt and extraction hint are passed through, with a default', async () => {
+  it("HOSTRPC-025 the plugin's system prompt and extraction hint are passed through, with a default", async () => {
     const host = makeHost('surface', 'ai:invoke');
     await call(host, 'ai.complete', { prompt: 'p', system: 'be terse' }, 5);
     expect(llmExtract).toHaveBeenLastCalledWith(expect.objectContaining({ prompt: 'be terse', text: 'p' }));
     await call(host, 'ai.complete', { prompt: 'p' }, 5);
-    expect(llmExtract).toHaveBeenLastCalledWith(expect.objectContaining({ prompt: expect.stringContaining('helpful assistant') }));
+    expect(llmExtract).toHaveBeenLastCalledWith(
+      expect.objectContaining({ prompt: expect.stringContaining('helpful assistant') }),
+    );
     await call(host, 'ai.extract', { text: 't', jsonSchema: { type: 'object' }, prompt: '' }, 5);
-    expect(llmExtract).toHaveBeenLastCalledWith(expect.objectContaining({ prompt: expect.stringContaining('Extract structured data') }));
+    expect(llmExtract).toHaveBeenLastCalledWith(
+      expect.objectContaining({ prompt: expect.stringContaining('Extract structured data') }),
+    );
   });
 
   it('HOSTRPC-026 a model that answers with no text yields an empty string, not undefined', async () => {
     llmExtract.mockResolvedValueOnce([{ text: 42 } as never]);
-    expect((await call(makeHost('surface', 'ai:invoke'), 'ai.complete', { prompt: 'p' }, 5)).result).toEqual({ text: '' });
+    expect((await call(makeHost('surface', 'ai:invoke'), 'ai.complete', { prompt: 'p' }, 5)).result).toEqual({
+      text: '',
+    });
     llmExtract.mockResolvedValueOnce([]);
-    expect((await call(makeHost('surface', 'ai:invoke'), 'ai.complete', { prompt: 'p' }, 5)).result).toEqual({ text: '' });
+    expect((await call(makeHost('surface', 'ai:invoke'), 'ai.complete', { prompt: 'p' }, 5)).result).toEqual({
+      text: '',
+    });
   });
 
-  it('HOSTRPC-027 oauth.getToken returns only the acting user\'s access token', async () => {
+  it("HOSTRPC-027 oauth.getToken returns only the acting user's access token", async () => {
     const host = makeHost('surface', 'oauth:client');
     expect((await call(host, 'oauth.getToken', {}, 5)).result).toEqual({ accessToken: 'tok-5' });
     expect((await call(host, 'oauth.getToken', {}, 7)).result).toEqual({ accessToken: null }); // not connected
@@ -489,7 +586,9 @@ describe('HostSurfaceRpc — users, broadcasts, notify, ai, oauth, scheduler', (
         .get().n;
     const due = Date.now() + 120_000;
     // Userless is fine — a scheduled task is like a job.
-    expect((await call(host, 'scheduler.set', { name: 'poll', dueAt: due, payload: { a: 1 } }, undefined)).ok).toBe(true);
+    expect((await call(host, 'scheduler.set', { name: 'poll', dueAt: due, payload: { a: 1 } }, undefined)).ok).toBe(
+      true,
+    );
     expect(count()).toBe(1);
     expect((await call(host, 'scheduler.set', { name: 'poll', dueAt: due + 1000 }, undefined)).ok).toBe(true);
     expect(count()).toBe(1); // upsert by (plugin, name)
@@ -501,7 +600,8 @@ describe('HostSurfaceRpc — users, broadcasts, notify, ai, oauth, scheduler', (
   it('HOSTRPC-029 the scheduler caps bound name, horizon, interval and payload', async () => {
     const host = makeHost('wsched2', 'jobs:run');
     const due = Date.now() + 120_000;
-    const bad = async (params: Record<string, unknown>) => (await call(host, 'scheduler.set', params, undefined)).error?.code;
+    const bad = async (params: Record<string, unknown>) =>
+      (await call(host, 'scheduler.set', params, undefined)).error?.code;
     expect(await bad({ name: '', dueAt: due })).toBe('BAD_PARAMS');
     expect(await bad({ name: 'x'.repeat(129), dueAt: due })).toBe('BAD_PARAMS');
     expect(await bad({ name: 'far', dueAt: Date.now() + 400 * 24 * 60 * 60 * 1000 })).toBe('BAD_PARAMS');
@@ -529,16 +629,22 @@ describe('HostSurfaceRpc — users, broadcasts, notify, ai, oauth, scheduler', (
     expect((await call(host, 'scheduler.set', { name: 't0', dueAt: due + 5 }, undefined)).ok).toBe(true);
   });
 
-  it('HOSTRPC-031 the daily notify + AI budgets are enforced, seeded from today\'s audit rows', async () => {
+  it("HOSTRPC-031 the daily notify + AI budgets are enforced, seeded from today's audit rows", async () => {
     // Seed the audit with a plugin that has already spent its whole day (default caps
     // are 100 notify / 200 ai) so the budget is exhausted on first use.
     const today = `${new Date().toISOString().slice(0, 10)}T08:00:00.000Z`;
-    const insert = (mockDb as unknown as { prepare(s: string): { run(...a: unknown[]): unknown } })
-      .prepare("INSERT INTO plugin_capability_audit (plugin_id, method, code, ts) VALUES (?, ?, 'ok', ?)");
+    const insert = (mockDb as unknown as { prepare(s: string): { run(...a: unknown[]): unknown } }).prepare(
+      "INSERT INTO plugin_capability_audit (plugin_id, method, code, ts) VALUES (?, ?, 'ok', ?)",
+    );
     for (let i = 0; i < 100; i++) insert.run('wbudget', 'notify.send', today);
     for (let i = 0; i < 200; i++) insert.run('wbudget', 'ai.complete', today);
     const host = makeHost('wbudget', 'notify:send', 'ai:invoke');
-    const notified = await call(host, 'notify.send', { input: { title: 't', body: 'b', scope: 'user', targetId: 5 } }, 5);
+    const notified = await call(
+      host,
+      'notify.send',
+      { input: { title: 't', body: 'b', scope: 'user', targetId: 5 } },
+      5,
+    );
     expect(notified.error?.code).toBe('BAD_PARAMS');
     expect(notified.error?.message).toMatch(/budget/i);
     expect(notifySend).not.toHaveBeenCalled();

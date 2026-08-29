@@ -494,10 +494,7 @@ export function buildOsmDetails(tags: Record<string, string>, osmType: string, o
  */
 export function stripWikiMarkup(value: string | undefined | null): string | null {
   if (!value) return null;
-  const text = stripHtmlTags(value, ' ')
-    .replaceAll('&nbsp;', ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+  const text = stripHtmlTags(value, ' ').replaceAll('&nbsp;', ' ').replace(/\s+/g, ' ').trim();
   return text || null;
 }
 
@@ -523,8 +520,7 @@ export function parseWikipediaTag(tag: string | undefined | null): { lang: strin
 // cache keys of the form "<placeId>~p3" that enrichment mints for the picker.
 // Google answers those with a billable 400 INVALID_ARGUMENT, so every lookup
 // sorts them out before the call and uses the OSM/Wikimedia path instead.
-const NON_GOOGLE_PLACE_ID =
-  /^(?:coords|node|way|relation):|^https?:\/\/|^-?\d+(?:\.\d+)?,\s*-?\d+(?:\.\d+)?$|~p\d+$/i;
+const NON_GOOGLE_PLACE_ID = /^(?:coords|node|way|relation):|^https?:\/\/|^-?\d+(?:\.\d+)?,\s*-?\d+(?:\.\d+)?$|~p\d+$/i;
 // The subset that still has a provider behind it — Overpass for details,
 // Wikimedia for photos.
 export const OSM_PLACE_ID = /^(?:node|way|relation):/i;
@@ -569,19 +565,21 @@ const NOT_A_PHOTO_OF_THE_PLACE =
  * `- 17` / `(2)` suffixes press sets use.
  */
 function seriesStem(title: string): string {
-  return title
-    .replace(/^File:/i, '')
-    .replace(/\.[a-z0-9]+$/i, '')
-    .toLowerCase()
-    // 20260614 100717648 HDR — a camera dump, all from the same minute
-    .replace(/\b\d{8}[ _-]\d{6,9}\b/g, ' ')
-    .replace(/\b(19|20)\d{2}\b/g, ' ')
-    // The character in front of the suffix is matched and put straight back:
-    // /[ _-]+…$/ on its own restarts at every space of a title that has no such
-    // suffix, and re-reads the rest of the run each time.
-    .replace(/([^ _-]|^)[ _-]+\(?\d{1,4}\)?$/g, '$1')
-    .replace(/[^a-z]+/g, ' ')
-    .trim();
+  return (
+    title
+      .replace(/^File:/i, '')
+      .replace(/\.[a-z0-9]+$/i, '')
+      .toLowerCase()
+      // 20260614 100717648 HDR — a camera dump, all from the same minute
+      .replace(/\b\d{8}[ _-]\d{6,9}\b/g, ' ')
+      .replace(/\b(19|20)\d{2}\b/g, ' ')
+      // The character in front of the suffix is matched and put straight back:
+      // /[ _-]+…$/ on its own restarts at every space of a title that has no such
+      // suffix, and re-reads the rest of the run each time.
+      .replace(/([^ _-]|^)[ _-]+\(?\d{1,4}\)?$/g, '$1')
+      .replace(/[^a-z]+/g, ' ')
+      .trim()
+  );
 }
 
 /**

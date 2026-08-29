@@ -98,7 +98,8 @@ const places: TranslationStrings = {
   'places.details.facts': 'Bon à savoir',
   'places.details.nothing': 'Rien trouvé pour ce lieu.',
   'places.details.noKeyTitle': 'Plus de détails disponibles',
-  'places.details.noKeyHint': 'Sans clé API Google, cette instance n\'utilise que des sources libres. Demandez à votre administrateur TREK d\'en ajouter une pour les avis, les horaires et les photos.',
+  'places.details.noKeyHint':
+    "Sans clé API Google, cette instance n'utilise que des sources libres. Demandez à votre administrateur TREK d'en ajouter une pour les avis, les horaires et les photos.",
   'places.details.aboutBrand': 'À propos de la chaîne',
   'places.details.aboutBrandNote': 'Décrit la chaîne, pas cet établissement.',
   'places.details.fact.rating': 'Note',

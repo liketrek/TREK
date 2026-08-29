@@ -5,13 +5,15 @@
  * it silently fell back to 'EUR', inflating balances on every non-EUR trip that had
  * a foreign-currency expense (#1543).
  */
-import { describe, it, expect, beforeEach } from 'vitest';
 import { db, canAccessTrip } from '../../../src/db/database';
 import { CAN_ACCESS_TRIP_SQL, buildDbMock, createTestDb } from '../../helpers/test-db';
 
+import { describe, it, expect, beforeEach } from 'vitest';
+
 function seedUser(username: string): number {
   return Number(
-    db.prepare("INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, 'x', 'user')")
+    db
+      .prepare("INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, 'x', 'user')")
       .run(username, `${username}@example.test`).lastInsertRowid,
   );
 }
@@ -24,8 +26,7 @@ describe('canAccessTrip', () => {
   it('returns the trip currency for the owner (#1543)', () => {
     const owner = seedUser('owner');
     const tripId = Number(
-      db.prepare("INSERT INTO trips (user_id, title, currency) VALUES (?, 'Trip', 'RUB')")
-        .run(owner).lastInsertRowid,
+      db.prepare("INSERT INTO trips (user_id, title, currency) VALUES (?, 'Trip', 'RUB')").run(owner).lastInsertRowid,
     );
 
     expect(canAccessTrip(tripId, owner)).toMatchObject({ id: tripId, user_id: owner, currency: 'RUB' });
@@ -35,8 +36,7 @@ describe('canAccessTrip', () => {
     const owner = seedUser('owner2');
     const member = seedUser('member2');
     const tripId = Number(
-      db.prepare("INSERT INTO trips (user_id, title, currency) VALUES (?, 'Trip', 'JPY')")
-        .run(owner).lastInsertRowid,
+      db.prepare("INSERT INTO trips (user_id, title, currency) VALUES (?, 'Trip', 'JPY')").run(owner).lastInsertRowid,
     );
     db.prepare('INSERT INTO trip_members (trip_id, user_id) VALUES (?, ?)').run(tripId, member);
 
@@ -63,12 +63,15 @@ describe('the buildDbMock stand-in for canAccessTrip', () => {
     const testDb = createTestDb();
     try {
       const owner = Number(
-        testDb.prepare("INSERT INTO users (username, email, password_hash, role) VALUES ('m', 'm@example.test', 'x', 'user')")
+        testDb
+          .prepare(
+            "INSERT INTO users (username, email, password_hash, role) VALUES ('m', 'm@example.test', 'x', 'user')",
+          )
           .run().lastInsertRowid,
       );
       const tripId = Number(
-        testDb.prepare("INSERT INTO trips (user_id, title, currency) VALUES (?, 'Trip', 'ISK')")
-          .run(owner).lastInsertRowid,
+        testDb.prepare("INSERT INTO trips (user_id, title, currency) VALUES (?, 'Trip', 'ISK')").run(owner)
+          .lastInsertRowid,
       );
 
       expect(buildDbMock(testDb).canAccessTrip(tripId, owner)).toMatchObject({ id: tripId, currency: 'ISK' });

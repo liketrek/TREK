@@ -34,7 +34,8 @@ const builtins = new Map<string, ExternalChannel>();
 export function registerChannel(channel: ExternalChannel): void {
   // The `plugin:` namespace belongs to plugins; a built-in claiming it would make
   // getChannel() resolve inconsistently (it routes namespaced ids past this map).
-  if (isPluginChannelId(channel.id)) throw new Error(`built-in channel cannot claim the plugin namespace: ${channel.id}`);
+  if (isPluginChannelId(channel.id))
+    throw new Error(`built-in channel cannot claim the plugin namespace: ${channel.id}`);
   builtins.set(channel.id, channel);
 }
 

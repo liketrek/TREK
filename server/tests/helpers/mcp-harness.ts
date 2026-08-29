@@ -9,12 +9,11 @@
  *   const result = await harness.client.callTool({ name: 'create_trip', arguments: { title: 'Test' } });
  *   await harness.cleanup();
  */
-
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
-import { Client } from '@modelcontextprotocol/sdk/client/index';
-import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory';
 import { registerTools } from '../../src/mcp/tools';
 import { createMcpTestRegistry } from './mcp-test-controllers';
+import { Client } from '@modelcontextprotocol/sdk/client/index';
+import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 
 export interface McpHarness {
   client: Client;
@@ -62,8 +61,16 @@ export async function createMcpHarness(options: McpHarnessOptions): Promise<McpH
   await client.connect(clientTransport);
 
   const cleanup = async () => {
-    try { await client.close(); } catch { /* ignore */ }
-    try { await server.close(); } catch { /* ignore */ }
+    try {
+      await client.close();
+    } catch {
+      /* ignore */
+    }
+    try {
+      await server.close();
+    } catch {
+      /* ignore */
+    }
   };
 
   return { client, server, cleanup };

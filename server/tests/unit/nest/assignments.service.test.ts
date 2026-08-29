@@ -9,6 +9,26 @@
  * bridge-delegation case died with assignments.bridge). Uses a real in-memory SQLite DB so SQL
  * logic is exercised faithfully.
  */
+import { runMigrations } from '../../../src/db/migrations';
+import { createTables } from '../../../src/db/schema';
+import { AssignmentsService } from '../../../src/nest/assignments/assignments.service';
+import { DatabaseService, type TripAccess } from '../../../src/nest/database/database.service';
+import { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
+import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { TrekPhotosRepository } from '../../../src/nest/photos/trek-photos.repository';
+import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import {
+  createUser,
+  createTrip,
+  addTripMember,
+  createDay,
+  createPlace,
+  createDayAssignment,
+  createTag,
+} from '../../helpers/factories';
+import { resetTestDb } from '../../helpers/test-db';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // ── DB setup ──────────────────────────────────────────────────────────────────
@@ -25,11 +45,15 @@ const { testDb, dbMock } = vi.hoisted(() => {
     reinitialize: () => {},
     getPlaceWithTags: () => null,
     canAccessTrip: (tripId: unknown, userId: number) =>
-      db.prepare(`
+      db
+        .prepare(
+          `
         SELECT t.id, t.user_id FROM trips t
         LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ?
         WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)
-      `).get(userId, tripId, userId),
+      `,
+        )
+        .get(userId, tripId, userId),
     isOwner: (tripId: unknown, userId: number) =>
       !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
   };
@@ -43,18 +67,6 @@ vi.mock('../../../src/config', () => ({
   updateJwtSecret: () => {},
 }));
 vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn() }));
-
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, addTripMember, createDay, createPlace, createDayAssignment, createTag } from '../../helpers/factories';
-import { DatabaseService, type TripAccess } from '../../../src/nest/database/database.service';
-import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { AssignmentsService } from '../../../src/nest/assignments/assignments.service';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
-import { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
-import { TrekPhotosRepository } from '../../../src/nest/photos/trek-photos.repository';
 
 const dbs = new DatabaseService(testDb);
 const realtime = new RealtimeService();
@@ -190,7 +202,9 @@ describe('createAssignment', () => {
     });
     // The same compact tag projection as listDayAssignments — id/name/color/
     // created_at only, no user_id — so both read paths share one wire shape.
-    expect(a!.place.tags).toEqual([{ id: tag.id, name: 'museum', color: '#10b981', created_at: (tag as { created_at?: string }).created_at }]);
+    expect(a!.place.tags).toEqual([
+      { id: tag.id, name: 'museum', color: '#10b981', created_at: (tag as { created_at?: string }).created_at },
+    ]);
     void trip;
   });
 });
@@ -208,9 +222,11 @@ describe('listDayAssignments', () => {
     svc.setParticipants(a1.id, [user.id], trip.id);
 
     const list = svc.listDayAssignments(day.id);
-    expect(list.map(a => a.id)).toEqual([a2.id, a1.id]);
+    expect(list.map((a) => a.id)).toEqual([a2.id, a1.id]);
     // Compact tag projection (id/name/color/created_at only — no user_id key).
-    expect(list[1].place.tags).toEqual([{ id: tag.id, name: 'art', color: '#10b981', created_at: (tag as { created_at?: string }).created_at }]);
+    expect(list[1].place.tags).toEqual([
+      { id: tag.id, name: 'art', color: '#10b981', created_at: (tag as { created_at?: string }).created_at },
+    ]);
     expect(list[1].participants).toEqual([{ user_id: user.id, username: user.username, avatar: null }]);
     expect(list[0].participants).toEqual([]);
     expect(list[0].place.tags).toEqual([]);
@@ -241,7 +257,9 @@ describe('deleteAssignment / reorderAssignments', () => {
 
     svc.reorderAssignments(day.id, [a2.id, a1.id, foreign.id]);
 
-    const order = (id: number) => (testDb.prepare('SELECT order_index FROM day_assignments WHERE id = ?').get(id) as { order_index: number }).order_index;
+    const order = (id: number) =>
+      (testDb.prepare('SELECT order_index FROM day_assignments WHERE id = ?').get(id) as { order_index: number })
+        .order_index;
     expect(order(a2.id)).toBe(0);
     expect(order(a1.id)).toBe(1);
     // The day-scoped WHERE leaves another day's assignment untouched.
@@ -340,7 +358,7 @@ describe('getParticipants / setParticipants', () => {
 
     const rows = svc.setParticipants(a.id, [user.id, stranger.id, member.id], trip.id) as { user_id: number }[];
 
-    expect(rows.map(r => r.user_id).sort()).toEqual([user.id, member.id].sort());
+    expect(rows.map((r) => r.user_id).sort()).toEqual([user.id, member.id].sort());
     expect(JSON.stringify(rows)).not.toContain(stranger.username);
   });
 });
@@ -362,7 +380,9 @@ describe('updateTime', () => {
     const c = createDayAssignment(testDb, day.id, place.id, { order_index: 2 });
 
     svc.updateTime(c.id, '08:00', null);
-    const order = (id: number) => (testDb.prepare('SELECT order_index FROM day_assignments WHERE id = ?').get(id) as { order_index: number }).order_index;
+    const order = (id: number) =>
+      (testDb.prepare('SELECT order_index FROM day_assignments WHERE id = ?').get(id) as { order_index: number })
+        .order_index;
     expect([order(c.id), order(a.id), order(b.id)]).toEqual([0, 1, 2]);
 
     svc.updateTime(a.id, '07:00', null);
@@ -376,7 +396,9 @@ describe('updateTime', () => {
     svc.updateTime(b.id, '06:00', null); // sorts b first
     const updated = svc.updateTime(b.id, null, null); // clear — no re-sort
     expect(updated!.assignment_time).toBeNull();
-    const order = (id: number) => (testDb.prepare('SELECT order_index FROM day_assignments WHERE id = ?').get(id) as { order_index: number }).order_index;
+    const order = (id: number) =>
+      (testDb.prepare('SELECT order_index FROM day_assignments WHERE id = ?').get(id) as { order_index: number })
+        .order_index;
     expect(order(b.id)).toBe(0);
     expect(order(a.id)).toBe(1);
   });
@@ -389,8 +411,12 @@ describe('updateTime', () => {
     const updated = svc.updateTime(b.id, '', '');
     expect(updated!.assignment_time).toBeNull();
     expect(updated!.assignment_end_time).toBeNull();
-    expect(testDb.prepare('SELECT assignment_time FROM day_assignments WHERE id = ?').get(b.id)).toEqual({ assignment_time: null });
-    const order = (id: number) => (testDb.prepare('SELECT order_index FROM day_assignments WHERE id = ?').get(id) as { order_index: number }).order_index;
+    expect(testDb.prepare('SELECT assignment_time FROM day_assignments WHERE id = ?').get(b.id)).toEqual({
+      assignment_time: null,
+    });
+    const order = (id: number) =>
+      (testDb.prepare('SELECT order_index FROM day_assignments WHERE id = ?').get(id) as { order_index: number })
+        .order_index;
     expect(order(b.id)).toBe(0);
     expect(order(a.id)).toBe(1);
   });
@@ -401,7 +427,9 @@ describe('updateTime', () => {
     const b = createDayAssignment(testDb, day.id, place.id, { order_index: 1 });
     svc.updateTime(a.id, 'morning', null); // no colon → '99:99' in the sort
     svc.updateTime(b.id, '13:00', null);
-    const order = (id: number) => (testDb.prepare('SELECT order_index FROM day_assignments WHERE id = ?').get(id) as { order_index: number }).order_index;
+    const order = (id: number) =>
+      (testDb.prepare('SELECT order_index FROM day_assignments WHERE id = ?').get(id) as { order_index: number })
+        .order_index;
     expect(order(b.id)).toBe(0);
     expect(order(a.id)).toBe(1);
   });

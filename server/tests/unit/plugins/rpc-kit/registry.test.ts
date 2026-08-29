@@ -4,8 +4,6 @@
  * per-plugin dispatch map. Types evaporate under an `as` cast, so every compile-time
  * guarantee has a runtime twin here, and each one gets a test.
  */
-import { describe, it, expect, vi } from 'vitest';
-import { Controller } from '@nestjs/common';
 import {
   PluginController,
   PluginHook,
@@ -15,6 +13,9 @@ import {
 import { PluginRpcRegistry } from '../../../../src/nest/plugins/host/rpc-kit/registry';
 import { createTestPluginRegistry } from '../../../../src/nest/plugins/host/rpc-kit/testing';
 import type { PluginRpcContext } from '../../../../src/nest/plugins/host/rpc-kit/types';
+import { Controller } from '@nestjs/common';
+
+import { describe, it, expect, vi } from 'vitest';
 
 const ctxFor = (actingUserId: number | undefined): PluginRpcContext => ({
   pluginId: 'p',
@@ -148,9 +149,7 @@ describe('PluginRpcRegistry — validate', () => {
     // Both checks fire: it disagrees with the table AND names a permission the host
     // does not know. The second is what catches a permission invented out of thin air.
     expect(error?.message).toMatch(/but METHOD_PERMISSION says "db:read:tags"/);
-    expect(error?.message).toMatch(
-      /method "tags.list" \(Typo.list\) declares unknown permission "db:read:tapps"/,
-    );
+    expect(error?.message).toMatch(/method "tags.list" \(Typo.list\) declares unknown permission "db:read:tapps"/);
   });
 
   it('RPCKIT-REG-009 a method outside KNOWN_METHODS is named', () => {
@@ -277,7 +276,9 @@ describe('PluginRpcRegistry — validate', () => {
     }
     expect(error?.message).toMatch(/method "db.query" has no handler/);
     expect(error?.message).toMatch(/method "plugins.call" has no handler/);
-    expect(error?.message).toMatch(/hook "photoProvider" has no host-side consumer \(dead grant on the consent screen\)/);
+    expect(error?.message).toMatch(
+      /hook "photoProvider" has no host-side consumer \(dead grant on the consent screen\)/,
+    );
     // tags.list IS handled, so it must not be listed.
     expect(error?.message).not.toMatch(/method "tags.list" has no handler/);
   });

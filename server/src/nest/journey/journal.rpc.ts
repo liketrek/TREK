@@ -1,9 +1,9 @@
-import { PluginController, PluginMethod } from '../plugins/host/rpc-kit/decorators';
+import { ADDON_IDS } from '../../addons';
 import { PluginGuards } from '../plugins/host/plugin-guards.service';
 import { BadParams, ForbiddenResource } from '../plugins/host/rpc-errors';
-import { asPayload, num } from '../plugins/host/rpc-params';
+import { PluginController, PluginMethod } from '../plugins/host/rpc-kit/decorators';
 import type { PluginRpcContext } from '../plugins/host/rpc-kit/types';
-import { ADDON_IDS } from '../../addons';
+import { asPayload, num } from '../plugins/host/rpc-params';
 import { JourneyDomainService } from './journey-domain.service';
 
 /**

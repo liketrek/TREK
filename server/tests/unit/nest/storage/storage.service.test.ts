@@ -1,10 +1,3 @@
-import { describe, it, expect, afterEach } from 'vitest';
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
-import { EventEmitter } from 'node:events';
-import { PassThrough, Readable } from 'node:stream';
-import type { Response } from 'express';
 import { LocalDriver } from '../../../../src/nest/storage/drivers/local.driver';
 import type { ReplicaFailure } from '../../../../src/nest/storage/drivers/mirror.driver';
 import type { StorageRegistryService, ResolvedCategory } from '../../../../src/nest/storage/storage-registry.service';
@@ -16,6 +9,14 @@ import {
   type ObjectStat,
   type StorageDriver,
 } from '../../../../src/nest/storage/storage.types';
+
+import type { Response } from 'express';
+import { EventEmitter } from 'node:events';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { PassThrough, Readable } from 'node:stream';
+import { describe, it, expect, afterEach } from 'vitest';
 
 // Facade over a stub registry (the weather.controller.test.ts casting style)
 // backed by a REAL LocalDriver, so key composition, prefix stripping, and both
@@ -374,9 +375,7 @@ describe('StorageService sendToResponse', () => {
       disposition: 'inline',
     });
 
-    expect(mock.sendFileCalls).toEqual([
-      { name: 'doc.pdf', root: path.join(fs.realpathSync(fx.root), 'files') },
-    ]);
+    expect(mock.sendFileCalls).toEqual([{ name: 'doc.pdf', root: path.join(fs.realpathSync(fx.root), 'files') }]);
     expect(mock.headers['Content-Type']).toBe('application/pdf');
     expect(mock.headers['Content-Disposition']).toBe('inline');
   });

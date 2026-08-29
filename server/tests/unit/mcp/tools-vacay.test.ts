@@ -11,6 +11,17 @@
  * trek://vacay/holidays/{year} — these ride the registry too (attached inside
  * registerTools), so `withTools` must stay on even for resource reads.
  */
+import { ADDON_IDS } from '../../../src/addons';
+import { runMigrations } from '../../../src/db/migrations';
+// share_vacay_calendar fires a user notification after inserting; stub it out
+
+import { createTables } from '../../../src/db/schema';
+import { VacayService } from '../../../src/nest/vacay/vacay.service';
+import { createUser } from '../../helpers/factories';
+import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
+import { resetTestDb } from '../../helpers/test-db';
+import { setAddonEnabled } from '../../helpers/test-db';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 const { testDb, dbMock } = vi.hoisted(() => {
@@ -25,7 +36,11 @@ const { testDb, dbMock } = vi.hoisted(() => {
     reinitialize: () => {},
     getPlaceWithTags: () => null,
     canAccessTrip: (tripId: any, userId: number) =>
-      db.prepare(`SELECT t.id, t.user_id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)`).get(userId, tripId, userId),
+      db
+        .prepare(
+          `SELECT t.id, t.user_id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)`,
+        )
+        .get(userId, tripId, userId),
     isOwner: (tripId: any, userId: number) =>
       !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
   };
@@ -42,22 +57,18 @@ vi.mock('../../../src/config', () => ({
 const { broadcastMock } = vi.hoisted(() => ({ broadcastMock: vi.fn() }));
 vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
 
-// share_vacay_calendar fires a user notification after inserting; stub it out
-
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser } from '../../helpers/factories';
-import { setAddonEnabled } from '../../helpers/test-db';
-import { ADDON_IDS } from '../../../src/addons';
-import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
-import { VacayService } from '../../../src/nest/vacay/vacay.service';
-
 // Stub the async methods that make external calls (VacayService is DI-native;
 // the registry constructs a real instance, so spy on the prototype — the
 // successor of the legacy path-level partial mock of services/vacayService).
 vi.spyOn(VacayService.prototype, 'updatePlan').mockResolvedValue({
-  plan: { id: 1, block_weekends: true, holidays_enabled: false, company_holidays_enabled: false, carry_over_enabled: false, holiday_calendars: [] },
+  plan: {
+    id: 1,
+    block_weekends: true,
+    holidays_enabled: false,
+    company_holidays_enabled: false,
+    carry_over_enabled: false,
+    holiday_calendars: [],
+  },
 } as never);
 vi.spyOn(VacayService.prototype, 'getCountries').mockResolvedValue({ data: [{ code: 'US', name: 'United States' }] });
 vi.spyOn(VacayService.prototype, 'getHolidays').mockResolvedValue({ data: [{ date: '2025-01-01', name: 'New Year' }] });
@@ -82,12 +93,20 @@ afterAll(() => {
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
   const h = await createMcpHarness({ userId, withResources: false });
-  try { await fn(h); } finally { await h.cleanup(); }
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 async function withResourceHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
   const h = await createMcpHarness({ userId, withResources: true });
-  try { await fn(h); } finally { await h.cleanup(); }
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -318,7 +337,10 @@ describe('Tool: update_vacay_stats', () => {
   it('updates vacation days allowance and returns success', async () => {
     const { user } = createUser(testDb);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'update_vacay_stats', arguments: { year: 2025, vacationDays: 25 } });
+      const result = await h.client.callTool({
+        name: 'update_vacay_stats',
+        arguments: { year: 2025, vacationDays: 25 },
+      });
       const data = parseToolResult(result) as any;
       expect(data.success).toBe(true);
     });
@@ -328,7 +350,10 @@ describe('Tool: update_vacay_stats', () => {
     process.env.DEMO_MODE = 'true';
     const { user } = createUser(testDb, { email: 'demo@nomad.app' });
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'update_vacay_stats', arguments: { year: 2025, vacationDays: 20 } });
+      const result = await h.client.callTool({
+        name: 'update_vacay_stats',
+        arguments: { year: 2025, vacationDays: 20 },
+      });
       expect(result.isError).toBe(true);
     });
   });
@@ -392,7 +417,10 @@ describe('Tool: update_holiday_calendar', () => {
     process.env.DEMO_MODE = 'true';
     const { user } = createUser(testDb, { email: 'demo@nomad.app' });
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'update_holiday_calendar', arguments: { calendarId: 1, label: 'X' } });
+      const result = await h.client.callTool({
+        name: 'update_holiday_calendar',
+        arguments: { calendarId: 1, label: 'X' },
+      });
       expect(result.isError).toBe(true);
     });
   });
@@ -491,7 +519,9 @@ describe('Tool: share_vacay_calendar', () => {
       const result = await h.client.callTool({ name: 'share_vacay_calendar', arguments: { targetUserId: other.id } });
       const data = parseToolResult(result) as any;
       expect(data.success).toBe(true);
-      const row = testDb.prepare('SELECT id FROM vacay_shares WHERE owner_id = ? AND user_id = ?').get(user.id, other.id);
+      const row = testDb
+        .prepare('SELECT id FROM vacay_shares WHERE owner_id = ? AND user_id = ?')
+        .get(user.id, other.id);
       expect(row).toBeDefined();
     });
   });
@@ -626,7 +656,12 @@ describe('Tool: decline_vacay_invite', () => {
       await h.client.callTool({ name: 'send_vacay_invite', arguments: { targetUserId: invitee.id } });
     });
     await withHarness(invitee.id, async (h) => {
-      const result = await h.client.callTool({ name: 'decline_vacay_invite', arguments: { planId: testDb.prepare('SELECT plan_id FROM vacay_plan_members WHERE user_id = ?').get(invitee.id)!.plan_id } });
+      const result = await h.client.callTool({
+        name: 'decline_vacay_invite',
+        arguments: {
+          planId: testDb.prepare('SELECT plan_id FROM vacay_plan_members WHERE user_id = ?').get(invitee.id)!.plan_id,
+        },
+      });
       const data = parseToolResult(result) as any;
       expect(data.success).toBe(true);
     });

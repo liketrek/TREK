@@ -1,6 +1,6 @@
-import { Module } from '@nestjs/common';
-import { McpToolGuardsService } from './mcp-tool-guards.service';
 import { PermissionsModule } from '../permissions/permissions.module';
+import { McpToolGuardsService } from './mcp-tool-guards.service';
+import { Module } from '@nestjs/common';
 
 /**
  * Shared guards for the @McpController domain classes. Deliberately NOT

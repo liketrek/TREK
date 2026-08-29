@@ -1,8 +1,9 @@
-import { Injectable, type OnApplicationShutdown } from '@nestjs/common';
-import { SchedulerRegistry } from '@nestjs/schedule';
-import { CronJob } from 'cron';
 import { readEnv } from '../../app-config';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
+import { Injectable, type OnApplicationShutdown } from '@nestjs/common';
+import { SchedulerRegistry } from '@nestjs/schedule';
+
+import { CronJob } from 'cron';
 
 /**
  * The one way TREK code schedules a cron. Job providers register here from

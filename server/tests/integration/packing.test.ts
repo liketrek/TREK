@@ -2,10 +2,17 @@
  * Packing List integration tests.
  * Covers PACK-001 to PACK-014.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-import request from 'supertest';
-import type { Application } from 'express';
+import { buildApp } from '../../src/bootstrap';
+import { runMigrations } from '../../src/db/migrations';
+import { createTables } from '../../src/db/schema';
+import { authCookie } from '../helpers/auth';
+import { createUser, createTrip, createPackingItem, addTripMember } from '../helpers/factories';
+import { resetTestDb, resetRateLimits } from '../helpers/test-db';
 import type { INestApplication } from '@nestjs/common';
+
+import type { Application } from 'express';
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 const { testDb, dbMock } = vi.hoisted(() => {
   const Database = require('better-sqlite3');
@@ -18,13 +25,29 @@ const { testDb, dbMock } = vi.hoisted(() => {
     closeDb: () => {},
     reinitialize: () => {},
     getPlaceWithTags: (placeId: number) => {
-      const place: any = db.prepare(`SELECT p.*, c.name as category_name, c.color as category_color, c.icon as category_icon FROM places p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id = ?`).get(placeId);
+      const place: any = db
+        .prepare(
+          `SELECT p.*, c.name as category_name, c.color as category_color, c.icon as category_icon FROM places p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id = ?`,
+        )
+        .get(placeId);
       if (!place) return null;
-      const tags = db.prepare(`SELECT t.* FROM tags t JOIN place_tags pt ON t.id = pt.tag_id WHERE pt.place_id = ?`).all(placeId);
-      return { ...place, category: place.category_id ? { id: place.category_id, name: place.category_name, color: place.category_color, icon: place.category_icon } : null, tags };
+      const tags = db
+        .prepare(`SELECT t.* FROM tags t JOIN place_tags pt ON t.id = pt.tag_id WHERE pt.place_id = ?`)
+        .all(placeId);
+      return {
+        ...place,
+        category: place.category_id
+          ? { id: place.category_id, name: place.category_name, color: place.category_color, icon: place.category_icon }
+          : null,
+        tags,
+      };
     },
     canAccessTrip: (tripId: any, userId: number) =>
-      db.prepare(`SELECT t.id, t.user_id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)`).get(userId, tripId, userId),
+      db
+        .prepare(
+          `SELECT t.id, t.user_id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)`,
+        )
+        .get(userId, tripId, userId),
     isOwner: (tripId: any, userId: number) =>
       !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
   };
@@ -42,13 +65,6 @@ vi.mock('../../src/config', () => ({
   DEFAULT_LANGUAGE: 'en',
 }));
 vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
-
-import { buildApp } from '../../src/bootstrap';
-import { createTables } from '../../src/db/schema';
-import { runMigrations } from '../../src/db/migrations';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
-import { createUser, createTrip, createPackingItem, addTripMember } from '../helpers/factories';
-import { authCookie } from '../helpers/auth';
 
 let nestApp: INestApplication;
 let app: Application;
@@ -124,9 +140,7 @@ describe('List packing items', () => {
     createPackingItem(testDb, trip.id, { name: 'Toothbrush', category: 'Toiletries' });
     createPackingItem(testDb, trip.id, { name: 'Shirt', category: 'Clothing' });
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/packing`)
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/packing`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(res.body.items).toHaveLength(2);
   });
@@ -138,9 +152,7 @@ describe('List packing items', () => {
     addTripMember(testDb, trip.id, member.id);
     createPackingItem(testDb, trip.id, { name: 'Jacket' });
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/packing`)
-      .set('Cookie', authCookie(member.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/packing`).set('Cookie', authCookie(member.id));
     expect(res.status).toBe(200);
     expect(res.body.items).toHaveLength(1);
   });
@@ -158,8 +170,14 @@ describe('Private packing items (#858)', () => {
     addTripMember(testDb, trip.id, member.id);
 
     // Owner creates one shared and one private item.
-    await request(app).post(`/api/trips/${trip.id}/packing`).set('Cookie', authCookie(owner.id)).send({ name: 'Shared tent' });
-    const priv = await request(app).post(`/api/trips/${trip.id}/packing`).set('Cookie', authCookie(owner.id)).send({ name: 'Surprise gift', is_private: true });
+    await request(app)
+      .post(`/api/trips/${trip.id}/packing`)
+      .set('Cookie', authCookie(owner.id))
+      .send({ name: 'Shared tent' });
+    const priv = await request(app)
+      .post(`/api/trips/${trip.id}/packing`)
+      .set('Cookie', authCookie(owner.id))
+      .send({ name: 'Surprise gift', is_private: true });
     expect(priv.body.item.is_private).toBe(1);
     expect(priv.body.item.owner_id).toBe(owner.id);
 
@@ -176,10 +194,16 @@ describe('Private packing items (#858)', () => {
     const trip = createTrip(testDb, owner.id);
     addTripMember(testDb, trip.id, member.id);
 
-    const created = await request(app).post(`/api/trips/${trip.id}/packing`).set('Cookie', authCookie(owner.id)).send({ name: 'Diary' });
+    const created = await request(app)
+      .post(`/api/trips/${trip.id}/packing`)
+      .set('Cookie', authCookie(owner.id))
+      .send({ name: 'Diary' });
     const id = created.body.item.id;
 
-    await request(app).put(`/api/trips/${trip.id}/packing/${id}`).set('Cookie', authCookie(owner.id)).send({ is_private: true });
+    await request(app)
+      .put(`/api/trips/${trip.id}/packing/${id}`)
+      .set('Cookie', authCookie(owner.id))
+      .send({ is_private: true });
 
     const memberView = await request(app).get(`/api/trips/${trip.id}/packing`).set('Cookie', authCookie(member.id));
     expect(memberView.body.items).toHaveLength(0);
@@ -211,7 +235,9 @@ describe('Three-tier packing sharing (#858)', () => {
     addTripMember(testDb, trip.id, friend.id);
     addTripMember(testDb, trip.id, stranger.id);
 
-    const created = await request(app).post(`/api/trips/${trip.id}/packing`).set('Cookie', authCookie(owner.id))
+    const created = await request(app)
+      .post(`/api/trips/${trip.id}/packing`)
+      .set('Cookie', authCookie(owner.id))
       .send({ name: 'Power bank', visibility: 'shared', recipient_ids: [friend.id] });
     expect(created.body.item.recipients.map((r: any) => r.user_id)).toEqual([friend.id]);
     expect(created.body.item.owner_username).toBeTruthy();
@@ -222,14 +248,19 @@ describe('Three-tier packing sharing (#858)', () => {
     expect(strangerView.body.items.map((i: any) => i.name)).not.toContain('Power bank');
   });
 
-  it('PACK-3T-003 — clone copies a Common item onto the caller\'s personal list', async () => {
+  it("PACK-3T-003 — clone copies a Common item onto the caller's personal list", async () => {
     const { user: owner } = createUser(testDb);
     const { user: member } = createUser(testDb);
     const trip = createTrip(testDb, owner.id);
     addTripMember(testDb, trip.id, member.id);
-    const created = await request(app).post(`/api/trips/${trip.id}/packing`).set('Cookie', authCookie(owner.id)).send({ name: 'Adapter', visibility: 'common' });
+    const created = await request(app)
+      .post(`/api/trips/${trip.id}/packing`)
+      .set('Cookie', authCookie(owner.id))
+      .send({ name: 'Adapter', visibility: 'common' });
 
-    const clone = await request(app).post(`/api/trips/${trip.id}/packing/${created.body.item.id}/clone`).set('Cookie', authCookie(member.id));
+    const clone = await request(app)
+      .post(`/api/trips/${trip.id}/packing/${created.body.item.id}/clone`)
+      .set('Cookie', authCookie(member.id));
     expect(clone.status).toBe(201);
     expect(clone.body.item.is_private).toBe(1);
     expect(clone.body.item.owner_id).toBe(member.id);
@@ -243,9 +274,14 @@ describe('Three-tier packing sharing (#858)', () => {
     const { user: helper } = createUser(testDb);
     const trip = createTrip(testDb, owner.id);
     addTripMember(testDb, trip.id, helper.id);
-    const created = await request(app).post(`/api/trips/${trip.id}/packing`).set('Cookie', authCookie(owner.id)).send({ name: 'Sunscreen', visibility: 'common' });
+    const created = await request(app)
+      .post(`/api/trips/${trip.id}/packing`)
+      .set('Cookie', authCookie(owner.id))
+      .send({ name: 'Sunscreen', visibility: 'common' });
 
-    const res = await request(app).post(`/api/trips/${trip.id}/packing/${created.body.item.id}/contributors`).set('Cookie', authCookie(helper.id));
+    const res = await request(app)
+      .post(`/api/trips/${trip.id}/packing/${created.body.item.id}/contributors`)
+      .set('Cookie', authCookie(helper.id));
     expect(res.status).toBe(201);
     expect(res.body.item.contributors.map((c: any) => c.user_id)).toContain(helper.id);
   });
@@ -255,16 +291,28 @@ describe('Three-tier packing sharing (#858)', () => {
     const { user: member } = createUser(testDb);
     const trip = createTrip(testDb, owner.id);
     addTripMember(testDb, trip.id, member.id);
-    const created = await request(app).post(`/api/trips/${trip.id}/packing`).set('Cookie', authCookie(owner.id)).send({ name: 'Tent', visibility: 'personal' });
+    const created = await request(app)
+      .post(`/api/trips/${trip.id}/packing`)
+      .set('Cookie', authCookie(owner.id))
+      .send({ name: 'Tent', visibility: 'personal' });
 
     // A member who cannot see the item at all gets 404, not 403: answering 403
     // would confirm that the id exists (GHSA-vh2h-288v-ggch).
-    const hidden = await request(app).put(`/api/trips/${trip.id}/packing/${created.body.item.id}/sharing`).set('Cookie', authCookie(member.id)).send({ visibility: 'common' });
+    const hidden = await request(app)
+      .put(`/api/trips/${trip.id}/packing/${created.body.item.id}/sharing`)
+      .set('Cookie', authCookie(member.id))
+      .send({ visibility: 'common' });
     expect(hidden.status).toBe(404);
 
     // An item the member CAN see but does not own still answers 403.
-    const shared = await request(app).post(`/api/trips/${trip.id}/packing`).set('Cookie', authCookie(owner.id)).send({ name: 'Stove', visibility: 'common' });
-    const denied = await request(app).put(`/api/trips/${trip.id}/packing/${shared.body.item.id}/sharing`).set('Cookie', authCookie(member.id)).send({ visibility: 'personal' });
+    const shared = await request(app)
+      .post(`/api/trips/${trip.id}/packing`)
+      .set('Cookie', authCookie(owner.id))
+      .send({ name: 'Stove', visibility: 'common' });
+    const denied = await request(app)
+      .put(`/api/trips/${trip.id}/packing/${shared.body.item.id}/sharing`)
+      .set('Cookie', authCookie(member.id))
+      .send({ visibility: 'personal' });
     expect(denied.status).toBe(403);
   });
 });
@@ -315,9 +363,7 @@ describe('Delete packing item', () => {
     expect(del.status).toBe(200);
     expect(del.body.success).toBe(true);
 
-    const list = await request(app)
-      .get(`/api/trips/${trip.id}/packing`)
-      .set('Cookie', authCookie(user.id));
+    const list = await request(app).get(`/api/trips/${trip.id}/packing`).set('Cookie', authCookie(user.id));
     expect(list.body.items).toHaveLength(0);
   });
 });
@@ -421,9 +467,7 @@ describe('Bags', () => {
       .set('Cookie', authCookie(user.id))
       .send({ name: 'Main Bag' });
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/packing/bags`)
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/packing/bags`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(res.body.bags).toHaveLength(1);
   });
@@ -504,8 +548,12 @@ describe('Packing — apply-template, bag members, save-as-template', () => {
     const trip = createTrip(testDb, user.id);
 
     const tpl = testDb.prepare("INSERT INTO packing_templates (name, created_by) VALUES ('Beach', ?)").run(user.id);
-    const cat = testDb.prepare("INSERT INTO packing_template_categories (template_id, name, sort_order) VALUES (?, 'Essentials', 0)").run(tpl.lastInsertRowid);
-    testDb.prepare("INSERT INTO packing_template_items (category_id, name, sort_order) VALUES (?, 'Sunscreen', 0)").run(cat.lastInsertRowid);
+    const cat = testDb
+      .prepare("INSERT INTO packing_template_categories (template_id, name, sort_order) VALUES (?, 'Essentials', 0)")
+      .run(tpl.lastInsertRowid);
+    testDb
+      .prepare("INSERT INTO packing_template_items (category_id, name, sort_order) VALUES (?, 'Sunscreen', 0)")
+      .run(cat.lastInsertRowid);
     const templateId = tpl.lastInsertRowid;
 
     const res = await request(app)
@@ -637,9 +685,7 @@ describe('Packing — apply-template, bag members, save-as-template', () => {
       .set('Cookie', authCookie(admin.id))
       .send({ name: 'Shared Template' });
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/packing/templates`)
-      .set('Cookie', authCookie(admin.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/packing/templates`).set('Cookie', authCookie(admin.id));
 
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body.templates)).toBe(true);

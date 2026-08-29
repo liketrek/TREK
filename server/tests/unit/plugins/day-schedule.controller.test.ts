@@ -5,6 +5,11 @@
  * specifics: dayIds are validated against the trip's own days and minutes are
  * clamped to a day, because this output feeds displayed timing totals.
  */
+import { db as dbConn } from '../../../src/db/database';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { DayScheduleController } from '../../../src/nest/plugins/contributions/day-schedule.controller';
+import type { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const { canAccessTrip, pluginsEnabled, tripDays } = vi.hoisted(() => ({
@@ -16,12 +21,8 @@ vi.mock('../../../src/db/database', () => ({
   db: { prepare: () => ({ all: () => tripDays.value }) },
   canAccessTrip,
 }));
-import { db as dbConn } from '../../../src/db/database';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 
-import { DayScheduleController } from '../../../src/nest/plugins/contributions/day-schedule.controller';
-import type { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
+vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const req = (id?: number) => ({ user: id === undefined ? undefined : { id } }) as any;
@@ -35,7 +36,10 @@ function controller(invoke: (id: string) => unknown, providers = ['p1']) {
 const item = (over: Record<string, unknown> = {}) => ({ id: 's1', dayId: 10, label: 'Charging', ...over });
 
 describe('DayScheduleController', () => {
-  beforeEach(() => { pluginsEnabled.mockReturnValue(true); canAccessTrip.mockReturnValue({ id: 1 } as never); });
+  beforeEach(() => {
+    pluginsEnabled.mockReturnValue(true);
+    canAccessTrip.mockReturnValue({ id: 1 } as never);
+  });
 
   it('gates: disabled / no user / non-member all return [] (no plugin calls on the first)', async () => {
     pluginsEnabled.mockReturnValue(false);
@@ -61,15 +65,15 @@ describe('DayScheduleController', () => {
 
   it("drops items anchored to another trip's day, without id/label, or non-objects", async () => {
     const { c } = controller(() => [
-      item({ dayId: 999 }),          // not a day of this trip
-      item({ id: '' }),              // no id
-      item({ label: '' }),           // no label
-      item({ dayId: 'x' }),          // non-numeric day
-      null,                          // non-object
+      item({ dayId: 999 }), // not a day of this trip
+      item({ id: '' }), // no id
+      item({ label: '' }), // no label
+      item({ dayId: 'x' }), // non-numeric day
+      null, // non-object
       item({ id: 'good', dayId: 11 }),
     ]);
     const out = (await c.get('1', req(5))).items;
-    expect(out.map(i => i.id)).toEqual(['good']);
+    expect(out.map((i) => i.id)).toEqual(['good']);
   });
 
   it('ignores bogus anchors and positions instead of failing the item', async () => {
@@ -83,7 +87,15 @@ describe('DayScheduleController', () => {
 
   it('caps items at 60 per provider and skips a failing provider', async () => {
     const many = Array.from({ length: 80 }, (_, i) => item({ id: `s${i}` }));
-    const { c } = controller((id) => (id === 'bad' ? (() => { throw new Error('boom'); })() : many), ['good', 'bad']);
+    const { c } = controller(
+      (id) =>
+        id === 'bad'
+          ? (() => {
+              throw new Error('boom');
+            })()
+          : many,
+      ['good', 'bad'],
+    );
     const out = (await c.get('1', req(5))).items;
     expect(out).toHaveLength(60);
   });

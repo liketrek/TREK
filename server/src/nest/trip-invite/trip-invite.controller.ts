@@ -1,13 +1,14 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpException, Param, Post, Req, UseGuards } from '@nestjs/common';
-import type { Request } from 'express';
 import type { User } from '../../types';
-import { TripInviteService } from './trip-invite.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { AuditService } from '../audit/audit.service';
+import { getClientIp } from '../audit/client-ip';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RateLimitService } from '../common/rate-limit.service';
 import { TripInviteLinkCreateDto } from './trip-invite.dto';
-import { getClientIp } from '../audit/client-ip';
-import { AuditService } from '../audit/audit.service';
+import { TripInviteService } from './trip-invite.service';
+import { Body, Controller, Delete, Get, HttpCode, HttpException, Param, Post, Req, UseGuards } from '@nestjs/common';
+
+import type { Request } from 'express';
 
 const RL_WINDOW = 15 * 60 * 1000;
 
@@ -21,7 +22,10 @@ const RL_WINDOW = 15 * 60 * 1000;
 @Controller('api/trips/:tripId/invite-link')
 @UseGuards(JwtAuthGuard)
 export class TripInviteLinkController {
-  constructor(private readonly invites: TripInviteService, private readonly audit: AuditService) {}
+  constructor(
+    private readonly invites: TripInviteService,
+    private readonly audit: AuditService,
+  ) {}
 
   private requireManage(tripId: string, user: User) {
     const trip = this.invites.verifyTripAccess(tripId, user.id);
@@ -46,11 +50,18 @@ export class TripInviteLinkController {
     @Req() req: Request,
   ) {
     this.requireManage(tripId, user);
-    const days = body?.expires_in_days != null && String(body.expires_in_days).trim() !== ''
-      ? Number.parseInt(String(body.expires_in_days))
-      : null;
+    const days =
+      body?.expires_in_days != null && String(body.expires_in_days).trim() !== ''
+        ? Number.parseInt(String(body.expires_in_days))
+        : null;
     const info = this.invites.createOrRotate(tripId, user.id, Number.isFinite(days as number) ? days : null);
-    this.audit.writeAudit({ userId: user.id, action: 'trip.invite_link_create', resource: tripId, ip: getClientIp(req), details: { expires_in_days: days } });
+    this.audit.writeAudit({
+      userId: user.id,
+      action: 'trip.invite_link_create',
+      resource: tripId,
+      ip: getClientIp(req),
+      details: { expires_in_days: days },
+    });
     return info;
   }
 
@@ -58,7 +69,12 @@ export class TripInviteLinkController {
   remove(@CurrentUser() user: User, @Param('tripId') tripId: string, @Req() req: Request) {
     this.requireManage(tripId, user);
     this.invites.remove(tripId);
-    this.audit.writeAudit({ userId: user.id, action: 'trip.invite_link_delete', resource: tripId, ip: getClientIp(req) });
+    this.audit.writeAudit({
+      userId: user.id,
+      action: 'trip.invite_link_delete',
+      resource: tripId,
+      ip: getClientIp(req),
+    });
     return { success: true };
   }
 }
@@ -73,7 +89,11 @@ export class TripInviteLinkController {
 @Controller('api/trip-invites')
 @UseGuards(JwtAuthGuard)
 export class TripInviteController {
-  constructor(private readonly invites: TripInviteService, private readonly rl: RateLimitService, private readonly audit: AuditService) {}
+  constructor(
+    private readonly invites: TripInviteService,
+    private readonly rl: RateLimitService,
+    private readonly audit: AuditService,
+  ) {}
 
   private limit(req: Request, max: number): void {
     if (!this.rl.check('trip_invite', req.ip || 'unknown', max, RL_WINDOW, Date.now())) {
@@ -96,7 +116,13 @@ export class TripInviteController {
     const resolved = this.invites.resolve(token);
     if (!resolved) throw new HttpException({ error: 'Invalid or expired invite link' }, 404);
     const result = this.invites.join(resolved.trip_id, user.id);
-    this.audit.writeAudit({ userId: user.id, action: 'trip.invite_link_join', resource: String(resolved.trip_id), ip: getClientIp(req), details: { joined: result.joined } });
+    this.audit.writeAudit({
+      userId: user.id,
+      action: 'trip.invite_link_join',
+      resource: String(resolved.trip_id),
+      ip: getClientIp(req),
+      details: { joined: result.joined },
+    });
     return { trip_id: resolved.trip_id, joined: result.joined };
   }
 }

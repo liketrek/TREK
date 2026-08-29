@@ -1,19 +1,20 @@
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
-import crypto from 'crypto';
-import type { webcrypto } from 'crypto';
-import jwt from 'jsonwebtoken';
-import { v4 as uuidv4 } from 'uuid';
-import bcrypt from 'bcryptjs';
-import type { Request, Response } from 'express';
 import { readEnv, getAppUrl } from '../../app-config';
 import { JWT_SECRET, SESSION_DURATION_SECONDS, SESSION_DURATION_REMEMBER_SECONDS } from '../../config';
 import { User } from '../../types';
-import { decrypt_api_key, maybe_encrypt_api_key } from '../common/crypto/apiKeyCrypto';
-import { TripMembershipService } from '../trip-membership/trip-membership.service';
-import { setAuthCookie, RememberOption } from '../common/cookie';
-import { AuthService } from '../auth/auth.service';
-import { DatabaseService } from '../database/database.service';
 import { safeFetchAdminConfigured } from '../../utils/ssrfGuard';
+import { AuthService } from '../auth/auth.service';
+import { setAuthCookie, RememberOption } from '../common/cookie';
+import { decrypt_api_key, maybe_encrypt_api_key } from '../common/crypto/apiKeyCrypto';
+import { DatabaseService } from '../database/database.service';
+import { TripMembershipService } from '../trip-membership/trip-membership.service';
+import { Injectable, OnModuleDestroy } from '@nestjs/common';
+
+import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
+import type { webcrypto } from 'crypto';
+import type { Request, Response } from 'express';
+import jwt from 'jsonwebtoken';
+import { v4 as uuidv4 } from 'uuid';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -60,12 +61,12 @@ export interface OidcConfig {
 // Constants / TTLs
 // ---------------------------------------------------------------------------
 
-const AUTH_CODE_TTL = 60000;          // 1 minute
-const AUTH_CODE_CLEANUP = 30000;      // 30 seconds
+const AUTH_CODE_TTL = 60000; // 1 minute
+const AUTH_CODE_CLEANUP = 30000; // 30 seconds
 /** 5 minutes — the server-side pending-state TTL AND the controller's state-cookie maxAge. */
 export const OIDC_STATE_TTL_MS = 5 * 60 * 1000;
 const STATE_TTL = OIDC_STATE_TTL_MS;
-const STATE_CLEANUP = 60 * 1000;      // 1 minute
+const STATE_CLEANUP = 60 * 1000; // 1 minute
 const DISCOVERY_TTL = 60 * 60 * 1000; // 1 hour
 
 const FETCH_TIMEOUT_MS = 10_000;
@@ -87,14 +88,18 @@ function base64url(buf: Buffer): string {
   return buf.toString('base64url');
 }
 
-const isRecord = (v: unknown): v is Record<string, unknown> =>
-  typeof v === 'object' && v !== null && !Array.isArray(v);
+const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 
 const str = (v: unknown): string | undefined => (typeof v === 'string' ? v : undefined);
 
 function isDiscoveryDoc(v: unknown): v is OidcDiscoveryDoc {
   if (!isRecord(v)) return false;
-  if (typeof v.authorization_endpoint !== 'string' || typeof v.token_endpoint !== 'string' || typeof v.userinfo_endpoint !== 'string') return false;
+  if (
+    typeof v.authorization_endpoint !== 'string' ||
+    typeof v.token_endpoint !== 'string' ||
+    typeof v.userinfo_endpoint !== 'string'
+  )
+    return false;
   if (v.issuer !== undefined && typeof v.issuer !== 'string') return false;
   if (v.jwks_uri !== undefined && typeof v.jwks_uri !== 'string') return false;
   return true;
@@ -164,7 +169,10 @@ export class OidcService implements OnModuleDestroy {
   // State management – pending OIDC states
   // -------------------------------------------------------------------------
 
-  private readonly pendingStates = new Map<string, { createdAt: number; redirectUri: string; inviteToken?: string; codeVerifier: string; remember?: boolean }>();
+  private readonly pendingStates = new Map<
+    string,
+    { createdAt: number; redirectUri: string; inviteToken?: string; codeVerifier: string; remember?: boolean }
+  >();
 
   // -------------------------------------------------------------------------
   // Auth code management – short-lived codes exchanged for JWT
@@ -205,11 +213,17 @@ export class OidcService implements OnModuleDestroy {
     clearInterval(this.codeSweeper);
   }
 
-  oidcLoginEnabled(): boolean { return this.auth.resolveAuthToggles().oidc_login; }
+  oidcLoginEnabled(): boolean {
+    return this.auth.resolveAuthToggles().oidc_login;
+  }
 
-  getAppUrl() { return getAppUrl(); }
+  getAppUrl() {
+    return getAppUrl();
+  }
 
-  setAuthCookie(res: Response, token: string, req: Request, remember?: RememberOption) { setAuthCookie(res, token, req, remember); }
+  setAuthCookie(res: Response, token: string, req: Request, remember?: RememberOption) {
+    setAuthCookie(res, token, req, remember);
+  }
 
   // Creates the login state and a matching PKCE pair. The verifier stays server
   // side (in pendingStates); the S256 challenge goes to the provider so PKCE-
@@ -249,7 +263,8 @@ export class OidcService implements OnModuleDestroy {
 
   getOidcConfig(): OidcConfig | null {
     const get = (key: string) =>
-      (this.db.prepare("SELECT value FROM app_settings WHERE key = ?").get(key) as { value: string } | undefined)?.value || null;
+      (this.db.prepare('SELECT value FROM app_settings WHERE key = ?').get(key) as { value: string } | undefined)
+        ?.value || null;
 
     const oidcEnv = readEnv().oidc;
     const issuer = oidcEnv.issuer || get('oidc_issuer');
@@ -290,7 +305,7 @@ export class OidcService implements OnModuleDestroy {
       if (discoveryUrl) {
         console.warn(
           `[OIDC] Discovery doc issuer "${doc.issuer}" differs from configured OIDC_ISSUER "${issuer}". ` +
-          `Using discovery doc issuer for id_token verification (custom OIDC_DISCOVERY_URL is set).`,
+            `Using discovery doc issuer for id_token verification (custom OIDC_DISCOVERY_URL is set).`,
         );
       } else {
         throw new Error(`OIDC discovery issuer mismatch: expected "${issuer}", got "${doc.issuer}"`);
@@ -334,16 +349,20 @@ export class OidcService implements OnModuleDestroy {
     // Embed the current password_version so an OIDC-issued session is invalidated
     // by a password change/reset exactly like a password-login session (the auth
     // middleware compares this `pv` against users.password_version).
-    const pv = (this.db.prepare('SELECT password_version FROM users WHERE id = ?').get(user.id) as { password_version?: number } | undefined)?.password_version ?? 0;
+    const pv =
+      (
+        this.db.prepare('SELECT password_version FROM users WHERE id = ?').get(user.id) as
+          | { password_version?: number }
+          | undefined
+      )?.password_version ?? 0;
     // "Remember me" mirrors the password flow: the JWT lifetime matches the
     // persistent cookie maxAge picked by the cookie service off the same flag,
     // and the claim lets sliding renewal preserve those semantics.
     const expiresIn = remember === true ? SESSION_DURATION_REMEMBER_SECONDS : SESSION_DURATION_SECONDS;
-    return jwt.sign(
-      { id: user.id, pv, ...(typeof remember === 'boolean' ? { remember } : {}) },
-      JWT_SECRET,
-      { expiresIn, algorithm: 'HS256' },
-    );
+    return jwt.sign({ id: user.id, pv, ...(typeof remember === 'boolean' ? { remember } : {}) }, JWT_SECRET, {
+      expiresIn,
+      algorithm: 'HS256',
+    });
   }
 
   // -------------------------------------------------------------------------
@@ -368,12 +387,16 @@ export class OidcService implements OnModuleDestroy {
     if (codeVerifier) body.set('code_verifier', codeVerifier);
     // maxRedirects 0: following one would hand client_secret to a second host,
     // and the platform default of 'follow' does exactly that today.
-    const tokenRes = await safeFetchAdminConfigured(doc.token_endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body,
-      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-    }, 0);
+    const tokenRes = await safeFetchAdminConfigured(
+      doc.token_endpoint,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body,
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      },
+      0,
+    );
     assertResponseSize(tokenRes);
     // Error responses are still parsed on purpose — callers branch on _ok/_status.
     const parsed: unknown = await tokenRes.json();
@@ -437,8 +460,11 @@ export class OidcService implements OnModuleDestroy {
     if (parts.length !== 3) return { ok: false, error: 'malformed_token' };
 
     let header: { kid?: string; alg?: string };
-    try { header = JSON.parse(base64UrlDecode(parts[0]!).toString('utf8')); }
-    catch { return { ok: false, error: 'bad_header' }; }
+    try {
+      header = JSON.parse(base64UrlDecode(parts[0]!).toString('utf8'));
+    } catch {
+      return { ok: false, error: 'bad_header' };
+    }
 
     const alg = header.alg;
     if (!alg || !/^(RS256|RS384|RS512|ES256|ES384|ES512|PS256|PS384|PS512)$/.test(alg)) {
@@ -446,16 +472,17 @@ export class OidcService implements OnModuleDestroy {
     }
 
     let keys: Array<Record<string, unknown>>;
-    try { keys = await this.fetchJwks(doc.jwks_uri); }
-    catch { return { ok: false, error: 'jwks_fetch_failed' }; }
+    try {
+      keys = await this.fetchJwks(doc.jwks_uri);
+    } catch {
+      return { ok: false, error: 'jwks_fetch_failed' };
+    }
 
     // When the token carries a `kid`, refuse to fall back to any other
     // key in the JWKS — a mismatch means the token was signed with a key
     // the provider no longer publishes, and we should reject rather than
     // mask the failure by trying another key.
-    const jwk = header.kid
-      ? keys.find((k) => k['kid'] === header.kid)
-      : keys[0];
+    const jwk = header.kid ? keys.find((k) => k['kid'] === header.kid) : keys[0];
     if (!jwk) return { ok: false, error: 'no_matching_key' };
 
     let publicKey;
@@ -509,10 +536,14 @@ export class OidcService implements OnModuleDestroy {
     const picture = safeOidcPicture(userInfo.picture);
 
     // Try to find existing user by sub, then by email
-    let user = this.db.prepare('SELECT * FROM users WHERE oidc_sub = ? AND oidc_issuer = ?').get(sub, config.issuer) as User | undefined;
+    let user = this.db.prepare('SELECT * FROM users WHERE oidc_sub = ? AND oidc_issuer = ?').get(sub, config.issuer) as
+      | User
+      | undefined;
     if (!user) {
       // Never link/log-in to a guest (#1362) via its synthetic email.
-      user = this.db.prepare('SELECT * FROM users WHERE LOWER(email) = ? AND COALESCE(is_guest, 0) = 0').get(email) as User | undefined;
+      user = this.db.prepare('SELECT * FROM users WHERE LOWER(email) = ? AND COALESCE(is_guest, 0) = 0').get(email) as
+        | User
+        | undefined;
     }
 
     if (user) {
@@ -537,9 +568,12 @@ export class OidcService implements OnModuleDestroy {
           const demotingLastAdmin =
             user.role === 'admin' &&
             newRole !== 'admin' &&
-            (this.db.prepare("SELECT COUNT(*) as count FROM users WHERE role = 'admin'").get() as { count: number }).count <= 1;
+            (this.db.prepare("SELECT COUNT(*) as count FROM users WHERE role = 'admin'").get() as { count: number })
+              .count <= 1;
           if (demotingLastAdmin) {
-            console.warn(`[OIDC] Kept admin role for user ${user.id}: their OIDC claims map to '${newRole}', but they are the only admin — demoting would lock the instance out.`);
+            console.warn(
+              `[OIDC] Kept admin role for user ${user.id}: their OIDC claims map to '${newRole}', but they are the only admin — demoting would lock the instance out.`,
+            );
           } else {
             this.db.prepare('UPDATE users SET role = ? WHERE id = ?').run(newRole, user.id);
             user = { ...user, role: newRole } as User;
@@ -558,12 +592,17 @@ export class OidcService implements OnModuleDestroy {
     }
 
     // --- New user registration ---
-    const userCount = (this.db.prepare('SELECT COUNT(*) as count FROM users WHERE COALESCE(is_guest, 0) = 0').get() as { count: number }).count;
+    const userCount = (
+      this.db.prepare('SELECT COUNT(*) as count FROM users WHERE COALESCE(is_guest, 0) = 0').get() as { count: number }
+    ).count;
     const isFirstUser = userCount === 0;
 
     let validInvite: InviteTokenRow | null = null;
     if (inviteToken) {
-      validInvite = (this.db.prepare('SELECT * FROM invite_tokens WHERE token = ?').get(inviteToken) as InviteTokenRow | undefined) ?? null;
+      validInvite =
+        (this.db.prepare('SELECT * FROM invite_tokens WHERE token = ?').get(inviteToken) as
+          | InviteTokenRow
+          | undefined) ?? null;
       if (validInvite) {
         if (validInvite.max_uses > 0 && validInvite.used_count >= validInvite.max_uses) validInvite = null;
         if (validInvite?.expires_at && new Date(validInvite.expires_at) < new Date()) validInvite = null;
@@ -597,18 +636,26 @@ export class OidcService implements OnModuleDestroy {
     try {
       const result = this.db.transaction(() => {
         if (validInvite) {
-          const updated = this.db.prepare(
-            'UPDATE invite_tokens SET used_count = used_count + 1 WHERE id = ? AND (max_uses = 0 OR used_count < max_uses)',
-          ).run(validInvite.id);
+          const updated = this.db
+            .prepare(
+              'UPDATE invite_tokens SET used_count = used_count + 1 WHERE id = ? AND (max_uses = 0 OR used_count < max_uses)',
+            )
+            .run(validInvite.id);
           if (updated.changes === 0) throw inviteRaceError;
         }
-        const ins = this.db.prepare(
-          'INSERT INTO users (username, email, password_hash, role, oidc_sub, oidc_issuer, avatar, first_seen_version, login_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)',
-        ).run(username, email, hash, role, sub, config.issuer, picture, readEnv().app.appVersion || '0.0.0');
+        const ins = this.db
+          .prepare(
+            'INSERT INTO users (username, email, password_hash, role, oidc_sub, oidc_issuer, avatar, first_seen_version, login_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)',
+          )
+          .run(username, email, hash, role, sub, config.issuer, picture, readEnv().app.appVersion || '0.0.0');
         // Trip-bound invite (#1402): auto-add the new SSO user to the trip inside the
         // same atomic step as the invite consume. Idempotent + owner-safe.
         if (validInvite?.trip_id) {
-          this.membership.joinTripAsMember(Number(validInvite.trip_id), Number(ins.lastInsertRowid), validInvite.created_by ?? null);
+          this.membership.joinTripAsMember(
+            Number(validInvite.trip_id),
+            Number(ins.lastInsertRowid),
+            validInvite.created_by ?? null,
+          );
         }
         return ins;
       }) as { lastInsertRowid: number | bigint };
@@ -619,7 +666,9 @@ export class OidcService implements OnModuleDestroy {
       return { user };
     } catch (err) {
       if (err === inviteRaceError) {
-        console.warn(`[OIDC] Invite token ${inviteToken?.slice(0, 8)}... exhausted — concurrent callback won the last slot`);
+        console.warn(
+          `[OIDC] Invite token ${inviteToken?.slice(0, 8)}... exhausted — concurrent callback won the last slot`,
+        );
         return { error: 'registration_disabled' };
       }
       throw err;
@@ -631,7 +680,9 @@ export class OidcService implements OnModuleDestroy {
   // -------------------------------------------------------------------------
 
   touchLastLogin(userId: number): void {
-    this.db.prepare('UPDATE users SET last_login = CURRENT_TIMESTAMP, login_count = login_count + 1 WHERE id = ?').run(userId);
+    this.db
+      .prepare('UPDATE users SET last_login = CURRENT_TIMESTAMP, login_count = login_count + 1 WHERE id = ?')
+      .run(userId);
   }
 
   // ── OIDC settings ──────────────────────────────────────────────────────────

@@ -1,7 +1,7 @@
-import { Injectable } from '@nestjs/common';
-import { addEntry, markController, type ClassRef } from './metadata';
 import type { HookKey, KnownMethod, MethodPermission, UnconditionalMethod } from '../../protocol/envelope';
+import { addEntry, markController, type ClassRef } from './metadata';
 import type { PluginHookOptions, PluginRpcEntry } from './types';
+import { Injectable } from '@nestjs/common';
 
 /**
  * Marks a class as a plugin RPC controller. Implies `@Injectable()`.

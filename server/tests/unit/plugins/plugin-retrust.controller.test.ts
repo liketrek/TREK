@@ -10,17 +10,17 @@
  * envelope, every test on the thrown object would still pass and the UI would be
  * guessing.
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import type { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
+import { TrekExceptionFilter } from '../../../src/nest/common/trek-exception.filter';
+import { PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.service';
+import { PluginsController } from '../../../src/nest/plugins/plugins.controller';
+import { PluginsService } from '../../../src/nest/plugins/plugins.service';
+import { PluginRegistryService, RegistryError } from '../../../src/nest/plugins/registry/registry.service';
 import { HttpException, type ArgumentsHost } from '@nestjs/common';
 
-vi.mock('../../../src/db/database', () => ({ db: {}, canAccessTrip: () => undefined }));
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-import { PluginsController } from '../../../src/nest/plugins/plugins.controller';
-import { PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.service';
-import { PluginRegistryService, RegistryError } from '../../../src/nest/plugins/registry/registry.service';
-import { PluginsService } from '../../../src/nest/plugins/plugins.service';
-import { TrekExceptionFilter } from '../../../src/nest/common/trek-exception.filter';
-import type { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
+vi.mock('../../../src/db/database', () => ({ db: {}, canAccessTrip: () => undefined }));
 
 const ADMIN = { id: 1 } as { id: number };
 const REQ = { headers: {}, socket: {} } as never;
@@ -54,9 +54,15 @@ let plugins: PluginsService;
 beforeEach(() => {
   process.env.TREK_PLUGINS_ENABLED = 'true';
   runtime = { update: vi.fn(), retrust: vi.fn() } as unknown as PluginRuntimeService;
-  registry = { install: vi.fn(), installWithDependencies: vi.fn(), recomputeUpdateHold: vi.fn() } as unknown as PluginRegistryService;
+  registry = {
+    install: vi.fn(),
+    installWithDependencies: vi.fn(),
+    recomputeUpdateHold: vi.fn(),
+  } as unknown as PluginRegistryService;
   plugins = { resumeUpdates: vi.fn(() => true) } as unknown as PluginsService;
-  controller = new PluginsController(plugins, runtime, registry, { isManaged: () => false } as unknown as RuntimeEnvService);
+  controller = new PluginsController(plugins, runtime, registry, {
+    isManaged: () => false,
+  } as unknown as RuntimeEnvService);
 });
 
 describe('signature refusal codes survive to the client', () => {
@@ -74,7 +80,9 @@ describe('signature refusal codes survive to the client', () => {
   });
 
   it('POST install carries { error, code } through the exception filter', async () => {
-    vi.mocked(registry.install).mockRejectedValue(new RegistryError('author signature verification failed', 'SIGNATURE_INVALID'));
+    vi.mocked(registry.install).mockRejectedValue(
+      new RegistryError('author signature verification failed', 'SIGNATURE_INVALID'),
+    );
 
     const { status, body } = await wireFailure(() => controller.install({ id: 'flight-tracker' }));
     expect(status).toBe(400);
@@ -85,7 +93,9 @@ describe('signature refusal codes survive to the client', () => {
   // to tell it apart from a rotation — and a UI that guesses will eventually offer
   // "re-trust" on bytes the author never signed.
   it('an INVALID signature arrives with its own code, not the re-trustable one', async () => {
-    vi.mocked(runtime.update).mockRejectedValue(new RegistryError('author signature verification failed', 'SIGNATURE_INVALID'));
+    vi.mocked(runtime.update).mockRejectedValue(
+      new RegistryError('author signature verification failed', 'SIGNATURE_INVALID'),
+    );
 
     const { body } = await wireFailure(() => controller.update('flight-tracker'));
     expect((body as { code: string }).code).toBe('SIGNATURE_INVALID');
@@ -105,7 +115,12 @@ describe('signature refusal codes survive to the client', () => {
 // must install exactly that one — the compat gate stays server-side in selectVersion.
 describe('POST :id/update — explicit version', () => {
   it('forwards the requested version to the runtime', async () => {
-    vi.mocked(runtime.update).mockResolvedValue({ version: '1.2.0', activated: true, newPermissions: [], newEgress: [] });
+    vi.mocked(runtime.update).mockResolvedValue({
+      version: '1.2.0',
+      activated: true,
+      newPermissions: [],
+      newEgress: [],
+    });
 
     const res = await controller.update('flight-tracker', { version: '1.2.0' });
 
@@ -114,7 +129,12 @@ describe('POST :id/update — explicit version', () => {
   });
 
   it('an omitted body keeps the default newest-compatible resolution', async () => {
-    vi.mocked(runtime.update).mockResolvedValue({ version: '2.0.0', activated: true, newPermissions: [], newEgress: [] });
+    vi.mocked(runtime.update).mockResolvedValue({
+      version: '2.0.0',
+      activated: true,
+      newPermissions: [],
+      newEgress: [],
+    });
 
     await controller.update('flight-tracker');
 
@@ -128,7 +148,12 @@ describe('POST :id/update — explicit version', () => {
 // must not touch it.
 describe('update hold wiring', () => {
   it('an explicit-version update recomputes the hold as deliberate', async () => {
-    vi.mocked(runtime.update).mockResolvedValue({ version: '1.2.0', activated: true, newPermissions: [], newEgress: [] });
+    vi.mocked(runtime.update).mockResolvedValue({
+      version: '1.2.0',
+      activated: true,
+      newPermissions: [],
+      newEgress: [],
+    });
 
     await controller.update('flight-tracker', { version: '1.2.0' });
 
@@ -136,7 +161,12 @@ describe('update hold wiring', () => {
   });
 
   it('a default update recomputes as non-deliberate (clears a stale hold)', async () => {
-    vi.mocked(runtime.update).mockResolvedValue({ version: '2.0.0', activated: true, newPermissions: [], newEgress: [] });
+    vi.mocked(runtime.update).mockResolvedValue({
+      version: '2.0.0',
+      activated: true,
+      newPermissions: [],
+      newEgress: [],
+    });
 
     await controller.update('flight-tracker');
 
@@ -152,7 +182,10 @@ describe('update hold wiring', () => {
   });
 
   it('a dependency-resolution install does NOT touch the hold', async () => {
-    vi.mocked(registry.installWithDependencies).mockResolvedValue({ installed: ['flight-tracker'], requiredAddons: [] });
+    vi.mocked(registry.installWithDependencies).mockResolvedValue({
+      installed: ['flight-tracker'],
+      requiredAddons: [],
+    });
 
     await controller.install({ id: 'flight-tracker', withDependencies: true });
 
@@ -184,7 +217,12 @@ describe('update hold wiring', () => {
 
 describe('POST :id/retrust', () => {
   it('re-pins AND installs in one call, returning the update result', async () => {
-    vi.mocked(runtime.retrust).mockResolvedValue({ version: '2.0.0', activated: true, newPermissions: [], newEgress: [] });
+    vi.mocked(runtime.retrust).mockResolvedValue({
+      version: '2.0.0',
+      activated: true,
+      newPermissions: [],
+      newEgress: [],
+    });
 
     const res = await controller.retrust('flight-tracker', { version: '2.0.0', publicKey: 'NEWKEY' }, ADMIN, REQ);
 
@@ -192,7 +230,12 @@ describe('POST :id/retrust', () => {
     // The version + the full key the admin was SHOWN are both forwarded: the version
     // because the artifact bytes must be fetched to verify them under the new key, the
     // full key (not a fingerprint) because the server's equality check must be exact.
-    expect(runtime.retrust).toHaveBeenCalledWith('flight-tracker', '2.0.0', 'NEWKEY', expect.objectContaining({ userId: 1 }));
+    expect(runtime.retrust).toHaveBeenCalledWith(
+      'flight-tracker',
+      '2.0.0',
+      'NEWKEY',
+      expect.objectContaining({ userId: 1 }),
+    );
   });
 
   it('requires the version and the public key', async () => {
@@ -206,7 +249,10 @@ describe('POST :id/retrust', () => {
   // convenience — THIS is the control.
   it('surfaces the service refusal (with its code) when the condition is not a changed key', async () => {
     vi.mocked(runtime.retrust).mockRejectedValue(
-      new RegistryError("this plugin's signing key has not changed — there is nothing to re-trust", 'RETRUST_NOT_APPLICABLE'),
+      new RegistryError(
+        "this plugin's signing key has not changed — there is nothing to re-trust",
+        'RETRUST_NOT_APPLICABLE',
+      ),
     );
 
     const { status, body } = await wireFailure(() =>
@@ -217,9 +263,13 @@ describe('POST :id/retrust', () => {
   });
 
   it('surfaces a TOCTOU key mismatch (the entry was re-keyed since the dialog rendered)', async () => {
-    vi.mocked(runtime.retrust).mockRejectedValue(new RegistryError('the signing key changed again', 'RETRUST_KEY_MISMATCH'));
+    vi.mocked(runtime.retrust).mockRejectedValue(
+      new RegistryError('the signing key changed again', 'RETRUST_KEY_MISMATCH'),
+    );
 
-    const { body } = await wireFailure(() => controller.retrust('flight-tracker', { version: '2.0.0', publicKey: 'STALE' }, ADMIN, REQ));
+    const { body } = await wireFailure(() =>
+      controller.retrust('flight-tracker', { version: '2.0.0', publicKey: 'STALE' }, ADMIN, REQ),
+    );
     expect(body).toMatchObject({ code: 'RETRUST_KEY_MISMATCH' });
   });
 
@@ -228,7 +278,9 @@ describe('POST :id/retrust', () => {
   it('answers 404 (not 400) for a plugin that does not exist', async () => {
     vi.mocked(runtime.retrust).mockRejectedValue(new RegistryError('plugin ghost not found', 'NOT_FOUND'));
 
-    const { status, body } = await wireFailure(() => controller.retrust('ghost', { version: '2.0.0', publicKey: 'K' }, ADMIN, REQ));
+    const { status, body } = await wireFailure(() =>
+      controller.retrust('ghost', { version: '2.0.0', publicKey: 'K' }, ADMIN, REQ),
+    );
     expect(status).toBe(404);
     expect(body).toEqual({ error: 'plugin ghost not found', code: 'NOT_FOUND' });
   });
@@ -237,7 +289,9 @@ describe('POST :id/retrust', () => {
   // install/update failure, which never carries that code — stays a 400.
   it('leaves every other refusal on 400', async () => {
     vi.mocked(runtime.retrust).mockRejectedValue(new RegistryError('nothing to re-trust', 'RETRUST_NOT_APPLICABLE'));
-    expect((await wireFailure(() => controller.retrust('p', { version: '1', publicKey: 'K' }, ADMIN, REQ))).status).toBe(400);
+    expect(
+      (await wireFailure(() => controller.retrust('p', { version: '1', publicKey: 'K' }, ADMIN, REQ))).status,
+    ).toBe(400);
 
     vi.mocked(registry.install).mockRejectedValue(new RegistryError('plugin ghost not in registry'));
     expect((await wireFailure(() => controller.install({ id: 'ghost' }))).status).toBe(400);
@@ -245,7 +299,9 @@ describe('POST :id/retrust', () => {
 
   it('is refused when the plugin runtime is disabled by server configuration', async () => {
     process.env.TREK_PLUGINS_ENABLED = 'false';
-    const { status } = await wireFailure(() => controller.retrust('flight-tracker', { version: '2.0.0', publicKey: 'K' }, ADMIN, REQ));
+    const { status } = await wireFailure(() =>
+      controller.retrust('flight-tracker', { version: '2.0.0', publicKey: 'K' }, ADMIN, REQ),
+    );
     expect(status).toBe(503);
     expect(runtime.retrust).not.toHaveBeenCalled();
   });

@@ -1,7 +1,8 @@
-import { describe, it, expect, vi } from 'vitest';
-import { StorageEventsService } from '../../../../src/nest/storage/storage-events.service';
-import { StorageHealthNotifierService } from '../../../../src/nest/notifications/storage-health-notifier.service';
 import type { NotificationsService } from '../../../../src/nest/notifications/notifications.service';
+import { StorageHealthNotifierService } from '../../../../src/nest/notifications/storage-health-notifier.service';
+import { StorageEventsService } from '../../../../src/nest/storage/storage-events.service';
+
+import { describe, it, expect, vi } from 'vitest';
 
 describe('StorageHealthNotifierService', () => {
   it('NOTIF-001 subscribes on bootstrap and sends an admin-scoped replica_failure with params', () => {
@@ -27,8 +28,6 @@ describe('StorageHealthNotifierService', () => {
     const send = vi.fn().mockRejectedValue(new Error('smtp down'));
     const notifier = new StorageHealthNotifierService(events, { send } as unknown as NotificationsService);
     notifier.onApplicationBootstrap();
-    expect(() =>
-      events.emitReplicaFailure({ backend: 'b', key: 'k', op: 'delete', error: 'e', at: 3 }),
-    ).not.toThrow();
+    expect(() => events.emitReplicaFailure({ backend: 'b', key: 'k', op: 'delete', error: 'e', at: 3 })).not.toThrow();
   });
 });

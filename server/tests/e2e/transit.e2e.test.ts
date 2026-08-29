@@ -4,12 +4,18 @@
  * methods are stubbed via instance spies (no outbound HTTP); this focuses on
  * auth (401), param pass-through and error propagation (#1065).
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
-import request from 'supertest';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { DatabaseModule } from '../../src/nest/database/database.module';
+import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
+import { TransitModule } from '../../src/nest/transit/transit.module';
+import { TransitService } from '../../src/nest/transit/transit.service';
+import { seedUser, sessionCookie } from './harness';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
-import { Test } from '@nestjs/testing';
-import { seedUser, sessionCookie } from './harness';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 
 const { db } = vi.hoisted(() => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -24,12 +30,6 @@ const { db } = vi.hoisted(() => {
   return { db: tmp };
 });
 vi.mock('../../src/db/database', () => ({ db, closeDb: () => {}, reinitialize: () => {} }));
-
-import { TransitModule } from '../../src/nest/transit/transit.module';
-import { TransitService } from '../../src/nest/transit/transit.service';
-import { DatabaseModule } from '../../src/nest/database/database.module';
-import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
 
 describe('Transit proxy e2e (real auth guard + temp SQLite)', () => {
   let server: Server;
@@ -64,7 +64,9 @@ describe('Transit proxy e2e (real auth guard + temp SQLite)', () => {
     planSpy.mockReset();
   });
 
-  afterAll(async () => { await app.close(); });
+  afterAll(async () => {
+    await app.close();
+  });
 
   it('401 without a session cookie', async () => {
     expect((await request(server).get('/api/transit/geocode?q=alexanderplatz')).status).toBe(401);
@@ -73,7 +75,9 @@ describe('Transit proxy e2e (real auth guard + temp SQLite)', () => {
 
   it('geocode passes q/lang/near through and returns the service result', async () => {
     geocodeSpy.mockResolvedValueOnce({ results: [{ name: 'Alexanderplatz' }] });
-    const res = await request(server).get('/api/transit/geocode?q=alex&lang=de&near=52.5,13.4').set('Cookie', sessionCookie(1));
+    const res = await request(server)
+      .get('/api/transit/geocode?q=alex&lang=de&near=52.5,13.4')
+      .set('Cookie', sessionCookie(1));
     expect(res.status).toBe(200);
     expect(res.body.results[0].name).toBe('Alexanderplatz');
     expect(geocodeSpy).toHaveBeenCalledWith('alex', 'de', '52.5,13.4');
@@ -82,11 +86,18 @@ describe('Transit proxy e2e (real auth guard + temp SQLite)', () => {
   it('plan passes all params through (arriveBy + maxTransfers coerced)', async () => {
     planSpy.mockResolvedValueOnce({ itineraries: [] });
     const res = await request(server)
-      .get('/api/transit/plan?from=52.5,13.4&to=52.6,13.5&time=2026-07-13T09:00:00Z&arriveBy=true&modes=BUS&maxTransfers=2')
+      .get(
+        '/api/transit/plan?from=52.5,13.4&to=52.6,13.5&time=2026-07-13T09:00:00Z&arriveBy=true&modes=BUS&maxTransfers=2',
+      )
       .set('Cookie', sessionCookie(1));
     expect(res.status).toBe(200);
     expect(planSpy).toHaveBeenCalledWith({
-      from: '52.5,13.4', to: '52.6,13.5', time: '2026-07-13T09:00:00Z', arriveBy: true, modes: 'BUS', maxTransfers: 2,
+      from: '52.5,13.4',
+      to: '52.6,13.5',
+      time: '2026-07-13T09:00:00Z',
+      arriveBy: true,
+      modes: 'BUS',
+      maxTransfers: 2,
     });
   });
 

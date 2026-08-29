@@ -11,11 +11,15 @@
  * pinned by the storage-registry tests; here the two prefixes prove the cache
  * itself is mode-agnostic.
  */
-import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
-import path from 'node:path';
-import fs from 'node:fs';
-import crypto from 'node:crypto';
+import { DatabaseService } from '../../../../src/nest/database/database.service';
+import { PlacePhotoCacheService } from '../../../../src/nest/place-photos/place-photo-cache.service';
+import { makeStorageFixture, type StorageFixture } from '../../../helpers/storage-fixture';
+
 import { Jimp, JimpMime } from 'jimp';
+import crypto from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
+import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 
 const { testDb } = vi.hoisted(() => {
   const Db = require('better-sqlite3');
@@ -45,10 +49,6 @@ testDb.exec(`
 `);
 
 vi.mock('../../../../src/db/database', () => ({ db: testDb }));
-
-import { PlacePhotoCacheService } from '../../../../src/nest/place-photos/place-photo-cache.service';
-import { DatabaseService } from '../../../../src/nest/database/database.service';
-import { makeStorageFixture, type StorageFixture } from '../../../helpers/storage-fixture';
 
 async function makeJpeg(width: number, height: number): Promise<Buffer> {
   const img = new Jimp({ width, height, color: 0xff0000ff });
@@ -136,7 +136,9 @@ describe.each([
         .run('gone-place', 'Bob', Date.now());
 
       expect(await cache.get('gone-place')).toBeNull();
-      expect(testDb.prepare('SELECT 1 FROM google_place_photo_meta WHERE place_id = ?').get('gone-place')).toBeUndefined();
+      expect(
+        testDb.prepare('SELECT 1 FROM google_place_photo_meta WHERE place_id = ?').get('gone-place'),
+      ).toBeUndefined();
     });
 
     it('PPC-014: returns the proxy URL + attribution for a cached photo', async () => {

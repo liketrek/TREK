@@ -1,7 +1,8 @@
-import { describe, it, expect, afterEach } from 'vitest';
+import { applyGlobalMiddleware } from '../../../src/middleware/globalMiddleware';
+
 import express from 'express';
 import request from 'supertest';
-import { applyGlobalMiddleware } from '../../../src/middleware/globalMiddleware';
+import { describe, it, expect, afterEach } from 'vitest';
 
 async function directiveSources(name: string): Promise<string[]> {
   const app = express();
@@ -12,8 +13,8 @@ async function directiveSources(name: string): Promise<string[]> {
   const csp = String(res.headers['content-security-policy'] || '');
   const directive = csp
     .split(';')
-    .map(d => d.trim())
-    .find(d => d.startsWith(name));
+    .map((d) => d.trim())
+    .find((d) => d.startsWith(name));
 
   return directive ? directive.split(/\s+/).slice(1) : [];
 }

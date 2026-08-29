@@ -293,7 +293,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:route-provider': '提供路线规划方案，供规划器计算每日路线（例如带充电停靠点的电动车路线）',
   'admin.plugins.perm.hook:day-schedule-provider': '向当日计划添加时间条目（充电停靠点、安全缓冲时间）',
   'admin.plugins.perm.hook:day-tint-provider': '为当日计划中的日期标注颜色（例如某天属于行程的哪一段）',
-  'admin.plugins.perm.geolocation:read': '在其某个视图打开时请求你的实时位置（由 TREK 使用本站点已有的位置权限读取，不会单独为插件询问）',
+  'admin.plugins.perm.geolocation:read':
+    '在其某个视图打开时请求你的实时位置（由 TREK 使用本站点已有的位置权限读取，不会单独为插件询问）',
   'admin.plugins.perm.hook:pdf-section-provider': '向行程 PDF 导出追加文本段落',
   'admin.plugins.perm.hook:atlas-layer-provider': '在 Atlas 世界地图上高亮国家（例如愿望清单或旅行提醒）',
   'admin.plugins.perm.hook:journal-entry-provider': '向日志条目添加额外行（链接、统计）',

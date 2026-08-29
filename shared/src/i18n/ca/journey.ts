@@ -272,7 +272,8 @@ const journey: TranslationStrings = {
   'journey.studio.exportFinishing': 'Acabat',
   'journey.studio.exportMarks': 'Marques de tall',
   'journey.studio.exportMarksHint': 'Afegeix {bleed} mm de sagnat a cada vora i marca on s’ha de tallar',
-  'journey.studio.exportNote': '{sheets} fulls de {width} × {height} mm. El navegador converteix la vista d’impressió en un PDF.',
+  'journey.studio.exportNote':
+    '{sheets} fulls de {width} × {height} mm. El navegador converteix la vista d’impressió en un PDF.',
   'journey.studio.exportOpen': 'Vista d’impressió',
   'journey.studio.exportSave': 'Desa com a PDF',
   'journey.studio.exportPreparing': 'S’està preparant',
@@ -283,12 +284,14 @@ const journey: TranslationStrings = {
   'journey.studio.zoomOut': 'Zoom out', // en-fallback
   'journey.studio.zoomFit': 'Fit to view', // en-fallback
   'journey.studio.downloadSpread': 'Baixa aquesta doble pàgina',
-  'journey.studio.downloadSpreadHint': 'Desa el disseny d\'aquesta doble pàgina com a fitxer, sense les fotos, per compartir-lo o reutilitzar-lo',
+  'journey.studio.downloadSpreadHint':
+    "Desa el disseny d'aquesta doble pàgina com a fitxer, sense les fotos, per compartir-lo o reutilitzar-lo",
   'journey.studio.importSpread': 'Importa',
-  'journey.studio.importSpreadHint': 'Afegeix una doble pàgina des d\'un fitxer de disseny baixat',
+  'journey.studio.importSpreadHint': "Afegeix una doble pàgina des d'un fitxer de disseny baixat",
   'journey.studio.importSpreadFailed': 'Aquest fitxer no és una doble pàgina del TREK Studio',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': 'Dissenyar un llibre demana espai per treballar, per això l\'Studio només hi és a l\'escriptori, i el PDF també. La resta del teu viatge funciona aquí com sempre.', // en-fallback
+  'journey.studio.desktopOnlyHint':
+    "Dissenyar un llibre demana espai per treballar, per això l'Studio només hi és a l'escriptori, i el PDF també. La resta del teu viatge funciona aquí com sempre.", // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
   'journey.studio.bookView': 'Book view', // en-fallback
   'journey.studio.multiple': 'Several', // en-fallback
@@ -352,7 +355,8 @@ const journey: TranslationStrings = {
   'journey.studio.sampleSubheading': 'A subheading', // en-fallback
   'journey.studio.sampleBody': 'Write something about this day.', // en-fallback
   'journey.studio.sampleCaption': 'Caption', // en-fallback
-  'journey.studio.templatesCoverHint': 'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
+  'journey.studio.templatesCoverHint':
+    'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
   'journey.studio.tpl.heroStory': 'Hero and story', // en-fallback
   'journey.studio.tpl.fullBleed': 'One picture, full spread', // en-fallback
   'journey.studio.tpl.twoUp': 'Two full pages', // en-fallback
@@ -534,7 +538,8 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceVector': 'Contorns',
   'journey.studio.mapSourceRelief': 'Relleu',
   'journey.studio.mapSourceSatellite': 'Satèl·lit',
-  'journey.studio.mapSourceSatelliteHint': 'Sentinel-2 sense núvols, lliure per imprimir amb l’atribució. Nítid fins al carrer.',
+  'journey.studio.mapSourceSatelliteHint':
+    'Sentinel-2 sense núvols, lliure per imprimir amb l’atribució. Nítid fins al carrer.',
   'journey.studio.routeLook': 'La línia',
   'journey.studio.routeStyle': 'Traç',
   'journey.studio.routePlain': 'Simple',
@@ -557,9 +562,12 @@ const journey: TranslationStrings = {
   'journey.studio.roadsAgain': 'Torna-ho a demanar',
   'journey.studio.roadsClear': 'Esborra',
   'journey.studio.roadsBusy': 'Demanant',
-  'journey.studio.roadsHint': 'Demana a un servei de rutes el camí que es va fer a cada tram. Els trams llargs es queden com estan.',
-  'journey.studio.roadsHave': 'Les carreteres queden desades en aquest llibre, així imprimeix la mateixa línia sense connexió.',
-  'journey.studio.mapSourceReliefHint': 'Relleu ombrejat de la NASA, lliure per imprimir. Ideal per a un país o un continent, massa bast per a una ciutat.',
+  'journey.studio.roadsHint':
+    'Demana a un servei de rutes el camí que es va fer a cada tram. Els trams llargs es queden com estan.',
+  'journey.studio.roadsHave':
+    'Les carreteres queden desades en aquest llibre, així imprimeix la mateixa línia sense connexió.',
+  'journey.studio.mapSourceReliefHint':
+    'Relleu ombrejat de la NASA, lliure per imprimir. Ideal per a un país o un continent, massa bast per a una ciutat.',
   'journey.studio.mapPrintDpi': 'S’imprimeix a uns',
   'journey.studio.mapPrintDpiLow': 'poc nítid a aquesta mida, prova una vista més ampla o un altre origen',
   'journey.studio.mapPerTrip': 'Un viatge cada vegada',

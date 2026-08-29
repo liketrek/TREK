@@ -3,6 +3,25 @@
  * 1:1 with the SQL they cover when accommodations became their own domain; the
  * case ids are unchanged so the diff reads as a move. Real in-memory SQLite.
  */
+import { runMigrations } from '../../../src/db/migrations';
+import { createTables } from '../../../src/db/schema';
+import { AccommodationsController } from '../../../src/nest/accommodations/accommodations.controller';
+import { AccommodationsModule } from '../../../src/nest/accommodations/accommodations.module';
+import { AccommodationsService } from '../../../src/nest/accommodations/accommodations.service';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import {
+  createUser,
+  createTrip,
+  createDay,
+  createPlace,
+  createDayAccommodation,
+  addTripMember,
+} from '../../helpers/factories';
+import { expectRegisteredProvider, expectRegisteredController } from '../../helpers/module-providers';
+import { resetTestDb } from '../../helpers/test-db';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 const { testDb, dbMock } = vi.hoisted(() => {
@@ -19,11 +38,15 @@ const { testDb, dbMock } = vi.hoisted(() => {
       reinitialize: () => {},
       getPlaceWithTags: () => null,
       canAccessTrip: (tripId: any, userId: number) =>
-        db.prepare(`
+        db
+          .prepare(
+            `
           SELECT t.id, t.user_id FROM trips t
           LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ?
           WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)
-        `).get(userId, tripId, userId),
+        `,
+          )
+          .get(userId, tripId, userId),
       isOwner: (tripId: any, userId: number) =>
         !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
     },
@@ -33,18 +56,6 @@ const { testDb, dbMock } = vi.hoisted(() => {
 vi.mock('../../../src/db/database', () => dbMock);
 const { broadcast } = vi.hoisted(() => ({ broadcast: vi.fn() }));
 vi.mock('../../../src/websocket', () => ({ broadcast }));
-
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, createDay, createPlace, createDayAccommodation, addTripMember } from '../../helpers/factories';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import { AccommodationsService } from '../../../src/nest/accommodations/accommodations.service';
-import { AccommodationsModule } from '../../../src/nest/accommodations/accommodations.module';
-import { AccommodationsController } from '../../../src/nest/accommodations/accommodations.controller';
-import { expectRegisteredProvider, expectRegisteredController } from '../../helpers/module-providers';
 
 // Named `svc` so the moved cases read exactly as they did on DaysService.
 const svc = new AccommodationsService(
@@ -138,7 +149,9 @@ describe('createAccommodation', () => {
     const place = createPlace(testDb, trip.id, { name: 'City Hotel' }) as any;
 
     const accom = svc.createAccommodation(trip.id, {
-      place_id: place.id, start_day_id: day.id, end_day_id: day.id,
+      place_id: place.id,
+      start_day_id: day.id,
+      end_day_id: day.id,
     }) as any;
 
     const reservation = testDb.prepare('SELECT * FROM reservations WHERE accommodation_id = ?').get(accom.id) as any;
@@ -156,11 +169,15 @@ describe('createAccommodation', () => {
     const day = createDay(testDb, trip.id) as any;
 
     const accom = svc.createAccommodation(trip.id, {
-      place_id: null as unknown as number, start_day_id: day.id, end_day_id: day.id,
+      place_id: null as unknown as number,
+      start_day_id: day.id,
+      end_day_id: day.id,
     }) as any;
 
     expect(accom.place_name).toBeNull();
-    const reservation = testDb.prepare('SELECT title FROM reservations WHERE accommodation_id = ?').get(accom.id) as any;
+    const reservation = testDb
+      .prepare('SELECT title FROM reservations WHERE accommodation_id = ?')
+      .get(accom.id) as any;
     expect(reservation.title).toBe('Hotel');
   });
 });
@@ -191,11 +208,16 @@ describe('updateAccommodation', () => {
     const day = createDay(testDb, trip.id) as any;
     const place = createPlace(testDb, trip.id, { name: 'Hotel' }) as any;
     const accom = svc.createAccommodation(trip.id, {
-      place_id: place.id, start_day_id: day.id, end_day_id: day.id,
+      place_id: place.id,
+      start_day_id: day.id,
+      end_day_id: day.id,
     }) as any;
 
     const existing = svc.getAccommodation(accom.id, trip.id)!;
-    const updated = svc.updateAccommodation(accom.id, existing as any, { check_in: '16:00', check_out: '12:00' }) as any;
+    const updated = svc.updateAccommodation(accom.id, existing as any, {
+      check_in: '16:00',
+      check_out: '12:00',
+    }) as any;
     expect(updated).toBeDefined();
 
     // Verify linked reservation metadata was synced
@@ -212,7 +234,9 @@ describe('updateAccommodation', () => {
     const day = createDay(testDb, trip.id) as any;
     const place = createPlace(testDb, trip.id, { name: 'Hotel' }) as any;
     const accom = svc.createAccommodation(trip.id, {
-      place_id: place.id, start_day_id: day.id, end_day_id: day.id,
+      place_id: place.id,
+      start_day_id: day.id,
+      end_day_id: day.id,
       confirmation: 'ABC123',
     }) as any;
 
@@ -237,7 +261,9 @@ describe('updateAccommodation', () => {
     const updated = svc.updateAccommodation(accom.id, existing as any, { check_in: '15:00' }) as any;
 
     expect(updated.check_in).toBe('15:00');
-    expect(testDb.prepare('SELECT COUNT(*) as n FROM reservations WHERE accommodation_id = ?').get(accom.id)).toMatchObject({ n: 0 });
+    expect(
+      testDb.prepare('SELECT COUNT(*) as n FROM reservations WHERE accommodation_id = ?').get(accom.id),
+    ).toMatchObject({ n: 0 });
   });
 
   it('ACC-007 — merges into the reservation metadata instead of replacing it', () => {
@@ -249,15 +275,22 @@ describe('updateAccommodation', () => {
     const day = createDay(testDb, trip.id) as any;
     const place = createPlace(testDb, trip.id, { name: 'Hotel' }) as any;
     const accom = svc.createAccommodation(trip.id, {
-      place_id: place.id, start_day_id: day.id, end_day_id: day.id, check_in: '15:00',
+      place_id: place.id,
+      start_day_id: day.id,
+      end_day_id: day.id,
+      check_in: '15:00',
     }) as any;
 
     const existing = svc.getAccommodation(accom.id, trip.id)!;
     svc.updateAccommodation(accom.id, existing as any, { check_in_end: '20:00', check_out: '11:00' });
 
-    const reservation = testDb.prepare('SELECT metadata FROM reservations WHERE accommodation_id = ?').get(accom.id) as any;
+    const reservation = testDb
+      .prepare('SELECT metadata FROM reservations WHERE accommodation_id = ?')
+      .get(accom.id) as any;
     expect(JSON.parse(reservation.metadata)).toEqual({
-      check_in_time: '15:00', check_in_end_time: '20:00', check_out_time: '11:00',
+      check_in_time: '15:00',
+      check_in_end_time: '20:00',
+      check_out_time: '11:00',
     });
   });
 
@@ -269,14 +302,18 @@ describe('updateAccommodation', () => {
     const day = createDay(testDb, trip.id) as any;
     const place = createPlace(testDb, trip.id, { name: 'Hotel' }) as any;
     const accom = svc.createAccommodation(trip.id, {
-      place_id: place.id, start_day_id: day.id, end_day_id: day.id,
+      place_id: place.id,
+      start_day_id: day.id,
+      end_day_id: day.id,
     }) as any;
     testDb.prepare('UPDATE reservations SET confirmation_number = ? WHERE accommodation_id = ?').run('RES-9', accom.id);
 
     const existing = svc.getAccommodation(accom.id, trip.id)!;
     svc.updateAccommodation(accom.id, existing as any, { check_in: '15:00' });
 
-    const reservation = testDb.prepare('SELECT confirmation_number FROM reservations WHERE accommodation_id = ?').get(accom.id) as any;
+    const reservation = testDb
+      .prepare('SELECT confirmation_number FROM reservations WHERE accommodation_id = ?')
+      .get(accom.id) as any;
     expect(reservation.confirmation_number).toBe('RES-9');
   });
 });
@@ -288,7 +325,9 @@ describe('deleteAccommodation', () => {
     const day = createDay(testDb, trip.id) as any;
     const place = createPlace(testDb, trip.id, { name: 'Hotel' }) as any;
     const accom = svc.createAccommodation(trip.id, {
-      place_id: place.id, start_day_id: day.id, end_day_id: day.id,
+      place_id: place.id,
+      start_day_id: day.id,
+      end_day_id: day.id,
     }) as any;
 
     const reservation = testDb.prepare('SELECT id FROM reservations WHERE accommodation_id = ?').get(accom.id) as any;
@@ -327,13 +366,15 @@ describe('deleteAccommodation', () => {
     const day = createDay(testDb, trip.id) as any;
     const place = createPlace(testDb, trip.id, { name: 'Hotel' }) as any;
     const accom = svc.createAccommodation(trip.id, {
-      place_id: place.id, start_day_id: day.id, end_day_id: day.id,
+      place_id: place.id,
+      start_day_id: day.id,
+      end_day_id: day.id,
     }) as any;
 
     const reservation = testDb.prepare('SELECT id FROM reservations WHERE accommodation_id = ?').get(accom.id) as any;
-    const budgetItemId = testDb.prepare(
-      'INSERT INTO budget_items (trip_id, name, category, total_price, reservation_id) VALUES (?, ?, ?, ?, ?)'
-    ).run(trip.id, 'Hotel stay', 'Accommodation', 240, reservation.id).lastInsertRowid as number;
+    const budgetItemId = testDb
+      .prepare('INSERT INTO budget_items (trip_id, name, category, total_price, reservation_id) VALUES (?, ?, ?, ?, ?)')
+      .run(trip.id, 'Hotel stay', 'Accommodation', 240, reservation.id).lastInsertRowid as number;
 
     const result = svc.deleteAccommodation(accom.id);
 
@@ -355,19 +396,23 @@ describe('deleteAccommodation', () => {
     const day = createDay(testDb, trip.id) as any;
     const place = createPlace(testDb, trip.id, { name: 'Hotel' }) as any;
     const accom = svc.createAccommodation(trip.id, {
-      place_id: place.id, start_day_id: day.id, end_day_id: day.id,
+      place_id: place.id,
+      start_day_id: day.id,
+      end_day_id: day.id,
     }) as any;
 
     const first = testDb.prepare('SELECT id FROM reservations WHERE accommodation_id = ?').get(accom.id) as any;
-    const second = testDb.prepare(
-      'INSERT INTO reservations (trip_id, type, title, accommodation_id) VALUES (?, ?, ?, ?)'
-    ).run(trip.id, 'hotel', 'Second booking', accom.id).lastInsertRowid as number;
+    const second = testDb
+      .prepare('INSERT INTO reservations (trip_id, type, title, accommodation_id) VALUES (?, ?, ?, ?)')
+      .run(trip.id, 'hotel', 'Second booking', accom.id).lastInsertRowid as number;
 
     const result = svc.deleteAccommodation(accom.id);
 
     expect(result.linkedReservationIds).toEqual([first.id, second]);
     expect(result.linkedReservationId).toBe(first.id);
-    expect(testDb.prepare('SELECT COUNT(*) as n FROM reservations WHERE accommodation_id = ?').get(accom.id)).toMatchObject({ n: 0 });
+    expect(
+      testDb.prepare('SELECT COUNT(*) as n FROM reservations WHERE accommodation_id = ?').get(accom.id),
+    ).toMatchObject({ n: 0 });
   });
 
   it('ACC-011 — updating the stay syncs the times onto every linked booking', () => {
@@ -376,16 +421,20 @@ describe('deleteAccommodation', () => {
     const day = createDay(testDb, trip.id) as any;
     const place = createPlace(testDb, trip.id, { name: 'Hotel' }) as any;
     const accom = svc.createAccommodation(trip.id, {
-      place_id: place.id, start_day_id: day.id, end_day_id: day.id,
+      place_id: place.id,
+      start_day_id: day.id,
+      end_day_id: day.id,
     }) as any;
-    testDb.prepare(
-      'INSERT INTO reservations (trip_id, type, title, accommodation_id) VALUES (?, ?, ?, ?)'
-    ).run(trip.id, 'hotel', 'Second booking', accom.id);
+    testDb
+      .prepare('INSERT INTO reservations (trip_id, type, title, accommodation_id) VALUES (?, ?, ?, ?)')
+      .run(trip.id, 'hotel', 'Second booking', accom.id);
 
     const existing = testDb.prepare('SELECT * FROM day_accommodations WHERE id = ?').get(accom.id) as any;
     svc.updateAccommodation(accom.id, existing, { check_in: '15:00', check_out: '11:00' });
 
-    const rows = testDb.prepare('SELECT metadata FROM reservations WHERE accommodation_id = ?').all(accom.id) as Array<{ metadata: string | null }>;
+    const rows = testDb.prepare('SELECT metadata FROM reservations WHERE accommodation_id = ?').all(accom.id) as Array<{
+      metadata: string | null;
+    }>;
     expect(rows).toHaveLength(2);
     for (const row of rows) {
       expect(JSON.parse(row.metadata || '{}')).toMatchObject({ check_in_time: '15:00', check_out_time: '11:00' });
@@ -413,13 +462,17 @@ describe('quirk fixes', () => {
     const day = createDay(testDb, trip.id);
     const place = createPlace(testDb, trip.id, { name: 'Hotel' });
     const accom = svc.createAccommodation(trip.id, {
-      place_id: place.id, start_day_id: day.id, end_day_id: day.id,
+      place_id: place.id,
+      start_day_id: day.id,
+      end_day_id: day.id,
     }) as { id: number };
     testDb.exec("CREATE TRIGGER boom BEFORE DELETE ON day_accommodations BEGIN SELECT RAISE(ABORT, 'boom'); END");
     try {
       expect(() => svc.deleteAccommodation(accom.id)).toThrow();
       // The earlier reservation delete inside the transaction rolled back.
-      expect(testDb.prepare('SELECT COUNT(*) as n FROM reservations WHERE accommodation_id = ?').get(accom.id)).toMatchObject({ n: 1 });
+      expect(
+        testDb.prepare('SELECT COUNT(*) as n FROM reservations WHERE accommodation_id = ?').get(accom.id),
+      ).toMatchObject({ n: 1 });
     } finally {
       testDb.exec('DROP TRIGGER boom');
     }
@@ -451,7 +504,9 @@ describe('route-facing delegators', () => {
 
     expect(svc.validateRefs(trip.id, place.id, day.id, day.id)).toHaveLength(0);
     // The controller 404s with errors[0].message, so the shape matters, not just the count.
-    expect(svc.validateRefs(trip.id, 99999, day.id, day.id)).toEqual([{ field: 'place_id', message: 'Place not found' }]);
+    expect(svc.validateRefs(trip.id, 99999, day.id, day.id)).toEqual([
+      { field: 'place_id', message: 'Place not found' },
+    ]);
   });
 
   it('ACC-012 — create() writes the stay, get() reads it back trip-scoped', () => {
@@ -463,7 +518,10 @@ describe('route-facing delegators', () => {
 
     // Both ids arrive from the route as strings.
     const created = svc.create(String(trip.id), {
-      place_id: place.id, start_day_id: day.id, end_day_id: day.id, confirmation: 'XY-1',
+      place_id: place.id,
+      start_day_id: day.id,
+      end_day_id: day.id,
+      confirmation: 'XY-1',
     }) as any;
 
     expect(svc.get(String(created.id), String(trip.id))).toMatchObject({ id: created.id, confirmation: 'XY-1' });
@@ -484,7 +542,9 @@ describe('route-facing delegators', () => {
     const updated = svc.update(String(accom.id), existing as any, { check_in: '16:00', notes: 'late arrival' }) as any;
 
     expect(updated).toMatchObject({ check_in: '16:00', notes: 'late arrival' });
-    const reservation = testDb.prepare('SELECT metadata FROM reservations WHERE accommodation_id = ?').get(accom.id) as any;
+    const reservation = testDb
+      .prepare('SELECT metadata FROM reservations WHERE accommodation_id = ?')
+      .get(accom.id) as any;
     expect(JSON.parse(reservation.metadata).check_in_time).toBe('16:00');
   });
 

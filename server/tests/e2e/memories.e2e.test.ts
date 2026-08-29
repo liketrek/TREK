@@ -9,12 +9,21 @@
  * behaviour of /test + /status, and at least one error envelope per provider
  * router — all asserted byte-identical to the legacy Express routers.
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
-import request from 'supertest';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { DatabaseModule } from '../../src/nest/database/database.module';
+import { ImmichService } from '../../src/nest/memories/immich.service';
+import { MemoriesAccessService } from '../../src/nest/memories/memories-access.service';
+import { MemoriesModule } from '../../src/nest/memories/memories.module';
+import { SynologyService } from '../../src/nest/memories/synology.service';
+import { UnifiedMemoriesService } from '../../src/nest/memories/unified-memories.service';
+import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
+import { seedUser, sessionCookie } from './harness';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
-import { Test } from '@nestjs/testing';
-import { seedUser, sessionCookie } from './harness';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 
 const { db } = vi.hoisted(() => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -36,37 +45,49 @@ vi.mock('../../src/websocket', () => ({ broadcast: vi.fn() }));
 // helper module are kept real except canAccessUserPhoto which we override.
 const { unified, immich, synology } = vi.hoisted(() => ({
   unified: {
-    listTripPhotos: vi.fn(), addTripPhotos: vi.fn(), setTripPhotoSharing: vi.fn(),
-    removeTripPhoto: vi.fn(), listTripAlbumLinks: vi.fn(), createTripAlbumLink: vi.fn(), removeAlbumLink: vi.fn(),
+    listTripPhotos: vi.fn(),
+    addTripPhotos: vi.fn(),
+    setTripPhotoSharing: vi.fn(),
+    removeTripPhoto: vi.fn(),
+    listTripAlbumLinks: vi.fn(),
+    createTripAlbumLink: vi.fn(),
+    removeAlbumLink: vi.fn(),
     // The album-sync orchestration moved here from the provider modules when the
     // immich -> unified import cycle was broken.
-    syncImmichAlbum: vi.fn(), syncSynologyAlbum: vi.fn(),
+    syncImmichAlbum: vi.fn(),
+    syncSynologyAlbum: vi.fn(),
   },
   immich: {
-    getConnectionSettings: vi.fn(), saveImmichSettings: vi.fn(), setImmichAutoUpload: vi.fn(),
-    testConnection: vi.fn(), getConnectionStatus: vi.fn(), browseTimeline: vi.fn(), searchPhotos: vi.fn(),
-    streamImmichAsset: vi.fn(), listAlbums: vi.fn(), getAlbumPhotos: vi.fn(), collectAlbumSelection: vi.fn(),
-    getAssetInfo: vi.fn(), isValidAssetId: vi.fn(),
+    getConnectionSettings: vi.fn(),
+    saveImmichSettings: vi.fn(),
+    setImmichAutoUpload: vi.fn(),
+    testConnection: vi.fn(),
+    getConnectionStatus: vi.fn(),
+    browseTimeline: vi.fn(),
+    searchPhotos: vi.fn(),
+    streamImmichAsset: vi.fn(),
+    listAlbums: vi.fn(),
+    getAlbumPhotos: vi.fn(),
+    collectAlbumSelection: vi.fn(),
+    getAssetInfo: vi.fn(),
+    isValidAssetId: vi.fn(),
   },
   synology: {
-    getSynologySettings: vi.fn(), updateSynologySettings: vi.fn(), getSynologyStatus: vi.fn(),
-    testSynologyConnection: vi.fn(), listSynologyAlbums: vi.fn(), getSynologyAlbumPhotos: vi.fn(),
-    collectSynologyAlbumSelection: vi.fn(), searchSynologyPhotos: vi.fn(), getSynologyAssetInfo: vi.fn(),
+    getSynologySettings: vi.fn(),
+    updateSynologySettings: vi.fn(),
+    getSynologyStatus: vi.fn(),
+    testSynologyConnection: vi.fn(),
+    listSynologyAlbums: vi.fn(),
+    getSynologyAlbumPhotos: vi.fn(),
+    collectSynologyAlbumSelection: vi.fn(),
+    searchSynologyPhotos: vi.fn(),
+    getSynologyAssetInfo: vi.fn(),
     streamSynologyAsset: vi.fn(),
   },
 }));
 // The three provider services and the access check are injected since the fold,
 // so they are overridden at the container instead of mocked by module path.
 const { canAccessUserPhoto } = vi.hoisted(() => ({ canAccessUserPhoto: vi.fn() }));
-
-import { DatabaseModule } from '../../src/nest/database/database.module';
-import { MemoriesModule } from '../../src/nest/memories/memories.module';
-import { UnifiedMemoriesService } from '../../src/nest/memories/unified-memories.service';
-import { ImmichService } from '../../src/nest/memories/immich.service';
-import { SynologyService } from '../../src/nest/memories/synology.service';
-import { MemoriesAccessService } from '../../src/nest/memories/memories-access.service';
-import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
 
 const BASE = '/api/integrations/memories';
 const UNIFIED = `${BASE}/unified`;
@@ -79,10 +100,14 @@ describe('Memories e2e (real auth guard + temp SQLite)', () => {
 
   async function build() {
     const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, RealtimeModule, MemoriesModule] })
-      .overrideProvider(UnifiedMemoriesService).useValue(unified)
-      .overrideProvider(ImmichService).useValue(immich)
-      .overrideProvider(SynologyService).useValue(synology)
-      .overrideProvider(MemoriesAccessService).useValue({ canAccessUserPhoto })
+      .overrideProvider(UnifiedMemoriesService)
+      .useValue(unified)
+      .overrideProvider(ImmichService)
+      .useValue(immich)
+      .overrideProvider(SynologyService)
+      .useValue(synology)
+      .overrideProvider(MemoriesAccessService)
+      .useValue({ canAccessUserPhoto })
       .compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
@@ -131,31 +156,54 @@ describe('Memories e2e (real auth guard + temp SQLite)', () => {
 
     it('200 add photos -> { success, added } (POST stays 200, not 201)', async () => {
       unified.addTripPhotos.mockResolvedValue({ success: true, data: { added: 2, shared: true } });
-      const res = await request(server).post(`${UNIFIED}/trips/5/photos`).set('Cookie', sessionCookie(1))
+      const res = await request(server)
+        .post(`${UNIFIED}/trips/5/photos`)
+        .set('Cookie', sessionCookie(1))
         .send({ shared: true, selections: [{ provider: 'immich', asset_ids: ['a', 'b'] }] });
       expect(res.status).toBe(200);
       expect(res.body).toEqual({ success: true, added: 2 });
       // x-socket-id absent -> undefined, matching the legacy `req.headers['x-socket-id'] as string`.
-      expect(unified.addTripPhotos).toHaveBeenCalledWith('5', 1, true, [{ provider: 'immich', asset_ids: ['a', 'b'] }], undefined);
+      expect(unified.addTripPhotos).toHaveBeenCalledWith(
+        '5',
+        1,
+        true,
+        [{ provider: 'immich', asset_ids: ['a', 'b'] }],
+        undefined,
+      );
     });
 
     it('400 add photos with empty selections -> error envelope', async () => {
-      unified.addTripPhotos.mockResolvedValue({ success: false, error: { message: 'No photos selected', status: 400 } });
-      const res = await request(server).post(`${UNIFIED}/trips/5/photos`).set('Cookie', sessionCookie(1)).send({ selections: [] });
+      unified.addTripPhotos.mockResolvedValue({
+        success: false,
+        error: { message: 'No photos selected', status: 400 },
+      });
+      const res = await request(server)
+        .post(`${UNIFIED}/trips/5/photos`)
+        .set('Cookie', sessionCookie(1))
+        .send({ selections: [] });
       expect(res.status).toBe(400);
       expect(res.body).toEqual({ error: 'No photos selected' });
     });
 
     it('200 PUT sharing -> { success: true }', async () => {
       unified.setTripPhotoSharing.mockResolvedValue({ success: true, data: true });
-      const res = await request(server).put(`${UNIFIED}/trips/5/photos/sharing`).set('Cookie', sessionCookie(1)).send({ photo_id: 9, shared: true });
+      const res = await request(server)
+        .put(`${UNIFIED}/trips/5/photos/sharing`)
+        .set('Cookie', sessionCookie(1))
+        .send({ photo_id: 9, shared: true });
       expect(res.status).toBe(200);
       expect(res.body).toEqual({ success: true });
     });
 
     it('404 DELETE photo on inaccessible trip -> error envelope', async () => {
-      unified.removeTripPhoto.mockReturnValue({ success: false, error: { message: 'Trip not found or access denied', status: 404 } });
-      const res = await request(server).delete(`${UNIFIED}/trips/5/photos`).set('Cookie', sessionCookie(1)).send({ photo_id: 9 });
+      unified.removeTripPhoto.mockReturnValue({
+        success: false,
+        error: { message: 'Trip not found or access denied', status: 404 },
+      });
+      const res = await request(server)
+        .delete(`${UNIFIED}/trips/5/photos`)
+        .set('Cookie', sessionCookie(1))
+        .send({ photo_id: 9 });
       expect(res.status).toBe(404);
       expect(res.body).toEqual({ error: 'Trip not found or access denied' });
     });
@@ -169,12 +217,21 @@ describe('Memories e2e (real auth guard + temp SQLite)', () => {
 
     it('200 create album-link / 409 duplicate envelope', async () => {
       unified.createTripAlbumLink.mockReturnValue({ success: true, data: true });
-      const ok = await request(server).post(`${UNIFIED}/trips/5/album-links`).set('Cookie', sessionCookie(1)).send({ provider: 'immich', album_id: 'al', album_name: 'A' });
+      const ok = await request(server)
+        .post(`${UNIFIED}/trips/5/album-links`)
+        .set('Cookie', sessionCookie(1))
+        .send({ provider: 'immich', album_id: 'al', album_name: 'A' });
       expect(ok.status).toBe(200);
       expect(ok.body).toEqual({ success: true });
 
-      unified.createTripAlbumLink.mockReturnValue({ success: false, error: { message: 'Album already linked', status: 409 } });
-      const dup = await request(server).post(`${UNIFIED}/trips/5/album-links`).set('Cookie', sessionCookie(1)).send({ provider: 'immich', album_id: 'al', album_name: 'A' });
+      unified.createTripAlbumLink.mockReturnValue({
+        success: false,
+        error: { message: 'Album already linked', status: 409 },
+      });
+      const dup = await request(server)
+        .post(`${UNIFIED}/trips/5/album-links`)
+        .set('Cookie', sessionCookie(1))
+        .send({ provider: 'immich', album_id: 'al', album_name: 'A' });
       expect(dup.status).toBe(409);
       expect(dup.body).toEqual({ error: 'Album already linked' });
     });
@@ -198,13 +255,19 @@ describe('Memories e2e (real auth guard + temp SQLite)', () => {
 
     it('200 PUT settings success / 400 invalid url', async () => {
       immich.saveImmichSettings.mockResolvedValue({ success: true });
-      const ok = await request(server).put(`${IMMICH}/settings`).set('Cookie', sessionCookie(1)).send({ immich_url: 'https://x', immich_api_key: 'k', auto_upload: true });
+      const ok = await request(server)
+        .put(`${IMMICH}/settings`)
+        .set('Cookie', sessionCookie(1))
+        .send({ immich_url: 'https://x', immich_api_key: 'k', auto_upload: true });
       expect(ok.status).toBe(200);
       expect(ok.body).toEqual({ success: true });
       expect(immich.setImmichAutoUpload).toHaveBeenCalledWith(1, true);
 
       immich.saveImmichSettings.mockResolvedValue({ success: false, error: 'Invalid Immich URL: bad' });
-      const bad = await request(server).put(`${IMMICH}/settings`).set('Cookie', sessionCookie(1)).send({ immich_url: 'bad' });
+      const bad = await request(server)
+        .put(`${IMMICH}/settings`)
+        .set('Cookie', sessionCookie(1))
+        .send({ immich_url: 'bad' });
       expect(bad.status).toBe(400);
       expect(bad.body).toEqual({ error: 'Invalid Immich URL: bad' });
     });
@@ -217,7 +280,10 @@ describe('Memories e2e (real auth guard + temp SQLite)', () => {
     });
 
     it('CRITICAL: 200 /test missing fields -> { connected: false, error } without calling service', async () => {
-      const res = await request(server).post(`${IMMICH}/test`).set('Cookie', sessionCookie(1)).send({ immich_url: 'https://x' });
+      const res = await request(server)
+        .post(`${IMMICH}/test`)
+        .set('Cookie', sessionCookie(1))
+        .send({ immich_url: 'https://x' });
       expect(res.status).toBe(200);
       expect(res.body).toEqual({ connected: false, error: 'URL and API key required' });
       expect(immich.testConnection).not.toHaveBeenCalled();
@@ -225,7 +291,10 @@ describe('Memories e2e (real auth guard + temp SQLite)', () => {
 
     it('200 /test with creds delegates to service', async () => {
       immich.testConnection.mockResolvedValue({ connected: true, user: { name: 'T' } });
-      const res = await request(server).post(`${IMMICH}/test`).set('Cookie', sessionCookie(1)).send({ immich_url: 'https://x', immich_api_key: 'k' });
+      const res = await request(server)
+        .post(`${IMMICH}/test`)
+        .set('Cookie', sessionCookie(1))
+        .send({ immich_url: 'https://x', immich_api_key: 'k' });
       expect(res.status).toBe(200);
       expect(res.body).toEqual({ connected: true, user: { name: 'T' } });
     });
@@ -244,7 +313,10 @@ describe('Memories e2e (real auth guard + temp SQLite)', () => {
 
     it('200 search (POST stays 200) / 502 envelope', async () => {
       immich.searchPhotos.mockResolvedValue({ assets: [{ id: 'a' }], hasMore: true });
-      const ok = await request(server).post(`${IMMICH}/search`).set('Cookie', sessionCookie(1)).send({ page: 1, size: 50 });
+      const ok = await request(server)
+        .post(`${IMMICH}/search`)
+        .set('Cookie', sessionCookie(1))
+        .send({ page: 1, size: 50 });
       expect(ok.status).toBe(200);
       expect(ok.body).toEqual({ assets: [{ id: 'a' }], hasMore: true });
       expect(immich.searchPhotos).toHaveBeenCalledWith(1, undefined, undefined, 1, 50);
@@ -313,14 +385,20 @@ describe('Memories e2e (real auth guard + temp SQLite)', () => {
   // ── Synology ───────────────────────────────────────────────────────────────
   describe('synologyphotos', () => {
     it('200 settings', async () => {
-      synology.getSynologySettings.mockResolvedValue({ success: true, data: { synology_url: 'u', synology_username: 'n', synology_skip_ssl: true, connected: true } });
+      synology.getSynologySettings.mockResolvedValue({
+        success: true,
+        data: { synology_url: 'u', synology_username: 'n', synology_skip_ssl: true, connected: true },
+      });
       const res = await request(server).get(`${SYNO}/settings`).set('Cookie', sessionCookie(1));
       expect(res.status).toBe(200);
       expect(res.body).toEqual({ synology_url: 'u', synology_username: 'n', synology_skip_ssl: true, connected: true });
     });
 
     it('400 PUT settings without url/username -> envelope', async () => {
-      const res = await request(server).put(`${SYNO}/settings`).set('Cookie', sessionCookie(1)).send({ synology_url: '' });
+      const res = await request(server)
+        .put(`${SYNO}/settings`)
+        .set('Cookie', sessionCookie(1))
+        .send({ synology_url: '' });
       expect(res.status).toBe(400);
       expect(res.body).toEqual({ error: 'URL and username are required' });
       expect(synology.updateSynologySettings).not.toHaveBeenCalled();
@@ -328,48 +406,77 @@ describe('Memories e2e (real auth guard + temp SQLite)', () => {
 
     it('200 PUT settings delegates when valid', async () => {
       synology.updateSynologySettings.mockResolvedValue({ success: true, data: 'settings updated' });
-      const res = await request(server).put(`${SYNO}/settings`).set('Cookie', sessionCookie(1)).send({ synology_url: 'https://nas', synology_username: 'admin', synology_password: 'pw' });
+      const res = await request(server)
+        .put(`${SYNO}/settings`)
+        .set('Cookie', sessionCookie(1))
+        .send({ synology_url: 'https://nas', synology_username: 'admin', synology_password: 'pw' });
       expect(res.status).toBe(200);
       expect(res.body).toEqual('settings updated');
     });
 
     it('CRITICAL: 200 /status with { connected: false } on failure', async () => {
-      synology.getSynologyStatus.mockResolvedValue({ success: true, data: { connected: false, error: 'Synology not configured' } });
+      synology.getSynologyStatus.mockResolvedValue({
+        success: true,
+        data: { connected: false, error: 'Synology not configured' },
+      });
       const res = await request(server).get(`${SYNO}/status`).set('Cookie', sessionCookie(1));
       expect(res.status).toBe(200);
       expect(res.body).toEqual({ connected: false, error: 'Synology not configured' });
     });
 
     it('CRITICAL: 200 /test missing fields -> 200 { connected: false, error } without calling service', async () => {
-      const res = await request(server).post(`${SYNO}/test`).set('Cookie', sessionCookie(1)).send({ synology_url: 'https://nas' });
+      const res = await request(server)
+        .post(`${SYNO}/test`)
+        .set('Cookie', sessionCookie(1))
+        .send({ synology_url: 'https://nas' });
       expect(res.status).toBe(200);
       expect(res.body).toEqual({ connected: false, error: 'Username, Password are required' });
       expect(synology.testSynologyConnection).not.toHaveBeenCalled();
     });
 
     it('200 /test delegates when all fields present', async () => {
-      synology.testSynologyConnection.mockResolvedValue({ success: true, data: { connected: true, user: { name: 'admin' } } });
-      const res = await request(server).post(`${SYNO}/test`).set('Cookie', sessionCookie(1)).send({ synology_url: 'https://nas', synology_username: 'admin', synology_password: 'pw' });
+      synology.testSynologyConnection.mockResolvedValue({
+        success: true,
+        data: { connected: true, user: { name: 'admin' } },
+      });
+      const res = await request(server)
+        .post(`${SYNO}/test`)
+        .set('Cookie', sessionCookie(1))
+        .send({ synology_url: 'https://nas', synology_username: 'admin', synology_password: 'pw' });
       expect(res.status).toBe(200);
       expect(res.body).toEqual({ connected: true, user: { name: 'admin' } });
     });
 
     it('200 albums / 200 album photos with passphrase', async () => {
-      synology.listSynologyAlbums.mockResolvedValue({ success: true, data: { albums: [{ id: '1', albumName: 'A', assetCount: 3 }] } });
+      synology.listSynologyAlbums.mockResolvedValue({
+        success: true,
+        data: { albums: [{ id: '1', albumName: 'A', assetCount: 3 }] },
+      });
       const albums = await request(server).get(`${SYNO}/albums`).set('Cookie', sessionCookie(1));
       expect(albums.status).toBe(200);
       expect(albums.body).toEqual({ albums: [{ id: '1', albumName: 'A', assetCount: 3 }] });
 
-      synology.getSynologyAlbumPhotos.mockResolvedValue({ success: true, data: { assets: [{ id: 'p', takenAt: '' }], total: 1, hasMore: false } });
-      const photos = await request(server).get(`${SYNO}/albums/1/photos?passphrase=secret`).set('Cookie', sessionCookie(1));
+      synology.getSynologyAlbumPhotos.mockResolvedValue({
+        success: true,
+        data: { assets: [{ id: 'p', takenAt: '' }], total: 1, hasMore: false },
+      });
+      const photos = await request(server)
+        .get(`${SYNO}/albums/1/photos?passphrase=secret`)
+        .set('Cookie', sessionCookie(1));
       expect(photos.status).toBe(200);
       expect(photos.body).toEqual({ assets: [{ id: 'p', takenAt: '' }], total: 1, hasMore: false });
       expect(synology.getSynologyAlbumPhotos).toHaveBeenCalledWith(1, '1', 'secret');
     });
 
     it('200 search (POST stays 200) with offset/limit coercion', async () => {
-      synology.searchSynologyPhotos.mockResolvedValue({ success: true, data: { assets: [], total: 0, hasMore: false } });
-      const res = await request(server).post(`${SYNO}/search`).set('Cookie', sessionCookie(1)).send({ page: 3, size: 20 });
+      synology.searchSynologyPhotos.mockResolvedValue({
+        success: true,
+        data: { assets: [], total: 0, hasMore: false },
+      });
+      const res = await request(server)
+        .post(`${SYNO}/search`)
+        .set('Cookie', sessionCookie(1))
+        .send({ page: 3, size: 20 });
       expect(res.status).toBe(200);
       expect(res.body).toEqual({ assets: [], total: 0, hasMore: false });
       // page=3 -> (3-1)=2; size=20 -> limit=20; offset = 2 * 20 = 40
@@ -401,7 +508,9 @@ describe('Memories e2e (real auth guard + temp SQLite)', () => {
       expect(invalid.body).toEqual({ error: 'Invalid asset kind' });
 
       canAccessUserPhoto.mockReturnValue(false);
-      const forbidden = await request(server).get(`${SYNO}/assets/5/40808_1/2/thumbnail`).set('Cookie', sessionCookie(1));
+      const forbidden = await request(server)
+        .get(`${SYNO}/assets/5/40808_1/2/thumbnail`)
+        .set('Cookie', sessionCookie(1));
       expect(forbidden.status).toBe(403);
       expect(forbidden.body).toEqual({ error: "You don't have access to this photo" });
 
@@ -411,10 +520,20 @@ describe('Memories e2e (real auth guard + temp SQLite)', () => {
         res.set('Content-Type', 'image/jpeg');
         res.end(Buffer.from('syno-bytes'));
       });
-      const ok = await request(server).get(`${SYNO}/assets/5/40808_1/1/thumbnail?size=xl`).set('Cookie', sessionCookie(1));
+      const ok = await request(server)
+        .get(`${SYNO}/assets/5/40808_1/1/thumbnail?size=xl`)
+        .set('Cookie', sessionCookie(1));
       expect(ok.status).toBe(200);
       expect(ok.headers['content-type']).toContain('image/jpeg');
-      expect(synology.streamSynologyAsset).toHaveBeenCalledWith(expect.anything(), 1, 1, '40808_1', 'thumbnail', 'xl', undefined);
+      expect(synology.streamSynologyAsset).toHaveBeenCalledWith(
+        expect.anything(),
+        1,
+        1,
+        '40808_1',
+        'thumbnail',
+        'xl',
+        undefined,
+      );
     });
   });
 });

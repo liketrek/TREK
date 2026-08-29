@@ -16,12 +16,23 @@
  * production declaration order (runtime provider first, registry scan later) and
  * asserts the plugin still comes up clean.
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { db as dbConn } from '../../../src/db/database';
+import { AddonsService } from '../../../src/nest/addons/addons.service';
+import { AuditService } from '../../../src/nest/audit/audit.service';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { PluginRpcHostFactory } from '../../../src/nest/plugins/host/plugin-rpc-host.factory';
+import { PluginRpcRegistry } from '../../../src/nest/plugins/host/rpc-kit/registry';
+import type { PluginRpcRegistryService } from '../../../src/nest/plugins/host/rpc-kit/registry.service';
+import { DbRpc } from '../../../src/nest/plugins/host/rpc/db.rpc';
+import { PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.service';
+import { PluginUserSettingsService } from '../../../src/nest/plugins/plugin-user-settings.service';
+import { Test } from '@nestjs/testing';
+import type { TestingModule } from '@nestjs/testing';
+
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { Test } from '@nestjs/testing';
-import type { TestingModule } from '@nestjs/testing';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
 const { testDb } = vi.hoisted(() => {
   const Database = require('better-sqlite3');
@@ -49,17 +60,6 @@ const { testDb } = vi.hoisted(() => {
 vi.mock('../../../src/db/database', () => ({ db: testDb, canAccessTrip: () => undefined }));
 vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
 
-import { db as dbConn } from '../../../src/db/database';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { AuditService } from '../../../src/nest/audit/audit.service';
-import { AddonsService } from '../../../src/nest/addons/addons.service';
-import { PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.service';
-import { PluginUserSettingsService } from '../../../src/nest/plugins/plugin-user-settings.service';
-import { PluginRpcHostFactory } from '../../../src/nest/plugins/host/plugin-rpc-host.factory';
-import { PluginRpcRegistry } from '../../../src/nest/plugins/host/rpc-kit/registry';
-import type { PluginRpcRegistryService } from '../../../src/nest/plugins/host/rpc-kit/registry.service';
-import { DbRpc } from '../../../src/nest/plugins/host/rpc/db.rpc';
-
 let codeRoot: string;
 let dataRoot: string;
 let mod: TestingModule;
@@ -83,7 +83,9 @@ beforeAll(() => {
   // db:own. Seeded 'inactive' (not the 'active' a real shutdown leaves) so the
   // poll below only terminates on a status the THIS-boot supervisor wrote.
   testDb
-    .prepare("INSERT INTO plugins (id, status, enabled, permissions, granted_permissions, config) VALUES ('migrator','inactive',1,'[\"db:own\"]','[\"db:own\"]','{}')")
+    .prepare(
+      "INSERT INTO plugins (id, status, enabled, permissions, granted_permissions, config) VALUES ('migrator','inactive',1,'[\"db:own\"]','[\"db:own\"]','{}')",
+    )
     .run();
 });
 
@@ -97,7 +99,7 @@ afterAll(async () => {
 });
 
 describe('plugin boot vs registry scan ordering', () => {
-  it('BOOT-REG-001 a plugin enabled before a restart activates cleanly even though the registry scan runs in a LATER provider\'s onModuleInit', async () => {
+  it("BOOT-REG-001 a plugin enabled before a restart activates cleanly even though the registry scan runs in a LATER provider's onModuleInit", async () => {
     const dbs = new DatabaseService(dbConn);
     const userSettings = new PluginUserSettingsService(dbs);
     // Empty at construction — exactly what PluginRpcRegistryService is before its
@@ -112,7 +114,15 @@ describe('plugin boot vs registry scan ordering', () => {
         // (if it had one) first. The boot reconcile must therefore not live there.
         {
           provide: PluginRuntimeService,
-          useFactory: () => new PluginRuntimeService(dbs, new AuditService(dbs), new AddonsService(dbs), userSettings, undefined, hostFactory),
+          useFactory: () =>
+            new PluginRuntimeService(
+              dbs,
+              new AuditService(dbs),
+              new AddonsService(dbs),
+              userSettings,
+              undefined,
+              hostFactory,
+            ),
         },
         {
           provide: 'REGISTRY_SCAN',

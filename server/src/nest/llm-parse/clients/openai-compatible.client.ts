@@ -1,7 +1,7 @@
+import { safeFetchLlm } from '../../../utils/ssrfGuard';
+import { parseLenientJson, toReservationList } from '../lenient-json';
 import type { LlmExtractionClient, LlmExtractionInput } from '../llm-provider.interface';
 import { isNuExtractModel, buildNuExtractUserText, nuExtractToKiReservations } from './nuextract';
-import { parseLenientJson, toReservationList } from '../lenient-json';
-import { safeFetchLlm } from '../../../utils/ssrfGuard';
 
 // Generous: a local CPU model (Ollama, no GPU) may cold-load several GB and then
 // take a few minutes on a longer document before the first token.
@@ -71,7 +71,10 @@ export class OpenAiCompatibleClient implements LlmExtractionClient {
         ...baseBody,
         response_format: jsonObject
           ? { type: 'json_object' as const }
-          : { type: 'json_schema' as const, json_schema: { name: 'reservations', schema: input.jsonSchema, strict: false } },
+          : {
+              type: 'json_schema' as const,
+              json_schema: { name: 'reservations', schema: input.jsonSchema, strict: false },
+            },
       };
     };
 

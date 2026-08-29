@@ -1,16 +1,36 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpException, Param, Patch, Post, Req, Res, UseGuards } from '@nestjs/common';
-import type { Request, Response } from 'express';
-import { RateLimitService } from '../common/rate-limit.service';
-import { JwtAuthGuard } from './jwt-auth.guard';
-import { PasskeyEnabledGuard } from './passkey-enabled.guard';
-import { CurrentUser } from './current-user.decorator';
-import { setAuthCookie } from '../common/cookie';
-import { getClientIp } from '../audit/client-ip';
-import { AuditService } from '../audit/audit.service';
-import { PasskeyService } from './passkey.service';
-import { PasskeyRegisterOptionsDto, PasskeyRegisterVerifyDto, PasskeyLoginVerifyDto, PasskeyRenameDto, PasskeyDeleteDto } from './auth.dto';
 import type { User } from '../../types';
+import { AuditService } from '../audit/audit.service';
+import { getClientIp } from '../audit/client-ip';
+import { setAuthCookie } from '../common/cookie';
+import { RateLimitService } from '../common/rate-limit.service';
+import {
+  PasskeyRegisterOptionsDto,
+  PasskeyRegisterVerifyDto,
+  PasskeyLoginVerifyDto,
+  PasskeyRenameDto,
+  PasskeyDeleteDto,
+} from './auth.dto';
+import { CurrentUser } from './current-user.decorator';
+import { JwtAuthGuard } from './jwt-auth.guard';
 import { MfaExempt } from './mfa-policy.guard';
+import { PasskeyEnabledGuard } from './passkey-enabled.guard';
+import { PasskeyService } from './passkey.service';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpException,
+  Param,
+  Patch,
+  Post,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
+
+import type { Request, Response } from 'express';
 
 const WINDOW = 15 * 60 * 1000;
 const LOGIN_MIN_LATENCY_MS = 350;
@@ -81,7 +101,11 @@ export class PasskeyController {
   @MfaExempt('unauthenticated passkey login ceremony')
   @HttpCode(200)
   @UseGuards(PasskeyEnabledGuard)
-  async loginVerify(@Body() body: PasskeyLoginVerifyDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
+  async loginVerify(
+    @Body() body: PasskeyLoginVerifyDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     this.limit('login', req, 10);
     const started = Date.now();
     const result = await this.passkeys.passkeyLoginVerify(body);
@@ -93,7 +117,12 @@ export class PasskeyController {
     const elapsed = Date.now() - started;
     if (elapsed < LOGIN_MIN_LATENCY_MS) await delay(LOGIN_MIN_LATENCY_MS - elapsed);
     if (result.error) throw new HttpException({ error: result.error }, result.status!);
-    this.audit.writeAudit({ userId: result.auditUserId!, action: 'user.login', ip: getClientIp(req), details: { method: 'passkey' } });
+    this.audit.writeAudit({
+      userId: result.auditUserId!,
+      action: 'user.login',
+      ip: getClientIp(req),
+      details: { method: 'passkey' },
+    });
     setAuthCookie(res, result.token!, req);
     return { token: result.token, user: result.user };
   }
@@ -120,7 +149,12 @@ export class PasskeyController {
     this.limit('login', req, 5);
     const result = this.passkeys.deletePasskey(user.id, id, body?.password);
     if (result.error) throw new HttpException({ error: result.error }, result.status!);
-    this.audit.writeAudit({ userId: user.id, action: 'user.passkey_delete', resource: String(id), ip: getClientIp(req) });
+    this.audit.writeAudit({
+      userId: user.id,
+      action: 'user.passkey_delete',
+      resource: String(id),
+      ip: getClientIp(req),
+    });
     return { success: true };
   }
 }

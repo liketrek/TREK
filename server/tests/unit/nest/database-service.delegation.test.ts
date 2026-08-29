@@ -3,6 +3,8 @@
  * must call the db/database exports (which e2e suites stub in their vi.mock
  * factories), never reimplement the SQL against the injected connection.
  */
+import { DatabaseService } from '../../../src/nest/database/database.service';
+
 import { describe, it, expect, vi } from 'vitest';
 
 const { canAccessTrip, isOwner, getPlaceWithTags } = vi.hoisted(() => ({
@@ -19,8 +21,6 @@ vi.mock('../../../src/db/database', () => ({
   isOwner,
   getPlaceWithTags,
 }));
-
-import { DatabaseService } from '../../../src/nest/database/database.service';
 
 describe('DatabaseService (helper delegation)', () => {
   it('routes trip-access helpers through the db/database exports', async () => {

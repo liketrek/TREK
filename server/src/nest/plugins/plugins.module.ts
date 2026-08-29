@@ -1,14 +1,14 @@
-import { Module } from '@nestjs/common';
-import { PluginsController } from './plugins.controller';
+import { AppConfigModule } from '../app-config/app-config.module';
+import { PluginContributionsModule } from './contributions/plugin-contributions.module';
+import { PluginOAuthModule } from './oauth/plugin-oauth.module';
+import { PluginActivityController } from './plugin-activity.controller';
+import { PluginFrameController } from './plugin-frame.controller';
+import { PluginUserSettingsController } from './plugin-user-settings.controller';
 import { PluginsFeedController } from './plugins-feed.controller';
 import { PluginsProxyController } from './plugins-proxy.controller';
-import { PluginFrameController } from './plugin-frame.controller';
-import { PluginActivityController } from './plugin-activity.controller';
-import { PluginUserSettingsController } from './plugin-user-settings.controller';
 import { PluginsRuntimeModule } from './plugins-runtime.module';
-import { PluginOAuthModule } from './oauth/plugin-oauth.module';
-import { PluginContributionsModule } from './contributions/plugin-contributions.module';
-import { AppConfigModule } from '../app-config/app-config.module';
+import { PluginsController } from './plugins.controller';
+import { Module } from '@nestjs/common';
 
 /**
  * Plugin system (#plugins), composition root.

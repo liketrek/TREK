@@ -1,4 +1,3 @@
-import { describe, it, expect } from 'vitest';
 import {
   buildCategoryNameLookup,
   decodeUtf8WithWarning,
@@ -8,6 +7,8 @@ import {
   resolveCategoryIdForFolder,
   sanitizeKmlDescription,
 } from '../../../../src/nest/places/kml-import.helpers';
+
+import { describe, it, expect } from 'vitest';
 
 describe('kmlImportUtils', () => {
   it('sanitizes HTML descriptions with br to newline', () => {

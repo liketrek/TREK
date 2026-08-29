@@ -71,7 +71,8 @@ const common: TranslationStrings = {
   'common.errorRetry': 'Reintentar',
   'common.errorReload': 'Recargar la página',
   'common.errorUpdateTitle': 'Hay una nueva versión disponible',
-  'common.errorUpdateBody': 'TREK se actualizó mientras esta pestaña estaba abierta. Recarga para obtener la nueva versión.',
+  'common.errorUpdateBody':
+    'TREK se actualizó mientras esta pestaña estaba abierta. Recarga para obtener la nueva versión.',
   'common.errorPluginTitle': 'No se pudo mostrar este plugin',
 };
 export default common;

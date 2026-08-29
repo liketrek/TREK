@@ -1,17 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-
-/**
- * The gateway's handshake, and the socket registry it writes into.
- *
- * The transport suites in tests/websocket drive real sockets end to end; these
- * cases go at the pieces directly, so the ways this can fail SILENTLY are
- * pinned by name rather than by whether a browser happened to work.
- */
-vi.mock('../../../src/plugin-event-sink', () => ({
-  emitPluginEvent: vi.fn(),
-  pluginEventMeta: vi.fn(() => ({})),
-}));
-
+import type { EphemeralTokenService } from '../../../src/nest/auth/ephemeral-token.service';
+import type { DatabaseService } from '../../../src/nest/database/database.service';
+import type { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
 import { RealtimeGateway } from '../../../src/nest/realtime/realtime.gateway';
 import {
   bookPeers,
@@ -28,10 +17,21 @@ import {
   type TrekWebSocket,
 } from '../../../src/nest/realtime/ws-state';
 import { emitPluginEvent } from '../../../src/plugin-event-sink';
-import type { DatabaseService } from '../../../src/nest/database/database.service';
-import type { EphemeralTokenService } from '../../../src/nest/auth/ephemeral-token.service';
-import type { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
 import type { User } from '../../../src/types';
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+/**
+ * The gateway's handshake, and the socket registry it writes into.
+ *
+ * The transport suites in tests/websocket drive real sockets end to end; these
+ * cases go at the pieces directly, so the ways this can fail SILENTLY are
+ * pinned by name rather than by whether a browser happened to work.
+ */
+vi.mock('../../../src/plugin-event-sink', () => ({
+  emitPluginEvent: vi.fn(),
+  pluginEventMeta: vi.fn(() => ({})),
+}));
 
 interface FakeSocket extends TrekWebSocket {
   sent: string[];
@@ -45,8 +45,12 @@ function socket(): FakeSocket {
     isAlive: false,
     sent,
     closedWith: null as [number, string] | null,
-    send: (raw: string) => { sent.push(raw); },
-    close: (code: number, reason: string) => { s.closedWith = [code, reason]; },
+    send: (raw: string) => {
+      sent.push(raw);
+    },
+    close: (code: number, reason: string) => {
+      s.closedWith = [code, reason];
+    },
     on: vi.fn(),
     terminate: vi.fn(),
     ping: vi.fn(),
@@ -220,8 +224,9 @@ describe('RealtimeGateway heartbeat', () => {
 
   it('WSGW-022: a pong marks the socket live again', () => {
     const { ws } = connect('/ws?token=x');
-    const pong = (ws.on as unknown as { mock: { calls: [string, () => void][] } }).mock.calls
-      .find(([event]) => event === 'pong');
+    const pong = (ws.on as unknown as { mock: { calls: [string, () => void][] } }).mock.calls.find(
+      ([event]) => event === 'pong',
+    );
     expect(pong).toBeDefined();
     ws.isAlive = false;
     pong![1]();
@@ -325,7 +330,7 @@ describe('book rooms', () => {
     const j = nextJourney++;
     const { reply } = joined(j);
     expect(reply).toEqual({ type: 'book:joined', journeyId: j });
-    expect(bookPeers(j).map(p => p.userId)).toEqual([3]);
+    expect(bookPeers(j).map((p) => p.userId)).toEqual([3]);
   });
 
   /* Same shape as the trip room's refusal, and for the same reason. */
@@ -344,7 +349,7 @@ describe('book rooms', () => {
     first.sent.length = 0;
     joined(j);
 
-    const peers = first.sent.map(raw => JSON.parse(raw)).filter(m => m.type === 'journey:book:peers');
+    const peers = first.sent.map((raw) => JSON.parse(raw)).filter((m) => m.type === 'journey:book:peers');
     expect(peers).toHaveLength(1);
     expect(peers[0].peers).toHaveLength(2);
     expect(peers[0].journeyId).toBe(j);
@@ -371,7 +376,7 @@ describe('book rooms', () => {
     gw.handleDisconnect(ws);
 
     expect(bookPeers(j)).toHaveLength(1);
-    const peers = other.ws.sent.map(raw => JSON.parse(raw)).filter(m => m.type === 'journey:book:peers');
+    const peers = other.ws.sent.map((raw) => JSON.parse(raw)).filter((m) => m.type === 'journey:book:peers');
     expect(peers[peers.length - 1].peers).toHaveLength(1);
   });
 });
@@ -394,7 +399,7 @@ describe('book pointers', () => {
   }
 
   const cursorsIn = (ws: FakeSocket) =>
-    ws.sent.map(raw => JSON.parse(raw)).filter(m => m.type === 'journey:book:cursor');
+    ws.sent.map((raw) => JSON.parse(raw)).filter((m) => m.type === 'journey:book:cursor');
 
   it('WSGW-CUR-001: forwards a pointer to the others, not back to the sender', () => {
     const { gw, mine, theirs, journeyId } = pair();
@@ -468,8 +473,7 @@ describe('book messages that are refused', () => {
     const ws = socket();
     registerSocket(ws, { id: 3, username: 'm' } as User);
 
-    expect(gw.handleBookJoin({ journeyId: 'not-a-journey' }, ws))
-      .toEqual({ type: 'error', message: 'Access denied' });
+    expect(gw.handleBookJoin({ journeyId: 'not-a-journey' }, ws)).toEqual({ type: 'error', message: 'Access denied' });
   });
 
   it('WSGW-BOOK-009: a leave without a journey id is ignored', () => {
@@ -542,7 +546,7 @@ describe('book rooms with unusable sockets in them', () => {
     joinBook(dead, j);
     (dead as { readyState: number }).readyState = 3;
 
-    expect(bookPeers(j).map(p => p.userId)).toEqual([3]);
+    expect(bookPeers(j).map((p) => p.userId)).toEqual([3]);
   });
 
   it('WSST-BOOK-002: a socket that was never registered is not a peer', () => {
@@ -552,7 +556,7 @@ describe('book rooms with unusable sockets in them', () => {
     joinBook(known, j);
     joinBook(socket(), j);
 
-    expect(bookPeers(j).map(p => p.userId)).toEqual([3]);
+    expect(bookPeers(j).map((p) => p.userId)).toEqual([3]);
   });
 
   it('WSST-BOOK-003: a broadcast skips a closed socket instead of writing to it', () => {
@@ -591,7 +595,7 @@ describe('book rooms with unusable sockets in them', () => {
     leaveBook(ws, a);
 
     expect(bookPeers(a)).toEqual([]);
-    expect(bookPeers(b).map(p => p.userId)).toEqual([3]);
+    expect(bookPeers(b).map((p) => p.userId)).toEqual([3]);
   });
 
   it('WSST-BOOK-006: leaving a book that does not exist is not an error', () => {

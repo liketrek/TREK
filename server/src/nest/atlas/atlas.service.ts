@@ -1,7 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { CONTINENT_MAP, strongerVisitStatus, todayUtc, tripVisitStatus, VisitStatus } from '@trek/shared';
-import type { AtlasLocateResponse } from '@trek/shared';
 import { Trip, Place } from '../../types';
+import { haversineKm } from '../common/geo';
 import { DatabaseService } from '../database/database.service';
 import {
   getCountryFromCoords,
@@ -12,11 +10,13 @@ import {
   resolveCountryCodeSync,
   reverseGeocodeRegion,
 } from './atlas-geo';
-import { KNOWN_COUNTRIES } from './known-countries';
 import { cityFromAddress } from './city-from-address';
+import { KNOWN_COUNTRIES } from './known-countries';
 import { transferEndpointIds } from './transfer-endpoints';
 import type { FlightEndpointRow } from './transfer-endpoints';
-import { haversineKm } from '../common/geo';
+import { Injectable } from '@nestjs/common';
+import { CONTINENT_MAP, strongerVisitStatus, todayUtc, tripVisitStatus, VisitStatus } from '@trek/shared';
+import type { AtlasLocateResponse } from '@trek/shared';
 
 /**
  * A reservation endpoint plus the two booking columns that decide whether it may
@@ -367,8 +367,7 @@ export class AtlasService {
       if (!code || hidden.has(code)) continue;
       const existing = countries.find((c) => c.code === code);
       if (existing) existing.status = strongerVisitStatus(existing.status, e.status);
-      else
-        countries.push({ code, placeCount: 0, tripCount: 0, firstVisit: null, lastVisit: null, status: e.status });
+      else countries.push({ code, placeCount: 0, tripCount: 0, firstVisit: null, lastVisit: null, status: e.status });
     }
 
     // Everything below counts actual visits only. countries[] still carries planned and
@@ -422,15 +421,18 @@ export class AtlasService {
     const futureTrips = trips
       .filter((t) => t.start_date && t.start_date > now)
       .sort((a, b) => a.start_date!.localeCompare(b.start_date!));
-    const nextTrip: { id: number; title: string; start_date?: string | null; daysUntil?: number } | null = futureTrips[0]
-      ? { id: futureTrips[0].id, title: futureTrips[0].title, start_date: futureTrips[0].start_date }
-      : null;
+    const nextTrip: { id: number; title: string; start_date?: string | null; daysUntil?: number } | null =
+      futureTrips[0]
+        ? { id: futureTrips[0].id, title: futureTrips[0].title, start_date: futureTrips[0].start_date }
+        : null;
     if (nextTrip) {
       const diff = Math.ceil((new Date(nextTrip.start_date!).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
       nextTrip.daysUntil = Math.max(0, diff);
     }
 
-    const tripYears = new Set(trips.filter((t) => t.start_date).map((t) => Number.parseInt(t.start_date!.split('-')[0])));
+    const tripYears = new Set(
+      trips.filter((t) => t.start_date).map((t) => Number.parseInt(t.start_date!.split('-')[0])),
+    );
     let streak = 0;
     const currentYear = new Date().getFullYear();
     for (let y = currentYear; y >= 2000; y--) {
@@ -538,7 +540,9 @@ export class AtlasService {
 
   markCountry(userId: number, code: string): void {
     this.db.transaction(() => {
-      this.db.prepare('INSERT OR IGNORE INTO visited_countries (user_id, country_code) VALUES (?, ?)').run(userId, code);
+      this.db
+        .prepare('INSERT OR IGNORE INTO visited_countries (user_id, country_code) VALUES (?, ?)')
+        .run(userId, code);
       // Marking it visited again lifts a previous removal.
       this.db.prepare('DELETE FROM hidden_countries WHERE user_id = ? AND country_code = ?').run(userId, code);
     });
@@ -928,35 +932,48 @@ export class AtlasService {
   getTravelStats(userId: number) {
     // The resolved region rides along so cityFromAddress can tell the city apart from
     // the region sitting right above it in the same address (#1115).
-    const places = this.db.all<{ address: string | null; lat: number | null; lng: number | null; region_name: string | null }>(`
+    const places = this.db.all<{
+      address: string | null;
+      lat: number | null;
+      lng: number | null;
+      region_name: string | null;
+    }>(
+      `
     SELECT DISTINCT p.address, p.lat, p.lng, pr.region_name
     FROM places p
     JOIN trips t ON p.trip_id = t.id
     LEFT JOIN trip_members tm ON t.id = tm.trip_id
     LEFT JOIN place_regions pr ON pr.place_id = p.id
     WHERE t.user_id = ? OR tm.user_id = ?
-  `, userId, userId);
+  `,
+      userId,
+      userId,
+    );
 
     // Archived trips still count here, matching the places, countries and flight
     // distance widgets (which never filtered on is_archived) so the dashboard stats
     // stay consistent — archiving a trip no longer zeroes out trips/days.
-    const tripStats = this.db.get<{ trips: number; days: number }>(`
+    const tripStats = this.db.get<{ trips: number; days: number }>(
+      `
     SELECT COUNT(DISTINCT t.id) as trips,
            COUNT(DISTINCT d.id) as days
     FROM trips t
     LEFT JOIN days d ON d.trip_id = t.id
     LEFT JOIN trip_members tm ON t.id = tm.trip_id
     WHERE (t.user_id = ? OR tm.user_id = ?)
-  `, userId, userId);
+  `,
+      userId,
+      userId,
+    );
 
     const cities = new Set<string>();
     const coords: { lat: number; lng: number }[] = [];
 
-    places.forEach(p => {
+    places.forEach((p) => {
       // Explicit null checks: lat/lng of exactly 0 (equator / prime meridian)
       // are valid coordinates the former falsy check silently dropped.
       if (p.lat != null && p.lng != null) coords.push({ lat: p.lat, lng: p.lng });
-      const cityPart = cityFromAddress(p.address, part => KNOWN_COUNTRIES.has(part), p.region_name);
+      const cityPart = cityFromAddress(p.address, (part) => KNOWN_COUNTRIES.has(part), p.region_name);
       if (cityPart) cities.add(cityPart);
     });
 
@@ -965,14 +982,17 @@ export class AtlasService {
     const countryCodes = new Set<string>();
     const manualCountries = this.db.all<{ country_code: string }>(
       'SELECT country_code FROM visited_countries WHERE user_id = ?',
-      userId
+      userId,
     );
-    manualCountries.forEach(m => { if (m.country_code) countryCodes.add(m.country_code.toUpperCase()); });
+    manualCountries.forEach((m) => {
+      if (m.country_code) countryCodes.add(m.country_code.toUpperCase());
+    });
 
     // Only trips that have already started count as visited — a country you have merely
     // booked a trip to isn't stamped in the passport yet, and one you jotted down without
     // any dates even less so (#1048). date('now') is UTC, matching tripVisitStatus.
-    const placeRegionCodes = this.db.all<{ country_code: string }>(`
+    const placeRegionCodes = this.db.all<{ country_code: string }>(
+      `
     SELECT DISTINCT pr.country_code
     FROM place_regions pr
     JOIN places p ON p.id = pr.place_id
@@ -981,8 +1001,13 @@ export class AtlasService {
     WHERE (t.user_id = ? OR tm.user_id = ?) AND pr.country_code IS NOT NULL
       AND COALESCE(t.start_date, t.end_date) IS NOT NULL
       AND COALESCE(t.start_date, t.end_date) <= date('now')
-  `, userId, userId);
-    placeRegionCodes.forEach(r => { if (r.country_code) countryCodes.add(r.country_code.toUpperCase()); });
+  `,
+      userId,
+      userId,
+    );
+    placeRegionCodes.forEach((r) => {
+      if (r.country_code) countryCodes.add(r.country_code.toUpperCase());
+    });
 
     // Transport bookings don't create a place row, so their geocoded endpoints never
     // reached place_regions — a country reached only by a flight/train (no lodging or
@@ -992,7 +1017,8 @@ export class AtlasService {
     // connection/layover (e.g. a plane change) the traveler never really visited (#1486),
     // and the same layover split over two bookings is recognised from its ground time
     // instead, because there it is stored as a legitimate 'to'/'from' pair (#1535).
-    const endpointRows = this.db.all<EndpointRow>(`
+    const endpointRows = this.db.all<EndpointRow>(
+      `
     SELECT DISTINCT e.id, e.reservation_id, r.trip_id, e.role, e.code, e.lat, e.lng, e.local_date, e.local_time,
            r.type AS reservation_type, r.status AS reservation_status,
            CASE e.role
@@ -1007,9 +1033,13 @@ export class AtlasService {
       AND COALESCE(t.start_date, t.end_date) IS NOT NULL
       AND COALESCE(t.start_date, t.end_date) <= date('now')
       AND ${AtlasService.TRAVELER_OWNS}
-  `, userId, userId, userId);
+  `,
+      userId,
+      userId,
+      userId,
+    );
     const transfers = transferEndpointIds(
-      endpointRows.filter(e => e.reservation_type === 'flight' && e.reservation_status !== 'cancelled')
+      endpointRows.filter((e) => e.reservation_type === 'flight' && e.reservation_status !== 'cancelled'),
     );
     // The DISTINCT no longer collapses per coordinate now that the endpoint id has to be
     // in the projection, so collapse here instead: getCountryFromCoords is a
@@ -1066,7 +1096,8 @@ export class AtlasService {
      OR EXISTS (SELECT 1 FROM reservation_travelers rt WHERE rt.reservation_id = r.id AND rt.user_id = ?))`;
 
   private flightDistanceKm(userId: number): number {
-    const rows = this.db.all<{ reservation_id: number; lat: number; lng: number }>(`
+    const rows = this.db.all<{ reservation_id: number; lat: number; lng: number }>(
+      `
       SELECT re.reservation_id, re.lat, re.lng
       FROM reservation_endpoints re
       JOIN reservations r ON r.id = re.reservation_id
@@ -1077,7 +1108,11 @@ export class AtlasService {
         AND r.status != 'cancelled'
         AND ${AtlasService.TRAVELER_OWNS}
       ORDER BY re.reservation_id, re.sequence
-    `, userId, userId, userId);
+    `,
+      userId,
+      userId,
+      userId,
+    );
 
     let total = 0;
     let prev: { id: number; lat: number; lng: number } | null = null;

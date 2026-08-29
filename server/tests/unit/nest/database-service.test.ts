@@ -2,9 +2,10 @@
  * DatabaseService — the shared better-sqlite3 provider (F3). Exercises every
  * helper against the real connection so the typed query surface is covered.
  */
-import { describe, it, expect } from 'vitest';
 import { db } from '../../../src/db/database';
 import { DatabaseService } from '../../../src/nest/database/database.service';
+
+import { describe, it, expect } from 'vitest';
 
 describe('DatabaseService (typed query helpers)', () => {
   const svc = new DatabaseService(db);
@@ -41,13 +42,13 @@ describe('DatabaseService (trip-access helpers)', () => {
 
   it('canAccessTrip / isOwner / getPlaceWithTags delegate to the shared helpers', () => {
     svc.run(
-      "INSERT INTO users (id, username, email, password_hash) VALUES (900, 'dbsvc-owner', 'dbsvc-owner@x.test', 'x')"
+      "INSERT INTO users (id, username, email, password_hash) VALUES (900, 'dbsvc-owner', 'dbsvc-owner@x.test', 'x')",
     );
     svc.run(
-      "INSERT INTO users (id, username, email, password_hash) VALUES (901, 'dbsvc-member', 'dbsvc-member@x.test', 'x')"
+      "INSERT INTO users (id, username, email, password_hash) VALUES (901, 'dbsvc-member', 'dbsvc-member@x.test', 'x')",
     );
     svc.run("INSERT INTO trips (id, user_id, title) VALUES (900, 900, 'DbSvc Trip')");
-    svc.run("INSERT INTO trip_members (trip_id, user_id) VALUES (900, 901)");
+    svc.run('INSERT INTO trip_members (trip_id, user_id) VALUES (900, 901)');
 
     expect(svc.canAccessTrip(900, 900)).toMatchObject({ id: 900, user_id: 900 });
     expect(svc.canAccessTrip(900, 901)).toMatchObject({ id: 900 });

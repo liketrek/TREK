@@ -5,6 +5,11 @@
  * the declared-profile re-check against the DB row, and whole-result rejection
  * of malformed routes (a wrong leg count must never mis-key sidebar connectors).
  */
+import { db as dbConn } from '../../../src/db/database';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { PluginRoutesController } from '../../../src/nest/plugins/contributions/plugin-routes.controller';
+import type { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const { canAccessTrip, pluginsEnabled, capabilitiesRow } = vi.hoisted(() => ({
@@ -13,15 +18,15 @@ const { canAccessTrip, pluginsEnabled, capabilitiesRow } = vi.hoisted(() => ({
   capabilitiesRow: { value: JSON.stringify({ routeProfiles: [{ id: 'ev', label: 'EV' }] }) as string | undefined },
 }));
 vi.mock('../../../src/db/database', () => ({
-  db: { prepare: () => ({ get: () => (capabilitiesRow.value === undefined ? undefined : { capabilities: capabilitiesRow.value }) }) },
+  db: {
+    prepare: () => ({
+      get: () => (capabilitiesRow.value === undefined ? undefined : { capabilities: capabilitiesRow.value }),
+    }),
+  },
   canAccessTrip,
 }));
-import { db as dbConn } from '../../../src/db/database';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 
-import { PluginRoutesController } from '../../../src/nest/plugins/contributions/plugin-routes.controller';
-import type { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
+vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const req = (id?: number) => ({ user: id === undefined ? undefined : { id } }) as any;
@@ -34,7 +39,11 @@ function controller(invoke: () => unknown, providers = ['ev-plug']) {
 }
 const wp = (n = 3) => Array.from({ length: n }, (_, i) => ({ lat: 48 + i * 0.1, lng: 2 + i * 0.1 }));
 const goodRoute = (n = 3, over: Record<string, unknown> = {}) => ({
-  coordinates: [[48, 2], [48.1, 2.1], [48.2, 2.2]],
+  coordinates: [
+    [48, 2],
+    [48.1, 2.1],
+    [48.2, 2.2],
+  ],
   distance: 12000,
   duration: 900,
   legs: Array.from({ length: n - 1 }, () => ({ distance: 6000, duration: 450 })),
@@ -65,9 +74,14 @@ describe('PluginRoutesController', () => {
 
   it('rejects invalid waypoint lists without invoking the plugin', async () => {
     const cases = [
-      body({ waypoints: wp(1) }),                                  // too few
-      body({ waypoints: wp(31) }),                                 // too many
-      body({ waypoints: [{ lat: 200, lng: 2 }, { lat: 48, lng: 2 }] }), // out of range
+      body({ waypoints: wp(1) }), // too few
+      body({ waypoints: wp(31) }), // too many
+      body({
+        waypoints: [
+          { lat: 200, lng: 2 },
+          { lat: 48, lng: 2 },
+        ],
+      }), // out of range
       body({ waypoints: 'nope' }),
       body({ tripId: 'NaN' }),
     ];
@@ -87,10 +101,15 @@ describe('PluginRoutesController', () => {
   });
 
   it('returns a normalized route and passes the request through to the hook', async () => {
-    const { c, runtime } = controller(() => goodRoute(3, {
-      legs: [{ distance: 6000, duration: 450, note: 'charge to 80%' }, { distance: 6000, duration: 450 }],
-      viaPoints: [{ lat: 48.05, lng: 2.05, label: 'Fastned', tone: 'success', dwellSeconds: 1500.7 }],
-    }));
+    const { c, runtime } = controller(() =>
+      goodRoute(3, {
+        legs: [
+          { distance: 6000, duration: 450, note: 'charge to 80%' },
+          { distance: 6000, duration: 450 },
+        ],
+        viaPoints: [{ lat: 48.05, lng: 2.05, label: 'Fastned', tone: 'success', dwellSeconds: 1500.7 }],
+      }),
+    );
     const { route } = await c.route('ev-plug', 'ev', body(), req(5));
     expect(route).not.toBeNull();
     expect(route!.pluginId).toBe('ev-plug');
@@ -102,11 +121,21 @@ describe('PluginRoutesController', () => {
 
   it('rejects a malformed route whole: wrong leg count, bad vertex, negative numbers', async () => {
     const bads = [
-      goodRoute(3, { legs: [{ distance: 1, duration: 1 }] }),            // 1 leg for 3 waypoints
-      goodRoute(3, { coordinates: [[48, 2], [999, 2]] }),                // out-of-range vertex
+      goodRoute(3, { legs: [{ distance: 1, duration: 1 }] }), // 1 leg for 3 waypoints
+      goodRoute(3, {
+        coordinates: [
+          [48, 2],
+          [999, 2],
+        ],
+      }), // out-of-range vertex
       goodRoute(3, { distance: -5 }),
       goodRoute(3, { duration: 'soon' }),
-      goodRoute(3, { legs: [{ distance: 1, duration: -1 }, { distance: 1, duration: 1 }] }),
+      goodRoute(3, {
+        legs: [
+          { distance: 1, duration: -1 },
+          { distance: 1, duration: 1 },
+        ],
+      }),
       'nope',
     ];
     for (const bad of bads) {
@@ -126,11 +155,13 @@ describe('PluginRoutesController', () => {
     expect(route!.viaPoints.length).toBeLessThanOrEqual(40);
     expect(route!.viaPoints[0].tone).toBe('default');
     expect(route!.viaPoints[0].label!.length).toBe(80);
-    expect(route!.viaPoints.some(v => v.label === 'dropped')).toBe(false);
+    expect(route!.viaPoints.some((v) => v.label === 'dropped')).toBe(false);
   });
 
   it('answers null when the provider throws or times out', async () => {
-    const { c } = controller(() => { throw new Error('solver down'); });
+    const { c } = controller(() => {
+      throw new Error('solver down');
+    });
     expect((await c.route('ev-plug', 'ev', body(), req(5))).route).toBeNull();
   });
 });

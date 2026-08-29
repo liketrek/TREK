@@ -5,14 +5,21 @@
  * below; journeyService, the permission check, canAccessTrip and the WebSocket
  * broadcast are mocked.
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi, type MockInstance } from 'vitest';
-import request from 'supertest';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
+import { DatabaseModule } from '../../src/nest/database/database.module';
+import { JourneyDomainService } from '../../src/nest/journey/journey-domain.service';
+import { PermissionsService } from '../../src/nest/permissions/permissions.service';
+import { PlacesModule } from '../../src/nest/places/places.module';
+import { PlacesService } from '../../src/nest/places/places.service';
+import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
+import { seedUser, sessionCookie } from './harness';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
-import { DatabaseModule } from '../../src/nest/database/database.module';
-import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
-import { Test } from '@nestjs/testing';
-import { seedUser, sessionCookie } from './harness';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi, type MockInstance } from 'vitest';
 
 const { db } = vi.hoisted(() => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -38,7 +45,9 @@ const { db } = vi.hoisted(() => {
   tmp.exec(`CREATE TABLE place_ratings (place_id INTEGER NOT NULL, user_id INTEGER NOT NULL, rating INTEGER,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP, UNIQUE(place_id, user_id));`);
   // The assignment=unassigned/assigned filters join these.
-  tmp.exec('CREATE TABLE days (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL, day_number INTEGER, date TEXT, title TEXT);');
+  tmp.exec(
+    'CREATE TABLE days (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL, day_number INTEGER, date TEXT, title TEXT);',
+  );
   // The GPX export reads the trip title for <metadata> and the filename.
   tmp.exec('CREATE TABLE trips (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT);');
   tmp.exec(`CREATE TABLE day_assignments (id INTEGER PRIMARY KEY AUTOINCREMENT, day_id INTEGER NOT NULL,
@@ -64,21 +73,18 @@ const { getPlaceWithTags } = vi.hoisted(() => ({
   getPlaceWithTags: vi.fn(),
 }));
 vi.mock('../../src/db/database', () => ({
-  db, canAccessTrip, isOwner: vi.fn(() => true), getPlaceWithTags, closeDb: () => {}, reinitialize: () => {},
+  db,
+  canAccessTrip,
+  isOwner: vi.fn(() => true),
+  getPlaceWithTags,
+  closeDb: () => {},
+  reinitialize: () => {},
 }));
 vi.mock('../../src/websocket', () => ({ broadcast: vi.fn() }));
-import { JourneyDomainService } from '../../src/nest/journey/journey-domain.service';
-
-import { PermissionsService } from '../../src/nest/permissions/permissions.service';
 
 // Since the permissions DI migration, the check is a spy on the container's
 // PermissionsService singleton (created in beforeAll, after build()).
 let checkPermission: MockInstance;
-
-import { PlacesModule } from '../../src/nest/places/places.module';
-import { PlacesService } from '../../src/nest/places/places.service';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
 
 describe('Places e2e (real auth guard + temp SQLite)', () => {
   let server: Server;
@@ -102,11 +108,24 @@ describe('Places e2e (real auth guard + temp SQLite)', () => {
   beforeAll(async () => {
     seedUser(db as never, { id: 1 });
     getPlaceWithTags.mockImplementation((placeId: number | string) => {
-      const place = db.prepare(`SELECT p.*, c.name AS category_name, c.color AS category_color, c.icon AS category_icon
-        FROM places p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id = ?`).get(placeId) as Record<string, unknown> | undefined;
+      const place = db
+        .prepare(
+          `SELECT p.*, c.name AS category_name, c.color AS category_color, c.icon AS category_icon
+        FROM places p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id = ?`,
+        )
+        .get(placeId) as Record<string, unknown> | undefined;
       if (!place) return null;
-      const tags = db.prepare('SELECT t.* FROM tags t JOIN place_tags pt ON t.id = pt.tag_id WHERE pt.place_id = ?').all(placeId);
-      return { ...place, category: place.category_id ? { id: place.category_id, name: place.category_name } : null, tags, ratings: [], rating_avg: null, rating_count: 0 };
+      const tags = db
+        .prepare('SELECT t.* FROM tags t JOIN place_tags pt ON t.id = pt.tag_id WHERE pt.place_id = ?')
+        .all(placeId);
+      return {
+        ...place,
+        category: place.category_id ? { id: place.category_id, name: place.category_name } : null,
+        tags,
+        ratings: [],
+        rating_avg: null,
+        rating_count: 0,
+      };
     });
     app = await build();
     checkPermission = vi.spyOn(app.get(PermissionsService), 'checkPermission');
@@ -114,7 +133,9 @@ describe('Places e2e (real auth guard + temp SQLite)', () => {
   });
 
   beforeEach(() => {
-    db.exec('DELETE FROM trips; DELETE FROM places; DELETE FROM place_tags; DELETE FROM place_ratings; DELETE FROM day_assignments; DELETE FROM days;');
+    db.exec(
+      'DELETE FROM trips; DELETE FROM places; DELETE FROM place_tags; DELETE FROM place_ratings; DELETE FROM day_assignments; DELETE FROM days;',
+    );
     canAccessTrip.mockReturnValue({ id: 5, user_id: 1 });
     checkPermission.mockReturnValue(true);
   });
@@ -149,18 +170,27 @@ describe('Places e2e (real auth guard + temp SQLite)', () => {
     // The row really landed.
     expect(db.prepare('SELECT COUNT(*) AS n FROM places WHERE trip_id = 5').get()).toEqual({ n: 1 });
 
-    const long = await request(server).post('/api/trips/5/places').set('Cookie', sessionCookie(1)).send({ name: 'x'.repeat(201) });
+    const long = await request(server)
+      .post('/api/trips/5/places')
+      .set('Cookie', sessionCookie(1))
+      .send({ name: 'x'.repeat(201) });
     expect(long.status).toBe(400);
     expect(long.body).toEqual({ error: 'name must be 200 characters or less' });
 
     checkPermission.mockReturnValue(false);
-    const forbidden = await request(server).post('/api/trips/5/places').set('Cookie', sessionCookie(1)).send({ name: 'Spot' });
+    const forbidden = await request(server)
+      .post('/api/trips/5/places')
+      .set('Cookie', sessionCookie(1))
+      .send({ name: 'Spot' });
     expect(forbidden.status).toBe(403);
   });
 
   it('200 (not 201) bulk-delete, 400 on bad ids', async () => {
     db.prepare("INSERT INTO places (id, trip_id, name) VALUES (1, 5, 'A'), (2, 5, 'B'), (3, 6, 'Foreign')").run();
-    const ok = await request(server).post('/api/trips/5/places/bulk-delete').set('Cookie', sessionCookie(1)).send({ ids: [1, 2, 3] });
+    const ok = await request(server)
+      .post('/api/trips/5/places/bulk-delete')
+      .set('Cookie', sessionCookie(1))
+      .send({ ids: [1, 2, 3] });
     expect(ok.status).toBe(200);
     expect(ok.body).toEqual({ deleted: [1, 2], count: 2 });
     // The foreign trip's place is untouched.
@@ -168,7 +198,10 @@ describe('Places e2e (real auth guard + temp SQLite)', () => {
 
     // The ZodValidationPipe owns this 400 since the DTO ratchet — the legacy
     // 'ids must be an array of numbers' string is gone.
-    const bad = await request(server).post('/api/trips/5/places/bulk-delete').set('Cookie', sessionCookie(1)).send({ ids: ['a'] });
+    const bad = await request(server)
+      .post('/api/trips/5/places/bulk-delete')
+      .set('Cookie', sessionCookie(1))
+      .send({ ids: ['a'] });
     expect(bad.status).toBe(400);
     expect(bad.body.error).toMatch(/^ids\.0: /);
   });
@@ -178,7 +211,10 @@ describe('Places e2e (real auth guard + temp SQLite)', () => {
     expect(nameless.status).toBe(400);
     expect(nameless.body.error).toMatch(/^name: /);
 
-    const urlless = await request(server).post('/api/trips/5/places/import/google-list').set('Cookie', sessionCookie(1)).send({});
+    const urlless = await request(server)
+      .post('/api/trips/5/places/import/google-list')
+      .set('Cookie', sessionCookie(1))
+      .send({});
     expect(urlless.status).toBe(400);
     expect(urlless.body.error).toMatch(/^url: /);
 
@@ -190,19 +226,27 @@ describe('Places e2e (real auth guard + temp SQLite)', () => {
   });
 
   it('bulk-update: an empty id list still short-circuits, a bare id list still 400s', async () => {
-    const empty = await request(server).post('/api/trips/5/places/bulk-update').set('Cookie', sessionCookie(1)).send({ ids: [] });
+    const empty = await request(server)
+      .post('/api/trips/5/places/bulk-update')
+      .set('Cookie', sessionCookie(1))
+      .send({ ids: [] });
     expect(empty.status).toBe(200);
     expect(empty.body).toEqual({ updated: [], count: 0 });
 
     // category_id absent (not undefined-valued): Zod strips absent optionals, so
     // the handler's `'category_id' in body` check still discriminates.
-    const noField = await request(server).post('/api/trips/5/places/bulk-update').set('Cookie', sessionCookie(1)).send({ ids: [1] });
+    const noField = await request(server)
+      .post('/api/trips/5/places/bulk-update')
+      .set('Cookie', sessionCookie(1))
+      .send({ ids: [1] });
     expect(noField.status).toBe(400);
     expect(noField.body).toEqual({ error: 'Provide at least one field to update' });
   });
 
   it('import/google-list forwards a boolean enrich flag as the client sends it', async () => {
-    const spy = vi.spyOn(app.get(PlacesService), 'importGoogleList').mockResolvedValue({ places: [], listName: 'L', skipped: 0 });
+    const spy = vi
+      .spyOn(app.get(PlacesService), 'importGoogleList')
+      .mockResolvedValue({ places: [], listName: 'L', skipped: 0 });
     const res = await request(server)
       .post('/api/trips/5/places/import/google-list')
       .set('Cookie', sessionCookie(1))
@@ -215,16 +259,25 @@ describe('Places e2e (real auth guard + temp SQLite)', () => {
   it('PUT route_color: hex through, null through, garbage rejected (#776)', async () => {
     db.prepare("INSERT INTO places (id, trip_id, name) VALUES (9, 5, 'Walk')").run();
 
-    const ok = await request(server).put('/api/trips/5/places/9').set('Cookie', sessionCookie(1)).send({ route_color: '#e11d48' });
+    const ok = await request(server)
+      .put('/api/trips/5/places/9')
+      .set('Cookie', sessionCookie(1))
+      .send({ route_color: '#e11d48' });
     expect(ok.status).toBe(200);
     expect(ok.body.place.route_color).toBe('#e11d48');
 
     // null is the reset back to the inherited category colour.
-    const cleared = await request(server).put('/api/trips/5/places/9').set('Cookie', sessionCookie(1)).send({ route_color: null });
+    const cleared = await request(server)
+      .put('/api/trips/5/places/9')
+      .set('Cookie', sessionCookie(1))
+      .send({ route_color: null });
     expect(cleared.status).toBe(200);
     expect(cleared.body.place.route_color).toBeNull();
 
-    const bad = await request(server).put('/api/trips/5/places/9').set('Cookie', sessionCookie(1)).send({ route_color: 'red' });
+    const bad = await request(server)
+      .put('/api/trips/5/places/9')
+      .set('Cookie', sessionCookie(1))
+      .send({ route_color: 'red' });
     expect(bad.status).toBe(400);
     expect(bad.body).toEqual({ error: 'route_color must be a hex colour like #4f46e5' });
   });
@@ -241,12 +294,17 @@ describe('Places e2e (real auth guard + temp SQLite)', () => {
     expect(db.prepare('SELECT name FROM places WHERE id = 9').get()).toEqual({ name: 'Walk' });
   });
 
-  it('PUT/DELETE :id/rating stores and clears the caller\'s vote', async () => {
+  it("PUT/DELETE :id/rating stores and clears the caller's vote", async () => {
     db.prepare("INSERT INTO places (id, trip_id, name) VALUES (9, 5, 'Rated')").run();
 
-    const rated = await request(server).put('/api/trips/5/places/9/rating').set('Cookie', sessionCookie(1)).send({ rating: 4 });
+    const rated = await request(server)
+      .put('/api/trips/5/places/9/rating')
+      .set('Cookie', sessionCookie(1))
+      .send({ rating: 4 });
     expect(rated.status).toBe(200);
-    expect(db.prepare('SELECT user_id, rating FROM place_ratings WHERE place_id = 9').all()).toEqual([{ user_id: 1, rating: 4 }]);
+    expect(db.prepare('SELECT user_id, rating FROM place_ratings WHERE place_id = 9').all()).toEqual([
+      { user_id: 1, rating: 4 },
+    ]);
 
     const cleared = await request(server).delete('/api/trips/5/places/9/rating').set('Cookie', sessionCookie(1));
     expect(cleared.status).toBe(200);
@@ -268,7 +326,9 @@ describe('Places e2e (real auth guard + temp SQLite)', () => {
 
   it('DELETE :id takes the expense linked to the place with it (#1298)', async () => {
     db.prepare("INSERT INTO places (id, trip_id, name) VALUES (12, 5, 'Louvre')").run();
-    db.prepare("INSERT INTO budget_items (id, trip_id, name, total_price, place_id) VALUES (44, 5, 'Tickets', 34, 12)").run();
+    db.prepare(
+      "INSERT INTO budget_items (id, trip_id, name, total_price, place_id) VALUES (44, 5, 'Tickets', 34, 12)",
+    ).run();
     db.prepare("INSERT INTO budget_items (id, trip_id, name, total_price) VALUES (45, 5, 'Coffee', 3)").run();
 
     const res = await request(server).delete('/api/trips/5/places/12').set('Cookie', sessionCookie(1));
@@ -316,8 +376,12 @@ describe('Places e2e (real auth guard + temp SQLite)', () => {
     const seedTrip = () => {
       db.prepare("INSERT INTO trips (id, title) VALUES (5, 'Alpine week')").run();
       db.prepare("INSERT INTO places (id, trip_id, name, lat, lng) VALUES (1, 5, 'Trailhead', 47.1, 11.2)").run();
-      db.prepare("INSERT INTO places (id, trip_id, name, lat, lng, route_geometry) VALUES (2, 5, 'Ridge', 47.2, 11.3, '[[47.2,11.3],[47.25,11.35]]')").run();
-      db.prepare("INSERT INTO days (id, trip_id, day_number, date, title) VALUES (1, 5, 1, '2026-05-01', 'Warm up')").run();
+      db.prepare(
+        "INSERT INTO places (id, trip_id, name, lat, lng, route_geometry) VALUES (2, 5, 'Ridge', 47.2, 11.3, '[[47.2,11.3],[47.25,11.35]]')",
+      ).run();
+      db.prepare(
+        "INSERT INTO days (id, trip_id, day_number, date, title) VALUES (1, 5, 1, '2026-05-01', 'Warm up')",
+      ).run();
       db.prepare('INSERT INTO day_assignments (day_id, place_id, order_index) VALUES (1, 1, 0), (1, 2, 1)').run();
     };
 

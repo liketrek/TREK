@@ -7,19 +7,25 @@
  * The rest are the per-handler cases the router-level test never had room for, in
  * particular the ownership re-check on the two writes.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { expectRegisteredProvider } from '../../helpers/module-providers';
+import { BadParams, ForbiddenResource } from '../../../src/nest/plugins/host/rpc-errors';
 import { PluginRpcHost } from '../../../src/nest/plugins/host/rpc-host';
 import { createTestPluginRegistry } from '../../../src/nest/plugins/host/rpc-kit/testing';
-import { BadParams, ForbiddenResource } from '../../../src/nest/plugins/host/rpc-errors';
-import { TagsRpc } from '../../../src/nest/tags/tags.rpc';
-import { TagsModule } from '../../../src/nest/tags/tags.module';
-import type { TagsService } from '../../../src/nest/tags/tags.service';
 import type { PluginRpcContext } from '../../../src/nest/plugins/host/rpc-kit/types';
 import type { RpcRequest, RpcError } from '../../../src/nest/plugins/protocol/envelope';
+import { TagsModule } from '../../../src/nest/tags/tags.module';
+import { TagsRpc } from '../../../src/nest/tags/tags.rpc';
+import type { TagsService } from '../../../src/nest/tags/tags.service';
+import { expectRegisteredProvider } from '../../helpers/module-providers';
 import { makeDeps } from '../../helpers/rpc-host-deps';
 
-const req = (method: string, params: Record<string, unknown> = {}): RpcRequest => ({ k: 'req', id: 'x', method, params });
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+const req = (method: string, params: Record<string, unknown> = {}): RpcRequest => ({
+  k: 'req',
+  id: 'x',
+  method,
+  params,
+});
 const ctx = (actingUserId: number | undefined): PluginRpcContext => ({
   pluginId: 'p',
   actingUserId,
@@ -62,7 +68,7 @@ describe('TagsRpc through the router', () => {
     );
   });
 
-  it('TAGS-RPC-001 tags are the acting user\'s own; a userless context + empty name are refused', async () => {
+  it("TAGS-RPC-001 tags are the acting user's own; a userless context + empty name are refused", async () => {
     expect((await host.dispatch(req('tags.list'), 42)).ok).toBe(true);
     expect(tags.list).toHaveBeenCalledWith(42);
     expect((await host.dispatch(req('tags.create', { input: { name: 'work' } }), 42)).ok).toBe(true);
@@ -84,7 +90,7 @@ describe('TagsRpc through the router', () => {
     expect(tags.create).not.toHaveBeenCalled();
   });
 
-  it('TAGS-RPC-004 editing another user\'s tag is RESOURCE_FORBIDDEN', async () => {
+  it("TAGS-RPC-004 editing another user's tag is RESOURCE_FORBIDDEN", async () => {
     const res = (await host.dispatch(req('tags.update', { tagId: 2, input: { name: 'x' } }), 42)) as RpcError;
     expect(res.error.code).toBe('RESOURCE_FORBIDDEN');
     expect(res.error.message).toBe('no tag 2 for this user');
@@ -139,7 +145,7 @@ describe('TagsRpc handlers', () => {
     rpc = new TagsRpc(tags);
   });
 
-  it('TAGS-RPC-008 list returns the acting user\'s tags', () => {
+  it("TAGS-RPC-008 list returns the acting user's tags", () => {
     expect(rpc.list({}, ctx(42))).toEqual([{ id: 1, user_id: 42, name: 'work' }]);
   });
 
@@ -188,7 +194,7 @@ describe('TagsRpc handlers', () => {
     expect(tags.remove).toHaveBeenCalledWith(1);
   });
 
-  it('TAGS-RPC-016 deleting another user\'s tag never reaches remove()', () => {
+  it("TAGS-RPC-016 deleting another user's tag never reaches remove()", () => {
     expect(() => rpc.delete({ tagId: 2 }, ctx(42))).toThrow(new ForbiddenResource('no tag 2 for this user'));
     expect(tags.remove).not.toHaveBeenCalled();
   });

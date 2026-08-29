@@ -1,13 +1,26 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpException, Param, Post, Put, Req, UseGuards } from '@nestjs/common';
-import type { Request } from 'express';
-import { PackingService } from './packing.service';
+import type { User } from '../../types';
 import { AdminTemplateNameDto } from '../admin/admin.dto';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { AuditService } from '../audit/audit.service';
+import { getClientIp } from '../audit/client-ip';
 import { AdminGuard } from '../auth/admin.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
-import { getClientIp } from '../audit/client-ip';
-import { AuditService } from '../audit/audit.service';
-import type { User } from '../../types';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { PackingService } from './packing.service';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpException,
+  Param,
+  Post,
+  Put,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+
+import type { Request } from 'express';
 
 /** Throw the legacy {error,status} envelope when a service call reports failure. */
 function ok<T>(result: T): Exclude<T, { error: string }> {
@@ -87,7 +100,11 @@ export class AdminPackingTemplatesController {
   }
 
   @Put(':templateId/categories/:catId')
-  updateCategory(@Param('templateId') templateId: string, @Param('catId') catId: string, @Body() body: AdminTemplateNameDto) {
+  updateCategory(
+    @Param('templateId') templateId: string,
+    @Param('catId') catId: string,
+    @Body() body: AdminTemplateNameDto,
+  ) {
     return ok(this.packing.updateTemplateCategory(templateId, catId, body));
   }
 
@@ -99,12 +116,20 @@ export class AdminPackingTemplatesController {
 
   @Post(':templateId/categories/:catId/items')
   @HttpCode(201)
-  createItem(@Param('templateId') templateId: string, @Param('catId') catId: string, @Body() body: AdminTemplateNameDto) {
+  createItem(
+    @Param('templateId') templateId: string,
+    @Param('catId') catId: string,
+    @Body() body: AdminTemplateNameDto,
+  ) {
     return ok(this.packing.createTemplateItem(templateId, catId, body.name));
   }
 
   @Put(':templateId/items/:itemId')
-  updateItem(@Param('templateId') templateId: string, @Param('itemId') itemId: string, @Body() body: AdminTemplateNameDto) {
+  updateItem(
+    @Param('templateId') templateId: string,
+    @Param('itemId') itemId: string,
+    @Body() body: AdminTemplateNameDto,
+  ) {
     return ok(this.packing.updateTemplateItem(templateId, itemId, body));
   }
 

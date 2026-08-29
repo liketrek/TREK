@@ -9,6 +9,13 @@
  * The rule that makes this safe: it may describe, it may not illustrate, and it
  * must say what it is describing.
  */
+import { db } from '../../../src/db/database';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { readBrandIdentity } from '../../../src/nest/maps/maps.service';
+import type { MapsService } from '../../../src/nest/maps/maps.service';
+import { PlaceEnrichmentService } from '../../../src/nest/place-enrichment/place-enrichment.service';
+import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const { mockDbGet, mockDbRun } = vi.hoisted(() => ({
@@ -35,13 +42,6 @@ vi.mock('../../../src/utils/ssrfGuard', () => ({
 }));
 
 vi.mock('../../../src/config', () => ({ JWT_SECRET: 'test-secret', ENCRYPTION_KEY: '0'.repeat(64) }));
-
-import { db } from '../../../src/db/database';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { PlaceEnrichmentService } from '../../../src/nest/place-enrichment/place-enrichment.service';
-import { readBrandIdentity } from '../../../src/nest/maps/maps.service';
-import type { MapsService } from '../../../src/nest/maps/maps.service';
-import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
 
 const REQ = { lat: 54.088, lng: 12.1409, name: "L'Osteria Rostock", placeId: 'ChIJosteria', lang: 'de' };
 
@@ -74,14 +74,19 @@ function mapsStub(over: Partial<Record<keyof MapsService, unknown>> = {}) {
     fetchWikiExtract: vi.fn(async () => null as typeof CHAIN_EXTRACT | null),
     fetchWikiExtractFor: vi.fn(async () => null as typeof CHAIN_EXTRACT | null),
     fetchWikidataSitelinks: vi.fn(async () => ({}) as Record<string, string>),
-    resolveOsmIdentity: vi.fn(async () => null as { tags: Record<string, string>; osmUrl: string | null; matchedName: string } | null),
+    resolveOsmIdentity: vi.fn(
+      async () => null as { tags: Record<string, string>; osmUrl: string | null; matchedName: string } | null,
+    ),
     details: vi.fn(async () => ({ place: null })),
     ...over,
   } as unknown as MapsService;
 }
 
 const cacheStub = () =>
-  ({ get: vi.fn(() => null), put: vi.fn(async () => ({ photoUrl: '/x', filePath: '/x', attribution: null })) }) as unknown as PlacePhotoCacheService;
+  ({
+    get: vi.fn(() => null),
+    put: vi.fn(async () => ({ photoUrl: '/x', filePath: '/x', attribution: null })),
+  }) as unknown as PlacePhotoCacheService;
 
 const make = (maps: MapsService) => new PlaceEnrichmentService(new DatabaseService(db as never), maps, cacheStub());
 

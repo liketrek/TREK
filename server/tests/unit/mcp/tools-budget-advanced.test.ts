@@ -3,6 +3,12 @@
  * set_budget_item_members, toggle_budget_member_paid.
  * Resources: trek://trips/{tripId}/budget/per-person, trek://trips/{tripId}/budget/settlement.
  */
+import { runMigrations } from '../../../src/db/migrations';
+import { createTables } from '../../../src/db/schema';
+import { createUser, createTrip, createBudgetItem, addTripMember } from '../../helpers/factories';
+import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
+import { resetTestDb } from '../../helpers/test-db';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 const { testDb, dbMock } = vi.hoisted(() => {
@@ -17,7 +23,11 @@ const { testDb, dbMock } = vi.hoisted(() => {
     reinitialize: () => {},
     getPlaceWithTags: () => null,
     canAccessTrip: (tripId: any, userId: number) =>
-      db.prepare(`SELECT t.id, t.user_id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)`).get(userId, tripId, userId),
+      db
+        .prepare(
+          `SELECT t.id, t.user_id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)`,
+        )
+        .get(userId, tripId, userId),
     isOwner: (tripId: any, userId: number) =>
       !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
   };
@@ -34,12 +44,6 @@ vi.mock('../../../src/config', () => ({
 const { broadcastMock } = vi.hoisted(() => ({ broadcastMock: vi.fn() }));
 vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
 
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, createBudgetItem, addTripMember } from '../../helpers/factories';
-import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
-
 beforeAll(() => {
   createTables(testDb);
   runMigrations(testDb);
@@ -52,7 +56,12 @@ beforeEach(() => {
   // get_settlement_summary calls getRates(), which is a real fetch to
   // api.frankfurter.dev with a 10 s abort. One case used to stub this inline;
   // hoisted so a second settlement case cannot quietly reintroduce the call.
-  vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('offline'); }));
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => {
+      throw new Error('offline');
+    }),
+  );
 });
 
 afterAll(() => {
@@ -62,12 +71,20 @@ afterAll(() => {
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
   const h = await createMcpHarness({ userId, withResources: false });
-  try { await fn(h); } finally { await h.cleanup(); }
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 async function withResourceHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
   const h = await createMcpHarness({ userId, withResources: true });
-  try { await fn(h); } finally { await h.cleanup(); }
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -90,11 +107,15 @@ describe('Tool: set_budget_item_members', () => {
       expect(Array.isArray(data.item.payers)).toBe(true);
       // Quirk fix: the broadcast carries the REST payload shape (the legacy
       // MCP-specific { item } shape was a silent no-op in the client handler).
-      expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'budget:members-updated', expect.objectContaining({
-        itemId: item.id,
-        members: expect.arrayContaining([expect.objectContaining({ user_id: user.id })]),
-        persons: 1,
-      }));
+      expect(broadcastMock).toHaveBeenCalledWith(
+        trip.id,
+        'budget:members-updated',
+        expect.objectContaining({
+          itemId: item.id,
+          members: expect.arrayContaining([expect.objectContaining({ user_id: user.id })]),
+          persons: 1,
+        }),
+      );
     });
   });
 
@@ -122,7 +143,9 @@ describe('Tool: set_budget_item_members', () => {
       });
       const data = parseToolResult(result) as any;
       expect(data.item).toBeDefined();
-      const remaining = testDb.prepare('SELECT count(*) as cnt FROM budget_item_members WHERE budget_item_id = ?').get(item.id) as any;
+      const remaining = testDb
+        .prepare('SELECT count(*) as cnt FROM budget_item_members WHERE budget_item_id = ?')
+        .get(item.id) as any;
       expect(remaining.cnt).toBe(0);
     });
   });
@@ -218,7 +241,9 @@ describe('Tool: toggle_budget_member_paid', () => {
     const trip = createTrip(testDb, user.id);
     const item = createBudgetItem(testDb, trip.id, { total_price: 200 });
     // Add member first
-    testDb.prepare('INSERT INTO budget_item_members (budget_item_id, user_id, paid) VALUES (?, ?, 0)').run(item.id, user.id);
+    testDb
+      .prepare('INSERT INTO budget_item_members (budget_item_id, user_id, paid) VALUES (?, ?, 0)')
+      .run(item.id, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'toggle_budget_member_paid',
@@ -228,7 +253,11 @@ describe('Tool: toggle_budget_member_paid', () => {
       expect(data.member).toBeDefined();
       // Quirk fix: the broadcast carries the REST payload shape (the legacy
       // MCP-specific { itemId, member } shape was a silent no-op in the client).
-      expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'budget:member-paid-updated', expect.objectContaining({ itemId: item.id, userId: user.id, paid: 1 }));
+      expect(broadcastMock).toHaveBeenCalledWith(
+        trip.id,
+        'budget:member-paid-updated',
+        expect.objectContaining({ itemId: item.id, userId: user.id, paid: 1 }),
+      );
     });
   });
 
@@ -283,27 +312,35 @@ describe('Settlement tools', () => {
   it('update_settlement changes the amount; delete_settlement removes it', async () => {
     const { user, other, trip } = tripWithTwo();
     await withHarness(user.id, async (h) => {
-      const created = parseToolResult(await h.client.callTool({
-        name: 'create_settlement',
-        arguments: { tripId: trip.id, from_user_id: other.id, to_user_id: user.id, amount: 10 },
-      })) as any;
+      const created = parseToolResult(
+        await h.client.callTool({
+          name: 'create_settlement',
+          arguments: { tripId: trip.id, from_user_id: other.id, to_user_id: user.id, amount: 10 },
+        }),
+      ) as any;
       const id = created.settlement.id;
 
-      const updated = parseToolResult(await h.client.callTool({
-        name: 'update_settlement',
-        arguments: { tripId: trip.id, settlementId: id, from_user_id: other.id, to_user_id: user.id, amount: 25 },
-      })) as any;
+      const updated = parseToolResult(
+        await h.client.callTool({
+          name: 'update_settlement',
+          arguments: { tripId: trip.id, settlementId: id, from_user_id: other.id, to_user_id: user.id, amount: 25 },
+        }),
+      ) as any;
       expect(updated.settlement.amount).toBe(25);
       expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'budget:settlement-updated', expect.any(Object));
 
-      const deleted = parseToolResult(await h.client.callTool({
-        name: 'delete_settlement',
-        arguments: { tripId: trip.id, settlementId: id },
-      })) as any;
+      const deleted = parseToolResult(
+        await h.client.callTool({
+          name: 'delete_settlement',
+          arguments: { tripId: trip.id, settlementId: id },
+        }),
+      ) as any;
       expect(deleted.success).toBe(true);
       expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'budget:settlement-deleted', expect.any(Object));
 
-      const remaining = testDb.prepare('SELECT count(*) as cnt FROM budget_settlements WHERE trip_id = ?').get(trip.id) as any;
+      const remaining = testDb
+        .prepare('SELECT count(*) as cnt FROM budget_settlements WHERE trip_id = ?')
+        .get(trip.id) as any;
       expect(remaining.cnt).toBe(0);
     });
   });
@@ -337,9 +374,11 @@ describe('Settlement tools', () => {
       const { user, other, trip } = tripWithTwo();
       // user paid 100 for an item split between both → other owes user 50.
       const item = createBudgetItem(testDb, trip.id, { total_price: 100 });
-      testDb.prepare('INSERT INTO budget_item_members (budget_item_id, user_id, paid) VALUES (?, ?, 0), (?, ?, 0)')
+      testDb
+        .prepare('INSERT INTO budget_item_members (budget_item_id, user_id, paid) VALUES (?, ?, 0), (?, ?, 0)')
         .run(item.id, user.id, item.id, other.id);
-      testDb.prepare('INSERT INTO budget_item_payers (budget_item_id, user_id, amount) VALUES (?, ?, ?)')
+      testDb
+        .prepare('INSERT INTO budget_item_payers (budget_item_id, user_id, amount) VALUES (?, ?, ?)')
         .run(item.id, user.id, 100);
       await withHarness(user.id, async (h) => {
         const result = await h.client.callTool({ name: 'get_settlement_summary', arguments: { tripId: trip.id } });

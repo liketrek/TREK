@@ -26,8 +26,7 @@ const DUPLICATE_COLUMN = /duplicate column name: /;
 const BACKFILL_ERROR_HEAD = '[DB] Flight endpoint backfill failed:';
 const BACKFILL_TABLE_MISSING = /no such table/;
 
-const errorText = (value: unknown): string =>
-  value instanceof Error ? value.message : String(value);
+const errorText = (value: unknown): string => (value instanceof Error ? value.message : String(value));
 
 const realWarn = console.warn.bind(console);
 console.warn = (...args: unknown[]) => {

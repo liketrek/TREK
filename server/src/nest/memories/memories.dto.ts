@@ -1,4 +1,3 @@
-import { createZodDto } from 'nestjs-zod';
 import {
   addTripPhotosSchema,
   createAlbumLinkSchema,
@@ -11,6 +10,8 @@ import {
   synologySettingsSchema,
   synologyTestSchema,
 } from '@trek/shared';
+
+import { createZodDto } from 'nestjs-zod';
 
 /**
  * Server-side createZodDto wrappers over the @trek/shared memories contracts.

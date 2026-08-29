@@ -1,9 +1,9 @@
-import { PluginController, PluginMethod } from '../plugins/host/rpc-kit/decorators';
+import { ADDON_IDS } from '../../addons';
 import { PluginGuards } from '../plugins/host/plugin-guards.service';
 import { BadParams, ForbiddenResource } from '../plugins/host/rpc-errors';
-import { asPayload, num } from '../plugins/host/rpc-params';
+import { PluginController, PluginMethod } from '../plugins/host/rpc-kit/decorators';
 import type { PluginRpcContext } from '../plugins/host/rpc-kit/types';
-import { ADDON_IDS } from '../../addons';
+import { asPayload, num } from '../plugins/host/rpc-params';
 import { AtlasService, BucketItemExistsError } from './atlas.service';
 
 /**
@@ -61,9 +61,10 @@ export class AtlasRpc {
   markRegion(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
     const userId = this.requireAtlasUser(ctx, 'writes');
     // A missing name falls back to the code, so the row is never nameless.
-    const regionName = typeof params.regionName === 'string' && params.regionName
-      ? params.regionName.slice(0, 128)
-      : String(params.regionCode ?? '');
+    const regionName =
+      typeof params.regionName === 'string' && params.regionName
+        ? params.regionName.slice(0, 128)
+        : String(params.regionCode ?? '');
     const regionCode = this.code(params.regionCode, 'regionCode');
     const countryCode = this.code(params.countryCode, 'countryCode');
     this.requireAtlasAddon();

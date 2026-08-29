@@ -1,3 +1,8 @@
+import type { AddonsService } from '../../../../src/nest/addons/addons.service';
+import { DatabaseService } from '../../../../src/nest/database/database.service';
+import { LlmConfigResolver } from '../../../../src/nest/llm-parse/llm-config.resolver';
+import type { SettingsService } from '../../../../src/nest/settings/settings.service';
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // prepare() has to answer per statement now: the resolver reads the addon row
@@ -22,11 +27,6 @@ const { dbMock } = vi.hoisted(() => {
 vi.mock('../../../../src/db/database', () => ({ db: dbMock, closeDb: () => {}, reinitialize: () => {} }));
 
 const isAddonEnabled = vi.fn();
-
-import { LlmConfigResolver } from '../../../../src/nest/llm-parse/llm-config.resolver';
-import { DatabaseService } from '../../../../src/nest/database/database.service';
-import type { SettingsService } from '../../../../src/nest/settings/settings.service';
-import type { AddonsService } from '../../../../src/nest/addons/addons.service';
 
 // The resolver injects SettingsService — a stub instance instead of the old
 // legacy-module path mock (same behaviors as before the DI move). The
@@ -102,12 +102,20 @@ describe('resolveLlmConfig', () => {
   // #1772: the endpoint is instance configuration, so it may only come from an
   // admin-controlled source, whoever is asking.
   it('#1772: picking local personally gets no config at all (no silent reroute)', () => {
-    getUserSettings.mockReturnValue({ llm_provider: 'local', llm_model: 'nuextract', llm_base_url: 'http://192.168.1.5:11434' });
+    getUserSettings.mockReturnValue({
+      llm_provider: 'local',
+      llm_model: 'nuextract',
+      llm_base_url: 'http://192.168.1.5:11434',
+    });
     expect(resolver.resolve(7)).toBeNull();
   });
 
   it('#1772: a personal OpenAI config survives but loses its own base URL', () => {
-    getUserSettings.mockReturnValue({ llm_provider: 'openai', llm_model: 'gpt-4o-mini', llm_base_url: 'http://192.168.1.5:11434' });
+    getUserSettings.mockReturnValue({
+      llm_provider: 'openai',
+      llm_model: 'gpt-4o-mini',
+      llm_base_url: 'http://192.168.1.5:11434',
+    });
     getDecryptedUserSetting.mockReturnValue('sk-user');
     expect(resolver.resolve(7)).toEqual({
       provider: 'openai',
@@ -121,17 +129,25 @@ describe('resolveLlmConfig', () => {
   it('#1772: an admin-set instance default endpoint applies to everyone', () => {
     // getUserSettings merges the admin defaults in; getAdminUserDefaults is the
     // admin-controlled layer the endpoint is allowed to come from.
-    getUserSettings.mockReturnValue({ llm_provider: 'local', llm_model: 'nuextract', llm_base_url: 'http://ollama.internal:11434' });
+    getUserSettings.mockReturnValue({
+      llm_provider: 'local',
+      llm_model: 'nuextract',
+      llm_base_url: 'http://ollama.internal:11434',
+    });
     getAdminUserDefaults.mockReturnValue({ llm_provider: 'local', llm_base_url: 'http://ollama.internal:11434' });
     expect(resolver.resolve(7)).toMatchObject({ provider: 'local', baseUrl: 'http://ollama.internal:11434' });
   });
 
-  it('#1772: the caller\'s role does not change the answer, and no role is looked up', () => {
+  it("#1772: the caller's role does not change the answer, and no role is looked up", () => {
     // An instance has one endpoint. An admin who parked one in their own row is
     // in exactly the same position as anyone else, and the resolver no longer
     // reads the users table at all.
     setRole('admin');
-    getUserSettings.mockReturnValue({ llm_provider: 'local', llm_model: 'nuextract', llm_base_url: 'http://192.168.1.5:11434' });
+    getUserSettings.mockReturnValue({
+      llm_provider: 'local',
+      llm_model: 'nuextract',
+      llm_base_url: 'http://192.168.1.5:11434',
+    });
     expect(resolver.resolve(7)).toBeNull();
     expect(dbMock._role.get).not.toHaveBeenCalled();
   });

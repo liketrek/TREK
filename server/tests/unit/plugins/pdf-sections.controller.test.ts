@@ -5,6 +5,10 @@
  * title/paragraph/header/cell, count caps on sections/paragraphs/headers/rows,
  * rows clipped to the header width, headerless tables dropped.
  */
+import type { DatabaseService } from '../../../src/nest/database/database.service';
+import { PdfSectionsController } from '../../../src/nest/plugins/contributions/pdf-sections.controller';
+import type { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const { canAccessTrip, pluginsEnabled } = vi.hoisted(() => ({
@@ -13,10 +17,6 @@ const { canAccessTrip, pluginsEnabled } = vi.hoisted(() => ({
 }));
 vi.mock('../../../src/db/database', () => ({ db: { prepare: () => ({ get: () => undefined }) }, canAccessTrip }));
 vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
-
-import { PdfSectionsController } from '../../../src/nest/plugins/contributions/pdf-sections.controller';
-import type { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
-import type { DatabaseService } from '../../../src/nest/database/database.service';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const req = (id?: number) => ({ user: id === undefined ? undefined : { id } }) as any;
@@ -30,7 +30,10 @@ function controller(invoke: (id: string) => unknown, providers = ['p1']) {
 const sec = (over: Record<string, unknown> = {}) => ({ title: 'Weather', ...over });
 
 describe('PdfSectionsController', () => {
-  beforeEach(() => { pluginsEnabled.mockReturnValue(true); canAccessTrip.mockReturnValue({ id: 1 } as never); });
+  beforeEach(() => {
+    pluginsEnabled.mockReturnValue(true);
+    canAccessTrip.mockReturnValue({ id: 1 } as never);
+  });
 
   it('gates: disabled / bad tripId / no user / non-member all return [] (no plugin calls on the first)', async () => {
     pluginsEnabled.mockReturnValue(false);
@@ -50,21 +53,23 @@ describe('PdfSectionsController', () => {
       sec({ paragraphs: ['Sunny all week'], table: { headers: ['Day', 'Temp'], rows: [['Mon', '24°C']] } }),
     ]);
     const out = (await c.get('1', req(5))).sections;
-    expect(out).toEqual([{
-      pluginId: 'p1',
-      title: 'Weather',
-      paragraphs: ['Sunny all week'],
-      table: { headers: ['Day', 'Temp'], rows: [['Mon', '24°C']] },
-    }]);
+    expect(out).toEqual([
+      {
+        pluginId: 'p1',
+        title: 'Weather',
+        paragraphs: ['Sunny all week'],
+        table: { headers: ['Day', 'Temp'], rows: [['Mon', '24°C']] },
+      },
+    ]);
     expect(runtime.pdfSections).toHaveBeenCalledWith('p1', 1, 5);
   });
 
   it('drops non-objects, untitled sections and a non-array result; coerces + caps the title', async () => {
     const { c } = controller(() => [
-      null,                                  // non-object
-      sec({ title: '' }),                    // no heading
-      sec({ title: undefined }),             // still no heading
-      sec({ title: 'T'.repeat(500) }),       // survivor, capped
+      null, // non-object
+      sec({ title: '' }), // no heading
+      sec({ title: undefined }), // still no heading
+      sec({ title: 'T'.repeat(500) }), // survivor, capped
     ]);
     const out = (await c.get('1', req(5))).sections;
     expect(out).toHaveLength(1);
@@ -89,21 +94,18 @@ describe('PdfSectionsController', () => {
       sec({
         table: {
           headers: Array.from({ length: 10 }, () => 'H'.repeat(100)),
-          rows: [
-            ...Array.from({ length: 55 }, () => Array.from({ length: 12 }, () => 'C'.repeat(300))),
-            'not a row',
-          ],
+          rows: [...Array.from({ length: 55 }, () => Array.from({ length: 12 }, () => 'C'.repeat(300))), 'not a row'],
         },
       }),
       sec({ table: { headers: [], rows: [['x']] } }), // no headers -> no width to clip to
-      sec({ table: 'garbage' }),                      // not an object
+      sec({ table: 'garbage' }), // not an object
     ]);
     const out = (await c.get('1', req(5))).sections;
     const table = out[0].table!;
     expect(table.headers).toHaveLength(8);
     expect(table.headers[0].length).toBe(60);
     expect(table.rows).toHaveLength(50);
-    expect(table.rows[0]).toHaveLength(8);   // clipped to the header width
+    expect(table.rows[0]).toHaveLength(8); // clipped to the header width
     expect(table.rows[0][0].length).toBe(200);
     expect(out[1].table).toBeUndefined();
     expect(out[2].table).toBeUndefined();
@@ -111,7 +113,15 @@ describe('PdfSectionsController', () => {
 
   it('caps the section count at 5 per provider and skips a failing provider', async () => {
     const many = Array.from({ length: 8 }, (_, i) => sec({ title: `S${i}` }));
-    const { c } = controller((id) => (id === 'bad' ? (() => { throw new Error('boom'); })() : many), ['good', 'bad']);
+    const { c } = controller(
+      (id) =>
+        id === 'bad'
+          ? (() => {
+              throw new Error('boom');
+            })()
+          : many,
+      ['good', 'bad'],
+    );
     const out = (await c.get('1', req(5))).sections;
     expect(out).toHaveLength(5); // good capped to 5; bad contributes nothing
   });

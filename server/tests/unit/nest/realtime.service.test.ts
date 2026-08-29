@@ -1,13 +1,13 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import type { TrekWsPayload, TrekWsUserEventName } from '@trek/shared';
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const { broadcast, broadcastToUser } = vi.hoisted(() => ({
   broadcast: vi.fn(),
   broadcastToUser: vi.fn(),
 }));
 vi.mock('../../../src/websocket', () => ({ broadcast, broadcastToUser }));
-
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 
 const svc = new RealtimeService();
 

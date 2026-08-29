@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
-
 import { validateEnvAtBoot, readEnv } from '../../../src/app-config/env';
+
+import { describe, it, expect, vi, afterEach } from 'vitest';
 
 describe('validateEnvAtBoot', () => {
   afterEach(() => {
@@ -131,9 +131,7 @@ describe('validateEnvAtBoot — centrally administered preconditions', () => {
   });
 
   it('MANAGED-BOOT-003: passes once the key is supplied', () => {
-    expect(() =>
-      validateEnvAtBoot({ TREK_MANAGED: '1', ENCRYPTION_KEY: 'a'.repeat(64) }),
-    ).not.toThrow();
+    expect(() => validateEnvAtBoot({ TREK_MANAGED: '1', ENCRYPTION_KEY: 'a'.repeat(64) })).not.toThrow();
   });
 
   it('MANAGED-BOOT-004: inert without the switch — a self-hoster keeps the file-based key', () => {
@@ -148,9 +146,7 @@ describe('validateEnvAtBoot — centrally administered preconditions', () => {
     // Both kinds land in one report: fixing the env should take one pass, not a
     // restart per problem.
     const err = vi.spyOn(console, 'error').mockImplementation(() => {});
-    expect(() => validateEnvAtBoot({ TREK_MANAGED: '1', PORT: 'not-a-port' })).toThrow(
-      /2 problems/,
-    );
+    expect(() => validateEnvAtBoot({ TREK_MANAGED: '1', PORT: 'not-a-port' })).toThrow(/2 problems/);
     expect(err.mock.calls[0][0]).toMatch(/PORT/);
     expect(err.mock.calls[0][0]).toMatch(/ENCRYPTION_KEY/);
   });

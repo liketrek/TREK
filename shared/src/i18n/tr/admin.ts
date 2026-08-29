@@ -476,7 +476,8 @@ const admin: TranslationStrings = {
   'admin.plugins.changeVersion': 'Sürüm değiştir…',
   'admin.plugins.noVersions': 'Kayıt defterinde yayımlanmış sürüm bulunamadı.',
   'admin.plugins.downgradeTitle': 'Bu eklenti geri alınsın mı?',
-  'admin.plugins.downgradeBody': 'v{from} sürümünden v{to} sürümüne geçiş: daha yeni sürümün yazdığı veriler yerinde kalır ve eski sürüm bunları anlamayabilir.',
+  'admin.plugins.downgradeBody':
+    'v{from} sürümünden v{to} sürümüne geçiş: daha yeni sürümün yazdığı veriler yerinde kalır ve eski sürüm bunları anlamayabilir.',
   'admin.plugins.downgradeConfirm': 'Geri al',
   'admin.plugins.updatesHeld': 'Güncellemeler v{version} sürümünde duraklatıldı',
   'admin.plugins.resumeUpdates': 'Güncellemeleri sürdür',

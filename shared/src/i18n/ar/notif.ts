@@ -29,7 +29,8 @@ const notif: TranslationStrings = {
   'notif.version_available.text': 'TREK {version} متاح الآن',
   'notif.replica_failure.title': 'فشل النسخة المتماثلة للتخزين',
   'notif.replica_failure.text': "فشلت الكتابة على النسخة المتماثلة '{backend}': {op} لـ {key} — {error}",
-  'notif.replica_failure.textSuppressed': "فشلت الكتابة على النسخة المتماثلة '{backend}': {op} لـ {key} — {error}. تم تجاهل {suppressed} فشل إضافي منذ آخر إشعار.",
+  'notif.replica_failure.textSuppressed':
+    "فشلت الكتابة على النسخة المتماثلة '{backend}': {op} لـ {key} — {error}. تم تجاهل {suppressed} فشل إضافي منذ آخر إشعار.",
   'notif.action.view_trip': 'عرض الرحلة',
   'notif.action.view_collab': 'عرض الرسائل',
   'notif.action.view_packing': 'عرض التعبئة',

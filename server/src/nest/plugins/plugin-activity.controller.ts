@@ -1,9 +1,10 @@
-import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
-import type { Request } from 'express';
-import { DatabaseService } from '../database/database.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { pluginsEnabled } from './kill-switch';
+import { DatabaseService } from '../database/database.service';
 import { readAuditForUser } from './host/plugin-audit';
+import { pluginsEnabled } from './kill-switch';
+import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
+
+import type { Request } from 'express';
 
 /**
  * GET /api/plugin-activity — the authenticated user's OWN plugin activity log:

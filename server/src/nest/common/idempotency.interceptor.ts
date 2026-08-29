@@ -1,8 +1,9 @@
+import { DatabaseService } from '../database/database.service';
 import { CallHandler, ExecutionContext, HttpException, Injectable, NestInterceptor } from '@nestjs/common';
+
 import type { Request, Response } from 'express';
 import { Observable, from, of } from 'rxjs';
 import { finalize, switchMap } from 'rxjs/operators';
-import { DatabaseService } from '../database/database.service';
 
 /**
  * Replaces the `applyIdempotency` middleware the Express `authenticate` ran on
@@ -99,7 +100,10 @@ export class IdempotencyInterceptor implements NestInterceptor {
   private lookup(key: string, userId: number, req: Request): IdempotencyRow | undefined {
     return this.database.get<IdempotencyRow>(
       'SELECT status_code, response_body FROM idempotency_keys WHERE key = ? AND user_id = ? AND method = ? AND path = ?',
-      key, userId, req.method, req.path,
+      key,
+      userId,
+      req.method,
+      req.path,
     );
   }
 
@@ -120,7 +124,12 @@ export class IdempotencyInterceptor implements NestInterceptor {
     const database = this.database;
 
     let done!: () => void;
-    inFlight.set(signature, new Promise<void>((resolve) => { done = resolve; }));
+    inFlight.set(
+      signature,
+      new Promise<void>((resolve) => {
+        done = resolve;
+      }),
+    );
     let released = false;
     // Idempotent: whichever of the two paths below gets there first releases the
     // waiter, and the other one is a no-op.
@@ -139,7 +148,13 @@ export class IdempotencyInterceptor implements NestInterceptor {
             database.run(
               `INSERT OR IGNORE INTO idempotency_keys (key, user_id, method, path, status_code, response_body, created_at)
                VALUES (?, ?, ?, ?, ?, ?, ?)`,
-              key, userId, req.method, req.path, res.statusCode, serialized, Math.floor(Date.now() / 1000),
+              key,
+              userId,
+              req.method,
+              req.path,
+              res.statusCode,
+              serialized,
+              Math.floor(Date.now() / 1000),
             );
           }
         } catch {

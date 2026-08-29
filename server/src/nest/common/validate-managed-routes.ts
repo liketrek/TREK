@@ -1,7 +1,7 @@
+import { MANAGED_FORBIDDEN } from './managed';
+import type { INestApplication } from '@nestjs/common';
 import { METHOD_METADATA } from '@nestjs/common/constants';
 import { ModulesContainer } from '@nestjs/core';
-import type { INestApplication } from '@nestjs/common';
-import { MANAGED_FORBIDDEN } from './managed';
 
 export interface ManagedRouteEntry {
   /** `ControllerClass.methodName` */
@@ -38,8 +38,7 @@ export function collectManagedRoutes(app: INestApplication): ManagedRouteEntry[]
         if (typeof handler !== 'function') continue;
         if (Reflect.getMetadata(METHOD_METADATA, handler) === undefined) continue;
 
-        const mark =
-          (Reflect.getMetadata(MANAGED_FORBIDDEN, handler) as typeof classMark) ?? classMark;
+        const mark = (Reflect.getMetadata(MANAGED_FORBIDDEN, handler) as typeof classMark) ?? classMark;
         if (!mark) continue;
 
         entries.push({
@@ -98,10 +97,7 @@ export const MANAGED_ROUTE_ALLOW_LIST: string[] = [
  * nothing about why the control was taken away, and there is no way to recover
  * that intent afterwards.
  */
-export function validateManagedRoutes(
-  app: INestApplication,
-  allowList: string[] = MANAGED_ROUTE_ALLOW_LIST,
-): void {
+export function validateManagedRoutes(app: INestApplication, allowList: string[] = MANAGED_ROUTE_ALLOW_LIST): void {
   const entries = collectManagedRoutes(app);
   const ids = entries.map((e) => e.id);
   const allowed = new Set(allowList);
@@ -117,9 +113,7 @@ export function validateManagedRoutes(
     );
   }
   if (stale.length > 0) {
-    problems.push(
-      `MANAGED_ROUTE_ALLOW_LIST entries that are no longer marked:\n  ${stale.join('\n  ')}`,
-    );
+    problems.push(`MANAGED_ROUTE_ALLOW_LIST entries that are no longer marked:\n  ${stale.join('\n  ')}`);
   }
   if (unexplained.length > 0) {
     problems.push(`@ManagedForbidden() without a reason:\n  ${unexplained.join('\n  ')}`);

@@ -1,6 +1,6 @@
+import { DatabaseService } from '../database/database.service';
 import { Injectable } from '@nestjs/common';
 import type { Tag } from '@trek/shared';
-import { DatabaseService } from '../database/database.service';
 
 /**
  * Tags domain service — owns the tag SQL (moved 1:1 from the legacy

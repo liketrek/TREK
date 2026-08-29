@@ -1,9 +1,9 @@
-import { Module } from '@nestjs/common';
-import { PlacePhotoCacheService } from './place-photo-cache.service';
-import { PlacePhotoCacheJob } from './place-photo-cache.job';
 import { AppConfigModule } from '../app-config/app-config.module';
 import { SchedulingModule } from '../scheduling/scheduling.module';
 import { StorageModule } from '../storage/storage.module';
+import { PlacePhotoCacheJob } from './place-photo-cache.job';
+import { PlacePhotoCacheService } from './place-photo-cache.service';
+import { Module } from '@nestjs/common';
 
 /** The marker-photo cache. No controller of its own — maps serves the bytes,
  *  places and share read through it, and PlacePhotoCacheJob sweeps it nightly.

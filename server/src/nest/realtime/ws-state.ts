@@ -1,6 +1,7 @@
-import { WebSocketServer, WebSocket } from 'ws';
 import { emitPluginEvent, pluginEventMeta } from '../../plugin-event-sink';
 import { User } from '../../types';
+
+import { WebSocketServer, WebSocket } from 'ws';
 
 /**
  * The socket registry: rooms, per-socket identity, and the three fan-out
@@ -154,11 +155,7 @@ export function bookPeers(journeyId: number): BookPeer[] {
  * something that happened to the trip, and announcing ten of them a second to
  * every subscribed plugin would be a firehose of nothing.
  */
-export function broadcastToBook(
-  journeyId: number,
-  payload: Record<string, unknown>,
-  excludeSid?: number,
-): void {
+export function broadcastToBook(journeyId: number, payload: Record<string, unknown>, excludeSid?: number): void {
   const room = bookRooms.get(journeyId);
   if (!room || room.size === 0) return;
   for (const ws of room) {
@@ -208,11 +205,7 @@ export function broadcast(
 }
 
 /** Send a message to all sockets belonging to a specific user (e.g. trip invitations). */
-export function broadcastToUser(
-  userId: number,
-  payload: Record<string, unknown>,
-  excludeSid?: number | string,
-): void {
+export function broadcastToUser(userId: number, payload: Record<string, unknown>, excludeSid?: number | string): void {
   if (!wss) return;
   const excludeNum = excludeSid ? Number(excludeSid) : null;
   for (const ws of wss.clients) {

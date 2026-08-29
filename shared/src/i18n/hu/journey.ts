@@ -283,12 +283,14 @@ const journey: TranslationStrings = {
   'journey.studio.zoomOut': 'Zoom out', // en-fallback
   'journey.studio.zoomFit': 'Fit to view', // en-fallback
   'journey.studio.downloadSpread': 'Oldalpár letöltése',
-  'journey.studio.downloadSpreadHint': 'Fájlba menti az oldalpár elrendezését, a fényképek nélkül, megosztáshoz vagy újrafelhasználáshoz',
+  'journey.studio.downloadSpreadHint':
+    'Fájlba menti az oldalpár elrendezését, a fényképek nélkül, megosztáshoz vagy újrafelhasználáshoz',
   'journey.studio.importSpread': 'Importálás',
   'journey.studio.importSpreadHint': 'Oldalpár hozzáadása letöltött elrendezésfájlból',
   'journey.studio.importSpreadFailed': 'Ez a fájl nem TREK Studio oldalpár',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': 'Egy könyv tördeléséhez hely kell, ezért a Studio csak asztali gépen érhető el, és a PDF is. Az utazás minden más része itt a megszokott módon működik.', // en-fallback
+  'journey.studio.desktopOnlyHint':
+    'Egy könyv tördeléséhez hely kell, ezért a Studio csak asztali gépen érhető el, és a PDF is. Az utazás minden más része itt a megszokott módon működik.', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
   'journey.studio.bookView': 'Book view', // en-fallback
   'journey.studio.multiple': 'Several', // en-fallback
@@ -352,7 +354,8 @@ const journey: TranslationStrings = {
   'journey.studio.sampleSubheading': 'A subheading', // en-fallback
   'journey.studio.sampleBody': 'Write something about this day.', // en-fallback
   'journey.studio.sampleCaption': 'Caption', // en-fallback
-  'journey.studio.templatesCoverHint': 'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
+  'journey.studio.templatesCoverHint':
+    'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
   'journey.studio.tpl.heroStory': 'Hero and story', // en-fallback
   'journey.studio.tpl.fullBleed': 'One picture, full spread', // en-fallback
   'journey.studio.tpl.twoUp': 'Two full pages', // en-fallback
@@ -544,7 +547,8 @@ const journey: TranslationStrings = {
   'journey.studio.roadsAgain': 'Kérje le újra',
   'journey.studio.roadsClear': 'Törlés',
   'journey.studio.roadsBusy': 'Lekérés',
-  'journey.studio.roadsHint': 'Megkérdezi egy útvonaltervező szolgáltatástól, merre vezet az egyes szakaszok útja. A hosszú szakaszok változatlanok maradnak.',
+  'journey.studio.roadsHint':
+    'Megkérdezi egy útvonaltervező szolgáltatástól, merre vezet az egyes szakaszok útja. A hosszú szakaszok változatlanok maradnak.',
   'journey.studio.roadsHave': 'Az utak ebben a könyvben vannak elmentve, így offline is ugyanaz a vonal nyomtatódik.',
   'journey.studio.routeStyle': 'Megjelenés',
   'journey.studio.routePlain': 'Sima',
@@ -558,8 +562,10 @@ const journey: TranslationStrings = {
   'journey.studio.pinPhoto': 'Fotók',
   'journey.studio.pinPhotoNone': 'Ezeken az állomásokon még nincs fénykép, ezért pontként jelennek meg.',
   'journey.studio.mapSourceSatellite': 'Műhold',
-  'journey.studio.mapSourceSatelliteHint': 'Felhőmentes Sentinel-2, forrásmegjelöléssel szabadon nyomtatható. Utcaszintig éles.',
-  'journey.studio.mapSourceReliefHint': 'NASA árnyékolt domborzat, szabadon nyomtatható. Országhoz vagy kontinenshez ideális, egyetlen városhoz túl durva.',
+  'journey.studio.mapSourceSatelliteHint':
+    'Felhőmentes Sentinel-2, forrásmegjelöléssel szabadon nyomtatható. Utcaszintig éles.',
+  'journey.studio.mapSourceReliefHint':
+    'NASA árnyékolt domborzat, szabadon nyomtatható. Országhoz vagy kontinenshez ideális, egyetlen városhoz túl durva.',
   'journey.studio.mapPrintDpi': 'Nyomtatásban körülbelül',
   'journey.studio.mapPrintDpiLow': 'ebben a méretben életlen, próbáljon tágabb nézetet vagy másik forrást',
   'journey.studio.mapPerTrip': 'Egyszerre egy út',

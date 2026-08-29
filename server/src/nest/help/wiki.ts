@@ -1,7 +1,8 @@
-import { existsSync, promises as fs } from 'fs';
-import path from 'path';
 import { readEnv } from '../../app-config';
 import { exceedsDeclaredLength, readCapped, readCappedText } from '../../utils/cappedFetch';
+
+import { existsSync, promises as fs } from 'fs';
+import path from 'path';
 
 /**
  * In-app Help/Wiki content, sourced from the `wiki/**` directory that ships with
@@ -175,7 +176,10 @@ function processMarkdown(md: string): string {
     segment.replace(/(^|[^!])\[([^\]]+)\]\(([^)\s]+)\)/g, (m, prefix: string, text: string, url: string) => {
       if (/^(https?:|mailto:|tel:|#|\/)/i.test(url)) return m;
       const [pageRaw, anchor] = url.includes('#') ? url.split('#') : [url, ''];
-      const page = pageRaw.replace(/^\.?\//, '').replace(/\.md$/i, '').trim();
+      const page = pageRaw
+        .replace(/^\.?\//, '')
+        .replace(/\.md$/i, '')
+        .trim();
       if (!page || !SLUG_RE.test(page)) return m;
       return `${prefix}[${text}](/help/${page}${anchor ? `#${anchor}` : ''})`;
     }),

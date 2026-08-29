@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'vitest';
-
 import { formatAssignmentWithPlace, ratingAggregate } from '../../../../src/nest/common/rowShape';
 import type { AssignmentRow, Tag, Participant } from '../../../../src/types';
+
+import { describe, it, expect } from 'vitest';
 
 function makeRow(overrides: Partial<AssignmentRow> = {}): AssignmentRow {
   return {
@@ -36,13 +36,9 @@ function makeRow(overrides: Partial<AssignmentRow> = {}): AssignmentRow {
   } as AssignmentRow;
 }
 
-const sampleTags: Partial<Tag>[] = [
-  { id: 1, name: 'Must-see', color: '#ef4444' },
-];
+const sampleTags: Partial<Tag>[] = [{ id: 1, name: 'Must-see', color: '#ef4444' }];
 
-const sampleParticipants: Participant[] = [
-  { user_id: 42, username: 'alice', avatar: null },
-];
+const sampleParticipants: Participant[] = [{ user_id: 42, username: 'alice', avatar: null }];
 
 describe('formatAssignmentWithPlace', () => {
   it('nests place fields correctly from flat row', () => {

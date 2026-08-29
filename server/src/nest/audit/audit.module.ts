@@ -1,5 +1,5 @@
-import { Module } from '@nestjs/common';
 import { AuditService } from './audit.service';
+import { Module } from '@nestjs/common';
 
 /** Cross-cutting audit domain (Wave 2). No controller/MCP surface of its own —
  *  the audit-log READ side stays with AdminModule (legacy adminService).

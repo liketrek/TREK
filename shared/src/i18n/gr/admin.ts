@@ -485,7 +485,8 @@ const admin: TranslationStrings = {
   'admin.plugins.changeVersion': 'Αλλαγή έκδοσης…',
   'admin.plugins.noVersions': 'Δεν βρέθηκαν δημοσιευμένες εκδόσεις στο μητρώο.',
   'admin.plugins.downgradeTitle': 'Επαναφορά αυτού του πρόσθετου;',
-  'admin.plugins.downgradeBody': 'Μετάβαση από v{from} σε v{to}: τα δεδομένα της νεότερης έκδοσης παραμένουν, και η παλαιότερη έκδοση ίσως να μην τα κατανοεί.',
+  'admin.plugins.downgradeBody':
+    'Μετάβαση από v{from} σε v{to}: τα δεδομένα της νεότερης έκδοσης παραμένουν, και η παλαιότερη έκδοση ίσως να μην τα κατανοεί.',
   'admin.plugins.downgradeConfirm': 'Επαναφορά',
   'admin.plugins.updatesHeld': 'Οι ενημερώσεις είναι σε παύση στην v{version}',
   'admin.plugins.resumeUpdates': 'Συνέχιση ενημερώσεων',

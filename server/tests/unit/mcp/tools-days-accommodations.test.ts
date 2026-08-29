@@ -6,6 +6,12 @@
  * resource (moved from resources.test.ts when the legacy registrar was
  * ported to the DI-discovered DaysMcp).
  */
+import { runMigrations } from '../../../src/db/migrations';
+import { createTables } from '../../../src/db/schema';
+import { createUser, createTrip, createDay, createPlace, createDayAccommodation } from '../../helpers/factories';
+import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
+import { resetTestDb } from '../../helpers/test-db';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 const { testDb, dbMock } = vi.hoisted(() => {
@@ -22,16 +28,34 @@ const { testDb, dbMock } = vi.hoisted(() => {
     // returns getPlaceWithTags(placeId) — a null stub would make the tool's
     // atomic branch throw before the accommodation insert.
     getPlaceWithTags: (placeId: number | string) => {
-      const place = db.prepare(`
+      const place = db
+        .prepare(
+          `
         SELECT p.*, c.name as category_name, c.color as category_color, c.icon as category_icon
         FROM places p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id = ?
-      `).get(placeId) as { category_id: number | null; category_name: string; category_color: string; category_icon: string } | undefined;
+      `,
+        )
+        .get(placeId) as
+        | { category_id: number | null; category_name: string; category_color: string; category_icon: string }
+        | undefined;
       if (!place) return null;
-      const tags = db.prepare(`SELECT t.* FROM tags t JOIN place_tags pt ON t.id = pt.tag_id WHERE pt.place_id = ?`).all(placeId);
-      return { ...place, category: place.category_id ? { id: place.category_id, name: place.category_name, color: place.category_color, icon: place.category_icon } : null, tags };
+      const tags = db
+        .prepare(`SELECT t.* FROM tags t JOIN place_tags pt ON t.id = pt.tag_id WHERE pt.place_id = ?`)
+        .all(placeId);
+      return {
+        ...place,
+        category: place.category_id
+          ? { id: place.category_id, name: place.category_name, color: place.category_color, icon: place.category_icon }
+          : null,
+        tags,
+      };
     },
     canAccessTrip: (tripId: any, userId: number) =>
-      db.prepare(`SELECT t.id, t.user_id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)`).get(userId, tripId, userId),
+      db
+        .prepare(
+          `SELECT t.id, t.user_id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)`,
+        )
+        .get(userId, tripId, userId),
     isOwner: (tripId: any, userId: number) =>
       !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
   };
@@ -47,12 +71,6 @@ vi.mock('../../../src/config', () => ({
 
 const { broadcastMock } = vi.hoisted(() => ({ broadcastMock: vi.fn() }));
 vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
-
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, createDay, createPlace, createDayAccommodation } from '../../helpers/factories';
-import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
 
 beforeAll(() => {
   createTables(testDb);
@@ -71,7 +89,11 @@ afterAll(() => {
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
   const h = await createMcpHarness({ userId, withResources: false });
-  try { await fn(h); } finally { await h.cleanup(); }
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -314,7 +336,11 @@ describe('Tool: delete_accommodation', () => {
       });
       const data = parseToolResult(result) as any;
       expect(data.success).toBe(true);
-      expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'accommodation:deleted', expect.objectContaining({ id: acc.id }));
+      expect(broadcastMock).toHaveBeenCalledWith(
+        trip.id,
+        'accommodation:deleted',
+        expect.objectContaining({ id: acc.id }),
+      );
       expect(testDb.prepare('SELECT id FROM day_accommodations WHERE id = ?').get(acc.id)).toBeUndefined();
     });
   });
@@ -324,7 +350,10 @@ describe('Tool: delete_accommodation', () => {
     const { user: other } = createUser(testDb);
     const trip = createTrip(testDb, other.id);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'delete_accommodation', arguments: { tripId: trip.id, accommodationId: 1 } });
+      const result = await h.client.callTool({
+        name: 'delete_accommodation',
+        arguments: { tripId: trip.id, accommodationId: 1 },
+      });
       expect(result.isError).toBe(true);
     });
   });
@@ -343,17 +372,36 @@ describe('Tool: create_place_accommodation', () => {
       const result = await h.client.callTool({
         name: 'create_place_accommodation',
         arguments: {
-          tripId: trip.id, name: 'Ryokan Sakura', start_day_id: day.id, end_day_id: day.id,
-          check_in: '15:00', accommodation_notes: 'Tatami room',
+          tripId: trip.id,
+          name: 'Ryokan Sakura',
+          start_day_id: day.id,
+          end_day_id: day.id,
+          check_in: '15:00',
+          accommodation_notes: 'Tatami room',
         },
       });
       const data = parseToolResult(result) as { place: { id: number; name: string }; accommodation: { id: number } };
       expect(data.place.name).toBe('Ryokan Sakura');
-      expect(data.accommodation).toMatchObject({ place_id: data.place.id, start_day_id: day.id, end_day_id: day.id, notes: 'Tatami room' });
-      expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'place:created', expect.objectContaining({ place: expect.anything() }));
-      expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'accommodation:created', expect.objectContaining({ accommodation: expect.anything() }));
+      expect(data.accommodation).toMatchObject({
+        place_id: data.place.id,
+        start_day_id: day.id,
+        end_day_id: day.id,
+        notes: 'Tatami room',
+      });
+      expect(broadcastMock).toHaveBeenCalledWith(
+        trip.id,
+        'place:created',
+        expect.objectContaining({ place: expect.anything() }),
+      );
+      expect(broadcastMock).toHaveBeenCalledWith(
+        trip.id,
+        'accommodation:created',
+        expect.objectContaining({ accommodation: expect.anything() }),
+      );
       // The partner hotel reservation rides along.
-      const linked = testDb.prepare('SELECT type FROM reservations WHERE accommodation_id = ?').get(data.accommodation.id) as { type: string };
+      const linked = testDb
+        .prepare('SELECT type FROM reservations WHERE accommodation_id = ?')
+        .get(data.accommodation.id) as { type: string };
       expect(linked.type).toBe('hotel');
     });
   });

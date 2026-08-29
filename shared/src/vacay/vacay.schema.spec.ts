@@ -107,7 +107,8 @@ describe('vacayUpdateHolidayCalendarRequestSchema', () => {
     expect(vacayUpdateHolidayCalendarRequestSchema.safeParse({}).success).toBe(true);
     expect(vacayUpdateHolidayCalendarRequestSchema.safeParse({ region: 'DE-BY', label: null }).success).toBe(true);
     expect(
-      vacayUpdateHolidayCalendarRequestSchema.safeParse({ type: 'school_holiday', color: '#a5f3fc', sort_order: 2 }).success,
+      vacayUpdateHolidayCalendarRequestSchema.safeParse({ type: 'school_holiday', color: '#a5f3fc', sort_order: 2 })
+        .success,
     ).toBe(true);
     expect(vacayUpdateHolidayCalendarRequestSchema.safeParse({ type: 'bank_holiday' }).success).toBe(false);
   });

@@ -1,8 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { checkSsrf, createPinnedDispatcher } from '../../../utils/ssrfGuard';
 import { logDebug, logError, logInfo } from '../../audit/audit-log.logger';
 import { decrypt_api_key } from '../../common/crypto/apiKeyCrypto';
 import { DatabaseService } from '../../database/database.service';
-import { checkSsrf, createPinnedDispatcher } from '../../../utils/ssrfGuard';
+import { Injectable } from '@nestjs/common';
 
 /**
  * Renders the outgoing body. Discord and Slack get their native shapes; anything
@@ -47,16 +47,16 @@ export class WebhookService {
   constructor(private readonly db: DatabaseService) {}
 
   getUserWebhookUrl(userId: number): string | null {
-    const value = this.db.get<{ value: string }>(
-      "SELECT value FROM settings WHERE user_id = ? AND key = 'webhook_url'", userId,
-    )?.value || null;
+    const value =
+      this.db.get<{ value: string }>("SELECT value FROM settings WHERE user_id = ? AND key = 'webhook_url'", userId)
+        ?.value || null;
     return value ? decrypt_api_key(value) : null;
   }
 
   getAdminWebhookUrl(): string | null {
-    const value = this.db.get<{ value: string }>(
-      'SELECT value FROM app_settings WHERE key = ?', 'admin_webhook_url',
-    )?.value || null;
+    const value =
+      this.db.get<{ value: string }>('SELECT value FROM app_settings WHERE key = ?', 'admin_webhook_url')?.value ||
+      null;
     return value ? decrypt_api_key(value) : null;
   }
 

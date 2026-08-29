@@ -1,15 +1,15 @@
+import { PluginGuards } from '../plugins/host/plugin-guards.service';
+import { BadParams, ForbiddenResource } from '../plugins/host/rpc-errors';
+import { PluginController, PluginMethod } from '../plugins/host/rpc-kit/decorators';
+import type { PluginRpcContext } from '../plugins/host/rpc-kit/types';
+import { num, schemaMessage } from '../plugins/host/rpc-params';
+import { RealtimeService } from '../realtime/realtime.service';
+import { ReservationsService } from './reservations.service';
 import {
   reservationCreateRequestSchema,
   reservationEndpointsInputSchema,
   reservationUpdateRequestSchema,
 } from '@trek/shared';
-import { PluginController, PluginMethod } from '../plugins/host/rpc-kit/decorators';
-import { PluginGuards } from '../plugins/host/plugin-guards.service';
-import { BadParams, ForbiddenResource } from '../plugins/host/rpc-errors';
-import { num, schemaMessage } from '../plugins/host/rpc-params';
-import type { PluginRpcContext } from '../plugins/host/rpc-kit/types';
-import { RealtimeService } from '../realtime/realtime.service';
-import { ReservationsService } from './reservations.service';
 
 const RESERVATION_EDIT_ACTION = 'reservation_edit';
 
@@ -41,7 +41,14 @@ export class ReservationsRpc {
     const { reservation, accommodationCreated } = this.reservations.create(String(tripId), input as never);
     if (accommodationCreated) this.realtime.broadcast(tripId, 'accommodation:created', {}, undefined);
     const i = input as { title?: string; type?: string; create_budget_entry?: unknown };
-    this.reservations.syncBudgetOnCreate(String(tripId), reservation.id, i.title ?? '', i.type, i.create_budget_entry as never, undefined);
+    this.reservations.syncBudgetOnCreate(
+      String(tripId),
+      reservation.id,
+      i.title ?? '',
+      i.type,
+      i.create_budget_entry as never,
+      undefined,
+    );
     this.realtime.broadcast(tripId, 'reservation:created', { reservation }, undefined);
     this.notifyBooking(actor, tripId, i.title ?? '', i.type ?? '');
     return reservation;
@@ -59,11 +66,25 @@ export class ReservationsRpc {
     this.guards.requireTripEdit(tripId, actor, RESERVATION_EDIT_ACTION);
     const current = this.reservations.getReservation(String(reservationId), String(tripId));
     if (!current) throw new ForbiddenResource(`no reservation ${reservationId} on trip ${tripId}`);
-    const { reservation, accommodationChanged } = this.reservations.update(String(reservationId), String(tripId), input as never, current as never);
+    const { reservation, accommodationChanged } = this.reservations.update(
+      String(reservationId),
+      String(tripId),
+      input as never,
+      current as never,
+    );
     if (accommodationChanged) this.realtime.broadcast(tripId, 'accommodation:updated', {}, undefined);
     const cur = current as { title: string; type?: string };
     const i = input as { title?: string; type?: string; create_budget_entry?: unknown };
-    this.reservations.syncBudgetOnUpdate(String(tripId), String(reservationId), i.title ?? '', i.type, cur.title, cur.type, i.create_budget_entry as never, undefined);
+    this.reservations.syncBudgetOnUpdate(
+      String(tripId),
+      String(reservationId),
+      i.title ?? '',
+      i.type,
+      cur.title,
+      cur.type,
+      i.create_budget_entry as never,
+      undefined,
+    );
     this.realtime.broadcast(tripId, 'reservation:updated', { reservation }, undefined);
     this.notifyBooking(actor, tripId, i.title || cur.title, i.type || cur.type || '');
     return reservation;
@@ -75,10 +96,20 @@ export class ReservationsRpc {
     const reservationId = num(params.reservationId, 'reservationId');
     const actor = this.guards.requireActor(ctx, 'reservation');
     this.guards.requireTripEdit(tripId, actor, RESERVATION_EDIT_ACTION);
-    const { deleted, accommodationDeleted, deletedBudgetItemId } = this.reservations.remove(String(reservationId), String(tripId));
+    const { deleted, accommodationDeleted, deletedBudgetItemId } = this.reservations.remove(
+      String(reservationId),
+      String(tripId),
+    );
     if (!deleted) throw new ForbiddenResource(`no reservation ${reservationId} on trip ${tripId}`);
-    if (accommodationDeleted) this.realtime.broadcast(tripId, 'accommodation:deleted', { accommodationId: deleted.accommodation_id }, undefined);
-    if (deletedBudgetItemId) this.realtime.broadcast(tripId, 'budget:deleted', { itemId: deletedBudgetItemId }, undefined);
+    if (accommodationDeleted)
+      this.realtime.broadcast(
+        tripId,
+        'accommodation:deleted',
+        { accommodationId: deleted.accommodation_id },
+        undefined,
+      );
+    if (deletedBudgetItemId)
+      this.realtime.broadcast(tripId, 'budget:deleted', { itemId: deletedBudgetItemId }, undefined);
     this.realtime.broadcast(tripId, 'reservation:deleted', { reservationId }, undefined);
     this.notifyBooking(actor, tripId, deleted.title, deleted.type || '');
     return { deleted: true };

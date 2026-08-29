@@ -4,6 +4,15 @@
  * byte-faithful to the module functions it replaces; broadcast flows through
  * the vi.mock'd src/websocket, exactly like every .mcp.ts consumer expects.
  */
+import { runMigrations } from '../../../src/db/migrations';
+import { createTables } from '../../../src/db/schema';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { McpSharedModule } from '../../../src/nest/mcp-shared/mcp-shared.module';
+import { McpToolGuardsService } from '../../../src/nest/mcp-shared/mcp-tool-guards.service';
+import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { createUser } from '../../helpers/factories';
+
 import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
 
 const { testDb, dbMock, broadcastMock } = vi.hoisted(() => {
@@ -16,15 +25,6 @@ const { testDb, dbMock, broadcastMock } = vi.hoisted(() => {
 
 vi.mock('../../../src/db/database', () => dbMock);
 vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
-
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { createUser } from '../../helpers/factories';
-import { McpToolGuardsService } from '../../../src/nest/mcp-shared/mcp-tool-guards.service';
-import { McpSharedModule } from '../../../src/nest/mcp-shared/mcp-shared.module';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 
 const dbs = new DatabaseService(testDb);
 const svc = new McpToolGuardsService(dbs, new PermissionsService(dbs), new RealtimeService());
@@ -92,7 +92,9 @@ describe('safeBroadcast', () => {
   });
 
   it('GRD-021: swallows broadcast failures so a tool result is never lost to a ws error', () => {
-    broadcastMock.mockImplementationOnce(() => { throw new Error('ws down'); });
+    broadcastMock.mockImplementationOnce(() => {
+      throw new Error('ws down');
+    });
     const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     expect(() => svc.safeBroadcast(7, 'todo:created', {})).not.toThrow();
     expect(errSpy).toHaveBeenCalled();

@@ -1,4 +1,3 @@
-import { Injectable } from '@nestjs/common';
 import { getAppUrl, readEnv } from '../../app-config';
 import { buildUserAgent } from '../maps/maps.helpers';
 import {
@@ -10,6 +9,7 @@ import {
   type TransitLegStop,
   type TransitPlace,
 } from './transit.helpers';
+import { Injectable } from '@nestjs/common';
 
 /**
  * Public transit routing (#1065) backed by Transitous (api.transitous.org), the

@@ -25,17 +25,11 @@ export class PluginInstallDto extends createZodDto(
 ) {}
 
 /** `path is required` likewise, and dev-link answers 403 before reading it. */
-export class PluginLinkDto extends createZodDto(
-  z.looseObject({ path: z.string().optional() }),
-) {}
+export class PluginLinkDto extends createZodDto(z.looseObject({ path: z.string().optional() })) {}
 
-export class PluginActivateDto extends createZodDto(
-  z.looseObject({ consent: z.boolean().optional() }),
-) {}
+export class PluginActivateDto extends createZodDto(z.looseObject({ consent: z.boolean().optional() })) {}
 
-export class PluginUninstallDto extends createZodDto(
-  z.looseObject({ deleteData: z.boolean().optional() }),
-) {}
+export class PluginUninstallDto extends createZodDto(z.looseObject({ deleteData: z.boolean().optional() })) {}
 
 export class PluginRetrustDto extends createZodDto(
   z.looseObject({ version: z.string().optional(), publicKey: z.string().optional() }),
@@ -45,9 +39,7 @@ export class PluginRetrustDto extends createZodDto(
  * `version` pins the exact version to install — the rollback path. Omitted, the
  * runtime resolves the newest TREK-compatible version itself (the classic update).
  */
-export class PluginUpdateDto extends createZodDto(
-  z.looseObject({ version: z.string().optional() }),
-) {}
+export class PluginUpdateDto extends createZodDto(z.looseObject({ version: z.string().optional() })) {}
 
 /**
  * `hosts` is deliberately unknown, not `string[]`.
@@ -57,9 +49,7 @@ export class PluginUpdateDto extends createZodDto(
  * That is the documented way to reset it, so a schema demanding an array would
  * not tighten validation, it would remove a working admin action.
  */
-export class PluginEgressHostsDto extends createZodDto(
-  z.looseObject({ hosts: z.unknown().optional() }),
-) {}
+export class PluginEgressHostsDto extends createZodDto(z.looseObject({ hosts: z.unknown().optional() })) {}
 
 /**
  * Plugin instance config is defined by the plugin's own manifest, not by TREK,
@@ -72,9 +62,7 @@ export class PluginConfigDto extends createZodDto(z.looseObject({})) {}
  * stored config for anything it cannot use, including a non-object, and a schema
  * that rejected first would turn that into a 400.
  */
-export class PluginUserSettingsUpdateDto extends createZodDto(
-  z.looseObject({ config: z.unknown().optional() }),
-) {}
+export class PluginUserSettingsUpdateDto extends createZodDto(z.looseObject({ config: z.unknown().optional() })) {}
 
 /**
  * The route hook answers `{ route: null }` at 200 for every input it dislikes:

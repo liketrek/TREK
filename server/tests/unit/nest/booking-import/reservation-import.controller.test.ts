@@ -1,11 +1,12 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { HttpException } from '@nestjs/common';
-import { ReservationImportController } from '../../../../src/nest/reservation-import/reservation-import.controller';
 import type { BookingImportService } from '../../../../src/nest/booking-import/booking-import.service';
+import { ReservationImportController } from '../../../../src/nest/reservation-import/reservation-import.controller';
 import type { User } from '../../../../src/types';
+import { HttpException } from '@nestjs/common';
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const user = { id: 1, role: 'user' } as User;
-const file = (name = 'a.pdf') => ({ originalname: name, buffer: Buffer.from('x') } as Express.Multer.File);
+const file = (name = 'a.pdf') => ({ originalname: name, buffer: Buffer.from('x') }) as Express.Multer.File;
 
 function make(over: Partial<BookingImportService> = {}) {
   const svc = {
@@ -21,7 +22,12 @@ function make(over: Partial<BookingImportService> = {}) {
 }
 
 async function status(fn: () => Promise<unknown>): Promise<number> {
-  try { await fn(); } catch (e) { expect(e).toBeInstanceOf(HttpException); return (e as HttpException).getStatus(); }
+  try {
+    await fn();
+  } catch (e) {
+    expect(e).toBeInstanceOf(HttpException);
+    return (e as HttpException).getStatus();
+  }
   throw new Error('expected throw');
 }
 

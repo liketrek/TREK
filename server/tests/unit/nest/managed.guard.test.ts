@@ -9,18 +9,17 @@
  * the second one: they stopped being maintained, and every endpoint added after
  * they were written silently fell on the wrong side.
  */
-import { describe, it, expect, vi } from 'vitest';
+import type { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
+import { MANAGED_FORBIDDEN, MANAGED_FORBIDDEN_ERROR } from '../../../src/nest/common/managed';
+import { ManagedGuard } from '../../../src/nest/common/managed.guard';
 import { HttpException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { ManagedGuard } from '../../../src/nest/common/managed.guard';
-import { MANAGED_FORBIDDEN, MANAGED_FORBIDDEN_ERROR } from '../../../src/nest/common/managed';
-import type { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
+
+import { describe, it, expect, vi } from 'vitest';
 
 function makeGuard(managed: boolean, marked: boolean, enforcedInHandler = false) {
   const getAllAndOverride = vi.fn((key: string) =>
-    key === MANAGED_FORBIDDEN && marked
-      ? { reason: 'the operator holds this', enforcedInHandler }
-      : undefined,
+    key === MANAGED_FORBIDDEN && marked ? { reason: 'the operator holds this', enforcedInHandler } : undefined,
   );
   const guard = new ManagedGuard(
     { isManaged: () => managed } as unknown as RuntimeEnvService,
@@ -85,9 +84,6 @@ describe('ManagedGuard', () => {
     const { guard, getAllAndOverride } = makeGuard(true, false);
     guard.canActivate(ctx);
 
-    expect(getAllAndOverride).toHaveBeenCalledWith(MANAGED_FORBIDDEN, [
-      expect.any(Function),
-      expect.any(Function),
-    ]);
+    expect(getAllAndOverride).toHaveBeenCalledWith(MANAGED_FORBIDDEN, [expect.any(Function), expect.any(Function)]);
   });
 });

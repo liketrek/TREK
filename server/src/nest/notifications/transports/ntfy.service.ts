@@ -1,9 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { checkSsrf, createPinnedDispatcher } from '../../../utils/ssrfGuard';
 import { logDebug, logError, logInfo } from '../../audit/audit-log.logger';
 import { decrypt_api_key } from '../../common/crypto/apiKeyCrypto';
 import { DatabaseService } from '../../database/database.service';
-import { checkSsrf, createPinnedDispatcher } from '../../../utils/ssrfGuard';
 import type { NotifEventType } from '../notification-events';
+import { Injectable } from '@nestjs/common';
 
 export interface NtfyConfig {
   server: string | null;

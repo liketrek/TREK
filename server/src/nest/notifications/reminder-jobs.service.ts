@@ -1,8 +1,8 @@
-import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
 import { logInfo, logError } from '../audit/audit-log.logger';
 import { DatabaseService } from '../database/database.service';
-import { NotificationsService } from './notifications.service';
 import { CronRegistrarService } from '../scheduling/cron-registrar.service';
+import { NotificationsService } from './notifications.service';
+import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
 
 /**
  * The trip-reminder and todo-due reminder crons, in the domain that owns them
@@ -38,12 +38,17 @@ export class ReminderJobsService implements OnApplicationBootstrap {
     try {
       const reminderEnabled = this.getSetting('notify_trip_reminder') !== 'false';
       const channelsRaw = this.getSetting('notification_channels') || this.getSetting('notification_channel') || 'none';
-      const activeChannels = channelsRaw === 'none' ? [] : channelsRaw.split(',').map(c => c.trim());
+      const activeChannels = channelsRaw === 'none' ? [] : channelsRaw.split(',').map((c) => c.trim());
       if (!reminderEnabled) {
         logInfo('Trip reminders: disabled in settings');
       } else {
-        const tripCount = this.db.get<{ c: number }>('SELECT COUNT(*) as c FROM trips WHERE reminder_days > 0 AND start_date IS NOT NULL')?.c ?? 0;
-        logInfo(`Trip reminders: enabled via [${activeChannels.join(',')}]${tripCount > 0 ? `, ${tripCount} trip(s) with active reminders` : ''}`);
+        const tripCount =
+          this.db.get<{ c: number }>(
+            'SELECT COUNT(*) as c FROM trips WHERE reminder_days > 0 AND start_date IS NOT NULL',
+          )?.c ?? 0;
+        logInfo(
+          `Trip reminders: enabled via [${activeChannels.join(',')}]${tripCount > 0 ? `, ${tripCount} trip(s) with active reminders` : ''}`,
+        );
       }
 
       if (this.getSetting('notify_todo_due') !== 'false') {
@@ -72,11 +77,21 @@ export class ReminderJobsService implements OnApplicationBootstrap {
       `);
 
       for (const trip of trips) {
-        await this.notifications.send({ event: 'trip_reminder', actorId: null, scope: 'trip', targetId: trip.id, params: { trip: trip.title, tripId: String(trip.id) } }).catch(() => {});
+        await this.notifications
+          .send({
+            event: 'trip_reminder',
+            actorId: null,
+            scope: 'trip',
+            targetId: trip.id,
+            params: { trip: trip.title, tripId: String(trip.id) },
+          })
+          .catch(() => {});
       }
 
       if (trips.length > 0) {
-        logInfo(`Trip reminders sent for ${trips.length} trip(s): ${trips.map(t => `"${t.title}" (${t.reminder_days}d)`).join(', ')}`);
+        logInfo(
+          `Trip reminders sent for ${trips.length} trip(s): ${trips.map((t) => `"${t.title}" (${t.reminder_days}d)`).join(', ')}`,
+        );
       }
     } catch (err: unknown) {
       logError(`Trip reminder check failed: ${err instanceof Error ? err.message : err}`);
@@ -92,9 +107,15 @@ export class ReminderJobsService implements OnApplicationBootstrap {
       // that haven't been reminded in the last 24 hours. `due_date` is
       // stored as a YYYY-MM-DD text; SQLite date() handles it directly.
       const todos = this.db.all<{
-        id: number; trip_id: number; name: string; due_date: string;
-        assigned_user_id: number | null; trip_title: string; trip_owner_id: number;
-      }>(`
+        id: number;
+        trip_id: number;
+        name: string;
+        due_date: string;
+        assigned_user_id: number | null;
+        trip_title: string;
+        trip_owner_id: number;
+      }>(
+        `
         SELECT ti.id, ti.trip_id, ti.name, ti.due_date, ti.assigned_user_id,
                t.title AS trip_title, t.user_id AS trip_owner_id
         FROM todo_items ti
@@ -105,23 +126,27 @@ export class ReminderJobsService implements OnApplicationBootstrap {
           AND date(ti.due_date) <= date('now', '+' || ? || ' days')
           AND date(ti.due_date) >= date('now')
           AND (ti.reminded_at IS NULL OR ti.reminded_at <= datetime('now', '-20 hours'))
-      `, TODO_REMINDER_LEAD_DAYS);
+      `,
+        TODO_REMINDER_LEAD_DAYS,
+      );
 
       for (const todo of todos) {
         const targetScope: 'user' | 'trip' = todo.assigned_user_id ? 'user' : 'trip';
         const targetId = todo.assigned_user_id ?? todo.trip_id;
-        await this.notifications.send({
-          event: 'todo_due',
-          actorId: null,
-          scope: targetScope,
-          targetId,
-          params: {
-            todo: todo.name,
-            trip: todo.trip_title,
-            tripId: String(todo.trip_id),
-            due: todo.due_date,
-          },
-        }).catch(() => {});
+        await this.notifications
+          .send({
+            event: 'todo_due',
+            actorId: null,
+            scope: targetScope,
+            targetId,
+            params: {
+              todo: todo.name,
+              trip: todo.trip_title,
+              tripId: String(todo.trip_id),
+              due: todo.due_date,
+            },
+          })
+          .catch(() => {});
         this.db.run('UPDATE todo_items SET reminded_at = CURRENT_TIMESTAMP WHERE id = ?', todo.id);
       }
 

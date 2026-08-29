@@ -1,5 +1,18 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { ALL_SCOPES } from '../../../src/mcp/scopes';
+import type { AddonsService } from '../../../src/nest/addons/addons.service';
+import { ConsentCoopMiddleware } from '../../../src/nest/platform/consent-coop.middleware';
+import { DiscoveryMetadataService } from '../../../src/nest/platform/discovery-metadata.service';
+import { DiscoveryController } from '../../../src/nest/platform/discovery.controller';
+import {
+  MCP_METADATA_MIDDLEWARE,
+  createMcpMetadataMiddleware,
+  mcpMetadataMiddlewareProvider,
+} from '../../../src/nest/platform/mcp-metadata.middleware';
+import { PlatformModule } from '../../../src/nest/platform/platform.module';
+import { mcpAuthMetadataRouter } from '@modelcontextprotocol/sdk/server/auth/router';
 import { NotFoundException } from '@nestjs/common';
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const h = vi.hoisted(() => ({
   getMcpSafeUrl: vi.fn(() => 'https://trek.example.test'),
@@ -16,29 +29,28 @@ vi.mock('@modelcontextprotocol/sdk/server/auth/router', () => ({
   mcpAuthMetadataRouter: vi.fn(() => h.metaRouter),
 }));
 
-import { mcpAuthMetadataRouter } from '@modelcontextprotocol/sdk/server/auth/router';
-import { DiscoveryMetadataService } from '../../../src/nest/platform/discovery-metadata.service';
-import {
-  MCP_METADATA_MIDDLEWARE,
-  createMcpMetadataMiddleware,
-  mcpMetadataMiddlewareProvider,
-} from '../../../src/nest/platform/mcp-metadata.middleware';
-import { ConsentCoopMiddleware } from '../../../src/nest/platform/consent-coop.middleware';
-import { DiscoveryController } from '../../../src/nest/platform/discovery.controller';
-import { PlatformModule } from '../../../src/nest/platform/platform.module';
-import { ALL_SCOPES } from '../../../src/mcp/scopes';
-import type { AddonsService } from '../../../src/nest/addons/addons.service';
-
 function makeRes() {
   const res = {
     statusCode: 200,
     body: undefined as unknown,
     headers: {} as Record<string, string>,
     ended: false,
-    status: vi.fn(function (this: typeof res, c: number) { this.statusCode = c; return this; }),
-    json: vi.fn(function (this: typeof res, b: unknown) { this.body = b; return this; }),
-    end: vi.fn(function (this: typeof res) { this.ended = true; return this; }),
-    setHeader: vi.fn(function (this: typeof res, k: string, v: string) { this.headers[k] = v; return this; }),
+    status: vi.fn(function (this: typeof res, c: number) {
+      this.statusCode = c;
+      return this;
+    }),
+    json: vi.fn(function (this: typeof res, b: unknown) {
+      this.body = b;
+      return this;
+    }),
+    end: vi.fn(function (this: typeof res) {
+      this.ended = true;
+      return this;
+    }),
+    setHeader: vi.fn(function (this: typeof res, k: string, v: string) {
+      this.headers[k] = v;
+      return this;
+    }),
   };
   return res;
 }
@@ -56,16 +68,16 @@ describe('DiscoveryMetadataService', () => {
   it('DISC-001: builds the RFC 8414 AS metadata from the live safe URL', () => {
     const meta = new DiscoveryMetadataService().getOAuthMetadata();
     expect(meta).toEqual({
-      issuer:                                'https://trek.example.test',
-      authorization_endpoint:                'https://trek.example.test/oauth/authorize',
-      token_endpoint:                        'https://trek.example.test/oauth/token',
-      revocation_endpoint:                   'https://trek.example.test/oauth/revoke',
-      registration_endpoint:                 'https://trek.example.test/oauth/register',
-      response_types_supported:              ['code'],
-      grant_types_supported:                 ['authorization_code', 'refresh_token', 'client_credentials'],
-      code_challenge_methods_supported:      ['S256'],
+      issuer: 'https://trek.example.test',
+      authorization_endpoint: 'https://trek.example.test/oauth/authorize',
+      token_endpoint: 'https://trek.example.test/oauth/token',
+      revocation_endpoint: 'https://trek.example.test/oauth/revoke',
+      registration_endpoint: 'https://trek.example.test/oauth/register',
+      response_types_supported: ['code'],
+      grant_types_supported: ['authorization_code', 'refresh_token', 'client_credentials'],
+      code_challenge_methods_supported: ['S256'],
       token_endpoint_auth_methods_supported: ['client_secret_post', 'none'],
-      scopes_supported:                      ALL_SCOPES,
+      scopes_supported: ALL_SCOPES,
     });
   });
 
@@ -161,11 +173,11 @@ describe('DiscoveryController', () => {
     const res = makeRes();
     controller().protectedResource(res as never);
     expect(res.body).toEqual({
-      resource:                 'https://trek.example.test/mcp',
-      authorization_servers:    ['https://trek.example.test'],
+      resource: 'https://trek.example.test/mcp',
+      authorization_servers: ['https://trek.example.test'],
       bearer_methods_supported: ['header'],
-      scopes_supported:         ALL_SCOPES,
-      resource_name:            'TREK MCP',
+      scopes_supported: ALL_SCOPES,
+      resource_name: 'TREK MCP',
     });
   });
 
@@ -185,8 +197,9 @@ describe('DiscoveryController', () => {
 
   it('DISC-035: bare /.well-known reproduces the framework 404 (SpaFallback route)', () => {
     const req = { path: '/.well-known', method: 'GET', originalUrl: '/.well-known' };
-    expect(() => controller().wellKnownRoot(req as never, makeRes() as never))
-      .toThrowError(new NotFoundException('Cannot GET /.well-known'));
+    expect(() => controller().wellKnownRoot(req as never, makeRes() as never)).toThrowError(
+      new NotFoundException('Cannot GET /.well-known'),
+    );
   });
 
   it('DISC-036: route declaration order keeps the concrete documents ahead of the catchalls', () => {

@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-
-import { cookieOptions } from '../../../src/nest/common/cookie';
 import { SESSION_DURATION_MS, SESSION_DURATION_REMEMBER_MS } from '../../../src/config';
+import { cookieOptions } from '../../../src/nest/common/cookie';
+
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 describe('cookieOptions', () => {
   afterEach(() => {

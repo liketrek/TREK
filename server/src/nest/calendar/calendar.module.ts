@@ -1,7 +1,7 @@
-import { Module } from '@nestjs/common';
-import { CalendarService } from './calendar.service';
 import { DatabaseModule } from '../database/database.module';
 import { ReservationsModule } from '../reservations/reservations.module';
+import { CalendarService } from './calendar.service';
+import { Module } from '@nestjs/common';
 
 /** Calendar export. Imported by trips (the download route) and feeds (the
  *  subscribable URLs); it pulls in neither, which is what lets FeedsModule stop

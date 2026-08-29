@@ -7,15 +7,16 @@
  * without MFA with a 403 while answering a stranger fine. MFA-011 pins the
  * correction.
  */
-import { describe, it, expect, vi } from 'vitest';
-import { HttpException } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
+import type { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
 import { MfaExempt, MFA_EXEMPT, MfaPolicyGuard } from '../../../src/nest/auth/mfa-policy.guard';
 import { Public, IS_PUBLIC } from '../../../src/nest/auth/public.decorator';
-import type { DatabaseService } from '../../../src/nest/database/database.service';
-import type { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
 import { DEMO_EMAIL_PRIMARY } from '../../../src/nest/common/demo';
+import type { DatabaseService } from '../../../src/nest/database/database.service';
 import type { User } from '../../../src/types';
+import { HttpException } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+
+import { describe, it, expect, vi } from 'vitest';
 
 const user = { id: 7, email: 'u@example.test', role: 'user' } as User;
 

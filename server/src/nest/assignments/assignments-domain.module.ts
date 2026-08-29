@@ -1,9 +1,9 @@
-import { Module } from '@nestjs/common';
 import { JourneyDomainModule } from '../journey/journey-domain.module';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { QueryHelpersModule } from '../query-helpers/query-helpers.module';
 import { RealtimeModule } from '../realtime/realtime.module';
 import { AssignmentsService } from './assignments.service';
+import { Module } from '@nestjs/common';
 
 /**
  * The assignments SERVICE, split from the controller/MCP/RPC surfaces (the

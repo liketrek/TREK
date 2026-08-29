@@ -109,15 +109,19 @@ export type JourneyEntryUpdateRequest = z.infer<typeof journeyEntryUpdateRequest
  * uploaded' for the empty case. Without this the pipe would answer
  * 'body: Invalid input: expected object' first and the message would change.
  */
-export const journeyEntryPhotoUploadRequestSchema = z.looseObject({
-  caption: z.unknown().optional(),
-}).optional();
+export const journeyEntryPhotoUploadRequestSchema = z
+  .looseObject({
+    caption: z.unknown().optional(),
+  })
+  .optional();
 export type JourneyEntryPhotoUploadRequest = z.infer<typeof journeyEntryPhotoUploadRequestSchema>;
 
 /** Multipart field alongside the uploaded video — absent body for the same reason. */
-export const journeyGalleryVideoRequestSchema = z.looseObject({
-  duration_ms: z.unknown().optional(),
-}).optional();
+export const journeyGalleryVideoRequestSchema = z
+  .looseObject({
+    duration_ms: z.unknown().optional(),
+  })
+  .optional();
 export type JourneyGalleryVideoRequest = z.infer<typeof journeyGalleryVideoRequestSchema>;
 
 /** Free-form: per-user display preferences, forwarded whole. */

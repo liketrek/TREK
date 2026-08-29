@@ -1,8 +1,9 @@
-import { ArgumentsHost, Catch, ExceptionFilter, NotFoundException } from '@nestjs/common';
-import type { Request, Response } from 'express';
-import path from 'node:path';
 import { readEnv } from '../../app-config';
 import { PUBLIC_DIR } from './platform.routes';
+import { ArgumentsHost, Catch, ExceptionFilter, NotFoundException } from '@nestjs/common';
+
+import type { Request, Response } from 'express';
+import path from 'node:path';
 
 /**
  * Serves the built SPA (index.html) for any request the NestJS router did not

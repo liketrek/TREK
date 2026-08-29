@@ -1,12 +1,13 @@
-import { WsAdapter } from '@nestjs/platform-ws';
-import type { INestApplicationContext } from '@nestjs/common';
-import type { Server as HttpServer } from 'node:http';
-import type { MessageMappingProperties } from '@nestjs/websockets';
-import { WebSocketServer } from 'ws';
-import type { Observable } from 'rxjs';
 import { readEnv } from '../../app-config';
-import { setServer, type TrekWebSocket } from './ws-state';
 import { logError } from '../audit/audit-log.logger';
+import { setServer, type TrekWebSocket } from './ws-state';
+import type { INestApplicationContext } from '@nestjs/common';
+import { WsAdapter } from '@nestjs/platform-ws';
+import type { MessageMappingProperties } from '@nestjs/websockets';
+
+import type { Server as HttpServer } from 'node:http';
+import type { Observable } from 'rxjs';
+import { WebSocketServer } from 'ws';
 
 // Per-connection message rate limiting. It lives in the adapter, not in the
 // gateway's handlers, because the original counted EVERY inbound frame before
@@ -121,10 +122,7 @@ export class TrekWsAdapter extends WsAdapter {
       maxPayload: 64 * 1024, // 64 KB max message size
       ...(allowedOrigins
         ? {
-            verifyClient: (
-              { origin }: { origin: string },
-              cb: (ok: boolean, code?: number, msg?: string) => void,
-            ) => {
+            verifyClient: ({ origin }: { origin: string }, cb: (ok: boolean, code?: number, msg?: string) => void) => {
               if (!origin || allowedOrigins.includes(origin)) cb(true);
               else cb(false, 403, 'Origin not allowed');
             },

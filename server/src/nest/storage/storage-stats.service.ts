@@ -1,7 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { STORAGE_CATEGORIES, storageUsageSchema, type StorageUsage } from '@trek/shared';
 import { DatabaseService } from '../database/database.service';
 import { StorageService } from './storage.service';
+import { Injectable, Logger } from '@nestjs/common';
+import { STORAGE_CATEGORIES, storageUsageSchema, type StorageUsage } from '@trek/shared';
 
 export class StatsBusyError extends Error {}
 

@@ -1,6 +1,6 @@
-import { Module } from '@nestjs/common';
 import { PluginOAuthController } from './plugin-oauth.controller';
 import { PluginOAuthService } from './plugin-oauth.service';
+import { Module } from '@nestjs/common';
 
 /**
  * Host-brokered outbound OAuth for plugins: the host runs the authorization code

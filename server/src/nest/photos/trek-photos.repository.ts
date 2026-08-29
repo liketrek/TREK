@@ -1,7 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import type { TrekPhoto } from '../../types';
 import { encrypt_api_key } from '../common/crypto/apiKeyCrypto';
 import { DatabaseService } from '../database/database.service';
-import type { TrekPhoto } from '../../types';
+import { Injectable } from '@nestjs/common';
 
 /**
  * The `trek_photos` table: register a photo, look one up, retarget it, drop it
@@ -30,7 +30,9 @@ export class TrekPhotosRepository {
   ): number {
     const existing = this.db.get<{ id: number }>(
       'SELECT id FROM trek_photos WHERE provider = ? AND asset_id = ? AND owner_id = ?',
-      provider, assetId, ownerId,
+      provider,
+      assetId,
+      ownerId,
     );
     if (existing) {
       if (passphrase) {
@@ -41,7 +43,11 @@ export class TrekPhotosRepository {
 
     const res = this.db.run(
       'INSERT INTO trek_photos (provider, asset_id, owner_id, passphrase, media_type) VALUES (?, ?, ?, ?, ?)',
-      provider, assetId, ownerId, passphrase ? encrypt_api_key(passphrase) : null, mediaType,
+      provider,
+      assetId,
+      ownerId,
+      passphrase ? encrypt_api_key(passphrase) : null,
+      mediaType,
     );
     return Number(res.lastInsertRowid);
   }
@@ -55,13 +61,20 @@ export class TrekPhotosRepository {
     durationMs?: number | null,
   ): number {
     const existing = this.db.get<{ id: number }>(
-      "SELECT id FROM trek_photos WHERE provider = 'local' AND file_path = ?", filePath,
+      "SELECT id FROM trek_photos WHERE provider = 'local' AND file_path = ?",
+      filePath,
     );
     if (existing) return existing.id;
 
     const res = this.db.run(
       'INSERT INTO trek_photos (provider, file_path, thumbnail_path, width, height, media_type, duration_ms) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      'local', filePath, thumbnailPath || null, width || null, height || null, mediaType, durationMs ?? null,
+      'local',
+      filePath,
+      thumbnailPath || null,
+      width || null,
+      height || null,
+      mediaType,
+      durationMs ?? null,
     );
     return Number(res.lastInsertRowid);
   }
@@ -74,7 +87,10 @@ export class TrekPhotosRepository {
   setProvider(trekPhotoId: number, provider: string, assetId: string, ownerId: number): void {
     this.db.run(
       'UPDATE trek_photos SET provider = ?, asset_id = ?, owner_id = ? WHERE id = ?',
-      provider, assetId, ownerId, trekPhotoId,
+      provider,
+      assetId,
+      ownerId,
+      trekPhotoId,
     );
   }
 
@@ -85,7 +101,10 @@ export class TrekPhotosRepository {
   recordLocalThumbnail(photoId: number, thumbnailPath: string, width: number, height: number): void {
     this.db.run(
       'UPDATE trek_photos SET thumbnail_path = ?, width = COALESCE(width, ?), height = COALESCE(height, ?) WHERE id = ?',
-      thumbnailPath, width, height, photoId,
+      thumbnailPath,
+      width,
+      height,
+      photoId,
     );
   }
 
@@ -115,7 +134,10 @@ export class TrekPhotosRepository {
               lat      = COALESCE(lat, ?),
               lng      = COALESCE(lng, ?)
         WHERE id = ?`,
-      takenAt, hasPair ? lat : null, hasPair ? lng : null, photoId,
+      takenAt,
+      hasPair ? lat : null,
+      hasPair ? lng : null,
+      photoId,
     );
   }
 
@@ -124,12 +146,16 @@ export class TrekPhotosRepository {
    * kept: their bytes are ours, and the file would outlive the row.
    */
   deleteIfOrphan(photoId: number): void {
-    const stillUsed = this.db.get(`
+    const stillUsed = this.db.get(
+      `
       SELECT 1 FROM trip_photos WHERE photo_id = ?
       UNION ALL
       SELECT 1 FROM journey_photos WHERE photo_id = ?
       LIMIT 1
-    `, photoId, photoId);
+    `,
+      photoId,
+      photoId,
+    );
     if (stillUsed) return;
     this.db.run("DELETE FROM trek_photos WHERE id = ? AND provider != 'local'", photoId);
   }

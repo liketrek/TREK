@@ -3,12 +3,13 @@
  * next to NotificationPreferencesService, which owns it. The 'admin' scope argument
  * they always passed is now written once, at the only place that uses it.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { NotificationPreferencesService } from '../../../src/nest/notifications/notification-preferences.service';
 import { AdminNotificationPreferencesController } from '../../../src/nest/notifications/notifications.controller';
 import { NotificationsModule } from '../../../src/nest/notifications/notifications.module';
-import type { NotificationPreferencesService } from '../../../src/nest/notifications/notification-preferences.service';
 import type { User } from '../../../src/types';
 import { expectRegisteredController } from '../../helpers/module-providers';
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const admin = { id: 1, role: 'admin' } as User;
 

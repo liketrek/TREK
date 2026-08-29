@@ -2,7 +2,6 @@
  * Unit tests for the external notification channel registry.
  * Covers CHREG-001 to CHREG-008.
  */
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   listChannels,
   getChannel,
@@ -12,12 +11,14 @@ import {
   isPluginChannelId,
   __resetChannelsForTest,
 } from '../../../src/nest/notifications/channel-registry';
-// The channel contract lives in notification-events; channel-registry only consumes it.
-import type { ChannelMessage, ExternalChannel } from '../../../src/nest/notifications/notification-events';
 import { registerBuiltinChannels } from '../../../src/nest/notifications/channels/builtins';
 import type { MailerService } from '../../../src/nest/notifications/mailer/mailer.service';
+// The channel contract lives in notification-events; channel-registry only consumes it.
+import type { ChannelMessage, ExternalChannel } from '../../../src/nest/notifications/notification-events';
 import type { NtfyService } from '../../../src/nest/notifications/transports/ntfy.service';
 import type { WebhookService } from '../../../src/nest/notifications/transports/webhook.service';
+
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 // The built-ins take their transports as an argument now; these cases only care
 // that the three ids land in the registry with the right privileges, so the
@@ -25,7 +26,10 @@ import type { WebhookService } from '../../../src/nest/notifications/transports/
 const stubTransports = {
   mailer: { isSmtpConfigured: () => true, getUserEmail: () => null } as unknown as MailerService,
   webhook: { getUserWebhookUrl: () => null, getAdminWebhookUrl: () => null } as unknown as WebhookService,
-  ntfy: { getUserNtfyConfig: () => null, getAdminNtfyConfig: () => ({ server: null, topic: null, token: null }) } as unknown as NtfyService,
+  ntfy: {
+    getUserNtfyConfig: () => null,
+    getAdminNtfyConfig: () => ({ server: null, topic: null, token: null }),
+  } as unknown as NtfyService,
 };
 
 function fakeChannel(id: string, over: Partial<ExternalChannel> = {}): ExternalChannel {
@@ -53,13 +57,13 @@ afterEach(() => {
 
 describe('channelRegistry', () => {
   it('CHREG-001 — the three built-in external channels are registered; in-app is not', () => {
-    expect(listChannels().map(c => c.id)).toEqual(['email', 'webhook', 'ntfy']);
+    expect(listChannels().map((c) => c.id)).toEqual(['email', 'webhook', 'ntfy']);
     expect(getChannel('inapp')).toBeUndefined();
   });
 
   it('CHREG-002 — plugin channels come from the injected source and are namespaced', () => {
     setPluginChannelSource(() => [fakeChannel(pluginChannelId('gotify'))]);
-    expect(listChannels().map(c => c.id)).toContain('plugin:gotify');
+    expect(listChannels().map((c) => c.id)).toContain('plugin:gotify');
     expect(getChannel('plugin:gotify')?.source).toBe('plugin');
     expect(isPluginChannelId('plugin:gotify')).toBe(true);
     expect(isPluginChannelId('email')).toBe(false);
@@ -71,14 +75,14 @@ describe('channelRegistry', () => {
     expect(getChannel('plugin:gotify')).toBeDefined();
     live = false;
     expect(getChannel('plugin:gotify')).toBeUndefined();
-    expect(listChannels().map(c => c.id)).toEqual(['email', 'webhook', 'ntfy']);
+    expect(listChannels().map((c) => c.id)).toEqual(['email', 'webhook', 'ntfy']);
   });
 
   it('CHREG-004 — a throwing plugin source cannot take notifications down', () => {
     setPluginChannelSource(() => {
       throw new Error('runtime exploded');
     });
-    expect(listChannels().map(c => c.id)).toEqual(['email', 'webhook', 'ntfy']);
+    expect(listChannels().map((c) => c.id)).toEqual(['email', 'webhook', 'ntfy']);
   });
 
   it('CHREG-005 — a plugin can never claim a built-in id', () => {
@@ -110,7 +114,7 @@ describe('channelRegistry', () => {
 
   it('CHREG-009 — registerChannel replaces an existing id rather than duplicating it', () => {
     registerChannel(fakeChannel('email', { source: 'builtin' }));
-    expect(listChannels().filter(c => c.id === 'email')).toHaveLength(1);
+    expect(listChannels().filter((c) => c.id === 'email')).toHaveLength(1);
   });
 
   it('CHREG-010 — a channel that rejects is the caller’s problem, not the registry’s', async () => {

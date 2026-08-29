@@ -1,6 +1,6 @@
+import { ADDON_IDS } from '../../addons';
 import type { McpContext } from '../../nest-mcp';
 import type { AddonsService } from './addons.service';
-import { ADDON_IDS } from '../../addons';
 
 /**
  * The `when:` gates for addon-scoped MCP surfaces.

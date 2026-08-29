@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import { logInfo, logDebug, logError } from './audit-log.logger';
+import { Injectable } from '@nestjs/common';
 
 const ACTION_LABELS: Record<string, string> = {
   'user.register': 'registered',
@@ -72,7 +72,9 @@ export class AuditService {
     try {
       const row = this.dbs.get<{ email: string }>('SELECT email FROM users WHERE id = ?', userId);
       return row?.email || `uid:${userId}`;
-    } catch { return `uid:${userId}`; }
+    } catch {
+      return `uid:${userId}`;
+    }
   }
 
   /** Best-effort; never throws — failures are logged only. */
@@ -88,7 +90,11 @@ export class AuditService {
       const detailsJson = entry.details && Object.keys(entry.details).length > 0 ? JSON.stringify(entry.details) : null;
       this.dbs.run(
         `INSERT INTO audit_log (user_id, action, resource, details, ip) VALUES (?, ?, ?, ?, ?)`,
-        entry.userId, entry.action, entry.resource ?? null, detailsJson, entry.ip ?? null
+        entry.userId,
+        entry.action,
+        entry.resource ?? null,
+        detailsJson,
+        entry.ip ?? null,
       );
 
       const email = this.resolveUserEmail(entry.userId);

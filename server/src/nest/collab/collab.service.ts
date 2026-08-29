@@ -1,16 +1,17 @@
-import path from 'path';
-import { Injectable } from '@nestjs/common';
-import { DatabaseService, type TripAccess } from '../database/database.service';
-import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
-import { RealtimeService } from '../realtime/realtime.service';
-import { PermissionsService } from '../permissions/permissions.service';
-import { avatarUrl } from '../common/avatarUrl';
-import { checkSsrf, createPinnedDispatcher } from '../../utils/ssrfGuard';
-import { discardBody, exceedsDeclaredLength, readCappedText } from '../../utils/cappedFetch';
 import type { CollabNote, CollabPoll, CollabMessage, TripFile, User } from '../../types';
-import { NotificationsService } from '../notifications/notifications.service';
-import { StorageService } from '../storage/storage.service';
+import { discardBody, exceedsDeclaredLength, readCappedText } from '../../utils/cappedFetch';
+import { checkSsrf, createPinnedDispatcher } from '../../utils/ssrfGuard';
+import { avatarUrl } from '../common/avatarUrl';
 import { RateLimitService } from '../common/rate-limit.service';
+import { DatabaseService, type TripAccess } from '../database/database.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { PermissionsService } from '../permissions/permissions.service';
+import { RealtimeService } from '../realtime/realtime.service';
+import { StorageService } from '../storage/storage.service';
+import { Injectable } from '@nestjs/common';
+import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
+
+import path from 'path';
 
 type Trip = TripAccess;
 
@@ -84,13 +85,15 @@ const PREVIEW_CACHE_MAX = 500;
  */
 function scrapeOpenGraph(html: string): Omit<LinkPreviewResult, 'url'> {
   const og = (prop: string) => {
-    const m = html.match(new RegExp(`<meta[^>]{0,512}property=["']og:${prop}["'][^>]{0,512}content=["']([^"']*)["']`, 'i'))
-      || html.match(new RegExp(`<meta[^>]{0,512}content=["']([^"']*)["'][^>]{0,512}property=["']og:${prop}["']`, 'i'));
+    const m =
+      html.match(new RegExp(`<meta[^>]{0,512}property=["']og:${prop}["'][^>]{0,512}content=["']([^"']*)["']`, 'i')) ||
+      html.match(new RegExp(`<meta[^>]{0,512}content=["']([^"']*)["'][^>]{0,512}property=["']og:${prop}["']`, 'i'));
     return m ? m[1] : null;
   };
   const titleTag = html.match(/<title[^>]{0,512}>([^<]*)<\/title>/i);
-  const descMeta = html.match(/<meta[^>]{0,512}name=["']description["'][^>]{0,512}content=["']([^"']*)["']/i)
-    || html.match(/<meta[^>]{0,512}content=["']([^"']*)["'][^>]{0,512}name=["']description["']/i);
+  const descMeta =
+    html.match(/<meta[^>]{0,512}name=["']description["'][^>]{0,512}content=["']([^"']*)["']/i) ||
+    html.match(/<meta[^>]{0,512}content=["']([^"']*)["'][^>]{0,512}name=["']description["']/i);
   const image = og('image');
 
   return {
@@ -155,7 +158,12 @@ export class CollabService {
     return this.permissions.checkPermission('file_upload', user.role, trip.user_id, user.id, trip.user_id !== user.id);
   }
 
-  broadcast<E extends TrekWsTripEventName>(tripId: string, event: E, payload: TrekWsPayload<E>, socketId: string | undefined): void {
+  broadcast<E extends TrekWsTripEventName>(
+    tripId: string,
+    event: E,
+    payload: TrekWsPayload<E>,
+    socketId: string | undefined,
+  ): void {
     this.realtime.broadcast(tripId, event, payload, socketId);
   }
 
@@ -164,12 +172,15 @@ export class CollabService {
   /* ------------------------------------------------------------------ */
 
   private loadReactions(messageId: number | string): ReactionRow[] {
-    return this.db.all<ReactionRow>(`
+    return this.db.all<ReactionRow>(
+      `
     SELECT r.emoji, r.user_id, u.username
     FROM collab_message_reactions r
     JOIN users u ON r.user_id = u.id
     WHERE r.message_id = ?
-  `, messageId);
+  `,
+      messageId,
+    );
   }
 
   private groupReactions(reactions: ReactionRow[]): GroupedReaction[] {
@@ -181,15 +192,30 @@ export class CollabService {
     return Object.entries(map).map(([emoji, users]) => ({ emoji, users, count: users.length }));
   }
 
-  reactMessage(messageId: number | string, tripId: number | string, userId: number, emoji: string): { found: boolean; reactions: GroupedReaction[] } {
+  reactMessage(
+    messageId: number | string,
+    tripId: number | string,
+    userId: number,
+    emoji: string,
+  ): { found: boolean; reactions: GroupedReaction[] } {
     const msg = this.db.get('SELECT id FROM collab_messages WHERE id = ? AND trip_id = ?', messageId, tripId);
     if (!msg) return { found: false, reactions: [] };
 
-    const existing = this.db.get<{ id: number }>('SELECT id FROM collab_message_reactions WHERE message_id = ? AND user_id = ? AND emoji = ?', messageId, userId, emoji);
+    const existing = this.db.get<{ id: number }>(
+      'SELECT id FROM collab_message_reactions WHERE message_id = ? AND user_id = ? AND emoji = ?',
+      messageId,
+      userId,
+      emoji,
+    );
     if (existing) {
       this.db.run('DELETE FROM collab_message_reactions WHERE id = ?', existing.id);
     } else {
-      this.db.run('INSERT INTO collab_message_reactions (message_id, user_id, emoji) VALUES (?, ?, ?)', messageId, userId, emoji);
+      this.db.run(
+        'INSERT INTO collab_message_reactions (message_id, user_id, emoji) VALUES (?, ?, ?)',
+        messageId,
+        userId,
+        emoji,
+      );
     }
 
     return { found: true, reactions: this.groupReactions(this.loadReactions(messageId)) };
@@ -200,45 +226,87 @@ export class CollabService {
   /* ------------------------------------------------------------------ */
 
   private formatNote(note: CollabNote) {
-    const attachments = this.db.all<NoteFileRow>('SELECT id, filename, original_name, file_size, mime_type FROM trip_files WHERE note_id = ?', note.id);
+    const attachments = this.db.all<NoteFileRow>(
+      'SELECT id, filename, original_name, file_size, mime_type FROM trip_files WHERE note_id = ?',
+      note.id,
+    );
     return {
       ...note,
       avatar_url: avatarUrl(note),
-      attachments: attachments.map(a => ({ ...a, url: `/api/trips/${note.trip_id}/files/${a.id}/download` })),
+      attachments: attachments.map((a) => ({ ...a, url: `/api/trips/${note.trip_id}/files/${a.id}/download` })),
     };
   }
 
   listNotes(tripId: string | number) {
-    const notes = this.db.all<CollabNote>(`
+    const notes = this.db.all<CollabNote>(
+      `
     SELECT n.*, u.username, u.avatar
     FROM collab_notes n
     JOIN users u ON n.user_id = u.id
     WHERE n.trip_id = ?
     ORDER BY n.pinned DESC, n.updated_at DESC
-  `, tripId);
+  `,
+      tripId,
+    );
 
-    return notes.map(note => this.formatNote(note));
+    return notes.map((note) => this.formatNote(note));
   }
 
-  createNote(tripId: string | number, userId: number, data: { title: string; content?: string | null; category?: string | null; color?: string | null; website?: string | null; pinned?: boolean }) {
+  createNote(
+    tripId: string | number,
+    userId: number,
+    data: {
+      title: string;
+      content?: string | null;
+      category?: string | null;
+      color?: string | null;
+      website?: string | null;
+      pinned?: boolean;
+    },
+  ) {
     const pinned = data.pinned ? 1 : 0;
-    const result = this.db.run(`
+    const result = this.db.run(
+      `
     INSERT INTO collab_notes (trip_id, user_id, title, content, category, color, website, pinned)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `, tripId, userId, data.title, data.content || null, data.category || 'General', data.color || '#6366f1', data.website || null, pinned);
+  `,
+      tripId,
+      userId,
+      data.title,
+      data.content || null,
+      data.category || 'General',
+      data.color || '#6366f1',
+      data.website || null,
+      pinned,
+    );
 
-    const note = this.db.get<CollabNote>(`
+    const note = this.db.get<CollabNote>(
+      `
     SELECT n.*, u.username, u.avatar FROM collab_notes n JOIN users u ON n.user_id = u.id WHERE n.id = ?
-  `, result.lastInsertRowid)!;
+  `,
+      result.lastInsertRowid,
+    )!;
 
     return this.formatNote(note);
   }
 
-  updateNote(tripId: string | number, noteId: string | number, data: { title?: string; content?: string | null; category?: string | null; color?: string | null; pinned?: number | boolean; website?: string | null }): ReturnType<CollabService['formatNote']> | null {
+  updateNote(
+    tripId: string | number,
+    noteId: string | number,
+    data: {
+      title?: string;
+      content?: string | null;
+      category?: string | null;
+      color?: string | null;
+      pinned?: number | boolean;
+      website?: string | null;
+    },
+  ): ReturnType<CollabService['formatNote']> | null {
     const existing = this.db.get('SELECT * FROM collab_notes WHERE id = ? AND trip_id = ?', noteId, tripId);
     if (!existing) return null;
 
-    this.db.run(`
+    this.db.run(
+      `
     UPDATE collab_notes SET
       title = COALESCE(?, title),
       content = CASE WHEN ? THEN ? ELSE content END,
@@ -250,17 +318,23 @@ export class CollabService {
     WHERE id = ?
   `,
       data.title || null,
-      data.content !== undefined ? 1 : 0, data.content !== undefined ? data.content : null,
+      data.content !== undefined ? 1 : 0,
+      data.content !== undefined ? data.content : null,
       data.category || null,
       data.color || null,
-      data.pinned !== undefined ? 1 : null, data.pinned ? 1 : 0,
-      data.website !== undefined ? 1 : 0, data.website !== undefined ? data.website : null,
-      noteId
+      data.pinned !== undefined ? 1 : null,
+      data.pinned ? 1 : 0,
+      data.website !== undefined ? 1 : 0,
+      data.website !== undefined ? data.website : null,
+      noteId,
     );
 
-    const note = this.db.get<CollabNote>(`
+    const note = this.db.get<CollabNote>(
+      `
     SELECT n.*, u.username, u.avatar FROM collab_notes n JOIN users u ON n.user_id = u.id WHERE n.id = ?
-  `, noteId)!;
+  `,
+      noteId,
+    )!;
 
     return this.formatNote(note);
   }
@@ -275,7 +349,9 @@ export class CollabService {
     // seen.
     const noteFiles = this.db.all<NoteFileRow>('SELECT id, filename FROM trip_files WHERE note_id = ?', noteId);
     for (const f of noteFiles) {
-      await this.storage.delete('files', path.basename(f.filename)).catch(() => { /* ignore */ });
+      await this.storage.delete('files', path.basename(f.filename)).catch(() => {
+        /* ignore */
+      });
     }
     this.db.transaction(() => {
       this.db.run('DELETE FROM trip_files WHERE note_id = ?', noteId);
@@ -288,13 +364,22 @@ export class CollabService {
   /*  Note files                                                         */
   /* ------------------------------------------------------------------ */
 
-  addNoteFile(tripId: string | number, noteId: string | number, file: { filename: string; originalname: string; size: number; mimetype: string }): { file: TripFile & { url: string } } | null {
+  addNoteFile(
+    tripId: string | number,
+    noteId: string | number,
+    file: { filename: string; originalname: string; size: number; mimetype: string },
+  ): { file: TripFile & { url: string } } | null {
     const note = this.db.get('SELECT id FROM collab_notes WHERE id = ? AND trip_id = ?', noteId, tripId);
     if (!note) return null;
 
     const result = this.db.run(
       'INSERT INTO trip_files (trip_id, note_id, filename, original_name, file_size, mime_type) VALUES (?, ?, ?, ?, ?, ?)',
-      tripId, noteId, file.filename, file.originalname, file.size, file.mimetype
+      tripId,
+      noteId,
+      file.filename,
+      file.originalname,
+      file.size,
+      file.mimetype,
     );
 
     const saved = this.db.get<TripFile>('SELECT * FROM trip_files WHERE id = ?', result.lastInsertRowid)!;
@@ -302,7 +387,11 @@ export class CollabService {
   }
 
   getFormattedNoteById(tripId: string | number, noteId: string | number) {
-    const note = this.db.get<CollabNote>('SELECT n.*, u.username, u.avatar FROM collab_notes n JOIN users u ON n.user_id = u.id WHERE n.id = ? AND n.trip_id = ?', noteId, tripId);
+    const note = this.db.get<CollabNote>(
+      'SELECT n.*, u.username, u.avatar FROM collab_notes n JOIN users u ON n.user_id = u.id WHERE n.id = ? AND n.trip_id = ?',
+      noteId,
+      tripId,
+    );
     if (!note) return null;
     return this.formatNote(note);
   }
@@ -312,10 +401,17 @@ export class CollabService {
     // trip can't delete a note-file that belongs to someone else's trip (IDOR). trip_files
     // carries trip_id, so this ties the deleted object to the URL's :tripId the controller
     // access-checked, not just to a note/file id an attacker can enumerate.
-    const file = this.db.get<TripFile>('SELECT * FROM trip_files WHERE id = ? AND note_id = ? AND trip_id = ?', fileId, noteId, tripId);
+    const file = this.db.get<TripFile>(
+      'SELECT * FROM trip_files WHERE id = ? AND note_id = ? AND trip_id = ?',
+      fileId,
+      noteId,
+      tripId,
+    );
     if (!file) return false;
 
-    await this.storage.delete('files', path.basename(file.filename)).catch(() => { /* ignore */ });
+    await this.storage.delete('files', path.basename(file.filename)).catch(() => {
+      /* ignore */
+    });
 
     this.db.run('DELETE FROM trip_files WHERE id = ?', fileId);
     return true;
@@ -326,23 +422,29 @@ export class CollabService {
   /* ------------------------------------------------------------------ */
 
   private getPollWithVotes(pollId: number | bigint | string) {
-    const poll = this.db.get<CollabPoll>(`
+    const poll = this.db.get<CollabPoll>(
+      `
     SELECT p.*, u.username, u.avatar
     FROM collab_polls p
     JOIN users u ON p.user_id = u.id
     WHERE p.id = ?
-  `, pollId);
+  `,
+      pollId,
+    );
 
     if (!poll) return null;
 
     const options: (string | { label: string })[] = JSON.parse(poll.options);
 
-    const votes = this.db.all<PollVoteRow>(`
+    const votes = this.db.all<PollVoteRow>(
+      `
     SELECT v.option_index, v.user_id, u.username, u.avatar
     FROM collab_poll_votes v
     JOIN users u ON v.user_id = u.id
     WHERE v.poll_id = ?
-  `, pollId);
+  `,
+      pollId,
+    );
 
     const formattedOptions = options.map((label: string | { label: string }, idx: number) => {
       const text = typeof label === 'string' ? label : label.label || label;
@@ -351,8 +453,14 @@ export class CollabService {
         text,
         label: text,
         voters: votes
-          .filter(v => v.option_index === idx)
-          .map(v => ({ id: v.user_id, user_id: v.user_id, username: v.username, avatar: v.avatar, avatar_url: avatarUrl(v) })),
+          .filter((v) => v.option_index === idx)
+          .map((v) => ({
+            id: v.user_id,
+            user_id: v.user_id,
+            username: v.username,
+            avatar: v.avatar,
+            avatar_url: avatarUrl(v),
+          })),
       };
     });
 
@@ -366,25 +474,45 @@ export class CollabService {
   }
 
   listPolls(tripId: string | number) {
-    const rows = this.db.all<{ id: number }>(`
+    const rows = this.db.all<{ id: number }>(
+      `
     SELECT id FROM collab_polls WHERE trip_id = ? ORDER BY created_at DESC
-  `, tripId);
+  `,
+      tripId,
+    );
 
-    return rows.map(row => this.getPollWithVotes(row.id)).filter(Boolean);
+    return rows.map((row) => this.getPollWithVotes(row.id)).filter(Boolean);
   }
 
-  createPoll(tripId: string | number, userId: number, data: { question: string; options: unknown[]; multiple?: boolean; multiple_choice?: boolean; deadline?: string }) {
+  createPoll(
+    tripId: string | number,
+    userId: number,
+    data: { question: string; options: unknown[]; multiple?: boolean; multiple_choice?: boolean; deadline?: string },
+  ) {
     const isMultiple = data.multiple || data.multiple_choice;
 
-    const result = this.db.run(`
+    const result = this.db.run(
+      `
     INSERT INTO collab_polls (trip_id, user_id, question, options, multiple, deadline)
     VALUES (?, ?, ?, ?, ?, ?)
-  `, tripId, userId, data.question, JSON.stringify(data.options), isMultiple ? 1 : 0, data.deadline || null);
+  `,
+      tripId,
+      userId,
+      data.question,
+      JSON.stringify(data.options),
+      isMultiple ? 1 : 0,
+      data.deadline || null,
+    );
 
     return this.getPollWithVotes(result.lastInsertRowid);
   }
 
-  votePoll(tripId: string | number, pollId: string | number, userId: number, optionIndex: number): { error?: string; poll?: ReturnType<CollabService['getPollWithVotes']> } {
+  votePoll(
+    tripId: string | number,
+    pollId: string | number,
+    userId: number,
+    optionIndex: number,
+  ): { error?: string; poll?: ReturnType<CollabService['getPollWithVotes']> } {
     const poll = this.db.get<CollabPoll>('SELECT * FROM collab_polls WHERE id = ? AND trip_id = ?', pollId, tripId);
     if (!poll) return { error: 'not_found' };
     if (poll.closed) return { error: 'closed' };
@@ -396,7 +524,9 @@ export class CollabService {
 
     const existingVote = this.db.get<{ id: number }>(
       'SELECT id FROM collab_poll_votes WHERE poll_id = ? AND user_id = ? AND option_index = ?',
-      pollId, userId, optionIndex
+      pollId,
+      userId,
+      optionIndex,
     );
 
     if (existingVote) {
@@ -406,7 +536,12 @@ export class CollabService {
         if (!poll.multiple) {
           this.db.run('DELETE FROM collab_poll_votes WHERE poll_id = ? AND user_id = ?', pollId, userId);
         }
-        this.db.run('INSERT INTO collab_poll_votes (poll_id, user_id, option_index) VALUES (?, ?, ?)', pollId, userId, optionIndex);
+        this.db.run(
+          'INSERT INTO collab_poll_votes (poll_id, user_id, option_index) VALUES (?, ?, ?)',
+          pollId,
+          userId,
+          optionIndex,
+        );
       });
     }
 
@@ -468,39 +603,56 @@ export class CollabService {
     // three.
     for (const m of messages) if (m.deleted) m.text = '';
 
-    const msgIds = messages.map(m => m.id);
+    const msgIds = messages.map((m) => m.id);
     const reactionsByMsg: Record<number, ReactionRow[]> = {};
     if (msgIds.length > 0) {
-      const allReactions = this.db.all<ReactionRow & { message_id: number }>(`
+      const allReactions = this.db.all<ReactionRow & { message_id: number }>(
+        `
       SELECT r.message_id, r.emoji, r.user_id, u.username
       FROM collab_message_reactions r
       JOIN users u ON r.user_id = u.id
       WHERE r.message_id IN (${msgIds.map(() => '?').join(',')})
-    `, ...msgIds);
+    `,
+        ...msgIds,
+      );
       for (const r of allReactions) {
         if (!reactionsByMsg[r.message_id]) reactionsByMsg[r.message_id] = [];
         reactionsByMsg[r.message_id].push(r);
       }
     }
 
-    return messages.map(m => this.formatMessage(m, this.groupReactions(reactionsByMsg[m.id] || [])));
+    return messages.map((m) => this.formatMessage(m, this.groupReactions(reactionsByMsg[m.id] || [])));
   }
 
-  createMessage(tripId: string | number, userId: number, text: string, replyTo?: number | null): { error?: string; message?: ReturnType<CollabService['formatMessage']> } {
+  createMessage(
+    tripId: string | number,
+    userId: number,
+    text: string,
+    replyTo?: number | null,
+  ): { error?: string; message?: ReturnType<CollabService['formatMessage']> } {
     if (replyTo) {
       // A soft-deleted message is gone as far as anyone replying is concerned:
       // its row survives only so the placeholder can be drawn where it was.
       const replyMsg = this.db.get(
-        'SELECT id FROM collab_messages WHERE id = ? AND trip_id = ? AND deleted = 0', replyTo, tripId,
+        'SELECT id FROM collab_messages WHERE id = ? AND trip_id = ? AND deleted = 0',
+        replyTo,
+        tripId,
       );
       if (!replyMsg) return { error: 'reply_not_found' };
     }
 
-    const result = this.db.run(`
+    const result = this.db.run(
+      `
     INSERT INTO collab_messages (trip_id, user_id, text, reply_to) VALUES (?, ?, ?, ?)
-  `, tripId, userId, text.trim(), replyTo || null);
+  `,
+      tripId,
+      userId,
+      text.trim(),
+      replyTo || null,
+    );
 
-    const message = this.db.get<CollabMessage>(`
+    const message = this.db.get<CollabMessage>(
+      `
     SELECT m.*, u.username, u.avatar,
       CASE WHEN rm.deleted = 1 THEN '' ELSE rm.text END AS reply_text,
       ru.username AS reply_username
@@ -509,13 +661,23 @@ export class CollabService {
     LEFT JOIN collab_messages rm ON m.reply_to = rm.id
     LEFT JOIN users ru ON rm.user_id = ru.id
     WHERE m.id = ?
-  `, result.lastInsertRowid)!;
+  `,
+      result.lastInsertRowid,
+    )!;
 
     return { message: this.formatMessage(message) };
   }
 
-  deleteMessage(tripId: string | number, messageId: string | number, userId: number): { error?: string; username?: string } {
-    const message = this.db.get<CollabMessage>('SELECT * FROM collab_messages WHERE id = ? AND trip_id = ?', messageId, tripId);
+  deleteMessage(
+    tripId: string | number,
+    messageId: string | number,
+    userId: number,
+  ): { error?: string; username?: string } {
+    const message = this.db.get<CollabMessage>(
+      'SELECT * FROM collab_messages WHERE id = ? AND trip_id = ?',
+      messageId,
+      tripId,
+    );
     if (!message) return { error: 'not_found' };
     if (Number(message.user_id) !== Number(userId)) return { error: 'not_owner' };
 
@@ -532,7 +694,11 @@ export class CollabService {
 
     // A malformed URL returns the fallback directly (the legacy code let
     // `new URL` throw and relied on the controller's catch for the same 200).
-    try { new URL(url); } catch { return fallback; }
+    try {
+      new URL(url);
+    } catch {
+      return fallback;
+    }
 
     // Served before the budget is charged: opening a chat re-requests every
     // preview it renders, so a reload must not cost the caller its allowance.
@@ -550,7 +716,10 @@ export class CollabService {
     // Charged per outbound fetch rather than per request, which is what the
     // budget is actually protecting. Without a user there is no one to charge —
     // no caller passes that today, and the fetch stays behind the SSRF guard.
-    if (userId !== undefined && !this.rateLimit.check('collab_link_preview', String(userId), PREVIEW_FETCHES_PER_MINUTE, 60_000, Date.now())) {
+    if (
+      userId !== undefined &&
+      !this.rateLimit.check('collab_link_preview', String(userId), PREVIEW_FETCHES_PER_MINUTE, 60_000, Date.now())
+    ) {
       return { ...fallback, rateLimited: true };
     }
 
@@ -586,7 +755,10 @@ export class CollabService {
         dispatcher,
         headers: { 'User-Agent': 'Mozilla/5.0 (compatible; NOMAD/1.0; +https://github.com/mauriceboe/NOMAD)' },
       } as any);
-      if (!r.ok) { discardBody(r); return this.cachePreview(url, fallback); }
+      if (!r.ok) {
+        discardBody(r);
+        return this.cachePreview(url, fallback);
+      }
       // Only markup is worth scraping. A declared type that is not HTML means the
       // regexes below would comb a video or an archive for og: tags and find nothing.
       const type = r.headers?.get('content-type') ?? '';
@@ -596,7 +768,10 @@ export class CollabService {
       }
       // An unread body keeps its socket reserved until the garbage collector runs,
       // which is the one thing a size cap is there to prevent.
-      if (exceedsDeclaredLength(r, MAX_PREVIEW_BYTES)) { discardBody(r); return this.cachePreview(url, fallback); }
+      if (exceedsDeclaredLength(r, MAX_PREVIEW_BYTES)) {
+        discardBody(r);
+        return this.cachePreview(url, fallback);
+      }
 
       // A truncated head still carries the tags we scrape, so a page over the
       // budget degrades to fewer fields rather than to an error.
@@ -642,8 +817,14 @@ export class CollabService {
     // reaches nothing in this direction — and it hid the edge while handing the
     // send a second NotificationsService built outside the container.
     const tripInfo = this.db.get<{ title: string }>('SELECT title FROM trips WHERE id = ?', tripId);
-    const params: Record<string, string> = { trip: tripInfo?.title || 'Untitled', actor: actor.email, tripId: String(tripId) };
+    const params: Record<string, string> = {
+      trip: tripInfo?.title || 'Untitled',
+      actor: actor.email,
+      tripId: String(tripId),
+    };
     if (preview !== undefined) params.preview = preview;
-    this.notifications.send({ event: 'collab_message', actorId: actor.id, scope: 'trip', targetId: Number(tripId), params }).catch(() => {});
+    this.notifications
+      .send({ event: 'collab_message', actorId: actor.id, scope: 'trip', targetId: Number(tripId), params })
+      .catch(() => {});
   }
 }

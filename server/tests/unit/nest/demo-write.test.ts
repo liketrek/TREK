@@ -10,13 +10,13 @@
  * ECONNRESET instead of the 403. PROFILE-015 in the integration suite is what
  * demonstrates it end-to-end.
  */
+import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
+import { isDemoEmail } from '../../../src/nest/common/demo';
+import { isDemoWriteBlocked, DEMO_WRITE_ERROR } from '../../../src/nest/common/demo-write';
+
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
 vi.mock('../../../src/nest/common/demo', () => ({ isDemoEmail: vi.fn(() => false) }));
-
-import { isDemoWriteBlocked, DEMO_WRITE_ERROR } from '../../../src/nest/common/demo-write';
-import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
-import { isDemoEmail } from '../../../src/nest/common/demo';
 
 const env = new RuntimeEnvService();
 

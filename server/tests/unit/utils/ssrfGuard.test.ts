@@ -1,3 +1,13 @@
+import {
+  checkSsrf,
+  SsrfBlockedError,
+  safeFetch,
+  safeFetchLlm,
+  safeFetchFollow,
+  createPinnedDispatcher,
+} from '../../../src/utils/ssrfGuard';
+
+import dns from 'dns/promises';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Capture Agent constructor options so we can test the lookup callback
@@ -19,9 +29,6 @@ vi.mock('undici', () => ({
     }
   },
 }));
-
-import dns from 'dns/promises';
-import { checkSsrf, SsrfBlockedError, safeFetch, safeFetchLlm, safeFetchFollow, createPinnedDispatcher } from '../../../src/utils/ssrfGuard';
 
 const mockLookup = vi.mocked(dns.lookup);
 
@@ -231,14 +238,11 @@ describe('checkSsrf', () => {
 
   // SEC-014 — fe80::/10 is ten bits, not the four characters 'fe80'
   describe('the whole IPv6 link-local range', () => {
-    it.each([['fe80::1'], ['fe90::1'], ['fea0::1'], ['febf::1']])(
-      'SEC-014: blocks %s',
-      async (ip) => {
-        mockIp(ip);
-        const result = await checkSsrf('http://attacker.example', true);
-        expect(result.allowed).toBe(false);
-      },
-    );
+    it.each([['fe80::1'], ['fe90::1'], ['fea0::1'], ['febf::1']])('SEC-014: blocks %s', async (ip) => {
+      mockIp(ip);
+      const result = await checkSsrf('http://attacker.example', true);
+      expect(result.allowed).toBe(false);
+    });
 
     // The bounds, so widening fe80: to the full /10 cannot creep further: fe7f
     // sits just below the range and fec0 just above it, and neither is link-local.
@@ -270,7 +274,6 @@ describe('checkSsrf', () => {
       expect(result.error).toContain('Could not resolve hostname');
     });
   });
-
 });
 
 describe('SsrfBlockedError', () => {
@@ -332,7 +335,7 @@ describe('safeFetchFollow (manual per-hop redirect SSRF)', () => {
       status: opts.status,
       ok: opts.ok ?? (opts.status >= 200 && opts.status < 300),
       url: opts.url,
-      headers: { get: (h: string) => (h.toLowerCase() === 'location' ? opts.location ?? null : null) },
+      headers: { get: (h: string) => (h.toLowerCase() === 'location' ? (opts.location ?? null) : null) },
       body: { cancel: () => Promise.resolve() },
     };
   }
@@ -340,8 +343,11 @@ describe('safeFetchFollow (manual per-hop redirect SSRF)', () => {
   it('follows a legitimate cross-host redirect (goo.gl -> maps.google.com) to the final response', async () => {
     // Both hops resolve to public IPs.
     mockLookup.mockResolvedValue({ address: '142.250.0.0', family: 4 });
-    const mockFetch = vi.fn()
-      .mockResolvedValueOnce(fakeResponse({ status: 302, location: 'https://maps.google.com/maps/place/Foo', url: 'https://goo.gl/abc' }))
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        fakeResponse({ status: 302, location: 'https://maps.google.com/maps/place/Foo', url: 'https://goo.gl/abc' }),
+      )
       .mockResolvedValueOnce(fakeResponse({ status: 200, url: 'https://maps.google.com/maps/place/Foo' }));
     vi.stubGlobal('fetch', mockFetch);
 
@@ -357,8 +363,11 @@ describe('safeFetchFollow (manual per-hop redirect SSRF)', () => {
     mockLookup
       .mockResolvedValueOnce({ address: '142.250.0.0', family: 4 }) // goo.gl
       .mockResolvedValue({ address: '169.254.169.254', family: 4 }); // redirect → metadata
-    const mockFetch = vi.fn()
-      .mockResolvedValueOnce(fakeResponse({ status: 302, location: 'http://169.254.169.254/latest/meta-data/', url: 'https://goo.gl/evil' }));
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        fakeResponse({ status: 302, location: 'http://169.254.169.254/latest/meta-data/', url: 'https://goo.gl/evil' }),
+      );
     vi.stubGlobal('fetch', mockFetch);
 
     await expect(safeFetchFollow('https://goo.gl/evil')).rejects.toThrow(SsrfBlockedError);
@@ -370,12 +379,14 @@ describe('safeFetchFollow (manual per-hop redirect SSRF)', () => {
     mockLookup
       .mockResolvedValueOnce({ address: '142.250.0.0', family: 4 })
       .mockResolvedValue({ address: '127.0.0.1', family: 4 });
-    const mockFetch = vi.fn()
+    const mockFetch = vi
+      .fn()
       .mockResolvedValueOnce(fakeResponse({ status: 301, location: 'http://internal/', url: 'https://goo.gl/x' }));
     vi.stubGlobal('fetch', mockFetch);
 
-    await expect(safeFetchFollow('https://goo.gl/x', undefined, { bypassInternalIpAllowed: true }))
-      .rejects.toThrow(SsrfBlockedError);
+    await expect(safeFetchFollow('https://goo.gl/x', undefined, { bypassInternalIpAllowed: true })).rejects.toThrow(
+      SsrfBlockedError,
+    );
     expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 
@@ -408,20 +419,28 @@ describe('safeFetchFollow (manual per-hop redirect SSRF)', () => {
     mockLookup.mockResolvedValue({ address: '8.8.8.8', family: 4 });
     // Always 302 to a new public host → loops until the hop cap.
     let n = 0;
-    const mockFetch = vi.fn().mockImplementation(() =>
-      Promise.resolve(fakeResponse({ status: 302, location: `https://h${++n}.example.com/`, url: `https://h${n}.example.com/` })),
-    );
+    const mockFetch = vi
+      .fn()
+      .mockImplementation(() =>
+        Promise.resolve(
+          fakeResponse({ status: 302, location: `https://h${++n}.example.com/`, url: `https://h${n}.example.com/` }),
+        ),
+      );
     vi.stubGlobal('fetch', mockFetch);
-    await expect(safeFetchFollow('https://start.example.com', undefined, { maxRedirects: 2 }))
-      .rejects.toThrow(SsrfBlockedError);
+    await expect(safeFetchFollow('https://start.example.com', undefined, { maxRedirects: 2 })).rejects.toThrow(
+      SsrfBlockedError,
+    );
     // initial + 2 allowed redirects = 3 fetches, then the 4th hop is rejected before fetch
     expect(mockFetch).toHaveBeenCalledTimes(3);
   });
 
   it('resolves relative redirect Location against the current URL', async () => {
     mockLookup.mockResolvedValue({ address: '8.8.8.8', family: 4 });
-    const mockFetch = vi.fn()
-      .mockResolvedValueOnce(fakeResponse({ status: 302, location: '/resolved/path', url: 'https://example.com/start' }))
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        fakeResponse({ status: 302, location: '/resolved/path', url: 'https://example.com/start' }),
+      )
       .mockResolvedValueOnce(fakeResponse({ status: 200, url: 'https://example.com/resolved/path' }));
     vi.stubGlobal('fetch', mockFetch);
     await safeFetchFollow('https://example.com/start');
@@ -561,13 +580,13 @@ describe('safeFetchLlm', () => {
     mockLookup
       .mockResolvedValueOnce({ address: '203.0.113.10', family: 4 }) // configured endpoint (public)
       .mockResolvedValue({ address: '169.254.169.254', family: 4 }); // redirect target → metadata
-    const mockFetch = vi.fn().mockResolvedValueOnce(
-      llmResponse({ status: 302, location: 'http://169.254.169.254/latest/meta-data/' }),
-    );
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValueOnce(llmResponse({ status: 302, location: 'http://169.254.169.254/latest/meta-data/' }));
     vi.stubGlobal('fetch', mockFetch);
-    await expect(
-      safeFetchLlm('https://api.provider.example/v1/chat/completions', { method: 'POST' }),
-    ).rejects.toThrow(SsrfBlockedError);
+    await expect(safeFetchLlm('https://api.provider.example/v1/chat/completions', { method: 'POST' })).rejects.toThrow(
+      SsrfBlockedError,
+    );
     // The metadata hop is refused BEFORE its fetch — only the initial hop ran.
     expect(mockFetch).toHaveBeenCalledTimes(1);
   });
@@ -622,9 +641,9 @@ describe('safeFetchLlm', () => {
       .fn()
       .mockResolvedValue(llmResponse({ status: 302, location: 'https://api.provider.example/next' }));
     vi.stubGlobal('fetch', mockFetch);
-    await expect(
-      safeFetchLlm('https://api.provider.example/v1/chat/completions', undefined, 2),
-    ).rejects.toThrow(/Too many redirects/i);
+    await expect(safeFetchLlm('https://api.provider.example/v1/chat/completions', undefined, 2)).rejects.toThrow(
+      /Too many redirects/i,
+    );
     // initial + 2 allowed hops = 3 fetches, then the 4th is refused before fetch.
     expect(mockFetch).toHaveBeenCalledTimes(3);
   });

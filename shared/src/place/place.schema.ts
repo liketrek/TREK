@@ -29,23 +29,26 @@ export const hexColorSchema = z.string().regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}
  * against — the escaping in the marker builders stops being the only thing
  * standing between the database and the DOM.
  */
-export const placeImageUrlSchema = z.string().max(2048).refine(
-  v =>
-    v.startsWith('/uploads/')
-    || v.startsWith('/api/maps/place-photo/')
-    || /^data:image\/(png|jpe?g|webp|gif|avif);base64,/i.test(v)
-    || /^https:\/\//i.test(v),
-  { message: 'must be an uploaded path, a photo-proxy path, an inline image or an https URL' },
-);
+export const placeImageUrlSchema = z
+  .string()
+  .max(2048)
+  .refine(
+    (v) =>
+      v.startsWith('/uploads/') ||
+      v.startsWith('/api/maps/place-photo/') ||
+      /^data:image\/(png|jpe?g|webp|gif|avif);base64,/i.test(v) ||
+      /^https:\/\//i.test(v),
+    { message: 'must be an uploaded path, a photo-proxy path, an inline image or an https URL' },
+  );
 
 /**
  * A place's homepage. It reaches window.open() on the client, where a
  * javascript: value would run in this origin rather than opening a page.
  */
-export const placeWebsiteSchema = z.string().max(500).refine(
-  v => /^https?:\/\//i.test(v),
-  { message: 'must be an http or https URL' },
-);
+export const placeWebsiteSchema = z
+  .string()
+  .max(500)
+  .refine((v) => /^https?:\/\//i.test(v), { message: 'must be an http or https URL' });
 
 /**
  * Embedded category as returned on a place — a trimmed projection of the

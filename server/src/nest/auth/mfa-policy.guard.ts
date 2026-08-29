@@ -1,11 +1,12 @@
-import { CanActivate, ExecutionContext, HttpException, Injectable, SetMetadata } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import type { Request } from 'express';
-import { DatabaseService } from '../database/database.service';
+import type { User } from '../../types';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
 import { DEMO_EMAILS } from '../common/demo';
+import { DatabaseService } from '../database/database.service';
 import { IS_PUBLIC } from './public.decorator';
-import type { User } from '../../types';
+import { CanActivate, ExecutionContext, HttpException, Injectable, SetMetadata } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+
+import type { Request } from 'express';
 
 /** Metadata key `@MfaExempt()` writes. */
 export const MFA_EXEMPT = 'trek:mfa-exempt';
@@ -60,17 +61,12 @@ export class MfaPolicyGuard implements CanActivate {
     // No session: whoever answers next decides, exactly as before.
     if (!user) return true;
 
-    const requireRow = this.db.get<{ value: string }>(
-      "SELECT value FROM app_settings WHERE key = 'require_mfa'",
-    );
+    const requireRow = this.db.get<{ value: string }>("SELECT value FROM app_settings WHERE key = 'require_mfa'");
     if (requireRow?.value !== 'true') return true;
 
     if (this.env.isDemoMode() && user.email && DEMO_EMAILS.has(user.email)) return true;
 
-    const row = this.db.get<{ mfa_enabled: number | boolean }>(
-      'SELECT mfa_enabled FROM users WHERE id = ?',
-      user.id,
-    );
+    const row = this.db.get<{ mfa_enabled: number | boolean }>('SELECT mfa_enabled FROM users WHERE id = ?', user.id);
     if (!row) return true;
 
     // A user-verified passkey is phishing-resistant and inherently two-factor, so

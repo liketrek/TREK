@@ -37,7 +37,8 @@ const cache = new Map<string, { rates: Record<string, number>; ts: number }>();
 const inflight = new Map<string, Promise<Record<string, number> | null>>();
 
 const isRateEntry = (v: unknown): v is { quote: string; rate: number } =>
-  typeof v === 'object' && v !== null &&
+  typeof v === 'object' &&
+  v !== null &&
   typeof (v as { quote?: unknown }).quote === 'string' &&
   typeof (v as { rate?: unknown }).rate === 'number';
 
@@ -77,7 +78,7 @@ export class ExchangeRatesService {
     let p = inflight.get(key);
     if (!p) {
       p = fetchRates(key)
-        .then(rates => {
+        .then((rates) => {
           if (rates) cache.set(key, { rates, ts: Date.now() });
           return rates;
         })

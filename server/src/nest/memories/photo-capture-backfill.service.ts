@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common';
-import exifr from 'exifr';
-import { PhotoResolverService } from './photo-resolver.service';
-import { StorageService } from '../storage/storage.service';
 import { TrekPhotosRepository } from '../photos/trek-photos.repository';
+import { StorageService } from '../storage/storage.service';
+import { PhotoResolverService } from './photo-resolver.service';
+import { Injectable } from '@nestjs/common';
+
+import exifr from 'exifr';
 
 /**
  * Ask the provider when and where a photo was taken, and record it (#1614).
@@ -84,10 +85,13 @@ export class PhotoCaptureBackfillService {
     type Exif = { DateTimeOriginal?: Date; CreateDate?: Date; latitude?: number; longitude?: number };
     let parsed: Exif | null;
     try {
-      parsed = await this.storage.withLocalFile('journey', name, async abs =>
-        (await exifr.parse(abs, {
-          pick: ['DateTimeOriginal', 'CreateDate', 'latitude', 'longitude'],
-        })) as Exif | null,
+      parsed = await this.storage.withLocalFile(
+        'journey',
+        name,
+        async (abs) =>
+          (await exifr.parse(abs, {
+            pick: ['DateTimeOriginal', 'CreateDate', 'latitude', 'longitude'],
+          })) as Exif | null,
       );
     } catch {
       // A vanished object, an invalid key, not an image, a truncated upload,

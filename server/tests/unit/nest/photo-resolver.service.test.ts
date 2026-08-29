@@ -8,6 +8,19 @@
  * decides a poster-less video must 404 rather than stream the whole file as a
  * "thumbnail" had no case at all.
  */
+import { runMigrations } from '../../../src/db/migrations';
+import { createTables } from '../../../src/db/schema';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import type { ImmichService } from '../../../src/nest/memories/immich.service';
+import { PhotoProviderRegistry } from '../../../src/nest/memories/photo-provider.registry';
+import { PhotoResolverService } from '../../../src/nest/memories/photo-resolver.service';
+import { ImmichPhotoProvider } from '../../../src/nest/memories/providers/immich.provider';
+import { SynologyPhotoProvider } from '../../../src/nest/memories/providers/synology.provider';
+import type { SynologyService } from '../../../src/nest/memories/synology.service';
+import type { ThumbnailService } from '../../../src/nest/memories/thumbnail.service';
+import type { TrekPhotoCacheService } from '../../../src/nest/memories/trek-photo-cache.service';
+import { TrekPhotosRepository } from '../../../src/nest/photos/trek-photos.repository';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 const { testDb, dbMock } = vi.hoisted(() => {
@@ -16,7 +29,14 @@ const { testDb, dbMock } = vi.hoisted(() => {
   db.exec('PRAGMA journal_mode = WAL');
   return {
     testDb: db,
-    dbMock: { db, closeDb: () => {}, reinitialize: () => {}, canAccessTrip: () => null, isOwner: () => false, getPlaceWithTags: () => null },
+    dbMock: {
+      db,
+      closeDb: () => {},
+      reinitialize: () => {},
+      canAccessTrip: () => null,
+      isOwner: () => false,
+      getPlaceWithTags: () => null,
+    },
   };
 });
 vi.mock('../../../src/db/database', () => dbMock);
@@ -30,19 +50,6 @@ vi.mock('../../../src/nest/common/crypto/apiKeyCrypto', () => ({
   encrypt_api_key: (v: string) => v,
   maybe_encrypt_api_key: (v: string) => v,
 }));
-
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { TrekPhotosRepository } from '../../../src/nest/photos/trek-photos.repository';
-import { PhotoResolverService } from '../../../src/nest/memories/photo-resolver.service';
-import type { ImmichService } from '../../../src/nest/memories/immich.service';
-import type { SynologyService } from '../../../src/nest/memories/synology.service';
-import type { ThumbnailService } from '../../../src/nest/memories/thumbnail.service';
-import type { TrekPhotoCacheService } from '../../../src/nest/memories/trek-photo-cache.service';
-import { PhotoProviderRegistry } from '../../../src/nest/memories/photo-provider.registry';
-import { ImmichPhotoProvider } from '../../../src/nest/memories/providers/immich.provider';
-import { SynologyPhotoProvider } from '../../../src/nest/memories/providers/synology.provider';
 
 const immich = {
   streamImmichAsset: vi.fn(),
@@ -93,9 +100,9 @@ function makeRes() {
 /** Insert a trek_photos row directly so each case controls the exact shape. */
 function insertPhoto(cols: Record<string, unknown>): number {
   const keys = Object.keys(cols);
-  const res = testDb.prepare(
-    `INSERT INTO trek_photos (${keys.join(', ')}) VALUES (${keys.map(() => '?').join(', ')})`
-  ).run(...keys.map(k => cols[k] as never));
+  const res = testDb
+    .prepare(`INSERT INTO trek_photos (${keys.join(', ')}) VALUES (${keys.map(() => '?').join(', ')})`)
+    .run(...keys.map((k) => cols[k] as never));
   return Number(res.lastInsertRowid);
 }
 
@@ -109,7 +116,8 @@ beforeEach(() => {
   // owner_id carries a FK to users; the cases pick fixed ids, so seed them.
   testDb.prepare('DELETE FROM trek_photos').run();
   for (const id of [2, 3, 4, 5, 9]) {
-    testDb.prepare("INSERT OR IGNORE INTO users (id, username, email, password_hash) VALUES (?, ?, ?, 'x')")
+    testDb
+      .prepare("INSERT OR IGNORE INTO users (id, username, email, password_hash) VALUES (?, ?, ?, 'x')")
       .run(id, `u${id}`, `u${id}@example.test`);
   }
   cache.serveFresh.mockReturnValue(false);
@@ -165,12 +173,20 @@ describe('streamPhoto — dispatch', () => {
 
   it('RESOLVE-005: a generated thumbnail is recorded on the row', async () => {
     const id = insertPhoto({ provider: 'local', file_path: 'nope/photo.jpg' });
-    thumbnails.ensureLocalThumbnail.mockResolvedValue({ thumbnailRelPath: 'journey/thumbs/abc.jpg', width: 800, height: 600 });
+    thumbnails.ensureLocalThumbnail.mockResolvedValue({
+      thumbnailRelPath: 'journey/thumbs/abc.jpg',
+      width: 800,
+      height: 600,
+    });
     const res = makeRes();
 
     await svc.streamPhoto(res as never, 1, id, 'thumbnail');
 
-    const row = testDb.prepare('SELECT thumbnail_path, width, height FROM trek_photos WHERE id = ?').get(id) as { thumbnail_path: string; width: number; height: number };
+    const row = testDb.prepare('SELECT thumbnail_path, width, height FROM trek_photos WHERE id = ?').get(id) as {
+      thumbnail_path: string;
+      width: number;
+      height: number;
+    };
     expect(row).toEqual({ thumbnail_path: 'journey/thumbs/abc.jpg', width: 800, height: 600 });
   });
 
@@ -210,7 +226,12 @@ describe('streamPhoto — dispatch', () => {
   });
 
   it('RESOLVE-017: a video whose recorded poster is gone 404s instead of falling through (#823)', async () => {
-    const id = insertPhoto({ provider: 'local', file_path: 'journey/clip.mp4', thumbnail_path: 'journey/thumbs/t.jpg', media_type: 'video' });
+    const id = insertPhoto({
+      provider: 'local',
+      file_path: 'journey/clip.mp4',
+      thumbnail_path: 'journey/thumbs/t.jpg',
+      media_type: 'video',
+    });
     storage.exists.mockResolvedValue(false);
     const res = makeRes();
 
@@ -250,7 +271,14 @@ describe('streamPhoto — dispatch', () => {
 
     await svc.streamPhoto(res as never, 3, id, 'original', 'bytes=0-99');
 
-    expect(immich.streamImmichAsset).toHaveBeenCalledWith(res, 3, 'a1', 'original', 5, expect.objectContaining({ range: 'bytes=0-99' }));
+    expect(immich.streamImmichAsset).toHaveBeenCalledWith(
+      res,
+      3,
+      'a1',
+      'original',
+      5,
+      expect.objectContaining({ range: 'bytes=0-99' }),
+    );
   });
 
   it('RESOLVE-007: an immich thumbnail served from cache never reaches the provider', async () => {

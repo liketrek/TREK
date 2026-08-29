@@ -4,17 +4,13 @@
  * Provides utilities to generate JWTs and authenticate supertest requests
  * using the fixed test JWT_SECRET from TEST_CONFIG.
  */
+import { TEST_CONFIG } from './test-db';
 
 import jwt from 'jsonwebtoken';
-import { TEST_CONFIG } from './test-db';
 
 /** Signs a JWT for the given user ID using the test secret. */
 export function generateToken(userId: number, extraClaims: Record<string, unknown> = {}): string {
-  return jwt.sign(
-    { id: userId, ...extraClaims },
-    TEST_CONFIG.JWT_SECRET,
-    { algorithm: 'HS256', expiresIn: '1h' }
-  );
+  return jwt.sign({ id: userId, ...extraClaims }, TEST_CONFIG.JWT_SECRET, { algorithm: 'HS256', expiresIn: '1h' });
 }
 
 /**

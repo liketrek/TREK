@@ -1,9 +1,10 @@
-import { Controller, Get, Headers, HttpException, Param, Res, UseGuards } from '@nestjs/common';
-import type { Response } from 'express';
 import type { User } from '../../types';
-import { PhotosService } from './photos.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { PhotosService } from './photos.service';
+import { Controller, Get, Headers, HttpException, Param, Res, UseGuards } from '@nestjs/common';
+
+import type { Response } from 'express';
 
 /**
  * /api/photos/:id/{thumbnail,original,info} — global (not trip-scoped) photo
@@ -37,7 +38,12 @@ export class PhotosController {
   }
 
   @Get(':id/original')
-  async original(@CurrentUser() user: User, @Param('id') id: string, @Res() res: Response, @Headers('range') range?: string): Promise<void> {
+  async original(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Res() res: Response,
+    @Headers('range') range?: string,
+  ): Promise<void> {
     const photoId = this.requireAccess(user, id);
     await this.photos.stream(res, user.id, photoId, 'original', range);
   }

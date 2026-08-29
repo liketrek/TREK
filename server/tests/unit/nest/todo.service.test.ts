@@ -5,6 +5,15 @@
  * registrar migrated). Uses a real in-memory SQLite DB so SQL logic is
  * exercised faithfully.
  */
+import { runMigrations } from '../../../src/db/migrations';
+import { createTables } from '../../../src/db/schema';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { TodoService } from '../../../src/nest/todo/todo.service';
+import { createUser, createTrip, addTripMember } from '../../helpers/factories';
+import { resetTestDb } from '../../helpers/test-db';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // ── DB setup ──────────────────────────────────────────────────────────────────
@@ -21,11 +30,15 @@ const { testDb, dbMock } = vi.hoisted(() => {
     reinitialize: () => {},
     getPlaceWithTags: () => null,
     canAccessTrip: (tripId: any, userId: number) =>
-      db.prepare(`
+      db
+        .prepare(
+          `
         SELECT t.id, t.user_id FROM trips t
         LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ?
         WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)
-      `).get(userId, tripId, userId),
+      `,
+        )
+        .get(userId, tripId, userId),
     isOwner: (tripId: any, userId: number) =>
       !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
   };
@@ -40,16 +53,11 @@ vi.mock('../../../src/config', () => ({
 }));
 vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn() }));
 
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, addTripMember } from '../../helpers/factories';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { TodoService } from '../../../src/nest/todo/todo.service';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-
-const svc = new TodoService(new DatabaseService(testDb), new PermissionsService(new DatabaseService(testDb)), new RealtimeService());
+const svc = new TodoService(
+  new DatabaseService(testDb),
+  new PermissionsService(new DatabaseService(testDb)),
+  new RealtimeService(),
+);
 
 beforeAll(() => {
   createTables(testDb);
@@ -214,7 +222,9 @@ describe('reorderItems', () => {
 
     svc.reorderItems(trip.id, [c.id, a.id, b.id]);
 
-    const rows = testDb.prepare('SELECT id, sort_order FROM todo_items WHERE trip_id = ? ORDER BY sort_order').all(trip.id) as any[];
+    const rows = testDb
+      .prepare('SELECT id, sort_order FROM todo_items WHERE trip_id = ? ORDER BY sort_order')
+      .all(trip.id) as any[];
     expect(rows[0].id).toBe(c.id);
     expect(rows[1].id).toBe(a.id);
     expect(rows[2].id).toBe(b.id);
@@ -281,11 +291,15 @@ describe('getCategoryAssignees / updateCategoryAssignees', () => {
     const trip = createTrip(testDb, owner.id);
     addTripMember(testDb, trip.id, member.id);
 
-    const rows = svc.updateCategoryAssignees(trip.id, 'Packing', [owner.id, stranger.id, member.id]) as { user_id: number }[];
+    const rows = svc.updateCategoryAssignees(trip.id, 'Packing', [owner.id, stranger.id, member.id]) as {
+      user_id: number;
+    }[];
 
-    expect(rows.map(r => r.user_id).sort()).toEqual([owner.id, member.id].sort());
+    expect(rows.map((r) => r.user_id).sort()).toEqual([owner.id, member.id].sort());
     expect(JSON.stringify(rows)).not.toContain(stranger.username);
-    expect(testDb.prepare('SELECT COUNT(*) AS n FROM todo_category_assignees WHERE user_id = ?').get(stranger.id)).toEqual({ n: 0 });
+    expect(
+      testDb.prepare('SELECT COUNT(*) AS n FROM todo_category_assignees WHERE user_id = ?').get(stranger.id),
+    ).toEqual({ n: 0 });
   });
 
   it('TODO-SVC-017b: keeps a guest, who is a trip member like any other', () => {
@@ -296,7 +310,7 @@ describe('getCategoryAssignees / updateCategoryAssignees', () => {
     addTripMember(testDb, trip.id, guest.id);
 
     const rows = svc.updateCategoryAssignees(trip.id, 'Packing', [guest.id]) as { user_id: number }[];
-    expect(rows.map(r => r.user_id)).toEqual([guest.id]);
+    expect(rows.map((r) => r.user_id)).toEqual([guest.id]);
   });
 
   it('TODO-SVC-020: updateCategoryAssignees replaces existing assignees (not append)', () => {

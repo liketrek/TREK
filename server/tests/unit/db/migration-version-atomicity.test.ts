@@ -5,10 +5,11 @@
  * schema advanced and the version stale, and the next boot replays a step that
  * is not idempotent (an INSERT INTO app_settings, say) and exits 1 forever.
  */
-import { describe, it, expect, vi } from 'vitest';
-import Database from 'better-sqlite3';
-import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
+import { createTables } from '../../../src/db/schema';
+
+import Database from 'better-sqlite3';
+import { describe, it, expect, vi } from 'vitest';
 
 function migratedDb(): Database.Database {
   const db = new Database(':memory:');

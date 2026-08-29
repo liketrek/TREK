@@ -5,9 +5,11 @@
  * DEMO_ADMIN_PASS is unset that account gets the password published in
  * demo-seed itself, so the seeder has to say so out loud.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import type Database from 'better-sqlite3';
+import { seedDemoData } from '../../../src/demo/demo-seed';
 import { createTestDb } from '../../helpers/test-db';
+
+import type Database from 'better-sqlite3';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Baseline handling is demo-reset's job and touches the file system.
 vi.mock('../../../src/demo/demo-reset', () => ({
@@ -15,8 +17,6 @@ vi.mock('../../../src/demo/demo-reset', () => ({
   hasBaseline: vi.fn(() => true),
   resetDemoUser: vi.fn(),
 }));
-
-import { seedDemoData } from '../../../src/demo/demo-seed';
 
 describe('demo seeding', () => {
   let db: Database.Database;

@@ -2,10 +2,17 @@
  * Budget Planner integration tests.
  * Covers BUDGET-001 to BUDGET-010.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-import request from 'supertest';
-import type { Application } from 'express';
+import { buildApp } from '../../src/bootstrap';
+import { runMigrations } from '../../src/db/migrations';
+import { createTables } from '../../src/db/schema';
+import { authCookie } from '../helpers/auth';
+import { createUser, createTrip, createBudgetItem, addTripMember, createReservation } from '../helpers/factories';
+import { resetTestDb, resetRateLimits } from '../helpers/test-db';
 import type { INestApplication } from '@nestjs/common';
+
+import type { Application } from 'express';
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 const { testDb, dbMock } = vi.hoisted(() => {
   const Database = require('better-sqlite3');
@@ -18,13 +25,29 @@ const { testDb, dbMock } = vi.hoisted(() => {
     closeDb: () => {},
     reinitialize: () => {},
     getPlaceWithTags: (placeId: number) => {
-      const place: any = db.prepare(`SELECT p.*, c.name as category_name, c.color as category_color, c.icon as category_icon FROM places p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id = ?`).get(placeId);
+      const place: any = db
+        .prepare(
+          `SELECT p.*, c.name as category_name, c.color as category_color, c.icon as category_icon FROM places p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id = ?`,
+        )
+        .get(placeId);
       if (!place) return null;
-      const tags = db.prepare(`SELECT t.* FROM tags t JOIN place_tags pt ON t.id = pt.tag_id WHERE pt.place_id = ?`).all(placeId);
-      return { ...place, category: place.category_id ? { id: place.category_id, name: place.category_name, color: place.category_color, icon: place.category_icon } : null, tags };
+      const tags = db
+        .prepare(`SELECT t.* FROM tags t JOIN place_tags pt ON t.id = pt.tag_id WHERE pt.place_id = ?`)
+        .all(placeId);
+      return {
+        ...place,
+        category: place.category_id
+          ? { id: place.category_id, name: place.category_name, color: place.category_color, icon: place.category_icon }
+          : null,
+        tags,
+      };
     },
     canAccessTrip: (tripId: any, userId: number) =>
-      db.prepare(`SELECT t.id, t.user_id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)`).get(userId, tripId, userId),
+      db
+        .prepare(
+          `SELECT t.id, t.user_id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)`,
+        )
+        .get(userId, tripId, userId),
     isOwner: (tripId: any, userId: number) =>
       !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
   };
@@ -42,13 +65,6 @@ vi.mock('../../src/config', () => ({
   DEFAULT_LANGUAGE: 'en',
 }));
 vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
-
-import { buildApp } from '../../src/bootstrap';
-import { createTables } from '../../src/db/schema';
-import { runMigrations } from '../../src/db/migrations';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
-import { createUser, createTrip, createBudgetItem, addTripMember, createReservation } from '../helpers/factories';
-import { authCookie } from '../helpers/auth';
 
 let nestApp: INestApplication;
 let app: Application;
@@ -69,7 +85,12 @@ beforeEach(() => {
   // the internet: slow, offline-dependent, and it makes the run take minutes
   // longer on a machine that cannot reach it. Fail closed — every assertion here
   // is single-currency, so rates never enter the arithmetic.
-  vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('offline'); }));
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => {
+      throw new Error('offline');
+    }),
+  );
 });
 
 afterAll(async () => {
@@ -131,9 +152,7 @@ describe('List budget items', () => {
     createBudgetItem(testDb, trip.id, { name: 'Flight', total_price: 300 });
     createBudgetItem(testDb, trip.id, { name: 'Hotel', total_price: 500 });
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/budget`)
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/budget`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(res.body.items).toHaveLength(2);
   });
@@ -145,9 +164,7 @@ describe('List budget items', () => {
     addTripMember(testDb, trip.id, member.id);
     createBudgetItem(testDb, trip.id, { name: 'Rental', total_price: 200 });
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/budget`)
-      .set('Cookie', authCookie(member.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/budget`).set('Cookie', authCookie(member.id));
     expect(res.status).toBe(200);
     expect(res.body.items).toHaveLength(1);
   });
@@ -194,15 +211,11 @@ describe('Delete budget item', () => {
     const trip = createTrip(testDb, user.id);
     const item = createBudgetItem(testDb, trip.id);
 
-    const del = await request(app)
-      .delete(`/api/trips/${trip.id}/budget/${item.id}`)
-      .set('Cookie', authCookie(user.id));
+    const del = await request(app).delete(`/api/trips/${trip.id}/budget/${item.id}`).set('Cookie', authCookie(user.id));
     expect(del.status).toBe(200);
     expect(del.body.success).toBe(true);
 
-    const list = await request(app)
-      .get(`/api/trips/${trip.id}/budget`)
-      .set('Cookie', authCookie(user.id));
+    const list = await request(app).get(`/api/trips/${trip.id}/budget`).set('Cookie', authCookie(user.id));
     expect(list.body.items).toHaveLength(0);
   });
 
@@ -211,14 +224,12 @@ describe('Delete budget item', () => {
     const trip = createTrip(testDb, user.id);
     const reservation = createReservation(testDb, trip.id, { title: 'Hotel Booking', type: 'hotel' });
 
-    const result = testDb.prepare(
-      'INSERT INTO budget_items (trip_id, name, category, total_price, reservation_id) VALUES (?, ?, ?, ?, ?)'
-    ).run(trip.id, 'Hotel Cost', 'Accommodation', 250, reservation.id);
+    const result = testDb
+      .prepare('INSERT INTO budget_items (trip_id, name, category, total_price, reservation_id) VALUES (?, ?, ?, ?, ?)')
+      .run(trip.id, 'Hotel Cost', 'Accommodation', 250, reservation.id);
     const itemId = result.lastInsertRowid as number;
 
-    const del = await request(app)
-      .delete(`/api/trips/${trip.id}/budget/${itemId}`)
-      .set('Cookie', authCookie(user.id));
+    const del = await request(app).delete(`/api/trips/${trip.id}/budget/${itemId}`).set('Cookie', authCookie(user.id));
     expect(del.status).toBe(200);
 
     const reservationAfter = testDb.prepare('SELECT id FROM reservations WHERE id = ?').get(reservation.id);
@@ -246,9 +257,7 @@ describe('Budget item members', () => {
     expect(res.body.members).toBeDefined();
 
     // After assigning members, list items should include them (covers loadBudgetItems member loop)
-    const listRes = await request(app)
-      .get(`/api/trips/${trip.id}/budget`)
-      .set('Cookie', authCookie(user.id));
+    const listRes = await request(app).get(`/api/trips/${trip.id}/budget`).set('Cookie', authCookie(user.id));
     expect(listRes.status).toBe(200);
     const foundItem = (listRes.body.items as any[]).find((i: any) => i.id === item.id);
     expect(foundItem).toBeDefined();
@@ -365,9 +374,7 @@ describe('Budget summary and settlement', () => {
       .set('Cookie', authCookie(user.id))
       .send({ payers: [{ user_id: user.id, amount: 60 }] });
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/budget/settlement`)
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/budget/settlement`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body.balances)).toBe(true);
     expect(Array.isArray(res.body.flows)).toBe(true);
@@ -388,9 +395,7 @@ describe('Budget summary and settlement', () => {
     const trip = createTrip(testDb, user.id);
     createBudgetItem(testDb, trip.id, { name: 'Train', total_price: 40 });
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/budget/settlement`)
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/budget/settlement`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(res.body.balances).toEqual([]);
     expect(res.body.flows).toEqual([]);
@@ -496,9 +501,9 @@ describe('Reservation price sync on budget item update', () => {
     const reservation = createReservation(testDb, trip.id, { title: 'Hotel Booking', type: 'hotel' });
 
     // Create a budget item linked to the reservation
-    const result = testDb.prepare(
-      'INSERT INTO budget_items (trip_id, name, category, total_price, reservation_id) VALUES (?, ?, ?, ?, ?)'
-    ).run(trip.id, 'Hotel Cost', 'Accommodation', 200, reservation.id);
+    const result = testDb
+      .prepare('INSERT INTO budget_items (trip_id, name, category, total_price, reservation_id) VALUES (?, ?, ?, ?, ?)')
+      .run(trip.id, 'Hotel Cost', 'Accommodation', 200, reservation.id);
     const itemId = result.lastInsertRowid as number;
 
     const res = await request(app)
@@ -509,7 +514,9 @@ describe('Reservation price sync on budget item update', () => {
     expect(res.body.item.total_price).toBe(350);
 
     // Verify reservation metadata was synced
-    const updatedReservation = testDb.prepare('SELECT metadata FROM reservations WHERE id = ?').get(reservation.id) as { metadata: string | null } | undefined;
+    const updatedReservation = testDb.prepare('SELECT metadata FROM reservations WHERE id = ?').get(reservation.id) as
+      | { metadata: string | null }
+      | undefined;
     expect(updatedReservation).toBeDefined();
     const meta = JSON.parse(updatedReservation!.metadata || '{}');
     expect(meta.price).toBe('350');

@@ -1,7 +1,8 @@
+import { readEnv } from './app-config';
+
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { readEnv } from './app-config';
 
 const dataDir = path.resolve(__dirname, '../data');
 const jwtSecretFile = path.join(dataDir, '.jwt_secret');
@@ -51,7 +52,9 @@ if (_encryptionKey) {
       if (code === 'EISDIR') {
         // Compose creating a missing bind-mount source as a directory is by far
         // the most common way this file stops being a file.
-        console.error('EISDIR: the path is a directory. A bind mount pointed at data/.encryption_key created it as one — remove it and mount the data directory instead.');
+        console.error(
+          'EISDIR: the path is a directory. A bind mount pointed at data/.encryption_key created it as one — remove it and mount the data directory instead.',
+        );
       }
       console.error('Fix the file permissions or set ENCRYPTION_KEY explicitly.');
       process.exit(1);

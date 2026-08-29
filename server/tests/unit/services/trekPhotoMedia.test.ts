@@ -2,6 +2,13 @@
  * trek_photos media_type persistence (#823): a local or provider photo row can
  * be registered as a video and the discriminator round-trips.
  */
+import { db as trekDb } from '../../../src/db/database';
+import { runMigrations } from '../../../src/db/migrations';
+import { createTables } from '../../../src/db/schema';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { TrekPhotosRepository } from '../../../src/nest/photos/trek-photos.repository';
+import { createUser } from '../../helpers/factories';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 const { testDb, dbMock } = vi.hoisted(() => {
@@ -9,7 +16,14 @@ const { testDb, dbMock } = vi.hoisted(() => {
   const db = new Database(':memory:');
   // FKs off: this suite only checks media_type persistence, not owner/user integrity.
   db.exec('PRAGMA foreign_keys = OFF');
-  const mock = { db, closeDb: () => {}, reinitialize: () => {}, getPlaceWithTags: () => null, canAccessTrip: () => null, isOwner: () => false };
+  const mock = {
+    db,
+    closeDb: () => {},
+    reinitialize: () => {},
+    getPlaceWithTags: () => null,
+    canAccessTrip: () => null,
+    isOwner: () => false,
+  };
   return { testDb: db, dbMock: mock };
 });
 
@@ -20,18 +34,12 @@ vi.mock('../../../src/config', () => ({
   updateJwtSecret: () => {},
 }));
 
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { createUser } from '../../helpers/factories';
-import { TrekPhotosRepository } from '../../../src/nest/photos/trek-photos.repository';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { db as trekDb } from '../../../src/db/database';
-
 // Was photos.bridge, deleted with the other three that had no consumer outside
 // the container. These call the repository directly now.
 const trekPhotos = new TrekPhotosRepository(new DatabaseService(trekDb));
 const getOrCreateTrekPhoto = (...a: Parameters<TrekPhotosRepository['getOrCreate']>) => trekPhotos.getOrCreate(...a);
-const getOrCreateLocalTrekPhoto = (...a: Parameters<TrekPhotosRepository['getOrCreateLocal']>) => trekPhotos.getOrCreateLocal(...a);
+const getOrCreateLocalTrekPhoto = (...a: Parameters<TrekPhotosRepository['getOrCreateLocal']>) =>
+  trekPhotos.getOrCreateLocal(...a);
 const resolveTrekPhoto = (id: number) => trekPhotos.resolve(id);
 
 beforeAll(() => {
@@ -49,7 +57,7 @@ afterAll(() => {
 
 describe('trek_photos media_type', () => {
   it('migration added media_type (default image) and duration_ms', () => {
-    const cols = (testDb.prepare("PRAGMA table_info('trek_photos')").all() as { name: string }[]).map(c => c.name);
+    const cols = (testDb.prepare("PRAGMA table_info('trek_photos')").all() as { name: string }[]).map((c) => c.name);
     expect(cols).toContain('media_type');
     expect(cols).toContain('duration_ms');
   });

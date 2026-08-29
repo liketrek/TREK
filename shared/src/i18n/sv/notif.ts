@@ -29,7 +29,8 @@ const notif: TranslationStrings = {
   'notif.version_available.text': 'TREK {version} finns nu tillgängligt',
   'notif.replica_failure.title': 'Fel i lagringsreplik',
   'notif.replica_failure.text': "Skrivning till replik '{backend}' misslyckades: {op} för {key} — {error}",
-  'notif.replica_failure.textSuppressed': "Skrivning till replik '{backend}' misslyckades: {op} för {key} — {error}. {suppressed} ytterligare fel har undertryckts sedan senaste aviseringen.",
+  'notif.replica_failure.textSuppressed':
+    "Skrivning till replik '{backend}' misslyckades: {op} för {key} — {error}. {suppressed} ytterligare fel har undertryckts sedan senaste aviseringen.",
   'notif.action.view_trip': 'Visa resan',
   'notif.action.view_collab': 'Visa meddelanden',
   'notif.action.view_packing': 'Visa förpackning',

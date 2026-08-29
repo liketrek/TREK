@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
 import { buildSystemPrompt, KI_RESERVATION_JSON_SCHEMA } from '../../../../src/nest/llm-parse/llm-prompt';
 import { KI_RESERVATION_TYPES } from '@trek/shared';
+
+import { describe, it, expect } from 'vitest';
 
 describe('llm-prompt', () => {
   it('names every recognized @type the mapper supports', () => {

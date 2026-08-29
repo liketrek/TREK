@@ -7,28 +7,34 @@
  * permissions of their own on top of trip_edit, and adding a member GRANTS TRIP
  * ACCESS, which is why it sits behind its own permission rather than any other write.
  */
-import { describe, it, expect, vi } from 'vitest';
-import { expectRegisteredProvider } from '../../helpers/module-providers';
+import type { AccommodationsService } from '../../../src/nest/accommodations/accommodations.service';
+import type { AddonsService } from '../../../src/nest/addons/addons.service';
+import type { DatabaseService } from '../../../src/nest/database/database.service';
+import type { DaysService } from '../../../src/nest/days/days.service';
+import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { PluginGuards } from '../../../src/nest/plugins/host/plugin-guards.service';
 import { PluginRpcHost } from '../../../src/nest/plugins/host/rpc-host';
 import { createTestPluginRegistry } from '../../../src/nest/plugins/host/rpc-kit/testing';
-import { PluginGuards } from '../../../src/nest/plugins/host/plugin-guards.service';
-import { TripsRpc } from '../../../src/nest/trips/trips.rpc';
-import { TripsModule } from '../../../src/nest/trips/trips.module';
-import { NotFoundError, ValidationError } from '../../../src/nest/trips/trips.service';
-import type { TripsService } from '../../../src/nest/trips/trips.service';
+import type { RpcRequest, RpcError } from '../../../src/nest/plugins/protocol/envelope';
+import type { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import type { ReservationsService } from '../../../src/nest/reservations/reservations.service';
-import type { DaysService } from '../../../src/nest/days/days.service';
-import type { AccommodationsService } from '../../../src/nest/accommodations/accommodations.service';
 import type { TripMembersService } from '../../../src/nest/trip-members/trip-members.service';
 import type { TripMembershipService } from '../../../src/nest/trip-membership/trip-membership.service';
-import type { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import type { DatabaseService } from '../../../src/nest/database/database.service';
-import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import type { AddonsService } from '../../../src/nest/addons/addons.service';
-import type { RpcRequest, RpcError } from '../../../src/nest/plugins/protocol/envelope';
+import { TripsModule } from '../../../src/nest/trips/trips.module';
+import { TripsRpc } from '../../../src/nest/trips/trips.rpc';
+import { NotFoundError, ValidationError } from '../../../src/nest/trips/trips.service';
+import type { TripsService } from '../../../src/nest/trips/trips.service';
+import { expectRegisteredProvider } from '../../helpers/module-providers';
 import { makeDeps } from '../../helpers/rpc-host-deps';
 
-const req = (method: string, params: Record<string, unknown> = {}): RpcRequest => ({ k: 'req', id: 'x', method, params });
+import { describe, it, expect, vi } from 'vitest';
+
+const req = (method: string, params: Record<string, unknown> = {}): RpcRequest => ({
+  k: 'req',
+  id: 'x',
+  method,
+  params,
+});
 
 const ALL_TRIP_GRANTS = ['db:read:trips', 'db:write:trips', 'db:create:trips', 'db:write:members'];
 
@@ -43,7 +49,8 @@ export function build(opts: { allow?: (action: string) => boolean; updateThrows?
     create: vi.fn((userId: number) => ({ trip: { id: 99, user_id: userId } })),
     removeMember: vi.fn(),
   } as unknown as TripsService & Record<string, ReturnType<typeof vi.fn>>;
-  const reservations = { list: vi.fn(() => [{ id: 5 }]) } as unknown as ReservationsService & Record<string, ReturnType<typeof vi.fn>>;
+  const reservations = { list: vi.fn(() => [{ id: 5 }]) } as unknown as ReservationsService &
+    Record<string, ReturnType<typeof vi.fn>>;
   const days = {
     list: vi.fn(() => ({ days: [{ id: 3 }] })),
   } as unknown as DaysService & Record<string, ReturnType<typeof vi.fn>>;
@@ -55,9 +62,12 @@ export function build(opts: { allow?: (action: string) => boolean; updateThrows?
   const roster = {
     removeMember: vi.fn(),
   } as unknown as TripMembersService & Record<string, ReturnType<typeof vi.fn>>;
-  const membership = { joinTripAsMember: vi.fn(() => ({ joined: true })) } as unknown as TripMembershipService & Record<string, ReturnType<typeof vi.fn>>;
+  const membership = { joinTripAsMember: vi.fn(() => ({ joined: true })) } as unknown as TripMembershipService &
+    Record<string, ReturnType<typeof vi.fn>>;
   const db = {
-    canAccessTrip: vi.fn((tripId: number, userId: number) => (tripId === 1 && userId === 42 ? { id: 1, user_id: 42 } : undefined)),
+    canAccessTrip: vi.fn((tripId: number, userId: number) =>
+      tripId === 1 && userId === 42 ? { id: 1, user_id: 42 } : undefined,
+    ),
     prepare: vi.fn((sql: string) => ({
       get: (arg: number) => {
         if (sql.includes('FROM users WHERE')) return arg === 404 ? undefined : { id: arg, role: 'user' };
@@ -67,12 +77,19 @@ export function build(opts: { allow?: (action: string) => boolean; updateThrows?
       all: () => [{ id: 7, name: 'Place' }],
     })),
   } as unknown as DatabaseService;
-  const permissions = { checkPermission: vi.fn((a: string) => (opts.allow ? opts.allow(a) : true)) } as unknown as PermissionsService;
+  const permissions = {
+    checkPermission: vi.fn((a: string) => (opts.allow ? opts.allow(a) : true)),
+  } as unknown as PermissionsService;
   const realtime = { broadcast: vi.fn() } as unknown as RealtimeService & { broadcast: ReturnType<typeof vi.fn> };
   const guards = new PluginGuards(db, permissions, { isAddonEnabled: vi.fn(() => true) } as unknown as AddonsService);
   const rpc = new TripsRpc(trips, reservations, days, membership, db, realtime, guards, accommodations, roster);
   const host = (...grants: string[]) =>
-    new PluginRpcHost('p', new Set(grants.length ? grants : ALL_TRIP_GRANTS), makeDeps(), createTestPluginRegistry([rpc]));
+    new PluginRpcHost(
+      'p',
+      new Set(grants.length ? grants : ALL_TRIP_GRANTS),
+      makeDeps(),
+      createTestPluginRegistry([rpc]),
+    );
   return { trips, reservations, days, accommodations, roster, membership, realtime, permissions, host };
 }
 
@@ -80,7 +97,14 @@ describe('TripsRpc reads', () => {
   it('TRIPS-RPC-001 every trip-scoped read is membership-checked', async () => {
     const f = build();
     const host = f.host();
-    for (const method of ['trips.getById', 'trips.getPlaces', 'trips.getReservations', 'trips.getDays', 'trips.getAccommodations', 'trips.members']) {
+    for (const method of [
+      'trips.getById',
+      'trips.getPlaces',
+      'trips.getReservations',
+      'trips.getDays',
+      'trips.getAccommodations',
+      'trips.members',
+    ]) {
       expect((await host.dispatch(req(method, { tripId: 1 }), 42)).ok).toBe(true);
       expect(((await host.dispatch(req(method, { tripId: 2 }), 42)) as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
     }
@@ -91,10 +115,12 @@ describe('TripsRpc reads', () => {
     const host = f.host();
     expect((await host.dispatch(req('trips.listMine'), 42)).ok).toBe(true);
     expect((await host.dispatch(req('reservations.listMine'), 42)).ok).toBe(true);
-    expect(((await host.dispatch(req('trips.listMine'), undefined)) as RpcError).error.message)
-      .toBe('trip reads require an authenticated user context');
-    expect(((await host.dispatch(req('reservations.listMine'), undefined)) as RpcError).error.message)
-      .toBe('reservation reads require an authenticated user context');
+    expect(((await host.dispatch(req('trips.listMine'), undefined)) as RpcError).error.message).toBe(
+      'trip reads require an authenticated user context',
+    );
+    expect(((await host.dispatch(req('reservations.listMine'), undefined)) as RpcError).error.message).toBe(
+      'reservation reads require an authenticated user context',
+    );
     expect(f.trips.list).toHaveBeenCalledWith(42, null);
   });
 
@@ -116,22 +142,31 @@ describe('TripsRpc writes', () => {
     const f = build();
     const host = f.host();
     expect((await host.dispatch(req('trips.update', { tripId: 1, input: { title: 'New' } }), 42)).ok).toBe(true);
-    const noUser = (await host.dispatch(req('trips.update', { tripId: 1, input: { title: 'x' } }), undefined)) as RpcError;
+    const noUser = (await host.dispatch(
+      req('trips.update', { tripId: 1, input: { title: 'x' } }),
+      undefined,
+    )) as RpcError;
     expect(noUser.error.message).toBe('trip writes require an authenticated user context');
-    const readOnly = (await f.host('db:read:trips').dispatch(req('trips.update', { tripId: 1, input: {} }), 42)) as RpcError;
+    const readOnly = (await f
+      .host('db:read:trips')
+      .dispatch(req('trips.update', { tripId: 1, input: {} }), 42)) as RpcError;
     expect(readOnly.error.code).toBe('PERMISSION_DENIED');
   });
 
   it('TRIPS-RPC-006 archiving needs trip_archive on top of trip_edit', async () => {
     const f = build({ allow: (a) => a !== 'trip_archive' });
-    const res = (await f.host().dispatch(req('trips.update', { tripId: 1, input: { is_archived: true } }), 42)) as RpcError;
+    const res = (await f
+      .host()
+      .dispatch(req('trips.update', { tripId: 1, input: { is_archived: true } }), 42)) as RpcError;
     expect(res.error.message).toBe('no permission to archive trip 1');
     expect(f.trips.updateTrip).not.toHaveBeenCalled();
   });
 
   it('TRIPS-RPC-007 changing the cover needs trip_cover_upload on top of trip_edit', async () => {
     const f = build({ allow: (a) => a !== 'trip_cover_upload' });
-    const res = (await f.host().dispatch(req('trips.update', { tripId: 1, input: { cover_image: '/uploads/covers/a.jpg' } }), 42)) as RpcError;
+    const res = (await f
+      .host()
+      .dispatch(req('trips.update', { tripId: 1, input: { cover_image: '/uploads/covers/a.jpg' } }), 42)) as RpcError;
     expect(res.error.message).toBe('no permission to change the cover of trip 1');
   });
 
@@ -142,16 +177,22 @@ describe('TripsRpc writes', () => {
 
   it('TRIPS-RPC-009 service errors map onto the right RPC codes', async () => {
     const invalid = build({ updateThrows: new ValidationError('bad dates') });
-    expect(((await invalid.host().dispatch(req('trips.update', { tripId: 1, input: { title: 'x' } }), 42)) as RpcError).error)
-      .toMatchObject({ code: 'BAD_PARAMS', message: 'bad dates' });
+    expect(
+      ((await invalid.host().dispatch(req('trips.update', { tripId: 1, input: { title: 'x' } }), 42)) as RpcError)
+        .error,
+    ).toMatchObject({ code: 'BAD_PARAMS', message: 'bad dates' });
     const missing = build({ updateThrows: new NotFoundError('trip not found') });
-    expect(((await missing.host().dispatch(req('trips.update', { tripId: 1, input: { title: 'x' } }), 42)) as RpcError).error)
-      .toMatchObject({ code: 'RESOURCE_FORBIDDEN', message: 'trip not found' });
+    expect(
+      ((await missing.host().dispatch(req('trips.update', { tripId: 1, input: { title: 'x' } }), 42)) as RpcError)
+        .error,
+    ).toMatchObject({ code: 'RESOURCE_FORBIDDEN', message: 'trip not found' });
   });
 
   it('TRIPS-RPC-010 an over-long title is capped like the REST controller caps it', async () => {
     const f = build();
-    const res = (await f.host().dispatch(req('trips.update', { tripId: 1, input: { title: 'x'.repeat(201) } }), 42)) as RpcError;
+    const res = (await f
+      .host()
+      .dispatch(req('trips.update', { tripId: 1, input: { title: 'x'.repeat(201) } }), 42)) as RpcError;
     expect(res.error.message).toBe('title must be 200 characters or fewer');
   });
 
@@ -180,7 +221,9 @@ describe('TripsRpc membership', () => {
 
   it('TRIPS-RPC-014 member management is its own grant, separate from every other write', async () => {
     const f = build();
-    const res = (await f.host('db:write:trips').dispatch(req('trips.addMember', { tripId: 1, userId: 7 }), 42)) as RpcError;
+    const res = (await f
+      .host('db:write:trips')
+      .dispatch(req('trips.addMember', { tripId: 1, userId: 7 }), 42)) as RpcError;
     // Adding a member GRANTS TRIP ACCESS, so db:write:trips must not be enough.
     expect(res.error.code).toBe('PERMISSION_DENIED');
   });

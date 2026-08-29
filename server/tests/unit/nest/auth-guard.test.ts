@@ -1,19 +1,32 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { AuditService } from '../../../src/nest/audit/audit.service';
+import { AdminGuard } from '../../../src/nest/auth/admin.guard';
+import type { AuthService } from '../../../src/nest/auth/auth.service';
+import { CookieAuthGuard } from '../../../src/nest/auth/cookie-auth.guard';
+import { CurrentUser } from '../../../src/nest/auth/current-user.decorator';
+import { JwtAuthGuard } from '../../../src/nest/auth/jwt-auth.guard';
+import { extractToken, verifyJwtAndLoadUser } from '../../../src/nest/auth/jwt-verify';
+import { OptionalJwtGuard } from '../../../src/nest/auth/optional-jwt.guard';
+import { PasskeyEnabledGuard } from '../../../src/nest/auth/passkey-enabled.guard';
+import { PasskeyController } from '../../../src/nest/auth/passkey.controller';
+import type { PasskeyService } from '../../../src/nest/auth/passkey.service';
+import { setAuthCookie } from '../../../src/nest/common/cookie';
+import { RateLimitService } from '../../../src/nest/common/rate-limit.service';
+import type { User } from '../../../src/types';
 import { HttpException } from '@nestjs/common';
+
 import type { Request } from 'express';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('../../../src/nest/auth/jwt-verify', () => ({ extractToken: vi.fn(), verifyJwtAndLoadUser: vi.fn() }));
 vi.mock('../../../src/nest/common/cookie', () => ({ setAuthCookie: vi.fn() }));
 vi.mock('../../../src/nest/audit/client-ip', () => ({ getClientIp: vi.fn(() => '1.2.3.4') }));
-vi.mock('../../../src/nest/audit/audit-log.logger', () => ({ LOG_LEVEL: 'error', logInfo: vi.fn(), logDebug: vi.fn(), logError: vi.fn(), logWarn: vi.fn() }));
-
-import { JwtAuthGuard } from '../../../src/nest/auth/jwt-auth.guard';
-import { CookieAuthGuard } from '../../../src/nest/auth/cookie-auth.guard';
-import { OptionalJwtGuard } from '../../../src/nest/auth/optional-jwt.guard';
-import { AdminGuard } from '../../../src/nest/auth/admin.guard';
-import { PasskeyEnabledGuard } from '../../../src/nest/auth/passkey-enabled.guard';
-import { PasskeyController } from '../../../src/nest/auth/passkey.controller';
-import { RateLimitService } from '../../../src/nest/common/rate-limit.service';
+vi.mock('../../../src/nest/audit/audit-log.logger', () => ({
+  LOG_LEVEL: 'error',
+  logInfo: vi.fn(),
+  logDebug: vi.fn(),
+  logError: vi.fn(),
+  logWarn: vi.fn(),
+}));
 
 // AuditService is constructor-injected since the auditLog DI migration; the
 // wrapper keeps the historical construction sites positional.
@@ -31,13 +44,6 @@ const passkey = {
   deletePasskey: vi.fn(),
 };
 const pc = (limiter: RateLimitService) => new PasskeyController(limiter, audit, passkey as unknown as PasskeyService);
-import { CurrentUser } from '../../../src/nest/auth/current-user.decorator';
-import { extractToken, verifyJwtAndLoadUser } from '../../../src/nest/auth/jwt-verify';
-import type { AuthService } from '../../../src/nest/auth/auth.service';
-import type { PasskeyService } from '../../../src/nest/auth/passkey.service';
-import { setAuthCookie } from '../../../src/nest/common/cookie';
-import type { AuditService } from '../../../src/nest/audit/audit.service';
-import type { User } from '../../../src/types';
 
 const user = { id: 1, username: 'u', role: 'user', email: 'u@example.test' } as User;
 
@@ -45,7 +51,9 @@ function context(req: unknown) {
   return { switchToHttp: () => ({ getRequest: () => req }) } as never;
 }
 function thrown(fn: () => unknown): { status: number; body: unknown } {
-  try { fn(); } catch (err) {
+  try {
+    fn();
+  } catch (err) {
     expect(err).toBeInstanceOf(HttpException);
     const e = err as HttpException;
     return { status: e.getStatus(), body: e.getResponse() };
@@ -53,7 +61,9 @@ function thrown(fn: () => unknown): { status: number; body: unknown } {
   throw new Error('expected throw');
 }
 async function thrownAsync(fn: () => Promise<unknown>): Promise<{ status: number; body: unknown }> {
-  try { await fn(); } catch (err) {
+  try {
+    await fn();
+  } catch (err) {
     expect(err).toBeInstanceOf(HttpException);
     const e = err as HttpException;
     return { status: e.getStatus(), body: e.getResponse() };
@@ -155,8 +165,14 @@ describe('AdminGuard', () => {
   const guard = new AdminGuard();
 
   it('403s for anonymous and for a non-admin role', () => {
-    expect(thrown(() => guard.canActivate(context({})))).toEqual({ status: 403, body: { error: 'Admin access required' } });
-    expect(thrown(() => guard.canActivate(context({ user: { role: 'user' } })))).toEqual({ status: 403, body: { error: 'Admin access required' } });
+    expect(thrown(() => guard.canActivate(context({})))).toEqual({
+      status: 403,
+      body: { error: 'Admin access required' },
+    });
+    expect(thrown(() => guard.canActivate(context({ user: { role: 'user' } })))).toEqual({
+      status: 403,
+      body: { error: 'Admin access required' },
+    });
   });
 
   it('allows an admin through', () => {
@@ -185,9 +201,14 @@ describe('CurrentUser decorator', () => {
   // Apply the decorator to a throwaway handler so Nest stores the param factory in
   // route metadata, then invoke that factory exactly as the framework would.
   function paramFactory(): (data: unknown, ctx: unknown) => User | undefined {
-    class Target { handler(_u: User) {} }
+    class Target {
+      handler(_u: User) {}
+    }
     (CurrentUser() as ParameterDecorator)(Target.prototype, 'handler', 0);
-    const meta = Reflect.getMetadata('__routeArguments__', Target, 'handler') as Record<string, { factory: (data: unknown, ctx: unknown) => User | undefined }>;
+    const meta = Reflect.getMetadata('__routeArguments__', Target, 'handler') as Record<
+      string,
+      { factory: (data: unknown, ctx: unknown) => User | undefined }
+    >;
     return Object.values(meta)[0].factory;
   }
 
@@ -203,18 +224,26 @@ describe('CurrentUser decorator', () => {
 describe('PasskeyController', () => {
   const req = { ip: '9.9.9.9' } as Request;
   const res = {} as never;
-  function rl(): RateLimitService { return new RateLimitService(); }
+  function rl(): RateLimitService {
+    return new RateLimitService();
+  }
 
   it('register/options maps a service error, else returns the options', async () => {
     passkey.passkeyRegisterOptions.mockResolvedValue({ error: 'Incorrect password', status: 401 });
-    expect(await thrownAsync(() => pc(rl()).registerOptions(user, { password: 'x' }, req))).toEqual({ status: 401, body: { error: 'Incorrect password' } });
+    expect(await thrownAsync(() => pc(rl()).registerOptions(user, { password: 'x' }, req))).toEqual({
+      status: 401,
+      body: { error: 'Incorrect password' },
+    });
     passkey.passkeyRegisterOptions.mockResolvedValue({ options: { challenge: 'c' } as never });
     expect(await pc(rl()).registerOptions(user, { password: 'p' }, req)).toEqual({ challenge: 'c' });
   });
 
   it('register/verify maps a service error, else audits and returns the credential', async () => {
     passkey.passkeyRegisterVerify.mockResolvedValue({ error: 'Verification failed', status: 400 } as never);
-    expect(await thrownAsync(() => pc(rl()).registerVerify(user, {}, req))).toEqual({ status: 400, body: { error: 'Verification failed' } });
+    expect(await thrownAsync(() => pc(rl()).registerVerify(user, {}, req))).toEqual({
+      status: 400,
+      body: { error: 'Verification failed' },
+    });
     passkey.passkeyRegisterVerify.mockResolvedValue({ credential: { id: 'cr' } } as never);
     expect(await pc(rl()).registerVerify(user, {}, req)).toEqual({ success: true, credential: { id: 'cr' } });
     expect(writeAudit).toHaveBeenCalledWith(expect.objectContaining({ action: 'user.passkey_register' }));
@@ -222,14 +251,25 @@ describe('PasskeyController', () => {
 
   it('login/options maps a service error, else returns the options', async () => {
     passkey.passkeyLoginOptions.mockResolvedValue({ error: 'Not configured', status: 503 } as never);
-    expect(await thrownAsync(() => pc(rl()).loginOptions(req))).toEqual({ status: 503, body: { error: 'Not configured' } });
+    expect(await thrownAsync(() => pc(rl()).loginOptions(req))).toEqual({
+      status: 503,
+      body: { error: 'Not configured' },
+    });
     passkey.passkeyLoginOptions.mockResolvedValue({ options: { challenge: 'd' } } as never);
     expect(await pc(rl()).loginOptions(req)).toEqual({ challenge: 'd' });
   });
 
   it('login/verify audits a failure then maps the error, padding latency', async () => {
-    passkey.passkeyLoginVerify.mockResolvedValue({ error: 'No match', status: 401, auditAction: 'user.login_fail', auditUserId: null } as never);
-    expect(await thrownAsync(() => pc(rl()).loginVerify({}, req, res))).toEqual({ status: 401, body: { error: 'No match' } });
+    passkey.passkeyLoginVerify.mockResolvedValue({
+      error: 'No match',
+      status: 401,
+      auditAction: 'user.login_fail',
+      auditUserId: null,
+    } as never);
+    expect(await thrownAsync(() => pc(rl()).loginVerify({}, req, res))).toEqual({
+      status: 401,
+      body: { error: 'No match' },
+    });
     expect(writeAudit).toHaveBeenCalledWith(expect.objectContaining({ action: 'user.login_fail' }));
   }, 10000);
 
@@ -237,7 +277,9 @@ describe('PasskeyController', () => {
     passkey.passkeyLoginVerify.mockResolvedValue({ token: 'tk', user, auditUserId: 1 } as never);
     expect(await pc(rl()).loginVerify({}, req, res)).toEqual({ token: 'tk', user });
     expect(setAuthCookie).toHaveBeenCalledWith(res, 'tk', req);
-    expect(writeAudit).toHaveBeenCalledWith(expect.objectContaining({ action: 'user.login', details: { method: 'passkey' } }));
+    expect(writeAudit).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'user.login', details: { method: 'passkey' } }),
+    );
   }, 10000);
 
   it('credentials: list, rename (error + success), delete (error + success)', () => {
@@ -245,12 +287,18 @@ describe('PasskeyController', () => {
     expect(pc(rl()).list(user)).toEqual({ credentials: [{ id: 'a' }] });
 
     passkey.renamePasskey.mockReturnValue({ error: 'Not found', status: 404 });
-    expect(thrown(() => pc(rl()).rename(user, 'cid', { name: 'x' }))).toEqual({ status: 404, body: { error: 'Not found' } });
+    expect(thrown(() => pc(rl()).rename(user, 'cid', { name: 'x' }))).toEqual({
+      status: 404,
+      body: { error: 'Not found' },
+    });
     passkey.renamePasskey.mockReturnValue({ success: true });
     expect(pc(rl()).rename(user, 'cid', { name: 'x' })).toEqual({ success: true });
 
     passkey.deletePasskey.mockReturnValue({ error: 'Incorrect password', status: 401 });
-    expect(thrown(() => pc(rl()).remove(user, 'cid', { password: 'x' }, req))).toEqual({ status: 401, body: { error: 'Incorrect password' } });
+    expect(thrown(() => pc(rl()).remove(user, 'cid', { password: 'x' }, req))).toEqual({
+      status: 401,
+      body: { error: 'Incorrect password' },
+    });
     passkey.deletePasskey.mockReturnValue({ success: true });
     expect(pc(rl()).remove(user, 'cid', { password: 'p' }, req)).toEqual({ success: true });
     expect(writeAudit).toHaveBeenCalledWith(expect.objectContaining({ action: 'user.passkey_delete' }));
@@ -260,11 +308,17 @@ describe('PasskeyController', () => {
     const s = new RateLimitService();
     const now = Date.now();
     for (let i = 0; i < 5; i++) s.check('mfa', '9.9.9.9', 5, 15 * 60 * 1000, now);
-    expect(await thrownAsync(() => pc(s).registerOptions(user, {}, req))).toEqual({ status: 429, body: { error: 'Too many attempts. Please try again later.' } });
+    expect(await thrownAsync(() => pc(s).registerOptions(user, {}, req))).toEqual({
+      status: 429,
+      body: { error: 'Too many attempts. Please try again later.' },
+    });
 
     const s2 = new RateLimitService();
     for (let i = 0; i < 10; i++) s2.check('login', '9.9.9.9', 10, 15 * 60 * 1000, now);
-    expect(await thrownAsync(() => pc(s2).loginOptions(req))).toEqual({ status: 429, body: { error: 'Too many attempts. Please try again later.' } });
+    expect(await thrownAsync(() => pc(s2).loginOptions(req))).toEqual({
+      status: 429,
+      body: { error: 'Too many attempts. Please try again later.' },
+    });
   });
 
   it('falls back to the "unknown" rate-limit key when req.ip is absent', async () => {

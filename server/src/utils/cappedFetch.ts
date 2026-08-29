@@ -51,7 +51,7 @@ export async function readCappedJson<T>(res: CappedResponse, maxBytes: number): 
   // Neither a stream nor text() means there is nothing to read incrementally
   // and nothing to cap — a null-body status, or a partial stub in a test.
   if (!res.body?.getReader && !res.text && !res.arrayBuffer && res.json) {
-    return await res.json() as T;
+    return (await res.json()) as T;
   }
   const { text, truncated } = await readCappedText(res, maxBytes);
   if (truncated) return undefined;
@@ -69,7 +69,10 @@ export async function readCappedJson<T>(res: CappedResponse, maxBytes: number): 
  * degrade to whatever they find. Responses without a stream fall back to
  * arrayBuffer(), which is post-checked instead.
  */
-export async function readCapped(res: CappedResponse, maxBytes: number): Promise<{ bytes: Buffer; truncated: boolean }> {
+export async function readCapped(
+  res: CappedResponse,
+  maxBytes: number,
+): Promise<{ bytes: Buffer; truncated: boolean }> {
   const reader = res.body?.getReader();
   if (!reader) {
     const raw = res.arrayBuffer ? Buffer.from(await res.arrayBuffer()) : Buffer.from(res.text ? await res.text() : '');
@@ -102,7 +105,10 @@ export async function readCapped(res: CappedResponse, maxBytes: number): Promise
  * stream it reads text() directly instead of going through readCapped, which
  * prefers arrayBuffer().
  */
-export async function readCappedText(res: CappedResponse, maxBytes: number): Promise<{ text: string; truncated: boolean }> {
+export async function readCappedText(
+  res: CappedResponse,
+  maxBytes: number,
+): Promise<{ text: string; truncated: boolean }> {
   if (!res.body?.getReader && res.text) {
     const raw = Buffer.from(await res.text(), 'utf8');
     return raw.length > maxBytes

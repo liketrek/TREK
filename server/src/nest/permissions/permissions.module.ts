@@ -1,7 +1,7 @@
-import { Module } from '@nestjs/common';
 import { PermissionsService } from './permissions.service';
 import { TripAccessGuard } from './trip-access.guard';
 import { TripOwnerGuard } from './trip-owner.guard';
+import { Module } from '@nestjs/common';
 
 /** Cross-cutting permissions domain (Wave 2). No controller/MCP surface of its
  *  own — the admin HTTP surface stays with AdminModule. Exports

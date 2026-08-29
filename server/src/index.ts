@@ -1,14 +1,16 @@
-import 'reflect-metadata';
-import 'dotenv/config';
+import { getAppUrl, getMcpSafeUrl, readEnv } from './app-config';
 // Fail-fast env validation — must stay directly after dotenv so a malformed
 // variable aborts before any other module runs its import-time side effects
 // (config.ts key resolution, db/database.ts initDb, ...).
 import './app-config/boot-validate';
-import path from 'node:path';
+import { buildApp, getHttpServer } from './bootstrap';
+import type { INestApplication } from '@nestjs/common';
+
+import 'dotenv/config';
 import fs from 'node:fs';
 import http from 'node:http';
-import type { INestApplication } from '@nestjs/common';
-import { buildApp, getHttpServer } from './bootstrap';
+import path from 'node:path';
+import 'reflect-metadata';
 
 // data/tmp is the driver-agnostic global scratch dir (restore-upload spool,
 // mirror stream staging) and stays boot-created here. Driver-owned roots — the
@@ -20,8 +22,6 @@ import { buildApp, getHttpServer } from './bootstrap';
 // category prefixes by tests/unit/uploads-dirs.test.ts.
 const tmpDir = path.join(__dirname, '../data/tmp');
 if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
-
-import { getAppUrl, getMcpSafeUrl, readEnv } from './app-config';
 
 const PORT = readEnv().app.port;
 const HOST = readEnv().app.host;
@@ -51,21 +51,25 @@ const onListen = () => {
     `  User:           uid=${process.getuid?.()} gid=${process.getgid?.()}`,
     '──────────────────────────────────────',
   ];
-  banner.forEach(l => console.log(l));
+  banner.forEach((l) => console.log(l));
   sLogInfo('NestJS serving all routes (Express decommissioned)');
   if (env.app.appUrl) {
     let parsedAppUrl: URL | null = null;
-    try { parsedAppUrl = new URL(env.app.appUrl); } catch { /* invalid */ }
+    try {
+      parsedAppUrl = new URL(env.app.appUrl);
+    } catch {
+      /* invalid */
+    }
 
     if (!parsedAppUrl) {
       sLogWarn(`APP_URL: "${env.app.appUrl}" is not a valid URL — it will be ignored.`);
     }
 
-    const mcpSafe = parsedAppUrl !== null && (
-      parsedAppUrl.protocol === 'https:' ||
-      parsedAppUrl.hostname === 'localhost' ||
-      parsedAppUrl.hostname === '127.0.0.1'
-    );
+    const mcpSafe =
+      parsedAppUrl !== null &&
+      (parsedAppUrl.protocol === 'https:' ||
+        parsedAppUrl.hostname === 'localhost' ||
+        parsedAppUrl.hostname === '127.0.0.1');
     if (!mcpSafe) {
       sLogWarn(`APP_URL: not MCP-safe (requires https:// or http://localhost) — MCP will use ${resolvedAppUrl}.`);
     }

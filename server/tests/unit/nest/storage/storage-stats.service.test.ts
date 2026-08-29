@@ -1,3 +1,16 @@
+import { runMigrations } from '../../../../src/db/migrations';
+import { createTables } from '../../../../src/db/schema';
+import type { RuntimeEnvService } from '../../../../src/nest/app-config/runtime-env.service';
+import { DatabaseService } from '../../../../src/nest/database/database.service';
+import { StorageEventsService } from '../../../../src/nest/storage/storage-events.service';
+import { StorageRegistryService } from '../../../../src/nest/storage/storage-registry.service';
+import { StatsBusyError, StorageStatsService } from '../../../../src/nest/storage/storage-stats.service';
+import { StorageService } from '../../../../src/nest/storage/storage.service';
+
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { Readable } from 'node:stream';
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest';
 
 const { testDb, dbMock } = vi.hoisted(() => {
@@ -9,19 +22,6 @@ const { testDb, dbMock } = vi.hoisted(() => {
 });
 vi.mock('../../../../src/db/database', () => dbMock);
 vi.mock('../../../../src/config', () => ({ ENCRYPTION_KEY: 'storage-stats-test-key' }));
-
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
-import { Readable } from 'node:stream';
-import { createTables } from '../../../../src/db/schema';
-import { runMigrations } from '../../../../src/db/migrations';
-import { DatabaseService } from '../../../../src/nest/database/database.service';
-import type { RuntimeEnvService } from '../../../../src/nest/app-config/runtime-env.service';
-import { StorageEventsService } from '../../../../src/nest/storage/storage-events.service';
-import { StorageRegistryService } from '../../../../src/nest/storage/storage-registry.service';
-import { StorageService } from '../../../../src/nest/storage/storage.service';
-import { StatsBusyError, StorageStatsService } from '../../../../src/nest/storage/storage-stats.service';
 
 const db = new DatabaseService(testDb);
 

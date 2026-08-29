@@ -21,20 +21,21 @@
  * accepted precedent from storage-registry.service.test.ts, harmless (mkdir
  * -p on an existing dir), and orthogonal to what this test actually exercises.
  */
-import { describe, it, expect, beforeAll, afterEach } from 'vitest';
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const Database = require('better-sqlite3');
-
-import { createTables } from '../../src/db/schema';
 import { runMigrations } from '../../src/db/migrations';
-import { DatabaseService } from '../../src/nest/database/database.service';
+import { createTables } from '../../src/db/schema';
 import type { RuntimeEnvService } from '../../src/nest/app-config/runtime-env.service';
+import { DatabaseService } from '../../src/nest/database/database.service';
 import { StorageEventsService } from '../../src/nest/storage/storage-events.service';
 import { BACKENDS_KEY, CATEGORIES_KEY, StorageRegistryService } from '../../src/nest/storage/storage-registry.service';
 import { StorageService } from '../../src/nest/storage/storage.service';
+
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { describe, it, expect, beforeAll, afterEach } from 'vitest';
+
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const Database = require('better-sqlite3');
 
 const testDb = new Database(':memory:');
 testDb.exec('PRAGMA journal_mode = WAL');
@@ -58,9 +59,7 @@ function envStub(): RuntimeEnvService {
 }
 
 function setSetting(key: string, value: unknown): void {
-  testDb
-    .prepare('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)')
-    .run(key, JSON.stringify(value));
+  testDb.prepare('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)').run(key, JSON.stringify(value));
 }
 
 afterEach(() => {

@@ -1,11 +1,10 @@
-import { Injectable } from '@nestjs/common';
 import { readEnv, getAppUrl } from '../../app-config';
-import { DatabaseService } from '../database/database.service';
-import { StorageService } from '../storage/storage.service';
-import { decrypt_api_key, maybe_encrypt_api_key } from '../common/crypto/apiKeyCrypto';
+import { User } from '../../types';
 import { avatarUrl } from '../common/avatarUrl';
-import { EMAIL_REGEX, mask_stored_api_key } from './auth.helpers';
+import { decrypt_api_key, maybe_encrypt_api_key } from '../common/crypto/apiKeyCrypto';
 import { splitManagedKeys, MANAGED_LOCKED_PROFILE_KEYS } from '../common/managed';
+import { DatabaseService } from '../database/database.service';
+import { SEARCH_TEXT_FIELD_MASK } from '../maps/maps.helpers';
 import {
   INSTANCE_API_KEY_NAMES,
   readInstanceApiKey,
@@ -13,8 +12,9 @@ import {
   writeInstanceApiKey,
   type InstanceApiKeyName,
 } from '../settings/instance-api-keys';
-import { SEARCH_TEXT_FIELD_MASK } from '../maps/maps.helpers';
-import { User } from '../../types';
+import { StorageService } from '../storage/storage.service';
+import { EMAIL_REGEX, mask_stored_api_key } from './auth.helpers';
+import { Injectable } from '@nestjs/common';
 
 /**
  * The account a user administers about themselves: display settings, avatar,
@@ -55,7 +55,7 @@ export class UserProfileService {
   private currentKeys(userId: number) {
     return this.db.get<Pick<User, 'role' | 'maps_api_key' | 'openweather_api_key' | 'unsplash_api_key'>>(
       'SELECT role, maps_api_key, openweather_api_key, unsplash_api_key FROM users WHERE id = ?',
-      userId
+      userId,
     );
   }
 
@@ -97,7 +97,10 @@ export class UserProfileService {
   ): string[] {
     const norm = (v: unknown) => String(v ?? '').trim();
     return (['maps_api_key', 'openweather_api_key', 'unsplash_api_key'] as const).filter(
-      (name) => body[name] !== undefined && !skipped.includes(name) && norm(body[name]) !== norm(this.storedKeyPlaintext(name, current, isAdmin))
+      (name) =>
+        body[name] !== undefined &&
+        !skipped.includes(name) &&
+        norm(body[name]) !== norm(this.storedKeyPlaintext(name, current, isAdmin)),
     );
   }
 
@@ -127,7 +130,8 @@ export class UserProfileService {
     this.db.transaction(() => {
       this.db.run(
         'UPDATE users SET maps_api_key = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-        maybe_encrypt_api_key(maps_api_key), userId
+        maybe_encrypt_api_key(maps_api_key),
+        userId,
       );
       this.mirrorInstanceKeys({ maps_api_key }, isAdmin);
     });
@@ -147,33 +151,64 @@ export class UserProfileService {
       // mid-request must degrade to a 0-row UPDATE, not a TypeError/500.
       this.db.run(
         'UPDATE users SET maps_api_key = ?, openweather_api_key = ?, unsplash_api_key = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-        body.maps_api_key !== undefined ? maybe_encrypt_api_key(body.maps_api_key) : current?.maps_api_key ?? null,
-        body.openweather_api_key !== undefined ? maybe_encrypt_api_key(body.openweather_api_key) : current?.openweather_api_key ?? null,
-        body.unsplash_api_key !== undefined ? maybe_encrypt_api_key(body.unsplash_api_key) : current?.unsplash_api_key ?? null,
-        userId
+        body.maps_api_key !== undefined ? maybe_encrypt_api_key(body.maps_api_key) : (current?.maps_api_key ?? null),
+        body.openweather_api_key !== undefined
+          ? maybe_encrypt_api_key(body.openweather_api_key)
+          : (current?.openweather_api_key ?? null),
+        body.unsplash_api_key !== undefined
+          ? maybe_encrypt_api_key(body.unsplash_api_key)
+          : (current?.unsplash_api_key ?? null),
+        userId,
       );
       this.mirrorInstanceKeys(body, isAdmin);
     });
 
-    const updated = this.db.get<Pick<User, 'id' | 'username' | 'email' | 'role' | 'maps_api_key' | 'openweather_api_key' | 'unsplash_api_key' | 'avatar' | 'mfa_enabled'>>(
+    const updated = this.db.get<
+      Pick<
+        User,
+        | 'id'
+        | 'username'
+        | 'email'
+        | 'role'
+        | 'maps_api_key'
+        | 'openweather_api_key'
+        | 'unsplash_api_key'
+        | 'avatar'
+        | 'mfa_enabled'
+      >
+    >(
       'SELECT id, username, email, role, maps_api_key, openweather_api_key, unsplash_api_key, avatar, mfa_enabled FROM users WHERE id = ?',
-      userId
+      userId,
     );
 
-    const u = updated ? { ...updated, mfa_enabled: !!(updated.mfa_enabled === 1 || updated.mfa_enabled === true) } : undefined;
+    const u = updated
+      ? { ...updated, mfa_enabled: !!(updated.mfa_enabled === 1 || updated.mfa_enabled === true) }
+      : undefined;
     return {
       success: true,
       ...(blocked.length ? { managed_keys: blocked } : {}),
-      user: { ...u, maps_api_key: mask_stored_api_key(u?.maps_api_key), openweather_api_key: mask_stored_api_key(u?.openweather_api_key), unsplash_api_key: mask_stored_api_key(u?.unsplash_api_key), avatar_url: avatarUrl(updated || {}) },
+      user: {
+        ...u,
+        maps_api_key: mask_stored_api_key(u?.maps_api_key),
+        openweather_api_key: mask_stored_api_key(u?.openweather_api_key),
+        unsplash_api_key: mask_stored_api_key(u?.unsplash_api_key),
+        avatar_url: avatarUrl(updated || {}),
+      },
       changedKeys,
     };
   }
 
   updateSettings(
     userId: number,
-    rawBody: unknown
+    rawBody: unknown,
   ): { error?: string; status?: number; success?: boolean; user?: Record<string, unknown>; changedKeys?: string[] } {
-    const body = rawBody as { maps_api_key?: string; openweather_api_key?: string; unsplash_api_key?: string; username?: string; email?: string };
+    const body = rawBody as {
+      maps_api_key?: string;
+      openweather_api_key?: string;
+      unsplash_api_key?: string;
+      username?: string;
+      email?: string;
+    };
     const { maps_api_key, openweather_api_key, unsplash_api_key, username, email } = body;
 
     if (username !== undefined) {
@@ -184,7 +219,11 @@ export class UserProfileService {
       if (!/^[a-zA-Z0-9_.-]+$/.test(trimmed)) {
         return { error: 'Username can only contain letters, numbers, underscores, dots and hyphens', status: 400 };
       }
-      const conflict = this.db.get('SELECT id FROM users WHERE LOWER(username) = LOWER(?) AND id != ? AND COALESCE(is_guest, 0) = 0', trimmed, userId);
+      const conflict = this.db.get(
+        'SELECT id FROM users WHERE LOWER(username) = LOWER(?) AND id != ? AND COALESCE(is_guest, 0) = 0',
+        trimmed,
+        userId,
+      );
       if (conflict) return { error: 'Username already taken', status: 409 };
     }
 
@@ -193,7 +232,11 @@ export class UserProfileService {
       if (!trimmed || !EMAIL_REGEX.test(trimmed)) {
         return { error: 'Invalid email format', status: 400 };
       }
-      const conflict = this.db.get('SELECT id FROM users WHERE LOWER(email) = LOWER(?) AND id != ? AND COALESCE(is_guest, 0) = 0', trimmed, userId);
+      const conflict = this.db.get(
+        'SELECT id FROM users WHERE LOWER(email) = LOWER(?) AND id != ? AND COALESCE(is_guest, 0) = 0',
+        trimmed,
+        userId,
+      );
       if (conflict) return { error: 'Email already taken', status: 409 };
     }
 
@@ -205,11 +248,26 @@ export class UserProfileService {
     const { blocked } = splitManagedKeys(body, this.managed);
     const keyLocked = blocked.length > 0;
 
-    if (maps_api_key !== undefined && !keyLocked) { updates.push('maps_api_key = ?'); params.push(maybe_encrypt_api_key(maps_api_key)); }
-    if (openweather_api_key !== undefined && !keyLocked) { updates.push('openweather_api_key = ?'); params.push(maybe_encrypt_api_key(openweather_api_key)); }
-    if (unsplash_api_key !== undefined && !keyLocked) { updates.push('unsplash_api_key = ?'); params.push(maybe_encrypt_api_key(unsplash_api_key)); }
-    if (username !== undefined) { updates.push('username = ?'); params.push(username.trim()); }
-    if (email !== undefined) { updates.push('email = ?'); params.push(email.trim()); }
+    if (maps_api_key !== undefined && !keyLocked) {
+      updates.push('maps_api_key = ?');
+      params.push(maybe_encrypt_api_key(maps_api_key));
+    }
+    if (openweather_api_key !== undefined && !keyLocked) {
+      updates.push('openweather_api_key = ?');
+      params.push(maybe_encrypt_api_key(openweather_api_key));
+    }
+    if (unsplash_api_key !== undefined && !keyLocked) {
+      updates.push('unsplash_api_key = ?');
+      params.push(maybe_encrypt_api_key(unsplash_api_key));
+    }
+    if (username !== undefined) {
+      updates.push('username = ?');
+      params.push(username.trim());
+    }
+    if (email !== undefined) {
+      updates.push('email = ?');
+      params.push(email.trim());
+    }
 
     // Read before the write, so the comparison sees the old value; the role in
     // the same row decides whether the two instance-wide names travel with it.
@@ -226,16 +284,37 @@ export class UserProfileService {
       });
     }
 
-    const updated = this.db.get<Pick<User, 'id' | 'username' | 'email' | 'role' | 'maps_api_key' | 'openweather_api_key' | 'unsplash_api_key' | 'avatar' | 'mfa_enabled'>>(
+    const updated = this.db.get<
+      Pick<
+        User,
+        | 'id'
+        | 'username'
+        | 'email'
+        | 'role'
+        | 'maps_api_key'
+        | 'openweather_api_key'
+        | 'unsplash_api_key'
+        | 'avatar'
+        | 'mfa_enabled'
+      >
+    >(
       'SELECT id, username, email, role, maps_api_key, openweather_api_key, unsplash_api_key, avatar, mfa_enabled FROM users WHERE id = ?',
-      userId
+      userId,
     );
 
-    const u = updated ? { ...updated, mfa_enabled: !!(updated.mfa_enabled === 1 || updated.mfa_enabled === true) } : undefined;
+    const u = updated
+      ? { ...updated, mfa_enabled: !!(updated.mfa_enabled === 1 || updated.mfa_enabled === true) }
+      : undefined;
     return {
       success: true,
       ...(blocked.length ? { managed_keys: blocked } : {}),
-      user: { ...u, maps_api_key: mask_stored_api_key(u?.maps_api_key), openweather_api_key: mask_stored_api_key(u?.openweather_api_key), unsplash_api_key: mask_stored_api_key(u?.unsplash_api_key), avatar_url: avatarUrl(updated || {}) },
+      user: {
+        ...u,
+        maps_api_key: mask_stored_api_key(u?.maps_api_key),
+        openweather_api_key: mask_stored_api_key(u?.openweather_api_key),
+        unsplash_api_key: mask_stored_api_key(u?.unsplash_api_key),
+        avatar_url: avatarUrl(updated || {}),
+      },
       changedKeys,
     };
   }
@@ -243,7 +322,7 @@ export class UserProfileService {
   getSettings(userId: number): { error?: string; status?: number; settings?: Record<string, unknown> } {
     const user = this.db.get<Pick<User, 'role' | 'maps_api_key' | 'openweather_api_key' | 'unsplash_api_key'>>(
       'SELECT role, maps_api_key, openweather_api_key, unsplash_api_key FROM users WHERE id = ?',
-      userId
+      userId,
     );
     if (user?.role !== 'admin') return { error: 'Admin access required', status: 403 };
 
@@ -293,7 +372,10 @@ export class UserProfileService {
 
     this.db.run('UPDATE users SET avatar = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', filename, userId);
 
-    const updated = this.db.get<Pick<User, 'id' | 'username' | 'email' | 'role' | 'avatar'>>('SELECT id, username, email, role, avatar FROM users WHERE id = ?', userId);
+    const updated = this.db.get<Pick<User, 'id' | 'username' | 'email' | 'role' | 'avatar'>>(
+      'SELECT id, username, email, role, avatar FROM users WHERE id = ?',
+      userId,
+    );
     return { success: true, avatar_url: avatarUrl(updated || {}) };
   }
 
@@ -316,18 +398,35 @@ export class UserProfileService {
     // guests (#1362) are trip-scoped and must never be selectable here.
     const users = this.db.all<Pick<User, 'id' | 'username' | 'avatar'>>(
       'SELECT id, username, avatar FROM users WHERE id != ? AND COALESCE(is_guest, 0) = 0 ORDER BY username ASC',
-      excludeUserId
+      excludeUserId,
     );
-    return users.map(u => ({ ...u, avatar_url: avatarUrl(u) }));
+    return users.map((u) => ({ ...u, avatar_url: avatarUrl(u) }));
   }
 
   // -------------------------------------------------------------------------
   // Key validation
   // -------------------------------------------------------------------------
 
-  async validateKeys(userId: number): Promise<{ error?: string; status?: number; maps: boolean; weather: boolean; maps_details: null | { ok: boolean; status: number | null; status_text: string | null; error_message: string | null; error_status: string | null; error_raw: string | null } }> {
-    const user = this.db.get<Pick<User, 'role' | 'openweather_api_key'>>('SELECT role, openweather_api_key FROM users WHERE id = ?', userId);
-    if (user?.role !== 'admin') return { error: 'Admin access required', status: 403, maps: false, weather: false, maps_details: null };
+  async validateKeys(userId: number): Promise<{
+    error?: string;
+    status?: number;
+    maps: boolean;
+    weather: boolean;
+    maps_details: null | {
+      ok: boolean;
+      status: number | null;
+      status_text: string | null;
+      error_message: string | null;
+      error_status: string | null;
+      error_raw: string | null;
+    };
+  }> {
+    const user = this.db.get<Pick<User, 'role' | 'openweather_api_key'>>(
+      'SELECT role, openweather_api_key FROM users WHERE id = ?',
+      userId,
+    );
+    if (user?.role !== 'admin')
+      return { error: 'Admin access required', status: 403, maps: false, weather: false, maps_details: null };
 
     const result: {
       maps: boolean;
@@ -351,29 +450,33 @@ export class UserProfileService {
         // Same Referer as maps.service googleFetch — without it, keys with an
         // HTTP-referrer restriction fail validation while real requests succeed.
         const referer = readEnv().app.appUrl ? getAppUrl() : undefined;
-        const mapsRes = await fetch(
-          `https://places.googleapis.com/v1/places:searchText`,
-          {
-            method: 'POST',
-            headers: {
-              ...(referer ? { Referer: referer } : {}),
-              'Content-Type': 'application/json',
-              'X-Goog-Api-Key': maps_api_key,
-              // The mask the real search sends. A narrower probe passes on keys
-              // that are restricted to fewer Places SKUs than TREK asks for.
-              'X-Goog-FieldMask': SEARCH_TEXT_FIELD_MASK,
-            },
-            body: JSON.stringify({ textQuery: 'test' }),
-          }
-        );
+        const mapsRes = await fetch(`https://places.googleapis.com/v1/places:searchText`, {
+          method: 'POST',
+          headers: {
+            ...(referer ? { Referer: referer } : {}),
+            'Content-Type': 'application/json',
+            'X-Goog-Api-Key': maps_api_key,
+            // The mask the real search sends. A narrower probe passes on keys
+            // that are restricted to fewer Places SKUs than TREK asks for.
+            'X-Goog-FieldMask': SEARCH_TEXT_FIELD_MASK,
+          },
+          body: JSON.stringify({ textQuery: 'test' }),
+        });
         result.maps = mapsRes.status === 200;
         let error_text: string | null = null;
         let error_json: any = null;
         if (!result.maps) {
           try {
             error_text = await mapsRes.text();
-            try { error_json = JSON.parse(error_text); } catch { error_json = null; }
-          } catch { error_text = null; error_json = null; }
+            try {
+              error_json = JSON.parse(error_text);
+            } catch {
+              error_json = null;
+            }
+          } catch {
+            error_text = null;
+            error_json = null;
+          }
         }
         result.maps_details = {
           ok: result.maps,
@@ -400,7 +503,7 @@ export class UserProfileService {
     if (openweather_api_key) {
       try {
         const weatherRes = await fetch(
-          `https://api.openweathermap.org/data/2.5/weather?q=London&appid=${openweather_api_key}`
+          `https://api.openweathermap.org/data/2.5/weather?q=London&appid=${openweather_api_key}`,
         );
         result.weather = weatherRes.status === 200;
       } catch {

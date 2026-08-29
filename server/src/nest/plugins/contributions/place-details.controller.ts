@@ -1,10 +1,11 @@
-import { Controller, Get, Param, Req, UseGuards } from '@nestjs/common';
-import type { Request } from 'express';
-import { DatabaseService } from '../../database/database.service';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import { DatabaseService } from '../../database/database.service';
 import { pluginsEnabled } from '../kill-switch';
 import { PluginHooks } from '../plugin-hooks.service';
 import { stripEmoji } from '../text-sanitize';
+import { Controller, Get, Param, Req, UseGuards } from '@nestjs/common';
+
+import type { Request } from 'express';
 
 /**
  * GET /api/place-details/:placeId — extra info for a place, contributed by plugins
@@ -35,7 +36,9 @@ function safeUrl(raw: unknown): string | undefined {
   if (typeof raw !== 'string' || raw === '') return undefined;
   try {
     const u = new URL(raw);
-    return u.protocol === 'http:' || u.protocol === 'https:' || u.protocol === 'mailto:' ? raw.slice(0, 2048) : undefined;
+    return u.protocol === 'http:' || u.protocol === 'https:' || u.protocol === 'mailto:'
+      ? raw.slice(0, 2048)
+      : undefined;
   } catch {
     return undefined;
   }
@@ -77,7 +80,9 @@ export class PlaceDetailsController {
     if (!Number.isFinite(placeId) || userId == null) return { providers: [] };
 
     // The place must belong to a trip the caller can access — same gate as a read.
-    const row = this.dbs.connection.prepare('SELECT trip_id FROM places WHERE id = ?').get(placeId) as { trip_id: number } | undefined;
+    const row = this.dbs.connection.prepare('SELECT trip_id FROM places WHERE id = ?').get(placeId) as
+      | { trip_id: number }
+      | undefined;
     if (!row || !this.dbs.canAccessTrip(row.trip_id, userId)) return { providers: [] };
 
     const ids = this.hooks.providersOf('placeDetailProvider');

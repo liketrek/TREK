@@ -444,7 +444,8 @@ const admin: TranslationStrings = {
   'admin.plugins.changeVersion': '버전 변경…',
   'admin.plugins.noVersions': '레지스트리에서 게시된 버전을 찾을 수 없습니다.',
   'admin.plugins.downgradeTitle': '이 플러그인을 롤백하시겠습니까?',
-  'admin.plugins.downgradeBody': 'v{from}에서 v{to}(으)로 전환: 최신 버전이 기록한 데이터는 그대로 유지되며, 이전 버전이 이를 인식하지 못할 수 있습니다.',
+  'admin.plugins.downgradeBody':
+    'v{from}에서 v{to}(으)로 전환: 최신 버전이 기록한 데이터는 그대로 유지되며, 이전 버전이 이를 인식하지 못할 수 있습니다.',
   'admin.plugins.downgradeConfirm': '롤백',
   'admin.plugins.updatesHeld': 'v{version}에서 업데이트 일시 중지됨',
   'admin.plugins.resumeUpdates': '업데이트 재개',

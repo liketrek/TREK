@@ -1,16 +1,16 @@
+import { ADDON_IDS } from '../../addons';
+import { PluginGuards } from '../plugins/host/plugin-guards.service';
+import { BadParams, ForbiddenResource } from '../plugins/host/rpc-errors';
+import { PluginController, PluginMethod } from '../plugins/host/rpc-kit/decorators';
+import type { PluginRpcContext } from '../plugins/host/rpc-kit/types';
+import { num, schemaMessage } from '../plugins/host/rpc-params';
+import { CollectionsService } from './collections.service';
 import {
   collectionCopyToTripRequestSchema,
   collectionCreateRequestSchema,
   collectionSavePlaceRequestSchema,
   collectionUpdateRequestSchema,
 } from '@trek/shared';
-import { PluginController, PluginMethod } from '../plugins/host/rpc-kit/decorators';
-import { PluginGuards } from '../plugins/host/plugin-guards.service';
-import { BadParams, ForbiddenResource } from '../plugins/host/rpc-errors';
-import { num, schemaMessage } from '../plugins/host/rpc-params';
-import type { PluginRpcContext } from '../plugins/host/rpc-kit/types';
-import { ADDON_IDS } from '../../addons';
-import { CollectionsService } from './collections.service';
 
 /**
  * The collections surface a plugin may reach (#plugins).
@@ -61,7 +61,9 @@ export class CollectionsRpc {
     const userId = this.requireCollectionsUser(ctx, 'writes');
     const id = num(params.id, 'id');
     this.requireCollectionsAddon();
-    return this.mapCollectionError(() => this.collections.updateCollection(userId, id, parsed.data as never, undefined));
+    return this.mapCollectionError(() =>
+      this.collections.updateCollection(userId, id, parsed.data as never, undefined),
+    );
   }
 
   @PluginMethod('collections.savePlace', { permission: 'db:write:collections' })

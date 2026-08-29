@@ -6,6 +6,17 @@
  * than an edge one, and the failure mode of getting it wrong is somebody's
  * afternoon disappearing with no error anywhere.
  */
+import { db as dbConn } from '../../../src/db/database';
+import { runMigrations } from '../../../src/db/migrations';
+import { createTables } from '../../../src/db/schema';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { JourneyBookService } from '../../../src/nest/journey/journey-book.service';
+import { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
+import { TrekPhotosRepository } from '../../../src/nest/photos/trek-photos.repository';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { createUser, createJourney, addJourneyContributor } from '../../helpers/factories';
+import { resetTestDb } from '../../helpers/test-db';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 const { testDb, dbMock } = vi.hoisted(() => {
@@ -34,17 +45,6 @@ vi.mock('../../../src/config', () => ({
   updateJwtSecret: () => {},
 }));
 vi.mock('../../../src/websocket', () => ({ broadcastToUser: vi.fn() }));
-
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createJourney, addJourneyContributor } from '../../helpers/factories';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import { TrekPhotosRepository } from '../../../src/nest/photos/trek-photos.repository';
-import { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
-import { JourneyBookService } from '../../../src/nest/journey/journey-book.service';
-import { db as dbConn } from '../../../src/db/database';
 
 const dbs = new DatabaseService(dbConn);
 const domain = new JourneyDomainService(dbs, new RealtimeService(), new TrekPhotosRepository(dbs));
@@ -180,9 +180,7 @@ describe('creating and reading', () => {
     const { user } = createUser(testDb);
     const journey = createJourney(testDb, user.id);
     testDb
-      .prepare(
-        "INSERT INTO journey_books (journey_id, title, document, version) VALUES (?, 'T', '{not json', 1)",
-      )
+      .prepare("INSERT INTO journey_books (journey_id, title, document, version) VALUES (?, 'T', '{not json', 1)")
       .run(journey.id);
 
     const read = books.getBook(journey.id, user.id);
@@ -305,12 +303,7 @@ describe('broadcastSaved', () => {
     const spy = vi.spyOn(domain, 'broadcastJourneyEvent').mockImplementation(() => {});
     books.broadcastSaved(journey.id, user.id, record!, 'socket-7');
 
-    expect(spy).toHaveBeenCalledWith(
-      journey.id,
-      'journey:book:saved',
-      { version: 1, savedBy: user.id },
-      'socket-7',
-    );
+    expect(spy).toHaveBeenCalledWith(journey.id, 'journey:book:saved', { version: 1, savedBy: user.id }, 'socket-7');
     spy.mockRestore();
   });
 });
@@ -340,9 +333,9 @@ describe('deleting', () => {
 
     testDb.prepare('DELETE FROM journeys WHERE id = ?').run(journey.id);
 
-    const left = testDb
-      .prepare('SELECT COUNT(*) AS n FROM journey_books WHERE journey_id = ?')
-      .get(journey.id) as { n: number };
+    const left = testDb.prepare('SELECT COUNT(*) AS n FROM journey_books WHERE journey_id = ?').get(journey.id) as {
+      n: number;
+    };
     expect(left.n).toBe(0);
   });
 });

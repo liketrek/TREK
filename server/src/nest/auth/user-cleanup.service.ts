@@ -1,11 +1,12 @@
-import fs from 'node:fs';
-import { Injectable } from '@nestjs/common';
-import { DatabaseService } from '../database/database.service';
 // Injected since BudgetModule dropped its AuthModule import (BudgetMcp's demo
 // guard reads RuntimeEnvService + the users table now), which un-closed the
 // AuthModule -> BudgetModule cycle that used to force budget.bridge here.
 import { BudgetService } from '../budget/budget.service';
+import { DatabaseService } from '../database/database.service';
 import { pluginsDataRoot } from '../plugins/paths';
+import { Injectable } from '@nestjs/common';
+
+import fs from 'node:fs';
 
 /**
  * Account erasure — everything that has to happen around `DELETE FROM users`
@@ -39,15 +40,25 @@ export class UserCleanupService {
    */
   erasePluginUserData(userId: number): void {
     for (const table of ['plugin_user_config', 'plugin_oauth_tokens', 'plugin_oauth_state']) {
-      try { this.db.run(`DELETE FROM ${table} WHERE user_id = ?`, userId); } catch { /* table absent (slim schema) */ }
+      try {
+        this.db.run(`DELETE FROM ${table} WHERE user_id = ?`, userId);
+      } catch {
+        /* table absent (slim schema) */
+      }
     }
     try {
       const rows = this.db.all<{ id: string; permissions: string | null }>('SELECT id, permissions FROM plugins');
       const installed = new Set(rows.map((r) => r.id));
-      const insert = this.db.prepare('INSERT OR IGNORE INTO plugin_user_erasure_queue (plugin_id, user_id) VALUES (?, ?)');
+      const insert = this.db.prepare(
+        'INSERT OR IGNORE INTO plugin_user_erasure_queue (plugin_id, user_id) VALUES (?, ?)',
+      );
       for (const r of rows) {
         let perms: unknown;
-        try { perms = JSON.parse(r.permissions ?? '[]'); } catch { perms = []; }
+        try {
+          perms = JSON.parse(r.permissions ?? '[]');
+        } catch {
+          perms = [];
+        }
         if (Array.isArray(perms) && perms.includes('hook:user-data')) insert.run(r.id, userId);
       }
       // Also enqueue for plugins UNINSTALLED with their data retained (deleteData=false):
@@ -59,8 +70,12 @@ export class UserCleanupService {
         for (const entry of fs.readdirSync(pluginsDataRoot(), { withFileTypes: true })) {
           if (entry.isDirectory() && !installed.has(entry.name)) insert.run(entry.name, userId);
         }
-      } catch { /* no plugin data root yet */ }
-    } catch { /* plugins / queue table absent (slim schema) */ }
+      } catch {
+        /* no plugin data root yet */
+      }
+    } catch {
+      /* plugins / queue table absent (slim schema) */
+    }
   }
 
   private cleanupUserReferences(userId: number): void {

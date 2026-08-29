@@ -8,14 +8,15 @@
  * getDestination/getFilename on the engine instance (multer/storage/disk.js),
  * so the tests drive them directly instead of streaming a real request.
  */
-import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
-import * as fs from 'fs';
-import * as os from 'os';
-import * as path from 'path';
-import type { Request } from 'express';
 import { buildStorageUploadOptions } from '../../../../src/nest/storage/storage-upload.factory';
 import type { StorageService } from '../../../../src/nest/storage/storage.service';
 import type { StorageCategory } from '../../../../src/nest/storage/storage.types';
+
+import type { Request } from 'express';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 
 interface DiskEngine {
   getDestination: (req: Request, file: Express.Multer.File, cb: (err: Error | null, dir: string) => void) => void;
@@ -82,8 +83,8 @@ describe('buildStorageUploadOptions', () => {
   it('STORAGE-UPLOAD-003 — category resolver receives (req, file) and routes per file', async () => {
     const spoolDirFor = vi.fn((cat: StorageCategory) => (cat === 'places' ? dirA : dirB));
     const storage = { spoolDirFor } as unknown as StorageService;
-    const category = vi.fn((_r: Request, file: Express.Multer.File): StorageCategory =>
-      file.fieldname === 'image' ? 'places' : 'covers',
+    const category = vi.fn(
+      (_r: Request, file: Express.Multer.File): StorageCategory => (file.fieldname === 'image' ? 'places' : 'covers'),
     );
     const opts = buildStorageUploadOptions(storage, { category, maxSize: 10 });
     const engine = opts.storage as unknown as DiskEngine;
@@ -97,7 +98,11 @@ describe('buildStorageUploadOptions', () => {
 
   it('STORAGE-UPLOAD-004 — destination surfaces spoolDirFor errors through the callback', async () => {
     const boom = new Error('registry not initialized');
-    const storage = { spoolDirFor: () => { throw boom; } } as unknown as StorageService;
+    const storage = {
+      spoolDirFor: () => {
+        throw boom;
+      },
+    } as unknown as StorageService;
     const opts = buildStorageUploadOptions(storage, { category: 'files', maxSize: 10 });
     const engine = opts.storage as unknown as DiskEngine;
 

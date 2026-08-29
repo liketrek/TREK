@@ -1,19 +1,20 @@
-import archiver from 'archiver';
-import unzipper from 'unzipper';
-import path from 'path';
-import { pipeline } from 'node:stream/promises';
 import { readEnv } from '../../app-config';
-import fs from 'fs';
-import Database from 'better-sqlite3';
 import { db, closeDb, reinitialize } from '../../db/database';
-import { VALID_INTERVALS } from './auto-backup.settings';
 import { invalidatePermissionsCache } from '../permissions/permissions-cache';
+import { snapshotAllPluginDataDbs } from '../plugins/host/plugin-data.service';
 import { pluginsCodeRoot, pluginsDataRoot } from '../plugins/paths';
 import { stageExtractedPluginTrees, applyStagedRestoreNow } from '../plugins/plugin-backup';
-import { snapshotAllPluginDataDbs } from '../plugins/host/plugin-data.service';
-import type { Response } from 'express';
 import type { StorageService } from '../storage/storage.service';
 import { StorageInvalidKeyError } from '../storage/storage.types';
+import { VALID_INTERVALS } from './auto-backup.settings';
+
+import archiver from 'archiver';
+import Database from 'better-sqlite3';
+import type { Response } from 'express';
+import fs from 'fs';
+import { pipeline } from 'node:stream/promises';
+import path from 'path';
+import unzipper from 'unzipper';
 
 // ---------------------------------------------------------------------------
 // Paths
@@ -63,10 +64,7 @@ export function parseAutoBackupBody(body: Record<string, unknown>): {
 } {
   const enabled = body.enabled === true || body.enabled === 'true' || body.enabled === 1;
   const rawInterval = body.interval;
-  const interval =
-    typeof rawInterval === 'string' && VALID_INTERVALS.includes(rawInterval)
-      ? rawInterval
-      : 'daily';
+  const interval = typeof rawInterval === 'string' && VALID_INTERVALS.includes(rawInterval) ? rawInterval : 'daily';
   const keep_days = Math.max(0, parseIntField(body.keep_days, 7));
   const hour = Math.min(23, Math.max(0, parseIntField(body.hour, 2)));
   const day_of_week = Math.min(6, Math.max(0, parseIntField(body.day_of_week, 0)));
@@ -161,7 +159,10 @@ export const BACKUP_UPLOAD_CATEGORIES = ['files', 'journey', 'covers', 'avatars'
  * only auto-backup-*.zip, and the admin panel badges them as automatic. Manual
  * backups keep the default.
  */
-export async function createBackup(storage: StorageService, prefix: 'backup' | 'auto-backup' = 'backup'): Promise<BackupInfo> {
+export async function createBackup(
+  storage: StorageService,
+  prefix: 'backup' | 'auto-backup' = 'backup',
+): Promise<BackupInfo> {
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
   const filename = `${prefix}-${timestamp}.zip`;
   // All staging lives in the backups backend's own spool: same volume as the
@@ -180,7 +181,9 @@ export async function createBackup(storage: StorageService, prefix: 'backup' | '
   const stagingDir = path.join(spoolDir, `staging-${prefix}-${timestamp}`);
 
   try {
-    try { db.exec('PRAGMA wal_checkpoint(TRUNCATE)'); } catch (e) {}
+    try {
+      db.exec('PRAGMA wal_checkpoint(TRUNCATE)');
+    } catch (e) {}
 
     // Enumerate the archived categories up front (the archiver reads entries
     // lazily during finalize(), so the promise executor below must stay
@@ -285,9 +288,17 @@ export async function createBackup(storage: StorageService, prefix: 'backup' | '
         for (const entry of fs.readdirSync(pcode)) {
           const dir = path.join(pcode, entry);
           let real: string;
-          try { real = fs.realpathSync(dir); } catch { continue; }
+          try {
+            real = fs.realpathSync(dir);
+          } catch {
+            continue;
+          }
           if (!real.startsWith(realRoot + path.sep)) continue; // dev-link points outside → skip
-          try { if (!fs.statSync(dir).isDirectory()) continue; } catch { continue; }
+          try {
+            if (!fs.statSync(dir).isDirectory()) continue;
+          } catch {
+            continue;
+          }
           archive.directory(dir, `plugins-code/${entry}`);
         }
       }
@@ -441,18 +452,26 @@ export async function restoreFromZip(storage: StorageService, zipPath: string): 
       const integrityResult = uploadedDb.prepare('PRAGMA integrity_check').get() as { integrity_check: string };
       if (integrityResult.integrity_check !== 'ok') {
         fs.rmSync(extractDir, { recursive: true, force: true });
-        return { success: false, error: `Uploaded database failed integrity check: ${integrityResult.integrity_check}`, status: 400 };
+        return {
+          success: false,
+          error: `Uploaded database failed integrity check: ${integrityResult.integrity_check}`,
+          status: 400,
+        };
       }
 
       const requiredTables = ['users', 'trips', 'trip_members', 'places', 'days'];
-      const existingTables = uploadedDb
-        .prepare("SELECT name FROM sqlite_master WHERE type='table'")
-        .all() as { name: string }[];
-      const tableNames = new Set(existingTables.map(t => t.name));
+      const existingTables = uploadedDb.prepare("SELECT name FROM sqlite_master WHERE type='table'").all() as {
+        name: string;
+      }[];
+      const tableNames = new Set(existingTables.map((t) => t.name));
       for (const table of requiredTables) {
         if (!tableNames.has(table)) {
           fs.rmSync(extractDir, { recursive: true, force: true });
-          return { success: false, error: `Uploaded database is missing required table: ${table}. This does not appear to be a TREK backup.`, status: 400 };
+          return {
+            success: false,
+            error: `Uploaded database is missing required table: ${table}. This does not appear to be a TREK backup.`,
+            status: 400,
+          };
         }
       }
     } catch (err) {
@@ -474,7 +493,9 @@ export async function restoreFromZip(storage: StorageService, zipPath: string): 
       const dbTmp = dbDest + '.restore-tmp';
       fs.copyFileSync(extractedDb, dbTmp);
       for (const ext of ['-wal', '-shm']) {
-        try { fs.unlinkSync(dbDest + ext); } catch (e) {}
+        try {
+          fs.unlinkSync(dbDest + ext);
+        } catch (e) {}
       }
       fs.renameSync(dbTmp, dbDest);
 
@@ -524,7 +545,9 @@ export async function restoreFromZip(storage: StorageService, zipPath: string): 
         for (const category of BACKUP_UPLOAD_CATEGORIES) {
           for await (const obj of storage.list(category)) {
             if (obj.key.includes('/')) continue;
-            await storage.delete(category, obj.key).catch(() => { /* best-effort, as the old unlink loop was */ });
+            await storage.delete(category, obj.key).catch(() => {
+              /* best-effort, as the old unlink loop was */
+            });
           }
         }
         await rehydrateUploads(storage, extractedUploads);
@@ -557,7 +580,12 @@ export async function restoreFromZip(storage: StorageService, zipPath: string): 
     fs.rmSync(extractDir, { recursive: true, force: true });
     if (reinitFailed) {
       console.error('Restore: database reopen failed after file swap:', reinitFailed);
-      return { success: false, error: 'Backup files were restored but the database connection could not be reopened. Restart the server to finish the restore.', status: 500 };
+      return {
+        success: false,
+        error:
+          'Backup files were restored but the database connection could not be reopened. Restart the server to finish the restore.',
+        status: 500,
+      };
     }
     return { success: true };
   } catch (err: unknown) {
@@ -569,7 +597,11 @@ export async function restoreFromZip(storage: StorageService, zipPath: string): 
     // stale anyway. Invalidating here too costs nothing and guarantees
     // we never serve cached permissions that don't match the DB state
     // we leave the process in after a failed restore.
-    try { invalidatePermissionsCache(); } catch { /* best-effort */ }
+    try {
+      invalidatePermissionsCache();
+    } catch {
+      /* best-effort */
+    }
     throw err;
   }
 }
@@ -581,4 +613,3 @@ export async function restoreFromZip(storage: StorageService, zipPath: string): 
 export function deleteBackup(storage: StorageService, filename: string): Promise<void> {
   return storage.delete('backups', filename);
 }
-

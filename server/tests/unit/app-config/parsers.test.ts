@@ -1,5 +1,3 @@
-import { describe, it, expect } from 'vitest';
-
 import {
   csvList,
   csvListFiltered,
@@ -13,6 +11,8 @@ import {
   resolveSessionTtlMs,
   stripTrailingSlashes,
 } from '../../../src/app-config/parsers';
+
+import { describe, it, expect } from 'vitest';
 
 describe('parseBool', () => {
   it('accepts the whole truthy family, any casing, padded', () => {

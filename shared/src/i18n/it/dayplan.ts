@@ -60,7 +60,7 @@ const dayplan: TranslationStrings = {
   'dayplan.gpxAll': 'Tutto il viaggio',
   'dayplan.gpxPlaces': 'Solo i luoghi',
   'dayplan.gpxDays': 'Giorni come itinerari',
-  'dayplan.gpxEmpty': 'Non c\'è ancora nulla da esportare',
+  'dayplan.gpxEmpty': "Non c'è ancora nulla da esportare",
   'dayplan.gpxFailed': 'Esportazione GPX non riuscita',
   'dayplan.pdfError': 'Impossibile esportare il PDF',
   'dayplan.cannotReorderTransport': 'Le prenotazioni con un orario fisso non possono essere riordinate',

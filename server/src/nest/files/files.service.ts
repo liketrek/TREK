@@ -1,16 +1,17 @@
-import { Injectable } from '@nestjs/common';
-import path from 'path';
-import type { Request } from 'express';
-import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
-import { RealtimeService } from '../realtime/realtime.service';
-import { PermissionsService } from '../permissions/permissions.service';
-import { avatarUrl } from '../common/avatarUrl';
+import type { User, TripFile } from '../../types';
 import { EphemeralTokenService } from '../auth/ephemeral-token.service';
 import { verifyJwtAndLoadUser } from '../auth/jwt-verify';
-import type { User, TripFile } from '../../types';
+import { avatarUrl } from '../common/avatarUrl';
 import { DatabaseService, type TripAccess } from '../database/database.service';
-import { DEFAULT_ALLOWED_EXTENSIONS } from './files.constants';
+import { PermissionsService } from '../permissions/permissions.service';
+import { RealtimeService } from '../realtime/realtime.service';
 import { StorageService } from '../storage/storage.service';
+import { DEFAULT_ALLOWED_EXTENSIONS } from './files.constants';
+import { Injectable } from '@nestjs/common';
+import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
+
+import type { Request } from 'express';
+import path from 'path';
 
 type Trip = TripAccess;
 type FilePermission = 'file_upload' | 'file_edit' | 'file_delete';
@@ -71,7 +72,12 @@ export class FilesService {
     return this.permissions.checkPermission(action, user.role, trip.user_id, user.id, trip.user_id !== user.id);
   }
 
-  broadcast<E extends TrekWsTripEventName>(tripId: string, event: E, payload: TrekWsPayload<E>, socketId: string | undefined): void {
+  broadcast<E extends TrekWsTripEventName>(
+    tripId: string,
+    event: E,
+    payload: TrekWsPayload<E>,
+    socketId: string | undefined,
+  ): void {
     this.realtime.broadcast(tripId, event, payload, socketId);
   }
 
@@ -83,7 +89,7 @@ export class FilesService {
   authenticateDownload(req: Request): { userId: number } | { error: string; status: number } {
     const cookieToken = (req as { cookies?: Record<string, string> }).cookies?.trek_session;
     const authHeader = req.headers['authorization'];
-    const bearerToken = authHeader ? (authHeader.split(' ')[1] || undefined) : undefined;
+    const bearerToken = authHeader ? authHeader.split(' ')[1] || undefined : undefined;
     const queryToken = req.query.token as string | undefined;
 
     // Cookie and Bearer both carry a full JWT — try them first (cookie wins).
@@ -120,15 +126,29 @@ export class FilesService {
    */
   findForeignLinkTarget(
     tripId: string | number,
-    opts: { reservation_id?: string | number | null; assignment_id?: string | number | null; place_id?: string | number | null }
+    opts: {
+      reservation_id?: string | number | null;
+      assignment_id?: string | number | null;
+      place_id?: string | number | null;
+    },
   ): 'reservation_id' | 'assignment_id' | 'place_id' | null {
-    if (opts.reservation_id && !this.db.get('SELECT 1 FROM reservations WHERE id = ? AND trip_id = ?', opts.reservation_id, tripId)) {
+    if (
+      opts.reservation_id &&
+      !this.db.get('SELECT 1 FROM reservations WHERE id = ? AND trip_id = ?', opts.reservation_id, tripId)
+    ) {
       return 'reservation_id';
     }
     if (opts.place_id && !this.db.get('SELECT 1 FROM places WHERE id = ? AND trip_id = ?', opts.place_id, tripId)) {
       return 'place_id';
     }
-    if (opts.assignment_id && !this.db.get('SELECT 1 FROM day_assignments a JOIN days d ON a.day_id = d.id WHERE a.id = ? AND d.trip_id = ?', opts.assignment_id, tripId)) {
+    if (
+      opts.assignment_id &&
+      !this.db.get(
+        'SELECT 1 FROM day_assignments a JOIN days d ON a.day_id = d.id WHERE a.id = ? AND d.trip_id = ?',
+        opts.assignment_id,
+        tripId,
+      )
+    ) {
       return 'assignment_id';
     }
     return null;
@@ -143,30 +163,40 @@ export class FilesService {
   }
 
   getDeletedFile(id: string | number, tripId: string | number): TripFile | undefined {
-    return this.db.get<TripFile>('SELECT * FROM trip_files WHERE id = ? AND trip_id = ? AND deleted_at IS NOT NULL', id, tripId);
+    return this.db.get<TripFile>(
+      'SELECT * FROM trip_files WHERE id = ? AND trip_id = ? AND deleted_at IS NOT NULL',
+      id,
+      tripId,
+    );
   }
 
   listFiles(tripId: string | number, showTrash: boolean) {
     const where = showTrash ? 'f.trip_id = ? AND f.deleted_at IS NOT NULL' : 'f.trip_id = ? AND f.deleted_at IS NULL';
-    const files = this.db.all<TripFile>(`${FILE_SELECT} WHERE ${where} ORDER BY f.starred DESC, f.created_at DESC`, tripId);
+    const files = this.db.all<TripFile>(
+      `${FILE_SELECT} WHERE ${where} ORDER BY f.starred DESC, f.created_at DESC`,
+      tripId,
+    );
 
-    const fileIds = files.map(f => f.id);
+    const fileIds = files.map((f) => f.id);
     const linksMap: Record<number, FileLink[]> = {};
     if (fileIds.length > 0) {
       const placeholders = fileIds.map(() => '?').join(',');
-      const links = this.db.all<FileLink>(`SELECT file_id, reservation_id, place_id FROM file_links WHERE file_id IN (${placeholders})`, ...fileIds);
+      const links = this.db.all<FileLink>(
+        `SELECT file_id, reservation_id, place_id FROM file_links WHERE file_id IN (${placeholders})`,
+        ...fileIds,
+      );
       for (const link of links) {
         if (!linksMap[link.file_id]) linksMap[link.file_id] = [];
         linksMap[link.file_id].push(link);
       }
     }
 
-    return files.map(f => {
+    return files.map((f) => {
       const fileLinks = linksMap[f.id] || [];
       return {
         ...formatFile(f),
-        linked_reservation_ids: fileLinks.filter(l => l.reservation_id).map(l => l.reservation_id),
-        linked_place_ids: fileLinks.filter(l => l.place_id).map(l => l.place_id),
+        linked_reservation_ids: fileLinks.filter((l) => l.reservation_id).map((l) => l.reservation_id),
+        linked_place_ids: fileLinks.filter((l) => l.place_id).map((l) => l.place_id),
       };
     });
   }
@@ -175,9 +205,10 @@ export class FilesService {
     tripId: string | number,
     file: { filename: string; originalname: string; size: number; mimetype: string },
     uploadedBy: number,
-    opts: { place_id?: string | number | null; reservation_id?: string | number | null; description?: string | null }
+    opts: { place_id?: string | number | null; reservation_id?: string | number | null; description?: string | null },
   ) {
-    const result = this.db.run(`
+    const result = this.db.run(
+      `
       INSERT INTO trip_files (trip_id, place_id, reservation_id, filename, original_name, file_size, mime_type, description, uploaded_by)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
@@ -189,7 +220,7 @@ export class FilesService {
       file.size,
       file.mimetype,
       opts.description || null,
-      uploadedBy
+      uploadedBy,
     );
 
     const created = this.db.get<TripFile>(`${FILE_SELECT} WHERE f.id = ?`, result.lastInsertRowid)!;
@@ -199,19 +230,20 @@ export class FilesService {
   updateFile(
     id: string | number,
     current: TripFile,
-    updates: { description?: string; place_id?: string | number | null; reservation_id?: string | number | null }
+    updates: { description?: string; place_id?: string | number | null; reservation_id?: string | number | null },
   ) {
-    this.db.run(`
+    this.db.run(
+      `
       UPDATE trip_files SET
         description = ?,
         place_id = ?,
         reservation_id = ?
       WHERE id = ?
     `,
-      updates.description !== undefined ? (updates.description || null) : current.description,
-      updates.place_id !== undefined ? (updates.place_id || null) : current.place_id,
-      updates.reservation_id !== undefined ? (updates.reservation_id || null) : current.reservation_id,
-      id
+      updates.description !== undefined ? updates.description || null : current.description,
+      updates.place_id !== undefined ? updates.place_id || null : current.place_id,
+      updates.reservation_id !== undefined ? updates.reservation_id || null : current.reservation_id,
+      id,
     );
 
     const updated = this.db.get<TripFile>(`${FILE_SELECT} WHERE f.id = ?`, id)!;
@@ -251,19 +283,24 @@ export class FilesService {
   }
 
   async emptyTrash(tripId: string | number): Promise<number> {
-    const trashed = this.db.all<TripFile>('SELECT * FROM trip_files WHERE trip_id = ? AND deleted_at IS NOT NULL', tripId);
+    const trashed = this.db.all<TripFile>(
+      'SELECT * FROM trip_files WHERE trip_id = ? AND deleted_at IS NOT NULL',
+      tripId,
+    );
     // Collect successful IDs separately so we only DELETE rows whose disk
     // content was actually removed — failing unlinks keep their DB row
     // and a retry via the single-file delete path can try again.
     const successfullyUnlinked: number[] = [];
-    await Promise.all(trashed.map(async (file) => {
-      try {
-        await this.storage.delete('files', path.basename(file.filename));
-        successfullyUnlinked.push(Number(file.id));
-      } catch (e) {
-        console.error(`[files] unlink failed for ${file.filename}, keeping DB row:`, e);
-      }
-    }));
+    await Promise.all(
+      trashed.map(async (file) => {
+        try {
+          await this.storage.delete('files', path.basename(file.filename));
+          successfullyUnlinked.push(Number(file.id));
+        } catch (e) {
+          console.error(`[files] unlink failed for ${file.filename}, keeping DB row:`, e);
+        }
+      }),
+    );
     if (successfullyUnlinked.length > 0) {
       const placeholders = successfullyUnlinked.map(() => '?').join(',');
       this.db.run(`DELETE FROM trip_files WHERE id IN (${placeholders})`, ...successfullyUnlinked);
@@ -280,10 +317,18 @@ export class FilesService {
   // of returning a success-shaped links list (the legacy catch swallowed it).
   createFileLink(
     fileId: string | number,
-    opts: { reservation_id?: string | number | null; assignment_id?: string | number | null; place_id?: string | number | null }
+    opts: {
+      reservation_id?: string | number | null;
+      assignment_id?: string | number | null;
+      place_id?: string | number | null;
+    },
   ) {
-    this.db.run('INSERT OR IGNORE INTO file_links (file_id, reservation_id, assignment_id, place_id) VALUES (?, ?, ?, ?)',
-      fileId, opts.reservation_id || null, opts.assignment_id || null, opts.place_id || null
+    this.db.run(
+      'INSERT OR IGNORE INTO file_links (file_id, reservation_id, assignment_id, place_id) VALUES (?, ?, ?, ?)',
+      fileId,
+      opts.reservation_id || null,
+      opts.assignment_id || null,
+      opts.place_id || null,
     );
     return this.db.all('SELECT * FROM file_links WHERE file_id = ?', fileId);
   }
@@ -293,11 +338,14 @@ export class FilesService {
   }
 
   getFileLinks(fileId: string | number) {
-    return this.db.all(`
+    return this.db.all(
+      `
       SELECT fl.*, r.title as reservation_title
       FROM file_links fl
       LEFT JOIN reservations r ON fl.reservation_id = r.id
       WHERE fl.file_id = ?
-    `, fileId);
+    `,
+      fileId,
+    );
   }
 }

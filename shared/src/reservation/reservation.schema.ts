@@ -214,20 +214,29 @@ export const reservationUrlSchema = z.string().refine(
   // Browsers strip control characters and whitespace before they resolve the
   // scheme, so a tab spliced into 'javascript:' still runs. Everything at
   // or below U+0020 goes, which is the same set a browser drops.
-  v => !/^(javascript|data|vbscript):/i.test(Array.from(v).filter(c => c > ' ').join('')),
+  (v) =>
+    !/^(javascript|data|vbscript):/i.test(
+      Array.from(v)
+        .filter((c) => c > ' ')
+        .join(''),
+    ),
   { message: 'must not be a javascript:, data: or vbscript: URL' },
 );
 
 /** Reservation create: title is required; the many optional fields stay open. */
-export const reservationCreateRequestSchema = open.and(z.object({
-  title: z.string().min(1),
-  url: reservationUrlSchema.nullable().optional(),
-}));
+export const reservationCreateRequestSchema = open.and(
+  z.object({
+    title: z.string().min(1),
+    url: reservationUrlSchema.nullable().optional(),
+  }),
+);
 export type ReservationCreateRequest = z.infer<typeof reservationCreateRequestSchema>;
 
-export const reservationUpdateRequestSchema = open.and(z.object({
-  url: reservationUrlSchema.nullable().optional(),
-}));
+export const reservationUpdateRequestSchema = open.and(
+  z.object({
+    url: reservationUrlSchema.nullable().optional(),
+  }),
+);
 export type ReservationUpdateRequest = z.infer<typeof reservationUpdateRequestSchema>;
 
 /** Assign trip members/guests to a reservation (mirrors budget's PUT :id/members). */

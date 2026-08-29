@@ -1,3 +1,14 @@
+import type { AddonsService } from '../../../src/nest/addons/addons.service';
+import type { DatabaseService } from '../../../src/nest/database/database.service';
+import { AirtrailLinkService } from '../../../src/nest/integrations/airtrail-link.service';
+import { AirtrailSyncService } from '../../../src/nest/integrations/airtrail-sync.service';
+import { AirtrailAuthError } from '../../../src/nest/integrations/airtrail.client';
+import type { AirtrailClient } from '../../../src/nest/integrations/airtrail.client';
+import type { AirtrailService } from '../../../src/nest/integrations/airtrail.service';
+import type { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import type { ReservationsReadRepository } from '../../../src/nest/reservations/reservations-read.repository';
+import type { ReservationsService } from '../../../src/nest/reservations/reservations.service';
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 /**
@@ -15,17 +26,6 @@ vi.mock('../../../src/nest/integrations/airtrail.mapper', () => ({
   mapFlightToReservation: vi.fn(() => ({})),
   entityCode: (e: any) => e?.icao || e?.iata || null,
 }));
-
-import { AirtrailLinkService } from '../../../src/nest/integrations/airtrail-link.service';
-import { AirtrailAuthError } from '../../../src/nest/integrations/airtrail.client';
-import type { DatabaseService } from '../../../src/nest/database/database.service';
-import type { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import type { AddonsService } from '../../../src/nest/addons/addons.service';
-import { AirtrailSyncService } from '../../../src/nest/integrations/airtrail-sync.service';
-import type { ReservationsService } from '../../../src/nest/reservations/reservations.service';
-import type { ReservationsReadRepository } from '../../../src/nest/reservations/reservations-read.repository';
-import type { AirtrailClient } from '../../../src/nest/integrations/airtrail.client';
-import type { AirtrailService } from '../../../src/nest/integrations/airtrail.service';
 
 const linkedRow = { id: 5, trip_id: 9, external_id: '42', external_owner_user_id: 7, sync_enabled: 1 };
 
@@ -92,7 +92,13 @@ beforeEach(() => {
 
   getAirtrailCredentials.mockReturnValue({ baseUrl: 'https://at.example', apiKey: 'k', allowInsecureTls: false });
   // GET returns AirTrail-owned detail TREK doesn't model — must survive the writeback.
-  getFlight.mockResolvedValue({ id: 42, from: { iata: 'JFK' }, to: { iata: 'LHR' }, seats: [], departureTerminal: '7' });
+  getFlight.mockResolvedValue({
+    id: 42,
+    from: { iata: 'JFK' },
+    to: { iata: 'LHR' },
+    seats: [],
+    departureTerminal: '7',
+  });
   saveFlight.mockResolvedValue({ id: 42 });
   getReservationWithJoins.mockReturnValue({
     external_id: '42',
@@ -144,7 +150,12 @@ describe('pushReservationToAirtrail write gate (#1240)', () => {
     getReservationWithJoins.mockReturnValue({
       external_id: '42',
       reservation_time: '2021-09-01T19:00',
-      metadata: JSON.stringify({ legs: [{ from: 'BRU', to: 'HEL' }, { from: 'HEL', to: 'JFK' }] }),
+      metadata: JSON.stringify({
+        legs: [
+          { from: 'BRU', to: 'HEL' },
+          { from: 'HEL', to: 'JFK' },
+        ],
+      }),
       endpoints: [],
     });
     await svc.link.pushReservationToAirtrail(5, 9);

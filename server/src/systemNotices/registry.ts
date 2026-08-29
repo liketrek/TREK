@@ -1,9 +1,11 @@
-import type { SystemNotice } from './types.js';
-import { registerPredicate } from './conditions.js';
 import { db } from '../db/database.js';
+import { registerPredicate } from './conditions.js';
+import type { SystemNotice } from './types.js';
 
 registerPredicate('whitespace-collision-detected', () => {
-  const row = db.prepare("SELECT value FROM app_settings WHERE key = 'whitespace_migration_collision'").get() as { value: string } | undefined;
+  const row = db.prepare("SELECT value FROM app_settings WHERE key = 'whitespace_migration_collision'").get() as
+    | { value: string }
+    | undefined;
   return row?.value === 'true';
 });
 
@@ -164,7 +166,7 @@ export const SYSTEM_NOTICES: SystemNotice[] = [
     severity: 'warn',
     icon: 'AlertTriangle',
     titleKey: 'system_notice.v3014_whitespace_collision.title',
-    bodyKey:  'system_notice.v3014_whitespace_collision.body',
+    bodyKey: 'system_notice.v3014_whitespace_collision.body',
     dismissible: true,
     conditions: [
       { kind: 'existingUserBeforeVersion', version: '3.0.14' },

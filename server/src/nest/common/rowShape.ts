@@ -43,14 +43,16 @@ export function formatAssignmentWithPlace(a: AssignmentRow, tags: Partial<Tag>[]
       osm_id: a.osm_id,
       website: a.website,
       phone: a.phone,
-      category: a.category_id ? {
-        id: a.category_id,
-        name: a.category_name,
-        color: a.category_color,
-        icon: a.category_icon,
-      } : null,
+      category: a.category_id
+        ? {
+            id: a.category_id,
+            name: a.category_name,
+            color: a.category_color,
+            icon: a.category_icon,
+          }
+        : null,
       tags: tags || [],
-    }
+    },
   };
 }
 

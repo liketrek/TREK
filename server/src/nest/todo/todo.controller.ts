@@ -1,21 +1,10 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Headers,
-  HttpException,
-  Param,
-  Post,
-  Put,
-  UseGuards,
-} from '@nestjs/common';
 import type { User } from '../../types';
-import { TodoService } from './todo.service';
-import { TodoCreateItemDto, TodoUpdateItemDto, TodoReorderDto, TodoCategoryAssigneesDto } from './todo.dto';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
+import { TodoCreateItemDto, TodoUpdateItemDto, TodoReorderDto, TodoCategoryAssigneesDto } from './todo.dto';
+import { TodoService } from './todo.service';
+import { Body, Controller, Delete, Get, Headers, HttpException, Param, Post, Put, UseGuards } from '@nestjs/common';
 
 /**
  * /api/trips/:tripId/todo — trip-scoped task list.
@@ -35,8 +24,6 @@ import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.g
 @UseGuards(JwtAuthGuard, TripAccessGuard)
 export class TodoController {
   constructor(private readonly todo: TodoService) {}
-
-
 
   @Get()
   list(@CurrentUser() user: User, @Param('tripId') tripId: string) {
@@ -59,11 +46,7 @@ export class TodoController {
 
   @RequirePermission('packing_edit')
   @Put('reorder')
-  reorder(
-    @CurrentUser() user: User,
-    @Param('tripId') tripId: string,
-    @Body() body: TodoReorderDto,
-  ) {
+  reorder(@CurrentUser() user: User, @Param('tripId') tripId: string, @Body() body: TodoReorderDto) {
     this.todo.reorderItems(tripId, body.orderedIds);
     return { success: true };
   }
@@ -84,7 +67,15 @@ export class TodoController {
       tripId,
       id,
       // checked arrives as boolean or legacy 0/1 — normalize to the 0/1 the SQL binds.
-      { name, checked: checked === undefined ? undefined : checked ? 1 : 0, category, due_date, description, assigned_user_id, priority },
+      {
+        name,
+        checked: checked === undefined ? undefined : checked ? 1 : 0,
+        category,
+        due_date,
+        description,
+        assigned_user_id,
+        priority,
+      },
       Object.keys(body),
     );
     if (!updated) {

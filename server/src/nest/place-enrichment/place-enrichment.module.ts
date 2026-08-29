@@ -1,9 +1,9 @@
-import { Module } from '@nestjs/common';
+import { RateLimitModule } from '../common/rate-limit.module';
 import { MapsModule } from '../maps/maps.module';
 import { PlacePhotosModule } from '../place-photos/place-photos.module';
-import { RateLimitModule } from '../common/rate-limit.module';
 import { PlaceEnrichmentController } from './place-enrichment.controller';
 import { PlaceEnrichmentService } from './place-enrichment.service';
+import { Module } from '@nestjs/common';
 
 /**
  * Place enrichment (L4 leaf module). Registered in AppModule.

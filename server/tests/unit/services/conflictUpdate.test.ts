@@ -3,6 +3,26 @@
  * update services. A matching If-Match token (or none) updates as before; a
  * stale token returns the conflict sentinel carrying the server's current row.
  */
+import { runMigrations } from '../../../src/db/migrations';
+import { createTables } from '../../../src/db/schema';
+import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
+import { isUpdateConflict } from '../../../src/nest/common/conflictResult';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
+import { MapsService } from '../../../src/nest/maps/maps.service';
+import { PackingService } from '../../../src/nest/packing/packing.service';
+import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { TrekPhotosRepository } from '../../../src/nest/photos/trek-photos.repository';
+import { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
+import { PlacesService } from '../../../src/nest/places/places.service';
+import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { UnsplashService } from '../../../src/nest/unsplash/unsplash.service';
+import { createUser, createTrip } from '../../helpers/factories';
+import { notificationsStub } from '../../helpers/notifications';
+import { makeStorageFixture } from '../../helpers/storage-fixture';
+import { resetTestDb } from '../../helpers/test-db';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 const { testDb, dbMock } = vi.hoisted(() => {
@@ -33,26 +53,6 @@ vi.mock('../../../src/config', () => ({
   ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
   updateJwtSecret: () => {},
 }));
-
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip } from '../../helpers/factories';
-import { isUpdateConflict } from '../../../src/nest/common/conflictResult';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { PackingService } from '../../../src/nest/packing/packing.service';
-import { PlacesService } from '../../../src/nest/places/places.service';
-import { MapsService } from '../../../src/nest/maps/maps.service';
-import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
-import { UnsplashService } from '../../../src/nest/unsplash/unsplash.service';
-import { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
-import { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
-import { TrekPhotosRepository } from '../../../src/nest/photos/trek-photos.repository';
-import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
-import { notificationsStub } from '../../helpers/notifications';
-import { makeStorageFixture } from '../../helpers/storage-fixture';
 
 const dbs = new DatabaseService(testDb);
 const realtime = new RealtimeService();
@@ -138,7 +138,7 @@ describe('PlacesService.update — optimistic concurrency', () => {
 describe('updateItem (packing) — optimistic concurrency', () => {
   it('migration added updated_at and createItem stamps it', () => {
     const cols = testDb.prepare("PRAGMA table_info('packing_items')").all() as { name: string }[];
-    expect(cols.map(c => c.name)).toContain('updated_at');
+    expect(cols.map((c) => c.name)).toContain('updated_at');
 
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
@@ -158,4 +158,4 @@ describe('updateItem (packing) — optimistic concurrency', () => {
     expect(isUpdateConflict(fresh)).toBe(false);
     expect((fresh as { name: string }).name).toBe('Edited');
   });
-})
+});

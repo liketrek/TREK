@@ -7,60 +7,89 @@
  * hands the registry a channel it shouldn't. Without it, a channel claiming `email`
  * rides the user's email opt-in and receives admin-scoped notifications.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
-
-const { testDb, dbMock } = vi.hoisted(() => {
-  const Database = require('better-sqlite3');
-  const db = new Database(':memory:');
-  return { testDb: db, dbMock: { db, closeDb: () => {}, reinitialize: () => {}, canAccessTrip: () => null, isOwner: () => false, getPlaceWithTags: () => null } };
-});
-vi.mock('../../../src/db/database', () => dbMock);
-vi.mock('../../../src/config', () => ({ JWT_SECRET: 'x'.repeat(40), ENCRYPTION_KEY: 'a'.repeat(64), updateJwtSecret: () => {} }));
-vi.mock('../../../src/nest/common/crypto/apiKeyCrypto', () => ({ decrypt_api_key: (v: string) => v, maybe_encrypt_api_key: (v: string) => v, encrypt_api_key: (v: string) => v }));
-const { sendMailMock } = vi.hoisted(() => ({ sendMailMock: vi.fn().mockResolvedValue({ accepted: ['a@b.c'] }) }));
-vi.mock('nodemailer', () => ({ default: { createTransport: vi.fn(() => ({ sendMail: sendMailMock, verify: vi.fn() })) } }));
-vi.stubGlobal('fetch', vi.fn());
-vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
-vi.mock('../../../src/utils/ssrfGuard', () => ({ checkSsrf: vi.fn(async () => ({ allowed: true, resolvedIp: '1.2.3.4' })), createPinnedDispatcher: vi.fn(() => ({})) }));
-
-import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createAdmin, setAppSetting, setNotificationChannels } from '../../helpers/factories';
-// The send dispatcher is DI-native since the notifications fold
-// (notifications.instance.ts died with the last cycle-dodge bridge); a
-// hand-constructed instance still shares the module-scoped channel registry,
-// which is exactly what CHOVR-015 pins.
-import type { NotificationPayload } from '../../../src/nest/notifications/notifications.service';
-import { makeNotificationsService } from '../../helpers/notifications';
-
-// One instance, built at module load like the old import-time singleton: its
-// constructor is what registers the built-in channels the registry cases read.
-const notifications = makeNotificationsService(new DatabaseService(testDb));
-const send = (payload: NotificationPayload) => notifications.send(payload);
-import { NtfyService } from '../../../src/nest/notifications/transports/ntfy.service';
-import { WebhookService } from '../../../src/nest/notifications/transports/webhook.service';
+import { createTables } from '../../../src/db/schema';
 import { DatabaseService } from '../../../src/nest/database/database.service';
-import { createPluginRuntime } from '../../helpers/plugin-host';
-import { MailerService } from '../../../src/nest/notifications/mailer/mailer.service';
-import { NotificationPreferencesService } from '../../../src/nest/notifications/notification-preferences.service';
-
 import {
   setPluginChannelSource,
   listChannels,
   getChannel,
   registerChannel,
 } from '../../../src/nest/notifications/channel-registry';
+import { MailerService } from '../../../src/nest/notifications/mailer/mailer.service';
 // The registry consumes ExternalChannel but does not re-export it; it is declared here.
 import type { ExternalChannel } from '../../../src/nest/notifications/notification-events';
+import { NotificationPreferencesService } from '../../../src/nest/notifications/notification-preferences.service';
+// The send dispatcher is DI-native since the notifications fold
+// (notifications.instance.ts died with the last cycle-dodge bridge); a
+// hand-constructed instance still shares the module-scoped channel registry,
+// which is exactly what CHOVR-015 pins.
+import type { NotificationPayload } from '../../../src/nest/notifications/notifications.service';
+import { NtfyService } from '../../../src/nest/notifications/transports/ntfy.service';
+import { WebhookService } from '../../../src/nest/notifications/transports/webhook.service';
+import { createUser, createAdmin, setAppSetting, setNotificationChannels } from '../../helpers/factories';
+import { makeNotificationsService } from '../../helpers/notifications';
+import { createPluginRuntime } from '../../helpers/plugin-host';
+import { resetTestDb } from '../../helpers/test-db';
+
+import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
+
+const { testDb, dbMock } = vi.hoisted(() => {
+  const Database = require('better-sqlite3');
+  const db = new Database(':memory:');
+  return {
+    testDb: db,
+    dbMock: {
+      db,
+      closeDb: () => {},
+      reinitialize: () => {},
+      canAccessTrip: () => null,
+      isOwner: () => false,
+      getPlaceWithTags: () => null,
+    },
+  };
+});
+vi.mock('../../../src/db/database', () => dbMock);
+vi.mock('../../../src/config', () => ({
+  JWT_SECRET: 'x'.repeat(40),
+  ENCRYPTION_KEY: 'a'.repeat(64),
+  updateJwtSecret: () => {},
+}));
+vi.mock('../../../src/nest/common/crypto/apiKeyCrypto', () => ({
+  decrypt_api_key: (v: string) => v,
+  maybe_encrypt_api_key: (v: string) => v,
+  encrypt_api_key: (v: string) => v,
+}));
+const { sendMailMock } = vi.hoisted(() => ({ sendMailMock: vi.fn().mockResolvedValue({ accepted: ['a@b.c'] }) }));
+vi.mock('nodemailer', () => ({
+  default: { createTransport: vi.fn(() => ({ sendMail: sendMailMock, verify: vi.fn() })) },
+}));
+vi.stubGlobal('fetch', vi.fn());
+vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
+vi.mock('../../../src/utils/ssrfGuard', () => ({
+  checkSsrf: vi.fn(async () => ({ allowed: true, resolvedIp: '1.2.3.4' })),
+  createPinnedDispatcher: vi.fn(() => ({})),
+}));
+
+// One instance, built at module load like the old import-time singleton: its
+// constructor is what registers the built-in channels the registry cases read.
+const notifications = makeNotificationsService(new DatabaseService(testDb));
+const send = (payload: NotificationPayload) => notifications.send(payload);
 
 const prefsDbs = new DatabaseService(testDb);
 const prefsSvc = new NotificationPreferencesService(prefsDbs, new MailerService(prefsDbs));
 const getPreferencesMatrix = prefsSvc.getPreferencesMatrix.bind(prefsSvc);
-void WebhookService; void NtfyService;
+void WebhookService;
+void NtfyService;
 
-beforeAll(() => { createTables(testDb); runMigrations(testDb); });
-beforeEach(() => { resetTestDb(testDb); setPluginChannelSource(null); });
+beforeAll(() => {
+  createTables(testDb);
+  runMigrations(testDb);
+});
+beforeEach(() => {
+  resetTestDb(testDb);
+  setPluginChannelSource(null);
+});
 
 const rogueSend = vi.fn().mockResolvedValue(true);
 const rogueGlobal = vi.fn().mockResolvedValue(true);
@@ -86,14 +115,23 @@ function rogue(over: Partial<ExternalChannel> = {}): ExternalChannel {
   } as ExternalChannel;
 }
 
-const TRIP_INVITE = { event: 'trip_invite', actorId: null, scope: 'user', targetId: 0, params: { trip: 'Rome', actor: 'A', invitee: 'B', tripId: '1' } } as const;
+const TRIP_INVITE = {
+  event: 'trip_invite',
+  actorId: null,
+  scope: 'user',
+  targetId: 0,
+  params: { trip: 'Rome', actor: 'A', invitee: 'B', tripId: '1' },
+} as const;
 
 describe('a plugin channel can never override a built-in', () => {
-  beforeEach(() => { rogueSend.mockClear(); rogueGlobal.mockClear(); });
+  beforeEach(() => {
+    rogueSend.mockClear();
+    rogueGlobal.mockClear();
+  });
 
   it('CHOVR-001 — a channel claiming a built-in id is dropped from the registry', () => {
     setPluginChannelSource(() => [rogue()]);
-    expect(listChannels().filter(c => c.id === 'email')).toHaveLength(1);
+    expect(listChannels().filter((c) => c.id === 'email')).toHaveLength(1);
     expect(getChannel('email')!.source).toBe('builtin');
   });
 
@@ -111,12 +149,12 @@ describe('a plugin channel can never override a built-in', () => {
 
   it('CHOVR-003 — an un-namespaced id is dropped even when it collides with nothing', () => {
     setPluginChannelSource(() => [rogue({ id: 'carrier-pigeon', source: 'plugin' })]);
-    expect(listChannels().map(c => c.id)).not.toContain('carrier-pigeon');
+    expect(listChannels().map((c) => c.id)).not.toContain('carrier-pigeon');
   });
 
   it('CHOVR-004 — a properly namespaced channel IS admitted', () => {
     setPluginChannelSource(() => [rogue({ id: 'plugin:gotify', source: 'plugin' })]);
-    expect(listChannels().map(c => c.id)).toContain('plugin:gotify');
+    expect(listChannels().map((c) => c.id)).toContain('plugin:gotify');
   });
 
   it('CHOVR-005 — an admitted plugin channel has its built-in-only privileges stripped', () => {
@@ -135,7 +173,13 @@ describe('a plugin channel can never override a built-in', () => {
     // supportsEvent lies and says yes to everything; the registry strips what makes it matter.
     setPluginChannelSource(() => [rogue({ id: 'plugin:gotify', supportsEvent: () => true })]);
 
-    await send({ event: 'version_available', actorId: null, scope: 'admin', targetId: 0, params: { version: '9.9.9' } });
+    await send({
+      event: 'version_available',
+      actorId: null,
+      scope: 'admin',
+      targetId: 0,
+      params: { version: '9.9.9' },
+    });
 
     expect(rogueSend).not.toHaveBeenCalled();
     expect(rogueGlobal).not.toHaveBeenCalled();
@@ -146,7 +190,7 @@ describe('a plugin channel can never override a built-in', () => {
     setNotificationChannels(testDb, 'plugin:gotify');
     setPluginChannelSource(() => [rogue({ id: 'plugin:gotify' }), rogue({ id: 'plugin:gotify' })]);
 
-    expect(listChannels().filter(c => c.id === 'plugin:gotify')).toHaveLength(1);
+    expect(listChannels().filter((c) => c.id === 'plugin:gotify')).toHaveLength(1);
     await send({ ...TRIP_INVITE, targetId: user.id });
     expect(rogueSend).toHaveBeenCalledTimes(1);
   });
@@ -155,8 +199,8 @@ describe('a plugin channel can never override a built-in', () => {
     const { user } = createUser(testDb);
     setNotificationChannels(testDb, 'email');
     setPluginChannelSource(() => [rogue()]);
-    const ids = getPreferencesMatrix(user.id, 'user').channels.map(c => c.id);
-    expect(ids.filter(i => i === 'email')).toHaveLength(1);
+    const ids = getPreferencesMatrix(user.id, 'user').channels.map((c) => c.id);
+    expect(ids.filter((i) => i === 'email')).toHaveLength(1);
     expect(new Set(ids).size).toBe(ids.length);
   });
 
@@ -166,7 +210,9 @@ describe('a plugin channel can never override a built-in', () => {
 });
 
 describe('a live plugin channel needs no second opt-in', () => {
-  beforeEach(() => { rogueSend.mockClear(); });
+  beforeEach(() => {
+    rogueSend.mockClear();
+  });
 
   it('CHOVR-011 — it appears in the matrix with NOTHING in notification_channels', () => {
     const { user } = createUser(testDb);
@@ -174,7 +220,7 @@ describe('a live plugin channel needs no second opt-in', () => {
     setPluginChannelSource(() => [rogue({ id: 'plugin:gotify', source: 'plugin', label: 'Gotify' })]);
 
     const matrix = getPreferencesMatrix(user.id, 'user');
-    const ch = matrix.channels.find(c => c.id === 'plugin:gotify')!;
+    const ch = matrix.channels.find((c) => c.id === 'plugin:gotify')!;
     // Enabling the PLUGIN is the opt-in. There is no UI that can write a `plugin:` id into
     // the notification_channels CSV, so requiring one meant the channel could never show.
     expect(ch.active).toBe(true);
@@ -205,8 +251,8 @@ describe('a live plugin channel needs no second opt-in', () => {
     const { user } = createUser(testDb);
     setPluginChannelSource(() => [rogue({ id: 'plugin:gotify', source: 'plugin', isConfiguredFor: () => false })]);
 
-    const ch = getPreferencesMatrix(user.id, 'user').channels.find(c => c.id === 'plugin:gotify')!;
-    expect(ch.active).toBe(true);      // shown — so they can see it and go configure it
+    const ch = getPreferencesMatrix(user.id, 'user').channels.find((c) => c.id === 'plugin:gotify')!;
+    expect(ch.active).toBe(true); // shown — so they can see it and go configure it
     expect(ch.configured).toBe(false); // …but flagged as needing setup
 
     await send({ ...TRIP_INVITE, targetId: user.id });
@@ -248,7 +294,11 @@ describe('the plugin channel source reaches the outside-container instance', () 
       delivered.push({ userId: user.id, title: msg.title });
       return true;
     };
-    testDb.prepare("INSERT INTO plugins (id, name, version, status, enabled) VALUES ('gotify', 'Gotify', '1.0.0', 'active', 1)").run();
+    testDb
+      .prepare(
+        "INSERT INTO plugins (id, name, version, status, enabled) VALUES ('gotify', 'Gotify', '1.0.0', 'active', 1)",
+      )
+      .run();
 
     // The exact line plugin-runtime.service.ts runs in onModuleInit.
     setPluginChannelSource(() => runtime.notificationChannels());

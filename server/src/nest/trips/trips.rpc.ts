@@ -1,17 +1,17 @@
-import { tripCreateRequestSchema, tripUpdateRequestSchema } from '@trek/shared';
-import { PluginController, PluginMethod } from '../plugins/host/rpc-kit/decorators';
+import { AccommodationsService } from '../accommodations/accommodations.service';
+import { DatabaseService } from '../database/database.service';
+import { DaysService } from '../days/days.service';
 import { PluginGuards } from '../plugins/host/plugin-guards.service';
 import { BadParams, ForbiddenResource } from '../plugins/host/rpc-errors';
-import { num, schemaMessage } from '../plugins/host/rpc-params';
+import { PluginController, PluginMethod } from '../plugins/host/rpc-kit/decorators';
 import type { PluginRpcContext } from '../plugins/host/rpc-kit/types';
+import { num, schemaMessage } from '../plugins/host/rpc-params';
 import { RealtimeService } from '../realtime/realtime.service';
-import { DatabaseService } from '../database/database.service';
 import { ReservationsService } from '../reservations/reservations.service';
-import { DaysService } from '../days/days.service';
-import { AccommodationsService } from '../accommodations/accommodations.service';
 import { TripMembersService } from '../trip-members/trip-members.service';
 import { TripMembershipService } from '../trip-membership/trip-membership.service';
 import { TripsService, NotFoundError, ValidationError, withoutFeedToken } from './trips.service';
+import { tripCreateRequestSchema, tripUpdateRequestSchema } from '@trek/shared';
 
 const TRIP_EDIT_ACTION = 'trip_edit';
 const MEMBER_MANAGE_ACTION = 'member_manage';
@@ -105,10 +105,15 @@ export class TripsRpc {
 
   @PluginMethod('trips.members', { permission: 'db:read:trips' })
   members(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
-    return this.guards.tripRead(params, ctx, () =>
-      this.db
-        .prepare('SELECT u.id, u.username, u.display_name, u.avatar FROM trip_members tm JOIN users u ON u.id = tm.user_id WHERE tm.trip_id = ?')
-        .all(num(params.tripId, 'tripId')) as unknown[],
+    return this.guards.tripRead(
+      params,
+      ctx,
+      () =>
+        this.db
+          .prepare(
+            'SELECT u.id, u.username, u.display_name, u.avatar FROM trip_members tm JOIN users u ON u.id = tm.user_id WHERE tm.trip_id = ?',
+          )
+          .all(num(params.tripId, 'tripId')) as unknown[],
     );
   }
 
@@ -133,7 +138,12 @@ export class TripsRpc {
     try {
       // The no-rebase core, parity with the legacy host path, which never
       // re-anchored the budget currency.
-      const result = this.trips.updateTrip(tripId, actor, input as Parameters<TripsService['updateTrip']>[2], user?.role ?? 'user');
+      const result = this.trips.updateTrip(
+        tripId,
+        actor,
+        input as Parameters<TripsService['updateTrip']>[2],
+        user?.role ?? 'user',
+      );
       this.realtime.broadcast(tripId, 'trip:updated', { trip: result.updatedTrip });
       return result.updatedTrip;
     } catch (e) {
@@ -185,7 +195,9 @@ export class TripsRpc {
     this.guards.requireTripEdit(tripId, actor, MEMBER_MANAGE_ACTION);
     // Never remove the OWNER through this path: that would orphan the trip.
     // Ownership transfer is a separate, deliberate action.
-    const trip = this.db.prepare('SELECT user_id FROM trips WHERE id = ?').get(tripId) as { user_id: number } | undefined;
+    const trip = this.db.prepare('SELECT user_id FROM trips WHERE id = ?').get(tripId) as
+      | { user_id: number }
+      | undefined;
     if (trip && trip.user_id === targetUserId) throw new ForbiddenResource('cannot remove the trip owner');
     this.roster.removeMember(tripId, targetUserId);
     return { removed: true };

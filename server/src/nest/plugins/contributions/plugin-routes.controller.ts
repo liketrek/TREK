@@ -1,12 +1,13 @@
-import { Body, Controller, Param, Post, Req, UseGuards } from '@nestjs/common';
-import type { Request } from 'express';
-import type Database from 'better-sqlite3';
-import { DatabaseService } from '../../database/database.service';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import { DatabaseService } from '../../database/database.service';
 import { pluginsEnabled } from '../kill-switch';
 import { PluginHooks } from '../plugin-hooks.service';
-import { stripEmoji } from '../text-sanitize';
 import { PluginRouteDto } from '../plugins.dto';
+import { stripEmoji } from '../text-sanitize';
+import { Body, Controller, Param, Post, Req, UseGuards } from '@nestjs/common';
+
+import type Database from 'better-sqlite3';
+import type { Request } from 'express';
 
 /**
  * POST /api/plugin-routes/:pluginId/:profileId — ask ONE routeProvider plugin to
@@ -82,7 +83,12 @@ function readWaypoints(raw: unknown): RouteWaypointIn[] | null {
     if (!w || typeof w !== 'object' || !validCoord(w.lat, w.lng)) return null;
     const name = w.name != null ? cap(w.name, 120) : undefined;
     const placeId = Number.isInteger(w.placeId) ? (w.placeId as number) : undefined;
-    out.push({ lat: Number(w.lat), lng: Number(w.lng), ...(name ? { name } : {}), ...(placeId !== undefined ? { placeId } : {}) });
+    out.push({
+      lat: Number(w.lat),
+      lng: Number(w.lng),
+      ...(name ? { name } : {}),
+      ...(placeId !== undefined ? { placeId } : {}),
+    });
   }
   return out;
 }
@@ -189,7 +195,9 @@ export class PluginRoutesController {
 
 function declaredProfiles(conn: Database.Database, pluginId: string): string[] {
   try {
-    const row = conn.prepare('SELECT capabilities FROM plugins WHERE id = ?').get(pluginId) as { capabilities?: string } | undefined;
+    const row = conn.prepare('SELECT capabilities FROM plugins WHERE id = ?').get(pluginId) as
+      | { capabilities?: string }
+      | undefined;
     const c = JSON.parse(row?.capabilities || '{}') as { routeProfiles?: Array<{ id?: unknown }> };
     if (!Array.isArray(c.routeProfiles)) return [];
     return c.routeProfiles

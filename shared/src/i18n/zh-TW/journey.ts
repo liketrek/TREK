@@ -286,7 +286,8 @@ const journey: TranslationStrings = {
   'journey.studio.importSpreadHint': '從下載的設計檔案加入一個跨頁',
   'journey.studio.importSpreadFailed': '這個檔案不是 TREK Studio 的跨頁',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': '排一本書需要足夠的空間，所以 Studio 只在電腦上使用，製作 PDF 也是。旅程的其他功能在這裡照常可用。', // en-fallback
+  'journey.studio.desktopOnlyHint':
+    '排一本書需要足夠的空間，所以 Studio 只在電腦上使用，製作 PDF 也是。旅程的其他功能在這裡照常可用。', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
   'journey.studio.bookView': 'Book view', // en-fallback
   'journey.studio.multiple': 'Several', // en-fallback
@@ -350,7 +351,8 @@ const journey: TranslationStrings = {
   'journey.studio.sampleSubheading': 'A subheading', // en-fallback
   'journey.studio.sampleBody': 'Write something about this day.', // en-fallback
   'journey.studio.sampleCaption': 'Caption', // en-fallback
-  'journey.studio.templatesCoverHint': 'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
+  'journey.studio.templatesCoverHint':
+    'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
   'journey.studio.tpl.heroStory': 'Hero and story', // en-fallback
   'journey.studio.tpl.fullBleed': 'One picture, full spread', // en-fallback
   'journey.studio.tpl.twoUp': 'Two full pages', // en-fallback

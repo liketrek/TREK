@@ -1,8 +1,8 @@
-import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
-import { logError } from '../audit/audit-log.logger';
-import { AdminService } from './admin.service';
-import { CronRegistrarService } from '../scheduling/cron-registrar.service';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
+import { logError } from '../audit/audit-log.logger';
+import { CronRegistrarService } from '../scheduling/cron-registrar.service';
+import { AdminService } from './admin.service';
+import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
 
 /**
  * Daily version check (moved from src/scheduler.ts — it was the only consumer

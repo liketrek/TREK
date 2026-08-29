@@ -283,12 +283,14 @@ const journey: TranslationStrings = {
   'journey.studio.zoomOut': 'Zoom out', // en-fallback
   'journey.studio.zoomFit': 'Fit to view', // en-fallback
   'journey.studio.downloadSpread': 'Pobierz tę rozkładówkę',
-  'journey.studio.downloadSpreadHint': 'Zapisuje projekt tej rozkładówki jako plik, bez zdjęć, do udostępnienia lub ponownego użycia',
+  'journey.studio.downloadSpreadHint':
+    'Zapisuje projekt tej rozkładówki jako plik, bez zdjęć, do udostępnienia lub ponownego użycia',
   'journey.studio.importSpread': 'Importuj',
   'journey.studio.importSpreadHint': 'Dodaje rozkładówkę z pobranego pliku projektu',
   'journey.studio.importSpreadFailed': 'Ten plik nie jest rozkładówką TREK Studio',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': 'Składanie książki wymaga miejsca, dlatego Studio działa tylko na komputerze, tak samo jak tworzenie PDF-a. Reszta podróży działa tu jak zwykle.', // en-fallback
+  'journey.studio.desktopOnlyHint':
+    'Składanie książki wymaga miejsca, dlatego Studio działa tylko na komputerze, tak samo jak tworzenie PDF-a. Reszta podróży działa tu jak zwykle.', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
   'journey.studio.bookView': 'Book view', // en-fallback
   'journey.studio.multiple': 'Several', // en-fallback
@@ -352,7 +354,8 @@ const journey: TranslationStrings = {
   'journey.studio.sampleSubheading': 'A subheading', // en-fallback
   'journey.studio.sampleBody': 'Write something about this day.', // en-fallback
   'journey.studio.sampleCaption': 'Caption', // en-fallback
-  'journey.studio.templatesCoverHint': 'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
+  'journey.studio.templatesCoverHint':
+    'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
   'journey.studio.tpl.heroStory': 'Hero and story', // en-fallback
   'journey.studio.tpl.fullBleed': 'One picture, full spread', // en-fallback
   'journey.studio.tpl.twoUp': 'Two full pages', // en-fallback
@@ -534,7 +537,8 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceVector': 'Kontury',
   'journey.studio.mapSourceRelief': 'Relief',
   'journey.studio.mapSourceSatellite': 'Satelita',
-  'journey.studio.mapSourceSatelliteHint': 'Bezchmurne Sentinel-2, można drukować bez opłat z podaniem źródła. Ostre aż do pojedynczej ulicy w mieście.',
+  'journey.studio.mapSourceSatelliteHint':
+    'Bezchmurne Sentinel-2, można drukować bez opłat z podaniem źródła. Ostre aż do pojedynczej ulicy w mieście.',
   'journey.studio.routeLook': 'Linia',
   'journey.studio.routeStyle': 'Styl linii',
   'journey.studio.routePlain': 'Gładka',
@@ -557,14 +561,16 @@ const journey: TranslationStrings = {
   'journey.studio.roadsAgain': 'Pobierz ponownie',
   'journey.studio.roadsClear': 'Wyczyść',
   'journey.studio.roadsBusy': 'Pobieranie',
-  'journey.studio.roadsHint': 'Zapyta usługę tras o rzeczywisty przebieg każdego odcinka. Długie odcinki zostają bez zmian.',
+  'journey.studio.roadsHint':
+    'Zapyta usługę tras o rzeczywisty przebieg każdego odcinka. Długie odcinki zostają bez zmian.',
   'journey.studio.roadsHave': 'Drogi są zapisane w tej książce, więc offline drukuje tę samą linię.',
   'journey.studio.mapPerTrip': 'Jedna podróż naraz',
   'journey.studio.mapWholeJourney': 'Cały dziennik',
   'journey.studio.mapScope': 'Pokaż',
   'journey.studio.mapPrintDpi': 'Rozdzielczość druku około',
   'journey.studio.mapPrintDpiLow': 'przy tym rozmiarze wyjdzie nieostro, spróbuj szerszego kadru lub innego źródła',
-  'journey.studio.mapSourceReliefHint': 'Cieniowany relief NASA, można drukować bez licencji. Dobry dla kraju lub kontynentu, za mało dokładny dla miasta.',
+  'journey.studio.mapSourceReliefHint':
+    'Cieniowany relief NASA, można drukować bez licencji. Dobry dla kraju lub kontynentu, za mało dokładny dla miasta.',
   'journey.studio.mapSourceTiles': 'Kafelki',
   'journey.studio.mapSourceStatic': 'Mapbox',
   'journey.studio.mapSourceHint': 'Pobierane przy renderowaniu i drukowane z informacją o źródle',

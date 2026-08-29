@@ -11,9 +11,9 @@
  * translation is made from, and a translation still carrying the older phrasing
  * is a translation lagging behind rather than a broken build.
  */
-import { describe, it, expect } from 'vitest';
-
 import admin from './en/admin';
+
+import { describe, it, expect } from 'vitest';
 
 describe('canonical permission wording', () => {
   it('I18N-PERM-001: the geolocation permission does not promise a browser prompt', () => {

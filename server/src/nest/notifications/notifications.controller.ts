@@ -1,3 +1,18 @@
+import type { User } from '../../types';
+import { AdminNotificationPreferencesDto } from '../admin/admin.dto';
+import { AdminGuard } from '../auth/admin.guard';
+import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { ManagedForbidden } from '../common/managed';
+import { NotificationPreferencesService } from './notification-preferences.service';
+import {
+  PreferencesUpdateDto,
+  TestSmtpDto,
+  TestWebhookDto,
+  TestNtfyDto,
+  NotificationRespondDto,
+} from './notifications.dto';
+import { NotificationsService } from './notifications.service';
 import {
   Body,
   Controller,
@@ -12,21 +27,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { ChannelTestResult, UnreadCountResult } from '@trek/shared';
-import type { User } from '../../types';
-import { NotificationsService } from './notifications.service';
-import {
-  PreferencesUpdateDto,
-  TestSmtpDto,
-  TestWebhookDto,
-  TestNtfyDto,
-  NotificationRespondDto,
-} from './notifications.dto';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { AdminGuard } from '../auth/admin.guard';
-import { NotificationPreferencesService } from './notification-preferences.service';
-import { AdminNotificationPreferencesDto } from '../admin/admin.dto';
-import { CurrentUser } from '../auth/current-user.decorator';
-import { ManagedForbidden } from '../common/managed';
 
 // The masked placeholder the client sends instead of a stored secret (8× U+2022).
 const MASKED = '••••••••';
@@ -102,9 +102,7 @@ export class NotificationsController {
     const resolvedTopic = topic || userCfg?.topic || undefined;
     const resolvedServer = server || userCfg?.server || adminCfg.server || undefined;
     // Reuse the saved token when the request sends null, empty, or the masked placeholder.
-    const resolvedToken = (token && token !== MASKED)
-      ? token
-      : (userCfg?.token ?? adminCfg.token ?? null);
+    const resolvedToken = token && token !== MASKED ? token : (userCfg?.token ?? adminCfg.token ?? null);
 
     if (!resolvedTopic) {
       throw new HttpException({ error: 'No ntfy topic configured' }, 400);

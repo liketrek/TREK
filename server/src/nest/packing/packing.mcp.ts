@@ -1,17 +1,25 @@
-import {
-  McpController, Tool, ResourceTemplate, type McpContext,
-  TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
-  TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  demoDenied, errorResult, ok,
-} from '../../nest-mcp';
-import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
-import { z } from 'zod';
-import { AuthService } from '../auth/auth.service';
 import { ADDON_IDS } from '../../addons';
 import { noAccess, permissionDenied, adminRequired } from '../../mcp/tools/_shared';
-import { PackingService } from './packing.service';
+import {
+  McpController,
+  Tool,
+  ResourceTemplate,
+  type McpContext,
+  TOOL_ANNOTATIONS_READONLY,
+  TOOL_ANNOTATIONS_WRITE,
+  TOOL_ANNOTATIONS_DELETE,
+  TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+  demoDenied,
+  errorResult,
+  ok,
+} from '../../nest-mcp';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
+import { AuthService } from '../auth/auth.service';
+import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
+import { PackingService } from './packing.service';
+
+import { z } from 'zod';
 
 /** Legacy registrar gate: the whole packing surface rides the packing addon. */
 const packingAddonOn = addonGate(ADDON_IDS.PACKING);
@@ -56,7 +64,10 @@ export class PackingMcp {
     when: packingAddonOn,
     access: { group: 'packing', mode: 'write' },
   })
-  async createPackingItem({ tripId, name, category }: { tripId: number; name: string; category?: string }, ctx: McpContext) {
+  async createPackingItem(
+    { tripId, name, category }: { tripId: number; name: string; category?: string },
+    ctx: McpContext,
+  ) {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.packing.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!this.guards.hasTripPermission('packing_edit', tripId, ctx.userId)) return permissionDenied();
@@ -80,11 +91,21 @@ export class PackingMcp {
     when: packingAddonOn,
     access: { group: 'packing', mode: 'write' },
   })
-  async togglePackingItem({ tripId, itemId, checked }: { tripId: number; itemId: number; checked: boolean }, ctx: McpContext) {
+  async togglePackingItem(
+    { tripId, itemId, checked }: { tripId: number; itemId: number; checked: boolean },
+    ctx: McpContext,
+  ) {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.packing.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!this.guards.hasTripPermission('packing_edit', tripId, ctx.userId)) return permissionDenied();
-    const item = this.packing.updateItem(tripId, itemId, { checked: checked ? 1 : 0 }, ['checked'], undefined, ctx.userId);
+    const item = this.packing.updateItem(
+      tripId,
+      itemId,
+      { checked: checked ? 1 : 0 },
+      ['checked'],
+      undefined,
+      ctx.userId,
+    );
     if (!item) return errorResult('Packing item not found.');
     // Scoped to the people who may see it, exactly as the REST route does
     // (#858, #1976). A Common item answers null here and goes to the room.
@@ -130,11 +151,14 @@ export class PackingMcp {
     when: packingAddonOn,
     access: { group: 'packing', mode: 'write' },
   })
-  async updatePackingItem({ tripId, itemId, name, category }: { tripId: number; itemId: number; name?: string; category?: string }, ctx: McpContext) {
+  async updatePackingItem(
+    { tripId, itemId, name, category }: { tripId: number; itemId: number; name?: string; category?: string },
+    ctx: McpContext,
+  ) {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.packing.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!this.guards.hasTripPermission('packing_edit', tripId, ctx.userId)) return permissionDenied();
-    const bodyKeys = ['name', 'category'].filter(k => k === 'name' ? name !== undefined : category !== undefined);
+    const bodyKeys = ['name', 'category'].filter((k) => (k === 'name' ? name !== undefined : category !== undefined));
     const item = this.packing.updateItem(tripId, itemId, { name, category }, bodyKeys, undefined, ctx.userId);
     if (!item) return errorResult('Packing item not found.');
     this.guards.safeBroadcast(tripId, 'packing:updated', { item }, this.packing.viewersOf(item));
@@ -215,18 +239,30 @@ export class PackingMcp {
     when: packingAddonOn,
     access: { group: 'packing', mode: 'write' },
   })
-  async updatePackingBag({ tripId, bagId, name, color }: { tripId: number; bagId: number; name?: string; color?: string }, ctx: McpContext) {
+  async updatePackingBag(
+    { tripId, bagId, name, color }: { tripId: number; bagId: number; name?: string; color?: string },
+    ctx: McpContext,
+  ) {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.packing.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!this.guards.hasTripPermission('packing_edit', tripId, ctx.userId)) return permissionDenied();
     const fields: Record<string, unknown> = {};
     const bodyKeys: string[] = [];
-    if (name !== undefined) { fields.name = name; bodyKeys.push('name'); }
-    if (color !== undefined) { fields.color = color; bodyKeys.push('color'); }
+    if (name !== undefined) {
+      fields.name = name;
+      bodyKeys.push('name');
+    }
+    if (color !== undefined) {
+      fields.color = color;
+      bodyKeys.push('color');
+    }
     const updated = this.packing.updateBag(tripId, bagId, fields, bodyKeys);
     if (!updated) return errorResult('Bag not found.');
     // Hydrate with the members array (matches create_packing_bag, listBags, and the schema).
-    const bag = this.packing.listBags(tripId).find(b => b.id === (updated as { id: number }).id) ?? { ...(updated as object), members: [] };
+    const bag = this.packing.listBags(tripId).find((b) => b.id === (updated as { id: number }).id) ?? {
+      ...(updated as object),
+      members: [],
+    };
     this.guards.safeBroadcast(tripId, 'packing:bag-updated', { bag });
     return ok({ bag });
   }
@@ -265,7 +301,10 @@ export class PackingMcp {
     when: packingAddonOn,
     access: { group: 'packing', mode: 'write' },
   })
-  async setBagMembers({ tripId, bagId, userIds }: { tripId: number; bagId: number; userIds: number[] }, ctx: McpContext) {
+  async setBagMembers(
+    { tripId, bagId, userIds }: { tripId: number; bagId: number; userIds: number[] },
+    ctx: McpContext,
+  ) {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.packing.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!this.guards.hasTripPermission('packing_edit', tripId, ctx.userId)) return permissionDenied();
@@ -303,7 +342,10 @@ export class PackingMcp {
     when: packingAddonOn,
     access: { group: 'packing', mode: 'write' },
   })
-  async setPackingCategoryAssignees({ tripId, categoryName, userIds }: { tripId: number; categoryName: string; userIds: number[] }, ctx: McpContext) {
+  async setPackingCategoryAssignees(
+    { tripId, categoryName, userIds }: { tripId: number; categoryName: string; userIds: number[] },
+    ctx: McpContext,
+  ) {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.packing.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!this.guards.hasTripPermission('packing_edit', tripId, ctx.userId)) return permissionDenied();
@@ -335,7 +377,8 @@ export class PackingMcp {
 
   @Tool({
     name: 'list_packing_templates',
-    description: 'List the reusable packing templates (id, name, item count) so one can be applied with apply_packing_template.',
+    description:
+      'List the reusable packing templates (id, name, item count) so one can be applied with apply_packing_template.',
     inputSchema: {
       tripId: z.number().int().positive(),
     },
@@ -350,7 +393,8 @@ export class PackingMcp {
 
   @Tool({
     name: 'save_packing_template',
-    description: 'Save the current packing list as a reusable template. Returns the new template (id, name, category/item counts). Admin only.',
+    description:
+      'Save the current packing list as a reusable template. Returns the new template (id, name, category/item counts). Admin only.',
     inputSchema: {
       tripId: z.number().int().positive(),
       templateName: z.string().min(1).max(100),
@@ -391,24 +435,46 @@ export class PackingMcp {
 
   @Tool({
     name: 'bulk_import_packing',
-    description: 'Import multiple packing items at once from a list. Optionally assign each to a bag (by name — created if missing), set its weight, or pre-check it.',
+    description:
+      'Import multiple packing items at once from a list. Optionally assign each to a bag (by name — created if missing), set its weight, or pre-check it.',
     inputSchema: {
       tripId: z.number().int().positive(),
-      items: z.array(z.object({
-        name: z.string().min(1).max(200),
-        category: z.string().optional(),
-        quantity: z.number().int().positive().optional(),
-        bag: z.string().max(100).optional().describe('Bag name to assign the item to; created if it does not exist'),
-        weight_grams: z.number().nonnegative().optional(),
-        checked: z.boolean().optional(),
-      })).min(1),
+      items: z
+        .array(
+          z.object({
+            name: z.string().min(1).max(200),
+            category: z.string().optional(),
+            quantity: z.number().int().positive().optional(),
+            bag: z
+              .string()
+              .max(100)
+              .optional()
+              .describe('Bag name to assign the item to; created if it does not exist'),
+            weight_grams: z.number().nonnegative().optional(),
+            checked: z.boolean().optional(),
+          }),
+        )
+        .min(1),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: packingAddonOn,
     access: { group: 'packing', mode: 'write' },
   })
   async bulkImportPacking(
-    { tripId, items }: { tripId: number; items: { name: string; category?: string; quantity?: number; bag?: string; weight_grams?: number; checked?: boolean }[] },
+    {
+      tripId,
+      items,
+    }: {
+      tripId: number;
+      items: {
+        name: string;
+        category?: string;
+        quantity?: number;
+        bag?: string;
+        weight_grams?: number;
+        checked?: boolean;
+      }[];
+    },
     ctx: McpContext,
   ) {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
@@ -433,21 +499,25 @@ export class PackingMcp {
     const id = parseId(tripId);
     if (id === null || !this.packing.verifyTripAccess(id, ctx.userId)) {
       return {
-        contents: [{
-          uri: uri.href,
-          mimeType: 'application/json',
-          text: JSON.stringify({ error: 'Trip not found or access denied' }),
-        }],
+        contents: [
+          {
+            uri: uri.href,
+            mimeType: 'application/json',
+            text: JSON.stringify({ error: 'Trip not found or access denied' }),
+          },
+        ],
       };
     }
     // Hide other members' private items (#858) from the requesting user.
     const items = this.packing.listItems(id, ctx.userId);
     return {
-      contents: [{
-        uri: uri.href,
-        mimeType: 'application/json',
-        text: JSON.stringify(items, null, 2),
-      }],
+      contents: [
+        {
+          uri: uri.href,
+          mimeType: 'application/json',
+          text: JSON.stringify(items, null, 2),
+        },
+      ],
     };
   }
 
@@ -463,20 +533,24 @@ export class PackingMcp {
     const id = parseId(tripId);
     if (id === null || !this.packing.verifyTripAccess(id, ctx.userId)) {
       return {
-        contents: [{
-          uri: uri.href,
-          mimeType: 'application/json',
-          text: JSON.stringify({ error: 'Trip not found or access denied' }),
-        }],
+        contents: [
+          {
+            uri: uri.href,
+            mimeType: 'application/json',
+            text: JSON.stringify({ error: 'Trip not found or access denied' }),
+          },
+        ],
       };
     }
     const bags = this.packing.listBags(id);
     return {
-      contents: [{
-        uri: uri.href,
-        mimeType: 'application/json',
-        text: JSON.stringify(bags, null, 2),
-      }],
+      contents: [
+        {
+          uri: uri.href,
+          mimeType: 'application/json',
+          text: JSON.stringify(bags, null, 2),
+        },
+      ],
     };
   }
 

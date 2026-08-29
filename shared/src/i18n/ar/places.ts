@@ -98,7 +98,8 @@ const places: TranslationStrings = {
   'places.details.facts': 'معلومات مفيدة',
   'places.details.nothing': 'لم يتم العثور على شيء لهذا المكان.',
   'places.details.noKeyTitle': 'تتوفر تفاصيل أكثر',
-  'places.details.noKeyHint': 'بدون مفتاح Google API يستخدم هذا التثبيت المصادر الحرة فقط. اطلب من مسؤول TREK إضافة مفتاح للحصول على التقييمات وساعات العمل والصور.',
+  'places.details.noKeyHint':
+    'بدون مفتاح Google API يستخدم هذا التثبيت المصادر الحرة فقط. اطلب من مسؤول TREK إضافة مفتاح للحصول على التقييمات وساعات العمل والصور.',
   'places.details.aboutBrand': 'عن السلسلة',
   'places.details.aboutBrandNote': 'يصف السلسلة، لا هذا الفرع.',
   'places.details.fact.rating': 'التقييم',

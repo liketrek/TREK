@@ -1,9 +1,10 @@
+import { DatabaseService } from '../database/database.service';
+import { StorageService } from '../storage/storage.service';
 import { Injectable } from '@nestjs/common';
+
 import { Jimp, JimpMime } from 'jimp';
 import crypto from 'node:crypto';
 import { Readable } from 'node:stream';
-import { DatabaseService } from '../database/database.service';
-import { StorageService } from '../storage/storage.service';
 
 // How long a "no photo for this place" answer stays remembered. Nothing about it
 // changes until a photo appears upstream, so it is worth keeping: without it every
@@ -130,7 +131,9 @@ export class PlacePhotoCacheService {
     this.knownOnDisk.delete(placeId);
     this.db.run(
       'INSERT OR REPLACE INTO google_place_photo_meta (place_id, attribution, fetched_at, error_at) VALUES (?, NULL, ?, ?)',
-      placeId, Date.now(), Date.now(),
+      placeId,
+      Date.now(),
+      Date.now(),
     );
   }
 
@@ -160,7 +163,9 @@ export class PlacePhotoCacheService {
 
     this.db.run(
       'INSERT OR REPLACE INTO google_place_photo_meta (place_id, attribution, fetched_at, error_at) VALUES (?, ?, ?, NULL)',
-      placeId, attribution, Date.now(),
+      placeId,
+      attribution,
+      Date.now(),
     );
 
     return { photoUrl: this.proxyUrl(placeId), attribution };
@@ -207,7 +212,10 @@ export class PlacePhotoCacheService {
        UNION ALL
        SELECT 1 FROM collection_places WHERE google_place_id = ? OR image_url = ?
        LIMIT 1`,
-      placeId, this.proxyUrl(placeId), placeId, this.proxyUrl(placeId),
+      placeId,
+      this.proxyUrl(placeId),
+      placeId,
+      this.proxyUrl(placeId),
     );
     return !!row;
   }

@@ -1,4 +1,3 @@
-import { createZodDto } from 'nestjs-zod';
 import {
   collabNoteCreateRequestSchema,
   collabNoteUpdateRequestSchema,
@@ -7,6 +6,8 @@ import {
   collabMessageCreateRequestSchema,
   collabReactionRequestSchema,
 } from '@trek/shared';
+
+import { createZodDto } from 'nestjs-zod';
 
 /**
  * Body DTOs for the collab controller. The global ZodValidationPipe (APP_PIPE

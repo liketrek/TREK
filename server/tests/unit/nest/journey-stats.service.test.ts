@@ -6,6 +6,25 @@
  * once, and which source wins when a journey has both entries and trip places.
  * The arithmetic those rows feed into has its own tests in journey-stats.test.ts.
  */
+import { db as dbConn } from '../../../src/db/database';
+import { runMigrations } from '../../../src/db/migrations';
+import { createTables } from '../../../src/db/schema';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
+import { TrekPhotosRepository } from '../../../src/nest/photos/trek-photos.repository';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import {
+  createUser,
+  createTrip,
+  createJourney,
+  createJourneyEntry,
+  createPlace,
+  createDay,
+  createDayAssignment,
+  linkTripToJourney,
+} from '../../helpers/factories';
+import { resetTestDb } from '../../helpers/test-db';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 const { testDb, dbMock } = vi.hoisted(() => {
@@ -54,19 +73,6 @@ vi.mock('../../../src/nest/atlas/atlas-geo', () => ({
   },
 }));
 
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { resetTestDb } from '../../helpers/test-db';
-import {
-  createUser, createTrip, createJourney, createJourneyEntry, createPlace,
-  createDay, createDayAssignment, linkTripToJourney,
-} from '../../helpers/factories';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import { TrekPhotosRepository } from '../../../src/nest/photos/trek-photos.repository';
-import { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
-import { db as dbConn } from '../../../src/db/database';
-
 const dbs = new DatabaseService(dbConn);
 const svc = new JourneyDomainService(dbs, new RealtimeService(), new TrekPhotosRepository(dbs));
 
@@ -79,9 +85,7 @@ function placeEntry(
   overrides: { title?: string; entry_date?: string } = {},
 ) {
   const entry = createJourneyEntry(testDb, journeyId, authorId, overrides);
-  testDb
-    .prepare('UPDATE journey_entries SET location_lat = ?, location_lng = ? WHERE id = ?')
-    .run(lat, lng, entry.id);
+  testDb.prepare('UPDATE journey_entries SET location_lat = ?, location_lng = ? WHERE id = ?').run(lat, lng, entry.id);
   return entry;
 }
 
@@ -133,7 +137,7 @@ describe('journeyStats route', () => {
 
     const stats = svc.journeyStats(journey.id, user.id)!;
 
-    expect(stats.points.map(p => p.label)).toEqual(['Reykjavík', 'Akureyri']);
+    expect(stats.points.map((p) => p.label)).toEqual(['Reykjavík', 'Akureyri']);
     expect(stats.distance).toBeGreaterThan(240_000);
     expect(stats.days).toBe(5);
     expect(stats.steps).toBe(2);
@@ -147,7 +151,7 @@ describe('journeyStats route', () => {
 
     const stats = svc.journeyStats(journey.id, user.id)!;
 
-    expect(stats.points.map(p => p.label)).toEqual(['first', 'second']);
+    expect(stats.points.map((p) => p.label)).toEqual(['first', 'second']);
   });
 
   it('skips entries without coordinates but still counts them as steps', () => {
@@ -181,7 +185,7 @@ describe('journeyStats route', () => {
 
     const stats = svc.journeyStats(journey.id, user.id)!;
 
-    expect(stats.points.map(p => p.label)).toEqual(['Hallgrímskirkja', 'Goðafoss']);
+    expect(stats.points.map((p) => p.label)).toEqual(['Hallgrímskirkja', 'Goðafoss']);
     expect(stats.days).toBe(3);
   });
 
@@ -195,7 +199,7 @@ describe('journeyStats route', () => {
 
     const stats = svc.journeyStats(journey.id, user.id)!;
 
-    expect(stats.points.map(p => p.label)).toEqual(['an entry']);
+    expect(stats.points.map((p) => p.label)).toEqual(['an entry']);
   });
 
   /*
@@ -217,7 +221,7 @@ describe('journeyStats route', () => {
 
     const stats = svc.journeyStats(journey.id, user.id)!;
 
-    expect(stats.points.filter(p => p.label === 'Hotel')).toHaveLength(1);
+    expect(stats.points.filter((p) => p.label === 'Hotel')).toHaveLength(1);
     expect(stats.places).toBe(1);
   });
 
@@ -234,7 +238,7 @@ describe('journeyStats route', () => {
 
     const stats = svc.journeyStats(journey.id, user.id)!;
 
-    expect(stats.points.map(p => p.label)).toEqual(['scheduled', 'unscheduled']);
+    expect(stats.points.map((p) => p.label)).toEqual(['scheduled', 'unscheduled']);
   });
 
   it('counts places across every trip on the journey', () => {
@@ -261,7 +265,7 @@ describe('journeyStats countries', () => {
 
     const stats = svc.journeyStats(journey.id, user.id)!;
 
-    expect(stats.countries.map(c => c.code)).toEqual(['IS', 'DE']);
+    expect(stats.countries.map((c) => c.code)).toEqual(['IS', 'DE']);
     expect(stats.countries[0].name).toBe('Iceland');
     expect(stats.countries[1].name).toBe('Germany');
   });
@@ -285,7 +289,7 @@ describe('journeyStats countries', () => {
 
     // The cached answer wins even though the coordinates say Iceland, and the
     // expensive lookup is never reached for that place.
-    expect(stats.countries.map(c => c.code)).toEqual(['FR']);
+    expect(stats.countries.map((c) => c.code)).toEqual(['FR']);
     expect(countryCalls).toHaveLength(0);
   });
 

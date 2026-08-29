@@ -1,8 +1,8 @@
 import { ADDON_IDS } from '../../addons';
 import { AddonsService } from '../addons/addons.service';
-import { decryptLlmApiKey, LLM_PROVIDERS, type LlmProvider, type ResolvedLlmConfig } from './llm-config';
 import { DatabaseService } from '../database/database.service';
 import { SettingsService } from '../settings/settings.service';
+import { decryptLlmApiKey, LLM_PROVIDERS, type LlmProvider, type ResolvedLlmConfig } from './llm-config';
 import { Injectable } from '@nestjs/common';
 
 function asProvider(v: unknown): LlmProvider | null {

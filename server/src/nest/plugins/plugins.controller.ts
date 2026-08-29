@@ -1,19 +1,44 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpException, Param, Post, Put, Query, Req, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
-import type { Request } from 'express';
-import { PluginsService } from './plugins.service';
-import { PluginRuntimeService, PluginConsentRequired, PluginDependencyError } from './plugin-runtime.service';
-import { DependencyCycleError } from './dependencies';
-import { PluginRegistryService, RegistryError } from './registry/registry.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RuntimeEnvService } from '../app-config/runtime-env.service';
+import { getClientIp } from '../audit/client-ip';
 import { AdminGuard } from '../auth/admin.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
-import { getClientIp } from '../audit/client-ip';
-import { pluginsEnabled } from './kill-switch';
-import { devLinkEnabled } from './dev-link';
-import { PluginActivateDto, PluginConfigDto, PluginEgressHostsDto, PluginInstallDto, PluginLinkDto, PluginRetrustDto, PluginUninstallDto, PluginUpdateDto } from './plugins.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ManagedForbidden, isManagedBlocked, MANAGED_FORBIDDEN_ERROR } from '../common/managed';
-import { RuntimeEnvService } from '../app-config/runtime-env.service';
+import { DependencyCycleError } from './dependencies';
+import { devLinkEnabled } from './dev-link';
+import { pluginsEnabled } from './kill-switch';
+import { PluginRuntimeService, PluginConsentRequired, PluginDependencyError } from './plugin-runtime.service';
+import {
+  PluginActivateDto,
+  PluginConfigDto,
+  PluginEgressHostsDto,
+  PluginInstallDto,
+  PluginLinkDto,
+  PluginRetrustDto,
+  PluginUninstallDto,
+  PluginUpdateDto,
+} from './plugins.dto';
+import { PluginsService } from './plugins.service';
+import { PluginRegistryService, RegistryError } from './registry/registry.service';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpException,
+  Param,
+  Post,
+  Put,
+  Query,
+  Req,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+
+import type { Request } from 'express';
 
 /**
  * Flatten a registry/install failure into the error envelope — CARRYING THE CODE.
@@ -93,10 +118,9 @@ export class PluginsController {
   }
 
   /** Sideload a plugin from an uploaded .zip/.tar.gz (registers INACTIVE). */
-  @ManagedForbidden(
-    'a sideloaded archive skips the signature check every registry install performs',
-    { enforcedInHandler: true },
-  )
+  @ManagedForbidden('a sideloaded archive skips the signature check every registry install performs', {
+    enforcedInHandler: true,
+  })
   @Post('upload')
   @HttpCode(200)
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 50 * 1024 * 1024 + 4096 } }))
@@ -124,7 +148,8 @@ export class PluginsController {
   @HttpCode(200)
   async link(@Body() body: PluginLinkDto) {
     if (!pluginsEnabled()) throw new HttpException({ error: 'Plugins are disabled by server configuration' }, 503);
-    if (!devLinkEnabled()) throw new HttpException({ error: 'Dev-link is disabled (set TREK_PLUGINS_DEV_LINK=1)' }, 403);
+    if (!devLinkEnabled())
+      throw new HttpException({ error: 'Dev-link is disabled (set TREK_PLUGINS_DEV_LINK=1)' }, 403);
     const dir = body?.path?.trim();
     if (!dir) throw new HttpException({ error: 'path is required' }, 400);
     try {
@@ -176,7 +201,10 @@ export class PluginsController {
       // Re-enabling a plugin whose update widened its permissions must NOT grant
       // them silently — surface a distinct code so the UI opens the consent dialog.
       if (e instanceof PluginConsentRequired) {
-        throw new HttpException({ error: e.message, code: 'CONSENT_REQUIRED', newPermissions: e.newPermissions, newEgress: e.newEgress }, 409);
+        throw new HttpException(
+          { error: e.message, code: 'CONSENT_REQUIRED', newPermissions: e.newPermissions, newEgress: e.newEgress },
+          409,
+        );
       }
       // Unmet dependency (disabled addon / missing / version-mismatched plugin) —
       // the UI offers the right fix (enable addon, or download the dependency).
@@ -206,14 +234,18 @@ export class PluginsController {
   @HttpCode(200)
   async reload(@Param('id') id: string) {
     if (!pluginsEnabled()) throw new HttpException({ error: 'Plugins are disabled by server configuration' }, 503);
-    if (!devLinkEnabled()) throw new HttpException({ error: 'Dev-link is disabled (set TREK_PLUGINS_DEV_LINK=1)' }, 403);
+    if (!devLinkEnabled())
+      throw new HttpException({ error: 'Dev-link is disabled (set TREK_PLUGINS_DEV_LINK=1)' }, 403);
     try {
       await this.runtime.reload(id);
     } catch (e) {
       // A rebuilt manifest that widened permissions must still re-consent, exactly
       // like activate — surface the same codes so the admin UI reacts identically.
       if (e instanceof PluginConsentRequired) {
-        throw new HttpException({ error: e.message, code: 'CONSENT_REQUIRED', newPermissions: e.newPermissions, newEgress: e.newEgress }, 409);
+        throw new HttpException(
+          { error: e.message, code: 'CONSENT_REQUIRED', newPermissions: e.newPermissions, newEgress: e.newEgress },
+          409,
+        );
       }
       if (e instanceof PluginDependencyError) {
         throw new HttpException({ error: e.message, code: e.code, ...e.detail }, 409);
@@ -274,7 +306,10 @@ export class PluginsController {
     if (!body?.version) throw new HttpException({ error: 'version is required' }, 400);
     if (!body?.publicKey) throw new HttpException({ error: 'publicKey is required' }, 400);
     try {
-      return await this.runtime.retrust(id, body.version, body.publicKey, { userId: user?.id ?? null, ip: getClientIp(req) });
+      return await this.runtime.retrust(id, body.version, body.publicKey, {
+        userId: user?.id ?? null,
+        ip: getClientIp(req),
+      });
     } catch (e) {
       throw registryFailure(e, 'retrust failed');
     }

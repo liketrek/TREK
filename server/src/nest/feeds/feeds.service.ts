@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common';
-import { randomUUID } from 'crypto';
-import { DatabaseService } from '../database/database.service';
 import { CalendarService, CALENDAR_HEADER, foldICS } from '../calendar/calendar.service';
+import { DatabaseService } from '../database/database.service';
+import { Injectable } from '@nestjs/common';
+
+import { randomUUID } from 'crypto';
 
 /** Subscribable calendars advertise how often to re-fetch; the one-time download does not. */
 const FEED_REFRESH_HINTS = 'REFRESH-INTERVAL;VALUE=DURATION:PT1H\r\nX-PUBLISHED-TTL:PT1H\r\n';
@@ -74,9 +75,7 @@ export class FeedsService {
 
   /** Disable: clear the token so the public URL stops resolving. */
   disableTripToken(tripId: string, userId: number): void {
-    this.db
-      .prepare(`UPDATE trips SET feed_token = NULL WHERE ${FeedsService.REACHABLE}`)
-      .run(tripId, userId, userId);
+    this.db.prepare(`UPDATE trips SET feed_token = NULL WHERE ${FeedsService.REACHABLE}`).run(tripId, userId, userId);
   }
 
   // ── User (all-trips) feed token ──────────────────────────────────────────
@@ -109,9 +108,7 @@ export class FeedsService {
   // ── ICS generation ───────────────────────────────────────────────────────
 
   buildTripIcs(token: string): { ics: string; filename: string } | null {
-    const row = this.db.prepare('SELECT id FROM trips WHERE feed_token = ?').get(token) as
-      | { id: number }
-      | undefined;
+    const row = this.db.prepare('SELECT id FROM trips WHERE feed_token = ?').get(token) as { id: number } | undefined;
     if (!row) return null;
     try {
       const cal = this.calendar.buildTripCalendar(row.id);

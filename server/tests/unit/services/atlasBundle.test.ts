@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 import path from 'path';
+import { describe, it, expect } from 'vitest';
 import zlib from 'zlib';
 
 // Data-integrity guard for the shipped Atlas region bundle. geoBoundaries fills
@@ -20,7 +20,7 @@ describe('Atlas admin0 country bundle (#1609)', () => {
   }[];
 
   it('ATLAS-BUNDLE-003 — Kosovo ships with a resolvable ISO_A2', () => {
-    const kosovo = features.filter(f => f.properties.ADM0_A3 === 'XKX');
+    const kosovo = features.filter((f) => f.properties.ADM0_A3 === 'XKX');
     expect(kosovo.length, 'exactly one Kosovo feature').toBe(1);
     expect(kosovo[0].properties.ISO_A2).toBe('XK');
   });
@@ -32,13 +32,13 @@ describe('Atlas admin1 region bundle (#1217)', () => {
     properties: { iso_a2: string | null; iso_3166_2: string };
   }[];
 
-  const regions = (a2: string) => features.filter(f => f.properties.iso_a2 === a2);
+  const regions = (a2: string) => features.filter((f) => f.properties.iso_a2 === a2);
 
   it('ATLAS-BUNDLE-001 — previously-broken countries now have distinct region codes', () => {
     for (const a2 of ['ES', 'CN', 'CL', 'OM']) {
       const f = regions(a2);
       expect(f.length, `${a2} should ship regions`).toBeGreaterThan(1);
-      expect(new Set(f.map(r => r.properties.iso_3166_2)).size, `${a2} region codes must be unique`).toBe(f.length);
+      expect(new Set(f.map((r) => r.properties.iso_3166_2)).size, `${a2} region codes must be unique`).toBe(f.length);
     }
   });
 
@@ -47,8 +47,8 @@ describe('Atlas admin1 region bundle (#1217)', () => {
       const f = regions(a2);
       expect(f.length).toBeGreaterThan(1);
       // real ISO 3166-2 form, e.g. DE-BW
-      expect(f.some(r => /^[A-Z]{2}-[A-Z0-9]+$/.test(r.properties.iso_3166_2))).toBe(true);
-      expect(new Set(f.map(r => r.properties.iso_3166_2)).size).toBe(f.length);
+      expect(f.some((r) => /^[A-Z]{2}-[A-Z0-9]+$/.test(r.properties.iso_3166_2))).toBe(true);
+      expect(new Set(f.map((r) => r.properties.iso_3166_2)).size).toBe(f.length);
     }
   });
 
@@ -65,14 +65,14 @@ describe('Atlas admin1 region bundle (#1217)', () => {
   it('ATLAS-BUNDLE-004 — Great Britain ships below the constituent-country level (#1974)', () => {
     const gb = regions('GB');
     expect(gb.length, 'GB must ship counties and boroughs, not the four nations').toBeGreaterThan(50);
-    expect(new Set(gb.map(r => r.properties.iso_3166_2)).size, 'GB region codes must be unique').toBe(gb.length);
+    expect(new Set(gb.map((r) => r.properties.iso_3166_2)).size, 'GB region codes must be unique').toBe(gb.length);
   });
 
   it('ATLAS-BUNDLE-005 — the London boroughs are in it (#1974)', () => {
     const names = new Set(
       (features as unknown as { properties: { iso_a2: string | null; name?: string } }[])
-        .filter(f => f.properties.iso_a2 === 'GB')
-        .map(f => (f.properties.name || '').toLowerCase()),
+        .filter((f) => f.properties.iso_a2 === 'GB')
+        .map((f) => (f.properties.name || '').toLowerCase()),
     );
     for (const borough of ['camden', 'westminster', 'hackney', 'islington']) {
       expect(names.has(borough), `${borough} should be a region of its own`).toBe(true);

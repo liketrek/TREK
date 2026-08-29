@@ -6,10 +6,13 @@
  * unauthenticated request, purpose token, id mismatch, malformed claims,
  * headers already sent, non-http context.
  */
-import { describe, it, expect, vi } from 'vitest';
+import type { AuthService } from '../../../src/nest/auth/auth.service';
+import { SessionRenewalInterceptor } from '../../../src/nest/auth/session-renewal.interceptor';
 import type { CallHandler, ExecutionContext } from '@nestjs/common';
-import { of, lastValueFrom } from 'rxjs';
+
 import jwt from 'jsonwebtoken';
+import { of, lastValueFrom } from 'rxjs';
+import { describe, it, expect, vi } from 'vitest';
 
 vi.mock('../../../src/config', () => ({
   JWT_SECRET: 'test-jwt-secret-for-trek-testing-only',
@@ -21,9 +24,6 @@ vi.mock('../../../src/config', () => ({
   SESSION_DURATION_REMEMBER_SECONDS: 2592000,
   updateJwtSecret: () => {},
 }));
-
-import { SessionRenewalInterceptor } from '../../../src/nest/auth/session-renewal.interceptor';
-import type { AuthService } from '../../../src/nest/auth/auth.service';
 
 const SECRET = 'test-jwt-secret-for-trek-testing-only';
 
@@ -38,7 +38,12 @@ function makeRes(headersSent = false) {
   return { headersSent, cookie: vi.fn() };
 }
 
-type ReqShape = { cookies?: Record<string, string>; user?: { id: number }; headers?: Record<string, string>; secure?: boolean };
+type ReqShape = {
+  cookies?: Record<string, string>;
+  user?: { id: number };
+  headers?: Record<string, string>;
+  secure?: boolean;
+};
 
 function ctx(req: ReqShape, res: ReturnType<typeof makeRes>, type = 'http'): ExecutionContext {
   return {
@@ -57,7 +62,12 @@ function makeInterceptor() {
   return { interceptor, generateToken };
 }
 
-async function run(interceptor: SessionRenewalInterceptor, req: ReqShape, res: ReturnType<typeof makeRes>, type = 'http') {
+async function run(
+  interceptor: SessionRenewalInterceptor,
+  req: ReqShape,
+  res: ReturnType<typeof makeRes>,
+  type = 'http',
+) {
   const h = handler();
   const out = await lastValueFrom(interceptor.intercept(ctx(req, res, type), h));
   expect(out).toBe('ok');
@@ -80,7 +90,11 @@ describe('SessionRenewalInterceptor', () => {
     const t = token({ id: 1, pv: 3 }, 86400, 60000); // ~70% consumed
     await run(interceptor, { cookies: { trek_session: t }, user: { id: 1 } }, res);
     expect(generateToken).toHaveBeenCalledWith({ id: 1, password_version: 3 }, undefined);
-    expect(res.cookie).toHaveBeenCalledWith('trek_session', 'renewed.jwt', expect.objectContaining({ maxAge: 86400000, httpOnly: true }));
+    expect(res.cookie).toHaveBeenCalledWith(
+      'trek_session',
+      'renewed.jwt',
+      expect.objectContaining({ maxAge: 86400000, httpOnly: true }),
+    );
   });
 
   it('SES-RENEW-003: a remember:true claim renews with the long persistent cookie', async () => {
@@ -89,7 +103,11 @@ describe('SessionRenewalInterceptor', () => {
     const t = token({ id: 1, pv: 0, remember: true }, 2592000, 1600000); // ~62% consumed
     await run(interceptor, { cookies: { trek_session: t }, user: { id: 1 } }, res);
     expect(generateToken).toHaveBeenCalledWith({ id: 1, password_version: 0 }, true);
-    expect(res.cookie).toHaveBeenCalledWith('trek_session', 'renewed.jwt', expect.objectContaining({ maxAge: 2592000000 }));
+    expect(res.cookie).toHaveBeenCalledWith(
+      'trek_session',
+      'renewed.jwt',
+      expect.objectContaining({ maxAge: 2592000000 }),
+    );
   });
 
   it('SES-RENEW-004: a remember:false claim renews as a browser-session cookie (no maxAge)', async () => {
@@ -108,7 +126,11 @@ describe('SessionRenewalInterceptor', () => {
     const t = token({ id: 1, pv: 0 }, 86400, 60000);
     await run(interceptor, { cookies: { trek_session: t }, user: { id: 1 } }, res);
     expect(generateToken).toHaveBeenCalledWith({ id: 1, password_version: 0 }, undefined);
-    expect(res.cookie).toHaveBeenCalledWith('trek_session', 'renewed.jwt', expect.objectContaining({ maxAge: 86400000 }));
+    expect(res.cookie).toHaveBeenCalledWith(
+      'trek_session',
+      'renewed.jwt',
+      expect.objectContaining({ maxAge: 86400000 }),
+    );
   });
 
   it('SES-RENEW-006: never renews a Bearer-only request (no session cookie)', async () => {

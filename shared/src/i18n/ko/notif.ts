@@ -29,7 +29,8 @@ const notif: TranslationStrings = {
   'notif.version_available.text': 'TREK {version}이(가) 사용 가능합니다',
   'notif.replica_failure.title': '스토리지 복제본 오류',
   'notif.replica_failure.text': "복제본 '{backend}'에 쓰기가 실패했습니다: {op} / {key} — {error}",
-  'notif.replica_failure.textSuppressed': "복제본 '{backend}'에 쓰기가 실패했습니다: {op} / {key} — {error}.마지막 알림 이후 {suppressed}개의 추가 실패가 억제되었습니다.",
+  'notif.replica_failure.textSuppressed':
+    "복제본 '{backend}'에 쓰기가 실패했습니다: {op} / {key} — {error}.마지막 알림 이후 {suppressed}개의 추가 실패가 억제되었습니다.",
   'notif.action.view_trip': '여행 보기',
   'notif.action.view_collab': '메시지 보기',
   'notif.action.view_packing': '짐 목록 보기',

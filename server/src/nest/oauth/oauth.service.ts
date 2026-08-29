@@ -1,5 +1,3 @@
-import crypto, { randomBytes, randomUUID } from 'crypto';
-import { Injectable } from '@nestjs/common';
 import { ADDON_IDS } from '../../addons';
 import { getMcpSafeUrl } from '../../app-config';
 // Import from scopes/sessionManager directly, NOT the ../../mcp barrel: the
@@ -11,8 +9,8 @@ import { validateScopes } from '../../mcp/scopes';
 import { revokeUserSessionsForClient } from '../../mcp/sessionManager';
 import { User } from '../../types';
 import { AddonsService } from '../addons/addons.service';
-import { AuditService } from '../audit/audit.service';
 import { logWarn } from '../audit/audit-log.logger';
+import { AuditService } from '../audit/audit.service';
 import { DatabaseService } from '../database/database.service';
 import {
   ACCESS_TOKEN_TTL_S,
@@ -29,6 +27,9 @@ import {
   type OAuthTokenRow,
 } from './oauth.helpers';
 import { AUTH_CODE_TTL_MS, putPendingCode, takePendingCode, type PendingCode } from './oauth.pending-codes';
+import { Injectable } from '@nestjs/common';
+
+import crypto, { randomBytes, randomUUID } from 'crypto';
 
 export type { OAuthClientRow, OAuthTokenRow } from './oauth.helpers';
 export type { PendingCode } from './oauth.pending-codes';
@@ -83,8 +84,12 @@ export class OauthService {
     private readonly audit: AuditService,
   ) {}
 
-  mcpEnabled(): boolean { return this.addons.isAddonEnabled(ADDON_IDS.MCP); }
-  mcpSafeUrl(): string { return getMcpSafeUrl(); }
+  mcpEnabled(): boolean {
+    return this.addons.isAddonEnabled(ADDON_IDS.MCP);
+  }
+  mcpSafeUrl(): string {
+    return getMcpSafeUrl();
+  }
 
   // -------------------------------------------------------------------------
   // Client management (self-service, gated by MCP addon)
@@ -95,7 +100,7 @@ export class OauthService {
       'SELECT id, user_id, name, client_id, redirect_uris, allowed_scopes, created_at, is_public, created_via, allows_client_credentials FROM oauth_clients WHERE user_id = ? ORDER BY created_at DESC',
       userId,
     );
-    return rows.map(r => ({
+    return rows.map((r) => ({
       ...r,
       is_public: Boolean(r.is_public),
       allows_client_credentials: Boolean(r.allows_client_credentials),
@@ -115,7 +120,8 @@ export class OauthService {
     if (!name?.trim()) return { error: 'Name is required', status: 400 };
     if (name.trim().length > 100) return { error: 'Name must be 100 characters or less', status: 400 };
     const isMachineClient = Boolean(options?.allowsClientCredentials);
-    if (!isMachineClient && (!redirectUris || redirectUris.length === 0)) return { error: 'At least one redirect URI is required', status: 400 };
+    if (!isMachineClient && (!redirectUris || redirectUris.length === 0))
+      return { error: 'At least one redirect URI is required', status: 400 };
     if (redirectUris.length > 10) return { error: 'Maximum 10 redirect URIs per client', status: 400 };
 
     for (const uri of redirectUris) {
@@ -135,26 +141,40 @@ export class OauthService {
     if (!valid) return { error: `Invalid scopes: ${invalid.join(', ')}`, status: 400 };
 
     if (userId !== null) {
-      const count = this.db.get<{ count: number }>('SELECT COUNT(*) as count FROM oauth_clients WHERE user_id = ?', userId)!.count;
+      const count = this.db.get<{ count: number }>(
+        'SELECT COUNT(*) as count FROM oauth_clients WHERE user_id = ?',
+        userId,
+      )!.count;
       if (count >= 10) return { error: 'Maximum of 10 OAuth clients per user', status: 400 };
     } else {
       // Anonymous DCR clients: enforce a global cap to prevent unbounded registration abuse
-      const count = this.db.get<{ count: number }>('SELECT COUNT(*) as count FROM oauth_clients WHERE user_id IS NULL')!.count;
+      const count = this.db.get<{ count: number }>(
+        'SELECT COUNT(*) as count FROM oauth_clients WHERE user_id IS NULL',
+      )!.count;
       if (count >= 500) return { error: 'server_error', status: 503 };
     }
 
     // Machine clients (client_credentials) must always be confidential — ignore isPublic for them.
-    const isPublic    = isMachineClient ? false : (options?.isPublic ?? false);
-    const createdVia  = options?.createdVia ?? 'settings_ui';
-    const id          = randomUUID();
-    const clientId    = randomUUID();
+    const isPublic = isMachineClient ? false : (options?.isPublic ?? false);
+    const createdVia = options?.createdVia ?? 'settings_ui';
+    const id = randomUUID();
+    const clientId = randomUUID();
     // Public clients have no usable secret; store an opaque random value to satisfy NOT NULL.
-    const rawSecret   = isPublic ? null : 'trekcs_' + randomBytes(24).toString('hex');
-    const secretHash  = rawSecret ? hashToken(rawSecret) : randomBytes(32).toString('hex');
+    const rawSecret = isPublic ? null : 'trekcs_' + randomBytes(24).toString('hex');
+    const secretHash = rawSecret ? hashToken(rawSecret) : randomBytes(32).toString('hex');
 
     this.db.run(
       'INSERT INTO oauth_clients (id, user_id, name, client_id, client_secret_hash, redirect_uris, allowed_scopes, is_public, created_via, allows_client_credentials) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      id, userId, name.trim(), clientId, secretHash, JSON.stringify(redirectUris), JSON.stringify(allowedScopes), isPublic ? 1 : 0, createdVia, isMachineClient ? 1 : 0,
+      id,
+      userId,
+      name.trim(),
+      clientId,
+      secretHash,
+      JSON.stringify(redirectUris),
+      JSON.stringify(allowedScopes),
+      isPublic ? 1 : 0,
+      createdVia,
+      isMachineClient ? 1 : 0,
     );
 
     const row = this.db.get<OAuthClientRow>(
@@ -162,7 +182,17 @@ export class OauthService {
       id,
     )!;
 
-    this.audit.writeAudit({ userId, action: 'oauth.client.create', details: { client_id: clientId, name: name.trim(), is_public: isPublic, allows_client_credentials: isMachineClient }, ip });
+    this.audit.writeAudit({
+      userId,
+      action: 'oauth.client.create',
+      details: {
+        client_id: clientId,
+        name: name.trim(),
+        is_public: isPublic,
+        allows_client_credentials: isMachineClient,
+      },
+      ip,
+    });
 
     return {
       client: {
@@ -187,17 +217,24 @@ export class OauthService {
     clientRowId: string,
     ip?: string | null,
   ): { error?: string; status?: number; client_secret?: string } {
-    const row = this.db.get<OAuthClientRow>('SELECT id, client_id, is_public FROM oauth_clients WHERE id = ? AND user_id = ?', clientRowId, userId);
+    const row = this.db.get<OAuthClientRow>(
+      'SELECT id, client_id, is_public FROM oauth_clients WHERE id = ? AND user_id = ?',
+      clientRowId,
+      userId,
+    );
     if (!row) return { error: 'Client not found', status: 404 };
     if (row.is_public) return { error: 'Public clients do not use a client secret', status: 400 };
 
-    const rawSecret  = 'trekcs_' + randomBytes(24).toString('hex');
+    const rawSecret = 'trekcs_' + randomBytes(24).toString('hex');
     const secretHash = hashToken(rawSecret);
 
     this.db.run('UPDATE oauth_clients SET client_secret_hash = ? WHERE id = ?', secretHash, clientRowId);
 
     // Revoke all existing tokens for this client so old sessions are invalidated
-    this.db.run("UPDATE oauth_tokens SET revoked_at = datetime('now') WHERE client_id = ? AND revoked_at IS NULL", row.client_id);
+    this.db.run(
+      "UPDATE oauth_tokens SET revoked_at = datetime('now') WHERE client_id = ? AND revoked_at IS NULL",
+      row.client_id,
+    );
 
     // Terminate active MCP sessions for this (user, client) pair
     revokeUserSessionsForClient(userId, row.client_id);
@@ -212,7 +249,11 @@ export class OauthService {
     clientRowId: string,
     ip?: string | null,
   ): { error?: string; status?: number; success?: boolean } {
-    const row = this.db.get<OAuthClientRow>('SELECT id, client_id FROM oauth_clients WHERE id = ? AND user_id = ?', clientRowId, userId);
+    const row = this.db.get<OAuthClientRow>(
+      'SELECT id, client_id FROM oauth_clients WHERE id = ? AND user_id = ?',
+      clientRowId,
+      userId,
+    );
     if (!row) return { error: 'Client not found', status: 404 };
     this.db.run('DELETE FROM oauth_clients WHERE id = ?', clientRowId);
     this.audit.writeAudit({ userId, action: 'oauth.client.delete', details: { client_id: row.client_id }, ip });
@@ -247,7 +288,9 @@ export class OauthService {
 
   getConsent(clientId: string, userId: number): string[] | null {
     const row = this.db.get<{ scopes: string }>(
-      'SELECT scopes FROM oauth_consents WHERE client_id = ? AND user_id = ?', clientId, userId,
+      'SELECT scopes FROM oauth_consents WHERE client_id = ? AND user_id = ?',
+      clientId,
+      userId,
     );
     return row ? JSON.parse(row.scopes) : null;
   }
@@ -258,13 +301,20 @@ export class OauthService {
     const merged = Array.from(new Set([...existing, ...scopes]));
     this.db.run(
       'INSERT OR REPLACE INTO oauth_consents (client_id, user_id, scopes, updated_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)',
-      clientId, userId, JSON.stringify(merged),
+      clientId,
+      userId,
+      JSON.stringify(merged),
     );
-    this.audit.writeAudit({ userId, action: 'oauth.consent.grant', details: { client_id: clientId, scopes: merged }, ip });
+    this.audit.writeAudit({
+      userId,
+      action: 'oauth.consent.grant',
+      details: { client_id: clientId, scopes: merged },
+      ip,
+    });
   }
 
   isConsentSufficient(existingScopes: string[], requestedScopes: string[]): boolean {
-    return requestedScopes.every(s => existingScopes.includes(s));
+    return requestedScopes.every((s) => existingScopes.includes(s));
   }
 
   // -------------------------------------------------------------------------
@@ -284,27 +334,38 @@ export class OauthService {
     expires_in: number;
     scope: string;
   } {
-    const rawAccess   = generateAccessToken();
-    const rawRefresh  = generateRefreshToken();
-    const accessHash  = hashToken(rawAccess);
+    const rawAccess = generateAccessToken();
+    const rawRefresh = generateRefreshToken();
+    const accessHash = hashToken(rawAccess);
     const refreshHash = hashToken(rawRefresh);
 
-    const now           = new Date();
-    const accessExpiry  = new Date(now.getTime() + ACCESS_TOKEN_TTL_S * 1000);
+    const now = new Date();
+    const accessExpiry = new Date(now.getTime() + ACCESS_TOKEN_TTL_S * 1000);
     const refreshExpiry = new Date(now.getTime() + REFRESH_TOKEN_TTL_MS);
 
-    this.db.run(`
+    this.db.run(
+      `
       INSERT INTO oauth_tokens
         (client_id, user_id, access_token_hash, refresh_token_hash, scopes, audience, access_token_expires_at, refresh_token_expires_at, parent_token_id)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, clientId, userId, accessHash, refreshHash, JSON.stringify(scopes), audience, accessExpiry.toISOString(), refreshExpiry.toISOString(), parentTokenId);
+    `,
+      clientId,
+      userId,
+      accessHash,
+      refreshHash,
+      JSON.stringify(scopes),
+      audience,
+      accessExpiry.toISOString(),
+      refreshExpiry.toISOString(),
+      parentTokenId,
+    );
 
     return {
-      access_token:  rawAccess,
+      access_token: rawAccess,
       refresh_token: rawRefresh,
-      token_type:    'Bearer',
-      expires_in:    ACCESS_TOKEN_TTL_S,
-      scope:         scopes.join(' '),
+      token_type: 'Bearer',
+      expires_in: ACCESS_TOKEN_TTL_S,
+      scope: scopes.join(' '),
     };
   }
 
@@ -326,24 +387,35 @@ export class OauthService {
     expires_in: number;
     scope: string;
   } {
-    const rawAccess       = generateAccessToken();
-    const accessHash      = hashToken(rawAccess);
+    const rawAccess = generateAccessToken();
+    const accessHash = hashToken(rawAccess);
     const placeholderHash = randomBytes(32).toString('hex');
 
-    const now         = new Date();
+    const now = new Date();
     const accessExpiry = new Date(now.getTime() + ACCESS_TOKEN_TTL_S * 1000);
 
-    this.db.run(`
+    this.db.run(
+      `
       INSERT INTO oauth_tokens
         (client_id, user_id, access_token_hash, refresh_token_hash, scopes, audience, access_token_expires_at, refresh_token_expires_at, parent_token_id)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, clientId, userId, accessHash, placeholderHash, JSON.stringify(scopes), audience, accessExpiry.toISOString(), now.toISOString(), null);
+    `,
+      clientId,
+      userId,
+      accessHash,
+      placeholderHash,
+      JSON.stringify(scopes),
+      audience,
+      accessExpiry.toISOString(),
+      now.toISOString(),
+      null,
+    );
 
     return {
       access_token: rawAccess,
-      token_type:   'Bearer',
-      expires_in:   ACCESS_TOKEN_TTL_S,
-      scope:        scopes.join(' '),
+      token_type: 'Bearer',
+      expires_in: ACCESS_TOKEN_TTL_S,
+      scope: scopes.join(' '),
     };
   }
 
@@ -353,14 +425,16 @@ export class OauthService {
 
   /** SDK clients-store read: the exact row shape the MCP SDK adapter
    *  (oauth-sdk.provider.ts) maps to OAuthClientInformationFull. */
-  getSdkClient(clientId: string): {
-    client_id: string;
-    name: string;
-    redirect_uris: string;
-    allowed_scopes: string;
-    is_public: number;
-    created_via: string;
-  } | undefined {
+  getSdkClient(clientId: string):
+    | {
+        client_id: string;
+        name: string;
+        redirect_uris: string;
+        allowed_scopes: string;
+        is_public: number;
+        created_via: string;
+      }
+    | undefined {
     return this.db.get(
       'SELECT client_id, name, redirect_uris, allowed_scopes, is_public, created_via FROM oauth_clients WHERE client_id = ?',
       clientId,
@@ -369,13 +443,16 @@ export class OauthService {
 
   getUserByAccessToken(rawToken: string): OAuthTokenInfo | null {
     const hash = hashToken(rawToken);
-    const row = this.db.get<OAuthTokenRow & { username: string; email: string; role: string }>(`
+    const row = this.db.get<OAuthTokenRow & { username: string; email: string; role: string }>(
+      `
       SELECT ot.scopes, ot.audience, ot.revoked_at, ot.access_token_expires_at,
              ot.user_id, ot.client_id, u.username, u.email, u.role
       FROM oauth_tokens ot
       JOIN users u ON ot.user_id = u.id
       WHERE ot.access_token_hash = ?
-    `, hash);
+    `,
+      hash,
+    );
 
     if (!row) return null;
     if (row.revoked_at) return null;
@@ -397,7 +474,10 @@ export class OauthService {
   private findChainRoot(tokenId: number): number {
     let current = tokenId;
     for (let i = 0; i < 100; i++) {
-      const row = this.db.get<{ id: number; parent_token_id: number | null }>('SELECT id, parent_token_id FROM oauth_tokens WHERE id = ?', current);
+      const row = this.db.get<{ id: number; parent_token_id: number | null }>(
+        'SELECT id, parent_token_id FROM oauth_tokens WHERE id = ?',
+        current,
+      );
       if (!row || row.parent_token_id === null) return current;
       current = row.parent_token_id;
     }
@@ -406,15 +486,18 @@ export class OauthService {
 
   /** Revoke all tokens in the rotation chain rooted at rootId. Returns affected ids. */
   private revokeChain(rootId: number): number[] {
-    const rows = this.db.all<{ id: number }>(`
+    const rows = this.db.all<{ id: number }>(
+      `
       WITH RECURSIVE chain(id) AS (
         SELECT id FROM oauth_tokens WHERE id = ?
         UNION ALL
         SELECT t.id FROM oauth_tokens t JOIN chain c ON t.parent_token_id = c.id
       )
       SELECT id FROM chain
-    `, rootId);
-    const ids = rows.map(r => r.id);
+    `,
+      rootId,
+    );
+    const ids = rows.map((r) => r.id);
     if (ids.length > 0) {
       this.db.run(
         `UPDATE oauth_tokens SET revoked_at = CURRENT_TIMESTAMP WHERE id IN (${ids.map(() => '?').join(',')}) AND revoked_at IS NULL`,
@@ -451,7 +534,10 @@ export class OauthService {
     clientSecret: string | undefined,
     ip?: string | null,
   ): { error?: string; status?: number; tokens?: ReturnType<OauthService['issueTokens']> } {
-    const client = this.db.get<OAuthClientRow>('SELECT client_id, client_secret_hash, is_public FROM oauth_clients WHERE client_id = ?', clientId);
+    const client = this.db.get<OAuthClientRow>(
+      'SELECT client_id, client_secret_hash, is_public FROM oauth_clients WHERE client_id = ?',
+      clientId,
+    );
     if (!client) return { error: 'invalid_client', status: 401 };
     if (!client.is_public) {
       if (!clientSecret || !timingSafeEqualHex(hashToken(clientSecret), client.client_secret_hash)) {
@@ -460,10 +546,13 @@ export class OauthService {
     }
 
     const hash = hashToken(rawRefreshToken);
-    const row = this.db.get<OAuthTokenRow>(`
+    const row = this.db.get<OAuthTokenRow>(
+      `
       SELECT id, client_id, user_id, scopes, audience, refresh_token_expires_at, revoked_at, parent_token_id
       FROM oauth_tokens WHERE refresh_token_hash = ?
-    `, hash);
+    `,
+      hash,
+    );
 
     if (!row) return { error: 'invalid_grant', status: 400 };
     if (row.client_id !== clientId) return { error: 'invalid_grant', status: 400 };
@@ -529,19 +618,31 @@ export class OauthService {
     // Get the user_id for the token so we can revoke its MCP sessions
     const row = this.db.get<{ user_id: number }>(
       'SELECT user_id FROM oauth_tokens WHERE (access_token_hash = ? OR refresh_token_hash = ?) AND client_id = ?',
-      hash, hash, clientId,
+      hash,
+      hash,
+      clientId,
     );
 
-    this.db.run(`
+    this.db.run(
+      `
       UPDATE oauth_tokens
       SET revoked_at = CURRENT_TIMESTAMP
       WHERE (access_token_hash = ? OR refresh_token_hash = ?) AND client_id = ?
-    `, hash, hash, clientId);
+    `,
+      hash,
+      hash,
+      clientId,
+    );
 
     const affectedUserId = row?.user_id ?? userId;
     if (affectedUserId) {
       revokeUserSessionsForClient(affectedUserId, clientId);
-      this.audit.writeAudit({ userId: affectedUserId, action: 'oauth.token.revoke', details: { client_id: clientId, method: 'token' }, ip });
+      this.audit.writeAudit({
+        userId: affectedUserId,
+        action: 'oauth.token.revoke',
+        details: { client_id: clientId, method: 'token' },
+        ip,
+      });
     }
   }
 
@@ -550,7 +651,8 @@ export class OauthService {
   // -------------------------------------------------------------------------
 
   listOAuthSessions(userId: number): Record<string, unknown>[] {
-    const rows = this.db.all<Record<string, unknown>>(`
+    const rows = this.db.all<Record<string, unknown>>(
+      `
       SELECT ot.id, ot.client_id, oc.name AS client_name, ot.scopes,
              ot.access_token_expires_at, ot.refresh_token_expires_at, ot.created_at
       FROM oauth_tokens ot
@@ -559,8 +661,10 @@ export class OauthService {
         AND ot.revoked_at IS NULL
         AND ot.refresh_token_expires_at > CURRENT_TIMESTAMP
       ORDER BY ot.created_at DESC
-    `, userId);
-    return rows.map(r => ({ ...r, scopes: JSON.parse(r.scopes as string) }));
+    `,
+      userId,
+    );
+    return rows.map((r) => ({ ...r, scopes: JSON.parse(r.scopes as string) }));
   }
 
   revokeSession(
@@ -568,14 +672,23 @@ export class OauthService {
     sessionId: number,
     ip?: string | null,
   ): { error?: string; status?: number; success?: boolean } {
-    const row = this.db.get<{ id: number; client_id: string }>('SELECT id, client_id FROM oauth_tokens WHERE id = ? AND user_id = ?', sessionId, userId);
+    const row = this.db.get<{ id: number; client_id: string }>(
+      'SELECT id, client_id FROM oauth_tokens WHERE id = ? AND user_id = ?',
+      sessionId,
+      userId,
+    );
     if (!row) return { error: 'Session not found', status: 404 };
 
     this.db.run('UPDATE oauth_tokens SET revoked_at = CURRENT_TIMESTAMP WHERE id = ?', sessionId);
 
     revokeUserSessionsForClient(userId, row.client_id);
 
-    this.audit.writeAudit({ userId, action: 'oauth.token.revoke', details: { client_id: row.client_id, method: 'session' }, ip });
+    this.audit.writeAudit({
+      userId,
+      action: 'oauth.token.revoke',
+      details: { client_id: row.client_id, method: 'session' },
+      ip,
+    });
 
     return { success: true };
   }
@@ -584,25 +697,34 @@ export class OauthService {
   // Authorize request validation (option A: called by SPA via GET /api/oauth/authorize/validate)
   // -------------------------------------------------------------------------
 
-  validateAuthorizeRequest(
-    params: AuthorizeParams,
-    userId: number | null,
-  ): ValidateAuthorizeResult {
+  validateAuthorizeRequest(params: AuthorizeParams, userId: number | null): ValidateAuthorizeResult {
     if (!this.addons.isAddonEnabled(ADDON_IDS.MCP)) {
       return { valid: false, error: 'mcp_disabled', error_description: 'MCP is not enabled on this server' };
     }
 
     if (params.response_type !== 'code') {
-      return { valid: false, error: 'unsupported_response_type', error_description: 'Only response_type=code is supported' };
+      return {
+        valid: false,
+        error: 'unsupported_response_type',
+        error_description: 'Only response_type=code is supported',
+      };
     }
 
     if (!params.code_challenge || params.code_challenge_method !== 'S256') {
-      return { valid: false, error: 'invalid_request', error_description: 'PKCE with code_challenge_method=S256 is required (OAuth 2.1)' };
+      return {
+        valid: false,
+        error: 'invalid_request',
+        error_description: 'PKCE with code_challenge_method=S256 is required (OAuth 2.1)',
+      };
     }
 
     // H1: Enforce code_challenge format (RFC 7636 §4.2)
     if (!CODE_CHALLENGE_RE.test(params.code_challenge)) {
-      return { valid: false, error: 'invalid_request', error_description: 'code_challenge must be 43 base64url characters (S256)' };
+      return {
+        valid: false,
+        error: 'invalid_request',
+        error_description: 'code_challenge must be 43 base64url characters (S256)',
+      };
     }
 
     if (!params.client_id) {
@@ -616,7 +738,11 @@ export class OauthService {
 
     const allowedUris: string[] = JSON.parse(client.redirect_uris);
     if (!params.redirect_uri || !allowedUris.includes(params.redirect_uri)) {
-      return { valid: false, error: 'invalid_redirect_uri', error_description: 'redirect_uri does not match any registered URI' };
+      return {
+        valid: false,
+        error: 'invalid_redirect_uri',
+        error_description: 'redirect_uri does not match any registered URI',
+      };
     }
 
     // RFC 8707 resource indicator: if provided, must identify the TREK
@@ -627,11 +753,13 @@ export class OauthService {
     // The lookbehind matches only the first slash of the trailing run. Without it the
     // engine retries from every slash, which is quadratic on a slash-heavy value.
     const mcpResource = `${getMcpSafeUrl().replace(/(?<!\/)\/+$/, '')}/mcp`;
-    const resource = params.resource
-      ? params.resource.replace(/(?<!\/)\/+$/, '')
-      : mcpResource;
+    const resource = params.resource ? params.resource.replace(/(?<!\/)\/+$/, '') : mcpResource;
     if (resource !== mcpResource) {
-      return { valid: false, error: 'invalid_target', error_description: 'Requested resource must be the TREK MCP endpoint' };
+      return {
+        valid: false,
+        error: 'invalid_target',
+        error_description: 'Requested resource must be the TREK MCP endpoint',
+      };
     }
 
     const requestedScopes = (params.scope || '').split(' ').filter(Boolean);
@@ -642,9 +770,13 @@ export class OauthService {
     const allowedScopes: string[] = JSON.parse(client.allowed_scopes);
     // Narrow to the intersection: drop scopes the client isn't permitted for rather
     // than rejecting the whole request (per OAuth 2.0 §3.3 scope narrowing).
-    const grantedScopes = requestedScopes.filter(s => allowedScopes.includes(s));
+    const grantedScopes = requestedScopes.filter((s) => allowedScopes.includes(s));
     if (grantedScopes.length === 0) {
-      return { valid: false, error: 'invalid_scope', error_description: 'None of the requested scopes are permitted for this client' };
+      return {
+        valid: false,
+        error: 'invalid_scope',
+        error_description: 'None of the requested scopes are permitted for this client',
+      };
     }
 
     if (userId === null) {
@@ -679,7 +811,9 @@ export class OauthService {
     if (expected.length !== codeChallenge.length) return false;
     try {
       return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(codeChallenge));
-    } catch { return false; }
+    } catch {
+      return false;
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -730,7 +864,8 @@ export class OauthService {
 
   adminRevokeOAuthSession(id: string) {
     const row = this.db.get<{ id: number; user_id: number; client_id: string }>(
-      'SELECT id, user_id, client_id FROM oauth_tokens WHERE id = ?', id,
+      'SELECT id, user_id, client_id FROM oauth_tokens WHERE id = ?',
+      id,
     );
     if (!row) return { error: 'Session not found', status: 404 };
     this.db.run('UPDATE oauth_tokens SET revoked_at = CURRENT_TIMESTAMP WHERE id = ?', id);

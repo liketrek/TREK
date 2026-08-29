@@ -2,9 +2,10 @@
  * Unit tests for migration 69 (normalized notification preferences).
  * Covers MIGR-001 to MIGR-004.
  */
-import { describe, it, expect, beforeEach, afterAll } from 'vitest';
-import Database from 'better-sqlite3';
 import { createTables } from '../../../src/db/schema';
+
+import Database from 'better-sqlite3';
+import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 
 function buildFreshDb() {
   const db = new Database(':memory:');
@@ -89,7 +90,7 @@ function runMigration69(db: ReturnType<typeof Database>): void {
     packing_tagged: 'notify_packing_tagged',
   };
   const insert = db.prepare(
-    'INSERT OR IGNORE INTO notification_channel_preferences (user_id, event_type, channel, enabled) VALUES (?, ?, ?, ?)'
+    'INSERT OR IGNORE INTO notification_channel_preferences (user_id, event_type, channel, enabled) VALUES (?, ?, ?, ?)',
   );
   const insertMany = db.transaction((rows: Array<[number, string, string, number]>) => {
     for (const [userId, eventType, channel, enabled] of rows) {
@@ -124,9 +125,9 @@ describe('Migration 69 — normalized notification_channel_preferences', () => {
     const db = setupPreMigration69Db();
     runMigration69(db);
 
-    const table = db.prepare(
-      `SELECT name FROM sqlite_master WHERE type='table' AND name='notification_channel_preferences'`
-    ).get();
+    const table = db
+      .prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name='notification_channel_preferences'`)
+      .get();
     expect(table).toBeDefined();
     db.close();
   });
@@ -135,27 +136,37 @@ describe('Migration 69 — normalized notification_channel_preferences', () => {
     const db = setupPreMigration69Db();
 
     // Create a user
-    const userId = (db.prepare('INSERT INTO users (username, password, role) VALUES (?, ?, ?)').run('testuser', 'hash', 'user')).lastInsertRowid as number;
+    const userId = db
+      .prepare('INSERT INTO users (username, password, role) VALUES (?, ?, ?)')
+      .run('testuser', 'hash', 'user').lastInsertRowid as number;
 
     // Simulate user who has disabled trip_invite and booking_change email
-    db.prepare(`
+    db.prepare(
+      `
       INSERT INTO notification_preferences
         (user_id, notify_trip_invite, notify_booking_change, notify_trip_reminder,
          notify_vacay_invite, notify_photos_shared, notify_collab_message, notify_packing_tagged, notify_webhook)
       VALUES (?, 0, 0, 1, 1, 1, 1, 1, 1)
-    `).run(userId);
+    `,
+    ).run(userId);
 
     runMigration69(db);
 
-    const tripInviteEmail = db.prepare(
-      'SELECT enabled FROM notification_channel_preferences WHERE user_id = ? AND event_type = ? AND channel = ?'
-    ).get(userId, 'trip_invite', 'email') as { enabled: number } | undefined;
-    const bookingEmail = db.prepare(
-      'SELECT enabled FROM notification_channel_preferences WHERE user_id = ? AND event_type = ? AND channel = ?'
-    ).get(userId, 'booking_change', 'email') as { enabled: number } | undefined;
-    const reminderEmail = db.prepare(
-      'SELECT enabled FROM notification_channel_preferences WHERE user_id = ? AND event_type = ? AND channel = ?'
-    ).get(userId, 'trip_reminder', 'email') as { enabled: number } | undefined;
+    const tripInviteEmail = db
+      .prepare(
+        'SELECT enabled FROM notification_channel_preferences WHERE user_id = ? AND event_type = ? AND channel = ?',
+      )
+      .get(userId, 'trip_invite', 'email') as { enabled: number } | undefined;
+    const bookingEmail = db
+      .prepare(
+        'SELECT enabled FROM notification_channel_preferences WHERE user_id = ? AND event_type = ? AND channel = ?',
+      )
+      .get(userId, 'booking_change', 'email') as { enabled: number } | undefined;
+    const reminderEmail = db
+      .prepare(
+        'SELECT enabled FROM notification_channel_preferences WHERE user_id = ? AND event_type = ? AND channel = ?',
+      )
+      .get(userId, 'trip_reminder', 'email') as { enabled: number } | undefined;
 
     // Disabled events should have enabled=0 rows
     expect(tripInviteEmail).toBeDefined();
@@ -171,30 +182,46 @@ describe('Migration 69 — normalized notification_channel_preferences', () => {
   it('MIGR-003 — old notify_webhook=0 creates disabled webhook rows for all 7 events', () => {
     const db = setupPreMigration69Db();
 
-    const userId = (db.prepare('INSERT INTO users (username, password, role) VALUES (?, ?, ?)').run('webhookuser', 'hash', 'user')).lastInsertRowid as number;
+    const userId = db
+      .prepare('INSERT INTO users (username, password, role) VALUES (?, ?, ?)')
+      .run('webhookuser', 'hash', 'user').lastInsertRowid as number;
 
     // User has all email enabled but webhook disabled
-    db.prepare(`
+    db.prepare(
+      `
       INSERT INTO notification_preferences
         (user_id, notify_trip_invite, notify_booking_change, notify_trip_reminder,
          notify_vacay_invite, notify_photos_shared, notify_collab_message, notify_packing_tagged, notify_webhook)
       VALUES (?, 1, 1, 1, 1, 1, 1, 1, 0)
-    `).run(userId);
+    `,
+    ).run(userId);
 
     runMigration69(db);
 
-    const allEvents = ['trip_invite', 'booking_change', 'trip_reminder', 'vacay_invite', 'photos_shared', 'collab_message', 'packing_tagged'];
+    const allEvents = [
+      'trip_invite',
+      'booking_change',
+      'trip_reminder',
+      'vacay_invite',
+      'photos_shared',
+      'collab_message',
+      'packing_tagged',
+    ];
     for (const eventType of allEvents) {
-      const row = db.prepare(
-        'SELECT enabled FROM notification_channel_preferences WHERE user_id = ? AND event_type = ? AND channel = ?'
-      ).get(userId, eventType, 'webhook') as { enabled: number } | undefined;
+      const row = db
+        .prepare(
+          'SELECT enabled FROM notification_channel_preferences WHERE user_id = ? AND event_type = ? AND channel = ?',
+        )
+        .get(userId, eventType, 'webhook') as { enabled: number } | undefined;
       expect(row).toBeDefined();
       expect(row!.enabled).toBe(0);
 
       // Email rows should NOT exist (all email was enabled → no row needed)
-      const emailRow = db.prepare(
-        'SELECT enabled FROM notification_channel_preferences WHERE user_id = ? AND event_type = ? AND channel = ?'
-      ).get(userId, eventType, 'email');
+      const emailRow = db
+        .prepare(
+          'SELECT enabled FROM notification_channel_preferences WHERE user_id = ? AND event_type = ? AND channel = ?',
+        )
+        .get(userId, eventType, 'email');
       expect(emailRow).toBeUndefined();
     }
 
@@ -209,7 +236,9 @@ describe('Migration 69 — normalized notification_channel_preferences', () => {
 
     runMigration69(db);
 
-    const plural = db.prepare('SELECT value FROM app_settings WHERE key = ?').get('notification_channels') as { value: string } | undefined;
+    const plural = db.prepare('SELECT value FROM app_settings WHERE key = ?').get('notification_channels') as
+      | { value: string }
+      | undefined;
     expect(plural).toBeDefined();
     expect(plural!.value).toBe('email');
 
@@ -226,7 +255,9 @@ describe('Migration 69 — normalized notification_channel_preferences', () => {
     runMigration69(db);
 
     // The existing notification_channels value should be preserved (INSERT OR IGNORE)
-    const plural = db.prepare('SELECT value FROM app_settings WHERE key = ?').get('notification_channels') as { value: string } | undefined;
+    const plural = db.prepare('SELECT value FROM app_settings WHERE key = ?').get('notification_channels') as
+      | { value: string }
+      | undefined;
     expect(plural!.value).toBe('email,webhook');
 
     db.close();

@@ -8,6 +8,19 @@
  * fields, linkPreview, avatarUrl, createMessage reply validation. Uses a real
  * in-memory SQLite DB so SQL logic is exercised faithfully.
  */
+import { runMigrations } from '../../../src/db/migrations';
+import { createTables } from '../../../src/db/schema';
+import { CollabService } from '../../../src/nest/collab/collab.service';
+import { avatarUrl } from '../../../src/nest/common/avatarUrl';
+import { RateLimitService } from '../../../src/nest/common/rate-limit.service';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { createUser, createTrip } from '../../helpers/factories';
+import { notificationsStub } from '../../helpers/notifications';
+import { makeStorageFixture } from '../../helpers/storage-fixture';
+import { resetTestDb } from '../../helpers/test-db';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll, afterEach } from 'vitest';
 
 // ── DB setup ─────────────────────────────────────────────────────────────────
@@ -24,11 +37,15 @@ const { testDb, dbMock } = vi.hoisted(() => {
     reinitialize: () => {},
     getPlaceWithTags: () => null,
     canAccessTrip: (tripId: any, userId: number) =>
-      db.prepare(`
+      db
+        .prepare(
+          `
         SELECT t.id FROM trips t
         LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ?
         WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)
-      `).get(userId, tripId, userId),
+      `,
+        )
+        .get(userId, tripId, userId),
     isOwner: (tripId: any, userId: number) =>
       !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
   };
@@ -47,9 +64,11 @@ vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn() }));
 // checkSsrf rather than from the default implementation below, so the stubbed results
 // stay full SsrfResult objects instead of whatever shape the first fixture happened to have.
 const { mockCheckSsrf, mockCreatePinnedDispatcher } = vi.hoisted(() => ({
-  mockCheckSsrf: vi.fn<typeof import('../../../src/utils/ssrfGuard').checkSsrf>(
-    async () => ({ allowed: true, isPrivate: false, resolvedIp: '93.184.216.34' }),
-  ),
+  mockCheckSsrf: vi.fn<typeof import('../../../src/utils/ssrfGuard').checkSsrf>(async () => ({
+    allowed: true,
+    isPrivate: false,
+    resolvedIp: '93.184.216.34',
+  })),
   mockCreatePinnedDispatcher: vi.fn(() => ({})),
 }));
 vi.mock('../../../src/utils/ssrfGuard', () => ({
@@ -57,25 +76,27 @@ vi.mock('../../../src/utils/ssrfGuard', () => ({
   createPinnedDispatcher: mockCreatePinnedDispatcher,
 }));
 
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip } from '../../helpers/factories';
-import { avatarUrl } from '../../../src/nest/common/avatarUrl';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { CollabService } from '../../../src/nest/collab/collab.service';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import { notificationsStub } from '../../helpers/notifications';
-import { makeStorageFixture } from '../../helpers/storage-fixture';
-import { RateLimitService } from '../../../src/nest/common/rate-limit.service';
-
 const collabFx = makeStorageFixture('files/');
 const rateLimit = new RateLimitService();
-const svc = new CollabService(new DatabaseService(testDb), new PermissionsService(new DatabaseService(testDb)), new RealtimeService(), notificationsStub(), collabFx.storage, rateLimit);
+const svc = new CollabService(
+  new DatabaseService(testDb),
+  new PermissionsService(new DatabaseService(testDb)),
+  new RealtimeService(),
+  notificationsStub(),
+  collabFx.storage,
+  rateLimit,
+);
 
 /** A CollabService with its own preview cache and budget, for the tests that fill either. */
-const freshSvc = () => new CollabService(new DatabaseService(testDb), new PermissionsService(new DatabaseService(testDb)), new RealtimeService(), notificationsStub(), collabFx.storage, new RateLimitService());
+const freshSvc = () =>
+  new CollabService(
+    new DatabaseService(testDb),
+    new PermissionsService(new DatabaseService(testDb)),
+    new RealtimeService(),
+    notificationsStub(),
+    collabFx.storage,
+    new RateLimitService(),
+  );
 
 beforeAll(() => {
   createTables(testDb);
@@ -197,7 +218,7 @@ describe('listMessages', () => {
     const id3 = r3.message!.id;
     const msgs = svc.listMessages(trip.id, id3);
     expect(msgs.length).toBe(2);
-    const texts = msgs.map(m => m.text);
+    const texts = msgs.map((m) => m.text);
     expect(texts).toContain('First');
     expect(texts).toContain('Second');
     expect(texts).not.toContain('Third');
@@ -232,7 +253,7 @@ describe('listMessages', () => {
     svc.deleteMessage(trip.id, original.message!.id, user1.id);
 
     const msgs = svc.listMessages(trip.id);
-    const reply = msgs.find(m => m.text === 'Quoting it')!;
+    const reply = msgs.find((m) => m.text === 'Quoting it')!;
     expect(reply.reply_text).toBe('');
   });
 
@@ -242,7 +263,9 @@ describe('listMessages', () => {
     svc.deleteMessage(trip.id, original.message!.id, user1.id);
 
     // Replying to something that is no longer there is refused outright.
-    expect(svc.createMessage(trip.id, user1.id, 'Too late', original.message!.id)).toEqual({ error: 'reply_not_found' });
+    expect(svc.createMessage(trip.id, user1.id, 'Too late', original.message!.id)).toEqual({
+      error: 'reply_not_found',
+    });
 
     // And the row the create path returns carries the same blanking listMessages
     // does, for a message quoted before the original was deleted.
@@ -250,14 +273,16 @@ describe('listMessages', () => {
     const quoting = svc.createMessage(trip.id, user1.id, 'Quoting it', second.message!.id);
     expect(quoting.message!.reply_text).toBe('Another secret');
     svc.deleteMessage(trip.id, second.message!.id, user1.id);
-    expect(svc.listMessages(trip.id).find(m => m.text === 'Quoting it')!.reply_text).toBe('');
+    expect(svc.listMessages(trip.id).find((m) => m.text === 'Quoting it')!.reply_text).toBe('');
   });
 
   it('COLLAB-SVC-013: includes reactions grouped by emoji', () => {
     const { user1, trip } = setup();
     const r = svc.createMessage(trip.id, user1.id, 'React me');
     const msgId = r.message!.id;
-    testDb.prepare('INSERT INTO collab_message_reactions (message_id, user_id, emoji) VALUES (?, ?, ?)').run(msgId, user1.id, '👍');
+    testDb
+      .prepare('INSERT INTO collab_message_reactions (message_id, user_id, emoji) VALUES (?, ?, ?)')
+      .run(msgId, user1.id, '👍');
 
     const msgs = svc.listMessages(trip.id);
     expect(msgs[0].reactions).toBeDefined();
@@ -318,7 +343,11 @@ describe('deleteMessage', () => {
 describe('updateNote', () => {
   it('COLLAB-SVC-019: updates only title when other fields are undefined', () => {
     const { user1, trip } = setup();
-    const note = svc.createNote(trip.id, user1.id, { title: 'Original', content: 'Some content', website: 'https://example.com' });
+    const note = svc.createNote(trip.id, user1.id, {
+      title: 'Original',
+      content: 'Some content',
+      website: 'https://example.com',
+    });
 
     svc.updateNote(trip.id, note.id, { title: 'Updated' });
 
@@ -383,9 +412,11 @@ describe('linkPreview', () => {
   });
 
   it('COLLAB-SVC-025: returns OG title and description from HTML', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      text: async () => `
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        text: async () => `
         <html>
           <head>
             <meta property="og:title" content="Test Title" />
@@ -395,7 +426,8 @@ describe('linkPreview', () => {
           </head>
         </html>
       `,
-    }));
+      }),
+    );
 
     const result = await svc.linkPreview('https://example.com/page');
     expect(result.title).toBe('Test Title');
@@ -405,20 +437,26 @@ describe('linkPreview', () => {
   });
 
   it('COLLAB-SVC-026: falls back to <title> tag when no og:title', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      text: async () => `<html><head><title>Page Title</title></head></html>`,
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        text: async () => `<html><head><title>Page Title</title></head></html>`,
+      }),
+    );
 
     const result = await svc.linkPreview('https://example.com/');
     expect(result.title).toBe('Page Title');
   });
 
   it('COLLAB-SVC-027: returns fallback when fetch response is not ok', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: false,
-      text: async () => '',
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        text: async () => '',
+      }),
+    );
 
     const result = await svc.linkPreview('https://example.com/bad');
     expect(result.title).toBeNull();
@@ -443,11 +481,14 @@ describe('linkPreview', () => {
   });
 
   it('COLLAB-SVC-030a: returns the fallback when the page declares a body over the cap', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      headers: { get: (h: string) => (h === 'content-length' ? String(10 * 1024 * 1024) : null) },
-      text: async () => '<html><head><title>Huge</title></head></html>',
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: (h: string) => (h === 'content-length' ? String(10 * 1024 * 1024) : null) },
+        text: async () => '<html><head><title>Huge</title></head></html>',
+      }),
+    );
 
     const result = await svc.linkPreview('https://example.com/huge');
     expect(result.title).toBeNull();
@@ -460,16 +501,21 @@ describe('linkPreview', () => {
       new TextEncoder().encode('x'.repeat(1024 * 1024)),
     ];
     let i = 0;
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      headers: { get: () => null },
-      body: {
-        getReader: () => ({
-          read: async () => (i < chunks.length ? { done: false, value: chunks[i++] } : { done: true }),
-          cancel: async () => { cancelled = true; },
-        }),
-      },
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => null },
+        body: {
+          getReader: () => ({
+            read: async () => (i < chunks.length ? { done: false, value: chunks[i++] } : { done: true }),
+            cancel: async () => {
+              cancelled = true;
+            },
+          }),
+        },
+      }),
+    );
 
     const result = await svc.linkPreview('https://example.com/streamed');
     // The head arrives first, so the scrape still works; the megabyte of padding
@@ -479,14 +525,17 @@ describe('linkPreview', () => {
   });
 
   it('COLLAB-SVC-030: falls back to meta description tag when no og:description', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      text: async () => `
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        text: async () => `
         <html><head>
           <meta name="description" content="Meta description here" />
         </head></html>
       `,
-    }));
+      }),
+    );
 
     const result = await svc.linkPreview('https://example.com/meta');
     expect(result.description).toBe('Meta description here');
@@ -537,7 +586,13 @@ describe('linkPreview hardening', () => {
     // The guard distinguishes "could not resolve", "private address" and
     // "loopback". Relaying that verbatim turns the route into a probe for the
     // internal DNS of the server, one guessed hostname at a time.
-    mockCheckSsrf.mockResolvedValue({ allowed: false, isPrivate: true, resolvedIp: '10.0.0.5', error: 'Requests to private/internal network addresses are not allowed. Set ALLOW_INTERNAL_NETWORK=true to permit this for self-hosted setups.' });
+    mockCheckSsrf.mockResolvedValue({
+      allowed: false,
+      isPrivate: true,
+      resolvedIp: '10.0.0.5',
+      error:
+        'Requests to private/internal network addresses are not allowed. Set ALLOW_INTERNAL_NETWORK=true to permit this for self-hosted setups.',
+    });
     const result = await freshSvc().linkPreview('http://nas.internal/');
     expect(result.error).toBe('URL not allowed');
     expect(JSON.stringify(result)).not.toContain('ALLOW_INTERNAL_NETWORK');
@@ -624,7 +679,9 @@ describe('linkPreview hardening', () => {
     // same link posted twenty times arrives as twenty requests at once — none of
     // which finds a cache entry, because the first has not answered yet.
     let release: (() => void) | undefined;
-    const gate = new Promise<void>(resolve => { release = resolve; });
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
     const fetchMock = vi.fn().mockImplementation(async () => {
       await gate;
       return { ok: true, headers: { get: () => null }, text: async () => '<title>Geteilt</title>' };
@@ -637,9 +694,9 @@ describe('linkPreview hardening', () => {
     const results = await all;
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(results.every(r => r.title === 'Geteilt')).toBe(true);
+    expect(results.every((r) => r.title === 'Geteilt')).toBe(true);
     // And the nineteen that joined were not charged for a fetch they did not make.
-    expect(results.some(r => r.rateLimited)).toBe(false);
+    expect(results.some((r) => r.rateLimited)).toBe(false);
   });
 
   it('COLLAB-SVC-047: a body over the cap, and one behind a failed response, are both released', async () => {
@@ -648,7 +705,11 @@ describe('linkPreview hardening', () => {
       { ok: false },
     ]) {
       const cancel = vi.fn().mockResolvedValue(undefined);
-      stubFetch({ ...response, body: { getReader: () => ({ read: async () => ({ done: true }), cancel }), cancel }, text: async () => '' });
+      stubFetch({
+        ...response,
+        body: { getReader: () => ({ read: async () => ({ done: true }), cancel }), cancel },
+        text: async () => '',
+      });
       const result = await freshSvc().linkPreview(`https://example.com/drop-${String(response.ok)}`);
       expect(result.title).toBeNull();
       expect(cancel).toHaveBeenCalled();
@@ -666,7 +727,14 @@ describe('hardening', () => {
   it('COLLAB-SVC-034: votePoll switch is atomic — prior vote survives a failed INSERT', () => {
     const { user1, trip } = setup();
     const dbs = new DatabaseService(testDb);
-    const failing = new CollabService(dbs, new PermissionsService(dbs), new RealtimeService(), notificationsStub(), collabFx.storage, new RateLimitService());
+    const failing = new CollabService(
+      dbs,
+      new PermissionsService(dbs),
+      new RealtimeService(),
+      notificationsStub(),
+      collabFx.storage,
+      new RateLimitService(),
+    );
     const poll = failing.createPoll(trip.id, user1.id, { question: 'Q?', options: ['A', 'B'] });
     failing.votePoll(trip.id, poll!.id, user1.id, 0);
 
@@ -680,16 +748,26 @@ describe('hardening', () => {
     expect(() => failing.votePoll(trip.id, poll!.id, user1.id, 1)).toThrow('boom');
     spy.mockRestore();
 
-    const votes = testDb.prepare('SELECT option_index FROM collab_poll_votes WHERE poll_id = ?').all(poll!.id) as { option_index: number }[];
+    const votes = testDb.prepare('SELECT option_index FROM collab_poll_votes WHERE poll_id = ?').all(poll!.id) as {
+      option_index: number;
+    }[];
     expect(votes).toEqual([{ option_index: 0 }]);
   });
 
   it('COLLAB-SVC-035: deleteNote is atomic — trip_files rows survive a failed note DELETE', async () => {
     const { user1, trip } = setup();
     const dbs = new DatabaseService(testDb);
-    const failing = new CollabService(dbs, new PermissionsService(dbs), new RealtimeService(), notificationsStub(), collabFx.storage, new RateLimitService());
+    const failing = new CollabService(
+      dbs,
+      new PermissionsService(dbs),
+      new RealtimeService(),
+      notificationsStub(),
+      collabFx.storage,
+      new RateLimitService(),
+    );
     const note = failing.createNote(trip.id, user1.id, { title: 'With file' });
-    testDb.prepare('INSERT INTO trip_files (trip_id, note_id, filename, original_name) VALUES (?, ?, ?, ?)')
+    testDb
+      .prepare('INSERT INTO trip_files (trip_id, note_id, filename, original_name) VALUES (?, ?, ?, ?)')
       .run(trip.id, note.id, 'files/a.pdf', 'a.pdf');
 
     const realRun = dbs.run.bind(dbs);
@@ -708,16 +786,25 @@ describe('hardening', () => {
     const { user1, trip } = setup();
     const dbs = new DatabaseService(testDb);
     const failingStorage = { delete: vi.fn().mockRejectedValue(new Error('EACCES')) };
-    const failing = new CollabService(dbs, new PermissionsService(dbs), new RealtimeService(), notificationsStub(), failingStorage as unknown as import('../../../src/nest/storage/storage.service').StorageService, new RateLimitService());
+    const failing = new CollabService(
+      dbs,
+      new PermissionsService(dbs),
+      new RealtimeService(),
+      notificationsStub(),
+      failingStorage as unknown as import('../../../src/nest/storage/storage.service').StorageService,
+      new RateLimitService(),
+    );
     const note = failing.createNote(trip.id, user1.id, { title: 'Sticky file' });
-    testDb.prepare('INSERT INTO trip_files (trip_id, note_id, filename, original_name) VALUES (?, ?, ?, ?)')
+    testDb
+      .prepare('INSERT INTO trip_files (trip_id, note_id, filename, original_name) VALUES (?, ?, ?, ?)')
       .run(trip.id, note.id, 'stuck.pdf', 'stuck.pdf');
     const fileId = (testDb.prepare('SELECT id FROM trip_files WHERE note_id = ?').get(note.id) as { id: number }).id;
 
     expect(await failing.deleteNoteFile(trip.id, note.id, fileId)).toBe(true);
     expect(testDb.prepare('SELECT COUNT(*) as c FROM trip_files WHERE id = ?').get(fileId)).toEqual({ c: 0 });
 
-    testDb.prepare('INSERT INTO trip_files (trip_id, note_id, filename, original_name) VALUES (?, ?, ?, ?)')
+    testDb
+      .prepare('INSERT INTO trip_files (trip_id, note_id, filename, original_name) VALUES (?, ?, ?, ?)')
       .run(trip.id, note.id, 'stuck2.pdf', 'stuck2.pdf');
     expect(await failing.deleteNote(trip.id, note.id)).toBe(true);
     expect(testDb.prepare('SELECT COUNT(*) as c FROM collab_notes WHERE id = ?').get(note.id)).toEqual({ c: 0 });
@@ -739,7 +826,9 @@ describe('hardening', () => {
 
     expect(svc.votePoll(trip.id, poll!.id, user1.id, '0' as unknown as number).error).toBe('invalid_index');
     expect(svc.votePoll(trip.id, poll!.id, user1.id, 0.5).error).toBe('invalid_index');
-    expect(testDb.prepare('SELECT COUNT(*) as c FROM collab_poll_votes WHERE poll_id = ?').get(poll!.id)).toEqual({ c: 0 });
+    expect(testDb.prepare('SELECT COUNT(*) as c FROM collab_poll_votes WHERE poll_id = ?').get(poll!.id)).toEqual({
+      c: 0,
+    });
   });
 
   it('COLLAB-SVC-038: linkPreview returns the fallback for a malformed URL without throwing', async () => {

@@ -1,8 +1,8 @@
-import { PluginController, PluginMethod } from '../plugins/host/rpc-kit/decorators';
 import { PluginGuards } from '../plugins/host/plugin-guards.service';
 import { ForbiddenResource } from '../plugins/host/rpc-errors';
-import { num, str } from '../plugins/host/rpc-params';
+import { PluginController, PluginMethod } from '../plugins/host/rpc-kit/decorators';
 import type { PluginRpcContext } from '../plugins/host/rpc-kit/types';
+import { num, str } from '../plugins/host/rpc-params';
 import { RealtimeService } from '../realtime/realtime.service';
 import { AssignmentsService } from './assignments.service';
 
@@ -33,7 +33,8 @@ export class ItineraryRpc {
     const notes = params.notes === undefined || params.notes === null ? null : str(params.notes, 'notes');
     this.guards.requireTripEdit(tripId, actor, DAY_EDIT_ACTION);
     if (!this.assignments.dayExists(dayId, tripId)) throw new ForbiddenResource(`no day ${dayId} on trip ${tripId}`);
-    if (!this.assignments.placeExists(placeId, tripId)) throw new ForbiddenResource(`no place ${placeId} on trip ${tripId}`);
+    if (!this.assignments.placeExists(placeId, tripId))
+      throw new ForbiddenResource(`no place ${placeId} on trip ${tripId}`);
     const assignment = this.assignments.createAssignment(dayId, placeId, notes);
     this.realtime.broadcast(tripId, 'assignment:created', { assignment });
     this.assignments.reconcile(tripId);

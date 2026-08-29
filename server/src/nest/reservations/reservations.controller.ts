@@ -1,27 +1,16 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Headers,
-  HttpException,
-  Param,
-  Post,
-  Put,
-  UseGuards,
-} from '@nestjs/common';
 import type { User } from '../../types';
-import { ReservationsService } from './reservations.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
-import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AirtrailLinkService } from '../integrations/airtrail-link.service';
+import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
 import {
   ReservationCreateDto,
   ReservationUpdateDto,
   ReservationPositionsDto,
   ReservationTravelersDto,
 } from './reservations.dto';
+import { ReservationsService } from './reservations.service';
+import { Body, Controller, Delete, Get, Headers, HttpException, Param, Post, Put, UseGuards } from '@nestjs/common';
 
 type ReservationBody = Record<string, unknown> & {
   title?: string;
@@ -52,8 +41,6 @@ export class ReservationsController {
     private readonly airtrailLink: AirtrailLinkService,
   ) {}
 
-
-
   @Get()
   list(@CurrentUser() user: User, @Param('tripId') tripId: string) {
     return { reservations: this.reservations.list(tripId) };
@@ -73,7 +60,14 @@ export class ReservationsController {
     if (accommodationCreated) {
       this.reservations.broadcast(tripId, 'accommodation:created', {}, socketId);
     }
-    this.reservations.syncBudgetOnCreate(tripId, reservation.id, body.title, body.type, body.create_budget_entry, socketId);
+    this.reservations.syncBudgetOnCreate(
+      tripId,
+      reservation.id,
+      body.title,
+      body.type,
+      body.create_budget_entry,
+      socketId,
+    );
     this.reservations.broadcast(tripId, 'reservation:created', { reservation }, socketId);
     this.reservations.notifyBookingChange(tripId, user.id, body.title, body.type ?? '');
     return { reservation };
@@ -89,8 +83,17 @@ export class ReservationsController {
   ) {
     // The legacy signature declares day_plan_position required, but the wire
     // contract tolerates absent values (bind NULL) — see the shared schema.
-    this.reservations.updatePositions(tripId, body.positions as { id: number; day_plan_position: number }[], body.day_id);
-    this.reservations.broadcast(tripId, 'reservation:positions', { positions: body.positions, day_id: body.day_id }, socketId);
+    this.reservations.updatePositions(
+      tripId,
+      body.positions as { id: number; day_plan_position: number }[],
+      body.day_id,
+    );
+    this.reservations.broadcast(
+      tripId,
+      'reservation:positions',
+      { positions: body.positions, day_id: body.day_id },
+      socketId,
+    );
     return { success: true };
   }
 
@@ -114,7 +117,16 @@ export class ReservationsController {
       this.reservations.broadcast(tripId, 'accommodation:updated', {}, socketId);
     }
     const cur = current as { title: string; type?: string };
-    this.reservations.syncBudgetOnUpdate(tripId, id, body.title ?? '', body.type, cur.title, cur.type, body.create_budget_entry, socketId);
+    this.reservations.syncBudgetOnUpdate(
+      tripId,
+      id,
+      body.title ?? '',
+      body.type,
+      cur.title,
+      cur.type,
+      body.create_budget_entry,
+      socketId,
+    );
     this.reservations.broadcast(tripId, 'reservation:updated', { reservation }, socketId);
     // Push a locally-edited AirTrail flight back to AirTrail (fire-and-forget,
     // under the importer's credentials — see airtrailSync). #214
@@ -138,7 +150,12 @@ export class ReservationsController {
     if (!result) {
       throw new HttpException({ error: 'Reservation not found' }, 404);
     }
-    this.reservations.broadcast(tripId, 'reservation:travelers-updated', { reservationId: Number(id), travelers: result.travelers }, socketId);
+    this.reservations.broadcast(
+      tripId,
+      'reservation:travelers-updated',
+      { reservationId: Number(id), travelers: result.travelers },
+      socketId,
+    );
     return { travelers: result.travelers, reservation: result.reservation };
   }
 
@@ -155,7 +172,12 @@ export class ReservationsController {
       throw new HttpException({ error: 'Reservation not found' }, 404);
     }
     if (accommodationDeleted) {
-      this.reservations.broadcast(tripId, 'accommodation:deleted', { accommodationId: deleted.accommodation_id }, socketId);
+      this.reservations.broadcast(
+        tripId,
+        'accommodation:deleted',
+        { accommodationId: deleted.accommodation_id },
+        socketId,
+      );
     }
     if (deletedBudgetItemId) {
       this.reservations.broadcast(tripId, 'budget:deleted', { itemId: deletedBudgetItemId }, socketId);

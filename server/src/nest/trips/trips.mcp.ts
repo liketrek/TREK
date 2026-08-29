@@ -1,22 +1,31 @@
+import { ADDON_IDS } from '../../addons';
+import { canRead, canReadTrips, canDeleteTrips } from '../../mcp/scopes';
+import { MAX_MCP_TRIP_DAYS, noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import {
-  McpController, Tool, Resource, ResourceTemplate, Prompt, type McpContext,
-  TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
-  TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  demoDenied, ok,
+  McpController,
+  Tool,
+  Resource,
+  ResourceTemplate,
+  Prompt,
+  type McpContext,
+  TOOL_ANNOTATIONS_READONLY,
+  TOOL_ANNOTATIONS_WRITE,
+  TOOL_ANNOTATIONS_DELETE,
+  TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+  demoDenied,
+  ok,
 } from '../../nest-mcp';
-import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
-import { z } from 'zod';
+import { AddonsService } from '../addons/addons.service';
 import { AuthService } from '../auth/auth.service';
 import { CalendarService } from '../calendar/calendar.service';
+import { CollabService } from '../collab/collab.service';
+import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
+import { TodoService } from '../todo/todo.service';
 import { TripMembersService } from '../trip-members/trip-members.service';
 import { TripReadModelService } from '../trip-read-model/trip-read-model.service';
-import { ADDON_IDS } from '../../addons';
-import { MAX_MCP_TRIP_DAYS, noAccess, permissionDenied } from '../../mcp/tools/_shared';
-import { canRead, canReadTrips, canDeleteTrips } from '../../mcp/scopes';
 import { TripsService, NotFoundError, ValidationError } from './trips.service';
-import { TodoService } from '../todo/todo.service';
-import { CollabService } from '../collab/collab.service';
-import { AddonsService } from '../addons/addons.service';
+
+import { z } from 'zod';
 
 function parseId(value: string | string[]): number | null {
   const n = Number(Array.isArray(value) ? value[0] : value);
@@ -25,21 +34,25 @@ function parseId(value: string | string[]): number | null {
 
 function accessDenied(uri: string) {
   return {
-    contents: [{
-      uri,
-      mimeType: 'application/json',
-      text: JSON.stringify({ error: 'Trip not found or access denied' }),
-    }],
+    contents: [
+      {
+        uri,
+        mimeType: 'application/json',
+        text: JSON.stringify({ error: 'Trip not found or access denied' }),
+      },
+    ],
   };
 }
 
 function jsonContent(uri: string, data: unknown) {
   return {
-    contents: [{
-      uri,
-      mimeType: 'application/json',
-      text: JSON.stringify(data, null, 2),
-    }],
+    contents: [
+      {
+        uri,
+        mimeType: 'application/json',
+        text: JSON.stringify(data, null, 2),
+      },
+    ],
   };
 }
 
@@ -84,16 +97,34 @@ export class TripsMcp {
     inputSchema: {
       title: z.string().min(1).max(200).describe('Trip title'),
       description: z.string().max(2000).optional().describe('Trip description'),
-      start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe('Start date (YYYY-MM-DD)'),
-      end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe('End date (YYYY-MM-DD)'),
+      start_date: z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/)
+        .optional()
+        .describe('Start date (YYYY-MM-DD)'),
+      end_date: z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/)
+        .optional()
+        .describe('End date (YYYY-MM-DD)'),
       currency: z.string().length(3).optional().describe('Currency code (e.g. EUR, USD)'),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     access: { group: 'trips', mode: 'write' },
   })
   async createTrip(
-    { title, description, start_date, end_date, currency }: {
-      title: string; description?: string; start_date?: string; end_date?: string; currency?: string;
+    {
+      title,
+      description,
+      start_date,
+      end_date,
+      currency,
+    }: {
+      title: string;
+      description?: string;
+      start_date?: string;
+      end_date?: string;
+      currency?: string;
     },
     ctx: McpContext,
   ) {
@@ -101,7 +132,10 @@ export class TripsMcp {
     if (start_date) {
       const d = new Date(start_date + 'T00:00:00Z');
       if (Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== start_date)
-        return { content: [{ type: 'text' as const, text: 'start_date is not a valid calendar date.' }], isError: true };
+        return {
+          content: [{ type: 'text' as const, text: 'start_date is not a valid calendar date.' }],
+          isError: true,
+        };
     }
     if (end_date) {
       const d = new Date(end_date + 'T00:00:00Z');
@@ -111,32 +145,63 @@ export class TripsMcp {
     if (start_date && end_date && new Date(end_date) < new Date(start_date)) {
       return { content: [{ type: 'text' as const, text: 'End date must be after start date.' }], isError: true };
     }
-    const { trip } = this.trips.create(ctx.userId, { title, description, start_date, end_date, currency }, MAX_MCP_TRIP_DAYS);
+    const { trip } = this.trips.create(
+      ctx.userId,
+      { title, description, start_date, end_date, currency },
+      MAX_MCP_TRIP_DAYS,
+    );
     return ok({ trip });
   }
 
   @Tool({
     name: 'update_trip',
-    description: 'Update an existing trip\'s details.',
+    description: "Update an existing trip's details.",
     inputSchema: {
       tripId: z.number().int().positive(),
       title: z.string().min(1).max(200).optional(),
       description: z.string().max(2000).optional(),
-      start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-      end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+      start_date: z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/)
+        .optional(),
+      end_date: z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/)
+        .optional(),
       currency: z.string().length(3).optional(),
       is_archived: z.boolean().optional().describe('Archive (true) or unarchive (false) the trip'),
       cover_image: z.string().optional().describe('Cover image path, e.g. /uploads/covers/abc.jpg'),
-      date_shift_mode: z.enum(['keep_bookings', 'shift_all']).optional().describe(
-        'When changing dates: keep_bookings (default) keeps dated reservations/accommodations on their dates while day plans move; shift_all moves the whole itinerary, bookings included'),
+      date_shift_mode: z
+        .enum(['keep_bookings', 'shift_all'])
+        .optional()
+        .describe(
+          'When changing dates: keep_bookings (default) keeps dated reservations/accommodations on their dates while day plans move; shift_all moves the whole itinerary, bookings included',
+        ),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     access: { group: 'trips', mode: 'write' },
   })
   async updateTrip(
-    { tripId, title, description, start_date, end_date, currency, is_archived, cover_image, date_shift_mode }: {
-      tripId: number; title?: string; description?: string; start_date?: string; end_date?: string;
-      currency?: string; is_archived?: boolean; cover_image?: string; date_shift_mode?: 'keep_bookings' | 'shift_all';
+    {
+      tripId,
+      title,
+      description,
+      start_date,
+      end_date,
+      currency,
+      is_archived,
+      cover_image,
+      date_shift_mode,
+    }: {
+      tripId: number;
+      title?: string;
+      description?: string;
+      start_date?: string;
+      end_date?: string;
+      currency?: string;
+      is_archived?: boolean;
+      cover_image?: string;
+      date_shift_mode?: 'keep_bookings' | 'shift_all';
     },
     ctx: McpContext,
   ) {
@@ -146,7 +211,10 @@ export class TripsMcp {
     if (start_date) {
       const d = new Date(start_date + 'T00:00:00Z');
       if (Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== start_date)
-        return { content: [{ type: 'text' as const, text: 'start_date is not a valid calendar date.' }], isError: true };
+        return {
+          content: [{ type: 'text' as const, text: 'start_date is not a valid calendar date.' }],
+          isError: true,
+        };
     }
     if (end_date) {
       const d = new Date(end_date + 'T00:00:00Z');
@@ -155,7 +223,12 @@ export class TripsMcp {
     }
     // update() re-anchors the budget before the trip row moves off the old
     // currency (#1543) and then runs the legacy updateTrip core.
-    const { updatedTrip } = await this.trips.update(tripId, ctx.userId, { title, description, start_date, end_date, currency, is_archived, cover_image, date_shift_mode }, 'user');
+    const { updatedTrip } = await this.trips.update(
+      tripId,
+      ctx.userId,
+      { title, description, start_date, end_date, currency, is_archived, cover_image, date_shift_mode },
+      'user',
+    );
     this.guards.safeBroadcast(tripId, 'trip:updated', { trip: updatedTrip });
     return ok({ trip: updatedTrip });
   }
@@ -180,7 +253,8 @@ export class TripsMcp {
   // they are navigation tools that any MCP client needs to discover trip IDs.
   @Tool({
     name: 'list_trips',
-    description: 'List all trips the current user owns or is a member of. Use this for trip discovery before calling get_trip_summary.',
+    description:
+      'List all trips the current user owns or is a member of. Use this for trip discovery before calling get_trip_summary.',
     inputSchema: {
       include_archived: z.boolean().optional().describe('Include archived trips (default false)'),
     },
@@ -189,13 +263,14 @@ export class TripsMcp {
   async listTrips({ include_archived }: { include_archived?: boolean }, ctx: McpContext) {
     const notice = ctx.getDeprecationNotice ? ctx.getDeprecationNotice() : null;
     const trips = this.trips.list(ctx.userId, include_archived ? null : 0);
-    if (notice) return {
-      isError: true as const,
-      content: [
-        { type: 'text' as const, text: notice },
-        { type: 'text' as const, text: JSON.stringify({ trips }, null, 2) },
-      ],
-    };
+    if (notice)
+      return {
+        isError: true as const,
+        content: [
+          { type: 'text' as const, text: notice },
+          { type: 'text' as const, text: JSON.stringify({ trips }, null, 2) },
+        ],
+      };
     return ok({ trips });
   }
 
@@ -203,7 +278,8 @@ export class TripsMcp {
 
   @Tool({
     name: 'get_trip_summary',
-    description: 'Get a full denormalized summary of a trip in a single call: metadata, members, days with assignments and notes, accommodations, budget line items (when enabled), packing list (when enabled), reservations, collab notes and poll/message counts (when enabled), and to-do items (when enabled). Use this as a context loader before planning or modifying a trip.',
+    description:
+      'Get a full denormalized summary of a trip in a single call: metadata, members, days with assignments and notes, accommodations, budget line items (when enabled), packing list (when enabled), reservations, collab notes and poll/message counts (when enabled), and to-do items (when enabled). Use this as a context loader before planning or modifying a trip.',
     inputSchema: {
       tripId: z.number().int().positive(),
     },
@@ -216,23 +292,23 @@ export class TripsMcp {
     const R = canReadTrips(ctx.scopes);
     // Addon availability gates
     const packingEnabled = this.addons.isAddonEnabled(ADDON_IDS.PACKING);
-    const budgetEnabled  = this.addons.isAddonEnabled(ADDON_IDS.BUDGET);
-    const collabEnabled  = this.addons.isAddonEnabled(ADDON_IDS.COLLAB);
+    const budgetEnabled = this.addons.isAddonEnabled(ADDON_IDS.BUDGET);
+    const collabEnabled = this.addons.isAddonEnabled(ADDON_IDS.COLLAB);
     const collabFeatures = collabEnabled ? this.addons.getCollabFeatures() : null;
     // Scope gates — sections not covered by the client's OAuth scopes are omitted.
     // Core trip data (metadata, days, members, accommodations) is always included
     // because this tool is always registered and needed for navigation.
-    const canReadBudget  = budgetEnabled  && canRead(ctx.scopes, 'budget');
+    const canReadBudget = budgetEnabled && canRead(ctx.scopes, 'budget');
     const canReadPacking = packingEnabled && canRead(ctx.scopes, 'packing');
-    const canReadCollab  = collabEnabled  && canRead(ctx.scopes, 'collab');
-    const canReadTodos   = packingEnabled && canRead(ctx.scopes, 'todos');
-    const canReadRes     = canRead(ctx.scopes, 'reservations');
+    const canReadCollab = collabEnabled && canRead(ctx.scopes, 'collab');
+    const canReadTodos = packingEnabled && canRead(ctx.scopes, 'todos');
+    const canReadRes = canRead(ctx.scopes, 'reservations');
     const todos = canReadTodos ? this.todos.listItems(tripId) : [];
     let pollCount = 0;
     let messageCount = 0;
     if (canReadCollab) {
-      if (collabFeatures?.polls) pollCount    = this.collab.listPolls(tripId).length;
-      if (collabFeatures?.chat)  messageCount = this.collab.countMessages(tripId);
+      if (collabFeatures?.polls) pollCount = this.collab.listPolls(tripId).length;
+      if (collabFeatures?.chat) messageCount = this.collab.countMessages(tripId);
     }
     const notice = ctx.getDeprecationNotice ? ctx.getDeprecationNotice() : null;
     // The core bucket (trip metadata, members WITH email, days with place
@@ -242,28 +318,29 @@ export class TripsMcp {
     // navigation (list_trips already covers discovery). trek_ PATs (null scopes)
     // and any trips:read holder keep the full payload — no behaviour change.
     const summaryData = {
-      trip:          R                                             ? summary.trip          : { id: summary.trip.id, title: summary.trip.title },
-      members:       R                                             ? summary.members       : undefined,
-      days:          R                                             ? summary.days          : undefined,
+      trip: R ? summary.trip : { id: summary.trip.id, title: summary.trip.title },
+      members: R ? summary.members : undefined,
+      days: R ? summary.days : undefined,
       // Accommodations are "accommodation details" under reservations:read too
       // (see SCOPE_INFO) and pair with reservations in the share payload, so a
       // reservations-scoped token keeps them — gate on either read scope.
-      accommodations: (R || canReadRes)                            ? summary.accommodations : undefined,
-      reservations:  canReadRes                                    ? summary.reservations : undefined,
-      packing:       canReadPacking                                ? summary.packing      : undefined,
-      budget:        canReadBudget                                 ? summary.budget       : undefined,
-      collab_notes:  canReadCollab && collabFeatures?.notes        ? summary.collab_notes : [],
+      accommodations: R || canReadRes ? summary.accommodations : undefined,
+      reservations: canReadRes ? summary.reservations : undefined,
+      packing: canReadPacking ? summary.packing : undefined,
+      budget: canReadBudget ? summary.budget : undefined,
+      collab_notes: canReadCollab && collabFeatures?.notes ? summary.collab_notes : [],
       todos,
       pollCount,
       messageCount,
     };
-    if (notice) return {
-      isError: true as const,
-      content: [
-        { type: 'text' as const, text: notice },
-        { type: 'text' as const, text: JSON.stringify(summaryData, null, 2) },
-      ],
-    };
+    if (notice)
+      return {
+        isError: true as const,
+        content: [
+          { type: 'text' as const, text: notice },
+          { type: 'text' as const, text: JSON.stringify(summaryData, null, 2) },
+        ],
+      };
     return ok(summaryData);
   }
 
@@ -307,7 +384,8 @@ export class TripsMcp {
       this.guards.safeBroadcast(tripId, 'member:added', { member: result.member });
       return ok({ member: result.member });
     } catch (err) {
-      const msg = err instanceof ValidationError || err instanceof NotFoundError ? err.message : 'Failed to add member.';
+      const msg =
+        err instanceof ValidationError || err instanceof NotFoundError ? err.message : 'Failed to add member.';
       return { content: [{ type: 'text' as const, text: msg }], isError: true };
     }
   }
@@ -335,7 +413,8 @@ export class TripsMcp {
 
   @Tool({
     name: 'copy_trip',
-    description: 'Duplicate a trip (all days, places, itinerary, packing, budget, reservations, day notes). Packing items and to-dos are reset to unchecked. Returns the new trip.',
+    description:
+      'Duplicate a trip (all days, places, itinerary, packing, budget, reservations, day notes). Packing items and to-dos are reset to unchecked. Returns the new trip.',
     inputSchema: {
       tripId: z.number().int().positive().describe('Source trip ID to duplicate'),
       title: z.string().min(1).max(200).optional().describe('Title for the new trip (defaults to source title)'),
@@ -357,7 +436,8 @@ export class TripsMcp {
 
   @Tool({
     name: 'export_trip_ics',
-    description: 'Export a trip\'s itinerary and reservations as iCalendar (.ics) format text. Useful for importing into calendar apps.',
+    description:
+      "Export a trip's itinerary and reservations as iCalendar (.ics) format text. Useful for importing into calendar apps.",
     inputSchema: {
       tripId: z.number().int().positive(),
     },
@@ -430,7 +510,11 @@ export class TripsMcp {
   })
   async tripSummaryPrompt({ tripId }: { tripId: number }, ctx: McpContext) {
     if (!this.trips.canAccessTrip(tripId, ctx.userId)) {
-      return { messages: [{ role: 'user' as const, content: { type: 'text' as const, text: 'Trip not found or access denied.' } }] };
+      return {
+        messages: [
+          { role: 'user' as const, content: { type: 'text' as const, text: 'Trip not found or access denied.' } },
+        ],
+      };
     }
     const summary = this.readModel.getTripSummary(tripId, ctx.userId);
     if (!summary) {

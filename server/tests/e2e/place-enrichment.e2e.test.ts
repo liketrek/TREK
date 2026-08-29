@@ -4,12 +4,21 @@
  * provider fan-out on the container's MapsService is stubbed (no outbound
  * HTTP); the photo cache is stubbed on its own instance so nothing touches disk.
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
-import request from 'supertest';
+import { RateLimitService } from '../../src/nest/common/rate-limit.service';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
+import { DatabaseModule } from '../../src/nest/database/database.module';
+import { MapsService } from '../../src/nest/maps/maps.service';
+import { PlaceEnrichmentModule } from '../../src/nest/place-enrichment/place-enrichment.module';
+import { candidateKey } from '../../src/nest/place-enrichment/place-enrichment.service';
+import { PlacePhotoCacheService } from '../../src/nest/place-photos/place-photo-cache.service';
+import { seedUser, sessionCookie } from './harness';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
-import { Test } from '@nestjs/testing';
-import { seedUser, sessionCookie } from './harness';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 
 const { db } = vi.hoisted(() => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -28,15 +37,6 @@ const { db } = vi.hoisted(() => {
 });
 
 vi.mock('../../src/db/database', () => ({ db, closeDb: () => {}, reinitialize: () => {} }));
-
-import { PlaceEnrichmentModule } from '../../src/nest/place-enrichment/place-enrichment.module';
-import { candidateKey } from '../../src/nest/place-enrichment/place-enrichment.service';
-import { MapsService } from '../../src/nest/maps/maps.service';
-import { PlacePhotoCacheService } from '../../src/nest/place-photos/place-photo-cache.service';
-import { DatabaseModule } from '../../src/nest/database/database.module';
-import { RateLimitService } from '../../src/nest/common/rate-limit.service';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
 
 const BODY = { lat: 50.9, lng: 6.96, name: 'Museum Ludwig', placeId: 'way:12345' };
 
@@ -141,7 +141,10 @@ describe('Place enrichment e2e (real auth guard + real validation pipe)', () => 
       },
     ]);
     // The bytes download goes through the SSRF-guarded fetch — stub the network.
-    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer })));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({ ok: true, arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer })),
+    );
 
     const res = await request(server).post('/api/maps/enrichment').set('Cookie', sessionCookie(1)).send(BODY);
 
@@ -191,7 +194,8 @@ describe('Place enrichment e2e (real auth guard + real validation pipe)', () => 
   it('200 with the stored credit for a cached picture', async () => {
     const photoCache = app.get(PlacePhotoCacheService);
     vi.spyOn(photoCache, 'get').mockResolvedValueOnce({
-      photoUrl: '/x', attribution: 'Alice · CC BY-SA 4.0',
+      photoUrl: '/x',
+      attribution: 'Alice · CC BY-SA 4.0',
     });
 
     const res = await request(server)

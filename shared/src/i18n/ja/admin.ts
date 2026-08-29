@@ -444,7 +444,8 @@ const admin: TranslationStrings = {
   'admin.plugins.changeVersion': 'バージョン変更…',
   'admin.plugins.noVersions': 'レジストリに公開バージョンが見つかりません。',
   'admin.plugins.downgradeTitle': 'このプラグインをロールバックしますか？',
-  'admin.plugins.downgradeBody': 'v{from} から v{to} への切り替え：新しいバージョンが書き込んだデータはそのまま残り、古いバージョンはそれを認識できない可能性があります。',
+  'admin.plugins.downgradeBody':
+    'v{from} から v{to} への切り替え：新しいバージョンが書き込んだデータはそのまま残り、古いバージョンはそれを認識できない可能性があります。',
   'admin.plugins.downgradeConfirm': 'ロールバック',
   'admin.plugins.updatesHeld': 'v{version} で更新を一時停止中',
   'admin.plugins.resumeUpdates': '更新を再開',

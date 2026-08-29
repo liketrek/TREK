@@ -1,13 +1,13 @@
+import { RuntimeEnvService } from '../app-config/runtime-env.service';
 import type { KiReservation } from '../booking-import/kitinerary.types';
 import { createLlmClient } from './llm-client.factory';
 import { LlmConfigResolver } from './llm-config.resolver';
 import { buildSystemPrompt, KI_RESERVATION_JSON_SCHEMA } from './llm-prompt';
 import type { LlmExtractionInput } from './llm-provider.interface';
-import { isPdf, extractText } from './text-extract';
 import { routeExtraction, detectFlightNumbers } from './router/extraction-router';
+import { isPdf, extractText } from './text-extract';
 import { Injectable } from '@nestjs/common';
 import { kiReservationSchema } from '@trek/shared';
-import { RuntimeEnvService } from '../app-config/runtime-env.service';
 
 const MIME_BY_EXT: Record<string, string> = {
   '.pdf': 'application/pdf',
@@ -104,7 +104,10 @@ export class LlmParseService {
         });
         return { kiItems: routed.kiItems, warnings: [...warnings, ...routed.warnings] };
       } catch (err) {
-        console.error(`[llm-parse] AI parsing failed for "${file.originalName}" (provider=${config.provider}):`, err instanceof Error ? err.message : err);
+        console.error(
+          `[llm-parse] AI parsing failed for "${file.originalName}" (provider=${config.provider}):`,
+          err instanceof Error ? err.message : err,
+        );
         return {
           kiItems: [],
           warnings: [`${file.originalName}: AI parsing failed — ${err instanceof Error ? err.message : String(err)}`],
@@ -119,7 +122,10 @@ export class LlmParseService {
       if (this.env.isManaged()) console.debug(`[DEBUG] LLM response: ${raw.length} item(s)`);
       else console.debug('[DEBUG] Raw LLM Response: ', raw);
     } catch (err) {
-      console.error(`[llm-parse] AI parsing failed for "${file.originalName}" (provider=${config.provider}):`, err instanceof Error ? err.message : err);
+      console.error(
+        `[llm-parse] AI parsing failed for "${file.originalName}" (provider=${config.provider}):`,
+        err instanceof Error ? err.message : err,
+      );
       return {
         kiItems: [],
         warnings: [`${file.originalName}: AI parsing failed — ${err instanceof Error ? err.message : String(err)}`],

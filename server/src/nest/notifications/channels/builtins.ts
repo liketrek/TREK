@@ -1,6 +1,6 @@
 import { registerChannel } from '../channel-registry';
-import type { ChannelMessage, ExternalChannel } from '../notification-events';
 import type { MailerService } from '../mailer/mailer.service';
+import type { ChannelMessage, ExternalChannel } from '../notification-events';
 import { resolveAdminNtfyUrl, resolveNtfyUrl, type NtfyService } from '../transports/ntfy.service';
 import type { WebhookService } from '../transports/webhook.service';
 
@@ -66,7 +66,13 @@ export function buildBuiltinChannels({ mailer, webhook, ntfy }: BuiltinChannelDe
     async sendToUser(userId, msg) {
       const url = webhook.getUserWebhookUrl(userId);
       if (!url) return false;
-      return webhook.sendWebhook(url, { event: msg.event, title: msg.title, body: msg.body, tripName: msg.tripName, link: msg.url });
+      return webhook.sendWebhook(url, {
+        event: msg.event,
+        title: msg.title,
+        body: msg.body,
+        tripName: msg.tripName,
+        link: msg.url,
+      });
     },
     async sendGlobal(msg: ChannelMessage) {
       const url = webhook.getAdminWebhookUrl();
@@ -92,7 +98,12 @@ export function buildBuiltinChannels({ mailer, webhook, ntfy }: BuiltinChannelDe
       const adminCfg = ntfy.getAdminNtfyConfig();
       const url = resolveNtfyUrl(adminCfg, userCfg);
       if (!url) return false;
-      return ntfy.sendNtfy(url, userCfg?.token ?? adminCfg.token, { event: msg.event, title: msg.title, body: msg.body, link: msg.url });
+      return ntfy.sendNtfy(url, userCfg?.token ?? adminCfg.token, {
+        event: msg.event,
+        title: msg.title,
+        body: msg.body,
+        link: msg.url,
+      });
     },
     async sendGlobal(msg: ChannelMessage) {
       const adminCfg = ntfy.getAdminNtfyConfig();

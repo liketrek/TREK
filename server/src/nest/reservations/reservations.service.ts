@@ -1,13 +1,13 @@
-import { Injectable } from '@nestjs/common';
-import { DatabaseService, type TripAccess } from '../database/database.service';
-import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
-import { RealtimeService } from '../realtime/realtime.service';
-import { PermissionsService } from '../permissions/permissions.service';
-import { ReservationsReadRepository, toTraveler } from './reservations-read.repository';
 import type { Reservation, User } from '../../types';
 import { BudgetService } from '../budget/budget.service';
-import { typeToCostCategory } from '@trek/shared';
+import { DatabaseService, type TripAccess } from '../database/database.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { PermissionsService } from '../permissions/permissions.service';
+import { RealtimeService } from '../realtime/realtime.service';
+import { ReservationsReadRepository, toTraveler } from './reservations-read.repository';
+import { Injectable } from '@nestjs/common';
+import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
+import { typeToCostCategory } from '@trek/shared';
 
 type Trip = TripAccess;
 type BudgetEntry = { total_price?: number; category?: string } | undefined;
@@ -144,10 +144,21 @@ export class ReservationsService {
   }
 
   canEdit(trip: Trip, user: User): boolean {
-    return this.permissions.checkPermission('reservation_edit', user.role, trip.user_id, user.id, trip.user_id !== user.id);
+    return this.permissions.checkPermission(
+      'reservation_edit',
+      user.role,
+      trip.user_id,
+      user.id,
+      trip.user_id !== user.id,
+    );
   }
 
-  broadcast<E extends TrekWsTripEventName>(tripId: string, event: E, payload: TrekWsPayload<E>, socketId: string | undefined): void {
+  broadcast<E extends TrekWsTripEventName>(
+    tripId: string,
+    event: E,
+    payload: TrekWsPayload<E>,
+    socketId: string | undefined,
+  ): void {
     this.realtime.broadcast(tripId, event, payload, socketId);
   }
 
@@ -161,31 +172,36 @@ export class ReservationsService {
       const actor = this.db.get<{ email: string }>('SELECT email FROM users WHERE id = ?', actorId);
       if (!actor) return;
       const trip = this.db.get<{ title: string }>('SELECT title FROM trips WHERE id = ?', tripId);
-      this.notifications.send({
-        event: 'booking_change',
-        actorId,
-        scope: 'trip',
-        targetId: Number(tripId),
-        params: {
-          trip: trip?.title || 'Untitled',
-          actor: actor.email,
-          booking,
-          type: type || 'booking',
-          tripId: String(tripId),
-        },
-      }).catch(() => {});
+      this.notifications
+        .send({
+          event: 'booking_change',
+          actorId,
+          scope: 'trip',
+          targetId: Number(tripId),
+          params: {
+            trip: trip?.title || 'Untitled',
+            actor: actor.email,
+            booking,
+            type: type || 'booking',
+            tripId: String(tripId),
+          },
+        })
+        .catch(() => {});
     } catch {
       // Notifications must never make the booking write fail.
     }
   }
 
   loadEndpointsByTrip(tripId: string | number): Map<number, ReservationEndpoint[]> {
-    const rows = this.db.all<ReservationEndpoint>(`
+    const rows = this.db.all<ReservationEndpoint>(
+      `
     SELECT e.* FROM reservation_endpoints e
     JOIN reservations r ON e.reservation_id = r.id
     WHERE r.trip_id = ?
     ORDER BY e.reservation_id, e.sequence
-  `, tripId);
+  `,
+      tripId,
+    );
     const map = new Map<number, ReservationEndpoint[]>();
     for (const r of rows) {
       const list = map.get(r.reservation_id!) ?? [];
@@ -198,21 +214,24 @@ export class ReservationsService {
   /** Users assignable on a trip: its members (guests included) plus the owner. */
   private assignableUserIds(tripId: string | number): Set<number> {
     const members = this.db.all<{ user_id: number }>('SELECT user_id FROM trip_members WHERE trip_id = ?', tripId);
-    const ids = new Set(members.map(m => m.user_id));
+    const ids = new Set(members.map((m) => m.user_id));
     const owner = this.db.get<{ user_id: number }>('SELECT user_id FROM trips WHERE id = ?', tripId);
     if (owner) ids.add(owner.user_id);
     return ids;
   }
 
   loadTravelersByTrip(tripId: string | number): Map<number, ReservationTraveler[]> {
-    const rows = this.db.all<ReservationTraveler & { reservation_id: number }>(`
+    const rows = this.db.all<ReservationTraveler & { reservation_id: number }>(
+      `
     SELECT rt.reservation_id, rt.user_id, COALESCE(u.display_name, u.username) AS username, u.avatar, u.is_guest
     FROM reservation_travelers rt
     JOIN reservations r ON rt.reservation_id = r.id
     JOIN users u ON rt.user_id = u.id
     WHERE r.trip_id = ?
     ORDER BY rt.reservation_id
-  `, tripId);
+  `,
+      tripId,
+    );
     const map = new Map<number, ReservationTraveler[]>();
     for (const row of rows) {
       const list = map.get(row.reservation_id) ?? [];
@@ -233,11 +252,13 @@ export class ReservationsService {
    */
   setReservationTravelers(reservationId: number | string, tripId: string | number, userIds: number[]): void {
     const allowed = this.assignableUserIds(tripId);
-    const ids = [...new Set(userIds)].filter(uid => allowed.has(uid));
+    const ids = [...new Set(userIds)].filter((uid) => allowed.has(uid));
     this.db.transaction(() => {
       this.db.run('DELETE FROM reservation_travelers WHERE reservation_id = ?', reservationId);
       if (ids.length > 0) {
-        const insert = this.db.prepare('INSERT OR IGNORE INTO reservation_travelers (reservation_id, user_id) VALUES (?, ?)');
+        const insert = this.db.prepare(
+          'INSERT OR IGNORE INTO reservation_travelers (reservation_id, user_id) VALUES (?, ?)',
+        );
         for (const uid of ids) insert.run(reservationId, uid);
       }
     });
@@ -263,7 +284,11 @@ export class ReservationsService {
     if (!time) return null;
     const datePart = time.slice(0, 10);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(datePart)) return null;
-    const exact = this.db.get<{ id: number }>('SELECT id FROM days WHERE trip_id = ? AND date = ? LIMIT 1', tripId, datePart);
+    const exact = this.db.get<{ id: number }>(
+      'SELECT id FROM days WHERE trip_id = ? AND date = ? LIMIT 1',
+      tripId,
+      datePart,
+    );
     if (exact) return exact.id;
     // Fallback: clamp to the nearest day in the trip so an imported booking whose
     // exact date has no day row (or sits just outside the span) still lands on a day.
@@ -272,7 +297,8 @@ export class ReservationsService {
     if (!clampToNearest) return null;
     const nearest = this.db.get<{ id: number }>(
       'SELECT id FROM days WHERE trip_id = ? ORDER BY ABS(JULIANDAY(date) - JULIANDAY(?)) ASC, date ASC LIMIT 1',
-      tripId, datePart
+      tripId,
+      datePart,
     );
     return nearest?.id ?? null;
   }
@@ -287,13 +313,16 @@ export class ReservationsService {
   // unlinked dated hotels (e.g. imported ones) re-anchor like any other booking.
   resyncReservationDays(tripId: string | number): void {
     const rows = this.db.all<{
-      id: number; reservation_time: string | null; reservation_end_time: string | null;
-      day_id: number | null; end_day_id: number | null;
+      id: number;
+      reservation_time: string | null;
+      reservation_end_time: string | null;
+      day_id: number | null;
+      end_day_id: number | null;
     }>(
       `SELECT id, reservation_time, reservation_end_time, day_id, end_day_id
        FROM reservations
       WHERE trip_id = ? AND (type != 'hotel' OR accommodation_id IS NULL) AND reservation_time IS NOT NULL`,
-      tripId
+      tripId,
     );
     const update = this.db.prepare('UPDATE reservations SET day_id = ?, end_day_id = ? WHERE id = ?');
     this.db.transaction(() => {
@@ -331,13 +360,25 @@ export class ReservationsService {
       endpoints
         .filter((e) => e.lat != null && e.lng != null)
         .forEach((e, i) => {
-          insert.run(reservationId, e.role, e.sequence ?? i, e.name, e.code ?? null, e.lat, e.lng, e.timezone ?? null, e.local_time ?? null, e.local_date ?? null);
+          insert.run(
+            reservationId,
+            e.role,
+            e.sequence ?? i,
+            e.name,
+            e.code ?? null,
+            e.lat,
+            e.lng,
+            e.timezone ?? null,
+            e.local_time ?? null,
+            e.local_date ?? null,
+          );
         });
     });
   }
 
   list(tripId: string | number) {
-    const reservations = this.db.all<ReservationRow>(`
+    const reservations = this.db.all<ReservationRow>(
+      `
     SELECT r.*, d.day_number, p.name as place_name, r.assignment_id,
       ap.place_id as accommodation_place_id, acc_p.name as accommodation_name,
       ap.start_day_id as accommodation_start_day_id, ap.end_day_id as accommodation_end_day_id
@@ -348,14 +389,19 @@ export class ReservationsService {
     LEFT JOIN places acc_p ON ap.place_id = acc_p.id
     WHERE r.trip_id = ?
     ORDER BY r.reservation_time ASC, r.created_at ASC
-  `, tripId);
+  `,
+      tripId,
+    );
 
-    const dayPositions = this.db.all<{ reservation_id: number; day_id: number; position: number }>(`
+    const dayPositions = this.db.all<{ reservation_id: number; day_id: number; position: number }>(
+      `
     SELECT rdp.reservation_id, rdp.day_id, rdp.position
     FROM reservation_day_positions rdp
     JOIN reservations r ON rdp.reservation_id = r.id
     WHERE r.trip_id = ?
-  `, tripId);
+  `,
+      tripId,
+    );
 
     const posMap = new Map<number, Record<number, number>>();
     for (const dp of dayPositions) {
@@ -403,7 +449,8 @@ export class ReservationsService {
     const today = new Date().toISOString().slice(0, 10);
     const now = new Date().toISOString();
 
-    const reservations = this.db.all<Record<string, unknown>>(`
+    const reservations = this.db.all<Record<string, unknown>>(
+      `
     SELECT r.id, r.trip_id, r.title, r.type, r.status, r.location,
            r.reservation_time, r.confirmation_number,
            t.title as trip_title, t.cover_image as trip_cover,
@@ -423,7 +470,13 @@ export class ReservationsService {
       )
     ORDER BY COALESCE(r.reservation_time, d.date) ASC
     LIMIT ?
-  `, userId, userId, now, today, limit);
+  `,
+      userId,
+      userId,
+      now,
+      today,
+      limit,
+    );
 
     return reservations;
   }
@@ -457,12 +510,15 @@ export class ReservationsService {
       return !!row && String(row.trip_id) !== String(tripId);
     };
 
-    const check = (field: string, offending: boolean) => { if (offending) offenders.push(field); };
+    const check = (field: string, offending: boolean) => {
+      if (offending) offenders.push(field);
+    };
 
     if (data.day_id != null) check('day_id', elsewhere('days', data.day_id));
     if (data.end_day_id != null) check('end_day_id', elsewhere('days', data.end_day_id));
     if (data.place_id != null) check('place_id', elsewhere('places', data.place_id));
-    if (data.accommodation_id != null) check('accommodation_id', elsewhere('day_accommodations', data.accommodation_id));
+    if (data.accommodation_id != null)
+      check('accommodation_id', elsewhere('day_accommodations', data.accommodation_id));
     if (data.assignment_id != null) {
       // An assignment belongs to a trip through its day, so the join is the
       // lookup — same shape as the MCP tool's getAssignmentForTrip.
@@ -485,16 +541,36 @@ export class ReservationsService {
 
   /** The accommodation insert, the reservation insert, the endpoint save and
    *  the metadata sync are one logical write — all-or-nothing. */
-  create(tripId: string | number, data: CreateReservationData): { reservation: ReservationRow; accommodationCreated: boolean } {
+  create(
+    tripId: string | number,
+    data: CreateReservationData,
+  ): { reservation: ReservationRow; accommodationCreated: boolean } {
     return this.db.transaction(() => this.createInTx(tripId, data));
   }
 
-  private createInTx(tripId: string | number, data: CreateReservationData): { reservation: ReservationRow; accommodationCreated: boolean } {
+  private createInTx(
+    tripId: string | number,
+    data: CreateReservationData,
+  ): { reservation: ReservationRow; accommodationCreated: boolean } {
     const {
-      title, reservation_time, reservation_end_time, location,
-      confirmation_number, notes, url, day_id, end_day_id, place_id, assignment_id,
-      status, type, accommodation_id, metadata, create_accommodation,
-      endpoints, needs_review
+      title,
+      reservation_time,
+      reservation_end_time,
+      location,
+      confirmation_number,
+      notes,
+      url,
+      day_id,
+      end_day_id,
+      place_id,
+      assignment_id,
+      status,
+      type,
+      accommodation_id,
+      metadata,
+      create_accommodation,
+      endpoints,
+      needs_review,
     } = data;
 
     let accommodationCreated = false;
@@ -502,11 +578,24 @@ export class ReservationsService {
     // Auto-create accommodation for hotel reservations
     let resolvedAccommodationId: number | null = accommodation_id || null;
     if (type === 'hotel' && !resolvedAccommodationId && create_accommodation) {
-      const { place_id: accPlaceId, start_day_id, end_day_id, check_in, check_out, confirmation: accConf } = create_accommodation;
+      const {
+        place_id: accPlaceId,
+        start_day_id,
+        end_day_id,
+        check_in,
+        check_out,
+        confirmation: accConf,
+      } = create_accommodation;
       if (start_day_id && end_day_id) {
         const accResult = this.db.run(
           'INSERT INTO day_accommodations (trip_id, place_id, start_day_id, end_day_id, check_in, check_out, confirmation) VALUES (?, ?, ?, ?, ?, ?, ?)',
-          tripId, accPlaceId || null, start_day_id, end_day_id, check_in || null, check_out || null, accConf || confirmation_number || null
+          tripId,
+          accPlaceId || null,
+          start_day_id,
+          end_day_id,
+          check_in || null,
+          check_out || null,
+          accConf || confirmation_number || null,
         );
         resolvedAccommodationId = Number(accResult.lastInsertRowid);
         accommodationCreated = true;
@@ -526,7 +615,8 @@ export class ReservationsService {
       resolvedEndDayId = this.resolveDayIdFromTime(tripId, reservation_end_time);
     }
 
-    const result = this.db.run(`
+    const result = this.db.run(
+      `
     INSERT INTO reservations (trip_id, day_id, end_day_id, place_id, assignment_id, title, reservation_time, reservation_end_time, location, confirmation_number, notes, url, status, type, accommodation_id, metadata, needs_review)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `,
@@ -546,7 +636,7 @@ export class ReservationsService {
       resolvedType,
       resolvedAccommodationId,
       metadata ? JSON.stringify(metadata) : null,
-      needs_review ? 1 : 0
+      needs_review ? 1 : 0,
     );
 
     if (endpoints && endpoints.length > 0) {
@@ -562,13 +652,17 @@ export class ReservationsService {
       if (meta.check_in_time || meta.check_in_end_time || meta.check_out_time) {
         this.db.run(
           'UPDATE day_accommodations SET check_in = COALESCE(?, check_in), check_in_end = COALESCE(?, check_in_end), check_out = COALESCE(?, check_out) WHERE id = ?',
-          meta.check_in_time || null, meta.check_in_end_time || null, meta.check_out_time || null, resolvedAccommodationId
+          meta.check_in_time || null,
+          meta.check_in_end_time || null,
+          meta.check_out_time || null,
+          resolvedAccommodationId,
         );
       }
       if (confirmation_number) {
         this.db.run(
           'UPDATE day_accommodations SET confirmation = COALESCE(?, confirmation) WHERE id = ?',
-          confirmation_number, resolvedAccommodationId
+          confirmation_number,
+          resolvedAccommodationId,
         );
       }
     }
@@ -578,7 +672,11 @@ export class ReservationsService {
     return { reservation, accommodationCreated };
   }
 
-  updatePositions(tripId: string | number, positions: { id: number; day_plan_position?: number }[], dayId?: number | string | null) {
+  updatePositions(
+    tripId: string | number,
+    positions: { id: number; day_plan_position?: number }[],
+    dayId?: number | string | null,
+  ) {
     if (dayId) {
       // Per-day positions for multi-day reservations, scoped the way the legacy
       // branch below already scopes its update. The table carries no trip_id and
@@ -617,40 +715,88 @@ export class ReservationsService {
 
   /** The accommodation upsert, the reservation update, the endpoint replace
    *  and the metadata sync are one logical write — all-or-nothing. */
-  update(id: string | number, tripId: string | number, data: UpdateReservationData, current: Reservation): { reservation: ReservationRow; accommodationChanged: boolean } {
+  update(
+    id: string | number,
+    tripId: string | number,
+    data: UpdateReservationData,
+    current: Reservation,
+  ): { reservation: ReservationRow; accommodationChanged: boolean } {
     return this.db.transaction(() => this.updateInTx(id, tripId, data, current));
   }
 
-  private updateInTx(id: string | number, tripId: string | number, data: UpdateReservationData, current: Reservation): { reservation: ReservationRow; accommodationChanged: boolean } {
+  private updateInTx(
+    id: string | number,
+    tripId: string | number,
+    data: UpdateReservationData,
+    current: Reservation,
+  ): { reservation: ReservationRow; accommodationChanged: boolean } {
     const {
-      title, reservation_time, reservation_end_time, location,
-      confirmation_number, notes, url, day_id, end_day_id, place_id, assignment_id,
-      status, type, accommodation_id, metadata, create_accommodation,
-      endpoints, needs_review
+      title,
+      reservation_time,
+      reservation_end_time,
+      location,
+      confirmation_number,
+      notes,
+      url,
+      day_id,
+      end_day_id,
+      place_id,
+      assignment_id,
+      status,
+      type,
+      accommodation_id,
+      metadata,
+      create_accommodation,
+      endpoints,
+      needs_review,
     } = data;
 
     let accommodationChanged = false;
 
     // Update or create accommodation for hotel reservations
-    let resolvedAccId: number | null = accommodation_id !== undefined ? (accommodation_id || null) : (current.accommodation_id ?? null);
+    let resolvedAccId: number | null =
+      accommodation_id !== undefined ? accommodation_id || null : (current.accommodation_id ?? null);
     if (resolvedAccId) {
       // Scoped to the trip on purpose: an id belonging to someone else's trip
       // must read as absent here, not as an accommodation to write through to.
-      const accExists = this.db.get('SELECT id FROM day_accommodations WHERE id = ? AND trip_id = ?', resolvedAccId, tripId);
+      const accExists = this.db.get(
+        'SELECT id FROM day_accommodations WHERE id = ? AND trip_id = ?',
+        resolvedAccId,
+        tripId,
+      );
       if (!accExists) resolvedAccId = null;
     }
     if (type === 'hotel' && create_accommodation) {
-      const { place_id: accPlaceId, start_day_id, end_day_id, check_in, check_out, confirmation: accConf } = create_accommodation;
+      const {
+        place_id: accPlaceId,
+        start_day_id,
+        end_day_id,
+        check_in,
+        check_out,
+        confirmation: accConf,
+      } = create_accommodation;
       if (start_day_id && end_day_id) {
         if (resolvedAccId) {
           this.db.run(
             'UPDATE day_accommodations SET place_id = ?, start_day_id = ?, end_day_id = ?, check_in = ?, check_out = ?, confirmation = ? WHERE id = ?',
-            accPlaceId || null, start_day_id, end_day_id, check_in || null, check_out || null, accConf || confirmation_number || null, resolvedAccId
+            accPlaceId || null,
+            start_day_id,
+            end_day_id,
+            check_in || null,
+            check_out || null,
+            accConf || confirmation_number || null,
+            resolvedAccId,
           );
         } else if (accPlaceId) {
           const accResult = this.db.run(
             'INSERT INTO day_accommodations (trip_id, place_id, start_day_id, end_day_id, check_in, check_out, confirmation) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            tripId, accPlaceId, start_day_id, end_day_id, check_in || null, check_out || null, accConf || confirmation_number || null
+            tripId,
+            accPlaceId,
+            start_day_id,
+            end_day_id,
+            check_in || null,
+            check_out || null,
+            accConf || confirmation_number || null,
           );
           resolvedAccId = Number(accResult.lastInsertRowid);
         }
@@ -659,12 +805,18 @@ export class ReservationsService {
     }
 
     const resolvedType = (type ?? current.type) || 'other';
-    const nextReservationTime = resolvedType === 'hotel'
-      ? null
-      : (reservation_time !== undefined ? (reservation_time || null) : current.reservation_time);
-    const nextReservationEndTime = resolvedType === 'hotel'
-      ? null
-      : (reservation_end_time !== undefined ? (reservation_end_time || null) : current.reservation_end_time);
+    const nextReservationTime =
+      resolvedType === 'hotel'
+        ? null
+        : reservation_time !== undefined
+          ? reservation_time || null
+          : current.reservation_time;
+    const nextReservationEndTime =
+      resolvedType === 'hotel'
+        ? null
+        : reservation_end_time !== undefined
+          ? reservation_end_time || null
+          : current.reservation_end_time;
 
     // day_id / end_day_id: honour an explicit value from the client,
     // otherwise derive from the (possibly updated) reservation_time so the
@@ -694,7 +846,8 @@ export class ReservationsService {
       nextEndDayId = current.end_day_id ?? null;
     }
 
-    this.db.run(`
+    this.db.run(
+      `
     UPDATE reservations SET
       title = COALESCE(?, title),
       reservation_time = ?,
@@ -717,20 +870,20 @@ export class ReservationsService {
       title || null,
       nextReservationTime,
       nextReservationEndTime,
-      location !== undefined ? (location || null) : current.location,
-      confirmation_number !== undefined ? (confirmation_number || null) : current.confirmation_number,
-      notes !== undefined ? (notes || null) : current.notes,
-      url !== undefined ? (url || null) : (current as Reservation & { url?: string | null }).url,
+      location !== undefined ? location || null : current.location,
+      confirmation_number !== undefined ? confirmation_number || null : current.confirmation_number,
+      notes !== undefined ? notes || null : current.notes,
+      url !== undefined ? url || null : (current as Reservation & { url?: string | null }).url,
       nextDayId,
       nextEndDayId,
-      place_id !== undefined ? (place_id || null) : current.place_id,
-      assignment_id !== undefined ? (assignment_id || null) : current.assignment_id,
+      place_id !== undefined ? place_id || null : current.place_id,
+      assignment_id !== undefined ? assignment_id || null : current.assignment_id,
       status || null,
       type || null,
       resolvedAccId,
       metadata !== undefined ? (metadata ? JSON.stringify(metadata) : null) : current.metadata,
-      needs_review === undefined ? null : (needs_review ? 1 : 0),
-      id
+      needs_review === undefined ? null : needs_review ? 1 : 0,
+      id,
     );
 
     if (endpoints !== undefined) {
@@ -738,20 +891,27 @@ export class ReservationsService {
     }
 
     // Sync check-in/out to accommodation if linked
-    const resolvedMeta = metadata !== undefined ? metadata : (current.metadata ? JSON.parse(current.metadata as string) : null);
+    const resolvedMeta =
+      metadata !== undefined ? metadata : current.metadata ? JSON.parse(current.metadata as string) : null;
     if (resolvedAccId && resolvedMeta) {
-      const meta = (typeof resolvedMeta === 'string' ? JSON.parse(resolvedMeta) : resolvedMeta) as AccommodationTimesMeta;
+      const meta = (
+        typeof resolvedMeta === 'string' ? JSON.parse(resolvedMeta) : resolvedMeta
+      ) as AccommodationTimesMeta;
       if (meta.check_in_time || meta.check_in_end_time || meta.check_out_time) {
         this.db.run(
           'UPDATE day_accommodations SET check_in = COALESCE(?, check_in), check_in_end = COALESCE(?, check_in_end), check_out = COALESCE(?, check_out) WHERE id = ?',
-          meta.check_in_time || null, meta.check_in_end_time || null, meta.check_out_time || null, resolvedAccId
+          meta.check_in_time || null,
+          meta.check_in_end_time || null,
+          meta.check_out_time || null,
+          resolvedAccId,
         );
       }
       const resolvedConf = confirmation_number !== undefined ? confirmation_number : current.confirmation_number;
       if (resolvedConf) {
         this.db.run(
           'UPDATE day_accommodations SET confirmation = COALESCE(?, confirmation) WHERE id = ?',
-          resolvedConf, resolvedAccId
+          resolvedConf,
+          resolvedAccId,
         );
       }
     }
@@ -764,10 +924,19 @@ export class ReservationsService {
 
   /** The accommodation + budget-item + reservation deletes are one logical
    *  cascade — all-or-nothing. */
-  remove(id: string | number, tripId: string | number): { deleted: { id: number; title: string; type: string; accommodation_id: number | null } | undefined; accommodationDeleted: boolean; deletedBudgetItemId: number | null } {
+  remove(
+    id: string | number,
+    tripId: string | number,
+  ): {
+    deleted: { id: number; title: string; type: string; accommodation_id: number | null } | undefined;
+    accommodationDeleted: boolean;
+    deletedBudgetItemId: number | null;
+  } {
     return this.db.transaction(() => {
       const reservation = this.db.get<{ id: number; title: string; type: string; accommodation_id: number | null }>(
-        'SELECT id, title, type, accommodation_id FROM reservations WHERE id = ? AND trip_id = ?', id, tripId
+        'SELECT id, title, type, accommodation_id FROM reservations WHERE id = ? AND trip_id = ?',
+        id,
+        tripId,
       );
       if (!reservation) return { deleted: undefined, accommodationDeleted: false, deletedBudgetItemId: null };
 
@@ -777,12 +946,18 @@ export class ReservationsService {
         // written before referencesOutsideTrip existed can still carry a
         // foreign accommodation_id, and the cascade must not follow it.
         const removed = this.db.run(
-          'DELETE FROM day_accommodations WHERE id = ? AND trip_id = ?', reservation.accommodation_id, tripId,
+          'DELETE FROM day_accommodations WHERE id = ? AND trip_id = ?',
+          reservation.accommodation_id,
+          tripId,
         );
         accommodationDeleted = removed.changes > 0;
       }
 
-      const linkedBudget = this.db.get<{ id: number }>('SELECT id FROM budget_items WHERE trip_id = ? AND reservation_id = ?', tripId, id);
+      const linkedBudget = this.db.get<{ id: number }>(
+        'SELECT id FROM budget_items WHERE trip_id = ? AND reservation_id = ?',
+        tripId,
+        id,
+      );
       if (linkedBudget) {
         this.db.run('DELETE FROM budget_items WHERE id = ?', linkedBudget.id);
       }
@@ -793,7 +968,14 @@ export class ReservationsService {
   }
 
   /** POST side effect: auto-create a linked budget item when a price is provided. */
-  syncBudgetOnCreate(tripId: string, reservationId: number, title: string, type: string | undefined, entry: BudgetEntry, socketId: string | undefined): void {
+  syncBudgetOnCreate(
+    tripId: string,
+    reservationId: number,
+    title: string,
+    type: string | undefined,
+    entry: BudgetEntry,
+    socketId: string | undefined,
+  ): void {
     if (!entry || !(Number(entry.total_price) > 0)) return;
     try {
       const item = this.budget.linkBudgetItemToReservation(tripId, reservationId, {
@@ -808,12 +990,25 @@ export class ReservationsService {
   }
 
   /** PUT side effect: drop the linked budget item when the price is cleared, else create/update it. */
-  syncBudgetOnUpdate(tripId: string, id: string, title: string, type: string | undefined, currentTitle: string, currentType: string | undefined, entry: BudgetEntry, socketId: string | undefined): void {
+  syncBudgetOnUpdate(
+    tripId: string,
+    id: string,
+    title: string,
+    type: string | undefined,
+    currentTitle: string,
+    currentType: string | undefined,
+    entry: BudgetEntry,
+    socketId: string | undefined,
+  ): void {
     // When the booking type changes, keep a linked expense's category in sync —
     // but only if it still carries the auto-derived category (so a manual pick in
     // the Costs editor is preserved). Runs regardless of create_budget_entry.
     if (type && currentType && type !== currentType) {
-      const linked = this.db.get<{ id: number; category: string }>('SELECT id, category FROM budget_items WHERE trip_id = ? AND reservation_id = ?', tripId, id);
+      const linked = this.db.get<{ id: number; category: string }>(
+        'SELECT id, category FROM budget_items WHERE trip_id = ? AND reservation_id = ?',
+        tripId,
+        id,
+      );
       if (linked) {
         const oldCat = typeToCostCategory(currentType);
         const newCat = typeToCostCategory(type);
@@ -831,7 +1026,11 @@ export class ReservationsService {
 
     if (!(Number(entry.total_price) > 0)) {
       // Explicit clear (total_price 0/empty) — drop the linked item.
-      const linked = this.db.get<{ id: number }>('SELECT id FROM budget_items WHERE trip_id = ? AND reservation_id = ?', tripId, id);
+      const linked = this.db.get<{ id: number }>(
+        'SELECT id FROM budget_items WHERE trip_id = ? AND reservation_id = ?',
+        tripId,
+        id,
+      );
       if (linked) {
         this.budget.deleteBudgetItem(linked.id, tripId);
         this.realtime.broadcast(tripId, 'budget:deleted', { itemId: linked.id }, socketId);
@@ -842,9 +1041,17 @@ export class ReservationsService {
     try {
       const itemName = title || currentTitle;
       const category = entry.category || type || currentType || 'Other';
-      const existing = this.db.get<{ id: number }>('SELECT id FROM budget_items WHERE trip_id = ? AND reservation_id = ?', tripId, id);
+      const existing = this.db.get<{ id: number }>(
+        'SELECT id FROM budget_items WHERE trip_id = ? AND reservation_id = ?',
+        tripId,
+        id,
+      );
       if (existing) {
-        const updated = this.budget.updateBudgetItem(existing.id, tripId, { name: itemName, category, total_price: entry.total_price });
+        const updated = this.budget.updateBudgetItem(existing.id, tripId, {
+          name: itemName,
+          category,
+          total_price: entry.total_price,
+        });
         this.realtime.broadcast(tripId, 'budget:updated', { item: updated }, socketId);
       } else {
         const item = this.budget.createBudgetItem(tripId, { name: itemName, category, total_price: entry.total_price });

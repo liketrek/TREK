@@ -1,12 +1,12 @@
+import { resolveDurability } from '../../../src/app-config/parsers';
+import { applyDurabilityPragmas } from '../../../src/db/durability';
+
+import Database from 'better-sqlite3';
 import { execFileSync } from 'child_process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import Database from 'better-sqlite3';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
-import { resolveDurability } from '../../../src/app-config/parsers';
-import { applyDurabilityPragmas } from '../../../src/db/durability';
 
 // journal_mode is written into the database file header, so it outlives the
 // connection that set it. Anything asserting a mode here therefore reopens the

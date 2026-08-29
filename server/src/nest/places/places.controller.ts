@@ -1,3 +1,25 @@
+import type { User } from '../../types';
+import { RuntimeEnvService } from '../app-config/runtime-env.service';
+import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { isUpdateConflict } from '../common/conflictResult';
+import { isDemoWriteBlocked, DEMO_WRITE_ERROR } from '../common/demo-write';
+import { PLACE_IMAGE_FILE_FILTER } from '../common/place-image-upload';
+import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
+import { StorageService } from '../storage/storage.service';
+import { placeImageUrl } from './place-image';
+import {
+  PlaceBulkDeleteDto,
+  PlaceBulkUpdateDto,
+  PlaceCreateDto,
+  PlaceExportGpxDto,
+  PlaceImportGpxDto,
+  PlaceImportListDto,
+  PlaceImportMapDto,
+  PlaceRatingDto,
+  PlaceUpdateDto,
+} from './places.dto';
+import { PlacesService } from './places.service';
 import {
   Body,
   Controller,
@@ -16,31 +38,10 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import type { Response } from 'express';
-import { isDemoWriteBlocked, DEMO_WRITE_ERROR } from '../common/demo-write';
-import { RuntimeEnvService } from '../app-config/runtime-env.service';
-import { memoryStorage } from 'multer';
 import { hexColorSchema, placeImageUrlSchema, placeWebsiteSchema } from '@trek/shared';
-import type { User } from '../../types';
-import { PlacesService } from './places.service';
-import { isUpdateConflict } from '../common/conflictResult';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
-import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
-import { PLACE_IMAGE_FILE_FILTER } from '../common/place-image-upload';
-import { StorageService } from '../storage/storage.service';
-import { placeImageUrl } from './place-image';
-import {
-  PlaceBulkDeleteDto,
-  PlaceBulkUpdateDto,
-  PlaceCreateDto,
-  PlaceExportGpxDto,
-  PlaceImportGpxDto,
-  PlaceImportListDto,
-  PlaceImportMapDto,
-  PlaceRatingDto,
-  PlaceUpdateDto,
-} from './places.dto';
+
+import type { Response } from 'express';
+import { memoryStorage } from 'multer';
 
 const STRING_LIMITS: Record<string, number> = { name: 200, description: 2000, address: 500, notes: 2000 };
 const UPLOAD = { storage: memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } };
@@ -71,7 +72,10 @@ function validateUrlFields(body: Record<string, unknown>): void {
   const image = body.image_url;
   if (image !== undefined && image !== null) {
     if (typeof image !== 'string' || !placeImageUrlSchema.safeParse(image).success) {
-      throw new HttpException({ error: 'image_url must be an uploaded path, a photo-proxy path, an inline image or an https URL' }, 400);
+      throw new HttpException(
+        { error: 'image_url must be an uploaded path, a photo-proxy path, an inline image or an https URL' },
+        400,
+      );
     }
   }
   const website = body.website;
@@ -180,7 +184,12 @@ export class PlacesController {
     if (!importWaypoints && !importRoutes && !importTracks) {
       throw new HttpException({ error: 'No import types selected' }, 400);
     }
-    const result = this.places.importGpx(tripId, file.buffer, { importWaypoints, importRoutes, importTracks, defaultName: file.originalname });
+    const result = this.places.importGpx(tripId, file.buffer, {
+      importWaypoints,
+      importRoutes,
+      importTracks,
+      defaultName: file.originalname,
+    });
     if (!result) {
       throw new HttpException({ error: 'No matching places found in GPX file' }, 400);
     }
@@ -238,7 +247,10 @@ export class PlacesController {
       throw new HttpException({ error: 'No import types selected' }, 400);
     }
     try {
-      const result = await this.places.importMapFile(tripId, file.buffer, file.originalname, { importPoints, importPaths });
+      const result = await this.places.importMapFile(tripId, file.buffer, file.originalname, {
+        importPoints,
+        importPaths,
+      });
       if (result.summary?.totalPlacemarks === 0) {
         throw new HttpException({ error: 'No valid Placemarks found in map file', summary: result.summary }, 400);
       }
@@ -254,17 +266,33 @@ export class PlacesController {
   }
 
   @Post('import/google-list')
-  async importGoogle(@CurrentUser() user: User, @Param('tripId') tripId: string, @Body() body: PlaceImportListDto, @Headers('x-socket-id') socketId?: string) {
+  async importGoogle(
+    @CurrentUser() user: User,
+    @Param('tripId') tripId: string,
+    @Body() body: PlaceImportListDto,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
     return this.importList('google', user, tripId, body, socketId);
   }
 
   @Post('import/naver-list')
-  async importNaver(@CurrentUser() user: User, @Param('tripId') tripId: string, @Body() body: PlaceImportListDto, @Headers('x-socket-id') socketId?: string) {
+  async importNaver(
+    @CurrentUser() user: User,
+    @Param('tripId') tripId: string,
+    @Body() body: PlaceImportListDto,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
     return this.importList('naver', user, tripId, body, socketId);
   }
 
   /** Shared google/naver list import — identical flow, different provider + error string. */
-  private async importList(provider: 'google' | 'naver', user: User, tripId: string, body: PlaceImportListDto, socketId?: string) {
+  private async importList(
+    provider: 'google' | 'naver',
+    user: User,
+    tripId: string,
+    body: PlaceImportListDto,
+    socketId?: string,
+  ) {
     const trip = this.requireTrip(tripId, user);
     this.requireEdit(trip, user);
     const { url, enrich } = body;
@@ -273,9 +301,10 @@ export class PlacesController {
     const opts = { enrich: parseBool(enrich, false), userId: user.id };
     const label = provider === 'google' ? 'Google' : 'Naver';
     try {
-      const result = provider === 'google'
-        ? await this.places.importGoogleList(tripId, url, opts)
-        : await this.places.importNaverList(tripId, url, opts);
+      const result =
+        provider === 'google'
+          ? await this.places.importGoogleList(tripId, url, opts)
+          : await this.places.importNaverList(tripId, url, opts);
       if ('error' in result) {
         throw new HttpException({ error: result.error }, result.status);
       }
@@ -286,7 +315,10 @@ export class PlacesController {
     } catch (err: unknown) {
       if (err instanceof HttpException) throw err;
       console.error(`[Places] ${label} list import error:`, err instanceof Error ? err.message : err);
-      throw new HttpException({ error: `Failed to import ${label} Maps list. Make sure the list is shared publicly.` }, 400);
+      throw new HttpException(
+        { error: `Failed to import ${label} Maps list. Make sure the list is shared publicly.` },
+        400,
+      );
     }
   }
 
@@ -416,7 +448,12 @@ export class PlacesController {
 
   @Delete(':id/rating')
   @UseGuards(TripAccessGuard)
-  unrate(@CurrentUser() user: User, @Param('tripId') tripId: string, @Param('id') id: string, @Headers('x-socket-id') socketId?: string) {
+  unrate(
+    @CurrentUser() user: User,
+    @Param('tripId') tripId: string,
+    @Param('id') id: string,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
     const place = this.places.rate(tripId, id, user.id, null);
     if (!place) {
       throw new HttpException({ error: 'Place not found' }, 404);
@@ -473,7 +510,12 @@ export class PlacesController {
   @Delete(':id')
   @UseGuards(TripAccessGuard)
   @RequirePermission('place_edit')
-  async remove(@CurrentUser() user: User, @Param('tripId') tripId: string, @Param('id') id: string, @Headers('x-socket-id') socketId?: string) {
+  async remove(
+    @CurrentUser() user: User,
+    @Param('tripId') tripId: string,
+    @Param('id') id: string,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
     // Scope the id to the trip before the hook (see bulkDelete), then sync the
     // journey ahead of the actual delete.
     if (!this.places.get(tripId, id)) {

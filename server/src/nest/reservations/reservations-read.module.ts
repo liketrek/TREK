@@ -1,5 +1,5 @@
-import { Module } from '@nestjs/common';
 import { ReservationsReadRepository } from './reservations-read.repository';
+import { Module } from '@nestjs/common';
 
 /**
  * A leaf on purpose (the trip-membership precedent): AirtrailCoreModule needs

@@ -1,20 +1,28 @@
-import { Injectable } from '@nestjs/common';
-import { randomUUID } from 'crypto';
-import { DatabaseService } from '../database/database.service';
+import { emitUserDeleted } from '../../plugin-user-lifecycle';
 import type { User } from '../../types';
-import { avatarUrl } from '../common/avatarUrl';
 import { UserCleanupService } from '../auth/user-cleanup.service';
 import { BudgetService } from '../budget/budget.service';
+import { avatarUrl } from '../common/avatarUrl';
+import { NotFoundError, ValidationError } from '../common/domain-errors';
+import { DatabaseService } from '../database/database.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { RealtimeService } from '../realtime/realtime.service';
 import { TRIP_SELECT } from '../trips/trips.service';
+import { Injectable } from '@nestjs/common';
 import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
-import { emitUserDeleted } from '../../plugin-user-lifecycle';
-import { NotFoundError, ValidationError } from '../common/domain-errors';
-import { NotificationsService } from '../notifications/notifications.service';
+
+import { randomUUID } from 'crypto';
 
 export interface AddMemberResult {
-  member: { id: number; username: string; email: string; avatar?: string | null; role: string; avatar_url: string | null };
+  member: {
+    id: number;
+    username: string;
+    email: string;
+    avatar?: string | null;
+    role: string;
+    avatar_url: string | null;
+  };
   targetUserId: number;
   tripTitle: string;
 }
@@ -80,7 +88,12 @@ export class TripMembersService {
     return this.permissions.checkPermission(action, role, ownerId, userId, isMember);
   }
 
-  broadcast<E extends TrekWsTripEventName>(tripId: string, event: E, payload: TrekWsPayload<E>, socketId: string | undefined): void {
+  broadcast<E extends TrekWsTripEventName>(
+    tripId: string,
+    event: E,
+    payload: TrekWsPayload<E>,
+    socketId: string | undefined,
+  ): void {
     this.realtime.broadcast(tripId, event, payload, socketId);
   }
 
@@ -96,13 +109,15 @@ export class TripMembersService {
     // nothing the module graph does not already give — NotificationsModule
     // reaches nothing in this direction — and it hid the edge while handing the
     // send a second NotificationsService built outside the container.
-    this.notifications.send({
-      event: 'trip_invite',
-      actorId: actor.id,
-      scope: 'user',
-      targetId: targetUserId,
-      params: { trip: tripTitle, actor: actor.email, invitee: inviteeEmail, tripId: String(tripId) },
-    }).catch(() => {});
+    this.notifications
+      .send({
+        event: 'trip_invite',
+        actorId: actor.id,
+        scope: 'user',
+        targetId: targetUserId,
+        params: { trip: tripTitle, actor: actor.email, invitee: inviteeEmail, tripId: String(tripId) },
+      })
+      .catch(() => {});
   }
 
   // ── Members ───────────────────────────────────────────────────────────────
@@ -110,7 +125,9 @@ export class TripMembersService {
   listMembers(tripId: string | number, tripOwnerId: number) {
     // u.is_guest rides along (#1362) so guests stay assignable everywhere a member is,
     // while the UI can badge them and suppress owner-only actions. The owner is never a guest.
-    const members = this.db.prepare(`
+    const members = this.db
+      .prepare(
+        `
       SELECT u.id, COALESCE(u.display_name, u.username) AS username, u.email, u.avatar, u.is_guest,
         CASE WHEN u.id = ? THEN 'owner' ELSE 'member' END as role,
         m.added_at,
@@ -120,38 +137,63 @@ export class TripMembersService {
       LEFT JOIN users ib ON ib.id = m.invited_by
       WHERE m.trip_id = ?
       ORDER BY m.added_at ASC
-    `).all(tripOwnerId, tripId) as { id: number; username: string; email: string; avatar: string | null; is_guest: number; role: string; added_at: string; invited_by_username: string | null }[];
+    `,
+      )
+      .all(tripOwnerId, tripId) as {
+      id: number;
+      username: string;
+      email: string;
+      avatar: string | null;
+      is_guest: number;
+      role: string;
+      added_at: string;
+      invited_by_username: string | null;
+    }[];
 
     // Quirk fix on top of the 1:1 move: the owner row prefers display_name like
     // every member row does (the legacy query read the raw username only).
-    const owner = this.db.prepare('SELECT id, COALESCE(display_name, username) AS username, email, avatar FROM users WHERE id = ?').get(tripOwnerId) as Pick<User, 'id' | 'username' | 'email' | 'avatar'>;
+    const owner = this.db
+      .prepare('SELECT id, COALESCE(display_name, username) AS username, email, avatar FROM users WHERE id = ?')
+      .get(tripOwnerId) as Pick<User, 'id' | 'username' | 'email' | 'avatar'>;
 
     return {
       owner: { ...owner, role: 'owner', is_guest: false, avatar_url: avatarUrl(owner) },
-      members: members.map(m => ({ ...m, is_guest: !!m.is_guest, avatar_url: avatarUrl(m) })),
+      members: members.map((m) => ({ ...m, is_guest: !!m.is_guest, avatar_url: avatarUrl(m) })),
     };
   }
 
-  addMember(tripId: string | number, identifier: string, tripOwnerId: number, invitedByUserId: number): AddMemberResult {
+  addMember(
+    tripId: string | number,
+    identifier: string,
+    tripOwnerId: number,
+    invitedByUserId: number,
+  ): AddMemberResult {
     if (!identifier) throw new ValidationError('Email or username required');
 
     // Guests (#1362) are not invitable accounts — exclude them so a trip-scoped guest
     // can never be resolved (and re-attached to another trip) through the invite box.
-    const target = this.db.prepare(
-      'SELECT id, username, email, avatar FROM users WHERE (email = ? OR username = ?) AND COALESCE(is_guest, 0) = 0'
-    ).get(identifier.trim(), identifier.trim()) as Pick<User, 'id' | 'username' | 'email' | 'avatar'> | undefined;
+    const target = this.db
+      .prepare(
+        'SELECT id, username, email, avatar FROM users WHERE (email = ? OR username = ?) AND COALESCE(is_guest, 0) = 0',
+      )
+      .get(identifier.trim(), identifier.trim()) as Pick<User, 'id' | 'username' | 'email' | 'avatar'> | undefined;
 
     if (!target) throw new NotFoundError('User not found');
 
-    if (target.id === tripOwnerId)
-      throw new ValidationError('Trip owner is already a member');
+    if (target.id === tripOwnerId) throw new ValidationError('Trip owner is already a member');
 
-    const existing = this.db.prepare('SELECT id FROM trip_members WHERE trip_id = ? AND user_id = ?').get(tripId, target.id);
+    const existing = this.db
+      .prepare('SELECT id FROM trip_members WHERE trip_id = ? AND user_id = ?')
+      .get(tripId, target.id);
     if (existing) throw new ValidationError('User already has access');
 
-    this.db.prepare('INSERT INTO trip_members (trip_id, user_id, invited_by) VALUES (?, ?, ?)').run(tripId, target.id, invitedByUserId);
+    this.db
+      .prepare('INSERT INTO trip_members (trip_id, user_id, invited_by) VALUES (?, ?, ?)')
+      .run(tripId, target.id, invitedByUserId);
 
-    const tripInfo = this.db.prepare('SELECT title FROM trips WHERE id = ?').get(tripId) as { title: string } | undefined;
+    const tripInfo = this.db.prepare('SELECT title FROM trips WHERE id = ?').get(tripId) as
+      | { title: string }
+      | undefined;
 
     return {
       member: { ...target, role: 'member', avatar_url: avatarUrl(target) },
@@ -170,32 +212,38 @@ export class TripMembersService {
    * becomes a regular member, so nobody loses access. Runs in a transaction so the
    * owner pointer and the membership rows never diverge.
    */
-  transferOwnership(
-    tripId: string | number,
-    newOwnerId: number,
-    currentOwnerId: number,
-  ): TransferOwnershipResult {
-    const trip = this.db.prepare('SELECT id, title, user_id FROM trips WHERE id = ?').get(tripId) as { id: number; title: string; user_id: number } | undefined;
+  transferOwnership(tripId: string | number, newOwnerId: number, currentOwnerId: number): TransferOwnershipResult {
+    const trip = this.db.prepare('SELECT id, title, user_id FROM trips WHERE id = ?').get(tripId) as
+      | { id: number; title: string; user_id: number }
+      | undefined;
     if (!trip) throw new NotFoundError('Trip not found');
     if (trip.user_id !== currentOwnerId) throw new ValidationError('Only the owner can transfer ownership');
     if (newOwnerId === currentOwnerId) throw new ValidationError('You already own this trip');
 
-    const newOwner = this.db.prepare('SELECT id, email, is_guest FROM users WHERE id = ?').get(newOwnerId) as { id: number; email: string; is_guest?: number } | undefined;
+    const newOwner = this.db.prepare('SELECT id, email, is_guest FROM users WHERE id = ?').get(newOwnerId) as
+      | { id: number; email: string; is_guest?: number }
+      | undefined;
     if (!newOwner) throw new NotFoundError('User not found');
     // A guest (#1362) can never log in, so it must never become the owner of a trip.
     if (newOwner.is_guest) throw new ValidationError('Cannot transfer ownership to a guest');
 
-    const isMember = this.db.prepare('SELECT id FROM trip_members WHERE trip_id = ? AND user_id = ?').get(tripId, newOwnerId);
+    const isMember = this.db
+      .prepare('SELECT id FROM trip_members WHERE trip_id = ? AND user_id = ?')
+      .get(tripId, newOwnerId);
     if (!isMember) throw new ValidationError('New owner must be a trip member');
 
-    const fromEmail = (this.db.prepare('SELECT email FROM users WHERE id = ?').get(currentOwnerId) as { email: string } | undefined)?.email || '';
+    const fromEmail =
+      (this.db.prepare('SELECT email FROM users WHERE id = ?').get(currentOwnerId) as { email: string } | undefined)
+        ?.email || '';
 
     const run = this.db.transaction(() => {
       this.db.prepare('UPDATE trips SET user_id = ? WHERE id = ?').run(newOwnerId, tripId);
       // The new owner is no longer a plain member…
       this.db.prepare('DELETE FROM trip_members WHERE trip_id = ? AND user_id = ?').run(tripId, newOwnerId);
       // …and the former owner keeps access as a member.
-      this.db.prepare('INSERT OR IGNORE INTO trip_members (trip_id, user_id, invited_by) VALUES (?, ?, ?)').run(tripId, currentOwnerId, newOwnerId);
+      this.db
+        .prepare('INSERT OR IGNORE INTO trip_members (trip_id, user_id, invited_by) VALUES (?, ?, ?)')
+        .run(tripId, currentOwnerId, newOwnerId);
     });
     run();
 
@@ -218,11 +266,15 @@ export class TripMembersService {
     const username = `guest-${randomUUID()}`;
 
     const create = this.db.transaction(() => {
-      const res = this.db.prepare(
-        "INSERT INTO users (username, email, password_hash, role, is_guest, display_name) VALUES (?, ?, '', 'user', 1, ?)"
-      ).run(username, email, display);
+      const res = this.db
+        .prepare(
+          "INSERT INTO users (username, email, password_hash, role, is_guest, display_name) VALUES (?, ?, '', 'user', 1, ?)",
+        )
+        .run(username, email, display);
       const guestId = Number(res.lastInsertRowid);
-      this.db.prepare('INSERT INTO trip_members (trip_id, user_id, invited_by) VALUES (?, ?, ?)').run(tripId, guestId, invitedByUserId);
+      this.db
+        .prepare('INSERT INTO trip_members (trip_id, user_id, invited_by) VALUES (?, ?, ?)')
+        .run(tripId, guestId, invitedByUserId);
       return guestId;
     });
     const guestId = create();
@@ -232,9 +284,11 @@ export class TripMembersService {
 
   /** Confirms a user id is a guest of THIS trip, so guest mutations stay trip-scoped. */
   private guestOfTrip(tripId: string | number, guestUserId: number): boolean {
-    return !!this.db.prepare(
-      'SELECT u.id FROM users u JOIN trip_members m ON m.user_id = u.id WHERE u.id = ? AND m.trip_id = ? AND u.is_guest = 1'
-    ).get(guestUserId, tripId);
+    return !!this.db
+      .prepare(
+        'SELECT u.id FROM users u JOIN trip_members m ON m.user_id = u.id WHERE u.id = ? AND m.trip_id = ? AND u.is_guest = 1',
+      )
+      .get(guestUserId, tripId);
   }
 
   renameGuest(tripId: string | number, guestUserId: number, name: string): boolean {
@@ -245,7 +299,9 @@ export class TripMembersService {
 
     // Rename only the display name — no global-uniqueness dedup, so a rename to a name
     // another trip's guest already uses no longer produces "Name 2" (#1446).
-    this.db.prepare('UPDATE users SET display_name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND is_guest = 1').run(display, guestUserId);
+    this.db
+      .prepare('UPDATE users SET display_name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND is_guest = 1')
+      .run(display, guestUserId);
     return true;
   }
 

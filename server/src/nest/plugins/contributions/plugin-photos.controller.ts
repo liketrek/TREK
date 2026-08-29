@@ -1,9 +1,10 @@
-import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
-import type { Request } from 'express';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { pluginsEnabled } from '../kill-switch';
 import { PluginHooks } from '../plugin-hooks.service';
 import { stripEmoji } from '../text-sanitize';
+import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
+
+import type { Request } from 'express';
 
 /**
  * Photo sources contributed by plugins that implement the `photoProvider` hook
@@ -16,9 +17,16 @@ import { stripEmoji } from '../text-sanitize';
  * skipped. Every field is NORMALIZED: strings length-capped, the photo count capped,
  * and thumbnail/full URLs must be http/https (an image src) — never javascript:/data:.
  */
-interface DevPhoto { id: string; pluginId: string; title?: string; thumbnailUrl: string; fullUrl: string; takenAt?: string; }
+interface DevPhoto {
+  id: string;
+  pluginId: string;
+  title?: string;
+  thumbnailUrl: string;
+  fullUrl: string;
+  takenAt?: string;
+}
 
-const MAX_PHOTOS = 60;       // per provider per page
+const MAX_PHOTOS = 60; // per provider per page
 const cap = (v: unknown, n: number): string => String(v ?? '').slice(0, n);
 
 /** http/https only — these become <img src>, so a javascript:/data: URL is XSS. */
@@ -43,7 +51,8 @@ function normalizePhotos(pluginId: string, raw: unknown): DevPhoto[] {
     const full = imageUrl(p.fullUrl);
     if (!id || !thumb || !full) continue; // an unusable photo (no id / bad urls) is dropped
     out.push({
-      id, pluginId,
+      id,
+      pluginId,
       // Strip emojis from the display title (but NOT the id — that round-trips to getById).
       title: p.title != null ? stripEmoji(cap(p.title, 200)) : undefined,
       thumbnailUrl: thumb,
@@ -92,7 +101,11 @@ export class PluginPhotosController {
         }
       }),
     );
-    return { providers: results.filter((r): r is { pluginId: string; photos: DevPhoto[]; total: number; hasMore: boolean } => r !== null) };
+    return {
+      providers: results.filter(
+        (r): r is { pluginId: string; photos: DevPhoto[]; total: number; hasMore: boolean } => r !== null,
+      ),
+    };
   }
 
   @Get('item')

@@ -1,16 +1,16 @@
-import { Module } from '@nestjs/common';
+import { AuthModule } from '../auth/auth.module';
+import { SchedulingModule } from '../scheduling/scheduling.module';
+import { StorageModule } from '../storage/storage.module';
+import { MailerModule } from './mailer/mailer.module';
+import { NotificationPreferencesService } from './notification-preferences.service';
 import { AdminNotificationPreferencesController, NotificationsController } from './notifications.controller';
 import { NotificationsMcp } from './notifications.mcp';
 import { NotificationsService } from './notifications.service';
-import { NotificationPreferencesService } from './notification-preferences.service';
 import { ReminderJobsService } from './reminder-jobs.service';
 import { StorageHealthNotifierService } from './storage-health-notifier.service';
 import { NtfyService } from './transports/ntfy.service';
 import { WebhookService } from './transports/webhook.service';
-import { MailerModule } from './mailer/mailer.module';
-import { AuthModule } from '../auth/auth.module';
-import { SchedulingModule } from '../scheduling/scheduling.module';
-import { StorageModule } from '../storage/storage.module';
+import { Module } from '@nestjs/common';
 
 /** Notifications domain (L6 leaf module). Registered in AppModule.
  *  AuthModule feeds NotificationsMcp's demo gate; MailerModule carries SMTP,

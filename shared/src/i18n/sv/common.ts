@@ -71,7 +71,8 @@ const common: TranslationStrings = {
   'common.errorRetry': 'Försök igen',
   'common.errorReload': 'Ladda om sidan',
   'common.errorUpdateTitle': 'En ny version är tillgänglig',
-  'common.errorUpdateBody': 'TREK uppdaterades medan den här fliken var öppen. Ladda om för att hämta den nya versionen.',
+  'common.errorUpdateBody':
+    'TREK uppdaterades medan den här fliken var öppen. Ladda om för att hämta den nya versionen.',
   'common.errorPluginTitle': 'Det här tillägget kunde inte visas',
 };
 export default common;

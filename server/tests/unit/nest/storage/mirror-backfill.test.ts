@@ -1,10 +1,11 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { LocalDriver } from '../../../../src/nest/storage/drivers/local.driver';
+import { MirrorDriver, type ReplicaFailure } from '../../../../src/nest/storage/drivers/mirror.driver';
+
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { Readable } from 'node:stream';
-import { LocalDriver } from '../../../../src/nest/storage/drivers/local.driver';
-import { MirrorDriver, type ReplicaFailure } from '../../../../src/nest/storage/drivers/mirror.driver';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 
 const tmpDirs: string[] = [];
 function makeTmpDir(): string {
@@ -27,7 +28,11 @@ async function put(driver: LocalDriver, key: string, body: string): Promise<void
   await driver.put(key, Readable.from(body));
 }
 
-function makeMirror(primary: LocalDriver, replicas: LocalDriver[], onReplicaFailure?: (f: ReplicaFailure) => void): MirrorDriver {
+function makeMirror(
+  primary: LocalDriver,
+  replicas: LocalDriver[],
+  onReplicaFailure?: (f: ReplicaFailure) => void,
+): MirrorDriver {
   return new MirrorDriver({ id: 'm', primary, replicas, tempDir: () => makeTmpDir(), onReplicaFailure });
 }
 
@@ -141,7 +146,8 @@ describe('MirrorDriver.backfill', () => {
     const wrapped = {
       id: primary.id,
       list: (prefix: string) => primary.list(prefix),
-      getStream: (key: string, range?: unknown) => (primary.getStream as (k: string, r?: unknown) => unknown)(key, range),
+      getStream: (key: string, range?: unknown) =>
+        (primary.getStream as (k: string, r?: unknown) => unknown)(key, range),
       stat: async (key: string) =>
         key === 'backups/regained.zip' ? { key, size: 4, mtimeMs: Date.now() } : primary.stat(key),
     } as unknown as LocalDriver;

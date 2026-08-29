@@ -1,7 +1,7 @@
-import { PluginController, PluginMethod, PluginOpenMethod } from '../rpc-kit/decorators';
-import { asArgs, asTxOps, str } from '../rpc-params';
-import type { PluginRpcContext } from '../rpc-kit/types';
 import { PluginUserSettingsService } from '../../plugin-user-settings.service';
+import { PluginController, PluginMethod, PluginOpenMethod } from '../rpc-kit/decorators';
+import type { PluginRpcContext } from '../rpc-kit/types';
+import { asArgs, asTxOps, str } from '../rpc-params';
 
 /**
  * A plugin's OWN sqlite, plus the three methods the router registers unconditionally.

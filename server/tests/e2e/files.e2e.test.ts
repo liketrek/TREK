@@ -7,12 +7,19 @@
  * unguarded download's own token auth), trip-access 404, permission 403, the
  * photo id/access guards and status codes.
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi, type MockInstance } from 'vitest';
-import request from 'supertest';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { DatabaseModule } from '../../src/nest/database/database.module';
+import { FilesModule } from '../../src/nest/files/files.module';
+import { PermissionsService } from '../../src/nest/permissions/permissions.service';
+import { PhotosModule } from '../../src/nest/photos/photos.module';
+import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
+import { seedUser, sessionCookie } from './harness';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
-import { Test } from '@nestjs/testing';
-import { seedUser, sessionCookie } from './harness';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi, type MockInstance } from 'vitest';
 
 const { db } = vi.hoisted(() => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -45,12 +52,15 @@ const { db } = vi.hoisted(() => {
 
 const { canAccessTrip } = vi.hoisted(() => ({ canAccessTrip: vi.fn() }));
 vi.mock('../../src/db/database', () => ({
-  db, canAccessTrip, isOwner: vi.fn(() => true), getPlaceWithTags: vi.fn(), closeDb: () => {}, reinitialize: () => {},
+  db,
+  canAccessTrip,
+  isOwner: vi.fn(() => true),
+  getPlaceWithTags: vi.fn(),
+  closeDb: () => {},
+  reinitialize: () => {},
 }));
 vi.mock('../../src/websocket', () => ({ broadcast: vi.fn() }));
 vi.mock('../../src/nest/common/demo', () => ({ isDemoEmail: vi.fn(() => false) }));
-
-import { PermissionsService } from '../../src/nest/permissions/permissions.service';
 
 // Since the permissions DI migration, the check is a spy on the container's
 // PermissionsService singleton (created in beforeAll, after build()).
@@ -74,18 +84,14 @@ vi.mock('../../src/nest/memories/memories-access.service', async (importOriginal
   return actual;
 });
 
-import { DatabaseModule } from '../../src/nest/database/database.module';
-import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
-import { FilesModule } from '../../src/nest/files/files.module';
-import { PhotosModule } from '../../src/nest/photos/photos.module';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-
 describe('Files + photos e2e (real auth guard + temp SQLite)', () => {
   let server: Server;
   let app: Awaited<ReturnType<typeof build>>;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, RealtimeModule, FilesModule, PhotosModule] }).compile();
+    const moduleRef = await Test.createTestingModule({
+      imports: [DatabaseModule, RealtimeModule, FilesModule, PhotosModule],
+    }).compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
     nest.useGlobalFilters(new TrekExceptionFilter());
@@ -96,8 +102,12 @@ describe('Files + photos e2e (real auth guard + temp SQLite)', () => {
   beforeAll(async () => {
     seedUser(db as never, { id: 1 });
     db.prepare('INSERT INTO trips (id, user_id, title) VALUES (5, 1, ?)').run('Trip');
-    db.prepare("INSERT INTO trip_files (id, trip_id, filename, original_name, uploaded_by) VALUES (1, 5, 'stored-a.pdf', 'a.pdf', 1)").run();
-    db.prepare("INSERT INTO trip_files (id, trip_id, filename, original_name, uploaded_by, starred) VALUES (9, 5, 'stored-b.pdf', 'b.pdf', 1, 0)").run();
+    db.prepare(
+      "INSERT INTO trip_files (id, trip_id, filename, original_name, uploaded_by) VALUES (1, 5, 'stored-a.pdf', 'a.pdf', 1)",
+    ).run();
+    db.prepare(
+      "INSERT INTO trip_files (id, trip_id, filename, original_name, uploaded_by, starred) VALUES (9, 5, 'stored-b.pdf', 'b.pdf', 1, 0)",
+    ).run();
     app = await build();
     checkPermission = vi.spyOn(app.get(PermissionsService), 'checkPermission');
     server = app.getHttpServer();

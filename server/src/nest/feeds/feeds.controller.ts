@@ -1,22 +1,13 @@
-import {
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Post,
-  Put,
-  Req,
-  Res,
-  UseGuards,
-} from '@nestjs/common';
-import type { Request, Response } from 'express';
 import { readEnv } from '../../app-config';
-import { FeedsService } from './feeds.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
 import type { User } from '../../types';
-import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
+import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Public } from '../auth/public.decorator';
+import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
+import { FeedsService } from './feeds.service';
+import { Controller, Delete, Get, Param, Post, Put, Req, Res, UseGuards } from '@nestjs/common';
+
+import type { Request, Response } from 'express';
 
 // Resolve the public origin used to build feed URLs. APP_URL wins — it is the
 // canonical externally-reachable URL behind a reverse proxy. When it is unset

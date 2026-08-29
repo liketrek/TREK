@@ -1,34 +1,30 @@
-import { Injectable } from '@nestjs/common';
-import bcrypt from 'bcryptjs';
-import crypto from 'crypto';
-import fs from 'fs';
-import path from 'path';
 import { ADDON_IDS } from '../../addons';
 import { readEnv } from '../../app-config';
 import { updateJwtSecret } from '../../config';
+import { invalidateMcpSessions } from '../../mcp';
 // Import from sessionManager directly, NOT the ../../mcp barrel — the direct
 // path keeps this module's graph minimal, and the split predates the barrel's
 // shrink to process-wide state. The invalidateMcpSessions barrel import below
 // is deliberately separate: it is only reached from the controller, never from
 // the cron path.
 import { revokeUserSessions, revokeUserSessionsForClient } from '../../mcp/sessionManager';
-import { invalidateMcpSessions } from '../../mcp';
 import { emitUserDeleted } from '../../plugin-user-lifecycle';
 import type { User, Addon } from '../../types';
-import { maybe_encrypt_api_key, decrypt_api_key } from '../common/crypto/apiKeyCrypto';
+import { AddonsService } from '../addons/addons.service';
+import { AuthService } from '../auth/auth.service';
+import { PasskeyService } from '../auth/passkey.service';
+import { UserCleanupService } from '../auth/user-cleanup.service';
 import { avatarUrl } from '../common/avatarUrl';
+import { maybe_encrypt_api_key, decrypt_api_key } from '../common/crypto/apiKeyCrypto';
+import { MANAGED_FORBIDDEN_ERROR } from '../common/managed';
+import { validatePassword } from '../common/passwordPolicy';
+import { DatabaseService } from '../database/database.service';
 import { prepareLlmAddonConfigForWrite, maskLlmAddonConfig } from '../llm-parse/llm-config';
 import { getPhotoProviderConfig } from '../memories/memories.helpers';
-import { validatePassword } from '../common/passwordPolicy';
-import { UserCleanupService } from '../auth/user-cleanup.service';
-import { DatabaseService } from '../database/database.service';
-import { AddonsService } from '../addons/addons.service';
-import { RealtimeService } from '../realtime/realtime.service';
-import { PasskeyService } from '../auth/passkey.service';
-import { AuthService } from '../auth/auth.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { PERMISSION_ACTIONS } from '../permissions/permissions.service';
-import { NotificationsService } from '../notifications/notifications.service';
+import { RealtimeService } from '../realtime/realtime.service';
 import {
   BCRYPT_COST,
   compareVersions,
@@ -38,7 +34,12 @@ import {
   writeVersionCache,
   type VersionInfo,
 } from './admin.helpers';
-import { MANAGED_FORBIDDEN_ERROR } from '../common/managed';
+import { Injectable } from '@nestjs/common';
+
+import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
 
 /** Outbound GitHub calls: hard timeout and response-size cap (server/CLAUDE.md). */
 const GITHUB_TIMEOUT_MS = 10_000;
@@ -126,7 +127,10 @@ export class AdminService {
     }
 
     // Guests (#1362) live in a reserved synthetic namespace; never let one block a real account.
-    const existingUsername = this.db.get('SELECT id FROM users WHERE username = ? AND COALESCE(is_guest, 0) = 0', username);
+    const existingUsername = this.db.get(
+      'SELECT id FROM users WHERE username = ? AND COALESCE(is_guest, 0) = 0',
+      username,
+    );
     if (existingUsername) return { error: 'Username already taken', status: 409 };
 
     const existingEmail = this.db.get('SELECT id FROM users WHERE email = ? AND COALESCE(is_guest, 0) = 0', email);
@@ -136,7 +140,10 @@ export class AdminService {
 
     const result = this.db.run(
       'INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)',
-      username, email, passwordHash, data.role || 'user',
+      username,
+      email,
+      passwordHash,
+      data.role || 'user',
     );
 
     const user = this.db.get(
@@ -169,11 +176,19 @@ export class AdminService {
     if (email === '') return { error: 'Email cannot be empty', status: 400 };
 
     if (username && username !== user.username) {
-      const conflict = this.db.get('SELECT id FROM users WHERE username = ? AND id != ? AND COALESCE(is_guest, 0) = 0', username, id);
+      const conflict = this.db.get(
+        'SELECT id FROM users WHERE username = ? AND id != ? AND COALESCE(is_guest, 0) = 0',
+        username,
+        id,
+      );
       if (conflict) return { error: 'Username already taken', status: 409 };
     }
     if (email && email !== user.email) {
-      const conflict = this.db.get('SELECT id FROM users WHERE email = ? AND id != ? AND COALESCE(is_guest, 0) = 0', email, id);
+      const conflict = this.db.get(
+        'SELECT id FROM users WHERE email = ? AND id != ? AND COALESCE(is_guest, 0) = 0',
+        email,
+        id,
+      );
       if (conflict) return { error: 'Email already taken', status: 409 };
     }
 
@@ -188,7 +203,9 @@ export class AdminService {
     if (role && role !== 'admin') {
       const current = this.db.get<{ role?: string }>('SELECT role FROM users WHERE id = ?', id);
       if (current?.role === 'admin') {
-        const adminCount = this.db.get<{ count: number }>("SELECT COUNT(*) as count FROM users WHERE role = 'admin'")!.count;
+        const adminCount = this.db.get<{ count: number }>(
+          "SELECT COUNT(*) as count FROM users WHERE role = 'admin'",
+        )!.count;
         if (adminCount <= 1) return { error: 'Cannot remove the last admin', status: 400 };
       }
     }
@@ -212,7 +229,12 @@ export class AdminService {
       updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
   `,
-        username || null, email || null, role || null, passwordHash, newPv, id,
+        username || null,
+        email || null,
+        role || null,
+        passwordHash,
+        newPv,
+        id,
       );
 
       if (password) {
@@ -225,12 +247,18 @@ export class AdminService {
             'UPDATE oauth_tokens SET revoked_at = CURRENT_TIMESTAMP WHERE user_id = ? AND revoked_at IS NULL',
             id,
           );
-        } catch { /* very old installs predate oauth_tokens */ }
+        } catch {
+          /* very old installs predate oauth_tokens */
+        }
       }
     });
 
     if (password) {
-      try { revokeUserSessions(Number(id)); } catch { /* best-effort, same as elsewhere */ }
+      try {
+        revokeUserSessions(Number(id));
+      } catch {
+        /* best-effort, same as elsewhere */
+      }
     }
 
     const updated = this.db.get('SELECT id, username, email, role, created_at, updated_at FROM users WHERE id = ?', id);
@@ -261,7 +289,9 @@ export class AdminService {
     return { email: userToDel.email };
   }
 
-  resetUserPasskeys(id: string) { return this.passkeys.adminResetPasskeys(Number(id)); }
+  resetUserPasskeys(id: string) {
+    return this.passkeys.adminResetPasskeys(Number(id));
+  }
 
   /**
    * Clear another account's TOTP so its owner can enrol again.
@@ -276,7 +306,10 @@ export class AdminService {
    * making that reachable from here would turn a stolen admin session into a
    * way to strip the second factor off the very account it came from.
    */
-  resetUserMfa(id: string, actingUserId: number): { error?: string; status?: number; success?: boolean; email?: string } {
+  resetUserMfa(
+    id: string,
+    actingUserId: number,
+  ): { error?: string; status?: number; success?: boolean; email?: string } {
     const targetId = Number(id);
     if (targetId === actingUserId) {
       return { error: 'Use Settings to change your own two-factor setup', status: 400 };
@@ -300,7 +333,9 @@ export class AdminService {
   // ── Stats ──────────────────────────────────────────────────────────────────
 
   getStats() {
-    const totalUsers = this.db.get<{ count: number }>('SELECT COUNT(*) as count FROM users WHERE COALESCE(is_guest, 0) = 0')!.count;
+    const totalUsers = this.db.get<{ count: number }>(
+      'SELECT COUNT(*) as count FROM users WHERE COALESCE(is_guest, 0) = 0',
+    )!.count;
     const totalTrips = this.db.get<{ count: number }>('SELECT COUNT(*) as count FROM trips')!.count;
     const totalPlaces = this.db.get<{ count: number }>('SELECT COUNT(*) as count FROM places')!.count;
     const totalFiles = this.db.get<{ count: number }>('SELECT COUNT(*) as count FROM trip_files')!.count;
@@ -353,7 +388,8 @@ export class AdminService {
     ORDER BY a.id DESC
     LIMIT ? OFFSET ?
   `,
-      limit, offset,
+      limit,
+      offset,
     );
 
     const total = this.db.get<{ c: number }>('SELECT COUNT(*) as c FROM audit_log')!.c;
@@ -376,7 +412,6 @@ export class AdminService {
 
     return { entries, total, limit, offset };
   }
-
 
   // ── Demo Baseline ──────────────────────────────────────────────────────────
 
@@ -469,9 +504,9 @@ export class AdminService {
     let result: VersionInfo;
     if (isPrerelease) {
       // Fetch release list and find the newest prerelease
-      const data = await this.fetchGithub('https://api.github.com/repos/liketrek/TREK/releases?per_page=100') as
-        | Array<{ tag_name?: string; html_url?: string; prerelease?: boolean }>
-        | null;
+      const data = (await this.fetchGithub(
+        'https://api.github.com/repos/liketrek/TREK/releases?per_page=100',
+      )) as Array<{ tag_name?: string; html_url?: string; prerelease?: boolean }> | null;
       if (!data) return fail();
       const prereleases = Array.isArray(data) ? data.filter((r) => r.prerelease) : [];
       if (!prereleases.length) return fail();
@@ -489,9 +524,10 @@ export class AdminService {
         is_prerelease: true,
       };
     } else {
-      const data = await this.fetchGithub('https://api.github.com/repos/liketrek/TREK/releases/latest') as
-        | { tag_name?: string; html_url?: string }
-        | null;
+      const data = (await this.fetchGithub('https://api.github.com/repos/liketrek/TREK/releases/latest')) as {
+        tag_name?: string;
+        html_url?: string;
+      } | null;
       if (!data) return fail();
       const latest = (data.tag_name || '').replace(/^v/, '');
       const update_available = !!latest && latest !== currentVersion && compareVersions(latest, currentVersion) > 0;
@@ -515,13 +551,15 @@ export class AdminService {
       if (!result.update_available) return;
 
       const lastNotified = this.db.get<{ value: string }>(
-        'SELECT value FROM app_settings WHERE key = ?', 'last_notified_version',
+        'SELECT value FROM app_settings WHERE key = ?',
+        'last_notified_version',
       )?.value;
       if (lastNotified === result.latest) return;
 
       this.db.run(
         'INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)',
-        'last_notified_version', result.latest,
+        'last_notified_version',
+        result.latest,
       );
 
       await this.notifications.send({
@@ -550,25 +588,22 @@ export class AdminService {
       //
       // AirTrail: the addon exists to reach a server the admin runs themselves,
       // and a managed instance has no route to one.
-      .filter(
-        (a) =>
-          !(
-            readEnv().managed.enabled &&
-            (a.id === ADDON_IDS.LLM_PARSING || a.id === ADDON_IDS.AIRTRAIL)
-          ),
-      );
-    const providers = this.db.all<{
-      id: string;
-      name: string;
-      description?: string | null;
-      icon: string;
-      enabled: number;
-      sort_order: number;
-    }>(`
+      .filter((a) => !(readEnv().managed.enabled && (a.id === ADDON_IDS.LLM_PARSING || a.id === ADDON_IDS.AIRTRAIL)));
+    const providers = this.db
+      .all<{
+        id: string;
+        name: string;
+        description?: string | null;
+        icon: string;
+        enabled: number;
+        sort_order: number;
+      }>(
+        `
     SELECT id, name, description, icon, enabled, sort_order
     FROM photo_providers
     ORDER BY sort_order, id
-  `)
+  `,
+      )
       // Immich and Synology Photos are servers the admin runs at home. A managed
       // instance cannot reach one (its egress does not go there, and it should
       // not), so offering the connection would only produce a timeout.
@@ -630,7 +665,14 @@ export class AdminService {
   }
 
   updateAddon(id: string, data: { enabled?: boolean; config?: Record<string, unknown> }) {
-    type ProviderRow = { id: string; name: string; description?: string | null; icon: string; enabled: number; sort_order: number };
+    type ProviderRow = {
+      id: string;
+      name: string;
+      description?: string | null;
+      icon: string;
+      enabled: number;
+      sort_order: number;
+    };
     const addon = this.db.get<Addon>('SELECT * FROM addons WHERE id = ?', id);
     const provider = this.db.get<ProviderRow>('SELECT * FROM photo_providers WHERE id = ?', id);
     if (!addon && !provider) return { error: 'Addon not found', status: 404 };
@@ -644,22 +686,22 @@ export class AdminService {
     }
 
     this.db.transaction(() => {
-    if (addon) {
-      if (data.enabled !== undefined)
-        this.db.run('UPDATE addons SET enabled = ? WHERE id = ?', data.enabled ? 1 : 0, id);
-      if (data.config !== undefined) {
-        // The AI-parsing addon holds an API key — encrypt it at rest and preserve
-        // the stored key when the client echoes the mask sentinel (see llmConfig.ts).
-        const configToStore =
-          id === ADDON_IDS.LLM_PARSING
-            ? prepareLlmAddonConfigForWrite(data.config, JSON.parse(addon.config || '{}'))
-            : data.config;
-        this.db.run('UPDATE addons SET config = ? WHERE id = ?', JSON.stringify(configToStore), id);
+      if (addon) {
+        if (data.enabled !== undefined)
+          this.db.run('UPDATE addons SET enabled = ? WHERE id = ?', data.enabled ? 1 : 0, id);
+        if (data.config !== undefined) {
+          // The AI-parsing addon holds an API key — encrypt it at rest and preserve
+          // the stored key when the client echoes the mask sentinel (see llmConfig.ts).
+          const configToStore =
+            id === ADDON_IDS.LLM_PARSING
+              ? prepareLlmAddonConfigForWrite(data.config, JSON.parse(addon.config || '{}'))
+              : data.config;
+          this.db.run('UPDATE addons SET config = ? WHERE id = ?', JSON.stringify(configToStore), id);
+        }
+      } else {
+        if (data.enabled !== undefined)
+          this.db.run('UPDATE photo_providers SET enabled = ? WHERE id = ?', data.enabled ? 1 : 0, id);
       }
-    } else {
-      if (data.enabled !== undefined)
-        this.db.run('UPDATE photo_providers SET enabled = ? WHERE id = ?', data.enabled ? 1 : 0, id);
-    }
     });
 
     const updatedAddon = this.db.get<Addon>('SELECT * FROM addons WHERE id = ?', id);
@@ -728,8 +770,9 @@ export class AdminService {
     return {};
   }
 
-  invalidateMcpSessions() { invalidateMcpSessions(); }
+  invalidateMcpSessions() {
+    invalidateMcpSessions();
+  }
 
   // ── Settings + notification preference helpers (non-admin-service modules) ──
-
 }

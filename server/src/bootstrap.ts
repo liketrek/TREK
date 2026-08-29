@@ -1,22 +1,23 @@
-import nodeHttp from 'node:http';
-import express from 'express';
-import type { Request, Response, NextFunction, RequestHandler } from 'express';
-import { NestFactory } from '@nestjs/core';
-import { ExpressAdapter } from '@nestjs/platform-express';
-import type { INestApplication } from '@nestjs/common';
-import type { ConfigType } from '@nestjs/config';
-import { AppModule } from './nest/app.module';
-import { httpConfig } from './nest/app-config';
 import { applyGlobalMiddleware } from './middleware/globalMiddleware';
-import { applyPlatformUploads, applyPlatformStatic } from './nest/platform/platform.routes';
+import { httpConfig } from './nest/app-config';
+import { AppModule } from './nest/app.module';
 import { apiDocsEnabled } from './nest/common/api-docs.kill-switch';
+import { validateBodyContracts } from './nest/common/validate-body-contracts';
+import { validateManagedRoutes } from './nest/common/validate-managed-routes';
+import { validateRouteGuards } from './nest/common/validate-route-guards';
 import { setupApiDocs } from './nest/platform/api-docs';
 import { MCP_METADATA_MIDDLEWARE } from './nest/platform/mcp-metadata.middleware';
-import { validateBodyContracts } from './nest/common/validate-body-contracts';
-import { validateRouteGuards } from './nest/common/validate-route-guards';
-import { validateManagedRoutes } from './nest/common/validate-managed-routes';
+import { applyPlatformUploads, applyPlatformStatic } from './nest/platform/platform.routes';
 import { TrekWsAdapter } from './nest/realtime/trek-ws.adapter';
 import { StorageService } from './nest/storage/storage.service';
+import type { INestApplication } from '@nestjs/common';
+import type { ConfigType } from '@nestjs/config';
+import { NestFactory } from '@nestjs/core';
+import { ExpressAdapter } from '@nestjs/platform-express';
+
+import express from 'express';
+import type { Request, Response, NextFunction, RequestHandler } from 'express';
+import nodeHttp from 'node:http';
 
 /**
  * Builds the unified TREK NestJS application that serves the ENTIRE surface — the
@@ -135,8 +136,7 @@ export async function buildApp(): Promise<INestApplication> {
   const json = express.json({ limit: '100kb', verify: rawBodyKeeper });
   const urlencoded = express.urlencoded({ limit: '100kb', extended: true, verify: rawBodyKeeper });
   const isMcp = (req: Request) => req.path === '/mcp' || req.path === '/mcp/';
-  const isBookWrite = (req: Request) =>
-    req.method === 'PUT' && /^\/api\/journeys\/\d+\/book$/.test(req.path);
+  const isBookWrite = (req: Request) => req.method === 'PUT' && /^\/api\/journeys\/\d+\/book$/.test(req.path);
 
   instance.use(function jsonParser(req: Request, res: Response, next: NextFunction) {
     if (isBookWrite(req)) return bookBody(req, res, next);

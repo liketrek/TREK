@@ -1,4 +1,21 @@
-import { createHash } from 'node:crypto';
+import { safeFetchFollow } from '../../utils/ssrfGuard';
+import { DatabaseService } from '../database/database.service';
+import {
+  buildOsmDetails,
+  isGooglePlaceId,
+  parseWikipediaTag,
+  rankCommonsCandidates,
+  toWikiLang,
+} from '../maps/maps.helpers';
+import {
+  MapsService,
+  readBrandIdentity,
+  readWikiIdentity,
+  withPhotoFetchSlot,
+  type CommonsCandidate,
+  type WikiIdentity,
+} from '../maps/maps.service';
+import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
 import { Injectable } from '@nestjs/common';
 import { placeWebsiteSchema } from '@trek/shared';
 import type {
@@ -10,18 +27,8 @@ import type {
   PlacePhotoCandidate,
   PlaceRating,
 } from '@trek/shared';
-import { safeFetchFollow } from '../../utils/ssrfGuard';
-import { DatabaseService } from '../database/database.service';
-import {
-  MapsService,
-  readBrandIdentity,
-  readWikiIdentity,
-  withPhotoFetchSlot,
-  type CommonsCandidate,
-  type WikiIdentity,
-} from '../maps/maps.service';
-import { buildOsmDetails, isGooglePlaceId, parseWikipediaTag, rankCommonsCandidates, toWikiLang } from '../maps/maps.helpers';
-import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
+
+import { createHash } from 'node:crypto';
 
 /**
  * How many pictures each source may contribute.
@@ -172,7 +179,15 @@ export function collectFacts(details: Record<string, unknown> | null): PlaceFact
 
   const cuisine = typeof details.cuisine === 'string' ? details.cuisine : null;
   // OSM writes several cuisines semicolon-separated and underscored.
-  if (cuisine) push('cuisine', cuisine.split(';').map((c) => c.replaceAll('_', ' ').trim()).filter(Boolean).join(', '));
+  if (cuisine)
+    push(
+      'cuisine',
+      cuisine
+        .split(';')
+        .map((c) => c.replaceAll('_', ' ').trim())
+        .filter(Boolean)
+        .join(', '),
+    );
 
   // `menu_url` is a community-editable OSM tag that becomes an href on the
   // client, so it goes through the same allow-list as a place's website —
@@ -263,7 +278,10 @@ export class PlaceEnrichmentService {
    * working, and there is nothing here that warrants a migration.
    */
   enrichDisabled(): boolean {
-    const row = this.database.get<{ value: string }>('SELECT value FROM app_settings WHERE key = ?', 'places_enrich_enabled');
+    const row = this.database.get<{ value: string }>(
+      'SELECT value FROM app_settings WHERE key = ?',
+      'places_enrich_enabled',
+    );
     return row?.value === 'false';
   }
 

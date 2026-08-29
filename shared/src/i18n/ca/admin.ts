@@ -551,9 +551,10 @@ const admin: TranslationStrings = {
   'admin.plugins.versionSwitch': 'Canvia a {version}',
   'admin.plugins.versionNeedsTrek': 'necessita TREK {range}',
   'admin.plugins.changeVersion': 'Canvia la versió…',
-  'admin.plugins.noVersions': 'No s\'han trobat versions publicades al registre.',
+  'admin.plugins.noVersions': "No s'han trobat versions publicades al registre.",
   'admin.plugins.downgradeTitle': 'Vols revertir aquest connector?',
-  'admin.plugins.downgradeBody': 'Canvi de v{from} a v{to}: les dades escrites per la versió més nova es mantenen, i la versió antiga pot no entendre-les.',
+  'admin.plugins.downgradeBody':
+    'Canvi de v{from} a v{to}: les dades escrites per la versió més nova es mantenen, i la versió antiga pot no entendre-les.',
   'admin.plugins.downgradeConfirm': 'Reverteix',
   'admin.plugins.updatesHeld': 'Actualitzacions en pausa a la v{version}',
   'admin.plugins.resumeUpdates': 'Reprèn les actualitzacions',

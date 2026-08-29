@@ -4,13 +4,14 @@
  * the legacy router, because rpc-host.test.ts asserts them and shipped plugins read
  * them, so these tests pin the exact strings rather than just the refusal.
  */
-import { describe, it, expect, vi } from 'vitest';
-import { PluginGuards } from '../../../src/nest/plugins/host/plugin-guards.service';
-import { BadParams, ForbiddenResource } from '../../../src/nest/plugins/host/rpc-errors';
+import type { AddonsService } from '../../../src/nest/addons/addons.service';
 import type { DatabaseService } from '../../../src/nest/database/database.service';
 import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import type { AddonsService } from '../../../src/nest/addons/addons.service';
+import { PluginGuards } from '../../../src/nest/plugins/host/plugin-guards.service';
+import { BadParams, ForbiddenResource } from '../../../src/nest/plugins/host/rpc-errors';
 import type { PluginRpcContext } from '../../../src/nest/plugins/host/rpc-kit/types';
+
+import { describe, it, expect, vi } from 'vitest';
 
 /**
  * The guards read `actingUserId` and nothing else off the context, so the two per-host
@@ -34,7 +35,8 @@ function build(overrides: { role?: string | undefined; allow?: boolean; addonOn?
       tripId === 1 && userId === 42 ? { id: 1, user_id: 42 } : undefined,
     ),
     prepare: vi.fn(() => ({
-      get: () => ('role' in overrides ? (overrides.role === undefined ? undefined : { role: overrides.role }) : { role: 'user' }),
+      get: () =>
+        'role' in overrides ? (overrides.role === undefined ? undefined : { role: overrides.role }) : { role: 'user' },
     })),
   } as unknown as DatabaseService;
   const permissions = {
@@ -66,9 +68,7 @@ describe('PluginGuards — tripRead', () => {
   it('PGUARD-003 a non-member is refused, naming the trip', () => {
     const { guards } = build();
     const read = vi.fn();
-    expect(() => guards.tripRead({ tripId: 2 }, ctx(42), read)).toThrow(
-      new ForbiddenResource('no access to trip 2'),
-    );
+    expect(() => guards.tripRead({ tripId: 2 }, ctx(42), read)).toThrow(new ForbiddenResource('no access to trip 2'));
     expect(read).not.toHaveBeenCalled();
   });
 
@@ -104,9 +104,7 @@ describe('PluginGuards — requireTripEdit and canEditAs', () => {
 
   it('PGUARD-009 no access wins over no permission, and names the trip', () => {
     const { guards } = build({ allow: false });
-    expect(() => guards.requireTripEdit(2, 42, 'trip_edit')).toThrow(
-      new ForbiddenResource('no access to trip 2'),
-    );
+    expect(() => guards.requireTripEdit(2, 42, 'trip_edit')).toThrow(new ForbiddenResource('no access to trip 2'));
   });
 
   it('PGUARD-010 access without the edit permission is a different message', () => {

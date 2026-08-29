@@ -10,19 +10,19 @@
  * dropped or points at the wrong addon. These assertions are what keeps the
  * three route groups gated, and gated on the right thing.
  */
-import { describe, it, expect, vi } from 'vitest';
+import { ADDON_IDS } from '../../../src/addons';
+import { AddonGuard } from '../../../src/nest/addons/addon.guard';
+import type { AddonsService } from '../../../src/nest/addons/addons.service';
+import { RequireAddon, REQUIRE_ADDON, type RequireAddonMeta } from '../../../src/nest/addons/require-addon.decorator';
+import { CollectionsController } from '../../../src/nest/collections/collections.controller';
+import { AirtrailController } from '../../../src/nest/integrations/airtrail.controller';
+import { JourneyController } from '../../../src/nest/journey/journey.controller';
+import { ReservationImportController } from '../../../src/nest/reservation-import/reservation-import.controller';
 import { HttpException } from '@nestjs/common';
 import type { ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 
-import { AddonGuard } from '../../../src/nest/addons/addon.guard';
-import { RequireAddon, REQUIRE_ADDON, type RequireAddonMeta } from '../../../src/nest/addons/require-addon.decorator';
-import type { AddonsService } from '../../../src/nest/addons/addons.service';
-import { ADDON_IDS } from '../../../src/addons';
-import { JourneyController } from '../../../src/nest/journey/journey.controller';
-import { CollectionsController } from '../../../src/nest/collections/collections.controller';
-import { AirtrailController } from '../../../src/nest/integrations/airtrail.controller';
-import { ReservationImportController } from '../../../src/nest/reservation-import/reservation-import.controller';
+import { describe, it, expect, vi } from 'vitest';
 
 /** A context whose handler/class carry the decorator under test. */
 function ctxFor(handler: object, cls: object = class {}): ExecutionContext {
@@ -57,8 +57,10 @@ describe('AddonGuard', () => {
     const cls = decorated(ADDON_IDS.JOURNEY, 'Journey');
     const guard = new AddonGuard(addons(false), new Reflector());
 
-    expect(thrown(() => guard.canActivate(ctxFor(() => {}, cls))))
-      .toEqual({ status: 404, body: { error: 'Journey addon is not enabled' } });
+    expect(thrown(() => guard.canActivate(ctxFor(() => {}, cls)))).toEqual({
+      status: 404,
+      body: { error: 'Journey addon is not enabled' },
+    });
   });
 
   it('ADDON-GUARD-002: passes when the addon is enabled, asking for the declared id', () => {
@@ -84,8 +86,10 @@ describe('AddonGuard', () => {
     RequireAddon(ADDON_IDS.AIRTRAIL, 'AirTrail')(handler);
     const svc = addons(false);
 
-    expect(thrown(() => new AddonGuard(svc, new Reflector()).canActivate(ctxFor(handler, cls))))
-      .toEqual({ status: 404, body: { error: 'AirTrail addon is not enabled' } });
+    expect(thrown(() => new AddonGuard(svc, new Reflector()).canActivate(ctxFor(handler, cls)))).toEqual({
+      status: 404,
+      body: { error: 'AirTrail addon is not enabled' },
+    });
     expect(svc.isAddonEnabled).toHaveBeenCalledWith(ADDON_IDS.AIRTRAIL);
   });
 });
@@ -110,8 +114,10 @@ describe('the gated route groups still declare their addon', () => {
     // whenever the AirTrail addon happens to be off. AddonGuard still runs first
     // in the chain, so the 404 keeps beating the 401.
     expect(metaOf(ReservationImportController)).toBeUndefined();
-    expect(Reflect.getMetadata(REQUIRE_ADDON, ReservationImportController.prototype.importAirtrail))
-      .toEqual({ addonId: ADDON_IDS.AIRTRAIL, label: 'AirTrail' });
+    expect(Reflect.getMetadata(REQUIRE_ADDON, ReservationImportController.prototype.importAirtrail)).toEqual({
+      addonId: ADDON_IDS.AIRTRAIL,
+      label: 'AirTrail',
+    });
     expect(guardsOf(ReservationImportController)[0]).toBe(AddonGuard);
   });
 });

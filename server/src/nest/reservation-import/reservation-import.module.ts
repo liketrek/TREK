@@ -1,9 +1,9 @@
-import { Module } from '@nestjs/common';
-import { ReservationImportController } from './reservation-import.controller';
+import { AddonsModule } from '../addons/addons.module';
 import { BookingImportModule } from '../booking-import/booking-import.module';
 import { AirtrailModule } from '../integrations/airtrail.module';
-import { AddonsModule } from '../addons/addons.module';
 import { PermissionsModule } from '../permissions/permissions.module';
+import { ReservationImportController } from './reservation-import.controller';
+import { Module } from '@nestjs/common';
 
 /**
  * The one route prefix that turns something external into reservations.

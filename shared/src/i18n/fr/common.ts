@@ -64,14 +64,15 @@ const common: TranslationStrings = {
   'common.datepicker.typeDate': 'Type a date', // en-fallback
   'common.datepicker.dialog': 'Date picker', // en-fallback
   'common.datepicker.clearDate': 'Clear date', // en-fallback
-  'common.errorTitle': 'Une erreur s\'est produite',
-  'common.errorBody': 'Cette partie de l\'application ne fonctionne plus. Vos données sont en sécurité.',
-  'common.errorPanelTitle': 'Cette section n\'a pas pu être affichée',
+  'common.errorTitle': "Une erreur s'est produite",
+  'common.errorBody': "Cette partie de l'application ne fonctionne plus. Vos données sont en sécurité.",
+  'common.errorPanelTitle': "Cette section n'a pas pu être affichée",
   'common.errorPanelBody': 'Le reste de la page fonctionne toujours.',
   'common.errorRetry': 'Réessayer',
   'common.errorReload': 'Recharger la page',
   'common.errorUpdateTitle': 'Une nouvelle version est disponible',
-  'common.errorUpdateBody': 'TREK a été mis à jour pendant que cet onglet était ouvert. Rechargez pour obtenir la nouvelle version.',
-  'common.errorPluginTitle': 'Ce plugin n\'a pas pu être affiché',
+  'common.errorUpdateBody':
+    'TREK a été mis à jour pendant que cet onglet était ouvert. Rechargez pour obtenir la nouvelle version.',
+  'common.errorPluginTitle': "Ce plugin n'a pas pu être affiché",
 };
 export default common;

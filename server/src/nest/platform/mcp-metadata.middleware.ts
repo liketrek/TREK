@@ -1,7 +1,8 @@
-import type { RequestHandler } from 'express';
-import { DiscoveryMetadataService } from './discovery-metadata.service';
-import { AddonsService } from '../addons/addons.service';
 import { ADDON_IDS } from '../../addons';
+import { AddonsService } from '../addons/addons.service';
+import { DiscoveryMetadataService } from './discovery-metadata.service';
+
+import type { RequestHandler } from 'express';
 
 /**
  * The SDK discovery router plus its addon gate: 404 (empty body) on every
@@ -19,10 +20,7 @@ import { ADDON_IDS } from '../../addons';
  */
 export const MCP_METADATA_MIDDLEWARE = Symbol('MCP_METADATA_MIDDLEWARE');
 
-export function createMcpMetadataMiddleware(
-  meta: DiscoveryMetadataService,
-  addons: AddonsService,
-): RequestHandler {
+export function createMcpMetadataMiddleware(meta: DiscoveryMetadataService, addons: AddonsService): RequestHandler {
   return (req, res, next) => {
     if (req.path.startsWith('/.well-known/') && !addons.isAddonEnabled(ADDON_IDS.MCP)) {
       res.status(404).end();

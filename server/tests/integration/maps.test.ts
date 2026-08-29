@@ -5,10 +5,18 @@
  * External API calls (Nominatim, Google Places, Wikipedia) are tested at the
  * input validation level. Full integration tests would require live external APIs.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-import request from 'supertest';
-import type { Application } from 'express';
+import { buildApp } from '../../src/bootstrap';
+import { runMigrations } from '../../src/db/migrations';
+import { createTables } from '../../src/db/schema';
+import { MapsService } from '../../src/nest/maps/maps.service';
+import { authCookie } from '../helpers/auth';
+import { createUser } from '../helpers/factories';
+import { resetTestDb, resetRateLimits } from '../helpers/test-db';
 import type { INestApplication } from '@nestjs/common';
+
+import type { Application } from 'express';
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 const { testDb, dbMock } = vi.hoisted(() => {
   const Database = require('better-sqlite3');
@@ -21,13 +29,29 @@ const { testDb, dbMock } = vi.hoisted(() => {
     closeDb: () => {},
     reinitialize: () => {},
     getPlaceWithTags: (placeId: number) => {
-      const place: any = db.prepare(`SELECT p.*, c.name as category_name, c.color as category_color, c.icon as category_icon FROM places p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id = ?`).get(placeId);
+      const place: any = db
+        .prepare(
+          `SELECT p.*, c.name as category_name, c.color as category_color, c.icon as category_icon FROM places p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id = ?`,
+        )
+        .get(placeId);
       if (!place) return null;
-      const tags = db.prepare(`SELECT t.* FROM tags t JOIN place_tags pt ON t.id = pt.tag_id WHERE pt.place_id = ?`).all(placeId);
-      return { ...place, category: place.category_id ? { id: place.category_id, name: place.category_name, color: place.category_color, icon: place.category_icon } : null, tags };
+      const tags = db
+        .prepare(`SELECT t.* FROM tags t JOIN place_tags pt ON t.id = pt.tag_id WHERE pt.place_id = ?`)
+        .all(placeId);
+      return {
+        ...place,
+        category: place.category_id
+          ? { id: place.category_id, name: place.category_name, color: place.category_color, icon: place.category_icon }
+          : null,
+        tags,
+      };
     },
     canAccessTrip: (tripId: any, userId: number) =>
-      db.prepare(`SELECT t.id, t.user_id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)`).get(userId, tripId, userId),
+      db
+        .prepare(
+          `SELECT t.id, t.user_id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)`,
+        )
+        .get(userId, tripId, userId),
     isOwner: (tripId: any, userId: number) =>
       !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
   };
@@ -45,14 +69,6 @@ vi.mock('../../src/config', () => ({
   DEFAULT_LANGUAGE: 'en',
 }));
 vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
-
-import { buildApp } from '../../src/bootstrap';
-import { createTables } from '../../src/db/schema';
-import { runMigrations } from '../../src/db/migrations';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
-import { createUser } from '../helpers/factories';
-import { authCookie } from '../helpers/auth';
-import { MapsService } from '../../src/nest/maps/maps.service';
 
 let nestApp: INestApplication;
 let app: Application;
@@ -82,9 +98,9 @@ beforeAll(async () => {
     getPlaceDetails: vi.spyOn(maps, 'getPlaceDetails').mockResolvedValue(undefined as never),
     getPlacePhoto: vi.spyOn(maps, 'getPlacePhoto').mockResolvedValue(undefined as never),
     reverseGeocode: vi.spyOn(maps, 'reverseGeocode').mockResolvedValue(undefined as never),
-    resolveGoogleMapsUrl: vi.spyOn(maps, 'resolveGoogleMapsUrl').mockRejectedValue(
-      Object.assign(new Error('SSRF or invalid URL'), { status: 400 }),
-    ),
+    resolveGoogleMapsUrl: vi
+      .spyOn(maps, 'resolveGoogleMapsUrl')
+      .mockRejectedValue(Object.assign(new Error('SSRF or invalid URL'), { status: 400 })),
   };
 });
 
@@ -100,15 +116,12 @@ afterAll(async () => {
 
 describe('Maps authentication', () => {
   it('POST /maps/search without auth returns 401', async () => {
-    const res = await request(app)
-      .post('/api/maps/search')
-      .send({ query: 'Paris' });
+    const res = await request(app).post('/api/maps/search').send({ query: 'Paris' });
     expect(res.status).toBe(401);
   });
 
   it('GET /maps/reverse without auth returns 401', async () => {
-    const res = await request(app)
-      .get('/api/maps/reverse?lat=48.8566&lng=2.3522');
+    const res = await request(app).get('/api/maps/reverse?lat=48.8566&lng=2.3522');
     expect(res.status).toBe(401);
   });
 });
@@ -117,29 +130,21 @@ describe('Maps validation', () => {
   it('MAPS-001 — POST /maps/search without query returns 400', async () => {
     const { user } = createUser(testDb);
 
-    const res = await request(app)
-      .post('/api/maps/search')
-      .set('Cookie', authCookie(user.id))
-      .send({});
+    const res = await request(app).post('/api/maps/search').set('Cookie', authCookie(user.id)).send({});
     expect(res.status).toBe(400);
   });
 
   it('MAPS-006 — GET /maps/reverse without lat/lng returns 400', async () => {
     const { user } = createUser(testDb);
 
-    const res = await request(app)
-      .get('/api/maps/reverse')
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get('/api/maps/reverse').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(400);
   });
 
   it('MAPS-007 — POST /maps/resolve-url without url returns 400', async () => {
     const { user } = createUser(testDb);
 
-    const res = await request(app)
-      .post('/api/maps/resolve-url')
-      .set('Cookie', authCookie(user.id))
-      .send({});
+    const res = await request(app).post('/api/maps/resolve-url').set('Cookie', authCookie(user.id)).send({});
     expect(res.status).toBe(400);
   });
 });
@@ -174,10 +179,7 @@ describe('Maps happy paths (mocked service)', () => {
       results: [{ address: 'Paris, France', source: 'nominatim' }],
     } as any);
 
-    const res = await request(app)
-      .post('/api/maps/search')
-      .set('Cookie', authCookie(user.id))
-      .send({ query: 'Paris' });
+    const res = await request(app).post('/api/maps/search').set('Cookie', authCookie(user.id)).send({ query: 'Paris' });
 
     expect(res.status).toBe(200);
     expect(res.body.results).toHaveLength(1);
@@ -221,9 +223,7 @@ describe('Maps happy paths (mocked service)', () => {
       address: 'Champ de Mars, Paris',
     } as any);
 
-    const res = await request(app)
-      .get('/api/maps/reverse?lat=48.8584&lng=2.2945')
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get('/api/maps/reverse?lat=48.8584&lng=2.2945').set('Cookie', authCookie(user.id));
 
     expect(res.status).toBe(200);
     expect(res.body.name).toBe('Eiffel Tower');
@@ -263,9 +263,7 @@ describe('Maps happy paths (mocked service)', () => {
     const { user } = createUser(testDb);
     mapsService.getPlaceDetails.mockRejectedValueOnce(new Error('External API failure'));
 
-    const res = await request(app)
-      .get('/api/maps/details/some-place-id')
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get('/api/maps/details/some-place-id').set('Cookie', authCookie(user.id));
 
     expect(res.status).toBe(500);
     expect(res.body).toHaveProperty('error');
@@ -274,7 +272,7 @@ describe('Maps happy paths (mocked service)', () => {
   it('MAPS-004 — getPlacePhoto error with status returns that status', async () => {
     const { user } = createUser(testDb);
     mapsService.getPlacePhoto.mockRejectedValueOnce(
-      Object.assign(new Error('Photo provider unavailable'), { status: 503 })
+      Object.assign(new Error('Photo provider unavailable'), { status: 503 }),
     );
 
     const res = await request(app)
@@ -305,9 +303,7 @@ describe('Maps happy paths (mocked service)', () => {
   it('MAPS-004c — the bytes proxy answers 204 for a photo that is not cached', async () => {
     const { user } = createUser(testDb);
 
-    const res = await request(app)
-      .get('/api/maps/place-photo/ChIJnot-cached/bytes')
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get('/api/maps/place-photo/ChIJnot-cached/bytes').set('Cookie', authCookie(user.id));
 
     expect(res.status).toBe(204);
     expect(res.text).toBeFalsy();
@@ -317,9 +313,7 @@ describe('Maps happy paths (mocked service)', () => {
     const { user } = createUser(testDb);
     mapsService.reverseGeocode.mockRejectedValueOnce(new Error('Geocode failed'));
 
-    const res = await request(app)
-      .get('/api/maps/reverse?lat=48.8584&lng=2.2945')
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get('/api/maps/reverse?lat=48.8584&lng=2.2945').set('Cookie', authCookie(user.id));
 
     expect(res.status).toBe(200);
     expect(res.body.name).toBeNull();
@@ -329,19 +323,14 @@ describe('Maps happy paths (mocked service)', () => {
 
 describe('Maps autocomplete', () => {
   it('MAPS-009 — POST /maps/autocomplete without auth returns 401', async () => {
-    const res = await request(app)
-      .post('/api/maps/autocomplete')
-      .send({ input: 'Paris' });
+    const res = await request(app).post('/api/maps/autocomplete').send({ input: 'Paris' });
     expect(res.status).toBe(401);
   });
 
   it('MAPS-010 — POST /maps/autocomplete without input returns 400', async () => {
     const { user } = createUser(testDb);
 
-    const res = await request(app)
-      .post('/api/maps/autocomplete')
-      .set('Cookie', authCookie(user.id))
-      .send({});
+    const res = await request(app).post('/api/maps/autocomplete').set('Cookie', authCookie(user.id)).send({});
     expect(res.status).toBe(400);
   });
 
@@ -368,9 +357,7 @@ describe('Maps autocomplete', () => {
   it('MAPS-013 — POST /maps/autocomplete returns suggestions from service', async () => {
     const { user } = createUser(testDb);
     mapsService.autocompletePlaces.mockResolvedValueOnce({
-      suggestions: [
-        { placeId: 'ChIJ1234', mainText: 'Paris', secondaryText: 'France' },
-      ],
+      suggestions: [{ placeId: 'ChIJ1234', mainText: 'Paris', secondaryText: 'France' }],
       source: 'google',
     });
 
@@ -395,7 +382,11 @@ describe('Maps autocomplete', () => {
     await request(app)
       .post('/api/maps/autocomplete')
       .set('Cookie', authCookie(user.id))
-      .send({ input: 'test', lang: 'fr', locationBias: { low: { lat: 48.5, lng: 2.0 }, high: { lat: 49.0, lng: 2.8 } } });
+      .send({
+        input: 'test',
+        lang: 'fr',
+        locationBias: { low: { lat: 48.5, lng: 2.0 }, high: { lat: 49.0, lng: 2.8 } },
+      });
 
     expect(mapsService.autocompletePlaces).toHaveBeenCalledWith(
       user.id,

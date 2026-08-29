@@ -1,12 +1,13 @@
-import { describe, it, expect, vi } from 'vitest';
-import { HttpException, RequestMethod } from '@nestjs/common';
-import type { Response } from 'express';
 import { AtlasController } from '../../../src/nest/atlas/atlas.controller';
-import { TravelStatsController } from '../../../src/nest/atlas/travel-stats.controller';
-import { JwtAuthGuard } from '../../../src/nest/auth/jwt-auth.guard';
 import { BucketItemExistsError } from '../../../src/nest/atlas/atlas.service';
 import type { AtlasService } from '../../../src/nest/atlas/atlas.service';
+import { TravelStatsController } from '../../../src/nest/atlas/travel-stats.controller';
+import { JwtAuthGuard } from '../../../src/nest/auth/jwt-auth.guard';
 import type { User } from '../../../src/types';
+import { HttpException, RequestMethod } from '@nestjs/common';
+
+import type { Response } from 'express';
+import { describe, it, expect, vi } from 'vitest';
 
 const user = { id: 8 } as User;
 
@@ -104,7 +105,9 @@ describe('AtlasController (parity with the legacy /api/addons/atlas route)', () 
 
     it('marks a region, upper-casing both codes', () => {
       const markRegion = vi.fn();
-      expect(makeController({ markRegion }).markRegion(user, 'by', { name: 'Bavaria', country_code: 'de' })).toEqual({ success: true });
+      expect(makeController({ markRegion }).markRegion(user, 'by', { name: 'Bavaria', country_code: 'de' })).toEqual({
+        success: true,
+      });
       expect(markRegion).toHaveBeenCalledWith(8, 'BY', 'Bavaria', 'DE');
     });
   });
@@ -118,52 +121,74 @@ describe('AtlasController (parity with the legacy /api/addons/atlas route)', () 
     it('400 on create with a blank name', () => {
       const createBucketItem = vi.fn();
       return thrown(() => makeController({ createBucketItem }).createBucketItem(user, { name: '  ' })).then((r) =>
-        expect(r).toEqual({ status: 400, body: { error: 'Name is required' } }));
+        expect(r).toEqual({ status: 400, body: { error: 'Name is required' } }),
+      );
     });
 
     it('201-shape create returns { item }', () => {
       const createBucketItem = vi.fn().mockReturnValue({ id: 1, name: 'Tokyo' });
-      expect(makeController({ createBucketItem }).createBucketItem(user, { name: 'Tokyo', lat: 35, lng: 139 }))
-        .toEqual({ item: { id: 1, name: 'Tokyo' } });
-      expect(createBucketItem).toHaveBeenCalledWith(8, { name: 'Tokyo', lat: 35, lng: 139, country_code: undefined, notes: undefined, target_date: undefined });
+      expect(makeController({ createBucketItem }).createBucketItem(user, { name: 'Tokyo', lat: 35, lng: 139 })).toEqual(
+        { item: { id: 1, name: 'Tokyo' } },
+      );
+      expect(createBucketItem).toHaveBeenCalledWith(8, {
+        name: 'Tokyo',
+        lat: 35,
+        lng: 139,
+        country_code: undefined,
+        notes: undefined,
+        target_date: undefined,
+      });
     });
 
     it('404 on update of a missing item', () => {
       const updateBucketItem = vi.fn().mockReturnValue(null);
       return thrown(() => makeController({ updateBucketItem }).updateBucketItem(user, '9', { name: 'X' })).then((r) =>
-        expect(r).toEqual({ status: 404, body: { error: 'Item not found' } }));
+        expect(r).toEqual({ status: 404, body: { error: 'Item not found' } }),
+      );
     });
 
     it('updates an existing item', () => {
       const updateBucketItem = vi.fn().mockReturnValue({ id: 1, name: 'Kyoto' });
-      expect(makeController({ updateBucketItem }).updateBucketItem(user, '1', { name: 'Kyoto' }))
-        .toEqual({ item: { id: 1, name: 'Kyoto' } });
+      expect(makeController({ updateBucketItem }).updateBucketItem(user, '1', { name: 'Kyoto' })).toEqual({
+        item: { id: 1, name: 'Kyoto' },
+      });
     });
 
     it('409 when the service refuses a duplicate create (#1898)', () => {
-      const createBucketItem = vi.fn(() => { throw new BucketItemExistsError(); });
+      const createBucketItem = vi.fn(() => {
+        throw new BucketItemExistsError();
+      });
       return thrown(() => makeController({ createBucketItem }).createBucketItem(user, { name: 'Japan' })).then((r) =>
-        expect(r).toEqual({ status: 409, body: { error: 'Already on your bucket list' } }));
+        expect(r).toEqual({ status: 409, body: { error: 'Already on your bucket list' } }),
+      );
     });
 
     it('409 when the service refuses a duplicate update (#1898)', () => {
-      const updateBucketItem = vi.fn(() => { throw new BucketItemExistsError(); });
-      return thrown(() => makeController({ updateBucketItem }).updateBucketItem(user, '1', { target_date: '2027-05' })).then((r) =>
-        expect(r).toEqual({ status: 409, body: { error: 'Already on your bucket list' } }));
+      const updateBucketItem = vi.fn(() => {
+        throw new BucketItemExistsError();
+      });
+      return thrown(() =>
+        makeController({ updateBucketItem }).updateBucketItem(user, '1', { target_date: '2027-05' }),
+      ).then((r) => expect(r).toEqual({ status: 409, body: { error: 'Already on your bucket list' } }));
     });
 
     it('lets any other create/update failure through untouched', () => {
       const boom = new Error('disk on fire');
-      const createBucketItem = vi.fn(() => { throw boom; });
+      const createBucketItem = vi.fn(() => {
+        throw boom;
+      });
       expect(() => makeController({ createBucketItem }).createBucketItem(user, { name: 'Japan' })).toThrow(boom);
-      const updateBucketItem = vi.fn(() => { throw boom; });
+      const updateBucketItem = vi.fn(() => {
+        throw boom;
+      });
       expect(() => makeController({ updateBucketItem }).updateBucketItem(user, '1', { name: 'Japan' })).toThrow(boom);
     });
 
     it('404 on delete of a missing item', () => {
       const deleteBucketItem = vi.fn().mockReturnValue(false);
       return thrown(() => makeController({ deleteBucketItem }).deleteBucketItem(user, '9')).then((r) =>
-        expect(r).toEqual({ status: 404, body: { error: 'Item not found' } }));
+        expect(r).toEqual({ status: 404, body: { error: 'Item not found' } }),
+      );
     });
 
     it('deletes an existing item', () => {
@@ -192,7 +217,15 @@ describe('TravelStatsController', () => {
   });
 
   it('ATLAS-TRAVEL-002: passes the payload through untouched', () => {
-    const payload = { countries: [], cities: [], coords: [], totalTrips: 0, totalDays: 0, totalPlaces: 0, totalDistanceKm: 0 };
+    const payload = {
+      countries: [],
+      cities: [],
+      coords: [],
+      totalTrips: 0,
+      totalDays: 0,
+      totalPlaces: 0,
+      totalDistanceKm: 0,
+    };
     const controller = new TravelStatsController({ getTravelStats: () => payload } as unknown as AtlasService);
 
     expect(controller.travelStats(user)).toBe(payload);
@@ -216,5 +249,4 @@ describe('TravelStatsController', () => {
     expect(Array.isArray(guards)).toBe(true);
     expect(guards).toEqual(expect.arrayContaining([JwtAuthGuard]));
   });
-
 });

@@ -1,6 +1,12 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { db } from '../../../../src/db/database';
+import { RuntimeEnvService } from '../../../../src/nest/app-config/runtime-env.service';
+import { DatabaseService } from '../../../../src/nest/database/database.service';
+import { UnsplashService } from '../../../../src/nest/unsplash/unsplash.service';
+import { makeStorageFixture } from '../../../helpers/storage-fixture';
+
 import fs from 'fs';
 import path from 'path';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 
 // safeFetch is mocked so saveUnsplashCover never hits the network.
 // db is mocked so getUnsplashKey resolves from a controllable stub, and
@@ -28,12 +34,6 @@ vi.mock('../../../../src/nest/common/crypto/apiKeyCrypto', () => ({
   maybe_encrypt_api_key: (v: string | null) => v,
 }));
 
-import { UnsplashService } from '../../../../src/nest/unsplash/unsplash.service';
-import { DatabaseService } from '../../../../src/nest/database/database.service';
-import { RuntimeEnvService } from '../../../../src/nest/app-config/runtime-env.service';
-import { db } from '../../../../src/db/database';
-import { makeStorageFixture } from '../../../helpers/storage-fixture';
-
 // Same four entry points, now methods. The db mock above still feeds them.
 const coverFx = makeStorageFixture('covers/');
 const svc = new UnsplashService(new DatabaseService(db), new RuntimeEnvService(), coverFx.storage);
@@ -57,7 +57,7 @@ function fakeRes(init: { ok: boolean; status?: number; type?: string; bytes?: nu
   return {
     ok: init.ok,
     status: init.status ?? (init.ok ? 200 : 500),
-    headers: { get: (h: string) => (h.toLowerCase() === 'content-type' ? init.type ?? '' : null) },
+    headers: { get: (h: string) => (h.toLowerCase() === 'content-type' ? (init.type ?? '') : null) },
     arrayBuffer: async () => new ArrayBuffer(init.bytes ?? 8),
     json: async () => init.json ?? {},
   } as unknown as Response;
@@ -87,7 +87,14 @@ describe('unsplashService.searchUnsplashPhotos', () => {
   });
 
   it('UNSPLASH-003: maps a non-ok response to an error', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(fakeRes({ ok: false, status: 429, type: 'application/json', json: { errors: ['Rate limited'] } })));
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValue(
+          fakeRes({ ok: false, status: 429, type: 'application/json', json: { errors: ['Rate limited'] } }),
+        ),
+    );
     expect(await searchUnsplashPhotos('paris')).toEqual({ error: 'Rate limited', status: 429 });
   });
 
@@ -113,27 +120,47 @@ describe('unsplashService.searchUnsplashPhotos', () => {
   });
 
   it('UNSPLASH-018: falls back to the generic message when a non-ok body names no error', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(fakeRes({ ok: false, status: 500, type: 'application/json', json: {} })));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(fakeRes({ ok: false, status: 500, type: 'application/json', json: {} })),
+    );
     expect(await searchUnsplashPhotos('paris')).toEqual({ error: 'Unsplash search unavailable', status: 500 });
   });
 
   it('UNSPLASH-019: uses the single error field when the errors array is absent', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(fakeRes({ ok: false, status: 401, type: 'application/json', json: { error: 'Bad credentials' } })));
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValue(
+          fakeRes({ ok: false, status: 401, type: 'application/json', json: { error: 'Bad credentials' } }),
+        ),
+    );
     expect(await searchUnsplashPhotos('paris')).toEqual({ error: 'Bad credentials', status: 401 });
   });
 
   it('UNSPLASH-004: returns normalised photos on success and drops entries missing a url/thumb', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(fakeRes({
-      ok: true,
-      type: 'application/json',
-      json: {
-        results: [
-          { id: 'a', urls: { regular: 'https://images.unsplash.com/a', small: 'https://images.unsplash.com/a-s' }, user: { name: 'Alice' }, links: { html: 'https://unsplash.com/a' } },
-          { id: 'b', urls: {} }, // dropped — no url/thumb
-        ],
-      },
-    })));
-    const res = await searchUnsplashPhotos('paris') as { photos: { id: string }[] };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        fakeRes({
+          ok: true,
+          type: 'application/json',
+          json: {
+            results: [
+              {
+                id: 'a',
+                urls: { regular: 'https://images.unsplash.com/a', small: 'https://images.unsplash.com/a-s' },
+                user: { name: 'Alice' },
+                links: { html: 'https://unsplash.com/a' },
+              },
+              { id: 'b', urls: {} }, // dropped — no url/thumb
+            ],
+          },
+        }),
+      ),
+    );
+    const res = (await searchUnsplashPhotos('paris')) as { photos: { id: string }[] };
     expect(res.photos).toHaveLength(1);
     expect(res.photos[0]).toMatchObject({ id: 'a', photographer: 'Alice', link: 'https://unsplash.com/a' });
   });
@@ -199,7 +226,13 @@ describe('unsplashService.getUnsplashKey', () => {
 describe('unsplashService.saveUnsplashCover', () => {
   const coversDir = path.join(coverFx.root, 'covers');
   const writtenCovers = () => (fs.existsSync(coversDir) ? fs.readdirSync(coversDir) : []);
-  afterEach(() => { try { fs.rmSync(coversDir, { recursive: true, force: true }); } catch { /* ignore */ } });
+  afterEach(() => {
+    try {
+      fs.rmSync(coversDir, { recursive: true, force: true });
+    } catch {
+      /* ignore */
+    }
+  });
 
   it('UNSPLASH-005: rejects a non-Unsplash host before any fetch', async () => {
     await expect(saveUnsplashCover('https://evil.example.com/x.jpg')).rejects.toThrow('Not an Unsplash image URL');
@@ -215,7 +248,9 @@ describe('unsplashService.saveUnsplashCover', () => {
 
   it('UNSPLASH-007: rejects an unsupported content type without writing', async () => {
     safeFetch.mockResolvedValue(fakeRes({ ok: true, type: 'text/html' }));
-    await expect(saveUnsplashCover('https://images.unsplash.com/photo-1')).rejects.toThrow(/Unsupported cover image type/);
+    await expect(saveUnsplashCover('https://images.unsplash.com/photo-1')).rejects.toThrow(
+      /Unsupported cover image type/,
+    );
     expect(writtenCovers()).toEqual([]);
   });
 
@@ -254,7 +289,9 @@ describe('unsplashService.saveUnsplashCover', () => {
             served++;
             return { done: false, value: new Uint8Array(4 * 1024 * 1024) };
           },
-          cancel: async () => { cancelled = true; },
+          cancel: async () => {
+            cancelled = true;
+          },
         }),
       },
     } as unknown as Response);

@@ -1,21 +1,10 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Headers,
-  HttpException,
-  Param,
-  Post,
-  Put,
-  UseGuards,
-} from '@nestjs/common';
 import type { User } from '../../types';
-import { DayNotesService } from './day-notes.service';
-import { DayNoteCreateDto, DayNoteUpdateDto } from './day-notes.dto';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
+import { DayNoteCreateDto, DayNoteUpdateDto } from './day-notes.dto';
+import { DayNotesService } from './day-notes.service';
+import { Body, Controller, Delete, Get, Headers, HttpException, Param, Post, Put, UseGuards } from '@nestjs/common';
 
 /**
  * /api/trips/:tripId/days/:dayId/notes — free-text annotations on a day.
@@ -34,8 +23,6 @@ import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.g
 @UseGuards(JwtAuthGuard, TripAccessGuard)
 export class DayNotesController {
   constructor(private readonly notes: DayNotesService) {}
-
-
 
   @Get()
   list(@CurrentUser() user: User, @Param('tripId') tripId: string, @Param('dayId') dayId: string) {
@@ -76,7 +63,13 @@ export class DayNotesController {
     if (!current) {
       throw new HttpException({ error: 'Note not found' }, 404);
     }
-    const note = this.notes.update(id, current as never, { text: body.text, time: body.time, icon: body.icon, sort_order: body.sort_order, color: body.color });
+    const note = this.notes.update(id, current as never, {
+      text: body.text,
+      time: body.time,
+      icon: body.icon,
+      sort_order: body.sort_order,
+      color: body.color,
+    });
     this.notes.broadcast(tripId, 'dayNote:updated', { dayId: Number(dayId), note }, socketId);
     return { note };
   }

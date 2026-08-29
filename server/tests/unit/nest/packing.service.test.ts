@@ -14,6 +14,16 @@
  * 2026-08 admin fold, since this service already owned all three template
  * tables.
  */
+import { runMigrations } from '../../../src/db/migrations';
+import { createTables } from '../../../src/db/schema';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { PackingService } from '../../../src/nest/packing/packing.service';
+import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { createUser, createAdmin, createTrip, addTripMember } from '../../helpers/factories';
+import { notificationsStub } from '../../helpers/notifications';
+import { resetTestDb } from '../../helpers/test-db';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // ── DB setup ──────────────────────────────────────────────────────────────────
@@ -30,11 +40,15 @@ const { testDb, dbMock } = vi.hoisted(() => {
     reinitialize: () => {},
     getPlaceWithTags: () => null,
     canAccessTrip: (tripId: any, userId: number) =>
-      db.prepare(`
+      db
+        .prepare(
+          `
         SELECT t.id, t.user_id FROM trips t
         LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ?
         WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)
-      `).get(userId, tripId, userId),
+      `,
+        )
+        .get(userId, tripId, userId),
     isOwner: (tripId: any, userId: number) =>
       !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
   };
@@ -56,20 +70,16 @@ const permissionsStub = { checkPermission } as unknown as PermissionsService;
 
 const { send } = vi.hoisted(() => ({ send: vi.fn(() => Promise.resolve()) }));
 
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createAdmin, createTrip, addTripMember } from '../../helpers/factories';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { PackingService } from '../../../src/nest/packing/packing.service';
 // Was packing.bridge, deleted with the other three that had no consumer outside the
 // container. The assertions stayed; they point at the service now.
 const bridgeListItems = (tripId: string | number, viewerId?: number) => svc.listItems(tripId, viewerId);
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import { notificationsStub } from '../../helpers/notifications';
 
-const svc = new PackingService(new DatabaseService(testDb), permissionsStub, new RealtimeService(), notificationsStub(send));
+const svc = new PackingService(
+  new DatabaseService(testDb),
+  permissionsStub,
+  new RealtimeService(),
+  notificationsStub(send),
+);
 
 // ── Lifecycle ─────────────────────────────────────────────────────────────────
 
@@ -94,9 +104,15 @@ describe('saveAsTemplate', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
 
-    testDb.prepare('INSERT INTO packing_items (trip_id, name, category, checked, sort_order) VALUES (?, ?, ?, 0, ?)').run(trip.id, 'Shirt', 'Clothes', 0);
-    testDb.prepare('INSERT INTO packing_items (trip_id, name, category, checked, sort_order) VALUES (?, ?, ?, 0, ?)').run(trip.id, 'Shorts', 'Clothes', 1);
-    testDb.prepare('INSERT INTO packing_items (trip_id, name, category, checked, sort_order) VALUES (?, ?, ?, 0, ?)').run(trip.id, 'Toothbrush', 'Toiletries', 2);
+    testDb
+      .prepare('INSERT INTO packing_items (trip_id, name, category, checked, sort_order) VALUES (?, ?, ?, 0, ?)')
+      .run(trip.id, 'Shirt', 'Clothes', 0);
+    testDb
+      .prepare('INSERT INTO packing_items (trip_id, name, category, checked, sort_order) VALUES (?, ?, ?, 0, ?)')
+      .run(trip.id, 'Shorts', 'Clothes', 1);
+    testDb
+      .prepare('INSERT INTO packing_items (trip_id, name, category, checked, sort_order) VALUES (?, ?, ?, 0, ?)')
+      .run(trip.id, 'Toothbrush', 'Toiletries', 2);
 
     const result = svc.saveAsTemplate(trip.id, user.id, 'My Template');
 
@@ -128,8 +144,12 @@ describe('listTemplates', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
 
-    testDb.prepare('INSERT INTO packing_items (trip_id, name, category, checked, sort_order) VALUES (?, ?, ?, 0, ?)').run(trip.id, 'Shirt', 'Clothes', 0);
-    testDb.prepare('INSERT INTO packing_items (trip_id, name, category, checked, sort_order) VALUES (?, ?, ?, 0, ?)').run(trip.id, 'Toothbrush', 'Toiletries', 1);
+    testDb
+      .prepare('INSERT INTO packing_items (trip_id, name, category, checked, sort_order) VALUES (?, ?, ?, 0, ?)')
+      .run(trip.id, 'Shirt', 'Clothes', 0);
+    testDb
+      .prepare('INSERT INTO packing_items (trip_id, name, category, checked, sort_order) VALUES (?, ?, ?, 0, ?)')
+      .run(trip.id, 'Toothbrush', 'Toiletries', 1);
     const saved = svc.saveAsTemplate(trip.id, user.id, 'Weekend');
 
     const templates = svc.listTemplates();
@@ -146,10 +166,16 @@ describe('listTemplates', () => {
 
 /** A one-category template with the given item names. Returns its id. */
 function seedTemplate(userId: number, itemNames: string[]): number {
-  const templateId = testDb.prepare('INSERT INTO packing_templates (name, created_by) VALUES (?, ?)').run('Camping', userId).lastInsertRowid as number;
-  const catId = testDb.prepare('INSERT INTO packing_template_categories (template_id, name, sort_order) VALUES (?, ?, ?)').run(templateId, 'Gear', 0).lastInsertRowid as number;
+  const templateId = testDb
+    .prepare('INSERT INTO packing_templates (name, created_by) VALUES (?, ?)')
+    .run('Camping', userId).lastInsertRowid as number;
+  const catId = testDb
+    .prepare('INSERT INTO packing_template_categories (template_id, name, sort_order) VALUES (?, ?, ?)')
+    .run(templateId, 'Gear', 0).lastInsertRowid as number;
   itemNames.forEach((name, i) => {
-    testDb.prepare('INSERT INTO packing_template_items (category_id, name, sort_order) VALUES (?, ?, ?)').run(catId, name, i);
+    testDb
+      .prepare('INSERT INTO packing_template_items (category_id, name, sort_order) VALUES (?, ?, ?)')
+      .run(catId, name, i);
   });
   return templateId;
 }
@@ -160,14 +186,22 @@ describe('applyTemplate', () => {
     const trip = createTrip(testDb, user.id);
 
     // Insert a template with one category and two items directly
-    const templateResult = testDb.prepare('INSERT INTO packing_templates (name, created_by) VALUES (?, ?)').run('Camping', user.id);
+    const templateResult = testDb
+      .prepare('INSERT INTO packing_templates (name, created_by) VALUES (?, ?)')
+      .run('Camping', user.id);
     const templateId = templateResult.lastInsertRowid as number;
 
-    const catResult = testDb.prepare('INSERT INTO packing_template_categories (template_id, name, sort_order) VALUES (?, ?, ?)').run(templateId, 'Gear', 0);
+    const catResult = testDb
+      .prepare('INSERT INTO packing_template_categories (template_id, name, sort_order) VALUES (?, ?, ?)')
+      .run(templateId, 'Gear', 0);
     const catId = catResult.lastInsertRowid as number;
 
-    testDb.prepare('INSERT INTO packing_template_items (category_id, name, sort_order) VALUES (?, ?, ?)').run(catId, 'Tent', 0);
-    testDb.prepare('INSERT INTO packing_template_items (category_id, name, sort_order) VALUES (?, ?, ?)').run(catId, 'Sleeping Bag', 1);
+    testDb
+      .prepare('INSERT INTO packing_template_items (category_id, name, sort_order) VALUES (?, ?, ?)')
+      .run(catId, 'Tent', 0);
+    testDb
+      .prepare('INSERT INTO packing_template_items (category_id, name, sort_order) VALUES (?, ?, ?)')
+      .run(catId, 'Sleeping Bag', 1);
 
     const result = svc.applyTemplate(trip.id, templateId);
 
@@ -185,7 +219,9 @@ describe('applyTemplate', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
 
-    const templateResult = testDb.prepare('INSERT INTO packing_templates (name, created_by) VALUES (?, ?)').run('Empty Template', user.id);
+    const templateResult = testDb
+      .prepare('INSERT INTO packing_templates (name, created_by) VALUES (?, ?)')
+      .run('Empty Template', user.id);
     const templateId = templateResult.lastInsertRowid as number;
 
     const result = svc.applyTemplate(trip.id, templateId);
@@ -343,12 +379,16 @@ describe('setBagMembers', () => {
 
     // assigning to an outsider must not stick — the CASE keeps user_id null
     svc.updateBag(trip.id, bag.id, { user_id: outsider.id }, ['user_id']);
-    const stored = testDb.prepare('SELECT user_id FROM packing_bags WHERE id = ?').get(bag.id) as { user_id: number | null };
+    const stored = testDb.prepare('SELECT user_id FROM packing_bags WHERE id = ?').get(bag.id) as {
+      user_id: number | null;
+    };
     expect(stored.user_id).toBeNull();
 
     // assigning to the owner (on the roster) does stick
     svc.updateBag(trip.id, bag.id, { user_id: user.id }, ['user_id']);
-    const stored2 = testDb.prepare('SELECT user_id FROM packing_bags WHERE id = ?').get(bag.id) as { user_id: number | null };
+    const stored2 = testDb.prepare('SELECT user_id FROM packing_bags WHERE id = ?').get(bag.id) as {
+      user_id: number | null;
+    };
     expect(stored2.user_id).toBe(user.id);
   });
 });
@@ -365,7 +405,9 @@ describe('bulkImport with bag field', () => {
     expect(result).toHaveLength(1);
     expect(result[0]).toBeDefined();
 
-    const bags = testDb.prepare('SELECT * FROM packing_bags WHERE trip_id = ? AND name = ?').all(trip.id, 'Carry-On') as any[];
+    const bags = testDb
+      .prepare('SELECT * FROM packing_bags WHERE trip_id = ? AND name = ?')
+      .all(trip.id, 'Carry-On') as any[];
     expect(bags).toHaveLength(1);
 
     const items = testDb.prepare('SELECT * FROM packing_items WHERE trip_id = ?').all(trip.id) as any[];
@@ -384,7 +426,9 @@ describe('bulkImport with bag field', () => {
 
     expect(result).toHaveLength(2);
 
-    const bags = testDb.prepare('SELECT * FROM packing_bags WHERE trip_id = ? AND name = ?').all(trip.id, 'Carry-On') as any[];
+    const bags = testDb
+      .prepare('SELECT * FROM packing_bags WHERE trip_id = ? AND name = ?')
+      .all(trip.id, 'Carry-On') as any[];
     expect(bags).toHaveLength(1);
 
     const items = testDb.prepare('SELECT * FROM packing_items WHERE trip_id = ?').all(trip.id) as any[];
@@ -434,7 +478,7 @@ describe('private items (#858)', () => {
     expect(secret.owner_id).toBe(user.id);
   });
 
-  it('PACK-SVC-015: listItems hides another member\'s private items but shows the owner theirs', () => {
+  it("PACK-SVC-015: listItems hides another member's private items but shows the owner theirs", () => {
     const { user: owner } = createUser(testDb);
     const { user: other } = createUser(testDb);
     const trip = createTrip(testDb, owner.id);
@@ -446,8 +490,8 @@ describe('private items (#858)', () => {
     const otherView = svc.listItems(trip.id, other.id) as any[];
     const unscoped = svc.listItems(trip.id) as any[];
 
-    expect(ownerView.map(i => i.name).sort()).toEqual(['Private', 'Shared']);
-    expect(otherView.map(i => i.name)).toEqual(['Shared']);
+    expect(ownerView.map((i) => i.name).sort()).toEqual(['Private', 'Shared']);
+    expect(otherView.map((i) => i.name)).toEqual(['Shared']);
     // Without a viewer (internal callers) nothing is filtered.
     expect(unscoped).toHaveLength(2);
   });
@@ -457,7 +501,13 @@ describe('private items (#858)', () => {
     const trip = createTrip(testDb, user.id);
 
     // Legacy-style row with no owner.
-    const id = Number((testDb.prepare('INSERT INTO packing_items (trip_id, name, checked, sort_order) VALUES (?, ?, 0, 0)').run(trip.id, 'Legacy') as any).lastInsertRowid);
+    const id = Number(
+      (
+        testDb
+          .prepare('INSERT INTO packing_items (trip_id, name, checked, sort_order) VALUES (?, ?, 0, 0)')
+          .run(trip.id, 'Legacy') as any
+      ).lastInsertRowid,
+    );
 
     const updated = svc.updateItem(trip.id, id, { is_private: true }, ['is_private'], undefined, user.id) as any;
     expect(updated.is_private).toBe(1);
@@ -487,23 +537,25 @@ describe('private items (#858)', () => {
 
     svc.bulkImport(trip.id, [{ name: 'A' }, { name: 'B', is_private: true }], user.id);
     const rows = testDb.prepare('SELECT * FROM packing_items WHERE trip_id = ? ORDER BY name').all(trip.id) as any[];
-    expect(rows.every(r => r.owner_id === user.id)).toBe(true);
-    expect(rows.find(r => r.name === 'B').is_private).toBe(1);
-    expect(rows.find(r => r.name === 'A').is_private).toBe(0);
+    expect(rows.every((r) => r.owner_id === user.id)).toBe(true);
+    expect(rows.find((r) => r.name === 'B').is_private).toBe(1);
+    expect(rows.find((r) => r.name === 'A').is_private).toBe(0);
   });
 });
 
 // ── Three-tier sharing (#858 follow-up) ───────────────────────────────────────
 
 describe('three-tier packing sharing (#858)', () => {
-  const names = (rows: any[]) => rows.map(r => r.name).sort();
+  const names = (rows: any[]) => rows.map((r) => r.name).sort();
 
   it('PACK-SVC-040: existing/common items are visible to everyone (non-breaking)', () => {
     const { user: owner } = createUser(testDb);
     const { user: other } = createUser(testDb);
     const trip = createTrip(testDb, owner.id);
     // A legacy-style row written directly (is_private defaults 0) = Common.
-    testDb.prepare('INSERT INTO packing_items (trip_id, name, checked, sort_order) VALUES (?, ?, 0, 0)').run(trip.id, 'Tent');
+    testDb
+      .prepare('INSERT INTO packing_items (trip_id, name, checked, sort_order) VALUES (?, ?, 0, 0)')
+      .run(trip.id, 'Tent');
     svc.createItem(trip.id, { name: 'Stove', visibility: 'common' }, owner.id);
 
     expect(names(svc.listItems(trip.id, owner.id) as any[])).toEqual(['Stove', 'Tent']);
@@ -517,14 +569,18 @@ describe('three-tier packing sharing (#858)', () => {
     const trip = createTrip(testDb, owner.id);
     addTripMember(testDb, trip.id, friend.id);
 
-    const item = svc.createItem(trip.id, { name: 'Power bank', visibility: 'shared', recipient_ids: [friend.id] }, owner.id) as any;
+    const item = svc.createItem(
+      trip.id,
+      { name: 'Power bank', visibility: 'shared', recipient_ids: [friend.id] },
+      owner.id,
+    ) as any;
     expect(item.is_private).toBe(1);
     expect(item.owner_username).toBe(owner.username);
     expect(item.recipients.map((r: any) => r.user_id)).toEqual([friend.id]);
 
-    expect(names(svc.listItems(trip.id, owner.id) as any[])).toEqual(['Power bank']);   // bringer
-    expect(names(svc.listItems(trip.id, friend.id) as any[])).toEqual(['Power bank']);  // covered person
-    expect(names(svc.listItems(trip.id, stranger.id) as any[])).toEqual([]);            // nobody else
+    expect(names(svc.listItems(trip.id, owner.id) as any[])).toEqual(['Power bank']); // bringer
+    expect(names(svc.listItems(trip.id, friend.id) as any[])).toEqual(['Power bank']); // covered person
+    expect(names(svc.listItems(trip.id, stranger.id) as any[])).toEqual([]); // nobody else
   });
 
   it('PACK-SVC-042: a Personal item is visible only to its owner', () => {
@@ -574,11 +630,15 @@ describe('three-tier packing sharing (#858)', () => {
     expect(cleared.contributors).toEqual([]);
   });
 
-  it('PACK-SVC-045: cloneItem copies an item onto the cloner\'s personal list', () => {
+  it("PACK-SVC-045: cloneItem copies an item onto the cloner's personal list", () => {
     const { user: owner } = createUser(testDb);
     const { user: cloner } = createUser(testDb);
     const trip = createTrip(testDb, owner.id);
-    const common = svc.createItem(trip.id, { name: 'Travel adapter', category: 'Electronics', visibility: 'common' }, owner.id) as any;
+    const common = svc.createItem(
+      trip.id,
+      { name: 'Travel adapter', category: 'Electronics', visibility: 'common' },
+      owner.id,
+    ) as any;
 
     const clone = svc.cloneItem(trip.id, common.id, cloner.id) as any;
     expect(clone.name).toBe('Travel adapter');
@@ -586,7 +646,7 @@ describe('three-tier packing sharing (#858)', () => {
     expect(clone.is_private).toBe(1);
     expect(clone.owner_id).toBe(cloner.id);
     // The clone is the cloner's alone.
-    expect(names(svc.listItems(trip.id, owner.id) as any[])).toEqual(['Travel adapter']);     // owner sees only the common one
+    expect(names(svc.listItems(trip.id, owner.id) as any[])).toEqual(['Travel adapter']); // owner sees only the common one
     expect(names(svc.listItems(trip.id, cloner.id) as any[])).toEqual(['Travel adapter', 'Travel adapter']); // common + own clone
   });
 
@@ -596,7 +656,11 @@ describe('three-tier packing sharing (#858)', () => {
     const { user: owner } = createUser(testDb);
     const { user: cloner } = createUser(testDb);
     const trip = createTrip(testDb, owner.id);
-    const common = svc.createItem(trip.id, { name: 'Tent', visibility: 'common', weight_grams: 2400, quantity: 2 }, owner.id) as any;
+    const common = svc.createItem(
+      trip.id,
+      { name: 'Tent', visibility: 'common', weight_grams: 2400, quantity: 2 },
+      owner.id,
+    ) as any;
 
     const clone = svc.cloneItem(trip.id, common.id, cloner.id) as any;
 
@@ -609,7 +673,11 @@ describe('three-tier packing sharing (#858)', () => {
     const { user: cloner } = createUser(testDb);
     const trip = createTrip(testDb, owner.id);
     const bag = svc.createBag(trip.id, { name: 'Car boot' }) as any;
-    const common = svc.createItem(trip.id, { name: 'Cool box', visibility: 'common', weight_grams: 3000, bag_id: bag.id }, owner.id) as any;
+    const common = svc.createItem(
+      trip.id,
+      { name: 'Cool box', visibility: 'common', weight_grams: 3000, bag_id: bag.id },
+      owner.id,
+    ) as any;
 
     const clone = svc.cloneItem(trip.id, common.id, cloner.id) as any;
 
@@ -623,7 +691,11 @@ describe('three-tier packing sharing (#858)', () => {
     addTripMember(testDb, trip.id, cloner.id);
     const bag = svc.createBag(trip.id, { name: 'Owner backpack' }) as any;
     svc.setBagMembers(trip.id, bag.id, [owner.id]);
-    const common = svc.createItem(trip.id, { name: 'Rope', visibility: 'common', weight_grams: 900, bag_id: bag.id }, owner.id) as any;
+    const common = svc.createItem(
+      trip.id,
+      { name: 'Rope', visibility: 'common', weight_grams: 900, bag_id: bag.id },
+      owner.id,
+    ) as any;
 
     const clone = svc.cloneItem(trip.id, common.id, cloner.id) as any;
 
@@ -678,10 +750,16 @@ describe('legacy-quirk fixes', () => {
     const trip = createTrip(testDb, user.id);
     const item = svc.createItem(trip.id, { name: 'Socks', quantity: 5 }, user.id) as any;
 
-    expect((svc.updateItem(trip.id, item.id, { quantity: 0 }, ['quantity'], undefined, user.id) as any).quantity).toBe(1);
-    expect((svc.updateItem(trip.id, item.id, { quantity: 9999 }, ['quantity'], undefined, user.id) as any).quantity).toBe(999);
+    expect((svc.updateItem(trip.id, item.id, { quantity: 0 }, ['quantity'], undefined, user.id) as any).quantity).toBe(
+      1,
+    );
+    expect(
+      (svc.updateItem(trip.id, item.id, { quantity: 9999 }, ['quantity'], undefined, user.id) as any).quantity,
+    ).toBe(999);
     // Omitted key leaves the quantity unchanged.
-    expect((svc.updateItem(trip.id, item.id, { name: 'Wool socks' }, ['name'], undefined, user.id) as any).quantity).toBe(999);
+    expect(
+      (svc.updateItem(trip.id, item.id, { name: 'Wool socks' }, ['name'], undefined, user.id) as any).quantity,
+    ).toBe(999);
   });
 });
 
@@ -718,7 +796,9 @@ describe('broadcast helpers (#858 scoping)', () => {
   it('viewersOf: Common → null (whole room); restricted → owner + recipients', () => {
     expect(svc.viewersOf({ is_private: 0, owner_id: 1 })).toBeNull();
     expect(svc.viewersOf(null)).toBeNull();
-    expect(svc.viewersOf({ is_private: 1, owner_id: 1, recipients: [{ user_id: 2 }, { user_id: 3 }] })).toEqual([1, 2, 3]);
+    expect(svc.viewersOf({ is_private: 1, owner_id: 1, recipients: [{ user_id: 2 }, { user_id: 3 }] })).toEqual([
+      1, 2, 3,
+    ]);
   });
 
   it('broadcastToViewers delivers to each viewer (deduped) via onlyUserId', () => {
@@ -787,8 +867,8 @@ describe('PackingService — the surface the deleted bridge exposed', () => {
     svc.createItem(trip.id, { name: 'Private', is_private: true }, owner.id);
 
     // Unscoped (internal callers) — unfiltered; viewer-scoped — #858 filtering applies.
-    expect((bridgeListItems(trip.id) as { name: string }[]).map(i => i.name).sort()).toEqual(['Private', 'Shared']);
-    expect((bridgeListItems(trip.id, other.id) as { name: string }[]).map(i => i.name)).toEqual(['Shared']);
+    expect((bridgeListItems(trip.id) as { name: string }[]).map((i) => i.name).sort()).toEqual(['Private', 'Shared']);
+    expect((bridgeListItems(trip.id, other.id) as { name: string }[]).map((i) => i.name)).toEqual(['Shared']);
   });
 });
 
@@ -981,16 +1061,20 @@ describe('Template item scoping (post-fold quirk fix)', () => {
     const item = svc.createTemplateItem(String(tplA.template.id), String(catA.category.id), 'Tent') as any;
 
     // Template B does not own the item — both routes must 404 rather than act.
-    expect(svc.updateTemplateItem(String(tplB.template.id), String(item.item.id), { name: 'Hijacked' }) as any)
-      .toMatchObject({ status: 404 });
-    expect(svc.deleteTemplateItem(String(tplB.template.id), String(item.item.id)) as any)
-      .toMatchObject({ status: 404 });
-    expect((testDb.prepare('SELECT name FROM packing_template_items WHERE id = ?').get(item.item.id) as any).name)
-      .toBe('Tent');
+    expect(
+      svc.updateTemplateItem(String(tplB.template.id), String(item.item.id), { name: 'Hijacked' }) as any,
+    ).toMatchObject({ status: 404 });
+    expect(svc.deleteTemplateItem(String(tplB.template.id), String(item.item.id)) as any).toMatchObject({
+      status: 404,
+    });
+    expect((testDb.prepare('SELECT name FROM packing_template_items WHERE id = ?').get(item.item.id) as any).name).toBe(
+      'Tent',
+    );
 
     // The owning template still works.
-    expect((svc.updateTemplateItem(String(tplA.template.id), String(item.item.id), { name: 'Tarp' }) as any).item.name)
-      .toBe('Tarp');
+    expect(
+      (svc.updateTemplateItem(String(tplA.template.id), String(item.item.id), { name: 'Tarp' }) as any).item.name,
+    ).toBe('Tarp');
     expect(svc.deleteTemplateItem(String(tplA.template.id), String(item.item.id)) as any).toEqual({});
   });
 });
@@ -1012,12 +1096,16 @@ describe('packing item object-level authorization', () => {
     // The recipient is a fellow traveller; the intruder stays off the trip on purpose.
     addTripMember(testDb, trip.id, friend.id);
     const personal = svc.createItem(trip.id, { name: 'Diary', visibility: 'personal' }, owner.id) as any;
-    const shared = svc.createItem(trip.id, { name: 'Power bank', visibility: 'shared', recipient_ids: [friend.id] }, owner.id) as any;
+    const shared = svc.createItem(
+      trip.id,
+      { name: 'Power bank', visibility: 'shared', recipient_ids: [friend.id] },
+      owner.id,
+    ) as any;
     const common = svc.createItem(trip.id, { name: 'Tent', visibility: 'common' }, owner.id) as any;
     return { owner, intruder, friend, trip, personal, shared, common };
   };
 
-  it('PACK-SVC-101: a non-viewer cannot update someone else\'s Personal item', () => {
+  it("PACK-SVC-101: a non-viewer cannot update someone else's Personal item", () => {
     const { trip, personal, intruder } = restrictedTrip();
     expect(svc.updateItem(trip.id, personal.id, { name: 'pwned' }, ['name'], undefined, intruder.id)).toBeNull();
     expect(testDb.prepare('SELECT name FROM packing_items WHERE id = ?').get(personal.id)).toEqual({ name: 'Diary' });
@@ -1047,7 +1135,9 @@ describe('packing item object-level authorization', () => {
   it('PACK-SVC-105: a non-owner cannot re-share a restricted item they cannot see', () => {
     const { trip, personal, intruder } = restrictedTrip();
     expect(svc.setItemSharing(trip.id, personal.id, intruder.id, 'common', [])).toBeNull();
-    expect(testDb.prepare('SELECT is_private FROM packing_items WHERE id = ?').get(personal.id)).toEqual({ is_private: 1 });
+    expect(testDb.prepare('SELECT is_private FROM packing_items WHERE id = ?').get(personal.id)).toEqual({
+      is_private: 1,
+    });
   });
 
   // Missing actor must deny rather than fall through unfiltered.
@@ -1066,14 +1156,18 @@ describe('packing item object-level authorization', () => {
     expect(svc.deleteItem(trip.id, personal.id, owner.id)).toBeTruthy();
   });
 
-  it('PACK-SVC-108: a template captures only the Common list and the actor\'s own items', () => {
+  it("PACK-SVC-108: a template captures only the Common list and the actor's own items", () => {
     const { trip, intruder } = restrictedTrip();
     const templateId = (svc.saveAsTemplate(trip.id, intruder.id, 'Snapshot') as { id: number }).id;
-    const rows = testDb.prepare(`
+    const rows = testDb
+      .prepare(
+        `
       SELECT i.name FROM packing_template_items i
       JOIN packing_template_categories c ON c.id = i.category_id
       WHERE c.template_id = ?
-    `).all(templateId) as { name: string }[];
-    expect(rows.map(r => r.name).sort()).toEqual(['Tent']);
+    `,
+      )
+      .all(templateId) as { name: string }[];
+    expect(rows.map((r) => r.name).sort()).toEqual(['Tent']);
   });
 });

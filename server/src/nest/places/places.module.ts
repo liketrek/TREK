@@ -1,25 +1,25 @@
-import { Module } from '@nestjs/common';
-import { JourneyDomainModule } from '../journey/journey-domain.module';
-import { PlacesController } from './places.controller';
-import { PlacesService } from './places.service';
-import { PlacesRpc } from './places.rpc';
-import { PluginGuardsModule } from '../plugins/host/plugin-guards.module';
-import { RealtimeModule } from '../realtime/realtime.module';
-import { PlacesMcp } from './places.mcp';
-import { PermissionsModule } from '../permissions/permissions.module';
-import { AssignmentsDomainModule } from '../assignments/assignments-domain.module';
 import { AppConfigModule } from '../app-config/app-config.module';
-import { UnsplashModule } from '../unsplash/unsplash.module';
-import { PlacePhotosModule } from '../place-photos/place-photos.module';
-import { QueryHelpersModule } from '../query-helpers/query-helpers.module';
-import { MapsModule } from '../maps/maps.module';
+import { AssignmentsDomainModule } from '../assignments/assignments-domain.module';
 import { AuthModule } from '../auth/auth.module';
+import { MAX_PLACE_IMAGE_SIZE } from '../common/place-image-upload';
+import { JourneyDomainModule } from '../journey/journey-domain.module';
+import { MapsModule } from '../maps/maps.module';
 import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
-import { MulterModule } from '@nestjs/platform-express';
+import { PermissionsModule } from '../permissions/permissions.module';
+import { PlacePhotosModule } from '../place-photos/place-photos.module';
+import { PluginGuardsModule } from '../plugins/host/plugin-guards.module';
+import { QueryHelpersModule } from '../query-helpers/query-helpers.module';
+import { RealtimeModule } from '../realtime/realtime.module';
+import { buildStorageUploadOptions } from '../storage/storage-upload.factory';
 import { StorageModule } from '../storage/storage.module';
 import { StorageService } from '../storage/storage.service';
-import { buildStorageUploadOptions } from '../storage/storage-upload.factory';
-import { MAX_PLACE_IMAGE_SIZE } from '../common/place-image-upload';
+import { UnsplashModule } from '../unsplash/unsplash.module';
+import { PlacesController } from './places.controller';
+import { PlacesMcp } from './places.mcp';
+import { PlacesRpc } from './places.rpc';
+import { PlacesService } from './places.service';
+import { Module } from '@nestjs/common';
+import { MulterModule } from '@nestjs/platform-express';
 
 /**
  * Places domain (S8 — Phase 2 trip sub-domain). Depends on L4 Categories + L5
@@ -42,7 +42,19 @@ import { MAX_PLACE_IMAGE_SIZE } from '../common/place-image-upload';
         buildStorageUploadOptions(storage, { category: 'places', maxSize: MAX_PLACE_IMAGE_SIZE }),
     }),
     StorageModule,
-    McpSharedModule, PermissionsModule, QueryHelpersModule, MapsModule, AuthModule, AppConfigModule, UnsplashModule, PlacePhotosModule, JourneyDomainModule, RealtimeModule, PluginGuardsModule, AssignmentsDomainModule],
+    McpSharedModule,
+    PermissionsModule,
+    QueryHelpersModule,
+    MapsModule,
+    AuthModule,
+    AppConfigModule,
+    UnsplashModule,
+    PlacePhotosModule,
+    JourneyDomainModule,
+    RealtimeModule,
+    PluginGuardsModule,
+    AssignmentsDomainModule,
+  ],
   controllers: [PlacesController],
   providers: [PlacesService, PlacesMcp, PlacesRpc],
   exports: [PlacesService],

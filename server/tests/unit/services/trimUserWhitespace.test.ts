@@ -3,9 +3,10 @@
  * leading/trailing whitespace in stored usernames and emails.
  * Tests TRIM-MIG-001 through TRIM-MIG-010.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import Database from 'better-sqlite3';
 import { trimUserWhitespace } from '../../../src/db/migrations';
+
+import Database from 'better-sqlite3';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 function makeDb() {
   const db = new Database(':memory:');

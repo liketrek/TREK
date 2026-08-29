@@ -1,14 +1,14 @@
-import { Module } from '@nestjs/common';
-import { AirtrailController } from './airtrail.controller';
-import { AirtrailCoreModule } from './airtrail-core.module';
-import { AirtrailSyncService } from './airtrail-sync.service';
-import { AirtrailSyncJob } from './airtrail-sync.job';
-import { AirtrailImportService } from './airtrail-import.service';
-import { SchedulingModule } from '../scheduling/scheduling.module';
-import { PermissionsModule } from '../permissions/permissions.module';
 import { AddonsModule } from '../addons/addons.module';
 import { AuditModule } from '../audit/audit.module';
+import { PermissionsModule } from '../permissions/permissions.module';
 import { ReservationsModule } from '../reservations/reservations.module';
+import { SchedulingModule } from '../scheduling/scheduling.module';
+import { AirtrailCoreModule } from './airtrail-core.module';
+import { AirtrailImportService } from './airtrail-import.service';
+import { AirtrailSyncJob } from './airtrail-sync.job';
+import { AirtrailSyncService } from './airtrail-sync.service';
+import { AirtrailController } from './airtrail.controller';
+import { Module } from '@nestjs/common';
 
 /**
  * AirTrail integration domain. The connection lives under

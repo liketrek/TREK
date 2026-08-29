@@ -1,9 +1,9 @@
-import { Injectable } from '@nestjs/common';
-import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
-import { RealtimeService } from '../realtime/realtime.service';
-import { PermissionsService } from '../permissions/permissions.service';
 import type { User } from '../../types';
 import { DatabaseService, type TripAccess } from '../database/database.service';
+import { PermissionsService } from '../permissions/permissions.service';
+import { RealtimeService } from '../realtime/realtime.service';
+import { Injectable } from '@nestjs/common';
+import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 
 type Trip = TripAccess;
 
@@ -32,27 +32,46 @@ export class TodoService {
     return this.permissions.checkPermission('packing_edit', user.role, trip.user_id, user.id, trip.user_id !== user.id);
   }
 
-  broadcast<E extends TrekWsTripEventName>(tripId: string, event: E, payload: TrekWsPayload<E>, socketId: string | undefined): void {
+  broadcast<E extends TrekWsTripEventName>(
+    tripId: string,
+    event: E,
+    payload: TrekWsPayload<E>,
+    socketId: string | undefined,
+  ): void {
     this.realtime.broadcast(tripId, event, payload, socketId);
   }
 
   listItems(tripId: string | number) {
-    return this.db.all(
-      'SELECT * FROM todo_items WHERE trip_id = ? ORDER BY sort_order ASC, created_at ASC',
-      tripId
-    );
+    return this.db.all('SELECT * FROM todo_items WHERE trip_id = ? ORDER BY sort_order ASC, created_at ASC', tripId);
   }
 
-  createItem(tripId: string | number, data: {
-    name: string; category?: string | null; due_date?: string | null; description?: string | null; assigned_user_id?: number | null; priority?: number;
-  }) {
-    const maxOrder = this.db.get<{ max: number | null }>('SELECT MAX(sort_order) as max FROM todo_items WHERE trip_id = ?', tripId)!;
+  createItem(
+    tripId: string | number,
+    data: {
+      name: string;
+      category?: string | null;
+      due_date?: string | null;
+      description?: string | null;
+      assigned_user_id?: number | null;
+      priority?: number;
+    },
+  ) {
+    const maxOrder = this.db.get<{ max: number | null }>(
+      'SELECT MAX(sort_order) as max FROM todo_items WHERE trip_id = ?',
+      tripId,
+    )!;
     const sortOrder = (maxOrder.max !== null ? maxOrder.max : -1) + 1;
 
     const result = this.db.run(
       'INSERT INTO todo_items (trip_id, name, checked, category, sort_order, due_date, description, assigned_user_id, priority) VALUES (?, ?, 0, ?, ?, ?, ?, ?, ?)',
-      tripId, data.name, data.category || null, sortOrder,
-      data.due_date || null, data.description || null, data.assigned_user_id || null, data.priority || 0
+      tripId,
+      data.name,
+      data.category || null,
+      sortOrder,
+      data.due_date || null,
+      data.description || null,
+      data.assigned_user_id || null,
+      data.priority || 0,
     );
 
     return this.db.get('SELECT * FROM todo_items WHERE id = ?', result.lastInsertRowid);
@@ -61,13 +80,22 @@ export class TodoService {
   updateItem(
     tripId: string | number,
     id: string | number,
-    data: { name?: string; checked?: number; category?: string | null; due_date?: string | null; description?: string | null; assigned_user_id?: number | null; priority?: number | null },
-    bodyKeys: string[]
+    data: {
+      name?: string;
+      checked?: number;
+      category?: string | null;
+      due_date?: string | null;
+      description?: string | null;
+      assigned_user_id?: number | null;
+      priority?: number | null;
+    },
+    bodyKeys: string[],
   ) {
     const item = this.db.get('SELECT * FROM todo_items WHERE id = ? AND trip_id = ?', id, tripId);
     if (!item) return null;
 
-    this.db.run(`
+    this.db.run(
+      `
     UPDATE todo_items SET
       name = COALESCE(?, name),
       checked = CASE WHEN ? IS NOT NULL THEN ? ELSE checked END,
@@ -90,7 +118,7 @@ export class TodoService {
       data.assigned_user_id ?? null,
       bodyKeys.includes('priority') ? 1 : 0,
       data.priority ?? 0,
-      id
+      id,
     );
 
     return this.db.get('SELECT * FROM todo_items WHERE id = ?', id);
@@ -114,12 +142,15 @@ export class TodoService {
   }
 
   getCategoryAssignees(tripId: string | number) {
-    const rows = this.db.all<{ category_name: string; user_id: number; username: string; avatar: string | null }>(`
+    const rows = this.db.all<{ category_name: string; user_id: number; username: string; avatar: string | null }>(
+      `
     SELECT tca.category_name, tca.user_id, u.username, u.avatar
     FROM todo_category_assignees tca
     JOIN users u ON tca.user_id = u.id
     WHERE tca.trip_id = ?
-  `, tripId);
+  `,
+      tripId,
+    );
 
     const assignees: Record<string, { user_id: number; username: string; avatar: string | null }[]> = {};
     for (const row of rows) {
@@ -135,7 +166,9 @@ export class TodoService {
       this.db.run('DELETE FROM todo_category_assignees WHERE trip_id = ? AND category_name = ?', tripId, categoryName);
 
       if (Array.isArray(userIds) && userIds.length > 0) {
-        const insert = this.db.prepare('INSERT OR IGNORE INTO todo_category_assignees (trip_id, category_name, user_id) VALUES (?, ?, ?)');
+        const insert = this.db.prepare(
+          'INSERT OR IGNORE INTO todo_category_assignees (trip_id, category_name, user_id) VALUES (?, ?, ?)',
+        );
         // Only people on this trip may be assigned, the way packing filters bag
         // members and reservations filter travellers. Dropped rather than
         // rejected: a copied trip carries assignee ids across before its members
@@ -145,11 +178,15 @@ export class TodoService {
       }
     });
 
-    return this.db.all(`
+    return this.db.all(
+      `
     SELECT tca.user_id, u.username, u.avatar
     FROM todo_category_assignees tca
     JOIN users u ON tca.user_id = u.id
     WHERE tca.trip_id = ? AND tca.category_name = ?
-  `, tripId, categoryName);
+  `,
+      tripId,
+      categoryName,
+    );
   }
 }

@@ -18,10 +18,11 @@
  * have to track the tail is tests/integration/leg-mode-incoming.test.ts, which
  * says so in place.
  */
-import { describe, it, expect } from 'vitest';
-import Database from 'better-sqlite3';
-import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
+import { createTables } from '../../../src/db/schema';
+
+import Database from 'better-sqlite3';
+import { describe, it, expect } from 'vitest';
 
 function freshDb() {
   const db = new Database(':memory:');
@@ -39,7 +40,7 @@ function seedUser(
 ) {
   db.prepare(
     `INSERT INTO users (id, username, email, password_hash, role, maps_api_key, unsplash_api_key)
-     VALUES (?, ?, ?, 'x', ?, ?, ?)`
+     VALUES (?, ?, ?, 'x', ?, ?, ?)`,
   ).run(id, `u${id}`, `u${id}@test.local`, role, keys.maps ?? null, keys.unsplash ?? null);
 }
 

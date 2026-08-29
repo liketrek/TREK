@@ -8,6 +8,13 @@
  * harness here keeps withTools on (the resource is NOT registered by the
  * legacy registerResources fan-out anymore).
  */
+import { ADDON_IDS } from '../../../src/addons';
+import { runMigrations } from '../../../src/db/migrations';
+import { createTables } from '../../../src/db/schema';
+import { createUser, createTrip, createTodoItem } from '../../helpers/factories';
+import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
+import { resetTestDb } from '../../helpers/test-db';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 const { testDb, dbMock } = vi.hoisted(() => {
@@ -22,7 +29,11 @@ const { testDb, dbMock } = vi.hoisted(() => {
     reinitialize: () => {},
     getPlaceWithTags: () => null,
     canAccessTrip: (tripId: any, userId: number) =>
-      db.prepare(`SELECT t.id, t.user_id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)`).get(userId, tripId, userId),
+      db
+        .prepare(
+          `SELECT t.id, t.user_id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)`,
+        )
+        .get(userId, tripId, userId),
     isOwner: (tripId: any, userId: number) =>
       !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
   };
@@ -38,13 +49,6 @@ vi.mock('../../../src/config', () => ({
 
 const { broadcastMock } = vi.hoisted(() => ({ broadcastMock: vi.fn() }));
 vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
-
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, createTodoItem } from '../../helpers/factories';
-import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
-import { ADDON_IDS } from '../../../src/addons';
 
 beforeAll(() => {
   createTables(testDb);
@@ -63,7 +67,11 @@ afterAll(() => {
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
   const h = await createMcpHarness({ userId, withResources: false });
-  try { await fn(h); } finally { await h.cleanup(); }
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -201,8 +209,14 @@ describe('Tool: update_todo', () => {
   it('clears due_date when passed null', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
-    testDb.prepare("INSERT INTO todo_items (trip_id, name, checked, sort_order, due_date) VALUES (?, 'Task', 0, 0, '2025-01-01')").run(trip.id);
-    const item = testDb.prepare('SELECT * FROM todo_items WHERE trip_id = ? ORDER BY id DESC LIMIT 1').get(trip.id) as any;
+    testDb
+      .prepare(
+        "INSERT INTO todo_items (trip_id, name, checked, sort_order, due_date) VALUES (?, 'Task', 0, 0, '2025-01-01')",
+      )
+      .run(trip.id);
+    const item = testDb
+      .prepare('SELECT * FROM todo_items WHERE trip_id = ? ORDER BY id DESC LIMIT 1')
+      .get(trip.id) as any;
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'update_todo',
@@ -218,7 +232,10 @@ describe('Tool: update_todo', () => {
     const trip = createTrip(testDb, user.id);
     const item = createTodoItem(testDb, trip.id);
     await withHarness(user.id, async (h) => {
-      await h.client.callTool({ name: 'update_todo', arguments: { tripId: trip.id, itemId: item.id, name: 'Updated' } });
+      await h.client.callTool({
+        name: 'update_todo',
+        arguments: { tripId: trip.id, itemId: item.id, name: 'Updated' },
+      });
       expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'todo:updated', expect.any(Object));
     });
   });
@@ -227,7 +244,10 @@ describe('Tool: update_todo', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'update_todo', arguments: { tripId: trip.id, itemId: 99999, name: 'X' } });
+      const result = await h.client.callTool({
+        name: 'update_todo',
+        arguments: { tripId: trip.id, itemId: 99999, name: 'X' },
+      });
       expect(result.isError).toBe(true);
     });
   });
@@ -238,7 +258,10 @@ describe('Tool: update_todo', () => {
     const trip = createTrip(testDb, other.id);
     const item = createTodoItem(testDb, trip.id);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'update_todo', arguments: { tripId: trip.id, itemId: item.id, name: 'X' } });
+      const result = await h.client.callTool({
+        name: 'update_todo',
+        arguments: { tripId: trip.id, itemId: item.id, name: 'X' },
+      });
       expect(result.isError).toBe(true);
     });
   });
@@ -291,7 +314,10 @@ describe('Tool: toggle_todo', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'toggle_todo', arguments: { tripId: trip.id, itemId: 99999, checked: true } });
+      const result = await h.client.callTool({
+        name: 'toggle_todo',
+        arguments: { tripId: trip.id, itemId: 99999, checked: true },
+      });
       expect(result.isError).toBe(true);
     });
   });
@@ -373,7 +399,10 @@ describe('Tool: reorder_todos', () => {
     const { user: other } = createUser(testDb);
     const trip = createTrip(testDb, other.id);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'reorder_todos', arguments: { tripId: trip.id, orderedIds: [1] } });
+      const result = await h.client.callTool({
+        name: 'reorder_todos',
+        arguments: { tripId: trip.id, orderedIds: [1] },
+      });
       expect(result.isError).toBe(true);
     });
   });
@@ -418,7 +447,9 @@ describe('Tool: set_todo_category_assignees', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     // Set then clear
-    testDb.prepare('INSERT INTO todo_category_assignees (trip_id, category_name, user_id) VALUES (?, ?, ?)').run(trip.id, 'Booking', user.id);
+    testDb
+      .prepare('INSERT INTO todo_category_assignees (trip_id, category_name, user_id) VALUES (?, ?, ?)')
+      .run(trip.id, 'Booking', user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'set_todo_category_assignees',
@@ -449,7 +480,14 @@ describe('Tool: set_todo_category_assignees', () => {
 
 describe('Todo tools — scope gating', () => {
   const READ_TOOLS = ['list_todos', 'get_todo_category_assignees'];
-  const WRITE_TOOLS = ['create_todo', 'update_todo', 'toggle_todo', 'delete_todo', 'reorder_todos', 'set_todo_category_assignees'];
+  const WRITE_TOOLS = [
+    'create_todo',
+    'update_todo',
+    'toggle_todo',
+    'delete_todo',
+    'reorder_todos',
+    'set_todo_category_assignees',
+  ];
 
   async function listToolNames(userId: number, scopes: string[] | null): Promise<string[]> {
     const h = await createMcpHarness({ userId, withResources: false, scopes });

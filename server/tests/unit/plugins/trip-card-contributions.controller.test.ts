@@ -5,19 +5,21 @@
  * a badge for an un-requested/inaccessible trip is dropped, server-side normalization,
  * a URL-scheme allowlist (no click-XSS), and length/count caps.
  */
+import type { DatabaseService } from '../../../src/nest/database/database.service';
+import { TripCardContributionsController } from '../../../src/nest/plugins/contributions/trip-card-contributions.controller';
+import type { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const { canAccessTrip, pluginsEnabled } = vi.hoisted(() => ({
   // trips 1 and 2 are accessible to user 5; everything else is not.
-  canAccessTrip: vi.fn((tripId: number, userId: number) => (userId === 5 && (tripId === 1 || tripId === 2) ? { id: tripId } : undefined)),
+  canAccessTrip: vi.fn((tripId: number, userId: number) =>
+    userId === 5 && (tripId === 1 || tripId === 2) ? { id: tripId } : undefined,
+  ),
   pluginsEnabled: vi.fn(() => true),
 }));
 vi.mock('../../../src/db/database', () => ({ db: { prepare: () => ({ get: () => undefined }) }, canAccessTrip }));
 vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
-
-import { TripCardContributionsController } from '../../../src/nest/plugins/contributions/trip-card-contributions.controller';
-import type { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
-import type { DatabaseService } from '../../../src/nest/database/database.service';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const req = (id?: number) => ({ user: id === undefined ? undefined : { id } }) as any;
@@ -31,7 +33,9 @@ function controller(invoke: (id: string, args: unknown[]) => unknown, providers 
 const badge = (over: Record<string, unknown> = {}) => ({ tripId: 1, id: 'b1', label: 'Visa', ...over });
 
 describe('TripCardContributionsController', () => {
-  beforeEach(() => { pluginsEnabled.mockReturnValue(true); });
+  beforeEach(() => {
+    pluginsEnabled.mockReturnValue(true);
+  });
 
   it('gates: disabled / no user / no accessible trip all return [] without consulting providers', async () => {
     pluginsEnabled.mockReturnValue(false);
@@ -56,7 +60,11 @@ describe('TripCardContributionsController', () => {
   });
 
   it('drops a badge whose tripId was not requested / is inaccessible', async () => {
-    const { c } = controller(() => [badge({ tripId: 1, id: 'ok' }), badge({ tripId: 2, id: 'ok2' }), badge({ tripId: 99, id: 'sneaky' })]);
+    const { c } = controller(() => [
+      badge({ tripId: 1, id: 'ok' }),
+      badge({ tripId: 2, id: 'ok2' }),
+      badge({ tripId: 99, id: 'sneaky' }),
+    ]);
     const out = (await c.get('1,2', req(5))).contributions;
     expect(out.map((o) => o.id)).toEqual(['ok', 'ok2']); // tripId 99 was never in the request → dropped
   });
@@ -69,7 +77,16 @@ describe('TripCardContributionsController', () => {
       badge({ id: 'long', label: 'L'.repeat(200), value: 'V'.repeat(500), tone: 'nope' }),
     ]);
     const out = (await c.get('1', req(5))).contributions;
-    expect(out[0]).toEqual({ pluginId: 'p1', tripId: 1, id: 'ok', label: 'Visa', value: 'Approved', icon: 'Check', tone: 'success', url: 'https://x.test' });
+    expect(out[0]).toEqual({
+      pluginId: 'p1',
+      tripId: 1,
+      id: 'ok',
+      label: 'Visa',
+      value: 'Approved',
+      icon: 'Check',
+      tone: 'success',
+      url: 'https://x.test',
+    });
     expect((out[1] as { url?: string }).url).toBeUndefined();
     expect((out[2] as { url?: string }).url).toBe('mailto:a@b.c');
     expect((out[3] as { label: string }).label).toHaveLength(64);
@@ -96,7 +113,13 @@ describe('TripCardContributionsController', () => {
   });
 
   it('merges providers and skips one that throws', async () => {
-    const { c } = controller((id) => { if (id === 'p2') throw new Error('slow'); return [badge({ id: 'from-p1' })]; }, ['p1', 'p2']);
+    const { c } = controller(
+      (id) => {
+        if (id === 'p2') throw new Error('slow');
+        return [badge({ id: 'from-p1' })];
+      },
+      ['p1', 'p2'],
+    );
     const out = (await c.get('1', req(5))).contributions;
     expect(out.map((o) => o.id)).toEqual(['from-p1']);
   });

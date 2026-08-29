@@ -1,16 +1,16 @@
-import { PluginController, PluginMethod } from '../rpc-kit/decorators';
-import { PluginGuards } from '../plugin-guards.service';
-import { BadParams, ForbiddenResource } from '../rpc-errors';
-import { asPayload, num, str } from '../rpc-params';
-import type { PluginRpcContext } from '../rpc-kit/types';
-import { budgetFor } from '../plugin-host-state';
 import { DatabaseService } from '../../../database/database.service';
-import { RealtimeService } from '../../../realtime/realtime.service';
-import { NotificationsService } from '../../../notifications/notifications.service';
-import { LlmConfigResolver } from '../../../llm-parse/llm-config.resolver';
 import { createLlmClient } from '../../../llm-parse/llm-client.factory';
+import { LlmConfigResolver } from '../../../llm-parse/llm-config.resolver';
+import { NotificationsService } from '../../../notifications/notifications.service';
+import { RealtimeService } from '../../../realtime/realtime.service';
 import { PluginOAuthService } from '../../oauth/plugin-oauth.service';
 import { stripEmoji } from '../../text-sanitize';
+import { PluginGuards } from '../plugin-guards.service';
+import { budgetFor } from '../plugin-host-state';
+import { BadParams, ForbiddenResource } from '../rpc-errors';
+import { PluginController, PluginMethod } from '../rpc-kit/decorators';
+import type { PluginRpcContext } from '../rpc-kit/types';
+import { asPayload, num, str } from '../rpc-params';
 
 /** Caps on the persistent scheduler, bounding the abuse surface. */
 const SCHED_MAX = 100; // entries per plugin
@@ -126,7 +126,9 @@ export class HostSurfaceRpc {
     this.takeAiBudget(ctx);
     const system = typeof params.system === 'string' ? params.system.slice(0, 4000) : undefined;
     const results = await createLlmClient(config).extract({
-      prompt: system || 'You are a helpful assistant. Reply with a JSON object of the form {"text": "..."} whose "text" field holds your answer.',
+      prompt:
+        system ||
+        'You are a helpful assistant. Reply with a JSON object of the form {"text": "..."} whose "text" field holds your answer.',
       jsonSchema: { type: 'object', properties: { text: { type: 'string' } }, required: ['text'] },
       model: config.model,
       baseUrl: config.baseUrl,
@@ -174,24 +176,33 @@ export class HostSurfaceRpc {
     const name = str(params.name, 'name');
     const dueAt = num(params.dueAt, 'dueAt');
     const everyMs = params.everyMs != null ? num(params.everyMs, 'everyMs') : undefined;
-    if (!name || name.length > SCHED_NAME_MAX) throw new BadParams(`scheduler name is required (max ${SCHED_NAME_MAX} chars)`);
-    if (!Number.isFinite(dueAt) || dueAt > Date.now() + SCHED_DUE_WINDOW) throw new BadParams('scheduler dueAt out of range');
+    if (!name || name.length > SCHED_NAME_MAX)
+      throw new BadParams(`scheduler name is required (max ${SCHED_NAME_MAX} chars)`);
+    if (!Number.isFinite(dueAt) || dueAt > Date.now() + SCHED_DUE_WINDOW)
+      throw new BadParams('scheduler dueAt out of range');
     if (everyMs !== undefined && (!Number.isFinite(everyMs) || everyMs < SCHED_EVERY_MIN)) {
       throw new BadParams(`recurring interval must be >= ${SCHED_EVERY_MIN} ms`);
     }
     const json = JSON.stringify(params.payload ?? null);
-    if (json.length > SCHED_PAYLOAD_MAX) throw new BadParams(`scheduler payload too large (max ${SCHED_PAYLOAD_MAX} bytes)`);
+    if (json.length > SCHED_PAYLOAD_MAX)
+      throw new BadParams(`scheduler payload too large (max ${SCHED_PAYLOAD_MAX} bytes)`);
     const existing = this.db
       .prepare('SELECT id FROM plugin_scheduled_tasks WHERE plugin_id = ? AND name = ?')
       .get(ctx.pluginId, name) as { id: number } | undefined;
     if (!existing) {
-      const n = (this.db.prepare('SELECT COUNT(*) AS c FROM plugin_scheduled_tasks WHERE plugin_id = ?').get(ctx.pluginId) as { c: number }).c;
+      const n = (
+        this.db.prepare('SELECT COUNT(*) AS c FROM plugin_scheduled_tasks WHERE plugin_id = ?').get(ctx.pluginId) as {
+          c: number;
+        }
+      ).c;
       if (n >= SCHED_MAX) throw new BadParams(`too many scheduled tasks (max ${SCHED_MAX})`);
     }
     // Upsert by (plugin, name): re-scheduling the same name replaces it.
     this.db
-      .prepare(`INSERT INTO plugin_scheduled_tasks (plugin_id, name, due_at, payload, every_ms) VALUES (?, ?, ?, ?, ?)
-           ON CONFLICT (plugin_id, name) DO UPDATE SET due_at = excluded.due_at, payload = excluded.payload, every_ms = excluded.every_ms`)
+      .prepare(
+        `INSERT INTO plugin_scheduled_tasks (plugin_id, name, due_at, payload, every_ms) VALUES (?, ?, ?, ?, ?)
+           ON CONFLICT (plugin_id, name) DO UPDATE SET due_at = excluded.due_at, payload = excluded.payload, every_ms = excluded.every_ms`,
+      )
       .run(ctx.pluginId, name, Math.max(dueAt, Date.now()), json, everyMs ?? null);
     return { scheduled: true };
   }

@@ -11,6 +11,21 @@
  * here and the parts are the test's own. The token lookups are real SQL against an
  * in-memory SQLite DB (same harness as calendar.service.test.ts).
  */
+import { runMigrations } from '../../../src/db/migrations';
+import { createTables } from '../../../src/db/schema';
+import type { CalendarService, TripCalendar } from '../../../src/nest/calendar/calendar.service';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import {
+  FeedsPublicController,
+  TripFeedTokenController,
+  UserFeedTokenController,
+} from '../../../src/nest/feeds/feeds.controller';
+import { FeedsModule } from '../../../src/nest/feeds/feeds.module';
+import { FeedsService } from '../../../src/nest/feeds/feeds.service';
+import { createUser, createTrip, addTripMember } from '../../helpers/factories';
+import { expectRegisteredProvider, expectRegisteredController } from '../../helpers/module-providers';
+import { resetTestDb } from '../../helpers/test-db';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // ── DB setup ──────────────────────────────────────────────────────────────────
@@ -27,11 +42,15 @@ const { testDb, dbMock } = vi.hoisted(() => {
     reinitialize: () => {},
     getPlaceWithTags: () => null,
     canAccessTrip: (tripId: number | string, userId: number) =>
-      db.prepare(`
+      db
+        .prepare(
+          `
         SELECT t.id, t.user_id FROM trips t
         LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ?
         WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)
-      `).get(userId, tripId, userId),
+      `,
+        )
+        .get(userId, tripId, userId),
     isOwner: (tripId: number | string, userId: number) =>
       !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
   };
@@ -46,28 +65,10 @@ vi.mock('../../../src/config', () => ({
 }));
 vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn() }));
 
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, addTripMember } from '../../helpers/factories';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { FeedsService } from '../../../src/nest/feeds/feeds.service';
-import { FeedsModule } from '../../../src/nest/feeds/feeds.module';
-import {
-  FeedsPublicController,
-  TripFeedTokenController,
-  UserFeedTokenController,
-} from '../../../src/nest/feeds/feeds.controller';
-import type { CalendarService, TripCalendar } from '../../../src/nest/calendar/calendar.service';
-import { expectRegisteredProvider, expectRegisteredController } from '../../helpers/module-providers';
-
 const BASE = 'https://trek.example.test';
 
 const buildTripCalendar = vi.fn();
-const svc = new FeedsService(
-  new DatabaseService(testDb),
-  { buildTripCalendar } as unknown as CalendarService,
-);
+const svc = new FeedsService(new DatabaseService(testDb), { buildTripCalendar } as unknown as CalendarService);
 
 // ── Calendar parts the stub hands back ────────────────────────────────────────
 
@@ -137,9 +138,7 @@ describe('trip feed token lifecycle', () => {
     // otherwise produce https://host//api/feed/... which some clients reject.
     const { user, tripId } = seedTrip('tok-trip');
 
-    expect(svc.getTripToken(tripId, user.id, `${BASE}/`).feed_url).toBe(
-      `${BASE}/api/feed/trip/tok-trip.ics`,
-    );
+    expect(svc.getTripToken(tripId, user.id, `${BASE}/`).feed_url).toBe(`${BASE}/api/feed/trip/tok-trip.ics`);
   });
 
   it('FEED-SVC-004: a user without access gets null, not the token of a foreign trip', () => {
@@ -159,9 +158,7 @@ describe('trip feed token lifecycle', () => {
     const { user: member } = createUser(testDb);
     addTripMember(testDb, trip.id, member.id);
 
-    expect(svc.getTripToken(tripId, member.id, BASE).feed_url).toBe(
-      `${BASE}/api/feed/trip/tok-trip.ics`,
-    );
+    expect(svc.getTripToken(tripId, member.id, BASE).feed_url).toBe(`${BASE}/api/feed/trip/tok-trip.ics`);
   });
 
   it('FEED-SVC-006: generate mints a token once and stays idempotent', () => {

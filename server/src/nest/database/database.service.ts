@@ -1,8 +1,9 @@
-import { Inject, Injectable } from '@nestjs/common';
-import type Database from 'better-sqlite3';
 import { canAccessTrip, getPlaceWithTags, isOwner } from '../../db/database';
 import type { PlaceWithTags, TripAccess } from '../../db/database';
 import { DATABASE_CONNECTION } from './database.tokens';
+import { Inject, Injectable } from '@nestjs/common';
+
+import type Database from 'better-sqlite3';
 
 export type { PlaceWithTags, TripAccess };
 
@@ -70,9 +71,10 @@ export class DatabaseService {
   rosterUserIds(tripId: number | string): Set<number> {
     const rows = this.all<{ user_id: number }>(
       'SELECT user_id FROM trip_members WHERE trip_id = ? UNION SELECT user_id FROM trips WHERE id = ?',
-      tripId, tripId,
+      tripId,
+      tripId,
     );
-    return new Set(rows.map(r => r.user_id));
+    return new Set(rows.map((r) => r.user_id));
   }
 
   getPlaceWithTags(placeId: number | string): PlaceWithTags | null {

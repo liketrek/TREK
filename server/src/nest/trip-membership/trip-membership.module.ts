@@ -1,5 +1,5 @@
-import { Module } from '@nestjs/common';
 import { TripMembershipService } from './trip-membership.service';
+import { Module } from '@nestjs/common';
 
 /** Trip membership joins. No controller of its own — the HTTP surface lives with
  *  auth, oidc and trip-invite, which all import this for the join itself. Kept

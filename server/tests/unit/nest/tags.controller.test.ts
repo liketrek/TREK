@@ -1,10 +1,11 @@
-import { describe, it, expect, vi } from 'vitest';
-import { HttpException } from '@nestjs/common';
 import { TagsController } from '../../../src/nest/tags/tags.controller';
 import type { TagsService } from '../../../src/nest/tags/tags.service';
 import type { User } from '../../../src/types';
-import type { Tag } from '@trek/shared';
 import { anyBody } from '../../helpers/dto';
+import { HttpException } from '@nestjs/common';
+import type { Tag } from '@trek/shared';
+
+import { describe, it, expect, vi } from 'vitest';
 
 const user = { id: 5 } as User;
 
@@ -26,7 +27,7 @@ function thrown(fn: () => unknown): { status: number; body: unknown } {
 }
 
 describe('TagsController (parity with the legacy /api/tags route)', () => {
-  it('GET / returns the caller\'s tags wrapped in { tags }', () => {
+  it("GET / returns the caller's tags wrapped in { tags }", () => {
     const list = vi.fn().mockReturnValue([tag]);
     expect(makeController({ list }).list(user)).toEqual({ tags: [tag] });
     expect(list).toHaveBeenCalledWith(5);
@@ -36,7 +37,8 @@ describe('TagsController (parity with the legacy /api/tags route)', () => {
     it('400 when name is missing', () => {
       const create = vi.fn();
       expect(thrown(() => makeController({ create }).create(user, anyBody()))).toEqual({
-        status: 400, body: { error: 'Tag name is required' },
+        status: 400,
+        body: { error: 'Tag name is required' },
       });
       expect(create).not.toHaveBeenCalled();
     });
@@ -52,8 +54,11 @@ describe('TagsController (parity with the legacy /api/tags route)', () => {
     it('404 when the tag is not owned by the caller', () => {
       const getByIdAndUser = vi.fn().mockReturnValue(undefined);
       const update = vi.fn();
-      expect(thrown(() => makeController({ getByIdAndUser, update }).update(user, '9', anyBody({ name: 'X' })))).toEqual({
-        status: 404, body: { error: 'Tag not found' },
+      expect(
+        thrown(() => makeController({ getByIdAndUser, update }).update(user, '9', anyBody({ name: 'X' }))),
+      ).toEqual({
+        status: 404,
+        body: { error: 'Tag not found' },
       });
       expect(getByIdAndUser).toHaveBeenCalledWith('9', 5);
       expect(update).not.toHaveBeenCalled();
@@ -62,7 +67,9 @@ describe('TagsController (parity with the legacy /api/tags route)', () => {
     it('updates an owned tag', () => {
       const getByIdAndUser = vi.fn().mockReturnValue(tag);
       const update = vi.fn().mockReturnValue({ ...tag, name: 'Hike' });
-      expect(makeController({ getByIdAndUser, update }).update(user, '1', anyBody({ name: 'Hike' }))).toEqual({ tag: { ...tag, name: 'Hike' } });
+      expect(makeController({ getByIdAndUser, update }).update(user, '1', anyBody({ name: 'Hike' }))).toEqual({
+        tag: { ...tag, name: 'Hike' },
+      });
       expect(update).toHaveBeenCalledWith('1', 'Hike', undefined);
     });
   });
@@ -72,7 +79,8 @@ describe('TagsController (parity with the legacy /api/tags route)', () => {
       const getByIdAndUser = vi.fn().mockReturnValue(undefined);
       const remove = vi.fn();
       expect(thrown(() => makeController({ getByIdAndUser, remove }).remove(user, '9'))).toEqual({
-        status: 404, body: { error: 'Tag not found' },
+        status: 404,
+        body: { error: 'Tag not found' },
       });
       expect(remove).not.toHaveBeenCalled();
     });

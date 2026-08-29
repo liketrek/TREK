@@ -1,9 +1,9 @@
-import { Injectable } from '@nestjs/common';
-import { NOTE_COLORS, type TrekWsPayload, type TrekWsTripEventName } from '@trek/shared';
-import { RealtimeService } from '../realtime/realtime.service';
-import { PermissionsService } from '../permissions/permissions.service';
 import type { DayNote, User } from '../../types';
 import { DatabaseService, type TripAccess } from '../database/database.service';
+import { PermissionsService } from '../permissions/permissions.service';
+import { RealtimeService } from '../realtime/realtime.service';
+import { Injectable } from '@nestjs/common';
+import { NOTE_COLORS, type TrekWsPayload, type TrekWsTripEventName } from '@trek/shared';
 
 /**
  * Day-notes domain service — the legacy dayNoteService SQL folded in over
@@ -41,14 +41,20 @@ export class DayNotesService {
     return this.permissions.checkPermission('day_edit', user.role, trip.user_id, user.id, trip.user_id !== user.id);
   }
 
-  broadcast<E extends TrekWsTripEventName>(tripId: string, event: E, payload: TrekWsPayload<E>, socketId: string | undefined): void {
+  broadcast<E extends TrekWsTripEventName>(
+    tripId: string,
+    event: E,
+    payload: TrekWsPayload<E>,
+    socketId: string | undefined,
+  ): void {
     this.realtime.broadcast(tripId, event, payload, socketId);
   }
 
   list(dayId: string | number, tripId: string | number) {
     return this.dbs.all(
       'SELECT * FROM day_notes WHERE day_id = ? AND trip_id = ? ORDER BY sort_order ASC, created_at ASC',
-      dayId, tripId,
+      dayId,
+      tripId,
     );
   }
 
@@ -57,18 +63,41 @@ export class DayNotesService {
   }
 
   getNote(id: string | number, dayId: string | number, tripId: string | number) {
-    return this.dbs.get<DayNote>('SELECT * FROM day_notes WHERE id = ? AND day_id = ? AND trip_id = ?', id, dayId, tripId);
+    return this.dbs.get<DayNote>(
+      'SELECT * FROM day_notes WHERE id = ? AND day_id = ? AND trip_id = ?',
+      id,
+      dayId,
+      tripId,
+    );
   }
 
-  create(dayId: string | number, tripId: string | number, text: string, time?: string | null, icon?: string | null, sortOrder?: number, color?: string | null) {
+  create(
+    dayId: string | number,
+    tripId: string | number,
+    text: string,
+    time?: string | null,
+    icon?: string | null,
+    sortOrder?: number,
+    color?: string | null,
+  ) {
     const result = this.dbs.run(
       'INSERT INTO day_notes (day_id, trip_id, text, time, icon, sort_order, color) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      dayId, tripId, text.trim(), time || null, icon || '📝', sortOrder ?? 9999, normalizeNoteColor(color),
+      dayId,
+      tripId,
+      text.trim(),
+      time || null,
+      icon || '📝',
+      sortOrder ?? 9999,
+      normalizeNoteColor(color),
     );
     return this.dbs.get('SELECT * FROM day_notes WHERE id = ?', result.lastInsertRowid);
   }
 
-  update(id: string | number, current: DayNote, fields: { text?: string; time?: string | null; icon?: string | null; sort_order?: number; color?: string | null }) {
+  update(
+    id: string | number,
+    current: DayNote,
+    fields: { text?: string; time?: string | null; icon?: string | null; sort_order?: number; color?: string | null },
+  ) {
     this.dbs.run(
       'UPDATE day_notes SET text = ?, time = ?, icon = ?, sort_order = ?, color = ? WHERE id = ?',
       fields.text !== undefined ? fields.text.trim() : current.text,

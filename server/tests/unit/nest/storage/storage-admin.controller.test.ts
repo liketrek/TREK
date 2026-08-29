@@ -1,14 +1,7 @@
-import { describe, it, expect, vi } from 'vitest';
-import { HttpException } from '@nestjs/common';
-import type { Request } from 'express';
-import type { StorageUsage } from '@trek/shared';
-import type { User } from '../../../../src/types';
-import { StorageAdminController } from '../../../../src/nest/storage/storage-admin.controller';
-import type { StorageAdminService } from '../../../../src/nest/storage/storage-admin.service';
 import type { AuditService } from '../../../../src/nest/audit/audit.service';
+import { StorageAdminController } from '../../../../src/nest/storage/storage-admin.controller';
 import type { StorageConfigDto, StorageTestRequestDto } from '../../../../src/nest/storage/storage-admin.dto';
-import { StorageModule } from '../../../../src/nest/storage/storage.module';
-import { StorageBackendError, StorageConflictError } from '../../../../src/nest/storage/storage.types';
+import type { StorageAdminService } from '../../../../src/nest/storage/storage-admin.service';
 import {
   BackfillBusyError,
   BackfillTargetError,
@@ -16,7 +9,15 @@ import {
   MigrationTargetError,
 } from '../../../../src/nest/storage/storage-jobs.service';
 import { StatsBusyError } from '../../../../src/nest/storage/storage-stats.service';
+import { StorageModule } from '../../../../src/nest/storage/storage.module';
+import { StorageBackendError, StorageConflictError } from '../../../../src/nest/storage/storage.types';
+import type { User } from '../../../../src/types';
 import { expectRegisteredController } from '../../../helpers/module-providers';
+import { HttpException } from '@nestjs/common';
+import type { StorageUsage } from '@trek/shared';
+
+import type { Request } from 'express';
+import { describe, it, expect, vi } from 'vitest';
 
 const user = { id: 1 } as User;
 const req = { headers: {}, socket: { remoteAddress: '127.0.0.1' } } as unknown as Request;
@@ -72,10 +73,10 @@ describe('StorageAdminController', () => {
     const result = controller.update(user, CONFIG, req);
     expect(service.applyConfig).toHaveBeenCalledWith(CONFIG);
     expect(result).toBe(FRESH_STATE); // never echoes the request
-    expect(writeAudit).toHaveBeenCalledWith(
-      expect.objectContaining({ userId: 1, action: 'admin.storage_update' }),
-    );
-    const details = (writeAudit.mock.calls[0]![0] as { details: { backends: Array<{ options: Record<string, unknown> }> } }).details;
+    expect(writeAudit).toHaveBeenCalledWith(expect.objectContaining({ userId: 1, action: 'admin.storage_update' }));
+    const details = (
+      writeAudit.mock.calls[0]![0] as { details: { backends: Array<{ options: Record<string, unknown> }> } }
+    ).details;
     expect(details.backends[0]!.options.secretAccessKey).toBe('***');
     expect(details.backends[0]!.options.accessKeyId).toBe('ak'); // names/shape survive redaction
   });
@@ -114,7 +115,8 @@ describe('StorageAdminController', () => {
       expect(err).toBeInstanceOf(HttpException);
       expect((err as HttpException).getStatus()).toBe(409);
       expect((err as HttpException).getResponse()).toEqual({
-        error: "storage settings changed since this form was loaded (current version 3, submitted 1) — reload and reapply your edits",
+        error:
+          'storage settings changed since this form was loaded (current version 3, submitted 1) — reload and reapply your edits',
       });
     }
     expect(writeAudit).not.toHaveBeenCalled();

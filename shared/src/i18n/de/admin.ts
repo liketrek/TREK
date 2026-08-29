@@ -432,7 +432,8 @@ const admin: TranslationStrings = {
   'admin.plugins.changeVersion': 'Version wechseln…',
   'admin.plugins.noVersions': 'Keine veröffentlichten Versionen in der Registry gefunden.',
   'admin.plugins.downgradeTitle': 'Dieses Plugin zurücksetzen?',
-  'admin.plugins.downgradeBody': 'Wechsel von v{from} zu v{to}: Von der neueren Version geschriebene Daten bleiben erhalten, und die ältere Version versteht sie möglicherweise nicht.',
+  'admin.plugins.downgradeBody':
+    'Wechsel von v{from} zu v{to}: Von der neueren Version geschriebene Daten bleiben erhalten, und die ältere Version versteht sie möglicherweise nicht.',
   'admin.plugins.downgradeConfirm': 'Zurücksetzen',
   'admin.plugins.updatesHeld': 'Updates pausiert bei v{version}',
   'admin.plugins.resumeUpdates': 'Updates fortsetzen',

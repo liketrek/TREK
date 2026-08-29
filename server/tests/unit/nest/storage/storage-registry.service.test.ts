@@ -1,5 +1,27 @@
-import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest';
+import { runMigrations } from '../../../../src/db/migrations';
+import { createTables } from '../../../../src/db/schema';
+import type { RuntimeEnvService } from '../../../../src/nest/app-config/runtime-env.service';
+import { encrypt_api_key } from '../../../../src/nest/common/crypto/apiKeyCrypto';
+import { DatabaseService } from '../../../../src/nest/database/database.service';
+import { LocalDriver } from '../../../../src/nest/storage/drivers/local.driver';
+import { MirrorDriver, type ReplicaFailure } from '../../../../src/nest/storage/drivers/mirror.driver';
+import { S3Driver } from '../../../../src/nest/storage/drivers/s3.driver';
+import { StorageEventsService } from '../../../../src/nest/storage/storage-events.service';
+import {
+  GLOBAL_TEMP_DIR,
+  DEFAULT_BACKUPS_ROOT,
+  DEFAULT_UPLOADS_ROOT,
+  SEED_CONFIG_PATH,
+} from '../../../../src/nest/storage/storage-paths';
+import { StorageRegistryService } from '../../../../src/nest/storage/storage-registry.service';
+import { STORAGE_CATEGORIES } from '../../../../src/nest/storage/storage.types';
 import { Logger } from '@nestjs/common';
+
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { Readable } from 'node:stream';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest';
 
 // ── DB setup (the permissions.service.test.ts pattern: real in-memory SQLite
 // so the app_settings SQL is exercised faithfully) ────────────────────────────
@@ -15,28 +37,6 @@ const { testDb, dbMock } = vi.hoisted(() => {
 
 vi.mock('../../../../src/db/database', () => dbMock);
 vi.mock('../../../../src/config', () => ({ ENCRYPTION_KEY: 'storage-registry-test-key' }));
-
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
-import { Readable } from 'node:stream';
-import { createTables } from '../../../../src/db/schema';
-import { runMigrations } from '../../../../src/db/migrations';
-import { DatabaseService } from '../../../../src/nest/database/database.service';
-import type { RuntimeEnvService } from '../../../../src/nest/app-config/runtime-env.service';
-import { encrypt_api_key } from '../../../../src/nest/common/crypto/apiKeyCrypto';
-import { StorageEventsService } from '../../../../src/nest/storage/storage-events.service';
-import { StorageRegistryService } from '../../../../src/nest/storage/storage-registry.service';
-import { LocalDriver } from '../../../../src/nest/storage/drivers/local.driver';
-import { MirrorDriver, type ReplicaFailure } from '../../../../src/nest/storage/drivers/mirror.driver';
-import { S3Driver } from '../../../../src/nest/storage/drivers/s3.driver';
-import {
-  GLOBAL_TEMP_DIR,
-  DEFAULT_BACKUPS_ROOT,
-  DEFAULT_UPLOADS_ROOT,
-  SEED_CONFIG_PATH,
-} from '../../../../src/nest/storage/storage-paths';
-import { STORAGE_CATEGORIES } from '../../../../src/nest/storage/storage.types';
 
 const db = new DatabaseService(testDb);
 
@@ -137,7 +137,9 @@ describe('StorageRegistryService defaults', () => {
     const backups = registry.resolve('backups');
     expect(backups.backendName).toBe('backups-local');
     expect(backups.keyPrefix).toBe('');
-    expect(backups.driver.getLocalPath!('backup-1.zip')).toBe(path.join(fs.realpathSync(DEFAULT_BACKUPS_ROOT), 'backup-1.zip'));
+    expect(backups.driver.getLocalPath!('backup-1.zip')).toBe(
+      path.join(fs.realpathSync(DEFAULT_BACKUPS_ROOT), 'backup-1.zip'),
+    );
 
     // photos-google without TREK_PLACE_PHOTO_DIR: today's layout under uploads
     const googlePhotos = registry.resolve('photos-google');
@@ -162,7 +164,17 @@ describe('StorageRegistryService defaults', () => {
   it('creates roots, spools, category prefix dirs, and the global temp dir on load', () => {
     const { uploadsRoot } = makeRegistry();
 
-    for (const sub of ['.tmp', 'files', 'journey', 'covers', 'avatars', 'places', 'photos', 'photos/trek', 'photos/google']) {
+    for (const sub of [
+      '.tmp',
+      'files',
+      'journey',
+      'covers',
+      'avatars',
+      'places',
+      'photos',
+      'photos/trek',
+      'photos/google',
+    ]) {
       expect(fs.statSync(path.join(uploadsRoot, sub)).isDirectory()).toBe(true);
     }
     expect(fs.statSync(GLOBAL_TEMP_DIR).isDirectory()).toBe(true);
@@ -195,9 +207,7 @@ describe('StorageRegistryService defaults', () => {
     expect(photos.backendName).toBe('uploads-local');
     expect(photos.keyPrefix).toBe('photos/');
     // Override-following: relocating uploads moves the legacy photos with it.
-    expect(photos.driver.getLocalPath!('photos/x.jpg')).toBe(
-      path.join(fs.realpathSync(relocated), 'photos/x.jpg'),
-    );
+    expect(photos.driver.getLocalPath!('photos/x.jpg')).toBe(path.join(fs.realpathSync(relocated), 'photos/x.jpg'));
   });
 
   it('the admin snapshot exposes only the 8 configurable categories — photos is served, not configurable', () => {
@@ -226,7 +236,7 @@ describe('StorageRegistryService keyPrefixFor', () => {
     expect(registry.keyPrefixFor('photos-google', 'dest-local')).toBe('photos/google/');
   });
 
-  it('agrees with resolve() for the category\'s CURRENT backend — no drift between the two rules', () => {
+  it("agrees with resolve() for the category's CURRENT backend — no drift between the two rules", () => {
     const photoDir = makeTmpDir();
     const { registry } = makeRegistry({ placePhotoDir: photoDir });
     const resolved = registry.resolve('photos-google');
@@ -268,9 +278,7 @@ describe('StorageRegistryService settings', () => {
     expect(covers.driver).toBeInstanceOf(MirrorDriver);
     expect(covers.keyPrefix).toBe('covers/');
     // Hot-path reads stay free: getLocalPath delegates to the local primary.
-    expect(covers.driver.getLocalPath!('covers/x.jpg')).toBe(
-      path.join(fs.realpathSync(uploadsRoot), 'covers/x.jpg'),
-    );
+    expect(covers.driver.getLocalPath!('covers/x.jpg')).toBe(path.join(fs.realpathSync(uploadsRoot), 'covers/x.jpg'));
   });
 
   it.each([
@@ -284,11 +292,7 @@ describe('StorageRegistryService settings', () => {
       ]),
       JSON.stringify({ backups: 'm2' }),
     ],
-    [
-      'settings s3 backend with invalid options',
-      JSON.stringify([{ name: 'x', type: 's3', options: {} }]),
-      undefined,
-    ],
+    ['settings s3 backend with invalid options', JSON.stringify([{ name: 'x', type: 's3', options: {} }]), undefined],
     ['unknown category name', undefined, JSON.stringify({ 'not-a-category': 'uploads-local' })],
     ['retired photos category in settings', undefined, JSON.stringify({ photos: 'uploads-local' })],
     ['malformed JSON', 'not json at all', undefined],
@@ -422,7 +426,7 @@ describe('StorageRegistryService reload', () => {
 // ── assignCategory ────────────────────────────────────────────────────────────
 
 describe('StorageRegistryService assignCategory', () => {
-  it('REG-ASSIGN-001 throws on an unknown backend and persists nothing (belt-and-braces alongside the migration job\'s own guard)', () => {
+  it("REG-ASSIGN-001 throws on an unknown backend and persists nothing (belt-and-braces alongside the migration job's own guard)", () => {
     const { registry } = makeRegistry();
     const before = testDb.prepare("SELECT value FROM app_settings WHERE key = 'storage.categories'").get() as
       | { value: string }
@@ -440,7 +444,9 @@ describe('StorageRegistryService assignCategory', () => {
   });
 
   it('REG-ASSIGN-002 assigns and persists when the backend exists', () => {
-    const { registry } = makeRegistry({ backends: [{ name: 'dest-local', type: 'local', options: { root: makeTmpDir() } }] });
+    const { registry } = makeRegistry({
+      backends: [{ name: 'dest-local', type: 'local', options: { root: makeTmpDir() } }],
+    });
 
     registry.assignCategory('files', 'dest-local');
 
@@ -452,7 +458,9 @@ describe('StorageRegistryService assignCategory', () => {
   });
 
   it('REG-ASSIGN-003 bumps the shared optimistic-concurrency version counter by exactly one, in the same write (audit #7)', () => {
-    const { registry } = makeRegistry({ backends: [{ name: 'dest-local', type: 'local', options: { root: makeTmpDir() } }] });
+    const { registry } = makeRegistry({
+      backends: [{ name: 'dest-local', type: 'local', options: { root: makeTmpDir() } }],
+    });
     expect(registry.currentConfigVersion()).toBe(0);
 
     registry.assignCategory('files', 'dest-local');
@@ -555,7 +563,9 @@ describe('settings-declared s3 backends', () => {
 
   it('decrypts an enc:v1: secretAccessKey at build (decrypt-at-build)', () => {
     const { registry } = makeRegistry({
-      backends: [{ name: 'off-box', type: 's3', options: { ...s3Options, secretAccessKey: encrypt_api_key('sk-secret') } }],
+      backends: [
+        { name: 'off-box', type: 's3', options: { ...s3Options, secretAccessKey: encrypt_api_key('sk-secret') } },
+      ],
       categories: { backups: 'off-box' },
     });
     expect(registry.resolve('backups').driver).toBeInstanceOf(S3Driver);
@@ -612,9 +622,9 @@ describe('preview()', () => {
   it('throws the exact registry error for an invalid candidate and mutates nothing', () => {
     const { registry } = makeRegistry();
     const before = registry.resolve('backups').driver;
-    expect(() =>
-      registry.preview({ backends: [], categories: { backups: 'nope' } }),
-    ).toThrow("category 'backups' maps to unknown backend 'nope'");
+    expect(() => registry.preview({ backends: [], categories: { backups: 'nope' } })).toThrow(
+      "category 'backups' maps to unknown backend 'nope'",
+    );
     expect(registry.resolve('backups').driver).toBe(before); // same instance — state untouched
   });
 
@@ -640,7 +650,7 @@ describe('preview()', () => {
 // sweep itself is correct; the fix is that no config can express the setup.
 
 describe('StorageRegistryService shared-replica refusals', () => {
-  it('REG-SHARED-001 refuses the config that would let a backups sync sweep another category\'s objects (uploads-local as a backups-mirror replica)', () => {
+  it("REG-SHARED-001 refuses the config that would let a backups sync sweep another category's objects (uploads-local as a backups-mirror replica)", () => {
     const { registry } = makeRegistry();
     expect(() =>
       registry.preview({
@@ -653,7 +663,7 @@ describe('StorageRegistryService shared-replica refusals', () => {
     ).toThrow(/backend 'uploads-local' is a mirror replica of 'backups-mirror' and also serves category/);
   });
 
-  it('REG-SHARED-002 refuses a replica that serves a category as ANOTHER mirror\'s primary', () => {
+  it("REG-SHARED-002 refuses a replica that serves a category as ANOTHER mirror's primary", () => {
     const { registry } = makeRegistry();
     expect(() =>
       registry.preview({
@@ -668,7 +678,7 @@ describe('StorageRegistryService shared-replica refusals', () => {
     ).toThrow(/backend 'nas' is a mirror replica of 'backups-mirror' and also serves category 'files'/);
   });
 
-  it('REG-SHARED-003 refuses one backend replicating two mirrors whose swept prefixes overlap (\'\' overlaps everything)', () => {
+  it("REG-SHARED-003 refuses one backend replicating two mirrors whose swept prefixes overlap ('' overlaps everything)", () => {
     const { registry } = makeRegistry();
     expect(() =>
       registry.preview({
@@ -807,9 +817,7 @@ describe('seed-once storage-config.json import', () => {
 
   it('SEED-006 semantic violation aborts boot with the registry error verbatim', () => {
     writeSeed(JSON.stringify({ backends: [], categories: { backups: 'nope' } }));
-    expect(() => makeUnseededRegistry().onModuleInit()).toThrow(
-      /category 'backups' maps to unknown backend 'nope'/,
-    );
+    expect(() => makeUnseededRegistry().onModuleInit()).toThrow(/category 'backups' maps to unknown backend 'nope'/);
   });
 
   it('SEED-007 a plaintext-secret seed imports without an explicit ENCRYPTION_KEY and encrypts at rest', () => {
@@ -862,7 +870,9 @@ describe('seed-once storage-config.json import', () => {
 
   it('SEED-009 a second boot after a successful seed ignores the file (seed-once)', () => {
     const root = nasRoot();
-    writeSeed(JSON.stringify({ backends: [{ name: 'nas', type: 'local', options: { root } }], categories: { backups: 'nas' } }));
+    writeSeed(
+      JSON.stringify({ backends: [{ name: 'nas', type: 'local', options: { root } }], categories: { backups: 'nas' } }),
+    );
     makeUnseededRegistry().onModuleInit();
     const firstRow = readRow('storage.backends');
 
@@ -916,7 +926,11 @@ describe('snapshot()', () => {
     const byName = new Map(snap.backends.map((b) => [b.name, b]));
 
     // uploads-local is overridden by the helper's settings row → source 'settings'
-    expect(byName.get('uploads-local')).toMatchObject({ type: 'local', source: 'settings', options: { root: uploadsRoot } });
+    expect(byName.get('uploads-local')).toMatchObject({
+      type: 'local',
+      source: 'settings',
+      options: { root: uploadsRoot },
+    });
     expect(byName.get('backups-local')).toMatchObject({ source: 'built-in' });
     expect(byName.get('place-photos-local')).toMatchObject({ source: 'env', options: { root: photoDir } });
     expect(byName.get('nas-backups')).toMatchObject({ source: 'settings' });

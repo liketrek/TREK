@@ -1,17 +1,25 @@
-import {
-  McpController, Tool, ResourceTemplate, type McpContext,
-  TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
-  TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  demoDenied, errorResult, ok,
-} from '../../nest-mcp';
-import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
-import { z } from 'zod';
-import { AuthService } from '../auth/auth.service';
 import { ADDON_IDS } from '../../addons';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
-import { TodoService } from './todo.service';
+import {
+  McpController,
+  Tool,
+  ResourceTemplate,
+  type McpContext,
+  TOOL_ANNOTATIONS_READONLY,
+  TOOL_ANNOTATIONS_WRITE,
+  TOOL_ANNOTATIONS_DELETE,
+  TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+  demoDenied,
+  errorResult,
+  ok,
+} from '../../nest-mcp';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
+import { AuthService } from '../auth/auth.service';
+import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
+import { TodoService } from './todo.service';
+
+import { z } from 'zod';
 
 /** Legacy registrar gate: the whole todo surface rides the packing addon. */
 const packingAddonOn = addonGate(ADDON_IDS.PACKING);
@@ -62,7 +70,11 @@ export class TodoMcp {
       tripId: z.number().int().positive(),
       name: z.string().min(1).max(500).describe('To-do item name'),
       category: z.string().max(100).optional().describe('Category (e.g. "Logistics", "Booking")'),
-      due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe('Due date (YYYY-MM-DD)'),
+      due_date: z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/)
+        .optional()
+        .describe('Due date (YYYY-MM-DD)'),
       description: z.string().max(2000).optional().describe('Additional description'),
       assigned_user_id: z.number().int().positive().optional().describe('User ID to assign this task to'),
       priority: z.number().int().min(0).max(3).optional().describe('Priority: 0=none, 1=low, 2=medium, 3=high'),
@@ -72,8 +84,22 @@ export class TodoMcp {
     access: { group: 'todos', mode: 'write' },
   })
   async createTodo(
-    { tripId, name, category, due_date, description, assigned_user_id, priority }: {
-      tripId: number; name: string; category?: string; due_date?: string; description?: string; assigned_user_id?: number; priority?: number;
+    {
+      tripId,
+      name,
+      category,
+      due_date,
+      description,
+      assigned_user_id,
+      priority,
+    }: {
+      tripId: number;
+      name: string;
+      category?: string;
+      due_date?: string;
+      description?: string;
+      assigned_user_id?: number;
+      priority?: number;
     },
     ctx: McpContext,
   ) {
@@ -87,13 +113,19 @@ export class TodoMcp {
 
   @Tool({
     name: 'update_todo',
-    description: 'Update an existing to-do item. Only provided fields are changed; omitted fields stay as-is. Pass null to clear a nullable field.',
+    description:
+      'Update an existing to-do item. Only provided fields are changed; omitted fields stay as-is. Pass null to clear a nullable field.',
     inputSchema: {
       tripId: z.number().int().positive(),
       itemId: z.number().int().positive(),
       name: z.string().min(1).max(500).optional(),
       category: z.string().max(100).optional(),
-      due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional().describe('Set to null to clear the due date'),
+      due_date: z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/)
+        .nullable()
+        .optional()
+        .describe('Set to null to clear the due date'),
       description: z.string().max(2000).nullable().optional().describe('Set to null to clear'),
       assigned_user_id: z.number().int().positive().nullable().optional().describe('Set to null to unassign'),
       priority: z.number().int().min(0).max(3).nullable().optional(),
@@ -103,8 +135,24 @@ export class TodoMcp {
     access: { group: 'todos', mode: 'write' },
   })
   async updateTodo(
-    { tripId, itemId, name, category, due_date, description, assigned_user_id, priority }: {
-      tripId: number; itemId: number; name?: string; category?: string; due_date?: string | null; description?: string | null; assigned_user_id?: number | null; priority?: number | null;
+    {
+      tripId,
+      itemId,
+      name,
+      category,
+      due_date,
+      description,
+      assigned_user_id,
+      priority,
+    }: {
+      tripId: number;
+      itemId: number;
+      name?: string;
+      category?: string;
+      due_date?: string | null;
+      description?: string | null;
+      assigned_user_id?: number | null;
+      priority?: number | null;
     },
     ctx: McpContext,
   ) {
@@ -117,7 +165,12 @@ export class TodoMcp {
     if (description !== undefined) bodyKeys.push('description');
     if (assigned_user_id !== undefined) bodyKeys.push('assigned_user_id');
     if (priority !== undefined) bodyKeys.push('priority');
-    const item = this.todos.updateItem(tripId, itemId, { name, category, due_date, description, assigned_user_id, priority }, bodyKeys);
+    const item = this.todos.updateItem(
+      tripId,
+      itemId,
+      { name, category, due_date, description, assigned_user_id, priority },
+      bodyKeys,
+    );
     if (!item) return errorResult('To-do item not found.');
     this.guards.safeBroadcast(tripId, 'todo:updated', { item });
     return ok({ item });
@@ -213,7 +266,10 @@ export class TodoMcp {
     when: packingAddonOn,
     access: { group: 'todos', mode: 'write' },
   })
-  async setTodoCategoryAssignees({ tripId, categoryName, userIds }: { tripId: number; categoryName: string; userIds: number[] }, ctx: McpContext) {
+  async setTodoCategoryAssignees(
+    { tripId, categoryName, userIds }: { tripId: number; categoryName: string; userIds: number[] },
+    ctx: McpContext,
+  ) {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.todos.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!this.guards.hasTripPermission('packing_edit', tripId, ctx.userId)) return permissionDenied();
@@ -234,20 +290,24 @@ export class TodoMcp {
     const id = parseId(tripId);
     if (id === null || !this.todos.verifyTripAccess(id, ctx.userId)) {
       return {
-        contents: [{
-          uri: uri.href,
-          mimeType: 'application/json',
-          text: JSON.stringify({ error: 'Trip not found or access denied' }),
-        }],
+        contents: [
+          {
+            uri: uri.href,
+            mimeType: 'application/json',
+            text: JSON.stringify({ error: 'Trip not found or access denied' }),
+          },
+        ],
       };
     }
     const items = this.todos.listItems(id);
     return {
-      contents: [{
-        uri: uri.href,
-        mimeType: 'application/json',
-        text: JSON.stringify(items, null, 2),
-      }],
+      contents: [
+        {
+          uri: uri.href,
+          mimeType: 'application/json',
+          text: JSON.stringify(items, null, 2),
+        },
+      ],
     };
   }
 }

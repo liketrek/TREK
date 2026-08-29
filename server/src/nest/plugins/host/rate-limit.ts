@@ -75,7 +75,10 @@ export class RpcRateLimiter {
   private readonly bucket: TokenBucket;
   private inFlight = 0;
 
-  constructor(private readonly cfg: RpcLimitConfig, now: number) {
+  constructor(
+    private readonly cfg: RpcLimitConfig,
+    now: number,
+  ) {
     this.bucket = new TokenBucket(cfg.burst, cfg.perSec, now);
   }
 

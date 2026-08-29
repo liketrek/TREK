@@ -1,5 +1,5 @@
-import { Module } from '@nestjs/common';
 import { AllowedFileTypesService } from './allowed-file-types.service';
+import { Module } from '@nestjs/common';
 
 /**
  * A leaf so both upload paths can reach the extension list without importing

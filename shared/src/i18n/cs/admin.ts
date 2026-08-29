@@ -423,7 +423,8 @@ const admin: TranslationStrings = {
   'admin.plugins.changeVersion': 'Změnit verzi…',
   'admin.plugins.noVersions': 'V registru nebyly nalezeny žádné publikované verze.',
   'admin.plugins.downgradeTitle': 'Vrátit tento plugin na starší verzi?',
-  'admin.plugins.downgradeBody': 'Přechod z v{from} na v{to}: data zapsaná novější verzí zůstanou na místě a starší verze jim nemusí rozumět.',
+  'admin.plugins.downgradeBody':
+    'Přechod z v{from} na v{to}: data zapsaná novější verzí zůstanou na místě a starší verze jim nemusí rozumět.',
   'admin.plugins.downgradeConfirm': 'Vrátit zpět',
   'admin.plugins.updatesHeld': 'Aktualizace pozastaveny na v{version}',
   'admin.plugins.resumeUpdates': 'Obnovit aktualizace',

@@ -1,16 +1,19 @@
-import { Injectable } from '@nestjs/common';
-import { XMLValidator } from 'fast-xml-parser';
-import { TRACK_COLORS } from '@trek/shared';
-import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
-import { RealtimeService } from '../realtime/realtime.service';
+import type { Place, User } from '../../types';
+import { checkSsrf, safeFetchFollow, SsrfBlockedError } from '../../utils/ssrfGuard';
+import { type UpdateConflict, isUpdateConflict } from '../common/conflictResult';
+import { ratingAggregate } from '../common/rowShape';
 import { DatabaseService, type TripAccess } from '../database/database.service';
 import type { PlaceWithTags } from '../database/database.service';
-import { PermissionsService } from '../permissions/permissions.service';
+import { JourneyDomainService } from '../journey/journey-domain.service';
 import { MapsService } from '../maps/maps.service';
-import type { Place, User } from '../../types';
+import { PermissionsService } from '../permissions/permissions.service';
+import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
 import { QueryHelpersService } from '../query-helpers/query-helpers.service';
-import { ratingAggregate } from '../common/rowShape';
-import { checkSsrf, safeFetchFollow, SsrfBlockedError } from '../../utils/ssrfGuard';
+import { RealtimeService } from '../realtime/realtime.service';
+import { StorageService } from '../storage/storage.service';
+import { UnsplashService } from '../unsplash/unsplash.service';
+import { buildGpx, gpxFilename } from './gpx-export.helpers';
+import type { GpxExportDay, GpxExportOptions, GpxExportPlace } from './gpx-export.helpers';
 import {
   buildCategoryNameLookup,
   createKmlImportSummary,
@@ -19,14 +22,7 @@ import {
   parsePlacemarkNode,
   resolveCategoryIdForFolder,
 } from './kml-import.helpers';
-import { buildGpx, gpxFilename } from './gpx-export.helpers';
-import type { GpxExportDay, GpxExportOptions, GpxExportPlace } from './gpx-export.helpers';
-import { UnsplashService } from '../unsplash/unsplash.service';
-import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
-import { type UpdateConflict, isUpdateConflict } from '../common/conflictResult';
 import { reclaimPlaceImage } from './place-image';
-import { JourneyDomainService } from '../journey/journey-domain.service';
-import { StorageService } from '../storage/storage.service';
 import {
   COORD_DEDUP_TOLERANCE,
   ENRICH_CONCURRENCY,
@@ -56,6 +52,11 @@ import {
   type PlaceImportResult,
   type PlaceWithCategory,
 } from './places.helpers';
+import { Injectable } from '@nestjs/common';
+import { TRACK_COLORS } from '@trek/shared';
+import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
+
+import { XMLValidator } from 'fast-xml-parser';
 
 type Trip = TripAccess;
 
@@ -63,22 +64,53 @@ type ImportedPlace = { id: number; route_geometry?: string | null; route_color?:
 
 /** Fields accepted when creating a place. */
 export interface PlaceCreateInput {
-  name: string; description?: string; lat?: number; lng?: number; address?: string;
-  category_id?: number; price?: number; currency?: string;
-  place_time?: string; end_time?: string;
-  duration_minutes?: number; notes?: string; image_url?: string;
-  google_place_id?: string; google_ftid?: string; osm_id?: string; website?: string; phone?: string;
-  transport_mode?: string; route_geometry?: string; route_color?: string; tags?: number[];
+  name: string;
+  description?: string;
+  lat?: number;
+  lng?: number;
+  address?: string;
+  category_id?: number;
+  price?: number;
+  currency?: string;
+  place_time?: string;
+  end_time?: string;
+  duration_minutes?: number;
+  notes?: string;
+  image_url?: string;
+  google_place_id?: string;
+  google_ftid?: string;
+  osm_id?: string;
+  website?: string;
+  phone?: string;
+  transport_mode?: string;
+  route_geometry?: string;
+  route_color?: string;
+  tags?: number[];
 }
 
 /** Fields accepted when patching a place. */
 export interface PlaceUpdateInput {
-  name?: string; description?: string; lat?: number; lng?: number; address?: string;
-  category_id?: number; price?: number; currency?: string;
-  place_time?: string; end_time?: string;
-  duration_minutes?: number; notes?: string; image_url?: string;
-  google_place_id?: string; google_ftid?: string; osm_id?: string; website?: string; phone?: string;
-  transport_mode?: string; route_color?: string | null; tags?: number[];
+  name?: string;
+  description?: string;
+  lat?: number;
+  lng?: number;
+  address?: string;
+  category_id?: number;
+  price?: number;
+  currency?: string;
+  place_time?: string;
+  end_time?: string;
+  duration_minutes?: number;
+  notes?: string;
+  image_url?: string;
+  google_place_id?: string;
+  google_ftid?: string;
+  osm_id?: string;
+  website?: string;
+  phone?: string;
+  transport_mode?: string;
+  route_color?: string | null;
+  tags?: number[];
 }
 
 /**
@@ -145,10 +177,15 @@ export class PlacesService {
       `SELECT id, user_id FROM tags WHERE id IN (${unique.map(() => '?').join(',')})`,
       ...unique,
     );
-    return owned.filter(t => roster.has(t.user_id)).map(t => t.id);
+    return owned.filter((t) => roster.has(t.user_id)).map((t) => t.id);
   }
 
-  broadcast<E extends TrekWsTripEventName>(tripId: string, event: E, payload: TrekWsPayload<E>, socketId: string | undefined): void {
+  broadcast<E extends TrekWsTripEventName>(
+    tripId: string,
+    event: E,
+    payload: TrekWsPayload<E>,
+    socketId: string | undefined,
+  ): void {
     this.realtime.broadcast(tripId, event, payload, socketId);
   }
 
@@ -198,18 +235,20 @@ export class PlacesService {
 
     const places = this.dbs.prepare(query).all(...params) as PlaceWithCategory[];
 
-    const placeIds = places.map(p => p.id);
+    const placeIds = places.map((p) => p.id);
     const tagsByPlaceId = this.queryHelpers.loadTagsByPlaceIds(placeIds);
     const ratingsByPlaceId = this.queryHelpers.loadRatingsByPlaceIds(placeIds);
 
-    return places.map(p => ({
+    return places.map((p) => ({
       ...p,
-      category: p.category_id ? {
-        id: p.category_id,
-        name: p.category_name,
-        color: p.category_color,
-        icon: p.category_icon,
-      } : null,
+      category: p.category_id
+        ? {
+            id: p.category_id,
+            name: p.category_name,
+            color: p.category_color,
+            icon: p.category_icon,
+          }
+        : null,
       tags: tagsByPlaceId[p.id] || [],
       ratings: ratingsByPlaceId[p.id] || [],
       ...ratingAggregate(ratingsByPlaceId[p.id]),
@@ -222,13 +261,32 @@ export class PlacesService {
 
   create(tripId: string, body: PlaceCreateInput) {
     const {
-      name, description, lat, lng, address, category_id, price, currency,
-      place_time, end_time,
-      duration_minutes, notes, image_url, google_place_id, google_ftid, osm_id, website, phone,
-      transport_mode, route_geometry, route_color, tags = [],
+      name,
+      description,
+      lat,
+      lng,
+      address,
+      category_id,
+      price,
+      currency,
+      place_time,
+      end_time,
+      duration_minutes,
+      notes,
+      image_url,
+      google_place_id,
+      google_ftid,
+      osm_id,
+      website,
+      phone,
+      transport_mode,
+      route_geometry,
+      route_color,
+      tags = [],
     } = body;
 
-    const result = this.dbs.run(`
+    const result = this.dbs.run(
+      `
     INSERT INTO places (trip_id, name, description, lat, lng, address, category_id, price, currency,
       place_time, end_time,
       duration_minutes, notes, image_url, google_place_id, google_ftid, osm_id, website, phone, transport_mode,
@@ -238,11 +296,28 @@ export class PlacesService {
       // lat/lng/price/duration_minutes use an explicit undefined check, not `||`:
       // 0 is a legitimate value for all four (Null Island, a free entry, a
       // drive-by stop) and the falsy coercion silently threw it away.
-      tripId, name, description || null, lat ?? null, lng ?? null, address || null,
-      category_id || null, price ?? null, currency || null,
-      place_time || null, end_time || null, duration_minutes ?? 60, notes || null, image_url || null,
-      google_place_id || null, google_ftid || null, osm_id || null, website || null, phone || null, transport_mode || 'walking',
-      route_geometry || null, route_color || null,
+      tripId,
+      name,
+      description || null,
+      lat ?? null,
+      lng ?? null,
+      address || null,
+      category_id || null,
+      price ?? null,
+      currency || null,
+      place_time || null,
+      end_time || null,
+      duration_minutes ?? 60,
+      notes || null,
+      image_url || null,
+      google_place_id || null,
+      google_ftid || null,
+      osm_id || null,
+      website || null,
+      phone || null,
+      transport_mode || 'walking',
+      route_geometry || null,
+      route_color || null,
     );
 
     const placeId = result.lastInsertRowid;
@@ -304,13 +379,31 @@ export class PlacesService {
     }
 
     const {
-      name, description, lat, lng, address, category_id, price, currency,
-      place_time, end_time,
-      duration_minutes, notes, image_url, google_place_id, google_ftid, osm_id, website, phone,
-      transport_mode, route_color, tags,
+      name,
+      description,
+      lat,
+      lng,
+      address,
+      category_id,
+      price,
+      currency,
+      place_time,
+      end_time,
+      duration_minutes,
+      notes,
+      image_url,
+      google_place_id,
+      google_ftid,
+      osm_id,
+      website,
+      phone,
+      transport_mode,
+      route_color,
+      tags,
     } = body;
 
-    this.dbs.run(`
+    this.dbs.run(
+      `
     UPDATE places SET
       name = COALESCE(?, name),
       description = ?,
@@ -375,9 +468,8 @@ export class PlacesService {
     // A custom uploaded thumbnail (#1136) that was just replaced or cleared leaves
     // an orphan file behind — reclaim it (in the caller, once any enclosing
     // transaction committed) if nothing references it any more.
-    const reclaim = image_url !== undefined && image_url !== existingPlace.image_url
-      ? existingPlace.image_url
-      : undefined;
+    const reclaim =
+      image_url !== undefined && image_url !== existingPlace.image_url ? existingPlace.image_url : undefined;
 
     return { result: this.dbs.getPlaceWithTags(placeId), reclaim };
   }
@@ -395,14 +487,17 @@ export class PlacesService {
     if (placeIds.length === 0) return [];
     const rows = this.dbs.all<{ id: number }>(
       `SELECT id FROM budget_items WHERE trip_id = ? AND place_id IN (${placeIds.map(() => '?').join(',')})`,
-      tripId, ...placeIds,
+      tripId,
+      ...placeIds,
     );
-    return rows.map(r => r.id);
+    return rows.map((r) => r.id);
   }
 
   async remove(tripId: string, placeId: string): Promise<boolean> {
     const place = this.dbs.get<{ google_place_id: string | null; image_url: string | null }>(
-      'SELECT google_place_id, image_url FROM places WHERE id = ? AND trip_id = ?', placeId, tripId,
+      'SELECT google_place_id, image_url FROM places WHERE id = ? AND trip_id = ?',
+      placeId,
+      tripId,
     );
     if (!place) return false;
     // The linked expense goes with the place, the same way a booking takes its
@@ -426,7 +521,9 @@ export class PlacesService {
     const reclaimable: { google_place_id: string | null; image_url: string | null }[] = [];
     this.dbs.transaction(() => {
       for (const id of ids) {
-        const row = selectStmt.get(id, tripId) as { google_place_id: string | null; image_url: string | null } | undefined;
+        const row = selectStmt.get(id, tripId) as
+          | { google_place_id: string | null; image_url: string | null }
+          | undefined;
         if (!row) continue;
         deleteExpenseStmt.run(tripId, id);
         deleteStmt.run(id);
@@ -452,7 +549,9 @@ export class PlacesService {
     if (ids.length === 0) return [];
     const placeholders = ids.map(() => '?').join(',');
     const rows = this.dbs.all<{ id: number }>(
-      `SELECT id FROM places WHERE trip_id = ? AND id IN (${placeholders})`, tripId, ...ids,
+      `SELECT id FROM places WHERE trip_id = ? AND id IN (${placeholders})`,
+      tripId,
+      ...ids,
     );
     const owned = new Set(rows.map((r) => r.id));
     return ids.filter((id) => owned.has(id));
@@ -494,11 +593,13 @@ export class PlacesService {
   /** Build a lookup of names/coords for places already in a trip. */
   private buildDedupSet(tripId: string): DedupSet {
     const rows = this.dbs.all<{
-      name: string | null; lat: number | null; lng: number | null;
-      google_place_id: string | null; google_ftid: string | null; osm_id: string | null;
-    }>(
-      'SELECT name, lat, lng, google_place_id, google_ftid, osm_id FROM places WHERE trip_id = ?', tripId,
-    );
+      name: string | null;
+      lat: number | null;
+      lng: number | null;
+      google_place_id: string | null;
+      google_ftid: string | null;
+      osm_id: string | null;
+    }>('SELECT name, lat, lng, google_place_id, google_ftid, osm_id FROM places WHERE trip_id = ?', tripId);
     const names = new Set<string>();
     const coords: Array<{ lat: number; lng: number }> = [];
     // Provider ids are collected for every place, named or not: they are what lets a
@@ -518,33 +619,49 @@ export class PlacesService {
   private findDuplicatePlace(
     tripId: string,
     place: {
-      name: string | null | undefined; lat: number | null; lng: number | null;
-      google_place_id?: string | null; google_ftid?: string | null; osm_id?: string | null;
+      name: string | null | undefined;
+      lat: number | null;
+      lng: number | null;
+      google_place_id?: string | null;
+      google_ftid?: string | null;
+      osm_id?: string | null;
     },
   ): { id: number; google_ftid: string | null } | null {
     // Same order as isPlaceDuplicate: the provider id wins, because it is what
     // survives a rename (#1550).
     for (const id of externalIdsOf(place)) {
-      const byId = this.dbs.get<{ id: number; google_ftid: string | null }>(`
+      const byId = this.dbs.get<{ id: number; google_ftid: string | null }>(
+        `
       SELECT id, google_ftid FROM places
       WHERE trip_id = ? AND (google_place_id = ? OR google_ftid = ? OR osm_id = ?)
       ORDER BY id ASC
       LIMIT 1
-    `, tripId, id, id, id);
+    `,
+        tripId,
+        id,
+        id,
+        id,
+      );
       if (byId) return byId;
     }
     const normalizedName = place.name?.trim().toLowerCase();
     if (normalizedName) {
-      const duplicate = this.dbs.get<{ id: number; google_ftid: string | null }>(`
+      const duplicate = this.dbs.get<{ id: number; google_ftid: string | null }>(
+        `
       SELECT id, google_ftid FROM places
       WHERE trip_id = ? AND lower(trim(name)) = ?
       ORDER BY id ASC
       LIMIT 1
-    `, tripId, normalizedName);
+    `,
+        tripId,
+        normalizedName,
+      );
       if (duplicate) return duplicate;
     }
     if (place.lat != null && place.lng != null) {
-      return this.dbs.get<{ id: number; google_ftid: string | null }>(`
+      return (
+        this.dbs.get<{ id: number; google_ftid: string | null }>(
+          `
       SELECT id, google_ftid FROM places
       WHERE trip_id = ?
         AND lat IS NOT NULL AND lng IS NOT NULL
@@ -552,7 +669,14 @@ export class PlacesService {
         AND abs(lng - ?) <= ?
       ORDER BY id ASC
       LIMIT 1
-    `, tripId, place.lat, COORD_DEDUP_TOLERANCE, place.lng, COORD_DEDUP_TOLERANCE) || null;
+    `,
+          tripId,
+          place.lat,
+          COORD_DEDUP_TOLERANCE,
+          place.lng,
+          COORD_DEDUP_TOLERANCE,
+        ) || null
+      );
     }
     return null;
   }
@@ -580,26 +704,36 @@ export class PlacesService {
     const trip = this.dbs.get<{ title: string }>('SELECT title FROM trips WHERE id = ?', tripId);
     if (!trip) return null;
 
-    const places = this.dbs.all<GpxExportPlace>(`
+    const places = this.dbs.all<GpxExportPlace>(
+      `
       SELECT p.name, p.description, p.address, p.lat, p.lng, p.route_geometry, c.name AS category
         FROM places p
         LEFT JOIN categories c ON c.id = p.category_id
        WHERE p.trip_id = ?
        ORDER BY p.id
-    `, tripId);
+    `,
+      tripId,
+    );
 
     // One row per stop, ordered the way the day plan draws it, then folded into days.
     const stops = this.dbs.all<{
-      day_number: number; date: string | null; title: string | null;
-      name: string; lat: number; lng: number;
-    }>(`
+      day_number: number;
+      date: string | null;
+      title: string | null;
+      name: string;
+      lat: number;
+      lng: number;
+    }>(
+      `
       SELECT d.day_number, d.date, d.title, p.name, p.lat, p.lng
         FROM days d
         JOIN day_assignments da ON da.day_id = d.id
         JOIN places p ON p.id = da.place_id
        WHERE d.trip_id = ? AND p.lat IS NOT NULL AND p.lng IS NOT NULL
        ORDER BY d.day_number, da.order_index
-    `, tripId);
+    `,
+      tripId,
+    );
 
     const days = new Map<number, GpxExportDay>();
     for (const stop of stops) {
@@ -623,7 +757,10 @@ export class PlacesService {
     if (!gpx) return null;
 
     const str = (v: unknown) => (v != null ? String(v).trim() : null);
-    const num = (v: unknown) => { const n = Number.parseFloat(String(v)); return Number.isNaN(n) ? null : n; };
+    const num = (v: unknown) => {
+      const n = Number.parseFloat(String(v));
+      return Number.isNaN(n) ? null : n;
+    };
 
     // Routes and tracks rarely carry their own <name>. Without one they all fall back to the
     // same generic label, so name-based dedup drops every import after the first. Derive a
@@ -648,7 +785,12 @@ export class PlacesService {
         const lat = num(wpt['@_lat']);
         const lng = num(wpt['@_lon']);
         if (lat === null || lng === null) continue;
-        waypoints.push({ lat, lng, name: str(wpt.name) || `Waypoint ${waypoints.length + 1}`, description: str(wpt.desc) });
+        waypoints.push({
+          lat,
+          lng,
+          name: str(wpt.name) || `Waypoint ${waypoints.length + 1}`,
+          description: str(wpt.desc),
+        });
       }
     }
 
@@ -657,11 +799,19 @@ export class PlacesService {
       for (const rte of gpx.rte ?? []) {
         const pts = (rte.rtept ?? [])
           .map((pt: Record<string, unknown>) => ({ lat: num(pt['@_lat']), lng: num(pt['@_lon']), ele: num(pt['ele']) }))
-          .filter((p: { lat: number | null; lng: number | null; ele: number | null }) => p.lat !== null && p.lng !== null) as Array<{ lat: number; lng: number; ele: number | null }>;
+          .filter(
+            (p: { lat: number | null; lng: number | null; ele: number | null }) => p.lat !== null && p.lng !== null,
+          ) as Array<{ lat: number; lng: number; ele: number | null }>;
         if (pts.length === 0) continue;
-        const hasAllEle = pts.every(p => p.ele !== null);
-        const routeGeometry = pts.map(p => hasAllEle ? [p.lat, p.lng, p.ele] : [p.lat, p.lng]);
-        waypoints.push({ lat: pts[0].lat, lng: pts[0].lng, name: geoName(str(rte.name), 'GPX Route'), description: str(rte.desc), routeGeometry: JSON.stringify(routeGeometry) });
+        const hasAllEle = pts.every((p) => p.ele !== null);
+        const routeGeometry = pts.map((p) => (hasAllEle ? [p.lat, p.lng, p.ele] : [p.lat, p.lng]));
+        waypoints.push({
+          lat: pts[0].lat,
+          lng: pts[0].lng,
+          name: geoName(str(rte.name), 'GPX Route'),
+          description: str(rte.desc),
+          routeGeometry: JSON.stringify(routeGeometry),
+        });
       }
     }
 
@@ -679,9 +829,15 @@ export class PlacesService {
         }
         if (trackPoints.length === 0) continue;
         const start = trackPoints[0];
-        const hasAllEle = trackPoints.every(p => p.ele !== null);
-        const routeGeometry = trackPoints.map(p => hasAllEle ? [p.lat, p.lng, p.ele] : [p.lat, p.lng]);
-        waypoints.push({ lat: start.lat, lng: start.lng, name: geoName(str(trk.name), 'GPX Track'), description: str(trk.desc), routeGeometry: JSON.stringify(routeGeometry) });
+        const hasAllEle = trackPoints.every((p) => p.ele !== null);
+        const routeGeometry = trackPoints.map((p) => (hasAllEle ? [p.lat, p.lng, p.ele] : [p.lat, p.lng]));
+        waypoints.push({
+          lat: start.lat,
+          lng: start.lng,
+          name: geoName(str(trk.name), 'GPX Track'),
+          description: str(trk.desc),
+          routeGeometry: JSON.stringify(routeGeometry),
+        });
       }
     }
 
@@ -714,13 +870,23 @@ export class PlacesService {
   // Import KML / KMZ
   // -------------------------------------------------------------------------
 
-  async importMapFile(tripId: string, fileBuffer: Buffer, filename: string, opts: KmlImportOptions = {}): Promise<PlaceImportResult> {
+  async importMapFile(
+    tripId: string,
+    fileBuffer: Buffer,
+    filename: string,
+    opts: KmlImportOptions = {},
+  ): Promise<PlaceImportResult> {
     const result = await this.importMapFileRows(tripId, fileBuffer, filename, opts);
     this.colorizeImportedTracks(tripId, result);
     return result;
   }
 
-  private async importMapFileRows(tripId: string, fileBuffer: Buffer, filename: string, opts: KmlImportOptions = {}): Promise<PlaceImportResult> {
+  private async importMapFileRows(
+    tripId: string,
+    fileBuffer: Buffer,
+    filename: string,
+    opts: KmlImportOptions = {},
+  ): Promise<PlaceImportResult> {
     const ext = filename.toLowerCase().split('.').pop();
     if (ext === 'kmz') return this.importKmzPlaces(tripId, fileBuffer, opts);
     if (ext === 'kml') return this.importKmlPlaces(tripId, fileBuffer, opts);
@@ -861,9 +1027,11 @@ export class PlacesService {
     // read the same set of free colours.
     this.dbs.transaction((conn) => {
       const taken = new Set(
-        (conn
-          .prepare('SELECT DISTINCT route_color AS c FROM places WHERE trip_id = ? AND route_color IS NOT NULL')
-          .all(tripId) as { c: string }[]).map((r) => r.c),
+        (
+          conn
+            .prepare('SELECT DISTINCT route_color AS c FROM places WHERE trip_id = ? AND route_color IS NOT NULL')
+            .all(tripId) as { c: string }[]
+        ).map((r) => r.c),
       );
       const free = TRACK_COLORS.filter((c) => !taken.has(c));
       const stmt = conn.prepare('UPDATE places SET route_color = ? WHERE id = ?');
@@ -881,7 +1049,11 @@ export class PlacesService {
   // Import Google Maps list
   // -------------------------------------------------------------------------
 
-  async importGoogleList(tripId: string, url: string, opts?: ListImportOptions): Promise<ListImportResult | ListImportError> {
+  async importGoogleList(
+    tripId: string,
+    url: string,
+    opts?: ListImportOptions,
+  ): Promise<ListImportResult | ListImportError> {
     let listId: string | null = null;
     let resolvedUrl = url;
 
@@ -917,7 +1089,11 @@ export class PlacesService {
       // A single-place share link (…/maps/place/…) carries no list id — point the user at
       // the place search box instead of a cryptic "could not extract list ID" (#1304).
       if (resolvedUrl.includes('/maps/place/')) {
-        return { error: 'That link points to a single place, not a list. To add it, paste the link into the place search box instead of using the list import.', status: 400 };
+        return {
+          error:
+            'That link points to a single place, not a list. To add it, paste the link into the place search box instead of using the list import.',
+          status: 400,
+        };
       }
       return { error: 'Could not extract list ID from URL. Please use a shared Google Maps list link.', status: 400 };
     }
@@ -925,7 +1101,10 @@ export class PlacesService {
     // Fetch list data from Google Maps internal API
     const apiUrl = `https://www.google.com/maps/preview/entitylist/getlist?authuser=0&hl=en&gl=us&pb=!1m1!1s${encodeURIComponent(listId)}!2e2!3e2!4i500!16b1`;
     const apiRes = await fetch(apiUrl, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' },
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      },
       signal: AbortSignal.timeout(15000),
     });
 
@@ -994,7 +1173,9 @@ export class PlacesService {
     INSERT INTO places (trip_id, name, lat, lng, notes, google_ftid, transport_mode)
     VALUES (?, ?, ?, ?, ?, ?, 'walking')
   `);
-    const updateGoogleFtidStmt = this.dbs.prepare('UPDATE places SET google_ftid = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?');
+    const updateGoogleFtidStmt = this.dbs.prepare(
+      'UPDATE places SET google_ftid = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+    );
     const created: PlaceWithTags[] = [];
     let skipped = 0;
     this.dbs.transaction(() => {
@@ -1025,7 +1206,11 @@ export class PlacesService {
   // Import Naver Maps list
   // -------------------------------------------------------------------------
 
-  async importNaverList(tripId: string, url: string, opts?: ListImportOptions): Promise<ListImportResult | ListImportError> {
+  async importNaverList(
+    tripId: string,
+    url: string,
+    opts?: ListImportOptions,
+  ): Promise<ListImportResult | ListImportError> {
     let resolvedUrl = url;
     const limit = 20;
 
@@ -1037,7 +1222,11 @@ export class PlacesService {
     // Redirects are followed manually so each hop is re-validated against the
     // SSRF guard (a short link could otherwise 302 to an internal address).
     let parsedUrl: URL;
-    try { parsedUrl = new URL(url); } catch { return { error: 'Invalid URL', status: 400 }; }
+    try {
+      parsedUrl = new URL(url);
+    } catch {
+      return { error: 'Invalid URL', status: 400 };
+    }
     if (parsedUrl.hostname === 'naver.me') {
       try {
         const redirectRes = await safeFetchFollow(url, { signal: AbortSignal.timeout(10000) });
@@ -1059,7 +1248,8 @@ export class PlacesService {
       const apiRes = await fetch(apiUrl, {
         headers: {
           Accept: 'application/json',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         },
         signal: AbortSignal.timeout(15000),
       });
@@ -1099,9 +1289,10 @@ export class PlacesService {
     }
 
     const listName = firstPage.data.folder?.name || 'Naver Maps List';
-    const totalCount = typeof firstPage.data.folder?.bookmarkCount === 'number'
-      ? firstPage.data.folder.bookmarkCount
-      : (firstPage.data.bookmarkList?.length || 0);
+    const totalCount =
+      typeof firstPage.data.folder?.bookmarkCount === 'number'
+        ? firstPage.data.folder.bookmarkCount
+        : firstPage.data.bookmarkList?.length || 0;
 
     const allItems: Record<string, unknown>[] = [...(firstPage.data.bookmarkList || [])];
     for (let start = limit; start < totalCount; start += limit) {
@@ -1122,9 +1313,12 @@ export class PlacesService {
     for (const item of allItems) {
       const lat = Number(item?.py);
       const lng = Number(item?.px);
-      const name = typeof item?.name === 'string' && item.name.trim()
-        ? item.name.trim()
-        : (typeof item?.displayName === 'string' ? item.displayName.trim() : '');
+      const name =
+        typeof item?.name === 'string' && item.name.trim()
+          ? item.name.trim()
+          : typeof item?.displayName === 'string'
+            ? item.displayName.trim()
+            : '';
       const note = typeof item?.memo === 'string' && item.memo.trim() ? item.memo.trim() : null;
       const address = typeof item?.address === 'string' && item.address.trim() ? item.address.trim() : null;
 
@@ -1212,7 +1406,13 @@ export class PlacesService {
          phone          = COALESCE(phone, ?),
          updated_at     = CURRENT_TIMESTAMP
      WHERE id = ? AND trip_id = ?`,
-      gpid, gftid, trimOrNull(match.address), trimOrNull(match.website), trimOrNull(match.phone), place.id, tripId,
+      gpid,
+      gftid,
+      trimOrNull(match.address),
+      trimOrNull(match.website),
+      trimOrNull(match.phone),
+      place.id,
+      tripId,
     );
 
     // Photo is best-effort: Google often has none, in which case getPlacePhoto
@@ -1223,7 +1423,9 @@ export class PlacesService {
       if (photo?.photoUrl) {
         this.dbs.run(
           'UPDATE places SET image_url = COALESCE(image_url, ?), updated_at = CURRENT_TIMESTAMP WHERE id = ? AND trip_id = ?',
-          photo.photoUrl, place.id, tripId,
+          photo.photoUrl,
+          place.id,
+          tripId,
         );
       }
     } catch {
@@ -1284,10 +1486,12 @@ export class PlacesService {
    */
   async backfillMissingAddresses(tripId: string, places: EnrichablePlace[], lang?: string): Promise<void> {
     try {
-      const pending = places.filter(p => !p.address && p.lat != null && p.lng != null);
+      const pending = places.filter((p) => !p.address && p.lat != null && p.lng != null);
       if (!pending.length) return;
       if (pending.length > ADDRESS_BACKFILL_MAX_PLACES) {
-        console.warn(`[Places] address backfill skipped for trip ${tripId}: ${pending.length} places exceeds the ${ADDRESS_BACKFILL_MAX_PLACES} cap`);
+        console.warn(
+          `[Places] address backfill skipped for trip ${tripId}: ${pending.length} places exceeds the ${ADDRESS_BACKFILL_MAX_PLACES} cap`,
+        );
         return;
       }
       // Serial on purpose: the background lane throttles to roughly one request a
@@ -1301,12 +1505,17 @@ export class PlacesService {
           if (!address) continue;
           this.dbs.run(
             'UPDATE places SET address = COALESCE(address, ?), updated_at = CURRENT_TIMESTAMP WHERE id = ? AND trip_id = ?',
-            address, place.id, tripId,
+            address,
+            place.id,
+            tripId,
           );
           const updated = this.dbs.getPlaceWithTags(place.id);
           if (updated) this.realtime.broadcast(tripId, 'place:updated', { place: updated }, undefined);
         } catch (err) {
-          console.error(`[Places] address backfill failed for place ${place.id}:`, err instanceof Error ? err.message : err);
+          console.error(
+            `[Places] address backfill failed for place ${place.id}:`,
+            err instanceof Error ? err.message : err,
+          );
         }
       }
     } catch (err) {
@@ -1322,7 +1531,11 @@ export class PlacesService {
     const place = this.dbs.get<Place>('SELECT * FROM places WHERE id = ? AND trip_id = ?', placeId, tripId);
     if (!place) return { error: 'Place not found', status: 404 };
 
-    return this.unsplash.searchUnsplashPhotos(place.name + (place.address ? ' ' + place.address : ''), 5, this.unsplash.getUnsplashKey(userId));
+    return this.unsplash.searchUnsplashPhotos(
+      place.name + (place.address ? ' ' + place.address : ''),
+      5,
+      this.unsplash.getUnsplashKey(userId),
+    );
   }
 
   // -------------------------------------------------------------------------
@@ -1341,16 +1554,39 @@ export class PlacesService {
     if (rating === null) {
       this.dbs.run('DELETE FROM place_ratings WHERE place_id = ? AND user_id = ?', placeId, userId);
     } else {
-      this.dbs.run(`
+      this.dbs.run(
+        `
       INSERT INTO place_ratings (place_id, user_id, rating) VALUES (?, ?, ?)
       ON CONFLICT(place_id, user_id) DO UPDATE SET rating = excluded.rating
-    `, placeId, userId, rating);
+    `,
+        placeId,
+        userId,
+        rating,
+      );
     }
     return this.dbs.getPlaceWithTags(placeId);
   }
 
   // Journey hooks — non-fatal, mirroring the route's try/catch wrappers.
-  onCreated(tripId: string, placeId: number): void { try { this.journey.onPlaceCreated(Number(tripId), placeId); } catch { /* non-fatal */ } }
-  onUpdated(placeId: number): void { try { this.journey.onPlaceUpdated(placeId); } catch { /* non-fatal */ } }
-  onDeleted(placeId: number): void { try { this.journey.onPlaceDeleted(placeId); } catch { /* non-fatal */ } }
+  onCreated(tripId: string, placeId: number): void {
+    try {
+      this.journey.onPlaceCreated(Number(tripId), placeId);
+    } catch {
+      /* non-fatal */
+    }
+  }
+  onUpdated(placeId: number): void {
+    try {
+      this.journey.onPlaceUpdated(placeId);
+    } catch {
+      /* non-fatal */
+    }
+  }
+  onDeleted(placeId: number): void {
+    try {
+      this.journey.onPlaceDeleted(placeId);
+    } catch {
+      /* non-fatal */
+    }
+  }
 }

@@ -1,5 +1,5 @@
-import { Injectable, HttpException } from '@nestjs/common';
 import { safeFetchLlm } from '../../utils/ssrfGuard';
+import { Injectable, HttpException } from '@nestjs/common';
 
 /**
  * Admin helpers for managing a local OpenAI-compatible LLM server (Ollama).
@@ -41,7 +41,7 @@ export class LlmLocalService {
     }
     if (!res.ok) throw new HttpException({ error: `Local LLM server error (${res.status})` }, 502);
     const data = (await res.json()) as { models?: { name?: string; size?: number }[] };
-    const models = (data.models ?? []).map(m => ({ name: m.name ?? '', size: m.size ?? 0 })).filter(m => m.name);
+    const models = (data.models ?? []).map((m) => ({ name: m.name ?? '', size: m.size ?? 0 })).filter((m) => m.name);
     return { models };
   }
 

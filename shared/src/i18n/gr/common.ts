@@ -71,7 +71,8 @@ const common: TranslationStrings = {
   'common.errorRetry': 'Δοκιμάστε ξανά',
   'common.errorReload': 'Επαναφόρτωση σελίδας',
   'common.errorUpdateTitle': 'Διατίθεται νέα έκδοση',
-  'common.errorUpdateBody': 'Το TREK ενημερώθηκε ενώ αυτή η καρτέλα ήταν ανοιχτή. Κάντε επαναφόρτωση για τη νέα έκδοση.',
+  'common.errorUpdateBody':
+    'Το TREK ενημερώθηκε ενώ αυτή η καρτέλα ήταν ανοιχτή. Κάντε επαναφόρτωση για τη νέα έκδοση.',
   'common.errorPluginTitle': 'Δεν ήταν δυνατή η εμφάνιση αυτού του πρόσθετου',
 };
 export default common;

@@ -1,15 +1,22 @@
-import {
-  McpController, Tool, type McpContext,
-  TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
-  TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  demoDenied, errorResult, ok,
-} from '../../nest-mcp';
-import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
-import { z } from 'zod';
-import { AuthService } from '../auth/auth.service';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
-import { AssignmentsService } from './assignments.service';
+import {
+  McpController,
+  Tool,
+  type McpContext,
+  TOOL_ANNOTATIONS_READONLY,
+  TOOL_ANNOTATIONS_WRITE,
+  TOOL_ANNOTATIONS_DELETE,
+  TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+  demoDenied,
+  errorResult,
+  ok,
+} from '../../nest-mcp';
+import { AuthService } from '../auth/auth.service';
 import { DaysService } from '../days/days.service';
+import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
+import { AssignmentsService } from './assignments.service';
+
+import { z } from 'zod';
 
 /**
  * Assignment MCP surface — ported 1:1 from the legacy registrar in
@@ -84,7 +91,8 @@ export class AssignmentsMcp {
 
   @Tool({
     name: 'update_assignment_time',
-    description: 'Set the start and/or end time for a place assignment on a day (e.g. "09:00", "11:30"). Pass null to clear a time.',
+    description:
+      'Set the start and/or end time for a place assignment on a day (e.g. "09:00", "11:30"). Pass null to clear a time.',
     inputSchema: {
       tripId: z.number().int().positive(),
       assignmentId: z.number().int().positive(),
@@ -95,8 +103,16 @@ export class AssignmentsMcp {
     access: { group: 'places', mode: 'write' },
   })
   async updateAssignmentTime(
-    { tripId, assignmentId, place_time, end_time }: {
-      tripId: number; assignmentId: number; place_time?: string | null; end_time?: string | null;
+    {
+      tripId,
+      assignmentId,
+      place_time,
+      end_time,
+    }: {
+      tripId: number;
+      assignmentId: number;
+      place_time?: string | null;
+      end_time?: string | null;
     },
     ctx: McpContext,
   ) {
@@ -108,7 +124,7 @@ export class AssignmentsMcp {
     const assignment = this.assignments.updateTime(
       assignmentId,
       place_time !== undefined ? place_time : existing.assignment_time,
-      end_time !== undefined ? end_time : existing.assignment_end_time
+      end_time !== undefined ? end_time : existing.assignment_end_time,
     );
     this.guards.safeBroadcast(tripId, 'assignment:updated', { assignment });
     this.assignments.reconcile(tripId);
@@ -117,19 +133,35 @@ export class AssignmentsMcp {
 
   @Tool({
     name: 'set_leg_transport_mode',
-    description: 'Set the travel mode of a route leg for a place assignment. Use direction "outgoing" (default) for the common case: the leg leaving this stop toward the next. Use direction "incoming" ONLY when this stop\'s arriving leg originates from something that is not itself a place assignment (e.g. a flight/train booking arrival, or a morning hotel departure) – setting "incoming" on an ordinary place-to-place leg is stored but has no effect on route rendering, because it targets a column that is only read for non-place origins. transport_mode is a route profile key: "driving", "walking", "cycling", or a plugin profile written as "plugin:<pluginId>/<profileId>". Any other value is stored but drawn as a driving route. null clears it so the leg inherits the day default.',
+    description:
+      'Set the travel mode of a route leg for a place assignment. Use direction "outgoing" (default) for the common case: the leg leaving this stop toward the next. Use direction "incoming" ONLY when this stop\'s arriving leg originates from something that is not itself a place assignment (e.g. a flight/train booking arrival, or a morning hotel departure) – setting "incoming" on an ordinary place-to-place leg is stored but has no effect on route rendering, because it targets a column that is only read for non-place origins. transport_mode is a route profile key: "driving", "walking", "cycling", or a plugin profile written as "plugin:<pluginId>/<profileId>". Any other value is stored but drawn as a driving route. null clears it so the leg inherits the day default.',
     inputSchema: {
       tripId: z.number().int().positive(),
       assignmentId: z.number().int().positive(),
-      transport_mode: z.string().nullable().optional().describe('Route profile key (e.g. "driving"), or null to inherit the day default'),
-      direction: z.enum(['outgoing', 'incoming']).default('outgoing').describe('Which leg to set: "outgoing" (leaving this stop, default) or "incoming" (arriving at it)'),
+      transport_mode: z
+        .string()
+        .nullable()
+        .optional()
+        .describe('Route profile key (e.g. "driving"), or null to inherit the day default'),
+      direction: z
+        .enum(['outgoing', 'incoming'])
+        .default('outgoing')
+        .describe('Which leg to set: "outgoing" (leaving this stop, default) or "incoming" (arriving at it)'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     access: { group: 'places', mode: 'write' },
   })
   async setLegTransportMode(
-    { tripId, assignmentId, transport_mode, direction }: {
-      tripId: number; assignmentId: number; transport_mode?: string | null; direction?: 'outgoing' | 'incoming';
+    {
+      tripId,
+      assignmentId,
+      transport_mode,
+      direction,
+    }: {
+      tripId: number;
+      assignmentId: number;
+      transport_mode?: string | null;
+      direction?: 'outgoing' | 'incoming';
     },
     ctx: McpContext,
   ) {
@@ -137,9 +169,10 @@ export class AssignmentsMcp {
     if (!this.assignments.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!this.guards.hasTripPermission('day_edit', tripId, ctx.userId)) return permissionDenied();
     if (!this.assignments.getAssignmentForTrip(assignmentId, tripId)) return errorResult('Assignment not found.');
-    const assignment = direction === 'incoming'
-      ? this.assignments.setIncomingLegTransportMode(assignmentId, transport_mode ?? null)
-      : this.assignments.setLegTransportMode(assignmentId, transport_mode ?? null);
+    const assignment =
+      direction === 'incoming'
+        ? this.assignments.setIncomingLegTransportMode(assignmentId, transport_mode ?? null)
+        : this.assignments.setLegTransportMode(assignmentId, transport_mode ?? null);
     this.guards.safeBroadcast(tripId, 'assignment:updated', { assignment });
     return ok({ assignment });
   }
@@ -151,15 +184,29 @@ export class AssignmentsMcp {
       tripId: z.number().int().positive(),
       assignmentId: z.number().int().positive(),
       newDayId: z.number().int().positive(),
-      oldDayId: z.number().int().positive().optional().describe('Deprecated and ignored — the server derives the source day from the assignment'),
+      oldDayId: z
+        .number()
+        .int()
+        .positive()
+        .optional()
+        .describe('Deprecated and ignored — the server derives the source day from the assignment'),
       orderIndex: z.number().int().min(0).optional().default(0),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     access: { group: 'places', mode: 'write' },
   })
   async moveAssignment(
-    { tripId, assignmentId, newDayId, orderIndex }: {
-      tripId: number; assignmentId: number; newDayId: number; oldDayId?: number; orderIndex?: number;
+    {
+      tripId,
+      assignmentId,
+      newDayId,
+      orderIndex,
+    }: {
+      tripId: number;
+      assignmentId: number;
+      newDayId: number;
+      oldDayId?: number;
+      orderIndex?: number;
     },
     ctx: McpContext,
   ) {
@@ -172,7 +219,11 @@ export class AssignmentsMcp {
     // REST parity shape ({ assignment, oldDayId, newDayId }) — the client keys its
     // per-day assignment map on newDayId, so omitting it filed the moved assignment
     // under "undefined" on collaborator screens.
-    this.guards.safeBroadcast(tripId, 'assignment:moved', { assignment: result.assignment, oldDayId: result.oldDayId, newDayId });
+    this.guards.safeBroadcast(tripId, 'assignment:moved', {
+      assignment: result.assignment,
+      oldDayId: result.oldDayId,
+      newDayId,
+    });
     this.assignments.reconcile(tripId);
     return ok({ assignment: result.assignment });
   }
@@ -187,10 +238,7 @@ export class AssignmentsMcp {
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: { group: 'places', mode: 'read' },
   })
-  async getAssignmentParticipants(
-    { tripId, assignmentId }: { tripId: number; assignmentId: number },
-    ctx: McpContext,
-  ) {
+  async getAssignmentParticipants({ tripId, assignmentId }: { tripId: number; assignmentId: number }, ctx: McpContext) {
     if (!this.assignments.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!this.assignments.getAssignmentForTrip(assignmentId, tripId)) return errorResult('Assignment not found.');
     const participants = this.assignments.getParticipants(assignmentId);
@@ -227,7 +275,11 @@ export class AssignmentsMcp {
     inputSchema: {
       tripId: z.number().int().positive(),
       dayId: z.number().int().positive(),
-      assignmentIds: z.array(z.number().int().positive()).min(1).max(200).describe('Assignment IDs in desired display order'),
+      assignmentIds: z
+        .array(z.number().int().positive())
+        .min(1)
+        .max(200)
+        .describe('Assignment IDs in desired display order'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     access: { group: 'places', mode: 'write' },

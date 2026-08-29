@@ -272,7 +272,8 @@ const journey: TranslationStrings = {
   'journey.studio.exportFinishing': 'Acabado',
   'journey.studio.exportMarks': 'Marcas de corte',
   'journey.studio.exportMarksHint': 'Añade {bleed} mm de sangrado en cada borde y marca dónde cortar',
-  'journey.studio.exportNote': '{sheets} hojas de {width} × {height} mm. El navegador convierte la vista de impresión en un PDF.',
+  'journey.studio.exportNote':
+    '{sheets} hojas de {width} × {height} mm. El navegador convierte la vista de impresión en un PDF.',
   'journey.studio.exportOpen': 'Vista de impresión',
   'journey.studio.exportSave': 'Guardar como PDF',
   'journey.studio.exportPreparing': 'Preparando',
@@ -283,12 +284,14 @@ const journey: TranslationStrings = {
   'journey.studio.zoomOut': 'Zoom out', // en-fallback
   'journey.studio.zoomFit': 'Fit to view', // en-fallback
   'journey.studio.downloadSpread': 'Descargar esta doble página',
-  'journey.studio.downloadSpreadHint': 'Guarda el diseño de esta doble página como archivo, sin las fotos, para compartirlo o reutilizarlo',
+  'journey.studio.downloadSpreadHint':
+    'Guarda el diseño de esta doble página como archivo, sin las fotos, para compartirlo o reutilizarlo',
   'journey.studio.importSpread': 'Importar',
   'journey.studio.importSpreadHint': 'Añade una doble página desde un archivo de diseño descargado',
   'journey.studio.importSpreadFailed': 'Ese archivo no es una doble página de TREK Studio',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': 'Diseñar un libro pide sitio para trabajar, así que Studio solo está en el escritorio, y el PDF también. Todo lo demás de tu viaje funciona aquí como siempre.', // en-fallback
+  'journey.studio.desktopOnlyHint':
+    'Diseñar un libro pide sitio para trabajar, así que Studio solo está en el escritorio, y el PDF también. Todo lo demás de tu viaje funciona aquí como siempre.', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
   'journey.studio.bookView': 'Book view', // en-fallback
   'journey.studio.multiple': 'Several', // en-fallback
@@ -352,7 +355,8 @@ const journey: TranslationStrings = {
   'journey.studio.sampleSubheading': 'A subheading', // en-fallback
   'journey.studio.sampleBody': 'Write something about this day.', // en-fallback
   'journey.studio.sampleCaption': 'Caption', // en-fallback
-  'journey.studio.templatesCoverHint': 'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
+  'journey.studio.templatesCoverHint':
+    'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
   'journey.studio.tpl.heroStory': 'Hero and story', // en-fallback
   'journey.studio.tpl.fullBleed': 'One picture, full spread', // en-fallback
   'journey.studio.tpl.twoUp': 'Two full pages', // en-fallback
@@ -534,7 +538,8 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceVector': 'Contornos',
   'journey.studio.mapSourceRelief': 'Relieve',
   'journey.studio.mapSourceSatellite': 'Satélite',
-  'journey.studio.mapSourceSatelliteHint': 'Sentinel-2 sin nubes, libre para imprimir con su atribución. Nítido hasta el nivel de calle.',
+  'journey.studio.mapSourceSatelliteHint':
+    'Sentinel-2 sin nubes, libre para imprimir con su atribución. Nítido hasta el nivel de calle.',
   'journey.studio.routeLook': 'La línea',
   'journey.studio.routeStyle': 'Trazo',
   'journey.studio.routePlain': 'Simple',
@@ -557,9 +562,11 @@ const journey: TranslationStrings = {
   'journey.studio.roadsAgain': 'Volver a pedir',
   'journey.studio.roadsClear': 'Borrar',
   'journey.studio.roadsBusy': 'Pidiendo',
-  'journey.studio.roadsHint': 'Pide a un servicio de rutas el camino que se recorrió en cada tramo. Los tramos largos se quedan como están.',
+  'journey.studio.roadsHint':
+    'Pide a un servicio de rutas el camino que se recorrió en cada tramo. Los tramos largos se quedan como están.',
   'journey.studio.roadsHave': 'Las carreteras se guardan en este libro, así que imprime la misma línea sin conexión.',
-  'journey.studio.mapSourceReliefHint': 'Relieve sombreado de la NASA, libre para imprimir. Ideal para un país o un continente, demasiado tosco para una ciudad.',
+  'journey.studio.mapSourceReliefHint':
+    'Relieve sombreado de la NASA, libre para imprimir. Ideal para un país o un continente, demasiado tosco para una ciudad.',
   'journey.studio.mapPrintDpi': 'Se imprime a unos',
   'journey.studio.mapPrintDpiLow': 'poco nítido a este tamaño, prueba una vista más amplia u otro origen',
   'journey.studio.mapPerTrip': 'Un viaje cada vez',

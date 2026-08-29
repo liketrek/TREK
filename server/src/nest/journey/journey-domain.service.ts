@@ -1,12 +1,12 @@
-import { Injectable } from '@nestjs/common';
-import { avatarUrl } from '../common/avatarUrl';
 import type { Journey, JourneyEntry, JourneyPhoto, JourneyContributor } from '../../types';
-import { DatabaseService } from '../database/database.service';
-import { RealtimeService } from '../realtime/realtime.service';
-import type { JourneyStats, JourneyTrack, TrekWsUserEventName } from '@trek/shared';
-import { TrekPhotosRepository } from '../photos/trek-photos.repository';
 import { getCountryFromCoords } from '../atlas/atlas-geo';
+import { avatarUrl } from '../common/avatarUrl';
+import { DatabaseService } from '../database/database.service';
+import { TrekPhotosRepository } from '../photos/trek-photos.repository';
+import { RealtimeService } from '../realtime/realtime.service';
 import { computeJourneyStats, type StatsInputPoint } from './journey-stats';
+import { Injectable } from '@nestjs/common';
+import type { JourneyStats, JourneyTrack, TrekWsUserEventName } from '@trek/shared';
 
 /**
  * English country names for whatever codes a journey turned up.
@@ -41,8 +41,6 @@ function countryNamesFor(points: { country: string | null }[]): Record<string, s
   }
   return out;
 }
-
-
 
 // Per-journey gallery view: journey_photos → trek_photos (no entry context).
 // Per-entry photo view: join journey_entry_photos → journey_photos (gallery) → trek_photos.
@@ -84,8 +82,6 @@ export class JourneyDomainService {
     return Date.now();
   }
 
-
-
   /**
    * Tell everyone on a journey that something changed.
    *
@@ -102,7 +98,9 @@ export class JourneyDomainService {
     data: Record<string, unknown>,
     excludeSocketId?: string | number,
   ) {
-    const contributors = this.db.prepare('SELECT user_id FROM journey_contributors WHERE journey_id = ?').all(journeyId) as {
+    const contributors = this.db
+      .prepare('SELECT user_id FROM journey_contributors WHERE journey_id = ?')
+      .all(journeyId) as {
       user_id: number;
     }[];
     const owner = this.db.prepare('SELECT user_id FROM journeys WHERE id = ?').get(journeyId) as
@@ -191,12 +189,9 @@ export class JourneyDomainService {
     const journeyId = Number(res.lastInsertRowid);
 
     // add owner as contributor
-    this.db.prepare('INSERT INTO journey_contributors (journey_id, user_id, role, added_at) VALUES (?, ?, ?, ?)').run(
-      journeyId,
-      userId,
-      'owner',
-      now,
-    );
+    this.db
+      .prepare('INSERT INTO journey_contributors (journey_id, user_id, role, added_at) VALUES (?, ?, ?, ?)')
+      .run(journeyId, userId, 'owner', now);
 
     // link trips and sync skeleton entries
     if (data.trip_ids?.length) {
@@ -255,8 +250,11 @@ export class JourneyDomainService {
       pros_cons: e.pros_cons ? JSON.parse(e.pros_cons) : null,
       photos: photosByEntry[e.id] || [],
       source_trip_name: e.source_trip_id
-        ? (this.db.prepare('SELECT title FROM trips WHERE id = ?').get(e.source_trip_id) as { title: string } | undefined)
-            ?.title || null
+        ? (
+            this.db.prepare('SELECT title FROM trips WHERE id = ?').get(e.source_trip_id) as
+              | { title: string }
+              | undefined
+          )?.title || null
         : null,
     }));
 
@@ -359,11 +357,9 @@ export class JourneyDomainService {
   updateJourneyPreferences(journeyId: number, userId: number, data: { hide_skeletons?: boolean }) {
     if (!this.canAccessJourney(journeyId, userId)) return null;
     if (data.hide_skeletons !== undefined) {
-      this.db.prepare('UPDATE journey_contributors SET hide_skeletons = ? WHERE journey_id = ? AND user_id = ?').run(
-        data.hide_skeletons ? 1 : 0,
-        journeyId,
-        userId,
-      );
+      this.db
+        .prepare('UPDATE journey_contributors SET hide_skeletons = ? WHERE journey_id = ? AND user_id = ?')
+        .run(data.hide_skeletons ? 1 : 0, journeyId, userId);
     }
     const row = this.db
       .prepare('SELECT hide_skeletons FROM journey_contributors WHERE journey_id = ? AND user_id = ?')
@@ -391,11 +387,9 @@ export class JourneyDomainService {
     if (!this.canAccessJourney(journeyId, userId)) return false;
     const now = this.ts();
     try {
-      this.db.prepare('INSERT OR IGNORE INTO journey_trips (journey_id, trip_id, added_at) VALUES (?, ?, ?)').run(
-        journeyId,
-        tripId,
-        now,
-      );
+      this.db
+        .prepare('INSERT OR IGNORE INTO journey_trips (journey_id, trip_id, added_at) VALUES (?, ?, ?)')
+        .run(journeyId, tripId, now);
     } catch {
       return false;
     }
@@ -416,20 +410,24 @@ export class JourneyDomainService {
     if (!this.isOwner(journeyId, userId)) return false;
 
     // remove skeleton entries that haven't been filled in
-    this.db.prepare(
-      `
+    this.db
+      .prepare(
+        `
       DELETE FROM journey_entries
       WHERE journey_id = ? AND source_trip_id = ? AND type = 'skeleton'
     `,
-    ).run(journeyId, tripId);
+      )
+      .run(journeyId, tripId);
 
     // detach filled entries from this trip
-    this.db.prepare(
-      `
+    this.db
+      .prepare(
+        `
       UPDATE journey_entries SET source_trip_id = NULL, source_place_id = NULL
       WHERE journey_id = ? AND source_trip_id = ? AND type != 'skeleton'
     `,
-    ).run(journeyId, tripId);
+      )
+      .run(journeyId, tripId);
 
     this.db.prepare('DELETE FROM journey_trips WHERE journey_id = ? AND trip_id = ?').run(journeyId, tripId);
     return true;
@@ -519,7 +517,9 @@ export class JourneyDomainService {
         .get(link.journey_id, placeId);
       if (already) continue;
 
-      const journey = this.db.prepare('SELECT user_id FROM journeys WHERE id = ?').get(link.journey_id) as { user_id: number };
+      const journey = this.db.prepare('SELECT user_id FROM journeys WHERE id = ?').get(link.journey_id) as {
+        user_id: number;
+      };
       const entryDate = place.day_date;
       const maxOrder = this.db
         .prepare('SELECT MAX(sort_order) AS m FROM journey_entries WHERE journey_id = ? AND entry_date = ?')
@@ -545,7 +545,9 @@ export class JourneyDomainService {
 
   // called when a trip place is updated
   onPlaceUpdated(placeId: number) {
-    const entries = this.db.prepare('SELECT * FROM journey_entries WHERE source_place_id = ?').all(placeId) as JourneyEntry[];
+    const entries = this.db
+      .prepare('SELECT * FROM journey_entries WHERE source_place_id = ?')
+      .all(placeId) as JourneyEntry[];
     if (!entries.length) return;
 
     const place = this.db
@@ -565,36 +567,42 @@ export class JourneyDomainService {
     for (const entry of entries) {
       if (entry.type === 'skeleton') {
         // update everything on skeletons
-        this.db.prepare(
-          `
+        this.db
+          .prepare(
+            `
           UPDATE journey_entries SET title = ?, entry_date = ?, entry_time = ?, location_name = ?, location_lat = ?, location_lng = ?, updated_at = ?
           WHERE id = ?
         `,
-        ).run(
-          place.name,
-          place.day_date || entry.entry_date,
-          place.assignment_time || place.place_time || entry.entry_time,
-          place.address || place.name,
-          place.lat || null,
-          place.lng || null,
-          now,
-          entry.id,
-        );
+          )
+          .run(
+            place.name,
+            place.day_date || entry.entry_date,
+            place.assignment_time || place.place_time || entry.entry_time,
+            place.address || place.name,
+            place.lat || null,
+            place.lng || null,
+            now,
+            entry.id,
+          );
       } else {
         // for filled entries, only update location silently
-        this.db.prepare(
-          `
+        this.db
+          .prepare(
+            `
           UPDATE journey_entries SET location_name = ?, location_lat = ?, location_lng = ?, updated_at = ?
           WHERE id = ?
         `,
-        ).run(place.address || place.name, place.lat || null, place.lng || null, now, entry.id);
+          )
+          .run(place.address || place.name, place.lat || null, place.lng || null, now, entry.id);
       }
     }
   }
 
   // called when a trip place is deleted
   onPlaceDeleted(placeId: number) {
-    const entries = this.db.prepare('SELECT * FROM journey_entries WHERE source_place_id = ?').all(placeId) as JourneyEntry[];
+    const entries = this.db
+      .prepare('SELECT * FROM journey_entries WHERE source_place_id = ?')
+      .all(placeId) as JourneyEntry[];
 
     for (const entry of entries) {
       if (entry.type === 'skeleton') {
@@ -608,9 +616,11 @@ export class JourneyDomainService {
       // entry has content: keep it, detach, add note
       const note = '\n\n> _Note: the original trip place was removed from the trip plan_';
       const newStory = (entry.story || '') + note;
-      this.db.prepare(
-        'UPDATE journey_entries SET source_place_id = NULL, source_trip_id = NULL, type = ?, story = ?, updated_at = ? WHERE id = ?',
-      ).run(entry.type === 'skeleton' ? 'entry' : entry.type, newStory, this.ts(), entry.id);
+      this.db
+        .prepare(
+          'UPDATE journey_entries SET source_place_id = NULL, source_trip_id = NULL, type = ?, story = ?, updated_at = ? WHERE id = ?',
+        )
+        .run(entry.type === 'skeleton' ? 'entry' : entry.type, newStory, this.ts(), entry.id);
     }
   }
 
@@ -629,26 +639,28 @@ export class JourneyDomainService {
     sortOrder: number;
     now: number;
   }) {
-    this.db.prepare(
-      `
+    this.db
+      .prepare(
+        `
       INSERT INTO journey_entries (journey_id, source_trip_id, source_place_id, author_id, type, title, entry_date, entry_time, location_name, location_lat, location_lng, sort_order, created_at, updated_at)
       VALUES (?, ?, ?, ?, 'skeleton', ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
-    ).run(
-      p.journeyId,
-      p.tripId,
-      p.placeId,
-      p.authorId,
-      p.title,
-      p.entryDate,
-      p.entryTime,
-      p.locationName,
-      p.lat,
-      p.lng,
-      p.sortOrder,
-      p.now,
-      p.now,
-    );
+      )
+      .run(
+        p.journeyId,
+        p.tripId,
+        p.placeId,
+        p.authorId,
+        p.title,
+        p.entryDate,
+        p.entryTime,
+        p.locationName,
+        p.lat,
+        p.lng,
+        p.sortOrder,
+        p.now,
+        p.now,
+      );
   }
 
   // Make every journey linked to `tripId` mirror the trip's currently day-assigned
@@ -756,9 +768,11 @@ export class JourneyDomainService {
             found.location_lat !== lat ||
             found.location_lng !== lng;
           if (stale) {
-            this.db.prepare(
-              `UPDATE journey_entries SET title = ?, entry_date = ?, entry_time = ?, location_name = ?, location_lat = ?, location_lng = ?, updated_at = ? WHERE id = ?`,
-            ).run(place.name, entryDate, entryTime, locationName, lat, lng, now, found.id);
+            this.db
+              .prepare(
+                `UPDATE journey_entries SET title = ?, entry_date = ?, entry_time = ?, location_name = ?, location_lat = ?, location_lng = ?, updated_at = ? WHERE id = ?`,
+              )
+              .run(place.name, entryDate, entryTime, locationName, lat, lng, now, found.id);
             changed = true;
           }
         } else {
@@ -766,9 +780,11 @@ export class JourneyDomainService {
           const stale =
             found.location_name !== locationName || found.location_lat !== lat || found.location_lng !== lng;
           if (stale) {
-            this.db.prepare(
-              `UPDATE journey_entries SET location_name = ?, location_lat = ?, location_lng = ?, updated_at = ? WHERE id = ?`,
-            ).run(locationName, lat, lng, now, found.id);
+            this.db
+              .prepare(
+                `UPDATE journey_entries SET location_name = ?, location_lat = ?, location_lng = ?, updated_at = ? WHERE id = ?`,
+              )
+              .run(locationName, lat, lng, now, found.id);
             changed = true;
           }
         }
@@ -787,9 +803,11 @@ export class JourneyDomainService {
         }
         const note = '\n\n> _Note: the original trip place was removed from the trip plan_';
         const newStory = (e.story || '') + note;
-        this.db.prepare(
-          'UPDATE journey_entries SET source_place_id = NULL, source_trip_id = NULL, type = ?, story = ?, updated_at = ? WHERE id = ?',
-        ).run(e.type === 'skeleton' ? 'entry' : e.type, newStory, now, e.id);
+        this.db
+          .prepare(
+            'UPDATE journey_entries SET source_place_id = NULL, source_trip_id = NULL, type = ?, story = ?, updated_at = ? WHERE id = ?',
+          )
+          .run(e.type === 'skeleton' ? 'entry' : e.type, newStory, now, e.id);
         changed = true;
       }
 
@@ -811,7 +829,9 @@ export class JourneyDomainService {
   journeyTracks(journeyId: number, userId: number): JourneyTrack[] | null {
     if (!this.canAccessJourney(journeyId, userId)) return null;
 
-    const rows = this.db.prepare(`
+    const rows = this.db
+      .prepare(
+        `
       SELECT DISTINCT p.id AS place_id, p.trip_id, p.name, p.route_color, p.route_geometry
         FROM journey_entries je
         JOIN places p ON p.trip_id = je.source_trip_id
@@ -819,9 +839,14 @@ export class JourneyDomainService {
          AND je.source_trip_id IS NOT NULL
          AND p.route_geometry IS NOT NULL
        ORDER BY p.trip_id, p.id
-    `).all(journeyId) as {
-      place_id: number; trip_id: number; name: string | null;
-      route_color: string | null; route_geometry: string;
+    `,
+      )
+      .all(journeyId) as {
+      place_id: number;
+      trip_id: number;
+      name: string | null;
+      route_color: string | null;
+      route_geometry: string;
     }[];
 
     const tracks: JourneyTrack[] = [];
@@ -888,14 +913,22 @@ export class JourneyDomainService {
   journeyStats(journeyId: number, userId: number): JourneyStats | null {
     if (!this.canAccessJourney(journeyId, userId)) return null;
 
-    const entryRows = this.db.prepare(`
+    const entryRows = this.db
+      .prepare(
+        `
       SELECT id, title, location_name, location_lat, location_lng, entry_date, source_trip_id
         FROM journey_entries
        WHERE journey_id = ?
        ORDER BY entry_date ASC, sort_order ASC, id ASC
-    `).all(journeyId) as {
-      id: number; title: string | null; location_name: string | null;
-      location_lat: number | null; location_lng: number | null; entry_date: string | null;
+    `,
+      )
+      .all(journeyId) as {
+      id: number;
+      title: string | null;
+      location_name: string | null;
+      location_lat: number | null;
+      location_lng: number | null;
+      entry_date: string | null;
       source_trip_id: number | null;
     }[];
 
@@ -907,21 +940,27 @@ export class JourneyDomainService {
      * no order to read. Undated trips sort last rather than first, where an
      * empty string would otherwise put them.
      */
-    const tripRows = this.db.prepare(`
+    const tripRows = this.db
+      .prepare(
+        `
       SELECT t.id, t.title, t.start_date AS start, t.end_date AS end
         FROM journey_trips jt JOIN trips t ON t.id = jt.trip_id
        WHERE jt.journey_id = ?
        ORDER BY t.start_date IS NULL, t.start_date ASC, t.id ASC
-    `).all(journeyId) as { id: number; title: string | null; start: string | null; end: string | null }[];
+    `,
+      )
+      .all(journeyId) as { id: number; title: string | null; start: string | null; end: string | null }[];
 
-    const tripDates = tripRows.map(t => ({ start: t.start, end: t.end }));
+    const tripDates = tripRows.map((t) => ({ start: t.start, end: t.end }));
 
     // Ordered the way the trip is walked: by day, then by the order within it.
     // A place can be assigned to more than one day (a hotel across three nights
     // is one place, three assignments), so the join is aggregated back down to
     // one row per place at its earliest day — otherwise the route would visit
     // the hotel three times and the distance would count those legs.
-    const placeRows = this.db.prepare(`
+    const placeRows = this.db
+      .prepare(
+        `
       SELECT p.id, p.name, p.lat, p.lng, p.trip_id AS tripId,
              MIN(d.date) AS day,
              MIN(da.order_index) AS ord
@@ -932,16 +971,27 @@ export class JourneyDomainService {
        WHERE jt.journey_id = ?
        GROUP BY p.id
        ORDER BY day IS NULL, day ASC, ord ASC, p.id ASC
-    `).all(journeyId) as {
-      id: number; name: string | null; lat: number | null; lng: number | null; tripId: number | null;
-      day: string | null; ord: number | null;
+    `,
+      )
+      .all(journeyId) as {
+      id: number;
+      name: string | null;
+      lat: number | null;
+      lng: number | null;
+      tripId: number | null;
+      day: string | null;
+      ord: number | null;
     }[];
 
-    const placeCount = this.db.prepare(`
+    const placeCount = this.db
+      .prepare(
+        `
       SELECT COUNT(*) AS n FROM journey_trips jt
         JOIN places p ON p.trip_id = jt.trip_id
        WHERE jt.journey_id = ?
-    `).get(journeyId) as { n: number };
+    `,
+      )
+      .get(journeyId) as { n: number };
 
     const photoCount = this.db
       .prepare('SELECT COUNT(*) AS n FROM journey_photos WHERE journey_id = ?')
@@ -954,7 +1004,9 @@ export class JourneyDomainService {
      * attached to that entry, earliest first, videos excluded because a video
      * poster inside a four-millimetre circle is not a photograph.
      */
-    const entryPhotoRows = this.db.prepare(`
+    const entryPhotoRows = this.db
+      .prepare(
+        `
       SELECT jep.entry_id AS entryId, gp.photo_id AS photoId
         FROM journey_entry_photos jep
         JOIN journey_photos gp ON gp.id = jep.journey_photo_id
@@ -962,7 +1014,9 @@ export class JourneyDomainService {
        WHERE gp.journey_id = ?
          AND (tp.media_type IS NULL OR tp.media_type = 'image')
        ORDER BY jep.entry_id ASC, jep.sort_order ASC, gp.sort_order ASC, gp.id ASC
-    `).all(journeyId) as { entryId: number; photoId: number }[];
+    `,
+      )
+      .all(journeyId) as { entryId: number; photoId: number }[];
 
     const photoByEntry = new Map<number, number>();
     for (const r of entryPhotoRows) if (!photoByEntry.has(r.entryId)) photoByEntry.set(r.entryId, r.photoId);
@@ -984,12 +1038,14 @@ export class JourneyDomainService {
 
     // The cached country per place, for whichever of them Atlas has seen.
     const cachedCountry = new Map<number, string>();
-    const placeIds = placeRows.map(p => p.id);
+    const placeIds = placeRows.map((p) => p.id);
     for (let i = 0; i < placeIds.length; i += 400) {
       const chunk = placeIds.slice(i, i + 400);
       if (!chunk.length) continue;
       const rows = this.db
-        .prepare(`SELECT place_id, country_code FROM place_regions WHERE place_id IN (${chunk.map(() => '?').join(',')})`)
+        .prepare(
+          `SELECT place_id, country_code FROM place_regions WHERE place_id IN (${chunk.map(() => '?').join(',')})`,
+        )
         .all(...chunk) as { place_id: number; country_code: string }[];
       for (const r of rows) if (r.country_code) cachedCountry.set(r.place_id, r.country_code.toUpperCase());
     }
@@ -1003,8 +1059,8 @@ export class JourneyDomainService {
     };
 
     const fromEntries: StatsInputPoint[] = entryRows
-      .filter(e => Number.isFinite(e.location_lat) && Number.isFinite(e.location_lng))
-      .map(e => ({
+      .filter((e) => Number.isFinite(e.location_lat) && Number.isFinite(e.location_lng))
+      .map((e) => ({
         lat: e.location_lat as number,
         lng: e.location_lng as number,
         label: e.title || e.location_name || '',
@@ -1017,20 +1073,20 @@ export class JourneyDomainService {
     const points: StatsInputPoint[] = fromEntries.length
       ? fromEntries
       : placeRows
-        .filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng))
-        .map(p => ({
-          lat: p.lat as number,
-          lng: p.lng as number,
-          label: p.name || '',
-          date: p.day ?? null,
-          country: countryAt(p.lat as number, p.lng as number, p.id),
-          tripId: p.tripId ?? null,
-          // A trip place carries `image_url`, which is a provider photo behind
-          // its own attribution rather than a trek_photos id. It must not be
-          // smuggled into a field the book will print as one of the journey's
-          // own pictures.
-          photoId: null,
-        }));
+          .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng))
+          .map((p) => ({
+            lat: p.lat as number,
+            lng: p.lng as number,
+            label: p.name || '',
+            date: p.day ?? null,
+            country: countryAt(p.lat as number, p.lng as number, p.id),
+            tripId: p.tripId ?? null,
+            // A trip place carries `image_url`, which is a provider photo behind
+            // its own attribution rather than a trek_photos id. It must not be
+            // smuggled into a field the book will print as one of the journey's
+            // own pictures.
+            photoId: null,
+          }));
 
     /*
      * How many of the route's stops each trip owns.
@@ -1052,7 +1108,7 @@ export class JourneyDomainService {
       places: placeCount?.n ?? 0,
       tripDates,
       countryNames: countryNamesFor(points),
-      trips: tripRows.map(t => ({
+      trips: tripRows.map((t) => ({
         id: t.id,
         title: t.title || '',
         start: t.start,
@@ -1086,8 +1142,11 @@ export class JourneyDomainService {
       pros_cons: e.pros_cons ? JSON.parse(e.pros_cons) : null,
       photos: photosByEntry[e.id] || [],
       source_trip_name: e.source_trip_id
-        ? (this.db.prepare('SELECT title FROM trips WHERE id = ?').get(e.source_trip_id) as { title: string } | undefined)
-            ?.title || null
+        ? (
+            this.db.prepare('SELECT title FROM trips WHERE id = ?').get(e.source_trip_id) as
+              | { title: string }
+              | undefined
+          )?.title || null
         : null,
     }));
   }
@@ -1181,7 +1240,9 @@ export class JourneyDomainService {
     }>,
     sid?: string,
   ): JourneyEntry | null {
-    const entry = this.db.prepare('SELECT * FROM journey_entries WHERE id = ?').get(entryId) as JourneyEntry | undefined;
+    const entry = this.db.prepare('SELECT * FROM journey_entries WHERE id = ?').get(entryId) as
+      | JourneyEntry
+      | undefined;
     if (!entry) return null;
     if (!this.canEdit(entry.journey_id, userId)) return null;
 
@@ -1270,20 +1331,24 @@ export class JourneyDomainService {
   }
 
   deleteEntry(entryId: number, userId: number, sid?: string): boolean {
-    const entry = this.db.prepare('SELECT * FROM journey_entries WHERE id = ?').get(entryId) as JourneyEntry | undefined;
+    const entry = this.db.prepare('SELECT * FROM journey_entries WHERE id = ?').get(entryId) as
+      | JourneyEntry
+      | undefined;
     if (!entry) return false;
     if (!this.canEdit(entry.journey_id, userId)) return false;
 
     if (entry.source_trip_id && entry.source_place_id && entry.type !== 'skeleton') {
       // Revert filled entry back to skeleton instead of deleting
-      this.db.prepare(
-        `
+      this.db
+        .prepare(
+          `
         UPDATE journey_entries
         SET type = 'skeleton', story = NULL, mood = NULL, weather = NULL, pros_cons = NULL,
             visibility = 'private', updated_at = ?
         WHERE id = ?
       `,
-      ).run(this.ts(), entryId);
+        )
+        .run(this.ts(), entryId);
       this.broadcastJourneyEvent(entry.journey_id, 'journey:entry:updated', { entryId }, sid);
     } else {
       this.db.prepare('DELETE FROM journey_entries WHERE id = ?').run(entryId);
@@ -1300,7 +1365,9 @@ export class JourneyDomainService {
   // with photos is no longer just a suggestion.
   private promoteSkeletonIfNeeded(entry: JourneyEntry): void {
     if (entry.type !== 'skeleton') return;
-    this.db.prepare('UPDATE journey_entries SET type = ?, updated_at = ? WHERE id = ?').run('entry', this.ts(), entry.id);
+    this.db
+      .prepare('UPDATE journey_entries SET type = ?, updated_at = ? WHERE id = ?')
+      .run('entry', this.ts(), entry.id);
   }
 
   // Ensure a trek_photo_id is in the journey gallery; return its gallery row id.
@@ -1309,12 +1376,14 @@ export class JourneyDomainService {
     const maxOrderRow = this.db
       .prepare('SELECT MAX(sort_order) as m FROM journey_photos WHERE journey_id = ?')
       .get(journeyId) as { m: number | null };
-    this.db.prepare(
-      `
+    this.db
+      .prepare(
+        `
       INSERT OR IGNORE INTO journey_photos (journey_id, photo_id, caption, shared, sort_order, created_at)
       VALUES (?, ?, ?, ?, ?, ?)
     `,
-    ).run(journeyId, trekPhotoId, caption || null, shared ?? 0, (maxOrderRow?.m ?? -1) + 1, now);
+      )
+      .run(journeyId, trekPhotoId, caption || null, shared ?? 0, (maxOrderRow?.m ?? -1) + 1, now);
     const row = this.db
       .prepare('SELECT id FROM journey_photos WHERE journey_id = ? AND photo_id = ?')
       .get(journeyId, trekPhotoId) as { id: number };
@@ -1327,12 +1396,14 @@ export class JourneyDomainService {
     const maxOrderRow = this.db
       .prepare('SELECT MAX(sort_order) as m FROM journey_entry_photos WHERE entry_id = ?')
       .get(entryId) as { m: number | null };
-    this.db.prepare(
-      `
+    this.db
+      .prepare(
+        `
       INSERT OR IGNORE INTO journey_entry_photos (entry_id, journey_photo_id, sort_order, created_at)
       VALUES (?, ?, ?, ?)
     `,
-    ).run(entryId, galleryId, (maxOrderRow?.m ?? -1) + 1, now);
+      )
+      .run(entryId, galleryId, (maxOrderRow?.m ?? -1) + 1, now);
     return this.db
       .prepare(`SELECT ${JP_SELECT} FROM ${JP_JOIN} WHERE jep.entry_id = ? AND jep.journey_photo_id = ?`)
       .get(entryId, galleryId) as JourneyPhoto | null;
@@ -1345,12 +1416,16 @@ export class JourneyDomainService {
     thumbnailPath?: string,
     caption?: string,
   ): JourneyPhoto | null {
-    const entry = this.db.prepare('SELECT * FROM journey_entries WHERE id = ?').get(entryId) as JourneyEntry | undefined;
+    const entry = this.db.prepare('SELECT * FROM journey_entries WHERE id = ?').get(entryId) as
+      | JourneyEntry
+      | undefined;
     if (!entry) return null;
     if (!this.canEdit(entry.journey_id, userId)) return null;
 
     const trekPhotoId = this.photos.getOrCreateLocal(filePath, thumbnailPath);
-    const galleryId = this.db.connection.transaction(() => this.ensureInGallery(entry.journey_id, trekPhotoId, caption))();
+    const galleryId = this.db.connection.transaction(() =>
+      this.ensureInGallery(entry.journey_id, trekPhotoId, caption),
+    )();
     const result = this.linkGalleryPhotoToEntry(galleryId, entryId);
     this.promoteSkeletonIfNeeded(entry);
     return result;
@@ -1365,7 +1440,9 @@ export class JourneyDomainService {
     passphrase?: string,
     mediaType: string = 'image',
   ): JourneyPhoto | null {
-    const entry = this.db.prepare('SELECT * FROM journey_entries WHERE id = ?').get(entryId) as JourneyEntry | undefined;
+    const entry = this.db.prepare('SELECT * FROM journey_entries WHERE id = ?').get(entryId) as
+      | JourneyEntry
+      | undefined;
     if (!entry) return null;
     if (!this.canEdit(entry.journey_id, userId)) return null;
 
@@ -1383,7 +1460,9 @@ export class JourneyDomainService {
       .get(entryId, trekPhotoId);
     if (alreadyLinked) return null;
 
-    const galleryId = this.db.connection.transaction(() => this.ensureInGallery(entry.journey_id, trekPhotoId, caption))();
+    const galleryId = this.db.connection.transaction(() =>
+      this.ensureInGallery(entry.journey_id, trekPhotoId, caption),
+    )();
     const result = this.linkGalleryPhotoToEntry(galleryId, entryId);
     this.promoteSkeletonIfNeeded(entry);
     return result;
@@ -1391,7 +1470,9 @@ export class JourneyDomainService {
 
   // Link a gallery photo (by its journey_photos.id) to an entry — idempotent.
   linkPhotoToEntry(entryId: number, journeyPhotoId: number, userId: number): JourneyPhoto | null {
-    const entry = this.db.prepare('SELECT * FROM journey_entries WHERE id = ?').get(entryId) as JourneyEntry | undefined;
+    const entry = this.db.prepare('SELECT * FROM journey_entries WHERE id = ?').get(entryId) as
+      | JourneyEntry
+      | undefined;
     if (!entry) return null;
     if (!this.canEdit(entry.journey_id, userId)) return null;
 
@@ -1421,13 +1502,22 @@ export class JourneyDomainService {
     let nextOrder = (maxOrderRow?.m ?? -1) + 1;
 
     for (const f of filePaths) {
-      const trekPhotoId = this.photos.getOrCreateLocal(f.path, f.thumbnail, null, null, f.mediaType || 'image', f.durationMs ?? null);
-      this.db.prepare(
-        `
+      const trekPhotoId = this.photos.getOrCreateLocal(
+        f.path,
+        f.thumbnail,
+        null,
+        null,
+        f.mediaType || 'image',
+        f.durationMs ?? null,
+      );
+      this.db
+        .prepare(
+          `
         INSERT OR IGNORE INTO journey_photos (journey_id, photo_id, shared, sort_order, created_at)
         VALUES (?, ?, 0, ?, ?)
       `,
-      ).run(journeyId, trekPhotoId, nextOrder++, now);
+        )
+        .run(journeyId, trekPhotoId, nextOrder++, now);
       const row = this.db
         .prepare(`SELECT ${GALLERY_SELECT} FROM ${GALLERY_JOIN} WHERE gp.journey_id = ? AND gp.photo_id = ?`)
         .get(journeyId, trekPhotoId);
@@ -1454,7 +1544,9 @@ export class JourneyDomainService {
 
   // Unlink a photo from a specific entry; gallery row is preserved.
   unlinkPhotoFromEntry(entryId: number, journeyPhotoId: number, userId: number): boolean {
-    const entry = this.db.prepare('SELECT * FROM journey_entries WHERE id = ?').get(entryId) as JourneyEntry | undefined;
+    const entry = this.db.prepare('SELECT * FROM journey_entries WHERE id = ?').get(entryId) as
+      | JourneyEntry
+      | undefined;
     if (!entry) return false;
     if (!this.canEdit(entry.journey_id, userId)) return false;
 
@@ -1475,15 +1567,19 @@ export class JourneyDomainService {
     if (!row) return null;
     if (!this.canEdit(row.journey_id, userId)) return null;
 
-    const trekRow = this.db.prepare('SELECT file_path, thumbnail_path, provider FROM trek_photos WHERE id = ?').get(row.photo_id) as
-      | { file_path?: string; thumbnail_path?: string; provider?: string }
-      | undefined;
+    const trekRow = this.db
+      .prepare('SELECT file_path, thumbnail_path, provider FROM trek_photos WHERE id = ?')
+      .get(row.photo_id) as { file_path?: string; thumbnail_path?: string; provider?: string } | undefined;
 
     // cascade on journey_entry_photos.journey_photo_id handles junction cleanup
     this.db.prepare('DELETE FROM journey_photos WHERE id = ?').run(journeyPhotoId);
     this.photos.deleteIfOrphan(row.photo_id);
 
-    return { photo_id: row.photo_id, file_path: trekRow?.file_path ?? null, thumbnail_path: trekRow?.thumbnail_path ?? null };
+    return {
+      photo_id: row.photo_id,
+      file_path: trekRow?.file_path ?? null,
+      thumbnail_path: trekRow?.thumbnail_path ?? null,
+    };
   }
 
   setPhotoProvider(photoId: number, provider: string, assetId: string, ownerId: number) {
@@ -1494,19 +1590,12 @@ export class JourneyDomainService {
     if (!jp) return;
     this.photos.setProvider(jp.photo_id, provider, assetId, ownerId);
     // also denorm on gallery row for fast reads
-    this.db.prepare('UPDATE journey_photos SET provider = ?, asset_id = ?, owner_id = ? WHERE id = ?').run(
-      provider,
-      assetId,
-      ownerId,
-      photoId,
-    );
+    this.db
+      .prepare('UPDATE journey_photos SET provider = ?, asset_id = ?, owner_id = ? WHERE id = ?')
+      .run(provider, assetId, ownerId, photoId);
   }
 
-  updatePhoto(
-    photoId: number,
-    userId: number,
-    data: { caption?: string; sort_order?: number },
-  ): JourneyPhoto | null {
+  updatePhoto(photoId: number, userId: number, data: { caption?: string; sort_order?: number }): JourneyPhoto | null {
     // photoId = journey_photos.id (gallery row)
     const row = this.db.prepare('SELECT id, journey_id FROM journey_photos WHERE id = ?').get(photoId) as
       | { id: number; journey_id: number }
@@ -1521,49 +1610,59 @@ export class JourneyDomainService {
       this.db.prepare('UPDATE journey_photos SET caption = ? WHERE id = ?').run(data.caption, photoId);
     }
     if (data.sort_order !== undefined) {
-      this.db.prepare('UPDATE journey_entry_photos SET sort_order = ? WHERE journey_photo_id = ?').run(
-        data.sort_order,
-        photoId,
-      );
+      this.db
+        .prepare('UPDATE journey_entry_photos SET sort_order = ? WHERE journey_photo_id = ?')
+        .run(data.sort_order, photoId);
     }
-    return this.db.prepare(`SELECT ${JP_SELECT} FROM ${JP_JOIN} WHERE gp.id = ? LIMIT 1`).get(photoId) as JourneyPhoto | null;
+    return this.db
+      .prepare(`SELECT ${JP_SELECT} FROM ${JP_JOIN} WHERE gp.id = ? LIMIT 1`)
+      .get(photoId) as JourneyPhoto | null;
   }
 
   // deletePhoto: hard-delete (backwards compat name used by old route).
   deletePhoto(
     photoId: number,
     userId: number,
-  ): { id: number; photo_id: number; file_path?: string | null; thumbnail_path?: string | null; journey_id: number } | null {
+  ): {
+    id: number;
+    photo_id: number;
+    file_path?: string | null;
+    thumbnail_path?: string | null;
+    journey_id: number;
+  } | null {
     const row = this.db.prepare('SELECT id, journey_id, photo_id FROM journey_photos WHERE id = ?').get(photoId) as
       | { id: number; journey_id: number; photo_id: number }
       | undefined;
     if (!row) return null;
     if (!this.canEdit(row.journey_id, userId)) return null;
 
-    const trekRow = this.db.prepare('SELECT file_path, thumbnail_path, provider FROM trek_photos WHERE id = ?').get(row.photo_id) as
-      | { file_path?: string; thumbnail_path?: string; provider?: string }
-      | undefined;
+    const trekRow = this.db
+      .prepare('SELECT file_path, thumbnail_path, provider FROM trek_photos WHERE id = ?')
+      .get(row.photo_id) as { file_path?: string; thumbnail_path?: string; provider?: string } | undefined;
 
     this.db.prepare('DELETE FROM journey_photos WHERE id = ?').run(photoId);
     this.photos.deleteIfOrphan(row.photo_id);
 
-    return { id: row.id, photo_id: row.photo_id, file_path: trekRow?.file_path ?? null, thumbnail_path: trekRow?.thumbnail_path ?? null, journey_id: row.journey_id };
+    return {
+      id: row.id,
+      photo_id: row.photo_id,
+      file_path: trekRow?.file_path ?? null,
+      thumbnail_path: trekRow?.thumbnail_path ?? null,
+      journey_id: row.journey_id,
+    };
   }
 
   // ── Contributors ─────────────────────────────────────────────────────────
 
-  addContributor(
-    journeyId: number,
-    userId: number,
-    targetUserId: number,
-    role: 'editor' | 'viewer',
-  ): boolean {
+  addContributor(journeyId: number, userId: number, targetUserId: number, role: 'editor' | 'viewer'): boolean {
     if (!this.isOwner(journeyId, userId)) return false;
     if (targetUserId === userId) return false;
     try {
-      this.db.prepare(
-        'INSERT OR REPLACE INTO journey_contributors (journey_id, user_id, role, added_at) VALUES (?, ?, ?, ?)',
-      ).run(journeyId, targetUserId, role, this.ts());
+      this.db
+        .prepare(
+          'INSERT OR REPLACE INTO journey_contributors (journey_id, user_id, role, added_at) VALUES (?, ?, ?, ?)',
+        )
+        .run(journeyId, targetUserId, role, this.ts());
       this.broadcastJourneyEvent(journeyId, 'journey:contributor:changed', { targetUserId, role });
       return true;
     } catch {
@@ -1571,28 +1670,20 @@ export class JourneyDomainService {
     }
   }
 
-  updateContributorRole(
-    journeyId: number,
-    userId: number,
-    targetUserId: number,
-    role: 'editor' | 'viewer',
-  ): boolean {
+  updateContributorRole(journeyId: number, userId: number, targetUserId: number, role: 'editor' | 'viewer'): boolean {
     if (!this.isOwner(journeyId, userId)) return false;
-    this.db.prepare('UPDATE journey_contributors SET role = ? WHERE journey_id = ? AND user_id = ?').run(
-      role,
-      journeyId,
-      targetUserId,
-    );
+    this.db
+      .prepare('UPDATE journey_contributors SET role = ? WHERE journey_id = ? AND user_id = ?')
+      .run(role, journeyId, targetUserId);
     this.broadcastJourneyEvent(journeyId, 'journey:contributor:changed', { targetUserId, role });
     return true;
   }
 
   removeContributor(journeyId: number, userId: number, targetUserId: number): boolean {
     if (!this.isOwner(journeyId, userId)) return false;
-    this.db.prepare("DELETE FROM journey_contributors WHERE journey_id = ? AND user_id = ? AND role != 'owner'").run(
-      journeyId,
-      targetUserId,
-    );
+    this.db
+      .prepare("DELETE FROM journey_contributors WHERE journey_id = ? AND user_id = ? AND role != 'owner'")
+      .run(journeyId, targetUserId);
     return true;
   }
 

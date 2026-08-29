@@ -9,19 +9,22 @@
  * semantic registry refusal and a Zod pipe rejection, and secret masking/
  * encryption/redaction (including without an explicit ENCRYPTION_KEY).
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
-import request from 'supertest';
+import { ManagedGuard } from '../../src/nest/common/managed.guard';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
+import { DatabaseModule } from '../../src/nest/database/database.module';
+import { StorageModule } from '../../src/nest/storage/storage.module';
+import { seedUser, sessionCookie } from './harness';
+import { APP_GUARD } from '@nestjs/core';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
+import type { Server } from 'http';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import type { Server } from 'http';
-import { APP_GUARD } from '@nestjs/core';
-import { DatabaseModule } from '../../src/nest/database/database.module';
-import { StorageModule } from '../../src/nest/storage/storage.module';
-import { ManagedGuard } from '../../src/nest/common/managed.guard';
-import { Test } from '@nestjs/testing';
-import { seedUser, sessionCookie } from './harness';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 
 const { db } = vi.hoisted(() => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -46,7 +49,13 @@ const { db } = vi.hoisted(() => {
 vi.mock('../../src/db/database', () => ({ db, closeDb: () => {}, reinitialize: () => {} }));
 // The audit domain is DI-native: writeAudit runs for real against the temp db's
 // audit_log table; only the file logger is silenced.
-vi.mock('../../src/nest/audit/audit-log.logger', () => ({ LOG_LEVEL: 'error', logInfo: vi.fn(), logDebug: vi.fn(), logError: vi.fn(), logWarn: vi.fn() }));
+vi.mock('../../src/nest/audit/audit-log.logger', () => ({
+  LOG_LEVEL: 'error',
+  logInfo: vi.fn(),
+  logDebug: vi.fn(),
+  logError: vi.fn(),
+  logWarn: vi.fn(),
+}));
 // apiKeyCrypto imports ENCRYPTION_KEY from here for the cipher; the raw
 // process.env var is managed separately in beforeAll/afterAll for the
 // no-explicit-key case (STORE2E-007). JWT_SECRET must also be
@@ -54,9 +63,6 @@ vi.mock('../../src/nest/audit/audit-log.logger', () => ({ LOG_LEVEL: 'error', lo
 // import it from this same module, so mocking the module wholesale requires
 // keeping both consistent.
 vi.mock('../../src/config', () => ({ ENCRYPTION_KEY: 'e2e-storage-key', JWT_SECRET: 'e2e-storage-jwt-secret' }));
-
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
 
 describe('Storage admin e2e (real auth + admin guard + managed guard + temp SQLite)', () => {
   let server: Server;
@@ -110,7 +116,11 @@ describe('Storage admin e2e (real auth + admin guard + managed guard + temp SQLi
     // per handler where a future handler could forget them.
     expect((await request(server).put('/api/admin/storage').send({ backends: [], categories: {} })).status).toBe(401);
     expect(
-      (await request(server).post('/api/admin/storage/test').send({ backend: { name: 'x', type: 'local', options: { root: '/tmp' } } })).status,
+      (
+        await request(server)
+          .post('/api/admin/storage/test')
+          .send({ backend: { name: 'x', type: 'local', options: { root: '/tmp' } } })
+      ).status,
     ).toBe(401);
   });
 
@@ -124,7 +134,12 @@ describe('Storage admin e2e (real auth + admin guard + managed guard + temp SQLi
     const res = await request(server).get('/api/admin/storage').set('Cookie', adminCookie);
     expect(res.status).toBe(200);
     const names = (res.body.backends as Array<{ name: string; source: string }>).map((b) => [b.name, b.source]);
-    expect(names).toEqual(expect.arrayContaining([['uploads-local', 'built-in'], ['backups-local', 'built-in']]));
+    expect(names).toEqual(
+      expect.arrayContaining([
+        ['uploads-local', 'built-in'],
+        ['backups-local', 'built-in'],
+      ]),
+    );
     expect(Object.keys(res.body.categories)).toHaveLength(8);
     expect(res.body.seedFilePresent).toBe(false);
     expect(res.body.health).toEqual({ replicaFailures: [] });
@@ -146,9 +161,9 @@ describe('Storage admin e2e (real auth + admin guard + managed guard + temp SQLi
     };
     const res = await request(server).put('/api/admin/storage').set('Cookie', adminCookie).send(body);
     expect(res.status).toBe(200);
-    const offBox = (res.body.backends as Array<{ name: string; source: string; options: Record<string, unknown> }>).find(
-      (b) => b.name === 'off-box',
-    )!;
+    const offBox = (
+      res.body.backends as Array<{ name: string; source: string; options: Record<string, unknown> }>
+    ).find((b) => b.name === 'off-box')!;
     expect(offBox.source).toBe('settings');
     expect(offBox.options.secretAccessKey).toBe('••••••••'); // masked, never echoed
     expect(res.body.categories.backups).toEqual({ backend: 'nas-backups', source: 'settings' });
@@ -157,7 +172,9 @@ describe('Storage admin e2e (real auth + admin guard + managed guard + temp SQLi
     expect(row.value).toContain('enc:v1:');
     expect(row.value).not.toContain('sk-e2e');
 
-    const audit = db.prepare("SELECT details FROM audit_log WHERE action = 'admin.storage_update'").get() as { details: string };
+    const audit = db.prepare("SELECT details FROM audit_log WHERE action = 'admin.storage_update'").get() as {
+      details: string;
+    };
     expect(audit.details).toContain('***');
     expect(audit.details).not.toContain('sk-e2e');
   });
@@ -203,7 +220,9 @@ describe('Storage admin e2e (real auth + admin guard + managed guard + temp SQLi
         (b) => b.name === 'off-box',
       )!;
       expect(offBox.options.secretAccessKey).not.toBe('sk');
-      const row = db.prepare("SELECT value FROM app_settings WHERE key = 'storage.backends'").get() as { value: string };
+      const row = db.prepare("SELECT value FROM app_settings WHERE key = 'storage.backends'").get() as {
+        value: string;
+      };
       expect(row.value).not.toContain('"sk"');
       expect(row.value).toContain('enc:v1:');
     } finally {
@@ -233,7 +252,9 @@ describe('Storage admin e2e (real auth + admin guard + managed guard + temp SQLi
       .send({ backend: { name: 'cand', type: 'local', options: { root } } });
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ ok: true, targets: [{ name: 'cand', ok: true }] });
-    const audit = db.prepare("SELECT details FROM audit_log WHERE action = 'admin.storage_test'").get() as { details: string };
+    const audit = db.prepare("SELECT details FROM audit_log WHERE action = 'admin.storage_test'").get() as {
+      details: string;
+    };
     expect(JSON.parse(audit.details)).toMatchObject({ backend: 'cand', type: 'local', ok: true });
   });
 
@@ -266,13 +287,17 @@ describe('Storage admin e2e (real auth + admin guard + managed guard + temp SQLi
     }
     expect(status).toMatchObject({ status: 'done' });
     expect(stateBody!.categories.journey).toEqual({ backend: 'dest', source: 'settings' });
-    const audit = db.prepare("SELECT details FROM audit_log WHERE action = 'admin.storage_migration'").get() as { details: string };
+    const audit = db.prepare("SELECT details FROM audit_log WHERE action = 'admin.storage_migration'").get() as {
+      details: string;
+    };
     expect(JSON.parse(audit.details)).toEqual({ category: 'journey', to: 'dest' });
   });
 
   it('STORE2E-011 backfill guards: 401 anon, 404 non-mirror, 409 while running is covered by unit — here the 404', async () => {
     expect((await request(server).post('/api/admin/storage/backends/x/backfill')).status).toBe(401);
-    const res = await request(server).post('/api/admin/storage/backends/uploads-local/backfill').set('Cookie', adminCookie);
+    const res = await request(server)
+      .post('/api/admin/storage/backends/uploads-local/backfill')
+      .set('Cookie', adminCookie);
     expect(res.status).toBe(404);
     expect(res.body.error).toContain('not a mirror');
   });
@@ -313,17 +338,23 @@ describe('Storage admin e2e (real auth + admin guard + managed guard + temp SQLi
     }
     expect(status).toMatchObject({ status: 'done' });
     expect(fs.existsSync(path.join(nasRoot, 'pre-mirror.zip'))).toBe(true);
-    const audit = db.prepare("SELECT details FROM audit_log WHERE action = 'admin.storage_backfill'").get() as { details: string };
+    const audit = db.prepare("SELECT details FROM audit_log WHERE action = 'admin.storage_backfill'").get() as {
+      details: string;
+    };
     expect(JSON.parse(audit.details)).toMatchObject({ backend: 'm' });
   });
 
   it('STORE2E-013 cancel 404s with no active run; stats refresh returns real numbers and audits', async () => {
-    expect((await request(server).delete('/api/admin/storage/backends/m/backfill').set('Cookie', adminCookie)).status).toBe(404);
+    expect(
+      (await request(server).delete('/api/admin/storage/backends/m/backfill').set('Cookie', adminCookie)).status,
+    ).toBe(404);
     const res = await request(server).post('/api/admin/storage/stats/refresh').set('Cookie', adminCookie);
     expect(res.status).toBe(200);
     expect(res.body.computedAt).toBeGreaterThan(0);
     expect(res.body.categories.backups.objects).toBeGreaterThanOrEqual(1); // pre-mirror.zip at least
-    const audit = db.prepare("SELECT COUNT(*) AS n FROM audit_log WHERE action = 'admin.storage_stats_refresh'").get() as { n: number };
+    const audit = db
+      .prepare("SELECT COUNT(*) AS n FROM audit_log WHERE action = 'admin.storage_stats_refresh'")
+      .get() as { n: number };
     expect(audit.n).toBe(1);
   });
 

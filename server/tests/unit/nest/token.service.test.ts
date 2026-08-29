@@ -1,3 +1,20 @@
+// ---------------------------------------------------------------------------
+// Imports (after mocks)
+// ---------------------------------------------------------------------------
+import { runMigrations } from '../../../src/db/migrations';
+import { createTables } from '../../../src/db/schema';
+import { revokeUserSessions } from '../../../src/mcp/sessionManager';
+import { EphemeralTokenService } from '../../../src/nest/auth/ephemeral-token.service';
+import { createEphemeralToken } from '../../../src/nest/auth/ephemeral-tokens';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { TokenService } from '../../../src/nest/tokens/token.service';
+import { TokensModule } from '../../../src/nest/tokens/tokens.module';
+import { createUser } from '../../helpers/factories';
+import { expectRegisteredProvider } from '../../helpers/module-providers';
+import { resetTestDb } from '../../helpers/test-db';
+
+import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
+
 /**
  * token.service.test.ts
  *
@@ -30,23 +47,6 @@ const { testDb, dbMock } = vi.hoisted(() => {
 vi.mock('../../../src/db/database', () => dbMock);
 vi.mock('../../../src/nest/auth/ephemeral-tokens', () => ({ createEphemeralToken: vi.fn() }));
 vi.mock('../../../src/mcp/sessionManager', () => ({ revokeUserSessions: vi.fn() }));
-
-// ---------------------------------------------------------------------------
-// Imports (after mocks)
-// ---------------------------------------------------------------------------
-
-import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser } from '../../helpers/factories';
-import { TokenService } from '../../../src/nest/tokens/token.service';
-import { TokensModule } from '../../../src/nest/tokens/tokens.module';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { createEphemeralToken } from '../../../src/nest/auth/ephemeral-tokens';
-import { revokeUserSessions } from '../../../src/mcp/sessionManager';
-import { expectRegisteredProvider } from '../../helpers/module-providers';
-import { EphemeralTokenService } from '../../../src/nest/auth/ephemeral-token.service';
 
 const svc = new TokenService(new DatabaseService(testDb), new EphemeralTokenService());
 
@@ -91,9 +91,9 @@ describe('MCP token service', () => {
   it('AUTH-DB-044: createMcpToken returns 400 when user has 10 tokens already', () => {
     const { user } = createUser(testDb);
     for (let i = 0; i < 10; i++) {
-      testDb.prepare(
-        'INSERT INTO mcp_tokens (user_id, name, token_hash, token_prefix) VALUES (?, ?, ?, ?)'
-      ).run(user.id, `Token ${i}`, `hash${i}`, `trek_prefix${i}`);
+      testDb
+        .prepare('INSERT INTO mcp_tokens (user_id, name, token_hash, token_prefix) VALUES (?, ?, ?, ?)')
+        .run(user.id, `Token ${i}`, `hash${i}`, `trek_prefix${i}`);
     }
     const result = svc.createMcpToken(user.id, 'One More');
     expect(result.status).toBe(400);
@@ -121,7 +121,9 @@ describe('MCP token service', () => {
     const { user } = createUser(testDb);
     const created = svc.createMcpToken(user.id, 'sweep-down');
     const tokenId = String((created.token as { id: number }).id);
-    vi.mocked(revokeUserSessions).mockImplementationOnce(() => { throw new Error('sweep down'); });
+    vi.mocked(revokeUserSessions).mockImplementationOnce(() => {
+      throw new Error('sweep down');
+    });
 
     expect(svc.deleteMcpToken(user.id, tokenId)).toEqual({ success: true });
     expect(testDb.prepare('SELECT id FROM mcp_tokens WHERE id = ?').get(tokenId)).toBeUndefined();
@@ -178,8 +180,8 @@ describe('MCP token service (admin view)', () => {
 
     const all = svc.listAllMcpTokens() as Record<string, unknown>[];
     expect(all).toHaveLength(2);
-    expect(all.every(t => typeof t.username === 'string')).toBe(true);
-    expect(all.some(t => t.token_hash !== undefined)).toBe(false);
+    expect(all.every((t) => typeof t.username === 'string')).toBe(true);
+    expect(all.some((t) => t.token_hash !== undefined)).toBe(false);
   });
 
   it('TOKEN-004: adminDeleteMcpToken removes any user token and revokes that user', () => {
@@ -259,10 +261,16 @@ describe('verifyMcpToken', () => {
     const created = svc.createMcpToken(user.id, 'stamped');
     const raw = (created.token as { raw_token: string }).raw_token;
     const id = (created.token as { id: number }).id;
-    expect((testDb.prepare('SELECT last_used_at FROM mcp_tokens WHERE id = ?').get(id) as { last_used_at: string | null }).last_used_at).toBeNull();
+    expect(
+      (testDb.prepare('SELECT last_used_at FROM mcp_tokens WHERE id = ?').get(id) as { last_used_at: string | null })
+        .last_used_at,
+    ).toBeNull();
 
     svc.verifyMcpToken(raw);
-    expect((testDb.prepare('SELECT last_used_at FROM mcp_tokens WHERE id = ?').get(id) as { last_used_at: string | null }).last_used_at).not.toBeNull();
+    expect(
+      (testDb.prepare('SELECT last_used_at FROM mcp_tokens WHERE id = ?').get(id) as { last_used_at: string | null })
+        .last_used_at,
+    ).not.toBeNull();
 
     svc.verifyMcpToken('trek_wrong');
     expect(testDb.prepare('SELECT COUNT(*) c FROM mcp_tokens').get()).toEqual({ c: 1 });

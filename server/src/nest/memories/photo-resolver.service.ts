@@ -1,14 +1,15 @@
-import { Injectable } from '@nestjs/common';
-import { Response } from 'express';
 import type { TrekPhoto } from '../../types';
 import { decrypt_api_key } from '../common/crypto/apiKeyCrypto';
 import { TrekPhotosRepository } from '../photos/trek-photos.repository';
+import { StorageService } from '../storage/storage.service';
+import { fail, success, type AssetInfo, type ServiceResult } from './memories.helpers';
+import type { PhotoAssetRef } from './photo-provider';
+import { PhotoProviderRegistry } from './photo-provider.registry';
 import { ThumbnailService } from './thumbnail.service';
 import { TrekPhotoCacheService } from './trek-photo-cache.service';
-import { fail, success, type AssetInfo, type ServiceResult } from './memories.helpers';
-import { PhotoProviderRegistry } from './photo-provider.registry';
-import type { PhotoAssetRef } from './photo-provider';
-import { StorageService } from '../storage/storage.service';
+import { Injectable } from '@nestjs/common';
+
+import { Response } from 'express';
 
 /**
  * Resolves a stored trek_photo to bytes or metadata by asking whichever provider
@@ -57,7 +58,7 @@ export class PhotoResolverService {
       return;
     }
 
-    const promise = fetchBytes().then(async result => {
+    const promise = fetchBytes().then(async (result) => {
       if ('error' in result) return null;
       await this.cache.put(key, result.bytes, result.contentType);
       return result.bytes;
@@ -138,7 +139,8 @@ export class PhotoResolverService {
     const ref = this.refFor(photo, userId);
     if (kind === 'thumbnail') {
       await this.streamCachedThumbnail(
-        res, photo,
+        res,
+        photo,
         () => provider.fetchThumbnailBytes(ref),
         // The fallback streams the thumbnail itself, so it carries no Range.
         () => provider.streamAsset(res, ref, kind),
@@ -158,17 +160,14 @@ export class PhotoResolverService {
       userId,
       ownerId: photo.owner_id!,
       assetId: photo.asset_id!,
-      passphrase: photo.passphrase ? (decrypt_api_key(photo.passphrase) || undefined) : undefined,
+      passphrase: photo.passphrase ? decrypt_api_key(photo.passphrase) || undefined : undefined,
       mediaType: photo.media_type,
     };
   }
 
   // ── Asset Info ────────────────────────────────────────────────────────────
 
-  async getPhotoInfo(
-    userId: number,
-    photoId: number,
-  ): Promise<ServiceResult<AssetInfo>> {
+  async getPhotoInfo(userId: number, photoId: number): Promise<ServiceResult<AssetInfo>> {
     const photo = this.photos.resolve(photoId);
     if (!photo) return fail('Photo not found', 404);
 

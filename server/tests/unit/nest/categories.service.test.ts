@@ -5,6 +5,13 @@
  * — no Nest container needed. (CAT-SVC-016 covered the deleted
  * categories.bridge; the plugin RPC host now injects CategoriesService directly.)
  */
+import { runMigrations } from '../../../src/db/migrations';
+import { createTables } from '../../../src/db/schema';
+import { CategoriesService } from '../../../src/nest/categories/categories.service';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { createUser } from '../../helpers/factories';
+import { resetTestDb } from '../../helpers/test-db';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // ── DB setup ──────────────────────────────────────────────────────────────────
@@ -32,13 +39,6 @@ vi.mock('../../../src/config', () => ({
   ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
   updateJwtSecret: () => {},
 }));
-
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser } from '../../helpers/factories';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { CategoriesService } from '../../../src/nest/categories/categories.service';
 
 const svc = new CategoriesService(new DatabaseService(testDb));
 

@@ -6,18 +6,18 @@
  * picture or a broken tile: the addon gate, the "source is gone" bail-out, and
  * the mtime check that avoids regenerating an up-to-date thumbnail.
  */
+import type { AddonsService } from '../../../src/nest/addons/addons.service';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { ThumbnailService, journeyThumbName } from '../../../src/nest/memories/thumbnail.service';
+import { makeStorageFixture } from '../../helpers/storage-fixture';
+
+import Database from 'better-sqlite3';
+import { Jimp } from 'jimp';
+import fs from 'node:fs';
+import path from 'node:path';
 import { describe, it, expect, vi, beforeEach, afterAll } from 'vitest';
 
 const { isAddonEnabled } = vi.hoisted(() => ({ isAddonEnabled: vi.fn(() => true) }));
-
-import fs from 'node:fs';
-import path from 'node:path';
-import { Jimp } from 'jimp';
-import { ThumbnailService, journeyThumbName } from '../../../src/nest/memories/thumbnail.service';
-import type { AddonsService } from '../../../src/nest/addons/addons.service';
-import Database from 'better-sqlite3';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { makeStorageFixture } from '../../helpers/storage-fixture';
 
 // Category-addressed since slice 4: originals + thumbs are ('journey', <name>)
 // objects; the fixture's 'journey/' prefix reproduces the real layout, so the
@@ -26,7 +26,11 @@ const fx = makeStorageFixture('journey/');
 // Minimal real DB — the orphan sweep only SELECTs these two columns.
 const thumbsDb = new Database(':memory:');
 thumbsDb.exec('CREATE TABLE trek_photos (id INTEGER PRIMARY KEY AUTOINCREMENT, file_path TEXT, thumbnail_path TEXT)');
-const svc = new ThumbnailService({ isAddonEnabled } as unknown as AddonsService, fx.storage, new DatabaseService(thumbsDb as never));
+const svc = new ThumbnailService(
+  { isAddonEnabled } as unknown as AddonsService,
+  fx.storage,
+  new DatabaseService(thumbsDb as never),
+);
 const root = fx.root;
 
 /** A real 1200x900 JPEG — Jimp has to be able to decode it for the happy path. */
@@ -145,7 +149,8 @@ describe('sweepOrphanThumbs (spec fix #2)', () => {
   });
 
   it('THUMB-SWEEP-002: spares a recorded thumbnail_path even without a matching file_path hash', async () => {
-    thumbsDb.prepare('INSERT INTO trek_photos (file_path, thumbnail_path) VALUES (?, ?)')
+    thumbsDb
+      .prepare('INSERT INTO trek_photos (file_path, thumbnail_path) VALUES (?, ?)')
       .run('elsewhere/x.jpg', 'journey/thumbs/recorded00000000.jpg');
     const recorded = writeThumb('recorded00000000.jpg');
 

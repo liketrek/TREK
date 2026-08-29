@@ -1,21 +1,21 @@
-import { Module } from '@nestjs/common';
-import { FilesController } from './files.controller';
-import { FilesDownloadController } from './files-download.controller';
-import { FilesService } from './files.service';
-import { FilesRpc } from './files.rpc';
-import { PluginGuardsModule } from '../plugins/host/plugin-guards.module';
-import { RealtimeModule } from '../realtime/realtime.module';
-import { PermissionsModule } from '../permissions/permissions.module';
 import { AppConfigModule } from '../app-config/app-config.module';
 import { EphemeralTokenModule } from '../auth/ephemeral-token.module';
-import { MulterModule } from '@nestjs/platform-express';
-import { AllowedFileTypesModule } from './allowed-file-types.module';
-import { AllowedFileTypesService } from './allowed-file-types.service';
+import { PermissionsModule } from '../permissions/permissions.module';
+import { PluginGuardsModule } from '../plugins/host/plugin-guards.module';
+import { RealtimeModule } from '../realtime/realtime.module';
+import { buildStorageUploadOptions } from '../storage/storage-upload.factory';
 import { StorageModule } from '../storage/storage.module';
 import { StorageService } from '../storage/storage.service';
-import { buildStorageUploadOptions } from '../storage/storage-upload.factory';
-import { filesUploadFileFilter } from './files.controller';
+import { AllowedFileTypesModule } from './allowed-file-types.module';
+import { AllowedFileTypesService } from './allowed-file-types.service';
+import { FilesDownloadController } from './files-download.controller';
 import { MAX_VIDEO_SIZE } from './files.constants';
+import { FilesController } from './files.controller';
+import { filesUploadFileFilter } from './files.controller';
+import { FilesRpc } from './files.rpc';
+import { FilesService } from './files.service';
+import { Module } from '@nestjs/common';
+import { MulterModule } from '@nestjs/platform-express';
 
 @Module({
   imports: [
@@ -33,7 +33,12 @@ import { MAX_VIDEO_SIZE } from './files.constants';
         }),
     }),
     StorageModule,
-    EphemeralTokenModule, PermissionsModule, AppConfigModule, RealtimeModule, PluginGuardsModule],
+    EphemeralTokenModule,
+    PermissionsModule,
+    AppConfigModule,
+    RealtimeModule,
+    PluginGuardsModule,
+  ],
   controllers: [FilesController, FilesDownloadController],
   providers: [FilesService, FilesRpc],
   exports: [FilesService],

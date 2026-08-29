@@ -100,7 +100,7 @@ const collection: TranslationStrings = {
   'collections.markVisited': 'Marquer comme visité',
   'collections.markVisitedAll': 'Visité partout',
   'collections.markVisitedSelection': 'Marquer comme visité dans vos listes',
-  'collections.markVisitedNone': 'Aucun de ces lieux n\'est enregistré dans une liste',
+  'collections.markVisitedNone': "Aucun de ces lieux n'est enregistré dans une liste",
   'collections.markedVisited': 'Marqué comme visité',
   'collections.markedVisitedTrip': '{count} lieux marqués comme visités',
 

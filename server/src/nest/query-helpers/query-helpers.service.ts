@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { DatabaseService } from '../database/database.service';
 import type { Tag, Participant } from '../../types';
+import { DatabaseService } from '../database/database.service';
+import { Injectable } from '@nestjs/common';
 
 interface TagRow extends Tag {
   place_id: number;
@@ -38,11 +38,14 @@ export class QueryHelpersService {
     const tagsByPlaceId: Record<number, Partial<Tag>[]> = {};
     if (placeIds.length > 0) {
       const placeholders = placeIds.map(() => '?').join(',');
-      const allTags = this.db.all<TagRow>(`
+      const allTags = this.db.all<TagRow>(
+        `
       SELECT t.*, pt.place_id FROM tags t
       JOIN place_tags pt ON t.id = pt.tag_id
       WHERE pt.place_id IN (${placeholders})
-    `, ...placeIds);
+    `,
+        ...placeIds,
+      );
 
       for (const tag of allTags) {
         const pid = tag.place_id;
@@ -62,12 +65,15 @@ export class QueryHelpersService {
   loadRatingsByPlaceIds(placeIds: number[]): Record<number, PlaceRatingRow[]> {
     const ratingsByPlaceId: Record<number, PlaceRatingRow[]> = {};
     if (placeIds.length > 0) {
-      const rows = this.db.all<PlaceRatingRow & { place_id: number }>(`
+      const rows = this.db.all<PlaceRatingRow & { place_id: number }>(
+        `
       SELECT pr.place_id, pr.user_id, u.username, u.avatar, pr.rating FROM place_ratings pr
       JOIN users u ON pr.user_id = u.id
       WHERE pr.place_id IN (${placeIds.map(() => '?').join(',')})
       ORDER BY pr.created_at
-    `, ...placeIds);
+    `,
+        ...placeIds,
+      );
       for (const { place_id, ...rest } of rows) {
         if (!ratingsByPlaceId[place_id]) ratingsByPlaceId[place_id] = [];
         ratingsByPlaceId[place_id].push(rest);

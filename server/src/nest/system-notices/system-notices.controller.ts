@@ -1,9 +1,9 @@
+import type { User } from '../../types';
+import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { SystemNoticesService } from './system-notices.service';
 import { Controller, Get, HttpCode, HttpException, Param, Post, UseGuards } from '@nestjs/common';
 import type { SystemNoticeDto } from '@trek/shared';
-import type { User } from '../../types';
-import { SystemNoticesService } from './system-notices.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
 
 /**
  * /api/system-notices — active announcements for the current user + dismissal.

@@ -301,7 +301,8 @@ export class PluginRegistryService {
       publishedAt: latest?.publishedAt ?? null,
       requiredAddons: latest?.requiredAddons ?? [],
       pluginDependencies: latest?.pluginDependencies ?? [],
-      screenshotUrl: entry.screenshotUrl ?? (latest ? rawFileUrl(entry.repo, latest.commitSha, 'docs/screenshot.png') : null),
+      screenshotUrl:
+        entry.screenshotUrl ?? (latest ? rawFileUrl(entry.repo, latest.commitSha, 'docs/screenshot.png') : null),
       signed: !!entry.authorPublicKey && !!latest?.signature,
       authorPublicKey: entry.authorPublicKey ?? null,
       // The version picker's data: every published version with its OWN server-computed
@@ -425,7 +426,8 @@ export class PluginRegistryService {
     try {
       this.verifySignatureAndTofu(id, bytes, entry, ver, opts?.retrustKey);
     } catch (e) {
-      if (e instanceof RegistryError && isSignatureCode(e.code)) setUpdateBlock(this.dbs.connection, id, e.code, e.message, ver.version);
+      if (e instanceof RegistryError && isSignatureCode(e.code))
+        setUpdateBlock(this.dbs.connection, id, e.code, e.message, ver.version);
       throw e;
     }
 
@@ -458,13 +460,9 @@ export class PluginRegistryService {
 
       // 7. register INACTIVE (record provenance)
       discoverPlugins(this.db);
-      this.db.prepare('UPDATE plugins SET source_repo = ?, source_commit = ?, sha256 = ?, reviewed_at = ? WHERE id = ?').run(
-        entry.repo,
-        ver.commitSha,
-        ver.sha256,
-        entry.reviewedAt ?? null,
-        id,
-      );
+      this.db
+        .prepare('UPDATE plugins SET source_repo = ?, source_commit = ?, sha256 = ?, reviewed_at = ? WHERE id = ?')
+        .run(entry.repo, ver.commitSha, ver.sha256, entry.reviewedAt ?? null, id);
       // Pin the author key on first successful install of a signed plugin (TOFU) —
       // and, after a re-trust, re-pin to the new key the admin blessed. Only ever set
       // to a key the artifact just verified under; NEVER cleared to NULL, because a
@@ -592,12 +590,14 @@ export class PluginRegistryService {
       // plugin has just left the registry trust model entirely — the code is now whatever
       // the admin uploaded. Leaving the block would have the row insist an update was
       // blocked over a signing key that no longer applies to the code that is running.
-      this.db.prepare(
-        `UPDATE plugins SET source_repo = ?, source_commit = ?, sha256 = ?, reviewed_at = ?, author_pubkey = NULL,
+      this.db
+        .prepare(
+          `UPDATE plugins SET source_repo = ?, source_commit = ?, sha256 = ?, reviewed_at = ?, author_pubkey = NULL,
                             update_block_code = NULL, update_block_detail = NULL, update_block_version = NULL,
                             status = 'inactive', enabled = 0
          WHERE id = ?`,
-      ).run('local:upload', null, null, null, staged.id);
+        )
+        .run('local:upload', null, null, null, staged.id);
     } finally {
       fs.rmSync(staged.stagingDir, { recursive: true, force: true });
     }
@@ -631,8 +631,11 @@ export class PluginRegistryService {
     retrustKey?: string,
   ): void {
     const pinned =
-      (this.db.prepare('SELECT author_pubkey FROM plugins WHERE id = ?').get(id) as { author_pubkey?: string } | undefined)
-        ?.author_pubkey ?? null;
+      (
+        this.db.prepare('SELECT author_pubkey FROM plugins WHERE id = ?').get(id) as
+          | { author_pubkey?: string }
+          | undefined
+      )?.author_pubkey ?? null;
 
     if (!entry.authorPublicKey && !ver.signature) {
       if (pinned) {

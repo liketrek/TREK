@@ -1,12 +1,12 @@
-import { Injectable } from '@nestjs/common';
-import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
-import { RealtimeService } from '../realtime/realtime.service';
-import { PermissionsService } from '../permissions/permissions.service';
+import type { User } from '../../types';
 import { avatarUrl } from '../common/avatarUrl';
 import type { UpdateConflict } from '../common/conflictResult';
-import type { User } from '../../types';
 import { DatabaseService, type TripAccess } from '../database/database.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { PermissionsService } from '../permissions/permissions.service';
+import { RealtimeService } from '../realtime/realtime.service';
+import { Injectable } from '@nestjs/common';
+import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 
 /** Privacy fields stamped on a packing item (#858). */
 type PrivacyFields = { is_private?: number; owner_id?: number | null };
@@ -25,7 +25,24 @@ interface ImportItem {
   is_private?: boolean;
 }
 
-const BAG_COLORS = ['#6366f1', '#ec4899', '#f97316', '#10b981', '#06b6d4', '#8b5cf6', '#ef4444', '#f59e0b', '#3b82f6', '#84cc16', '#d946ef', '#14b8a6', '#f43f5e', '#a855f7', '#eab308', '#64748b'];
+const BAG_COLORS = [
+  '#6366f1',
+  '#ec4899',
+  '#f97316',
+  '#10b981',
+  '#06b6d4',
+  '#8b5cf6',
+  '#ef4444',
+  '#f59e0b',
+  '#3b82f6',
+  '#84cc16',
+  '#d946ef',
+  '#14b8a6',
+  '#f43f5e',
+  '#a855f7',
+  '#eab308',
+  '#64748b',
+];
 
 /**
  * Packing domain service — owns the packing SQL (moved from the legacy
@@ -56,7 +73,12 @@ export class PackingService {
     return this.permissions.checkPermission('packing_edit', user.role, trip.user_id, user.id, trip.user_id !== user.id);
   }
 
-  broadcast<E extends TrekWsTripEventName>(tripId: string, event: E, payload: TrekWsPayload<E>, socketId: string | undefined): void {
+  broadcast<E extends TrekWsTripEventName>(
+    tripId: string,
+    event: E,
+    payload: TrekWsPayload<E>,
+    socketId: string | undefined,
+  ): void {
     this.realtime.broadcast(tripId, event, payload, socketId);
   }
 
@@ -65,14 +87,26 @@ export class PackingService {
    * screens: when the item is private the event is delivered only to its owner's
    * sockets. Shared items broadcast to the whole trip room as before.
    */
-  broadcastItem<E extends TrekWsTripEventName>(tripId: string, event: E, payload: TrekWsPayload<E>, item: PrivacyFields | null | undefined, socketId: string | undefined): void {
+  broadcastItem<E extends TrekWsTripEventName>(
+    tripId: string,
+    event: E,
+    payload: TrekWsPayload<E>,
+    item: PrivacyFields | null | undefined,
+    socketId: string | undefined,
+  ): void {
     const onlyUserId = item?.is_private && item.owner_id != null ? item.owner_id : undefined;
     this.realtime.broadcast(tripId, event, payload, socketId, onlyUserId);
   }
 
   /** Deliver an item event to a specific set of viewers (#858 shared items) — the
    *  owner plus the recipients it was shared with — without leaking to the room. */
-  broadcastToViewers<E extends TrekWsTripEventName>(tripId: string, event: E, payload: TrekWsPayload<E>, viewerIds: number[], socketId: string | undefined): void {
+  broadcastToViewers<E extends TrekWsTripEventName>(
+    tripId: string,
+    event: E,
+    payload: TrekWsPayload<E>,
+    viewerIds: number[],
+    socketId: string | undefined,
+  ): void {
     for (const uid of new Set(viewerIds)) {
       if (uid != null) this.realtime.broadcast(tripId, event, payload, socketId, uid);
     }
@@ -80,15 +114,23 @@ export class PackingService {
 
   /** The users who can currently see an item: everyone (null) for Common, or
    *  owner + recipients for a restricted item. */
-  viewersOf(item: { is_private?: number; owner_id?: number | null; recipients?: { user_id: number }[] } | null | undefined): number[] | null {
+  viewersOf(
+    item: { is_private?: number; owner_id?: number | null; recipients?: { user_id: number }[] } | null | undefined,
+  ): number[] | null {
     if (!item || !item.is_private) return null; // Common — visible to the whole room
-    const ids = [item.owner_id, ...(item.recipients || []).map(r => r.user_id)].filter((x): x is number => x != null);
+    const ids = [item.owner_id, ...(item.recipients || []).map((r) => r.user_id)].filter((x): x is number => x != null);
     return ids;
   }
 
   /** Deliver an item event to exactly the people who can see it (#858): the whole
    *  room for a Common item, or owner + recipients for a restricted one. */
-  emitToViewers<E extends TrekWsTripEventName>(tripId: string, event: E, payload: TrekWsPayload<E>, item: PrivacyFields | null | undefined, socketId: string | undefined): void {
+  emitToViewers<E extends TrekWsTripEventName>(
+    tripId: string,
+    event: E,
+    payload: TrekWsPayload<E>,
+    item: PrivacyFields | null | undefined,
+    socketId: string | undefined,
+  ): void {
     const viewers = this.viewersOf(item);
     if (viewers === null) {
       this.broadcast(tripId, event, payload, socketId);
@@ -112,7 +154,13 @@ export class PackingService {
    * plugin deps factory), with a comment asking for all of them to be kept in
    * lockstep by hand.
    */
-  broadcastUpdate(tripId: string, id: string | number, item: PrivacyFields, wasPrivate: boolean, socketId: string | undefined): void {
+  broadcastUpdate(
+    tripId: string,
+    id: string | number,
+    item: PrivacyFields,
+    wasPrivate: boolean,
+    socketId: string | undefined,
+  ): void {
     const nowPrivate = !!item.is_private;
     if (nowPrivate) {
       if (wasPrivate) {
@@ -138,37 +186,46 @@ export class PackingService {
    */
   private enrichItems(items: any[]): any[] {
     if (items.length === 0) return items;
-    const ids = items.map(i => i.id);
+    const ids = items.map((i) => i.id);
     const placeholders = ids.map(() => '?').join(',');
 
-    const owners = this.db.all<{ id: number; username: string }>(`SELECT id, username FROM users WHERE id IN (SELECT owner_id FROM packing_items WHERE id IN (${placeholders}))`, ...ids);
-    const ownerName = new Map(owners.map(o => [o.id, o.username]));
+    const owners = this.db.all<{ id: number; username: string }>(
+      `SELECT id, username FROM users WHERE id IN (SELECT owner_id FROM packing_items WHERE id IN (${placeholders}))`,
+      ...ids,
+    );
+    const ownerName = new Map(owners.map((o) => [o.id, o.username]));
 
-    const recipientRows = this.db.all<{ item_id: number; user_id: number; username: string }>(`
+    const recipientRows = this.db.all<{ item_id: number; user_id: number; username: string }>(
+      `
     SELECT r.item_id, r.user_id, COALESCE(u.display_name, u.username) AS username
     FROM packing_item_recipients r JOIN users u ON u.id = r.user_id
     WHERE r.item_id IN (${placeholders})
-  `, ...ids);
+  `,
+      ...ids,
+    );
     const recipientsByItem = new Map<number, { user_id: number; username: string }[]>();
     for (const r of recipientRows) {
       if (!recipientsByItem.has(r.item_id)) recipientsByItem.set(r.item_id, []);
       recipientsByItem.get(r.item_id)!.push({ user_id: r.user_id, username: r.username });
     }
 
-    const contributorRows = this.db.all<{ item_id: number; user_id: number; status: string; username: string }>(`
+    const contributorRows = this.db.all<{ item_id: number; user_id: number; status: string; username: string }>(
+      `
     SELECT c.item_id, c.user_id, c.status, COALESCE(u.display_name, u.username) AS username
     FROM packing_item_contributors c JOIN users u ON u.id = c.user_id
     WHERE c.item_id IN (${placeholders})
-  `, ...ids);
+  `,
+      ...ids,
+    );
     const contributorsByItem = new Map<number, { user_id: number; username: string; status: string }[]>();
     for (const c of contributorRows) {
       if (!contributorsByItem.has(c.item_id)) contributorsByItem.set(c.item_id, []);
       contributorsByItem.get(c.item_id)!.push({ user_id: c.user_id, username: c.username, status: c.status });
     }
 
-    return items.map(i => ({
+    return items.map((i) => ({
       ...i,
-      owner_username: i.owner_id != null ? ownerName.get(i.owner_id) ?? null : null,
+      owner_username: i.owner_id != null ? (ownerName.get(i.owner_id) ?? null) : null,
       recipients: recipientsByItem.get(i.id) || [],
       contributors: contributorsByItem.get(i.id) || [],
     }));
@@ -185,17 +242,22 @@ export class PackingService {
     if (userId == null) {
       rows = this.db.all(
         'SELECT * FROM packing_items WHERE trip_id = ? ORDER BY sort_order ASC, created_at ASC',
-        tripId
+        tripId,
       );
     } else {
-      rows = this.db.all(`
+      rows = this.db.all(
+        `
       SELECT * FROM packing_items
       WHERE trip_id = ?
         AND (is_private = 0
              OR owner_id = ?
              OR EXISTS (SELECT 1 FROM packing_item_recipients r WHERE r.item_id = packing_items.id AND r.user_id = ?))
       ORDER BY sort_order ASC, created_at ASC
-    `, tripId, userId, userId);
+    `,
+        tripId,
+        userId,
+        userId,
+      );
     }
     return this.enrichItems(rows);
   }
@@ -203,7 +265,11 @@ export class PackingService {
   /** Reads an item's current privacy fields (#858) before an update, so the
    *  controller can detect a public↔private transition and route the broadcast. */
   getItemPrivacy(tripId: string | number, id: string | number): PrivacyFields | undefined {
-    return this.db.get<PrivacyFields>('SELECT is_private, owner_id FROM packing_items WHERE id = ? AND trip_id = ?', id, tripId);
+    return this.db.get<PrivacyFields>(
+      'SELECT is_private, owner_id FROM packing_items WHERE id = ? AND trip_id = ?',
+      id,
+      tripId,
+    );
   }
 
   /** Maps the three-tier visibility (#858) onto the stored is_private flag. */
@@ -214,10 +280,23 @@ export class PackingService {
 
   createItem(
     tripId: string | number,
-    data: { name: string; category?: string; checked?: boolean; quantity?: number; weight_grams?: number | null; bag_id?: number | null; is_private?: boolean; visibility?: PackingVisibility; recipient_ids?: number[] },
+    data: {
+      name: string;
+      category?: string;
+      checked?: boolean;
+      quantity?: number;
+      weight_grams?: number | null;
+      bag_id?: number | null;
+      is_private?: boolean;
+      visibility?: PackingVisibility;
+      recipient_ids?: number[];
+    },
     ownerId?: number,
   ) {
-    const maxOrder = this.db.get<{ max: number | null }>('SELECT MAX(sort_order) as max FROM packing_items WHERE trip_id = ?', tripId)!;
+    const maxOrder = this.db.get<{ max: number | null }>(
+      'SELECT MAX(sort_order) as max FROM packing_items WHERE trip_id = ?',
+      tripId,
+    )!;
     const sortOrder = (maxOrder.max !== null ? maxOrder.max : -1) + 1;
     const qty = Math.max(1, Math.min(999, Number(data.quantity) || 1));
     const isPrivate = this.visibilityToPrivate(data.visibility, data.is_private);
@@ -225,7 +304,16 @@ export class PackingService {
     const itemId = this.db.transaction(() => {
       const result = this.db.run(
         'INSERT INTO packing_items (trip_id, name, checked, category, sort_order, quantity, weight_grams, bag_id, is_private, owner_id, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)',
-        tripId, data.name, data.checked ? 1 : 0, data.category || 'Other', sortOrder, qty, data.weight_grams ?? null, data.bag_id ?? null, isPrivate, ownerId ?? null
+        tripId,
+        data.name,
+        data.checked ? 1 : 0,
+        data.category || 'Other',
+        sortOrder,
+        qty,
+        data.weight_grams ?? null,
+        data.bag_id ?? null,
+        isPrivate,
+        ownerId ?? null,
       );
       const id = Number(result.lastInsertRowid);
       // "Shared with specific people" — record the recipients it covers.
@@ -243,7 +331,15 @@ export class PackingService {
   updateItem(
     tripId: string | number,
     id: string | number,
-    data: { name?: string; checked?: number; category?: string; weight_grams?: number | null; bag_id?: number | null; quantity?: number; is_private?: boolean },
+    data: {
+      name?: string;
+      checked?: number;
+      category?: string;
+      weight_grams?: number | null;
+      bag_id?: number | null;
+      quantity?: number;
+      is_private?: boolean;
+    },
     bodyKeys: string[],
     ifMatch?: string,
     actingUserId?: number,
@@ -261,9 +357,11 @@ export class PackingService {
 
     // Privatizing an unowned (legacy) item stamps the acting user as its owner so
     // the visibility filter still has someone to match (#858).
-    const claimOwner = bodyKeys.includes('is_private') && !!data.is_private && item.owner_id == null && actingUserId != null;
+    const claimOwner =
+      bodyKeys.includes('is_private') && !!data.is_private && item.owner_id == null && actingUserId != null;
 
-    this.db.run(`
+    this.db.run(
+      `
     UPDATE packing_items SET
       name = COALESCE(?, name),
       checked = CASE WHEN ? IS NOT NULL THEN ? ELSE checked END,
@@ -290,7 +388,7 @@ export class PackingService {
       data.is_private ? 1 : 0,
       claimOwner ? 1 : 0,
       actingUserId ?? null,
-      id
+      id,
     );
 
     return this.enrichItems([this.db.get('SELECT * FROM packing_items WHERE id = ?', id)])[0];
@@ -322,9 +420,22 @@ export class PackingService {
    */
   private getItemInTrip(tripId: string | number, id: string | number, actorId: number | undefined) {
     if (actorId == null) return undefined;
-    return this.db.get<{ id: number; owner_id: number | null; is_private: number; name: string; category: string | null; quantity: number; weight_grams: number | null; bag_id: number | null; updated_at?: string | null }>(
+    return this.db.get<{
+      id: number;
+      owner_id: number | null;
+      is_private: number;
+      name: string;
+      category: string | null;
+      quantity: number;
+      weight_grams: number | null;
+      bag_id: number | null;
+      updated_at?: string | null;
+    }>(
       `SELECT * FROM packing_items WHERE id = ? AND trip_id = ? AND ${PackingService.VISIBLE_TO_ACTOR}`,
-      id, tripId, actorId, actorId,
+      id,
+      tripId,
+      actorId,
+      actorId,
     );
   }
 
@@ -345,8 +456,12 @@ export class PackingService {
     if (item.owner_id != null && item.owner_id !== actingUserId) return { forbidden: true as const };
 
     this.db.transaction(() => {
-      this.db.run('UPDATE packing_items SET is_private = ?, owner_id = COALESCE(owner_id, ?), updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-        this.visibilityToPrivate(visibility), actingUserId, id);
+      this.db.run(
+        'UPDATE packing_items SET is_private = ?, owner_id = COALESCE(owner_id, ?), updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+        this.visibilityToPrivate(visibility),
+        actingUserId,
+        id,
+      );
       this.db.run('DELETE FROM packing_item_recipients WHERE item_id = ?', id);
       if (visibility === 'shared') {
         const ins = this.db.prepare('INSERT OR IGNORE INTO packing_item_recipients (item_id, user_id) VALUES (?, ?)');
@@ -365,7 +480,11 @@ export class PackingService {
     const item = this.getItemInTrip(tripId, id, userId);
     if (!item || item.is_private !== 0) return null; // co-contribution is a Common-list concept
     if (item.owner_id === userId) return null; // the bringer is already covering it
-    this.db.run("INSERT OR IGNORE INTO packing_item_contributors (item_id, user_id, status) VALUES (?, ?, 'accepted')", id, userId);
+    this.db.run(
+      "INSERT OR IGNORE INTO packing_item_contributors (item_id, user_id, status) VALUES (?, ?, 'accepted')",
+      id,
+      userId,
+    );
     return this.enrichItems([this.db.get('SELECT * FROM packing_items WHERE id = ?', id)])[0];
   }
 
@@ -383,12 +502,16 @@ export class PackingService {
    */
   private bagForCloner(tripId: string | number, bagId: number | null, userId: number): number | null {
     if (bagId == null) return null;
-    const bag = this.db.get<{ user_id: number | null }>('SELECT user_id FROM packing_bags WHERE id = ? AND trip_id = ?', bagId, tripId);
+    const bag = this.db.get<{ user_id: number | null }>(
+      'SELECT user_id FROM packing_bags WHERE id = ? AND trip_id = ?',
+      bagId,
+      tripId,
+    );
     if (!bag) return null;
     if (bag.user_id === userId) return bagId;
     const members = this.db.all<{ user_id: number }>('SELECT user_id FROM packing_bag_members WHERE bag_id = ?', bagId);
     if (bag.user_id == null && members.length === 0) return bagId; // shared bag, nobody's in particular
-    return members.some(m => m.user_id === userId) ? bagId : null;
+    return members.some((m) => m.user_id === userId) ? bagId : null;
   }
 
   /**
@@ -399,14 +522,18 @@ export class PackingService {
   cloneItem(tripId: string | number, id: string | number, userId: number) {
     const item = this.getItemInTrip(tripId, id, userId);
     if (!item) return null;
-    return this.createItem(tripId, {
-      name: item.name,
-      category: item.category || undefined,
-      quantity: item.quantity,
-      weight_grams: item.weight_grams,
-      bag_id: this.bagForCloner(tripId, item.bag_id, userId),
-      visibility: 'personal',
-    }, userId);
+    return this.createItem(
+      tripId,
+      {
+        name: item.name,
+        category: item.category || undefined,
+        quantity: item.quantity,
+        weight_grams: item.weight_grams,
+        bag_id: this.bagForCloner(tripId, item.bag_id, userId),
+        visibility: 'personal',
+      },
+      userId,
+    );
   }
 
   deleteItem(tripId: string | number, id: string | number, actingUserId?: number) {
@@ -424,10 +551,15 @@ export class PackingService {
   // ── Bulk Import ────────────────────────────────────────────────────────────
 
   bulkImport(tripId: string | number, items: ImportItem[], ownerId?: number) {
-    const maxOrder = this.db.get<{ max: number | null }>('SELECT MAX(sort_order) as max FROM packing_items WHERE trip_id = ?', tripId)!;
+    const maxOrder = this.db.get<{ max: number | null }>(
+      'SELECT MAX(sort_order) as max FROM packing_items WHERE trip_id = ?',
+      tripId,
+    )!;
     let sortOrder = (maxOrder.max !== null ? maxOrder.max : -1) + 1;
 
-    const stmt = this.db.prepare('INSERT INTO packing_items (trip_id, name, checked, category, weight_grams, bag_id, sort_order, quantity, is_private, owner_id, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)');
+    const stmt = this.db.prepare(
+      'INSERT INTO packing_items (trip_id, name, checked, category, weight_grams, bag_id, sort_order, quantity, is_private, owner_id, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)',
+    );
     const created: any[] = [];
 
     this.db.transaction(() => {
@@ -440,18 +572,41 @@ export class PackingService {
         let bagId = null;
         if (item.bag?.trim()) {
           const bagName = item.bag.trim();
-          const existing = this.db.get<{ id: number }>('SELECT id FROM packing_bags WHERE trip_id = ? AND name = ?', tripId, bagName);
+          const existing = this.db.get<{ id: number }>(
+            'SELECT id FROM packing_bags WHERE trip_id = ? AND name = ?',
+            tripId,
+            bagName,
+          );
           if (existing) {
             bagId = existing.id;
           } else {
-            const bagCount = this.db.get<{ c: number }>('SELECT COUNT(*) as c FROM packing_bags WHERE trip_id = ?', tripId)!.c;
-            const newBag = this.db.run('INSERT INTO packing_bags (trip_id, name, color) VALUES (?, ?, ?)', tripId, bagName, BAG_COLORS[bagCount % BAG_COLORS.length]);
+            const bagCount = this.db.get<{ c: number }>(
+              'SELECT COUNT(*) as c FROM packing_bags WHERE trip_id = ?',
+              tripId,
+            )!.c;
+            const newBag = this.db.run(
+              'INSERT INTO packing_bags (trip_id, name, color) VALUES (?, ?, ?)',
+              tripId,
+              bagName,
+              BAG_COLORS[bagCount % BAG_COLORS.length],
+            );
             bagId = newBag.lastInsertRowid;
           }
         }
 
         const qty = Math.max(1, Math.min(999, Number(item.quantity) || 1));
-        const result = stmt.run(tripId, item.name.trim(), checked, item.category?.trim() || 'Other', weight, bagId, sortOrder++, qty, item.is_private ? 1 : 0, ownerId ?? null);
+        const result = stmt.run(
+          tripId,
+          item.name.trim(),
+          checked,
+          item.category?.trim() || 'Other',
+          weight,
+          bagId,
+          sortOrder++,
+          qty,
+          item.is_private ? 1 : 0,
+          ownerId ?? null,
+        );
         created.push(this.db.get('SELECT * FROM packing_items WHERE id = ?', result.lastInsertRowid));
       }
     });
@@ -463,21 +618,24 @@ export class PackingService {
 
   listBags(tripId: string | number) {
     const bags = this.db.all<any>('SELECT * FROM packing_bags WHERE trip_id = ? ORDER BY sort_order, id', tripId);
-    const members = this.db.all<{ bag_id: number; user_id: number; username: string; avatar: string | null }>(`
+    const members = this.db.all<{ bag_id: number; user_id: number; username: string; avatar: string | null }>(
+      `
     SELECT bm.bag_id, bm.user_id, COALESCE(u.display_name, u.username) AS username, u.avatar
     FROM packing_bag_members bm
     JOIN users u ON bm.user_id = u.id
     JOIN packing_bags b ON bm.bag_id = b.id
     WHERE b.trip_id = ?
-  `, tripId);
+  `,
+      tripId,
+    );
     const membersByBag = new Map<number, typeof members>();
     for (const m of members) {
       if (!membersByBag.has(m.bag_id)) membersByBag.set(m.bag_id, []);
       membersByBag.get(m.bag_id)!.push(m);
     }
-    return bags.map(b => ({
+    return bags.map((b) => ({
       ...b,
-      members: (membersByBag.get(b.id) || []).map(m => ({ ...m, avatar: avatarUrl(m) })),
+      members: (membersByBag.get(b.id) || []).map((m) => ({ ...m, avatar: avatarUrl(m) })),
     }));
   }
 
@@ -501,18 +659,28 @@ export class PackingService {
       const roster = this.tripRosterIds(tripId);
       for (const uid of userIds) if (roster.has(uid)) ins.run(bagId, uid);
     });
-    const rows = this.db.all<{ user_id: number; username: string; avatar: string | null }>(`
+    const rows = this.db.all<{ user_id: number; username: string; avatar: string | null }>(
+      `
     SELECT bm.user_id, COALESCE(u.display_name, u.username) AS username, u.avatar
     FROM packing_bag_members bm JOIN users u ON bm.user_id = u.id
     WHERE bm.bag_id = ?
-  `, bagId);
-    return rows.map(m => ({ ...m, avatar: avatarUrl(m) }));
+  `,
+      bagId,
+    );
+    return rows.map((m) => ({ ...m, avatar: avatarUrl(m) }));
   }
 
   createBag(tripId: string | number, data: { name: string; color?: string }) {
-    const maxOrder = this.db.get<{ max: number | null }>('SELECT MAX(sort_order) as max FROM packing_bags WHERE trip_id = ?', tripId)!;
-    const result = this.db.run('INSERT INTO packing_bags (trip_id, name, color, sort_order) VALUES (?, ?, ?, ?)',
-      tripId, data.name.trim(), data.color || '#6366f1', (maxOrder.max ?? -1) + 1
+    const maxOrder = this.db.get<{ max: number | null }>(
+      'SELECT MAX(sort_order) as max FROM packing_bags WHERE trip_id = ?',
+      tripId,
+    )!;
+    const result = this.db.run(
+      'INSERT INTO packing_bags (trip_id, name, color, sort_order) VALUES (?, ?, ?, ?)',
+      tripId,
+      data.name.trim(),
+      data.color || '#6366f1',
+      (maxOrder.max ?? -1) + 1,
     );
     return this.db.get('SELECT * FROM packing_bags WHERE id = ?', result.lastInsertRowid);
   }
@@ -521,7 +689,7 @@ export class PackingService {
     tripId: string | number,
     bagId: string | number,
     data: { name?: string; color?: string; weight_limit_grams?: number | null; user_id?: number | null },
-    bodyKeys?: string[]
+    bodyKeys?: string[],
   ) {
     const bag = this.db.get('SELECT * FROM packing_bags WHERE id = ? AND trip_id = ?', bagId, tripId);
     if (!bag) return null;
@@ -530,7 +698,8 @@ export class PackingService {
     const assignUser = data.user_id != null && this.tripRosterIds(tripId).has(data.user_id) ? data.user_id : null;
     // weight_limit_grams follows the bodyKeys presence protocol like user_id:
     // an omitted key leaves the limit unchanged, an explicit null clears it.
-    this.db.run(`UPDATE packing_bags SET
+    this.db.run(
+      `UPDATE packing_bags SET
     name = COALESCE(?, name),
     color = COALESCE(?, color),
     weight_limit_grams = CASE WHEN ? THEN ? ELSE weight_limit_grams END,
@@ -542,9 +711,12 @@ export class PackingService {
       data.weight_limit_grams ?? null,
       bodyKeys?.includes('user_id') ? 1 : 0,
       assignUser,
-      bagId
+      bagId,
     );
-    return this.db.get('SELECT b.*, COALESCE(u.display_name, u.username) as assigned_username FROM packing_bags b LEFT JOIN users u ON b.user_id = u.id WHERE b.id = ?', bagId);
+    return this.db.get(
+      'SELECT b.*, COALESCE(u.display_name, u.username) as assigned_username FROM packing_bags b LEFT JOIN users u ON b.user_id = u.id WHERE b.id = ?',
+      bagId,
+    );
   }
 
   deleteBag(tripId: string | number, bagId: string | number): boolean {
@@ -579,22 +751,30 @@ export class PackingService {
     visibility: 'common' | 'personal' = 'common',
     ownerId?: number,
   ) {
-    const templateItems = this.db.all<{ name: string; category: string }>(`
+    const templateItems = this.db.all<{ name: string; category: string }>(
+      `
     SELECT ti.name, tc.name as category
     FROM packing_template_items ti
     JOIN packing_template_categories tc ON ti.category_id = tc.id
     WHERE tc.template_id = ?
     ORDER BY tc.sort_order, ti.sort_order
-  `, templateId);
+  `,
+      templateId,
+    );
 
     if (templateItems.length === 0) return null;
 
-    const maxOrder = this.db.get<{ max: number | null }>('SELECT MAX(sort_order) as max FROM packing_items WHERE trip_id = ?', tripId)!;
+    const maxOrder = this.db.get<{ max: number | null }>(
+      'SELECT MAX(sort_order) as max FROM packing_items WHERE trip_id = ?',
+      tripId,
+    )!;
     let sortOrder = (maxOrder.max !== null ? maxOrder.max : -1) + 1;
     const isPrivate = ownerId != null ? this.visibilityToPrivate(visibility) : 0;
     const owner = isPrivate ? ownerId! : null;
 
-    const insert = this.db.prepare('INSERT INTO packing_items (trip_id, name, checked, category, sort_order, is_private, owner_id, updated_at) VALUES (?, ?, 0, ?, ?, ?, ?, CURRENT_TIMESTAMP)');
+    const insert = this.db.prepare(
+      'INSERT INTO packing_items (trip_id, name, checked, category, sort_order, is_private, owner_id, updated_at) VALUES (?, ?, 0, ?, ?, ?, ?, CURRENT_TIMESTAMP)',
+    );
     const added: any[] = [];
     this.db.transaction(() => {
       for (const ti of templateItems) {
@@ -615,20 +795,30 @@ export class PackingService {
     // take every row in the trip, restricted ones included.
     const items = this.db.all<{ name: string; category: string }>(
       'SELECT name, category FROM packing_items WHERE trip_id = ? AND (is_private = 0 OR owner_id = ?) ORDER BY sort_order ASC',
-      tripId, userId,
+      tripId,
+      userId,
     );
 
     if (items.length === 0) return null;
 
-    const categories = [...new Set(items.map(i => i.category || 'Other'))];
+    const categories = [...new Set(items.map((i) => i.category || 'Other'))];
 
     const templateId = this.db.transaction(() => {
-      const result = this.db.run('INSERT INTO packing_templates (name, created_by) VALUES (?, ?)', templateName, userId);
+      const result = this.db.run(
+        'INSERT INTO packing_templates (name, created_by) VALUES (?, ?)',
+        templateName,
+        userId,
+      );
       const id = result.lastInsertRowid;
 
       const catIdMap = new Map<string, number | bigint>();
       for (let i = 0; i < categories.length; i++) {
-        const catResult = this.db.run('INSERT INTO packing_template_categories (template_id, name, sort_order) VALUES (?, ?, ?)', id, categories[i], i);
+        const catResult = this.db.run(
+          'INSERT INTO packing_template_categories (template_id, name, sort_order) VALUES (?, ?, ?)',
+          id,
+          categories[i],
+          i,
+        );
         catIdMap.set(categories[i], catResult.lastInsertRowid);
       }
 
@@ -636,7 +826,12 @@ export class PackingService {
       for (const item of items) {
         const catId = catIdMap.get(item.category || 'Other')!;
         const order = itemsByCategory.get(item.category || 'Other') || 0;
-        this.db.run('INSERT INTO packing_template_items (category_id, name, sort_order) VALUES (?, ?, ?)', catId, item.name, order);
+        this.db.run(
+          'INSERT INTO packing_template_items (category_id, name, sort_order) VALUES (?, ?, ?)',
+          catId,
+          item.name,
+          order,
+        );
         itemsByCategory.set(item.category || 'Other', order + 1);
       }
       return id;
@@ -648,12 +843,15 @@ export class PackingService {
   // ── Category Assignees ─────────────────────────────────────────────────────
 
   getCategoryAssignees(tripId: string | number) {
-    const rows = this.db.all<{ category_name: string; user_id: number; username: string; avatar: string | null }>(`
+    const rows = this.db.all<{ category_name: string; user_id: number; username: string; avatar: string | null }>(
+      `
     SELECT pca.category_name, pca.user_id, COALESCE(u.display_name, u.username) AS username, u.avatar
     FROM packing_category_assignees pca
     JOIN users u ON pca.user_id = u.id
     WHERE pca.trip_id = ?
-  `, tripId);
+  `,
+      tripId,
+    );
 
     // Group by category
     const assignees: Record<string, { user_id: number; username: string; avatar: string | null }[]> = {};
@@ -667,23 +865,33 @@ export class PackingService {
 
   updateCategoryAssignees(tripId: string | number, categoryName: string, userIds: number[] | undefined) {
     this.db.transaction(() => {
-      this.db.run('DELETE FROM packing_category_assignees WHERE trip_id = ? AND category_name = ?', tripId, categoryName);
+      this.db.run(
+        'DELETE FROM packing_category_assignees WHERE trip_id = ? AND category_name = ?',
+        tripId,
+        categoryName,
+      );
 
       if (Array.isArray(userIds) && userIds.length > 0) {
-        const insert = this.db.prepare('INSERT OR IGNORE INTO packing_category_assignees (trip_id, category_name, user_id) VALUES (?, ?, ?)');
+        const insert = this.db.prepare(
+          'INSERT OR IGNORE INTO packing_category_assignees (trip_id, category_name, user_id) VALUES (?, ?, ?)',
+        );
         // Same rule as setBagMembers: only people on this trip may be assigned.
         const roster = this.tripRosterIds(tripId);
         for (const uid of userIds) if (roster.has(uid)) insert.run(tripId, categoryName, uid);
       }
     });
 
-    const updated = this.db.all<{ user_id: number; username: string; avatar: string | null }>(`
+    const updated = this.db.all<{ user_id: number; username: string; avatar: string | null }>(
+      `
     SELECT pca.user_id, COALESCE(u.display_name, u.username) AS username, u.avatar
     FROM packing_category_assignees pca
     JOIN users u ON pca.user_id = u.id
     WHERE pca.trip_id = ? AND pca.category_name = ?
-  `, tripId, categoryName);
-    return updated.map(m => ({ ...m, avatar: avatarUrl(m) }));
+  `,
+      tripId,
+      categoryName,
+    );
+    return updated.map((m) => ({ ...m, avatar: avatarUrl(m) }));
   }
 
   // ── Reorder ────────────────────────────────────────────────────────────────
@@ -715,11 +923,15 @@ export class PackingService {
 
   /** An item looked up through its category, so :templateId actually scopes it. */
   private scopedTemplateItem(templateId: string, itemId: string) {
-    return this.db.get(`
+    return this.db.get(
+      `
     SELECT ti.* FROM packing_template_items ti
     JOIN packing_template_categories tc ON ti.category_id = tc.id
     WHERE ti.id = ? AND tc.template_id = ?
-  `, itemId, templateId);
+  `,
+      itemId,
+      templateId,
+    );
   }
 
   listPackingTemplates() {
@@ -736,18 +948,28 @@ export class PackingService {
   getPackingTemplate(id: string) {
     const template = this.db.get('SELECT * FROM packing_templates WHERE id = ?', id);
     if (!template) return { error: 'Template not found', status: 404 };
-    const categories = this.db.all('SELECT * FROM packing_template_categories WHERE template_id = ? ORDER BY sort_order, id', id);
-    const items = this.db.all(`
+    const categories = this.db.all(
+      'SELECT * FROM packing_template_categories WHERE template_id = ? ORDER BY sort_order, id',
+      id,
+    );
+    const items = this.db.all(
+      `
     SELECT ti.* FROM packing_template_items ti
     JOIN packing_template_categories tc ON ti.category_id = tc.id
     WHERE tc.template_id = ? ORDER BY ti.sort_order, ti.id
-  `, id);
+  `,
+      id,
+    );
     return { template, categories, items };
   }
 
   createPackingTemplate(name: string, createdBy: number) {
     if (!name?.trim()) return { error: 'Name is required', status: 400 };
-    const result = this.db.run('INSERT INTO packing_templates (name, created_by) VALUES (?, ?)', name.trim(), createdBy);
+    const result = this.db.run(
+      'INSERT INTO packing_templates (name, created_by) VALUES (?, ?)',
+      name.trim(),
+      createdBy,
+    );
     const template = this.db.get('SELECT * FROM packing_templates WHERE id = ?', result.lastInsertRowid);
     return { template };
   }
@@ -772,13 +994,25 @@ export class PackingService {
     if (!name?.trim()) return { error: 'Category name is required', status: 400 };
     const template = this.db.get('SELECT * FROM packing_templates WHERE id = ?', templateId);
     if (!template) return { error: 'Template not found', status: 404 };
-    const maxOrder = this.db.get<{ max: number | null }>('SELECT MAX(sort_order) as max FROM packing_template_categories WHERE template_id = ?', templateId)!;
-    const result = this.db.run('INSERT INTO packing_template_categories (template_id, name, sort_order) VALUES (?, ?, ?)', templateId, name.trim(), (maxOrder.max ?? -1) + 1);
+    const maxOrder = this.db.get<{ max: number | null }>(
+      'SELECT MAX(sort_order) as max FROM packing_template_categories WHERE template_id = ?',
+      templateId,
+    )!;
+    const result = this.db.run(
+      'INSERT INTO packing_template_categories (template_id, name, sort_order) VALUES (?, ?, ?)',
+      templateId,
+      name.trim(),
+      (maxOrder.max ?? -1) + 1,
+    );
     return { category: this.db.get('SELECT * FROM packing_template_categories WHERE id = ?', result.lastInsertRowid) };
   }
 
   updateTemplateCategory(templateId: string, catId: string, data: { name?: string }) {
-    const cat = this.db.get('SELECT * FROM packing_template_categories WHERE id = ? AND template_id = ?', catId, templateId);
+    const cat = this.db.get(
+      'SELECT * FROM packing_template_categories WHERE id = ? AND template_id = ?',
+      catId,
+      templateId,
+    );
     if (!cat) return { error: 'Category not found', status: 404 };
     if (data.name?.trim())
       this.db.run('UPDATE packing_template_categories SET name = ? WHERE id = ?', data.name.trim(), catId);
@@ -786,7 +1020,11 @@ export class PackingService {
   }
 
   deleteTemplateCategory(templateId: string, catId: string) {
-    const cat = this.db.get('SELECT * FROM packing_template_categories WHERE id = ? AND template_id = ?', catId, templateId);
+    const cat = this.db.get(
+      'SELECT * FROM packing_template_categories WHERE id = ? AND template_id = ?',
+      catId,
+      templateId,
+    );
     if (!cat) return { error: 'Category not found', status: 404 };
     this.db.run('DELETE FROM packing_template_categories WHERE id = ?', catId);
     return {};
@@ -796,10 +1034,22 @@ export class PackingService {
 
   createTemplateItem(templateId: string, catId: string, name: string) {
     if (!name?.trim()) return { error: 'Item name is required', status: 400 };
-    const cat = this.db.get('SELECT * FROM packing_template_categories WHERE id = ? AND template_id = ?', catId, templateId);
+    const cat = this.db.get(
+      'SELECT * FROM packing_template_categories WHERE id = ? AND template_id = ?',
+      catId,
+      templateId,
+    );
     if (!cat) return { error: 'Category not found', status: 404 };
-    const maxOrder = this.db.get<{ max: number | null }>('SELECT MAX(sort_order) as max FROM packing_template_items WHERE category_id = ?', catId)!;
-    const result = this.db.run('INSERT INTO packing_template_items (category_id, name, sort_order) VALUES (?, ?, ?)', catId, name.trim(), (maxOrder.max ?? -1) + 1);
+    const maxOrder = this.db.get<{ max: number | null }>(
+      'SELECT MAX(sort_order) as max FROM packing_template_items WHERE category_id = ?',
+      catId,
+    )!;
+    const result = this.db.run(
+      'INSERT INTO packing_template_items (category_id, name, sort_order) VALUES (?, ?, ?)',
+      catId,
+      name.trim(),
+      (maxOrder.max ?? -1) + 1,
+    );
     return { item: this.db.get('SELECT * FROM packing_template_items WHERE id = ?', result.lastInsertRowid) };
   }
 
@@ -826,12 +1076,14 @@ export class PackingService {
     // reaches nothing in this direction — and it hid the edge while handing the
     // send a second NotificationsService built outside the container.
     const tripInfo = this.db.get<{ title: string }>('SELECT title FROM trips WHERE id = ?', tripId);
-    this.notifications.send({
-      event: 'packing_tagged',
-      actorId: actor.id,
-      scope: 'trip',
-      targetId: Number(tripId),
-      params: { trip: tripInfo?.title || 'Untitled', actor: actor.email, category, tripId: String(tripId) },
-    }).catch(() => {});
+    this.notifications
+      .send({
+        event: 'packing_tagged',
+        actorId: actor.id,
+        scope: 'trip',
+        targetId: Number(tripId),
+        params: { trip: tripInfo?.title || 'Untitled', actor: actor.email, category, tripId: String(tripId) },
+      })
+      .catch(() => {});
   }
 }

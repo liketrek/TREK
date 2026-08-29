@@ -10,14 +10,15 @@
  * The factory is deliberately ignorant of allowlists and per-route quirks:
  * fileFilter closures are caller-owned and passed through untouched.
  */
-import * as fs from 'fs';
-import * as path from 'path';
-import { randomUUID } from 'crypto';
-import { diskStorage } from 'multer';
-import type { Options } from 'multer';
-import type { Request } from 'express';
 import { StorageService } from './storage.service';
 import type { StorageCategory } from './storage.types';
+
+import { randomUUID } from 'crypto';
+import type { Request } from 'express';
+import * as fs from 'fs';
+import { diskStorage } from 'multer';
+import type { Options } from 'multer';
+import * as path from 'path';
 
 export interface StorageUploadOptions {
   /**
@@ -41,8 +42,7 @@ export interface StorageUploadOptions {
 }
 
 export function buildStorageUploadOptions(storage: StorageService, opts: StorageUploadOptions) {
-  const resolveCategory =
-    typeof opts.category === 'function' ? opts.category : () => opts.category as StorageCategory;
+  const resolveCategory = typeof opts.category === 'function' ? opts.category : () => opts.category as StorageCategory;
   const makeName =
     opts.filename ??
     ((_req: Request, file: Express.Multer.File) => `${randomUUID()}${path.extname(file.originalname)}`);

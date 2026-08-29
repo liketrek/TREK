@@ -1,5 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-
+import { GeocodingService } from '../../../src/nest/geo/geocoding.service';
 /**
  * The one Nominatim client (#576).
  *
@@ -22,8 +21,9 @@ import {
   startGeoCacheCleanup,
   stopGeoCacheCleanup,
 } from '../../../src/nest/geo/nominatim.client';
-import { GeocodingService } from '../../../src/nest/geo/geocoding.service';
 import { UA } from '../../../src/nest/maps/maps.helpers';
+
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const fetchMock = vi.fn();
 
@@ -131,7 +131,7 @@ describe('nominatimFetch', () => {
 
     // The atlas backfill walks every uncached place; a keystroke must not queue
     // behind it.
-    const order = fetchMock.mock.calls.slice(1).map(([url]) => (url as string).includes('q=ui') ? 'ui' : 'bg');
+    const order = fetchMock.mock.calls.slice(1).map(([url]) => ((url as string).includes('q=ui') ? 'ui' : 'bg'));
     expect(order[0]).toBe('ui');
   });
 });
@@ -150,7 +150,7 @@ describe('geo cache', () => {
   });
 
   it('GEO-008: rounds to a ~110m grid, so a nudged coordinate still hits', () => {
-    expect(cacheKeyFor(52.52001, 13.40501, 'zoom18')).toBe(cacheKeyFor(52.5200, 13.4050, 'zoom18'));
+    expect(cacheKeyFor(52.52001, 13.40501, 'zoom18')).toBe(cacheKeyFor(52.52, 13.405, 'zoom18'));
     expect(cacheKeyFor(52.53, 13.405, 'zoom18')).not.toBe(cacheKeyFor(52.52, 13.405, 'zoom18'));
   });
 

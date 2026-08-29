@@ -136,6 +136,7 @@ const storage: TranslationStrings = {
   'storage.migrate.cancel': 'Batalkan pemindahan',
   'storage.migrate.promptCancel': 'Batal',
   'storage.migrate.queued': 'Dalam antrean: {categories}',
-  'storage.migrate.queueDropped': 'Tidak dapat memulai pemindahan berikutnya — antrean yang tersisa telah dihapus: {categories}',
+  'storage.migrate.queueDropped':
+    'Tidak dapat memulai pemindahan berikutnya — antrean yang tersisa telah dihapus: {categories}',
 };
 export default storage;

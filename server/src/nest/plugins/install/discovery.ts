@@ -1,10 +1,11 @@
-import fs from 'node:fs';
-import path from 'node:path';
-import type BetterSqlite3 from 'better-sqlite3';
+import { devLinkEnabled } from '../dev-link';
 import { pluginsCodeRoot, pluginCodeDir } from '../paths';
 import { parseJsonText, parseManifest, type PluginManifest } from './manifest';
 import { scanForNativeBinaries } from './native-scan';
-import { devLinkEnabled } from '../dev-link';
+
+import type BetterSqlite3 from 'better-sqlite3';
+import fs from 'node:fs';
+import path from 'node:path';
 
 /**
  * Discover plugins placed on the /plugins volume (#plugins, M4, "install from
@@ -31,7 +32,11 @@ export function discoverPlugins(db: BetterSqlite3.Database): { discovered: strin
       // A dev-link symlink only loads in dev-link mode; a stale link left on the
       // volume must not be discovered/registered on a normal (non-dev) boot.
       if (!devLinkEnabled()) continue;
-      try { isDir = fs.statSync(full).isDirectory(); } catch { isDir = false; }
+      try {
+        isDir = fs.statSync(full).isDirectory();
+      } catch {
+        isDir = false;
+      }
     } else if (isDir && !devLinkEnabled()) {
       // On Windows a dev-link is a junction, which Dirent reports as a plain
       // directory (isSymbolicLink() is false). Detect it the same way: if the
@@ -39,7 +44,9 @@ export function discoverPlugins(db: BetterSqlite3.Database): { discovered: strin
       // unless dev-link mode is on. A normal dir realpaths back to itself.
       try {
         if (fs.realpathSync(full) !== path.join(fs.realpathSync(root), entry.name)) continue;
-      } catch { /* unreadable target — leave as a normal dir and let discovery fail loudly */ }
+      } catch {
+        /* unreadable target — leave as a normal dir and let discovery fail loudly */
+      }
     }
     if (!isDir) continue;
     const dir = pluginCodeDir(entry.name);
@@ -55,7 +62,11 @@ export function discoverPlugins(db: BetterSqlite3.Database): { discovered: strin
     } catch (e) {
       skipped.push(entry.name);
       const msg = e instanceof Error ? e.message : 'invalid plugin';
-      db.prepare('INSERT INTO plugin_error_log (plugin_id, level, message) VALUES (?, ?, ?)').run(entry.name, 'error', `discovery: ${msg}`);
+      db.prepare('INSERT INTO plugin_error_log (plugin_id, level, message) VALUES (?, ?, ?)').run(
+        entry.name,
+        'error',
+        `discovery: ${msg}`,
+      );
     }
   }
   return { discovered, skipped };
@@ -68,14 +79,42 @@ function upsert(db: BetterSqlite3.Database, m: PluginManifest): void {
     db.prepare(
       `UPDATE plugins SET name = ?, description = ?, type = ?, icon = ?, version = ?, api_version = ?,
          min_trek_version = ?, trek_range = ?, permissions = ?, capabilities = ?, dependencies = ?, operator_egress = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
-    ).run(m.name, m.description ?? null, m.type, m.icon ?? 'Blocks', m.version, m.apiVersion, m.minTrekVersion ?? null, m.trekRange, JSON.stringify(m.permissions), JSON.stringify(m.capabilities), dependencies, m.operatorEgress ? 1 : 0, m.id);
+    ).run(
+      m.name,
+      m.description ?? null,
+      m.type,
+      m.icon ?? 'Blocks',
+      m.version,
+      m.apiVersion,
+      m.minTrekVersion ?? null,
+      m.trekRange,
+      JSON.stringify(m.permissions),
+      JSON.stringify(m.capabilities),
+      dependencies,
+      m.operatorEgress ? 1 : 0,
+      m.id,
+    );
   } else {
     db.prepare(
       // granted_permissions '' (empty, not '[]') marks "never consented" so the
       // first activation is distinguishable from a plugin consented to zero perms.
       `INSERT INTO plugins (id, name, description, type, icon, version, api_version, min_trek_version, trek_range, permissions, capabilities, dependencies, operator_egress, granted_permissions, status)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '', 'inactive')`,
-    ).run(m.id, m.name, m.description ?? null, m.type, m.icon ?? 'Blocks', m.version, m.apiVersion, m.minTrekVersion ?? null, m.trekRange, JSON.stringify(m.permissions), JSON.stringify(m.capabilities), dependencies, m.operatorEgress ? 1 : 0);
+    ).run(
+      m.id,
+      m.name,
+      m.description ?? null,
+      m.type,
+      m.icon ?? 'Blocks',
+      m.version,
+      m.apiVersion,
+      m.minTrekVersion ?? null,
+      m.trekRange,
+      JSON.stringify(m.permissions),
+      JSON.stringify(m.capabilities),
+      dependencies,
+      m.operatorEgress ? 1 : 0,
+    );
   }
 
   // Refresh the settings-page action descriptors from the manifest.

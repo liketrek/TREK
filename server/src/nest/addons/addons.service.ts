@@ -1,7 +1,7 @@
-import { Injectable } from '@nestjs/common';
-import { DatabaseService } from '../database/database.service';
 import type { Addon } from '../../types';
+import { DatabaseService } from '../database/database.service';
 import { getPhotoProviderConfig } from '../memories/memories.helpers';
+import { Injectable } from '@nestjs/common';
 
 /**
  * Thin wrapper around the enabled-addons + photo-provider read that the legacy
@@ -39,9 +39,9 @@ export class AddonsService {
   }
 
   updateBagTracking(enabled: boolean) {
-    this.db.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('bag_tracking_enabled', ?)").run(
-      enabled ? 'true' : 'false',
-    );
+    this.db
+      .prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('bag_tracking_enabled', ?)")
+      .run(enabled ? 'true' : 'false');
     return { enabled: !!enabled };
   }
 
@@ -158,21 +158,37 @@ export class AddonsService {
   // loses a feature on upgrade.
 
   private readFlag(key: string) {
-    const row = this.db.prepare('SELECT value FROM app_settings WHERE key = ?').get(key) as { value: string } | undefined;
+    const row = this.db.prepare('SELECT value FROM app_settings WHERE key = ?').get(key) as
+      | { value: string }
+      | undefined;
     return { enabled: row?.value === 'true' };
   }
 
   private writeFlag(key: string, enabled: boolean) {
-    this.db.prepare('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)').run(key, enabled ? 'true' : 'false');
+    this.db
+      .prepare('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)')
+      .run(key, enabled ? 'true' : 'false');
     return { enabled: !!enabled };
   }
 
-  getPlacesPhotos() { return this.readFlag('places_photos_enabled'); }
-  updatePlacesPhotos(enabled: boolean) { return this.writeFlag('places_photos_enabled', enabled); }
-  getPlacesAutocomplete() { return this.readFlag('places_autocomplete_enabled'); }
-  updatePlacesAutocomplete(enabled: boolean) { return this.writeFlag('places_autocomplete_enabled', enabled); }
-  getPlacesDetails() { return this.readFlag('places_details_enabled'); }
-  updatePlacesDetails(enabled: boolean) { return this.writeFlag('places_details_enabled', enabled); }
+  getPlacesPhotos() {
+    return this.readFlag('places_photos_enabled');
+  }
+  updatePlacesPhotos(enabled: boolean) {
+    return this.writeFlag('places_photos_enabled', enabled);
+  }
+  getPlacesAutocomplete() {
+    return this.readFlag('places_autocomplete_enabled');
+  }
+  updatePlacesAutocomplete(enabled: boolean) {
+    return this.writeFlag('places_autocomplete_enabled', enabled);
+  }
+  getPlacesDetails() {
+    return this.readFlag('places_details_enabled');
+  }
+  updatePlacesDetails(enabled: boolean) {
+    return this.writeFlag('places_details_enabled', enabled);
+  }
 
   /**
    * Enrichment reads fail-OPEN, unlike the three switches above.
@@ -194,5 +210,7 @@ export class AddonsService {
     return { enabled: row?.value !== 'false' };
   }
 
-  updatePlacesEnrich(enabled: boolean) { return this.writeFlag('places_enrich_enabled', enabled); }
+  updatePlacesEnrich(enabled: boolean) {
+    return this.writeFlag('places_enrich_enabled', enabled);
+  }
 }

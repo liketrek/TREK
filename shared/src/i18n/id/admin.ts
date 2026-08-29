@@ -479,7 +479,8 @@ const admin: TranslationStrings = {
   'admin.plugins.changeVersion': 'Ubah versi…',
   'admin.plugins.noVersions': 'Tidak ada versi terpublikasi yang ditemukan di registri.',
   'admin.plugins.downgradeTitle': 'Kembalikan plugin ini?',
-  'admin.plugins.downgradeBody': 'Beralih dari v{from} ke v{to}: data yang ditulis oleh versi yang lebih baru tetap ada, dan versi yang lebih lama mungkin tidak memahaminya.',
+  'admin.plugins.downgradeBody':
+    'Beralih dari v{from} ke v{to}: data yang ditulis oleh versi yang lebih baru tetap ada, dan versi yang lebih lama mungkin tidak memahaminya.',
   'admin.plugins.downgradeConfirm': 'Kembalikan',
   'admin.plugins.updatesHeld': 'Pembaruan dijeda di v{version}',
   'admin.plugins.resumeUpdates': 'Lanjutkan pembaruan',

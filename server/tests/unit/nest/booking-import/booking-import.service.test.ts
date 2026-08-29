@@ -1,27 +1,41 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { db as dbConn } from '../../../../src/db/database';
+import { BookingImportService } from '../../../../src/nest/booking-import/booking-import.service';
+import { DatabaseService } from '../../../../src/nest/database/database.service';
 import { HttpException } from '@nestjs/common';
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock the heavy side-effect imports so the service module loads cleanly; the
 // preview() path under test only touches the extractor + llmParse deps.
 vi.mock('../../../../src/db/database', () => ({
-  db: { prepare: vi.fn() }, closeDb: () => {}, reinitialize: () => {},
+  db: { prepare: vi.fn() },
+  closeDb: () => {},
+  reinitialize: () => {},
   // Trip access reaches these through DatabaseService; preview() never calls
   // them, but the module-level import has to resolve.
-  canAccessTrip: vi.fn(), isOwner: () => false, getPlaceWithTags: () => null,
+  canAccessTrip: vi.fn(),
+  isOwner: () => false,
+  getPlaceWithTags: () => null,
 }));
-import { db as dbConn } from '../../../../src/db/database';
-import { DatabaseService } from '../../../../src/nest/database/database.service';
+
 vi.mock('../../../../src/websocket', () => ({ broadcast: vi.fn() }));
 const permissionsStub = { checkPermission: vi.fn(() => true) };
 
-import { BookingImportService } from '../../../../src/nest/booking-import/booking-import.service';
-
-const HOTEL_KI = { '@type': 'LodgingReservation', reservationNumber: 'ABC', reservationFor: { name: 'Hotel X' }, checkinTime: '2026-06-11T15:00', checkoutTime: '2026-06-12T11:00' };
-const file = (name = 'a.pdf') => ({ buffer: Buffer.from('x'), originalname: name } as any);
+const HOTEL_KI = {
+  '@type': 'LodgingReservation',
+  reservationNumber: 'ABC',
+  reservationFor: { name: 'Hotel X' },
+  checkinTime: '2026-06-11T15:00',
+  checkoutTime: '2026-06-12T11:00',
+};
+const file = (name = 'a.pdf') => ({ buffer: Buffer.from('x'), originalname: name }) as any;
 
 function make(opts: { kit?: boolean; ai?: boolean; extract?: any; parse?: any }) {
   const extractor = { isAvailable: () => opts.kit ?? false, extract: vi.fn(opts.extract ?? (async () => [])) };
-  const llmParse = { isAvailable: () => opts.ai ?? false, parse: vi.fn(opts.parse ?? (async () => ({ kiItems: [], warnings: [] }))) };
+  const llmParse = {
+    isAvailable: () => opts.ai ?? false,
+    parse: vi.fn(opts.parse ?? (async () => ({ kiItems: [], warnings: [] }))),
+  };
   const reservations = { create: vi.fn() };
   // budget/addons/realtime/maps ride the confirm() path only — the preview()
   // tests never reach them, so stubs beyond the positional slots aren't needed.
@@ -29,7 +43,25 @@ function make(opts: { kit?: boolean; ai?: boolean; extract?: any; parse?: any })
   // Places became a constructor dep with the place DI fold (was a path mock of
   // services/placeService); only confirm() reaches it, so a bare create stub does.
   const places = { create: vi.fn() };
-  return { svc: new BookingImportService(extractor as any, llmParse as any, new DatabaseService(dbConn), reservations as never, permissionsStub as never, undefined as never, undefined as never, undefined as never, maps as never, places as never), extractor, llmParse, reservations, maps, places };
+  return {
+    svc: new BookingImportService(
+      extractor as any,
+      llmParse as any,
+      new DatabaseService(dbConn),
+      reservations as never,
+      permissionsStub as never,
+      undefined as never,
+      undefined as never,
+      undefined as never,
+      maps as never,
+      places as never,
+    ),
+    extractor,
+    llmParse,
+    reservations,
+    maps,
+    places,
+  };
 }
 
 beforeEach(() => vi.clearAllMocks());
@@ -57,7 +89,8 @@ describe('BookingImportService.preview', () => {
 
   it('fallback-on-empty: runs the LLM when kitinerary finds nothing and flags needs_review', async () => {
     const { svc, extractor, llmParse } = make({
-      kit: true, ai: true,
+      kit: true,
+      ai: true,
       extract: async () => [],
       parse: async () => ({ kiItems: [HOTEL_KI], warnings: [] }),
     });
@@ -78,7 +111,8 @@ describe('BookingImportService.preview', () => {
 
   it('force-ai: skips kitinerary entirely and uses the LLM', async () => {
     const { svc, extractor, llmParse } = make({
-      kit: true, ai: true,
+      kit: true,
+      ai: true,
       parse: async () => ({ kiItems: [HOTEL_KI], warnings: [] }),
     });
     const res = await svc.preview([file()], 'force-ai', 1);
@@ -153,8 +187,8 @@ describe('BookingImportService.preview endpoint geocoding (#1969)', () => {
 
     const res = await svc.preview([file()], 'no-ai', 1);
     const endpoints = (res.items[0] as { endpoints?: { name: string }[] }).endpoints ?? [];
-    expect(endpoints.map(e => e.name)).toContain('Berlin Hbf');
-    expect(res.warnings.some(w => w.includes('Berlin Hbf'))).toBe(true);
+    expect(endpoints.map((e) => e.name)).toContain('Berlin Hbf');
+    expect(res.warnings.some((w) => w.includes('Berlin Hbf'))).toBe(true);
   });
 
   it('survives a geocoder that throws, rather than failing the import', async () => {
@@ -171,7 +205,7 @@ describe('BookingImportService.preview endpoint geocoding (#1969)', () => {
       reservationFor: {
         ...TRAIN_KI.reservationFor,
         departureStation: { name: 'Berlin Hbf', geo: { latitude: 52.525, longitude: 13.369 } },
-        arrivalStation: { name: 'München Hbf', geo: { latitude: 48.140, longitude: 11.558 } },
+        arrivalStation: { name: 'München Hbf', geo: { latitude: 48.14, longitude: 11.558 } },
       },
     };
     const { svc, maps } = make({ kit: true, extract: async () => [withGeo] });

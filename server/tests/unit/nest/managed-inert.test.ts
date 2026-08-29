@@ -10,14 +10,11 @@
  * across eight files the question "does this change anything for a self-hoster"
  * has eight partial answers; here it has one.
  */
-import { describe, it, expect, afterEach } from 'vitest';
-import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
-import {
-  splitManagedKeys,
-  isManagedBlocked,
-  MANAGED_LOCKED_SETTING_KEYS,
-} from '../../../src/nest/common/managed';
 import { deriveMaps, deriveManaged } from '../../../src/app-config/derive';
+import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
+import { splitManagedKeys, isManagedBlocked, MANAGED_LOCKED_SETTING_KEYS } from '../../../src/nest/common/managed';
+
+import { describe, it, expect, afterEach } from 'vitest';
 
 const env = new RuntimeEnvService();
 

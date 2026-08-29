@@ -3,15 +3,16 @@
  * SettingsService, which owns them. Same path, same audit action, same 400 envelope on
  * a rejected write — these cases came over with the routes.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { HttpException } from '@nestjs/common';
+import type { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
+import type { AuditService } from '../../../src/nest/audit/audit.service';
 import { AdminDefaultUserSettingsController } from '../../../src/nest/settings/settings.controller';
 import { SettingsModule } from '../../../src/nest/settings/settings.module';
 import type { SettingsService } from '../../../src/nest/settings/settings.service';
-import type { AuditService } from '../../../src/nest/audit/audit.service';
 import type { User } from '../../../src/types';
 import { expectRegisteredController } from '../../helpers/module-providers';
-import type { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
+import { HttpException } from '@nestjs/common';
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const user = { id: 1, role: 'admin' } as User;
 const req = { headers: {}, socket: {} } as never;
@@ -23,7 +24,14 @@ function controller(over: Partial<SettingsService> = {}) {
     setAdminUserDefaults: vi.fn(),
     ...over,
   } as unknown as SettingsService;
-  return { c: new AdminDefaultUserSettingsController(settings, { writeAudit } as unknown as AuditService, { isManaged: () => false } as unknown as RuntimeEnvService), settings };
+  return {
+    c: new AdminDefaultUserSettingsController(
+      settings,
+      { writeAudit } as unknown as AuditService,
+      { isManaged: () => false } as unknown as RuntimeEnvService,
+    ),
+    settings,
+  };
 }
 
 const thrown = (run: () => unknown) => {

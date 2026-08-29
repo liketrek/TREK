@@ -1,9 +1,9 @@
-import { Module } from '@nestjs/common';
+import { AuthModule } from '../auth/auth.module';
 import { TagsController } from './tags.controller';
 import { TagsMcp } from './tags.mcp';
 import { TagsRpc } from './tags.rpc';
 import { TagsService } from './tags.service';
-import { AuthModule } from '../auth/auth.module';
+import { Module } from '@nestjs/common';
 
 /** Tags domain (L5 leaf module). Registered in AppModule. */
 @Module({

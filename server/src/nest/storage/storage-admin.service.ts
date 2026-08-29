@@ -1,15 +1,8 @@
-import fs from 'node:fs';
-import { Injectable } from '@nestjs/common';
-import type { StorageAdminState, StorageBackend, StorageConfigPut, StorageTestResponse, StorageUsage } from '@trek/shared';
 import { DatabaseService } from '../database/database.service';
-import {
-  BACKENDS_KEY,
-  CATEGORIES_KEY,
-  VERSION_KEY,
-  StorageRegistryService,
-} from './storage-registry.service';
-import { StorageService } from './storage.service';
+import { StorageJobsService } from './storage-jobs.service';
 import { SEED_CONFIG_PATH } from './storage-paths';
+import { ephemeralDriverFor, probeDriver, type ProbeTargetResult } from './storage-probe';
+import { BACKENDS_KEY, CATEGORIES_KEY, VERSION_KEY, StorageRegistryService } from './storage-registry.service';
 import {
   assertNoMaskSentinels,
   decryptBackendSecrets,
@@ -17,10 +10,19 @@ import {
   maskBackendOptions,
   unmaskStorageConfig,
 } from './storage-secrets';
-import { ephemeralDriverFor, probeDriver, type ProbeTargetResult } from './storage-probe';
-import { StorageBackendError, StorageConflictError, type StorageCategory } from './storage.types';
-import { StorageJobsService } from './storage-jobs.service';
 import { StorageStatsService } from './storage-stats.service';
+import { StorageService } from './storage.service';
+import { StorageBackendError, StorageConflictError, type StorageCategory } from './storage.types';
+import { Injectable } from '@nestjs/common';
+import type {
+  StorageAdminState,
+  StorageBackend,
+  StorageConfigPut,
+  StorageTestResponse,
+  StorageUsage,
+} from '@trek/shared';
+
+import fs from 'node:fs';
 
 /**
  * Owner of the api/admin/storage read/write pipelines (spec:
@@ -137,10 +139,7 @@ export class StorageAdminService {
    * hides replica failures by design. Registry state is never touched.
    */
   async testBackend(candidate: StorageBackend): Promise<StorageTestResponse> {
-    const { backends } = unmaskStorageConfig(
-      { backends: [candidate], categories: {} },
-      this.storedBackendsRow(),
-    );
+    const { backends } = unmaskStorageConfig({ backends: [candidate], categories: {} }, this.storedBackendsRow());
     const backend = backends[0]!;
     const targets = this.probeTargetsFor(backend).map(decryptBackendSecrets) as Array<
       Extract<StorageBackend, { type: 'local' | 's3' }>

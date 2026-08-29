@@ -1,42 +1,42 @@
-import { Module } from '@nestjs/common';
-import { DiscoveryModule } from '@nestjs/core';
-import { PluginsService } from './plugins.service';
-import { PluginUserSettingsService } from './plugin-user-settings.service';
-import { PluginRuntimeService } from './plugin-runtime.service';
-import { PluginHooks } from './plugin-hooks.service';
-import { PluginRegistryService } from './registry/registry.service';
+import { AccommodationsModule } from '../accommodations/accommodations.module';
+import { AddonsModule } from '../addons/addons.module';
+import { AssignmentsModule } from '../assignments/assignments.module';
+import { AtlasModule } from '../atlas/atlas.module';
+import { AuditModule } from '../audit/audit.module';
+import { BudgetModule } from '../budget/budget.module';
+import { CategoriesModule } from '../categories/categories.module';
+import { CollabModule } from '../collab/collab.module';
+import { CollectionsModule } from '../collections/collections.module';
+import { DayNotesModule } from '../day-notes/day-notes.module';
+import { DaysModule } from '../days/days.module';
+import { FilesModule } from '../files/files.module';
+import { JourneyDomainModule } from '../journey/journey-domain.module';
+import { LlmParseModule } from '../llm-parse/llm-parse.module';
+import { NotificationsModule } from '../notifications/notifications.module';
+import { PackingModule } from '../packing/packing.module';
+import { PermissionsModule } from '../permissions/permissions.module';
+import { PlacesModule } from '../places/places.module';
+import { ReservationsModule } from '../reservations/reservations.module';
+import { TagsModule } from '../tags/tags.module';
+import { TodoModule } from '../todo/todo.module';
+import { TripMembershipModule } from '../trip-membership/trip-membership.module';
+import { TripsModule } from '../trips/trips.module';
+import { VacayModule } from '../vacay/vacay.module';
+import { WeatherModule } from '../weather/weather.module';
+import { PluginGuardsModule } from './host/plugin-guards.module';
 import { PluginRpcHostFactory } from './host/plugin-rpc-host.factory';
 import { PluginRpcRegistryService } from './host/rpc-kit/registry.service';
-import { PluginGuardsModule } from './host/plugin-guards.module';
-import { PluginOAuthModule } from './oauth/plugin-oauth.module';
 import { DbRpc } from './host/rpc/db.rpc';
-import { MetaRpc } from './host/rpc/meta.rpc';
 import { HostSurfaceRpc } from './host/rpc/host-surface.rpc';
-import { WeatherModule } from '../weather/weather.module';
-import { TagsModule } from '../tags/tags.module';
-import { CategoriesModule } from '../categories/categories.module';
-import { BudgetModule } from '../budget/budget.module';
-import { ReservationsModule } from '../reservations/reservations.module';
-import { TodoModule } from '../todo/todo.module';
-import { PackingModule } from '../packing/packing.module';
-import { DaysModule } from '../days/days.module';
-import { DayNotesModule } from '../day-notes/day-notes.module';
-import { AccommodationsModule } from '../accommodations/accommodations.module';
-import { AssignmentsModule } from '../assignments/assignments.module';
-import { LlmParseModule } from '../llm-parse/llm-parse.module';
-import { FilesModule } from '../files/files.module';
-import { CollabModule } from '../collab/collab.module';
-import { VacayModule } from '../vacay/vacay.module';
-import { TripsModule } from '../trips/trips.module';
-import { PlacesModule } from '../places/places.module';
-import { PermissionsModule } from '../permissions/permissions.module';
-import { AuditModule } from '../audit/audit.module';
-import { AddonsModule } from '../addons/addons.module';
-import { CollectionsModule } from '../collections/collections.module';
-import { AtlasModule } from '../atlas/atlas.module';
-import { NotificationsModule } from '../notifications/notifications.module';
-import { TripMembershipModule } from '../trip-membership/trip-membership.module';
-import { JourneyDomainModule } from '../journey/journey-domain.module';
+import { MetaRpc } from './host/rpc/meta.rpc';
+import { PluginOAuthModule } from './oauth/plugin-oauth.module';
+import { PluginHooks } from './plugin-hooks.service';
+import { PluginRuntimeService } from './plugin-runtime.service';
+import { PluginUserSettingsService } from './plugin-user-settings.service';
+import { PluginsService } from './plugins.service';
+import { PluginRegistryService } from './registry/registry.service';
+import { Module } from '@nestjs/common';
+import { DiscoveryModule } from '@nestjs/core';
 
 /**
  * The plugin execution half (#plugins, M1/M2): the process supervisor, the
@@ -62,11 +62,31 @@ import { JourneyDomainModule } from '../journey/journey-domain.module';
     // module: the domains would then have to import this one back and close a cycle.
     PluginGuardsModule,
     PluginOAuthModule,
-    WeatherModule, TagsModule, CategoriesModule, BudgetModule, ReservationsModule,
-    TodoModule, PackingModule, DaysModule, DayNotesModule, AccommodationsModule, AssignmentsModule, LlmParseModule,
-    FilesModule, CollabModule, VacayModule, TripsModule, PlacesModule,
-    PermissionsModule, AuditModule, AddonsModule, CollectionsModule, AtlasModule,
-    NotificationsModule, TripMembershipModule, JourneyDomainModule,
+    WeatherModule,
+    TagsModule,
+    CategoriesModule,
+    BudgetModule,
+    ReservationsModule,
+    TodoModule,
+    PackingModule,
+    DaysModule,
+    DayNotesModule,
+    AccommodationsModule,
+    AssignmentsModule,
+    LlmParseModule,
+    FilesModule,
+    CollabModule,
+    VacayModule,
+    TripsModule,
+    PlacesModule,
+    PermissionsModule,
+    AuditModule,
+    AddonsModule,
+    CollectionsModule,
+    AtlasModule,
+    NotificationsModule,
+    TripMembershipModule,
+    JourneyDomainModule,
   ],
   providers: [
     PluginsService,

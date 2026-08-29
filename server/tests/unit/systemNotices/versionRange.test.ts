@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
 import { isNoticeVersionActive } from '../../../src/systemNotices/service.js';
 import type { SystemNotice } from '../../../src/systemNotices/types.js';
+
+import { describe, it, expect } from 'vitest';
 
 const base: SystemNotice = {
   id: 'test-notice',

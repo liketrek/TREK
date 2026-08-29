@@ -7,14 +7,24 @@
  * the same mocked db. Covers auth (401), the admin gate (403), create-201,
  * validation 400, the dev-only 404, and real read/write round trips.
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
-import request from 'supertest';
+import { AdminModule } from '../../src/nest/admin/admin.module';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
+import { DatabaseModule } from '../../src/nest/database/database.module';
+import { NotificationsModule } from '../../src/nest/notifications/notifications.module';
+// The admin surface is no longer one module: oidc, the account defaults and the admin
+// preference matrix moved to the domains that own them, so the app has to assemble
+// them too or those routes 404 here while working in production.
+import { OidcModule } from '../../src/nest/oidc/oidc.module';
+import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
+import { SettingsModule } from '../../src/nest/settings/settings.module';
+import { seedUser, sessionCookie } from './harness';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
-import { DatabaseModule } from '../../src/nest/database/database.module';
-import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
-import { Test } from '@nestjs/testing';
-import { seedUser, sessionCookie } from './harness';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 
 const { db } = vi.hoisted(() => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -70,7 +80,13 @@ const { db } = vi.hoisted(() => {
 vi.mock('../../src/db/database', () => ({ db, closeDb: () => {}, reinitialize: () => {} }));
 // The audit domain is DI-native: writeAudit runs for real against the temp db's
 // audit_log table; only the file logger is silenced.
-vi.mock('../../src/nest/audit/audit-log.logger', () => ({ LOG_LEVEL: 'error', logInfo: vi.fn(), logDebug: vi.fn(), logError: vi.fn(), logWarn: vi.fn() }));
+vi.mock('../../src/nest/audit/audit-log.logger', () => ({
+  LOG_LEVEL: 'error',
+  logInfo: vi.fn(),
+  logDebug: vi.fn(),
+  logError: vi.fn(),
+  logWarn: vi.fn(),
+}));
 vi.mock('../../src/mcp', () => ({ invalidateMcpSessions: vi.fn() }));
 vi.mock('../../src/mcp/sessionManager', () => ({ revokeUserSessions: vi.fn(), revokeUserSessionsForClient: vi.fn() }));
 // Preferences are a provider since the notifications fold; stub the two methods
@@ -83,22 +99,14 @@ vi.mock('../../src/nest/notifications/notification-preferences.service', async (
   return actual;
 });
 
-import { AdminModule } from '../../src/nest/admin/admin.module';
-// The admin surface is no longer one module: oidc, the account defaults and the admin
-// preference matrix moved to the domains that own them, so the app has to assemble
-// them too or those routes 404 here while working in production.
-import { OidcModule } from '../../src/nest/oidc/oidc.module';
-import { SettingsModule } from '../../src/nest/settings/settings.module';
-import { NotificationsModule } from '../../src/nest/notifications/notifications.module';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
-
 describe('Admin e2e (real auth + admin guard + temp SQLite)', () => {
   let server: Server;
   let app: Awaited<ReturnType<typeof build>>;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, RealtimeModule, AdminModule, OidcModule, SettingsModule, NotificationsModule] }).compile();
+    const moduleRef = await Test.createTestingModule({
+      imports: [DatabaseModule, RealtimeModule, AdminModule, OidcModule, SettingsModule, NotificationsModule],
+    }).compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
     // Mirror the production APP_PIPE (app.module.ts): DTO-typed bodies validate
@@ -116,7 +124,9 @@ describe('Admin e2e (real auth + admin guard + temp SQLite)', () => {
     server = app.getHttpServer();
   });
 
-  beforeEach(() => { delete process.env.NODE_ENV; });
+  beforeEach(() => {
+    delete process.env.NODE_ENV;
+  });
 
   afterAll(async () => {
     await app.close();
@@ -135,13 +145,17 @@ describe('Admin e2e (real auth + admin guard + temp SQLite)', () => {
   it('200 list for an admin — real rows, guests excluded', async () => {
     const res = await request(server).get('/api/admin/users').set('Cookie', sessionCookie(1));
     expect(res.status).toBe(200);
-    expect(res.body.users.map((u: { email: string }) => u.email).sort())
-      .toEqual(['admin@example.test', 'member@example.test']);
+    expect(res.body.users.map((u: { email: string }) => u.email).sort()).toEqual([
+      'admin@example.test',
+      'member@example.test',
+    ]);
     expect(res.body.users[0]).toHaveProperty('avatar_url');
   });
 
   it('201 on user create — persists the row and writes an audit entry', async () => {
-    const res = await request(server).post('/api/admin/users').set('Cookie', sessionCookie(1))
+    const res = await request(server)
+      .post('/api/admin/users')
+      .set('Cookie', sessionCookie(1))
       .send({ username: 'created', email: 'new@x.y', password: 'Str0ng!Pass', role: 'user' });
     expect(res.status).toBe(201);
     expect(res.body.user).toMatchObject({ username: 'created', email: 'new@x.y', role: 'user' });
@@ -153,14 +167,18 @@ describe('Admin e2e (real auth + admin guard + temp SQLite)', () => {
   });
 
   it('400 on user create with a weak password', async () => {
-    const res = await request(server).post('/api/admin/users').set('Cookie', sessionCookie(1))
+    const res = await request(server)
+      .post('/api/admin/users')
+      .set('Cookie', sessionCookie(1))
       .send({ username: 'weak', email: 'weak@x.y', password: 'short' });
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ error: 'Password must be at least 8 characters' });
   });
 
   it('409 on a duplicate email', async () => {
-    const res = await request(server).post('/api/admin/users').set('Cookie', sessionCookie(1))
+    const res = await request(server)
+      .post('/api/admin/users')
+      .set('Cookie', sessionCookie(1))
       .send({ username: 'dupe', email: 'admin@example.test', password: 'Str0ng!Pass' });
     expect(res.status).toBe(409);
     expect(res.body).toEqual({ error: 'Email already taken' });
@@ -169,19 +187,31 @@ describe('Admin e2e (real auth + admin guard + temp SQLite)', () => {
   it('400 on a non-boolean feature toggle', async () => {
     // Post-ratchet: the inline typeof check is gone, so this is the pipe's
     // standard { error: 'field: message' } envelope.
-    const res = await request(server).put('/api/admin/places-photos').set('Cookie', sessionCookie(1)).send({ enabled: 'yes' });
+    const res = await request(server)
+      .put('/api/admin/places-photos')
+      .set('Cookie', sessionCookie(1))
+      .send({ enabled: 'yes' });
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ error: 'enabled: Invalid input: expected boolean, received string' });
   });
 
   it('places-photos toggle round-trips through app_settings', async () => {
-    const off = await request(server).put('/api/admin/places-photos').set('Cookie', sessionCookie(1)).send({ enabled: false });
+    const off = await request(server)
+      .put('/api/admin/places-photos')
+      .set('Cookie', sessionCookie(1))
+      .send({ enabled: false });
     expect(off.status).toBe(200);
-    expect(db.prepare("SELECT value FROM app_settings WHERE key = 'places_photos_enabled'").get()).toEqual({ value: 'false' });
-    expect((await request(server).get('/api/admin/places-photos').set('Cookie', sessionCookie(1))).body).toEqual({ enabled: false });
+    expect(db.prepare("SELECT value FROM app_settings WHERE key = 'places_photos_enabled'").get()).toEqual({
+      value: 'false',
+    });
+    expect((await request(server).get('/api/admin/places-photos').set('Cookie', sessionCookie(1))).body).toEqual({
+      enabled: false,
+    });
 
     await request(server).put('/api/admin/places-photos').set('Cookie', sessionCookie(1)).send({ enabled: true });
-    expect((await request(server).get('/api/admin/places-photos').set('Cookie', sessionCookie(1))).body).toEqual({ enabled: true });
+    expect((await request(server).get('/api/admin/places-photos').set('Cookie', sessionCookie(1))).body).toEqual({
+      enabled: true,
+    });
   });
 
   it('GET /stats counts real rows', async () => {
@@ -194,7 +224,10 @@ describe('Admin e2e (real auth + admin guard + temp SQLite)', () => {
   });
 
   it('invite create → list → delete round trip', async () => {
-    const created = await request(server).post('/api/admin/invites').set('Cookie', sessionCookie(1)).send({ max_uses: 3 });
+    const created = await request(server)
+      .post('/api/admin/invites')
+      .set('Cookie', sessionCookie(1))
+      .send({ max_uses: 3 });
     expect(created.status).toBe(201);
     expect(created.body.invite.max_uses).toBe(3);
     expect(created.body.invite.created_by_name).toBe('admin');
@@ -202,7 +235,9 @@ describe('Admin e2e (real auth + admin guard + temp SQLite)', () => {
     const listed = await request(server).get('/api/admin/invites').set('Cookie', sessionCookie(1));
     expect(listed.body.invites).toHaveLength(1);
 
-    const del = await request(server).delete(`/api/admin/invites/${created.body.invite.id}`).set('Cookie', sessionCookie(1));
+    const del = await request(server)
+      .delete(`/api/admin/invites/${created.body.invite.id}`)
+      .set('Cookie', sessionCookie(1));
     expect(del.status).toBe(200);
     expect(db.prepare('SELECT COUNT(*) as c FROM invite_tokens').get()).toEqual({ c: 0 });
   });
@@ -214,7 +249,10 @@ describe('Admin e2e (real auth + admin guard + temp SQLite)', () => {
   });
 
   it('packing-template create → get → delete round trip', async () => {
-    const created = await request(server).post('/api/admin/packing-templates').set('Cookie', sessionCookie(1)).send({ name: 'Beach' });
+    const created = await request(server)
+      .post('/api/admin/packing-templates')
+      .set('Cookie', sessionCookie(1))
+      .send({ name: 'Beach' });
     expect(created.status).toBe(201);
     const id = created.body.template.id;
 
@@ -222,7 +260,9 @@ describe('Admin e2e (real auth + admin guard + temp SQLite)', () => {
     expect(fetched.body.template.name).toBe('Beach');
     expect(fetched.body.categories).toEqual([]);
 
-    expect((await request(server).delete(`/api/admin/packing-templates/${id}`).set('Cookie', sessionCookie(1))).status).toBe(200);
+    expect(
+      (await request(server).delete(`/api/admin/packing-templates/${id}`).set('Cookie', sessionCookie(1))).status,
+    ).toBe(200);
     expect(db.prepare('SELECT COUNT(*) as c FROM packing_templates').get()).toEqual({ c: 0 });
   });
 
@@ -233,8 +273,12 @@ describe('Admin e2e (real auth + admin guard + temp SQLite)', () => {
   });
 
   it('GET /mcp-tokens and /oauth-sessions return empty lists', async () => {
-    expect((await request(server).get('/api/admin/mcp-tokens').set('Cookie', sessionCookie(1))).body).toEqual({ tokens: [] });
-    expect((await request(server).get('/api/admin/oauth-sessions').set('Cookie', sessionCookie(1))).body).toEqual({ sessions: [] });
+    expect((await request(server).get('/api/admin/mcp-tokens').set('Cookie', sessionCookie(1))).body).toEqual({
+      tokens: [],
+    });
+    expect((await request(server).get('/api/admin/oauth-sessions').set('Cookie', sessionCookie(1))).body).toEqual({
+      sessions: [],
+    });
   });
 
   it('404 on the dev-only test-notification outside development', async () => {

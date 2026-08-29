@@ -1,4 +1,3 @@
-import { createZodDto } from 'nestjs-zod';
 import {
   adminUserCreateRequestSchema,
   adminUserUpdateRequestSchema,
@@ -13,6 +12,8 @@ import {
   adminDefaultUserSettingsRequestSchema,
   adminTestNotificationRequestSchema,
 } from '@trek/shared';
+
+import { createZodDto } from 'nestjs-zod';
 
 /**
  * Server-side createZodDto wrappers over the @trek/shared admin contracts. The

@@ -4,17 +4,14 @@
  * (handing a trip over, creating and deleting guests) are exactly the ones a
  * collaborator must never do however generous the trip's permissions are.
  */
-import { describe, it, expect, vi } from 'vitest';
+import type { DatabaseService } from '../../../src/nest/database/database.service';
+import { TRIP_REQUEST_KEY } from '../../../src/nest/permissions/trip-access.guard';
+import { RequireTripOwner, TRIP_OWNER_KEY, TripOwnerGuard } from '../../../src/nest/permissions/trip-owner.guard';
+import type { User } from '../../../src/types';
 import { HttpException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { TRIP_REQUEST_KEY } from '../../../src/nest/permissions/trip-access.guard';
-import {
-  RequireTripOwner,
-  TRIP_OWNER_KEY,
-  TripOwnerGuard,
-} from '../../../src/nest/permissions/trip-owner.guard';
-import type { DatabaseService } from '../../../src/nest/database/database.service';
-import type { User } from '../../../src/types';
+
+import { describe, it, expect, vi } from 'vitest';
 
 const owner = { id: 42, role: 'user' } as User;
 const member = { id: 7, role: 'user' } as User;
@@ -66,7 +63,9 @@ describe('TripOwnerGuard', () => {
 
   it('OWNER-003: a stranger gets 404, never 403 — a 403 would confirm the id exists', () => {
     const { guard } = makeGuard();
-    expect(thrown(() => guard.canActivate(ctx({ user: { id: 123, role: 'user' } as User, params: { tripId: '5' } })))).toEqual({
+    expect(
+      thrown(() => guard.canActivate(ctx({ user: { id: 123, role: 'user' } as User, params: { tripId: '5' } }))),
+    ).toEqual({
       status: 404,
       body: { error: 'Trip not found' },
     });
@@ -78,7 +77,9 @@ describe('TripOwnerGuard', () => {
     // ownership through it would hand admins other people's trips. The guard does not
     // inject it at all.
     const canAccessTrip = vi.fn(() => TRIP);
-    const reflector = { getAllAndOverride: vi.fn(() => ({ message: 'Only the owner can transfer ownership' })) } as unknown as Reflector;
+    const reflector = {
+      getAllAndOverride: vi.fn(() => ({ message: 'Only the owner can transfer ownership' })),
+    } as unknown as Reflector;
     const guard = new TripOwnerGuard({ canAccessTrip } as unknown as DatabaseService, reflector);
     expect(thrown(() => guard.canActivate(ctx({ user: admin, params: { tripId: '5' } })))).toEqual({
       status: 403,

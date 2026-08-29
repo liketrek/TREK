@@ -4,6 +4,15 @@
  * DB-backed half is MemoriesAccessService.
  * Covers mapDbError, getAlbumIdFromLink, pipeAsset error paths.
  */
+import { runMigrations } from '../../../src/db/migrations';
+import { createTables } from '../../../src/db/schema';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { MemoriesAccessService } from '../../../src/nest/memories/memories-access.service';
+import { mapDbError, pipeAsset } from '../../../src/nest/memories/memories.helpers';
+import { SsrfBlockedError } from '../../../src/utils/ssrfGuard';
+import { createUser, createTrip } from '../../helpers/factories';
+import { resetTestDb } from '../../helpers/test-db';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // ── DB setup ─────────────────────────────────────────────────────────────────
@@ -20,11 +29,15 @@ const { testDb, dbMock } = vi.hoisted(() => {
     reinitialize: () => {},
     getPlaceWithTags: () => null,
     canAccessTrip: (tripId: any, userId: number) =>
-      db.prepare(`
+      db
+        .prepare(
+          `
         SELECT t.id FROM trips t
         LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ?
         WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)
-      `).get(userId, tripId, userId),
+      `,
+        )
+        .get(userId, tripId, userId),
     isOwner: (tripId: any, userId: number) =>
       !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
   };
@@ -44,7 +57,10 @@ const { mockSafeFetch } = vi.hoisted(() => ({
 
 vi.mock('../../../src/utils/ssrfGuard', () => {
   class SsrfBlockedError extends Error {
-    constructor(msg: string) { super(msg); this.name = 'SsrfBlockedError'; }
+    constructor(msg: string) {
+      super(msg);
+      this.name = 'SsrfBlockedError';
+    }
   }
   return {
     safeFetch: mockSafeFetch,
@@ -53,17 +69,8 @@ vi.mock('../../../src/utils/ssrfGuard', () => {
   };
 });
 
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip } from '../../helpers/factories';
-import { mapDbError, pipeAsset } from '../../../src/nest/memories/memories.helpers';
-import { MemoriesAccessService } from '../../../src/nest/memories/memories-access.service';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-
 const access = new MemoriesAccessService(new DatabaseService(testDb));
 const getAlbumIdFromLink = access.getAlbumIdFromLink.bind(access);
-import { SsrfBlockedError } from '../../../src/utils/ssrfGuard';
 
 beforeAll(() => {
   createTables(testDb);
@@ -136,9 +143,9 @@ describe('getAlbumIdFromLink', () => {
     const trip = createTrip(testDb, user.id);
 
     // Insert with auto-increment id (INTEGER PRIMARY KEY)
-    const ins = testDb.prepare(
-      'INSERT INTO trip_album_links (trip_id, user_id, provider, album_id, album_name) VALUES (?, ?, ?, ?, ?)'
-    ).run(trip.id, user.id, 'immich', 'album-123', 'My Album');
+    const ins = testDb
+      .prepare('INSERT INTO trip_album_links (trip_id, user_id, provider, album_id, album_name) VALUES (?, ?, ?, ?, ?)')
+      .run(trip.id, user.id, 'immich', 'album-123', 'My Album');
     const linkId = ins.lastInsertRowid;
 
     const result = getAlbumIdFromLink(String(trip.id), String(linkId), user.id);
@@ -248,11 +255,9 @@ describe('pipeAsset fetch options (#1611)', () => {
 
     await pipeAsset('https://example.com/asset', res, undefined, undefined, undefined, { rejectUnauthorized: false });
 
-    expect(mockSafeFetch).toHaveBeenCalledWith(
-      'https://example.com/asset',
-      expect.anything(),
-      { rejectUnauthorized: false },
-    );
+    expect(mockSafeFetch).toHaveBeenCalledWith('https://example.com/asset', expect.anything(), {
+      rejectUnauthorized: false,
+    });
   });
 
   it('MEM-HELPERS-022: omitting fetchOptions leaves safeFetch options undefined', async () => {
@@ -293,18 +298,23 @@ describe('pipeAsset fetch options (#1611)', () => {
 
 /** A trek_photos row plus the trip_photos link that shares it. */
 function shareInTrip(tripId: number, ownerId: number, assetId: string, provider = 'immich', shared = 1): number {
-  const photoId = Number(testDb.prepare(
-    'INSERT INTO trek_photos (provider, asset_id, owner_id) VALUES (?, ?, ?)'
-  ).run(provider, assetId, ownerId).lastInsertRowid);
-  testDb.prepare('INSERT INTO trip_photos (trip_id, photo_id, user_id, shared) VALUES (?, ?, ?, ?)')
+  const photoId = Number(
+    testDb
+      .prepare('INSERT INTO trek_photos (provider, asset_id, owner_id) VALUES (?, ?, ?)')
+      .run(provider, assetId, ownerId).lastInsertRowid,
+  );
+  testDb
+    .prepare('INSERT INTO trip_photos (trip_id, photo_id, user_id, shared) VALUES (?, ?, ?, ?)')
     .run(tripId, photoId, ownerId, shared);
   return photoId;
 }
 
 function makeJourney(userId: number): number {
-  return Number(testDb.prepare(
-    "INSERT INTO journeys (user_id, title, status, created_at, updated_at) VALUES (?, 'J', 'draft', 0, 0)"
-  ).run(userId).lastInsertRowid);
+  return Number(
+    testDb
+      .prepare("INSERT INTO journeys (user_id, title, status, created_at, updated_at) VALUES (?, 'J', 'draft', 0, 0)")
+      .run(userId).lastInsertRowid,
+  );
 }
 
 describe('canAccessUserPhoto', () => {
@@ -355,11 +365,17 @@ describe('canAccessUserPhoto', () => {
     const { user: owner } = createUser(testDb);
     const { user: contributor } = createUser(testDb, { username: 'contrib' });
     const journeyId = makeJourney(owner.id);
-    const photoId = Number(testDb.prepare(
-      "INSERT INTO trek_photos (provider, asset_id, owner_id) VALUES ('immich', 'j-asset', ?)"
-    ).run(owner.id).lastInsertRowid);
-    testDb.prepare('INSERT INTO journey_photos (journey_id, photo_id, created_at) VALUES (?, ?, 0)').run(journeyId, photoId);
-    testDb.prepare("INSERT INTO journey_contributors (journey_id, user_id, role, added_at) VALUES (?, ?, 'editor', 0)").run(journeyId, contributor.id);
+    const photoId = Number(
+      testDb
+        .prepare("INSERT INTO trek_photos (provider, asset_id, owner_id) VALUES ('immich', 'j-asset', ?)")
+        .run(owner.id).lastInsertRowid,
+    );
+    testDb
+      .prepare('INSERT INTO journey_photos (journey_id, photo_id, created_at) VALUES (?, ?, 0)')
+      .run(journeyId, photoId);
+    testDb
+      .prepare("INSERT INTO journey_contributors (journey_id, user_id, role, added_at) VALUES (?, ?, 'editor', 0)")
+      .run(journeyId, contributor.id);
 
     expect(access.canAccessUserPhoto(contributor.id, owner.id, '0', 'j-asset', 'immich')).toBe(true);
   });
@@ -368,10 +384,14 @@ describe('canAccessUserPhoto', () => {
     const { user: owner } = createUser(testDb);
     const { user: stranger } = createUser(testDb, { username: 'stranger' });
     const journeyId = makeJourney(owner.id);
-    const photoId = Number(testDb.prepare(
-      "INSERT INTO trek_photos (provider, asset_id, owner_id) VALUES ('immich', 'j-asset-2', ?)"
-    ).run(owner.id).lastInsertRowid);
-    testDb.prepare('INSERT INTO journey_photos (journey_id, photo_id, created_at) VALUES (?, ?, 0)').run(journeyId, photoId);
+    const photoId = Number(
+      testDb
+        .prepare("INSERT INTO trek_photos (provider, asset_id, owner_id) VALUES ('immich', 'j-asset-2', ?)")
+        .run(owner.id).lastInsertRowid,
+    );
+    testDb
+      .prepare('INSERT INTO journey_photos (journey_id, photo_id, created_at) VALUES (?, ?, 0)')
+      .run(journeyId, photoId);
 
     expect(access.canAccessUserPhoto(stranger.id, owner.id, '0', 'j-asset-2', 'immich')).toBe(false);
   });
@@ -390,9 +410,10 @@ describe('canAccessTrekPhoto', () => {
 
   it('MEM-ACCESS-011: the owner passes', () => {
     const { user } = createUser(testDb);
-    const photoId = Number(testDb.prepare(
-      "INSERT INTO trek_photos (provider, asset_id, owner_id) VALUES ('immich', 'own', ?)"
-    ).run(user.id).lastInsertRowid);
+    const photoId = Number(
+      testDb.prepare("INSERT INTO trek_photos (provider, asset_id, owner_id) VALUES ('immich', 'own', ?)").run(user.id)
+        .lastInsertRowid,
+    );
 
     expect(access.canAccessTrekPhoto(user.id, photoId)).toBe(true);
   });
@@ -422,11 +443,17 @@ describe('canAccessTrekPhoto', () => {
     const { user: owner } = createUser(testDb);
     const { user: contributor } = createUser(testDb, { username: 'contrib' });
     const journeyId = makeJourney(owner.id);
-    const photoId = Number(testDb.prepare(
-      "INSERT INTO trek_photos (provider, asset_id, owner_id) VALUES ('immich', 'j-trek', ?)"
-    ).run(owner.id).lastInsertRowid);
-    testDb.prepare('INSERT INTO journey_photos (journey_id, photo_id, created_at) VALUES (?, ?, 0)').run(journeyId, photoId);
-    testDb.prepare("INSERT INTO journey_contributors (journey_id, user_id, role, added_at) VALUES (?, ?, 'editor', 0)").run(journeyId, contributor.id);
+    const photoId = Number(
+      testDb
+        .prepare("INSERT INTO trek_photos (provider, asset_id, owner_id) VALUES ('immich', 'j-trek', ?)")
+        .run(owner.id).lastInsertRowid,
+    );
+    testDb
+      .prepare('INSERT INTO journey_photos (journey_id, photo_id, created_at) VALUES (?, ?, 0)')
+      .run(journeyId, photoId);
+    testDb
+      .prepare("INSERT INTO journey_contributors (journey_id, user_id, role, added_at) VALUES (?, ?, 'editor', 0)")
+      .run(journeyId, contributor.id);
 
     expect(access.canAccessTrekPhoto(contributor.id, photoId)).toBe(true);
   });
@@ -435,10 +462,13 @@ describe('canAccessTrekPhoto', () => {
     const { user: owner } = createUser(testDb);
     const { user: outsider } = createUser(testDb, { username: 'outsider' });
     const journeyId = makeJourney(owner.id);
-    const photoId = Number(testDb.prepare(
-      "INSERT INTO trek_photos (provider, file_path) VALUES ('local', 'journey/x.jpg')"
-    ).run().lastInsertRowid);
-    testDb.prepare('INSERT INTO journey_photos (journey_id, photo_id, created_at) VALUES (?, ?, 0)').run(journeyId, photoId);
+    const photoId = Number(
+      testDb.prepare("INSERT INTO trek_photos (provider, file_path) VALUES ('local', 'journey/x.jpg')").run()
+        .lastInsertRowid,
+    );
+    testDb
+      .prepare('INSERT INTO journey_photos (journey_id, photo_id, created_at) VALUES (?, ?, 0)')
+      .run(journeyId, photoId);
 
     expect(access.canAccessTrekPhoto(owner.id, photoId)).toBe(true);
     expect(access.canAccessTrekPhoto(outsider.id, photoId)).toBe(false);
@@ -446,9 +476,10 @@ describe('canAccessTrekPhoto', () => {
 
   it('MEM-ACCESS-016: an ownerless local upload in no journey is reachable by nobody', () => {
     const { user } = createUser(testDb);
-    const photoId = Number(testDb.prepare(
-      "INSERT INTO trek_photos (provider, file_path) VALUES ('local', 'orphan.jpg')"
-    ).run().lastInsertRowid);
+    const photoId = Number(
+      testDb.prepare("INSERT INTO trek_photos (provider, file_path) VALUES ('local', 'orphan.jpg')").run()
+        .lastInsertRowid,
+    );
 
     expect(access.canAccessTrekPhoto(user.id, photoId)).toBe(false);
   });

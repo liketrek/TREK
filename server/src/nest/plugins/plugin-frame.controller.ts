@@ -1,11 +1,12 @@
+import { Public } from '../auth/public.decorator';
+import { pluginsEnabled } from './kill-switch';
+import { pluginCodeDir } from './paths';
+import { PluginRuntimeService } from './plugin-runtime.service';
 import { Controller, Get, Param, Req, Res } from '@nestjs/common';
+
 import type { Request, Response } from 'express';
 import fs from 'node:fs';
 import path from 'node:path';
-import { pluginsEnabled } from './kill-switch';
-import { PluginRuntimeService } from './plugin-runtime.service';
-import { pluginCodeDir } from './paths';
-import { Public } from '../auth/public.decorator';
 
 /**
  * Serves a page/widget plugin's static client from /plugin-frame/:id/* (#plugins,

@@ -1,9 +1,6 @@
+import { mapsSearchRequestSchema, mapsAutocompleteRequestSchema, mapsResolveUrlRequestSchema } from '@trek/shared';
+
 import { createZodDto } from 'nestjs-zod';
-import {
-  mapsSearchRequestSchema,
-  mapsAutocompleteRequestSchema,
-  mapsResolveUrlRequestSchema,
-} from '@trek/shared';
 
 /**
  * Server-side createZodDto wrappers over the @trek/shared maps contracts. The

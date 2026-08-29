@@ -1,12 +1,12 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import fs from 'node:fs';
-import path from 'node:path';
-import { Test } from '@nestjs/testing';
-import { ConfigService, ConfigType } from '@nestjs/config';
-
 import { AppConfigModule } from '../../../src/nest/app-config/app-config.module';
 import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
 import { httpConfig, mcpConfig, BOOT_STABLE_TOKENS } from '../../../src/nest/app-config/tokens';
+import { ConfigService, ConfigType } from '@nestjs/config';
+import { Test } from '@nestjs/testing';
+
+import fs from 'node:fs';
+import path from 'node:path';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 describe('RuntimeEnvService', () => {
   const service = new RuntimeEnvService();

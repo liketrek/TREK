@@ -9,6 +9,10 @@
  *
  * fetch is stubbed; the DB is mocked the same way maps.service.test.ts does it.
  */
+import { db } from '../../../src/db/database';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { MapsService } from '../../../src/nest/maps/maps.service';
+
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
 vi.mock('../../../src/db/database', () => ({
@@ -22,10 +26,6 @@ vi.mock('../../../src/utils/ssrfGuard', () => ({
   checkSsrf: vi.fn(async () => ({ allowed: true })),
   SsrfBlockedError: class extends Error {},
 }));
-
-import { db } from '../../../src/db/database';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { MapsService } from '../../../src/nest/maps/maps.service';
 
 const svcOf = () => new MapsService(new DatabaseService(db as never), {} as never);
 
@@ -97,7 +97,9 @@ describe('fetchWikidataCandidates', () => {
     const fetchMock = vi.fn().mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        entities: { Q1: { claims: { P18: [{ mainsnak: { datavalue: { value: 'Wrong.jpg' } }, rank: 'deprecated' }] } } },
+        entities: {
+          Q1: { claims: { P18: [{ mainsnak: { datavalue: { value: 'Wrong.jpg' } }, rank: 'deprecated' }] } },
+        },
       }),
     });
     vi.stubGlobal('fetch', fetchMock);

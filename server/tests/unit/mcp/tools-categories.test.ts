@@ -6,6 +6,12 @@
  * here keeps withTools on (the resource is NOT registered by the legacy
  * registerResources fan-out anymore).
  */
+import { runMigrations } from '../../../src/db/migrations';
+import { createTables } from '../../../src/db/schema';
+import { createUser } from '../../helpers/factories';
+import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
+import { resetTestDb } from '../../helpers/test-db';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 const { testDb, dbMock } = vi.hoisted(() => {
@@ -32,12 +38,6 @@ vi.mock('../../../src/config', () => ({
   updateJwtSecret: () => {},
 }));
 
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser } from '../../helpers/factories';
-import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
-
 beforeAll(() => {
   createTables(testDb);
   runMigrations(testDb);
@@ -51,13 +51,13 @@ afterAll(() => {
   testDb.close();
 });
 
-async function withHarness(
-  userId: number,
-  fn: (h: McpHarness) => Promise<void>,
-  scopes: string[] | null = null,
-) {
+async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>, scopes: string[] | null = null) {
   const h = await createMcpHarness({ userId, withResources: false, scopes });
-  try { await fn(h); } finally { await h.cleanup(); }
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -83,8 +83,12 @@ describe('Tool: list_categories', () => {
   it('returns categories from all users, ordered by name', async () => {
     const { user } = createUser(testDb);
     const { user: other } = createUser(testDb);
-    testDb.prepare('INSERT INTO categories (name, color, icon, user_id) VALUES (?, ?, ?, ?)').run('Zzz Mine', '#111111', '🅰️', user.id);
-    testDb.prepare('INSERT INTO categories (name, color, icon, user_id) VALUES (?, ?, ?, ?)').run('Zzz Other', '#222222', '🅱️', other.id);
+    testDb
+      .prepare('INSERT INTO categories (name, color, icon, user_id) VALUES (?, ?, ?, ?)')
+      .run('Zzz Mine', '#111111', '🅰️', user.id);
+    testDb
+      .prepare('INSERT INTO categories (name, color, icon, user_id) VALUES (?, ?, ?, ?)')
+      .run('Zzz Other', '#222222', '🅱️', other.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'list_categories', arguments: {} });
       const names = (parseToolResult(result) as any).categories.map((c: { name: string }) => c.name);
@@ -145,11 +149,15 @@ describe('Resource: trek://categories', () => {
 
   it('stays readable under restricted non-places scopes (legacy ungated behavior)', async () => {
     const { user } = createUser(testDb);
-    await withHarness(user.id, async (h) => {
-      const result = await h.client.readResource({ uri: 'trek://categories' });
-      const categories = parseResourceResult(result) as any[];
-      expect(Array.isArray(categories)).toBe(true);
-      expect(categories.length).toBeGreaterThan(0);
-    }, ['trips:read']);
+    await withHarness(
+      user.id,
+      async (h) => {
+        const result = await h.client.readResource({ uri: 'trek://categories' });
+        const categories = parseResourceResult(result) as any[];
+        expect(Array.isArray(categories)).toBe(true);
+        expect(categories.length).toBeGreaterThan(0);
+      },
+      ['trips:read'],
+    );
   });
 });

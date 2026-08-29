@@ -1,9 +1,10 @@
-import { Injectable } from '@nestjs/common';
-import type express from 'express';
+import { getMcpSafeUrl } from '../../app-config';
+import { ALL_SCOPES } from '../../mcp/scopes';
 import { mcpAuthMetadataRouter } from '@modelcontextprotocol/sdk/server/auth/router';
 import type { OAuthMetadata } from '@modelcontextprotocol/sdk/shared/auth';
-import { ALL_SCOPES } from '../../mcp/scopes';
-import { getMcpSafeUrl } from '../../app-config';
+import { Injectable } from '@nestjs/common';
+
+import type express from 'express';
 
 /**
  * OAuth/MCP discovery metadata, built lazily on first request so the issuer URL
@@ -24,16 +25,16 @@ export class DiscoveryMetadataService {
     if (this.oauthMetadata) return this.oauthMetadata;
     const base = getMcpSafeUrl().replace(/(?<!\/)\/+$/, '');
     this.oauthMetadata = {
-      issuer:                                base,
-      authorization_endpoint:                `${base}/oauth/authorize`,
-      token_endpoint:                        `${base}/oauth/token`,
-      revocation_endpoint:                   `${base}/oauth/revoke`,
-      registration_endpoint:                 `${base}/oauth/register`,
-      response_types_supported:              ['code'],
-      grant_types_supported:                 ['authorization_code', 'refresh_token', 'client_credentials'],
-      code_challenge_methods_supported:      ['S256'],
+      issuer: base,
+      authorization_endpoint: `${base}/oauth/authorize`,
+      token_endpoint: `${base}/oauth/token`,
+      revocation_endpoint: `${base}/oauth/revoke`,
+      registration_endpoint: `${base}/oauth/register`,
+      response_types_supported: ['code'],
+      grant_types_supported: ['authorization_code', 'refresh_token', 'client_credentials'],
+      code_challenge_methods_supported: ['S256'],
       token_endpoint_auth_methods_supported: ['client_secret_post', 'none'],
-      scopes_supported:                      ALL_SCOPES,
+      scopes_supported: ALL_SCOPES,
     };
     return this.oauthMetadata;
   }

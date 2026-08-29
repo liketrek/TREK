@@ -6,7 +6,7 @@ import crypto, { createHash, randomBytes } from 'crypto';
 // Constants
 // ---------------------------------------------------------------------------
 
-export const ACCESS_TOKEN_TTL_S = 60 * 60;                  // 1 hour
+export const ACCESS_TOKEN_TTL_S = 60 * 60; // 1 hour
 export const REFRESH_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days rolling
 
 /**
@@ -46,11 +46,11 @@ export interface OAuthClientRow {
   name: string;
   client_id: string;
   client_secret_hash: string;
-  redirect_uris: string;   // JSON array
-  allowed_scopes: string;  // JSON array
+  redirect_uris: string; // JSON array
+  allowed_scopes: string; // JSON array
   created_at: string;
-  is_public: number;       // 0 | 1 (SQLite boolean)
-  created_via: string;     // 'settings_ui' | 'browser-registration'
+  is_public: number; // 0 | 1 (SQLite boolean)
+  created_via: string; // 'settings_ui' | 'browser-registration'
   allows_client_credentials: number; // 0 | 1
 }
 
@@ -60,7 +60,7 @@ export interface OAuthTokenRow {
   user_id: number;
   access_token_hash: string;
   refresh_token_hash: string;
-  scopes: string;           // JSON array
+  scopes: string; // JSON array
   audience: string | null;
   access_token_expires_at: string;
   refresh_token_expires_at: string;
@@ -81,7 +81,9 @@ export function timingSafeEqualHex(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
   try {
     return crypto.timingSafeEqual(Buffer.from(a, 'hex'), Buffer.from(b, 'hex'));
-  } catch { return false; }
+  } catch {
+    return false;
+  }
 }
 
 export function generateAccessToken(): string {

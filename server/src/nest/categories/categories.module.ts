@@ -1,8 +1,8 @@
-import { Module } from '@nestjs/common';
 import { CategoriesController } from './categories.controller';
 import { CategoriesMcp } from './categories.mcp';
-import { CategoriesService } from './categories.service';
 import { CategoriesRpc } from './categories.rpc';
+import { CategoriesService } from './categories.service';
+import { Module } from '@nestjs/common';
 
 /** Categories domain (L4 leaf module). Registered in AppModule. */
 @Module({

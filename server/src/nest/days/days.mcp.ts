@@ -1,13 +1,20 @@
-import {
-  McpController, Tool, ResourceTemplate, type McpContext,
-  TOOL_ANNOTATIONS_WRITE, TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  demoDenied, ok,
-} from '../../nest-mcp';
-import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
-import { z } from 'zod';
-import { AuthService } from '../auth/auth.service';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
+import {
+  McpController,
+  Tool,
+  ResourceTemplate,
+  type McpContext,
+  TOOL_ANNOTATIONS_WRITE,
+  TOOL_ANNOTATIONS_DELETE,
+  TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+  demoDenied,
+  ok,
+} from '../../nest-mcp';
+import { AuthService } from '../auth/auth.service';
+import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { DaysService } from './days.service';
+
+import { z } from 'zod';
 
 function parseId(value: string | string[]): number | null {
   const n = Number(Array.isArray(value) ? value[0] : value);
@@ -45,10 +52,7 @@ export class DaysMcp {
     annotations: TOOL_ANNOTATIONS_WRITE,
     access: { group: 'trips', mode: 'write' },
   })
-  async updateDay(
-    { tripId, dayId, title }: { tripId: number; dayId: number; title: string | null },
-    ctx: McpContext,
-  ) {
+  async updateDay({ tripId, dayId, title }: { tripId: number; dayId: number; title: string | null }, ctx: McpContext) {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.days.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!this.guards.hasTripPermission('day_edit', tripId, ctx.userId)) return permissionDenied();
@@ -70,10 +74,7 @@ export class DaysMcp {
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     access: { group: 'trips', mode: 'write' },
   })
-  async createDay(
-    { tripId, date, notes }: { tripId: number; date?: string; notes?: string },
-    ctx: McpContext,
-  ) {
+  async createDay({ tripId, date, notes }: { tripId: number; date?: string; notes?: string }, ctx: McpContext) {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.days.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!this.guards.hasTripPermission('day_edit', tripId, ctx.userId)) return permissionDenied();
@@ -96,7 +97,8 @@ export class DaysMcp {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.days.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!this.guards.hasTripPermission('day_edit', tripId, ctx.userId)) return permissionDenied();
-    if (!this.days.getDay(dayId, tripId)) return { content: [{ type: 'text' as const, text: 'Day not found.' }], isError: true };
+    if (!this.days.getDay(dayId, tripId))
+      return { content: [{ type: 'text' as const, text: 'Day not found.' }], isError: true };
     this.days.remove(dayId);
     // REST parity shape ({ dayId }) — the client reads payload.dayId, so the { id }
     // variant never removed the day from collaborator screens.
@@ -106,11 +108,16 @@ export class DaysMcp {
 
   @Tool({
     name: 'set_day_default_transport_mode',
-    description: 'Set the whole-day default travel mode for a day. transport_mode is a route profile key: "driving", "walking", "cycling", or a plugin profile written as "plugin:<pluginId>/<profileId>". Any other value is stored but drawn as a driving route. null clears the default. Per-segment leg modes still override this.',
+    description:
+      'Set the whole-day default travel mode for a day. transport_mode is a route profile key: "driving", "walking", "cycling", or a plugin profile written as "plugin:<pluginId>/<profileId>". Any other value is stored but drawn as a driving route. null clears the default. Per-segment leg modes still override this.',
     inputSchema: {
       tripId: z.number().int().positive(),
       dayId: z.number().int().positive(),
-      transport_mode: z.string().nullable().optional().describe('Route profile key (e.g. "driving"), or null to clear the day default'),
+      transport_mode: z
+        .string()
+        .nullable()
+        .optional()
+        .describe('Route profile key (e.g. "driving"), or null to clear the day default'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     access: { group: 'trips', mode: 'write' },
@@ -122,7 +129,8 @@ export class DaysMcp {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.days.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!this.guards.hasTripPermission('day_edit', tripId, ctx.userId)) return permissionDenied();
-    if (!this.days.getDay(dayId, tripId)) return { content: [{ type: 'text' as const, text: 'Day not found.' }], isError: true };
+    if (!this.days.getDay(dayId, tripId))
+      return { content: [{ type: 'text' as const, text: 'Day not found.' }], isError: true };
     const day = this.days.setDefaultTransportMode(dayId, transport_mode ?? null);
     this.guards.safeBroadcast(tripId, 'day:updated', { day });
     return ok({ day });
@@ -139,20 +147,24 @@ export class DaysMcp {
     const id = parseId(tripId);
     if (id === null || !this.days.verifyTripAccess(id, ctx.userId)) {
       return {
-        contents: [{
-          uri: uri.href,
-          mimeType: 'application/json',
-          text: JSON.stringify({ error: 'Trip not found or access denied' }),
-        }],
+        contents: [
+          {
+            uri: uri.href,
+            mimeType: 'application/json',
+            text: JSON.stringify({ error: 'Trip not found or access denied' }),
+          },
+        ],
       };
     }
     const { days } = this.days.list(id);
     return {
-      contents: [{
-        uri: uri.href,
-        mimeType: 'application/json',
-        text: JSON.stringify(days, null, 2),
-      }],
+      contents: [
+        {
+          uri: uri.href,
+          mimeType: 'application/json',
+          text: JSON.stringify(days, null, 2),
+        },
+      ],
     };
   }
 }

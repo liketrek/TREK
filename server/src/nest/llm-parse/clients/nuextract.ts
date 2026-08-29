@@ -165,7 +165,12 @@ function nameOrFallback(x: Record<string, unknown>, fallback: string): string {
 
 /** Map one flat NuExtract reservation into a schema.org `KiReservation` node (or undefined). */
 function buildNode(x: Record<string, unknown>): Record<string, unknown> | undefined {
-  const atType = TYPE_MAP[String(x.type ?? '').toLowerCase().trim()];
+  const atType =
+    TYPE_MAP[
+      String(x.type ?? '')
+        .toLowerCase()
+        .trim()
+    ];
   if (!atType) return undefined;
 
   const node: Record<string, unknown> = {
@@ -217,12 +222,22 @@ function buildNode(x: Record<string, unknown>): Record<string, unknown> | undefi
       };
       break;
     case 'LodgingReservation':
-      node.reservationFor = { name: nameOrFallback(x, 'Accommodation'), address: x.address, telephone: x.telephone, url: x.website };
+      node.reservationFor = {
+        name: nameOrFallback(x, 'Accommodation'),
+        address: x.address,
+        telephone: x.telephone,
+        url: x.website,
+      };
       node.checkinTime = x.checkin_time;
       node.checkoutTime = x.checkout_time;
       break;
     case 'FoodEstablishmentReservation':
-      node.reservationFor = { name: nameOrFallback(x, 'Restaurant'), address: x.address, telephone: x.telephone, url: x.website };
+      node.reservationFor = {
+        name: nameOrFallback(x, 'Restaurant'),
+        address: x.address,
+        telephone: x.telephone,
+        url: x.website,
+      };
       node.startTime = x.start_time;
       node.endTime = x.end_time;
       break;

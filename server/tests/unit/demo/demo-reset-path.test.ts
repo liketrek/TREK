@@ -16,9 +16,12 @@
  * written to, because the baseline path is fixed at data/travel-baseline.db and
  * a developer running a demo instance has a real one sitting there.
  */
-import { describe, it, expect, vi, beforeEach, afterEach, afterAll } from 'vitest';
+import { resetDemoUser, saveBaseline } from '../../../src/demo/demo-reset';
+
 import fs from 'node:fs';
 import path from 'node:path';
+import { describe, it, expect, vi, beforeEach, afterEach, afterAll } from 'vitest';
+
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const Module = require('node:module');
 
@@ -45,8 +48,6 @@ afterAll(() => {
   if (previousLoader) Module._extensions['.ts'] = previousLoader;
   else delete Module._extensions['.ts'];
 });
-
-import { resetDemoUser, saveBaseline } from '../../../src/demo/demo-reset';
 
 describe('demo-reset DB path', () => {
   let copyFileSync: ReturnType<typeof vi.spyOn>;

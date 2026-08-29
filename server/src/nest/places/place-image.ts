@@ -1,6 +1,7 @@
-import path from 'node:path';
 import { db } from '../../db/database';
 import type { StorageService } from '../storage/storage.service';
+
+import path from 'node:path';
 
 const URL_PREFIX = '/uploads/places/';
 

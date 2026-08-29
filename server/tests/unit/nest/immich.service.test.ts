@@ -7,6 +7,16 @@
  * HTTP and never reach most of the failure paths. These cases go at the service
  * directly with safeFetch stubbed, so every "upstream said no" branch is pinned.
  */
+import { runMigrations } from '../../../src/db/migrations';
+import { createTables } from '../../../src/db/schema';
+import type { AuditService } from '../../../src/nest/audit/audit.service';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { ImmichService } from '../../../src/nest/memories/immich.service';
+import type { MemoriesAccessService } from '../../../src/nest/memories/memories-access.service';
+import { makeStorageFixture } from '../../helpers/storage-fixture';
+
+import fs from 'node:fs';
+import path from 'node:path';
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 const { testDb, dbMock } = vi.hoisted(() => {
@@ -15,7 +25,14 @@ const { testDb, dbMock } = vi.hoisted(() => {
   db.exec('PRAGMA journal_mode = WAL');
   return {
     testDb: db,
-    dbMock: { db, closeDb: () => {}, reinitialize: () => {}, canAccessTrip: () => null, isOwner: () => false, getPlaceWithTags: () => null },
+    dbMock: {
+      db,
+      closeDb: () => {},
+      reinitialize: () => {},
+      canAccessTrip: () => null,
+      isOwner: () => false,
+      getPlaceWithTags: () => null,
+    },
   };
 });
 vi.mock('../../../src/db/database', () => dbMock);
@@ -40,31 +57,36 @@ vi.mock('../../../src/utils/ssrfGuard', () => ({
   SsrfBlockedError: class extends Error {},
 }));
 
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { ImmichService } from '../../../src/nest/memories/immich.service';
-import type { AuditService } from '../../../src/nest/audit/audit.service';
-import type { MemoriesAccessService } from '../../../src/nest/memories/memories-access.service';
-import fs from 'node:fs';
-import path from 'node:path';
-import { makeStorageFixture } from '../../helpers/storage-fixture';
-
 const audit = { writeAudit: vi.fn() };
 const access = { getAlbumIdFromLink: vi.fn() };
 const dbs = new DatabaseService(testDb);
 const journeyFx = makeStorageFixture('journey/');
-const svc = new ImmichService(dbs, audit as unknown as AuditService, access as unknown as MemoriesAccessService, journeyFx.storage);
+const svc = new ImmichService(
+  dbs,
+  audit as unknown as AuditService,
+  access as unknown as MemoriesAccessService,
+  journeyFx.storage,
+);
 
 const USER = 1;
 
 function seedUser(id: number, url: string | null, key: string | null, autoUpload = 0): void {
-  testDb.prepare("INSERT OR REPLACE INTO users (id, username, email, password_hash, immich_url, immich_api_key, immich_auto_upload) VALUES (?, ?, ?, 'x', ?, ?, ?)")
+  testDb
+    .prepare(
+      "INSERT OR REPLACE INTO users (id, username, email, password_hash, immich_url, immich_api_key, immich_auto_upload) VALUES (?, ?, ?, 'x', ?, ?, ?)",
+    )
     .run(id, `u${id}`, `u${id}@example.test`, url, key, autoUpload);
 }
 
 /** A Response-ish object with only what the service reads. */
-function upstream(opts: { ok?: boolean; status?: number; json?: unknown; url?: string; contentType?: string | null; body?: string }) {
+function upstream(opts: {
+  ok?: boolean;
+  status?: number;
+  json?: unknown;
+  url?: string;
+  contentType?: string | null;
+  body?: string;
+}) {
   return {
     ok: opts.ok ?? true,
     status: opts.status ?? 200,
@@ -125,7 +147,11 @@ describe('isValidAssetId', () => {
 
 describe('getConnectionSettings / setImmichAutoUpload', () => {
   it('IMMICH-007: reports connected with the URL when configured', () => {
-    expect(svc.getConnectionSettings(USER)).toEqual({ immich_url: 'https://immich.test', connected: true, auto_upload: false });
+    expect(svc.getConnectionSettings(USER)).toEqual({
+      immich_url: 'https://immich.test',
+      connected: true,
+      auto_upload: false,
+    });
   });
 
   it('IMMICH-008: reports an empty URL and not connected when it is not', () => {
@@ -165,7 +191,9 @@ describe('saveImmichSettings', () => {
 
     expect(result.success).toBe(true);
     expect(result.warning).toContain('192.168.1.9');
-    expect(audit.writeAudit).toHaveBeenCalledWith(expect.objectContaining({ action: 'immich.private_ip_configured', ip: '5.6.7.8' }));
+    expect(audit.writeAudit).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'immich.private_ip_configured', ip: '5.6.7.8' }),
+    );
   });
 
   it('IMMICH-013: an empty URL clears the connection without an SSRF check', async () => {
@@ -220,7 +248,10 @@ describe('testConnection', () => {
 
   it('IMMICH-021: falls back to "Connection failed" for a non-Error rejection', async () => {
     safeFetch.mockRejectedValue('boom');
-    expect(await svc.testConnection('https://immich.test', 'k')).toEqual({ connected: false, error: 'Connection failed' });
+    expect(await svc.testConnection('https://immich.test', 'k')).toEqual({
+      connected: false,
+      error: 'Connection failed',
+    });
   });
 });
 
@@ -277,39 +308,79 @@ describe('searchPhotos', () => {
   });
 
   it('IMMICH-029: drops hidden assets an older server still returns (#1474)', async () => {
-    safeFetch.mockResolvedValue(upstream({
-      json: { assets: { items: [
-        { id: 'ok', fileCreatedAt: '2026-01-01' },
-        { id: 'hidden-flag', visibility: 'hidden' },
-        { id: 'legacy-flag', isVisible: false },
-      ] } },
-    }));
+    safeFetch.mockResolvedValue(
+      upstream({
+        json: {
+          assets: {
+            items: [
+              { id: 'ok', fileCreatedAt: '2026-01-01' },
+              { id: 'hidden-flag', visibility: 'hidden' },
+              { id: 'legacy-flag', isVisible: false },
+            ],
+          },
+        },
+      }),
+    );
 
     const result = await svc.searchPhotos(USER);
 
-    expect(result.assets!.map(a => a.id)).toEqual(['ok']);
+    expect(result.assets!.map((a) => a.id)).toEqual(['ok']);
   });
 
   it('IMMICH-030: maps exif fields, falls back to createdAt, and marks videos', async () => {
-    safeFetch.mockResolvedValue(upstream({
-      json: { assets: { items: [
-        { id: 'a', createdAt: '2026-02-02', type: 'VIDEO', exifInfo: { city: 'Kyoto', country: 'JP', latitude: 35.0, longitude: 135.7 } },
-        { id: 'b', fileCreatedAt: '2026-03-03', type: 'IMAGE', exifInfo: { latitude: 'nope' } },
-      ] } },
-    }));
+    safeFetch.mockResolvedValue(
+      upstream({
+        json: {
+          assets: {
+            items: [
+              {
+                id: 'a',
+                createdAt: '2026-02-02',
+                type: 'VIDEO',
+                exifInfo: { city: 'Kyoto', country: 'JP', latitude: 35.0, longitude: 135.7 },
+              },
+              { id: 'b', fileCreatedAt: '2026-03-03', type: 'IMAGE', exifInfo: { latitude: 'nope' } },
+            ],
+          },
+        },
+      }),
+    );
 
     const [a, b] = (await svc.searchPhotos(USER)).assets!;
 
-    expect(a).toMatchObject({ takenAt: '2026-02-02', city: 'Kyoto', country: 'JP', lat: 35.0, lng: 135.7, mediaType: 'video' });
+    expect(a).toMatchObject({
+      takenAt: '2026-02-02',
+      city: 'Kyoto',
+      country: 'JP',
+      lat: 35.0,
+      lng: 135.7,
+      mediaType: 'video',
+    });
     // A non-numeric coordinate becomes null rather than reaching the client as a string.
-    expect(b).toMatchObject({ takenAt: '2026-03-03', city: null, country: null, lat: null, lng: null, mediaType: 'image' });
+    expect(b).toMatchObject({
+      takenAt: '2026-03-03',
+      city: null,
+      country: null,
+      lat: null,
+      lng: null,
+      mediaType: 'image',
+    });
   });
 
   it('IMMICH-031: hasMore counts the raw page, not the filtered one', async () => {
     // Otherwise a page that is entirely hidden assets would stop pagination dead.
-    safeFetch.mockResolvedValue(upstream({
-      json: { assets: { items: [{ id: 'x', visibility: 'hidden' }, { id: 'y', visibility: 'hidden' }] } },
-    }));
+    safeFetch.mockResolvedValue(
+      upstream({
+        json: {
+          assets: {
+            items: [
+              { id: 'x', visibility: 'hidden' },
+              { id: 'y', visibility: 'hidden' },
+            ],
+          },
+        },
+      }),
+    );
 
     const result = await svc.searchPhotos(USER, undefined, undefined, 1, 2);
 
@@ -336,7 +407,7 @@ describe('getAssetInfo', () => {
     expect(await svc.getAssetInfo(USER, 'a1', 8)).toEqual({ error: 'Not found', status: 404 });
   });
 
-  it('IMMICH-034: reads the OWNER\'s credentials, not the requester\'s', async () => {
+  it("IMMICH-034: reads the OWNER's credentials, not the requester's", async () => {
     seedUser(9, 'https://owner.test', 'owner-key');
     safeFetch.mockResolvedValue(upstream({ json: { id: 'a1' } }));
 
@@ -355,11 +426,24 @@ describe('getAssetInfo', () => {
   });
 
   it('IMMICH-036: composes camera/focal/aperture only when both halves are present', async () => {
-    safeFetch.mockResolvedValueOnce(upstream({
-      json: { id: 'a1', fileCreatedAt: 'x', originalFileName: 'IMG.jpg', exifInfo: { make: 'Fuji', model: 'X100V', focalLength: 23, fNumber: 2, iso: 200 } },
-    }));
+    safeFetch.mockResolvedValueOnce(
+      upstream({
+        json: {
+          id: 'a1',
+          fileCreatedAt: 'x',
+          originalFileName: 'IMG.jpg',
+          exifInfo: { make: 'Fuji', model: 'X100V', focalLength: 23, fNumber: 2, iso: 200 },
+        },
+      }),
+    );
     const full = (await svc.getAssetInfo(USER, 'a1')).data;
-    expect(full).toMatchObject({ camera: 'Fuji X100V', focalLength: '23mm', aperture: 'f/2', iso: 200, fileName: 'IMG.jpg' });
+    expect(full).toMatchObject({
+      camera: 'Fuji X100V',
+      focalLength: '23mm',
+      aperture: 'f/2',
+      iso: 200,
+      fileName: 'IMG.jpg',
+    });
 
     safeFetch.mockResolvedValueOnce(upstream({ json: { id: 'a2', exifInfo: { make: 'Fuji' } } }));
     const partial = (await svc.getAssetInfo(USER, 'a2')).data;
@@ -388,7 +472,7 @@ describe('fetchImmichThumbnailBytes', () => {
 
   it('IMMICH-040: defaults the content type when the server omits it', async () => {
     safeFetch.mockResolvedValue(upstream({ contentType: null, body: 'thumb' }));
-    const result = await svc.fetchImmichThumbnailBytes(USER, 'a1') as { contentType: string };
+    const result = (await svc.fetchImmichThumbnailBytes(USER, 'a1')) as { contentType: string };
     expect(result.contentType).toBe('image/jpeg');
   });
 
@@ -462,15 +546,22 @@ describe('collectAlbumSelection', () => {
 
   it('IMMICH-044: returns only visible image assets, with the raw total', async () => {
     access.getAlbumIdFromLink.mockReturnValue({ success: true, data: 'album-1' });
-    safeFetch.mockResolvedValue(upstream({
-      json: { assets: [
-        { id: 'img', type: 'IMAGE' },
-        { id: 'vid', type: 'VIDEO' },
-        { id: 'hidden', type: 'IMAGE', visibility: 'hidden' },
-      ] },
-    }));
+    safeFetch.mockResolvedValue(
+      upstream({
+        json: {
+          assets: [
+            { id: 'img', type: 'IMAGE' },
+            { id: 'vid', type: 'VIDEO' },
+            { id: 'hidden', type: 'IMAGE', visibility: 'hidden' },
+          ],
+        },
+      }),
+    );
 
-    const result = await svc.collectAlbumSelection('1', 'l1', USER) as { selection: { asset_ids: string[] }; total: number };
+    const result = (await svc.collectAlbumSelection('1', 'l1', USER)) as {
+      selection: { asset_ids: string[] };
+      total: number;
+    };
 
     expect(result.selection.asset_ids).toEqual(['img']);
     expect(result.total).toBe(1);
@@ -514,7 +605,10 @@ describe('uploadToImmich', () => {
 
     expect(await svc.uploadToImmich(USER, 'journey/up.jpg', 'up.jpg')).toBe('immich-42');
 
-    const [url, init] = safeFetch.mock.calls[0] as [string, { method: string; body: Buffer; headers: Record<string, string> }];
+    const [url, init] = safeFetch.mock.calls[0] as [
+      string,
+      { method: string; body: Buffer; headers: Record<string, string> },
+    ];
     expect(url).toBe('https://immich.test/api/assets');
     expect(init.method).toBe('POST');
     expect(init.headers['x-api-key']).toBe('key-1');

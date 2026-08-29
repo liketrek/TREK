@@ -3,12 +3,21 @@
  * install a pinned version through the full verify -> extract -> validate ->
  * move -> register pipeline (with the network download mocked).
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { db as dbConn } from '../../../src/db/database';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import {
+  PluginRegistryService,
+  RegistryError,
+  __clearRegistryCacheForTests,
+} from '../../../src/nest/plugins/registry/registry.service';
+import type { ManifestPreview } from '../../../src/nest/plugins/registry/registry.service';
+
+import { createHash, generateKeyPairSync, sign as edSign } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import zlib from 'node:zlib';
-import { createHash, generateKeyPairSync, sign as edSign } from 'node:crypto';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const { safeDownload } = vi.hoisted(() => ({ safeDownload: vi.fn() }));
 vi.mock('../../../src/nest/plugins/install/safe-fetch', async (orig) => ({
@@ -29,19 +38,22 @@ const { testDb } = vi.hoisted(() => {
   return { testDb: db };
 });
 vi.mock('../../../src/db/database', () => ({ db: testDb, canAccessTrip: () => undefined }));
-import { db as dbConn } from '../../../src/db/database';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-
-import { PluginRegistryService, RegistryError, __clearRegistryCacheForTests } from '../../../src/nest/plugins/registry/registry.service';
-import type { ManifestPreview } from '../../../src/nest/plugins/registry/registry.service';
 
 // ── tiny tar.gz builder (wraps the plugin in a codeload-style top dir) ────────
 function tarHeader(name: string, size: number, typeflag = '0'): Buffer {
   const h = Buffer.alloc(512, 0);
-  h.write(name, 0); h.write('0000644', 100); h.write('0000000', 108); h.write('0000000', 116);
-  h.write(size.toString(8).padStart(11, '0'), 124); h.write('00000000000', 136);
-  h.write('        ', 148); h.write(typeflag, 156); h.write('ustar\0', 257); h.write('00', 263);
-  let sum = 0; for (let i = 0; i < 512; i++) sum += h[i];
+  h.write(name, 0);
+  h.write('0000644', 100);
+  h.write('0000000', 108);
+  h.write('0000000', 116);
+  h.write(size.toString(8).padStart(11, '0'), 124);
+  h.write('00000000000', 136);
+  h.write('        ', 148);
+  h.write(typeflag, 156);
+  h.write('ustar\0', 257);
+  h.write('00', 263);
+  let sum = 0;
+  for (let i = 0; i < 512; i++) sum += h[i];
   h.write(sum.toString(8).padStart(6, '0') + '\0 ', 148);
   return h;
 }
@@ -60,7 +72,11 @@ function makeArtifact(manifest: object): Buffer {
   for (const f of files) {
     const body = Buffer.from(f.data);
     parts.push(tarHeader(f.name, f.type === '5' ? 0 : body.length, f.type));
-    if (f.type === '0') { parts.push(body); const pad = (512 - (body.length % 512)) % 512; if (pad) parts.push(Buffer.alloc(pad, 0)); }
+    if (f.type === '0') {
+      parts.push(body);
+      const pad = (512 - (body.length % 512)) % 512;
+      if (pad) parts.push(Buffer.alloc(pad, 0));
+    }
   }
   parts.push(Buffer.alloc(1024, 0));
   return zlib.gzipSync(Buffer.concat(parts));
@@ -70,9 +86,24 @@ const REGISTRY = {
   schemaVersion: 1,
   plugins: [
     {
-      id: 'flight-tracker', name: 'Flight', author: 'Acme', description: 'flights', repo: 'acme/trek-flight',
-      type: 'widget', icon: 'Plane', reviewedAt: '2026-06-20',
-      versions: [{ version: '1.0.0', gitTag: 'v1.0.0', commitSha: 'a'.repeat(40), downloadUrl: 'https://codeload.github.com/acme/trek-flight/tar.gz/aaaa', sha256: '', minTrekVersion: '3.2.0' }],
+      id: 'flight-tracker',
+      name: 'Flight',
+      author: 'Acme',
+      description: 'flights',
+      repo: 'acme/trek-flight',
+      type: 'widget',
+      icon: 'Plane',
+      reviewedAt: '2026-06-20',
+      versions: [
+        {
+          version: '1.0.0',
+          gitTag: 'v1.0.0',
+          commitSha: 'a'.repeat(40),
+          downloadUrl: 'https://codeload.github.com/acme/trek-flight/tar.gz/aaaa',
+          sha256: '',
+          minTrekVersion: '3.2.0',
+        },
+      ],
     },
   ],
 };
@@ -88,7 +119,10 @@ beforeEach(() => {
   process.env.TREK_PLUGINS_DIR = codeRoot;
   testDb.exec('DELETE FROM plugins; DELETE FROM plugin_settings_fields; DELETE FROM plugin_error_log');
   __clearRegistryCacheForTests();
-  vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => REGISTRY }) as unknown as Response));
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => ({ ok: true, json: async () => REGISTRY }) as unknown as Response),
+  );
   svc = new PluginRegistryService(new DatabaseService(dbConn));
 });
 afterEach(() => {
@@ -111,7 +145,13 @@ function signingKey() {
   };
 }
 function stageSignedArtifact(pubB64: string, sig: (b: Buffer) => string): Buffer {
-  const artifact = makeArtifact({ id: 'flight-tracker', name: 'Flight', version: '1.0.0', type: 'widget', permissions: ['db:own'] });
+  const artifact = makeArtifact({
+    id: 'flight-tracker',
+    name: 'Flight',
+    version: '1.0.0',
+    type: 'widget',
+    permissions: ['db:own'],
+  });
   REGISTRY.plugins[0].versions[0].sha256 = createHash('sha256').update(artifact).digest('hex');
   (REGISTRY.plugins[0] as { authorPublicKey?: string }).authorPublicKey = pubB64;
   (REGISTRY.plugins[0].versions[0] as { signature?: string }).signature = sig(artifact);
@@ -123,7 +163,13 @@ describe('PluginRegistryService', () => {
   it('browse maps the aggregated registry to metadata', async () => {
     const list = await svc.browse();
     expect(list).toEqual([
-      expect.objectContaining({ id: 'flight-tracker', name: 'Flight', latest: '1.0.0', minTrekVersion: '3.2.0', reviewedAt: '2026-06-20' }),
+      expect.objectContaining({
+        id: 'flight-tracker',
+        name: 'Flight',
+        latest: '1.0.0',
+        minTrekVersion: '3.2.0',
+        reviewedAt: '2026-06-20',
+      }),
     ]);
   });
 
@@ -136,7 +182,9 @@ describe('PluginRegistryService', () => {
 
   it('browse exposes a screenshot url pinned at the reviewed commit', async () => {
     const list = await svc.browse();
-    expect(list[0].screenshotUrl).toBe(`https://raw.githubusercontent.com/acme/trek-flight/${'a'.repeat(40)}/docs/screenshot.png`);
+    expect(list[0].screenshotUrl).toBe(
+      `https://raw.githubusercontent.com/acme/trek-flight/${'a'.repeat(40)}/docs/screenshot.png`,
+    );
   });
 
   // The registry aggregate now resolves the cover at build time (docs/screenshot.png
@@ -158,11 +206,25 @@ describe('PluginRegistryService', () => {
 
   it('detail merges registry metadata with a live manifest preview', async () => {
     safeDownload.mockResolvedValue({
-      bytes: Buffer.from(JSON.stringify({
-        id: 'flight-tracker', permissions: ['db:read:trips', 'http:outbound'], egress: ['api.example.com'],
-        settings: [{ key: 'api_key', label: 'API Key', input_type: 'password', scope: 'instance', required: true, secret: true }],
-        license: 'MIT', icon: 'Plane',
-      })),
+      bytes: Buffer.from(
+        JSON.stringify({
+          id: 'flight-tracker',
+          permissions: ['db:read:trips', 'http:outbound'],
+          egress: ['api.example.com'],
+          settings: [
+            {
+              key: 'api_key',
+              label: 'API Key',
+              input_type: 'password',
+              scope: 'instance',
+              required: true,
+              secret: true,
+            },
+          ],
+          license: 'MIT',
+          icon: 'Plane',
+        }),
+      ),
       sha256: 'unused',
     });
     const d = await svc.detail('flight-tracker');
@@ -171,23 +233,31 @@ describe('PluginRegistryService', () => {
       expect.any(Number),
     );
     expect(d).toMatchObject({
-      id: 'flight-tracker', repo: 'acme/trek-flight', latest: '1.0.0', reviewedAt: '2026-06-20',
+      id: 'flight-tracker',
+      repo: 'acme/trek-flight',
+      latest: '1.0.0',
+      reviewedAt: '2026-06-20',
       screenshotUrl: `https://raw.githubusercontent.com/acme/trek-flight/${'a'.repeat(40)}/docs/screenshot.png`,
       manifest: {
         permissions: ['db:read:trips', 'http:outbound'],
         egress: ['api.example.com'],
         settings: [{ key: 'api_key', label: 'API Key', inputType: 'password', scope: 'instance', required: true }],
-        license: 'MIT', icon: 'Plane',
+        license: 'MIT',
+        icon: 'Plane',
       },
     });
   });
 
   it('detail carries the UI-facing capabilities, so the review sheet can chip a tab takeover', async () => {
     safeDownload.mockResolvedValue({
-      bytes: Buffer.from(JSON.stringify({
-        id: 'flight-tracker', permissions: [], egress: [],
-        capabilities: { widget: { slot: 'hero' }, tripPage: { replaces: ['places'], position: 3 }, settingsUi: true },
-      })),
+      bytes: Buffer.from(
+        JSON.stringify({
+          id: 'flight-tracker',
+          permissions: [],
+          egress: [],
+          capabilities: { widget: { slot: 'hero' }, tripPage: { replaces: ['places'], position: 3 }, settingsUi: true },
+        }),
+      ),
       sha256: 'unused',
     });
     const d = (await svc.detail('flight-tracker')) as { manifest: ManifestPreview };
@@ -211,16 +281,22 @@ describe('PluginRegistryService', () => {
 
   it('detail tolerates a malformed manifest shape', async () => {
     safeDownload.mockResolvedValue({
-      bytes: Buffer.from(JSON.stringify({ permissions: 'not-an-array', settings: [{ label: 'no key' }], egress: [7, 'ok.host'] })),
+      bytes: Buffer.from(
+        JSON.stringify({ permissions: 'not-an-array', settings: [{ label: 'no key' }], egress: [7, 'ok.host'] }),
+      ),
       sha256: 'unused',
     });
-    const d = (await svc.detail('flight-tracker')) as { manifest: { permissions: string[]; egress: string[]; settings: unknown[] } };
+    const d = (await svc.detail('flight-tracker')) as {
+      manifest: { permissions: string[]; egress: string[]; settings: unknown[] };
+    };
     expect(d.manifest).toMatchObject({ permissions: [], egress: ['ok.host'], settings: [] });
   });
 
   it('detail surfaces operatorEgress, so the pre-install review can say the host list is not the whole story', async () => {
     safeDownload.mockResolvedValue({
-      bytes: Buffer.from(JSON.stringify({ permissions: ['http:outbound:gotify.net'], egress: ['gotify.net'], operatorEgress: true })),
+      bytes: Buffer.from(
+        JSON.stringify({ permissions: ['http:outbound:gotify.net'], egress: ['gotify.net'], operatorEgress: true }),
+      ),
       sha256: 'unused',
     });
     const d = (await svc.detail('flight-tracker')) as { manifest: { operatorEgress: boolean; egress: string[] } };
@@ -247,7 +323,10 @@ describe('PluginRegistryService', () => {
     safeDownload.mockRejectedValueOnce(new Error('github hiccup'));
     const first = (await svc.detail('flight-tracker')) as { manifest: unknown };
     expect(first.manifest).toBeNull();
-    safeDownload.mockResolvedValue({ bytes: Buffer.from(JSON.stringify({ permissions: ['db:own'] })), sha256: 'unused' });
+    safeDownload.mockResolvedValue({
+      bytes: Buffer.from(JSON.stringify({ permissions: ['db:own'] })),
+      sha256: 'unused',
+    });
     const second = (await svc.detail('flight-tracker')) as { manifest: { permissions: string[] } };
     expect(second.manifest).toMatchObject({ permissions: ['db:own'] });
     expect(safeDownload).toHaveBeenCalledTimes(2);
@@ -266,21 +345,44 @@ describe('PluginRegistryService', () => {
       schemaVersion: 1,
       plugins: [
         {
-          id: 'flight-tracker', name: 'Flight', author: 'Acme', description: 'flights', repo: 'acme/trek-flight', type: 'widget',
+          id: 'flight-tracker',
+          name: 'Flight',
+          author: 'Acme',
+          description: 'flights',
+          repo: 'acme/trek-flight',
+          type: 'widget',
           versions: [
-            { version: '2.0.0', gitTag: 'v2.0.0', commitSha: 'b'.repeat(40), downloadUrl: 'https://x/2', sha256: '2'.repeat(64) },
-            { version: '1.0.0', gitTag: 'v1.0.0', commitSha: 'd'.repeat(40), downloadUrl: 'https://x/1', sha256: '0'.repeat(64) },
+            {
+              version: '2.0.0',
+              gitTag: 'v2.0.0',
+              commitSha: 'b'.repeat(40),
+              downloadUrl: 'https://x/2',
+              sha256: '2'.repeat(64),
+            },
+            {
+              version: '1.0.0',
+              gitTag: 'v1.0.0',
+              commitSha: 'd'.repeat(40),
+              downloadUrl: 'https://x/1',
+              sha256: '0'.repeat(64),
+            },
           ],
         },
       ],
     };
     const seedRow = (hold = 0) =>
-      testDb.prepare("INSERT INTO plugins (id, status, enabled, update_hold) VALUES ('flight-tracker','inactive',0,?)").run(hold);
+      testDb
+        .prepare("INSERT INTO plugins (id, status, enabled, update_hold) VALUES ('flight-tracker','inactive',0,?)")
+        .run(hold);
     const holdInDb = () =>
-      (testDb.prepare("SELECT update_hold FROM plugins WHERE id='flight-tracker'").get() as { update_hold: number }).update_hold;
+      (testDb.prepare("SELECT update_hold FROM plugins WHERE id='flight-tracker'").get() as { update_hold: number })
+        .update_hold;
 
     beforeEach(() => {
-      vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => twoVersions }) as unknown as Response));
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => ({ ok: true, json: async () => twoVersions }) as unknown as Response),
+      );
       __clearRegistryCacheForTests();
     });
 
@@ -308,14 +410,24 @@ describe('PluginRegistryService', () => {
           {
             ...twoVersions.plugins[0],
             versions: [
-              { version: '3.0.0', gitTag: 'v3.0.0', commitSha: 'c'.repeat(40), downloadUrl: 'https://x/3', sha256: '3'.repeat(64), trek: '>=4.0.0' },
+              {
+                version: '3.0.0',
+                gitTag: 'v3.0.0',
+                commitSha: 'c'.repeat(40),
+                downloadUrl: 'https://x/3',
+                sha256: '3'.repeat(64),
+                trek: '>=4.0.0',
+              },
               ...twoVersions.plugins[0].versions,
             ],
           },
         ],
       };
       process.env.APP_VERSION = '3.3.0';
-      vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => withIncompatibleNewest }) as unknown as Response));
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => ({ ok: true, json: async () => withIncompatibleNewest }) as unknown as Response),
+      );
       __clearRegistryCacheForTests();
       try {
         seedRow(1);
@@ -334,7 +446,12 @@ describe('PluginRegistryService', () => {
 
     it('an unresolvable registry never sets a hold', async () => {
       seedRow();
-      vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('offline'); }));
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => {
+          throw new Error('offline');
+        }),
+      );
       __clearRegistryCacheForTests();
       await expect(svc.recomputeUpdateHold('flight-tracker', '1.0.0', true)).resolves.toBe(false);
       expect(holdInDb()).toBe(0);
@@ -349,23 +466,64 @@ describe('PluginRegistryService', () => {
       schemaVersion: 1,
       plugins: [
         {
-          id: 'flight-tracker', name: 'Flight', author: 'Acme', description: 'flights', repo: 'acme/trek-flight',
-          type: 'widget', authorPublicKey: 'K'.repeat(44),
+          id: 'flight-tracker',
+          name: 'Flight',
+          author: 'Acme',
+          description: 'flights',
+          repo: 'acme/trek-flight',
+          type: 'widget',
+          authorPublicKey: 'K'.repeat(44),
           versions: [
-            { version: '2.0.0', gitTag: 'v2.0.0', commitSha: 'b'.repeat(40), downloadUrl: 'https://x/2', sha256: '2'.repeat(64), trek: '>=4.0.0', publishedAt: '2026-08-01', size: 2048, signature: 'sig2' },
-            { version: '1.5.0', gitTag: 'v1.5.0', commitSha: 'c'.repeat(40), downloadUrl: 'https://x/15', sha256: '1'.repeat(64), trek: '>=3.0.0 <4.0.0', publishedAt: '2026-07-01', size: 1024 },
-            { version: '1.0.0', gitTag: 'v1.0.0', commitSha: 'd'.repeat(40), downloadUrl: 'https://x/1', sha256: '0'.repeat(64), minTrekVersion: '3.0.0' },
+            {
+              version: '2.0.0',
+              gitTag: 'v2.0.0',
+              commitSha: 'b'.repeat(40),
+              downloadUrl: 'https://x/2',
+              sha256: '2'.repeat(64),
+              trek: '>=4.0.0',
+              publishedAt: '2026-08-01',
+              size: 2048,
+              signature: 'sig2',
+            },
+            {
+              version: '1.5.0',
+              gitTag: 'v1.5.0',
+              commitSha: 'c'.repeat(40),
+              downloadUrl: 'https://x/15',
+              sha256: '1'.repeat(64),
+              trek: '>=3.0.0 <4.0.0',
+              publishedAt: '2026-07-01',
+              size: 1024,
+            },
+            {
+              version: '1.0.0',
+              gitTag: 'v1.0.0',
+              commitSha: 'd'.repeat(40),
+              downloadUrl: 'https://x/1',
+              sha256: '0'.repeat(64),
+              minTrekVersion: '3.0.0',
+            },
           ],
         },
       ],
     };
-    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => multi }) as unknown as Response));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({ ok: true, json: async () => multi }) as unknown as Response),
+    );
     __clearRegistryCacheForTests();
     try {
       const d = (await svc.detail('flight-tracker')) as { versions: unknown };
       expect(d.versions).toEqual([
         { version: '2.0.0', publishedAt: '2026-08-01', size: 2048, signed: true, trek: '>=4.0.0', compatible: false },
-        { version: '1.5.0', publishedAt: '2026-07-01', size: 1024, signed: false, trek: '>=3.0.0 <4.0.0', compatible: true },
+        {
+          version: '1.5.0',
+          publishedAt: '2026-07-01',
+          size: 1024,
+          signed: false,
+          trek: '>=3.0.0 <4.0.0',
+          compatible: true,
+        },
         // A legacy entry composes its requirement from the min/max bounds it has.
         { version: '1.0.0', publishedAt: null, size: null, signed: false, trek: '>=3.0.0', compatible: true },
       ]);
@@ -376,12 +534,23 @@ describe('PluginRegistryService', () => {
 
   it('fetchRegistry soft-fails to an empty registry on a cold cache', async () => {
     __clearRegistryCacheForTests();
-    vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('offline'); }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new Error('offline');
+      }),
+    );
     expect((await new PluginRegistryService(new DatabaseService(dbConn)).fetchRegistry()).plugins).toEqual([]);
   });
 
   it('installs a pinned version end to end (verify -> extract -> register inactive)', async () => {
-    const artifact = makeArtifact({ id: 'flight-tracker', name: 'Flight', version: '1.0.0', type: 'widget', permissions: ['db:own'] });
+    const artifact = makeArtifact({
+      id: 'flight-tracker',
+      name: 'Flight',
+      version: '1.0.0',
+      type: 'widget',
+      permissions: ['db:own'],
+    });
     const sha = createHash('sha256').update(artifact).digest('hex');
     REGISTRY.plugins[0].versions[0].sha256 = sha;
     safeDownload.mockResolvedValue({ bytes: artifact, sha256: sha });
@@ -391,7 +560,9 @@ describe('PluginRegistryService', () => {
 
     // moved into place + registered inactive with provenance
     expect(fs.existsSync(path.join(codeRoot, 'flight-tracker', 'trek-plugin.json'))).toBe(true);
-    const row = testDb.prepare("SELECT status, source_repo, source_commit FROM plugins WHERE id='flight-tracker'").get() as { status: string; source_repo: string; source_commit: string };
+    const row = testDb
+      .prepare("SELECT status, source_repo, source_commit FROM plugins WHERE id='flight-tracker'")
+      .get() as { status: string; source_repo: string; source_commit: string };
     expect(row).toMatchObject({ status: 'inactive', source_repo: 'acme/trek-flight', source_commit: 'a'.repeat(40) });
     // no staging left behind
     const staging = path.join(dataRoot, '.staging');
@@ -422,28 +593,37 @@ describe('PluginRegistryService', () => {
     const spy = vi.fn(async () => ({ ok: true, json: async () => REGISTRY }) as unknown as Response);
     vi.stubGlobal('fetch', spy);
     __clearRegistryCacheForTests();
-    await svc.fetchRegistry();       // primes the 30-min cache (fetch #1)
-    await svc.fetchRegistry(true);   // force → refetches despite the warm cache
+    await svc.fetchRegistry(); // primes the 30-min cache (fetch #1)
+    await svc.fetchRegistry(true); // force → refetches despite the warm cache
     expect(spy).toHaveBeenCalledTimes(2);
     const [url, opts] = spy.mock.calls[1] as unknown as [string | URL, { headers?: Record<string, string> }];
-    expect(String(url)).toMatch(/[?&]_=\d+/);            // cache-buster query
+    expect(String(url)).toMatch(/[?&]_=\d+/); // cache-buster query
     expect(opts.headers?.['Cache-Control']).toBe('no-cache');
   });
 
   // ── Sideload (upload your own plugin) ────────────────────────────────────────
   it('sideload: stage + commit installs an uploaded plugin INACTIVE as local:upload', () => {
-    const zip = makeArtifact({ id: 'my-upload', name: 'Uploaded', version: '2.0.0', type: 'widget', permissions: ['db:own'] });
+    const zip = makeArtifact({
+      id: 'my-upload',
+      name: 'Uploaded',
+      version: '2.0.0',
+      type: 'widget',
+      permissions: ['db:own'],
+    });
     const staged = svc.stageUpload(zip);
     expect(staged.id).toBe('my-upload');
     expect(staged.version).toBe('2.0.0');
 
     svc.commitUpload(staged);
 
-    const row = testDb.prepare('SELECT status, source_repo, reviewed_at, version FROM plugins WHERE id = ?').get('my-upload') as
-      { status: string; source_repo: string | null; reviewed_at: string | null; version: string } | undefined;
-    expect(row?.status).toBe('inactive');       // never auto-activates
+    const row = testDb
+      .prepare('SELECT status, source_repo, reviewed_at, version FROM plugins WHERE id = ?')
+      .get('my-upload') as
+      | { status: string; source_repo: string | null; reviewed_at: string | null; version: string }
+      | undefined;
+    expect(row?.status).toBe('inactive'); // never auto-activates
     expect(row?.source_repo).toBe('local:upload');
-    expect(row?.reviewed_at).toBeNull();        // unsigned + unreviewed → flagged in the UI
+    expect(row?.reviewed_at).toBeNull(); // unsigned + unreviewed → flagged in the UI
     expect(row?.version).toBe('2.0.0');
     expect(fs.existsSync(path.join(codeRoot, 'my-upload', 'trek-plugin.json'))).toBe(true);
     expect(fs.existsSync(staged.stagingDir)).toBe(false); // staging cleaned up
@@ -459,18 +639,25 @@ describe('PluginRegistryService', () => {
   });
 
   it('sideload: forces INACTIVE even when replacing a plugin that was active', () => {
-    const zip = () => makeArtifact({ id: 'my-upload', name: 'Uploaded', version: '2.0.0', type: 'widget', permissions: ['db:own'] });
-    svc.commitUpload(svc.stageUpload(zip()));                                            // first install
+    const zip = () =>
+      makeArtifact({ id: 'my-upload', name: 'Uploaded', version: '2.0.0', type: 'widget', permissions: ['db:own'] });
+    svc.commitUpload(svc.stageUpload(zip())); // first install
     testDb.prepare("UPDATE plugins SET status = 'active', enabled = 1 WHERE id = 'my-upload'").run(); // admin activated it
-    svc.commitUpload(svc.stageUpload(zip()));                                            // re-upload replaces the code
-    const row = testDb.prepare('SELECT status, enabled FROM plugins WHERE id = ?').get('my-upload') as { status: string; enabled: number };
-    expect(row.status).toBe('inactive');   // discoverPlugins keeps the old status; commitUpload floors it back to inactive
+    svc.commitUpload(svc.stageUpload(zip())); // re-upload replaces the code
+    const row = testDb.prepare('SELECT status, enabled FROM plugins WHERE id = ?').get('my-upload') as {
+      status: string;
+      enabled: number;
+    };
+    expect(row.status).toBe('inactive'); // discoverPlugins keeps the old status; commitUpload floors it back to inactive
     expect(row.enabled).toBe(0);
   });
 
   it('soft-fails on a non-ok registry response', async () => {
     __clearRegistryCacheForTests();
-    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 500 }) as unknown as Response));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({ ok: false, status: 500 }) as unknown as Response),
+    );
     expect((await svc.fetchRegistry()).plugins).toEqual([]);
   });
 
@@ -497,7 +684,9 @@ describe('PluginRegistryService', () => {
     const k = signingKey();
     stageSignedArtifact(k.pubB64, k.sign);
     await expect(svc.install('flight-tracker')).resolves.toEqual({ id: 'flight-tracker', version: '1.0.0' });
-    const row = testDb.prepare("SELECT author_pubkey FROM plugins WHERE id='flight-tracker'").get() as { author_pubkey: string };
+    const row = testDb.prepare("SELECT author_pubkey FROM plugins WHERE id='flight-tracker'").get() as {
+      author_pubkey: string;
+    };
     expect(row.author_pubkey).toBe(k.pubB64);
   });
 
@@ -517,7 +706,13 @@ describe('PluginRegistryService', () => {
   });
 
   it('rejects a half-signed entry (key without a signature)', async () => {
-    const artifact = makeArtifact({ id: 'flight-tracker', name: 'Flight', version: '1.0.0', type: 'widget', permissions: ['db:own'] });
+    const artifact = makeArtifact({
+      id: 'flight-tracker',
+      name: 'Flight',
+      version: '1.0.0',
+      type: 'widget',
+      permissions: ['db:own'],
+    });
     REGISTRY.plugins[0].versions[0].sha256 = createHash('sha256').update(artifact).digest('hex');
     (REGISTRY.plugins[0] as { authorPublicKey?: string }).authorPublicKey = signingKey().pubB64; // no version signature
     safeDownload.mockResolvedValue({ bytes: artifact, sha256: REGISTRY.plugins[0].versions[0].sha256 });
@@ -529,7 +724,13 @@ describe('PluginRegistryService', () => {
     stageSignedArtifact(k.pubB64, k.sign);
     await svc.install('flight-tracker');
     // now offer an unsigned update
-    const artifact = makeArtifact({ id: 'flight-tracker', name: 'Flight', version: '1.0.0', type: 'widget', permissions: ['db:own'] });
+    const artifact = makeArtifact({
+      id: 'flight-tracker',
+      name: 'Flight',
+      version: '1.0.0',
+      type: 'widget',
+      permissions: ['db:own'],
+    });
     REGISTRY.plugins[0].versions[0].sha256 = createHash('sha256').update(artifact).digest('hex');
     delete (REGISTRY.plugins[0] as { authorPublicKey?: string }).authorPublicKey;
     delete (REGISTRY.plugins[0].versions[0] as { signature?: string }).signature;
@@ -562,7 +763,13 @@ describe('signature failure codes', () => {
     stageSignedArtifact(k.pubB64, k.sign);
     await svc.install('flight-tracker');
 
-    const artifact = makeArtifact({ id: 'flight-tracker', name: 'Flight', version: '1.0.0', type: 'widget', permissions: ['db:own'] });
+    const artifact = makeArtifact({
+      id: 'flight-tracker',
+      name: 'Flight',
+      version: '1.0.0',
+      type: 'widget',
+      permissions: ['db:own'],
+    });
     REGISTRY.plugins[0].versions[0].sha256 = createHash('sha256').update(artifact).digest('hex');
     delete (REGISTRY.plugins[0] as { authorPublicKey?: string }).authorPublicKey;
     delete (REGISTRY.plugins[0].versions[0] as { signature?: string }).signature;
@@ -572,7 +779,13 @@ describe('signature failure codes', () => {
   });
 
   it('SIGNATURE_INCOMPLETE — an author key with no version signature', async () => {
-    const artifact = makeArtifact({ id: 'flight-tracker', name: 'Flight', version: '1.0.0', type: 'widget', permissions: ['db:own'] });
+    const artifact = makeArtifact({
+      id: 'flight-tracker',
+      name: 'Flight',
+      version: '1.0.0',
+      type: 'widget',
+      permissions: ['db:own'],
+    });
     REGISTRY.plugins[0].versions[0].sha256 = createHash('sha256').update(artifact).digest('hex');
     (REGISTRY.plugins[0] as { authorPublicKey?: string }).authorPublicKey = signingKey().pubB64;
     safeDownload.mockResolvedValue({ bytes: artifact, sha256: REGISTRY.plugins[0].versions[0].sha256 });
@@ -684,7 +897,9 @@ describe('re-trust (assertRetrustable)', () => {
   it('accepts the rotated key the admin was shown, and hands back the entry', async () => {
     const b = signingKey();
     await rotateTo(b);
-    await expect(svc.assertRetrustable('flight-tracker', b.pubB64)).resolves.toMatchObject({ authorPublicKey: b.pubB64 });
+    await expect(svc.assertRetrustable('flight-tracker', b.pubB64)).resolves.toMatchObject({
+      authorPublicKey: b.pubB64,
+    });
   });
 
   // D1 (TOCTOU): the client echoes back the key the DIALOG rendered. If the entry has been
@@ -696,7 +911,9 @@ describe('re-trust (assertRetrustable)', () => {
     stageSignedArtifact(c.pubB64, c.sign); // the registry moved on to a THIRD key
     __clearRegistryCacheForTests();
 
-    await expect(svc.assertRetrustable('flight-tracker', b.pubB64)).rejects.toMatchObject({ code: 'RETRUST_KEY_MISMATCH' });
+    await expect(svc.assertRetrustable('flight-tracker', b.pubB64)).rejects.toMatchObject({
+      code: 'RETRUST_KEY_MISMATCH',
+    });
   });
 
   // D2, enforced server-side. The UI hiding the button is a convenience, not the control.
@@ -706,7 +923,9 @@ describe('re-trust (assertRetrustable)', () => {
     await svc.install('flight-tracker');
     testDb.prepare("UPDATE plugins SET source_repo='acme/trek-flight' WHERE id='flight-tracker'").run();
 
-    await expect(svc.assertRetrustable('flight-tracker', a.pubB64)).rejects.toMatchObject({ code: 'RETRUST_NOT_APPLICABLE' });
+    await expect(svc.assertRetrustable('flight-tracker', a.pubB64)).rejects.toMatchObject({
+      code: 'RETRUST_NOT_APPLICABLE',
+    });
   });
 
   it('refuses a sideloaded plugin (it sits outside the registry trust model entirely)', async () => {
@@ -714,7 +933,9 @@ describe('re-trust (assertRetrustable)', () => {
     await rotateTo(b);
     testDb.prepare("UPDATE plugins SET source_repo='local:upload' WHERE id='flight-tracker'").run();
 
-    await expect(svc.assertRetrustable('flight-tracker', b.pubB64)).rejects.toMatchObject({ code: 'RETRUST_NOT_APPLICABLE' });
+    await expect(svc.assertRetrustable('flight-tracker', b.pubB64)).rejects.toMatchObject({
+      code: 'RETRUST_NOT_APPLICABLE',
+    });
   });
 
   // D1, the one that matters most: a key an admin blesses must still SIGN THE CODE it
@@ -730,7 +951,9 @@ describe('re-trust (assertRetrustable)', () => {
       code: 'SIGNATURE_INVALID',
     });
     // The old key is STILL pinned — a refused re-trust changes nothing.
-    const row = testDb.prepare("SELECT author_pubkey FROM plugins WHERE id='flight-tracker'").get() as { author_pubkey: string };
+    const row = testDb.prepare("SELECT author_pubkey FROM plugins WHERE id='flight-tracker'").get() as {
+      author_pubkey: string;
+    };
     expect(row.author_pubkey).toBe(a.pubB64);
   });
 
@@ -739,8 +962,12 @@ describe('re-trust (assertRetrustable)', () => {
     await rotateTo(b);
     __clearRegistryCacheForTests();
 
-    await expect(svc.install('flight-tracker', { version: '1.0.0', retrustKey: b.pubB64 })).resolves.toMatchObject({ version: '1.0.0' });
-    const row = testDb.prepare("SELECT author_pubkey, update_block_code FROM plugins WHERE id='flight-tracker'").get() as {
+    await expect(svc.install('flight-tracker', { version: '1.0.0', retrustKey: b.pubB64 })).resolves.toMatchObject({
+      version: '1.0.0',
+    });
+    const row = testDb
+      .prepare("SELECT author_pubkey, update_block_code FROM plugins WHERE id='flight-tracker'")
+      .get() as {
       author_pubkey: string | null;
       update_block_code: string | null;
     };
@@ -756,7 +983,13 @@ describe('re-trust (assertRetrustable)', () => {
     stageSignedArtifact(a.pubB64, a.sign);
     await svc.install('flight-tracker');
 
-    const artifact = makeArtifact({ id: 'flight-tracker', name: 'Flight', version: '1.0.0', type: 'widget', permissions: ['db:own'] });
+    const artifact = makeArtifact({
+      id: 'flight-tracker',
+      name: 'Flight',
+      version: '1.0.0',
+      type: 'widget',
+      permissions: ['db:own'],
+    });
     REGISTRY.plugins[0].versions[0].sha256 = createHash('sha256').update(artifact).digest('hex');
     delete (REGISTRY.plugins[0] as { authorPublicKey?: string }).authorPublicKey;
     delete (REGISTRY.plugins[0].versions[0] as { signature?: string }).signature;
@@ -766,7 +999,9 @@ describe('re-trust (assertRetrustable)', () => {
     await expect(svc.install('flight-tracker', { version: '1.0.0', retrustKey: 'anything' })).rejects.toMatchObject({
       code: 'SIGNATURE_MISSING',
     });
-    const row = testDb.prepare("SELECT author_pubkey FROM plugins WHERE id='flight-tracker'").get() as { author_pubkey: string | null };
+    const row = testDb.prepare("SELECT author_pubkey FROM plugins WHERE id='flight-tracker'").get() as {
+      author_pubkey: string | null;
+    };
     expect(row.author_pubkey).toBe(a.pubB64); // still pinned, never NULL
   });
 });
@@ -774,29 +1009,66 @@ describe('re-trust (assertRetrustable)', () => {
 describe('PluginRegistryService.resolveVersion (latest compatible)', () => {
   const MULTI = {
     schemaVersion: 1,
-    plugins: [{
-      id: 'multi', name: 'Multi', author: 'a', description: 'many versions', repo: 'a/b', type: 'integration',
-      versions: [
-        { version: '2.1.0', gitTag: 'v2.1.0', commitSha: 'a'.repeat(40), downloadUrl: 'https://codeload.github.com/a/b/tar.gz/x', sha256: '', minTrekVersion: '3.4.0' },
-        { version: '2.0.0', gitTag: 'v2.0.0', commitSha: 'a'.repeat(40), downloadUrl: 'https://codeload.github.com/a/b/tar.gz/y', sha256: '', minTrekVersion: '3.2.0' },
-        { version: '1.5.0', gitTag: 'v1.5.0', commitSha: 'a'.repeat(40), downloadUrl: 'https://codeload.github.com/a/b/tar.gz/z', sha256: '', minTrekVersion: '3.0.0' },
-      ],
-    }],
+    plugins: [
+      {
+        id: 'multi',
+        name: 'Multi',
+        author: 'a',
+        description: 'many versions',
+        repo: 'a/b',
+        type: 'integration',
+        versions: [
+          {
+            version: '2.1.0',
+            gitTag: 'v2.1.0',
+            commitSha: 'a'.repeat(40),
+            downloadUrl: 'https://codeload.github.com/a/b/tar.gz/x',
+            sha256: '',
+            minTrekVersion: '3.4.0',
+          },
+          {
+            version: '2.0.0',
+            gitTag: 'v2.0.0',
+            commitSha: 'a'.repeat(40),
+            downloadUrl: 'https://codeload.github.com/a/b/tar.gz/y',
+            sha256: '',
+            minTrekVersion: '3.2.0',
+          },
+          {
+            version: '1.5.0',
+            gitTag: 'v1.5.0',
+            commitSha: 'a'.repeat(40),
+            downloadUrl: 'https://codeload.github.com/a/b/tar.gz/z',
+            sha256: '',
+            minTrekVersion: '3.0.0',
+          },
+        ],
+      },
+    ],
   };
-  const stub = () => { __clearRegistryCacheForTests(); vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => MULTI }) as unknown as Response)); };
+  const stub = () => {
+    __clearRegistryCacheForTests();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({ ok: true, json: async () => MULTI }) as unknown as Response),
+    );
+  };
 
   it('picks the highest version compatible with the running TREK', async () => {
-    process.env.APP_VERSION = '3.3.0'; stub();
+    process.env.APP_VERSION = '3.3.0';
+    stub();
     expect((await svc.resolveVersion('multi')).version).toBe('2.0.0'); // 2.1.0 needs 3.4.0 > host
     delete process.env.APP_VERSION;
   });
   it('picks the highest version satisfying a semver range', async () => {
-    process.env.APP_VERSION = '3.3.0'; stub();
+    process.env.APP_VERSION = '3.3.0';
+    stub();
     expect((await svc.resolveVersion('multi', '>=1.0.0 <2.0.0')).version).toBe('1.5.0');
     delete process.env.APP_VERSION;
   });
   it('throws when nothing satisfies the constraint', async () => {
-    process.env.APP_VERSION = '3.3.0'; stub();
+    process.env.APP_VERSION = '3.3.0';
+    stub();
     await expect(svc.resolveVersion('multi', '>=9.0.0')).rejects.toThrow(RegistryError);
     delete process.env.APP_VERSION;
   });
@@ -817,21 +1089,58 @@ describe('PluginRegistryService.resolveVersion (latest compatible)', () => {
 describe('TREK-version gating on install', () => {
   const MULTI = {
     schemaVersion: 1,
-    plugins: [{
-      id: 'multi', name: 'Multi', author: 'a', description: 'many versions', repo: 'a/b', type: 'integration',
-      versions: [
-        { version: '2.1.0', gitTag: 'v2.1.0', commitSha: 'a'.repeat(40), downloadUrl: 'https://codeload.github.com/a/b/tar.gz/x', sha256: '', minTrekVersion: '3.4.0', trek: '>=3.4.0 <4.0.0' },
-        { version: '2.0.0', gitTag: 'v2.0.0', commitSha: 'a'.repeat(40), downloadUrl: 'https://codeload.github.com/a/b/tar.gz/y', sha256: '', minTrekVersion: '3.2.0', trek: '>=3.2.0 <4.0.0' },
-      ],
-    }],
+    plugins: [
+      {
+        id: 'multi',
+        name: 'Multi',
+        author: 'a',
+        description: 'many versions',
+        repo: 'a/b',
+        type: 'integration',
+        versions: [
+          {
+            version: '2.1.0',
+            gitTag: 'v2.1.0',
+            commitSha: 'a'.repeat(40),
+            downloadUrl: 'https://codeload.github.com/a/b/tar.gz/x',
+            sha256: '',
+            minTrekVersion: '3.4.0',
+            trek: '>=3.4.0 <4.0.0',
+          },
+          {
+            version: '2.0.0',
+            gitTag: 'v2.0.0',
+            commitSha: 'a'.repeat(40),
+            downloadUrl: 'https://codeload.github.com/a/b/tar.gz/y',
+            sha256: '',
+            minTrekVersion: '3.2.0',
+            trek: '>=3.2.0 <4.0.0',
+          },
+        ],
+      },
+    ],
   };
-  const stubMulti = () => { __clearRegistryCacheForTests(); vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => MULTI }) as unknown as Response)); };
+  const stubMulti = () => {
+    __clearRegistryCacheForTests();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({ ok: true, json: async () => MULTI }) as unknown as Response),
+    );
+  };
 
-  afterEach(() => { delete process.env.APP_VERSION; });
+  afterEach(() => {
+    delete process.env.APP_VERSION;
+  });
 
   /** Stage `version`'s artifact so a successful install has real bytes to fetch. */
   const stageMulti = (version: string, idx: number) => {
-    const artifact = makeArtifact({ id: 'multi', name: 'Multi', version, type: 'integration', trek: MULTI.plugins[0].versions[idx].trek });
+    const artifact = makeArtifact({
+      id: 'multi',
+      name: 'Multi',
+      version,
+      type: 'integration',
+      trek: MULTI.plugins[0].versions[idx].trek,
+    });
     const sha = createHash('sha256').update(artifact).digest('hex');
     MULTI.plugins[0].versions[idx].sha256 = sha;
     safeDownload.mockResolvedValue({ bytes: artifact, sha256: sha });
@@ -840,39 +1149,53 @@ describe('TREK-version gating on install', () => {
   it('install-latest takes the newest version this TREK can RUN, not the newest published', async () => {
     // 2.1.0 is versions[0] and needs >=3.4.0. The old code fetched it without asking; now
     // the same "install latest" the admin's button sends resolves to 2.0.0 instead.
-    process.env.APP_VERSION = '3.3.0'; stubMulti();
+    process.env.APP_VERSION = '3.3.0';
+    stubMulti();
     stageMulti('2.0.0', 1);
     await expect(svc.install('multi')).resolves.toMatchObject({ id: 'multi', version: '2.0.0' });
     expect(safeDownload).toHaveBeenCalledWith(MULTI.plugins[0].versions[1].downloadUrl, expect.any(Number));
   });
 
   it('refuses install-latest outright when NO published version fits', async () => {
-    process.env.APP_VERSION = '3.0.0'; stubMulti(); // both versions need >=3.2.0
+    process.env.APP_VERSION = '3.0.0';
+    stubMulti(); // both versions need >=3.2.0
     await expect(svc.install('multi')).rejects.toMatchObject({ code: 'TREK_VERSION_INCOMPATIBLE' });
     expect(safeDownload).not.toHaveBeenCalled(); // refused BEFORE a byte is fetched
   });
 
   it('refuses an explicitly-pinned version this TREK cannot run', async () => {
-    process.env.APP_VERSION = '3.3.0'; stubMulti();
-    await expect(svc.install('multi', { version: '2.1.0' })).rejects.toMatchObject({ code: 'TREK_VERSION_INCOMPATIBLE' });
+    process.env.APP_VERSION = '3.3.0';
+    stubMulti();
+    await expect(svc.install('multi', { version: '2.1.0' })).rejects.toMatchObject({
+      code: 'TREK_VERSION_INCOMPATIBLE',
+    });
     expect(safeDownload).not.toHaveBeenCalled();
   });
 
   it('honours an EXCLUSIVE upper bound, which minTrekVersion alone cannot express', async () => {
     // Both versions declare "<4.0.0" and neither carries a maxTrekVersion — under the old
     // min-only check TREK 4 looked compatible with everything.
-    process.env.APP_VERSION = '4.0.0'; stubMulti();
+    process.env.APP_VERSION = '4.0.0';
+    stubMulti();
     await expect(svc.install('multi')).rejects.toMatchObject({ code: 'TREK_VERSION_INCOMPATIBLE' });
   });
 
   it('reports the newest version this TREK CAN run, so the UI can offer it', async () => {
-    process.env.APP_VERSION = '3.3.0'; stubMulti();
+    process.env.APP_VERSION = '3.3.0';
+    stubMulti();
     const [item] = await svc.browse(true);
-    expect(item).toMatchObject({ id: 'multi', latest: '2.1.0', compatible: false, latestCompatible: '2.0.0', hostVersion: '3.3.0' });
+    expect(item).toMatchObject({
+      id: 'multi',
+      latest: '2.1.0',
+      compatible: false,
+      latestCompatible: '2.0.0',
+      hostVersion: '3.3.0',
+    });
   });
 
   it('reports plain compatibility when the latest version fits', async () => {
-    process.env.APP_VERSION = '3.5.0'; stubMulti();
+    process.env.APP_VERSION = '3.5.0';
+    stubMulti();
     const [item] = await svc.browse(true);
     expect(item).toMatchObject({ compatible: true, latestCompatible: '2.1.0' });
   });
@@ -885,12 +1208,32 @@ describe('TREK-version gating on install', () => {
     __clearRegistryCacheForTests();
     const noFloor = {
       schemaVersion: 1,
-      plugins: [{
-        id: 'nofloor', name: 'NoFloor', author: 'a', description: 'no lower bound', repo: 'a/b', type: 'integration',
-        versions: [{ version: '1.0.0', gitTag: 'v1.0.0', commitSha: 'a'.repeat(40), downloadUrl: 'https://codeload.github.com/a/b/tar.gz/x', sha256: '', minTrekVersion: null, maxTrekVersion: '3.0.0' }],
-      }],
+      plugins: [
+        {
+          id: 'nofloor',
+          name: 'NoFloor',
+          author: 'a',
+          description: 'no lower bound',
+          repo: 'a/b',
+          type: 'integration',
+          versions: [
+            {
+              version: '1.0.0',
+              gitTag: 'v1.0.0',
+              commitSha: 'a'.repeat(40),
+              downloadUrl: 'https://codeload.github.com/a/b/tar.gz/x',
+              sha256: '',
+              minTrekVersion: null,
+              maxTrekVersion: '3.0.0',
+            },
+          ],
+        },
+      ],
     };
-    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => noFloor }) as unknown as Response));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({ ok: true, json: async () => noFloor }) as unknown as Response),
+    );
 
     // Only the ceiling applies, and TREK 3.3 is past it — refused, with a readable reason.
     const err = await svc.install('nofloor').catch((e) => e);
@@ -910,7 +1253,13 @@ describe('TREK-version gating on install', () => {
     // 3.3.0. The bytes are what will run, so the bytes get the last word.
     process.env.APP_VERSION = '3.9.0';
     __clearRegistryCacheForTests();
-    const artifact = makeArtifact({ id: 'flight-tracker', name: 'Flight', version: '1.0.0', type: 'widget', trek: '>=3.2.0 <3.4.0' });
+    const artifact = makeArtifact({
+      id: 'flight-tracker',
+      name: 'Flight',
+      version: '1.0.0',
+      type: 'widget',
+      trek: '>=3.2.0 <3.4.0',
+    });
     const sha = createHash('sha256').update(artifact).digest('hex');
     REGISTRY.plugins[0].versions[0].sha256 = sha;
     safeDownload.mockResolvedValue({ bytes: artifact, sha256: sha });
@@ -920,7 +1269,13 @@ describe('TREK-version gating on install', () => {
 
   it('refuses an artifact that declares no range at all', async () => {
     __clearRegistryCacheForTests();
-    const artifact = makeArtifact({ id: 'flight-tracker', name: 'Flight', version: '1.0.0', type: 'widget', trek: undefined });
+    const artifact = makeArtifact({
+      id: 'flight-tracker',
+      name: 'Flight',
+      version: '1.0.0',
+      type: 'widget',
+      trek: undefined,
+    });
     const sha = createHash('sha256').update(artifact).digest('hex');
     REGISTRY.plugins[0].versions[0].sha256 = sha;
     safeDownload.mockResolvedValue({ bytes: artifact, sha256: sha });
@@ -930,7 +1285,13 @@ describe('TREK-version gating on install', () => {
   describe('sideload', () => {
     it('refuses an uploaded archive this TREK cannot run, and cleans up staging', async () => {
       process.env.APP_VERSION = '3.9.0';
-      const bytes = makeArtifact({ id: 'my-upload', name: 'Up', version: '1.0.0', type: 'integration', trek: '>=3.0.0 <3.5.0' });
+      const bytes = makeArtifact({
+        id: 'my-upload',
+        name: 'Up',
+        version: '1.0.0',
+        type: 'integration',
+        trek: '>=3.0.0 <3.5.0',
+      });
       expect(() => svc.stageUpload(bytes)).toThrow(expect.objectContaining({ code: 'TREK_VERSION_INCOMPATIBLE' }));
       const staging = path.join(dataRoot, '.staging');
       // The rejected upload leaves nothing extracted behind.
@@ -938,7 +1299,13 @@ describe('TREK-version gating on install', () => {
     });
 
     it('refuses an uploaded archive that declares no range', () => {
-      const bytes = makeArtifact({ id: 'my-upload', name: 'Up', version: '1.0.0', type: 'integration', trek: undefined });
+      const bytes = makeArtifact({
+        id: 'my-upload',
+        name: 'Up',
+        version: '1.0.0',
+        type: 'integration',
+        trek: undefined,
+      });
       expect(() => svc.stageUpload(bytes)).toThrow(/missing "trek"/);
     });
 
@@ -955,8 +1322,15 @@ describe('TREK-version gating on install', () => {
     // It resolved a compatible version and then called install() with the range (or with
     // nothing, for the root), which made install() re-pick — landing on versions[0] and
     // discarding the compatible choice entirely.
-    process.env.APP_VERSION = '3.3.0'; stubMulti();
-    const artifact = makeArtifact({ id: 'multi', name: 'Multi', version: '2.0.0', type: 'integration', trek: '>=3.2.0 <4.0.0' });
+    process.env.APP_VERSION = '3.3.0';
+    stubMulti();
+    const artifact = makeArtifact({
+      id: 'multi',
+      name: 'Multi',
+      version: '2.0.0',
+      type: 'integration',
+      trek: '>=3.2.0 <4.0.0',
+    });
     const sha = createHash('sha256').update(artifact).digest('hex');
     MULTI.plugins[0].versions[1].sha256 = sha;
     safeDownload.mockResolvedValue({ bytes: artifact, sha256: sha });
@@ -985,15 +1359,28 @@ describe('an update block does not outlive the registry relationship', () => {
     stageSignedArtifact(b.pubB64, b.sign);
     await expect(svc.install('flight-tracker')).rejects.toThrow(); // rotated key → blocked
     expect(
-      (testDb.prepare("SELECT update_block_code FROM plugins WHERE id='flight-tracker'").get() as { update_block_code: string })
-        .update_block_code,
+      (
+        testDb.prepare("SELECT update_block_code FROM plugins WHERE id='flight-tracker'").get() as {
+          update_block_code: string;
+        }
+      ).update_block_code,
     ).toBe('SIGNATURE_KEY_CHANGED');
 
     // The admin now uploads the plugin by hand.
-    const upload = makeArtifact({ id: 'flight-tracker', name: 'Flight', version: '9.9.9', type: 'widget', permissions: ['db:own'] });
+    const upload = makeArtifact({
+      id: 'flight-tracker',
+      name: 'Flight',
+      version: '9.9.9',
+      type: 'widget',
+      permissions: ['db:own'],
+    });
     svc.commitUpload(svc.stageUpload(upload));
 
-    const row = testDb.prepare("SELECT source_repo, author_pubkey, update_block_code, update_block_version FROM plugins WHERE id='flight-tracker'").get() as Record<string, unknown>;
+    const row = testDb
+      .prepare(
+        "SELECT source_repo, author_pubkey, update_block_code, update_block_version FROM plugins WHERE id='flight-tracker'",
+      )
+      .get() as Record<string, unknown>;
     expect(row.source_repo).toBe('local:upload');
     expect(row.author_pubkey).toBeNull(); // out of the trust model — deliberate, and badged
     expect(row.update_block_code).toBeNull();

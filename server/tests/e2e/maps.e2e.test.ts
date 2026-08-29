@@ -5,12 +5,18 @@
  * carries an empty app_settings table so the kill-switch reads resolve to
  * "enabled".
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import request from 'supertest';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
+import { DatabaseModule } from '../../src/nest/database/database.module';
+import { MapsModule } from '../../src/nest/maps/maps.module';
+import { MapsService } from '../../src/nest/maps/maps.service';
+import { seedUser, sessionCookie } from './harness';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
-import { Test } from '@nestjs/testing';
-import { seedUser, sessionCookie } from './harness';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
 const { db } = vi.hoisted(() => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -24,12 +30,6 @@ const { db } = vi.hoisted(() => {
 });
 
 vi.mock('../../src/db/database', () => ({ db, closeDb: () => {}, reinitialize: () => {} }));
-
-import { MapsModule } from '../../src/nest/maps/maps.module';
-import { MapsService } from '../../src/nest/maps/maps.service';
-import { DatabaseModule } from '../../src/nest/database/database.module';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
 
 describe('Maps e2e (real auth guard + temp SQLite)', () => {
   let server: Server;
@@ -79,13 +79,19 @@ describe('Maps e2e (real auth guard + temp SQLite)', () => {
   });
 
   it('200 with results for a search (POST stays 200, not 201)', async () => {
-    const res = await request(server).post('/api/maps/search').set('Cookie', sessionCookie(1)).send({ query: 'berlin' });
+    const res = await request(server)
+      .post('/api/maps/search')
+      .set('Cookie', sessionCookie(1))
+      .send({ query: 'berlin' });
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ places: [{ name: 'Berlin' }], source: 'osm' });
   });
 
   it('200 on reverse geocode', async () => {
-    const res = await request(server).get('/api/maps/reverse').set('Cookie', sessionCookie(1)).query({ lat: '52.5', lng: '13.4' });
+    const res = await request(server)
+      .get('/api/maps/reverse')
+      .set('Cookie', sessionCookie(1))
+      .query({ lat: '52.5', lng: '13.4' });
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ name: 'Spot', address: 'Street 1' });
   });

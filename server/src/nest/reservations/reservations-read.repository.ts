@@ -1,11 +1,22 @@
-import { Injectable } from '@nestjs/common';
-import { DatabaseService } from '../database/database.service';
 import { avatarUrl } from '../common/avatarUrl';
+import { DatabaseService } from '../database/database.service';
 import type { ReservationRow, ReservationEndpoint, ReservationTraveler } from './reservations.service';
+import { Injectable } from '@nestjs/common';
 
 /** The one traveler projection every reservation read shares (avatar_url included). */
-export function toTraveler(r: { user_id: number; username: string; avatar: string | null; is_guest?: number | null }): ReservationTraveler {
-  return { user_id: r.user_id, username: r.username, avatar: r.avatar, is_guest: r.is_guest ?? null, avatar_url: avatarUrl(r) };
+export function toTraveler(r: {
+  user_id: number;
+  username: string;
+  avatar: string | null;
+  is_guest?: number | null;
+}): ReservationTraveler {
+  return {
+    user_id: r.user_id,
+    username: r.username,
+    avatar: r.avatar,
+    is_guest: r.is_guest ?? null,
+    avatar_url: avatarUrl(r),
+  };
 }
 
 /**
@@ -23,7 +34,8 @@ export class ReservationsReadRepository {
   constructor(private readonly db: DatabaseService) {}
 
   getReservationWithJoins(id: string | number): ReservationRow | undefined {
-    const row = this.db.get<ReservationRow>(`
+    const row = this.db.get<ReservationRow>(
+      `
     SELECT r.*, d.day_number, p.name as place_name, r.assignment_id,
       ap.place_id as accommodation_place_id, acc_p.name as accommodation_name,
       ap.start_day_id as accommodation_start_day_id, ap.end_day_id as accommodation_end_day_id
@@ -33,7 +45,9 @@ export class ReservationsReadRepository {
     LEFT JOIN day_accommodations ap ON r.accommodation_id = ap.id
     LEFT JOIN places acc_p ON ap.place_id = acc_p.id
     WHERE r.id = ?
-  `, id);
+  `,
+      id,
+    );
     if (!row) return undefined;
     row.endpoints = this.loadEndpoints(row.id);
     row.travelers = this.loadTravelers(row.id);
@@ -46,17 +60,20 @@ export class ReservationsReadRepository {
   loadEndpoints(reservationId: number): ReservationEndpoint[] {
     return this.db.all<ReservationEndpoint>(
       'SELECT * FROM reservation_endpoints WHERE reservation_id = ? ORDER BY sequence',
-      reservationId
+      reservationId,
     );
   }
 
   loadTravelers(reservationId: number | string): ReservationTraveler[] {
-    const rows = this.db.all<ReservationTraveler>(`
+    const rows = this.db.all<ReservationTraveler>(
+      `
     SELECT rt.user_id, COALESCE(u.display_name, u.username) AS username, u.avatar, u.is_guest
     FROM reservation_travelers rt
     JOIN users u ON rt.user_id = u.id
     WHERE rt.reservation_id = ?
-  `, reservationId);
-    return rows.map(r => toTraveler(r));
+  `,
+      reservationId,
+    );
+    return rows.map((r) => toTraveler(r));
   }
 }

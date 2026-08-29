@@ -7,7 +7,6 @@
  * maps to the right wire code, and the audit sink sees the call — without ever
  * spawning a child (the router runs in the host).
  */
-import { describe, it, expect, vi } from 'vitest';
 import { PluginRpcHost, BadParams, ForbiddenResource, type HostDeps } from '../../../src/nest/plugins/host/rpc-host';
 import { PluginController, PluginMethod, PluginOpenMethod } from '../../../src/nest/plugins/host/rpc-kit/decorators';
 import { createTestPluginRegistry } from '../../../src/nest/plugins/host/rpc-kit/testing';
@@ -15,7 +14,14 @@ import type { PluginRpcContext } from '../../../src/nest/plugins/host/rpc-kit/ty
 import type { RpcRequest, RpcResponse, RpcError } from '../../../src/nest/plugins/protocol/envelope';
 import { makeDeps } from '../../helpers/rpc-host-deps';
 
-const req = (method: string, params: Record<string, unknown> = {}): RpcRequest => ({ k: 'req', id: 'x', method, params });
+import { describe, it, expect, vi } from 'vitest';
+
+const req = (method: string, params: Record<string, unknown> = {}): RpcRequest => ({
+  k: 'req',
+  id: 'x',
+  method,
+  params,
+});
 /**
  * A request as it arrives when the child never set `params`: the IPC hop is JSON, which
  * drops an undefined field, so the key is genuinely absent by the time the router sees
@@ -56,8 +62,7 @@ const makeHost = (
   granted: string[],
   behaviour: (params: Record<string, unknown>, ctx: PluginRpcContext) => unknown = () => ({ done: true }),
   deps: HostDeps = makeDeps(),
-): PluginRpcHost =>
-  new PluginRpcHost('p', new Set(granted), deps, createTestPluginRegistry([new ProbeRpc(behaviour)]));
+): PluginRpcHost => new PluginRpcHost('p', new Set(granted), deps, createTestPluginRegistry([new ProbeRpc(behaviour)]));
 
 describe('PluginRpcHost — capability enforcement', () => {
   it('RPCHOST-001 registers only granted methods; an ungranted one is PERMISSION_DENIED', async () => {
@@ -113,10 +118,14 @@ describe('PluginRpcHost — capability enforcement', () => {
   it('RPCHOST-007 the context exposes the plugin db handle and the inter-plugin peers', async () => {
     const deps = makeDeps();
     let seen: PluginRpcContext | undefined;
-    const host = makeHost(['db:read:tags'], (_p, ctx) => {
-      seen = ctx;
-      return null;
-    }, deps);
+    const host = makeHost(
+      ['db:read:tags'],
+      (_p, ctx) => {
+        seen = ctx;
+        return null;
+      },
+      deps,
+    );
     await host.dispatch(req('tags.list'), 42);
     expect(seen?.data).toBe(deps.data);
     await seen?.plugins.call('other', 'sum', [1], 42);
@@ -126,12 +135,20 @@ describe('PluginRpcHost — capability enforcement', () => {
   });
 
   it('RPCHOST-008 BadParams and ForbiddenResource map to their own wire codes', async () => {
-    expect(code(await makeHost(['db:read:tags'], () => {
-      throw new BadParams('sql must be a string');
-    }).dispatch(req('tags.list'), 42))).toBe('BAD_PARAMS');
-    expect(code(await makeHost(['db:read:tags'], () => {
-      throw new ForbiddenResource('no access to trip 9');
-    }).dispatch(req('tags.list'), 42))).toBe('RESOURCE_FORBIDDEN');
+    expect(
+      code(
+        await makeHost(['db:read:tags'], () => {
+          throw new BadParams('sql must be a string');
+        }).dispatch(req('tags.list'), 42),
+      ),
+    ).toBe('BAD_PARAMS');
+    expect(
+      code(
+        await makeHost(['db:read:tags'], () => {
+          throw new ForbiddenResource('no access to trip 9');
+        }).dispatch(req('tags.list'), 42),
+      ),
+    ).toBe('RESOURCE_FORBIDDEN');
   });
 
   it('RPCHOST-009 any other error becomes HOST_ERROR with its message', async () => {
@@ -179,7 +196,9 @@ describe('PluginRpcHost — capability enforcement', () => {
     const audit = vi.fn();
     const deps = { ...makeDeps(), audit };
     expect(ok(await makeHost(['db:read:tags'], () => null, deps).dispatch(req('tags.list'), 42))).toBe(true);
-    expect(audit).toHaveBeenCalledWith(expect.objectContaining({ pluginId: 'p', actingUserId: 42, method: 'tags.list', code: 'ok' }));
+    expect(audit).toHaveBeenCalledWith(
+      expect.objectContaining({ pluginId: 'p', actingUserId: 42, method: 'tags.list', code: 'ok' }),
+    );
     audit.mockClear();
     await makeHost([], () => null, deps).dispatch(req('tags.list'), 42);
     expect(audit).toHaveBeenCalledWith(expect.objectContaining({ method: 'tags.list', code: 'PERMISSION_DENIED' }));

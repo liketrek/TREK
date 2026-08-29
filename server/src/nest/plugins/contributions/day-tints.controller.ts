@@ -1,10 +1,11 @@
-import { Controller, Get, Param, Req, UseGuards } from '@nestjs/common';
-import type { Request } from 'express';
-import { DatabaseService } from '../../database/database.service';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import { DatabaseService } from '../../database/database.service';
 import { pluginsEnabled } from '../kill-switch';
 import { PluginHooks } from '../plugin-hooks.service';
 import { stripEmoji } from '../text-sanitize';
+import { Controller, Get, Param, Req, UseGuards } from '@nestjs/common';
+
+import type { Request } from 'express';
 
 /**
  * GET /api/day-tints/:tripId — the colours the planner paints into a day card in the
@@ -65,8 +66,7 @@ const cap = (v: unknown, n: number): string => stripEmoji(String(v ?? '')).slice
  * beacon for the plugin's own server. Nothing but `#rrggbb` gets through.
  */
 const HEX = /^#[0-9a-fA-F]{6}$/;
-const hex = (v: unknown): string | undefined =>
-  typeof v === 'string' && HEX.test(v) ? v.toLowerCase() : undefined;
+const hex = (v: unknown): string | undefined => (typeof v === 'string' && HEX.test(v) ? v.toLowerCase() : undefined);
 
 // Bound the work, not just the output: an all-invalid raw array (no entry ever
 // reaching `out`) would otherwise be iterated in full. Slice up front, well above
@@ -81,12 +81,15 @@ const MAX_RAW_TINTS = 2000;
  * hooks use for `tone`.
  */
 const region = (v: unknown): Tone | undefined =>
-  v === undefined || v === null ? undefined : (TONES.has(v as string) ? (v as Tone) : 'default');
+  v === undefined || v === null ? undefined : TONES.has(v as string) ? (v as Tone) : 'default';
 
 const named = (v: unknown): boolean => v !== undefined && v !== null;
 
 /** One region of the card, resolved whole — a colour, a tone, or nothing. */
-interface RegionTint { tone?: Tone; color?: string }
+interface RegionTint {
+  tone?: Tone;
+  color?: string;
+}
 
 /**
  * Resolve one region against the contribution's `tone` / `color` shorthands, in one
@@ -172,7 +175,9 @@ export class DayTintsController {
 
     const ids = this.hooks.providersOf('dayTintProvider');
     if (ids.length === 0) return { tints: [] };
-    const dayRows = this.dbs.connection.prepare('SELECT id FROM days WHERE trip_id = ?').all(tripId) as Array<{ id: number }>;
+    const dayRows = this.dbs.connection.prepare('SELECT id FROM days WHERE trip_id = ?').all(tripId) as Array<{
+      id: number;
+    }>;
     const tripDayIds: ReadonlySet<number> = new Set(dayRows.map((d) => d.id));
 
     const perProvider = await Promise.all(

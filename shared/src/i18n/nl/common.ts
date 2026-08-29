@@ -71,7 +71,8 @@ const common: TranslationStrings = {
   'common.errorRetry': 'Opnieuw proberen',
   'common.errorReload': 'Pagina herladen',
   'common.errorUpdateTitle': 'Er is een nieuwe versie beschikbaar',
-  'common.errorUpdateBody': 'TREK is bijgewerkt terwijl dit tabblad open stond. Herlaad om de nieuwe versie te krijgen.',
+  'common.errorUpdateBody':
+    'TREK is bijgewerkt terwijl dit tabblad open stond. Herlaad om de nieuwe versie te krijgen.',
   'common.errorPluginTitle': 'Deze plug-in kon niet worden getoond',
 };
 export default common;

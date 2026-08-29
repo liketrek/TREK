@@ -1,9 +1,10 @@
-import { describe, it, expect, vi } from 'vitest';
-import { HttpException } from '@nestjs/common';
 import { CategoriesController } from '../../../src/nest/categories/categories.controller';
 import type { CategoriesService } from '../../../src/nest/categories/categories.service';
 import type { User } from '../../../src/types';
+import { HttpException } from '@nestjs/common';
 import type { Category } from '@trek/shared';
+
+import { describe, it, expect, vi } from 'vitest';
 
 const admin = { id: 1, role: 'admin' } as User;
 
@@ -37,7 +38,9 @@ describe('CategoriesController (parity with the legacy /api/categories route)', 
 
     it('creates and returns { category }', () => {
       const create = vi.fn().mockReturnValue(cat);
-      expect(makeController({ create }).create(admin, { name: 'Food', color: '#fff', icon: '🍔' })).toEqual({ category: cat });
+      expect(makeController({ create }).create(admin, { name: 'Food', color: '#fff', icon: '🍔' })).toEqual({
+        category: cat,
+      });
       expect(create).toHaveBeenCalledWith(1, 'Food', '#fff', '🍔');
     });
   });
@@ -47,7 +50,8 @@ describe('CategoriesController (parity with the legacy /api/categories route)', 
       const getById = vi.fn().mockReturnValue(undefined);
       const update = vi.fn();
       expect(thrown(() => makeController({ getById, update }).update('9', { name: 'X' }))).toEqual({
-        status: 404, body: { error: 'Category not found' },
+        status: 404,
+        body: { error: 'Category not found' },
       });
       expect(update).not.toHaveBeenCalled();
     });
@@ -55,7 +59,9 @@ describe('CategoriesController (parity with the legacy /api/categories route)', 
     it('updates and returns { category }', () => {
       const getById = vi.fn().mockReturnValue(cat);
       const update = vi.fn().mockReturnValue({ ...cat, name: 'Drinks' });
-      expect(makeController({ getById, update }).update('1', { name: 'Drinks' })).toEqual({ category: { ...cat, name: 'Drinks' } });
+      expect(makeController({ getById, update }).update('1', { name: 'Drinks' })).toEqual({
+        category: { ...cat, name: 'Drinks' },
+      });
       expect(update).toHaveBeenCalledWith('1', 'Drinks', undefined, undefined);
     });
   });
@@ -65,7 +71,8 @@ describe('CategoriesController (parity with the legacy /api/categories route)', 
       const getById = vi.fn().mockReturnValue(undefined);
       const remove = vi.fn();
       expect(thrown(() => makeController({ getById, remove }).remove('9'))).toEqual({
-        status: 404, body: { error: 'Category not found' },
+        status: 404,
+        body: { error: 'Category not found' },
       });
       expect(remove).not.toHaveBeenCalled();
     });

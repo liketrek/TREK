@@ -6,6 +6,10 @@
  * actually recorded — a declared-but-ungranted provider can never serve a route,
  * so offering its profiles in the picker would produce dead buttons.
  */
+import { db as dbConn } from '../../../src/db/database';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { PluginsFeedController } from '../../../src/nest/plugins/plugins-feed.controller';
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const { rows, pluginsEnabled } = vi.hoisted(() => ({
@@ -13,21 +17,25 @@ const { rows, pluginsEnabled } = vi.hoisted(() => ({
   pluginsEnabled: vi.fn(() => true),
 }));
 vi.mock('../../../src/db/database', () => ({ db: { prepare: () => ({ all: () => rows.value }) } }));
-import { db as dbConn } from '../../../src/db/database';
-import { DatabaseService } from '../../../src/nest/database/database.service';
+
 vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 
-import { PluginsFeedController } from '../../../src/nest/plugins/plugins-feed.controller';
-
 const row = (over: Record<string, unknown> = {}) => ({
-  id: 'p1', name: 'P', type: 'integration', icon: null,
-  capabilities: '{}', granted_permissions: '[]',
+  id: 'p1',
+  name: 'P',
+  type: 'integration',
+  icon: null,
+  capabilities: '{}',
+  granted_permissions: '[]',
   ...over,
 });
 
 describe('PluginsFeedController', () => {
   const c = new PluginsFeedController(new DatabaseService(dbConn));
-  beforeEach(() => { pluginsEnabled.mockReturnValue(true); rows.value = []; });
+  beforeEach(() => {
+    pluginsEnabled.mockReturnValue(true);
+    rows.value = [];
+  });
 
   it('returns an empty feed when the runtime is disabled', () => {
     pluginsEnabled.mockReturnValue(false);
@@ -37,30 +45,38 @@ describe('PluginsFeedController', () => {
 
   it('serves routeProfiles only alongside the recorded hook:route-provider grant', () => {
     rows.value = [
-      row({ id: 'granted', capabilities: JSON.stringify({ routeProfiles: [{ id: 'ev', label: 'EV' }] }), granted_permissions: JSON.stringify(['hook:route-provider']) }),
+      row({
+        id: 'granted',
+        capabilities: JSON.stringify({ routeProfiles: [{ id: 'ev', label: 'EV' }] }),
+        granted_permissions: JSON.stringify(['hook:route-provider']),
+      }),
       row({ id: 'ungranted', capabilities: JSON.stringify({ routeProfiles: [{ id: 'ev', label: 'EV' }] }) }),
     ];
     const { plugins } = c.list();
-    expect(plugins.find(p => p.id === 'granted')?.routeProfiles).toEqual([{ id: 'ev', label: 'EV' }]);
-    expect(plugins.find(p => p.id === 'ungranted')?.routeProfiles).toBeUndefined();
+    expect(plugins.find((p) => p.id === 'granted')?.routeProfiles).toEqual([{ id: 'ev', label: 'EV' }]);
+    expect(plugins.find((p) => p.id === 'ungranted')?.routeProfiles).toBeUndefined();
   });
 
   it('re-validates hand-edited routeProfiles rows (bad ids dropped, labels capped, max 3)', () => {
-    rows.value = [row({
-      id: 'edited',
-      capabilities: JSON.stringify({
-        routeProfiles: [
-          { id: '../up', label: 'bad id' },
-          { id: 'ok', label: '  L  '.padEnd(60, 'x') },
-          { id: 'a', label: 'A' }, { id: 'b', label: 'B' }, { id: 'c', label: 'C' },
-        ],
+    rows.value = [
+      row({
+        id: 'edited',
+        capabilities: JSON.stringify({
+          routeProfiles: [
+            { id: '../up', label: 'bad id' },
+            { id: 'ok', label: '  L  '.padEnd(60, 'x') },
+            { id: 'a', label: 'A' },
+            { id: 'b', label: 'B' },
+            { id: 'c', label: 'C' },
+          ],
+        }),
+        granted_permissions: JSON.stringify(['hook:route-provider']),
       }),
-      granted_permissions: JSON.stringify(['hook:route-provider']),
-    })];
+    ];
     const profiles = c.list().plugins[0].routeProfiles!;
-    expect(profiles.every(p => /^[a-z][a-z0-9-]{0,23}$/.test(p.id))).toBe(true);
+    expect(profiles.every((p) => /^[a-z][a-z0-9-]{0,23}$/.test(p.id))).toBe(true);
     expect(profiles.length).toBeLessThanOrEqual(3);
-    expect(profiles.every(p => p.label.length <= 40)).toBe(true);
+    expect(profiles.every((p) => p.label.length <= 40)).toBe(true);
   });
 
   it('flags geolocation only when the grant is recorded', () => {
@@ -69,8 +85,8 @@ describe('PluginsFeedController', () => {
       row({ id: 'ungranted' }),
     ];
     const { plugins } = c.list();
-    expect(plugins.find(p => p.id === 'granted')?.geolocation).toBe(true);
-    expect(plugins.find(p => p.id === 'ungranted')?.geolocation).toBeUndefined();
+    expect(plugins.find((p) => p.id === 'granted')?.geolocation).toBe(true);
+    expect(plugins.find((p) => p.id === 'ungranted')?.geolocation).toBeUndefined();
   });
 
   it('survives malformed JSON blobs without dropping the plugin', () => {
