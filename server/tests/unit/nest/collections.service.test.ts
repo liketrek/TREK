@@ -179,6 +179,47 @@ describe('saved places + dedup', () => {
     const col = svc.createCollection(a.id, { name: 'Locked' });
     expect(() => svc.savePlace(b.id, { collection_id: col.id, name: 'X' })).toThrow();
   });
+
+  it('COLLECTIONS-SVC-100: a NAMED candidate does not merge into a different place at the same coordinates', () => {
+    // The wrong-city hazard: findDuplicateCollectionPlace used to fall through to
+    // a coordinate match for a named candidate whose name did not match anything,
+    // which would report two distinct places at one address (the restaurant and
+    // the bar) as duplicates of each other.
+    const u = createUser(testDb).user;
+    const col = svc.createCollection(u.id, { name: 'Berlin' });
+    svc.savePlace(u.id, { collection_id: col.id, name: 'Ground Floor Diner', lat: 52.52, lng: 13.405 });
+
+    const result = svc.savePlace(u.id, { collection_id: col.id, name: 'Rooftop Bar', lat: 52.52, lng: 13.405 });
+
+    expect(result.duplicate).toBeFalsy();
+    expect(result.place).toBeDefined();
+  });
+
+  it('COLLECTIONS-SVC-101: a provider id still recognises a renamed place a name/coords search would miss', () => {
+    // google_place_id/google_ftid/osm_id are stored on every collection_places row
+    // but were never read back for dedup, so a renamed place with no matching
+    // name or coordinates could be saved again under its old provider id.
+    const u = createUser(testDb).user;
+    const col = svc.createCollection(u.id, { name: 'Renames' });
+    svc.savePlace(u.id, {
+      collection_id: col.id,
+      name: 'Original Name',
+      lat: 1,
+      lng: 1,
+      google_place_id: 'ChIJ_abc',
+    });
+
+    const result = svc.savePlace(u.id, {
+      collection_id: col.id,
+      name: 'Renamed By User',
+      lat: 2,
+      lng: 2,
+      google_place_id: 'ChIJ_abc',
+    });
+
+    expect(result.duplicate).toBe(true);
+    expect(result.duplicateOf?.name).toBe('Original Name');
+  });
 });
 
 // ── save-from-trip provenance + IDOR ─────────────────────────────────────────
