@@ -8,7 +8,7 @@ import CustomSelect from '../shared/CustomSelect'
 import { MapView } from '../Map/MapView'
 import { SYMBOLS, currenciesWith } from '../Budget/BudgetPanel.constants'
 import type { DistanceUnit, Place } from '../../types'
-import { normalizeTileUrl } from '../../utils/tileUrl'
+import { normalizeTileUrl, withTileApiKey } from '../../utils/tileUrl'
 import {
   MAPBOX_DEFAULT_STYLE,
   defaultStyleForProvider,
@@ -378,7 +378,9 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
             onMapContextMenu: null,
             center: [48.8566, 2.3522],
             zoom: 10,
-            tileUrl: mapTileUrl,
+            // Same as the user-facing map tab: the field holds what is being
+            // edited, so the key goes back on before the preview resolves it.
+            tileUrl: withTileApiKey(mapTileUrl, cartoKey),
             fitKey: null,
             dayOrderMap: [],
             leftWidth: 0,
