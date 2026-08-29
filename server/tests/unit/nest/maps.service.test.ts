@@ -20,6 +20,8 @@ import {
   buildUserAgent,
   resolveOverpassEndpoints,
   resolveOverpassTimeoutMs,
+  OVERPASS_QUERY_TIMEOUT_S,
+  OVERPASS_TIMEOUT_DEFAULT_MS,
   stripWikiMarkup,
   parseWikipediaTag,
   rankCommonsCandidates,
@@ -2424,10 +2426,10 @@ describe('resolveOverpassEndpoints', () => {
 // ── resolveOverpassTimeoutMs (OVERPASS_TIMEOUT_MS override, #1309) ─────────────
 
 describe('resolveOverpassTimeoutMs', () => {
-  it('MAPS-104: falls back to the 12s default for unset / empty / non-numeric values', () => {
-    expect(resolveOverpassTimeoutMs(undefined)).toBe(12000);
-    expect(resolveOverpassTimeoutMs('')).toBe(12000);
-    expect(resolveOverpassTimeoutMs('abc')).toBe(12000);
+  it('MAPS-104: falls back to the default for unset / empty / non-numeric values', () => {
+    expect(resolveOverpassTimeoutMs(undefined)).toBe(OVERPASS_TIMEOUT_DEFAULT_MS);
+    expect(resolveOverpassTimeoutMs('')).toBe(OVERPASS_TIMEOUT_DEFAULT_MS);
+    expect(resolveOverpassTimeoutMs('abc')).toBe(OVERPASS_TIMEOUT_DEFAULT_MS);
   });
 
   it('MAPS-105: honours a positive numeric override', () => {
@@ -2435,9 +2437,17 @@ describe('resolveOverpassTimeoutMs', () => {
   });
 
   it('MAPS-106: rejects 0, negative and Infinity — a non-positive cap would 502 every search', () => {
-    expect(resolveOverpassTimeoutMs('0')).toBe(12000);
-    expect(resolveOverpassTimeoutMs('-5')).toBe(12000);
-    expect(resolveOverpassTimeoutMs('Infinity')).toBe(12000);
+    expect(resolveOverpassTimeoutMs('0')).toBe(OVERPASS_TIMEOUT_DEFAULT_MS);
+    expect(resolveOverpassTimeoutMs('-5')).toBe(OVERPASS_TIMEOUT_DEFAULT_MS);
+    expect(resolveOverpassTimeoutMs('Infinity')).toBe(OVERPASS_TIMEOUT_DEFAULT_MS);
+  });
+
+  it('MAPS-107: we wait longer than the query we sent is allowed to take', () => {
+    // The query carries `[timeout:N]`, which the mirror enforces itself. Hanging up
+    // before that expires aborts an answer that was still legitimately being computed —
+    // which is how a corridor search came to report half its stretches as unsearchable
+    // while every mirror was in fact working on them.
+    expect(OVERPASS_TIMEOUT_DEFAULT_MS).toBeGreaterThan(OVERPASS_QUERY_TIMEOUT_S * 1000);
   });
 });
 

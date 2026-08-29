@@ -267,10 +267,24 @@ export function resolveOverpassEndpoints(raw: string | undefined = readEnv().int
 // slow self-hosted endpoint can raise it via OVERPASS_TIMEOUT_MS. A non-positive or
 // non-numeric value falls back to the default — a 0/negative cap would abort every
 // request immediately and 502 the search.
+/**
+ * How long Overpass is allowed to spend on one query, in seconds.
+ *
+ * Sent inside the query as `[timeout:N]`, so the mirror itself enforces it. Anything we
+ * wait client-side has to be longer than this or we hang up on an answer that was still
+ * coming — which is exactly what used to happen: the query asked for twenty seconds of
+ * work and the fetch was aborted after twelve, so a mirror under load never got to
+ * finish and a corridor search reported half its stretches as unsearchable.
+ */
+export const OVERPASS_QUERY_TIMEOUT_S = 20;
+
+/** The client-side budget: the mirror's own, plus room to hand the answer back. */
+export const OVERPASS_TIMEOUT_DEFAULT_MS = (OVERPASS_QUERY_TIMEOUT_S + 5) * 1000;
+
 export function resolveOverpassTimeoutMs(raw?: string): number {
   if (raw === undefined) return readEnv().integrations.overpassTimeoutMs;
   const n = Number(raw);
-  return Number.isFinite(n) && n > 0 ? n : 12000;
+  return Number.isFinite(n) && n > 0 ? n : OVERPASS_TIMEOUT_DEFAULT_MS;
 }
 
 // ── Opening hours parsing ────────────────────────────────────────────────────
