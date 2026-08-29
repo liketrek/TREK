@@ -22,6 +22,7 @@ export const SUPPORTED_LANGUAGES = [
   { value: 'sv', label: 'Svenska', locale: 'sv-SE' },
   { value: 'vi', label: 'Tiếng Việt', locale: 'vi-VN' },
   { value: 'ca', label: 'Català', locale: 'ca-ES' },
+  { value: 'lt', label: 'Lietuvių', locale: 'lt-LT' },
 ] as const;
 
 export type SupportedLanguageCode = (typeof SUPPORTED_LANGUAGES)[number]['value'];

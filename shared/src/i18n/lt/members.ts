@@ -1,0 +1,38 @@
+import type { TranslationStrings } from '../types';
+
+const members: TranslationStrings = {
+  'members.shareTrip': 'Dalintis kelione',
+  'members.inviteUser': 'Pakviesti naudotoją',
+  'members.selectUser': 'Pasirinkite naudotoją…',
+  'members.invite': 'Pakviesti',
+  'members.allHaveAccess': 'Visi naudotojai jau turi prieigą.',
+  'members.access': 'Prieiga',
+  'members.person': 'žmogus',
+  'members.persons': 'žmonės',
+  'members.you': 'jūs',
+  'members.owner': 'Savininkas',
+  'members.leaveTrip': 'Palikti kelionę',
+  'members.removeAccess': 'Panaikinti prieigą',
+  'members.confirmLeave': 'Palikti kelionę? Prarasite prieigą.',
+  'members.confirmRemove': 'Panaikinti šio naudotojo prieigą?',
+  'members.loadError': 'Nepavyko įkelti narių',
+  'members.added': 'pridėta',
+  'members.addError': 'Nepavyko pridėti',
+  'members.removed': 'Narys pašalintas',
+  'members.removeError': 'Nepavyko pašalinti',
+  'members.makeOwner': 'Paskirti savininku',
+  'members.confirmTransfer': 'Perduoti nuosavybę {name}? Tapsite eiliniu nariu.',
+  'members.transferError': 'Nepavyko perduoti nuosavybės',
+  'members.guests': 'Svečiai',
+  'members.guest': 'Svečias',
+  'members.guestsHint':
+    'Žmonės be paskyros. Jiems galima priskirti išlaidas, daiktus ir užduotis, bet jie negali prisijungti.',
+  'members.addGuest': 'Pridėti svečią',
+  'members.guestNamePlaceholder': 'Svečio vardas',
+  'members.guestAdded': 'Svečias pridėtas',
+  'members.guestAddError': 'Nepavyko pridėti svečio',
+  'members.guestRenameError': 'Nepavyko pervadinti svečio',
+  'members.guestRemoved': 'Svečias pašalintas',
+  'members.confirmRemoveGuest': 'Pašalinti šį svečią? Jo priskyrimai ir išlaidų dalys taip pat bus pašalinti.',
+};
+export default members;

@@ -1,0 +1,30 @@
+import type { TranslationStrings } from '../types';
+
+const inspector: TranslationStrings = {
+  'inspector.opened': 'Atidaryta',
+  'inspector.closed': 'Uždaryta',
+  'inspector.openingHours': 'Darbo laikas',
+  'inspector.showHours': 'Rodyti darbo laiką',
+  'inspector.files': 'Failai',
+  'inspector.filesCount': '{count} failų',
+  'inspector.remove': 'Pašalinti',
+  'inspector.removeFromDay': 'Pašalinti iš dienos',
+  'inspector.addToDay': 'Pridėti prie dienos',
+  'inspector.confirmedRes': 'Patvirtinta rezervacija',
+  'inspector.pendingRes': 'Laukiama rezervacija',
+  'inspector.google': 'Google Maps',
+  'inspector.navigation': 'Navigacija',
+  'inspector.openWith': 'Atidaryti su',
+  'inspector.openStreetMap': 'OpenStreetMap',
+  'inspector.website': 'Atidaryti svetainę',
+  'inspector.saveToCollection': 'Išsaugoti kolekcijoje',
+  'inspector.savedToCollection': 'Išsaugota',
+  'inspector.addRes': 'Rezervacija',
+  'inspector.editRes': 'Redaguoti rezervaciją',
+  'inspector.participants': 'Dalyviai',
+  'inspector.trackStats': 'Maršruto statistika',
+  'inspector.trackColor': 'Maršruto spalva',
+  'inspector.trackColorAuto': 'Automatinė spalva',
+  'inspector.trackColorCustom': 'Pasirinkti kitą spalvą',
+};
+export default inspector;

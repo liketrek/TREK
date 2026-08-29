@@ -1,0 +1,36 @@
+import type { TranslationStrings } from '../types';
+
+const notifications: TranslationStrings = {
+  'notifications.title': 'Pranešimai',
+  'notifications.markAllRead': 'Pažymėti viską kaip skaityta',
+  'notifications.deleteAll': 'Ištrinti viską',
+  'notifications.showAll': 'Rodyti visus pranešimus',
+  'notifications.empty': 'Pranešimų nėra',
+  'notifications.emptyDescription': 'Viskas peržiūrėta!',
+  'notifications.all': 'Visi',
+  'notifications.unreadOnly': 'Neskaityti',
+  'notifications.markRead': 'Pažymėti kaip skaitytą',
+  'notifications.markUnread': 'Pažymėti kaip neskaitytą',
+  'notifications.delete': 'Ištrinti',
+  'notifications.system': 'Sistema',
+  'notifications.synologySessionCleared.title': 'Synology Photos atjungta',
+  'notifications.synologySessionCleared.text':
+    'Pasikeitė jūsų serveris arba paskyra — eikite į Nustatymus ir iš naujo patikrinkite ryšį.',
+  'notifications.versionAvailable.title': 'Yra atnaujinimas',
+  'notifications.versionAvailable.text': 'Jau galima atsisiųsti TREK {version}.',
+  'notifications.versionAvailable.button': 'Peržiūrėti informaciją',
+  'notifications.test.title': 'Bandomasis pranešimas nuo {actor}',
+  'notifications.test.text': 'Tai paprastas bandomasis pranešimas.',
+  'notifications.test.booleanTitle': '{actor} prašo jūsų patvirtinimo',
+  'notifications.test.booleanText': 'Tai bandomasis pasirinkimo pranešimas. Pasirinkite veiksmą žemiau.',
+  'notifications.test.accept': 'Patvirtinti',
+  'notifications.test.decline': 'Atmesti',
+  'notifications.test.navigateTitle': 'Pažiūrėkite tai',
+  'notifications.test.navigateText': 'Tai bandomasis nukreipiamasis pranešimas.',
+  'notifications.test.goThere': 'Eiti ten',
+  'notifications.test.adminTitle': 'Administratoriaus pranešimas visiems',
+  'notifications.test.adminText': '{actor} išsiuntė bandomąjį pranešimą visiems administratoriams.',
+  'notifications.test.tripTitle': '{actor} paskelbė jūsų kelionėje',
+  'notifications.test.tripText': 'Bandomasis pranešimas kelionei „{trip}".',
+};
+export default notifications;
