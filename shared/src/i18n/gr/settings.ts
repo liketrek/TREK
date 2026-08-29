@@ -25,6 +25,8 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Πρότυπο Χάρτη',
   'settings.mapTemplatePlaceholder.select': 'Επιλέξτε πρότυπο...',
   'settings.mapDefaultHint': 'Αφήστε κενό για OpenStreetMap (προεπιλογή)',
+  'settings.routingBase': 'Δική σας μηχανή δρομολόγησης',
+  'settings.routingBaseHint': 'Δική σας εγκατάσταση OSRM. Κενό σημαίνει τους δημόσιους διακομιστές, που επιτρέπουν περίπου ένα αίτημα ανά δευτερόλεπτο: αρκεί για μία ημέρα, λίγο για ένα οδικό ταξίδι. Ισχύει μετά από επανεκκίνηση του διακομιστή.',
   'settings.mapHint': 'Πρότυπο URL για πλακίδια χάρτη',
   'settings.mapProvider': 'Πάροχος Χάρτη',
   'settings.mapProviderHint':

@@ -7,7 +7,8 @@ import type { INestApplication } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 import { AppModule } from './nest/app.module';
 import { httpConfig } from './nest/app-config';
-import { applyGlobalMiddleware } from './middleware/globalMiddleware';
+import { applyGlobalMiddleware, routingCspOrigins } from './middleware/globalMiddleware';
+import { SettingsService } from './nest/settings/settings.service';
 import { applyPlatformUploads, applyPlatformStatic } from './nest/platform/platform.routes';
 import { apiDocsEnabled } from './nest/common/api-docs.kill-switch';
 import { setupApiDocs } from './nest/platform/api-docs';
@@ -84,7 +85,14 @@ export async function buildApp(): Promise<INestApplication> {
   // the one bridge that lets the pre-init Express layer consume the validated
   // config instead of reading process.env itself.
   const http = app.get<ConfigType<typeof httpConfig>>(httpConfig.KEY);
-  applyGlobalMiddleware(instance, { http });
+  // Same pre-init bridge: a self-hosted routing engine has to be named in connect-src, or
+  // the browser blocks every request to it without an error the app could report.
+  const settings = app.get(SettingsService, { strict: false });
+  const routingBase = settings?.getAdminUserDefaults()?.routing_base_url;
+  applyGlobalMiddleware(instance, {
+    http,
+    extraConnectSrc: routingCspOrigins([typeof routingBase === 'string' ? routingBase : null]),
+  });
   // Same pre-init consumption bridge as httpConfig above: the StorageService
   // instance is resolvable before init, and the handlers only *register* here —
   // per-request resolution runs after app.init() completed the registry load.

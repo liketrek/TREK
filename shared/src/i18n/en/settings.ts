@@ -33,6 +33,8 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Map Template',
   'settings.mapTemplatePlaceholder.select': 'Select template...',
   'settings.mapDefaultHint': 'Leave empty for OpenStreetMap (default)',
+  'settings.routingBase': 'Own routing engine',
+  'settings.routingBaseHint': 'An OSRM instance of your own. Empty uses the public servers, which allow about one request a second — enough for a day, tight for a road trip. Takes effect after a server restart.',
   'settings.mapHint': 'URL template for map tiles',
   'settings.mapProvider': 'Map Provider',
   'settings.mapProviderHint': 'Affects Trip Planner and Journey maps. Atlas always uses Leaflet.',

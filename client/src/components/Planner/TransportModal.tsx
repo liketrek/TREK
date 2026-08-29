@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'react-router'
-import { Plane, Train, Car, Ship, Bus, Sailboat, Bike, CarTaxiFront, Route, TramFront, Paperclip, FileText, X, ExternalLink, Link2, Plus, Trash2 } from 'lucide-react'
+import { Plane, Train, Car, Ship, Bus, Sailboat, Bike, CarTaxiFront, Route, TramFront, Paperclip, FileText, X, ExternalLink, Link2, Plus, Trash2, ChevronUp, ChevronDown } from 'lucide-react'
 import Modal from '../shared/Modal'
 import CustomSelect from '../shared/CustomSelect'
 import CustomTimePicker from '../shared/CustomTimePicker'
@@ -216,6 +216,17 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
   // A car keeps its pick-up and return as the frame of the rental and gains the stops
   // in between (#1797): one booking, one continuous drive, several places along it.
   const [carStops, setCarStops] = useState<CarStopForm[]>([])
+
+  /** Swaps a stop with its neighbour. Purely local: `sequence` is derived on save. */
+  const moveCarStop = (index: number, delta: number): void => {
+    setCarStops(prev => {
+      const to = index + delta
+      if (to < 0 || to >= prev.length) return prev
+      const next = [...prev]
+      ;[next[index], next[to]] = [next[to], next[index]]
+      return next
+    })
+  }
   const [uploadingFile, setUploadingFile] = useState(false)
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
   const [showFilePicker, setShowFilePicker] = useState(false)
@@ -993,6 +1004,35 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
                 <label className={labelClass}>{t('roadtrip.stops.label')}</label>
                 {carStops.map((stop, i) => (
                   <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+                    {/* The order of these stops IS the route: `sequence` is the array index
+                        at save time, so the only way to change which one is driven first
+                        was to delete both and re-enter them. Buttons rather than dragging,
+                        because the row already carries a location picker and a time picker
+                        and there is nothing left to grab. */}
+                    {carStops.length > 1 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+                        <button
+                          type="button"
+                          onClick={() => moveCarStop(i, -1)}
+                          disabled={i === 0}
+                          aria-label={t('dayplan.moveUp')}
+                          className="text-content-faint enabled:hover:text-content disabled:opacity-30"
+                          style={{ background: 'none', border: 'none', cursor: i === 0 ? 'default' : 'pointer', padding: '2px 4px', display: 'flex', alignItems: 'center' }}
+                        >
+                          <ChevronUp size={13} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveCarStop(i, 1)}
+                          disabled={i === carStops.length - 1}
+                          aria-label={t('dayplan.moveDown')}
+                          className="text-content-faint enabled:hover:text-content disabled:opacity-30"
+                          style={{ background: 'none', border: 'none', cursor: i === carStops.length - 1 ? 'default' : 'pointer', padding: '2px 4px', display: 'flex', alignItems: 'center' }}
+                        >
+                          <ChevronDown size={13} />
+                        </button>
+                      </div>
+                    )}
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <LocationSelect
                         value={stop.location}

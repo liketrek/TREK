@@ -3,8 +3,6 @@ import { pluginsApi } from '../../api/client'
 import type { DistanceUnit, RouteResult, RouteSegment, RouteWithLegs, Waypoint, RouteAnchors } from '../../types'
 import { formatDistance } from '../../utils/units'
 
-const OSRM_BASE = 'https://router.project-osrm.org/route/v1'
-
 // FOSSGIS hosts OSRM with real per-profile routing (car/foot/bike) — the
 // project-osrm.org demo is car-only (it ignores the profile in the URL). Use
 // the matching profile so walking routes follow footpaths, not the road network.
@@ -12,6 +10,61 @@ const OSRM_PROFILE_BASE: Record<'driving' | 'walking' | 'cycling', string> = {
   driving: 'https://routing.openstreetmap.de/routed-car/route/v1/driving',
   walking: 'https://routing.openstreetmap.de/routed-foot/route/v1/foot',
   cycling: 'https://routing.openstreetmap.de/routed-bike/route/v1/bike',
+}
+
+/** OSRM's own profile names, which a self-hosted instance serves under its own paths. */
+const OSRM_PROFILE_PATH: Record<'driving' | 'walking' | 'cycling', string> = {
+  driving: 'driving',
+  walking: 'foot',
+  cycling: 'bike',
+}
+
+/**
+ * Where to ask for a route.
+ *
+ * The public FOSSGIS hosts allow roughly one request a second, which a road trip — every
+ * leg of every day — runs into immediately. An instance that runs its own OSRM sets
+ * `routing_base_url` and everything routes against that instead; the server has to name
+ * the same origin in its connect-src, or the browser blocks the requests silently.
+ *
+ * A configured base is expected to serve the standard OSRM layout,
+ * `<base>/route/v1/<profile>/…`, which is what `osrm-routed` does out of the box.
+ */
+function routeBaseFor(profile: 'driving' | 'walking' | 'cycling'): string {
+  const configured = useSettingsStore.getState().settings.routing_base_url?.trim()
+  if (!configured) return OSRM_PROFILE_BASE[profile]
+  return `${configured.replace(/\/+$/, '')}/route/v1/${OSRM_PROFILE_PATH[profile]}`
+}
+
+/**
+ * A routing request the host refused, as opposed to one it answered with "no route".
+ *
+ * The public OSRM instances allow roughly one request a second and answer 429 above that.
+ * Both used to arrive as the same generic Error, so a caller could not tell "back off and
+ * try again" from "these two points are not connected by road" — and a road trip, which
+ * asks for every leg of every day, hits the first case constantly while the second is
+ * rare. `retryAfterMs` carries the host's own `Retry-After` when it sends one.
+ */
+export class RoutingRefusedError extends Error {
+  constructor(readonly status: number, readonly retryAfterMs: number | null) {
+    super(status === 429 ? 'Routing rate limit reached' : 'Route could not be calculated')
+    this.name = 'RoutingRefusedError'
+  }
+
+  /** True when waiting and asking again is the right response. */
+  get isRateLimit(): boolean {
+    return this.status === 429 || this.status === 503
+  }
+}
+
+/** `Retry-After` is either seconds or an HTTP date; anything else is no answer at all. */
+function retryAfterMs(response: Response): number | null {
+  const raw = response.headers.get('Retry-After')
+  if (!raw) return null
+  const seconds = Number(raw)
+  if (Number.isFinite(seconds) && seconds >= 0) return Math.round(seconds * 1000)
+  const at = Date.parse(raw)
+  return Number.isNaN(at) ? null : Math.max(0, at - Date.now())
 }
 
 // Cache route responses keyed by the exact waypoint list. Routes are stable, so
@@ -45,11 +98,11 @@ export async function calculateRoute(
   }
 
   const coords = waypoints.map((p) => `${p.lng},${p.lat}`).join(';')
-  const url = `${OSRM_BASE}/${profile}/${coords}?overview=full&geometries=geojson&steps=false`
+  const url = `${routeBaseFor(profile)}/${coords}?overview=full&geometries=geojson&steps=false`
 
   const response = await fetch(url, { signal })
   if (!response.ok) {
-    throw new Error('Route could not be calculated')
+    throw new RoutingRefusedError(response.status, retryAfterMs(response))
   }
 
   const data = await response.json()
@@ -252,10 +305,10 @@ export async function calculateSegments(
   if (!waypoints || waypoints.length < 2) return []
 
   const coords = waypoints.map((p) => `${p.lng},${p.lat}`).join(';')
-  const url = `${OSRM_BASE}/driving/${coords}?overview=false&geometries=geojson&steps=false&annotations=distance,duration`
+  const url = `${routeBaseFor('driving')}/${coords}?overview=false&geometries=geojson&steps=false&annotations=distance,duration`
 
   const response = await fetch(url, { signal })
-  if (!response.ok) throw new Error('Route could not be calculated')
+  if (!response.ok) throw new RoutingRefusedError(response.status, retryAfterMs(response))
 
   const data = await response.json()
   if (data.code !== 'Ok' || !data.routes?.[0]) throw new Error('No route found')
@@ -344,10 +397,13 @@ export async function calculateRouteWithLegs(
     return result
   }
 
-  const osrmProfile = (profile === 'walking' || profile === 'cycling') ? profile : 'driving'
-  const url = `${OSRM_PROFILE_BASE[osrmProfile]}/${coords}?overview=full&geometries=geojson&annotations=distance,duration`
+  // Written as literals rather than narrowing `profile`: its type is an open string union
+  // (plugins name their own modes), which no comparison narrows to the three OSRM knows.
+  const osrmProfile: 'driving' | 'walking' | 'cycling' =
+    profile === 'walking' ? 'walking' : profile === 'cycling' ? 'cycling' : 'driving'
+  const url = `${routeBaseFor(osrmProfile)}/${coords}?overview=full&geometries=geojson&annotations=distance,duration`
   const response = await fetch(url, { signal })
-  if (!response.ok) throw new Error('Route could not be calculated')
+  if (!response.ok) throw new RoutingRefusedError(response.status, retryAfterMs(response))
 
   const data = await response.json()
   if (data.code !== 'Ok' || !data.routes?.[0]) throw new Error('No route found')
@@ -402,4 +458,147 @@ function formatDuration(seconds: number): string {
     return `${h} h ${m} min`
   }
   return `${m} min`
+}
+
+/** One way of driving a leg, as OSRM offers it. */
+export interface RouteAlternative {
+  coordinates: [number, number][]
+  distance: number
+  duration: number
+  /** Where this route differs most from the first one — the point that would pin it. */
+  divergence: { lat: number; lng: number } | null
+  /** Set when this way exists because a road class was left out of it. */
+  avoids?: 'motorway' | 'toll'
+}
+
+/**
+ * Road classes worth asking the router to leave out, in the order they are tried.
+ *
+ * OSRM's own alternative search is conservative: it only offers a second road when the
+ * detour is short enough and shares little enough with the first, so on a long motorway
+ * run it usually answers with exactly one route — while a perfectly good, slower way over
+ * the B-roads exists and is what somebody opening "other ways" is looking for. Excluding
+ * a class asks a different question and reliably produces that road.
+ *
+ * Only for driving: the foot and bike profiles have no excludable classes, and asking
+ * anyway earns an `InvalidOptions` for nothing.
+ */
+const EXCLUDABLE_CLASSES = ['motorway', 'toll'] as const
+
+/** Two lines are the same road if their length and their duration agree closely enough. */
+function sameRoad(a: RouteAlternative, b: RouteAlternative): boolean {
+  return Math.abs(a.distance - b.distance) < 200 && Math.abs(a.duration - b.duration) < 60
+}
+
+/**
+ * One route with a road class left out, or null when the router will not or cannot.
+ *
+ * Every failure is a null: an instance built without excludable classes answers
+ * `InvalidOptions`, a rate limit answers 429, and a leg with no way round the motorway
+ * answers `NoRoute`. None of those is worth an error on screen — they all just mean this
+ * particular question had no answer.
+ */
+async function routeExcluding(
+  coords: string,
+  profile: 'driving' | 'walking' | 'cycling',
+  exclude: string,
+  signal?: AbortSignal,
+): Promise<RouteAlternative | null> {
+  try {
+    const url = `${routeBaseFor(profile)}/${coords}?exclude=${exclude}&overview=full&geometries=geojson`
+    const response = await fetch(url, { signal })
+    if (!response.ok) return null
+    const data = await response.json()
+    const route = data?.code === 'Ok' && Array.isArray(data.routes) ? data.routes[0] : null
+    if (!route?.geometry?.coordinates?.length) return null
+    return {
+      coordinates: route.geometry.coordinates.map(([lng, lat]: [number, number]) => [lat, lng] as [number, number]),
+      distance: route.distance,
+      duration: route.duration,
+      divergence: null,
+    }
+  } catch {
+    return null
+  }
+}
+
+/**
+ * The ways of driving one leg, not one day.
+ *
+ * Deliberately per leg: OSRM only offers alternatives between exactly two coordinates, so
+ * asking for a whole day would mean splitting it into one request per leg — which is the
+ * bundling `splitIntoRuns` exists to avoid, and the reason a road trip appears at once
+ * instead of trickling in. Asked for a single leg, on demand, it costs one extra request.
+ *
+ * `divergence` is the point on each alternative that lies furthest from the default route.
+ * It is what makes a choice persistable: saving that point as a via forces the router back
+ * onto this road on every future request, without storing a polyline that would go stale
+ * with the next OSM update.
+ */
+export async function calculateAlternatives(
+  from: Waypoint,
+  to: Waypoint,
+  profile: 'driving' | 'walking' | 'cycling' = 'driving',
+  { signal, limit = 3 }: { signal?: AbortSignal; limit?: number } = {},
+): Promise<RouteAlternative[]> {
+  const coords = `${from.lng},${from.lat};${to.lng},${to.lat}`
+  const url = `${routeBaseFor(profile)}/${coords}?alternatives=${limit}&overview=full&geometries=geojson`
+  const response = await fetch(url, { signal })
+  if (!response.ok) throw new RoutingRefusedError(response.status, retryAfterMs(response))
+
+  const data = await response.json()
+  if (data.code !== 'Ok' || !Array.isArray(data.routes) || !data.routes.length) return []
+
+  const routes: RouteAlternative[] = data.routes.map((r: { geometry: { coordinates: [number, number][] }; distance: number; duration: number }) => ({
+    coordinates: r.geometry.coordinates.map(([lng, lat]) => [lat, lng] as [number, number]),
+    distance: r.distance,
+    duration: r.duration,
+    divergence: null,
+  }))
+
+  // Nothing but the router's own preference came back, which is what it answers on most
+  // long legs. Rather than reporting "only one sensible way", ask a different question:
+  // the same drive without the motorway, and failing that without the tolls. Tried one at
+  // a time and stopped as soon as one lands, so a leg that does have a second road costs
+  // one extra request rather than three, and the public hosts' one-per-second limit is
+  // not spent on questions already answered.
+  if (routes.length < 2 && profile === 'driving') {
+    for (const exclude of EXCLUDABLE_CLASSES) {
+      if (signal?.aborted) break
+      const detour = await routeExcluding(coords, profile, exclude, signal)
+      if (detour && !routes.some(r => sameRoad(r, detour))) {
+        detour.avoids = exclude
+        routes.push(detour)
+        break
+      }
+    }
+  }
+
+  // The first route is what the router would have given anyway; the others are measured
+  // against it so each one can be pinned by the point that makes it different.
+  const [primary, ...rest] = routes
+  for (const alt of rest) alt.divergence = furthestPointFrom(alt.coordinates, primary.coordinates)
+  return routes
+}
+
+/** The point of `line` that lies furthest from `reference`, in plain degrees. */
+function furthestPointFrom(line: [number, number][], reference: [number, number][]): { lat: number; lng: number } | null {
+  if (!line.length || !reference.length) return null
+  // Every tenth vertex is plenty: alternatives differ over kilometres, not metres, and a
+  // full cross product of two thousand-point lines is not worth the milliseconds.
+  const step = Math.max(1, Math.floor(reference.length / 200))
+  let best: { lat: number; lng: number } | null = null
+  let bestDist = -1
+  for (let i = 0; i < line.length; i += Math.max(1, Math.floor(line.length / 200))) {
+    const [lat, lng] = line[i]
+    let nearest = Infinity
+    for (let j = 0; j < reference.length; j += step) {
+      const dLat = lat - reference[j][0]
+      const dLng = (lng - reference[j][1]) * Math.cos((lat * Math.PI) / 180)
+      const d = dLat * dLat + dLng * dLng
+      if (d < nearest) nearest = d
+    }
+    if (nearest > bestDist) { bestDist = nearest; best = { lat, lng } }
+  }
+  return best
 }

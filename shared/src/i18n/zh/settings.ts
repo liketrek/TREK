@@ -24,6 +24,8 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': '地图模板',
   'settings.mapTemplatePlaceholder.select': '选择模板...',
   'settings.mapDefaultHint': '留空则使用 OpenStreetMap（默认）',
+  'settings.routingBase': '自建路径规划服务',
+  'settings.routingBaseHint': '你自己的 OSRM 实例。留空则使用公共服务器，约每秒一个请求 — 单日够用，长途自驾则吃紧。需重启服务器后生效。',
   'settings.mapHint': '地图瓦片 URL 模板',
   'settings.mapProvider': '地图提供商',
   'settings.mapProviderHint': '影响行程规划器和旅程地图。足迹始终使用 Leaflet。',

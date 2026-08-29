@@ -1,11 +1,16 @@
 import React from 'react'
-import { MapPin, Clock, Car, Footprints, Bike, Milestone, Flag, AlertTriangle } from 'lucide-react'
+import {
+  MapPin, CarFront, Footprints, Bike, Zap, AlertTriangle, Moon,
+  Fuel, Coffee, Tent, Utensils, Camera, Shuffle,
+  type LucideIcon,
+} from 'lucide-react'
 import { useTranslation } from '../../i18n/TranslationContext'
 import { useSettingsStore } from '../../store/settingsStore'
 import { formatDistance } from '../../utils/units'
-import { formatDate } from '../../utils/formatters'
-import { formatDurationShort, type ScheduleEntry, type ScheduleWarning } from './roadtripModel'
-import type { RoadtripDay, RoadtripRoutes, RoadtripStop } from './useRoadtripRoutes'
+import { formatDate, formatClockTime } from '../../utils/formatters'
+import { formatDurationShort, isServiceStopType, serviceColor, type ScheduleEntry, type ScheduleWarning } from './roadtripModel'
+import type { QuietDay, RoadtripDay, RoadtripRoutes, RoadtripStop } from './useRoadtripRoutes'
+import { FS } from './typeScale'
 import type { RouteSegment } from '../../types'
 
 interface RoadtripSidebarProps {
@@ -13,134 +18,733 @@ interface RoadtripSidebarProps {
   routes: RoadtripRoutes
   selectedAssignmentId?: number | null
   onSelectStop?: (placeId: number, assignmentId: number) => void
+  /**
+   * Moves a stop within its day. Absent means the chain is read-only, which is also how
+   * a viewer sees it — no handles, no drop targets.
+   */
+  onReorderStop?: (dayId: number, assignmentId: number, toIndex: number) => void
+  /** Moves a stop onto a different day. Absent means moves stay inside their own day. */
+  onMoveStopToDay?: (fromDayId: number, assignmentId: number, toDayId: number, toIndex: number) => void
+  /** Asks for other ways of driving one leg (#1797). */
+  onAskAlternatives?: (dayId: number, legIndex: number) => void
+  /** Which leg's alternatives are on show, so the rail can mark it. */
+  openAlternatives?: { dayId: number; index: number } | null
+  /**
+   * Opens the dialog for how long a stop takes. Absent leaves every stay read-only —
+   * which is also what a viewer sees.
+   */
+  onEditStay?: (stop: { placeId: number; name: string; minutes: number | null; arrival: string | null }) => void
 }
 
-const MODE_ICON: Record<string, typeof Car> = {
-  driving: Car,
+const MODE_ICON: Record<string, LucideIcon> = {
+  driving: CarFront,
   walking: Footprints,
   cycling: Bike,
 }
 
-function Totals({ distance, duration, stops }: { distance: number; duration: number; stops: number }): React.ReactElement {
+/** What each kind of pause looks like. The icon is what tells the teal discs apart. */
+const SERVICE_ICON: Record<string, LucideIcon> = {
+  fuel: Fuel,
+  charging: Zap,
+  rest_area: Coffee,
+  campsite: Tent,
+  restaurant: Utensils,
+  sights: Camera,
+}
+
+/**
+ * What each kind is called. Spelled out rather than derived from the key, because two of
+ * them do not match: the corridor calls a rest area `rest_area` but names it under
+ * `rest`, and a restaurant `restaurant` but names it under `food`.
+ */
+const SERVICE_LABEL_KEY: Record<string, string> = {
+  fuel: 'roadtrip.poi.fuel',
+  charging: 'roadtrip.poi.charging',
+  rest_area: 'roadtrip.poi.rest',
+  campsite: 'roadtrip.poi.campsite',
+  restaurant: 'roadtrip.poi.food',
+  sights: 'roadtrip.poi.sights',
+}
+
+
+/** The column the markers and the line share, and the gap to the content beside it. */
+const RAIL_GRID: React.CSSProperties = { gridTemplateColumns: '24px 1fr', columnGap: 10 }
+
+/**
+ * The line between two stops.
+ *
+ * A repeating gradient rather than a dashed border: a 1px dashed border renders as a
+ * smear at this width, and the gradient keeps the dash length exact.
+ */
+const RAIL_DASH: React.CSSProperties = {
+  width: 1.5,
+  backgroundImage: 'repeating-linear-gradient(var(--border-primary) 0 4px, transparent 4px 8px)',
+}
+
+/** A 24px disc — a stop's number, or a service stop's icon. */
+const DISC = 'grid h-6 w-6 shrink-0 place-items-center rounded-full'
+
+/**
+ * The small capitalised caption over a number, and the badges in a day's header.
+ *
+ * Wide letter-spacing and uppercase rather than a size change: the labels have to stay
+ * legible at a third of the column's width in 23 languages, and shrinking them further
+ * was what made "Driving time" unreadable before it was ever clipped.
+ */
+const STAT_LABEL = 'font-geist font-semibold uppercase tracking-[0.15em] text-content-faint'
+
+/**
+ * A day-header badge: the date, the drive, the count.
+ *
+ * Medium weight in the quiet ink, not semibold in the strong one. Three uppercase badges
+ * with wide tracking already carry as much emphasis as a line can take; adding weight and
+ * contrast on top made the day's supporting facts shout louder than the day's own name.
+ */
+const DAY_BADGE = 'inline-flex h-[20px] items-center rounded-lg px-2 font-geist font-medium uppercase tracking-[0.09em] text-content-muted'
+
+/**
+ * How long the traveller stays here, and the way to change it.
+ *
+ * On every stop, not only the ones that already carry a time: the value has never been
+ * editable anywhere in TREK, so a stop that has none needs somewhere to say so before it
+ * can get one. Unset it reads as a plus in the slot the number will occupy, which keeps
+ * the two states the same shape and the same width — a row does not jump when a stay is
+ * added to it.
+ *
+ * Read-only for someone who cannot edit the trip: then it is a label, and a stop without
+ * a stay shows nothing at all rather than an invitation that leads nowhere.
+ */
+function StayBadge({ minutes, onEdit }: { minutes: number | null; onEdit?: () => void }): React.ReactElement | null {
+  const { t } = useTranslation()
+  const text = minutes ? formatDurationShort(minutes * 60) : null
+  if (!text && !onEdit) return null
+
+  const shell = 'inline-flex h-[16px] items-stretch self-start overflow-hidden rounded border border-edge'
+  const label = (
+    <span
+      className="flex items-center bg-surface-tertiary px-1 font-geist font-semibold uppercase tracking-[0.12em] text-content-faint"
+      style={{ fontSize: FS.micro }}
+    >
+      {t('roadtrip.stop.stayShort')}
+    </span>
+  )
+  const value = (
+    <span
+      className={`flex items-center border-s border-edge bg-surface-card px-1.5 font-semibold tabular-nums ${
+        text ? 'text-content-secondary' : 'text-content-faint'
+      }`}
+      style={{ fontSize: FS.label }}
+    >
+      {text ?? '+'}
+    </span>
+  )
+
+  if (!onEdit) return <span className={shell}>{label}{value}</span>
+  // A span carrying the button role, not a <button>: the whole stop row is already one,
+  // and a button inside a button is invalid HTML that React warns about and that browsers
+  // resolve by dropping the inner element.
+  return (
+    <span
+      role="button"
+      tabIndex={0}
+      // Stops the click reaching the row, which would select the stop and move the map
+      // out from under the dialog that is about to open.
+      onClick={e => { e.stopPropagation(); onEdit() }}
+      onKeyDown={e => {
+        if (e.key !== 'Enter' && e.key !== ' ') return
+        e.preventDefault()
+        e.stopPropagation()
+        onEdit()
+      }}
+      title={t('roadtrip.stop.stay')}
+      aria-label={text ? `${t('roadtrip.stop.stay')}: ${text}` : t('roadtrip.stay.add')}
+      className={`${shell} cursor-pointer transition-colors hover:border-content-faint`}
+    >
+      {label}{value}
+    </span>
+  )
+}
+
+/** The quiet half of a measurement — the unit, and anything after the decimal point. */
+function Unit({ children }: { children: React.ReactNode }): React.ReactElement {
+  return <span className="font-medium text-content-muted" style={{ fontSize: FS.totalUnit }}>{children}</span>
+}
+
+/**
+ * Sets the whole numbers of a measurement apart from everything else in it.
+ *
+ * "691.6 km" reads as six-hundred-and-ninety-one, roughly; "9 h 4 min" as nine and four.
+ * Those are the digits worth the size, and the decimal tail belongs with the unit rather
+ * than with them. Purely presentational and deliberately forgiving: a bare count comes
+ * back as one big number, and a language that puts its unit first still splits correctly
+ * because the split is driven by the digits, not by position.
+ */
+function splitValue(value: string): React.ReactNode {
+  const parts: React.ReactNode[] = []
+  const re = /(\d+)([.,]\d+)?/g
+  let last = 0
+  let key = 0
+  let m: RegExpExecArray | null
+  while ((m = re.exec(value)) !== null) {
+    if (m.index > last) parts.push(<Unit key={key++}>{value.slice(last, m.index)}</Unit>)
+    parts.push(<React.Fragment key={key++}>{m[1]}</React.Fragment>)
+    if (m[2]) parts.push(<Unit key={key++}>{m[2]}</Unit>)
+    last = m.index + m[0].length
+  }
+  if (last < value.length) parts.push(<Unit key={key}>{value.slice(last)}</Unit>)
+  return parts.length ? parts : value
+}
+
+/**
+ * Distance, driving time and stops for the whole trip — the head the left column never
+ * had, above the day cards and reading as one card with them.
+ *
+ * Three equal centred columns with hairlines between them, rather than three labelled
+ * rows: the labels are the quiet part and the numbers are what the head exists for, so
+ * the numbers get the size and the labels get the letter-spacing.
+ */
+function TripSummary({ routes }: { routes: RoadtripRoutes }): React.ReactElement {
   const { t } = useTranslation()
   const distanceUnit = useSettingsStore(s => s.settings.distance_unit)
-  const cells: [typeof Milestone, string, string][] = [
-    [Milestone, t('roadtrip.summary.distance'), formatDistance(distance / 1000, distanceUnit)],
-    [Clock, t('roadtrip.summary.driving'), formatDurationShort(duration)],
-    [Flag, t('roadtrip.summary.stops'), String(stops)],
+  const cells: [string, string][] = [
+    // `totalStops` already leaves the service stops out, so the head and the day badges
+    // below count the same thing without either of them recounting the other's stops.
+    [t('roadtrip.summary.distance'), formatDistance(routes.totalDistance / 1000, distanceUnit)],
+    [t('roadtrip.summary.driving'), formatDurationShort(routes.totalDuration)],
+    [t('roadtrip.summary.stops'), String(routes.totalStops)],
   ]
   return (
-    <div className="grid grid-cols-3 gap-1.5 px-3 pb-3">
-      {cells.map(([Icon, label, value]) => (
-        <div key={label} className="rounded-xl bg-surface-card border border-edge-faint px-2.5 py-2">
-          <div className="flex items-start gap-1.5 text-content-faint">
-            <Icon size={12} className="shrink-0 mt-[3px]" aria-hidden />
-            {/* Wraps rather than truncates: "Driving time" and its translations do not
-                fit one line in a third of the rail, and a clipped label reads as a bug. */}
-            <span className="text-caption leading-tight">{label}</span>
+    <header className="mx-3.5 rounded-2xl border border-edge-faint bg-surface-card px-3 pb-3 pt-3.5">
+      <div className="flex items-center justify-between text-center">
+        {cells.map(([label, value], i) => (
+          <React.Fragment key={label}>
+            {i > 0 ? <span className="h-[28px] w-px shrink-0 bg-edge-faint" aria-hidden /> : null}
+            <div className="flex flex-1 flex-col items-center gap-1.5 px-1">
+              <span className={STAT_LABEL} style={{ fontSize: FS.label }}>{label}</span>
+              <span
+                className="font-semibold leading-none tracking-[-0.03em] tabular-nums text-content"
+                style={{ fontSize: FS.total }}
+              >
+                {splitValue(value)}
+              </span>
+            </div>
+          </React.Fragment>
+        ))}
+      </div>
+      {/* Legs land one request at a time, so until the last is in, every number above is
+          a partial sum. A total that looks final and is not is worse than a slow one. */}
+      {routes.loading ? (
+        <p className="mt-2 break-words text-center text-content-faint" style={{ fontSize: FS.meta }}>
+          {t('roadtrip.summary.partial')}
+        </p>
+      ) : null}
+    </header>
+  )
+}
+
+/**
+ * The drive between two stops — or between a stop and the charger halfway along it.
+ *
+ * Both numbers are rebuilt from the raw metres and seconds instead of the router's
+ * pre-formatted strings: those spell a full hour "1 h 0 min", and they carry whichever
+ * unit the leg was fetched with, so a km/mi switch showed stale text until the refetch
+ * landed. One sentence rather than two values — "152 km in 1 h 38 min" is how the
+ * distance and the time belong together, and it leaves the row's right edge for the
+ * button instead of a second number.
+ */
+function DriveBand({ leg, onAskAlternatives, alternativesOpen }: {
+  leg: RouteSegment | undefined
+  /** Asks for other ways of driving this leg. Absent means the route is not editable. */
+  onAskAlternatives?: () => void
+  alternativesOpen?: boolean
+}): React.ReactElement {
+  const { t } = useTranslation()
+  const distanceUnit = useSettingsStore(s => s.settings.distance_unit)
+  const mode = leg?.mode ?? 'driving'
+  const Icon = mode.startsWith('plugin:') ? Zap : MODE_ICON[mode] ?? CarFront
+  // The band's contents, shared by the clickable and the read-only shape so the two can
+  // never drift apart in what they say.
+  const band = (
+    <>
+      <Icon size={12} strokeWidth={1.7} className="shrink-0" aria-hidden />
+      <span className="min-w-0 truncate font-medium tabular-nums" style={{ fontSize: FS.meta }}>
+        {leg
+          ? t('roadtrip.leg.driveText', {
+            distance: formatDistance(leg.distance / 1000, distanceUnit),
+            time: formatDurationShort(leg.duration),
+          })
+          : t('roadtrip.leg.pending')}
+      </span>
+    </>
+  )
+  return (
+    <div className="grid" style={RAIL_GRID}>
+      <span className="relative z-[1] flex flex-col items-center" aria-hidden>
+        {/* Dashed between stops, solid at them: the eye reads the gap as travel. */}
+        <span className="flex-1" style={RAIL_DASH} />
+      </span>
+      <div className="min-w-0">
+        {/* The whole band is the target, not the 18px square at its end. Asking for other
+            ways of driving a leg is what the band is for, and a click anywhere on it is
+            the gesture people try first — the shuffle mark stays as the sign that it can
+            be clicked, and as where the open state shows. */}
+        {onAskAlternatives && leg ? (
+          <button
+            type="button"
+            onClick={onAskAlternatives}
+            aria-pressed={alternativesOpen}
+            title={t('roadtrip.alt.ask')}
+            className={`group/leg my-1.5 flex w-full items-center gap-1.5 rounded-lg py-1 pe-1 ps-2 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent ${
+              alternativesOpen
+                ? 'bg-surface-selected text-content'
+                : 'bg-surface-tertiary text-content-muted hover:bg-surface-selected'
+            }`}
+          >
+            {band}
+            {/* The open leg darkens its ink, not its box. A filled accent square here put
+                a black chip in the middle of a rail whose only other filled thing is
+                nothing at all — it read as a button that had been pressed and stuck. */}
+            <span
+              className={`ms-auto grid h-[18px] w-[18px] shrink-0 place-items-center rounded-md transition-colors ${
+                alternativesOpen ? 'text-content' : 'text-content-faint group-hover/leg:text-content'
+              }`}
+            >
+              <Shuffle size={12} strokeWidth={1.9} aria-label={t('roadtrip.alt.ask')} />
+            </span>
+          </button>
+        ) : (
+          <div className="my-1.5 flex items-center gap-1.5 rounded-lg bg-surface-tertiary py-1 pe-2 ps-2 text-content-muted">
+            {band}
           </div>
-          <div className="text-body font-semibold text-content tabular-nums mt-0.5 truncate">{value}</div>
-        </div>
-      ))}
+        )}
+        {/* What a plugin route attached to this leg ("25 min charge"): free text, so it
+            takes a line of its own rather than being forced into the row above. */}
+        {leg?.noteText ? (
+          <p className="-mt-0.5 mb-1.5 break-words px-1 text-content-faint" style={{ fontSize: FS.meta }}>
+            {leg.noteText}
+          </p>
+        ) : null}
+      </div>
     </div>
   )
 }
 
-function Leg({ leg }: { leg: RouteSegment | undefined }): React.ReactElement {
+/**
+ * A charger, a filling station or a rest stop — a stop that interrupts the drive.
+ *
+ * It sits inside the leg with the dashed line running through it, carries no number and
+ * is left out of every count, because that is the difference between it and the places
+ * the trip is actually for. Its own icon on one flat disc: three kinds of pause that all
+ * mean "we are still driving", and the icon is what tells them apart.
+ */
+function ServiceStop({ stop, entry, selected, onSelect, onEditStay }: {
+  stop: RoadtripStop
+  entry: ScheduleEntry | undefined
+  selected: boolean
+  onSelect?: () => void
+  /** Opens the dialog for how long this pause takes. Absent means the rail is read-only. */
+  onEditStay?: () => void
+}): React.ReactElement {
   const { t } = useTranslation()
-  const Icon = MODE_ICON[leg?.mode ?? 'driving'] ?? Car
+  const Icon = SERVICE_ICON[stop.stopType ?? ''] ?? Coffee
+  const label = t(SERVICE_LABEL_KEY[stop.stopType ?? ''] ?? 'roadtrip.poi.rest')
   return (
-    <div className="flex items-center gap-2 pl-[10px] py-1">
-      <span className="w-px self-stretch bg-edge-secondary ml-[5px]" aria-hidden />
-      <Icon size={12} className="text-content-faint shrink-0 ml-1.5" aria-hidden />
-      <span className="text-caption text-content-muted tabular-nums truncate">
-        {leg ? `${leg.distanceText} · ${leg.durationText}` : t('roadtrip.leg.pending')}
+    <div className="grid items-stretch" style={RAIL_GRID}>
+      <span className="relative z-[1] flex flex-col items-center">
+        <span className="flex-1" style={RAIL_DASH} aria-hidden />
+        <span
+          className={DISC}
+          // theme-lint-disable — the road-signage palette in `roadtripModel`, shared with
+          // the corridor list and the map pin so one kind of stop looks like itself
+          // wherever it turns up.
+          style={{ background: serviceColor(stop.stopType), color: '#fff' }}
+        >
+          <Icon size={12} strokeWidth={2.1} aria-label={label} />
+        </span>
+        <span className="flex-1" style={RAIL_DASH} aria-hidden />
+      </span>
+      <button
+        type="button"
+        onClick={onSelect}
+        aria-current={selected ? 'true' : undefined}
+        // The same inset as a numbered stop's content, so the two kinds of name start on
+        // one vertical line instead of the service one sitting a few pixels nearer the rail.
+        className={`flex min-w-0 items-start gap-2 rounded-lg px-1.5 pb-1 pt-0.5 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent ${
+          selected ? 'bg-surface-selected' : 'hover:bg-surface-hover'
+        }`}
+      >
+        {/* Laid out exactly like a numbered stop: how long the pause takes is a stay like
+            any other and sits under the name, and the right edge stays the arrival column
+            all the way down the rail. Only the disc says this one is a pause. */}
+        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+          {/* Truncated, not wrapped: a service stop is a waypoint, and its full name lives
+              on the map pin — where a place's name is the row's whole reason to exist. */}
+          <span
+            className="min-w-0 truncate font-semibold leading-6 tracking-[-0.012em] text-content-secondary"
+            style={{ fontSize: FS.name }}
+          >
+            {stop.name}
+          </span>
+          <StayBadge minutes={stop.dwellMinutes} onEdit={onEditStay} />
+        </span>
+        {entry?.arrival ? <Arrival entry={entry} /> : null}
+      </button>
+    </div>
+  )
+}
+
+/**
+ * Midnight, marked where it happens — in the chain, between the two stops the drive runs
+ * between, rather than as a fourth badge hanging off one of them.
+ *
+ * The schedule has carried this since it was written and nothing ever drew it: a day
+ * running past midnight showed "02:30" as if it were tonight.
+ */
+function OvernightBreak(): React.ReactElement {
+  const { t } = useTranslation()
+  return (
+    <div className="grid items-center" style={RAIL_GRID}>
+      <span className="flex flex-col items-center" aria-hidden>
+        <span className="h-full" style={RAIL_DASH} />
+      </span>
+      <span
+        className="my-1 inline-flex w-fit items-center gap-1 rounded-full bg-info-soft px-1.5 py-0.5 font-medium text-info"
+        style={{ fontSize: FS.label }}
+      >
+        <Moon size={10} className="shrink-0" aria-hidden />
+        {t('roadtrip.warn.overnight')}
       </span>
     </div>
   )
 }
 
-function Stop({ stop, index, entry, warning, selected, onSelect }: {
+/**
+ * The arrival — the one value in the rail the user may have decided themselves.
+ *
+ * A pinned time is filled, pilled and carries the clock; a computed one is bare text.
+ * Fill, shape and icon are three signals where a font weight used to be one, and this is
+ * the state the whole view gets opened for. It is also the only filled accent left in the
+ * rail: selection moved to the row's own background, so nothing else competes with it.
+ */
+function Arrival({ entry }: { entry: ScheduleEntry }): React.ReactElement {
+  const { t } = useTranslation()
+  const is12h = useSettingsStore(s => s.settings.time_format) === '12h'
+  const text = formatClockTime(entry.arrival, is12h)
+  // The timetable convention: past midnight the clock keeps reading small numbers, so the
+  // day it belongs to travels with it instead of sitting a line away as a separate note.
+  const carry = entry.dayOffset > 0 ? (
+    <span className="ms-0.5">
+      {`+${entry.dayOffset}`}
+      <span className="sr-only">{` ${t('roadtrip.warn.overnight')}`}</span>
+    </span>
+  ) : null
+
+  // Every arrival is plain text at the row's right edge, pinned or not. The pinned one
+  // used to be a filled pill with a clock, which made a column of quiet clock readings
+  // look like it had a button in it. What is left of the distinction is weight and ink —
+  // enough to see which time somebody chose, without a second shape in the rail.
+  return (
+    <span
+      dir="ltr"
+      title={entry.anchored ? t('roadtrip.stop.pinned') : t('roadtrip.stop.computed')}
+      // The same line box as the stop name beside it, so the two sit on one line however
+      // far apart their sizes are — the row reads across, not in two staggered halves.
+      className={`shrink-0 whitespace-nowrap leading-6 tabular-nums ${
+        entry.anchored ? 'font-semibold text-content-secondary' : 'font-medium text-content-faint'
+      }`}
+      style={{ fontSize: FS.time }}
+    >
+      {text}
+      {carry}
+    </span>
+  )
+}
+
+function Stop({ stop, number, entry, late, selected, continues, onSelect, onMove, canMove, onEditStay }: {
   stop: RoadtripStop
-  index: number
+  /** Position within the day — the same count the map badges its markers with. */
+  number: number
   entry: ScheduleEntry | undefined
-  warning: ScheduleWarning | undefined
+  late: ScheduleWarning | undefined
   selected: boolean
+  /** Whether the chain goes on below, so the marker keeps hold of the line. */
+  continues: boolean
   onSelect?: () => void
+  /** Moves this stop by one place. Absent means the chain is read-only. */
+  onMove?: (delta: number) => void
+  /** Whether there is anywhere to move in each direction, so the ends say so. */
+  canMove?: { up: boolean; down: boolean }
+  /** Opens the dialog for how long this stop takes. Absent means the rail is read-only. */
+  onEditStay?: () => void
 }): React.ReactElement {
   const { t } = useTranslation()
-  const late = warning?.code === 'late'
+  const lateText = late ? t('roadtrip.warn.late', { minutes: late.minutes ?? 0 }) : null
   return (
     <button
       type="button"
       onClick={onSelect}
-      className={`w-full flex items-center gap-2.5 text-left rounded-lg px-1.5 py-1.5 transition-colors ${selected ? 'bg-surface-selected' : 'hover:bg-surface-hover'}`}
       aria-current={selected ? 'true' : undefined}
+      // Alt plus an arrow moves the stop. Dragging is the obvious gesture but it is only
+      // a gesture: without this the chain could not be reordered from a keyboard at all,
+      // and the row is already a button, so it is focusable anyway.
+      onKeyDown={onMove ? e => {
+        if (!e.altKey) return
+        if (e.key === 'ArrowUp' && canMove?.up) { e.preventDefault(); onMove(-1) }
+        if (e.key === 'ArrowDown' && canMove?.down) { e.preventDefault(); onMove(1) }
+      } : undefined}
+      className="group grid w-full rounded-lg text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
+      style={RAIL_GRID}
     >
-      <span
-        className="shrink-0 w-[20px] h-[20px] rounded-full grid place-items-center text-caption font-semibold tabular-nums"
-        style={{ background: 'var(--accent-subtle)', color: 'var(--accent-on)' }}
-      >
-        {index + 1}
-      </span>
-      <span className="flex-1 min-w-0 truncate text-body text-content">{stop.name}</span>
-      {late ? (
-        <AlertTriangle
-          size={13}
-          className="shrink-0 text-warning"
-          aria-label={t('roadtrip.warn.late', { minutes: warning?.minutes ?? 0 })}
-        />
-      ) : null}
-      {stop.dwellMinutes ? (
-        <span className="shrink-0 text-caption text-content-faint tabular-nums" title={t('roadtrip.stop.stay')}>
-          {formatDurationShort(stop.dwellMinutes * 60)}
-        </span>
-      ) : null}
-      {entry?.arrival ? (
-        // A pinned time is what the user decided; a computed one is what the drive implies.
-        // Same slot, different weight, so the chain reads as one column of times.
+      {/* The marker and the line below it share one column, so the chain runs unbroken
+          from stop to stop rather than restarting under whatever the row happens to hold. */}
+      <span className="flex flex-col items-center">
         <span
-          className={`shrink-0 text-caption tabular-nums ${entry.anchored ? 'font-semibold text-content' : 'text-content-muted'}`}
-          title={entry.anchored ? t('roadtrip.stop.pinned') : t('roadtrip.stop.computed')}
+          className={`${DISC} bg-surface-tertiary font-geist font-semibold tabular-nums text-content-secondary`}
+          style={{ fontSize: FS.marker }}
         >
-          {entry.arrival}
+          {number}
         </span>
-      ) : null}
+        {continues ? <span className="mt-1 w-[1.5px] flex-1 rounded-sm bg-edge" aria-hidden /> : null}
+      </span>
+
+      {/* The fill stops at the rail: the number is part of the chain, not part of the row
+          you picked, and tinting it made the marker look selected too. */}
+      <span
+        className={`flex min-w-0 items-start gap-2 rounded-lg px-1.5 pb-1 pt-0.5 transition-colors ${
+          selected ? 'bg-surface-selected' : 'group-hover:bg-surface-hover'
+        }`}
+      >
+        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+          {/* Wraps rather than truncates: the name is what the row is for, and thirty of
+              them cut off mid-word is a list nobody reads. */}
+          <span
+            className="min-w-0 break-words font-semibold leading-6 tracking-[-0.012em] text-content"
+            style={{ fontSize: FS.name }}
+          >
+            {stop.name}
+          </span>
+          {/* Two halves under one border: the word says what the number means, so the
+              number needs no unit of explanation beside it. */}
+          <StayBadge minutes={stop.dwellMinutes} onEdit={onEditStay} />
+          {lateText ? (
+            <span
+              dir="ltr"
+              title={lateText}
+              className="mt-0.5 inline-flex w-fit items-center gap-1 self-start rounded-full bg-warning-soft px-1.5 py-0.5 font-semibold tabular-nums text-warning"
+              style={{ fontSize: FS.label }}
+            >
+              <AlertTriangle size={10} className="shrink-0" aria-label={lateText} />
+              {`+${formatDurationShort((late?.minutes ?? 0) * 60)}`}
+            </span>
+          ) : null}
+        </span>
+        {entry?.arrival ? <Arrival entry={entry} /> : null}
+      </span>
     </button>
   )
 }
 
-function DaySection({ day, selectedAssignmentId, onSelectStop }: {
+/**
+ * One day, one card: its own numbers in its own head, its stops chained below.
+ *
+ * Stops count from one inside the day because that is what the map badges on its markers
+ * (`dayOrderMap` numbers the selected day's assignments from 1). A rail counting across
+ * the trip would put "17" beside a pin the map calls "3".
+ */
+function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, onMoveStopToDay, drag, onAskAlternatives, openAlternatives, onEditStay }: {
   day: RoadtripDay
   selectedAssignmentId?: number | null
   onSelectStop?: (placeId: number, assignmentId: number) => void
+  onReorderStop?: (dayId: number, assignmentId: number, toIndex: number) => void
+  onMoveStopToDay?: RoadtripSidebarProps['onMoveStopToDay']
+  /** What is being dragged right now, shared across days so a stop can leave its own. */
+  drag: DragState
+  onAskAlternatives?: RoadtripSidebarProps['onAskAlternatives']
+  openAlternatives?: RoadtripSidebarProps['openAlternatives']
+  onEditStay?: RoadtripSidebarProps['onEditStay']
 }): React.ReactElement {
+  const { from, setFrom, dropAt, setDropAt } = drag
+  const dragging = from?.dayId === day.dayId ? from.index : null
   const { t, language } = useTranslation()
   const distanceUnit = useSettingsStore(s => s.settings.distance_unit)
+  const last = day.stops.length - 1
+  // The running number a stop wears, with the service stops passed over — so a day with a
+  // charger halfway through still counts one, two, three the way its map pins do.
+  let counted = 0
   return (
-    <section className="px-2 pb-2">
-      <header className="flex items-baseline gap-2 px-1.5 py-1.5">
-        <h3 className="text-body font-semibold text-content">{t('roadtrip.day', { number: day.dayNumber })}</h3>
-        {day.date ? <span className="text-caption text-content-faint truncate">{formatDate(day.date, language)}</span> : null}
-        <span className="ml-auto text-caption text-content-muted tabular-nums shrink-0">
-          {formatDistance(day.distance / 1000, distanceUnit)} · {formatDurationShort(day.duration)}
-        </span>
+    <section className="mx-3.5 shrink-0 overflow-hidden rounded-2xl border border-edge-faint bg-surface-card">
+      {/* Centred, with the day's facts as badges beneath its name: at this width a row
+          of label-and-value pairs breaks awkwardly, while three short badges wrap
+          gracefully and stay readable in every language. */}
+      {/* A tint of its own, not just a hairline: the header holds the day's summed facts
+          and the list below holds its stops, and `--bg-hover` at 40% is 1% black in light
+          mode — a separation nobody could see. `--bg-secondary` lifts off the card in
+          both themes while staying a step under the badges sitting on it. */}
+      <header className="mb-1 border-b border-edge-faint bg-surface-secondary px-3.5 pb-2.5 pt-3">
+        <h3
+          className="text-center font-semibold tracking-[-0.015em] text-content"
+          style={{ fontSize: FS.dayTitle }}
+        >
+          {t('roadtrip.day', { number: day.dayNumber })}
+        </h3>
+        {/* Read by the hook since it was written, never drawn until now. */}
+        {day.title ? (
+          <p className="mt-0.5 break-words text-center text-content-secondary" style={{ fontSize: FS.meta }}>
+            {day.title}
+          </p>
+        ) : null}
+        <div className="mt-1.5 flex flex-wrap justify-center gap-1">
+          {day.date ? (
+            <time dateTime={day.date} className={`${DAY_BADGE} border border-edge`} style={{ fontSize: FS.label }}>
+              {formatDate(day.date, language)}
+            </time>
+          ) : null}
+          <span className={`${DAY_BADGE} bg-surface-tertiary`} style={{ fontSize: FS.label }}>
+            {t('roadtrip.leg.driveText', {
+              distance: formatDistance(day.distance / 1000, distanceUnit),
+              time: formatDurationShort(day.duration),
+            })}
+          </span>
+          <span className={`${DAY_BADGE} bg-surface-tertiary`} style={{ fontSize: FS.label }}>
+            {t('roadtrip.day.stopCount', { count: day.stops.filter(s => !isServiceStopType(s.stopType)).length })}
+          </span>
+        </div>
       </header>
-      <div className="rounded-xl bg-surface-card border border-edge-faint px-1.5 py-1.5">
-        {day.stops.map((stop, i) => (
-          <React.Fragment key={stop.assignmentId}>
-            <Stop
-              stop={stop}
-              index={i}
-              entry={day.schedule.entries[i]}
-              warning={day.schedule.warnings.find(w => w.index === i)}
-              selected={selectedAssignmentId === stop.assignmentId}
-              onSelect={onSelectStop ? () => onSelectStop(stop.placeId, stop.assignmentId) : undefined}
-            />
-            {i < day.stops.length - 1 ? <Leg leg={day.legs[i]} /> : null}
-          </React.Fragment>
-        ))}
+      {/* One list item per stop, with the drive that follows it inside — the chain is a
+          list of places, not of alternating places and connectors. A service stop owns
+          the drive leaving it in exactly the same way, which is what splits its leg into
+          band, marker, band without the list needing a second shape. */}
+      <ol className="px-3.5 pb-3 pt-3">
+        {day.stops.map((stop, i) => {
+          const service = isServiceStopType(stop.stopType)
+          if (!service) counted += 1
+          // Every finding at this index is read on its own. Taking the first match let an
+          // overnight crossing swallow the "you arrive late" flag without a trace.
+          const marks = day.schedule.warnings.filter(w => w.index === i)
+          return (
+            <li
+              key={stop.assignmentId}
+              draggable={!!onReorderStop}
+              onDragStart={onReorderStop ? e => {
+                setFrom({ dayId: day.dayId, index: i, assignmentId: stop.assignmentId })
+                e.dataTransfer.effectAllowed = 'move'
+                // Firefox refuses to start a drag without payload, even an unused one.
+                e.dataTransfer.setData('text/plain', String(stop.assignmentId))
+              } : undefined}
+              onDragEnd={() => { setFrom(null); setDropAt(null) }}
+              onDragOver={onReorderStop && from ? e => {
+                e.preventDefault()
+                if (dropAt?.dayId !== day.dayId || dropAt.index !== i) setDropAt({ dayId: day.dayId, index: i })
+              } : undefined}
+              onDrop={onReorderStop && from ? e => {
+                e.preventDefault()
+                const src = from
+                setFrom(null)
+                setDropAt(null)
+                if (src.dayId === day.dayId) {
+                  if (src.index !== i) onReorderStop(day.dayId, src.assignmentId, i)
+                } else {
+                  onMoveStopToDay?.(src.dayId, src.assignmentId, day.dayId, i)
+                }
+              } : undefined}
+              className={`rounded-lg transition-opacity ${dragging === i ? 'opacity-40' : ''} ${
+                dropAt?.dayId === day.dayId && dropAt.index === i && from && !(from.dayId === day.dayId && from.index === i)
+                  ? 'ring-2 ring-inset ring-accent'
+                  : ''
+              }`}
+            >
+              {marks.some(w => w.code === 'overnight') ? <OvernightBreak /> : null}
+              {service ? (
+                <ServiceStop
+                  stop={stop}
+                  entry={day.schedule.entries[i]}
+                  selected={selectedAssignmentId === stop.assignmentId}
+                  onSelect={onSelectStop ? () => onSelectStop(stop.placeId, stop.assignmentId) : undefined}
+                  onEditStay={onEditStay ? () => onEditStay({ placeId: stop.placeId, name: stop.name, minutes: stop.dwellMinutes, arrival: day.schedule.entries[i]?.arrival ?? null }) : undefined}
+                />
+              ) : (
+                <Stop
+                  stop={stop}
+                  number={counted}
+                  entry={day.schedule.entries[i]}
+                  late={marks.find(w => w.code === 'late')}
+                  selected={selectedAssignmentId === stop.assignmentId}
+                  continues={i < last}
+                  onSelect={onSelectStop ? () => onSelectStop(stop.placeId, stop.assignmentId) : undefined}
+                  onMove={onReorderStop ? delta => onReorderStop(day.dayId, stop.assignmentId, i + delta) : undefined}
+                  canMove={{ up: i > 0, down: i < last }}
+                  onEditStay={onEditStay ? () => onEditStay({ placeId: stop.placeId, name: stop.name, minutes: stop.dwellMinutes, arrival: day.schedule.entries[i]?.arrival ?? null }) : undefined}
+                />
+              )}
+              {i < last ? (
+                <DriveBand
+                  leg={day.legs[i]}
+                  onAskAlternatives={onAskAlternatives ? () => onAskAlternatives(day.dayId, i) : undefined}
+                  alternativesOpen={openAlternatives?.dayId === day.dayId && openAlternatives.index === i}
+                />
+              ) : null}
+            </li>
+          )
+        })}
+      </ol>
+    </section>
+  )
+}
+
+/** The stop in flight and the row it is hovering, shared by every day in the rail. */
+interface DragState {
+  from: { dayId: number; index: number; assignmentId: number } | null
+  setFrom: (v: DragState['from']) => void
+  dropAt: { dayId: number; index: number } | null
+  setDropAt: (v: DragState['dropAt']) => void
+}
+
+/**
+ * A day the rail draws no drive for, shown only so a stop can be moved onto it.
+ *
+ * Without it a one-stop day is invisible, and "this leg is too long, push the last stop
+ * to tomorrow" has nowhere to land — which is the move a road trip needs most.
+ */
+function QuietDaySection({ day, onMoveStopToDay, drag }: {
+  day: QuietDay
+  onMoveStopToDay?: RoadtripSidebarProps['onMoveStopToDay']
+  drag: DragState
+}): React.ReactElement | null {
+  const { t, language } = useTranslation()
+  const { from, dropAt, setFrom, setDropAt } = drag
+  // Only while something is in flight: an empty day is not worth a row of its own
+  // otherwise, and the rail is about the drive.
+  if (!from || !onMoveStopToDay) return null
+  const over = dropAt?.dayId === day.dayId
+  return (
+    <section
+      onDragOver={e => { e.preventDefault(); if (!over) setDropAt({ dayId: day.dayId, index: day.stops.length }) }}
+      onDrop={e => {
+        e.preventDefault()
+        const src = from
+        setFrom(null)
+        setDropAt(null)
+        if (src.dayId !== day.dayId) onMoveStopToDay(src.dayId, src.assignmentId, day.dayId, day.stops.length)
+      }}
+      className={`mx-3.5 shrink-0 rounded-2xl border border-dashed px-3.5 py-3 transition-colors ${
+        over ? 'border-accent bg-accent-subtle' : 'border-edge-secondary'
+      }`}
+    >
+      <div className="flex flex-wrap items-baseline gap-x-2">
+        <h3 className="font-semibold tracking-[-0.015em] text-content" style={{ fontSize: FS.dayTitle }}>
+          {t('roadtrip.day', { number: day.dayNumber })}
+        </h3>
+        {day.date ? (
+          <time dateTime={day.date} className={`${DAY_BADGE} ms-auto border border-edge`} style={{ fontSize: FS.label }}>
+            {formatDate(day.date, language)}
+          </time>
+        ) : null}
       </div>
+      <p className="mt-1.5 text-content-muted" style={{ fontSize: FS.meta }}>
+        {day.stops.length === 1
+          ? t('roadtrip.quietDay.one', { name: day.stops[0].name })
+          : t('roadtrip.quietDay.empty')}
+      </p>
     </section>
   )
 }
@@ -153,31 +757,61 @@ function DaySection({ day, selectedAssignmentId, onSelectStop }: {
  * road trip is read across days — which day a stop sits on matters less than how far
  * apart the stops are (#1797, #435). Legs come from the same routing cache the map
  * uses, so switching modes costs no extra requests.
+ *
+ * Three levels, three surfaces: the trip is a card at the head, a day is a card, a stop
+ * is a row inside it. The stop's name and its arrival carry the weight and everything
+ * else is quiet support — no value is ever joined to another with a middot, and none of
+ * them is a pill just for being a number.
  */
 export default function RoadtripSidebar({
-  routes, selectedAssignmentId, onSelectStop,
+  routes, selectedAssignmentId, onSelectStop, onReorderStop, onMoveStopToDay, onAskAlternatives, openAlternatives, onEditStay,
 }: RoadtripSidebarProps): React.ReactElement {
   const { t } = useTranslation()
+  // One drag state for the whole rail rather than one per day: a stop that cannot leave
+  // its own day is exactly the move a road trip needs when a leg turns out too long.
+  const [from, setFrom] = React.useState<DragState['from']>(null)
+  const [dropAt, setDropAt] = React.useState<DragState['dropAt']>(null)
+  const drag: DragState = { from, setFrom, dropAt, setDropAt }
+
+  // Nothing to total up, so nothing pretends to: no "0 km" standing above "No route yet".
+  if (routes.days.length === 0) {
+    return (
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="px-5 py-8 text-center">
+          <MapPin size={18} className="mx-auto mb-2 text-content-faint" aria-hidden />
+          <h3 className="font-semibold text-content" style={{ fontSize: FS.name }}>{t('roadtrip.empty.title')}</h3>
+          <p className="mt-1 text-content-muted" style={{ fontSize: FS.meta }}>{t('roadtrip.empty.body')}</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="flex-1 min-h-0 overflow-y-auto">
-      <Totals distance={routes.totalDistance} duration={routes.totalDuration} stops={routes.totalStops} />
-      {routes.days.length === 0 ? (
-        <div className="px-5 py-8 text-center">
-          <MapPin size={20} className="mx-auto mb-2.5 text-content-faint" aria-hidden />
-          <h3 className="text-body font-semibold text-content">{t('roadtrip.empty.title')}</h3>
-          <p className="text-caption text-content-muted mt-1">{t('roadtrip.empty.body')}</p>
-        </div>
-      ) : (
-        routes.days.map(day => (
+    // The totals hold still while the days move under them: they are the answer to "how
+    // long is this trip", and an answer that scrolls away is one you have to go back for.
+    <div className="flex min-h-0 flex-1 flex-col gap-3 pt-1">
+      <div className="shrink-0">
+        <TripSummary routes={routes} />
+      </div>
+      <div className="roadtrip-rail-scroll flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto pb-3.5">
+        {routes.days.map(day => (
           <DaySection
             key={day.dayId}
             day={day}
             selectedAssignmentId={selectedAssignmentId}
             onSelectStop={onSelectStop}
+            onReorderStop={onReorderStop}
+            onMoveStopToDay={onMoveStopToDay}
+            drag={drag}
+            onAskAlternatives={onAskAlternatives}
+            openAlternatives={openAlternatives}
+            onEditStay={onEditStay}
           />
-        ))
-      )}
+        ))}
+        {routes.quietDays.map(day => (
+          <QuietDaySection key={`quiet-${day.dayId}`} day={day} onMoveStopToDay={onMoveStopToDay} drag={drag} />
+        ))}
+      </div>
     </div>
   )
 }

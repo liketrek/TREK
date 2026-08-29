@@ -24,6 +24,8 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Plantilla del mapa',
   'settings.mapTemplatePlaceholder.select': 'Seleccionar plantilla...',
   'settings.mapDefaultHint': 'Déjalo vacío para OpenStreetMap (por defecto)',
+  'settings.routingBase': 'Motor de rutas propio',
+  'settings.routingBaseHint': 'Una instancia propia de OSRM. Vacío usa los servidores públicos, que permiten cerca de una petición por segundo: suficiente para un día, justo para una ruta larga. Surte efecto tras reiniciar el servidor.',
   'settings.mapHint': 'Plantilla de URL para los mosaicos del mapa',
   'settings.mapProvider': 'Proveedor de mapa',
   'settings.mapProviderHint': 'Afecta a los mapas de Trip Planner y Journey. Atlas siempre usa Leaflet.',

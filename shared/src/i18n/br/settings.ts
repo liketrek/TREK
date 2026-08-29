@@ -25,6 +25,8 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Modelo de mapa',
   'settings.mapTemplatePlaceholder.select': 'Selecione o modelo...',
   'settings.mapDefaultHint': 'Deixe vazio para OpenStreetMap (padrão)',
+  'settings.routingBase': 'Servidor de rotas próprio',
+  'settings.routingBaseHint': 'Uma instância própria do OSRM. Vazio usa os servidores públicos, que permitem cerca de uma requisição por segundo — suficiente para um dia, apertado para uma viagem de carro. Passa a valer após reiniciar o servidor.',
   'settings.mapHint': 'URL do modelo de blocos do mapa',
   'settings.mapProvider': 'Provedor de mapa',
   'settings.mapProviderHint': 'Afeta os mapas do Planejador de Viagem e Diário. Atlas sempre usa Leaflet.',

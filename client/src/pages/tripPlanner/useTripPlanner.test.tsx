@@ -1969,3 +1969,99 @@ describe('useTripPlanner — misc state', () => {
     expect(result.current.tripMembers).toEqual([])
   })
 })
+
+describe('useTripPlanner — road trip stops', () => {
+  /** A day whose stops the rail would show, plus one the rail hides for want of coordinates. */
+  const seedDrive = () => {
+    const places = [
+      buildPlace({ id: 10, name: 'Hamburg', lat: 53.55, lng: 9.99 }),
+      buildPlace({ id: 20, name: 'Lueneburg', lat: 53.25, lng: 10.41 }),
+      buildPlace({ id: 30, name: 'Berlin', lat: 52.52, lng: 13.40 }),
+      // No coordinates, so it never appears in the rail — and must survive a reorder.
+      buildPlace({ id: 40, name: 'Idee ohne Ort', lat: null, lng: null }),
+    ]
+    return seedTrip({
+      days: [buildDay({ id: 7, day_number: 1 })],
+      places,
+      assignments: {
+        '7': [
+          buildAssignment({ id: 1, day_id: 7, place_id: 10, order_index: 0, place: places[0] }),
+          buildAssignment({ id: 2, day_id: 7, place_id: 20, order_index: 1, place: places[1] }),
+          buildAssignment({ id: 3, day_id: 7, place_id: 30, order_index: 2, place: places[2] }),
+          buildAssignment({ id: 4, day_id: 7, place_id: 40, order_index: 3, place: places[3] }),
+        ],
+      },
+    } as unknown as Partial<TripStoreState>)
+  }
+
+  it('FE-TP-HOOK-111: reordering the rail sends the day’s WHOLE order, hidden stops included', async () => {
+    seedDrive()
+    const { result } = await renderPlanner()
+
+    // The rail lists three stops; the fourth has no coordinates and is not on show.
+    await act(async () => { await result.current.reorderRoadtripStop(7, 3, 0) })
+
+    // Both the slice and the WebSocket handler rebuild the day purely from these ids, so
+    // leaving the invisible one out would delete it from every session's store.
+    expect(actions.reorderAssignments).toHaveBeenCalledWith(42, 7, [3, 1, 2, 4])
+  })
+
+  it('FE-TP-HOOK-112: moving a stop onto itself asks the server for nothing', async () => {
+    seedDrive()
+    const { result } = await renderPlanner()
+
+    await act(async () => { await result.current.reorderRoadtripStop(7, 2, 1) })
+
+    expect(actions.reorderAssignments).not.toHaveBeenCalled()
+  })
+
+  it('FE-TP-HOOK-113: an index past the end of the chain lands on the last stop', async () => {
+    seedDrive()
+    const { result } = await renderPlanner()
+
+    await act(async () => { await result.current.reorderRoadtripStop(7, 1, 99) })
+
+    // Clamped to the last VISIBLE stop, which is Berlin — not past the hidden fourth row.
+    expect(actions.reorderAssignments).toHaveBeenCalledWith(42, 7, [2, 3, 1, 4])
+  })
+
+  it('FE-TP-HOOK-114: a failed reorder says so rather than leaving a phantom order', async () => {
+    seedDrive()
+    actions.reorderAssignments.mockRejectedValueOnce(new Error('nope'))
+    const { result } = await renderPlanner()
+
+    await act(async () => { await result.current.reorderRoadtripStop(7, 3, 0) })
+
+    expect(toasts.some(t => t.type === 'error')).toBe(true)
+  })
+
+  it('FE-TP-HOOK-115: an unknown assignment is not reordered into existence', async () => {
+    seedDrive()
+    const { result } = await renderPlanner()
+
+    await act(async () => { await result.current.reorderRoadtripStop(7, 999, 0) })
+
+    expect(actions.reorderAssignments).not.toHaveBeenCalled()
+  })
+})
+
+describe('useTripPlanner — dropping a hit on the drive', () => {
+  it('FE-TP-HOOK-116: a drop far from the route is ignored rather than guessed at', async () => {
+    seedTrip()
+    const { result } = await renderPlanner()
+
+    // No corridor results and no day: nothing to match, so nothing may open.
+    act(() => { result.current.dropPoiOnRoute('node:9', 0, 0) })
+
+    expect(result.current.stopDraft).toBeNull()
+  })
+
+  it('FE-TP-HOOK-117: a drop for an unknown hit opens nothing', async () => {
+    seedTrip()
+    const { result } = await renderPlanner()
+
+    act(() => { result.current.dropPoiOnRoute('node:does-not-exist', 53.5, 9.9) })
+
+    expect(result.current.stopDraft).toBeNull()
+  })
+})

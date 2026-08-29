@@ -1219,6 +1219,47 @@ describe('TransportModal', () => {
     expect(payload.endpoints.map((e: { name: string }) => e.name)).toEqual(['Berlin', 'Dresden', 'Bastei', 'Prag']);
   });
 
+  it('FE-PLANNER-TRANSMODAL-060: the stops of a car booking can be put in another order', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<TransportModal {...defaultProps} days={routeDays} selectedDayId={10} onSave={onSave} />);
+
+    await userEvent.click(screen.getByRole('button', { name: /^Car$/i }));
+    await userEvent.type(screen.getByPlaceholderText(/e.g. Lufthansa/i), 'Mietwagen');
+    await userEvent.click(screen.getByRole('button', { name: /Add stop/i }));
+    await userEvent.click(screen.getByRole('button', { name: /Add stop/i }));
+
+    const fields = screen.getAllByTestId('location-select');
+    fireEvent.change(fields[0], { target: { value: 'Berlin' } });
+    fireEvent.change(fields[1], { target: { value: 'Prag' } });
+    fireEvent.change(fields[2], { target: { value: 'Dresden' } });
+    fireEvent.change(fields[3], { target: { value: 'Bastei' } });
+
+    // The order of the stops is the order they are driven, and `sequence` is derived
+    // from it on save — so without this the only way to swap two was to retype both.
+    await userEvent.click(screen.getAllByRole('button', { name: /Move down/i })[0]);
+
+    await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    const payload = onSave.mock.calls[0][0];
+    expect(payload.endpoints.map((e: { name: string }) => e.name)).toEqual(['Berlin', 'Bastei', 'Dresden', 'Prag']);
+    expect(payload.endpoints.map((e: { sequence: number }) => e.sequence)).toEqual([0, 1, 2, 3]);
+  });
+
+  it('FE-PLANNER-TRANSMODAL-061: the ends of the stop list cannot be pushed past themselves', async () => {
+    render(<TransportModal {...defaultProps} days={routeDays} selectedDayId={10} />);
+
+    await userEvent.click(screen.getByRole('button', { name: /^Car$/i }));
+    // A single stop has nothing to swap with, so the buttons stay away entirely.
+    await userEvent.click(screen.getByRole('button', { name: /Add stop/i }));
+    expect(screen.queryByRole('button', { name: /Move up/i })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: /Add stop/i }));
+    const up = screen.getAllByRole('button', { name: /Move up/i });
+    const down = screen.getAllByRole('button', { name: /Move down/i });
+    expect(up[0]).toBeDisabled();
+    expect(down[down.length - 1]).toBeDisabled();
+  });
+
   it('FE-PLANNER-TRANSMODAL-059: a stop removed from a car booking is gone from the saved route', async () => {
     const onSave = vi.fn().mockResolvedValue(undefined);
     render(<TransportModal {...defaultProps} days={routeDays} selectedDayId={10} onSave={onSave} />);

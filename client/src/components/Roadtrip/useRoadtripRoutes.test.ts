@@ -2,8 +2,19 @@ import { renderHook, waitFor, act } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import type { Assignment, AssignmentsMap, Day } from '../../types'
 
-const { calculateRouteWithLegs } = vi.hoisted(() => ({ calculateRouteWithLegs: vi.fn() }))
-vi.mock('../Map/RouteCalculator', () => ({ calculateRouteWithLegs }))
+// Hoisted together with the mock: the module factory runs before the file body, so a
+// class declared down there would not exist yet when the hook does its `instanceof`.
+const { calculateRouteWithLegs, RoutingRefusedError } = vi.hoisted(() => {
+  class RoutingRefusedError extends Error {
+    constructor(readonly status: number, readonly retryAfterMs: number | null) {
+      super('refused')
+      this.name = 'RoutingRefusedError'
+    }
+    get isRateLimit(): boolean { return this.status === 429 || this.status === 503 }
+  }
+  return { calculateRouteWithLegs: vi.fn(), RoutingRefusedError }
+})
+vi.mock('../Map/RouteCalculator', () => ({ calculateRouteWithLegs, RoutingRefusedError }))
 
 import { useRoadtripRoutes } from './useRoadtripRoutes'
 
@@ -18,6 +29,7 @@ interface StopSpec {
   dwell?: number | null
   legMode?: string | null
   incoming?: string | null
+  stopType?: string | null
   noCoords?: boolean
 }
 
@@ -40,6 +52,7 @@ function assignment(spec: StopSpec, order: number): Assignment {
       lng: spec.noCoords ? null : spec.at[1],
       place_time: null,
       duration_minutes: spec.dwell ?? null,
+      stop_type: spec.stopType ?? null,
     },
   } as unknown as Assignment
 }
@@ -121,6 +134,24 @@ describe('useRoadtripRoutes', () => {
 
     // Day 1 lost its second stop and with it its reason to appear at all.
     expect(result.current.days.map(d => d.dayId)).toEqual([2])
+    expect(result.current.totalStops).toBe(2)
+  })
+
+  it('FE-ROADTRIP-ROUTES-013: a charger on the way is part of the drive, not a stop', async () => {
+    const days = [day(1, 1)]
+    const stops: StopSpec[] = [
+      { id: 1, at: HAMBURG },
+      { id: 2, at: [53, 11], stopType: 'charging' },
+      { id: 3, at: BERLIN },
+    ]
+    calculateRouteWithLegs.mockResolvedValue(routed(2, [HAMBURG, [53, 11], BERLIN]))
+
+    const { result } = renderHook(() => useRoadtripRoutes(7, days, map(1, stops)))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    // Three assignments, three markers on the map, two places the trip is for. The
+    // charger still routes — it is only left out of the count the head shows.
+    expect(result.current.days[0].stops).toHaveLength(3)
     expect(result.current.totalStops).toBe(2)
   })
 
@@ -217,6 +248,108 @@ describe('useRoadtripRoutes', () => {
     expect(calculateRouteWithLegs).not.toHaveBeenCalled()
     expect(result.current.days).toEqual([])
     expect(result.current.totalStops).toBe(0)
+  })
+
+  it('FE-ROADTRIP-ROUTES-012: a stop whose id changes after saving keeps its legs and its clock', async () => {
+    // The optimistic insert: a stop added mid-day carries a temporary negative id until
+    // the server answers, then the real id replaces it without a coordinate moving. Since
+    // `planKey` is geometry only, no refetch follows — so legs filed under the id would be
+    // stranded, and a broken chain blanks every arrival after it.
+    calculateRouteWithLegs.mockResolvedValue(routed(2))
+    const days = [day(1, 1)]
+    const optimistic: StopSpec[] = [
+      { id: 1, at: HAMBURG, time: '09:00' },
+      { id: -1755000000, at: LUENEBURG },
+      { id: 2, at: BERLIN },
+    ]
+    const first = map(1, optimistic)
+
+    const { result, rerender } = renderHook(
+      ({ assignments }: { assignments: AssignmentsMap }) => useRoadtripRoutes(7, days, assignments),
+      { initialProps: { assignments: first } },
+    )
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(result.current.days[0].legs.every(Boolean)).toBe(true)
+
+    const saved = JSON.parse(JSON.stringify(first)) as AssignmentsMap
+    saved['1'][1].id = 4711
+    rerender({ assignments: saved })
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    expect(calculateRouteWithLegs).toHaveBeenCalledTimes(1)
+    expect(result.current.days[0].legs.every(Boolean)).toBe(true)
+    expect(result.current.days[0].schedule.entries[2].arrival).not.toBeNull()
+  })
+
+  it('FE-ROADTRIP-ROUTES-013: a rate-limited host is given the time it asked for', async () => {
+    // The public OSRM instances answer 429 above roughly one request a second and say how
+    // long to wait. Retrying sooner than that is just a second refusal, so the host's
+    // Retry-After wins over the shorter backoff the hook would otherwise use.
+    vi.useFakeTimers()
+    calculateRouteWithLegs
+      .mockRejectedValueOnce(new RoutingRefusedError(429, 6000))
+      .mockResolvedValue(routed(1))
+
+    const days = [day(1, 1)]
+    const stops: StopSpec[] = [{ id: 1, at: HAMBURG }, { id: 2, at: BERLIN }]
+    const { result } = renderHook(() => useRoadtripRoutes(7, days, map(1, stops)))
+
+    // The hook's own first backoff is 1500 ms; at that point it must still be waiting.
+    await act(async () => { await vi.advanceTimersByTimeAsync(2000) })
+    expect(calculateRouteWithLegs).toHaveBeenCalledTimes(1)
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(5000) })
+    expect(calculateRouteWithLegs).toHaveBeenCalledTimes(2)
+    expect(result.current.days[0].legs[0]).toBeDefined()
+  })
+
+  it('FE-ROADTRIP-ROUTES-014: a via joins the routing request between the stops it follows', async () => {
+    const days = [day(1, 1)]
+    const stops: StopSpec[] = [{ id: 1, at: HAMBURG }, { id: 2, at: BERLIN }]
+    calculateRouteWithLegs.mockResolvedValue(routed(2))
+
+    const { result } = renderHook(() => useRoadtripRoutes(7, days, map(1, stops), 'driving', {
+      1: [{ id: 1, day_id: 1, after_order_index: 0, sequence: 0, lat: 53.2, lng: 10.4 }],
+    }))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    // Three waypoints for two stops: the via is threaded in where it belongs.
+    const [waypoints] = calculateRouteWithLegs.mock.calls[0]
+    expect(waypoints).toHaveLength(3)
+    expect(waypoints[1]).toEqual({ lat: 53.2, lng: 10.4 })
+  })
+
+  it('FE-ROADTRIP-ROUTES-015: the two legs a via creates are shown as the one drive they are', async () => {
+    const days = [day(1, 1)]
+    const stops: StopSpec[] = [{ id: 1, at: HAMBURG }, { id: 2, at: BERLIN }]
+    // The router answers per waypoint pair: two legs for one stop pair.
+    calculateRouteWithLegs.mockResolvedValue(routed(2))
+
+    const { result } = renderHook(() => useRoadtripRoutes(7, days, map(1, stops), 'driving', {
+      1: [{ id: 1, day_id: 1, after_order_index: 0, sequence: 0, lat: 53.2, lng: 10.4 }],
+    }))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    // The rail shows one leg between two stops, carrying the whole drive.
+    expect(result.current.days[0].legs).toHaveLength(1)
+    expect(result.current.days[0].legs[0]).toMatchObject({ distance: 100000, duration: 3600 })
+  })
+
+  it('FE-ROADTRIP-ROUTES-016: moving a via re-asks the router, renaming a place still does not', async () => {
+    const days = [day(1, 1)]
+    const stops: StopSpec[] = [{ id: 1, at: HAMBURG }, { id: 2, at: BERLIN }]
+    const vias = { 1: [{ id: 1, day_id: 1, after_order_index: 0, sequence: 0, lat: 53.2, lng: 10.4 }] }
+
+    const { result, rerender } = renderHook(
+      ({ v }: { v: Record<number, typeof vias[1]> }) => useRoadtripRoutes(7, days, map(1, stops), 'driving', v),
+      { initialProps: { v: vias } },
+    )
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(calculateRouteWithLegs).toHaveBeenCalledTimes(1)
+
+    // A via that moved is a different road, so the route has to be asked for again.
+    rerender({ v: { 1: [{ ...vias[1][0], lat: 53.9, lng: 10.9 }] } })
+    await waitFor(() => expect(calculateRouteWithLegs).toHaveBeenCalledTimes(2))
   })
 
   it('FE-ROADTRIP-ROUTES-011: leaving the view aborts the request in flight', async () => {

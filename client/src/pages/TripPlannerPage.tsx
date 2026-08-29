@@ -70,6 +70,9 @@ const ExpenseModal = lazyWithRetry(() =>
 const CollabPanel = lazyWithRetry(() => import('../components/Collab/CollabPanel'))
 const RoadtripSidebar = lazyWithRetry(() => import('../components/Roadtrip/RoadtripSidebar'))
 const RoadtripCorridorPanel = lazyWithRetry(() => import('../components/Roadtrip/RoadtripCorridorPanel'))
+const RoadtripStopPopup = lazyWithRetry(() => import('../components/Roadtrip/RoadtripStopPopup'))
+const RoadtripStayModal = lazyWithRetry(() => import('../components/Roadtrip/RoadtripStayModal'))
+const RoadtripAlternativesBar = lazyWithRetry(() => import('../components/Roadtrip/RoadtripAlternativesBar'))
 // Already rendered conditionally, so lazy bites immediately. Worth it beyond its
 // own 63 kB: it is the only path to TransitSearchPanel, which drags in tz-lookup
 // — about 200 kB of packed zone geometry that every trip used to load.
@@ -255,6 +258,13 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
     showDayDetail, setShowDayDetail, dayDetailCollapsed, setDayDetailCollapsed,
     showPlaceForm, setShowPlaceForm, editingPlace, setEditingPlace,
     prefillCoords, setPrefillCoords, editingAssignmentId, setEditingAssignmentId,
+    stopDraft, setStopDraft, saveStopDraft, stopDraftToForm, stopDraftDuplicate, reorderRoadtripStop,
+    roadtripVias, addRoadtripVia, moveRoadtripVia, removeRoadtripVia,
+    routeAlternatives, askRouteAlternatives, chooseRouteAlternative, alternativeOverlays, alternativeFocusPoints,
+    stayDraft, setStayDraft, setRoadtripStay,
+    highlightedAlternative, setHighlightedAlternative,
+    moveRoadtripStopToDay,
+    dropPoiOnRoute,
     showTripForm, setShowTripForm, showMembersModal, setShowMembersModal,
     showReservationModal, setShowReservationModal, editingReservation, setEditingReservation,
     showBookingImport, setShowBookingImport, bookingImportKind, setBookingImportKind, bookingImportAvailable,
@@ -271,7 +281,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
     isMobile, isTouch,
     expandedDayIds, setExpandedDayIds, mapPlaces,
     route, routeSegments, routeInfo, setRoute, setRouteInfo, updateRouteForDay,
-    handleSelectDay, handlePlaceClick, handleMarkerClick, handleMapClick, handleMapContextMenu, openAddPlaceFromPoi,
+    handleSelectDay, handlePlaceClick, handleMarkerClick, handleMapClick, handleMapContextMenu, handlePoiClick,
     handleSavePlace, openPlaceEditor, handleDeletePlace, confirmDeletePlace, confirmDeletePlaces, confirmChangeCategory,
     handleAssignToDay, handleRemoveAssignment, handleReorder, handleReorderDays, handleAddDay, handleUpdateDayTitle,
     handleSaveReservation, handleSaveTransport, handleDeleteReservation,
@@ -398,11 +408,46 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
                 const r = reservations.find(x => x.id === rid)
                 if (r) setMapTransportDetail(r)
               }}
-              pois={roadtripActive ? roadtripCorridor.search.results : poi.pois}
-              onPoiClick={openAddPlaceFromPoi}
+              pois={roadtripActive
+                /* `visible`, not `search.results`: the map is the picture of this very
+                   list, and filtering the list while seventy pins stay on the map no
+                   longer answers "which of these". */
+                ? roadtripCorridor.visible
+                : poi.pois}
+              onPoiClick={handlePoiClick}
+              // Only while road trip mode is on: outside it there is no drive to drop onto.
+              onPoiDropOnRoute={roadtripActive ? dropPoiOnRoute : undefined}
+              // Clicking the drawn route puts a via there; only in road trip mode, where
+              // the route is the thing being worked on.
+              onRouteClick={roadtripActive && can('day_edit', trip) ? addRoadtripVia : undefined}
+              roadtripVias={roadtripActive ? roadtripVias.byDay : undefined}
+              alternativeRoutes={alternativeOverlays}
+              focusPoints={alternativeFocusPoints}
+              clusterLoosely={roadtripActive}
+              activeAlternative={highlightedAlternative}
+              onChooseAlternative={chooseRouteAlternative}
+              onHighlightAlternative={setHighlightedAlternative}
+              onMoveVia={can('day_edit', trip) ? moveRoadtripVia : undefined}
+              onRemoveVia={can('day_edit', trip) ? removeRoadtripVia : undefined}
               onViewportChange={poi.onViewportChange}
               onMapReady={setGlMap}
             />
+
+            {/* Over the map rather than in a dialog: the answer to "which of these" is the
+                roads drawn behind it, so covering them to ask would hide the point. */}
+            {routeAlternatives.open && (
+              <div style={{ position: 'absolute', bottom: 18, left: '50%', transform: 'translateX(-50%)', zIndex: 26, pointerEvents: 'none', display: 'flex', justifyContent: 'center' }}>
+                <LazyPanel id="roadtrip-alternatives">
+                  <RoadtripAlternativesBar
+                    open={routeAlternatives.open}
+                    overlays={alternativeOverlays}
+                    onChoose={chooseRouteAlternative}
+                    onClose={routeAlternatives.close}
+                    onHighlight={setHighlightedAlternative}
+                  />
+                </LazyPanel>
+              </div>
+            )}
 
             {(poiPillEnabled || glMap) && (
               <div className="hidden md:flex" style={{ position: 'absolute', top: 14, left: '50%', transform: 'translateX(-50%)', zIndex: 25, pointerEvents: 'none', alignItems: 'flex-start', gap: 8 }}>
@@ -465,6 +510,11 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
                       routes={roadtripRoutes}
                       selectedAssignmentId={selectedAssignmentId}
                       onSelectStop={(placeId, assignmentId) => handlePlaceClick(placeId, assignmentId)}
+                      onReorderStop={can('day_edit', trip) ? reorderRoadtripStop : undefined}
+                      onMoveStopToDay={can('day_edit', trip) ? moveRoadtripStopToDay : undefined}
+                      onAskAlternatives={can('day_edit', trip) ? askRouteAlternatives : undefined}
+                      openAlternatives={routeAlternatives.open}
+                      onEditStay={can('place_edit', trip) ? setStayDraft : undefined}
                     />
                   </LazyPanel>
                 ) : (
@@ -570,7 +620,14 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
                 <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', paddingLeft: 4 }}>
                   {roadtripActive ? (
                     <LazyPanel id="roadtrip-corridor">
-                      <RoadtripCorridorPanel corridor={roadtripCorridor} routes={roadtripRoutes} onAddPoi={openAddPlaceFromPoi} />
+                      {/* No Add button for someone who may not add: openAddPlaceFromPoi
+                          returns silently without the permission, which reads as a broken
+                          button rather than a missing one. */}
+                      <RoadtripCorridorPanel
+                        corridor={roadtripCorridor}
+                        routes={roadtripRoutes}
+                        onAddPoi={can('place_edit', trip) ? handlePoiClick : undefined}
+                      />
                     </LazyPanel>
                   ) : (
                   <PlacesSidebar
@@ -852,6 +909,26 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
         )}
       </div>
 
+      {/* The small way in for something found along the drive. Mounted only while a
+          draft exists, so the chunk stays unloaded for anyone not using road trip mode. */}
+      {/* How long a stop takes. Its own gate, not the corridor draft's: a stay is set on
+          any stop of the trip, not only on something just found along the route. */}
+      {stayDraft && (
+        <LazyPanel id="roadtrip-stay">
+          <RoadtripStayModal stop={stayDraft} onClose={() => setStayDraft(null)} onSave={setRoadtripStay} />
+        </LazyPanel>
+      )}
+      {stopDraft && (
+        <LazyPanel id="roadtrip-stop">
+          <RoadtripStopPopup
+            draft={stopDraft}
+            duplicateName={stopDraftDuplicate}
+            onClose={() => setStopDraft(null)}
+            onSave={saveStopDraft}
+            onMoreDetails={stopDraftToForm}
+          />
+        </LazyPanel>
+      )}
       <PlaceFormModal isOpen={showPlaceForm} onClose={() => { setShowPlaceForm(false); setEditingPlace(null); setEditingAssignmentId(null); setPrefillCoords(null) }} onSave={handleSavePlace} place={editingPlace} prefillCoords={prefillCoords} assignmentId={editingAssignmentId} dayAssignments={editingPlace ? Object.values(assignments).flat() : []} tripId={tripId} categories={categories} onCategoryCreated={cat => tripActions.addCategory?.(cat)} isMobile={isMobile} onOpenExpense={openBookingExpense} />
       <TripFormModal
         isOpen={showTripForm}

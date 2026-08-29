@@ -3,7 +3,34 @@ import DOM from 'react-dom'
 import { renderIconMarkup } from '../../utils/iconMarkup'
 import { MapContainer, TileLayer, Marker, Polyline, CircleMarker, Circle, useMap, Tooltip } from 'react-leaflet'
 import MarkerClusterGroup from 'react-leaflet-cluster'
-import { makeMarkerDraggable } from './markerDrag'
+import { makeMarkerDraggable, makePoiDraggable, draggedPoiId } from './markerDrag'
+import RoadtripViaMarkers from './RoadtripViaMarkers'
+import { ALT_CASING, ALT_LABEL_TEXT } from '../Roadtrip/alternativeColors'
+import { serviceMarkerHtml, serviceMarkerOuter } from '../Roadtrip/serviceMarker'
+import type { AlternativeOverlay } from '../Roadtrip/alternativeOverlays'
+
+/**
+ * The drive-time pill for one offered route.
+ *
+ * A divIcon rather than a tooltip: it has to be clickable, it has to sit exactly on the
+ * road, and it is the same shape the GL renderers build by hand — one look across all
+ * three maps.
+ */
+function alternativeLabelIcon(label: string, note: string, background: string, active: boolean) {
+  const outline = active ? 'outline:2px solid #fff;outline-offset:1px;' : ''
+  const second = note
+    ? `<span style="font-size:11.5px;font-weight:500;opacity:.85;line-height:1.2">${escapeHtml(note)}</span>`
+    : ''
+  return L.divIcon({
+    className: '',
+    // `font-family` spelled out: a divIcon sits inside `.leaflet-container`, whose own
+    // stylesheet sets Helvetica/Arial on everything in it. Without this the label is the
+    // one piece of TREK chrome on the map that is not in the app's typeface.
+    html: `<span style="display:inline-flex;flex-direction:column;align-items:flex-start;white-space:nowrap;background:${background};color:${ALT_LABEL_TEXT};border-radius:11px;padding:6px 11px;font-family:var(--font-system);font-size:13px;font-weight:600;line-height:1.25;box-shadow:0 2px 10px rgba(0,0,0,.35);cursor:pointer;transition:none;${outline}"><span>${escapeHtml(label)}</span>${second}</span>`,
+    iconSize: [0, 0],
+    iconAnchor: [0, 0],
+  })
+}
 import L from 'leaflet'
 import 'leaflet.markercluster/dist/MarkerCluster.css'
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
@@ -76,9 +103,21 @@ function formatViaDwell(seconds: number): string {
  * Shows image_url if available, otherwise category icon in colored circle.
  */
 function createPlaceIcon(place, orderNumbers, isSelected) {
-  const cacheKey = `${place.id}:${isSelected}:${place.image_url || ''}:${place.category_color || ''}:${place.category_icon || ''}:${orderNumbers?.join(',') || ''}`
+  const cacheKey = `${place.id}:${isSelected}:${place.image_url || ''}:${place.category_color || ''}:${place.category_icon || ''}:${place.stop_type || ''}:${orderNumbers?.join(',') || ''}`
   const cached = iconCache.get(cacheKey)
   if (cached) return cached
+
+  // A stop that interrupts the drive is drawn as its own small disc, before the photo
+  // branch below ever gets a look at it — the brand logo a fuel search comes back with
+  // is exactly what this replaces. No number badge either, for the same reason the rail
+  // gives it none: it is part of the drive, not one of the day's stops.
+  const service = serviceMarkerHtml(place.stop_type, isSelected)
+  if (service) {
+    const outer = serviceMarkerOuter(isSelected)
+    const icon = L.divIcon({ className: '', html: service, iconSize: [outer, outer], iconAnchor: [outer / 2, outer / 2] })
+    iconCache.set(cacheKey, icon)
+    return icon
+  }
   const size = isSelected ? 44 : 36
   // Allow-listed, not escaped: the value lands in style="…" of a divIcon, where
   // escaping stops the attribute breakout but still permits a CSS url().
@@ -160,30 +199,25 @@ function createPlaceIcon(place, orderNumbers, isSelected) {
 // markers of planned places; the colour matches its pill category.
 const poiIconCache = new Map<string, L.DivIcon>()
 function createPoiIcon(category: string, brandWikidata?: string | null) {
-  // A chain shows its logo instead of the category icon — on a corridor full of petrol
-  // stations the brand is what the eye looks for. The bytes come from TREK, which
-  // proxies them, so the browser never tells Wikimedia what is on screen.
-  const brand = brandWikidata && /^Q[1-9][0-9]{0,11}$/.test(brandWikidata) ? brandWikidata : null
-  const cacheKey = brand ? `${category}:${brand}` : category
-  const cached = poiIconCache.get(cacheKey)
+  // One flat disc in the category's colour with its icon, and never the chain's logo.
+  // The brands turned a corridor full of petrol stations into a row of advertisements,
+  // they were unreadable at pin size, and a brand with no logo on file fell back to a
+  // different picture entirely — so no two pins looked alike. `brandWikidata` is kept in
+  // the signature because the callers still have it; it simply no longer changes anything.
+  void brandWikidata
+  const cached = poiIconCache.get(category)
   if (cached) return cached
   const cat = POI_CATEGORY_BY_KEY[category]
   const color = cat?.color || '#6b7280'
   const svg = cat ? renderIconMarkup(createElement(cat.Icon, { size: 13, color: 'white', strokeWidth: 2.5 })) : ''
-  // The logo lies over the category pin and only becomes visible once it has loaded, so
-  // a brand Wikidata has no logo for (the route answers 204), a failed request and one
-  // still in flight all leave the pin exactly as it would be without a brand.
-  const logo = brand
-    ? `<img src="/api/maps/brand-logo/${brand}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;" onload="this.style.opacity=1" onerror="this.remove()" />`
-    : ''
   const icon = L.divIcon({
     className: '',
-    html: `<div style="position:relative;width:26px;height:26px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 1px 5px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;">${svg}${logo}</div>`,
+    html: `<div style="position:relative;width:26px;height:26px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 1px 5px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;">${svg}</div>`,
     iconSize: [26, 26],
     iconAnchor: [13, 13],
     tooltipAnchor: [0, -14],
   })
-  poiIconCache.set(cacheKey, icon)
+  poiIconCache.set(category, icon)
   return icon
 }
 
@@ -201,6 +235,41 @@ function CameraHoverGuard({ movingRef, onMoveStart }: { movingRef: { current: bo
     map.on('moveend zoomend', end)
     return () => { map.off('movestart zoomstart', start); map.off('moveend zoomend', end) }
   }, [map, movingRef, onMoveStart])
+  return null
+}
+
+/**
+ * Takes a corridor hit dropped anywhere on the map and reports where it landed.
+ *
+ * The container rather than the drawn route: a polyline is a real element here but not in
+ * the GL renderers, and the drop coordinate answers "where on the drive" just as well
+ * once the caller projects it onto the routed geometry — one behaviour for all three.
+ */
+function PoiDropTarget({ onPoiDropOnRoute }: { onPoiDropOnRoute?: (osmId: string, lat: number, lng: number) => void }) {
+  const map = useMap()
+  useEffect(() => {
+    if (!onPoiDropOnRoute) return
+    const container = map.getContainer()
+    const onDragOver = (e: DragEvent) => {
+      if (!draggedPoiId(e)) return
+      e.preventDefault()
+      if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy'
+    }
+    const onDrop = (e: DragEvent) => {
+      const osmId = draggedPoiId(e)
+      if (!osmId) return
+      e.preventDefault()
+      const rect = container.getBoundingClientRect()
+      const at = map.containerPointToLatLng([e.clientX - rect.left, e.clientY - rect.top])
+      onPoiDropOnRoute(osmId, at.lat, at.lng)
+    }
+    container.addEventListener('dragover', onDragOver)
+    container.addEventListener('drop', onDrop)
+    return () => {
+      container.removeEventListener('dragover', onDragOver)
+      container.removeEventListener('drop', onDrop)
+    }
+  }, [map, onPoiDropOnRoute])
   return null
 }
 
@@ -288,9 +357,17 @@ interface BoundsControllerProps {
   paddingOpts: L.FitBoundsOptions
   /** The map was built already framed on these places, so the opening fit has nothing to do. */
   framedOnMount?: boolean
+  /**
+   * An explicit stretch of map to frame, independent of the day being shown.
+   *
+   * `fitKey` cannot express this: it carries no coordinates, and each renderer decides
+   * for itself that it means "the selected day". Weighing the ways of driving one leg
+   * needs that leg on screen, which is neither the day nor the trip.
+   */
+  focusPoints?: [number, number][]
 }
 
-function BoundsController({ places, routeCoords, fitKey, paddingOpts, framedOnMount = false }: BoundsControllerProps) {
+function BoundsController({ places, routeCoords, fitKey, paddingOpts, framedOnMount = false, focusPoints }: BoundsControllerProps) {
   const map = useMap()
   const prevFitKey = useRef(-1)
   const awaitingRoute = useRef(false)
@@ -346,6 +423,15 @@ function BoundsController({ places, routeCoords, fitKey, paddingOpts, framedOnMo
     awaitingRoute.current = false
     fitTo([...places.map(p => [p.lat, p.lng] as [number, number]), ...routeCoords])
   }, [routeCoords]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Frame whatever was handed over. Nothing happens when it empties, so closing the
+  // picker leaves the map where the user left it rather than snapping back.
+  useEffect(() => {
+    if (!focusPoints?.length) return
+    // A day fit that has not run yet must not overwrite this a moment later.
+    awaitingRoute.current = false
+    fitTo(focusPoints)
+  }, [focusPoints]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return null
 }
@@ -549,6 +635,17 @@ export const MapView = memo(function MapView({
   onViewportChange,
   tripId,
   routeVias = [],
+  onPoiDropOnRoute,
+  onRouteClick,
+  roadtripVias,
+  onMoveVia,
+  onRemoveVia,
+  alternativeRoutes,
+  focusPoints,
+  clusterLoosely = false,
+  activeAlternative,
+  onChooseAlternative,
+  onHighlightAlternative,
 }: any) {
   // The caller hands over whatever the user configured; what kind of basemap
   // that is decides which layer draws it. A saved raster template still wins,
@@ -560,11 +657,19 @@ export const MapView = memo(function MapView({
       position={[poi.lat, poi.lng]}
       icon={createPoiIcon(poi.category, poi.brand_wikidata)}
       zIndexOffset={500}
-      eventHandlers={{ click: () => onPoiClick?.(poi) }}
+      eventHandlers={{
+        click: () => onPoiClick?.(poi),
+        // Wired on add rather than in a layout effect: Leaflet builds the icon element
+        // itself, and this is the first moment there is one to attach to.
+        add: (e: { target: { getElement: () => HTMLElement | undefined } }) => {
+          const el = e.target.getElement()
+          if (el && onPoiDropOnRoute) makePoiDraggable(el, poi.osm_id)
+        },
+      }}
     >
       <Tooltip direction="top" offset={[0, -10]} opacity={1} className="map-tooltip">{poi.name}</Tooltip>
     </Marker>
-  )), [pois, onPoiClick])
+  )), [pois, onPoiClick, onPoiDropOnRoute])
   const visibleReservations = useMemo(() => (
     visibleRouteReservations(reservations, { visibleConnectionIds, showTransitRoutes, selectedDayId, days })
   ), [reservations, visibleConnectionIds, showTransitRoutes, selectedDayId, days])
@@ -883,42 +988,112 @@ export const MapView = memo(function MapView({
       )}
 
       <MapController center={center} zoom={zoom} />
-      <BoundsController places={dayPlaces.length > 0 ? dayPlaces : places} routeCoords={dayPlaces.length > 0 ? routeCoords : []} fitKey={fitKey} paddingOpts={paddingOpts} framedOnMount={initialView.framed} />
+      <BoundsController places={dayPlaces.length > 0 ? dayPlaces : places} routeCoords={dayPlaces.length > 0 ? routeCoords : []} fitKey={fitKey} paddingOpts={paddingOpts} framedOnMount={initialView.framed} focusPoints={focusPoints} />
       <SelectionController places={places} selectedPlaceId={selectedPlaceId} dayPlaces={dayPlaces} paddingOpts={paddingOpts} />
       <MapClickHandler onClick={onMapClick} />
       <MapContextMenuHandler onContextMenu={onMapContextMenu} />
       <CameraHoverGuard movingRef={mapMovingRef} onMoveStart={clearHover} />
       <ViewportController onViewportChange={onViewportChange} />
+      <PoiDropTarget onPoiDropOnRoute={onPoiDropOnRoute} />
       <LeafletLocationLayer position={userPosition} mode={trackingMode} />
 
-      <MarkerClusterGroup
-        chunkedLoading
-        chunkInterval={30}
-        chunkDelay={0}
-        maxClusterRadius={30}
-        disableClusteringAtZoom={11}
-        spiderfyOnMaxZoom
-        showCoverageOnHover={false}
-        zoomToBoundsOnClick
-        animate={false}
-        iconCreateFunction={clusterIconCreateFunction}
-      >
-        {markers}
-      </MarkerClusterGroup>
+      {/* Road trip mode does not cluster at all: the whole drive has to stay readable
+          zoomed right out, and a day's stops merging into one dot is exactly the shape
+          it is being looked at for. Rendered outside the group rather than with the
+          clustering disabled by option, so nothing is left to a plugin's own idea of
+          what "disabled" means. */}
+      {clusterLoosely ? markers : (
+        <MarkerClusterGroup
+          chunkedLoading
+          chunkInterval={30}
+          chunkDelay={0}
+          maxClusterRadius={30}
+          disableClusteringAtZoom={11}
+          spiderfyOnMaxZoom
+          showCoverageOnHover={false}
+          zoomToBoundsOnClick
+          animate={false}
+          iconCreateFunction={clusterIconCreateFunction}
+        >
+          {markers}
+        </MarkerClusterGroup>
+      )}
 
-      {/* Apple-Maps style: darker-blue casing under a bright-blue core, rounded. */}
+      {/* Apple-Maps style: darker-blue casing under a bright-blue core, rounded.
+          The casing carries the click when the route can be reshaped: it is the wider of
+          the two, so it is the one a pointer actually lands on. */}
       {route && route.length > 0 && route.flatMap((seg, i) => seg.length > 1 ? [
         <Polyline
           key={`${i}-casing`}
           positions={seg}
           pathOptions={{ color: '#0a5cc2', weight: 8, opacity: 1, lineCap: 'round', lineJoin: 'round' }}
+          interactive={!!onRouteClick}
+          eventHandlers={onRouteClick ? {
+            click: (e: { latlng: { lat: number; lng: number }; originalEvent: MouseEvent }) => {
+              // Stops the map's own click, which would otherwise open the add-place menu
+              // underneath the new via.
+              e.originalEvent.stopPropagation()
+              onRouteClick(e.latlng.lat, e.latlng.lng)
+            },
+          } : undefined}
         />,
         <Polyline
           key={`${i}-core`}
           positions={seg}
           pathOptions={{ color: '#0a84ff', weight: 5, opacity: 1, lineCap: 'round', lineJoin: 'round' }}
+          interactive={false}
         />,
       ] : [])}
+
+      {/* The offered ways of driving one leg, over the route they replace. Clicking one
+          takes it, which is the same choice the bar above the map offers. */}
+      {/* Every option in blue over a white casing, after Apple Maps: they are all real
+          roads, so the difference is emphasis, not category. Grey was the first attempt
+          and it disappeared on Positron, which is almost entirely greys. */}
+      {(alternativeRoutes ?? []).flatMap((alt: AlternativeOverlay) => {
+        const active = activeAlternative === alt.index
+        return [
+          <Polyline
+            key={`alt-${alt.index}-casing`}
+            positions={alt.coordinates}
+            pathOptions={{ color: ALT_CASING, weight: active ? 9 : 8, opacity: 0.9, lineCap: 'round', lineJoin: 'round' }}
+            interactive={false}
+          />,
+          <Polyline
+            key={`alt-${alt.index}`}
+            positions={alt.coordinates}
+            pathOptions={{
+              color: alt.color,
+              weight: active ? 6 : 4,
+              opacity: active ? 1 : 0.9,
+              lineCap: 'round',
+              lineJoin: 'round',
+            }}
+            eventHandlers={onChooseAlternative ? {
+              click: (e: { originalEvent: MouseEvent }) => { e.originalEvent.stopPropagation(); onChooseAlternative(alt.index) },
+              mouseover: () => onHighlightAlternative?.(alt.index),
+              mouseout: () => onHighlightAlternative?.(null),
+            } : undefined}
+          />,
+          // The drive time on the road itself, the way Apple labels them.
+          <Marker
+            key={`alt-${alt.index}-label`}
+            position={[alt.at.lat, alt.at.lng]}
+            zIndexOffset={600}
+            icon={alternativeLabelIcon(alt.label, alt.note, alt.labelBg, active)}
+            eventHandlers={onChooseAlternative ? {
+              click: () => onChooseAlternative(alt.index),
+              mouseover: () => onHighlightAlternative?.(alt.index),
+              mouseout: () => onHighlightAlternative?.(null),
+            } : undefined}
+          />,
+        ]
+      })}
+
+      {/* The handles that shape the drive. After the route so they sit on top of it. */}
+      {roadtripVias ? (
+        <RoadtripViaMarkers viasByDay={roadtripVias} onMoveVia={onMoveVia} onRemoveVia={onRemoveVia} />
+      ) : null}
 
       {/* GPX imported route geometries */}
       <TrackCasingPane onReady={setHasCasingPane} />

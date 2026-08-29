@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { mapsApi } from '../../api/client'
 import { useTranslation } from '../../i18n'
 import { corridorTiles, projectOntoRoute, simplifyLine, type Bbox, type LatLng } from './corridor'
@@ -19,7 +19,16 @@ export interface CorridorSearch {
   capped: boolean
   /** Boxes the place search could not answer — a partial result is still shown. */
   failedAreas: number
+  /**
+   * Boxes where the server hit its own per-request ceiling and dropped the rest.
+   * Distinct from `capped`, which is about stretches never asked for at all: here the
+   * stretch was searched and the answer came back short. Without saying so, filtering
+   * the results cannot tell "nothing of that name on the way" from "cut off before it".
+   */
+  truncatedAreas: number
   error: boolean
+  /** The thinned line every `alongKm` above is measured along. */
+  spine: LatLng[]
   search: () => void
   clear: () => void
 }
@@ -61,9 +70,20 @@ export function useCorridorPois(line: LatLng[], categories: string[], widthKm: n
   const [loading, setLoading] = useState(false)
   const [capped, setCapped] = useState(false)
   const [failedAreas, setFailedAreas] = useState(0)
+  const [truncatedAreas, setTruncatedAreas] = useState(0)
   const [error, setError] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
   const runIdRef = useRef(0)
+
+  /**
+   * The routed line, thinned. A corridor built from every vertex would make hundreds of
+   * overlapping boxes out of what a handful describe just as well.
+   *
+   * Shared rather than local to the search, because every `alongKm` in the results is a
+   * distance along THIS line. Anything comparing a hit against the day's own stops has to
+   * project them onto the same one, or the two sets of numbers do not mean the same thing.
+   */
+  const spine = useMemo(() => simplifyLine(line, Math.max(1, widthKm / 3)), [line, widthKm])
 
   const clear = useCallback(() => {
     abortRef.current?.abort()
@@ -72,6 +92,7 @@ export function useCorridorPois(line: LatLng[], categories: string[], widthKm: n
     setLoading(false)
     setCapped(false)
     setFailedAreas(0)
+    setTruncatedAreas(0)
     setError(false)
   }, [])
 
@@ -82,19 +103,17 @@ export function useCorridorPois(line: LatLng[], categories: string[], widthKm: n
 
   const search = useCallback(() => {
     abortRef.current?.abort()
-    if (line.length < 2 || categories.length === 0) return
+    if (spine.length < 2 || categories.length === 0) return
     const controller = new AbortController()
     abortRef.current = controller
     const runId = ++runIdRef.current
 
-    // Thin the routed geometry first: a corridor built from every vertex would make
-    // hundreds of overlapping boxes out of what a handful describe just as well.
-    const spine = simplifyLine(line, Math.max(1, widthKm / 3))
     const allTiles = corridorTiles(spine, widthKm)
     const tiles = allTiles.slice(0, MAX_TILES)
 
     setCapped(allTiles.length > tiles.length)
     setFailedAreas(0)
+    setTruncatedAreas(0)
     setError(false)
     setResults([])
     setLoading(true)
@@ -109,6 +128,7 @@ export function useCorridorPois(line: LatLng[], categories: string[], widthKm: n
     void (async () => {
       const seen = new Map<string, CorridorPoi>()
       let failures = 0
+      let shortened = 0
       let done = 0
       let next = 0
 
@@ -120,6 +140,9 @@ export function useCorridorPois(line: LatLng[], categories: string[], widthKm: n
       const collect = async (tile: Bbox): Promise<boolean> => {
         try {
           const data = await mapsApi.pois(wanted, tile, locale, controller.signal)
+          // The server answers with at most a few hundred per box and says so. A hit
+          // dropped there is invisible here, so the count has to reach the surface.
+          if (data.truncated) setTruncatedAreas(++shortened)
           for (const poi of data.pois) {
             if (seen.has(poi.osm_id)) continue
             const hit = projectOntoRoute({ lat: poi.lat, lng: poi.lng }, spine)
@@ -166,9 +189,9 @@ export function useCorridorPois(line: LatLng[], categories: string[], widthKm: n
       setError(failures === jobs.length && failures > 0)
       setLoading(false)
     })()
-  }, [line, categories, widthKm, locale])
+  }, [spine, categories, widthKm, locale])
 
   useEffect(() => () => abortRef.current?.abort(), [])
 
-  return { results, progress, loading, capped, failedAreas, error, search, clear }
+  return { results, progress, loading, capped, failedAreas, truncatedAreas, error, spine, search, clear }
 }

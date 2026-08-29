@@ -59,6 +59,8 @@ export function forgetServerLanguage(): void {
 // can't drift apart again.
 export const DEFAULT_SETTINGS: Settings = {
   map_tile_url: '',
+  // Empty = the public routing hosts TREK ships with.
+  routing_base_url: '',
   dark_mode: false,
   // Empty = no personal display currency, so Costs falls back to the trip's own.
   default_currency: '',

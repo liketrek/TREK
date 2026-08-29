@@ -4257,6 +4257,58 @@ function runMigrations(db: Database.Database): void {
         db.exec('ALTER TABLE journey_entries ADD COLUMN stats_excluded INTEGER NOT NULL DEFAULT 0');
       }
     },
+    /**
+     * What kind of stop a place is on a drive — fuel, charging, rest area, campsite.
+     *
+     * Deliberately NOT a `categories` row. Those are the traveller's own list, editable
+     * and instance-wide (`categories.service.ts` selects them without a user filter), so
+     * seeding four road-trip kinds there would push them into everyone's dropdown and hand
+     * their colour to whoever edits the list first. A refuelling stop is not a taste; it is
+     * a fact about the place, and the road-trip categories already own its icon and colour
+     * (`poiCategories.ts`).
+     *
+     * Free text rather than a CHECK constraint: the set grows with what the corridor
+     * search can look for, and SQLite cannot alter a constraint without rebuilding the
+     * table. NULL means an ordinary place, which is every row that exists today.
+     *
+     * Appended LAST: the array is index-addressed against schema_version.
+     */
+    () => {
+      const cols = db.prepare("SELECT name FROM pragma_table_info('places')").all() as Array<{ name: string }>;
+      if (!cols.some(c => c.name === 'stop_type')) {
+        db.exec('ALTER TABLE places ADD COLUMN stop_type TEXT');
+      }
+    },
+    /**
+     * Points a day's drive is made to pass through, without being stops (#1797).
+     *
+     * The difference is the whole point: a stop is somewhere you go, and it takes a
+     * number in the chain, a place row, an arrival time and a line in the itinerary. A
+     * via is none of that — it only bends the route, which is what "take the coast road
+     * instead" means. Storing one as a place was the alternative, and it would have put a
+     * numbered stop in the middle of the day for a spot nobody stops at.
+     *
+     * Anchored to `after_order_index` rather than to an assignment id: a stop added
+     * mid-day is written with a temporary negative id and swapped for the real one moments
+     * later, so a foreign key to it would dangle. The index is what the routing request is
+     * built from anyway.
+     *
+     * Appended LAST: the array is index-addressed against schema_version.
+     */
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS roadtrip_vias (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          day_id INTEGER NOT NULL REFERENCES days(id) ON DELETE CASCADE,
+          after_order_index INTEGER NOT NULL,
+          sequence INTEGER NOT NULL DEFAULT 0,
+          lat REAL NOT NULL,
+          lng REAL NOT NULL,
+          created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      db.exec('CREATE INDEX IF NOT EXISTS idx_roadtrip_vias_day ON roadtrip_vias(day_id, after_order_index, sequence)');
+    },
   ];
 
   if (currentVersion < migrations.length) {

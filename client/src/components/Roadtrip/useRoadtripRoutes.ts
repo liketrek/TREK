@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { calculateRouteWithLegs } from '../Map/RouteCalculator'
+import { calculateRouteWithLegs, RoutingRefusedError } from '../Map/RouteCalculator'
 import { resolveLegMode } from '../Planner/legMode'
-import { computeSchedule, splitIntoRuns, type Schedule } from './roadtripModel'
+import { computeSchedule, isServiceStopType, splitIntoRuns, type Schedule } from './roadtripModel'
 import { useSettingsStore } from '../../store/settingsStore'
 import type { Assignment, AssignmentsMap, Day, RouteSegment } from '../../types'
+import type { RoadtripVia } from '@trek/shared'
 
 /** One stop on a day's drive — an assignment whose place actually has coordinates. */
 export interface RoadtripStop {
@@ -19,6 +20,8 @@ export interface RoadtripStop {
   /** Mode of the leg LEAVING this stop; null inherits the day default. */
   legMode: string | null
   incomingLegMode: string | null
+  /** fuel / charging / rest_area / campsite, or null for an ordinary place (#1797). */
+  stopType: string | null
 }
 
 export interface RoadtripDay {
@@ -42,8 +45,27 @@ export interface RoadtripDay {
   duration: number
 }
 
+/** A day the rail does not draw a drive for, but that a stop can still be moved onto. */
+export interface QuietDay {
+  dayId: number
+  dayNumber: number
+  date: string | null
+  title: string | null
+  /** Usually none or one — two would have made it a drive. */
+  stops: RoadtripStop[]
+}
+
 export interface RoadtripRoutes {
   days: RoadtripDay[]
+  /**
+   * Days with fewer than two stops, in trip order.
+   *
+   * They carry no drive, so they are not part of `days` and nothing is routed for them —
+   * but a stop has to be able to move onto one, and a day that is not on screen cannot be
+   * dropped on. Listed separately rather than folded into `days` so the totals and the
+   * routing keep meaning exactly what they meant before.
+   */
+  quietDays: QuietDay[]
   /** One polyline per routed leg, in trip order — what the map draws in road trip mode. */
   lines: [number, number][][]
   /** The routed legs themselves, so the map can label each connector. */
@@ -84,6 +106,24 @@ interface RoutedLeg {
   line: [number, number][]
 }
 
+/**
+ * What makes a stop the same stop as far as routing is concerned. `planKey` is built from
+ * these, and so are the keys the routed legs are filed under, so the two can never drift
+ * apart.
+ *
+ * Deliberately not the assignment id. A stop added mid-day is written optimistically with
+ * a temporary negative id (`assignmentsSlice`) and swapped for the real one once the
+ * server answers, without its coordinates changing — so `planKey` stays identical, the
+ * effect does not run again, and a leg filed under the id would sit under a dead one
+ * forever. A missing leg breaks the schedule's chain (`computeSchedule` gives up its
+ * cursor), which would silently blank every arrival time after the new stop.
+ */
+const stopKey = (s: RoadtripStop): string =>
+  `${s.lat.toFixed(5)},${s.lng.toFixed(5)},${s.legMode ?? ''},${s.incomingLegMode ?? ''}`
+
+/** The drive from one stop to the next, identified the same way `planKey` identifies them. */
+const legKey = (from: RoadtripStop, to: RoadtripStop): string => `${stopKey(from)}>${stopKey(to)}`
+
 const asStop = (a: Assignment): RoadtripStop | null => {
   const p = a.place
   if (!p || typeof p.lat !== 'number' || typeof p.lng !== 'number') return null
@@ -97,6 +137,7 @@ const asStop = (a: Assignment): RoadtripStop | null => {
     dwellMinutes: typeof p.duration_minutes === 'number' ? p.duration_minutes : null,
     legMode: a.leg_transport_mode ?? null,
     incomingLegMode: a.incoming_leg_transport_mode ?? null,
+    stopType: p.stop_type ?? null,
   }
 }
 
@@ -118,11 +159,17 @@ export function useRoadtripRoutes(
   assignments: AssignmentsMap,
   /** Mode for legs that neither the stop nor the day pins down. */
   fallbackProfile: string = 'driving',
+  /**
+   * Points the drive is made to pass through, per day (#1797). They join the routing
+   * request between the stops they follow, so the router draws the road the traveller
+   * chose rather than the one it prefers.
+   */
+  viasByDay: Record<number, RoadtripVia[]> = {},
 ): RoadtripRoutes {
   const routeProfile = fallbackProfile || 'driving'
   // Leg text is pre-formatted in the chosen unit, so a km↔mi switch has to re-fetch.
   const distanceUnit = useSettingsStore(s => s.settings.distance_unit)
-  const [legsByDay, setLegsByDay] = useState<Record<number, Record<number, RoutedLeg>>>({})
+  const [legsByDay, setLegsByDay] = useState<Record<number, Record<string, RoutedLeg>>>({})
   const [loading, setLoading] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
 
@@ -151,11 +198,36 @@ export function useRoadtripRoutes(
       .filter(d => d.stops.length > 1)
   }, [days, assignments])
 
+  const quietDays = useMemo<QuietDay[]>(() => {
+    return [...days]
+      .sort((a, b) => (a.day_number ?? 0) - (b.day_number ?? 0))
+      .map(d => ({
+        dayId: d.id,
+        dayNumber: d.day_number ?? 0,
+        date: d.date ?? null,
+        title: d.title ?? null,
+        stops: (assignments[String(d.id)] ?? [])
+          .slice()
+          .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
+          .map(asStop)
+          .filter((s): s is RoadtripStop => s !== null),
+      }))
+      .filter(d => d.stops.length < 2)
+  }, [days, assignments])
+
   // Only the geometry decides whether legs have to be re-fetched: renaming a place or
   // editing its notes must not fire a routing round.
+  const viaKey = useMemo(
+    () => Object.entries(viasByDay)
+      .map(([dayId, vias]) => `${dayId}:${vias.map(v => `${v.after_order_index}@${v.lat.toFixed(5)},${v.lng.toFixed(5)}`).join('|')}`)
+      .sort()
+      .join(';'),
+    [viasByDay],
+  )
+
   const planKey = useMemo(
-    () => plan.map(d => `${d.dayId}:${d.stops.map(s => `${s.lat.toFixed(5)},${s.lng.toFixed(5)},${s.legMode ?? ''},${s.incomingLegMode ?? ''}`).join('|')}`).join(';'),
-    [plan],
+    () => `${plan.map(d => `${d.dayId}:${d.stops.map(stopKey).join('|')}`).join(';')}#${viaKey}`,
+    [plan, viaKey],
   )
 
   useEffect(() => {
@@ -172,11 +244,11 @@ export function useRoadtripRoutes(
     const dayDefault = (dayId: number): string =>
       days.find(d => d.id === dayId)?.default_transport_mode || routeProfile
 
-    const collected: Record<number, Record<number, RoutedLeg>> = {}
+    const collected: Record<number, Record<string, RoutedLeg>> = {}
     const tasks: (() => Promise<void>)[] = []
 
     for (const day of plan) {
-      const dayLegs: Record<number, RoutedLeg> = {}
+      const dayLegs: Record<string, RoutedLeg> = {}
       collected[day.dayId] = dayLegs
       const dfMode = dayDefault(day.dayId)
 
@@ -187,29 +259,59 @@ export function useRoadtripRoutes(
           dfMode,
         ))
 
+      const dayVias = viasByDay[day.dayId] ?? []
+
       for (const { stops: run, mode } of runs) {
         tasks.push(async () => {
+          // Waypoints are the stops with this day's vias threaded in between them, so the
+          // router draws the road the traveller picked. `stopAt` remembers which waypoint
+          // each stop became, because the answer has a leg per waypoint PAIR and the rail
+          // wants one leg per stop pair.
+          const waypoints: { lat: number; lng: number }[] = []
+          const stopAt: number[] = []
+          run.forEach((stop, i) => {
+            stopAt.push(waypoints.length)
+            waypoints.push({ lat: stop.lat, lng: stop.lng })
+            if (i === run.length - 1) return
+            const dayIndex = day.stops.indexOf(stop)
+            dayVias
+              .filter(v => v.after_order_index === dayIndex)
+              .sort((a, b) => a.sequence - b.sequence)
+              .forEach(v => waypoints.push({ lat: v.lat, lng: v.lng }))
+          })
+
           for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
             if (controller.signal.aborted) return
             try {
               const r = await calculateRouteWithLegs(
-                run.map(s => ({ lat: s.lat, lng: s.lng })),
+                waypoints,
                 { signal: controller.signal, profile: mode, tripId: tripId ?? null, dayId: day.dayId },
               )
-              // legs[i] is the drive from run[i] to run[i+1]; the geometry comes back for
-              // the run as a whole, which is what the map draws.
-              r.legs.forEach((leg, i) => {
+              // Fold the router's per-waypoint legs back onto the stop pairs: a stop pair
+              // with a via between it comes back as two legs, and the rail shows one.
+              for (let i = 0; i < run.length - 1; i++) {
                 const from = run[i]
-                if (from) dayLegs[from.assignmentId] = { seg: { ...leg, mode }, line: i === 0 ? r.coordinates : [] }
-              })
+                const to = run[i + 1]
+                if (!from || !to) continue
+                const parts = r.legs.slice(stopAt[i], stopAt[i + 1])
+                if (!parts.length) continue
+                const merged = parts.length === 1 ? parts[0] : {
+                  ...parts[0],
+                  distance: parts.reduce((sum, l) => sum + (l.distance ?? 0), 0),
+                  duration: parts.reduce((sum, l) => sum + (l.duration ?? 0), 0),
+                }
+                dayLegs[legKey(from, to)] = { seg: { ...merged, mode }, line: i === 0 ? r.coordinates : [] }
+              }
               return
-            } catch {
+            } catch (err) {
               // Almost always a rate limit on the shared routing host. Back off and try
               // again; a run that still won't route (island hop, dead router) simply stays
               // blank, and the totals say so by being partial rather than wrong.
               const delay = RETRY_DELAYS_MS[attempt]
               if (delay === undefined) return
-              await sleep(delay, controller.signal)
+              // When the host says how long to wait, waiting less is just a second refusal.
+              const asked = err instanceof RoutingRefusedError && err.isRateLimit ? err.retryAfterMs : null
+              await sleep(Math.max(delay, asked ?? 0), controller.signal)
             }
           }
         })
@@ -246,7 +348,7 @@ export function useRoadtripRoutes(
     const segments: RouteSegment[] = []
     const out = plan.map(day => {
       const dayLegs = legsByDay[day.dayId] ?? {}
-      const routed = day.stops.slice(0, -1).map(s => dayLegs[s.assignmentId])
+      const routed = day.stops.slice(0, -1).map((s, i) => dayLegs[legKey(s, day.stops[i + 1])])
       for (const leg of routed) {
         if (!leg) continue
         if (leg.line.length > 1) lines.push(leg.line)
@@ -270,8 +372,11 @@ export function useRoadtripRoutes(
       segments,
       totalDistance: out.reduce((s, d) => s + d.distance, 0),
       totalDuration: out.reduce((s, d) => s + d.duration, 0),
-      totalStops: out.reduce((s, d) => s + d.stops.length, 0),
+      // Service stops are not stops in this sense — a charger on the way is part of the
+      // drive, and counting it here would make the head disagree with the day cards.
+      totalStops: out.reduce((s, d) => s + d.stops.filter(st => !isServiceStopType(st.stopType)).length, 0),
+      quietDays,
       loading,
     }
-  }, [plan, legsByDay, loading])
+  }, [plan, legsByDay, loading, quietDays])
 }

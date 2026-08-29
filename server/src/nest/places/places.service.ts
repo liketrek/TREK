@@ -67,6 +67,8 @@ export interface PlaceCreateInput {
   place_time?: string; end_time?: string;
   duration_minutes?: number; notes?: string; image_url?: string;
   google_place_id?: string; google_ftid?: string; osm_id?: string; website?: string; phone?: string;
+  /** What kind of stop this is on a drive (fuel, charging, rest_area, campsite); null for an ordinary place. */
+  stop_type?: string | null;
   transport_mode?: string; route_geometry?: string; route_color?: string; tags?: number[];
 }
 
@@ -77,6 +79,8 @@ export interface PlaceUpdateInput {
   place_time?: string; end_time?: string;
   duration_minutes?: number; notes?: string; image_url?: string;
   google_place_id?: string; google_ftid?: string; osm_id?: string; website?: string; phone?: string;
+  /** What kind of stop this is on a drive (fuel, charging, rest_area, campsite); null for an ordinary place. */
+  stop_type?: string | null;
   transport_mode?: string; route_color?: string | null; tags?: number[];
 }
 
@@ -224,24 +228,29 @@ export class PlacesService {
       name, description, lat, lng, address, category_id, price, currency,
       place_time, end_time,
       duration_minutes, notes, image_url, google_place_id, google_ftid, osm_id, website, phone,
-      transport_mode, route_geometry, route_color, tags = [],
+      transport_mode, route_geometry, route_color, stop_type, tags = [],
     } = body;
 
     const result = this.dbs.run(`
     INSERT INTO places (trip_id, name, description, lat, lng, address, category_id, price, currency,
       place_time, end_time,
       duration_minutes, notes, image_url, google_place_id, google_ftid, osm_id, website, phone, transport_mode,
-      route_geometry, route_color)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      route_geometry, route_color, stop_type)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `,
       // lat/lng/price/duration_minutes use an explicit undefined check, not `||`:
       // 0 is a legitimate value for all four (Null Island, a free entry, a
       // drive-by stop) and the falsy coercion silently threw it away.
+      //
+      // `duration_minutes` stays NULL when nobody says otherwise, rather than being
+      // invented as an hour. It is read in exactly one place — the road trip rail's
+      // "Stay" — and a default meant every place ever created claimed a one-hour stop
+      // the traveller had never entered, with no way to tell the two apart.
       tripId, name, description || null, lat ?? null, lng ?? null, address || null,
       category_id || null, price ?? null, currency || null,
-      place_time || null, end_time || null, duration_minutes ?? 60, notes || null, image_url || null,
+      place_time || null, end_time || null, duration_minutes ?? null, notes || null, image_url || null,
       google_place_id || null, google_ftid || null, osm_id || null, website || null, phone || null, transport_mode || 'walking',
-      route_geometry || null, route_color || null,
+      route_geometry || null, route_color || null, stop_type || null,
     );
 
     const placeId = result.lastInsertRowid;
@@ -306,7 +315,7 @@ export class PlacesService {
       name, description, lat, lng, address, category_id, price, currency,
       place_time, end_time,
       duration_minutes, notes, image_url, google_place_id, google_ftid, osm_id, website, phone,
-      transport_mode, route_color, tags,
+      transport_mode, route_color, stop_type, tags,
     } = body;
 
     this.dbs.run(`
@@ -331,6 +340,7 @@ export class PlacesService {
       phone = ?,
       transport_mode = COALESCE(?, transport_mode),
       route_color = ?,
+      stop_type = ?,
       updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
   `,
@@ -358,6 +368,8 @@ export class PlacesService {
       // Deliberately not COALESCE: an explicit null is how the picker resets a
       // track back to its category colour (#776).
       route_color !== undefined ? route_color : existingPlace.route_color,
+      // Same shape: an explicit null is how a fuel stop becomes an ordinary place again.
+      stop_type !== undefined ? stop_type : existingPlace.stop_type,
       placeId,
     );
 

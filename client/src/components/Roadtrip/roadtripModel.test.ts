@@ -3,6 +3,7 @@ import {
   computeSchedule,
   formatClock,
   formatDurationShort,
+  insertIndexForAlong,
   parseClock,
   splitIntoRuns,
   sumLegSeconds,
@@ -216,5 +217,35 @@ describe('sumLegSeconds', () => {
   it('adds only the legs that routed', () => {
     expect(sumLegSeconds([600, undefined, 1200])).toBe(1800)
     expect(sumLegSeconds([])).toBe(0)
+  })
+})
+
+describe('insertIndexForAlong', () => {
+  // Hamburg 0, Lueneburg 50, Berlin 290 — the day's stops as distances driven.
+  const stops = [0, 50, 290]
+
+  it('puts a hit between the two stops it falls between', () => {
+    expect(insertIndexForAlong(stops, 120)).toBe(2)
+    expect(insertIndexForAlong(stops, 20)).toBe(1)
+  })
+
+  it('never lands before the stop the day starts from', () => {
+    expect(insertIndexForAlong(stops, 0)).toBe(1)
+    // A corridor is wider than the road, so a hit can project just behind the start.
+    expect(insertIndexForAlong(stops, -3)).toBe(1)
+  })
+
+  it('never lands after the stop the day ends at', () => {
+    expect(insertIndexForAlong(stops, 290)).toBe(2)
+    expect(insertIndexForAlong(stops, 400)).toBe(2)
+  })
+
+  it('puts a hit exactly on a stop after it, not before', () => {
+    expect(insertIndexForAlong(stops, 50)).toBe(2)
+  })
+
+  it('has nowhere to insert on a day that is not a drive', () => {
+    expect(insertIndexForAlong([], 10)).toBe(0)
+    expect(insertIndexForAlong([0], 10)).toBe(1)
   })
 })

@@ -30,6 +30,18 @@ export const DEFAULTABLE_USER_SETTING_KEYS = [
   'default_currency',
   'blur_booking_codes',
   'map_tile_url',
+  /**
+   * Base URL of the routing engine, when the instance runs its own (#1797).
+   *
+   * Empty means the public OSRM hosts TREK ships with, which allow roughly one request a
+   * second — enough for a day plan, not for a road trip that routes every leg of every
+   * day, and they answer nothing beyond plain routing. Defaultable rather than per-user
+   * because a routing engine is a property of the deployment, not a taste.
+   *
+   * Changing it needs a server restart: the browser's connect-src allowlist is assembled
+   * once at boot, and a router the policy does not name fails silently.
+   */
+  'routing_base_url',
   // CARTO stamps an "API KEY REQUIRED" watermark into keyless tiles (#2054), and
   // the key is per-instance rather than per-person: defaultable so one admin
   // value clears the watermark for everybody at once.

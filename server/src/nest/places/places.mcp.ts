@@ -10,6 +10,8 @@ import {
   placeImageUrlSchema,
   placeImportListRequestSchema,
   placeWebsiteSchema,
+  roadtripStopTypeSchema,
+  type RoadtripStopType,
 } from '@trek/shared';
 import { z } from 'zod';
 import { AuthService } from '../auth/auth.service';
@@ -74,22 +76,24 @@ export class PlacesMcp {
       image_url: placeImageUrlSchema.optional().describe('Thumbnail for the place: an /uploads/ path, an /api/maps/place-photo/ path, an inline data: image, or an https URL'),
       price: z.number().nonnegative().optional().describe('Cost of this place/activity (e.g. ticket price, entry fee)'),
       currency: z.string().length(3).optional().describe('ISO 4217 currency code (e.g. "EUR", "USD")'),
+      stop_type: roadtripStopTypeSchema.optional().describe('Marks the place as a stop on a drive rather than a destination: fuel, charging, rest_area or campsite. Leave unset for an ordinary place.'),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     access: { group: 'places', mode: 'write' },
   })
   async createPlace(
-    { tripId, name, description, lat, lng, address, category_id, google_place_id, google_ftid, osm_id, notes, website, phone, image_url, price, currency }: {
+    { tripId, name, description, lat, lng, address, category_id, google_place_id, google_ftid, osm_id, notes, website, phone, image_url, price, currency, stop_type }: {
       tripId: number; name: string; description?: string; lat?: number; lng?: number; address?: string;
       category_id?: number; google_place_id?: string; google_ftid?: string; osm_id?: string;
       notes?: string; website?: string; phone?: string; image_url?: string; price?: number; currency?: string;
+      stop_type?: RoadtripStopType;
     },
     ctx: McpContext,
   ) {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.db.canAccessTrip(tripId, ctx.userId)) return noAccess();
     if (!this.guards.hasTripPermission('place_edit', tripId, ctx.userId)) return permissionDenied();
-    const place = this.places.create(String(tripId), { name, description, lat, lng, address, category_id, google_place_id, google_ftid, osm_id, notes, website, phone, image_url, price, currency });
+    const place = this.places.create(String(tripId), { name, description, lat, lng, address, category_id, google_place_id, google_ftid, osm_id, notes, website, phone, image_url, price, currency, stop_type });
     this.guards.safeBroadcast(tripId, 'place:created', { place });
     return ok({ place });
   }

@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import express from 'express';
 import request from 'supertest';
-import { applyGlobalMiddleware } from '../../../src/middleware/globalMiddleware';
+import { applyGlobalMiddleware, routingCspOrigins } from '../../../src/middleware/globalMiddleware';
 
 async function directiveSources(name: string): Promise<string[]> {
   const app = express();
@@ -120,5 +120,47 @@ describe('forced-HTTPS redirect', () => {
     // bounced to a hostname it cannot resolve.
     const probe = await request(app).get('/api/health');
     expect(probe.status).toBe(200);
+  });
+});
+
+describe('routingCspOrigins', () => {
+  it('CSP-ROUTING-001: keeps only the origin, because a path source matches that path alone', () => {
+    // A router is asked at several paths (/route/v1/…, /table/v1/…); pinning one would
+    // block the rest without an error the app could report.
+    expect(routingCspOrigins(['https://osrm.example.org/route/v1/driving']))
+      .toEqual(['https://osrm.example.org']);
+  });
+
+  it('CSP-ROUTING-002: a port belongs to the origin and is kept', () => {
+    expect(routingCspOrigins(['http://192.168.178.72:5000'])).toEqual(['http://192.168.178.72:5000']);
+  });
+
+  it('CSP-ROUTING-003: anything that is not an http(s) URL widens nothing', () => {
+    // A bad settings row must not be able to loosen the policy.
+    expect(routingCspOrigins(['', null, undefined, 'not a url', 'javascript:alert(1)', 'ftp://x/y']))
+      .toEqual([]);
+  });
+
+  it('CSP-ROUTING-004: the same host twice is one source', () => {
+    expect(routingCspOrigins([
+      'https://osrm.example.org/route/v1/driving',
+      'https://osrm.example.org/table/v1/driving',
+    ])).toEqual(['https://osrm.example.org']);
+  });
+});
+
+describe('connect-src with a self-hosted router', () => {
+  it('CSP-ROUTING-005: a configured origin is named, or the browser blocks it silently', async () => {
+    const app = express();
+    applyGlobalMiddleware(app, { extraConnectSrc: ['https://osrm.example.org'] });
+    app.get('/probe', (_req, res) => res.json({ ok: true }));
+
+    const res = await request(app).get('/probe');
+    const csp = String(res.headers['content-security-policy'] || '');
+    const connect = csp.split(';').map(d => d.trim()).find(d => d.startsWith('connect-src'))!;
+
+    expect(connect).toContain('https://osrm.example.org');
+    // The public hosts stay, so an instance can be switched back without another deploy.
+    expect(connect).toContain('https://routing.openstreetmap.de/');
   });
 });

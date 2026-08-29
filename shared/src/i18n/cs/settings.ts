@@ -24,6 +24,8 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Šablona mapy',
   'settings.mapTemplatePlaceholder.select': 'Vyberte šablonu...',
   'settings.mapDefaultHint': 'Ponechte prázdné pro OpenStreetMap (výchozí)',
+  'settings.routingBase': 'Vlastní směrovací server',
+  'settings.routingBaseHint': 'Vlastní instance OSRM. Prázdné použije veřejné servery s limitem asi jednoho požadavku za sekundu — na den to stačí, na road trip je to málo. Projeví se po restartu serveru.',
   'settings.mapHint': 'URL šablony pro mapové dlaždice',
   'settings.mapProvider': 'Poskytovatel mapy',
   'settings.mapProviderHint': 'Ovlivňuje mapy v Trip Planneru a Journey. Atlas vždy používá Leaflet.',

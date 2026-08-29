@@ -24,6 +24,8 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Modèle de carte',
   'settings.mapTemplatePlaceholder.select': 'Sélectionner un modèle…',
   'settings.mapDefaultHint': 'Laissez vide pour OpenStreetMap (par défaut)',
+  'settings.routingBase': 'Moteur de calcul d’itinéraire propre',
+  'settings.routingBaseHint': 'Votre propre instance OSRM. Vide utilise les serveurs publics, limités à environ une requête par seconde : suffisant pour une journée, juste pour un road trip. Prend effet après un redémarrage du serveur.',
   'settings.mapHint': "Modèle d'URL pour les tuiles de carte",
   'settings.mapProvider': 'Fournisseur de carte',
   'settings.mapProviderHint': 'Affecte les cartes Trip Planner et Journey. Atlas utilise toujours Leaflet.',

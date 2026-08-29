@@ -78,6 +78,15 @@ export const placeRatingVoteSchema = z.object({
 });
 export type PlaceRatingVote = z.infer<typeof placeRatingVoteSchema>;
 
+/**
+ * The kinds of stop a drive has, matching the categories the corridor search can look for
+ * (`client/src/components/Map/poiCategories.ts` and the OSM tag map in
+ * `server/src/nest/maps/maps.helpers.ts`). Kept as a closed list here so a typo cannot
+ * reach the column, and extended alongside those two when the search learns a new kind.
+ */
+export const roadtripStopTypeSchema = z.enum(['fuel', 'charging', 'rest_area', 'campsite', 'restaurant', 'sights']);
+export type RoadtripStopType = z.infer<typeof roadtripStopTypeSchema>;
+
 export const placeSchema = z.object({
   id: z.number(),
   trip_id: z.number(),
@@ -103,6 +112,15 @@ export const placeSchema = z.object({
   route_geometry: z.string().nullable().optional(),
   // Manual track colour (#776). null = inherit the category colour like before.
   route_color: hexColorSchema.nullable().optional(),
+  /**
+   * What kind of stop this place is on a drive (#1797). null is an ordinary place, which
+   * is every place that predates the road trip addon.
+   *
+   * Separate from `category_id` on purpose: categories are the traveller's own editable,
+   * instance-wide list, while this is a fact about the place that the corridor search
+   * already knows and that owns its own icon and colour.
+   */
+  stop_type: roadtripStopTypeSchema.nullable().optional(),
   website: z.string().nullable().optional(),
   phone: z.string().nullable().optional(),
   transport_mode: z.string().nullable().optional(),
@@ -147,6 +165,9 @@ export const assignmentPlaceSchema = z.object({
   osm_id: z.string().nullable().optional(),
   website: z.string().nullable().optional(),
   phone: z.string().nullable().optional(),
+  // Carried through so the road-trip rail can mark a fuel stop as one without a
+  // second request per stop.
+  stop_type: roadtripStopTypeSchema.nullable().optional(),
   category: placeCategorySchema.optional(),
   tags: z.array(tagSchema.partial()).optional(),
 });

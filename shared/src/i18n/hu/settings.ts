@@ -24,6 +24,8 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Térkép sablon',
   'settings.mapTemplatePlaceholder.select': 'Sablon kiválasztása...',
   'settings.mapDefaultHint': 'Hagyd üresen az OpenStreetMap használatához (alapértelmezett)',
+  'settings.routingBase': 'Saját útvonaltervező',
+  'settings.routingBaseHint': 'Saját OSRM-példány. Üresen hagyva a nyilvános kiszolgálókat használja, amelyek másodpercenként körülbelül egy kérést engednek — egy napra elég, egy autós útra kevés. A kiszolgáló újraindítása után lép életbe.',
   'settings.mapHint': 'URL sablon a térképcsempékhez',
   'settings.mapProvider': 'Térkép szolgáltató',
   'settings.mapProviderHint': 'A Trip Planner és Journey térképekre érvényes. Az Atlas mindig Leafletet használ.',

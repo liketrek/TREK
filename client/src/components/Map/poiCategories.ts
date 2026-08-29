@@ -1,4 +1,7 @@
 import { Utensils, Coffee, Wine, BedDouble, Camera, Landmark, Trees, Ticket, Fuel, Zap, ParkingSquare, Tent, type LucideIcon } from 'lucide-react'
+// The road-trip kinds take their colour from the one place that defines it, so the
+// search result, the map pin and the road-trip rail cannot drift apart.
+import { SERVICE_COLORS } from '../Roadtrip/roadtripModel'
 
 // The POI categories shown in the map "explore" pill. The `key` is the contract
 // with the server (CATEGORY_OSM_FILTERS in mapsService.ts) — the OSM tag mapping
@@ -29,10 +32,10 @@ export const POI_CATEGORIES: PoiCategory[] = [
  * instead of the nameless grey dot an unknown category falls back to.
  */
 export const ROADTRIP_POI_CATEGORIES: PoiCategory[] = [
-  { key: 'fuel', labelKey: 'roadtrip.poi.fuel', Icon: Fuel, color: '#0EA5E9' },
-  { key: 'charging', labelKey: 'roadtrip.poi.charging', Icon: Zap, color: '#10B981' },
-  { key: 'rest_area', labelKey: 'roadtrip.poi.rest', Icon: ParkingSquare, color: '#64748B' },
-  { key: 'campsite', labelKey: 'roadtrip.poi.campsite', Icon: Tent, color: '#65A30D' },
+  { key: 'fuel', labelKey: 'roadtrip.poi.fuel', Icon: Fuel, color: SERVICE_COLORS.fuel },
+  { key: 'charging', labelKey: 'roadtrip.poi.charging', Icon: Zap, color: SERVICE_COLORS.charging },
+  { key: 'rest_area', labelKey: 'roadtrip.poi.rest', Icon: ParkingSquare, color: SERVICE_COLORS.rest_area },
+  { key: 'campsite', labelKey: 'roadtrip.poi.campsite', Icon: Tent, color: SERVICE_COLORS.campsite },
 ]
 
 export const POI_CATEGORY_BY_KEY: Record<string, PoiCategory> = Object.fromEntries(

@@ -24,6 +24,8 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Harita Şablonu',
   'settings.mapTemplatePlaceholder.select': 'Şablon seçin...',
   'settings.mapDefaultHint': 'OpenStreetMap için boş bırakın (varsayılan)',
+  'settings.routingBase': 'Kendi rota motoru',
+  'settings.routingBaseHint': 'Kendi OSRM sunucunuz. Boş bırakılırsa saniyede yaklaşık bir istek veren genel sunucular kullanılır: bir gün için yeter, uzun yolculuk için az. Sunucu yeniden başlatıldığında etkin olur.',
   'settings.mapHint': 'Harita kutucukları için URL şablonu',
   'settings.mapProvider': 'Harita Sağlayıcısı',
   'settings.mapProviderHint': 'Seyahat planlayıcı ve Journey haritalarını etkiler. Atlas her zaman Leaflet kullanır.',

@@ -24,6 +24,8 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Szablon mapy',
   'settings.mapTemplatePlaceholder.select': 'Wybierz szablon...',
   'settings.mapDefaultHint': 'Pozostaw puste dla OpenStreetMap (domyślnie)',
+  'settings.routingBase': 'Własny silnik tras',
+  'settings.routingBaseHint': 'Własna instancja OSRM. Puste używa serwerów publicznych, które pozwalają na około jedno zapytanie na sekundę — wystarczy na dzień, mało na road trip. Działa po restarcie serwera.',
   'settings.mapHint': 'Szablon URL dla kafelków mapy',
   'settings.mapProvider': 'Dostawca mapy',
   'settings.mapProviderHint': 'Dotyczy map Trip Planner i Journey. Atlas zawsze używa Leaflet.',

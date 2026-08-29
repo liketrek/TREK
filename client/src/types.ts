@@ -108,6 +108,11 @@ export type DistanceUnit = 'metric' | 'imperial'
 
 export interface Settings {
   map_tile_url: string
+  /**
+   * Base URL of a self-hosted routing engine (#1797). Empty falls back to the public
+   * FOSSGIS hosts, which allow about one request a second.
+   */
+  routing_base_url?: string
   dark_mode: boolean | string
   /** Display currency for Costs. Empty/null = follow each trip's own currency. */
   default_currency: string | null

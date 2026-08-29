@@ -19,6 +19,7 @@ const stop = (id: number, name: string): RoadtripStop => ({
   dwellMinutes: null,
   legMode: null,
   incomingLegMode: null,
+  stopType: null,
 })
 
 const day = (dayId: number, dayNumber: number): RoadtripDay => ({
@@ -41,6 +42,7 @@ const routes = (days: RoadtripDay[]): RoadtripRoutes => ({
   totalDistance: 0,
   totalDuration: 0,
   totalStops: days.length * 2,
+  quietDays: [],
   loading: false,
 })
 
@@ -64,6 +66,19 @@ function poi(over: Partial<CorridorPoi> & { osm_id: string; name: string }): Cor
 
 function corridor(over: Partial<RoadtripCorridor> = {}, search: Partial<RoadtripCorridor['search']> = {}): RoadtripCorridor {
   const days = over.day ? [over.day] : [day(1, 1)]
+  const searchState: RoadtripCorridor['search'] = {
+    results: [],
+    progress: { done: 0, total: 0 },
+    loading: false,
+    capped: false,
+    failedAreas: 0,
+    truncatedAreas: 0,
+    error: false,
+    spine: [],
+    search: vi.fn(),
+    clear: vi.fn(),
+    ...search,
+  }
   return {
     dayId: String(days[0].dayId),
     setDayId: vi.fn(),
@@ -72,18 +87,14 @@ function corridor(over: Partial<RoadtripCorridor> = {}, search: Partial<Roadtrip
     toggleCategory: vi.fn(),
     widthKm: 5,
     setWidthKm: vi.fn(),
+    nameFilter: '',
+    setNameFilter: vi.fn(),
+    // Same as the hook with an empty filter: everything found is on show.
+    visible: searchState.results,
+    insertIndexFor: vi.fn(() => 1),
+    stopsAlongKm: [0, 100],
     ...over,
-    search: {
-      results: [],
-      progress: { done: 0, total: 0 },
-      loading: false,
-      capped: false,
-      failedAreas: 0,
-      error: false,
-      search: vi.fn(),
-      clear: vi.fn(),
-      ...search,
-    },
+    search: searchState,
   }
 }
 
@@ -116,10 +127,13 @@ describe('RoadtripCorridorPanel', () => {
     const c = corridor()
     wrap(<RoadtripCorridorPanel corridor={c} routes={routes([day(1, 1)])} />)
 
-    fireEvent.click(screen.getByRole('button', { name: /campsite/i }))
+    // Six kinds used to be six pills wrapped over three lines; they are one dropdown now,
+    // so the options only exist once it is open.
+    fireEvent.click(screen.getByRole('button', { expanded: false }))
+    fireEvent.click(screen.getByRole('option', { name: /campsite/i }))
     expect(c.toggleCategory).toHaveBeenCalledWith('campsite')
-    // What is already selected reads as pressed rather than only looking different.
-    expect(screen.getByRole('button', { name: /fuel/i })).toHaveAttribute('aria-pressed', 'true')
+    // What is already selected reads as selected rather than only looking different.
+    expect(screen.getByRole('option', { name: /fuel/i })).toHaveAttribute('aria-selected', 'true')
   })
 
   it('FE-ROADTRIP-PANEL-005: the corridor width is a choice, and the current one is marked', () => {
@@ -152,9 +166,10 @@ describe('RoadtripCorridorPanel', () => {
     })
     wrap(<RoadtripCorridorPanel corridor={c} routes={routes([day(1, 1)])} />)
 
-    // "Fuel" is also a filter chip; the group header is the one inside a <header>.
+    // "Fuel" also names an option in the kind picker; the group header is the one
+    // inside a <header>.
     const fuelGroup = screen.getAllByText('Fuel').map(el => el.closest('header')).find(Boolean)!
-    expect(within(fuelGroup).getByText('2')).toBeInTheDocument()
+    expect(within(fuelGroup).getByText('2 on the way')).toBeInTheDocument()
     expect(screen.getByText('Camping Elbe')).toBeInTheDocument()
   })
 
@@ -174,23 +189,17 @@ describe('RoadtripCorridorPanel', () => {
     expect(screen.getByText('Aral').closest('li')!.textContent).not.toContain('0 km along')
   })
 
-  it('FE-ROADTRIP-PANEL-010: a chain shows its own logo ahead of its name', () => {
+  it('FE-ROADTRIP-PANEL-010: a chain gets its category icon, never its own logo', () => {
+    // A corridor is mostly chains, and their marks turned a list of petrol stations into
+    // an advertisement — while a brand with no logo on file fell back to a different
+    // picture, so no two rows looked alike. The category's icon is also what the rail and
+    // the map draw for the same stop.
     const c = corridor({}, { results: [poi({ osm_id: 'a', name: 'Aral', brand_wikidata: 'Q565734' } as Partial<CorridorPoi> & { osm_id: string; name: string })] })
     wrap(<RoadtripCorridorPanel corridor={c} routes={routes([day(1, 1)])} />)
 
     const row = screen.getByText('Aral').closest('li')!
-    const logo = row.querySelector('img')!
-    expect(logo).toHaveAttribute('src', '/api/maps/brand-logo/Q565734')
-    // Hidden until it has loaded, so a brand without one shows the category icon
-    // rather than a hole in the row.
-    expect(logo.className).toContain('opacity-0')
-  })
-
-  it('FE-ROADTRIP-PANEL-011: a wikidata id that is not one is never put in a URL', () => {
-    const c = corridor({}, { results: [poi({ osm_id: 'a', name: 'Aral', brand_wikidata: '../../etc/passwd' } as Partial<CorridorPoi> & { osm_id: string; name: string })] })
-    wrap(<RoadtripCorridorPanel corridor={c} routes={routes([day(1, 1)])} />)
-
-    expect(screen.getByText('Aral').closest('li')!.querySelector('img')).toBeNull()
+    expect(row.querySelector('img')).toBeNull()
+    expect(row.querySelector('svg.lucide-fuel')).toBeInTheDocument()
   })
 
   it('FE-ROADTRIP-PANEL-012: adding a hit puts it on the day that was searched', () => {
@@ -199,7 +208,20 @@ describe('RoadtripCorridorPanel', () => {
     wrap(<RoadtripCorridorPanel corridor={c} routes={routes([day(1, 1)])} onAddPoi={onAddPoi} />)
 
     fireEvent.click(screen.getByRole('button', { name: /add/i }))
-    expect(onAddPoi).toHaveBeenCalledWith(expect.objectContaining({ osm_id: 'node:9' }), 1)
+    // Day and position both: a fuel stop belongs where it is driven past, not at the end.
+    expect(onAddPoi).toHaveBeenCalledWith(expect.objectContaining({ osm_id: 'node:9' }), 1, 1)
+  })
+
+  it('FE-ROADTRIP-PANEL-023: the position offered is the one worked out for that very hit', () => {
+    const onAddPoi = vi.fn()
+    const hit = poi({ osm_id: 'node:9', name: 'Aral', alongKm: 120 })
+    const insertIndexFor = vi.fn(() => 3)
+    const c = corridor({ insertIndexFor }, { results: [hit] })
+    wrap(<RoadtripCorridorPanel corridor={c} routes={routes([day(1, 1)])} onAddPoi={onAddPoi} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /add/i }))
+    expect(insertIndexFor).toHaveBeenCalledWith(hit)
+    expect(onAddPoi).toHaveBeenCalledWith(expect.objectContaining({ osm_id: 'node:9' }), 1, 3)
   })
 
   it('FE-ROADTRIP-PANEL-013: while searching it reports progress rather than sitting still', () => {
@@ -231,5 +253,61 @@ describe('RoadtripCorridorPanel', () => {
     wrap(<RoadtripCorridorPanel corridor={c} routes={routes([day(1, 1)])} />)
 
     expect(screen.getByText('The route is long — only the first stretch was searched.')).toBeInTheDocument()
+  })
+
+  it('FE-ROADTRIP-PANEL-017: a stretch the server cut short is admitted, not passed off as empty', () => {
+    const c = corridor({}, { results: [poi({ osm_id: 'a', name: 'Aral' })], truncatedAreas: 2 })
+    wrap(<RoadtripCorridorPanel corridor={c} routes={routes([day(1, 1)])} />)
+
+    expect(screen.getByText(/2 stretches had more than fits in one answer/)).toBeInTheDocument()
+  })
+
+  it('FE-ROADTRIP-PANEL-018: the filter appears only once there is something to narrow', () => {
+    const empty = corridor()
+    const { unmount } = wrap(<RoadtripCorridorPanel corridor={empty} routes={routes([day(1, 1)])} />)
+    expect(screen.queryByLabelText('Filter by name')).not.toBeInTheDocument()
+
+    unmount()
+    const found = corridor({}, { results: [poi({ osm_id: 'a', name: 'Aral' })] })
+    wrap(<RoadtripCorridorPanel corridor={found} routes={routes([day(1, 1)])} />)
+    expect(screen.getByLabelText('Filter by name')).toBeInTheDocument()
+  })
+
+  it('FE-ROADTRIP-PANEL-019: typing in the filter reports the term rather than searching again', () => {
+    const c = corridor({}, { results: [poi({ osm_id: 'a', name: 'Aral' })] })
+    wrap(<RoadtripCorridorPanel corridor={c} routes={routes([day(1, 1)])} />)
+
+    fireEvent.change(screen.getByLabelText('Filter by name'), { target: { value: 'shell' } })
+    expect(c.setNameFilter).toHaveBeenCalledWith('shell')
+    // The filter must never trigger another round of Overpass requests.
+    expect(c.search.search).not.toHaveBeenCalled()
+  })
+
+  it('FE-ROADTRIP-PANEL-020: the list shows what is visible, and counts it against the whole', () => {
+    const hits = [poi({ osm_id: 'a', name: 'Aral' }), poi({ osm_id: 'b', name: 'Shell' })]
+    const c = corridor({ nameFilter: 'shell', visible: [hits[1]] }, { results: hits })
+    wrap(<RoadtripCorridorPanel corridor={c} routes={routes([day(1, 1)])} />)
+
+    expect(screen.getByText('Shell')).toBeInTheDocument()
+    expect(screen.queryByText('Aral')).not.toBeInTheDocument()
+    expect(screen.getByText('1 of 2 on the way')).toBeInTheDocument()
+  })
+
+  it('FE-ROADTRIP-PANEL-021: filtering everything away says so instead of looking unsearched', () => {
+    const c = corridor(
+      { nameFilter: 'esso', visible: [] },
+      { results: [poi({ osm_id: 'a', name: 'Aral' })] },
+    )
+    wrap(<RoadtripCorridorPanel corridor={c} routes={routes([day(1, 1)])} />)
+
+    expect(screen.getByText(/Nothing on the way matches/)).toBeInTheDocument()
+    expect(screen.queryByText('Pick what you need and search.')).not.toBeInTheDocument()
+  })
+
+  it('FE-ROADTRIP-PANEL-022: without permission to add, no hit offers an Add button', () => {
+    const c = corridor({}, { results: [poi({ osm_id: 'a', name: 'Aral' })] })
+    wrap(<RoadtripCorridorPanel corridor={c} routes={routes([day(1, 1)])} />)
+
+    expect(screen.queryByText('Add')).not.toBeInTheDocument()
   })
 })
