@@ -131,7 +131,19 @@ vi.mock('leaflet', () => {
     divIcon: vi.fn(() => ({})),
     marker: vi.fn(() => {
       lf.markers += 1;
-      return { bindTooltip: vi.fn(() => ({})) };
+      let tooltip: { options: Record<string, unknown>; getElement: () => null } | undefined;
+      const m = {
+        on: vi.fn(() => m),
+        off: vi.fn(() => m),
+        getLatLng: vi.fn(() => ({ lat: 0, lng: 0 })),
+        bindTooltip: vi.fn(() => {
+          tooltip = { options: { direction: 'top', offset: [0, -14] }, getElement: () => null };
+          return m;
+        }),
+        getTooltip: vi.fn(() => tooltip),
+        closeTooltip: vi.fn(),
+      };
+      return m;
     }),
     layerGroup: vi.fn(() => ({ addTo: vi.fn(() => ({})) })),
     geoJSON: vi.fn((data: { features?: Record<string, unknown>[] }, options: Record<string, unknown>) => {

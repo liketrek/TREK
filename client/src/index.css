@@ -122,8 +122,29 @@ body { height: 100%; overflow: auto; overscroll-behavior: none; -webkit-overflow
   font-family: inherit !important;
   box-shadow: 0 8px 32px rgba(0,0,0,0.25) !important;
   transition: none !important;
+  max-width: min(280px, calc(100vw - 32px)) !important;
+  white-space: normal !important;
+  word-wrap: break-word !important;
 }
 .atlas-tooltip::before { border-top-color: rgba(10, 10, 20, 0.6) !important; }
+/* Bucket-list marker tooltip only — arbitrary-length user notes need a scroll
+   cap. The scroll happens on .atlas-tooltip-scroll-inner, not this element,
+   so the outer border-radius clips the scrollbar instead of it poking
+   through the rounded corner. overflow-y on the inner div is toggled
+   per-instance in useAtlas.ts, not forced here. */
+.atlas-tooltip-scrollable {
+  width: min(480px, calc(100vw - 32px)) !important;
+  max-width: min(480px, calc(100vw - 32px)) !important;
+  overflow: hidden !important;
+  pointer-events: auto !important;
+}
+.atlas-tooltip-scroll-inner {
+  max-height: min(200px, 40vh);
+  overflow-y: hidden;
+}
+.atlas-tooltip-scroll-inner::-webkit-scrollbar { width: 6px; }
+.atlas-tooltip-scroll-inner::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.25); border-radius: 3px; }
+html:not(.dark) .atlas-tooltip-scroll-inner::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); }
 html:not(.dark) .atlas-tooltip {
   background: rgba(255, 255, 255, 0.75) !important;
   color: #0f172a !important;

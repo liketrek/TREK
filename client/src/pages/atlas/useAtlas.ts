@@ -9,7 +9,7 @@ import { isVectorStyle } from '../../utils/tileUrl'
 import apiClient, { mapsApi, pluginsApi, type PluginAtlasLayer } from '../../api/client'
 import L from 'leaflet'
 import type { GeoJsonFeatureCollection } from '../../types'
-import { A2_TO_A3, countryStatus, findBucketDuplicate, isBucketDuplicateError, isCountryVisible, normalizeRegionName, regionCacheEvictions, withCountryMarkedVisited, wishlistA3Codes, countryColor, REGION_CACHE_MAX, type AtlasData, type AtlasPlaceHit, type CountryDetail, type BucketItem } from './atlasModel'
+import { A2_TO_A3, countryStatus, findBucketDuplicate, isBucketDuplicateError, isCountryVisible, normalizeRegionName, regionCacheEvictions, withCountryMarkedVisited, wishlistA3Codes, countryColor, REGION_CACHE_MAX, bucketTooltipWidth, bucketTooltipPlacement, bucketTooltipNeedsScroll, type AtlasData, type AtlasPlaceHit, type CountryDetail, type BucketItem } from './atlasModel'
 import { continentForCountry, escapeHtml, type VisitStatus } from '@trek/shared'
 import { useToast } from '../../components/shared/Toast'
 import { getApiErrorMessage } from '../../types'
@@ -1091,10 +1091,42 @@ export function useAtlas() {
         iconSize: [28, 28],
         iconAnchor: [14, 14],
       })
-      return L.marker([b.lat!, b.lng!], { icon }).bindTooltip(
-        `<div style="font-size:12px;font-weight:600">${escapeHtml(b.name)}</div>${b.notes ? `<div style="font-size:10px;opacity:0.7;margin-top:2px">${escapeHtml(b.notes)}</div>` : ''}`,
-        { className: 'atlas-tooltip', direction: 'top', offset: [0, -14] }
+      const marker = L.marker([b.lat!, b.lng!], { icon })
+      // Registered before bindTooltip, so this runs ahead of Leaflet's own
+      // mouseover handler and lets it read the corrected direction/offset on open.
+      marker.on('mouseover', () => {
+        const map = mapInstance.current
+        const tooltip = marker.getTooltip()
+        if (!map || !tooltip) return
+        const containerRect = map.getContainer().getBoundingClientRect()
+        const point = map.latLngToContainerPoint(marker.getLatLng())
+        const screenX = containerRect.left + point.x
+        const screenY = containerRect.top + point.y
+        const placement = bucketTooltipPlacement({ x: screenX, y: screenY }, window.innerWidth, bucketTooltipWidth(window.innerWidth))
+        tooltip.options.direction = placement.direction
+        tooltip.options.offset = placement.offset
+      })
+      marker.bindTooltip(
+        `<div class="atlas-tooltip-scroll-inner"><div style="font-size:12px;font-weight:600">${escapeHtml(b.name)}</div>${b.notes ? `<div style="font-size:10px;opacity:0.7;margin-top:2px">${escapeHtml(b.notes)}</div>` : ''}</div>`,
+        { className: 'atlas-tooltip atlas-tooltip-scrollable', direction: 'top', offset: [0, -14], interactive: true }
       )
+      // Leaflet closes the tooltip the instant the pointer leaves the marker's tiny
+      // hit area — replace that with a delayed close, cancelled while hovering the
+      // tooltip itself, so the pointer has a path from marker to tooltip to scroll it.
+      let closeTimer: ReturnType<typeof setTimeout> | null = null
+      const cancelClose = () => { if (closeTimer) { clearTimeout(closeTimer); closeTimer = null } }
+      const scheduleClose = () => { closeTimer = setTimeout(() => marker.closeTooltip(), 200) }
+      marker.off('mouseout', marker.closeTooltip, marker)
+      marker.on('mouseout', scheduleClose)
+      marker.on('tooltipopen', () => {
+        const el = marker.getTooltip()?.getElement()
+        if (!el) return
+        el.addEventListener('mouseenter', cancelClose)
+        el.addEventListener('mouseleave', scheduleClose)
+        const inner = el.querySelector<HTMLElement>('.atlas-tooltip-scroll-inner')
+        if (inner) inner.style.overflowY = bucketTooltipNeedsScroll(inner.scrollHeight, inner.clientHeight) ? 'auto' : 'hidden'
+      })
+      return marker
     })
     bucketMarkersRef.current = L.layerGroup(markers).addTo(mapInstance.current)
   }, [bucketList])

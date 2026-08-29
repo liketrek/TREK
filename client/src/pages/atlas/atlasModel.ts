@@ -213,6 +213,40 @@ export function regionCacheEvictions(order: string[], keep: Set<string>, max: nu
   return drop
 }
 
+/** Width (CSS px) the bucket-list marker tooltip renders at — mirrors .atlas-tooltip-scrollable in index.css. */
+export function bucketTooltipWidth(viewportWidth: number): number {
+  return Math.min(480, viewportWidth - 32)
+}
+
+export interface TooltipPlacement {
+  direction: 'top' | 'bottom'
+  offset: [number, number]
+}
+
+/** Keeps the bucket-list marker tooltip on-screen (#2153): Leaflet has no viewport
+ * awareness, so flip below the marker when there's no room above, and nudge the
+ * horizontal offset to keep it within [margin, viewportWidth - margin]. */
+export function bucketTooltipPlacement(
+  markerScreen: { x: number; y: number },
+  viewportWidth: number,
+  tooltipWidth: number,
+  opts: { margin?: number; topThreshold?: number } = {},
+): TooltipPlacement {
+  const margin = opts.margin ?? 8
+  const topThreshold = opts.topThreshold ?? 220
+  const flip = markerScreen.y < topThreshold
+  const defaultLeft = markerScreen.x - tooltipWidth / 2
+  const clampedLeft = Math.min(Math.max(defaultLeft, margin), viewportWidth - margin - tooltipWidth)
+  const dx = clampedLeft - defaultLeft
+  return { direction: flip ? 'bottom' : 'top', offset: [dx, flip ? 14 : -14] }
+}
+
+/** scrollHeight ignores the CSS max-height clip, so this is the one place that decides
+ * whether the bucket-list tooltip actually needs its scrollbar (#2153). */
+export function bucketTooltipNeedsScroll(scrollHeight: number, clientHeight: number): boolean {
+  return scrollHeight > clientHeight + 1
+}
+
 // Convert country code to flag emoji
 export function countryCodeToFlag(code: string): string {
   if (!code || code.length !== 2) return ''

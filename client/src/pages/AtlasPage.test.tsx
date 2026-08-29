@@ -113,12 +113,23 @@ vi.mock('leaflet', () => {
       };
     }),
     divIcon: vi.fn(() => ({})),
-    marker: vi.fn(() => ({
-      addTo: vi.fn().mockReturnThis(),
-      on: vi.fn(),
-      remove: vi.fn(),
-      bindTooltip: vi.fn().mockReturnThis(),
-    })),
+    marker: vi.fn(() => {
+      let tooltip: { options: Record<string, unknown>; getElement: () => null } | undefined;
+      const m = {
+        addTo: vi.fn().mockReturnThis(),
+        on: vi.fn(() => m),
+        off: vi.fn(() => m),
+        remove: vi.fn(),
+        getLatLng: vi.fn(() => ({ lat: 0, lng: 0 })),
+        bindTooltip: vi.fn(() => {
+          tooltip = { options: { direction: 'top', offset: [0, -14] }, getElement: () => null };
+          return m;
+        }),
+        getTooltip: vi.fn(() => tooltip),
+        closeTooltip: vi.fn(),
+      };
+      return m;
+    }),
     latLngBounds: vi.fn(() => ({ extend: vi.fn(), isValid: vi.fn(() => true) })),
     layerGroup: vi.fn(() => ({ addTo: vi.fn().mockReturnThis(), clearLayers: vi.fn() })),
     canvas: vi.fn(() => ({})),
