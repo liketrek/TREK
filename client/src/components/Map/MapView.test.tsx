@@ -5,6 +5,7 @@ import { act, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { resetAllStores } from '../../../tests/helpers/store'
 import { buildPlace, buildReservation } from '../../../tests/helpers/factories'
+import { MAP_MAX_ZOOM } from '../../constants/mapDefaults'
 import { useAuthStore } from '../../store/authStore'
 import { CATEGORY_ICON_MAP } from '../shared/categoryIcons'
 import * as photoService from '../../services/photoService'
@@ -48,9 +49,10 @@ vi.mock('../../hooks/useGeolocation', () => ({
 const thumbCallbacks = vi.hoisted(() => new Map<string, (thumb: string) => void>())
 
 vi.mock('react-leaflet', () => ({
-  // center/zoom are surfaced so tests can assert the camera the map is built with.
-  MapContainer: ({ children, center, zoom }: any) => (
-    <div data-testid="map-container" data-center={JSON.stringify(center)} data-zoom={zoom}>{children}</div>
+  // center/zoom are surfaced so tests can assert the camera the map is built
+  // with; maxZoom because a cluster refuses to attach to a map without one.
+  MapContainer: ({ children, center, zoom, maxZoom }: any) => (
+    <div data-testid="map-container" data-center={JSON.stringify(center)} data-zoom={zoom} data-maxzoom={maxZoom}>{children}</div>
   ),
   TileLayer: () => <div data-testid="tile-layer" />,
   Marker: ({ children, eventHandlers, position, icon, zIndexOffset }: any) => (
@@ -243,6 +245,14 @@ describe('MapView', () => {
     const places = [buildMapPlace({ lat: 48.8584, lng: 2.2945 })]
     render(<MapView places={places} />)
     expect(screen.getByTestId('cluster-group')).toBeTruthy()
+  })
+
+  it('FE-COMP-MAPVIEW-010b: the map carries a zoom ceiling of its own, whatever the basemap is', () => {
+    // Without it, a vector basemap leaves the map with none and the cluster
+    // above throws on attach, taking the planner to the error boundary. The
+    // ceiling has to sit on the map because only a GridLayer can contribute one.
+    render(<MapView places={[buildMapPlace({ lat: 48.8584, lng: 2.2945 })]} />)
+    expect(screen.getByTestId('map-container').getAttribute('data-maxzoom')).toBe(String(MAP_MAX_ZOOM))
   })
 
   it('FE-COMP-MAPVIEW-011: renders the route polyline; travel times are no longer drawn on the map', () => {

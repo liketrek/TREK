@@ -19,7 +19,7 @@ import { escapeHtml } from '@trek/shared'
 import type { Day, Reservation, RouteVia } from '../../types'
 import { POI_CATEGORY_BY_KEY, type Poi } from './poiCategories'
 import { resolveTrackColor, hasManualTrackColor } from './trackColors'
-import { OFM_POSITRON, DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM, SATELLITE_TILE_URL, SATELLITE_TILE_ATTRIBUTION, SATELLITE_TILE_MAXZOOM, attributionForTile } from '../../constants/mapDefaults'
+import { OFM_POSITRON, DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM, MAP_MAX_ZOOM, SATELLITE_TILE_URL, SATELLITE_TILE_ATTRIBUTION, SATELLITE_TILE_MAXZOOM, attributionForTile } from '../../constants/mapDefaults'
 import { resolveBasemap } from '../../utils/tileUrl'
 import VectorBasemap from './VectorBasemap'
 import { useSettingsStore } from '../../store/settingsStore'
@@ -832,6 +832,12 @@ export const MapView = memo(function MapView({
       center={initialView.center}
       zoom={initialView.zoom}
       zoomControl={false}
+      // On the map itself, not left to the base layer. Leaflet reads its zoom
+      // ceiling from the map options or, failing that, from a GridLayer that
+      // brought one; a vector basemap is neither, so a map drawn by
+      // VectorBasemap had no ceiling at all. MarkerClusterGroup.onAdd throws
+      // outright on an infinite one, which took the whole planner down.
+      maxZoom={MAP_MAX_ZOOM}
       className="w-full h-full bg-[#e5e7eb]"
     >
       {/* The basemap is a vector style by default and a raster template when the

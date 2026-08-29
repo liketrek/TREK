@@ -3,6 +3,18 @@ export const DEFAULT_MAP_LNG = 0
 export const DEFAULT_MAP_ZOOM = 2
 export const DEFAULT_MAP_CENTER: [number, number] = [DEFAULT_MAP_LAT, DEFAULT_MAP_LNG]
 
+/**
+ * Zoom ceiling for a Leaflet map, set on the map rather than on its base layer.
+ *
+ * Leaflet answers `getMaxZoom()` from the map options first and only then from a
+ * layer that carried one, and only a GridLayer ever contributes: a vector
+ * basemap is a GL canvas, so a map drawn by one has no ceiling from anywhere.
+ * `MarkerClusterGroup.onAdd` refuses an infinite ceiling by throwing, which is
+ * how a basemap choice could take down the whole planner. Matches the raster and
+ * satellite layers so nothing changes for the maps that already had one.
+ */
+export const MAP_MAX_ZOOM = 19
+
 // Tokenless satellite base layer (ESRI World Imagery) — works without an API key.
 export const SATELLITE_TILE_URL =
   'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
