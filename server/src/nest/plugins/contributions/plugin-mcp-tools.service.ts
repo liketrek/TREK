@@ -192,18 +192,25 @@ function fitToBudget(blocks: Array<{ type: 'text'; text: string }>): Array<{ typ
   const out: Array<{ type: 'text'; text: string }> = [];
   let left = RESULT_MAX;
   let dropped = 0;
+  let cut = false;
   for (const block of blocks.slice(0, RESULT_BLOCKS_MAX)) {
     if (left <= 0) {
       dropped += 1;
       continue;
     }
+    // A block that had to be shortened counts too. Without this, one 100 KB
+    // block came back silently clipped and read to the model like the whole
+    // answer — the same failure the dropped-block marker exists to prevent.
+    if (block.text.length > left) cut = true;
     const text = block.text.length > left ? block.text.slice(0, left) : block.text;
     left -= text.length;
     out.push({ type: 'text', text });
   }
   dropped += Math.max(0, blocks.length - RESULT_BLOCKS_MAX);
-  if (dropped > 0) {
-    out.push({ type: 'text', text: `[truncated: ${dropped} more content block(s) omitted]` });
+  if (dropped > 0 || cut) {
+    console.warn(`[plugins] MCP tool result truncated: ${dropped} block(s) omitted${cut ? ', one shortened' : ''}`);
+    const omitted = dropped > 0 ? `${dropped} more content block(s) omitted` : 'the last block was cut short';
+    out.push({ type: 'text', text: `[truncated: ${omitted}]` });
   }
   return out;
 }
@@ -213,6 +220,12 @@ function fitToBudget(blocks: Array<{ type: 'text'; text: string }>): Array<{ typ
  * Exported for the tests, which is where the shapes are enumerated.
  */
 export function toMcpTextResult(raw: unknown): McpTextResult {
+  // Carried through every path below: a plugin that flagged an error and then
+  // shaped its content oddly still reported an error, and dropping the flag
+  // would present a failure to the model as a successful call.
+  const flagged = isTextResult(raw) && raw.isError === true;
+  const errorFlag = flagged ? { isError: true as const } : {};
+
   if (isTextResult(raw)) {
     const blocks = raw.content
       .filter((c): c is { type: 'text'; text: string } => !!c && (c as { type?: unknown }).type === 'text')
@@ -220,15 +233,28 @@ export function toMcpTextResult(raw: unknown): McpTextResult {
     // A content array we cannot read is worse than none: fall through and
     // serialise the whole thing rather than emit an empty result.
     if (blocks.length) {
-      return { content: fitToBudget(blocks), ...(raw.isError === true ? { isError: true as const } : {}) };
+      return { content: fitToBudget(blocks), ...errorFlag };
     }
   }
-  if (typeof raw === 'string') return { content: fitToBudget([{ type: 'text', text: raw }]) };
+  if (typeof raw === 'string') return { content: fitToBudget([{ type: 'text', text: raw }]), ...errorFlag };
+  if (raw === undefined) {
+    // JSON.stringify(undefined) is undefined, which would otherwise reach the
+    // model as the empty string — indistinguishable from a tool that answered.
+    return { content: [{ type: 'text', text: '(the plugin returned no value)' }], ...errorFlag };
+  }
   try {
     // Serialised with a budget rather than stringified whole and then sliced: a
     // plugin returning a 200 MB object should not cost the host that string
     // before the cap is applied.
-    return { content: fitToBudget([{ type: 'text', text: serialiseBounded(raw) }]) };
+    const { text, cut } = serialiseBounded(raw);
+    const content = fitToBudget([{ type: 'text', text }]);
+    if (cut) {
+      // fitToBudget cannot see this one: the value was already trimmed on its
+      // way out of JSON.stringify, so what arrives here is inside the budget.
+      console.warn('[plugins] MCP tool result truncated while being serialised');
+      content.push({ type: 'text', text: '[truncated: the result was cut to fit the size budget]' });
+    }
+    return { content, ...errorFlag };
   } catch {
     // JSON.stringify still throws on a cycle or a BigInt.
     return errorResult('The plugin returned a value that could not be serialised.');
@@ -242,16 +268,24 @@ export function toMcpTextResult(raw: unknown): McpTextResult {
  * being built instead of after. Throws exactly like JSON.stringify on a cycle
  * or a BigInt, so the caller's catch still handles those.
  */
-function serialiseBounded(value: unknown): string {
+function serialiseBounded(value: unknown): { text: string; cut: boolean } {
   let budget = RESULT_MAX;
+  let cut = false;
   const text = JSON.stringify(value, (_key, v: unknown) => {
-    if (budget <= 0) return undefined;
+    if (budget <= 0) {
+      cut = true;
+      return undefined;
+    }
     if (typeof v === 'string') {
       budget -= v.length;
-      return budget <= 0 ? v.slice(0, Math.max(0, v.length + budget)) : v;
+      if (budget <= 0) {
+        cut = true;
+        return v.slice(0, Math.max(0, v.length + budget));
+      }
+      return v;
     }
     budget -= 8; // rough cost of a number, boolean, or structural token
     return v;
   }, 2);
-  return text ?? '';
+  return { text: text ?? '', cut };
 }

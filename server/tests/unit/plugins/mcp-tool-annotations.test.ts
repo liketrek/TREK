@@ -28,6 +28,10 @@ const EXPECTED_READ_ONLY = new Set<string>([
   'geolocation:read',
   'rates:read',
   'weather:read',
+  // The hook permission for mcpToolProvider, just not hook:*-shaped. Every
+  // plugin that can advertise a tool holds it, so classifying it as a side
+  // effect would make readOnlyHint unreachable for all of them.
+  'mcp:tools',
   ...KNOWN_PERMISSIONS.filter((p) => p.startsWith('db:read:')),
   ...KNOWN_PERMISSIONS.filter((p) => p.startsWith('hook:')),
 ]);
@@ -55,6 +59,16 @@ describe('grant classification', () => {
     // silently treated as harmless.
     expect(readOnly('db:destroy:everything')).toBe(false);
     expect(readOnly('some:future:grant')).toBe(false);
+  });
+
+  it('MCPANN-006: a read-only plugin keeps the hint despite the grant that lets it advertise', () => {
+    // Regression: mcp:tools is the permission every publishing plugin holds, so
+    // counting it as a side effect put readOnlyHint out of reach for all of them
+    // and cost every legitimate read tool its auto-approval.
+    expect(readOnly('mcp:tools')).toBe(true);
+    const out = clampToolAnnotations({ readOnlyHint: true }, new Set(['mcp:tools', 'weather:read']));
+    expect(out.readOnlyHint).toBe(true);
+    expect(out.destructiveHint).toBe(false);
   });
 
   it('MCPANN-005: a per-host egress grant is a side effect and forces openWorldHint', () => {

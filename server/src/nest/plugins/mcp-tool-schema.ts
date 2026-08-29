@@ -46,6 +46,31 @@ export const SCHEMA_PROPERTIES_MAX = 64;
 export const SCHEMA_ENUM_MAX = 32;
 export const SCHEMA_DEPTH_MAX = 5;
 
+/** A `pattern` long enough to be interesting is long enough to be a mistake. */
+export const SCHEMA_PATTERN_MAX = 200;
+
+/**
+ * A property name is advertised model text, so it is held to the shape of an
+ * identifier rather than to a length.
+ *
+ * The caps and the newline collapse elsewhere in this file all sit on VALUES.
+ * A key is a JSON string like any other and may carry newlines, control
+ * characters and prose, which is the one place a plugin could still write
+ * `\n## SYSTEM\n…` into every user's context. `trek_session_token` with a
+ * plausible description is credential harvesting shaped like a schema.
+ */
+const PROP_NAME_RE = /^[A-Za-z_][A-Za-z0-9_.-]{0,63}$/;
+
+/**
+ * Names that survive the shape test but not the round trip.
+ *
+ * Zod drops `__proto__` while parsing, so a schema declaring it would advertise
+ * a field the handler can never receive — and one marked required would make
+ * the tool permanently uncallable. Refused rather than advertised, like every
+ * other declaration this file cannot honour.
+ */
+const RESERVED_PROP_NAMES = new Set(['__proto__', 'constructor', 'prototype']);
+
 /** Raised for a declaration the host will not advertise. */
 export class McpToolSchemaError extends Error {}
 
@@ -84,16 +109,137 @@ interface Counters {
   properties: number;
 }
 
-function sanitiseNode(node: unknown, depth: number, counters: Counters): unknown {
-  if (Array.isArray(node)) return node.map((item) => sanitiseNode(item, depth, counters));
-  if (!isPlainObject(node)) return node;
+/**
+ * One `enum` or `const` member, checked and bounded.
+ *
+ * Object members are refused rather than walked. Walking them would mean a
+ * `$ref` inside one reaching the advertisement through a subtree `nodeToZod`
+ * never visits, and the strings inside one never passing the sanitiser — which
+ * is the whole point of this file. `literalUnion` refuses them too, but only
+ * for the nodes it is asked to build, so the check has to live here as well.
+ */
+function checkedMember(member: unknown): unknown {
+  if (member !== null && typeof member === 'object') {
+    throw new McpToolSchemaError('enum and const members must be primitives');
+  }
+  // Only the strings carry instructions; a number or boolean cannot.
+  return typeof member === 'string' ? sanitiseAssistantText(member, SCHEMA_ENUM_VALUE_MAX) : member;
+}
+
+/**
+ * A `pattern` the host is willing to run against untrusted input.
+ *
+ * `RegExp` matching happens on the main thread, with no timeout and nothing to
+ * abort it, so `^(a+)+$` against 33 characters stops the whole server — not
+ * just MCP. That is an escape from the supervised child into the host event
+ * loop, and it does not take malice: a hand-written email pattern is the
+ * classic accident.
+ *
+ * A quantified group whose body itself quantifies or alternates is the shape
+ * that backtracks exponentially, so it is refused. `^[a-z0-9_]+$`,
+ * `^\d{4}-\d{2}-\d{2}$` and `^(draft|final)$` all survive; `(a+)+`, `(a*)*` and
+ * `(a|a)*` do not. Refused at parse time, like every other thing this file
+ * cannot make safe, rather than advertised and hoped about.
+ */
+function checkedPattern(value: unknown): string {
+  if (typeof value !== 'string') throw new McpToolSchemaError('pattern must be a string');
+  if (value.length > SCHEMA_PATTERN_MAX) {
+    throw new McpToolSchemaError(`pattern is longer than ${SCHEMA_PATTERN_MAX} characters`);
+  }
+  try {
+    new RegExp(value);
+  } catch {
+    throw new McpToolSchemaError('pattern is not a valid regular expression');
+  }
+  if (hasQuantifiedGroup(value)) {
+    throw new McpToolSchemaError(
+      'pattern quantifies a group that itself repeats or alternates, which can backtrack exponentially',
+    );
+  }
+  return value;
+}
+
+/** True when some `(…)` that repeats or alternates inside is itself quantified. */
+function hasQuantifiedGroup(pattern: string): boolean {
+  const opens: number[] = [];
+  for (let i = 0; i < pattern.length; i += 1) {
+    const ch = pattern[i];
+    if (ch === '\\') {
+      i += 1;
+      continue;
+    }
+    if (ch === '[') {
+      // Skip the class wholesale: its `|` and `+` are literals in there.
+      while (i < pattern.length && pattern[i] !== ']') i += pattern[i] === '\\' ? 2 : 1;
+      continue;
+    }
+    if (ch === '(') {
+      opens.push(i);
+      continue;
+    }
+    if (ch === ')' && opens.length) {
+      const start = opens.pop() as number;
+      const next = pattern[i + 1];
+      const quantified = next === '*' || next === '+' || next === '{';
+      if (quantified && /[*+{|]/.test(pattern.slice(start + 1, i))) return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * `default` and `examples`: an author's sample values, not schema.
+ *
+ * They reach the model with the same authority as a description, so their
+ * strings are bounded and stripped like one — but their KEYS are the author's
+ * own data and must not be read as keywords, so this walks separately from
+ * `sanitiseNode`.
+ */
+function sanitiseData(value: unknown, depth: number): unknown {
   if (depth > SCHEMA_DEPTH_MAX) {
     throw new McpToolSchemaError(`schema nests deeper than ${SCHEMA_DEPTH_MAX} levels`);
   }
-  const out: Record<string, unknown> = {};
+  if (typeof value === 'string') return sanitiseAssistantText(value, SCHEMA_DESCRIPTION_MAX);
+  if (Array.isArray(value)) return value.map((v) => sanitiseData(v, depth + 1));
+  if (!isPlainObject(value)) return value;
+  const out: Record<string, unknown> = Object.create(null) as Record<string, unknown>;
+  for (const [k, v] of Object.entries(value)) {
+    out[sanitiseAssistantText(k, SCHEMA_ENUM_VALUE_MAX)] = sanitiseData(v, depth + 1);
+  }
+  return out;
+}
+
+function sanitiseNode(node: unknown, depth: number, counters: Counters): unknown {
+  if (depth > SCHEMA_DEPTH_MAX) {
+    throw new McpToolSchemaError(`schema nests deeper than ${SCHEMA_DEPTH_MAX} levels`);
+  }
+  // Arrays count towards the depth like anything else: `[[[[…]]]]` recurses just
+  // as far, and only the byte cap stood between that and a blown stack.
+  if (Array.isArray(node)) return node.map((item) => sanitiseNode(item, depth + 1, counters));
+  if (!isPlainObject(node)) return node;
+  const out: Record<string, unknown> = Object.create(null) as Record<string, unknown>;
   for (const [key, value] of Object.entries(node)) {
     if (FORBIDDEN_KEYS.includes(key)) {
       throw new McpToolSchemaError(`schema uses "${key}", which is not supported`);
+    }
+    // The allowlist belongs here rather than only in nodeToZod, which walks the
+    // nodes it can type and skips whole subtrees: an additionalProperties
+    // subschema, anything below an enum or const, `properties` hung off a
+    // string. This walker sees every node, and `.meta()` advertises every node,
+    // so this is the only place the two can be made to agree.
+    if (!SUPPORTED_KEYWORDS.has(key) && !(depth === 0 && STRIPPED_ROOT_KEYS.includes(key))) {
+      throw new McpToolSchemaError(`schema uses unsupported keyword "${key}"`);
+    }
+    // Data, not schema nodes: an author's example object must not be walked as
+    // one, or its own keys would be read as keywords. Its STRINGS are advertised
+    // like any other, though, so they are bounded the same way.
+    if (key === 'default' || key === 'examples') {
+      out[key] = sanitiseData(value, depth);
+      continue;
+    }
+    if (key === 'pattern') {
+      out[key] = checkedPattern(value);
+      continue;
     }
     if (key === 'description') {
       out[key] = sanitiseAssistantText(value, SCHEMA_DESCRIPTION_MAX);
@@ -103,21 +249,30 @@ function sanitiseNode(node: unknown, depth: number, counters: Counters): unknown
       out[key] = sanitiseAssistantText(value, SCHEMA_TITLE_MAX);
       continue;
     }
-    if (key === 'const' && typeof value === 'string') {
-      out[key] = sanitiseAssistantText(value, SCHEMA_ENUM_VALUE_MAX);
+    if (key === 'const') {
+      out[key] = checkedMember(value);
       continue;
     }
-    if (key === 'enum' && Array.isArray(value)) {
+    if (key === 'enum') {
+      if (!Array.isArray(value)) throw new McpToolSchemaError('enum must be an array');
       if (value.length > SCHEMA_ENUM_MAX) {
         throw new McpToolSchemaError(`an enum lists more than ${SCHEMA_ENUM_MAX} values`);
       }
-      // Only the string members: a number or boolean carries no instructions.
-      out[key] = value.map((m) => (typeof m === 'string' ? sanitiseAssistantText(m, SCHEMA_ENUM_VALUE_MAX) : m));
+      out[key] = value.map(checkedMember);
       continue;
     }
     if (key === 'properties' && isPlainObject(value)) {
-      const props: Record<string, unknown> = {};
+      // Null-prototype, so a property literally named `__proto__` lands as a key
+      // instead of silently reassigning the prototype and vanishing from both
+      // the advertisement and the validator.
+      const props: Record<string, unknown> = Object.create(null) as Record<string, unknown>;
       for (const [propName, propSchema] of Object.entries(value)) {
+        if (!PROP_NAME_RE.test(propName)) {
+          throw new McpToolSchemaError(`property name "${propName.slice(0, 32)}" is not a plain identifier`);
+        }
+        if (RESERVED_PROP_NAMES.has(propName)) {
+          throw new McpToolSchemaError(`property name "${propName}" is reserved`);
+        }
         counters.properties += 1;
         if (counters.properties > SCHEMA_PROPERTIES_MAX) {
           throw new McpToolSchemaError(`schema declares more than ${SCHEMA_PROPERTIES_MAX} properties`);
@@ -148,6 +303,14 @@ export function normaliseToolSchema(raw: unknown): Record<string, unknown> | und
   // would simply be a lie, and the model would act on it.
   if (raw.type !== undefined && raw.type !== 'object') {
     throw new McpToolSchemaError(`schema root type must be "object", got ${JSON.stringify(raw.type)}`);
+  }
+  // Each of these makes buildToolInputSchema return something that is not a Zod
+  // object: an enum or const pins the arguments to one literal, and `nullable`
+  // wraps the whole thing. The SDK's normalizeObjectSchema then cannot read it,
+  // so tools/list advertises an empty schema while the runtime still enforces
+  // the declaration — a tool nobody can call successfully.
+  for (const key of ['enum', 'const', 'nullable']) {
+    if (key in raw) throw new McpToolSchemaError(`schema root must not use "${key}"`);
   }
 
   const bytes = Buffer.byteLength(JSON.stringify(raw) ?? '', 'utf8');
@@ -180,14 +343,30 @@ const SUPPORTED_KEYWORDS = new Set([
 
 const SUPPORTED_TYPES = new Set(['object', 'string', 'number', 'integer', 'boolean', 'array', 'null']);
 
-/** Formats worth enforcing. An unlisted one would be advertised and never checked. */
-const FORMAT_CHECKS: Record<string, (v: string) => boolean> = {
-  email: (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v),
-  uuid: (v) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v),
-  uri: (v) => /^[a-z][a-z0-9+.-]*:/i.test(v),
-  'date-time': (v) => !Number.isNaN(Date.parse(v)),
-  date: (v) => /^\d{4}-\d{2}-\d{2}$/.test(v),
-};
+/** Keywords the branches below read with a `typeof` guard, and the type they need. */
+const NUMERIC_KEYWORDS: ReadonlyArray<readonly [string, 'number' | 'string' | 'boolean']> = [
+  ['minimum', 'number'], ['maximum', 'number'],
+  ['exclusiveMinimum', 'number'], ['exclusiveMaximum', 'number'],
+  ['multipleOf', 'number'], ['minLength', 'number'], ['maxLength', 'number'],
+  ['minItems', 'number'], ['maxItems', 'number'],
+  ['pattern', 'string'], ['format', 'string'],
+  ['uniqueItems', 'boolean'], ['nullable', 'boolean'],
+];
+
+/**
+ * Formats worth enforcing. An unlisted one would be advertised and never checked.
+ *
+ * A Map rather than an object literal: on a literal, `format: "constructor"`
+ * finds `Object.prototype.constructor`, passes the allowlist gate, and either
+ * advertises a format nothing checks or throws inside the caller's validation.
+ */
+const FORMAT_CHECKS = new Map<string, (v: string) => boolean>([
+  ['email', (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)],
+  ['uuid', (v) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v)],
+  ['uri', (v) => /^[a-z][a-z0-9+.-]*:/i.test(v)],
+  ['date-time', (v) => !Number.isNaN(Date.parse(v))],
+  ['date', (v) => /^\d{4}-\d{2}-\d{2}$/.test(v)],
+]);
 
 /** The `required` names a normalised schema declares. */
 function requiredKeys(schema: Record<string, unknown> | undefined): string[] {
@@ -226,8 +405,27 @@ function nodeToZod(node: unknown, path: string): z.ZodType {
     }
   }
 
-  // An enum or const pins the value set outright, whatever `type` says.
-  //
+  // A keyword whose value is the wrong type is dropped by the branches below and
+  // advertised all the same — `exclusiveMinimum: true`, the draft-4 spelling many
+  // generators still emit, would vanish from the check and stay in the
+  // advertisement. Same failure as an unsupported keyword, so same answer.
+  for (const [key, expected] of NUMERIC_KEYWORDS) {
+    if (node[key] !== undefined && typeof node[key] !== expected) {
+      throw new McpToolSchemaError(`${path}: "${key}" must be a ${expected}`);
+    }
+  }
+
+  // An enum or const pins the value set outright, whatever `type` says — and
+  // returns before the children below are built, so a sibling `properties` or
+  // `items` would be advertised and enforced by nothing.
+  if (node.enum !== undefined || node.const !== undefined) {
+    for (const key of ['properties', 'items', 'additionalProperties']) {
+      if (node[key] !== undefined) {
+        throw new McpToolSchemaError(`${path}: "${key}" cannot sit beside an enum or const`);
+      }
+    }
+  }
+
   // Built from real literal types rather than a predicate: z.custom() cannot be
   // represented in JSON Schema, and the SDK renders tools/list by walking this
   // schema, so a predicate here throws for the whole session the first time a
@@ -264,7 +462,7 @@ function nodeToZod(node: unknown, path: string): z.ZodType {
         sc = sc.regex(re);
       }
       if (typeof node.format === 'string') {
-        const check = FORMAT_CHECKS[node.format];
+        const check = FORMAT_CHECKS.get(node.format);
         if (!check) throw new McpToolSchemaError(`${path}: unsupported format "${node.format}"`);
         out = sc.refine(check, { message: `must be a valid ${node.format}` });
         break;
@@ -301,9 +499,16 @@ function nodeToZod(node: unknown, path: string): z.ZodType {
       break;
     }
     default: {
+      // Only the two booleans, because only they are enforceable here. A
+      // subschema would be advertised as a constraint on the extra properties
+      // and then checked by nothing, which is the exact drift this file exists
+      // to prevent.
+      if (node.additionalProperties !== undefined && typeof node.additionalProperties !== 'boolean') {
+        throw new McpToolSchemaError(`${path}: additionalProperties must be true or false`);
+      }
       const props = isPlainObject(node.properties) ? node.properties : {};
       const required = new Set(requiredKeys(node));
-      const shape: Record<string, z.ZodType> = {};
+      const shape: Record<string, z.ZodType> = Object.create(null) as Record<string, z.ZodType>;
       for (const [name, child] of Object.entries(props)) {
         // Every field is optional in the SHAPE, with presence enforced by the
         // check below. A required field declared non-optional here would fail
@@ -318,7 +523,10 @@ function nodeToZod(node: unknown, path: string): z.ZodType {
       out = required.size
         ? base.check((ctx) => {
             for (const name of required) {
-              if (!(name in (ctx.value as Record<string, unknown>))) {
+              // hasOwnProperty, not `in`: `in` walks the prototype chain, so a
+              // required field named `toString` would read as present on every
+              // call and never be asked for.
+              if (!Object.prototype.hasOwnProperty.call(ctx.value as object, name)) {
                 ctx.issues.push({
                   code: 'custom',
                   input: ctx.value,
@@ -393,6 +601,12 @@ function isReadOnlyGrant(g: string): boolean {
   // Host-to-plugin entry points. These grant the plugin nothing: they are the
   // host's permission to CALL it. A photo provider is not a writer.
   if (g.startsWith('hook:')) return true;
+  // The same thing, spelled differently. mcp:tools is the hook permission for
+  // mcpToolProvider (PLUGIN_HOOK_PERMISSION in shared/src/plugin-permissions.ts)
+  // and is simply not hook:*-shaped. Counting it as a side effect makes
+  // readOnlyHint unreachable for EVERY plugin tool, since holding it is what
+  // lets a plugin advertise one at all.
+  if (g === 'mcp:tools') return true;
   // Receiving events is a read; acting on one needs a separate grant.
   if (g === 'events:subscribe') return true;
   return false;
