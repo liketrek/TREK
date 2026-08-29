@@ -6,7 +6,7 @@ OAuth scopes control exactly which data your AI client can read or write in TREK
 
 ## All scopes
 
-TREK defines 34 scopes across 16 groups.
+TREK defines 35 scopes across 17 groups.
 
 | Group | Scope | Permission |
 |---|---|---|
@@ -44,6 +44,7 @@ TREK defines 34 scopes across 16 groups.
 | | `files:content` | Read what is inside an uploaded document, such as a booking PDF or a ticket |
 | **Settings** | `settings:read` | Read units, time format, language, default currency, and start page |
 | | `settings:write` | Change units, time format, language, default currency, and start page |
+| **Plugins** | `plugins:use` | Call tools published by plugins an administrator installed and approved |
 
 ## Scope rules
 
@@ -53,7 +54,8 @@ TREK defines 34 scopes across 16 groups.
 - `files:content` is a **separate** scope from `files:read` and is not implied by `files:write`. A token can list a trip's documents without being allowed to read what is inside them. Content reads are capped at 10 MB per file.
 - `settings:write` never reaches a stored credential. The API keys, tokens and webhook URLs kept in settings are refused by the same allow-list the REST route uses, so an assistant can switch you to Fahrenheit but cannot read or replace your Mapbox key.
 - `list_trips` and `get_trip_summary` are always available regardless of scope — they are navigation tools.
-- Static tokens and web session JWTs have full access equivalent to all scopes.
+- `plugins:use` grants no data access of its own. It lets a client call tools published by plugins your administrator installed and approved, and each plugin acts with the permissions the administrator granted it — which can reach further than the scopes on your token. The admin's `mcp:tools` grant is the real boundary, not this scope. No client preset selects it for you: a client has to ask for it by name.
+- Static tokens and web session JWTs have full access equivalent to all scopes, `plugins:use` included.
 - Addon-gated tools (Packing, To-dos, Budget, Collections, Atlas, Collab, Vacay, Journey) require both the relevant scope **and** the corresponding addon to be enabled by an admin. The to-do tools ride the **Packing** addon, not an addon of their own.
 
 ## Choosing the right scopes
