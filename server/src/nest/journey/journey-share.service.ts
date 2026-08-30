@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import crypto from 'crypto';
 import { DatabaseService } from '../database/database.service';
 import { JourneyDomainService } from './journey-domain.service';
+import { decodeEntryRow } from './journey-entry-row';
 import { SettingsService } from '../settings/settings.service';
 
 interface JourneySharePermissions {
@@ -194,9 +195,7 @@ export class JourneyShareService {
 
     const enrichedEntries = entries
       .map(e => ({
-        ...e,
-        tags: e.tags ? JSON.parse(e.tags) : [],
-        pros_cons: e.pros_cons ? JSON.parse(e.pros_cons) : null,
+        ...decodeEntryRow(e),
         photos: photosByEntry[e.id] || [],
       }));
 

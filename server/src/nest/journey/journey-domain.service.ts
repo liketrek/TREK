@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { avatarUrl } from '../common/avatarUrl';
 import type { Journey, JourneyEntry, JourneyPhoto, JourneyContributor } from '../../types';
+import { decodeEntryRow, type JourneyEntryWire } from './journey-entry-row';
 import { DatabaseService } from '../database/database.service';
 import { RealtimeService } from '../realtime/realtime.service';
 import type { JourneyStats, JourneyTrack, TrekWsUserEventName } from '@trek/shared';
@@ -250,9 +251,7 @@ export class JourneyDomainService {
       .all(journeyId);
 
     const enrichedEntries = entries.map((e) => ({
-      ...e,
-      tags: e.tags ? JSON.parse(e.tags) : [],
-      pros_cons: e.pros_cons ? JSON.parse(e.pros_cons) : null,
+      ...decodeEntryRow(e),
       photos: photosByEntry[e.id] || [],
       source_trip_name: e.source_trip_id
         ? (this.db.prepare('SELECT title FROM trips WHERE id = ?').get(e.source_trip_id) as { title: string } | undefined)
@@ -1081,9 +1080,7 @@ export class JourneyDomainService {
     }
 
     return entries.map((e) => ({
-      ...e,
-      tags: e.tags ? JSON.parse(e.tags) : [],
-      pros_cons: e.pros_cons ? JSON.parse(e.pros_cons) : null,
+      ...decodeEntryRow(e),
       photos: photosByEntry[e.id] || [],
       source_trip_name: e.source_trip_id
         ? (this.db.prepare('SELECT title FROM trips WHERE id = ?').get(e.source_trip_id) as { title: string } | undefined)
@@ -1112,7 +1109,7 @@ export class JourneyDomainService {
       sort_order?: number;
     },
     sid?: string,
-  ): JourneyEntry | null {
+  ): JourneyEntryWire | null {
     if (!this.canEdit(journeyId, userId)) return null;
 
     const now = this.ts();
@@ -1153,9 +1150,11 @@ export class JourneyDomainService {
         now,
       );
 
-    const created = this.db
-      .prepare('SELECT * FROM journey_entries WHERE id = ?')
-      .get(Number(res.lastInsertRowid)) as JourneyEntry;
+    const created = decodeEntryRow(
+      this.db
+        .prepare('SELECT * FROM journey_entries WHERE id = ?')
+        .get(Number(res.lastInsertRowid)) as JourneyEntry,
+    );
     this.broadcastJourneyEvent(journeyId, 'journey:entry:created', { entry: created }, sid);
     return created;
   }
@@ -1180,7 +1179,7 @@ export class JourneyDomainService {
       sort_order: number;
     }>,
     sid?: string,
-  ): JourneyEntry | null {
+  ): JourneyEntryWire | null {
     const entry = this.db.prepare('SELECT * FROM journey_entries WHERE id = ?').get(entryId) as JourneyEntry | undefined;
     if (!entry) return null;
     if (!this.canEdit(entry.journey_id, userId)) return null;
@@ -1229,7 +1228,7 @@ export class JourneyDomainService {
       values.push('entry');
     }
 
-    if (fields.length === 0) return entry;
+    if (fields.length === 0) return decodeEntryRow(entry);
 
     fields.push('updated_at = ?');
     values.push(this.ts());
@@ -1239,7 +1238,9 @@ export class JourneyDomainService {
     // touch the journey
     this.db.prepare('UPDATE journeys SET updated_at = ? WHERE id = ?').run(this.ts(), entry.journey_id);
 
-    const updated = this.db.prepare('SELECT * FROM journey_entries WHERE id = ?').get(entryId) as JourneyEntry;
+    const updated = decodeEntryRow(
+      this.db.prepare('SELECT * FROM journey_entries WHERE id = ?').get(entryId) as JourneyEntry,
+    );
     this.broadcastJourneyEvent(entry.journey_id, 'journey:entry:updated', { entry: updated }, sid);
     return updated;
   }

@@ -565,6 +565,84 @@ describe('updateEntry', () => {
     expect(updated!.story).toBe('Now I have a story!');
   });
 
+  /*
+   * The JSON columns come back decoded, on every path (#2085 follow-up).
+   *
+   * `tags` and `pros_cons` are JSON in TEXT columns. The read paths decoded
+   * them and create/update did not, so an edit answered with `tags` as a
+   * string, the client spread it into an entry it had typed as `string[]`, and
+   * the journey page threw `tags.map is not a function`.
+   */
+  it('answers with tags decoded, not as the JSON string the column holds', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const entry = svc.createEntry(journey.id, user.id, {
+      title: 'Beach Day', entry_date: '2026-03-10', tags: ['beach', 'sunset'],
+    });
+
+    expect(entry!.tags).toEqual(['beach', 'sunset']);
+
+    const updated = svc.updateEntry(entry!.id, user.id, { title: 'Renamed' });
+    expect(updated!.tags).toEqual(['beach', 'sunset']);
+  });
+
+  it('decodes an emptied tag list rather than answering the string "[]"', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const entry = createJourneyEntry(testDb, journey.id, user.id, { entry_date: '2026-03-01' });
+
+    // The update path writes JSON.stringify([]) with no length check, so this
+    // is the ordinary way an entry ends up with a non-null tags column.
+    const updated = svc.updateEntry(entry.id, user.id, { tags: [] });
+    expect(updated!.tags).toEqual([]);
+  });
+
+  it('decodes pros_cons the same way, on create and on update', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const prosCons = { pros: ['warm'], cons: ['crowded'] };
+    const entry = svc.createEntry(journey.id, user.id, {
+      title: 'Verdict', entry_date: '2026-03-10', pros_cons: prosCons,
+    });
+
+    expect(entry!.pros_cons).toEqual(prosCons);
+    expect(svc.updateEntry(entry!.id, user.id, { title: 'Renamed' })!.pros_cons).toEqual(prosCons);
+  });
+
+  /* An update that changes nothing takes its own early return out of the method. */
+  it('decodes on the no-op update too', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const entry = svc.createEntry(journey.id, user.id, {
+      title: 'Beach Day', entry_date: '2026-03-10', tags: ['beach'],
+    });
+
+    expect(svc.updateEntry(entry!.id, user.id, {})!.tags).toEqual(['beach']);
+  });
+
+  /*
+   * The broadcast carries the same shape as the answer. Nothing reads it today
+   * — the journey page reloads on any event — so this is about not leaving a
+   * payload that contradicts every read path for a listener to trust later.
+   */
+  it('broadcasts the decoded entry, not the row', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const entry = svc.createEntry(journey.id, user.id, {
+      title: 'Beach Day', entry_date: '2026-03-10', tags: ['beach', 'sunset'],
+    });
+
+    const spy = vi.spyOn(RealtimeService.prototype, 'broadcastToUser').mockImplementation(() => {});
+    try {
+      svc.updateEntry(entry!.id, user.id, { title: 'Renamed' });
+      const payload = spy.mock.calls.at(-1)?.[1] as { type: string; entry: { tags: unknown } };
+      expect(payload.type).toBe('journey:entry:updated');
+      expect(payload.entry.tags).toEqual(['beach', 'sunset']);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
   it('JOURNEY-SVC-034: returns null for non-existent entry', () => {
     const { user } = createUser(testDb);
 
