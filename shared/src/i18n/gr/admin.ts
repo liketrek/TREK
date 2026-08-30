@@ -560,7 +560,7 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.packing.name': 'Λίστες',
   'admin.addons.catalog.packing.description': 'Λίστες πακεταρίσματος και εργασίες προς εκτέλεση για τα ταξίδια σας',
   'admin.addons.catalog.budget.name': 'Κόστη',
-  'admin.addons.catalog.budget.description': 'Παρακολουθήστε τα έξοδα και σχεδιάστε τον προϋπολογισμό του ταξιδιού σας',
+  'admin.addons.catalog.budget.description': 'Παρακολουθήστε τα έξοδα του ταξιδιού και μοιράστε τα στους ταξιδιώτες',
   'admin.addons.catalog.documents.name': 'Έγγραφα',
   'admin.addons.catalog.documents.description': 'Αποθηκεύστε και διαχειριστείτε ταξιδιωτικά έγγραφα',
   'admin.addons.catalog.vacay.name': 'Vacay',
@@ -569,8 +569,7 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.atlas.description':
     'Παγκόσμιος χάρτης με χώρες που έχετε επισκεφθεί και ταξιδιωτικά στατιστικά',
   'admin.addons.catalog.collab.name': 'Collab',
-  'admin.addons.catalog.collab.description':
-    'Σημειώσεις, δημοσκοπήσεις και συνομιλία πραγματικού χρόνου για σχεδιασμό ταξιδιού',
+  'admin.addons.catalog.collab.description': 'Σημειώσεις, ψηφοφορίες, συνομιλία και προτάσεις για κοινό σχεδιασμό',
   'admin.addons.catalog.memories.name': 'Φωτογραφίες (Immich)',
   'admin.addons.catalog.memories.description':
     'Μοιραστείτε φωτογραφίες ταξιδιού μέσω της δικής σας εγκατάστασης Immich',
@@ -579,6 +578,12 @@ const admin: TranslationStrings = {
   'admin.addons.subtitleBefore':
     'Ενεργοποιήστε ή απενεργοποιήστε λειτουργίες για να εξατομικεύσετε την εμπειρία σας στο ',
   'admin.addons.subtitleAfter': '.',
+  'admin.addons.catalog.naver_list_import.name': 'Naver List Import',
+  'admin.addons.catalog.naver_list_import.description': 'Εισαγωγή τοποθεσιών από κοινόχρηστη λίστα Naver Maps',
+  'admin.addons.catalog.airtrail.name': 'AirTrail',
+  'admin.addons.catalog.airtrail.description': 'Συγχρονισμός πτήσεων από τη δική σας εγκατάσταση AirTrail',
+  'admin.addons.catalog.llm_parsing.name': 'Ανάλυση με τεχνητή νοημοσύνη',
+  'admin.addons.catalog.llm_parsing.description': 'Διαβάζει κρατήσεις που δεν καταλαβαίνει ο ενσωματωμένος αναλυτής, με μοντέλο ΤΝ της επιλογής σας',
   'admin.addons.enabled': 'Ενεργοποιημένο',
   'admin.addons.disabled': 'Απενεργοποιημένο',
   'admin.addons.type.trip': 'Ταξίδι',
@@ -589,6 +594,7 @@ const admin: TranslationStrings = {
   'admin.addons.integrationHint': 'Υπηρεσίες backend και ενσωματώσεις API χωρίς ειδική σελίδα',
   'admin.addons.toast.updated': 'Το πρόσθετο ενημερώθηκε',
   'admin.addons.toast.error': 'Αποτυχία ενημέρωσης προσθέτου',
+  'admin.addons.group.count': '{enabled} από {total} ενεργοποιημένα',
   'admin.addons.noAddons': 'Δεν υπάρχουν διαθέσιμα πρόσθετα',
   'admin.weather.title': 'Δεδομένα Καιρού',
   'admin.weather.badge': 'Από 24 Μαρτίου 2026',
@@ -681,8 +687,7 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.journey.description':
     'Παρακολούθηση ταξιδιών & ημερολόγιο ταξιδιών με αφίξεις, φωτογραφίες και καθημερινές ιστορίες',
   'admin.addons.catalog.collections.name': 'Συλλογές',
-  'admin.addons.catalog.collections.description':
-    'Προσωπική βιβλιοθήκη μερών — αποθήκευσε μέρη από όλα τα ταξίδια σε ονομασμένες λίστες, αντίγραψέ τα σε οποιοδήποτε ταξίδι, μοιράσου τα με άλλους',
+  'admin.addons.catalog.collections.description': 'Συγκεντρώστε τοποθεσίες από κάθε ταξίδι σε λίστες με όνομα και χρησιμοποιήστε τις ξανά',
   'admin.passkey.title': 'Σύνδεση με passkey',
   'admin.passkey.cardHint':
     'Επιτρέψτε στους χρήστες να συνδέονται με passkeys (WebAuthn). Απενεργοποιημένο από προεπιλογή.',

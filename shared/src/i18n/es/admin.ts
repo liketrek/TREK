@@ -507,6 +507,12 @@ const admin: TranslationStrings = {
   'admin.addons.subtitle': 'Activa o desactiva funciones para personalizar tu experiencia en TREK.',
   'admin.addons.subtitleBefore': 'Activa o desactiva funciones para personalizar tu experiencia en ',
   'admin.addons.subtitleAfter': '.',
+  'admin.addons.catalog.naver_list_import.name': 'Naver List Import',
+  'admin.addons.catalog.naver_list_import.description': 'Importa lugares desde una lista compartida de Naver Maps',
+  'admin.addons.catalog.airtrail.name': 'AirTrail',
+  'admin.addons.catalog.airtrail.description': 'Sincroniza vuelos desde tu instancia autoalojada de AirTrail',
+  'admin.addons.catalog.llm_parsing.name': 'Análisis con IA',
+  'admin.addons.catalog.llm_parsing.description': 'Lee reservas que el analizador integrado no entiende, con un modelo de IA que tú elijas',
   'admin.addons.enabled': 'Activo',
   'admin.addons.disabled': 'Desactivado',
   'admin.addons.type.trip': 'Viaje',
@@ -517,6 +523,7 @@ const admin: TranslationStrings = {
   'admin.addons.integrationHint': 'Servicios backend e integraciones de API sin página dedicada',
   'admin.addons.toast.updated': 'Complemento actualizado',
   'admin.addons.toast.error': 'No se pudo actualizar el complemento',
+  'admin.addons.group.count': '{enabled} de {total} activados',
   'admin.addons.noAddons': 'No hay complementos disponibles',
   'admin.weather.title': 'Datos meteorológicos',
   'admin.weather.badge': 'Desde el 24 de marzo de 2026',
@@ -612,7 +619,7 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.packing.name': 'Listas',
   'admin.addons.catalog.packing.description': 'Listas de equipaje y tareas pendientes para tus viajes',
   'admin.addons.catalog.budget.name': 'Costes',
-  'admin.addons.catalog.budget.description': 'Controla los gastos y planifica el presupuesto del viaje',
+  'admin.addons.catalog.budget.description': 'Controla los gastos del viaje y repártelos entre los viajeros',
   'admin.addons.catalog.documents.name': 'Documentos',
   'admin.addons.catalog.documents.description': 'Guarda y gestiona la documentación del viaje',
   'admin.addons.catalog.vacay.name': 'Vacaciones',
@@ -620,7 +627,7 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.atlas.name': 'Atlas',
   'admin.addons.catalog.atlas.description': 'Mapa del mundo con los países visitados y estadísticas de viaje',
   'admin.addons.catalog.collab.name': 'Colaboración',
-  'admin.addons.catalog.collab.description': 'Notas, encuestas y chat en tiempo real para organizar el viaje',
+  'admin.addons.catalog.collab.description': 'Notas, encuestas, chat y sugerencias para planificar en grupo',
   'admin.oidcOnlyMode': 'Desactivar autenticación por contraseña',
   'admin.oidcOnlyModeHint':
     'Si está activado, solo se permite el inicio de sesión con SSO. El inicio de sesión y registro con contraseña se bloquean.',
@@ -673,8 +680,7 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.journey.description':
     'Seguimiento de viajes y diario de viajero con registros de ubicación, fotos e historias diarias',
   'admin.addons.catalog.collections.name': 'Colecciones',
-  'admin.addons.catalog.collections.description':
-    'Biblioteca personal de lugares: guarda lugares de tus viajes en listas con nombre, cópialos a cualquier viaje y compártelos con otros',
+  'admin.addons.catalog.collections.description': 'Reúne lugares de cualquier viaje en listas con nombre y reutilízalos',
   'admin.passkey.title': 'Inicio de sesión con passkey',
   'admin.passkey.cardHint':
     'Permite que los usuarios inicien sesión con passkeys (WebAuthn). Desactivado de forma predeterminada.',

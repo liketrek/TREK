@@ -550,7 +550,7 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.packing.name': 'Listeler',
   'admin.addons.catalog.packing.description': 'Seyahatleriniz için paket listeleri ve yapılacak işler',
   'admin.addons.catalog.budget.name': 'Maliyetler',
-  'admin.addons.catalog.budget.description': 'Harcamaları takip edin ve seyahat bütçenizi planlayın',
+  'admin.addons.catalog.budget.description': 'Gezi masraflarını takip edin ve yolcular arasında paylaştırın',
   'admin.addons.catalog.documents.name': 'Belgeler',
   'admin.addons.catalog.documents.description': 'Seyahat belgelerini saklayın ve yönetin',
   'admin.addons.catalog.vacay.name': 'Tatil',
@@ -558,7 +558,7 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.atlas.name': 'Atlas',
   'admin.addons.catalog.atlas.description': 'Ziyaret edilen ülkeleri ve seyahat istatistiklerini içeren dünya haritası',
   'admin.addons.catalog.collab.name': 'İş birliği',
-  'admin.addons.catalog.collab.description': 'Seyahat planlaması için gerçek zamanlı notlar, anketler ve sohbet',
+  'admin.addons.catalog.collab.description': 'Birlikte planlamak için notlar, anketler, sohbet ve öneriler',
   'admin.addons.catalog.memories.name': 'Fotoğraflar (Immich)',
   'admin.addons.catalog.memories.description': 'Immich örneğiniz aracılığıyla gezi fotoğraflarını paylaşın',
   'admin.addons.catalog.mcp.name': 'MCP',
@@ -566,6 +566,12 @@ const admin: TranslationStrings = {
   'admin.addons.subtitleBefore':
     'Kişiselleştirmenizi özelleştirmek için özellikleri etkinleştirin veya devre dışı bırakın.',
   'admin.addons.subtitleAfter': 'deneyim.',
+  'admin.addons.catalog.naver_list_import.name': 'Naver List Import',
+  'admin.addons.catalog.naver_list_import.description': 'Paylaşılan bir Naver Haritalar listesinden yerleri içe aktarın',
+  'admin.addons.catalog.airtrail.name': 'AirTrail',
+  'admin.addons.catalog.airtrail.description': 'Kendi sunucunuzdaki AirTrail örneğinden uçuşları eşitleyin',
+  'admin.addons.catalog.llm_parsing.name': 'Yapay zekâ ile ayrıştırma',
+  'admin.addons.catalog.llm_parsing.description': 'Yerleşik ayrıştırıcının okuyamadığı rezervasyonları, seçtiğiniz yapay zekâ modeliyle okur',
   'admin.addons.enabled': 'Etkinleştirilmiş',
   'admin.addons.disabled': 'Engelli',
   'admin.addons.type.trip': 'Seyahat',
@@ -576,6 +582,7 @@ const admin: TranslationStrings = {
   'admin.addons.integrationHint': 'Özel bir sayfa olmadan arka uç hizmetleri ve API entegrasyonları',
   'admin.addons.toast.updated': 'Eklenti güncellendi',
   'admin.addons.toast.error': 'Eklenti güncellenemedi',
+  'admin.addons.group.count': '{total} eklentiden {enabled} tanesi etkin',
   'admin.addons.noAddons': 'Kullanılabilir eklenti yok',
   'admin.weather.title': 'Hava Durumu Verileri',
   'admin.weather.badge': "24 Mart 2026'dan beri",
@@ -668,8 +675,7 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.journey.description':
     'Check-in, fotoğraf ve günlük hikâyelerle seyahat takibi ve seyahat günlüğü',
   'admin.addons.catalog.collections.name': 'Koleksiyonlar',
-  'admin.addons.catalog.collections.description':
-    'Kişisel yer kitaplığı — yerleri geziler arasında adlandırılmış listelere kaydet, herhangi bir geziye kopyala, başkalarıyla paylaş',
+  'admin.addons.catalog.collections.description': 'Her geziden yerleri adlandırılmış listelerde toplayın ve yeniden kullanın',
   'admin.passkey.title': 'Passkey ile oturum açma',
   'admin.passkey.cardHint':
     'Kullanıcıların passkey (WebAuthn) ile oturum açmasına izin verin. Varsayılan olarak kapalı.',

@@ -1,5 +1,5 @@
 // FE-ADMIN-ADDON-001 to FE-ADMIN-ADDON-025
-import { render, screen, waitFor, within } from '../../../tests/helpers/render';
+import { render, screen, waitFor } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { delay, http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
@@ -44,20 +44,16 @@ function modelsRoute(names: string[], seen?: (string | null)[]) {
   });
 }
 
-/** The pill toggle of a top-level addon row. */
+/** Every switch is labelled with the thing it controls, top-level tile or shelf
+ *  row alike, so one lookup covers both. */
 function addonToggle(name: string): HTMLElement {
-  const row = screen.getByText(name).closest('.px-6.py-4') as HTMLElement;
-  return within(row).getByRole('button');
+  return screen.getByRole('button', { name });
 }
 
-/** The pill toggle of an indented sub-row (bag tracking, collab feature, photo provider). */
-function subToggle(label: string): HTMLElement {
-  const row = screen.getByText(label).closest('.flex.items-center.gap-4') as HTMLElement;
-  return within(row).getByRole('button');
-}
+const subToggle = addonToggle;
 
 function isOn(toggle: HTMLElement): boolean {
-  return toggle.style.background === 'var(--text-primary)';
+  return toggle.getAttribute('aria-pressed') === 'true';
 }
 
 beforeAll(() => {
@@ -82,6 +78,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  document.documentElement.classList.remove('dark');
 });
 
 describe('AddonManager', () => {
@@ -144,13 +141,10 @@ describe('AddonManager', () => {
     render(<><ToastContainer /><AddonManager /></>);
     await screen.findByText('Todo List');
 
-    // Get toggle button - use getAllByRole since there might be multiple buttons
-    const buttons = screen.getAllByRole('button');
-    const toggleBtn = buttons.find(b => b.classList.contains('rounded-full'));
-    expect(toggleBtn).toBeInTheDocument();
+    const toggleBtn = addonToggle('Todo List');
+    expect(isOn(toggleBtn)).toBe(false);
 
-    // Before click - disabled state (border-primary bg)
-    await user.click(toggleBtn!);
+    await user.click(toggleBtn);
 
     // After click - success toast
     await screen.findByText('Addon updated');
@@ -169,17 +163,14 @@ describe('AddonManager', () => {
     render(<><ToastContainer /><AddonManager /></>);
     await screen.findByText('Todo List');
 
-    const buttons = screen.getAllByRole('button');
-    const toggleBtn = buttons.find(b => b.classList.contains('rounded-full'));
-    await user.click(toggleBtn!);
+    await user.click(addonToggle('Todo List'));
 
     // Error toast appears
     await screen.findByText('Failed to update addon');
 
-    // The disabled text should be back after rollback
+    // The switch is back off after rollback
     await waitFor(() => {
-      const disabledTexts = screen.getAllByText('Disabled');
-      expect(disabledTexts.length).toBeGreaterThan(0);
+      expect(isOn(addonToggle('Todo List'))).toBe(false);
     });
   });
 
@@ -195,13 +186,7 @@ describe('AddonManager', () => {
       <AddonManager bagTrackingEnabled={false} onToggleBagTracking={mockToggle} />
     );
     await screen.findByText('Bag Tracking');
-    const bagTrackingToggle = screen.getAllByRole('button').find(b =>
-      b.closest('[style*="paddingLeft: 70"]') !== null || b.closest('div')?.textContent?.includes('Bag Tracking')
-    );
-    // Click the bag tracking toggle button (the h-6 w-11 button near "Bag Tracking")
-    const allBtns = screen.getAllByRole('button').filter(b => b.classList.contains('rounded-full'));
-    // There should be two toggle buttons: one for the addon, one for bag tracking
-    await user.click(allBtns[allBtns.length - 1]);
+    await user.click(subToggle('Bag Tracking'));
     expect(mockToggle).toHaveBeenCalled();
   });
 
@@ -251,9 +236,10 @@ describe('AddonManager', () => {
     // Journey addon is rendered
     expect(screen.getByText('Journey')).toBeInTheDocument();
 
-    // Toggle buttons: journey toggle + 2 provider toggles
-    const toggleBtns = screen.getAllByRole('button').filter(b => b.classList.contains('rounded-full'));
-    expect(toggleBtns.length).toBe(3);
+    // Journey's own switch plus one per provider, each labelled with what it controls
+    expect(isOn(addonToggle('Journey'))).toBe(true);
+    expect(isOn(subToggle('Unsplash'))).toBe(true);
+    expect(isOn(subToggle('Pexels'))).toBe(false);
   });
 
   it('FE-ADMIN-ADDON-011: icon falls back to Puzzle when icon name unknown', async () => {
@@ -278,7 +264,8 @@ describe('AddonManager', () => {
   });
 
   it('FE-ADMIN-ADDON-013: dark mode swaps the wordmark in the header', async () => {
-    seedStore(useSettingsStore, { settings: { dark_mode: 'dark' } });
+    // The wordmark reads the .dark class, the same source applyAppearance() writes.
+    document.documentElement.classList.add('dark');
     render(<AddonManager />);
 
     await screen.findByText('No addons available');
@@ -309,11 +296,11 @@ describe('AddonManager', () => {
 
     await screen.findByText('Immich');
     // immich and synologyphotos ship a vendor glyph, unsplash does not
-    const immichRow = screen.getByText('Immich').closest('.flex.items-center.gap-4') as HTMLElement;
+    const immichRow = screen.getByText('Immich').closest('li') as HTMLElement;
     expect(immichRow.querySelector('svg')).toBeInTheDocument();
-    const synologyRow = screen.getByText('Synology Photos').closest('.flex.items-center.gap-4') as HTMLElement;
+    const synologyRow = screen.getByText('Synology Photos').closest('li') as HTMLElement;
     expect(synologyRow.querySelector('svg')).toBeInTheDocument();
-    const unsplashRow = screen.getByText('Unsplash').closest('.flex.items-center.gap-4') as HTMLElement;
+    const unsplashRow = screen.getByText('Unsplash').closest('li') as HTMLElement;
     expect(unsplashRow.querySelector('svg')).not.toBeInTheDocument();
 
     expect(isOn(subToggle('Immich'))).toBe(true);
@@ -396,7 +383,9 @@ describe('AddonManager', () => {
     render(<AddonManager />);
 
     await screen.findByText('AI Parsing');
-    expect(screen.getByText('Extract bookings from files')).toBeInTheDocument();
+    // The catalog key now exists, so the tile shows the translation rather than falling
+    // back to the English description the server sent.
+    expect(screen.getByText('Reads bookings the built-in parser cannot, using an AI model you choose')).toBeInTheDocument();
     expect(screen.queryByText('Connection')).not.toBeInTheDocument();
   });
 
