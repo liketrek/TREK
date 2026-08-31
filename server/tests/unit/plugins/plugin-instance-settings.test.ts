@@ -152,4 +152,14 @@ describe('admin config endpoints (controller)', () => {
     const out = await controllerWith({ respawnIfActive }).updateConfig('p', { apiUrl: 'https://y.example' });
     expect(out.restarted).toBe(false);
   });
+
+  it('INS-009 — PUT :id/config with no body is an empty patch, not a crash', async () => {
+    install('p');
+    declareField('p', 'apiUrl', 'instance');
+    const respawnIfActive = vi.fn(async () => false);
+
+    const out = await controllerWith({ respawnIfActive }).updateConfig('p', undefined as never);
+    expect(out.config).toEqual({});
+    expect(out.restarted).toBe(false);
+  });
 });

@@ -2230,4 +2230,71 @@ describe('AdminPluginsPanel — instance settings', () => {
 
     expect(await screen.findByText('Settings saved — plugin restarted', {}, { timeout: 5000 })).toBeInTheDocument()
   })
+
+  it('FE-COMP-PLUGINS-CFG-005: renders every declared field type and saves the edited values', async () => {
+    const RICH = [
+      { key: 'mode', label: 'Mode', input_type: 'select', options: [{ value: 'fast', label: 'Fast' }, { value: 'slow', label: 'Slow' }], hint: 'Pick one' },
+      { key: 'enabled', input_type: 'checkbox' }, // no label — the key stands in
+      { key: 'retries', label: 'Retries', input_type: 'number', required: true },
+    ]
+    let body: Record<string, unknown> | null = null
+    server.use(
+      http.get('*/api/admin/plugins/trek-gotify/config', () =>
+        HttpResponse.json({ fields: RICH, config: { mode: 'slow', enabled: true } })),
+      http.put('*/api/admin/plugins/trek-gotify/config', async ({ request }) => {
+        body = await request.json() as Record<string, unknown>
+        return HttpResponse.json({ config: body, restarted: false })
+      }),
+    )
+    await openRowMenu(plugin({ instanceSettingsCount: 3 }))
+    fireEvent.click(screen.getByText('Instance settings'))
+
+    // Stored values land in the right controls; an unset value renders empty.
+    const select = await screen.findByRole('combobox', {}, { timeout: 5000 })
+    expect(select).toHaveValue('slow')
+    expect(screen.getByRole('checkbox')).toBeChecked()
+    expect(screen.getByRole('spinbutton')).toHaveValue(null)
+    expect(screen.getByText('Pick one')).toBeInTheDocument() // hint
+    expect(screen.getByText('enabled')).toBeInTheDocument() // label falls back to the key
+
+    fireEvent.change(select, { target: { value: 'fast' } })
+    fireEvent.click(screen.getByRole('checkbox'))
+    fireEvent.change(screen.getByRole('spinbutton'), { target: { value: '3' } })
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
+
+    expect(await screen.findByText('Settings saved', {}, { timeout: 5000 })).toBeInTheDocument()
+    expect(body).toEqual({ mode: 'fast', enabled: false, retries: '3' })
+  })
+
+  it('FE-COMP-PLUGINS-CFG-006: a failed config fetch is a toast, not a broken dialog', async () => {
+    server.use(
+      http.get('*/api/admin/plugins/trek-gotify/config', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
+    )
+    await openRowMenu(plugin({ instanceSettingsCount: 2 }))
+    fireEvent.click(screen.getByText('Instance settings'))
+
+    expect(await screen.findByText('Error', {}, { timeout: 5000 })).toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-CFG-007: a rejected save shows the server reason and keeps the dialog open', async () => {
+    server.use(
+      http.put('*/api/admin/plugins/trek-gotify/config', () =>
+        HttpResponse.json({ error: 'config refused' }, { status: 400 })),
+    )
+    await openSettings()
+
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
+
+    expect(await screen.findByText('config refused', {}, { timeout: 5000 })).toBeInTheDocument()
+    // Still open — the admin's edits are not thrown away on a refusal.
+    expect(screen.getByDisplayValue('https://gotify.mydomain.com')).toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-CFG-008: the dialog closes without saving', async () => {
+    await openSettings()
+
+    fireEvent.click(screen.getByRole('button', { name: /^close$/i }))
+
+    expect(screen.queryByDisplayValue('https://gotify.mydomain.com')).not.toBeInTheDocument()
+  })
 })

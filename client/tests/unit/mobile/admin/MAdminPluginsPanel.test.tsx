@@ -1589,4 +1589,72 @@ describe('MAdminPluginsPanel — instance settings', () => {
 
     await waitFor(() => expect(toastMessages()).toContain('Settings saved — plugin restarted'), { timeout: 5000 });
   });
+
+  it('FE-MOB-PLUGP-CFG-006: renders every declared field type and saves the edited values', async () => {
+    const RICH = [
+      { key: 'mode', label: 'Mode', input_type: 'select', options: [{ value: 'fast', label: 'Fast' }, { value: 'slow', label: 'Slow' }], hint: 'Pick one' },
+      { key: 'enabled', input_type: 'checkbox' }, // no label — the key stands in
+      { key: 'retries', label: 'Retries', input_type: 'number', required: true },
+    ];
+    let body: Record<string, unknown> | null = null;
+    server.use(
+      http.get('*/api/admin/plugins/trek-gotify/config', () =>
+        HttpResponse.json({ fields: RICH, config: { mode: 'slow', enabled: true } })),
+      http.put('*/api/admin/plugins/trek-gotify/config', async ({ request }) => {
+        body = await request.json() as Record<string, unknown>;
+        return HttpResponse.json({ config: body, restarted: false });
+      }),
+    );
+    await openRowSheet(plugin({ instanceSettingsCount: 3 }));
+    fireEvent.click(screen.getByText('Instance settings'));
+
+    const select = await screen.findByRole('combobox', {}, { timeout: 5000 });
+    expect(select).toHaveValue('slow');
+    expect(screen.getByRole('switch', { name: 'enabled' })).toBeInTheDocument(); // label falls back to the key
+    expect(screen.getByRole('spinbutton')).toHaveValue(null);
+    expect(screen.getByText('Pick one')).toBeInTheDocument(); // hint
+
+    fireEvent.change(select, { target: { value: 'fast' } });
+    fireEvent.click(screen.getByRole('switch', { name: 'enabled' }));
+    fireEvent.change(screen.getByRole('spinbutton'), { target: { value: '3' } });
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
+
+    await waitFor(() => expect(toastMessages()).toContain('Settings saved'), { timeout: 5000 });
+    expect(body).toEqual({ mode: 'fast', enabled: false, retries: '3' });
+  });
+
+  it('FE-MOB-PLUGP-CFG-007: a failed config fetch is a toast, not a broken sheet', async () => {
+    server.use(
+      http.get('*/api/admin/plugins/trek-gotify/config', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
+    );
+    await openRowSheet(plugin({ instanceSettingsCount: 2 }));
+    fireEvent.click(screen.getByText('Instance settings'));
+
+    await waitFor(() => expect(toastMessages()).toContain('Error'), { timeout: 5000 });
+  });
+
+  it('FE-MOB-PLUGP-CFG-008: a rejected save shows the server reason and keeps the sheet open', async () => {
+    server.use(
+      http.put('*/api/admin/plugins/trek-gotify/config', () =>
+        HttpResponse.json({ error: 'config refused' }, { status: 400 })),
+    );
+    await openSettings();
+
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
+
+    expect(await screen.findByText('config refused', {}, { timeout: 5000 })).toBeInTheDocument();
+    // Still open — the admin's edits are not thrown away on a refusal.
+    expect(screen.getByDisplayValue('https://gotify.mydomain.com')).toBeInTheDocument();
+  });
+
+  it('FE-MOB-PLUGP-CFG-009: the sheet closes without saving', async () => {
+    await openSettings();
+
+    // Same retry shape as escapeUntilGone, but on the input value — an input's
+    // value is not text content, so the text-based helper would pass vacuously.
+    await waitFor(() => {
+      fireEvent.keyDown(document, { key: 'Escape' });
+      expect(screen.queryByDisplayValue('https://gotify.mydomain.com')).not.toBeInTheDocument();
+    });
+  });
 });

@@ -9,7 +9,8 @@ import {
   Wallet, Puzzle, MapPin, ListChecks, Pencil, Tag, FileText, Route, Navigation, Clock, LocateFixed, Palette, Bot,
 } from 'lucide-react'
 import PluginIcon from '../shared/PluginIcon'
-import { adminApi, type PluginUserSettingField } from '../../api/client'
+import { adminApi } from '../../api/client'
+import { useInstanceSettings } from './useInstanceSettings'
 import { usePluginStore } from '../../store/pluginStore'
 import { useTranslation } from '../../i18n'
 import { useToast } from '../shared/Toast'
@@ -24,9 +25,6 @@ import ToggleSwitch from '../Settings/ToggleSwitch'
  * and the update re-consent gate. Isolation health shows as a dot on the icon
  * tile; the security section at the bottom explains the model honestly.
  */
-
-/** The server's stand-in for a stored secret — a display artifact, never a value to send back. */
-const SECRET_MASK = '••••••••'
 
 interface PluginDep { id: string; version: string }
 interface VersionMismatch { id: string; wanted: string; installed: string }
@@ -414,10 +412,8 @@ export default function AdminPluginsPanel() {
   const [detailFor, setDetailFor] = useState<RegistryItem | null>(null)
   const [errorsFor, setErrorsFor] = useState<{ id: string; rows: Array<{ ts: string; level: string; message: string }> } | null>(null)
   const [egressFor, setEgressFor] = useState<{ id: string; supported: boolean; hosts: string[] } | null>(null)
-  // The admin-owned scope:'instance' settings form (values keyed by field key).
-  const [settingsFor, setSettingsFor] = useState<{ id: string; fields: PluginUserSettingField[]; values: Record<string, string | boolean> } | null>(null)
-  const [settingsSaving, setSettingsSaving] = useState(false)
-  const [settingsError, setSettingsError] = useState('')
+  // The admin-owned scope:'instance' settings form — shared logic with the phone shell.
+  const settings = useInstanceSettings()
   const [egressDraft, setEgressDraft] = useState('')
   const [egressSaving, setEgressSaving] = useState(false)
   const [egressError, setEgressError] = useState('')
@@ -585,41 +581,7 @@ export default function AdminPluginsPanel() {
 
   const openInstanceSettings = (id: string) => {
     setMenu(null)
-    setSettingsError('')
-    adminApi.pluginConfig(id)
-      .then(d => {
-        const values: Record<string, string | boolean> = {}
-        for (const f of d.fields) {
-          const v = d.config[f.key]
-          values[f.key] = f.input_type === 'checkbox' ? v === true : (v == null ? '' : String(v))
-        }
-        setSettingsFor({ id, fields: d.fields, values })
-      })
-      .catch(() => toast.error(t('common.error')))
-  }
-
-  // Saving may RESTART a running plugin (the child reads its config once, at init) —
-  // the server reports whether it did, and the toast must say so.
-  const saveInstanceSettings = async () => {
-    if (!settingsFor) return
-    setSettingsSaving(true); setSettingsError('')
-    try {
-      // Skip an untouched secret (still showing the mask) so we never overwrite it with the mask.
-      const patch: Record<string, unknown> = {}
-      for (const f of settingsFor.fields) {
-        const v = settingsFor.values[f.key]
-        if (f.secret && v === SECRET_MASK) continue
-        patch[f.key] = v
-      }
-      const d = await adminApi.pluginSaveConfig(settingsFor.id, patch)
-      toast.success(t(d.restarted ? 'admin.plugins.settingsSavedRestarted' : 'admin.plugins.settingsSaved'))
-      setSettingsFor(null)
-    } catch (e) {
-      const err = e as { response?: { data?: { error?: string } } }
-      setSettingsError(err.response?.data?.error || t('common.error'))
-    } finally {
-      setSettingsSaving(false)
-    }
+    settings.open(id)
   }
 
   const openErrors = (id: string) => {
@@ -1099,15 +1061,15 @@ export default function AdminPluginsPanel() {
       )}
 
       {/* Instance-wide settings (the admin-owned scope:'instance' fields) */}
-      {settingsFor && (
-        <div role="presentation" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setSettingsFor(null)}>
+      {settings.form && (
+        <div role="presentation" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={settings.close}>
           <div role="presentation" className="bg-surface-card border border-edge rounded-2xl w-full max-w-lg max-h-[80vh] flex flex-col shadow-modal" onClick={e => e.stopPropagation()}>
             <div className="px-5 py-3.5 border-b border-edge-secondary flex items-center justify-between">
-              <span className="text-sm font-semibold text-content flex items-center gap-2"><SlidersHorizontal size={15} /> {settingsFor.id} — {t('admin.plugins.instanceSettings')}</span>
-              <button type="button" onClick={() => setSettingsFor(null)} className="text-content-faint hover:text-content"><X size={16} /></button>
+              <span className="text-sm font-semibold text-content flex items-center gap-2"><SlidersHorizontal size={15} /> {settings.form.id} — {t('admin.plugins.instanceSettings')}</span>
+              <button type="button" aria-label={t('common.close')} onClick={settings.close} className="text-content-faint hover:text-content"><X size={16} /></button>
             </div>
             <div className="p-5 space-y-4 overflow-y-auto">
-              {settingsFor.fields.map(f => (
+              {settings.form.fields.map(f => (
                 <label key={f.key} className="block">
                   <span className="block text-sm font-medium text-content-secondary mb-1">
                     {f.label || f.key}{f.required && <span className="text-danger"> *</span>}
@@ -1115,14 +1077,14 @@ export default function AdminPluginsPanel() {
                   {f.input_type === 'checkbox' ? (
                     <input
                       type="checkbox"
-                      checked={settingsFor.values[f.key] === true}
-                      onChange={e => setSettingsFor(s => s && ({ ...s, values: { ...s.values, [f.key]: e.target.checked } }))}
+                      checked={settings.form.values[f.key] === true}
+                      onChange={e => settings.setValue(f.key, e.target.checked)}
                       className="h-4 w-4 rounded border-edge"
                     />
                   ) : f.input_type === 'select' && f.options ? (
                     <select
-                      value={String(settingsFor.values[f.key] ?? '')}
-                      onChange={e => setSettingsFor(s => s && ({ ...s, values: { ...s.values, [f.key]: e.target.value } }))}
+                      value={String(settings.form.values[f.key] ?? '')}
+                      onChange={e => settings.setValue(f.key, e.target.value)}
                       className="w-full rounded-lg border border-edge bg-surface px-3 py-2 text-sm text-content"
                     >
                       <option value="">—</option>
@@ -1131,22 +1093,22 @@ export default function AdminPluginsPanel() {
                   ) : (
                     <input
                       type={f.secret ? 'password' : (f.input_type === 'number' ? 'number' : 'text')}
-                      value={String(settingsFor.values[f.key] ?? '')}
+                      value={String(settings.form.values[f.key] ?? '')}
                       placeholder={f.placeholder || ''}
                       autoComplete={f.secret ? 'new-password' : 'off'}
-                      onChange={e => setSettingsFor(s => s && ({ ...s, values: { ...s.values, [f.key]: e.target.value } }))}
+                      onChange={e => settings.setValue(f.key, e.target.value)}
                       className="w-full rounded-lg border border-edge bg-surface px-3 py-2 text-sm text-content"
                     />
                   )}
                   {f.hint && <span className="block text-xs text-content-muted mt-1">{f.hint}</span>}
                 </label>
               ))}
-              {settingsError && <p className="text-xs text-danger">{settingsError}</p>}
+              {settings.error && <p className="text-xs text-danger">{settings.error}</p>}
             </div>
             <div className="px-5 py-3.5 border-t border-edge-secondary flex justify-end">
               <button type="button"
-                disabled={settingsSaving}
-                onClick={() => void saveInstanceSettings()}
+                disabled={settings.saving}
+                onClick={() => void settings.save()}
                 className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
               >{t('common.save')}</button>
             </div>
