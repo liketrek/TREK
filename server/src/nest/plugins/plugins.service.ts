@@ -11,6 +11,7 @@ import { AddonsService } from '../addons/addons.service';
 import { parseDependencies, disabledRequiredAddons, resolveDependencyState, type PluginDepRow, type PluginDependencies, type VersionMismatch } from './dependencies';
 import { hostSatisfies, hostVersion } from './install/host-compat';
 import type { PluginDependency } from './install/manifest';
+import type { PluginSettingsField } from '@trek/shared';
 
 const SECRET_MASK = '••••••••';
 
@@ -66,6 +67,9 @@ export interface PluginListItem {
   operatorEgress: boolean;
   /** How many hosts an admin has actually added — so the card can nudge when it's 0. */
   egressHostCount: number;
+  /** How many `scope:'instance'` settings fields the plugin declares — gates the admin
+   * settings menu item without a per-plugin fetch. */
+  instanceSettingsCount: number;
   /** Declared dependencies (parsed) — required addons + plugin deps. */
   dependencies: PluginDependencies;
   /** Whether this plugin can currently activate, and why not if it can't. */
@@ -113,6 +117,16 @@ export class PluginsService {
     }
   }
 
+  private instanceSettingsCount(id: string): number {
+    try {
+      return (
+        this.db.prepare("SELECT COUNT(*) AS n FROM plugin_settings_fields WHERE plugin_id = ? AND scope = 'instance'").get(id) as { n: number }
+      ).n;
+    } catch {
+      return 0; // table absent (a slimmed test app)
+    }
+  }
+
   list(): { enabled: boolean; devLink: boolean; plugins: PluginListItem[] } {
     const rows = this.db
       .prepare(
@@ -154,6 +168,7 @@ export class PluginsService {
         ...rest,
         operatorEgress: _oe === 1,
         egressHostCount: this.egressHostCount(r.id),
+        instanceSettingsCount: this.instanceSettingsCount(r.id),
         dependencies: deps,
         dependencyStatus,
         trekRange: trek_range,
@@ -219,24 +234,37 @@ export class PluginsService {
   }
 
   /** The plugin's `scope:'user'` settings fields, in declared order (for the user form). */
-  userSettingsFields(id: string): Array<Record<string, unknown>> {
+  userSettingsFields(id: string): PluginSettingsField[] {
+    return this.settingsFields(id, 'user');
+  }
+
+  /** The plugin's `scope:'instance'` settings fields, in declared order (for the ADMIN form). */
+  instanceSettingsFields(id: string): PluginSettingsField[] {
+    return this.settingsFields(id, 'instance');
+  }
+
+  private settingsFields(id: string, scope: 'user' | 'instance'): PluginSettingsField[] {
     return this.db
       .prepare(
         `SELECT field_key AS key, label, input_type, placeholder, hint, required, secret, options
-         FROM plugin_settings_fields WHERE plugin_id = ? AND scope = 'user' ORDER BY sort_order, id`,
+         FROM plugin_settings_fields WHERE plugin_id = ? AND scope = ? ORDER BY sort_order, id`,
       )
-      .all(id)
+      .all(id, scope)
       .map((r) => {
         const row = r as Record<string, unknown>;
         return {
-          key: row.key,
-          label: row.label ?? null,
-          input_type: row.input_type ?? 'text',
-          placeholder: row.placeholder ?? null,
-          hint: row.hint ?? null,
+          key: String(row.key),
+          label: (row.label ?? null) as string | null,
+          input_type: (row.input_type ?? 'text') as string,
+          placeholder: (row.placeholder ?? null) as string | null,
+          hint: (row.hint ?? null) as string | null,
           required: row.required === 1,
           secret: row.secret === 1,
-          options: typeof row.options === 'string' && row.options ? safeArray(row.options as string) : undefined,
+          // Stored as manifest-validated JSON ({value,label} pairs) — parse, don't re-check.
+          options:
+            typeof row.options === 'string' && row.options
+              ? (safeArray(row.options as string) as PluginSettingsField['options'])
+              : undefined,
         };
       });
   }

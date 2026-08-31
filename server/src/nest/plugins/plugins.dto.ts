@@ -1,5 +1,6 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
+import { pluginInstanceConfigUpdateSchema } from '@trek/shared';
 
 /**
  * Body contracts for the plugin surfaces, written to DESCRIBE rather than to
@@ -63,9 +64,11 @@ export class PluginEgressHostsDto extends createZodDto(
 
 /**
  * Plugin instance config is defined by the plugin's own manifest, not by TREK,
- * so there is no shape to assert here beyond "a JSON object".
+ * so there is no shape to assert here beyond "a JSON object" — the shared
+ * contract (plugins.schema.ts) says exactly that, and the client's save call
+ * types against the same schema.
  */
-export class PluginConfigDto extends createZodDto(z.looseObject({})) {}
+export class PluginConfigDto extends createZodDto(pluginInstanceConfigUpdateSchema) {}
 
 /**
  * `config` is unknown rather than a record: the handler answers 200 with the

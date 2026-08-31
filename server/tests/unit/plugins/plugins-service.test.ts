@@ -222,6 +222,7 @@ describe('PluginsFeedController (client feed)', () => {
 describe('PluginsController M2 endpoints', () => {
   const svc = {
     getInstanceConfig: vi.fn(() => ({ a: 1 })),
+    instanceSettingsFields: vi.fn(() => [{ key: 'a' }]),
     updateInstanceConfig: vi.fn(() => ({ a: 2 })),
   } as unknown as PluginsService;
   // None of the endpoints below carry the marker, so the ordinary install is the
@@ -234,11 +235,11 @@ describe('PluginsController M2 endpoints', () => {
     process.env.TREK_PLUGINS_ENABLED = 'true';
   });
 
-  it('get/update config delegate to the service', () => {
-    const rt = { activate: vi.fn(), deactivate: vi.fn(), isActive: vi.fn() } as never;
+  it('get/update config delegate to the service (get carries the form fields, update the restart)', async () => {
+    const rt = { activate: vi.fn(), deactivate: vi.fn(), isActive: vi.fn(), respawnIfActive: vi.fn(async () => false) } as never;
     const c = new PluginsController(svc, rt, {} as never, envStub);
-    expect(c.getConfig('x')).toEqual({ config: { a: 1 } });
-    expect(c.updateConfig('x', { a: 2 })).toEqual({ config: { a: 2 } });
+    expect(c.getConfig('x')).toEqual({ fields: [{ key: 'a' }], config: { a: 1 } });
+    expect(await c.updateConfig('x', { a: 2 })).toEqual({ config: { a: 2 }, restarted: false });
   });
 
   it('activate spawns via the runtime when enabled', async () => {

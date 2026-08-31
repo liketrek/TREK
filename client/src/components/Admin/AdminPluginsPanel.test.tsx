@@ -2147,3 +2147,74 @@ describe('AdminPluginsPanel — update all', () => {
     await waitFor(() => expect(started).toEqual(['a-widget', 'b-widget']))
   })
 })
+
+/**
+ * The admin-owned `scope:'instance'` settings form. The fields are declared manifest
+ * data (validated at install), the values live in the plugin's instance config, and a
+ * save may RESTART a running plugin — the child reads config once, at init — so the
+ * admin must be told when that happened rather than wondering why the plugin blinked.
+ */
+describe('AdminPluginsPanel — instance settings', () => {
+  const FIELDS = [
+    { key: 'apiUrl', label: 'API URL', input_type: 'text', required: true, secret: false },
+    { key: 'apiKey', label: 'API key', input_type: 'text', required: false, secret: true },
+  ]
+
+  async function openRowMenu(p: Record<string, unknown>) {
+    mockList(p)
+    render(<><ToastContainer /><AdminPluginsPanel /></>)
+    fireEvent.click(await screen.findByTestId('plugin-row-menu-btn-trek-gotify'))
+  }
+
+  async function openSettings(config: Record<string, unknown> = { apiUrl: 'https://gotify.mydomain.com', apiKey: '••••••••' }) {
+    server.use(
+      http.get('*/api/admin/plugins/trek-gotify/config', () => HttpResponse.json({ fields: FIELDS, config })),
+    )
+    await openRowMenu(plugin({ instanceSettingsCount: 2 }))
+    fireEvent.click(screen.getByText('Instance settings'))
+    await waitFor(() => expect(screen.getByDisplayValue('https://gotify.mydomain.com')).toBeInTheDocument(), { timeout: 5000 })
+  }
+
+  it('FE-COMP-PLUGINS-CFG-001: a plugin with instance fields offers the menu item, opening the form', async () => {
+    await openSettings()
+    // Both declared fields render, the secret as a masked password input.
+    expect(screen.getByDisplayValue('https://gotify.mydomain.com')).toBeInTheDocument()
+    expect(screen.getByDisplayValue('••••••••')).toHaveAttribute('type', 'password')
+  })
+
+  it('FE-COMP-PLUGINS-CFG-002: a plugin with NO instance fields gets no menu item', async () => {
+    await openRowMenu(plugin({ instanceSettingsCount: 0 }))
+    expect(screen.getByText('View error log')).toBeInTheDocument() // menu is open
+    expect(screen.queryByText('Instance settings')).not.toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-CFG-003: saving sends the edits but never the untouched secret mask', async () => {
+    let body: Record<string, unknown> | null = null
+    server.use(
+      http.put('*/api/admin/plugins/trek-gotify/config', async ({ request }) => {
+        body = await request.json() as Record<string, unknown>
+        return HttpResponse.json({ config: body, restarted: false })
+      }),
+    )
+    await openSettings()
+
+    fireEvent.change(screen.getByDisplayValue('https://gotify.mydomain.com'), { target: { value: 'https://new.example' } })
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
+
+    expect(await screen.findByText('Settings saved', {}, { timeout: 5000 })).toBeInTheDocument()
+    // The mask is a display artifact, not a value — sending it would overwrite the stored secret.
+    expect(body).toEqual({ apiUrl: 'https://new.example' })
+  })
+
+  it('FE-COMP-PLUGINS-CFG-004: a save that restarted the running plugin says so', async () => {
+    server.use(
+      http.put('*/api/admin/plugins/trek-gotify/config', () =>
+        HttpResponse.json({ config: { apiUrl: 'https://gotify.mydomain.com' }, restarted: true })),
+    )
+    await openSettings()
+
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
+
+    expect(await screen.findByText('Settings saved — plugin restarted', {}, { timeout: 5000 })).toBeInTheDocument()
+  })
+})

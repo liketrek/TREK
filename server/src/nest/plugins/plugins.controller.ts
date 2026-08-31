@@ -13,6 +13,7 @@ import { pluginsEnabled } from './kill-switch';
 import { devLinkEnabled } from './dev-link';
 import { PluginActivateDto, PluginConfigDto, PluginEgressHostsDto, PluginInstallDto, PluginLinkDto, PluginRetrustDto, PluginUninstallDto, PluginUpdateDto } from './plugins.dto';
 import { ManagedForbidden, isManagedBlocked, MANAGED_FORBIDDEN_ERROR } from '../common/managed';
+import type { PluginInstanceConfigResponse, PluginInstanceConfigUpdated } from '@trek/shared';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
 // Straight from sessionManager, not the src/mcp barrel: that one evaluates
 // readEnv().mcp at module scope and installs the sweep interval, which a domain
@@ -139,13 +140,19 @@ export class PluginsController {
   }
 
   @Get(':id/config')
-  getConfig(@Param('id') id: string) {
-    return { config: this.plugins.getInstanceConfig(id) };
+  getConfig(@Param('id') id: string): PluginInstanceConfigResponse {
+    return { fields: this.plugins.instanceSettingsFields(id), config: this.plugins.getInstanceConfig(id) };
   }
 
+  /**
+   * Save the admin-owned `scope:'instance'` settings. A RUNNING plugin gets its config
+   * once, in the child's init envelope — so a save re-spawns it (like the egress-hosts
+   * PUT), and `restarted` tells the UI whether that happened.
+   */
   @Put(':id/config')
-  updateConfig(@Param('id') id: string, @Body() body: PluginConfigDto) {
-    return { config: this.plugins.updateInstanceConfig(id, body || {}) };
+  async updateConfig(@Param('id') id: string, @Body() body: PluginConfigDto): Promise<PluginInstanceConfigUpdated> {
+    const config = this.plugins.updateInstanceConfig(id, body || {});
+    return { config, restarted: await this.runtime.respawnIfActive(id) };
   }
 
   /**

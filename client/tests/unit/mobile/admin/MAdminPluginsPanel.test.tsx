@@ -1510,3 +1510,72 @@ describe('MAdminPluginsPanel — the security footer', () => {
     expect(screen.queryByText('Every plugin runs boxed in')).not.toBeInTheDocument();
   });
 });
+
+/**
+ * The admin-owned `scope:'instance'` settings sheet — the phone counterpart of the
+ * desktop modal. Same contract: gated on declared instance fields, secrets stay
+ * write-only (an untouched mask is never sent), and a save that restarted the
+ * running plugin must say so.
+ */
+describe('MAdminPluginsPanel — instance settings', () => {
+  const FIELDS = [
+    { key: 'apiUrl', label: 'API URL', input_type: 'text', required: true, secret: false },
+    { key: 'apiKey', label: 'API key', input_type: 'text', required: false, secret: true },
+  ];
+
+  async function openRowSheet(p: Row) {
+    mockPanel([p]);
+    render(<MAdminPluginsPanel />);
+    fireEvent.click(await screen.findByTestId('plugin-row-menu-btn-trek-gotify'));
+  }
+
+  async function openSettings() {
+    server.use(
+      http.get('*/api/admin/plugins/trek-gotify/config', () =>
+        HttpResponse.json({ fields: FIELDS, config: { apiUrl: 'https://gotify.mydomain.com', apiKey: '••••••••' } })),
+    );
+    await openRowSheet(plugin({ instanceSettingsCount: 2 }));
+    fireEvent.click(screen.getByText('Instance settings'));
+    await waitFor(() => expect(screen.getByDisplayValue('https://gotify.mydomain.com')).toBeInTheDocument(), { timeout: 5000 });
+  }
+
+  it('FE-MOB-PLUGP-CFG-001: a plugin with instance fields offers the sheet action, opening the form', async () => {
+    await openSettings();
+    expect(screen.getByDisplayValue('••••••••')).toHaveAttribute('type', 'password');
+  });
+
+  it('FE-MOB-PLUGP-CFG-002: a plugin with NO instance fields gets no action', async () => {
+    await openRowSheet(plugin({ instanceSettingsCount: 0 }));
+    expect(screen.getByText('View error log')).toBeInTheDocument(); // the sheet is open
+    expect(screen.queryByText('Instance settings')).not.toBeInTheDocument();
+  });
+
+  it('FE-MOB-PLUGP-CFG-003: saving sends the edits but never the untouched secret mask', async () => {
+    let body: Record<string, unknown> | null = null;
+    server.use(
+      http.put('*/api/admin/plugins/trek-gotify/config', async ({ request }) => {
+        body = await request.json() as Record<string, unknown>;
+        return HttpResponse.json({ config: body, restarted: false });
+      }),
+    );
+    await openSettings();
+
+    fireEvent.change(screen.getByDisplayValue('https://gotify.mydomain.com'), { target: { value: 'https://new.example' } });
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
+
+    await waitFor(() => expect(toastMessages()).toContain('Settings saved'), { timeout: 5000 });
+    expect(body).toEqual({ apiUrl: 'https://new.example' });
+  });
+
+  it('FE-MOB-PLUGP-CFG-004: a save that restarted the running plugin says so', async () => {
+    server.use(
+      http.put('*/api/admin/plugins/trek-gotify/config', () =>
+        HttpResponse.json({ config: { apiUrl: 'https://gotify.mydomain.com' }, restarted: true })),
+    );
+    await openSettings();
+
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
+
+    await waitFor(() => expect(toastMessages()).toContain('Settings saved — plugin restarted'), { timeout: 5000 });
+  });
+});

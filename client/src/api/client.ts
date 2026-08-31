@@ -53,6 +53,9 @@ import {
   type StorageConfigPut,
   type StorageTestResponse,
   type StorageUsage,
+  type PluginSettingsField,
+  type PluginInstanceConfigResponse,
+  type PluginInstanceConfigUpdated,
 } from '@trek/shared'
 import { getSocketId } from './websocket'
 import { probeNow } from '../sync/connectivity'
@@ -556,6 +559,13 @@ export const adminApi = {
   // Dev-link (dev-only): register a plugin from a local built dir + hot-reload it.
   pluginLink: (path: string) => apiClient.post('/admin/plugins/link', { path }).then(r => r.data),
   pluginReload: (id: string) => apiClient.post(`/admin/plugins/${id}/reload`).then(r => r.data),
+  // The admin-owned `scope:'instance'` settings: the declared fields plus the stored
+  // values (secrets masked). Saving may RESTART a running plugin — the child gets its
+  // config once at init — and `restarted` reports whether that happened.
+  pluginConfig: (id: string): Promise<PluginInstanceConfigResponse> =>
+    apiClient.get(`/admin/plugins/${id}/config`).then(r => r.data),
+  pluginSaveConfig: (id: string, config: Record<string, unknown>): Promise<PluginInstanceConfigUpdated> =>
+    apiClient.put(`/admin/plugins/${id}/config`, config).then(r => r.data),
   // Operator-supplied egress hosts: a plugin talking to a SELF-HOSTED service can't name
   // the operator's hostname in its manifest, so the admin adds it here. Saving re-spawns
   // the plugin with the widened allow-list.
@@ -782,11 +792,9 @@ export interface PluginAtlasLayer {
   countries: Array<{ code: string; tone: 'default' | 'success' | 'warn' | 'danger'; label?: string }>
 }
 
-export interface PluginUserSettingField {
-  key: string; label?: string | null; input_type?: string; placeholder?: string | null;
-  hint?: string | null; required?: boolean; secret?: boolean;
-  options?: Array<{ value: string; label: string }>
-}
+/** The settings-field descriptor is the SHARED contract (both scopes emit the same
+ * shape) — aliased so existing per-user settings consumers keep their import path. */
+export type PluginUserSettingField = PluginSettingsField
 
 /** A button a plugin contributes to its own settings page ("Test connection"). */
 export interface PluginAction {

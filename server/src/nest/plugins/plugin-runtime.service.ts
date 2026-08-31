@@ -625,6 +625,19 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
     return clean;
   }
 
+  /**
+   * Re-spawn a plugin IF it is running, so the child re-reads its instance config —
+   * config is handed to the child once, in the init envelope, and a second init is
+   * refused (same constraint that makes setOperatorEgressHosts re-spawn). An inactive
+   * plugin is left alone: it will read the new config at its next activation.
+   */
+  async respawnIfActive(id: string): Promise<boolean> {
+    if (!this.isActive(id)) return false;
+    await this.supervisor.disable(id);
+    await this.activate(id);
+    return true;
+  }
+
   async deactivate(id: string): Promise<void> {
     await this.supervisor.disable(id);
     closePluginDataDb(id);
