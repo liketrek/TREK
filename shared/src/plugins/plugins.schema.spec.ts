@@ -3,6 +3,15 @@ import {
   pluginInstanceConfigResponseSchema,
   pluginInstanceConfigUpdateSchema,
   pluginInstanceConfigUpdatedSchema,
+  pluginInstallRequestSchema,
+  pluginLinkRequestSchema,
+  pluginActivateRequestSchema,
+  pluginUninstallRequestSchema,
+  pluginRetrustRequestSchema,
+  pluginUpdateRequestSchema,
+  pluginEgressHostsRequestSchema,
+  pluginUserSettingsUpdateRequestSchema,
+  pluginRouteRequestSchema,
 } from './plugins.schema';
 
 import { describe, expect, it } from 'vitest';
@@ -41,7 +50,17 @@ describe('pluginSettingsFieldSchema', () => {
 describe('instance-config wire shapes', () => {
   it('GET response carries the form fields alongside the (masked) values', () => {
     const res = {
-      fields: [{ key: 'apiUrl', label: null, input_type: 'text', placeholder: null, hint: null, required: true, secret: false }],
+      fields: [
+        {
+          key: 'apiUrl',
+          label: null,
+          input_type: 'text',
+          placeholder: null,
+          hint: null,
+          required: true,
+          secret: false,
+        },
+      ],
       config: { apiUrl: 'https://x.example', apiKey: '••••••••' },
     };
     expect(pluginInstanceConfigResponseSchema.parse(res).fields).toHaveLength(1);
@@ -63,5 +82,52 @@ describe('instance-config wire shapes', () => {
   it('PUT response reports whether the save restarted a running plugin', () => {
     expect(pluginInstanceConfigUpdatedSchema.parse({ config: {}, restarted: true }).restarted).toBe(true);
     expect(pluginInstanceConfigUpdatedSchema.safeParse({ config: {} }).success).toBe(false);
+  });
+});
+
+/**
+ * The admin body contracts, written to DESCRIBE rather than to tighten (the
+ * journey-contract doctrine, #1842): fields optional, objects loose, so every
+ * handler keeps the rejection it already owns ('id is required', 503-before-body,
+ * hosts-clears-on-non-array). These pin exactly that looseness — a "helpful"
+ * tightening of one of these schemas is a behavior change on the wire.
+ */
+describe('admin body contracts stay loose by doctrine', () => {
+  it("install: an empty body parses — `id is required` stays the HANDLER's answer", () => {
+    expect(pluginInstallRequestSchema.safeParse({}).success).toBe(true);
+    expect(
+      pluginInstallRequestSchema.parse({ id: 'p', version: '1.0.0', constraint: '^1', withDependencies: true }),
+    ).toMatchObject({ id: 'p', withDependencies: true });
+  });
+
+  it('install: declared fields still pin their TYPES', () => {
+    expect(pluginInstallRequestSchema.safeParse({ withDependencies: 'yes' }).success).toBe(false);
+  });
+
+  it('link / activate / uninstall / retrust / update: empty bodies parse', () => {
+    for (const s of [
+      pluginLinkRequestSchema,
+      pluginActivateRequestSchema,
+      pluginUninstallRequestSchema,
+      pluginRetrustRequestSchema,
+      pluginUpdateRequestSchema,
+    ]) {
+      expect(s.safeParse({}).success).toBe(true);
+    }
+  });
+
+  it('egress hosts: a non-array `hosts` parses — that is the documented clear/reset path', () => {
+    expect(pluginEgressHostsRequestSchema.safeParse({}).success).toBe(true);
+    expect(pluginEgressHostsRequestSchema.safeParse({ hosts: null }).success).toBe(true);
+    expect(pluginEgressHostsRequestSchema.safeParse({ hosts: ['a.example'] }).success).toBe(true);
+  });
+
+  it('user settings update: a non-object `config` parses — the handler answers 200, not 400', () => {
+    expect(pluginUserSettingsUpdateRequestSchema.safeParse({ config: 'garbage' }).success).toBe(true);
+    expect(pluginUserSettingsUpdateRequestSchema.safeParse({}).success).toBe(true);
+  });
+
+  it('route: any object parses — the handler answers { route: null }, never a 400', () => {
+    expect(pluginRouteRequestSchema.safeParse({ anything: [1, 2, 3] }).success).toBe(true);
   });
 });

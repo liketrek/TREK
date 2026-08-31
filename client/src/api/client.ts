@@ -56,6 +56,7 @@ import {
   type PluginSettingsField,
   type PluginInstanceConfigResponse,
   type PluginInstanceConfigUpdated,
+  type PluginInstallRequest,
 } from '@trek/shared'
 import { getSocketId } from './websocket'
 import { probeNow } from '../sync/connectivity'
@@ -538,8 +539,8 @@ export const adminApi = {
   plugins: () => apiClient.get('/admin/plugins').then(r => r.data),
   pluginBrowse: (refresh?: boolean) => apiClient.get('/admin/plugins/registry', { params: refresh ? { refresh: 1 } : undefined }).then(r => r.data),
   pluginDetail: (id: string) => apiClient.get(`/admin/plugins/registry/${encodeURIComponent(id)}`).then(r => r.data),
-  pluginInstall: (id: string, opts?: { version?: string; constraint?: string; withDependencies?: boolean }) =>
-    apiClient.post('/admin/plugins/install', { id, ...opts }).then(r => r.data),
+  pluginInstall: (id: string, opts?: Pick<PluginInstallRequest, 'version' | 'constraint' | 'withDependencies'>) =>
+    apiClient.post('/admin/plugins/install', { id, ...opts } satisfies PluginInstallRequest).then(r => r.data),
   pluginActivate: (id: string, consent?: boolean) => apiClient.post(`/admin/plugins/${id}/activate`, consent ? { consent: true } : {}).then(r => r.data),
   pluginDeactivate: (id: string) => apiClient.post(`/admin/plugins/${id}/deactivate`).then(r => r.data),
   // `version` pins the exact version to install (the rollback path); omitted, the server
