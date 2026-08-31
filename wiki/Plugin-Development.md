@@ -797,6 +797,7 @@ module.exports = definePlugin({
 | `photoProvider.search(query, {page, limit}, ctx)` / `.getById(id, ctx)` | `hook:photo-provider` | **live** — plugin photo sources aggregated at `GET /api/plugin-photos/search` (+ `/sources`, `/item`) for the picker. Each `{id, title?, thumbnailUrl, fullUrl, takenAt?}`; thumbnail/full URLs must be http/https, per-source count capped, a failing source skipped |
 | `calendarSource.getName(ctx)` / `.getEvents(userId, start, end, ctx)` | `hook:calendar-source` | **live** — plugin calendar events aggregated for the signed-in user at `GET /api/plugin-calendar?start=&end=`. Each `{id, title, start, end, allDay}` (ISO dates); count capped, a failing source skipped |
 | `notificationChannel.send(msg, config, ctx)` / `.test(config, ctx)` | `hook:notification-channel` | **live** — registers a new notification channel. **Userless** (see below). See [Notification channels](#notification-channels) |
+| `mcpToolProvider.callTool({name, args}, ctx)` + `tools: string[]` | `mcp:tools` | **live** — publishes MCP tools on TREK's own MCP server, advertised to connected assistants as `plugin_<id>_<name>`. Runs **as the requesting MCP user** (route-like ctx). Declared in `capabilities.mcpTools`; only the intersection of the manifest declaration and the `tools` array is advertised. See [MCP tools](#mcp-tools) |
 
 Each hook method receives its args plus the per-invocation `ctx`, so any `ctx.trips.*`
 read it makes is membership-checked against the current user (like a route handler) —
@@ -886,6 +887,77 @@ Notes:
   `TREK_PLUGIN_ALLOW_PRIVATE_EGRESS=on` on the TREK process — plugins may not reach private
   addresses by default. It relaxes the policy for *every* installed plugin, so enable it only
   if you trust them all.
+
+## MCP tools
+
+A plugin can publish tools on **TREK's own MCP server**, so an assistant a user has
+connected to TREK (Claude, or any MCP client) can call into the plugin. Three parts,
+all required — miss one and nothing is advertised:
+
+1. **`capabilities.mcpTools`** in the manifest — the declaration the admin consents
+   to. Up to **8** tools, each `{ name, description, title?, inputSchema?,
+   annotations? }`: `name` lowercase `^[a-z0-9_]{1,48}$` (unique, no dash/dot),
+   `description` required, `inputSchema` an optional JSON Schema whose root `type`
+   (if present) is `"object"`.
+2. **The `mcp:tools` permission** — the one hook grant not named `hook:*`.
+   Declaring the capability without it fails `trek-plugin validate` *and* install.
+3. **`hooks.mcpToolProvider`** on the definition:
+
+```js
+module.exports = definePlugin({
+  hooks: {
+    mcpToolProvider: {
+      tools: ['pin_note', 'list_notes'],       // plugin-local names
+      async callTool({ name, args }, ctx) {    // ONE function for all tools
+        if (name === 'pin_note') { /* … */ }
+        return { pinned: true }                // any JSON value; the host builds the MCP envelope
+      },
+    },
+  },
+})
+```
+
+Semantics worth knowing before you ship one:
+
+- **Only the intersection** of `capabilities.mcpTools[].name` and the code's
+  `tools` array is advertised — **silently**. A name mismatch drops the tool with
+  no warning anywhere, so a tool missing from `tools/list` is almost always these
+  two lists disagreeing. Keep them identical.
+- **Names are prefixed** for assistants: `plugin_<id>_<name>`; `callTool` receives
+  the local name. Global cap: 32 plugin tools across all installed plugins.
+- **`callTool` runs as the requesting MCP user** — route-like, never userless. The
+  host binds the user from the MCP session (a plugin can't name one); user-scoped
+  `ctx.*` reads are membership-checked against *that* user, and `mcp:tools` itself
+  unlocks no ctx method — the tool can only do what your other grants allow.
+  Timeout 15 s; demo users are refused before your code runs.
+- **Arguments are validated against your declared `inputSchema` before `callTool`
+  runs.** `required` is enforced, `additionalProperties: false` rejects extras,
+  enum/const/ranges/pattern/format are enforced — and nothing may be advertised
+  that cannot be enforced, so an unsupported schema keyword (`oneOf`, `$ref`, an
+  unknown `format`) **fails the install**, not silently drops. `default` is
+  advertisement only — the host does not inject it; apply defaults yourself.
+- **A throw is a tool error, not a crash** — the assistant sees a sanitised
+  message (≤ 300 chars). Results are capped at 64 KiB / 32 content blocks with a
+  visible `[truncated: …]` marker; every string the assistant reads is sanitised
+  (control characters and newlines collapsed, emoji stripped) so plugin text can't
+  fake headings or instructions.
+- **Annotations are clamped against your grants**: `readOnlyHint: true` is lowered
+  if the plugin holds any write-ish grant; `openWorldHint` is forced true if you
+  hold any `http:outbound*`; `destructiveHint` defaults true unless read-only or
+  explicitly `false`.
+- **Caller side:** the MCP client's token needs the **`plugins:use`** OAuth scope —
+  deliberately coarse (not per-plugin or per-tool) and opt-in only; static `trek_`
+  tokens and web-session JWTs have it implicitly. The scope grants no data access
+  of its own: the plugin acts with the grants the **admin** consented to.
+- **The tool surface is frozen per MCP session.** Activating, deactivating,
+  updating, re-trusting or uninstalling a plugin (or flipping an addon that
+  affects one) closes every live MCP session; clients pick up the new surface on
+  the next initialize. A dev-link **Reload** does *not* invalidate — reconnect
+  your MCP client yourself after changing `tools`.
+
+Admin → Plugins shows the tools a plugin will advertise. `trek-plugin dev` warns at
+load about a `mcpToolProvider` without the `mcp:tools` grant and 403s
+`/__dev/fire/hook/mcpToolProvider/callTool`, like any other hook.
 
 ## Settings-page actions
 
@@ -1266,6 +1338,7 @@ what your manifest declares.
 | `operatorEgress` | boolean | The plugin talks to a **self-hosted** service whose hostname only the operator knows. The admin adds the real hosts after install (Admin → Plugins → Allowed hosts) and the runtime unions them into the egress allow-list. Requires an `http:outbound` permission, and is the only way to declare one with an empty `egress[]`. See [Operator-supplied egress hosts](#operator-supplied-egress-hosts-operatoregress). |
 | `capabilities.notificationChannel` | object | `{ title?, events? }` for a plugin implementing the `notificationChannel` hook — `title` names the column in the notification preferences matrix (default: the plugin's `name`), `events` **narrows** which events the channel carries (default: all ten plugin-deliverable events; `events` may only narrow that set). Requires the `hook:notification-channel` permission. See [Notification channels](#notification-channels). |
 | `capabilities.routeProfiles` | array | up to 3 `{ id, label, icon? }` entries for a plugin implementing the `routeProvider` hook — each becomes a selectable mode in the planner's route toggle (next to Driving/Walking). `id` is lowercase `[a-z][a-z0-9-]` (max 24 chars) and is what `getRoute` receives as `request.profile`; `label` (≤40 chars) is shown to the user. Requires the `hook:route-provider` permission. |
+| `capabilities.mcpTools` | array | up to **8** MCP tools for a plugin implementing the `mcpToolProvider` hook — each `{ name, description, title?, inputSchema?, annotations? }` (`name` lowercase `^[a-z0-9_]{1,48}$`, unique; `description` required; `inputSchema` a JSON Schema with root `type: "object"` built from a small enforced keyword set — an unsupported keyword fails the install). Requires the `mcp:tools` permission. See [MCP tools](#mcp-tools). |
 | `capabilities.provides` | string[] | function names this plugin exposes to its dependents via `ctx.plugins.call` (see [Talking to other plugins](#talking-to-other-plugins)). |
 | `capabilities.emits` | string[] | event names this plugin publishes to its dependents via `ctx.events.emit`. |
 | `requiredAddons` | string[] | addon ids that must be **enabled** for the plugin to activate (see [Dependencies](#dependencies)). |
@@ -1299,10 +1372,10 @@ build arg defaults to the literal `dev` — has nothing to compare a range again
 the check is skipped and an unversioned build installs anything. Plugins should still
 guard optional `ctx.*` namespaces.
 
-**Permissions** — the commonly-used core subset below; the **full list of 63**
-(all read/write scopes, the notify/ai/oauth brokers, every provider hook) lives in
-**[[Plugin Permissions|Plugin-Permissions]]**. Unknown values are rejected at install
-(and by `trek-plugin validate` and registry CI, which check against the same list).
+**Permissions** — the commonly-used core subset below; the **full list of 64**
+(all read/write scopes, the notify/ai/oauth brokers, every provider hook, `mcp:tools`)
+lives in **[[Plugin Permissions|Plugin-Permissions]]**. Unknown values are rejected at
+install (and by `trek-plugin validate` and registry CI, which check against the same list).
 
 | Permission | Grants |
 |---|---|
@@ -1339,6 +1412,7 @@ guard optional `ctx.*` namespaces.
 | `hook:user-data` | `deleteUserData` / `exportUserData` handlers — honour GDPR erasure (durable, retried) and data-export for a deleted/requesting user (userless; own db only) |
 | `hook:photo-provider` | `hooks.photoProvider` — a photo source for Memories, aggregated at `GET /api/plugin-photos/search` (see [Provider hooks](#provider-hooks)) |
 | `hook:calendar-source` | `hooks.calendarSource` — calendar events for the signed-in user, aggregated at `GET /api/plugin-calendar` (see [Provider hooks](#provider-hooks)) |
+| `mcp:tools` | `hooks.mcpToolProvider` — publish MCP tools on TREK's MCP server, declared in `capabilities.mcpTools`; runs as the requesting MCP user (see [MCP tools](#mcp-tools)) |
 
 > There is **no `ws:broadcast:*`** — use `ws:broadcast:trip` and/or
 > `ws:broadcast:user` explicitly.

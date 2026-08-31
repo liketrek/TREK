@@ -94,8 +94,9 @@ Between them they now catch, **offline**, nearly everything the registry rejects
   typo is invisible locally — but CI rejects it)
 - a README missing any of the four required sections, still carrying scaffold
   placeholders, or under **400 characters** of real prose
-- a screenshot that doesn't resolve to a file on disk (not just a link in the README —
-  the file has to be there)
+- a missing `docs/screenshot.png` — the registry fetches **exactly that path** at the
+  pinned commit (it is what the store card loads), so a README link to any other image
+  name doesn't count; the file has to be there
 - a permission your manifest declares but the README never explains
 - a `name`, `description` or `author` outside the registry's length limits, or a name
   that mixes Latin with Cyrillic/Greek look-alikes (a homoglyph spoof)
@@ -103,8 +104,10 @@ Between them they now catch, **offline**, nearly everything the registry rejects
   the network allow-list and the iframe CSP from those permissions only and never reads
   `egress[]`, so such a host is silently unreachable at runtime
 - a permission TREK doesn't know — the SDK and registry CI check against the same
-  63-entry list the host enforces, so a typo'd permission fails here instead of at
-  install on every instance
+  64-entry list the host enforces, so a typo'd permission fails here instead of at
+  install on every instance (the registry's copy is a manually regenerated snapshot,
+  so a brand-new TREK permission can briefly fail registry CI even though `validate`
+  accepts it — that's the snapshot lagging, not a typo)
 
 Only **six** gates genuinely need the network, because none of them can be answered from
 your working tree: that the tag resolves to the commit the entry pins, that the manifest at
@@ -280,11 +283,12 @@ binaries** in the archive · `egress[]` present (and no bare `*`) when
 
 **README** (`check-readme.mjs`, fetched at the pinned commit): must exist at the
 repo root, contain the sections **What it does / Screenshots / Permissions /
-Setup**, carry **at least one screenshot that resolves to a real image**
-(a relative `docs/screenshot.png` is resolved against the commit), have real
-prose (**≥ 400 characters** after stripping headings/code/images/tables), contain
-no leftover scaffold placeholders, and **explain every permission** your manifest
-declares (each permission string must appear in the README).
+Setup**, and **`docs/screenshot.png` must resolve to a real image at that
+commit** — the gate fetches exactly that path, because it is what the store card
+loads; README links to other image names do not satisfy it. The README must also
+have real prose (**≥ 400 characters** after stripping headings/code/images/tables),
+contain no leftover scaffold placeholders, and **explain every permission** your
+manifest declares (each permission string must appear in the README).
 
 ## Provenance & integrity
 

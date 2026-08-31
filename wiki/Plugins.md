@@ -53,6 +53,26 @@ Users find them under **Settings → Plugins**, beneath that plugin's fields. An
 **as the user who clicked it**, so a "Test connection" checks *their* credentials and can
 never see anyone else's. TREK refuses any action the plugin didn't declare in its manifest.
 
+### Plugin MCP tools
+
+A plugin (of any type) can publish **tools on TREK's own MCP server**, so an AI
+assistant a user has connected to TREK can call into it — declared in the manifest
+(`capabilities.mcpTools`) behind the **`mcp:tools`** permission, both part of what
+you consent to at install. Three guarantees hold:
+
+- **You see the surface before it exists.** Admin → Plugins shows exactly which
+  tools a plugin will advertise (they appear to assistants as
+  `plugin_<id>_<name>`), and any activate/deactivate/update/uninstall closes open
+  assistant sessions so the surface is re-read.
+- **A tool call runs as the requesting user.** The host binds the user from the
+  assistant's session — a plugin can never pick one — so every read is
+  membership-checked exactly like the plugin's normal API calls, and the
+  `mcp:tools` grant itself unlocks no data: the tool can only do what the
+  plugin's *other* granted permissions allow.
+- **Assistants must opt in.** An OAuth client only reaches plugin tools with the
+  **`plugins:use`** scope, which is never granted by default — the user approves
+  it explicitly on the consent screen.
+
 ### Trip-page plugins: placement and tab takeover
 
 A **trip-page** plugin normally adds its tab *after* the planner's built-in tabs.
