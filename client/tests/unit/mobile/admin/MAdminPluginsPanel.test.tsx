@@ -572,8 +572,17 @@ describe('MAdminPluginsPanel — the row action sheet', () => {
     return screen.findByRole('dialog');
   }
 
+  it('FE-MOB-PLUGP-CFG-005: Allowed hosts is offered only to a plugin that declared operatorEgress', async () => {
+    // An admin must never be invited to widen egress for a plugin that didn't ask for it
+    // — same rule the row's egress chip already follows. (Fixture default: operatorEgress false.)
+    const dialog = await openRowMenu();
+
+    expect(within(dialog).getByText('View error log')).toBeInTheDocument(); // sheet is open
+    expect(within(dialog).queryByText('Allowed hosts')).not.toBeInTheDocument();
+  });
+
   it('FE-MOB-PLUGP-034: a registry plugin offers every action plus the repository links', async () => {
-    const dialog = await openRowMenu({ source_repo: 'acme/gotify' });
+    const dialog = await openRowMenu({ source_repo: 'acme/gotify', operatorEgress: true });
 
     for (const label of ['Restart', 'View error log', 'Allowed hosts', 'Source repository', 'Report an issue', 'Delete']) {
       expect(within(dialog).getByText(label)).toBeInTheDocument();
@@ -705,7 +714,9 @@ describe('MAdminPluginsPanel — operator-supplied egress hosts', () => {
   });
 
   it('FE-MOB-PLUGP-044: a plugin with fixed manifest hosts says the sheet does not apply', async () => {
-    mockPanel([plugin({ source_repo: 'acme/gotify' })]);
+    // Declares operatorEgress (so the menu item shows), but the runtime lookup
+    // disagrees — the sheet's unsupported notice is the truth-teller.
+    mockPanel([plugin({ source_repo: 'acme/gotify', operatorEgress: true })]);
     server.use(http.get('*/api/admin/plugins/trek-gotify/egress-hosts', () =>
       HttpResponse.json({ supported: false, hosts: [] })));
     render(<MAdminPluginsPanel />);

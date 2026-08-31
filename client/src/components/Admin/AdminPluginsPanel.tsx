@@ -1446,7 +1446,12 @@ function InstalledRow({ p, t, busy, menu, setMenu, hasUpdate, latestVer, newerIn
                 <MenuItem icon={<SlidersHorizontal size={14} />} label={t('admin.plugins.instanceSettings')} onClick={onSettings} />
               )}
               <MenuItem icon={<Bug size={14} />} label={t('admin.plugins.viewErrors')} onClick={onErrors} />
-              <MenuItem icon={<Globe size={14} />} label={t('admin.plugins.allowedHosts')} onClick={onEgress} />
+              {/* Only a plugin that DECLARED operatorEgress gets the item — an admin must
+                  never be invited to widen egress for a plugin that didn't ask for it
+                  (same rule the row's egress chip follows). */}
+              {p.operatorEgress && (
+                <MenuItem icon={<Globe size={14} />} label={t('admin.plugins.allowedHosts')} onClick={onEgress} />
+              )}
               {/* Registry plugins only — a sideload/dev-link has no registry versions to pick from. */}
               {isRegistrySourced(p.source_repo) && (
                 <MenuItem icon={<History size={14} />} label={t('admin.plugins.changeVersion')} onClick={onChangeVersion} />

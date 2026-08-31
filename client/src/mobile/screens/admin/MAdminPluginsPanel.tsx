@@ -1453,7 +1453,12 @@ function RowActionsSheet({ p, t, onClose, onRestart, onErrors, onEgress, onSetti
             <button type="button" className={rowClass} onClick={onSettings}><SlidersHorizontal size={16} /> {t('admin.plugins.instanceSettings')}</button>
           )}
           <button type="button" className={rowClass} onClick={onErrors}><Bug size={16} /> {t('admin.plugins.viewErrors')}</button>
-          <button type="button" className={rowClass} onClick={onEgress}><Globe size={16} /> {t('admin.plugins.allowedHosts')}</button>
+          {/* Only a plugin that DECLARED operatorEgress gets the action — an admin must
+              never be invited to widen egress for a plugin that didn't ask for it
+              (same rule the row's egress chip follows). */}
+          {p.operatorEgress && (
+            <button type="button" className={rowClass} onClick={onEgress}><Globe size={16} /> {t('admin.plugins.allowedHosts')}</button>
+          )}
           {/* Registry plugins only — a sideload/dev-link has no registry versions to pick from. */}
           {isRegistrySourced(p.source_repo) && (
             <button type="button" className={rowClass} onClick={onChangeVersion}><History size={16} /> {t('admin.plugins.changeVersion')}</button>

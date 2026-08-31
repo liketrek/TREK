@@ -129,7 +129,9 @@ describe('AdminPluginsPanel — Discover modal, operator-egress pill', () => {
  * the UI. It must escape every overflow ancestor, and flip up when the bottom is tight.
  */
 describe('AdminPluginsPanel — row ⋯ menu is never clipped (#1523)', () => {
-  const withRepo = plugin({ source_repo: 'trek/gotify', operatorEgress: false })
+  // operatorEgress so the menu shows every action, Allowed hosts included (it is
+  // gated on the declaration, like the row chip).
+  const withRepo = plugin({ source_repo: 'trek/gotify', operatorEgress: true })
   const realRect = HTMLButtonElement.prototype.getBoundingClientRect
   afterEach(() => { HTMLButtonElement.prototype.getBoundingClientRect = realRect })
 
@@ -846,6 +848,15 @@ describe('AdminPluginsPanel — row actions', () => {
 
     expect(screen.getByText('View error log')).toBeInTheDocument()
     expect(screen.queryByText('Restart')).not.toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-PANEL-049: Allowed hosts is offered only to a plugin that declared operatorEgress', async () => {
+    // An admin must never be invited to widen egress for a plugin that didn't ask for it
+    // — same rule the row chip already follows.
+    await openRowMenu(plugin({ operatorEgress: false }))
+
+    expect(screen.getByText('View error log')).toBeInTheDocument() // menu is open
+    expect(screen.queryByText('Allowed hosts')).not.toBeInTheDocument()
   })
 })
 
@@ -1776,7 +1787,9 @@ describe('AdminPluginsPanel toolbar and dialogs', () => {
 
   it('FE-W5PLG-011: a plugin whose runtime cannot take extra hosts says so', async () => {
     const user = userEvent.setup()
-    mockPanel([row()])
+    // Declares operatorEgress (so the menu item shows), but the runtime lookup
+    // disagrees — the dialog's unsupported notice is the truth-teller.
+    mockPanel([row({ operatorEgress: true })])
     server.use(
       http.get('*/api/admin/plugins/a-widget/egress-hosts', () => HttpResponse.json({ supported: false, hosts: [] })),
     )
@@ -1791,7 +1804,7 @@ describe('AdminPluginsPanel toolbar and dialogs', () => {
 
   it('FE-W5PLG-012: a failing egress lookup still opens the dialog in the unsupported state', async () => {
     const user = userEvent.setup()
-    mockPanel([row()])
+    mockPanel([row({ operatorEgress: true })])
     server.use(
       http.get('*/api/admin/plugins/a-widget/egress-hosts', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
     )
