@@ -26,7 +26,6 @@ import {
   missingSections,
   placeholders,
   proseLength,
-  images,
   undocumentedPermissions,
 } from './readme.js';
 
@@ -405,44 +404,29 @@ const docsReadmeProse: OfflineCheck = {
 };
 
 /**
- * A screenshot that RESOLVES.
+ * The store cover: `docs/screenshot.png`, ON DISK.
  *
- * The old check regexed the README for an image *link* and passed if it found one. The scaffold
- * writes `![screenshot](./docs/screenshot.png)` and never creates docs/ — so the old check passed
- * on a link to a file that does not exist, and the author learned the truth from CI, after the
- * release was immutable. Resolve the path on disk instead.
+ * Two generations of this check drifted lenient. The first regexed the README for an image
+ * *link* and passed on the scaffold's dangling `![screenshot](./docs/screenshot.png)`. The
+ * second resolved README image paths — but the registry (check-readme.mjs, TREK-Plugins #40)
+ * does not read the README for this gate at all: it fetches **exactly `docs/screenshot.png`**
+ * at the pinned commit, because that precise path is what the store card loads
+ * (`raw…/<commit>/docs/screenshot.png`). A README whose only images had other names went
+ * green here and red in CI, after the release was immutable. Check the file the store reads.
  */
 const docsScreenshot: OfflineCheck = {
   id: 'docs.screenshot',
   stage: 'docs',
   depth: 'offline',
   severity: 'error',
-  title: 'README screenshot resolves to a real image',
+  title: 'docs/screenshot.png exists (the store cover)',
   run: (c) => {
-    if (c.readme === undefined) return skip();
-    const imgs = images(c.readme);
-    if (!imgs.length) {
-      return fail(
-        'no images in the README',
-        'The store card shows this image, and the registry rejects a plugin without one. Capture a 16:9 shot\n' +
-          '(1600×900 is ideal — the card crops the edges) and commit it as docs/screenshot.png.',
-        'trek-plugin shot',
-      );
-    }
-    const remote = imgs.filter((u) => /^https?:\/\//.test(u));
-    const local = imgs.filter((u) => !/^https?:\/\//.test(u));
-    const resolved = local.filter((u) => c.exists(u.replace(/^\.?\//, '')));
-
-    if (resolved.length) return pass(resolved[0]);
-    // Nothing local resolves. A remote URL might still satisfy CI, but we cannot know offline —
-    // don't claim a pass we haven't earned, and don't claim a failure we can't prove.
-    if (remote.length) return pass(`${remote.length} remote image(s) — preflight verifies they resolve`);
-
-    const missing = local.filter((u) => !c.exists(u.replace(/^\.?\//, '')));
+    if (c.exists('docs/screenshot.png')) return pass('docs/screenshot.png');
     return fail(
-      `${missing.join(', ')} ${missing.length === 1 ? 'does' : 'do'} not exist`,
-      'The README links this image but the file is not there, so the store card would be a broken image and the\n' +
-        'registry rejects it. Capture a 16:9 shot (1600×900 is ideal — the card crops the edges).',
+      'docs/screenshot.png does not exist',
+      'The registry fetches exactly this path at the pinned commit — it is the store card image, and a README\n' +
+        'that links other image names does not satisfy the gate. Capture a 16:9 shot (1600×900 is ideal — the\n' +
+        'card crops the edges) and commit it as docs/screenshot.png.',
       'trek-plugin shot',
     );
   },

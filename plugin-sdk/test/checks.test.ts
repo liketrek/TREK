@@ -9,7 +9,7 @@
 import { describe, it, expect } from 'vitest';
 import { runOffline } from '../src/cli/checks/index.js';
 import { blocking, type CheckContext, type CheckReport } from '../src/cli/checks/types.js';
-import { proseLength, missingSections, placeholders, images, undocumentedPermissions } from '../src/cli/checks/readme.js';
+import { proseLength, missingSections, placeholders, undocumentedPermissions } from '../src/cli/checks/readme.js';
 
 /** A manifest that passes everything, so each test can break exactly one thing. */
 const GOOD_MANIFEST = {
@@ -188,19 +188,20 @@ describe('README checks', () => {
   });
 
   /**
-   * The old check regexed for an image LINK and passed if it found one — so the scaffold's
-   * `![screenshot](./docs/screenshot.png)`, pointing at a file that was never created, satisfied
-   * it. Resolve the path instead.
+   * The registry's check-readme.mjs fetches EXACTLY docs/screenshot.png at the pinned commit —
+   * README image links are irrelevant to this gate. (A previous version of this check scanned
+   * them instead, which passed a README whose only images had other names and failed it in CI,
+   * after the release was immutable.)
    */
-  it('fails a screenshot link whose file does not exist', () => {
+  it('fails when docs/screenshot.png does not exist, whatever the README links', () => {
     const r = runOffline(ctx({ exists: (rel) => rel === 'server/index.js' }));
     expect(failed(r, 'docs.screenshot')).toBe(true);
     expect(r.errors.find((e) => e.id === 'docs.screenshot')?.next).toBe('trek-plugin shot');
   });
 
-  it('fails a README with no image at all', () => {
+  it('passes on docs/screenshot.png alone — README image links are not what CI checks', () => {
     const r = runOffline(ctx({ readme: GOOD_README.replace('![screenshot](./docs/screenshot.png)', '') }));
-    expect(failed(r, 'docs.screenshot')).toBe(true);
+    expect(failed(r, 'docs.screenshot')).toBe(false);
   });
 });
 
@@ -257,11 +258,6 @@ describe('README helpers mirror the registry exactly', () => {
     const started = performance.now();
     expect(missingSections(md)).toEqual([]);
     expect(performance.now() - started).toBeLessThan(1000);
-  });
-
-  it('ignores data: URIs when looking for a screenshot, like the registry does', () => {
-    expect(images('![a](data:image/png;base64,xxx)')).toEqual([]);
-    expect(images('<img src="shot.png">')).toEqual(['shot.png']);
   });
 
   it('matches a permission anywhere in the README, case-insensitively', () => {

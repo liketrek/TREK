@@ -85,13 +85,6 @@ export function proseLength(md: string): number {
     .trim().length;
 }
 
-/** Every image src the README references — markdown and <img>, minus data: URIs (CI ignores those). */
-export function images(md: string): string[] {
-  const mdImgs = [...md.matchAll(/!\[[^\]]*\]\(\s*([^)\s]+)/g)].map((m) => m[1]);
-  const htmlImgs = [...md.matchAll(/<img[^>]+src\s*=\s*["']([^"']+)["']/gi)].map((m) => m[1]);
-  return [...new Set([...mdImgs, ...htmlImgs])].filter((u) => !u.startsWith('data:'));
-}
-
 /** Manifest permissions that are never named anywhere in the README. CI rejects these. */
 export function undocumentedPermissions(md: string, permissions: string[]): string[] {
   const lower = md.toLowerCase();
