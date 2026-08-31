@@ -204,6 +204,12 @@ function MCurrencyWidget(): React.ReactElement {
 function CurrencyPicker({ value, currencies, onChange }: {
   value: string; currencies: string[]; onChange: (v: string) => void
 }): React.ReactElement {
+  const { t } = useTranslation()
+  const commonCurrencies = useSettingsStore(s => s.settings.common_currencies)
+  const available = new Set(currencies)
+  const common = commonCurrencies.filter((currency, index, list) => available.has(currency) && list.indexOf(currency) === index)
+  const commonSet = new Set(common)
+  const other = currencies.filter(currency => !commonSet.has(currency))
   return (
     <span className="relative mt-[9px] flex items-center justify-between gap-[5px] rounded-[10px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-glass)] px-[10px] py-[7px] text-[0.75rem] font-semibold">
       {value}
@@ -215,7 +221,14 @@ function CurrencyPicker({ value, currencies, onChange }: {
         className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
       >
         {currencies.includes(value) ? null : <option value={value}>{value}</option>}
-        {currencies.map(c => <option key={c} value={c}>{c}</option>)}
+        {common.length > 0 && (
+          <optgroup label={t('settings.commonCurrencies.group')}>
+            {common.map(c => <option key={c} value={c}>{c}</option>)}
+          </optgroup>
+        )}
+        <optgroup label={common.length > 0 ? t('settings.otherCurrencies.group') : t('dashboard.currency')}>
+          {other.map(c => <option key={c} value={c}>{c}</option>)}
+        </optgroup>
       </select>
     </span>
   )

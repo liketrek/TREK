@@ -678,6 +678,7 @@ describe('CostsPanel — settlements in the ledger', () => {
     // Bob paid me back in dollars — the server freezes the USD rate on write.
     await user.click(screen.getByText(/^EUR/))
     await user.click(await screen.findByText(/^USD/))
+    await screen.findByDisplayValue('0.8')
     const addButtons = screen.getAllByRole('button', { name: 'Add payment' })
     await user.click(addButtons[addButtons.length - 1])
 
@@ -1335,9 +1336,10 @@ describe('CostsPanel — expense modal', () => {
     await user.click(screen.getByText(/^EUR/))
     await user.click(await screen.findByText(/^USD/))
 
-    expect(screen.getByText('live rate', { exact: false })).toBeInTheDocument()
-    expect(screen.getByText('$100.00')).toBeInTheDocument()
-    expect(screen.getByText('50,00 €')).toBeInTheDocument()
+    expect(await screen.findByText(/Suggested: global rate/)).toBeInTheDocument()
+    const fxPanel = screen.getByDisplayValue('0.8').closest('.rounded-lg')
+    expect(fxPanel).toHaveTextContent('100')
+    expect(fxPanel).toHaveTextContent('80')
 
     // A different category than the default is carried into the payload.
     await user.click(screen.getByRole('button', { name: 'Sightseeing' }))
@@ -1615,7 +1617,7 @@ describe('CostsPanel — remaining paths', () => {
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] })),
       http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({
         balances: [], flows: [],
-        settlements: [{ id: 9, from_user_id: 2, to_user_id: 1, amount: 30, currency: 'XBT', created_at: '2025-06-16 10:00:00' }],
+        settlements: [{ id: 9, from_user_id: 2, to_user_id: 1, amount: 30, currency: 'XBT', exchange_rate: 1, exchange_rate_source: 'legacy', created_at: '2025-06-16 10:00:00' }],
       })),
     )
     render(<CostsPanel tripId={1} tripMembers={[...tripMembers, { id: 3, username: 'cara', avatar_url: null }]} />)

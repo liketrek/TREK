@@ -166,7 +166,7 @@ describe('MAdminDefaultUserSettings', () => {
 
     await user.click(screen.getByRole('button', { name: 'USD $' }));
     const sheet = await screen.findByRole('dialog');
-    await user.click(within(sheet).getByRole('button', { name: 'EUR €' }));
+    await user.click(within(sheet).getByRole('button', { name: 'EUR — Euro' }));
 
     await waitFor(() => expect(puts).toEqual([{ default_currency: 'EUR' }]));
     await waitFor(() => expect(screen.getByRole('button', { name: 'EUR €' })).toBeInTheDocument());

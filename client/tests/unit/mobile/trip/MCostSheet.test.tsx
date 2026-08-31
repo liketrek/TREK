@@ -232,19 +232,20 @@ describe('MCostSheet', () => {
     await waitFor(() => expect(addBudgetItem).toHaveBeenCalledWith(1, expect.objectContaining({ category: 'transport' })))
   })
 
-  it('FE-MOB-COSTSH-007: a foreign currency shows the live conversion into the base', () => {
+  it('FE-MOB-COSTSH-007: a foreign currency shows inherited Trip-accounting conversion', async () => {
     renderSheet()
     fillBasics('Hotel', '100')
-    expect(screen.queryByText(/live rate/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Suggested:/)).not.toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'EUR €' }))
+    fireEvent.click(screen.getByRole('button', { name: 'EUR — Euro' }))
     fireEvent.change(screen.getByPlaceholderText('...'), { target: { value: 'USD' } })
-    fireEvent.click(screen.getByRole('button', { name: 'USD $' }))
+    fireEvent.click(screen.getByRole('button', { name: 'USD — US Dollar' }))
 
+    await screen.findByDisplayValue('0.8')
     expect(screen.getByText('$100.00')).toBeInTheDocument()
     // 100 USD at 1.25 USD per EUR = 80 EUR.
     expect(screen.getByRole('dialog').textContent).toContain('80,00')
-    expect(screen.getByText(/live rate/)).toBeInTheDocument()
+    expect(screen.getByText(/Suggested: global rate/)).toBeInTheDocument()
   })
 
   it('FE-MOB-COSTSH-008: "No one paid yet" saves a planning entry without payers', async () => {
@@ -418,6 +419,7 @@ describe('MCostSheet', () => {
   it('FE-MOB-COSTSH-019: editing loads name, currency, legacy category and the custom shares', () => {
     const editing = buildBudgetItem({
       id: 5, name: 'Flight to Osaka', category: 'Flight', currency: 'usd', total_price: 60,
+      exchange_rate: 1.25, exchange_rate_source: 'legacy',
       expense_date: '2026-03-04',
       members: [member(1, 20), member(2, 40)],
       payers: [{ user_id: 2, amount: 60 }],
@@ -427,7 +429,7 @@ describe('MCostSheet', () => {
     expect(screen.getByRole('dialog', { name: 'Edit expense' })).toBeInTheDocument()
     expect(nameField()).toHaveValue('Flight to Osaka')
     expect(catTrigger()).toHaveTextContent('Flights')
-    expect(screen.getByRole('button', { name: 'USD $' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'USD — US Dollar' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'bob' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Custom' })).toHaveClass('bg-m-act')
     // USD renders with a dot, so the total and both shares share this placeholder.

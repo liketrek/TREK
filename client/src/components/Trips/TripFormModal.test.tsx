@@ -967,7 +967,7 @@ describe('TripFormModal', () => {
 
   it('FE-COMP-TRIPFORM-068: a currency without a known symbol is labelled with its code', () => {
     render(<TripFormModal {...defaultProps} trip={buildTrip({ id: 1, currency: 'XTS' })} />);
-    expect(screen.getByText('XTS (XTS)')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^XTS/ })).toBeInTheDocument();
   });
 
   it('FE-COMP-TRIPFORM-069: a reminder preset is sent on save', async () => {

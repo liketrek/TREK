@@ -181,9 +181,9 @@ describe('DefaultUserSettingsTab', () => {
     render(<DefaultUserSettingsTab />);
     await screen.findByText('Default User Settings');
 
-    await pickFromSelect(user, 'USD $', 'EUR €');
+    await pickFromSelect(user, 'USD — US Dollar', 'EUR — Euro');
     await waitFor(() => expect(puts).toEqual([{ default_currency: 'EUR' }]));
-    await waitFor(() => expect(screen.getByRole('button', { name: 'EUR €' })).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('button', { name: 'EUR — Euro' })).toBeInTheDocument());
 
     await user.click(resetLink('Display currency'));
     await waitFor(() => expect(puts).toHaveLength(2));

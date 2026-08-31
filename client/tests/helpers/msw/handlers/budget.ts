@@ -2,6 +2,21 @@ import { http, HttpResponse } from 'msw';
 import { buildBudgetItem } from '../../factories';
 
 export const budgetHandlers = [
+  http.get('/api/trips/:id/exchange-rates/resolve', ({ params, request }) => {
+    const currency = new URL(request.url).searchParams.get('currency')?.toUpperCase() || 'EUR';
+    return HttpResponse.json({
+      trip_id: Number(params.id),
+      trip_currency: 'EUR',
+      item_currency: currency,
+      exchange_rate: currency === 'USD' ? 1.25 : 1,
+      source: currency === 'EUR' ? 'identity' : 'global',
+      source_version: `test:${currency}`,
+      effective_date: currency === 'EUR' ? null : '2026-01-01',
+      fetched_at: currency === 'EUR' ? null : '2026-01-01T00:00:00.000Z',
+      stale: false,
+    });
+  }),
+
   http.get('/api/trips/:id/budget', ({ params }) => {
     return HttpResponse.json({
       items: [buildBudgetItem({ trip_id: Number(params.id) })],

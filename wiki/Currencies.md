@@ -1,12 +1,13 @@
 # Currencies
 
-TREK has **three** currency settings, and they answer three different questions. Most confusion about the Costs tab comes from mixing them up, so this page is the one place they are defined together.
+TREK has three currency roles and one shortcut list. They answer different questions, so this page defines them together.
 
 | Setting | Where | Question it answers | Affects |
 |---|---|---|---|
 | **Trip currency** | Trip → Edit trip | *What is this trip's money?* | Stored data — the base every balance is calculated in |
 | **Expense currency** | Costs → expense modal | *What currency did I actually pay in?* | Stored data — that one expense |
 | **Display currency** | Settings → General | *What currency do I want to read?* | Presentation only — never the stored data |
+| **Common currencies** | Settings → General | *Which currencies should appear first in selectors?* | Menu order only — never stored transaction data |
 
 The short version: **the trip currency is the accounting base, the expense currency is the receipt, and the display currency is your reading glasses.**
 
@@ -36,15 +37,21 @@ The numbers you typed are never rewritten. Each expense keeps its original amoun
 
 Each expense in the Costs tab carries **its own currency**, chosen in the expense modal. Enter what the receipt says: a $100 dinner on a rouble trip is entered as **100 USD**, not as its rouble equivalent.
 
-When an expense's currency differs from the trip currency, TREK looks up the live rate **once, at the moment you save it**, and freezes it on the expense. That frozen rate is what converts the expense into the trip currency forever after.
+When an expense's currency differs from the Trip currency, TREK first uses the saved Trip default for that currency and otherwise uses the durable Global snapshot. The displayed suggestion remains inherited until you edit it. Saving an untouched suggestion lets the server freeze the resolved value and provenance; editing it saves an explicit rate. That frozen rate converts the expense into the Trip currency from then on.
 
-> **Why freeze it?** Because a debt settled today shouldn't reopen tomorrow. If balances were recomputed at live rates, a settled-up trip would drift back into a few cents of debt every time the FX market moved. The rate you booked at is the rate you owe at.
+> **Why freeze it?** Because a debt settled today shouldn't reopen tomorrow. If balances were recomputed whenever the Global snapshot changed, a settled-up trip would drift back into a few cents of debt. The rate you booked at is the rate you owe at.
 
-Rates come from [Frankfurter](https://frankfurter.dev) (European Central Bank data, no API key needed). **165 currencies** are supported. If the rate lookup fails (the instance is offline, or the upstream is down), the expense is stored without a frozen rate and falls back to live conversion when it is next read — TREK never invents a rate.
+Global snapshots come from [Frankfurter](https://frankfurter.dev) (European Central Bank data, no API key needed). **165 currencies** are supported. If neither a Trip default nor a Global snapshot is available, TREK requires a positive manual rate before saving; it never invents a rate.
 
 ### Settle-up payments
 
 A payment recorded in **Settle Up** also carries its own currency, for the same reason: settling a rouble debt with a euro transfer is perfectly normal. Its rate is frozen at the moment you record it, exactly like an expense's, so the payment keeps cancelling the debt it was meant to cancel.
+
+## Trip exchange rates
+
+Every trip member can inspect the Trip exchange-rate manager. On desktop it opens from the Costs header; on mobile it opens from the **…** More menu. Members with `budget_edit` can save or delete a Trip default and can preview a version-checked recalculation of existing frozen expenses and payments. Saving or deleting a default affects future transactions only. Existing transactions change only when selected in the batch preview or manually edited one at a time.
+
+The manager displays the familiar direction, such as `1 USD = 7.8 HKD`, while TREK keeps its internal API/storage orientation unchanged. It also shows whether the current value came from the Trip default or Global snapshot, its effective/fetched date, stale state, saved note, and saved time.
 
 ## Display currency
 
@@ -63,7 +70,11 @@ Leave it on **Trip currency** unless you specifically want everything in your ho
 
 An administrator can set an instance-wide default (Admin → User Defaults), and it interacts with **Trip currency**: picking **Trip currency** stores an *empty* value, and an empty value on a defaultable setting counts as "not set", so the admin's currency is applied again (#1634). While an instance-wide default currency is configured, there is no way back to per-trip currencies from the Settings page — the admin has to clear it.
 
-> Display conversion uses **live** rates, not the frozen ones — it is a view, and a view should reflect today. This is why a converted total can shift slightly day to day while the underlying balances stay rock steady.
+## Common currencies
+
+The ordered **Common currencies** list puts up to ten supported codes first in currency selectors across trips, Costs, payments, display settings, the dashboard converter, and administrator defaults. It does not choose or convert any currency. An administrator can provide the inherited list. A personal list overrides it, a personal empty list intentionally hides all inherited shortcuts, and **Reset** deletes the personal override so the administrator list applies again.
+
+> Display conversion uses the **current durable Global snapshot**, not transaction-frozen rates. This is why a converted total can shift when the snapshot is refreshed while the underlying balances stay rock steady.
 
 ## How they fit together
 
@@ -71,13 +82,13 @@ An expense flows through all three:
 
 ```
     100 USD                  ≈ 7 668 ₽                    ≈ 87 €
-  ┌───────────┐   frozen   ┌───────────────┐    live    ┌───────────────┐
+  ┌───────────┐   frozen   ┌───────────────┐   display  ┌───────────────┐
   │  expense  │ ─────────► │     trip      │ ─────────► │    display    │
   │ currency  │    rate    │   currency    │    rate    │   currency    │
   └───────────┘  (at entry)└───────────────┘  (at read) └───────────────┘
      what you              what the trip is             what you read,
      actually paid         settled in  ← balances       if you asked for
-                                          live here     a display currency
+                                       balances live    a display currency
 ```
 
 Balances are always netted in the **trip currency** and converted to your display currency **once, at the end** — never per-expense. That ordering is deliberate: netting in a moving display currency would let rounding drift shuffle a settled trip into phantom one-cent debts.
@@ -98,7 +109,7 @@ Changing the trip currency requires `trip_edit`. Adding or editing expenses (and
 Fixed in v3.4.0 (#1543). The settlement was reading the trip currency incorrectly and treating every trip as EUR, which inflated balances on any non-EUR trip that had a foreign-currency expense. Upgrade; no data was damaged and nothing needs fixing by hand.
 
 **"The totals move slightly from day to day."**
-Expected, if your display currency differs from the trip currency: the *display* conversion uses live rates. The underlying balances and debts do not move.
+Expected, if your display currency differs from the trip currency: the presentation conversion uses the current Global snapshot. The underlying balances and debts do not move.
 
 **"An expense shows an odd converted value."**
 Its rate was frozen when it was entered, and the market has moved since. That is by design — see the note above.

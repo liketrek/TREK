@@ -509,6 +509,7 @@ describe('client > endpoint wiring', () => {
       { n: 'settings.get', r: () => settingsApi.get(), e: 'GET /api/settings' },
       { n: 'settings.set', r: () => settingsApi.set('theme', 'dark'), e: 'PUT /api/settings' },
       { n: 'settings.setBulk', r: () => settingsApi.setBulk({ theme: 'dark' }), e: 'POST /api/settings/bulk' },
+      { n: 'settings.reset', r: () => settingsApi.reset('common_currencies'), e: 'DELETE /api/settings/common_currencies' },
       { n: 'backup.list', r: () => backupApi.list(), e: 'GET /api/backup/list' },
       { n: 'backup.create', r: () => backupApi.create(), e: 'POST /api/backup/create' },
       { n: 'backup.delete', r: () => backupApi.delete('b.zip'), e: 'DELETE /api/backup/b.zip' },

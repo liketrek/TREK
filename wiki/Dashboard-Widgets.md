@@ -35,6 +35,8 @@ The currency converter lets you quickly convert an amount between two currencies
 
 You can also click the swap arrow to reverse source and target.
 
+Currency selectors show your ordered **Common currencies** first and the remaining available currencies alphabetically. Configure the shortcuts in Settings → General; they only change menu order.
+
 **Exchange rates** are fetched from [Frankfurter](https://frankfurter.dev) using the `https://api.frankfurter.dev/v2/rates?base={from}` endpoint. One request returns every quote for the source currency, so rates are re-fetched when you change the source currency (including via the swap arrow) or click the refresh icon; changing only the target currency re-uses the rates already loaded.
 
 **Supported currencies:** 165 currencies are available in the selector — the full set Frankfurter v2 supports, including all major fiat currencies (USD, EUR, GBP, JPY, etc.) and many minor ones.

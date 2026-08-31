@@ -513,6 +513,19 @@ const settings: TranslationStrings = {
   'settings.webPush.enabled': 'Push notifications enabled on this device.',
   'settings.webPush.revoked': 'Device revoked.',
   'settings.webPush.notNow': 'Not now',
+  'settings.commonCurrencies.title': '常用货币列表',
+  'settings.commonCurrencies.hint': '选择最多 10 种货币，并按此顺序显示在所有货币菜单顶部。',
+  'settings.commonCurrencies.adminHint': '适用于所有尚未保存个人覆盖值的用户。',
+  'settings.commonCurrencies.group': '常用货币',
+  'settings.otherCurrencies.group': '其他货币',
+  'settings.commonCurrencies.add': '搜索要添加的货币…',
+  'settings.commonCurrencies.limit': '最多 {count} 种货币',
+  'settings.commonCurrencies.moveUp': '上移 {currency}',
+  'settings.commonCurrencies.moveDown': '下移 {currency}',
+  'settings.commonCurrencies.remove': '移除 {currency}',
+  'settings.commonCurrencies.clear': '清空',
+  'settings.commonCurrencies.reset': '重置',
+  'settings.commonCurrencies.count': '{count} / {max}',
 };
 
 export default settings;

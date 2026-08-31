@@ -70,7 +70,7 @@ describe('MSettingsGeneral', () => {
     render(<MSettingsGeneral />);
 
     await user.click(screen.getByRole('button', { name: 'Trip currency' }));
-    await user.click(await screen.findByRole('button', { name: 'CHF — CHF' }));
+    await user.click(await screen.findByRole('button', { name: 'CHF — Swiss Franc' }));
     expect(updateSetting).toHaveBeenCalledWith('default_currency', 'CHF');
   });
 

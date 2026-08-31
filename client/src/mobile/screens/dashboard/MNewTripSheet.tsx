@@ -8,8 +8,7 @@ import { useToast } from '../../../components/shared/Toast'
 import { normalizeImageFile } from '../../../utils/convertHeic'
 import { getApiErrorMessage } from '../../../types'
 import { CustomDatePicker } from '../../../components/shared/CustomDateTimePicker'
-import CustomSelect from '../../../components/shared/CustomSelect'
-import { currenciesWith, SYMBOLS } from '../../../components/Budget/BudgetPanel.constants'
+import CurrencySelect from '../../../components/shared/CurrencySelect'
 import type { DashboardTrip } from '../../../pages/dashboard/dashboardModel'
 import type { Trip, TripCreateRequest } from '@trek/shared'
 import MSheet from '../../components/MSheet'
@@ -307,13 +306,11 @@ export default function MNewTripSheet({ open, trip, onClose, onSave, onCoverUpda
 
         <div className="mt-2">
           <FieldLabel>{t('dashboard.currency')}</FieldLabel>
-          <CustomSelect
+          <CurrencySelect
             value={currency}
-            onChange={v => { if (canEditTrip) setCurrency(String(v)) }}
+            onChange={v => { if (canEditTrip) setCurrency(v) }}
             disabled={!canEditTrip}
-            searchable
             size="sm"
-            options={currenciesWith(currency).map(c => ({ value: c, label: `${c} (${SYMBOLS[c] || c})` }))}
             style={{ width: '100%', marginTop: 5 }}
           />
         </div>

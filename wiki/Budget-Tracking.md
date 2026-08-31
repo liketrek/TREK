@@ -24,7 +24,9 @@ Costs is **multi-currency** (#551). Three settings are involved, and they do dif
 - Each **expense** carries **its own currency** — pick it in the expense modal and enter what the receipt says (a $100 dinner on a rouble trip is `100 USD`). It is converted into the trip currency at a rate **frozen when you save it**, so a settled debt doesn't reopen when the market moves.
 - Your **display currency** (Settings → General) converts what you *read* — totals, chart, balances — into one currency. It changes nothing that is stored. Left on **Trip currency** (the default), each trip is shown in its own currency.
 
-165 currencies are supported, with rates from [Frankfurter](https://frankfurter.dev) (no API key needed). When an item's currency differs from the display currency, the modal shows the original next to the converted amount (`$100.00 ≈ 7 668,71 ₽ · live rate`), and the ledger row shows both (`$100.00 → 7 668,71 ₽`).
+165 currencies are supported, with durable Global snapshots from [Frankfurter](https://frankfurter.dev) (no API key needed). Foreign expenses and payments show their Trip-accounting rate, source, date, and frozen-value warning. If your Display currency differs, its presentation conversion is shown separately. The ledger row shows both original and displayed amounts (`$100.00 → 87,00 €`).
+
+Open **Trip exchange rates** from the desktop Costs header or the mobile **…** More menu. Every trip member can inspect the manager; `budget_edit` is required to save/delete a future default or preview and selectively apply a recalculation to existing frozen expenses and payments. Changing a default never changes existing transactions automatically.
 
 > **Read [Currencies](Currencies) for the full picture** — how the three interact, what happens when you change a trip's currency, and which currency a public share link is shown in.
 
@@ -49,6 +51,7 @@ Click **Add expense**, or the pencil beside a row, to open the expense editor:
 | What was it for? | The expense name. Required — the dialog will not save without it. |
 | Total amount | What the receipt says. In Ticket mode it is summed from the items instead and cannot be typed. |
 | Currency | The expense's own currency. |
+| Exchange rate | `1 expense currency = … Trip currency`. The inherited Trip/Global value is frozen on save; editing it creates an explicit rate. |
 | Day | Optional expense date. Undated expenses group under **No date**. |
 | Category | One of the 14 fixed categories. |
 | Who paid? | Who actually put the money down — see [Who paid](#who-paid). |
@@ -115,7 +118,7 @@ Click **Export CSV** in the toolbar to download all expenses as a spreadsheet (r
 
 ## Permissions
 
-All write operations (adding/editing/deleting expenses and settle-up payments, and an expense's currency) require the `budget_edit` permission. The **trip** currency lives on the trip itself, so changing that requires `trip_edit` instead.
+All write operations (adding/editing/deleting expenses and settle-up payments, changing transaction currency/rates, and applying Trip-rate batches) require the `budget_edit` permission. Reading Trip rates is available to every trip member. The **trip** currency lives on the trip itself, so changing that requires `trip_edit` instead.
 
 ## See also
 

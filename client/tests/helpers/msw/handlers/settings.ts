@@ -13,4 +13,8 @@ export const settingsHandlers = [
   http.post('/api/settings/bulk', () => {
     return HttpResponse.json({ success: true });
   }),
+
+  http.delete('/api/settings/common_currencies', () => {
+    return HttpResponse.json({ success: true, key: 'common_currencies', value: [] });
+  }),
 ];

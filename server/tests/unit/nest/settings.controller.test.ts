@@ -9,7 +9,7 @@ import type { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env
 const user = { id: 1, role: 'user', email: 'u@example.test' } as User;
 
 function svc(o: Partial<SettingsService> = {}): SettingsService {
-  return { getUserSettings: vi.fn(), upsertSetting: vi.fn(), bulkUpsertSettings: vi.fn(), ...o } as unknown as SettingsService;
+  return { getUserSettings: vi.fn(), upsertSetting: vi.fn(), bulkUpsertSettings: vi.fn(), deleteSetting: vi.fn(), ...o } as unknown as SettingsService;
 }
 
 function thrown(fn: () => unknown): { status: number; body: unknown } {
@@ -43,6 +43,30 @@ describe('SettingsController', () => {
     const c = new SettingsController(svc({ upsertSetting } as Partial<SettingsService>), { isManaged: () => false } as unknown as RuntimeEnvService);
     expect(c.upsert(user, { key: 'theme', value: 'dark' })).toEqual({ success: true, key: 'theme', value: 'dark' });
     expect(upsertSetting).toHaveBeenCalledWith(1, 'theme', 'dark');
+  });
+
+  it('PUT / normalizes a common currency list and rejects unsupported values', () => {
+    const upsertSetting = vi.fn();
+    const c = new SettingsController(svc({ upsertSetting }), { isManaged: () => false } as unknown as RuntimeEnvService);
+    expect(c.upsert(user, { key: 'common_currencies', value: ['usd', 'JPY'] })).toEqual({
+      success: true,
+      key: 'common_currencies',
+      value: ['USD', 'JPY'],
+    });
+    expect(upsertSetting).toHaveBeenCalledWith(1, 'common_currencies', ['USD', 'JPY']);
+    expect(thrown(() => c.upsert(user, { key: 'common_currencies', value: ['ZZZ'] }))).toMatchObject({ status: 400 });
+  });
+
+  it('DELETE /common_currencies removes the personal override and returns the inherited value', () => {
+    const deleteSetting = vi.fn().mockReturnValue(['USD']);
+    const c = new SettingsController(svc({ deleteSetting }), { isManaged: () => false } as unknown as RuntimeEnvService);
+    expect(c.delete(user, 'common_currencies')).toEqual({
+      success: true,
+      key: 'common_currencies',
+      value: ['USD'],
+    });
+    expect(deleteSetting).toHaveBeenCalledWith(1, 'common_currencies');
+    expect(thrown(() => c.delete(user, 'theme'))).toMatchObject({ status: 400 });
   });
 
   it('POST /bulk 500 on a write error, else returns the count', () => {

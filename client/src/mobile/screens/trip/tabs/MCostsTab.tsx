@@ -14,9 +14,11 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { budgetApi } from '../../../../api/client';
+import ItemExchangeRateFields from '../../../../components/Budget/ItemExchangeRateFields';
 import { readUserNote } from '../../../../components/Budget/CostsPanel.helpers';
-import ExchangeRateManager from '../../../../components/Budget/ExchangeRateManager';
 import { catMeta, COST_CAT_META } from '../../../../components/Budget/costsCategories';
+import { useItemExchangeRate } from '../../../../components/Budget/useItemExchangeRate';
+import CurrencySelect from '../../../../components/shared/CurrencySelect';
 import { useExchangeRates } from '../../../../hooks/useExchangeRates';
 import { useTranslation } from '../../../../i18n';
 import { useAuthStore } from '../../../../store/authStore';
@@ -39,12 +41,14 @@ import {
   currencyOf,
   dayFilterKeys,
   filterBudgetItems,
+  frozenAmountToDisplay,
   groupByDay,
   isUnfinished,
   memberShareOf,
   tint,
   type CostsCtx,
   type CostsSegment,
+  type CostsRecordedSettlement,
   type CostsSettlementResponse,
 } from './costsModel';
 import { CountPill, TabScroller } from './tabChrome';
@@ -75,7 +79,6 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
   const ctx: CostsCtx = useMemo(() => ({ me, tripCurrency, convert }), [me, tripCurrency, convert]);
 
   const [settlement, setSettlement] = useState<CostsSettlementResponse | null>(null);
-  const [ratesOpen, setRatesOpen] = useState(false);
   const loadSettlement = useCallback(() => {
     budgetApi
       .settlement(tripId, base)
@@ -93,6 +96,14 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
   useEffect(() => {
     loadSettlement();
   }, [loadSettlement]);
+  useEffect(() => {
+    const reloadRates = () => {
+      planner.tripActions.loadBudgetItems(tripId);
+      loadSettlement();
+    };
+    window.addEventListener('budget:exchange-rates-changed', reloadRates);
+    return () => window.removeEventListener('budget:exchange-rates-changed', reloadRates);
+  }, [loadSettlement, planner.tripActions, tripId]);
 
   const [search, setSearch] = useState('');
   const [segment, setSegment] = useState<CostsSegment>('all');
@@ -102,11 +113,14 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
   const [dayOpen, setDayOpen] = useState(false);
   const [settleOpen, setSettleOpen] = useState(true);
   const [addPaymentOpen, setAddPaymentOpen] = useState(false);
+  const [editingPayment, setEditingPayment] = useState<CostsRecordedSettlement | null>(null);
   const [expenseModalOpen, setExpenseModalOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<BudgetItem | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<BudgetItem | null>(null);
+  const [confirmDeletePayment, setConfirmDeletePayment] = useState<CostsRecordedSettlement | null>(null);
 
   const flows = useMemo(() => settlement?.flows || [], [settlement]);
+  const recordedPayments = useMemo(() => settlement?.settlements || [], [settlement]);
   const totals = useMemo(() => computeTotals(budgetItems, flows, ctx), [budgetItems, flows, ctx]);
   const filtered = useMemo(
     () => filterBudgetItems(budgetItems, { search, segment, categoryKey: catFilter, dayKey: dayFilter }, ctx),
@@ -217,16 +231,6 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
         </div>
       </div>
 
-      {canEdit && (
-        <button
-          type="button"
-          onClick={() => setRatesOpen(true)}
-          className="mt-2 w-full rounded-2xl border border-[color:var(--m-rowbr)] bg-m-card px-3 py-2 text-[0.71875rem] font-semibold text-m-muted"
-        >
-          {t('budget.exchangeRates.title')}
-        </button>
-      )}
-
       {/* You owe / You're owed (spec §3.2) */}
       <div className="mt-[10px] flex gap-2">
         <div className="flex-1 rounded-2xl border border-[color:var(--m-rowbr)] bg-m-card p-[13px]">
@@ -309,7 +313,10 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
           {canEdit && (
             <button
               type="button"
-              onClick={() => setAddPaymentOpen(true)}
+              onClick={() => {
+                setEditingPayment(null);
+                setAddPaymentOpen(true);
+              }}
               className="flex flex-none items-center gap-[5px] rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-[11px] py-[6px] font-[inherit] text-[0.71875rem] font-semibold text-m-muted"
             >
               <Plus size={11} strokeWidth={2.2} />
@@ -586,6 +593,62 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
           <p className="py-6 text-center font-geist text-[0.6875rem] text-m-faint">{t('costs.noMatch')}</p>
         ))}
 
+      {recordedPayments.length > 0 && (
+        <section className="mt-4">
+          <h2 className="text-[1.0625rem] font-extrabold text-m-ink">{t('costs.payment')}</h2>
+          <div className="mt-2 space-y-2">
+            {recordedPayments.map((payment) => {
+              const paymentCurrency = (payment.currency || base).toUpperCase();
+              return (
+                <div
+                  key={payment.id}
+                  className="flex items-center gap-3 rounded-2xl border border-[color:var(--m-rowbr)] bg-m-card p-3"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-[0.8125rem] font-semibold text-m-ink">
+                      {personName(payment.from_user_id)} <ArrowRight size={12} className="inline" />{' '}
+                      {personName(payment.to_user_id)}
+                    </div>
+                    <div className="mt-1 text-[0.6875rem] text-m-faint">
+                      {formatMoney(payment.amount, paymentCurrency, locale)}
+                      {paymentCurrency !== base &&
+                        ` → ${formatMoney(
+                          frozenAmountToDisplay(payment.amount, paymentCurrency, payment.exchange_rate, ctx),
+                          base,
+                          locale
+                        )}`}
+                    </div>
+                  </div>
+                  {canEdit && (
+                    <div className="flex flex-none gap-1">
+                      <button
+                        type="button"
+                        aria-label={t('common.edit')}
+                        onClick={() => {
+                          setEditingPayment(payment);
+                          setAddPaymentOpen(true);
+                        }}
+                        className="rounded-full p-2 text-m-muted"
+                      >
+                        <Pencil size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={t('common.delete')}
+                        onClick={() => setConfirmDeletePayment(payment)}
+                        className="rounded-full p-2 text-danger"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
       {/* Add / edit expense — the shared desktop modal (spec §3.9); not rebuilt here. */}
       {expenseModalOpen && (
         <MCostSheet
@@ -606,31 +669,24 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
 
       <AddPaymentSheet
         open={addPaymentOpen}
-        onClose={() => setAddPaymentOpen(false)}
+        onClose={() => {
+          setAddPaymentOpen(false);
+          setEditingPayment(null);
+        }}
         tripId={tripId}
         base={base}
+        tripCurrency={tripCurrency}
         people={tripMembers}
         me={me}
         toast={toast}
         t={t}
+        editing={editingPayment}
         onSaved={() => {
           setAddPaymentOpen(false);
+          setEditingPayment(null);
           loadSettlement();
         }}
       />
-
-      <MSheet open={ratesOpen} onClose={() => setRatesOpen(false)} ariaLabel={t('budget.exchangeRates.title')}>
-        <div className="p-4">
-          <ExchangeRateManager
-            tripId={tripId}
-            canEdit={canEdit}
-            onChanged={() => {
-              planner.tripActions.loadBudgetItems(tripId);
-              loadSettlement();
-            }}
-          />
-        </div>
-      </MSheet>
 
       <MConfirmSheet
         open={confirmDelete != null}
@@ -644,6 +700,25 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
           const item = confirmDelete;
           setConfirmDelete(null);
           if (item) handleDeleteExpense(item);
+        }}
+      />
+
+      <MConfirmSheet
+        open={confirmDeletePayment != null}
+        onClose={() => setConfirmDeletePayment(null)}
+        title={t('common.delete')}
+        message={t('costs.confirm.deletePayment')}
+        confirmLabel={t('common.delete')}
+        cancelLabel={t('common.cancel')}
+        danger
+        onConfirm={() => {
+          const payment = confirmDeletePayment;
+          setConfirmDeletePayment(null);
+          if (!payment) return;
+          budgetApi
+            .deleteSettlement(tripId, payment.id)
+            .then(loadSettlement)
+            .catch(() => toast.error(t('common.unknownError')));
         }}
       />
     </TabScroller>
@@ -846,43 +921,60 @@ function AddPaymentSheet({
   onClose,
   tripId,
   base,
+  tripCurrency,
   people,
   me,
   toast,
   t,
+  editing,
   onSaved,
 }: {
   open: boolean;
   onClose: () => void;
   tripId: number;
   base: string;
+  tripCurrency: string;
   people: TripMember[];
   me: number;
   toast: { error: (message: string) => void };
   t: TFn;
+  editing: CostsRecordedSettlement | null;
   onSaved: () => void;
 }) {
-  const [fromId, setFromId] = useState(me);
-  const [toId, setToId] = useState(() => people.find((p) => p.id !== me)?.id ?? me);
+  const { locale } = useTranslation();
+  const { convert } = useExchangeRates(base);
+  const [fromId, setFromId] = useState(editing?.from_user_id ?? me);
+  const [toId, setToId] = useState(() => editing?.to_user_id ?? people.find((p) => p.id !== me)?.id ?? me);
   const [amount, setAmount] = useState('');
+  const [currency, setCurrency] = useState((editing?.currency || base).toUpperCase());
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!open) return;
-    setFromId(me);
-    setToId(people.find((p) => p.id !== me)?.id ?? me);
-    setAmount('');
+    setFromId(editing?.from_user_id ?? me);
+    setToId(editing?.to_user_id ?? people.find((p) => p.id !== me)?.id ?? me);
+    setAmount(editing ? String(editing.amount) : '');
+    setCurrency((editing?.currency || base).toUpperCase());
     setSaving(false);
-  }, [open, me, people]);
+  }, [open, me, people, base, editing]);
 
   const amt = Number.parseFloat(amount.replace(',', '.')) || 0;
-  const valid = amt > 0 && fromId !== toId;
+  const rate = useItemExchangeRate(tripId, currency, tripCurrency, editing);
+  const valid = amt > 0 && fromId !== toId && rate.valid;
 
   const save = async () => {
     if (!valid || saving) return;
     setSaving(true);
     try {
-      await budgetApi.createSettlement(tripId, { from_user_id: fromId, to_user_id: toId, amount: amt, currency: base });
+      const data = {
+        from_user_id: fromId,
+        to_user_id: toId,
+        amount: amt,
+        currency,
+        ...rate.write,
+      };
+      if (editing) await budgetApi.updateSettlement(tripId, editing.id, data);
+      else await budgetApi.createSettlement(tripId, data);
       onSaved();
     } catch {
       toast.error(t('common.unknownError'));
@@ -892,8 +984,8 @@ function AddPaymentSheet({
   };
 
   return (
-    <MSheet open={open} onClose={onClose} ariaLabel={t('costs.addPayment')}>
-      <FormSheetHeader title={t('costs.addPayment')} onClose={onClose} closeLabel={t('common.close')} />
+    <MSheet open={open} onClose={onClose} ariaLabel={editing ? t('costs.editPayment') : t('costs.addPayment')}>
+      <FormSheetHeader title={editing ? t('costs.editPayment') : t('costs.addPayment')} onClose={onClose} closeLabel={t('common.close')} />
       <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[6px] pt-1">
         <Eyebrow className="mb-[7px] uppercase">{t('costs.from')}</Eyebrow>
         <div className="flex flex-wrap gap-[6px]">
@@ -939,14 +1031,30 @@ function AddPaymentSheet({
             placeholder="0.00"
             className={FIELD_CLS}
           />
-          <span className="flex-none font-geist text-[0.75rem] font-bold text-m-faint">{base}</span>
+          <CurrencySelect value={currency} onChange={setCurrency} size="sm" style={{ minWidth: 132 }} />
         </div>
+        <ItemExchangeRateFields
+          rate={rate}
+          currency={currency}
+          tripCurrency={tripCurrency}
+          amount={amt}
+          locale={locale}
+          t={t}
+          mobile
+        />
+        {base !== tripCurrency && currency !== base && amt > 0 && (
+          <div className="mt-2 rounded-[12px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 py-[9px] text-[0.71875rem] text-m-muted">
+            {t('costs.exchangeRates.displayApprox', {
+              amount: formatMoney(convert(amt, currency), base, locale),
+            })}
+          </div>
+        )}
       </div>
       <FormSheetFooter
         onCancel={onClose}
         cancelLabel={t('common.cancel')}
         onSubmit={save}
-        submitLabel={t('costs.addPayment')}
+        submitLabel={editing ? t('common.save') : t('costs.addPayment')}
         submitDisabled={!valid || saving}
       />
     </MSheet>

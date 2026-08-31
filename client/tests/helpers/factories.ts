@@ -263,6 +263,7 @@ export function buildSettings(overrides: Partial<Settings> = {}): Settings {
     map_tile_url: '',
     dark_mode: false,
     default_currency: 'USD',
+    common_currencies: [],
     language: 'en',
     temperature_unit: 'fahrenheit',
     time_format: '12h',

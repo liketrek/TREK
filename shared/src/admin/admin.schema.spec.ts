@@ -136,6 +136,17 @@ describe('adminDefaultUserSettingsRequestSchema', () => {
     expect(adminDefaultUserSettingsRequestSchema.safeParse([]).success).toBe(false);
     expect(adminDefaultUserSettingsRequestSchema.safeParse(null).success).toBe(false);
   });
+
+  it('normalizes and validates administrator common currency defaults', () => {
+    expect(adminDefaultUserSettingsRequestSchema.parse({ common_currencies: [' usd ', 'JPY'] })).toEqual({
+      common_currencies: ['USD', 'JPY'],
+    });
+    expect(adminDefaultUserSettingsRequestSchema.safeParse({ common_currencies: ['USD', 'USD'] }).success).toBe(false);
+    expect(adminDefaultUserSettingsRequestSchema.safeParse({ common_currencies: ['ZZZ'] }).success).toBe(false);
+    expect(adminDefaultUserSettingsRequestSchema.parse({ common_currencies: null })).toEqual({
+      common_currencies: null,
+    });
+  });
 });
 
 describe('adminTestNotificationRequestSchema', () => {

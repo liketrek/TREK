@@ -34,6 +34,7 @@ The General tab controls the following preferences, all saved immediately on cha
 **Language & region**
 
 - **Currency** — your display currency; **Trip currency** (the default) shows each trip in its own. See [Currencies](Currencies).
+- **Common currencies** — an ordered list of up to ten shortcuts shown first in currency selectors; clear keeps a personal empty override, while reset returns to the administrator list.
 - **Language** — displayed as a button grid on desktop and a dropdown on mobile.
 - **Temperature unit** — Celsius (°C) or Fahrenheit (°F).
 - **Distance unit** — Metric (km) or Imperial (mi).

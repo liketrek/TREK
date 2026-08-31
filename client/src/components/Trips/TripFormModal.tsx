@@ -3,6 +3,7 @@ import Modal from '../shared/Modal'
 import { Calendar, Camera, Search, X, UserPlus, Bell } from 'lucide-react'
 import { tripsApi, authApi } from '../../api/client'
 import CustomSelect from '../shared/CustomSelect'
+import CurrencySelect from '../shared/CurrencySelect'
 import { useAuthStore } from '../../store/authStore'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useCanDo } from '../../store/permissionsStore'
@@ -13,7 +14,6 @@ import { normalizeImageFile } from '../../utils/convertHeic'
 import { getApiErrorMessage, type Trip } from '../../types'
 import type { TripCreateRequest } from '@trek/shared'
 import { NumericInput } from '../shared/NumericInput'
-import { currenciesWith, SYMBOLS } from '../Budget/BudgetPanel.constants'
 
 type DateShiftMode = 'keep_bookings' | 'shift_all'
 
@@ -567,12 +567,10 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
 
         <div>
           <label className={labelCls}>{t('dashboard.currency')}</label>
-          <CustomSelect
+          <CurrencySelect
             value={formData.currency}
             onChange={v => canEditTrip && update('currency', v)}
             disabled={!canEditTrip}
-            options={currenciesWith(formData.currency).map(c => ({ value: c, label: `${c} (${SYMBOLS[c] || c})` }))}
-            searchable
           />
         </div>
 

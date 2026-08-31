@@ -1,8 +1,7 @@
-import type { ExchangeRateResolution } from '@trek/shared';
 import { Check, ChevronDown, Plus, Trash2, Wallet } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { budgetApi } from '../../../../api/client';
-import { SPLIT_COLORS, SYMBOLS, currenciesWith } from '../../../../components/Budget/BudgetPanel.constants';
+import ItemExchangeRateFields from '../../../../components/Budget/ItemExchangeRateFields';
+import { SPLIT_COLORS, SYMBOLS } from '../../../../components/Budget/BudgetPanel.constants';
 import type { TripMember } from '../../../../components/Budget/BudgetPanelMemberChips';
 import { COST_CATEGORY_LIST, catMeta } from '../../../../components/Budget/costsCategories';
 import type { ExpensePrefill } from '../../../../components/Budget/CostsPanel';
@@ -18,9 +17,11 @@ import {
   writeTicketItems,
   type TicketItem,
 } from '../../../../components/Budget/CostsPanel.helpers';
+import { useItemExchangeRate } from '../../../../components/Budget/useItemExchangeRate';
 import { localToday } from '../../../../components/Planner/today';
 import { CustomDatePicker } from '../../../../components/shared/CustomDateTimePicker';
 import CustomSelect from '../../../../components/shared/CustomSelect';
+import CurrencySelect from '../../../../components/shared/CurrencySelect';
 import GuestBadge from '../../../../components/shared/GuestBadge';
 import { NumericInput } from '../../../../components/shared/NumericInput';
 import { useToast } from '../../../../components/shared/Toast';
@@ -103,7 +104,6 @@ export default function MCostSheet({
   const [catOpen, setCatOpen] = useState(false);
   const [note, setNote] = useState(() => readUserNote(editing));
   const [currency, setCurrency] = useState((editing?.currency || base).toUpperCase());
-  const [rateHint, setRateHint] = useState<ExchangeRateResolution | null>(null);
   const [day, setDay] = useState(editing?.expense_date || localToday());
   const [total, setTotal] = useState<string>(() => {
     if (editing) return editing.total_price ? String(cleanAmount(editing.total_price)) : '';
@@ -154,43 +154,11 @@ export default function MCostSheet({
   const [saving, setSaving] = useState(false);
   const [deleteArmed, setDeleteArmed] = useState(false);
 
-  useEffect(() => {
-    if (currency === tripCurrency.toUpperCase()) {
-      setRateHint(null);
-      return;
-    }
-    if (editing && currency === (editing.currency || tripCurrency).toUpperCase() && editing.exchange_rate) {
-      setRateHint({
-        trip_id: tripId,
-        trip_currency: tripCurrency.toUpperCase(),
-        item_currency: currency,
-        exchange_rate: editing.exchange_rate,
-        source: editing.exchange_rate_source || 'legacy',
-        source_version: editing.exchange_rate_source_version || 'legacy',
-        effective_date: editing.exchange_rate_effective_date || null,
-        fetched_at: editing.exchange_rate_set_at || null,
-        stale: false,
-      });
-      return;
-    }
-    let active = true;
-    budgetApi
-      .resolveExchangeRate(tripId, currency)
-      .then((resolution) => {
-        if (active) setRateHint(resolution);
-      })
-      .catch(() => {
-        if (active) setRateHint(null);
-      });
-    return () => {
-      active = false;
-    };
-  }, [currency, editing, tripCurrency, tripId]);
-
   const isTicketMode = splitMode === 'ticket';
   const ticketInfo = useMemo(() => calculateTicketShares(ticketItems), [ticketItems]);
 
   const totalNum = isTicketMode ? ticketInfo.total : Number.parseFloat(total) || 0;
+  const rate = useItemExchangeRate(tripId, currency, tripCurrency, editing);
   const splitSum = [...participants].reduce((sum, id) => sum + (Number.parseFloat(customAmounts[id]) || 0), 0);
   const customBalanced = Math.round(splitSum * 100) === Math.round(totalNum * 100);
   const each = participants.size > 0 ? totalNum / participants.size : 0;
@@ -227,6 +195,7 @@ export default function MCostSheet({
   const valid =
     name.trim().length > 0 &&
     payersOk &&
+    rate.valid &&
     (isTicketMode
       ? ticketValid
       : totalNum > 0 && (participants.size === 0 || splitMode === 'equally' || customBalanced));
@@ -356,6 +325,7 @@ export default function MCostSheet({
       total_price: totalNum,
       note: note.trim() || null,
       ticket_json: splitMode === 'ticket' ? writeTicketItems(ticketItems) : null,
+      ...rate.write,
       ...(!editing && prefill?.reservationId ? { reservation_id: prefill.reservationId } : {}),
       ...(!editing && prefill?.placeId ? { place_id: prefill.placeId } : {}),
     };
@@ -471,15 +441,10 @@ export default function MCostSheet({
         <div className="mt-3 flex gap-2">
           <div className="min-w-0 flex-1">
             <Eyebrow className="mb-[5px] uppercase">{t('costs.currency')}</Eyebrow>
-            <CustomSelect
+            <CurrencySelect
               value={currency}
-              onChange={(v) => setCurrency(String(v))}
-              searchable
+              onChange={setCurrency}
               size="sm"
-              options={currenciesWith(currency).map((c) => ({
-                value: c,
-                label: SYMBOLS[c] ? `${c}  ${SYMBOLS[c]}` : c,
-              }))}
               style={{ width: '100%' }}
             />
           </div>
@@ -489,20 +454,22 @@ export default function MCostSheet({
           </div>
         </div>
 
-        {/* CONVERSION HINT */}
-        {currency !== base && totalNum > 0 && (
+        <ItemExchangeRateFields
+          rate={rate}
+          currency={currency}
+          tripCurrency={tripCurrency}
+          amount={totalNum}
+          locale={locale}
+          t={t}
+          mobile
+        />
+
+        {/* Display-currency conversion is separate from Trip accounting FX. */}
+        {base !== tripCurrency && currency !== base && totalNum > 0 && (
           <div className="mt-2 flex flex-wrap items-center gap-2 rounded-[12px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 py-[9px] text-[0.71875rem] text-m-muted">
-            <span>{formatMoney(totalNum, currency, locale)}</span>
-            <span className="text-m-faint">≈</span>
-            <span className="font-semibold text-m-ink">{formatMoney(convert(totalNum, currency), base, locale)}</span>
-            <span className="text-m-faint">· {t('costs.liveRate')}</span>
-          </div>
-        )}
-        {rateHint && (
-          <div className="mt-2 rounded-[12px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 py-[9px] text-[0.6875rem] text-m-muted">
-            {t('budget.exchangeRates.provenance', {
-              rate: rateHint.exchange_rate,
-              source: t(`budget.exchangeRates.source.${rateHint.source}`),
+            {t('costs.exchangeRates.displayApprox', {
+              amount: formatMoney(convert(totalNum, currency), base, locale),
+              currency: base,
             })}
           </div>
         )}

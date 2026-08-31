@@ -63,11 +63,15 @@ Your **display currency** — the currency you want to *read* amounts in on the 
 | **Trip currency** (default) | Each trip is shown in **its own** currency — a Tokyo trip in yen, a Moscow trip in roubles. |
 | A specific currency (e.g. `USD`) | **Every** trip is converted into that currency for you, whatever its own currency is. |
 
-165 currencies are available. Conversion uses live rates, so a converted total can shift slightly from day to day while the trip's actual balances stay fixed.
+165 currencies are available. Display conversion uses the current durable Global snapshot, so a converted total can shift when that snapshot is refreshed while the trip's actual balances stay fixed.
 
 > This is **not** the trip's currency, which is set on the trip itself and is the base its balances are calculated in. The distinction matters — see [Currencies](Currencies).
 
 An administrator can set an instance-wide default in Admin → Default User Settings. It is not only a starting value for new accounts: it is merged in every time your settings are loaded, so it applies to anyone whose own display currency is empty. Picking a specific currency of your own overrides it. **Trip currency** does not, because it stores an empty value that counts as "not set", so the admin default takes effect again on your next reload.
+
+### Common currencies
+
+Choose up to ten currencies to appear first, in your chosen order, in currency selectors across TREK. This list is only a shortcut; it does not change the Trip, expense, payment, or Display currency. **Clear** saves a personal empty list and hides inherited shortcuts. **Reset** removes your personal override and returns to the administrator default, or to the built-in empty list when no administrator default exists.
 
 ## Language
 

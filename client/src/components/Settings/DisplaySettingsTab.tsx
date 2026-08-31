@@ -4,11 +4,12 @@ import { SUPPORTED_LANGUAGES, useTranslation } from '../../i18n'
 import { useSettingsStore, DEFAULT_SETTINGS } from '../../store/settingsStore'
 import { useToast } from '../shared/Toast'
 import CustomSelect from '../shared/CustomSelect'
-import { SYMBOLS, currenciesWith } from '../Budget/BudgetPanel.constants'
+import CurrencySelect from '../shared/CurrencySelect'
 import Section from './Section'
 import { TRIP_TAB_IDS, TRIP_TAB_LABEL_KEYS } from '../../constants/tripTabs'
 import { DEFAULT_START_PAGE, DEFAULT_START_TRIP_TAB } from '../../utils/startDestination'
 import type { DistanceUnit } from '../../types'
+import CommonCurrenciesEditor from './CommonCurrenciesEditor'
 
 export default function DisplaySettingsTab(): React.ReactElement {
   const { settings, updateSetting } = useSettingsStore()
@@ -96,19 +97,30 @@ export default function DisplaySettingsTab(): React.ReactElement {
         <label className="block text-sm font-medium mb-2 text-content-secondary">{t('settings.currency')}</label>
         {/* Unset ('') means "no personal preference": Costs then shows each trip in its
             own currency, instead of forcing every trip through one display currency. */}
-        <CustomSelect
+        <CurrencySelect
           value={settings.default_currency || ''}
           onChange={async v => {
-            try { await updateSetting('default_currency', String(v)) }
+            try { await updateSetting('default_currency', v) }
             catch (e: unknown) { toast.error(e instanceof Error ? e.message : t('common.error')) }
           }}
-          options={[
+          specialOptions={[
             { value: '', label: t('settings.currencyTrip') },
-            ...currenciesWith(settings.default_currency || '').map(c => ({ value: c, label: `${c} — ${SYMBOLS[c] || c}` })),
           ]}
-          searchable
+          currentCurrency={settings.default_currency || ''}
         />
         <p className="text-xs text-content-faint mt-2">{t('settings.currencyHint')}</p>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium mb-2 text-content-secondary">
+          {t('settings.commonCurrencies.title')}
+        </label>
+        <p className="text-xs text-content-faint mb-2">{t('settings.commonCurrencies.hint')}</p>
+        <CommonCurrenciesEditor
+          value={settings.common_currencies || []}
+          onSave={async value => { await updateSetting('common_currencies', value); return value }}
+          onReset={() => useSettingsStore.getState().resetSetting('common_currencies')}
+        />
       </div>
 
       {/* Language */}

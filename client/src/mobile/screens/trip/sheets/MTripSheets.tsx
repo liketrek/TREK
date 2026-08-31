@@ -23,6 +23,7 @@ import MNoteSheet, { type MNoteSheetPayload } from './MNoteSheet'
 import MImportSheet from './MImportSheet'
 import MExportSheet from './MExportSheet'
 import MMehrSheet from './MMehrSheet'
+import MExchangeRateSheet from './MExchangeRateSheet'
 import type { BookingExpenseRequest } from '../../../../components/Planner/BookingCostsSection.types'
 import type { BudgetItem } from '../../../../types'
 import type { MTripSheetsProps } from '../MTripShell'
@@ -63,6 +64,7 @@ export default function MTripSheets({ planner, shell }: MTripSheetsProps) {
       <MTransportSheet planner={planner} shell={shell} />
       <MBrowseActionsSheet planner={planner} shell={shell} />
       <MMehrSheet planner={planner} shell={shell} />
+      <MExchangeRateSheet planner={planner} shell={shell} />
       <MExportSheet planner={planner} shell={shell} />
       <MNoteSheet
         planner={planner}
@@ -117,6 +119,7 @@ export default function MTripSheets({ planner, shell }: MTripSheetsProps) {
         <MCostSheet
           tripId={tripId}
           base={costsBase}
+          tripCurrency={(trip?.currency || costsBase).toUpperCase()}
           people={planner.tripMembers}
           me={meId}
           editing={bookingExpense.editing}

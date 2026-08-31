@@ -10,6 +10,8 @@ import type { Settings, DistanceUnit } from '../../../types'
 import { MSetCard, MSetEyebrow, MSetSelectRow, MSetSegments, MSetRow } from './MSettingsUi'
 import MToggle from '../../components/MToggle'
 import MSetPickerSheet from './MSetPickerSheet'
+import CommonCurrenciesEditor from '../../../components/Settings/CommonCurrenciesEditor'
+import { buildCurrencyOptions } from '../../../components/shared/currencyOptions'
 
 /**
  * "General" settings section — the demo's Language & region and Travel & map
@@ -138,6 +140,16 @@ export default function MSettingsGeneral() {
         />
       </MSetCard>
 
+      <MSetCard title={t('settings.commonCurrencies.title')} icon={Languages} className="mt-3">
+        <p className="mb-2 text-[0.6875rem] text-m-faint">{t('settings.commonCurrencies.hint')}</p>
+        <CommonCurrenciesEditor
+          mobile
+          value={settings.common_currencies || []}
+          onSave={async value => { await updateSetting('common_currencies', value); return value }}
+          onReset={() => useSettingsStore.getState().resetSetting('common_currencies')}
+        />
+      </MSetCard>
+
       <MSetCard title={t('settings.general.travelMap')} icon={Map} className="mt-3">
         <div className="-mt-[6px]">
           {travelRows.map((row) => (
@@ -163,10 +175,16 @@ export default function MSettingsGeneral() {
         title={t('settings.currency')}
         value={currency}
         onSelect={(v) => save('default_currency', v)}
-        options={[
-          { value: '', label: t('settings.currencyTrip') },
-          ...currenciesWith(currency).map((c) => ({ value: c, label: `${c} — ${SYMBOLS[c] || c}` })),
-        ]}
+        options={buildCurrencyOptions({
+          commonCurrencies: settings.common_currencies,
+          availableCurrencies: currenciesWith(currency),
+          currentCurrency: currency,
+          locale: settings.language,
+          commonLabel: t('settings.commonCurrencies.group'),
+          otherLabel: t('settings.otherCurrencies.group'),
+          specialOptions: [{ value: '', label: t('settings.currencyTrip') }],
+        })}
+        searchable
       />
 
       <MSetPickerSheet

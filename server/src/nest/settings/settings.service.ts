@@ -1,7 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import { decrypt_api_key, maybe_encrypt_api_key } from '../common/crypto/apiKeyCrypto';
-import { MASKED_SETTING_VALUE, normalizeAppearance } from '@trek/shared';
+import {
+  FRANKFURTER_CURRENCY_SET,
+  MASKED_SETTING_VALUE,
+  commonCurrencyListSchema,
+  normalizeAppearance,
+} from '@trek/shared';
 import { readEnv } from '../../app-config';
 
 const ENCRYPTED_SETTING_KEYS = new Set([
@@ -23,6 +28,7 @@ export const DEFAULTABLE_USER_SETTING_KEYS = [
   // Instance-wide default currency for Costs (new users inherit it until they
   // pick their own). Free-form ISO code, validated on the client.
   'default_currency',
+  'common_currencies',
   'blur_booking_codes',
   'map_tile_url',
   // CARTO stamps an "API KEY REQUIRED" watermark into keyless tiles (#2054), and
@@ -60,6 +66,17 @@ const VALID_VALUES: Partial<Record<DefaultableKey, unknown[]>> = {
 };
 
 const BOOLEAN_KEYS = new Set<DefaultableKey>(['blur_booking_codes', 'mapbox_3d_enabled', 'mapbox_quality_mode', 'llm_multimodal']);
+
+function normalizeStoredCommonCurrencies(value: unknown): string[] {
+  const parsed = commonCurrencyListSchema.safeParse(value);
+  if (parsed.success) return parsed.data;
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value
+    .filter((code): code is string => typeof code === 'string')
+    .map((code) => code.trim().toUpperCase())
+    .filter((code) => FRANKFURTER_CURRENCY_SET.has(code)))]
+    .slice(0, 10);
+}
 
 /**
  * #1772: per-user LLM settings a non-admin must not write. Both of them pick
@@ -123,6 +140,9 @@ export class SettingsService {
         defaults[settingKey] = parseValue(row.value);
       }
     }
+    if ('common_currencies' in defaults) {
+      defaults.common_currencies = normalizeStoredCommonCurrencies(defaults.common_currencies);
+    }
     return defaults;
   }
 
@@ -147,19 +167,20 @@ export class SettingsService {
           continue;
         }
 
-        if (BOOLEAN_KEYS.has(typedKey) && typeof value !== 'boolean') {
+        const normalizedValue = key === 'common_currencies' ? commonCurrencyListSchema.parse(value) : value;
+        if (BOOLEAN_KEYS.has(typedKey) && typeof normalizedValue !== 'boolean') {
           throw new Error(`Setting ${key} must be a boolean`);
         }
         const allowed = VALID_VALUES[typedKey];
-        if (allowed && !allowed.includes(value)) {
-          throw new Error(`Invalid value for ${key}: ${value}`);
+        if (allowed && !allowed.includes(normalizedValue)) {
+          throw new Error(`Invalid value for ${key}: ${normalizedValue}`);
         }
 
         // Encrypt sensitive defaults (the shared Mapbox token) at rest, like the
         // per-user equivalents; everything else is stored as plain JSON.
         const stored = ENCRYPTED_SETTING_KEYS.has(key)
-          ? (maybe_encrypt_api_key(String(value)) ?? String(value))
-          : JSON.stringify(value);
+          ? (maybe_encrypt_api_key(String(normalizedValue)) ?? String(normalizedValue))
+          : JSON.stringify(normalizedValue);
         upsert.run(appKey, stored);
       }
     });
@@ -184,6 +205,9 @@ export class SettingsService {
       } catch {
         userSettings[row.key] = row.value;
       }
+    }
+    if ('common_currencies' in userSettings) {
+      userSettings.common_currencies = normalizeStoredCommonCurrencies(userSettings.common_currencies);
     }
 
     // Admin defaults fill in for keys the user hasn't explicitly set. For a
@@ -233,10 +257,11 @@ export class SettingsService {
       merged.carto_api_key = managedMaps.cartoKey;
     }
 
-    return merged;
+    return { common_currencies: [], ...merged };
   }
 
   upsertSetting(userId: number, key: string, value: unknown) {
+    if (key === 'common_currencies') value = commonCurrencyListSchema.parse(value);
     this.db.run(`
     INSERT INTO settings (user_id, key, value) VALUES (?, ?, ?)
     ON CONFLICT(user_id, key) DO UPDATE SET value = excluded.value
@@ -255,11 +280,20 @@ export class SettingsService {
         // bulk save can never overwrite a stored secret with the mask (the
         // single-upsert route has the same no-op in the controller).
         if (value === MASKED_SETTING_VALUE) continue;
-        upsert.run(userId, key, serializeValue(key, value));
+        const normalizedValue = key === 'common_currencies' ? commonCurrencyListSchema.parse(value) : value;
+        upsert.run(userId, key, serializeValue(key, normalizedValue));
         written++;
       }
     });
     return written;
+  }
+
+  deleteSetting(userId: number, key: string): unknown {
+    this.db.run('DELETE FROM settings WHERE user_id = ? AND key = ?', userId, key);
+    if (key === 'common_currencies') {
+      return this.getAdminUserDefaults().common_currencies ?? [];
+    }
+    return null;
   }
 
   /**

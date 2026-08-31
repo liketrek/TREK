@@ -28,6 +28,8 @@ The Admin Panel is divided into tabs. Most tabs are always visible; a few appear
 | **GitHub** | Release timeline and support links | Hidden on managed instances |
 | **Dev: Notifications** | Test notification dispatch | Only in development mode (`NODE_ENV=development`) |
 
+The **User Defaults** tab also provides an ordered Common currencies list. Users inherit it until they save their own list; a personal empty list intentionally hides it, and Reset returns to the administrator list.
+
 ![Admin panel on the User Defaults tab, setting instance-wide defaults for colour mode, temperature unit, distance unit, time format, currency and blurred booking codes](assets/AdminUserDefaults.png)
 
 ### Linking to a tab directly

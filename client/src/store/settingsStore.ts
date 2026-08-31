@@ -14,6 +14,7 @@ interface SettingsState {
 
   loadSettings: () => Promise<void>
   updateSetting: (key: keyof Settings, value: Settings[keyof Settings]) => Promise<void>
+  resetSetting: (key: 'common_currencies') => Promise<string[]>
   setLanguageLocal: (lang: string) => void
   setLanguageTransient: (lang: string) => void
   updateSettings: (settingsObj: Partial<Settings>) => Promise<void>
@@ -35,6 +36,7 @@ export const DEFAULT_SETTINGS: Settings = {
   dark_mode: false,
   // Empty = no personal display currency, so Costs falls back to the trip's own.
   default_currency: '',
+  common_currencies: [],
   language: localStorage.getItem('app_language') || 'en',
   temperature_unit: 'celsius',
   distance_unit: 'metric',
@@ -127,6 +129,13 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       console.error('Failed to save setting:', err)
       throw new Error(getApiErrorMessage(err, 'Error saving setting'))
     }
+  },
+
+  resetSetting: async (key: 'common_currencies') => {
+    const result = await settingsApi.reset(key)
+    const value = result.value as string[]
+    set((state) => ({ settings: { ...state.settings, [key]: value } }))
+    return value
   },
 
   setLanguageLocal: (lang: string) => {

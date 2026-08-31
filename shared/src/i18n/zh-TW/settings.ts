@@ -515,6 +515,19 @@ const settings: TranslationStrings = {
   'settings.webPush.enabled': '已在此裝置啟用推播通知。',
   'settings.webPush.revoked': '已撤銷裝置。',
   'settings.webPush.notNow': '暫時不要',
+  'settings.commonCurrencies.title': '常用貨幣清單',
+  'settings.commonCurrencies.hint': '選擇最多 10 種貨幣，並依此順序顯示在所有貨幣選單頂端。',
+  'settings.commonCurrencies.adminHint': '適用於所有尚未儲存個人覆寫值的使用者。',
+  'settings.commonCurrencies.group': '常用貨幣',
+  'settings.otherCurrencies.group': '其他貨幣',
+  'settings.commonCurrencies.add': '搜尋要新增的貨幣…',
+  'settings.commonCurrencies.limit': '最多 {count} 種貨幣',
+  'settings.commonCurrencies.moveUp': '上移 {currency}',
+  'settings.commonCurrencies.moveDown': '下移 {currency}',
+  'settings.commonCurrencies.remove': '移除 {currency}',
+  'settings.commonCurrencies.clear': '清空',
+  'settings.commonCurrencies.reset': '重設',
+  'settings.commonCurrencies.count': '{count} / {max}',
 };
 
 export default settings;

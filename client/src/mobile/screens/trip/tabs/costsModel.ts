@@ -1,6 +1,7 @@
 import type { CostCategory } from '@trek/shared'
 import { readUserNote, splitEqualShares } from '../../../../components/Budget/CostsPanel.helpers'
 import { catMeta, COST_CATEGORY_LIST } from '../../../../components/Budget/costsCategories'
+import { frozenTransactionAmountToDisplay } from '../../../../components/Budget/exchangeRateMath'
 import { currencyDecimals } from '../../../../utils/formatters'
 import type { BudgetItem } from '../../../../types'
 
@@ -26,16 +27,26 @@ export function currencyOf(e: BudgetItem, ctx: CostsCtx): string {
   return (e.currency || ctx.tripCurrency).toUpperCase()
 }
 
+/** Frozen transaction amount → Trip currency → the user's Display currency. */
+export function frozenAmountToDisplay(
+  amount: number,
+  currency: string | null | undefined,
+  exchangeRate: number | null | undefined,
+  ctx: CostsCtx,
+): number {
+  return frozenTransactionAmountToDisplay(amount, currency, exchangeRate, ctx.tripCurrency, ctx.convert)
+}
+
 /** Expense total converted to the display/base currency. */
 export function baseTotal(e: BudgetItem, ctx: CostsCtx): number {
-  return ctx.convert(e.total_price || 0, currencyOf(e, ctx))
+  return frozenAmountToDisplay(e.total_price || 0, currencyOf(e, ctx), e.exchange_rate, ctx)
 }
 
 /** How much `ctx.me` personally fronted for this expense, in the base currency. */
 export function myPaidOf(e: BudgetItem, ctx: CostsCtx): number {
   return (e.payers || [])
     .filter(p => p.user_id === ctx.me)
-    .reduce((a, p) => a + ctx.convert(p.amount, currencyOf(e, ctx)), 0)
+    .reduce((a, p) => a + frozenAmountToDisplay(p.amount, currencyOf(e, ctx), e.exchange_rate, ctx), 0)
 }
 
 /** A given member's share of this expense (explicit custom amount, else equal split), base currency. */
@@ -43,10 +54,10 @@ export function memberShareOf(e: BudgetItem, userId: number, ctx: CostsCtx): num
   const member = (e.members || []).find(m => m.user_id === userId)
   if (!member) return 0
   if (member.amount !== null && member.amount !== undefined) {
-    return ctx.convert(member.amount, currencyOf(e, ctx))
+    return frozenAmountToDisplay(member.amount, currencyOf(e, ctx), e.exchange_rate, ctx)
   }
   const shares = splitEqualShares(e.total_price || 0, e.members || [], e.id)
-  return ctx.convert(shares[userId] || 0, currencyOf(e, ctx))
+  return frozenAmountToDisplay(shares[userId] || 0, currencyOf(e, ctx), e.exchange_rate, ctx)
 }
 
 /** `ctx.me`'s own share — the common case of {@link memberShareOf}. */
@@ -74,9 +85,28 @@ export interface CostsBalance {
   balance: number
 }
 
+export interface CostsRecordedSettlement {
+  id: number
+  trip_id: number
+  from_user_id: number
+  to_user_id: number
+  amount: number
+  currency?: string | null
+  exchange_rate?: number
+  exchange_rate_source?: 'identity' | 'global' | 'trip' | 'explicit' | 'legacy'
+  exchange_rate_source_version?: string | null
+  exchange_rate_effective_date?: string | null
+  exchange_rate_set_at?: string | null
+  exchange_rate_note?: string | null
+  created_at?: string
+  from_username?: string
+  to_username?: string
+}
+
 export interface CostsSettlementResponse {
   balances: CostsBalance[]
   flows: CostsSettlementFlow[]
+  settlements: CostsRecordedSettlement[]
 }
 
 // ── hero / tile totals (spec §3.1-§3.3) ────────────────────────────────────

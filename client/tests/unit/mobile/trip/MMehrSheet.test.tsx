@@ -102,14 +102,23 @@ describe('MMehrSheet', () => {
     expect(shell.setTrTab).toHaveBeenCalledWith('dateien')
   })
 
-  it('FE-MOB-MEHR-009: the action rows open the share, export and edit sheets', () => {
+  it('FE-MOB-MEHR-009: the action rows open rates, share, export and edit sheets', () => {
     const { shell } = renderSheet()
+    fireEvent.click(screen.getByRole('button', { name: 'Trip exchange rates' }))
     fireEvent.click(screen.getByRole('button', { name: 'Share Trip' }))
     fireEvent.click(screen.getByRole('button', { name: 'Export' }))
     fireEvent.click(screen.getByRole('button', { name: 'Edit Trip' }))
-    expect(shell.openSheet).toHaveBeenNthCalledWith(1, 'members')
-    expect(shell.openSheet).toHaveBeenNthCalledWith(2, 'export')
-    expect(shell.openSheet).toHaveBeenNthCalledWith(3, 'tripedit')
+    expect(shell.openSheet).toHaveBeenNthCalledWith(1, 'rates')
+    expect(shell.openSheet).toHaveBeenNthCalledWith(2, 'members')
+    expect(shell.openSheet).toHaveBeenNthCalledWith(3, 'export')
+    expect(shell.openSheet).toHaveBeenNthCalledWith(4, 'tripedit')
+  })
+
+  it('shows the rate row only when the Costs addon tab is available', () => {
+    renderSheet({
+      TRIP_TABS: TABS.filter(tab => tab.id !== 'finanzplan') as TripPlanner['TRIP_TABS'],
+    })
+    expect(screen.queryByRole('button', { name: 'Trip exchange rates' })).not.toBeInTheDocument()
   })
 
   it('FE-MOB-MEHR-010: drops the edit row without the trip_edit permission', () => {

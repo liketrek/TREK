@@ -70,7 +70,7 @@ describe('Settings e2e (real auth guard + temp SQLite)', () => {
     db.prepare("INSERT INTO settings (user_id, key, value) VALUES (1, 'theme', 'dark')").run();
     const res = await request(server).get('/api/settings').set('Cookie', sessionCookie(1));
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ settings: { theme: 'dark' } });
+    expect(res.body).toEqual({ settings: { common_currencies: [], theme: 'dark' } });
   });
 
   it('PUT 400 without a key (pipe envelope via SettingUpsertDto)', async () => {
@@ -92,6 +92,25 @@ describe('Settings e2e (real auth guard + temp SQLite)', () => {
     expect(res.body).toEqual({ success: true, key: 'language', value: 'fr' });
     const row = db.prepare("SELECT value FROM settings WHERE user_id = 1 AND key = 'language'").get() as { value: string };
     expect(row.value).toBe('fr');
+  });
+
+  it('restores common currency inheritance, personal empty override, and reset', async () => {
+    db.prepare("INSERT INTO app_settings (key, value) VALUES ('default_user_setting_common_currencies', ?)")
+      .run(JSON.stringify(['USD', 'JPY']));
+    expect((await request(server).get('/api/settings').set('Cookie', sessionCookie(1))).body.settings.common_currencies)
+      .toEqual(['USD', 'JPY']);
+
+    const empty = await request(server).put('/api/settings').set('Cookie', sessionCookie(1))
+      .send({ key: 'common_currencies', value: [] });
+    expect(empty.status).toBe(200);
+    expect((await request(server).get('/api/settings').set('Cookie', sessionCookie(1))).body.settings.common_currencies)
+      .toEqual([]);
+
+    const reset = await request(server).delete('/api/settings/common_currencies').set('Cookie', sessionCookie(1));
+    expect(reset.status).toBe(200);
+    expect(reset.body.value).toEqual(['USD', 'JPY']);
+    expect(db.prepare("SELECT COUNT(*) AS n FROM settings WHERE user_id = 1 AND key = 'common_currencies'").get())
+      .toEqual({ n: 0 });
   });
 
   it('PUT no-ops on the masked sentinel', async () => {

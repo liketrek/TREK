@@ -66,7 +66,7 @@ afterAll(async () => {
 });
 
 describe('Settings', () => {
-  it('SET-001: GET /api/settings returns empty object for new user', async () => {
+  it('SET-001: GET /api/settings returns built-in Common currencies for new user', async () => {
     const { user } = createUser(testDb);
     const res = await request(app)
       .get('/api/settings')
@@ -74,8 +74,9 @@ describe('Settings', () => {
     expect(res.status).toBe(200);
     expect(res.body.settings).toBeDefined();
     expect(typeof res.body.settings).toBe('object');
-    // New user has no custom settings
-    expect(Object.keys(res.body.settings)).toHaveLength(0);
+    // New users have no custom rows, but the effective Settings contract always
+    // includes the built-in empty Common currency list.
+    expect(res.body.settings).toEqual({ common_currencies: [] });
   });
 
   it('SET-002: PUT /api/settings sets a key/value pair', async () => {

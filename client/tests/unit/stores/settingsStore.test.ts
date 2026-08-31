@@ -328,4 +328,20 @@ describe('settingsStore', () => {
       expect(useSettingsStore.getState().settings.map_tile_url).toBe(carto);
     });
   });
+
+  describe('common currency inheritance reset', () => {
+    it('replaces the personal list with the inherited value returned by DELETE', async () => {
+      useSettingsStore.setState((state) => ({
+        settings: { ...state.settings, common_currencies: ['EUR'] },
+      }));
+      server.use(
+        http.delete('/api/settings/common_currencies', () =>
+          HttpResponse.json({ success: true, key: 'common_currencies', value: ['USD', 'JPY'] })
+        )
+      );
+
+      await expect(useSettingsStore.getState().resetSetting('common_currencies')).resolves.toEqual(['USD', 'JPY']);
+      expect(useSettingsStore.getState().settings.common_currencies).toEqual(['USD', 'JPY']);
+    });
+  });
 });

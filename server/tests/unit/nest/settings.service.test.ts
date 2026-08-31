@@ -66,9 +66,32 @@ afterAll(() => {
 // ── getUserSettings ───────────────────────────────────────────────────────────
 
 describe('getUserSettings', () => {
-  it('SET-SVC-001 — returns empty object when user has no settings', () => {
+  it('SET-SVC-001 — returns the built-in empty common currency list when user has no settings', () => {
     const { user } = createUser(testDb);
-    expect(svc.getUserSettings(user.id)).toEqual({});
+    expect(svc.getUserSettings(user.id)).toEqual({ common_currencies: [] });
+  });
+
+  it('reactivates and defensively normalizes a preserved common_currencies row', () => {
+    const { user } = createUser(testDb);
+    testDb.prepare("INSERT INTO settings (user_id, key, value) VALUES (?, 'common_currencies', ?)")
+      .run(user.id, JSON.stringify(['usd', 'HKD', 'USD', 'bogus', 1, ' EUR ']));
+    expect(svc.getUserSettings(user.id).common_currencies).toEqual(['USD', 'HKD', 'EUR']);
+  });
+
+  it('inherits the admin common list, while a personal empty list intentionally hides it', () => {
+    const { user } = createUser(testDb);
+    setAdminDefault('common_currencies', JSON.stringify(['USD', 'JPY']));
+    expect(svc.getUserSettings(user.id).common_currencies).toEqual(['USD', 'JPY']);
+    svc.upsertSetting(user.id, 'common_currencies', []);
+    expect(svc.getUserSettings(user.id).common_currencies).toEqual([]);
+  });
+
+  it('deletes the personal common list and returns to the administrator default', () => {
+    const { user } = createUser(testDb);
+    setAdminDefault('common_currencies', JSON.stringify(['GBP']));
+    svc.upsertSetting(user.id, 'common_currencies', ['EUR']);
+    expect(svc.deleteSetting(user.id, 'common_currencies')).toEqual(['GBP']);
+    expect(svc.getUserSettings(user.id).common_currencies).toEqual(['GBP']);
   });
 
   it('SET-SVC-002 — returns stored plain string values', () => {
@@ -233,6 +256,13 @@ describe('getUserSettings', () => {
 // ── upsertSetting ─────────────────────────────────────────────────────────────
 
 describe('upsertSetting', () => {
+  it('validates and uppercases common currencies while rejecting duplicates', () => {
+    const { user } = createUser(testDb);
+    svc.upsertSetting(user.id, 'common_currencies', ['usd', 'jpy']);
+    expect(svc.getUserSettings(user.id).common_currencies).toEqual(['USD', 'JPY']);
+    expect(() => svc.upsertSetting(user.id, 'common_currencies', ['USD', 'usd'])).toThrow();
+    expect(() => svc.upsertSetting(user.id, 'common_currencies', ['ZZZ'])).toThrow();
+  });
   it('SET-SVC-008 — inserts a new setting', () => {
     const { user } = createUser(testDb);
     svc.upsertSetting(user.id, 'language', 'en');

@@ -1,4 +1,4 @@
-import { ChevronRight, FileDown, Settings, Share2 } from 'lucide-react'
+import { BadgeDollarSign, ChevronRight, FileDown, Settings, Share2 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import type { MTripSheetsProps } from '../MTripShell'
@@ -26,6 +26,7 @@ export default function MMehrSheet({ planner, shell }: MTripSheetsProps) {
   const { t } = useTranslation()
   const open = shell.sheet?.id === 'mehr'
   const canEditTrip = planner.can('trip_edit', planner.trip)
+  const hasCosts = planner.TRIP_TABS.some(tab => tab.id === 'finanzplan')
 
   const gridTabs = planner.TRIP_TABS.filter(tab => !DOCK_IDS.has(tab.id))
 
@@ -45,6 +46,9 @@ export default function MMehrSheet({ planner, shell }: MTripSheetsProps) {
   }
 
   const actions: { id: string; icon: LucideIcon; label: string; go: () => void }[] = [
+    ...(hasCosts
+      ? [{ id: 'rates', icon: BadgeDollarSign, label: t('costs.exchangeRates.title'), go: () => shell.openSheet('rates') }]
+      : []),
     { id: 'members', icon: Share2, label: t('members.shareTrip'), go: () => shell.openSheet('members') },
     { id: 'export', icon: FileDown, label: t('mobileTrip.export'), go: () => shell.openSheet('export') },
     ...(canEditTrip

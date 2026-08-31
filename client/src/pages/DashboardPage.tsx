@@ -37,6 +37,7 @@ import TripFormModal from '../components/Trips/TripFormModal';
 import ConfirmDialog from '../components/shared/ConfirmDialog';
 import CopyTripDialog from '../components/shared/CopyTripDialog';
 import CustomSelect from '../components/shared/CustomSelect';
+import CurrencySelect from '../components/shared/CurrencySelect';
 import EmptyState from '../components/shared/EmptyState';
 import PlaceAvatar from '../components/shared/PlaceAvatar';
 import { useTranslation } from '../i18n';
@@ -1071,11 +1072,10 @@ function CurrencyTool(): React.ReactElement {
         <div className="fx-field">
           <div className="lbl">{t('dashboard.fx.from')}</div>
           <input className="amt mono" value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" />
-          <CustomSelect
+          <CurrencySelect
             value={from}
-            onChange={(v) => setFrom(String(v))}
-            options={ccyOptions}
-            searchable
+            onChange={setFrom}
+            availableCurrencies={ccyOptions.map((option) => String(option.value))}
             size="sm"
             style={{ marginTop: 6 }}
           />
@@ -1086,11 +1086,10 @@ function CurrencyTool(): React.ReactElement {
         <div className="fx-field">
           <div className="lbl">{t('dashboard.fx.to')}</div>
           <input className="amt mono" value={converted != null ? converted.toFixed(2) : '—'} readOnly />
-          <CustomSelect
+          <CurrencySelect
             value={to}
-            onChange={(v) => setTo(String(v))}
-            options={ccyOptions}
-            searchable
+            onChange={setTo}
+            availableCurrencies={ccyOptions.map((option) => String(option.value))}
             size="sm"
             style={{ marginTop: 6 }}
           />

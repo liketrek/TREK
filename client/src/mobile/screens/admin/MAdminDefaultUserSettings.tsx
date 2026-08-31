@@ -5,6 +5,7 @@ import { useTranslation } from '../../../i18n'
 import { useToast } from '../../../components/shared/Toast'
 import { MapView } from '../../../components/Map/MapView'
 import { SYMBOLS, currenciesWith } from '../../../components/Budget/BudgetPanel.constants'
+import { buildCurrencyOptions } from '../../../components/shared/currencyOptions'
 import { getApiErrorMessage, type DistanceUnit, type Place } from '../../../types'
 import { normalizeTileUrl } from '../../../utils/tileUrl'
 import {
@@ -22,6 +23,7 @@ import MSegmented from '../../components/MSegmented'
 import { MAdminCard, MAdminCardHead, MAdminField, MAdminInput, MAdminRow } from './MAdminUi'
 import { MSetSelectRow } from '../settings/MSettingsUi'
 import MSetPickerSheet from '../settings/MSetPickerSheet'
+import CommonCurrenciesEditor from '../../../components/Settings/CommonCurrenciesEditor'
 
 const MAP_PRESETS = [
   { name: 'OpenStreetMap', url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png' },
@@ -37,6 +39,7 @@ type Defaults = {
   dark_mode?: string | boolean
   time_format?: string
   default_currency?: string
+  common_currencies?: string[]
   blur_booking_codes?: boolean
   map_tile_url?: string
   carto_api_key?: string
@@ -64,7 +67,7 @@ function styleForProvider(provider: MapProvider, style?: string | null): string 
 // layer (adminApi defaults, per-change auto-save, reset-to-built-in) — only the
 // presentation is relaid on the admin mobile design system.
 export default function MAdminDefaultUserSettings(): React.ReactElement {
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
   const toast = useToast()
   const [defaults, setDefaults] = useState<Defaults>({})
   const [loaded, setLoaded] = useState(false)
@@ -254,6 +257,26 @@ export default function MAdminDefaultUserSettings(): React.ReactElement {
             <MSetSelectRow label={currencyLabel} trailing={chevron} onClick={() => setCurrencyOpen(true)} />
           </MAdminField>
 
+          <MAdminField
+            label={<>{t('settings.commonCurrencies.title')} <ResetButton field="common_currencies" /></>}
+            hint={t('settings.commonCurrencies.adminHint')}
+          >
+            <CommonCurrenciesEditor
+              mobile
+              value={defaults.common_currencies ?? []}
+              onSave={async value => {
+                const updated = await adminApi.updateDefaultUserSettings({ common_currencies: value }) as Defaults
+                setDefaults(updated)
+                return updated.common_currencies ?? []
+              }}
+              onReset={async () => {
+                const updated = await adminApi.updateDefaultUserSettings({ common_currencies: null }) as Defaults
+                setDefaults(updated)
+                return updated.common_currencies ?? []
+              }}
+            />
+          </MAdminField>
+
           {/* Blur Booking Codes */}
           <MAdminRow
             first
@@ -416,7 +439,15 @@ export default function MAdminDefaultUserSettings(): React.ReactElement {
         title={t('settings.currency')}
         value={defaults.default_currency || ''}
         onSelect={(value) => { if (value) save({ default_currency: value }) }}
-        options={currenciesWith(defaults.default_currency).map((c) => ({ value: c, label: SYMBOLS[c] ? `${c}  ${SYMBOLS[c]}` : c }))}
+        options={buildCurrencyOptions({
+          commonCurrencies: defaults.common_currencies ?? [],
+          availableCurrencies: currenciesWith(defaults.default_currency),
+          currentCurrency: defaults.default_currency,
+          locale,
+          commonLabel: t('settings.commonCurrencies.group'),
+          otherLabel: t('settings.otherCurrencies.group'),
+        })}
+        searchable
       />
 
       <MSetPickerSheet

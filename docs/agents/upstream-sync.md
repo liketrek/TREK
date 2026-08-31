@@ -13,6 +13,7 @@
 ## Customization inventory
 
 - Layered frozen exchange rates with provenance across REST, MCP, plugins, desktop, and mobile.
+- Ordered Common currency shortcuts with administrator inheritance and personal empty/reset semantics.
 - Guest identity transfer and the New-member identity check.
 - TREK-managed Direct Web Push.
 - Exact departure-transport countdown on desktop and mobile spotlights.
@@ -20,7 +21,7 @@
 - Debranded Help/About/release promotion with a neutral AGPL Legal/Source page.
 - Docker builder stages explicitly include development dependencies.
 
-Retired: ordered common-currency shortcuts. Superseded: the Mapbox reservation-source teardown patch, which is already present upstream v4.
+Superseded: the Mapbox reservation-source teardown patch, which is already present upstream v4.
 
 ## Migration warning
 

@@ -33,6 +33,7 @@ vi.mock('../../../../src/mobile/screens/trip/sheets/MAccommodationSheet', () => 
 vi.mock('../../../../src/mobile/screens/trip/sheets/MTransportSheet', () => ({ default: selfRouted('stub-transport') }))
 vi.mock('../../../../src/mobile/screens/trip/sheets/MBrowseActionsSheet', () => ({ default: selfRouted('stub-bract') }))
 vi.mock('../../../../src/mobile/screens/trip/sheets/MMehrSheet', () => ({ default: selfRouted('stub-mehr') }))
+vi.mock('../../../../src/mobile/screens/trip/sheets/MExchangeRateSheet', () => ({ default: selfRouted('stub-rates') }))
 vi.mock('../../../../src/mobile/screens/trip/sheets/MExportSheet', () => ({ default: selfRouted('stub-export') }))
 
 vi.mock('../../../../src/mobile/screens/trip/sheets/MNoteSheet', () => ({
@@ -195,7 +196,7 @@ describe('MTripSheets', () => {
   it('FE-MOB-SHOST-001: mounts every sheet of the host with the same planner and shell', () => {
     renderHost({}, { sheet: null })
     for (const id of ['stub-place', 'stub-day', 'stub-days', 'stub-accommodation', 'stub-transport',
-      'stub-bract', 'stub-mehr', 'stub-export', 'stub-note', 'stub-import', 'stub-placeedit',
+      'stub-bract', 'stub-mehr', 'stub-rates', 'stub-export', 'stub-note', 'stub-import', 'stub-placeedit',
       'stub-reservation', 'stub-transportform', 'stub-bookingimport', 'stub-airtrail',
       'stub-tripform', 'stub-members']) {
       expect(screen.getByTestId(id)).toBeInTheDocument()
@@ -211,6 +212,7 @@ describe('MTripSheets', () => {
     ['transport', 'stub-transport'],
     ['bract', 'stub-bract'],
     ['mehr', 'stub-mehr'],
+    ['rates', 'stub-rates'],
     ['export', 'stub-export'],
   ])('FE-MOB-SHOST-002: forwards the "%s" sheet id to %s', (id, testid) => {
     renderHost({}, { sheet: { id } })

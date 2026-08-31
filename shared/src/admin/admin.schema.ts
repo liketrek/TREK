@@ -1,3 +1,5 @@
+import { commonCurrencyListSchema } from '../settings/settings.schema';
+
 import { z } from 'zod';
 
 /**
@@ -97,7 +99,22 @@ export type AdminNotificationPreferencesRequest = z.infer<typeof adminNotificati
 // Heterogeneous values, and `null` is meaningful — SettingsService treats it as
 // "reset to the built-in default". z.record also rejects arrays and null bodies,
 // preserving the route's object-only guard.
-export const adminDefaultUserSettingsRequestSchema = z.record(z.string(), z.unknown());
+export const adminDefaultUserSettingsRequestSchema = z
+  .record(z.string(), z.unknown())
+  .superRefine((settings, context) => {
+    if (settings.common_currencies === undefined || settings.common_currencies === null) return;
+    const parsed = commonCurrencyListSchema.safeParse(settings.common_currencies);
+    if (!parsed.success) {
+      for (const issue of parsed.error.issues) {
+        context.addIssue({ ...issue, path: ['common_currencies', ...issue.path] });
+      }
+    }
+  })
+  .transform((settings) =>
+    settings.common_currencies === undefined || settings.common_currencies === null
+      ? settings
+      : { ...settings, common_currencies: commonCurrencyListSchema.parse(settings.common_currencies) },
+  );
 export type AdminDefaultUserSettingsRequest = z.infer<typeof adminDefaultUserSettingsRequestSchema>;
 
 // Dev-only test sender: every field optional (callers POST {}), and `inApp` is a

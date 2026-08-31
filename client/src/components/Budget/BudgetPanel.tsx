@@ -1,6 +1,5 @@
 import { Plus, Calculator, Download } from 'lucide-react'
-import CustomSelect from '../shared/CustomSelect'
-import { currenciesWith, SYMBOLS } from './BudgetPanel.constants'
+import CurrencySelect from '../shared/CurrencySelect'
 import { useBudgetPanel } from './useBudgetPanel'
 import type { TripMember } from './BudgetPanelMemberChips'
 import BudgetCategoryTable from './BudgetPanelCategoryTable'
@@ -70,12 +69,10 @@ export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelPro
           </h2>
           <div className="flex flex-wrap max-md:!w-full max-md:!mt-2" style={{ alignItems: 'center', gap: 8, marginLeft: 'auto', flexShrink: 0 }}>
             <div className="max-md:!w-full" style={{ width: 150 }}>
-              <CustomSelect
+              <CurrencySelect
                 value={currency}
                 onChange={setCurrency}
                 disabled={!canEdit}
-                options={currenciesWith(currency).map(c => ({ value: c, label: `${c} (${SYMBOLS[c] || c})` }))}
-                searchable
               />
             </div>
             {canEdit && (

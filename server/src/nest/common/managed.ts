@@ -126,6 +126,7 @@ export const MANAGED_CUSTOMER_KEYS = [
   'allow_registration',
   'allowed_file_types',
   'blur_booking_codes',
+  'common_currencies',
   'dark_mode',
   'default_currency',
   'distance_unit',

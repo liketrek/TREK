@@ -8,6 +8,7 @@ import {
   currencyOf,
   dayFilterKeys,
   filterBudgetItems,
+  frozenAmountToDisplay,
   groupByDay,
   isUnfinished,
   memberShareOf,
@@ -62,6 +63,14 @@ describe('costsModel — money maths', () => {
     expect(baseTotal(expense({ total_price: 100, currency: 'USD' }), ctx)).toBe(50);
     expect(baseTotal(expense({ total_price: 100, currency: null }), ctx)).toBe(100);
     expect(baseTotal(expense({ total_price: 0 }), ctx)).toBe(0);
+  });
+
+  it('routes a frozen foreign amount through the Trip currency before Display conversion', () => {
+    const frozen = expense({ total_price: 100, currency: 'USD', exchange_rate: 4 });
+    expect(baseTotal(frozen, ctx)).toBe(25);
+    expect(frozenAmountToDisplay(100, 'USD', 4, ctx)).toBe(25);
+    // A legacy row without a usable frozen rate keeps the historical snapshot fallback.
+    expect(frozenAmountToDisplay(100, 'USD', 1, ctx)).toBe(50);
   });
 
   it('FE-MOB-CMOD-003: myPaidOf only sums my own payer rows, converted', () => {

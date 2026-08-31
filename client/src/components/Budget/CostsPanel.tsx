@@ -1,4 +1,3 @@
-import type { ExchangeRateResolution } from '@trek/shared';
 import {
   AlertCircle,
   ArrowDown,
@@ -37,12 +36,13 @@ import {
 import { localToday } from '../Planner/today';
 import { CustomDatePicker } from '../shared/CustomDateTimePicker';
 import CustomSelect from '../shared/CustomSelect';
+import CurrencySelect from '../shared/CurrencySelect';
 import EmptyState from '../shared/EmptyState';
 import GuestBadge from '../shared/GuestBadge';
 import Modal from '../shared/Modal';
 import { NumericInput } from '../shared/NumericInput';
 import { useToast } from '../shared/Toast';
-import { currenciesWith, SPLIT_COLORS, SYMBOLS } from './BudgetPanel.constants';
+import { SPLIT_COLORS, SYMBOLS } from './BudgetPanel.constants';
 import type { TripMember } from './BudgetPanelMemberChips';
 import {
   calculateTicketShares,
@@ -57,7 +57,10 @@ import {
   type TicketItem,
 } from './CostsPanel.helpers';
 import ExchangeRateManager from './ExchangeRateManager';
+import ItemExchangeRateFields from './ItemExchangeRateFields';
+import { useItemExchangeRate } from './useItemExchangeRate';
 import { catMeta, COST_CATEGORY_LIST } from './costsCategories';
+import { frozenTransactionAmountToDisplay } from './exchangeRateMath';
 
 interface CostsPanelProps {
   tripId: number;
@@ -72,6 +75,12 @@ interface Settlement {
   // The currency the transfer was entered in. Legacy rows predate it (null) and are
   // read as the display currency, which is what the server assumes for them too.
   currency?: string | null;
+  exchange_rate?: number;
+  exchange_rate_source?: 'identity' | 'global' | 'trip' | 'explicit' | 'legacy';
+  exchange_rate_source_version?: string | null;
+  exchange_rate_effective_date?: string | null;
+  exchange_rate_set_at?: string | null;
+  exchange_rate_note?: string | null;
   created_at?: string;
   from_username?: string;
   to_username?: string;
@@ -122,6 +131,13 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
   const [editingSettlement, setEditingSettlement] = useState<Settlement | null>(null);
   const [addingPayment, setAddingPayment] = useState(false);
   const [ratesOpen, setRatesOpen] = useState(false);
+  const usedRateCurrencies = useMemo(
+    () => [
+      ...budgetItems.map((item) => (item.currency || tripCurrency).toUpperCase()),
+      ...(settlement?.settlements || []).map((item) => (item.currency || tripCurrency).toUpperCase()),
+    ],
+    [budgetItems, settlement?.settlements, tripCurrency]
+  );
 
   const people = tripMembers;
   const personById = useCallback((id: number) => people.find((p) => p.id === id), [people]);
@@ -178,19 +194,29 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
     }
   }, [searchParams]);
 
+  // Convert frozen transaction values into the Trip currency first, then apply
+  // the user's presentation-only Display currency. This mirrors the server's
+  // integer-cent settlement path; using a current quote per expense would make
+  // the visible ledger drift away from the balances it is meant to explain.
+  const frozenToDisplay = (amount: number, itemCurrency: string, frozenRate?: number) => {
+    return frozenTransactionAmountToDisplay(amount, itemCurrency, frozenRate, tripCurrency, convert);
+  };
+
   // ── derived expense maths (everything converted to the base currency) ────
-  const baseTotal = (e: BudgetItem) => convert(e.total_price || 0, curOf(e));
+  const baseTotal = (e: BudgetItem) => frozenToDisplay(e.total_price || 0, curOf(e), e.exchange_rate);
   const myPaidOf = (e: BudgetItem) =>
-    (e.payers || []).filter((p) => p.user_id === me).reduce((a, p) => a + convert(p.amount, curOf(e)), 0);
+    (e.payers || [])
+      .filter((p) => p.user_id === me)
+      .reduce((a, p) => a + frozenToDisplay(p.amount, curOf(e), e.exchange_rate), 0);
   const myShareOf = (e: BudgetItem) => {
     const myMember = (e.members || []).find((m) => m.user_id === me);
     if (!myMember) return 0;
     if (myMember.amount !== null && myMember.amount !== undefined) {
-      return convert(myMember.amount, curOf(e));
+      return frozenToDisplay(myMember.amount, curOf(e), e.exchange_rate);
     }
     const shares = splitEqualShares(e.total_price || 0, e.members || [], e.id);
     const myShare = shares[me] || 0;
-    return convert(myShare, curOf(e));
+    return frozenToDisplay(myShare, curOf(e), e.exchange_rate);
   };
   // "Unfinished": a recorded total nobody has paid yet — counts toward the trip
   // total but stays out of settlements until who-paid is filled in.
@@ -638,16 +664,17 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
                 <b className="text-content">{t('costs.travelers', { count: people.length })}</b>
               </span>
             </div>
-            {canEdit && (
-              <div style={{ display: 'flex', gap: 10 }}>
-                <button
-                  type="button"
-                  onClick={() => setRatesOpen((value) => !value)}
-                  className="border border-edge bg-surface-card text-content"
-                  style={{ padding: '10px 14px', borderRadius: 12, fontSize: 'calc(14px * var(--fs-scale-body, 1))' }}
-                >
-                  {t('budget.exchangeRates.title')}
-                </button>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                type="button"
+                onClick={() => setRatesOpen(true)}
+                className="border border-edge bg-surface-card text-content"
+                style={{ padding: '10px 14px', borderRadius: 12, fontSize: 'calc(14px * var(--fs-scale-body, 1))' }}
+              >
+                {t('budget.exchangeRates.title')}
+              </button>
+              {canEdit && (
+                <>
                 <button
                   type="button"
                   onClick={settleAll}
@@ -689,22 +716,10 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
                 >
                   <Plus size={16} /> {t('costs.addExpense')}
                 </button>
-              </div>
-            )}
-          </div>
-
-          {ratesOpen && (
-            <div style={{ marginBottom: 24 }}>
-              <ExchangeRateManager
-                tripId={tripId}
-                canEdit={canEdit}
-                onChanged={() => {
-                  loadBudgetItems(tripId);
-                  loadSettlement();
-                }}
-              />
+                </>
+              )}
             </div>
-          )}
+          </div>
 
           {/* ── Summary cards ── */}
           <div
@@ -1020,6 +1035,7 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
           me={me}
           editing={editingSettlement}
           currency={base}
+          tripCurrency={tripCurrency}
           onClose={() => {
             setEditingSettlement(null);
             setAddingPayment(false);
@@ -1031,6 +1047,24 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
           }}
         />
       )}
+
+      <Modal
+        isOpen={ratesOpen}
+        onClose={() => setRatesOpen(false)}
+        title={t('costs.exchangeRates.title')}
+        size="xl"
+      >
+        <ExchangeRateManager
+          tripId={tripId}
+          tripCurrency={tripCurrency}
+          usedCurrencies={usedRateCurrencies}
+          canEdit={canEdit}
+          onChanged={() => {
+            loadBudgetItems(tripId);
+            loadSettlement();
+          }}
+        />
+      </Modal>
 
       <style>{`
         .costs-root {
@@ -1998,7 +2032,7 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
                   style={{ fontWeight: 400, fontSize: 'calc(12px * var(--fs-scale-body, 1))' }}
                 >
                   {' '}
-                  · {fmt(s.amount, cur)} → {fmt(convert(s.amount, cur))}
+                  · {fmt(s.amount, cur)} → {fmt(frozenToDisplay(s.amount, cur, s.exchange_rate))}
                 </span>
               )}
             </div>
@@ -2039,7 +2073,7 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
                 fontVariantNumeric: 'tabular-nums',
               }}
             >
-              {fmt(convert(s.amount, cur))}
+              {fmt(frozenToDisplay(s.amount, cur, s.exchange_rate))}
             </span>
           </div>
         </div>
@@ -2422,6 +2456,7 @@ function SettlementModal({
   me,
   editing,
   currency,
+  tripCurrency,
   onClose,
   onSaved,
 }: {
@@ -2430,26 +2465,29 @@ function SettlementModal({
   me: number;
   editing: Settlement | null;
   currency: string;
+  tripCurrency: string;
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const toast = useToast();
+  const { convert } = useExchangeRates(currency);
   const otherDefault = people.find((p) => p.id !== me)?.id ?? me;
   const [fromId, setFromId] = useState<string>(String(editing?.from_user_id ?? me));
   const [toId, setToId] = useState<string>(String(editing?.to_user_id ?? otherDefault));
   const [amount, setAmount] = useState<string>(editing ? String(editing.amount) : '');
   const [cur, setCur] = useState<string>((editing?.currency || currency).toUpperCase());
   const [saving, setSaving] = useState(false);
+  const rate = useItemExchangeRate(tripId, cur, tripCurrency, editing);
 
   const amt = Number.parseFloat(amount) || 0;
-  const valid = amt > 0 && fromId !== toId;
+  const valid = amt > 0 && fromId !== toId && rate.valid;
   const opts = people.map((p) => ({ value: String(p.id), label: p.id === me ? t('costs.you') : p.username }));
 
   const save = async () => {
     if (!valid) return;
     setSaving(true);
-    const data = { from_user_id: Number(fromId), to_user_id: Number(toId), amount: amt, currency: cur };
+    const data = { from_user_id: Number(fromId), to_user_id: Number(toId), amount: amt, currency: cur, ...rate.write };
     try {
       if (editing) await budgetApi.updateSettlement(tripId, editing.id, data);
       else await budgetApi.createSettlement(tripId, data);
@@ -2560,15 +2598,28 @@ function SettlementModal({
           </div>
           <div style={{ minWidth: 0 }}>
             <label className={labelCls}>{t('costs.currency')}</label>
-            <CustomSelect
+            <CurrencySelect
               value={cur}
-              onChange={(v) => setCur(String(v))}
-              searchable
-              options={currenciesWith(cur).map((c) => ({ value: c, label: SYMBOLS[c] ? `${c}  ${SYMBOLS[c]}` : c }))}
+              onChange={setCur}
               style={{ width: '100%' }}
             />
           </div>
         </div>
+        <ItemExchangeRateFields
+          rate={rate}
+          currency={cur}
+          tripCurrency={tripCurrency}
+          amount={amt}
+          locale={locale}
+          t={t}
+        />
+        {currency !== tripCurrency && cur !== currency && amt > 0 && (
+          <div className="rounded-lg border border-edge bg-surface-secondary px-3 py-2 text-xs text-content-muted">
+            {t('costs.exchangeRates.displayApprox', {
+              amount: formatMoney(convert(amt, cur), currency, locale),
+            })}
+          </div>
+        )}
       </div>
     </Modal>
   );
@@ -2615,7 +2666,6 @@ export function ExpenseModal({
   const [name, setName] = useState(editing?.name || prefill?.name || '');
   const [cat, setCat] = useState<string>(editing ? catMeta(editing.category).key : prefill?.category || 'food');
   const [currency, setCurrency] = useState((editing?.currency || base).toUpperCase());
-  const [rateHint, setRateHint] = useState<ExchangeRateResolution | null>(null);
   const [day, setDay] = useState(editing?.expense_date || localToday());
   const [note, setNote] = useState(() => readUserNote(editing));
   const [total, setTotal] = useState<string>(() => {
@@ -2677,39 +2727,7 @@ export function ExpenseModal({
   });
 
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    if (currency === tripCurrency.toUpperCase()) {
-      setRateHint(null);
-      return;
-    }
-    if (editing && currency === (editing.currency || tripCurrency).toUpperCase() && editing.exchange_rate) {
-      setRateHint({
-        trip_id: tripId,
-        trip_currency: tripCurrency.toUpperCase(),
-        item_currency: currency,
-        exchange_rate: editing.exchange_rate,
-        source: editing.exchange_rate_source || 'legacy',
-        source_version: editing.exchange_rate_source_version || 'legacy',
-        effective_date: editing.exchange_rate_effective_date || null,
-        fetched_at: editing.exchange_rate_set_at || null,
-        stale: false,
-      });
-      return;
-    }
-    let active = true;
-    budgetApi
-      .resolveExchangeRate(tripId, currency)
-      .then((resolution) => {
-        if (active) setRateHint(resolution);
-      })
-      .catch(() => {
-        if (active) setRateHint(null);
-      });
-    return () => {
-      active = false;
-    };
-  }, [currency, editing, tripCurrency, tripId]);
+  const rate = useItemExchangeRate(tripId, currency, tripCurrency, editing);
 
   const isTicketMode = splitMode === 'ticket';
 
@@ -2753,6 +2771,7 @@ export function ExpenseModal({
   const payersOk = !multiPayer || (payerIds.size > 0 && payersBalanced(payerAmounts, payerIds, totalNum));
   const valid =
     name.trim().length > 0 &&
+    rate.valid &&
     payersOk &&
     (isTicketMode
       ? ticketValid
@@ -2911,6 +2930,7 @@ export function ExpenseModal({
       total_price: totalNum,
       note: note.trim() || null,
       ticket_json: splitMode === 'ticket' ? writeTicketItems(ticketItems) : null,
+      ...rate.write,
       ...(!editing && prefill?.reservationId ? { reservation_id: prefill.reservationId } : {}),
       ...(!editing && prefill?.placeId ? { place_id: prefill.placeId } : {}),
     };
@@ -3045,14 +3065,9 @@ export function ExpenseModal({
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               <div style={{ minWidth: 0 }}>
                 <label className={labelCls}>{t('costs.currency')}</label>
-                <CustomSelect
+                <CurrencySelect
                   value={currency}
-                  onChange={(v) => setCurrency(String(v))}
-                  searchable
-                  options={currenciesWith(currency).map((c) => ({
-                    value: c,
-                    label: SYMBOLS[c] ? `${c}  ${SYMBOLS[c]}` : c,
-                  }))}
+                  onChange={setCurrency}
                   style={{ width: '100%' }}
                 />
               </div>
@@ -3062,7 +3077,15 @@ export function ExpenseModal({
               </div>
             </div>
 
-            {currency !== base && totalNum > 0 && (
+            <ItemExchangeRateFields
+              rate={rate}
+              currency={currency}
+              tripCurrency={tripCurrency}
+              amount={totalNum}
+              locale={locale}
+              t={t}
+            />
+            {base !== tripCurrency && currency !== base && totalNum > 0 && (
               <div
                 className="border border-edge bg-surface-secondary text-content-muted"
                 style={{
@@ -3075,20 +3098,11 @@ export function ExpenseModal({
                   flexWrap: 'wrap',
                 }}
               >
-                <span>{formatMoney(totalNum, currency, locale)}</span>
-                <span className="text-content-faint">≈</span>
-                <span className="text-content" style={{ fontWeight: 600 }}>
-                  {formatMoney(convert(totalNum, currency), base, locale)}
+                <span>
+                  {t('costs.exchangeRates.displayApprox', {
+                    amount: formatMoney(convert(totalNum, currency), base, locale),
+                  })}
                 </span>
-                <span className="text-content-faint">· {t('costs.liveRate')}</span>
-              </div>
-            )}
-            {rateHint && (
-              <div className="bg-surface-subtle rounded-lg border border-edge px-3 py-2 text-xs text-content-muted">
-                {t('budget.exchangeRates.provenance', {
-                  rate: rateHint.exchange_rate,
-                  source: t(`budget.exchangeRates.source.${rateHint.source}`),
-                })}
               </div>
             )}
           </div>

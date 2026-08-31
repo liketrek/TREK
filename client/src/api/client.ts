@@ -1692,6 +1692,7 @@ export const settingsApi = {
     const body: SettingsBulkRequest = { settings };
     return apiClient.post('/settings/bulk', body).then((r) => r.data);
   },
+  reset: (key: 'common_currencies') => apiClient.delete(`/settings/${key}`).then((r) => r.data),
 };
 
 export const accommodationsApi = {

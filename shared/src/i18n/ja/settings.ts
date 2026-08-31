@@ -523,6 +523,19 @@ const settings: TranslationStrings = {
   'settings.webPush.enabled': 'Push notifications enabled on this device.',
   'settings.webPush.revoked': 'Device revoked.',
   'settings.webPush.notNow': 'Not now',
+  'settings.commonCurrencies.title': 'Common currencies',
+  'settings.commonCurrencies.hint': 'Choose up to 10 currencies to show first in every currency menu.',
+  'settings.commonCurrencies.adminHint': 'Default list for every user who has not saved a personal override.',
+  'settings.commonCurrencies.group': 'Common currencies',
+  'settings.otherCurrencies.group': 'Other currencies',
+  'settings.commonCurrencies.add': 'Search for a currency to add…',
+  'settings.commonCurrencies.limit': 'Maximum of {count} currencies',
+  'settings.commonCurrencies.moveUp': 'Move {currency} up',
+  'settings.commonCurrencies.moveDown': 'Move {currency} down',
+  'settings.commonCurrencies.remove': 'Remove {currency}',
+  'settings.commonCurrencies.clear': 'Clear',
+  'settings.commonCurrencies.reset': 'Reset',
+  'settings.commonCurrencies.count': '{count} of {max}',
 };
 
 export default settings;
