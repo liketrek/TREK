@@ -219,6 +219,7 @@ function baseState(): HookState {
     advanceImportReview: vi.fn(),
     routeShown: false,
     setRouteShown: vi.fn(),
+    transitRoutesShown: false,
     routeProfile: 'driving',
     setRouteProfile: vi.fn(),
     routeVias: [],
@@ -354,7 +355,7 @@ describe('TripPlannerPage — shell', () => {
 
 describe('TripPlannerPage — plan tab', () => {
   it('FE-PAGE-TPW-008: the map receives the filtered markers, the tile url, the panel widths and the selected day', () => {
-    renderPage()
+    renderPage({ transitRoutesShown: true })
 
     expect(props('map').places).toEqual([place])
     expect(props('map').tileUrl).toBe('https://tiles/{z}/{x}/{y}.png')
@@ -364,6 +365,9 @@ describe('TripPlannerPage — plan tab', () => {
     // transport in the trip as soon as any day's route is on (#2019).
     expect(props('map').days).toEqual([day])
     expect(props('map').selectedDayId).toBe(7)
+    // Transit visibility rides the hook's day-aware derivation, not the raw
+    // toggle — routeShown is still false in this fixture (#2019).
+    expect(props('map').showTransitRoutes).toBe(true)
   })
 
   it('FE-PAGE-TPW-009: collapsed panels report a zero width to the map', () => {

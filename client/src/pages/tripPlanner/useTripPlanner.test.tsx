@@ -1,4 +1,4 @@
-// FE-TP-HOOK-001 to FE-TP-HOOK-110
+// FE-TP-HOOK-001 to FE-TP-HOOK-115
 import React from 'react'
 import { renderHook, act, waitFor } from '@testing-library/react'
 import { TranslationProvider } from '../../i18n/TranslationContext'
@@ -824,6 +824,32 @@ describe('useTripPlanner — connection visibility', () => {
     const { result } = await renderPlanner()
 
     expect(result.current.visibleConnections).toEqual([1])
+  })
+
+  it('FE-TP-HOOK-115: a persisted route toggle keeps transit routes off the map until a day is selected (#2019)', async () => {
+    localStorage.setItem('trek:day-route:42', 'true')
+    // The fixture action is a no-op; the derivation reads the store, so this
+    // one has to write the selection like the real slice does.
+    actions.setSelectedDay.mockImplementation(dayId => {
+      useTripStore.setState({ selectedDayId: dayId as number | null })
+    })
+    seedTrip()
+
+    const { result } = await renderPlanner()
+
+    // Trip re-entry: the toggle rehydrated but nothing selected a day yet.
+    expect(result.current.routeShown).toBe(true)
+    expect(result.current.transitRoutesShown).toBe(false)
+
+    act(() => { result.current.handleSelectDay(7) })
+    expect(result.current.transitRoutesShown).toBe(true)
+
+    // Clicking the selected day's header again deselects it — the whole trip's
+    // automated transports must not flood back.
+    act(() => { result.current.handleSelectDay(null) })
+    expect(result.current.transitRoutesShown).toBe(false)
+
+    localStorage.removeItem('trek:day-route:42')
   })
 })
 

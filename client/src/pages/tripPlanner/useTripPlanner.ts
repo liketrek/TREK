@@ -306,6 +306,12 @@ export function useTripPlanner() {
   const autoShowRoute = useCallback(() => {
     setRouteChoice(prev => (prev === null ? true : prev))
   }, [])
+  // What the planner maps actually draw. The persisted toggle can rehydrate as
+  // true while no day is selected yet (trip re-entry resets the selection, and
+  // a second click on the day header clears it) — without a day context the
+  // per-day transit filter is off, so the map would draw every automated
+  // transport in the trip (#2019).
+  const transitRoutesShown = routeShown && selectedDayId != null
   const [routeProfile, setRouteProfile] = useState<string>('driving')
   const [fitKey, setFitKey] = useState<number>(0)
   const initialFitTripId = useRef<number | null>(null)
@@ -1067,7 +1073,7 @@ export function useTripPlanner() {
     transportModalDayId, setTransportModalDayId,
     transportModalAutomated, setTransportModalAutomated, transitPrefill, setTransitPrefill, transitJourney, setTransitJourney,
     reservationPrefill, transportPrefill, importReviewActive, startImportReview, advanceImportReview,
-    routeShown, setRouteShown, autoShowRoute, routeProfile, setRouteProfile, routeVias, fitKey, setFitKey,
+    routeShown, setRouteShown, autoShowRoute, transitRoutesShown, routeProfile, setRouteProfile, routeVias, fitKey, setFitKey,
     mobileSidebarOpen, setMobileSidebarOpen, mobilePlanScrollTopRef, mobilePlacesScrollTopRef,
     deletePlaceId, setDeletePlaceId, deletePlaceIds, setDeletePlaceIds,
     visibleConnections, toggleConnection, allConnectionsShown, toggleAllConnections, mapTransportDetail, setMapTransportDetail,
