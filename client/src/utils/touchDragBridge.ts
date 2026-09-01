@@ -192,7 +192,11 @@ function retarget(s: Session): void {
 function swallowNextClick(): void {
   const stop = (e: Event) => { e.stopPropagation(); e.preventDefault() }
   document.addEventListener('click', stop, { capture: true, once: true })
-  setTimeout(() => document.removeEventListener('click', stop, { capture: true }), 400)
+  // The fallback timer can outlive a torn-down jsdom in tests, where `document`
+  // is gone by the time it fires — hence the guard.
+  setTimeout(() => {
+    if (typeof document !== 'undefined') document.removeEventListener('click', stop, { capture: true })
+  }, 400)
 }
 
 /**
