@@ -125,6 +125,12 @@ describe('costsModel — money maths', () => {
     expect(isUnfinished(expense({ total_price: 100, payers: [payer(1, 100)] }), ctx)).toBe(false);
     expect(isUnfinished(expense({ total_price: 0, payers: [] }), ctx)).toBe(false);
   });
+
+  it('FE-MOB-CMOD-030: isUnfinished flags a payer-less refund the same way (#2176)', () => {
+    expect(isUnfinished(expense({ total_price: -100, payers: [] }), ctx)).toBe(true);
+    // A negative payer is the refund's recipient — the entry is settled.
+    expect(isUnfinished(expense({ total_price: -100, payers: [payer(1, -100)] }), ctx)).toBe(false);
+  });
 });
 
 describe('costsModel — computeTotals', () => {
@@ -350,6 +356,28 @@ describe('costsModel — breakdown and presentation', () => {
   it('FE-MOB-CMOD-020: categoryBreakdown drops categories without spend', () => {
     expect(categoryBreakdown([], ctx)).toEqual([]);
     expect(categoryBreakdown([expense({ category: 'food', total_price: 0 })], ctx)).toEqual([]);
+  });
+
+  it('FE-MOB-CMOD-031: categoryBreakdown nets refunds and keeps a net-negative category bar-less (#2176)', () => {
+    const items = [
+      expense({ category: 'food', total_price: 90 }),
+      expense({ category: 'food', total_price: -30 }),
+      expense({ category: 'activities', total_price: -20 }),
+    ];
+    const bars = categoryBreakdown(items, ctx);
+
+    // Food nets 90 − 30 = 60 and carries the (full) bar; the fully refunded
+    // category keeps its own row at the bottom, without a bar — a negative CSS
+    // width would be dropped and paint a full one.
+    expect(bars).toEqual([
+      { key: 'food', amount: 60, widthPct: 100 },
+      { key: 'activities', amount: -20, widthPct: 0 },
+    ]);
+  });
+
+  it('FE-MOB-CMOD-032: an all-negative breakdown renders rows but no bars (#2176)', () => {
+    const bars = categoryBreakdown([expense({ category: 'food', total_price: -20 })], ctx);
+    expect(bars).toEqual([{ key: 'food', amount: -20, widthPct: 0 }]);
   });
 
   it('FE-MOB-CMOD-021: tint turns a hex colour into rgba, with or without the leading hash', () => {

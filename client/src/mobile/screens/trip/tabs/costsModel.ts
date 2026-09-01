@@ -54,9 +54,13 @@ export function myShareOf(e: BudgetItem, ctx: CostsCtx): number {
   return memberShareOf(e, ctx.me, ctx)
 }
 
-/** A recorded total nobody has actually paid yet — counts toward the trip total but stays out of settlement. */
+/**
+ * A recorded total nobody has actually paid yet — counts toward the trip total
+ * but stays out of settlement. A negative total (a refund, #2176) is just as
+ * unfinished until its recipient is recorded as the (negative) payer.
+ */
 export function isUnfinished(e: BudgetItem, ctx: CostsCtx): boolean {
-  return baseTotal(e, ctx) > 0 && (e.payers || []).filter(p => p.amount > 0).length === 0
+  return baseTotal(e, ctx) !== 0 && (e.payers || []).filter(p => p.amount !== 0).length === 0
 }
 
 // ── settlement (server-computed; these types describe what MCostsTab reads from it) ──
@@ -241,6 +245,10 @@ export interface CostsCategoryBar {
 }
 
 export function categoryBreakdown(items: BudgetItem[], ctx: CostsCtx): CostsCategoryBar[] {
+  // Categories net refunds against spend (#2176): a negative entry lowers its
+  // category's sum. A category that nets negative keeps its own row at the
+  // bottom, with widthPct 0 — the bars rank positive spend, and a negative
+  // CSS width would be dropped and render as a full bar.
   const totals = new Map<CostCategory, number>()
   for (const e of items) {
     const key = catMeta(e.category).key
@@ -248,10 +256,10 @@ export function categoryBreakdown(items: BudgetItem[], ctx: CostsCtx): CostsCate
   }
   const rows = COST_CATEGORY_LIST
     .map(c => ({ key: c.key, amount: totals.get(c.key) || 0 }))
-    .filter(r => r.amount > 0)
+    .filter(r => r.amount !== 0)
     .sort((a, b) => b.amount - a.amount)
   const max = Math.max(0, ...rows.map(r => r.amount))
-  return rows.map(r => ({ ...r, widthPct: max > 0 ? (r.amount / max) * 100 : 0 }))
+  return rows.map(r => ({ ...r, widthPct: max > 0 && r.amount > 0 ? (r.amount / max) * 100 : 0 }))
 }
 
 // ── presentation helpers ─────────────────────────────────────────────────

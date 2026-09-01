@@ -11,10 +11,14 @@
  * Amounts are the raw input strings, parsed on use (same as customAmounts).
  */
 
-/** Spread `amount` across `n` payers in whole cents so the parts sum back exactly. */
+/**
+ * Spread `amount` across `n` payers in whole cents so the parts sum back exactly.
+ * Floor-based, so a negative total (a refund, #2176) splits just as exactly:
+ * the remainder is always in [0, n) and the parts still sum to the input.
+ */
 export function splitCents(amount: number, n: number): number[] {
   if (n <= 0) return []
-  const cents = Math.max(0, Math.round(amount * 100))
+  const cents = Math.round(amount * 100)
   const base = Math.floor(cents / n)
   const rem = cents - base * n
   return Array.from({ length: n }, (_, i) => (base + (i < rem ? 1 : 0)) / 100)
@@ -58,6 +62,13 @@ export function rebalancePayers(
  * The remainder cent rotates with the item id rather than always landing on the
  * first member, so across several expenses the rounding evens out instead of
  * always favouring the same person.
+ *
+ * Must stay share-for-share identical to the server's
+ * BudgetService.splitEqualShares (budget.service.ts) — the settlement is netted
+ * there, this copy only previews it. The remainder is `totalCents - baseCents*n`
+ * rather than `%` so a negative total (a refund, #2176) still yields a remainder
+ * in [0, n) and the shares sum back to the total exactly, like the server's do.
+ * The parity fixture in CostsPanel.helpers.test.ts pins both sides.
  */
 export function splitEqualShares(total: number, members: { user_id: number }[], itemId: number): Record<number, number> {
   const n = members.length
@@ -65,7 +76,7 @@ export function splitEqualShares(total: number, members: { user_id: number }[], 
 
   const totalCents = Math.round(total * 100)
   const baseCents = Math.floor(totalCents / n)
-  const remainder = totalCents % n
+  const remainder = totalCents - baseCents * n
 
   const shares: Record<number, number> = {}
   const sortedMembers = [...members].sort((a, b) => a.user_id - b.user_id)

@@ -20,16 +20,20 @@ import { AddonsService } from '../addons/addons.service';
 /** Legacy registrar gate: the whole budget surface rides the budget addon. */
 const budgetAddonOn = addonGate(ADDON_IDS.BUDGET);
 
-/** Reusable Zod shape for the per-payer amounts on a budget item. */
+/**
+ * Reusable Zod shape for the per-payer amounts on a budget item. Amounts are
+ * signed like the REST contract's (#2176): a negative payer is the recipient
+ * of a refund recorded as a negative expense.
+ */
 const payersSchema = z.array(z.object({
   user_id: z.number().int().positive(),
-  amount: z.number().nonnegative(),
+  amount: z.number(),
 })).describe('Who actually paid, and how much each paid, in the expense currency. Ask the user; do not guess.');
 
-/** Reusable Zod shape for an unequal split: what each participant owes. */
+/** Reusable Zod shape for an unequal split: what each participant owes. Signed, like the REST contract (#2176). */
 const splitMembersSchema = z.array(z.object({
   user_id: z.number().int().positive(),
-  amount: z.number().nonnegative(),
+  amount: z.number(),
 })).describe('Unequal split: what each participant owes, in the expense currency. The amounts must add up to the expense total. Ask the user; do not guess.');
 
 function parseId(value: string | string[]): number | null {
@@ -116,9 +120,10 @@ export class BudgetMcp {
     // Once payers are sent at all, the write path derives the total from them and
     // an empty list therefore means zero, not "no opinion". Reading total_price
     // here instead would certify a split against a figure the row never receives.
+    // Negative payers count with their sign (#2176) — the write path stores them.
     if (payers !== undefined) {
       const roster = this.db.rosterUserIds(tripId);
-      return sumCents(payers.filter(p => p.amount > 0 && roster.has(p.user_id)).map(p => p.amount));
+      return sumCents(payers.filter(p => p.amount !== 0 && roster.has(p.user_id)).map(p => p.amount));
     }
     if (total_price !== undefined) return toCents(total_price);
     return fallbackCents;
@@ -151,7 +156,7 @@ export class BudgetMcp {
     // certified here would not be the split stored. Refuse rather than let the
     // difference surface on the balances screen.
     if (payers) {
-      const payerStrangers = payers.filter(p => p.amount > 0 && !roster.has(p.user_id)).map(p => p.user_id);
+      const payerStrangers = payers.filter(p => p.amount !== 0 && !roster.has(p.user_id)).map(p => p.user_id);
       if (payerStrangers.length > 0) {
         return `payers contains user IDs that are not on this trip: ${payerStrangers.join(', ')}. Resolve them with list_trip_members.`;
       }
@@ -177,7 +182,7 @@ export class BudgetMcp {
       tripId: z.number().int().positive(),
       name: z.string().min(1).max(200),
       category: z.string().max(100).optional().describe('Budget category (e.g. Accommodation, Food, Transport)'),
-      total_price: z.number().nonnegative(),
+      total_price: z.number().describe('Signed: a negative total records a refund/partial reimbursement (#2176)'),
       currency: z.string().max(10).nullable().optional().describe('ISO currency code (e.g. "EUR"); defaults to the trip currency'),
       member_ids: z.array(z.number().int().positive()).optional().describe('Trip member user IDs splitting this expense equally. Omit to split across all trip members (owner + members); pass [] for no split.'),
       members: splitMembersSchema.optional().describe('Uneven split: what each participant owes, in the expense currency. The amounts must add up to the expense total. Use this instead of member_ids, never alongside it.'),
@@ -250,7 +255,7 @@ export class BudgetMcp {
       itemId: z.number().int().positive(),
       name: z.string().min(1).max(200).optional(),
       category: z.string().max(100).optional(),
-      total_price: z.number().nonnegative().optional(),
+      total_price: z.number().optional(),
       currency: z.string().max(10).nullable().optional().describe('ISO currency code the expense is in (e.g. "USD"); null puts it back in the trip currency. Changing it re-freezes the FX rate at today\'s rate.'),
       member_ids: z.array(z.number().int().positive()).optional().describe('Trip member user IDs splitting this expense equally; replaces the current split. Omit to leave unchanged, pass [] for no split.'),
       members: splitMembersSchema.optional().describe('Uneven split: what each participant owes, in the expense currency; replaces the current split. The amounts must add up to the expense total. Use this instead of member_ids, never alongside it.'),
@@ -302,7 +307,7 @@ export class BudgetMcp {
       tripId: z.number().int().positive(),
       name: z.string().min(1).max(200),
       category: z.string().max(100).optional().describe('Budget category (e.g. Accommodation, Food, Transport)'),
-      total_price: z.number().nonnegative(),
+      total_price: z.number().describe('Signed: a negative total records a refund/partial reimbursement (#2176)'),
       note: z.string().max(500).optional(),
       userIds: z.array(z.number().int().positive()).optional().describe('User IDs splitting this item; omit to split across all trip members, or pass an empty array for no split'),
       place_id: z.number().int().positive().optional().describe('Place on this trip the expense belongs to (the museum ticket for that museum), linking it in the planner'),

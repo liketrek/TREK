@@ -412,6 +412,128 @@ describe('calculateSettlement', () => {
   });
 });
 
+// ── Refunds: negative amounts are first-class expenses (#2176) ───────────────
+
+describe('calculateSettlement — negative amounts (#2176)', () => {
+  it('a refund credits the members and debits its recipient', () => {
+    // A 30 € refund lands with Alice; all three had shared the original cost.
+    // Alice received 30 but only 10 of it was hers, so she owes 20.
+    setupDb(
+      [makeItem(1, -30)],
+      [makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob'), makeMember(1, 3, 'carol')],
+      [makePayer(1, 1, -30, 'alice')],
+    );
+    const result = budget.calculateSettlement(1);
+    const balance = (uid: number) => result.balances.find(b => b.user_id === uid)!.balance;
+
+    expect(balance(1)).toBe(-20);
+    expect(balance(2)).toBe(10);
+    expect(balance(3)).toBe(10);
+    expect(centSum(result.balances.map(b => b.balance))).toBe(0);
+  });
+
+  it('a refund reduces the debt its expense created', () => {
+    // 90 € dinner fronted by Alice, then a 30 € partial reimbursement she keeps —
+    // both split three ways. Bob's debt drops from 30 to 20.
+    setupDb(
+      [makeItem(1, 90), makeItem(2, -30)],
+      [
+        makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob'), makeMember(1, 3, 'carol'),
+        makeMember(2, 1, 'alice'), makeMember(2, 2, 'bob'), makeMember(2, 3, 'carol'),
+      ],
+      [makePayer(1, 1, 90, 'alice'), makePayer(2, 1, -30, 'alice')],
+    );
+    const result = budget.calculateSettlement(1);
+    const balance = (uid: number) => result.balances.find(b => b.user_id === uid)!.balance;
+
+    expect(balance(1)).toBe(40);
+    expect(balance(2)).toBe(-20);
+    expect(balance(3)).toBe(-20);
+    expect(result.flows).toEqual(expect.arrayContaining([
+      expect.objectContaining({ amount: 20, from: expect.objectContaining({ user_id: 2 }), to: expect.objectContaining({ user_id: 1 }) }),
+    ]));
+  });
+
+  it('an odd negative total still nets to exactly zero', () => {
+    setupDb(
+      [makeItem(1, -100.01)],
+      [makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob'), makeMember(1, 3, 'carol')],
+      [makePayer(1, 1, -100.01, 'alice')],
+    );
+    const result = budget.calculateSettlement(1);
+
+    expect(centSum(result.balances.map(b => b.balance))).toBe(0);
+  });
+
+  it('a negative custom split settles by the custom amounts', () => {
+    // 100 € refund to Alice; by agreement Bob is owed 70 of it, Carol 30.
+    setupDb(
+      [makeItem(1, -100)],
+      [
+        { ...makeMember(1, 2, 'bob'), amount: -70 },
+        { ...makeMember(1, 3, 'carol'), amount: -30 },
+      ],
+      [makePayer(1, 1, -100, 'alice')],
+    );
+    const result = budget.calculateSettlement(1);
+    const balance = (uid: number) => result.balances.find(b => b.user_id === uid)!.balance;
+
+    expect(balance(1)).toBe(-100);
+    expect(balance(2)).toBe(70);
+    expect(balance(3)).toBe(30);
+    expect(centSum(result.balances.map(b => b.balance))).toBe(0);
+  });
+
+  it('a payer-less negative total still reads as money owed back (fallback path)', () => {
+    // Nobody is recorded as the refund's recipient yet — the recorded total
+    // stands in, mirroring the positive unpaid-bill fallback.
+    setupDb(
+      [makeItem(1, -90)],
+      [makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob'), makeMember(1, 3, 'carol')],
+      [],
+    );
+    const result = budget.calculateSettlement(1);
+
+    expect(result.balances.map(b => b.balance)).toEqual([30, 30, 30]);
+  });
+});
+
+// ── Client/server share parity (#2176) ───────────────────────────────────────
+//
+// splitEqualShares exists twice: here (netting the settlement in cents) and on
+// the client (previewing the split in euros — CostsPanel.helpers.ts). This
+// fixture is duplicated verbatim in
+// client/src/components/Budget/CostsPanel.helpers.test.ts; if either
+// implementation drifts — sign handling included — its copy of the table fails.
+const SHARE_PARITY_FIXTURE: { totalCents: number; users: number[]; itemId: number; expected: Record<number, number> }[] = [
+  { totalCents: 10000, users: [1, 2, 3], itemId: 0, expected: { 1: 3334, 2: 3333, 3: 3333 } },
+  { totalCents: 10000, users: [1, 2, 3], itemId: 1, expected: { 1: 3333, 2: 3334, 3: 3333 } },
+  { totalCents: -10000, users: [1, 2, 3], itemId: 0, expected: { 1: -3333, 2: -3333, 3: -3334 } },
+  { totalCents: -10000, users: [1, 2, 3], itemId: 1, expected: { 1: -3334, 2: -3333, 3: -3333 } },
+  { totalCents: -101, users: [1, 2], itemId: 0, expected: { 1: -50, 2: -51 } },
+  { totalCents: -101, users: [1, 2], itemId: 1, expected: { 1: -51, 2: -50 } },
+  { totalCents: -1, users: [1, 2, 3], itemId: 0, expected: { 1: 0, 2: 0, 3: -1 } },
+];
+
+describe('splitEqualShares — client parity (#2176)', () => {
+  // Private on purpose (only the settlement calls it); the parity pin reaches
+  // through so the fixture exercises the real implementation, not a re-model.
+  const split = (
+    budget as unknown as {
+      splitEqualShares(totalCents: number, members: { user_id: number }[], itemId: number): Record<number, number>;
+    }
+  ).splitEqualShares.bind(budget);
+
+  it.each(SHARE_PARITY_FIXTURE)(
+    'splits $totalCents cents across $users.length members (item $itemId) exactly like the client',
+    ({ totalCents, users, itemId, expected }) => {
+      const shares = split(totalCents, users.map(user_id => ({ user_id })), itemId);
+      expect(shares).toEqual(expected);
+      expect((Object.values(shares) as number[]).reduce((a, b) => a + b, 0)).toBe(totalCents);
+    },
+  );
+});
+
 // ── #1382: balances and flows have to tell the same story ────────────────────
 // The ledger is netted in whole cents of the trip currency, so a balance is only
 // ever a whole number of cents and every one of them can be settled. What used to

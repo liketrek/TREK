@@ -157,14 +157,18 @@ export class BudgetService {
     return new Set([...unique].filter(id => roster.has(id)));
   }
 
-  /** Replace the payer rows of an item and keep total_price = sum of payer amounts. */
+  /**
+   * Replace the payer rows of an item and keep total_price = sum of payer amounts.
+   * A negative amount is a real payer — the recipient of a refund (#2176) — and
+   * is stored as such; only a zero (or NaN) amount says nothing and is dropped.
+   */
   private writeItemPayers(itemId: number | string, tripId: string | number, payers: { user_id: number; amount: number }[]) {
     this.db.run('DELETE FROM budget_item_payers WHERE budget_item_id = ?', itemId);
     const insert = this.db.prepare('INSERT OR IGNORE INTO budget_item_payers (budget_item_id, user_id, amount) VALUES (?, ?, ?)');
     const known = this.rosterMemberIds(tripId, payers.map(p => p.user_id));
     const accepted: number[] = [];
     for (const p of payers) {
-      if (!(p.amount > 0) || !known.has(p.user_id)) continue;
+      if (!p.amount || !known.has(p.user_id)) continue;
       insert.run(itemId, p.user_id, p.amount);
       accepted.push(p.amount);
     }
@@ -365,8 +369,9 @@ export class BudgetService {
       }
 
       // total_price is derived from explicit payers when given; otherwise the caller
-      // value (planning entries, or a bill no one has paid yet).
-      const payerTotal = sumMoney((data.payers || []).filter(p => p.amount > 0).map(p => p.amount));
+      // value (planning entries, or a bill no one has paid yet). Negative payer
+      // amounts (a refund's recipient, #2176) count like any other.
+      const payerTotal = sumMoney((data.payers || []).filter(p => p.amount !== 0).map(p => p.amount));
       const total = data.payers && data.payers.length > 0 ? payerTotal : (data.total_price || 0);
 
       const knownMembers = data.members ? this.rosterMemberIds(tripId, data.members.map(m => m.user_id)) : null;
@@ -644,6 +649,12 @@ export class BudgetService {
    * The remainder cent rotates with the item id rather than always landing on the
    * first member, so across several expenses the rounding evens out instead of
    * always favouring the same person.
+   *
+   * Floor-based (`totalCents - baseCents * n`, never `%`), so a negative total —
+   * a refund split across its beneficiaries (#2176) — still yields a remainder
+   * in [0, n) and shares that sum back to the total exactly. The client mirror
+   * (CostsPanel.helpers.splitEqualShares) must stay share-for-share identical;
+   * the parity fixture in budget.service.calc.test.ts pins both sides.
    */
   private splitEqualShares(totalCents: number, members: { user_id: number }[], itemId: number): Record<number, number> {
     const n = members.length;
@@ -755,10 +766,11 @@ export class BudgetService {
       if (members.length === 0) continue; // planning-only entry → doesn't affect balances
 
       // Payers are credited what they actually paid (converted to trip currency with
-      // the item's stored exchange rate)…
+      // the item's stored exchange rate). A negative payer — the recipient of a
+      // refund (#2176) — is debited by the same arithmetic: their credit is negative.
       let creditCents = 0;
       for (const p of payers) {
-        const paid = toTripCents(p.amount > 0 ? p.amount : 0, item.currency, item.exchange_rate);
+        const paid = toTripCents(p.amount, item.currency, item.exchange_rate);
         ensure(p.user_id, p).cents += paid;
         creditCents += paid;
       }
@@ -770,9 +782,10 @@ export class BudgetService {
       // from the payer sum), but converting the total separately would round to a
       // different cent on a foreign-currency expense and leave the item off by one.
       // With nobody down as a payer there is nothing to divide, so the recorded total
-      // stands in and an unpaid bill keeps reading as money owed.
+      // stands in and an unpaid bill keeps reading as money owed. Negative credits
+      // (a refund, #2176) divide the same way — only exactly zero falls back.
       const hasCustomSplit = members.some(m => m.amount !== null && m.amount !== undefined);
-      const splitCents = creditCents > 0
+      const splitCents = creditCents !== 0
         ? creditCents
         : toTripCents(item.total_price, item.currency, item.exchange_rate);
       const equalShares = !hasCustomSplit ? this.splitEqualShares(splitCents, members, item.id) : {};

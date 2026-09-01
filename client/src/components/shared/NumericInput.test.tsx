@@ -91,6 +91,30 @@ describe('NumericInput', () => {
     expect(input.value).toBe('36.72')
   })
 
+  it('FE-COMP-NUMINPUT-010: signed-decimal mode keeps a leading minus and the comma (#2176)', () => {
+    render(<Harness initial="" mode="signed-decimal" />)
+    const input = screen.getByLabelText('field') as HTMLInputElement
+
+    // A refund typed on a European keypad: sign and comma both survive.
+    fireEvent.change(input, { target: { value: '-12,50' } })
+    expect(input.value).toBe('-12,50')
+
+    fireEvent.change(input, { target: { value: '-100' } })
+    expect(input.value).toBe('-100')
+
+    // A minus anywhere but the front is not a sign.
+    fireEvent.change(input, { target: { value: '12-50' } })
+    expect(input.value).toBe('1250')
+
+    fireEvent.change(input, { target: { value: '-1x2.5eur' } })
+    expect(input.value).toBe('-12.5')
+  })
+
+  it('FE-COMP-NUMINPUT-011: signed-decimal mode uses the decimal keypad', () => {
+    render(<Harness initial="" mode="signed-decimal" />)
+    expect((screen.getByLabelText('field') as HTMLInputElement).inputMode).toBe('decimal')
+  })
+
   it('FE-COMP-NUMINPUT-009: typing inside the one-frame window is not swallowed by the deferred select', async () => {
     // The deferred select() exists for WebKit, but it must not fire *after* the user has
     // started typing: it would select the half-typed value and the next character would

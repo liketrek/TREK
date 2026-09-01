@@ -103,6 +103,19 @@ export function cleanAmount(value: number): number {
 }
 
 /**
+ * A stored amount as the edit form should seed it: cent-rounded and padded to
+ * the currency's decimal count (#2175). The DB hands back a number, so a saved
+ * 4,90 is 4.9 and a saved 5,00 is 5 — String() then renders "4,9"/"5" in the
+ * amount field while the list shows "4,90"/"5,00" via Intl. Dot-normalized like
+ * all amount-input state (see localizeAmountInput); zero-decimal currencies get
+ * no fake decimals ("500", not "500.00").
+ */
+export function amountToInputString(value: number | null | undefined, currency: string): string {
+  if (value == null || !Number.isFinite(value)) return ''
+  return cleanAmount(value).toFixed(currencyDecimals(currency))
+}
+
+/**
  * A price held as free text, tidied only when it really is a number. Import
  * writes whatever the confirmation said into this field, so anything that does
  * not parse is passed through untouched rather than mangled into NaN.

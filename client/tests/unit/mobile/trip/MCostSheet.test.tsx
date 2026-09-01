@@ -167,7 +167,8 @@ describe('MCostSheet', () => {
   it('FE-MOB-COSTSH-003: adopts the prefill and carries the reservation link into the payload', async () => {
     renderSheet({ prefill: { name: 'Ryokan', category: 'accommodation', amount: 240, reservationId: 77 } })
     expect(nameField()).toHaveValue('Ryokan')
-    expect(totalField()).toHaveValue('240')
+    // Padded to the base currency's decimals since #2175, localized for EUR.
+    expect(totalField()).toHaveValue('240,00')
     expect(catTrigger()).toHaveTextContent('Accommodation')
 
     fireEvent.click(submit())
@@ -431,10 +432,11 @@ describe('MCostSheet', () => {
     expect(screen.getByRole('button', { name: 'bob' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Custom' })).toHaveClass('bg-m-act')
     // USD renders with a dot, so the total and both shares share this placeholder.
+    // Seeded padded to two decimals since #2175.
     const amounts = screen.getAllByPlaceholderText('0.00')
-    expect(amounts[0]).toHaveValue('60')
-    expect(amounts[1]).toHaveValue('20')
-    expect(amounts[2]).toHaveValue('40')
+    expect(amounts[0]).toHaveValue('60.00')
+    expect(amounts[1]).toHaveValue('20.00')
+    expect(amounts[2]).toHaveValue('40.00')
     expect(screen.getByRole('button', { name: 'Delete' })).toBeInTheDocument()
   })
 
@@ -468,8 +470,8 @@ describe('MCostSheet', () => {
 
     expect(screen.getByRole('button', { name: 'One person paid' })).toBeInTheDocument()
     const amounts = screen.getAllByPlaceholderText('0,00')
-    expect(amounts[1]).toHaveValue('40')
-    expect(amounts[2]).toHaveValue('60')
+    expect(amounts[1]).toHaveValue('40,00')
+    expect(amounts[2]).toHaveValue('60,00')
     expect(screen.queryByText(/Payer amounts must add up to/)).not.toBeInTheDocument()
   })
 
@@ -598,6 +600,49 @@ describe('MCostSheet', () => {
     } finally {
       vi.useRealTimers()
     }
+  })
+
+  it('FE-MOB-COSTSH-032: reopens 4,90 as "4,90" instead of "4,9" (#2175)', () => {
+    const editing = buildBudgetItem({
+      id: 10, name: 'Coffee', category: 'food', currency: 'EUR', total_price: 4.9,
+      members: [], payers: [{ user_id: 1, amount: 4.9 }],
+    })
+    renderSheet({ editing })
+    expect(totalField()).toHaveValue('4,90')
+  })
+
+  it('FE-MOB-COSTSH-033: a negative amount can be typed and saves a refund (#2176)', async () => {
+    const { onSaved } = renderSheet()
+    // The '-' used to be stripped by the input sanitizer, making this untypeable.
+    fillBasics('Hotel refund', '-100')
+
+    expect(submit()).toBeEnabled()
+    fireEvent.click(submit())
+    await waitFor(() => expect(addBudgetItem).toHaveBeenCalledTimes(1))
+    expect(addBudgetItem).toHaveBeenCalledWith(1, expect.objectContaining({
+      total_price: -100,
+      payers: [{ user_id: 1, amount: -100 }],
+    }))
+    await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1))
+  })
+
+  it('FE-MOB-COSTSH-034: a negative payer survives the reopen and the save (#2176)', async () => {
+    const editing = buildBudgetItem({
+      id: 11, name: 'Refund', category: 'other', currency: 'EUR', total_price: -60,
+      members: [member(1, null), member(2, null)],
+      payers: [{ user_id: 1, amount: -60 }],
+    })
+    renderSheet({ editing })
+
+    expect(totalField()).toHaveValue('-60,00')
+    // Alice is still the recorded (negative) payer — not reset to "No one paid yet".
+    expect(screen.getByRole('button', { name: 'You' })).toBeInTheDocument()
+
+    fireEvent.click(saveBtn())
+    await waitFor(() => expect(updateBudgetItem).toHaveBeenCalledWith(1, 11, expect.objectContaining({
+      total_price: -60,
+      payers: [{ user_id: 1, amount: -60 }],
+    })))
   })
 
   it('FE-MOB-COSTSH-030: a currency without a known symbol falls back to its code', () => {

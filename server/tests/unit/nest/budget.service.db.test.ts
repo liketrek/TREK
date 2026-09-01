@@ -581,6 +581,102 @@ describe('settlement parties are confined to the trip', () => {
   });
 });
 
+// ── Refunds persist as negative expenses (#2176) ─────────────────────────────
+// The write path used to filter payers on amount > 0 and re-derive total_price
+// from the survivors, silently turning a negative entry into a 0 € one with no
+// payer row.
+
+describe('negative amounts persist end-to-end (#2176)', () => {
+  it('BUDGET-SVC-DB-032: stores a negative payer row and the negative total', () => {
+    const { user: alice } = createUser(testDb, { username: 'alice' });
+    const trip = createTrip(testDb, alice.id);
+
+    const item = budget.createBudgetItem(trip.id, {
+      name: 'Hotel partial refund',
+      total_price: -100,
+      payers: [{ user_id: alice.id, amount: -100 }],
+    }) as { id: number; payers: { user_id: number; amount: number }[]; total_price: number };
+
+    expect(item.total_price).toBe(-100);
+    expect(item.payers).toEqual([expect.objectContaining({ user_id: alice.id, amount: -100 })]);
+    const row = testDb.prepare('SELECT total_price FROM budget_items WHERE id = ?').get(item.id) as { total_price: number };
+    expect(row.total_price).toBe(-100);
+  });
+
+  it('BUDGET-SVC-DB-033: an update keeps a negative payer instead of nulling the entry', () => {
+    const { user: alice } = createUser(testDb, { username: 'alice' });
+    const { user: bob } = createUser(testDb, { username: 'bob' });
+    const trip = createTrip(testDb, alice.id);
+    addTripMember(testDb, trip.id, bob.id);
+    const item = budget.createBudgetItem(trip.id, {
+      name: 'Refund', total_price: -60, payers: [{ user_id: alice.id, amount: -60 }],
+    }) as { id: number };
+
+    const updated = budget.updateBudgetItem(item.id, trip.id, {
+      payers: [{ user_id: alice.id, amount: -40 }, { user_id: bob.id, amount: -20 }],
+    }) as { payers: { user_id: number; amount: number }[]; total_price: number };
+
+    expect(updated.total_price).toBe(-60);
+    expect(updated.payers).toHaveLength(2);
+    expect(updated.payers.map(p => p.amount).sort((a, b) => a - b)).toEqual([-40, -20]);
+  });
+
+  it('BUDGET-SVC-DB-034: mixed-sign payers derive the netted total', () => {
+    // Alice fronted 100 but bob pocketed a 30 refund on the same receipt.
+    const { user: alice } = createUser(testDb, { username: 'alice' });
+    const { user: bob } = createUser(testDb, { username: 'bob' });
+    const trip = createTrip(testDb, alice.id);
+    addTripMember(testDb, trip.id, bob.id);
+
+    const item = budget.createBudgetItem(trip.id, {
+      name: 'Tickets', payers: [{ user_id: alice.id, amount: 100 }, { user_id: bob.id, amount: -30 }],
+    }) as { payers: { user_id: number }[]; total_price: number };
+
+    expect(item.payers).toHaveLength(2);
+    expect(item.total_price).toBe(70);
+  });
+
+  it('BUDGET-SVC-DB-035: a zero-amount payer is still dropped', () => {
+    const { user: alice } = createUser(testDb, { username: 'alice' });
+    const { user: bob } = createUser(testDb, { username: 'bob' });
+    const trip = createTrip(testDb, alice.id);
+    addTripMember(testDb, trip.id, bob.id);
+
+    const item = budget.createBudgetItem(trip.id, {
+      name: 'Dinner', payers: [{ user_id: alice.id, amount: 90 }, { user_id: bob.id, amount: 0 }],
+    }) as { payers: { user_id: number }[]; total_price: number };
+
+    expect(item.payers.map(p => p.user_id)).toEqual([alice.id]);
+    expect(item.total_price).toBe(90);
+  });
+
+  it('BUDGET-SVC-DB-036: a negative expense settles against real rows — Σ balances = 0', () => {
+    const { user: alice } = createUser(testDb, { username: 'alice' });
+    const { user: bob } = createUser(testDb, { username: 'bob' });
+    const trip = createTrip(testDb, alice.id);
+    addTripMember(testDb, trip.id, bob.id);
+    budget.createBudgetItem(trip.id, {
+      name: 'Dinner', payers: [{ user_id: alice.id, amount: 90 }],
+      member_ids: [alice.id, bob.id],
+    });
+    budget.createBudgetItem(trip.id, {
+      name: 'Refund', payers: [{ user_id: alice.id, amount: -30 }],
+      member_ids: [alice.id, bob.id],
+    });
+
+    const result = budget.calculateSettlement(trip.id);
+    const balance = (uid: number) => result.balances.find(b => b.user_id === uid)!.balance;
+
+    // 90 out, 30 back, both split evenly: bob nets 45 - 15 = 30 owed to alice.
+    expect(balance(alice.id)).toBe(30);
+    expect(balance(bob.id)).toBe(-30);
+    expect(result.balances.reduce((a, b) => a + Math.round(b.balance * 100), 0)).toBe(0);
+    expect(result.flows).toEqual([
+      expect.objectContaining({ amount: 30, from: expect.objectContaining({ user_id: bob.id }), to: expect.objectContaining({ user_id: alice.id }) }),
+    ]);
+  });
+});
+
 describe('post-fold quirk fixes', () => {
   it('BUDGET-SVC-DB-019: settlements prefer display_name over username (quirk fix)', () => {
     const { user: alice } = createUser(testDb, { username: 'alice' });

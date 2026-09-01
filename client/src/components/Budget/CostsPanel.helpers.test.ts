@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { calculateTicketShares, hasTicketSplit, payerSum, payersBalanced, readTicketItems, readUserNote, rebalancePayers, splitCents, writeTicketItems, type TicketItem } from './CostsPanel.helpers'
+import { calculateTicketShares, hasTicketSplit, payerSum, payersBalanced, readTicketItems, readUserNote, rebalancePayers, splitCents, splitEqualShares, writeTicketItems, type TicketItem } from './CostsPanel.helpers'
 
 describe('splitCents', () => {
   it('splits evenly when it divides cleanly', () => {
@@ -16,8 +16,12 @@ describe('splitCents', () => {
     expect(splitCents(50, 0)).toEqual([])
   })
 
-  it('floors a negative amount at zero rather than inventing debt', () => {
-    expect(splitCents(-10, 2)).toEqual([0, 0])
+  it('splits a negative amount exactly instead of clamping it to zero (#2176)', () => {
+    // A refund spread across payers has to sum back too — the old Math.max(0, …)
+    // clamp silently swallowed the sign and broke rebalancePayers for refunds.
+    expect(splitCents(-10, 2)).toEqual([-5, -5])
+    const parts = splitCents(-100.01, 3)
+    expect(parts.reduce((a, b) => a + Math.round(b * 100), 0)).toBe(-10001)
   })
 })
 
@@ -75,6 +79,57 @@ describe('rebalancePayers', () => {
     const next = rebalancePayers({ 1: '33.33' }, new Set([1]), new Set([1, 2, 3]), 100)
     expect(payersBalanced(next, new Set([1, 2, 3]), 100)).toBe(true)
   })
+
+  // ── Refunds: negative totals rebalance like any other (#2176) ──────────────
+
+  it('spreads a negative total across payers so the parts stay typeable', () => {
+    const next = rebalancePayers({}, new Set(), new Set([1, 2]), -90)
+    expect(next).toEqual({ 1: '-45.00', 2: '-45.00' })
+    expect(payersBalanced(next, new Set([1, 2]), -90)).toBe(true)
+  })
+
+  it('lets a free payer absorb the rest of a negative total past a pinned amount', () => {
+    const next = rebalancePayers({ 1: '-70' }, new Set([1]), new Set([1, 2]), -100)
+    expect(next[1]).toBe('-70')
+    expect(next[2]).toBe('-30.00')
+  })
+
+  it('handles a pinned positive payer against a negative total', () => {
+    // Alice fronted 50 but the entry nets to -100 — the free payer carries -150.
+    const next = rebalancePayers({ 1: '50' }, new Set([1]), new Set([1, 2]), -100)
+    expect(next[2]).toBe('-150.00')
+    expect(payersBalanced(next, new Set([1, 2]), -100)).toBe(true)
+  })
+})
+
+// ── Client/server share parity (#2176) ───────────────────────────────────────
+//
+// splitEqualShares exists twice: here (previewing the split in euros) and on the
+// server (netting the settlement in cents — BudgetService.splitEqualShares in
+// server/src/nest/budget/budget.service.ts). The fixture below is duplicated
+// verbatim in server/tests/unit/nest/budget.service.calc.test.ts; if either
+// implementation drifts — sign handling included — its copy of this table fails.
+const SHARE_PARITY_FIXTURE: { totalCents: number; users: number[]; itemId: number; expected: Record<number, number> }[] = [
+  { totalCents: 10000, users: [1, 2, 3], itemId: 0, expected: { 1: 3334, 2: 3333, 3: 3333 } },
+  { totalCents: 10000, users: [1, 2, 3], itemId: 1, expected: { 1: 3333, 2: 3334, 3: 3333 } },
+  { totalCents: -10000, users: [1, 2, 3], itemId: 0, expected: { 1: -3333, 2: -3333, 3: -3334 } },
+  { totalCents: -10000, users: [1, 2, 3], itemId: 1, expected: { 1: -3334, 2: -3333, 3: -3333 } },
+  { totalCents: -101, users: [1, 2], itemId: 0, expected: { 1: -50, 2: -51 } },
+  { totalCents: -101, users: [1, 2], itemId: 1, expected: { 1: -51, 2: -50 } },
+  { totalCents: -1, users: [1, 2, 3], itemId: 0, expected: { 1: 0, 2: 0, 3: -1 } },
+]
+
+describe('splitEqualShares — server parity (#2176)', () => {
+  it.each(SHARE_PARITY_FIXTURE)(
+    'splits $totalCents cents across $users.length members (item $itemId) exactly like the server',
+    ({ totalCents, users, itemId, expected }) => {
+      const shares = splitEqualShares(totalCents / 100, users.map(user_id => ({ user_id })), itemId)
+      const inCents = Object.fromEntries(Object.entries(shares).map(([id, v]) => [id, Math.round(v * 100)]))
+      expect(inCents).toEqual(expected)
+      // The invariant behind the fixture: the shares always sum back to the total.
+      expect(Object.values(inCents).reduce((a, b) => a + b, 0)).toBe(totalCents)
+    },
+  )
 })
 
 // ── Notes vs. itemized receipts (#1658) ──────────────────────────────────────

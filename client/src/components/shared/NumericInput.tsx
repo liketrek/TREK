@@ -1,6 +1,6 @@
 import { useRef, type InputHTMLAttributes, type Ref } from 'react'
 
-export type NumericMode = 'integer' | 'decimal' | 'signed'
+export type NumericMode = 'integer' | 'decimal' | 'signed' | 'signed-decimal'
 
 const SANITIZERS: Record<NumericMode, (raw: string) => string> = {
   // Digits only — quantities, weights, day counts.
@@ -12,6 +12,14 @@ const SANITIZERS: Record<NumericMode, (raw: string) => string> = {
   signed: raw => {
     const negative = raw.trimStart().startsWith('-')
     const digits = raw.replace(/[^0-9.]/g, '')
+    return negative ? `-${digits}` : digits
+  },
+  // 'decimal' plus a leading '-' — money fields that accept a refund (#2176).
+  // Distinct from 'signed' on purpose: that one strips the comma, which a
+  // European keypad needs for amounts.
+  'signed-decimal': raw => {
+    const negative = raw.trimStart().startsWith('-')
+    const digits = raw.replace(/[^0-9.,]/g, '')
     return negative ? `-${digits}` : digits
   },
 }

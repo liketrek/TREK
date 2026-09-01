@@ -9,7 +9,7 @@ import { useTranslation } from '../../../../i18n'
 import { useToast } from '../../../../components/shared/Toast'
 import { useTripStore } from '../../../../store/tripStore'
 import { useExchangeRates } from '../../../../hooks/useExchangeRates'
-import { formatMoney, localizeAmountInput, cleanAmount } from '../../../../utils/formatters'
+import { formatMoney, localizeAmountInput, amountToInputString } from '../../../../utils/formatters'
 import { SYMBOLS, SPLIT_COLORS, currenciesWith } from '../../../../components/Budget/BudgetPanel.constants'
 import { COST_CATEGORY_LIST, catMeta } from '../../../../components/Budget/costsCategories'
 import { localToday } from '../../../../components/Planner/today'
@@ -74,16 +74,20 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
   const [note, setNote] = useState(() => readUserNote(editing))
   const [currency, setCurrency] = useState((editing?.currency || base).toUpperCase())
   const [day, setDay] = useState(editing?.expense_date || localToday())
+  // Edit and prefill seeds are padded to the currency's decimals (#2175), same
+  // as the desktop modal: a saved 4,90 must reopen as "4,90", not "4,9". A
+  // prefill has no currency of its own and is read as `base`.
   const [total, setTotal] = useState<string>(() => {
-    if (editing) return editing.total_price ? String(cleanAmount(editing.total_price)) : ''
-    if (prefill?.amount != null) return String(prefill.amount)
+    if (editing) return editing.total_price ? amountToInputString(editing.total_price, (editing.currency || base).toUpperCase()) : ''
+    if (prefill?.amount != null) return amountToInputString(prefill.amount, base)
     return ''
   })
   const [participants, setParticipants] = useState<Set<number>>(() =>
     editing ? new Set((editing.members || []).map(m => m.user_id)) : new Set(people.map(p => p.id)))
 
   // Payer state — same model as the desktop modal. 0 = "Nobody (planning entry)".
-  const initialPayers = (editing?.payers || []).filter(p => p.amount > 0)
+  // A negative payer (the recipient of a refund, #2176) must survive the reopen.
+  const initialPayers = (editing?.payers || []).filter(p => p.amount !== 0)
   const [payerId, setPayerId] = useState<number>(() => {
     const existingPayer = initialPayers[0]
     if (existingPayer) return existingPayer.user_id
@@ -93,7 +97,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
   const [payerIds, setPayerIds] = useState<Set<number>>(() => new Set(initialPayers.map(p => p.user_id)))
   const [payerAmounts, setPayerAmounts] = useState<Record<number, string>>(() => {
     const m: Record<number, string> = {}
-    for (const p of initialPayers) m[p.user_id] = String(p.amount)
+    for (const p of initialPayers) m[p.user_id] = amountToInputString(p.amount, currency)
     return m
   })
   const [pinnedPayers, setPinnedPayers] = useState<Set<number>>(() => new Set(initialPayers.map(p => p.user_id)))
@@ -113,7 +117,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
     const m: Record<number, string> = {}
     if (editing && editing.members) {
       for (const member of editing.members) {
-        if (member.amount !== null && member.amount !== undefined) m[member.user_id] = String(member.amount)
+        if (member.amount !== null && member.amount !== undefined) m[member.user_id] = amountToInputString(member.amount, currency)
       }
     }
     return m
@@ -140,16 +144,20 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
     const enteredSum = [...participants]
       .filter(id => customAmounts[id])
       .reduce((sum, id) => sum + (Number.parseFloat(customAmounts[id]) || 0), 0)
-    const remaining = Math.max(0, totalNum - enteredSum)
+    // Clamped toward zero on the total's own side so a negative total (#2176)
+    // still previews its negative equal shares — same as the desktop modal.
+    const rest = totalNum - enteredSum
+    const remaining = totalNum >= 0 ? Math.max(0, rest) : Math.min(0, rest)
     return splitEqualShares(remaining, emptyParts.map(id => ({ user_id: id })), editing?.id || 0)
   }, [totalNum, participants, customAmounts, editing])
 
   const ticketValid = ticketItems.length > 0 && ticketItems.every(item => item.name.trim().length > 0 && (Number.parseFloat(item.price) || 0) > 0 && item.participants.size > 0)
   const payersOk = !multiPayer || (payerIds.size > 0 && payersBalanced(payerAmounts, payerIds, totalNum))
+  // A negative total is a valid entry (a refund, #2176); only zero has nothing to say.
   const valid = name.trim().length > 0 && payersOk && (
     isTicketMode
       ? ticketValid
-      : totalNum > 0 && (participants.size === 0 || splitMode === 'equally' || customBalanced)
+      : totalNum !== 0 && (participants.size === 0 || splitMode === 'equally' || customBalanced)
   )
 
   const onTotalChange = (v: string) => setTotal(v.replace(',', '.'))
@@ -195,7 +203,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
 
   const handleCustomAmountChange = (id: number, val: string) => {
     val = val.replace(',', '.')
-    if (/^\d*\.?\d{0,2}$/.test(val) || val === '') setCustomAmounts(prev => ({ ...prev, [id]: val }))
+    if (/^-?\d*\.?\d{0,2}$/.test(val) || val === '') setCustomAmounts(prev => ({ ...prev, [id]: val }))
   }
 
   const handleAddEmptyItem = () => {
@@ -237,7 +245,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
     // server re-derives total_price from the payer sum (CostsPanel.helpers), so
     // dropping the payer would store the entry with a total of 0.
     const payerList = multiPayer
-      ? [...payerIds].map(id => ({ user_id: id, amount: Number.parseFloat(payerAmounts[id]) || 0 })).filter(p => p.amount > 0)
+      ? [...payerIds].map(id => ({ user_id: id, amount: Number.parseFloat(payerAmounts[id]) || 0 })).filter(p => p.amount !== 0)
       : payerId > 0 ? [{ user_id: payerId, amount: totalNum }] : []
     const memberList = [...participants].map(id => ({
       user_id: id,
@@ -337,7 +345,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
         <div className={`flex items-center gap-1 rounded-[12px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 py-[10px] ${isTicketMode ? 'opacity-60' : ''}`}>
           <span className="text-[0.84375rem] font-medium text-m-faint">{sym(currency)}</span>
           <NumericInput
-            mode="decimal"
+            mode="signed-decimal"
             placeholder={localizeAmountInput('0.00', currency)}
             value={localizeAmountInput(isTicketMode ? ticketInfo.total.toFixed(2) : total, currency)}
             onValueChange={onTotalChange}
@@ -366,7 +374,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
         </div>
 
         {/* CONVERSION HINT */}
-        {currency !== base && totalNum > 0 && (
+        {currency !== base && totalNum !== 0 && (
           <div className="mt-2 flex flex-wrap items-center gap-2 rounded-[12px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 py-[9px] text-[0.71875rem] text-m-muted">
             <span>{formatMoney(totalNum, currency, locale)}</span>
             <span className="text-m-faint">≈</span>
@@ -456,7 +464,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
                       <div className={`${MINI_INPUT_WRAP} w-[120px] flex-none`}>
                         <span className="text-[0.75rem] text-m-faint">{sym(currency)}</span>
                         <NumericInput
-                          mode="decimal"
+                          mode="signed-decimal"
                           placeholder={localizeAmountInput('0.00', currency)}
                           value={localizeAmountInput(payerAmounts[p.id] || '', currency)}
                           onValueChange={v => onPayerAmountChange(p.id, v)}
