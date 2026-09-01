@@ -15,7 +15,14 @@ body { height: 100%; overflow: auto; overscroll-behavior: none; -webkit-overflow
    reloads the installed PWA. Desktop/tablet keep the rules above. */
 @media (max-width: 767px) {
   html { overflow: visible; overscroll-behavior: none; }
-  body { height: auto; overflow: visible; }
+  /* overflow-x clip (not hidden: clip creates no scroll container) so a screen
+     that accidentally overflows sideways cannot widen the document. Android's
+     forced-zoom setting reacts to a wider document by growing the layout
+     viewport that position:fixed resolves against, which pushed the top bar
+     and the dock off the right edge on narrow phones. On body, never on html:
+     body's overflow only propagates to the viewport while html stays visible,
+     and the shared body scroll lock relies on that propagation. */
+  body { height: auto; overflow: visible; overflow-x: clip; }
   /* Transparent so the shell's own background layer, which sits behind the page
      on a negative z-index, is not painted over: a negative layer goes above the
      canvas but below the background of ordinary blocks, and body is one. The
