@@ -218,7 +218,10 @@ export default defineConfig(({ mode }) => ({
           { src: 'icons/apple-touch-icon-180x180.png', sizes: '180x180', type: 'image/png' },
           { src: 'icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
           { src: 'icons/icon-512x512.png', sizes: '512x512', type: 'image/png' },
-          { src: 'icons/icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          // Dedicated safe-zone renders: the full-bleed icon under a maskable
+          // purpose filled the whole Android launcher tile without any padding.
+          { src: 'icons/icon-maskable-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
+          { src: 'icons/icon-maskable-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
           { src: 'icons/icon.svg', sizes: 'any', type: 'image/svg+xml' },
         ],
       },
