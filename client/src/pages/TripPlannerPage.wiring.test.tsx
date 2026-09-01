@@ -592,11 +592,11 @@ describe('TripPlannerPage — day detail and inspector', () => {
     expect(hookState.loadAccommodations).toHaveBeenCalled()
   })
 
-  it('FE-PAGE-TPW-025: a day without geo stops falls back to any place with coordinates', () => {
+  it('FE-PAGE-TPW-025: a day without geo stops gets no weather anchor from other days (#2167)', () => {
     renderPage({ showDayDetail: { ...day, id: 99 }, assignments: {} })
 
-    expect(props('dayDetail').lat).toBe(34.9)
-    expect(props('dayDetail').lng).toBe(135.7)
+    expect(props('dayDetail').lat).toBeNull()
+    expect(props('dayDetail').lng).toBeNull()
   })
 
   it('FE-PAGE-TPW-026: the desktop inspector edits, deletes and rates through the hook', async () => {
