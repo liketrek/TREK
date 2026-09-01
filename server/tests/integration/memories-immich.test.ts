@@ -222,7 +222,7 @@ vi.mock('../../src/utils/ssrfGuard', async () => {
 import { buildApp } from '../../src/bootstrap';
 import { createTables } from '../../src/db/schema';
 import { runMigrations } from '../../src/db/migrations';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
+import { resetTestDb, resetRateLimits, setAddonEnabled } from '../helpers/test-db';
 import { createUser, createTrip, addTripMember, addTripPhoto, addAlbumLink, setImmichCredentials } from '../helpers/factories';
 import { authCookie } from '../helpers/auth';
 import { safeFetch } from '../../src/utils/ssrfGuard';
@@ -242,6 +242,8 @@ beforeAll(async () => {
 beforeEach(() => {
   resetTestDb(testDb);
   resetRateLimits(nestApp);
+  // Providers only count as enabled under an enabled journey addon (migration 84 seeds it off).
+  setAddonEnabled(testDb, 'journey', true);
   immichState.albumAssets = DEFAULT_ALBUM_ASSETS.map((a) => ({ ...a }));
   immichState.albumAssetPages = null;
   immichState.searchCalls = [];
