@@ -577,6 +577,7 @@ const admin: TranslationStrings = {
   'admin.plugins.instanceSettings': 'Configuració de la instància',
   'admin.plugins.settingsSaved': 'Configuració desada',
   'admin.plugins.settingsSavedRestarted': 'Configuració desada — connector reiniciat',
+  'admin.plugins.requiredMissing': '"{field}" és obligatori',
   'admin.plugins.cap.readsTrips': 'Llegeix els teus viatges',
   'admin.plugins.cap.readsUsers': 'Llegeix els perfils bàsics',
   'admin.plugins.cap.readsCosts': 'Llegeix les teves despeses',

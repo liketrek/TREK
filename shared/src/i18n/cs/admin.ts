@@ -441,6 +441,7 @@ const admin: TranslationStrings = {
   'admin.plugins.instanceSettings': 'Nastavení instance',
   'admin.plugins.settingsSaved': 'Nastavení uloženo',
   'admin.plugins.settingsSavedRestarted': 'Nastavení uloženo — plugin restartován',
+  'admin.plugins.requiredMissing': '„{field}" je povinné',
   'admin.plugins.cap.readsTrips': 'Čte vaše cesty',
   'admin.plugins.cap.readsUsers': 'Čte základní profily',
   'admin.plugins.cap.readsCosts': 'Čte vaše výdaje',

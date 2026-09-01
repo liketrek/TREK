@@ -448,6 +448,7 @@ const admin: TranslationStrings = {
   'admin.plugins.instanceSettings': 'Налаштування інстансу',
   'admin.plugins.settingsSaved': 'Налаштування збережено',
   'admin.plugins.settingsSavedRestarted': 'Налаштування збережено — плагін перезапущено',
+  'admin.plugins.requiredMissing': '«{field}» обов’язкове',
   'admin.plugins.cap.readsTrips': 'Читає ваші подорожі',
   'admin.plugins.cap.readsUsers': 'Читає базові профілі',
   'admin.plugins.cap.readsCosts': 'Читає ваші витрати',

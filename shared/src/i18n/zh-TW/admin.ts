@@ -444,6 +444,7 @@ const admin: TranslationStrings = {
   'admin.plugins.instanceSettings': '執行個體設定',
   'admin.plugins.settingsSaved': '設定已儲存',
   'admin.plugins.settingsSavedRestarted': '設定已儲存 — 外掛已重新啟動',
+  'admin.plugins.requiredMissing': '「{field}」為必填項',
   'admin.plugins.cap.readsTrips': '讀取你的行程',
   'admin.plugins.cap.readsUsers': '讀取基本個人資料',
   'admin.plugins.cap.readsCosts': '讀取你的支出',

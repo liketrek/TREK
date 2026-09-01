@@ -16,6 +16,7 @@ const settings: TranslationStrings = {
   'settings.plugins.subtitle': 'Kullandığın eklentiler için kişisel ayarların (API anahtarları, tercihler).',
   'settings.plugins.empty': 'Etkin eklenti yok.',
   'settings.plugins.saved': 'Ayarlar kaydedildi',
+  'settings.plugins.requiredMissing': '"{field}" gerekli',
   'settings.tabs.account': 'Hesap',
   'settings.tabs.offline': 'Çevrimdışı',
   'settings.tabs.about': 'Hakkında',

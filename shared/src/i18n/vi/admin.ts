@@ -450,6 +450,7 @@ const admin: TranslationStrings = {
   'admin.plugins.instanceSettings': 'Cài đặt toàn hệ thống',
   'admin.plugins.settingsSaved': 'Đã lưu cài đặt',
   'admin.plugins.settingsSavedRestarted': 'Đã lưu cài đặt — đã khởi động lại plugin',
+  'admin.plugins.requiredMissing': '"{field}" là bắt buộc',
   'admin.plugins.cap.readsTrips': 'Đọc chuyến đi của bạn',
   'admin.plugins.cap.readsUsers': 'Đọc hồ sơ cơ bản',
   'admin.plugins.cap.readsCosts': 'Đọc chi phí của bạn',

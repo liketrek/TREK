@@ -16,6 +16,7 @@ const settings: TranslationStrings = {
   'settings.plugins.subtitle': 'Vos paramètres personnels pour les modules que vous utilisez (clés API, préférences).',
   'settings.plugins.empty': 'Aucun module actif.',
   'settings.plugins.saved': 'Paramètres enregistrés',
+  'settings.plugins.requiredMissing': '« {field} » est obligatoire',
   'settings.tabs.account': 'Compte',
   'settings.tabs.offline': 'Offline',
   'settings.tabs.about': 'À propos',

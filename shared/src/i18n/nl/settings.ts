@@ -17,6 +17,7 @@ const settings: TranslationStrings = {
     'Je persoonlijke instellingen voor de plug-ins die je gebruikt (API-sleutels, voorkeuren).',
   'settings.plugins.empty': 'Er zijn geen plug-ins actief.',
   'settings.plugins.saved': 'Instellingen opgeslagen',
+  'settings.plugins.requiredMissing': '"{field}" is vereist',
   'settings.tabs.account': 'Account',
   'settings.tabs.offline': 'Offline',
   'settings.tabs.about': 'Over',

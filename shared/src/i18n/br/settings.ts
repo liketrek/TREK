@@ -17,6 +17,7 @@ const settings: TranslationStrings = {
     'Suas configurações pessoais para os plugins que você usa (chaves de API, preferências).',
   'settings.plugins.empty': 'Nenhum plugin ativo.',
   'settings.plugins.saved': 'Configurações salvas',
+  'settings.plugins.requiredMissing': '"{field}" é obrigatório',
   'settings.tabs.account': 'Conta',
   'settings.tabs.offline': 'Offline',
   'settings.tabs.about': 'Sobre',

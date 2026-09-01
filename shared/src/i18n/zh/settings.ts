@@ -16,6 +16,7 @@ const settings: TranslationStrings = {
   'settings.plugins.subtitle': '你所用插件的个人设置（API 密钥、偏好）。',
   'settings.plugins.empty': '没有已启用的插件。',
   'settings.plugins.saved': '设置已保存',
+  'settings.plugins.requiredMissing': '「{field}」为必填项',
   'settings.tabs.account': '账户',
   'settings.tabs.offline': '离线',
   'settings.tabs.about': '关于',

@@ -494,6 +494,7 @@ const admin: TranslationStrings = {
   'admin.plugins.instanceSettings': 'Örnek ayarları',
   'admin.plugins.settingsSaved': 'Ayarlar kaydedildi',
   'admin.plugins.settingsSavedRestarted': 'Ayarlar kaydedildi — eklenti yeniden başlatıldı',
+  'admin.plugins.requiredMissing': '"{field}" gerekli',
   'admin.plugins.cap.readsTrips': 'Seyahatlerinizi okur',
   'admin.plugins.cap.readsUsers': 'Temel profilleri okur',
   'admin.plugins.cap.readsCosts': 'Harcamalarınızı okur',

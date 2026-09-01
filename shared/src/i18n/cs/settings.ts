@@ -16,6 +16,7 @@ const settings: TranslationStrings = {
   'settings.plugins.subtitle': 'Tvá osobní nastavení pro doplňky, které používáš (klíče API, předvolby).',
   'settings.plugins.empty': 'Nejsou aktivní žádné doplňky.',
   'settings.plugins.saved': 'Nastavení uloženo',
+  'settings.plugins.requiredMissing': '„{field}" je povinné',
   'settings.tabs.account': 'Účet',
   'settings.tabs.offline': 'Offline',
   'settings.tabs.about': 'O aplikaci',

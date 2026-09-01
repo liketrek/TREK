@@ -443,6 +443,7 @@ const admin: TranslationStrings = {
   'admin.plugins.instanceSettings': 'Configurações da instância',
   'admin.plugins.settingsSaved': 'Configurações salvas',
   'admin.plugins.settingsSavedRestarted': 'Configurações salvas — plugin reiniciado',
+  'admin.plugins.requiredMissing': '"{field}" é obrigatório',
   'admin.plugins.cap.readsTrips': 'Lê suas viagens',
   'admin.plugins.cap.readsUsers': 'Lê perfis básicos',
   'admin.plugins.cap.readsCosts': 'Lê suas despesas',

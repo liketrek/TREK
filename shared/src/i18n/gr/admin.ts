@@ -503,6 +503,7 @@ const admin: TranslationStrings = {
   'admin.plugins.instanceSettings': 'Ρυθμίσεις εγκατάστασης',
   'admin.plugins.settingsSaved': 'Οι ρυθμίσεις αποθηκεύτηκαν',
   'admin.plugins.settingsSavedRestarted': 'Οι ρυθμίσεις αποθηκεύτηκαν — το plugin επανεκκινήθηκε',
+  'admin.plugins.requiredMissing': '"{field}" είναι υποχρεωτικό',
   'admin.plugins.cap.readsTrips': 'Διαβάζει τα ταξίδια σας',
   'admin.plugins.cap.readsUsers': 'Διαβάζει βασικά προφίλ',
   'admin.plugins.cap.readsCosts': 'Διαβάζει τα έξοδά σας',

@@ -508,6 +508,7 @@ const admin: TranslationStrings = {
   'admin.plugins.instanceSettings': 'Instansinställningar',
   'admin.plugins.settingsSaved': 'Inställningarna har sparats',
   'admin.plugins.settingsSavedRestarted': 'Inställningarna har sparats — pluginet har startats om',
+  'admin.plugins.requiredMissing': '"{field}" krävs',
   'admin.plugins.cap.readsTrips': 'Läser dina resor',
   'admin.plugins.cap.readsUsers': 'Läser grundläggande profiler',
   'admin.plugins.cap.readsCosts': 'Läser dina kostnader',

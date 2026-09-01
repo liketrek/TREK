@@ -16,6 +16,7 @@ const settings: TranslationStrings = {
   'settings.plugins.subtitle': 'Your personal settings for the plugins you use (API keys, preferences).',
   'settings.plugins.empty': 'No plugins are active.',
   'settings.plugins.saved': 'Settings saved',
+  'settings.plugins.requiredMissing': '"{field}" is required',
   'settings.pluginActivity.title': 'Plugin activity',
   'settings.pluginActivity.description': 'Every action a plugin took on your behalf, newest first.',
   'settings.pluginActivity.empty': 'No plugin activity yet.',

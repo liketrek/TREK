@@ -471,4 +471,25 @@ describe('PluginSettingsTab', () => {
     expect(await screen.findByDisplayValue('https://mine.example')).toBeInTheDocument();
     expect(screen.queryByDisplayValue('https://auth.openbnb.org/authorize')).not.toBeInTheDocument();
   });
+
+  it('FE-COMP-PLUGINSETTINGS-028: blocks Save while a required field is empty and names it', async () => {
+    const user = userEvent.setup();
+    let called = false;
+    serve('weather', {
+      fields: [{ key: 'client_id', label: 'Client ID', input_type: 'text', required: true }],
+      config: {},
+    });
+    server.use(http.post('/api/plugin-settings/weather', () => {
+      called = true;
+      return HttpResponse.json({ config: {} });
+    }));
+    setPlugins([plugin()]);
+    render(<><ToastContainer /><PluginSettingsTab /></>);
+
+    await screen.findByText('Client ID');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByText('"Client ID" is required')).toBeInTheDocument();
+    expect(called).toBe(false);
+  });
 });

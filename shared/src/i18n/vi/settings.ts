@@ -16,6 +16,7 @@ const settings: TranslationStrings = {
   'settings.plugins.subtitle': 'Cài đặt cá nhân của bạn cho các plugin bạn dùng (khóa API, tùy chọn).',
   'settings.plugins.empty': 'Không có plugin nào đang hoạt động.',
   'settings.plugins.saved': 'Đã lưu cài đặt',
+  'settings.plugins.requiredMissing': '"{field}" là bắt buộc',
   'settings.tabs.account': 'Tài khoản',
   'settings.tabs.offline': 'Ngoại tuyến',
   'settings.tabs.about': 'Về',

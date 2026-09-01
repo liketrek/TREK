@@ -110,6 +110,12 @@ function PluginSettingsForm({ id, name, icon }: { id: string; name: string; icon
   }
 
   const save = async () => {
+    const missing = fields.find(f =>
+      f.required && f.input_type !== 'checkbox' && !(f.secret && values[f.key] === SECRET_MASK) && String(values[f.key] ?? '').trim() === '')
+    if (missing) {
+      toast.error(t('settings.plugins.requiredMissing', { field: missing.label || missing.key }))
+      return
+    }
     setSaving(true)
     try {
       // Skip an untouched secret (still shows the mask) so we never overwrite it with the mask.

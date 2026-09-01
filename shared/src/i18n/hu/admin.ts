@@ -455,6 +455,7 @@ const admin: TranslationStrings = {
   'admin.plugins.instanceSettings': 'Példányszintű beállítások',
   'admin.plugins.settingsSaved': 'Beállítások elmentve',
   'admin.plugins.settingsSavedRestarted': 'Beállítások elmentve — plugin újraindítva',
+  'admin.plugins.requiredMissing': '"{field}" kötelező',
   'admin.plugins.cap.readsTrips': 'Olvassa az utazásaidat',
   'admin.plugins.cap.readsUsers': 'Olvassa az alapprofilokat',
   'admin.plugins.cap.readsCosts': 'Olvassa a költségeidet',

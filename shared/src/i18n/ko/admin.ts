@@ -462,6 +462,7 @@ const admin: TranslationStrings = {
   'admin.plugins.instanceSettings': '인스턴스 설정',
   'admin.plugins.settingsSaved': '설정이 저장되었습니다',
   'admin.plugins.settingsSavedRestarted': '설정이 저장되었습니다 — 플러그인이 다시 시작되었습니다',
+  'admin.plugins.requiredMissing': '"{field}"은(는) 필수입니다',
   'admin.plugins.cap.readsTrips': '여행 읽기',
   'admin.plugins.cap.readsUsers': '기본 프로필 읽기',
   'admin.plugins.cap.readsCosts': '지출 읽기',

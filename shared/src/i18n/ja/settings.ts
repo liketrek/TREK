@@ -16,6 +16,7 @@ const settings: TranslationStrings = {
   'settings.plugins.subtitle': '使用しているプラグインの個人設定（API キー、環境設定）。',
   'settings.plugins.empty': '有効なプラグインはありません。',
   'settings.plugins.saved': '設定を保存しました',
+  'settings.plugins.requiredMissing': '「{field}」は必須です',
   'settings.tabs.account': 'アカウント',
   'settings.tabs.offline': 'オフライン',
   'settings.tabs.about': '情報',

@@ -16,6 +16,7 @@ const settings: TranslationStrings = {
   'settings.plugins.subtitle': 'Dina personliga inställningar för de tillägg du använder (API-nycklar, inställningar).',
   'settings.plugins.empty': 'Inga tillägg är aktiva.',
   'settings.plugins.saved': 'Inställningar sparade',
+  'settings.plugins.requiredMissing': '"{field}" krävs',
   'settings.tabs.account': 'Konto',
   'settings.tabs.offline': 'Offline',
   'settings.tabs.about': 'Om',

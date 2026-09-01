@@ -16,6 +16,7 @@ const settings: TranslationStrings = {
   'settings.plugins.subtitle': 'Pengaturan pribadimu untuk plugin yang kamu gunakan (kunci API, preferensi).',
   'settings.plugins.empty': 'Tidak ada plugin yang aktif.',
   'settings.plugins.saved': 'Pengaturan disimpan',
+  'settings.plugins.requiredMissing': '"{field}" wajib diisi',
   'settings.tabs.account': 'Akun',
   'settings.tabs.offline': 'Offline',
   'settings.tabs.about': 'Tentang',

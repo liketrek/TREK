@@ -512,6 +512,7 @@ const settings: TranslationStrings = {
     'La teva configuració personal per als connectors que fas servir (claus API, preferències).',
   'settings.plugins.empty': 'No hi ha cap connector actiu.',
   'settings.plugins.saved': 'Configuració desada',
+  'settings.plugins.requiredMissing': '"{field}" és obligatori',
   'settings.pluginActivity.title': 'Activitat dels connectors',
   'settings.pluginActivity.description': 'Cada acció que un connector ha fet en nom teu, les més recents primer.',
   'settings.pluginActivity.empty': 'Encara no hi ha activitat de connectors.',

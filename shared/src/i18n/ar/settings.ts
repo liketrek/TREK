@@ -16,6 +16,7 @@ const settings: TranslationStrings = {
   'settings.plugins.subtitle': 'إعداداتك الشخصية للإضافات التي تستخدمها (مفاتيح API، التفضيلات).',
   'settings.plugins.empty': 'لا توجد إضافات نشطة.',
   'settings.plugins.saved': 'تم حفظ الإعدادات',
+  'settings.plugins.requiredMissing': '"{field}" مطلوب',
   'settings.tabs.account': 'الحساب',
   'settings.tabs.about': 'حول',
   'settings.map': 'الخريطة',

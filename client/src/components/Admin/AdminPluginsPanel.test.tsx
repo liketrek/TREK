@@ -2324,4 +2324,23 @@ describe('AdminPluginsPanel — instance settings', () => {
     expect(await screen.findByDisplayValue('https://mine.example', {}, { timeout: 5000 })).toBeInTheDocument()
     expect(screen.queryByDisplayValue('https://auth.openbnb.org/authorize')).not.toBeInTheDocument()
   })
+
+  it('FE-COMP-PLUGINS-CFG-011: blocks Save while a required field is empty and names it', async () => {
+    let called = false
+    server.use(
+      http.get('*/api/admin/plugins/trek-gotify/config', () => HttpResponse.json({
+        fields: [{ key: 'client_id', label: 'Client ID', input_type: 'text', required: true, secret: false }],
+        config: {},
+      })),
+      http.put('*/api/admin/plugins/trek-gotify/config', () => { called = true; return HttpResponse.json({ config: {}, restarted: false }) }),
+    )
+    await openRowMenu(plugin({ instanceSettingsCount: 1 }))
+    fireEvent.click(screen.getByText('Instance settings'))
+    await screen.findByText('Client ID', {}, { timeout: 5000 })
+
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
+
+    expect(await screen.findByText('"Client ID" is required', {}, { timeout: 5000 })).toBeInTheDocument()
+    expect(called).toBe(false)
+  })
 })

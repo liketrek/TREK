@@ -462,6 +462,7 @@ const admin: TranslationStrings = {
   'admin.plugins.instanceSettings': 'インスタンス設定',
   'admin.plugins.settingsSaved': '設定を保存しました',
   'admin.plugins.settingsSavedRestarted': '設定を保存しました — プラグインを再起動しました',
+  'admin.plugins.requiredMissing': '「{field}」は必須です',
   'admin.plugins.cap.readsTrips': '旅行を読み取り',
   'admin.plugins.cap.readsUsers': '基本プロフィールを読み取り',
   'admin.plugins.cap.readsCosts': '支出を読み取り',

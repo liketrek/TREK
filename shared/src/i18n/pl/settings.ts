@@ -16,6 +16,7 @@ const settings: TranslationStrings = {
   'settings.plugins.subtitle': 'Twoje osobiste ustawienia używanych wtyczek (klucze API, preferencje).',
   'settings.plugins.empty': 'Brak aktywnych wtyczek.',
   'settings.plugins.saved': 'Zapisano ustawienia',
+  'settings.plugins.requiredMissing': '"{field}" jest wymagane',
   'settings.tabs.account': 'Konto',
   'settings.tabs.offline': 'Offline',
   'settings.tabs.about': 'O aplikacji',

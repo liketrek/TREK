@@ -49,6 +49,12 @@ export function useInstanceSettings() {
 
   const save = async () => {
     if (!form) return
+    const missing = form.fields.find(f =>
+      f.required && f.input_type !== 'checkbox' && String(form.values[f.key] ?? '').trim() === '')
+    if (missing) {
+      setError(t('admin.plugins.requiredMissing', { field: missing.label || missing.key }))
+      return
+    }
     setSaving(true); setError('')
     try {
       const patch: Record<string, unknown> = {}

@@ -16,6 +16,7 @@ const settings: TranslationStrings = {
   'settings.plugins.subtitle': '你所用外掛的個人設定（API 金鑰、偏好）。',
   'settings.plugins.empty': '沒有啟用中的外掛。',
   'settings.plugins.saved': '設定已儲存',
+  'settings.plugins.requiredMissing': '「{field}」為必填項',
   'settings.tabs.account': '帳戶',
   'settings.tabs.offline': 'Offline',
   'settings.tabs.about': '關於',

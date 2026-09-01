@@ -17,6 +17,7 @@ const settings: TranslationStrings = {
     'Ваші особисті налаштування для плагінів, які ви використовуєте (ключі API, уподобання).',
   'settings.plugins.empty': 'Немає активних плагінів.',
   'settings.plugins.saved': 'Налаштування збережено',
+  'settings.plugins.requiredMissing': '«{field}» обов’язкове',
   'settings.tabs.account': 'Обліковий запис',
   'settings.tabs.offline': 'Офлайн',
   'settings.tabs.about': 'Про застосунок',

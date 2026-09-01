@@ -452,6 +452,7 @@ const admin: TranslationStrings = {
   'admin.plugins.instanceSettings': 'Ajustes de la instancia',
   'admin.plugins.settingsSaved': 'Ajustes guardados',
   'admin.plugins.settingsSavedRestarted': 'Ajustes guardados — plugin reiniciado',
+  'admin.plugins.requiredMissing': '"{field}" es obligatorio',
   'admin.plugins.cap.readsTrips': 'Lee tus viajes',
   'admin.plugins.cap.readsUsers': 'Lee perfiles básicos',
   'admin.plugins.cap.readsCosts': 'Lee tus gastos',

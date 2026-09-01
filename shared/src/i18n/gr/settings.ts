@@ -17,6 +17,7 @@ const settings: TranslationStrings = {
     'Οι προσωπικές σας ρυθμίσεις για τα πρόσθετα που χρησιμοποιείτε (κλειδιά API, προτιμήσεις).',
   'settings.plugins.empty': 'Δεν υπάρχουν ενεργά πρόσθετα.',
   'settings.plugins.saved': 'Οι ρυθμίσεις αποθηκεύτηκαν',
+  'settings.plugins.requiredMissing': '"{field}" είναι υποχρεωτικό',
   'settings.tabs.account': 'Λογαριασμός',
   'settings.tabs.offline': 'Εκτός σύνδεσης',
   'settings.tabs.about': 'Σχετικά',

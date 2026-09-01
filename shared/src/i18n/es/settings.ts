@@ -16,6 +16,7 @@ const settings: TranslationStrings = {
   'settings.plugins.subtitle': 'Tus ajustes personales para los complementos que usas (claves de API, preferencias).',
   'settings.plugins.empty': 'No hay complementos activos.',
   'settings.plugins.saved': 'Ajustes guardados',
+  'settings.plugins.requiredMissing': '"{field}" es obligatorio',
   'settings.tabs.account': 'Cuenta',
   'settings.tabs.offline': 'Offline',
   'settings.tabs.about': 'Acerca de',

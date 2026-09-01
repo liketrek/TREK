@@ -16,6 +16,7 @@ const settings: TranslationStrings = {
   'settings.plugins.subtitle': 'Személyes beállításaid az általad használt bővítményekhez (API-kulcsok, beállítások).',
   'settings.plugins.empty': 'Nincsenek aktív bővítmények.',
   'settings.plugins.saved': 'Beállítások mentve',
+  'settings.plugins.requiredMissing': '"{field}" kötelező',
   'settings.tabs.account': 'Fiók',
   'settings.tabs.offline': 'Offline',
   'settings.tabs.about': 'Névjegy',

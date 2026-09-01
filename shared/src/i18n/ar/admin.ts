@@ -454,6 +454,7 @@ const admin: TranslationStrings = {
   'admin.plugins.instanceSettings': 'إعدادات مستوى الخادم',
   'admin.plugins.settingsSaved': 'تم حفظ الإعدادات',
   'admin.plugins.settingsSavedRestarted': 'تم حفظ الإعدادات — تمت إعادة تشغيل الإضافة',
+  'admin.plugins.requiredMissing': '"{field}" مطلوب',
   'admin.plugins.cap.readsTrips': 'يقرأ رحلاتك',
   'admin.plugins.cap.readsUsers': 'يقرأ الملفات الشخصية الأساسية',
   'admin.plugins.cap.readsCosts': 'يقرأ مصروفاتك',

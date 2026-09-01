@@ -447,6 +447,7 @@ const admin: TranslationStrings = {
   'admin.plugins.instanceSettings': 'Ustawienia instancji',
   'admin.plugins.settingsSaved': 'Ustawienia zapisane',
   'admin.plugins.settingsSavedRestarted': 'Ustawienia zapisane — wtyczka została uruchomiona ponownie',
+  'admin.plugins.requiredMissing': '"{field}" jest wymagane',
   'admin.plugins.cap.readsTrips': 'Odczytuje Twoje podróże',
   'admin.plugins.cap.readsUsers': 'Odczytuje podstawowe profile',
   'admin.plugins.cap.readsCosts': 'Odczytuje Twoje wydatki',

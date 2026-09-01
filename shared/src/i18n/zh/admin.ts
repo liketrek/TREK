@@ -404,6 +404,7 @@ const admin: TranslationStrings = {
   'admin.plugins.instanceSettings': '实例设置',
   'admin.plugins.settingsSaved': '设置已保存',
   'admin.plugins.settingsSavedRestarted': '设置已保存 — 插件已重启',
+  'admin.plugins.requiredMissing': '「{field}」为必填项',
   'admin.plugins.cap.readsTrips': '读取你的旅行',
   'admin.plugins.cap.readsUsers': '读取基本个人资料',
   'admin.plugins.cap.readsCosts': '读取你的支出',

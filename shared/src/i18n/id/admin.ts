@@ -497,6 +497,7 @@ const admin: TranslationStrings = {
   'admin.plugins.instanceSettings': 'Pengaturan instans',
   'admin.plugins.settingsSaved': 'Pengaturan disimpan',
   'admin.plugins.settingsSavedRestarted': 'Pengaturan disimpan — plugin dimulai ulang',
+  'admin.plugins.requiredMissing': '"{field}" wajib diisi',
   'admin.plugins.cap.readsTrips': 'Membaca perjalananmu',
   'admin.plugins.cap.readsUsers': 'Membaca profil dasar',
   'admin.plugins.cap.readsCosts': 'Membaca pengeluaranmu',

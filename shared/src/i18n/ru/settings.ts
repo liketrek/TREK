@@ -16,6 +16,7 @@ const settings: TranslationStrings = {
   'settings.plugins.subtitle': 'Ваши личные настройки для используемых плагинов (ключи API, предпочтения).',
   'settings.plugins.empty': 'Нет активных плагинов.',
   'settings.plugins.saved': 'Настройки сохранены',
+  'settings.plugins.requiredMissing': '«{field}» обязательно',
   'settings.tabs.account': 'Аккаунт',
   'settings.tabs.offline': 'Офлайн-режим',
   'settings.tabs.about': 'О приложении',
