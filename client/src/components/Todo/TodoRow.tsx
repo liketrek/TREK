@@ -37,6 +37,10 @@ export default function TodoRow({ item, members, categories, today, isSelected, 
       // checkbox and its drag handle answer for themselves, hence the key handler
       // only fires when the row itself has focus.
       role="button"
+      // Opt out of the global :active press-scale: shrinking the row-wide button
+      // slides the checkbox out from under the pointer mid-click, so the click
+      // retargets onto the row and opens the detail pane instead (#2158).
+      data-no-press
       tabIndex={0}
       onClick={() => onSelect(isSelected ? null : item.id)}
       onKeyDown={e => {

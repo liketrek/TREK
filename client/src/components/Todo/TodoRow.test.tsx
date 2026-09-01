@@ -1,4 +1,4 @@
-// FE-W4TDR-001 to FE-W4TDR-020
+// FE-W4TDR-001 to FE-W4TDR-022
 import type { ComponentProps } from 'react'
 import { describe, it, expect, vi } from 'vitest'
 import type { TodoItem } from '../../types'
@@ -206,5 +206,26 @@ describe('TodoRow', () => {
       />,
     )
     expect((container.firstElementChild as HTMLElement).style.boxShadow).toBe('inset 3px 0 0 0 var(--accent)')
+  })
+
+  it('FE-W4TDR-021: the row opts out of the global press-scale (#2158)', () => {
+    // jsdom cannot replay the browser mechanics behind #2158: the :active
+    // scale on the row-wide role="button" shifted the checkbox out from under
+    // the pointer, so the click retargeted onto the row and opened the detail
+    // pane instead of toggling. The data-no-press attribute is the pin.
+    const { container } = setup(todo())
+
+    expect(container.firstElementChild).toHaveAttribute('data-no-press')
+  })
+
+  it('FE-W4TDR-022: the checkbox toggles without selecting or starting a drag', () => {
+    const drag = dragHandlers()
+    const { onToggle, onSelect, container } = setup(todo(), { drag })
+
+    fireEvent.click(container.querySelector('button')!)
+
+    expect(onToggle).toHaveBeenCalledWith(10, true)
+    expect(onSelect).not.toHaveBeenCalled()
+    expect(drag.onStart).not.toHaveBeenCalled()
   })
 })

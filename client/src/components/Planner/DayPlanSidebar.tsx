@@ -1627,6 +1627,9 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                 // own, hence the key handler only answers for the row — and it
                 // toggles exactly like the click, rather than only selecting.
                 role="button"
+                // No press-scale on the wide row — it would shift the nested
+                // buttons out from under the pointer mid-click (#2158).
+                data-no-press
                 tabIndex={0}
                 onClick={() => toggleDaySelection()}
                 onKeyDown={e => {
@@ -1953,8 +1956,10 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                             // Picking the place out of the day has no other trigger, so
                             // the row is the control. Its grip, lock and arrows are
                             // buttons in their own right, hence the key handler only
-                            // answers for the row itself.
+                            // answers for the row itself. No press-scale — see the
+                            // day header above (#2158).
                             role="button"
+                            data-no-press
                             tabIndex={0}
                             draggable={canEditDays && !dragDisabled}
                             onDragStart={e => {
@@ -2336,7 +2341,9 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                           <div
                             // Opening the booking has no other trigger, so the row is
                             // the control; the buttons inside it answer for themselves.
+                            // No press-scale — see the day header above (#2158).
                             role="button"
+                            data-no-press
                             tabIndex={0}
                             onClick={openTransportRow}
                             onKeyDown={e => {
