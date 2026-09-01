@@ -529,7 +529,7 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.naver_list_import.name': 'Naver List Import',
   'admin.addons.catalog.naver_list_import.description': 'Helyek importálása megosztott Naver Maps-listából',
   'admin.addons.catalog.airtrail.name': 'AirTrail',
-  'admin.addons.catalog.airtrail.description': 'Járatok szinkronizálása a saját üzemeltetésű AirTrail-példányodból',
+  'admin.addons.catalog.airtrail.description': 'Járatok szinkronizálása az AirTrail-példányodból',
   'admin.addons.catalog.llm_parsing.name': 'MI-elemzés',
   'admin.addons.catalog.llm_parsing.description': 'Beolvassa azokat a foglalásokat, amelyeket a beépített értelmező nem tud, az általad választott MI-modellel',
   'admin.addons.enabled': 'Engedélyezve',

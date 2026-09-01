@@ -523,7 +523,7 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.naver_list_import.name': 'Naver List Import',
   'admin.addons.catalog.naver_list_import.description': 'Importeer plaatsen uit een gedeelde Naver Maps-lijst',
   'admin.addons.catalog.airtrail.name': 'AirTrail',
-  'admin.addons.catalog.airtrail.description': 'Synchroniseer vluchten vanuit je zelfgehoste AirTrail-instantie',
+  'admin.addons.catalog.airtrail.description': 'Synchroniseer vluchten vanuit je AirTrail-instantie',
   'admin.addons.catalog.llm_parsing.name': 'AI-analyse',
   'admin.addons.catalog.llm_parsing.description': 'Leest boekingen die de ingebouwde parser niet begrijpt, met een AI-model naar keuze',
   'admin.addons.enabled': 'Ingeschakeld',

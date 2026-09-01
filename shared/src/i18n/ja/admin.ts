@@ -536,7 +536,7 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.naver_list_import.name': 'Naver List Import',
   'admin.addons.catalog.naver_list_import.description': '共有された Naver マップのリストから場所をインポート',
   'admin.addons.catalog.airtrail.name': 'AirTrail',
-  'admin.addons.catalog.airtrail.description': '自分でホストしている AirTrail から フライトを同期',
+  'admin.addons.catalog.airtrail.description': '自分の AirTrail から フライトを同期',
   'admin.addons.catalog.llm_parsing.name': 'AI 解析',
   'admin.addons.catalog.llm_parsing.description': '内蔵パーサーが読めない予約を、選んだ AI モデルで読み取ります',
   'admin.addons.enabled': '有効',

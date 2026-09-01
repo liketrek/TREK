@@ -524,7 +524,7 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.naver_list_import.name': 'Naver List Import',
   'admin.addons.catalog.naver_list_import.description': 'Importa luoghi da un elenco condiviso di Naver Maps',
   'admin.addons.catalog.airtrail.name': 'AirTrail',
-  'admin.addons.catalog.airtrail.description': 'Sincronizza i voli dalla tua istanza AirTrail self-hosted',
+  'admin.addons.catalog.airtrail.description': 'Sincronizza i voli dalla tua istanza AirTrail',
   'admin.addons.catalog.llm_parsing.name': 'Analisi con IA',
   'admin.addons.catalog.llm_parsing.description': 'Legge le prenotazioni che l’analizzatore integrato non riesce a interpretare, con un modello di IA a tua scelta',
   'admin.addons.enabled': 'Abilitato',

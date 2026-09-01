@@ -562,7 +562,7 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.naver_list_import.name': 'Naver List Import',
   'admin.addons.catalog.naver_list_import.description': 'Import places from a shared Naver Maps list',
   'admin.addons.catalog.airtrail.name': 'AirTrail',
-  'admin.addons.catalog.airtrail.description': 'Sync flights from your self-hosted AirTrail instance',
+  'admin.addons.catalog.airtrail.description': 'Sync flights from your AirTrail instance',
   'admin.addons.catalog.llm_parsing.name': 'AI Parsing',
   'admin.addons.catalog.llm_parsing.description': 'Reads bookings the built-in parser cannot, using an AI model you choose',
   'admin.addons.enabled': 'Enabled',

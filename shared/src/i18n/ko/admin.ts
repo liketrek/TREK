@@ -536,7 +536,7 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.naver_list_import.name': 'Naver List Import',
   'admin.addons.catalog.naver_list_import.description': '공유된 네이버 지도 목록에서 장소 가져오기',
   'admin.addons.catalog.airtrail.name': 'AirTrail',
-  'admin.addons.catalog.airtrail.description': '직접 운영하는 AirTrail 인스턴스에서 항공편 동기화',
+  'admin.addons.catalog.airtrail.description': 'AirTrail 인스턴스에서 항공편 동기화',
   'admin.addons.catalog.llm_parsing.name': 'AI 분석',
   'admin.addons.catalog.llm_parsing.description': '기본 분석기가 읽지 못하는 예약을 원하는 AI 모델로 읽어냅니다',
   'admin.addons.enabled': '활성화됨',

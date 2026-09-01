@@ -478,7 +478,7 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.naver_list_import.name': 'Naver List Import',
   'admin.addons.catalog.naver_list_import.description': '从共享的 Naver 地图列表导入地点',
   'admin.addons.catalog.airtrail.name': 'AirTrail',
-  'admin.addons.catalog.airtrail.description': '从你自建的 AirTrail 实例同步航班',
+  'admin.addons.catalog.airtrail.description': '从你的 AirTrail 实例同步航班',
   'admin.addons.catalog.llm_parsing.name': 'AI 解析',
   'admin.addons.catalog.llm_parsing.description': '用你选择的 AI 模型读取内置解析器无法识别的预订',
   'admin.addons.enabled': '已启用',

@@ -569,7 +569,7 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.naver_list_import.name': 'Naver List Import',
   'admin.addons.catalog.naver_list_import.description': 'Paylaşılan bir Naver Haritalar listesinden yerleri içe aktarın',
   'admin.addons.catalog.airtrail.name': 'AirTrail',
-  'admin.addons.catalog.airtrail.description': 'Kendi sunucunuzdaki AirTrail örneğinden uçuşları eşitleyin',
+  'admin.addons.catalog.airtrail.description': 'AirTrail örneğinizden uçuşları eşitleyin',
   'admin.addons.catalog.llm_parsing.name': 'Yapay zekâ ile ayrıştırma',
   'admin.addons.catalog.llm_parsing.description': 'Yerleşik ayrıştırıcının okuyamadığı rezervasyonları, seçtiğiniz yapay zekâ modeliyle okur',
   'admin.addons.enabled': 'Etkinleştirilmiş',
