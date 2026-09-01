@@ -1,5 +1,6 @@
 import type { Day, Accommodation, RouteAnchors } from '../types'
 import { parseTimeToMinutes } from './dayMerge'
+import { withinDriveRange } from './geo'
 
 /**
  * Set on an edge waypoint that is the endpoint of a booking which CARRIES you out of
@@ -71,13 +72,15 @@ export const getAccommodationAnchors = (
 // morning hotel (a normal home-base day). On that hotel's check-in day you were traveling TO the
 // hotel, so the leg is drawn only when the first stop is a PLACE provably timed at/after check-in
 // (you dropped your bags first). A place before check-in (an airport you reach first, #1465), a
-// transport arrival (you flew in, weren't at the hotel yet, #1321), an un-timed place ("Home"
-// before driving out, #1597), or a missing check-in time all mean no leg — mirroring the
-// evening rule below.
+// transport arrival (you flew in, weren't at the hotel yet, #1321), or an un-timed place ("Home"
+// before driving out, #1597) all mean no leg — mirroring the evening rule below. With no
+// check-in time recorded the loop closes by default (#2009), except on a day a carrier
+// takes you there or towards an edge place out of drive range (#2157).
 export const shouldDrawMorningLeg = (
   bookends: { morning?: Accommodation; morningIsSleptHere?: boolean },
   day: Day,
-  firstStop?: { isPlace: boolean; time?: string | null; carrierEdge?: CarrierEdge },
+  firstStop?: { isPlace: boolean; time?: string | null; carrierEdge?: CarrierEdge; lat?: number; lng?: number },
+  dayHasCarrier?: boolean,
 ): boolean => {
   // You landed here. Whatever hotel the day belongs to, nobody drove out of it to the
   // airport they arrived at — so there is no morning leg, not even on a night you
@@ -92,7 +95,17 @@ export const shouldDrawMorningLeg = (
   // loop at the start of every arrival day, since the hotel picker leaves the
   // time blank by default (#2009). With a time set, #1465 still holds: an
   // earlier stop is a place you reached before the hotel and draws no leg.
-  if (checkIn == null) return true
+  if (checkIn == null) {
+    // ...but the closed loop is a guess, and two things disprove it (#2157): a
+    // carrier on the day means you arrive at this hotel by air/rail/sea — on its
+    // check-in day the hotel is where the day ENDS, not where it starts — and an
+    // edge place no drive of the hotel could reach ("Home", an ocean away) was
+    // where you came FROM, not somewhere the hotel sent you.
+    if (dayHasCarrier) return false
+    if (firstStop.lat != null && firstStop.lng != null && m.place_lat != null && m.place_lng != null
+      && !withinDriveRange({ lat: m.place_lat, lng: m.place_lng }, { lat: firstStop.lat, lng: firstStop.lng })) return false
+    return true
+  }
   const stop = parseTimeToMinutes(firstStop.time)
   return stop != null && stop >= checkIn
 }
@@ -105,7 +118,8 @@ export const shouldDrawMorningLeg = (
 export const shouldDrawEveningLeg = (
   bookends: { evening?: Accommodation; eveningIsOvernight?: boolean },
   day: Day,
-  lastStop?: { isPlace: boolean; time?: string | null; carrierEdge?: CarrierEdge },
+  lastStop?: { isPlace: boolean; time?: string | null; carrierEdge?: CarrierEdge; lat?: number; lng?: number },
+  dayHasCarrier?: boolean,
 ): boolean => {
   // Mirror: you took off from here, so no drive leads from it back to tonight's hotel —
   // the reported "flight starting airport connected to the accommodation" (#2133).
@@ -116,7 +130,15 @@ export const shouldDrawEveningLeg = (
   const checkOut = parseTimeToMinutes(e.check_out)
   // Mirror of the morning rule: with no check-out time recorded there is nothing
   // to have missed, so the return leg is drawn and the loop closes (#2009).
-  if (checkOut == null) return true
+  if (checkOut == null) {
+    // Same two disproofs as the morning (#2157): a carrier on the check-out day
+    // means the hotel is where the day STARTS and nothing drives back to it, and
+    // an edge place out of drive range is where you went instead of returning.
+    if (dayHasCarrier) return false
+    if (lastStop.lat != null && lastStop.lng != null && e.place_lat != null && e.place_lng != null
+      && !withinDriveRange({ lat: e.place_lat, lng: e.place_lng }, { lat: lastStop.lat, lng: lastStop.lng })) return false
+    return true
+  }
   const stop = parseTimeToMinutes(lastStop.time)
   return stop != null && stop <= checkOut
 }

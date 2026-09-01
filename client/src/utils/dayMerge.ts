@@ -116,6 +116,21 @@ export function getTransportRouteEndpoints(
   }
 }
 
+/**
+ * Whether this booking is a carrier that contributes a located route endpoint on the
+ * given day — the signal that the day's geography changes by riding something rather
+ * than driving, which the hotel-bookend rules need on days without recorded
+ * check-in/check-out times (#2157). The span rules above make an overnight carrier
+ * count only on the days it actually touches. A carrier saved without coordinates
+ * deliberately does not count: it contributes nothing to the drawn route, so treating
+ * it as proof of travel would flip hotel legs on data the map cannot see.
+ */
+export function hasCarrierEndpointOnDay(r: any, dayId: number): boolean {
+  if (!isCarrierTransport(r)) return false
+  const { from, to } = getTransportRouteEndpoints(r, dayId)
+  return from != null || to != null
+}
+
 export function getDisplayTimeForDay(
   r: { day_id?: number | null; end_day_id?: number | null; reservation_time?: string | null; reservation_end_time?: string | null },
   dayId: number

@@ -13,6 +13,7 @@ import { usePluginStore } from '../../../../store/pluginStore'
 import { useDayNotes } from '../../../../hooks/useDayNotes'
 import { RES_ICONS, getNoteIcon } from '../../../../components/Planner/DayPlanSidebar.constants'
 import { getDayBookendHotels, isDayInAccommodationRange } from '../../../../utils/dayOrder'
+import { getTransportForDay, hasCarrierEndpointOnDay } from '../../../../utils/dayMerge'
 import { splitReservationDateTime } from '../../../../utils/formatters'
 import { dayCoMapsUrl, dayGoogleMapsUrl, optimizeDayOrder } from '../lib/dayRoute'
 import GoogleMapsIcon from '../../../../components/shared/GoogleMapsIcon'
@@ -174,11 +175,25 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
       : t('dayplan.toast.routeOptimized'))
   }
 
+  // Carrier evidence for the export bookends (#2157) — via the span-aware transport
+  // filter the timeline uses, not dayReservations above, which matches on day_id
+  // only and would miss an overnight carrier that merely arrives today.
+  const dayHasCarrier = useMemo(() => {
+    if (!day) return false
+    return getTransportForDay({
+      reservations: planner.reservations,
+      dayId: day.id,
+      dayAssignmentIds: dayAssignments.map(a => a.id),
+      days: planner.days,
+    }).some(r => hasCarrierEndpointOnDay(r, day.id))
+  }, [day, planner.reservations, planner.days, dayAssignments])
+
   // Google-Maps export of the day's stops, hotel-bookended like the drawn route (#1372/#1465).
   const openInGoogleMaps = () => {
     if (!day) return
     const url = dayGoogleMapsUrl(
       day, planner.days, dayAssignments, planner.tripAccommodations, optimizeFromAccommodation !== false,
+      dayHasCarrier,
     )
     if (url) window.open(url, '_blank', 'noopener,noreferrer')
   }
@@ -188,7 +203,7 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
     if (!day) return
     const url = dayCoMapsUrl(
       day, planner.days, dayAssignments, planner.tripAccommodations, optimizeFromAccommodation !== false,
-      day.default_transport_mode ?? planner.routeProfile,
+      day.default_transport_mode ?? planner.routeProfile, dayHasCarrier,
     )
     if (url) window.open(url, '_blank', 'noopener,noreferrer')
   }

@@ -30,7 +30,7 @@ import { useTranslation } from '../../i18n'
 import { isDayInAccommodationRange, getAccommodationAnchors, getDayBookendHotels, shouldDrawMorningLeg, shouldDrawEveningLeg, type CarrierEdge } from '../../utils/dayOrder'
 import {
   TRANSPORT_TYPES, parseTimeToMinutes, getSpanPhase, hidesOnMiddleDay, getDisplayTimeForDay, getTransportRouteEndpoints,
-  getTransportForDay as _getTransportForDay, getMergedItems as _getMergedItems, isCarrierTransport,
+  getTransportForDay as _getTransportForDay, getMergedItems as _getMergedItems, isCarrierTransport, hasCarrierEndpointOnDay,
   type MergedItem,
 } from '../../utils/dayMerge'
 import { withinDriveRange } from '../../utils/geo'
@@ -592,8 +592,11 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
       const reachable = (h: { place_lat?: number | null; place_lng?: number | null } | undefined, w: typeof firstWay) =>
         !h || !w || w.isPlace || h.place_lat == null || h.place_lng == null
         || withinDriveRange({ lat: h.place_lat, lng: h.place_lng }, w)
-      const wantTop = !!(startHotel && firstWay && bookends && day && shouldDrawMorningLeg(bookends, day, firstWay)) && reachable(startHotel, firstWay)
-      const wantBottom = !!(endHotel && lastWay && bookends && day && shouldDrawEveningLeg(bookends, day, lastWay)) && reachable(endHotel, lastWay)
+      // Same carrier evidence the map route uses (#2157): with a located carrier
+      // endpoint on the day, the no-time default must not open a hotel leg.
+      const dayHasCarrier = wayPts.some(w => w.carrierEdge != null)
+      const wantTop = !!(startHotel && firstWay && bookends && day && shouldDrawMorningLeg(bookends, day, firstWay, dayHasCarrier)) && reachable(startHotel, firstWay)
+      const wantBottom = !!(endHotel && lastWay && bookends && day && shouldDrawEveningLeg(bookends, day, lastWay, dayHasCarrier)) && reachable(endHotel, lastWay)
       return { runs, startHotel, endHotel, firstWay, lastWay, wantTop, wantBottom }
     }
 
@@ -1582,11 +1585,14 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
           const dayExportStops = (): NamedWaypoint[] => {
             const dayStops = getDayAssignments(day.id).filter(a => a.place?.lat != null && a.place?.lng != null)
             const stops = dayStops.map(a => ({ lat: a.place!.lat!, lng: a.place!.lng!, name: a.place!.name }))
-            const first = dayStops[0] ? { isPlace: true, time: dayStops[0].place?.place_time ?? null } : undefined
+            const first = dayStops[0] ? { isPlace: true, time: dayStops[0].place?.place_time ?? null, lat: dayStops[0].place!.lat!, lng: dayStops[0].place!.lng! } : undefined
             const lastAssignment = dayStops[dayStops.length - 1]
-            const last = lastAssignment ? { isPlace: true, time: lastAssignment.place?.place_time ?? null } : undefined
-            const drawMorning = !!routeBookends && shouldDrawMorningLeg(routeBookends, day, first)
-            const drawEvening = !!routeBookends && shouldDrawEveningLeg(routeBookends, day, last)
+            const last = lastAssignment ? { isPlace: true, time: lastAssignment.place?.place_time ?? null, lat: lastAssignment.place!.lat!, lng: lastAssignment.place!.lng! } : undefined
+            // Same carrier gate as the drawn route (#2157): the exported link must not
+            // start at a hotel you only reach tonight or lead back to one you left.
+            const dayHasCarrier = (mergedItemsMap[day.id] || []).some(i => i.type === 'transport' && hasCarrierEndpointOnDay(i.data, day.id))
+            const drawMorning = !!routeBookends && shouldDrawMorningLeg(routeBookends, day, first, dayHasCarrier)
+            const drawEvening = !!routeBookends && shouldDrawEveningLeg(routeBookends, day, last, dayHasCarrier)
             const morning = drawMorning && routeBookends?.morning?.place_lat != null && routeBookends?.morning?.place_lng != null
               ? { lat: routeBookends.morning.place_lat, lng: routeBookends.morning.place_lng, name: routeBookends.morning.place_name } : null
             const evening = drawEvening && routeBookends?.evening?.place_lat != null && routeBookends?.evening?.place_lng != null

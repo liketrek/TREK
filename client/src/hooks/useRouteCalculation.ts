@@ -2,7 +2,7 @@ import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { useTripStore } from '../store/tripStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { calculateRouteWithLegs, withHotelBookends, type RouteProfileKey } from '../components/Map/RouteCalculator'
-import { getTransportRouteEndpoints, getTransportForDay, getMergedItems, isCarrierTransport } from '../utils/dayMerge'
+import { getTransportRouteEndpoints, getTransportForDay, getMergedItems, isCarrierTransport, hasCarrierEndpointOnDay } from '../utils/dayMerge'
 import { getDayBookendHotels, shouldDrawMorningLeg, shouldDrawEveningLeg, type CarrierEdge } from '../utils/dayOrder'
 import { withinDriveRange } from '../utils/geo'
 import { resolveLegMode } from '../components/Planner/legMode'
@@ -174,21 +174,25 @@ export function useRouteCalculation(tripStore: TripStoreState, selectedDayId: nu
     const lastStop = [...entries].reverse().find(contributes)
     const edgeInfo = (e: Entry | undefined, side: 'first' | 'last') => {
       if (!e) return undefined
-      if (e.kind === 'place') return { isPlace: true, time: e.time }
+      if (e.kind === 'place') return { isPlace: true, time: e.time, lat: e.lat, lng: e.lng }
       const role: CarrierEdge = side === 'first'
         ? (e.from ? 'departure' : 'arrival')
         : (e.to ? 'arrival' : 'departure')
       return { isPlace: false, time: null, carrierEdge: e.carrier ? role : null }
     }
+    // A carrier with a located endpoint today means the day changes geography by
+    // air/rail/sea — the check-in hotel is then the day's destination and the
+    // check-out hotel its origin, which the no-time bookend default respects (#2157).
+    const dayHasCarrier = dayTransports.some(r => hasCarrierEndpointOnDay(r, dayId))
     const firstWay = flatPts[0]
     const lastWay = flatPts[flatPts.length - 1]
     const morningHotel = hotelPt(bookends?.morning)
     const eveningHotel = hotelPt(bookends?.evening)
     // Same reachability test as the run builder: a hotel is not joined to a point no
     // one could have driven between.
-    const drawMorning = !!bookends && !!day && shouldDrawMorningLeg(bookends, day, edgeInfo(firstStop, 'first'))
+    const drawMorning = !!bookends && !!day && shouldDrawMorningLeg(bookends, day, edgeInfo(firstStop, 'first'), dayHasCarrier)
       && (!morningHotel || !firstWay || firstWay.isPlace || withinDriveRange(morningHotel, firstWay))
-    const drawEvening = !!bookends && !!day && shouldDrawEveningLeg(bookends, day, edgeInfo(lastStop, 'last'))
+    const drawEvening = !!bookends && !!day && shouldDrawEveningLeg(bookends, day, edgeInfo(lastStop, 'last'), dayHasCarrier)
       && (!eveningHotel || !lastWay || lastWay.isPlace || withinDriveRange(eveningHotel, lastWay))
     const runsWithHotel: RunPoint[][] = withHotelBookends(
       runs,

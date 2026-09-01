@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { dayCoMapsUrl, dayExportStops, dayGoogleMapsUrl } from './dayRoute'
 import type { Accommodation, Assignment, Day } from '../../../../types'
 
-// FE-MOBILE-DAYROUTE-001 to FE-MOBILE-DAYROUTE-005
+// FE-MOBILE-DAYROUTE-001 to FE-MOBILE-DAYROUTE-009
 
 const days = [
   { id: 10, day_number: 1 },
@@ -40,6 +40,34 @@ describe('dayExportStops', () => {
     const nowhere = { id: 3, day_id: 20, order_index: 3, place: { id: 3, name: 'TBD' } } as unknown as Assignment
     const stops = dayExportStops(days[1], days, [louvre, nowhere], [], false)
     expect(stops.map(s => s.name)).toEqual(['Louvre'])
+  })
+
+  // The stay above records neither check-in nor check-out time — the #2157 shape.
+  const homeNear = stop(4, 'Home', 48.9, 2.4)
+
+  it('FE-MOBILE-DAYROUTE-006: with a carrier on the day, the not-yet-reached check-in hotel is not prepended (#2157)', () => {
+    // Arrival day: you fly in, so the hotel may end the list but must not start it.
+    const stops = dayExportStops(days[0], days, [homeNear], [hotel], true, true)
+    expect(stops.map(s => s.name)).toEqual(['Home', 'Hotel Lutetia'])
+  })
+
+  it('FE-MOBILE-DAYROUTE-007: with a carrier on the day, the already-left check-out hotel is not appended (#2157)', () => {
+    // Check-out day: the hotel starts the day, nothing routes back to it after the flight home.
+    const stops = dayExportStops(days[2], days, [homeNear], [hotel], true, true)
+    expect(stops.map(s => s.name)).toEqual(['Hotel Lutetia', 'Home'])
+  })
+
+  it('FE-MOBILE-DAYROUTE-008: without a carrier the no-time loop still closes (#2009 preserved)', () => {
+    const stops = dayExportStops(days[0], days, [louvre], [hotel], true, false)
+    expect(stops.map(s => s.name)).toEqual(['Hotel Lutetia', 'Louvre', 'Hotel Lutetia'])
+  })
+
+  it('FE-MOBILE-DAYROUTE-009: an edge stop out of drive range keeps the no-time hotel out even without a carrier (#2157)', () => {
+    // No flight recorded, but "Home" is an ocean away — the loop default is a guess
+    // and does not get to route back across it.
+    const farHome = stop(5, 'Home', 21.28, -157.83)
+    const stops = dayExportStops(days[2], days, [farHome], [hotel], true)
+    expect(stops.map(s => s.name)).toEqual(['Hotel Lutetia', 'Home'])
   })
 })
 

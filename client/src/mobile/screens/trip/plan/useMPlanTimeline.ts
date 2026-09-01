@@ -4,7 +4,7 @@ import { useRouteCalculation } from '../../../../hooks/useRouteCalculation'
 import { assignmentsApi, reservationsApi, weatherApi } from '../../../../api/client'
 import { usePluginStore } from '../../../../store/pluginStore'
 import { getDayBookendHotels } from '../../../../utils/dayOrder'
-import { getDisplayTimeForDay, getMergedItems, getTransportForDay } from '../../../../utils/dayMerge'
+import { getDisplayTimeForDay, getMergedItems, getTransportForDay, hasCarrierEndpointOnDay } from '../../../../utils/dayMerge'
 import { dayCoMapsUrl, dayGoogleMapsUrl, optimizeDayOrder } from '../lib/dayRoute'
 import {
   buildPlanRows, breaksChronology, findUpNext, hotelChipsForDay, hotelLegsForDay, itemHasTime,
@@ -52,6 +52,13 @@ export function useMPlanTimeline(planner: TripPlanner) {
       dayId: day.id,
     })
   }, [day, dayAssignments, dayNotes, reservations, days])
+
+  // A carrier with a located endpoint today — the exported deep links need it so
+  // their no-time hotel bookends match the drawn route (#2157).
+  const dayHasCarrier = useMemo(
+    () => !!day && merged.some(it => it.type === 'transport' && hasCarrierEndpointOnDay(it.data, day.id)),
+    [day, merged],
+  )
 
   // Travel-time connectors (walk · distance · drive between consecutive places)
   // are shown permanently on the mobile timeline. The planner's route instance
@@ -316,18 +323,19 @@ export function useMPlanTimeline(planner: TripPlanner) {
     // drawn route does — only when the leg is real (#1372, #1465).
     const url = dayGoogleMapsUrl(
       day, days, dayAssignments, tripAccommodations, settings.optimize_from_accommodation !== false,
+      dayHasCarrier,
     )
     if (url) window.open(url, '_blank', 'noopener,noreferrer')
-  }, [day, dayAssignments, days, tripAccommodations, settings])
+  }, [day, dayAssignments, days, tripAccommodations, settings, dayHasCarrier])
 
   const exportCoMaps = useCallback(() => {
     if (!day) return
     const url = dayCoMapsUrl(
       day, days, dayAssignments, tripAccommodations, settings.optimize_from_accommodation !== false,
-      day.default_transport_mode ?? routeProfile,
+      day.default_transport_mode ?? routeProfile, dayHasCarrier,
     )
     if (url) window.open(url, '_blank', 'noopener,noreferrer')
-  }, [day, dayAssignments, days, tripAccommodations, settings, routeProfile])
+  }, [day, dayAssignments, days, tripAccommodations, settings, routeProfile, dayHasCarrier])
 
   const renameDay = useCallback((title: string) => {
     if (!day) return
