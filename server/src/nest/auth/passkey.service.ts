@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import bcrypt from 'bcryptjs';
 import {
   generateRegistrationOptions,
@@ -7,7 +7,7 @@ import {
   verifyAuthenticationResponse,
   type AuthenticatorTransportFuture,
 } from '@simplewebauthn/server';
-import { WebauthnConfigService } from './webauthn-config.service';
+import { WebauthnConfigService, originWithinRpScope, type WebauthnConfig } from './webauthn-config.service';
 import { avatarUrl } from '../common/avatarUrl';
 import { stripUserForClient } from './auth.helpers';
 import { AuthService } from './auth.service';
@@ -52,15 +52,25 @@ interface CredentialRow {
   last_used_at: string | null;
 }
 
-function challengeFromResponse(resp: unknown): string | null {
+function clientDataFromResponse(resp: unknown): { challenge?: unknown; origin?: unknown } | null {
   try {
     const cdj = (resp as { response?: { clientDataJSON?: unknown } })?.response?.clientDataJSON;
     if (typeof cdj !== 'string') return null;
-    const parsed = JSON.parse(Buffer.from(cdj, 'base64url').toString('utf8')) as { challenge?: unknown };
-    return typeof parsed.challenge === 'string' ? parsed.challenge : null;
+    return JSON.parse(Buffer.from(cdj, 'base64url').toString('utf8')) as { challenge?: unknown; origin?: unknown };
   } catch {
     return null;
   }
+}
+
+function challengeFromResponse(resp: unknown): string | null {
+  const challenge = clientDataFromResponse(resp)?.challenge;
+  return typeof challenge === 'string' ? challenge : null;
+}
+
+/** The browser-asserted origin of the ceremony (clientDataJSON.origin). */
+function originFromResponse(resp: unknown): string | null {
+  const origin = clientDataFromResponse(resp)?.origin;
+  return typeof origin === 'string' ? origin : null;
 }
 
 function parseTransports(raw: string | null): AuthenticatorTransportFuture[] | undefined {
@@ -91,6 +101,8 @@ function defaultCredentialName(deviceType: string | undefined): string {
  */
 @Injectable()
 export class PasskeyService {
+  private readonly logger = new Logger(PasskeyService.name);
+
   constructor(
     private readonly db: DatabaseService,
     private readonly auth: AuthService,
@@ -127,15 +139,66 @@ export class PasskeyService {
   }
 
   // -------------------------------------------------------------------------
+  // Origin handling (#2147)
+  // -------------------------------------------------------------------------
+
+  /**
+   * The origins handed to the verifier for this ceremony. An explicit operator
+   * list is honored verbatim. A derived config (APP_URL fallback) often carries
+   * the wrong scheme or port (TLS-terminating proxy, first ALLOWED_ORIGINS
+   * entry), so the browser-asserted origin is added IF it falls within the RP
+   * ID's WebAuthn scope — the same suffix rule the browser enforces before it
+   * runs the ceremony at all. rpIdHash, challenge and signature checks are
+   * untouched, so this never accepts an origin the RP ID doesn't cover.
+   */
+  private expectedOrigins(cfg: WebauthnConfig, resp: unknown): string[] {
+    if (cfg.explicitOrigins) return cfg.origins;
+    const clientOrigin = originFromResponse(resp);
+    if (!clientOrigin || cfg.origins.includes(clientOrigin) || !originWithinRpScope(clientOrigin, cfg.rpID)) {
+      return cfg.origins;
+    }
+    return [...cfg.origins, clientOrigin];
+  }
+
+  /**
+   * Pre-ceremony check of the request's Origin header against the resolved RP
+   * config. A browser on an origin the derived localhost fallback can never
+   * verify (nothing configured, accessed remotely) gets the actionable
+   * not-configured 400 BEFORE the ceremony instead of a cryptic verify failure
+   * after it. Any other mismatch is only logged: proxies may rewrite the
+   * Origin header while clientDataJSON still carries the real one, and an
+   * explicit origins list is the operator's contract. Requests without a
+   * parseable http(s) Origin (curl, 'null') skip the check entirely.
+   */
+  private originCannotVerify(cfg: WebauthnConfig, requestOrigin: string | undefined): boolean {
+    if (!requestOrigin) return false;
+    let origin: string;
+    try {
+      const url = new URL(requestOrigin);
+      if (url.protocol !== 'http:' && url.protocol !== 'https:') return false;
+      origin = url.origin;
+    } catch {
+      return false;
+    }
+    if (cfg.origins.includes(origin) || originWithinRpScope(origin, cfg.rpID)) return false;
+    this.logger.warn(
+      `Passkey ceremony requested from origin ${origin}, but the RP config resolves to rpID=${cfg.rpID}, origins=[${cfg.origins.join(', ')}] — set APP_URL or the webauthn_rp_id/webauthn_origins settings.`,
+    );
+    return !cfg.explicitOrigins && cfg.rpID === 'localhost';
+  }
+
+  // -------------------------------------------------------------------------
   // Registration (authenticated — from Settings, password re-auth required)
   // -------------------------------------------------------------------------
 
   async passkeyRegisterOptions(
     userId: number,
     password: string | undefined,
+    requestOrigin?: string,
   ): Promise<{ error?: string; status?: number; options?: Awaited<ReturnType<typeof generateRegistrationOptions>> }> {
     const cfg = this.webauthn.resolve();
     if (!cfg) return { ...NOT_CONFIGURED };
+    if (this.originCannotVerify(cfg, requestOrigin)) return { ...NOT_CONFIGURED };
 
     const user = this.db.get<User>('SELECT * FROM users WHERE id = ?', userId);
     if (!user) return { error: 'User not found', status: 404 };
@@ -190,16 +253,22 @@ export class PasskeyService {
       return { error: 'Registration challenge expired. Please try again.', status: 400 };
     }
 
+    const expectedOrigin = this.expectedOrigins(cfg, resp);
     let verification;
     try {
       verification = await verifyRegistrationResponse({
         response: resp as Parameters<typeof verifyRegistrationResponse>[0]['response'],
         expectedChallenge: challenge,
-        expectedOrigin: cfg.origins,
+        expectedOrigin,
         expectedRPID: cfg.rpID,
         requireUserVerification: true,
       });
-    } catch {
+    } catch (err) {
+      // Body stays the generic 400 (parity), but the operator gets to see WHY —
+      // origin/RP mismatches used to be swallowed entirely.
+      this.logger.warn(
+        `Passkey registration rejected (expectedRPID=${cfg.rpID}, expectedOrigin=[${expectedOrigin.join(', ')}]): ${err instanceof Error ? err.message : String(err)}`,
+      );
       return { error: 'Could not register this passkey.', status: 400 };
     }
 
@@ -253,13 +322,14 @@ export class PasskeyService {
   // Authentication (public — primary, discoverable-credential login)
   // -------------------------------------------------------------------------
 
-  async passkeyLoginOptions(): Promise<{
+  async passkeyLoginOptions(requestOrigin?: string): Promise<{
     error?: string;
     status?: number;
     options?: Awaited<ReturnType<typeof generateAuthenticationOptions>>;
   }> {
     const cfg = this.webauthn.resolve();
     if (!cfg) return { ...NOT_CONFIGURED };
+    if (this.originCannotVerify(cfg, requestOrigin)) return { ...NOT_CONFIGURED };
 
     const now = Date.now();
     this.purgeExpiredChallenges(now);
@@ -302,12 +372,13 @@ export class PasskeyService {
     const cred = this.db.get<CredentialRow>('SELECT * FROM webauthn_credentials WHERE credential_id = ?', credId);
     if (!cred) return { ...AUTH_FAILED };
 
+    const expectedOrigin = this.expectedOrigins(cfg, resp);
     let verification;
     try {
       verification = await verifyAuthenticationResponse({
         response: resp as Parameters<typeof verifyAuthenticationResponse>[0]['response'],
         expectedChallenge: challenge,
-        expectedOrigin: cfg.origins,
+        expectedOrigin,
         expectedRPID: cfg.rpID,
         requireUserVerification: true,
         credential: {
@@ -317,7 +388,10 @@ export class PasskeyService {
           transports: parseTransports(cred.transports),
         },
       });
-    } catch {
+    } catch (err) {
+      this.logger.warn(
+        `Passkey login rejected (expectedRPID=${cfg.rpID}, expectedOrigin=[${expectedOrigin.join(', ')}]): ${err instanceof Error ? err.message : String(err)}`,
+      );
       return { ...AUTH_FAILED };
     }
 

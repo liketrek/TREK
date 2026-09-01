@@ -8,9 +8,12 @@
  * resolver NEVER reads request headers.
  */
 
+// The real getAppUrl() NEVER returns an empty string — with nothing configured
+// it falls back to `http://localhost:{PORT}` (app-url.ts). The mock default
+// mirrors that; a '' default here once hid the #2147 phantom-config bug.
 const { settingsStore, appUrlRef } = vi.hoisted(() => ({
   settingsStore: new Map<string, string>(),
-  appUrlRef: { value: '' },
+  appUrlRef: { value: 'http://localhost:3001' },
 }));
 
 vi.mock('../../../src/app-config', async (importOriginal) => {
@@ -20,7 +23,7 @@ vi.mock('../../../src/app-config', async (importOriginal) => {
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { DatabaseService } from '../../../src/nest/database/database.service';
-import { WebauthnConfigService } from '../../../src/nest/auth/webauthn-config.service';
+import { WebauthnConfigService, originWithinRpScope } from '../../../src/nest/auth/webauthn-config.service';
 
 // Injected instead of vi.mocking src/db/database: the service reads exactly one
 // row shape (app_settings.value), so a stub connection keeps the suite free of
@@ -38,7 +41,7 @@ const svc = new WebauthnConfigService(new DatabaseService(conn));
 
 beforeEach(() => {
   settingsStore.clear();
-  appUrlRef.value = '';
+  appUrlRef.value = 'http://localhost:3001';
 });
 
 afterEach(() => {
@@ -52,6 +55,7 @@ describe('WebauthnConfigService.resolve', () => {
     expect(cfg).not.toBeNull();
     expect(cfg!.rpID).toBe('trek.example.org');
     expect(cfg!.origins).toEqual(['https://trek.example.org']);
+    expect(cfg!.explicitOrigins).toBe(false); // derived, not operator-supplied
     expect(svc.isConfigured()).toBe(true);
   });
 
@@ -61,9 +65,14 @@ describe('WebauthnConfigService.resolve', () => {
     expect(svc.isConfigured()).toBe(false);
   });
 
-  it('WAC-003: returns null when nothing is configured', () => {
-    expect(svc.resolve()).toBeNull();
-    expect(svc.isConfigured()).toBe(false);
+  it('WAC-003: nothing configured resolves to the localhost dev fallback (#2147)', () => {
+    // getAppUrl() never yields '' — an unconfigured instance lands on
+    // http://localhost:{PORT}, so resolve() returns the localhost dev config.
+    // The remote-origin guard for that phantom config lives in PasskeyService.
+    const cfg = svc.resolve();
+    expect(cfg!.rpID).toBe('localhost');
+    expect(cfg!.explicitOrigins).toBe(false);
+    expect(svc.isConfigured()).toBe(true);
   });
 
   it('WAC-004: localhost dev uses the browser (Vite :5173) origin, not just the API port', () => {
@@ -81,6 +90,7 @@ describe('WebauthnConfigService.resolve', () => {
     const cfg = svc.resolve();
     expect(cfg!.rpID).toBe('public.example.org');
     expect(cfg!.origins).toEqual(['https://public.example.org']);
+    expect(cfg!.explicitOrigins).toBe(true);
   });
 
   it('WAC-006: webauthn_origins is parsed as a comma-separated, trimmed list', () => {
@@ -104,6 +114,7 @@ describe('WebauthnConfigService.resolve', () => {
     settingsStore.set('webauthn_rp_id', 'trek.example.org');
     const cfg = svc.resolve();
     expect(cfg!.origins).toEqual(['https://trek.example.org']);
+    expect(cfg!.explicitOrigins).toBe(false); // the origin list itself is still derived
   });
 
   it('WAC-009: an operator flipping the RP ID at runtime takes effect on the next resolve', () => {
@@ -113,5 +124,37 @@ describe('WebauthnConfigService.resolve', () => {
     settingsStore.set('webauthn_rp_id', 'moved.example.org');
 
     expect(svc.resolve()!.rpID).toBe('moved.example.org');
+  });
+
+  it('WAC-010: the WEBAUTHN_ORIGINS env var also marks the origin list explicit', () => {
+    vi.stubEnv('WEBAUTHN_RP_ID', 'env.example.org');
+    vi.stubEnv('WEBAUTHN_ORIGINS', 'https://env.example.org');
+    expect(svc.resolve()!.explicitOrigins).toBe(true);
+  });
+});
+
+// The scope rule mirrors what the browser enforces for a ceremony: https-only
+// (http for loopback dev), hostname equal to the RP ID or a subdomain of it.
+// Anything laxer would weaken origin binding, so each edge is pinned.
+describe('originWithinRpScope', () => {
+  it('WAC-011: accepts the RP domain and its subdomains over https', () => {
+    expect(originWithinRpScope('https://trek.example.org', 'trek.example.org')).toBe(true);
+    expect(originWithinRpScope('https://app.trek.example.org', 'trek.example.org')).toBe(true);
+    expect(originWithinRpScope('https://trek.example.org:8443', 'trek.example.org')).toBe(true);
+  });
+
+  it('WAC-012: rejects http on a non-localhost host, but allows loopback dev', () => {
+    expect(originWithinRpScope('http://trek.example.org', 'trek.example.org')).toBe(false);
+    expect(originWithinRpScope('http://localhost:5173', 'localhost')).toBe(true);
+    expect(originWithinRpScope('http://127.0.0.1:3001', '127.0.0.1')).toBe(true);
+  });
+
+  it('WAC-013: rejects foreign hosts, suffix tricks and garbage', () => {
+    expect(originWithinRpScope('https://evil.example.net', 'trek.example.org')).toBe(false);
+    // "eviltrek.example.org" is NOT a subdomain of "trek.example.org".
+    expect(originWithinRpScope('https://eviltrek.example.org', 'trek.example.org')).toBe(false);
+    expect(originWithinRpScope('https://trip.example.org', 'localhost')).toBe(false);
+    expect(originWithinRpScope('null', 'trek.example.org')).toBe(false);
+    expect(originWithinRpScope('ftp://trek.example.org', 'trek.example.org')).toBe(false);
   });
 });

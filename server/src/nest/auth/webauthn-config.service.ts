@@ -17,11 +17,38 @@ function isIpHost(host: string): boolean {
   return false;
 }
 
+/**
+ * The scope rule WebAuthn itself applies when the browser runs a ceremony: the
+ * origin's host must equal the RP ID or be a subdomain of it, over https
+ * (plain http only for localhost loopback dev). Used to judge whether an
+ * origin could ever complete a ceremony against a given RP ID — never to
+ * derive the RP ID from anything request-controlled.
+ */
+export function originWithinRpScope(origin: string, rpID: string): boolean {
+  let url: URL;
+  try {
+    url = new URL(origin);
+  } catch {
+    return false;
+  }
+  const host = url.hostname;
+  const loopback = host === 'localhost' || host === '127.0.0.1';
+  if (url.protocol !== 'https:' && !(url.protocol === 'http:' && loopback)) return false;
+  return host === rpID || host.endsWith(`.${rpID}`);
+}
+
 export interface WebauthnConfig {
   rpID: string;
   rpName: string;
   /** Exact allowed origins (scheme + host + port). One in prod; localhost dev adds the Vite/API ports. */
   origins: string[];
+  /**
+   * True when `origins` came from operator config (env / admin setting) — such
+   * a list is honored verbatim. False when derived from APP_URL, where the
+   * scheme/port may not match the real browsing origin (TLS-terminating proxy)
+   * and the verifier may widen within the RP ID's scope.
+   */
+  explicitOrigins: boolean;
 }
 
 /**
@@ -87,7 +114,7 @@ export class WebauthnConfigService {
     }
     if (origins.length === 0) return null;
 
-    return { rpID, rpName: 'TREK', origins };
+    return { rpID, rpName: 'TREK', origins, explicitOrigins: explicitOrigins.length > 0 };
   }
 
   /** True when a usable RP ID resolves for this deployment (exposed as a pure boolean on app-config). */
