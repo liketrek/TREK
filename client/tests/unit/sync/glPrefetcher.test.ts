@@ -139,7 +139,7 @@ describe('prefetchStyleAssets', () => {
 describe('prefetchVectorForPlaces', () => {
   const places = [buildPlace({ lat: 52.52, lng: 13.405 })];
 
-  it('FE-SYNC-GLPF-007: downloads the tiles covering the trip, z10 to z14', async () => {
+  it('FE-SYNC-GLPF-007: downloads the tiles covering the trip, z0 to z14', async () => {
     const result = await prefetchVectorForPlaces(places, STYLE_URL);
     expect(result.template).toBe(TILE_TEMPLATE);
     expect(result.tiles).toBeGreaterThan(0);
@@ -151,7 +151,9 @@ describe('prefetchVectorForPlaces', () => {
     );
     // z14 is the last one OpenFreeMap serves; MapLibre scales it beyond that
     // rather than asking for another, which is why this stops where raster could not.
-    expect([...zooms].sort((a, b) => a - b)).toEqual([10, 11, 12, 13, 14]);
+    // The floor is z0: MapLibre cannot overzoom downward, so the fitBounds view
+    // of a wide trip needs the low zooms cached too (#2180).
+    expect([...zooms].sort((a, b) => a - b)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
   });
 
   it('FE-SYNC-GLPF-008: does nothing offline', async () => {
