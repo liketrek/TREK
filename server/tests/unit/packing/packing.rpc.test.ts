@@ -157,6 +157,39 @@ describe('PackingRpc through the router', () => {
     expect(res.error.message).toBe('no packing item 404 on trip 1');
   });
 
+  it('PACKING-RPC-018 create hands the widened fields through the schema (#2154)', async () => {
+    const f = build();
+    await f.host('db:write:packing').dispatch(req('packing.create', { tripId: 1, input: { name: 'Tent', weight_grams: 250, bag_id: 19, quantity: 3 } }), 42);
+    expect(f.data.createItem).toHaveBeenCalledWith('1', { name: 'Tent', weight_grams: 250, bag_id: 19, quantity: 3 }, 42);
+  });
+
+  it('PACKING-RPC-019 an off-trip bag is BAD_PARAMS on create and update alike, broadcasting nothing (#2154)', async () => {
+    const f = build();
+    const host = f.host('db:write:packing');
+
+    f.data.createItem.mockReturnValueOnce({ invalidBag: true } as never);
+    const created = (await host.dispatch(req('packing.create', { tripId: 1, input: { name: 'Tent', bag_id: 404 } }), 42)) as RpcError;
+    expect(created.error.code).toBe('BAD_PARAMS');
+    expect(created.error.message).toBe('no packing bag 404 on trip 1');
+
+    f.data.updateItem.mockReturnValueOnce({ invalidBag: true } as never);
+    const updated = (await host.dispatch(req('packing.update', { tripId: 1, itemId: 70, input: { bag_id: 404 } }), 42)) as RpcError;
+    expect(updated.error.code).toBe('BAD_PARAMS');
+    expect(updated.error.message).toBe('no packing bag 404 on trip 1');
+
+    // The sentinel must never leave the process as an item.
+    expect(f.realtime.broadcast).not.toHaveBeenCalled();
+  });
+
+  it('PACKING-RPC-020 createBag forwards a numeric weight limit and drops a non-number (#2154)', async () => {
+    const f = build();
+    const host = f.host('db:write:packing');
+    await host.dispatch(req('packing.createBag', { tripId: 1, input: { name: 'Bag', weight_limit_grams: 23000 } }), 42);
+    expect(f.data.createBag).toHaveBeenCalledWith('1', { name: 'Bag', color: undefined, weight_limit_grams: 23000 });
+    await host.dispatch(req('packing.createBag', { tripId: 1, input: { name: 'Bag', weight_limit_grams: 'heavy' } }), 42);
+    expect(f.data.createBag).toHaveBeenLastCalledWith('1', { name: 'Bag', color: undefined, weight_limit_grams: undefined });
+  });
+
   it('PACKING-RPC-008 the class is listed in its module providers', () => {
     expectRegisteredProvider(PackingModule, PackingRpc);
   });

@@ -62,7 +62,7 @@ import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createAdmin, createTrip, addTripMember } from '../../helpers/factories';
 import { DatabaseService } from '../../../src/nest/database/database.service';
 import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { PackingService } from '../../../src/nest/packing/packing.service';
+import { PackingService, isInvalidBagRef } from '../../../src/nest/packing/packing.service';
 // Was packing.bridge, deleted with the other three that had no consumer outside the
 // container. The assertions stayed; they point at the service now.
 const bridgeListItems = (tripId: string | number, viewerId?: number) => svc.listItems(tripId, viewerId);
@@ -682,6 +682,60 @@ describe('legacy-quirk fixes', () => {
     expect((svc.updateItem(trip.id, item.id, { quantity: 9999 }, ['quantity'], undefined, user.id) as any).quantity).toBe(999);
     // Omitted key leaves the quantity unchanged.
     expect((svc.updateItem(trip.id, item.id, { name: 'Wool socks' }, ['name'], undefined, user.id) as any).quantity).toBe(999);
+  });
+});
+
+// ── Create-path fields + bag trip scope (#2154) ───────────────────────────────
+
+describe('create-path fields + bag trip scope (#2154)', () => {
+  it('PACK-SVC-054: createItem persists weight_grams, bag_id and quantity in one write', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const bag = svc.createBag(trip.id, { name: 'Carry-On' }) as any;
+
+    const item = svc.createItem(trip.id, { name: 'Tent', weight_grams: 250, bag_id: bag.id, quantity: 3 }, user.id) as any;
+    expect(item).toMatchObject({ weight_grams: 250, bag_id: bag.id, quantity: 3 });
+  });
+
+  it('PACK-SVC-055: createItem refuses a bag off the trip with the invalidBag sentinel, inserting nothing', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const otherTrip = createTrip(testDb, user.id);
+    const foreignBag = svc.createBag(otherTrip.id, { name: 'Not yours' }) as any;
+
+    // Existence alone is not enough — the bag must belong to THIS trip.
+    expect(svc.createItem(trip.id, { name: 'Tent', bag_id: foreignBag.id }, user.id)).toEqual({ invalidBag: true });
+    // A dead id refuses the same way (it used to be an SQLite FK error).
+    expect(isInvalidBagRef(svc.createItem(trip.id, { name: 'Tent', bag_id: 99999 }, user.id))).toBe(true);
+    expect((testDb.prepare('SELECT COUNT(*) AS n FROM packing_items WHERE trip_id = ?').get(trip.id) as any).n).toBe(0);
+  });
+
+  it('PACK-SVC-056: updateItem refuses a cross-trip bag_id and leaves the row alone; null still clears', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const otherTrip = createTrip(testDb, user.id);
+    const own = svc.createBag(trip.id, { name: 'Mine' }) as any;
+    const foreign = svc.createBag(otherTrip.id, { name: 'Not mine' }) as any;
+    const item = svc.createItem(trip.id, { name: 'Tent', bag_id: own.id }, user.id) as any;
+
+    const refused = svc.updateItem(trip.id, item.id, { bag_id: foreign.id }, ['bag_id'], undefined, user.id);
+    expect(isInvalidBagRef(refused)).toBe(true);
+    expect((testDb.prepare('SELECT bag_id FROM packing_items WHERE id = ?').get(item.id) as any).bag_id).toBe(own.id);
+
+    // Clearing the bag with an explicit null is untouched by the check.
+    const cleared = svc.updateItem(trip.id, item.id, { bag_id: null }, ['bag_id'], undefined, user.id) as any;
+    expect(cleared.bag_id).toBeNull();
+  });
+
+  it('PACK-SVC-057: createBag persists weight_limit_grams; omitted stays null', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+
+    const limited = svc.createBag(trip.id, { name: 'Checked', weight_limit_grams: 23000 }) as any;
+    expect(limited.weight_limit_grams).toBe(23000);
+
+    const bare = svc.createBag(trip.id, { name: 'Day pack' }) as any;
+    expect(bare.weight_limit_grams).toBeNull();
   });
 });
 

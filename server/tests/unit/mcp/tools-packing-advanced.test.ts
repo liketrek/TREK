@@ -155,6 +155,21 @@ describe('Tool: create_packing_bag', () => {
     });
   });
 
+  it('creates a bag with a weight limit (#2154)', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_packing_bag',
+        arguments: { tripId: trip.id, name: 'Checked bag', weight_limit_grams: 23000 },
+      });
+      const data = parseToolResult(result) as any;
+      expect(data.bag.weight_limit_grams).toBe(23000);
+      const row = testDb.prepare('SELECT weight_limit_grams FROM packing_bags WHERE id = ?').get(data.bag.id) as { weight_limit_grams: number | null };
+      expect(row.weight_limit_grams).toBe(23000);
+    });
+  });
+
   it('returns access denied for non-member', async () => {
     const { user } = createUser(testDb);
     const { user: other } = createUser(testDb);

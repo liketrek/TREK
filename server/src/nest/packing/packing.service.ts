@@ -11,6 +11,21 @@ import { NotificationsService } from '../notifications/notifications.service';
 /** Privacy fields stamped on a packing item (#858). */
 type PrivacyFields = { is_private?: number; owner_id?: number | null };
 
+/**
+ * Rejection sentinel for a body-referenced bag that does not exist on the trip
+ * (#2154). The packing_bags FK only guarantees the id exists somewhere: a
+ * cross-trip bag_id used to be accepted silently and a dead one surfaced as an
+ * SQLite FK error. Returned by createItem/updateItem so REST, MCP and the
+ * plugin RPC all map it to their surface's 400/BadParams.
+ */
+export interface InvalidBagRef {
+  invalidBag: true;
+}
+
+export function isInvalidBagRef(result: unknown): result is InvalidBagRef {
+  return !!result && typeof result === 'object' && (result as { invalidBag?: unknown }).invalidBag === true;
+}
+
 type Trip = TripAccess;
 
 export type PackingVisibility = 'common' | 'personal' | 'shared';
@@ -217,6 +232,7 @@ export class PackingService {
     data: { name: string; category?: string; checked?: boolean; quantity?: number; weight_grams?: number | null; bag_id?: number | null; is_private?: boolean; visibility?: PackingVisibility; recipient_ids?: number[] },
     ownerId?: number,
   ) {
+    if (data.bag_id != null && !this.bagInTrip(tripId, data.bag_id)) return { invalidBag: true } as const;
     const maxOrder = this.db.get<{ max: number | null }>('SELECT MAX(sort_order) as max FROM packing_items WHERE trip_id = ?', tripId)!;
     const sortOrder = (maxOrder.max !== null ? maxOrder.max : -1) + 1;
     const qty = Math.max(1, Math.min(999, Number(data.quantity) || 1));
@@ -257,6 +273,12 @@ export class PackingService {
     // token => unconditional update (back-compat with older clients).
     if (ifMatch !== undefined && item.updated_at != null && String(item.updated_at) !== ifMatch) {
       return { conflict: true, server: this.db.get('SELECT * FROM packing_items WHERE id = ?', id) };
+    }
+
+    // A non-null bag about to be bound must belong to this trip (#2154) — the
+    // FK alone let any member point an item at another trip's bag.
+    if (bodyKeys.includes('bag_id') && data.bag_id != null && !this.bagInTrip(tripId, data.bag_id)) {
+      return { invalidBag: true } as const;
     }
 
     // Privatizing an unowned (legacy) item stamps the acting user as its owner so
@@ -374,6 +396,12 @@ export class PackingService {
     if (!item) return null;
     this.db.run('DELETE FROM packing_item_contributors WHERE item_id = ? AND user_id = ?', id, userId);
     return this.enrichItems([this.db.get('SELECT * FROM packing_items WHERE id = ?', id)])[0];
+  }
+
+  /** True when the bag exists AND belongs to the trip — the referenced-id rule
+   *  the FK cannot enforce (it only checks existence). */
+  private bagInTrip(tripId: string | number, bagId: number): boolean {
+    return !!this.db.get('SELECT id FROM packing_bags WHERE id = ? AND trip_id = ?', bagId, tripId);
   }
 
   /**
@@ -509,10 +537,10 @@ export class PackingService {
     return rows.map(m => ({ ...m, avatar: avatarUrl(m) }));
   }
 
-  createBag(tripId: string | number, data: { name: string; color?: string }) {
+  createBag(tripId: string | number, data: { name: string; color?: string; weight_limit_grams?: number | null }) {
     const maxOrder = this.db.get<{ max: number | null }>('SELECT MAX(sort_order) as max FROM packing_bags WHERE trip_id = ?', tripId)!;
-    const result = this.db.run('INSERT INTO packing_bags (trip_id, name, color, sort_order) VALUES (?, ?, ?, ?)',
-      tripId, data.name.trim(), data.color || '#6366f1', (maxOrder.max ?? -1) + 1
+    const result = this.db.run('INSERT INTO packing_bags (trip_id, name, color, sort_order, weight_limit_grams) VALUES (?, ?, ?, ?, ?)',
+      tripId, data.name.trim(), data.color || '#6366f1', (maxOrder.max ?? -1) + 1, data.weight_limit_grams ?? null
     );
     return this.db.get('SELECT * FROM packing_bags WHERE id = ?', result.lastInsertRowid);
   }

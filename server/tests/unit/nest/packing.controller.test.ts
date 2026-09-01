@@ -95,6 +95,26 @@ describe('PackingController (parity with the legacy /api/trips/:tripId/packing r
       new PackingController(svc).create(user, '5', { name: 'Power bank', visibility: 'shared', recipient_ids: [2] }, 'sock');
       expect(broadcastToViewers).toHaveBeenCalledWith('5', 'packing:created', { item }, [1, 2], 'sock');
     });
+
+    it('forwards weight_grams, bag_id and quantity to the service (#2154)', () => {
+      // The create route used to hand only the six legacy fields through, so
+      // the values a caller sent vanished into a 201.
+      const createItem = vi.fn().mockReturnValue({ id: 9, name: 'Tent', is_private: 0 });
+      const svc = makeService({ createItem, broadcast: vi.fn() } as Partial<PackingService>);
+      new PackingController(svc).create(user, '5', { name: 'Tent', weight_grams: 250, bag_id: 3, quantity: 3 }, 'sock');
+      expect(createItem).toHaveBeenCalledWith('5', expect.objectContaining({ weight_grams: 250, bag_id: 3, quantity: 3 }), user.id);
+    });
+
+    it('400 "Bag not found" for a bag off the trip (#2154), broadcasting nothing', () => {
+      // Body validation error, so 400 — the 404 'Bag not found' stays with the
+      // /bags/:bagId path routes.
+      const broadcast = vi.fn();
+      const svc = makeService({ createItem: vi.fn().mockReturnValue({ invalidBag: true }), broadcast } as Partial<PackingService>);
+      expect(thrown(() => new PackingController(svc).create(user, '5', { name: 'Tent', bag_id: 999 }))).toEqual({
+        status: 400, body: { error: 'Bag not found' },
+      });
+      expect(broadcast).not.toHaveBeenCalled();
+    });
   });
 
   it('GET / lists items for the trip, scoped to the viewer (#858)', () => {
@@ -182,6 +202,15 @@ describe('PackingController (parity with the legacy /api/trips/:tripId/packing r
       new PackingController(svc).update(user, '5', '9', { is_private: false }, 'sock');
       expect(broadcast).toHaveBeenCalledWith('5', 'packing:created', { item: updated }, 'sock');
       expect(broadcast).toHaveBeenCalledWith('5', 'packing:updated', { item: updated }, 'sock');
+    });
+
+    it('400 "Bag not found" for a bag off the trip (#2154), broadcasting nothing', () => {
+      const broadcast = vi.fn();
+      const svc = makeService({ updateItem: vi.fn().mockReturnValue({ invalidBag: true }), broadcast } as Partial<PackingService>);
+      expect(thrown(() => new PackingController(svc).update(user, '5', '9', { bag_id: 999 }))).toEqual({
+        status: 400, body: { error: 'Bag not found' },
+      });
+      expect(broadcast).not.toHaveBeenCalled();
     });
 
     it('forwards the X-Base-Updated-At token and 409s on a conflict (#1135)', () => {
@@ -312,6 +341,13 @@ describe('PackingController (parity with the legacy /api/trips/:tripId/packing r
         bag: { id: 3, name: 'Carry-on' },
       });
       expect(broadcast).toHaveBeenCalledWith('5', 'packing:bag-created', { bag: { id: 3, name: 'Carry-on' } }, 'sock');
+    });
+
+    it('forwards weight_limit_grams on bag create (#2154)', () => {
+      const createBag = vi.fn().mockReturnValue({ id: 3, name: 'Backpack', weight_limit_grams: 8000 });
+      const svc = makeService({ createBag, broadcast: vi.fn() } as Partial<PackingService>);
+      new PackingController(svc).createBag(user, '5', { name: 'Backpack', weight_limit_grams: 8000 });
+      expect(createBag).toHaveBeenCalledWith('5', { name: 'Backpack', color: undefined, weight_limit_grams: 8000 });
     });
 
     it('404 on bag update when missing', () => {

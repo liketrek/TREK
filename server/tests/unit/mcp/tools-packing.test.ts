@@ -241,6 +241,47 @@ describe('Tool: create_packing_item sharing', () => {
 });
 
 // ---------------------------------------------------------------------------
+// create_packing_item: bag, quantity, weight in one write (#2154)
+//
+// The tool used to inherit the create schema's gap: an assistant could not
+// give a new item a weight or put it in a bag without a second write.
+// ---------------------------------------------------------------------------
+
+describe('Tool: create_packing_item bag, quantity, weight (#2154)', () => {
+  it('creates the item with its bag, quantity and weight in one write', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const bagId = Number(testDb.prepare('INSERT INTO packing_bags (trip_id, name) VALUES (?, ?)').run(trip.id, 'Carry-On').lastInsertRowid);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_packing_item',
+        arguments: { tripId: trip.id, name: 'Tent', bag_id: bagId, quantity: 3, weight_grams: 250 },
+      });
+      const row = itemRow(createdItemId(result));
+      expect(row.bag_id).toBe(bagId);
+      expect(row.quantity).toBe(3);
+      expect(row.weight_grams).toBe(250);
+    });
+  });
+
+  it('refuses a bag from another trip, inserting nothing', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const otherTrip = createTrip(testDb, user.id);
+    const foreignBag = Number(testDb.prepare('INSERT INTO packing_bags (trip_id, name) VALUES (?, ?)').run(otherTrip.id, 'Foreign').lastInsertRowid);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_packing_item',
+        arguments: { tripId: trip.id, name: 'Tent', bag_id: foreignBag },
+      });
+      expect(result.isError).toBe(true);
+      expect(errorText(result)).toContain('Bag not found');
+    });
+    expect((testDb.prepare('SELECT COUNT(*) AS n FROM packing_items WHERE trip_id = ?').get(trip.id) as { n: number }).n).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // update_packing_item
 // ---------------------------------------------------------------------------
 
@@ -427,6 +468,23 @@ describe('Tool: update_packing_item bag, quantity, weight, privacy', () => {
       });
       expect(result.isError).toBe(true);
       expect(errorText(result)).toContain('bag_id');
+      expect(itemRow(item.id).bag_id).toBeNull();
+    });
+  });
+
+  it('refuses a bag from another trip (#2154)', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const otherTrip = createTrip(testDb, user.id);
+    const item = createPackingItem(testDb, trip.id);
+    const foreignBag = makeBag(otherTrip.id, 'Foreign');
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'update_packing_item',
+        arguments: { tripId: trip.id, itemId: item.id, bag_id: foreignBag },
+      });
+      expect(result.isError).toBe(true);
+      expect(errorText(result)).toContain('Bag not found');
       expect(itemRow(item.id).bag_id).toBeNull();
     });
   });

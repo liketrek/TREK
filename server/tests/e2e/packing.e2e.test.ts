@@ -207,6 +207,47 @@ describe('Packing e2e (real auth guard + real SQL over temp SQLite)', () => {
     expect(db.prepare('SELECT name FROM packing_items WHERE id = ?').get(res.body.item.id)).toEqual({ name: 'Socks' });
   });
 
+  it('201 on create persists weight_grams, bag_id and quantity (#2154)', async () => {
+    const bag = await request(server).post(`/api/trips/${tripId}/packing/bags`).set('Cookie', sessionCookie(1)).send({ name: 'Carry-On' });
+    const res = await request(server)
+      .post(`/api/trips/${tripId}/packing`)
+      .set('Cookie', sessionCookie(1))
+      .send({ name: 'Tent', weight_grams: 250, bag_id: bag.body.bag.id, quantity: 3 });
+    expect(res.status).toBe(201);
+    expect(res.body.item).toMatchObject({ name: 'Tent', weight_grams: 250, bag_id: bag.body.bag.id, quantity: 3 });
+    expect(db.prepare('SELECT weight_grams, bag_id, quantity FROM packing_items WHERE id = ?').get(res.body.item.id))
+      .toEqual({ weight_grams: 250, bag_id: bag.body.bag.id, quantity: 3 });
+  });
+
+  it('400 "Bag not found" on create for a bag off the trip; camelCase keys still strip (#2154)', async () => {
+    // A REAL bag on a different trip — existence alone must not be enough.
+    const otherTripId = Number(db.prepare('INSERT INTO trips (user_id, title) VALUES (1, ?)').run('Other').lastInsertRowid);
+    const foreignBag = Number(db.prepare('INSERT INTO packing_bags (trip_id, name) VALUES (?, ?)').run(otherTripId, 'Foreign').lastInsertRowid);
+
+    const cross = await request(server).post(`/api/trips/${tripId}/packing`).set('Cookie', sessionCookie(1)).send({ name: 'Tent', bag_id: foreignBag });
+    expect(cross.status).toBe(400);
+    expect(cross.body).toEqual({ error: 'Bag not found' });
+    const dead = await request(server).post(`/api/trips/${tripId}/packing`).set('Cookie', sessionCookie(1)).send({ name: 'Tent', bag_id: 99999 });
+    expect(dead.status).toBe(400);
+    expect(dead.body).toEqual({ error: 'Bag not found' });
+    expect((db.prepare('SELECT COUNT(*) AS n FROM packing_items WHERE trip_id = ?').get(tripId) as { n: number }).n).toBe(0);
+
+    // camelCase was never part of the contract: the keys strip as they always did.
+    const camel = await request(server).post(`/api/trips/${tripId}/packing`).set('Cookie', sessionCookie(1)).send({ name: 'Probe', weightGrams: 250, bagId: foreignBag });
+    expect(camel.status).toBe(201);
+    expect(camel.body.item).toMatchObject({ weight_grams: null, bag_id: null, quantity: 1 });
+  });
+
+  it('400 "Bag not found" on update for a bag off the trip, leaving the row alone (#2154)', async () => {
+    const otherTripId = Number(db.prepare('INSERT INTO trips (user_id, title) VALUES (1, ?)').run('Other').lastInsertRowid);
+    const foreignBag = Number(db.prepare('INSERT INTO packing_bags (trip_id, name) VALUES (?, ?)').run(otherTripId, 'Foreign').lastInsertRowid);
+    const id = insertItem(tripId, 'Tent');
+    const res = await request(server).put(`/api/trips/${tripId}/packing/${id}`).set('Cookie', sessionCookie(1)).send({ bag_id: foreignBag });
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: 'Bag not found' });
+    expect((db.prepare('SELECT bag_id FROM packing_items WHERE id = ?').get(id) as { bag_id: number | null }).bag_id).toBeNull();
+  });
+
   it('403 on create without permission, writing nothing', async () => {
     checkPermission.mockReturnValue(false);
     const res = await request(server).post(`/api/trips/${tripId}/packing`).set('Cookie', sessionCookie(1)).send({ name: 'X' });
@@ -342,6 +383,13 @@ describe('Packing e2e (real auth guard + real SQL over temp SQLite)', () => {
     const missing = await request(server).delete(`/api/trips/${tripId}/packing/bags/${bagId}`).set('Cookie', sessionCookie(1));
     expect(missing.status).toBe(404);
     expect(missing.body).toEqual({ error: 'Bag not found' });
+  });
+
+  it('201 on bag create persists weight_limit_grams (#2154)', async () => {
+    const res = await request(server).post(`/api/trips/${tripId}/packing/bags`).set('Cookie', sessionCookie(1)).send({ name: 'Backpack', weight_limit_grams: 8000 });
+    expect(res.status).toBe(201);
+    expect(res.body.bag).toMatchObject({ name: 'Backpack', weight_limit_grams: 8000 });
+    expect((db.prepare('SELECT weight_limit_grams FROM packing_bags WHERE id = ?').get(res.body.bag.id) as { weight_limit_grams: number | null }).weight_limit_grams).toBe(8000);
   });
 
   it('bag members: sets roster members only, dropping off-trip user ids', async () => {
