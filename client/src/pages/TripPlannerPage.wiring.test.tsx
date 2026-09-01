@@ -1,4 +1,4 @@
-// FE-PAGE-TPW-001 to FE-PAGE-TPW-060
+// FE-PAGE-TPW-001 to FE-PAGE-TPW-061
 //
 // The planner page is a wiring container: everything stateful lives in
 // useTripPlanner (covered in src/pages/tripPlanner/useTripPlanner.test.tsx).
@@ -1115,6 +1115,22 @@ describe('TripPlannerPage — modals', () => {
     act(() => { props('transitModal').onChangeRoute() })
     expect(hookState.setTransitPrefill).toHaveBeenCalledWith({ from: null, to: null })
     expect(hookState.setTransportModalDayId).toHaveBeenCalledWith(null)
+  })
+
+  it('FE-PAGE-TPW-061: edit details hands the fresh reservation to the full transport editor', () => {
+    const stale = buildReservation({ id: 9, type: 'transit', day_id: 7 })
+    // The store copy may be newer than the journey held in state — the fresh
+    // one must win.
+    const fresh = { ...stale, title: 'Kyoto → Osaka' }
+    renderPage({ transitJourney: stale, reservations: [fresh] })
+
+    act(() => { props('transitModal').onEditDetails() })
+    expect(hookState.setEditingTransport).toHaveBeenCalledWith(fresh)
+    expect(hookState.setTransportModalDayId).toHaveBeenCalledWith(7)
+    expect(hookState.setTransportModalAutomated).toHaveBeenCalledWith(false)
+    expect(hookState.setTransitPrefill).toHaveBeenCalledWith(null)
+    expect(hookState.setTransitJourney).toHaveBeenCalledWith(null)
+    expect(hookState.setShowTransportModal).toHaveBeenCalledWith(true)
   })
 
   it('FE-PAGE-TPW-057: a booking opens the expense editor, prefilled or on an existing item', async () => {

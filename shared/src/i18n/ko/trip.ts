@@ -78,6 +78,7 @@ const trip: TranslationStrings = {
   'transport.modeAutomated': '자동',
   'transit.sectionTitle': '자동 대중교통',
   'transit.changeRoute': '경로 변경',
+  'transit.editDetails': '세부 정보 편집',
   'transit.journey': '대중교통 경로',
   'transit.pickDay': '연결편을 검색할 날짜를 선택하세요.',
   'transit.noItinerary': '이 항목에는 저장된 경로가 없습니다. "경로 변경"을 사용하여 검색하세요.',

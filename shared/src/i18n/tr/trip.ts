@@ -78,6 +78,7 @@ const trip: TranslationStrings = {
   'transport.modeAutomated': 'Otomatik',
   'transit.sectionTitle': 'Otomatik toplu taşıma',
   'transit.changeRoute': 'Rotayı değiştir',
+  'transit.editDetails': 'Ayrıntıları düzenle',
   'transit.journey': 'Toplu taşıma yolculuğu',
   'transit.pickDay': 'Bağlantı aramak için bir gün seçin.',
   'transit.noItinerary':

@@ -78,6 +78,7 @@ const trip: TranslationStrings = {
   'transport.modeAutomated': 'Automated',
   'transit.sectionTitle': 'Automated public transit',
   'transit.changeRoute': 'Change route',
+  'transit.editDetails': 'Edit details',
   'transit.journey': 'Public transit journey',
   'transit.pickDay': 'Pick a day to search connections for.',
   'transit.noItinerary': 'This entry has no stored itinerary — use "Change route" to search one.',

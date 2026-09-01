@@ -78,6 +78,7 @@ const trip: TranslationStrings = {
   'transport.modeAutomated': 'Automatisch',
   'transit.sectionTitle': 'Automatisch openbaar vervoer',
   'transit.changeRoute': 'Route wijzigen',
+  'transit.editDetails': 'Details bewerken',
   'transit.journey': 'Reis met openbaar vervoer',
   'transit.pickDay': 'Kies een dag om verbindingen voor te zoeken.',
   'transit.noItinerary': 'Deze invoer heeft geen opgeslagen reisplan — gebruik "Route wijzigen" om er een te zoeken.',

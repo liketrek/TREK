@@ -110,6 +110,17 @@ export default function MTripSheets({ planner, shell }: MTripSheetsProps) {
             planner.setTransitJourney(null)
             planner.setShowTransportModal(true)
           }}
+          onEditDetails={() => {
+            // Hand off to the full transport editor for the booking fields —
+            // same target as the transports tab's pencil (#2148).
+            const journey = planner.reservations.find(r => r.id === planner.transitJourney!.id) ?? planner.transitJourney!
+            planner.setEditingTransport(journey)
+            planner.setTransportModalDayId(journey.day_id ?? null)
+            planner.setTransportModalAutomated(false)
+            planner.setTransitPrefill(null)
+            planner.setTransitJourney(null)
+            planner.setShowTransportModal(true)
+          }}
         />
       )}
 

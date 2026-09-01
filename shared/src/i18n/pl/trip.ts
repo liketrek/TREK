@@ -78,6 +78,7 @@ const trip: TranslationStrings = {
   'transport.modeAutomated': 'Automatycznie',
   'transit.sectionTitle': 'Automatyczny transport publiczny',
   'transit.changeRoute': 'Zmień trasę',
+  'transit.editDetails': 'Edytuj szczegóły',
   'transit.journey': 'Podróż transportem publicznym',
   'transit.pickDay': 'Wybierz dzień, dla którego wyszukać połączenia.',
   'transit.noItinerary': 'Ten wpis nie ma zapisanej trasy — użyj opcji „Zmień trasę”, aby ją wyszukać.',

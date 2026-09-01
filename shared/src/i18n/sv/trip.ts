@@ -78,6 +78,7 @@ const trip: TranslationStrings = {
   'transport.modeAutomated': 'Automatisk',
   'transit.sectionTitle': 'Automatisk kollektivtrafik',
   'transit.changeRoute': 'Ändra resväg',
+  'transit.editDetails': 'Redigera detaljer',
   'transit.journey': 'Kollektivtrafikresa',
   'transit.pickDay': 'Välj en dag att söka förbindelser för.',
   'transit.noItinerary': 'Den här posten har ingen sparad resplan – använd ”Ändra resväg” för att söka en.',

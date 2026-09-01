@@ -78,6 +78,7 @@ const trip: TranslationStrings = {
   'transport.modeAutomated': 'Автоматично',
   'transit.sectionTitle': 'Автоматичний громадський транспорт',
   'transit.changeRoute': 'Змінити маршрут',
+  'transit.editDetails': 'Редагувати деталі',
   'transit.journey': 'Поїздка громадським транспортом',
   'transit.pickDay': 'Виберіть день для пошуку сполучень.',
   'transit.noItinerary': 'Для цього запису немає збереженого маршруту — натисніть «Змінити маршрут», щоб знайти його.',

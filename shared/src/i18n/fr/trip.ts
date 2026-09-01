@@ -78,6 +78,7 @@ const trip: TranslationStrings = {
   'transport.modeAutomated': 'Automatique',
   'transit.sectionTitle': 'Transports en commun automatisés',
   'transit.changeRoute': "Modifier l'itinéraire",
+  'transit.editDetails': 'Modifier les détails',
   'transit.journey': 'Trajet en transports en commun',
   'transit.pickDay': 'Choisissez un jour pour rechercher des connexions.',
   'transit.noItinerary':

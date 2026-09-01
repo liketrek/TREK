@@ -1,4 +1,4 @@
-// FE-PLANNER-TRANSITJOURNEY-001 to 016 — the journey view for a saved transit entry.
+// FE-PLANNER-TRANSITJOURNEY-001 to 018 — the journey view for a saved transit entry.
 import { render, screen, waitFor, fireEvent } from '../../../tests/helpers/render'
 import userEvent from '@testing-library/user-event'
 import { resetAllStores, seedStore } from '../../../tests/helpers/store'
@@ -111,6 +111,21 @@ describe('TransitJourneyModal', () => {
     render(<TransitJourneyModal {...makeProps({ onChangeRoute })} />)
     await user.click(screen.getByRole('button', { name: /Change route/ }))
     expect(onChangeRoute).toHaveBeenCalled()
+  })
+
+  it('FE-PLANNER-TRANSITJOURNEY-017: edit details hands off to the full transport editor', async () => {
+    const user = userEvent.setup()
+    const onEditDetails = vi.fn()
+    render(<TransitJourneyModal {...makeProps({ onEditDetails })} />)
+    await user.click(screen.getByRole('button', { name: /Edit details/ }))
+    expect(onEditDetails).toHaveBeenCalled()
+  })
+
+  it('FE-PLANNER-TRANSITJOURNEY-018: edit details stays hidden without the callback or edit rights', () => {
+    const { rerender } = render(<TransitJourneyModal {...makeProps()} />)
+    expect(screen.queryByRole('button', { name: /Edit details/ })).not.toBeInTheDocument()
+    rerender(<TransitJourneyModal {...makeProps({ onEditDetails: vi.fn(), canEdit: false })} />)
+    expect(screen.queryByRole('button', { name: /Edit details/ })).not.toBeInTheDocument()
   })
 
   it('FE-PLANNER-TRANSITJOURNEY-004: delete asks for confirmation, then calls onDelete', async () => {

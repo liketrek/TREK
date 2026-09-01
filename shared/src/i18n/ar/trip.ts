@@ -78,6 +78,7 @@ const trip: TranslationStrings = {
   'transport.modeAutomated': 'تلقائي',
   'transit.sectionTitle': 'النقل العام التلقائي',
   'transit.changeRoute': 'تغيير المسار',
+  'transit.editDetails': 'تعديل التفاصيل',
   'transit.journey': 'رحلة بالنقل العام',
   'transit.pickDay': 'اختر يومًا للبحث عن الرحلات المتاحة.',
   'transit.noItinerary': 'لا يحتوي هذا الإدخال على خط سير محفوظ — استخدم "تغيير المسار" للبحث عن أحدها.',

@@ -77,6 +77,7 @@ const trip: TranslationStrings = {
   'transport.modeAutomated': '自動',
   'transit.sectionTitle': '自動大眾運輸',
   'transit.changeRoute': '變更路線',
+  'transit.editDetails': '編輯詳細資料',
   'transit.journey': '大眾運輸行程',
   'transit.pickDay': '請選擇要查詢班次的日期。',
   'transit.noItinerary': '此項目尚未儲存行程——請使用「變更路線」查詢。',

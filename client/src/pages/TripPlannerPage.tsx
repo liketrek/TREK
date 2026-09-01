@@ -859,6 +859,18 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
             setTransitJourney(null)
             setShowTransportModal(true)
           }}
+          onEditDetails={() => {
+            // Hand off to the full transport editor (travelers, costs, files,
+            // booking code, status) — the same modal mobile opens; an
+            // unchanged-endpoints save keeps the stored itinerary (#2148).
+            const current = reservations.find(r => r.id === transitJourney.id) ?? transitJourney
+            setEditingTransport(current)
+            setTransportModalDayId(current.day_id ?? null)
+            setTransportModalAutomated(false)
+            setTransitPrefill(null)
+            setTransitJourney(null)
+            setShowTransportModal(true)
+          }}
         />
       )}
       {bookingExpense && (

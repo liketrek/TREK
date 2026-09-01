@@ -78,6 +78,7 @@ const trip: TranslationStrings = {
   'transport.modeAutomated': 'Automaticky',
   'transit.sectionTitle': 'Automatické spojení MHD',
   'transit.changeRoute': 'Změnit trasu',
+  'transit.editDetails': 'Upravit podrobnosti',
   'transit.journey': 'Cesta veřejnou dopravou',
   'transit.pickDay': 'Vyberte den, pro který chcete vyhledat spojení.',
   'transit.noItinerary': 'Tato položka nemá uložené spojení – vyhledejte ho pomocí tlačítka „Změnit trasu“.',
