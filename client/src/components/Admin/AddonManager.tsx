@@ -196,6 +196,11 @@ export default function AddonManager({ bagTrackingEnabled, onToggleBagTracking, 
         )
       })
     }
+    // The AI-parsing settings hang off their tile like every other sub-feature,
+    // just as a form instead of toggle rows.
+    if (addon.id === 'llm_parsing' && addon.enabled) {
+      return <LlmParsingConfig addon={addon} />
+    }
     return null
   }
 
@@ -214,8 +219,6 @@ export default function AddonManager({ bagTrackingEnabled, onToggleBagTracking, 
       </AddonTile>
     )
   }
-
-  const llmAddon = integrationAddons.find(a => a.id === 'llm_parsing')
 
   /* One column per type, side by side, instead of three stacked sections. Stacked, each
      section opened its own set of columns and the tall tiles (Collab 261px, Journey
@@ -253,23 +256,17 @@ export default function AddonManager({ bagTrackingEnabled, onToggleBagTracking, 
       {addons.length === 0 ? (
         <EmptyState scene="idle" title={t('admin.addons.noAddons')} />
       ) : (
-        <>
-          <div className="grid grid-cols-1 items-start gap-x-4 gap-y-6 md:grid-cols-2 xl:grid-cols-3">
-            {groups.map(g => {
-              const meta = TYPE_META[g.key]
-              return (
-                <section key={g.key}>
-                  <GroupHead icon={meta.icon} label={t(meta.labelKey)} hint={t(meta.hintKey)} addons={g.addons} t={t} />
-                  <div className="space-y-3">{g.addons.map(tile)}</div>
-                </section>
-              )
-            })}
-          </div>
-          {/* The AI-parsing form is far too wide for a tile, so it sits as a band under
-              the columns — no span, no reflow, and the next service that needs settings
-              stacks below it. */}
-          {llmAddon?.enabled && <LlmParsingConfig addon={llmAddon} />}
-        </>
+        <div className="grid grid-cols-1 items-start gap-x-4 gap-y-6 md:grid-cols-2 xl:grid-cols-3">
+          {groups.map(g => {
+            const meta = TYPE_META[g.key]
+            return (
+              <section key={g.key}>
+                <GroupHead icon={meta.icon} label={t(meta.labelKey)} hint={t(meta.hintKey)} addons={g.addons} t={t} />
+                <div className="space-y-3">{g.addons.map(tile)}</div>
+              </section>
+            )
+          })}
+        </div>
       )}
     </div>
   )
@@ -394,9 +391,8 @@ function LlmParsingConfig({ addon }: { addon: Addon }) {
     }
   }
 
-  const fieldCls = 'w-full rounded-lg border border-edge-secondary bg-surface px-3 py-2 text-body text-content placeholder:text-content-faint transition-colors focus:border-edge focus:outline-none'
-  const labelCls = 'mb-1.5 block text-caption font-medium text-content-secondary'
-  const sectionCls = 'text-caption font-semibold uppercase tracking-wide text-content-faint'
+  const fieldCls = 'w-full rounded-lg border border-edge-secondary bg-surface px-2.5 py-1.5 text-caption text-content placeholder:text-content-faint transition-colors focus:border-edge focus:outline-none'
+  const labelCls = 'mb-1 block text-caption font-medium text-content-secondary'
 
   const providerOptions = [
     { value: 'local', label: 'Local · OpenAI-compatible', icon: <Server size={14} />, badge: 'Ollama' },
@@ -404,124 +400,110 @@ function LlmParsingConfig({ addon }: { addon: Addon }) {
     { value: 'anthropic', label: 'Anthropic', icon: <Sparkles size={14} /> },
   ]
 
+  /* Lives in the tile's shelf like the collab toggles, so everything is caption-
+     sized and single-column — the band this used to be had a whole page width. */
   return (
-    <section className="mt-3 overflow-hidden rounded-xl border border-edge bg-surface-secondary">
-      <header className="flex items-center gap-2.5 border-b border-edge-secondary bg-surface-tertiary px-4 py-2.5">
-        <Sparkles size={14} className="shrink-0 text-content-muted" />
-        <span className="text-caption font-semibold uppercase tracking-[0.08em] text-content-secondary">{addon.name}</span>
-      </header>
-      <div className="max-w-2xl space-y-6 p-4">
-        <p className="text-caption text-content-faint">
-          Set instance-wide config (applies to all users). Leave blank to let each user configure their own provider.
-        </p>
+    <li className="space-y-2.5 py-1.5">
+      <p className="text-caption text-content-faint">
+        Instance-wide — applies to all users. Leave blank to let each user configure their own provider.
+      </p>
 
-        {/* Connection */}
-        <section className="space-y-3">
-          <div className={sectionCls}>Connection</div>
-          <div>
-            <span className={labelCls}>Provider</span>
-            <CustomSelect value={provider} onChange={v => setProvider(String(v))} options={providerOptions} />
+      <div>
+        <span className={labelCls}>Provider</span>
+        <CustomSelect value={provider} onChange={v => setProvider(String(v))} options={providerOptions} />
+      </div>
+      {provider !== 'anthropic' && (
+        <label className="block">
+          <span className={labelCls}>Base URL</span>
+          <input type="url" autoComplete="off" className={fieldCls} value={baseUrl} onChange={e => setBaseUrl(e.target.value)} onBlur={loadModels} placeholder={provider === 'local' ? 'http://localhost:11434/v1' : 'https://api.openai.com/v1'} />
+        </label>
+      )}
+      <label className="block">
+        <span className={labelCls}>API key</span>
+        <input type="password" className={fieldCls} value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder={apiKey === MASKED ? MASKED : provider === 'local' ? '(often not required)' : 'sk-…'} />
+      </label>
+      {provider === 'anthropic' && (
+        <p className="text-caption text-content-faint">Anthropic reads PDFs (including scans) natively. Local/OpenAI models receive extracted text — scanned PDFs need Anthropic.</p>
+      )}
+      <label className="block">
+        <span className={labelCls}>Model</span>
+        <input autoComplete="off" className={fieldCls} value={model} onChange={e => setModel(e.target.value)} placeholder={provider === 'anthropic' ? 'claude-opus-4-8' : provider === 'openai' ? 'gpt-4o' : 'select or pull below'} />
+      </label>
+
+      {/* Local model management (Ollama) */}
+      {provider === 'local' && (
+        <div className="space-y-2 rounded-lg border border-edge-secondary bg-surface p-2.5">
+          <div className="flex items-center justify-between">
+            <span className="text-caption font-medium text-content-secondary">Installed on the server</span>
+            <button type="button" onClick={loadModels} disabled={loadingModels} className="text-caption text-content-muted underline disabled:opacity-60">
+              {loadingModels ? 'Loading…' : 'Refresh'}
+            </button>
           </div>
-          {provider !== 'anthropic' && (
-            <label className="block">
-              <span className={labelCls}>Base URL</span>
-              <input type="url" autoComplete="off" className={fieldCls} value={baseUrl} onChange={e => setBaseUrl(e.target.value)} onBlur={loadModels} placeholder={provider === 'local' ? 'http://localhost:11434/v1' : 'https://api.openai.com/v1'} />
-            </label>
+          {modelsErr && <p className="text-caption text-danger">{modelsErr}</p>}
+          {!modelsErr && installed.length === 0 && !loadingModels && (
+            <p className="text-caption text-content-faint">No models installed yet — pull one below.</p>
           )}
-          <label className="block">
-            <span className={labelCls}>API key</span>
-            <input type="password" className={fieldCls} value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder={apiKey === MASKED ? MASKED : provider === 'local' ? '(often not required)' : 'sk-…'} />
-          </label>
-          {provider === 'anthropic' && (
-            <p className="text-xs text-content-faint">Anthropic reads PDFs (including scans) natively. Local/OpenAI models receive extracted text — scanned PDFs need Anthropic.</p>
-          )}
-        </section>
-
-        {/* Model */}
-        <section className="space-y-3">
-          <div className={sectionCls}>Model</div>
-          <label className="block">
-            <span className="sr-only">Model</span>
-            <input autoComplete="off" className={fieldCls} value={model} onChange={e => setModel(e.target.value)} placeholder={provider === 'anthropic' ? 'claude-opus-4-8' : provider === 'openai' ? 'gpt-4o' : 'select or pull below'} />
-          </label>
-
-          {/* Local model management (Ollama) */}
-          {provider === 'local' && (
-            <div className="space-y-3 rounded-lg border border-edge-secondary bg-surface p-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-content-secondary">Installed on the server</span>
-                <button type="button" onClick={loadModels} disabled={loadingModels} className="text-xs text-content-muted underline disabled:opacity-60">
-                  {loadingModels ? 'Loading…' : 'Refresh'}
+          {installed.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {installed.map(name => (
+                <button type="button"
+                  key={name}
+                  title={name}
+                  onClick={() => setModel(name)}
+                  className={`max-w-full truncate rounded-full border px-2 py-0.5 text-caption transition-colors ${model === name ? 'border-transparent bg-accent text-accent-text' : 'border-edge-secondary text-content-secondary hover:border-edge'}`}
+                >
+                  {name}
                 </button>
-              </div>
-              {modelsErr && <p className="text-caption text-danger">{modelsErr}</p>}
-              {!modelsErr && installed.length === 0 && !loadingModels && (
-                <p className="text-xs text-content-faint">No models installed yet — pull one below.</p>
-              )}
-              {installed.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {installed.map(name => (
-                    <button type="button"
-                      key={name}
-                      title={name}
-                      onClick={() => setModel(name)}
-                      className={`max-w-full truncate rounded-full border px-2.5 py-1 text-xs transition-colors ${model === name ? 'border-transparent bg-accent text-accent-text' : 'border-edge-secondary text-content-secondary hover:border-edge'}`}
-                    >
-                      {name}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              <div className="border-t border-edge-secondary pt-3">
-                <div className="mb-2 text-xs font-medium text-content-secondary">Pull a recommended model</div>
-                <div className="space-y-1">
-                  {RECOMMENDED_MODELS.map(m => {
-                    const installedHere = isInstalled(m.id)
-                    const isPulling = pulling === m.id
-                    const active = model === m.id
-                    return (
-                      <div key={m.id} className={`flex items-center gap-3 rounded-lg border px-3 py-2 transition-colors ${active ? 'border-edge-secondary bg-surface-secondary' : 'border-transparent'}`}>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm text-content">{m.label}</span>
-                            {m.recommended && (
-                              <span className="rounded-md bg-success-soft px-1.5 py-px text-caption font-semibold text-success">Recommended</span>
-                            )}
-                          </div>
-                          <div className="text-xs text-content-faint">{m.note}</div>
-                          {isPulling && (
-                            <div className="mt-1.5">
-                              <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-tertiary">
-                                <div className="h-full bg-accent transition-[width] duration-200" style={{ width: `${pullPct}%` }} />
-                              </div>
-                              <div className="mt-0.5 text-caption text-content-faint">{pullStatus}{pullPct ? ` · ${pullPct}%` : ''}</div>
-                            </div>
-                          )}
-                        </div>
-                        {installedHere ? (
-                          <button type="button" onClick={() => setModel(m.id)} disabled={active} className={`shrink-0 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${active ? 'bg-surface-tertiary text-content-muted' : 'border border-edge-secondary text-content-secondary hover:border-edge'}`}>
-                            {active ? 'Selected' : 'Use'}
-                          </button>
-                        ) : (
-                          <button type="button" onClick={() => pull(m.id)} disabled={!!pulling} className="shrink-0 rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-accent-text disabled:opacity-60">
-                            {isPulling ? 'Pulling…' : 'Pull'}
-                          </button>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
+              ))}
             </div>
           )}
-        </section>
 
-        <button type="button" onClick={save} disabled={saving} className="rounded-lg bg-accent px-4 py-2 text-body font-medium text-accent-text transition-opacity disabled:opacity-60">
+          <div className="border-t border-edge-secondary pt-2">
+            <div className="mb-1.5 text-caption font-medium text-content-secondary">Pull a recommended model</div>
+            <div className="space-y-1">
+              {RECOMMENDED_MODELS.map(m => {
+                const installedHere = isInstalled(m.id)
+                const isPulling = pulling === m.id
+                const active = model === m.id
+                return (
+                  <div key={m.id} className="min-w-0" title={m.note}>
+                    <div className="flex items-center gap-2">
+                      <span className="min-w-0 flex-1 truncate text-caption text-content">{m.label}</span>
+                      {m.recommended && (
+                        <span className="shrink-0 rounded-md bg-success-soft px-1.5 py-px text-caption font-semibold text-success">Recommended</span>
+                      )}
+                      {installedHere ? (
+                        <button type="button" onClick={() => setModel(m.id)} disabled={active} className={`shrink-0 rounded-md px-2 py-1 text-caption font-medium transition-colors ${active ? 'bg-surface-tertiary text-content-muted' : 'border border-edge-secondary text-content-secondary hover:border-edge'}`}>
+                          {active ? 'Selected' : 'Use'}
+                        </button>
+                      ) : (
+                        <button type="button" onClick={() => pull(m.id)} disabled={!!pulling} className="shrink-0 rounded-md bg-accent px-2 py-1 text-caption font-medium text-accent-text disabled:opacity-60">
+                          {isPulling ? 'Pulling…' : 'Pull'}
+                        </button>
+                      )}
+                    </div>
+                    {isPulling && (
+                      <div className="mt-1">
+                        <div className="h-1 w-full overflow-hidden rounded-full bg-surface-tertiary">
+                          <div className="h-full bg-accent transition-[width] duration-200" style={{ width: `${pullPct}%` }} />
+                        </div>
+                        <div className="mt-0.5 text-caption text-content-faint">{pullStatus}{pullPct ? ` · ${pullPct}%` : ''}</div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="flex justify-end">
+        <button type="button" onClick={save} disabled={saving} className="rounded-lg bg-accent px-3 py-1.5 text-caption font-medium text-accent-text transition-opacity disabled:opacity-60">
           {saving ? 'Saving…' : 'Save'}
         </button>
       </div>
-    </section>
+    </li>
   )
 }
 
