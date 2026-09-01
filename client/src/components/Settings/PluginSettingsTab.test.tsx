@@ -448,4 +448,27 @@ describe('PluginSettingsTab', () => {
     expect(await screen.findByDisplayValue('Trips')).toBeInTheDocument();
     expect(within(cardFor('Notes')).getByText('Folder')).toBeInTheDocument();
   });
+
+  it('FE-COMP-PLUGINSETTINGS-026: pre-fills a declared default when no value is stored', async () => {
+    serve('weather', {
+      fields: [{ key: 'oauth_authorize_url', label: 'Authorize URL', input_type: 'text', required: true, default: 'https://auth.openbnb.org/authorize' }],
+      config: {},
+    });
+    setPlugins([plugin()]);
+    render(<PluginSettingsTab />);
+
+    expect(await screen.findByDisplayValue('https://auth.openbnb.org/authorize')).toBeInTheDocument();
+  });
+
+  it('FE-COMP-PLUGINSETTINGS-027: a stored value wins over the default', async () => {
+    serve('weather', {
+      fields: [{ key: 'oauth_authorize_url', label: 'Authorize URL', input_type: 'text', default: 'https://auth.openbnb.org/authorize' }],
+      config: { oauth_authorize_url: 'https://mine.example' },
+    });
+    setPlugins([plugin()]);
+    render(<PluginSettingsTab />);
+
+    expect(await screen.findByDisplayValue('https://mine.example')).toBeInTheDocument();
+    expect(screen.queryByDisplayValue('https://auth.openbnb.org/authorize')).not.toBeInTheDocument();
+  });
 });

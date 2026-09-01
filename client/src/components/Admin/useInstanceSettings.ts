@@ -33,8 +33,9 @@ export function useInstanceSettings() {
       .then(d => {
         const values: Record<string, string | boolean> = {}
         for (const f of d.fields) {
-          const v = d.config[f.key]
-          values[f.key] = f.input_type === 'checkbox' ? v === true : (v == null ? '' : String(v))
+          const stored = d.config[f.key]
+          const seeded = stored === undefined || stored === null ? f.default : stored
+          values[f.key] = f.input_type === 'checkbox' ? seeded === true : (seeded == null ? '' : String(seeded))
         }
         setForm({ id, fields: d.fields, values })
       })

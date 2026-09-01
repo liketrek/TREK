@@ -2297,4 +2297,31 @@ describe('AdminPluginsPanel — instance settings', () => {
 
     expect(screen.queryByDisplayValue('https://gotify.mydomain.com')).not.toBeInTheDocument()
   })
+
+  it('FE-COMP-PLUGINS-CFG-009: pre-fills a declared default when no value is stored', async () => {
+    server.use(
+      http.get('*/api/admin/plugins/trek-gotify/config', () => HttpResponse.json({
+        fields: [{ key: 'oauth_authorize_url', label: 'Authorize URL', input_type: 'text', required: true, secret: false, default: 'https://auth.openbnb.org/authorize' }],
+        config: {},
+      })),
+    )
+    await openRowMenu(plugin({ instanceSettingsCount: 1 }))
+    fireEvent.click(screen.getByText('Instance settings'))
+
+    expect(await screen.findByDisplayValue('https://auth.openbnb.org/authorize', {}, { timeout: 5000 })).toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-CFG-010: a stored value wins over the default', async () => {
+    server.use(
+      http.get('*/api/admin/plugins/trek-gotify/config', () => HttpResponse.json({
+        fields: [{ key: 'oauth_authorize_url', label: 'Authorize URL', input_type: 'text', required: false, secret: false, default: 'https://auth.openbnb.org/authorize' }],
+        config: { oauth_authorize_url: 'https://mine.example' },
+      })),
+    )
+    await openRowMenu(plugin({ instanceSettingsCount: 1 }))
+    fireEvent.click(screen.getByText('Instance settings'))
+
+    expect(await screen.findByDisplayValue('https://mine.example', {}, { timeout: 5000 })).toBeInTheDocument()
+    expect(screen.queryByDisplayValue('https://auth.openbnb.org/authorize')).not.toBeInTheDocument()
+  })
 })

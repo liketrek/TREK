@@ -79,8 +79,9 @@ function PluginSettingsForm({ id, name, icon }: { id: string; name: string; icon
         setActions(r.actions ?? [])
         const init: Record<string, string | boolean> = {}
         for (const f of r.fields) {
-          const v = r.config[f.key]
-          init[f.key] = f.input_type === 'checkbox' ? v === true : (v == null ? '' : String(v))
+          const stored = r.config[f.key]
+          const seeded = stored === undefined || stored === null ? f.default : stored
+          init[f.key] = f.input_type === 'checkbox' ? seeded === true : (seeded == null ? '' : String(seeded))
         }
         setValues(init)
       })
@@ -121,8 +122,9 @@ function PluginSettingsForm({ id, name, icon }: { id: string; name: string; icon
       const r = await pluginsApi.saveUserSettings(id, patch)
       const next: Record<string, string | boolean> = {}
       for (const f of fields) {
-        const v = r.config[f.key]
-        next[f.key] = f.input_type === 'checkbox' ? v === true : (v == null ? '' : String(v))
+        const stored = r.config[f.key]
+        const seeded = stored === undefined || stored === null ? f.default : stored
+        next[f.key] = f.input_type === 'checkbox' ? seeded === true : (seeded == null ? '' : String(seeded))
       }
       setValues(next)
       toast.success(t('settings.plugins.saved'))
