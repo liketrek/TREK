@@ -10,6 +10,7 @@ const day: TranslationStrings = {
   'day.climateHint':
     'Historische Durchschnittswerte — echte Vorhersage verfügbar innerhalb von 16 Tagen vor diesem Datum.',
   'day.noWeather': 'Keine Wetterdaten verfügbar. Füge einen Ort mit Koordinaten hinzu.',
+  'day.weatherFor': 'Vorhersage für {name}',
   'day.overview': 'Tagesübersicht',
   'day.accommodation': 'Unterkunft',
   'day.addAccommodation': 'Unterkunft hinzufügen',

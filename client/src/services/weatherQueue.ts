@@ -15,10 +15,10 @@ function release(): void {
   else active--
 }
 
-export async function fetchWeather(lat: number, lng: number, date: string) {
+export async function fetchWeather(lat: number, lng: number, date: string, lang?: string) {
   await acquire()
   try {
-    return await weatherApi.get(lat, lng, date)
+    return await weatherApi.get(lat, lng, date, lang)
   } finally {
     release()
   }

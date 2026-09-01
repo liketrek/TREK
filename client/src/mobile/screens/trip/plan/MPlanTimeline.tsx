@@ -153,6 +153,11 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
             // the pill drops to icon-only there rather than saying it twice.
             dayLabel={editing ? '' : dayLabel}
             openLabel={t('day.overview')}
+            // The chip still opens the day sheet, but its accessible name says
+            // WHERE the forecast is for — a roadtrip day is ambiguous otherwise (#2167).
+            weatherLabel={tl.weatherPlaceName
+              ? `${t('day.overview')} · ${t('day.weatherFor', { name: tl.weatherPlaceName })}`
+              : undefined}
             onOpenDay={() => shell.openSheet('day', { dayId: day.id })}
           />
         )}
@@ -394,10 +399,12 @@ function EditHeader({ tl, planner, shell }: {
  * carried this, which left a day without a stay — and, with no weather either,
  * the whole header — with no way into the day sheet at all (#2004).
  */
-function TimelineHeader({ tl, dayLabel, openLabel, onOpenDay }: {
+function TimelineHeader({ tl, dayLabel, openLabel, weatherLabel, onOpenDay }: {
   tl: MPlanTimelineController
   dayLabel: string
   openLabel: string
+  /** Weather-chip label naming the forecast's anchor place (#2167); falls back to openLabel. */
+  weatherLabel?: string
   onOpenDay: () => void
 }) {
   const WeatherIcon = weatherIconFor(tl.weather?.main)
@@ -434,7 +441,8 @@ function TimelineHeader({ tl, dayLabel, openLabel, onOpenDay }: {
         <button
           type="button"
           onClick={onOpenDay}
-          aria-label={openLabel}
+          aria-label={weatherLabel || openLabel}
+          title={tl.weatherPlaceName || undefined}
           className="ml-auto flex flex-none items-center gap-1 whitespace-nowrap px-1.5 py-1 text-[0.71875rem] font-semibold"
         >
           <WeatherIcon size={13} strokeWidth={2} />

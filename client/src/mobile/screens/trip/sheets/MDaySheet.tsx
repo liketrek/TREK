@@ -68,11 +68,17 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
     return [...(planner.assignments[String(day.id)] || [])].sort((a, b) => a.order_index - b.order_index)
   }, [day, planner.assignments])
 
-  // Weather anchor: the first assigned place with coordinates, else any trip place.
-  const geoPlace = dayAssignments.find(a => a.place?.lat && a.place?.lng)?.place
-    || planner.places.find(p => p.lat && p.lng)
-  const lat = geoPlace?.lat ?? null
-  const lng = geoPlace?.lng ?? null
+  // Weather anchor, day-local only (#2167): the day's first located stop, else the
+  // hotel you wake up in (unconditional bookend lookup, mirroring useMPlanTimeline).
+  // Never a place from another day — on a roadtrip that silently showed another
+  // city's weather with nothing naming the place.
+  const locatedPlace = dayAssignments.find(a => a.place?.lat && a.place?.lng)?.place
+  const weatherHotel = day && !locatedPlace
+    ? getDayBookendHotels(day, planner.days, planner.tripAccommodations).morning
+    : undefined
+  const lat = locatedPlace?.lat ?? weatherHotel?.place_lat ?? null
+  const lng = locatedPlace?.lng ?? weatherHotel?.place_lng ?? null
+  const weatherPlaceName = locatedPlace?.name ?? weatherHotel?.place_name ?? null
 
   const [weather, setWeather] = useState<WeatherResult | null>(null)
   const [weatherLoading, setWeatherLoading] = useState(false)
@@ -304,6 +310,13 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
                       <span className="capitalize">{weather.description}</span>
                     </span>
                   </div>
+                  {/* Which place the forecast is for — on a roadtrip "the day's
+                      weather" is ambiguous without it (#2167). */}
+                  {weatherPlaceName && (
+                    <div className="mt-[6px] font-geist text-[0.625rem] text-m-faint">
+                      {t('day.weatherFor', { name: weatherPlaceName })}
+                    </div>
+                  )}
                   {weather.type === 'climate' && (
                     <div className="mt-[6px] font-geist text-[0.625rem] italic text-m-faint">{t('day.climateHint')}</div>
                   )}

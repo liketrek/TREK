@@ -56,9 +56,11 @@ interface DayDetailPanelProps {
   mobile?: boolean
   /** Rename the day from here — the sidebar pencil moved to the transit search (#1065). */
   onUpdateDayTitle?: (dayId: number, title: string) => void
+  /** Name of the place the day's weather is anchored to — captioned above the forecast (#2167). */
+  weatherPlaceName?: string | null
 }
 
-export default function DayDetailPanel({ day, days, places, categories = [], tripId, assignments, reservations = [], lat, lng, onClose, onAccommodationChange, leftWidth = 0, rightWidth = 0, collapsed: collapsedProp = false, onToggleCollapse, mobile = false, onUpdateDayTitle }: DayDetailPanelProps) {
+export default function DayDetailPanel({ day, days, places, categories = [], tripId, assignments, reservations = [], lat, lng, onClose, onAccommodationChange, leftWidth = 0, rightWidth = 0, collapsed: collapsedProp = false, onToggleCollapse, mobile = false, onUpdateDayTitle, weatherPlaceName = null }: DayDetailPanelProps) {
   const { t, language, locale } = useTranslation()
   const can = useCanDo()
   const tripObj = useTripStore((s) => s.trip)
@@ -211,6 +213,13 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
               </div>
             ) : weather ? (
               <div>
+                {/* Which place the forecast is for — on a roadtrip "the day's weather"
+                    is ambiguous without it (#2167). */}
+                {weatherPlaceName && (
+                  <div className="text-content-faint" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
+                    {t('day.weatherFor', { name: weatherPlaceName })}
+                  </div>
+                )}
                 {/* Summary row */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
                   <div style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>

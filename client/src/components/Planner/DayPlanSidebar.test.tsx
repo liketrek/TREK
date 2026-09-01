@@ -87,7 +87,9 @@ vi.mock('../../hooks/useDayNotes', () => ({
 }))
 
 vi.mock('../Weather/WeatherWidget', () => ({
-  default: () => <span data-testid="weather-widget" />,
+  default: (props: { locationName?: string | null }) => (
+    <span data-testid="weather-widget" data-location={props.locationName ?? ''} />
+  ),
 }))
 
 // A stable toast object so tests can assert on the messages the sidebar raises.
@@ -2896,11 +2898,34 @@ describe('DayPlanSidebar', () => {
     expect(onReorder).not.toHaveBeenCalled()
   })
 
-  it('FE-PLANNER-DAYPLAN-130: the weather badge falls back to any located trip place', () => {
+  // #2167 — the badge used to borrow ANY located trip place, so a roadtrip day
+  // without stops silently showed another city's weather. Day-local only now.
+  it('FE-PLANNER-DAYPLAN-130: no weather badge for a day without located stops or a bookend hotel (#2167)', () => {
     const located = buildPlace({ id: 5, name: 'Somewhere', lat: 48.85, lng: 2.35 })
     const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
     render(<DayPlanSidebar {...makeDefaultProps({ days: [day], places: [located] })} />)
-    expect(screen.getByTestId('weather-widget')).toBeInTheDocument()
+    expect(screen.queryByTestId('weather-widget')).not.toBeInTheDocument()
+  })
+
+  it('FE-PLANNER-DAYPLAN-130b: the weather badge anchors to the day bookend hotel, independent of the optimize setting (#2167)', () => {
+    // The hotel fallback is unconditional (matching the mobile timeline) — turn the
+    // route-optimization setting OFF to prove the weather anchor ignores it.
+    seedStore(useSettingsStore, { settings: { time_format: '24h', temperature_unit: 'celsius', optimize_from_accommodation: false } } as any)
+    const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
+    const day2 = buildDay({ id: 11, date: '2025-06-02', title: 'Day 2' })
+    const accommodations = [{ id: 1, start_day_id: 10, end_day_id: 11, place_name: 'Hotel Roma', place_lat: 41.9, place_lng: 12.5 }]
+    render(<DayPlanSidebar {...makeDefaultProps({ days: [day, day2], accommodations: accommodations as any })} />)
+    const widgets = screen.getAllByTestId('weather-widget')
+    expect(widgets.length).toBeGreaterThan(0)
+    expect(widgets[0]).toHaveAttribute('data-location', 'Hotel Roma')
+  })
+
+  it('FE-PLANNER-DAYPLAN-130c: the weather badge names the day-local stop it is anchored to (#2167)', () => {
+    const place = buildPlace({ id: 5, name: 'Louvre', lat: 48.86, lng: 2.34 })
+    const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
+    const a = buildAssignment({ id: 99, day_id: 10, order_index: 0, place })
+    render(<DayPlanSidebar {...makeDefaultProps({ days: [day], places: [place], assignments: { '10': [a] } })} />)
+    expect(screen.getByTestId('weather-widget')).toHaveAttribute('data-location', 'Louvre')
   })
 
   it('FE-PLANNER-DAYPLAN-131: a read-only trip drops the edit affordances from day and note rows', () => {

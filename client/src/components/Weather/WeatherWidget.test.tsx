@@ -113,9 +113,9 @@ describe('WeatherWidget', () => {
     })
   })
 
-  it('FE-COMP-WEATHERWIDGET-010: uses cached data from sessionStorage', async () => {
+  it('FE-COMP-WEATHERWIDGET-010: uses fresh cached data from sessionStorage without refetching', async () => {
     const cached = buildWeather({ temp: 20 })
-    sessionStorage.setItem('weather_48.86_2.35_2025-06-01', JSON.stringify(cached))
+    sessionStorage.setItem('weather_48.86_2.35_2025-06-01_en', JSON.stringify({ data: cached, fetchedAt: Date.now() }))
     useSettingsStore.setState({ settings: { ...useSettingsStore.getState().settings, temperature_unit: 'celsius' } })
     render(<WeatherWidget lat={48.86} lng={2.35} date="2025-06-01" />)
     await waitFor(() => {
@@ -127,7 +127,7 @@ describe('WeatherWidget', () => {
   it('FE-COMP-WEATHERWIDGET-011: re-fetches in background for cached climate data', async () => {
     const climateData = buildWeather({ temp: 15, main: 'Clouds', type: 'climate', description: 'cloudy' })
     const forecastData = buildWeather({ temp: 22, main: 'Clear', type: 'forecast', description: 'clear sky' })
-    sessionStorage.setItem('weather_48.86_2.35_2025-06-01', JSON.stringify(climateData))
+    sessionStorage.setItem('weather_48.86_2.35_2025-06-01_en', JSON.stringify({ data: climateData, fetchedAt: Date.now() }))
     vi.mocked(weatherApi.get).mockResolvedValue(forecastData)
     useSettingsStore.setState({ settings: { ...useSettingsStore.getState().settings, temperature_unit: 'celsius' } })
 
@@ -143,5 +143,69 @@ describe('WeatherWidget', () => {
       expect(screen.getByText('22°C')).toBeInTheDocument()
     })
     expect(screen.queryByText(/Ø/)).not.toBeInTheDocument()
+  })
+
+  // #2167 — a standalone PWA keeps sessionStorage alive across days, so a
+  // forecast fetched before the trip was still shown unchanged on the day itself.
+  it('FE-COMP-WEATHERWIDGET-012: revalidates a forecast cache entry older than the TTL', async () => {
+    const staleData = buildWeather({ temp: 20 })
+    const freshData = buildWeather({ temp: 22 })
+    sessionStorage.setItem(
+      'weather_48.86_2.35_2025-06-01_en',
+      JSON.stringify({ data: staleData, fetchedAt: Date.now() - 2 * 60 * 60 * 1000 }),
+    )
+    vi.mocked(weatherApi.get).mockResolvedValue(freshData)
+    useSettingsStore.setState({ settings: { ...useSettingsStore.getState().settings, temperature_unit: 'celsius' } })
+
+    render(<WeatherWidget lat={48.86} lng={2.35} date="2025-06-01" />)
+
+    // Serve-then-revalidate: the stale value renders immediately …
+    await waitFor(() => {
+      expect(screen.getByText(/20°C|22°C/)).toBeInTheDocument()
+    })
+    // … and the background refresh replaces it and the cache entry.
+    await waitFor(() => {
+      expect(screen.getByText('22°C')).toBeInTheDocument()
+    })
+    expect(weatherApi.get).toHaveBeenCalledTimes(1)
+    const stored = JSON.parse(sessionStorage.getItem('weather_48.86_2.35_2025-06-01_en')!)
+    expect(stored.data.temp).toBe(22)
+    expect(typeof stored.fetchedAt).toBe('number')
+  })
+
+  it('FE-COMP-WEATHERWIDGET-013: treats a pre-TTL raw cache entry as stale and refreshes it', async () => {
+    // Live PWA sessions still hold entries in the old bare-result format.
+    sessionStorage.setItem('weather_48.86_2.35_2025-06-01_en', JSON.stringify(buildWeather({ temp: 18 })))
+    vi.mocked(weatherApi.get).mockResolvedValue(buildWeather({ temp: 25 }))
+    useSettingsStore.setState({ settings: { ...useSettingsStore.getState().settings, temperature_unit: 'celsius' } })
+
+    render(<WeatherWidget lat={48.86} lng={2.35} date="2025-06-01" />)
+
+    await waitFor(() => {
+      expect(screen.getByText('25°C')).toBeInTheDocument()
+    })
+    expect(weatherApi.get).toHaveBeenCalledTimes(1)
+  })
+
+  // #2167 (mrwulf) — the widget must be able to say WHERE the forecast is for.
+  it('FE-COMP-WEATHERWIDGET-014: renders locationName as a tooltip title', async () => {
+    vi.mocked(weatherApi.get).mockResolvedValue(buildWeather({ temp: 20 }))
+    useSettingsStore.setState({ settings: { ...useSettingsStore.getState().settings, temperature_unit: 'celsius' } })
+    render(<WeatherWidget lat={48.86} lng={2.35} date="2025-06-01" locationName="Rome" />)
+    await waitFor(() => {
+      expect(screen.getByText('20°C')).toBeInTheDocument()
+    })
+    expect(screen.getByTitle('Rome')).toBeInTheDocument()
+  })
+
+  it('FE-COMP-WEATHERWIDGET-015: sends the user language and keys the cache by it', async () => {
+    vi.mocked(weatherApi.get).mockResolvedValue(buildWeather({ temp: 20 }))
+    useSettingsStore.setState({ settings: { ...useSettingsStore.getState().settings, temperature_unit: 'celsius', language: 'de' } })
+    render(<WeatherWidget lat={48.86} lng={2.35} date="2025-06-01" />)
+    await waitFor(() => {
+      expect(screen.getByText('20°C')).toBeInTheDocument()
+    })
+    expect(weatherApi.get).toHaveBeenCalledWith(48.86, 2.35, '2025-06-01', 'de')
+    expect(sessionStorage.getItem('weather_48.86_2.35_2025-06-01_de')).not.toBeNull()
   })
 })

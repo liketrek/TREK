@@ -198,10 +198,15 @@ const TTL_FORECAST_MS = 60 * 60 * 1000;      // 1 hour
 const TTL_CURRENT_MS  = 15 * 60 * 1000;      // 15 minutes
 const TTL_CLIMATE_MS  = 24 * 60 * 60 * 1000; // 24 hours
 
-export function cacheKey(lat: string, lng: string, date?: string): string {
+export function cacheKey(lat: string, lng: string, date?: string, lang?: string): string {
   const rlat = Number.parseFloat(lat).toFixed(2);
   const rlng = Number.parseFloat(lng).toFixed(2);
-  return `${rlat}_${rlng}_${date || 'current'}`;
+  const base = `${rlat}_${rlng}_${date || 'current'}`;
+  // Descriptions come back localized, so the language is part of the identity —
+  // without it a cached German answer serves English callers for up to the TTL
+  // (and the MCP tools default to 'en' while REST defaults to 'de', so the two
+  // surfaces poisoned each other's descriptions).
+  return lang ? `${base}_${lang}` : base;
 }
 
 function getCached(key: string): WeatherResult | null {
@@ -227,6 +232,46 @@ export function estimateCondition(tempAvg: number, precipMm: number): string {
   return tempAvg > 15 ? 'Clear' : 'Clouds';
 }
 
+/**
+ * Daily figures for a recent date via the forecast API's `past_days` window.
+ *
+ * The ERA5 archive lags roughly five days behind real time, so the last days of
+ * an ongoing trip — and a location-local "yesterday" that has already slipped
+ * out of the forward window in the server's UTC frame — answered with nulls,
+ * rendered as a dash (#2167). The forecast model still carries those days.
+ * Returns null when the requested date is not in the answered series, so the
+ * caller can fall back to the archive.
+ */
+async function fetchRecentPastForecast(
+  lat: string,
+  lng: string,
+  dateStr: string,
+  lang: string,
+): Promise<WeatherResult | null> {
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=auto&past_days=5&forecast_days=2`;
+  const { response, data } = await fetchOpenMeteo(url);
+
+  if (!response.ok || data.error) {
+    throw new ApiError(response.status || 500, data.reason || 'Open-Meteo API error');
+  }
+
+  const idx = (data.daily?.time || []).indexOf(dateStr);
+  if (idx === -1 || data.daily!.temperature_2m_max[idx] == null || data.daily!.temperature_2m_min[idx] == null) {
+    return null;
+  }
+
+  const code = data.daily!.weathercode[idx];
+  const descriptions = lang === 'de' ? WMO_DESCRIPTION_DE : WMO_DESCRIPTION_EN;
+  return {
+    temp: Math.round((data.daily!.temperature_2m_max[idx] + data.daily!.temperature_2m_min[idx]) / 2),
+    temp_max: Math.round(data.daily!.temperature_2m_max[idx]),
+    temp_min: Math.round(data.daily!.temperature_2m_min[idx]),
+    main: WMO_MAP[code] || 'Clouds',
+    description: descriptions[code] || '',
+    type: 'forecast',
+  };
+}
+
 // ── getWeather ──────────────────────────────────────────────────────────
 
 async function _getWeatherImpl(
@@ -236,7 +281,7 @@ async function _getWeatherImpl(
   lang: string,
   time?: string,
 ): Promise<WeatherResult> {
-  const ck = cacheKey(lat, lng, date ? `${date}T${time ?? ''}` : date);
+  const ck = cacheKey(lat, lng, date ? `${date}T${time ?? ''}` : date, lang);
 
   if (date) {
     const cached = getCached(ck);
@@ -273,6 +318,31 @@ async function _getWeatherImpl(
 
         setCache(ck, result, TTL_FORECAST_MS);
         return result;
+      }
+
+      // idx === -1 with diffDays <= 0: a location-local yesterday (or today in
+      // the hours after the UTC rollover) that the forward window no longer
+      // carries. Last year's climate is the wrong answer for a day that just
+      // happened — ask the model's past_days window before falling through.
+      if (diffDays <= 0) {
+        const recent = await fetchRecentPastForecast(lat, lng, dateStr, lang);
+        if (recent) {
+          setCache(ck, recent, TTL_FORECAST_MS);
+          return recent;
+        }
+      }
+    }
+
+    // Recent past inside the archive's lag window: the forecast API still has
+    // real daily figures where ERA5 answers nulls. A request with a usable time
+    // stays on the archive — only it has the hourly series a journal entry
+    // wants (#1614). On a miss the archive below remains the fallback.
+    if (diffDays < -1 && diffDays >= -5 && hourIndexFromTime(time) == null) {
+      const dateStr = targetDate.toISOString().slice(0, 10);
+      const recent = await fetchRecentPastForecast(lat, lng, dateStr, lang);
+      if (recent) {
+        setCache(ck, recent, TTL_CLIMATE_MS);
+        return recent;
       }
     }
 
@@ -424,16 +494,16 @@ export async function getWeather(
 ): Promise<WeatherResult> {
   const lat = String(coord(rawLat, 90, 'latitude'));
   const lng = String(coord(rawLng, 180, 'longitude'));
-  const ck = cacheKey(lat, lng, date ? `${date}T${time ?? ''}` : date);
+  const ck = cacheKey(lat, lng, date ? `${date}T${time ?? ''}` : date, lang);
   const cached = getCached(ck);
   if (cached) return cached;
 
-  const inFlightKey = `${ck}:${lang}`;
-  const existing = inFlight.get(inFlightKey);
+  // lang is already part of ck, so the cache key doubles as the in-flight key.
+  const existing = inFlight.get(ck);
   if (existing !== undefined) return existing;
   const promise = _getWeatherImpl(lat, lng, date, lang, time);
-  inFlight.set(inFlightKey, promise);
-  try { return await promise; } finally { inFlight.delete(inFlightKey); }
+  inFlight.set(ck, promise);
+  try { return await promise; } finally { inFlight.delete(ck); }
 }
 
 // ── getDetailedWeather ──────────────────────────────────────────────────
@@ -444,7 +514,7 @@ async function _getDetailedWeatherImpl(
   date: string,
   lang: string,
 ): Promise<WeatherResult> {
-  const ck = `detailed_${cacheKey(lat, lng, date)}`;
+  const ck = `detailed_${cacheKey(lat, lng, date, lang)}`;
 
   const cached = getCached(ck);
   if (cached) return cached;
@@ -595,16 +665,16 @@ export async function getDetailedWeather(
 ): Promise<WeatherResult> {
   const lat = String(coord(rawLat, 90, 'latitude'));
   const lng = String(coord(rawLng, 180, 'longitude'));
-  const ck = `detailed_${cacheKey(lat, lng, date)}`;
+  const ck = `detailed_${cacheKey(lat, lng, date, lang)}`;
   const cached = getCached(ck);
   if (cached) return cached;
 
-  const inFlightKey = `${ck}:${lang}`;
-  const existing = inFlight.get(inFlightKey);
+  // lang is already part of ck, so the cache key doubles as the in-flight key.
+  const existing = inFlight.get(ck);
   if (existing !== undefined) return existing;
   const promise = _getDetailedWeatherImpl(lat, lng, date, lang);
-  inFlight.set(inFlightKey, promise);
-  try { return await promise; } finally { inFlight.delete(inFlightKey); }
+  inFlight.set(ck, promise);
+  try { return await promise; } finally { inFlight.delete(ck); }
 }
 
 // ── ApiError ────────────────────────────────────────────────────────────

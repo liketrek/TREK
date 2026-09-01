@@ -9,6 +9,7 @@ const day: TranslationStrings = {
   'day.hourlyForecast': 'Óránkénti előrejelzés',
   'day.climateHint': 'Történelmi átlagok — valós előrejelzés a dátum előtti 16 napon belül érhető el.',
   'day.noWeather': 'Nem állnak rendelkezésre időjárási adatok. Adj hozzá egy helyet koordinátákkal.',
+  'day.weatherFor': 'Előrejelzés: {name}',
   'day.overview': 'Napi áttekintés',
   'day.accommodation': 'Szállás',
   'day.addAccommodation': 'Szállás hozzáadása',

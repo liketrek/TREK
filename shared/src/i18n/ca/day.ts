@@ -9,6 +9,7 @@ const day: TranslationStrings = {
   'day.hourlyForecast': 'Pronòstic per hores',
   'day.climateHint': 'Mitjanes històriques: el pronòstic real està disponible durant els 16 dies previs a la data.',
   'day.noWeather': 'No hi ha dades meteorològiques disponibles. Afegeix un lloc amb coordenades.',
+  'day.weatherFor': 'Previsió per a {name}',
   'day.overview': 'Resum diari',
   'day.accommodation': 'Allotjament',
   'day.addAccommodation': 'Afegeix un allotjament',

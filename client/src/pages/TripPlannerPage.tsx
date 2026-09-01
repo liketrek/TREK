@@ -28,6 +28,7 @@ import type { BudgetItem } from '../types'
 import PluginFrame from '../components/Plugins/PluginFrame'
 import ErrorBoundary from '../components/shared/ErrorBoundary'
 import { lazyWithRetry } from '../utils/lazyWithRetry'
+import { getDayBookendHotels } from '../utils/dayOrder'
 import TripWarningsBanner from '../components/Planner/TripWarningsBanner'
 import Navbar from '../components/Layout/Navbar'
 import { useToast } from '../components/shared/Toast'
@@ -591,7 +592,14 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
             {showDayDetail && !selectedPlace && (() => {
               const currentDay = days.find(d => d.id === showDayDetail.id) || showDayDetail
               const dayAssignments = assignments[String(currentDay.id)] || []
-              const geoPlace = dayAssignments.find(a => a.place?.lat && a.place?.lng)?.place || places.find(p => p.lat && p.lng)
+              // Day-local weather anchor only (#2167): first located stop of THIS day,
+              // else the hotel you wake up in (unconditional bookend lookup, mirroring
+              // useMPlanTimeline) — never a place from another day.
+              const locatedPlace = dayAssignments.find(a => a.place?.lat && a.place?.lng)?.place
+              const weatherHotel = locatedPlace ? undefined : getDayBookendHotels(currentDay, days, tripAccommodations).morning
+              const weatherLat = locatedPlace?.lat ?? weatherHotel?.place_lat ?? null
+              const weatherLng = locatedPlace?.lng ?? weatherHotel?.place_lng ?? null
+              const weatherPlaceName = locatedPlace?.name ?? weatherHotel?.place_name ?? null
               return (
                 <DayDetailPanel
                   day={currentDay}
@@ -601,8 +609,9 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
                   tripId={tripId}
                   assignments={assignments}
                   reservations={reservations}
-                  lat={geoPlace?.lat}
-                  lng={geoPlace?.lng}
+                  lat={weatherLat}
+                  lng={weatherLng}
+                  weatherPlaceName={weatherPlaceName}
                   onClose={() => { setShowDayDetail(null); handleSelectDay(null) }}
                   onAccommodationChange={loadAccommodations}
                   leftWidth={isMobile ? 0 : (leftCollapsed ? 0 : leftWidth)}

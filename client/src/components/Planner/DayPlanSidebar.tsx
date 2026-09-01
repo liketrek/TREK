@@ -1043,10 +1043,6 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     return formatMoneySum(entries, costBase, locale, fxRates)
   }, [days, assignments, currency, costBase, locale, fxRates])
 
-  // Bester verfügbarer Standort für Wetter: zugewiesene Orte zuerst, dann beliebiger Reiseort
-  const anyGeoAssignment = Object.values(assignments).flatMap(da => da).find(a => a.place?.lat && a.place?.lng)
-  const anyGeoPlace = anyGeoAssignment || (places || []).find(p => p.lat && p.lng)
-
   return {
     tripId,
     trip,
@@ -1182,8 +1178,6 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     handleOptimize,
     handleDropOnDay,
     totalCostLabel,
-    anyGeoAssignment,
-    anyGeoPlace,
     expandedRouteDayIds,
     setExpandedRouteDayIds,
   }
@@ -1355,8 +1349,6 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
     handleOptimize,
     handleDropOnDay,
     totalCostLabel,
-    anyGeoAssignment,
-    anyGeoPlace,
     expandedRouteDayIds,
     setExpandedRouteDayIds,
   } = S
@@ -1554,7 +1546,12 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
           // routable when accommodation optimization can bookend it with a hotel
           // (hotel → place → hotel, the same line the map draws) — otherwise the tools
           // vanish on such a day (#1330). Purely additive to the 2+ case.
-          const routeBookends = optimizeFromAccommodation !== false ? getDayBookendHotels(day, days, accommodations) : null
+          // The weather anchor below must not depend on the optimize-from-accommodation
+          // setting — where you wake up is a fact about the day, not a routing choice —
+          // so the bookend lookup runs unconditionally (mirrors useMPlanTimeline) while
+          // the route tools keep honoring the setting via routeBookends.
+          const dayBookends = getDayBookendHotels(day, days, accommodations)
+          const routeBookends = optimizeFromAccommodation !== false ? dayBookends : null
           const hasRouteBookend = !!(
             (routeBookends?.morning?.place_lat != null && routeBookends?.morning?.place_lng != null) ||
             (routeBookends?.evening?.place_lat != null && routeBookends?.evening?.place_lng != null)
@@ -1668,12 +1665,14 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
               >
                 {/* Tages-Badge: Nummer oben, darunter (falls vorhanden) das Wetter des Tages */}
                 {(() => {
-                  // anyGeoPlace is an assignment (has .place) or a bare place — read coords from either.
-                  const geoLat = anyGeoPlace ? ('place' in anyGeoPlace ? anyGeoPlace.place?.lat : anyGeoPlace.lat) : undefined
-                  const geoLng = anyGeoPlace ? ('place' in anyGeoPlace ? anyGeoPlace.place?.lng : anyGeoPlace.lng) : undefined
-                  const wLat = loc?.place?.lat ?? geoLat
-                  const wLng = loc?.place?.lng ?? geoLng
-                  const hasWeather = !!(day.date && anyGeoPlace && wLat != null && wLng != null)
+                  // Day-local anchor only (#2167): the day's first located stop, else the
+                  // hotel you wake up in. No trip-wide fallback — on a roadtrip that
+                  // silently showed another city's weather with nothing naming the place.
+                  const weatherHotel = loc == null ? dayBookends.morning : undefined
+                  const wLat = loc?.place?.lat ?? weatherHotel?.place_lat
+                  const wLng = loc?.place?.lng ?? weatherHotel?.place_lng
+                  const weatherName = loc?.place?.name ?? weatherHotel?.place_name ?? null
+                  const hasWeather = !!(day.date && wLat != null && wLng != null)
                   return (
                     <div style={{
                       // With weather the badge is a tall stack and has to start at
@@ -1700,7 +1699,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                         <>
                           <div style={{ width: '64%', height: 1, background: 'currentColor', opacity: 0.25 }} />
                           <div style={{ padding: '3px 0 4px' }}>
-                            <WeatherWidget lat={wLat} lng={wLng} date={day.date} stacked />
+                            <WeatherWidget lat={wLat ?? null} lng={wLng ?? null} date={day.date} stacked locationName={weatherName} />
                           </div>
                         </>
                       )}

@@ -99,25 +99,25 @@ export function useMPlanTimeline(planner: TripPlanner) {
   const upNext = useMemo(() => findUpNext(day, dayAssignments, now), [day, dayAssignments, now])
 
   // ── Weather chip — anchored to the day's first located stop, else its hotel ──
-  const weatherCoords = useMemo<{ lat: number; lng: number } | null>(() => {
+  const weatherAnchor = useMemo<{ lat: number; lng: number; name: string | null } | null>(() => {
     const located = dayAssignments.find(a => a.place?.lat != null && a.place?.lng != null)
-    if (located) return { lat: located.place!.lat!, lng: located.place!.lng! }
+    if (located) return { lat: located.place!.lat!, lng: located.place!.lng!, name: located.place!.name ?? null }
     const hotel = day ? getDayBookendHotels(day, days, tripAccommodations).morning : undefined
     if (hotel && hotel.place_lat != null && hotel.place_lng != null) {
-      return { lat: hotel.place_lat, lng: hotel.place_lng }
+      return { lat: hotel.place_lat, lng: hotel.place_lng, name: hotel.place_name ?? null }
     }
     return null
   }, [day, dayAssignments, days, tripAccommodations])
 
   const [weather, setWeather] = useState<WeatherResult | null>(null)
   useEffect(() => {
-    if (!day?.date || !weatherCoords) { setWeather(null); return }
+    if (!day?.date || !weatherAnchor) { setWeather(null); return }
     let cancelled = false
-    weatherApi.get(weatherCoords.lat, weatherCoords.lng, day.date.slice(0, 10))
+    weatherApi.get(weatherAnchor.lat, weatherAnchor.lng, day.date.slice(0, 10), language)
       .then(data => { if (!cancelled) setWeather(data.error ? null : data) })
       .catch(() => { if (!cancelled) setWeather(null) })
     return () => { cancelled = true }
-  }, [day?.date, weatherCoords])
+  }, [day?.date, weatherAnchor, language])
 
   // ── Expanded auto-transit rows ──
   const [openTransitKeys, setOpenTransitKeys] = useState<Set<string>>(new Set())
@@ -378,6 +378,7 @@ export function useMPlanTimeline(planner: TripPlanner) {
 
   return {
     day, rows, hotelLegs, merged, hotelChips, weather, weatherTemp, upNext,
+    weatherPlaceName: weatherAnchor?.name ?? null,
     language, timeFormat: settings.time_format,
     openTransitKeys, toggleTransit,
     moveRow, removeAssignment, editAssignment, editTransport, openTransitJourney,

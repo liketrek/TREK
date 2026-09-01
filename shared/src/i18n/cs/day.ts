@@ -9,6 +9,7 @@ const day: TranslationStrings = {
   'day.hourlyForecast': 'Hodinová předpověď',
   'day.climateHint': 'Historické průměry — reálná předpověď je k dispozici do 16 dnů od tohoto data.',
   'day.noWeather': 'Nejsou k dispozici žádná data o počasí. Přidejte místo se souřadnicemi.',
+  'day.weatherFor': 'Předpověď pro {name}',
   'day.overview': 'Denní přehled',
   'day.accommodation': 'Ubytování',
   'day.addAccommodation': 'Přidat ubytování',

@@ -163,6 +163,8 @@ describe('MDaySheet', () => {
     expect(screen.getByText('20°')).toBeInTheDocument()
     expect(screen.getByRole('dialog').textContent).toContain('24° / 12° ·')
     expect(screen.getByText('light rain')).toBeInTheDocument()
+    // #2167 (mrwulf) — the block names the place the forecast is anchored to.
+    expect(screen.getByText('Forecast for Museum')).toBeInTheDocument()
   })
 
   it('FE-MOB-DAYSH-005: converts to Fahrenheit when the user asked for it', async () => {
@@ -193,7 +195,8 @@ describe('MDaySheet', () => {
   })
 
   it('FE-MOB-DAYSH-009: skips the weather block entirely without coordinates', async () => {
-    await renderSheet(makePlanner({ assignments: {}, places: [] }))
+    // No located stop AND no stay — with a stay the hotel would anchor the weather (#2167).
+    await renderSheet(makePlanner({ assignments: {}, places: [], tripAccommodations: [] }))
     expect(weatherApi.getDetailed).not.toHaveBeenCalled()
     expect(screen.queryByText('No weather data available. Add a place with coordinates.')).not.toBeInTheDocument()
   })
@@ -374,13 +377,26 @@ describe('MDaySheet', () => {
     expect(screen.getByText('Stay')).toBeInTheDocument()
   })
 
-  it('FE-MOB-DAYSH-026: falls back to any trip place with coordinates as the weather anchor', async () => {
+  // #2167 — the anchor is day-local: never a place from another day, even when
+  // the trip pool has located places. The day's stay is the fallback instead.
+  it('FE-MOB-DAYSH-026: anchors the weather to the day bookend hotel, not some trip place', async () => {
     await renderSheet(makePlanner({
       assignments: {},
       places: [{ id: 200, name: 'Prater', lat: 48.31, lng: 16.41 }],
     }))
-    expect(weatherApi.getDetailed).toHaveBeenCalledWith(48.31, 16.41, '2026-05-02', 'en')
+    expect(weatherApi.getDetailed).toHaveBeenCalledWith(48.2, 16.35, '2026-05-02', 'en')
     expect(screen.getByText('20°')).toBeInTheDocument()
+    expect(screen.getByText('Forecast for Hotel Sacher')).toBeInTheDocument()
+  })
+
+  it('FE-MOB-DAYSH-026b: shows no weather at all without a day-local anchor (#2167)', async () => {
+    await renderSheet(makePlanner({
+      assignments: {},
+      places: [{ id: 200, name: 'Prater', lat: 48.31, lng: 16.41 }],
+      tripAccommodations: [],
+    }))
+    expect(weatherApi.getDetailed).not.toHaveBeenCalled()
+    expect(screen.queryByText('20°')).not.toBeInTheDocument()
   })
 
   it('FE-MOB-DAYSH-027: hides every editing affordance for a read-only member', async () => {

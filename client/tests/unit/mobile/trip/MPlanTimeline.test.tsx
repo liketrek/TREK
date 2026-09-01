@@ -95,6 +95,7 @@ function buildTl(over: Record<string, unknown> = {}): MPlanTimelineController {
     hotelChips: [],
     weather: null,
     weatherTemp: null,
+    weatherPlaceName: null,
     upNext: { assignment: MUSEUM, minutesUntil: 45 },
     language: 'en',
     timeFormat: '24h',
@@ -196,6 +197,18 @@ describe('MPlanTimeline', () => {
       expect(screen.getByText(/Ryokan Kyoto/)).toHaveTextContent('Ryokan Kyoto · 15:00')
       expect(screen.getByText('Capsule Tokyo')).toBeInTheDocument()
       expect(screen.getByText('17°')).toBeInTheDocument()
+    })
+
+    it('FE-MOB-PLTL-005b: the weather chip names its anchor place in the accessible label (#2167)', () => {
+      renderTimeline({
+        weather: { main: 'Rain', temp: 17 },
+        weatherTemp: 17,
+        weatherPlaceName: 'Shibuya',
+      })
+
+      // echoT renders t('day.weatherFor', { name }) as 'day.weatherFor:Shibuya'.
+      expect(screen.getByRole('button', { name: 'day.overview · day.weatherFor:Shibuya' })).toBeInTheDocument()
+      expect(screen.getByTitle('Shibuya')).toBeInTheDocument()
     })
 
     it('FE-MOB-PLTL-006: a chip opens the day sheet', () => {

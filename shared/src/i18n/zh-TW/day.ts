@@ -9,6 +9,7 @@ const day: TranslationStrings = {
   'day.hourlyForecast': '逐小時預報',
   'day.climateHint': '歷史平均值——實際預報在該日期前 16 天內可用。',
   'day.noWeather': '無天氣資料。請新增有座標的地點。',
+  'day.weatherFor': '{name}的天氣預報',
   'day.overview': '每日概覽',
   'day.accommodation': '住宿',
   'day.addAccommodation': '新增住宿',

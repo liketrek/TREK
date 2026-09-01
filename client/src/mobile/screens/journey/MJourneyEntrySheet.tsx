@@ -157,7 +157,7 @@ export default function MJourneyEntrySheet({
 
         const [placeResult, weatherResult] = await Promise.allSettled([
           mapsApi.reverse(pos.lat, pos.lng, language),
-          weatherApi.getCurrent(pos.lat, pos.lng, 'en'),
+          weatherApi.getCurrent(pos.lat, pos.lng, language),
         ])
         if (!active) return
         if (placeResult.status === 'fulfilled') {

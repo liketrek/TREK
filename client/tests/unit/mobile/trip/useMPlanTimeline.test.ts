@@ -172,8 +172,10 @@ describe('useMPlanTimeline', () => {
   it('FE-MOB-PLTL-007: requests the forecast for the first located stop', async () => {
     const { result } = await renderTimeline(makePlanner())
     await waitFor(() => expect(result.current.weather).not.toBeNull())
-    expect(weatherApi.get).toHaveBeenCalledWith(48, 16.1, '2026-05-02')
+    expect(weatherApi.get).toHaveBeenCalledWith(48, 16.1, '2026-05-02', 'en')
     expect(result.current.weatherTemp).toBe(20)
+    // #2167 — the anchor's name rides along so the chip can say where this is for.
+    expect(result.current.weatherPlaceName).toBe('Museum')
   })
 
   it('FE-MOB-PLTL-008: converts the forecast to Fahrenheit on request', async () => {
@@ -200,8 +202,9 @@ describe('useMPlanTimeline', () => {
       id: 14, day_id: 2, order_index: 0, place_id: 104,
       place: buildPlace({ id: 104, name: 'Idea', lat: null, lng: null }),
     })
-    await renderTimeline(makePlanner({ assignments: { '2': [vague] }, tripAccommodations: [HOTEL] }))
-    expect(weatherApi.get).toHaveBeenCalledWith(48, 16.05, '2026-05-02')
+    const { result } = await renderTimeline(makePlanner({ assignments: { '2': [vague] }, tripAccommodations: [HOTEL] }))
+    expect(weatherApi.get).toHaveBeenCalledWith(48, 16.05, '2026-05-02', 'en')
+    expect(result.current.weatherPlaceName).toBe('Hotel Sacher')
   })
 
   it('FE-MOB-PLTL-012: skips the forecast without any coordinates at all', async () => {
@@ -209,8 +212,9 @@ describe('useMPlanTimeline', () => {
       id: 14, day_id: 2, order_index: 0, place_id: 104,
       place: buildPlace({ id: 104, name: 'Idea', lat: null, lng: null }),
     })
-    await renderTimeline(makePlanner({ assignments: { '2': [vague] } }))
+    const { result } = await renderTimeline(makePlanner({ assignments: { '2': [vague] } }))
     expect(weatherApi.get).not.toHaveBeenCalled()
+    expect(result.current.weatherPlaceName).toBeNull()
   })
 
   it('FE-MOB-PLTL-045: drops a forecast that settles after the timeline is gone', async () => {
