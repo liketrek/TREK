@@ -246,7 +246,7 @@ export class PluginsService {
   private settingsFields(id: string, scope: 'user' | 'instance'): PluginSettingsField[] {
     return this.db
       .prepare(
-        `SELECT field_key AS key, label, input_type, placeholder, hint, required, secret, options
+        `SELECT field_key AS key, label, input_type, placeholder, hint, required, secret, options, default_value
          FROM plugin_settings_fields WHERE plugin_id = ? AND scope = ? ORDER BY sort_order, id`,
       )
       .all(id, scope)
@@ -260,6 +260,7 @@ export class PluginsService {
           hint: (row.hint ?? null) as string | null,
           required: row.required === 1,
           secret: row.secret === 1,
+          default: parseDefaultValue(row.default_value),
           // Stored as manifest-validated JSON ({value,label} pairs) — parse, don't re-check.
           options:
             typeof row.options === 'string' && row.options
@@ -369,6 +370,17 @@ function safeArray(json: string): unknown[] | undefined {
   try {
     const v = JSON.parse(json);
     return Array.isArray(v) ? v : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** `default_value` column: JSON-encoded string|number|boolean, NULL (or an absent pre-migration row) = no default. */
+function parseDefaultValue(raw: unknown): string | number | boolean | undefined {
+  if (typeof raw !== 'string' || raw === '') return undefined;
+  try {
+    const v = JSON.parse(raw) as unknown;
+    return typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean' ? v : undefined;
   } catch {
     return undefined;
   }

@@ -4191,6 +4191,20 @@ function runMigrations(db: Database.Database): void {
     () => {
       db.prepare("UPDATE addons SET type = 'integration' WHERE id = 'naver_list_import'").run();
     },
+    /**
+     * Settings-field defaults (#plugins, PR-87 feedback). A manifest `default` pre-fills
+     * the admin/user settings form when no value is stored; it was previously accepted
+     * by the manifest and silently dropped here. JSON-encoded so string/number/boolean
+     * round-trip.
+     *
+     * Appended LAST: the array is index-addressed against schema_version.
+     */
+    () => {
+      const cols = db.prepare("SELECT name FROM pragma_table_info('plugin_settings_fields')").all() as Array<{ name: string }>;
+      if (!cols.some((c) => c.name === 'default_value')) {
+        db.exec('ALTER TABLE plugin_settings_fields ADD COLUMN default_value TEXT');
+      }
+    },
   ];
 
   if (currentVersion < migrations.length) {

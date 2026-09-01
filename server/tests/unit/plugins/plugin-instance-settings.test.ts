@@ -6,7 +6,10 @@
  * saving through the controller re-spawns an ACTIVE plugin (config is handed to
  * the child once, in its init envelope), and an inactive plugin is left alone.
  */
-import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 
 const { testDb, dbMock } = vi.hoisted(() => {
   const Database = require('better-sqlite3');
@@ -27,6 +30,7 @@ import type { PluginRegistryService } from '../../../src/nest/plugins/registry/r
 import type { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
 import { AddonsService } from '../../../src/nest/addons/addons.service';
 import { createPluginRuntime } from '../../helpers/plugin-host';
+import { discoverPlugins } from '../../../src/nest/plugins/install/discovery';
 
 function install(id: string) {
   testDb
@@ -51,6 +55,23 @@ const svc = () => {
   return new PluginsService(dbs, new AddonsService(dbs));
 };
 
+/**
+ * Installs a real plugin through the manifest -> discovery pipeline (not a direct
+ * `declareField` row), so `default`-handling tests exercise `parseSettings`/
+ * `parseSettingDefault` in manifest.ts, not just the settingsFields() read path.
+ */
+let codeRoot: string;
+function installFixturePlugin(opts: { settings: Array<Record<string, unknown>> }) {
+  const dir = path.join(codeRoot, 'fixture-id', 'server');
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(
+    path.join(codeRoot, 'fixture-id', 'trek-plugin.json'),
+    JSON.stringify({ id: 'fixture-id', name: 'Fixture', version: '1.0.0', type: 'integration', settings: opts.settings }),
+  );
+  fs.writeFileSync(path.join(dir, 'index.js'), 'module.exports={}');
+  discoverPlugins(testDb);
+}
+
 beforeAll(() => {
   createTables(testDb);
   runMigrations(testDb);
@@ -59,6 +80,12 @@ beforeEach(() => {
   testDb.prepare('DELETE FROM plugins').run();
   testDb.prepare('DELETE FROM plugin_settings_fields').run();
   process.env.TREK_PLUGINS_ENABLED = 'true';
+  codeRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'ins-settings-'));
+  process.env.TREK_PLUGINS_DIR = codeRoot;
+});
+afterEach(() => {
+  delete process.env.TREK_PLUGINS_DIR;
+  fs.rmSync(codeRoot, { recursive: true, force: true });
 });
 
 describe('instance settings fields', () => {
@@ -90,6 +117,17 @@ describe('instance settings fields', () => {
     const plugins = svc().list().plugins;
     expect(plugins.find((p) => p.id === 'with-fields')).toMatchObject({ instanceSettingsCount: 2 });
     expect(plugins.find((p) => p.id === 'plain')).toMatchObject({ instanceSettingsCount: 0 });
+  });
+
+  it('INS-010 — persists a settings-field default and serves it on the fields list', () => {
+    installFixturePlugin({ settings: [{ key: 'oauth_authorize_url', required: true, default: 'https://auth.openbnb.org/authorize' }] });
+    const fields = svc().instanceSettingsFields('fixture-id');
+    expect(fields[0].default).toBe('https://auth.openbnb.org/authorize');
+  });
+
+  it('INS-011 — drops a default on a secret field at parse time', () => {
+    installFixturePlugin({ settings: [{ key: 'token', secret: true, default: 'leak' }] });
+    expect(svc().instanceSettingsFields('fixture-id')[0].default).toBeUndefined();
   });
 });
 

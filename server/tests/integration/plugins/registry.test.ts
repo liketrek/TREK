@@ -24,7 +24,7 @@ const { testDb } = vi.hoisted(() => {
       api_version INTEGER, min_trek_version TEXT, trek_range TEXT, permissions TEXT, capabilities TEXT DEFAULT '{}', dependencies TEXT DEFAULT '{}', operator_egress INTEGER DEFAULT 0, granted_permissions TEXT, status TEXT, enabled INTEGER DEFAULT 0, config TEXT,
       source_repo TEXT, source_commit TEXT, sha256 TEXT, reviewed_at TEXT, author_pubkey TEXT, updated_at TEXT,
       update_block_code TEXT, update_block_detail TEXT, update_block_version TEXT, update_hold INTEGER NOT NULL DEFAULT 0);
-    CREATE TABLE plugin_settings_fields (plugin_id TEXT, field_key TEXT, label TEXT, input_type TEXT, placeholder TEXT, hint TEXT, required INTEGER, secret INTEGER, scope TEXT, options TEXT, oauth_config TEXT, sort_order INTEGER);
+    CREATE TABLE plugin_settings_fields (plugin_id TEXT, field_key TEXT, label TEXT, input_type TEXT, placeholder TEXT, hint TEXT, required INTEGER, secret INTEGER, scope TEXT, options TEXT, oauth_config TEXT, default_value TEXT, sort_order INTEGER);
     CREATE TABLE plugin_error_log (id INTEGER PRIMARY KEY AUTOINCREMENT, plugin_id TEXT, level TEXT, message TEXT, ts TEXT);`);
   return { testDb: db };
 });

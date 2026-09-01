@@ -88,8 +88,8 @@ function upsert(db: BetterSqlite3.Database, m: PluginManifest): void {
   // Refresh the settings-field descriptors from the manifest.
   db.prepare('DELETE FROM plugin_settings_fields WHERE plugin_id = ?').run(m.id);
   const insert = db.prepare(
-    `INSERT INTO plugin_settings_fields (plugin_id, field_key, label, input_type, placeholder, hint, required, secret, scope, options, oauth_config, sort_order)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO plugin_settings_fields (plugin_id, field_key, label, input_type, placeholder, hint, required, secret, scope, options, oauth_config, default_value, sort_order)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   );
   m.settings.forEach((f, i) => {
     insert.run(
@@ -104,6 +104,7 @@ function upsert(db: BetterSqlite3.Database, m: PluginManifest): void {
       f.scope ?? 'instance',
       f.options ? JSON.stringify(f.options) : null,
       f.oauth ? JSON.stringify(f.oauth) : null,
+      f.default === undefined ? null : JSON.stringify(f.default),
       i,
     );
   });

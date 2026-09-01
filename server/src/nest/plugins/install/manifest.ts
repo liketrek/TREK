@@ -26,6 +26,7 @@ export interface ManifestSettingField {
   hint?: string;
   required?: boolean;
   secret?: boolean;
+  default?: string | number | boolean;
   scope?: 'instance' | 'user';
   options?: Array<{ value: string; label: string }>;
   oauth?: { initPath?: string; callbackPath?: string };
@@ -536,11 +537,23 @@ function parseSettings(raw: unknown): ManifestSettingField[] {
       hint: optStr(s.hint),
       required: !!s.required,
       secret: !!s.secret,
+      default: parseSettingDefault(s.default, !!s.secret),
       scope: s.scope === 'user' ? 'user' : 'instance',
       options: parseSettingOptions(s.options),
       oauth: s.oauth && typeof s.oauth === 'object' ? (s.oauth as { initPath?: string; callbackPath?: string }) : undefined,
     }))
     .filter((s) => s.key);
+}
+
+/**
+ * A field's `default` — pre-fills the settings form when nothing is stored. Tolerant on
+ * purpose (an unusable default degrades to "no default", it never blocks an install), but a
+ * SECRET's default is always dropped: the manifest is public, so it would be a plaintext secret.
+ */
+function parseSettingDefault(raw: unknown, secret: boolean): string | number | boolean | undefined {
+  if (raw === undefined || raw === null || secret) return undefined;
+  if (typeof raw === 'string' || typeof raw === 'number' || typeof raw === 'boolean') return raw;
+  return undefined;
 }
 
 /**

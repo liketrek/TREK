@@ -28,7 +28,7 @@ const userSettings = () => new PluginUserSettingsService(new DatabaseService(dbC
 function freshDb() {
   const d = new Database(':memory:');
   d.exec(`
-    CREATE TABLE plugin_settings_fields (id INTEGER PRIMARY KEY AUTOINCREMENT, plugin_id TEXT, field_key TEXT, label TEXT, input_type TEXT, placeholder TEXT, hint TEXT, required INTEGER, secret INTEGER, scope TEXT, options TEXT, sort_order INTEGER);
+    CREATE TABLE plugin_settings_fields (id INTEGER PRIMARY KEY AUTOINCREMENT, plugin_id TEXT, field_key TEXT, label TEXT, input_type TEXT, placeholder TEXT, hint TEXT, required INTEGER, secret INTEGER, scope TEXT, options TEXT, default_value TEXT, sort_order INTEGER);
     CREATE TABLE plugin_user_config (plugin_id TEXT, user_id INTEGER, config TEXT, updated_at TEXT, PRIMARY KEY (plugin_id, user_id));
   `);
   // p: a user-scope api key (secret) + a user-scope pref (not secret) + an INSTANCE field.
