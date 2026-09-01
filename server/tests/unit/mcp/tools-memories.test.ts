@@ -223,6 +223,32 @@ describe('Tool: search_provider_photos', () => {
     });
   });
 
+  it('is not registered while the journey addon is off, however the provider rows read', async () => {
+    const { user } = createUser(testDb);
+    setAddonEnabled(testDb, ADDON_IDS.JOURNEY, false);
+    await withHarness(user.id, async (h) => {
+      const names = (await h.client.listTools()).tools.map(t => t.name);
+      expect(names).not.toContain('search_provider_photos');
+      expect(names).not.toContain('list_provider_albums');
+      expect(names).not.toContain('list_provider_album_photos');
+    });
+  });
+
+  it('refuses mid-session once the journey addon goes off, without calling the provider', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      // Registered while journey was on; the flip lands after session start.
+      setAddonEnabled(testDb, ADDON_IDS.JOURNEY, false);
+      const result = await h.client.callTool({
+        name: 'search_provider_photos',
+        arguments: { provider: 'immich' },
+      });
+      expect(result.isError).toBe(true);
+      expect((result as any).content[0].text).toContain('is not enabled, contact server administrator');
+      expect(immichSearch).not.toHaveBeenCalled();
+    });
+  });
+
   it('is registered again as soon as one provider is on', async () => {
     const { user } = createUser(testDb);
     setProviderEnabled('immich', true);

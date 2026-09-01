@@ -3,6 +3,8 @@ import {
   errorResult, ok, type McpContext,
 } from '../../nest-mcp';
 import { z } from 'zod';
+import { ADDON_IDS } from '../../addons';
+import { AddonsService } from '../addons/addons.service';
 import { DatabaseService } from '../database/database.service';
 import { ImmichService } from './immich.service';
 import { SynologyService } from './synology.service';
@@ -31,7 +33,9 @@ const SYNOLOGY_DEFAULT_LIMIT = 100;
 /**
  * Availability gate. With every `photo_providers` row switched off the admin has
  * turned the whole integration off, and the settings page stops offering it at
- * all: nothing here has anything left to browse. Which of the two providers is
+ * all: nothing here has anything left to browse. The journey addon rides along
+ * because the providers exist to feed journey entries — journey off means no
+ * provider counts as on, whatever its row says. Which of the two providers is
  * on is a per-call question, answered by providerRefusal().
  */
 const anyPhotoProviderEnabled = (_ctx: McpContext, self: MemoriesMcp): boolean =>
@@ -62,6 +66,7 @@ export class MemoriesMcp {
     private readonly immich: ImmichService,
     private readonly synology: SynologyService,
     private readonly db: DatabaseService,
+    private readonly addons: AddonsService,
   ) {}
 
   /**
@@ -69,6 +74,7 @@ export class MemoriesMcp {
    * a method, the same reason the addon gates need a public `addons`.
    */
   enabledProviderIds(): string[] {
+    if (!this.addons.isAddonEnabled(ADDON_IDS.JOURNEY)) return [];
     return this.db.all<{ id: string }>('SELECT id FROM photo_providers WHERE enabled = 1').map((row) => row.id);
   }
 
@@ -81,7 +87,8 @@ export class MemoriesMcp {
   private providerRefusal(provider: ProviderId) {
     const row = this.db.get<{ enabled: number }>('SELECT enabled FROM photo_providers WHERE id = ?', provider);
     if (!row) return errorResult(`Provider: "${provider}" is not supported`);
-    if (row.enabled !== 1) return errorResult(`Provider: "${provider}" is not enabled, contact server administrator`);
+    if (row.enabled !== 1 || !this.addons.isAddonEnabled(ADDON_IDS.JOURNEY))
+      return errorResult(`Provider: "${provider}" is not enabled, contact server administrator`);
     return null;
   }
 

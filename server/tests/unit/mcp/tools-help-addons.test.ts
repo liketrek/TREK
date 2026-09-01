@@ -327,6 +327,8 @@ describe('Tool: list_addons', () => {
 
   it('lists the enabled photo providers alongside the addons', async () => {
     const { user } = createUser(testDb);
+    // Providers ride the journey addon now; migration 84 seeds it off.
+    setAddonEnabled(testDb, ADDON_IDS.JOURNEY, true);
     const row = testDb.prepare('SELECT name FROM photo_providers WHERE id = ?').get('immich') as {
       name: string;
     };

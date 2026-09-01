@@ -220,8 +220,8 @@ export default function MAdminAddonManager({ bagTrackingEnabled, onToggleBagTrac
               {globalAddons.map((addon, i) => (
                 <div key={addon.id}>
                   <MAddonRow addon={addon} onToggle={handleToggle} t={t} first={i === 0} />
-                  {/* Memories providers as sub-items under Journey addon */}
-                  {addon.id === 'journey' && providerOptions.length > 0 && (
+                  {/* Memories providers as sub-items under Journey addon — only while it is on */}
+                  {addon.id === 'journey' && addon.enabled && providerOptions.length > 0 && (
                     <>
                       {providerOptions.map(provider => {
                         const ProviderIcon = PROVIDER_ICONS[provider.key]

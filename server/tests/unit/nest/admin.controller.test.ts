@@ -136,6 +136,18 @@ describe('AdminController addons + sessions + jwt + defaults', () => {
     expect(runtime2.deactivateForDisabledAddon).toHaveBeenCalledWith('budget');
   });
 
+  it('addon update maps the journey-dependency refusal to its status, before any audit', async () => {
+    const c = adminCtl(svc({ updateAddon: vi.fn().mockReturnValue({ error: 'Enable the Journey addon first', status: 409 }) } as Partial<AdminService>));
+    const err = await c.updateAddon(user, 'immich', { enabled: true }, req).then(
+      () => null,
+      (e: unknown) => e as HttpException,
+    );
+    expect(err).toBeInstanceOf(HttpException);
+    expect(err!.getStatus()).toBe(409);
+    expect(err!.getResponse()).toEqual({ error: 'Enable the Journey addon first' });
+    expect(writeAudit).not.toHaveBeenCalled();
+  });
+
   it('oauth-sessions revoke audits; rotate-jwt maps error', () => {
     expect(adminCtl(svc(), undefined, undefined, {}, {}, { adminRevokeOAuthSession: vi.fn().mockReturnValue({}) }).revokeOAuthSession(user, '3', req)).toEqual({ success: true });
     expect(thrown(() => adminCtl(svc({ rotateJwtSecret: vi.fn().mockReturnValue({ error: 'locked', status: 409 }) } as Partial<AdminService>)).rotateJwtSecret(user, req))).toEqual({ status: 409, body: { error: 'locked' } });

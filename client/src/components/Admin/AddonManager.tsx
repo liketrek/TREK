@@ -152,8 +152,8 @@ export default function AddonManager({ bagTrackingEnabled, onToggleBagTracking, 
   }
 
   /** Bag tracking, the collab features and the photo providers all hang off their
-   *  parent as shelf rows. The conditions are deliberately the ones that were here
-   *  before — note that the providers render even when Journey itself is off. */
+   *  parent as shelf rows, and each shelf only shows while its parent is on —
+   *  a provider toggled under a disabled Journey would hit the server's 409. */
   const shelfFor = (addon: Addon) => {
     if (addon.id === 'packing' && addon.enabled && onToggleBagTracking) {
       return (
@@ -181,7 +181,7 @@ export default function AddonManager({ bagTrackingEnabled, onToggleBagTracking, 
         )
       })
     }
-    if (addon.id === 'journey' && providerOptions.length > 0) {
+    if (addon.id === 'journey' && addon.enabled && providerOptions.length > 0) {
       return providerOptions.map(provider => {
         const ProviderIcon = PROVIDER_ICONS[provider.key]
         return (

@@ -40,8 +40,10 @@ vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn() }));
 
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
-import { resetTestDb } from '../../helpers/test-db';
+import { resetTestDb, setAddonEnabled } from '../../helpers/test-db';
 import { createUser, createTrip } from '../../helpers/factories';
+import { ADDON_IDS } from '../../../src/addons';
+import { AddonsService } from '../../../src/nest/addons/addons.service';
 import { UnifiedMemoriesService } from '../../../src/nest/memories/unified-memories.service';
 import { MemoriesAccessService } from '../../../src/nest/memories/memories-access.service';
 import { TrekPhotosRepository } from '../../../src/nest/photos/trek-photos.repository';
@@ -60,6 +62,7 @@ const svc = new UnifiedMemoriesService(
   {} as SynologyService,
   new MemoriesAccessService(dbs),
   notificationsStub(),
+  new AddonsService(dbs),
 );
 
 // Legacy free-function names bound to the service, so the moved cases read as before.
@@ -80,6 +83,8 @@ beforeEach(() => {
   resetTestDb(testDb);
   // Ensure default providers are enabled (resetTestDb seeds them but doesn't reset enabled flag)
   testDb.prepare('UPDATE photo_providers SET enabled = 1').run();
+  // Providers only count as enabled under an enabled journey addon (migration 84 seeds it off).
+  setAddonEnabled(testDb, ADDON_IDS.JOURNEY, true);
 });
 
 afterAll(() => {
@@ -101,6 +106,18 @@ describe('listTripPhotos', () => {
 
     // Disable all providers
     testDb.prepare('UPDATE photo_providers SET enabled = 0').run();
+
+    const result = listTripPhotos(String(trip.id), user.id);
+    expect(result.success).toBe(false);
+    expect((result as any).error.status).toBe(400);
+    expect((result as any).error.message).toMatch(/no photo providers enabled/i);
+  });
+
+  it('MEM-UNIFIED-013: treats enabled providers as disabled while the journey addon is off', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+
+    setAddonEnabled(testDb, ADDON_IDS.JOURNEY, false);
 
     const result = listTripPhotos(String(trip.id), user.id);
     expect(result.success).toBe(false);

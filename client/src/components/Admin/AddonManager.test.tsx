@@ -348,6 +348,19 @@ describe('AddonManager', () => {
     await waitFor(() => expect(isOn(subToggle('Unsplash'))).toBe(true));
   });
 
+  it('FE-ADMIN-ADDON-030: provider sub-rows stay hidden while Journey itself is off', async () => {
+    server.use(addonsRoute([
+      buildAddon({ id: 'journey', name: 'Journey', type: 'global', icon: 'Compass', enabled: false }),
+      buildAddon({ id: 'immich', name: 'Immich', description: 'Self-hosted photos', type: 'photo_provider', enabled: true }),
+      buildAddon({ id: 'synologyphotos', name: 'Synology Photos', description: 'NAS photos', type: 'photo_provider', enabled: false }),
+    ]));
+    render(<AddonManager />);
+
+    await screen.findByText('Journey');
+    expect(screen.queryByText('Immich')).not.toBeInTheDocument();
+    expect(screen.queryByText('Synology Photos')).not.toBeInTheDocument();
+  });
+
   it('FE-ADMIN-ADDON-018: the collab sub-features render their state and report the toggled key', async () => {
     const user = userEvent.setup();
     const onToggleCollabFeature = vi.fn();

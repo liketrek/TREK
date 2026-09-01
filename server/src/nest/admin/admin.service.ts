@@ -643,10 +643,22 @@ export class AdminService {
       return { error: MANAGED_FORBIDDEN_ERROR.error, status: 403 };
     }
 
+    // Photo providers are Journey's shelf rows — their whole UI lives inside
+    // journeys, so enabling one under a disabled journey addon would only
+    // advertise an integration nothing can reach.
+    if (provider && data.enabled === true && !this.addons.isAddonEnabled(ADDON_IDS.JOURNEY)) {
+      return { error: 'Enable the Journey addon first', status: 409 };
+    }
+
     this.db.transaction(() => {
     if (addon) {
-      if (data.enabled !== undefined)
+      if (data.enabled !== undefined) {
         this.db.run('UPDATE addons SET enabled = ? WHERE id = ?', data.enabled ? 1 : 0, id);
+        // Journey off takes its providers with it: a row left enabled would
+        // resurface the moment journey returns, which nobody switched on.
+        if (id === ADDON_IDS.JOURNEY && !data.enabled)
+          this.db.run('UPDATE photo_providers SET enabled = 0');
+      }
       if (data.config !== undefined) {
         // The AI-parsing addon holds an API key — encrypt it at rest and preserve
         // the stored key when the client echoes the mask sentinel (see llmConfig.ts).

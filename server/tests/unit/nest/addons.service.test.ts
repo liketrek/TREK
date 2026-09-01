@@ -45,6 +45,8 @@ function providerFields(addon: ListAddon): PhotoProviderField[] {
 
 // Feed list()'s reads in call order: addons, providers, fields (.all), then the
 // collab-features rows (.all) and the bag-tracking row (.get) from app_settings.
+// The provider query now sits behind an isAddonEnabled(journey) read (.get), fed
+// first as enabled so every case below sees its providers.
 function feedReads(
   addons: unknown[],
   providers: unknown[],
@@ -57,7 +59,7 @@ function feedReads(
     .mockReturnValueOnce(providers)
     .mockReturnValueOnce(fields)
     .mockReturnValueOnce(collabRows);
-  dbMock._stmt.get.mockReturnValueOnce(bagRow);
+  dbMock._stmt.get.mockReturnValueOnce({ enabled: 1 }).mockReturnValueOnce(bagRow);
 }
 
 beforeEach(() => {
@@ -253,6 +255,21 @@ describe('AddonsService.list', () => {
     const res = svc().list();
     expect(res.addons.map((a) => (a as { id: string }).id)).toEqual(['atlas', 'immich']);
     expect((res.addons[1] as { type: string }).type).toBe('photo_provider');
+  });
+
+  it('drops the photo providers while the journey addon is off, whatever their rows say', () => {
+    // The journey gate (.get) answers disabled, so the provider query is never
+    // made and the .all chain shortens to addons, fields, collab.
+    dbMock._stmt.get.mockReturnValueOnce({ enabled: 0 });
+    dbMock._stmt.all
+      .mockReturnValueOnce([{ id: 'atlas', name: 'Atlas', type: 'page', icon: 'globe', enabled: 1 }])
+      .mockReturnValueOnce([])
+      .mockReturnValueOnce([]);
+
+    const res = svc().list();
+    expect(res.addons).toEqual([{ id: 'atlas', name: 'Atlas', type: 'page', icon: 'globe', enabled: true }]);
+    const providerReads = (dbMock.prepare.mock.calls as unknown[][]).filter((call) => String(call[0]).includes('FROM photo_providers'));
+    expect(providerReads).toEqual([]);
   });
 });
 

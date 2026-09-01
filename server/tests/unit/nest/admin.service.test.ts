@@ -506,6 +506,37 @@ describe('updateAddon', () => {
     const docsFlip = updateAddon('documents', { enabled: false }) as any;
     if (!docsFlip.error) expect(docsFlip.mcpAffected).toBe(false);
   });
+
+  it('ADMIN-SVC-087 — refuses to enable a photo provider while journey is off', () => {
+    testDb.prepare("UPDATE addons SET enabled = 0 WHERE id = 'journey'").run();
+    testDb.prepare("UPDATE photo_providers SET enabled = 0 WHERE id = 'immich'").run();
+
+    const result = updateAddon('immich', { enabled: true }) as any;
+    expect(result).toEqual({ error: 'Enable the Journey addon first', status: 409 });
+    expect(testDb.prepare("SELECT enabled FROM photo_providers WHERE id = 'immich'").get()).toEqual({ enabled: 0 });
+  });
+
+  it('ADMIN-SVC-088 — enables a provider under an enabled journey; disabling never needs journey', () => {
+    testDb.prepare("UPDATE addons SET enabled = 1 WHERE id = 'journey'").run();
+    const enabled = updateAddon('immich', { enabled: true }) as any;
+    expect(enabled.addon).toMatchObject({ id: 'immich', type: 'photo_provider', enabled: true });
+
+    // Switching a provider OFF stays possible with journey off — cleanup must not dead-end.
+    testDb.prepare("UPDATE addons SET enabled = 0 WHERE id = 'journey'").run();
+    const disabled = updateAddon('immich', { enabled: false }) as any;
+    expect(disabled.addon.enabled).toBe(false);
+  });
+
+  it('ADMIN-SVC-089 — disabling journey cascades every photo provider off', () => {
+    testDb.prepare("UPDATE addons SET enabled = 1 WHERE id = 'journey'").run();
+    testDb.prepare('UPDATE photo_providers SET enabled = 1').run();
+
+    const result = updateAddon('journey', { enabled: false }) as any;
+    expect(result.addon.enabled).toBe(false);
+    const rows = testDb.prepare('SELECT enabled FROM photo_providers').all() as Array<{ enabled: number }>;
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.every((r) => r.enabled === 0)).toBe(true);
+  });
 });
 
 // ── version-check cron ────────────────────────────────────────────────────────

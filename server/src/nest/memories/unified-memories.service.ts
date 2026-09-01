@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
+import { ADDON_IDS } from '../../addons';
 import { broadcast } from '../../websocket';
 import { encrypt_api_key } from '../common/crypto/apiKeyCrypto';
+import { AddonsService } from '../addons/addons.service';
 import { DatabaseService } from '../database/database.service';
 import { TrekPhotosRepository } from '../photos/trek-photos.repository';
 import { ImmichService } from './immich.service';
@@ -31,12 +33,17 @@ export class UnifiedMemoriesService {
     private readonly synology: SynologyService,
     private readonly access: MemoriesAccessService,
     private readonly notifications: NotificationsService,
+    private readonly addons: AddonsService,
   ) {}
 
   private _providers(): Array<{id: string; enabled: boolean}> {
+    // A provider only counts as enabled while the journey addon is — its whole
+    // surface lives inside journeys. Covers rows left enabled from before
+    // updateAddon cascaded the journey disable.
+    const journeyOn = this.addons.isAddonEnabled(ADDON_IDS.JOURNEY);
     const rows = this.db.prepare('SELECT id, enabled FROM photo_providers').all() as Array<{id: string; enabled: number}>;
-    return rows.map(r => ({ id: r.id, enabled: r.enabled === 1 }));
-  } 
+    return rows.map(r => ({ id: r.id, enabled: journeyOn && r.enabled === 1 }));
+  }
 
   private _validProvider(provider: string): ServiceResult<string> {
     const providers = this._providers();

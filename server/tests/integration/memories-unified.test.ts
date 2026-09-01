@@ -55,7 +55,7 @@ vi.mock('../../src/utils/ssrfGuard', async () => {
 import { buildApp } from '../../src/bootstrap';
 import { createTables } from '../../src/db/schema';
 import { runMigrations } from '../../src/db/migrations';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
+import { resetTestDb, resetRateLimits, setAddonEnabled } from '../helpers/test-db';
 import { createUser, createTrip, addTripMember, addTripPhoto, addAlbumLink } from '../helpers/factories';
 import { authCookie } from '../helpers/auth';
 
@@ -74,6 +74,8 @@ beforeAll(async () => {
 beforeEach(() => {
   resetTestDb(testDb);
   resetRateLimits(nestApp);
+  // Providers only count as enabled under an enabled journey addon (migration 84 seeds it off).
+  setAddonEnabled(testDb, 'journey', true);
 });
 
 afterAll(async () => {
@@ -358,6 +360,22 @@ describe('Unified album-link management', () => {
     testDb.prepare('UPDATE photo_providers SET enabled = 1 WHERE id = ?').run('immich');
 
     expect(res.status).toBe(400); // no providers enabled → error
+  });
+
+  it('UNIFIED-021 — GET album-links reports no providers while the journey addon is off', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    addAlbumLink(testDb, trip.id, user.id, 'immich', 'album-x');
+
+    setAddonEnabled(testDb, 'journey', false);
+
+    const res = await request(app)
+      .get(albumLinksUrl(trip.id))
+      .set('Cookie', authCookie(user.id));
+
+    setAddonEnabled(testDb, 'journey', true);
+
+    expect(res.status).toBe(400); // provider rows still say enabled, journey off wins
   });
 });
 
