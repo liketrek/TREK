@@ -45,6 +45,14 @@ describe('pluginSettingsFieldSchema', () => {
   it('requires key — a field without one cannot be rendered or saved', () => {
     expect(pluginSettingsFieldSchema.safeParse({ label: 'orphan' }).success).toBe(false);
   });
+
+  it('settings field carries an optional default (string | number | boolean)', () => {
+    expect(pluginSettingsFieldSchema.parse({ key: 'k', default: 'https://x' }).default).toBe('https://x');
+    expect(pluginSettingsFieldSchema.parse({ key: 'k', default: 3 }).default).toBe(3);
+    expect(pluginSettingsFieldSchema.parse({ key: 'k', default: true }).default).toBe(true);
+    expect(pluginSettingsFieldSchema.parse({ key: 'k' }).default).toBeUndefined();
+    expect(pluginSettingsFieldSchema.safeParse({ key: 'k', default: { o: 1 } }).success).toBe(false);
+  });
 });
 
 describe('instance-config wire shapes', () => {
