@@ -3,6 +3,8 @@ import { avatarSrc } from '../../utils/avatarSrc'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
+import rehypeSanitize from 'rehype-sanitize'
+import { markdownLinkComponents } from '../shared/markdownLink'
 import { Trash2, Pin, PinOff, Pencil, Maximize2 } from 'lucide-react'
 import { FONT } from './CollabNotes.constants'
 import { AuthedImg } from './CollabNotesAuthedImg'
@@ -142,7 +144,7 @@ export function NoteCard({ note, currentUser, canEdit, onUpdate, onDelete, onEdi
                 maxHeight: '4.5em', overflow: 'hidden',
                 wordBreak: 'break-word', fontFamily: FONT,
               }}>
-                <Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{note.content}</Markdown>
+                <Markdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeSanitize]} components={markdownLinkComponents}>{note.content}</Markdown>
               </div>
             )}
           </div>

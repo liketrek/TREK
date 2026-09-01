@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
+import rehypeSanitize from 'rehype-sanitize'
+import { markdownLinkComponents } from '../../../../components/shared/markdownLink'
 import { Check, FileText, Paperclip, Pin, PinOff, Plus, StickyNote, Trash2, X } from 'lucide-react'
 import MDancingTrek from '../../../components/MDancingTrek'
 import { collabApi } from '../../../../api/client'
@@ -336,7 +338,7 @@ function NoteCardRow({ note, color, canEdit, onTap, onTogglePin, onDelete, t }: 
       <button type="button" onClick={onTap} className="block w-full px-3 pb-3 pt-[9px] text-left">
         {note.content && (
           <div className="line-clamp-3 font-geist text-[0.75rem] leading-[1.5] text-m-muted [&_a]:underline [&_ol]:list-decimal [&_ol]:pl-4 [&_p]:mb-1 [&_strong]:font-bold [&_ul]:list-disc [&_ul]:pl-4">
-            <Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{note.content}</Markdown>
+            <Markdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeSanitize]} components={markdownLinkComponents}>{note.content}</Markdown>
           </div>
         )}
         <div className={`flex items-center gap-[6px] ${note.content ? 'mt-2' : ''}`}>
@@ -600,7 +602,7 @@ function NoteViewSheet({ open, note, onClose, t }: {
       <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-4 pt-1">
         {snapshot?.content && (
           <div className="font-geist text-[0.8125rem] leading-[1.6] text-m-ink [&_a]:underline [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mb-2 [&_strong]:font-bold [&_ul]:list-disc [&_ul]:pl-5">
-            <Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{snapshot.content}</Markdown>
+            <Markdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeSanitize]} components={markdownLinkComponents}>{snapshot.content}</Markdown>
           </div>
         )}
         {(snapshot?.attachments.length ?? 0) > 0 && (

@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
+import rehypeSanitize from 'rehype-sanitize'
+import { markdownLinkComponents } from '../shared/markdownLink'
 import { createPortal } from 'react-dom'
 import { Plus, Pencil, X, StickyNote, Settings } from 'lucide-react'
 import { collabApi } from '../../api/client'
@@ -445,7 +447,7 @@ function ViewNoteModal(S: NotesState) {
           </div>
         </div>
         <div className="collab-note-md-full" style={{ padding: '16px 20px', overflowY: 'auto', fontSize: 'calc(14px * var(--fs-scale-body, 1))', color: 'var(--text-primary)', lineHeight: 1.7 }}>
-          <Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{viewingNote.content || ''}</Markdown>
+          <Markdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeSanitize]} components={markdownLinkComponents}>{viewingNote.content || ''}</Markdown>
           {(viewingNote.attachments || []).length > 0 && (
             <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border-primary)' }}>
               <div style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>{t('files.title')}</div>
