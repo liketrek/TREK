@@ -147,6 +147,29 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
     });
   });
 
+  describe('GET /export.gpx (#2165)', () => {
+    const makeRes = () => ({ setHeader: vi.fn(), send: vi.fn() });
+    const exportQuery = {} as never;
+
+    it('an ASCII filename keeps the exact legacy header', () => {
+      const res = makeRes();
+      const s = svc({ exportGpx: vi.fn().mockReturnValue({ gpx: '<gpx/>', filename: 'Alpine-week.gpx' }) } as Partial<PlacesService>);
+      new PlacesController(s, new RuntimeEnvService(), storageStub).exportGpx(user, '5', exportQuery, res as never);
+      expect(res.setHeader).toHaveBeenCalledWith('Content-Disposition', 'attachment; filename="Alpine-week.gpx"');
+      expect(res.send).toHaveBeenCalledWith('<gpx/>');
+    });
+
+    it('a non-ASCII filename no longer reaches setHeader raw: ASCII fallback + filename*', () => {
+      const res = makeRes();
+      const s = svc({ exportGpx: vi.fn().mockReturnValue({ gpx: '<gpx/>', filename: '沖縄-4泊5日.gpx' }) } as Partial<PlacesService>);
+      new PlacesController(s, new RuntimeEnvService(), storageStub).exportGpx(user, '5', exportQuery, res as never);
+      expect(res.setHeader).toHaveBeenCalledWith(
+        'Content-Disposition',
+        'attachment; filename="__-4_5_.gpx"; filename*=UTF-8\'\'%E6%B2%96%E7%B8%84-4%E6%B3%8A5%E6%97%A5.gpx',
+      );
+    });
+  });
+
   describe('POST /import/google-list + naver-list', () => {
     // The legacy 'URL is required' 400 is gone: placeImportListRequestSchema
     // pins `url`, so the ZodValidationPipe rejects a urlless body before the

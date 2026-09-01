@@ -233,6 +233,22 @@ describe('exportICS', () => {
     expect(filename).toMatch(/My.Trip.2025\.ics/);
   });
 
+  // JS \s admitted U+3000 (and \v/\f) into the filename, and Node's header
+  // validation then threw ERR_INVALID_CHAR on the export route (#2165).
+  it('TRIP-SVC-008b: ideographic whitespace in the title folds to _ in the filename', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: '沖縄　4泊5日' });
+
+    expect(svc.exportICS(trip.id).filename).toBe('___4_5_.ics');
+  });
+
+  it('TRIP-SVC-008c: vertical tab and form feed fold too', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'A\vB\fC' });
+
+    expect(svc.exportICS(trip.id).filename).toBe('A_B_C.ics');
+  });
+
   it('TRIP-SVC-009: reservation with end time includes DTEND', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'Paris Trip' });

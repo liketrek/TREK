@@ -18,6 +18,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
 import { isDemoWriteBlocked, DEMO_WRITE_ERROR } from '../common/demo-write';
+import { contentDisposition } from '../common/content-disposition';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
 import { memoryStorage } from 'multer';
 import { hexColorSchema, placeImageUrlSchema, placeWebsiteSchema } from '@trek/shared';
@@ -214,7 +215,7 @@ export class PlacesController {
       throw new HttpException({ error: 'Nothing to export' }, 404);
     }
     res.setHeader('Content-Type', 'application/gpx+xml; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+    res.setHeader('Content-Disposition', contentDisposition(result.filename, 'attachment'));
     res.send(result.gpx);
   }
 

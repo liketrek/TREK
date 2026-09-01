@@ -18,6 +18,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { isDemoWriteBlocked, DEMO_WRITE_ERROR } from '../common/demo-write';
+import { contentDisposition } from '../common/content-disposition';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
 import type { Request, Response } from 'express';
 import type { Options } from 'multer';
@@ -273,7 +274,7 @@ export class TripsController {
     try {
       const { ics, filename } = this.calendar.exportICS(id);
       res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
-      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Content-Disposition', contentDisposition(filename, 'attachment'));
       res.send(ics);
     } catch (e: unknown) {
       if (e instanceof NotFoundError) throw new HttpException({ error: e.message }, 404);

@@ -689,7 +689,9 @@ export class CalendarService {
     const timezones = new Map<string, string>();
     for (const [zone, yyyymmdd] of usedZones) timezones.set(zone, buildVTimezone(zone, yyyymmdd));
 
-    const safeFilename = (trip.title || 'trek-trip').replace(/["\r\n]/g, '').replace(/[^\w\s.-]/g, '_');
+    // \w + space/tab, not \s: JS \s admits U+3000 and friends — codepoints
+    // Node's header validation refuses, so they 500'd the export (#2165).
+    const safeFilename = (trip.title || 'trek-trip').replace(/["\r\n]/g, '').replace(/[^\w \t.-]/g, '_');
     return {
       calName: esc(trip.title || 'TREK Trip'),
       filename: `${safeFilename}.ics`,

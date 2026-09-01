@@ -334,6 +334,21 @@ describe('Places e2e (real auth guard + temp SQLite)', () => {
       expect(res.text).toContain('<name>1. Warm up</name>');
     });
 
+    // The reported repro (#2165): a Japanese trip title crashed setHeader with
+    // ERR_INVALID_CHAR before the first body byte. Now the header folds to
+    // ASCII and carries the real name RFC 5987-encoded.
+    it('a non-ASCII trip title exports 200 with a filename* header instead of a 500 (#2165)', async () => {
+      db.prepare('INSERT INTO trips (id, title) VALUES (5, ?)').run('沖縄 4泊5日');
+      db.prepare('INSERT INTO places (id, trip_id, name, lat, lng) VALUES (1, 5, ?, 26.217, 127.719)').run('首里城');
+
+      const res = await request(server).get('/api/trips/5/places/export.gpx').set('Cookie', sessionCookie(1));
+      expect(res.status).toBe(200);
+      expect(res.headers['content-disposition']).toBe(
+        'attachment; filename="__-4_5_.gpx"; filename*=UTF-8\'\'%E6%B2%96%E7%B8%84-4%E6%B3%8A5%E6%97%A5.gpx',
+      );
+      expect(res.text).toContain('<name>首里城</name>');
+    });
+
     it('narrows the document to the requested parts', async () => {
       seedTrip();
       const res = await request(server)

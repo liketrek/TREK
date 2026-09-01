@@ -71,7 +71,7 @@ const { db } = vi.hoisted(() => {
     status TEXT DEFAULT 'pending', reservation_time TEXT, reservation_end_time TEXT, location TEXT,
     confirmation_number TEXT, notes TEXT, url TEXT, accommodation_id TEXT, metadata TEXT,
     needs_review INTEGER DEFAULT 0, day_plan_position REAL, external_source TEXT, sync_enabled INTEGER,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
+    ingest_state TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
   tmp.exec('CREATE TABLE days (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL, day_number INTEGER, date TEXT);');
   tmp.exec(`CREATE TABLE places (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL, name TEXT,
     image_url TEXT, address TEXT, lat REAL, lng REAL, category_id INTEGER, description TEXT,
@@ -231,6 +231,18 @@ describe('Trips e2e (real auth guard + temp SQLite)', () => {
       const res = await request(server).get('/api/trips/active').set('Cookie', sessionCookie(1));
       expect(Object.keys(res.body.trip).sort()).toEqual(['end_date', 'id', 'start_date', 'title']);
     });
+  });
+
+  // Real CalendarService against the temp db: a title carrying U+3000 slipped
+  // through the old \s keep-class into setHeader and 500'd the export (#2165).
+  it('200 export.ics with a header-safe filename for a title full of ideographic whitespace', async () => {
+    const tripId = Number(db.prepare('INSERT INTO trips (user_id, title, start_date, end_date) VALUES (1, ?, ?, ?)')
+      .run('沖縄　4泊5日', '2026-05-01', '2026-05-05').lastInsertRowid);
+    const res = await request(server).get(`/api/trips/${tripId}/export.ics`).set('Cookie', sessionCookie(1));
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toContain('text/calendar');
+    expect(res.headers['content-disposition']).toBe('attachment; filename="___4_5_.ics"');
+    expect(res.text).toContain('BEGIN:VCALENDAR');
   });
 
   it('200 bundle for an accessible trip (real member list)', async () => {

@@ -279,6 +279,19 @@ describe('FilesDownloadController', () => {
       disposition: 'inline; filename="pass.pkpass"',
     });
   });
+
+  // Uploads store original_name raw, so a Japanese boarding pass used to hand
+  // setHeader a value it throws on (#2165) — storage.service.ts documents the
+  // throw as reachable; now the header is ASCII with the real name in filename*.
+  it('folds a non-ASCII original name to ASCII + filename* instead of crashing setHeader (#2165)', async () => {
+    const storage = dstor();
+    const s = dsvc({ getFileById: vi.fn().mockReturnValue({ filename: 'pass.pkpass', original_name: '搭乗券.pkpass' }) });
+    await new FilesDownloadController(s, storage).download(req, res, '5', '9');
+    expect(storage.sendToResponse).toHaveBeenCalledWith('files', 'pass.pkpass', res, {
+      contentType: 'application/vnd.apple.pkpass',
+      disposition: 'inline; filename="download.pkpass"; filename*=UTF-8\'\'%E6%90%AD%E4%B9%97%E5%88%B8.pkpass',
+    });
+  });
 });
 
 describe('PhotosController', () => {

@@ -250,6 +250,24 @@ describe('Calendar-feed e2e (real auth guard + temp SQLite)', () => {
     expect(buildTripCalendar).toHaveBeenCalledWith(5);
   });
 
+  // The @Public feed quoted cal.filename straight into Content-Disposition, so
+  // a non-ASCII calendar name was an unauthenticated 500 (#2165).
+  it('public trip feed: a non-ASCII filename folds to an ASCII header with filename*', async () => {
+    const gen = await request(server).post('/api/trips/5/feed/token').set('Cookie', sessionCookie(1));
+    const token = gen.body.feed_url.match(/trip\/([0-9a-f-]+)\.ics$/)![1];
+
+    // ASCII parity first: the default sample calendar keeps the exact legacy header.
+    const plain = await request(server).get(`/api/feed/trip/${token}.ics`);
+    expect(plain.headers['content-disposition']).toBe('inline; filename="sample.ics"');
+
+    buildTripCalendar.mockImplementation(() => ({ ...sampleCalendar(), filename: '沖縄カレンダー.ics' }));
+    const res = await request(server).get(`/api/feed/trip/${token}.ics`);
+    expect(res.status).toBe(200);
+    expect(res.headers['content-disposition']).toBe(
+      'inline; filename="download.ics"; filename*=UTF-8\'\'%E6%B2%96%E7%B8%84%E3%82%AB%E3%83%AC%E3%83%B3%E3%83%80%E3%83%BC.ics',
+    );
+  });
+
   it('public trip feed: 404 for an unknown token', async () => {
     const res = await request(server).get('/api/feed/trip/00000000-0000-0000-0000-000000000000.ics');
     expect(res.status).toBe(404);

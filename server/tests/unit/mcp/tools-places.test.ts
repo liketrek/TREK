@@ -998,6 +998,21 @@ describe('Tool: export_trip_gpx', () => {
     });
   });
 
+  // Same gpxFilename as the REST route (#2165): the title's script survives in
+  // the filename now — the header folding is the controller's job, not ours.
+  it('keeps a non-ASCII trip title in the filename', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: '沖縄 4泊5日' });
+    createPlace(testDb, trip.id, { name: '首里城', lat: 26.217, lng: 127.719 });
+
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({ name: 'export_trip_gpx', arguments: { tripId: trip.id } });
+      const data = parseToolResult(result) as { gpx: string; filename: string };
+      expect(data.filename).toBe('沖縄-4泊5日.gpx');
+      expect(data.gpx).toContain('首里城');
+    });
+  });
+
   it('writes each planned day as a route through its stops in order', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'Paris Weekend' });

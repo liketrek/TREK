@@ -491,6 +491,18 @@ describe('Tool: export_trip_ics', () => {
       expect(result.isError).toBe(true);
     });
   });
+
+  // Same calendar filename as the REST route (#2165): U+3000 used to slip
+  // through the \s keep-class and crash the header there; it folds to _ now.
+  it('folds header-hostile whitespace out of the filename', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: '沖縄　4泊5日', start_date: '2025-06-01', end_date: '2025-06-05' });
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({ name: 'export_trip_ics', arguments: { tripId: trip.id } });
+      const data = parseToolResult(result) as { filename: string };
+      expect(data.filename).toBe('___4_5_.ics');
+    });
+  });
 });
 
 // ---------------------------------------------------------------------------

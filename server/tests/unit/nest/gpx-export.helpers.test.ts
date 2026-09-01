@@ -174,4 +174,17 @@ describe('gpxFilename', () => {
     expect(gpxFilename('///')).toBe('trip.gpx');
     expect(gpxFilename('')).toBe('trip.gpx');
   });
+
+  // Header safety moved into contentDisposition() (#2165) — the filename may
+  // keep the title's own script instead of tripping setHeader's Latin-1 check.
+  it('keeps a non-ASCII title as typed', () => {
+    expect(gpxFilename('沖縄 4泊5日')).toBe('沖縄-4泊5日.gpx');
+    // No NFKD any more: the composed é stays composed instead of decaying into
+    // 'e' + a combining mark that only looked stripped.
+    expect(gpxFilename('Café')).toBe('Café.gpx');
+  });
+
+  it('trims on codepoint boundaries, never through the middle of an emoji', () => {
+    expect(gpxFilename('\u{1F5FE}'.repeat(70))).toBe('\u{1F5FE}'.repeat(60) + '.gpx');
+  });
 });
