@@ -1,7 +1,7 @@
 // FE-JRN-GALLERY-001 to FE-JRN-GALLERY-016
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { act } from 'react'
+import { act, useRef, useState } from 'react'
 import { http, HttpResponse } from 'msw'
 import userEvent from '@testing-library/user-event'
 import { render, screen, waitFor, fireEvent } from '../../../tests/helpers/render'
@@ -73,20 +73,41 @@ const entries: JourneyEntry[] = [
   },
 ]
 
+/** Mirrors the page wiring: the gallery reports its connected providers up,
+    and the host renders one button per provider next to Upload. */
+function GalleryHarness({ gallery, onPhotoClick, onRefresh, onRegisterUpload }: {
+  gallery: GalleryPhoto[]
+  onPhotoClick: (photos: GalleryPhoto[], index: number) => void
+  onRefresh: () => void
+  onRegisterUpload?: (fn: () => void) => void
+}) {
+  const [providers, setProviders] = useState<{ id: string; name: string }[]>([])
+  const browseRef = useRef<((provider: string) => void) | null>(null)
+  return (
+    <>
+      {providers.map(p => (
+        <button type="button" key={p.id} onClick={() => browseRef.current?.(p.id)}>{p.name}</button>
+      ))}
+      <GalleryView
+        entries={entries}
+        gallery={gallery}
+        journeyId={JOURNEY_ID}
+        userId={1}
+        trips={trips}
+        onPhotoClick={onPhotoClick}
+        onRefresh={onRefresh}
+        onRegisterUpload={onRegisterUpload}
+        onRegisterProviders={(p, browse) => { setProviders(p); browseRef.current = browse }}
+      />
+    </>
+  )
+}
+
 function mountGallery(gallery: GalleryPhoto[], onRegisterUpload?: (fn: () => void) => void) {
   const onPhotoClick = vi.fn()
   const onRefresh = vi.fn()
   const utils = render(
-    <GalleryView
-      entries={entries}
-      gallery={gallery}
-      journeyId={JOURNEY_ID}
-      userId={1}
-      trips={trips}
-      onPhotoClick={onPhotoClick}
-      onRefresh={onRefresh}
-      onRegisterUpload={onRegisterUpload}
-    />,
+    <GalleryHarness gallery={gallery} onPhotoClick={onPhotoClick} onRefresh={onRefresh} onRegisterUpload={onRegisterUpload} />,
   )
   return { ...utils, onPhotoClick, onRefresh }
 }

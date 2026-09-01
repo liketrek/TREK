@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import { RefreshCw, Camera, Image, X, Play } from 'lucide-react'
+import { RefreshCw, Camera, X, Play } from 'lucide-react'
 import { normalizeImageFiles } from '../../utils/convertHeic'
 import { isVideoFile } from '../../utils/videoPoster'
 import { useJourneyStore } from '../../store/journeyStore'
@@ -13,7 +13,7 @@ import { ProviderPicker } from './JourneyDetailPageProviderPicker'
 import { ScrollTrigger } from './JourneyDetailPageScrollTrigger'
 import EmptyState from '../shared/EmptyState'
 
-export function GalleryView({ entries, gallery, journeyId, userId, trips, onPhotoClick, onRefresh, onRegisterUpload }: {
+export function GalleryView({ entries, gallery, journeyId, userId, trips, onPhotoClick, onRefresh, onRegisterUpload, onRegisterProviders }: {
   entries: JourneyEntry[]
   gallery: GalleryPhoto[]
   journeyId: number
@@ -22,16 +22,17 @@ export function GalleryView({ entries, gallery, journeyId, userId, trips, onPhot
   onPhotoClick: (photos: GalleryPhoto[], index: number) => void
   onRefresh: () => void
   onRegisterUpload?: (fn: () => void) => void
+  onRegisterProviders?: (providers: { id: string; name: string }[], browse: (provider: string) => void) => void
 }) {
   const { t } = useTranslation()
   const [showPicker, setShowPicker] = useState(false)
   const [pickerProvider, setPickerProvider] = useState<string | null>(null)
-  const [availableProviders, setAvailableProviders] = useState<{ id: string; name: string }[]>([])
   const [galleryProgress, setGalleryProgress] = useState<{ done: number; total: number } | null>(null)
   const galleryUploading = galleryProgress !== null
   const toast = useToast()
 
-  // check which providers are enabled AND connected for the current user
+  // check which providers are enabled AND connected for the current user, then
+  // hand them up: the page header renders the provider buttons next to Upload
   useEffect(() => {
     (async () => {
       try {
@@ -46,7 +47,7 @@ export function GalleryView({ entries, gallery, journeyId, userId, trips, onPhot
             if (status.connected) connected.push({ id: p.id, name: p.name })
           } catch { }
         }
-        setAvailableProviders(connected)
+        onRegisterProviders?.(connected, browseProvider)
       } catch { }
     })()
   }, [])
@@ -126,23 +127,11 @@ export function GalleryView({ entries, gallery, journeyId, userId, trips, onPhot
     <div>
       <input ref={galleryFileRef} type="file" accept="image/*,video/*" multiple onChange={handleGalleryUpload} className="hidden" />
 
-      {/* Header */}
+      {/* Header — the provider buttons live in the page header next to Upload */}
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-[0.07em]" style={{ background: 'var(--vg-surf2)', color: 'var(--vg-ink3)' }}>
           <Camera size={11} /> {allPhotos.length} {t('journey.detail.photos')}
         </span>
-        <div className="flex items-center gap-2">
-          {availableProviders.map(p => (
-            <button type="button"
-              key={p.id}
-              onClick={() => browseProvider(p.id)}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-[11px] font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800"
-            >
-              <Image size={12} />
-              {p.name}
-            </button>
-          ))}
-        </div>
       </div>
 
       {allPhotos.length === 0 ? (

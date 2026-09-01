@@ -10,7 +10,7 @@ import EmptyState from '../components/shared/EmptyState'
 import { Outlet } from 'react-router'
 import {
   ArrowLeft, MoreHorizontal, List, Grid, MapPin,
-  Plus, ChevronUp, ChevronDown, Eye, EyeOff, BookOpen,
+  Plus, ChevronUp, ChevronDown, Eye, EyeOff, BookOpen, Image,
 } from 'lucide-react'
 import MobileMapTimeline from '../components/Journey/MobileMapTimeline'
 import MobileEntryView from '../components/Journey/MobileEntryView'
@@ -44,7 +44,8 @@ function JourneyDetailPageDesktop() {
     showInvite, setShowInvite, showAddTrip, setShowAddTrip,
     unlinkTrip, setUnlinkTrip, showSettings, setShowSettings,
     hideSkeletons, setHideSkeletons,
-    mapRef, fullMapRef, galleryUploadRef, activeLocationId, handleMarkerClick, handleLocationClick,
+    mapRef, fullMapRef, galleryUploadRef, galleryProviders, setGalleryProviders, galleryBrowseRef,
+    activeLocationId, handleMarkerClick, handleLocationClick,
     mapEntries, sidebarMapItems, tripDates, isMobile, tracks,
     feedEdge, scrollFeedTo,
     loadJourney, updateEntry, deleteEntry, reorderEntries, uploadPhotos, deletePhoto,
@@ -346,14 +347,27 @@ function JourneyDetailPageDesktop() {
                   </button>
                 )}
                 {canEditEntries && view === 'gallery' && (
-                  <button type="button"
-                    onClick={() => galleryUploadRef.current?.()}
-                    className="inline-flex items-center gap-1.5 h-9 px-4 rounded-full text-[13px] font-semibold transition-transform hover:-translate-y-0.5"
-                    style={{ background: 'var(--vg-ink)', color: 'var(--vg-bg)' }}
-                  >
-                    <Plus size={16} strokeWidth={2.4} />
-                    {t('common.upload')}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {galleryProviders.map(p => (
+                      <button type="button"
+                        key={p.id}
+                        onClick={() => galleryBrowseRef.current?.(p.id)}
+                        className="inline-flex items-center gap-1.5 h-9 px-4 rounded-full text-[13px] font-semibold transition-transform hover:-translate-y-0.5"
+                        style={{ background: 'var(--vg-ink)', color: 'var(--vg-bg)' }}
+                      >
+                        <Image size={16} strokeWidth={2.4} />
+                        {p.name}
+                      </button>
+                    ))}
+                    <button type="button"
+                      onClick={() => galleryUploadRef.current?.()}
+                      className="inline-flex items-center gap-1.5 h-9 px-4 rounded-full text-[13px] font-semibold transition-transform hover:-translate-y-0.5"
+                      style={{ background: 'var(--vg-ink)', color: 'var(--vg-bg)' }}
+                    >
+                      <Plus size={16} strokeWidth={2.4} />
+                      {t('common.upload')}
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -452,6 +466,7 @@ function JourneyDetailPageDesktop() {
               >
                 <GalleryView
                   onRegisterUpload={(fn) => { galleryUploadRef.current = fn }}
+                  onRegisterProviders={(providers, browse) => { setGalleryProviders(providers); galleryBrowseRef.current = browse }}
                   entries={current.entries}
                   gallery={current.gallery || []}
                   journeyId={current.id}

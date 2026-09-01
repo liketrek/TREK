@@ -31,6 +31,11 @@ export function useJourneyDetail() {
   const fullMapRef = useRef<JourneyMapHandle>(null)
   /** The gallery hands its file picker up here, so the hero button can open it. */
   const galleryUploadRef = useRef<(() => void) | null>(null)
+  /** Same deal for photo providers: the gallery probes which ones are
+      connected and reports them up, so the header can render an Immich/
+      Synology button next to Upload. */
+  const [galleryProviders, setGalleryProviders] = useState<{ id: string; name: string }[]>([])
+  const galleryBrowseRef = useRef<((provider: string) => void) | null>(null)
   const [activeLocationId, setActiveLocationId] = useState<string | null>(null)
 
   const isMobile = useIsMobile()
@@ -384,7 +389,8 @@ export function useJourneyDetail() {
     showInvite, setShowInvite, showAddTrip, setShowAddTrip,
     unlinkTrip, setUnlinkTrip, showSettings, setShowSettings,
     hideSkeletons, setHideSkeletons,
-    mapRef, fullMapRef, galleryUploadRef, activeLocationId, handleMarkerClick, handleLocationClick,
+    mapRef, fullMapRef, galleryUploadRef, galleryProviders, setGalleryProviders, galleryBrowseRef,
+    activeLocationId, handleMarkerClick, handleLocationClick,
     mapEntries, sidebarMapItems, tripDates, isMobile, tracks,
     feedEdge, scrollFeedTo,
     loadJourney, updateEntry, deleteEntry, reorderEntries, uploadPhotos, deletePhoto,
