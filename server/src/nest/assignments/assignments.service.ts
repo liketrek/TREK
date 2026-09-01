@@ -262,6 +262,19 @@ export class AssignmentsService {
   }
 
   /**
+   * Edit the per-assignment note after creation (#2163) — until now the note
+   * was write-once via the create paths (REST body, MCP tools, plugin RPC) and
+   * invisible in the app. Falsy notes ('' or null) clear the column, the same
+   * `notes || null` normalisation createAssignment applies. No auto-sort and no
+   * journey reconcile: the note affects neither the day order nor the skeleton
+   * mirror (same as the transport-mode writes).
+   */
+  updateNotes(id: string | number, notes: string | null | undefined) {
+    this.dbs.run('UPDATE day_assignments SET notes = ? WHERE id = ?', notes || null, id);
+    return this.getAssignmentWithPlace(Number(id));
+  }
+
+  /**
    * Set the travel mode of the leg leaving this stop (#1281). null clears the
    * override so the leg falls back to the day's default_transport_mode. This is
    * sticky by design: changing the whole-day default never touches a leg that

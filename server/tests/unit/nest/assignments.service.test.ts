@@ -407,6 +407,35 @@ describe('updateTime', () => {
   });
 });
 
+describe('updateNotes (#2163)', () => {
+  it('ASG-SVC-030: persists the note and re-selects the nested shape', () => {
+    const { day, place } = fixture();
+    const a = createDayAssignment(testDb, day.id, place.id);
+    const updated = svc.updateNotes(a.id, 'Book the 10:00 timed entry');
+    expect(updated).toMatchObject({ id: a.id, notes: 'Book the 10:00 timed entry' });
+    expect(testDb.prepare('SELECT notes FROM day_assignments WHERE id = ?').get(a.id)).toEqual({ notes: 'Book the 10:00 timed entry' });
+  });
+
+  it('ASG-SVC-031: empty string and null both clear the column (same normalisation as createAssignment)', () => {
+    const { day, place } = fixture();
+    const a = createDayAssignment(testDb, day.id, place.id);
+    svc.updateNotes(a.id, 'gone soon');
+    expect(svc.updateNotes(a.id, '')!.notes).toBeNull();
+    svc.updateNotes(a.id, 'gone again');
+    expect(svc.updateNotes(a.id, null)!.notes).toBeNull();
+    expect(testDb.prepare('SELECT notes FROM day_assignments WHERE id = ?').get(a.id)).toEqual({ notes: null });
+  });
+
+  it('ASG-SVC-032: leaves order and times untouched', () => {
+    const { day, place } = fixture();
+    const a = createDayAssignment(testDb, day.id, place.id, { order_index: 3 });
+    svc.updateTime(a.id, '09:00', '10:00');
+    const updated = svc.updateNotes(a.id, 'note');
+    expect(updated).toMatchObject({ assignment_time: '09:00', assignment_end_time: '10:00' });
+    expect((testDb.prepare('SELECT order_index FROM day_assignments WHERE id = ?').get(a.id) as { order_index: number }).order_index).toBe(0);
+  });
+});
+
 describe('setLegTransportMode', () => {
   it('ASG-SVC-025: sets and clears the leg override (sticky per #1281)', () => {
     const { day, place } = fixture();

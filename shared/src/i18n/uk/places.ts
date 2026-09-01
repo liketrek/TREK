@@ -77,6 +77,8 @@ const places: TranslationStrings = {
   'places.formWebsite': 'Веб-сайт',
   'places.formNotes': 'Нотатки',
   'places.formNotesPlaceholder': 'Особисті нотатки...',
+  'places.assignmentNotes': 'Нотатки на цей день',
+  'places.assignmentNotesPlaceholder': 'Нотатки для цього місця лише на цей день...',
   'places.formReservation': 'Бронювання',
   'places.reservationNotesPlaceholder': 'Нотатки про бронювання, номер підтвердження...',
   'places.mapsSearchPlaceholder': 'Пошук місць...',

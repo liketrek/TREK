@@ -77,6 +77,8 @@ const places: TranslationStrings = {
   'places.formWebsite': 'Ιστοσελίδα',
   'places.formNotes': 'Σημειώσεις',
   'places.formNotesPlaceholder': 'Προσωπικές σημειώσεις...',
+  'places.assignmentNotes': 'Σημειώσεις για αυτή την ημέρα',
+  'places.assignmentNotesPlaceholder': 'Σημειώσεις για αυτό το μέρος μόνο για αυτή την ημέρα...',
   'places.formReservation': 'Κράτηση',
   'places.reservationNotesPlaceholder': 'Σημειώσεις κράτησης, αριθμός επιβεβαίωσης...',
   'places.mapsSearchPlaceholder': 'Αναζήτηση μερών...',

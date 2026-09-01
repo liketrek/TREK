@@ -78,6 +78,19 @@ export const assignmentTimeRequestSchema = z.object({
 });
 export type AssignmentTimeRequest = z.infer<typeof assignmentTimeRequestSchema>;
 
+/**
+ * PUT /:id/notes (#2163) — edit the per-assignment note after creation.
+ * Deliberately uncapped like the create contract above: the REST create body
+ * and the plugin RPC accept notes of any length, so a length cap here would
+ * strand an existing longer note as uneditable (the unchanged textarea would
+ * be rejected on save). Falsy values ('' or null) clear the column, the same
+ * `notes || null` normalisation createAssignment applies on the way in.
+ */
+export const assignmentNotesRequestSchema = z.object({
+  notes: z.string().nullable(),
+});
+export type AssignmentNotesRequest = z.infer<typeof assignmentNotesRequestSchema>;
+
 /** Set the leg's travel mode (a RouteProfileKey, or null to inherit the day default). */
 export const assignmentTransportRequestSchema = z.object({
   // The legacy route read `body.transport_mode ?? null`, so an absent key

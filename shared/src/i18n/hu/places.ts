@@ -77,6 +77,8 @@ const places: TranslationStrings = {
   'places.formWebsite': 'Weboldal',
   'places.formNotes': 'Jegyzetek',
   'places.formNotesPlaceholder': 'Személyes jegyzetek...',
+  'places.assignmentNotes': 'Jegyzetek erre a napra',
+  'places.assignmentNotesPlaceholder': 'Jegyzetek ehhez a helyhez csak erre a napra...',
   'places.formReservation': 'Foglalás',
   'places.reservationNotesPlaceholder': 'Foglalási jegyzetek, visszaigazolási szám...',
   'places.mapsSearchPlaceholder': 'Helyek keresése...',

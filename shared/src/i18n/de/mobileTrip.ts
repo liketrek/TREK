@@ -7,6 +7,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.addToDayQuestion': 'Zu einem Tag hinzufügen?',
   'mobileTrip.addTransportShort': 'Transport',
   'mobileTrip.assignedDays': 'Zugewiesene Tage',
+  'mobileTrip.assignmentNotes': 'Tagesspezifische Notizen',
   'mobileTrip.bookingsEmpty': 'Noch keine Buchungen',
   'mobileTrip.collabFeatureDisabled': 'Diese Funktion ist für diese Reise deaktiviert',
   'mobileTrip.compactView': 'Kompakte Ansicht',

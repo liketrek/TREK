@@ -94,6 +94,17 @@ describe('AssignmentOpsController (parity with the per-assignment op routes)', (
     expect(reconcile).toHaveBeenCalledWith('5', 'sock');
   });
 
+  it('PUT /:id/notes 404 missing, else updates + broadcasts (#2163)', () => {
+    expect(thrown(() => new AssignmentOpsController(svc({ getAssignmentForTrip: vi.fn().mockReturnValue(undefined) } as Partial<AssignmentsService>)).notes(user, '5', '9', { notes: 'n' }))).toEqual({ status: 404, body: { error: 'Assignment not found' } });
+    const updateNotes = vi.fn().mockReturnValue({ id: 9, notes: 'Book the 10:00 entry' }); const broadcast = vi.fn(); const reconcile = vi.fn();
+    const s = svc({ getAssignmentForTrip: vi.fn().mockReturnValue({ id: 9 }), updateNotes, broadcast, reconcile } as Partial<AssignmentsService>);
+    expect(new AssignmentOpsController(s).notes(user, '5', '9', { notes: 'Book the 10:00 entry' }, 'sock')).toEqual({ assignment: { id: 9, notes: 'Book the 10:00 entry' } });
+    expect(updateNotes).toHaveBeenCalledWith('9', 'Book the 10:00 entry');
+    expect(broadcast).toHaveBeenCalledWith('5', 'assignment:updated', { assignment: { id: 9, notes: 'Book the 10:00 entry' } }, 'sock');
+    // The note touches neither day order nor the journey skeleton — no reconcile.
+    expect(reconcile).not.toHaveBeenCalled();
+  });
+
   it('PUT /:id/participants 404 on a foreign assignment, else sets + broadcasts (non-array bodies are the Zod pipe\'s 400, covered in e2e)', () => {
     const setParticipants = vi.fn().mockReturnValue([{ user_id: 2 }]); const broadcast = vi.fn();
     expect(thrown(() => new AssignmentOpsController(svc({ getAssignmentForTrip: vi.fn().mockReturnValue(undefined), setParticipants } as Partial<AssignmentsService>)).setParticipants(user, '5', '9', { user_ids: [2] })))

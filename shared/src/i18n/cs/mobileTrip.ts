@@ -7,6 +7,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.addToDayQuestion': 'Přidat do dne?',
   'mobileTrip.addTransportShort': 'Doprava',
   'mobileTrip.assignedDays': 'Přiřazené dny',
+  'mobileTrip.assignmentNotes': 'Poznámky ke dni',
   'mobileTrip.bookingsEmpty': 'Zatím žádné rezervace',
   'mobileTrip.collabFeatureDisabled': 'Tato funkce je pro tento výlet vypnuta',
   'mobileTrip.compactView': 'Kompaktní zobrazení',

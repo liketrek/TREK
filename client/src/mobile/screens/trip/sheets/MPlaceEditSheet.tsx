@@ -111,6 +111,9 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
         notes: editingPlace.notes || '',
         transport_mode: editingPlace.transport_mode || 'walking',
         website: editingPlace.website || '',
+        // The day-specific note rides only with an assignment in context (#2163);
+        // otherwise the key stays absent so submit never sends a notes write.
+        ...(assignment ? { assignment_notes: assignment.notes || '' } : {}),
       })
     } else if (prefillCoords) {
       setForm({
@@ -237,13 +240,21 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
     expenseIntentRef.current = false
     setIsSaving(true)
     try {
-      const saved = await handleSavePlace({
+      const payload = {
         ...form,
         lat: form.lat ? Number.parseFloat(form.lat) : null,
         lng: form.lng ? Number.parseFloat(form.lng) : null,
         category_id: form.category_id || null,
         _pendingFiles: pendingFiles.length > 0 ? pendingFiles : undefined,
-      })
+      }
+      // #2163: the per-assignment note only travels when an assignment is in
+      // context AND the value actually changed — same dirty-check as the
+      // desktop form, so an untouched note never produces a PUT.
+      const ctxAssignment = sheetAssignmentId ? dayAssignments.find(a => a.id === sheetAssignmentId) : null
+      if (!ctxAssignment || (form.assignment_notes ?? '') === (ctxAssignment.notes ?? '')) {
+        delete payload.assignment_notes
+      }
+      const saved = await handleSavePlace(payload)
       const savedId = saved?.id ?? sheetPlace?.id ?? null
       if (withExpense && savedId) {
         onOpenExpense({ prefill: { placeId: savedId, name: form.name.trim(), category: 'activities' } })
@@ -348,17 +359,28 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
         <Eyebrow className="mb-[6px] mt-3 uppercase">{t('places.formCategory')}</Eyebrow>
         <PlCategoryPicker planner={planner} value={form.category_id} onChange={id => handleChange('category_id', id)} />
 
-        {/* Times live per day-assignment — only editable when one is in context. */}
+        {/* Times live per day-assignment — only editable when one is in context.
+            Same for the day-specific note (#2163). */}
         {sheetPlace && sheetAssignmentId && (
-          <PlTimeFields
-            planner={planner}
-            startTime={form.place_time}
-            endTime={form.end_time}
-            onChange={handleChange}
-            assignmentId={sheetAssignmentId}
-            dayAssignments={dayAssignments}
-            hasTimeError={hasTimeError}
-          />
+          <>
+            <PlTimeFields
+              planner={planner}
+              startTime={form.place_time}
+              endTime={form.end_time}
+              onChange={handleChange}
+              assignmentId={sheetAssignmentId}
+              dayAssignments={dayAssignments}
+              hasTimeError={hasTimeError}
+            />
+            <Eyebrow className="mb-[5px] mt-3 uppercase">{t('places.assignmentNotes')}</Eyebrow>
+            <textarea
+              value={form.assignment_notes ?? ''}
+              onChange={e => handleChange('assignment_notes', e.target.value)}
+              rows={2}
+              placeholder={t('places.assignmentNotesPlaceholder')}
+              className={FIELD_AREA_CLS}
+            />
+          </>
         )}
 
         <Eyebrow className="mb-[5px] mt-3 uppercase">{t('places.formWebsite')}</Eyebrow>

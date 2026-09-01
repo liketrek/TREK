@@ -77,6 +77,8 @@ const places: TranslationStrings = {
   'places.formWebsite': 'Trang web',
   'places.formNotes': 'Ghi chú',
   'places.formNotesPlaceholder': 'Ghi chú cá nhân...',
+  'places.assignmentNotes': 'Ghi chú cho ngày này',
+  'places.assignmentNotesPlaceholder': 'Ghi chú cho địa điểm này chỉ trong ngày này...',
   'places.formReservation': 'Sự đặt chỗ',
   'places.reservationNotesPlaceholder': 'Phiếu đặt chỗ, số xác nhận...',
   'places.mapsSearchPlaceholder': 'Tìm kiếm địa điểm...',

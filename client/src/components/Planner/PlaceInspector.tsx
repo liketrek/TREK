@@ -6,7 +6,7 @@ import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
 import { markdownLinkComponents } from '../shared/markdownLink'
-import { X, Clock, MapPin, ExternalLink, Phone, Banknote, Edit2, Trash2, Plus, Minus, ChevronDown, ChevronUp, FileText, Upload, File, FileImage, Star, Navigation, Map as MapIcon, Users, Mountain, TrendingUp, Bookmark, BookmarkCheck, Copy, Route } from 'lucide-react'
+import { X, Clock, MapPin, ExternalLink, Phone, Banknote, Edit2, Trash2, Plus, Minus, ChevronDown, ChevronUp, FileText, Upload, File, FileImage, Star, Navigation, Map as MapIcon, Users, Mountain, TrendingUp, Bookmark, BookmarkCheck, Copy, Route, StickyNote } from 'lucide-react'
 import PlaceAvatar from '../shared/PlaceAvatar'
 import PlaceAvatarUpload from '../shared/PlaceAvatarUpload'
 import PlaceRating from '../shared/StarRating'
@@ -425,6 +425,20 @@ export default function PlaceInspector({
           {place.notes && (
             <div className="collab-note-md bg-surface-hover text-content-muted" style={{ borderRadius: 10, overflow: 'hidden', flexShrink: 0, fontSize: 'calc(12px * var(--fs-scale-body, 1))', lineHeight: '1.5', padding: '8px 12px', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
               <Markdown remarkPlugins={[remarkGfm, remarkBreaks]} components={markdownLinkComponents}>{place.notes}</Markdown>
+            </div>
+          )}
+
+          {/* Day-specific assignment note (#2163) — written via MCP/API or the
+              edit form; distinct from the pool-wide place.notes above, so it
+              carries an eyebrow saying which day-scope it belongs to. */}
+          {assignmentInDay?.notes && (
+            <div className="bg-surface-hover" style={{ borderRadius: 10, overflow: 'hidden', flexShrink: 0, padding: '8px 12px' }}>
+              <div className="text-content-faint" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 3 }}>
+                <StickyNote size={10} /> {t('places.assignmentNotes')}
+              </div>
+              <div className="collab-note-md text-content-muted" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', lineHeight: '1.5', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+                <Markdown remarkPlugins={[remarkGfm, remarkBreaks]} components={markdownLinkComponents}>{assignmentInDay.notes}</Markdown>
+              </div>
             </div>
           )}
 
@@ -847,6 +861,10 @@ function PlaceReservationParticipants({ selectedAssignmentId, reservations, assi
                   return (
                     <div
                       role={open ? 'button' : undefined}
+                      // No press-scale on the composite strip — shrinking it
+                      // mid-click slides the links inside out from under the
+                      // pointer (#2158).
+                      data-no-press
                       aria-label={open ? t('inspector.editRes') : undefined}
                       tabIndex={open ? 0 : undefined}
                       onClick={open}

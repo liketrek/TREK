@@ -405,6 +405,14 @@ describe('DayPlanSidebar', () => {
     expect(screen.getByText(/10:00/)).toBeInTheDocument()
   })
 
+  it('FE-PLANNER-DAYPLAN-012b: the day-specific assignment note shows as a caption line in the row (#2163)', () => {
+    const place = buildPlace({ name: 'Louvre Museum' })
+    const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
+    const assignment = buildAssignment({ id: 99, day_id: 10, order_index: 0, place, notes: 'Book the 10:00 timed entry' })
+    render(<DayPlanSidebar {...makeDefaultProps({ days: [day], places: [place], assignments: { '10': [assignment] } })} />)
+    expect(screen.getByText('Book the 10:00 timed entry')).toBeInTheDocument()
+  })
+
   it('FE-PLANNER-DAYPLAN-013: clicking a place calls onPlaceClick', async () => {
     const user = userEvent.setup()
     const place = buildPlace({ id: 42, name: 'Louvre Museum' })

@@ -77,6 +77,8 @@ const places: TranslationStrings = {
   'places.formWebsite': 'Site web',
   'places.formNotes': 'Notes',
   'places.formNotesPlaceholder': 'Notes personnelles…',
+  'places.assignmentNotes': 'Notes pour ce jour',
+  'places.assignmentNotesPlaceholder': 'Notes pour ce lieu uniquement ce jour-là...',
   'places.formReservation': 'Réservation',
   'places.reservationNotesPlaceholder': 'Notes de réservation, numéro de confirmation…',
   'places.mapsSearchPlaceholder': 'Rechercher des lieux…',

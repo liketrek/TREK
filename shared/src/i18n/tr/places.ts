@@ -79,6 +79,8 @@ const places: TranslationStrings = {
   'places.formWebsite': 'Web sitesi',
   'places.formNotes': 'Notlar',
   'places.formNotesPlaceholder': 'Kişisel notlar...',
+  'places.assignmentNotes': 'Bu gün için notlar',
+  'places.assignmentNotesPlaceholder': 'Bu yer için yalnızca bu güne özel notlar...',
   'places.formReservation': 'Rezervasyon',
   'places.reservationNotesPlaceholder': 'Rezervasyon notları, onay numarası...',
   'places.mapsSearchPlaceholder': 'Yerleri ara...',

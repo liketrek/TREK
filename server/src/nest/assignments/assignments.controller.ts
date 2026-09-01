@@ -17,6 +17,7 @@ import {
   AssignmentReorderDto,
   AssignmentMoveDto,
   AssignmentTimeDto,
+  AssignmentNotesDto,
   AssignmentTransportDto,
   AssignmentParticipantsDto,
 } from './assignments.dto';
@@ -168,6 +169,26 @@ export class AssignmentOpsController {
     const assignment = this.assignments.updateTime(id, body.place_time, body.end_time);
     this.assignments.broadcast(tripId, 'assignment:updated', { assignment }, socketId);
     this.assignments.reconcile(tripId, socketId);
+    return { assignment };
+  }
+
+  // #2163: the per-assignment note was write-once (create bodies, MCP, plugin
+  // RPC) with no edit path anywhere. Same guard shape and 404 body as its
+  // neighbours; no reconcile — the note doesn't touch the journey skeleton.
+  @RequirePermission('day_edit')
+  @Put(':id/notes')
+  notes(
+    @CurrentUser() user: User,
+    @Param('tripId') tripId: string,
+    @Param('id') id: string,
+    @Body() body: AssignmentNotesDto,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
+    if (!this.assignments.getAssignmentForTrip(id, tripId)) {
+      throw new HttpException({ error: 'Assignment not found' }, 404);
+    }
+    const assignment = this.assignments.updateNotes(id, body.notes);
+    this.assignments.broadcast(tripId, 'assignment:updated', { assignment }, socketId);
     return { assignment };
   }
 

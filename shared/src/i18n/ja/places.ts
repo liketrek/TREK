@@ -77,6 +77,8 @@ const places: TranslationStrings = {
   'places.formWebsite': 'ウェブサイト',
   'places.formNotes': 'メモ',
   'places.formNotesPlaceholder': '個人的なメモ…',
+  'places.assignmentNotes': 'この日のメモ',
+  'places.assignmentNotesPlaceholder': 'この日だけのこの場所に関するメモ…',
   'places.formReservation': '予約',
   'places.reservationNotesPlaceholder': '予約メモ、確認番号など…',
   'places.mapsSearchPlaceholder': '場所を検索…',

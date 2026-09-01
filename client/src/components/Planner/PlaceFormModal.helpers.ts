@@ -19,6 +19,11 @@ export interface PlaceFormData {
   // DEFAULT_FORM on purpose: the mobile sheet shares this type and never sets
   // it, and places.service already writes image_url through on create/update.
   image_url?: string
+  // Day-specific note on the in-context assignment (#2163). Only hydrated when
+  // the form opened with an assignment in context; both forms drop it from the
+  // submit payload when unchanged, and useTripPlanner strips it off the place
+  // update and PUTs it per assignment instead.
+  assignment_notes?: string
 }
 
 export function isGoogleMapsUrl(input: string): boolean {

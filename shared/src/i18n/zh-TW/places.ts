@@ -76,6 +76,8 @@ const places: TranslationStrings = {
   'places.formWebsite': '網站',
   'places.formNotes': '備註',
   'places.formNotesPlaceholder': '個人備註...',
+  'places.assignmentNotes': '當天備註',
+  'places.assignmentNotesPlaceholder': '僅針對這一天此地點的備註...',
   'places.formReservation': '預訂',
   'places.reservationNotesPlaceholder': '預訂備註、確認號...',
   'places.mapsSearchPlaceholder': '搜尋地點...',

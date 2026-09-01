@@ -193,6 +193,7 @@ beforeEach(() => {
   vi.spyOn(tripsApi, 'getMembers').mockResolvedValue({ owner: null, members: [] })
   vi.spyOn(accommodationsApi, 'list').mockResolvedValue({ accommodations: [] })
   vi.spyOn(assignmentsApi, 'updateTime').mockResolvedValue({})
+  vi.spyOn(assignmentsApi, 'updateNotes').mockResolvedValue({})
   vi.spyOn(airtrailApi, 'sync').mockResolvedValue({ changed: 0 })
   vi.spyOn(mapsApi, 'reverse').mockResolvedValue({ name: '', address: '' } as never)
   vi.spyOn(mapsApi, 'search').mockResolvedValue({ places: [] } as never)
@@ -1093,6 +1094,48 @@ describe('useTripPlanner — place CRUD', () => {
     expect(actions.updatePlace).toHaveBeenCalledWith(42, 1, { name: 'Nara' })
     expect(assignmentsApi.updateTime).toHaveBeenCalledWith(42, 10, { place_time: '09:00', end_time: '10:00' })
     expect(actions.refreshDays).toHaveBeenCalledWith(42)
+  })
+
+  it('FE-TP-HOOK-053b: a changed assignment note is stripped off the place and PUT per assignment (#2163)', async () => {
+    const place = buildPlace({ id: 1, lat: 1, lng: 2 })
+    seedTrip({
+      places: [place],
+      assignments: { '7': [buildAssignment({ id: 10, day_id: 7, place })] },
+    })
+
+    const { result } = await renderPlanner()
+    act(() => { result.current.openPlaceEditor(place) })
+
+    await act(async () => {
+      await result.current.handleSavePlace({ name: 'Nara', assignment_notes: 'Book the 10:00 entry' })
+    })
+
+    expect(actions.updatePlace).toHaveBeenCalledWith(42, 1, { name: 'Nara' })
+    expect(assignmentsApi.updateNotes).toHaveBeenCalledWith(42, 10, { notes: 'Book the 10:00 entry' })
+    expect(actions.refreshDays).toHaveBeenCalledWith(42)
+  })
+
+  it('FE-TP-HOOK-053c: without assignment_notes in the payload no notes write happens; an empty string clears (#2163)', async () => {
+    const place = buildPlace({ id: 1, lat: 1, lng: 2 })
+    seedTrip({
+      places: [place],
+      assignments: { '7': [buildAssignment({ id: 10, day_id: 7, place })] },
+    })
+
+    const { result } = await renderPlanner()
+    act(() => { result.current.openPlaceEditor(place) })
+
+    // The form strips an untouched note, so the key is simply absent.
+    await act(async () => {
+      await result.current.handleSavePlace({ name: 'Nara' })
+    })
+    expect(assignmentsApi.updateNotes).not.toHaveBeenCalled()
+
+    // An empty string is an explicit clear and goes out as null.
+    await act(async () => {
+      await result.current.handleSavePlace({ name: 'Nara', assignment_notes: '' })
+    })
+    expect(assignmentsApi.updateNotes).toHaveBeenCalledWith(42, 10, { notes: null })
   })
 
   it('FE-TP-HOOK-054: editing an unassigned place skips the per-assignment time write', async () => {

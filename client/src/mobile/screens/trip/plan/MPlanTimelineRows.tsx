@@ -1,4 +1,4 @@
-import { BedDouble, Car, ChevronDown, ChevronUp, Clock, Footprints, Pencil, Route, Ticket, X, Zap } from 'lucide-react'
+import { BedDouble, Car, ChevronDown, ChevronUp, Clock, Footprints, Pencil, Route, StickyNote, Ticket, X, Zap } from 'lucide-react'
 import type { ReactNode, MouseEvent, CSSProperties } from 'react'
 import PlaceAvatar from '../../../../components/shared/PlaceAvatar'
 import { getCategoryIcon } from '../../../../components/shared/categoryIcons'
@@ -186,6 +186,15 @@ export function PlaceRow({ assignment, fullPlace, linkedRes, chrome, reorder, dr
           <div className="mt-[2px] flex min-w-0 items-center gap-1.5">
             {time && <span className={TIME_CHIP}>{time}</span>}
             {sub && <span className="min-w-0 truncate font-geist text-[0.71875rem] text-m-muted">{sub}</span>}
+          </div>
+        )}
+        {assignment.notes && (
+          // Day-specific note on this stop (#2163) — mirror of the desktop
+          // timeline's caption line, so the phone shows the note exists
+          // without opening the place sheet.
+          <div className="mt-[2px] flex min-w-0 items-center gap-1">
+            <StickyNote size={10} strokeWidth={2.2} className="flex-none text-m-faint" />
+            <span className="min-w-0 truncate font-geist text-[0.65625rem] text-m-faint">{assignment.notes}</span>
           </div>
         )}
       </div>

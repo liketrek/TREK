@@ -77,6 +77,8 @@ const places: TranslationStrings = {
   'places.formWebsite': 'Webové stránky',
   'places.formNotes': 'Poznámky',
   'places.formNotesPlaceholder': 'Osobní poznámky...',
+  'places.assignmentNotes': 'Poznámky pro tento den',
+  'places.assignmentNotesPlaceholder': 'Poznámky k tomuto místu jen pro tento den...',
   'places.formReservation': 'Rezervace',
   'places.reservationNotesPlaceholder': 'Poznámky k rezervaci, potvrzovací kód...',
   'places.mapsSearchPlaceholder': 'Hledat místa...',

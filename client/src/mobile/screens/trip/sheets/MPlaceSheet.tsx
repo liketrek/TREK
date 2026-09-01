@@ -432,6 +432,26 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
               </div>
             )}
 
+            {/* ── Day-specific notes on the assignments (#2163) — the day label
+                only appears when the place sits on more than one day. ── */}
+            {placeAssignments.some(r => r.assignment.notes) && (
+              <>
+                <Eyebrow className="mb-[6px] mt-3">{t('mobileTrip.assignmentNotes')}</Eyebrow>
+                <div className="flex flex-col gap-[6px]">
+                  {placeAssignments.filter(r => r.assignment.notes).map(({ day, assignment }) => (
+                    <div key={assignment.id} className={`rounded-[14px] px-3 py-[10px] ${INNER_CLS}`}>
+                      {placeAssignments.length > 1 && (
+                        <div className="mb-[2px] font-geist text-[0.625rem] font-semibold text-m-faint">
+                          {day.title || t('planner.dayN', { n: (day.day_number ?? planner.days.indexOf(day) + 1) || '?' })}
+                        </div>
+                      )}
+                      <div className="whitespace-pre-wrap font-geist text-[0.75rem] leading-[1.5] text-m-muted">{assignment.notes}</div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
             {/* ── The booking attached to this stop (#2012) ── */}
             {linkedRes && (
               <>

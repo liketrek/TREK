@@ -76,6 +76,8 @@ const places: TranslationStrings = {
   'places.formWebsite': '웹사이트',
   'places.formNotes': '메모',
   'places.formNotesPlaceholder': '개인 메모...',
+  'places.assignmentNotes': '이 날의 메모',
+  'places.assignmentNotesPlaceholder': '이 날에만 적용되는 이 장소의 메모...',
   'places.formReservation': '예약',
   'places.reservationNotesPlaceholder': '예약 메모, 확인 번호...',
   'places.mapsSearchPlaceholder': '장소 검색...',

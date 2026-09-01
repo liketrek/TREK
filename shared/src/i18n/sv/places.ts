@@ -77,6 +77,8 @@ const places: TranslationStrings = {
   'places.formWebsite': 'Hemsida',
   'places.formNotes': 'Noteringar',
   'places.formNotesPlaceholder': 'Personliga anteckningar...',
+  'places.assignmentNotes': 'Anteckningar för denna dag',
+  'places.assignmentNotesPlaceholder': 'Anteckningar för denna plats endast denna dag...',
   'places.formReservation': 'Bokning',
   'places.reservationNotesPlaceholder': 'Bokningsinformation, bekräftelsenummer...',
   'places.mapsSearchPlaceholder': 'Sök efter platser...',

@@ -76,6 +76,8 @@ const places: TranslationStrings = {
   'places.formWebsite': 'Situs web',
   'places.formNotes': 'Catatan',
   'places.formNotesPlaceholder': 'Catatan pribadi...',
+  'places.assignmentNotes': 'Catatan untuk hari ini',
+  'places.assignmentNotesPlaceholder': 'Catatan untuk tempat ini khusus hari ini...',
   'places.formReservation': 'Reservasi',
   'places.reservationNotesPlaceholder': 'Catatan reservasi, nomor konfirmasi...',
   'places.mapsSearchPlaceholder': 'Cari tempat...',

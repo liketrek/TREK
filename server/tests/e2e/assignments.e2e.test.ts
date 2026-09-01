@@ -155,6 +155,44 @@ describe('Assignments e2e (real auth guard + temp SQLite)', () => {
     expect(reconcileTripSkeletons).toHaveBeenCalledWith(5, undefined);
   });
 
+  it('200 notes roundtrip: create with note, PUT edits it, GET list shows the new value (#2163)', async () => {
+    const create = await request(server).post('/api/trips/5/days/3/assignments').set('Cookie', sessionCookie(1))
+      .send({ place_id: 2, notes: 'Book the 10:00 timed entry' });
+    expect(create.status).toBe(201);
+    expect(create.body.assignment.notes).toBe('Book the 10:00 timed entry');
+    const id = create.body.assignment.id;
+
+    const put = await request(server)
+      .put(`/api/trips/5/assignments/${id}/notes`)
+      .set('Cookie', sessionCookie(1))
+      .send({ notes: 'Arrive 15 minutes early' });
+    expect(put.status).toBe(200);
+    expect(put.body.assignment).toMatchObject({ id, notes: 'Arrive 15 minutes early' });
+    expect(db.prepare('SELECT notes FROM day_assignments WHERE id = ?').get(id)).toEqual({ notes: 'Arrive 15 minutes early' });
+
+    const list = await request(server).get('/api/trips/5/days/3/assignments').set('Cookie', sessionCookie(1));
+    expect(list.status).toBe(200);
+    expect(list.body.assignments.find((a: { id: number }) => a.id === id).notes).toBe('Arrive 15 minutes early');
+  });
+
+  it('200 notes clear: null and empty string both null the column (#2163)', async () => {
+    const id = seedAssignment();
+    db.prepare('UPDATE day_assignments SET notes = ? WHERE id = ?').run('old note', id);
+    const cleared = await request(server).put(`/api/trips/5/assignments/${id}/notes`).set('Cookie', sessionCookie(1)).send({ notes: null });
+    expect(cleared.status).toBe(200);
+    expect(cleared.body.assignment.notes).toBeNull();
+    db.prepare('UPDATE day_assignments SET notes = ? WHERE id = ?').run('old note', id);
+    const emptied = await request(server).put(`/api/trips/5/assignments/${id}/notes`).set('Cookie', sessionCookie(1)).send({ notes: '' });
+    expect(emptied.status).toBe(200);
+    expect(db.prepare('SELECT notes FROM day_assignments WHERE id = ?').get(id)).toEqual({ notes: null });
+  });
+
+  it('400 notes body without the notes key is rejected by the Zod pipe (#2163)', async () => {
+    const id = seedAssignment();
+    const res = await request(server).put(`/api/trips/5/assignments/${id}/notes`).set('Cookie', sessionCookie(1)).send({});
+    expect(res.status).toBe(400);
+  });
+
   it('200 update time reconciles journey skeletons', async () => {
     reconcileTripSkeletons.mockClear();
     const id = seedAssignment();
@@ -275,6 +313,16 @@ describe('Assignments e2e (real auth guard + temp SQLite)', () => {
       expect(db.prepare('SELECT COUNT(*) AS n FROM assignment_participants WHERE assignment_id = ?').get(id)).toEqual({ n: 0 });
     });
 
+    it('404s a notes change on a foreign assignment instead of editing it (#2163)', async () => {
+      const id = seedForeignAssignment();
+      const res = await request(server)
+        .put(`/api/trips/${FOREIGN_TRIP}/assignments/${id}/notes`)
+        .set('Cookie', sessionCookie(1))
+        .send({ notes: 'hijacked' });
+      expect(res.status).toBe(404);
+      expect(db.prepare('SELECT notes FROM day_assignments WHERE id = ?').get(id)).toEqual({ notes: null });
+    });
+
     it('403s when the caller is on the trip but lacks day_edit', async () => {
       const id = seedAssignment();
       checkPermission.mockReturnValue(false);
@@ -283,6 +331,17 @@ describe('Assignments e2e (real auth guard + temp SQLite)', () => {
         .set('Cookie', sessionCookie(1))
         .send({ place_time: '09:00', end_time: null });
       expect(res.status).toBe(403);
+    });
+
+    it('403s a notes change without day_edit (#2163)', async () => {
+      const id = seedAssignment();
+      checkPermission.mockReturnValue(false);
+      const res = await request(server)
+        .put(`/api/trips/5/assignments/${id}/notes`)
+        .set('Cookie', sessionCookie(1))
+        .send({ notes: 'nope' });
+      expect(res.status).toBe(403);
+      expect(db.prepare('SELECT notes FROM day_assignments WHERE id = ?').get(id)).toEqual({ notes: null });
     });
   });
 });

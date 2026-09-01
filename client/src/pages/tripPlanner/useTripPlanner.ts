@@ -580,12 +580,19 @@ export function useTripPlanner() {
     const pendingFiles = data._pendingFiles
     delete data._pendingFiles
     if (editingPlace) {
-      // Always strip time fields from place update — time is per-assignment only
-      const { place_time, end_time, ...placeData } = data
+      // Always strip time fields from place update — time is per-assignment only.
+      // Same for the day-specific note (#2163): it belongs to the assignment,
+      // never to the pool place.
+      const { place_time, end_time, assignment_notes, ...placeData } = data
       await tripActions.updatePlace(tripId, editingPlace.id, placeData)
       // If editing from assignment context, save time per-assignment
       if (editingAssignmentId) {
         await assignmentsApi.updateTime(tripId, editingAssignmentId, { place_time: place_time || null, end_time: end_time || null })
+        // The form only includes assignment_notes when the user changed it, so
+        // an untouched note never produces a PUT (#2163). '' clears like null.
+        if (assignment_notes !== undefined) {
+          await assignmentsApi.updateNotes(tripId, editingAssignmentId, { notes: assignment_notes || null })
+        }
         await tripActions.refreshDays(tripId)
       }
       // Upload pending files with place_id

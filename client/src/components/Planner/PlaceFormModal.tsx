@@ -143,6 +143,9 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
         notes: place.notes || '',
         transport_mode: place.transport_mode || 'walking',
         website: place.website || '',
+        // The day-specific note rides only with an assignment in context (#2163);
+        // otherwise the key stays absent so submit never sends a notes write.
+        ...(assignment ? { assignment_notes: assignment.notes || '' } : {}),
       })
     } else if (prefillCoords) {
       setForm({
@@ -471,13 +474,22 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
     }
     setIsSaving(true)
     try {
-      const saved = await onSave({
+      const payload = {
         ...form,
         lat: form.lat ? Number.parseFloat(form.lat) : null,
         lng: form.lng ? Number.parseFloat(form.lng) : null,
         category_id: form.category_id || null,
         _pendingFiles: pendingFiles.length > 0 ? pendingFiles : undefined,
-      })
+      }
+      // #2163: the per-assignment note only travels when an assignment is in
+      // context AND the value actually changed — an untouched note must not
+      // produce a PUT (a legacy note longer than the textarea would otherwise
+      // be re-sent on every unrelated save).
+      const ctxAssignment = assignmentId ? dayAssignments.find(a => a.id === assignmentId) : null
+      if (!ctxAssignment || (form.assignment_notes ?? '') === (ctxAssignment.notes ?? '')) {
+        delete payload.assignment_notes
+      }
+      const saved = await onSave(payload)
       // Open the Costs editor for the saved place when the user asked to
       // create/edit its linked expense — gated on an id, so a create that the
       // server refused never opens an editor pointing at nothing (#1298).
@@ -922,6 +934,21 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
             hasTimeError={hasTimeError}
             t={t}
           />
+        )}
+
+        {/* Day-specific note — like the times, it lives on the assignment, not
+            the pool place (#2163): only editable with one in context. */}
+        {!!(place && assignmentId) && (
+          <div>
+            <label className="block text-sm font-medium text-content-secondary mb-1">{t('places.assignmentNotes')}</label>
+            <textarea
+              value={form.assignment_notes ?? ''}
+              onChange={e => handleChange('assignment_notes', e.target.value)}
+              rows={2}
+              placeholder={t('places.assignmentNotesPlaceholder')}
+              className="form-input" style={{ resize: 'vertical' }}
+            />
+          </div>
         )}
 
         {/* Website */}

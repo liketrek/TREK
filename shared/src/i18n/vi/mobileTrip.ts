@@ -7,6 +7,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.addToDayQuestion': 'Thêm vào một ngày?',
   'mobileTrip.addTransportShort': 'Di chuyển',
   'mobileTrip.assignedDays': 'Ngày được gán',
+  'mobileTrip.assignmentNotes': 'Ghi chú theo ngày',
   'mobileTrip.bookingsEmpty': 'Chưa có đặt chỗ nào',
   'mobileTrip.collabFeatureDisabled': 'Tính năng này bị tắt cho chuyến đi này',
   'mobileTrip.compactView': 'Chế độ xem gọn',
