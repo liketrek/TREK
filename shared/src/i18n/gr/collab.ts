@@ -67,6 +67,7 @@ const collab: TranslationStrings = {
   'collab.polls.emptyHint': 'Ρωτήστε την ομάδα και ψηφίστε μαζί',
   'collab.polls.question': 'Ερώτηση',
   'collab.polls.questionPlaceholder': 'Τι πρέπει να κάνουμε;',
+  'collab.polls.markdownHint': 'Υποστηρίζεται Markdown',
   'collab.polls.addOption': '+ Προσθήκη επιλογής',
   'collab.polls.optionPlaceholder': 'Επιλογή {n}',
   'collab.polls.create': 'Δημιουργία Δημοσκόπησης',

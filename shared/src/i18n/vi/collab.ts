@@ -67,6 +67,7 @@ const collab: TranslationStrings = {
   'collab.polls.emptyHint': 'Hỏi nhóm và cùng nhau bỏ phiếu',
   'collab.polls.question': 'Câu hỏi',
   'collab.polls.questionPlaceholder': 'Chúng ta nên làm gì?',
+  'collab.polls.markdownHint': 'Hỗ trợ Markdown',
   'collab.polls.addOption': '+ Thêm tùy chọn',
   'collab.polls.optionPlaceholder': 'Tùy chọn {n}',
   'collab.polls.create': 'Tạo cuộc thăm dò ý kiến',

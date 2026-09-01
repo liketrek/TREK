@@ -1,5 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { Plus, Trash2, X, Check, BarChart3, Lock, Clock } from 'lucide-react'
+import ReactMarkdown, { type Components } from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import remarkBreaks from 'remark-breaks'
+import rehypeSanitize from 'rehype-sanitize'
+import { markdownLinkComponents } from '../shared/markdownLink'
 import { collabApi } from '../../api/client'
 import { addListener, removeListener } from '../../api/websocket'
 import { useTranslation } from '../../i18n'
@@ -34,6 +39,33 @@ interface Poll {
 }
 
 const FONT = "var(--font-system)"
+
+// Block styling for the markdown question (#2177). Tailwind's preflight resets
+// headings/lists, so the sizes are set here — in em, on purpose: they scale with
+// the surrounding calc(13px * var(--fs-scale-body)) base, so the user's
+// text-size setting keeps working. Links come from markdownLinkComponents
+// (#1629): new tab plus rel protection, this is cross-user content.
+const pollMarkdownComponents: Components = {
+  ...markdownLinkComponents,
+  p: ({ children }) => (
+    <p style={{ margin: '0 0 0.55em' }}>{children}</p>
+  ),
+  h1: ({ children }) => (
+    <h1 style={{ margin: '0 0 0.45em', fontSize: '1.4em', lineHeight: 1.2 }}>{children}</h1>
+  ),
+  h2: ({ children }) => (
+    <h2 style={{ margin: '0 0 0.45em', fontSize: '1.25em', lineHeight: 1.25 }}>{children}</h2>
+  ),
+  h3: ({ children }) => (
+    <h3 style={{ margin: '0 0 0.45em', fontSize: '1.1em', lineHeight: 1.3 }}>{children}</h3>
+  ),
+  ul: ({ children }) => (
+    <ul style={{ margin: '0 0 0.55em', paddingLeft: 20, listStyle: 'disc' }}>{children}</ul>
+  ),
+  ol: ({ children }) => (
+    <ol style={{ margin: '0 0 0.55em', paddingLeft: 20, listStyle: 'decimal' }}>{children}</ol>
+  ),
+}
 
 function timeRemaining(deadline) {
   if (!deadline) return null
@@ -98,7 +130,8 @@ function CreatePollModal({ onClose, onCreate, t }: CreatePollModalProps) {
           {/* Question */}
           <div>
             <div style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>{t('collab.polls.question')}</div>
-            <input autoFocus value={question} onChange={e => setQuestion(e.target.value)} placeholder={t('collab.polls.questionPlaceholder')} style={{ width: '100%', border: '1px solid var(--border-primary)', borderRadius: 10, padding: '8px 12px', fontSize: 'calc(13px * var(--fs-scale-body, 1))', background: 'var(--bg-input)', color: 'var(--text-primary)', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
+            <textarea autoFocus rows={5} value={question} onChange={e => setQuestion(e.target.value)} placeholder={t('collab.polls.questionPlaceholder')} style={{ width: '100%', minHeight: 110, resize: 'vertical', border: '1px solid var(--border-primary)', borderRadius: 10, padding: '8px 12px', fontSize: 'calc(13px * var(--fs-scale-body, 1))', lineHeight: 1.4, background: 'var(--bg-input)', color: 'var(--text-primary)', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
+            <div style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', marginTop: 3 }}>{t('collab.polls.markdownHint')}</div>
           </div>
 
           {/* Options */}
@@ -107,8 +140,8 @@ function CreatePollModal({ onClose, onCreate, t }: CreatePollModalProps) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {options.map((opt, i) => (
                 <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                  <input value={opt} onChange={e => updateOption(i, e.target.value)} placeholder={`${t('collab.polls.option')} ${i + 1}`}
-                    style={{ flex: 1, border: '1px solid var(--border-primary)', borderRadius: 10, padding: '8px 12px', fontSize: 'calc(13px * var(--fs-scale-body, 1))', background: 'var(--bg-input)', color: 'var(--text-primary)', fontFamily: 'inherit', outline: 'none' }} />
+                  <textarea rows={2} value={opt} onChange={e => updateOption(i, e.target.value)} placeholder={`${t('collab.polls.option')} ${i + 1}`}
+                    style={{ flex: 1, minWidth: 0, resize: 'vertical', border: '1px solid var(--border-primary)', borderRadius: 10, padding: '8px 12px', fontSize: 'calc(13px * var(--fs-scale-body, 1))', lineHeight: 1.35, background: 'var(--bg-input)', color: 'var(--text-primary)', fontFamily: 'inherit', outline: 'none' }} />
                   {options.length > 2 && (
                     <button type="button" onClick={() => removeOption(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex', padding: 2 }}><X size={14} /></button>
                   )}
@@ -223,7 +256,9 @@ function PollCard({ poll, currentUser, canEdit, onVote, onClose, onDelete, t }: 
       }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.35, wordBreak: 'break-word' }}>
-            {poll.question}
+            <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeSanitize]} components={pollMarkdownComponents}>
+              {poll.question}
+            </ReactMarkdown>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
             {isClosed && (
@@ -281,7 +316,7 @@ function PollCard({ poll, currentUser, canEdit, onVote, onClose, onDelete, t }: 
             <button type="button" key={idx} onClick={() => onVote(poll.id, idx)}
               disabled={isClosed}
               style={{
-                position: 'relative', display: 'flex', alignItems: 'center', gap: 8,
+                position: 'relative', display: 'flex', alignItems: 'flex-start', gap: 8,
                 padding: '10px 12px', borderRadius: 10, border: 'none', cursor: isClosed ? 'default' : 'pointer',
                 background: 'var(--bg-secondary)', fontFamily: FONT, textAlign: 'left', width: '100%',
                 overflow: 'hidden', transition: 'transform 0.1s',
@@ -308,9 +343,12 @@ function PollCard({ poll, currentUser, canEdit, onVote, onClose, onDelete, t }: 
                 {myVote && <Check size={11} color="#fff" strokeWidth={3} />}
               </div>
 
-              {/* Label */}
+              {/* Label — options stay plain text, but long or multiline ones
+                  must wrap instead of being clipped by the button's
+                  overflow:hidden (#2177) */}
               <span style={{
-                flex: 1, fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: myVote || isWinner ? 600 : 400,
+                flex: 1, minWidth: 0, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', wordBreak: 'break-word',
+                lineHeight: 1.35, fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: myVote || isWinner ? 600 : 400,
                 color: 'var(--text-primary)', position: 'relative', zIndex: 1,
               }}>
                 {typeof opt === 'string' ? opt : opt.text}

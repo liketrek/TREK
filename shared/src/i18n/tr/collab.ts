@@ -67,6 +67,7 @@ const collab: TranslationStrings = {
   'collab.polls.emptyHint': 'Gruba sorun ve birlikte oy verin',
   'collab.polls.question': 'Soru',
   'collab.polls.questionPlaceholder': 'Ne yapalım?',
+  'collab.polls.markdownHint': 'Markdown desteklenir',
   'collab.polls.addOption': '+ Seçenek ekle',
   'collab.polls.optionPlaceholder': 'Seçenek {n}',
   'collab.polls.create': 'Anket Oluştur',

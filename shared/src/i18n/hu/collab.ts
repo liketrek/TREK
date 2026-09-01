@@ -67,6 +67,7 @@ const collab: TranslationStrings = {
   'collab.polls.emptyHint': 'Kérdezd meg a csoportot és szavazzatok együtt',
   'collab.polls.question': 'Kérdés',
   'collab.polls.questionPlaceholder': 'Mit csináljunk?',
+  'collab.polls.markdownHint': 'Markdown támogatott',
   'collab.polls.addOption': 'Opció hozzáadása',
   'collab.polls.optionPlaceholder': '{n}. opció',
   'collab.polls.create': 'Szavazás létrehozása',

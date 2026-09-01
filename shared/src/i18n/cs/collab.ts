@@ -67,6 +67,7 @@ const collab: TranslationStrings = {
   'collab.polls.emptyHint': 'Zeptejte se skupiny a hlasujte společně',
   'collab.polls.question': 'Otázka',
   'collab.polls.questionPlaceholder': 'Co bychom měli dělat?',
+  'collab.polls.markdownHint': 'Podporuje Markdown',
   'collab.polls.addOption': '+ Přidat možnost',
   'collab.polls.optionPlaceholder': 'Možnost {n}',
   'collab.polls.create': 'Vytvořit hlasování',

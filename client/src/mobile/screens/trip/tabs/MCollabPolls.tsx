@@ -1,12 +1,17 @@
 import { useCallback, useEffect, useState } from 'react'
 import { BarChart3, Check, Clock, Lock, Plus, Trash2, X } from 'lucide-react'
+import Markdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import remarkBreaks from 'remark-breaks'
+import rehypeSanitize from 'rehype-sanitize'
 import MDancingTrek from '../../../components/MDancingTrek'
+import { markdownLinkComponents } from '../../../../components/shared/markdownLink'
 import { collabApi } from '../../../../api/client'
 import { addListener, removeListener } from '../../../../api/websocket'
 import { useAuthStore } from '../../../../store/authStore'
 import ToggleSwitch from '../../../../components/Settings/ToggleSwitch'
 import MSheet from '../../../components/MSheet'
-import { Eyebrow, FIELD_CLS, FormSheetFooter, FormSheetHeader } from '../sheets/PlSheetChrome'
+import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetFooter, FormSheetHeader } from '../sheets/PlSheetChrome'
 import MConfirmSheet from '../../settings/MConfirmSheet'
 import type { TripPlanner } from '../MTripShell'
 import { SectionHeader, TabScroller } from './tabChrome'
@@ -253,7 +258,14 @@ function PollCardRow({ poll, canEdit, currentUserId, t, onVote, onClosePoll, onD
     <div className="mt-2 overflow-hidden rounded-2xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)]">
       <div className="flex items-start gap-2 px-3 py-[10px]" style={closed ? { background: 'var(--m-card)' } : undefined}>
         <div className="min-w-0 flex-1">
-          <div className="text-[0.8125rem] font-bold leading-[1.35] text-m-ink">{poll.question}</div>
+          {/* Question is cross-user markdown (#2177): sanitized, raw HTML stays
+              inert, links open in a new tab with rel protection (#1629).
+              Heading/list sizes are em-based so they follow the text scale. */}
+          <div className="break-words text-[0.8125rem] font-bold leading-[1.35] text-m-ink [&_a]:underline [&_h1]:mb-1 [&_h1]:text-[1.35em] [&_h1]:leading-[1.2] [&_h2]:mb-1 [&_h2]:text-[1.2em] [&_h2]:leading-[1.25] [&_h3]:mb-1 [&_h3]:text-[1.1em] [&_h3]:leading-[1.3] [&_ol]:list-decimal [&_ol]:pl-4 [&_p]:mb-1 [&_ul]:list-disc [&_ul]:pl-4">
+            <Markdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeSanitize]} components={markdownLinkComponents}>
+              {poll.question}
+            </Markdown>
+          </div>
           <div className="mt-[5px] flex flex-wrap items-center gap-[6px]">
             {closed ? (
               <span className="inline-flex items-center gap-1 rounded-full bg-[color:var(--m-ic)] px-2 py-[2px] font-geist text-[0.5625rem] font-bold uppercase tracking-[.02em] text-m-faint">
@@ -316,7 +328,7 @@ function PollCardRow({ poll, canEdit, currentUserId, t, onVote, onClosePoll, onD
               type="button"
               disabled={closed || !canEdit}
               onClick={() => onVote(poll.id, idx)}
-              className="relative flex items-center gap-[8px] overflow-hidden rounded-[10px] bg-m-card px-[12px] py-[10px] text-left disabled:cursor-default"
+              className="relative flex items-start gap-[8px] overflow-hidden rounded-[10px] bg-m-card px-[12px] py-[10px] text-left disabled:cursor-default"
             >
               <span className="absolute inset-y-0 left-0" style={{ width: `${pct}%`, background: fillTint }} />
               <span
@@ -327,7 +339,8 @@ function PollCardRow({ poll, canEdit, currentUserId, t, onVote, onClosePoll, onD
               >
                 {myVote && <Check size={11} strokeWidth={3} className="text-m-actfg" />}
               </span>
-              <span className={`relative min-w-0 flex-1 truncate text-[0.8125rem] ${myVote || isWinner ? 'font-bold' : 'font-medium'} text-m-ink`}>
+              {/* No truncate: long or multiline options wrap fully (#2177) */}
+              <span className={`relative min-w-0 flex-1 whitespace-pre-wrap break-words text-[0.8125rem] [overflow-wrap:anywhere] ${myVote || isWinner ? 'font-bold' : 'font-medium'} text-m-ink`}>
                 {opt.text}
               </span>
               {(voted || closed) && count > 0 && (
@@ -406,26 +419,27 @@ function PollFormSheet({ open, onClose, onSubmit, t }: {
 
       <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[6px] pt-1">
         <Eyebrow className="mb-[5px] uppercase">{t('collab.polls.question')} *</Eyebrow>
-        <input
-          type="text"
+        <textarea
+          rows={4}
           value={question}
           onChange={e => setQuestion(e.target.value)}
           maxLength={300}
           placeholder={t('collab.polls.questionPlaceholder')}
-          className={FIELD_CLS}
+          className={FIELD_AREA_CLS}
         />
+        <p className="mt-1 font-geist text-[0.625rem] text-m-faint">{t('collab.polls.markdownHint')}</p>
 
         <Eyebrow className="mb-[6px] mt-3 uppercase">{t('collab.polls.options')}</Eyebrow>
         <div className="flex flex-col gap-[6px]">
           {options.map((opt, i) => (
             <div key={i} className="flex items-center gap-[6px]">
-              <input
-                type="text"
+              <textarea
+                rows={2}
                 value={opt}
                 onChange={e => setOptions(prev => prev.map((o, j) => (j === i ? e.target.value : o)))}
                 placeholder={t('collab.polls.optionPlaceholder', { n: i + 1 })}
                 maxLength={200}
-                className={FIELD_CLS}
+                className={FIELD_AREA_CLS}
               />
               {options.length > 2 && (
                 <button

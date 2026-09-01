@@ -67,6 +67,7 @@ const collab: TranslationStrings = {
   'collab.polls.emptyHint': '그룹에 질문하고 함께 투표하세요',
   'collab.polls.question': '질문',
   'collab.polls.questionPlaceholder': '무엇을 할까요?',
+  'collab.polls.markdownHint': 'Markdown 지원',
   'collab.polls.addOption': '+ 옵션 추가',
   'collab.polls.optionPlaceholder': '옵션 {n}',
   'collab.polls.create': '투표 만들기',

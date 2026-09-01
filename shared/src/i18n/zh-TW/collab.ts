@@ -67,6 +67,7 @@ const collab: TranslationStrings = {
   'collab.polls.emptyHint': '向團隊提問並一起投票',
   'collab.polls.question': '問題',
   'collab.polls.questionPlaceholder': '我們應該做什麼？',
+  'collab.polls.markdownHint': '支援 Markdown',
   'collab.polls.addOption': '+ 新增選項',
   'collab.polls.optionPlaceholder': '選項 {n}',
   'collab.polls.create': '建立投票',

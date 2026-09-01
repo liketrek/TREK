@@ -732,3 +732,123 @@ describe('CollabPolls details', () => {
     }
   });
 });
+
+// FE-COMP-POLLS-016 to FE-COMP-POLLS-022
+// Markdown questions, sanitization and multiline input (#2177).
+
+describe('CollabPolls markdown & multiline', () => {
+  it('FE-COMP-POLLS-016: a markdown question renders headings and bold text', async () => {
+    server.use(
+      http.get('/api/trips/1/collab/polls', () =>
+        HttpResponse.json({ polls: [buildPoll({ question: '## Day trip\n\n**Vote** carefully' })] }),
+      ),
+    );
+    render(<CollabPolls {...defaultProps} />);
+    const heading = await screen.findByText('Day trip');
+    expect(heading.closest('h2')).not.toBeNull();
+    expect(screen.getByText('Vote').closest('strong')).not.toBeNull();
+  });
+
+  it('FE-COMP-POLLS-017: a script/onerror injection attempt produces no live DOM nodes', async () => {
+    server.use(
+      http.get('/api/trips/1/collab/polls', () =>
+        HttpResponse.json({
+          polls: [buildPoll({ question: 'Safe title <script>alert("xss")</script> <img src=x onerror=alert(1)>' })],
+        }),
+      ),
+    );
+    render(<CollabPolls {...defaultProps} />);
+    await screen.findByText(/Safe title/);
+    expect(document.querySelector('script')).toBeNull();
+    expect(document.querySelector('img[src="x"]')).toBeNull();
+    expect(document.querySelector('[onerror]')).toBeNull();
+  });
+
+  it('FE-COMP-POLLS-018: blank lines split the question into separate paragraphs', async () => {
+    server.use(
+      http.get('/api/trips/1/collab/polls', () =>
+        HttpResponse.json({ polls: [buildPoll({ question: 'First paragraph\n\nSecond paragraph' })] }),
+      ),
+    );
+    render(<CollabPolls {...defaultProps} />);
+    const first = await screen.findByText('First paragraph');
+    const second = screen.getByText('Second paragraph');
+    expect(first.tagName).toBe('P');
+    expect(second.tagName).toBe('P');
+    expect(first).not.toBe(second);
+  });
+
+  it('FE-COMP-POLLS-019: a plain-text question renders identically, without formatting nodes', async () => {
+    server.use(
+      http.get('/api/trips/1/collab/polls', () =>
+        HttpResponse.json({ polls: [buildPoll({ question: 'Best destination?' })] }),
+      ),
+    );
+    render(<CollabPolls {...defaultProps} />);
+    const question = await screen.findByText('Best destination?');
+    expect(question.textContent).toBe('Best destination?');
+    // The question sits in a paragraph now, but no formatting was invented
+    expect(question.parentElement!.querySelector('strong, em, h1, h2, a')).toBeNull();
+  });
+
+  it('FE-COMP-POLLS-020: the question field is a textarea — Enter adds a line instead of submitting', async () => {
+    let body: Record<string, unknown> | null = null;
+    server.use(
+      http.post('/api/trips/1/collab/polls', async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ poll: buildPoll({ id: 60, question: 'Line one\nLine two' }) });
+      }),
+    );
+    const user = userEvent.setup();
+    render(<CollabPolls {...defaultProps} />);
+    await screen.findByText(/no polls yet|collab\.polls\.empty/i);
+    await user.click(screen.getByRole('button', { name: /new/i }));
+
+    const questionField = screen.getByPlaceholderText(/what should we do/i);
+    expect(questionField.tagName).toBe('TEXTAREA');
+    await user.type(questionField, 'Line one{enter}Line two');
+    // Enter stayed in the field — the form was not submitted without options
+    expect(body).toBeNull();
+    expect(questionField).toHaveValue('Line one\nLine two');
+
+    const optionInputs = screen.getAllByPlaceholderText(/option/i);
+    expect(optionInputs[0].tagName).toBe('TEXTAREA');
+    await user.type(optionInputs[0], 'A');
+    await user.type(optionInputs[1], 'B');
+    await user.click(screen.getByRole('button', { name: /create|collab\.polls\.create/i }));
+    await waitFor(() => expect(body).toMatchObject({ question: 'Line one\nLine two' }));
+  });
+
+  it('FE-COMP-POLLS-021: a link in the question opens in a new tab with rel protection', async () => {
+    server.use(
+      http.get('/api/trips/1/collab/polls', () =>
+        HttpResponse.json({ polls: [buildPoll({ question: 'Where? [Our hotel](https://example.com)' })] }),
+      ),
+    );
+    render(<CollabPolls {...defaultProps} />);
+    const link = await screen.findByRole('link', { name: 'Our hotel' });
+    expect(link).toHaveAttribute('href', 'https://example.com');
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer nofollow');
+  });
+
+  it('FE-COMP-POLLS-022: a long multiline option wraps instead of being clipped', async () => {
+    server.use(
+      http.get('/api/trips/1/collab/polls', () =>
+        HttpResponse.json({
+          polls: [buildPoll({
+            options: [
+              { id: 1, text: 'Stay at the beach house\nwith the long unpronounceable name', voters: [] },
+              { id: 2, text: 'Rome', voters: [] },
+            ],
+          })],
+        }),
+      ),
+    );
+    render(<CollabPolls {...defaultProps} />);
+    const label = (await screen.findByText(/Stay at the beach house/)).closest('span')!;
+    expect(label.style.whiteSpace).toBe('pre-wrap');
+    expect(label.style.overflowWrap).toBe('anywhere');
+    expect(label.style.minWidth).toBe('0px');
+  });
+});

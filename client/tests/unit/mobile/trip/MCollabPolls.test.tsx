@@ -412,4 +412,52 @@ describe('MCollabPolls', () => {
 
     await waitFor(() => expect(screen.getByPlaceholderText('collab.polls.questionPlaceholder')).toHaveValue(''))
   })
+
+  // Markdown questions, sanitization and multiline input (#2177)
+
+  it('FE-MOB-POLLS-027: renders the question as sanitized markdown with protected links', async () => {
+    setup([poll({ question: '**Bold plan** <script>alert("xss")</script> [site](https://example.com)' })])
+
+    const bold = await screen.findByText('Bold plan')
+    expect(bold.closest('strong')).not.toBeNull()
+    expect(document.querySelector('script')).toBeNull()
+    expect(document.querySelector('[onerror]')).toBeNull()
+    const link = screen.getByRole('link', { name: 'site' })
+    expect(link).toHaveAttribute('target', '_blank')
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer nofollow')
+  })
+
+  it('FE-MOB-POLLS-028: option labels wrap instead of truncating', async () => {
+    setup([poll({ options: [
+      { text: 'A very long option label\nacross two lines', label: 'long', voters: [] },
+      { text: 'Sushi', label: 'Sushi', voters: [] },
+    ] })])
+
+    const label = (await screen.findByText(/A very long option label/)).closest('span')!
+    expect(label.className).toContain('whitespace-pre-wrap')
+    expect(label.className).toContain('break-words')
+    expect(label.className).not.toContain('truncate')
+  })
+
+  it('FE-MOB-POLLS-029: the form uses textareas and keeps inner line breaks on submit', async () => {
+    const createPoll = vi.spyOn(collabApi, 'createPoll').mockResolvedValue({ poll: poll({ id: 9, question: 'Multi\nline?' }) })
+    setup([])
+
+    fireEvent.click(await screen.findByRole('button', { name: 'collab.polls.new' }))
+    const question = await screen.findByPlaceholderText('collab.polls.questionPlaceholder')
+    expect(question.tagName).toBe('TEXTAREA')
+    expect(screen.getByText('collab.polls.markdownHint')).toBeInTheDocument()
+    const option = screen.getByPlaceholderText('collab.polls.optionPlaceholder:1')
+    expect(option.tagName).toBe('TEXTAREA')
+
+    fireEvent.change(question, { target: { value: '  Multi\nline?  ' } })
+    fireEvent.change(option, { target: { value: 'A' } })
+    fireEvent.change(screen.getByPlaceholderText('collab.polls.optionPlaceholder:2'), { target: { value: 'B' } })
+    fireEvent.click(screen.getByRole('button', { name: 'collab.polls.create' }))
+
+    await waitFor(() => expect(createPoll).toHaveBeenCalledWith(1, expect.objectContaining({
+      question: 'Multi\nline?',
+      options: ['A', 'B'],
+    })))
+  })
 })

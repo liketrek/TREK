@@ -66,6 +66,7 @@ const collab: TranslationStrings = {
   'collab.polls.emptyHint': 'اسأل المجموعة وصوّتوا معًا',
   'collab.polls.question': 'السؤال',
   'collab.polls.questionPlaceholder': 'ماذا ينبغي أن نفعل؟',
+  'collab.polls.markdownHint': 'يدعم تنسيق Markdown',
   'collab.polls.addOption': '+ إضافة خيار',
   'collab.polls.optionPlaceholder': 'الخيار {n}',
   'collab.polls.create': 'إنشاء استطلاع',

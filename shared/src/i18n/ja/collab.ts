@@ -67,6 +67,7 @@ const collab: TranslationStrings = {
   'collab.polls.emptyHint': '質問してみんなで投票しましょう',
   'collab.polls.question': '質問',
   'collab.polls.questionPlaceholder': '何をしますか？',
+  'collab.polls.markdownHint': 'Markdown対応',
   'collab.polls.addOption': '+ 選択肢を追加',
   'collab.polls.optionPlaceholder': '選択肢 {n}',
   'collab.polls.create': '投票を作成',

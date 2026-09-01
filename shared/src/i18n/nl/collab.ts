@@ -67,6 +67,7 @@ const collab: TranslationStrings = {
   'collab.polls.emptyHint': 'Stel de groep een vraag en stem samen',
   'collab.polls.question': 'Vraag',
   'collab.polls.questionPlaceholder': 'Wat zullen we doen?',
+  'collab.polls.markdownHint': 'Markdown wordt ondersteund',
   'collab.polls.addOption': '+ Optie toevoegen',
   'collab.polls.optionPlaceholder': 'Optie {n}',
   'collab.polls.create': 'Poll aanmaken',
