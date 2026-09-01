@@ -1,4 +1,4 @@
-// FE-HOOK-GEO-001 to FE-HOOK-GEO-025
+// FE-HOOK-GEO-001 to FE-HOOK-GEO-029
 import { StrictMode } from 'react';
 import { act, renderHook } from '@testing-library/react';
 import { GeoOnceError, getCurrentPositionOnce, useGeolocation } from './useGeolocation';
@@ -54,6 +54,7 @@ describe('useGeolocation', () => {
     expect(result.current.mode).toBe('off');
     expect(result.current.position).toBeNull();
     expect(result.current.error).toBeNull();
+    expect(result.current.errorCode).toBeNull();
     expect(watchPosition).not.toHaveBeenCalled();
   });
 
@@ -303,6 +304,54 @@ describe('useGeolocation', () => {
     expect(requestPermission).toHaveBeenCalledTimes(2);
     expect(watchPosition).toHaveBeenCalledTimes(1);
     expect(result.current.mode).toBe('show');
+  });
+
+  it.each([
+    [1, 'permission-denied'],
+    [2, 'unavailable'],
+    [3, 'timeout'],
+  ])('FE-HOOK-GEO-026: maps watch error code %i to errorCode "%s"', async (code, expected) => {
+    const { result } = renderHook(() => useGeolocation());
+    await act(() => result.current.cycleMode());
+
+    act(() => errorCb!(geoError(code)));
+
+    expect(result.current.errorCode).toBe(expected);
+    expect(result.current.error).toBe('Location unavailable');
+  });
+
+  it('FE-HOOK-GEO-027: a denial still stops the watch and keeps the code for the UI', async () => {
+    const { result } = renderHook(() => useGeolocation());
+    await act(() => result.current.cycleMode());
+
+    act(() => errorCb!(geoError(1, 'User denied Geolocation')));
+
+    expect(result.current.mode).toBe('off');
+    expect(clearWatch).toHaveBeenCalledWith(7);
+    expect(result.current.errorCode).toBe('permission-denied');
+  });
+
+  it('FE-HOOK-GEO-028: a missing geolocation API reports the unsupported code', async () => {
+    delete (navigator as { geolocation?: Geolocation }).geolocation;
+    const { result } = renderHook(() => useGeolocation());
+
+    await act(() => result.current.cycleMode());
+
+    expect(result.current.errorCode).toBe('unsupported');
+  });
+
+  it('FE-HOOK-GEO-029: a successful fix clears both error and errorCode', async () => {
+    const { result } = renderHook(() => useGeolocation());
+    await act(() => result.current.cycleMode());
+
+    act(() => errorCb!(geoError(3, 'Timeout expired')));
+    expect(result.current.error).toBe('Timeout expired');
+    expect(result.current.errorCode).toBe('timeout');
+
+    act(() => successCb!(fix()));
+    expect(result.current.error).toBeNull();
+    expect(result.current.errorCode).toBeNull();
+    expect(result.current.position).not.toBeNull();
   });
 
   it('FE-HOOK-GEO-019: stops the watch when the component unmounts', async () => {

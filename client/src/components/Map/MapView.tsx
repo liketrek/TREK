@@ -802,7 +802,7 @@ export const MapView = memo(function MapView({
   const TooltipOverlay = !hoverDisabled && hoveredPlace && tooltipPos && !isTouchDevice
   const CatIcon = TooltipOverlay ? getCategoryIcon(hoveredPlace.category_icon) : null
 
-  const { position: userPosition, mode: trackingMode, error: trackingError, cycleMode: cycleTrackingMode } = useGeolocation()
+  const { position: userPosition, mode: trackingMode, error: trackingError, errorCode: trackingErrorCode, cycleMode: cycleTrackingMode } = useGeolocation()
   // Desktop browsers only get IP-based geolocation (city-level accuracy),
   // so the button would be misleading. Mobile, where real GPS lives, keeps it.
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
@@ -941,6 +941,7 @@ export const MapView = memo(function MapView({
     {isMobile && <LocationButton
       mode={trackingMode}
       error={trackingError}
+      errorCode={trackingErrorCode}
       onClick={cycleTrackingMode}
       bottomOffset={locationButtonBottom as unknown as number}
     />}

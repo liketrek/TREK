@@ -36,6 +36,7 @@ const geoMock = vi.hoisted(() => ({
   position: null as { lat: number; lng: number; accuracy: number; heading: number | null } | null,
   mode: 'off' as 'off' | 'show' | 'follow',
   error: null as string | null,
+  errorCode: null as string | null,
   cycleMode: vi.fn(),
   setMode: vi.fn(),
 }))
