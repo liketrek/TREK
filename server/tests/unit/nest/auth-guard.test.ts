@@ -201,7 +201,7 @@ describe('CurrentUser decorator', () => {
 });
 
 describe('PasskeyController', () => {
-  const req = { ip: '9.9.9.9' } as Request;
+  const req = { ip: '9.9.9.9', headers: {} } as Request;
   const res = {} as never;
   function rl(): RateLimitService { return new RateLimitService(); }
 
@@ -269,7 +269,7 @@ describe('PasskeyController', () => {
 
   it('falls back to the "unknown" rate-limit key when req.ip is absent', async () => {
     passkey.passkeyLoginOptions.mockResolvedValue({ options: { challenge: 'z' } } as never);
-    const noIp = {} as Request;
+    const noIp = { headers: {} } as Request;
     expect(await pc(rl()).loginOptions(noIp)).toEqual({ challenge: 'z' });
   });
 });
