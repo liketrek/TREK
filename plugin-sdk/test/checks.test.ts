@@ -230,6 +230,20 @@ describe('what blocks what', () => {
   });
 });
 
+describe('manifest.settings-known-keys', () => {
+  it('warns on an attribute the SDK does not know', () => {
+    const r = runOffline(ctx({ manifest: { ...GOOD_MANIFEST, settings: [{ key: 'api_url', defalt: 'oops' }] } }));
+    expect(warned(r, 'manifest.settings-known-keys')).toBe(true);
+    const outcome = r.outcomes.find((o) => o.id === 'manifest.settings-known-keys');
+    expect(outcome?.detail).toMatch(/api_url\.defalt/);
+  });
+
+  it('passes when every attribute is known', () => {
+    const r = runOffline(ctx({ manifest: { ...GOOD_MANIFEST, settings: [{ key: 'api_url', default: 'https://x' }] } }));
+    expect(warned(r, 'manifest.settings-known-keys')).toBe(false);
+  });
+});
+
 describe('README helpers mirror the registry exactly', () => {
   it('strips headings, tables, links, images and code fences before measuring prose', () => {
     const md = '# Title\n\n![x](y.png)\n\n| a | b |\n|---|---|\n\n```js\nconst x = 1;\n```\n\n[link](u)\n';

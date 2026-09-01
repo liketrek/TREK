@@ -11,7 +11,7 @@
  */
 import { createHash } from 'node:crypto';
 import path from 'node:path';
-import { validateManifest, isSatisfiableRange, isUnboundedRange, KNOWN_ADDONS } from '../../manifest.js';
+import { validateManifest, isSatisfiableRange, isUnboundedRange, KNOWN_ADDONS, SETTING_FIELD_KEYS } from '../../manifest.js';
 // The hosts a plugin can ACTUALLY reach. See `code.egress-reachable` for why this is the
 // only list that counts — and permissions.ts for why dev's egress guard uses the same one.
 import { grantedHosts } from '../../permissions.js';
@@ -213,6 +213,33 @@ const manifestAddonsKnown: OfflineCheck = {
           `Not necessarily wrong — you may be targeting a newer TREK than this SDK knows about — but an addon\nTREK does not have can never be enabled, so the plugin would never activate. Known: ${KNOWN_ADDONS.join(', ')}.`,
         )
       : pass(addons.join(', '));
+  },
+};
+
+const manifestSettingsKnownKeys: OfflineCheck = {
+  id: 'manifest.settings-known-keys',
+  stage: 'manifest',
+  depth: 'offline',
+  severity: 'warn',
+  title: 'settings fields carry only attributes the SDK knows',
+  run: (c) => {
+    const settings = c.manifest?.settings;
+    const fields = (Array.isArray(settings) ? settings : []).filter(
+      (s): s is Record<string, unknown> => !!s && typeof s === 'object',
+    );
+    if (!fields.length) return skip();
+    const unknown: string[] = [];
+    for (const f of fields) {
+      for (const k of Object.keys(f)) {
+        if (!(SETTING_FIELD_KEYS as readonly string[]).includes(k)) unknown.push(`${String(f.key ?? '?')}.${k}`);
+      }
+    }
+    return unknown.length
+      ? fail(
+          unknown.join(', '),
+          `TREK stores only the attributes it knows and SILENTLY DROPS the rest at install — a typo ("defalt")\nor an attribute from a newer SDK simply does nothing, with no diagnostic anywhere.\nKnown: ${SETTING_FIELD_KEYS.join(', ')}.`,
+        )
+      : pass(`${fields.length} field(s) clean`);
   },
 };
 
@@ -592,6 +619,7 @@ export const OFFLINE_CHECKS: OfflineCheck[] = [
   manifestTrekRange,
   manifestIdMatchesDir,
   manifestAddonsKnown,
+  manifestSettingsKnownKeys,
   manifestNoEmoji,
   codeServerEntry,
   codeEgressReachable,

@@ -21,7 +21,14 @@ export interface ManifestSettingField {
   scope?: 'instance' | 'user';
   options?: Array<string | number | { value: string | number; label?: string }>;
   oauth?: { initPath?: string; callbackPath?: string };
+  /** Pre-fills the settings form when no value is stored. Not accepted on a secret field. */
+  default?: string | number | boolean;
 }
+
+/** Every attribute a settings-field object may carry — the host silently drops anything else. */
+export const SETTING_FIELD_KEYS = [
+  'key', 'label', 'input_type', 'placeholder', 'hint', 'required', 'secret', 'scope', 'options', 'oauth', 'default',
+] as const;
 export interface ManifestAction {
   key: string;
   label?: string;
@@ -377,6 +384,23 @@ export function validateManifest(raw: unknown): ValidationResult {
           for (const k of ['initPath', 'callbackPath'] as const) {
             const v = (s.oauth as Record<string, unknown>)[k];
             if (v !== undefined && typeof v !== 'string') errors.push(`settings oauth.${k} must be a string`);
+          }
+        }
+      }
+      if (s.default !== undefined) {
+        const d = s.default;
+        if (typeof d !== 'string' && typeof d !== 'number' && typeof d !== 'boolean') {
+          errors.push(`settings["${key}"].default must be a string, number or boolean`);
+        } else if (s.secret === true) {
+          errors.push(`settings["${key}"].default is not allowed on a secret field (the manifest is public — it would ship the secret in plaintext)`);
+        } else if (s.input_type === 'checkbox' && typeof d !== 'boolean') {
+          errors.push(`settings["${key}"].default must be a boolean for a checkbox field`);
+        } else if (Array.isArray(s.options) && s.options.length > 0) {
+          const values = (s.options as unknown[]).map((o) =>
+            o && typeof o === 'object' ? String((o as { value?: unknown }).value) : String(o),
+          );
+          if (!values.includes(String(d))) {
+            errors.push(`settings["${key}"].default must be one of the declared options (${values.join(', ')})`);
           }
         }
       }

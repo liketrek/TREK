@@ -33,3 +33,31 @@ describe('validateManifest settings[].options / settings[].oauth', () => {
     expect(validateManifest(withSetting({ oauth: { initPath: '/oauth/init' } })).ok).toBe(true);
   });
 });
+
+describe('settings default', () => {
+  it('accepts a string/number/boolean default', () => {
+    expect(validateManifest(withSetting({ default: 'https://x' })).ok).toBe(true);
+    expect(validateManifest(withSetting({ default: 42 })).ok).toBe(true);
+    expect(validateManifest(withSetting({ default: true })).ok).toBe(true);
+  });
+  it('carries the default through onto the normalized manifest', () => {
+    const r = validateManifest(withSetting({ default: 'https://x' }));
+    expect(r.manifest?.settings?.[0]?.default).toBe('https://x');
+  });
+  it('rejects an object default', () => {
+    const r = validateManifest(withSetting({ key: 'a', default: { nope: 1 } }));
+    expect(r.errors.join()).toMatch(/settings\["a"\]\.default must be a string, number or boolean/);
+  });
+  it('rejects default on a secret field', () => {
+    const r = validateManifest(withSetting({ key: 'tok', secret: true, default: 'x' }));
+    expect(r.errors.join()).toMatch(/not allowed on a secret field/);
+  });
+  it('rejects a non-boolean default on a checkbox', () => {
+    const r = validateManifest(withSetting({ key: 'on', input_type: 'checkbox', default: 'yes' }));
+    expect(r.errors.join()).toMatch(/must be a boolean/);
+  });
+  it('rejects a default that is not one of the declared options', () => {
+    const r = validateManifest(withSetting({ key: 's', input_type: 'select', options: ['a', 'b'], default: 'c' }));
+    expect(r.errors.join()).toMatch(/one of the declared options/);
+  });
+});
