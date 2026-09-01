@@ -4,7 +4,7 @@ import type { BookElement, BookPageSetup, BookSpread } from '@trek/shared'
 import { SpreadFold, SpreadView } from './SpreadView'
 import { PeerCursors } from './PeerCursors'
 import type { PeerCursor } from './useBookPresence'
-import { FONT_STACKS } from './bookRender'
+import { fontStack } from './bookFonts'
 import { useSpreadInteraction, type HandleId } from './useSpreadInteraction'
 import { useStudioStore } from '../../store/studioStore'
 import { useTranslation } from '../../i18n'
@@ -271,7 +271,7 @@ export function StudioCanvas({
               height: el.frame.h * scaled,
               // The document is in pt; the overlay is on screen at the same zoom.
               fontSize: `${el.size * (96 / 72) * zoom}px`,
-              fontFamily: FONT_STACKS[el.font],
+              fontFamily: fontStack(el.font),
               fontWeight: el.weight,
               fontStyle: el.italic ? 'italic' : undefined,
               lineHeight: el.leading,
