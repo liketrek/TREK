@@ -453,7 +453,10 @@ export class CalendarService {
       car: { start: 'Pickup', end: 'Drop-off' },
       parking: { start: 'Drop-off', end: 'Pickup' },
     };
-    /** How long a hand-over reads as. Zero-length events collapse in most clients. */
+    /**
+     * How long a hand-over — and a check-in/check-out marker without an
+     * until-clock — reads as. Zero-length events collapse in most clients.
+     */
     const HANDOVER_MINUTES = 60;
 
     const plusMinutes = (date: string, time: string, minutes: number): { date: string; time: string } => {
@@ -614,7 +617,18 @@ export class CalendarService {
         const ref = `${date}T00:00`;
         let ev = `BEGIN:VEVENT\r\nUID:${uid(stay.id, kind)}\r\nDTSTAMP:${now}\r\n`;
         ev += dtLine('DTSTART', time, zone, ref);
-        if (isTime(endTime)) ev += dtLine('DTEND', endTime!, zone, ref);
+        if (isTime(endTime)) {
+          ev += dtLine('DTEND', endTime!, zone, ref);
+        } else {
+          // No recorded end → the same default hour the hand-overs read as.
+          // Without a DTEND the marker is a zero-length point, and since a fully
+          // timed stay is represented by nothing else, several clients rendered
+          // the whole booking as clutter or hid it outright (#2136). plusMinutes
+          // carries the date across midnight, so a late check-out ends on the
+          // following day instead of before it started.
+          const stop = plusMinutes(date, time, HANDOVER_MINUTES);
+          ev += dtLine('DTEND', stop.time, zone, `${stop.date}T00:00`);
+        }
         ev += `SUMMARY:${esc(summary)}\r\n`;
         if (stay.place_address) ev += `LOCATION:${esc(stay.place_address)}\r\n`;
         ev += `END:VEVENT\r\n`;

@@ -861,6 +861,10 @@ describe('accommodations', () => {
     expect(ics).not.toContain('DTSTART;VALUE=DATE:20260707\r\nDTEND;VALUE=DATE:20260713');
     expect(ics).toContain('SUMMARY:Check-in: Hotel Bellevue');
     expect(ics).toContain('SUMMARY:Check-out: Hotel Bellevue');
+    // With the block gone the markers are the booking's whole representation, so
+    // they carry the hand-over default hour instead of being points.
+    expect(ics).toContain('DTEND;TZID=Europe/Paris:20260707T160000');
+    expect(ics).toContain('DTEND;TZID=Europe/Paris:20260712T120000');
   });
 
   it('CAL-025d: a second room on the same stay keeps its block, since no marker names it', () => {
@@ -913,6 +917,44 @@ describe('accommodations', () => {
     expect(ics).toContain('DTSTART;TZID=Europe/Paris:20260712T110000');
     expect(ics).toContain('LOCATION:1 Rue de Rivoli');
     expect(ics).toContain('BEGIN:VTIMEZONE\r\nTZID:Europe/Paris');
+  });
+
+  it('CAL-026b: a check-in without an until-clock reads as one hour, not a point (#2136)', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Paris' });
+    createStay(trip.id, { start: '2026-07-07', end: '2026-07-12', check_in: '15:00' });
+
+    const { ics } = svc.exportICS(trip.id);
+
+    // Reporter variant 2: the lone timed end becomes a one-hour slot AND the
+    // all-day block stays, since it is the only carrier of the other end's date.
+    expect(ics).toContain('DTSTART;TZID=Europe/Paris:20260707T150000');
+    expect(ics).toContain('DTEND;TZID=Europe/Paris:20260707T160000');
+    expect(ics).toContain('DTSTART;VALUE=DATE:20260707\r\nDTEND;VALUE=DATE:20260713');
+  });
+
+  it('CAL-026c: the check-out marker carries the same default hour', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Paris' });
+    createStay(trip.id, { start: '2026-07-07', end: '2026-07-12', check_out: '11:00' });
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).toContain('DTSTART;TZID=Europe/Paris:20260712T110000');
+    expect(ics).toContain('DTEND;TZID=Europe/Paris:20260712T120000');
+  });
+
+  it('CAL-026d: a late check-out rolls the DTEND over midnight', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Paris' });
+    createStay(trip.id, { start: '2026-07-07', end: '2026-07-12', check_out: '23:30' });
+
+    const { ics } = svc.exportICS(trip.id);
+
+    // Without the day shift the DTEND would land before its DTSTART, and clients
+    // drop an event whose end precedes its start.
+    expect(ics).toContain('DTSTART;TZID=Europe/Paris:20260712T233000');
+    expect(ics).toContain('DTEND;TZID=Europe/Paris:20260713T003000');
   });
 
   it('CAL-027: a stay without times emits the all-day range and nothing else', () => {
