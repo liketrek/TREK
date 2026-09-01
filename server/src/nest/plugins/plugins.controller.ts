@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpException, Param, Post, Put, Query, Req, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Request } from 'express';
-import { PluginsService } from './plugins.service';
+import { PluginsService, MissingRequiredSettingError } from './plugins.service';
 import { PluginRuntimeService, PluginConsentRequired, PluginDependencyError } from './plugin-runtime.service';
 import { DependencyCycleError } from './dependencies';
 import { PluginRegistryService, RegistryError } from './registry/registry.service';
@@ -151,8 +151,13 @@ export class PluginsController {
    */
   @Put(':id/config')
   async updateConfig(@Param('id') id: string, @Body() body: PluginConfigDto): Promise<PluginInstanceConfigUpdated> {
-    const config = this.plugins.updateInstanceConfig(id, body || {});
-    return { config, restarted: await this.runtime.respawnIfActive(id) };
+    try {
+      const config = this.plugins.updateInstanceConfig(id, body || {});
+      return { config, restarted: await this.runtime.respawnIfActive(id) };
+    } catch (e) {
+      if (e instanceof MissingRequiredSettingError) throw new HttpException({ error: e.message }, 400);
+      throw e;
+    }
   }
 
   /**

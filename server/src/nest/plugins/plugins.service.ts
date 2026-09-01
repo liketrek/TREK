@@ -17,6 +17,14 @@ const SECRET_MASK = '••••••••';
 
 export type PluginDependencyStatus = 'ok' | 'addonDisabled' | 'missingPlugin' | 'hostIncompatible';
 
+/** A save that would leave a `required` settings field empty — mapped to 400 by both controllers. */
+export class MissingRequiredSettingError extends Error {
+  constructor(public readonly field: string) {
+    super(`Missing required setting "${field}"`);
+    this.name = 'MissingRequiredSettingError';
+  }
+}
+
 /**
  * Read side of the plugin system (#plugins), M0 scaffold. Lists installed
  * plugins from the `plugins` registry table and reports whether the runtime is
@@ -229,6 +237,7 @@ export class PluginsService {
         config[k] = v;
       }
     }
+    this.assertRequiredFilled(id, 'instance', config);
     this.db.prepare('UPDATE plugins SET config = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(JSON.stringify(config), id);
     return maskSecrets(config, secretKeys);
   }
@@ -310,6 +319,7 @@ export class PluginsService {
         config[k] = v;
       }
     }
+    this.assertRequiredFilled(id, 'user', config);
     this.db.prepare(
       `INSERT INTO plugin_user_config (plugin_id, user_id, config, updated_at) VALUES (?, ?, ?, datetime('now'))
        ON CONFLICT(plugin_id, user_id) DO UPDATE SET config = excluded.config, updated_at = excluded.updated_at`,
@@ -363,6 +373,24 @@ export class PluginsService {
       ).map((r) => r.field_key),
     );
     return maskSecrets(safeParse(row.config), secretKeys);
+  }
+
+  /**
+   * `required` used to be a decorative asterisk (PR-87 feedback): the form rendered it, but
+   * nothing refused a save. Enforced on the MERGED result so partial patches stay legal and a
+   * stored secret (non-empty ciphertext) counts as filled. A `checkbox` is exempt — required
+   * would demand `true`, which is a consent flow, not a settings field.
+   */
+  private assertRequiredFilled(id: string, scope: 'instance' | 'user', config: Record<string, unknown>): void {
+    const required = this.db
+      .prepare(
+        "SELECT field_key FROM plugin_settings_fields WHERE plugin_id = ? AND scope = ? AND required = 1 AND input_type != 'checkbox'",
+      )
+      .all(id, scope) as Array<{ field_key: string }>;
+    for (const f of required) {
+      const v = config[f.field_key];
+      if (v == null || String(v).trim() === '') throw new MissingRequiredSettingError(f.field_key);
+    }
   }
 }
 

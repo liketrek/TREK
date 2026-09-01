@@ -131,6 +131,39 @@ describe('instance settings fields', () => {
   });
 });
 
+describe('required settings are enforced on save', () => {
+  it('refuses a save that leaves a required instance field empty', () => {
+    installFixturePlugin({ settings: [{ key: 'client_id', required: true }] });
+    expect(() => svc().updateInstanceConfig('fixture-id', { client_id: '   ' })).toThrow(/Missing required setting "client_id"/);
+  });
+
+  it('accepts a partial patch when the required field is already stored', () => {
+    installFixturePlugin({ settings: [{ key: 'client_id', required: true }, { key: 'note', required: false }] });
+    const s = svc();
+    s.updateInstanceConfig('fixture-id', { client_id: 'abc' });
+    expect(() => s.updateInstanceConfig('fixture-id', { note: 'hi' })).not.toThrow();
+  });
+
+  it('refuses a user-settings save that leaves a required user field empty', () => {
+    installFixturePlugin({ settings: [{ key: 'api_key', scope: 'user', required: true }] });
+    expect(() => svc().updateUserConfig('fixture-id', 1, { api_key: '' })).toThrow(/Missing required setting "api_key"/);
+  });
+
+  it('exempts checkbox fields from required enforcement (consent, not a settings field)', () => {
+    installFixturePlugin({ settings: [{ key: 'accept_terms', input_type: 'checkbox', required: true }, { key: 'note', required: false }] });
+    // accept_terms is left entirely unset (never patched, nothing stored) — a
+    // non-checkbox required field in this state would throw.
+    expect(() => svc().updateInstanceConfig('fixture-id', { note: 'hi' })).not.toThrow();
+  });
+
+  it('a stored secret (non-empty ciphertext) counts as filled on a later partial patch', () => {
+    installFixturePlugin({ settings: [{ key: 'api_key', secret: true, required: true }, { key: 'note', required: false }] });
+    const s = svc();
+    s.updateInstanceConfig('fixture-id', { api_key: 'sk-real' });
+    expect(() => s.updateInstanceConfig('fixture-id', { api_key: '••••••••', note: 'hi' })).not.toThrow();
+  });
+});
+
 describe('respawn on save (runtime)', () => {
   it('INS-004 — an inactive plugin is left alone (no respawn, reports false)', async () => {
     install('p');

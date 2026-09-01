@@ -72,7 +72,9 @@ describe('per-user plugin settings', () => {
   });
 
   it('ignores keys that are not declared user-scope fields', () => {
-    svc.updateUserConfig('p', 42, { adminOnly: 'nope', bogus: 'x', units: 'metric' } as Record<string, unknown>);
+    // apiKey is required — filled here so the save isn't refused; the assertion is
+    // about adminOnly/bogus being dropped, not about required enforcement.
+    svc.updateUserConfig('p', 42, { apiKey: 'sk-123', adminOnly: 'nope', bogus: 'x', units: 'metric' } as Record<string, unknown>);
     const cfg = svc.getUserConfig('p', 42);
     expect(cfg.adminOnly).toBeUndefined(); // instance field — not accepted here
     expect(cfg.bogus).toBeUndefined();
@@ -80,7 +82,9 @@ describe('per-user plugin settings', () => {
   });
 
   it('is per-user — one user cannot see another\'s value', () => {
-    svc.updateUserConfig('p', 42, { units: 'metric' });
+    // apiKey is required — filled here so the save isn't refused; the point of this
+    // test is that user 99 sees none of user 42's values.
+    svc.updateUserConfig('p', 42, { apiKey: 'sk-123', units: 'metric' });
     expect(svc.getUserConfig('p', 99).units).toBeUndefined();
     expect(userSettings().readOne('p', 99, 'apiKey')).toBeUndefined();
   });

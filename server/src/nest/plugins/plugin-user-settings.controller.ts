@@ -2,7 +2,7 @@ import { Body, Controller, Get, HttpCode, HttpException, Param, Post, Req, UseGu
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { pluginsEnabled } from './kill-switch';
-import { PluginsService } from './plugins.service';
+import { PluginsService, MissingRequiredSettingError } from './plugins.service';
 import { PluginRuntimeService } from './plugin-runtime.service';
 import { DatabaseService } from '../database/database.service';
 import { PluginUserSettingsUpdateDto } from './plugins.dto';
@@ -81,6 +81,11 @@ export class PluginUserSettingsController {
     const userId = req.user?.id;
     if (!pluginsEnabled() || userId == null || !this.activeWithUserFields(id)) return { config: {} };
     const patch = body?.config && typeof body.config === 'object' ? (body.config as Record<string, unknown>) : {};
-    return { config: this.plugins.updateUserConfig(id, userId, patch) };
+    try {
+      return { config: this.plugins.updateUserConfig(id, userId, patch) };
+    } catch (e) {
+      if (e instanceof MissingRequiredSettingError) throw new HttpException({ error: e.message }, 400);
+      throw e;
+    }
   }
 }
