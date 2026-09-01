@@ -417,6 +417,9 @@ function BoardingPassHero({ trip, bundle, locale, onOpen, onEdit, onCopy, onArch
       className="hero-trip"
       onClick={onOpen}
       role="button"
+      // No press-scale on composite cards: shrinking the surface mid-click slides
+      // the inner menu buttons out from under the pointer (#2158).
+      data-no-press
       tabIndex={0}
       onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onOpen() } }}
     >
@@ -596,6 +599,8 @@ function TripCard({ trip, locale, badges, onOpen, onEdit, onCopy, onArchive, onD
       className="trip-card"
       onClick={onOpen}
       role="button"
+      // Same press-scale opt-out as the hero card (#2158).
+      data-no-press
       tabIndex={0}
       onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onOpen() } }}
     >
@@ -841,7 +846,7 @@ function UpcomingTool({ items, locale, onOpen }: {
             const moment = MOMENT_LABEL[r.type]
             return (
               <div className="upc-item" key={upcomingKey(r)} onClick={() => onOpen(r.trip_id)}
-                role="button" tabIndex={0}
+                role="button" data-no-press tabIndex={0}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(r.trip_id) } }}>
                 <div className="upc-date"><div className="d mono">{dateStr?.d ?? '–'}</div><div className="m">{dateStr?.m ?? ''}</div></div>
                 <div className="upc-info">
