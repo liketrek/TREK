@@ -7,7 +7,9 @@
  *   2. For zooms 0–16, enumerate tile XYZ coordinates within bbox. The low
  *      zooms cost next to nothing (a handful of tiles) but are what the trip
  *      map actually opens at for a multi-city bbox — a z10 floor left the
- *      fitBounds view empty offline (#2180).
+ *      fitBounds view empty offline (#2180). The rectangle is widened to the
+ *      screen that view fills, or the map opens with grey either side of the
+ *      places.
  *   3. Stop when cumulative tile estimate exceeds MAX_TILES (~50 MB).
  *   4. Fetch each tile URL so the Service Worker CacheFirst handler caches it,
  *      at most TILE_CONCURRENCY at a time.
@@ -55,6 +57,12 @@ export const TILE_CONCURRENCY = 6
 /** Name of the Workbox runtime cache holding map tiles (see vite.config.js). */
 const TILE_CACHE = 'map-tiles'
 
+/** Leaflet draws raster tiles at 256 px, which is what makes a screen N tiles wide. */
+const TILE_PX = 256
+
+/** Map size to assume where there is no window (SSR, plain-node callers). */
+const FALLBACK_MAP_PX = { width: 1024, height: 768 }
+
 const DEFAULT_TILE_URL = OFM_POSITRON
 
 /**
@@ -79,18 +87,27 @@ function subdomainFor(x: number, y: number): string {
 
 // ── Tile math ──────────────────────────────────────────────────────────────────
 
+/** Longitude → fractional tile X, i.e. where in the tile grid a coordinate sits. */
+function tileXFor(lng: number, zoom: number): number {
+  return ((lng + 180) / 360) * Math.pow(2, zoom)
+}
+
+/** Latitude → fractional tile Y (Web Mercator, y increases southward). */
+function tileYFor(lat: number, zoom: number): number {
+  const latRad = (lat * Math.PI) / 180
+  return (
+    ((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * Math.pow(2, zoom)
+  )
+}
+
 /** Longitude → tile X at given zoom. */
 export function lngToTileX(lng: number, zoom: number): number {
-  return Math.floor(((lng + 180) / 360) * Math.pow(2, zoom))
+  return Math.floor(tileXFor(lng, zoom))
 }
 
 /** Latitude → tile Y at given zoom (Web Mercator, y increases southward). */
 export function latToTileY(lat: number, zoom: number): number {
-  const n = Math.pow(2, zoom)
-  const latRad = (lat * Math.PI) / 180
-  return Math.floor(
-    ((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * n,
-  )
+  return Math.floor(tileYFor(lat, zoom))
 }
 
 /** Expand a single-point bbox to min 0.1° span (~10 km) in each axis. */
@@ -139,16 +156,63 @@ export function computeBbox(places: Place[], paddingFraction = 0.1): TileBbox | 
 }
 
 /**
+ * The map column is narrower than the window, so taking the window overstates
+ * it. That is the safe direction: it only ever widens the rectangle below.
+ */
+function mapSizePx(): { width: number; height: number } {
+  if (typeof window === 'undefined') return FALLBACK_MAP_PX
+  return {
+    width: window.innerWidth || FALLBACK_MAP_PX.width,
+    height: window.innerHeight || FALLBACK_MAP_PX.height,
+  }
+}
+
+/**
+ * Tile rectangle to prefetch at one zoom: the bbox, widened to the screen the
+ * trip map opens on.
+ *
+ * fitBounds fills the container, so the opening view is only as tight as the
+ * bbox on the axis that limits it: a north-south trip opens with several times
+ * the bbox's longitude in view. Prefetching the places extent alone left that
+ * view grey to the left and right of the trip (#2180). From the zoom where the
+ * bbox outgrows the screen the widening adds nothing, so it costs a few dozen
+ * tiles at the low zooms and nothing at the detail ones.
+ */
+export function tileRange(
+  bbox: TileBbox,
+  zoom: number,
+): { minX: number; maxX: number; minY: number; maxY: number } {
+  const { width, height } = mapSizePx()
+  const west = tileXFor(bbox.minLng, zoom)
+  const east = tileXFor(bbox.maxLng, zoom)
+  const north = tileYFor(bbox.maxLat, zoom)
+  const south = tileYFor(bbox.minLat, zoom)
+
+  // The camera centres the bbox in projected space, the way computeMapViewport does.
+  const centerX = (west + east) / 2
+  const centerY = (north + south) / 2
+  const halfScreenX = width / 2 / TILE_PX
+  const halfScreenY = height / 2 / TILE_PX
+
+  const last = Math.pow(2, zoom) - 1
+  const clamp = (value: number) => Math.max(0, Math.min(last, Math.floor(value)))
+
+  return {
+    minX: clamp(Math.min(west, centerX - halfScreenX)),
+    maxX: clamp(Math.max(east, centerX + halfScreenX)),
+    minY: clamp(Math.min(north, centerY - halfScreenY)),
+    maxY: clamp(Math.max(south, centerY + halfScreenY)),
+  }
+}
+
+/**
  * Count tiles that would be fetched across the zoom range for a bbox.
  * Used to enforce the size guard without actually fetching.
  */
 export function countTiles(bbox: TileBbox, minZoom: number, maxZoom: number): number {
   let total = 0
   for (let z = minZoom; z <= maxZoom; z++) {
-    const minX = lngToTileX(bbox.minLng, z)
-    const maxX = lngToTileX(bbox.maxLng, z)
-    const minY = latToTileY(bbox.maxLat, z) // northern edge → smaller y
-    const maxY = latToTileY(bbox.minLat, z) // southern edge → larger y
+    const { minX, maxX, minY, maxY } = tileRange(bbox, z)
     total += (maxX - minX + 1) * (maxY - minY + 1)
     if (total > MAX_TILES) return total
   }
@@ -188,10 +252,7 @@ function enumerateTiles(
   const coords: Array<[number, number, number]> = []
 
   for (let z = minZoom; z <= maxZoom; z++) {
-    const minX = lngToTileX(bbox.minLng, z)
-    const maxX = lngToTileX(bbox.maxLng, z)
-    const minY = latToTileY(bbox.maxLat, z)
-    const maxY = latToTileY(bbox.minLat, z)
+    const { minX, maxX, minY, maxY } = tileRange(bbox, z)
 
     if (coords.length + (maxX - minX + 1) * (maxY - minY + 1) > MAX_TILES) break
 
@@ -226,7 +287,8 @@ async function openTileCache(): Promise<Cache | null> {
  * (background sync) leave the promise floating.
  *
  * Returns the number of tiles actually fetched — tiles already in the cache are
- * skipped without touching the network.
+ * skipped without touching the network, and a request the browser refused is not
+ * counted at all.
  */
 export async function prefetchTiles(
   bbox: TileBbox,
@@ -259,9 +321,12 @@ export async function prefetchTiles(
 
       if (cache && (await cache.match(url))) continue
 
-      // The SW CacheFirst handler stores the response.
-      await fetch(url, { mode: 'no-cors' }).catch(() => {})
-      fetched++
+      // The SW CacheFirst handler stores the response. A rejected request (a CSP
+      // refusal, a provider that is down, DNS) leaves nothing in the cache and
+      // must not count towards the tally the caller logs as tiles cached: that
+      // is what let a fully blocked prefetch still report success (#2180).
+      const reached = await fetch(url, { mode: 'no-cors' }).then(() => true, () => false)
+      if (reached) fetched++
     }
   }
 

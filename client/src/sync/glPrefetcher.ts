@@ -15,7 +15,7 @@
  * The style, sprite and glyphs are per device rather than per trip: about
  * 980 KB once, not per journey.
  */
-import { computeBbox, lngToTileX, latToTileY, type TileBbox } from './tilePrefetcher'
+import { computeBbox, tileRange, type TileBbox } from './tilePrefetcher'
 import type { Place } from '../types'
 
 /** OpenFreeMap serves vector tiles up to z14 and overzooms from there. */
@@ -104,12 +104,11 @@ async function openVectorCache(): Promise<Cache | null> {
 function enumerateVectorTiles(bbox: TileBbox, minZoom: number, maxZoom: number): [number, number, number][] {
   const out: [number, number, number][] = []
   for (let z = minZoom; z <= maxZoom; z++) {
-    const x0 = lngToTileX(bbox.minLng, z)
-    const x1 = lngToTileX(bbox.maxLng, z)
-    const y0 = latToTileY(bbox.maxLat, z)
-    const y1 = latToTileY(bbox.minLat, z)
-    for (let x = Math.min(x0, x1); x <= Math.max(x0, x1); x++) {
-      for (let y = Math.min(y0, y1); y <= Math.max(y0, y1); y++) {
+    // Same screen-widened rectangle as the raster side: the opening fitBounds
+    // view shows more than the places extent on the non-limiting axis (#2180).
+    const { minX, maxX, minY, maxY } = tileRange(bbox, z)
+    for (let x = minX; x <= maxX; x++) {
+      for (let y = minY; y <= maxY; y++) {
         out.push([z, x, y])
         if (out.length >= MAX_VECTOR_TILES) return out
       }

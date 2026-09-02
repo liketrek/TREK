@@ -33,6 +33,25 @@ describe('global CSP: OpenStreetMap tile hosts (#1733)', () => {
   });
 });
 
+describe('global CSP: the other shipped raster presets (#2180)', () => {
+  it('allows tile.openstreetmap.de', async () => {
+    // The prefetcher fetches tiles with mode 'no-cors', which relaxes CORS and
+    // nothing else: a host missing here is refused in the document, so the
+    // Service Worker never sees the request and caches no tile at all.
+    expect(await connectSrcSources()).toContain('https://tile.openstreetmap.de');
+  });
+
+  it('allows tiles.stadiamaps.com', async () => {
+    expect(await connectSrcSources()).toContain('https://tiles.stadiamaps.com');
+  });
+
+  it('keeps the routing host, which is a different host and covers nothing here', async () => {
+    // routing.openstreetmap.de was on the list all along and looks close enough
+    // to hide the gap: a CSP source matches a host, not a suffix of one.
+    expect(await connectSrcSources()).toContain('https://routing.openstreetmap.de/');
+  });
+});
+
 describe('global CSP: script-src', () => {
   it("allows 'wasm-unsafe-eval' so the WASM decoders keep running", async () => {
     expect(await directiveSources('script-src')).toContain("'wasm-unsafe-eval'");

@@ -198,6 +198,11 @@ export function applyGlobalMiddleware(
           // retired the a/b/c/d shards (#1733). The sharded hosts stay listed
           // for tile templates users saved before that.
           "https://tile.openstreetmap.org", "https://*.tile.openstreetmap.org",
+          // The other two raster presets TREK ships. `mode: 'no-cors'` relaxes
+          // CORS, not CSP, so without these the tile prefetch is refused in the
+          // document and never reaches the Service Worker that would cache it
+          // (#2180). routing.openstreetmap.de below is a different host.
+          "https://tile.openstreetmap.de", "https://tiles.stadiamaps.com",
           "https://unpkg.com", "https://open-meteo.com", "https://api.open-meteo.com",
           "https://geocoding-api.open-meteo.com", "https://api.frankfurter.dev",
           "https://router.project-osrm.org/route/v1/", "https://routing.openstreetmap.de/",
