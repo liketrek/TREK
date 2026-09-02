@@ -701,9 +701,11 @@ context, so media queries inside it measure the frame, and they work.
 ## Settings
 
 Declare settings in the manifest; TREK renders the form (you write no settings
-UI). `scope: "instance"` settings are set once by the admin and arrive resolved in
-`ctx.config`; `scope: "user"` settings are per-user and are read one key at a time
-with `await ctx.settings.get(key)` (a userless job / `onLoad` gets `undefined` —
+UI). `scope: "instance"` settings are set once by the admin — under
+**Admin → Plugins → ⋯ → Instance settings**, where only the fields your manifest declares
+are stored and saving re-spawns a running plugin — and arrive resolved in `ctx.config`.
+`scope: "user"` settings are edited by each user under **Settings → Plugins** and are read
+one key at a time with `await ctx.settings.get(key)` (a userless job / `onLoad` gets `undefined` —
 fall back to `ctx.config` there). `secret: true` fields are stored encrypted and
 delivered decrypted through whichever of the two applies (server-side only) —
 never to the iframe.
@@ -803,7 +805,7 @@ module.exports = definePlugin({
 | Hook | Permission | Status |
 |---|---|---|
 | `placeDetailProvider.getDetails(placeId, ctx)` → `{ label, value?, url? }[]` | `hook:place-detail-provider` | **live** — shown in the place-detail panel; also `GET /api/place-details/:placeId` |
-| `warningProvider.getWarnings(tripId, ctx)` → `{ level, message, dayId?, placeId? }[]` | `hook:trip-warning-provider` | **live** — validation warnings shown as a non-blocking banner in the trip planner; also `GET /api/trip-warnings/:tripId` |
+| `warningProvider.getWarnings(tripId, ctx)` → `{ level, message, dayId?, placeId? }[]` | `hook:trip-warning-provider` | **live** — validation warnings shown as a non-blocking banner in the trip planner; also `GET /api/trip-warnings/:tripId`, and to a connected assistant as the `get_trip_warnings` MCP tool (≤20 warnings per provider, message ≤300 chars) — that path needs only the trips read scope, not `plugins:use` |
 | `tableContributor.getContributions(view, tripId, ctx)` → `TableContribution[]` | `hook:table-contributor` | **live** — host-rendered **columns/actions** keyed by `entityId` in the reservations, transports, places, day, costs, packing, files and todos views. A `column` is `{kind:'column', entityId, id, label, value?, url?, icon?, tone?}` (url is http/https/mailto only); an `action` is `{kind:'action', entityId, id, label, icon?, target}` where `target` opens your sandboxed frame (`{kind:'frame', sub}`) or calls a route (`{kind:'route', method, sub}`). All fields are bounded + normalized host-side; also `GET /api/view-contributions/:view/:tripId` |
 | `mapMarkerProvider.getMarkers(tripId, ctx)` → `MapMarkerContribution[]` | `hook:map-marker-provider` | **live** — bounded markers overlaid on the trip map (#587). Each is `{id, lat, lng, label?, popupText?, url?, icon?, tone?}`; coordinates are range-checked (−90..90 / −180..180), text length-capped, url http/https/mailto-only, count capped (≤200/plugin). Declarative only — plugin JS never runs on the map canvas. Also `GET /api/map-markers/:tripId` |
 | `mapLayerProvider.getLayers(tripId, ctx)` → `MapLayerContribution[]` | `hook:map-layer-provider` | **live** — bounded vector overlays on the trip map: a computed route, a reachable-range corridor, a zone. Each layer is `{id, name?, features}` with features `{type: 'polyline'\|'polygon'\|'circle', points?/center?+radiusM?, tone?, width?, dash?, opacity?, fill?, label?}`. Styling stays in the tone palette; width (1–8), opacity (0.05–1) and radius (≤2000 km) are clamped, `dash` is an enum. Budgets per plugin: ≤4 layers, ≤150 features, ≤8000 vertices, ≤2000 vertices/shape — an oversized or partly-invalid shape is dropped whole, never truncated. Declarative only; drawn beneath TREK's own day route on both the Leaflet and GL renderers. Also `GET /api/map-layers/:tripId` |
@@ -822,6 +824,12 @@ module.exports = definePlugin({
 Each hook method receives its args plus the per-invocation `ctx`, so any `ctx.trips.*`
 read it makes is membership-checked against the current user (like a route handler) —
 with **one exception**, the notification channel, which has no acting user at all.
+
+Every string a hook returns is **emoji-stripped at the render boundary** — badges, columns,
+warnings, PDF sections, map-marker labels, calendar and photo titles, notifications — so
+plugin text stays inside TREK's own icon language; use the declarative `icon` field (a
+lucide name) instead. Your plugin's own sandboxed frame is untouched: that markup is yours
+to design.
 
 ## Notification channels
 
@@ -954,8 +962,13 @@ Semantics worth knowing before you ship one:
   runs.** `required` is enforced, `additionalProperties: false` rejects extras,
   enum/const/ranges/pattern/format are enforced — and nothing may be advertised
   that cannot be enforced, so an unsupported schema keyword (`oneOf`, `$ref`, an
-  unknown `format`) **fails the install**, not silently drops. `default` is
-  advertisement only — the host does not inject it; apply defaults yourself.
+  unknown `format`) **fails the install**, not silently drops. A `pattern` is capped at
+  **200 chars** and may not be ReDoS-shaped (a quantified group that itself repeats or
+  alternates); property names must look like identifiers
+  (`^[A-Za-z_][A-Za-z0-9_.-]{0,63}$`, so `__proto__` & co are rejected);
+  `additionalProperties` must be a boolean; and the schema **root** may not use `enum`,
+  `const` or `nullable`. `default` is advertisement only — the host does not inject it;
+  apply defaults yourself.
 - **A throw is a tool error, not a crash** — the assistant sees a sanitised
   message (≤ 300 chars). Results are capped at 64 KiB / 32 content blocks with a
   visible `[truncated: …]` marker; every string the assistant reads is sanitised
@@ -981,13 +994,15 @@ load about a `mcpToolProvider` without the `mcp:tools` grant and 403s
 
 ## Settings-page actions
 
-A plugin can put **buttons on its own settings page** — "Test connection", "Sync now",
-"Clear cache". Declare them in the manifest and implement them on the definition:
+A plugin can put **buttons on its own settings form** — "Test connection", "Sync now",
+"Clear cache" — on a user's settings page or, with `scope: "instance"`, in the admin's
+instance-settings dialog. Declare them in the manifest and implement them on the definition:
 
 ```json
 "actions": [
   { "key": "testConnection", "label": "Test connection", "hint": "Pings the API." },
-  { "key": "purge", "label": "Delete my data", "danger": true }
+  { "key": "purge", "label": "Delete my data", "danger": true },
+  { "key": "purgeCache", "label": "Purge cache", "scope": "instance" }
 ]
 ```
 
@@ -1008,6 +1023,15 @@ An action is **user-initiated**, which is what makes it different from the
 `ctx.settings.get()` returns **their** value and any trip read is membership-checked
 against them — exactly what a "test my credentials" button needs.
 
+`scope` decides *which* clicker, and where the button renders. The default, `"user"`, puts
+it under **Settings → Plugins** beneath that plugin's own fields. `"instance"` puts it in
+the admin's instance-settings dialog instead (**Admin → Plugins → ⋯ → Instance settings**),
+next to the `scope: "instance"` fields it operates on — a "Purge cache" or a "Test SMTP"
+that acts on instance configuration rather than one person's credentials. Both bind the
+clicker as acting user, so an instance action is admin-*surfaced*, not admin-privileged: it
+still sees that admin's own `ctx.settings` alongside `ctx.config`, and its trip reads are
+membership-checked against them.
+
 Notes:
 
 - Return `{ ok, message? }`. Throwing is the same as `{ ok: false }` with the error text.
@@ -1015,7 +1039,18 @@ Notes:
 - `danger: true` renders it destructively and asks for confirmation first.
 - The key must be a valid settings key, and the host refuses any key the manifest didn't
   declare — the key arrives from the URL, so it is never forwarded to your plugin blindly.
-- Max 8 actions; label capped at 60 chars, hint at 200.
+  The scope is fixed by the route as well: a `"user"` key can never be fired from the admin
+  route, nor an `"instance"` key from the settings page.
+- Max 8 actions **across both scopes**, with keys unique across them too; label capped at 60
+  chars (a blank one falls back to the key), hint at 200. A `scope` that is anything but
+  `"user"` or `"instance"` fails install and `trek-plugin validate` with
+  `action "<key>".scope must be "user" or "instance"`.
+- An instance action needs a **running** plugin: the button is disabled until the plugin is
+  active, the dialog saves an edited form before firing it, and the host answers
+  `404 { error: 'Plugin is not active' }` if the child is gone anyway.
+- **Hosts older than TREK 4.2.0 ignore `scope`** and render the button on every user's
+  settings tab, so a plugin using `scope: "instance"` should set a manifest `trek` floor of
+  `>=4.2.0`.
 
 ## Operator-supplied egress hosts (`operatorEgress`)
 
@@ -1318,6 +1353,20 @@ set — is refused rather than delivered, so a test can't pass on a notification
 host would never route to you. Pass `declaredActions` / `channelEvents` to model
 what your manifest declares.
 
+`declaredActions` takes plain keys or `{ key, scope? }` entries, so a manifest with both
+scopes models faithfully:
+
+```js
+const host = createMockHost({
+  actingUserId: 7,
+  declaredActions: ['testConnection', { key: 'purgeCache', scope: 'instance' }],
+})
+```
+
+`app.action(key)` drives either one, and driving a key you didn't declare throws
+(`RESOURCE_FORBIDDEN`) like the host. The scope itself has no runtime effect in the mock:
+both scopes get the acting-user ctx, exactly as the host gives both the clicker's.
+
 ## Rules
 
 - **No native modules** (`.node`, `binding.gyp`, `prebuilds/`) — rejected at pack
@@ -1354,7 +1403,7 @@ what your manifest declares.
 | `egress` | string[] | allowed outbound hosts; required (non-empty, no bare `*`) when any `http:outbound` permission is present — **unless** `operatorEgress` is `true`, in which case it may be empty/omitted and the admin supplies the hosts. |
 | `capabilities.widget` | object | `{ title, slot, defaultSize }` — `slot` is `sidebar` (default), `hero`, `place-detail`, `day-detail`, or `reservation-detail`. |
 | `capabilities.tripPage` | object | `{ replaces?, position? }` for `trip-page` plugins — `replaces` names core planner tabs to hide while active (`transports`, `buchungen`, `listen`, `finanzplan`, `dateien`, `collab`; never `plan`), `position` is the tab's 0-based index in the bar (0–50; omitted = appended). |
-| `actions` | array | Buttons on the plugin's own settings page — `{ key, label, hint?, danger? }` (max 8). Implement each as `actions[key](ctx)` on the definition. **User-initiated**, so `ctx.settings.get()` returns the clicking user's value. See [Settings-page actions](#settings-page-actions). |
+| `actions` | array | Buttons on the plugin's settings form — `{ key, label, hint?, danger?, scope? }` (max 8 across both scopes, keys unique across them). Implement each as `actions[key](ctx)` on the definition. `scope` is `user` (default — renders under **Settings → Plugins**) or `instance` (renders in **Admin → Plugins → ⋯ → Instance settings**, needs `trek` ≥ 4.2.0). Either way the action is **initiated by the person who clicked it** and runs as them, so `ctx.settings.get()` returns *that* user's value. See [Settings-page actions](#settings-page-actions). |
 | `operatorEgress` | boolean | The plugin talks to a **self-hosted** service whose hostname only the operator knows. The admin adds the real hosts after install (Admin → Plugins → Allowed hosts) and the runtime unions them into the egress allow-list. Requires an `http:outbound` permission, and is the only way to declare one with an empty `egress[]`. See [Operator-supplied egress hosts](#operator-supplied-egress-hosts-operatoregress). |
 | `capabilities.notificationChannel` | object | `{ title?, events? }` for a plugin implementing the `notificationChannel` hook — `title` names the column in the notification preferences matrix (default: the plugin's `name`), `events` **narrows** which events the channel carries (default: all ten plugin-deliverable events; `events` may only narrow that set). Requires the `hook:notification-channel` permission. See [Notification channels](#notification-channels). |
 | `capabilities.routeProfiles` | array | up to 3 `{ id, label, icon? }` entries for a plugin implementing the `routeProvider` hook — each becomes a selectable mode in the planner's route toggle (next to Driving/Walking). `id` is lowercase `[a-z][a-z0-9-]` (max 24 chars) and is what `getRoute` receives as `request.profile`; `label` (≤40 chars) is shown to the user. Requires the `hook:route-provider` permission. |

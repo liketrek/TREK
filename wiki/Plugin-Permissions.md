@@ -58,7 +58,7 @@ ungranted capability is physically unreachable**, not just disallowed. See
 | `hook:photo-provider` | Register as a photo provider in Memories | Implement the `PhotoProvider` interface. |
 | `hook:calendar-source` | Register as a calendar source | Implement the `CalendarSource` interface. |
 | `hook:place-detail-provider` | Contribute extra details (reviews, ratings, links) to a place via the `hooks.placeDetailProvider` provider hook | Implement `PlaceDetailProvider` in `hooks` on the plugin definition (not on `ctx`) — shown in the place-detail panel; also exposed at `GET /api/place-details/:placeId`. |
-| `hook:trip-warning-provider` | Raise validation warnings on a trip via the `hooks.warningProvider` provider hook | Implement `WarningProvider` in `hooks` on the plugin definition (not on `ctx`) — shown as a non-blocking banner in the planner; also exposed at `GET /api/trip-warnings/:tripId`. |
+| `hook:trip-warning-provider` | Raise validation warnings on a trip via the `hooks.warningProvider` provider hook | Implement `WarningProvider` in `hooks` on the plugin definition (not on `ctx`) — shown as a non-blocking banner in the planner; also exposed at `GET /api/trip-warnings/:tripId`, and to a connected assistant as the `get_trip_warnings` MCP tool (≤20 warnings per provider, message ≤300 chars) — that path needs only the trips read scope, not `plugins:use`. |
 | `hook:map-marker-provider` | Overlay bounded **markers** on the trip map via the `hooks.mapMarkerProvider` provider hook | Implement `MapMarkerProvider` in `hooks` — returns `{id, lat, lng, label?, popupText?, url?, icon?, tone?}[]` (#587 "show bookings on map"). **Declarative only** — plugin JS never runs on the map canvas. The host range-checks coordinates (−90..90 / −180..180), String-coerces + length-caps text, allowlists the popup url (http/https/mailto), and caps the marker count (≤200) per plugin; a failing provider is skipped. Exposed at `GET /api/map-markers/:tripId`. |
 | `hook:map-layer-provider` | Overlay bounded **vector layers** (polylines, polygons, metric circles) on the trip map via the `hooks.mapLayerProvider` provider hook | Implement `MapLayerProvider` in `hooks` — returns `{id, name?, features}[]` where a feature is `{type, points?/center?+radiusM?, tone?, width?, dash?, opacity?, fill?, label?}`. **Declarative only** — the host draws everything; styling is the tone palette plus clamped numerics (width 1–8, opacity 0.05–1, radius ≤2000 km) and a dash enum, so a layer can't impersonate core UI. Budgets per plugin: ≤4 layers / ≤150 features / ≤8000 vertices / ≤2000 vertices per shape; invalid or oversized shapes are dropped whole (never truncated); a failing provider is skipped. Drawn beneath TREK's own routes. Exposed at `GET /api/map-layers/:tripId`. |
 | `hook:route-provider` | Offer **routing profiles** the planner's route toggle can route days with, via the `hooks.routeProvider` provider hook | Implement `RouteProvider` in `hooks` and declare the profiles in `capabilities.routeProfiles` (max 3; each `{id, label, icon?}`). TREK calls `getRoute({tripId, dayId, profile, waypoints})` for exactly the profile the user picked — this is **targeted**, not a fan-out — with a 20 s timeout so the plugin can call an external solver through its declared egress. The result (`coordinates`, `distance`, `duration`, `legs`, `viaPoints?`) is validated whole (leg count must equal `waypoints−1`, ≤10000 vertices, ≤40 vias); anything malformed is discarded and the planner falls back to straight lines. Exposed at `POST /api/plugin-routes/:pluginId/:profileId` (member-gated per trip). |
@@ -188,13 +188,21 @@ flow is in [[Publishing a Plugin|Plugin-Publishing]].
 
 ## Not a permission — settings-page actions
 
-A plugin can contribute buttons to its own settings page (`actions` in the manifest — a
+A plugin can contribute buttons to its own settings form (`actions` in the manifest — a
 "Test connection", a "Sync now"). These need **no permission**: an action is the plugin's
 own code, and it is run **for the user who clicked it**, so `ctx.settings.get()` returns
 that user's value and any trip read is membership-checked against them — the same gates as
 a route handler. Anything the action *does* (an outbound call, a trip write) still needs
 that capability's own permission. The host refuses any action key the manifest didn't
-declare. See [[Plugin Development#settings-page-actions|Plugin-Development]].
+declare.
+
+A `scope: "instance"` action, which renders in **Admin → Plugins → ⋯ → Instance settings**,
+is **admin-surfaced but not admin-privileged**: it runs as the clicking admin's own user
+like any other action, so `ctx.settings.get()` returns *their* value and trip reads are
+membership-checked against them — an admin who is not on a trip still cannot read it
+through a plugin button. The scope is fixed by the route each button posts to, so a
+user-scoped key can never be fired from the admin route, nor an instance-scoped one from a
+user's settings page. See [[Plugin Development#settings-page-actions|Plugin-Development]].
 
 ## Not a permission — inter-plugin calls & events
 

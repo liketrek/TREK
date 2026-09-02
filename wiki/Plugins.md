@@ -48,10 +48,21 @@ Two guarantees hold for a plugin channel specifically:
 
 ### Plugin settings actions
 
-A plugin can put **buttons on its own settings page** — a "Test connection", a "Sync now".
-Users find them under **Settings → Plugins**, beneath that plugin's fields. An action runs
-**as the user who clicked it**, so a "Test connection" checks *their* credentials and can
-never see anyone else's. TREK refuses any action the plugin didn't declare in its manifest.
+A plugin can put **buttons on its own settings form** — a "Test connection", a "Sync now",
+a "Purge cache". Each button declares a `scope`, which decides where it lands and who runs it:
+
+- **`scope: "user"`** (the default) — the button sits under **Settings → Plugins**, beneath
+  that plugin's fields, and runs **as the user who clicked it**, so a "Test connection"
+  checks *their* credentials and can never see anyone else's.
+- **`scope: "instance"`** — the button sits in **Admin → Plugins → ⋯ → Instance settings**,
+  next to the instance-wide fields it works on. It runs as the clicking **admin** — surfaced
+  in the admin panel, but not admin-privileged — is **disabled until the plugin is active**
+  ("Activate the plugin to run its actions"), and saves an edited form before it fires, so
+  the action sees the configuration you are looking at.
+
+TREK refuses any action the plugin didn't declare in its manifest, and the scope is fixed by
+the route each button posts to: a user-tab action can never be fired from the admin dialog,
+and an instance action never appears on anyone's settings page.
 
 ### Plugin MCP tools
 
@@ -62,8 +73,9 @@ you consent to at install. Three guarantees hold:
 
 - **You see the surface before it exists.** Admin → Plugins shows exactly which
   tools a plugin will advertise (they appear to assistants as
-  `plugin_<id>_<name>`), and any activate/deactivate/update/uninstall closes open
-  assistant sessions so the surface is re-read.
+  `plugin_<id>_<name>`), and activating, deactivating, updating, re-trusting or
+  uninstalling a plugin — or turning off an addon it requires — closes open assistant
+  sessions so the surface is re-read.
 - **A tool call runs as the requesting user.** The host binds the user from the
   assistant's session — a plugin can never pick one — so every read is
   membership-checked exactly like the plugin's normal API calls, and the
@@ -175,8 +187,14 @@ manifest (at the reviewed commit) and lays out:
 - **Connects to** — the outbound hosts it declared (`egress`).
 - **Setup** — configuration fields it will ask for, with scope (instance/user) and
   whether each is required.
+- **AI tools it publishes** — for a plugin declaring `capabilities.mcpTools`: each tool's
+  name, title and the assistant-facing description, so you read what a connected assistant
+  will be told about the plugin *before* you grant it.
 - **Details** — version, download size, minimum TREK version, review date, plus
   links to the source repo and homepage.
+- **Versions** — every published version (listed once a plugin has more than one) with its
+  date, a signature shield and a compatibility verdict, each with its own **Install v{X}**
+  button. A version this TREK can't run is explained ("needs TREK {range}"), never offered.
 
 A **Reviewed** badge means a TREK maintainer scanned that exact version's source
 for malware — **not** that it works well or is harmless. It is not an ongoing
@@ -186,10 +204,14 @@ guarantee. Read the access list and outbound hosts, not just the description.
 
 Three ways, all from **Admin → Plugins**:
 
-1. **From the registry.** In **Discover**, open a plugin and click **Install**
-   (also available directly on the card). TREK downloads the pinned version, verifies
-   its SHA-256 against the registry (and an author signature if the plugin ships one),
-   safely unpacks it, re-validates the manifest, and registers it — **inactive**.
+1. **From the registry.** In **Discover**, open a plugin and click **Install** (also
+   available directly on the card), which takes the **newest version this TREK can run**.
+   To take a different one, use the per-version **Install v{X}** button in the detail
+   modal's **Versions** list — deliberately installing a version that isn't the newest
+   compatible one **pauses updates** for that plugin until you resume them (see
+   [Updating a plugin](#updating-a-plugin)). Either way TREK downloads that exact version,
+   verifies its SHA-256 against the registry (and an author signature if the plugin ships
+   one), safely unpacks it, re-validates the manifest, and registers it — **inactive**.
    Nothing runs yet.
 2. **By upload (sideload).** Drag a plugin `.zip`/`.tar.gz` onto the panel, or use
    the **Upload** button. TREK extracts it into staging with the same hard guards as
@@ -239,12 +261,20 @@ plugin can't reach one it didn't declare). See
 
 ## Managing a plugin
 
-The **⋯** menu on each row:
+The **⋯** menu on each row, in order:
 
 - **Restart** — stop and re-spawn the process (shown only while active).
+- **Instance settings** — the admin-owned `scope: "instance"` fields, plus the plugin's
+  instance-scoped action buttons (shown only when it declares one or the other). Secret
+  fields stay masked, only fields the manifest declares are stored, and saving re-spawns a
+  running plugin so it picks the new configuration up — the child reads it once, at start.
+  See [Plugin settings actions](#plugin-settings-actions).
 - **View error log** — the plugin's own crash/failed-request log.
 - **Allowed hosts** — add the hosts a plugin may reach, for a plugin that talks to a
-  service only *you* can name. See [Allowed hosts](#allowed-hosts) below.
+  service only *you* can name (shown only for a plugin whose manifest declares
+  `operatorEgress`). See [Allowed hosts](#allowed-hosts) below.
+- **Change version** — switch to any published version of the plugin (registry installs
+  only). See [Pinning and rolling back](#pinning-and-rolling-back).
 - **Source repository** — opens the plugin's GitHub repo (registry installs only).
 - **Report an issue** — opens that repo's issue tracker (registry installs only).
 - **Delete** — uninstalls, after a confirmation: it stops the plugin, removes its code,
@@ -297,7 +327,12 @@ grant allows in the first place.
 ## Updating a plugin
 
 When the registry lists a newer version, an **Update to vX.Y.Z** pill appears on
-the row, and an **Update all** bar summarises how many are available.
+the row, and an **Update all** bar summarises how many are available — unless one of two
+things is true. A newer version whose `trek` range this host can't satisfy shows an
+informational **"v{version} available — needs TREK {range}"** line and deliberately never a
+button: the fix is a TREK upgrade, not an install that would be refused. And a plugin whose
+updates are held shows **"Updates paused at v{version}"** with a **Resume updates** link
+instead (see below).
 
 Updating swaps in the new code and, by default, transparently restarts the plugin
 on it. But if the new version declares **more permissions or new outbound hosts**,
@@ -305,6 +340,20 @@ TREK installs the new code and **leaves the plugin off**, then shows a
 **re-consent dialog** listing exactly the new permissions and hosts. The plugin
 only runs again once you approve — an update can never silently widen what a
 plugin may do. Choosing "Later" keeps the new code installed but inactive.
+
+### Pinning and rolling back
+
+**⋯ → Change version** lists every published version of a registry-installed plugin with
+its date, signature shield and compatibility verdict, and switches to the one you pick; an
+incompatible version is explained, never offered. Switching **down** to an older version
+asks for confirmation first — the plugin's stored data stays behind, and older code may not
+understand it.
+
+A deliberate switch to a version that isn't the newest compatible one sets an **update
+hold**, so a rollback you meant isn't nagged away by the update pill: the row shows
+"Updates paused at v{version}" with a **Resume updates** link, and clicking it puts the
+plugin back in the normal update flow. Landing on the newest compatible version again, by
+any path, lifts the hold by itself.
 
 ## Building your own
 

@@ -299,6 +299,23 @@ beside them. Return `{ ok, message? }`; throwing is the same as `{ ok: false }` 
 the error text. `danger: true` asks for confirmation first. The host refuses any key your
 manifest didn't declare, and bounds the message it shows (200 chars, emoji stripped).
 
+**…and one for the admin.** A button that acts on **instance** configuration rather than one
+person's credentials takes `"scope": "instance"`:
+
+```json
+"actions": [
+  { "key": "purgeCache", "label": "Purge cache", "scope": "instance" }
+]
+```
+
+It renders in **Admin → Plugins → ⋯ → Instance settings** instead of on anyone's settings
+page, and runs as the clicking **admin** — so `ctx.config` is the instance settings shown
+right above it, while `ctx.settings.get()` is still that admin's own value. The button is
+**disabled until the plugin is active** (an action needs a running child), and an edited
+form is saved before the action fires, so you never test against configuration the plugin
+hasn't been given. Needs a manifest `trek` floor of `>=4.2.0` — hosts older than 4.2.0
+ignore `scope` and would show the button to every user.
+
 Contrast with the `notificationChannel` hook, which is **host**-initiated and therefore
 has *no* acting user — there, `ctx.settings.get()` returns `undefined` and the recipient's
 credentials arrive as an argument instead.
@@ -430,7 +447,7 @@ hooks: {
 }
 ```
 
-`tone` is `'default' | 'success' | 'warn' | 'danger'`; any `url` must be http/https/mailto; `icon` is a lucide icon name. A table `action` (instead of a `column`) is a labelled button whose target opens your sandboxed frame or calls one of your routes.
+`tone` is `'default' | 'success' | 'warn' | 'danger'`; any `url` must be http/https/mailto; `icon` is a lucide icon name — and it is the only way to get a glyph in, because every string a hook returns is emoji-stripped at the render boundary before TREK draws it. A table `action` (instead of a `column`) is a labelled button whose target opens your sandboxed frame or calls one of your routes.
 
 ---
 
