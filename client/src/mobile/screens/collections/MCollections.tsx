@@ -169,9 +169,11 @@ export default function MCollections() {
         )}
       </div>
 
-      {/* List switcher dropdown (in flow, like the design) */}
+      {/* List switcher dropdown (in flow, like the design). In map view it is a
+          flex item of a viewport-high column, so it has to cap itself and give
+          way rather than push its last entries under the dock (#2104). */}
       {drop && (
-        <div className="-mt-[6px] mb-3 rounded-2xl border border-[color:var(--m-rowbr)] bg-m-sheetop p-[6px] shadow-[0_16px_40px_-20px_rgba(0,0,0,.4)]">
+        <div className="-mt-[6px] mb-3 max-h-[50dvh] min-h-0 overflow-y-auto rounded-2xl border border-[color:var(--m-rowbr)] bg-m-sheetop p-[6px] shadow-[0_16px_40px_-20px_rgba(0,0,0,.4)]">
           <button
             type="button"
             onClick={() => selectList(ALL_SAVED)}

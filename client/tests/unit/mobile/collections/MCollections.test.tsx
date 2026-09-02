@@ -490,6 +490,19 @@ describe('MCollections', () => {
     expect(container.firstElementChild!.className).not.toContain('h-dvh')
   })
 
+  it('FE-MOB-COLSCR-019d: the open list switcher scrolls instead of hiding its last entries behind the dock (#2104)', () => {
+    mocks.coll = makeHook({ view: 'map' })
+    render(<MCollections />)
+
+    fireEvent.click(switcher())
+    // In the viewport-high map column the panel is the only item that can give
+    // way, so it has to cap and scroll itself to keep "new list" reachable.
+    const panel = screen.getByRole('button', { name: /collections.newList/ }).parentElement!
+    expect(panel.className).toContain('overflow-y-auto')
+    expect(panel.className).toContain('min-h-0')
+    expect(panel.className).toMatch(/max-h-\[/)
+  })
+
   it('FE-MOB-COLSCR-020: a map view with nothing mappable falls back to the empty note', () => {
     mocks.coll = makeHook({ view: 'map', mappable: [] })
     render(<MCollections />)

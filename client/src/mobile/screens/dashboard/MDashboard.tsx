@@ -132,12 +132,13 @@ export default function MDashboard(): React.ReactElement {
     return (
       <>
         <div className="mt-[14px] flex items-center gap-[7px]">
-          {/* The chips scroll inside their own flexible box on narrow viewports
-              or large system font scales; without it this row was the widest
-              thing on the page and dragged the fixed bars off-screen under
-              Android's forced zoom. min-w-max keeps the pill track wrapping
-              its chips instead of getting squeezed to the box. */}
-          <div className="m-hscroll min-w-0 flex-1">
+          {/* The chips scroll inside their own box on narrow viewports or large
+              system font scales; without it this row was the widest thing on
+              the page and dragged the fixed bars off-screen under Android's
+              forced zoom. min-w-max keeps the pill track wrapping its chips,
+              and the box stays content-wide (no flex-1) so the pill still hugs
+              them on wide phones while ml-auto parks the icons on the right. */}
+          <div className="m-hscroll min-w-0">
             <MSegmented<TripFilter>
               value={tripFilter}
               onChange={setTripFilter}
@@ -150,7 +151,7 @@ export default function MDashboard(): React.ReactElement {
               ]}
             />
           </div>
-          <MIconBtn ariaLabel={t('dashboard.subscribeAllTrips')} size={36} className="flex-none" onClick={() => setSubOpen(true)}>
+          <MIconBtn ariaLabel={t('dashboard.subscribeAllTrips')} size={36} className="ml-auto" onClick={() => setSubOpen(true)}>
             <CalendarPlus size={15} strokeWidth={2} className="text-m-muted" />
           </MIconBtn>
           <button

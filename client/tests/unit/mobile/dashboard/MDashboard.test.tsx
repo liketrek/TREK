@@ -552,6 +552,17 @@ describe('MDashboard', () => {
     const wrapper = track.parentElement as HTMLElement;
     expect(wrapper.className).toContain('m-hscroll');
     expect(wrapper.className).toContain('min-w-0');
-    expect(wrapper.className).toContain('flex-1');
+  });
+
+  it('FE-MOB-DASH-039: the filter pill hugs its chips instead of filling the row', async () => {
+    render(<MDashboard />);
+
+    // flex-1 on the scroll box stretched the grey pill track all the way to the
+    // calendar icon on phones from ~400px up; the icons ride on ml-auto instead.
+    const chip = await screen.findByText('dashboard.filter.planned');
+    const wrapper = chip.closest('button')!.parentElement!.parentElement as HTMLElement;
+    expect(wrapper.className).not.toContain('flex-1');
+    expect(screen.getByRole('button', { name: 'dashboard.subscribeAllTrips' }).className)
+      .toContain('ml-auto');
   });
 });
