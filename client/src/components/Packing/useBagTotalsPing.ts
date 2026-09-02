@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { addListener, removeListener } from '../../api/websocket'
+import { isEffectivelyOnline, onNetworkModeChange } from '../../sync/networkMode'
 
 /**
  * How long pings are collected before one refetch goes out.
@@ -20,6 +21,11 @@ const COALESCE_MS = 250
  * requests overlap — the server pings the whole room, the originating socket
  * included, so a busy trip would otherwise have every client refetching once
  * per written item.
+ *
+ * A ping sent while this client is disconnected is gone for good, and bags have
+ * no offline cache to sync back, so the two moments where that can have happened
+ * count as pings of their own: the room re-join after a reconnect, and the
+ * return to online.
  *
  * `reload` may change identity every render; the latest one is always used.
  */
@@ -51,8 +57,7 @@ export function useBagTotalsPing(enabled: boolean, reload: () => Promise<void>):
       })
     }
 
-    const handler = (event: Record<string, unknown>) => {
-      if (event.type !== 'packing:bag-totals') return
+    const schedule = (): void => {
       if (timer) return // already collecting this burst
       timer = setTimeout(() => {
         timer = null
@@ -60,10 +65,29 @@ export function useBagTotalsPing(enabled: boolean, reload: () => Promise<void>):
       }, COALESCE_MS)
     }
 
+    const handler = (event: Record<string, unknown>) => {
+      // 'joined' is the room re-join the socket sends on every reconnect, so it
+      // is also the moment the totals on screen are the ones from before the
+      // drop: whatever moved them in the meantime pinged into a closed socket.
+      if (event.type !== 'packing:bag-totals' && event.type !== 'joined') return
+      schedule()
+    }
+
+    let wasOnline = isEffectivelyOnline()
+    const onMode = (): void => {
+      const online = isEffectivelyOnline()
+      // Only the way back matters: that is when the surfaces stop summing what
+      // this client can see and go back to trusting the server numbers.
+      if (online && !wasOnline) schedule()
+      wasOnline = online
+    }
+
     addListener(handler)
+    const unsubscribeMode = onNetworkModeChange(onMode)
     return () => {
       cancelled = true
       removeListener(handler)
+      unsubscribeMode()
       if (timer) clearTimeout(timer)
     }
   }, [enabled])

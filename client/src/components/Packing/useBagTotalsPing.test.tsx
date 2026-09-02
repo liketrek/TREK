@@ -1,4 +1,4 @@
-// FE-COMP-BAGPING-001 to FE-COMP-BAGPING-006
+// FE-COMP-BAGPING-001 to FE-COMP-BAGPING-009
 
 /**
  * The bag-totals ping listener (#2191).
@@ -13,6 +13,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useBagTotalsPing } from './useBagTotalsPing'
+import { setForcedOffline, _resetNetworkMode } from '../../sync/networkMode'
 
 const listeners = new Set<(e: Record<string, unknown>) => void>()
 
@@ -33,10 +34,12 @@ async function flushCoalesce(): Promise<void> {
 
 beforeEach(() => {
   listeners.clear()
+  _resetNetworkMode()
   vi.useFakeTimers()
 })
 
 afterEach(() => {
+  setForcedOffline(false)
   vi.useRealTimers()
 })
 
@@ -116,6 +119,46 @@ describe('useBagTotalsPing', () => {
     await flushCoalesce()
 
     expect(listeners.size).toBe(0)
+    expect(reload).not.toHaveBeenCalled()
+  })
+
+  it('FE-COMP-BAGPING-007: reloads when the socket re-joins the room', async () => {
+    // A ping sent while the socket was down is gone for good (a container
+    // restart, a tunnel that dropped), and bags have no offline cache to catch
+    // up from. The re-join is the only notice this client gets.
+    const reload = vi.fn(async () => {})
+    renderHook(() => useBagTotalsPing(true, reload))
+
+    act(() => emit('joined'))
+    await flushCoalesce()
+
+    expect(reload).toHaveBeenCalledTimes(1)
+  })
+
+  it('FE-COMP-BAGPING-008: reloads on the way back online, not on the way out', async () => {
+    const reload = vi.fn(async () => {})
+    renderHook(() => useBagTotalsPing(true, reload))
+
+    act(() => setForcedOffline(true))
+    await flushCoalesce()
+    expect(reload).not.toHaveBeenCalled()
+
+    // Going online is where the surfaces stop summing locally and show the
+    // server totals again, so those totals had better not be the pre-outage ones.
+    act(() => setForcedOffline(false))
+    await flushCoalesce()
+    expect(reload).toHaveBeenCalledTimes(1)
+  })
+
+  it('FE-COMP-BAGPING-009: stops watching the network mode after unmount', async () => {
+    const reload = vi.fn(async () => {})
+    const { unmount } = renderHook(() => useBagTotalsPing(true, reload))
+
+    act(() => setForcedOffline(true))
+    unmount()
+    act(() => setForcedOffline(false))
+    await flushCoalesce()
+
     expect(reload).not.toHaveBeenCalled()
   })
 })

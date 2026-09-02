@@ -256,6 +256,27 @@ describe('Tool: delete_packing_bag', () => {
     });
   });
 
+  it('pings the room to re-read the bag weights (#2191)', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const r = testDb.prepare('INSERT INTO packing_bags (trip_id, name, color) VALUES (?, ?, ?)').run(trip.id, 'Carry-on', '#000000');
+    const bagId = r.lastInsertRowid as number;
+    testDb.prepare('INSERT INTO packing_items (trip_id, name, category, checked, bag_id, weight_grams) VALUES (?, ?, ?, 0, ?, ?)')
+      .run(trip.id, 'Tent', 'Camping', bagId, 3000);
+    await withHarness(user.id, async (h) => {
+      await h.client.callTool({
+        name: 'delete_packing_bag',
+        arguments: { tripId: trip.id, bagId },
+      });
+      // bag_id is ON DELETE SET NULL, so the 3 kg move into the unassigned pile:
+      // both numbers change and every client has to re-read them, exactly as on
+      // the REST route and the plugin RPC.
+      expect(broadcastMock).toHaveBeenCalledWith(String(trip.id), 'packing:bag-totals', {}, undefined);
+      expect(broadcastMock).toHaveBeenCalledTimes(2);
+      expect(testDb.prepare('SELECT bag_id FROM packing_items WHERE trip_id = ?').get(trip.id)).toEqual({ bag_id: null });
+    });
+  });
+
   it('returns access denied for non-member', async () => {
     const { user } = createUser(testDb);
     const { user: other } = createUser(testDb);

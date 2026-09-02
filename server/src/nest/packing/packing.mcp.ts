@@ -363,6 +363,9 @@ export class PackingMcp {
     // { bagId } matches the REST route and the plugin host (the legacy
     // registrar's { id } was the odd one out).
     this.guards.safeBroadcast(tripId, 'packing:bag-deleted', { bagId });
+    // packing_items.bag_id is ON DELETE SET NULL, so the contents land in the
+    // unassigned pile and both numbers move (#2191), as on REST and plugin RPC.
+    this.packing.broadcastBagTotals(String(tripId));
     return ok({ success: true });
   }
 

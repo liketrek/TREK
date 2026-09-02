@@ -109,7 +109,7 @@ export interface PluginContext {
     /** A trip's packing items (hydrated bags/assignees). Needs `db:read:packing`. */
     list(tripId: number): Promise<PackingItem[]>;
     /** Add a packing item (owner = acting user). Needs `db:write:packing` + packing_edit. */
-    create(tripId: number, input: { name: string; category?: string; checked?: boolean; is_private?: boolean; visibility?: 'common' | 'personal' | 'shared'; recipient_ids?: number[] }): Promise<PackingItem>;
+    create(tripId: number, input: { name: string; category?: string; checked?: boolean; weight_grams?: number | null; bag_id?: number | null; quantity?: number; is_private?: boolean; visibility?: 'common' | 'personal' | 'shared'; recipient_ids?: number[] }): Promise<PackingItem>;
     /** Update a packing item. Needs `db:write:packing` + packing_edit. */
     update(tripId: number, itemId: number, input: Record<string, unknown>): Promise<PackingItem>;
     /** Delete a packing item. Needs `db:write:packing` + packing_edit. */
@@ -118,7 +118,7 @@ export interface PluginContext {
     // `db:write:packing` + packing_edit.
     /** Needs 'db:write:packing' (intentional — bags are the write-side structure; packing.list is the read surface). */
     listBags(tripId: number): Promise<unknown[]>;
-    createBag(tripId: number, input: { name: string; color?: string }): Promise<unknown>;
+    createBag(tripId: number, input: { name: string; color?: string; weight_limit_grams?: number }): Promise<unknown>;
     updateBag(tripId: number, bagId: number, input: Record<string, unknown>): Promise<unknown>;
     deleteBag(tripId: number, bagId: number): Promise<{ deleted: boolean }>;
     setBagMembers(tripId: number, bagId: number, userIds: number[]): Promise<unknown>;
