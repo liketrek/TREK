@@ -13,6 +13,10 @@
  * every stack ends in a generic rather than in another named font nobody
  * shipped. What the editor draws is what the renderer has.
  *
+ * The faces themselves are loaded next door in bookFontFaces.ts. A family named
+ * here and not imported there falls back to exactly the system font this file
+ * was written against, which is how five of the seven shipped (#2183).
+ *
  * ── Why these seven ───────────────────────────────────────────────────────
  *
  * A photo book needs more than one voice and fewer than a menu. Two workhorse

@@ -18,6 +18,7 @@ import { PeerBadges } from './PeerBadges'
 import { TrimField } from './TrimField'
 import '../../styles/dashboard.css'
 import '../../styles/studio.css'
+import './bookFontFaces'
 
 /**
  * The Studio shell: top bar, page rail, workbench, inspector.
