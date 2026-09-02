@@ -73,12 +73,12 @@ const M_PLACE2: MergedItem = { type: 'place', sortKey: 4, data: PARK }
 const MERGED = [M_PLACE, M_FLIGHT, M_TRANSIT, M_NOTE, M_PLACE2]
 
 const ROWS: PlanRow[] = [
-  { key: 'pl-11', kind: 'place', item: M_PLACE, assignment: MUSEUM, linkedRes: null },
+  { key: 'pl-11', kind: 'place', item: M_PLACE, assignment: MUSEUM, linkedReservations: [] },
   { key: 'conn-pl-11', kind: 'conn', seg: SEG, assignmentId: 11 },
   { key: 'tr-21', kind: 'transport', item: M_FLIGHT, res: FLIGHT },
   { key: 'tr-22', kind: 'transit', item: M_TRANSIT, res: TRANSIT_RES, transit: TRANSIT },
   { key: 'note-41', kind: 'note', item: M_NOTE, note: NOTE },
-  { key: 'pl-12', kind: 'place', item: M_PLACE2, assignment: PARK, linkedRes: null },
+  { key: 'pl-12', kind: 'place', item: M_PLACE2, assignment: PARK, linkedReservations: [] },
   { key: 'conn-orphan', kind: 'conn', seg: { ...SEG, mode: 'walking' } },
 ]
 
@@ -265,7 +265,7 @@ describe('MPlanTimeline', () => {
 
     it('FE-MOB-PLTL-011: a place row without a place still reports the assignment', () => {
       const orphan = { id: 13, day_id: 2, place_id: 103, order_index: 2, place: null } as unknown as Assignment
-      const rows: PlanRow[] = [{ key: 'pl-13', kind: 'place', item: M_PLACE, assignment: orphan, linkedRes: null }]
+      const rows: PlanRow[] = [{ key: 'pl-13', kind: 'place', item: M_PLACE, assignment: orphan, linkedReservations: [] }]
       const { planner, container } = renderTimeline({ rows })
 
       fireEvent.click(container.querySelector('.cursor-pointer.items-center') as HTMLElement)
@@ -411,7 +411,7 @@ describe('MPlanTimeline', () => {
         byPosition: { 2: { start: [{ pluginId: 'ev', id: 's1', dayId: 2, position: 'start', label: 'Morning prep', tone: 'default' }], end: [] } },
         minutesByDay: { 2: 35 },
       }
-      const rows: PlanRow[] = [{ key: 'pl-11', kind: 'place', item: M_PLACE, assignment: MUSEUM, linkedRes: null }]
+      const rows: PlanRow[] = [{ key: 'pl-11', kind: 'place', item: M_PLACE, assignment: MUSEUM, linkedReservations: [] }]
       renderTimeline({ day: undefined, rows })
 
       expect(screen.queryByText('Charging stop')).not.toBeInTheDocument()

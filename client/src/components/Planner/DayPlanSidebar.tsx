@@ -31,6 +31,7 @@ import { isDayInAccommodationRange, getAccommodationAnchors, getDayBookendHotels
 import {
   TRANSPORT_TYPES, parseTimeToMinutes, getSpanPhase, hidesOnMiddleDay, getDisplayTimeForDay, getTransportRouteEndpoints,
   getTransportForDay as _getTransportForDay, getMergedItems as _getMergedItems, isCarrierTransport, hasCarrierEndpointOnDay,
+  getAssignmentReservations,
   type MergedItem,
 } from '../../utils/dayMerge'
 import { withinDriveRange } from '../../utils/geo'
@@ -2141,86 +2142,97 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                                 </div>
                               )}
                               {(() => {
-                                const res = reservations.find(r => r.assignment_id === assignment.id)
-                                if (!res) return null
-                                const confirmed = res.status === 'confirmed'
-                                const hasEndpoints = onToggleConnection && (res.endpoints || []).length >= 2
-                                const active = hasEndpoints ? visibleConnectionIds.includes(res.id) : false
-                                // The status, the time and the flight/train number used to sit in one
-                                // pill strung together on a middle dot, which read as one run-on
-                                // sentence. They are separate chips now: same tint so they still
-                                // belong together, own outline so the eye can take them one at a time.
-                                const RI = RES_ICONS[res.type] || Ticket
-                                const tint = confirmed ? 'bg-[rgba(22,163,74,0.1)] text-[#16a34a]' : 'bg-[rgba(217,119,6,0.1)] text-[#d97706]'
-                                const chip: React.CSSProperties = {
-                                  display: 'inline-flex', alignItems: 'center', gap: 3,
-                                  padding: '1px 6px', borderRadius: 5,
-                                  fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 600,
-                                  whiteSpace: 'nowrap',
-                                }
-                                const { time: st } = splitReservationDateTime(res.reservation_time)
-                                const { time: et } = splitReservationDateTime(res.reservation_end_time)
-                                const timeLabel = st || et
-                                  ? `${st ? formatTime(st, locale, timeFormat) : ''}${et ? ` – ${formatTime(et, locale, timeFormat)}` : ''}`
-                                  : ''
-                                let meta: any = {}
-                                try { meta = typeof res.metadata === 'string' ? JSON.parse(res.metadata || '{}') : (res.metadata || {}) } catch { meta = {} }
-                                const carrierLabel = meta
-                                  ? (meta.airline && meta.flight_number ? `${meta.airline} ${meta.flight_number}` : meta.flight_number || meta.train_number || '')
-                                  : ''
+                                const linked = getAssignmentReservations(reservations, assignment.id)
+                                if (linked.length === 0) return null
+                                // A stop can carry more than one booking (a parking pass and the
+                                // tickets for the same zoo), and every one of them is kept out of
+                                // the timeline, so this row is where they have to appear (#2201).
+                                // Stacked, because the chip lines are inline-flex and would
+                                // otherwise run together on one.
                                 return (
-                                  // No wrapping: the time belongs to the status it qualifies, so the
-                                  // chips stay on one line even when the row gets narrow.
-                                  <div style={{ marginTop: 3, display: 'inline-flex', alignItems: 'center', gap: 3, flexWrap: 'nowrap' }}>
-                                    <div className={tint} style={chip}>
-                                      <RI size={8} />
-                                      <span className="hidden sm:inline">{confirmed ? t('planner.resConfirmed') : t('planner.resPending')}</span>
-                                    </div>
-                                    {timeLabel && <span className={tint} style={{ ...chip, fontWeight: 500 }}>{timeLabel}</span>}
-                                    {carrierLabel && <span className={tint} style={{ ...chip, fontWeight: 500 }}>{carrierLabel}</span>}
-                                    {hasEndpoints && (
-                                      <button
-                                        type="button"
-                                        onClick={e => { e.stopPropagation(); onToggleConnection!(res.id) }}
-                                        title={t(active ? 'map.hideConnections' : 'map.showConnections')}
-                                        className={active ? 'bg-[#3b82f6] text-[#fff]' : 'bg-transparent text-content-faint'}
-                                        style={{
-                                          flexShrink: 0, appearance: 'none',
-                                          width: 20, height: 20, borderRadius: 4,
-                                          display: 'grid', placeItems: 'center', cursor: 'pointer',
-                                          border: 'none',
-                                          transition: 'color 120ms cubic-bezier(0.23,1,0.32,1), background 120ms cubic-bezier(0.23,1,0.32,1)',
-                                        }}
-                                        onMouseEnter={e => { if (!active) e.currentTarget.style.color = 'var(--text-primary)' }}
-                                        onMouseLeave={e => { if (!active) e.currentTarget.style.color = 'var(--text-faint)' }}
-                                      >
-                                        <RouteIcon size={11} />
-                                      </button>
-                                    )}
-                                    {canEditDays && (() => {
-                                      const isTransport = TRANSPORT_TYPES.has(res.type)
-                                      const handler = isTransport ? onEditTransport : onEditReservation
-                                      if (!handler) return null
+                                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                                    {linked.map(res => {
+                                      const confirmed = res.status === 'confirmed'
+                                      const hasEndpoints = onToggleConnection && (res.endpoints || []).length >= 2
+                                      const active = hasEndpoints ? visibleConnectionIds.includes(res.id) : false
+                                      // The status, the time and the flight/train number used to sit in one
+                                      // pill strung together on a middle dot, which read as one run-on
+                                      // sentence. They are separate chips now: same tint so they still
+                                      // belong together, own outline so the eye can take them one at a time.
+                                      const RI = RES_ICONS[res.type] || Ticket
+                                      const tint = confirmed ? 'bg-[rgba(22,163,74,0.1)] text-[#16a34a]' : 'bg-[rgba(217,119,6,0.1)] text-[#d97706]'
+                                      const chip: React.CSSProperties = {
+                                        display: 'inline-flex', alignItems: 'center', gap: 3,
+                                        padding: '1px 6px', borderRadius: 5,
+                                        fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 600,
+                                        whiteSpace: 'nowrap',
+                                      }
+                                      const { time: st } = splitReservationDateTime(res.reservation_time)
+                                      const { time: et } = splitReservationDateTime(res.reservation_end_time)
+                                      const timeLabel = st || et
+                                        ? `${st ? formatTime(st, locale, timeFormat) : ''}${et ? ` – ${formatTime(et, locale, timeFormat)}` : ''}`
+                                        : ''
+                                      let meta: any = {}
+                                      try { meta = typeof res.metadata === 'string' ? JSON.parse(res.metadata || '{}') : (res.metadata || {}) } catch { meta = {} }
+                                      const carrierLabel = meta
+                                        ? (meta.airline && meta.flight_number ? `${meta.airline} ${meta.flight_number}` : meta.flight_number || meta.train_number || '')
+                                        : ''
                                       return (
-                                        <button
-                                          type="button"
-                                          onClick={e => { e.stopPropagation(); handler(res) }}
-                                          title={t('common.edit')}
-                                          className="bg-transparent text-content-faint"
-                                          style={{
-                                            flexShrink: 0, appearance: 'none',
-                                            width: 20, height: 20, borderRadius: 4,
-                                            display: 'grid', placeItems: 'center', cursor: 'pointer',
-                                            border: 'none',
-                                            transition: 'color 120ms cubic-bezier(0.23,1,0.32,1), background 120ms cubic-bezier(0.23,1,0.32,1)',
-                                          }}
-                                          onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)' }}
-                                          onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-faint)' }}
-                                        >
-                                          <Pencil size={11} />
-                                        </button>
+                                        // No wrapping: the time belongs to the status it qualifies, so the
+                                        // chips stay on one line even when the row gets narrow.
+                                        <div key={res.id} style={{ marginTop: 3, display: 'inline-flex', alignItems: 'center', gap: 3, flexWrap: 'nowrap' }}>
+                                          <div className={tint} style={chip}>
+                                            <RI size={8} />
+                                            <span className="hidden sm:inline">{confirmed ? t('planner.resConfirmed') : t('planner.resPending')}</span>
+                                          </div>
+                                          {timeLabel && <span className={tint} style={{ ...chip, fontWeight: 500 }}>{timeLabel}</span>}
+                                          {carrierLabel && <span className={tint} style={{ ...chip, fontWeight: 500 }}>{carrierLabel}</span>}
+                                          {hasEndpoints && (
+                                            <button
+                                              type="button"
+                                              onClick={e => { e.stopPropagation(); onToggleConnection!(res.id) }}
+                                              title={t(active ? 'map.hideConnections' : 'map.showConnections')}
+                                              className={active ? 'bg-[#3b82f6] text-[#fff]' : 'bg-transparent text-content-faint'}
+                                              style={{
+                                                flexShrink: 0, appearance: 'none',
+                                                width: 20, height: 20, borderRadius: 4,
+                                                display: 'grid', placeItems: 'center', cursor: 'pointer',
+                                                border: 'none',
+                                                transition: 'color 120ms cubic-bezier(0.23,1,0.32,1), background 120ms cubic-bezier(0.23,1,0.32,1)',
+                                              }}
+                                              onMouseEnter={e => { if (!active) e.currentTarget.style.color = 'var(--text-primary)' }}
+                                              onMouseLeave={e => { if (!active) e.currentTarget.style.color = 'var(--text-faint)' }}
+                                            >
+                                              <RouteIcon size={11} />
+                                            </button>
+                                          )}
+                                          {canEditDays && (() => {
+                                            const isTransport = TRANSPORT_TYPES.has(res.type)
+                                            const handler = isTransport ? onEditTransport : onEditReservation
+                                            if (!handler) return null
+                                            return (
+                                              <button
+                                                type="button"
+                                                onClick={e => { e.stopPropagation(); handler(res) }}
+                                                title={t('common.edit')}
+                                                className="bg-transparent text-content-faint"
+                                                style={{
+                                                  flexShrink: 0, appearance: 'none',
+                                                  width: 20, height: 20, borderRadius: 4,
+                                                  display: 'grid', placeItems: 'center', cursor: 'pointer',
+                                                  border: 'none',
+                                                  transition: 'color 120ms cubic-bezier(0.23,1,0.32,1), background 120ms cubic-bezier(0.23,1,0.32,1)',
+                                                }}
+                                                onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)' }}
+                                                onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-faint)' }}
+                                              >
+                                                <Pencil size={11} />
+                                              </button>
+                                            )
+                                          })()}
+                                        </div>
                                       )
-                                    })()}
+                                    })}
                                   </div>
                                 )
                               })()}

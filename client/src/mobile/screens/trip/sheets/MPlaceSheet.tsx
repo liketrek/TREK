@@ -21,7 +21,8 @@ import { safeHttpUrl } from '../../../../utils/safeUrl'
 import { openFile } from '../../../../utils/fileDownload'
 import { getNavigationTargets, openNavigationTarget } from '../../../../components/Planner/placeNavigation'
 import { NavigationMenu } from '../../../../components/shared/NavigationMenu'
-import type { Assignment, Day, TripMember } from '../../../../types'
+import { getAssignmentReservations } from '../../../../utils/dayMerge'
+import type { Assignment, Day, Reservation, TripMember } from '../../../../types'
 import { ActionCircle, Eyebrow, INNER_CLS } from './MTripSheetUi'
 
 /**
@@ -85,28 +86,27 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
     ? ((planner.selectedAssignmentId ? dayAssignments.find(a => a.id === planner.selectedAssignmentId) : null)
       ?? dayAssignments.find(a => a.place?.id === place?.id))
     : null
-  // The booking attached to that assignment. The desktop inspector shows this
+  // The bookings attached to that assignment. The desktop inspector shows this
   // strip; the phone sheet never did, so a booking reached from a map marker was
-  // just as unreachable here, only invisibly so (#2012).
-  const linkedRes = assignmentInDay
-    ? planner.reservations.find(r => r.assignment_id === assignmentInDay.id) ?? null
-    : null
+  // just as unreachable here, only invisibly so (#2012). All of them, because a
+  // stop can carry a parking pass next to its tickets (#2201).
+  const linkedReservations = getAssignmentReservations(planner.reservations, assignmentInDay?.id)
   // A ferry or a flight has its own form — the reservation modal cannot hold one.
   // Resolved up front so a user without the matching right gets no button at all,
   // rather than one that does nothing (#2012).
-  const canOpenLinkedRes = !!linkedRes && planner.can(
-    planner.TRANSPORT_TYPES.has(linkedRes.type) ? 'day_edit' : 'reservation_edit',
+  const canOpenRes = (res: Reservation) => planner.can(
+    planner.TRANSPORT_TYPES.has(res.type) ? 'day_edit' : 'reservation_edit',
     planner.trip,
   )
-  const openLinkedRes = () => {
-    if (!linkedRes || !canOpenLinkedRes) return
-    if (planner.TRANSPORT_TYPES.has(linkedRes.type)) {
-      planner.setEditingTransport(linkedRes)
-      planner.setTransportModalDayId(linkedRes.day_id ?? null)
+  const openRes = (res: Reservation) => {
+    if (!canOpenRes(res)) return
+    if (planner.TRANSPORT_TYPES.has(res.type)) {
+      planner.setEditingTransport(res)
+      planner.setTransportModalDayId(res.day_id ?? null)
       planner.setTransportModalAutomated(false)
       planner.setShowTransportModal(true)
     } else {
-      planner.setEditingReservation(linkedRes)
+      planner.setEditingReservation(res)
       planner.setShowReservationModal(true)
     }
     // This sheet hangs off the place selection, not the sheet stack, so its own
@@ -452,27 +452,32 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
               </>
             )}
 
-            {/* ── The booking attached to this stop (#2012) ── */}
-            {linkedRes && (
+            {/* ── The bookings attached to this stop (#2012, #2201) ── */}
+            {linkedReservations.length > 0 && (
               <>
                 <Eyebrow className="mb-[6px] mt-3">{t('reservations.title')}</Eyebrow>
-                <button
-                  type="button"
-                  onClick={openLinkedRes}
-                  disabled={!canOpenLinkedRes}
-                  aria-label={canOpenLinkedRes ? t('inspector.editRes') : undefined}
-                  className={`flex w-full items-center gap-2 rounded-[14px] px-3 py-[10px] text-left ${INNER_CLS}`}
-                >
-                  <span
-                    className="h-2 w-2 flex-none rounded-full"
-                    style={{ background: linkedRes.status === 'confirmed' ? 'var(--m-st-confirmed)' : 'var(--m-st-pending)' }}
-                  />
-                  <span className="min-w-0 flex-1 truncate text-[0.8125rem] font-semibold">{linkedRes.title}</span>
-                  <span className="flex-none font-geist text-[0.65625rem] text-m-muted">
-                    {linkedRes.status === 'confirmed' ? t('reservations.confirmed') : t('reservations.pending')}
-                  </span>
-                  {canOpenLinkedRes && <ChevronRight size={14} strokeWidth={2} className="flex-none text-m-faint" />}
-                </button>
+                <div className="flex flex-col gap-[6px]">
+                  {linkedReservations.map(res => (
+                    <button
+                      key={res.id}
+                      type="button"
+                      onClick={() => openRes(res)}
+                      disabled={!canOpenRes(res)}
+                      aria-label={canOpenRes(res) ? t('inspector.editRes') : undefined}
+                      className={`flex w-full items-center gap-2 rounded-[14px] px-3 py-[10px] text-left ${INNER_CLS}`}
+                    >
+                      <span
+                        className="h-2 w-2 flex-none rounded-full"
+                        style={{ background: res.status === 'confirmed' ? 'var(--m-st-confirmed)' : 'var(--m-st-pending)' }}
+                      />
+                      <span className="min-w-0 flex-1 truncate text-[0.8125rem] font-semibold">{res.title}</span>
+                      <span className="flex-none font-geist text-[0.65625rem] text-m-muted">
+                        {res.status === 'confirmed' ? t('reservations.confirmed') : t('reservations.pending')}
+                      </span>
+                      {canOpenRes(res) && <ChevronRight size={14} strokeWidth={2} className="flex-none text-m-faint" />}
+                    </button>
+                  ))}
+                </div>
               </>
             )}
 

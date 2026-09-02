@@ -175,7 +175,7 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
                   <PlaceRow
                     assignment={row.assignment}
                     fullPlace={tl.fullPlaceOf(row.assignment)}
-                    linkedRes={row.linkedRes}
+                    linkedReservations={row.linkedReservations}
                     chrome={chrome}
                     reorder={reorderFor(row.item)}
                     drag={dragFor(row)}

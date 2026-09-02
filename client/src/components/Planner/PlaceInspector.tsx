@@ -30,7 +30,7 @@ import { splitReservationDateTime, formatTime, formatMoney } from '../../utils/f
 import { useTripStore } from '../../store/tripStore'
 import { formatDistance, formatElevation } from '../../utils/units'
 import { getNavigationTargets, openNavigationTarget } from './placeNavigation'
-import { TRANSPORT_TYPES } from '../../utils/dayMerge'
+import { TRANSPORT_TYPES, getAssignmentReservations } from '../../utils/dayMerge'
 import { NavigationMenu } from '../shared/NavigationMenu'
 import { resolveOpenNow, resolvePlaceTimeZone, placeWeekdayIndex } from './placeOpenState'
 import { convertHoursLine } from './placeHoursFormat'
@@ -839,96 +839,101 @@ function PlaceReservationParticipants({ selectedAssignmentId, reservations, assi
   return (
     <>
           {(() => {
-            const res = selectedAssignmentId ? reservations.find(r => r.assignment_id === selectedAssignmentId) : null
+            const linked = getAssignmentReservations<Reservation>(reservations, selectedAssignmentId)
             const assignment = selectedAssignmentId ? (assignments[String(selectedDayId)] || []).find(a => a.id === selectedAssignmentId) : null
             const currentParticipants = assignment?.participants || []
             const participantIds = currentParticipants.map(p => p.user_id)
             const allJoined = currentParticipants.length === 0
             const showParticipants = selectedAssignmentId && tripMembers.length > 1
-            if (!res && !showParticipants) return null
+            if (linked.length === 0 && !showParticipants) return null
             return (
-              <div className={`grid ${res && showParticipants ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'} gap-2`}>
-                {/* Reservation */}
-                {res && (() => {
-                  const confirmed = res.status === 'confirmed'
-                  // The strip summarised the booking but went nowhere, so its
-                  // attachments and fields had no route from the map (#2012).
-                  // A transport has its own form; picking by type is what the day
-                  // sidebar does, and an absent handler means this user may not
-                  // open this one — so the strip stays inert rather than lying.
-                  const editor = TRANSPORT_TYPES.has(res.type) ? onEditTransport : onEditReservation
-                  const open = editor ? () => editor(res) : undefined
-                  return (
-                    <div
-                      role={open ? 'button' : undefined}
-                      // No press-scale on the composite strip — shrinking it
-                      // mid-click slides the links inside out from under the
-                      // pointer (#2158).
-                      data-no-press
-                      aria-label={open ? t('inspector.editRes') : undefined}
-                      tabIndex={open ? 0 : undefined}
-                      onClick={open}
-                      onKeyDown={open ? (e: React.KeyboardEvent) => {
-                        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open() }
-                      } : undefined}
-                      title={open ? t('inspector.editRes') : undefined}
-                      style={{ borderRadius: 12, overflow: 'hidden', border: `1px solid ${confirmed ? 'rgba(22,163,74,0.2)' : 'rgba(217,119,6,0.2)'}`, cursor: open ? 'pointer' : undefined, textAlign: 'left' }}
-                    >
-                      <div className={confirmed ? 'bg-[rgba(22,163,74,0.08)]' : 'bg-[rgba(217,119,6,0.08)]'} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px' }}>
-                        <div className={confirmed ? 'bg-[#16a34a]' : 'bg-[#d97706]'} style={{ width: 6, height: 6, borderRadius: '50%', flexShrink: 0 }} />
-                        <span className={confirmed ? 'text-[#16a34a]' : 'text-[#d97706]'} style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 700 }}>{confirmed ? t('reservations.confirmed') : t('reservations.pending')}</span>
-                        <span style={{ flex: 1 }} />
-                        <span className="text-content" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{res.title}</span>
-                      </div>
-                      <div style={{ padding: '6px 10px', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                        {(() => {
-                          const { date, time: startTime } = splitReservationDateTime(res.reservation_time)
-                          const { time: endTime } = splitReservationDateTime(res.reservation_end_time)
-                          return (
-                            <>
-                              {date && (
-                                <div>
-                                  <div className="text-content-faint" style={{ fontSize: 'calc(8px * var(--fs-scale-caption, 1))', fontWeight: 600, textTransform: 'uppercase' }}>{t('reservations.date')}</div>
-                                  <div className="text-content" style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 500, marginTop: 1 }}>{new Date(date + 'T00:00:00Z').toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })}</div>
-                                </div>
-                              )}
-                              {(startTime || endTime) && (
-                                <div>
-                                  <div className="text-content-faint" style={{ fontSize: 'calc(8px * var(--fs-scale-caption, 1))', fontWeight: 600, textTransform: 'uppercase' }}>{t('reservations.time')}</div>
-                                  <div className="text-content" style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 500, marginTop: 1 }}>
-                                    {startTime ? formatTime(startTime, locale, timeFormat) : ''}
-                                    {endTime ? ` – ${formatTime(endTime, locale, timeFormat)}` : ''}
-                                  </div>
-                                </div>
-                              )}
-                            </>
-                          )
-                        })()}
-                        {res.confirmation_number && (
-                          <div>
-                            <div className="text-content-faint" style={{ fontSize: 'calc(8px * var(--fs-scale-caption, 1))', fontWeight: 600, textTransform: 'uppercase' }}>{t('reservations.confirmationCode')}</div>
-                            <div className="text-content" style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 500, marginTop: 1 }}>{res.confirmation_number}</div>
+              <div className={`grid ${linked.length > 0 && showParticipants ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'} gap-2`}>
+                {/* Bookings pinned to this stop; several can share one (#2201) */}
+                {linked.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {linked.map(res => {
+                      const confirmed = res.status === 'confirmed'
+                      // The strip summarised the booking but went nowhere, so its
+                      // attachments and fields had no route from the map (#2012).
+                      // A transport has its own form; picking by type is what the day
+                      // sidebar does, and an absent handler means this user may not
+                      // open this one, so the strip stays inert rather than lying.
+                      const editor = TRANSPORT_TYPES.has(res.type) ? onEditTransport : onEditReservation
+                      const open = editor ? () => editor(res) : undefined
+                      return (
+                        <div
+                          key={res.id}
+                          role={open ? 'button' : undefined}
+                          // No press-scale on the composite strip: shrinking it
+                          // mid-click slides the links inside out from under the
+                          // pointer (#2158).
+                          data-no-press
+                          aria-label={open ? t('inspector.editRes') : undefined}
+                          tabIndex={open ? 0 : undefined}
+                          onClick={open}
+                          onKeyDown={open ? (e: React.KeyboardEvent) => {
+                            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open() }
+                          } : undefined}
+                          title={open ? t('inspector.editRes') : undefined}
+                          style={{ borderRadius: 12, overflow: 'hidden', border: `1px solid ${confirmed ? 'rgba(22,163,74,0.2)' : 'rgba(217,119,6,0.2)'}`, cursor: open ? 'pointer' : undefined, textAlign: 'left' }}
+                        >
+                          <div className={confirmed ? 'bg-[rgba(22,163,74,0.08)]' : 'bg-[rgba(217,119,6,0.08)]'} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px' }}>
+                            <div className={confirmed ? 'bg-[#16a34a]' : 'bg-[#d97706]'} style={{ width: 6, height: 6, borderRadius: '50%', flexShrink: 0 }} />
+                            <span className={confirmed ? 'text-[#16a34a]' : 'text-[#d97706]'} style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 700 }}>{confirmed ? t('reservations.confirmed') : t('reservations.pending')}</span>
+                            <span style={{ flex: 1 }} />
+                            <span className="text-content" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{res.title}</span>
                           </div>
-                        )}
-                      </div>
-                      {res.notes && <div className="collab-note-md text-content-faint" style={{ padding: '0 10px 6px', fontSize: 'calc(10px * var(--fs-scale-caption, 1))', lineHeight: 1.4, wordBreak: 'break-word', overflowWrap: 'anywhere' }}><Markdown remarkPlugins={[remarkGfm, remarkBreaks]} components={markdownLinkComponents}>{res.notes}</Markdown></div>}
-                      {(() => {
-                        const meta = typeof res.metadata === 'string' ? JSON.parse(res.metadata || '{}') : (res.metadata || {})
-                        if (!meta || Object.keys(meta).length === 0) return null
-                        const parts: string[] = []
-                        if (meta.airline && meta.flight_number) parts.push(`${meta.airline} ${meta.flight_number}`)
-                        else if (meta.flight_number) parts.push(meta.flight_number)
-                        if (meta.departure_airport && meta.arrival_airport) parts.push(`${meta.departure_airport} → ${meta.arrival_airport}`)
-                        if (meta.train_number) parts.push(meta.train_number)
-                        if (meta.platform) parts.push(`Gl. ${meta.platform}`)
-                        if (meta.check_in_time) parts.push(`Check-in ${meta.check_in_time}`)
-                        if (meta.check_out_time) parts.push(`Check-out ${meta.check_out_time}`)
-                        if (parts.length === 0) return null
-                        return <div className="text-content-muted" style={{ padding: '0 10px 6px', fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 500 }}>{parts.join(' · ')}</div>
-                      })()}
-                    </div>
-                  )
-                })()}
+                          <div style={{ padding: '6px 10px', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                            {(() => {
+                              const { date, time: startTime } = splitReservationDateTime(res.reservation_time)
+                              const { time: endTime } = splitReservationDateTime(res.reservation_end_time)
+                              return (
+                                <>
+                                  {date && (
+                                    <div>
+                                      <div className="text-content-faint" style={{ fontSize: 'calc(8px * var(--fs-scale-caption, 1))', fontWeight: 600, textTransform: 'uppercase' }}>{t('reservations.date')}</div>
+                                      <div className="text-content" style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 500, marginTop: 1 }}>{new Date(date + 'T00:00:00Z').toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })}</div>
+                                    </div>
+                                  )}
+                                  {(startTime || endTime) && (
+                                    <div>
+                                      <div className="text-content-faint" style={{ fontSize: 'calc(8px * var(--fs-scale-caption, 1))', fontWeight: 600, textTransform: 'uppercase' }}>{t('reservations.time')}</div>
+                                      <div className="text-content" style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 500, marginTop: 1 }}>
+                                        {startTime ? formatTime(startTime, locale, timeFormat) : ''}
+                                        {endTime ? ` – ${formatTime(endTime, locale, timeFormat)}` : ''}
+                                      </div>
+                                    </div>
+                                  )}
+                                </>
+                              )
+                            })()}
+                            {res.confirmation_number && (
+                              <div>
+                                <div className="text-content-faint" style={{ fontSize: 'calc(8px * var(--fs-scale-caption, 1))', fontWeight: 600, textTransform: 'uppercase' }}>{t('reservations.confirmationCode')}</div>
+                                <div className="text-content" style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 500, marginTop: 1 }}>{res.confirmation_number}</div>
+                              </div>
+                            )}
+                          </div>
+                          {res.notes && <div className="collab-note-md text-content-faint" style={{ padding: '0 10px 6px', fontSize: 'calc(10px * var(--fs-scale-caption, 1))', lineHeight: 1.4, wordBreak: 'break-word', overflowWrap: 'anywhere' }}><Markdown remarkPlugins={[remarkGfm, remarkBreaks]} components={markdownLinkComponents}>{res.notes}</Markdown></div>}
+                          {(() => {
+                            const meta = typeof res.metadata === 'string' ? JSON.parse(res.metadata || '{}') : (res.metadata || {})
+                            if (!meta || Object.keys(meta).length === 0) return null
+                            const parts: string[] = []
+                            if (meta.airline && meta.flight_number) parts.push(`${meta.airline} ${meta.flight_number}`)
+                            else if (meta.flight_number) parts.push(meta.flight_number)
+                            if (meta.departure_airport && meta.arrival_airport) parts.push(`${meta.departure_airport} → ${meta.arrival_airport}`)
+                            if (meta.train_number) parts.push(meta.train_number)
+                            if (meta.platform) parts.push(`Gl. ${meta.platform}`)
+                            if (meta.check_in_time) parts.push(`Check-in ${meta.check_in_time}`)
+                            if (meta.check_out_time) parts.push(`Check-out ${meta.check_out_time}`)
+                            if (parts.length === 0) return null
+                            return <div className="text-content-muted" style={{ padding: '0 10px 6px', fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 500 }}>{parts.join(' · ')}</div>
+                          })()}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
 
                 {/* Participants */}
                 {showParticipants && (

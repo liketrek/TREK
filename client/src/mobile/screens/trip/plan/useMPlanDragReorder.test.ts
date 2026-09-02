@@ -11,7 +11,7 @@ const items = [
 ] as unknown as MergedItem[]
 
 const rowFor = (i: number): PlanRow =>
-  ({ key: `row-${i}`, kind: 'place', item: items[i], assignment: {}, linkedRes: null }) as unknown as PlanRow
+  ({ key: `row-${i}`, kind: 'place', item: items[i], assignment: {}, linkedReservations: [] }) as unknown as PlanRow
 
 const connRow = { key: 'conn-1', kind: 'conn', seg: {} } as unknown as PlanRow
 

@@ -166,8 +166,8 @@ describe('planTimelineModel — buildPlanRows', () => {
       merged: [placeItem(museum), placeItem(park)], reservations: [dinner], routeSegments: [], dayId: 2,
     })
     const [first, second] = rows.filter(r => r.kind === 'place')
-    expect(first.kind === 'place' && first.linkedRes).toBe(dinner)
-    expect(second.kind === 'place' && second.linkedRes).toBeNull()
+    expect(first.kind === 'place' && first.linkedReservations[0]).toBe(dinner)
+    expect(second.kind === 'place' && second.linkedReservations.length === 0).toBe(true)
   })
 
   it('FE-MOB-PTLM-014: keys a synthetic leg row by its leg index', () => {

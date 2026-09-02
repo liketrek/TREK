@@ -119,10 +119,10 @@ const TIME_CHIP = 'flex-none whitespace-nowrap rounded-[6px] bg-[color:var(--m-i
 
 // ── b3) Place row ────────────────────────────────────────────────────────────
 
-export function PlaceRow({ assignment, fullPlace, linkedRes, chrome, reorder, drag, onOpen, onEdit, onRemove }: {
+export function PlaceRow({ assignment, fullPlace, linkedReservations, chrome, reorder, drag, onOpen, onEdit, onRemove }: {
   assignment: Assignment
   fullPlace: Place | undefined
-  linkedRes: Reservation | null
+  linkedReservations: Reservation[]
   chrome: RowChrome
   reorder: ReactNode
   drag?: RowDrag
@@ -134,11 +134,19 @@ export function PlaceRow({ assignment, fullPlace, linkedRes, chrome, reorder, dr
   const place = assignment.place
   const CatIcon = getCategoryIcon(place?.category?.icon)
   const time = fmtTime(place?.place_time, chrome)
-  const sub = linkedRes
-    ? [
-        linkedRes.status === 'confirmed' ? t('dayplan.confirmed') : t('dayplan.pendingRes'),
-        linkedRes.confirmation_number ? `#${linkedRes.confirmation_number}` : '',
-      ].filter(Boolean).join(' · ')
+  // One line per booking on the stop (#2201). A single one keeps the bare
+  // status line it always had; once there are several, the title tells them
+  // apart, since "Confirmed" twice over says nothing.
+  const bookingLines = linkedReservations.map(r => ({
+    id: r.id,
+    text: [
+      linkedReservations.length > 1 ? r.title : '',
+      r.status === 'confirmed' ? t('dayplan.confirmed') : t('dayplan.pendingRes'),
+      r.confirmation_number ? `#${r.confirmation_number}` : '',
+    ].filter(Boolean).join(' · '),
+  }))
+  const sub = bookingLines.length > 0
+    ? bookingLines[0].text
     : place?.address || place?.description || ''
 
   return (
@@ -175,7 +183,7 @@ export function PlaceRow({ assignment, fullPlace, linkedRes, chrome, reorder, dr
         <div className="flex items-center gap-1.5">
           <CatIcon size={12} strokeWidth={2.2} className="flex-none text-m-muted" />
           <span className="min-w-0 truncate text-[0.875rem] font-semibold">{place?.name}</span>
-          {linkedRes && (
+          {bookingLines.length > 0 && (
             <span className="flex flex-none items-center gap-1 rounded-full bg-[color:var(--m-ic)] px-[7px] py-[2px] text-[0.5625rem] font-bold tracking-[.04em]">
               <Ticket size={10} strokeWidth={2.2} />
               {t('mobileTrip.resBadge')}
@@ -188,6 +196,11 @@ export function PlaceRow({ assignment, fullPlace, linkedRes, chrome, reorder, dr
             {sub && <span className="min-w-0 truncate font-geist text-[0.71875rem] text-m-muted">{sub}</span>}
           </div>
         )}
+        {bookingLines.slice(1).map(line => (
+          <div key={line.id} className="mt-[2px] flex min-w-0 items-center gap-1.5">
+            <span className="min-w-0 truncate font-geist text-[0.71875rem] text-m-muted">{line.text}</span>
+          </div>
+        ))}
         {assignment.notes && (
           // Day-specific note on this stop (#2163) — mirror of the desktop
           // timeline's caption line, so the phone shows the note exists

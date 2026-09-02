@@ -425,6 +425,33 @@ describe('PlaceInspector', () => {
     expect(screen.getByText('Museum Ticket')).toBeTruthy();
   });
 
+  it('FE-PLANNER-INSPECTOR-030g: every booking on the stop gets its own strip (#2201)', () => {
+    const onEditReservation = vi.fn();
+    const parking = buildReservation({
+      id: 530, title: 'Parking pass', status: 'confirmed', type: 'parking', assignment_id: 99,
+      reservation_time: '2025-06-01T09:00:00',
+    } as any);
+    const tickets = buildReservation({
+      id: 531, title: 'Zoo tickets', status: 'pending', type: 'activity', assignment_id: 99,
+      reservation_time: '2025-06-01T10:15:00',
+    } as any);
+    const assignmentInDay = [{ id: 99, place, day_id: 1, place_id: place.id, order_index: 0, notes: null }];
+    render(
+      <PlaceInspector
+        {...defaultProps}
+        selectedDayId={1}
+        selectedAssignmentId={99}
+        assignments={{ '1': assignmentInDay }}
+        reservations={[tickets, parking]}
+        onEditReservation={onEditReservation}
+      />
+    );
+    expect(screen.getByText('Parking pass')).toBeTruthy();
+    expect(screen.getByText('Zoo tickets')).toBeTruthy();
+    fireEvent.click(screen.getByText('Zoo tickets').closest('[role="button"]') as HTMLElement);
+    expect(onEditReservation).toHaveBeenCalledWith(tickets);
+  });
+
   it('FE-PLANNER-INSPECTOR-030b: the linked reservation opens its editor (#2012)', () => {
     const onEditReservation = vi.fn();
     const reservation = buildReservation({ title: 'Museum Ticket', status: 'confirmed', assignment_id: 99 } as any);

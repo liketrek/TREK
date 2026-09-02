@@ -82,7 +82,7 @@ describe('PlaceRow', () => {
   const props = {
     assignment: assignment(),
     fullPlace: undefined,
-    linkedRes: null,
+    linkedReservations: [],
     chrome: chrome(),
     reorder: REORDER,
     onOpen: vi.fn(),
@@ -116,7 +116,7 @@ describe('PlaceRow', () => {
 
   it('FE-MOB-PLROW-007: a linked booking replaces the subtitle and adds the booking badge', () => {
     const linkedRes = { id: 31, status: 'confirmed', confirmation_number: 'X9K' } as unknown as Reservation
-    render(<PlaceRow {...props} linkedRes={linkedRes} />)
+    render(<PlaceRow {...props} linkedReservations={[linkedRes]} />)
 
     expect(screen.getByText('dayplan.confirmed · #X9K')).toBeInTheDocument()
     expect(screen.getByText('mobileTrip.resBadge')).toBeInTheDocument()
@@ -124,7 +124,7 @@ describe('PlaceRow', () => {
 
   it('FE-MOB-PLROW-008: a pending booking without a number shows just the status', () => {
     const linkedRes = { id: 31, status: 'pending', confirmation_number: null } as unknown as Reservation
-    render(<PlaceRow {...props} linkedRes={linkedRes} />)
+    render(<PlaceRow {...props} linkedReservations={[linkedRes]} />)
 
     expect(screen.getByText('dayplan.pendingRes')).toBeInTheDocument()
   })

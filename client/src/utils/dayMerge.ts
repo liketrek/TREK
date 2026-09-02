@@ -236,6 +236,36 @@ export function getTransportForDay(opts: {
 }
 
 /**
+ * Every booking pinned to one day assignment. A stop can carry several (the parking
+ * pass and the tickets for the same zoo), and the exclusion above keeps all of them
+ * out of the timeline, so the place row is the only surface that can show them, and
+ * a `find()` there dropped the rest without trace (#2201).
+ *
+ * Earliest first, untimed last, id as the tiebreaker: the store's array order is
+ * newest-first for locally created bookings and load order otherwise, which would
+ * shuffle the same two bookings between a reload and a live update.
+ */
+export function getAssignmentReservations<T extends {
+  id: number
+  assignment_id?: number | null
+  reservation_time?: string | null
+}>(reservations: T[], assignmentId: number | null | undefined): T[] {
+  if (!assignmentId) return []
+  return reservations
+    .filter(r => r.assignment_id === assignmentId)
+    .sort((a, b) => {
+      const at = a.reservation_time || ''
+      const bt = b.reservation_time || ''
+      if (at !== bt) {
+        if (!at) return 1
+        if (!bt) return -1
+        return at < bt ? -1 : 1
+      }
+      return a.id - b.id
+    })
+}
+
+/**
  * Order items chronologically: anything with a time (a place's place_time, a
  * transport/leg display time, a timed note) sorts by that time. An item WITHOUT a
  * time inherits the time of the timed item before it, so untimed items stay where

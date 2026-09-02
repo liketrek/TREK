@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseTimeToMinutes, getSpanPhase, hidesOnMiddleDay, getTransportRouteEndpoints, getDisplayTimeForDay, getTransportForDay, getMergedItems } from './dayMerge'
+import { parseTimeToMinutes, getSpanPhase, hidesOnMiddleDay, getTransportRouteEndpoints, getDisplayTimeForDay, getTransportForDay, getAssignmentReservations, getMergedItems } from './dayMerge'
 
 describe('parseTimeToMinutes', () => {
   it('parses HH:MM string', () => {
@@ -196,6 +196,41 @@ describe('getTransportForDay', () => {
     const rows = getTransportForDay({ reservations, dayId: 1, dayAssignmentIds: [], days })
     expect(rows).toHaveLength(1)
     expect(rows[0].__leg).toBeUndefined()
+  })
+})
+
+describe('getAssignmentReservations', () => {
+  it('returns every booking pinned to the assignment, not just the first (#2201)', () => {
+    const reservations = [
+      { id: 1, assignment_id: 42, reservation_time: '2025-06-01T10:00:00' },
+      { id: 2, assignment_id: 42, reservation_time: '2025-06-01T09:00:00' },
+      { id: 3, assignment_id: 7, reservation_time: '2025-06-01T08:00:00' },
+    ]
+    expect(getAssignmentReservations(reservations, 42).map(r => r.id)).toEqual([2, 1])
+  })
+
+  it('puts untimed bookings last and breaks ties on the id', () => {
+    const reservations = [
+      { id: 5, assignment_id: 42, reservation_time: null },
+      { id: 4, assignment_id: 42, reservation_time: null },
+      { id: 6, assignment_id: 42, reservation_time: '2025-06-01T09:00:00' },
+    ]
+    expect(getAssignmentReservations(reservations, 42).map(r => r.id)).toEqual([6, 4, 5])
+  })
+
+  it('returns nothing without an assignment', () => {
+    const reservations = [{ id: 1, assignment_id: 42, reservation_time: null }]
+    expect(getAssignmentReservations(reservations, null)).toEqual([])
+    expect(getAssignmentReservations(reservations, undefined)).toEqual([])
+  })
+
+  it('leaves the caller array untouched', () => {
+    const reservations = [
+      { id: 1, assignment_id: 42, reservation_time: '2025-06-01T10:00:00' },
+      { id: 2, assignment_id: 42, reservation_time: '2025-06-01T09:00:00' },
+    ]
+    getAssignmentReservations(reservations, 42)
+    expect(reservations.map(r => r.id)).toEqual([1, 2])
   })
 })
 

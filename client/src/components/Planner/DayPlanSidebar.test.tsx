@@ -3529,6 +3529,34 @@ describe('DayPlanSidebar', () => {
     expect(screen.getByText(/Reservation pending/)).toBeInTheDocument()
   })
 
+  it('FE-PLANNER-DAYPLAN-163b: every booking on the stop gets its own chip line (#2201)', async () => {
+    const user = userEvent.setup()
+    const place = buildPlace({ id: 1, name: 'Zoo' })
+    const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
+    const a = buildAssignment({ id: 11, day_id: 10, order_index: 0, place })
+    const parking = buildReservation({
+      id: 530, type: 'parking', title: 'Parking pass', status: 'confirmed', assignment_id: 11,
+      reservation_time: '2025-06-01T09:00:00', reservation_end_time: '2025-06-01T09:30:00',
+    } as any)
+    const tickets = buildReservation({
+      id: 531, type: 'activity', title: 'Zoo tickets', status: 'pending', assignment_id: 11,
+      reservation_time: '2025-06-01T10:15:00',
+    } as any)
+    const onEditReservation = vi.fn()
+    render(<DayPlanSidebar {...makeDefaultProps({
+      // Newest first, the order the store hands them over after a local create.
+      days: [day], places: [place], assignments: { '10': [a] }, reservations: [tickets, parking],
+      onEditReservation,
+    })} />)
+    expect(screen.getByText('09:00 – 09:30')).toBeInTheDocument()
+    expect(screen.getByText('10:15')).toBeInTheDocument()
+    expect(screen.getByText(/Reservation confirmed/)).toBeInTheDocument()
+    expect(screen.getByText(/Reservation pending/)).toBeInTheDocument()
+    // Earliest first, so the first pencil belongs to the parking pass.
+    await user.click(screen.getAllByTitle('Edit')[0])
+    expect(onEditReservation).toHaveBeenCalledWith(parking)
+  })
+
   it('FE-PLANNER-DAYPLAN-164: travellers on a place row are shown as avatars with an overflow count', () => {
     const place = buildPlace({ id: 1, name: 'Group visit' })
     const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
