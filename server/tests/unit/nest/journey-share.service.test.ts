@@ -635,6 +635,30 @@ describe('getPublicJourney', () => {
     expect((result.entries[0] as Record<string, unknown>).photos).toEqual([]); // inline photos withheld too
   });
 
+  // #2200: the reader of a shared journey gets the same chronology as the owner,
+  // so the public gallery cannot fall back to upload order.
+  it('JOURNEY-SHARE-031: the public gallery reads in capture order, not upload order', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const day1 = createJourneyEntry(testDb, journey.id, user.id, {
+      type: 'entry', title: 'Day 1', entry_date: '2026-05-01',
+    });
+    const day2 = createJourneyEntry(testDb, journey.id, user.id, {
+      type: 'entry', title: 'Day 2', entry_date: '2026-05-02',
+    });
+
+    const late = insertJourneyPhoto(day2.id, { filePath: '/photos/day2.jpg' });
+    insertJourneyPhoto(day1.id, { filePath: '/photos/day1.jpg' });
+    testDb.prepare('UPDATE trek_photos SET taken_at = ? WHERE id = ?').run('2026-05-02T16:00:00.000Z', late);
+
+    const { token } = svc.createOrUpdateJourneyShareLink(journey.id, user.id, {
+      share_timeline: true, share_gallery: true, share_map: true,
+    });
+
+    const gallery = svc.getPublicJourney(token)!.gallery as Record<string, unknown>[];
+    expect(gallery.map(p => p.file_path)).toEqual(['/photos/day1.jpg', '/photos/day2.jpg']);
+  });
+
   it('JOURNEY-SHARE-030: cartoApiKey resolves owner setting → admin instance default → empty (#2054)', () => {
     const { user } = createUser(testDb);
     const journey = createJourney(testDb, user.id);

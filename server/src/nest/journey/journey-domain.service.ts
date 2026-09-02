@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { avatarUrl } from '../common/avatarUrl';
 import type { Journey, JourneyEntry, JourneyPhoto, JourneyContributor } from '../../types';
 import { decodeEntryRow, type JourneyEntryWire } from './journey-entry-row';
+import { GALLERY_CHRONOLOGICAL_ORDER } from './journey-gallery-order';
 import { DatabaseService } from '../database/database.service';
 import { RealtimeService } from '../realtime/realtime.service';
 import type { JourneyStats, JourneyTrack, TrekWsUserEventName } from '@trek/shared';
@@ -246,7 +247,7 @@ export class JourneyDomainService {
 
     const gallery = this.db
       .prepare(
-        `SELECT ${GALLERY_SELECT} FROM ${GALLERY_JOIN} WHERE gp.journey_id = ? ORDER BY gp.sort_order ASC, gp.id ASC`,
+        `SELECT ${GALLERY_SELECT} FROM ${GALLERY_JOIN} WHERE gp.journey_id = ? ${GALLERY_CHRONOLOGICAL_ORDER}`,
       )
       .all(journeyId);
 

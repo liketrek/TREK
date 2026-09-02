@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { DatabaseService } from '../database/database.service';
 import { JourneyDomainService } from './journey-domain.service';
 import { decodeEntryRow } from './journey-entry-row';
+import { GALLERY_CHRONOLOGICAL_ORDER } from './journey-gallery-order';
 import { SettingsService } from '../settings/settings.service';
 
 interface JourneySharePermissions {
@@ -185,12 +186,12 @@ export class JourneyShareService {
 
     const gallery = this.db.prepare(`
       SELECT gp.id, gp.journey_id, gp.photo_id, gp.caption, gp.shared, gp.sort_order, gp.created_at,
-             tkp.provider, tkp.asset_id, tkp.owner_id, tkp.file_path, tkp.thumbnail_path, tkp.width, tkp.height,
-             tkp.media_type, tkp.duration_ms, tkp.taken_at, tkp.lat, tkp.lng
+             tp.provider, tp.asset_id, tp.owner_id, tp.file_path, tp.thumbnail_path, tp.width, tp.height,
+             tp.media_type, tp.duration_ms, tp.taken_at, tp.lat, tp.lng
       FROM journey_photos gp
-      JOIN trek_photos tkp ON tkp.id = gp.photo_id
+      JOIN trek_photos tp ON tp.id = gp.photo_id
       WHERE gp.journey_id = ?
-      ORDER BY gp.sort_order
+      ${GALLERY_CHRONOLOGICAL_ORDER}
     `).all(row.journey_id) as any[];
 
     const enrichedEntries = entries

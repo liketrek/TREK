@@ -2059,6 +2059,55 @@ describe('journey gallery', () => {
     const [gallery] = svc.uploadGalleryPhotos(journey.id, user.id, [{ path: 'journey/a.jpg' }]);
     expect(svc.deleteGalleryPhoto(gallery.id, stranger.id)).toBeNull();
   });
+
+  // #2200: the gallery used to come out in upload order, so pictures caught up
+  // with after the trip landed behind the ones added while it was running.
+  it('JOURNEY-SVC-PHOTO-008: the gallery reads in capture order, not upload order', () => {
+    const { user } = createUser(testDb);
+    const journey = svc.createJourney(user.id, { title: 'J' });
+
+    const shot = (path: string, takenAt: string) => {
+      const [row] = svc.uploadGalleryPhotos(journey.id, user.id, [{ path }]);
+      testDb.prepare('UPDATE trek_photos SET taken_at = ? WHERE id = ?').run(takenAt, row.photo_id);
+    };
+
+    shot('journey/day3.jpg', '2026-05-03T18:00:00.000Z');
+    shot('journey/day1.jpg', '2026-05-01T08:30:00.000Z');
+    shot('journey/day2.jpg', '2026-05-02T12:00:00.000Z');
+
+    const gallery = svc.getJourneyFull(journey.id, user.id)!.gallery as { file_path: string }[];
+    expect(gallery.map((p) => p.file_path)).toEqual([
+      'journey/day1.jpg',
+      'journey/day2.jpg',
+      'journey/day3.jpg',
+    ]);
+  });
+
+  it('JOURNEY-SVC-PHOTO-009: a photo with no capture time rides on the date of the stop it hangs on', () => {
+    const { user } = createUser(testDb);
+    const journey = svc.createJourney(user.id, { title: 'J' });
+    const day1 = svc.createEntry(journey.id, user.id, { entry_date: '2026-05-01', title: 'Day 1' })!;
+    const day2 = svc.createEntry(journey.id, user.id, { entry_date: '2026-05-02', title: 'Day 2' })!;
+
+    // Day two was sorted out first and day one caught up afterwards, with the
+    // EXIF gone (an iPhone upload is converted before it leaves the browser).
+    const [dayTwoPhoto] = svc.uploadGalleryPhotos(journey.id, user.id, [{ path: 'journey/day2.jpg' }]);
+    const [dayOnePhoto] = svc.uploadGalleryPhotos(journey.id, user.id, [{ path: 'journey/day1.jpg' }]);
+    const [loose] = svc.uploadGalleryPhotos(journey.id, user.id, [{ path: 'journey/loose.jpg' }]);
+    svc.linkPhotoToEntry(day2.id, dayTwoPhoto.id, user.id);
+    svc.linkPhotoToEntry(day1.id, dayOnePhoto.id, user.id);
+    // Pin the loose photo's upload time so the run does not depend on today's date.
+    testDb
+      .prepare('UPDATE journey_photos SET created_at = ? WHERE id = ?')
+      .run(Date.parse('2026-06-01T00:00:00Z'), loose.id);
+
+    const gallery = svc.getJourneyFull(journey.id, user.id)!.gallery as { file_path: string }[];
+    expect(gallery.map((p) => p.file_path)).toEqual([
+      'journey/day1.jpg',
+      'journey/day2.jpg',
+      'journey/loose.jpg',
+    ]);
+  });
 });
 
 describe('per-user journey preferences', () => {
