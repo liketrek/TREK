@@ -18,6 +18,7 @@
  * Dependency-free: node:http + node:sqlite (when present) + built-ins.
  */
 import fs from 'node:fs';
+import { settingDefaults } from '../manifest.js';
 import path from 'node:path';
 import http from 'node:http';
 import { createRequire } from 'node:module';
@@ -292,6 +293,14 @@ function loadFixtures(dir: string): Fixtures {
 }
 
 /** Watch a directory tree with per-dir fs.watch (works on every platform, unlike recursive). */
+function withManifestDefaults(fx: Fixtures, manifest: unknown): Fixtures {
+  return {
+    ...fx,
+    config: { ...settingDefaults(manifest, 'instance'), ...(fx.config ?? {}) },
+    userSettings: { ...settingDefaults(manifest, 'user'), ...(fx.userSettings ?? {}) },
+  };
+}
+
 function watchTree(root: string, onChange: () => void): void {
   const skip = new Set(['node_modules', '.git', '.trek-dev']);
   const watch = (d: string) => {
@@ -310,7 +319,10 @@ export async function runDev(dir: string, opts: { port?: number } = {}): Promise
   const manifest = readJsonFile<Record<string, unknown>>(manifestPath);
   const id = String(manifest.id);
   const grants = new Set(Array.isArray(manifest.permissions) ? (manifest.permissions as string[]) : []);
-  const fx = loadFixtures(abs);
+  // Manifest `default`s are the host's effective value for anything unset, so seed the
+  // fixtures with them (a fixture value still wins) — otherwise a plugin relying on its
+  // defaults would read undefined here and only here.
+  const fx = withManifestDefaults(loadFixtures(abs), manifest);
   const { db, note: dbNote, close: closeDb } = createDevDb(path.join(abs, '.trek-dev', 'db.sqlite'));
   const broadcasts: unknown[] = [];
   installSdkInjection();

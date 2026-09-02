@@ -21,14 +21,40 @@ export interface ManifestSettingField {
   scope?: 'instance' | 'user';
   options?: Array<string | number | { value: string | number; label?: string }>;
   oauth?: { initPath?: string; callbackPath?: string };
-  /** Pre-fills the settings form when no value is stored. Not accepted on a secret field. */
+  /** The field's value wherever nobody set one: the settings form pre-fills it AND the
+   * runtime resolves it (`ctx.config` / `ctx.settings.get()`), so the plugin works before
+   * anyone opens the form. Satisfies `required`. Not accepted on a `secret` field (the
+   * manifest is public); must be a boolean for a `checkbox` and one of `options` when
+   * those are declared. */
   default?: string | number | boolean;
 }
 
-/** Every attribute a settings-field object may carry — the host silently drops anything else. */
+/** Every attribute a settings-field object may carry — the host silently drops anything else.
+ *  Mirrors `SETTING_FIELD_KEYS` in the host's install/manifest.ts (parity-tested in
+ *  test/permissions-parity.test.ts); change both together. */
 export const SETTING_FIELD_KEYS = [
   'key', 'label', 'input_type', 'placeholder', 'hint', 'required', 'secret', 'scope', 'options', 'oauth', 'default',
 ] as const;
+/**
+ * The `default`s a manifest declares for one settings scope, keyed by field — the
+ * host's effective value for any field nobody set. `trek-plugin dev` seeds `ctx.config`
+ * (instance) and `ctx.settings.get()` (user) from this so dev matches production.
+ * Secrets are skipped even if present (the host never resolves a secret from a default).
+ */
+export function settingDefaults(manifest: unknown, scope: 'instance' | 'user'): Record<string, string | number | boolean> {
+  const settings = (manifest as { settings?: unknown } | null)?.settings;
+  const out: Record<string, string | number | boolean> = {};
+  if (!Array.isArray(settings)) return out;
+  for (const s of settings as unknown[]) {
+    if (!s || typeof s !== 'object') continue;
+    const f = s as Record<string, unknown>;
+    if (typeof f.key !== 'string' || !f.key || f.secret === true) continue;
+    if ((f.scope === 'user' ? 'user' : 'instance') !== scope) continue;
+    const d = f.default;
+    if (typeof d === 'string' || typeof d === 'number' || typeof d === 'boolean') out[f.key] = d;
+  }
+  return out;
+}
 export interface ManifestAction {
   key: string;
   label?: string;

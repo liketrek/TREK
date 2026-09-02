@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateManifest } from '../src/manifest.js';
+import { validateManifest, settingDefaults } from '../src/manifest.js';
 
 const base = () => ({ id: 'my-plugin', name: 'My Plugin', version: '1.0.0', type: 'integration', trek: '>=4.0.0 <5.0.0' });
 const withSetting = (extra: object) => ({ ...base(), settings: [{ key: 'mode', ...extra }] });
@@ -59,5 +59,27 @@ describe('settings default', () => {
   it('rejects a default that is not one of the declared options', () => {
     const r = validateManifest(withSetting({ key: 's', input_type: 'select', options: ['a', 'b'], default: 'c' }));
     expect(r.errors.join()).toMatch(/one of the declared options/);
+  });
+});
+
+describe('settingDefaults (what `trek-plugin dev` seeds ctx.config / ctx.settings with)', () => {
+  const manifest = () => ({
+    ...base(),
+    settings: [
+      { key: 'api_url', default: 'https://api.example' },
+      { key: 'retries', input_type: 'number', default: 3 },
+      { key: 'region', scope: 'user', default: 'eu' },
+      { key: 'token', secret: true, default: 'never' }, // invalid anyway, but must never leak through
+      { key: 'note' },
+    ],
+  });
+  it('collects the instance-scope defaults (scope omitted = instance)', () => {
+    expect(settingDefaults(manifest(), 'instance')).toEqual({ api_url: 'https://api.example', retries: 3 });
+  });
+  it('collects the user-scope defaults', () => {
+    expect(settingDefaults(manifest(), 'user')).toEqual({ region: 'eu' });
+  });
+  it('is empty for a manifest without settings', () => {
+    expect(settingDefaults(base(), 'instance')).toEqual({});
   });
 });
