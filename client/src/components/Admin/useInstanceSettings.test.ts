@@ -139,4 +139,14 @@ describe('useInstanceSettings — actions', () => {
     })
     expect(result.current.actionResult.ping).toEqual({ ok: true, message: 'pong' })
   })
+
+  it('FE-COMP-PLUGINS-ACT-009: a 404 "Plugin is not active" from the server (DB active, no live child) shows the inactive message and flips active off', async () => {
+    vi.mocked(adminApi.runPluginAction).mockRejectedValue({ response: { status: 404, data: { error: 'Plugin is not active' } } })
+    const { result } = await opened(true)
+    expect(result.current.form?.active).toBe(true)
+    act(() => result.current.runAction(PING))
+    await waitFor(() => expect(result.current.actionResult.ping).toEqual({ ok: false, message: 'admin.plugins.actions.inactive' }))
+    expect(result.current.form?.active).toBe(false)
+    expect(result.current.runningAction).toBeNull()
+  })
 })

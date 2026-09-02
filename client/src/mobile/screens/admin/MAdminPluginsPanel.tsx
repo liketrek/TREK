@@ -55,6 +55,9 @@ interface PluginRow {
   /** How many `scope:'instance'` settings fields the plugin declares — gates the
    * "Instance settings" sheet action without a per-plugin fetch. */
   instanceSettingsCount?: number
+  /** How many `scope:'instance'` actions the plugin declares — a plugin with actions
+   * but no settings fields still needs the sheet action to run them. */
+  instanceActionsCount?: number
   dependencies?: PluginDependencies
   dependencyStatus?: DependencyStatus
   dependencyIssues?: DependencyIssues
@@ -1127,41 +1130,45 @@ export default function MAdminPluginsPanel() {
                   {f.hint && <span className="mt-1 block font-geist text-[0.625rem] text-m-faint">{f.hint}</span>}
                 </label>
               ))}
-              {settings.form.actions.length > 0 && (
-                <div className="border-t border-[color:var(--m-rowbr)] pt-4">
-                  <span className="mb-2 block font-geist text-[0.625rem] font-bold uppercase tracking-wide text-m-faint">
-                    {t('admin.plugins.actions')}
-                  </span>
-                  {!settings.form.active && (
-                    <p className="mb-2 font-geist text-[0.625rem] text-m-faint">{t('admin.plugins.actions.inactive')}</p>
-                  )}
-                  <div className="flex flex-col gap-2">
-                    {settings.form.actions.map(a => {
-                      const res = settings.actionResult[a.key]
-                      return (
-                        <div key={a.key} className="flex flex-wrap items-center gap-2">
-                          <MAdminButton
-                            variant={a.danger ? 'danger' : 'ghost'}
-                            busy={settings.runningAction === a.key}
-                            disabled={!settings.form!.active || settings.runningAction !== null || settings.saving}
-                            onClick={() => settings.runAction(a)}
-                          >
-                            {a.label}
-                          </MAdminButton>
-                          {a.hint && <span className="font-geist text-[0.625rem] text-m-faint">{a.hint}</span>}
-                          {res && (
-                            <span className={`text-[0.625rem] font-bold ${res.ok ? 'text-[color:var(--m-st-confirmed)]' : 'text-[color:var(--m-st-danger)]'}`}>
-                              {res.message || (res.ok ? t('common.success') : t('common.error'))}
-                            </span>
-                          )}
-                        </div>
-                      )
-                    })}
+              {(() => {
+                const form = settings.form
+                if (!form || form.actions.length === 0) return null
+                return (
+                  <div className="border-t border-[color:var(--m-rowbr)] pt-4">
+                    <span className="mb-2 block font-geist text-[0.625rem] font-bold uppercase tracking-wide text-m-faint">
+                      {t('admin.plugins.actions')}
+                    </span>
+                    {!form.active && (
+                      <p className="mb-2 font-geist text-[0.625rem] text-m-faint">{t('admin.plugins.actions.inactive')}</p>
+                    )}
+                    <div className="flex flex-col gap-2">
+                      {form.actions.map(a => {
+                        const res = settings.actionResult[a.key]
+                        return (
+                          <div key={a.key} className="flex flex-wrap items-center gap-2">
+                            <MAdminButton
+                              variant={a.danger ? 'danger' : 'ghost'}
+                              busy={settings.runningAction === a.key}
+                              disabled={!form.active || settings.runningAction !== null || settings.saving}
+                              onClick={() => settings.runAction(a)}
+                            >
+                              {a.label}
+                            </MAdminButton>
+                            {a.hint && <span className="font-geist text-[0.625rem] text-m-faint">{a.hint}</span>}
+                            {res && (
+                              <span aria-live="polite" className={`text-[0.625rem] font-bold ${res.ok ? 'text-[color:var(--m-st-confirmed)]' : 'text-[color:var(--m-st-danger)]'}`}>
+                                {res.message || (res.ok ? t('common.success') : t('common.error'))}
+                              </span>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
                   </div>
-                </div>
-              )}
+                )
+              })()}
               {settings.error && <p className="text-[0.6875rem] text-[color:var(--m-st-danger)]">{settings.error}</p>}
-              <MAdminButton disabled={settings.saving} onClick={() => void settings.save()} className="h-[42px] w-full">
+              <MAdminButton disabled={settings.saving || settings.runningAction !== null} onClick={() => void settings.save()} className="h-[42px] w-full">
                 {t('common.save')}
               </MAdminButton>
             </div>
@@ -1454,9 +1461,9 @@ function RowActionsSheet({ p, t, onClose, onRestart, onErrors, onEgress, onSetti
           {p.enabled === 1 && (
             <button type="button" className={rowClass} onClick={onRestart}><RotateCw size={16} /> {t('admin.plugins.restart')}</button>
           )}
-          {/* Only a plugin that DECLARES scope:'instance' fields gets the action — an
-              empty form would invite the admin to configure nothing. */}
-          {(p.instanceSettingsCount ?? 0) > 0 && (
+          {/* A plugin gets the action if it declares scope:'instance' fields OR actions —
+              an action-only plugin still needs the sheet to run them. */}
+          {((p.instanceSettingsCount ?? 0) > 0 || (p.instanceActionsCount ?? 0) > 0) && (
             <button type="button" className={rowClass} onClick={onSettings}><SlidersHorizontal size={16} /> {t('admin.plugins.instanceSettings')}</button>
           )}
           <button type="button" className={rowClass} onClick={onErrors}><Bug size={16} /> {t('admin.plugins.viewErrors')}</button>

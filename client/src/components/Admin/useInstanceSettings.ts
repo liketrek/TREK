@@ -90,24 +90,37 @@ export function useInstanceSettings() {
   const perform = async (a: PluginAction) => {
     if (!form || !form.active || runningAction) return
     const seq = openSeq.current
-    if (form.dirty) {
-      if (!(await persist(form))) return
-      if (openSeq.current !== seq) return
-      // Only clear dirty if the values are still the snapshot we just persisted —
-      // a reference check, since setValue always creates a new values object. A
-      // concurrent edit during the save produced a new object, so dirty stays true
-      // and the edit isn't silently dropped from the next save/action.
-      setForm(s => s && s.values === form.values ? { ...s, dirty: false } : s)
-    }
-    if (openSeq.current !== seq) return
+    // Set BEFORE the dirty-save window, not just around the invoke call, so a second
+    // click (or the shells' Save button, see M7) is blocked for the whole run — not just
+    // once the pre-run save has already gone out.
     setRunningAction(a.key)
     try {
+      if (form.dirty) {
+        if (!(await persist(form))) return
+        if (openSeq.current !== seq) return
+        // Only clear dirty if the values are still the snapshot we just persisted —
+        // a reference check, since setValue always creates a new values object. A
+        // concurrent edit during the save produced a new object, so dirty stays true
+        // and the edit isn't silently dropped from the next save/action.
+        setForm(s => s && s.values === form.values ? { ...s, dirty: false } : s)
+      }
+      if (openSeq.current !== seq) return
       const res = await adminApi.runPluginAction(form.id, a.key)
       if (openSeq.current !== seq) return
       setActionResult(r => ({ ...r, [a.key]: res }))
-    } catch {
+    } catch (e) {
       if (openSeq.current !== seq) return
-      setActionResult(r => ({ ...r, [a.key]: { ok: false, message: t('common.error') } }))
+      const err = e as { response?: { status?: number; data?: { error?: string } } }
+      if (err.response?.status === 404 && err.response?.data?.error === 'Plugin is not active') {
+        // The DB `status` column said active when the dialog opened, but the server's
+        // live-process check (the supervisor's actual child map) disagrees — a stale
+        // row with no running child. Believe the server: show the real reason instead
+        // of a bare "Error", and disable the buttons instead of leaving them clickable.
+        setActionResult(r => ({ ...r, [a.key]: { ok: false, message: t('admin.plugins.actions.inactive') } }))
+        setForm(s => s && { ...s, active: false })
+      } else {
+        setActionResult(r => ({ ...r, [a.key]: { ok: false, message: t('common.error') } }))
+      }
     } finally {
       if (openSeq.current === seq) setRunningAction(null)
     }

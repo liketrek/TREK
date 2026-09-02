@@ -2196,9 +2196,20 @@ describe('AdminPluginsPanel — instance settings', () => {
   })
 
   it('FE-COMP-PLUGINS-CFG-002: a plugin with NO instance fields gets no menu item', async () => {
-    await openRowMenu(plugin({ instanceSettingsCount: 0 }))
+    await openRowMenu(plugin({ instanceSettingsCount: 0, instanceActionsCount: 0 }))
     expect(screen.getByText('View error log')).toBeInTheDocument() // menu is open
     expect(screen.queryByText('Instance settings')).not.toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-CFG-008: a plugin with instance ACTIONS but no fields still offers the menu item', async () => {
+    server.use(
+      http.get('*/api/admin/plugins/trek-gotify/config', () =>
+        HttpResponse.json({ fields: [], config: {}, actions: [{ key: 'ping', label: 'Ping server', danger: false, scope: 'instance' }] })),
+    )
+    await openRowMenu(plugin({ instanceSettingsCount: 0, instanceActionsCount: 1 }))
+    expect(screen.getByText('Instance settings')).toBeInTheDocument()
+    fireEvent.click(screen.getByText('Instance settings'))
+    expect(await screen.findByRole('button', { name: 'Ping server' }, { timeout: 5000 })).toBeInTheDocument()
   })
 
   it('FE-COMP-PLUGINS-CFG-003: saving sends the edits but never the untouched secret mask', async () => {

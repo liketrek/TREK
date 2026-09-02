@@ -54,6 +54,9 @@ interface PluginRow {
   /** How many `scope:'instance'` settings fields the plugin declares — gates the
    * "Instance settings" menu item without a per-plugin fetch. */
   instanceSettingsCount?: number
+  /** How many `scope:'instance'` actions the plugin declares — a plugin with actions
+   * but no settings fields still needs the menu item to run them. */
+  instanceActionsCount?: number
   dependencies?: PluginDependencies
   dependencyStatus?: DependencyStatus
   dependencyIssues?: DependencyIssues
@@ -1132,7 +1135,7 @@ export default function AdminPluginsPanel() {
                             </button>
                             {a.hint && <span className="text-xs text-content-muted">{a.hint}</span>}
                             {res && (
-                              <span className={`text-xs font-medium ${res.ok ? 'text-success' : 'text-danger'}`}>
+                              <span aria-live="polite" className={`text-xs font-medium ${res.ok ? 'text-success' : 'text-danger'}`}>
                                 {res.message || (res.ok ? t('common.success') : t('common.error'))}
                               </span>
                             )}
@@ -1147,7 +1150,7 @@ export default function AdminPluginsPanel() {
             </div>
             <div className="px-5 py-3.5 border-t border-edge-secondary flex justify-end">
               <button type="button"
-                disabled={settings.saving}
+                disabled={settings.saving || settings.runningAction !== null}
                 onClick={() => void settings.save()}
                 className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
               >{t('common.save')}</button>
@@ -1451,9 +1454,9 @@ function InstalledRow({ p, t, busy, menu, setMenu, hasUpdate, latestVer, newerIn
               {p.enabled === 1 && (
                 <MenuItem icon={<RotateCw size={14} />} label={t('admin.plugins.restart')} onClick={onRestart} />
               )}
-              {/* Only a plugin that DECLARES scope:'instance' fields gets the item — an
-                  empty form would invite the admin to configure nothing. */}
-              {(p.instanceSettingsCount ?? 0) > 0 && (
+              {/* A plugin gets the item if it declares scope:'instance' fields OR actions —
+                  an action-only plugin still needs the dialog to run its buttons. */}
+              {((p.instanceSettingsCount ?? 0) > 0 || (p.instanceActionsCount ?? 0) > 0) && (
                 <MenuItem icon={<SlidersHorizontal size={14} />} label={t('admin.plugins.instanceSettings')} onClick={onSettings} />
               )}
               <MenuItem icon={<Bug size={14} />} label={t('admin.plugins.viewErrors')} onClick={onErrors} />

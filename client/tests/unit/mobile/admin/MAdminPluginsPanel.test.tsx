@@ -1657,4 +1657,60 @@ describe('MAdminPluginsPanel — instance settings', () => {
       expect(screen.queryByDisplayValue('https://gotify.mydomain.com')).not.toBeInTheDocument();
     });
   });
+
+  const ACTIONS = [
+    { key: 'ping', label: 'Ping server', danger: false, scope: 'instance' },
+    { key: 'purge', label: 'Purge cache', hint: 'Drops every cached tile', danger: true, scope: 'instance' },
+  ];
+
+  async function openWithActions(p: Row = plugin({ instanceSettingsCount: 2 })) {
+    server.use(
+      http.get('*/api/admin/plugins/trek-gotify/config', () =>
+        HttpResponse.json({ fields: FIELDS, config: { apiUrl: 'https://gotify.mydomain.com' }, actions: ACTIONS })),
+    );
+    await openRowSheet(p);
+    fireEvent.click(screen.getByText('Instance settings'));
+    await waitFor(() => expect(screen.getByDisplayValue('https://gotify.mydomain.com')).toBeInTheDocument(), { timeout: 5000 });
+  }
+
+  it('FE-MOB-PLUGP-ACT-010: instance actions render from the config response and post to the admin action route', async () => {
+    let posted = '';
+    server.use(
+      http.post('*/api/admin/plugins/trek-gotify/actions/:key', ({ params }) => {
+        posted = String(params.key);
+        return HttpResponse.json({ ok: true, message: 'pong' });
+      }),
+    );
+    await openWithActions();
+    expect(screen.getByText('Drops every cached tile')).toBeInTheDocument(); // hint
+    fireEvent.click(screen.getByRole('button', { name: 'Ping server' }));
+    expect(await screen.findByText('pong', {}, { timeout: 5000 })).toBeInTheDocument();
+    expect(posted).toBe('ping');
+    // The sheet stays open — the admin may run another one.
+    expect(screen.getByDisplayValue('https://gotify.mydomain.com')).toBeInTheDocument();
+  });
+
+  it('FE-MOB-PLUGP-ACT-011: a danger action opens the MConfirmSheet first; confirming posts', async () => {
+    let posted = '';
+    server.use(
+      http.post('*/api/admin/plugins/trek-gotify/actions/:key', ({ params }) => {
+        posted = String(params.key);
+        return HttpResponse.json({ ok: false, message: 'cache locked' });
+      }),
+    );
+    await openWithActions();
+    fireEvent.click(screen.getByRole('button', { name: 'Purge cache' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Purge cache' });
+    expect(within(dialog).getByText('Run this action?')).toBeInTheDocument();
+    expect(posted).toBe('');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Purge cache' }));
+    expect(await screen.findByText('cache locked', {}, { timeout: 5000 })).toBeInTheDocument();
+    expect(posted).toBe('purge');
+  });
+
+  it('FE-MOB-PLUGP-ACT-012: an inactive plugin renders the action buttons disabled with the activation hint', async () => {
+    await openWithActions(plugin({ instanceSettingsCount: 2, status: 'inactive', enabled: 0 }));
+    expect(screen.getByRole('button', { name: 'Ping server' })).toBeDisabled();
+    expect(screen.getByText('Activate the plugin to run its actions')).toBeInTheDocument();
+  });
 });
