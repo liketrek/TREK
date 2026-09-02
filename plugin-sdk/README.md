@@ -170,7 +170,7 @@ and implemented in `definePlugin({ actions: { <key>: async (ctx) => ({ ok, messa
 
 | Attribute | Meaning |
 |---|---|
-| `scope` | `user` (default) — renders on the user Settings tab and runs as the clicking user. `instance` — renders in the admin instance-settings dialog and runs as the clicking admin. The default differs from settings fields on purpose: existing manifests keep their user-tab buttons. |
+| `scope` | `user` (default) — renders on the user Settings tab and runs as the clicking user. `instance` — renders in the admin instance-settings dialog and runs as the clicking admin. The default differs from settings fields on purpose: existing manifests keep their user-tab buttons. A host older than TREK 4.2.0 (which introduced action scope) ignores this field entirely and renders the button on every user's Settings tab, running it as each user — so if you declare `scope: "instance"`, set the manifest's `trek` range floor to `>=4.2.0` or the button will run in the wrong place on an older host. |
 | `danger` | Rendered destructive; the host asks for confirmation first. |
 | `hint` | Shown beside the button (≤ 200 chars). |
 
