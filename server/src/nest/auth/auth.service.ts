@@ -230,6 +230,26 @@ export class AuthService {
   // App config (public)
   // -------------------------------------------------------------------------
 
+  /**
+   * Whether a passkey ceremony can actually complete on this deployment. With
+   * nothing configured at all, getAppUrl() invents `http://localhost:{PORT}` and
+   * the resolver returns a localhost RP for it: a phantom config that every real
+   * browser is turned away from at the options step (#2147), so advertising it
+   * as configured only produces a button whose every click 400s. A localhost RP
+   * the operator pointed here themselves (APP_URL, ALLOWED_ORIGINS or the
+   * webauthn settings) is a real single-machine install and still counts.
+   */
+  private passkeyConfigured(): boolean {
+    const cfg = this.webauthn.resolve();
+    if (!cfg) return false;
+    if (cfg.rpID !== 'localhost' || cfg.explicitOrigins) return true;
+    const env = readEnv();
+    const declaredRpId = (
+      env.webauthn.rpId || this.db.get<{ value: string }>("SELECT value FROM app_settings WHERE key = 'webauthn_rp_id'")?.value
+    )?.trim();
+    return !!(declaredRpId || env.app.appUrl || env.http.allowedOriginsRaw);
+  }
+
   getAppConfig(authenticatedUser: User | undefined | null) {
     const userCount = this.db.get<{ count: number }>('SELECT COUNT(*) as count FROM users WHERE COALESCE(is_guest, 0) = 0')!.count;
     const isDemo = readEnv().demo.enabled;
@@ -281,7 +301,7 @@ export class AuthService {
       // are true. `passkey_configured` stays a pure boolean — it never leaks the
       // resolved RP ID / origin / APP_URL on this unauthenticated endpoint.
       passkey_login: toggles.passkey_login,
-      passkey_configured: this.webauthn.isConfigured(),
+      passkey_configured: this.passkeyConfigured(),
       env_override_oidc_only: readEnv().oidc.only,
       has_users: userCount > 0,
       setup_complete: setupComplete,

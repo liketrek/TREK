@@ -146,10 +146,15 @@ export class PasskeyService {
    * The origins handed to the verifier for this ceremony. An explicit operator
    * list is honored verbatim. A derived config (APP_URL fallback) often carries
    * the wrong scheme or port (TLS-terminating proxy, first ALLOWED_ORIGINS
-   * entry), so the browser-asserted origin is added IF it falls within the RP
-   * ID's WebAuthn scope — the same suffix rule the browser enforces before it
-   * runs the ceremony at all. rpIdHash, challenge and signature checks are
-   * untouched, so this never accepts an origin the RP ID doesn't cover.
+   * entry), so the browser-asserted origin is added when it is the RP ID's own
+   * host and only the scheme or port drifted.
+   *
+   * The HOST is never widened, even though the browser's rule would run a
+   * ceremony from any subdomain of the RP ID: on an apex RP ID that exact-origin
+   * list is the only thing between a taken-over sibling subdomain and an
+   * assertion this server would accept, and the browser cannot supply it. A
+   * deployment that really spans several hosts under one RP ID lists them in
+   * webauthn_origins / WEBAUTHN_ORIGINS, which is honored verbatim above.
    */
   private expectedOrigins(cfg: WebauthnConfig, resp: unknown): string[] {
     if (cfg.explicitOrigins) return cfg.origins;
@@ -157,6 +162,8 @@ export class PasskeyService {
     if (!clientOrigin || cfg.origins.includes(clientOrigin) || !originWithinRpScope(clientOrigin, cfg.rpID)) {
       return cfg.origins;
     }
+    // Parsing cannot throw here: originWithinRpScope only says yes on a URL it parsed.
+    if (new URL(clientOrigin).hostname !== cfg.rpID) return cfg.origins;
     return [...cfg.origins, clientOrigin];
   }
 

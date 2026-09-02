@@ -1,13 +1,14 @@
 /**
  * Unit tests for the DI-native PasskeyService — PASSKEY-SVC-001 through
- * PASSKEY-SVC-039. Written fresh with the DI fold: the legacy
+ * PASSKEY-SVC-041. Written fresh with the DI fold: the legacy
  * services/passkeyService had no service-level suite, so these characterize
  * the relocated behavior (challenge store semantics, WebAuthn ceremony error
  * paths, clone detection, management CRUD) over a real in-memory SQLite DB;
  * 031–032 pin the post-fold `fix(server)` quirk fix (the transactional
- * dup-check → INSERT with its 409-vs-400 sentinel split); 033–039 pin the
+ * dup-check → INSERT with its 409-vs-400 sentinel split); 033 to 041 pin the
  * #2147 origin hardening (pre-ceremony Origin gate for the derived localhost
- * fallback, in-scope widening of expectedOrigin for derived configs).
+ * fallback, scheme/port widening of expectedOrigin for derived configs, and
+ * that the host itself is never widened).
  * The @simplewebauthn/server ceremony functions are mocked — the library's
  * crypto is not under test, the service's handling of its verdicts is.
  * Constructed directly (no TestingModule, repo convention).
@@ -441,6 +442,25 @@ describe('passkeyRegisterVerify', () => {
     await svc.passkeyRegisterVerify(user.id, { attestationResponse: ceremonyResponse('w3', {}, { origin: 'https://evil.example.net' }) });
     expect(swMock.verifyRegistrationResponse.mock.calls[1][0].expectedOrigin).toEqual(['https://trek.example.com']);
   });
+
+  it('PASSKEY-SVC-040: a derived config heals scheme and port, never the host (#2147)', async () => {
+    // With the RP ID on an apex domain the browser runs a ceremony from any
+    // subdomain of it, so a taken-over sibling could hand over an assertion
+    // nothing else in the chain rejects. The exact-origin list is the only
+    // defence there, so only scheme/port drift on the RP ID's host is healed.
+    resolveWebauthnConfigMock.mockReturnValue({ rpID: 'example.com', rpName: 'TREK', origins: ['https://example.com'], explicitOrigins: false });
+    const { user } = createUser(testDb);
+
+    seedChallenge('w4', user.id, 'registration');
+    swMock.verifyRegistrationResponse.mockResolvedValueOnce(registrationVerdict({}, { id: 'sibling-cred' }));
+    await svc.passkeyRegisterVerify(user.id, { attestationResponse: ceremonyResponse('w4', {}, { origin: 'https://blog.example.com' }) });
+    expect(swMock.verifyRegistrationResponse.mock.calls[0][0].expectedOrigin).toEqual(['https://example.com']);
+
+    seedChallenge('w5', user.id, 'registration');
+    swMock.verifyRegistrationResponse.mockResolvedValueOnce(registrationVerdict({}, { id: 'port-cred' }));
+    await svc.passkeyRegisterVerify(user.id, { attestationResponse: ceremonyResponse('w5', {}, { origin: 'https://example.com:8443' }) });
+    expect(swMock.verifyRegistrationResponse.mock.calls[1][0].expectedOrigin).toEqual(['https://example.com', 'https://example.com:8443']);
+  });
 });
 
 // ── passkeyLoginOptions ───────────────────────────────────────────────────────
@@ -613,6 +633,20 @@ describe('passkeyLoginVerify', () => {
     expect(result.token).toBeTruthy();
     expect(swMock.verifyAuthenticationResponse.mock.calls[0][0].expectedOrigin)
       .toEqual(['http://trek.example.org', 'https://trek.example.org']);
+  });
+
+  it('PASSKEY-SVC-041: login never widens to a sibling subdomain of the RP ID (#2147)', async () => {
+    // The relay path the exact-origin list exists for: a challenge fetched from
+    // the public options endpoint, spent by a ceremony a compromised sibling
+    // subdomain ran against the apex RP ID.
+    resolveWebauthnConfigMock.mockReturnValue({ rpID: 'example.com', rpName: 'TREK', origins: ['https://example.com'], explicitOrigins: false });
+    const { user } = createUser(testDb);
+    insertCredential(user.id, { credential_id: 'apex-cred' });
+    seedChallenge('a11', null, 'authentication');
+    swMock.verifyAuthenticationResponse.mockResolvedValue({ verified: true, authenticationInfo: { newCounter: 1 } });
+
+    await svc.passkeyLoginVerify({ assertionResponse: ceremonyResponse('a11', { id: 'apex-cred' }, { origin: 'https://blog.example.com' }) });
+    expect(swMock.verifyAuthenticationResponse.mock.calls[0][0].expectedOrigin).toEqual(['https://example.com']);
   });
 });
 
