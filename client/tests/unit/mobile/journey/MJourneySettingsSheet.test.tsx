@@ -1,4 +1,4 @@
-// FE-MOB-JSET-001 to FE-MOB-JSET-030
+// FE-MOB-JSET-001 to FE-MOB-JSET-034
 import { describe, it, expect, beforeEach, afterEach, vi, type Mock } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '../../../helpers/render';
 import MJourneySettingsSheet from '../../../../src/mobile/screens/journey/MJourneySettingsSheet';
@@ -251,7 +251,9 @@ describe('MJourneySettingsSheet', () => {
 
     expect(await screen.findByText(`${window.location.origin}/public/journey/tok-1`)).toBeInTheDocument();
     expect(addToast).toHaveBeenCalledWith('Share link created', 'success', undefined);
-    expect(screen.getAllByRole('switch')).toHaveLength(3);
+    for (const section of ['Timeline', 'Gallery', 'Map']) {
+      expect(screen.getByRole('switch', { name: section })).toBeInTheDocument();
+    }
   });
 
   it('FE-MOB-JSET-019: a failing share-link creation shows an error toast', async () => {
@@ -397,5 +399,43 @@ describe('MJourneySettingsSheet', () => {
       expect(document.querySelector('img[src="/uploads/covers/j.jpg"]')).toBeInTheDocument(),
     );
     expect(screen.getByRole('button', { name: 'Change cover' })).toBeInTheDocument();
+  });
+
+  // #2194: the phone is the only surface a mobile-only owner ever sees, so the
+  // switch has to live here too, with the semantics of the desktop dialog.
+  it('FE-MOB-JSET-032: the trip-GPX switch reads off by default and turns on in one tap', async () => {
+    const { props } = setup();
+
+    const tracks = await screen.findByRole('switch', { name: /GPX/i });
+    expect(tracks).toHaveAttribute('aria-checked', 'false');
+
+    fireEvent.click(tracks);
+
+    await waitFor(() => expect(updateJourney).toHaveBeenCalledWith(12, { show_trip_tracks: true }));
+    // Refresh, never onSaved: onSaved closes the sheet as the switch is flipped.
+    await waitFor(() => expect(props.onRefresh).toHaveBeenCalled());
+    expect(props.onSaved).not.toHaveBeenCalled();
+  });
+
+  it('FE-MOB-JSET-033: a journey that already draws its tracks switches them back off', async () => {
+    // The column is INTEGER, so what arrives over the wire is 1, not true.
+    setup({ show_trip_tracks: 1 });
+
+    const tracks = await screen.findByRole('switch', { name: /GPX/i });
+    expect(tracks).toHaveAttribute('aria-checked', 'true');
+
+    fireEvent.click(tracks);
+    await waitFor(() => expect(updateJourney).toHaveBeenCalledWith(12, { show_trip_tracks: false }));
+  });
+
+  it('FE-MOB-JSET-034: a failing switch write says so and leaves the sheet open', async () => {
+    updateJourney.mockRejectedValueOnce(new Error('nope'));
+    const { props } = setup();
+
+    fireEvent.click(await screen.findByRole('switch', { name: /GPX/i }));
+
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Failed to save', 'error', undefined));
+    expect(props.onRefresh).not.toHaveBeenCalled();
+    expect(props.onClose).not.toHaveBeenCalled();
   });
 });

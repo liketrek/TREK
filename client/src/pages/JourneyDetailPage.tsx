@@ -89,6 +89,33 @@ function JourneyDetailPageDesktop() {
   const skeletonLabel = hideSkeletons ? t('journey.skeletons.show') : t('journey.skeletons.hide')
   const barButton = 'w-10 h-10 flex-shrink-0 rounded-lg bg-surface-elevated backdrop-blur-lg border border-edge shadow-lg text-content-secondary flex items-center justify-center hover:bg-surface-hover active:scale-95 transition-transform'
 
+  // Adding photos hangs off the controls row, which is hidden below 1024px, so
+  // the gallery takes the actions over there instead. Exactly one host renders
+  // them, never both.
+  const galleryActions = canEditEntries && view === 'gallery' ? (
+    <div className="flex items-center gap-2">
+      {galleryProviders.map(p => (
+        <button type="button"
+          key={p.id}
+          onClick={() => galleryBrowseRef.current?.(p.id)}
+          className="inline-flex items-center gap-1.5 h-9 px-4 rounded-full text-[13px] font-semibold transition-transform hover:-translate-y-0.5"
+          style={{ background: 'var(--vg-ink)', color: 'var(--vg-bg)' }}
+        >
+          <Image size={16} strokeWidth={2.4} />
+          {p.name}
+        </button>
+      ))}
+      <button type="button"
+        onClick={() => galleryUploadRef.current?.()}
+        className="inline-flex items-center gap-1.5 h-9 px-4 rounded-full text-[13px] font-semibold transition-transform hover:-translate-y-0.5"
+        style={{ background: 'var(--vg-ink)', color: 'var(--vg-bg)' }}
+      >
+        <Plus size={16} strokeWidth={2.4} />
+        {t('common.upload')}
+      </button>
+    </div>
+  ) : null
+
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
       <Navbar />
@@ -346,29 +373,7 @@ function JourneyDetailPageDesktop() {
                     {t('journey.detail.addEntry')}
                   </button>
                 )}
-                {canEditEntries && view === 'gallery' && (
-                  <div className="flex items-center gap-2">
-                    {galleryProviders.map(p => (
-                      <button type="button"
-                        key={p.id}
-                        onClick={() => galleryBrowseRef.current?.(p.id)}
-                        className="inline-flex items-center gap-1.5 h-9 px-4 rounded-full text-[13px] font-semibold transition-transform hover:-translate-y-0.5"
-                        style={{ background: 'var(--vg-ink)', color: 'var(--vg-bg)' }}
-                      >
-                        <Image size={16} strokeWidth={2.4} />
-                        {p.name}
-                      </button>
-                    ))}
-                    <button type="button"
-                      onClick={() => galleryUploadRef.current?.()}
-                      className="inline-flex items-center gap-1.5 h-9 px-4 rounded-full text-[13px] font-semibold transition-transform hover:-translate-y-0.5"
-                      style={{ background: 'var(--vg-ink)', color: 'var(--vg-bg)' }}
-                    >
-                      <Plus size={16} strokeWidth={2.4} />
-                      {t('common.upload')}
-                    </button>
-                  </div>
-                )}
+                {!isMobileChromeless && galleryActions}
               </div>
 
               {/* Timeline (desktop only — mobile uses fullscreen combined view above) */}
@@ -464,6 +469,9 @@ function JourneyDetailPageDesktop() {
                 className={view === 'gallery' ? '' : 'hidden'}
                 style={showMobileGallery ? { paddingTop: 'calc(var(--nav-h, 56px) + 64px)' } : undefined}
               >
+                {showMobileGallery && galleryActions && (
+                  <div className="flex justify-end mb-4">{galleryActions}</div>
+                )}
                 <GalleryView
                   onRegisterUpload={(fn) => { galleryUploadRef.current = fn }}
                   onRegisterProviders={(providers, browse) => { setGalleryProviders(providers); galleryBrowseRef.current = browse }}

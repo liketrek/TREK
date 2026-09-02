@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import {
   X, Image, Plus, Trash2, UserPlus, Link as LinkIcon,
-  List, Grid3x3, MapPin, Archive, ArchiveRestore,
+  List, Grid3x3, MapPin, Route, Archive, ArchiveRestore,
 } from 'lucide-react'
 import MSheet from '../../components/MSheet'
 import MIconBtn from '../../components/MIconBtn'
@@ -62,6 +62,7 @@ export default function MJourneySettingsSheet({
   const [availableTrips, setAvailableTrips] = useState<AvailableTrip[]>([])
   const [linkingTripId, setLinkingTripId] = useState<number | null>(null)
   const [shareLink, setShareLink] = useState<ShareLink | null>(null)
+  const [savingTracks, setSavingTracks] = useState(false)
   const [copied, setCopied] = useState(false)
   const coverRef = useRef<HTMLInputElement>(null)
 
@@ -95,6 +96,22 @@ export default function MJourneySettingsSheet({
       onRefresh()
     } catch {
       toast.error(t('journey.settings.coverFailed'))
+    }
+  }
+
+  // Written on the spot rather than on Save, like the archive button: it is a view
+  // setting and the point of it is watching the map change (#2194). onRefresh, not
+  // onSaved, because onSaved closes the sheet the instant the switch is flipped and
+  // would drop a title the owner has typed but not saved yet.
+  const handleTracksToggle = async (next: boolean) => {
+    setSavingTracks(true)
+    try {
+      await updateJourney(journey.id, { show_trip_tracks: next })
+      onRefresh()
+    } catch {
+      toast.error(t('journey.settings.saveFailed'))
+    } finally {
+      setSavingTracks(false)
     }
   }
 
@@ -235,6 +252,22 @@ export default function MJourneySettingsSheet({
           placeholder={t('journey.settings.subtitlePlaceholder')}
           className={`${inputShell} text-[0.8125rem] font-medium`}
         />
+
+        {/* Trip GPX tracks on the journey map (#2194) */}
+        <div className={`${eyebrow} mb-[6px] mt-[14px]`}>{t('journey.settings.tracks')}</div>
+        <div className="flex items-center gap-[11px] rounded-[14px] bg-[color:var(--m-ic)] px-3 py-[10px]">
+          <Route size={16} strokeWidth={2} className="flex-none text-m-muted" />
+          <div className="min-w-0 flex-1">
+            <div className="text-[0.8125rem] font-bold">{t('journey.settings.showTripTracks')}</div>
+            <div className="font-geist text-[0.625rem] text-m-muted">{t('journey.settings.showTripTracksHint')}</div>
+          </div>
+          <MToggle
+            checked={!!journey.show_trip_tracks}
+            onChange={handleTracksToggle}
+            disabled={savingTracks}
+            ariaLabel={t('journey.settings.showTripTracks')}
+          />
+        </div>
 
         {/* Synced trips */}
         <div className={`${eyebrow} mb-[6px] mt-[14px]`}>{t('journey.detail.syncedTrips')}</div>

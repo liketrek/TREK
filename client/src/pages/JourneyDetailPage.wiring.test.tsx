@@ -524,4 +524,55 @@ describe('JourneyDetailPage wiring', () => {
     expect(screen.getByRole('button', { name: 'journey.studio.openAria' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'journey.skeletons.hide' })).toBeInTheDocument();
   });
+
+  // ── Gallery actions between 768 and 1023px ────────────────────────────────
+  // The controls row that hosts them is `hidden` there, and a tablet has no
+  // other door into the gallery (phones run the MJourneyDetail screen instead).
+
+  const immich = [{ id: 'immich', name: 'Immich' }];
+
+  it('FE-JRN-DETWIRE-037: the narrow gallery renders upload and providers outside the hidden controls row', () => {
+    setup({ isMobile: true, view: 'gallery', galleryProviders: immich });
+
+    expect(screen.getByText('common.upload').closest('.hidden')).toBeNull();
+    expect(screen.getByText('Immich').closest('.hidden')).toBeNull();
+  });
+
+  it('FE-JRN-DETWIRE-038: those buttons open the picker and the provider browser', () => {
+    const upload = vi.fn();
+    const browse = vi.fn();
+    setup({
+      isMobile: true, view: 'gallery', galleryProviders: immich,
+      galleryUploadRef: { current: upload }, galleryBrowseRef: { current: browse },
+    });
+
+    fireEvent.click(screen.getByText('common.upload'));
+    expect(upload).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByText('Immich'));
+    expect(browse).toHaveBeenCalledWith('immich');
+  });
+
+  it('FE-JRN-DETWIRE-039: only one host renders them, on either side of the breakpoint', () => {
+    const { unmount } = setup({ isMobile: true, view: 'gallery', galleryProviders: immich });
+    expect(screen.getAllByText('common.upload')).toHaveLength(1);
+    expect(screen.getAllByText('Immich')).toHaveLength(1);
+    unmount();
+
+    setup({ view: 'gallery', galleryProviders: immich });
+    expect(screen.getAllByText('common.upload')).toHaveLength(1);
+    expect(screen.getAllByText('Immich')).toHaveLength(1);
+  });
+
+  it('FE-JRN-DETWIRE-040: a read-only viewer gets no upload or provider button there', () => {
+    setup({ isMobile: true, view: 'gallery', canEditEntries: false, galleryProviders: immich });
+    expect(screen.queryByText('common.upload')).not.toBeInTheDocument();
+    expect(screen.queryByText('Immich')).not.toBeInTheDocument();
+  });
+
+  it('FE-JRN-DETWIRE-041: the narrow timeline tab keeps the gallery actions away', () => {
+    setup({ isMobile: true, view: 'timeline', galleryProviders: immich });
+    expect(screen.queryByText('common.upload')).not.toBeInTheDocument();
+    expect(screen.queryByText('Immich')).not.toBeInTheDocument();
+  });
 });

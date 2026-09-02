@@ -1,4 +1,4 @@
-// FE-COMP-JOURNEYMAP-001 to FE-COMP-JOURNEYMAP-027
+// FE-COMP-JOURNEYMAP-001 to FE-COMP-JOURNEYMAP-049
 
 vi.mock('../../api/websocket', () => ({
   connect: vi.fn(),
@@ -602,6 +602,39 @@ describe('JourneyMap', () => {
     const colors = vi.mocked(L.polyline).mock.calls.map(c => (c[1] as any)?.color);
     expect(colors).not.toContain('#ff0000');
     expect(colors).not.toContain('#ffffff');
+  });
+
+  /** The opening viewport is the assertion here, so the frame gets read out of the bounds call. */
+  const fitCoords = () => vi.mocked(L.latLngBounds).mock.calls[0][0] as [number, number][];
+
+  // #2194: a recorded drive across the country used to pull the opening view out to
+  // the whole trip, leaving the journey's own entries as a speck.
+  it('FE-COMP-JOURNEYMAP-048: frames the entries, not the tracks, when the journey has both', () => {
+    const origRAF = globalThis.requestAnimationFrame;
+    globalThis.requestAnimationFrame = (cb: FrameRequestCallback) => { cb(0); return 0; };
+    try {
+      render(
+        <JourneyMap checkins={[]} entries={entriesWithCoords} tracks={[track({ points: [[10, 10], [11, 11]] })]} />
+      );
+
+      expect(mockedMap().fitBounds).toHaveBeenCalled();
+      expect(fitCoords()).toEqual([[48.8566, 2.3522], [52.52, 13.405]]);
+    } finally {
+      globalThis.requestAnimationFrame = origRAF;
+    }
+  });
+
+  it('FE-COMP-JOURNEYMAP-049: with nothing else on the map the tracks are framed instead of the world', () => {
+    const origRAF = globalThis.requestAnimationFrame;
+    globalThis.requestAnimationFrame = (cb: FrameRequestCallback) => { cb(0); return 0; };
+    try {
+      render(<JourneyMap checkins={[]} entries={entriesWithoutCoords} tracks={[track()]} />);
+
+      expect(fitCoords()).toEqual([[47.1, 11.2], [47.2, 11.3]]);
+      expect(mockedMap().setView).not.toHaveBeenCalledWith([30, 0], 2);
+    } finally {
+      globalThis.requestAnimationFrame = origRAF;
+    }
   });
 
   // A string handed to bindTooltip becomes innerHTML. A track name is a place
