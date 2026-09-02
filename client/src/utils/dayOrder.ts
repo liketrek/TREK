@@ -95,7 +95,7 @@ export const getAccommodationAnchors = (
   const farthestFrom = (h: Accommodation): EdgeStop | undefined => {
     if (!stops?.length) return undefined
     const from = at(h)
-    const far = stops.reduce((a, b) => (haversineKm(from, b) > haversineKm(from, a) ? b : a))
+    const far = stops.reduce((a, b) => (haversineKm(from, b) > haversineKm(from, a) ? b : a), stops[0])
     return { isPlace: true, time: null, lat: far.lat, lng: far.lng }
   }
   const hasStops = !!stops?.length
