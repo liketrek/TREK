@@ -146,5 +146,6 @@ const budget: TranslationStrings = {
   'costs.splitBalanced': 'Разделение совпадает с итогом',
   'costs.splitSumUnder': 'Сумма долей: {sum} из {total} (не хватает {diff})',
   'costs.splitSumOver': 'Сумма долей: {sum} из {total} (больше на {diff})',
+  'costs.toggleSign': 'Переключить между расходом и возвратом',
 };
 export default budget;

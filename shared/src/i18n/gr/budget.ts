@@ -147,5 +147,6 @@ const budget: TranslationStrings = {
   'costs.splitBalanced': 'Ο διαμοιρασμός ταιριάζει με το σύνολο',
   'costs.splitSumUnder': 'Άθροισμα μεριδίων: {sum} από {total} (λείπουν {diff})',
   'costs.splitSumOver': 'Άθροισμα μεριδίων: {sum} από {total} ({diff} παραπάνω)',
+  'costs.toggleSign': 'Εναλλαγή μεταξύ εξόδου και επιστροφής',
 };
 export default budget;

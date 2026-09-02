@@ -146,5 +146,6 @@ const budget: TranslationStrings = {
   'costs.splitBalanced': 'La divisione corrisponde al totale',
   'costs.splitSumUnder': 'Somma delle quote: {sum} di {total} (mancano {diff})',
   'costs.splitSumOver': 'Somma delle quote: {sum} di {total} ({diff} in più)',
+  'costs.toggleSign': 'Passa da spesa a rimborso',
 };
 export default budget;

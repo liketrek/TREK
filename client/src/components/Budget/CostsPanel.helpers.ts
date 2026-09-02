@@ -11,6 +11,16 @@
  * Amounts are the raw input strings, parsed on use (same as customAmounts).
  */
 
+import { currencyDecimals } from '../../utils/formatters'
+
+// The split and receipt fields guard their own precision on every keystroke, so the
+// guard has to follow the currency: a three-decimal one (KWD, BHD, …) seeds three
+// places, and the old fixed two rejected every keystroke after that, leaving the field
+// unusable until a digit was deleted (#2175). Never stricter than two places, so no
+// value a field accepts today can become uneditable.
+export const amountPattern = (currency: string, signed: boolean) =>
+  new RegExp(`^${signed ? '-?' : ''}\\d*\\.?\\d{0,${Math.max(2, currencyDecimals(currency))}}$`)
+
 /**
  * Spread `amount` across `n` payers in whole cents so the parts sum back exactly.
  * Floor-based, so a negative total (a refund, #2176) splits just as exactly:

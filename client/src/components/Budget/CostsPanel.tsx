@@ -17,7 +17,7 @@ import CustomSelect from '../shared/CustomSelect'
 import { CustomDatePicker } from '../shared/CustomDateTimePicker'
 import { localToday } from '../Planner/today'
 import { SYMBOLS, currenciesWith, SPLIT_COLORS } from './BudgetPanel.constants'
-import { calculateTicketShares, hasTicketSplit, NOTE_MAX, payersBalanced, readTicketItems, readUserNote, rebalancePayers, splitEqualShares, writeTicketItems, type TicketItem } from './CostsPanel.helpers'
+import { amountPattern, calculateTicketShares, hasTicketSplit, NOTE_MAX, payersBalanced, readTicketItems, readUserNote, rebalancePayers, splitEqualShares, writeTicketItems, type TicketItem } from './CostsPanel.helpers'
 import { COST_CATEGORY_LIST, catMeta } from './costsCategories'
 import type { BudgetItem } from '../../types'
 import type { TripMember } from './BudgetPanelMemberChips'
@@ -1130,6 +1130,10 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
   const totalNum = isTicketMode ? ticketInfo.total : (Number.parseFloat(total) || 0)
   const splitSum = [...participants].reduce((sum, id) => sum + (Number.parseFloat(customAmounts[id]) || 0), 0)
   const customBalanced = Math.round(splitSum * 100) === Math.round(totalNum * 100)
+  // How much is still to be handed out, read on the total's own side: on a refund
+  // (#2176) the shares run negative, so a plain total minus sum flips under and
+  // over around and sends the user the wrong way.
+  const splitShortfall = totalNum < 0 ? splitSum - totalNum : totalNum - splitSum
   const each = participants.size > 0 ? totalNum / participants.size : 0
   const equalShares = useMemo(() => {
     return splitEqualShares(totalNum, [...participants].map(id => ({ user_id: id })), editing?.id || 0)
@@ -1212,7 +1216,7 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
 
   const handleCustomAmountChange = (id: number, val: string) => {
     val = val.replace(',', '.')
-    if (/^-?\d*\.?\d{0,2}$/.test(val) || val === '') {
+    if (val === '' || amountPattern(currency, true).test(val)) {
       setCustomAmounts(prev => ({ ...prev, [id]: val }))
     }
   }
@@ -1235,7 +1239,7 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
 
   const handleUpdateItemPrice = (id: string, price: string) => {
     price = price.replace(',', '.')
-    if (/^\d*\.?\d{0,2}$/.test(price) || price === '') {
+    if (price === '' || amountPattern(currency, false).test(price)) {
       setTicketItems(prev => prev.map(item => item.id === id ? { ...item, price } : item))
     }
   }
@@ -1352,6 +1356,7 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
             <span className="text-content-faint" style={{ fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))' }}>{sym(currency)}</span>
             <NumericInput mode="signed-decimal" placeholder={localizeAmountInput('0.00', currency)} value={localizeAmountInput(isTicketMode ? ticketInfo.total.toFixed(2) : total, currency)}
               onValueChange={onTotalChange}
+              signToggleLabel={t('costs.toggleSign')}
               disabled={isTicketMode}
               className="text-content" style={{ flex: 1, border: 0, background: 'none', outline: 'none', fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))', fontWeight: 600, paddingLeft: 6, width: '100%' }} />
           </div>
@@ -1607,7 +1612,7 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
                   <span style={{ fontWeight: 600, color: customBalanced ? '#16a34a' : '#dc2626' }}>
                     {customBalanced
                       ? t('costs.splitBalanced')
-                      : t(totalNum - splitSum > 0 ? 'costs.splitSumUnder' : 'costs.splitSumOver', {
+                      : t(splitShortfall > 0 ? 'costs.splitSumUnder' : 'costs.splitSumOver', {
                           sum: sym(currency) + splitSum.toFixed(2),
                           total: sym(currency) + totalNum.toFixed(2),
                           diff: sym(currency) + Math.abs(totalNum - splitSum).toFixed(2),

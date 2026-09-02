@@ -13,7 +13,7 @@ import { formatMoney, localizeAmountInput, amountToInputString } from '../../../
 import { SYMBOLS, SPLIT_COLORS, currenciesWith } from '../../../../components/Budget/BudgetPanel.constants'
 import { COST_CATEGORY_LIST, catMeta } from '../../../../components/Budget/costsCategories'
 import { localToday } from '../../../../components/Planner/today'
-import { calculateTicketShares, hasTicketSplit, NOTE_MAX, readTicketItems, readUserNote, splitEqualShares, writeTicketItems, type TicketItem } from '../../../../components/Budget/CostsPanel.helpers'
+import { amountPattern, calculateTicketShares, hasTicketSplit, NOTE_MAX, readTicketItems, readUserNote, splitEqualShares, writeTicketItems, type TicketItem } from '../../../../components/Budget/CostsPanel.helpers'
 import type { ExpensePrefill } from '../../../../components/Budget/CostsPanel'
 import { payersBalanced, rebalancePayers } from '../../../../components/Budget/CostsPanel.helpers'
 import GuestBadge from '../../../../components/shared/GuestBadge'
@@ -203,7 +203,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
 
   const handleCustomAmountChange = (id: number, val: string) => {
     val = val.replace(',', '.')
-    if (/^-?\d*\.?\d{0,2}$/.test(val) || val === '') setCustomAmounts(prev => ({ ...prev, [id]: val }))
+    if (val === '' || amountPattern(currency, true).test(val)) setCustomAmounts(prev => ({ ...prev, [id]: val }))
   }
 
   const handleAddEmptyItem = () => {
@@ -215,7 +215,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
   const handleUpdateItemName = (id: string, itemName: string) => setTicketItems(prev => prev.map(item => item.id === id ? { ...item, name: itemName } : item))
   const handleUpdateItemPrice = (id: string, price: string) => {
     price = price.replace(',', '.')
-    if (/^\d*\.?\d{0,2}$/.test(price) || price === '') setTicketItems(prev => prev.map(item => item.id === id ? { ...item, price } : item))
+    if (price === '' || amountPattern(currency, false).test(price)) setTicketItems(prev => prev.map(item => item.id === id ? { ...item, price } : item))
   }
   const handleRemoveItem = (id: string) => setTicketItems(prev => prev.filter(item => item.id !== id))
   const handleToggleItemParticipant = (itemId: string, userId: number) => {
@@ -346,6 +346,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
           <span className="text-[0.84375rem] font-medium text-m-faint">{sym(currency)}</span>
           <NumericInput
             mode="signed-decimal"
+            signToggleLabel={t('costs.toggleSign')}
             placeholder={localizeAmountInput('0.00', currency)}
             value={localizeAmountInput(isTicketMode ? ticketInfo.total.toFixed(2) : total, currency)}
             onValueChange={onTotalChange}
@@ -465,6 +466,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
                         <span className="text-[0.75rem] text-m-faint">{sym(currency)}</span>
                         <NumericInput
                           mode="signed-decimal"
+                          signToggleLabel={t('costs.toggleSign')}
                           placeholder={localizeAmountInput('0.00', currency)}
                           value={localizeAmountInput(payerAmounts[p.id] || '', currency)}
                           onValueChange={v => onPayerAmountChange(p.id, v)}

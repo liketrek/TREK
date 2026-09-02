@@ -146,5 +146,6 @@ const budget: TranslationStrings = {
   'costs.splitBalanced': 'Rozdělení sedí s celkem',
   'costs.splitSumUnder': 'Součet podílů: {sum} z {total} (chybí {diff})',
   'costs.splitSumOver': 'Součet podílů: {sum} z {total} (o {diff} více)',
+  'costs.toggleSign': 'Přepnout mezi výdajem a vratkou',
 };
 export default budget;

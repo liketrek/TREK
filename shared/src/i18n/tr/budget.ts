@@ -146,5 +146,6 @@ const budget: TranslationStrings = {
   'costs.splitBalanced': 'Bölüşüm toplamla eşleşiyor',
   'costs.splitSumUnder': 'Payların toplamı: {total} tutarın {sum} kadarı ({diff} eksik)',
   'costs.splitSumOver': 'Payların toplamı: {total} tutarın {sum} kadarı ({diff} fazla)',
+  'costs.toggleSign': 'Gider ve iade arasında geçiş yap',
 };
 export default budget;

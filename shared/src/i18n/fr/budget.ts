@@ -146,5 +146,6 @@ const budget: TranslationStrings = {
   'costs.splitBalanced': 'La répartition correspond au total',
   'costs.splitSumUnder': 'Somme des parts : {sum} sur {total} (il manque {diff})',
   'costs.splitSumOver': 'Somme des parts : {sum} sur {total} ({diff} de trop)',
+  'costs.toggleSign': 'Basculer entre dépense et remboursement',
 };
 export default budget;

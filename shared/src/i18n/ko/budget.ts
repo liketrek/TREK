@@ -146,5 +146,6 @@ const budget: TranslationStrings = {
   'costs.splitBalanced': '분할 금액이 합계와 일치합니다',
   'costs.splitSumUnder': '분할 합계: {total} 중 {sum} ({diff} 부족)',
   'costs.splitSumOver': '분할 합계: {total} 중 {sum} ({diff} 초과)',
+  'costs.toggleSign': '지출과 환불 전환',
 };
 export default budget;

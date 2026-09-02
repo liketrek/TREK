@@ -146,6 +146,7 @@ const budget: TranslationStrings = {
   'costs.splitBalanced': 'El repartiment quadra amb el total',
   'costs.splitSumUnder': 'Suma de les parts: {sum} de {total} (en falten {diff})',
   'costs.splitSumOver': 'Suma de les parts: {sum} de {total} ({diff} de més)',
+  'costs.toggleSign': 'Alterna entre despesa i devolució',
 };
 
 export default budget;

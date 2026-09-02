@@ -145,5 +145,6 @@ const budget: TranslationStrings = {
   'costs.splitBalanced': '分摊金额与总额相符',
   'costs.splitSumUnder': '分摊合计：{total} 中的 {sum}（少 {diff}）',
   'costs.splitSumOver': '分摊合计：{total} 中的 {sum}（多 {diff}）',
+  'costs.toggleSign': '在支出和退款之间切换',
 };
 export default budget;

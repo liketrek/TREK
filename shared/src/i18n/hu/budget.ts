@@ -146,5 +146,6 @@ const budget: TranslationStrings = {
   'costs.splitBalanced': 'A felosztás megegyezik a végösszeggel',
   'costs.splitSumUnder': 'A részek összege: {sum} / {total} (hiányzik {diff})',
   'costs.splitSumOver': 'A részek összege: {sum} / {total} ({diff} a többlet)',
+  'costs.toggleSign': 'Váltás kiadás és visszatérítés között',
 };
 export default budget;

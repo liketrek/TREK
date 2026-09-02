@@ -146,5 +146,6 @@ const budget: TranslationStrings = {
   'costs.splitBalanced': 'Fördelningen stämmer med totalen',
   'costs.splitSumUnder': 'Summan av delarna: {sum} av {total} ({diff} saknas)',
   'costs.splitSumOver': 'Summan av delarna: {sum} av {total} ({diff} för mycket)',
+  'costs.toggleSign': 'Växla mellan utgift och återbetalning',
 };
 export default budget;

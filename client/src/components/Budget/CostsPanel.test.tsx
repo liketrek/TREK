@@ -1890,6 +1890,29 @@ describe('CostsPanel — decimal padding on edit (#2175)', () => {
     await user.click(screen.getAllByTitle('Edit')[1])
     expect(await screen.findByDisplayValue('5,00')).toBeInTheDocument()
   })
+
+  it('FE-W5COSTS-071: a three-decimal currency seeds three places and the split field still takes input', async () => {
+    const user = userEvent.setup()
+    render(<ExpenseModal tripId={1} base="KWD" people={tripMembers} me={1} onClose={() => {}} onSaved={vi.fn()}
+      editing={expense({
+        id: 340, name: 'Museum', category: 'activities', currency: 'KWD', total_price: 3,
+        payers: [{ user_id: 1, amount: 3 }],
+        members: [{ user_id: 1, username: 'alice', amount: 1.5 }, { user_id: 2, username: 'bob', amount: 1.5 }],
+      })} />)
+
+    expect(await screen.findByDisplayValue('3.000')).toBeInTheDocument()
+    const shares = screen.getAllByDisplayValue('1.500') as HTMLInputElement[]
+
+    // The seed is three decimals, so a two-decimal guard would reject every further
+    // keystroke, including one typed in front of the decimal point.
+    await user.type(shares[0], '2', { initialSelectionStart: 0, initialSelectionEnd: 0 })
+    expect(shares[0].value).toBe('21.500')
+
+    // A fourth decimal is still not a fils.
+    await user.clear(shares[1])
+    await user.type(shares[1], '1.5005')
+    expect(shares[1].value).toBe('1.500')
+  })
 })
 
 // ── #2176: negative amounts record partial reimbursements ───────────────────
@@ -1976,6 +1999,38 @@ describe('CostsPanel — negative amounts (#2176)', () => {
     // Food nets 90 − 30 = 60; the fully refunded tour keeps a row of its own.
     expect(within(breakdown).getByText('60 €')).toBeInTheDocument()
     expect(within(breakdown).getByText(/[-−]20\s*€/)).toBeInTheDocument()
+  })
+
+  it('FE-W5COSTS-072: the custom-split hint reads under and over the right way round on a refund', async () => {
+    const user = userEvent.setup()
+    render(<ExpenseModal tripId={1} base="EUR" people={tripMembers} me={1} onClose={() => {}} onSaved={vi.fn()}
+      editing={expense({
+        id: 341, name: 'Hotel refund', category: 'accommodation', total_price: -100,
+        payers: [{ user_id: 1, amount: -100 }],
+        members: [{ user_id: 1, username: 'alice', amount: -70 }, { user_id: 2, username: 'bob' }],
+      })} />)
+
+    // -70 of -100: 30 still to hand out, not 30 too much.
+    expect(await screen.findByText('Sum of splits: €-70.00 of €-100.00 (under by €30.00)')).toBeInTheDocument()
+
+    await user.type(screen.getByPlaceholderText('-30,00'), '-40')
+    expect(screen.getByText('Sum of splits: €-110.00 of €-100.00 (over by €10.00)')).toBeInTheDocument()
+  })
+
+  it('FE-W5COSTS-073: the total can be turned into a refund without a minus key', async () => {
+    const user = userEvent.setup()
+    render(<ExpenseModal tripId={1} base="EUR" people={tripMembers} me={1} editing={null}
+      onClose={() => {}} onSaved={vi.fn()} />)
+
+    const total = (await screen.findAllByPlaceholderText('0,00'))[0] as HTMLInputElement
+    await user.type(total, '100')
+
+    // The iOS decimal pad has no minus key, so the sign has to be reachable without one.
+    const toggle = screen.getByRole('button', { name: 'Switch between expense and refund' })
+    await user.click(toggle)
+
+    expect(total.value).toBe('-100')
+    expect(toggle).toHaveAttribute('aria-pressed', 'true')
   })
 })
 

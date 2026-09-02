@@ -1,4 +1,4 @@
-// FE-COMP-NUMINPUT-001 to FE-COMP-NUMINPUT-008
+// FE-COMP-NUMINPUT-001 to FE-COMP-NUMINPUT-014
 //
 // #1513: tapping a pre-populated numeric field put the caret at the end, so the first
 // digit typed was appended rather than replacing the value — quantity 1 + "6" = "16".
@@ -16,9 +16,9 @@ beforeEach(() => {
 })
 afterEach(() => vi.unstubAllGlobals())
 
-function Harness({ initial, mode }: { initial: string; mode?: NumericMode }) {
+function Harness({ initial, mode, signToggleLabel }: { initial: string; mode?: NumericMode; signToggleLabel?: string }) {
   const [v, setV] = useState(initial)
-  return <NumericInput value={v} onValueChange={setV} mode={mode} aria-label="field" />
+  return <NumericInput value={v} onValueChange={setV} mode={mode} signToggleLabel={signToggleLabel} aria-label="field" />
 }
 
 describe('NumericInput', () => {
@@ -113,6 +113,47 @@ describe('NumericInput', () => {
   it('FE-COMP-NUMINPUT-011: signed-decimal mode uses the decimal keypad', () => {
     render(<Harness initial="" mode="signed-decimal" />)
     expect((screen.getByLabelText('field') as HTMLInputElement).inputMode).toBe('decimal')
+  })
+
+  it('FE-COMP-NUMINPUT-012: the sign toggle flips the sign of what is already there (#2176)', () => {
+    // iOS renders inputMode="decimal" as a pad of digits, separator and backspace, with
+    // no minus key, so a refund is untypeable on a phone without this button.
+    render(<Harness initial="" mode="signed-decimal" signToggleLabel="Toggle sign" />)
+    const input = screen.getByLabelText('field') as HTMLInputElement
+    const toggle = screen.getByRole('button', { name: 'Toggle sign' })
+
+    fireEvent.change(input, { target: { value: '12,50' } })
+    fireEvent.click(toggle)
+    expect(input.value).toBe('-12,50')
+    expect(toggle).toHaveAttribute('aria-pressed', 'true')
+
+    fireEvent.click(toggle)
+    expect(input.value).toBe('12,50')
+    expect(toggle).toHaveAttribute('aria-pressed', 'false')
+
+    // The button must not take the focus, or the phone keypad closes mid-entry.
+    expect(fireEvent.mouseDown(toggle)).toBe(false)
+  })
+
+  it('FE-COMP-NUMINPUT-013: an empty field toggles to a bare minus so the digits follow', () => {
+    render(<Harness initial="" mode="signed-decimal" signToggleLabel="Toggle sign" />)
+    const input = screen.getByLabelText('field') as HTMLInputElement
+
+    fireEvent.click(screen.getByRole('button', { name: 'Toggle sign' }))
+    expect(input.value).toBe('-')
+
+    // The caret stays in the field, so the next keystroke appends to the sign.
+    fireEvent.change(input, { target: { value: '-1' } })
+    expect(input.value).toBe('-1')
+  })
+
+  it('FE-COMP-NUMINPUT-014: there is no toggle without a label, and none on an unsigned field', () => {
+    const { unmount } = render(<Harness initial="" mode="signed-decimal" />)
+    expect(screen.queryByRole('button')).toBeNull()
+    unmount()
+
+    render(<Harness initial="" mode="decimal" signToggleLabel="Toggle sign" />)
+    expect(screen.queryByRole('button')).toBeNull()
   })
 
   it('FE-COMP-NUMINPUT-009: typing inside the one-frame window is not swallowed by the deferred select', async () => {

@@ -146,5 +146,6 @@ const budget: TranslationStrings = {
   'costs.splitBalanced': 'التقسيم يطابق الإجمالي',
   'costs.splitSumUnder': 'مجموع الحصص: {sum} من {total} (ناقص {diff})',
   'costs.splitSumOver': 'مجموع الحصص: {sum} من {total} (زائد {diff})',
+  'costs.toggleSign': 'التبديل بين المصروف والاسترداد',
 };
 export default budget;

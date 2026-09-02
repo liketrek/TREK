@@ -146,5 +146,6 @@ const budget: TranslationStrings = {
   'costs.splitBalanced': 'Pembagian sudah pas dengan total',
   'costs.splitSumUnder': 'Jumlah bagian: {sum} dari {total} (kurang {diff})',
   'costs.splitSumOver': 'Jumlah bagian: {sum} dari {total} (lebih {diff})',
+  'costs.toggleSign': 'Beralih antara pengeluaran dan pengembalian dana',
 };
 export default budget;

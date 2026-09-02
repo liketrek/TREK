@@ -146,6 +146,7 @@ const budget: TranslationStrings = {
   'costs.splitBalanced': 'Split matches total',
   'costs.splitSumUnder': 'Sum of splits: {sum} of {total} (under by {diff})',
   'costs.splitSumOver': 'Sum of splits: {sum} of {total} (over by {diff})',
+  'costs.toggleSign': 'Switch between expense and refund',
 };
 
 export default budget;

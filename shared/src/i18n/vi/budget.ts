@@ -146,6 +146,7 @@ const budget: TranslationStrings = {
   'costs.splitBalanced': 'Phần chia khớp với tổng',
   'costs.splitSumUnder': 'Tổng các phần: {sum} trên {total} (thiếu {diff})',
   'costs.splitSumOver': 'Tổng các phần: {sum} trên {total} (thừa {diff})',
+  'costs.toggleSign': 'Chuyển giữa khoản chi và khoản hoàn',
 };
 
 export default budget;
