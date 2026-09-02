@@ -7,6 +7,7 @@ import { usePluginStore } from '../../store/pluginStore'
 import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
 import PluginActivityPanel from './PluginActivityPanel'
+import { seedSettingsValues, findMissingRequired, settingsPatch } from '../Plugins/settingsForm'
 
 /** Host-brokered OAuth: a Connect/Disconnect control. The host runs the whole flow +
  * holds the tokens; this only triggers connect (redirect to the provider) / disconnect. */
@@ -51,7 +52,6 @@ function PluginOAuthSection({ id, state, setState }: {
   )
 }
 
-const SECRET_MASK = '••••••••'
 
 /**
  * A user's own per-plugin settings (#plugins). The host renders the plugin's
@@ -77,13 +77,7 @@ function PluginSettingsForm({ id, name, icon }: { id: string; name: string; icon
         if (!alive) return
         setFields(r.fields)
         setActions(r.actions ?? [])
-        const init: Record<string, string | boolean> = {}
-        for (const f of r.fields) {
-          const stored = r.config[f.key]
-          const seeded = stored === undefined || stored === null ? f.default : stored
-          init[f.key] = f.input_type === 'checkbox' ? seeded === true : (seeded == null ? '' : String(seeded))
-        }
-        setValues(init)
+        setValues(seedSettingsValues(r.fields, r.config))
       })
       .catch(() => { if (alive) setFields([]) })
     pluginsApi.oauthStatus(id).then(s => { if (alive) setOauth(s) }).catch(() => { if (alive) setOauth(null) })
@@ -110,32 +104,22 @@ function PluginSettingsForm({ id, name, icon }: { id: string; name: string; icon
   }
 
   const save = async () => {
-    const missing = fields.find(f =>
-      f.required && f.input_type !== 'checkbox' && !(f.secret && values[f.key] === SECRET_MASK) && String(values[f.key] ?? '').trim() === '')
+    const missing = findMissingRequired(fields, values)
     if (missing) {
       toast.error(t('settings.plugins.requiredMissing', { field: missing.label || missing.key }))
       return
     }
     setSaving(true)
     try {
-      // Skip an untouched secret (still shows the mask) so we never overwrite it with the mask.
-      const patch: Record<string, unknown> = {}
-      for (const f of fields) {
-        const v = values[f.key]
-        if (f.secret && v === SECRET_MASK) continue
-        patch[f.key] = v
-      }
-      const r = await pluginsApi.saveUserSettings(id, patch)
-      const next: Record<string, string | boolean> = {}
-      for (const f of fields) {
-        const stored = r.config[f.key]
-        const seeded = stored === undefined || stored === null ? f.default : stored
-        next[f.key] = f.input_type === 'checkbox' ? seeded === true : (seeded == null ? '' : String(seeded))
-      }
-      setValues(next)
+      const r = await pluginsApi.saveUserSettings(id, settingsPatch(fields, values))
+      setValues(seedSettingsValues(fields, r.config))
       toast.success(t('settings.plugins.saved'))
-    } catch {
-      toast.error(t('common.error'))
+    } catch (e) {
+      // A 4xx names what the server refused (a required field it knows about and this
+      // stale field list doesn't); a 5xx body is not for the user.
+      const err = e as { response?: { status?: number; data?: { error?: string } } }
+      const refused = err.response?.status && err.response.status < 500 ? err.response.data?.error : undefined
+      toast.error(refused || t('common.error'))
     } finally {
       setSaving(false)
     }

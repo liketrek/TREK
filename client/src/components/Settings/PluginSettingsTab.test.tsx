@@ -492,4 +492,23 @@ describe('PluginSettingsTab', () => {
     expect(await screen.findByText('"Client ID" is required')).toBeInTheDocument();
     expect(called).toBe(false);
   });
+
+  it('FE-COMP-PLUGINSETTINGS-029: a 400 from the server names the field it refused; a 500 stays generic', async () => {
+    // The field list was loaded before a plugin update made `city` required, so the
+    // client pre-check passes and only the server knows — its message must reach the user.
+    const user = userEvent.setup();
+    serve('weather', {
+      fields: [{ key: 'city', label: 'City', input_type: 'text' }],
+      config: {},
+    });
+    server.use(http.post('/api/plugin-settings/weather', () =>
+      HttpResponse.json({ error: 'Missing required setting "city"' }, { status: 400 })));
+    setPlugins([plugin()]);
+    render(<><ToastContainer /><PluginSettingsTab /></>);
+
+    await screen.findByText('City');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByText('Missing required setting "city"')).toBeInTheDocument();
+  });
 });
