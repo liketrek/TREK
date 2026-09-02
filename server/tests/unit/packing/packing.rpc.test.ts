@@ -144,6 +144,17 @@ describe('PackingRpc through the router', () => {
     }
   });
 
+  it('PACKING-RPC-007f deleting a bag also pings the weights (#2191)', async () => {
+    // packing_items.bag_id is ON DELETE SET NULL, so the bag's contents land in
+    // the unassigned pile: both the bag figure and the loose figure move.
+    const f = build();
+    await f.host('db:write:packing').dispatch(req('packing.deleteBag', { tripId: 1, bagId: 80 }), 42);
+    expect(fanout(f.realtime)).toEqual([
+      ['packing:bag-deleted', undefined],
+      ['packing:bag-totals', undefined],
+    ]);
+  });
+
   it('PACKING-RPC-007e an invalid item payload is BAD_PARAMS on create and update alike', async () => {
     const f = build();
     const host = f.host('db:write:packing');

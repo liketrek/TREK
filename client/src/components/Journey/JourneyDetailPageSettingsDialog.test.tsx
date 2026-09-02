@@ -373,4 +373,40 @@ describe('JourneySettingsDialog', () => {
     expect(onClose).not.toHaveBeenCalled()
     expect(screen.getByRole('heading', { name: 'Journey Settings' })).toBeInTheDocument()
   })
+
+  it('FE-JRN-SETTINGS-023: the trip-GPX switch reads off by default and turns on in one click (#2194)', async () => {
+    const { onRefresh, onSaved } = mountDialog()
+
+    const sw = screen.getByRole('switch', { name: /GPX/i })
+    expect(sw).toHaveAttribute('aria-checked', 'false')
+
+    await userEvent.click(sw)
+
+    await waitFor(() => expect(updateJourney).toHaveBeenCalledWith(3, { show_trip_tracks: true }))
+    // Refresh, never onSaved: onSaved closes the dialog, which would destroy the
+    // switch as it is flipped and skip the unsaved-changes guard.
+    await waitFor(() => expect(onRefresh).toHaveBeenCalled())
+    expect(onSaved).not.toHaveBeenCalled()
+  })
+
+  it('FE-JRN-SETTINGS-024: a journey that already draws its tracks switches them back off (#2194)', async () => {
+    // The column is INTEGER, so what arrives over the wire is 1, not true.
+    mountDialog(buildJourney({ show_trip_tracks: 1 }))
+
+    const sw = screen.getByRole('switch', { name: /GPX/i })
+    expect(sw).toHaveAttribute('aria-checked', 'true')
+
+    await userEvent.click(sw)
+    await waitFor(() => expect(updateJourney).toHaveBeenCalledWith(3, { show_trip_tracks: false }))
+  })
+
+  it('FE-JRN-SETTINGS-025: a failed switch write says so and leaves the dialog open (#2194)', async () => {
+    updateJourney.mockRejectedValueOnce(new Error('nope'))
+    const { onClose } = mountDialog()
+
+    await userEvent.click(screen.getByRole('switch', { name: /GPX/i }))
+
+    await waitFor(() => expect(toastSpy).toHaveBeenCalled())
+    expect(onClose).not.toHaveBeenCalled()
+  })
 })

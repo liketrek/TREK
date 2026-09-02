@@ -381,6 +381,26 @@ describe('Tool: set_packing_category_assignees', () => {
 // ---------------------------------------------------------------------------
 
 describe('Tool: apply_packing_template', () => {
+  it('applies a template and pings the bag weights once (#2191)', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const template = testDb.prepare("INSERT INTO packing_templates (name, created_by) VALUES ('Hiking', ?)").run(user.id);
+    const category = testDb.prepare("INSERT INTO packing_template_categories (template_id, name, sort_order) VALUES (?, 'Gear', 0)")
+      .run(template.lastInsertRowid);
+    testDb.prepare("INSERT INTO packing_template_items (category_id, name, sort_order) VALUES (?, 'Boots', 0)")
+      .run(category.lastInsertRowid);
+
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'apply_packing_template',
+        arguments: { tripId: trip.id, templateId: Number(template.lastInsertRowid) },
+      });
+      expect(result.isError).toBeFalsy();
+      // Applied items can carry weights, so the room has to re-read the totals.
+      expect(broadcastMock).toHaveBeenCalledWith(String(trip.id), 'packing:bag-totals', {}, undefined);
+    });
+  });
+
   it('returns error for non-existent template', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
