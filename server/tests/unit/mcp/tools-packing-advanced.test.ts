@@ -565,7 +565,11 @@ describe('Tool: bulk_import_packing', () => {
       expect(data.items).toHaveLength(items.length);
       expect(data.items[0].name).toBe('Passport');
       expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'packing:created', expect.objectContaining({ item: expect.any(Object) }));
-      expect(broadcastMock).toHaveBeenCalledTimes(items.length);
+      // Plus ONE bag-totals ping for the whole import (#2191) — not one per
+      // item: it is content-free and each one costs every connected client a
+      // listBags round trip.
+      expect(broadcastMock).toHaveBeenCalledWith(String(trip.id), 'packing:bag-totals', {}, undefined);
+      expect(broadcastMock).toHaveBeenCalledTimes(items.length + 1);
     });
   });
 
