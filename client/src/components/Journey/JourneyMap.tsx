@@ -268,6 +268,18 @@ function JourneyMap(
     itemsRef.current = items
 
     const allCoords: L.LatLngTuple[] = []
+    /**
+     * Track geometry is kept OUT of the fit set (#2194) and used only when there
+     * is nothing else to frame.
+     *
+     * A journey's opening viewport should show the journey — its entries and the
+     * trail between them. Letting a recorded GPX into the bounds meant one drive
+     * across a country zoomed the map out until the entries were specks, which
+     * is what the reporter's screenshot shows. JourneyMapGL already fits on
+     * entries + trail alone (JourneyMapGL.tsx), so this also ends an asymmetry
+     * where the same journey framed differently per renderer.
+     */
+    const trackCoords: L.LatLngTuple[] = []
 
     if (stableTrail.length > 1) {
       const coords = stableTrail.map(p => [p.lat, p.lng] as L.LatLngTuple)
@@ -293,7 +305,7 @@ function JourneyMap(
       // becomes innerHTML, and a track name is a place name off a shared trip.
       if (track.name) line.bindTooltip(escapeHtml(track.name), { sticky: true, direction: 'top', className: 'map-tooltip' })
       line.addTo(map)
-      coords.forEach(c => allCoords.push(c))
+      coords.forEach(c => trackCoords.push(c))
     }
 
     // route polyline — only in non-fullscreen (sidebar map) mode
@@ -341,9 +353,12 @@ function JourneyMap(
       if (!mapRef.current) return
       try {
         map.invalidateSize()
-        if (allCoords.length > 0) {
+        // Tracks only get a say when the journey has nothing located of its own —
+        // a world view would be worse than framing the one thing on the map.
+        const fitCoords = allCoords.length > 0 ? allCoords : trackCoords
+        if (fitCoords.length > 0) {
           const pb = paddingBottom || 50
-          map.fitBounds(L.latLngBounds(allCoords), { paddingTopLeft: [50, 50], paddingBottomRight: [50, pb], maxZoom: 16 })
+          map.fitBounds(L.latLngBounds(fitCoords), { paddingTopLeft: [50, 50], paddingBottomRight: [50, pb], maxZoom: 16 })
         } else {
           map.setView([30, 0], 2)
         }

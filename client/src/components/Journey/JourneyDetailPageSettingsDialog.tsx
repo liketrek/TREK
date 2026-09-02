@@ -77,6 +77,21 @@ export function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite,
     }
   }
 
+  // Saved on the spot rather than on Save, like the archive switch above it:
+  // it is a view setting, and the point of it is seeing the map change (#2194).
+  const [savingTracks, setSavingTracks] = useState(false)
+  const handleTracksToggle = async () => {
+    setSavingTracks(true)
+    try {
+      await updateJourney(journey.id, { show_trip_tracks: !journey.show_trip_tracks })
+      onSaved()
+    } catch {
+      toast.error(t('journey.settings.saveFailed'))
+    } finally {
+      setSavingTracks(false)
+    }
+  }
+
   const handleDelete = async () => {
     try {
       await deleteJourney(journey.id)
@@ -139,6 +154,30 @@ export function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite,
               placeholder={t('journey.settings.subtitlePlaceholder')}
               className="w-full px-3.5 py-2.5 border border-zinc-200 dark:border-zinc-700 rounded-xl text-[14px] bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white outline-none focus:border-zinc-400"
             />
+          </div>
+
+          {/* Trip GPX tracks on the journey map (#2194) */}
+          <div>
+            <label className="text-[10px] font-semibold tracking-[0.12em] uppercase text-zinc-500 block mb-1.5">{t('journey.settings.tracks')}</label>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={!!journey.show_trip_tracks}
+              disabled={savingTracks}
+              onClick={handleTracksToggle}
+              className="w-full flex items-center gap-3 px-3.5 py-2.5 border border-zinc-200 dark:border-zinc-700 rounded-xl bg-white dark:bg-zinc-800 text-left disabled:opacity-60"
+            >
+              <span className="flex-1 min-w-0">
+                <span className="block text-[14px] text-zinc-900 dark:text-white">{t('journey.settings.showTripTracks')}</span>
+                <span className="block text-[11px] text-zinc-500">{t('journey.settings.showTripTracksHint')}</span>
+              </span>
+              <span
+                aria-hidden="true"
+                className={`w-9 h-5 rounded-full flex-shrink-0 p-0.5 transition-colors ${journey.show_trip_tracks ? 'bg-emerald-500' : 'bg-zinc-300 dark:bg-zinc-600'}`}
+              >
+                <span className={`block w-4 h-4 rounded-full bg-white transition-transform ${journey.show_trip_tracks ? 'translate-x-4' : ''}`} />
+              </span>
+            </button>
           </div>
 
           </div>

@@ -11,6 +11,12 @@ export interface Journey {
   cover_gradient?: string | null
   cover_image?: string | null
   status: 'draft' | 'active' | 'completed' | 'archived'
+  /**
+   * Draw the GPX tracks of the journey's linked trips on its map (#2194).
+   * Off unless the owner asks for it — see the migration for why the default
+   * flipped. Optional so a cached pre-#2194 journey still parses.
+   */
+  show_trip_tracks?: boolean
   created_at: number
   updated_at: number
 }

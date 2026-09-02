@@ -356,6 +356,30 @@ describe('updateJourney', () => {
     expect(result).not.toBeNull();
     expect(result!.status).toBe('active');
   });
+
+  it('JOURNEY-SVC-021d: trip GPX tracks are off until the owner switches them on (#2194)', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id, { title: 'Norway' });
+
+    // #1260 drew the linked trips' tracks unconditionally; they are opt-in now.
+    expect(svc.updateJourney(journey.id, user.id, {})!.show_trip_tracks).toBe(0);
+
+    // A JS boolean has to survive the trip into an INTEGER column —
+    // better-sqlite3 refuses to bind one, so this would throw uncoerced.
+    expect(svc.updateJourney(journey.id, user.id, { show_trip_tracks: true })!.show_trip_tracks).toBe(1);
+    expect(svc.updateJourney(journey.id, user.id, { show_trip_tracks: false })!.show_trip_tracks).toBe(0);
+  });
+
+  it('JOURNEY-SVC-021e: an editor cannot switch the trip tracks on (#2194)', () => {
+    const { user } = createUser(testDb);
+    const { user: editor } = createUser(testDb, { username: 'tracks-editor' });
+    const journey = createJourney(testDb, user.id, { title: 'Norway' });
+    testDb.prepare("INSERT INTO journey_contributors (journey_id, user_id, role, added_at) VALUES (?, ?, 'editor', 0)")
+      .run(journey.id, editor.id);
+
+    // Journey-level settings stay owner-only, same as title and status.
+    expect(svc.updateJourney(journey.id, editor.id, { show_trip_tracks: true })).toBeNull();
+  });
 });
 
 describe('deleteJourney', () => {

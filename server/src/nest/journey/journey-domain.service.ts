@@ -329,6 +329,7 @@ export class JourneyDomainService {
       cover_gradient: string;
       cover_image: string;
       status: string;
+      show_trip_tracks: boolean | number;
     }>,
   ): Journey | null {
     // Journey-level settings (title, cover, status) are owner-only — editors
@@ -336,14 +337,17 @@ export class JourneyDomainService {
     if (!this.isOwner(journeyId, userId)) return null;
 
     const ALLOWED_STATUSES = ['draft', 'active', 'completed', 'archived'];
-    const allowed = ['title', 'subtitle', 'cover_gradient', 'cover_image', 'status'];
+    const allowed = ['title', 'subtitle', 'cover_gradient', 'cover_image', 'status', 'show_trip_tracks'];
+    // Stored as INTEGER, and better-sqlite3 refuses to bind a JS boolean, so the
+    // one flag on this table is coerced rather than passed through.
+    const BOOLEAN_FIELDS = new Set(['show_trip_tracks']);
     const fields: string[] = [];
     const values: unknown[] = [];
     for (const [key, val] of Object.entries(data)) {
       if (val !== undefined && allowed.includes(key)) {
         if (key === 'status' && !ALLOWED_STATUSES.includes(val as string)) continue;
         fields.push(`${key} = ?`);
-        values.push(val);
+        values.push(BOOLEAN_FIELDS.has(key) ? (val ? 1 : 0) : val);
       }
     }
     if (fields.length === 0) return this.db.prepare('SELECT * FROM journeys WHERE id = ?').get(journeyId) as Journey;
