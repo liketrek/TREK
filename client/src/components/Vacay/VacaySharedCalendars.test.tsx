@@ -141,4 +141,15 @@ describe('VacaySharedCalendars', () => {
 
     expect(shareWithMock).toHaveBeenCalledWith(2)
   })
+
+  it('FE-COMP-VACAYSHARED-008: Incoming row opts out of the global press-scale (#2158)', () => {
+    // jsdom cannot replay the browser mechanics behind #2158: the :active scale on
+    // the row shifted the remove X out from under the pointer, so the click retargeted
+    // onto the row and only toggled visibility. The data-no-press attribute is the pin.
+    seedShares({ incomingShares: [incoming] })
+
+    render(<VacaySharedCalendars />)
+
+    expect(screen.getByText('Carol').closest('[role="button"]')).toHaveAttribute('data-no-press')
+  })
 })

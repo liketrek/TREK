@@ -44,6 +44,10 @@ export default function CollectionList({
             key={place.id}
             ref={active ? selectedRef : undefined}
             role="button"
+            // Opt out of the global :active press-scale: shrinking the row-wide button
+            // slides the status badge out from under the pointer mid-click, so the click
+            // retargets onto the row and opens the place instead of cycling (#2158).
+            data-no-press
             tabIndex={0}
             onClick={() => (selectMode ? onToggleSelect(place.id) : onOpenPlace(place.id))}
             onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (selectMode) onToggleSelect(place.id); else onOpenPlace(place.id) } }}

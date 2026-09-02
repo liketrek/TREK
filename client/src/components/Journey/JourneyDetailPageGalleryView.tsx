@@ -142,6 +142,10 @@ export function GalleryView({ entries, gallery, journeyId, userId, trips, onPhot
             <div
               key={photo.id}
               role="button"
+              // No press-scale on the tile: shrinking it mid-click slides the corner
+              // delete button out from under the pointer, so the click retargets onto
+              // the tile and opens the lightbox instead (#2158).
+              data-no-press
               tabIndex={0}
               className="relative aspect-square rounded-lg overflow-hidden cursor-pointer group"
               onClick={() => onPhotoClick(allPhotos, i)}

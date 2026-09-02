@@ -1,4 +1,4 @@
-// FE-JRN-GALLERY-001 to FE-JRN-GALLERY-016
+// FE-JRN-GALLERY-001 to FE-JRN-GALLERY-019
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { act, useRef, useState } from 'react'
@@ -372,5 +372,15 @@ describe('GalleryView', () => {
     const { container } = mountGallery([buildGalleryPhoto(), buildGalleryPhoto({ id: 101, photo_id: 101 })])
     expect(container.querySelectorAll('.aspect-square')).toHaveLength(2)
     expect(container.querySelector('.animate-spin')).toBeNull()
+  })
+
+  it('FE-JRN-GALLERY-019: the tile opts out of the global press-scale (#2158)', () => {
+    // jsdom cannot replay the browser mechanics behind #2158: the :active scale on
+    // the tile shifted its corner delete button out from under the pointer, so the
+    // click retargeted onto the tile and opened the lightbox instead of deleting.
+    // The data-no-press attribute is the pin.
+    const { container } = mountGallery([buildGalleryPhoto()])
+
+    expect(container.querySelector('.aspect-square')).toHaveAttribute('data-no-press')
   })
 })
