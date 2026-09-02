@@ -12,6 +12,8 @@ import {
   pluginEgressHostsRequestSchema,
   pluginUserSettingsUpdateRequestSchema,
   pluginRouteRequestSchema,
+  pluginActionDescriptorSchema,
+  pluginActionResultSchema,
 } from './plugins.schema';
 
 import { describe, expect, it } from 'vitest';
@@ -70,6 +72,7 @@ describe('instance-config wire shapes', () => {
         },
       ],
       config: { apiUrl: 'https://x.example', apiKey: '••••••••' },
+      actions: [],
     };
     expect(pluginInstanceConfigResponseSchema.parse(res).fields).toHaveLength(1);
   });
@@ -137,5 +140,35 @@ describe('admin body contracts stay loose by doctrine', () => {
 
   it('route: any object parses — the handler answers { route: null }, never a 400', () => {
     expect(pluginRouteRequestSchema.safeParse({ anything: [1, 2, 3] }).success).toBe(true);
+  });
+});
+
+describe('plugin action contracts', () => {
+  it('SHARED-PLUG-ACT-001: a descriptor carries key/label/danger/scope and an optional hint', () => {
+    expect(
+      pluginActionDescriptorSchema.parse({ key: 'purge', label: 'Purge cache', danger: true, scope: 'instance' }),
+    ).toEqual({ key: 'purge', label: 'Purge cache', danger: true, scope: 'instance' });
+    expect(pluginActionDescriptorSchema.parse({ key: 'a', label: 'A', hint: 'h', danger: false, scope: 'user' }).hint).toBe('h');
+  });
+
+  it('SHARED-PLUG-ACT-002: refuses a scope outside user|instance and a missing scope', () => {
+    expect(pluginActionDescriptorSchema.safeParse({ key: 'a', label: 'A', danger: false, scope: 'global' }).success).toBe(false);
+    expect(pluginActionDescriptorSchema.safeParse({ key: 'a', label: 'A', danger: false }).success).toBe(false);
+  });
+
+  it('SHARED-PLUG-ACT-003: a result is ok plus an optional message', () => {
+    expect(pluginActionResultSchema.parse({ ok: true })).toEqual({ ok: true });
+    expect(pluginActionResultSchema.parse({ ok: false, message: 'nope' })).toEqual({ ok: false, message: 'nope' });
+    expect(pluginActionResultSchema.safeParse({ message: 'x' }).success).toBe(false);
+  });
+
+  it('SHARED-PLUG-ACT-004: the instance config response now lists instance actions', () => {
+    const r = pluginInstanceConfigResponseSchema.parse({
+      fields: [],
+      config: {},
+      actions: [{ key: 'ping', label: 'Ping', danger: false, scope: 'instance' }],
+    });
+    expect(r.actions).toHaveLength(1);
+    expect(pluginInstanceConfigResponseSchema.safeParse({ fields: [], config: {} }).success).toBe(false);
   });
 });

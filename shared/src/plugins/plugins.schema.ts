@@ -31,11 +31,37 @@ export const pluginSettingsFieldSchema = z.object({
 });
 export type PluginSettingsField = z.infer<typeof pluginSettingsFieldSchema>;
 
+/**
+ * A settings-form action button a plugin declared in its manifest (`actions`). Which
+ * form renders it is the `scope`, exactly like a settings field: `'user'` on the user
+ * Settings tab (runs as the clicking user), `'instance'` in the admin instance-settings
+ * dialog (runs as the clicking admin). One action lives in exactly one form.
+ */
+export const pluginActionScopeSchema = z.enum(['user', 'instance']);
+export type PluginActionScope = z.infer<typeof pluginActionScopeSchema>;
+
+export const pluginActionDescriptorSchema = z.object({
+  key: z.string(),
+  label: z.string(),
+  hint: z.string().optional(),
+  danger: z.boolean(),
+  scope: pluginActionScopeSchema,
+});
+export type PluginActionDescriptor = z.infer<typeof pluginActionDescriptorSchema>;
+
+/** What an action answers, after the host bounded the plugin-supplied message. */
+export const pluginActionResultSchema = z.object({
+  ok: z.boolean(),
+  message: z.string().optional(),
+});
+export type PluginActionResult = z.infer<typeof pluginActionResultSchema>;
+
 /** GET /api/admin/plugins/:id/config — the declared `scope:'instance'` fields
- * plus the stored values, secrets masked. */
+ * plus the stored values, secrets masked, plus the `scope:'instance'` actions. */
 export const pluginInstanceConfigResponseSchema = z.object({
   fields: z.array(pluginSettingsFieldSchema),
   config: z.record(z.string(), z.unknown()),
+  actions: z.array(pluginActionDescriptorSchema),
 });
 export type PluginInstanceConfigResponse = z.infer<typeof pluginInstanceConfigResponseSchema>;
 
