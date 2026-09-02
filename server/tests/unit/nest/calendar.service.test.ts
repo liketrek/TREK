@@ -804,6 +804,10 @@ describe('accommodations', () => {
       withReservation?: boolean;
       lat?: number;
       lng?: number;
+      address?: string | null;
+      confirmation?: string;
+      notes?: string;
+      location?: string;
     },
   ) => {
     const place = createPlace(testDb, tripId, {
@@ -811,7 +815,8 @@ describe('accommodations', () => {
       lat: opts.lat ?? 48.8566,
       lng: opts.lng ?? 2.3522,
     });
-    testDb.prepare('UPDATE places SET address = ? WHERE id = ?').run('1 Rue de Rivoli', place.id);
+    testDb.prepare('UPDATE places SET address = ? WHERE id = ?')
+      .run(opts.address === undefined ? '1 Rue de Rivoli' : opts.address, place.id);
     const startDay = createDay(testDb, tripId, { date: opts.start ?? undefined });
     const endDay = opts.end === undefined
       ? startDay
@@ -826,9 +831,13 @@ describe('accommodations', () => {
 
     if (opts.withReservation !== false) {
       testDb.prepare(`
-        INSERT INTO reservations (trip_id, day_id, title, reservation_time, status, type, accommodation_id)
-        VALUES (?, ?, ?, ?, 'confirmed', 'hotel', ?)
-      `).run(tripId, startDay.id, opts.title ?? 'Hotel Bellevue', opts.start, String(stayId));
+        INSERT INTO reservations (trip_id, day_id, title, reservation_time, status, type, accommodation_id,
+                                  confirmation_number, notes, location)
+        VALUES (?, ?, ?, ?, 'confirmed', 'hotel', ?, ?, ?, ?)
+      `).run(
+        tripId, startDay.id, opts.title ?? 'Hotel Bellevue', opts.start, String(stayId),
+        opts.confirmation ?? null, opts.notes ?? null, opts.location ?? null,
+      );
     }
     return { stayId, placeId: place.id };
   };
@@ -886,6 +895,58 @@ describe('accommodations', () => {
 
     expect(ics).toContain('SUMMARY:Bellevue second room');
     expect(ics).toContain('SUMMARY:Check-in: Hotel Bellevue');
+  });
+
+  it('CAL-025e: the markers of a fully timed stay carry what the dropped block said (#2136)', () => {
+    // Losing the block must not lose the confirmation number and the notes with
+    // it, the same handover the split window bookings do (#2068).
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Paris' });
+    createStay(trip.id, {
+      start: '2026-07-07', end: '2026-07-12',
+      check_in: '15:00', check_out: '11:00',
+      confirmation: 'HTL-77291', notes: 'Key box code 4711',
+    });
+
+    const { ics } = svc.exportICS(trip.id);
+
+    const unfolded = ics.replaceAll('\r\n ', '');
+    const descriptions = unfolded.split('\r\n').filter(l => l.startsWith('DESCRIPTION:Type: hotel'));
+    expect(descriptions).toHaveLength(2);
+    expect(descriptions[0]).toContain('Confirmation: HTL-77291');
+    expect(descriptions[0]).toContain('Key box code 4711');
+  });
+
+  it('CAL-025f: a stay whose place has no address takes the booking location instead', () => {
+    // place_id is nullable (ON DELETE SET NULL) and an address is optional, so
+    // without the fallback the only two events left name no address at all.
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Paris' });
+    createStay(trip.id, {
+      start: '2026-07-07', end: '2026-07-12',
+      check_in: '15:00', check_out: '11:00',
+      address: null, location: '12 Hotel Street',
+    });
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics.match(/LOCATION:12 Hotel Street/g)).toHaveLength(2);
+  });
+
+  it('CAL-025g: a stay that keeps its block does not repeat the description on its markers', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Paris' });
+    createStay(trip.id, {
+      start: '2026-07-07', end: '2026-07-12',
+      check_in: '15:00', confirmation: 'HTL-77291',
+    });
+
+    const { ics } = svc.exportICS(trip.id);
+
+    // The block is still emitted and still says it; saying it a second time on
+    // the check-in marker would change a feed that already went out.
+    const unfolded = ics.replaceAll('\r\n ', '');
+    expect(unfolded.split('\r\n').filter(l => l.startsWith('DESCRIPTION:Type: hotel'))).toHaveLength(1);
   });
 
   it('CAL-025c: knowing only one end keeps the block, since nothing else carries the other', () => {
@@ -955,6 +1016,23 @@ describe('accommodations', () => {
     // drop an event whose end precedes its start.
     expect(ics).toContain('DTSTART;TZID=Europe/Paris:20260712T233000');
     expect(ics).toContain('DTEND;TZID=Europe/Paris:20260713T003000');
+  });
+
+  it('CAL-026e: a check-in window that ends before it starts runs past midnight (#2136)', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Paris' });
+    createStay(trip.id, {
+      start: '2026-07-07', end: '2026-07-12',
+      check_in: '22:00', check_in_end: '02:00', check_out: '11:00',
+    });
+
+    const { ics } = svc.exportICS(trip.id);
+
+    // A late-arrival window, and nothing on the way in (REST, MCP, plugin SDK)
+    // orders the two clocks. Emitted as recorded the DTEND precedes the DTSTART,
+    // clients drop the event, and since the block is gone the arrival is gone.
+    expect(ics).toContain('DTSTART;TZID=Europe/Paris:20260707T220000');
+    expect(ics).toContain('DTEND;TZID=Europe/Paris:20260708T020000');
   });
 
   it('CAL-027: a stay without times emits the all-day range and nothing else', () => {

@@ -329,6 +329,16 @@ export class CalendarService {
       return t && isTime(t) ? t : null;
     };
 
+    // Per stay, the booking whose all-day block its two markers replace. Decided
+    // once here rather than twice, because the markers have to hand on exactly
+    // what the block they replaced would have said (#2136).
+    const stayCarriedByMarkers = new Map<number, any>();
+    for (const r of reservations) {
+      if (isTime(r.stay_check_in) && isTime(r.stay_check_out) && r.stay_first_reservation_id === r.id) {
+        stayCarriedByMarkers.set(Number(r.accommodation_id), r);
+      }
+    }
+
     // Build the DTSTART/DTEND lines for a reservation, or null when it has no
     // calendar-placeable time. Transports keep a per-side wall clock + IANA zone
     // on their endpoints, so consult a timed departure endpoint FIRST: transports
@@ -356,8 +366,7 @@ export class CalendarService {
       // emitted once per stay and titled from its lowest-id reservation, so a
       // second room on the same stay is represented by nothing else and keeps
       // its block.
-      const markersCover = isTime(r.stay_check_in) && isTime(r.stay_check_out)
-        && r.stay_first_reservation_id === r.id;
+      const markersCover = stayCarriedByMarkers.get(Number(r.accommodation_id)) === r;
       if (isDate(r.stay_start_date) && !markersCover) {
         const lastDay = isDate(r.stay_end_date) && r.stay_end_date >= r.stay_start_date
           ? r.stay_end_date
@@ -606,6 +615,14 @@ export class CalendarService {
       const zone = resolveTimeZone(stay.place_lat, stay.place_lng);
       // No end day (the day row was removed) → check out on the arrival day.
       const checkOutDate = isDate(stay.end_date) ? stay.end_date : stay.start_date;
+      // Where these markers ARE the booking, they inherit what its block used to
+      // carry: confirmation number, notes, and (for a stay whose place holds no
+      // address) the booking's own location. Otherwise the block still says all
+      // of that, and repeating it would change a feed that already went out: the
+      // same rule the hand-overs follow (#2068, #2136).
+      const booking = stayCarriedByMarkers.get(stay.id);
+      const desc = booking ? describeReservation(booking) : '';
+      const address = stay.place_address || (booking ? booking.location : null);
 
       const marker = (
         kind: 'checkin' | 'checkout',
@@ -618,7 +635,14 @@ export class CalendarService {
         let ev = `BEGIN:VEVENT\r\nUID:${uid(stay.id, kind)}\r\nDTSTAMP:${now}\r\n`;
         ev += dtLine('DTSTART', time, zone, ref);
         if (isTime(endTime)) {
-          ev += dtLine('DTEND', endTime!, zone, ref);
+          // An until-clock that is not later than the check-in is a late-arrival
+          // window running past midnight ("22:00 to 02:00"): nothing on the way
+          // in orders the two, and emitting it as recorded puts the DTEND before
+          // the DTSTART, which clients drop outright. Since the stay lost its
+          // all-day block there is nothing left to fall back on, so the window
+          // ends on the following day (#2136).
+          const endDate = endTime!.slice(0, 5) <= time.slice(0, 5) ? addDays(date, 1) : date;
+          ev += dtLine('DTEND', endTime!, zone, `${endDate}T00:00`);
         } else {
           // No recorded end → the same default hour the hand-overs read as.
           // Without a DTEND the marker is a zero-length point, and since a fully
@@ -630,7 +654,8 @@ export class CalendarService {
           ev += dtLine('DTEND', stop.time, zone, `${stop.date}T00:00`);
         }
         ev += `SUMMARY:${esc(summary)}\r\n`;
-        if (stay.place_address) ev += `LOCATION:${esc(stay.place_address)}\r\n`;
+        if (desc) ev += `DESCRIPTION:${esc(desc)}\r\n`;
+        if (address) ev += `LOCATION:${esc(address)}\r\n`;
         ev += `END:VEVENT\r\n`;
         events.push(ev);
       };
