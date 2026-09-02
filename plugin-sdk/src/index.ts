@@ -853,6 +853,8 @@ export function definePlugin(def: PluginDefinition): PluginDefinition {
 
 export {
   validateManifest,
+  settingDefaults,
+  SETTING_FIELD_KEYS,
   CHANNEL_EVENTS,
   type PluginManifest,
   type NormalizedManifest,

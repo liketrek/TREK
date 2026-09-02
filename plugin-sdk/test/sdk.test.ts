@@ -1151,3 +1151,12 @@ describe('validateManifest: the trek range', () => {
     expect(isUnboundedRange('>=3.2.0 <4.0.0')).toBe(false);
   });
 });
+
+describe('settingDefaults is part of the package surface', () => {
+  it('is exported from the index so a plugin test can seed createMockHost like the host does', async () => {
+    const sdk = await import('../src/index.js');
+    const manifest = { settings: [{ key: 'a', default: 1 }, { key: 'u', scope: 'user', default: 'x' }] };
+    expect(sdk.settingDefaults(manifest, 'instance')).toEqual({ a: 1 });
+    expect(sdk.settingDefaults(manifest, 'user')).toEqual({ u: 'x' });
+  });
+});

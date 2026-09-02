@@ -320,6 +320,7 @@ npx trek-plugin-sdk publish --repo you/repo --tag v1.1.0 --sign   # or just answ
 - `definePlugin(def)` + all the plugin types (`PluginContext`, `PluginRoute`, `PluginJob`, `PhotoProvider`, `CalendarSource`).
 - `PLUGIN_API_VERSION` — embed as `apiVersion` in your manifest.
 - `validateManifest(json)` — the manifest rules the server loader uses.
+- `settingDefaults(manifest, scope)` — the `default`s of one settings scope, keyed by field: what the host resolves for an unset field, and what `dev` seeds `ctx.config` / `ctx.settings` with. Spread it under your own fixtures when calling `createMockHost` to mirror the host. `SETTING_FIELD_KEYS` is the attribute list the host stores.
 - `createMockHost(opts)` (from `trek-plugin-sdk/testing`).
 - `TREK_UI_CSS`, `TREK_THEME_JS`, `TREK_UI_MARKER`, `injectTrekUi(html)` — the design kit, for authors who inline it themselves (a bundler, a custom build). Most plugins just use the `<!-- trek:ui -->` marker instead.
 
