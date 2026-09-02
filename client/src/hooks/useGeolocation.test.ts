@@ -1,4 +1,4 @@
-// FE-HOOK-GEO-001 to FE-HOOK-GEO-029
+// FE-HOOK-GEO-001 to FE-HOOK-GEO-031
 import { StrictMode } from 'react';
 import { act, renderHook } from '@testing-library/react';
 import { GeoOnceError, getCurrentPositionOnce, useGeolocation } from './useGeolocation';
@@ -352,6 +352,30 @@ describe('useGeolocation', () => {
     expect(result.current.error).toBeNull();
     expect(result.current.errorCode).toBeNull();
     expect(result.current.position).not.toBeNull();
+  });
+
+  it('FE-HOOK-GEO-030: an insecure origin is named as such, not as a blocked permission', async () => {
+    // Plain-HTTP self-hosting: the browser would answer PERMISSION_DENIED and the
+    // user would be sent into device settings that are already correct.
+    vi.stubGlobal('isSecureContext', false);
+    const { result } = renderHook(() => useGeolocation());
+
+    await act(() => result.current.cycleMode());
+
+    expect(watchPosition).not.toHaveBeenCalled();
+    expect(result.current.mode).toBe('off');
+    expect(result.current.errorCode).toBe('insecure-context');
+  });
+
+  it('FE-HOOK-GEO-031: a secure origin is not mistaken for an insecure one', async () => {
+    vi.stubGlobal('isSecureContext', true);
+    const { result } = renderHook(() => useGeolocation());
+
+    await act(() => result.current.cycleMode());
+
+    expect(result.current.mode).toBe('show');
+    expect(result.current.errorCode).toBeNull();
+    expect(watchPosition).toHaveBeenCalledTimes(1);
   });
 
   it('FE-HOOK-GEO-019: stops the watch when the component unmounts', async () => {

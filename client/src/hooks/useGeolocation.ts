@@ -20,7 +20,7 @@ export type TrackingMode = 'off' | 'show' | 'follow'
 // Typed counterpart to the raw error string. The string is whatever the
 // browser produced (raw WebKit English on iOS), so the UI keys off this
 // code to show a localized, actionable message instead.
-export type GeoWatchErrorCode = 'permission-denied' | 'unavailable' | 'timeout' | 'unsupported'
+export type GeoWatchErrorCode = 'permission-denied' | 'unavailable' | 'timeout' | 'unsupported' | 'insecure-context'
 
 export interface UseGeolocationReturn {
   position: GeoPosition | null
@@ -137,6 +137,14 @@ export function useGeolocation(): UseGeolocationReturn {
     if (!('geolocation' in navigator)) {
       setError('Geolocation is not supported in this browser')
       setErrorCode('unsupported')
+      return false
+    }
+    // Same block getCurrentPositionOnce guards against: on a plain-HTTP origin
+    // the browser answers PERMISSION_DENIED, which would otherwise read as a
+    // revoked device permission and send the user into their OS settings.
+    if (window.isSecureContext === false) {
+      setError('Location requires a secure (HTTPS) connection')
+      setErrorCode('insecure-context')
       return false
     }
     // Already watching, or still waiting on the iOS prompt below: a second

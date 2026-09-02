@@ -1,4 +1,4 @@
-// FE-MAP-LOCBTN-001 to FE-MAP-LOCBTN-004
+// FE-MAP-LOCBTN-001 to FE-MAP-LOCBTN-005
 import { render } from '@testing-library/react';
 import LocationButton from './LocationButton';
 import type { GeoWatchErrorCode } from '../../hooks/useGeolocation';
@@ -65,5 +65,12 @@ describe('LocationButton', () => {
     rerender(button('timeout'));
     expect(addToast).toHaveBeenCalledTimes(2);
     expect(addToast).toHaveBeenLastCalledWith('map.location.timeout', 'error', 6000);
+  });
+
+  it('FE-MAP-LOCBTN-005: an insecure origin gets the HTTPS hint, not the permission one', () => {
+    const { getByRole } = render(button('insecure-context', 'Only secure origins are allowed'));
+
+    expect(addToast).toHaveBeenCalledWith('journey.editor.locationInsecureContext', 'error', 6000);
+    expect(getByRole('button').getAttribute('title')).toBe('journey.editor.locationInsecureContext');
   });
 });

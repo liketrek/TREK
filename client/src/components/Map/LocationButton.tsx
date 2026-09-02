@@ -17,11 +17,14 @@ interface Props {
 // The raw error string from the browser is unlocalized WebKit English, so the
 // user-facing message is looked up from the typed code instead. 'unsupported'
 // shares the generic text: a browser without geolocation cannot locate you.
+// 'insecure-context' borrows the journal editor's wording, which already says
+// exactly this in all locales.
 const ERROR_KEYS: Record<GeoWatchErrorCode, string> = {
   'permission-denied': 'map.location.denied',
   'unavailable': 'map.location.unavailable',
   'timeout': 'map.location.timeout',
   'unsupported': 'map.location.unavailable',
+  'insecure-context': 'journey.editor.locationInsecureContext',
 }
 
 // Three-state FAB. Matches the Apple/Google Maps pattern:
