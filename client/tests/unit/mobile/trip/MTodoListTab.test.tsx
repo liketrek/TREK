@@ -181,6 +181,27 @@ describe('MTodoListTab', () => {
     expect(rowOrder(['Low', 'High'])).toEqual(['High', 'Low'])
   })
 
+  it('FE-MOB-TODO-020: toggles the due-date sort and puts the nearest deadline first (#2205)', () => {
+    setup([
+      todo({ id: 1, name: 'Later', due_date: '2099-07-17' }),
+      todo({ id: 2, name: 'Sooner', due_date: '2099-07-16' }),
+      todo({ id: 3, name: 'Undated' }),
+    ])
+
+    expect(rowOrder(['Later', 'Sooner', 'Undated'])).toEqual(['Later', 'Sooner', 'Undated'])
+
+    const sortButton = screen.getByRole('button', { name: /todo.detail.dueDate/ })
+    expect(sortButton).toHaveAttribute('aria-pressed', 'false')
+    fireEvent.click(sortButton)
+
+    expect(sortButton).toHaveAttribute('aria-pressed', 'true')
+    expect(rowOrder(['Later', 'Sooner', 'Undated'])).toEqual(['Sooner', 'Later', 'Undated'])
+
+    // one sort at a time: flipping priority on releases the due toggle
+    fireEvent.click(screen.getByRole('button', { name: /todo.priority/ }))
+    expect(sortButton).toHaveAttribute('aria-pressed', 'false')
+  })
+
   it('FE-MOB-TODO-009: floats overdue rows above the other open ones', () => {
     setup([
       todo({ id: 1, name: 'Open' }),
