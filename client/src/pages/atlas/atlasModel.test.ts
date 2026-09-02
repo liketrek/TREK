@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   A2_TO_A3,
+  bucketTooltipHeight,
   bucketTooltipNeedsScroll,
   bucketTooltipPlacement,
   bucketTooltipWidth,
@@ -310,36 +311,60 @@ describe('bucketTooltipWidth (#2153)', () => {
   });
 });
 
+describe('bucketTooltipHeight (#2153)', () => {
+  it('is the 200px content cap plus the tooltip chrome, offset and arrow margin', () => {
+    expect(bucketTooltipHeight(1080)).toBe(242);
+  });
+
+  it('follows the 40vh cap down on a short viewport', () => {
+    expect(bucketTooltipHeight(400)).toBe(202);
+  });
+});
+
 describe('bucketTooltipPlacement (#2153)', () => {
+  const viewport = { width: 1000, height: 1080 };
+
   it('opens above a marker with room on all sides, centred with no horizontal nudge', () => {
-    const placement = bucketTooltipPlacement({ x: 500, y: 400 }, 1000, 480);
+    const placement = bucketTooltipPlacement({ x: 500, y: 400 }, viewport, 480);
     expect(placement.direction).toBe('top');
     expect(placement.offset).toEqual([0, -14]);
   });
 
   it('flips to open below the marker when there is no room above it', () => {
-    const placement = bucketTooltipPlacement({ x: 500, y: 100 }, 1000, 480);
+    const placement = bucketTooltipPlacement({ x: 500, y: 100 }, viewport, 480);
     expect(placement.direction).toBe('bottom');
     expect(placement.offset[1]).toBe(14);
+  });
+
+  it('still flips for a marker that clears 220px but not the tooltip itself', () => {
+    // 225px of room used to read as "fits above", which clipped the top 17px away.
+    const placement = bucketTooltipPlacement({ x: 500, y: 225 }, viewport, 480);
+    expect(placement.direction).toBe('bottom');
+  });
+
+  it('keeps the tooltip above when neither side fits but there is more room above', () => {
+    // Landscape phone, 300px tall: the tooltip wants 162px and gets 152 above, 132 below.
+    const placement = bucketTooltipPlacement({ x: 500, y: 160 }, { width: 1000, height: 300 }, 480);
+    expect(placement.direction).toBe('top');
   });
 
   it('nudges right when centring the tooltip would clip the left edge', () => {
     // Marker at x=50 with a 480px-wide tooltip centred on it would start at
     // x=-190; the offset needs to push the tooltip's left edge to the margin (8px).
-    const placement = bucketTooltipPlacement({ x: 50, y: 400 }, 1000, 480);
+    const placement = bucketTooltipPlacement({ x: 50, y: 400 }, viewport, 480);
     const defaultLeft = 50 - 480 / 2;
     expect(placement.offset[0]).toBe(8 - defaultLeft);
   });
 
   it('nudges left when centring the tooltip would clip the right edge', () => {
-    const placement = bucketTooltipPlacement({ x: 950, y: 400 }, 1000, 480);
+    const placement = bucketTooltipPlacement({ x: 950, y: 400 }, viewport, 480);
     const defaultLeft = 950 - 480 / 2;
     const clampedLeft = 1000 - 8 - 480;
     expect(placement.offset[0]).toBe(clampedLeft - defaultLeft);
   });
 
   it('does not nudge horizontally when the tooltip already fits', () => {
-    const placement = bucketTooltipPlacement({ x: 500, y: 400 }, 1000, 480);
+    const placement = bucketTooltipPlacement({ x: 500, y: 400 }, viewport, 480);
     expect(placement.offset[0]).toBe(0);
   });
 });

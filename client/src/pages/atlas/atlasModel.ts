@@ -218,6 +218,13 @@ export function bucketTooltipWidth(viewportWidth: number): number {
   return Math.min(480, viewportWidth - 32)
 }
 
+/** Vertical space (CSS px) the bucket-list tooltip claims beside its marker: the
+ * .atlas-tooltip-scroll-inner cap of min(200px, 40vh), plus .atlas-tooltip's padding and
+ * border (2x10 + 2x1), plus the 14px offset and Leaflet's 6px .leaflet-tooltip-top margin. */
+export function bucketTooltipHeight(viewportHeight: number): number {
+  return Math.min(200, viewportHeight * 0.4) + 22 + 20
+}
+
 export interface TooltipPlacement {
   direction: 'top' | 'bottom'
   offset: [number, number]
@@ -225,18 +232,19 @@ export interface TooltipPlacement {
 
 /** Keeps the bucket-list marker tooltip on-screen (#2153): Leaflet has no viewport
  * awareness, so flip below the marker when there's no room above, and nudge the
- * horizontal offset to keep it within [margin, viewportWidth - margin]. */
+ * horizontal offset to keep it within [margin, viewport.width - margin]. */
 export function bucketTooltipPlacement(
   markerScreen: { x: number; y: number },
-  viewportWidth: number,
+  viewport: { width: number; height: number },
   tooltipWidth: number,
-  opts: { margin?: number; topThreshold?: number } = {},
+  opts: { margin?: number } = {},
 ): TooltipPlacement {
   const margin = opts.margin ?? 8
-  const topThreshold = opts.topThreshold ?? 220
-  const flip = markerScreen.y < topThreshold
+  const roomAbove = markerScreen.y - margin
+  const roomBelow = viewport.height - markerScreen.y - margin
+  const flip = roomAbove < bucketTooltipHeight(viewport.height) && roomBelow > roomAbove
   const defaultLeft = markerScreen.x - tooltipWidth / 2
-  const clampedLeft = Math.min(Math.max(defaultLeft, margin), viewportWidth - margin - tooltipWidth)
+  const clampedLeft = Math.min(Math.max(defaultLeft, margin), viewport.width - margin - tooltipWidth)
   const dx = clampedLeft - defaultLeft
   return { direction: flip ? 'bottom' : 'top', offset: [dx, flip ? 14 : -14] }
 }

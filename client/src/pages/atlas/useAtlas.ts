@@ -1102,7 +1102,11 @@ export function useAtlas() {
         const point = map.latLngToContainerPoint(marker.getLatLng())
         const screenX = containerRect.left + point.x
         const screenY = containerRect.top + point.y
-        const placement = bucketTooltipPlacement({ x: screenX, y: screenY }, window.innerWidth, bucketTooltipWidth(window.innerWidth))
+        const placement = bucketTooltipPlacement(
+          { x: screenX, y: screenY },
+          { width: window.innerWidth, height: window.innerHeight },
+          bucketTooltipWidth(window.innerWidth),
+        )
         tooltip.options.direction = placement.direction
         tooltip.options.offset = placement.offset
       })
@@ -1118,11 +1122,19 @@ export function useAtlas() {
       const scheduleClose = () => { closeTimer = setTimeout(() => marker.closeTooltip(), 200) }
       marker.off('mouseout', marker.closeTooltip, marker)
       marker.on('mouseout', scheduleClose)
+      // The way back from the tooltip onto the marker fires the tooltip's mouseleave
+      // first, so the close it just scheduled has to be taken back here.
+      marker.on('mouseover', cancelClose)
       marker.on('tooltipopen', () => {
         const el = marker.getTooltip()?.getElement()
         if (!el) return
         el.addEventListener('mouseenter', cancelClose)
         el.addEventListener('mouseleave', scheduleClose)
+        // The tooltip pane lives inside the map container, where Leaflet cancels both
+        // gestures before they reach the note: the wheel would zoom the map and a touch
+        // swipe would pan it instead of scrolling.
+        L.DomEvent.disableScrollPropagation(el)
+        L.DomEvent.disableClickPropagation(el)
         const inner = el.querySelector<HTMLElement>('.atlas-tooltip-scroll-inner')
         if (inner) inner.style.overflowY = bucketTooltipNeedsScroll(inner.scrollHeight, inner.clientHeight) ? 'auto' : 'hidden'
       })

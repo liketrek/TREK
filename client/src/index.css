@@ -148,6 +148,9 @@ body { height: 100%; overflow: auto; overscroll-behavior: none; -webkit-overflow
 .atlas-tooltip-scroll-inner {
   max-height: min(200px, 40vh);
   overflow-y: hidden;
+  /* Leaflet puts touch-action: none on the map container; without widening it
+     back here a touch swipe over the note can never scroll it (#2153). */
+  touch-action: pan-y;
 }
 .atlas-tooltip-scroll-inner::-webkit-scrollbar { width: 6px; }
 .atlas-tooltip-scroll-inner::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.25); border-radius: 3px; }
