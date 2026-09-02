@@ -299,6 +299,63 @@ describe('MAdminAddonManager', () => {
     await waitFor(() => expect(screen.getByRole('switch', { name: 'Unsplash' })).toHaveAttribute('aria-checked', 'false'));
   });
 
+  it('FE-MOB-AADD-026: switching the journey addon off and on again shows the cascaded providers as off', async () => {
+    const user = userEvent.setup();
+    let loads = 0;
+    let journeyOn = true;
+    let immichOn = true;
+    server.use(
+      http.get('/api/admin/addons', () => {
+        loads += 1;
+        return HttpResponse.json({
+          addons: [
+            buildAddon({ id: 'journey', name: 'Journey', type: 'global', icon: 'Compass', enabled: journeyOn }),
+            buildAddon({ id: 'immich', name: 'Immich', description: 'Self-hosted photos', type: 'photo_provider', enabled: immichOn }),
+          ],
+        });
+      }),
+      http.put('/api/admin/addons/journey', async ({ request }) => {
+        journeyOn = (await request.json() as { enabled: boolean }).enabled;
+        // Journey off takes its providers with it, see admin.service.ts.
+        if (!journeyOn) immichOn = false;
+        return HttpResponse.json({ success: true });
+      }),
+    );
+    render(<><ToastContainer /><MAdminAddonManager /></>);
+    await screen.findByText('Immich');
+
+    await user.click(screen.getByRole('switch', { name: 'Journey' }));
+    // The toast closes the whole toggle, re-read included.
+    await screen.findByText('Addon updated');
+    expect(loads).toBe(2);
+    expect(screen.queryByText('Immich')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('switch', { name: 'Journey' }));
+
+    await screen.findByText('Immich');
+    expect(screen.getByRole('switch', { name: 'Immich' })).toHaveAttribute('aria-checked', 'false');
+  });
+
+  it('FE-MOB-AADD-027: a toggle the server does not cascade keeps the snapshot it has', async () => {
+    const user = userEvent.setup();
+    let loads = 0;
+    server.use(
+      http.get('/api/admin/addons', () => {
+        loads += 1;
+        return HttpResponse.json({ addons: [buildAddon({ id: 'todo', enabled: false })] });
+      }),
+      http.put('/api/admin/addons/todo', () => HttpResponse.json({ success: true })),
+    );
+    render(<><ToastContainer /><MAdminAddonManager /></>);
+    await screen.findByText('Todo List');
+
+    await user.click(screen.getByRole('switch', { name: 'Todo List' }));
+
+    await screen.findByText('Addon updated');
+    expect(loads).toBe(1);
+    expect(screen.getByRole('switch', { name: 'Todo List' })).toHaveAttribute('aria-checked', 'true');
+  });
+
   it('FE-MOB-AADD-016: a disabled AI-parsing addon renders the integration row without its config', async () => {
     server.use(addonsRoute([llmAddon({ provider: 'local' })].map(a => ({ ...a, enabled: false }))));
     render(<MAdminAddonManager />);

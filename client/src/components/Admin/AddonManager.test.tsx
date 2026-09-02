@@ -361,6 +361,63 @@ describe('AddonManager', () => {
     expect(screen.queryByText('Synology Photos')).not.toBeInTheDocument();
   });
 
+  it('FE-ADMIN-ADDON-031: switching Journey off and on again shows the cascaded providers as off', async () => {
+    const user = userEvent.setup();
+    let loads = 0;
+    let journeyOn = true;
+    let immichOn = true;
+    server.use(
+      http.get('/api/admin/addons', () => {
+        loads += 1;
+        return HttpResponse.json({
+          addons: [
+            buildAddon({ id: 'journey', name: 'Journey', type: 'global', icon: 'Compass', enabled: journeyOn }),
+            buildAddon({ id: 'immich', name: 'Immich', description: 'Self-hosted photos', type: 'photo_provider', enabled: immichOn }),
+          ],
+        });
+      }),
+      http.put('/api/admin/addons/journey', async ({ request }) => {
+        journeyOn = (await request.json() as { enabled: boolean }).enabled;
+        // Journey off takes its providers with it, see admin.service.ts.
+        if (!journeyOn) immichOn = false;
+        return HttpResponse.json({ success: true });
+      }),
+    );
+    render(<><ToastContainer /><AddonManager /></>);
+    await screen.findByText('Immich');
+
+    await user.click(addonToggle('Journey'));
+    // The toast closes the whole toggle, re-read included.
+    await screen.findByText('Addon updated');
+    expect(loads).toBe(2);
+    expect(screen.queryByText('Immich')).not.toBeInTheDocument();
+
+    await user.click(addonToggle('Journey'));
+
+    await screen.findByText('Immich');
+    expect(isOn(subToggle('Immich'))).toBe(false);
+  });
+
+  it('FE-ADMIN-ADDON-032: a toggle the server does not cascade keeps the snapshot it has', async () => {
+    const user = userEvent.setup();
+    let loads = 0;
+    server.use(
+      http.get('/api/admin/addons', () => {
+        loads += 1;
+        return HttpResponse.json({ addons: [buildAddon({ id: 'todo', enabled: false })] });
+      }),
+      http.put('/api/admin/addons/todo', () => HttpResponse.json({ success: true })),
+    );
+    render(<><ToastContainer /><AddonManager /></>);
+    await screen.findByText('Todo List');
+
+    await user.click(addonToggle('Todo List'));
+
+    await screen.findByText('Addon updated');
+    expect(loads).toBe(1);
+    expect(isOn(addonToggle('Todo List'))).toBe(true);
+  });
+
   it('FE-ADMIN-ADDON-018: the collab sub-features render their state and report the toggled key', async () => {
     const user = userEvent.setup();
     const onToggleCollabFeature = vi.fn();

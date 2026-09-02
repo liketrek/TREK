@@ -92,18 +92,15 @@ export default function AddonManager({ bagTrackingEnabled, onToggleBagTracking, 
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    loadAddons()
+    loadAddons().finally(() => setLoading(false))
   }, [])
 
   const loadAddons = async () => {
-    setLoading(true)
     try {
       const data = await adminApi.addons()
       setAddons(data.addons)
     } catch (err: unknown) {
       toast.error(t('admin.addons.toast.error'))
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -114,12 +111,17 @@ export default function AddonManager({ bagTrackingEnabled, onToggleBagTracking, 
     setAddons(prev => prev.map(a => a.id === addon.id ? { ...a, enabled: newEnabled } : a))
     try {
       await adminApi.updateAddon(addon.id, { enabled: newEnabled })
-      refreshGlobalAddons()
-      toast.success(t('admin.addons.toast.updated'))
     } catch (err: unknown) {
       setAddons(prev => prev.map(a => a.id === addon.id ? { ...a, enabled: !newEnabled } : a))
       toast.error(t('admin.addons.toast.error'))
+      return
     }
+    refreshGlobalAddons()
+    // Journey off disables every photo provider with it, and the response carries
+    // only Journey. Without re-reading, switching Journey back on brings the shelf
+    // up with providers the database has long since turned off.
+    if (addon.id === 'journey') await loadAddons()
+    toast.success(t('admin.addons.toast.updated'))
   }
 
   const isPhotoProviderAddon = (addon: Addon) => {
