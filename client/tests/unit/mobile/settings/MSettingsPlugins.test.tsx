@@ -43,8 +43,8 @@ const CONFIG: Record<string, unknown> = {
 };
 
 const ACTIONS: PluginAction[] = [
-  { key: 'test', label: 'Test connection', hint: 'Pings the provider', danger: false },
-  { key: 'reset', label: 'Reset cache', danger: true },
+  { key: 'test', label: 'Test connection', hint: 'Pings the provider', danger: false, scope: 'user' },
+  { key: 'reset', label: 'Reset cache', danger: true, scope: 'user' },
 ];
 
 const ACTIVITY = [
@@ -284,7 +284,7 @@ describe('MSettingsPlugins', () => {
   it('FE-MOB-SETPLG-013: an action result without a message falls back to the generic label', async () => {
     const user = userEvent.setup();
     usePluginStore.setState({ plugins: [PLUGIN], loaded: true });
-    seedPluginApi('p1', { actions: [ACTIONS[0], { key: 'probe', label: 'Probe', danger: false }] });
+    seedPluginApi('p1', { actions: [ACTIONS[0], { key: 'probe', label: 'Probe', danger: false, scope: 'user' }] });
     server.use(
       http.post('/api/plugin-settings/p1/actions/test', () => HttpResponse.json({ ok: true })),
       http.post('/api/plugin-settings/p1/actions/probe', () => HttpResponse.json({ ok: false })),

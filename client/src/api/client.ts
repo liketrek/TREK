@@ -56,6 +56,8 @@ import {
   type PluginSettingsField,
   type PluginInstanceConfigResponse,
   type PluginInstanceConfigUpdated,
+  type PluginActionDescriptor,
+  type PluginActionResult,
   type PluginInstallRequest,
 } from '@trek/shared'
 import { getSocketId } from './websocket'
@@ -569,6 +571,10 @@ export const adminApi = {
     apiClient.get(`/admin/plugins/${id}/config`).then(r => r.data),
   pluginSaveConfig: (id: string, config: Record<string, unknown>): Promise<PluginInstanceConfigUpdated> =>
     apiClient.put(`/admin/plugins/${id}/config`, config).then(r => r.data),
+  // Run a `scope:'instance'` action the plugin declared ("Purge cache"). Runs AS the
+  // clicking admin. 404 when the plugin is inactive (no child process to run it).
+  runPluginAction: (id: string, key: string): Promise<PluginActionResult> =>
+    apiClient.post(`/admin/plugins/${id}/actions/${encodeURIComponent(key)}`).then(r => r.data),
   // Operator-supplied egress hosts: a plugin talking to a SELF-HOSTED service can't name
   // the operator's hostname in its manifest, so the admin adds it here. Saving re-spawns
   // the plugin with the widened allow-list.
@@ -799,10 +805,9 @@ export interface PluginAtlasLayer {
  * shape) — aliased so existing per-user settings consumers keep their import path. */
 export type PluginUserSettingField = PluginSettingsField
 
-/** A button a plugin contributes to its own settings page ("Test connection"). */
-export interface PluginAction {
-  key: string; label: string; hint?: string; danger: boolean
-}
+/** A button a plugin contributes to a settings form ("Test connection", "Purge cache").
+ * `scope` says which form: the user tab or the admin instance-settings dialog. */
+export type PluginAction = PluginActionDescriptor
 
 export const pluginsApi = {
   // Active plugins the client renders (page nav entries, dashboard widgets).
@@ -873,7 +878,7 @@ export const pluginsApi = {
   // caller, so it reads the caller's own settings.
   runAction: (id: string, key: string) =>
     apiClient.post(`/plugin-settings/${id}/actions/${encodeURIComponent(key)}`)
-      .then(r => r.data as { ok: boolean; message?: string }),
+      .then(r => r.data as PluginActionResult),
   saveUserSettings: (id: string, config: Record<string, unknown>) =>
     apiClient.post(`/plugin-settings/${id}`, { config }).then(r => r.data as { config: Record<string, unknown> }),
   // Host-brokered outbound OAuth (the host owns the tokens; the plugin only triggers).

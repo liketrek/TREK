@@ -591,9 +591,9 @@ export default function MAdminPluginsPanel() {
     }
   }
 
-  const openInstanceSettings = (id: string) => {
+  const openInstanceSettings = (p: { id: string; status: string }) => {
     setMenu(null)
-    settings.open(id)
+    settings.open(p.id, p.status === 'active')
   }
 
   const openErrors = (id: string) => {
@@ -972,7 +972,7 @@ export default function MAdminPluginsPanel() {
           onRestart={() => restart(rowMenuPlugin.id)}
           onErrors={() => openErrors(rowMenuPlugin.id)}
           onEgress={() => openEgress(rowMenuPlugin.id)}
-          onSettings={() => openInstanceSettings(rowMenuPlugin.id)}
+          onSettings={() => openInstanceSettings(rowMenuPlugin)}
           onChangeVersion={() => openVersionPicker(rowMenuPlugin)}
           onUninstall={() => { setMenu(null); setConfirmUninstall(rowMenuPlugin) }} />
       )}
@@ -1127,6 +1127,39 @@ export default function MAdminPluginsPanel() {
                   {f.hint && <span className="mt-1 block font-geist text-[0.625rem] text-m-faint">{f.hint}</span>}
                 </label>
               ))}
+              {settings.form.actions.length > 0 && (
+                <div className="border-t border-[color:var(--m-rowbr)] pt-4">
+                  <span className="mb-2 block font-geist text-[0.625rem] font-bold uppercase tracking-wide text-m-faint">
+                    {t('admin.plugins.actions')}
+                  </span>
+                  {!settings.form.active && (
+                    <p className="mb-2 font-geist text-[0.625rem] text-m-faint">{t('admin.plugins.actions.inactive')}</p>
+                  )}
+                  <div className="flex flex-col gap-2">
+                    {settings.form.actions.map(a => {
+                      const res = settings.actionResult[a.key]
+                      return (
+                        <div key={a.key} className="flex flex-wrap items-center gap-2">
+                          <MAdminButton
+                            variant={a.danger ? 'danger' : 'ghost'}
+                            busy={settings.runningAction === a.key}
+                            disabled={!settings.form!.active || settings.runningAction !== null || settings.saving}
+                            onClick={() => settings.runAction(a)}
+                          >
+                            {a.label}
+                          </MAdminButton>
+                          {a.hint && <span className="font-geist text-[0.625rem] text-m-faint">{a.hint}</span>}
+                          {res && (
+                            <span className={`text-[0.625rem] font-bold ${res.ok ? 'text-[color:var(--m-st-confirmed)]' : 'text-[color:var(--m-st-danger)]'}`}>
+                              {res.message || (res.ok ? t('common.success') : t('common.error'))}
+                            </span>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
               {settings.error && <p className="text-[0.6875rem] text-[color:var(--m-st-danger)]">{settings.error}</p>}
               <MAdminButton disabled={settings.saving} onClick={() => void settings.save()} className="h-[42px] w-full">
                 {t('common.save')}
@@ -1147,6 +1180,18 @@ export default function MAdminPluginsPanel() {
         title={t('admin.plugins.uninstallTitle')}
         message={t('admin.plugins.uninstallBody')}
         confirmLabel={t('common.delete')}
+        cancelLabel={t('common.cancel')}
+        danger
+      />
+
+      {/* Instance action confirm */}
+      <MConfirmSheet
+        open={settings.pendingAction !== null}
+        onClose={settings.cancelPendingAction}
+        onConfirm={settings.confirmPendingAction}
+        title={settings.pendingAction?.label ?? ''}
+        message={t('admin.plugins.actions.confirm')}
+        confirmLabel={settings.pendingAction?.label}
         cancelLabel={t('common.cancel')}
         danger
       />

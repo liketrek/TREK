@@ -275,7 +275,7 @@ describe('PluginSettingsTab', () => {
   });
 
   it('FE-COMP-PLUGINSETTINGS-014: a plugin with only actions gets a card without a Save button', async () => {
-    serve('weather', { actions: [{ key: 'test', label: 'Test connection', hint: 'Pings the API', danger: false }] });
+    serve('weather', { actions: [{ key: 'test', label: 'Test connection', hint: 'Pings the API', danger: false, scope: 'user' }] });
     setPlugins([plugin()]);
     render(<PluginSettingsTab />);
 
@@ -288,7 +288,7 @@ describe('PluginSettingsTab', () => {
 
   it('FE-COMP-PLUGINSETTINGS-015: running an action shows the message it returns', async () => {
     const user = userEvent.setup();
-    serve('weather', { actions: [{ key: 'test', label: 'Test connection', danger: false }] });
+    serve('weather', { actions: [{ key: 'test', label: 'Test connection', danger: false, scope: 'user' }] });
     server.use(http.post('/api/plugin-settings/weather/actions/test', () =>
       HttpResponse.json({ ok: true, message: 'Reached the API' })));
     setPlugins([plugin()]);
@@ -300,7 +300,7 @@ describe('PluginSettingsTab', () => {
 
   it('FE-COMP-PLUGINSETTINGS-016: a message-less result falls back to the generic ok/error labels', async () => {
     const user = userEvent.setup();
-    serve('weather', { actions: [{ key: 'test', label: 'Test connection', danger: false }] });
+    serve('weather', { actions: [{ key: 'test', label: 'Test connection', danger: false, scope: 'user' }] });
     server.use(http.post('/api/plugin-settings/weather/actions/test', () => HttpResponse.json({ ok: false })));
     setPlugins([plugin()]);
     render(<PluginSettingsTab />);
@@ -311,7 +311,7 @@ describe('PluginSettingsTab', () => {
 
   it('FE-COMP-PLUGINSETTINGS-017: a failing action reports an error result', async () => {
     const user = userEvent.setup();
-    serve('weather', { actions: [{ key: 'test', label: 'Test connection', danger: false }] });
+    serve('weather', { actions: [{ key: 'test', label: 'Test connection', danger: false, scope: 'user' }] });
     server.use(http.post('/api/plugin-settings/weather/actions/test', () =>
       HttpResponse.json({ error: 'down' }, { status: 500 })));
     setPlugins([plugin()]);
@@ -327,7 +327,7 @@ describe('PluginSettingsTab', () => {
     const user = userEvent.setup();
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
     let ran = 0;
-    serve('weather', { actions: [{ key: 'wipe', label: 'Wipe cache', danger: true }] });
+    serve('weather', { actions: [{ key: 'wipe', label: 'Wipe cache', danger: true, scope: 'user' }] });
     server.use(http.post('/api/plugin-settings/weather/actions/wipe', () => {
       ran += 1;
       return HttpResponse.json({ ok: true, message: 'Wiped' });

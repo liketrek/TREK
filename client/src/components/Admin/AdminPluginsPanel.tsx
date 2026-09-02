@@ -7,6 +7,7 @@ import {
   SlidersHorizontal, ArrowUpDown, CircleDot, MoreHorizontal, RotateCw, ArrowRight, Database, Users, LayoutDashboard,
   Radio, Luggage, Globe, Image, CalendarDays, Bell, Info, History, PauseCircle,
   Wallet, Puzzle, MapPin, ListChecks, Pencil, Tag, FileText, Route, Navigation, Clock, LocateFixed, Palette, Bot,
+  Loader2,
 } from 'lucide-react'
 import PluginIcon from '../shared/PluginIcon'
 import { adminApi } from '../../api/client'
@@ -579,9 +580,9 @@ export default function AdminPluginsPanel() {
     }
   }
 
-  const openInstanceSettings = (id: string) => {
+  const openInstanceSettings = (p: { id: string; status: string }) => {
     setMenu(null)
-    settings.open(id)
+    settings.open(p.id, p.status === 'active')
   }
 
   const openErrors = (id: string) => {
@@ -973,7 +974,7 @@ export default function AdminPluginsPanel() {
                   code: p.updateBlock!.code, detail: p.updateBlock!.detail,
                 })}
                 onErrors={() => openErrors(p.id)} onEgress={() => openEgress(p.id)}
-                onSettings={() => openInstanceSettings(p.id)}
+                onSettings={() => openInstanceSettings(p)}
                 onUninstall={() => { setMenu(null); setConfirmUninstall(p) }} />
             ))}
           </div>
@@ -1103,6 +1104,45 @@ export default function AdminPluginsPanel() {
                   {f.hint && <span className="block text-xs text-content-muted mt-1">{f.hint}</span>}
                 </label>
               ))}
+              {(() => {
+                const form = settings.form
+                if (!form || form.actions.length === 0) return null
+                return (
+                  <div className="border-t border-edge-secondary pt-4">
+                    <span className="block text-xs font-semibold uppercase tracking-wide text-content-muted mb-2">
+                      {t('admin.plugins.actions')}
+                    </span>
+                    {!form.active && (
+                      <p className="text-xs text-content-muted mb-2">{t('admin.plugins.actions.inactive')}</p>
+                    )}
+                    <div className="flex flex-col gap-2">
+                      {form.actions.map(a => {
+                        const res = settings.actionResult[a.key]
+                        return (
+                          <div key={a.key} className="flex flex-wrap items-center gap-2">
+                            <button type="button"
+                              onClick={() => settings.runAction(a)}
+                              disabled={!form.active || settings.runningAction !== null || settings.saving}
+                              className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-semibold disabled:opacity-60 ${
+                                a.danger ? 'border-danger text-danger' : 'border-edge text-content'
+                              }`}
+                            >
+                              {settings.runningAction === a.key && <Loader2 className="w-4 h-4 animate-spin" />}
+                              {a.label}
+                            </button>
+                            {a.hint && <span className="text-xs text-content-muted">{a.hint}</span>}
+                            {res && (
+                              <span className={`text-xs font-medium ${res.ok ? 'text-success' : 'text-danger'}`}>
+                                {res.message || (res.ok ? t('common.success') : t('common.error'))}
+                              </span>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
+              })()}
               {settings.error && <p className="text-xs text-danger">{settings.error}</p>}
             </div>
             <div className="px-5 py-3.5 border-t border-edge-secondary flex justify-end">
@@ -1115,6 +1155,15 @@ export default function AdminPluginsPanel() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={settings.pendingAction !== null}
+        onClose={settings.cancelPendingAction}
+        onConfirm={settings.confirmPendingAction}
+        title={settings.pendingAction?.label ?? ''}
+        message={t('admin.plugins.actions.confirm')}
+        confirmLabel={t('common.confirm')}
+      />
 
       <ConfirmDialog
         isOpen={!!confirmUninstall}

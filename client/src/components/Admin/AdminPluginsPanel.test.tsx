@@ -2266,6 +2266,73 @@ describe('AdminPluginsPanel — instance settings', () => {
     expect(body).toEqual({ mode: 'fast', enabled: false, retries: '3' })
   })
 
+  const ACTIONS = [
+    { key: 'ping', label: 'Ping server', danger: false, scope: 'instance' },
+    { key: 'purge', label: 'Purge cache', hint: 'Drops every cached tile', danger: true, scope: 'instance' },
+  ]
+
+  async function openWithActions(p: Record<string, unknown> = plugin({ instanceSettingsCount: 2 })) {
+    server.use(
+      http.get('*/api/admin/plugins/trek-gotify/config', () =>
+        HttpResponse.json({ fields: FIELDS, config: { apiUrl: 'https://gotify.mydomain.com' }, actions: ACTIONS })),
+    )
+    await openRowMenu(p)
+    fireEvent.click(screen.getByText('Instance settings'))
+    await waitFor(() => expect(screen.getByDisplayValue('https://gotify.mydomain.com')).toBeInTheDocument(), { timeout: 5000 })
+  }
+
+  it('FE-COMP-PLUGINS-ACT-010: instance actions render below the fields and run against the admin route', async () => {
+    let posted = ''
+    server.use(
+      http.post('*/api/admin/plugins/trek-gotify/actions/:key', ({ params }) => {
+        posted = String(params.key)
+        return HttpResponse.json({ ok: true, message: 'pong' })
+      }),
+    )
+    await openWithActions()
+    expect(screen.getByText('Drops every cached tile')).toBeInTheDocument() // hint
+    fireEvent.click(screen.getByRole('button', { name: 'Ping server' }))
+    expect(await screen.findByText('pong', {}, { timeout: 5000 })).toBeInTheDocument()
+    expect(posted).toBe('ping')
+    // The dialog stays open — the admin may run another one.
+    expect(screen.getByDisplayValue('https://gotify.mydomain.com')).toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-ACT-011: a danger action asks first; confirming runs it', async () => {
+    let posted = ''
+    server.use(
+      http.post('*/api/admin/plugins/trek-gotify/actions/:key', ({ params }) => {
+        posted = String(params.key)
+        return HttpResponse.json({ ok: false, message: 'cache locked' })
+      }),
+    )
+    await openWithActions()
+    fireEvent.click(screen.getByRole('button', { name: 'Purge cache' }))
+    expect(await screen.findByText('Run this action?')).toBeInTheDocument()
+    expect(posted).toBe('')
+    fireEvent.click(screen.getByRole('button', { name: /^confirm$/i }))
+    expect(await screen.findByText('cache locked', {}, { timeout: 5000 })).toBeInTheDocument()
+    expect(posted).toBe('purge')
+  })
+
+  it('FE-COMP-PLUGINS-ACT-012: an inactive plugin shows the buttons disabled with the activation hint', async () => {
+    await openWithActions(plugin({ instanceSettingsCount: 2, status: 'inactive', enabled: 0 }))
+    expect(screen.getByRole('button', { name: 'Ping server' })).toBeDisabled()
+    expect(screen.getByText('Activate the plugin to run its actions')).toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-ACT-013: a dirty form is saved before the action runs', async () => {
+    const calls: string[] = []
+    server.use(
+      http.put('*/api/admin/plugins/trek-gotify/config', () => { calls.push('save'); return HttpResponse.json({ config: {}, restarted: false }) }),
+      http.post('*/api/admin/plugins/trek-gotify/actions/:key', () => { calls.push('run'); return HttpResponse.json({ ok: true }) }),
+    )
+    await openWithActions()
+    fireEvent.change(screen.getByDisplayValue('https://gotify.mydomain.com'), { target: { value: 'https://new.example' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Ping server' }))
+    await waitFor(() => expect(calls).toEqual(['save', 'run']), { timeout: 5000 })
+  })
+
   it('FE-COMP-PLUGINS-CFG-006: a failed config fetch is a toast, not a broken dialog', async () => {
     server.use(
       http.get('*/api/admin/plugins/trek-gotify/config', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),

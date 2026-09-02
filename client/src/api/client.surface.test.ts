@@ -303,6 +303,7 @@ describe('client > endpoint wiring', () => {
       { n: 'pluginReload', r: () => adminApi.pluginReload('koffi'), e: 'POST /api/admin/plugins/koffi/reload' },
       { n: 'pluginConfig', r: () => adminApi.pluginConfig('koffi'), e: 'GET /api/admin/plugins/koffi/config' },
       { n: 'pluginSaveConfig', r: () => adminApi.pluginSaveConfig('koffi', { apiUrl: 'x' }), e: 'PUT /api/admin/plugins/koffi/config' },
+      { n: 'runPluginAction', r: () => adminApi.runPluginAction('koffi', 'purge cache'), e: 'POST /api/admin/plugins/koffi/actions/purge%20cache' },
       { n: 'pluginEgressHosts', r: () => adminApi.pluginEgressHosts('koffi'), e: 'GET /api/admin/plugins/koffi/egress-hosts' },
       { n: 'pluginSetEgressHosts', r: () => adminApi.pluginSetEgressHosts('koffi', ['a.example']), e: 'PUT /api/admin/plugins/koffi/egress-hosts' },
       { n: 'pluginErrors', r: () => adminApi.pluginErrors('koffi'), e: 'GET /api/admin/plugins/koffi/errors' },
