@@ -352,6 +352,11 @@ describe('settings-page actions', () => {
     expect(parseManifest({ ...base, actions: [{ key: 'sync' }] }).actions[0].label).toBe('sync');
   });
 
+  it('falls back to the key when label is an empty (or whitespace-only) string, not just null/undefined', () => {
+    expect(parseManifest({ ...base, actions: [{ key: 'sync', label: '' }] }).actions[0].label).toBe('sync');
+    expect(parseManifest({ ...base, actions: [{ key: 'sync', label: '   ' }] }).actions[0].label).toBe('sync');
+  });
+
   it('rejects a prototype-chain key, a duplicate, a non-array and too many', () => {
     expect(() => parseManifest({ ...base, actions: [{ key: '__proto__' }] })).toThrow(ManifestError);
     expect(() => parseManifest({ ...base, actions: [{ key: 'a' }, { key: 'a' }] })).toThrow(/duplicate action/);

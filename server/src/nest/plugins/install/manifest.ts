@@ -623,9 +623,14 @@ function parseActions(raw: unknown): ManifestAction[] {
     if (scope !== undefined && scope !== 'user' && scope !== 'instance') {
       throw new ManifestError(`action "${k}".scope must be "user" or "instance"`);
     }
+    // `label ?? k` only defaults on null/undefined — an explicit `label: ''` would pass
+    // straight through and reach the client as an empty button/confirm label (which
+    // MConfirmSheet then refuses to render a confirm button for). Fall back to the key
+    // whenever the label is empty after trimming.
+    const rawLabel = label == null ? '' : String(label);
     out.push({
       key: k,
-      label: String(label ?? k).slice(0, 60),
+      label: (rawLabel.trim() === '' ? k : rawLabel).slice(0, 60),
       hint: hint === undefined ? undefined : String(hint).slice(0, 200),
       danger: danger === true,
       scope: scope === 'instance' ? 'instance' : 'user',

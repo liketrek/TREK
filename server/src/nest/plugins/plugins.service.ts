@@ -79,6 +79,9 @@ export interface PluginListItem {
   /** How many `scope:'instance'` settings fields the plugin declares — gates the admin
    * settings menu item without a per-plugin fetch. */
   instanceSettingsCount: number;
+  /** How many `scope:'instance'` actions the plugin declares — gates the admin settings
+   * menu item together with instanceSettingsCount (a plugin can have actions and no fields). */
+  instanceActionsCount: number;
   /** Declared dependencies (parsed) — required addons + plugin deps. */
   dependencies: PluginDependencies;
   /** Whether this plugin can currently activate, and why not if it can't. */
@@ -136,6 +139,16 @@ export class PluginsService {
     }
   }
 
+  private instanceActionsCount(id: string): number {
+    try {
+      return (
+        this.db.prepare("SELECT COUNT(*) AS n FROM plugin_actions WHERE plugin_id = ? AND scope = 'instance'").get(id) as { n: number }
+      ).n;
+    } catch {
+      return 0; // table absent (a slimmed test app)
+    }
+  }
+
   list(): { enabled: boolean; devLink: boolean; plugins: PluginListItem[] } {
     const rows = this.db
       .prepare(
@@ -178,6 +191,7 @@ export class PluginsService {
         operatorEgress: _oe === 1,
         egressHostCount: this.egressHostCount(r.id),
         instanceSettingsCount: this.instanceSettingsCount(r.id),
+        instanceActionsCount: this.instanceActionsCount(r.id),
         dependencies: deps,
         dependencyStatus,
         trekRange: trek_range,

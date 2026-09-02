@@ -120,6 +120,22 @@ describe('instance settings fields', () => {
     expect(plugins.find((p) => p.id === 'plain')).toMatchObject({ instanceSettingsCount: 0 });
   });
 
+  it('INS-004 — the admin list carries the instance-action count (gates the menu item even with no settings fields)', () => {
+    install('with-action');
+    install('plain');
+    testDb
+      .prepare('INSERT INTO plugin_actions (plugin_id, action_key, label, hint, danger, scope, sort_order) VALUES (?, ?, ?, NULL, 0, ?, 0)')
+      .run('with-action', 'purge', 'Purge', 'instance');
+    testDb
+      .prepare('INSERT INTO plugin_actions (plugin_id, action_key, label, hint, danger, scope, sort_order) VALUES (?, ?, ?, NULL, 0, ?, 0)')
+      .run('with-action', 'notify', 'Notify', 'user'); // user-scope actions must not count
+
+    const plugins = svc().list().plugins;
+    expect(plugins.find((p) => p.id === 'with-action')).toMatchObject({ instanceSettingsCount: 0, instanceActionsCount: 1 });
+    expect(plugins.find((p) => p.id === 'plain')).toMatchObject({ instanceSettingsCount: 0, instanceActionsCount: 0 });
+    testDb.prepare("DELETE FROM plugin_actions WHERE plugin_id = 'with-action'").run();
+  });
+
   it('INS-010 — persists a settings-field default and serves it on the fields list', () => {
     installFixturePlugin({ settings: [{ key: 'oauth_authorize_url', required: true, default: 'https://auth.openbnb.org/authorize' }] });
     const fields = svc().instanceSettingsFields('fixture-id');

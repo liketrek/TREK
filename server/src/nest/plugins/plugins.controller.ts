@@ -169,8 +169,17 @@ export class PluginsController {
    * ADMIN-INITIATED: the acting user is the clicking admin, bound host-side, so the
    * handler sees `ctx.config` plus the admin's own settings and any trip read is checked
    * against them. The scope is fixed by this route — a user-tab key is refused here.
-   * Mirrors PluginUserSettingsController.runAction: 404 when there is no child to run it
-   * (inactive), and a failing action is a RESULT, not a server error.
+   *
+   * Returns the SAME 404 `{ error: 'Plugin is not active' }` body as
+   * PluginUserSettingsController.runAction, and a failing action is a RESULT, not a
+   * server error, on both — but the two routes reach 404 by checking DIFFERENT things.
+   * This route asks `runtime.isActive(id)`, the supervisor's live-process check: is
+   * there actually a forked child to run the action in. The user route instead reads
+   * the plugin's DB `status` column. They can disagree — a plugin can be `status =
+   * 'active'` in the DB with no live child (e.g. it crashed and hasn't been
+   * respawned yet) — so a 404 here does not always mean the row says inactive; it can
+   * also mean a stale-active row with nothing behind it. The client (`useInstanceSettings`)
+   * treats this 404 as authoritative and flips its own `active` flag to match.
    */
   @Post(':id/actions/:key')
   @HttpCode(200)
