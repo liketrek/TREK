@@ -1,6 +1,6 @@
 import type { Day, Accommodation, RouteAnchors } from '../types'
 import { parseTimeToMinutes } from './dayMerge'
-import { withinDriveRange } from './geo'
+import { haversineKm, withinDayTripRange } from './geo'
 
 /**
  * Set on an edge waypoint that is the endpoint of a booking which CARRIES you out of
@@ -14,6 +14,23 @@ export type CarrierEdge = 'departure' | 'arrival' | null
 
 export const getDayOrder = (day: Day, days: Day[]): number =>
   day.day_number ?? days.indexOf(day)
+
+type EdgeStop = { isPlace: boolean; time?: string | null; carrierEdge?: CarrierEdge; lat?: number; lng?: number }
+
+/**
+ * The #2009 default on a stay that records no check-in/check-out time: the loop closes,
+ * because a day out of a hotel comes back to it. It is a guess about a day nobody timed,
+ * and two things disprove it (#2157). A carrier on the day means you changed geography by
+ * air/rail/sea, so the hotel is one end of the day and not both. And an edge stop past
+ * day-trip range is where you travelled from or to, not somewhere the hotel sent you out
+ * to: the reported 500 km drive home is as much a disproof as the 2400 km flight, which
+ * is why the radius is a day's driving and not the router's reachability limit.
+ */
+const noTimeLoopHolds = (hotel: Accommodation, stop?: EdgeStop, dayHasCarrier?: boolean): boolean => {
+  if (dayHasCarrier) return false
+  if (stop?.lat == null || stop.lng == null || hotel.place_lat == null || hotel.place_lng == null) return true
+  return withinDayTripRange({ lat: hotel.place_lat, lng: hotel.place_lng }, { lat: stop.lat, lng: stop.lng })
+}
 
 // The two hotels that bookend a day: the one you woke up in (morning) and the one you sleep in
 // tonight (evening). On a transfer day these differ; on any other day both are the single hotel.
@@ -55,16 +72,36 @@ export const getDayBookendHotels = (
 // Derives route anchors from the accommodation(s) active on a day. A single hotel is the day's home
 // base, so the route is a loop that starts and ends there. A transfer day — checking out of one hotel
 // and into another — instead runs from the morning hotel to the evening one.
+//
+// `stops` are the located stops the optimizer is about to reorder, and they decide the same way the
+// drawn bookend legs do: an anchor the map would not draw a leg to is not an anchor the optimizer
+// gets to pin the day on either, or it sorts a "Home" 500 km out into the middle of the day (#2157).
+// Since the order is what the optimizer is still deciding, no stop is the day's edge yet, so the one
+// farthest from the hotel stands in: a day reaching past what the hotel could send you out to and
+// back from is not a day that hotel bookends. Passing no stops means no evidence, and the anchors
+// stay where they have always been.
 export const getAccommodationAnchors = (
   day: Day,
   days: Day[],
   accommodations: Accommodation[],
+  stops?: { lat: number; lng: number }[],
+  dayHasCarrier?: boolean,
 ): RouteAnchors => {
-  const { morning, evening } = getDayBookendHotels(day, days, accommodations)
+  const bookends = getDayBookendHotels(day, days, accommodations)
+  const { morning, evening } = bookends
   if (!morning || !evening) return {}
+  const at = (h: Accommodation) => ({ lat: h.place_lat as number, lng: h.place_lng as number })
+  // The optimizer only ever moves untimed stops, so the stand-in carries no time.
+  const farthestFrom = (h: Accommodation): EdgeStop | undefined => {
+    if (!stops?.length) return undefined
+    const from = at(h)
+    const far = stops.reduce((a, b) => (haversineKm(from, b) > haversineKm(from, a) ? b : a))
+    return { isPlace: true, time: null, lat: far.lat, lng: far.lng }
+  }
+  const hasStops = !!stops?.length
   return {
-    start: { lat: morning.place_lat as number, lng: morning.place_lng as number },
-    end: { lat: evening.place_lat as number, lng: evening.place_lng as number },
+    start: !hasStops || shouldDrawMorningLeg(bookends, day, farthestFrom(morning), dayHasCarrier) ? at(morning) : undefined,
+    end: !hasStops || shouldDrawEveningLeg(bookends, day, farthestFrom(evening), dayHasCarrier) ? at(evening) : undefined,
   }
 }
 
@@ -75,11 +112,11 @@ export const getAccommodationAnchors = (
 // transport arrival (you flew in, weren't at the hotel yet, #1321), or an un-timed place ("Home"
 // before driving out, #1597) all mean no leg — mirroring the evening rule below. With no
 // check-in time recorded the loop closes by default (#2009), except on a day a carrier
-// takes you there or towards an edge place out of drive range (#2157).
+// takes you there or towards an edge place too far out to be a day trip (#2157).
 export const shouldDrawMorningLeg = (
   bookends: { morning?: Accommodation; morningIsSleptHere?: boolean },
   day: Day,
-  firstStop?: { isPlace: boolean; time?: string | null; carrierEdge?: CarrierEdge; lat?: number; lng?: number },
+  firstStop?: EdgeStop,
   dayHasCarrier?: boolean,
 ): boolean => {
   // You landed here. Whatever hotel the day belongs to, nobody drove out of it to the
@@ -91,21 +128,13 @@ export const shouldDrawMorningLeg = (
   if (!m || m.start_day_id !== day.id || !firstStop?.isPlace) return false
   const checkIn = parseTimeToMinutes(m.check_in)
   // No check-in time on the stay means there is no bar to clear, and "no
-  // information" was being read as "proof against" — which silently opened the
+  // information" was being read as "proof against", which silently opened the
   // loop at the start of every arrival day, since the hotel picker leaves the
-  // time blank by default (#2009). With a time set, #1465 still holds: an
-  // earlier stop is a place you reached before the hotel and draws no leg.
-  if (checkIn == null) {
-    // ...but the closed loop is a guess, and two things disprove it (#2157): a
-    // carrier on the day means you arrive at this hotel by air/rail/sea — on its
-    // check-in day the hotel is where the day ENDS, not where it starts — and an
-    // edge place no drive of the hotel could reach ("Home", an ocean away) was
-    // where you came FROM, not somewhere the hotel sent you.
-    if (dayHasCarrier) return false
-    if (firstStop.lat != null && firstStop.lng != null && m.place_lat != null && m.place_lng != null
-      && !withinDriveRange({ lat: m.place_lat, lng: m.place_lng }, { lat: firstStop.lat, lng: firstStop.lng })) return false
-    return true
-  }
+  // time blank by default (#2009). That loop is still only a guess, so an arrival
+  // in the wide sense (a carrier, or a first stop too far out to be a day trip)
+  // puts the hotel at the day's END instead (#2157). With a time set, #1465 still
+  // holds: an earlier stop is a place you reached before the hotel and draws no leg.
+  if (checkIn == null) return noTimeLoopHolds(m, firstStop, dayHasCarrier)
   const stop = parseTimeToMinutes(firstStop.time)
   return stop != null && stop >= checkIn
 }
@@ -118,7 +147,7 @@ export const shouldDrawMorningLeg = (
 export const shouldDrawEveningLeg = (
   bookends: { evening?: Accommodation; eveningIsOvernight?: boolean },
   day: Day,
-  lastStop?: { isPlace: boolean; time?: string | null; carrierEdge?: CarrierEdge; lat?: number; lng?: number },
+  lastStop?: EdgeStop,
   dayHasCarrier?: boolean,
 ): boolean => {
   // Mirror: you took off from here, so no drive leads from it back to tonight's hotel —
@@ -129,16 +158,10 @@ export const shouldDrawEveningLeg = (
   if (!e || e.end_day_id !== day.id || !lastStop?.isPlace) return false
   const checkOut = parseTimeToMinutes(e.check_out)
   // Mirror of the morning rule: with no check-out time recorded there is nothing
-  // to have missed, so the return leg is drawn and the loop closes (#2009).
-  if (checkOut == null) {
-    // Same two disproofs as the morning (#2157): a carrier on the check-out day
-    // means the hotel is where the day STARTS and nothing drives back to it, and
-    // an edge place out of drive range is where you went instead of returning.
-    if (dayHasCarrier) return false
-    if (lastStop.lat != null && lastStop.lng != null && e.place_lat != null && e.place_lng != null
-      && !withinDriveRange({ lat: e.place_lat, lng: e.place_lng }, { lat: lastStop.lat, lng: lastStop.lng })) return false
-    return true
-  }
+  // to have missed, so the return leg is drawn and the loop closes (#2009), unless
+  // the day disproves it (#2157). A carrier, or a last stop too far out to be a day
+  // trip, is a departure, and the hotel is then where the day STARTS.
+  if (checkOut == null) return noTimeLoopHolds(e, lastStop, dayHasCarrier)
   const stop = parseTimeToMinutes(lastStop.time)
   return stop != null && stop <= checkOut
 }

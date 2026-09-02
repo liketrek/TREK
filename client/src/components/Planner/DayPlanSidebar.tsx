@@ -978,7 +978,11 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     // hotel, or — on a transfer day — a run from the hotel you leave to the one you arrive at.
     const day = days.find(d => d.id === dayId)
     const anchors = day && useSettingsStore.getState().settings.optimize_from_accommodation !== false
-      ? getAccommodationAnchors(day, days, accommodations)
+      ? getAccommodationAnchors(
+          day, days, accommodations,
+          unlockedWithCoords.map(a => ({ lat: a.place!.lat!, lng: a.place!.lng! })),
+          (mergedItemsMap[dayId] || []).some(i => i.type === 'transport' && hasCarrierEndpointOnDay(i.data, dayId)),
+        )
       : {}
     const optimizedAssignments = unlockedWithCoords.length >= 2
       ? optimizeRoute(unlockedWithCoords.map(a => ({ ...a.place, _assignmentId: a.id })), anchors).map(p => unlockedWithCoords.find(a => a.id === p._assignmentId)).filter(Boolean)

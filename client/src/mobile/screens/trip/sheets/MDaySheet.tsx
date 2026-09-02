@@ -172,7 +172,7 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
   const optimizeDay = () => {
     if (!day || dayAssignments.length < 3) return
     const result = optimizeDayOrder(
-      day, planner.days, dayAssignments, planner.tripAccommodations, optimizeFromAccommodation !== false,
+      day, planner.days, dayAssignments, planner.tripAccommodations, optimizeFromAccommodation !== false, dayHasCarrier,
     )
     if (!result) return
     planner.handleReorder(day.id, result.order.map(a => a.id))

@@ -302,7 +302,7 @@ export function useMPlanTimeline(planner: TripPlanner) {
     if (!day) return
     const prevIds = dayAssignments.map(a => a.id)
     const result = optimizeDayOrder(
-      day, days, dayAssignments, tripAccommodations, settings.optimize_from_accommodation !== false,
+      day, days, dayAssignments, tripAccommodations, settings.optimize_from_accommodation !== false, dayHasCarrier,
     )
     if (!result) { toast.info(t('dayplan.toast.needTwoPlaces')); return }
     try {
@@ -315,7 +315,7 @@ export function useMPlanTimeline(planner: TripPlanner) {
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : t('trip.toast.reorderError'))
     }
-  }, [day, dayAssignments, days, tripAccommodations, settings, tripActions, tripId, pushUndo, updateRouteForDay, toast, t])
+  }, [day, dayAssignments, days, tripAccommodations, settings, dayHasCarrier, tripActions, tripId, pushUndo, updateRouteForDay, toast, t])
 
   const exportGoogleMaps = useCallback(() => {
     if (!day) return

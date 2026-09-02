@@ -31,6 +31,7 @@ export function optimizeDayOrder(
   dayAssignments: Assignment[],
   accommodations: Accommodation[],
   fromAccommodation: boolean,
+  dayHasCarrier?: boolean,
 ): OptimizedDay | null {
   const locked = new Map<number, Assignment>()
   const movable: Assignment[] = []
@@ -41,7 +42,10 @@ export function optimizeDayOrder(
   const withCoords = movable.filter(a => a.place?.lat != null && a.place?.lng != null)
   if (withCoords.length < 2) return null
   const noCoords = movable.filter(a => a.place?.lat == null || a.place?.lng == null)
-  const anchors = fromAccommodation ? getAccommodationAnchors(day, days, accommodations) : {}
+  const anchors = fromAccommodation
+    ? getAccommodationAnchors(day, days, accommodations,
+        withCoords.map(a => ({ lat: a.place!.lat!, lng: a.place!.lng! })), dayHasCarrier)
+    : {}
   const optimized = optimizeRoute(
     withCoords.map(a => ({ lat: a.place!.lat!, lng: a.place!.lng!, _assignmentId: a.id })),
     anchors,

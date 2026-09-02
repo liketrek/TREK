@@ -914,4 +914,56 @@ describe('useRouteCalculation', () => {
     // The one real journey — you woke at the hotel and travelled home — stays.
     expect(legs).toContainEqual([`${hotel.lat},${hotel.lng}`, `${home.lat},${home.lng}`]);
   });
+
+  it('FE-HOOK-ROUTE-033: #2157 the reporter drives home, and 508 km is still no way back to the hotel', async () => {
+    // FE-HOOK-ROUTE-032 with the trip the issue actually describes: a car holiday
+    // inside Germany, no booking of any kind, and a last day that ends at "Home" in
+    // Frankfurt, 508 km from the Warnemünde hotel. Every road router happily answers
+    // that pair, which is why a reachability limit left the reported leg on the map.
+    const hotel = { lat: 54.18, lng: 12.08 };                  // Warnemünde
+    const home = buildPlace({ lat: 50.11, lng: 8.68 });        // untimed "Home"
+    const a1 = buildAssignment({ day_id: 2, order_index: 0, place: home });
+    const accommodations = [{ id: 1, start_day_id: 1, end_day_id: 2, place_lat: hotel.lat, place_lng: hotel.lng }];
+    const store = { assignments: { '2': [a1] } } as unknown as TripStoreState;
+    useTripStore.setState({
+      assignments: store.assignments,
+      reservations: [],
+      days: [{ id: 1, day_number: 1 }, { id: 2, day_number: 2 }],
+    } as any);
+
+    const { result } = renderHook(() =>
+      useRouteCalculation(store, 2, true, 'driving', accommodations as any)
+    );
+    await act(async () => {});
+
+    const legs = (result.current.route ?? []).map(run => run.map(p => `${p[0]},${p[1]}`));
+    expect(legs).not.toContainEqual([`${home.lat},${home.lng}`, `${hotel.lat},${hotel.lng}`]);
+    expect(legs).toContainEqual([`${hotel.lat},${hotel.lng}`, `${home.lat},${home.lng}`]);
+  });
+
+  it('FE-HOOK-ROUTE-034: #2157 the same drive on the arrival day starts at Home, not at the hotel', async () => {
+    // The reporter's second screenshot: day one of the car holiday, "Home" untimed, and
+    // a hotel checking in tonight with no check-in time. The day leaves Frankfurt for
+    // Warnemünde, so nothing drove out of that hotel this morning.
+    const hotel = { lat: 54.18, lng: 12.08 };                  // Warnemünde
+    const home = buildPlace({ lat: 50.11, lng: 8.68 });        // untimed "Home"
+    const a1 = buildAssignment({ day_id: 1, order_index: 0, place: home });
+    const accommodations = [{ id: 1, start_day_id: 1, end_day_id: 2, place_lat: hotel.lat, place_lng: hotel.lng }];
+    const store = { assignments: { '1': [a1] } } as unknown as TripStoreState;
+    useTripStore.setState({
+      assignments: store.assignments,
+      reservations: [],
+      days: [{ id: 1, day_number: 1 }, { id: 2, day_number: 2 }],
+    } as any);
+
+    const { result } = renderHook(() =>
+      useRouteCalculation(store, 1, true, 'driving', accommodations as any)
+    );
+    await act(async () => {});
+
+    const legs = (result.current.route ?? []).map(run => run.map(p => `${p[0]},${p[1]}`));
+    expect(legs).not.toContainEqual([`${hotel.lat},${hotel.lng}`, `${home.lat},${home.lng}`]);
+    // Tonight's hotel is still where the day ends.
+    expect(legs).toContainEqual([`${home.lat},${home.lng}`, `${hotel.lat},${hotel.lng}`]);
+  });
 });

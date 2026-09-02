@@ -81,6 +81,39 @@ describe('getAccommodationAnchors', () => {
       end: { lat: 9, lng: 9 },
     })
   })
+
+  // A Reykjavík stay checking in on day 1 and out on day 3, with neither time recorded,
+  // and untimed stops the optimizer is free to reorder.
+  const reykjavik = { lat: 64.14, lng: -21.94 }
+  const stay = () => hotel({ start_day_id: 10, end_day_id: 30, place_lat: reykjavik.lat, place_lng: reykjavik.lng })
+  const home = { lat: 50.11, lng: 8.68 }
+  const blueLagoon = { lat: 63.88, lng: -22.45 }
+  const hallgrimskirkja = { lat: 64.145, lng: -21.93 }
+
+  it('drops the check-in anchor when the day reaches past a day trip from the hotel (#2157)', () => {
+    // The optimizer half of the same bug. Pinning both ends to a hotel you have not
+    // reached yet made one click on "Optimize route" sort Home between the two Icelandic
+    // stops, because that is the shortest loop, and the user had to drag it back by hand.
+    expect(getAccommodationAnchors(days[0], days, [stay()], [home, blueLagoon, hallgrimskirkja]))
+      .toEqual({ end: reykjavik })
+  })
+
+  it('drops the check-out anchor when a carrier takes you out of the day (#2157)', () => {
+    // Mirror on the departure day: you woke up here, so the hotel still starts the
+    // route, but the flight home means nothing comes back to it.
+    expect(getAccommodationAnchors(days[2], days, [stay()], [hallgrimskirkja], true))
+      .toEqual({ start: reykjavik })
+  })
+
+  it('keeps the loop when every stop is a day out of the hotel (#2009 preserved)', () => {
+    expect(getAccommodationAnchors(days[0], days, [stay()], [blueLagoon, hallgrimskirkja]))
+      .toEqual({ start: reykjavik, end: reykjavik })
+  })
+
+  it('has nothing to weigh the anchors against when the stop list is empty', () => {
+    expect(getAccommodationAnchors(days[0], days, [stay()], []))
+      .toEqual({ start: reykjavik, end: reykjavik })
+  })
 })
 
 describe('getDayBookendHotels', () => {
@@ -253,13 +286,25 @@ describe('shouldDrawMorningLeg', () => {
     expect(shouldDrawMorningLeg(bookends, checkInDay, { isPlace: true, time: '06:00' }, true)).toBe(true)
   })
 
-  it('the no-time default does not reach an edge place out of drive range (#2157)', () => {
+  it('the no-time default does not reach an edge place out of day-trip range (#2157)', () => {
     // "Home", an ocean away from the hotel, with no carrier recorded at all: the
     // closed loop is a guess, and a guess does not get a 2400 km leg.
     const noCheckIn = { morning: into({ check_in: null }), morningIsSleptHere: false }
     expect(shouldDrawMorningLeg(noCheckIn, checkInDay, { isPlace: true, time: null, lat: 21.28, lng: -157.83 })).toBe(false)
     // A nearby untimed place keeps the #2009 loop.
     expect(shouldDrawMorningLeg(noCheckIn, checkInDay, { isPlace: true, time: null, lat: 48.2, lng: 11.6 })).toBe(true)
+  })
+
+  it('a drivable edge place is still out of range when no day out of the hotel reaches it (#2157)', () => {
+    // The issue's literal repro, driven rather than flown: hotel in Warnemünde, "Home"
+    // in Frankfurt, 508 km apart. The router answers that pair happily, so a
+    // reachability limit (2000 km, all of Europe) never fired and the arrival day kept
+    // starting at a hotel nobody had reached yet. What rules it out is that no day out
+    // of that hotel goes to Frankfurt and back.
+    const noCheckIn = { morning: into({ check_in: null, place_lat: 54.18, place_lng: 12.08 }), morningIsSleptHere: false }
+    expect(shouldDrawMorningLeg(noCheckIn, checkInDay, { isPlace: true, time: null, lat: 50.11, lng: 8.68 })).toBe(false)
+    // The day trip that hotel does send you on (Rostock zoo, 11 km) keeps its leg.
+    expect(shouldDrawMorningLeg(noCheckIn, checkInDay, { isPlace: true, time: null, lat: 54.08, lng: 12.10 })).toBe(true)
   })
 })
 
@@ -348,9 +393,18 @@ describe('shouldDrawEveningLeg', () => {
     expect(shouldDrawEveningLeg(bookends, checkOutDay, { isPlace: true, time: '23:00' }, true)).toBe(true)
   })
 
-  it('the no-time default does not reach an edge place out of drive range (#2157)', () => {
+  it('the no-time default does not reach an edge place out of day-trip range (#2157)', () => {
     const noCheckOut = { evening: out({ check_out: null }), eveningIsOvernight: false }
     expect(shouldDrawEveningLeg(noCheckOut, checkOutDay, { isPlace: true, time: null, lat: 21.28, lng: -157.83 })).toBe(false)
     expect(shouldDrawEveningLeg(noCheckOut, checkOutDay, { isPlace: true, time: null, lat: 48.2, lng: 11.6 })).toBe(true)
+  })
+
+  it('a drivable edge place is still out of range when no day out of the hotel reaches it (#2157)', () => {
+    // Mirror of the morning case: the reporter drives home from Warnemünde to Frankfurt
+    // on the last day, and nothing routes those 508 km back to the hotel he checked
+    // out of that morning.
+    const noCheckOut = { evening: out({ check_out: null, place_lat: 54.18, place_lng: 12.08 }), eveningIsOvernight: false }
+    expect(shouldDrawEveningLeg(noCheckOut, checkOutDay, { isPlace: true, time: null, lat: 50.11, lng: 8.68 })).toBe(false)
+    expect(shouldDrawEveningLeg(noCheckOut, checkOutDay, { isPlace: true, time: null, lat: 54.08, lng: 12.10 })).toBe(true)
   })
 })

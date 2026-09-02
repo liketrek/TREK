@@ -31,3 +31,20 @@ export const MAX_DRIVE_KM = 2000
 export function withinDriveRange(a: { lat: number; lng: number }, b: { lat: number; lng: number }): boolean {
   return haversineKm(a, b) <= MAX_DRIVE_KM
 }
+
+/**
+ * How far a day out of a hotel and back plausibly reaches, straight-line.
+ *
+ * Consulted where a stay records no check-in/check-out time and the shape of the day is
+ * therefore a guess (#2157): a stop inside this radius is somewhere the hotel sent you out
+ * to for the day, a stop outside it is where you travelled from or to. It has to be a
+ * road-day radius rather than the booking-geometry MAX_DRIVE_KM above: 2000 km spans the
+ * whole of Europe, so every car journey on the continent passed as a day trip and kept the
+ * phantom hotel leg the issue reported.
+ */
+export const MAX_DAY_TRIP_KM = 150
+
+/** Whether a stop is near enough a hotel to be a day out from it and back. */
+export function withinDayTripRange(a: { lat: number; lng: number }, b: { lat: number; lng: number }): boolean {
+  return haversineKm(a, b) <= MAX_DAY_TRIP_KM
+}
