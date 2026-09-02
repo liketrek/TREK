@@ -3,8 +3,7 @@ import { Plus, Trash2, X, Check, BarChart3, Lock, Clock } from 'lucide-react'
 import ReactMarkdown, { type Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
-import rehypeSanitize from 'rehype-sanitize'
-import { markdownLinkComponents } from '../shared/markdownLink'
+import { sanitizedMarkdownComponents, sanitizedMarkdownPlugins } from '../shared/markdownSanitize'
 import { collabApi } from '../../api/client'
 import { addListener, removeListener } from '../../api/websocket'
 import { useTranslation } from '../../i18n'
@@ -43,10 +42,11 @@ const FONT = "var(--font-system)"
 // Block styling for the markdown question (#2177). Tailwind's preflight resets
 // headings/lists, so the sizes are set here — in em, on purpose: they scale with
 // the surrounding calc(13px * var(--fs-scale-body)) base, so the user's
-// text-size setting keeps working. Links come from markdownLinkComponents
-// (#1629): new tab plus rel protection, this is cross-user content.
+// text-size setting keeps working. Links and sanitizing come from
+// markdownSanitize (#1629): new tab plus rel protection, this is cross-user
+// content.
 const pollMarkdownComponents: Components = {
-  ...markdownLinkComponents,
+  ...sanitizedMarkdownComponents,
   p: ({ children }) => (
     <p style={{ margin: '0 0 0.55em' }}>{children}</p>
   ),
@@ -256,7 +256,7 @@ function PollCard({ poll, currentUser, canEdit, onVote, onClose, onDelete, t }: 
       }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.35, wordBreak: 'break-word' }}>
-            <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeSanitize]} components={pollMarkdownComponents}>
+            <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={sanitizedMarkdownPlugins} components={pollMarkdownComponents}>
               {poll.question}
             </ReactMarkdown>
           </div>

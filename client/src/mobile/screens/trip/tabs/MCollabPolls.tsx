@@ -3,9 +3,8 @@ import { BarChart3, Check, Clock, Lock, Plus, Trash2, X } from 'lucide-react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
-import rehypeSanitize from 'rehype-sanitize'
+import { sanitizedMarkdownPlugins, sanitizedMarkdownComponents } from '../../../../components/shared/markdownSanitize'
 import MDancingTrek from '../../../components/MDancingTrek'
-import { markdownLinkComponents } from '../../../../components/shared/markdownLink'
 import { collabApi } from '../../../../api/client'
 import { addListener, removeListener } from '../../../../api/websocket'
 import { useAuthStore } from '../../../../store/authStore'
@@ -262,7 +261,7 @@ function PollCardRow({ poll, canEdit, currentUserId, t, onVote, onClosePoll, onD
               inert, links open in a new tab with rel protection (#1629).
               Heading/list sizes are em-based so they follow the text scale. */}
           <div className="break-words text-[0.8125rem] font-bold leading-[1.35] text-m-ink [&_a]:underline [&_h1]:mb-1 [&_h1]:text-[1.35em] [&_h1]:leading-[1.2] [&_h2]:mb-1 [&_h2]:text-[1.2em] [&_h2]:leading-[1.25] [&_h3]:mb-1 [&_h3]:text-[1.1em] [&_h3]:leading-[1.3] [&_ol]:list-decimal [&_ol]:pl-4 [&_p]:mb-1 [&_ul]:list-disc [&_ul]:pl-4">
-            <Markdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeSanitize]} components={markdownLinkComponents}>
+            <Markdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={sanitizedMarkdownPlugins} components={sanitizedMarkdownComponents}>
               {poll.question}
             </Markdown>
           </div>

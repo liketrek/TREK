@@ -851,4 +851,27 @@ describe('CollabPolls markdown & multiline', () => {
     expect(label.style.overflowWrap).toBe('anywhere');
     expect(label.style.minWidth).toBe('0px');
   });
+
+  it('FE-COMP-POLLS-023: a placeholder in angle brackets survives sanitizing', async () => {
+    server.use(
+      http.get('/api/trips/1/collab/polls', () =>
+        HttpResponse.json({ polls: [buildPoll({ question: 'Treffpunkt <noch offen> oder Hotel?' })] }),
+      ),
+    );
+    render(<CollabPolls {...defaultProps} />);
+    // Questions written before markdown rendering existed must keep reading the
+    // way they were typed, and they cannot be edited afterwards (#2177).
+    expect(await screen.findByText('Treffpunkt <noch offen> oder Hotel?')).toBeInTheDocument();
+  });
+
+  it('FE-COMP-POLLS-024: a script tag is shown as text, never as an element', async () => {
+    server.use(
+      http.get('/api/trips/1/collab/polls', () =>
+        HttpResponse.json({ polls: [buildPoll({ question: 'Plan <script>alert("xss")</script>' })] }),
+      ),
+    );
+    render(<CollabPolls {...defaultProps} />);
+    expect(await screen.findByText('Plan <script>alert("xss")</script>')).toBeInTheDocument();
+    expect(document.querySelector('script')).toBeNull();
+  });
 });

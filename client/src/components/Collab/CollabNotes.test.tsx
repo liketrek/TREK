@@ -1327,6 +1327,14 @@ function wsHandler(): (msg: Record<string, unknown>) => void {
   return (addListener as ReturnType<typeof vi.fn>).mock.calls[0][0];
 }
 
+function openedNoteBody(): Promise<HTMLElement> {
+  return waitFor(() => {
+    const md = document.querySelector('.collab-note-md-full');
+    if (!md) throw new Error('view modal not open yet');
+    return md as HTMLElement;
+  });
+}
+
 describe('CollabNotes details', () => {
   let addToast: ReturnType<typeof vi.fn<AddToast>>;
   let filesChanged: number;
@@ -1911,5 +1919,32 @@ describe('CollabNotes details', () => {
     expect(screen.getByText('Manage Categories', { selector: 'h3' })).toBeInTheDocument();
     // …and both rejected writes are one message, not one each.
     expect(addToast).toHaveBeenCalledTimes(1);
+  });
+
+  it('FE-W5CNT-033: a placeholder in angle brackets survives sanitizing', async () => {
+    const user = userEvent.setup();
+    serveNotes({ notes: [buildNote({ id: 7, title: 'Hotel', content: 'Zimmernummer <TBD> bestaetigen' })] });
+    render(<CollabNotes {...defaultProps} />);
+    await screen.findByText('Hotel');
+    await user.click(screen.getByTitle('collab.notes.expand'));
+    const full = await openedNoteBody();
+    // Notes written before markdown rendering existed keep reading the way they
+    // were typed (#2177).
+    expect(within(full).getByText('Zimmernummer <TBD> bestaetigen')).toBeInTheDocument();
+  });
+
+  it('FE-W5CNT-034: a footnote reference lands on the footnote instead of a new tab', async () => {
+    const user = userEvent.setup();
+    serveNotes({ notes: [buildNote({ id: 8, title: 'Booking', content: 'Hotel gebucht[^1]\n\n[^1]: Bestaetigung ABC123' })] });
+    render(<CollabNotes {...defaultProps} />);
+    await screen.findByText('Booking');
+    await user.click(screen.getByTitle('collab.notes.expand'));
+    const full = await openedNoteBody();
+
+    const ref = within(full).getByRole('link', { name: '1' });
+    const href = ref.getAttribute('href')!;
+    expect(href.startsWith('#')).toBe(true);
+    expect(full.querySelector(`[id="${href.slice(1)}"]`)).not.toBeNull();
+    expect(ref).not.toHaveAttribute('target');
   });
 });
