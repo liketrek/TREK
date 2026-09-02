@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { DEFAULT_SETTINGS, useSettingsStore } from './settingsStore'
+import { DEFAULT_SETTINGS, forgetServerLanguage, useSettingsStore } from './settingsStore'
 import { settingsApi } from '../api/client'
 import { clearTileCache } from '../sync/tilePrefetcher'
 
@@ -127,5 +127,36 @@ describe('offline language fallback', () => {
     vi.resetModules()
     const fresh = await import('./settingsStore')
     expect(fresh.DEFAULT_SETTINGS.language).toBe('de')
+  })
+
+  // The account of the user who just signed in decides, and an account without a
+  // language of its own sends no language key at all. Leaving the previous
+  // account's mirror standing is what stranded the next user on a shared browser.
+  it('SETTINGS-LANG-005: an account with no language of its own clears the mirror', async () => {
+    localStorage.setItem('app_language_server', 'ja')
+    vi.mocked(settingsApi.get).mockResolvedValue({ settings: { default_currency: 'EUR' } } as never)
+
+    await useSettingsStore.getState().loadSettings()
+
+    expect(localStorage.getItem('app_language_server')).toBeNull()
+  })
+
+  it('SETTINGS-LANG-006: a language TREK does not ship never reaches the mirror', async () => {
+    localStorage.setItem('app_language_server', 'ja')
+    vi.mocked(settingsApi.get).mockResolvedValue({ settings: { language: 'kl' } } as never)
+
+    await useSettingsStore.getState().loadSettings()
+
+    expect(localStorage.getItem('app_language_server')).toBeNull()
+  })
+
+  it('SETTINGS-LANG-007: forgetServerLanguage drops the mirror and leaves the explicit choice alone', () => {
+    localStorage.setItem('app_language', 'de')
+    localStorage.setItem('app_language_server', 'ja')
+
+    forgetServerLanguage()
+
+    expect(localStorage.getItem('app_language_server')).toBeNull()
+    expect(localStorage.getItem('app_language')).toBe('de')
   })
 })

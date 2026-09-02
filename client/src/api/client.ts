@@ -126,7 +126,7 @@ const RATE_LIMIT_MESSAGES: Record<string, string> = {
 function translateRateLimit(): string {
   const fallback = RATE_LIMIT_MESSAGES['en']!
   try {
-    const lang = localStorage.getItem('app_language') || 'en'
+    const lang = localStorage.getItem('app_language') || localStorage.getItem('app_language_server') || 'en'
     return RATE_LIMIT_MESSAGES[lang] ?? fallback
   } catch {
     return fallback

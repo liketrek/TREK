@@ -24,6 +24,33 @@ interface SettingsState {
 export const hasStoredLanguage = (): boolean =>
   typeof localStorage !== 'undefined' && !!localStorage.getItem('app_language')
 
+const SERVER_LANGUAGE_KEY = 'app_language_server'
+
+// An account that never picked a language sends no language key at all
+// (getUserSettings returns only what was set), so a mirror left over from
+// whoever used this browser before has to go rather than survive the load.
+function rememberServerLanguage(settings: Partial<Settings>): void {
+  try {
+    const language = settings.language
+    if (language && SUPPORTED_LANGUAGE_CODES.includes(language)) {
+      localStorage.setItem(SERVER_LANGUAGE_KEY, language)
+    } else {
+      localStorage.removeItem(SERVER_LANGUAGE_KEY)
+    }
+  } catch {
+    // Private mode: the session still has the value in the store.
+  }
+}
+
+/** On logout, so the next account on this browser starts in its own language. */
+export function forgetServerLanguage(): void {
+  try {
+    localStorage.removeItem(SERVER_LANGUAGE_KEY)
+  } catch {
+    // Nothing to clean up if storage is unavailable.
+  }
+}
+
 // The effective client-side defaults for a fresh instance. The server sends no value for
 // a setting an admin hasn't defaulted (see settingsService.getAdminUserDefaults), so these
 // are what a brand-new user actually sees. Keep them internally consistent — one
@@ -39,7 +66,7 @@ export const DEFAULT_SETTINGS: Settings = {
   // language (written by loadSettings below), then English. Without the mirror
   // an offline cold start boots in English: the account's language lives on the
   // server, and the fetch that would apply it cannot happen.
-  language: localStorage.getItem('app_language') || localStorage.getItem('app_language_server') || 'en',
+  language: localStorage.getItem('app_language') || localStorage.getItem(SERVER_LANGUAGE_KEY) || 'en',
   temperature_unit: 'celsius',
   distance_unit: 'metric',
   time_format: '24h',
@@ -110,9 +137,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         // key rather than 'app_language': that one means an explicit in-app
         // choice, and the login page's detection chain must keep running for
         // users who never made one.
-        try {
-          if (incoming.language) localStorage.setItem('app_language_server', incoming.language)
-        } catch { /* private mode — the session still has the value in the store */ }
+        rememberServerLanguage(incoming)
       } catch (err: unknown) {
         // Leave isLoaded false so a transient failure — offline at launch, or a
         // (docker) server cold-start racing the first request — is retried on

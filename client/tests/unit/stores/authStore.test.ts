@@ -759,4 +759,20 @@ describe('authStore', () => {
       expect(syncTriggers.registerSyncTriggers).toHaveBeenCalled();
     });
   });
+
+  // The mirror of the account's server-side language is a per-device copy like the
+  // appearance snapshot and the startup destination, and gets dropped with them.
+  // 'app_language' is not a mirror but this device's own choice, so it stays.
+  describe('FE-STORE-AUTH-034: logout drops the language mirror', () => {
+    it('clears the account language but keeps an explicit in-app choice', async () => {
+      localStorage.setItem('app_language_server', 'ja');
+      localStorage.setItem('app_language', 'de');
+      useAuthStore.setState({ user: buildUser(), isAuthenticated: true });
+
+      await useAuthStore.getState().logout();
+
+      expect(localStorage.getItem('app_language_server')).toBeNull();
+      expect(localStorage.getItem('app_language')).toBe('de');
+    });
+  });
 });
