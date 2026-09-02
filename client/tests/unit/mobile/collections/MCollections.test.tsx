@@ -471,6 +471,25 @@ describe('MCollections', () => {
     expect(fn('setSelectedPlaceId')).toHaveBeenCalledWith(null)
   })
 
+  it('FE-MOB-COLSCR-019b: the map fills the viewport instead of a fixed-height card (#2104)', () => {
+    mocks.coll = makeHook({ view: 'map', dark: true })
+    const { container } = render(<MCollections />)
+
+    // Root becomes a viewport-high flex column in map view, like the trip and
+    // journal maps; the card grows with flex-1 rather than pinning 440px.
+    expect(container.firstElementChild!.className).toContain('h-dvh')
+    const card = screen.getByTestId('map').parentElement!
+    expect(card.className).toContain('flex-1')
+    expect(card.className).not.toMatch(/h-\[\d+px\]/)
+  })
+
+  it('FE-MOB-COLSCR-019c: the list view keeps the document as the scroller', () => {
+    mocks.coll = makeHook({ view: 'list' })
+    const { container } = render(<MCollections />)
+
+    expect(container.firstElementChild!.className).not.toContain('h-dvh')
+  })
+
   it('FE-MOB-COLSCR-020: a map view with nothing mappable falls back to the empty note', () => {
     mocks.coll = makeHook({ view: 'map', mappable: [] })
     render(<MCollections />)

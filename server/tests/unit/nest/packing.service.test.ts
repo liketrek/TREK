@@ -697,6 +697,67 @@ describe('create-path fields + bag trip scope (#2154)', () => {
     expect(item).toMatchObject({ weight_grams: 250, bag_id: bag.id, quantity: 3 });
   });
 
+  it('PACK-SVC-077: a bag weighs what EVERY member put in it, private items included (#2191)', () => {
+    const { user } = createUser(testDb);
+    const { user: buddy } = createUser(testDb, { username: 'bag-buddy' });
+    const trip = createTrip(testDb, user.id);
+    addTripMember(testDb, trip.id, buddy.id);
+    const bag = svc.createBag(trip.id, { name: 'Duffel' }) as any;
+
+    // The reporter's repro: 500 g of mine (personal) + 300 g common + 200 g of
+    // my buddy's personal list. Their item is invisible to me by design (#858)
+    // and used to be missing from the weight along with it.
+    svc.createItem(trip.id, { name: 'Boots', weight_grams: 500, bag_id: bag.id, visibility: 'personal' }, user.id);
+    svc.createItem(trip.id, { name: 'Stove', weight_grams: 300, bag_id: bag.id }, user.id);
+    svc.createItem(trip.id, { name: 'Book', weight_grams: 200, bag_id: bag.id, visibility: 'personal' }, buddy.id);
+
+    // What I am allowed to SEE is still only my own two items...
+    const visible = svc.listItems(trip.id, user.id) as any[];
+    expect(visible.map(i => i.name).sort()).toEqual(['Boots', 'Stove']);
+    // ...but the bag weighs all three.
+    expect((svc.listBags(trip.id) as any[])[0].total_weight_grams).toBe(1000);
+  });
+
+  it('PACK-SVC-078: bag weight multiplies by quantity and survives null weights (#2191)', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const bag = svc.createBag(trip.id, { name: 'Carry-On' }) as any;
+
+    svc.createItem(trip.id, { name: 'Socks', weight_grams: 60, bag_id: bag.id, quantity: 3 }, user.id);
+    // No weight and no quantity: contributes nothing rather than NaN.
+    svc.createItem(trip.id, { name: 'Passport', bag_id: bag.id }, user.id);
+
+    expect((svc.listBags(trip.id) as any[])[0].total_weight_grams).toBe(180);
+  });
+
+  it('PACK-SVC-079: an empty bag reports 0, and the unassigned pile is summed too (#2191)', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const bag = svc.createBag(trip.id, { name: 'Empty' }) as any;
+
+    // 0, never undefined — the client's fallback keys off the field being absent,
+    // so an empty bag must not read as "the server did not tell me".
+    expect((svc.listBags(trip.id) as any[])[0].total_weight_grams).toBe(0);
+    expect(svc.unassignedWeightGrams(trip.id)).toBe(0);
+
+    svc.createItem(trip.id, { name: 'Loose sandwich', weight_grams: 150 }, user.id);
+    expect(svc.unassignedWeightGrams(trip.id)).toBe(150);
+    // Still empty: the loose item belongs to no bag.
+    expect((svc.listBags(trip.id) as any[]).find(b => b.id === bag.id).total_weight_grams).toBe(0);
+  });
+
+  it('PACK-SVC-080: listBagsWithWeights returns bags and the unassigned pile from one pass (#2191)', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const bag = svc.createBag(trip.id, { name: 'Duffel' }) as any;
+    svc.createItem(trip.id, { name: 'Tent', weight_grams: 900, bag_id: bag.id }, user.id);
+    svc.createItem(trip.id, { name: 'Loose sandwich', weight_grams: 150 }, user.id);
+
+    const { bags, unassigned_weight_grams } = svc.listBagsWithWeights(trip.id) as any;
+    expect(bags[0].total_weight_grams).toBe(900);
+    expect(unassigned_weight_grams).toBe(150);
+  });
+
   it('PACK-SVC-055: createItem refuses a bag off the trip with the invalidBag sentinel, inserting nothing', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
@@ -752,6 +813,13 @@ describe('broadcast helpers (#858 scoping)', () => {
   it('broadcast forwards to the websocket helper', () => {
     svc.broadcast('5', 'packing:created', { item: 1 }, 'sock');
     expect(broadcastMock).toHaveBeenCalledWith('5', 'packing:created', { item: 1 }, 'sock');
+  });
+
+  it('broadcastBagTotals pings the whole room, content-free and without excluding the sender (#2191)', () => {
+    // No socket exclusion on purpose: the payload carries nothing to echo, and
+    // the writer cannot recompute a server-side total from its own write either.
+    svc.broadcastBagTotals('5');
+    expect(broadcastMock).toHaveBeenCalledWith('5', 'packing:bag-totals', {}, undefined);
   });
 
   it('broadcastItem broadcasts a shared item to the whole room (no onlyUserId)', () => {

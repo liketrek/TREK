@@ -144,6 +144,17 @@ describe('PackingRpc through the router', () => {
     }
   });
 
+  it('PACKING-RPC-007f deleting a bag also pings the weights (#2191)', async () => {
+    // packing_items.bag_id is ON DELETE SET NULL, so the bag's contents land in
+    // the unassigned pile: both the bag figure and the loose figure move.
+    const f = build();
+    await f.host('db:write:packing').dispatch(req('packing.deleteBag', { tripId: 1, bagId: 80 }), 42);
+    expect(fanout(f.realtime)).toEqual([
+      ['packing:bag-deleted', undefined],
+      ['packing:bag-totals', undefined],
+    ]);
+  });
+
   it('PACKING-RPC-007e an invalid item payload is BAD_PARAMS on create and update alike', async () => {
     const f = build();
     const host = f.host('db:write:packing');
@@ -199,16 +210,25 @@ describe('PackingRpc keeps private items off the room (#858)', () => {
   it('PACKING-RPC-009 a common item is created for the whole room', async () => {
     const f = build();
     await f.host('db:write:packing').dispatch(req('packing.create', { tripId: 1, input: { name: 'Socks' } }), 42);
-    expect(fanout(f.realtime)).toEqual([['packing:created', undefined]]);
+    // The trailing bag-totals ping is room-wide and content-free (#2191): bag
+    // weights are summed server-side, so every member has to re-read them even
+    // when the item itself is none of their business.
+    expect(fanout(f.realtime)).toEqual([
+      ['packing:created', undefined],
+      ['packing:bag-totals', undefined],
+    ]);
   });
 
   it('PACKING-RPC-010 a private item is created only for its owner and recipients', async () => {
     const f = build();
     f.data.createItem.mockReturnValueOnce({ id: 70, is_private: 1, owner_id: 42, recipients: [{ user_id: 7 }] });
     await f.host('db:write:packing').dispatch(req('packing.create', { tripId: 1, input: { name: 'Gift', is_private: true } }), 42);
+    // The item goes only to its viewers; the weight ping goes to the room and
+    // says nothing at all (#2191) — that is exactly what makes it safe here.
     expect(fanout(f.realtime)).toEqual([
       ['packing:created', 42],
       ['packing:created', 7],
+      ['packing:bag-totals', undefined],
     ]);
   });
 
@@ -256,9 +276,12 @@ describe('PackingRpc keeps private items off the room (#858)', () => {
     const f = build();
     f.data.deleteItem.mockReturnValueOnce({ id: 70, is_private: 1, owner_id: 42, recipients: [{ user_id: 7 }] });
     await f.host('db:write:packing').dispatch(req('packing.delete', { tripId: 1, itemId: 70 }), 42);
+    // Same split as the create above: private item to its viewers, content-free
+    // weight ping to the room (#2191).
     expect(fanout(f.realtime)).toEqual([
       ['packing:deleted', 42],
       ['packing:deleted', 7],
+      ['packing:bag-totals', undefined],
     ]);
   });
 

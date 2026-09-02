@@ -139,9 +139,14 @@ export default function MCollections() {
     `flex flex-none items-center gap-[5px] rounded-full border border-[color:var(--m-rowbr)] bg-m-sheetop px-3 py-2 text-[0.75rem] font-semibold text-m-ink ${disabled ? 'opacity-40' : ''}`
 
   return (
-    <div className="px-4 pb-[calc(var(--bottom-nav-h,84px)+12px)] pt-[var(--m-safe-top,12px)]">
+    <div
+      // Map view fills the viewport like the trip and journal maps do (#2104);
+      // h-dvh because the shell owns no scroll container (#1809). List view
+      // keeps the document as the scroller.
+      className={`px-4 pb-[calc(var(--bottom-nav-h,84px)+12px)] pt-[var(--m-safe-top,12px)] ${c.view === 'map' ? 'flex h-dvh flex-col overflow-hidden' : ''}`}
+    >
       {/* Header: back · list switcher · edit · share */}
-      <div className="mb-3 flex items-center gap-2 pt-2">
+      <div className="mb-3 flex flex-none items-center gap-2 pt-2">
         <button
           type="button"
           onClick={() => setDrop(v => !v)}
@@ -218,7 +223,7 @@ export default function MCollections() {
       ) : (
         <>
           {/* Toolbar: view toggle · search · filter chips / select actions */}
-          <div className="mt-3 rounded-[18px] border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] p-[10px]">
+          <div className="mt-3 flex-none rounded-[18px] border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] p-[10px]">
             <div className="flex items-center gap-2">
               <span className="flex flex-none rounded-xl bg-[color:var(--m-ic)] p-[3px]">
                 <button
@@ -435,7 +440,7 @@ export default function MCollections() {
             c.mappable.length === 0 ? (
               <EmptyNote icon={<MapIcon size={19} strokeWidth={1.8} />} title={t('collections.empty.noMatchTitle')} />
             ) : (
-              <div className="relative mt-3 h-[440px] overflow-hidden rounded-[20px] border border-[color:var(--m-rowbr)]">
+              <div className="relative mt-3 min-h-0 flex-1 overflow-hidden rounded-[20px] border border-[color:var(--m-rowbr)]">
                 <CollectionMap
                   places={c.mappable}
                   selectedPlaceId={c.selectedPlaceId}

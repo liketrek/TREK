@@ -19,5 +19,8 @@ const map: TranslationStrings = {
   'map.baseLayer.satellite': 'Satellite',
   'map.baseLayer.switchToSatellite': 'Switch to satellite view',
   'map.baseLayer.switchToDefault': 'Switch to map view',
+  'map.location.denied': 'Location access is blocked. Check your device settings; an installed app has its own location permission, separate from the browser.',
+  'map.location.unavailable': 'Your location could not be determined.',
+  'map.location.timeout': 'Locating you took too long. Try again with a clearer view of the sky.',
 };
 export default map;

@@ -399,7 +399,18 @@ describe('AddonManager', () => {
     // The catalog key now exists, so the tile shows the translation rather than falling
     // back to the English description the server sent.
     expect(screen.getByText('Reads bookings the built-in parser cannot, using an AI model you choose')).toBeInTheDocument();
-    expect(screen.queryByText('Connection')).not.toBeInTheDocument();
+    expect(screen.queryByText('Provider')).not.toBeInTheDocument();
+  });
+
+  it('FE-ADMIN-ADDON-020b: the config lives in the tile shelf, not as a band below the grid', async () => {
+    server.use(addonsRoute([llmAddon({ provider: 'openai' })]));
+    render(<AddonManager />);
+
+    const label = await screen.findByText('Provider');
+    // Inside the AI Parsing tile's <article>, like the collab toggles sit in theirs.
+    const tile = label.closest('article');
+    expect(tile).not.toBeNull();
+    expect(tile!.textContent).toContain('AI Parsing');
   });
 
   it('FE-ADMIN-ADDON-021: the local provider lists installed models and a chip fills the model field', async () => {
@@ -617,7 +628,7 @@ describe('AddonManager', () => {
     server.use(addonsRoute([llmAddon({ provider: 'openai' })]), modelsRoute([], urls));
     render(<AddonManager />);
 
-    await screen.findByText('Connection');
+    await screen.findByText('Provider');
     expect(screen.queryByText('Installed on the server')).not.toBeInTheDocument();
 
     await user.type(screen.getByPlaceholderText('https://api.openai.com/v1'), 'https://proxy.local/v1');

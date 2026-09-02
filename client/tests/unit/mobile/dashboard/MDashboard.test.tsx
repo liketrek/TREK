@@ -539,4 +539,19 @@ describe('MDashboard', () => {
     await waitFor(() =>
       expect(screen.queryByText('dashboard.subscribeAllTripsDesc')).not.toBeInTheDocument());
   });
+
+  it('FE-MOB-DASH-038: the filter row cannot widen the document on narrow phones (#discord S26)', async () => {
+    render(<MDashboard />);
+
+    // The chip track scrolls inside its own flexible box; without this the row
+    // was the widest element on the page and dragged the fixed bars off-screen
+    // under Android's forced zoom.
+    const chip = await screen.findByText('dashboard.filter.planned');
+    const track = chip.closest('button')!.parentElement as HTMLElement;
+    expect(track.className).toContain('min-w-max');
+    const wrapper = track.parentElement as HTMLElement;
+    expect(wrapper.className).toContain('m-hscroll');
+    expect(wrapper.className).toContain('min-w-0');
+    expect(wrapper.className).toContain('flex-1');
+  });
 });

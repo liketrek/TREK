@@ -216,6 +216,9 @@ const journey: TranslationStrings = {
   'journey.settings.name': 'Name', // en-fallback
   'journey.settings.subtitle': 'Subtitle', // en-fallback
   'journey.settings.subtitlePlaceholder': 'e.g. Thailand, Vietnam & Cambodia', // en-fallback
+  'journey.settings.tracks': 'مسارات GPX',
+  'journey.settings.showTripTracks': 'إظهار جميع مسارات GPX للرحلات',
+  'journey.settings.showTripTracksHint': 'يرسم على الخريطة المسارات المسجَّلة من الرحلات المرتبطة.',
   'journey.settings.delete': 'Delete', // en-fallback
   'journey.settings.deleteJourney': 'Delete Journey', // en-fallback
   'journey.settings.deleteMessage': 'Delete "{title}"? All entries and photos will be lost.', // en-fallback

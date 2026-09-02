@@ -363,3 +363,14 @@
   -webkit-appearance: none;
   appearance: none;
 }
+
+/* Horizontal scroller without a visible scrollbar, for control rows that must
+   survive narrow viewports and large system font scales (dashboard filter). */
+.m-hscroll {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+.m-hscroll::-webkit-scrollbar {
+  display: none;
+}

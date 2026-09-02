@@ -93,6 +93,28 @@ export default defineConfig(({ mode }) => ({
             },
           },
           {
+            // OpenStreetMap DE — a shipped preset that matched no rule at all, so
+            // "Store map tiles offline" fetched thousands of tiles and stored none
+            // of them (#2180). Same cache, same limits as the rules above.
+            urlPattern: /^https:\/\/tile\.openstreetmap\.de\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'map-tiles',
+              expiration: { maxEntries: 12288, maxAgeSeconds: 30 * 24 * 60 * 60 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            // Stadia Smooth — the other shipped raster preset with the same hole (#2180).
+            urlPattern: /^https:\/\/tiles\.stadiamaps\.com\/tiles\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'map-tiles',
+              expiration: { maxEntries: 12288, maxAgeSeconds: 30 * 24 * 60 * 60 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
             // The GL style DOCUMENT, for both providers. It has to be matched
             // before the tile rules below, because Workbox takes the first route
             // that matches and the broad tile patterns cover this URL too (#1924).
@@ -196,7 +218,10 @@ export default defineConfig(({ mode }) => ({
           { src: 'icons/apple-touch-icon-180x180.png', sizes: '180x180', type: 'image/png' },
           { src: 'icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
           { src: 'icons/icon-512x512.png', sizes: '512x512', type: 'image/png' },
-          { src: 'icons/icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          // Dedicated safe-zone renders: the full-bleed icon under a maskable
+          // purpose filled the whole Android launcher tile without any padding.
+          { src: 'icons/icon-maskable-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
+          { src: 'icons/icon-maskable-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
           { src: 'icons/icon.svg', sizes: 'any', type: 'image/svg+xml' },
         ],
       },

@@ -19,5 +19,8 @@ const map: TranslationStrings = {
   'map.baseLayer.satellite': 'Δορυφόρος',
   'map.baseLayer.switchToSatellite': 'Εναλλαγή σε δορυφορική προβολή',
   'map.baseLayer.switchToDefault': 'Εναλλαγή σε προβολή χάρτη',
+  'map.location.denied': 'Η πρόσβαση στην τοποθεσία είναι αποκλεισμένη. Ελέγξτε τις ρυθμίσεις της συσκευής. Μια εγκατεστημένη εφαρμογή έχει δική της άδεια τοποθεσίας, ξεχωριστή από το πρόγραμμα περιήγησης.',
+  'map.location.unavailable': 'Δεν ήταν δυνατός ο προσδιορισμός της τοποθεσίας σας.',
+  'map.location.timeout': 'Ο εντοπισμός της θέσης σας άργησε πολύ. Δοκιμάστε ξανά με καθαρή θέα στον ουρανό.',
 };
 export default map;

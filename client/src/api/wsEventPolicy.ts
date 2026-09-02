@@ -30,6 +30,11 @@ export const HANDLED_OUTSIDE_TRIP_STORE = [
   // In-app notifications — hooks/useInAppNotificationListener
   'notification:new',
   'notification:updated',
+  // Bag weights (#2191) — content-free ping; components/Packing/usePackingListPanel
+  // and mobile/screens/trip/tabs/MPackingListTab re-read the bags on it. It carries
+  // no state to apply, which is the point: the totals are summed server-side across
+  // members whose items this client may not see.
+  'packing:bag-totals',
   // Collections — pages/collections/useCollections ('collections:' prefix listener)
   'collections:updated',
   'collections:accepted',

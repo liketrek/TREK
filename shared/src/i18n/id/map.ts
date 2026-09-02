@@ -19,5 +19,8 @@ const map: TranslationStrings = {
   'map.baseLayer.satellite': 'Satelit',
   'map.baseLayer.switchToSatellite': 'Beralih ke tampilan satelit',
   'map.baseLayer.switchToDefault': 'Beralih ke tampilan peta',
+  'map.location.denied': 'Akses lokasi diblokir. Periksa pengaturan perangkat; aplikasi yang terpasang punya izin lokasi sendiri, terpisah dari browser.',
+  'map.location.unavailable': 'Lokasi Anda tidak dapat ditentukan.',
+  'map.location.timeout': 'Penentuan lokasi terlalu lama. Coba lagi di tempat dengan pandangan langit yang lebih terbuka.',
 };
 export default map;

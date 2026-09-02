@@ -20,7 +20,10 @@ import type { Place } from '../types'
 
 /** OpenFreeMap serves vector tiles up to z14 and overzooms from there. */
 const VECTOR_MAX_ZOOM = 14
-const VECTOR_MIN_ZOOM = 10
+// Zoom 0, not 10: MapLibre can only overzoom upward, so a wide trip opening at
+// its fitBounds zoom (z6–9) rendered nothing offline with a z10 floor (#2180).
+// The low zooms cost a few dozen tiles at most.
+const VECTOR_MIN_ZOOM = 0
 
 /** Requests in flight, kept low for the same reason the raster side keeps it low. */
 const CONCURRENCY = 6

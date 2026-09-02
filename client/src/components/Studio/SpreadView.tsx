@@ -2,7 +2,8 @@ import type { CSSProperties } from 'react'
 import type {
   BookElement, BookIconElement, BookPageSetup, BookPhotoElement, BookShapeElement, BookSpread,
 } from '@trek/shared'
-import { FONT_STACKS, photoSrc } from './bookRender'
+import { photoSrc } from './bookRender'
+import { fontStack } from './bookFonts'
 import { iconComponent } from './iconLibrary'
 import { HOLED_SHAPES, SHAPE_PATHS, scalePath, unitPath } from './shapes'
 import { TravelElementView } from './TravelElements'
@@ -223,7 +224,7 @@ function PhotoView({ el, big, print, dropLabel }: {
       {roomy && dropLabel && (
         <span
           style={{
-            fontFamily: FONT_STACKS.sans,
+            fontFamily: fontStack('sans'),
             fontSize: `${labelSize}mm`,
             fontWeight: 600,
             letterSpacing: '0.16em',
@@ -403,7 +404,7 @@ export function ElementView({
         // pt, not px: the document speaks the print's language, and CSS knows
         // the conversion exactly.
         fontSize: `${el.size}pt`,
-        fontFamily: FONT_STACKS[el.font],
+        fontFamily: fontStack(el.font),
         fontWeight: el.weight,
         fontStyle: el.italic ? 'italic' : undefined,
         lineHeight: el.leading,

@@ -4,7 +4,10 @@
  *
  * Algorithm:
  *   1. Compute bbox from trip's place coordinates + padding.
- *   2. For zooms 10–16, enumerate tile XYZ coordinates within bbox.
+ *   2. For zooms 0–16, enumerate tile XYZ coordinates within bbox. The low
+ *      zooms cost next to nothing (a handful of tiles) but are what the trip
+ *      map actually opens at for a multi-city bbox — a z10 floor left the
+ *      fitBounds view empty offline (#2180).
  *   3. Stop when cumulative tile estimate exceeds MAX_TILES (~50 MB).
  *   4. Fetch each tile URL so the Service Worker CacheFirst handler caches it,
  *      at most TILE_CONCURRENCY at a time.
@@ -228,7 +231,7 @@ async function openTileCache(): Promise<Cache | null> {
 export async function prefetchTiles(
   bbox: TileBbox,
   tileUrlTemplate: string,
-  minZoom = 10,
+  minZoom = 0,
   maxZoom = 16,
   cartoKey?: string,
 ): Promise<number> {
@@ -362,7 +365,7 @@ export async function prefetchTilesForTrip(
   // tile providers that don't send CORS headers. To stop the browser evicting
   // these tiles under the inflated quota, we request persistent storage at app
   // init instead (sync/persistentStorage.ts).
-  const fetched = await prefetchTiles(bbox, template, 10, 16, cartoKey)
+  const fetched = await prefetchTiles(bbox, template, 0, 16, cartoKey)
 
   // Update syncMeta with bbox and tile count
   const meta = await offlineDb.syncMeta.get(tripId)

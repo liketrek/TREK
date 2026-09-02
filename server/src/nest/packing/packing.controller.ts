@@ -85,6 +85,7 @@ export class PackingController {
     for (const item of created) {
       this.packing.broadcastItem(tripId, 'packing:created', { item }, item, socketId);
     }
+    this.packing.broadcastBagTotals(tripId);
     return { items: created, count: created.length };
   }
 
@@ -104,6 +105,7 @@ export class PackingController {
       throw new HttpException({ error: 'Bag not found' }, 400);
     }
     this.packing.emitToViewers(tripId, 'packing:created', { item }, item, socketId);
+    this.packing.broadcastBagTotals(tripId);
     return { item };
   }
 
@@ -149,6 +151,12 @@ export class PackingController {
       throw new HttpException({ error: 'Bag not found' }, 400);
     }
     this.packing.broadcastUpdate(tripId, id, updated as PackingItemRow, !!before?.is_private, socketId);
+    // Only when the write could actually move a weight. Checking an item off is
+    // the most frequent packing write there is, and every ping costs every
+    // connected client a listBags round trip.
+    if (['weight_grams', 'quantity', 'bag_id'].some(k => Object.keys(body).includes(k))) {
+      this.packing.broadcastBagTotals(tripId);
+    }
     return { item: updated };
   }
 
@@ -166,6 +174,7 @@ export class PackingController {
     }
     // Scope the delete to the people who could see it (owner + recipients, #858).
     this.packing.emitToViewers(tripId, 'packing:deleted', { itemId: Number(id) }, deleted as PackingItemRow, socketId);
+    this.packing.broadcastBagTotals(tripId);
     return { success: true };
   }
 
@@ -207,6 +216,7 @@ export class PackingController {
     }
     // The clone is personal to the caller — only their sockets need it.
     this.packing.emitToViewers(tripId, 'packing:created', { item }, item, socketId);
+    this.packing.broadcastBagTotals(tripId);
     return { item };
   }
 
@@ -248,7 +258,10 @@ export class PackingController {
 
   @Get('bags')
   listBags(@CurrentUser() user: User, @Param('tripId') tripId: string) {
-    return { bags: this.packing.listBags(tripId) };
+    // unassigned_weight_grams rides along so the "no bag" pile and the grand
+    // total follow the same rule as the bags themselves (#2191) — a screen
+    // mixing true totals with per-viewer ones would be worse than either.
+    return this.packing.listBagsWithWeights(tripId);
   }
 
   @RequirePermission('packing_edit')
@@ -300,6 +313,9 @@ export class PackingController {
       throw new HttpException({ error: 'Bag not found' }, 404);
     }
     this.packing.broadcast(tripId, 'packing:bag-deleted', { bagId: Number(bagId) }, socketId);
+    // bag_id is ON DELETE SET NULL, so everything that was in it just landed in
+    // the unassigned pile — both figures moved.
+    this.packing.broadcastBagTotals(tripId);
     return { success: true };
   }
 
@@ -324,6 +340,7 @@ export class PackingController {
       throw new HttpException({ error: 'Template not found or empty' }, 404);
     }
     this.packing.broadcastItem(tripId, 'packing:template-applied', { items: added }, added[0], socketId);
+    this.packing.broadcastBagTotals(tripId);
     return { items: added, count: added.length };
   }
 

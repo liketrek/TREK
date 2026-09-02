@@ -114,6 +114,17 @@ export const TREK_WS_EVENTS = {
     payload: z.object({ category: z.string(), assignees: z.array(z.unknown()) }),
   },
   'packing:template-applied': { scope: 'trip', payload: z.object({ items: z.array(z.unknown()) }) },
+  /**
+   * "A bag's weight may have changed" — deliberately content-free (#2191).
+   *
+   * Bag totals are summed server-side across every member's items, so a private
+   * item nobody else may see still moves the number everybody else reads. The
+   * item events themselves cannot carry that: a private one is delivered only
+   * to its owner, which is exactly the privacy rule that made the totals wrong
+   * in the first place. This ping goes to the whole room and says nothing at
+   * all; receivers refetch the bags and get numbers, never contents.
+   */
+  'packing:bag-totals': { scope: 'trip', payload: z.object({}) },
 
   // ── Todo ─────────────────────────────────────────────────────────────────
   'todo:created': { scope: 'trip', payload: z.object({ item: entity }) },

@@ -13,6 +13,9 @@ import { lockBodyScroll } from '../../utils/bodyScrollLock'
 import type { JourneyEntry } from '../../store/journeyStore'
 import { createDraftJourneyEntry } from './JourneyDetailPage.helpers'
 
+/** Stable identity for "this journey draws no trip tracks" (#2194). */
+const NO_TRACKS: JourneyTrack[] = []
+
 /**
  * Journey detail page logic — owns the journey load + WebSocket live sync, the
  * timeline/gallery view state, the entry editor/viewer/delete/lightbox dialogs,
@@ -71,18 +74,36 @@ export function useJourneyDetail() {
     if (id) loadJourney(Number(id)).catch(() => {})
   }, [id])
 
-  // GPX tracks of the trips behind this journey (#1260). Loaded separately from the
-  // journey itself: a journey without tracks is the common case, and a failed lookup
-  // should cost the map its lines, not the whole page.
-  const [tracks, setTracks] = useState<JourneyTrack[]>([])
+  // GPX tracks of the trips behind this journey (#1260), drawn only when the
+  // journey asks for them (#2194). Loaded separately from the journey itself: a
+  // journey without tracks is the common case, and a failed lookup should cost
+  // the map its lines, not the whole page.
+  //
+  // The switch gates the REQUEST, not just the rendering: the endpoint ships
+  // full unthinned geometry, which for a trip carrying a season of recorded
+  // drives is megabytes fetched on every journey open for a map nobody asked
+  // for. It stays untouched on the server so TREK Studio, which freezes the
+  // same endpoint's output into a saved book, keeps the set it laid out with.
+  const [tracks, setTracks] = useState<JourneyTrack[]>(NO_TRACKS)
+  // Gate on the journey the route actually names: loadJourney leaves the previous
+  // `current` in place while the next one loads, so reading the flag unguarded
+  // would fetch the tracks of journey A under the id of journey B — the exact
+  // megabyte-sized request the switch exists to avoid.
+  const journeyLoaded = current?.id === Number(id)
+  const showTripTracks = journeyLoaded && !!current?.show_trip_tracks
   useEffect(() => {
-    if (!id) return
+    if (!id || !showTripTracks) {
+      // A stable empty array: a fresh literal here would be a new reference on
+      // every toggle and re-render the map for nothing.
+      setTracks(NO_TRACKS)
+      return
+    }
     let cancelled = false
     journeyApi.listTracks(Number(id))
-      .then(res => { if (!cancelled) setTracks(res.tracks ?? []) })
-      .catch(() => { if (!cancelled) setTracks([]) })
+      .then(res => { if (!cancelled) setTracks(res.tracks ?? NO_TRACKS) })
+      .catch(() => { if (!cancelled) setTracks(NO_TRACKS) })
     return () => { cancelled = true }
-  }, [id])
+  }, [id, showTripTracks])
 
   useEffect(() => {
     if (current?.hide_skeletons !== undefined) setHideSkeletons(current.hide_skeletons)

@@ -356,6 +356,8 @@ export interface Journey {
   cover_gradient?: string | null;
   cover_image?: string | null;
   status: 'draft' | 'active' | 'completed' | 'archived';
+  /** Draw the linked trips' GPX tracks on this journey's map (#2194). 0 by default. */
+  show_trip_tracks?: number;
   created_at: number;
   updated_at: number;
 }

@@ -519,3 +519,45 @@ describe('the GL style document is not served stale (#1924)', () => {
     expect(config).toMatch(/cacheName:\s*'gl-map-styles'/);
   });
 });
+
+describe('shipped raster presets reach the map-tiles cache (#2180)', () => {
+  const config = readFileSync(resolve(process.cwd(), 'vite.config.js'), 'utf8');
+
+  // First-match semantics, like the #1924 harness above, but capturing the
+  // cacheName too: a preset whose tiles land in some other cache is as offline-
+  // dead as one that matches nothing.
+  const rules = [...config.matchAll(/urlPattern:\s*(\/[^\n]*?\/i),\s*\n\s*handler:\s*'([A-Za-z]+)',\s*\n\s*options:\s*\{\s*\n\s*cacheName:\s*'([^']+)'/g)].map(m => ({
+    pattern: new RegExp(m[1].slice(1, m[1].lastIndexOf('/')), 'i'),
+    handler: m[2],
+    cacheName: m[3],
+  }));
+  const firstMatch = (url: string) => rules.find(r => r.pattern.test(url));
+
+  it('OpenStreetMap DE tiles are cached — the preset used to match no rule at all', () => {
+    const rule = firstMatch('https://tile.openstreetmap.de/13/4091/2722.png');
+    expect(rule?.handler).toBe('CacheFirst');
+    expect(rule?.cacheName).toBe('map-tiles');
+  });
+
+  it('Stadia tiles are cached the same way', () => {
+    const rule = firstMatch('https://tiles.stadiamaps.com/tiles/alidade_smooth/13/4091/2722.png');
+    expect(rule?.handler).toBe('CacheFirst');
+    expect(rule?.cacheName).toBe('map-tiles');
+  });
+
+  it('still refuses look-alike hosts', () => {
+    expect(firstMatch('https://tile.openstreetmap.de.example.com/13/4091/2722.png')).toBeUndefined();
+  });
+});
+
+describe('prefetch covers the opening zoom (#2180)', () => {
+  it('fetches the low zooms too, so a wide trip has tiles at its fitBounds view', async () => {
+    // A ~3° multi-city bbox opens around z7 — the old z10 floor left that view
+    // completely uncached offline.
+    const bbox: TileBbox = { minLat: 47.0, maxLat: 50.0, minLng: 6.0, maxLng: 9.0 };
+    await prefetchTiles(bbox, 'https://tile.example.com/{z}/{x}/{y}.png');
+    const urls = vi.mocked(fetch).mock.calls.map(c => String(c[0]));
+    expect(urls.some(u => u.includes('/0/'))).toBe(true);
+    expect(urls.some(u => u.includes('/7/'))).toBe(true);
+  });
+});

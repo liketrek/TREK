@@ -19,5 +19,8 @@ const map: TranslationStrings = {
   'map.baseLayer.satellite': 'Satelit',
   'map.baseLayer.switchToSatellite': 'Přepnout na satelitní zobrazení',
   'map.baseLayer.switchToDefault': 'Přepnout na mapové zobrazení',
+  'map.location.denied': 'Přístup k poloze je zablokován. Zkontrolujte nastavení zařízení; nainstalovaná aplikace má vlastní oprávnění k poloze, nezávislé na prohlížeči.',
+  'map.location.unavailable': 'Vaši polohu se nepodařilo zjistit.',
+  'map.location.timeout': 'Zjišťování polohy trvalo příliš dlouho. Zkuste to znovu s volným výhledem na oblohu.',
 };
 export default map;
