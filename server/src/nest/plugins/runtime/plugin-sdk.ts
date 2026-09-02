@@ -13,10 +13,13 @@ export { PLUGIN_API_VERSION } from '../protocol/envelope';
 
 export interface PluginContext {
   readonly id: string;
+  /** `scope:'instance'` settings, secrets decrypted, frozen at activation; a field nobody
+   * set resolves to its manifest `default` (settings-defaults.ts). */
   readonly config: Readonly<Record<string, unknown>>;
   /** The ACTING USER's own value for one of this plugin's `scope:'user'` settings fields
-   * (decrypted host-side). Returns undefined for an unset value or a userless context
-   * (job/onLoad) — fall back to `config` (the admin-owned instance settings) there. */
+   * (decrypted host-side), or the field's manifest `default` when they never set it.
+   * Undefined for a field with neither, and in a userless context (job/onLoad) — fall
+   * back to `config` (the admin-owned instance settings) there. */
   settings: {
     get(key: string): Promise<unknown>;
   };

@@ -30,10 +30,14 @@ export interface User { id: number; username?: string; display_name?: string | n
  * A legitimate plugin never hits the generous burst. See README § Runtime limits. */
 export interface PluginContext {
   readonly id: string;
+  /** Your `scope:'instance'` settings as the admin saved them, secrets decrypted, frozen
+   * at activation (a save re-spawns you). A field nobody set resolves to its manifest
+   * `default` — only a field with neither is absent. */
   readonly config: Readonly<Record<string, unknown>>;
   /** The ACTING USER's own value for one of this plugin's `scope:'user'` settings fields
-   * (decrypted host-side). Undefined for an unset value or a userless context (job/onLoad)
-   * — fall back to `config` (the admin-owned instance settings) there. */
+   * (decrypted host-side), or the field's manifest `default` when they never set it.
+   * Undefined for a field with neither, and in a userless context (job/onLoad) — fall
+   * back to `config` (the admin-owned instance settings) there. */
   settings: {
     get(key: string): Promise<unknown>;
   };

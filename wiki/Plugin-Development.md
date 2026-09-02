@@ -271,7 +271,7 @@ parser would ignore one if you added it.
 | `ctx.ai` | `complete(prompt, system?)` → `{ text }`; `extract(text, jsonSchema, prompt?)` → `{ results }` — the admin/user-configured provider; host holds the key; output is DATA (no auto-writes) | `ai:invoke` |
 | `ctx.oauth` | `getAccessToken()` → a **short-lived access token** for the acting user of a third-party service the host connected on their behalf (Settings → Plugins → Connect); `null` if not connected / userless. Host holds the refresh token + client secret | `oauth:client` |
 | `ctx.scheduler` | `at(whenMs, name, payload?)` / `in(ms, name, payload?)` / `every(ms, name, payload?)` / `cancel(name)` — **persistent, userless** timers that survive restarts and fire your `scheduled(input, ctx)` handler. `set` is an upsert by `name`; caps: ≤100 tasks, 8 KB payload, recurring interval ≥ 60 s, ≤ ~1 year out. Same risk class as `jobs` (no acting user → trip reads refused) | `jobs:run` |
-| `ctx.settings` | `get(key)` — the **acting user's** own value for one of your `scope:'user'` settings fields (decrypted host-side). Returns `undefined` for an unset value or a userless context (job/onLoad) — fall back to `ctx.config` there. Users fill these in under **Settings → Plugins**; secrets are stored encrypted and never echoed back | none (your own settings) |
+| `ctx.settings` | `get(key)` — the **acting user's** own value for one of your `scope:'user'` settings fields (decrypted host-side), or the field's manifest `default` when they never set it. Returns `undefined` for a field with neither, and in a userless context (job/onLoad) — fall back to `ctx.config` there. Users fill these in under **Settings → Plugins**; secrets are stored encrypted and never echoed back | none (your own settings) |
 | `ctx.daynotes` | `list(tripId, dayId)` — a day's notes (membership-checked) | `db:read:daynotes` |
 | `ctx.daynotes` (write) | `create(tripId, dayId, {text, time?, icon?, sort_order?})` / `update(tripId, dayId, noteId, fields)` / `delete(tripId, dayId, noteId)` — broadcasts `dayNote:*` | `db:write:daynotes` |
 | `ctx.packing` (write) | `create(tripId, {name, category?, checked?, is_private?, visibility?, recipient_ids?})` / `update(tripId, itemId, fields)` / `delete(tripId, itemId)` — broadcasts `packing:*`, private items (#858) stay owner-scoped | `db:write:packing` |
@@ -292,7 +292,7 @@ parser would ignore one if you added it.
 | `ctx.ws.broadcastToUser(userId, event, data)` | broadcast to one user | `ws:broadcast:user` |
 | `ctx.plugins.call(id, fn, args?)` | call a function another plugin **exposes** and get its result — `id` must be a declared, satisfied `pluginDependency` that lists `fn` in its `capabilities.provides` | a plugin dependency (no permission) |
 | `ctx.events.emit(name, payload?)` | publish an event to dependents that subscribed — `name` must be in your `capabilities.emits` | — (no permission) |
-| `ctx.config` | your resolved settings (secrets delivered decrypted) | — |
+| `ctx.config` | your `scope:'instance'` settings (secrets delivered decrypted, a field nobody set resolves to its manifest `default`), frozen at activation | — |
 | `ctx.log` | `info` / `warn` / `error` → your error log | — |
 | `ctx.id` | your plugin id (string) | — |
 
@@ -707,6 +707,26 @@ with `await ctx.settings.get(key)` (a userless job / `onLoad` gets `undefined` �
 fall back to `ctx.config` there). `secret: true` fields are stored encrypted and
 delivered decrypted through whichever of the two applies (server-side only) —
 never to the iframe.
+
+Two attributes do more than decorate the form:
+
+- **`default`** is the field's value wherever nobody set one. The form pre-fills it
+  **and the runtime resolves it** — `ctx.config.api_url` and
+  `ctx.settings.get('region')` return the default until someone saves something
+  else — so a plugin that ships sensible defaults works before anyone opens the
+  form. A default satisfies `required`. It is refused on a `secret` (the manifest
+  is public), must be a boolean on a `checkbox`, and must be one of the `options`
+  when those are declared; the host drops a default that breaks these rules at
+  install, `trek-plugin validate` errors on it first.
+- **`required`** is enforced on both ends: the form refuses Save while the field is
+  blank (naming it), and the host answers `400 { error: 'Missing required setting
+  "<key>"' }` if a save reaches it anyway. A `checkbox` is exempt. A required
+  `scope:'user'` field also decides whether a notification channel dispatches to
+  that user at all.
+
+Any attribute outside `key, label, input_type, placeholder, hint, required, secret,
+scope, options, oauth, default` is silently dropped at install; `trek-plugin
+validate` warns on one (`manifest.settings-known-keys`).
 
 ### A custom settings page (`capabilities.settingsUi`)
 
