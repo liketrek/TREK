@@ -208,4 +208,45 @@ describe('WeatherWidget', () => {
     expect(weatherApi.get).toHaveBeenCalledWith(48.86, 2.35, '2025-06-01', 'de')
     expect(sessionStorage.getItem('weather_48.86_2.35_2025-06-01_de')).not.toBeNull()
   })
+
+  // The day-local anchor (#2167) moves whenever the day is edited, so a single
+  // failed lookup must not keep the badge on the dash for the widget's lifetime.
+  it('FE-COMP-WEATHERWIDGET-016: clears the error dash once a new anchor resolves', async () => {
+    vi.mocked(weatherApi.get).mockRejectedValueOnce(new Error('Network error'))
+    vi.mocked(weatherApi.get).mockResolvedValue(buildWeather({ temp: 21 }))
+    useSettingsStore.setState({ settings: { ...useSettingsStore.getState().settings, temperature_unit: 'celsius' } })
+
+    const { rerender } = render(<WeatherWidget lat={48.86} lng={2.35} date="2025-06-01" />)
+    await waitFor(() => {
+      expect(screen.getByText('—')).toBeInTheDocument()
+    })
+
+    rerender(<WeatherWidget lat={41.9} lng={12.5} date="2025-06-01" />)
+
+    await waitFor(() => {
+      expect(screen.getByText('21°C')).toBeInTheDocument()
+    })
+    expect(screen.queryByText('—')).not.toBeInTheDocument()
+  })
+
+  it('FE-COMP-WEATHERWIDGET-017: clears the error dash when the new anchor comes from cache', async () => {
+    vi.mocked(weatherApi.get).mockRejectedValue(new Error('Network error'))
+    sessionStorage.setItem(
+      'weather_41.9_12.5_2025-06-01_en',
+      JSON.stringify({ data: buildWeather({ temp: 24 }), fetchedAt: Date.now() }),
+    )
+    useSettingsStore.setState({ settings: { ...useSettingsStore.getState().settings, temperature_unit: 'celsius' } })
+
+    const { rerender } = render(<WeatherWidget lat={48.86} lng={2.35} date="2025-06-01" />)
+    await waitFor(() => {
+      expect(screen.getByText('—')).toBeInTheDocument()
+    })
+
+    rerender(<WeatherWidget lat={41.9} lng={12.5} date="2025-06-01" />)
+
+    await waitFor(() => {
+      expect(screen.getByText('24°C')).toBeInTheDocument()
+    })
+    expect(weatherApi.get).toHaveBeenCalledTimes(1)
+  })
 })

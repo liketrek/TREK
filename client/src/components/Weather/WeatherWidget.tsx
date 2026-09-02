@@ -63,6 +63,10 @@ export default function WeatherWidget({ lat, lng, date, compact = false, stacked
   useEffect(() => {
     if (!lat || !lng || !date) return
     let cancelled = false
+    // Every anchor, date or language change is a fresh attempt, so a failure from
+    // the previous one must not outlive it. Since #2167 the anchor is day-local and
+    // moves with each edit, which would otherwise pin the badge on the error dash.
+    setFailed(false)
     const rLat = Math.round(lat * 100) / 100
     const rLng = Math.round(lng * 100) / 100
     // The language is part of the key: descriptions come back localized, and the
