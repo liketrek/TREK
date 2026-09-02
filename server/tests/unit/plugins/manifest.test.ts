@@ -3,7 +3,7 @@
  * unknown permissions, native modules, and http:outbound without egress.
  */
 import { describe, it, expect } from 'vitest';
-import { parseManifest, ManifestError } from '../../../src/nest/plugins/install/manifest';
+import { parseManifest, ManifestError, SETTING_FIELD_KEYS } from '../../../src/nest/plugins/install/manifest';
 
 const base = { id: 'flight-tracker', name: 'Flight', version: '1.2.0', type: 'widget', apiVersion: 1 };
 const withApi = (apiVersion: unknown) => ({ ...base, apiVersion, trek: '>=3.2.0 <4.0.0' });
@@ -351,5 +351,19 @@ describe('settings-page actions', () => {
 
   it('defaults to no actions', () => {
     expect(parseManifest(base).actions).toEqual([]);
+  });
+});
+
+describe('SETTING_FIELD_KEYS is the attribute set parseSettings reads', () => {
+  // The SDK mirrors this list (plugin-sdk parity test) to warn on an attribute the host
+  // would silently drop — so every key listed here must actually land in the parsed field.
+  it('a field carrying every key round-trips each one', () => {
+    const field: Record<string, unknown> = {
+      key: 'k', label: 'L', input_type: 'select', placeholder: 'P', hint: 'H', required: true, secret: false,
+      scope: 'user', options: ['a'], oauth: { initPath: '/i' }, default: 'a',
+    };
+    expect(Object.keys(field).sort()).toEqual([...SETTING_FIELD_KEYS].sort());
+    const [parsed] = parseManifest({ id: 'x-plugin', name: 'X', version: '1.0.0', type: 'integration', trek: '>=4.0.0 <5.0.0', settings: [field] }).settings;
+    for (const k of SETTING_FIELD_KEYS) expect(parsed[k as keyof typeof parsed], k).toBeDefined();
   });
 });

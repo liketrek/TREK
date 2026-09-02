@@ -11,6 +11,7 @@ import { PLUGIN_CHANNEL_EVENTS } from './install/manifest';
 import { stripEmoji } from './text-sanitize';
 import { applyStagedPluginTrees, setStagedRestoreApplier } from './plugin-backup';
 import { decrypt_api_key } from '../common/crypto/apiKeyCrypto';
+import { applySettingDefaults, settingDefaults } from './settings-defaults';
 import { PluginSupervisor, type PluginRouteInfo } from './supervisor/plugin-supervisor';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -565,7 +566,9 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
     const declared = parseArray(row.permissions).filter(isKnownPermission);
     // Mark it enabled (admin intent) so it reboots after restarts/crashes.
     this.db.prepare('UPDATE plugins SET granted_permissions = ?, enabled = 1 WHERE id = ?').run(JSON.stringify(declared), id);
-    const config = decryptConfig(parseObject(row.config));
+    // Manifest defaults fill whatever the admin never set, so the child's ctx.config is
+    // the same effective value the settings form shows (see settings-defaults.ts).
+    const config = applySettingDefaults(decryptConfig(parseObject(row.config)), settingDefaults(this.db, id, 'instance'));
     const manifestHosts = declared.filter((p) => p.startsWith(HTTP_OUTBOUND)).map((p) => p.slice(HTTP_OUTBOUND.length));
     // Union in the hosts the ADMIN added post-install. A plugin that talks to a
     // self-hosted service can't name the operator's hostname in its manifest, so without

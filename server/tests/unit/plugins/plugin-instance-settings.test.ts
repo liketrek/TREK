@@ -66,7 +66,7 @@ function installFixturePlugin(opts: { settings: Array<Record<string, unknown>> }
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(
     path.join(codeRoot, 'fixture-id', 'trek-plugin.json'),
-    JSON.stringify({ id: 'fixture-id', name: 'Fixture', version: '1.0.0', type: 'integration', settings: opts.settings }),
+    JSON.stringify({ id: 'fixture-id', name: 'Fixture', version: '1.0.0', type: 'integration', trek: '>=4.0.0 <5.0.0', settings: opts.settings }),
   );
   fs.writeFileSync(path.join(dir, 'index.js'), 'module.exports={}');
   discoverPlugins(testDb);
@@ -125,6 +125,19 @@ describe('instance settings fields', () => {
     expect(fields[0].default).toBe('https://auth.openbnb.org/authorize');
   });
 
+  it('INS-013 — drops a default the field cannot take: non-boolean on a checkbox, or not one of the select options', () => {
+    installFixturePlugin({
+      settings: [
+        { key: 'on', input_type: 'checkbox', default: 'true' },
+        { key: 'mode', input_type: 'select', options: ['fast', 'slow'], default: 'warp' },
+        { key: 'mode_ok', input_type: 'select', options: [{ value: 'a', label: 'A' }], default: 'a' },
+        { key: 'on_ok', input_type: 'checkbox', default: true },
+      ],
+    });
+    const byKey = Object.fromEntries(svc().instanceSettingsFields('fixture-id').map((f) => [f.key, f.default]));
+    expect(byKey).toEqual({ on: undefined, mode: undefined, mode_ok: 'a', on_ok: true });
+  });
+
   it('INS-011 — drops a default on a secret field at parse time', () => {
     installFixturePlugin({ settings: [{ key: 'token', secret: true, default: 'leak' }] });
     expect(svc().instanceSettingsFields('fixture-id')[0].default).toBeUndefined();
@@ -144,6 +157,13 @@ describe('required settings are enforced on save', () => {
     expect(() => s.updateInstanceConfig('fixture-id', { note: 'hi' })).not.toThrow();
   });
 
+  it('accepts a user-scope partial patch when the required user field is already stored', () => {
+    installFixturePlugin({ settings: [{ key: 'api_key', scope: 'user', required: true }, { key: 'units', scope: 'user' }] });
+    const s = svc();
+    s.updateUserConfig('fixture-id', 1, { api_key: 'sk-1' });
+    expect(() => s.updateUserConfig('fixture-id', 1, { units: 'metric' })).not.toThrow();
+  });
+
   it('refuses a user-settings save that leaves a required user field empty', () => {
     installFixturePlugin({ settings: [{ key: 'api_key', scope: 'user', required: true }] });
     expect(() => svc().updateUserConfig('fixture-id', 1, { api_key: '' })).toThrow(/Missing required setting "api_key"/);
@@ -153,6 +173,13 @@ describe('required settings are enforced on save', () => {
     installFixturePlugin({ settings: [{ key: 'accept_terms', input_type: 'checkbox', required: true }, { key: 'note', required: false }] });
     // accept_terms is left entirely unset (never patched, nothing stored) — a
     // non-checkbox required field in this state would throw.
+    expect(() => svc().updateInstanceConfig('fixture-id', { note: 'hi' })).not.toThrow();
+  });
+
+  it('a required field with a manifest default is satisfied by the default', () => {
+    installFixturePlugin({ settings: [{ key: 'region', required: true, default: 'eu' }, { key: 'note', required: false }] });
+    // region is never patched and nothing is stored — the runtime will see the default,
+    // so refusing the save here would contradict what the child actually gets.
     expect(() => svc().updateInstanceConfig('fixture-id', { note: 'hi' })).not.toThrow();
   });
 
@@ -232,5 +259,29 @@ describe('admin config endpoints (controller)', () => {
     const out = await controllerWith({ respawnIfActive }).updateConfig('p', undefined as never);
     expect(out.config).toEqual({});
     expect(out.restarted).toBe(false);
+  });
+});
+
+describe('defaults reach the child at spawn', () => {
+  it('INS-012 — an unset instance field is handed to the child as its manifest default; a stored value wins', async () => {
+    installFixturePlugin({
+      settings: [
+        { key: 'api_url', default: 'https://api.example' },
+        { key: 'retries', input_type: 'number', default: 3 },
+        { key: 'note' },
+      ],
+    });
+    const s = svc();
+    s.updateInstanceConfig('fixture-id', { api_url: 'https://mine.example' });
+
+    const rt = createPluginRuntime(new DatabaseService(dbConn));
+    const sup = (rt as unknown as { supervisor: { activate: (...a: unknown[]) => Promise<void> } }).supervisor;
+    const activate = vi.spyOn(sup, 'activate').mockResolvedValue(undefined);
+
+    await rt.activate('fixture-id');
+
+    expect(activate).toHaveBeenCalledTimes(1);
+    const config = activate.mock.calls[0][2] as Record<string, unknown>;
+    expect(config).toEqual({ api_url: 'https://mine.example', retries: 3 }); // note: no default, no value → absent
   });
 });

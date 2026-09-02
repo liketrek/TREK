@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import crypto from 'node:crypto';
 import { DatabaseService } from '../../database/database.service';
 import { encrypt_api_key, decrypt_api_key } from '../../common/crypto/apiKeyCrypto';
+import { applySettingDefaults, settingDefaults } from '../settings-defaults';
 import { getAppUrl } from '../../../app-config';
 import { isPrivateIp } from '../install/safe-fetch';
 import { safeFetchLlm } from '../../../utils/ssrfGuard';
@@ -82,6 +83,9 @@ export class PluginOAuthService {
     } catch {
       return null;
     }
+    // A provider plugin ships its endpoints/scopes as manifest defaults; the admin types
+    // only the client id/secret (secrets — never defaulted).
+    cfg = applySettingDefaults(cfg, settingDefaults(this.db, pluginId, 'instance'));
     const authorizeUrl = String(cfg.oauth_authorize_url ?? '').trim();
     const tokenUrl = String(cfg.oauth_token_url ?? '').trim();
     const clientId = cfg.oauth_client_id ? String(decrypt_api_key(cfg.oauth_client_id)) : '';

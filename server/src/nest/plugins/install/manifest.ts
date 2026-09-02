@@ -525,35 +525,60 @@ function parseCapabilityNames(raw: unknown, field: string): string[] {
 const SETTING_KEY_RE = /^[a-zA-Z][a-zA-Z0-9_.-]{0,63}$/;
 const RESERVED_SETTING_KEYS = new Set(['constructor', 'prototype', '__proto__']);
 
+/**
+ * Every attribute a settings-field object may carry — parseSettings reads exactly these and
+ * silently drops anything else. The SDK mirrors this list (`SETTING_FIELD_KEYS` in
+ * plugin-sdk/src/manifest.ts, parity-tested against this file) so `trek-plugin validate`
+ * can warn on a typo'd or unsupported attribute instead of letting it vanish at install.
+ */
+export const SETTING_FIELD_KEYS = [
+  'key', 'label', 'input_type', 'placeholder', 'hint', 'required', 'secret', 'scope', 'options', 'oauth', 'default',
+] as const;
+
 function parseSettings(raw: unknown): ManifestSettingField[] {
   if (!Array.isArray(raw)) return [];
   return raw
     .filter((s): s is Record<string, unknown> => !!s && typeof s === 'object')
-    .map((s): ManifestSettingField => ({
-      key: assertSettingKey(String(s.key ?? '')),
-      label: optStr(s.label),
-      input_type: optStr(s.input_type) ?? 'text',
-      placeholder: optStr(s.placeholder),
-      hint: optStr(s.hint),
-      required: !!s.required,
-      secret: !!s.secret,
-      default: parseSettingDefault(s.default, !!s.secret),
-      scope: s.scope === 'user' ? 'user' : 'instance',
-      options: parseSettingOptions(s.options),
-      oauth: s.oauth && typeof s.oauth === 'object' ? (s.oauth as { initPath?: string; callbackPath?: string }) : undefined,
-    }))
+    .map((s): ManifestSettingField => {
+      const input_type = optStr(s.input_type) ?? 'text';
+      const secret = !!s.secret;
+      const options = parseSettingOptions(s.options);
+      return {
+        key: assertSettingKey(String(s.key ?? '')),
+        label: optStr(s.label),
+        input_type,
+        placeholder: optStr(s.placeholder),
+        hint: optStr(s.hint),
+        required: !!s.required,
+        secret,
+        default: parseSettingDefault(s.default, { secret, input_type, options }),
+        scope: s.scope === 'user' ? 'user' : 'instance',
+        options,
+        oauth: s.oauth && typeof s.oauth === 'object' ? (s.oauth as { initPath?: string; callbackPath?: string }) : undefined,
+      };
+    })
     .filter((s) => s.key);
 }
 
 /**
- * A field's `default` — pre-fills the settings form when nothing is stored. Tolerant on
- * purpose (an unusable default degrades to "no default", it never blocks an install), but a
- * SECRET's default is always dropped: the manifest is public, so it would be a plaintext secret.
+ * A field's `default` — the field's effective value wherever nothing is stored (the form
+ * pre-fills it and the runtime resolves it; see settings-defaults.ts). Tolerant on purpose:
+ * an unusable default degrades to "no default" and never blocks an install (the SDK's
+ * `validate` is where an author hears about it). Dropped when:
+ *   - the field is a SECRET — the manifest is public, so it would be a plaintext secret;
+ *   - a `checkbox` default is not a boolean — the form would coerce it to unchecked anyway;
+ *   - a field with `options` defaults to a value not among them — the select would render
+ *     blank and Save would persist an undeclared value.
  */
-function parseSettingDefault(raw: unknown, secret: boolean): string | number | boolean | undefined {
-  if (raw === undefined || raw === null || secret) return undefined;
-  if (typeof raw === 'string' || typeof raw === 'number' || typeof raw === 'boolean') return raw;
-  return undefined;
+function parseSettingDefault(
+  raw: unknown,
+  field: { secret: boolean; input_type: string; options?: Array<{ value: string }> },
+): string | number | boolean | undefined {
+  if (raw === undefined || raw === null || field.secret) return undefined;
+  if (typeof raw !== 'string' && typeof raw !== 'number' && typeof raw !== 'boolean') return undefined;
+  if (field.input_type === 'checkbox' && typeof raw !== 'boolean') return undefined;
+  if (field.options && field.options.length > 0 && !field.options.some((o) => o.value === String(raw))) return undefined;
+  return raw;
 }
 
 /**

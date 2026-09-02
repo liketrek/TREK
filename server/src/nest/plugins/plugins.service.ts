@@ -7,6 +7,7 @@ import { readAudit } from './host/plugin-audit';
 import { keyFingerprint } from './signature-status';
 import { pluginBudgetUsage } from './host/plugin-host-state';
 import { safeParseConfig as safeParse } from './plugin-config-parse';
+import { isFilled, parseDefaultValue, settingDefaults } from './settings-defaults';
 import { AddonsService } from '../addons/addons.service';
 import { parseDependencies, disabledRequiredAddons, resolveDependencyState, type PluginDepRow, type PluginDependencies, type VersionMismatch } from './dependencies';
 import { hostSatisfies, hostVersion } from './install/host-compat';
@@ -387,9 +388,10 @@ export class PluginsService {
         "SELECT field_key FROM plugin_settings_fields WHERE plugin_id = ? AND scope = ? AND required = 1 AND input_type != 'checkbox'",
       )
       .all(id, scope) as Array<{ field_key: string }>;
+    const defaults = settingDefaults(this.db, id, scope);
     for (const f of required) {
-      const v = config[f.field_key];
-      if (v == null || String(v).trim() === '') throw new MissingRequiredSettingError(f.field_key);
+      // The runtime resolves the default too, so it counts as filled here as well.
+      if (!isFilled(config[f.field_key] ?? defaults[f.field_key])) throw new MissingRequiredSettingError(f.field_key);
     }
   }
 }
@@ -398,17 +400,6 @@ function safeArray(json: string): unknown[] | undefined {
   try {
     const v = JSON.parse(json);
     return Array.isArray(v) ? v : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-/** `default_value` column: JSON-encoded string|number|boolean, NULL (or an absent pre-migration row) = no default. */
-function parseDefaultValue(raw: unknown): string | number | boolean | undefined {
-  if (typeof raw !== 'string' || raw === '') return undefined;
-  try {
-    const v = JSON.parse(raw) as unknown;
-    return typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean' ? v : undefined;
   } catch {
     return undefined;
   }
