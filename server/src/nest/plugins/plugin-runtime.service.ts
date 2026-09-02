@@ -35,6 +35,7 @@ import type { VersionMismatch, PluginDepRow } from './dependencies';
 import { parseDependencies, disabledRequiredAddons, resolveDependencyState, enableOrder, findDependentsTransitive, DependencyCycleError } from './dependencies';
 
 import { HTTP_OUTBOUND_PREFIX as HTTP_OUTBOUND, PLUGIN_API_VERSION } from './protocol/envelope';
+import type { PluginActionDescriptor, PluginActionResult, PluginActionScope } from '@trek/shared';
 
 // Mirrors HOST_RE in install/manifest.ts: an exact hostname or a `*.`-prefixed wildcard
 // with a real multi-label suffix. Rejects a bare `*`, a whole-TLD wildcard, a scheme and
@@ -1124,27 +1125,29 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
     });
   }
 
-  /** The settings-page action buttons a plugin declared (descriptors, from the DB). */
-  actionsOf(id: string): Array<{ key: string; label: string; hint?: string; danger: boolean }> {
+  /** The settings-form action buttons a plugin declared for ONE scope (descriptors, from the DB). */
+  actionsOf(id: string, scope: PluginActionScope): PluginActionDescriptor[] {
     try {
       return (
-        this.db.prepare('SELECT action_key, label, hint, danger FROM plugin_actions WHERE plugin_id = ? ORDER BY sort_order').all(id) as Array<{
-          action_key: string; label: string; hint: string | null; danger: number;
-        }>
-      ).map((r) => ({ key: r.action_key, label: r.label, hint: r.hint ?? undefined, danger: r.danger === 1 }));
+        this.db
+          .prepare('SELECT action_key, label, hint, danger, scope FROM plugin_actions WHERE plugin_id = ? AND scope = ? ORDER BY sort_order')
+          .all(id, scope) as Array<{ action_key: string; label: string; hint: string | null; danger: number; scope: PluginActionScope }>
+      ).map((r) => ({ key: r.action_key, label: r.label, hint: r.hint ?? undefined, danger: r.danger === 1, scope: r.scope }));
     } catch {
       return []; // table absent (a slimmed test app)
     }
   }
 
   /**
-   * Run a settings-page action for the user who clicked it. The acting user is bound
-   * host-side (never named by the plugin), so the action reads THAT user's settings and
-   * any trip read it makes is membership-checked against them.
+   * Run a settings-form action for the person who clicked it. The acting user is bound
+   * host-side (never named by the plugin): a user for a `scope:'user'` button, an admin
+   * for a `scope:'instance'` one. Either way the action reads THAT person's settings and
+   * any trip read it makes is membership-checked against them. The scope is the
+   * CALLER's route, so a user route can never fire an admin button, nor the reverse.
    */
-  async invokeAction(id: string, key: string, actingUserId: number): Promise<{ ok: boolean; message?: string }> {
-    if (!this.actionsOf(id).some((a) => a.key === key)) {
-      throw new ForbiddenResource(`plugin ${id} did not declare action "${key}"`);
+  async invokeAction(id: string, key: string, actingUserId: number, scope: PluginActionScope): Promise<PluginActionResult> {
+    if (!this.actionsOf(id, scope).some((a) => a.key === key)) {
+      throw new ForbiddenResource(`plugin ${id} did not declare action "${key}" in scope ${scope}`);
     }
     const cap = (v: unknown) => stripEmoji(String(v)).slice(0, 200);
     try {

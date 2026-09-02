@@ -30,7 +30,7 @@ beforeEach(() => {
       api_version INTEGER, min_trek_version TEXT, trek_range TEXT, permissions TEXT, capabilities TEXT DEFAULT '{}', dependencies TEXT DEFAULT '{}', operator_egress INTEGER DEFAULT 0, granted_permissions TEXT, status TEXT, config TEXT, updated_at TEXT);
     CREATE TABLE plugin_settings_fields (plugin_id TEXT, field_key TEXT, label TEXT, input_type TEXT, placeholder TEXT, hint TEXT,
       required INTEGER, secret INTEGER, scope TEXT, options TEXT, oauth_config TEXT, default_value TEXT, sort_order INTEGER);
-    CREATE TABLE plugin_actions (plugin_id TEXT, action_key TEXT, label TEXT, hint TEXT, danger INTEGER, sort_order INTEGER,
+    CREATE TABLE plugin_actions (plugin_id TEXT, action_key TEXT, label TEXT, hint TEXT, danger INTEGER, scope TEXT NOT NULL DEFAULT 'user', sort_order INTEGER,
       PRIMARY KEY (plugin_id, action_key));
     CREATE TABLE plugin_error_log (id INTEGER PRIMARY KEY AUTOINCREMENT, plugin_id TEXT, level TEXT, message TEXT, ts TEXT);`);
 });
@@ -62,6 +62,19 @@ describe('discoverPlugins', () => {
 
     const field = db.prepare("SELECT field_key, secret FROM plugin_settings_fields WHERE plugin_id='flight-tracker'").get() as { field_key: string; secret: number };
     expect(field).toMatchObject({ field_key: 'api_key', secret: 1 });
+  });
+
+  it('persists each action with its scope', () => {
+    writePlugin('acts', {
+      name: 'Acts', type: 'integration', permissions: [],
+      actions: [{ key: 'ping', label: 'Ping' }, { key: 'purge', label: 'Purge', scope: 'instance', danger: true }],
+    });
+    discoverPlugins(db);
+    const rows = db.prepare("SELECT action_key, scope, danger FROM plugin_actions WHERE plugin_id='acts' ORDER BY sort_order").all();
+    expect(rows).toEqual([
+      { action_key: 'ping', scope: 'user', danger: 0 },
+      { action_key: 'purge', scope: 'instance', danger: 1 },
+    ]);
   });
 
   it('keeps an existing plugin status + granted permissions on re-discovery', () => {

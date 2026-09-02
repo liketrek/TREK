@@ -10,6 +10,7 @@ import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vite
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import type { Request } from 'express';
 
 const { testDb, dbMock } = vi.hoisted(() => {
   const Database = require('better-sqlite3');
@@ -226,7 +227,7 @@ describe('admin config endpoints (controller)', () => {
     declareField('p', 'apiUrl', 'instance');
     testDb.prepare("UPDATE plugins SET config = '{\"apiUrl\":\"https://x.example\"}' WHERE id = 'p'").run();
 
-    const out = controllerWith({}).getConfig('p');
+    const out = controllerWith({ actionsOf: () => [] }).getConfig('p');
     expect(out.config).toEqual({ apiUrl: 'https://x.example' });
     expect(out.fields.map((f: Record<string, unknown>) => f.key)).toEqual(['apiUrl']);
   });
@@ -283,5 +284,65 @@ describe('defaults reach the child at spawn', () => {
     expect(activate).toHaveBeenCalledTimes(1);
     const config = activate.mock.calls[0][2] as Record<string, unknown>;
     expect(config).toEqual({ api_url: 'https://mine.example', retries: 3 }); // note: no default, no value → absent
+  });
+});
+
+describe('plugin_actions.scope migration', () => {
+  it('MIG-ACT-001 — the column exists on a migrated DB and defaults to user', () => {
+    const cols = testDb.prepare("SELECT name FROM pragma_table_info('plugin_actions')").all() as Array<{ name: string }>;
+    expect(cols.some((c) => c.name === 'scope')).toBe(true);
+    testDb.prepare("INSERT INTO plugin_actions (plugin_id, action_key, label, hint, danger, sort_order) VALUES ('m', 'k', 'K', NULL, 0, 0)").run();
+    expect((testDb.prepare("SELECT scope FROM plugin_actions WHERE plugin_id='m'").get() as { scope: string }).scope).toBe('user');
+    testDb.prepare("DELETE FROM plugin_actions WHERE plugin_id='m'").run();
+  });
+});
+
+describe('instance-scope actions (admin)', () => {
+  function declareAction(pluginId: string, key: string, scope: 'user' | 'instance') {
+    testDb.prepare('INSERT INTO plugin_actions (plugin_id, action_key, label, hint, danger, scope, sort_order) VALUES (?, ?, ?, NULL, 0, ?, 0)')
+      .run(pluginId, key, key, scope);
+  }
+  const adminReq = { user: { id: 42 } } as unknown as Request;
+  function controller(invoke = vi.fn(async () => ({ ok: true, message: 'pong' }))) {
+    const rt = createPluginRuntime(new DatabaseService(dbConn));
+    // isActive normally reflects the supervisor's live child map, which nothing here
+    // spawns — so it's stubbed to read the same DB status the test itself flips,
+    // mirroring what an actually-activated plugin would report.
+    const isActive = (id: string) => !!testDb.prepare("SELECT 1 FROM plugins WHERE id = ? AND status = 'active'").get(id);
+    const runtime = Object.assign(rt, { invokeAction: invoke, isActive }) as unknown as PluginRuntimeService;
+    const c = new PluginsController(svc(), runtime, {} as unknown as PluginRegistryService, { isManaged: () => false } as unknown as RuntimeEnvService);
+    return { c, invoke };
+  }
+
+  beforeEach(() => { testDb.prepare('DELETE FROM plugin_actions').run(); });
+
+  it('ACT-ADM-001 — GET config lists the instance actions and none of the user ones', () => {
+    install('p');
+    declareAction('p', 'purge', 'instance');
+    declareAction('p', 'testConnection', 'user');
+    const { c } = controller();
+    expect(c.getConfig('p').actions).toEqual([{ key: 'purge', label: 'purge', hint: undefined, danger: false, scope: 'instance' }]);
+  });
+
+  it('ACT-ADM-002 — POST runs the action as the clicking admin in the instance scope', async () => {
+    install('p');
+    testDb.prepare("UPDATE plugins SET status = 'active', enabled = 1 WHERE id = 'p'").run();
+    const { c, invoke } = controller();
+    expect(await c.runAction('p', 'purge', adminReq)).toEqual({ ok: true, message: 'pong' });
+    expect(invoke).toHaveBeenCalledWith('p', 'purge', 42, 'instance');
+  });
+
+  it('ACT-ADM-003 — an inactive plugin answers 404 like the user route', async () => {
+    install('p');
+    const { c, invoke } = controller();
+    await expect(c.runAction('p', 'purge', adminReq)).rejects.toMatchObject({ status: 404, response: { error: 'Plugin is not active' } });
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it('ACT-ADM-004 — a refused key is a failed RESULT, not a server error', async () => {
+    install('p');
+    testDb.prepare("UPDATE plugins SET status = 'active', enabled = 1 WHERE id = 'p'").run();
+    const { c } = controller(vi.fn(async () => { throw new Error('plugin p did not declare action "x" in scope instance'); }));
+    expect(await c.runAction('p', 'x', adminReq)).toEqual({ ok: false, message: 'plugin p did not declare action "x" in scope instance' });
   });
 });

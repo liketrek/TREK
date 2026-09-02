@@ -13,7 +13,7 @@ import { pluginsEnabled } from './kill-switch';
 import { devLinkEnabled } from './dev-link';
 import { PluginActivateDto, PluginConfigDto, PluginEgressHostsDto, PluginInstallDto, PluginLinkDto, PluginRetrustDto, PluginUninstallDto, PluginUpdateDto } from './plugins.dto';
 import { ManagedForbidden, isManagedBlocked, MANAGED_FORBIDDEN_ERROR } from '../common/managed';
-import type { PluginInstanceConfigResponse, PluginInstanceConfigUpdated } from '@trek/shared';
+import type { PluginActionResult, PluginInstanceConfigResponse, PluginInstanceConfigUpdated } from '@trek/shared';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
 // Straight from sessionManager, not the src/mcp barrel: that one evaluates
 // readEnv().mcp at module scope and installs the sweep interval, which a domain
@@ -141,7 +141,11 @@ export class PluginsController {
 
   @Get(':id/config')
   getConfig(@Param('id') id: string): PluginInstanceConfigResponse {
-    return { fields: this.plugins.instanceSettingsFields(id), config: this.plugins.getInstanceConfig(id) };
+    return {
+      fields: this.plugins.instanceSettingsFields(id),
+      config: this.plugins.getInstanceConfig(id),
+      actions: this.runtime.actionsOf(id, 'instance'),
+    };
   }
 
   /**
@@ -157,6 +161,32 @@ export class PluginsController {
     } catch (e) {
       if (e instanceof MissingRequiredSettingError) throw new HttpException({ error: e.message }, 400);
       throw e;
+    }
+  }
+
+  /**
+   * Run one of the plugin's `scope:'instance'` actions ("Purge cache", "Test SMTP").
+   * ADMIN-INITIATED: the acting user is the clicking admin, bound host-side, so the
+   * handler sees `ctx.config` plus the admin's own settings and any trip read is checked
+   * against them. The scope is fixed by this route — a user-tab key is refused here.
+   * Mirrors PluginUserSettingsController.runAction: 404 when there is no child to run it
+   * (inactive), and a failing action is a RESULT, not a server error.
+   */
+  @Post(':id/actions/:key')
+  @HttpCode(200)
+  async runAction(
+    @Param('id') id: string,
+    @Param('key') key: string,
+    @Req() req: Request & { user?: { id: number } },
+  ): Promise<PluginActionResult> {
+    const adminId = req.user?.id;
+    if (!pluginsEnabled() || adminId == null || !this.runtime.isActive(id)) {
+      throw new HttpException({ error: 'Plugin is not active' }, 404);
+    }
+    try {
+      return await this.runtime.invokeAction(id, key, adminId, 'instance');
+    } catch (e) {
+      return { ok: false, message: (e instanceof Error ? e.message : 'Action failed').slice(0, 200) };
     }
   }
 

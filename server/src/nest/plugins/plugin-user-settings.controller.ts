@@ -6,6 +6,7 @@ import { PluginsService, MissingRequiredSettingError } from './plugins.service';
 import { PluginRuntimeService } from './plugin-runtime.service';
 import { DatabaseService } from '../database/database.service';
 import { PluginUserSettingsUpdateDto } from './plugins.dto';
+import type { PluginActionDescriptor, PluginActionResult } from '@trek/shared';
 
 /**
  * GET/POST /api/plugin-settings/:id — a USER's own `scope:'user'` settings for a
@@ -36,14 +37,14 @@ export class PluginUserSettingsController {
   get(@Param('id') id: string, @Req() req: Request & { user?: { id: number } }): {
     fields: unknown[];
     config: Record<string, unknown>;
-    actions: Array<{ key: string; label: string; hint?: string; danger: boolean }>;
+    actions: PluginActionDescriptor[];
   } {
     const userId = req.user?.id;
     if (!pluginsEnabled() || userId == null || !this.activeWithUserFields(id)) return { fields: [], config: {}, actions: [] };
     return {
       fields: this.plugins.userSettingsFields(id),
       config: this.plugins.getUserConfig(id, userId),
-      actions: this.runtime.actionsOf(id),
+      actions: this.runtime.actionsOf(id, 'user'),
     };
   }
 
@@ -59,13 +60,13 @@ export class PluginUserSettingsController {
     @Param('id') id: string,
     @Param('key') key: string,
     @Req() req: Request & { user?: { id: number } },
-  ): Promise<{ ok: boolean; message?: string }> {
+  ): Promise<PluginActionResult> {
     const userId = req.user?.id;
     if (!pluginsEnabled() || userId == null || !this.activeWithUserFields(id)) {
       throw new HttpException({ error: 'Plugin is not active' }, 404);
     }
     try {
-      return await this.runtime.invokeAction(id, key, userId);
+      return await this.runtime.invokeAction(id, key, userId, 'user');
     } catch (e) {
       // A failing action is a RESULT, not a server error — show the user why.
       return { ok: false, message: (e instanceof Error ? e.message : 'Action failed').slice(0, 200) };

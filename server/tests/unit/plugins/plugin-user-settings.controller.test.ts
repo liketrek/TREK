@@ -27,7 +27,7 @@ function ctrl() {
     updateUserConfig: vi.fn((_id: string, _uid: number, patch: Record<string, unknown>) => ({ ...patch, apiKey: '••••••••' })),
   } as unknown as PluginsService;
   // The controller now also takes the runtime (for settings-page actions).
-  const runtime = { actionsOf: () => [], invokeAction: vi.fn() } as unknown as PluginRuntimeService;
+  const runtime = { actionsOf: vi.fn(() => []), invokeAction: vi.fn(async () => ({ ok: true })) } as unknown as PluginRuntimeService;
   return { c: new PluginUserSettingsController(svc, runtime, new DatabaseService(dbConn)), svc, runtime };
 }
 
@@ -54,5 +54,13 @@ describe('PluginUserSettingsController', () => {
     expect(svc.updateUserConfig).toHaveBeenCalledWith('p', 5, {});
     getMock.mockReturnValue(undefined as never);
     expect(c.update('p', { config: { units: 'metric' } }, req(5))).toEqual({ config: {} });
+  });
+
+  it('GET lists USER-scope actions only, and POST runs one as the caller in the user scope', async () => {
+    const { c, runtime } = ctrl();
+    c.get('p', req(5));
+    expect(runtime.actionsOf).toHaveBeenCalledWith('p', 'user');
+    expect(await c.runAction('p', 'sync', req(5))).toEqual({ ok: true });
+    expect(runtime.invokeAction).toHaveBeenCalledWith('p', 'sync', 5, 'user');
   });
 });

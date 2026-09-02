@@ -705,13 +705,15 @@ export interface PluginDefinition {
    * JSON-serialisable value the host aggregates. Userless. Needs `hook:user-data`. */
   exportUserData?(input: { userId: number }, ctx: PluginContext): Promise<unknown> | unknown;
   /**
-   * Buttons on the plugin's own settings page ("Test connection", "Sync now"). The key
-   * must match an entry in the manifest's `actions`.
+   * Buttons on the plugin's settings forms ("Test connection", "Sync now", "Purge
+   * cache"). The key must match an entry in the manifest's `actions`; that entry's
+   * `scope` decides WHERE the button renders — `'user'` (default) on the user Settings
+   * tab, `'instance'` in the admin instance-settings dialog.
    *
-   * USER-INITIATED, so unlike the notificationChannel hook there IS an acting user — the
-   * person who clicked. `ctx.settings.get()` returns THEIR value and trip reads are
-   * membership-checked against them, which is what makes a "test my credentials" button
-   * possible at all.
+   * USER-INITIATED either way, so unlike the notificationChannel hook there IS an acting
+   * user — the person who clicked (a user, or an admin for an instance action).
+   * `ctx.settings.get()` returns THEIR value, `ctx.config` is the instance config, and
+   * trip reads are membership-checked against them.
    */
   actions?: Record<string, (ctx: PluginContext) => Promise<PluginActionResult | void> | PluginActionResult | void>;
   events?: PluginEventSubscription[];

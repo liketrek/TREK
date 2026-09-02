@@ -69,6 +69,11 @@ export interface ManifestAction {
   hint?: string;
   /** Render as destructive and ask for confirmation before running. */
   danger?: boolean;
+  /** Which settings form renders the button. `'user'` (default): the user Settings tab,
+   * run as the clicking user. `'instance'`: the admin instance-settings dialog, run as
+   * the clicking admin. The default is `'user'` (not `'instance'` like settings fields)
+   * so every manifest written before scope existed keeps its user-tab buttons. */
+  scope: 'user' | 'instance';
 }
 
 /** A routing profile a routeProvider plugin offers — one entry in the planner's
@@ -611,15 +616,19 @@ function parseActions(raw: unknown): ManifestAction[] {
   const out: ManifestAction[] = [];
   for (const a of raw) {
     if (!a || typeof a !== 'object') throw new ManifestError('each action must be an object');
-    const { key, label, hint, danger } = a as Record<string, unknown>;
+    const { key, label, hint, danger, scope } = a as Record<string, unknown>;
     const k = assertSettingKey(String(key ?? ''));
     if (!k) throw new ManifestError('action must have a "key"');
     if (out.some((x) => x.key === k)) throw new ManifestError(`duplicate action "${k}"`);
+    if (scope !== undefined && scope !== 'user' && scope !== 'instance') {
+      throw new ManifestError(`action "${k}".scope must be "user" or "instance"`);
+    }
     out.push({
       key: k,
       label: String(label ?? k).slice(0, 60),
       hint: hint === undefined ? undefined : String(hint).slice(0, 200),
       danger: danger === true,
+      scope: scope === 'instance' ? 'instance' : 'user',
     });
   }
   return out;

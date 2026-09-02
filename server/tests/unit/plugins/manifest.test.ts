@@ -330,9 +330,19 @@ describe('settings-page actions', () => {
   it('parses actions with label/hint/danger', () => {
     const m = parseManifest({ ...base, actions: [{ key: 'testConnection', label: 'Test connection', hint: 'Pings the API.' }, { key: 'purge', label: 'Purge', danger: true }] });
     expect(m.actions).toEqual([
-      { key: 'testConnection', label: 'Test connection', hint: 'Pings the API.', danger: false },
-      { key: 'purge', label: 'Purge', hint: undefined, danger: true },
+      { key: 'testConnection', label: 'Test connection', hint: 'Pings the API.', danger: false, scope: 'user' },
+      { key: 'purge', label: 'Purge', hint: undefined, danger: true, scope: 'user' },
     ]);
+  });
+
+  it('defaults an action to the user scope, accepts instance, refuses anything else', () => {
+    const m = parseManifest({ ...base, actions: [{ key: 'ping' }, { key: 'purge', scope: 'instance' }, { key: 'me', scope: 'user' }] });
+    expect(m.actions.map((a) => a.scope)).toEqual(['user', 'instance', 'user']);
+    expect(() => parseManifest({ ...base, actions: [{ key: 'x', scope: 'global' }] })).toThrow(/scope must be "user" or "instance"/);
+    // one key, one form — a duplicate across scopes is still a duplicate
+    expect(() => parseManifest({ ...base, actions: [{ key: 'a', scope: 'user' }, { key: 'a', scope: 'instance' }] })).toThrow(/duplicate action/);
+    // the cap counts both scopes
+    expect(() => parseManifest({ ...base, actions: Array.from({ length: 9 }, (_, i) => ({ key: `a${i}`, scope: i % 2 ? 'instance' : 'user' })) })).toThrow(/at most 8/);
   });
 
   it('defaults the label to the key, and bounds label/hint', () => {

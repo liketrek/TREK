@@ -236,9 +236,9 @@ describe('PluginsController M2 endpoints', () => {
   });
 
   it('get/update config delegate to the service (get carries the form fields, update the restart)', async () => {
-    const rt = { activate: vi.fn(), deactivate: vi.fn(), isActive: vi.fn(), respawnIfActive: vi.fn(async () => false) } as never;
+    const rt = { activate: vi.fn(), deactivate: vi.fn(), isActive: vi.fn(), respawnIfActive: vi.fn(async () => false), actionsOf: vi.fn(() => []) } as never;
     const c = new PluginsController(svc, rt, {} as never, envStub);
-    expect(c.getConfig('x')).toEqual({ fields: [{ key: 'a' }], config: { a: 1 } });
+    expect(c.getConfig('x')).toEqual({ fields: [{ key: 'a' }], config: { a: 1 }, actions: [] });
     expect(await c.updateConfig('x', { a: 2 })).toEqual({ config: { a: 2 }, restarted: false });
   });
 

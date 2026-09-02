@@ -81,9 +81,9 @@ function upsert(db: BetterSqlite3.Database, m: PluginManifest): void {
   // Refresh the settings-page action descriptors from the manifest.
   db.prepare('DELETE FROM plugin_actions WHERE plugin_id = ?').run(m.id);
   const insertAction = db.prepare(
-    'INSERT INTO plugin_actions (plugin_id, action_key, label, hint, danger, sort_order) VALUES (?, ?, ?, ?, ?, ?)',
+    'INSERT INTO plugin_actions (plugin_id, action_key, label, hint, danger, scope, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)',
   );
-  m.actions.forEach((a, i) => insertAction.run(m.id, a.key, a.label, a.hint ?? null, a.danger ? 1 : 0, i));
+  m.actions.forEach((a, i) => insertAction.run(m.id, a.key, a.label, a.hint ?? null, a.danger ? 1 : 0, a.scope, i));
 
   // Refresh the settings-field descriptors from the manifest.
   db.prepare('DELETE FROM plugin_settings_fields WHERE plugin_id = ?').run(m.id);

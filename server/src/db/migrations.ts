@@ -4226,6 +4226,16 @@ function runMigrations(db: Database.Database): void {
         db.exec('ALTER TABLE plugin_settings_fields ADD COLUMN default_value TEXT');
       }
     },
+
+    // Settings-form actions gain a scope (#plugins): 'user' renders on the user Settings
+    // tab, 'instance' in the admin instance-settings dialog. Existing rows predate the
+    // column and were all user-tab buttons, so the default keeps them where they were.
+    () => {
+      const cols = db.prepare("SELECT name FROM pragma_table_info('plugin_actions')").all() as Array<{ name: string }>;
+      if (cols.length > 0 && !cols.some((c) => c.name === 'scope')) {
+        db.exec("ALTER TABLE plugin_actions ADD COLUMN scope TEXT NOT NULL DEFAULT 'user'");
+      }
+    },
   ];
 
   if (currentVersion < migrations.length) {
