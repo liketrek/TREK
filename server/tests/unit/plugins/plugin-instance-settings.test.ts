@@ -7,6 +7,7 @@
  * the child once, in its init envelope), and an inactive plugin is left alone.
  */
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
+import { HttpException } from '@nestjs/common';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -25,7 +26,7 @@ import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { PluginsService } from '../../../src/nest/plugins/plugins.service';
 import { PluginsController } from '../../../src/nest/plugins/plugins.controller';
-import type { PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.service';
+import { PluginConsentRequired, type PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.service';
 import type { PluginRegistryService } from '../../../src/nest/plugins/registry/registry.service';
 import type { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
 import { AddonsService } from '../../../src/nest/addons/addons.service';
@@ -259,6 +260,48 @@ describe('admin config endpoints (controller)', () => {
     const out = await controllerWith({ respawnIfActive }).updateConfig('p', undefined as never);
     expect(out.config).toEqual({});
     expect(out.restarted).toBe(false);
+  });
+
+  it('INS-010: with the kill switch off the save is refused before anything is written', async () => {
+    install('p');
+    declareField('p', 'apiUrl', 'instance');
+    process.env.TREK_PLUGINS_ENABLED = 'false';
+    const respawnIfActive = vi.fn(async () => false);
+
+    const failed = await controllerWith({ respawnIfActive })
+      .updateConfig('p', { apiUrl: 'https://y.example' })
+      .then(() => null, (e: unknown) => e as HttpException);
+
+    expect(failed?.getStatus()).toBe(503);
+    // The respawn is a spawn: it must not run while the whole plugin system is off.
+    expect(respawnIfActive).not.toHaveBeenCalled();
+    expect(svc().getInstanceConfig('p')).toEqual({});
+  });
+
+  it('INS-011: a respawn that fails reports the save that DID happen, and stops claiming the plugin runs', async () => {
+    install('p');
+    declareField('p', 'apiUrl', 'instance');
+    const deactivate = vi.fn(async () => {});
+    const respawnIfActive = vi.fn(async () => {
+      throw new PluginConsentRequired('plugin p requires consent for db:read:trips', ['db:read:trips']);
+    });
+
+    const failed = await controllerWith({ respawnIfActive, deactivate })
+      .updateConfig('p', { apiUrl: 'https://y.example' })
+      .then(() => null, (e: unknown) => e as HttpException);
+
+    expect(failed?.getStatus()).toBe(409);
+    // The envelope carries the saved config and names the restart as the part that broke:
+    // the message must not read as "your settings were lost", because they were not.
+    expect(failed?.getResponse()).toMatchObject({
+      code: 'RESTART_FAILED',
+      config: { apiUrl: 'https://y.example' },
+      error: expect.stringMatching(/Settings saved.*db:read:trips/),
+    });
+    expect(svc().getInstanceConfig('p')).toEqual({ apiUrl: 'https://y.example' });
+    // disable() leaves the row enabled, so the admin list would keep showing a plugin
+    // that no longer has a child. The enable toggle is where the reason is offered.
+    expect(deactivate).toHaveBeenCalledWith('p');
   });
 });
 

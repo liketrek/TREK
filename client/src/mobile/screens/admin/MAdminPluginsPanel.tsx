@@ -1544,6 +1544,8 @@ function RegistryList({ items, onInstall, onOpenDetail, busy, t, installedIds, f
         const offer = installOffer(item, t)
         return (
           <div key={item.id} role="button" tabIndex={0} onClick={() => onOpenDetail(item)}
+            // Same press-scale opt-out as the desktop Discover card (#2158).
+            data-no-press
             onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenDetail(item) } }}
             className="overflow-hidden rounded-[18px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheetop)]">
             <div className="relative">

@@ -452,6 +452,16 @@ describe('MAdminPluginsPanel — Discover', () => {
     fireEvent.keyDown(card, { key: 'Enter' });
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
   });
+
+  it('FE-MOB-PLUGP-093: the card opts out of the global press-scale (#2158)', async () => {
+    // jsdom cannot replay the browser mechanics behind #2158: the :active scale on
+    // the card shifted the Install button out from under the pointer, so the tap
+    // retargeted onto the card and opened the detail sheet instead of installing.
+    // The data-no-press attribute is the pin.
+    await openDiscover([registryEntry()]);
+
+    expect((await screen.findByText('Acme')).closest('[role="button"]')).toHaveAttribute('data-no-press');
+  });
 });
 
 describe('MAdminPluginsPanel — the registry detail sheet', () => {

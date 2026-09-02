@@ -147,16 +147,37 @@ export class PluginsController {
   /**
    * Save the admin-owned `scope:'instance'` settings. A RUNNING plugin gets its config
    * once, in the child's init envelope — so a save re-spawns it (like the egress-hosts
-   * PUT), and `restarted` tells the UI whether that happened.
+   * PUT), and `restarted` tells the UI whether that happened. A respawn that fails
+   * answers 409 `{ error, code: 'RESTART_FAILED', config }`: the save itself landed,
+   * so the envelope still carries the stored config.
    */
   @Put(':id/config')
   async updateConfig(@Param('id') id: string, @Body() body: PluginConfigDto): Promise<PluginInstanceConfigUpdated> {
+    // Same gate as the egress-hosts twin: the respawn below is a spawn, and the kill
+    // switch is read live, so a save must not start a child while plugins are off.
+    if (!pluginsEnabled()) throw new HttpException({ error: 'Plugins are disabled by server configuration' }, 503);
+    let config: Record<string, unknown>;
     try {
-      const config = this.plugins.updateInstanceConfig(id, body || {});
-      return { config, restarted: await this.runtime.respawnIfActive(id) };
+      config = this.plugins.updateInstanceConfig(id, body || {});
     } catch (e) {
       if (e instanceof MissingRequiredSettingError) throw new HttpException({ error: e.message }, 400);
       throw e;
+    }
+    try {
+      return { config, restarted: await this.runtime.respawnIfActive(id) };
+    } catch (e) {
+      // The config IS written by this point, only bringing the child back up failed
+      // (a widened permission set awaiting re-consent, a dependency that went away).
+      // Reporting that as a failed save would be a lie, so the envelope carries the
+      // saved config and names the restart as the part that broke. `disable()` leaves
+      // the row enabled while no child runs, so record the plugin as off: the enable
+      // toggle is where the real reason is offered as a decision the admin can take.
+      await this.runtime.deactivate(id).catch(() => {});
+      const reason = e instanceof Error ? e.message : 'restart failed';
+      throw new HttpException(
+        { error: `Settings saved, but ${id} could not be restarted: ${reason}`, code: 'RESTART_FAILED', config },
+        409,
+      );
     }
   }
 

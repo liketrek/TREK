@@ -858,6 +858,21 @@ describe('AdminPluginsPanel — row actions', () => {
     expect(screen.getByText('View error log')).toBeInTheDocument() // menu is open
     expect(screen.queryByText('Allowed hosts')).not.toBeInTheDocument()
   })
+
+  it('FE-COMP-PLUGINS-PANEL-050: a long host list scrolls inside the dialog instead of growing past the viewport (#2159)', async () => {
+    server.use(http.get('*/api/admin/plugins/trek-gotify/egress-hosts', () =>
+      HttpResponse.json({ supported: true, hosts: ['gotify.lan', 'ntfy.lan'] })))
+    await openRowMenu()
+
+    fireEvent.click(screen.getByText('Allowed hosts'))
+
+    // The card is capped and its body scrolls, so the input, the Add button and the
+    // restart note below the list stay reachable however many hosts the admin entered.
+    const body = (await screen.findByText('gotify.lan')).closest('.overflow-y-auto')
+    expect(body).not.toBeNull()
+    expect(body).toContainElement(screen.getByPlaceholderText('gotify.example.com'))
+    expect(body!.parentElement!.className).toContain('max-h-[88vh]')
+  })
 })
 
 describe('AdminPluginsPanel — enabling a plugin', () => {
@@ -1461,6 +1476,18 @@ describe('AdminPluginsPanel — Discover cards and the detail modal', () => {
     fireEvent.keyDown(card, { key: 'Enter' })
 
     expect(await screen.findByText('Could not load plugin details.')).toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-PANEL-041a: the card opts out of the global press-scale (#2158)', async () => {
+    // jsdom cannot replay the browser mechanics behind #2158: the :active scale on
+    // the card shifted the Install button out from under the pointer, so the click
+    // retargeted onto the card and opened the detail modal instead of installing.
+    // The data-no-press attribute is the pin.
+    discoverWith({})
+    render(<AdminPluginsPanel />)
+    await clickDiscover()
+
+    expect((await screen.findByText('Gotify')).closest('[role="button"]')).toHaveAttribute('data-no-press')
   })
 
   it('FE-COMP-PLUGINS-PANEL-042: the detail modal lists setup fields, metadata and a separate homepage', async () => {
@@ -2342,5 +2369,15 @@ describe('AdminPluginsPanel — instance settings', () => {
 
     expect(await screen.findByText('"Client ID" is required', {}, { timeout: 5000 })).toBeInTheDocument()
     expect(called).toBe(false)
+  })
+
+  it('FE-COMP-PLUGINS-CFG-012: Save paints its label with the accent-text token, so a light accent stays readable', async () => {
+    await openSettings()
+
+    // `--accent-text` flips per scheme and per light/dark; a hard white label vanishes on
+    // the near-white accent the dark theme uses by default.
+    const save = screen.getByRole('button', { name: /^save$/i })
+    expect(save.className).toContain('text-accent-text')
+    expect(save.className).not.toContain('text-white')
   })
 })
