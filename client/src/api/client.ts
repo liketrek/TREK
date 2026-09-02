@@ -1232,15 +1232,21 @@ export const tripInviteApi = {
   accept: (token: string) => apiClient.post(`/trip-invites/${token}/accept`).then(r => r.data),
 }
 
+// A channel test dials a third party the admin just typed in, and the server
+// budgets for it: up to 20s for a wrong SMTP port, 10s for a webhook or ntfy
+// endpoint. The 8s instance timeout aborted those before the reason came back,
+// so the toast could only ever say "failed" (#2196).
+const CHANNEL_TEST_TIMEOUT = 40000
+
 export const notificationsApi = {
   getPreferences: () => apiClient.get('/notifications/preferences').then(r => r.data),
   updatePreferences: (prefs: Record<string, Record<string, boolean>>) => apiClient.put('/notifications/preferences', prefs).then(r => r.data),
-  testSmtp: (email?: string) => apiClient.post('/notifications/test-smtp', { email }).then(r => checkInDev(channelTestResultSchema, r.data, 'notifications.testSmtp')),
-  testWebhook: (url?: string) => apiClient.post('/notifications/test-webhook', { url }).then(r => checkInDev(channelTestResultSchema, r.data, 'notifications.testWebhook')),
-  testNtfy: (payload: { topic?: string; server?: string | null; token?: string | null }) => apiClient.post('/notifications/test-ntfy', payload).then(r => checkInDev(channelTestResultSchema, r.data, 'notifications.testNtfy')),
+  testSmtp: (email?: string) => apiClient.post('/notifications/test-smtp', { email }, { timeout: CHANNEL_TEST_TIMEOUT }).then(r => checkInDev(channelTestResultSchema, r.data, 'notifications.testSmtp')),
+  testWebhook: (url?: string) => apiClient.post('/notifications/test-webhook', { url }, { timeout: CHANNEL_TEST_TIMEOUT }).then(r => checkInDev(channelTestResultSchema, r.data, 'notifications.testWebhook')),
+  testNtfy: (payload: { topic?: string; server?: string | null; token?: string | null }) => apiClient.post('/notifications/test-ntfy', payload, { timeout: CHANNEL_TEST_TIMEOUT }).then(r => checkInDev(channelTestResultSchema, r.data, 'notifications.testNtfy')),
   // Generic channel test — this is how a PLUGIN channel's "Send test" button works.
   testChannel: (channelId: string) =>
-    apiClient.post(`/notifications/test/${encodeURIComponent(channelId)}`)
+    apiClient.post(`/notifications/test/${encodeURIComponent(channelId)}`, undefined, { timeout: CHANNEL_TEST_TIMEOUT })
       .then(r => checkInDev(channelTestResultSchema, r.data, 'notifications.testChannel')),
 }
 

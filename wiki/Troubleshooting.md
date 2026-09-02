@@ -257,6 +257,30 @@ docker logs <container> 2>&1 | grep "OIDC"
 
 ---
 
+## "Send test email" fails and says nothing else
+
+**Cause:** older builds swallowed the SMTP error. Nothing was written to the container log, and the toast fell back to a bare *Test email failed*. A blocked port made it worse: nodemailer waited up to two minutes for the connection while the browser gave up after eight seconds, so the eventual error had nobody left to report to. Both are fixed. Every SMTP phase is now bounded, and the button names the cause.
+
+**Fix:** press **Send test email** again and read the toast. The same diagnosis, plus the SMTP error code, is in the log:
+
+```bash
+docker logs <container> 2>&1 | grep -E "SMTP test email (sent|failed)|SMTP test not attempted"
+```
+
+| What the message says | What to change |
+|-----------------------|----------------|
+| `rejected the credentials` (`code=EAUTH`) | Wrong SMTP user or password. Mailboxes with 2FA normally need an app-specific password, not the account one. |
+| `refused the connection` | Nothing is listening on that port, or a firewall closed it. |
+| `did not answer in time` | The port is filtered, or 465 and 587 are swapped: TREK dials 465 with implicit TLS and every other port in plain mode with STARTTLS. |
+| `could not be resolved` | The container's DNS cannot resolve the host. Test with `docker exec <container> nc -zv <SMTP_HOST> <SMTP_PORT>`. |
+| `TLS certificate ... was not accepted` | Turn on **Skip TLS certificate check** (or `SMTP_SKIP_TLS_VERIFY=true`) for an internal relay carrying its own certificate. |
+| `rejected the envelope` | The from address usually has to belong to the authenticated mailbox. |
+| `SMTP not configured: ...` | The named field is empty, or the port is not a number. Host, port and from address are all required. |
+
+> **Note:** a saved SMTP password is shown as a placeholder, never as a value. Leave the field alone to keep it, or type into it to replace it.
+
+---
+
 ## Password reset emails are not delivered / SMTP is silent
 
 **Cause:** SMTP failures are logged but do not surface as errors to the end user — the "reset email sent" message appears regardless. Common causes: wrong `SMTP_HOST` or `SMTP_PORT`, bad credentials, firewall blocking outbound on the SMTP port, or a self-signed certificate on the SMTP server.

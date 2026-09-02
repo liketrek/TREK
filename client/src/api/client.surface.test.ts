@@ -864,4 +864,21 @@ describe('client > multipart uploads', () => {
     expect(post.mock.calls[1][0]).toBe('/backup/upload-restore')
     expect(((post.mock.calls[1][1] as FormData).get('backup') as File).name).toBe('backup.zip')
   })
+
+  it('FE-APISURF-053: every channel test outlives the 8s global timeout', async () => {
+    const post = spyPost()
+
+    // The server budgets up to 20s for an SMTP dial and 10s for a webhook or
+    // ntfy ping; aborting at 8s threw away the reason and left the admin with a
+    // bare "failed" (#2196).
+    await notificationsApi.testSmtp('a@b.c')
+    await notificationsApi.testWebhook('https://hook')
+    await notificationsApi.testNtfy({ topic: 't' })
+    await notificationsApi.testChannel('plugin/ch')
+
+    expect(post.mock.calls).toHaveLength(4)
+    for (const call of post.mock.calls) {
+      expect(call[2]).toMatchObject({ timeout: 40000 })
+    }
+  })
 })
