@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from 'react'
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import type { ChangeEvent } from 'react'
 import { useTripStore } from '../../store/tripStore'
 import { useCanDo } from '../../store/permissionsStore'
@@ -7,6 +7,7 @@ import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
 import { packingApi, tripsApi } from '../../api/client'
 import { useAddonStore } from '../../store/addonStore'
+import { addListener, removeListener } from '../../api/websocket'
 import type { PackingItem, PackingBag } from '../../types'
 import { BAG_COLORS, PACKING_PLACEHOLDER_NAME } from './packingListPanel.constants'
 import { parseImportLines } from './packingListPanel.helpers'
@@ -210,6 +211,8 @@ export function usePackingList({ tripId, items, openImportSignal = 0, clearCheck
   const addonsLoaded = useAddonStore(s => s.loaded)
   const loadAddons = useAddonStore(s => s.loadAddons)
   const [bags, setBags] = useState<PackingBag[]>([])
+  /** Server-summed weight of everything in no bag (#2191); null until the first load. */
+  const [unassignedWeightGrams, setUnassignedWeightGrams] = useState<number | null>(null)
   const [newBagName, setNewBagName] = useState('')
   const [showAddBag, setShowAddBag] = useState(false)
   const [showBagModal, setShowBagModal] = useState(false)
@@ -218,9 +221,31 @@ export function usePackingList({ tripId, items, openImportSignal = 0, clearCheck
     if (!addonsLoaded) loadAddons()
   }, [addonsLoaded, loadAddons])
 
-  useEffect(() => {
-    if (bagTrackingEnabled) packingApi.listBags(tripId).then(r => setBags(r.bags || [])).catch(() => {})
+  const reloadBags = useCallback(() => {
+    if (!bagTrackingEnabled) return
+    packingApi.listBags(tripId)
+      .then(r => {
+        setBags(r.bags || [])
+        setUnassignedWeightGrams(r.unassigned_weight_grams ?? null)
+      })
+      .catch(() => {})
   }, [tripId, bagTrackingEnabled])
+
+  useEffect(() => { reloadBags() }, [reloadBags])
+
+  // Bag weights are summed server-side across every member (#2191), so an item
+  // this viewer may not even see still moves them. The item events cannot carry
+  // that — a private item is delivered only to its owner, which is the very rule
+  // that made the totals wrong — so the server pings the room content-free and
+  // we re-read the numbers.
+  useEffect(() => {
+    if (!bagTrackingEnabled) return
+    const handler = (event: Record<string, unknown>) => {
+      if (event.type === 'packing:bag-totals') reloadBags()
+    }
+    addListener(handler)
+    return () => removeListener(handler)
+  }, [bagTrackingEnabled, reloadBags])
 
   const handleCreateBag = async () => {
     if (!newBagName.trim()) return
@@ -373,7 +398,7 @@ export function usePackingList({ tripId, items, openImportSignal = 0, clearCheck
     filter, setFilter, addingCategory, setAddingCategory, newCatName, setNewCatName,
     tripMembers, categoryAssignees, handleSetAssignees, allCategories, gruppiert, abgehakt, fortschritt,
     handleAddItemToCategory, handleAddNewCategory, handleRenameCategory, handleDeleteCategory, handleDeleteItem, handleClearChecked,
-    bagTrackingEnabled, bags, newBagName, setNewBagName, showAddBag, setShowAddBag, showBagModal, setShowBagModal,
+    bagTrackingEnabled, bags, unassignedWeightGrams, newBagName, setNewBagName, showAddBag, setShowAddBag, showBagModal, setShowBagModal,
     handleCreateBag, handleCreateBagByName, handleDeleteBag, handleUpdateBag, handleSetBagMembers,
     availableTemplates, showTemplateDropdown, setShowTemplateDropdown, applyingTemplate,
     showSaveTemplate, setShowSaveTemplate, saveTemplateName, setSaveTemplateName,

@@ -113,6 +113,21 @@ export class PackingService {
   }
 
   /**
+   * Tell the whole room its bag weights moved (#2191).
+   *
+   * Deliberately NOT excluding the originating socket, which every other
+   * broadcast here does: the payload carries nothing to echo, and the sender's
+   * own client cannot recompute a server-side total from the item it just
+   * wrote either. Everyone refetches, everyone gets numbers.
+   *
+   * Called for item writes, not bag writes — a bag's own create/update already
+   * broadcasts the row, and neither changes what is inside it.
+   */
+  broadcastBagTotals(tripId: string): void {
+    this.broadcast(tripId, 'packing:bag-totals', {}, undefined);
+  }
+
+  /**
    * The four public/private transitions after an update (#858). `wasPrivate` must be
    * read BEFORE the write: getting it wrong leaks a freshly-privatized item to the
    * whole room.
@@ -489,8 +504,42 @@ export class PackingService {
 
   // ── Bags ───────────────────────────────────────────────────────────────────
 
+  /**
+   * What each bag actually weighs (#2191).
+   *
+   * Every weight TREK showed used to be a client-side sum over `listItems`,
+   * which is privacy-filtered — so a bag's "total" silently omitted the private
+   * items of every other member, and no one but their owner could ever see the
+   * real figure. That number is then measured against `weight_limit_grams`, an
+   * absolute airline limit, which makes a per-viewer subtotal not merely
+   * incomplete but wrong: a shared bag could sit over its limit and warn nobody.
+   *
+   * So the sum is computed here, over EVERY row, and only integers cross the
+   * wire. A member learns that a bag is heavier than the items they can see —
+   * never a name, category, quantity or owner. That is a deliberate, bounded
+   * disclosure and the point of the issue.
+   *
+   * Keyed by bag id, with the unassigned pile under `null` — the same shape the
+   * "no bag" row on every packing surface needs.
+   */
+  private bagWeightTotals(tripId: string | number): Map<number | null, number> {
+    const rows = this.db.all<{ bag_id: number | null; total: number | null }>(`
+      SELECT bag_id, SUM(COALESCE(weight_grams, 0) * COALESCE(quantity, 1)) AS total
+        FROM packing_items
+       WHERE trip_id = ?
+       GROUP BY bag_id
+    `, tripId);
+    return new Map(rows.map(r => [r.bag_id, r.total ?? 0]));
+  }
+
+  /** The weight of everything in the trip that is in no bag (#2191). */
+  unassignedWeightGrams(tripId: string | number): number {
+    return this.bagWeightTotals(tripId).get(null) ?? 0;
+  }
+
   listBags(tripId: string | number) {
     const bags = this.db.all<any>('SELECT * FROM packing_bags WHERE trip_id = ? ORDER BY sort_order, id', tripId);
+    const totals = this.bagWeightTotals(tripId);
     const members = this.db.all<{ bag_id: number; user_id: number; username: string; avatar: string | null }>(`
     SELECT bm.bag_id, bm.user_id, COALESCE(u.display_name, u.username) AS username, u.avatar
     FROM packing_bag_members bm
@@ -506,6 +555,7 @@ export class PackingService {
     return bags.map(b => ({
       ...b,
       members: (membersByBag.get(b.id) || []).map(m => ({ ...m, avatar: avatarUrl(m) })),
+      total_weight_grams: totals.get(b.id) ?? 0,
     }));
   }
 

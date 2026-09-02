@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import {
   Briefcase, Check, CheckCheck, ChevronDown, ChevronUp, HandHelping,
@@ -9,6 +9,7 @@ import { useAuthStore } from '../../../../store/authStore'
 import { useAddonStore } from '../../../../store/addonStore'
 import { useTripStore } from '../../../../store/tripStore'
 import { packingApi } from '../../../../api/client'
+import { addListener, removeListener } from '../../../../api/websocket'
 import type { PackingUpdateBagRequest } from '@trek/shared'
 import type { PackingBag, PackingItem, TripMember } from '../../../../types'
 import type { TripPlanner } from '../MTripShell'
@@ -62,13 +63,33 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
   const [deleteCategoryTarget, setDeleteCategoryTarget] = useState<{ name: string; items: PackingItem[] } | null>(null)
 
   const [bags, setBags] = useState<PackingBag[]>([])
+  /** Server-summed weight of everything in no bag (#2191); null until first load. */
+  const [unassignedWeightGrams, setUnassignedWeightGrams] = useState<number | null>(null)
   const [templates, setTemplates] = useState<PackingTemplate[]>([])
   const [categoryAssignees, setCategoryAssignees] = useState<Record<string, CategoryAssignee[]>>({})
 
+  const reloadBags = useCallback(() => {
+    if (!bagTrackingEnabled) return
+    packingApi.listBags(tripId)
+      .then(r => {
+        setBags(r.bags || [])
+        setUnassignedWeightGrams(r.unassigned_weight_grams ?? null)
+      })
+      .catch(() => {})
+  }, [tripId, bagTrackingEnabled])
+
+  useEffect(() => { reloadBags() }, [reloadBags])
+
+  // Bag weights are server-summed across every member (#2191), so an item this
+  // viewer cannot see still moves them; the server pings the room content-free.
   useEffect(() => {
     if (!bagTrackingEnabled) return
-    packingApi.listBags(tripId).then(r => setBags(r.bags || [])).catch(() => {})
-  }, [tripId, bagTrackingEnabled])
+    const handler = (event: Record<string, unknown>) => {
+      if (event.type === 'packing:bag-totals') reloadBags()
+    }
+    addListener(handler)
+    return () => removeListener(handler)
+  }, [bagTrackingEnabled, reloadBags])
 
   useEffect(() => {
     packingApi.listTemplates(tripId).then(r => setTemplates(r.templates || [])).catch(() => {})
@@ -470,6 +491,7 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
         onClose={() => setShowBagsSheet(false)}
         bags={bags}
         items={items}
+        unassignedWeightGrams={unassignedWeightGrams}
         tripMembers={tripMembers}
         canEdit={canEdit}
         currentUserId={currentUserId}

@@ -73,6 +73,15 @@ export const packingBagSchema = z.object({
   assigned_username: z.string().nullable().optional(),
   created_at: z.string().optional(),
   members: z.array(packingBagMemberSchema).optional(),
+  /**
+   * What the bag really weighs, summed server-side over every member's items
+   * (#2191). The client used to add this up from the item list it was allowed
+   * to see, which silently dropped other members' private items and left the
+   * figure measured against an absolute weight limit wrong for everyone but
+   * its owner. Optional: an offline-cached bag from before #2191 has no such
+   * field, and the surfaces fall back to their local sum when it is absent.
+   */
+  total_weight_grams: z.number().optional(),
 });
 export type PackingBag = z.infer<typeof packingBagSchema>;
 

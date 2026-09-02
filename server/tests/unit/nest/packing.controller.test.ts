@@ -16,6 +16,8 @@ function makeService(overrides: Partial<PackingService> = {}): PackingService {
     broadcast: vi.fn(),
     broadcastItem: vi.fn(),
     broadcastToViewers: vi.fn(),
+    // Content-free "the bag weights moved" ping fired after every item write (#2191).
+    broadcastBagTotals: vi.fn(),
     // Real viewer logic so the emit-to-viewers routing is exercised faithfully.
     viewersOf: (item: { is_private?: number; owner_id?: number | null; recipients?: { user_id: number }[] } | null | undefined) =>
       !item || !item.is_private ? null : [item.owner_id, ...(item.recipients || []).map(r => r.user_id)].filter((x): x is number => x != null),
@@ -316,10 +318,14 @@ describe('PackingController (parity with the legacy /api/trips/:tripId/packing r
   });
 
   describe('bags', () => {
-    it('GET /bags lists bags for the trip', () => {
-      const listBags = vi.fn().mockReturnValue([{ id: 3, name: 'Carry-on' }]);
-      const svc = makeService({ listBags } as Partial<PackingService>);
-      expect(new PackingController(svc).listBags(user, '5')).toEqual({ bags: [{ id: 3, name: 'Carry-on' }] });
+    it('GET /bags lists bags for the trip, with the unassigned weight alongside (#2191)', () => {
+      const listBags = vi.fn().mockReturnValue([{ id: 3, name: 'Carry-on', total_weight_grams: 800 }]);
+      const unassignedWeightGrams = vi.fn().mockReturnValue(150);
+      const svc = makeService({ listBags, unassignedWeightGrams } as Partial<PackingService>);
+      expect(new PackingController(svc).listBags(user, '5')).toEqual({
+        bags: [{ id: 3, name: 'Carry-on', total_weight_grams: 800 }],
+        unassigned_weight_grams: 150,
+      });
     });
 
     it('400 on bag create with blank name (bespoke check — the schema cannot see whitespace)', () => {

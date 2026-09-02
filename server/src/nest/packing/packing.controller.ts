@@ -85,6 +85,7 @@ export class PackingController {
     for (const item of created) {
       this.packing.broadcastItem(tripId, 'packing:created', { item }, item, socketId);
     }
+    this.packing.broadcastBagTotals(tripId);
     return { items: created, count: created.length };
   }
 
@@ -104,6 +105,7 @@ export class PackingController {
       throw new HttpException({ error: 'Bag not found' }, 400);
     }
     this.packing.emitToViewers(tripId, 'packing:created', { item }, item, socketId);
+    this.packing.broadcastBagTotals(tripId);
     return { item };
   }
 
@@ -149,6 +151,7 @@ export class PackingController {
       throw new HttpException({ error: 'Bag not found' }, 400);
     }
     this.packing.broadcastUpdate(tripId, id, updated as PackingItemRow, !!before?.is_private, socketId);
+    this.packing.broadcastBagTotals(tripId);
     return { item: updated };
   }
 
@@ -166,6 +169,7 @@ export class PackingController {
     }
     // Scope the delete to the people who could see it (owner + recipients, #858).
     this.packing.emitToViewers(tripId, 'packing:deleted', { itemId: Number(id) }, deleted as PackingItemRow, socketId);
+    this.packing.broadcastBagTotals(tripId);
     return { success: true };
   }
 
@@ -207,6 +211,7 @@ export class PackingController {
     }
     // The clone is personal to the caller — only their sockets need it.
     this.packing.emitToViewers(tripId, 'packing:created', { item }, item, socketId);
+    this.packing.broadcastBagTotals(tripId);
     return { item };
   }
 
@@ -248,7 +253,13 @@ export class PackingController {
 
   @Get('bags')
   listBags(@CurrentUser() user: User, @Param('tripId') tripId: string) {
-    return { bags: this.packing.listBags(tripId) };
+    // unassigned_weight_grams rides along so the "no bag" pile and the grand
+    // total follow the same rule as the bags themselves (#2191) — a screen
+    // mixing true totals with per-viewer ones would be worse than either.
+    return {
+      bags: this.packing.listBags(tripId),
+      unassigned_weight_grams: this.packing.unassignedWeightGrams(tripId),
+    };
   }
 
   @RequirePermission('packing_edit')
@@ -324,6 +335,7 @@ export class PackingController {
       throw new HttpException({ error: 'Template not found or empty' }, 404);
     }
     this.packing.broadcastItem(tripId, 'packing:template-applied', { items: added }, added[0], socketId);
+    this.packing.broadcastBagTotals(tripId);
     return { items: added, count: added.length };
   }
 

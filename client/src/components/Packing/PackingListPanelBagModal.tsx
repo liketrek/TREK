@@ -1,18 +1,22 @@
 import { X, Plus } from 'lucide-react'
 import type { PackingState } from './usePackingListPanel'
-import { bagFillPct, countsTowardsMyLoad, itemWeight } from './packingListPanel.helpers'
+import { bagFillPct, bagTotalWeight, countsTowardsMyLoad, unassignedTotalWeight } from './packingListPanel.helpers'
 import { BagCard } from './PackingListPanelBagCard'
 
 export function BagModal(S: PackingState) {
   const {
     setShowBagModal, t, bags, items, tripId, tripMembers, canEdit, currentUserId, handleDeleteBag, handleUpdateBag, handleSetBagMembers,
-    showAddBag, setShowAddBag, newBagName, setNewBagName, handleCreateBag,
+    showAddBag, setShowAddBag, newBagName, setNewBagName, handleCreateBag, unassignedWeightGrams,
   } = S
-  // These numbers describe what you are carrying. An item someone shared with you stays
-  // in your list, but they are the one bringing it, so it is not your weight (#1767).
+  // The ITEM LISTS still describe what you are carrying — an item someone shared
+  // with you stays in your list, but they are the one bringing it (#1767).
   const myItems = items.filter(i => countsTowardsMyLoad(i, currentUserId))
+  // The WEIGHTS no longer do. A bag's load is the bag's, whoever packed it and
+  // whether or not you may see the items, so it comes from the server (#2191).
+  const bagWeightOf = (bag: typeof bags[number]) =>
+    bagTotalWeight(bag, myItems.filter(i => i.bag_id === bag.id))
   // Reference for bags without a limit of their own — computed once instead of per bag.
-  const heaviestBagWeight = Math.max(...bags.map(b => myItems.filter(i => i.bag_id === b.id).reduce((s, i) => s + itemWeight(i), 0)), 1)
+  const heaviestBagWeight = Math.max(...bags.map(bagWeightOf), 1)
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 20, paddingTop: 140, paddingBottom: 'calc(20px + var(--bottom-nav-h))', overflowY: 'auto' }}
       role="button" tabIndex={0} aria-label={t('common.close')}
@@ -30,7 +34,7 @@ export function BagModal(S: PackingState) {
 
         {bags.map(bag => {
           const bagItems = myItems.filter(i => i.bag_id === bag.id)
-          const totalWeight = bagItems.reduce((sum, i) => sum + itemWeight(i), 0)
+          const totalWeight = bagWeightOf(bag)
           const pct = bagFillPct(totalWeight, bag.weight_limit_grams, heaviestBagWeight)
           return (
             <BagCard key={bag.id} bag={bag} bagItems={bagItems} totalWeight={totalWeight} pct={pct} tripId={tripId} tripMembers={tripMembers} canEdit={canEdit} onDelete={() => handleDeleteBag(bag.id)} onUpdate={handleUpdateBag} onSetMembers={handleSetBagMembers} t={t} />
@@ -40,7 +44,7 @@ export function BagModal(S: PackingState) {
         {/* Unassigned */}
         {(() => {
           const unassigned = myItems.filter(i => !i.bag_id)
-          const unassignedWeight = unassigned.reduce((s, i) => s + itemWeight(i), 0)
+          const unassignedWeight = unassignedTotalWeight(unassignedWeightGrams, unassigned)
           if (unassigned.length === 0) return null
           return (
             <div style={{ marginBottom: 16, opacity: 0.6 }}>
@@ -60,7 +64,13 @@ export function BagModal(S: PackingState) {
         <div style={{ borderTop: '1px solid var(--border-secondary)', paddingTop: 12, marginTop: 8 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 700, color: 'var(--text-primary)' }}>
             <span>{t('packing.totalWeight')}</span>
-            <span>{(() => { const w = myItems.reduce((s, i) => s + itemWeight(i), 0); return w >= 1000 ? `${(w / 1000).toFixed(1)} kg` : `${w} g` })()}</span>
+            <span>{(() => {
+              // Same rule as the rows above it: a grand total mixing true bag
+              // weights with a per-viewer remainder would be worse than either.
+              const w = bags.reduce((s, b) => s + bagWeightOf(b), 0)
+                + unassignedTotalWeight(unassignedWeightGrams, myItems.filter(i => !i.bag_id))
+              return w >= 1000 ? `${(w / 1000).toFixed(1)} kg` : `${w} g`
+            })()}</span>
           </div>
         </div>
 

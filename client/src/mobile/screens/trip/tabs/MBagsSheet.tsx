@@ -6,14 +6,16 @@ import { FIELD_CLS, FormSheetHeader } from '../sheets/PlSheetChrome'
 import { avatarSrc } from '../../../../utils/avatarSrc'
 import type { PackingBag, PackingItem, TripMember } from '../../../../types'
 import type { TripPlanner } from '../MTripShell'
-import { formatWeight, packingItemWeight } from './listsModel'
-import { bagFillPct, countsTowardsMyLoad } from '../../../../components/Packing/packingListPanel.helpers'
+import { formatWeight } from './listsModel'
+import { bagFillPct, bagTotalWeight, countsTowardsMyLoad, unassignedTotalWeight } from '../../../../components/Packing/packingListPanel.helpers'
 
 export interface MBagsSheetProps {
   planner: TripPlanner
   open: boolean
   onClose: () => void
   bags: PackingBag[]
+  /** Server-summed weight of everything in no bag (#2191); null when unknown. */
+  unassignedWeightGrams?: number | null
   items: PackingItem[]
   tripMembers: TripMember[]
   canEdit: boolean
@@ -31,20 +33,23 @@ export interface MBagsSheetProps {
  * is the caller's business — this sheet just renders whatever bags it's given.
  */
 export default function MBagsSheet({
-  planner, open, onClose, bags, items, tripMembers, canEdit, currentUserId, onCreateBag, onUpdateBag, onDeleteBag, onSetBagMembers,
+  planner, open, onClose, bags, items, unassignedWeightGrams, tripMembers, canEdit, currentUserId, onCreateBag, onUpdateBag, onDeleteBag, onSetBagMembers,
 }: MBagsSheetProps) {
   const { t } = planner
   const [addingBag, setAddingBag] = useState(false)
   const [newBagName, setNewBagName] = useState('')
 
-  // These numbers describe what you are carrying. An item someone shared with you stays
-  // in your list, but they are the one bringing it, so it is not your weight (#1767).
+  // The ITEM LISTS still describe what you are carrying — an item someone shared
+  // with you stays in your list, but they are the one bringing it (#1767).
   const myItems = items.filter(i => countsTowardsMyLoad(i, currentUserId))
+  // The WEIGHTS no longer do: a bag's load is the bag's, whoever packed it (#2191).
+  const bagWeightOf = (bag: PackingBag) =>
+    bagTotalWeight(bag, myItems.filter(i => i.bag_id === bag.id))
   const unassigned = myItems.filter(i => !i.bag_id)
-  const unassignedWeight = unassigned.reduce((s, i) => s + packingItemWeight(i), 0)
-  const totalWeight = myItems.reduce((s, i) => s + packingItemWeight(i), 0)
+  const unassignedWeight = unassignedTotalWeight(unassignedWeightGrams, unassigned)
+  const totalWeight = bags.reduce((s, b) => s + bagWeightOf(b), 0) + unassignedWeight
   // Reference for bags without a limit of their own — computed once instead of per bag.
-  const heaviestBagWeight = Math.max(...bags.map(b => myItems.filter(i => i.bag_id === b.id).reduce((s, i) => s + packingItemWeight(i), 0)), 1)
+  const heaviestBagWeight = Math.max(...bags.map(bagWeightOf), 1)
 
   const submitNewBag = () => {
     if (!newBagName.trim()) return
@@ -60,7 +65,7 @@ export default function MBagsSheet({
       <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[6px] pt-1">
         {bags.map(bag => {
           const bagItems = myItems.filter(i => i.bag_id === bag.id)
-          const bagWeight = bagItems.reduce((s, i) => s + packingItemWeight(i), 0)
+          const bagWeight = bagWeightOf(bag)
           const pct = bagFillPct(bagWeight, bag.weight_limit_grams, heaviestBagWeight)
           return (
             <BagRow

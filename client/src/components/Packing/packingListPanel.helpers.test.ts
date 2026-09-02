@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { katColor, itemWeight, bagFillPct, countsTowardsMyLoad, parseCsvLine, parseImportLines } from './packingListPanel.helpers'
+import { katColor, itemWeight, bagFillPct, bagTotalWeight, countsTowardsMyLoad, parseCsvLine, parseImportLines, unassignedTotalWeight } from './packingListPanel.helpers'
 import { KAT_COLORS } from './packingListPanel.constants'
 
 describe('packingListPanel.helpers', () => {
@@ -126,6 +126,31 @@ describe('packingListPanel.helpers', () => {
       const rows = parseImportLines('Documents, Passport\n\n   \n,')
       expect(rows).toHaveLength(1)
       expect(rows[0].name).toBe('Passport')
+    })
+  })
+
+  describe('bagTotalWeight / unassignedTotalWeight (#2191)', () => {
+    it('prefers the server total over anything summable locally', () => {
+      // The whole point: the local list is privacy-filtered, so it can only ever
+      // be the part of the bag this viewer is allowed to see.
+      expect(bagTotalWeight({ total_weight_grams: 1000 }, [{ weight_grams: 800, quantity: 1 }])).toBe(1000)
+    })
+
+    it('keeps a server-reported zero instead of falling back to the local sum', () => {
+      // An empty bag really weighs 0; only an ABSENT field means "not told".
+      expect(bagTotalWeight({ total_weight_grams: 0 }, [{ weight_grams: 800, quantity: 1 }])).toBe(0)
+    })
+
+    it('falls back to the local sum for a bag cached before the field existed', () => {
+      expect(bagTotalWeight({}, [{ weight_grams: 250, quantity: 3 }, { weight_grams: 50 }])).toBe(800)
+      expect(bagTotalWeight({ total_weight_grams: null }, [{ weight_grams: 120 }])).toBe(120)
+    })
+
+    it('applies the same rule to the unassigned pile', () => {
+      expect(unassignedTotalWeight(150, [{ weight_grams: 900 }])).toBe(150)
+      expect(unassignedTotalWeight(0, [{ weight_grams: 900 }])).toBe(0)
+      expect(unassignedTotalWeight(null, [{ weight_grams: 900 }])).toBe(900)
+      expect(unassignedTotalWeight(undefined, [])).toBe(0)
     })
   })
 })

@@ -1,18 +1,21 @@
 import { Plus } from 'lucide-react'
 import type { PackingState } from './usePackingListPanel'
-import { bagFillPct, countsTowardsMyLoad, itemWeight } from './packingListPanel.helpers'
+import { bagFillPct, bagTotalWeight, countsTowardsMyLoad, unassignedTotalWeight } from './packingListPanel.helpers'
 import { BagCard } from './PackingListPanelBagCard'
 
 export function BagSidebar(S: PackingState) {
   const {
     t, bags, items, tripId, tripMembers, canEdit, currentUserId, handleDeleteBag, handleUpdateBag, handleSetBagMembers,
-    showAddBag, setShowAddBag, newBagName, setNewBagName, handleCreateBag,
+    showAddBag, setShowAddBag, newBagName, setNewBagName, handleCreateBag, unassignedWeightGrams,
   } = S
-  // These numbers describe what you are carrying. An item someone shared with you stays
-  // in your list, but they are the one bringing it, so it is not your weight (#1767).
+  // The ITEM LISTS still describe what you are carrying — an item someone shared
+  // with you stays in your list, but they are the one bringing it (#1767).
   const myItems = items.filter(i => countsTowardsMyLoad(i, currentUserId))
+  // The WEIGHTS no longer do: a bag's load is the bag's, whoever packed it (#2191).
+  const bagWeightOf = (bag: typeof bags[number]) =>
+    bagTotalWeight(bag, myItems.filter(i => i.bag_id === bag.id))
   // Reference for bags without a limit of their own — computed once instead of per bag.
-  const heaviestBagWeight = Math.max(...bags.map(b => myItems.filter(i => i.bag_id === b.id).reduce((s, i) => s + itemWeight(i), 0)), 1)
+  const heaviestBagWeight = Math.max(...bags.map(bagWeightOf), 1)
   return (
     <div className="hidden xl:block" style={{ width: 260, marginLeft: 16, borderLeft: '1px solid var(--border-secondary)', overflowY: 'auto', padding: 16, flexShrink: 0 }}>
       <div style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-faint)', marginBottom: 12 }}>
@@ -21,7 +24,7 @@ export function BagSidebar(S: PackingState) {
 
       {bags.map(bag => {
         const bagItems = myItems.filter(i => i.bag_id === bag.id)
-        const totalWeight = bagItems.reduce((sum, i) => sum + itemWeight(i), 0)
+        const totalWeight = bagWeightOf(bag)
         const pct = bagFillPct(totalWeight, bag.weight_limit_grams, heaviestBagWeight)
         return (
           <BagCard key={bag.id} bag={bag} bagItems={bagItems} totalWeight={totalWeight} pct={pct} tripId={tripId} tripMembers={tripMembers} canEdit={canEdit} onDelete={() => handleDeleteBag(bag.id)} onUpdate={handleUpdateBag} onSetMembers={handleSetBagMembers} t={t} compact />
@@ -31,7 +34,7 @@ export function BagSidebar(S: PackingState) {
       {/* Unassigned */}
       {(() => {
         const unassigned = myItems.filter(i => !i.bag_id)
-        const unassignedWeight = unassigned.reduce((s, i) => s + itemWeight(i), 0)
+        const unassignedWeight = unassignedTotalWeight(unassignedWeightGrams, unassigned)
         if (unassigned.length === 0) return null
         return (
           <div style={{ marginBottom: 14, opacity: 0.6 }}>
@@ -51,7 +54,12 @@ export function BagSidebar(S: PackingState) {
       <div style={{ borderTop: '1px solid var(--border-secondary)', paddingTop: 10, marginTop: 6 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 700, color: 'var(--text-primary)' }}>
           <span>{t('packing.totalWeight')}</span>
-          <span>{(() => { const w = myItems.reduce((s, i) => s + itemWeight(i), 0); return w >= 1000 ? `${(w / 1000).toFixed(1)} kg` : `${w} g` })()}</span>
+          <span>{(() => {
+            // Same rule as the rows above it (#2191).
+            const w = bags.reduce((s, b) => s + bagWeightOf(b), 0)
+              + unassignedTotalWeight(unassignedWeightGrams, myItems.filter(i => !i.bag_id))
+            return w >= 1000 ? `${(w / 1000).toFixed(1)} kg` : `${w} g`
+          })()}</span>
         </div>
       </div>
 
