@@ -156,6 +156,32 @@ Declare settings in `trek-plugin.json`; TREK renders the form, you write no sett
 Any other attribute is **silently dropped at install**. `trek-plugin validate` warns on
 one (`manifest.settings-known-keys`) so a typo like `"defalt"` doesn't quietly do nothing.
 
+### Actions
+
+Up to 8 buttons the host renders on a settings form, declared in `trek-plugin.json`
+and implemented in `definePlugin({ actions: { <key>: async (ctx) => ({ ok, message }) } })`:
+
+```json
+"actions": [
+  { "key": "testConnection", "label": "Test connection", "hint": "Pings the API." },
+  { "key": "purgeCache", "label": "Purge cache", "scope": "instance", "danger": true }
+]
+```
+
+| Attribute | Meaning |
+|---|---|
+| `scope` | `user` (default) — renders on the user Settings tab and runs as the clicking user. `instance` — renders in the admin instance-settings dialog and runs as the clicking admin. The default differs from settings fields on purpose: existing manifests keep their user-tab buttons. |
+| `danger` | Rendered destructive; the host asks for confirmation first. |
+| `hint` | Shown beside the button (≤ 200 chars). |
+
+Either way the handler gets the clicking person as acting user: `ctx.config` is the
+instance config, `ctx.settings.get()` returns their own user value, and trip reads are
+membership-checked against them. Return `{ ok, message }` or throw to report a failed
+action (the host shows the message, emoji-stripped, ≤ 200 chars). An instance action is
+disabled in the dialog until the plugin is active — there is no child process to run it.
+In the mock host, pass `declaredActions: ['testConnection', { key: 'purgeCache', scope: 'instance' }]`
+and drive either with `drv.action(key)`.
+
 `ctx.config` is frozen at activation — the host re-spawns the plugin when the admin
 saves. `ctx.settings.get()` is live per call and returns `undefined` in a userless
 context (`onLoad`, jobs, scheduler) — fall back to `ctx.config` there.

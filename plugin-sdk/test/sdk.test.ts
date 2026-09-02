@@ -1091,6 +1091,37 @@ describe('mock-host inter-plugin (plugins.call + events.emit)', () => {
     await expect(d.action('sync')).rejects.toThrow(/RESOURCE_FORBIDDEN/);
   });
 
+  it('accepts scoped declaredActions entries and drives an instance action with the acting-user ctx', async () => {
+    const def = definePlugin({
+      actions: {
+        purge: async (ctx) => ({ ok: true, message: `url=${String(ctx.config.url)} user=${await ctx.settings.get('token')}` }),
+        sync: () => ({ ok: true }),
+      },
+    });
+    const d = createMockHost({
+      actingUserId: 7,
+      config: { url: 'https://x.example' },
+      userSettings: { token: 'abc' },
+      declaredActions: ['sync', { key: 'purge', scope: 'instance' }],
+    }).run(def);
+    // The clicking admin is the acting user: ctx.config AND their own settings resolve.
+    expect(await d.action('purge')).toEqual({ ok: true, message: 'url=https://x.example user=abc' });
+    expect(await d.action('sync')).toEqual({ ok: true, message: undefined });
+    await expect(d.action('other')).rejects.toThrow(/RESOURCE_FORBIDDEN/);
+  });
+
+  it('validates the scope of a settings action', () => {
+    const base = { id: 'plugin', name: 'P', version: '1.0.0', type: 'integration', trek: '>=4.0.0 <5.0.0' };
+    expect(validateManifest({ ...base, actions: [{ key: 'a', scope: 'instance' }] }).ok).toBe(true);
+    expect(validateManifest({ ...base, actions: [{ key: 'a', scope: 'user' }] }).ok).toBe(true);
+    expect(validateManifest({ ...base, actions: [{ key: 'a' }] }).ok).toBe(true); // scope optional
+    const bad = validateManifest({ ...base, actions: [{ key: 'a', scope: 'global' }] });
+    expect(bad.ok).toBe(false);
+    expect(bad.errors).toContain('action "a".scope must be "user" or "instance"');
+    // Keys stay unique ACROSS scopes — one action, one form.
+    expect(validateManifest({ ...base, actions: [{ key: 'a', scope: 'user' }, { key: 'a', scope: 'instance' }] }).ok).toBe(false);
+  });
+
   it('never resolves a settings key off Object.prototype', async () => {
     // The bug this models: `__proto__`/`constructor` used to resolve to a truthy object,
     // reporting a REQUIRED field as configured for a user who had configured nothing.

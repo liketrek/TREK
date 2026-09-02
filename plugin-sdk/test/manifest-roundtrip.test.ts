@@ -9,7 +9,7 @@ describe('validateManifest normalized output', () => {
       homepage: 'https://example.com', tags: ['fun'], license: 'MIT',
       capabilities: { widget: { title: 'W', slot: 'hero' }, provides: ['getState'] },
       settings: [{ key: 'mode', scope: 'user', options: ['a', 'b'] }],
-      actions: [{ key: 'ping', label: 'Ping' }],
+      actions: [{ key: 'ping', label: 'Ping' }, { key: 'purge', label: 'Purge', scope: 'instance', danger: true }],
     };
     const r = validateManifest(input);
     expect(r.ok).toBe(true);
@@ -17,6 +17,7 @@ describe('validateManifest normalized output', () => {
     expect(m.capabilities?.widget?.slot).toBe('hero');
     expect(m.settings?.[0].options).toEqual(['a', 'b']);
     expect(m.actions?.[0]).toEqual({ key: 'ping', label: 'Ping' });
+    expect(m.actions?.[1]).toEqual({ key: 'purge', label: 'Purge', scope: 'instance', danger: true });
     expect(m.icon).toBe('Bell');
     expect(m.operatorEgress).toBe(false);
     expect(m.nativeModules).toBe(false); // still forced

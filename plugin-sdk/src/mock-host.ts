@@ -72,10 +72,12 @@ export interface MockHostOptions {
    * refuses it (and the SDK client swallows the rejection, so subscribers silently
    * never see it). Unset = record every emit, as before. */
   declaredEmits?: string[];
-  /** Action keys this plugin declares in its manifest `actions`. When set, driving an
+  /** Action keys this plugin declares in its manifest `actions`, as plain keys or
+   * `{ key, scope }` entries (the scope is accepted for fixture fidelity; the mock runs
+   * both scopes with the acting-user ctx, as the host does). When set, driving an
    * undeclared key throws — production refuses it before the child is ever woken.
    * Unset = any key the plugin implements can be driven. */
-  declaredActions?: string[];
+  declaredActions?: Array<string | { key: string; scope?: 'user' | 'instance' }>;
   /** Hosts an ADMIN supplies at runtime to an `operatorEgress: true` plugin, which by
    * definition cannot name them in its manifest. Only `trek-plugin dev` reads this (to
    * widen its egress guard); the mock ctx makes no network calls of its own. It lives
@@ -1580,7 +1582,8 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
       return impl[fn](...args, name === 'notificationChannel' ? userlessCtx : ctx) as never;
     },
     action: async (key) => {
-      if (opts.declaredActions && !opts.declaredActions.includes(key)) {
+      const declared = opts.declaredActions?.map((a) => (typeof a === 'string' ? a : a.key));
+      if (declared && !declared.includes(key)) {
         throw new Error(`RESOURCE_FORBIDDEN: plugin did not declare action "${key}"`);
       }
       const fn = def.actions?.[key];

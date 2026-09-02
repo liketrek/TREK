@@ -60,6 +60,10 @@ export interface ManifestAction {
   label?: string;
   hint?: string;
   danger?: boolean;
+  /** Which settings form renders the button: `'user'` (default) on the user Settings
+   * tab, run as the clicking user; `'instance'` in the admin instance-settings dialog,
+   * run as the clicking admin. Unlike settings fields, the default is `'user'`. */
+  scope?: 'user' | 'instance';
 }
 export interface ManifestCapabilities {
   settingsUi?: boolean;
@@ -446,6 +450,9 @@ export function validateManifest(raw: unknown): ValidationResult {
         if (seen.has(key)) errors.push(`duplicate action "${key}"`);
         seen.add(key);
         if (a.label !== undefined && typeof a.label !== 'string') errors.push(`action "${key}" label must be a string`);
+        if (a.scope !== undefined && a.scope !== 'user' && a.scope !== 'instance') {
+          errors.push(`action "${key}".scope must be "user" or "instance"`);
+        }
       }
     }
   }
