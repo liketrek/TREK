@@ -99,6 +99,7 @@ export class PackingMcp {
     // A restricted item (#858) reaches its owner and recipients only; a Common
     // one answers null here and goes to the whole room.
     this.guards.safeBroadcast(tripId, 'packing:created', { item }, this.packing.viewersOf(item));
+    this.packing.broadcastBagTotals(String(tripId));
     return ok({ item });
   }
 
@@ -146,6 +147,7 @@ export class PackingMcp {
     // deleteItem hands back the row it removed, so the delete can be scoped to
     // the same people the item was ever visible to (#1976).
     this.guards.safeBroadcast(tripId, 'packing:deleted', { itemId }, this.packing.viewersOf(deleted));
+    this.packing.broadcastBagTotals(String(tripId));
     return ok({ success: true });
   }
 
@@ -207,6 +209,7 @@ export class PackingMcp {
     }
     // Newly common: the members who never had the row need it created, not updated.
     if (wasPrivate) this.guards.safeBroadcast(tripId, 'packing:created', { item });
+    this.packing.broadcastBagTotals(String(tripId));
     this.guards.safeBroadcast(tripId, 'packing:updated', { item });
   }
 
@@ -237,6 +240,7 @@ export class PackingMcp {
     // it back to whoever may see it now, as the REST route does.
     this.guards.safeBroadcast(tripId, 'packing:deleted', { itemId });
     this.guards.safeBroadcast(tripId, 'packing:created', { item }, this.packing.viewersOf(item));
+    this.packing.broadcastBagTotals(String(tripId));
     return ok({ item });
   }
 
@@ -439,6 +443,7 @@ export class PackingMcp {
     const items = this.packing.applyTemplate(tripId, templateId);
     if (items === null) return errorResult('Template not found.');
     this.guards.safeBroadcast(tripId, 'packing:template-applied', { items });
+    this.packing.broadcastBagTotals(String(tripId));
     return ok({ items, count: items.length });
   }
 
@@ -527,6 +532,9 @@ export class PackingMcp {
     for (const item of created) {
       this.guards.safeBroadcast(tripId, 'packing:created', { item }, this.packing.viewersOf(item));
     }
+    // Once for the whole import, not once per item: the ping is content-free and
+    // every one of them costs each connected client a listBags round trip.
+    this.packing.broadcastBagTotals(String(tripId));
     return ok({ items: created, count: created.length });
   }
 

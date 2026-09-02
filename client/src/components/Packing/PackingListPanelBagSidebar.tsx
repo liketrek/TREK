@@ -6,14 +6,14 @@ import { BagCard } from './PackingListPanelBagCard'
 export function BagSidebar(S: PackingState) {
   const {
     t, bags, items, tripId, tripMembers, canEdit, currentUserId, handleDeleteBag, handleUpdateBag, handleSetBagMembers,
-    showAddBag, setShowAddBag, newBagName, setNewBagName, handleCreateBag, unassignedWeightGrams,
+    showAddBag, setShowAddBag, newBagName, setNewBagName, handleCreateBag, unassignedWeightGrams, serverWeightsFresh,
   } = S
   // The ITEM LISTS still describe what you are carrying — an item someone shared
   // with you stays in your list, but they are the one bringing it (#1767).
   const myItems = items.filter(i => countsTowardsMyLoad(i, currentUserId))
   // The WEIGHTS no longer do: a bag's load is the bag's, whoever packed it (#2191).
   const bagWeightOf = (bag: typeof bags[number]) =>
-    bagTotalWeight(bag, myItems.filter(i => i.bag_id === bag.id))
+    bagTotalWeight(bag, myItems.filter(i => i.bag_id === bag.id), serverWeightsFresh)
   // Reference for bags without a limit of their own — computed once instead of per bag.
   const heaviestBagWeight = Math.max(...bags.map(bagWeightOf), 1)
   return (
@@ -34,8 +34,10 @@ export function BagSidebar(S: PackingState) {
       {/* Unassigned */}
       {(() => {
         const unassigned = myItems.filter(i => !i.bag_id)
-        const unassignedWeight = unassignedTotalWeight(unassignedWeightGrams, unassigned)
-        if (unassigned.length === 0) return null
+        const unassignedWeight = unassignedTotalWeight(unassignedWeightGrams, unassigned, serverWeightsFresh)
+        // Shown whenever there is weight to account for, even with no visible
+        // items — the grand total counts it either way (#2191).
+        if (unassigned.length === 0 && unassignedWeight === 0) return null
         return (
           <div style={{ marginBottom: 14, opacity: 0.6 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
@@ -57,7 +59,7 @@ export function BagSidebar(S: PackingState) {
           <span>{(() => {
             // Same rule as the rows above it (#2191).
             const w = bags.reduce((s, b) => s + bagWeightOf(b), 0)
-              + unassignedTotalWeight(unassignedWeightGrams, myItems.filter(i => !i.bag_id))
+              + unassignedTotalWeight(unassignedWeightGrams, myItems.filter(i => !i.bag_id), serverWeightsFresh)
             return w >= 1000 ? `${(w / 1000).toFixed(1)} kg` : `${w} g`
           })()}</span>
         </div>

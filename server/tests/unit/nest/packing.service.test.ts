@@ -746,6 +746,18 @@ describe('create-path fields + bag trip scope (#2154)', () => {
     expect((svc.listBags(trip.id) as any[]).find(b => b.id === bag.id).total_weight_grams).toBe(0);
   });
 
+  it('PACK-SVC-080: listBagsWithWeights returns bags and the unassigned pile from one pass (#2191)', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const bag = svc.createBag(trip.id, { name: 'Duffel' }) as any;
+    svc.createItem(trip.id, { name: 'Tent', weight_grams: 900, bag_id: bag.id }, user.id);
+    svc.createItem(trip.id, { name: 'Loose sandwich', weight_grams: 150 }, user.id);
+
+    const { bags, unassigned_weight_grams } = svc.listBagsWithWeights(trip.id) as any;
+    expect(bags[0].total_weight_grams).toBe(900);
+    expect(unassigned_weight_grams).toBe(150);
+  });
+
   it('PACK-SVC-055: createItem refuses a bag off the trip with the invalidBag sentinel, inserting nothing', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
@@ -801,6 +813,13 @@ describe('broadcast helpers (#858 scoping)', () => {
   it('broadcast forwards to the websocket helper', () => {
     svc.broadcast('5', 'packing:created', { item: 1 }, 'sock');
     expect(broadcastMock).toHaveBeenCalledWith('5', 'packing:created', { item: 1 }, 'sock');
+  });
+
+  it('broadcastBagTotals pings the whole room, content-free and without excluding the sender (#2191)', () => {
+    // No socket exclusion on purpose: the payload carries nothing to echo, and
+    // the writer cannot recompute a server-side total from its own write either.
+    svc.broadcastBagTotals('5');
+    expect(broadcastMock).toHaveBeenCalledWith('5', 'packing:bag-totals', {}, undefined);
   });
 
   it('broadcastItem broadcasts a shared item to the whole room (no onlyUserId)', () => {

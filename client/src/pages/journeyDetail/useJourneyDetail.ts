@@ -85,7 +85,12 @@ export function useJourneyDetail() {
   // for. It stays untouched on the server so TREK Studio, which freezes the
   // same endpoint's output into a saved book, keeps the set it laid out with.
   const [tracks, setTracks] = useState<JourneyTrack[]>(NO_TRACKS)
-  const showTripTracks = !!current?.show_trip_tracks
+  // Gate on the journey the route actually names: loadJourney leaves the previous
+  // `current` in place while the next one loads, so reading the flag unguarded
+  // would fetch the tracks of journey A under the id of journey B — the exact
+  // megabyte-sized request the switch exists to avoid.
+  const journeyLoaded = current?.id === Number(id)
+  const showTripTracks = journeyLoaded && !!current?.show_trip_tracks
   useEffect(() => {
     if (!id || !showTripTracks) {
       // A stable empty array: a fresh literal here would be a new reference on

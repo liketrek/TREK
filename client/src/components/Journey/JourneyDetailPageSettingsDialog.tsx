@@ -84,7 +84,10 @@ export function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite,
     setSavingTracks(true)
     try {
       await updateJourney(journey.id, { show_trip_tracks: !journey.show_trip_tracks })
-      onSaved()
+      // onRefresh, not onSaved: onSaved closes the dialog, which would destroy the
+      // switch the moment it is flipped AND skip handleClose's unsaved-changes
+      // guard, silently dropping a title the owner had typed but not saved yet.
+      onRefresh()
     } catch {
       toast.error(t('journey.settings.saveFailed'))
     } finally {

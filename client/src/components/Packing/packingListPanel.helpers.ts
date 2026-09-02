@@ -38,23 +38,34 @@ export const countsTowardsMyLoad = (
  * could only ever produce the part of the bag the viewer is allowed to look at,
  * which is the wrong number to measure against an airline's weight limit.
  *
- * The local sum stays as the fallback for exactly one case: a bag that reached
- * the client without the field, i.e. an offline Dexie row cached before #2191.
- * Note `?? 0` semantics — an empty bag legitimately weighs 0 and must not fall
- * through to the local sum.
+ * The local sum is the fallback in two cases: a bag that reached the client
+ * without the field (a row cached before #2191), and `serverFresh === false`,
+ * which the surfaces pass while offline — bags have no repo and no Dexie table,
+ * so their totals are frozen at the last online read and blind to whatever the
+ * mutation queue is holding. A stale absolute number measured against an
+ * airline limit is worse than an honest partial one.
+ *
+ * Note the explicit null check rather than `??` on a falsy value: an empty bag
+ * legitimately weighs 0 and must not fall through to the local sum.
  */
 export const bagTotalWeight = (
   bag: { total_weight_grams?: number | null },
   visibleItems: { weight_grams?: number | null; quantity?: number | null }[],
+  serverFresh = true,
 ): number =>
-  bag.total_weight_grams ?? visibleItems.reduce((sum, i) => sum + itemWeight(i), 0)
+  serverFresh && bag.total_weight_grams != null
+    ? bag.total_weight_grams
+    : visibleItems.reduce((sum, i) => sum + itemWeight(i), 0)
 
 /** The same rule for the pile that is in no bag (#2191). */
 export const unassignedTotalWeight = (
   serverTotal: number | null | undefined,
   visibleItems: { weight_grams?: number | null; quantity?: number | null }[],
+  serverFresh = true,
 ): number =>
-  serverTotal ?? visibleItems.reduce((sum, i) => sum + itemWeight(i), 0)
+  serverFresh && serverTotal != null
+    ? serverTotal
+    : visibleItems.reduce((sum, i) => sum + itemWeight(i), 0)
 
 /**
  * How full a bag's bar reads. A bag with a weight limit is measured against that limit —

@@ -158,7 +158,15 @@ export async function runShutdown(signal: string, deps: ShutdownDeps): Promise<v
   }, drainMs);
   drain.unref?.();
 
-  await Promise.allSettled([httpClosed, closeNestApp()]);
+  const [, nestResult] = await Promise.allSettled([httpClosed, closeNestApp()]);
+  // allSettled never rejects, so a throwing onModuleDestroy would otherwise
+  // vanish and the process would report a clean exit while the crons and the
+  // plugin children were never torn down. This bug class is diagnosed from
+  // container logs; that is the one line worth having.
+  if (nestResult.status === 'rejected') {
+    const err: unknown = nestResult.reason;
+    logError(`nest shutdown failed during shutdown: ${err instanceof Error ? err.message : String(err)}`);
+  }
   clearTimeout(drain);
   clearTimeout(forced);
   finish(0, 'Shutdown complete');

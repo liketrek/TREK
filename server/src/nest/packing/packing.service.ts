@@ -120,8 +120,10 @@ export class PackingService {
    * own client cannot recompute a server-side total from the item it just
    * wrote either. Everyone refetches, everyone gets numbers.
    *
-   * Called for item writes, not bag writes — a bag's own create/update already
-   * broadcasts the row, and neither changes what is inside it.
+   * Called for item writes, and for a bag DELETE: packing_items.bag_id is
+   * ON DELETE SET NULL, so deleting a bag moves everything in it to the
+   * unassigned pile and moves both figures. A bag create or rename does not,
+   * and already broadcasts its own row.
    */
   broadcastBagTotals(tripId: string): void {
     this.broadcast(tripId, 'packing:bag-totals', {}, undefined);
@@ -537,9 +539,25 @@ export class PackingService {
     return this.bagWeightTotals(tripId).get(null) ?? 0;
   }
 
-  listBags(tripId: string | number) {
-    const bags = this.db.all<any>('SELECT * FROM packing_bags WHERE trip_id = ? ORDER BY sort_order, id', tripId);
+  /**
+   * The bags plus the unassigned pile, from ONE pass over the aggregate.
+   *
+   * The REST list route wants both, and the WS ping (#2191) makes that route
+   * fire on every item write for every connected client — running the same
+   * SUM…GROUP BY twice per request is not a cost worth paying for a nicer
+   * method list.
+   */
+  listBagsWithWeights(tripId: string | number): { bags: unknown[]; unassigned_weight_grams: number } {
     const totals = this.bagWeightTotals(tripId);
+    return { bags: this.decorateBags(tripId, totals), unassigned_weight_grams: totals.get(null) ?? 0 };
+  }
+
+  listBags(tripId: string | number) {
+    return this.decorateBags(tripId, this.bagWeightTotals(tripId));
+  }
+
+  private decorateBags(tripId: string | number, totals: Map<number | null, number>) {
+    const bags = this.db.all<any>('SELECT * FROM packing_bags WHERE trip_id = ? ORDER BY sort_order, id', tripId);
     const members = this.db.all<{ bag_id: number; user_id: number; username: string; avatar: string | null }>(`
     SELECT bm.bag_id, bm.user_id, COALESCE(u.display_name, u.username) AS username, u.avatar
     FROM packing_bag_members bm

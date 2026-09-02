@@ -16,6 +16,8 @@ export interface MBagsSheetProps {
   bags: PackingBag[]
   /** Server-summed weight of everything in no bag (#2191); null when unknown. */
   unassignedWeightGrams?: number | null
+  /** False while offline, when the server totals are frozen and blind to queued writes. */
+  serverWeightsFresh?: boolean
   items: PackingItem[]
   tripMembers: TripMember[]
   canEdit: boolean
@@ -33,7 +35,7 @@ export interface MBagsSheetProps {
  * is the caller's business — this sheet just renders whatever bags it's given.
  */
 export default function MBagsSheet({
-  planner, open, onClose, bags, items, unassignedWeightGrams, tripMembers, canEdit, currentUserId, onCreateBag, onUpdateBag, onDeleteBag, onSetBagMembers,
+  planner, open, onClose, bags, items, unassignedWeightGrams, serverWeightsFresh = true, tripMembers, canEdit, currentUserId, onCreateBag, onUpdateBag, onDeleteBag, onSetBagMembers,
 }: MBagsSheetProps) {
   const { t } = planner
   const [addingBag, setAddingBag] = useState(false)
@@ -44,9 +46,9 @@ export default function MBagsSheet({
   const myItems = items.filter(i => countsTowardsMyLoad(i, currentUserId))
   // The WEIGHTS no longer do: a bag's load is the bag's, whoever packed it (#2191).
   const bagWeightOf = (bag: PackingBag) =>
-    bagTotalWeight(bag, myItems.filter(i => i.bag_id === bag.id))
+    bagTotalWeight(bag, myItems.filter(i => i.bag_id === bag.id), serverWeightsFresh)
   const unassigned = myItems.filter(i => !i.bag_id)
-  const unassignedWeight = unassignedTotalWeight(unassignedWeightGrams, unassigned)
+  const unassignedWeight = unassignedTotalWeight(unassignedWeightGrams, unassigned, serverWeightsFresh)
   const totalWeight = bags.reduce((s, b) => s + bagWeightOf(b), 0) + unassignedWeight
   // Reference for bags without a limit of their own — computed once instead of per bag.
   const heaviestBagWeight = Math.max(...bags.map(bagWeightOf), 1)
@@ -84,7 +86,8 @@ export default function MBagsSheet({
           )
         })}
 
-        {unassigned.length > 0 && (
+        {/* Weight with no visible items still gets a row: the total counts it (#2191). */}
+        {(unassigned.length > 0 || unassignedWeight > 0) && (
           <div className="mb-4 opacity-60">
             <div className="mb-1 flex items-center gap-[8px]">
               <span className="h-3 w-3 flex-none rounded-full border-2 border-dashed border-[color:var(--m-faint)]" />

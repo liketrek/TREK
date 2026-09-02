@@ -9,7 +9,8 @@ import { useAuthStore } from '../../../../store/authStore'
 import { useAddonStore } from '../../../../store/addonStore'
 import { useTripStore } from '../../../../store/tripStore'
 import { packingApi } from '../../../../api/client'
-import { addListener, removeListener } from '../../../../api/websocket'
+import { useNetworkMode } from '../../../../hooks/useNetworkMode'
+import { useBagTotalsPing } from '../../../../components/Packing/useBagTotalsPing'
 import type { PackingUpdateBagRequest } from '@trek/shared'
 import type { PackingBag, PackingItem, TripMember } from '../../../../types'
 import type { TripPlanner } from '../MTripShell'
@@ -68,28 +69,26 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
   const [templates, setTemplates] = useState<PackingTemplate[]>([])
   const [categoryAssignees, setCategoryAssignees] = useState<Record<string, CategoryAssignee[]>>({})
 
-  const reloadBags = useCallback(() => {
+  const reloadBags = useCallback(async () => {
     if (!bagTrackingEnabled) return
-    packingApi.listBags(tripId)
-      .then(r => {
-        setBags(r.bags || [])
-        setUnassignedWeightGrams(r.unassigned_weight_grams ?? null)
-      })
-      .catch(() => {})
+    try {
+      const r = await packingApi.listBags(tripId)
+      setBags(r.bags || [])
+      setUnassignedWeightGrams(r.unassigned_weight_grams ?? null)
+    } catch {
+      // Offline or a failed read: the sheet falls back to the local sum.
+    }
   }, [tripId, bagTrackingEnabled])
 
-  useEffect(() => { reloadBags() }, [reloadBags])
+  useEffect(() => { void reloadBags() }, [reloadBags])
 
   // Bag weights are server-summed across every member (#2191), so an item this
   // viewer cannot see still moves them; the server pings the room content-free.
-  useEffect(() => {
-    if (!bagTrackingEnabled) return
-    const handler = (event: Record<string, unknown>) => {
-      if (event.type === 'packing:bag-totals') reloadBags()
-    }
-    addListener(handler)
-    return () => removeListener(handler)
-  }, [bagTrackingEnabled, reloadBags])
+  useBagTotalsPing(bagTrackingEnabled, reloadBags)
+
+  // Bags have no offline cache, so their totals go stale the moment the device
+  // does; offline the sheet sums what it can see instead (#2191).
+  const { offline } = useNetworkMode()
 
   useEffect(() => {
     packingApi.listTemplates(tripId).then(r => setTemplates(r.templates || [])).catch(() => {})
@@ -492,6 +491,7 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
         bags={bags}
         items={items}
         unassignedWeightGrams={unassignedWeightGrams}
+        serverWeightsFresh={!offline}
         tripMembers={tripMembers}
         canEdit={canEdit}
         currentUserId={currentUserId}

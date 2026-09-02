@@ -142,6 +142,20 @@ describe('runShutdown', () => {
     expect(deps.closeDb).toHaveBeenCalledTimes(1);
   });
 
+  it('SHUTDOWN-010 says so when Nest teardown fails, and still exits cleanly', async () => {
+    // allSettled absorbs the rejection; without an explicit report the operator
+    // would read "Shutdown complete" and exit 0 while the crons and the plugin
+    // children were never torn down.
+    const deps = makeDeps({ closeNestApp: vi.fn(async () => { throw new Error('hook boom'); }) });
+
+    const run = runShutdown('SIGTERM', deps);
+    (deps.server as unknown as ReturnType<typeof makeServer>).finishClose();
+    await run;
+
+    expect(deps.logError).toHaveBeenCalledWith(expect.stringContaining('hook boom'));
+    expect(deps.exit).toHaveBeenCalledWith(0);
+  });
+
   it('SHUTDOWN-009 still exits when the signal beats the bootstrap', async () => {
     // An orchestrator stopping a container mid-boot: there is no http server yet.
     // The old path called server.close() on undefined, and the fire-and-forget

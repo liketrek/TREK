@@ -51,6 +51,7 @@ export class PackingRpc {
     // A referenced bag must exist on this trip (#2154), as on the REST route.
     if (isInvalidBagRef(item)) throw new BadParams(`no packing bag ${parsed.data.bag_id} on trip ${tripId}`);
     this.packing.emitToViewers(String(tripId), 'packing:created', { item }, item, undefined);
+    this.packing.broadcastBagTotals(String(tripId));
     return item;
   }
 
@@ -71,6 +72,9 @@ export class PackingRpc {
     // A referenced bag must exist on this trip (#2154), as on the REST route.
     if (isInvalidBagRef(updated)) throw new BadParams(`no packing bag ${parsed.data.bag_id} on trip ${tripId}`);
     this.packing.broadcastUpdate(String(tripId), itemId, updated as PrivacyItem, !!before?.is_private, undefined);
+    if (['weight_grams', 'quantity', 'bag_id'].some(k => Object.keys(input).includes(k))) {
+      this.packing.broadcastBagTotals(String(tripId));
+    }
     return updated;
   }
 
@@ -83,6 +87,7 @@ export class PackingRpc {
     const deleted = this.packing.deleteItem(String(tripId), String(itemId), actor) as PrivacyItem | null;
     if (!deleted) throw new ForbiddenResource(`no packing item ${itemId} on trip ${tripId}`);
     this.packing.emitToViewers(String(tripId), 'packing:deleted', { itemId }, deleted, undefined);
+    this.packing.broadcastBagTotals(String(tripId));
     return { deleted: true };
   }
 
@@ -132,6 +137,8 @@ export class PackingRpc {
       throw new ForbiddenResource(`no packing bag ${bagId} on trip ${tripId}`);
     }
     this.realtime.broadcast(tripId, 'packing:bag-deleted', { bagId }, undefined);
+    // bag_id is ON DELETE SET NULL — its items just moved to the unassigned pile.
+    this.packing.broadcastBagTotals(String(tripId));
     return { deleted: true };
   }
 

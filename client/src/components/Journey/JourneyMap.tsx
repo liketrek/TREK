@@ -276,8 +276,13 @@ function JourneyMap(
      * trail between them. Letting a recorded GPX into the bounds meant one drive
      * across a country zoomed the map out until the entries were specks, which
      * is what the reporter's screenshot shows. JourneyMapGL already fits on
-     * entries + trail alone (JourneyMapGL.tsx), so this also ends an asymmetry
-     * where the same journey framed differently per renderer.
+     * entries + trail alone, so for every journey that has entries the two
+     * renderers now agree where they used to differ.
+     *
+     * They still differ for a journey with tracks and nothing else: this one
+     * frames the tracks, JourneyMapGL falls back to the world view. Framing the
+     * only thing on the map is the better of the two, and converging the GL side
+     * is a change to a renderer this issue is not about.
      */
     const trackCoords: L.LatLngTuple[] = []
 
