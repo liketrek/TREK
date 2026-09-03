@@ -10,6 +10,7 @@ import {
 import PluginIcon from '../../../components/shared/PluginIcon'
 import { adminApi } from '../../../api/client'
 import { useInstanceSettings } from '../../../components/Admin/useInstanceSettings'
+import { bypassChip, bypassOffer, useRangeBypass, type RangeWarning, type TrekRangeBypass } from '../../../components/Admin/useRangeBypass'
 import { usePluginStore } from '../../../store/pluginStore'
 import { useTranslation } from '../../../i18n'
 import { useToast } from '../../../components/shared/Toast'
@@ -33,10 +34,6 @@ interface VersionMismatch { id: string; wanted: string; installed: string }
 type DependencyStatus = 'ok' | 'addonDisabled' | 'missingPlugin' | 'hostIncompatible'
 interface PluginDependencies { requiredAddons: string[]; pluginDependencies: PluginDep[] }
 interface DependencyIssues { disabledAddons: string[]; missing: PluginDep[]; versionMismatch: VersionMismatch[] }
-/** The server's "this only went through because TREK_PLUGINS_IGNORE_TREK_RANGE is set" marker. */
-interface TrekRangeBypass { trekRange: string | null; hostVersion: string }
-/** What the range-bypass sheet needs to say, and what to do if the admin accepts (null = a notice). */
-interface RangeWarning extends TrekRangeBypass { name: string; onConfirm: (() => void) | null }
 
 interface PluginRow {
   id: string
@@ -296,18 +293,8 @@ function deriveDeps(p: PluginRow, t: T): DepChip[] {
       blocked: true,
     })
   }
-  // The operator bypassed the range (TREK_PLUGINS_IGNORE_TREK_RANGE): not a blocker, but a
-  // warning that must outlive the install sheet for as long as the plugin runs here.
-  if (p.trekRangeBypassed) {
-    out.push({
-      icon: AlertTriangle,
-      label: p.trekRangeBypassed.trekRange
-        ? t('admin.plugins.dep.trekBypassed', { range: p.trekRangeBypassed.trekRange, host: p.trekRangeBypassed.hostVersion })
-        : t('admin.plugins.dep.trekBypassedUnknown'),
-      blocked: false,
-      warn: true,
-    })
-  }
+  const bypassed = bypassChip(p.trekRangeBypassed, t) // TREK_PLUGINS_IGNORE_TREK_RANGE: a warning, not a blocker
+  if (bypassed) out.push(bypassed)
   for (const a of p.dependencies?.requiredAddons ?? []) {
     out.push({ icon: Blocks, label: t('admin.plugins.cap.requiresAddon', { addon: a }), blocked: !!issues?.disabledAddons.includes(a) })
   }
@@ -332,14 +319,7 @@ function installOffer(item: RegistryItem, t: T, ignoreTrekRange = false): { bloc
   const title = item.trek
     ? t('admin.plugins.dep.trekIncompatible', { range: item.trek, host: item.hostVersion ?? '?' })
     : t('admin.plugins.dep.trekUnknown')
-  // TREK_PLUGINS_IGNORE_TREK_RANGE: the server will take the newest version regardless, so
-  // the button says exactly that — and carries what the warning sheet has to say first.
-  if (ignoreTrekRange) {
-    return {
-      blocked: false, label: t('admin.plugins.installAnyway'), title,
-      warn: { name: item.name, trekRange: item.trek ?? null, hostVersion: item.hostVersion ?? '?', onConfirm: null },
-    }
-  }
+  if (ignoreTrekRange) return bypassOffer(item, t, title) // TREK_PLUGINS_IGNORE_TREK_RANGE: "Install anyway"
   if (item.latestCompatible) {
     return { blocked: false, version: item.latestCompatible, label: t('admin.plugins.installCompatible', { version: item.latestCompatible }), title }
   }
@@ -431,9 +411,7 @@ export default function MAdminPluginsPanel() {
   const [runtimeOn, setRuntimeOn] = useState(false)
   const [devLink, setDevLink] = useState(false) // dev-link enabled server-side (TREK_PLUGINS_DEV_LINK)
   const [ignoreTrekRange, setIgnoreTrekRange] = useState(false) // TREK_PLUGINS_IGNORE_TREK_RANGE set server-side
-  // The range-bypass warning: a confirm step before a registry install, or a notice after a
-  // path that could not ask first (sideload, dev-link, update, dependency download).
-  const [rangeWarning, setRangeWarning] = useState<RangeWarning | null>(null)
+  const bypass = useRangeBypass() // its warning dialog/sheet state — shared with the other shell
   const [linkPath, setLinkPath] = useState('')
   const [plugins, setPlugins] = useState<PluginRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -577,7 +555,7 @@ export default function MAdminPluginsPanel() {
       const res = await adminApi.pluginUpload(file)
       setView('installed')
       toast.success(t('admin.plugins.uploaded', { name: res.id }))
-      noticeBypass(res.id, res.trekRangeBypassed)
+      bypass.notice(res.id, res.trekRangeBypassed)
     } catch (e) {
       toast.error((e as { response?: { data?: { error?: string } } })?.response?.data?.error || t('admin.plugins.actionError'))
     } finally {
@@ -653,22 +631,11 @@ export default function MAdminPluginsPanel() {
     const range = reg.trek ?? (reg.minTrekVersion ? `>=${reg.minTrekVersion}` : null)
     return range ? { version: reg.latest, range } : null
   }
-  // The server's "this only went through because the range check is off" marker, shown as
-  // a notice after the fact. `act` swallows results, so every caller passes its own.
-  const noticeBypass = (name: string, b: TrekRangeBypass | null | undefined) => {
-    if (b) setRangeWarning({ name, trekRange: b.trekRange, hostVersion: b.hostVersion, onConfirm: null })
-  }
   // `warn` is the pre-install confirm for an entry the registry already flagged as
   // incompatible; an artifact whose OWN manifest turns out to be out of range (the index
   // was only a pre-download filter) is caught by the marker on the response instead.
-  const install = (id: string, version?: string, warn?: RangeWarning) => {
-    const run = () => act(id, async () => {
-      const r = await adminApi.pluginInstall(id, version ? { version } : undefined)
-      if (!warn) noticeBypass(id, r?.trekRangeBypassed)
-    }, t('admin.plugins.installed'))
-    if (warn) setRangeWarning({ ...warn, onConfirm: run })
-    else void run()
-  }
+  const install = (id: string, version?: string, warn?: RangeWarning) => bypass.guard(warn, () =>
+    act(id, () => adminApi.pluginInstall(id, version ? { version } : undefined).then(r => { if (!warn) bypass.notice(id, r?.trekRangeBypassed) }), t('admin.plugins.installed')))
   const restart = (id: string) => act(id, async () => { await adminApi.pluginDeactivate(id); await adminApi.pluginActivate(id) }, t('admin.plugins.restarted'))
   // Dev-link: register a plugin from a local built directory (dev only). Reuses the
   // same busy/toast/refresh loop as uploadPlugin; the server gates it.
@@ -681,7 +648,7 @@ export default function MAdminPluginsPanel() {
       setView('installed')
       setLinkPath('')
       toast.success(t('admin.plugins.devLinkLinked', { id: res.id }))
-      noticeBypass(res.id, res.trekRangeBypassed)
+      bypass.notice(res.id, res.trekRangeBypassed)
     } catch (e) {
       toast.error((e as { response?: { data?: { error?: string } } })?.response?.data?.error || t('admin.plugins.actionError'))
     } finally {
@@ -744,7 +711,7 @@ export default function MAdminPluginsPanel() {
       .then((r: { installed?: string[]; requiredAddons?: string[]; trekRangeBypassed?: TrekRangeBypass | null }) => {
         toast.success(t('admin.plugins.dep.downloaded', { id: depId }))
         if (r?.requiredAddons?.length) toast.error(t('admin.plugins.dep.addonDisabledToast', { addons: r.requiredAddons.join(', ') }))
-        noticeBypass(depId, r?.trekRangeBypassed)
+        bypass.notice(depId, r?.trekRangeBypassed)
         return attemptActivate(parent)
       })
       // The DEPENDENCY is what's being downloaded, so a signature refusal here is about the
@@ -765,7 +732,7 @@ export default function MAdminPluginsPanel() {
       .then((r: { version: string; activated: boolean; newPermissions: string[]; newEgress: string[]; trekRangeBypassed?: TrekRangeBypass | null }) => {
         if (r.activated || (r.newPermissions.length === 0 && r.newEgress.length === 0)) toast.success(t('admin.plugins.updated'))
         else setConsentQueue(qq => [...qq, { plugin: p, version: r.version, newPermissions: r.newPermissions, newEgress: r.newEgress }])
-        noticeBypass(p.name, r.trekRangeBypassed)
+        bypass.notice(p.name, r.trekRangeBypassed)
       })
       .catch(e => {
         const { error, code } = errBody(e)
@@ -1030,19 +997,10 @@ export default function MAdminPluginsPanel() {
       {/* TREK_PLUGINS_IGNORE_TREK_RANGE: confirm before a registry install the server would
           otherwise refuse (onConfirm set), or a plain notice after a path that could not
           ask first — sideload, dev-link, update, dependency download. */}
-      {rangeWarning && (
-        <MConfirmSheet
-          open
-          onClose={() => setRangeWarning(null)}
-          onConfirm={rangeWarning.onConfirm ? () => { const w = rangeWarning; setRangeWarning(null); w.onConfirm?.() } : undefined}
-          title={rangeWarning.onConfirm ? t('admin.plugins.rangeBypass.title') : t('admin.plugins.rangeBypass.noticeTitle')}
-          message={rangeWarning.trekRange
-            ? t('admin.plugins.rangeBypass.body', { name: rangeWarning.name, range: rangeWarning.trekRange, host: rangeWarning.hostVersion })
-            : t('admin.plugins.rangeBypass.bodyUnknown', { name: rangeWarning.name, host: rangeWarning.hostVersion })}
-          confirmLabel={t('admin.plugins.installAnyway')}
-          cancelLabel={rangeWarning.onConfirm ? t('common.cancel') : t('common.ok')}
-          danger
-        />
+      {bypass.copy && (
+        <MConfirmSheet open onClose={bypass.dismiss} onConfirm={bypass.copy.confirm ? bypass.confirm : undefined}
+          title={bypass.copy.title} message={bypass.copy.body}
+          confirmLabel={t('admin.plugins.installAnyway')} cancelLabel={bypass.copy.confirm ? t('common.cancel') : t('common.ok')} danger />
       )}
 
       {/* Row ⋯ action sheet */}
