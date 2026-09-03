@@ -382,6 +382,12 @@ export interface JourneyEntry {
   pros_cons?: string | null;
   visibility: 'private' | 'shared' | 'public';
   sort_order: number;
+  /**
+   * 0/1 as the row holds it. Switched on, the entry stays in the journal but
+   * is left out of the route and the figures Studio prints (discussion #2064).
+   * The wire carries a boolean; journey-entry-row.ts is where the two meet.
+   */
+  stats_excluded: number;
   created_at: number;
   updated_at: number;
 }

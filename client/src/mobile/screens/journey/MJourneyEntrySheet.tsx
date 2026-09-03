@@ -3,6 +3,7 @@ import { localIsoDate } from '../../../utils/localDate'
 import { Camera, Plus, Image, Images, X, MapPin, Locate, Trash2, CheckCircle2, MinusCircle } from 'lucide-react'
 import MSheet from '../../components/MSheet'
 import MIconBtn from '../../components/MIconBtn'
+import MToggle from '../../components/MToggle'
 import { useTranslation } from '../../../i18n'
 import { useToast } from '../../../components/shared/Toast'
 import CustomTimePicker from '../../../components/shared/CustomTimePicker'
@@ -70,6 +71,7 @@ export default function MJourneyEntrySheet({
   const locationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [mood, setMood] = useState(entry.mood || '')
   const [weather, setWeather] = useState(entry.weather || '')
+  const [statsExcluded, setStatsExcluded] = useState(entry.stats_excluded ?? false)
   const [pros, setPros] = useState<string[]>(entry.pros_cons?.pros ?? [])
   const [cons, setCons] = useState<string[]>(entry.pros_cons?.cons ?? [])
   const [tags, setTags] = useState<string[]>(entry.tags ?? [])
@@ -144,6 +146,10 @@ export default function MJourneyEntrySheet({
     ? { lat: locationLat!, lng: locationLng!, name: locationName || undefined }
     : null
 
+  // The route switch belongs to an entry that is a stop, or was one: an entry
+  // without a point was never on the route, and a new one is not on it yet.
+  const offersStatsToggle = entry.id > 0 && (contextLocation != null || !!entry.stats_excluded)
+
   useEffect(() => {
     if (!quickCapture || readOnly || entry.location_lat != null || entry.location_lng != null) return
 
@@ -184,6 +190,7 @@ export default function MJourneyEntrySheet({
     locationName !== (entry.location_name || '') ||
     mood !== (entry.mood || '') ||
     weather !== (entry.weather || '') ||
+    statsExcluded !== (entry.stats_excluded ?? false) ||
     pros.filter(p => p.trim()).join('\n') !== (entry.pros_cons?.pros ?? []).join('\n') ||
     cons.filter(c => c.trim()).join('\n') !== (entry.pros_cons?.cons ?? []).join('\n') ||
     tags.join('\n') !== (entry.tags ?? []).join('\n') ||
@@ -207,6 +214,7 @@ export default function MJourneyEntrySheet({
         location_name: locationName || null,
         location_lat: locationLat,
         location_lng: locationLng,
+        stats_excluded: offersStatsToggle ? statsExcluded : undefined,
         mood: mood || null,
         weather: weather || null,
         tags: tags.filter(tag => tag.trim()),
@@ -791,6 +799,19 @@ export default function MJourneyEntrySheet({
           {locating && <div className="mt-[5px] font-geist text-[0.65625rem] text-m-muted">{t('common.loading')}</div>}
           {locationError && <div className="mt-[5px] font-geist text-[0.65625rem] text-[color:var(--m-st-danger)]">{locationError}</div>}
         </div>
+
+        {/* Off the route: the same switch the desktop editor and the Studio
+            travel panel offer (#2064). Read-only keeps it visible but locked,
+            like the date and the mood above and below it. */}
+        {offersStatsToggle && (
+          <div className={`mt-3 flex items-center gap-3 px-3 py-[10px] ${fieldShell}`}>
+            <div className="min-w-0 flex-1">
+              <div className="text-[0.75rem] font-semibold text-m-ink">{t('journey.editor.statsExcluded')}</div>
+              <div className="mt-[2px] font-geist text-[0.65625rem] leading-[1.4] text-m-muted">{t('journey.editor.statsExcludedHint')}</div>
+            </div>
+            <MToggle checked={statsExcluded} onChange={setStatsExcluded} disabled={readOnly} ariaLabel={t('journey.editor.statsExcluded')} />
+          </div>
+        )}
 
         {/* Mood */}
         {!captureOnly && <>

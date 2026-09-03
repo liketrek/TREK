@@ -48,7 +48,7 @@ const setup = (folios: Partial<BookPageNumbers> = {}): BookPageSetup => bookPage
 const source: JourneySource = {
   entries: [{
     id: 7, title: 'Bergen', story: null, location: 'Bergen', date: '2026-05-01',
-    lat: 60.3913, lng: 5.3221, mood: null, weather: null, pros: [], cons: [],
+    lat: 60.3913, lng: 5.3221, mood: null, weather: null, pros: [], cons: [], photoIds: [],
   }],
   photos: [],
   photoEntries: {},
@@ -334,6 +334,81 @@ describe('a photo frame', () => {
 
     load([photo({ photoId: 12, mask: 'heart' })])
     expect(numLabels(draw().container)).not.toContain('journey.studio.radius')
+  })
+})
+
+/*
+ * The picture as the page (#2064). What is pinned is the geometry: the frame
+ * must reach the bleed on all four sides, or the trimmed page shows a white
+ * hairline, and the picture must end up behind everything else, or it covers
+ * the page it was meant to carry.
+ */
+describe('filling a page with a picture', () => {
+  /** The chips live in Arrange, which starts folded like the frame's numbers. */
+  function fillChip(c: HTMLElement, label: string): HTMLElement | undefined {
+    open(c, 'journey.studio.arrange')
+    return [...c.querySelectorAll('.st-chip')].find(b => b.textContent === label) as HTMLElement | undefined
+  }
+
+  it('reaches the bleed on every side and goes behind everything else', () => {
+    load([shape(), photo({ photoId: 12, rotation: 15, fit: 'contain' })], ['p1'])
+    const { container } = draw()
+
+    fireEvent.click(fillChip(container, 'journey.studio.fillPage')!)
+
+    expect(elements().map(e => e.id)).toEqual(['p1', 's1'])
+    expect(el(0)).toMatchObject({
+      frame: { x: -3, y: -3, w: 216, h: 216 }, rotation: 0, fit: 'cover',
+    })
+  })
+
+  /* The frame, the crop and the move to the back are one press, so they are
+     one undo; three steps for one press would take three presses back. */
+  it('is a single undo step', () => {
+    load([shape(), photo({ photoId: 12 })], ['p1'])
+    const { container } = draw()
+
+    fireEvent.click(fillChip(container, 'journey.studio.fillPage')!)
+
+    expect(useStudioStore.getState().past).toHaveLength(1)
+  })
+
+  it('fills the right-hand page when the frame sits on it', () => {
+    load([photo({ photoId: 12, frame: { x: 300, y: 30, w: 60, h: 40 } })])
+    const { container } = draw()
+
+    fireEvent.click(fillChip(container, 'journey.studio.fillPage')!)
+
+    expect(el().frame).toEqual({ x: 207, y: -3, w: 216, h: 216 })
+  })
+
+  it('fills both pages when asked for the spread', () => {
+    load([photo({ photoId: 12, frame: { x: 300, y: 30, w: 60, h: 40 } })])
+    const { container } = draw()
+
+    fireEvent.click(fillChip(container, 'journey.studio.fillSpread')!)
+
+    expect(el().frame).toEqual({ x: -3, y: -3, w: 426, h: 216 })
+  })
+
+  it('offers no spread on a cover, which is one page', () => {
+    useStudioStore.getState().load({
+      version: 1, title: 'T', page: setup(), spreads: [
+        { id: 'sp1', role: 'cover', background: null, elements: [photo({ photoId: 12 })], parked: [], entryId: null },
+      ],
+    } as BookDocument)
+    useStudioStore.getState().select(['p1'])
+    const { container } = draw()
+
+    expect(fillChip(container, 'journey.studio.fillSpread')).toBeUndefined()
+    fireEvent.click(fillChip(container, 'journey.studio.fillPage')!)
+    expect(el().frame).toEqual({ x: -3, y: -3, w: 216, h: 216 })
+  })
+
+  it('is not offered for anything but a picture', () => {
+    load([shape()])
+    const { container } = draw()
+    expect(fillChip(container, 'journey.studio.fillPage')).toBeUndefined()
   })
 })
 

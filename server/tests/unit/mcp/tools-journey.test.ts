@@ -619,6 +619,59 @@ describe('journey entry fields', () => {
     });
   });
 
+  /*
+   * The stop switch (discussion #2064). The REST route takes it, so the tool
+   * does too, and get_journey_stats is where the effect shows.
+   */
+  it('update_journey_entry switches a stop out of the figures and back', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const journey = await seedJourney(h);
+      const airport = await seedEntry(h, journey.id, {
+        title: 'Keflavík', entry_date: '2026-06-01', location_lat: 63.98, location_lng: -22.62,
+      });
+      await seedEntry(h, journey.id, {
+        title: 'Vík', entry_date: '2026-06-03', location_lat: 63.42, location_lng: -19.01,
+      });
+
+      const data = parseToolResult(await h.client.callTool({
+        name: 'update_journey_entry', arguments: { entryId: airport.id, stats_excluded: true },
+      })) as any;
+      expect(entryRow(airport.id).stats_excluded).toBe(1);
+      // The echo carries the boolean, as the REST answer does.
+      expect(data.entry.stats_excluded).toBe(true);
+
+      const off = parseToolResult(await h.client.callTool({
+        name: 'get_journey_stats', arguments: { journeyId: journey.id, include_route: true },
+      })) as any;
+      expect(off.stats.points.map((p: any) => p.label)).toEqual(['Vík']);
+      expect(off.stats.steps).toBe(1);
+      expect(off.stats.excluded).toEqual([{ entryId: airport.id, label: 'Keflavík', date: '2026-06-01' }]);
+
+      await h.client.callTool({
+        name: 'update_journey_entry', arguments: { entryId: airport.id, stats_excluded: false },
+      });
+      const on = parseToolResult(await h.client.callTool({
+        name: 'get_journey_stats', arguments: { journeyId: journey.id },
+      })) as any;
+      expect(entryRow(airport.id).stats_excluded).toBe(0);
+      expect(on.stats.steps).toBe(2);
+      expect(on.stats.excluded).toEqual([]);
+    });
+  });
+
+  it('update_journey_entry refuses a stats_excluded that is not a boolean', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const journey = await seedJourney(h);
+      const entry = await seedEntry(h, journey.id);
+      expect((await h.client.callTool({
+        name: 'update_journey_entry', arguments: { entryId: entry.id, stats_excluded: 'yes' },
+      })).isError).toBe(true);
+      expect(entryRow(entry.id).stats_excluded).toBe(0);
+    });
+  });
+
   it('update_journey_entry refuses an unknown visibility and an out-of-range longitude', async () => {
     const { user } = createUser(testDb);
     await withHarness(user.id, async (h) => {

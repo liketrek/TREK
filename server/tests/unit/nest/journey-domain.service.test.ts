@@ -518,6 +518,25 @@ describe('listEntries', () => {
 
     expect(result).toBeNull();
   });
+
+  /*
+   * The stop switch reads back as a boolean on every path (discussion #2064).
+   * The column holds 0 or 1; a client handed the integer on one read and the
+   * boolean on another could compare against neither.
+   */
+  it('answers stats_excluded as a boolean, on the list and on the full journey alike', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const off = createJourneyEntry(testDb, journey.id, user.id, { entry_date: '2026-03-01', stats_excluded: 1 });
+    const on = createJourneyEntry(testDb, journey.id, user.id, { entry_date: '2026-03-02' });
+
+    const listed = svc.listEntries(journey.id, user.id)!;
+    expect(listed.find(e => e.id === off.id)!.stats_excluded).toBe(true);
+    expect(listed.find(e => e.id === on.id)!.stats_excluded).toBe(false);
+
+    const full = svc.getJourneyFull(journey.id, user.id)!;
+    expect(full.entries.map(e => e.stats_excluded)).toEqual([true, false]);
+  });
 });
 
 describe('createEntry', () => {
@@ -665,6 +684,46 @@ describe('updateEntry', () => {
     } finally {
       spy.mockRestore();
     }
+  });
+
+  /*
+   * The stop switch (discussion #2064). The column is an INTEGER, the wire is
+   * a boolean and the client compares with `=== true`, so the answer has to
+   * be the boolean on the way out as well as the integer on the way in, and
+   * the broadcast has to say the same thing the answer does.
+   */
+  it('switches a stop off and back on, and answers with the flag as a boolean', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const entry = createJourneyEntry(testDb, journey.id, user.id, { entry_date: '2026-03-01' });
+    const flagOf = (id: number) =>
+      (testDb.prepare('SELECT stats_excluded FROM journey_entries WHERE id = ?').get(id) as { stats_excluded: number }).stats_excluded;
+
+    const spy = vi.spyOn(RealtimeService.prototype, 'broadcastToUser').mockImplementation(() => {});
+    try {
+      const off = svc.updateEntry(entry.id, user.id, { stats_excluded: true });
+      expect(off!.stats_excluded).toBe(true);
+      expect(flagOf(entry.id)).toBe(1);
+      const payload = spy.mock.calls.at(-1)?.[1] as { type: string; entry: { stats_excluded: unknown } };
+      expect(payload.entry.stats_excluded).toBe(true);
+
+      const on = svc.updateEntry(entry.id, user.id, { stats_excluded: false });
+      expect(on!.stats_excluded).toBe(false);
+      expect(flagOf(entry.id)).toBe(0);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it('a viewer cannot switch a stop off', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: viewer } = createUser(testDb);
+    const journey = createJourney(testDb, owner.id);
+    addJourneyContributor(testDb, journey.id, viewer.id, 'viewer');
+    const entry = createJourneyEntry(testDb, journey.id, owner.id, { entry_date: '2026-03-01' });
+
+    expect(svc.updateEntry(entry.id, viewer.id, { stats_excluded: true })).toBeNull();
+    expect(svc.listEntries(journey.id, owner.id)![0].stats_excluded).toBe(false);
   });
 
   it('JOURNEY-SVC-034: returns null for non-existent entry', () => {

@@ -89,6 +89,9 @@ export default function StudioShell() {
             path={s.path}
             t={s.t}
             locale={s.locale}
+            canEdit={s.canEdit}
+            onUpload={s.uploadPhotos}
+            onToggleStop={s.setStopExcluded}
           />
           <Workbench s={s} bookView={bookView} />
           <StudioInspector
@@ -431,7 +434,20 @@ function Workbench({ s, bookView }: { s: Studio; bookView: boolean }) {
           dropLabel={s.t('journey.studio.dropPhotoHere')}
           cursors={s.cursors}
           onCursor={(x, y) => s.moveCursor(s.activeSpread, x, y)}
+          onDropFiles={s.canEdit ? s.dropFiles : undefined}
+          fileDropLabel={s.t('journey.studio.dropFilesHere')}
         />
+        {/*
+          Pictures dropped on the sheet are on their way. The page keeps
+          rendering underneath; the veil only says that something is happening
+          where the pointer let go, so the second or two before the frame
+          appears does not read as the drop having been ignored.
+        */}
+        {s.canvasUpload && (
+          <div className="st-upload-veil" role="status" aria-live="polite">
+            {s.t('journey.studio.uploading', { done: s.canvasUpload.done, total: s.canvasUpload.total })}
+          </div>
+        )}
       </div>
 
       <div className="st-zoom">

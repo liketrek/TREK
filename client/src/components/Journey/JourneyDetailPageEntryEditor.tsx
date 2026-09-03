@@ -14,6 +14,7 @@ import { photoUrl, isValidGeoPoint, geoOnceErrorKey } from '../../pages/journeyD
 import MarkdownToolbar from './MarkdownToolbar'
 import { DatePicker } from './JourneyDetailPageDatePicker'
 import CustomTimePicker from '../shared/CustomTimePicker'
+import ToggleSwitch from '../Settings/ToggleSwitch'
 import { ProviderPicker, type ProviderPhotoGroup } from './JourneyDetailPageProviderPicker'
 
 type PendingProviderGroup = ProviderPhotoGroup & { provider: string }
@@ -48,6 +49,7 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips,
   const locationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [mood, setMood] = useState(entry.mood || '')
   const [weather, setWeather] = useState(entry.weather || '')
+  const [statsExcluded, setStatsExcluded] = useState(entry.stats_excluded ?? false)
   const [pros, setPros] = useState<string[]>(entry.pros_cons?.pros?.length ? entry.pros_cons.pros : [''])
   const [cons, setCons] = useState<string[]>(entry.pros_cons?.cons?.length ? entry.pros_cons.cons : [''])
   const [saving, setSaving] = useState(false)
@@ -87,6 +89,7 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips,
     (locationLng ?? null) !== (entry.location_lng ?? null) ||
     mood !== (entry.mood || '') ||
     weather !== (entry.weather || '') ||
+    statsExcluded !== (entry.stats_excluded ?? false) ||
     pros.filter(p => p.trim()).join('\n') !== originalPros ||
     cons.filter(c => c.trim()).join('\n') !== originalCons ||
     pendingFiles.length > 0 ||
@@ -146,6 +149,7 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips,
         location_name: locationName || null,
         location_lat: locationLat,
         location_lng: locationLng,
+        stats_excluded: offersStatsToggle ? statsExcluded : undefined,
         mood: mood || null,
         weather: weather || null,
         pros_cons: { pros: pros.filter(p => p.trim()), cons: cons.filter(c => c.trim()) },
@@ -213,6 +217,10 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips,
   const contextLocation = isValidGeoPoint({ lat: locationLat ?? Number.NaN, lng: locationLng ?? Number.NaN })
     ? { lat: locationLat!, lng: locationLng!, name: locationName || undefined }
     : null
+
+  // The route switch belongs to an entry that is a stop, or was one: an entry
+  // without a point was never on the route, and a new one is not on it yet.
+  const offersStatsToggle = entry.id > 0 && (contextLocation != null || !!entry.stats_excluded)
 
   const handleUseCurrentLocation = async () => {
     if (locating) return
@@ -694,6 +702,19 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips,
               )}
             </div>
           </div>
+
+          {/* Every located entry is a stop on the route Studio prints, the home
+              airport included. This is the entry's own way off it, the same
+              switch the Studio travel panel offers (#2064). */}
+          {offersStatsToggle && (
+            <div className="flex items-center gap-3 px-3 py-2.5 border border-zinc-200 dark:border-zinc-700 rounded-xl">
+              <div className="flex-1 min-w-0">
+                <div className="text-[12px] font-semibold text-zinc-900 dark:text-white">{t('journey.editor.statsExcluded')}</div>
+                <div className="text-[11px] leading-snug text-zinc-500 mt-0.5">{t('journey.editor.statsExcludedHint')}</div>
+              </div>
+              <ToggleSwitch on={statsExcluded} onToggle={() => setStatsExcluded(v => !v)} label={t('journey.editor.statsExcluded')} />
+            </div>
+          )}
 
           <div>
             <label className="text-[10px] font-semibold tracking-[0.12em] uppercase text-zinc-500 block mb-2">{t('journey.editor.mood')}</label>

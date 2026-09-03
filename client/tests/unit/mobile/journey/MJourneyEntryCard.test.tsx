@@ -43,4 +43,15 @@ describe('MJourneyEntryCard', () => {
     fireEvent.click(screen.getByText('Sunrise Pier'));
     expect(onClick).toHaveBeenCalledTimes(1);
   });
+
+  // #2064: a stop switched off the printed route says so beside its date.
+  it('FE-MOB-JRN-006: marks an entry left out of the route', () => {
+    render(<MJourneyEntryCard entry={makeEntry({ stats_excluded: true })} number={1} onClick={() => {}} />);
+    expect(screen.getByText('Off route')).toBeInTheDocument();
+  });
+
+  it('FE-MOB-JRN-007: carries no such mark on an ordinary entry', () => {
+    render(<MJourneyEntryCard entry={makeEntry()} number={1} onClick={() => {}} />);
+    expect(screen.queryByText('Off route')).not.toBeInTheDocument();
+  });
 });

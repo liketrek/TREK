@@ -76,7 +76,7 @@ function placeEntry(
   authorId: number,
   lat: number,
   lng: number,
-  overrides: { title?: string; entry_date?: string } = {},
+  overrides: { title?: string; entry_date?: string; stats_excluded?: number } = {},
 ) {
   const entry = createJourneyEntry(testDb, journeyId, authorId, overrides);
   testDb
@@ -354,5 +354,161 @@ describe('journeyStats totals', () => {
       .run(journey.id, helper.id, 'editor', Date.now());
 
     expect(svc.journeyStats(journey.id, helper.id)).not.toBeNull();
+  });
+});
+
+/*
+ * The stop somebody switched off (discussion #2064): the home airport, the
+ * stopover, the place the trip was planned from. It stays in the journal and
+ * leaves every figure, and it is named under `excluded` so that it can be
+ * switched back on.
+ */
+describe('journeyStats excluded stops', () => {
+  it('leaves a switched-off entry out of the route, the distance and the countries', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    placeEntry(journey.id, user.id, 52.52, 13.4, { title: 'Berlin, the airport', entry_date: '2026-06-01', stats_excluded: 1 });
+    placeEntry(journey.id, user.id, 64.14, -21.94, { title: 'Reykjavík', entry_date: '2026-06-02' });
+    placeEntry(journey.id, user.id, 65.68, -18.12, { title: 'Akureyri', entry_date: '2026-06-06' });
+
+    const stats = svc.journeyStats(journey.id, user.id)!;
+
+    expect(stats.points.map(p => p.label)).toEqual(['Reykjavík', 'Akureyri']);
+    // Reykjavík to Akureyri and nothing else; the leg in from Berlin is gone.
+    expect(stats.distance).toBeLessThan(300_000);
+    expect(stats.countries.map(c => c.code)).toEqual(['IS']);
+    expect(stats.start).toBe('2026-06-02');
+    expect(stats.days).toBe(5);
+  });
+
+  it('names the switched-off stop under excluded so it can be switched back on', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const airport = placeEntry(journey.id, user.id, 63.98, -22.62, { title: 'Keflavík', entry_date: '2026-06-01', stats_excluded: 1 });
+    placeEntry(journey.id, user.id, 64.14, -21.94, { title: 'Reykjavík', entry_date: '2026-06-02' });
+
+    const stats = svc.journeyStats(journey.id, user.id)!;
+
+    expect(stats.excluded).toEqual([{ entryId: airport.id, label: 'Keflavík', date: '2026-06-01' }]);
+  });
+
+  it('does not count a switched-off entry as a step', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    placeEntry(journey.id, user.id, 63.98, -22.62, { entry_date: '2026-06-01', stats_excluded: 1 });
+    placeEntry(journey.id, user.id, 64.14, -21.94, { entry_date: '2026-06-02' });
+
+    expect(svc.journeyStats(journey.id, user.id)!.steps).toBe(1);
+  });
+
+  /* An entry without a place was never a stop, so there is nothing to offer back. */
+  it('lists nothing under excluded for a switched-off entry without coordinates', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    createJourneyEntry(testDb, journey.id, user.id, { title: 'a thought', entry_date: '2026-06-03', stats_excluded: 1 });
+    placeEntry(journey.id, user.id, 64.14, -21.94, { entry_date: '2026-06-02' });
+
+    const stats = svc.journeyStats(journey.id, user.id)!;
+
+    expect(stats.excluded).toEqual([]);
+    expect(stats.steps).toBe(1);
+  });
+
+  it('carries the entry on every stop read from the entries', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const a = placeEntry(journey.id, user.id, 64.14, -21.94, { entry_date: '2026-06-02' });
+    const b = placeEntry(journey.id, user.id, 65.68, -18.12, { entry_date: '2026-06-06' });
+
+    expect(svc.journeyStats(journey.id, user.id)!.points.map(p => p.entryId)).toEqual([a.id, b.id]);
+  });
+
+  it('drops the place behind a switched-off skeleton from the place count', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const trip = createTrip(testDb, user.id);
+    linkTripToJourney(testDb, journey.id, trip.id);
+    const airport = createPlace(testDb, trip.id, { name: 'Keflavík', lat: 63.98, lng: -22.62 });
+    const town = createPlace(testDb, trip.id, { name: 'Vík', lat: 63.42, lng: -19.01 });
+    createDayAssignment(testDb, createDay(testDb, trip.id, { date: '2026-06-01' }).id, airport.id);
+    createDayAssignment(testDb, createDay(testDb, trip.id, { date: '2026-06-02' }).id, town.id);
+    svc.syncTripPlaces(journey.id, trip.id, user.id);
+    testDb
+      .prepare('UPDATE journey_entries SET stats_excluded = 1 WHERE journey_id = ? AND source_place_id = ?')
+      .run(journey.id, airport.id);
+
+    const stats = svc.journeyStats(journey.id, user.id)!;
+
+    // The town's skeleton still draws the route, so this is the entries path.
+    expect(stats.points.map(p => p.label)).toEqual(['Vík']);
+    expect(stats.excluded.map(s => s.label)).toEqual(['Keflavík']);
+    expect(stats.places).toBe(1);
+  });
+
+  /*
+   * The fallback honours the switch too. A skeleton is the entry TREK derives
+   * from a trip place; switching it off and then drawing the place it came
+   * from would put the same stop straight back on the map by its other name.
+   */
+  it('leaves the place behind a switched-off skeleton out of the fallback route', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const trip = createTrip(testDb, user.id);
+    linkTripToJourney(testDb, journey.id, trip.id);
+    const airport = createPlace(testDb, trip.id, { name: 'Keflavík', lat: 63.98, lng: -22.62 });
+    createPlace(testDb, trip.id, { name: 'Vík', lat: 63.42, lng: -19.01 });
+    // Only the airport is on a day, so only the airport gets a skeleton; the
+    // town stays a bare trip place that the fallback is there to draw.
+    createDayAssignment(testDb, createDay(testDb, trip.id, { date: '2026-06-01' }).id, airport.id);
+    svc.syncTripPlaces(journey.id, trip.id, user.id);
+    // Switched off, and its point cleared by hand afterwards, which is what
+    // sends the journey down the fallback while the skeleton still names the
+    // place it came from.
+    testDb
+      .prepare(`
+        UPDATE journey_entries
+           SET stats_excluded = 1, location_lat = NULL, location_lng = NULL
+         WHERE journey_id = ? AND source_place_id = ?
+      `)
+      .run(journey.id, airport.id);
+
+    const stats = svc.journeyStats(journey.id, user.id)!;
+
+    expect(stats.points.map(p => p.label)).toEqual(['Vík']);
+    expect(stats.points[0].entryId).toBeNull();
+    expect(stats.steps).toBe(0);
+    expect(stats.places).toBe(1);
+  });
+
+  /*
+   * The pair of cases that decide which source a journey reads from, now that
+   * a stop can be taken out of one of them.
+   */
+  it('draws no route at all when every stop of the journal is switched off', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const trip = createTrip(testDb, user.id);
+    linkTripToJourney(testDb, journey.id, trip.id);
+    createPlace(testDb, trip.id, { name: 'a trip place', lat: 48.85, lng: 2.35 });
+    placeEntry(journey.id, user.id, 52.52, 13.4, { title: 'Berlin, the airport', entry_date: '2026-06-01', stats_excluded: 1 });
+
+    const stats = svc.journeyStats(journey.id, user.id)!;
+
+    expect(stats.points).toEqual([]);
+    expect(stats.distance).toBe(0);
+    expect(stats.excluded.map(s => s.label)).toEqual(['Berlin, the airport']);
+  });
+
+  it('still falls back to the trip places for a journal that never had a point', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const trip = createTrip(testDb, user.id);
+    linkTripToJourney(testDb, journey.id, trip.id);
+    createPlace(testDb, trip.id, { name: 'a trip place', lat: 48.85, lng: 2.35 });
+    createJourneyEntry(testDb, journey.id, user.id, { title: 'written, not placed', stats_excluded: 1 });
+
+    const stats = svc.journeyStats(journey.id, user.id)!;
+
+    expect(stats.points.map(p => p.label)).toEqual(['a trip place']);
   });
 });

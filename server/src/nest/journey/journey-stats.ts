@@ -1,4 +1,6 @@
-import type { JourneyStats, JourneyStatsCountry, JourneyStatsPoint, JourneyStatsTrip } from '@trek/shared';
+import type {
+  JourneyStats, JourneyStatsCountry, JourneyStatsExcludedStop, JourneyStatsPoint, JourneyStatsTrip,
+} from '@trek/shared';
 
 /**
  * What a journey adds up to — the arithmetic, with no database and no Nest.
@@ -27,6 +29,8 @@ export interface StatsInputPoint {
   tripId?: number | null;
   /** One photograph from this stop, for a map that marks it with a picture. */
   photoId?: number | null;
+  /** The journal entry this stop was read from; null or absent for a trip place. */
+  entryId?: number | null;
 }
 
 const rad = (deg: number) => (deg * Math.PI) / 180;
@@ -166,6 +170,15 @@ export interface StatsInput {
   countryNames: Record<string, string>;
   /** The trips themselves, so a book can print a map of one of them. */
   trips?: JourneyStatsTrip[];
+  /**
+   * Stops switched off by hand (discussion #2064).
+   *
+   * Not in `points`, and that is the whole arrangement: the service takes
+   * them out before anything here is measured, so nothing in this module has
+   * to know which stop is which. The list only rides along so that one
+   * answer holds both halves, the route and what was left off it.
+   */
+  excluded?: JourneyStatsExcludedStop[];
 }
 
 /**
@@ -206,6 +219,7 @@ export function computeJourneyStats(input: StatsInput): JourneyStats {
       country: p.country,
       tripId: p.tripId ?? null,
       photoId: p.photoId ?? null,
+      entryId: p.entryId ?? null,
     })),
     /*
      * Counted after thinning, not before.
@@ -219,6 +233,7 @@ export function computeJourneyStats(input: StatsInput): JourneyStats {
       ...t,
       points: points.filter(p => p.tripId === t.id).length,
     })),
+    excluded: input.excluded ?? [],
     start,
     end,
   };

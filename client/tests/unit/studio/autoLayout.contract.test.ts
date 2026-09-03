@@ -28,10 +28,10 @@ const stats = (over: Partial<JourneyStats> = {}): JourneyStats => ({
   journeyId: 6, distance: 1_189_000, days: 14, steps: 14, photos: 57, places: 21, furthest: 408_000,
   countries: [{ code: 'IS', name: 'Iceland', places: 14, firstVisit: '2026-06-02' }],
   points: [
-    { lat: 64.14, lng: -21.94, label: 'Reykjavík', date: '2026-06-02', country: 'IS', tripId: null, photoId: null },
-    { lat: 65.68, lng: -18.12, label: 'Akureyri', date: '2026-06-06', country: 'IS', tripId: null, photoId: null },
+    { lat: 64.14, lng: -21.94, label: 'Reykjavík', date: '2026-06-02', country: 'IS', tripId: null, photoId: null, entryId: null },
+    { lat: 65.68, lng: -18.12, label: 'Akureyri', date: '2026-06-06', country: 'IS', tripId: null, photoId: null, entryId: null },
   ],
-  trips: [], start: '2026-06-02', end: '2026-06-15',
+  trips: [], excluded: [], start: '2026-06-02', end: '2026-06-15',
   ...over,
 })
 
@@ -56,8 +56,8 @@ describe('a laid-out book is a book the server will take', () => {
 
   it('when a stop carries a place name longer than a map label may print', () => {
     const points = [
-      { lat: 64.14, lng: -21.94, label: long(300), date: '2026-06-02', country: 'IS', tripId: null, photoId: null },
-      { lat: 65.68, lng: -18.12, label: 'Akureyri', date: '2026-06-06', country: 'IS', tripId: null, photoId: null },
+      { lat: 64.14, lng: -21.94, label: long(300), date: '2026-06-02', country: 'IS', tripId: null, photoId: null, entryId: null },
+      { lat: 65.68, lng: -18.12, label: 'Akureyri', date: '2026-06-06', country: 'IS', tripId: null, photoId: null, entryId: null },
     ]
     expect(savable(buildBook(input({ stats: stats({ points }) })))).toEqual({ ok: true })
   })

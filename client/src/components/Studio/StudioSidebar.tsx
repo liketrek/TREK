@@ -1,9 +1,13 @@
-import { useMemo, useRef, useState } from 'react'
-import { ChevronDown, ChevronUp, Compass, Copy, FileDown, Files, ImageIcon, LayoutTemplate, Plus, Search, Shapes, Trash2, X } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import {
+  Camera, Check, ChevronDown, ChevronUp, Compass, Copy, FileDown, Files, ImageIcon, LayoutTemplate,
+  Plus, Search, Shapes, Trash2, Upload, X,
+} from 'lucide-react'
 import type { BookElement, BookPageSetup, JourneyStats } from '@trek/shared'
 import { useElementSize } from '../../hooks/useElementSize'
 import { useStudioStore } from '../../store/studioStore'
 import { formatDate } from '../../utils/formatters'
+import { useToast } from '../shared/Toast'
 import { SpreadFold, SpreadView } from './SpreadView'
 import { photoSrc } from './bookRender'
 import { formatBookCoords, formatBookDate, type CoordFormat } from './entryText'
@@ -14,6 +18,7 @@ import { PanelHead as Head } from './StudioPanelHead'
 import { StudioElementsPanel } from './StudioElementsPanel'
 import { StudioTravelPanel } from './StudioTravelPanel'
 import { MAX_SPREAD_FILE_BYTES, importSpread } from './spreadFile'
+import type { StudioUploader } from './studioUpload'
 
 /**
  * The left side of Studio: a narrow rail of sections and one wide panel showing
@@ -42,11 +47,17 @@ export interface JourneySource {
     weather: string | null
     pros: string[]
     cons: string[]
+    /** The pictures attached to this entry, as trek_photos ids. */
+    photoIds: number[]
   }[]
-  photos: { photoId: number; caption?: string | null }[]
+  /** `entryIds` is empty for a picture that sits only in the gallery. */
+  photos: { photoId: number; caption?: string | null; entryIds: number[] }[]
   /** photoId to the words of the entry it belongs to, lower-cased. */
   photoEntries: Record<number, string>
 }
+
+/** The translator, with the parameters some of the strings here take. */
+export type StudioT = (k: string, params?: Record<string, string | number>) => string
 
 const uid = (p: string) => `${p}-${Math.random().toString(36).slice(2, 9)}`
 
@@ -72,6 +83,7 @@ const THUMB_CHROME = (2 + 3) * 2
 
 export function StudioSidebar({
   page, pxPerMm, bookView, source, stats, path, t, locale,
+  canEdit, onUpload, onToggleStop,
 }: {
   page: BookPageSetup
   pxPerMm: number
@@ -81,8 +93,14 @@ export function StudioSidebar({
   stats: JourneyStats | null
   /** The roads the trip took, for a map that draws them. Empty when it has none. */
   path: [number, number][][]
-  t: (k: string) => string
+  t: StudioT
   locale: string
+  /** False for a viewer: no upload, no switching stops, nothing that writes. */
+  canEdit: boolean
+  /** Pictures into the gallery, or into one entry. See studioUpload.ts. */
+  onUpload: StudioUploader
+  /** Switch a stop on or off in the figures. Resolves false when it did not land. */
+  onToggleStop: (entryId: number, excluded: boolean) => Promise<boolean>
 }) {
   const [section, setSection] = useState<Section>('pages')
 
@@ -113,9 +131,21 @@ export function StudioSidebar({
 
       <aside className="st-panel st-side">
         {section === 'pages' && <PagesPanel page={page} pxPerMm={pxPerMm} bookView={bookView} t={t} />}
-        {section === 'content' && <ContentPanel source={source} page={page} t={t} locale={locale} />}
+        {section === 'content' && (
+          <ContentPanel source={source} page={page} t={t} locale={locale} canEdit={canEdit} onUpload={onUpload} />
+        )}
         {section === 'elements' && <StudioElementsPanel page={page} t={t} />}
-        {section === 'travel' && <StudioTravelPanel page={page} stats={stats} path={path} t={t} locale={locale} />}
+        {section === 'travel' && (
+          <StudioTravelPanel
+            page={page}
+            stats={stats}
+            path={path}
+            t={t}
+            locale={locale}
+            canEdit={canEdit}
+            onToggleStop={onToggleStop}
+          />
+        )}
         {section === 'templates' && <TemplatesPanel page={page} pxPerMm={pxPerMm} t={t} onOpenContent={() => setSection('content')} />}
       </aside>
     </>
@@ -291,17 +321,45 @@ function PagesPanel({
 }
 
 /**
+ * Which of the journey's pictures the browser shows.
+ *
+ * `recent` holds ids rather than a flag on the photo: what just arrived is a
+ * fact about this sitting, not about the picture, and the journey store has no
+ * reason to remember it.
+ */
+type PhotoFilter =
+  | { kind: 'all' }
+  | { kind: 'entry'; id: number }
+  | { kind: 'loose' }
+  | { kind: 'recent'; photoIds: number[] }
+
+/**
  * The journey's own material.
  *
  * This is what separates a book maker from a drawing program: the pictures and
  * the words are already written, and the job is putting them on pages. Clicking
  * an item drops it on the current spread, centred, at a sensible size.
+ *
+ * Pictures can also come in here. A book is where you notice the one that
+ * never made it into the journal, and going back to the journey to add it, then
+ * finding the page again, was the one round trip Studio still asked for. What
+ * comes in goes through the journey store like any other upload, so the journal
+ * sees it the moment the panel does.
  */
 function ContentPanel({
-  source, page, t, locale,
-}: { source: JourneySource; page: BookPageSetup; t: (k: string) => string; locale: string }) {
+  source, page, t, locale, canEdit, onUpload,
+}: {
+  source: JourneySource
+  page: BookPageSetup
+  t: StudioT
+  locale: string
+  canEdit: boolean
+  onUpload: StudioUploader
+}) {
   const [tab, setTab] = useState<'photos' | 'text'>('photos')
   const [query, setQuery] = useState('')
+  const [filter, setFilter] = useState<PhotoFilter>({ kind: 'all' })
+  const toast = useToast()
 
   /*
    * Filtering, not a search index: a journey holds tens or hundreds of items, and
@@ -316,15 +374,143 @@ function ContentPanel({
       [e.title, e.story, e.location, ...e.pros, ...e.cons]
         .some(v => v && v.toLowerCase().includes(q)))
     : source.entries
+
+  /*
+   * The filter narrows first and the words second, so an entry filter with a
+   * search typed into it means "these pictures, with these words". Which entry
+   * a picture belongs to is read off the journal's own junction rather than
+   * off its words, which is what lets "not in an entry" mean exactly that.
+   */
+  const byFilter = (() => {
+    switch (filter.kind) {
+      case 'entry': return source.photos.filter(p => p.entryIds.includes(filter.id))
+      case 'loose': return source.photos.filter(p => !p.entryIds.length)
+      case 'recent': {
+        // In the order they were sent, which is the order they were chosen in,
+        // not wherever the gallery sorted them.
+        const byId = new Map(source.photos.map(p => [p.photoId, p] as const))
+        return filter.photoIds.flatMap(id => { const p = byId.get(id); return p ? [p] : [] })
+      }
+      default: return source.photos
+    }
+  })()
   const photos = q
-    ? source.photos.filter(p =>
+    ? byFilter.filter(p =>
       (p.caption && p.caption.toLowerCase().includes(q))
       || (source.photoEntries[p.photoId] || '').includes(q))
-    : source.photos
+    : byFilter
+
+  const looseCount = source.photos.filter(p => !p.entryIds.length).length
+  const withPhotos = source.entries.filter(e => e.photoIds.length > 0)
+  const nameOf = (e: { title: string | null; location: string | null } | undefined) =>
+    e?.title || e?.location || t('journey.studio.untitled')
+  const filterLabel = filter.kind === 'loose' ? t('journey.studio.filterLoose')
+    : filter.kind === 'recent' ? t('journey.studio.filterRecent')
+    : filter.kind === 'entry' ? nameOf(source.entries.find(e => e.id === filter.id))
+    : t('journey.studio.filterAll')
+
+  /*
+   * Why the grid is empty, which is four different answers. "No photos" on a
+   * journey with three hundred of them, because the filter is on a day with
+   * none, reads as the pictures having gone.
+   */
+  const emptyKey = !source.photos.length ? 'journey.studio.noPhotos'
+    : byFilter.length ? 'journey.studio.noMatches'
+    : filter.kind === 'entry' ? 'journey.studio.noEntryPhotos'
+    : filter.kind === 'loose' ? 'journey.studio.noLoosePhotos'
+    : 'journey.studio.noMatches'
+
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuBox = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!menuOpen) return
+    const onDown = (e: PointerEvent) => {
+      if (!menuBox.current?.contains(e.target as Node)) setMenuOpen(false)
+    }
+    const onKey = (e: KeyboardEvent) => {
+      // Swallowed, as the format picker does it: the shell's Escape closes Studio.
+      if (e.key === 'Escape') { e.stopPropagation(); setMenuOpen(false) }
+    }
+    document.addEventListener('pointerdown', onDown)
+    document.addEventListener('keydown', onKey, true)
+    return () => {
+      document.removeEventListener('pointerdown', onDown)
+      document.removeEventListener('keydown', onKey, true)
+    }
+  }, [menuOpen])
+  const pick = (f: PhotoFilter) => { setFilter(f); setMenuOpen(false) }
+
   const addElement = useStudioStore(s => s.addElement)
   const active = useStudioStore(s => s.activeSpread)
   const doc = useStudioStore(s => s.doc)
   const spread = doc?.spreads[active]
+
+  /*
+   * The page on the sheet belongs to a day, so its pictures are one press
+   * away. Offered only while the filter is not already there: a chip for the
+   * state you are in is a chip that does nothing.
+   */
+  const pageEntry = spread?.entryId != null ? withPhotos.find(e => e.id === spread.entryId) : undefined
+  const offerThisPage = pageEntry && !(filter.kind === 'entry' && filter.id === pageEntry.id)
+
+  const fileInput = useRef<HTMLInputElement>(null)
+  const [upload, setUpload] = useState<{ done: number; total: number } | null>(null)
+  /* A ref as well as the state: two drops in one second would both read the
+     state before either had set it. */
+  const sending = useRef(false)
+  const [dropOver, setDropOver] = useState(false)
+
+  /**
+   * Into the entry the browser is filtered to, otherwise into the gallery. The
+   * filter is the one thing on screen that names an entry, so it is also the
+   * one thing that can say where a picture belongs; the line under it says so
+   * before the press. Afterwards the new pictures get a filter of their own,
+   * because the gallery sorts them to its end, and twelve pictures that arrive
+   * out of sight read as twelve that did not arrive.
+   */
+  const send = async (files: File[]) => {
+    if (sending.current || !files.length) return
+    sending.current = true
+    setUpload({ done: 0, total: files.length })
+    try {
+      const entryId = filter.kind === 'entry' ? filter.id : null
+      const sent = await onUpload(files, entryId, p => setUpload({ done: p.done, total: p.total }))
+      if (sent.photoIds.length) {
+        setFilter({ kind: 'recent', photoIds: sent.photoIds })
+        setQuery('')
+        toast.success(t('journey.photosUploaded', { count: sent.photoIds.length }))
+      }
+    } finally {
+      sending.current = false
+      setUpload(null)
+    }
+  }
+
+  /*
+   * The whole scrolling area takes a drop, not just the dashed cell: a drag
+   * from the desktop arrives with the pointer wherever it arrives, and a target
+   * seventy pixels square is one you miss. Only a file drag is claimed; the
+   * panel's own photo drags carry another type and go to the sheet.
+   */
+  const dropZone = canEdit && tab === 'photos' ? {
+    onDragOver: (e: React.DragEvent<HTMLDivElement>) => {
+      if (!e.dataTransfer.types.includes('Files')) return
+      e.preventDefault()
+      e.dataTransfer.dropEffect = 'copy'
+      setDropOver(true)
+    },
+    onDragLeave: (e: React.DragEvent<HTMLDivElement>) => {
+      // Moving onto a child of the box is not leaving the box.
+      if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDropOver(false)
+    },
+    onDrop: (e: React.DragEvent<HTMLDivElement>) => {
+      const files = Array.from(e.dataTransfer.files ?? [])
+      if (!files.length) return
+      e.preventDefault()
+      setDropOver(false)
+      void send(files)
+    },
+  } : {}
 
   const centre = (w: number, h: number) => {
     const W = spread && spread.role !== 'inner' ? page.pageWidth : page.pageWidth * 2
@@ -444,33 +630,142 @@ function ContentPanel({
         </button>
       </div>
 
-      <div className="st-panel-scroll">
-        {tab === 'photos' ? (
-          <div className="st-photo-grid">
-            {photos.map(p => (
+      {/*
+        Which entry, as a row of its own under the tabs rather than a control
+        inside the search box: the search answers "which words" and this
+        answers "which day", and the two combine. The chip opens the same
+        popover the bar uses for formats, hung from its left edge because the
+        panel has no room to the right of it.
+      */}
+      {tab === 'photos' && (
+        <div className="st-filter-row">
+          <div className="st-picker" ref={menuBox}>
+            <span className={`st-chip st-filter-chip ${filter.kind !== 'all' ? 'is-on' : ''}`}>
               <button type="button"
-                key={p.photoId}
-                className="st-photo-cell"
-                onClick={() => dropPhoto(p.photoId)}
-                title={t('journey.studio.addToPage')}
-                draggable
-                onDragStart={e => {
-                  // HTML5 drag is the right tool for exactly this shape of
-                  // interaction — one item, from a list, onto a target — and it
-                  // gives us the thumbnail as the drag image for free. The
-                  // canvas uses pointer events instead, because free transform
-                  // needs a live position that a drop event cannot provide.
-                  e.dataTransfer.setData('application/x-trek-photo', String(p.photoId))
-                  e.dataTransfer.effectAllowed = 'copy'
-                }}
+                onClick={() => setMenuOpen(o => !o)}
+                aria-haspopup="menu"
+                aria-expanded={menuOpen}
+                title={t('journey.studio.filterPhotos')}
               >
-                <img src={photoSrc(p.photoId, false)} alt="" loading="lazy" draggable={false} />
+                <span className="st-filter-name">{filterLabel}</span>
+                <em>{byFilter.length}</em>
+                <ChevronDown size={12} style={{ opacity: .5 }} />
               </button>
-            ))}
-            {!photos.length && (
-              <p className="st-hint">{t(q ? 'journey.studio.noMatches' : 'journey.studio.noPhotos')}</p>
+              {filter.kind !== 'all' && (
+                <button type="button" onClick={() => setFilter({ kind: 'all' })} aria-label={t('common.clear')}>
+                  <X size={12} />
+                </button>
+              )}
+            </span>
+
+            {menuOpen && (
+              <div className="st-menu" role="menu">
+                <FilterItem
+                  on={filter.kind === 'all'}
+                  label={t('journey.studio.filterAll')}
+                  count={source.photos.length}
+                  onPick={() => pick({ kind: 'all' })}
+                />
+                <FilterItem
+                  on={filter.kind === 'loose'}
+                  label={t('journey.studio.filterLoose')}
+                  count={looseCount}
+                  onPick={() => pick({ kind: 'loose' })}
+                />
+                {withPhotos.length > 0 && <div className="st-menu-sep" />}
+                {withPhotos.map(e => (
+                  <FilterItem
+                    key={e.id}
+                    on={filter.kind === 'entry' && filter.id === e.id}
+                    label={nameOf(e)}
+                    // The day, and the place when the title took the top line.
+                    dim={[e.date ? formatDate(e.date, locale) ?? e.date : null, e.title ? e.location : null]
+                      .filter(Boolean).join(', ')}
+                    count={e.photoIds.length}
+                    onPick={() => pick({ kind: 'entry', id: e.id })}
+                  />
+                ))}
+              </div>
             )}
           </div>
+
+          {offerThisPage && (
+            <button type="button" className="st-chip" onClick={() => setFilter({ kind: 'entry', id: pageEntry.id })}>
+              {t('journey.studio.filterThisPage')}
+            </button>
+          )}
+        </div>
+      )}
+
+      <div className={`st-panel-scroll ${dropOver ? 'is-drop-over' : ''}`} {...dropZone}>
+        {tab === 'photos' ? (
+          <>
+            {canEdit && (
+              <p className="st-hint st-upload-where">
+                {t(filter.kind === 'entry' ? 'journey.studio.uploadToEntry' : 'journey.studio.uploadToGallery')}
+              </p>
+            )}
+            <div className="st-photo-grid">
+              {/*
+                The first cell rather than a button above the grid: it is the
+                size and shape of what it produces, and it stays where the eye
+                already is. Disabled, not hidden, while a batch is on its way,
+                so the count has somewhere to be read.
+              */}
+              {canEdit && (
+                <button type="button"
+                  className="st-photo-cell is-upload"
+                  onClick={() => fileInput.current?.click()}
+                  disabled={!!upload}
+                  title={t('journey.studio.uploadHint')}
+                >
+                  <Upload size={18} strokeWidth={1.6} />
+                  <span>
+                    {upload
+                      ? t('journey.studio.uploading', { done: upload.done, total: upload.total })
+                      : t('journey.studio.uploadPhotos')}
+                  </span>
+                </button>
+              )}
+              {photos.map(p => (
+                <button type="button"
+                  key={p.photoId}
+                  className="st-photo-cell"
+                  onClick={() => dropPhoto(p.photoId)}
+                  title={t('journey.studio.addToPage')}
+                  draggable
+                  onDragStart={e => {
+                    // HTML5 drag is the right tool for exactly this shape of
+                    // interaction (one item, from a list, onto a target) and it
+                    // gives us the thumbnail as the drag image for free. The
+                    // canvas uses pointer events instead, because free transform
+                    // needs a live position that a drop event cannot provide.
+                    e.dataTransfer.setData('application/x-trek-photo', String(p.photoId))
+                    e.dataTransfer.effectAllowed = 'copy'
+                  }}
+                >
+                  <img src={photoSrc(p.photoId, false)} alt="" loading="lazy" draggable={false} />
+                </button>
+              ))}
+              {!photos.length && <p className="st-hint">{t(emptyKey)}</p>}
+            </div>
+            {canEdit && (
+              <input
+                ref={fileInput}
+                type="file"
+                multiple
+                accept="image/*,.heic,.heif"
+                hidden
+                onChange={e => {
+                  const files = Array.from(e.target.files ?? [])
+                  // Cleared straight away, as the spread import does, so the
+                  // same pictures can be chosen twice in a row.
+                  e.target.value = ''
+                  void send(files)
+                }}
+              />
+            )}
+          </>
         ) : (
           <div className="st-entries">
             {entries.map(e => (
@@ -556,6 +851,22 @@ function ContentPanel({
                       <em>{e.pros.length + e.cons.length}</em>
                     </button>
                   )}
+                  {/*
+                    Not a drop like the others: this one takes you to the
+                    entry's pictures. The words of a day and its pictures were
+                    two tabs apart with nothing joining them, and the day is
+                    how anyone thinks of the pictures.
+                  */}
+                  {e.photoIds.length > 0 && (
+                    <button type="button"
+                      className="st-chip"
+                      onClick={() => { setFilter({ kind: 'entry', id: e.id }); setTab('photos') }}
+                    >
+                      <Camera size={12} />
+                      {t('journey.studio.entryPhotos')}
+                      <em>{e.photoIds.length}</em>
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -564,6 +875,31 @@ function ContentPanel({
         )}
       </div>
     </>
+  )
+}
+
+/** One line of the photo filter: a name, a count, and a tick on the one in force. */
+function FilterItem({ on, label, dim, count, onPick }: {
+  on: boolean
+  label: string
+  dim?: string
+  count: number
+  onPick: () => void
+}) {
+  return (
+    <button type="button"
+      role="menuitemradio"
+      aria-checked={on}
+      className={`st-menu-item ${on ? 'is-active' : ''}`}
+      onClick={onPick}
+    >
+      <span className="st-menu-text">
+        <span className="st-menu-name">{label}</span>
+        {dim && <span className="st-menu-dim">{dim}</span>}
+      </span>
+      <span className="st-menu-dim st-filter-count">{count}</span>
+      {on && <Check size={14} />}
+    </button>
   )
 }
 

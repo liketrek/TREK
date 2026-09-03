@@ -888,19 +888,27 @@ export class JourneyDomainService {
    * `getCountryFromCoords`, which is the same answer computed rather than
    * remembered. That import is a plain function from a module built to have no
    * DI and no Nest edges, so it costs this domain no coupling to Atlas.
+   *
+   * ── Stops switched off ─────────────────────────────────────────────────
+   *
+   * An entry marked `stats_excluded` is in the journal and in nothing here:
+   * not on the route, not in the distance, not a step, not a country
+   * (discussion #2064). It is still named, under `excluded`, because the only
+   * way to switch a stop back on is to be able to see it.
    */
   journeyStats(journeyId: number, userId: number): JourneyStats | null {
     if (!this.canAccessJourney(journeyId, userId)) return null;
 
     const entryRows = this.db.prepare(`
-      SELECT id, title, location_name, location_lat, location_lng, entry_date, source_trip_id
+      SELECT id, title, location_name, location_lat, location_lng, entry_date, source_trip_id,
+             source_place_id, stats_excluded
         FROM journey_entries
        WHERE journey_id = ?
        ORDER BY entry_date ASC, sort_order ASC, id ASC
     `).all(journeyId) as {
       id: number; title: string | null; location_name: string | null;
       location_lat: number | null; location_lng: number | null; entry_date: string | null;
-      source_trip_id: number | null;
+      source_trip_id: number | null; source_place_id: number | null; stats_excluded: number;
     }[];
 
     /*
@@ -1006,8 +1014,33 @@ export class JourneyDomainService {
       return getCountryFromCoords(lat, lng);
     };
 
-    const fromEntries: StatsInputPoint[] = entryRows
-      .filter(e => Number.isFinite(e.location_lat) && Number.isFinite(e.location_lng))
+    /*
+     * The switch is honoured before anything is measured, on both routes.
+     *
+     * Only an entry with coordinates is listed under `excluded`: one without
+     * a place was never a stop, and offering to switch it back on would offer
+     * a stop that does not exist. It still stops being a step, because the
+     * traveller said it does not count.
+     *
+     * The fallback has to honour it too. A skeleton is the entry TREK derives
+     * from a trip place, so switching the skeleton off and then drawing the
+     * place it came from would put the same stop straight back on the map
+     * under its other name. Hence the set of places to leave out.
+     */
+    const hasCoords = (e: { location_lat: number | null; location_lng: number | null }) =>
+      Number.isFinite(e.location_lat) && Number.isFinite(e.location_lng);
+    const counting = entryRows.filter(e => !e.stats_excluded);
+    const excluded = entryRows
+      .filter(e => e.stats_excluded && hasCoords(e))
+      .map(e => ({ entryId: e.id, label: e.title || e.location_name || '', date: e.entry_date ?? null }));
+    const excludedPlaceIds = new Set(
+      entryRows
+        .filter(e => e.stats_excluded && e.source_place_id != null)
+        .map(e => e.source_place_id as number),
+    );
+
+    const fromEntries: StatsInputPoint[] = counting
+      .filter(hasCoords)
       .map(e => ({
         lat: e.location_lat as number,
         lng: e.location_lng as number,
@@ -1016,12 +1049,24 @@ export class JourneyDomainService {
         country: countryAt(e.location_lat as number, e.location_lng as number),
         tripId: e.source_trip_id ?? null,
         photoId: photoByEntry.get(e.id) ?? null,
+        entryId: e.id,
       }));
 
-    const points: StatsInputPoint[] = fromEntries.length
+    /*
+     * Which source wins is decided before the switches, not after.
+     *
+     * `fromEntries.length` was the test, and with a switch in the world it
+     * answers the wrong question: a journey whose every stop has been switched
+     * off has no entry points left, so the fallback would draw the trip's
+     * places instead and put the whole route back under other names. The
+     * journal is the source as soon as one entry carries a point, whether or
+     * not it still counts.
+     */
+    const journalHasPoints = entryRows.some(hasCoords);
+    const points: StatsInputPoint[] = journalHasPoints
       ? fromEntries
       : placeRows
-        .filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng))
+        .filter(p => !excludedPlaceIds.has(p.id) && Number.isFinite(p.lat) && Number.isFinite(p.lng))
         .map(p => ({
           lat: p.lat as number,
           lng: p.lng as number,
@@ -1034,6 +1079,8 @@ export class JourneyDomainService {
           // smuggled into a field the book will print as one of the journey's
           // own pictures.
           photoId: null,
+          // No entry to switch off, so a panel lists it and offers no switch.
+          entryId: null,
         }));
 
     /*
@@ -1051,9 +1098,11 @@ export class JourneyDomainService {
     return computeJourneyStats({
       journeyId,
       points,
-      entries: entryRows.length,
+      entries: counting.length,
       photos: photoCount?.n ?? 0,
-      places: placeCount?.n ?? 0,
+      // A place whose skeleton was switched off is not a place the journey
+      // went to, whichever route drew it.
+      places: (placeCount?.n ?? 0) - placeRows.filter(p => excludedPlaceIds.has(p.id)).length,
       tripDates,
       countryNames: countryNamesFor(points),
       trips: tripRows.map(t => ({
@@ -1063,6 +1112,7 @@ export class JourneyDomainService {
         end: t.end,
         points: perTrip.get(t.id) ?? 0,
       })),
+      excluded,
     });
   }
 
@@ -1182,6 +1232,7 @@ export class JourneyDomainService {
       pros_cons: { pros: string[]; cons: string[] };
       visibility: string;
       sort_order: number;
+      stats_excluded: boolean;
     }>,
     sid?: string,
   ): JourneyEntryWire | null {
@@ -1210,6 +1261,7 @@ export class JourneyDomainService {
       'pros_cons',
       'visibility',
       'sort_order',
+      'stats_excluded',
     ]);
 
     for (const [key, val] of Object.entries(data)) {
@@ -1221,6 +1273,10 @@ export class JourneyDomainService {
       } else if (key === 'pros_cons') {
         fields.push('pros_cons = ?');
         values.push(val && typeof val === 'object' ? JSON.stringify(val) : val);
+      } else if (key === 'stats_excluded') {
+        // INTEGER column, and better-sqlite3 refuses to bind a boolean.
+        fields.push('stats_excluded = ?');
+        values.push(val ? 1 : 0);
       } else {
         fields.push(`${key} = ?`);
         values.push(val);

@@ -49,7 +49,7 @@ vi.mock('../../src/nest/memories/photo-resolver.service', async (importOriginal)
 const { jsvc } = vi.hoisted(() => ({
   jsvc: {
     listJourneys: vi.fn(), createJourney: vi.fn(), getJourneyFull: vi.fn(),
-    journeyStats: vi.fn(),
+    journeyStats: vi.fn(), updateEntry: vi.fn(),
   },
 }));
 import { JourneyDomainService } from '../../src/nest/journey/journey-domain.service';
@@ -151,6 +151,30 @@ describe('Journey e2e (real auth guard + temp SQLite)', () => {
     const res = await request(server).get('/api/journeys/9').set('Cookie', sessionCookie(1));
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'Journey not found' });
+  });
+
+  /*
+   * The stop switch (discussion #2064). The entry body is a loose contract, so
+   * what e2e pins is that the boolean reaches the service as it was sent,
+   * through the addon gate and the auth guard, and that the entry comes back
+   * bare rather than in an envelope.
+   */
+  it('PATCH entries/:entryId hands stats_excluded to the service as the boolean it was sent', async () => {
+    jsvc.updateEntry.mockReturnValue({ id: 3, journey_id: 9, stats_excluded: true });
+    const res = await request(server)
+      .patch('/api/journeys/entries/3')
+      .set('Cookie', sessionCookie(1))
+      .send({ stats_excluded: true });
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ id: 3, journey_id: 9, stats_excluded: true });
+    const [entryId, userId, body] = jsvc.updateEntry.mock.calls[0];
+    expect([entryId, userId]).toEqual([3, 1]);
+    expect(body).toEqual({ stats_excluded: true });
+  });
+
+  it('401 for PATCH entries/:entryId without a session', async () => {
+    const res = await request(server).patch('/api/journeys/entries/3').send({ stats_excluded: true });
+    expect(res.status).toBe(401);
   });
 
   /*

@@ -965,4 +965,67 @@ describe('EntryEditor', () => {
     expect(library[0]).toHaveAttribute('multiple')
     expect(camera[0]).not.toHaveAttribute('multiple')
   })
+
+  // #2064: a home airport written up as an entry is a stop on the printed
+  // route. The editor offers the same switch the Studio panel has, but only
+  // to an entry that is (or was) a stop: one without a point never counted,
+  // and a new entry is not on the route yet.
+  it('FE-JRN-EDITOR-051: offers to leave a located entry out of the route and saves it', async () => {
+    const user = userEvent.setup()
+    const { onSave } = mountEditor(buildEntry({
+      id: 10, location_name: 'Keflavík', location_lat: 63.98, location_lng: -22.6,
+    }))
+
+    const toggle = screen.getByRole('button', { name: 'Leave out of the route' })
+    expect(toggle).toHaveAttribute('aria-pressed', 'false')
+    await user.click(toggle)
+    expect(toggle).toHaveAttribute('aria-pressed', 'true')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled())
+    expect(onSave.mock.calls[0][0]).toMatchObject({ stats_excluded: true })
+  })
+
+  it('FE-JRN-EDITOR-052: keeps the switch away from a new entry, point or no point', () => {
+    mountEditor(buildEntry({ location_lat: 63.98, location_lng: -22.6 }))
+
+    expect(screen.queryByRole('button', { name: 'Leave out of the route' })).not.toBeInTheDocument()
+  })
+
+  it('FE-JRN-EDITOR-053: keeps the switch away from an entry without a point, and sends nothing for it', async () => {
+    const user = userEvent.setup()
+    const { onSave } = mountEditor(buildEntry({ id: 10 }))
+
+    expect(screen.queryByRole('button', { name: 'Leave out of the route' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled())
+    expect(onSave.mock.calls[0][0].stats_excluded).toBeUndefined()
+  })
+
+  it('FE-JRN-EDITOR-054: still offers the switch to a left-out entry, so it can be put back', async () => {
+    const user = userEvent.setup()
+    const { onSave } = mountEditor(buildEntry({ id: 10, stats_excluded: true }))
+
+    const toggle = screen.getByRole('button', { name: 'Leave out of the route' })
+    expect(toggle).toHaveAttribute('aria-pressed', 'true')
+    await user.click(toggle)
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled())
+    expect(onSave.mock.calls[0][0]).toMatchObject({ stats_excluded: false })
+  })
+
+  it('FE-JRN-EDITOR-055: flipping the switch is a change worth warning about', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
+    const user = userEvent.setup()
+    const { onClose } = mountEditor(buildEntry({ id: 10, location_lat: 63.98, location_lng: -22.6 }))
+
+    await user.click(screen.getByRole('button', { name: 'Leave out of the route' }))
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    expect(confirmSpy).toHaveBeenCalledWith('You have unsaved changes. Discard them?')
+    expect(onClose).not.toHaveBeenCalled()
+    confirmSpy.mockRestore()
+  })
 })

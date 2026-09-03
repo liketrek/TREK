@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router'
-import type { BookPageNumbers, JourneyStats } from '@trek/shared'
+import type { BookElement, BookPageNumbers, JourneyStats } from '@trek/shared'
 import { bookPageSetupSchema } from '@trek/shared'
 import { journeyApi } from '../../api/client'
 import { useJourneyStore, type GalleryPhoto, type JourneyEntry, type JourneyPhoto } from '../../store/journeyStore'
 import { useStudioStore } from '../../store/studioStore'
+import { useToast } from '../../components/shared/Toast'
+import { uploadStudioPhotos, type StudioUploader } from '../../components/Studio/studioUpload'
 import { useBookStore } from '../../components/Studio/useBookStore'
 import { useBookPresence } from '../../components/Studio/useBookPresence'
 import { useTranslation } from '../../i18n'
@@ -167,45 +169,54 @@ export function useJourneyStudio() {
   const journey = current && current.id === journeyId ? current : null
 
   /** The journey's own material, for the content browser. */
-  const source = useMemo(() => ({
-    entries: (journey?.entries || [])
-      .filter((e: JourneyEntry) => !!(
-        e.title || e.story || e.location_name || e.mood || e.weather
-        || e.pros_cons?.pros?.length || e.pros_cons?.cons?.length
-        // A stop that was only checked into still has two things a page can
-        // use: the day it happened and where on earth it was.
-        || e.entry_date || (e.location_lat != null && e.location_lng != null)
-      ))
-      .map((e: JourneyEntry) => ({
-        id: e.id,
-        title: e.title ?? null,
-        story: e.story ?? null,
-        location: e.location_name ?? null,
-        date: e.entry_date ?? null,
-        lat: e.location_lat ?? null,
-        lng: e.location_lng ?? null,
-        // What the entry recorded beyond its story: how the day felt, what the
-        // weather did, and what was worth and not worth it.
-        mood: e.mood ?? null,
-        weather: e.weather ?? null,
-        pros: e.pros_cons?.pros?.filter(Boolean) ?? [],
-        cons: e.pros_cons?.cons?.filter(Boolean) ?? [],
-      })),
-    photos: (journey?.gallery || []).map((p: GalleryPhoto) => ({
-      photoId: p.photo_id,
-      caption: p.caption ?? null,
-    })),
-    // Which entry a photo hangs on, so a search for a place finds its pictures
+  const source = useMemo(() => {
+    const entries = (journey?.entries || []) as JourneyEntry[]
+    // Which entries a picture hangs on. Usually one; the junction allows more,
+    // and a picture linked to two days belongs to both of their pages.
+    const entriesByPhoto: Record<number, number[]> = {}
+    // And the words of that entry, so a search for a place finds its pictures
     // even though a picture carries no words of its own.
-    photoEntries: (() => {
-      const map: Record<number, string> = {}
-      for (const e of (journey?.entries || []) as JourneyEntry[]) {
-        const words = [e.title, e.location_name].filter(Boolean).join(' ').toLowerCase()
-        for (const p of e.photos || []) map[p.photo_id] = words
+    const photoEntries: Record<number, string> = {}
+    for (const e of entries) {
+      const words = [e.title, e.location_name].filter(Boolean).join(' ').toLowerCase()
+      for (const p of e.photos || []) {
+        ;(entriesByPhoto[p.photo_id] ||= []).push(e.id)
+        photoEntries[p.photo_id] = words
       }
-      return map
-    })(),
-  }), [journey])
+    }
+    return {
+      entries: entries
+        .filter((e: JourneyEntry) => !!(
+          e.title || e.story || e.location_name || e.mood || e.weather
+          || e.pros_cons?.pros?.length || e.pros_cons?.cons?.length
+          // A stop that was only checked into still has two things a page can
+          // use: the day it happened and where on earth it was.
+          || e.entry_date || (e.location_lat != null && e.location_lng != null)
+        ))
+        .map((e: JourneyEntry) => ({
+          id: e.id,
+          title: e.title ?? null,
+          story: e.story ?? null,
+          location: e.location_name ?? null,
+          date: e.entry_date ?? null,
+          lat: e.location_lat ?? null,
+          lng: e.location_lng ?? null,
+          // What the entry recorded beyond its story: how the day felt, what the
+          // weather did, and what was worth and not worth it.
+          mood: e.mood ?? null,
+          weather: e.weather ?? null,
+          pros: e.pros_cons?.pros?.filter(Boolean) ?? [],
+          cons: e.pros_cons?.cons?.filter(Boolean) ?? [],
+          photoIds: (e.photos || []).map((p: JourneyPhoto) => p.photo_id),
+        })),
+      photos: (journey?.gallery || []).map((p: GalleryPhoto) => ({
+        photoId: p.photo_id,
+        caption: p.caption ?? null,
+        entryIds: entriesByPhoto[p.photo_id] ?? [],
+      })),
+      photoEntries,
+    }
+  }, [journey])
 
   useEffect(() => {
     if (!Number.isFinite(journeyId)) return
@@ -629,6 +640,110 @@ export function useJourneyStudio() {
   }, [selection, select, close, undo, redo])
 
 
+  /*
+   * A viewer may open the book and change nothing: not the pages, not the
+   * journey behind them. The server refuses either anyway; this keeps the
+   * controls that would only ever answer with a 403 off the screen.
+   */
+  const canEdit = (journey?.my_role ?? 'owner') !== 'viewer'
+  const toast = useToast()
+
+  /**
+   * Switch a stop on or off, and read the figures again.
+   *
+   * The switch lives on the journal entry, so it goes through the journey
+   * store like any other edit and the timeline sees it too. The figures are
+   * fetched again rather than adjusted here: which stop is furthest, and which
+   * countries remain, is the server's sum to do. The frozen layout input is
+   * patched as well, so a relayout after the change draws the route the change
+   * produced. True when both landed, false (with the toast shown) when not.
+   */
+  const setStopExcluded = useCallback(async (entryId: number, excluded: boolean): Promise<boolean> => {
+    try {
+      await useJourneyStore.getState().updateEntry(entryId, { stats_excluded: excluded })
+      const fresh = await journeyApi.stats(journeyId)
+      setStats(fresh)
+      if (autoInput.current) autoInput.current = { ...autoInput.current, stats: fresh }
+      return true
+    } catch {
+      toast.error(t('journey.studio.stopsFailed'))
+      return false
+    }
+  }, [journeyId, toast, t])
+
+  /**
+   * Pictures into the journey without leaving Studio.
+   *
+   * What went wrong is said here, once, so neither caller has to: the content
+   * browser and the page both hand files in, and both would otherwise grow the
+   * same three toasts.
+   */
+  const uploadPhotos = useCallback<StudioUploader>(async (files, entryId, onProgress) => {
+    try {
+      const outcome = await uploadStudioPhotos(journeyId, files, entryId, onProgress)
+      if (outcome.failed > 0) toast.error(t('journey.photosUploadFailed'))
+      if (outcome.skippedVideos > 0) toast.info(t('journey.studio.videosSkipped', { count: outcome.skippedVideos }))
+      return outcome
+    } catch {
+      toast.error(t('journey.photosUploadFailed'))
+      return { photoIds: [], failed: files.length, skippedVideos: 0 }
+    }
+  }, [journeyId, toast, t])
+
+  /** How far a drop onto the page has got, for the veil over the sheet. */
+  const [canvasUpload, setCanvasUpload] = useState<{ done: number; total: number } | null>(null)
+
+  /**
+   * Pictures dropped straight on the page.
+   *
+   * Into the gallery, never into an entry: the page may belong to one, but a
+   * texture dropped as a background is not a photograph of that day, and a
+   * wrong guess here would show up in the journal. The content browser is
+   * where a picture goes into an entry on purpose.
+   *
+   * Placed where they were let go, the first into the frame under the
+   * pointer when there is one, the rest fanned out from the point, as a
+   * single undo step, so a drop of five is taken back with one press.
+   */
+  const dropFiles = useCallback(async (files: File[], at: { x: number; y: number }, targetFrameId: string | null) => {
+    if (!canEdit || !files.length) return
+    const spreadIndex = useStudioStore.getState().activeSpread
+    setCanvasUpload({ done: 0, total: files.length })
+    let photoIds: number[] = []
+    try {
+      photoIds = (await uploadPhotos(files, null, p => setCanvasUpload({ done: p.done, total: p.total }))).photoIds
+    } finally {
+      setCanvasUpload(null)
+    }
+    if (!photoIds.length) return
+
+    const placed: string[] = []
+    commit(d => {
+      const sp = d.spreads[spreadIndex]
+      if (!sp) return d
+      const w = Math.min(d.page.pageWidth, d.page.pageHeight) * 0.5
+      const h = w * 0.72
+      const target = targetFrameId ? sp.elements.find(el => el.id === targetFrameId && el.kind === 'photo') : null
+      const filled = target
+        ? sp.elements.map(el => (el.id === target.id ? { ...el, photoId: photoIds[0] } : el))
+        : sp.elements
+      if (target) placed.push(target.id)
+      const fresh = (target ? photoIds.slice(1) : photoIds).map((photoId, i) => ({
+        id: `p-${Math.random().toString(36).slice(2, 9)}`, kind: 'photo',
+        frame: { x: at.x - w / 2 + i * 6, y: at.y - h / 2 + i * 6, w, h },
+        rotation: 0, opacity: 1, locked: false,
+        photoId, fit: 'cover', focalX: 0.5, focalY: 0.5, radius: 0, filter: 'none',
+        mask: null, frameStyle: 'none',
+      } as BookElement))
+      placed.push(...fresh.map(el => el.id))
+      return {
+        ...d,
+        spreads: d.spreads.map((s, i) => (i === spreadIndex ? { ...s, elements: [...filled, ...fresh] } : s)),
+      }
+    })
+    select(placed)
+  }, [canEdit, uploadPhotos, commit, select])
+
   const coverUrl = journey?.cover_image
     ? (journey.cover_image.startsWith('/uploads/') ? journey.cover_image : `/uploads/${journey.cover_image}`)
     : null
@@ -649,6 +764,13 @@ export function useJourneyStudio() {
     stats,
     /** The travelled way, ready to freeze into a map element. */
     path,
+
+    /** Whether this user may change the book and the journey behind it. */
+    canEdit,
+    setStopExcluded,
+    uploadPhotos,
+    dropFiles,
+    canvasUpload,
 
     doc,
     page,

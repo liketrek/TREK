@@ -20,18 +20,25 @@ import type { JourneyEntry } from '../../types';
  * breaks on it today — the journey page reloads on any event and ignores the
  * payload — but a payload that contradicts what the read paths answer is a trap
  * for the first listener that decides to trust it.
+ *
+ * `stats_excluded` is the same gap one column over: an INTEGER holding 0 or 1
+ * that the wire carries as a boolean (discussion #2064). It crosses here for
+ * the reason the JSON does, so that a client comparing it with `=== true` is
+ * comparing against something that can be true on every path.
  */
-export interface JourneyEntryWire extends Omit<JourneyEntry, 'tags' | 'pros_cons'> {
+export interface JourneyEntryWire extends Omit<JourneyEntry, 'tags' | 'pros_cons' | 'stats_excluded'> {
   tags: string[];
   pros_cons: { pros: string[]; cons: string[] } | null;
+  stats_excluded: boolean;
 }
 
-/** Decode a row's JSON columns. The one place that knows they are JSON. */
+/** Decode a row's JSON columns and its flag. The one place that knows how they are stored. */
 export function decodeEntryRow(row: JourneyEntry): JourneyEntryWire {
-  const { tags, pros_cons, ...rest } = row;
+  const { tags, pros_cons, stats_excluded, ...rest } = row;
   return {
     ...rest,
     tags: tags ? JSON.parse(tags) : [],
     pros_cons: pros_cons ? JSON.parse(pros_cons) : null,
+    stats_excluded: !!stats_excluded,
   };
 }

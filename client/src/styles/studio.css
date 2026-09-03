@@ -1929,3 +1929,236 @@
   margin: 0 2px;
   background: var(--line-2);
 }
+
+/* stops */
+
+/*
+ * The route as rows, in the Travel panel.
+ *
+ * Not tiles: a stop is not something to place, it is the input every map and
+ * figure below reads. A quiet row with the name, the day and the country, and
+ * the switch on the right, so the eye runs down the switches to find the one
+ * that is off. A left-out row is dimmed as a whole rather than struck through:
+ * it is still a day of the journal, just not a leg of the route.
+ */
+.trek-dash .st-stops {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.trek-dash .st-stop {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 7px 8px 7px 10px;
+  border-radius: var(--r-sm);
+  background: color-mix(in oklch, var(--surface) 70%, transparent);
+  border: 1px solid var(--line);
+  transition: opacity .16s;
+}
+.trek-dash .st-stop.is-off { opacity: .55; }
+.trek-dash .st-stop-body { flex: 1 1 auto; min-width: 0; }
+.trek-dash .st-stop-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.trek-dash .st-stop-meta { display: flex; align-items: center; gap: 5px; margin-top: 3px; min-width: 0; }
+/* The day keeps its width, as on the entry cards; the country gives way. */
+.trek-dash .st-stop-meta > .st-badge { flex: none; }
+.trek-dash .st-stop-meta > .st-badge.is-quiet { flex: 0 1 auto; }
+.trek-dash .st-stop > .st-chip { flex: none; height: 24px; font-size: 11px; }
+/* The same chip as a plain label: a viewer's, or a stop with no entry to switch. */
+.trek-dash .st-stop > span.st-chip { pointer-events: none; }
+
+/* content filter + upload */
+/*
+ * Which pictures the browser shows, and the way pictures get in (#2064).
+ *
+ * The filter chip is a `.st-chip` with two buttons inside it: the name, which
+ * opens the popover, and the cross, which clears. One button would have to be
+ * both, and a chip whose whole face means "open" cannot also mean "off". The
+ * popover is the bar's format menu, hung from the left edge instead of the
+ * right: the side panel is 236px wide and the menu would otherwise open into
+ * the rail.
+ */
+/* The row the filter sits in. It takes the panel's full width, so the entry
+   currently in force reads as a heading over the grid rather than as one
+   control among several, and a long entry name has somewhere to go. The
+   quick chip wraps under it. */
+.trek-dash .st-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  padding: 0 12px 9px;
+  flex: none;
+  min-width: 0;
+}
+.trek-dash .st-filter-row .st-picker { flex: 1 0 100%; min-width: 0; }
+.trek-dash .st-filter-chip {
+  display: flex;
+  width: 100%;
+  padding: 0;
+  min-width: 0;
+}
+.trek-dash .st-filter-chip > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 100%;
+  min-width: 0;
+  padding: 0 9px 0 10px;
+  border-radius: inherit;
+  color: inherit;
+}
+/* The name takes the slack; the count and the chevron stay at the right edge. */
+.trek-dash .st-filter-chip > button:first-child { flex: 1; justify-content: flex-start; }
+.trek-dash .st-filter-chip > button + button { padding: 0 8px 0 3px; margin-left: -5px; }
+.trek-dash .st-filter-chip > button:hover { background: color-mix(in oklch, var(--ink) 7%, transparent); }
+.trek-dash .st-filter-chip.is-on > button:hover { background: color-mix(in oklch, var(--accent-text, #fff) 14%, transparent); }
+.trek-dash .st-filter-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+/* The count, set like the one in the tabs: a footnote, not part of the name. */
+.trek-dash .st-filter-chip em {
+  font-style: normal;
+  font-size: 10.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  opacity: .7;
+}
+/* Hung under the chip and as wide as it: a menu narrower than the control that
+   opens it reads as belonging to something else. */
+.trek-dash .st-filter-row .st-menu {
+  left: 0;
+  right: 0;
+  min-width: 0;
+  max-width: none;
+}
+.trek-dash .st-filter-row .st-menu-item { padding: 7px 10px; gap: 8px; }
+.trek-dash .st-filter-row .st-menu-name,
+.trek-dash .st-filter-row .st-menu-dim {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.trek-dash .st-filter-count { flex: none; }
+
+/* Where the next pictures go. Under the filter because the filter decides it. */
+.trek-dash .st-upload-where { padding: 0 2px 8px; font-size: 11.5px; }
+
+/*
+ * The upload cell: the first square of the grid, drawn as an outline so it
+ * reads as a place for a picture rather than as one. Disabled while a batch
+ * is on its way, in the same grey, because a target that goes lighter looks
+ * like it has stopped taking files rather than like it is busy.
+ */
+.trek-dash .st-photo-cell.is-upload {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 6px;
+  background: transparent;
+  border: 1px dashed var(--line-2);
+  color: var(--ink-3);
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+  transition: border-color .16s, color .16s, background .16s, transform .14s ease-out, box-shadow .14s;
+}
+.trek-dash .st-photo-cell.is-upload span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+.trek-dash .st-photo-cell.is-upload:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: color-mix(in oklch, var(--accent) 6%, transparent);
+}
+.trek-dash .st-photo-cell.is-upload:disabled {
+  cursor: default;
+  transform: none;
+  box-shadow: none;
+}
+
+/* A file drag over the panel: an inner frame, and the cell lights with it. */
+.trek-dash .st-panel-scroll.is-drop-over {
+  box-shadow: inset 0 0 0 2px var(--accent);
+  border-radius: var(--r-sm);
+}
+.trek-dash .st-panel-scroll.is-drop-over .st-photo-cell.is-upload {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/*
+ * Pictures dropped on the sheet, on their way. A pill above the zoom bar
+ * rather than a veil over the page: the page keeps rendering, and the only
+ * question in those two seconds is whether the drop was taken.
+ */
+.trek-dash .st-upload-veil {
+  position: absolute;
+  left: 50%;
+  bottom: 70px;
+  z-index: 6;
+  transform: translateX(-50%);
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--line-2);
+  box-shadow: var(--sh-md);
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/*
+ * A file drag over the stage. Over the whole stage rather than inside the
+ * scaled sheet, so the label is one size at every zoom, and above the handles
+ * and the peers' pointers, none of which matter while a file is in the air.
+ */
+.trek-dash .st-file-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  display: grid;
+  place-items: center;
+  border: 2px dashed var(--accent);
+  border-radius: 4px;
+  background: color-mix(in oklch, var(--accent) 10%, transparent);
+  pointer-events: none;
+}
+.trek-dash .st-file-veil span {
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--line-2);
+  box-shadow: var(--sh-md);
+  color: var(--ink);
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}

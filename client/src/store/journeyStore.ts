@@ -46,6 +46,9 @@ export interface JourneyEntry {
   pros_cons?: { pros: string[]; cons: string[] } | null
   visibility: string
   sort_order: number
+  // Switched off by hand: the stop stays in the journal but is left out of the
+  // route, the distance and the countries that Studio prints.
+  stats_excluded?: boolean
   photos: JourneyPhoto[]
   created_at: number
   updated_at: number
@@ -120,6 +123,7 @@ export interface JourneyDetail extends Journey {
   contributors: JourneyContributor[]
   stats: { entries: number; photos: number; places: number }
   hide_skeletons?: boolean
+  my_role?: 'owner' | 'editor' | 'viewer'
 }
 
 interface JourneyState {
@@ -263,9 +267,24 @@ export const useJourneyStore = create<JourneyState>((set, get) => ({
         fd.append('photos', file)
         const data = await journeyApi.uploadPhotos(entryId, fd, opts)
         const photos: JourneyPhoto[] = data.photos || []
-        const gallery: GalleryPhoto[] = data.gallery || []
         set(s => {
           if (!s.current) return s
+          const journeyId = s.current.id
+          const known = new Set((s.current.gallery || []).map(p => p.id))
+          /*
+           * A picture put on an entry is in the gallery too, because that is
+           * where the row lives: the entry only holds a link to it. The route
+           * answers with the entry's view of the row and, when it has one, the
+           * gallery's; the derived rows below are for the case where it does
+           * not, so that a picture added here shows up wherever the gallery is
+           * read without waiting for the journey to be fetched again.
+           */
+          const gallery: GalleryPhoto[] = [
+            ...(data.gallery || []),
+            ...photos
+              .filter(p => !known.has(p.id) && !(data.gallery || []).some(g => g.id === p.id))
+              .map(({ entry_id: _entry, ...rest }) => ({ ...rest, journey_id: journeyId })),
+          ]
           return {
             current: {
               ...s.current,

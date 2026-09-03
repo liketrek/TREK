@@ -33,15 +33,16 @@ const stats: JourneyStats = {
     { code: 'PT', name: 'Portugal', places: 2, firstVisit: '2026-09-04' },
   ],
   points: [
-    { lat: 64.14, lng: -21.94, label: 'Reykjavík', date: '2026-06-02', country: 'IS', tripId: ICELAND, photoId: null },
-    { lat: 65.68, lng: -18.12, label: 'Akureyri', date: '2026-06-06', country: 'IS', tripId: ICELAND, photoId: null },
-    { lat: 38.72, lng: -9.14, label: 'Lisboa', date: '2026-09-04', country: 'PT', tripId: PORTUGAL, photoId: null },
-    { lat: 41.15, lng: -8.61, label: 'Porto', date: '2026-09-08', country: 'PT', tripId: PORTUGAL, photoId: null },
+    { lat: 64.14, lng: -21.94, label: 'Reykjavík', date: '2026-06-02', country: 'IS', tripId: ICELAND, photoId: null, entryId: null },
+    { lat: 65.68, lng: -18.12, label: 'Akureyri', date: '2026-06-06', country: 'IS', tripId: ICELAND, photoId: null, entryId: null },
+    { lat: 38.72, lng: -9.14, label: 'Lisboa', date: '2026-09-04', country: 'PT', tripId: PORTUGAL, photoId: null, entryId: null },
+    { lat: 41.15, lng: -8.61, label: 'Porto', date: '2026-09-08', country: 'PT', tripId: PORTUGAL, photoId: null, entryId: null },
   ],
   trips: [
     { id: ICELAND, title: 'Iceland', start: '2026-06-02', end: '2026-06-14', points: 2 },
     { id: PORTUGAL, title: 'Portugal', start: '2026-09-04', end: '2026-09-12', points: 2 },
   ],
+  excluded: [],
   start: '2026-06-02',
   end: '2026-09-12',
 }

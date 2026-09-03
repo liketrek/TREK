@@ -23,10 +23,11 @@ const stats: JourneyStats = {
     { code: 'IS', name: 'Iceland', places: 14, firstVisit: '2026-06-02' },
   ],
   points: [
-    { lat: 64.14, lng: -21.94, label: 'Reykjavík', date: '2026-06-02', country: 'IS', tripId: null, photoId: null },
-    { lat: 65.68, lng: -18.12, label: 'Akureyri', date: '2026-06-06', country: 'IS', tripId: null, photoId: null },
+    { lat: 64.14, lng: -21.94, label: 'Reykjavík', date: '2026-06-02', country: 'IS', tripId: null, photoId: null, entryId: null },
+    { lat: 65.68, lng: -18.12, label: 'Akureyri', date: '2026-06-06', country: 'IS', tripId: null, photoId: null, entryId: null },
   ],
   trips: [],
+  excluded: [],
   start: '2026-06-02',
   end: '2026-06-15',
 }

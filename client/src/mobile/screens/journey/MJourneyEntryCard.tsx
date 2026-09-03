@@ -1,4 +1,4 @@
-import { MapPin } from 'lucide-react'
+import { MapPin, RouteOff } from 'lucide-react'
 import { useTranslation } from '../../../i18n'
 import { formatLocationName } from '../../../utils/formatters'
 import { stripMarkdown } from '../../../components/Journey/stripMarkdown'
@@ -59,6 +59,13 @@ export default function MJourneyEntryCard({ entry, number, onClick }: MJourneyEn
           <span className="whitespace-nowrap rounded-full bg-[color:var(--m-ic)] px-2 py-[2px] font-geist text-[0.5625rem] font-bold text-m-muted">
             {dateLabel}
           </span>
+          {/* Switched off the printed route (#2064). Shrinks before the date does. */}
+          {entry.stats_excluded && (
+            <span className="inline-flex min-w-0 items-center gap-[3px] overflow-hidden truncate whitespace-nowrap rounded-full bg-[color:var(--m-ic)] px-2 py-[2px] font-geist text-[0.5625rem] font-bold text-m-muted">
+              <RouteOff size={9} strokeWidth={2.4} className="flex-none" />
+              <span className="truncate">{t('journey.entry.offRoute')}</span>
+            </span>
+          )}
           <span className="ml-auto flex gap-1">
             {mood && (
               <span

@@ -935,6 +935,52 @@ describe('MJourneyEntrySheet read-only', () => {
   });
 });
 
+// FE-MOB-JENTRY-051 to FE-MOB-JENTRY-054: leaving a stop off the printed route
+// (#2064), the phone sheet's half of the switch the desktop editor has.
+
+describe('MJourneyEntrySheet route switch', () => {
+  it('FE-MOB-JENTRY-051: offers to leave a located entry out of the route and saves it', async () => {
+    const user = userEvent.setup();
+    const { onSave } = mountSheet(buildEntry({
+      id: 5, location_name: 'Keflavík', location_lat: 63.98, location_lng: -22.6,
+    }));
+
+    const toggle = screen.getByRole('switch', { name: 'Leave out of the route' });
+    expect(toggle).toHaveAttribute('aria-checked', 'false');
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute('aria-checked', 'true');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave.mock.calls[0][0]).toMatchObject({ stats_excluded: true });
+  });
+
+  it('FE-MOB-JENTRY-052: keeps the switch away from a new entry, point or no point', () => {
+    mountSheet(buildEntry({ location_lat: 63.98, location_lng: -22.6 }));
+
+    expect(screen.queryByRole('switch', { name: 'Leave out of the route' })).not.toBeInTheDocument();
+  });
+
+  it('FE-MOB-JENTRY-053: keeps the switch away from an entry without a point, and sends nothing for it', async () => {
+    const user = userEvent.setup();
+    const { onSave } = mountSheet(buildEntry({ id: 5 }));
+
+    expect(screen.queryByRole('switch', { name: 'Leave out of the route' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave.mock.calls[0][0].stats_excluded).toBeUndefined();
+  });
+
+  it('FE-MOB-JENTRY-054: shows a left-out entry\'s switch to a viewer, locked', () => {
+    mountSheet(buildEntry({ id: 5, stats_excluded: true }), { readOnly: true });
+
+    const toggle = screen.getByRole('switch', { name: 'Leave out of the route' });
+    expect(toggle).toHaveAttribute('aria-checked', 'true');
+    expect(toggle).toBeDisabled();
+  });
+});
+
 describe('MJourneyEntrySheet quick capture edge cases', () => {
   afterEach(() => {
     vi.restoreAllMocks();

@@ -4236,6 +4236,27 @@ function runMigrations(db: Database.Database): void {
         db.exec("ALTER TABLE plugin_actions ADD COLUMN scope TEXT NOT NULL DEFAULT 'user'");
       }
     },
+    /**
+     * A journal entry that is not a stop (discussion #2064).
+     *
+     * Studio draws its route and prints its distance from every entry that
+     * carries coordinates, and that is right until the journal starts at the
+     * home airport: the night before the flight, the stopover, the place the
+     * trip was planned from all become stops, and the distance counts the legs
+     * to and from them. The traveller knows which of those are the journey and
+     * which are the way there, so the switch sits on the entry. The entry stays
+     * in the journal; it is only left out of the arithmetic.
+     *
+     * DEFAULT 0: every existing entry keeps counting, which is what it did.
+     *
+     * Appended LAST: the array is index-addressed against schema_version.
+     */
+    () => {
+      const cols = db.prepare("SELECT name FROM pragma_table_info('journey_entries')").all() as Array<{ name: string }>;
+      if (!cols.some((c) => c.name === 'stats_excluded')) {
+        db.exec('ALTER TABLE journey_entries ADD COLUMN stats_excluded INTEGER NOT NULL DEFAULT 0');
+      }
+    },
   ];
 
   if (currentVersion < migrations.length) {

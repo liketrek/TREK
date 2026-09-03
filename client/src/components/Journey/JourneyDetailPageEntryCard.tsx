@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { MapPin, Clock, MoreHorizontal, Pencil, Trash2, Plus } from 'lucide-react'
+import { MapPin, Clock, MoreHorizontal, Pencil, Trash2, Plus, RouteOff } from 'lucide-react'
 import { formatLocationName } from '../../utils/formatters'
 import { useTranslation } from '../../i18n'
 import { pluginsApi } from '../../api/client'
@@ -68,6 +68,14 @@ export function EntryCard({ entry, readOnly, onEdit, onDelete, onPhotoClick }: {
                 {entry.entry_time}
               </span>
             )}
+            {/* Switched off the route (#2064): the day is still in the journal,
+                the printed map and the distance skip it, and the card says so. */}
+            {entry.stats_excluded && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-black/40 backdrop-blur-sm rounded-full text-[10px] font-semibold text-white tracking-wide">
+                <RouteOff size={10} />
+                {t('journey.entry.offRoute')}
+              </span>
+            )}
           </div>
 
           {/* Menu top-right */}
@@ -108,6 +116,11 @@ export function EntryCard({ entry, readOnly, onEdit, onDelete, onPhotoClick }: {
             {entry.entry_time && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded-full text-[10px] font-semibold text-zinc-500">
                 <Clock size={10} /> {entry.entry_time}
+              </span>
+            )}
+            {entry.stats_excluded && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded-full text-[10px] font-semibold text-zinc-500">
+                <RouteOff size={10} /> {t('journey.entry.offRoute')}
               </span>
             )}
           </div>

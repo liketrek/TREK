@@ -191,6 +191,34 @@ export function StudioInspector({
 
   const live = (patch: Partial<BookElement>) => update(spreadIndex, el.id, patch)
 
+  /**
+   * Stretch the picture over the page it is on, or over both pages, bleed
+   * included.
+   *
+   * One commit rather than `set` followed by `raise`: the frame, the rotation
+   * put back to zero (a turned picture leaves bare corners), the cover crop and
+   * the move to the back are one press, and one press comes back with one
+   * undo. Which page is the one under the frame's centre; a cover has only
+   * the one.
+   */
+  const fill = (scope: 'page' | 'spread') => commit(d => ({
+    ...d,
+    spreads: d.spreads.map((sp, i) => {
+      if (i !== spreadIndex) return sp
+      const bleed = page.bleed
+      const onRight = sp.role === 'inner' && scope === 'page'
+        && el.frame.x + el.frame.w / 2 >= page.pageWidth
+      const frame = {
+        x: onRight ? page.pageWidth - bleed : -bleed,
+        y: -bleed,
+        w: (scope === 'spread' ? 2 : 1) * page.pageWidth + 2 * bleed,
+        h: page.pageHeight + 2 * bleed,
+      }
+      const filled = { ...el, frame, rotation: 0, fit: 'cover' } as BookElement
+      return { ...sp, elements: [filled, ...sp.elements.filter(e => e.id !== el.id)] }
+    }),
+  }))
+
   return (
     <aside className="st-panel st-inspector">
       {/*
@@ -696,6 +724,28 @@ export function StudioInspector({
               <ChevronsDown size={14} />
             </button>
           </div>
+          {/*
+            The picture as the page.
+
+            A full-bleed photograph is the commonest layout in any photo book
+            and the hardest to make by hand: the frame has to reach exactly to
+            the bleed on every side, and a millimetre short leaves a white
+            hairline on the trimmed page. So it is one press. It goes to the
+            back as well, since a page-sized picture in front of everything is
+            a page with nothing else on it.
+          */}
+          {one && el.kind === 'photo' && (
+            <div className="st-row" style={{ marginTop: 6 }}>
+              <button type="button" className="st-chip" onClick={() => fill('page')} title={t('journey.studio.fillHint')}>
+                {t('journey.studio.fillPage')}
+              </button>
+              {spread.role === 'inner' && (
+                <button type="button" className="st-chip" onClick={() => fill('spread')} title={t('journey.studio.fillHint')}>
+                  {t('journey.studio.fillSpread')}
+                </button>
+              )}
+            </div>
+          )}
         </Section>
       </div>
     </aside>

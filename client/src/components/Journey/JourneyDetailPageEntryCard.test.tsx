@@ -189,6 +189,23 @@ describe('EntryCard', () => {
 
     expect(await screen.findByRole('link', { name: 'https://book.example' })).toBeInTheDocument()
   })
+
+  // #2064: a stop switched off the route says so on its card, so a journal
+  // that reads fine still shows which of its days the printed map skips.
+  it('FE-JRN-CARD-018: marks an entry left out of the route, on the header and on the hero', () => {
+    const { unmount } = mountCard(buildEntry({ stats_excluded: true }))
+    expect(screen.getByText('Off route')).toBeInTheDocument()
+    unmount()
+
+    mountCard(buildEntry({ stats_excluded: true, photos: [buildPhoto(100)] }))
+    expect(screen.getByText('Off route')).toBeInTheDocument()
+  })
+
+  it('FE-JRN-CARD-019: carries no such mark on an ordinary entry', () => {
+    mountCard(buildEntry({ photos: [buildPhoto(100)] }))
+
+    expect(screen.queryByText('Off route')).not.toBeInTheDocument()
+  })
 })
 
 describe('SkeletonCard', () => {

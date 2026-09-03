@@ -65,6 +65,8 @@ export function StudioCanvas({
   dropLabel,
   cursors,
   onCursor,
+  onDropFiles,
+  fileDropLabel,
 }: {
   spread: BookSpread | null
   spreadIndex: number
@@ -73,6 +75,14 @@ export function StudioCanvas({
   pxPerMm: number
   bookView: boolean
   dropLabel: string
+  /**
+   * Files from outside the browser, let go over the sheet. Absent for a
+   * viewer, and then a file drag is left to the browser, which opens it.
+   * `targetFrameId` is the photo frame under the pointer, when there is one.
+   */
+  onDropFiles?: (files: File[], at: { x: number; y: number }, targetFrameId: string | null) => void
+  /** What the veil says while a file drag is over the sheet. */
+  fileDropLabel?: string
   /** The other editors' pointers, on this spread and elsewhere. */
   cursors?: PeerCursor[]
   /** Where this one is, in the spread's millimetres. Null once it leaves. */
@@ -87,6 +97,8 @@ export function StudioCanvas({
   const commit = useStudioStore(s => s.commit)
   const addElement = useStudioStore(s => s.addElement)
   const [dropTarget, setDropTarget] = useState<string | null>(null)
+  /** A file drag from outside the browser is over the sheet. */
+  const [fileOver, setFileOver] = useState(false)
   const [editing, setEditing] = useState<string | null>(null)
 
   /** Where on the spread, in millimetres, a drop landed. */
@@ -166,22 +178,34 @@ export function StudioCanvas({
       onPointerUp={finish}
       onPointerCancel={finish}
       onDragOver={e => {
-        if (!e.dataTransfer.types.includes('application/x-trek-photo')) return
+        const fromPanel = e.dataTransfer.types.includes('application/x-trek-photo')
+        // A file drag is only claimed when somebody is there to take it; for a
+        // viewer the browser keeps its default and opens the picture itself.
+        const fromDisk = !!onDropFiles && e.dataTransfer.types.includes('Files')
+        if (!fromPanel && !fromDisk) return
         e.preventDefault()
         e.dataTransfer.dropEffect = 'copy'
         const p = pointInMm(e)
         setDropTarget(frameUnder(p.x, p.y)?.id ?? null)
+        setFileOver(fromDisk && !fromPanel)
       }}
-      onDragLeave={() => setDropTarget(null)}
+      onDragLeave={() => { setDropTarget(null); setFileOver(false) }}
       onDrop={e => {
         const raw = e.dataTransfer.getData('application/x-trek-photo')
-        if (!raw) return
+        const files = Array.from(e.dataTransfer.files ?? [])
+        if (!raw && !(files.length && onDropFiles)) return
         e.preventDefault()
         setDropTarget(null)
+        setFileOver(false)
+
+        const p = pointInMm(e)
+        if (!raw) {
+          onDropFiles!(files, p, frameUnder(p.x, p.y)?.id ?? null)
+          return
+        }
         const photoId = Number(raw)
         if (!Number.isFinite(photoId)) return
 
-        const p = pointInMm(e)
         const target = frameUnder(p.x, p.y)
         if (target) {
           // Dropped onto a frame: fill it. That is the whole point of an empty
@@ -211,6 +235,17 @@ export function StudioCanvas({
         select([id])
       }}
     >
+      {/*
+        Over the stage rather than inside the sheet, which is scaled: at 40%
+        a label drawn on the page would be unreadable. It says what letting go
+        will do, because a page is not an obvious drop target for a file the
+        way an upload box is.
+      */}
+      {fileOver && fileDropLabel && (
+        <div className="st-file-veil" aria-hidden>
+          <span>{fileDropLabel}</span>
+        </div>
+      )}
       <div
         className="st-sheet"
         style={{
