@@ -10,6 +10,7 @@ import { formatDate } from '../../utils/formatters'
 import { useToast } from '../shared/Toast'
 import { SpreadFold, SpreadView } from './SpreadView'
 import { photoSrc } from './bookRender'
+import { elementId as uid } from './bookIds'
 import { formatBookCoords, formatBookDate, type CoordFormat } from './entryText'
 import { coordValue } from './resolveBindings'
 import { COVER_TEMPLATES, TEMPLATES, applyTemplate } from './templates'
@@ -18,6 +19,8 @@ import { PanelHead as Head } from './StudioPanelHead'
 import { StudioElementsPanel } from './StudioElementsPanel'
 import { StudioTravelPanel } from './StudioTravelPanel'
 import { MAX_SPREAD_FILE_BYTES, importSpread } from './spreadFile'
+import { StudioContentFilter } from './StudioContentFilter'
+import { emptyKeyFor, matchingEntries, matchingPhotos, photosFor, type PhotoFilter } from './photoFilter'
 import type { StudioUploader } from './studioUpload'
 
 /**
@@ -58,8 +61,6 @@ export interface JourneySource {
 
 /** The translator, with the parameters some of the strings here take. */
 export type StudioT = (k: string, params?: Record<string, string | number>) => string
-
-const uid = (p: string) => `${p}-${Math.random().toString(36).slice(2, 9)}`
 
 /**
  * How wide a page preview may be drawn.
@@ -321,19 +322,6 @@ function PagesPanel({
 }
 
 /**
- * Which of the journey's pictures the browser shows.
- *
- * `recent` holds ids rather than a flag on the photo: what just arrived is a
- * fact about this sitting, not about the picture, and the journey store has no
- * reason to remember it.
- */
-type PhotoFilter =
-  | { kind: 'all' }
-  | { kind: 'entry'; id: number }
-  | { kind: 'loose' }
-  | { kind: 'recent'; photoIds: number[] }
-
-/**
  * The journey's own material.
  *
  * This is what separates a book maker from a drawing program: the pictures and
@@ -361,97 +349,15 @@ function ContentPanel({
   const [filter, setFilter] = useState<PhotoFilter>({ kind: 'all' })
   const toast = useToast()
 
-  /*
-   * Filtering, not a search index: a journey holds tens or hundreds of items, and
-   * a substring match over what is already in memory answers instantly. A photo
-   * matches on its own caption *and* on the entry it belongs to — most photos
-   * carry no words at all, so matching only captions would make the box look
-   * broken on exactly the journeys that need it.
-   */
-  const q = query.trim().toLowerCase()
-  const entries = q
-    ? source.entries.filter(e =>
-      [e.title, e.story, e.location, ...e.pros, ...e.cons]
-        .some(v => v && v.toLowerCase().includes(q)))
-    : source.entries
-
-  /*
-   * The filter narrows first and the words second, so an entry filter with a
-   * search typed into it means "these pictures, with these words". Which entry
-   * a picture belongs to is read off the journal's own junction rather than
-   * off its words, which is what lets "not in an entry" mean exactly that.
-   */
-  const byFilter = (() => {
-    switch (filter.kind) {
-      case 'entry': return source.photos.filter(p => p.entryIds.includes(filter.id))
-      case 'loose': return source.photos.filter(p => !p.entryIds.length)
-      case 'recent': {
-        // In the order they were sent, which is the order they were chosen in,
-        // not wherever the gallery sorted them.
-        const byId = new Map(source.photos.map(p => [p.photoId, p] as const))
-        return filter.photoIds.flatMap(id => { const p = byId.get(id); return p ? [p] : [] })
-      }
-      default: return source.photos
-    }
-  })()
-  const photos = q
-    ? byFilter.filter(p =>
-      (p.caption && p.caption.toLowerCase().includes(q))
-      || (source.photoEntries[p.photoId] || '').includes(q))
-    : byFilter
-
-  const looseCount = source.photos.filter(p => !p.entryIds.length).length
-  const withPhotos = source.entries.filter(e => e.photoIds.length > 0)
-  const nameOf = (e: { title: string | null; location: string | null } | undefined) =>
-    e?.title || e?.location || t('journey.studio.untitled')
-  const filterLabel = filter.kind === 'loose' ? t('journey.studio.filterLoose')
-    : filter.kind === 'recent' ? t('journey.studio.filterRecent')
-    : filter.kind === 'entry' ? nameOf(source.entries.find(e => e.id === filter.id))
-    : t('journey.studio.filterAll')
-
-  /*
-   * Why the grid is empty, which is four different answers. "No photos" on a
-   * journey with three hundred of them, because the filter is on a day with
-   * none, reads as the pictures having gone.
-   */
-  const emptyKey = !source.photos.length ? 'journey.studio.noPhotos'
-    : byFilter.length ? 'journey.studio.noMatches'
-    : filter.kind === 'entry' ? 'journey.studio.noEntryPhotos'
-    : filter.kind === 'loose' ? 'journey.studio.noLoosePhotos'
-    : 'journey.studio.noMatches'
-
-  const [menuOpen, setMenuOpen] = useState(false)
-  const menuBox = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    if (!menuOpen) return
-    const onDown = (e: PointerEvent) => {
-      if (!menuBox.current?.contains(e.target as Node)) setMenuOpen(false)
-    }
-    const onKey = (e: KeyboardEvent) => {
-      // Swallowed, as the format picker does it: the shell's Escape closes Studio.
-      if (e.key === 'Escape') { e.stopPropagation(); setMenuOpen(false) }
-    }
-    document.addEventListener('pointerdown', onDown)
-    document.addEventListener('keydown', onKey, true)
-    return () => {
-      document.removeEventListener('pointerdown', onDown)
-      document.removeEventListener('keydown', onKey, true)
-    }
-  }, [menuOpen])
-  const pick = (f: PhotoFilter) => { setFilter(f); setMenuOpen(false) }
+  const entries = matchingEntries(source, query)
+  const admitted = photosFor(source, filter)
+  const photos = matchingPhotos(admitted, source, query)
+  const emptyKey = emptyKeyFor(source, filter, admitted)
 
   const addElement = useStudioStore(s => s.addElement)
   const active = useStudioStore(s => s.activeSpread)
   const doc = useStudioStore(s => s.doc)
   const spread = doc?.spreads[active]
-
-  /*
-   * The page on the sheet belongs to a day, so its pictures are one press
-   * away. Offered only while the filter is not already there: a chip for the
-   * state you are in is a chip that does nothing.
-   */
-  const pageEntry = spread?.entryId != null ? withPhotos.find(e => e.id === spread.entryId) : undefined
-  const offerThisPage = pageEntry && !(filter.kind === 'entry' && filter.id === pageEntry.id)
 
   const fileInput = useRef<HTMLInputElement>(null)
   const [upload, setUpload] = useState<{ done: number; total: number } | null>(null)
@@ -638,63 +544,15 @@ function ContentPanel({
         panel has no room to the right of it.
       */}
       {tab === 'photos' && (
-        <div className="st-filter-row">
-          <div className="st-picker" ref={menuBox}>
-            <span className={`st-chip st-filter-chip ${filter.kind !== 'all' ? 'is-on' : ''}`}>
-              <button type="button"
-                onClick={() => setMenuOpen(o => !o)}
-                aria-haspopup="menu"
-                aria-expanded={menuOpen}
-                title={t('journey.studio.filterPhotos')}
-              >
-                <span className="st-filter-name">{filterLabel}</span>
-                <em>{byFilter.length}</em>
-                <ChevronDown size={12} style={{ opacity: .5 }} />
-              </button>
-              {filter.kind !== 'all' && (
-                <button type="button" onClick={() => setFilter({ kind: 'all' })} aria-label={t('common.clear')}>
-                  <X size={12} />
-                </button>
-              )}
-            </span>
-
-            {menuOpen && (
-              <div className="st-menu" role="menu">
-                <FilterItem
-                  on={filter.kind === 'all'}
-                  label={t('journey.studio.filterAll')}
-                  count={source.photos.length}
-                  onPick={() => pick({ kind: 'all' })}
-                />
-                <FilterItem
-                  on={filter.kind === 'loose'}
-                  label={t('journey.studio.filterLoose')}
-                  count={looseCount}
-                  onPick={() => pick({ kind: 'loose' })}
-                />
-                {withPhotos.length > 0 && <div className="st-menu-sep" />}
-                {withPhotos.map(e => (
-                  <FilterItem
-                    key={e.id}
-                    on={filter.kind === 'entry' && filter.id === e.id}
-                    label={nameOf(e)}
-                    // The day, and the place when the title took the top line.
-                    dim={[e.date ? formatDate(e.date, locale) ?? e.date : null, e.title ? e.location : null]
-                      .filter(Boolean).join(', ')}
-                    count={e.photoIds.length}
-                    onPick={() => pick({ kind: 'entry', id: e.id })}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-
-          {offerThisPage && (
-            <button type="button" className="st-chip" onClick={() => setFilter({ kind: 'entry', id: pageEntry.id })}>
-              {t('journey.studio.filterThisPage')}
-            </button>
-          )}
-        </div>
+        <StudioContentFilter
+          source={source}
+          filter={filter}
+          setFilter={setFilter}
+          admitted={admitted.length}
+          pageEntryId={spread?.entryId ?? null}
+          t={t}
+          locale={locale}
+        />
       )}
 
       <div className={`st-panel-scroll ${dropOver ? 'is-drop-over' : ''}`} {...dropZone}>
@@ -875,31 +733,6 @@ function ContentPanel({
         )}
       </div>
     </>
-  )
-}
-
-/** One line of the photo filter: a name, a count, and a tick on the one in force. */
-function FilterItem({ on, label, dim, count, onPick }: {
-  on: boolean
-  label: string
-  dim?: string
-  count: number
-  onPick: () => void
-}) {
-  return (
-    <button type="button"
-      role="menuitemradio"
-      aria-checked={on}
-      className={`st-menu-item ${on ? 'is-active' : ''}`}
-      onClick={onPick}
-    >
-      <span className="st-menu-text">
-        <span className="st-menu-name">{label}</span>
-        {dim && <span className="st-menu-dim">{dim}</span>}
-      </span>
-      <span className="st-menu-dim st-filter-count">{count}</span>
-      {on && <Check size={14} />}
-    </button>
   )
 }
 

@@ -297,6 +297,57 @@ describe('journeyStore', () => {
     spy.mockRestore();
   });
 
+  /*
+   * A picture uploaded onto an entry is a gallery row as well: the entry only
+   * holds a link to it. Studio's content browser reads the gallery, so without
+   * this a picture added from there vanished until the journey was fetched
+   * again (#2064).
+   */
+  it('FE-STORE-JOURNEY-013b: uploadPhotos puts the picture in the gallery the entry links to', async () => {
+    const entry = buildEntry({ id: 100, photos: [] });
+    useJourneyStore.setState({ current: buildJourneyDetail({ id: 50, entries: [entry], gallery: [] }) });
+    const uploaded = buildPhoto({ id: 91, entry_id: 100, photo_id: 700, caption: 'a caption' });
+    const spy = vi.spyOn(journeyApi, 'uploadPhotos').mockResolvedValue({ photos: [uploaded] } as any);
+
+    await useJourneyStore.getState().uploadPhotos(100, [new File(['x'], 'p.jpg', { type: 'image/jpeg' })]);
+
+    const gallery = useJourneyStore.getState().current?.gallery ?? [];
+    expect(gallery).toHaveLength(1);
+    // The gallery's own shape: the journey it belongs to, and no entry on it.
+    expect(gallery[0]).toMatchObject({ id: 91, photo_id: 700, caption: 'a caption', journey_id: 50 });
+    expect('entry_id' in gallery[0]).toBe(false);
+    spy.mockRestore();
+  });
+
+  it('FE-STORE-JOURNEY-013c: the gallery row the route answers with wins over a derived one', async () => {
+    useJourneyStore.setState({
+      current: buildJourneyDetail({ id: 50, entries: [buildEntry({ id: 100, photos: [] })], gallery: [] }),
+    });
+    const uploaded = buildPhoto({ id: 91, entry_id: 100, photo_id: 700 });
+    const answered = { id: 91, journey_id: 50, photo_id: 700, caption: null, shared: 0, sort_order: 4, created_at: 7 };
+    const spy = vi.spyOn(journeyApi, 'uploadPhotos')
+      .mockResolvedValue({ photos: [uploaded], gallery: [answered] } as any);
+
+    await useJourneyStore.getState().uploadPhotos(100, [new File(['x'], 'p.jpg', { type: 'image/jpeg' })]);
+
+    expect(useJourneyStore.getState().current?.gallery).toEqual([answered]);
+    spy.mockRestore();
+  });
+
+  it('FE-STORE-JOURNEY-013d: a picture already in the gallery is not added to it twice', async () => {
+    const known = { id: 91, journey_id: 50, photo_id: 700, caption: null, shared: 0, sort_order: 0, created_at: 0 };
+    useJourneyStore.setState({
+      current: buildJourneyDetail({ id: 50, entries: [buildEntry({ id: 100, photos: [] })], gallery: [known] }),
+    });
+    const spy = vi.spyOn(journeyApi, 'uploadPhotos')
+      .mockResolvedValue({ photos: [buildPhoto({ id: 91, entry_id: 100, photo_id: 700 })] } as any);
+
+    await useJourneyStore.getState().uploadPhotos(100, [new File(['x'], 'p.jpg', { type: 'image/jpeg' })]);
+
+    expect(useJourneyStore.getState().current?.gallery).toEqual([known]);
+    spy.mockRestore();
+  });
+
   it('FE-STORE-JOURNEY-017: uploadPhotos returns failed files and merges only succeeded on network error', async () => {
     const entry = buildEntry({ id: 100, photos: [] });
     const detail = buildJourneyDetail({ id: 50, entries: [entry] });

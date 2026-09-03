@@ -4,6 +4,7 @@ import type { BookElement, BookPageSetup, BookSpread } from '@trek/shared'
 import { SpreadFold, SpreadView } from './SpreadView'
 import { PeerCursors } from './PeerCursors'
 import type { PeerCursor } from './useBookPresence'
+import { elementId } from './bookIds'
 import { fontStack } from './bookFonts'
 import { useSpreadInteraction, type HandleId } from './useSpreadInteraction'
 import { useStudioStore } from '../../store/studioStore'
@@ -224,7 +225,7 @@ export function StudioCanvas({
         // Dropped on bare paper: a new frame, centred on the cursor.
         const w = Math.min(page.pageWidth, page.pageHeight) * 0.5
         const h = w * 0.72
-        const id = `p-${Math.random().toString(36).slice(2, 9)}`
+        const id = elementId('p')
         addElement(spreadIndex, {
           id, kind: 'photo',
           frame: { x: p.x - w / 2, y: p.y - h / 2, w, h },

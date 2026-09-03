@@ -152,6 +152,29 @@ interface JourneyState {
   clear: () => void
 }
 
+/**
+ * The gallery rows behind pictures that were uploaded onto an entry.
+ *
+ * A picture put on an entry is in the gallery too, because that is where the
+ * row lives: the entry only holds a link to it. The upload route answers with
+ * the entry's view of that row and, on the paths that have it, the gallery's
+ * as well; this derives the missing ones, so a picture added from anywhere
+ * shows up wherever the gallery is read rather than after the journey has been
+ * fetched again. Rows already in the gallery are skipped, since a retry can
+ * hand back a picture that is in it.
+ */
+function galleryRowsFor(
+  journey: JourneyDetail,
+  uploaded: JourneyPhoto[],
+  answered: GalleryPhoto[] | undefined,
+): GalleryPhoto[] {
+  const known = new Set([...(journey.gallery || []), ...(answered || [])].map(p => p.id))
+  const derived = uploaded
+    .filter(p => !known.has(p.id))
+    .map(({ entry_id: _entry, ...rest }) => ({ ...rest, journey_id: journey.id }))
+  return [...(answered || []), ...derived]
+}
+
 export const useJourneyStore = create<JourneyState>((set, get) => ({
   journeys: [],
   current: null,
@@ -269,22 +292,7 @@ export const useJourneyStore = create<JourneyState>((set, get) => ({
         const photos: JourneyPhoto[] = data.photos || []
         set(s => {
           if (!s.current) return s
-          const journeyId = s.current.id
-          const known = new Set((s.current.gallery || []).map(p => p.id))
-          /*
-           * A picture put on an entry is in the gallery too, because that is
-           * where the row lives: the entry only holds a link to it. The route
-           * answers with the entry's view of the row and, when it has one, the
-           * gallery's; the derived rows below are for the case where it does
-           * not, so that a picture added here shows up wherever the gallery is
-           * read without waiting for the journey to be fetched again.
-           */
-          const gallery: GalleryPhoto[] = [
-            ...(data.gallery || []),
-            ...photos
-              .filter(p => !known.has(p.id) && !(data.gallery || []).some(g => g.id === p.id))
-              .map(({ entry_id: _entry, ...rest }) => ({ ...rest, journey_id: journeyId })),
-          ]
+          const gallery = galleryRowsFor(s.current, photos, data.gallery)
           return {
             current: {
               ...s.current,

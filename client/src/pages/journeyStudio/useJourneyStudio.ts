@@ -6,6 +6,7 @@ import { journeyApi } from '../../api/client'
 import { useJourneyStore, type GalleryPhoto, type JourneyEntry, type JourneyPhoto } from '../../store/journeyStore'
 import { useStudioStore } from '../../store/studioStore'
 import { useToast } from '../../components/shared/Toast'
+import { elementId } from '../../components/Studio/bookIds'
 import { uploadStudioPhotos, type StudioUploader } from '../../components/Studio/studioUpload'
 import { useBookStore } from '../../components/Studio/useBookStore'
 import { useBookPresence } from '../../components/Studio/useBookPresence'
@@ -729,7 +730,7 @@ export function useJourneyStudio() {
         : sp.elements
       if (target) placed.push(target.id)
       const fresh = (target ? photoIds.slice(1) : photoIds).map((photoId, i) => ({
-        id: `p-${Math.random().toString(36).slice(2, 9)}`, kind: 'photo',
+        id: elementId('p'), kind: 'photo',
         frame: { x: at.x - w / 2 + i * 6, y: at.y - h / 2 + i * 6, w, h },
         rotation: 0, opacity: 1, locked: false,
         photoId, fit: 'cover', focalX: 0.5, focalY: 0.5, radius: 0, filter: 'none',

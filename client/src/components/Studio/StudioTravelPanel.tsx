@@ -7,6 +7,7 @@ import { PanelHead } from './StudioPanelHead'
 import { Section } from './StudioControls'
 import { TravelPreview } from './TravelPreview'
 import { formatBookCoords } from './entryText'
+import { elementId as uid } from './bookIds'
 import { routeFor } from './travelRefresh'
 import { useMapSources } from './mapSources'
 import { fetchRoads } from './roadRoute'
@@ -37,8 +38,6 @@ import { fetchRoads } from './roadRoute'
  * server to mean anything. The reasoning is in TravelElements.tsx, and the
  * short version is that the print renderer must never depend on a fetch.
  */
-
-const uid = (p: string) => `${p}-${Math.random().toString(36).slice(2, 9)}`
 
 /**
  * One row of the stops list: a point of the route or a stop switched off.
