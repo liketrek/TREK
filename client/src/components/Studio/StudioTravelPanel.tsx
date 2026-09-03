@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
+import { Check, RouteOff } from 'lucide-react'
 import type { BookElement, BookMetric, BookPageSetup, JourneyStats } from '@trek/shared'
 import { BOOK_METRICS } from '@trek/shared'
 import { useStudioStore } from '../../store/studioStore'
-import { formatDate } from '../../utils/formatters'
 import { PanelHead } from './StudioPanelHead'
+import { Section } from './StudioControls'
 import { TravelPreview } from './TravelPreview'
 import { formatBookCoords } from './entryText'
 import { routeFor } from './travelRefresh'
@@ -238,6 +239,20 @@ export function StudioTravelPanel({
     }
     return a.label.localeCompare(b.label)
   })
+  const excludedCount = stops.filter(s => s.excluded).length
+  /** Whether the country is worth a badge, or the same word on every row. */
+  const manyCountries = stats.countries.length > 1
+
+  /**
+   * The day of a stop, without the weekday.
+   *
+   * `formatDate` is the journal's format and carries "Tue," because a journal
+   * entry is about a day somebody lived. A row here is about a leg of a route,
+   * and it has 236px to hold a place name in as well: the weekday costs a
+   * third of the badge and answers nothing anybody asks of this list.
+   */
+  const stopDay = (iso: string) =>
+    new Date(`${iso}T00:00:00Z`).toLocaleDateString(locale, { day: 'numeric', month: 'short', timeZone: 'UTC' })
 
   const toggleStop = async (entryId: number, excluded: boolean) => {
     setPending(prev => new Set(prev).add(entryId))
@@ -458,42 +473,73 @@ export function StudioTravelPanel({
           place; they are the input every tile below reads.
         */}
         {stops.length > 0 && (
-          <div className="st-section">
-            <div className="st-section-label">{t('journey.studio.stops')}</div>
-            <p className="st-hint">{t('journey.studio.stopsHint')}</p>
+          <Section
+            label={t('journey.studio.stops')}
+            hint={t('journey.studio.stopsHint')}
+            /*
+             * Folded to begin with, and saying how many count while it is.
+             *
+             * A fortnight is fourteen rows, which is longer than everything
+             * else in this panel put together, and most books never need to
+             * touch it. The figure in the head is what anyone opening it came
+             * to check anyway, so the closed section still answers the
+             * question and the maps below stay in reach.
+             */
+            defaultOpen={false}
+            badge={`${stops.length - excludedCount}/${stops.length}`}
+          >
             <ul className="st-stops">
               {stops.map((stop, i) => {
                 const entryId = stop.entryId
                 const on = !stop.excluded
                 const state = t(on ? 'journey.studio.stopOn' : 'journey.studio.stopOff')
-                const chip = `st-chip is-pick ${on ? 'is-on' : ''}`
+                const chip = `st-chip is-pick is-icon ${on ? 'is-on' : ''}`
+                /*
+                 * A mark rather than the word.
+                 *
+                 * "Counts" and "Left out" are different lengths, so a column of
+                 * them jitters, and together they cost a third of a row that
+                 * has a place name to fit. The tick and the crossed-out route
+                 * say the same thing at a glance, and the word is still there
+                 * for anyone who hovers or reads with a screen reader.
+                 */
+                const mark = on ? <Check size={13} strokeWidth={2.4} /> : <RouteOff size={13} strokeWidth={2.2} />
                 return (
                   <li key={entryId ?? `place-${i}`} className={`st-stop ${on ? '' : 'is-off'}`}>
-                    <div className="st-stop-body">
-                      <span className="st-stop-label">{stop.label || t('journey.studio.untitled')}</span>
-                      <span className="st-stop-meta">
-                        {stop.date && <span className="st-badge">{formatDate(stop.date, locale)}</span>}
-                        {stop.country && <span className="st-badge is-quiet">{countryName(stop.country)}</span>}
-                      </span>
-                    </div>
+                    {/*
+                      One line: the day, then the name, then the switch. The
+                      name and the day were stacked, which doubled the height
+                      of a list whose whole job is being read down.
+                    */}
+                    {stop.date && <span className="st-badge">{stopDay(stop.date)}</span>}
+                    <span className="st-stop-label">{stop.label || t('journey.studio.untitled')}</span>
+                    {/*
+                      The country only where there is more than one to tell
+                      apart. On a journey inside one country it is the same
+                      word fourteen times, in the row that has least room.
+                    */}
+                    {manyCountries && stop.country && (
+                      <span className="st-badge is-quiet">{countryName(stop.country)}</span>
+                    )}
                     {canEdit && entryId != null ? (
                       <button type="button"
                         className={chip}
+                        title={`${state}: ${t('journey.studio.stopToggle')}`}
                         aria-label={t('journey.studio.stopToggle')}
                         aria-pressed={on}
                         disabled={pending.has(entryId)}
                         onClick={() => void toggleStop(entryId, !stop.excluded)}
                       >
-                        {state}
+                        {mark}
                       </button>
                     ) : (
-                      <span className={chip}>{state}</span>
+                      <span className={chip} title={state} aria-label={state}>{mark}</span>
                     )}
                   </li>
                 )
               })}
             </ul>
-          </div>
+          </Section>
         )}
 
         <div className="st-section">

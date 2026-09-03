@@ -969,6 +969,15 @@
   margin-bottom: 10px;
 }
 .trek-dash .st-section-head .st-section-label { margin-bottom: 0; }
+/* A figure in the head, for a section worth reading while it is folded. It
+   sits against the caret rather than the label, so the labels stay aligned. */
+.trek-dash .st-section-badge {
+  margin-left: auto;
+  font-size: 10.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-3);
+}
 .trek-dash .st-section-caret { flex: none; opacity: 0.5; transition: transform .18s, opacity .14s; }
 .trek-dash .st-section-head:hover .st-section-caret { opacity: 1; }
 .trek-dash .st-section.is-folded .st-section-caret { transform: rotate(-90deg); }
@@ -1936,34 +1945,37 @@
  * The route as rows, in the Travel panel.
  *
  * Not tiles: a stop is not something to place, it is the input every map and
- * figure below reads. A quiet row with the name, the day and the country, and
- * the switch on the right, so the eye runs down the switches to find the one
- * that is off. A left-out row is dimmed as a whole rather than struck through:
- * it is still a day of the journal, just not a leg of the route.
+ * figure below reads. One line per stop, the day first and the switch last, so
+ * the eye runs down the right-hand edge to find the one that is off. A
+ * left-out row is dimmed as a whole rather than struck through: it is still a
+ * day of the journal, just not a leg of the route.
+ *
+ * A row is a row rather than a card: fourteen bordered boxes down a 236px
+ * panel is a wall, and what the list needs is to be read quickly, not to have
+ * each of its entries framed. The separators do the same work for a fifth of
+ * the height.
  */
 .trek-dash .st-stops {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin: 4px 0 0;
+  margin: 2px 0 0;
   padding: 0;
   list-style: none;
 }
 .trek-dash .st-stop {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   min-width: 0;
-  padding: 7px 8px 7px 10px;
-  border-radius: var(--r-sm);
-  background: color-mix(in oklch, var(--surface) 70%, transparent);
-  border: 1px solid var(--line);
+  padding: 4px 0;
+  border-bottom: 1px solid var(--line);
   transition: opacity .16s;
 }
+.trek-dash .st-stop:last-child { border-bottom: 0; }
 .trek-dash .st-stop.is-off { opacity: .55; }
-.trek-dash .st-stop-body { flex: 1 1 auto; min-width: 0; }
 .trek-dash .st-stop-label {
-  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
   font-size: 12px;
   font-weight: 600;
   letter-spacing: -0.01em;
@@ -1972,11 +1984,13 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.trek-dash .st-stop-meta { display: flex; align-items: center; gap: 5px; margin-top: 3px; min-width: 0; }
 /* The day keeps its width, as on the entry cards; the country gives way. */
-.trek-dash .st-stop-meta > .st-badge { flex: none; }
-.trek-dash .st-stop-meta > .st-badge.is-quiet { flex: 0 1 auto; }
-.trek-dash .st-stop > .st-chip { flex: none; height: 24px; font-size: 11px; }
+.trek-dash .st-stop > .st-badge { flex: none; }
+.trek-dash .st-stop > .st-badge.is-quiet { flex: 0 1 auto; }
+/* The switch, as a mark: a square the size of the badges beside it. The
+   padding is reset because `is-pick` sets its own further down the file. */
+.trek-dash .st-stop > .st-chip.is-icon { flex: none; width: 22px; height: 22px; padding: 0; }
+.trek-dash .st-stop > .st-chip:not(.is-on) { color: var(--ink-3); }
 /* The same chip as a plain label: a viewer's, or a stop with no entry to switch. */
 .trek-dash .st-stop > span.st-chip { pointer-events: none; }
 

@@ -36,18 +36,26 @@ import ToggleSwitch from '../Settings/ToggleSwitch'
  * remembered: coming back to an element and finding its panel folded up
  * differently from last time is worse than opening one group again.
  */
-export function Section({ label, children, defaultOpen = true, hint }: {
+export function Section({ label, children, defaultOpen = true, hint, badge }: {
   label: string
   children: ReactNode
   defaultOpen?: boolean
   /** A line under the label, for a group whose name cannot carry the whole idea. */
   hint?: string
+  /**
+   * A figure beside the label, for a group worth reading while it is folded.
+   * The stops list is the case: how many of them count is the thing you came
+   * to check, and opening a section to read one number is a section that
+   * cannot usefully be closed.
+   */
+  badge?: string
 }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
     <div className={`st-section is-fold ${open ? '' : 'is-folded'}`}>
       <button type="button" className="st-section-head" onClick={() => setOpen(!open)} aria-expanded={open}>
         <span className="st-section-label">{label}</span>
+        {badge && <span className="st-section-badge">{badge}</span>}
         <ChevronDown size={13} className="st-section-caret" />
       </button>
       {open && (

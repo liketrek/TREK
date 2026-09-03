@@ -44,7 +44,7 @@ const stats = (over: Partial<JourneyStats> = {}): JourneyStats => ({
 
 type Toggle = (entryId: number, excluded: boolean) => Promise<boolean>
 
-function open(journeyStats: JourneyStats, over: { canEdit?: boolean; onToggleStop?: Toggle } = {}) {
+function open(journeyStats: JourneyStats, over: { canEdit?: boolean; onToggleStop?: Toggle; folded?: boolean } = {}) {
   const onToggleStop = over.onToggleStop ?? vi.fn(async () => true)
   render(
     <StudioTravelPanel
@@ -52,12 +52,19 @@ function open(journeyStats: JourneyStats, over: { canEdit?: boolean; onToggleSto
       canEdit={over.canEdit ?? true} onToggleStop={onToggleStop}
     />,
   )
-  return { onToggleStop }
+  // The section opens folded, since a fortnight of rows is longer than the
+  // rest of the panel together. Every case below is about those rows, so
+  // unfold unless the case is about the fold itself.
+  const head = document.querySelector('.st-section-head')
+  if (head && !over.folded) fireEvent.click(head)
+  return { onToggleStop, head }
 }
 
 const rows = () => Array.from(document.querySelectorAll('.st-stop'))
 const labels = () => rows().map(r => r.querySelector('.st-stop-label')?.textContent)
 const switches = () => screen.queryAllByRole('button', { name: 'journey.studio.stopToggle' })
+/** The switch of a row reads its state from the title, since it draws a mark. */
+const stateOf = (row: Element) => row.querySelector('.st-chip')?.getAttribute('title') ?? ''
 
 beforeEach(() => {
   useStudioStore.getState().load({
@@ -78,9 +85,9 @@ describe('what the stops section lists', () => {
 
     const [keflavik, reykjavik] = rows()
     expect(keflavik.className).toContain('is-off')
-    expect(keflavik.textContent).toContain('journey.studio.stopOff')
+    expect(stateOf(keflavik)).toContain('journey.studio.stopOff')
     expect(reykjavik.className).not.toContain('is-off')
-    expect(reykjavik.textContent).toContain('journey.studio.stopOn')
+    expect(stateOf(reykjavik)).toContain('journey.studio.stopOn')
   })
 
   it('puts an undated stop last', () => {
@@ -89,12 +96,40 @@ describe('what the stops section lists', () => {
     expect(labels()).toEqual(['Reykjavík', 'Akureyri', 'Somewhere'])
   })
 
-  it('names the country in the reader\'s language, and only for a stop that has one', () => {
+  /*
+   * The country is the first thing a 236px row gives up, and on a journey
+   * inside one country it was the same word on every line anyway.
+   */
+  it('leaves the country off a journey that only went to one', () => {
     open(stats())
+
+    expect(rows().map(r => r.querySelector('.st-badge.is-quiet'))).toEqual([null, null, null])
+  })
+
+  it('names the country in the reader\'s language once there is more than one', () => {
+    open(stats({
+      countries: [
+        { code: 'IS', name: 'Iceland', places: 2, firstVisit: '2026-06-02' },
+        { code: 'DK', name: 'Denmark', places: 1, firstVisit: '2026-06-10' },
+      ],
+    }))
 
     const quiet = rows().map(r => r.querySelector('.st-badge.is-quiet')?.textContent ?? null)
     // The left-out stop carries no country: it is not on the route to have one.
     expect(quiet).toEqual([null, 'Iceland', 'Iceland'])
+  })
+
+  /*
+   * The fold is the section's own contract: it costs one line when closed and
+   * still answers the question anyone opens it for, which is how many stops
+   * are counting.
+   */
+  it('starts folded, with the count of what still counts in its head', () => {
+    const { head } = open(stats(), { folded: true })
+
+    expect(rows()).toHaveLength(0)
+    expect(head).toHaveAttribute('aria-expanded', 'false')
+    expect(head!.querySelector('.st-section-badge')?.textContent).toBe('2/3')
   })
 
   it('is left out entirely when the journey has no stops at all', () => {
@@ -147,7 +182,7 @@ describe('the switch', () => {
 
     expect(switches()).toHaveLength(0)
     expect(rows()).toHaveLength(3)
-    expect(rows()[1].textContent).toContain('journey.studio.stopOn')
+    expect(stateOf(rows()[1])).toBe('journey.studio.stopOn')
   })
 
   it('is a label for a stop taken from a trip place, which has no entry to switch', () => {
@@ -162,6 +197,6 @@ describe('the switch', () => {
     expect(labels()).toEqual(['Vík', 'Akureyri'])
     expect(switches()).toHaveLength(1)
     expect(rows()[0].querySelector('button')).toBeNull()
-    expect(rows()[0].textContent).toContain('journey.studio.stopOn')
+    expect(stateOf(rows()[0])).toBe('journey.studio.stopOn')
   })
 })
