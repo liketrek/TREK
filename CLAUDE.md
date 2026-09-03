@@ -108,6 +108,24 @@ These principles come out of a verified 2026 full-repo audit and shape how all n
 - One focused change per PR; no breaking changes; no unrelated reformatting/refactors. Tests required — the project holds **80%+ coverage** (the `src/nest/**` vitest coverage gate enforces ≥80%).
 - When migrating/adding a route, **parity is law**: same URL, method, query/body, HTTP status, `Set-Cookie`, and JSON body — including bespoke error strings (e.g. reproduce `{ error: 'Admin only' }` exactly rather than relying on a generic guard message). Note Nest defaults POST to 201; add `@HttpCode(200)` where the legacy contract returned 200. Declare static sub-routes (`/reorder`, `/in-app/all`) **before** `:id` param routes.
 
+## SonarQube quality gate (CI — the full run takes 20–25 min, so get it right before pushing)
+
+The `Tests & SonarQube` workflow ends with a SonarCloud scan (project key `liketrek_TREK`, the built-in **Sonar way** gate) on every PR and on pushes to `dev`/`main`. On a PR every condition is measured on **new code only** — the lines the PR adds or changes — and any one of them failing blocks the PR:
+
+| Condition (new code) | Must be |
+|---|---|
+| Coverage | ≥ 80% |
+| Duplicated lines | ≤ 3% |
+| Security / reliability / maintainability rating | A (zero new vulnerabilities / bugs; negligible new debt) |
+| Security hotspots reviewed | 100% |
+
+What that means in practice:
+
+- **Duplication is the one that bites.** The desktop and phone admin shells (`client/src/components/Admin/<X>Panel.tsx` ↔ `client/src/mobile/screens/admin/M<X>Panel.tsx`, and every other desktop/mobile pair) are deliberate mirrors that already sit at ~40% mutual duplication. Every line you add identically to both counts against the 3% budget of the whole PR, so a feature that touches both shells fails the gate on its own. Put the logic (types, state, helpers, dialog copy) in ONE hook/module under `client/src/components/Admin/` — precedents: `useInstanceSettings`, `useRangeBypass` — and leave only the shell-specific markup in each panel. Locale files are excluded from duplication (`sonar.cpd.exclusions`), so i18n parity additions are free.
+- **Coverage is per new line, across all four packages** (lcov from server, client, shared, plugin-sdk). Ship the tests in the same change; a new file without tests drags the whole PR under 80%. Files in `sonar.coverage.exclusions` (boot/config/migrations/generated/i18n) don't count either way.
+- **Ratings are about new issues.** One new bug-severity issue drops reliability below A; one new vulnerability drops security; the maintainability rating tolerates only trivial new code smells. Don't introduce hotspot patterns (`Math.random` in anything security-adjacent, `child_process` through PATH, backtracking regexes, hard-coded-secret-looking strings) — a hotspot must be reviewed on SonarCloud before the gate passes. Path-wide suppressions live only in `sonar-project.properties` with a written justification; a one-off finding is resolved on SonarCloud (false positive / accepted), never with an inline `// NOSONAR`.
+- **Check it yourself instead of waiting for CI.** The `sonarqube` MCP is connected: `list_pull_requests` (project `liketrek_TREK`) → `get_project_quality_gate_status` with the PR key shows each condition's actual value; `search_duplicated_files` + `get_duplications` show which blocks tripped duplication; `search_sonar_issues_in_projects` lists the new issues. Test files (`*.test.ts(x)`, `*.spec.ts`) are excluded from source analysis, so mock-heavy test code is not the problem when duplication fires — the source is.
+
 ## Reference docs
 
 - `MCP.md` — MCP server/tools/scopes. `README.md` — deployment, env vars, reverse-proxy setup. `server/src/nest/README.md` — per-module blueprint and test layout (unit / parity / e2e).

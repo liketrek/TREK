@@ -100,6 +100,7 @@ access goes through `src/app-config/`:
 `tests/` is split into `unit/` (mirrors `src/`, incl. `unit/nest/<domain>.controller.test.ts` and `auth-guard.test.ts`), `integration/`, `e2e/` (one `<domain>.e2e.test.ts` per module, booting the real `JwtAuthGuard` against a temp DB via `tests/e2e/harness.ts` — `createTempDb`/`seedUser`/`sessionCookie`), and `websocket/`. Shared helpers in `tests/helpers/`, fixtures in `tests/fixtures/`, global setup in `tests/setup.ts`.
 
 - **vitest uses the SWC plugin** (`vitest.config.ts`), not esbuild, because Nest's type-based DI needs emitted decorator metadata — esbuild drops it. Keep that config when touching test tooling. Pool is `forks` (isolated DBs per worker).
+- **CI also runs SonarCloud on every PR** (≥80% coverage and ≤3% duplication on the PR's new lines, no new bugs/vulnerabilities, hotspots reviewed) — see the root `CLAUDE.md`; the whole workflow takes 20–25 min, so check with the `sonarqube` MCP before pushing.
 - **Coverage gate is a per-domain ratchet over `src/nest/**`** (statements/branches/functions/lines; ≥80% floor, most domains pinned higher — see `vitest.config.ts`); legacy code is intentionally ungated.
 - The config also aliases `@modelcontextprotocol/sdk/*` to CJS dist files because the SDK's exports map uses unresolvable extension-less wildcards.
 
