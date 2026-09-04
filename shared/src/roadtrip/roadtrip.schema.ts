@@ -92,10 +92,39 @@ export const roadtripViaBatchRequestSchema = z.object({
   })).max(100),
   /** Legs to clear first, by `after_order_index`. Absent means add to what is there. */
   replace_legs: z.array(z.number().int().min(0)).max(100).optional(),
+  /**
+   * The imported track this chain was fitted to, if it came from one.
+   *
+   * Three states rather than two, which is why it is an object and not an id: absent
+   * leaves whatever the day already followed alone, `null` says the day follows nothing
+   * any more, and an object records the road it now takes. A bare nullable id could not
+   * tell "do not touch this" apart from "forget it".
+   */
+  track: z.object({
+    place_id: z.number().int().positive(),
+    /** How far the fitted route still ran from the track at its worst point. */
+    stray_km: z.number().min(0).max(40_000).nullable().optional(),
+  }).nullable().optional(),
 });
 export type RoadtripViaBatchRequest = z.infer<typeof roadtripViaBatchRequestSchema>;
 
+/** Which track a day was fitted to, and how closely. */
+export const roadtripDayTrackSchema = z.object({
+  day_id: z.number(),
+  place_id: z.number(),
+  stray_km: z.number().nullable(),
+});
+export type RoadtripDayTrack = z.infer<typeof roadtripDayTrackSchema>;
+
 export const roadtripViaListResponseSchema = z.object({
   vias: z.array(roadtripViaSchema),
+  /**
+   * The tracks the trip's days follow, one row per day that follows one.
+   *
+   * Alongside the vias rather than behind a route of its own: they are read together on
+   * every load of road-trip mode, and a second request for a handful of rows would be a
+   * second round trip for something the first one could carry.
+   */
+  tracks: z.array(roadtripDayTrackSchema),
 });
 export type RoadtripViaListResponse = z.infer<typeof roadtripViaListResponseSchema>;

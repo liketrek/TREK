@@ -236,7 +236,9 @@ export default function RoadtripCorridorPanel({ corridor, routes, onAddPoi }: Ro
   const socketsFound = useMemo(() => {
     const seen = new Set<string>()
     for (const p of search.results) for (const s of p.charging?.sockets ?? []) seen.add(s.type)
-    return [...seen].sort()
+    // Compared explicitly: the default sort is by UTF-16 code unit, which is not the
+    // order anybody reads a list of plug names in.
+    return [...seen].sort((a, b) => a.localeCompare(b))
   }, [search.results])
   const hasCharging = socketsFound.length > 0
 

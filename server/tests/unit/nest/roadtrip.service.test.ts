@@ -19,7 +19,23 @@ function makeService() {
       lng REAL NOT NULL,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
+    CREATE TABLE places (
+      id INTEGER PRIMARY KEY,
+      trip_id INTEGER NOT NULL,
+      name TEXT,
+      route_geometry TEXT
+    );
+    CREATE TABLE roadtrip_day_tracks (
+      day_id INTEGER PRIMARY KEY REFERENCES days(id) ON DELETE CASCADE,
+      place_id INTEGER NOT NULL REFERENCES places(id) ON DELETE CASCADE,
+      stray_km REAL,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
     INSERT INTO days (id, trip_id) VALUES (1, 7), (2, 7), (3, 99);
+    INSERT INTO places (id, trip_id, name, route_geometry) VALUES
+      (10, 7, 'Atlantic Road', '[[52,13],[52,14]]'),
+      (11, 7, 'A hotel', NULL),
+      (12, 99, 'Somebody else\u2019s track', '[[40,2],[40,3]]');
   `);
   const db = {
     get: <T>(sql: string, ...params: unknown[]) => raw.prepare(sql).get(...params as never[]) as T | undefined,
@@ -179,6 +195,53 @@ describe('RoadtripService', () => {
 
     expect(service.listForDay(1)).toEqual([]);
     expect(service.listForDay(2)).toHaveLength(1);
+  });
+
+  it('ROADTRIP-SVC-017: the chain and the track it came from land in one write', () => {
+    // Same transaction on purpose: a day saying it follows a road whose vias never
+    // arrived is worse than a day saying nothing at all.
+    service.createMany(1, {
+      vias: [{ after_order_index: 0, lat: 53, lng: 10 }],
+      track: { place_id: 10, stray_km: 0.8 },
+    });
+
+    expect(service.tracksForTrip(7)).toEqual([{ day_id: 1, place_id: 10, stray_km: 0.8 }]);
+  });
+
+  it('ROADTRIP-SVC-018: laying a second track on a day replaces the first, never doubles it', () => {
+    service.createMany(1, { vias: [], track: { place_id: 10, stray_km: 2 } });
+    service.createMany(1, { vias: [], track: { place_id: 12, stray_km: null } });
+
+    expect(service.tracksForTrip(7)).toEqual([{ day_id: 1, place_id: 12, stray_km: null }]);
+  });
+
+  it('ROADTRIP-SVC-019: three states, not two \u2014 absent keeps, null clears', () => {
+    service.createMany(1, { vias: [], track: { place_id: 10, stray_km: 1 } });
+
+    // Absent: a hand-dragged via on the same day must not wipe the road it follows.
+    service.createMany(1, { vias: [{ after_order_index: 0, lat: 53, lng: 10 }] });
+    expect(service.tracksForTrip(7)).toHaveLength(1);
+
+    service.createMany(1, { vias: [], replace_legs: [0], track: null });
+    expect(service.tracksForTrip(7)).toEqual([]);
+  });
+
+  it('ROADTRIP-SVC-020: the tracks of one trip are not the tracks of another', () => {
+    service.createMany(1, { vias: [], track: { place_id: 10, stray_km: null } });
+    service.createMany(3, { vias: [], track: { place_id: 12, stray_km: null } });
+
+    expect(service.tracksForTrip(7).map(t => t.day_id)).toEqual([1]);
+    expect(service.tracksForTrip(99).map(t => t.day_id)).toEqual([3]);
+  });
+
+  it('ROADTRIP-SVC-021: only a track of this trip can become a day\u2019s label', () => {
+    // Permission is not enough on its own: without this a place id from another trip
+    // would become this day\u2019s label, and an ordinary place would become a label that
+    // can never be drawn.
+    expect(service.trackExists(10, 7)).toBe(true);
+    expect(service.trackExists(11, 7)).toBe(false);
+    expect(service.trackExists(12, 7)).toBe(false);
+    expect(service.trackExists(999, 7)).toBe(false);
   });
 
   it('ROADTRIP-SVC-007: removing one reports whether there was anything to remove', () => {

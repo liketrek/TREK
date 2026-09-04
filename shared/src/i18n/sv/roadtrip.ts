@@ -64,6 +64,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.track.errorRoute': 'Ruttjänsten svarade inte.',
   'roadtrip.track.errorSave': 'Mellanpunkterna kunde inte sparas.',
   'roadtrip.track.clear': 'Ta bort {count} mellanpunkter',
+  'roadtrip.track.current': 'Följer just nu {name}',
   'roadtrip.poi.rest': 'Rastplats',
   'roadtrip.poi.campsite': 'Campingplats',
   'roadtrip.poi.food': 'Mat',

@@ -64,6 +64,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.track.errorRoute': 'El servei de rutes no ha respost.',
   'roadtrip.track.errorSave': 'No s’han pogut desar els punts de pas.',
   'roadtrip.track.clear': 'Elimina {count} punts de pas',
+  'roadtrip.track.current': 'Actualment segueix {name}',
   'roadtrip.poi.rest': 'Àrea de descans',
   'roadtrip.poi.campsite': 'Càmping',
   'roadtrip.poi.food': 'Menjar',

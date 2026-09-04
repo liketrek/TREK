@@ -47,6 +47,7 @@ const routes = (days: RoadtripDay[]): RoadtripRoutes => ({
 function viasStub(over: Partial<RoadtripVias> = {}): RoadtripVias {
   return {
     byDay: {},
+    trackByDay: {},
     add: vi.fn(),
     addMany: vi.fn().mockResolvedValue(undefined),
     move: vi.fn(),
@@ -88,6 +89,26 @@ describe('useFollowTrack', () => {
     expect(result.current.available).toBe(true)
   })
 
+  it('FE-FOLLOWHOOK-011: the track a day follows is read back from the day, not remembered', () => {
+    // The whole point of storing it: a field that only ever held what this session did
+    // would look right until somebody refreshed the page.
+    const vias = viasStub({ trackByDay: { 7: { day_id: 7, place_id: 3, stray_km: 0.8 } } });
+    const { result } = renderHook(() => useFollowTrack(1, [TRACK], routes([day()]), vias))
+
+    expect(result.current.namesByDay).toEqual({ 7: 'Atlantic Road' })
+    act(() => { result.current.open(7) })
+    expect(result.current.current).toEqual({ name: 'Atlantic Road', strayKm: 0.8 })
+  })
+
+  it('FE-FOLLOWHOOK-012: a stored track whose place is gone names nothing', () => {
+    // The row cascades with the place, so this is belt and braces — but a label that
+    // outlived its line would be a day claiming to follow something invisible.
+    const vias = viasStub({ trackByDay: { 7: { day_id: 7, place_id: 999, stray_km: null } } })
+    const { result } = renderHook(() => useFollowTrack(1, [TRACK], routes([day()]), vias))
+    act(() => { result.current.open(7) })
+    expect(result.current.current).toBeNull()
+  })
+
   it('FE-FOLLOWHOOK-010: a trip that imported nothing offers no way in', () => {
     const { result } = renderHook(() => useFollowTrack(1, [PLAIN], routes([day()]), viasStub()))
     expect(result.current.available).toBe(false)
@@ -112,9 +133,12 @@ describe('useFollowTrack', () => {
     await act(async () => { await result.current.apply(3) })
 
     expect(vias.addMany).toHaveBeenCalledTimes(1)
-    const [dayId, written, legs] = (vias.addMany as ReturnType<typeof vi.fn>).mock.calls[0]
+    const [dayId, written, legs, track] = (vias.addMany as ReturnType<typeof vi.fn>).mock.calls[0]
     expect(dayId).toBe(7)
     expect(legs).toEqual([0])
+    // The chain and the name it came from land in one write: a day claiming to follow a
+    // road whose vias never arrived would be worse than a day claiming nothing.
+    expect(track).toMatchObject({ place_id: 3 })
     expect(written.length).toBeGreaterThan(0)
     // Every via hangs behind the first stop, because the day has exactly one leg.
     expect(written.every((v: { after_order_index: number }) => v.after_order_index === 0)).toBe(true)
@@ -131,8 +155,9 @@ describe('useFollowTrack', () => {
     await act(async () => { await result.current.apply(3) })
 
     expect(result.current.outcome).toEqual({ vias: 0, strayKm: 0, capped: false })
-    // Still a write: the legs are cleared, so applying a second track does not stack.
-    expect(vias.addMany).toHaveBeenCalledWith(7, [], [0])
+    // Still a write: the legs are cleared so a second track does not stack, and the name
+    // is recorded even though the drive needed no bending to follow it.
+    expect(vias.addMany).toHaveBeenCalledWith(7, [], [0], { place_id: 3, stray_km: 0 })
   })
 
   it('FE-FOLLOWHOOK-005: a routing outage is reported rather than written as an empty plan', async () => {
@@ -168,7 +193,8 @@ describe('useFollowTrack', () => {
     expect(result.current.viaCount).toBe(2)
 
     await act(async () => { await result.current.clear() })
-    expect(vias.addMany).toHaveBeenCalledWith(7, [], [0])
+    // null, not nothing: dropping the points is also dropping the claim.
+    expect(vias.addMany).toHaveBeenCalledWith(7, [], [0], null)
     expect(result.current.outcome).toEqual({ vias: 0, strayKm: 0, capped: false })
   })
 

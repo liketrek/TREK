@@ -29,6 +29,8 @@ function follow(over: Partial<FollowTrack> = {}): FollowTrack {
     clear: vi.fn().mockResolvedValue(undefined),
     viaCount: 0,
     available: true,
+    current: null,
+    namesByDay: {},
     ...over,
   }
 }

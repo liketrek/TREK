@@ -31,10 +31,23 @@ const OSRM_PROFILE_PATH: Record<'driving' | 'walking' | 'cycling', string> = {
  * A configured base is expected to serve the standard OSRM layout,
  * `<base>/route/v1/<profile>/…`, which is what `osrm-routed` does out of the box.
  */
+/**
+ * A configured base URL without its trailing slashes.
+ *
+ * Walked rather than matched with `/\/+$/`: that pattern backtracks over a run of
+ * slashes, and the value comes from an instance setting somebody types. Linear either
+ * way in practice, but the regex is the shape a scanner is right to flag.
+ */
+function withoutTrailingSlashes(value: string): string {
+  let end = value.length
+  while (end > 0 && value[end - 1] === '/') end -= 1
+  return value.slice(0, end)
+}
+
 function routeBaseFor(profile: 'driving' | 'walking' | 'cycling'): string {
   const configured = useSettingsStore.getState().settings.routing_base_url?.trim()
   if (!configured) return OSRM_PROFILE_BASE[profile]
-  return `${configured.replace(/\/+$/, '')}/route/v1/${OSRM_PROFILE_PATH[profile]}`
+  return `${withoutTrailingSlashes(configured)}/route/v1/${OSRM_PROFILE_PATH[profile]}`
 }
 
 /**

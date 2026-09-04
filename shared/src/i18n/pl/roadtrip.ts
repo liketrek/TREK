@@ -64,6 +64,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.track.errorRoute': 'Usługa wyznaczania trasy nie odpowiedziała.',
   'roadtrip.track.errorSave': 'Nie udało się zapisać punktów pośrednich.',
   'roadtrip.track.clear': 'Usuń {count} punktów pośrednich',
+  'roadtrip.track.current': 'Obecnie podąża za {name}',
   'roadtrip.poi.rest': 'Miejsce odpoczynku',
   'roadtrip.poi.campsite': 'Kemping',
   'roadtrip.poi.food': 'Jedzenie',

@@ -59,6 +59,7 @@ import {
   type PluginActionDescriptor,
   type PluginActionResult,
   type PluginInstallRequest,
+  RoadtripDayTrack,
   RoadtripVia,
   RoadtripViaBatchRequest,
   RoadtripViaCreateRequest,
@@ -1071,7 +1072,7 @@ export const mapsApi = {
 export const roadtripApi = {
   /** Every via of the trip, so all days can be routed without a request per day. */
   listVias: (tripId: number | string) =>
-    apiClient.get(`/trips/${tripId}/roadtrip/vias`).then(r => r.data as { vias: RoadtripVia[] }),
+    apiClient.get(`/trips/${tripId}/roadtrip/vias`).then(r => r.data as { vias: RoadtripVia[]; tracks: RoadtripDayTrack[] }),
   addVia: (tripId: number | string, dayId: number | string, body: RoadtripViaCreateRequest) =>
     apiClient.post(`/trips/${tripId}/roadtrip/days/${dayId}/vias`, body).then(r => r.data as { via: RoadtripVia }),
   /**

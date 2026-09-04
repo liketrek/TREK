@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpException, Param, Post, Put, UseGuards } from '@nestjs/common';
-import type { RoadtripVia } from '@trek/shared';
+import type { RoadtripDayTrack, RoadtripVia } from '@trek/shared';
 import { RoadtripService } from './roadtrip.service';
 import { RoadtripViaBatchDto, RoadtripViaCreateDto, RoadtripViaReanchorDto, RoadtripViaUpdateDto } from './roadtrip.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -32,8 +32,8 @@ export class RoadtripController {
 
   /** Every via of the trip, so the client can route all days without a request per day. */
   @Get('vias')
-  listAll(@Param('tripId') tripId: string): { vias: RoadtripVia[] } {
-    return { vias: this.roadtrip.listForTrip(tripId) };
+  listAll(@Param('tripId') tripId: string): { vias: RoadtripVia[]; tracks: RoadtripDayTrack[] } {
+    return { vias: this.roadtrip.listForTrip(tripId), tracks: this.roadtrip.tracksForTrip(tripId) };
   }
 
   @Get('days/:dayId/vias')
@@ -70,6 +70,12 @@ export class RoadtripController {
     @Body() body: RoadtripViaBatchDto,
   ): { vias: RoadtripVia[] } {
     this.requireDay(dayId, tripId);
+    // Permission is not enough on its own: a place id from somebody else's trip would
+    // otherwise become this day's label, and a place that is not a track would become a
+    // label that can never be drawn.
+    if (body.track && !this.roadtrip.trackExists(body.track.place_id, tripId)) {
+      throw new HttpException({ error: 'Track not found' }, 404);
+    }
     return { vias: this.roadtrip.createMany(dayId, body) };
   }
 

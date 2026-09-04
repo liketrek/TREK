@@ -64,6 +64,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.track.errorRoute': 'Služba plánování trasy neodpověděla.',
   'roadtrip.track.errorSave': 'Průjezdní body se nepodařilo uložit.',
   'roadtrip.track.clear': 'Odebrat {count} průjezdních bodů',
+  'roadtrip.track.current': 'Aktuálně sleduje {name}',
   'roadtrip.poi.rest': 'Odpočívadlo',
   'roadtrip.poi.campsite': 'Kemp',
   'roadtrip.poi.food': 'Jídlo',

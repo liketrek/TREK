@@ -64,6 +64,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.track.errorRoute': 'Dịch vụ chỉ đường không phản hồi.',
   'roadtrip.track.errorSave': 'Không thể lưu các điểm trung gian.',
   'roadtrip.track.clear': 'Bỏ {count} điểm trung gian',
+  'roadtrip.track.current': 'Hiện đang đi theo {name}',
   'roadtrip.poi.rest': 'Trạm dừng nghỉ',
   'roadtrip.poi.campsite': 'Khu cắm trại',
   'roadtrip.poi.food': 'Đồ ăn',

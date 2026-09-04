@@ -51,6 +51,16 @@ export interface FollowTrack {
   /** How many vias the open day carries — what makes clearing worth offering. */
   viaCount: number
   /**
+   * The track the open day follows, if it follows one.
+   *
+   * Read back from the day rather than remembered from the run that applied it: the point
+   * of storing it at all is that it survives a reload, and a field that only ever held
+   * what this session did would look right until somebody refreshed.
+   */
+  current: { name: string; strayKm: number | null } | null
+  /** The name of the track each day follows, for the rail's badge. */
+  namesByDay: Record<number, string>
+  /**
    * Whether the trip holds a track at all.
    *
    * Read off the column rather than off `tracks`, which is empty until the dialog opens
@@ -185,7 +195,9 @@ export function useFollowTrack(
     if (controller.signal.aborted) { setBusy(false); return }
 
     try {
-      await vias.addMany(dayId, plan.vias, plan.legs)
+      // The chain and the name it came from, in one write: a day claiming to follow a
+      // road whose vias never landed would be worse than a day claiming nothing.
+      await vias.addMany(dayId, plan.vias, plan.legs, { place_id: trackId, stray_km: plan.strayKm })
       setOutcome({ vias: plan.vias.length, strayKm: plan.strayKm, capped: plan.capped })
     } catch {
       setError('save')
@@ -195,6 +207,29 @@ export function useFollowTrack(
   }, [tracks, dayId, stops, busy, tripId, vias])
 
   const viaCount = dayId === null ? 0 : (vias.byDay[dayId]?.length ?? 0)
+
+  /**
+   * The name behind each day's stored track id.
+   *
+   * A lookup over `places` rather than a parse: naming a line costs a row, and the rail
+   * asks for this on every render.
+   */
+  const namesByDay = useMemo(() => {
+    const names: Record<number, string> = {}
+    const byId = new Map(places.map(p => [p.id, p]))
+    for (const [day, track] of Object.entries(vias.trackByDay)) {
+      const place = byId.get(track.place_id)
+      if (place?.name) names[Number(day)] = place.name
+    }
+    return names
+  }, [places, vias.trackByDay])
+
+  const current = useMemo(() => {
+    if (dayId === null) return null
+    const track = vias.trackByDay[dayId]
+    const name = namesByDay[dayId]
+    return track && name ? { name, strayKm: track.stray_km } : null
+  }, [dayId, vias.trackByDay, namesByDay])
   // A cheap look at the column, not a parse: this runs on every planner render, and the
   // question is only whether anything at all was ever imported.
   const available = useMemo(() => places.some(p => (p.route_geometry?.length ?? 0) > 2), [places])
@@ -206,7 +241,8 @@ export function useFollowTrack(
     try {
       // Every leg of the day, so nothing is left behind on a leg the track never reached.
       const legs = Array.from({ length: Math.max(0, stops.length - 1) }, (_, i) => i)
-      await vias.addMany(dayId, [], legs)
+      // null rather than nothing: dropping the points is also dropping the claim.
+      await vias.addMany(dayId, [], legs, null)
       setOutcome({ vias: 0, strayKm: 0, capped: false })
     } catch {
       setError('save')
@@ -215,5 +251,5 @@ export function useFollowTrack(
     }
   }, [dayId, busy, stops.length, vias])
 
-  return { dayId, open, close, tracks, busy, round, error, outcome, apply, clear, viaCount, available }
+  return { dayId, open, close, tracks, busy, round, error, outcome, apply, clear, viaCount, available, current, namesByDay }
 }

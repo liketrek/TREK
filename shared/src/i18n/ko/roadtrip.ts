@@ -64,6 +64,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.track.errorRoute': '경로 서비스가 응답하지 않았습니다.',
   'roadtrip.track.errorSave': '경유지를 저장하지 못했습니다.',
   'roadtrip.track.clear': '경유지 {count}개 삭제',
+  'roadtrip.track.current': '현재 {name}을(를) 따라갑니다',
   'roadtrip.poi.rest': '휴게소',
   'roadtrip.poi.campsite': '캠핑장',
   'roadtrip.poi.food': '식사',

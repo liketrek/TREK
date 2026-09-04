@@ -52,7 +52,7 @@ export class RoadtripMcp {
       if (!this.roadtrip.dayExists(dayId, tripId)) return noAccess();
       return ok({ vias: this.roadtrip.listForDay(dayId) });
     }
-    return ok({ vias: this.roadtrip.listForTrip(tripId) });
+    return ok({ vias: this.roadtrip.listForTrip(tripId), tracks: this.roadtrip.tracksForTrip(tripId) });
   }
 
   @Tool({
@@ -93,16 +93,23 @@ export class RoadtripMcp {
       })).max(100).describe('In the order the drive passes through them'),
       replace_legs: z.array(z.number().int().min(0)).max(100).optional()
         .describe('Legs to clear before inserting, by the index of the stop they follow'),
+      track: z.object({
+        place_id: z.number().int().positive().describe('The imported track this chain was fitted to, as its place id'),
+        stray_km: z.number().min(0).max(40_000).nullable().optional()
+          .describe('How far the fitted route still runs from the track at its worst point'),
+      }).nullable().optional()
+        .describe('Records which imported track the day now follows. Leave it out to keep whatever it followed before; pass null to say it follows nothing.'),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     access: { group: 'trips', mode: 'write' },
     when: roadtripAddonOn,
   })
   async addVias(
-    { tripId, dayId, vias, replace_legs }: {
+    { tripId, dayId, vias, replace_legs, track }: {
       tripId: number; dayId: number;
       vias: { after_order_index: number; lat: number; lng: number }[];
       replace_legs?: number[];
+      track?: { place_id: number; stray_km?: number | null } | null;
     },
     ctx: McpContext,
   ) {
@@ -110,7 +117,11 @@ export class RoadtripMcp {
     if (!this.db.canAccessTrip(tripId, ctx.userId)) return noAccess();
     if (!this.guards.hasTripPermission('day_edit', tripId, ctx.userId)) return permissionDenied();
     if (!this.roadtrip.dayExists(dayId, tripId)) return noAccess();
-    return ok({ vias: this.roadtrip.createMany(dayId, { vias, replace_legs }) });
+    // The same check the REST route makes, in the same change: permission alone would let
+    // a place id from another trip, or a place that is not a track at all, become this
+    // day's label.
+    if (track && !this.roadtrip.trackExists(track.place_id, tripId)) return noAccess();
+    return ok({ vias: this.roadtrip.createMany(dayId, { vias, replace_legs, track }) });
   }
 
   @Tool({

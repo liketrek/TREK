@@ -64,6 +64,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.track.errorRoute': 'لم تستجب خدمة تحديد المسارات.',
   'roadtrip.track.errorSave': 'تعذّر حفظ نقاط العبور.',
   'roadtrip.track.clear': 'إزالة {count} نقطة عبور',
+  'roadtrip.track.current': 'يتبع حالياً {name}',
   'roadtrip.poi.rest': 'استراحة',
   'roadtrip.poi.campsite': 'مخيم',
   'roadtrip.poi.food': 'طعام',

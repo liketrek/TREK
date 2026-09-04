@@ -64,6 +64,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.track.errorRoute': 'Layanan rute tidak menjawab.',
   'roadtrip.track.errorSave': 'Titik lintas tidak dapat disimpan.',
   'roadtrip.track.clear': 'Hapus {count} titik lintas',
+  'roadtrip.track.current': 'Saat ini mengikuti {name}',
   'roadtrip.poi.rest': 'Tempat istirahat',
   'roadtrip.poi.campsite': 'Perkemahan',
   'roadtrip.poi.food': 'Makanan',

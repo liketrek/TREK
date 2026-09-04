@@ -524,6 +524,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
                       onSetStopKind={can('place_edit', trip) ? setRoadtripStopKind : undefined}
                       onFollowTrack={can('day_edit', trip) && followTrack.available ? followTrack.open : undefined}
                       viaCounts={roadtripViaCounts}
+                      trackNames={followTrack.namesByDay}
                     />
                   </LazyPanel>
                 ) : (

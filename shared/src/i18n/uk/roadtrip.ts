@@ -64,6 +64,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.track.errorRoute': 'Сервіс маршрутів не відповів.',
   'roadtrip.track.errorSave': 'Не вдалося зберегти проміжні точки.',
   'roadtrip.track.clear': 'Прибрати проміжні точки: {count}',
+  'roadtrip.track.current': 'Зараз іде за {name}',
   'roadtrip.poi.rest': 'Зона відпочинку',
   'roadtrip.poi.campsite': 'Кемпінг',
   'roadtrip.poi.food': 'Їжа',

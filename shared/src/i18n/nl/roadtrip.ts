@@ -64,6 +64,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.track.errorRoute': 'De routeservice antwoordde niet.',
   'roadtrip.track.errorSave': 'De tussenpunten konden niet worden opgeslagen.',
   'roadtrip.track.clear': '{count} tussenpunten verwijderen',
+  'roadtrip.track.current': 'Volgt momenteel {name}',
   'roadtrip.poi.rest': 'Rustplaats',
   'roadtrip.poi.campsite': 'Camping',
   'roadtrip.poi.food': 'Eten',

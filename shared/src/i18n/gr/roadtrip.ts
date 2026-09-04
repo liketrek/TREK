@@ -64,6 +64,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.track.errorRoute': 'Η υπηρεσία δρομολόγησης δεν απάντησε.',
   'roadtrip.track.errorSave': 'Δεν ήταν δυνατή η αποθήκευση των ενδιάμεσων σημείων.',
   'roadtrip.track.clear': 'Αφαίρεση {count} ενδιάμεσων σημείων',
+  'roadtrip.track.current': 'Ακολουθεί αυτή τη στιγμή {name}',
   'roadtrip.poi.rest': 'Χώρος ανάπαυσης',
   'roadtrip.poi.campsite': 'Κάμπινγκ',
   'roadtrip.poi.food': 'Φαγητό',

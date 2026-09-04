@@ -64,6 +64,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.track.errorRoute': 'Сервис маршрутов не ответил.',
   'roadtrip.track.errorSave': 'Не удалось сохранить промежуточные точки.',
   'roadtrip.track.clear': 'Убрать промежуточные точки: {count}',
+  'roadtrip.track.current': 'Сейчас идёт по {name}',
   'roadtrip.poi.rest': 'Зона отдыха',
   'roadtrip.poi.campsite': 'Кемпинг',
   'roadtrip.poi.food': 'Еда',

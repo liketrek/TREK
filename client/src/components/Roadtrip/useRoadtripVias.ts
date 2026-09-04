@@ -1,11 +1,19 @@
 import { useCallback, useEffect, useState } from 'react'
 import { roadtripApi } from '../../api/client'
 import { isEmptyReanchoring, type Reanchoring } from './roadtripModel'
-import type { RoadtripVia } from '@trek/shared'
+import type { RoadtripDayTrack, RoadtripVia } from '@trek/shared'
 
 export interface RoadtripVias {
   /** Every via of the trip, keyed by day. */
   byDay: Record<number, RoadtripVia[]>
+  /**
+   * Which imported track each day was fitted to, keyed by day.
+   *
+   * The vias are what make the day follow it; this is what lets the day say so. Empty for
+   * a day shaped by hand, and gone by itself when the track is deleted — the row cascades
+   * with the place, so nothing here can name a line that no longer exists.
+   */
+  trackByDay: Record<number, RoadtripDayTrack>
   add: (dayId: number, afterOrderIndex: number, lat: number, lng: number) => Promise<void>
   /**
    * Lay a chain of vias on one day, optionally clearing the legs it fills first.
@@ -14,7 +22,13 @@ export interface RoadtripVias {
    * trip re-route between each one, spaced by the routing host's rate limit, so a
    * twenty-anchor track would spend half a minute drawing routes nobody asked to see.
    */
-  addMany: (dayId: number, vias: { after_order_index: number; lat: number; lng: number }[], replaceLegs?: number[]) => Promise<void>
+  addMany: (
+    dayId: number,
+    vias: { after_order_index: number; lat: number; lng: number }[],
+    replaceLegs?: number[],
+    /** Absent leaves the day's track alone, null clears it, an object records a new one. */
+    track?: { place_id: number; stray_km?: number | null } | null,
+  ) => Promise<void>
   move: (dayId: number, id: number, lat: number, lng: number) => Promise<void>
   remove: (dayId: number, id: number) => Promise<void>
   /**
@@ -28,6 +42,7 @@ export interface RoadtripVias {
 }
 
 const EMPTY: Record<number, RoadtripVia[]> = {}
+const EMPTY_TRACKS: Record<number, RoadtripDayTrack> = {}
 
 /**
  * The points this trip's drives are routed through.
@@ -42,6 +57,7 @@ const EMPTY: Record<number, RoadtripVia[]> = {}
  */
 export function useRoadtripVias(tripId: number | string | null, active: boolean): RoadtripVias {
   const [byDay, setByDay] = useState<Record<number, RoadtripVia[]>>(EMPTY)
+  const [trackByDay, setTrackByDay] = useState<Record<number, RoadtripDayTrack>>(EMPTY_TRACKS)
 
   const group = useCallback((vias: RoadtripVia[]) => {
     const next: Record<number, RoadtripVia[]> = {}
@@ -50,14 +66,18 @@ export function useRoadtripVias(tripId: number | string | null, active: boolean)
   }, [])
 
   const reload = useCallback(async () => {
-    if (!tripId || !active) { setByDay(EMPTY); return }
+    if (!tripId || !active) { setByDay(EMPTY); setTrackByDay(EMPTY_TRACKS); return }
     try {
-      const { vias } = await roadtripApi.listVias(tripId)
+      const { vias, tracks } = await roadtripApi.listVias(tripId)
       setByDay(group(vias))
+      const byId: Record<number, RoadtripDayTrack> = {}
+      for (const track of tracks ?? []) byId[track.day_id] = track
+      setTrackByDay(byId)
     } catch {
       // An instance with the addon off answers 404 here, which is not an error worth
       // reporting — it just means there are no vias to draw.
       setByDay(EMPTY)
+      setTrackByDay(EMPTY_TRACKS)
     }
   }, [tripId, active, group])
 
@@ -73,12 +93,18 @@ export function useRoadtripVias(tripId: number | string | null, active: boolean)
     dayId: number,
     vias: { after_order_index: number; lat: number; lng: number }[],
     replaceLegs?: number[],
+    track?: { place_id: number; stray_km?: number | null } | null,
   ) => {
     if (!tripId) return
     // An empty chain with nothing to clear is not a write. It is a real call though, from
-    // a track that thinned down to nothing on a very short day.
-    if (!vias.length && !replaceLegs?.length) return
-    await roadtripApi.addVias(tripId, dayId, { vias, replace_legs: replaceLegs })
+    // a track that thinned down to nothing on a very short day, and from a track that the
+    // drive already followed — which still has a name to record.
+    if (!vias.length && !replaceLegs?.length && track === undefined) return
+    await roadtripApi.addVias(tripId, dayId, {
+      vias,
+      replace_legs: replaceLegs,
+      ...(track === undefined ? {} : { track }),
+    })
     await reload()
   }, [tripId, reload])
 
@@ -100,5 +126,5 @@ export function useRoadtripVias(tripId: number | string | null, active: boolean)
     await reload()
   }, [tripId, reload])
 
-  return { byDay, add, addMany, move, remove, reanchor }
+  return { byDay, trackByDay, add, addMany, move, remove, reanchor }
 }

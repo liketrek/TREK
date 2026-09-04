@@ -64,6 +64,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.track.errorRoute': 'Il servizio di calcolo percorso non ha risposto.',
   'roadtrip.track.errorSave': 'Non è stato possibile salvare i punti di passaggio.',
   'roadtrip.track.clear': 'Rimuovi {count} punti di passaggio',
+  'roadtrip.track.current': 'Attualmente segue {name}',
   'roadtrip.poi.rest': 'Area di sosta',
   'roadtrip.poi.campsite': 'Campeggio',
   'roadtrip.poi.food': 'Ristoro',

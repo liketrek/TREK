@@ -75,7 +75,7 @@ export default function RoadtripTrackModal({ follow, dayNumber }: {
   const distanceUnit = useSettingsStore(s => s.settings.distance_unit)
   const [picked, setPicked] = useState<number | null>(null)
 
-  const { dayId, busy, round, error, outcome, tracks, viaCount } = follow
+  const { dayId, busy, round, error, outcome, tracks, viaCount, current } = follow
 
   // A track picked on one day means nothing on the next.
   useEffect(() => { setPicked(null) }, [dayId])
@@ -97,6 +97,14 @@ export default function RoadtripTrackModal({ follow, dayNumber }: {
       }
     >
       <div className="flex flex-col gap-3">
+        {/* What the day follows today, before anything is picked. Read back from the day
+            rather than remembered from the run that applied it, which is the whole reason
+            it is stored: it has to survive a reload. */}
+        {current ? (
+          <p className="rounded-xl bg-surface-secondary px-3 py-2 text-caption text-content-secondary">
+            {t('roadtrip.track.current', { name: current.name })}
+          </p>
+        ) : null}
         {tracks.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-2">
             <EmptyState scene="transport" size={96} compact title={t('roadtrip.track.empty')} />

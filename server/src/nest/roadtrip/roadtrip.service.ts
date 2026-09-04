@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { RoadtripVia } from '@trek/shared';
+import type { RoadtripDayTrack, RoadtripVia } from '@trek/shared';
 import { DatabaseService } from '../database/database.service';
 
 /**
@@ -77,9 +77,26 @@ export class RoadtripService {
    */
   createMany(
     dayId: string | number,
-    input: { vias: { after_order_index: number; lat: number; lng: number }[]; replace_legs?: number[] },
+    input: {
+      vias: { after_order_index: number; lat: number; lng: number }[];
+      replace_legs?: number[];
+      track?: { place_id: number; stray_km?: number | null } | null;
+    },
   ): RoadtripVia[] {
     return this.db.transaction(() => {
+      // Inside the same transaction as the chain it describes. A day that says it follows
+      // a road whose vias never landed is worse than a day that says nothing.
+      if (input.track === null) {
+        this.db.run('DELETE FROM roadtrip_day_tracks WHERE day_id = ?', dayId);
+      } else if (input.track) {
+        this.db.run(
+          `INSERT INTO roadtrip_day_tracks (day_id, place_id, stray_km) VALUES (?, ?, ?)
+             ON CONFLICT(day_id) DO UPDATE SET place_id = excluded.place_id, stray_km = excluded.stray_km`,
+          dayId,
+          input.track.place_id,
+          input.track.stray_km ?? null,
+        );
+      }
       for (const leg of input.replace_legs ?? []) {
         this.db.run('DELETE FROM roadtrip_vias WHERE day_id = ? AND after_order_index = ?', dayId, leg);
       }
@@ -108,6 +125,32 @@ export class RoadtripService {
       }
       return this.listForDay(dayId);
     });
+  }
+
+  /**
+   * The tracks this trip's days follow.
+   *
+   * Read with the vias in one go: both are wanted on every load of road-trip mode, and a
+   * second route for a handful of rows would be a second round trip for nothing.
+   */
+  tracksForTrip(tripId: string | number): RoadtripDayTrack[] {
+    return this.db.all<RoadtripDayTrack>(
+      `SELECT t.day_id, t.place_id, t.stray_km
+         FROM roadtrip_day_tracks t
+         JOIN days d ON d.id = t.day_id
+        WHERE d.trip_id = ?
+        ORDER BY t.day_id`,
+      tripId,
+    );
+  }
+
+  /** Whether a place is on this trip, and is a track rather than an ordinary place. */
+  trackExists(placeId: number, tripId: string | number): boolean {
+    return !!this.db.get<{ id: number }>(
+      "SELECT id FROM places WHERE id = ? AND trip_id = ? AND route_geometry IS NOT NULL AND route_geometry != ''",
+      placeId,
+      tripId,
+    );
   }
 
   /** Moving a via is the whole edit; where it sits in the chain does not change. */

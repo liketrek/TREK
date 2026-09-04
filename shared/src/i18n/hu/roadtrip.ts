@@ -64,6 +64,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.track.errorRoute': 'Az útvonaltervező szolgáltatás nem válaszolt.',
   'roadtrip.track.errorSave': 'A köztes pontokat nem sikerült menteni.',
   'roadtrip.track.clear': '{count} köztes pont eltávolítása',
+  'roadtrip.track.current': 'Jelenleg ezt követi: {name}',
   'roadtrip.poi.rest': 'Pihenőhely',
   'roadtrip.poi.campsite': 'Kemping',
   'roadtrip.poi.food': 'Étkezés',

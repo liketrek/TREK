@@ -310,7 +310,9 @@ export function useRoadtripRoutes(
   const viaKey = useMemo(
     () => Object.entries(viasByDay)
       .map(([dayId, vias]) => `${dayId}:${vias.map(v => `${v.after_order_index}@${v.lat.toFixed(5)},${v.lng.toFixed(5)}`).join('|')}`)
-      .sort()
+      // Only the order has to be stable — this is a cache key, not a list anybody reads
+      // — but it has to be stable on purpose rather than by default.
+      .sort((a, b) => a.localeCompare(b))
       .join(';'),
     [viasByDay],
   )

@@ -60,6 +60,8 @@ interface RoadtripSidebarProps {
    * what somebody reading the day needs to know.
    */
   viaCounts?: Record<number, number>
+  /** The name of the track each day follows, so the badge can say which road it is. */
+  trackNames?: Record<number, string>
 }
 
 const MODE_ICON: Record<string, LucideIcon> = {
@@ -759,7 +761,7 @@ function Stop({ stop, number, entry, late, driveFindings, selected, continues, s
  * (`dayOrderMap` numbers the selected day's assignments from 1). A rail counting across
  * the trip would put "17" beside a pin the map calls "3".
  */
-function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, onMoveStopToDay, drag, onAskAlternatives, openAlternatives, onEditStay, onSetStopKind, onFollowTrack, viaCount }: {
+function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, onMoveStopToDay, drag, onAskAlternatives, openAlternatives, onEditStay, onSetStopKind, onFollowTrack, viaCount, trackName }: {
   day: RoadtripDay
   selectedAssignmentId?: number | null
   onSelectStop?: (placeId: number, assignmentId: number) => void
@@ -773,6 +775,7 @@ function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, on
   onSetStopKind?: RoadtripSidebarProps['onSetStopKind']
   onFollowTrack?: RoadtripSidebarProps['onFollowTrack']
   viaCount?: number
+  trackName?: string
 }): React.ReactElement {
   const { from, setFrom, dropAt, setDropAt } = drag
   const dragging = from?.dayId === day.dayId ? from.index : null
@@ -837,7 +840,7 @@ function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, on
               none of them, so this badge is the only place a drive shaped by hand differs
               from one the router picked on its own. */}
           {onFollowTrack ? (
-            <Tooltip label={t('roadtrip.track.hint')}>
+            <Tooltip label={trackName ? t('roadtrip.track.current', { name: trackName }) : t('roadtrip.track.hint')}>
               <button
                 type="button"
                 onClick={() => onFollowTrack(day.dayId)}
@@ -1029,7 +1032,7 @@ function QuietDaySection({ day, onMoveStopToDay, drag }: {
  */
 export default function RoadtripSidebar({
   routes, selectedAssignmentId, onSelectStop, onReorderStop, onMoveStopToDay, onAskAlternatives, openAlternatives, onEditStay,
-  onSetStopKind, onFollowTrack, viaCounts,
+  onSetStopKind, onFollowTrack, viaCounts, trackNames,
 }: RoadtripSidebarProps): React.ReactElement {
   const { t } = useTranslation()
   // One drag state for the whole rail rather than one per day: a stop that cannot leave
@@ -1074,6 +1077,7 @@ export default function RoadtripSidebar({
             onSetStopKind={onSetStopKind}
             onFollowTrack={onFollowTrack}
             viaCount={viaCounts?.[day.dayId] ?? 0}
+            trackName={trackNames?.[day.dayId]}
           />
         ))}
         {routes.quietDays.map(day => (

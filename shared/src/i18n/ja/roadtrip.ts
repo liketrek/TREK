@@ -64,6 +64,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.track.errorRoute': 'ルート検索サービスが応答しませんでした。',
   'roadtrip.track.errorSave': '経由地を保存できませんでした。',
   'roadtrip.track.clear': '経由地 {count} か所を削除',
+  'roadtrip.track.current': '現在 {name} をたどっています',
   'roadtrip.poi.rest': 'サービスエリア',
   'roadtrip.poi.campsite': 'キャンプ場',
   'roadtrip.poi.food': '食事',

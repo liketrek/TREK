@@ -64,6 +64,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.track.errorRoute': '路线服务没有响应。',
   'roadtrip.track.errorSave': '无法保存途经点。',
   'roadtrip.track.clear': '移除 {count} 个途经点',
+  'roadtrip.track.current': '当前沿 {name} 行驶',
   'roadtrip.poi.rest': '服务区',
   'roadtrip.poi.campsite': '露营地',
   'roadtrip.poi.food': '餐饮',

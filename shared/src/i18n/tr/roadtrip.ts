@@ -64,6 +64,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.track.errorRoute': 'Rota servisi yanıt vermedi.',
   'roadtrip.track.errorSave': 'Ara noktalar kaydedilemedi.',
   'roadtrip.track.clear': '{count} ara noktayı kaldır',
+  'roadtrip.track.current': 'Şu anda {name} izini takip ediyor',
   'roadtrip.poi.rest': 'Dinlenme alanı',
   'roadtrip.poi.campsite': 'Kamp alanı',
   'roadtrip.poi.food': 'Yemek',
