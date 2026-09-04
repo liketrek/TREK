@@ -537,6 +537,8 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.atlas.description': 'Wereldkaart met bezochte landen en reisstatistieken',
   'admin.addons.catalog.collab.name': 'Samenwerking',
   'admin.addons.catalog.collab.description': 'Notities, peilingen, chat en suggesties om samen te plannen',
+  'admin.addons.catalog.roadtrip.name': 'Roadtrip',
+  'admin.addons.catalog.roadtrip.description': 'Plan ritten met tussenstops; rijtijden en aankomsttijden berekenen zichzelf opnieuw',
   'admin.addons.subtitleBefore': 'Schakel functies in of uit om je ',
   'admin.addons.subtitleAfter': '-ervaring aan te passen.',
   'admin.addons.catalog.naver_list_import.name': 'Naver List Import',

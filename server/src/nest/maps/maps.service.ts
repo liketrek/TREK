@@ -7,6 +7,7 @@ import type {
   MapsReverseResult,
   MapsResolveUrlResult,
 } from '@trek/shared';
+import { Jimp } from 'jimp';
 import { readEnv, getAppUrl } from '../../app-config';
 import { safeFetchFollow, SsrfBlockedError } from '../../utils/ssrfGuard';
 import { discardBody, exceedsDeclaredLength, readCappedText } from '../../utils/cappedFetch';
@@ -26,13 +27,16 @@ import {
   isGooglePlaceId,
   OSM_PLACE_ID,
   CATEGORY_OSM_FILTERS,
+  parsePoiCategories,
   resolveOverpassEndpoints,
   resolveOverpassTimeoutMs,
+  OVERPASS_QUERY_TIMEOUT_S,
   stripWikiMarkup,
   parseWikipediaTag,
   toWikiLang,
   haversineMetres,
   namesOverlap,
+  readChargingInfo,
   type GoogleOpeningHours,
   type OverpassPoi,
 } from './maps.helpers';
@@ -345,7 +349,7 @@ interface GooglePlaceDetails extends GooglePlaceResult {
 // unbounded body out of memory.
 const MAX_MAPS_PAGE_BYTES = 2_000_000;
 
-const GOOGLE_SHORT_HOSTS = ['goo.gl', 'maps.app.goo.gl'];
+export const GOOGLE_SHORT_HOSTS = ['goo.gl', 'maps.app.goo.gl'];
 
 /**
  * Google Maps lives on every country domain — google.de, maps.google.co.uk,
@@ -354,12 +358,104 @@ const GOOGLE_SHORT_HOSTS = ['goo.gl', 'maps.app.goo.gl'];
  * labels stay short (2-3 letters, optionally two of them) so that
  * `google.evil.com` is not a Google host.
  */
-function isGoogleMapsHost(hostname: string): boolean {
+export function isGoogleMapsHost(hostname: string): boolean {
   return GOOGLE_SHORT_HOSTS.includes(hostname)
     || /^(www\.|maps\.)?google\.[a-z]{2,3}(\.[a-z]{2})?$/.test(hostname);
 }
 
 const WIKI_TIMEOUT_MS = 6000;
+
+// ── Brand logos ──────────────────────────────────────────────────────────────
+//
+// A road trip corridor is mostly chains — Shell, Aral, JET — and the brand is the
+// fastest thing to recognise on a map. OSM carries `brand:wikidata` on most of them,
+// Wikidata carries the logo (P154), and Commons serves it.
+//
+// The bytes are proxied rather than linked so the browser never talks to Wikimedia:
+// one self-hosted instance asking for a handful of logos is a very different egress
+// profile from every visitor's browser announcing which petrol stations they are
+// looking at. The cache is in memory on purpose — a GET must not write to the DB, and
+// there are only so many fuel brands.
+const BRAND_LOGO_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const BRAND_LOGO_CACHE_MAX = 300;
+/** Well past any logo; a Commons original can be a multi-megabyte SVG or print-res PNG. */
+const BRAND_LOGO_MAX_BYTES = 512 * 1024;
+const BRAND_LOGO_WIDTH = 128;
+/** The square the logo is centred in, and the breathing room around it. */
+const BRAND_LOGO_CANVAS = 96;
+const BRAND_LOGO_PADDING = 8;
+const WIKIDATA_ID_RE = /^Q[1-9][0-9]{0,11}$/;
+
+export interface BrandLogo {
+  bytes: Buffer;
+  contentType: string;
+}
+
+/**
+ * Puts a logo on a background it can actually be seen against.
+ *
+ * Half the fuel brands ship a white wordmark with a transparent background —
+ * TotalEnergies, Esso and JET among them — and on the white pill the marker used to
+ * draw they were invisible. Which background is right is a property of the image, not
+ * of the brand, so it is measured: the mean brightness of the pixels that are actually
+ * opaque decides between a white and a near-black backdrop.
+ *
+ * Returns the flattened PNG, or null when the bytes cannot be read at all — the pin
+ * then keeps its category icon, which is a fine outcome.
+ */
+async function flattenBrandLogo(bytes: Buffer): Promise<BrandLogo | null> {
+  try {
+    const image = await Jimp.read(bytes);
+    const width = image.bitmap.width;
+    const height = image.bitmap.height;
+    if (!width || !height) return null;
+
+    let sum = 0;
+    let opaque = 0;
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const idx = (y * width + x) * 4;
+        const alpha = image.bitmap.data[idx + 3];
+        // Half-transparent pixels are anti-aliasing, not the mark itself.
+        if (alpha < 128) continue;
+        const r = image.bitmap.data[idx];
+        const g = image.bitmap.data[idx + 1];
+        const b = image.bitmap.data[idx + 2];
+        sum += 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        opaque++;
+      }
+    }
+    // A logo with nothing opaque in it is not a logo.
+    if (opaque === 0) return null;
+
+    // Square, with the logo scaled to fit inside it. Most brand marks are wide wordmarks
+    // — TotalEnergies is three times as wide as it is tall — and a round pin showing the
+    // middle of one is unreadable. Fitting it into a square means the pin can crop to a
+    // circle without ever cutting the mark itself.
+    const scale = Math.min(
+      (BRAND_LOGO_CANVAS - 2 * BRAND_LOGO_PADDING) / width,
+      (BRAND_LOGO_CANVAS - 2 * BRAND_LOGO_PADDING) / height,
+    );
+    // Never upscale: a 16-pixel favicon blown up to 96 looks worse than a small one.
+    if (scale < 1) image.scale(scale);
+
+    const light = sum / opaque > 150;
+    const canvas = new Jimp({
+      width: BRAND_LOGO_CANVAS,
+      height: BRAND_LOGO_CANVAS,
+      color: light ? 0x111827ff : 0xffffffff,
+    });
+    canvas.composite(
+      image,
+      Math.round((BRAND_LOGO_CANVAS - image.bitmap.width) / 2),
+      Math.round((BRAND_LOGO_CANVAS - image.bitmap.height) / 2),
+    );
+    const out = await canvas.getBuffer('image/png');
+    return { bytes: Buffer.from(out), contentType: 'image/png' };
+  } catch {
+    return null;
+  }
+}
 
 // Tighter than the wiki calls, because this one sits at the FRONT of a chain:
 // identity, then sitelinks, then the extract. Nominatim answers a bounded
@@ -439,6 +535,12 @@ const POI_CACHE_TTL_MS = 5 * 60 * 1000;
 // Cap the number of cached areas so panning across the globe can't grow the map
 // without bound (entries are evicted oldest-first once the cap is reached).
 const POI_CACHE_MAX = 500;
+/**
+ * Hard ceiling on one POI answer, however many categories it carries. A corridor search
+ * asks for four kinds at once; without a ceiling a dense city box would return a payload
+ * nobody reads and every mirror pays for.
+ */
+const POI_RESULT_CAP = 240;
 
 // POST the query to all mirrors at once and return the first one that answers with
 // valid JSON. Throws {status:502} only if every mirror fails. Racing (rather than
@@ -523,6 +625,10 @@ export class MapsService {
     private readonly photoCache: PlacePhotoCacheService,
   ) {}
 
+  /** Brand id → logo bytes, or null for "asked, has none". Insertion-ordered, so the
+   *  oldest entry is the one evicted when it fills up. */
+  private readonly brandLogoCache = new Map<string, { at: number; logo: BrandLogo | null }>();
+
   private isSettingDisabled(key: string): boolean {
     const row = this.database.get<{ value: string }>(
       'SELECT value FROM app_settings WHERE key = ?',
@@ -575,6 +681,70 @@ export class MapsService {
 
   resolveUrl(url: string): Promise<MapsResolveUrlResult> {
     return this.resolveGoogleMapsUrl(url) as Promise<MapsResolveUrlResult>;
+  }
+
+  /**
+   * The logo of a brand, by its Wikidata id, as bytes.
+   *
+   * Two hops: Wikidata says which Commons file is the logo (property P154), Commons
+   * serves a thumbnail of it. Both answers are cached, including "this brand has no
+   * logo" — otherwise every map pan would ask Wikidata about the same supermarket
+   * chain again. Returns null whenever anything is missing or unreadable; a marker
+   * without a logo falls back to its category icon, which is a fine outcome.
+   */
+  async brandLogo(wikidataId: string): Promise<BrandLogo | null> {
+    if (!WIKIDATA_ID_RE.test(wikidataId)) return null;
+
+    const cached = this.brandLogoCache.get(wikidataId);
+    if (cached && Date.now() - cached.at < BRAND_LOGO_CACHE_TTL_MS) return cached.logo;
+
+    const remember = (logo: BrandLogo | null): BrandLogo | null => {
+      if (this.brandLogoCache.size >= BRAND_LOGO_CACHE_MAX) {
+        const oldest = this.brandLogoCache.keys().next().value;
+        if (oldest !== undefined) this.brandLogoCache.delete(oldest);
+      }
+      this.brandLogoCache.set(wikidataId, { at: Date.now(), logo });
+      return logo;
+    };
+
+    try {
+      const params = new URLSearchParams({
+        action: 'wbgetclaims',
+        entity: wikidataId,
+        property: 'P154',
+        format: 'json',
+      });
+      const claimRes = await fetch(`https://www.wikidata.org/w/api.php?${params}`, {
+        headers: { 'User-Agent': UA },
+        signal: AbortSignal.timeout(WIKI_TIMEOUT_MS),
+      });
+      if (!claimRes.ok) return remember(null);
+      const claims = (await claimRes.json()) as {
+        claims?: { P154?: { mainsnak?: { datavalue?: { value?: unknown } } }[] };
+      };
+      const file = claims.claims?.P154?.[0]?.mainsnak?.datavalue?.value;
+      if (typeof file !== 'string' || !file.trim()) return remember(null);
+
+      // Special:FilePath renders a thumbnail at the width asked for and redirects to
+      // the CDN, so each hop is re-checked by the guard rather than trusted.
+      const url = `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(file)}?width=${BRAND_LOGO_WIDTH}`;
+      const imgRes = await safeFetchFollow(url, undefined, { bypassInternalIpAllowed: true });
+      if (!imgRes.ok) return remember(null);
+
+      const declared = Number(imgRes.headers.get('content-length') ?? '0');
+      if (declared > BRAND_LOGO_MAX_BYTES) return remember(null);
+      const bytes = Buffer.from(await imgRes.arrayBuffer());
+      // Checked again after reading: a chunked response has no length to check first.
+      if (bytes.byteLength === 0 || bytes.byteLength > BRAND_LOGO_MAX_BYTES) return remember(null);
+
+      const contentType = imgRes.headers.get('content-type') ?? '';
+      if (!contentType.startsWith('image/')) return remember(null);
+
+      return remember(await flattenBrandLogo(bytes));
+    } catch (err) {
+      if (err instanceof SsrfBlockedError) return remember(null);
+      return remember(null);
+    }
   }
 
   // OSM-only POI search by category within a viewport bbox (never calls Google).
@@ -821,8 +991,20 @@ export class MapsService {
     lang?: string,
     limit = 60,
   ): Promise<PoiSearchResult> {
-    const filters = CATEGORY_OSM_FILTERS[category];
-    if (!filters) throw Object.assign(new Error('Unknown POI category'), { status: 400 });
+    // One or several categories in one query. Each OSM selector belongs to exactly one
+    // category, so a hit can still be labelled with the category it answered.
+    const categories = parsePoiCategories(category);
+    if (!categories.length) throw Object.assign(new Error('Unknown POI category'), { status: 400 });
+    const categoryOfFilter = new Map<string, string>();
+    for (const key of categories) {
+      const own = CATEGORY_OSM_FILTERS[key];
+      if (!own) throw Object.assign(new Error('Unknown POI category'), { status: 400 });
+      for (const f of own) categoryOfFilter.set(f, key);
+    }
+    const filters = [...categoryOfFilter.keys()];
+    // Each category gets its own share of the cap, or a mixed search would spend the
+    // whole budget on whichever kind happens to be densest.
+    const cap = Math.min(limit * categories.length, POI_RESULT_CAP);
 
     // Clamp an oversized viewport to a centred window so the query stays cheap and
     // returns fast at any zoom, instead of timing out / 502-ing on a huge area.
@@ -849,7 +1031,7 @@ export class MapsService {
     const osmLang = toApiLang(lang).split('-')[0].toLowerCase();
 
     // Serve repeat pans/toggles of the same area straight from the cache.
-    const cacheKey = `${category}|${osmLang}|${south.toFixed(2)},${west.toFixed(2)},${north.toFixed(2)},${east.toFixed(2)}|${limit}`;
+    const cacheKey = `${[...categories].sort((a, b) => a.localeCompare(b)).join('+')}|${osmLang}|${south.toFixed(2)},${west.toFixed(2)},${north.toFixed(2)},${east.toFixed(2)}|${cap}`;
     const cached = POI_CACHE.get(cacheKey);
     if (cached && Date.now() - cached.at < POI_CACHE_TTL_MS) return cached.value;
     if (cached) POI_CACHE.delete(cacheKey); // expired — drop it before refetching
@@ -864,14 +1046,18 @@ export class MapsService {
       .join('\n');
     // `out center tags <n>` returns ways/relations with a computed center and caps
     // the result count in one round-trip.
-    const query = `[out:json][timeout:20];\n(\n${selectors}\n);\nout center tags ${limit + 25};`;
+    const query = `[out:json][timeout:${OVERPASS_QUERY_TIMEOUT_S}];\n(\n${selectors}\n);\nout center tags ${cap + 25};`;
 
     const elements = await overpassFetch(query);
 
     const pois: OverpassPoi[] = [];
     for (const el of elements) {
       const tags = el.tags || {};
-      const name = tags[`name:${osmLang}`] || tags['int_name'] || tags.name || tags.brand || null;
+      // `operator` comes last but matters for the road categories: petrol stations,
+      // charging points and service areas are routinely mapped with an operator and no
+      // name, and dropping those would empty the road trip corridor over long stretches.
+      const name =
+        tags[`name:${osmLang}`] || tags['int_name'] || tags.name || tags.brand || tags.operator || null;
       if (!name) continue; // unnamed POIs aren't useful to add to a plan
       // A shut-down place is not somewhere to plan a visit (#1341). OSM usually
       // re-tags one with a `disused:`/`abandoned:` prefix, and those never match
@@ -897,18 +1083,26 @@ export class MapsService {
         name,
         lat,
         lng,
-        category,
+        category: categoryOfFilter.get(matched) ?? categories[0],
         poi_type: matched,
         address: addr,
         website: tags.website || tags['contact:website'] || null,
         phone: tags.phone || tags['contact:phone'] || null,
         opening_hours: tags.opening_hours || null,
         cuisine: tags.cuisine || null,
+        brand: tags.brand || tags.operator || null,
+        // Only the plain Q-id form is passed on; anything else would be a lookup we
+        // would have to guess at.
+        brand_wikidata: /^Q[0-9]+$/.test(tags['brand:wikidata'] || '') ? tags['brand:wikidata'] : null,
+        // Only where it means something. Every POI carries `capacity` and `fee` for its
+        // own reasons — a restaurant's capacity is seats — so reading them as charging
+        // data anywhere else would be wrong on most of the map.
+        charging: categoryOfFilter.get(matched) === 'charging' ? readChargingInfo(tags) : null,
         source: 'openstreetmap',
       });
     }
-    const truncated = pois.length > limit;
-    const value: PoiSearchResult = { pois: pois.slice(0, limit), source: 'openstreetmap', truncated, clamped };
+    const truncated = pois.length > cap;
+    const value: PoiSearchResult = { pois: pois.slice(0, cap), source: 'openstreetmap', truncated, clamped };
     // FIFO eviction: a Map preserves insertion order, so the first key is the oldest.
     if (POI_CACHE.size >= POI_CACHE_MAX) POI_CACHE.delete(POI_CACHE.keys().next().value as string);
     POI_CACHE.set(cacheKey, { at: Date.now(), value });

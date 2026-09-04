@@ -545,6 +545,8 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.atlas.description': 'Carte du monde avec pays visités et statistiques de voyage',
   'admin.addons.catalog.collab.name': 'Collaboration',
   'admin.addons.catalog.collab.description': 'Notes, sondages, chat et suggestions pour planifier à plusieurs',
+  'admin.addons.catalog.roadtrip.name': 'Road trip',
+  'admin.addons.catalog.roadtrip.description': 'Planifiez des trajets avec étapes : temps de conduite et heures d’arrivée se recalculent seuls',
   'admin.addons.subtitleBefore': 'Activez ou désactivez des fonctionnalités pour personnaliser votre expérience ',
   'admin.addons.subtitleAfter': '.',
   'admin.addons.catalog.naver_list_import.name': 'Naver List Import',

@@ -24,6 +24,8 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Modello Mappa',
   'settings.mapTemplatePlaceholder.select': 'Seleziona modello...',
   'settings.mapDefaultHint': 'Lascia vuoto per OpenStreetMap (predefinito)',
+  'settings.routingBase': 'Motore di percorso proprio',
+  'settings.routingBaseHint': 'Una tua istanza OSRM. Vuoto usa i server pubblici, che consentono circa una richiesta al secondo: sufficiente per un giorno, poco per un viaggio in auto. Ha effetto dopo il riavvio del server.',
   'settings.mapHint': 'Modello URL per i tile della mappa',
   'settings.mapProvider': 'Provider mappa',
   'settings.mapProviderHint': 'Influisce sulle mappe Trip Planner e Journey. Atlas usa sempre Leaflet.',

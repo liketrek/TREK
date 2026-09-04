@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'react-router'
-import { Plane, Train, Car, Ship, Bus, Sailboat, Bike, CarTaxiFront, Route, TramFront, Paperclip, FileText, X, ExternalLink, Link2, Plus, Trash2 } from 'lucide-react'
+import { Plane, Train, Car, Ship, Bus, Sailboat, Bike, CarTaxiFront, Route, TramFront, Paperclip, FileText, X, ExternalLink, Link2, Plus, Trash2, ChevronUp, ChevronDown } from 'lucide-react'
 import Modal from '../shared/Modal'
 import CustomSelect from '../shared/CustomSelect'
 import CustomTimePicker from '../shared/CustomTimePicker'
@@ -116,6 +116,19 @@ interface StationWaypointForm {
   seat: string
   confirmation_number: string
 }
+// ── Car stops along the drive ──────────────────────────────────────────────
+//
+// A rental is one booking with one pick-up and one return, so — unlike a flight or a
+// train — the stops in between are not legs of their own: they are places the drive
+// passes through, each with an optional time the driver plans to be there. They persist
+// as the same `role: 'stop'` endpoints every other transport type already uses.
+interface CarStopForm {
+  location: LocationPoint | null
+  time: string
+}
+
+const emptyCarStop = (): CarStopForm => ({ location: null, time: '' })
+
 function emptyStationWaypoint(dayId: string | number = ''): StationWaypointForm {
   return { location: null, arrDayId: dayId, arrTime: '', depDayId: dayId, depTime: '', train_number: '', platform: '', seat: '', confirmation_number: '' }
 }
@@ -200,6 +213,20 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
   const [waypoints, setWaypoints] = useState<WaypointForm[]>([emptyWaypoint(), emptyWaypoint()])
   // Train route as an ordered list of stations (origin .. stops .. destination).
   const [trainWaypoints, setTrainWaypoints] = useState<StationWaypointForm[]>([emptyStationWaypoint(), emptyStationWaypoint()])
+  // A car keeps its pick-up and return as the frame of the rental and gains the stops
+  // in between (#1797): one booking, one continuous drive, several places along it.
+  const [carStops, setCarStops] = useState<CarStopForm[]>([])
+
+  /** Swaps a stop with its neighbour. Purely local: `sequence` is derived on save. */
+  const moveCarStop = (index: number, delta: number): void => {
+    setCarStops(prev => {
+      const to = index + delta
+      if (to < 0 || to >= prev.length) return prev
+      const next = [...prev]
+      ;[next[index], next[to]] = [next[to], next[index]]
+      return next
+    })
+  }
   const [uploadingFile, setUploadingFile] = useState(false)
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
   const [showFilePicker, setShowFilePicker] = useState(false)
@@ -346,6 +373,17 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
       } else {
         setFromPick({ location: locationFromEndpoint(from) || undefined })
         setToPick({ location: locationFromEndpoint(to) || undefined })
+        // Stops persist for every type; only a car offers an editor for them, so only a
+        // car reads them back into one. The others keep passing theirs through untouched.
+        setCarStops(
+          src.type === 'car'
+            ? (src.endpoints ?? [])
+                .filter(e => e.role === 'stop')
+                .slice()
+                .sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0))
+                .map(e => ({ location: locationFromEndpoint(e), time: e.local_time ?? '' }))
+            : [],
+        )
       }
     } else {
       setForm({ ...defaultForm, start_day_id: selectedDayId ?? '', end_day_id: selectedDayId ?? '' })
@@ -354,6 +392,7 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
       setToPick({})
       setWaypoints([emptyWaypoint(selectedDayId ?? ''), emptyWaypoint(selectedDayId ?? '')])
       setTrainWaypoints([emptyStationWaypoint(selectedDayId ?? ''), emptyStationWaypoint(selectedDayId ?? '')])
+      setCarStops([])
     }
   }, [isOpen, reservation, prefill, selectedDayId, budgetItems])
 
@@ -504,8 +543,14 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
         })
       } else {
         if (fromPick.location) endpoints.push(endpointFromLocation(fromPick.location, 'from', 0, startDate, form.departure_time || null))
-        // Keep the itinerary's transfer stops while the route is unchanged (#1065).
-        const stops = keepTransit
+        // A car writes the stops the driver planned; every other type keeps passing the
+        // itinerary's transfer stops through while the route is unchanged (#1065).
+        const carEndpoints = form.type === 'car'
+          ? carStops
+              .filter(s => s.location)
+              .map((s, i) => endpointFromLocation(s.location!, 'stop', i + 1, startDate, s.time || null))
+          : []
+        const stops = keepTransit && form.type !== 'car'
           ? prevEndpointsAll.filter(ep => ep.role === 'stop').slice().sort((a, b) => (a.sequence || 0) - (b.sequence || 0))
           : []
         stops.forEach((s, i) => endpoints.push({
@@ -513,7 +558,9 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
           lat: s.lat, lng: s.lng, timezone: s.timezone ?? null,
           local_date: s.local_date ?? null, local_time: s.local_time ?? null,
         }))
-        if (toPick.location) endpoints.push(endpointFromLocation(toPick.location, 'to', stops.length + 1, endDate, form.arrival_time || null))
+        carEndpoints.forEach(e => endpoints.push(e))
+        const stopCount = stops.length + carEndpoints.length
+        if (toPick.location) endpoints.push(endpointFromLocation(toPick.location, 'to', stopCount + 1, endDate, form.arrival_time || null))
       }
 
       // Flights and trains derive their span from the first/last waypoint; other
@@ -949,6 +996,76 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
                 <LocationSelect value={toPick.location || null} onChange={l => setToPick({ location: l || undefined })} />
               </div>
             </div>
+
+            {/* Stops along the drive — cars only (#1797). The rental frame above stays the
+                pick-up and return; these are the places in between, in order. */}
+            {form.type === 'car' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <label className={labelClass}>{t('roadtrip.stops.label')}</label>
+                {carStops.map((stop, i) => (
+                  <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+                    {/* The order of these stops IS the route: `sequence` is the array index
+                        at save time, so the only way to change which one is driven first
+                        was to delete both and re-enter them. Buttons rather than dragging,
+                        because the row already carries a location picker and a time picker
+                        and there is nothing left to grab. */}
+                    {carStops.length > 1 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+                        <button
+                          type="button"
+                          onClick={() => moveCarStop(i, -1)}
+                          disabled={i === 0}
+                          aria-label={t('dayplan.moveUp')}
+                          className="text-content-faint enabled:hover:text-content disabled:opacity-30"
+                          style={{ background: 'none', border: 'none', cursor: i === 0 ? 'default' : 'pointer', padding: '2px 4px', display: 'flex', alignItems: 'center' }}
+                        >
+                          <ChevronUp size={13} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveCarStop(i, 1)}
+                          disabled={i === carStops.length - 1}
+                          aria-label={t('dayplan.moveDown')}
+                          className="text-content-faint enabled:hover:text-content disabled:opacity-30"
+                          style={{ background: 'none', border: 'none', cursor: i === carStops.length - 1 ? 'default' : 'pointer', padding: '2px 4px', display: 'flex', alignItems: 'center' }}
+                        >
+                          <ChevronDown size={13} />
+                        </button>
+                      </div>
+                    )}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <LocationSelect
+                        value={stop.location}
+                        onChange={l => setCarStops(prev => prev.map((s, j) => (j === i ? { ...s, location: l || null } : s)))}
+                      />
+                    </div>
+                    <div style={{ width: 110, flexShrink: 0 }}>
+                      <CustomTimePicker
+                        value={stop.time}
+                        onChange={v => setCarStops(prev => prev.map((s, j) => (j === i ? { ...s, time: v } : s)))}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setCarStops(prev => prev.filter((_, j) => j !== i))}
+                      aria-label={t('roadtrip.stops.remove')}
+                      className="text-content-faint hover:text-danger"
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 8, display: 'flex', alignItems: 'center' }}
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setCarStops(prev => [...prev, emptyCarStop()])}
+                  className="text-content-faint hover:text-content-secondary"
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '6px 10px', border: '1px dashed var(--border-primary)', borderRadius: 8, background: 'none', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', cursor: 'pointer', fontFamily: 'inherit' }}
+                >
+                  <Plus size={12} /> {t('reservations.layover.addStop')}
+                </button>
+              </div>
+            )}
 
             {/* Departure row */}
             <div style={{ display: 'flex', gap: 8 }}>

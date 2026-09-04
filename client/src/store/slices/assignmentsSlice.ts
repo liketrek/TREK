@@ -140,9 +140,13 @@ export const createAssignmentsSlice = (set: SetState, get: GetState): Assignment
     const toItems = (state.assignments[String(toDayId)] || []).slice().sort((a, b) => a.order_index - b.order_index)
     const insertAt = toOrderIndex !== null ? toOrderIndex : toItems.length
 
-    const newToItems = [...toItems]
-    newToItems.splice(insertAt, 0, { ...assignment, day_id: Number.parseInt(String(toDayId)) })
-    newToItems.forEach((a, i) => { a.order_index = i })
+    const withMoved = [...toItems]
+    withMoved.splice(insertAt, 0, { ...assignment, day_id: Number.parseInt(String(toDayId)) })
+    // Renumber into copies. Assigning `order_index` in place would mutate the very objects
+    // still held in `prevAssignments`, so the rollback below would restore a list whose
+    // indices had already been overwritten — a failed move left the order wrong instead of
+    // putting it back.
+    const newToItems = withMoved.map((a, i) => ({ ...a, order_index: i }))
 
     set(s => ({
       assignments: {

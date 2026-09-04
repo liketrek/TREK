@@ -24,6 +24,8 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': '지도 템플릿',
   'settings.mapTemplatePlaceholder.select': '템플릿 선택...',
   'settings.mapDefaultHint': '비워두면 OpenStreetMap (기본값) 사용',
+  'settings.routingBase': '자체 경로 서버',
+  'settings.routingBaseHint': '자체 OSRM 인스턴스입니다. 비워 두면 초당 약 한 번의 요청만 허용하는 공개 서버를 사용합니다. 하루치는 충분하지만 로드트립에는 빠듯합니다. 서버를 다시 시작해야 적용됩니다.',
   'settings.mapHint': '지도 타일 URL 템플릿',
   'settings.mapProvider': '지도 공급자',
   'settings.mapProviderHint': '여행 플래너 및 Journey 지도에 영향을 줍니다. Atlas는 항상 Leaflet을 사용합니다.',

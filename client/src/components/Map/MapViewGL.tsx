@@ -1,5 +1,10 @@
 import { useEffect, useRef, useMemo, useState, createElement, useCallback } from 'react'
-import { makeMarkerDraggable } from './markerDrag'
+import { makeMarkerDraggable, makePoiDraggable, draggedPoiId } from './markerDrag'
+import type { RoadtripVia } from '@trek/shared'
+import { useStableVias } from './viaMarkerState'
+import { ALT_CASING, ALT_LABEL_TEXT } from '../Roadtrip/alternativeColors'
+import type { AlternativeOverlay } from '../Roadtrip/alternativeOverlays'
+import { serviceMarkerHtml, serviceMarkerOuter } from '../Roadtrip/serviceMarker'
 import { renderIconMarkup } from '../../utils/iconMarkup'
 import type mapboxgl from 'mapbox-gl'
 import { useSettingsStore } from '../../store/settingsStore'
@@ -81,6 +86,8 @@ interface RouteSegment {
 // mouseleave never fires" case (#1404).
 const NO_PLACES: Place[] = []
 const NO_ROUTE_VIAS: RouteVia[] = []
+/** Stable empty default: a fresh array each render would refire the spur effect. */
+const NO_ACCESS_LINES: { line: [[number, number], [number, number]]; meters: number }[] = []
 const NO_ROUTE_SEGMENTS: RouteSegment[] = []
 const NO_DAY_ORDER: Record<number, number[] | null> = {}
 const NO_RESERVATIONS: Reservation[] = []
@@ -97,6 +104,8 @@ interface Props {
   tripId?: number | string
   // Charging stops / rest areas a plugin route places on the drawn day route.
   routeVias?: RouteVia[]
+  /** The dashed last bit to a place the road network does not reach. */
+  accessLines?: { line: [[number, number], [number, number]]; meters: number }[]
   route?: [number, number][][] | null
   routeSegments?: RouteSegment[]
   selectedPlaceId?: number | null
@@ -121,6 +130,39 @@ interface Props {
   onReservationClick?: (reservationId: number) => void
   pois?: Poi[]
   onPoiClick?: (poi: Poi) => void
+  /**
+   * A corridor hit dropped somewhere on the map, with the coordinate it landed on.
+   * The caller decides whether that point is near enough to the drive to mean anything.
+   */
+  onPoiDropOnRoute?: (osmId: string, lat: number, lng: number) => void
+  /** A click on the drawn route, for putting a via point there (#1797). */
+  onRouteClick?: (lat: number, lng: number) => void
+  /** The ways of driving one leg, drawn while the picker is open. */
+  alternativeRoutes?: AlternativeOverlay[]
+  /** Which option is being considered, so it can be lit up in its own colour. */
+  activeAlternative?: number | null
+  onChooseAlternative?: (index: number) => void
+  /** Reports which option the pointer is over, so the list and the map agree. */
+  onHighlightAlternative?: (index: number | null) => void
+  /**
+   * An explicit stretch of map to frame, independent of the day being shown.
+   *
+   * `fitKey` cannot express this: it carries no coordinates, and each renderer decides
+   * for itself that it means "the selected day". Weighing the ways of driving one leg
+   * needs that leg on screen, which is neither the day nor the trip.
+   */
+  focusPoints?: [number, number][]
+  /**
+   * Let markers stay apart longer than usual.
+   *
+   * A road trip is read along a line: two stops fifty kilometres apart on the same
+   * motorway are the shape of the day, and merging them into one dot hides it.
+   */
+  clusterLoosely?: boolean
+  /** Via points to draw as draggable handles, keyed by day (#1797). */
+  roadtripVias?: Record<number, RoadtripVia[]>
+  onMoveVia?: (dayId: number, id: number, lat: number, lng: number) => void
+  onRemoveVia?: (dayId: number, id: number) => void
   onViewportChange?: (bbox: { south: number; west: number; north: number; east: number }) => void
   glProvider?: GlMapProvider
   /**
@@ -134,7 +176,76 @@ interface Props {
   onMapReady?: (map: any | null) => void
 }
 
+/** How eagerly place markers merge into a cluster, outside road trip mode. */
+const CLUSTER_RADIUS = 30
+const CLUSTER_MAX_ZOOM = 10
+
+/** The cluster source and the three layers over it. Extracted so the rebuild on a mode
+ *  change and the initial build cannot drift apart. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function addPlaceClusterLayers(map: any): void {
+      map.addSource(PLACE_CLUSTER_SOURCE_ID, {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] },
+        cluster: true,
+        clusterRadius: CLUSTER_RADIUS,
+        clusterMaxZoom: CLUSTER_MAX_ZOOM,
+      })
+      map.addLayer({
+        id: PLACE_CLUSTER_CIRCLE_LAYER_ID,
+        type: 'circle',
+        source: PLACE_CLUSTER_SOURCE_ID,
+        filter: ['has', 'point_count'],
+        paint: {
+          'circle-color': '#111827',
+          'circle-opacity': 0.97,
+          'circle-radius': ['step', ['get', 'point_count'], 18, 10, 21, 50, 24],
+          'circle-stroke-width': 2.5,
+          'circle-stroke-color': 'rgba(255,255,255,0.9)',
+        },
+      })
+      map.addLayer({
+        id: PLACE_CLUSTER_COUNT_LAYER_ID,
+        type: 'symbol',
+        source: PLACE_CLUSTER_SOURCE_ID,
+        filter: ['has', 'point_count'],
+        layout: {
+          'text-field': ['get', 'point_count_abbreviated'],
+          'text-size': 12,
+          'text-allow-overlap': true,
+        },
+        paint: {
+          'text-color': '#ffffff',
+          'text-halo-color': 'rgba(17,24,39,0.35)',
+          'text-halo-width': 1,
+        },
+      })
+      map.addLayer({
+        id: PLACE_UNCLUSTERED_LAYER_ID,
+        type: 'circle',
+        source: PLACE_CLUSTER_SOURCE_ID,
+        filter: ['!', ['has', 'point_count']],
+        paint: {
+          'circle-radius': 24,
+          'circle-opacity': 0,
+          'circle-stroke-opacity': 0,
+        },
+      })
+}
+
 function createMarkerElement(place: Place & { category_color?: string; category_icon?: string }, photoUrl: string | null, orderNumbers: number[] | null, selected: boolean): HTMLDivElement {
+  // A stop that interrupts the drive gets its own small disc, decided before the photo
+  // branch: the brand logo a fuel search comes back with is exactly what this replaces.
+  // No number badge either, for the same reason the rail gives it none.
+  const service = serviceMarkerHtml(place.stop_type, selected)
+  if (service) {
+    const outer = serviceMarkerOuter(selected)
+    const wrap = document.createElement('div')
+    wrap.style.cssText = `width:${outer}px;height:${outer}px;display:flex;align-items:center;justify-content:center`
+    wrap.innerHTML = service
+    return wrap
+  }
+
   const size = selected ? 44 : 36
   // See MapView: allow-listed rather than escaped, because this is a CSS context.
   const borderColor = selected ? '#111827' : safeHexColor(place.category_color, 'white')
@@ -356,6 +467,20 @@ function makePlacePin(map: any, layer: HTMLElement, el: HTMLElement, lng: number
   }
 }
 
+/**
+ * Puts an element on the map as a pin.
+ *
+ * `layer` is only ever set under MapLibre (that is where it gets created), so passing it
+ * along is the whole provider decision: with a layer we position the element ourselves on
+ * the map's render clock, without one the library's own Marker does it.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function attachPin(map: any, gl: any, layer: HTMLElement | null, el: HTMLElement, lng: number, lat: number): PlacePin {
+  return layer
+    ? makePlacePin(map, layer, el, lng, lat)
+    : libraryPin(new gl.Marker({ element: el, anchor: 'center' }).setLngLat([lng, lat]).addTo(map))
+}
+
 // Tone dot for a plugin marker — visual twin of MapPluginMarkers' divIcon.
 function createPluginMarkerElement(tone: PluginMapMarker['tone']): HTMLDivElement {
   const color = PLUGIN_TONE_COLORS[tone] ?? PLUGIN_TONE_COLORS.default
@@ -395,14 +520,29 @@ function buildPluginMarkerPopup(mk: PluginMapMarker): HTMLDivElement {
 }
 
 // Small coloured pin for an OSM "explore" POI (matches the pill category colour).
-function createPoiMarkerElement(category: string): HTMLDivElement {
+// A chain shows its logo instead of the category icon: on a corridor full of petrol
+// stations the brand is what the eye is looking for, and the server proxies it so the
+// browser never asks Wikimedia which ones are on screen.
+function createPoiMarkerElement(category: string, brandWikidata?: string | null): HTMLDivElement {
   const cat = POI_CATEGORY_BY_KEY[category]
   const color = cat?.color || '#6b7280'
   const svg = cat ? renderIconMarkup(createElement(cat.Icon, { size: 13, color: 'white', strokeWidth: 2.5 })) : ''
   const el = document.createElement('div')
-  el.style.cssText = 'width:26px;height:26px;cursor:pointer;'
-  el.innerHTML = `<div style="width:26px;height:26px;border-radius:50%;background:${color};border:2px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;box-sizing:border-box;">${svg}</div>`
+  el.style.cssText = 'width:26px;height:26px;cursor:pointer;will-change:transform;'
+  el.innerHTML = `<div style="position:relative;width:26px;height:26px;border-radius:50%;background:${color};border:2px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;box-sizing:border-box;overflow:hidden;">${svg}${brandLogoMarkup(brandWikidata)}</div>`
   return el
+}
+
+/**
+ * Kept as the one place that decides a POI pin carries no brand mark: nothing.
+ *
+ * The logos turned a corridor full of petrol stations into a row of advertisements, were
+ * unreadable at pin size, and a brand with no logo on file fell back to a different
+ * picture entirely — so no two pins looked alike. A flat disc in the category's colour
+ * with its icon is what the rail, the corridor list and the map all show now.
+ */
+export function brandLogoMarkup(_brandWikidata?: string | null): string {
+  return ''
 }
 
 export function MapViewGL({
@@ -410,6 +550,7 @@ export function MapViewGL({
   dayPlaces = NO_PLACES,
   tripId,
   routeVias = NO_ROUTE_VIAS,
+  accessLines = NO_ACCESS_LINES,
   route = null,
   routeSegments = NO_ROUTE_SEGMENTS,
   selectedPlaceId = null,
@@ -420,6 +561,8 @@ export function MapViewGL({
   center = DEFAULT_MAP_CENTER,
   zoom = DEFAULT_MAP_ZOOM,
   fitKey = 0,
+  focusPoints,
+  clusterLoosely = false,
   dayOrderMap = NO_DAY_ORDER,
   leftWidth = 0,
   rightWidth = 0,
@@ -434,6 +577,15 @@ export function MapViewGL({
   onReservationClick,
   pois = NO_POIS,
   onPoiClick,
+  onPoiDropOnRoute,
+  onRouteClick,
+  alternativeRoutes,
+  activeAlternative,
+  onChooseAlternative,
+  onHighlightAlternative,
+  roadtripVias,
+  onMoveVia,
+  onRemoveVia,
   onViewportChange,
   glProvider = 'mapbox-gl',
   gl,
@@ -480,31 +632,295 @@ export function MapViewGL({
   const markersRef = useRef<Map<number, PlacePin>>(new Map())
   // Own layer for the hand-positioned place pins (MapLibre path, see makePlacePin).
   const pinLayerRef = useRef<HTMLDivElement | null>(null)
-  const repositionPins = useCallback(() => {
-    markersRef.current.forEach(pin => pin.reposition())
-  }, [])
   const locationMarkerRef = useRef<LocationMarkerHandle | null>(null)
   const reservationOverlayRef = useRef<ReservationMapboxOverlay | null>(null)
   // Refs so the reservation overlay always sees the latest callback /
   // options without forcing a full overlay rebuild on every prop change.
   const onReservationClickRef = useRef(onReservationClick)
   onReservationClickRef.current = onReservationClick
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const poiMarkersRef = useRef<any[]>([])
+  const poiMarkersRef = useRef<PlacePin[]>([])
+  /** Undoes the drag wiring on each POI pin; the pins themselves are rebuilt wholesale. */
+  const poiCleanupRef = useRef<(() => void)[]>([])
+  const onPoiDropRef = useRef(onPoiDropOnRoute)
+  onPoiDropRef.current = onPoiDropOnRoute
   // Plugin map contributions — data fetched per trip, elements owned imperatively
   // like the POI markers so they survive the React render cycle.
   const [pluginMarkers, setPluginMarkers] = useState<PluginMapMarker[]>([])
   const [pluginLayers, setPluginLayers] = useState<PluginMapLayer[]>([])
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const pluginMarkersRef = useRef<any[]>([])
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const routeViaMarkersRef = useRef<any[]>([])
+  const pluginMarkersRef = useRef<PlacePin[]>([])
+  const routeViaMarkersRef = useRef<PlacePin[]>([])
+  /** The road-trip via handles (#1797) — hand-positioned like the rest, so listed here. */
+  const viaPinsRef = useRef<PlacePin[]>([])
+  /** The drive-time pills on the offered routes; same treatment. */
+  const altLabelsRef = useRef<PlacePin[]>([])
+  // Every hand-positioned pin, whichever set it belongs to. They all have to be written
+  // in the same frame the canvas draws, or the ones left out swim against the ones in.
+  const repositionPins = useCallback(() => {
+    markersRef.current.forEach(pin => pin.reposition())
+    poiMarkersRef.current.forEach(pin => pin.reposition())
+    pluginMarkersRef.current.forEach(pin => pin.reposition())
+    routeViaMarkersRef.current.forEach(pin => pin.reposition())
+    viaPinsRef.current.forEach(pin => pin.reposition())
+    altLabelsRef.current.forEach(pin => pin.reposition())
+  }, [])
   // Single reusable hover popup for POI markers. Planned places use the
   // cursor-following React tooltip below so they match the Leaflet map.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const popupRef = useRef<any | null>(null)
   const onPoiClickRef = useRef(onPoiClick)
   onPoiClickRef.current = onPoiClick
+
+  /**
+   * The via handles.
+   *
+   * Built as plain elements and attached with the same `attachPin` the place pins use,
+   * rather than the library's own marker: under MapLibre those float above the map during
+   * a drag instead of sticking to the ground (the reason `attachPin` exists at all). The
+   * drag is therefore hand-rolled — pointer events on the element, unproject on move.
+   */
+  const viaCleanupRef = useRef<(() => void)[]>([])
+  /**
+   * The list only changes when a via does, and the callbacks are read through a ref.
+   *
+   * Both matter for the same reason: this effect destroys every handle and builds new DOM
+   * elements. It used to re-run on every render of the planner — the vias arrived as a
+   * fresh object each time and `onMoveVia` as a fresh closure — so the render that landed
+   * when a freshly placed via finished re-routing pulled the element out from under the
+   * pointer, and the first drag went nowhere.
+   */
+  const vias = useStableVias(roadtripVias)
+  const viaHandlersRef = useRef({ onMoveVia, onRemoveVia })
+  viaHandlersRef.current = { onMoveVia, onRemoveVia }
+  const viasDraggable = !!onMoveVia
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapReady) return
+    viaCleanupRef.current.forEach(off => off())
+    viaCleanupRef.current = []
+    viaPinsRef.current.forEach(p => p.remove())
+    viaPinsRef.current = []
+    for (const via of vias) {
+      const el = document.createElement('span')
+      el.style.cssText = 'display:block;width:12px;height:12px;border-radius:9999px;background:#0a84ff;border:2.5px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.45);cursor:grab;touch-action:none'
+      const pin = attachPin(map, gl, pinLayerRef.current, el, via.lng, via.lat)
+      viaPinsRef.current.push(pin)
+      if (!viasDraggable) continue
+
+      let dragging = false
+      // The map starts panning on mousedown/touchstart anywhere on its surface, and a pin
+      // sits on that surface. Stopping only pointerdown left both running at once: the
+      // handle moved AND the map slid out from under it.
+      const swallow = (e: Event) => e.stopPropagation()
+      const onDown = (e: PointerEvent) => {
+        e.stopPropagation()
+        e.preventDefault()
+        dragging = true
+        el.setPointerCapture(e.pointerId)
+        el.style.cursor = 'grabbing'
+      }
+      const onMove = (e: PointerEvent) => {
+        if (!dragging) return
+        const rect = map.getContainer().getBoundingClientRect()
+        const at = map.unproject([e.clientX - rect.left, e.clientY - rect.top])
+        pin.setLngLat([at.lng, at.lat])
+      }
+      const onUp = (e: PointerEvent) => {
+        if (!dragging) return
+        dragging = false
+        el.style.cursor = 'grab'
+        const rect = map.getContainer().getBoundingClientRect()
+        const at = map.unproject([e.clientX - rect.left, e.clientY - rect.top])
+        viaHandlersRef.current.onMoveVia?.(via.day_id, via.id, at.lat, at.lng)
+      }
+      const onContext = (e: MouseEvent) => {
+        e.preventDefault()
+        viaHandlersRef.current.onRemoveVia?.(via.day_id, via.id)
+      }
+      el.addEventListener('pointerdown', onDown)
+      el.addEventListener('pointermove', onMove)
+      el.addEventListener('pointerup', onUp)
+      el.addEventListener('pointercancel', onUp)
+      el.addEventListener('contextmenu', onContext)
+      el.addEventListener('mousedown', swallow)
+      el.addEventListener('touchstart', swallow, { passive: true })
+      el.addEventListener('dblclick', swallow)
+      viaCleanupRef.current.push(() => {
+        el.removeEventListener('pointerdown', onDown)
+        el.removeEventListener('pointermove', onMove)
+        el.removeEventListener('pointerup', onUp)
+        el.removeEventListener('pointercancel', onUp)
+        el.removeEventListener('contextmenu', onContext)
+        el.removeEventListener('mousedown', swallow)
+        el.removeEventListener('touchstart', swallow)
+        el.removeEventListener('dblclick', swallow)
+      })
+    }
+  }, [vias, viasDraggable, mapReady, glProvider])
+
+  /**
+   * The offered routes, drawn under the current one.
+   *
+   * Grey and dashed rather than a set of bright lines: at any moment one of them IS the
+   * route, drawn in blue on top, and three more solid colours next to it would read as
+   * four equal roads. Hovering an option in the bar lights that one up in its own colour,
+   * which is the only moment a second colour helps.
+   */
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapReady) return
+    const source = map.getSource?.('route-alternatives')
+    if (!source?.setData) return
+    source.setData({
+      type: 'FeatureCollection',
+      features: (alternativeRoutes ?? []).map((alt, i) => ({
+        type: 'Feature',
+        properties: { index: i, active: activeAlternative === i, color: alt.color },
+        geometry: { type: 'LineString', coordinates: alt.coordinates.map(([lat, lng]) => [lng, lat]) },
+      })),
+    })
+  }, [alternativeRoutes, activeAlternative, mapReady, glProvider])
+
+  /**
+   * The drive time on each offered route, the way Apple Maps labels them.
+   *
+   * Hand-positioned pins rather than a symbol layer: a symbol would need the text in the
+   * style's own font stack, which differs between the bundled MapLibre styles and Mapbox,
+   * and the pill has a shape a text layer cannot draw. They join the render clock like
+   * every other pin here, so they stay on their road while the map moves.
+   */
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapReady) return
+    altLabelsRef.current.forEach(p => p.remove())
+    altLabelsRef.current = []
+    for (const alt of alternativeRoutes ?? []) {
+      const el = document.createElement('button')
+      el.type = 'button'
+      const active = activeAlternative === alt.index
+      el.style.cssText = [
+        // A rounded rectangle rather than a pill, and roomy enough for a second line —
+        // the shape Apple gives these, and the reason "1 h 55 min / Fastest" reads as one
+        // label instead of two stacked chips.
+        'display:flex;flex-direction:column;align-items:flex-start;white-space:nowrap',
+        `background:${alt.labelBg}`,
+        `color:${ALT_LABEL_TEXT}`,
+        'border:none;border-radius:11px',
+        // A <button> does not inherit the page's font, so without this the label reads in
+        // the browser's UI face while every other piece of TREK chrome reads in Poppins.
+        'font-family:var(--font-system)',
+        'padding:6px 11px;font-size:13px;font-weight:600;line-height:1.25',
+        'box-shadow:0 2px 10px rgba(0,0,0,.35)',
+        'cursor:pointer;pointer-events:auto',
+        // The pin is positioned by writing `transform` every frame. Any inherited
+        // transition on it makes the label chase the map instead of sticking to the road,
+        // and `transform` is exactly what a button picks up from the app's own styles.
+        'transition:none !important;animation:none !important',
+        'will-change:transform;backface-visibility:hidden',
+        active ? 'outline:2px solid #fff;outline-offset:1px' : '',
+      ].filter(Boolean).join(';')
+      const time = document.createElement('span')
+      time.textContent = alt.label
+      el.appendChild(time)
+      if (alt.note) {
+        const note = document.createElement('span')
+        note.textContent = alt.note
+        note.style.cssText = 'font-size:11.5px;font-weight:500;opacity:.85;line-height:1.2'
+        el.appendChild(note)
+      }
+      // Same reason as the via handles: without this the map pans as the label is pressed.
+      el.addEventListener('mousedown', e => e.stopPropagation())
+      el.addEventListener('touchstart', e => e.stopPropagation(), { passive: true })
+      el.addEventListener('click', e => { e.stopPropagation(); onChooseAlternativeRef.current?.(alt.index) })
+      el.addEventListener('mouseenter', () => onHighlightAlternativeRef.current?.(alt.index))
+      el.addEventListener('mouseleave', () => onHighlightAlternativeRef.current?.(null))
+      altLabelsRef.current.push(attachPin(map, gl, pinLayerRef.current, el, alt.at.lng, alt.at.lat))
+    }
+    return () => {
+      altLabelsRef.current.forEach(p => p.remove())
+      altLabelsRef.current = []
+    }
+  }, [alternativeRoutes, activeAlternative, mapReady, glProvider])
+
+  /** Clicking one of the offered routes takes it, the same as clicking its chip. */
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapReady || !onChooseAlternative) return
+    const onClick = (e: { features?: { properties?: { index?: number } }[] }) => {
+      const index = e.features?.[0]?.properties?.index
+      if (typeof index === 'number') onChooseAlternative(index)
+    }
+    const enter = () => { map.getCanvas().style.cursor = 'pointer' }
+    const leave = () => { map.getCanvas().style.cursor = '' }
+    if (!map.getLayer?.('route-alt-hit')) return
+    map.on('click', 'route-alt-hit', onClick)
+    map.on('mouseenter', 'route-alt-hit', enter)
+    map.on('mouseleave', 'route-alt-hit', leave)
+    return () => {
+      map.off('click', 'route-alt-hit', onClick)
+      map.off('mouseenter', 'route-alt-hit', enter)
+      map.off('mouseleave', 'route-alt-hit', leave)
+    }
+  }, [mapReady, onChooseAlternative])
+
+  /**
+   * A click on the route line, which in a GL renderer is a layer rather than an element.
+   * `map.on(type, layerId, …)` is the one way to hit it, and it fires before the map's own
+   * click, so the handler can keep the add-place menu from opening underneath the via.
+   */
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapReady || !onRouteClick) return
+    const onClick = (e: { lngLat: { lat: number; lng: number }; preventDefault?: () => void }) => {
+      e.preventDefault?.()
+      onRouteClick(e.lngLat.lat, e.lngLat.lng)
+    }
+    const enter = () => { map.getCanvas().style.cursor = 'copy' }
+    const leave = () => { map.getCanvas().style.cursor = '' }
+    for (const layer of ['trip-route-hit']) {
+      if (!map.getLayer?.(layer)) continue
+      map.on('click', layer, onClick)
+      map.on('mouseenter', layer, enter)
+      map.on('mouseleave', layer, leave)
+    }
+    return () => {
+      for (const layer of ['trip-route-hit']) {
+        map.off('click', layer, onClick)
+        map.off('mouseenter', layer, enter)
+        map.off('mouseleave', layer, leave)
+      }
+    }
+  }, [mapReady, onRouteClick])
+
+  /**
+   * The map takes the drop, not the drawn route: in a GL renderer the line lives in the
+   * canvas and has no element to aim at. The coordinate under the pointer says just as
+   * much once it is projected onto the routed geometry, and it works the same in all
+   * three renderers.
+   */
+  useEffect(() => {
+    const map = mapRef.current
+    const container = map?.getContainer?.()
+    if (!container || !mapReady || !onPoiDropOnRoute) return
+    const onDragOver = (e: DragEvent) => {
+      if (!draggedPoiId(e)) return
+      e.preventDefault()
+      if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy'
+    }
+    const onDrop = (e: DragEvent) => {
+      const osmId = draggedPoiId(e)
+      if (!osmId) return
+      e.preventDefault()
+      const rect = container.getBoundingClientRect()
+      const at = map.unproject([e.clientX - rect.left, e.clientY - rect.top])
+      onPoiDropOnRoute(osmId, at.lat, at.lng)
+    }
+    container.addEventListener('dragover', onDragOver)
+    container.addEventListener('drop', onDrop)
+    return () => {
+      container.removeEventListener('dragover', onDragOver)
+      container.removeEventListener('drop', onDrop)
+    }
+  }, [mapReady, onPoiDropOnRoute])
   const onViewportChangeRef = useRef(onViewportChange)
   onViewportChangeRef.current = onViewportChange
   const onMapReadyRef = useRef(onMapReady)
@@ -516,6 +932,13 @@ export function MapViewGL({
   onClickRefs.current.context = onMapContextMenu
   const hoverDisabledRef = useRef(hoverDisabled)
   hoverDisabledRef.current = hoverDisabled
+  // Read inside the map's own click handler, which is registered once at setup.
+  const onRouteClickRef = useRef(onRouteClick)
+  onRouteClickRef.current = onRouteClick
+  const onChooseAlternativeRef = useRef(onChooseAlternative)
+  onChooseAlternativeRef.current = onChooseAlternative
+  const onHighlightAlternativeRef = useRef(onHighlightAlternative)
+  onHighlightAlternativeRef.current = onHighlightAlternative
   // Same gate as the Leaflet renderer: HTML5 drag is a pointer feature, and the
   // day plan the marker would be dropped on is not on screen on a phone anyway.
   const markersDraggableRef = useRef(typeof window !== 'undefined' && navigator.maxTouchPoints === 0)
@@ -599,6 +1022,49 @@ export function MapViewGL({
       if (glStyle === MAPBOX_DEFAULT_STYLE) {
         try { map.setTerrain(null) } catch { /* noop */ }
       }
+      // The ways of driving one leg, offered while the picker is open (#1797). Added
+      // BEFORE the route source so its layers sit underneath: the current route stays the
+      // brightest thing on the map, and the options read as what they are — suggestions.
+      if (!map.getSource('route-alternatives')) {
+        map.addSource('route-alternatives', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
+        // A wide invisible band per option, so a pointer can pick one without hitting
+        // the 3px line exactly.
+        map.addLayer({
+          id: 'route-alt-hit',
+          type: 'line',
+          source: 'route-alternatives',
+          paint: { 'line-color': '#000000', 'line-opacity': 0, 'line-width': 22 },
+          layout: { 'line-cap': 'round', 'line-join': 'round' },
+        })
+        // A white casing under the option lines, the same trick the main route uses.
+        // Plain grey disappeared on a grey basemap — Positron is mostly greys, and a
+        // grey dashed line on it is invisible. The casing gives every option an edge, so
+        // it reads on a pale map, a dark one and a satellite tile alike.
+        map.addLayer({
+          id: 'route-alt-casing',
+          type: 'line',
+          source: 'route-alternatives',
+          paint: { 'line-color': ALT_CASING, 'line-width': 8, 'line-opacity': 0.9 },
+          layout: { 'line-cap': 'round', 'line-join': 'round' },
+        })
+        map.addLayer({
+          id: 'route-alt-line',
+          type: 'line',
+          source: 'route-alternatives',
+          // Dark and dashed by default so it stays subordinate to the blue route it is an
+          // alternative to; the one being considered takes its own colour and thickens.
+          // Every option in blue, after Apple Maps: they are all real roads, so the
+          // difference between them is emphasis rather than category. The one being
+          // considered thickens; nothing turns grey, because grey vanishes on Positron.
+          paint: {
+            'line-color': ['coalesce', ['get', 'color'], '#7eb8f0'],
+            'line-width': ['case', ['boolean', ['get', 'active'], false], 6, 4],
+            'line-opacity': ['case', ['boolean', ['get', 'active'], false], 1, 0.9],
+          },
+          layout: { 'line-cap': 'round', 'line-join': 'round' },
+        })
+      }
+
       // initial route source — kept around so updates can setData() cheaply
       if (!map.getSource('trip-route')) {
         map.addSource('trip-route', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
@@ -611,12 +1077,37 @@ export function MapViewGL({
           paint: { 'line-color': '#0a5cc2', 'line-width': 8 },
           layout: { 'line-cap': 'round', 'line-join': 'round' },
         })
+        // An invisible band over the route, purely to be clicked. The drawn line is 8px
+        // and a pointer is not that accurate, so aiming at the road was most of why
+        // putting a via there felt like it did not work.
+        map.addLayer({
+          id: 'trip-route-hit',
+          type: 'line',
+          source: 'trip-route',
+          paint: { 'line-color': '#000000', 'line-opacity': 0, 'line-width': 26 },
+          layout: { 'line-cap': 'round', 'line-join': 'round' },
+        })
         map.addLayer({
           id: 'trip-route-line',
           type: 'line',
           source: 'trip-route',
           paint: { 'line-color': '#0a84ff', 'line-width': 5 },
           layout: { 'line-cap': 'round', 'line-join': 'round' },
+        })
+      }
+      // The last bit to a place the road does not reach (#1797). Added after the route
+      // so it draws over it: it is the one piece of the line that is not driving, and it
+      // has to be readable exactly where it meets the road it leaves. Same blue, because
+      // it is the end of that route rather than a second one; dashed short and thin,
+      // which is how a map says "on foot from here" without a legend.
+      if (!map.getSource('trip-access')) {
+        map.addSource('trip-access', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
+        map.addLayer({
+          id: 'trip-access-line',
+          type: 'line',
+          source: 'trip-access',
+          paint: { 'line-color': '#0a84ff', 'line-width': 3, 'line-opacity': 0.85, 'line-dasharray': [1, 2.5] },
+          layout: { 'line-cap': 'round' },
         })
       }
       // gpx geometries source (place.route_geometry)
@@ -681,53 +1172,7 @@ export function MapViewGL({
         map.on('mouseleave', GPX_HIT_LAYER_ID, clearTrackCursor)
       }
       if (!map.getSource(PLACE_CLUSTER_SOURCE_ID)) {
-        map.addSource(PLACE_CLUSTER_SOURCE_ID, {
-          type: 'geojson',
-          data: { type: 'FeatureCollection', features: [] },
-          cluster: true,
-          clusterRadius: 30,
-          clusterMaxZoom: 10,
-        })
-        map.addLayer({
-          id: PLACE_CLUSTER_CIRCLE_LAYER_ID,
-          type: 'circle',
-          source: PLACE_CLUSTER_SOURCE_ID,
-          filter: ['has', 'point_count'],
-          paint: {
-            'circle-color': '#111827',
-            'circle-opacity': 0.97,
-            'circle-radius': ['step', ['get', 'point_count'], 18, 10, 21, 50, 24],
-            'circle-stroke-width': 2.5,
-            'circle-stroke-color': 'rgba(255,255,255,0.9)',
-          },
-        })
-        map.addLayer({
-          id: PLACE_CLUSTER_COUNT_LAYER_ID,
-          type: 'symbol',
-          source: PLACE_CLUSTER_SOURCE_ID,
-          filter: ['has', 'point_count'],
-          layout: {
-            'text-field': ['get', 'point_count_abbreviated'],
-            'text-size': 12,
-            'text-allow-overlap': true,
-          },
-          paint: {
-            'text-color': '#ffffff',
-            'text-halo-color': 'rgba(17,24,39,0.35)',
-            'text-halo-width': 1,
-          },
-        })
-        map.addLayer({
-          id: PLACE_UNCLUSTERED_LAYER_ID,
-          type: 'circle',
-          source: PLACE_CLUSTER_SOURCE_ID,
-          filter: ['!', ['has', 'point_count']],
-          paint: {
-            'circle-radius': 24,
-            'circle-opacity': 0,
-            'circle-stroke-opacity': 0,
-          },
-        })
+        addPlaceClusterLayers(map)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const zoomToCluster = (e: any) => {
           const features = typeof map.queryRenderedFeatures === 'function'
@@ -844,6 +1289,15 @@ export function MapViewGL({
         && map.getLayer(GPX_HIT_LAYER_ID)
         && typeof map.queryRenderedFeatures === 'function'
         && map.queryRenderedFeatures(e.point, { layers: [GPX_HIT_LAYER_ID] }).length > 0
+      ) return
+      // And for the drive itself while it can be reshaped: that click just put a via
+      // there, and it must not also drop a place on top of it (#1797).
+      if (
+        onRouteClickRef.current
+        && typeof map.getLayer === 'function'
+        && map.getLayer('trip-route-hit')
+        && typeof map.queryRenderedFeatures === 'function'
+        && map.queryRenderedFeatures(e.point, { layers: ['trip-route-hit'] }).length > 0
       ) return
       onClickRefs.current.map?.({ latlng: { lat: e.lngLat.lat, lng: e.lngLat.lng } })
     })
@@ -1168,12 +1622,7 @@ export function MapViewGL({
         // pitch. Tried `pitchAlignment: 'map'` to snap markers onto terrain,
         // but it rotates the element by the pitch angle and visually offsets
         // the anchor by ~100px at 45° tilt, which caused the observed drift.
-        const pin = isMapLibre && pinLayerRef.current
-          ? makePlacePin(map, pinLayerRef.current, el, place.lng, place.lat)
-          : libraryPin(new gl.Marker({ element: el, anchor: 'center' })
-            .setLngLat([place.lng, place.lat])
-            .addTo(map))
-        markersRef.current.set(place.id, pin)
+        markersRef.current.set(place.id, attachPin(map, gl, pinLayerRef.current, el, place.lng, place.lat))
       })
     }
 
@@ -1181,6 +1630,18 @@ export function MapViewGL({
     if (!source || typeof map.querySourceFeatures !== 'function') {
       // No cluster source (e.g. style without it / test env): fall back to the
       // original behaviour and draw a marker for every place.
+      reconcileMarkers(validPlaces)
+      return
+    }
+
+    // Road trip mode does not cluster at all: the whole drive has to stay readable
+    // zoomed right out, and a day's stops merging into one dot is exactly the shape it
+    // is being looked at for. The source is emptied rather than reconfigured — the
+    // cluster options can only be set when a GeoJSON source is created, and dropping and
+    // re-adding a source under three layers to change a radius is not worth it when the
+    // markers are drawn from `places` anyway.
+    if (clusterLoosely) {
+      source.setData({ type: 'FeatureCollection', features: [] })
       reconcileMarkers(validPlaces)
       return
     }
@@ -1223,7 +1684,7 @@ export function MapViewGL({
       map.off('zoomend', scheduleReconcile)
       map.off('idle', scheduleReconcile)
     }
-  }, [places, selectedPlaceId, dayOrderMap, photoUrls, mapReady, glProvider])
+  }, [places, selectedPlaceId, dayOrderMap, photoUrls, mapReady, glProvider, clusterLoosely])
 
   // Reconcile OSM "explore" POI markers (imperative, kept separate from the
   // planned-place markers so they don't cluster or get confused with them).
@@ -1233,15 +1694,19 @@ export function MapViewGL({
     popupRef.current?.remove() // same orphan-popup guard as the place markers
     poiMarkersRef.current.forEach(m => m.remove())
     poiMarkersRef.current = []
+    poiCleanupRef.current.forEach(off => off())
+    poiCleanupRef.current = []
     for (const poi of (pois as Poi[])) {
-      const el = createPoiMarkerElement(poi.category)
+      const el = createPoiMarkerElement(poi.category, poi.brand_wikidata)
       el.addEventListener('mouseenter', () => {
         popupRef.current?.setLngLat([poi.lng, poi.lat]).setHTML(buildPoiPopupHtml(poi)).addTo(map)
       })
       el.addEventListener('mouseleave', () => { popupRef.current?.remove() })
       el.addEventListener('click', (ev) => { ev.stopPropagation(); onPoiClickRef.current?.(poi) })
-      const m = new gl.Marker({ element: el, anchor: 'center' }).setLngLat([poi.lng, poi.lat]).addTo(map)
-      poiMarkersRef.current.push(m)
+      // Dragging a hit onto the drive puts it where it is passed, rather than where the
+      // corridor happened to project it. Only wired when someone is listening for it.
+      if (onPoiDropRef.current) poiCleanupRef.current.push(makePoiDraggable(el, poi.osm_id))
+      poiMarkersRef.current.push(attachPin(map, gl, pinLayerRef.current, el, poi.lng, poi.lat))
     }
   }, [pois, mapReady, glProvider])
 
@@ -1287,8 +1752,7 @@ export function MapViewGL({
           popupRef.current?.setLngLat([v.lng, v.lat]).setText(text).addTo(map)
         })
       }
-      const m = new gl.Marker({ element: el, anchor: 'center' }).setLngLat([v.lng, v.lat]).addTo(map)
-      routeViaMarkersRef.current.push(m)
+      routeViaMarkersRef.current.push(attachPin(map, gl, pinLayerRef.current, el, v.lng, v.lat))
     }
   }, [routeVias, mapReady, glProvider])
 
@@ -1306,7 +1770,7 @@ export function MapViewGL({
           popupRef.current?.setLngLat([mk.lng, mk.lat]).setDOMContent(buildPluginMarkerPopup(mk)).addTo(map)
         })
       }
-      const m = new gl.Marker({ element: el, anchor: 'center' }).setLngLat([mk.lng, mk.lat]).addTo(map)
+      const m = attachPin(map, gl, pinLayerRef.current, el, mk.lng, mk.lat)
       pluginMarkersRef.current.push(m)
     }
   }, [pluginMarkers, mapReady, glProvider])
@@ -1324,6 +1788,22 @@ export function MapViewGL({
     }))
     src.setData({ type: 'FeatureCollection', features })
   }, [route, mapReady])
+
+  // Update access-spur geojson
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+    const src = map.getSource('trip-access') as mapboxgl.GeoJSONSource | undefined
+    if (!src) return
+    src.setData({
+      type: 'FeatureCollection',
+      features: (accessLines || []).map(spur => ({
+        type: 'Feature' as const,
+        properties: { meters: Math.round(spur.meters) },
+        geometry: { type: 'LineString' as const, coordinates: spur.line.map(([lat, lng]) => [lng, lat]) },
+      })),
+    })
+  }, [accessLines, mapReady])
 
   // Travel times now live in the day sidebar (per-segment connectors), not on the map.
 
@@ -1451,6 +1931,25 @@ export function MapViewGL({
     if (!fitted && typeof map.once === 'function') map.once('load', run)
     if (routeArrivedForPendingFit) pendingRouteFitRef.current = null
   }, [fitKey, routeFitKey]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Frame whatever was handed over. Nothing happens when it empties, so closing the
+  // picker leaves the map where the user left it rather than snapping back.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !focusPoints?.length) return
+    const bounds = new gl.LngLatBounds()
+    focusPoints.forEach(([lat, lng]) => bounds.extend([lng, lat]))
+    // A day fit still waiting on its route must not overwrite this a moment later.
+    pendingRouteFitRef.current = null
+    try {
+      map.fitBounds(bounds, {
+        padding: paddingOpts,
+        maxZoom: 15,
+        pitch: enableMapbox3d ? 45 : 0,
+        duration: 400,
+      })
+    } catch { /* noop */ }
+  }, [focusPoints]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // flyTo selected place
   useEffect(() => {

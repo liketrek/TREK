@@ -108,6 +108,11 @@ export type DistanceUnit = 'metric' | 'imperial'
 
 export interface Settings {
   map_tile_url: string
+  /**
+   * Base URL of a self-hosted routing engine (#1797). Empty falls back to the public
+   * FOSSGIS hosts, which allow about one request a second.
+   */
+  routing_base_url?: string
   dark_mode: boolean | string
   /** Display currency for Costs. Empty/null = follow each trip's own currency. */
   default_currency: string | null
@@ -124,6 +129,18 @@ export interface Settings {
   map_provider?: 'leaflet' | 'mapbox-gl' | 'maplibre-gl'
   /** Leaflet base layer: default street tiles or a satellite/aerial view. */
   map_base_layer?: 'default' | 'satellite'
+  /**
+   * The three road-trip driving limits (#1797). All three are personal rather than
+   * instance configuration — how long you are willing to drive and how far your car goes
+   * are properties of the traveller, so they are plain per-user settings and stay out of
+   * the defaultable list.
+   *
+   * Stored as numbers; 0 or absent means no limit. Kilometres are always kilometres in
+   * storage and converted for display, the same rule the corridor widths follow.
+   */
+  roadtrip_leg_minutes?: number
+  roadtrip_day_minutes?: number
+  roadtrip_range_km?: number
   /** CARTO basemaps watermark keyless tiles; the key is appended as ?key= (#2054). */
   carto_api_key?: string
   mapbox_access_token?: string
@@ -183,6 +200,23 @@ export interface RouteVia {
   dwellSeconds?: number
 }
 
+/**
+ * Where the router put a waypoint we asked about, and how far that is from where we asked.
+ *
+ * Every routing engine snaps a coordinate to the nearest road before it starts, and OSRM
+ * does it with no distance limit at all. A place set back from the road — a viewpoint, a
+ * farmhouse, a marina — is therefore driven to from somewhere else entirely, and the drawn
+ * line starts at that somewhere else without saying so.
+ */
+export interface SnappedWaypoint {
+  /** The coordinate that was asked for, unchanged. */
+  asked: [number, number]
+  /** The point on the road network the router actually used. */
+  at: [number, number]
+  /** Straight-line metres between the two. */
+  meters: number
+}
+
 export interface RouteWithLegs {
   coordinates: [number, number][]
   distance: number
@@ -190,6 +224,8 @@ export interface RouteWithLegs {
   legs: RouteSegment[]
   /** Present on plugin-provided routes only. */
   vias?: RouteVia[]
+  /** One entry per REQUESTED waypoint, in request order. Absent on plugin routes. */
+  snapped?: SnappedWaypoint[]
 }
 
 export interface RouteResult {

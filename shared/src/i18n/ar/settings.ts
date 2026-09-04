@@ -23,6 +23,8 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'قالب الخريطة',
   'settings.mapTemplatePlaceholder.select': 'اختر قالبًا...',
   'settings.mapDefaultHint': 'اتركه فارغًا لاستخدام OpenStreetMap افتراضيًا',
+  'settings.routingBase': 'محرك مسارات خاص',
+  'settings.routingBaseHint': 'خادم OSRM خاص بك. اتركه فارغًا لاستخدام الخوادم العامة التي تسمح بطلب واحد تقريبًا في الثانية — يكفي ليوم واحد، وضيّق لرحلة برية. يسري بعد إعادة تشغيل الخادم.',
   'settings.mapHint': 'قالب URL لبلاطات الخريطة',
   'settings.mapProvider': 'مزود الخريطة',
   'settings.mapProviderHint': 'يؤثر على خرائط Trip Planner و Journey. يستخدم Atlas دائمًا Leaflet.',

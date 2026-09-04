@@ -78,6 +78,22 @@ export const placeRatingVoteSchema = z.object({
 });
 export type PlaceRatingVote = z.infer<typeof placeRatingVoteSchema>;
 
+/**
+ * The kinds of stop a drive has.
+ *
+ * The client reads the same six out of one table (`client/src/components/Roadtrip/
+ * stopKinds.ts`), which carries their icon, colour and usual length; that table is pinned
+ * against this enum by its own test, because it cannot import from here without dragging
+ * React into the shared package.
+ *
+ * A closed list, and enforced as one on both write routes below. It was not: the request
+ * schemas are open objects, so a POST with an invented kind used to be written straight
+ * to the column, where `isServiceStopType` then read it as false and the stop quietly
+ * counted as a destination.
+ */
+export const roadtripStopTypeSchema = z.enum(['fuel', 'charging', 'rest_area', 'campsite', 'restaurant', 'sights']);
+export type RoadtripStopType = z.infer<typeof roadtripStopTypeSchema>;
+
 export const placeSchema = z.object({
   id: z.number(),
   trip_id: z.number(),
@@ -103,6 +119,15 @@ export const placeSchema = z.object({
   route_geometry: z.string().nullable().optional(),
   // Manual track colour (#776). null = inherit the category colour like before.
   route_color: hexColorSchema.nullable().optional(),
+  /**
+   * What kind of stop this place is on a drive (#1797). null is an ordinary place, which
+   * is every place that predates the road trip addon.
+   *
+   * Separate from `category_id` on purpose: categories are the traveller's own editable,
+   * instance-wide list, while this is a fact about the place that the corridor search
+   * already knows and that owns its own icon and colour.
+   */
+  stop_type: roadtripStopTypeSchema.nullable().optional(),
   website: z.string().nullable().optional(),
   phone: z.string().nullable().optional(),
   transport_mode: z.string().nullable().optional(),
@@ -147,15 +172,31 @@ export const assignmentPlaceSchema = z.object({
   osm_id: z.string().nullable().optional(),
   website: z.string().nullable().optional(),
   phone: z.string().nullable().optional(),
+  // Carried through so the road-trip rail can mark a fuel stop as one without a
+  // second request per stop.
+  stop_type: roadtripStopTypeSchema.nullable().optional(),
   category: placeCategorySchema.optional(),
   tags: z.array(tagSchema.partial()).optional(),
 });
 export type AssignmentPlace = z.infer<typeof assignmentPlaceSchema>;
 
-export const placeCreateRequestSchema = open.and(z.object({ name: z.string().min(1) }));
+/**
+ * Additive on one field, deliberately not a closed object.
+ *
+ * Both request schemas stay open because roughly 190 call sites still post whatever the
+ * form happens to hold, and closing them would reject all of them at once. Naming
+ * `stop_type` on top of the open object validates that one key and leaves every other
+ * untouched, which is the only part of the body with a fixed vocabulary.
+ *
+ * Nullable: an explicit null is how a fuel stop becomes an ordinary place again, and the
+ * service already reads it that way rather than as "leave alone".
+ */
+const stopTypeField = z.object({ stop_type: roadtripStopTypeSchema.nullable().optional() });
+
+export const placeCreateRequestSchema = open.and(z.object({ name: z.string().min(1) })).and(stopTypeField);
 export type PlaceCreateRequest = z.infer<typeof placeCreateRequestSchema>;
 
-export const placeUpdateRequestSchema = open;
+export const placeUpdateRequestSchema = open.and(stopTypeField);
 export type PlaceUpdateRequest = z.infer<typeof placeUpdateRequestSchema>;
 
 // Collaborative ratings (#1435): one 1-5 star vote per user and place.

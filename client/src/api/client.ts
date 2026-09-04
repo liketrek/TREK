@@ -59,6 +59,12 @@ import {
   type PluginActionDescriptor,
   type PluginActionResult,
   type PluginInstallRequest,
+  RoadtripDayTrack,
+  RoadtripVia,
+  RoadtripViaBatchRequest,
+  RoadtripViaCreateRequest,
+  RoadtripViaReanchorRequest,
+  RoadtripViaUpdateRequest,
 } from '@trek/shared'
 import { getSocketId } from './websocket'
 import { probeNow } from '../sync/connectivity'
@@ -1056,6 +1062,36 @@ export const mapsApi = {
   // timeout than the global default instead of aborting at 8s and showing nothing.
   pois: (category: string, bbox: { south: number; west: number; north: number; east: number }, lang?: string, signal?: AbortSignal) =>
     apiClient.get('/maps/pois', { params: { category, ...bbox, lang }, signal, timeout: 20000 }).then(r => r.data as { pois: import('../components/Map/poiCategories').Poi[]; source: string; truncated: boolean; clamped?: boolean }),
+}
+
+/**
+ * Road-trip via points (#1797): the places a day's drive is routed through without
+ * stopping. Separate from places on purpose — a via bends the route, a stop is somewhere
+ * you go.
+ */
+export const roadtripApi = {
+  /** Every via of the trip, so all days can be routed without a request per day. */
+  listVias: (tripId: number | string) =>
+    apiClient.get(`/trips/${tripId}/roadtrip/vias`).then(r => r.data as { vias: RoadtripVia[]; tracks: RoadtripDayTrack[] }),
+  addVia: (tripId: number | string, dayId: number | string, body: RoadtripViaCreateRequest) =>
+    apiClient.post(`/trips/${tripId}/roadtrip/days/${dayId}/vias`, body).then(r => r.data as { via: RoadtripVia }),
+  /**
+   * Lay a chain of vias on one day in one write. Anything that derives its anchors from a
+   * line produces dozens of them, and one request each would re-route the whole trip once
+   * per point at better than a second apart.
+   */
+  addVias: (tripId: number | string, dayId: number | string, body: RoadtripViaBatchRequest) =>
+    apiClient.post(`/trips/${tripId}/roadtrip/days/${dayId}/vias/batch`, body).then(r => r.data as { vias: RoadtripVia[] }),
+  /**
+   * Re-pin a day's vias in one write, after its stops changed shape. One request, not one
+   * per via: the anchors are only correct as a set.
+   */
+  reanchorVias: (tripId: number | string, dayId: number | string, body: RoadtripViaReanchorRequest) =>
+    apiClient.put(`/trips/${tripId}/roadtrip/days/${dayId}/vias`, body).then(r => r.data as { vias: RoadtripVia[] }),
+  moveVia: (tripId: number | string, dayId: number | string, id: number, body: RoadtripViaUpdateRequest) =>
+    apiClient.put(`/trips/${tripId}/roadtrip/days/${dayId}/vias/${id}`, body).then(r => r.data as { via: RoadtripVia }),
+  removeVia: (tripId: number | string, dayId: number | string, id: number) =>
+    apiClient.delete(`/trips/${tripId}/roadtrip/days/${dayId}/vias/${id}`).then(r => r.data),
 }
 
 export const airportsApi = {

@@ -14,6 +14,8 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Plantilla del mapa',
   'settings.mapTemplatePlaceholder.select': 'Selecciona una plantilla...',
   'settings.mapDefaultHint': 'Deixa-ho buit per a OpenStreetMap (per defecte)',
+  'settings.routingBase': 'Motor de rutes propi',
+  'settings.routingBaseHint': 'Una instància pròpia d’OSRM. Buit fa servir els servidors públics, que permeten aproximadament una petició per segon: prou per a un dia, just per a un viatge llarg. Té efecte després de reiniciar el servidor.',
   'settings.mapHint': "Plantilla d'URL per als mosaics del mapa",
   'settings.mapProvider': 'Proveïdor de mapa',
   'settings.mapProviderHint': 'Afecta els mapes de Trip Planner i Journey. Atles sempre utilitza Leaflet.',

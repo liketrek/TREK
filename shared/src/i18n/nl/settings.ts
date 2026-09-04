@@ -25,6 +25,8 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Kaartsjabloon',
   'settings.mapTemplatePlaceholder.select': 'Selecteer sjabloon...',
   'settings.mapDefaultHint': 'Laat leeg voor OpenStreetMap (standaard)',
+  'settings.routingBase': 'Eigen routeserver',
+  'settings.routingBaseHint': 'Een eigen OSRM-server. Leeg gebruikt de publieke servers, die ongeveer één verzoek per seconde toestaan — genoeg voor een dag, krap voor een roadtrip. Werkt na een herstart van de server.',
   'settings.mapHint': 'URL-sjabloon voor kaarttegels',
   'settings.mapProvider': 'Kaartprovider',
   'settings.mapProviderHint': 'Geldt voor Trip Planner en Journey kaarten. Atlas gebruikt altijd Leaflet.',

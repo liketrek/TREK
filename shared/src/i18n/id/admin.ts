@@ -582,6 +582,8 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.atlas.description': 'Peta dunia dengan negara yang pernah dikunjungi dan statistik perjalanan',
   'admin.addons.catalog.collab.name': 'Collab',
   'admin.addons.catalog.collab.description': 'Catatan, jajak pendapat, obrolan, dan saran untuk merencanakan bersama',
+  'admin.addons.catalog.roadtrip.name': 'Perjalanan darat',
+  'admin.addons.catalog.roadtrip.description': 'Rencanakan perjalanan dengan perhentian; waktu berkendara dan tiba dihitung ulang otomatis',
   'admin.addons.catalog.memories.name': 'Foto (Immich)',
   'admin.addons.catalog.memories.description': 'Bagikan foto perjalanan melalui instans Immich kamu',
   'admin.addons.catalog.mcp.name': 'MCP',

@@ -353,6 +353,22 @@ export async function downloadTripPDF({ trip, days, places, assignments = {}, ca
                 subtitle = [meta.train_number, meta.platform ? `Gl. ${meta.platform}` : '', meta.seat ? `Seat ${meta.seat}` : '', route].filter(Boolean).join(' · ')
               }
             }
+            else if (r.type === 'car') {
+              // A rental with stops is a drive, and the printout is what people take
+              // into the car (#1797). Without this the route reads as pick-up and return
+              // with everything in between missing.
+              //
+              // Consecutive repeats collapse, and a chain that names one place only is
+              // dropped: the ordinary rental is picked up and returned at the same desk,
+              // which satisfies "two endpoints" and would otherwise print the counter's
+              // name twice with an arrow between. A genuine round trip keeps both ends,
+              // because Dresden sits between them.
+              const stops = (r.endpoints || []).slice()
+                .sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0))
+                .map(e => e.name)
+                .filter((name, i, all) => name && name !== all[i - 1])
+              subtitle = new Set(stops).size >= 2 ? stops.join(' → ') : ''
+            }
             else if (r.type === 'restaurant') subtitle = [meta.party_size ? `${meta.party_size} guests` : ''].filter(Boolean).join(' · ')
             else if (r.type === 'event') subtitle = [meta.venue].filter(Boolean).join(' · ')
             else if (r.type === 'tour') subtitle = [meta.operator].filter(Boolean).join(' · ')

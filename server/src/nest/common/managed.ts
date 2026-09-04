@@ -88,6 +88,7 @@ export const MANAGED_LOCKED_SETTING_KEYS = [
   'oidc_login',
   'oidc_registration',
   'openweather_api_key',
+  'routing_base_url',
   'smtp_from',
   'smtp_host',
   'smtp_pass',

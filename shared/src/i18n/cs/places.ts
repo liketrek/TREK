@@ -34,6 +34,7 @@ const places: TranslationStrings = {
   'places.importGoogleList': 'Google Seznam',
   'places.importNaverList': 'Naver Seznam',
   'places.googleListHint': 'Vložte sdílený odkaz na seznam Google Maps pro import všech míst.',
+  'places.googleDirHint': 'Funguje i odkaz na trasu: jeho zastávky se stanou místy, v pořadí jízdy.',
   'places.googleListImported': '{count} míst importováno ze seznamu "{list}"',
   'places.googleListError': 'Import seznamu Google Maps se nezdařil',
   'places.naverListHint': 'Vložte sdílený odkaz na seznam Naver Maps pro import všech míst.',

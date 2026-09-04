@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
 
+import { OVERPASS_TIMEOUT_DEFAULT_MS } from '../../../src/nest/maps/maps.helpers';
+
 import {
   deriveApp,
   deriveHttp,
@@ -215,8 +217,10 @@ describe('deriveIntegrations', () => {
     expect(deriveIntegrations({ UNSPLASH_ACCESS_KEY: ' key ' }).unsplashAccessKey).toBe('key');
     expect(deriveIntegrations({}).transitApiBase).toBe('https://api.transitous.org');
     expect(deriveIntegrations({ TRANSIT_API_URL: 'https://t.example//' }).transitApiBase).toBe('https://t.example');
-    expect(deriveIntegrations({}).overpassTimeoutMs).toBe(12000);
-    expect(deriveIntegrations({ OVERPASS_TIMEOUT_MS: '-1' }).overpassTimeoutMs).toBe(12000);
+    // Against the constant, not a literal: the client budget is derived from the timeout
+    // the query itself carries, and pinning the number here is how the two drifted apart.
+    expect(deriveIntegrations({}).overpassTimeoutMs).toBe(OVERPASS_TIMEOUT_DEFAULT_MS);
+    expect(deriveIntegrations({ OVERPASS_TIMEOUT_MS: '-1' }).overpassTimeoutMs).toBe(OVERPASS_TIMEOUT_DEFAULT_MS);
   });
 
   it('floors the LLM ceiling to a whole number — undici rejects a fractional headersTimeout', () => {

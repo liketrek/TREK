@@ -34,6 +34,7 @@ const places: TranslationStrings = {
   'places.importGoogleList': 'Список Google',
   'places.importNaverList': 'Список Naver',
   'places.googleListHint': 'Вставте посилання на спільний список Google Maps для імпорту всіх місць.',
+  'places.googleDirHint': 'Посилання на маршрут теж підійде: його зупинки стануть місцями, у порядку руху.',
   'places.googleListImported': '{count} місць імпортовано з "{list}"',
   'places.googleListError': 'Не вдалося імпортувати список Google Maps',
   'places.naverListHint': 'Вставте посилання на спільний список Naver Maps для імпорту всіх місць.',

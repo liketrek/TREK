@@ -28,7 +28,7 @@ const { db } = vi.hoisted(() => {
     description TEXT, lat REAL, lng REAL, address TEXT, category_id INTEGER, price REAL, currency TEXT,
     place_time TEXT, end_time TEXT, duration_minutes INTEGER, notes TEXT, image_url TEXT,
     google_place_id TEXT, google_ftid TEXT, osm_id TEXT, website TEXT, phone TEXT, transport_mode TEXT,
-    route_geometry TEXT, route_color TEXT,
+    route_geometry TEXT, route_color TEXT, stop_type TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
   tmp.exec(`CREATE TABLE categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, color TEXT, icon TEXT);`);
   tmp.exec(`CREATE TABLE tags (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, color TEXT,

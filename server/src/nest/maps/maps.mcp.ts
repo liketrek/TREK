@@ -1,6 +1,6 @@
 import { McpController, Tool, TOOL_ANNOTATIONS_READONLY, errorResult, ok, type McpContext } from '../../nest-mcp';
 import { z } from 'zod';
-import { POI_CATEGORY_KEYS } from './maps.helpers';
+import { POI_CATEGORY_KEYS, MAX_POI_CATEGORIES } from './maps.helpers';
 import { MapsService } from './maps.service';
 
 /**
@@ -89,9 +89,12 @@ export class MapsMcp {
    */
   @Tool({
     name: 'search_pois',
-    description: 'List OpenStreetMap points of interest of one category inside a map rectangle, with address, opening hours, website, phone and cuisine wherever OSM carries them. This is the discovery tool: use it to answer "what is around here" for a neighbourhood or a whole city district. Prefer search_place when the user already named the place they mean. Never calls Google, so it costs nothing and works on an instance with no Places key.',
+    description: 'List OpenStreetMap points of interest of one category inside a map rectangle, with address, opening hours, website, phone and cuisine wherever OSM carries them. A charging station also reports its sockets: which plug families it has, how many of each and at what power, plus how many vehicles fit and whether it charges a fee. OSM states a socket type on roughly a third of them and a power on fewer, so treat a missing figure as unknown rather than as absent. This is the discovery tool: use it to answer "what is around here" for a neighbourhood or a whole city district. Prefer search_place when the user already named the place they mean. Never calls Google, so it costs nothing and works on an instance with no Places key.',
     inputSchema: {
-      category: z.enum(POI_CATEGORY_KEYS).describe('Which kind of place to look for'),
+      category: z.union([
+        z.enum(POI_CATEGORY_KEYS),
+        z.array(z.enum(POI_CATEGORY_KEYS)).min(1).max(MAX_POI_CATEGORIES),
+      ]).describe('Which kind of place to look for. Pass several to cover them in one query rather than one request per kind'),
       bbox: z.object({
         south: z.number().min(-90).max(90).describe('Southern edge, latitude'),
         west: z.number().min(-180).max(180).describe('Western edge, longitude'),
@@ -105,14 +108,14 @@ export class MapsMcp {
   })
   async searchPois(
     { category, bbox, lang }: {
-      category: string;
+      category: string | string[];
       bbox: { south: number; west: number; north: number; east: number };
       lang?: string;
     },
     _ctx: McpContext,
   ) {
     try {
-      return ok(await this.maps.pois(category, bbox, lang));
+      return ok(await this.maps.pois(Array.isArray(category) ? category.join(',') : category, bbox, lang));
     } catch {
       // Overpass is a set of public mirrors; an outage there is not a bad request.
       return errorResult('POI search failed.');

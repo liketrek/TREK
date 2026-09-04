@@ -25,6 +25,8 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Karten-Vorlage',
   'settings.mapTemplatePlaceholder.select': 'Vorlage auswählen...',
   'settings.mapDefaultHint': 'Leer lassen für OpenStreetMap (Standard)',
+  'settings.routingBase': 'Eigene Routing-Instanz',
+  'settings.routingBaseHint': 'Eine eigene OSRM-Instanz. Leer nutzt die öffentlichen Server, die etwa eine Anfrage pro Sekunde erlauben — für einen Tag genug, für einen Roadtrip knapp. Wirkt erst nach einem Serverneustart.',
   'settings.mapHint': 'URL-Template für die Kartenkacheln',
   'settings.mapProvider': 'Kartenanbieter',
   'settings.mapProviderHint': 'Gilt für Trip Planner und Journey. Atlas nutzt immer Leaflet.',

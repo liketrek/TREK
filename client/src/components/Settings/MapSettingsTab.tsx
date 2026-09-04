@@ -169,6 +169,7 @@ export default function MapSettingsTab(): React.ReactElement {
   const [saving, setSaving] = useState(false)
   const [provider, setProvider] = useState<Provider>(initialProvider)
   const [mapTileUrl, setMapTileUrl] = useState<string>(settings.map_tile_url || '')
+  const [routingBaseUrl, setRoutingBaseUrl] = useState<string>(settings.routing_base_url || '')
   const managed = useAuthStore((s) => s.managed)
   const [mapboxToken, setMapboxToken] = useState<string>(settings.mapbox_access_token || '')
   const [cartoKey, setCartoKey] = useState<string>(settings.carto_api_key || '')
@@ -182,6 +183,7 @@ export default function MapSettingsTab(): React.ReactElement {
     const nextProvider = normalizeProvider(settings.map_provider)
     setProvider(nextProvider)
     setMapTileUrl(settings.map_tile_url || '')
+    setRoutingBaseUrl(settings.routing_base_url || '')
     setMapboxToken(settings.mapbox_access_token || '')
     setCartoKey(settings.carto_api_key || '')
     setMapboxStyle(styleForProvider(nextProvider, slotStyle(nextProvider, settings)))
@@ -217,6 +219,7 @@ export default function MapSettingsTab(): React.ReactElement {
       await updateSettings({
         map_provider: provider,
         map_tile_url: mapTileUrl,
+        routing_base_url: routingBaseUrl.trim(),
         mapbox_access_token: mapboxToken,
         carto_api_key: cartoKey,
         ...stylePatch,
@@ -330,6 +333,23 @@ export default function MapSettingsTab(): React.ReactElement {
             className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-400 focus:border-transparent"
           />
           <p className="text-xs text-slate-400 mt-1">{t('settings.mapDefaultHint')}</p>
+        </div>
+      )}
+
+      {/* Routing is the same engine whichever renderer draws the map, so this sits outside
+          the provider blocks. Tokens rather than the slate-* around it: theme:lint holds
+          new markup to them, and a field added today should not need converting later. */}
+      {!managed && (
+        <div>
+          <label className="mb-1.5 block text-body font-medium text-content">{t('settings.routingBase')}</label>
+          <input
+            type="text"
+            value={routingBaseUrl}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRoutingBaseUrl(e.target.value)}
+            placeholder="https://osrm.example.org"
+            className="w-full rounded-lg border border-edge bg-surface-input px-3 py-2 text-body text-content placeholder:text-content-faint focus:border-accent focus:outline-none"
+          />
+          <p className="mt-1 text-caption text-content-faint">{t('settings.routingBaseHint')}</p>
         </div>
       )}
 

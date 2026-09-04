@@ -91,7 +91,7 @@ export class DaysService {
       COALESCE(da.assignment_time, p.place_time) as place_time,
       COALESCE(da.assignment_end_time, p.end_time) as end_time,
       p.duration_minutes, p.notes as place_notes,
-      p.image_url, p.transport_mode, p.google_place_id, p.google_ftid, p.osm_id, p.website, p.phone,
+      p.image_url, p.transport_mode, p.google_place_id, p.google_ftid, p.osm_id, p.website, p.phone, p.stop_type,
       c.name as category_name, c.color as category_color, c.icon as category_icon
     FROM day_assignments da
     JOIN places p ON da.place_id = p.id
@@ -135,6 +135,10 @@ export class DaysService {
           osm_id: a.osm_id,
           website: a.website,
           phone: a.phone,
+          // Hand-built here rather than through `formatAssignmentWithPlace`, so every
+          // place column has to be repeated twice — which is how the road-trip kind went
+          // missing and made a petrol station render as an ordinary numbered stop.
+          stop_type: a.stop_type ?? null,
           category: a.category_id ? {
             id: a.category_id,
             name: a.category_name,
@@ -167,7 +171,7 @@ export class DaysService {
       COALESCE(da.assignment_time, p.place_time) as place_time,
       COALESCE(da.assignment_end_time, p.end_time) as end_time,
       p.duration_minutes, p.notes as place_notes,
-      p.image_url, p.transport_mode, p.google_place_id, p.google_ftid, p.osm_id, p.website, p.phone,
+      p.image_url, p.transport_mode, p.google_place_id, p.google_ftid, p.osm_id, p.website, p.phone, p.stop_type,
       c.name as category_name, c.color as category_color, c.icon as category_icon
     FROM day_assignments da
     JOIN places p ON da.place_id = p.id

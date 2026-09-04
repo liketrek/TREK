@@ -34,6 +34,7 @@ const places: TranslationStrings = {
   'places.importGoogleList': 'Lista Google',
   'places.importNaverList': 'Lista Naver',
   'places.googleListHint': 'Cole um link compartilhado de uma lista do Google Maps para importar todos os lugares.',
+  'places.googleDirHint': 'Um link de rotas também serve: suas paradas viram locais, na ordem do percurso.',
   'places.googleListImported': '{count} lugares importados de "{list}"',
   'places.googleListError': 'Falha ao importar lista do Google Maps',
   'places.naverListHint': 'Cole um link compartilhado de uma lista do Naver Maps para importar todos os lugares.',

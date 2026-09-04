@@ -34,6 +34,7 @@ const places: TranslationStrings = {
   'places.importGoogleList': 'Danh sách Google',
   'places.importNaverList': 'Danh sách Naver',
   'places.googleListHint': 'Dán liên kết danh sách Google Maps được chia sẻ để nhập tất cả các địa điểm.',
+  'places.googleDirHint': 'Liên kết chỉ đường cũng được: các điểm dừng của nó trở thành địa điểm, theo thứ tự lái xe.',
   'places.googleListImported': '{count} địa điểm được nhập từ "{list}"',
   'places.googleListError': 'Không thể nhập danh sách Google Maps',
   'places.naverListHint': 'Dán liên kết danh sách Naver Maps được chia sẻ để nhập tất cả các địa điểm.',

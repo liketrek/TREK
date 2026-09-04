@@ -5,7 +5,7 @@ import { DatabaseService, type TripAccess } from '../database/database.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { QueryHelpersService } from '../query-helpers/query-helpers.service';
 import { formatAssignmentWithPlace } from '../common/rowShape';
-import type { AssignmentRow, DayAssignment, User } from '../../types';
+import type { AssignmentRow, DayAssignment, User, Participant } from '../../types';
 import { JourneyDomainService } from '../journey/journey-domain.service';
 
 type Trip = TripAccess;
@@ -60,7 +60,7 @@ export class AssignmentsService {
         COALESCE(da.assignment_time, p.place_time) as place_time,
         COALESCE(da.assignment_end_time, p.end_time) as end_time,
         p.duration_minutes, p.notes as place_notes,
-        p.image_url, p.transport_mode, p.google_place_id, p.google_ftid, p.osm_id, p.website, p.phone,
+        p.image_url, p.transport_mode, p.google_place_id, p.google_ftid, p.osm_id, p.website, p.phone, p.stop_type,
         c.name as category_name, c.color as category_color, c.icon as category_icon
       FROM day_assignments da
       JOIN places p ON da.place_id = p.id
@@ -74,55 +74,19 @@ export class AssignmentsService {
     // one wire shape regardless of which read path produced it.
     const tags = this.queryHelpers.loadTagsByPlaceIds([a.place_id], { compact: true })[a.place_id] || [];
 
-    const participants = this.dbs.all(`
+    const participants = this.dbs.all<Participant>(`
       SELECT ap.user_id, COALESCE(u.display_name, u.username) AS username, u.avatar
       FROM assignment_participants ap
       JOIN users u ON ap.user_id = u.id
       WHERE ap.assignment_id = ?
     `, a.id);
 
-    return {
-      id: a.id,
-      day_id: a.day_id,
-      place_id: a.place_id,
-      order_index: a.order_index,
-      notes: a.notes,
-      assignment_time: a.assignment_time ?? null,
-      assignment_end_time: a.assignment_end_time ?? null,
-      leg_transport_mode: a.leg_transport_mode ?? null,
-      incoming_leg_transport_mode: a.incoming_leg_transport_mode ?? null,
-      participants,
-      created_at: a.created_at,
-      place: {
-        id: a.place_id,
-        name: a.place_name,
-        description: a.place_description,
-        lat: a.lat,
-        lng: a.lng,
-        address: a.address,
-        category_id: a.category_id,
-        price: a.price,
-        currency: a.place_currency,
-        place_time: a.place_time,
-        end_time: a.end_time,
-        duration_minutes: a.duration_minutes,
-        notes: a.place_notes,
-        image_url: a.image_url,
-        transport_mode: a.transport_mode,
-        google_place_id: a.google_place_id,
-        google_ftid: a.google_ftid,
-        osm_id: a.osm_id,
-        website: a.website,
-        phone: a.phone,
-        category: a.category_id ? {
-          id: a.category_id,
-          name: a.category_name,
-          color: a.category_color,
-          icon: a.category_icon,
-        } : null,
-        tags,
-      }
-    };
+    // The same shaper the list path uses. It was spelled out here as a third hand-kept
+    // copy of the place shape, and the copy silently dropped `stop_type`: the optimistic
+    // row the client had drawn as a fuel stop was replaced, a beat later, by this answer
+    // without it — so a petrol station turned into an ordinary numbered place while you
+    // watched.
+    return formatAssignmentWithPlace(a, tags, participants);
   }
 
   listDayAssignments(dayId: string | number) {
@@ -132,7 +96,7 @@ export class AssignmentsService {
         COALESCE(da.assignment_time, p.place_time) as place_time,
         COALESCE(da.assignment_end_time, p.end_time) as end_time,
         p.duration_minutes, p.notes as place_notes,
-        p.image_url, p.transport_mode, p.google_place_id, p.google_ftid, p.osm_id, p.website, p.phone,
+        p.image_url, p.transport_mode, p.google_place_id, p.google_ftid, p.osm_id, p.website, p.phone, p.stop_type,
         c.name as category_name, c.color as category_color, c.icon as category_icon
       FROM day_assignments da
       JOIN places p ON da.place_id = p.id

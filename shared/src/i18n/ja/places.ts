@@ -34,6 +34,7 @@ const places: TranslationStrings = {
   'places.importGoogleList': 'Google リスト',
   'places.importNaverList': 'Naver リスト',
   'places.googleListHint': '共有されたGoogleマップのリストリンクを貼り付けてください。',
+  'places.googleDirHint': 'ルートのリンクでも構いません。立ち寄り地が走行順に場所として取り込まれます。',
   'places.googleListImported': '「{list}」から {count} 件の場所をインポートしました',
   'places.googleListError': 'Googleマップのリストをインポートできませんでした',
   'places.naverListHint': '共有されたNaverマップのリストリンクを貼り付けてください。',

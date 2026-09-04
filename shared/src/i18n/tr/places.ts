@@ -35,6 +35,7 @@ const places: TranslationStrings = {
   'places.importNaverList': 'Naver Listesi',
   'places.googleListHint':
     'Tüm yerleri içe aktarmak için paylaşılan bir Google Haritalar listesi bağlantısını yapıştırın.',
+  'places.googleDirHint': 'Yol tarifi bağlantısı da olur: durakları, sürüş sırasına göre yerlere dönüşür.',
   'places.googleListImported': '"{list}"ten {count} yer içe aktarıldı',
   'places.googleListError': 'Google Haritalar listesi içe aktarılamadı',
   'places.naverListHint':

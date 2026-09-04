@@ -78,6 +78,8 @@ export interface Place {
   website?: string | null;
   phone?: string | null;
   transport_mode?: string;
+  /** What kind of stop this is on a drive (#1797); null for an ordinary place. */
+  stop_type?: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -335,6 +337,7 @@ export interface AssignmentRow extends DayAssignment {
   osm_id: string | null;
   website: string | null;
   phone: string | null;
+  stop_type: string | null;
   category_name: string | null;
   category_color: string | null;
   category_icon: string | null;

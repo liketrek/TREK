@@ -1,3 +1,5 @@
+import type { RoadtripStopType } from '@trek/shared'
+
 export interface PlaceFormData {
   name: string
   description: string
@@ -24,6 +26,14 @@ export interface PlaceFormData {
   // submit payload when unchanged, and useTripPlanner strips it off the place
   // update and PUTs it per assignment instead.
   assignment_notes?: string
+  // What kind of stop on a drive this is, if any (#1797). Optional and absent from
+  // DEFAULT_FORM for the same reason as image_url: a missing key writes nothing, and a
+  // place created outside a road trip has no opinion about fuel stops.
+  stop_type?: RoadtripStopType | null
+  // Offered only while creating, and only alongside a stop_type: the corridor popup
+  // suggests how long that kind of pause usually takes, and the full form should not
+  // throw the suggestion away on the way through. Editing a stay is the rail's job.
+  duration_minutes?: number
 }
 
 export function isGoogleMapsUrl(input: string): boolean {

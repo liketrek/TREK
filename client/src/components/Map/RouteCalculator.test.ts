@@ -12,10 +12,11 @@ import {
   generateCoMapsUrl,
   parsePluginProfile,
   withHotelBookends,
+  calculateAlternatives,
 } from './RouteCalculator'
 
-const OSRM_BASE = 'https://router.project-osrm.org/route/v1'
-// calculateRouteWithLegs talks to the FOSSGIS per-profile hosts, not the car-only demo.
+// Every route now goes to the FOSSGIS per-profile hosts. The car-only project-osrm.org
+// demo ignored the profile in the URL, so walking routes followed the road network.
 const FOSSGIS = {
   driving: 'https://routing.openstreetmap.de/routed-car/route/v1/driving',
   walking: 'https://routing.openstreetmap.de/routed-foot/route/v1/foot',
@@ -46,7 +47,7 @@ describe('calculateRoute', () => {
 
   it('FE-COMP-ROUTECALCULATOR-002: returns parsed coordinates on success', async () => {
     server.use(
-      http.get(`${OSRM_BASE}/driving/:coords`, () =>
+      http.get(`${FOSSGIS.driving}/:coords`, () =>
         HttpResponse.json(buildOsrmRouteResponse())
       )
     )
@@ -56,7 +57,7 @@ describe('calculateRoute', () => {
 
   it('FE-COMP-ROUTECALCULATOR-003: returns formatted distance text for >= 1000 m', async () => {
     server.use(
-      http.get(`${OSRM_BASE}/driving/:coords`, () =>
+      http.get(`${FOSSGIS.driving}/:coords`, () =>
         HttpResponse.json(buildOsrmRouteResponse(1500, 360))
       )
     )
@@ -66,7 +67,7 @@ describe('calculateRoute', () => {
 
   it('FE-COMP-ROUTECALCULATOR-004: returns formatted distance in meters for short routes', async () => {
     server.use(
-      http.get(`${OSRM_BASE}/driving/:coords`, () =>
+      http.get(`${FOSSGIS.driving}/:coords`, () =>
         HttpResponse.json(buildOsrmRouteResponse(800, 360))
       )
     )
@@ -78,7 +79,7 @@ describe('calculateRoute', () => {
     const distance = 5000
     const osrmDuration = 999
     server.use(
-      http.get(`${OSRM_BASE}/walking/:coords`, () =>
+      http.get(`${FOSSGIS.walking}/:coords`, () =>
         HttpResponse.json(buildOsrmRouteResponse(distance, osrmDuration))
       )
     )
@@ -90,7 +91,7 @@ describe('calculateRoute', () => {
 
   it('FE-COMP-ROUTECALCULATOR-006: throws when OSRM returns non-ok HTTP status', async () => {
     server.use(
-      http.get(`${OSRM_BASE}/driving/:coords`, () =>
+      http.get(`${FOSSGIS.driving}/:coords`, () =>
         HttpResponse.json({}, { status: 500 })
       )
     )
@@ -99,7 +100,7 @@ describe('calculateRoute', () => {
 
   it('FE-COMP-ROUTECALCULATOR-007: throws when OSRM code is not Ok', async () => {
     server.use(
-      http.get(`${OSRM_BASE}/driving/:coords`, () =>
+      http.get(`${FOSSGIS.driving}/:coords`, () =>
         HttpResponse.json({ code: 'NoRoute', routes: [] })
       )
     )
@@ -108,7 +109,7 @@ describe('calculateRoute', () => {
 
   it('FE-COMP-ROUTECALCULATOR-008: respects AbortSignal', async () => {
     server.use(
-      http.get(`${OSRM_BASE}/driving/:coords`, () =>
+      http.get(`${FOSSGIS.driving}/:coords`, () =>
         HttpResponse.json(buildOsrmRouteResponse())
       )
     )
@@ -128,7 +129,7 @@ describe('calculateSegments', () => {
 
   it('FE-COMP-ROUTECALCULATOR-010: returns segment midpoints and travel times', async () => {
     server.use(
-      http.get(`${OSRM_BASE}/driving/:coords`, () =>
+      http.get(`${FOSSGIS.driving}/:coords`, () =>
         HttpResponse.json({
           code: 'Ok',
           routes: [
@@ -325,7 +326,7 @@ describe('parsePluginProfile', () => {
 describe('calculateRoute profiles', () => {
   it('FE-COMP-ROUTECALCULATOR-030: cycling overrides the OSRM duration with a 15 km/h estimate', async () => {
     server.use(
-      http.get(`${OSRM_BASE}/cycling/:coords`, () =>
+      http.get(`${FOSSGIS.cycling}/:coords`, () =>
         HttpResponse.json(buildOsrmRouteResponse(9000, 4242))
       )
     )
@@ -340,12 +341,12 @@ describe('calculateRoute profiles', () => {
 
 describe('calculateSegments failures', () => {
   it('FE-COMP-ROUTECALCULATOR-031: throws when OSRM answers with an HTTP error', async () => {
-    server.use(http.get(`${OSRM_BASE}/driving/:coords`, () => HttpResponse.json({}, { status: 502 })))
+    server.use(http.get(`${FOSSGIS.driving}/:coords`, () => HttpResponse.json({}, { status: 502 })))
     await expect(calculateSegments([wp1, wp2])).rejects.toThrow('Route could not be calculated')
   })
 
   it('FE-COMP-ROUTECALCULATOR-032: throws when OSRM reports no usable route', async () => {
-    server.use(http.get(`${OSRM_BASE}/driving/:coords`, () => HttpResponse.json({ code: 'NoRoute', routes: [] })))
+    server.use(http.get(`${FOSSGIS.driving}/:coords`, () => HttpResponse.json({ code: 'NoRoute', routes: [] })))
     await expect(calculateSegments([wp1, wp2])).rejects.toThrow('No route found')
   })
 })
@@ -611,5 +612,253 @@ describe('generateCoMapsUrl', () => {
   it('FE-COMP-ROUTECALCULATOR-020: a single stop is a pin, and a nameless one is labelled by position', () => {
     expect(generateCoMapsUrl([{ lat: 48.85, lng: 2.35 }]))
       .toBe('https://comaps.at/map?v=1&ll=48.85,2.35&n=48.85%2C2.35')
+  })
+})
+
+describe('a self-hosted routing engine', () => {
+  afterEach(() => {
+    useSettingsStore.setState(st => ({ settings: { ...st.settings, routing_base_url: '' } }))
+  })
+
+  const useOwnRouter = (base: string) =>
+    useSettingsStore.setState(st => ({ settings: { ...st.settings, routing_base_url: base } }))
+
+  it('FE-COMP-ROUTECALCULATOR-021: a configured instance is asked instead of the public hosts', async () => {
+    useOwnRouter('https://osrm.example.org')
+    let asked = ''
+    server.use(http.get('https://osrm.example.org/route/v1/driving/:coords', ({ request }) => {
+      asked = request.url
+      return HttpResponse.json(buildOsrmRouteResponse())
+    }))
+
+    await calculateRoute([{ lat: 1, lng: 2 }, { lat: 3, lng: 4 }], 'driving')
+
+    expect(asked).toContain('osrm.example.org')
+  })
+
+  it('FE-COMP-ROUTECALCULATOR-022: OSRM’s own profile names are used, not TREK’s', async () => {
+    useOwnRouter('https://osrm.example.org')
+    let asked = ''
+    // TREK says "walking" and "cycling"; osrm-routed serves "foot" and "bike".
+    server.use(http.get('https://osrm.example.org/route/v1/foot/:coords', ({ request }) => {
+      asked = request.url
+      return HttpResponse.json(buildOsrmRouteResponse())
+    }))
+
+    await calculateRoute([{ lat: 1, lng: 2 }, { lat: 3, lng: 4 }], 'walking')
+
+    expect(asked).toContain('/route/v1/foot/')
+  })
+
+  it('FE-COMP-ROUTECALCULATOR-023: a trailing slash in the setting does not double up', async () => {
+    useOwnRouter('https://osrm.example.org///')
+    let asked = ''
+    server.use(http.get('https://osrm.example.org/route/v1/driving/:coords', ({ request }) => {
+      asked = request.url
+      return HttpResponse.json(buildOsrmRouteResponse())
+    }))
+
+    await calculateRoute([{ lat: 1, lng: 2 }, { lat: 3, lng: 4 }], 'driving')
+
+    expect(asked).not.toContain('//route')
+  })
+
+  it('FE-COMP-ROUTECALCULATOR-024: blank or whitespace falls back to the public hosts', async () => {
+    useOwnRouter('   ')
+    let asked = ''
+    server.use(http.get(`${FOSSGIS.driving}/:coords`, ({ request }) => {
+      asked = request.url
+      return HttpResponse.json(buildOsrmRouteResponse())
+    }))
+
+    await calculateRoute([{ lat: 1, lng: 2 }, { lat: 3, lng: 4 }], 'driving')
+
+    expect(asked).toContain('routing.openstreetmap.de')
+  })
+})
+
+describe('calculateAlternatives', () => {
+  const twoRoutes = {
+    code: 'Ok',
+    routes: [
+      // The direct one, straight down the middle.
+      { geometry: { coordinates: [[10, 53], [10.5, 52.5], [11, 52]] }, distance: 100000, duration: 3600 },
+      // A detour that swings well to the east before rejoining.
+      { geometry: { coordinates: [[10, 53], [12.5, 52.5], [11, 52]] }, distance: 130000, duration: 4500 },
+    ],
+  }
+
+  it('FE-COMP-ROUTECALCULATOR-025: asks for alternatives between exactly two points', async () => {
+    let asked = ''
+    server.use(http.get(`${FOSSGIS.driving}/:coords`, ({ request }) => {
+      asked = request.url
+      return HttpResponse.json(twoRoutes)
+    }))
+
+    const routes = await calculateAlternatives({ lat: 53, lng: 10 }, { lat: 52, lng: 11 })
+
+    expect(asked).toContain('alternatives=3')
+    expect(routes).toHaveLength(2)
+    expect(routes[0].distance).toBe(100000)
+  })
+
+  it('FE-COMP-ROUTECALCULATOR-026: each alternative carries the point that makes it different', async () => {
+    server.use(http.get(`${FOSSGIS.driving}/:coords`, () => HttpResponse.json(twoRoutes)))
+
+    const routes = await calculateAlternatives({ lat: 53, lng: 10 }, { lat: 52, lng: 11 })
+
+    // The first is what the router gives anyway, so it needs no pinning point.
+    expect(routes[0].divergence).toBeNull()
+    // The second diverges at its eastern swing — saving that as a via forces this road.
+    expect(routes[1].divergence).toEqual({ lat: 52.5, lng: 12.5 })
+  })
+
+  /** The router's own answer, and whatever it says when a road class is left out. */
+  const withExclusions = (byExclude: Record<string, unknown>) =>
+    http.get(`${FOSSGIS.driving}/:coords`, ({ request }) => {
+      const exclude = new URL(request.url).searchParams.get('exclude')
+      if (!exclude) return HttpResponse.json({ code: 'Ok', routes: [twoRoutes.routes[0]] })
+      const answer = byExclude[exclude]
+      return answer ? HttpResponse.json(answer) : HttpResponse.json({ code: 'NoRoute', routes: [] })
+    })
+
+  it('FE-COMP-ROUTECALCULATOR-027: a road that is the same road either way is not offered twice', async () => {
+    // Leaving the motorway out changed nothing — the leg does not touch one. Offering
+    // the identical line a second time would be a choice that is not a choice.
+    server.use(withExclusions({ motorway: { code: 'Ok', routes: [twoRoutes.routes[0]] }, toll: { code: 'Ok', routes: [twoRoutes.routes[0]] } }))
+
+    const routes = await calculateAlternatives({ lat: 53, lng: 10 }, { lat: 52, lng: 11 })
+
+    expect(routes).toHaveLength(1)
+    expect(routes[0].divergence).toBeNull()
+  })
+
+  it('FE-COMP-ROUTECALCULATOR-029: one answer from the router still offers the motorway-free way', async () => {
+    // OSRM answers most long legs with exactly one route, which used to mean the picker
+    // said there was no other way — while a perfectly good slower road existed.
+    server.use(withExclusions({ motorway: { code: 'Ok', routes: [twoRoutes.routes[1]] } }))
+
+    const routes = await calculateAlternatives({ lat: 53, lng: 10 }, { lat: 52, lng: 11 })
+
+    expect(routes).toHaveLength(2)
+    expect(routes[1].avoids).toBe('motorway')
+    // Pinnable like any other offer: the point where it leaves the direct line.
+    expect(routes[1].divergence).toEqual({ lat: 52.5, lng: 12.5 })
+  })
+
+  it('FE-COMP-ROUTECALCULATOR-030: tolls are only asked about when the motorway gave nothing', async () => {
+    const asked: string[] = []
+    server.use(http.get(`${FOSSGIS.driving}/:coords`, ({ request }) => {
+      const exclude = new URL(request.url).searchParams.get('exclude')
+      if (exclude) asked.push(exclude)
+      if (!exclude) return HttpResponse.json({ code: 'Ok', routes: [twoRoutes.routes[0]] })
+      if (exclude === 'motorway') return HttpResponse.json({ code: 'NoRoute', routes: [] })
+      return HttpResponse.json({ code: 'Ok', routes: [twoRoutes.routes[1]] })
+    }))
+
+    const routes = await calculateAlternatives({ lat: 53, lng: 10 }, { lat: 52, lng: 11 })
+
+    expect(asked).toEqual(['motorway', 'toll'])
+    expect(routes[1].avoids).toBe('toll')
+  })
+
+  it('FE-COMP-ROUTECALCULATOR-031: walking is never asked to leave out a road class', async () => {
+    // The foot profile has no excludable classes; asking earns an InvalidOptions for
+    // nothing, and a walk has no motorway to avoid in the first place.
+    const asked: string[] = []
+    server.use(http.get(`${FOSSGIS.walking}/:coords`, ({ request }) => {
+      const exclude = new URL(request.url).searchParams.get('exclude')
+      if (exclude) asked.push(exclude)
+      return HttpResponse.json({ code: 'Ok', routes: [twoRoutes.routes[0]] })
+    }))
+
+    const routes = await calculateAlternatives({ lat: 53, lng: 10 }, { lat: 52, lng: 11 }, 'walking')
+
+    expect(asked).toEqual([])
+    expect(routes).toHaveLength(1)
+  })
+
+  it('FE-COMP-ROUTECALCULATOR-032: a host that rejects exclude is only asked once', async () => {
+    // Both public hosts TREK ships with answer 400 here, so without this every long leg
+    // pays two extra requests against a one-per-second limit to be refused twice.
+    const asked: string[] = []
+    server.use(http.get('*/route/v1/driving/*', ({ request }) => {
+      const exclude = new URL(request.url).searchParams.get('exclude')
+      if (!exclude) return HttpResponse.json({ code: 'Ok', routes: [twoRoutes.routes[0]] })
+      asked.push(exclude)
+      return new HttpResponse(null, { status: 400 })
+    }))
+
+    await calculateAlternatives({ lat: 53, lng: 10 }, { lat: 52, lng: 13 }, 'driving')
+    const afterFirst = asked.length
+    await calculateAlternatives({ lat: 51, lng: 9 }, { lat: 50, lng: 12 }, 'driving')
+
+    expect(afterFirst).toBe(1)
+    expect(asked).toHaveLength(1)
+  })
+
+  it('FE-COMP-ROUTECALCULATOR-033: the snap positions come back with the route', async () => {
+    // OSRM reports these in every answer and TREK threw them away since the first route
+    // was drawn. Without them a place set back from the road looks like it is on the
+    // route, while the drive really starts somewhere else.
+    server.use(http.get('*/route/v1/driving/*', () => HttpResponse.json({
+      code: 'Ok',
+      waypoints: [
+        { location: [10.02, 53.51], distance: 812.5 },
+        { location: [13.0, 52.0], distance: 4 },
+      ],
+      routes: [{ geometry: { coordinates: [[10, 53], [13, 52]] }, distance: 1000, duration: 900, legs: [{ distance: 1000, duration: 900 }] }],
+    })))
+
+    const r = await calculateRouteWithLegs([{ lat: 53.5, lng: 10.0 }, { lat: 52, lng: 13 }])
+
+    expect(r.snapped).toEqual([
+      { asked: [53.5, 10.0], at: [53.51, 10.02], meters: 812.5 },
+      { asked: [52, 13], at: [52.0, 13.0], meters: 4 },
+    ])
+  })
+
+  it('FE-COMP-ROUTECALCULATOR-034: a distance the router left out is worked out from the two points', async () => {
+    server.use(http.get('*/route/v1/driving/*', () => HttpResponse.json({
+      code: 'Ok',
+      waypoints: [{ location: [10.0, 53.0] }, { location: [13.0, 52.0] }],
+      routes: [{ geometry: { coordinates: [[10, 53], [13, 52]] }, distance: 1000, duration: 900, legs: [{ distance: 1000, duration: 900 }] }],
+    })))
+
+    const r = await calculateRouteWithLegs([{ lat: 53.01, lng: 10.0 }, { lat: 52, lng: 13 }])
+
+    // Roughly 1.1 km for a hundredth of a degree of latitude; the point is that it is a
+    // real number rather than the whole answer being discarded.
+    expect(r.snapped?.[0].meters).toBeGreaterThan(1000)
+    expect(r.snapped?.[0].meters).toBeLessThan(1200)
+  })
+
+  it('FE-COMP-ROUTECALCULATOR-035: an answer that does not describe its waypoints changes nothing', async () => {
+    // All-or-nothing: a partial list would have to be indexed by waypoint anyway, and one
+    // bad entry would hang the spur off the wrong stop.
+    server.use(http.get('*/route/v1/driving/*', () => HttpResponse.json({
+      code: 'Ok',
+      waypoints: [{ location: [10.0, 53.0] }],
+      routes: [{ geometry: { coordinates: [[10, 53], [13, 52]] }, distance: 1000, duration: 900, legs: [{ distance: 1000, duration: 900 }] }],
+    })))
+
+    const r = await calculateRouteWithLegs([{ lat: 53, lng: 10 }, { lat: 52, lng: 13 }])
+
+    expect(r.snapped).toBeUndefined()
+    expect(r.coordinates).toHaveLength(2)
+  })
+
+  it('FE-COMP-ROUTECALCULATOR-028: no route at all is an empty list, not a throw', async () => {
+    server.use(http.get(`${FOSSGIS.driving}/:coords`, () =>
+      HttpResponse.json({ code: 'NoRoute', routes: [] })))
+
+    await expect(calculateAlternatives({ lat: 53, lng: 10 }, { lat: 52, lng: 11 })).resolves.toEqual([])
+  })
+
+  it('FE-COMP-ROUTECALCULATOR-029: a refused request is a RoutingRefusedError, not a generic one', async () => {
+    server.use(http.get(`${FOSSGIS.driving}/:coords`, () => HttpResponse.json({}, { status: 429 })))
+
+    await expect(calculateAlternatives({ lat: 53, lng: 10 }, { lat: 52, lng: 11 }))
+      .rejects.toMatchObject({ name: 'RoutingRefusedError', status: 429 })
   })
 })

@@ -34,6 +34,7 @@ const places: TranslationStrings = {
   'places.importGoogleList': 'قائمة Google',
   'places.importNaverList': 'قائمة Naver',
   'places.googleListHint': 'الصق رابط قائمة Google Maps المشتركة لاستيراد جميع الأماكن.',
+  'places.googleDirHint': 'رابط الاتجاهات يعمل أيضاً: تتحوّل محطاته إلى أماكن، بترتيب القيادة.',
   'places.googleListImported': 'تم استيراد {count} أماكن من "{list}"',
   'places.googleListError': 'فشل استيراد قائمة Google Maps',
   'places.naverListHint': 'الصق رابط قائمة Naver Maps مشتركة لاستيراد جميع الأماكن.',

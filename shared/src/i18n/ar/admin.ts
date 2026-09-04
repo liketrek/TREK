@@ -538,6 +538,8 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.atlas.description': 'خريطة العالم مع الدول التي تمت زيارتها وإحصائيات السفر',
   'admin.addons.catalog.collab.name': 'التعاون',
   'admin.addons.catalog.collab.description': 'ملاحظات واستطلاعات ومحادثة واقتراحات للتخطيط المشترك',
+  'admin.addons.catalog.roadtrip.name': 'رحلة برية',
+  'admin.addons.catalog.roadtrip.description': 'خطّط رحلات القيادة مع محطات توقف، وتُحدَّث أوقات القيادة والوصول تلقائيًا',
   'admin.addons.catalog.memories.name': 'صور (Immich)',
   'admin.addons.catalog.memories.description': 'شارك صور رحلتك عبر Immich',
   'admin.addons.catalog.mcp.description': 'بروتوكول سياق النموذج لتكامل مساعد الذكاء الاصطناعي',

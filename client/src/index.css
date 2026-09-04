@@ -42,6 +42,13 @@ body { height: 100%; overflow: auto; overscroll-behavior: none; -webkit-overflow
 .journey-feed-scroll { scrollbar-width: none; -ms-overflow-style: none; }
 .journey-feed-scroll::-webkit-scrollbar { display: none; }
 
+/* Road trip rail: hide the scrollbar of the day list. The totals card is pinned
+   above the list and therefore outside its scroll box, so a visible scrollbar
+   would take width from the day cards alone and leave the two stacks a few
+   pixels out of line — the one thing a column of nested cards cannot hide. */
+.roadtrip-rail-scroll { scrollbar-width: none; -ms-overflow-style: none; }
+.roadtrip-rail-scroll::-webkit-scrollbar { display: none; }
+
 /* Journey video: let the player fill the box the lightbox gives it.
  *
  * Plyr sizes its wrapper from the video's intrinsic aspect ratio via a

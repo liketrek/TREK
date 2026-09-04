@@ -33,6 +33,7 @@ const places: TranslationStrings = {
   'places.importGoogleList': 'Google 목록',
   'places.importNaverList': '네이버 목록',
   'places.googleListHint': '공유된 Google Maps 목록 링크를 붙여넣어 모든 장소를 가져옵니다.',
+  'places.googleDirHint': '길찾기 링크도 됩니다. 그 정차지가 주행 순서대로 장소가 됩니다.',
   'places.googleListImported': '"{list}"에서 {count}개 장소를 가져왔습니다',
   'places.googleListError': 'Google Maps 목록 가져오기 실패',
   'places.naverListHint': '공유된 네이버 지도 목록 링크를 붙여넣어 모든 장소를 가져옵니다.',

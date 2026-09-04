@@ -593,6 +593,8 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.atlas.description': 'Världskarta med besökta länder och resestatistik',
   'admin.addons.catalog.collab.name': 'Samarbete',
   'admin.addons.catalog.collab.description': 'Anteckningar, omröstningar, chatt och förslag för gemensam planering',
+  'admin.addons.catalog.roadtrip.name': 'Bilresa',
+  'admin.addons.catalog.roadtrip.description': 'Planera körningar med stopp – körtider och ankomsttider räknas om automatiskt',
   'admin.addons.catalog.memories.name': 'Foton (Immich)',
   'admin.addons.catalog.memories.description': 'Dela resefoton via din Immich-instans',
   'admin.addons.catalog.mcp.name': 'MCP',

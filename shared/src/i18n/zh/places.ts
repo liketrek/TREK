@@ -33,6 +33,7 @@ const places: TranslationStrings = {
   'places.importGoogleList': 'Google 列表',
   'places.importNaverList': 'Naver 列表',
   'places.googleListHint': '粘贴共享的 Google Maps 列表链接以导入所有地点。',
+  'places.googleDirHint': '路线链接也可以：它的途经点会按行驶顺序变成地点。',
   'places.googleListImported': '已从"{list}"导入 {count} 个地点',
   'places.googleListError': 'Google Maps 列表导入失败',
   'places.naverListHint': '粘贴共享的 Naver Maps 列表链接以导入所有地点。',

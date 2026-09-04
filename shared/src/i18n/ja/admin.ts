@@ -546,6 +546,8 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.atlas.description': '訪問国と旅行統計の世界地図',
   'admin.addons.catalog.collab.name': 'Collab',
   'admin.addons.catalog.collab.description': 'メモ、投票、チャット、提案で一緒に計画',
+  'admin.addons.catalog.roadtrip.name': 'ロードトリップ',
+  'admin.addons.catalog.roadtrip.description': '立ち寄り先付きのドライブを計画。運転時間と到着時刻は自動で再計算されます',
   'admin.addons.catalog.memories.name': '写真（Immich）',
   'admin.addons.catalog.memories.description': 'Immichで旅行写真を共有',
   'admin.addons.catalog.mcp.name': 'MCP',

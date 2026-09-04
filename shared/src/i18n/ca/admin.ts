@@ -291,6 +291,8 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.atlas.description': 'Mapa del món amb els països visitats i estadístiques de viatge',
   'admin.addons.catalog.collab.name': 'Col·laboració',
   'admin.addons.catalog.collab.description': 'Notes, enquestes, xat i suggeriments per planificar en grup',
+  'admin.addons.catalog.roadtrip.name': 'Viatge per carretera',
+  'admin.addons.catalog.roadtrip.description': 'Planifica trajectes amb parades: els temps de conducció i les hores d’arribada es recalculen sols',
   'admin.addons.catalog.collections.name': 'Col·leccions',
   'admin.addons.catalog.collections.description': 'Recull llocs de qualsevol viatge en llistes amb nom i reutilitza’ls',
   'admin.oidcOnlyMode': 'Desactivar autenticació per contrasenya',

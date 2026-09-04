@@ -33,6 +33,7 @@ const places: TranslationStrings = {
   'places.importNaverList': 'Llista de Naver',
   'places.googleListHint': "Enganxa un enllaç compartit d'una llista de Google Maps per importar tots els llocs.",
   'places.googleListImported': '{count} llocs importats de "{list}"',
+  'places.googleDirHint': 'Un enllaç d’indicacions també serveix: les seves parades esdevenen llocs, en ordre de conducció.',
   'places.googleListError': 'Error en importar la llista de Google Maps',
   'places.naverListHint': "Enganxa un enllaç compartit d'una llista de Naver Maps per importar tots els llocs.",
   'places.naverListImported': '{count} llocs importats de "{list}"',
