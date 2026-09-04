@@ -9,6 +9,7 @@ import { formatDistance } from '../../utils/units'
 import CustomSelect from '../shared/CustomSelect'
 import RoadtripCategoryPicker from './RoadtripCategoryPicker'
 import { serviceColor } from './roadtripModel'
+import { STOP_KIND_BY_KEY } from './stopKinds'
 import { FS } from './typeScale'
 import { CORRIDOR_CATEGORY_KEYS, CORRIDOR_WIDTHS_KM, type RoadtripCorridor } from './useRoadtripCorridor'
 import type { CorridorPoi } from './useCorridorPois'
@@ -25,14 +26,8 @@ interface RoadtripCorridorPanelProps {
   ) => void
 }
 
-const CATEGORY_META: Record<string, { labelKey: string; Icon: LucideIcon }> = {
-  fuel: { labelKey: 'roadtrip.poi.fuel', Icon: Fuel },
-  charging: { labelKey: 'roadtrip.poi.charging', Icon: Zap },
-  rest_area: { labelKey: 'roadtrip.poi.rest', Icon: ParkingSquare },
-  campsite: { labelKey: 'roadtrip.poi.campsite', Icon: Tent },
-  restaurant: { labelKey: 'roadtrip.poi.food', Icon: Utensils },
-  sights: { labelKey: 'roadtrip.poi.sights', Icon: Camera },
-}
+/** Label and icon per category, from the one table every road-trip surface reads. */
+const CATEGORY_META = STOP_KIND_BY_KEY
 
 /** The small capitalised word over a group of controls, matching the rail's own captions. */
 const EYEBROW = 'font-geist font-semibold uppercase tracking-[0.15em] text-content-faint'

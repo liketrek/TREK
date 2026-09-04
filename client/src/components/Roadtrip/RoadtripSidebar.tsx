@@ -1,7 +1,7 @@
 import React from 'react'
 import {
   MapPin, CarFront, Footprints, Bike, Zap, AlertTriangle, Moon,
-  Fuel, Coffee, Tent, Utensils, Camera, Shuffle,
+  ParkingSquare, Shuffle,
   type LucideIcon,
 } from 'lucide-react'
 import { useTranslation } from '../../i18n/TranslationContext'
@@ -9,6 +9,7 @@ import { useSettingsStore } from '../../store/settingsStore'
 import { formatDistance } from '../../utils/units'
 import { formatDate, formatClockTime } from '../../utils/formatters'
 import { formatDurationShort, isServiceStopType, serviceColor, type ScheduleEntry, type ScheduleWarning } from './roadtripModel'
+import { STOP_KIND_BY_KEY } from './stopKinds'
 import type { QuietDay, RoadtripDay, RoadtripRoutes, RoadtripStop } from './useRoadtripRoutes'
 import { FS } from './typeScale'
 import type { RouteSegment } from '../../types'
@@ -42,29 +43,8 @@ const MODE_ICON: Record<string, LucideIcon> = {
   cycling: Bike,
 }
 
-/** What each kind of pause looks like. The icon is what tells the teal discs apart. */
-const SERVICE_ICON: Record<string, LucideIcon> = {
-  fuel: Fuel,
-  charging: Zap,
-  rest_area: Coffee,
-  campsite: Tent,
-  restaurant: Utensils,
-  sights: Camera,
-}
-
-/**
- * What each kind is called. Spelled out rather than derived from the key, because two of
- * them do not match: the corridor calls a rest area `rest_area` but names it under
- * `rest`, and a restaurant `restaurant` but names it under `food`.
- */
-const SERVICE_LABEL_KEY: Record<string, string> = {
-  fuel: 'roadtrip.poi.fuel',
-  charging: 'roadtrip.poi.charging',
-  rest_area: 'roadtrip.poi.rest',
-  campsite: 'roadtrip.poi.campsite',
-  restaurant: 'roadtrip.poi.food',
-  sights: 'roadtrip.poi.sights',
-}
+// Icon and name both come from the one stop-kind table now. This file used to keep its
+// own copy of each, and its rest_area icon had drifted away from the popup's.
 
 
 /** The column the markers and the line share, and the gap to the content beside it. */
@@ -346,8 +326,9 @@ function ServiceStop({ stop, entry, selected, onSelect, onEditStay }: {
   onEditStay?: () => void
 }): React.ReactElement {
   const { t } = useTranslation()
-  const Icon = SERVICE_ICON[stop.stopType ?? ''] ?? Coffee
-  const label = t(SERVICE_LABEL_KEY[stop.stopType ?? ''] ?? 'roadtrip.poi.rest')
+  const kind = STOP_KIND_BY_KEY[stop.stopType ?? '']
+  const Icon = kind?.Icon ?? ParkingSquare
+  const label = t(kind?.labelKey ?? 'roadtrip.poi.rest')
   return (
     <div className="grid items-stretch" style={RAIL_GRID}>
       <span className="relative z-[1] flex flex-col items-center">

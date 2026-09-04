@@ -2,6 +2,7 @@ import { Utensils, Coffee, Wine, BedDouble, Camera, Landmark, Trees, Ticket, Fue
 // The road-trip kinds take their colour from the one place that defines it, so the
 // search result, the map pin and the road-trip rail cannot drift apart.
 import { SERVICE_COLORS } from '../Roadtrip/roadtripModel'
+import { STOP_KINDS } from '../Roadtrip/stopKinds'
 
 // The POI categories shown in the map "explore" pill. The `key` is the contract
 // with the server (CATEGORY_OSM_FILTERS in mapsService.ts) — the OSM tag mapping
@@ -31,12 +32,9 @@ export const POI_CATEGORIES: PoiCategory[] = [
  * lookup below all the same, so a hit drawn on the map gets its own icon and colour
  * instead of the nameless grey dot an unknown category falls back to.
  */
-export const ROADTRIP_POI_CATEGORIES: PoiCategory[] = [
-  { key: 'fuel', labelKey: 'roadtrip.poi.fuel', Icon: Fuel, color: SERVICE_COLORS.fuel },
-  { key: 'charging', labelKey: 'roadtrip.poi.charging', Icon: Zap, color: SERVICE_COLORS.charging },
-  { key: 'rest_area', labelKey: 'roadtrip.poi.rest', Icon: ParkingSquare, color: SERVICE_COLORS.rest_area },
-  { key: 'campsite', labelKey: 'roadtrip.poi.campsite', Icon: Tent, color: SERVICE_COLORS.campsite },
-]
+export const ROADTRIP_POI_CATEGORIES: PoiCategory[] = STOP_KINDS.map(
+  ({ key, labelKey, Icon, color }) => ({ key, labelKey, Icon, color }),
+)
 
 export const POI_CATEGORY_BY_KEY: Record<string, PoiCategory> = Object.fromEntries(
   [...POI_CATEGORIES, ...ROADTRIP_POI_CATEGORIES].map(c => [c.key, c]),

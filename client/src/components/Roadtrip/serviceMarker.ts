@@ -1,17 +1,8 @@
 import { createElement } from 'react'
-import { Fuel, Zap, Coffee, Tent, Utensils, Camera, type LucideIcon } from 'lucide-react'
+import { ParkingSquare } from 'lucide-react'
 import { renderIconMarkup } from '../../utils/iconMarkup'
 import { isServiceStopType, serviceColor } from './roadtripModel'
-
-/** The same icons the rail puts on its discs, so one kind of stop looks like itself. */
-const SERVICE_ICON: Record<string, LucideIcon> = {
-  fuel: Fuel,
-  charging: Zap,
-  rest_area: Coffee,
-  campsite: Tent,
-  restaurant: Utensils,
-  sights: Camera,
-}
+import { STOP_KIND_BY_KEY } from './stopKinds'
 
 /**
  * Smaller than a place marker on purpose.
@@ -45,7 +36,7 @@ export function serviceMarkerOuter(selected: boolean): number {
 export function serviceMarkerHtml(stopType: string | null | undefined, selected: boolean): string | null {
   if (!isServiceStopType(stopType)) return null
   const size = selected ? SERVICE_MARKER_SIZE_SELECTED : SERVICE_MARKER_SIZE
-  const Icon = SERVICE_ICON[stopType ?? ''] ?? Coffee
+  const Icon = STOP_KIND_BY_KEY[stopType ?? '']?.Icon ?? ParkingSquare
   const svg = renderIconMarkup(createElement(Icon, {
     size: Math.round(size * 0.56),
     color: '#fff',

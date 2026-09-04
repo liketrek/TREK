@@ -3,6 +3,7 @@ import { Fuel, Zap, ParkingSquare, Tent, Utensils, Camera, Hourglass, AlertTrian
 import Modal from '../shared/Modal'
 import { useTranslation } from '../../i18n/TranslationContext'
 import { formatDurationShort, SERVICE_COLORS } from './roadtripModel'
+import { STOP_KINDS, STOP_KIND_BY_KEY } from './stopKinds'
 import type { CorridorPoi } from './useCorridorPois'
 import type { RoadtripStopType } from '@trek/shared'
 
@@ -17,16 +18,8 @@ import type { RoadtripStopType } from '@trek/shared'
  * The colours are the road-trip palette from `poiCategories.ts` and are the same in both
  * themes on purpose — a brand-neutral fuel blue reads as fuel either way.
  */
-const STOP_KINDS: { key: RoadtripStopType; labelKey: string; Icon: LucideIcon; color: string; minutes: number }[] = [
-  { key: 'fuel', labelKey: 'roadtrip.poi.fuel', Icon: Fuel, color: SERVICE_COLORS.fuel, minutes: 10 },
-  { key: 'charging', labelKey: 'roadtrip.poi.charging', Icon: Zap, color: SERVICE_COLORS.charging, minutes: 30 },
-  { key: 'rest_area', labelKey: 'roadtrip.poi.rest', Icon: ParkingSquare, color: SERVICE_COLORS.rest_area, minutes: 20 },
-  { key: 'campsite', labelKey: 'roadtrip.poi.campsite', Icon: Tent, color: SERVICE_COLORS.campsite, minutes: 60 },
-  // The corridor can find these two as well, and anything picked off "along the route"
-  // is a pause on the way rather than a destination — so they get a kind like the rest.
-  { key: 'restaurant', labelKey: 'roadtrip.poi.food', Icon: Utensils, color: SERVICE_COLORS.restaurant, minutes: 45 },
-  { key: 'sights', labelKey: 'roadtrip.poi.sights', Icon: Camera, color: SERVICE_COLORS.sights, minutes: 30 },
-]
+// The kinds, their icons, their colours and how long each one usually takes all come
+// from the one table in stopKinds.ts.
 
 /** How long to stand still, offered as the few answers anyone actually gives. */
 const DWELL_CHOICES = [5, 10, 20, 30, 45, 60]
@@ -64,7 +57,7 @@ export default function RoadtripStopPopup({
   const { t } = useTranslation()
   const suggested = STOP_KINDS.find(k => k.key === draft?.poi.category)
   const [stopType, setStopType] = useState<RoadtripStopType | null>(suggested?.key ?? null)
-  const [dwell, setDwell] = useState<number>(suggested?.minutes ?? 30)
+  const [dwell, setDwell] = useState<number>(suggested?.defaultMinutes ?? 30)
   const [saving, setSaving] = useState(false)
 
   if (!draft) return null
@@ -125,7 +118,7 @@ export default function RoadtripStopPopup({
                     setStopType(on ? null : key)
                     // Picking a kind is also picking how long it takes, until the user
                     // says otherwise — a charge is not a fuel stop.
-                    if (!on) setDwell(STOP_KINDS.find(k => k.key === key)!.minutes)
+                    if (!on) setDwell(STOP_KIND_BY_KEY[key].defaultMinutes)
                   }}
                   className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-caption transition-colors ${
                     on
