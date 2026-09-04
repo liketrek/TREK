@@ -9,6 +9,8 @@ import { Map, Ticket, PackageCheck, Wallet, FolderOpen, Users, Train } from 'luc
 import { resolvePluginIcon } from '../../components/shared/PluginIcon'
 import { useTranslation, translateApiError } from '../../i18n'
 import { addonsApi, accommodationsApi, authApi, tripsApi, assignmentsApi, healthApi, airtrailApi, mapsApi, placesApi } from '../../api/client'
+import { getDayOrder } from '../../utils/dayOrder'
+import { isOvernightCategory } from '../../components/Roadtrip/stopKinds'
 import { parsedItemToDraft, isTransportItem, isUnplaceableItem, type BookingReviewDraft } from '../../components/Planner/parsedItemToDraft'
 import type { BookingImportPreviewItem } from '@trek/shared'
 import { accommodationRepo } from '../../repo/accommodationRepo'
@@ -661,17 +663,45 @@ export function useTripPlanner() {
   const roadtripDayId = roadtripCorridor.day?.dayId ?? null
   const { insertIndexFor: roadtripInsertIndexFor } = roadtripCorridor
   const roadtripDayNumber = roadtripCorridor.day?.dayNumber ?? 0
+  /**
+   * The check-out days a night started on `dayId` can end on.
+   *
+   * Ordered by the trip's own day order rather than by array position, the same rule the
+   * day detail panel follows: a day list can be sorted by anything, and a hotel booked
+   * out on "the next day" has to mean the next day of the trip.
+   */
+  const overnightOptions = useCallback((dayId: number) => {
+    const ordered = [...days].sort((a, b) => getDayOrder(a, days) - getDayOrder(b, days))
+    const from = ordered.findIndex(d => d.id === dayId)
+    const rest = from < 0 ? ordered : ordered.slice(from)
+    return {
+      days: rest.map(d => ({ id: d.id, number: d.day_number ?? 0, date: d.date ?? null })),
+      // The day after, or this one when it is the last: a night on the final day of a
+      // trip has nowhere else to end.
+      defaultEndDayId: rest[1]?.id ?? rest[0]?.id ?? dayId,
+    }
+  }, [days])
+
   const handlePoiClick = useCallback((poi: Parameters<typeof openAddPlaceFromPoi>[0]) => {
     if (!can('place_edit', trip)) return
     // A corridor hit knows how far along the drive it sits, so it can go straight into
     // the chain in driving order instead of being dragged there afterwards.
     const hit = roadtripActive && 'alongKm' in poi ? (poi as unknown as CorridorPoi) : null
     if (hit && roadtripDayId != null) {
-      setStopDraft({ poi: hit, dayId: roadtripDayId, position: roadtripInsertIndexFor(hit), dayNumber: roadtripDayNumber })
+      setStopDraft({
+        poi: hit,
+        dayId: roadtripDayId,
+        position: roadtripInsertIndexFor(hit),
+        dayNumber: roadtripDayNumber,
+        // Only for a hit somebody could sleep at, and it is what gives the popup its
+        // second mode. The check-out options are the days from this one on in travel
+        // order; the default is the next one, which is what a night usually means.
+        ...(isOvernightCategory(hit.category) ? { overnight: overnightOptions(roadtripDayId) } : {}),
+      })
       return
     }
     openAddPlaceFromPoi(poi, roadtripActive ? roadtripDayId : undefined)
-  }, [openAddPlaceFromPoi, roadtripActive, roadtripDayId, roadtripDayNumber, roadtripInsertIndexFor, can, trip])
+  }, [openAddPlaceFromPoi, roadtripActive, roadtripDayId, roadtripDayNumber, roadtripInsertIndexFor, overnightOptions, can, trip])
 
   /**
    * The stops of a day as the road trip counts them, in the order it drives them.
@@ -771,6 +801,59 @@ export function useTripPlanner() {
       toast.error(err instanceof Error ? err.message : t('common.unknownError'))
     }
   }, [stopDraft, tripId, tripActions, updateRouteForDay, toast, t, roadtripVias, viaLiesBefore])
+
+  /**
+   * Saves a corridor hit as somewhere to sleep rather than as a pause on the drive.
+   *
+   * Three writes and deliberately not one transaction: the place, its day, and the row in
+   * day_accommodations. A hotel keeps its number in the chain — it is where the day ends,
+   * not something the drive passes through — so it gets no `stop_type` and no dwell.
+   *
+   * The check-out day is the traveller's answer, defaulting to the day after. Both times
+   * are optional and go through as empty when nobody filled them in: a hotel found on a
+   * map has no idea when its reception opens, and the server stores null.
+   */
+  const saveStopDraftAsNight = useCallback(async ({ endDayId, checkIn, checkOut }: {
+    endDayId: number
+    checkIn: string
+    checkOut: string
+  }) => {
+    if (!stopDraft) return
+    const { poi, dayId, position } = stopDraft
+    try {
+      const place = await tripActions.addPlace(tripId, {
+        name: poi.name,
+        lat: poi.lat,
+        lng: poi.lng,
+        address: poi.address || null,
+        website: poi.website || undefined,
+        phone: poi.phone || undefined,
+        osm_id: poi.osm_id,
+      })
+      if (place?.id) {
+        const plan = reanchorAfterInsert(
+          roadtripVias.byDay[dayId] ?? [],
+          position,
+          viaLiesBefore(dayId, { lat: poi.lat, lng: poi.lng }),
+        )
+        await tripActions.assignPlaceToDay(tripId, dayId, place.id, position)
+        await accommodationsApi.create(tripId, {
+          place_id: place.id,
+          start_day_id: dayId,
+          end_day_id: endDayId,
+          ...(checkIn ? { check_in: checkIn } : {}),
+          ...(checkOut ? { check_out: checkOut } : {}),
+        })
+        await loadAccommodations()
+        await roadtripVias.reanchor(dayId, plan)
+        updateRouteForDay(dayId)
+      }
+      setStopDraft(null)
+      toast.success(t('roadtrip.stay.nightAdded'))
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : t('common.unknownError'))
+    }
+  }, [stopDraft, tripId, tripActions, updateRouteForDay, toast, t, roadtripVias, viaLiesBefore, loadAccommodations])
 
   /**
    * Moves a stop within its day, from the road trip rail.
@@ -1603,7 +1686,7 @@ export function useTripPlanner() {
     showPlaceForm, setShowPlaceForm, editingPlace, setEditingPlace,
     prefillCoords, setPrefillCoords, editingAssignmentId, setEditingAssignmentId,
     placeFormDayId, setPlaceFormDayId, reservationModalDayId, setReservationModalDayId,
-    stopDraft, setStopDraft, saveStopDraft, stopDraftToForm, stopDraftDuplicate, reorderRoadtripStop,
+    stopDraft, setStopDraft, saveStopDraft, saveStopDraftAsNight, stopDraftToForm, stopDraftDuplicate, reorderRoadtripStop,
     saveRoadtripLimit,
     roadtripVias, addRoadtripVia, moveRoadtripVia, removeRoadtripVia,
     routeAlternatives, askRouteAlternatives, chooseRouteAlternative, alternativeOverlays, alternativeFocusPoints,

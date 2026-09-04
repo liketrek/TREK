@@ -4,8 +4,9 @@ import { insertIndexForAlong } from './roadtripModel'
 import { projectOntoRoute, type LatLng } from './corridor'
 import type { RoadtripDay, RoadtripRoutes } from './useRoadtripRoutes'
 
-/** The road-trip categories, in the order the panel shows them. */
-export const CORRIDOR_CATEGORY_KEYS = ['fuel', 'charging', 'rest_area', 'campsite', 'restaurant', 'sights'] as const
+// The categories come from the one table now, which is also the only place that knows
+// a hotel is a category without being a stop kind.
+export { CORRIDOR_CATEGORY_KEYS } from './stopKinds'
 
 /** Corridor widths offered, in kilometres. */
 export const CORRIDOR_WIDTHS_KM = [2, 5, 10]

@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
-import { Fuel, Zap, ParkingSquare, Tent, Utensils, Camera, Hourglass, AlertTriangle, type LucideIcon } from 'lucide-react'
+import { ParkingSquare, Hourglass, AlertTriangle, BedDouble } from 'lucide-react'
 import Modal from '../shared/Modal'
+import CustomSelect from '../shared/CustomSelect'
 import { useTranslation } from '../../i18n/TranslationContext'
 import { formatDurationShort, SERVICE_COLORS } from './roadtripModel'
 import { STOP_KINDS, STOP_KIND_BY_KEY } from './stopKinds'
@@ -30,6 +31,16 @@ export interface RoadtripStopDraft {
   /** Where in the day's chain it goes, worked out from how far along the drive it sits. */
   position: number
   dayNumber: number
+  /**
+   * Set only for a hit somebody could sleep at, and it is what turns the popup into two
+   * modes rather than one. Absent, the dialog asks the two questions it always asked.
+   */
+  overnight?: {
+    /** The trip's days from this one on, in travel order — the check-out options. */
+    days: { id: number; number: number; date: string | null }[]
+    /** The day after this one, or this one when it is the last. */
+    defaultEndDayId: number
+  }
 }
 
 interface RoadtripStopPopupProps {
@@ -38,7 +49,11 @@ interface RoadtripStopPopupProps {
   duplicateName?: string | null
   onClose: () => void
   onSave: (input: { stopType: RoadtripStopType | null; dwellMinutes: number }) => Promise<void> | void
-  /** Opens the full place form instead, carrying what has been filled in so far. */
+  /**
+   * Books the hit as a night instead of a pause: the place, its day, and a row in
+   * day_accommodations, in one go. Only ever called when the draft carries `overnight`.
+   */
+  onSaveNight?: (input: { endDayId: number; checkIn: string; checkOut: string }) => Promise<void> | void
   /** Hands over what has been picked here, so the full form opens on the same answer. */
   onMoreDetails: (stop: { stopType: RoadtripStopType | null; dwellMinutes: number }) => void
 }
@@ -53,22 +68,39 @@ interface RoadtripStopPopupProps {
  * how long) and says where it will land, with a way out to the full form for the rest.
  */
 export default function RoadtripStopPopup({
-  draft, duplicateName, onClose, onSave, onMoreDetails,
+  draft, duplicateName, onClose, onSave, onSaveNight, onMoreDetails,
 }: RoadtripStopPopupProps): React.ReactElement | null {
   const { t } = useTranslation()
   const suggested = STOP_KINDS.find(k => k.key === draft?.poi.category)
   const [stopType, setStopType] = useState<RoadtripStopType | null>(suggested?.key ?? null)
   const [dwell, setDwell] = useState<number>(suggested?.defaultMinutes ?? 30)
+  // A hotel is a night by default and a campsite a pause, which is what each already
+  // means everywhere else — but both offer the other, because a campsite is somewhere
+  // people sleep and a hotel is somewhere people stop for lunch.
+  const [night, setNight] = useState<boolean>(draft?.poi.category === 'hotel')
+  const [endDayId, setEndDayId] = useState<number | null>(draft?.overnight?.defaultEndDayId ?? null)
+  const [checkIn, setCheckIn] = useState('')
+  const [checkOut, setCheckOut] = useState('')
   const [saving, setSaving] = useState(false)
 
   if (!draft) return null
+  const overnight = draft.overnight
+  const asNight = !!overnight && !!onSaveNight && night
 
   const kind = STOP_KINDS.find(k => k.key === stopType)
 
   const submit = async (): Promise<void> => {
     setSaving(true)
     try {
-      await onSave({ stopType, dwellMinutes: dwell })
+      if (asNight) {
+        await onSaveNight?.({
+          endDayId: endDayId ?? overnight!.defaultEndDayId,
+          checkIn,
+          checkOut,
+        })
+      } else {
+        await onSave({ stopType, dwellMinutes: dwell })
+      }
     } finally {
       setSaving(false)
     }
@@ -103,6 +135,103 @@ export default function RoadtripStopPopup({
           </p>
         ) : null}
 
+        {/* Only where sleeping is on the table. A petrol station gets no choice, because
+            there is nothing to choose between. */}
+        {overnight && onSaveNight ? (
+          <div className="flex rounded-lg border border-edge p-0.5">
+            {[
+              { on: false, label: t('roadtrip.stay.mode.pause'), Icon: Hourglass },
+              { on: true, label: t('roadtrip.stay.mode.night'), Icon: BedDouble },
+            ].map(({ on, label, Icon }) => (
+              <button
+                key={label}
+                type="button"
+                aria-pressed={night === on}
+                onClick={() => setNight(on)}
+                className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-caption transition-colors ${
+                  night === on
+                    ? 'bg-accent font-semibold text-accent-text'
+                    : 'text-content-secondary hover:bg-surface-hover'
+                }`}
+              >
+                <Icon size={13} aria-hidden />
+                {label}
+              </button>
+            ))}
+          </div>
+        ) : null}
+
+        {asNight ? (
+          <div className="flex flex-col gap-3">
+            <div>
+              <span className="text-caption font-medium uppercase tracking-wide text-content-faint">
+                {t('roadtrip.stay.checkOutDay')}
+              </span>
+              <div className="mt-1.5">
+                <CustomSelect
+                  value={String(endDayId ?? overnight!.defaultEndDayId)}
+                  onChange={value => setEndDayId(Number(value))}
+                  options={overnight!.days.map(d => ({
+                    value: String(d.id),
+                    label: d.date
+                      ? `${t('roadtrip.stay.dayNumber', { number: d.number })} · ${d.date}`
+                      : t('roadtrip.stay.dayNumber', { number: d.number }),
+                  }))}
+                  size="sm"
+                />
+              </div>
+            </div>
+            {/* Both optional: leaving them empty is normal, and the server stores null.
+                A hotel found on a map has no idea when its reception opens. */}
+            <div className="flex gap-3">
+              <label className="min-w-0 flex-1">
+                <span className="text-caption font-medium uppercase tracking-wide text-content-faint">
+                  {t('day.checkIn')}
+                </span>
+                <input
+                  type="time"
+                  value={checkIn}
+                  onChange={e => setCheckIn(e.target.value)}
+                  className="mt-1.5 w-full rounded-lg border border-edge bg-surface px-2 py-1 text-body text-content focus:border-accent focus:outline-none"
+                />
+              </label>
+              <label className="min-w-0 flex-1">
+                <span className="text-caption font-medium uppercase tracking-wide text-content-faint">
+                  {t('day.checkOut')}
+                </span>
+                <input
+                  type="time"
+                  value={checkOut}
+                  onChange={e => setCheckOut(e.target.value)}
+                  className="mt-1.5 w-full rounded-lg border border-edge bg-surface px-2 py-1 text-body text-content focus:border-accent focus:outline-none"
+                />
+              </label>
+            </div>
+            {/* What OSM knows about the house, which is the whole of what we offer: no
+                price, no availability, no link into a booking portal. TREK links to maps
+                and to the place's own site, never to a vendor. */}
+            {draft.poi.website || draft.poi.phone ? (
+              <div className="flex flex-wrap gap-x-3 gap-y-1 text-caption">
+                {draft.poi.website ? (
+                  <a
+                    href={draft.poi.website}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="text-accent hover:underline"
+                  >
+                    {t('places.website')}
+                  </a>
+                ) : null}
+                {draft.poi.phone ? (
+                  <a href={`tel:${draft.poi.phone}`} className="text-accent hover:underline">
+                    {draft.poi.phone}
+                  </a>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+        ) : (
+        <>
         <div>
           <span className="text-caption font-medium uppercase tracking-wide text-content-faint">
             {t('roadtrip.stop.kind')}
@@ -158,6 +287,8 @@ export default function RoadtripStopPopup({
             ))}
           </div>
         </div>
+        </>
+        )}
 
         <div className="flex items-center gap-2 border-t border-edge-faint pt-3">
           <button

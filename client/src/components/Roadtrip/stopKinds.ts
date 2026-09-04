@@ -1,4 +1,4 @@
-import { Fuel, Zap, ParkingSquare, Tent, Utensils, Camera, type LucideIcon } from 'lucide-react'
+import { Fuel, Zap, ParkingSquare, Tent, Utensils, Camera, BedDouble, type LucideIcon } from 'lucide-react'
 import { SERVICE_COLORS, SERVICE_STOP_TYPES } from './roadtripModel'
 import type { RoadtripStopType } from '@trek/shared'
 
@@ -52,8 +52,57 @@ export const STOP_KIND_BY_KEY: Record<string, StopKind> = Object.fromEntries(
   STOP_KINDS.map(k => [k.key, k]),
 )
 
-/** The categories the corridor search offers, in the order the panel shows them. */
-export const CORRIDOR_CATEGORY_KEYS = STOP_KINDS.filter(k => k.isCorridorCategory).map(k => k.key)
+/**
+ * A category the corridor search offers, which is not the same question as a stop kind.
+ *
+ * Every stop kind is a category, but not every category is a stop kind: somewhere to
+ * sleep is something the search can find, and staying there ends the day rather than
+ * interrupting the drive. A hotel therefore keeps its number in the chain and gets a row
+ * in `day_accommodations`; it never becomes a `stop_type`.
+ */
+export interface CorridorCategory {
+  key: string
+  labelKey: string
+  Icon: LucideIcon
+  color: string
+  /** The kind a hit of this category becomes, or null when it becomes something else. */
+  stopKind: RoadtripStopType | null
+}
+
+/** Somewhere to sleep. Blue rather than the campsite's green: both are a night, but one
+ * of them has a roof, and telling the two apart on a map matters more than grouping them.
+ * theme-lint-disable — the road-signage palette, shared with the general place search so
+ * a hotel found along a route looks like the hotels found anywhere else. */
+export const HOTEL_COLOR = '#2563EB'
+
+/**
+ * The categories, in the order the panel shows them.
+ *
+ * Written out rather than derived, because the order is a judgement: sleeping sits next
+ * to sleeping, so `hotel` follows `campsite` instead of landing wherever the stop-kind
+ * table happens to end.
+ */
+export const CORRIDOR_CATEGORIES: CorridorCategory[] = [
+  ...STOP_KINDS.filter(k => k.isCorridorCategory && k.key !== 'restaurant' && k.key !== 'sights')
+    .map(k => ({ key: k.key as string, labelKey: k.labelKey, Icon: k.Icon, color: k.color, stopKind: k.key })),
+  { key: 'hotel', labelKey: 'poi.cat.hotels', Icon: BedDouble, color: HOTEL_COLOR, stopKind: null },
+  ...STOP_KINDS.filter(k => k.key === 'restaurant' || k.key === 'sights')
+    .map(k => ({ key: k.key as string, labelKey: k.labelKey, Icon: k.Icon, color: k.color, stopKind: k.key })),
+]
+
+export const CORRIDOR_CATEGORY_BY_KEY: Record<string, CorridorCategory> = Object.fromEntries(
+  CORRIDOR_CATEGORIES.map(c => [c.key, c]),
+)
+
+/** The keys the corridor search offers, in the order the panel shows them. */
+export const CORRIDOR_CATEGORY_KEYS = CORRIDOR_CATEGORIES.map(c => c.key)
+
+/** Categories whose hit becomes a night rather than a pause. */
+export function isOvernightCategory(category: string | null | undefined): boolean {
+  // Campsite is both: it is a service stop today and stays one, but a night can be
+  // booked there just as well, so the popup offers the choice rather than deciding.
+  return category === 'hotel' || category === 'campsite'
+}
 
 /**
  * A guard against the drift this file exists to end.

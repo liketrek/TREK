@@ -2,7 +2,7 @@ import { Utensils, Coffee, Wine, BedDouble, Camera, Landmark, Trees, Ticket, Fue
 // The road-trip kinds take their colour from the one place that defines it, so the
 // search result, the map pin and the road-trip rail cannot drift apart.
 import { SERVICE_COLORS } from '../Roadtrip/roadtripModel'
-import { STOP_KINDS } from '../Roadtrip/stopKinds'
+import { CORRIDOR_CATEGORIES, HOTEL_COLOR } from '../Roadtrip/stopKinds'
 
 // The POI categories shown in the map "explore" pill. The `key` is the contract
 // with the server (CATEGORY_OSM_FILTERS in mapsService.ts) — the OSM tag mapping
@@ -19,7 +19,9 @@ export const POI_CATEGORIES: PoiCategory[] = [
   { key: 'restaurant', labelKey: 'poi.cat.restaurants', Icon: Utensils, color: '#EF4444' },
   { key: 'cafe', labelKey: 'poi.cat.cafes', Icon: Coffee, color: '#B45309' },
   { key: 'bar', labelKey: 'poi.cat.bars', Icon: Wine, color: '#A855F7' },
-  { key: 'hotel', labelKey: 'poi.cat.hotels', Icon: BedDouble, color: '#2563EB' },
+  // The colour lives with the road-trip categories, because the corridor search offers
+  // the same one and two definitions of a blue is how they drift apart.
+  { key: 'hotel', labelKey: 'poi.cat.hotels', Icon: BedDouble, color: HOTEL_COLOR },
   { key: 'sights', labelKey: 'poi.cat.sights', Icon: Camera, color: '#EC4899' },
   { key: 'museum', labelKey: 'poi.cat.museums', Icon: Landmark, color: '#6366F1' },
   { key: 'nature', labelKey: 'poi.cat.nature', Icon: Trees, color: '#16A34A' },
@@ -32,7 +34,7 @@ export const POI_CATEGORIES: PoiCategory[] = [
  * lookup below all the same, so a hit drawn on the map gets its own icon and colour
  * instead of the nameless grey dot an unknown category falls back to.
  */
-export const ROADTRIP_POI_CATEGORIES: PoiCategory[] = STOP_KINDS.map(
+export const ROADTRIP_POI_CATEGORIES: PoiCategory[] = CORRIDOR_CATEGORIES.map(
   ({ key, labelKey, Icon, color }) => ({ key, labelKey, Icon, color }),
 )
 

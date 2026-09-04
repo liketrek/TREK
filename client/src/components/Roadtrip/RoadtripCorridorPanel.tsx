@@ -5,12 +5,13 @@ import {
 } from 'lucide-react'
 import { useTranslation } from '../../i18n/TranslationContext'
 import { Tooltip } from '../shared/Tooltip'
+import EmptyState from '../shared/EmptyState'
 import { useSettingsStore } from '../../store/settingsStore'
 import { formatDistance } from '../../utils/units'
 import CustomSelect from '../shared/CustomSelect'
 import RoadtripCategoryPicker from './RoadtripCategoryPicker'
 import { serviceColor } from './roadtripModel'
-import { STOP_KIND_BY_KEY } from './stopKinds'
+import { CORRIDOR_CATEGORY_BY_KEY } from './stopKinds'
 import { FS } from './typeScale'
 import { CORRIDOR_CATEGORY_KEYS, CORRIDOR_WIDTHS_KM, type RoadtripCorridor } from './useRoadtripCorridor'
 import type { CorridorPoi } from './useCorridorPois'
@@ -28,7 +29,7 @@ interface RoadtripCorridorPanelProps {
 }
 
 /** Label and icon per category, from the one table every road-trip surface reads. */
-const CATEGORY_META = STOP_KIND_BY_KEY
+const CATEGORY_META = CORRIDOR_CATEGORY_BY_KEY
 
 /** The small capitalised word over a group of controls, matching the rail's own captions. */
 const EYEBROW = 'font-geist font-semibold uppercase tracking-[0.15em] text-content-faint'
@@ -339,16 +340,23 @@ export default function RoadtripCorridorPanel({ corridor, routes, onAddPoi }: Ro
 
         <div className="min-h-0 flex-1 overflow-y-auto px-2.5 pb-3">
           {grouped.length === 0 ? (
-            <div className="px-4 py-10 text-center">
-              <MapPin size={18} className="mx-auto mb-2 text-content-faint" aria-hidden />
-              <p className="text-content-muted" style={{ fontSize: FS.meta }}>
-                {search.loading
+            // The same empty state the rest of TREK uses, with the mascot acting out the
+            // scene. `search` while it is running, `idle` before anyone has asked, and a
+            // confused look when a filter left nothing standing — the picture says which
+            // of the three it is before the sentence is read.
+            <EmptyState
+              scene={search.loading ? 'search' : 'idle'}
+              mood={filteredToNothing ? 'confused' : undefined}
+              size={88}
+              surface="var(--bg-secondary)"
+              title={
+                search.loading
                   ? t('roadtrip.poi.searchingHint')
                   : filteredToNothing
                     ? t('roadtrip.poi.noMatch', { name: corridor.nameFilter.trim() })
-                    : t('roadtrip.poi.empty')}
-              </p>
-            </div>
+                    : t('roadtrip.poi.empty')
+              }
+            />
           ) : (
             <>
               {corridor.nameFilter.trim() ? (

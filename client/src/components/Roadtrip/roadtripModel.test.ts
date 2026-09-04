@@ -280,6 +280,23 @@ describe('legIndexForAlong', () => {
 })
 
 describe('deriveDriveWarnings', () => {
+  // Worked through the way a traveller reads it: Hamburg, A1, HEM, Berlin. The badge on
+  // a stop has to agree with the sum of the drive bands above it, or it looks made up.
+  it('FE-ROADTRIP-MODEL-069: the figure on a stop is what the bands above it add up to', () => {
+    const out = deriveDriveWarnings(
+      [leg(20, 21.5), leg(62, 103.4), leg(155, 244.7)],
+      [false, false, false, false],
+      { legMinutes: null, dayMinutes: null, rangeKm: 100 },
+      0,
+    )
+    // 21.5 + 103.4 on arrival at HEM, then 244.7 on arrival at Berlin, because the budget
+    // starts over after each finding.
+    expect(out.warnings).toEqual([
+      { index: 2, code: 'range', sinceKm: 125 },
+      { index: 3, code: 'range', sinceKm: 245 },
+    ])
+  })
+
   const noLimits = { legMinutes: null, dayMinutes: null, rangeKm: null }
   const leg = (minutes: number, km: number) => ({ duration: minutes * 60, distance: km * 1000 })
 
@@ -289,14 +306,17 @@ describe('deriveDriveWarnings', () => {
     expect(out.day).toBeNull()
   })
 
-  it('FE-ROADTRIP-MODEL-061: a leg over the limit reports how far over, on the stop it leaves', () => {
+  it('FE-ROADTRIP-MODEL-061: a leg over the limit reports how far over, on the stop it arrives at', () => {
+    // On arrival, not on departure. Both findings are running totals that only become
+    // true when you get there, and anchored to the departure the number reads as the
+    // length of the NEXT leg, which is a different figure and the one that looked wrong.
     const out = deriveDriveWarnings(
       [leg(100, 90), leg(240, 200)],
       [false, false, false],
       { ...noLimits, legMinutes: 180 },
       0,
     )
-    expect(out.warnings).toEqual([{ index: 1, code: 'leg', overMinutes: 60 }])
+    expect(out.warnings).toEqual([{ index: 2, code: 'leg', overMinutes: 60 }])
   })
 
   it('FE-ROADTRIP-MODEL-062: the day figure is the sum of the legs, and only that', () => {
@@ -320,7 +340,9 @@ describe('deriveDriveWarnings', () => {
       0,
     )
     expect(out.warnings.map(w => w.code)).toEqual(['range', 'range'])
-    expect(out.warnings[0]).toEqual({ index: 1, code: 'range', sinceKm: 700 })
+    // 300 + 400 on arrival at stop 2, which is exactly what adding up the two drive bands
+    // above it gives.
+    expect(out.warnings[0]).toEqual({ index: 2, code: 'range', sinceKm: 700 })
   })
 
   it('FE-ROADTRIP-MODEL-064: filling up starts the budget over, resting does not', () => {
@@ -352,7 +374,7 @@ describe('deriveDriveWarnings', () => {
     expect(first.carryKm).toBe(400)
 
     const second = deriveDriveWarnings([leg(60, 300)], [false, false], { ...noLimits, rangeKm: 600 }, first.carryKm)
-    expect(second.warnings).toEqual([{ index: 0, code: 'range', sinceKm: 700 }])
+    expect(second.warnings).toEqual([{ index: 1, code: 'range', sinceKm: 700 }])
   })
 
   it('FE-ROADTRIP-MODEL-067: an unrouted leg gives the budget up rather than guessing', () => {

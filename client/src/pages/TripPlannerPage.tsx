@@ -259,7 +259,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
     showDayDetail, setShowDayDetail, dayDetailCollapsed, setDayDetailCollapsed,
     showPlaceForm, setShowPlaceForm, editingPlace, setEditingPlace,
     prefillCoords, setPrefillCoords, editingAssignmentId, setEditingAssignmentId,
-    stopDraft, setStopDraft, saveStopDraft, stopDraftToForm, stopDraftDuplicate, reorderRoadtripStop,
+    stopDraft, setStopDraft, saveStopDraft, saveStopDraftAsNight, stopDraftToForm, stopDraftDuplicate, reorderRoadtripStop,
     saveRoadtripLimit,
     roadtripVias, addRoadtripVia, moveRoadtripVia, removeRoadtripVia,
     routeAlternatives, askRouteAlternatives, chooseRouteAlternative, alternativeOverlays, alternativeFocusPoints,
@@ -933,6 +933,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
             duplicateName={stopDraftDuplicate}
             onClose={() => setStopDraft(null)}
             onSave={saveStopDraft}
+            onSaveNight={saveStopDraftAsNight}
             onMoreDetails={stopDraftToForm}
           />
         </LazyPanel>

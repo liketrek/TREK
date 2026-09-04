@@ -1,7 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import { roadtripStopTypeSchema } from '@trek/shared'
 import { SERVICE_STOP_TYPES, SERVICE_COLORS } from './roadtripModel'
-import { STOP_KINDS, STOP_KIND_BY_KEY, CORRIDOR_CATEGORY_KEYS, SERVICE_KIND_KEYS, REFUELLING_STOP_TYPES } from './stopKinds'
+import {
+  STOP_KINDS, STOP_KIND_BY_KEY, CORRIDOR_CATEGORIES, CORRIDOR_CATEGORY_BY_KEY, CORRIDOR_CATEGORY_KEYS,
+  SERVICE_KIND_KEYS, REFUELLING_STOP_TYPES, isOvernightCategory,
+} from './stopKinds'
 
 /**
  * The table exists to stop nine lists from drifting apart, and these are the assertions
@@ -29,7 +32,33 @@ describe('stop kinds', () => {
   })
 
   it('FE-STOPKIND-005: the corridor offers every category in a stable order', () => {
-    expect(CORRIDOR_CATEGORY_KEYS).toEqual(['fuel', 'charging', 'rest_area', 'campsite', 'restaurant', 'sights'])
+    // Sleeping sits next to sleeping: hotel follows campsite rather than landing wherever
+    // the stop-kind table happens to end.
+    expect(CORRIDOR_CATEGORY_KEYS).toEqual(['fuel', 'charging', 'rest_area', 'campsite', 'hotel', 'restaurant', 'sights'])
+  })
+
+  it('FE-STOPKIND-008: a hotel is a category without being a stop kind', () => {
+    // The whole reason the two lists are separate. Sleeping somewhere ends the day rather
+    // than interrupting the drive, so a hotel keeps its number in the chain and never
+    // becomes a stop_type.
+    expect(CORRIDOR_CATEGORY_BY_KEY.hotel.stopKind).toBeNull()
+    expect(STOP_KIND_BY_KEY.hotel).toBeUndefined()
+    expect(SERVICE_KIND_KEYS).not.toContain('hotel')
+  })
+
+  it('FE-STOPKIND-009: a night can be booked at a campsite too, so the popup asks', () => {
+    expect(isOvernightCategory('hotel')).toBe(true)
+    expect(isOvernightCategory('campsite')).toBe(true)
+    expect(isOvernightCategory('fuel')).toBe(false)
+    expect(isOvernightCategory(null)).toBe(false)
+  })
+
+  it('FE-STOPKIND-010: every category that is a stop kind names the kind it creates', () => {
+    for (const category of CORRIDOR_CATEGORIES) {
+      if (category.stopKind === null) continue
+      expect(category.stopKind).toBe(category.key)
+      expect(STOP_KIND_BY_KEY[category.key]).toBeDefined()
+    }
   })
 
   it('FE-STOPKIND-006: two kinds are named under a key of their own, and that is on purpose', () => {

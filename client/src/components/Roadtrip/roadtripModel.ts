@@ -94,8 +94,12 @@ export interface ScheduleWarning {
   /**
    * Index of the stop the finding belongs to.
    *
-   * For the two leg codes this is the stop the leg LEAVES, which is the same numbering
-   * `legSeconds[i]` uses and the same row the drive band is already drawn on.
+   * For the two leg codes this is the stop the leg ARRIVES AT, not the one it leaves.
+   * Both findings are a running total that only becomes true on arrival: "125 km since
+   * the last fill-up" is what the tank reads when you get there, and the figure has to
+   * agree with the one anybody adds up off the drive bands above it. Anchored to the
+   * departure it read as the distance of the leg leaving that stop, which is a different
+   * number entirely and the one that made the badge look wrong.
    */
   index: number
   code: 'late' | 'overnight' | 'leg' | 'range'
@@ -323,11 +327,13 @@ export function deriveDriveWarnings(
   for (let i = 0; i < legs.length; i++) {
     if (refuelsAt[i]) budget = 0
     const leg = legs[i]
+    // The stop this leg arrives at. Both findings are about what is true on arrival.
+    const at = i + 1
     const seconds = leg?.duration
     if (typeof seconds === 'number') {
       totalSeconds += seconds
       if (limits.legMinutes && seconds / 60 > limits.legMinutes) {
-        warnings.push({ index: i, code: 'leg', overMinutes: Math.round(seconds / 60 - limits.legMinutes) })
+        warnings.push({ index: at, code: 'leg', overMinutes: Math.round(seconds / 60 - limits.legMinutes) })
       }
     }
     const metres = leg?.distance
@@ -336,7 +342,7 @@ export function deriveDriveWarnings(
     } else if (budget !== null) {
       budget += metres / 1000
       if (limits.rangeKm && budget > limits.rangeKm) {
-        warnings.push({ index: i, code: 'range', sinceKm: Math.round(budget) })
+        warnings.push({ index: at, code: 'range', sinceKm: Math.round(budget) })
         budget = 0
       }
     }

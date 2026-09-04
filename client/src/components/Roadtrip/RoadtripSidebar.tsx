@@ -352,9 +352,12 @@ function DriveBand({ leg, onAskAlternatives, alternativesOpen }: {
  * the trip is actually for. Its own icon on one flat disc: three kinds of pause that all
  * mean "we are still driving", and the icon is what tells them apart.
  */
-function ServiceStop({ stop, entry, selected, onSelect, onEditStay }: {
+function ServiceStop({ stop, entry, driveFindings, selected, onSelect, onEditStay }: {
   stop: RoadtripStop
   entry: ScheduleEntry | undefined
+  /** Findings about the drive that ARRIVES here. A charging halt is a stop like any other
+   *  as far as the tank is concerned, so it carries them the same way a numbered one does. */
+  driveFindings?: ScheduleWarning[]
   selected: boolean
   onSelect?: () => void
   /** Opens the dialog for how long this pause takes. Absent means the rail is read-only. */
@@ -401,7 +404,11 @@ function ServiceStop({ stop, entry, selected, onSelect, onEditStay }: {
           >
             {stop.name}
           </span>
-          <StayBadge minutes={stop.dwellMinutes} onEdit={onEditStay} />
+          <span className="flex flex-wrap items-center gap-1">
+            <StayBadge minutes={stop.dwellMinutes} onEdit={onEditStay} />
+            {spurWorthLabelling(stop.offRoadMeters) ? <OffRoadBadge meters={stop.offRoadMeters ?? 0} /> : null}
+            {(driveFindings ?? []).map(w => <DriveFindingBadge key={w.code} warning={w} />)}
+          </span>
         </span>
         {entry?.arrival ? <Arrival entry={entry} /> : null}
       </button>
@@ -789,6 +796,7 @@ function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, on
                 <ServiceStop
                   stop={stop}
                   entry={day.schedule.entries[i]}
+                  driveFindings={day.driveWarnings.filter(w => w.index === i)}
                   selected={selectedAssignmentId === stop.assignmentId}
                   onSelect={onSelectStop ? () => onSelectStop(stop.placeId, stop.assignmentId) : undefined}
                   onEditStay={onEditStay ? () => onEditStay({ placeId: stop.placeId, name: stop.name, minutes: stop.dwellMinutes, arrival: day.schedule.entries[i]?.arrival ?? null }) : undefined}
