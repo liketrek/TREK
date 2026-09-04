@@ -44,6 +44,8 @@ const roadtrip: TranslationStrings = {
   'roadtrip.poi.anySocket': 'Κάθε βύσμα',
   'roadtrip.poi.anyPower': 'Κάθε ισχύς',
   'roadtrip.poi.free': 'Δωρεάν',
+  'roadtrip.poi.wholeDay': 'Ολη η ημερα',
+  'roadtrip.poi.midLeg': 'Στα μισα, {from} προς {to}',
   'roadtrip.poi.rest': 'Χώρος ανάπαυσης',
   'roadtrip.poi.campsite': 'Κάμπινγκ',
   'roadtrip.poi.food': 'Φαγητό',

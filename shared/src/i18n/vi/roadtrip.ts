@@ -44,6 +44,8 @@ const roadtrip: TranslationStrings = {
   'roadtrip.poi.anySocket': 'Mọi loại phích',
   'roadtrip.poi.anyPower': 'Mọi công suất',
   'roadtrip.poi.free': 'Miễn phí',
+  'roadtrip.poi.wholeDay': 'Cả ngày',
+  'roadtrip.poi.midLeg': 'Giữa đường, {from} đến {to}',
   'roadtrip.poi.rest': 'Trạm dừng nghỉ',
   'roadtrip.poi.campsite': 'Khu cắm trại',
   'roadtrip.poi.food': 'Đồ ăn',

@@ -44,6 +44,8 @@ const roadtrip: TranslationStrings = {
   'roadtrip.poi.anySocket': 'Будь-який роз’єм',
   'roadtrip.poi.anyPower': 'Будь-яка потужність',
   'roadtrip.poi.free': 'Безкоштовно',
+  'roadtrip.poi.wholeDay': 'Весь день',
+  'roadtrip.poi.midLeg': 'На пiвдорозi, {from} до {to}',
   'roadtrip.poi.rest': 'Зона відпочинку',
   'roadtrip.poi.campsite': 'Кемпінг',
   'roadtrip.poi.food': 'Їжа',

@@ -44,6 +44,8 @@ const roadtrip: TranslationStrings = {
   'roadtrip.poi.anySocket': 'Qualsiasi presa',
   'roadtrip.poi.anyPower': 'Qualsiasi potenza',
   'roadtrip.poi.free': 'Gratuito',
+  'roadtrip.poi.wholeDay': 'Tutta la giornata',
+  'roadtrip.poi.midLeg': 'A meta strada, {from} verso {to}',
   'roadtrip.poi.rest': 'Area di sosta',
   'roadtrip.poi.campsite': 'Campeggio',
   'roadtrip.poi.food': 'Ristoro',

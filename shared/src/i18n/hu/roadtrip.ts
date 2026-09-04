@@ -44,6 +44,8 @@ const roadtrip: TranslationStrings = {
   'roadtrip.poi.anySocket': 'Bármely csatlakozó',
   'roadtrip.poi.anyPower': 'Bármely teljesítmény',
   'roadtrip.poi.free': 'Ingyenes',
+  'roadtrip.poi.wholeDay': 'A teljes nap',
+  'roadtrip.poi.midLeg': 'Felúton, {from} és {to} kozott',
   'roadtrip.poi.rest': 'Pihenőhely',
   'roadtrip.poi.campsite': 'Kemping',
   'roadtrip.poi.food': 'Étkezés',

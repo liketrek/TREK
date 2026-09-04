@@ -142,4 +142,33 @@ describe('useRoadtripCorridor', () => {
     // Both map renderers rebuild every marker when this array's identity changes.
     expect(result.current.visible).toBe(before)
   })
+
+  it('FE-ROADTRIP-CORRIDORSTATE-020: narrowing to one point keeps only what is near it', () => {
+    // A seven-hundred-kilometre day turns up hits along the whole of it. Picking the point
+    // you mean to break at is a subtraction, because both figures are measured against
+    // the same thinned line rather than being asked for separately.
+    useCorridorPois.mockReturnValue(searchWith([
+      poi({ osm_id: 'near', name: 'Near', alongKm: 30 }),
+      poi({ osm_id: 'far', name: 'Far', alongKm: 600 }),
+    ]))
+    const { result } = renderHook(() => useRoadtripCorridor(routes([day()])))
+
+    act(() => { result.current.setSectionKm(50) })
+    act(() => { result.current.setSection({ dayId: 1, kind: 'stop', index: 0 }) })
+
+    // Stop 0 sits at the start of the drive, so only the hit within 50 km survives.
+    expect(result.current.visible.map(p => p.osm_id)).toEqual(['near'])
+  })
+
+  it('FE-ROADTRIP-CORRIDORSTATE-021: an anchor belonging to another day narrows nothing', () => {
+    // The section names a day as well as an index, so switching days cannot silently
+    // apply yesterday's break to today's drive.
+    const hits = [poi({ osm_id: 'a', name: 'A', alongKm: 10 }), poi({ osm_id: 'b', name: 'B', alongKm: 600 })]
+    useCorridorPois.mockReturnValue(searchWith(hits))
+    const { result } = renderHook(() => useRoadtripCorridor(routes([day()])))
+
+    act(() => { result.current.setSection({ dayId: 99, kind: 'stop', index: 0 }) })
+
+    expect(result.current.visible).toBe(hits)
+  })
 })

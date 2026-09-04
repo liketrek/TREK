@@ -373,6 +373,32 @@ export function legIndexForAlong(legEndMeters: number[], alongMeters: number): n
   return legEndMeters.length - 1
 }
 
+/**
+ * The places on a day somebody would plan a break around.
+ *
+ * Every stop, and the middle of every leg between two of them. The leg midpoints are the
+ * point of the whole thing: a break on a five-hour drive is planned in the middle of the
+ * drive, not at either end of it, and offering only the stops would mean asking "what is
+ * near Berlin" when the question is "what is near the halfway mark".
+ */
+export interface SectionAnchor {
+  kind: 'stop' | 'leg'
+  /** Index of the stop, or of the stop the leg leaves. */
+  index: number
+  alongKm: number
+}
+
+export function sectionAnchors(stopsAlongKm: number[]): SectionAnchor[] {
+  const out: SectionAnchor[] = []
+  for (let i = 0; i < stopsAlongKm.length; i++) {
+    out.push({ kind: 'stop', index: i, alongKm: stopsAlongKm[i] })
+    if (i + 1 < stopsAlongKm.length) {
+      out.push({ kind: 'leg', index: i, alongKm: (stopsAlongKm[i] + stopsAlongKm[i + 1]) / 2 })
+    }
+  }
+  return out
+}
+
 export function insertIndexForAlong(stopsAlongKm: number[], hitAlongKm: number): number {
   if (stopsAlongKm.length < 2) return stopsAlongKm.length
   let i = 0

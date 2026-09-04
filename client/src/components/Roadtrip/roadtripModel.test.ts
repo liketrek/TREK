@@ -7,6 +7,7 @@ import {
   deriveDriveWarnings,
   legIndexForAlong,
   refuelsRange,
+  sectionAnchors,
   parseClock,
   splitIntoRuns,
   sumLegSeconds,
@@ -419,5 +420,24 @@ describe('deriveDriveWarnings', () => {
   it('FE-ROADTRIP-MODEL-068: filling up at the last stop of the day still counts', () => {
     const out = deriveDriveWarnings([leg(60, 400)], [false, true], { ...noLimits, rangeKm: 600 }, 0)
     expect(out.carryKm).toBe(0)
+  })
+})
+
+describe('sectionAnchors', () => {
+  it('FE-ROADTRIP-MODEL-080: every stop, and the middle of every leg between them', () => {
+    // The leg midpoints are the point of the feature: a break on a five-hour drive is
+    // planned in the middle of the drive, not at either end of it.
+    expect(sectionAnchors([0, 100, 250])).toEqual([
+      { kind: 'stop', index: 0, alongKm: 0 },
+      { kind: 'leg', index: 0, alongKm: 50 },
+      { kind: 'stop', index: 1, alongKm: 100 },
+      { kind: 'leg', index: 1, alongKm: 175 },
+      { kind: 'stop', index: 2, alongKm: 250 },
+    ])
+  })
+
+  it('FE-ROADTRIP-MODEL-081: a single stop has no leg to sit in the middle of', () => {
+    expect(sectionAnchors([42])).toEqual([{ kind: 'stop', index: 0, alongKm: 42 }])
+    expect(sectionAnchors([])).toEqual([])
   })
 })

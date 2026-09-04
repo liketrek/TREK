@@ -12,7 +12,7 @@ import RoadtripCategoryPicker from './RoadtripCategoryPicker'
 import { serviceColor } from './roadtripModel'
 import { CORRIDOR_CATEGORY_BY_KEY } from './stopKinds'
 import { FS } from './typeScale'
-import { CORRIDOR_CATEGORY_KEYS, CORRIDOR_WIDTHS_KM, type RoadtripCorridor } from './useRoadtripCorridor'
+import { CORRIDOR_CATEGORY_KEYS, CORRIDOR_SECTION_KM, CORRIDOR_WIDTHS_KM, type RoadtripCorridor } from './useRoadtripCorridor'
 import type { CorridorPoi } from './useCorridorPois'
 import type { RoadtripRoutes } from './useRoadtripRoutes'
 
@@ -398,6 +398,55 @@ export default function RoadtripCorridorPanel({ corridor, routes, onAddPoi }: Ro
                 </button>
               ) : null}
             </div>
+
+            {/* Around one point of the drive, which is how a break is actually planned: you
+                decide roughly where to stop and then look at what is there, rather than
+                reading seventy hits spread over seven hundred kilometres. The midpoint of
+                a leg is offered alongside the stops, because a break on a five-hour drive
+                belongs in the middle of it and not at either end. */}
+            {corridor.anchors.length > 1 && corridor.day ? (
+              <div className="mt-2 flex gap-2">
+                <CustomSelect
+                  value={corridor.section ? `${corridor.section.kind}:${corridor.section.index}` : ''}
+                  onChange={value => {
+                    const raw = String(value)
+                    if (!raw) { corridor.setSection(null); return }
+                    const [kind, index] = raw.split(':')
+                    corridor.setSection({
+                      dayId: corridor.day!.dayId,
+                      kind: kind as 'stop' | 'leg',
+                      index: Number(index),
+                    })
+                  }}
+                  options={[
+                    { value: '', label: t('roadtrip.poi.wholeDay') },
+                    ...corridor.anchors.map(a => ({
+                      value: `${a.kind}:${a.index}`,
+                      label: a.kind === 'stop'
+                        ? (corridor.day!.stops[a.index]?.name ?? t('roadtrip.poi.wholeDay'))
+                        : t('roadtrip.poi.midLeg', {
+                            from: corridor.day!.stops[a.index]?.name ?? '',
+                            to: corridor.day!.stops[a.index + 1]?.name ?? '',
+                          }),
+                    })),
+                  ]}
+                  style={{ flex: 1 }}
+                  size="sm"
+                />
+                {corridor.section ? (
+                  <CustomSelect
+                    value={String(corridor.sectionKm)}
+                    onChange={value => corridor.setSectionKm(Number(value))}
+                    options={CORRIDOR_SECTION_KM.map(km => ({
+                      value: String(km),
+                      label: `± ${formatDistance(km, distanceUnit)}`,
+                    }))}
+                    style={{ width: 110 }}
+                    size="sm"
+                  />
+                ) : null}
+              </div>
+            ) : null}
 
             {/* Only where there is a charger to narrow. Two answers OSM actually carries
                 often enough to filter on: which plug, and how fast. A station that states

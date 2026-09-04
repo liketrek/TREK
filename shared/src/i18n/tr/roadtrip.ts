@@ -44,6 +44,8 @@ const roadtrip: TranslationStrings = {
   'roadtrip.poi.anySocket': 'Tum soketler',
   'roadtrip.poi.anyPower': 'Tum gucler',
   'roadtrip.poi.free': 'Ucretsiz',
+  'roadtrip.poi.wholeDay': 'Tum gun',
+  'roadtrip.poi.midLeg': 'Yolun yarisi, {from} - {to}',
   'roadtrip.poi.rest': 'Dinlenme alanı',
   'roadtrip.poi.campsite': 'Kamp alanı',
   'roadtrip.poi.food': 'Yemek',

@@ -44,6 +44,8 @@ const roadtrip: TranslationStrings = {
   'roadtrip.poi.anySocket': 'すべてのプラグ',
   'roadtrip.poi.anyPower': 'すべての出力',
   'roadtrip.poi.free': '無料',
+  'roadtrip.poi.wholeDay': '一日全体',
+  'roadtrip.poi.midLeg': '中間地点、{from}から{to}',
   'roadtrip.poi.rest': 'サービスエリア',
   'roadtrip.poi.campsite': 'キャンプ場',
   'roadtrip.poi.food': '食事',

@@ -44,6 +44,8 @@ const roadtrip: TranslationStrings = {
   'roadtrip.poi.anySocket': '모든 플러그',
   'roadtrip.poi.anyPower': '모든 출력',
   'roadtrip.poi.free': '무료',
+  'roadtrip.poi.wholeDay': '하루 전체',
+  'roadtrip.poi.midLeg': '중간 지점, {from}에서 {to}',
   'roadtrip.poi.rest': '휴게소',
   'roadtrip.poi.campsite': '캠핑장',
   'roadtrip.poi.food': '식사',
