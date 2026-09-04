@@ -24,6 +24,33 @@ interface CustomSelectProps {
   style?: React.CSSProperties
   size?: 'sm' | 'md'
   disabled?: boolean
+  /**
+   * How wide the open menu is.
+   *
+   * 'anchor' (the default) keeps it exactly as wide as the trigger, which is what a
+   * select normally wants. 'content' lets it grow to its longest option instead, for the
+   * cases where the trigger is a narrow flex item and the options are place names: there
+   * the trigger has to shorten to share its row, and a menu that shortened with it would
+   * offer a list of identical prefixes.
+   */
+  menuFit?: 'anchor' | 'content'
+}
+
+/** How wide a content-fitted menu may get before it stops reading as a menu. */
+const MENU_MAX_WIDTH = 420
+
+/**
+ * How much room a content-fitted menu has, measured from the trigger's left edge.
+ *
+ * Bounded by the trigger's own container first: a select sits inside a panel, and a menu
+ * that grew past that panel's edge would hang over whatever is beside it — here, the map.
+ * The window is the second bound, for a container that reaches the edge of the screen.
+ */
+function menuRoom(anchor: HTMLElement | null, left: number): number {
+  const toWindowEdge = typeof window === 'undefined' ? MENU_MAX_WIDTH : window.innerWidth - left - 8
+  const box = anchor?.parentElement?.getBoundingClientRect()
+  const toPanelEdge = box && box.width > 0 ? box.right - left : Number.POSITIVE_INFINITY
+  return Math.min(MENU_MAX_WIDTH, toWindowEdge, toPanelEdge)
 }
 
 export default function CustomSelect({
@@ -35,6 +62,7 @@ export default function CustomSelect({
   style = {},
   size = 'md',
   disabled = false,
+  menuFit = 'anchor',
 }: CustomSelectProps) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
@@ -131,9 +159,20 @@ export default function CustomSelect({
         <div ref={dropRef} style={{
           position: 'fixed',
           ...(anchored
-            ? anchored.flipped
-              ? { bottom: anchored.bottom, left: anchored.left, width: anchored.width }
-              : { top: anchored.top, left: anchored.left, width: anchored.width }
+            ? {
+                ...(anchored.flipped ? { bottom: anchored.bottom } : { top: anchored.top }),
+                left: anchored.left,
+                // Never narrower than the trigger, and never past the right-hand edge of
+                // the window. The cap is read at render time rather than measured, and
+                // that is enough: every reason the anchor moved already re-renders this.
+                ...(menuFit === 'content'
+                  ? {
+                      minWidth: anchored.width,
+                      width: 'max-content',
+                      maxWidth: Math.max(anchored.width, menuRoom(ref.current, anchored.left)),
+                    }
+                  : { width: anchored.width }),
+              }
             : { top: 0, left: 0, width: 200 }),
           zIndex: 99999,
           background: 'var(--bg-card)',

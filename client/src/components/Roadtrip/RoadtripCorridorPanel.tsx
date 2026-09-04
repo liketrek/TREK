@@ -403,7 +403,12 @@ export default function RoadtripCorridorPanel({ corridor, routes, onAddPoi }: Ro
                 decide roughly where to stop and then look at what is there, rather than
                 reading seventy hits spread over seven hundred kilometres. The midpoint of
                 a leg is offered alongside the stops, because a break on a five-hour drive
-                belongs in the middle of it and not at either end. */}
+                belongs in the middle of it and not at either end.
+
+                The minWidth: 0 is what makes the name shorten instead of pushing the
+                kilometre control off the panel: a nowrap label reports its whole width as
+                its min-content contribution, so a flex item at its default min-width of
+                auto refuses to go below it however long the place name is. */}
             {corridor.anchors.length > 1 && corridor.day ? (
               <div className="mt-2 flex gap-2">
                 <CustomSelect
@@ -430,8 +435,9 @@ export default function RoadtripCorridorPanel({ corridor, routes, onAddPoi }: Ro
                           }),
                     })),
                   ]}
-                  style={{ flex: 1 }}
+                  style={{ flex: 1, minWidth: 0 }}
                   size="sm"
+                  menuFit="content"
                 />
                 {corridor.section ? (
                   <CustomSelect
@@ -441,7 +447,7 @@ export default function RoadtripCorridorPanel({ corridor, routes, onAddPoi }: Ro
                       value: String(km),
                       label: `± ${formatDistance(km, distanceUnit)}`,
                     }))}
-                    style={{ width: 110 }}
+                    style={{ width: 110, flexShrink: 0 }}
                     size="sm"
                   />
                 ) : null}
@@ -461,7 +467,7 @@ export default function RoadtripCorridorPanel({ corridor, routes, onAddPoi }: Ro
                     { value: '', label: t('roadtrip.poi.anySocket') },
                     ...socketsFound.map(s => ({ value: s, label: SOCKET_LABEL[s] ?? s })),
                   ]}
-                  style={{ flex: 1 }}
+                  style={{ flex: 1, minWidth: 0 }}
                   size="sm"
                 />
                 <CustomSelect
@@ -471,7 +477,7 @@ export default function RoadtripCorridorPanel({ corridor, routes, onAddPoi }: Ro
                     { value: '0', label: t('roadtrip.poi.anyPower') },
                     ...KW_STEPS.map(kw => ({ value: String(kw), label: `${kw}+ kW` })),
                   ]}
-                  style={{ flex: 1 }}
+                  style={{ flex: 1, minWidth: 0 }}
                   size="sm"
                 />
               </div>
