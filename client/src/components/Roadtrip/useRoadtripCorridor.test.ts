@@ -32,7 +32,7 @@ function day(over: Partial<RoadtripDay> = {}): RoadtripDay {
 }
 
 const routes = (days: RoadtripDay[]): RoadtripRoutes => ({
-  days, lines: [], segments: [], totalDistance: 0, totalDuration: 0, totalStops: 0, quietDays: [], loading: false,
+  days, lines: [], segments: [], accessLines: [], totalDistance: 0, totalDuration: 0, totalStops: 0, quietDays: [], loading: false,
 })
 
 /** The search state the mocked hook hands back, results included. */

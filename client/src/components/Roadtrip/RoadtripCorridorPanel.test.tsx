@@ -38,6 +38,7 @@ const day = (dayId: number, dayNumber: number): RoadtripDay => ({
 const routes = (days: RoadtripDay[]): RoadtripRoutes => ({
   days,
   lines: [],
+  accessLines: [],
   segments: [],
   totalDistance: 0,
   totalDuration: 0,

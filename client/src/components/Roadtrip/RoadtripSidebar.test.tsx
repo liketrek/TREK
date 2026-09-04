@@ -51,6 +51,7 @@ function routes(over: Partial<RoadtripRoutes> = {}): RoadtripRoutes {
     days: [day()],
     lines: [],
     segments: [],
+    accessLines: [],
     totalDistance: 100000,
     totalDuration: 3600,
     totalStops: 2,

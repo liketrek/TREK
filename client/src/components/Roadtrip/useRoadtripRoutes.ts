@@ -43,6 +43,24 @@ export interface RoadtripDay {
   geometry: [number, number][]
   distance: number
   duration: number
+  /**
+   * Findings about the driving itself, per leg: too long behind the wheel, the tank
+   * running out before the next fuel stop. Separate from `schedule.warnings`, which are
+   * findings about a stop, because these belong to no stop and because `Schedule` is
+   * pinned shape-for-shape by its own tests.
+   */
+  driveWarnings?: DriveWarning[]
+  /** A finding about the day as a whole, such as more driving than the day allows. */
+  dayWarning?: DriveWarning | null
+}
+
+/** A finding about the drive rather than about a stop. */
+export interface DriveWarning {
+  /** Which leg it belongs to; -1 means the day as a whole. */
+  legIndex: number
+  code: 'legTooLong' | 'dayTooLong' | 'outOfRange'
+  /** By how much, in the unit the code implies: minutes for the first two, km for range. */
+  over?: number
 }
 
 /** A day the rail does not draw a drive for, but that a stop can still be moved onto. */
@@ -68,6 +86,14 @@ export interface RoadtripRoutes {
   quietDays: QuietDay[]
   /** One polyline per routed leg, in trip order — what the map draws in road trip mode. */
   lines: [number, number][][]
+  /**
+   * The gap between a place and the road it was routed from, as a two-point line.
+   *
+   * Drawn dashed, the way Google draws the walk from the kerb to the door, so a stop well
+   * off the road reads as "the drive ends here and the rest is not driving" instead of
+   * looking like a route that cuts across open country.
+   */
+  accessLines: { line: [[number, number], [number, number]]; meters: number }[]
   /** The routed legs themselves, so the map can label each connector. */
   segments: RouteSegment[]
   totalDistance: number
@@ -100,10 +126,45 @@ const sleep = (ms: number, signal: AbortSignal): Promise<void> =>
     signal.addEventListener('abort', done, { once: true })
   })
 
-/** A leg that routed: the numbers for the rail plus the geometry the map draws. */
+/**
+ * A leg that routed: the numbers for the rail plus the geometry the map draws.
+ *
+ * The two optional fields are filled by their own features and are declared here rather
+ * than added later, because this shape is written in one place and read in another and
+ * three separate changes to the same two lines is three merge conflicts.
+ */
 interface RoutedLeg {
   seg: RouteSegment
   line: [number, number][]
+  /**
+   * Where the router actually put each end of this leg, and how far that is from the
+   * place we asked for. OSRM snaps every waypoint to the nearest road with no distance
+   * limit and reports both in every response; a place set well off the road otherwise
+   * looks like it is on the route when the drive really starts hundreds of metres away.
+   */
+  snapped?: { from: SnappedPoint | null; to: SnappedPoint | null }
+  /** Points a routing plugin made this leg pass through, in order, if it provided any. */
+  vias?: LegViaPoint[]
+}
+
+/** A waypoint as the router resolved it, beside the coordinate that was asked for. */
+export interface SnappedPoint {
+  lat: number
+  lng: number
+  /** Straight-line metres from the requested coordinate to the road it snapped to. */
+  offRoadMeters: number
+}
+
+/** A point a routing plugin routed through, with the stop it means if it means one. */
+export interface LegViaPoint {
+  lat: number
+  lng: number
+  name?: string
+  /**
+   * Time spent here, if the plugin reports one. Already contained in the leg duration
+   * the plugin returned, so it is shown rather than added to the schedule.
+   */
+  dwellSeconds?: number
 }
 
 /**
@@ -346,7 +407,13 @@ export function useRoadtripRoutes(
   return useMemo(() => {
     const lines: [number, number][][] = []
     const segments: RouteSegment[] = []
-    const out = plan.map(day => {
+    const accessLines: RoadtripRoutes['accessLines'] = []
+    // A loop rather than a map: the days are walked in order and findings that outlive a
+    // single day (a range budget carried across midnight) need somewhere to live between
+    // iterations. Nothing accumulates yet; the shape is here so the feature that needs it
+    // does not have to rewrite this block a second time.
+    const out: RoadtripDay[] = []
+    for (const day of plan) {
       const dayLegs = legsByDay[day.dayId] ?? {}
       const routed = day.stops.slice(0, -1).map((s, i) => dayLegs[legKey(s, day.stops[i + 1])])
       for (const leg of routed) {
@@ -364,12 +431,13 @@ export function useRoadtripRoutes(
         day.stops.map(s => ({ anchor: s.time, dwellMinutes: s.dwellMinutes })),
         legs.map(l => l?.duration),
       )
-      return { ...day, legs, schedule, geometry, distance, duration }
-    })
+      out.push({ ...day, legs, schedule, geometry, distance, duration })
+    }
     return {
       days: out,
       lines,
       segments,
+      accessLines,
       totalDistance: out.reduce((s, d) => s + d.distance, 0),
       totalDuration: out.reduce((s, d) => s + d.duration, 0),
       // Service stops are not stops in this sense — a charger on the way is part of the
