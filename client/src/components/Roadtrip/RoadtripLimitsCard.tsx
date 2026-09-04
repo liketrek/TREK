@@ -79,13 +79,16 @@ export default function RoadtripLimitsCard({ onSave }: {
     onSave?.('roadtrip_range_km', Math.round(km))
   }
 
-  // What is set, on the button itself, so the form does not have to be open to see it.
-  // Nothing set reads as "off" rather than as an empty string, which would look broken.
-  const summary = [
-    legMinutes ? formatDurationShort(legMinutes * 60) : null,
-    dayMinutes ? formatDurationShort(dayMinutes * 60) : null,
-    rangeKm ? formatDistance(rangeKm, distanceUnit) : null,
-  ].filter(Boolean).join(' · ')
+  // What is set, on the button itself, so the form does not have to be open to read it.
+  // Each one keeps its own icon, because three numbers in a row say nothing about which
+  // is which: a clock, a calendar and a pump do. Distances go through formatDistance, so
+  // an imperial traveller reads miles here and types miles in the dialog, while what is
+  // stored stays kilometres either way.
+  const badges = [
+    legMinutes ? { key: 'leg', Icon: Clock, text: formatDurationShort(legMinutes * 60) } : null,
+    dayMinutes ? { key: 'day', Icon: CalendarClock, text: formatDurationShort(dayMinutes * 60) } : null,
+    rangeKm ? { key: 'range', Icon: Fuel, text: formatDistance(rangeKm, distanceUnit) } : null,
+  ].filter(Boolean) as { key: string; Icon: typeof Clock; text: string }[]
 
   return (
     <>
@@ -98,16 +101,37 @@ export default function RoadtripLimitsCard({ onSave }: {
         onClick={() => setOpen(true)}
         className="flex w-full items-center gap-3 rounded-xl border border-edge-faint bg-surface-card px-3.5 py-3 text-start transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
       >
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-tertiary text-content-secondary">
-          <SlidersHorizontal size={16} aria-hidden />
-        </span>
-        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        {/* No icon tile on the trigger: the three badges below already carry a clock, a
+            calendar and a pump, and a fourth mark in front of the title only ate the width
+            they need to sit on one line. */}
+        <span className="flex min-w-0 flex-1 flex-col gap-1">
           <span className="truncate text-body font-semibold text-content">
             {t('roadtrip.limit.title')}
           </span>
-          <span className={`truncate tabular-nums ${summary ? 'text-content-secondary' : 'text-content-faint'}`} style={{ fontSize: FS.label }}>
-            {summary || t('roadtrip.limit.none')}
-          </span>
+          {badges.length ? (
+            <span className="flex flex-wrap items-center gap-1">
+              {badges.map(({ key, Icon, text }) => (
+                <span
+                  key={key}
+                  className="inline-flex h-[16px] items-stretch overflow-hidden rounded border border-edge"
+                >
+                  <span className="flex items-center bg-surface-tertiary px-1 text-content-faint">
+                    <Icon size={9} aria-hidden />
+                  </span>
+                  <span
+                    className="flex items-center border-s border-edge bg-surface-card px-1.5 font-semibold tabular-nums text-content-secondary"
+                    style={{ fontSize: FS.label }}
+                  >
+                    {text}
+                  </span>
+                </span>
+              ))}
+            </span>
+          ) : (
+            <span className="truncate text-content-faint" style={{ fontSize: FS.label }}>
+              {t('roadtrip.limit.none')}
+            </span>
+          )}
         </span>
         <ChevronRight size={16} className="shrink-0 text-content-faint" aria-hidden />
       </button>

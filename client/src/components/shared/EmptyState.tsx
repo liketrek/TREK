@@ -22,6 +22,7 @@ export default function EmptyState({
   size = 104,
   surface = 'var(--bg-card)',
   layout = 'stack',
+  compact = false,
   className = '',
   action,
 }: {
@@ -31,6 +32,14 @@ export default function EmptyState({
   size?: number
   surface?: string
   layout?: 'stack' | 'row'
+  /**
+   * Quieter type for a state inside a narrow column rather than on a page.
+   *
+   * The sidebar's empty state sits under its own controls, so a line at the page size
+   * competes with them for the eye; at the caption tier it reads as what it is, a note
+   * about why the list below is blank.
+   */
+  compact?: boolean
   className?: string
   /** Optional call to action under the title, for states that have an obvious next step. */
   action?: ReactNode
@@ -44,7 +53,7 @@ export default function EmptyState({
       style={{ '--m-ink': 'var(--text-primary)', '--m-bg': surface } as CSSProperties}
     >
       <MDancingTrek scene={scene} mood={mood} size={size} />
-      <p className="text-[15px] font-semibold text-content-secondary">{title}</p>
+      <p className={compact ? 'text-caption text-content-muted' : 'text-[15px] font-semibold text-content-secondary'}>{title}</p>
       {action}
     </div>
   )
