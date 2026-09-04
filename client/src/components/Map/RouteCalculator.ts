@@ -491,11 +491,29 @@ function sameRoad(a: RouteAlternative, b: RouteAlternative): boolean {
 }
 
 /**
+ * Hosts that have already answered "I do not do exclude", by base URL.
+ *
+ * Both public hosts TREK ships with reject the parameter outright with HTTP 400: the
+ * upstream car profile is built without excludable classes, and only a self-hosted OSRM
+ * built through the MLD pipeline supports it. Without this, every long leg on a default
+ * install pays two extra requests to be told twice that it cannot have what it asked for,
+ * against a host that allows one request per second.
+ *
+ * The first real attempt is the probe; there is no separate one. Only a 400 is recorded,
+ * because only a 400 is about the host rather than about this particular question: a 429
+ * is a rate limit, an abort is the user moving on, and a `NoRoute` means this leg has no
+ * way round the motorway while the next one might.
+ *
+ * Per base URL rather than global, so pointing the instance at an own router that does
+ * support it starts asking again without a reload.
+ */
+const excludeUnsupported = new Set<string>()
+
+/**
  * One route with a road class left out, or null when the router will not or cannot.
  *
- * Every failure is a null: an instance built without excludable classes answers
- * `InvalidOptions`, a rate limit answers 429, and a leg with no way round the motorway
- * answers `NoRoute`. None of those is worth an error on screen — they all just mean this
+ * Every failure is a null: a rate limit answers 429, and a leg with no way round the
+ * motorway answers `NoRoute`. Neither is worth an error on screen — they just mean this
  * particular question had no answer.
  */
 async function routeExcluding(
@@ -504,10 +522,17 @@ async function routeExcluding(
   exclude: string,
   signal?: AbortSignal,
 ): Promise<RouteAlternative | null> {
+  const base = routeBaseFor(profile)
+  if (excludeUnsupported.has(base)) return null
   try {
-    const url = `${routeBaseFor(profile)}/${coords}?exclude=${exclude}&overview=full&geometries=geojson`
+    const url = `${base}/${coords}?exclude=${exclude}&overview=full&geometries=geojson`
     const response = await fetch(url, { signal })
-    if (!response.ok) return null
+    if (!response.ok) {
+      // 400 is the router saying the parameter itself is not available here, which is
+      // true of every leg from now on. Anything else is about this request alone.
+      if (response.status === 400) excludeUnsupported.add(base)
+      return null
+    }
     const data = await response.json()
     const route = data?.code === 'Ok' && Array.isArray(data.routes) ? data.routes[0] : null
     if (!route?.geometry?.coordinates?.length) return null
@@ -560,8 +585,13 @@ export async function calculateAlternatives(
   // long legs. Rather than reporting "only one sensible way", ask a different question:
   // the same drive without the motorway, and failing that without the tolls. Tried one at
   // a time and stopped as soon as one lands, so a leg that does have a second road costs
-  // one extra request rather than three, and the public hosts' one-per-second limit is
-  // not spent on questions already answered.
+  // one extra request rather than three.
+  //
+  // Worth knowing before reading further: on the two public hosts TREK ships with, this
+  // never produces anything. Their car profile is built without excludable classes and
+  // the parameter comes back as HTTP 400, which is why long legs keep reporting a single
+  // way to drive them. It works against a self-hosted OSRM built through the MLD
+  // pipeline, and `excludeUnsupported` makes sure a host that refuses is only asked once.
   if (routes.length < 2 && profile === 'driving') {
     for (const exclude of EXCLUDABLE_CLASSES) {
       if (signal?.aborted) break

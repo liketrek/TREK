@@ -778,6 +778,25 @@ describe('calculateAlternatives', () => {
     expect(routes).toHaveLength(1)
   })
 
+  it('FE-COMP-ROUTECALCULATOR-032: a host that rejects exclude is only asked once', async () => {
+    // Both public hosts TREK ships with answer 400 here, so without this every long leg
+    // pays two extra requests against a one-per-second limit to be refused twice.
+    const asked: string[] = []
+    server.use(http.get('*/route/v1/driving/*', ({ request }) => {
+      const exclude = new URL(request.url).searchParams.get('exclude')
+      if (!exclude) return HttpResponse.json({ code: 'Ok', routes: [twoRoutes.routes[0]] })
+      asked.push(exclude)
+      return new HttpResponse(null, { status: 400 })
+    }))
+
+    await calculateAlternatives([{ lat: 53, lng: 10 }, { lat: 52, lng: 13 }], 'driving')
+    const afterFirst = asked.length
+    await calculateAlternatives([{ lat: 51, lng: 9 }, { lat: 50, lng: 12 }], 'driving')
+
+    expect(afterFirst).toBe(1)
+    expect(asked).toHaveLength(1)
+  })
+
   it('FE-COMP-ROUTECALCULATOR-028: no route at all is an empty list, not a throw', async () => {
     server.use(http.get(`${FOSSGIS.driving}/:coords`, () =>
       HttpResponse.json({ code: 'NoRoute', routes: [] })))
