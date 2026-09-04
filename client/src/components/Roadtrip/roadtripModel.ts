@@ -304,10 +304,13 @@ export function sumLegSeconds(legSeconds: (number | undefined)[]): number {
  * an hour of the day would simply never fire. All three limits are therefore durations and
  * kilometres, which exist as soon as a leg has routed.
  *
- * The range budget carries across midnight, because a tank does not empty overnight, and
- * resets to zero after a finding: without that reset, one trip of 1800 km on a 600 km
- * range flags every leg after the first overrun, which is a column of red nobody reads.
- * With it, the marks stand one range apart and each one means "fill up around here".
+ * The range budget resets at a fuel or charging stop and NOWHERE ELSE. It carries across
+ * midnight, because a tank does not empty overnight, and it keeps counting past a finding,
+ * because a warning is not a fill-up. Zeroing it there made the second figure wrong and
+ * every one after it: a day reading 245 km at one stop and 121 at the next claims the 121
+ * is a fresh tank, when it is 366 on the same one. A run of warnings down a stretch with
+ * no fuel on it is not noise; it is the answer, and it stops the moment a fuel or
+ * charging stop is put in.
  *
  * An unrouted leg gives the budget up entirely rather than guessing, the same way the
  * schedule abandons its cursor: a distance we do not have cannot be added to one we do.
@@ -341,9 +344,12 @@ export function deriveDriveWarnings(
       budget = null
     } else if (budget !== null) {
       budget += metres / 1000
-      if (limits.rangeKm && budget > limits.rangeKm) {
+      // Not on a stop that fills up: arriving at a petrol station with an empty tank is
+      // the plan working, not a problem, and a warning there would sit on the one stop
+      // that answers it. No reset either — a warning is not a fill-up, and the figure has
+      // to keep counting until a fuel or charging stop actually puts one in.
+      if (limits.rangeKm && budget > limits.rangeKm && !refuelsAt[at]) {
         warnings.push({ index: at, code: 'range', sinceKm: Math.round(budget) })
-        budget = 0
       }
     }
   }

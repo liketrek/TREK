@@ -1,7 +1,6 @@
 import React from 'react'
 import {
-  Fuel, Zap, ParkingSquare, Tent, Utensils, Camera, Search, Plus, RotateCw,
-  AlertTriangle, MapPin, X, type LucideIcon,
+  Search, Plus, RotateCw, AlertTriangle, X, BedDouble, MapPin,
 } from 'lucide-react'
 import { useTranslation } from '../../i18n/TranslationContext'
 import { Tooltip } from '../shared/Tooltip'
@@ -90,18 +89,26 @@ function ResultRow({ poi, onAdd }: { poi: CorridorPoi; onAdd?: () => void }): Re
       </div>
       {/* Always there, quiet until the row is under the pointer: a button that only
           exists on hover is one a keyboard user has to find by faith. */}
-      {onAdd ? (
-        <Tooltip label={t('roadtrip.poi.add')}>
-          <button
-            type="button"
-            onClick={onAdd}
-            aria-label={t('roadtrip.poi.add')}
-            className="grid h-[26px] w-[26px] shrink-0 place-items-center rounded-lg text-content-faint transition-colors hover:bg-accent hover:text-accent-text focus-visible:bg-accent focus-visible:text-accent-text focus-visible:outline-none"
-          >
-            <Plus size={15} strokeWidth={2.2} aria-hidden />
-          </button>
-        </Tooltip>
-      ) : null}
+      {onAdd ? (() => {
+        // One button, two meanings. Somewhere to sleep ends the day rather than
+        // interrupting the drive, so the icon and the label say that before the dialog
+        // opens instead of after.
+        const night = poi.category === 'hotel'
+        const label = night ? t('roadtrip.stay.nightAction') : t('roadtrip.poi.add')
+        const Icon = night ? BedDouble : Plus
+        return (
+          <Tooltip label={label}>
+            <button
+              type="button"
+              onClick={onAdd}
+              aria-label={label}
+              className="grid h-[26px] w-[26px] shrink-0 place-items-center rounded-lg text-content-faint transition-colors hover:bg-accent hover:text-accent-text focus-visible:bg-accent focus-visible:text-accent-text focus-visible:outline-none"
+            >
+              <Icon size={15} strokeWidth={2.2} aria-hidden />
+            </button>
+          </Tooltip>
+        )
+      })() : null}
     </li>
   )
 }

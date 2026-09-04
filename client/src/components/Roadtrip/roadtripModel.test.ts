@@ -289,12 +289,26 @@ describe('deriveDriveWarnings', () => {
       { legMinutes: null, dayMinutes: null, rangeKm: 100 },
       0,
     )
-    // 21.5 + 103.4 on arrival at HEM, then 244.7 on arrival at Berlin, because the budget
-    // starts over after each finding.
+    // 21.5 + 103.4 on arrival at HEM, and then it keeps counting, because nothing on this
+    // trip fills up.
     expect(out.warnings).toEqual([
       { index: 2, code: 'range', sinceKm: 125 },
-      { index: 3, code: 'range', sinceKm: 245 },
+      { index: 3, code: 'range', sinceKm: 370 },
     ])
+  })
+
+  it('FE-ROADTRIP-MODEL-070: arriving at a petrol station is the plan, not a warning', () => {
+    // Same trip, but HEM is marked as fuel. Reaching it with an empty tank is exactly
+    // what it is there for, so nothing is flagged on it; the budget still starts over,
+    // and the next stretch is measured from there.
+    const out = deriveDriveWarnings(
+      [leg(20, 21.5), leg(62, 103.4), leg(155, 244.7)],
+      [false, false, true, false],
+      { legMinutes: null, dayMinutes: null, rangeKm: 100 },
+      0,
+    )
+    expect(out.warnings).toEqual([{ index: 3, code: 'range', sinceKm: 245 }])
+    // 245 and not 370: HEM filled the tank, so Berlin counts from there.
   })
 
   const noLimits = { legMinutes: null, dayMinutes: null, rangeKm: null }
@@ -329,20 +343,34 @@ describe('deriveDriveWarnings', () => {
     expect(out.day).toEqual({ code: 'dayDriving', minutes: 400, limitMinutes: 360 })
   })
 
-  it('FE-ROADTRIP-MODEL-063: the range runs out once and then starts over', () => {
-    // Without the reset, a 1800 km trip on a 600 km range flags every leg after the first
-    // overrun, which is a column of red nobody reads. With it the marks stand one range
-    // apart and each means "fill up around here".
+  it('FE-ROADTRIP-MODEL-063: the figure keeps counting until something actually refuels', () => {
+    // A warning is not a fill-up. Zeroing the budget at one made every figure after the
+    // first wrong: the second stop would claim a fresh tank while the same one is still
+    // in the car.
     const out = deriveDriveWarnings(
       [leg(60, 300), leg(60, 400), leg(60, 300), leg(60, 400)],
       [false, false, false, false, false],
       { ...noLimits, rangeKm: 600 },
       0,
     )
-    expect(out.warnings.map(w => w.code)).toEqual(['range', 'range'])
-    // 300 + 400 on arrival at stop 2, which is exactly what adding up the two drive bands
-    // above it gives.
-    expect(out.warnings[0]).toEqual({ index: 2, code: 'range', sinceKm: 700 })
+    expect(out.warnings).toEqual([
+      { index: 2, code: 'range', sinceKm: 700 },
+      { index: 3, code: 'range', sinceKm: 1000 },
+      { index: 4, code: 'range', sinceKm: 1400 },
+    ])
+  })
+
+  it('FE-ROADTRIP-MODEL-071: adding a fuel stop is what stops the run of warnings', () => {
+    // The same drive with a charger at stop 2. Nothing is flagged there, because reaching
+    // it on an empty tank is what it is for; everything after counts from zero again, so
+    // the three-warning run above collapses to one.
+    const out = deriveDriveWarnings(
+      [leg(60, 300), leg(60, 400), leg(60, 300), leg(60, 400)],
+      [false, false, true, false, false],
+      { ...noLimits, rangeKm: 600 },
+      0,
+    )
+    expect(out.warnings).toEqual([{ index: 4, code: 'range', sinceKm: 700 }])
   })
 
   it('FE-ROADTRIP-MODEL-064: filling up starts the budget over, resting does not', () => {

@@ -576,7 +576,7 @@ function Arrival({ entry }: { entry: ScheduleEntry }): React.ReactElement {
   )
 }
 
-function Stop({ stop, number, entry, late, driveFindings, selected, continues, onSelect, onMove, canMove, onEditStay }: {
+function Stop({ stop, number, entry, late, driveFindings, selected, continues, starts, onSelect, onMove, canMove, onEditStay }: {
   stop: RoadtripStop
   /** Position within the day — the same count the map badges its markers with. */
   number: number
@@ -587,6 +587,8 @@ function Stop({ stop, number, entry, late, driveFindings, selected, continues, o
   selected: boolean
   /** Whether the chain goes on below, so the marker keeps hold of the line. */
   continues: boolean
+  /** First row of the day: no line above it, because the chain starts here. */
+  starts?: boolean
   onSelect?: () => void
   /** Moves this stop by one place. Absent means the chain is read-only. */
   onMove?: (delta: number) => void
@@ -614,16 +616,20 @@ function Stop({ stop, number, entry, late, driveFindings, selected, continues, o
       className="group grid w-full rounded-lg text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
       style={RAIL_GRID}
     >
-      {/* The marker and the line below it share one column, so the chain runs unbroken
-          from stop to stop rather than restarting under whatever the row happens to hold. */}
+      {/* The marker sits level with the middle of the row rather than at its top, the
+          way the corridor list already places its own badges: a number pinned to the
+          first line drifts away from the row as soon as a stop carries a stay and a walk
+          under its name. The line grows above and below it, so the chain still runs
+          unbroken from stop to stop. */}
       <span className="flex flex-col items-center">
+        {starts ? null : <span className="w-[1.5px] flex-1 rounded-sm bg-edge" aria-hidden />}
         <span
-          className={`${DISC} bg-surface-tertiary font-geist font-semibold tabular-nums text-content-secondary`}
+          className={`${DISC} my-1 bg-surface-tertiary font-geist font-semibold tabular-nums text-content-secondary`}
           style={{ fontSize: FS.marker }}
         >
           {number}
         </span>
-        {continues ? <span className="mt-1 w-[1.5px] flex-1 rounded-sm bg-edge" aria-hidden /> : null}
+        {continues ? <span className="w-[1.5px] flex-1 rounded-sm bg-edge" aria-hidden /> : null}
       </span>
 
       {/* The fill stops at the rail: the number is part of the chain, not part of the row
@@ -810,6 +816,7 @@ function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, on
                   driveFindings={day.driveWarnings.filter(w => w.index === i)}
                   selected={selectedAssignmentId === stop.assignmentId}
                   continues={i < last}
+                  starts={i === 0}
                   onSelect={onSelectStop ? () => onSelectStop(stop.placeId, stop.assignmentId) : undefined}
                   onMove={onReorderStop ? delta => onReorderStop(day.dayId, stop.assignmentId, i + delta) : undefined}
                   canMove={{ up: i > 0, down: i < last }}
