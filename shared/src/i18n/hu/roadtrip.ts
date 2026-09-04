@@ -18,6 +18,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.poi.fuel': 'Üzemanyag',
   'roadtrip.poi.charging': 'Töltés',
   'roadtrip.stop.offRoad': '{distance} az úttól',
+  'roadtrip.via.plugin': 'Megálló útközben',
   'roadtrip.poi.rest': 'Pihenőhely',
   'roadtrip.poi.campsite': 'Kemping',
   'roadtrip.poi.food': 'Étkezés',

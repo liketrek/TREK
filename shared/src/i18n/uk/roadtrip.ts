@@ -18,6 +18,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.poi.fuel': 'Заправка',
   'roadtrip.poi.charging': 'Зарядка',
   'roadtrip.stop.offRoad': '{distance} від дороги',
+  'roadtrip.via.plugin': 'Зупинка в дорозі',
   'roadtrip.poi.rest': 'Зона відпочинку',
   'roadtrip.poi.campsite': 'Кемпінг',
   'roadtrip.poi.food': 'Їжа',

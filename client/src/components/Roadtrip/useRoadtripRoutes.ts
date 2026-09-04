@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { calculateRouteWithLegs, RoutingRefusedError } from '../Map/RouteCalculator'
 import { resolveLegMode } from '../Planner/legMode'
-import { computeSchedule, isServiceStopType, splitIntoRuns, type Schedule } from './roadtripModel'
+import { computeSchedule, isServiceStopType, legIndexForAlong, splitIntoRuns, type Schedule } from './roadtripModel'
+import { projectOntoRoute } from './corridor'
 import { useSettingsStore } from '../../store/settingsStore'
-import type { Assignment, AssignmentsMap, Day, RouteSegment, SnappedWaypoint } from '../../types'
+import type { Assignment, AssignmentsMap, Day, RouteSegment, RouteVia, SnappedWaypoint } from '../../types'
 import { spurFor } from './accessSpur'
 import type { RoadtripVia } from '@trek/shared'
 
@@ -41,6 +42,14 @@ export interface RoadtripDay {
   legs: (RouteSegment | undefined)[]
   /** Arrival and departure per stop, walked forward from the day's first pinned time. */
   schedule: Schedule
+  /**
+   * Halts a routing plugin placed on each leg, indexed alongside `legs`.
+   *
+   * Read-only and never written back: a plugin halt that became a via would go out as a
+   * waypoint on the next run, and the plugin would then optimise around its own charging
+   * stop. Kept out of `RouteSegment` because that type is read by half the map.
+   */
+  legVias: RouteVia[][]
   /**
    * The roads actually driven that day, as [lat, lng] — not the straight lines between
    * stops. Anything asking "what is along this day" has to use this: between Hamburg and
@@ -109,6 +118,8 @@ export interface RoadtripRoutes {
    * looking like a route that cuts across open country.
    */
   accessLines: AccessSpur[]
+  /** Every plugin halt of the trip, flat, which is the shape the map draws. */
+  vias: RouteVia[]
   /** The routed legs themselves, so the map can label each connector. */
   segments: RouteSegment[]
   totalDistance: number
@@ -158,8 +169,8 @@ interface RoutedLeg {
    * looks like it is on the route when the drive really starts hundreds of metres away.
    */
   snapped?: { from: SnappedPoint | null; to: SnappedPoint | null }
-  /** Points a routing plugin made this leg pass through, in order, if it provided any. */
-  vias?: LegViaPoint[]
+  /** Halts a routing plugin placed on this leg, in the order they are driven through. */
+  vias: RouteVia[]
 }
 
 /** A waypoint as the router resolved it, beside the coordinate that was asked for. */
@@ -168,18 +179,6 @@ export interface SnappedPoint {
   lng: number
   /** Straight-line metres from the requested coordinate to the road it snapped to. */
   offRoadMeters: number
-}
-
-/** A point a routing plugin routed through, with the stop it means if it means one. */
-export interface LegViaPoint {
-  lat: number
-  lng: number
-  name?: string
-  /**
-   * Time spent here, if the plugin reports one. Already contained in the leg duration
-   * the plugin returned, so it is shown rather than added to the schedule.
-   */
-  dwellSeconds?: number
 }
 
 /**
@@ -273,6 +272,7 @@ export function useRoadtripRoutes(
           title: d.title ?? null,
           stops,
           legs: [],
+          legVias: [],
           schedule: { entries: [], warnings: [] },
           geometry: [],
           distance: 0,
@@ -383,8 +383,22 @@ export function useRoadtripRoutes(
                   if (s) daySnaps[stopKey(stop)] = s
                 })
               }
+              // Where a plugin's halts sit along this run, measured once. Only the ones
+              // that say something get projected — a bare coordinate has nothing to show
+              // in the rail, and projection is not free.
+              const spine = r.coordinates.map(([la, ln]) => ({ lat: la, lng: ln }))
+              const viaAlong = (r.vias ?? [])
+                .filter(v => v.label || v.dwellSeconds != null)
+                .map(v => ({ via: v, alongMeters: (projectOntoRoute({ lat: v.lat, lng: v.lng }, spine)?.alongKm ?? 0) * 1000 }))
+
               // Fold the router's per-waypoint legs back onto the stop pairs: a stop pair
               // with a via between it comes back as two legs, and the rail shows one.
+              // A running metre count comes with it, so each halt lands on the leg it is
+              // actually driven on rather than on the nearest stop, which two towns close
+              // together would get wrong.
+              const legEndMeters: number[] = []
+              const legKeys: string[] = []
+              let travelled = 0
               for (let i = 0; i < run.length - 1; i++) {
                 const from = run[i]
                 const to = run[i + 1]
@@ -396,7 +410,15 @@ export function useRoadtripRoutes(
                   distance: parts.reduce((sum, l) => sum + (l.distance ?? 0), 0),
                   duration: parts.reduce((sum, l) => sum + (l.duration ?? 0), 0),
                 }
-                dayLegs[legKey(from, to)] = { seg: { ...merged, mode }, line: i === 0 ? r.coordinates : [] }
+                travelled += merged.distance ?? 0
+                legEndMeters.push(travelled)
+                const key = legKey(from, to)
+                legKeys.push(key)
+                dayLegs[key] = { seg: { ...merged, mode }, line: i === 0 ? r.coordinates : [], vias: [] }
+              }
+              for (const { via, alongMeters } of viaAlong) {
+                const idx = legIndexForAlong(legEndMeters, alongMeters)
+                if (idx >= 0) dayLegs[legKeys[idx]].vias.push(via)
               }
               return
             } catch (err) {
@@ -468,19 +490,21 @@ export function useRoadtripRoutes(
         day.stops.map(s => ({ anchor: s.time, dwellMinutes: s.dwellMinutes })),
         legs.map(l => l?.duration),
       )
+      const legVias = routed.map(l => l?.vias ?? [])
       const stops = day.stops.map(s => {
         const snap = daySnaps[stopKey(s)]
         const line = spurFor(snap)
         if (line) accessLines.push({ line, meters: snap.meters, stopKey: stopKey(s) })
         return { ...s, offRoadMeters: line ? snap.meters : null }
       })
-      out.push({ ...day, stops, legs, schedule, geometry, distance, duration })
+      out.push({ ...day, stops, legs, legVias, schedule, geometry, distance, duration })
     }
     return {
       days: out,
       lines,
       segments,
       accessLines,
+      vias: out.flatMap(d => d.legVias.flat()),
       totalDistance: out.reduce((s, d) => s + d.distance, 0),
       totalDuration: out.reduce((s, d) => s + d.duration, 0),
       // Service stops are not stops in this sense — a charger on the way is part of the

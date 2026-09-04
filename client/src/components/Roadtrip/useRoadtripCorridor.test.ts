@@ -24,7 +24,7 @@ function day(over: Partial<RoadtripDay> = {}): RoadtripDay {
       { assignmentId: 1, placeId: 10, name: 'A', lat: 53.5, lng: 9.9, time: null, dwellMinutes: null, legMode: null, incomingLegMode: null, stopType: null },
       { assignmentId: 2, placeId: 20, name: 'B', lat: 52.5, lng: 13.4, time: null, dwellMinutes: null, legMode: null, incomingLegMode: null, stopType: null },
     ],
-    legs: [], schedule: { entries: [], warnings: [] },
+    legs: [], legVias: [], schedule: { entries: [], warnings: [] },
     geometry: [[53.5, 9.9], [53.0, 11.0], [52.5, 13.4]],
     distance: 0, duration: 0,
     ...over,
@@ -32,7 +32,7 @@ function day(over: Partial<RoadtripDay> = {}): RoadtripDay {
 }
 
 const routes = (days: RoadtripDay[]): RoadtripRoutes => ({
-  days, lines: [], segments: [], accessLines: [], totalDistance: 0, totalDuration: 0, totalStops: 0, quietDays: [], loading: false,
+  days, lines: [], segments: [], accessLines: [], vias: [], totalDistance: 0, totalDuration: 0, totalStops: 0, quietDays: [], loading: false,
 })
 
 /** The search state the mocked hook hands back, results included. */

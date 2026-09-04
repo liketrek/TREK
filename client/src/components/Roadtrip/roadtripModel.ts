@@ -231,6 +231,23 @@ export function sumLegSeconds(legSeconds: (number | undefined)[]): number {
  * slightly before the first stop or past the last, and neither "before where you set off"
  * nor "after where you arrive" is a place a fuel stop can go.
  */
+/**
+ * Which leg a point on the drive belongs to, given where each leg ends.
+ *
+ * Measured against the legs' own lengths rather than by projecting the stops as well: the
+ * router's leg distances are exact by construction, while two stops close together
+ * project onto each other's stretch and would put a charging halt on the wrong side of a
+ * town. A point past the end lands in the last leg rather than nowhere, because that is
+ * a rounding edge and not a missing leg.
+ */
+export function legIndexForAlong(legEndMeters: number[], alongMeters: number): number {
+  if (!legEndMeters.length) return -1
+  for (let i = 0; i < legEndMeters.length; i++) {
+    if (alongMeters < legEndMeters[i]) return i
+  }
+  return legEndMeters.length - 1
+}
+
 export function insertIndexForAlong(stopsAlongKm: number[], hitAlongKm: number): number {
   if (stopsAlongKm.length < 2) return stopsAlongKm.length
   let i = 0

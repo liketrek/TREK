@@ -4,6 +4,7 @@ import {
   formatClock,
   formatDurationShort,
   insertIndexForAlong,
+  legIndexForAlong,
   parseClock,
   splitIntoRuns,
   sumLegSeconds,
@@ -247,5 +248,31 @@ describe('insertIndexForAlong', () => {
   it('has nowhere to insert on a day that is not a drive', () => {
     expect(insertIndexForAlong([], 10)).toBe(0)
     expect(insertIndexForAlong([0], 10)).toBe(1)
+  })
+})
+
+describe('legIndexForAlong', () => {
+  // Against the legs' own lengths rather than by projecting the stops as well: leg
+  // distances come from the router and are exact, while two stops close together project
+  // onto each other's stretch and would put a charging halt the wrong side of a town.
+  const legs = [10_000, 25_000, 40_000]
+
+  it('FE-ROADTRIP-MODEL-050: a point inside a leg belongs to that leg', () => {
+    expect(legIndexForAlong(legs, 0)).toBe(0)
+    expect(legIndexForAlong(legs, 9_999)).toBe(0)
+    expect(legIndexForAlong(legs, 10_000)).toBe(1)
+    expect(legIndexForAlong(legs, 24_999)).toBe(1)
+    expect(legIndexForAlong(legs, 25_000)).toBe(2)
+  })
+
+  it('FE-ROADTRIP-MODEL-051: a point past the end lands in the last leg, not nowhere', () => {
+    // A rounding edge, not a missing leg: the projection and the router measure the same
+    // line two different ways and disagree by metres at the very end.
+    expect(legIndexForAlong(legs, 40_000)).toBe(2)
+    expect(legIndexForAlong(legs, 99_999)).toBe(2)
+  })
+
+  it('FE-ROADTRIP-MODEL-052: a day with no routed leg has nowhere to put anything', () => {
+    expect(legIndexForAlong([], 100)).toBe(-1)
   })
 })

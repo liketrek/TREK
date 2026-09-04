@@ -12,6 +12,7 @@ import { formatDurationShort, isServiceStopType, serviceColor, type ScheduleEntr
 import { STOP_KIND_BY_KEY } from './stopKinds'
 import { spurWorthLabelling } from './accessSpur'
 import type { QuietDay, RoadtripDay, RoadtripRoutes, RoadtripStop } from './useRoadtripRoutes'
+import type { RouteVia } from '../../types'
 import { FS } from './typeScale'
 import type { RouteSegment } from '../../types'
 
@@ -376,6 +377,52 @@ function ServiceStop({ stop, entry, selected, onSelect, onEditStay }: {
 }
 
 /**
+ * A halt a routing plugin put on this leg, such as a charge on the way.
+ *
+ * Read-only, and that is the point rather than a shortcut. The halt belongs to the
+ * provider, not to the traveller: it is not a place in the database, it has no number, no
+ * editable stay and no arrival time. Writing it back would send it out as a waypoint on
+ * the next run, and the plugin would then plan around its own charging stop.
+ *
+ * No clock on purpose. The stay is already inside the leg duration the plugin reported,
+ * so the arrivals in the rail already account for it; printing a time here would mean
+ * guessing how the plugin split the driving, and driving time is not linear in distance.
+ */
+function RouteViaStop({ via }: { via: RouteVia }): React.ReactElement {
+  const { t } = useTranslation()
+  return (
+    <div className="grid items-stretch" style={RAIL_GRID}>
+      <span className="relative z-[1] flex flex-col items-center">
+        <span className="flex-1" style={RAIL_DASH} aria-hidden />
+        {/* Hollow rather than filled: everything filled on this rail is something the
+            traveller put there. */}
+        <span
+          className={`${DISC} border-2 border-dashed border-edge bg-surface text-content-faint`}
+        >
+          <Zap size={11} strokeWidth={2.1} aria-hidden />
+        </span>
+        <span className="flex-1" style={RAIL_DASH} aria-hidden />
+      </span>
+      <span className="flex min-w-0 items-start gap-2 px-1.5 pb-1 pt-0.5">
+        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span
+            className="min-w-0 truncate leading-6 text-content-secondary"
+            style={{ fontSize: FS.name }}
+          >
+            {via.label || t('roadtrip.via.plugin')}
+          </span>
+          {via.dwellSeconds != null ? (
+            <span className="w-fit text-content-faint" style={{ fontSize: FS.label }}>
+              {formatDurationShort(via.dwellSeconds)}
+            </span>
+          ) : null}
+        </span>
+      </span>
+    </div>
+  )
+}
+
+/**
  * Midnight, marked where it happens — in the chain, between the two stops the drive runs
  * between, rather than as a fourth badge hanging off one of them.
  *
@@ -678,6 +725,11 @@ function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, on
                   alternativesOpen={openAlternatives?.dayId === day.dayId && openAlternatives.index === i}
                 />
               ) : null}
+              {/* After the band, because a plugin halt happens on the drive it describes
+                  rather than before setting off. */}
+              {i < last ? (day.legVias[i] ?? []).map((via, vi) => (
+                <RouteViaStop key={`via-${vi}-${via.lat},${via.lng}`} via={via} />
+              )) : null}
             </li>
           )
         })}

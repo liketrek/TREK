@@ -381,7 +381,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
               places={mapPlaces}
               dayPlaces={dayPlaces}
               route={roadtripActive ? roadtripRoutes.lines : route}
-              routeVias={roadtripActive ? [] : routeVias}
+              routeVias={roadtripActive ? roadtripRoutes.vias : routeVias}
               accessLines={roadtripActive ? roadtripRoutes.accessLines : undefined}
               showTransitRoutes={transitRoutesShown}
               // The route toggle belongs to one day, so the map needs that day to
