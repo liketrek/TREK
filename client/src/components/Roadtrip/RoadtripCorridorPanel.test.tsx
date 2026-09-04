@@ -30,7 +30,7 @@ const day = (dayId: number, dayNumber: number): RoadtripDay => ({
   stops: [stop(dayId * 10 + 1, 'Hamburg'), stop(dayId * 10 + 2, 'Berlin')],
   legs: [],
   schedule: { entries: [], warnings: [] },
-  legVias: [],
+  legVias: [], driveWarnings: [], dayWarning: null,
   geometry: [],
   distance: 0,
   duration: 0,

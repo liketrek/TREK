@@ -4,7 +4,9 @@ import {
   formatClock,
   formatDurationShort,
   insertIndexForAlong,
+  deriveDriveWarnings,
   legIndexForAlong,
+  refuelsRange,
   parseClock,
   splitIntoRuns,
   sumLegSeconds,
@@ -274,5 +276,98 @@ describe('legIndexForAlong', () => {
 
   it('FE-ROADTRIP-MODEL-052: a day with no routed leg has nowhere to put anything', () => {
     expect(legIndexForAlong([], 100)).toBe(-1)
+  })
+})
+
+describe('deriveDriveWarnings', () => {
+  const noLimits = { legMinutes: null, dayMinutes: null, rangeKm: null }
+  const leg = (minutes: number, km: number) => ({ duration: minutes * 60, distance: km * 1000 })
+
+  it('FE-ROADTRIP-MODEL-060: no limits set means nothing to report', () => {
+    const out = deriveDriveWarnings([leg(600, 900)], [false, false], noLimits, 0)
+    expect(out.warnings).toEqual([])
+    expect(out.day).toBeNull()
+  })
+
+  it('FE-ROADTRIP-MODEL-061: a leg over the limit reports how far over, on the stop it leaves', () => {
+    const out = deriveDriveWarnings(
+      [leg(100, 90), leg(240, 200)],
+      [false, false, false],
+      { ...noLimits, legMinutes: 180 },
+      0,
+    )
+    expect(out.warnings).toEqual([{ index: 1, code: 'leg', overMinutes: 60 }])
+  })
+
+  it('FE-ROADTRIP-MODEL-062: the day figure is the sum of the legs, and only that', () => {
+    const out = deriveDriveWarnings(
+      [leg(200, 180), leg(200, 180)],
+      [false, false, false],
+      { ...noLimits, dayMinutes: 360 },
+      0,
+    )
+    expect(out.day).toEqual({ code: 'dayDriving', minutes: 400, limitMinutes: 360 })
+  })
+
+  it('FE-ROADTRIP-MODEL-063: the range runs out once and then starts over', () => {
+    // Without the reset, a 1800 km trip on a 600 km range flags every leg after the first
+    // overrun, which is a column of red nobody reads. With it the marks stand one range
+    // apart and each means "fill up around here".
+    const out = deriveDriveWarnings(
+      [leg(60, 300), leg(60, 400), leg(60, 300), leg(60, 400)],
+      [false, false, false, false, false],
+      { ...noLimits, rangeKm: 600 },
+      0,
+    )
+    expect(out.warnings.map(w => w.code)).toEqual(['range', 'range'])
+    expect(out.warnings[0]).toEqual({ index: 1, code: 'range', sinceKm: 700 })
+  })
+
+  it('FE-ROADTRIP-MODEL-064: filling up starts the budget over, resting does not', () => {
+    const stops = [false, true, false]
+    const out = deriveDriveWarnings(
+      [leg(60, 500), leg(60, 500)],
+      stops,
+      { ...noLimits, rangeKm: 600 },
+      0,
+    )
+    // The tank is filled at stop 1, so the second 500 km starts from zero and neither leg
+    // trips the limit. Without the refuel it would be 1000 km on a 600 km range.
+    expect(out.warnings).toEqual([])
+  })
+
+  it('FE-ROADTRIP-MODEL-065: only fuel and charging refuel', () => {
+    expect(refuelsRange('fuel')).toBe(true)
+    expect(refuelsRange('charging')).toBe(true)
+    // A two-hour lunch fills no tank, and TREK does not know whether the restaurant has a
+    // charger in its car park.
+    expect(refuelsRange('restaurant')).toBe(false)
+    expect(refuelsRange('rest_area')).toBe(false)
+    expect(refuelsRange('campsite')).toBe(false)
+    expect(refuelsRange(null)).toBe(false)
+  })
+
+  it('FE-ROADTRIP-MODEL-066: the budget carries into the next day, because a tank does not empty overnight', () => {
+    const first = deriveDriveWarnings([leg(60, 400)], [false, false], { ...noLimits, rangeKm: 600 }, 0)
+    expect(first.carryKm).toBe(400)
+
+    const second = deriveDriveWarnings([leg(60, 300)], [false, false], { ...noLimits, rangeKm: 600 }, first.carryKm)
+    expect(second.warnings).toEqual([{ index: 0, code: 'range', sinceKm: 700 }])
+  })
+
+  it('FE-ROADTRIP-MODEL-067: an unrouted leg gives the budget up rather than guessing', () => {
+    const out = deriveDriveWarnings(
+      [undefined, leg(60, 500)],
+      [false, false, false],
+      { ...noLimits, rangeKm: 100 },
+      0,
+    )
+    expect(out.warnings).toEqual([])
+    expect(out.carryKm).toBeNull()
+  })
+
+  it('FE-ROADTRIP-MODEL-068: filling up at the last stop of the day still counts', () => {
+    const out = deriveDriveWarnings([leg(60, 400)], [false, true], { ...noLimits, rangeKm: 600 }, 0)
+    expect(out.carryKm).toBe(0)
   })
 })

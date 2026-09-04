@@ -91,11 +91,62 @@ export interface ScheduleStop {
 }
 
 export interface ScheduleWarning {
-  /** Index of the stop the finding belongs to. */
+  /**
+   * Index of the stop the finding belongs to.
+   *
+   * For the two leg codes this is the stop the leg LEAVES, which is the same numbering
+   * `legSeconds[i]` uses and the same row the drive band is already drawn on.
+   */
   index: number
-  code: 'late' | 'overnight'
+  code: 'late' | 'overnight' | 'leg' | 'range'
   /** Minutes the computed arrival misses the anchor by (code 'late'). */
   minutes?: number
+  /** Minutes this leg runs over the longest single drive allowed (code 'leg'). */
+  overMinutes?: number
+  /** Kilometres driven since the last fill-up when the range ran out (code 'range'). */
+  sinceKm?: number
+}
+
+/**
+ * The two kinds of stop that put fuel or charge back.
+ *
+ * Deliberately shorter than `SERVICE_STOP_TYPES`: a two-hour lunch fills no tank, and
+ * TREK knows nothing about whether the restaurant has a charger in its car park. Reusing
+ * the service list here would quietly reset the range budget at every rest area and hide
+ * the one finding this feature exists to produce.
+ */
+export const REFUELLING_STOP_TYPES = ['fuel', 'charging'] as const
+
+/** Whether stopping here starts the range budget over. */
+export function refuelsRange(stopType: string | null | undefined): boolean {
+  return (REFUELLING_STOP_TYPES as readonly string[]).includes(stopType ?? '')
+}
+
+/**
+ * The three numbers a traveller can set. null means no limit, which is an explicit off
+ * rather than a sentinel: zero is a legal thing to type and means the same as unset.
+ */
+export interface DriveLimits {
+  /** Longest single drive between two stops, in minutes. */
+  legMinutes: number | null
+  /** Longest total driving in one day, in minutes. */
+  dayMinutes: number | null
+  /** How far one tank or charge goes, in kilometres. */
+  rangeKm: number | null
+}
+
+/**
+ * A finding about the day as a whole.
+ *
+ * Its own shape rather than a ScheduleWarning with index -1: a sentinel index would be
+ * read by every consumer that filters findings by stop, and one of them would eventually
+ * draw the day's finding on the first stop.
+ */
+export interface DayWarning {
+  code: 'dayDriving'
+  /** Driving time of the day in minutes, the same number the badge beside it shows. */
+  minutes: number
+  limitMinutes: number
 }
 
 export interface ScheduleEntry {
@@ -240,6 +291,68 @@ export function sumLegSeconds(legSeconds: (number | undefined)[]): number {
  * town. A point past the end lands in the last leg rather than nowhere, because that is
  * a rounding edge and not a missing leg.
  */
+/**
+ * The findings about the driving itself: too long at the wheel, too long in one day, and
+ * the tank running out before anywhere to fill it.
+ *
+ * Reads the legs and nothing else. The clock cascade is not available to lean on: with no
+ * stop pinned to a time it produces no times at all, for any stop, so a limit expressed as
+ * an hour of the day would simply never fire. All three limits are therefore durations and
+ * kilometres, which exist as soon as a leg has routed.
+ *
+ * The range budget carries across midnight, because a tank does not empty overnight, and
+ * resets to zero after a finding: without that reset, one trip of 1800 km on a 600 km
+ * range flags every leg after the first overrun, which is a column of red nobody reads.
+ * With it, the marks stand one range apart and each one means "fill up around here".
+ *
+ * An unrouted leg gives the budget up entirely rather than guessing, the same way the
+ * schedule abandons its cursor: a distance we do not have cannot be added to one we do.
+ */
+export function deriveDriveWarnings(
+  legs: ({ duration?: number; distance?: number } | undefined)[],
+  /** Whether the stop at each index refuels. One entry longer than `legs`. */
+  refuelsAt: boolean[],
+  limits: DriveLimits,
+  /** Kilometres already on the tank when the day starts; null when that is unknown. */
+  carryKm: number | null,
+): { warnings: ScheduleWarning[]; day: DayWarning | null; carryKm: number | null } {
+  const warnings: ScheduleWarning[] = []
+  let budget = carryKm
+  let totalSeconds = 0
+
+  for (let i = 0; i < legs.length; i++) {
+    if (refuelsAt[i]) budget = 0
+    const leg = legs[i]
+    const seconds = leg?.duration
+    if (typeof seconds === 'number') {
+      totalSeconds += seconds
+      if (limits.legMinutes && seconds / 60 > limits.legMinutes) {
+        warnings.push({ index: i, code: 'leg', overMinutes: Math.round(seconds / 60 - limits.legMinutes) })
+      }
+    }
+    const metres = leg?.distance
+    if (typeof metres !== 'number') {
+      budget = null
+    } else if (budget !== null) {
+      budget += metres / 1000
+      if (limits.rangeKm && budget > limits.rangeKm) {
+        warnings.push({ index: i, code: 'range', sinceKm: Math.round(budget) })
+        budget = 0
+      }
+    }
+  }
+  // The last stop of the day counts too: filling up on arrival is what makes the next
+  // morning start with a full tank.
+  if (refuelsAt[legs.length]) budget = 0
+
+  const minutes = Math.round(totalSeconds / 60)
+  const day = limits.dayMinutes && minutes > limits.dayMinutes
+    ? { code: 'dayDriving' as const, minutes, limitMinutes: limits.dayMinutes }
+    : null
+
+  return { warnings, day, carryKm: budget }
+}
+
 export function legIndexForAlong(legEndMeters: number[], alongMeters: number): number {
   if (!legEndMeters.length) return -1
   for (let i = 0; i < legEndMeters.length; i++) {

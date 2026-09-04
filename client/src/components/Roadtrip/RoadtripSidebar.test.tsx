@@ -38,7 +38,7 @@ function day(over: Partial<RoadtripDay> = {}): RoadtripDay {
     title: null,
     stops,
     legs: [leg()],
-    legVias: [],
+    legVias: [], driveWarnings: [], dayWarning: null,
     schedule: { entries: stops.map(() => ({ arrival: null, departure: null, anchored: false, dayOffset: 0 })), warnings: [] },
     geometry: [],
     distance: 100000,

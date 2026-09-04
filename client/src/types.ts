@@ -129,6 +129,18 @@ export interface Settings {
   map_provider?: 'leaflet' | 'mapbox-gl' | 'maplibre-gl'
   /** Leaflet base layer: default street tiles or a satellite/aerial view. */
   map_base_layer?: 'default' | 'satellite'
+  /**
+   * The three road-trip driving limits (#1797). All three are personal rather than
+   * instance configuration — how long you are willing to drive and how far your car goes
+   * are properties of the traveller, so they are plain per-user settings and stay out of
+   * the defaultable list.
+   *
+   * Stored as numbers; 0 or absent means no limit. Kilometres are always kilometres in
+   * storage and converted for display, the same rule the corridor widths follow.
+   */
+  roadtrip_leg_minutes?: number
+  roadtrip_day_minutes?: number
+  roadtrip_range_km?: number
   /** CARTO basemaps watermark keyless tiles; the key is appended as ?key= (#2054). */
   carto_api_key?: string
   mapbox_access_token?: string

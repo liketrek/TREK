@@ -39,7 +39,7 @@ import { usePlannerHistory } from '../../hooks/usePlannerHistory'
 import { useAirtrailConnection } from '../../hooks/useAirtrailConnection'
 import { useIsTouch } from '../../hooks/useIsTouch'
 import { usePluginStore } from '../../store/pluginStore'
-import type { Accommodation, TripMember, Day, Place, Reservation } from '../../types'
+import type { Accommodation, TripMember, Day, Place, Reservation, Settings } from '../../types'
 import { OFM_POSITRON, DEFAULT_MAP_LAT, DEFAULT_MAP_LNG, DEFAULT_MAP_ZOOM } from '../../constants/mapDefaults'
 import { useTileUrl } from '../../hooks/useTileUrl'
 import { resolvePoolAssignmentId } from './tripPlannerModel'
@@ -72,7 +72,7 @@ export function useTripPlanner() {
   const navigate = useNavigate()
   const toast = useToast()
   const { t, language } = useTranslation()
-  const { settings } = useSettingsStore()
+  const { settings, updateSettings } = useSettingsStore()
   // trip-page plugins mount as tabs inside this trip planner (tripId-scoped).
   const allPlugins = usePluginStore(s => s.plugins)
   const pluginsLoaded = usePluginStore(s => s.loaded)
@@ -711,6 +711,21 @@ export function useTripPlanner() {
    * fuel — the road-trip kinds are their own dimension, deliberately not one of the
    * traveller's editable categories, so the palette and the meaning stay put.
    */
+  /**
+   * Stores one of the three driving limits.
+   *
+   * Straight to the settings store rather than through the offline queue: these are
+   * per-user preferences on the settings table, the same path the map provider and the
+   * distance unit take, and they are read locally the moment they change.
+   */
+  const saveRoadtripLimit = useCallback(async (key: string, value: number) => {
+    try {
+      await updateSettings({ [key]: value } as Partial<Settings>)
+    } catch {
+      toast.error(t('settings.saveFailed'))
+    }
+  }, [updateSettings, toast, t])
+
   const saveStopDraft = useCallback(async ({ stopType, dwellMinutes }: { stopType: RoadtripStopType | null; dwellMinutes: number }) => {
     if (!stopDraft) return
     const { poi, dayId, position } = stopDraft
@@ -1578,6 +1593,7 @@ export function useTripPlanner() {
     prefillCoords, setPrefillCoords, editingAssignmentId, setEditingAssignmentId,
     placeFormDayId, setPlaceFormDayId, reservationModalDayId, setReservationModalDayId,
     stopDraft, setStopDraft, saveStopDraft, stopDraftToForm, stopDraftDuplicate, reorderRoadtripStop,
+    saveRoadtripLimit,
     roadtripVias, addRoadtripVia, moveRoadtripVia, removeRoadtripVia,
     routeAlternatives, askRouteAlternatives, chooseRouteAlternative, alternativeOverlays, alternativeFocusPoints,
     stayDraft, setStayDraft, setRoadtripStay,

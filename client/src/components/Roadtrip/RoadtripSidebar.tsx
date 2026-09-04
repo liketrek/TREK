@@ -423,6 +423,42 @@ function RouteViaStop({ via }: { via: RouteVia }): React.ReactElement {
 }
 
 /**
+ * A finding about the drive rather than about a stop: too long at the wheel in one go, or
+ * the tank running out before anywhere to fill it.
+ *
+ * Sits in the chain between the two stops the drive runs between, because that is where
+ * it happens. Neither finding names a time of day: with no stop pinned to a clock the
+ * cascade produces no times at all, so both are durations and distances, which exist as
+ * soon as the leg has routed.
+ */
+function DriveFinding({ warning }: { warning: ScheduleWarning }): React.ReactElement | null {
+  const { t } = useTranslation()
+  const distanceUnit = useSettingsStore(s => s.settings.distance_unit)
+  const text = warning.code === 'leg'
+    ? t('roadtrip.limit.legOver', { time: formatDurationShort((warning.overMinutes ?? 0) * 60) })
+    : warning.code === 'range'
+      ? t('roadtrip.limit.range', { distance: formatDistance(warning.sinceKm ?? 0, distanceUnit) })
+      : null
+  if (!text) return null
+  return (
+    <div className="grid items-stretch" style={RAIL_GRID}>
+      <span className="relative z-[1] flex flex-col items-center">
+        <span className="flex-1" style={RAIL_DASH} aria-hidden />
+      </span>
+      <span className="px-1.5 pb-1">
+        <span
+          className="inline-flex w-fit items-center gap-1 rounded-full bg-warning-soft px-1.5 py-0.5 font-semibold text-warning"
+          style={{ fontSize: FS.label }}
+        >
+          <AlertTriangle size={10} className="shrink-0" aria-hidden />
+          {text}
+        </span>
+      </span>
+    </div>
+  )
+}
+
+/**
  * Midnight, marked where it happens — in the chain, between the two stops the drive runs
  * between, rather than as a fourth badge hanging off one of them.
  *
@@ -647,6 +683,18 @@ function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, on
               time: formatDurationShort(day.duration),
             })}
           </span>
+          {day.dayWarning ? (
+            <span
+              className={`${DAY_BADGE} bg-warning-soft text-warning`}
+              style={{ fontSize: FS.label }}
+              title={t('roadtrip.limit.hint')}
+            >
+              <AlertTriangle size={10} className="shrink-0" aria-hidden />
+              {t('roadtrip.limit.dayOver', {
+                time: formatDurationShort((day.dayWarning.minutes - day.dayWarning.limitMinutes) * 60),
+              })}
+            </span>
+          ) : null}
           <span className={`${DAY_BADGE} bg-surface-tertiary`} style={{ fontSize: FS.label }}>
             {t('roadtrip.day.stopCount', { count: day.stops.filter(s => !isServiceStopType(s.stopType)).length })}
           </span>
@@ -725,6 +773,12 @@ function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, on
                   alternativesOpen={openAlternatives?.dayId === day.dayId && openAlternatives.index === i}
                 />
               ) : null}
+              {/* Between the two stops, which is where "somewhere on this drive" actually
+                  is. The range finding is the only one with its remedy right beside it:
+                  fuel and charging are the corridor search's first two categories. */}
+              {i < last ? day.driveWarnings.filter(w => w.index === i).map(w => (
+                <DriveFinding key={w.code} warning={w} />
+              )) : null}
               {/* After the band, because a plugin halt happens on the drive it describes
                   rather than before setting off. */}
               {i < last ? (day.legVias[i] ?? []).map((via, vi) => (

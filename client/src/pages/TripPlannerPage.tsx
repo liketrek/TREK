@@ -70,6 +70,7 @@ const ExpenseModal = lazyWithRetry(() =>
 const CollabPanel = lazyWithRetry(() => import('../components/Collab/CollabPanel'))
 const RoadtripSidebar = lazyWithRetry(() => import('../components/Roadtrip/RoadtripSidebar'))
 const RoadtripCorridorPanel = lazyWithRetry(() => import('../components/Roadtrip/RoadtripCorridorPanel'))
+const RoadtripLimitsCard = lazyWithRetry(() => import('../components/Roadtrip/RoadtripLimitsCard'))
 const RoadtripStopPopup = lazyWithRetry(() => import('../components/Roadtrip/RoadtripStopPopup'))
 const RoadtripStayModal = lazyWithRetry(() => import('../components/Roadtrip/RoadtripStayModal'))
 const RoadtripAlternativesBar = lazyWithRetry(() => import('../components/Roadtrip/RoadtripAlternativesBar'))
@@ -259,6 +260,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
     showPlaceForm, setShowPlaceForm, editingPlace, setEditingPlace,
     prefillCoords, setPrefillCoords, editingAssignmentId, setEditingAssignmentId,
     stopDraft, setStopDraft, saveStopDraft, stopDraftToForm, stopDraftDuplicate, reorderRoadtripStop,
+    saveRoadtripLimit,
     roadtripVias, addRoadtripVia, moveRoadtripVia, removeRoadtripVia,
     routeAlternatives, askRouteAlternatives, chooseRouteAlternative, alternativeOverlays, alternativeFocusPoints,
     stayDraft, setStayDraft, setRoadtripStay,
@@ -629,6 +631,11 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
                         routes={roadtripRoutes}
                         onAddPoi={can('place_edit', trip) ? handlePoiClick : undefined}
                       />
+                      {/* Under the search, because the limits are read while looking at
+                          what the drive is doing rather than set up front. */}
+                      <div className="px-3.5 pb-3.5">
+                        <RoadtripLimitsCard onSave={saveRoadtripLimit} />
+                      </div>
                     </LazyPanel>
                   ) : (
                   <PlacesSidebar

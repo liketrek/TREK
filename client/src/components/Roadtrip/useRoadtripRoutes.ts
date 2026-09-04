@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { calculateRouteWithLegs, RoutingRefusedError } from '../Map/RouteCalculator'
 import { resolveLegMode } from '../Planner/legMode'
-import { computeSchedule, isServiceStopType, legIndexForAlong, splitIntoRuns, type Schedule } from './roadtripModel'
+import {
+  computeSchedule, deriveDriveWarnings, isServiceStopType, legIndexForAlong, refuelsRange, splitIntoRuns,
+  type DayWarning, type DriveLimits, type Schedule, type ScheduleWarning,
+} from './roadtripModel'
 import { projectOntoRoute } from './corridor'
 import { useSettingsStore } from '../../store/settingsStore'
 import type { Assignment, AssignmentsMap, Day, RouteSegment, RouteVia, SnappedWaypoint } from '../../types'
@@ -65,9 +68,9 @@ export interface RoadtripDay {
    * findings about a stop, because these belong to no stop and because `Schedule` is
    * pinned shape-for-shape by its own tests.
    */
-  driveWarnings?: DriveWarning[]
-  /** A finding about the day as a whole, such as more driving than the day allows. */
-  dayWarning?: DriveWarning | null
+  driveWarnings: ScheduleWarning[]
+  /** More driving in this day than the traveller allows, or null. */
+  dayWarning: DayWarning | null
 }
 
 /** A place, the road it is driven to from, and how far apart the two are. */
@@ -76,15 +79,6 @@ export interface AccessSpur {
   meters: number
   /** So the rail and the map can point at the same one. */
   stopKey: string
-}
-
-/** A finding about the drive rather than about a stop. */
-export interface DriveWarning {
-  /** Which leg it belongs to; -1 means the day as a whole. */
-  legIndex: number
-  code: 'legTooLong' | 'dayTooLong' | 'outOfRange'
-  /** By how much, in the unit the code implies: minutes for the first two, km for range. */
-  over?: number
 }
 
 /** A day the rail does not draw a drive for, but that a stop can still be moved onto. */
@@ -256,6 +250,16 @@ export function useRoadtripRoutes(
   const [loading, setLoading] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
 
+  const legMinutes = useSettingsStore(s => s.settings.roadtrip_leg_minutes)
+  const dayMinutes = useSettingsStore(s => s.settings.roadtrip_day_minutes)
+  const rangeKm = useSettingsStore(s => s.settings.roadtrip_range_km)
+  // Zero and absent both mean "no limit": zero is a legal thing to type and says the
+  // same thing, so it is folded here rather than guarded at every reading.
+  const limits = useMemo<DriveLimits>(
+    () => ({ legMinutes: legMinutes || null, dayMinutes: dayMinutes || null, rangeKm: rangeKm || null }),
+    [legMinutes, dayMinutes, rangeKm],
+  )
+
   const plan = useMemo<RoadtripDay[]>(() => {
     return [...days]
       .sort((a, b) => (a.day_number ?? 0) - (b.day_number ?? 0))
@@ -273,6 +277,8 @@ export function useRoadtripRoutes(
           stops,
           legs: [],
           legVias: [],
+          driveWarnings: [],
+          dayWarning: null,
           schedule: { entries: [], warnings: [] },
           geometry: [],
           distance: 0,
@@ -466,11 +472,11 @@ export function useRoadtripRoutes(
     const lines: [number, number][][] = []
     const segments: RouteSegment[] = []
     const accessLines: RoadtripRoutes['accessLines'] = []
-    // A loop rather than a map: the days are walked in order and findings that outlive a
-    // single day (a range budget carried across midnight) need somewhere to live between
-    // iterations. Nothing accumulates yet; the shape is here so the feature that needs it
-    // does not have to rewrite this block a second time.
+    // A loop rather than a map, because the range budget outlives a single day: a tank
+    // does not empty overnight, so what is left at the end of one day is what the next
+    // one starts with. `plan` is already in day order.
     const out: RoadtripDay[] = []
+    let carryKm: number | null = 0
     for (const day of plan) {
       const dayLegs = legsByDay[day.dayId] ?? {}
       const daySnaps = snapByDay[day.dayId] ?? {}
@@ -497,7 +503,20 @@ export function useRoadtripRoutes(
         if (line) accessLines.push({ line, meters: snap.meters, stopKey: stopKey(s) })
         return { ...s, offRoadMeters: line ? snap.meters : null }
       })
-      out.push({ ...day, stops, legs, legVias, schedule, geometry, distance, duration })
+      const drive = deriveDriveWarnings(
+        legs,
+        // One longer than the legs: the last stop of the day counts too, because filling
+        // up on arrival is what makes the next morning start full.
+        stops.map(s => refuelsRange(s.stopType)),
+        limits,
+        carryKm,
+      )
+      carryKm = drive.carryKm
+      out.push({
+        ...day, stops, legs, legVias, schedule, geometry, distance, duration,
+        driveWarnings: drive.warnings,
+        dayWarning: drive.day,
+      })
     }
     return {
       days: out,
@@ -513,5 +532,5 @@ export function useRoadtripRoutes(
       quietDays,
       loading,
     }
-  }, [plan, legsByDay, snapByDay, loading, quietDays])
+  }, [plan, legsByDay, snapByDay, loading, quietDays, limits])
 }
