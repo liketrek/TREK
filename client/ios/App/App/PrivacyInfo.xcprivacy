@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+	  Apple's required-reason API declaration. App Store Connect rejects uploads
+	  that call these APIs without an entry here.
+
+	  NSPrivacyAccessedAPICategoryFileTimestamp / C617.1 is required by
+	  @capacitor/filesystem, which @capacitor/file-transfer depends on to resolve
+	  a native path before it can download or upload. Capacitor's own frameworks
+	  ship their own PrivacyInfo; this file covers the app target only.
+
+	  Add to this file when adding a plugin that touches a required-reason API —
+	  UserDefaults (CA92.1) for @capacitor/preferences, disk space (E174.1),
+	  system boot time (35F9.1).
+	-->
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array>
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryFileTimestamp</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>C617.1</string>
+			</array>
+		</dict>
+		<!-- @capacitor/preferences, which backs the saved server profiles. -->
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>CA92.1</string>
+			</array>
+		</dict>
+	</array>
+	<!-- TREK sends no data to third parties and runs no trackers: all traffic
+	     goes to the server the user chose. -->
+	<key>NSPrivacyTracking</key>
+	<false/>
+	<key>NSPrivacyTrackingDomains</key>
+	<array/>
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array/>
+</dict>
+</plist>

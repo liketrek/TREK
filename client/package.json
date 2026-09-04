@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "prebuild": "node scripts/generate-icons.mjs",
+    "icons:native": "node scripts/generate-native-icons.mjs",
     "build": "vite build",
     "build:analyze": "vite build --mode analyze",
     "preview": "vite preview",
@@ -29,6 +30,27 @@
     "format:check": "prettier --check \"src/**/*.tsx\" \"src/**/*.css\""
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/browser": "^8.0.4",
+    "@capacitor/calendar": "^1.0.1",
+    "@capacitor/camera": "^8.2.3",
+    "@capacitor/core": "^8.5.0",
+    "@capacitor/file-transfer": "^2.0.5",
+    "@capacitor/filesystem": "^8.1.3",
+    "@capacitor/geolocation": "^8.2.2",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/inappbrowser": "^4.0.3",
+    "@capacitor/ios": "^8.5.0",
+    "@capacitor/keyboard": "^8.0.5",
+    "@capacitor/local-notifications": "^8.3.1",
+    "@capacitor/network": "^8.0.1",
+    "@capacitor/preferences": "^8.0.1",
+    "@capacitor/push-notifications": "^8.1.2",
+    "@capacitor/share": "^8.0.1",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.3",
+    "@capacitor/toast": "^8.0.1",
     "@fontsource/bebas-neue": "^5.3.0",
     "@fontsource/eb-garamond": "^5.3.0",
     "@fontsource/geist-sans": "^5.2.5",
@@ -67,6 +89,7 @@
     "zustand": "^5.0.14"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.0",
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.60.0",
     "@testing-library/jest-dom": "^6.9.1",

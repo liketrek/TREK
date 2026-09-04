@@ -1,0 +1,24 @@
+ext {
+    // 26, not Capacitor's default 24: @capacitor/inappbrowser requires a minimum
+    // target of 26. This drops Android 7.0/7.1 (~1% of devices and no longer
+    // receiving security updates). Removing @capacitor/inappbrowser — its system-
+    // browser mode overlaps @capacitor/browser almost exactly — would allow 24
+    // again.
+    minSdkVersion = 26
+    compileSdkVersion = 36
+    targetSdkVersion = 36
+    androidxActivityVersion = '1.11.0'
+    androidxAppCompatVersion = '1.7.1'
+    androidxCoordinatorLayoutVersion = '1.3.0'
+    androidxCoreVersion = '1.17.0'
+    androidxFragmentVersion = '1.8.9'
+    coreSplashScreenVersion = '1.2.0'
+    androidxWebkitVersion = '1.14.0'
+    junitVersion = '4.13.2'
+    androidxJunitVersion = '1.3.0'
+    androidxEspressoCoreVersion = '3.7.0'
+    cordovaAndroidVersion = '14.0.1'
+    // Consumed by @capacitor/push-notifications. Pinned rather than left to the
+    // plugin's default so an FCM SDK bump is a visible, reviewable change here.
+    firebaseMessagingVersion = '25.0.1'
+}

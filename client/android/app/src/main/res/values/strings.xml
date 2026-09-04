@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">TREK - Plan your trips!</string>
+    <string name="title_activity_main">TREK - Plan your trips!</string>
+    <string name="package_name">com.liketrek.trek</string>
+    <string name="custom_url_scheme">com.liketrek.trek</string>
+    <!-- Referenced by the FCM default_notification_channel_id meta-data in
+         AndroidManifest.xml. A channel with this exact id must also be created
+         at runtime via PushNotifications.createChannel(). -->
+    <string name="default_notification_channel_id">trek_default</string>
+</resources>
