@@ -125,14 +125,13 @@ describe('RoadtripSidebar', () => {
     wrap(<RoadtripSidebar routes={routes({ days: [day({ stops, schedule })] })} />)
 
     // Both are plain text at the row's edge — no pill, no icon. What separates the time
-    // somebody chose from the one the drive worked out is weight and ink, and the reason
-    // is named for a screen reader either way.
+    // somebody chose from the one the drive worked out is weight and ink. The reason is
+    // named in a tooltip, which only enters the DOM on hover, so the visible difference
+    // is what this pins.
     const pinned = screen.getByText('09:00')
     const computed = screen.getByText('10:30')
     expect(pinned.className).toContain('font-semibold')
-    expect(pinned).toHaveAttribute('title', 'Time you set')
     expect(computed.className).not.toContain('font-semibold')
-    expect(computed).toHaveAttribute('title', 'Calculated from the drive')
   })
 
   it('FE-ROADTRIP-SIDEBAR-005: flags a stop the drive cannot reach in time', () => {
@@ -202,7 +201,9 @@ describe('RoadtripSidebar', () => {
     // Said twice on purpose: once as the break in the chain, once on the arrival after
     // it, where "01:30" would otherwise read as tonight.
     expect(screen.getAllByText('Next day')).toHaveLength(2)
-    expect(screen.getAllByTitle('Calculated from the drive')[1].textContent).toContain('+1')
+    // The day marker rides on the arrival that crossed midnight, where "01:30" would
+    // otherwise read as tonight.
+    expect(screen.getByText('01:30').textContent).toContain('+1')
   })
 
   it('FE-ROADTRIP-SIDEBAR-012: a late arrival past midnight keeps both findings', () => {

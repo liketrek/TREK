@@ -5,6 +5,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { useTranslation } from '../../i18n/TranslationContext'
+import { Tooltip } from '../shared/Tooltip'
 import { useSettingsStore } from '../../store/settingsStore'
 import { formatDistance } from '../../utils/units'
 import { formatDate, formatClockTime } from '../../utils/formatters'
@@ -107,23 +108,22 @@ function OffRoadBadge({ meters }: { meters: number }): React.ReactElement {
   const { t } = useTranslation()
   const distanceUnit = useSettingsStore(s => s.settings.distance_unit)
   return (
-    <span
-      className="inline-flex h-[16px] items-stretch self-start overflow-hidden rounded border border-edge"
-      title={t('roadtrip.stop.offRoad', { distance: formatDistance(meters / 1000, distanceUnit) })}
-    >
-      <span
-        className="flex items-center bg-surface-tertiary px-1 text-content-faint"
-        style={{ fontSize: FS.micro }}
-      >
-        <Footprints size={9} aria-hidden />
+    <Tooltip label={t('roadtrip.stop.offRoad', { distance: formatDistance(meters / 1000, distanceUnit) })}>
+      <span className="inline-flex h-[16px] items-stretch self-start overflow-hidden rounded border border-edge">
+        <span
+          className="flex items-center bg-surface-tertiary px-1 text-content-faint"
+          style={{ fontSize: FS.micro }}
+        >
+          <Footprints size={9} aria-hidden />
+        </span>
+        <span
+          className="flex items-center border-s border-edge bg-surface-card px-1.5 font-semibold tabular-nums text-content-secondary"
+          style={{ fontSize: FS.label }}
+        >
+          {formatDistance(meters / 1000, distanceUnit)}
+        </span>
       </span>
-      <span
-        className="flex items-center border-s border-edge bg-surface-card px-1.5 font-semibold tabular-nums text-content-secondary"
-        style={{ fontSize: FS.label }}
-      >
-        {formatDistance(meters / 1000, distanceUnit)}
-      </span>
-    </span>
+    </Tooltip>
   )
 }
 
@@ -157,24 +157,25 @@ function StayBadge({ minutes, onEdit }: { minutes: number | null; onEdit?: () =>
   // and a button inside a button is invalid HTML that React warns about and that browsers
   // resolve by dropping the inner element.
   return (
-    <span
-      role="button"
-      tabIndex={0}
-      // Stops the click reaching the row, which would select the stop and move the map
-      // out from under the dialog that is about to open.
-      onClick={e => { e.stopPropagation(); onEdit() }}
-      onKeyDown={e => {
-        if (e.key !== 'Enter' && e.key !== ' ') return
-        e.preventDefault()
-        e.stopPropagation()
-        onEdit()
-      }}
-      title={t('roadtrip.stop.stay')}
-      aria-label={text ? `${t('roadtrip.stop.stay')}: ${text}` : t('roadtrip.stay.add')}
-      className={`${shell} cursor-pointer transition-colors hover:border-content-faint`}
-    >
-      {label}{value}
-    </span>
+    <Tooltip label={t('roadtrip.stop.stay')}>
+      <span
+        role="button"
+        tabIndex={0}
+        // Stops the click reaching the row, which would select the stop and move the map
+        // out from under the dialog that is about to open.
+        onClick={e => { e.stopPropagation(); onEdit() }}
+        onKeyDown={e => {
+          if (e.key !== 'Enter' && e.key !== ' ') return
+          e.preventDefault()
+          e.stopPropagation()
+          onEdit()
+        }}
+        aria-label={text ? `${t('roadtrip.stop.stay')}: ${text}` : t('roadtrip.stay.add')}
+        className={`${shell} cursor-pointer transition-colors hover:border-content-faint`}
+      >
+        {label}{value}
+      </span>
+    </Tooltip>
   )
 }
 
@@ -302,11 +303,11 @@ function DriveBand({ leg, onAskAlternatives, alternativesOpen }: {
             the gesture people try first — the shuffle mark stays as the sign that it can
             be clicked, and as where the open state shows. */}
         {onAskAlternatives && leg ? (
+          <Tooltip label={t('roadtrip.alt.ask')}>
           <button
             type="button"
             onClick={onAskAlternatives}
             aria-pressed={alternativesOpen}
-            title={t('roadtrip.alt.ask')}
             className={`group/leg my-1.5 flex w-full items-center gap-1.5 rounded-lg py-1 pe-1 ps-2 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent ${
               alternativesOpen
                 ? 'bg-surface-selected text-content'
@@ -325,6 +326,7 @@ function DriveBand({ leg, onAskAlternatives, alternativesOpen }: {
               <Shuffle size={12} strokeWidth={1.9} aria-label={t('roadtrip.alt.ask')} />
             </span>
           </button>
+          </Tooltip>
         ) : (
           <div className="my-1.5 flex items-center gap-1.5 rounded-lg bg-surface-tertiary py-1 pe-2 ps-2 text-content-muted">
             {band}
@@ -477,15 +479,17 @@ function DriveFindingBadge({ warning }: { warning: ScheduleWarning }): React.Rea
   if (!text) return null
   const Icon = warning.code === 'range' ? Fuel : Clock
   return (
+    <Tooltip label={text}>
     <span
-      className="inline-flex h-[16px] items-stretch self-start overflow-hidden rounded border border-warning-soft"
-      title={text}
+      // The border is the warning colour itself, not its soft tint: at this size a tinted
+      // edge disappears into the card and the badge loses the shell the other two wear.
+      className="inline-flex h-[16px] items-stretch self-start overflow-hidden rounded border border-warning"
     >
       <span className="flex items-center bg-warning-soft px-1 text-warning" style={{ fontSize: FS.micro }}>
         <Icon size={9} aria-hidden />
       </span>
       <span
-        className="flex items-center border-s border-warning-soft bg-surface-card px-1.5 font-semibold tabular-nums text-warning"
+        className="flex items-center border-s border-warning bg-surface-card px-1.5 font-semibold tabular-nums text-warning"
         style={{ fontSize: FS.label }}
       >
         {warning.code === 'range'
@@ -493,6 +497,7 @@ function DriveFindingBadge({ warning }: { warning: ScheduleWarning }): React.Rea
           : `+${formatDurationShort((warning.overMinutes ?? 0) * 60)}`}
       </span>
     </span>
+    </Tooltip>
   )
 }
 
@@ -547,9 +552,9 @@ function Arrival({ entry }: { entry: ScheduleEntry }): React.ReactElement {
   // look like it had a button in it. What is left of the distinction is weight and ink —
   // enough to see which time somebody chose, without a second shape in the rail.
   return (
+    <Tooltip label={entry.anchored ? t('roadtrip.stop.pinned') : t('roadtrip.stop.computed')}>
     <span
       dir="ltr"
-      title={entry.anchored ? t('roadtrip.stop.pinned') : t('roadtrip.stop.computed')}
       // The same line box as the stop name beside it, so the two sit on one line however
       // far apart their sizes are — the row reads across, not in two staggered halves.
       className={`shrink-0 whitespace-nowrap leading-6 tabular-nums ${
@@ -560,6 +565,7 @@ function Arrival({ entry }: { entry: ScheduleEntry }): React.ReactElement {
       {text}
       {carry}
     </span>
+    </Tooltip>
   )
 }
 
@@ -641,15 +647,16 @@ function Stop({ stop, number, entry, late, driveFindings, selected, continues, o
             {(driveFindings ?? []).map(w => <DriveFindingBadge key={w.code} warning={w} />)}
           </span>
           {lateText ? (
-            <span
-              dir="ltr"
-              title={lateText}
-              className="mt-0.5 inline-flex w-fit items-center gap-1 self-start rounded-full bg-warning-soft px-1.5 py-0.5 font-semibold tabular-nums text-warning"
-              style={{ fontSize: FS.label }}
-            >
-              <AlertTriangle size={10} className="shrink-0" aria-label={lateText} />
-              {`+${formatDurationShort((late?.minutes ?? 0) * 60)}`}
-            </span>
+            <Tooltip label={lateText}>
+              <span
+                dir="ltr"
+                className="mt-0.5 inline-flex w-fit items-center gap-1 self-start rounded-full bg-warning-soft px-1.5 py-0.5 font-semibold tabular-nums text-warning"
+                style={{ fontSize: FS.label }}
+              >
+                <AlertTriangle size={10} className="shrink-0" aria-label={lateText} />
+                {`+${formatDurationShort((late?.minutes ?? 0) * 60)}`}
+              </span>
+            </Tooltip>
           ) : null}
         </span>
         {entry?.arrival ? <Arrival entry={entry} /> : null}
@@ -720,16 +727,14 @@ function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, on
             })}
           </span>
           {day.dayWarning ? (
-            <span
-              className={`${DAY_BADGE} bg-warning-soft text-warning`}
-              style={{ fontSize: FS.label }}
-              title={t('roadtrip.limit.hint')}
-            >
-              <AlertTriangle size={10} className="shrink-0" aria-hidden />
-              {t('roadtrip.limit.dayOver', {
-                time: formatDurationShort((day.dayWarning.minutes - day.dayWarning.limitMinutes) * 60),
-              })}
-            </span>
+            <Tooltip label={t('roadtrip.limit.hint')}>
+              <span className={`${DAY_BADGE} gap-1 bg-warning-soft text-warning`} style={{ fontSize: FS.label }}>
+                <AlertTriangle size={10} className="shrink-0" aria-hidden />
+                {t('roadtrip.limit.dayOver', {
+                  time: formatDurationShort((day.dayWarning.minutes - day.dayWarning.limitMinutes) * 60),
+                })}
+              </span>
+            </Tooltip>
           ) : null}
           <span className={`${DAY_BADGE} bg-surface-tertiary`} style={{ fontSize: FS.label }}>
             {t('roadtrip.day.stopCount', { count: day.stops.filter(s => !isServiceStopType(s.stopType)).length })}

@@ -4,6 +4,7 @@ import {
   AlertTriangle, MapPin, X, type LucideIcon,
 } from 'lucide-react'
 import { useTranslation } from '../../i18n/TranslationContext'
+import { Tooltip } from '../shared/Tooltip'
 import { useSettingsStore } from '../../store/settingsStore'
 import { formatDistance } from '../../utils/units'
 import CustomSelect from '../shared/CustomSelect'
@@ -89,15 +90,16 @@ function ResultRow({ poi, onAdd }: { poi: CorridorPoi; onAdd?: () => void }): Re
       {/* Always there, quiet until the row is under the pointer: a button that only
           exists on hover is one a keyboard user has to find by faith. */}
       {onAdd ? (
-        <button
-          type="button"
-          onClick={onAdd}
-          aria-label={t('roadtrip.poi.add')}
-          title={t('roadtrip.poi.add')}
-          className="grid h-[26px] w-[26px] shrink-0 place-items-center rounded-lg text-content-faint transition-colors hover:bg-accent hover:text-accent-text focus-visible:bg-accent focus-visible:text-accent-text focus-visible:outline-none"
-        >
-          <Plus size={15} strokeWidth={2.2} aria-hidden />
-        </button>
+        <Tooltip label={t('roadtrip.poi.add')}>
+          <button
+            type="button"
+            onClick={onAdd}
+            aria-label={t('roadtrip.poi.add')}
+            className="grid h-[26px] w-[26px] shrink-0 place-items-center rounded-lg text-content-faint transition-colors hover:bg-accent hover:text-accent-text focus-visible:bg-accent focus-visible:text-accent-text focus-visible:outline-none"
+          >
+            <Plus size={15} strokeWidth={2.2} aria-hidden />
+          </button>
+        </Tooltip>
       ) : null}
     </li>
   )
