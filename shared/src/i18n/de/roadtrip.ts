@@ -29,6 +29,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.limit.legOver': '{time} über deiner längsten Fahrt',
   'roadtrip.limit.dayOver': '{time} drüber',
   'roadtrip.limit.range': '{distance} seit dem letzten Tanken',
+  'roadtrip.limit.none': 'Keine gesetzt',
   'roadtrip.poi.rest': 'Rastplatz',
   'roadtrip.poi.campsite': 'Campingplatz',
   'roadtrip.poi.food': 'Essen',

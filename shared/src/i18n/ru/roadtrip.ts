@@ -29,6 +29,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.limit.legOver': 'на {time} дольше вашего перегона',
   'roadtrip.limit.dayOver': 'на {time} больше',
   'roadtrip.limit.range': '{distance} с последней заправки',
+  'roadtrip.limit.none': 'Не заданы',
   'roadtrip.poi.rest': 'Зона отдыха',
   'roadtrip.poi.campsite': 'Кемпинг',
   'roadtrip.poi.food': 'Еда',

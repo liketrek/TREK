@@ -29,6 +29,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.limit.legOver': 'vượt {time} so với chặng dài nhất',
   'roadtrip.limit.dayOver': 'vượt {time}',
   'roadtrip.limit.range': '{distance} kể từ lần đổ nhiên liệu cuối',
+  'roadtrip.limit.none': 'Chưa đặt',
   'roadtrip.poi.rest': 'Trạm dừng nghỉ',
   'roadtrip.poi.campsite': 'Khu cắm trại',
   'roadtrip.poi.food': 'Đồ ăn',

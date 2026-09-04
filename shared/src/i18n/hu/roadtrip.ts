@@ -29,6 +29,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.limit.legOver': '{time} a leghosszabb vezetésed felett',
   'roadtrip.limit.dayOver': '{time} túl',
   'roadtrip.limit.range': '{distance} az utolsó tankolás óta',
+  'roadtrip.limit.none': 'Nincs beállítva',
   'roadtrip.poi.rest': 'Pihenőhely',
   'roadtrip.poi.campsite': 'Kemping',
   'roadtrip.poi.food': 'Étkezés',

@@ -29,6 +29,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.limit.legOver': '連続運転の上限を{time}超過',
   'roadtrip.limit.dayOver': '{time}超過',
   'roadtrip.limit.range': '前回の給油から{distance}',
+  'roadtrip.limit.none': '未設定',
   'roadtrip.poi.rest': 'サービスエリア',
   'roadtrip.poi.campsite': 'キャンプ場',
   'roadtrip.poi.food': '食事',

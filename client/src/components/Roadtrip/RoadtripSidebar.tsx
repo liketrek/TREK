@@ -96,6 +96,37 @@ const DAY_BADGE = 'inline-flex h-[20px] items-center rounded-lg px-2 font-geist 
  * Read-only for someone who cannot edit the trip: then it is a label, and a stop without
  * a stay shows nothing at all rather than an invitation that leads nowhere.
  */
+/**
+ * How far the road stops short of the place, in the same two-part shell the stay wears.
+ *
+ * Beside the stay rather than under it: both answer "what does this stop cost you", one
+ * in time and one in a walk, and two badges on one line read as one fact about the stop
+ * instead of two unrelated notes stacked up.
+ */
+function OffRoadBadge({ meters }: { meters: number }): React.ReactElement {
+  const { t } = useTranslation()
+  const distanceUnit = useSettingsStore(s => s.settings.distance_unit)
+  return (
+    <span
+      className="inline-flex h-[16px] items-stretch self-start overflow-hidden rounded border border-edge"
+      title={t('roadtrip.stop.offRoad', { distance: formatDistance(meters / 1000, distanceUnit) })}
+    >
+      <span
+        className="flex items-center bg-surface-tertiary px-1 text-content-faint"
+        style={{ fontSize: FS.micro }}
+      >
+        <Footprints size={9} aria-hidden />
+      </span>
+      <span
+        className="flex items-center border-s border-edge bg-surface-card px-1.5 font-semibold tabular-nums text-content-secondary"
+        style={{ fontSize: FS.label }}
+      >
+        {formatDistance(meters / 1000, distanceUnit)}
+      </span>
+    </span>
+  )
+}
+
 function StayBadge({ minutes, onEdit }: { minutes: number | null; onEdit?: () => void }): React.ReactElement | null {
   const { t } = useTranslation()
   const text = minutes ? formatDurationShort(minutes * 60) : null
@@ -591,19 +622,14 @@ function Stop({ stop, number, entry, late, selected, continues, onSelect, onMove
           </span>
           {/* Two halves under one border: the word says what the number means, so the
               number needs no unit of explanation beside it. */}
-          <StayBadge minutes={stop.dwellMinutes} onEdit={onEditStay} />
-          {/* Only when the walk is far enough to change the plan. A dashed line on the
-              map already says there is a gap; the number is for the case where the gap
-              means luggage, a gate or a track a hire car should not be on. */}
-          {spurWorthLabelling(stop.offRoadMeters) ? (
-            <span
-              className="mt-0.5 inline-flex w-fit items-center gap-1 self-start text-content-faint"
-              style={{ fontSize: FS.label }}
-            >
-              <Footprints size={10} className="shrink-0" aria-hidden />
-              {t('roadtrip.stop.offRoad', { distance: formatDistance((stop.offRoadMeters ?? 0) / 1000, distanceUnit) })}
-            </span>
-          ) : null}
+          {/* One row, wrapping: the stay and the walk from the road are both answers to
+              "what does this stop cost", and the second only appears when the gap is far
+              enough to change the plan. The dashed line on the map already says there is
+              one; the number is for luggage, a gate, a track a hire car should not be on. */}
+          <span className="flex flex-wrap items-center gap-1">
+            <StayBadge minutes={stop.dwellMinutes} onEdit={onEditStay} />
+            {spurWorthLabelling(stop.offRoadMeters) ? <OffRoadBadge meters={stop.offRoadMeters ?? 0} /> : null}
+          </span>
           {lateText ? (
             <span
               dir="ltr"
