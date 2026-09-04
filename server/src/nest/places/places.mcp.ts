@@ -21,6 +21,7 @@ import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import { DatabaseService } from '../database/database.service';
 import { MapsService } from '../maps/maps.service';
 import { PlacesService } from './places.service';
+import { isDirectionsUrl } from './maps-dir.helpers';
 
 function parseId(value: string | string[]): number | null {
   const n = Number(Array.isArray(value) ? value[0] : value);
@@ -317,7 +318,7 @@ export class PlacesMcp {
     description: 'Import places from a shared Google Maps or Naver Maps list URL. Returns the imported places and count. The list must be shared publicly.',
     inputSchema: {
       tripId: z.number().int().positive(),
-      url: z.string().url().describe('Publicly shared Google Maps list URL (maps.app.goo.gl/...) or Naver Maps list URL'),
+      url: z.string().url().describe('Publicly shared Google Maps list URL, a Google Maps directions link (/maps/dir/...), or a Naver Maps list URL. A directions link is read straight out of the URL: its stops become places in driving order, and the ones written as names are geocoded.'),
       source: z.enum(['google-list', 'naver-list']).describe('List source: "google-list" for Google Maps saved places, "naver-list" for Naver Maps'),
       enrich: placeImportListRequestSchema.shape.enrich.describe('Re-resolve every imported place through the Places API afterwards to fill in photo, address, website and phone (#886). Needs a Google Maps key on the instance, costs a lookup per place, and runs in the background: the tool returns the bare import and the places fill in over the websocket. Off by default'),
     },
@@ -336,7 +337,9 @@ export class PlacesMcp {
     // user because it spends that user's Places credential.
     const opts = { enrich: enrich ?? false, userId: ctx.userId };
     const result = source === 'google-list'
-      ? await this.places.importGoogleList(String(tripId), url, opts)
+      ? (isDirectionsUrl(url)
+        ? await this.places.importGoogleDirections(String(tripId), url, opts)
+        : await this.places.importGoogleList(String(tripId), url, opts))
       : await this.places.importNaverList(String(tripId), url, opts);
 
     if ('error' in result) {

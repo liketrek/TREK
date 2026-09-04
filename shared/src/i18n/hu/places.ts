@@ -34,6 +34,7 @@ const places: TranslationStrings = {
   'places.importGoogleList': 'Google Lista',
   'places.importNaverList': 'Naver Lista',
   'places.googleListHint': 'Illessz be egy megosztott Google Maps lista linket az osszes hely importalasahoz.',
+  'places.googleDirHint': 'Egy útvonal-hivatkozás is jó: megállói helyekké válnak, haladási sorrendben.',
   'places.googleListImported': '{count} hely importalva a(z) "{list}" listabol',
   'places.googleListError': 'Google Maps lista importalasa sikertelen',
   'places.naverListHint': 'Illessz be egy megosztott Naver Maps lista linket az összes hely importálásához.',

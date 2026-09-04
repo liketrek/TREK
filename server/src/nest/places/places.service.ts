@@ -6,7 +6,8 @@ import { RealtimeService } from '../realtime/realtime.service';
 import { DatabaseService, type TripAccess } from '../database/database.service';
 import type { PlaceWithTags } from '../database/database.service';
 import { PermissionsService } from '../permissions/permissions.service';
-import { MapsService } from '../maps/maps.service';
+import { MapsService, GOOGLE_SHORT_HOSTS, isGoogleMapsHost } from '../maps/maps.service';
+import { parseDirectionsUrl } from './maps-dir.helpers';
 import type { Place, User } from '../../types';
 import { QueryHelpersService } from '../query-helpers/query-helpers.service';
 import { ratingAggregate } from '../common/rowShape';
@@ -1033,6 +1034,26 @@ export class PlacesService {
       return { error: 'No places with coordinates found in list', status: 400 };
     }
 
+    const { created, skipped } = this.storeGooglePlaces(tripId, places);
+
+    if (created.length) {
+      void this.enrichImportedList(tripId, created as EnrichablePlace[], opts);
+    }
+
+    return { places: created, listName, skipped };
+  }
+
+  /**
+   * The insert half every Google-shaped import shares: dedupe, write, collect.
+   *
+   * One implementation for the list and for the directions link, because the rules are
+   * the same rules — a place already on the trip is skipped rather than doubled, and a
+   * row that matches but carries no provider id is given the one this import knows.
+   */
+  private storeGooglePlaces(
+    tripId: string,
+    places: { name: string; lat: number; lng: number; notes: string | null; googleFtid: string | null }[],
+  ): { created: PlaceWithTags[]; skipped: number } {
     const dedup = this.buildDedupSet(tripId);
     const insertStmt = this.dbs.prepare(`
     INSERT INTO places (trip_id, name, lat, lng, notes, google_ftid, transport_mode)
@@ -1063,12 +1084,103 @@ export class PlacesService {
         trackInsertedInDedupSet(candidate, dedup);
       }
     });
+    return { created, skipped };
+  }
 
+  // -------------------------------------------------------------------------
+  // Import a shared Google Maps directions link
+  // -------------------------------------------------------------------------
+
+  /**
+   * The stops of a route somebody else planned.
+   *
+   * The other half of the request the list import answers: people share a drive far more
+   * often than they share a list, and until now a pasted `/maps/dir/` link came back as a
+   * cryptic "could not extract list ID". No API key is involved and no call is made to
+   * Google for the link itself — the stops are in the URL, which is the whole reason
+   * this is possible at all.
+   *
+   * A stop the link spells out in coordinates is taken as it stands; one that is only a
+   * name is geocoded, one request each. A name nobody can place is left out rather than
+   * failing the import, because a route of six stops with five findable is five stops
+   * more than the traveller had.
+   */
+  async importGoogleDirections(tripId: string, url: string, opts?: ListImportOptions): Promise<ListImportResult | ListImportError> {
+    const ssrf = await checkSsrf(url);
+    if (!ssrf.allowed) return { error: 'URL is not allowed', status: 400 };
+
+    let parsed: URL;
+    try { parsed = new URL(url); } catch { return { error: 'Invalid URL', status: 400 }; }
+
+    // Short links are resolved hop by hop through the guard, exactly as the list import
+    // does it: a maps.app.goo.gl that 302s to an internal address is still blocked.
+    let resolvedUrl = url;
+    if (GOOGLE_SHORT_HOSTS.includes(parsed.hostname)) {
+      try {
+        const redirectRes = await safeFetchFollow(url, { signal: AbortSignal.timeout(10000) });
+        resolvedUrl = redirectRes.url;
+      } catch (err) {
+        if (err instanceof SsrfBlockedError) return { error: 'URL is not allowed', status: 400 };
+        throw err;
+      }
+    }
+
+    // Checked after resolving, not before: the host that counts is the one the link lands
+    // on, and `/maps/dir/` is a path anybody could serve.
+    let host = '';
+    try { host = new URL(resolvedUrl).hostname; } catch { /* an unparseable hop fails the check below */ }
+    if (!isGoogleMapsHost(host)) {
+      return { error: 'That link is not a Google Maps link.', status: 400 };
+    }
+
+    const waypoints = parseDirectionsUrl(resolvedUrl);
+    if (waypoints.length < 2) {
+      return { error: 'Could not read any stops from that directions link. Open the route in Google Maps and use its Share button.', status: 400 };
+    }
+
+    const places: { name: string; lat: number; lng: number; notes: string | null; googleFtid: string | null }[] = [];
+    let unplaceable = 0;
+    for (const wp of waypoints) {
+      if (wp.lat !== null && wp.lng !== null) {
+        // A stop written as coordinates has no name of its own, and the coordinates are a
+        // better label than "Stop 3": they are what the traveller can look up.
+        places.push({
+          name: wp.name || `${wp.lat.toFixed(5)}, ${wp.lng.toFixed(5)}`,
+          lat: wp.lat,
+          lng: wp.lng,
+          notes: null,
+          googleFtid: null,
+        });
+        continue;
+      }
+      if (!wp.name) continue;
+      try {
+        const hits = await this.maps.searchNominatim(wp.name);
+        const hit = hits.find((h) => h.lat !== null && h.lng !== null);
+        // The name from the link, not the one the geocoder answers with: somebody who
+        // typed a nickname into Google should not find a street address on their trip.
+        if (hit) places.push({ name: wp.name, lat: hit.lat!, lng: hit.lng!, notes: null, googleFtid: null });
+        else unplaceable++;
+      } catch {
+        // A geocoder that is down or rate-limited costs this one stop, not the import.
+        unplaceable++;
+      }
+    }
+
+    if (places.length < 2) {
+      return { error: 'None of the stops in that link could be placed on the map.', status: 400 };
+    }
+
+    const { created, skipped } = this.storeGooglePlaces(tripId, places);
     if (created.length) {
       void this.enrichImportedList(tripId, created as EnrichablePlace[], opts);
     }
 
-    return { places: created, listName, skipped };
+    // The route reads as what it is in the toast: where it starts and where it ends.
+    const listName = `${places[0].name} → ${places[places.length - 1].name}`;
+    // Both kinds of "not added" under one number, because from the traveller's side they
+    // are one thing: this many stops in the link are not on the trip.
+    return { places: created, listName, skipped: skipped + unplaceable };
   }
 
   // -------------------------------------------------------------------------

@@ -34,6 +34,7 @@ const places: TranslationStrings = {
   'places.importGoogleList': 'Google-lista',
   'places.importNaverList': 'Naver-lista',
   'places.googleListHint': 'Klistra in en länk till en delad lista i Google Maps för att importera alla platser.',
+  'places.googleDirHint': 'En vägbeskrivningslänk fungerar också: dess stopp blir platser, i körordning.',
   'places.googleListImported': '{count} platser som importerats från "{list}"',
   'places.googleListError': 'Det gick inte att importera listan från Google Maps',
   'places.naverListHint': 'Klistra in en länk till en delad lista på Naver Maps för att importera alla platser.',

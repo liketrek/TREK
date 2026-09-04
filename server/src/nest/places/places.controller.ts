@@ -24,6 +24,7 @@ import { memoryStorage } from 'multer';
 import { hexColorSchema, placeImageUrlSchema, placeWebsiteSchema } from '@trek/shared';
 import type { User } from '../../types';
 import { PlacesService } from './places.service';
+import { isDirectionsUrl } from './maps-dir.helpers';
 import { isUpdateConflict } from '../common/conflictResult';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
@@ -274,9 +275,15 @@ export class PlacesController {
     const opts = { enrich: parseBool(enrich, false), userId: user.id };
     const label = provider === 'google' ? 'Google' : 'Naver';
     try {
-      const result = provider === 'google'
-        ? await this.places.importGoogleList(tripId, url, opts)
-        : await this.places.importNaverList(tripId, url, opts);
+      // A directions link and a list link arrive through the same box because they are
+      // the same gesture: somebody pressed Share in Google Maps. Which screen they were
+      // on is the URL's business, not the traveller's, and answering a pasted route with
+      // "could not extract list ID" was the whole of the complaint.
+      const result = provider !== 'google'
+        ? await this.places.importNaverList(tripId, url, opts)
+        : isDirectionsUrl(url)
+          ? await this.places.importGoogleDirections(tripId, url, opts)
+          : await this.places.importGoogleList(tripId, url, opts);
       if ('error' in result) {
         throw new HttpException({ error: result.error }, result.status);
       }

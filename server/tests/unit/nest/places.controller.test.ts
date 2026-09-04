@@ -190,6 +190,29 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
       expect(importGoogleList).toHaveBeenCalledWith('5', 'http://x', { enrich: true, userId: 1 });
       expect(broadcast).toHaveBeenCalledTimes(2);
     });
+    it('sends a directions link to the directions importer, not to the list one', async () => {
+      // Same box, same gesture: somebody pressed Share in Google Maps, and which screen
+      // they were on is the URL's business rather than the traveller's.
+      const importGoogleDirections = vi.fn().mockResolvedValue({ places: [{ id: 9 }], listName: 'Berlin → Prague', skipped: 1 });
+      const importGoogleList = vi.fn();
+      const s = svc({ importGoogleDirections, importGoogleList, broadcast: vi.fn() } as Partial<PlacesService>);
+      const url = 'https://www.google.com/maps/dir/Berlin/Dresden/Prague';
+
+      expect(await new PlacesController(s, new RuntimeEnvService(), storageStub).importGoogle(user, '5', { url })).toEqual({
+        places: [{ id: 9 }], count: 1, listName: 'Berlin → Prague', skipped: 1,
+      });
+      expect(importGoogleDirections).toHaveBeenCalledWith('5', url, { enrich: false, userId: 1 });
+      expect(importGoogleList).not.toHaveBeenCalled();
+    });
+    it('leaves a list link with the list importer', async () => {
+      const importGoogleDirections = vi.fn();
+      const importGoogleList = vi.fn().mockResolvedValue({ places: [], listName: 'L', skipped: 0 });
+      const s = svc({ importGoogleDirections, importGoogleList, broadcast: vi.fn() } as Partial<PlacesService>);
+
+      await new PlacesController(s, new RuntimeEnvService(), storageStub).importGoogle(user, '5', { url: 'https://maps.app.goo.gl/abc' });
+      expect(importGoogleList).toHaveBeenCalled();
+      expect(importGoogleDirections).not.toHaveBeenCalled();
+    });
     it('wraps a thrown Error in the provider-specific 400 (Google)', async () => {
       const s = svc({ importGoogleList: vi.fn().mockRejectedValue(new Error('network down')) } as Partial<PlacesService>);
       expect(await thrownAsync(() => new PlacesController(s, new RuntimeEnvService(), storageStub).importGoogle(user, '5', { url: 'http://x' }))).toEqual({

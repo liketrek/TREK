@@ -349,7 +349,7 @@ interface GooglePlaceDetails extends GooglePlaceResult {
 // unbounded body out of memory.
 const MAX_MAPS_PAGE_BYTES = 2_000_000;
 
-const GOOGLE_SHORT_HOSTS = ['goo.gl', 'maps.app.goo.gl'];
+export const GOOGLE_SHORT_HOSTS = ['goo.gl', 'maps.app.goo.gl'];
 
 /**
  * Google Maps lives on every country domain — google.de, maps.google.co.uk,
@@ -358,7 +358,7 @@ const GOOGLE_SHORT_HOSTS = ['goo.gl', 'maps.app.goo.gl'];
  * labels stay short (2-3 letters, optionally two of them) so that
  * `google.evil.com` is not a Google host.
  */
-function isGoogleMapsHost(hostname: string): boolean {
+export function isGoogleMapsHost(hostname: string): boolean {
   return GOOGLE_SHORT_HOSTS.includes(hostname)
     || /^(www\.|maps\.)?google\.[a-z]{2,3}(\.[a-z]{2})?$/.test(hostname);
 }

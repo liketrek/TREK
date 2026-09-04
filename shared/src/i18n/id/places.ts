@@ -33,6 +33,7 @@ const places: TranslationStrings = {
   'places.importGoogleList': 'Daftar Google',
   'places.importNaverList': 'Daftar Naver',
   'places.googleListHint': 'Tempel tautan daftar Google Maps yang dibagikan untuk mengimpor semua tempat.',
+  'places.googleDirHint': 'Tautan rute juga bisa: perhentiannya menjadi tempat, sesuai urutan berkendara.',
   'places.googleListImported': '{count} tempat diimpor dari "{list}"',
   'places.googleListError': 'Gagal mengimpor daftar Google Maps',
   'places.naverListHint': 'Tempel tautan daftar Naver Maps yang dibagikan untuk mengimpor semua tempat.',
