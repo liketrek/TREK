@@ -1024,6 +1024,10 @@ describe('useTripPlanner — add place entry points', () => {
 
     expect(result.current.prefillCoords).toEqual({
       lat: 1, lng: 2, name: 'Cafe', address: '', website: undefined, phone: undefined, osm_id: 'node/1',
+      // A marker with no category behind it is an ordinary place, and the form is told so
+      // rather than left to guess: `stop_type` is write-once on the server, so an absent
+      // field and an explicit "not a service stop" are different answers.
+      stop_type: null, duration_minutes: undefined,
     })
     expect(result.current.showPlaceForm).toBe(true)
     expect(mapsApi.reverse).not.toHaveBeenCalled()

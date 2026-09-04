@@ -150,6 +150,8 @@ function baseState(): HookState {
     roadtripActive: false,
     roadtripRoutes: { lines: [], segments: [], days: [], loading: false, totalStops: 0 },
     roadtripCorridor: { visible: [], day: null, dayId: '', setDayId: vi.fn(), categories: [], toggleCategory: vi.fn(), widthKm: 5, setWidthKm: vi.fn(), search: vi.fn(), nameFilter: '', setNameFilter: vi.fn(), insertIndexFor: vi.fn() },
+    followTrack: { dayId: null, open: vi.fn(), close: vi.fn(), tracks: [], busy: false, round: 0, error: null, outcome: null, apply: vi.fn(), clear: vi.fn(), viaCount: 0, available: false },
+    roadtripViaCounts: {},
     stopDraft: null,
     setStopDraft: vi.fn(),
     saveStopDraft: vi.fn(async () => undefined),

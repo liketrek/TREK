@@ -73,6 +73,7 @@ const RoadtripCorridorPanel = lazyWithRetry(() => import('../components/Roadtrip
 const RoadtripLimitsCard = lazyWithRetry(() => import('../components/Roadtrip/RoadtripLimitsCard'))
 const RoadtripStopPopup = lazyWithRetry(() => import('../components/Roadtrip/RoadtripStopPopup'))
 const RoadtripStayModal = lazyWithRetry(() => import('../components/Roadtrip/RoadtripStayModal'))
+const RoadtripTrackModal = lazyWithRetry(() => import('../components/Roadtrip/RoadtripTrackModal'))
 const RoadtripAlternativesBar = lazyWithRetry(() => import('../components/Roadtrip/RoadtripAlternativesBar'))
 // Already rendered conditionally, so lazy bites immediately. Worth it beyond its
 // own 63 kB: it is the only path to TransitSearchPanel, which drags in tz-lookup
@@ -252,6 +253,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
     pushUndo, undo, canUndo, lastActionLabel, handleUndo,
     enabledAddons, collabFeatures, tripAccommodations, setTripAccommodations,
     roadtripMode, toggleRoadtripMode, roadtripActive, roadtripRoutes, roadtripCorridor,
+    followTrack, roadtripViaCounts,
     allowedFileTypes, tripMembers, setTripMembers, refreshMembers, loadAccommodations,
     TRANSPORT_TYPES, TRIP_TABS, activeTab, setActiveTab, handleTabChange,
     leftWidth, rightWidth, leftCollapsed, rightCollapsed, setLeftCollapsed, setRightCollapsed, startResizeLeft, startResizeRight,
@@ -520,6 +522,8 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
                       openAlternatives={routeAlternatives.open}
                       onEditStay={can('place_edit', trip) ? setStayDraft : undefined}
                       onSetStopKind={can('place_edit', trip) ? setRoadtripStopKind : undefined}
+                      onFollowTrack={can('day_edit', trip) && followTrack.available ? followTrack.open : undefined}
+                      viaCounts={roadtripViaCounts}
                     />
                   </LazyPanel>
                 ) : (
@@ -923,6 +927,16 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
           draft exists, so the chunk stays unloaded for anyone not using road trip mode. */}
       {/* How long a stop takes. Its own gate, not the corridor draft's: a stay is set on
           any stop of the trip, not only on something just found along the route. */}
+      {/* Which track a day drives along. Mounted only while it is open, so the chunk and
+          the parsing of every imported line stay out of an ordinary planner session. */}
+      {followTrack.dayId !== null && (
+        <LazyPanel id="roadtrip-track">
+          <RoadtripTrackModal
+            follow={followTrack}
+            dayNumber={roadtripRoutes.days.find(d => d.dayId === followTrack.dayId)?.dayNumber ?? 0}
+          />
+        </LazyPanel>
+      )}
       {stayDraft && (
         <LazyPanel id="roadtrip-stay">
           <RoadtripStayModal stop={stayDraft} onClose={() => setStayDraft(null)} onSave={setRoadtripStay} />

@@ -24,6 +24,7 @@ import { useRouteCalculation } from '../../hooks/useRouteCalculation'
 import { useRoadtripRoutes } from '../../components/Roadtrip/useRoadtripRoutes'
 import { useRoadtripCorridor } from '../../components/Roadtrip/useRoadtripCorridor'
 import { useRoadtripVias } from '../../components/Roadtrip/useRoadtripVias'
+import { useFollowTrack } from '../../components/Roadtrip/useFollowTrack'
 import { useRouteAlternatives } from '../../components/Roadtrip/useRouteAlternatives'
 import { buildAlternativeOverlays } from '../../components/Roadtrip/alternativeOverlays'
 import type { CorridorPoi } from '../../components/Roadtrip/useCorridorPois'
@@ -542,6 +543,16 @@ export function useTripPlanner() {
   )
   // Lives here rather than in the panel because the map draws what it finds.
   const roadtripCorridor = useRoadtripCorridor(roadtripRoutes)
+  // Applying a track is a long job — a routing round trip per refinement — so it lives
+  // above the dialog: a component that unmounted halfway would leave the day holding
+  // half a chain of vias.
+  const followTrack = useFollowTrack(tripId, places, roadtripRoutes, roadtripVias)
+  /** How many vias each day carries, for the rail's badge. */
+  const roadtripViaCounts = useMemo(() => {
+    const counts: Record<number, number> = {}
+    for (const [dayId, list] of Object.entries(roadtripVias.byDay)) counts[Number(dayId)] = list.length
+    return counts
+  }, [roadtripVias.byDay])
 
   const handleSelectDay = useCallback((dayId: number | null, skipFit?: boolean) => {
     tripActions.setSelectedDay(dayId)
@@ -1693,6 +1704,7 @@ export function useTripPlanner() {
     pushUndo, undo, canUndo, lastActionLabel, handleUndo,
     enabledAddons, collabFeatures, tripAccommodations, setTripAccommodations,
     roadtripMode, toggleRoadtripMode, roadtripActive, roadtripRoutes, roadtripCorridor,
+    followTrack, roadtripViaCounts,
     allowedFileTypes, tripMembers, setTripMembers, refreshMembers, loadAccommodations,
     TRANSPORT_TYPES, TRIP_TABS, activeTab, setActiveTab, handleTabChange,
     leftWidth, rightWidth, leftCollapsed, rightCollapsed, setLeftCollapsed, setRightCollapsed, startResizeLeft, startResizeRight,

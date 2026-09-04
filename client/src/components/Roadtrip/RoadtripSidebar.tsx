@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import {
   MapPin, CarFront, Footprints, Bike, Zap, AlertTriangle, Moon,
-  ParkingSquare, Shuffle, Fuel, Clock,
+  ParkingSquare, Shuffle, Fuel, Clock, Spline,
   type LucideIcon,
 } from 'lucide-react'
 import { useTranslation } from '../../i18n/TranslationContext'
@@ -46,6 +46,20 @@ interface RoadtripSidebarProps {
    * Absent leaves every disc read-only, which is also what a viewer sees.
    */
   onSetStopKind?: (placeId: number, kind: RoadtripStopType | null) => Promise<void> | void
+  /**
+   * Opens the dialog that makes a day follow an imported track (#1797).
+   *
+   * Absent leaves the rail read-only on that count, which is also what a viewer sees.
+   */
+  onFollowTrack?: (dayId: number) => void
+  /**
+   * How many vias each day carries, so a day whose shape was chosen by hand says so.
+   *
+   * A count rather than the points: the rail draws none of them — they are the router's
+   * business — but "this drive is not the one the router would have picked" is exactly
+   * what somebody reading the day needs to know.
+   */
+  viaCounts?: Record<number, number>
 }
 
 const MODE_ICON: Record<string, LucideIcon> = {
@@ -745,7 +759,7 @@ function Stop({ stop, number, entry, late, driveFindings, selected, continues, s
  * (`dayOrderMap` numbers the selected day's assignments from 1). A rail counting across
  * the trip would put "17" beside a pin the map calls "3".
  */
-function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, onMoveStopToDay, drag, onAskAlternatives, openAlternatives, onEditStay, onSetStopKind }: {
+function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, onMoveStopToDay, drag, onAskAlternatives, openAlternatives, onEditStay, onSetStopKind, onFollowTrack, viaCount }: {
   day: RoadtripDay
   selectedAssignmentId?: number | null
   onSelectStop?: (placeId: number, assignmentId: number) => void
@@ -757,6 +771,8 @@ function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, on
   openAlternatives?: RoadtripSidebarProps['openAlternatives']
   onEditStay?: RoadtripSidebarProps['onEditStay']
   onSetStopKind?: RoadtripSidebarProps['onSetStopKind']
+  onFollowTrack?: RoadtripSidebarProps['onFollowTrack']
+  viaCount?: number
 }): React.ReactElement {
   const { from, setFrom, dropAt, setDropAt } = drag
   const dragging = from?.dayId === day.dayId ? from.index : null
@@ -816,6 +832,25 @@ function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, on
           <span className={`${DAY_BADGE} bg-surface-tertiary`} style={{ fontSize: FS.label }}>
             {t('roadtrip.day.stopCount', { count: day.stops.filter(s => !isServiceStopType(s.stopType)).length })}
           </span>
+          {/* Among the day's facts rather than beside its title, because "which road this
+              day takes" is one of them. Tinted once the day carries vias: the rail draws
+              none of them, so this badge is the only place a drive shaped by hand differs
+              from one the router picked on its own. */}
+          {onFollowTrack ? (
+            <Tooltip label={t('roadtrip.track.hint')}>
+              <button
+                type="button"
+                onClick={() => onFollowTrack(day.dayId)}
+                className={`${DAY_BADGE} gap-1 transition-colors hover:text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+                  viaCount ? 'bg-accent-subtle text-content' : 'bg-surface-tertiary hover:bg-surface-hover'
+                }`}
+                style={{ fontSize: FS.label }}
+              >
+                <Spline size={10} className="shrink-0" aria-hidden />
+                {t('roadtrip.track.badge')}
+              </button>
+            </Tooltip>
+          ) : null}
         </div>
       </header>
       {/* One list item per stop, with the drive that follows it inside — the chain is a
@@ -994,7 +1029,7 @@ function QuietDaySection({ day, onMoveStopToDay, drag }: {
  */
 export default function RoadtripSidebar({
   routes, selectedAssignmentId, onSelectStop, onReorderStop, onMoveStopToDay, onAskAlternatives, openAlternatives, onEditStay,
-  onSetStopKind,
+  onSetStopKind, onFollowTrack, viaCounts,
 }: RoadtripSidebarProps): React.ReactElement {
   const { t } = useTranslation()
   // One drag state for the whole rail rather than one per day: a stop that cannot leave
@@ -1037,6 +1072,8 @@ export default function RoadtripSidebar({
             openAlternatives={openAlternatives}
             onEditStay={onEditStay}
             onSetStopKind={onSetStopKind}
+            onFollowTrack={onFollowTrack}
+            viaCount={viaCounts?.[day.dayId] ?? 0}
           />
         ))}
         {routes.quietDays.map(day => (

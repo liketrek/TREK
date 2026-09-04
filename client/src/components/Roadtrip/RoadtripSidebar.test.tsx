@@ -509,6 +509,34 @@ describe('RoadtripSidebar', () => {
 
     expect(screen.getByLabelText(/0 min/)).toBeInTheDocument()
   })
+
+  it('FE-ROADTRIP-SIDEBAR-018: the track badge is a viewer-free control, and it says when a day is shaped', () => {
+    const onFollowTrack = vi.fn()
+    const stops = [stop({ assignmentId: 1, name: 'Hamburg' }), stop({ assignmentId: 2, name: 'Berlin' })]
+    const { rerender } = wrap(
+      <RoadtripSidebar routes={routes({ days: [day({ stops })] })} onFollowTrack={onFollowTrack} viaCounts={{ 1: 4 }} />,
+    )
+
+    const badge = screen.getByRole('button', { name: 'Track' })
+    fireEvent.click(badge)
+    expect(onFollowTrack).toHaveBeenCalledWith(1)
+    // The rail draws no vias, so the tint is the only place a drive shaped by hand
+    // differs from one the router picked on its own.
+    expect(badge.className).toContain('bg-accent-subtle')
+
+    rerender(
+      <TranslationProvider>
+        <RoadtripSidebar routes={routes({ days: [day({ stops })] })} onFollowTrack={onFollowTrack} />
+      </TranslationProvider>,
+    )
+    expect(screen.getByRole('button', { name: 'Track' }).className).not.toContain('bg-accent-subtle')
+  })
+
+  it('FE-ROADTRIP-SIDEBAR-019: a viewer is offered no track badge at all', () => {
+    const stops = [stop({ assignmentId: 1, name: 'Hamburg' }), stop({ assignmentId: 2, name: 'Berlin' })]
+    wrap(<RoadtripSidebar routes={routes({ days: [day({ stops })] })} />)
+    expect(screen.queryByRole('button', { name: 'Track' })).toBeNull()
+  })
 })
 
 describe('RoadtripModeSwitch', () => {
