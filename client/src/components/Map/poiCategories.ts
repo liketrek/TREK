@@ -58,5 +58,17 @@ export interface Poi {
   phone: string | null
   opening_hours: string | null
   cuisine: string | null
+  /**
+   * What a charging station offers, when it is one and OSM says so.
+   *
+   * Optional twice over: only charging hits carry it at all, and OSM knows a socket type
+   * for roughly a third of them, a capacity for about seven in ten. "Not stated" is its
+   * own answer here and must not be read as a no.
+   */
+  charging?: {
+    sockets: { type: string; count: number | null; kw: number | null }[]
+    capacity: number | null
+    fee: boolean | null
+  } | null
   source: 'openstreetmap'
 }

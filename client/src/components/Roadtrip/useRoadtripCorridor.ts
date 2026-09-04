@@ -23,6 +23,12 @@ export interface RoadtripCorridor {
   search: CorridorSearch
   /** Narrows what was found by name or brand. Empty means everything. */
   nameFilter: string
+  /** Socket family the charging hits are narrowed to, or empty for any. */
+  socketFilter: string
+  setSocketFilter: (value: string) => void
+  /** Minimum kW for charging hits, or 0 for any. */
+  minKw: number
+  setMinKw: (value: number) => void
   setNameFilter: (value: string) => void
   /**
    * What both the panel and the map show: the hits that match `nameFilter`.
@@ -50,6 +56,10 @@ export function useRoadtripCorridor(routes: RoadtripRoutes): RoadtripCorridor {
   const [categories, setCategories] = useState<string[]>(['fuel'])
   const [widthKm, setWidthKm] = useState<number>(5)
   const [nameFilter, setNameFilter] = useState('')
+  /** A socket family, or empty for any. Only ever applied to charging hits. */
+  const [socketFilter, setSocketFilter] = useState('')
+  /** Minimum kW, or 0 for any. */
+  const [minKw, setMinKw] = useState(0)
 
   // Falls back to the first day with a drive, so the panel is useful before the user
   // has picked anything — and follows along when that day disappears.
@@ -93,10 +103,26 @@ export function useRoadtripCorridor(routes: RoadtripRoutes): RoadtripCorridor {
    */
   const visible = useMemo(() => {
     const needle = nameFilter.trim().toLowerCase()
-    if (!needle) return search.results
-    return search.results.filter(p =>
-      p.name.toLowerCase().includes(needle) || (p.brand ?? '').toLowerCase().includes(needle))
-  }, [search.results, nameFilter])
+    // The same array when nothing narrows it, not a copy of it: the map redraws off this
+    // reference, and handing it a fresh array on every render moves every pin.
+    if (!needle && !socketFilter && !minKw) return search.results
+    return search.results.filter(p => {
+      if (needle && !(p.name.toLowerCase().includes(needle) || (p.brand ?? '').toLowerCase().includes(needle))) {
+        return false
+      }
+      // The charging filters only ever hide charging hits. A rest area does not have a
+      // socket and is not answering the question, so filtering the whole list by one
+      // would empty it of everything the search also found.
+      if (p.category !== 'charging') return true
+      if (socketFilter && !p.charging?.sockets.some(s => s.type === socketFilter)) return false
+      // A station that does not state its power is kept. Roughly two thirds of them do
+      // not, and reading silence as "too slow" would throw away most of the map.
+      if (minKw && p.charging?.sockets.some(s => s.kw != null) && !p.charging.sockets.some(s => (s.kw ?? 0) >= minKw)) {
+        return false
+      }
+      return true
+    })
+  }, [search.results, nameFilter, socketFilter, minKw])
 
   /**
    * Where a hit belongs in the day's chain, as an index among its stops.
@@ -131,6 +157,10 @@ export function useRoadtripCorridor(routes: RoadtripRoutes): RoadtripCorridor {
     setWidthKm,
     search,
     nameFilter,
+    socketFilter,
+    setSocketFilter,
+    minKw,
+    setMinKw,
     setNameFilter,
     visible,
     insertIndexFor,

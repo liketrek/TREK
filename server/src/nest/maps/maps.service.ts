@@ -36,6 +36,7 @@ import {
   toWikiLang,
   haversineMetres,
   namesOverlap,
+  readChargingInfo,
   type GoogleOpeningHours,
   type OverpassPoi,
 } from './maps.helpers';
@@ -1093,6 +1094,10 @@ export class MapsService {
         // Only the plain Q-id form is passed on; anything else would be a lookup we
         // would have to guess at.
         brand_wikidata: /^Q[0-9]+$/.test(tags['brand:wikidata'] || '') ? tags['brand:wikidata'] : null,
+        // Only where it means something. Every POI carries `capacity` and `fee` for its
+        // own reasons — a restaurant's capacity is seats — so reading them as charging
+        // data anywhere else would be wrong on most of the map.
+        charging: categoryOfFilter.get(matched) === 'charging' ? readChargingInfo(tags) : null,
         source: 'openstreetmap',
       });
     }

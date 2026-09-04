@@ -175,7 +175,75 @@ export interface OverpassPoi {
   /** Brand name and its Wikidata id, when OSM carries them — the logo is looked up from the id. */
   brand: string | null;
   brand_wikidata: string | null;
+  /** What a charging station offers, when it is one and OSM says. */
+  charging: ChargingInfo | null;
   source: 'openstreetmap';
+}
+
+/**
+ * The part of a charging station that decides whether it is any use to a particular car.
+ *
+ * Read out of tags the query has always returned and the projection has always thrown
+ * away: `out center tags` hands back the whole tag set, and only six keys of it were ever
+ * passed on. Nothing here costs an extra request.
+ *
+ * Coverage is the reason this is all optional. Across the charging stations in OSM,
+ * roughly a third carry a socket type, about seven in ten a capacity, and about half say
+ * whether they charge a fee. A filter built on it has to treat "not stated" as its own
+ * answer rather than as a no.
+ */
+export interface ChargingInfo {
+  /** One entry per socket family the station lists, with how many and how fast. */
+  sockets: { type: string; count: number | null; kw: number | null }[];
+  /** How many vehicles can charge at once, across all sockets. */
+  capacity: number | null;
+  /** true = costs money, false = free, null = OSM does not say. */
+  fee: boolean | null;
+}
+
+/**
+ * OSM writes sockets as one key per family: `socket:type2=4` is the count, and
+ * `socket:type2:output=22 kW` the power. Both are free text in practice, so the count is
+ * only taken when it parses as a whole number and the power only when a number can be
+ * read off the front of it.
+ *
+ * The families are listed rather than derived from the tag names, because `socket:` also
+ * carries keys that are not a socket family at all.
+ */
+const SOCKET_FAMILIES = [
+  'type2', 'type2_combo', 'type2_cable', 'ccs', 'chademo', 'type1', 'type1_combo',
+  'schuko', 'tesla_supercharger', 'tesla_destination',
+] as const;
+
+/** Leading number out of a free-text value like "22 kW" or "50kw". */
+function leadingNumber(raw: string | undefined): number | null {
+  if (!raw) return null;
+  const n = Number.parseFloat(raw.replace(',', '.'));
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+export function readChargingInfo(tags: Record<string, string>): ChargingInfo | null {
+  const sockets: ChargingInfo['sockets'] = [];
+  for (const family of SOCKET_FAMILIES) {
+    const raw = tags[`socket:${family}`];
+    if (raw === undefined) continue;
+    const count = Number.parseInt(raw, 10);
+    sockets.push({
+      type: family,
+      count: Number.isInteger(count) && count > 0 ? count : null,
+      kw: leadingNumber(tags[`socket:${family}:output`]),
+    });
+  }
+  const capacity = Number.parseInt(tags.capacity ?? '', 10);
+  const fee = tags.fee === 'yes' ? true : tags.fee === 'no' ? false : null;
+  const info: ChargingInfo = {
+    sockets,
+    capacity: Number.isInteger(capacity) && capacity > 0 ? capacity : null,
+    fee,
+  };
+  // Nothing said is null rather than an empty shell, so the client can tell "no data"
+  // from "no sockets" without inspecting three fields.
+  return sockets.length || info.capacity !== null || fee !== null ? info : null;
 }
 
 // Each pill category → the OSM tag selectors it searches. Keys here are the

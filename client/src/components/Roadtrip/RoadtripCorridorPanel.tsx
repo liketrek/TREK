@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import {
   Search, Plus, RotateCw, AlertTriangle, X, BedDouble, MapPin,
 } from 'lucide-react'
@@ -25,6 +25,30 @@ interface RoadtripCorridorPanelProps {
     dayId?: number | null,
     position?: number | null,
   ) => void
+}
+
+/**
+ * How each socket family is written on the plug.
+ *
+ * Not translated and not derived from the tag: these are proper nouns with an accepted
+ * spelling, and "Type 2" as a lowercase tag key is not what anybody looks for on a
+ * charger. Anything not listed falls through to the raw key rather than being hidden,
+ * because an unknown socket is still worth seeing.
+ */
+/** The steps worth offering: a household socket, a fast AC post, and the two DC tiers. */
+const KW_STEPS = [11, 22, 50, 150]
+
+const SOCKET_LABEL: Record<string, string> = {
+  type2: 'Type 2',
+  type2_combo: 'CCS',
+  type2_cable: 'Type 2 cable',
+  ccs: 'CCS',
+  chademo: 'CHAdeMO',
+  type1: 'Type 1',
+  type1_combo: 'CCS1',
+  schuko: 'Schuko',
+  tesla_supercharger: 'Supercharger',
+  tesla_destination: 'Tesla Destination',
 }
 
 /** Label and icon per category, from the one table every road-trip surface reads. */
@@ -85,6 +109,24 @@ function ResultRow({ poi, onAdd }: { poi: CorridorPoi; onAdd?: () => void }): Re
               ? t('roadtrip.poi.atStart')
               : t('roadtrip.poi.alongRoute', { distance: formatDistance(poi.alongKm, distanceUnit) })}
           </span>
+          {/* What the charger offers, where OSM says. Socket names are proper nouns and
+              stay as they are; the numbers around them are what decides whether a car can
+              use it at all. A station that says nothing shows nothing rather than a row
+              of dashes, because "not stated" is not "no". */}
+          {poi.charging?.sockets.length ? (
+            <span className="flex flex-wrap items-baseline gap-x-1.5">
+              {poi.charging.sockets.slice(0, 3).map(s => (
+                <span key={s.type} className="text-content-muted">
+                  {SOCKET_LABEL[s.type] ?? s.type}
+                  {s.kw ? ` ${s.kw} kW` : ''}
+                  {s.count && s.count > 1 ? ` ×${s.count}` : ''}
+                </span>
+              ))}
+            </span>
+          ) : null}
+          {poi.charging?.fee === false ? (
+            <span className="text-success">{t('roadtrip.poi.free')}</span>
+          ) : null}
         </div>
       </div>
       {/* Always there, quiet until the row is under the pointer: a button that only
@@ -186,6 +228,18 @@ export default function RoadtripCorridorPanel({ corridor, routes, onAddPoi }: Ro
 
   // Something was found, the filter just hides it — a different state from "not searched
   // yet" and from "the drive really has none of these".
+  /**
+   * The socket families this search actually turned up, in the order the table lists
+   * them. Offering all ten would put CHAdeMO in the dropdown for a corridor that has
+   * three Type 2 posts on it, which is a filter that can only produce an empty list.
+   */
+  const socketsFound = useMemo(() => {
+    const seen = new Set<string>()
+    for (const p of search.results) for (const s of p.charging?.sockets ?? []) seen.add(s.type)
+    return [...seen].sort()
+  }, [search.results])
+  const hasCharging = socketsFound.length > 0
+
   const filteredToNothing = search.results.length > 0 && corridor.visible.length === 0
 
   const canSearch = !search.loading && corridor.categories.length > 0 && (corridor.day?.stops.length ?? 0) > 1
@@ -258,16 +312,18 @@ export default function RoadtripCorridorPanel({ corridor, routes, onAddPoi }: Ro
           </div>
         </div>
 
+        {/* One word, so it can be read at the size a primary action deserves. The panel
+            it sits in is headed "along the route" and every control above it narrows the
+            same search; repeating that on the button only made it small. */}
         <button
           type="button"
           onClick={search.search}
           disabled={!canSearch}
-          style={{ fontSize: FS.control }}
-          className="flex h-[34px] w-full items-center justify-center gap-1.5 rounded-xl bg-accent font-semibold text-accent-text transition-opacity disabled:opacity-50"
+          className="flex h-[38px] w-full items-center justify-center gap-2 rounded-xl bg-accent text-body font-semibold text-accent-text transition-opacity disabled:opacity-50"
         >
           {search.loading
-            ? <RotateCw size={13} className="animate-spin" aria-hidden />
-            : <Search size={13} strokeWidth={2} aria-hidden />}
+            ? <RotateCw size={15} className="animate-spin" aria-hidden />
+            : <Search size={15} strokeWidth={2} aria-hidden />}
           {search.loading
             ? t('roadtrip.poi.searching', { done: search.progress.done, total: search.progress.total })
             : t('roadtrip.poi.search')}
@@ -342,6 +398,35 @@ export default function RoadtripCorridorPanel({ corridor, routes, onAddPoi }: Ro
                 </button>
               ) : null}
             </div>
+
+            {/* Only where there is a charger to narrow. Two answers OSM actually carries
+                often enough to filter on: which plug, and how fast. A station that states
+                neither stays in the list, because roughly two thirds of them state no
+                power at all and reading that silence as "too slow" would empty the map. */}
+            {hasCharging ? (
+              <div className="mt-2 flex gap-2">
+                <CustomSelect
+                  value={corridor.socketFilter}
+                  onChange={value => corridor.setSocketFilter(String(value))}
+                  options={[
+                    { value: '', label: t('roadtrip.poi.anySocket') },
+                    ...socketsFound.map(s => ({ value: s, label: SOCKET_LABEL[s] ?? s })),
+                  ]}
+                  style={{ flex: 1 }}
+                  size="sm"
+                />
+                <CustomSelect
+                  value={String(corridor.minKw)}
+                  onChange={value => corridor.setMinKw(Number(value))}
+                  options={[
+                    { value: '0', label: t('roadtrip.poi.anyPower') },
+                    ...KW_STEPS.map(kw => ({ value: String(kw), label: `${kw}+ kW` })),
+                  ]}
+                  style={{ flex: 1 }}
+                  size="sm"
+                />
+              </div>
+            ) : null}
           </div>
         ) : null}
 

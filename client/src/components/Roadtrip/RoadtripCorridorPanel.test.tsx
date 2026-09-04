@@ -91,6 +91,10 @@ function corridor(over: Partial<RoadtripCorridor> = {}, search: Partial<Roadtrip
     widthKm: 5,
     setWidthKm: vi.fn(),
     nameFilter: '',
+  socketFilter: '',
+  setSocketFilter: vi.fn(),
+  minKw: 0,
+  setMinKw: vi.fn(),
     setNameFilter: vi.fn(),
     // Same as the hook with an empty filter: everything found is on show.
     visible: searchState.results,
