@@ -1,6 +1,7 @@
 import { useEffect, useRef, useMemo, useState, createElement, useCallback } from 'react'
 import { makeMarkerDraggable, makePoiDraggable, draggedPoiId } from './markerDrag'
 import type { RoadtripVia } from '@trek/shared'
+import { useStableVias } from './viaMarkerState'
 import { ALT_CASING, ALT_LABEL_TEXT } from '../Roadtrip/alternativeColors'
 import type { AlternativeOverlay } from '../Roadtrip/alternativeOverlays'
 import { serviceMarkerHtml, serviceMarkerOuter } from '../Roadtrip/serviceMarker'
@@ -678,6 +679,19 @@ export function MapViewGL({
    * drag is therefore hand-rolled — pointer events on the element, unproject on move.
    */
   const viaCleanupRef = useRef<(() => void)[]>([])
+  /**
+   * The list only changes when a via does, and the callbacks are read through a ref.
+   *
+   * Both matter for the same reason: this effect destroys every handle and builds new DOM
+   * elements. It used to re-run on every render of the planner — the vias arrived as a
+   * fresh object each time and `onMoveVia` as a fresh closure — so the render that landed
+   * when a freshly placed via finished re-routing pulled the element out from under the
+   * pointer, and the first drag went nowhere.
+   */
+  const vias = useStableVias(roadtripVias)
+  const viaHandlersRef = useRef({ onMoveVia, onRemoveVia })
+  viaHandlersRef.current = { onMoveVia, onRemoveVia }
+  const viasDraggable = !!onMoveVia
   useEffect(() => {
     const map = mapRef.current
     if (!map || !mapReady) return
@@ -685,12 +699,12 @@ export function MapViewGL({
     viaCleanupRef.current = []
     viaPinsRef.current.forEach(p => p.remove())
     viaPinsRef.current = []
-    for (const via of Object.values(roadtripVias ?? {}).flat()) {
+    for (const via of vias) {
       const el = document.createElement('span')
       el.style.cssText = 'display:block;width:12px;height:12px;border-radius:9999px;background:#0a84ff;border:2.5px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.45);cursor:grab;touch-action:none'
       const pin = attachPin(map, gl, pinLayerRef.current, el, via.lng, via.lat)
       viaPinsRef.current.push(pin)
-      if (!onMoveVia) continue
+      if (!viasDraggable) continue
 
       let dragging = false
       // The map starts panning on mousedown/touchstart anywhere on its surface, and a pin
@@ -716,9 +730,12 @@ export function MapViewGL({
         el.style.cursor = 'grab'
         const rect = map.getContainer().getBoundingClientRect()
         const at = map.unproject([e.clientX - rect.left, e.clientY - rect.top])
-        onMoveVia(via.day_id, via.id, at.lat, at.lng)
+        viaHandlersRef.current.onMoveVia?.(via.day_id, via.id, at.lat, at.lng)
       }
-      const onContext = (e: MouseEvent) => { e.preventDefault(); onRemoveVia?.(via.day_id, via.id) }
+      const onContext = (e: MouseEvent) => {
+        e.preventDefault()
+        viaHandlersRef.current.onRemoveVia?.(via.day_id, via.id)
+      }
       el.addEventListener('pointerdown', onDown)
       el.addEventListener('pointermove', onMove)
       el.addEventListener('pointerup', onUp)
@@ -738,7 +755,7 @@ export function MapViewGL({
         el.removeEventListener('dblclick', swallow)
       })
     }
-  }, [roadtripVias, mapReady, glProvider, onMoveVia, onRemoveVia])
+  }, [vias, viasDraggable, mapReady, glProvider])
 
   /**
    * The offered routes, drawn under the current one.

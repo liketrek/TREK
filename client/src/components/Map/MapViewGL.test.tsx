@@ -1884,4 +1884,75 @@ describe('MapViewGL', () => {
 
     expect(pin.style.transform).toContain('translate(140px, 60px)')
   })
+
+  // A via handle is a DOM element, and a pointerdown belongs to the element it happened
+  // on. Rebuilding the handles on an unrelated render pulled that element out from under
+  // the pointer, so a freshly placed via lost its first drag — the re-route it triggered
+  // landed about a second later, which is exactly when somebody reaches for it.
+  it('FE-COMP-MAPVIEWGL-VIA-001: a via handle survives a render it has nothing to do with', async () => {
+    loadOnAttach()
+    glCanvasContainer.replaceChildren()
+    glMap.project.mockReturnValue({ x: 100, y: 80 })
+
+    const stored = { id: 5, day_id: 1, after_order_index: 0, sequence: 0, lat: 48.1, lng: 2.1 }
+    const { rerender } = render(
+      <MapViewGL
+        places={[]}
+        fitKey={1}
+        glProvider="maplibre-gl"
+        roadtripVias={{ 1: [stored] }}
+        onMoveVia={() => {}}
+      />,
+    )
+    await flushFrames()
+
+    const layer = glCanvasContainer.firstElementChild as HTMLElement
+    const handle = layer.firstElementChild
+    expect(handle).toBeTruthy()
+
+    // The same via in a fresh object, with a fresh callback: what every render of the
+    // planner hands down while the day re-routes.
+    rerender(
+      <MapViewGL
+        places={[]}
+        fitKey={1}
+        glProvider="maplibre-gl"
+        roadtripVias={{ 1: [{ ...stored }] }}
+        onMoveVia={() => {}}
+      />,
+    )
+    await flushFrames()
+
+    expect(layer.firstElementChild).toBe(handle)
+  })
+
+  it('FE-COMP-MAPVIEWGL-VIA-002: a via that actually moved is drawn again', async () => {
+    loadOnAttach()
+    glCanvasContainer.replaceChildren()
+    glMap.project.mockReturnValue({ x: 100, y: 80 })
+
+    const stored = { id: 5, day_id: 1, after_order_index: 0, sequence: 0, lat: 48.1, lng: 2.1 }
+    const { rerender } = render(
+      <MapViewGL places={[]} fitKey={1} glProvider="maplibre-gl" roadtripVias={{ 1: [stored] }} onMoveVia={() => {}} />,
+    )
+    await flushFrames()
+
+    const layer = glCanvasContainer.firstElementChild as HTMLElement
+    const handle = layer.firstElementChild
+
+    rerender(
+      <MapViewGL
+        places={[]}
+        fitKey={1}
+        glProvider="maplibre-gl"
+        roadtripVias={{ 1: [{ ...stored, lat: 48.9 }] }}
+        onMoveVia={() => {}}
+      />,
+    )
+    await flushFrames()
+
+    // The other half of the contract: holding the element still must not mean holding it
+    // in the wrong place.
+    expect(layer.firstElementChild).not.toBe(handle)
+  })
 })

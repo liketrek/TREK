@@ -1,7 +1,8 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useRef } from 'react'
 import { Marker, Tooltip } from 'react-leaflet'
 import L from 'leaflet'
 import { useTranslation } from '../../i18n/TranslationContext'
+import { useStableVias } from './viaMarkerState'
 import type { RoadtripVia } from '@trek/shared'
 
 /**
@@ -29,35 +30,50 @@ interface RoadtripViaMarkersProps {
   onRemoveVia?: (dayId: number, id: number) => void
 }
 
-/** Leaflet's half; the GL renderers draw their own in `RoadtripViaMarkersGL`. */
+/** Leaflet's half; the GL renderers draw their own inside `MapViewGL`. */
 export default function RoadtripViaMarkers({
   viasByDay, onMoveVia, onRemoveVia,
 }: RoadtripViaMarkersProps): React.ReactElement | null {
   const { t } = useTranslation()
-  const vias = useMemo(() => Object.values(viasByDay).flat(), [viasByDay])
-  if (!vias.length) return null
+  const vias = useStableVias(viasByDay)
+  // Read through a ref so the handlers below can stay the same objects across renders.
+  // Both callbacks are rebuilt on every render of the planner, and react-leaflet compares
+  // its props by identity: a fresh `eventHandlers` unbinds and rebinds every listener,
+  // and a fresh `position` array calls `setLatLng` on every marker. Doing either while a
+  // drag is in flight is how a freshly placed via lost its first drag.
+  const handlersRef = useRef({ onMoveVia, onRemoveVia })
+  handlersRef.current = { onMoveVia, onRemoveVia }
+  const draggable = !!onMoveVia
+
+  const markers = useMemo(() => vias.map(via => ({
+    via,
+    position: [via.lat, via.lng] as [number, number],
+    handlers: {
+      dragend: (e: { target: { getLatLng: () => { lat: number; lng: number } } }) => {
+        const at = e.target.getLatLng()
+        handlersRef.current.onMoveVia?.(via.day_id, via.id, at.lat, at.lng)
+      },
+      // Right-click rather than a delete handle: a 12px dot has no room for one,
+      // and the same gesture removes things elsewhere on the map.
+      contextmenu: (e: { originalEvent: MouseEvent }) => {
+        e.originalEvent.preventDefault()
+        handlersRef.current.onRemoveVia?.(via.day_id, via.id)
+      },
+    },
+  })), [vias])
+
+  if (!markers.length) return null
 
   return (
     <>
-      {vias.map(via => (
+      {markers.map(({ via, position, handlers }) => (
         <Marker
           key={`via-${via.id}`}
-          position={[via.lat, via.lng]}
+          position={position}
           icon={VIA_ICON}
-          draggable={!!onMoveVia}
+          draggable={draggable}
           zIndexOffset={400}
-          eventHandlers={{
-            dragend: (e: { target: { getLatLng: () => { lat: number; lng: number } } }) => {
-              const at = e.target.getLatLng()
-              onMoveVia?.(via.day_id, via.id, at.lat, at.lng)
-            },
-            // Right-click rather than a delete handle: a 12px dot has no room for one,
-            // and the same gesture removes things elsewhere on the map.
-            contextmenu: (e: { originalEvent: MouseEvent }) => {
-              e.originalEvent.preventDefault()
-              onRemoveVia?.(via.day_id, via.id)
-            },
-          }}
+          eventHandlers={handlers}
         >
           <Tooltip direction="top" offset={[0, -8]} opacity={1} className="map-tooltip">
             {t('roadtrip.via.hint')}
