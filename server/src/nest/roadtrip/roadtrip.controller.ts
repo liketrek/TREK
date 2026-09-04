@@ -5,6 +5,7 @@ import { RoadtripViaCreateDto, RoadtripViaReanchorDto, RoadtripViaUpdateDto } fr
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
 import { RequireAddon } from '../addons/require-addon.decorator';
+import { AddonGuard } from '../addons/addon.guard';
 import { ADDON_IDS } from '../../addons';
 
 /**
@@ -20,7 +21,11 @@ import { ADDON_IDS } from '../../addons';
  * become shared editing rather than route shaping.
  */
 @Controller('api/trips/:tripId/roadtrip')
-@UseGuards(JwtAuthGuard, TripAccessGuard)
+// AddonGuard FIRST: @RequireAddon is metadata and does nothing on its own, and the guard
+// is not registered globally either, so without it here the decorator below was inert and
+// all six routes answered on an instance that had the addon switched off. It leads the
+// chain because a disabled addon owes an anonymous caller a 404, not a 401.
+@UseGuards(AddonGuard, JwtAuthGuard, TripAccessGuard)
 @RequireAddon(ADDON_IDS.ROADTRIP, 'Road trip')
 export class RoadtripController {
   constructor(private readonly roadtrip: RoadtripService) {}
