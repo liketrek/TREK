@@ -5,6 +5,17 @@ import { DatabaseService } from '../database/database.service';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { demoDenied, noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import { AuthService } from '../auth/auth.service';
+import { ADDON_IDS } from '../../addons';
+import { addonGate } from '../addons/addon-gate';
+import { AddonsService } from '../addons/addons.service';
+
+/**
+ * The whole surface rides the road trip addon, the same way the controller does
+ * (`@RequireAddon`). Without the gate the REST route answers 404 on an instance that
+ * left the addon off while these four tools kept reading and writing vias, which is
+ * exactly the parity the repo forbids breaking.
+ */
+const roadtripAddonOn = addonGate(ADDON_IDS.ROADTRIP);
 
 /**
  * Road-trip via points over MCP, the same surface the REST routes expose (#1797).
@@ -21,6 +32,7 @@ export class RoadtripMcp {
     private readonly db: DatabaseService,
     private readonly guards: McpToolGuardsService,
     private readonly auth: AuthService,
+    readonly addons: AddonsService,
   ) {}
 
   @Tool({
@@ -32,6 +44,7 @@ export class RoadtripMcp {
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: { group: 'trips', mode: 'read' },
+    when: roadtripAddonOn,
   })
   async listVias({ tripId, dayId }: { tripId: number; dayId?: number }, ctx: McpContext) {
     if (!this.db.canAccessTrip(tripId, ctx.userId)) return noAccess();
@@ -54,6 +67,7 @@ export class RoadtripMcp {
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     access: { group: 'trips', mode: 'write' },
+    when: roadtripAddonOn,
   })
   async addVia(
     { tripId, dayId, after_order_index, lat, lng }: { tripId: number; dayId: number; after_order_index: number; lat: number; lng: number },
@@ -81,6 +95,7 @@ export class RoadtripMcp {
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     access: { group: 'trips', mode: 'write' },
+    when: roadtripAddonOn,
   })
   async reanchorVias(
     { tripId, dayId, vias, remove }: { tripId: number; dayId: number; vias: { id: number; after_order_index: number }[]; remove?: number[] },
@@ -103,6 +118,7 @@ export class RoadtripMcp {
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     access: { group: 'trips', mode: 'write' },
+    when: roadtripAddonOn,
   })
   async removeVia({ tripId, dayId, viaId }: { tripId: number; dayId: number; viaId: number }, ctx: McpContext) {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
