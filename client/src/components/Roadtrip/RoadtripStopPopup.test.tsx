@@ -168,4 +168,78 @@ describe('RoadtripStopPopup', () => {
     await act(async () => { release() })
     expect(add).not.toBeDisabled()
   })
+  // ── Overnight mode ─────────────────────────────────────────────────────────
+  //
+  // Somewhere to sleep is the one hit that ends the day rather than interrupting the
+  // drive, so the dialog grows a second mode instead of offering a hotel a dwell of
+  // thirty minutes.
+
+  const overnight = {
+    days: [
+      { id: 4, number: 1, date: '2026-08-31' },
+      { id: 5, number: 2, date: '2026-09-01' },
+      { id: 6, number: 3, date: '2026-09-02' },
+    ],
+    defaultEndDayId: 5,
+  }
+  const nightDraft = (category: string) => draft({
+    poi: poi({ category, name: 'Hotel Adlon' }),
+    overnight,
+  })
+
+  it('FE-ROADTRIP-STOPPOPUP-020: a hotel opens on the overnight mode', () => {
+    wrap(<RoadtripStopPopup draft={nightDraft('hotel')} {...noop} onSaveNight={vi.fn()} />)
+
+    expect(screen.getByRole('button', { name: 'Overnight' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByText('Check out on')).toBeInTheDocument()
+    // The two questions a pause asks are gone: a hotel has no kind and no dwell.
+    expect(screen.queryByText('Kind of stop')).not.toBeInTheDocument()
+  })
+
+  it('FE-ROADTRIP-STOPPOPUP-021: a campsite opens on the pause mode but offers the night', () => {
+    // It is a service stop today and stays one, but people do sleep at campsites, so the
+    // choice is offered rather than decided.
+    wrap(<RoadtripStopPopup draft={nightDraft('campsite')} {...noop} onSaveNight={vi.fn()} />)
+
+    expect(screen.getByRole('button', { name: 'Pause' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByText('Kind of stop')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Overnight' })).toBeInTheDocument()
+  })
+
+  it('FE-ROADTRIP-STOPPOPUP-022: a petrol station is never offered a night', () => {
+    // Nothing to choose between, so no switch at all.
+    wrap(<RoadtripStopPopup draft={draft()} {...noop} onSaveNight={vi.fn()} />)
+
+    expect(screen.queryByRole('button', { name: 'Overnight' })).not.toBeInTheDocument()
+  })
+
+  it('FE-ROADTRIP-STOPPOPUP-023: booking a night reports the check-out day, defaulting to the next', () => {
+    const onSaveNight = vi.fn()
+    wrap(<RoadtripStopPopup draft={nightDraft('hotel')} {...noop} onSaveNight={onSaveNight} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+
+    expect(onSaveNight).toHaveBeenCalledWith({ endDayId: 5, checkIn: '', checkOut: '' })
+  })
+
+  it('FE-ROADTRIP-STOPPOPUP-024: switching back to a pause saves a pause', () => {
+    const onSave = vi.fn()
+    const onSaveNight = vi.fn()
+    wrap(<RoadtripStopPopup draft={nightDraft('hotel')} {...noop} onSave={onSave} onSaveNight={onSaveNight} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Pause' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+
+    expect(onSaveNight).not.toHaveBeenCalled()
+    expect(onSave).toHaveBeenCalled()
+  })
+
+  it('FE-ROADTRIP-STOPPOPUP-025: without a way to book a night the switch stays away', () => {
+    // An onSaveNight-less caller gets the dialog it always had, rather than a mode that
+    // leads nowhere.
+    wrap(<RoadtripStopPopup draft={nightDraft('hotel')} {...noop} />)
+
+    expect(screen.queryByRole('button', { name: 'Overnight' })).not.toBeInTheDocument()
+    expect(screen.getByText('Kind of stop')).toBeInTheDocument()
+  })
 })

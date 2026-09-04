@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import {
   MapPin, CarFront, Footprints, Bike, Zap, AlertTriangle, Moon,
   ParkingSquare, Shuffle, Fuel, Clock,
@@ -12,6 +12,8 @@ import { formatDate, formatClockTime } from '../../utils/formatters'
 import { formatDurationShort, isServiceStopType, serviceColor, type ScheduleEntry, type ScheduleWarning } from './roadtripModel'
 import { STOP_KIND_BY_KEY } from './stopKinds'
 import { spurWorthLabelling } from './accessSpur'
+import StopKindPicker from './StopKindPicker'
+import type { RoadtripStopType } from '@trek/shared'
 import type { QuietDay, RoadtripDay, RoadtripRoutes, RoadtripStop } from './useRoadtripRoutes'
 import type { RouteVia } from '../../types'
 import { FS } from './typeScale'
@@ -38,6 +40,12 @@ interface RoadtripSidebarProps {
    * which is also what a viewer sees.
    */
   onEditStay?: (stop: { placeId: number; name: string; minutes: number | null; arrival: string | null }) => void
+  /**
+   * Turns a stop into a pause on the drive, or back into a destination.
+   *
+   * Absent leaves every disc read-only, which is also what a viewer sees.
+   */
+  onSetStopKind?: (placeId: number, kind: RoadtripStopType | null) => Promise<void> | void
 }
 
 const MODE_ICON: Record<string, LucideIcon> = {
@@ -352,12 +360,14 @@ function DriveBand({ leg, onAskAlternatives, alternativesOpen }: {
  * the trip is actually for. Its own icon on one flat disc: three kinds of pause that all
  * mean "we are still driving", and the icon is what tells them apart.
  */
-function ServiceStop({ stop, entry, driveFindings, selected, onSelect, onEditStay }: {
+function ServiceStop({ stop, entry, driveFindings, selected, onSelect, onEditStay, onPickKind }: {
   stop: RoadtripStop
   entry: ScheduleEntry | undefined
   /** Findings about the drive that ARRIVES here. A charging halt is a stop like any other
    *  as far as the tank is concerned, so it carries them the same way a numbered one does. */
   driveFindings?: ScheduleWarning[]
+  /** Opens the kind picker on the disc. Absent leaves the rail read-only. */
+  onPickKind?: (anchor: HTMLElement) => void
   selected: boolean
   onSelect?: () => void
   /** Opens the dialog for how long this pause takes. Absent means the rail is read-only. */
@@ -371,15 +381,39 @@ function ServiceStop({ stop, entry, driveFindings, selected, onSelect, onEditSta
     <div className="grid items-stretch" style={RAIL_GRID}>
       <span className="relative z-[1] flex flex-col items-center">
         <span className="flex-1" style={RAIL_DASH} aria-hidden />
-        <span
-          className={DISC}
-          // theme-lint-disable — the road-signage palette in `roadtripModel`, shared with
-          // the corridor list and the map pin so one kind of stop looks like itself
-          // wherever it turns up.
-          style={{ background: serviceColor(stop.stopType), color: '#fff' }}
-        >
-          <Icon size={12} strokeWidth={2.1} aria-label={label} />
-        </span>
+        {onPickKind ? (
+          // The same control the other way round: the disc says what this is, and it is
+          // also where it stops being that.
+          <Tooltip label={t('roadtrip.stop.changeKind')}>
+            <span
+              role="button"
+              tabIndex={0}
+              aria-label={t('roadtrip.stop.changeKind')}
+              onClick={e => { e.stopPropagation(); onPickKind(e.currentTarget as HTMLElement) }}
+              onKeyDown={e => {
+                if (e.key !== 'Enter' && e.key !== ' ') return
+                e.preventDefault()
+                e.stopPropagation()
+                onPickKind(e.currentTarget as HTMLElement)
+              }}
+              className={`${DISC} cursor-pointer transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2`}
+              // theme-lint-disable — the road-signage palette in `roadtripModel`, shared
+              // with the corridor list and the map pin so one kind of stop looks like
+              // itself wherever it turns up.
+              style={{ background: serviceColor(stop.stopType), color: '#fff' }}
+            >
+              <Icon size={12} strokeWidth={2.1} aria-hidden />
+            </span>
+          </Tooltip>
+        ) : (
+          <span
+            className={DISC}
+            // theme-lint-disable — same palette, read-only.
+            style={{ background: serviceColor(stop.stopType), color: '#fff' }}
+          >
+            <Icon size={12} strokeWidth={2.1} aria-label={label} />
+          </span>
+        )}
         <span className="flex-1" style={RAIL_DASH} aria-hidden />
       </span>
       <button
@@ -576,7 +610,7 @@ function Arrival({ entry }: { entry: ScheduleEntry }): React.ReactElement {
   )
 }
 
-function Stop({ stop, number, entry, late, driveFindings, selected, continues, starts, onSelect, onMove, canMove, onEditStay }: {
+function Stop({ stop, number, entry, late, driveFindings, selected, continues, starts, onSelect, onMove, canMove, onEditStay, onPickKind }: {
   stop: RoadtripStop
   /** Position within the day — the same count the map badges its markers with. */
   number: number
@@ -589,6 +623,8 @@ function Stop({ stop, number, entry, late, driveFindings, selected, continues, s
   continues: boolean
   /** First row of the day: no line above it, because the chain starts here. */
   starts?: boolean
+  /** Opens the kind picker on the number. Absent leaves the rail read-only. */
+  onPickKind?: (anchor: HTMLElement) => void
   onSelect?: () => void
   /** Moves this stop by one place. Absent means the chain is read-only. */
   onMove?: (delta: number) => void
@@ -623,12 +659,36 @@ function Stop({ stop, number, entry, late, driveFindings, selected, continues, s
           unbroken from stop to stop. */}
       <span className="flex flex-col items-center">
         {starts ? null : <span className="w-[1.5px] flex-1 rounded-sm bg-edge" aria-hidden />}
-        <span
-          className={`${DISC} my-1 bg-surface-tertiary font-geist font-semibold tabular-nums text-content-secondary`}
-          style={{ fontSize: FS.marker }}
-        >
-          {number}
-        </span>
+        {onPickKind ? (
+          // The number is the control, because the number is what changes: a service stop
+          // has none. Clicking the 3 and picking the pump turns the 3 into an orange disc
+          // and renumbers everything below it.
+          <Tooltip label={t('roadtrip.stop.makeService')}>
+            <span
+              role="button"
+              tabIndex={0}
+              aria-label={t('roadtrip.stop.makeService')}
+              onClick={e => { e.stopPropagation(); onPickKind(e.currentTarget as HTMLElement) }}
+              onKeyDown={e => {
+                if (e.key !== 'Enter' && e.key !== ' ') return
+                e.preventDefault()
+                e.stopPropagation()
+                onPickKind(e.currentTarget as HTMLElement)
+              }}
+              className={`${DISC} my-1 cursor-pointer bg-surface-tertiary font-geist font-semibold tabular-nums text-content-secondary transition-colors hover:bg-accent hover:text-accent-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent`}
+              style={{ fontSize: FS.marker }}
+            >
+              {number}
+            </span>
+          </Tooltip>
+        ) : (
+          <span
+            className={`${DISC} my-1 bg-surface-tertiary font-geist font-semibold tabular-nums text-content-secondary`}
+            style={{ fontSize: FS.marker }}
+          >
+            {number}
+          </span>
+        )}
         {continues ? <span className="w-[1.5px] flex-1 rounded-sm bg-edge" aria-hidden /> : null}
       </span>
 
@@ -685,7 +745,7 @@ function Stop({ stop, number, entry, late, driveFindings, selected, continues, s
  * (`dayOrderMap` numbers the selected day's assignments from 1). A rail counting across
  * the trip would put "17" beside a pin the map calls "3".
  */
-function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, onMoveStopToDay, drag, onAskAlternatives, openAlternatives, onEditStay }: {
+function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, onMoveStopToDay, drag, onAskAlternatives, openAlternatives, onEditStay, onSetStopKind }: {
   day: RoadtripDay
   selectedAssignmentId?: number | null
   onSelectStop?: (placeId: number, assignmentId: number) => void
@@ -696,9 +756,13 @@ function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, on
   onAskAlternatives?: RoadtripSidebarProps['onAskAlternatives']
   openAlternatives?: RoadtripSidebarProps['openAlternatives']
   onEditStay?: RoadtripSidebarProps['onEditStay']
+  onSetStopKind?: RoadtripSidebarProps['onSetStopKind']
 }): React.ReactElement {
   const { from, setFrom, dropAt, setDropAt } = drag
   const dragging = from?.dayId === day.dayId ? from.index : null
+  // Which disc the picker hangs under, and for which stop. One at a time: two open
+  // popovers over the same rail is two answers to one question.
+  const [picking, setPicking] = useState<{ anchor: HTMLElement; stop: RoadtripStop } | null>(null)
   const { t, language } = useTranslation()
   const distanceUnit = useSettingsStore(s => s.settings.distance_unit)
   const last = day.stops.length - 1
@@ -806,6 +870,7 @@ function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, on
                   selected={selectedAssignmentId === stop.assignmentId}
                   onSelect={onSelectStop ? () => onSelectStop(stop.placeId, stop.assignmentId) : undefined}
                   onEditStay={onEditStay ? () => onEditStay({ placeId: stop.placeId, name: stop.name, minutes: stop.dwellMinutes, arrival: day.schedule.entries[i]?.arrival ?? null }) : undefined}
+                  onPickKind={onSetStopKind ? anchor => setPicking({ anchor, stop }) : undefined}
                 />
               ) : (
                 <Stop
@@ -821,6 +886,7 @@ function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, on
                   onMove={onReorderStop ? delta => onReorderStop(day.dayId, stop.assignmentId, i + delta) : undefined}
                   canMove={{ up: i > 0, down: i < last }}
                   onEditStay={onEditStay ? () => onEditStay({ placeId: stop.placeId, name: stop.name, minutes: stop.dwellMinutes, arrival: day.schedule.entries[i]?.arrival ?? null }) : undefined}
+                  onPickKind={onSetStopKind ? anchor => setPicking({ anchor, stop }) : undefined}
                 />
               )}
               {i < last ? (
@@ -839,6 +905,17 @@ function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, on
           )
         })}
       </ol>
+      {picking ? (
+        <StopKindPicker
+          anchor={picking.anchor}
+          current={picking.stop.stopType}
+          onClose={() => setPicking(null)}
+          onPick={kind => {
+            setPicking(null)
+            void onSetStopKind?.(picking.stop.placeId, kind)
+          }}
+        />
+      ) : null}
     </section>
   )
 }
@@ -917,6 +994,7 @@ function QuietDaySection({ day, onMoveStopToDay, drag }: {
  */
 export default function RoadtripSidebar({
   routes, selectedAssignmentId, onSelectStop, onReorderStop, onMoveStopToDay, onAskAlternatives, openAlternatives, onEditStay,
+  onSetStopKind,
 }: RoadtripSidebarProps): React.ReactElement {
   const { t } = useTranslation()
   // One drag state for the whole rail rather than one per day: a stop that cannot leave
@@ -958,6 +1036,7 @@ export default function RoadtripSidebar({
             onAskAlternatives={onAskAlternatives}
             openAlternatives={openAlternatives}
             onEditStay={onEditStay}
+            onSetStopKind={onSetStopKind}
           />
         ))}
         {routes.quietDays.map(day => (

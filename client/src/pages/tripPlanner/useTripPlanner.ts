@@ -856,6 +856,21 @@ export function useTripPlanner() {
   }, [stopDraft, tripId, tripActions, updateRouteForDay, toast, t, roadtripVias, viaLiesBefore, loadAccommodations])
 
   /**
+   * Turns a stop on the drive into a pause, or back into a destination.
+   *
+   * The only difference between the two is `stop_type`, which decides whether the stop
+   * takes a number, counts in the day's total and appears in the printout. So this is one
+   * field on one place, and the rail redraws itself off the store the moment it lands.
+   */
+  const setRoadtripStopKind = useCallback(async (placeId: number, kind: RoadtripStopType | null) => {
+    try {
+      await tripActions.updatePlace(tripId, placeId, { stop_type: kind })
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : t('common.unknownError'))
+    }
+  }, [tripId, tripActions, toast, t])
+
+  /**
    * Moves a stop within its day, from the road trip rail.
    *
    * The rail reports only "this assignment, from here to there" and the full order is
@@ -1687,6 +1702,7 @@ export function useTripPlanner() {
     prefillCoords, setPrefillCoords, editingAssignmentId, setEditingAssignmentId,
     placeFormDayId, setPlaceFormDayId, reservationModalDayId, setReservationModalDayId,
     stopDraft, setStopDraft, saveStopDraft, saveStopDraftAsNight, stopDraftToForm, stopDraftDuplicate, reorderRoadtripStop,
+    setRoadtripStopKind,
     saveRoadtripLimit,
     roadtripVias, addRoadtripVia, moveRoadtripVia, removeRoadtripVia,
     routeAlternatives, askRouteAlternatives, chooseRouteAlternative, alternativeOverlays, alternativeFocusPoints,
