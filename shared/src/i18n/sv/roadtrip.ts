@@ -30,6 +30,8 @@ const roadtrip: TranslationStrings = {
   'roadtrip.limit.dayOver': '{time} över',
   'roadtrip.limit.range': '{distance} sedan senaste tankningen',
   'roadtrip.limit.none': 'Inga angivna',
+  'roadtrip.stop.none': 'Ett resmål',
+  'roadtrip.stop.kindHelp': 'Ett stopp på vägen ritas på körningen och räknas inte.',
   'roadtrip.poi.rest': 'Rastplats',
   'roadtrip.poi.campsite': 'Campingplats',
   'roadtrip.poi.food': 'Mat',

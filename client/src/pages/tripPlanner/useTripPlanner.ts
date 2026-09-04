@@ -230,7 +230,7 @@ export function useTripPlanner() {
   const [dayDetailCollapsed, setDayDetailCollapsed] = useState(false)
   const [showPlaceForm, setShowPlaceForm] = useState<boolean>(false)
   const [editingPlace, setEditingPlace] = useState<Place | null>(null)
-  const [prefillCoords, setPrefillCoords] = useState<{ lat: number; lng: number; name?: string; address?: string; website?: string; phone?: string; osm_id?: string } | null>(null)
+  const [prefillCoords, setPrefillCoords] = useState<{ lat: number; lng: number; name?: string; address?: string; website?: string; phone?: string; osm_id?: string; stop_type?: RoadtripStopType | null; duration_minutes?: number } | null>(null)
   const [editingAssignmentId, setEditingAssignmentId] = useState<number | null>(null)
   // Day context of the open form. Set only by the day-scoped entry points (the
   // mobile day toolbar, a long-press on the mobile map); every other opener
@@ -621,6 +621,12 @@ export function useTripPlanner() {
     dayId?: number | null,
     /** Index within that day. Omitted, the place is appended, which is what every caller did before. */
     position?: number | null,
+    /**
+     * What the corridor popup had worked out before the traveller asked for the full
+     * form. Without it, leaving the popup by "more details" quietly turned a fuel stop
+     * into a numbered destination that counts in every total.
+     */
+    stop?: { stopType: RoadtripStopType | null; dwellMinutes: number } | null,
   ) => {
     if (!can('place_edit', trip)) return
     setPrefillCoords({
@@ -631,6 +637,8 @@ export function useTripPlanner() {
       website: poi.website || undefined,
       phone: poi.phone || undefined,
       osm_id: poi.osm_id,
+      stop_type: stop?.stopType ?? null,
+      duration_minutes: stop?.dwellMinutes,
     })
     setEditingPlace(null)
     setEditingAssignmentId(null)
@@ -1076,11 +1084,14 @@ export function useTripPlanner() {
   }, [roadtripCorridor, can, trip])
 
   /** Hands the draft over to the full form, keeping the day and the position it worked out. */
-  const stopDraftToForm = useCallback(() => {
+  const stopDraftToForm = useCallback((stop?: { stopType: RoadtripStopType | null; dwellMinutes: number }) => {
     if (!stopDraft) return
     const { poi, dayId, position } = stopDraft
     setStopDraft(null)
-    openAddPlaceFromPoi(poi, dayId, position)
+    // Carries the kind and the dwell the popup had already worked out. Leaving them
+    // behind is what turned a fuel stop into a numbered destination on the way to the
+    // full form, silently and in every total.
+    openAddPlaceFromPoi(poi, dayId, position, stop ?? null)
   }, [stopDraft, openAddPlaceFromPoi])
 
   /**

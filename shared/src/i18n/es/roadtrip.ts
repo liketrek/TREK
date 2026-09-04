@@ -30,6 +30,8 @@ const roadtrip: TranslationStrings = {
   'roadtrip.limit.dayOver': '{time} de más',
   'roadtrip.limit.range': '{distance} desde el último repostaje',
   'roadtrip.limit.none': 'Ninguno definido',
+  'roadtrip.stop.none': 'Un destino',
+  'roadtrip.stop.kindHelp': 'Una parada en el camino se dibuja sobre el trayecto y no se cuenta.',
   'roadtrip.poi.rest': 'Área de descanso',
   'roadtrip.poi.campsite': 'Camping',
   'roadtrip.poi.food': 'Comida',

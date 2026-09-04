@@ -30,6 +30,8 @@ const roadtrip: TranslationStrings = {
   'roadtrip.limit.dayOver': 'vượt {time}',
   'roadtrip.limit.range': '{distance} kể từ lần đổ nhiên liệu cuối',
   'roadtrip.limit.none': 'Chưa đặt',
+  'roadtrip.stop.none': 'Một điểm đến',
+  'roadtrip.stop.kindHelp': 'Điểm dừng dọc đường được vẽ trên chặng và không tính vào số điểm dừng.',
   'roadtrip.poi.rest': 'Trạm dừng nghỉ',
   'roadtrip.poi.campsite': 'Khu cắm trại',
   'roadtrip.poi.food': 'Đồ ăn',

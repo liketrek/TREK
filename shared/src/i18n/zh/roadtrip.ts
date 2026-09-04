@@ -30,6 +30,8 @@ const roadtrip: TranslationStrings = {
   'roadtrip.limit.dayOver': '超出 {time}',
   'roadtrip.limit.range': '距上次加油 {distance}',
   'roadtrip.limit.none': '未设置',
+  'roadtrip.stop.none': '目的地',
+  'roadtrip.stop.kindHelp': '途中停靠会画在行程线上，且不计入停靠数。',
   'roadtrip.poi.rest': '服务区',
   'roadtrip.poi.campsite': '露营地',
   'roadtrip.poi.food': '餐饮',

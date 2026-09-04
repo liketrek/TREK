@@ -1,7 +1,7 @@
 import React from 'react'
 import {
   MapPin, CarFront, Footprints, Bike, Zap, AlertTriangle, Moon,
-  ParkingSquare, Shuffle,
+  ParkingSquare, Shuffle, Fuel, Clock,
   type LucideIcon,
 } from 'lucide-react'
 import { useTranslation } from '../../i18n/TranslationContext'
@@ -454,15 +454,19 @@ function RouteViaStop({ via }: { via: RouteVia }): React.ReactElement {
 }
 
 /**
- * A finding about the drive rather than about a stop: too long at the wheel in one go, or
- * the tank running out before anywhere to fill it.
+ * A finding about the drive leaving this stop: too long at the wheel in one go, or the
+ * tank running out before anywhere to fill it.
  *
- * Sits in the chain between the two stops the drive runs between, because that is where
- * it happens. Neither finding names a time of day: with no stop pinned to a clock the
- * cascade produces no times at all, so both are durations and distances, which exist as
- * soon as the leg has routed.
+ * Wears the same two-part shell as the stay and the walk, in warning colours, and sits in
+ * the same row: all of them say what this stop costs, and one row of badges reads as one
+ * answer rather than as notes stacked under each other. The index is the stop the leg
+ * LEAVES, so the badge means "the drive from here".
+ *
+ * Neither finding names a time of day. With no stop pinned to a clock the cascade
+ * produces no times at all, so both are durations and distances, which exist as soon as
+ * the leg has routed.
  */
-function DriveFinding({ warning }: { warning: ScheduleWarning }): React.ReactElement | null {
+function DriveFindingBadge({ warning }: { warning: ScheduleWarning }): React.ReactElement | null {
   const { t } = useTranslation()
   const distanceUnit = useSettingsStore(s => s.settings.distance_unit)
   const text = warning.code === 'leg'
@@ -471,21 +475,24 @@ function DriveFinding({ warning }: { warning: ScheduleWarning }): React.ReactEle
       ? t('roadtrip.limit.range', { distance: formatDistance(warning.sinceKm ?? 0, distanceUnit) })
       : null
   if (!text) return null
+  const Icon = warning.code === 'range' ? Fuel : Clock
   return (
-    <div className="grid items-stretch" style={RAIL_GRID}>
-      <span className="relative z-[1] flex flex-col items-center">
-        <span className="flex-1" style={RAIL_DASH} aria-hidden />
+    <span
+      className="inline-flex h-[16px] items-stretch self-start overflow-hidden rounded border border-warning-soft"
+      title={text}
+    >
+      <span className="flex items-center bg-warning-soft px-1 text-warning" style={{ fontSize: FS.micro }}>
+        <Icon size={9} aria-hidden />
       </span>
-      <span className="px-1.5 pb-1">
-        <span
-          className="inline-flex w-fit items-center gap-1 rounded-full bg-warning-soft px-1.5 py-0.5 font-semibold text-warning"
-          style={{ fontSize: FS.label }}
-        >
-          <AlertTriangle size={10} className="shrink-0" aria-hidden />
-          {text}
-        </span>
+      <span
+        className="flex items-center border-s border-warning-soft bg-surface-card px-1.5 font-semibold tabular-nums text-warning"
+        style={{ fontSize: FS.label }}
+      >
+        {warning.code === 'range'
+          ? formatDistance(warning.sinceKm ?? 0, distanceUnit)
+          : `+${formatDurationShort((warning.overMinutes ?? 0) * 60)}`}
       </span>
-    </div>
+    </span>
   )
 }
 
@@ -556,12 +563,14 @@ function Arrival({ entry }: { entry: ScheduleEntry }): React.ReactElement {
   )
 }
 
-function Stop({ stop, number, entry, late, selected, continues, onSelect, onMove, canMove, onEditStay }: {
+function Stop({ stop, number, entry, late, driveFindings, selected, continues, onSelect, onMove, canMove, onEditStay }: {
   stop: RoadtripStop
   /** Position within the day — the same count the map badges its markers with. */
   number: number
   entry: ScheduleEntry | undefined
   late: ScheduleWarning | undefined
+  /** Findings about the drive LEAVING this stop, when the limits are set and it goes over. */
+  driveFindings?: ScheduleWarning[]
   selected: boolean
   /** Whether the chain goes on below, so the marker keeps hold of the line. */
   continues: boolean
@@ -629,6 +638,7 @@ function Stop({ stop, number, entry, late, selected, continues, onSelect, onMove
           <span className="flex flex-wrap items-center gap-1">
             <StayBadge minutes={stop.dwellMinutes} onEdit={onEditStay} />
             {spurWorthLabelling(stop.offRoadMeters) ? <OffRoadBadge meters={stop.offRoadMeters ?? 0} /> : null}
+            {(driveFindings ?? []).map(w => <DriveFindingBadge key={w.code} warning={w} />)}
           </span>
           {lateText ? (
             <span
@@ -784,6 +794,7 @@ function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, on
                   number={counted}
                   entry={day.schedule.entries[i]}
                   late={marks.find(w => w.code === 'late')}
+                  driveFindings={day.driveWarnings.filter(w => w.index === i)}
                   selected={selectedAssignmentId === stop.assignmentId}
                   continues={i < last}
                   onSelect={onSelectStop ? () => onSelectStop(stop.placeId, stop.assignmentId) : undefined}
@@ -799,12 +810,6 @@ function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, on
                   alternativesOpen={openAlternatives?.dayId === day.dayId && openAlternatives.index === i}
                 />
               ) : null}
-              {/* Between the two stops, which is where "somewhere on this drive" actually
-                  is. The range finding is the only one with its remedy right beside it:
-                  fuel and charging are the corridor search's first two categories. */}
-              {i < last ? day.driveWarnings.filter(w => w.index === i).map(w => (
-                <DriveFinding key={w.code} warning={w} />
-              )) : null}
               {/* After the band, because a plugin halt happens on the drive it describes
                   rather than before setting off. */}
               {i < last ? (day.legVias[i] ?? []).map((via, vi) => (

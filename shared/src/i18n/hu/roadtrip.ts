@@ -30,6 +30,8 @@ const roadtrip: TranslationStrings = {
   'roadtrip.limit.dayOver': '{time} túl',
   'roadtrip.limit.range': '{distance} az utolsó tankolás óta',
   'roadtrip.limit.none': 'Nincs beállítva',
+  'roadtrip.stop.none': 'Úti cél',
+  'roadtrip.stop.kindHelp': 'Az útközbeni megálló az útvonalra kerül, és nem számít bele.',
   'roadtrip.poi.rest': 'Pihenőhely',
   'roadtrip.poi.campsite': 'Kemping',
   'roadtrip.poi.food': 'Étkezés',

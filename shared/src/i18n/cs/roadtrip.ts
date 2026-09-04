@@ -30,6 +30,8 @@ const roadtrip: TranslationStrings = {
   'roadtrip.limit.dayOver': 'o {time} více',
   'roadtrip.limit.range': '{distance} od posledního tankování',
   'roadtrip.limit.none': 'Nenastaveno',
+  'roadtrip.stop.none': 'Cíl cesty',
+  'roadtrip.stop.kindHelp': 'Zastávka po cestě se kreslí na trase a nepočítá se.',
   'roadtrip.poi.rest': 'Odpočívadlo',
   'roadtrip.poi.campsite': 'Kemp',
   'roadtrip.poi.food': 'Jídlo',

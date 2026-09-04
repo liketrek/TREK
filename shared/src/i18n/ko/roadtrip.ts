@@ -30,6 +30,8 @@ const roadtrip: TranslationStrings = {
   'roadtrip.limit.dayOver': '{time} 초과',
   'roadtrip.limit.range': '마지막 주유 이후 {distance}',
   'roadtrip.limit.none': '설정 안 됨',
+  'roadtrip.stop.none': '목적지',
+  'roadtrip.stop.kindHelp': '경유 정차는 주행 경로에 표시되며 정차 수에 포함되지 않습니다.',
   'roadtrip.poi.rest': '휴게소',
   'roadtrip.poi.campsite': '캠핑장',
   'roadtrip.poi.food': '식사',

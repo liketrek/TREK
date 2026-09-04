@@ -39,7 +39,8 @@ interface RoadtripStopPopupProps {
   onClose: () => void
   onSave: (input: { stopType: RoadtripStopType | null; dwellMinutes: number }) => Promise<void> | void
   /** Opens the full place form instead, carrying what has been filled in so far. */
-  onMoreDetails: () => void
+  /** Hands over what has been picked here, so the full form opens on the same answer. */
+  onMoreDetails: (stop: { stopType: RoadtripStopType | null; dwellMinutes: number }) => void
 }
 
 /**
@@ -161,7 +162,7 @@ export default function RoadtripStopPopup({
         <div className="flex items-center gap-2 border-t border-edge-faint pt-3">
           <button
             type="button"
-            onClick={onMoreDetails}
+            onClick={() => onMoreDetails({ stopType, dwellMinutes: dwell })}
             className="rounded-lg px-2.5 py-1.5 text-caption text-content-muted transition-colors hover:bg-surface-hover hover:text-content"
           >
             {t('roadtrip.stop.moreDetails')}

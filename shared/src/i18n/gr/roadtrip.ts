@@ -30,6 +30,8 @@ const roadtrip: TranslationStrings = {
   'roadtrip.limit.dayOver': '{time} πάνω',
   'roadtrip.limit.range': '{distance} από τον τελευταίο ανεφοδιασμό',
   'roadtrip.limit.none': 'Δεν έχουν οριστεί',
+  'roadtrip.stop.none': 'Προορισμός',
+  'roadtrip.stop.kindHelp': 'Μια στάση στον δρόμο σχεδιάζεται πάνω στη διαδρομή και δεν προσμετράται.',
   'roadtrip.poi.rest': 'Χώρος ανάπαυσης',
   'roadtrip.poi.campsite': 'Κάμπινγκ',
   'roadtrip.poi.food': 'Φαγητό',

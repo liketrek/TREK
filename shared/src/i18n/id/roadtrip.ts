@@ -30,6 +30,8 @@ const roadtrip: TranslationStrings = {
   'roadtrip.limit.dayOver': 'lebih {time}',
   'roadtrip.limit.range': '{distance} sejak pengisian terakhir',
   'roadtrip.limit.none': 'Belum diatur',
+  'roadtrip.stop.none': 'Sebuah tujuan',
+  'roadtrip.stop.kindHelp': 'Perhentian di jalan digambar pada rute dan tidak dihitung.',
   'roadtrip.poi.rest': 'Tempat istirahat',
   'roadtrip.poi.campsite': 'Perkemahan',
   'roadtrip.poi.food': 'Makanan',

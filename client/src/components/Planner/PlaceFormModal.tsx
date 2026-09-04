@@ -1,13 +1,15 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import Modal from '../shared/Modal'
+import type { RoadtripStopType } from '@trek/shared'
+import { STOP_KINDS } from '../Roadtrip/stopKinds'
 import CustomSelect from '../shared/CustomSelect'
 import NoteFormatToolbar from '../shared/NoteFormatToolbar'
 import { mapsApi } from '../../api/client'
 import { useAuthStore } from '../../store/authStore'
+import { useAddonStore } from '../../store/addonStore'
 import { useCanDo } from '../../store/permissionsStore'
 import { useTripStore } from '../../store/tripStore'
 import { useSettingsStore } from '../../store/settingsStore'
-import { useAddonStore } from '../../store/addonStore'
 import CollectionPicker from '../Collections/CollectionPicker'
 import PlaceDetailsColumn, { type PlaceDetailsSelection } from './PlaceDetailsColumn'
 import { useToast } from '../shared/Toast'
@@ -36,7 +38,7 @@ interface PlaceFormModalProps {
   onClose: () => void
   onSave: (data: PlaceSubmitData, files?: File[]) => Promise<{ id: number } | void> | void
   place: Place | null
-  prefillCoords?: { lat: number; lng: number; name?: string; address?: string; website?: string; phone?: string; osm_id?: string } | null
+  prefillCoords?: { lat: number; lng: number; name?: string; address?: string; website?: string; phone?: string; osm_id?: string; stop_type?: RoadtripStopType | null; duration_minutes?: number } | null
   tripId: number
   categories: Category[]
   onCategoryCreated: (category: { name: string; color?: string; icon?: string }) => Promise<Category> | undefined
@@ -86,6 +88,9 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
   onCategoryCreated, assignmentId, dayAssignments = [], isMobile = false,
   onOpenExpense,
   } = props
+  // Hidden while the addon is off, because the kinds only mean anything to the road trip
+  // rail: on an instance without it they would be six labels that change nothing.
+  const roadtripEnabled = useAddonStore(s => s.isEnabled('roadtrip'))
   const [form, setForm] = useState(DEFAULT_FORM)
   const [mapsSearch, setMapsSearch] = useState('')
   const [mapsResults, setMapsResults] = useState([])
@@ -143,6 +148,11 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
         notes: place.notes || '',
         transport_mode: place.transport_mode || 'walking',
         website: place.website || '',
+        // Carried through every edit. Without it, opening a fuel stop to fix a typo
+        // submits an empty kind and turns it back into a numbered destination.
+        // duration_minutes deliberately stays out: how long a stay takes belongs to the
+        // rail's own dialog, and sending it from here would overwrite what was set there.
+        stop_type: place.stop_type ?? null,
         // The day-specific note rides only with an assignment in context (#2163);
         // otherwise the key stays absent so submit never sends a notes write.
         ...(assignment ? { assignment_notes: assignment.notes || '' } : {}),
@@ -157,6 +167,8 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
         website: prefillCoords.website || '',
         phone: prefillCoords.phone || '',
         osm_id: prefillCoords.osm_id,
+        stop_type: prefillCoords.stop_type ?? null,
+        duration_minutes: prefillCoords.duration_minutes,
       })
     } else {
       setForm(DEFAULT_FORM)
@@ -479,6 +491,15 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
         lat: form.lat ? Number.parseFloat(form.lat) : null,
         lng: form.lng ? Number.parseFloat(form.lng) : null,
         category_id: form.category_id || null,
+        // An explicit null is how a stop stops being a fuel stop; the service reads it
+        // that way rather than as "leave alone", which is what a missing key means.
+        stop_type: form.stop_type || null,
+        // Only on the way in, and only with a kind: it is the popup's suggestion for how
+        // long that kind of pause takes. On an edit it is left out entirely, because the
+        // stay belongs to the rail's dialog and sending it here would overwrite it.
+        ...(!place && form.stop_type && form.duration_minutes
+          ? { duration_minutes: form.duration_minutes }
+          : {}),
         _pendingFiles: pendingFiles.length > 0 ? pendingFiles : undefined,
       }
       // #2163: the per-assignment note only travels when an assignment is in
@@ -527,6 +548,7 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
     dayAssignments,
     isMobile,
     collectionsEnabled,
+    roadtripEnabled,
     form,
     setForm,
     mapsSearch,
@@ -599,6 +621,7 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
     dayAssignments,
     isMobile,
     collectionsEnabled,
+    roadtripEnabled,
     form,
     setForm,
     mapsSearch,
@@ -869,6 +892,30 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
             />
           </div>
         </div>
+
+        {/* What kind of stop this is on a drive.
+            Under the category rather than beside it, because the two answer different
+            questions: a category is the traveller's own label, editable and shared across
+            the whole instance, while this is a fact about the place. Refuelling is not a
+            taste. Shown always, not only in road trip mode: a fuel stop added on a Tuesday
+            is still a fuel stop when the mode is switched on later, and this is the only
+            place in the web UI where the kind can be taken off again. */}
+        {roadtripEnabled ? (
+          <div>
+            <label className="block text-sm font-medium text-content-secondary mb-1">{t('roadtrip.stop.kind')}</label>
+            <CustomSelect
+              value={form.stop_type ?? ''}
+              onChange={value => handleChange('stop_type', String(value) as RoadtripStopType | '')}
+              placeholder={t('roadtrip.stop.none')}
+              options={[
+                { value: '', label: t('roadtrip.stop.none') },
+                ...STOP_KINDS.map(k => ({ value: k.key, label: t(k.labelKey) })),
+              ]}
+              size="sm"
+            />
+            <p className="mt-1 text-caption text-content-faint">{t('roadtrip.stop.kindHelp')}</p>
+          </div>
+        ) : null}
 
         {/* Category */}
         <div>

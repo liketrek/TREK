@@ -30,6 +30,8 @@ const roadtrip: TranslationStrings = {
   'roadtrip.limit.dayOver': 'на {time} більше',
   'roadtrip.limit.range': '{distance} від останньої заправки',
   'roadtrip.limit.none': 'Не задано',
+  'roadtrip.stop.none': 'Пункт призначення',
+  'roadtrip.stop.kindHelp': 'Зупинка в дорозі малюється на маршруті й не рахується.',
   'roadtrip.poi.rest': 'Зона відпочинку',
   'roadtrip.poi.campsite': 'Кемпінг',
   'roadtrip.poi.food': 'Їжа',
