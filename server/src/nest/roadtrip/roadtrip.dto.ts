@@ -1,5 +1,5 @@
 import { createZodDto } from 'nestjs-zod';
-import { roadtripViaCreateRequestSchema, roadtripViaReanchorRequestSchema, roadtripViaUpdateRequestSchema } from '@trek/shared';
+import { roadtripViaBatchRequestSchema, roadtripViaCreateRequestSchema, roadtripViaReanchorRequestSchema, roadtripViaUpdateRequestSchema } from '@trek/shared';
 
 /**
  * createZodDto wrappers over the @trek/shared road-trip contracts. The global
@@ -9,3 +9,4 @@ import { roadtripViaCreateRequestSchema, roadtripViaReanchorRequestSchema, roadt
 export class RoadtripViaCreateDto extends createZodDto(roadtripViaCreateRequestSchema) {}
 export class RoadtripViaUpdateDto extends createZodDto(roadtripViaUpdateRequestSchema) {}
 export class RoadtripViaReanchorDto extends createZodDto(roadtripViaReanchorRequestSchema) {}
+export class RoadtripViaBatchDto extends createZodDto(roadtripViaBatchRequestSchema) {}

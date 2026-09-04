@@ -7,6 +7,14 @@ export interface RoadtripVias {
   /** Every via of the trip, keyed by day. */
   byDay: Record<number, RoadtripVia[]>
   add: (dayId: number, afterOrderIndex: number, lat: number, lng: number) => Promise<void>
+  /**
+   * Lay a chain of vias on one day, optionally clearing the legs it fills first.
+   *
+   * One request and one reload for the whole chain. `add` per point would trigger a full
+   * trip re-route between each one, spaced by the routing host's rate limit, so a
+   * twenty-anchor track would spend half a minute drawing routes nobody asked to see.
+   */
+  addMany: (dayId: number, vias: { after_order_index: number; lat: number; lng: number }[], replaceLegs?: number[]) => Promise<void>
   move: (dayId: number, id: number, lat: number, lng: number) => Promise<void>
   remove: (dayId: number, id: number) => Promise<void>
   /**
@@ -61,6 +69,19 @@ export function useRoadtripVias(tripId: number | string | null, active: boolean)
     await reload()
   }, [tripId, reload])
 
+  const addMany = useCallback(async (
+    dayId: number,
+    vias: { after_order_index: number; lat: number; lng: number }[],
+    replaceLegs?: number[],
+  ) => {
+    if (!tripId) return
+    // An empty chain with nothing to clear is not a write. It is a real call though, from
+    // a track that thinned down to nothing on a very short day.
+    if (!vias.length && !replaceLegs?.length) return
+    await roadtripApi.addVias(tripId, dayId, { vias, replace_legs: replaceLegs })
+    await reload()
+  }, [tripId, reload])
+
   const move = useCallback(async (dayId: number, id: number, lat: number, lng: number) => {
     if (!tripId) return
     await roadtripApi.moveVia(tripId, dayId, id, { lat, lng })
@@ -79,5 +100,5 @@ export function useRoadtripVias(tripId: number | string | null, active: boolean)
     await reload()
   }, [tripId, reload])
 
-  return { byDay, add, move, remove, reanchor }
+  return { byDay, add, addMany, move, remove, reanchor }
 }

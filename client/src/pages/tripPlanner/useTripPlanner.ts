@@ -964,8 +964,9 @@ export function useTripPlanner() {
       const day = roadtripRoutes.days.find(d => d.dayId === open.dayId)
       const stop = day?.stops[open.index]
       const dayIndex = stop && day ? day.stops.indexOf(stop) : -1
-      const existing = (roadtripVias.byDay[open.dayId] ?? []).filter(v => v.after_order_index === dayIndex)
-      for (const via of existing) await roadtripVias.remove(open.dayId, via.id).catch(() => {})
+      // Clearing the leg in one write. One delete per via meant a full trip re-route
+      // between each of them, so undoing a detour with three vias drew three routes.
+      if (dayIndex >= 0) await roadtripVias.addMany(open.dayId, [], [dayIndex]).catch(() => {})
       routeAlternatives.close()
       return
     }

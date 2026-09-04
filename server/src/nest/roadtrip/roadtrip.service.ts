@@ -65,6 +65,51 @@ export class RoadtripService {
     return this.byId(Number(result.lastInsertRowid))!;
   }
 
+  /**
+   * Lay a chain of vias on one day in a single transaction.
+   *
+   * One transaction for the same reason `reanchor` uses one: a half-written chain steers
+   * the drive onto a road nobody chose, along a stretch of the way and not along the rest.
+   * The sequence is the position within the leg, so points arriving in order keep it.
+   *
+   * `replace_legs` clears by leg rather than by day, so vias the traveller placed by hand
+   * on other legs survive a track being laid on this one.
+   */
+  createMany(
+    dayId: string | number,
+    input: { vias: { after_order_index: number; lat: number; lng: number }[]; replace_legs?: number[] },
+  ): RoadtripVia[] {
+    return this.db.transaction(() => {
+      for (const leg of input.replace_legs ?? []) {
+        this.db.run('DELETE FROM roadtrip_vias WHERE day_id = ? AND after_order_index = ?', dayId, leg);
+      }
+      // Per leg, because sequence only orders the vias that follow the same stop. Read
+      // once up front rather than per insert: the loop is inside the transaction, and a
+      // MAX() per point over a hundred points is a hundred scans of the same rows.
+      const nextSeq = new Map<number, number>();
+      for (const via of input.vias) {
+        let seq = nextSeq.get(via.after_order_index);
+        if (seq === undefined) {
+          seq = this.db.get<{ next: number }>(
+            'SELECT COALESCE(MAX(sequence) + 1, 0) AS next FROM roadtrip_vias WHERE day_id = ? AND after_order_index = ?',
+            dayId,
+            via.after_order_index,
+          )?.next ?? 0;
+        }
+        this.db.run(
+          'INSERT INTO roadtrip_vias (day_id, after_order_index, sequence, lat, lng) VALUES (?, ?, ?, ?, ?)',
+          dayId,
+          via.after_order_index,
+          seq,
+          via.lat,
+          via.lng,
+        );
+        nextSeq.set(via.after_order_index, seq + 1);
+      }
+      return this.listForDay(dayId);
+    });
+  }
+
   /** Moving a via is the whole edit; where it sits in the chain does not change. */
   move(id: string | number, dayId: string | number, lat: number, lng: number): RoadtripVia | null {
     const existing = this.db.get<{ id: number }>(

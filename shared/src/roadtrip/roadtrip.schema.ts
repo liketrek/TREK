@@ -72,6 +72,29 @@ export const roadtripViaReanchorRequestSchema = z.object({
 });
 export type RoadtripViaReanchorRequest = z.infer<typeof roadtripViaReanchorRequestSchema>;
 
+/**
+ * Laying a whole chain of vias on one day at once.
+ *
+ * The single-via route is right for a hand-dragged detour and wrong for everything that
+ * derives its anchors from a line: pinning a day onto a recorded track or a signed scenic
+ * road means a couple of dozen points, and one request each would re-route the entire trip
+ * once per point, at better than a second apart.
+ *
+ * `replace_legs` clears the vias on the named legs before inserting, and names legs rather
+ * than taking a boolean for the day: a traveller who already bent two legs by hand and
+ * then adopts a scenic road for a third has not asked to lose the two.
+ */
+export const roadtripViaBatchRequestSchema = z.object({
+  vias: z.array(z.object({
+    after_order_index: z.number().int().min(0),
+    lat: latSchema,
+    lng: lngSchema,
+  })).max(100),
+  /** Legs to clear first, by `after_order_index`. Absent means add to what is there. */
+  replace_legs: z.array(z.number().int().min(0)).max(100).optional(),
+});
+export type RoadtripViaBatchRequest = z.infer<typeof roadtripViaBatchRequestSchema>;
+
 export const roadtripViaListResponseSchema = z.object({
   vias: z.array(roadtripViaSchema),
 });

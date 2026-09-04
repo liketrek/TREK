@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpException, Param, Post, Put, UseGuards } from '@nestjs/common';
 import type { RoadtripVia } from '@trek/shared';
 import { RoadtripService } from './roadtrip.service';
-import { RoadtripViaCreateDto, RoadtripViaReanchorDto, RoadtripViaUpdateDto } from './roadtrip.dto';
+import { RoadtripViaBatchDto, RoadtripViaCreateDto, RoadtripViaReanchorDto, RoadtripViaUpdateDto } from './roadtrip.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
 import { RequireAddon } from '../addons/require-addon.decorator';
@@ -51,6 +51,26 @@ export class RoadtripController {
   ): { via: RoadtripVia } {
     this.requireDay(dayId, tripId);
     return { via: this.roadtrip.create(dayId, body) };
+  }
+
+  /**
+   * Lay a whole chain of vias on one day at once.
+   *
+   * Separate from the single-via route rather than folded into it: this one takes a list
+   * and can clear the legs it is about to fill, which is what deriving a day's route from
+   * a recorded track or a signed road needs. Doing it one point at a time would re-route
+   * the whole trip once per point.
+   */
+  @RequirePermission('day_edit')
+  @Post('days/:dayId/vias/batch')
+  @HttpCode(200)
+  createMany(
+    @Param('tripId') tripId: string,
+    @Param('dayId') dayId: string,
+    @Body() body: RoadtripViaBatchDto,
+  ): { vias: RoadtripVia[] } {
+    this.requireDay(dayId, tripId);
+    return { vias: this.roadtrip.createMany(dayId, body) };
   }
 
   /**

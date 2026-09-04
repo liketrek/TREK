@@ -60,6 +60,7 @@ import {
   type PluginActionResult,
   type PluginInstallRequest,
   RoadtripVia,
+  RoadtripViaBatchRequest,
   RoadtripViaCreateRequest,
   RoadtripViaReanchorRequest,
   RoadtripViaUpdateRequest,
@@ -1073,6 +1074,13 @@ export const roadtripApi = {
     apiClient.get(`/trips/${tripId}/roadtrip/vias`).then(r => r.data as { vias: RoadtripVia[] }),
   addVia: (tripId: number | string, dayId: number | string, body: RoadtripViaCreateRequest) =>
     apiClient.post(`/trips/${tripId}/roadtrip/days/${dayId}/vias`, body).then(r => r.data as { via: RoadtripVia }),
+  /**
+   * Lay a chain of vias on one day in one write. Anything that derives its anchors from a
+   * line produces dozens of them, and one request each would re-route the whole trip once
+   * per point at better than a second apart.
+   */
+  addVias: (tripId: number | string, dayId: number | string, body: RoadtripViaBatchRequest) =>
+    apiClient.post(`/trips/${tripId}/roadtrip/days/${dayId}/vias/batch`, body).then(r => r.data as { vias: RoadtripVia[] }),
   /**
    * Re-pin a day's vias in one write, after its stops changed shape. One request, not one
    * per via: the anchors are only correct as a set.

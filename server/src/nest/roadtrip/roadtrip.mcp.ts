@@ -81,6 +81,39 @@ export class RoadtripMcp {
   }
 
   @Tool({
+    name: 'add_route_vias',
+    description: 'Lay a whole chain of via points on one day at once, so the drive follows a particular road for a stretch rather than being nudged at a single point. Use this when the shape comes from a line — a recorded track, a signed scenic route — and add_route_via when it is one detour. Pass replace_legs to clear the vias on those legs first; leave it out to add to what is already there, which is what leaves hand-placed detours on other legs alone.',
+    inputSchema: {
+      tripId: z.number().int().positive(),
+      dayId: z.number().int().positive(),
+      vias: z.array(z.object({
+        after_order_index: z.number().int().min(0).describe('Which stop of the day this via follows, counting from 0'),
+        lat: z.number().min(-90).max(90),
+        lng: z.number().min(-180).max(180),
+      })).max(100).describe('In the order the drive passes through them'),
+      replace_legs: z.array(z.number().int().min(0)).max(100).optional()
+        .describe('Legs to clear before inserting, by the index of the stop they follow'),
+    },
+    annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+    access: { group: 'trips', mode: 'write' },
+    when: roadtripAddonOn,
+  })
+  async addVias(
+    { tripId, dayId, vias, replace_legs }: {
+      tripId: number; dayId: number;
+      vias: { after_order_index: number; lat: number; lng: number }[];
+      replace_legs?: number[];
+    },
+    ctx: McpContext,
+  ) {
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
+    if (!this.db.canAccessTrip(tripId, ctx.userId)) return noAccess();
+    if (!this.guards.hasTripPermission('day_edit', tripId, ctx.userId)) return permissionDenied();
+    if (!this.roadtrip.dayExists(dayId, tripId)) return noAccess();
+    return ok({ vias: this.roadtrip.createMany(dayId, { vias, replace_legs }) });
+  }
+
+  @Tool({
     name: 'reanchor_route_vias',
     description: 'Re-pin a day\'s via points after its stops changed. A via records which stop it follows by position, so adding, removing or reordering a stop leaves every later via pointing at the wrong leg and the drive silently reverts to the road it was steered away from. Send the corrected positions for the whole day at once; ids left out keep the position they have.',
     inputSchema: {
