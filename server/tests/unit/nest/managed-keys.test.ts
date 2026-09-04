@@ -62,6 +62,7 @@ describe('managed key assignment', () => {
       'oidc_login',
       'oidc_registration',
       'openweather_api_key',
+      'routing_base_url',
       'smtp_from',
       'smtp_host',
       'smtp_pass',
