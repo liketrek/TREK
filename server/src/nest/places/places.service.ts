@@ -242,13 +242,14 @@ export class PlacesService {
       // 0 is a legitimate value for all four (Null Island, a free entry, a
       // drive-by stop) and the falsy coercion silently threw it away.
       //
-      // `duration_minutes` stays NULL when nobody says otherwise, rather than being
-      // invented as an hour. It is read in exactly one place — the road trip rail's
-      // "Stay" — and a default meant every place ever created claimed a one-hour stop
-      // the traveller had never entered, with no way to tell the two apart.
+      // The hour stays the default for a place created without one, which is what it
+      // has always been and what the column itself declares. The road trip rail reads
+      // the value as a stay, and a stop added from the corridor search brings its own
+      // figure — ten minutes for fuel, twenty for a rest area — so the kinds that would
+      // be misread as an hour never take the default in the first place.
       tripId, name, description || null, lat ?? null, lng ?? null, address || null,
       category_id || null, price ?? null, currency || null,
-      place_time || null, end_time || null, duration_minutes ?? null, notes || null, image_url || null,
+      place_time || null, end_time || null, duration_minutes ?? 60, notes || null, image_url || null,
       google_place_id || null, google_ftid || null, osm_id || null, website || null, phone || null, transport_mode || 'walking',
       route_geometry || null, route_color || null, stop_type || null,
     );
