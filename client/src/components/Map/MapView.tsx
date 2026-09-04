@@ -635,6 +635,7 @@ export const MapView = memo(function MapView({
   onViewportChange,
   tripId,
   routeVias = [],
+  accessLines = [],
   onPoiDropOnRoute,
   onRouteClick,
   roadtripVias,
@@ -1044,6 +1045,20 @@ export const MapView = memo(function MapView({
           interactive={false}
         />,
       ] : [])}
+
+      {/* The last bit to a place the road does not reach.
+          Dashed and thin, over the route rather than under it, because it is the one
+          piece of the line that is not driving: the router snapped the stop to the
+          nearest road and the drive really ends there. Same blue as the route, so it
+          reads as the end of that route and not as a second one. */}
+      {(accessLines ?? []).map((spur, i) => (
+        <Polyline
+          key={`access-${i}`}
+          positions={spur.line}
+          pathOptions={{ color: '#0a84ff', weight: 3, opacity: 0.85, dashArray: '2 7', lineCap: 'round' }}
+          interactive={false}
+        />
+      ))}
 
       {/* The offered ways of driving one leg, over the route they replace. Clicking one
           takes it, which is the same choice the bar above the map offers. */}

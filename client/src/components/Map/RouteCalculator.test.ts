@@ -789,12 +789,63 @@ describe('calculateAlternatives', () => {
       return new HttpResponse(null, { status: 400 })
     }))
 
-    await calculateAlternatives([{ lat: 53, lng: 10 }, { lat: 52, lng: 13 }], 'driving')
+    await calculateAlternatives({ lat: 53, lng: 10 }, { lat: 52, lng: 13 }, 'driving')
     const afterFirst = asked.length
-    await calculateAlternatives([{ lat: 51, lng: 9 }, { lat: 50, lng: 12 }], 'driving')
+    await calculateAlternatives({ lat: 51, lng: 9 }, { lat: 50, lng: 12 }, 'driving')
 
     expect(afterFirst).toBe(1)
     expect(asked).toHaveLength(1)
+  })
+
+  it('FE-COMP-ROUTECALCULATOR-033: the snap positions come back with the route', async () => {
+    // OSRM reports these in every answer and TREK threw them away since the first route
+    // was drawn. Without them a place set back from the road looks like it is on the
+    // route, while the drive really starts somewhere else.
+    server.use(http.get('*/route/v1/driving/*', () => HttpResponse.json({
+      code: 'Ok',
+      waypoints: [
+        { location: [10.02, 53.51], distance: 812.5 },
+        { location: [13.0, 52.0], distance: 4 },
+      ],
+      routes: [{ geometry: { coordinates: [[10, 53], [13, 52]] }, distance: 1000, duration: 900, legs: [{ distance: 1000, duration: 900 }] }],
+    })))
+
+    const r = await calculateRouteWithLegs([{ lat: 53.5, lng: 10.0 }, { lat: 52, lng: 13 }])
+
+    expect(r.snapped).toEqual([
+      { asked: [53.5, 10.0], at: [53.51, 10.02], meters: 812.5 },
+      { asked: [52, 13], at: [52.0, 13.0], meters: 4 },
+    ])
+  })
+
+  it('FE-COMP-ROUTECALCULATOR-034: a distance the router left out is worked out from the two points', async () => {
+    server.use(http.get('*/route/v1/driving/*', () => HttpResponse.json({
+      code: 'Ok',
+      waypoints: [{ location: [10.0, 53.0] }, { location: [13.0, 52.0] }],
+      routes: [{ geometry: { coordinates: [[10, 53], [13, 52]] }, distance: 1000, duration: 900, legs: [{ distance: 1000, duration: 900 }] }],
+    })))
+
+    const r = await calculateRouteWithLegs([{ lat: 53.01, lng: 10.0 }, { lat: 52, lng: 13 }])
+
+    // Roughly 1.1 km for a hundredth of a degree of latitude; the point is that it is a
+    // real number rather than the whole answer being discarded.
+    expect(r.snapped?.[0].meters).toBeGreaterThan(1000)
+    expect(r.snapped?.[0].meters).toBeLessThan(1200)
+  })
+
+  it('FE-COMP-ROUTECALCULATOR-035: an answer that does not describe its waypoints changes nothing', async () => {
+    // All-or-nothing: a partial list would have to be indexed by waypoint anyway, and one
+    // bad entry would hang the spur off the wrong stop.
+    server.use(http.get('*/route/v1/driving/*', () => HttpResponse.json({
+      code: 'Ok',
+      waypoints: [{ location: [10.0, 53.0] }],
+      routes: [{ geometry: { coordinates: [[10, 53], [13, 52]] }, distance: 1000, duration: 900, legs: [{ distance: 1000, duration: 900 }] }],
+    })))
+
+    const r = await calculateRouteWithLegs([{ lat: 53, lng: 10 }, { lat: 52, lng: 13 }])
+
+    expect(r.snapped).toBeUndefined()
+    expect(r.coordinates).toHaveLength(2)
   })
 
   it('FE-COMP-ROUTECALCULATOR-028: no route at all is an empty list, not a throw', async () => {

@@ -188,6 +188,23 @@ export interface RouteVia {
   dwellSeconds?: number
 }
 
+/**
+ * Where the router put a waypoint we asked about, and how far that is from where we asked.
+ *
+ * Every routing engine snaps a coordinate to the nearest road before it starts, and OSRM
+ * does it with no distance limit at all. A place set back from the road — a viewpoint, a
+ * farmhouse, a marina — is therefore driven to from somewhere else entirely, and the drawn
+ * line starts at that somewhere else without saying so.
+ */
+export interface SnappedWaypoint {
+  /** The coordinate that was asked for, unchanged. */
+  asked: [number, number]
+  /** The point on the road network the router actually used. */
+  at: [number, number]
+  /** Straight-line metres between the two. */
+  meters: number
+}
+
 export interface RouteWithLegs {
   coordinates: [number, number][]
   distance: number
@@ -195,6 +212,8 @@ export interface RouteWithLegs {
   legs: RouteSegment[]
   /** Present on plugin-provided routes only. */
   vias?: RouteVia[]
+  /** One entry per REQUESTED waypoint, in request order. Absent on plugin routes. */
+  snapped?: SnappedWaypoint[]
 }
 
 export interface RouteResult {

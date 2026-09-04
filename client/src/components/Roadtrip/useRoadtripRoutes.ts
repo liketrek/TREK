@@ -3,7 +3,8 @@ import { calculateRouteWithLegs, RoutingRefusedError } from '../Map/RouteCalcula
 import { resolveLegMode } from '../Planner/legMode'
 import { computeSchedule, isServiceStopType, splitIntoRuns, type Schedule } from './roadtripModel'
 import { useSettingsStore } from '../../store/settingsStore'
-import type { Assignment, AssignmentsMap, Day, RouteSegment } from '../../types'
+import type { Assignment, AssignmentsMap, Day, RouteSegment, SnappedWaypoint } from '../../types'
+import { spurFor } from './accessSpur'
 import type { RoadtripVia } from '@trek/shared'
 
 /** One stop on a day's drive — an assignment whose place actually has coordinates. */
@@ -22,6 +23,12 @@ export interface RoadtripStop {
   incomingLegMode: string | null
   /** fuel / charging / rest_area / campsite, or null for an ordinary place (#1797). */
   stopType: string | null
+  /**
+   * How far the router had to go to find a road, in metres, once this stop has routed.
+   *
+   * null means either not routed yet or close enough that nobody would call it a gap.
+   */
+  offRoadMeters?: number | null
 }
 
 export interface RoadtripDay {
@@ -52,6 +59,14 @@ export interface RoadtripDay {
   driveWarnings?: DriveWarning[]
   /** A finding about the day as a whole, such as more driving than the day allows. */
   dayWarning?: DriveWarning | null
+}
+
+/** A place, the road it is driven to from, and how far apart the two are. */
+export interface AccessSpur {
+  line: [[number, number], [number, number]]
+  meters: number
+  /** So the rail and the map can point at the same one. */
+  stopKey: string
 }
 
 /** A finding about the drive rather than about a stop. */
@@ -93,7 +108,7 @@ export interface RoadtripRoutes {
    * off the road reads as "the drive ends here and the rest is not driving" instead of
    * looking like a route that cuts across open country.
    */
-  accessLines: { line: [[number, number], [number, number]]; meters: number }[]
+  accessLines: AccessSpur[]
   /** The routed legs themselves, so the map can label each connector. */
   segments: RouteSegment[]
   totalDistance: number
@@ -231,6 +246,14 @@ export function useRoadtripRoutes(
   // Leg text is pre-formatted in the chosen unit, so a km↔mi switch has to re-fetch.
   const distanceUnit = useSettingsStore(s => s.settings.distance_unit)
   const [legsByDay, setLegsByDay] = useState<Record<number, Record<string, RoutedLeg>>>({})
+  /**
+   * Where the router put each stop, by day and stop key.
+   *
+   * Kept beside the legs rather than inside them because it belongs to a stop and a leg
+   * has two of them: the arrival end of one leg is the departure end of the next, and
+   * filing it twice would draw the spur twice.
+   */
+  const [snapByDay, setSnapByDay] = useState<Record<number, Record<string, SnappedWaypoint>>>({})
   const [loading, setLoading] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
 
@@ -295,6 +318,7 @@ export function useRoadtripRoutes(
     abortRef.current?.abort()
     if (!plan.length) {
       setLegsByDay({})
+      setSnapByDay({})
       setLoading(false)
       return
     }
@@ -306,6 +330,7 @@ export function useRoadtripRoutes(
       days.find(d => d.id === dayId)?.default_transport_mode || routeProfile
 
     const collected: Record<number, Record<string, RoutedLeg>> = {}
+    const collectedSnaps: Record<number, Record<string, SnappedWaypoint>> = {}
     const tasks: (() => Promise<void>)[] = []
 
     for (const day of plan) {
@@ -348,6 +373,16 @@ export function useRoadtripRoutes(
                 waypoints,
                 { signal: controller.signal, profile: mode, tripId: tripId ?? null, dayId: day.dayId },
               )
+              // Where each stop ended up. stopAt[i] is that stop's waypoint index, so the
+              // vias threaded in between are skipped: a via is a shape handle, not a
+              // destination, and a dashed spur hanging off one reads as a fault.
+              if (r.snapped) {
+                const daySnaps = (collectedSnaps[day.dayId] ??= {})
+                run.forEach((stop, i) => {
+                  const s = r.snapped?.[stopAt[i]]
+                  if (s) daySnaps[stopKey(stop)] = s
+                })
+              }
               // Fold the router's per-waypoint legs back onto the stop pairs: a stop pair
               // with a via between it comes back as two legs, and the rail shows one.
               for (let i = 0; i < run.length - 1; i++) {
@@ -390,6 +425,7 @@ export function useRoadtripRoutes(
         await tasks[i]()
         if (controller.signal.aborted) return
         setLegsByDay({ ...collected })
+        setSnapByDay({ ...collectedSnaps })
         // Only pace what actually went out. RouteCalculator answers a repeat from its
         // cache in well under a millisecond, and switching back into road trip mode is
         // all repeats — waiting a second between those made a warm view feel broken.
@@ -415,6 +451,7 @@ export function useRoadtripRoutes(
     const out: RoadtripDay[] = []
     for (const day of plan) {
       const dayLegs = legsByDay[day.dayId] ?? {}
+      const daySnaps = snapByDay[day.dayId] ?? {}
       const routed = day.stops.slice(0, -1).map((s, i) => dayLegs[legKey(s, day.stops[i + 1])])
       for (const leg of routed) {
         if (!leg) continue
@@ -431,7 +468,13 @@ export function useRoadtripRoutes(
         day.stops.map(s => ({ anchor: s.time, dwellMinutes: s.dwellMinutes })),
         legs.map(l => l?.duration),
       )
-      out.push({ ...day, legs, schedule, geometry, distance, duration })
+      const stops = day.stops.map(s => {
+        const snap = daySnaps[stopKey(s)]
+        const line = spurFor(snap)
+        if (line) accessLines.push({ line, meters: snap.meters, stopKey: stopKey(s) })
+        return { ...s, offRoadMeters: line ? snap.meters : null }
+      })
+      out.push({ ...day, stops, legs, schedule, geometry, distance, duration })
     }
     return {
       days: out,
@@ -446,5 +489,5 @@ export function useRoadtripRoutes(
       quietDays,
       loading,
     }
-  }, [plan, legsByDay, loading, quietDays])
+  }, [plan, legsByDay, snapByDay, loading, quietDays])
 }

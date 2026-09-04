@@ -10,6 +10,7 @@ import { formatDistance } from '../../utils/units'
 import { formatDate, formatClockTime } from '../../utils/formatters'
 import { formatDurationShort, isServiceStopType, serviceColor, type ScheduleEntry, type ScheduleWarning } from './roadtripModel'
 import { STOP_KIND_BY_KEY } from './stopKinds'
+import { spurWorthLabelling } from './accessSpur'
 import type { QuietDay, RoadtripDay, RoadtripRoutes, RoadtripStop } from './useRoadtripRoutes'
 import { FS } from './typeScale'
 import type { RouteSegment } from '../../types'
@@ -459,6 +460,7 @@ function Stop({ stop, number, entry, late, selected, continues, onSelect, onMove
   onEditStay?: () => void
 }): React.ReactElement {
   const { t } = useTranslation()
+  const distanceUnit = useSettingsStore(s => s.settings.distance_unit)
   const lateText = late ? t('roadtrip.warn.late', { minutes: late.minutes ?? 0 }) : null
   return (
     <button
@@ -507,6 +509,18 @@ function Stop({ stop, number, entry, late, selected, continues, onSelect, onMove
           {/* Two halves under one border: the word says what the number means, so the
               number needs no unit of explanation beside it. */}
           <StayBadge minutes={stop.dwellMinutes} onEdit={onEditStay} />
+          {/* Only when the walk is far enough to change the plan. A dashed line on the
+              map already says there is a gap; the number is for the case where the gap
+              means luggage, a gate or a track a hire car should not be on. */}
+          {spurWorthLabelling(stop.offRoadMeters) ? (
+            <span
+              className="mt-0.5 inline-flex w-fit items-center gap-1 self-start text-content-faint"
+              style={{ fontSize: FS.label }}
+            >
+              <Footprints size={10} className="shrink-0" aria-hidden />
+              {t('roadtrip.stop.offRoad', { distance: formatDistance((stop.offRoadMeters ?? 0) / 1000, distanceUnit) })}
+            </span>
+          ) : null}
           {lateText ? (
             <span
               dir="ltr"

@@ -85,6 +85,8 @@ interface RouteSegment {
 // mouseleave never fires" case (#1404).
 const NO_PLACES: Place[] = []
 const NO_ROUTE_VIAS: RouteVia[] = []
+/** Stable empty default: a fresh array each render would refire the spur effect. */
+const NO_ACCESS_LINES: { line: [[number, number], [number, number]]; meters: number }[] = []
 const NO_ROUTE_SEGMENTS: RouteSegment[] = []
 const NO_DAY_ORDER: Record<number, number[] | null> = {}
 const NO_RESERVATIONS: Reservation[] = []
@@ -101,6 +103,8 @@ interface Props {
   tripId?: number | string
   // Charging stops / rest areas a plugin route places on the drawn day route.
   routeVias?: RouteVia[]
+  /** The dashed last bit to a place the road network does not reach. */
+  accessLines?: { line: [[number, number], [number, number]]; meters: number }[]
   route?: [number, number][][] | null
   routeSegments?: RouteSegment[]
   selectedPlaceId?: number | null
@@ -545,6 +549,7 @@ export function MapViewGL({
   dayPlaces = NO_PLACES,
   tripId,
   routeVias = NO_ROUTE_VIAS,
+  accessLines = NO_ACCESS_LINES,
   route = null,
   routeSegments = NO_ROUTE_SEGMENTS,
   selectedPlaceId = null,
@@ -1071,6 +1076,21 @@ export function MapViewGL({
           source: 'trip-route',
           paint: { 'line-color': '#0a84ff', 'line-width': 5 },
           layout: { 'line-cap': 'round', 'line-join': 'round' },
+        })
+      }
+      // The last bit to a place the road does not reach (#1797). Added after the route
+      // so it draws over it: it is the one piece of the line that is not driving, and it
+      // has to be readable exactly where it meets the road it leaves. Same blue, because
+      // it is the end of that route rather than a second one; dashed short and thin,
+      // which is how a map says "on foot from here" without a legend.
+      if (!map.getSource('trip-access')) {
+        map.addSource('trip-access', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
+        map.addLayer({
+          id: 'trip-access-line',
+          type: 'line',
+          source: 'trip-access',
+          paint: { 'line-color': '#0a84ff', 'line-width': 3, 'line-opacity': 0.85, 'line-dasharray': [1, 2.5] },
+          layout: { 'line-cap': 'round' },
         })
       }
       // gpx geometries source (place.route_geometry)
@@ -1751,6 +1771,22 @@ export function MapViewGL({
     }))
     src.setData({ type: 'FeatureCollection', features })
   }, [route, mapReady])
+
+  // Update access-spur geojson
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+    const src = map.getSource('trip-access') as mapboxgl.GeoJSONSource | undefined
+    if (!src) return
+    src.setData({
+      type: 'FeatureCollection',
+      features: (accessLines || []).map(spur => ({
+        type: 'Feature' as const,
+        properties: { meters: Math.round(spur.meters) },
+        geometry: { type: 'LineString' as const, coordinates: spur.line.map(([lat, lng]) => [lng, lat]) },
+      })),
+    })
+  }, [accessLines, mapReady])
 
   // Travel times now live in the day sidebar (per-segment connectors), not on the map.
 

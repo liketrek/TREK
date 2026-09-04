@@ -1,6 +1,7 @@
 import { useSettingsStore } from '../../store/settingsStore'
 import { pluginsApi } from '../../api/client'
-import type { DistanceUnit, RouteResult, RouteSegment, RouteWithLegs, Waypoint, RouteAnchors } from '../../types'
+import type { DistanceUnit, RouteResult, RouteSegment, RouteWithLegs, SnappedWaypoint, Waypoint, RouteAnchors } from '../../types'
+import { haversineKm } from '../../utils/geo'
 import { formatDistance } from '../../utils/units'
 
 // FOSSGIS hosts OSRM with real per-profile routing (car/foot/bike) — the
@@ -430,13 +431,45 @@ export async function calculateRouteWithLegs(
     }
   )
 
-  const result: RouteWithLegs = { coordinates, distance: route.distance, duration: route.duration, legs }
+  const snapped = readSnapped(data, waypoints)
+  const result: RouteWithLegs = { coordinates, distance: route.distance, duration: route.duration, legs, ...(snapped ? { snapped } : {}) }
   routeCache.set(cacheKey, result)
   if (routeCache.size > ROUTE_CACHE_MAX) {
     const oldest = routeCache.keys().next().value
     if (oldest !== undefined) routeCache.delete(oldest)
   }
   return result
+}
+
+/**
+ * The snap positions out of an OSRM answer, or undefined if it did not describe them.
+ *
+ * OSRM reports this in every response and TREK has thrown it away since the first route
+ * was drawn. `distance` is the straight line from the coordinate we sent to the road it
+ * used; it is recomputed from the two points when the field is missing or nonsense, so a
+ * mirror that trims its answers still produces a usable gap rather than a wrong one.
+ *
+ * All-or-nothing on purpose: a partial list would have to be indexed by waypoint anyway,
+ * and one bad entry would put a spur on the wrong stop.
+ */
+function readSnapped(data: unknown, waypoints: Waypoint[]): SnappedWaypoint[] | undefined {
+  const raw = (data as { waypoints?: unknown })?.waypoints
+  if (!Array.isArray(raw) || raw.length !== waypoints.length) return undefined
+  const out: SnappedWaypoint[] = []
+  for (let i = 0; i < raw.length; i++) {
+    const loc = (raw[i] as { location?: unknown })?.location
+    if (!Array.isArray(loc) || loc.length < 2) return undefined
+    const [lng, lat] = loc as [number, number]
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return undefined
+    const asked: [number, number] = [waypoints[i].lat, waypoints[i].lng]
+    const at: [number, number] = [lat, lng]
+    const reported = (raw[i] as { distance?: unknown })?.distance
+    const meters = typeof reported === 'number' && Number.isFinite(reported) && reported >= 0
+      ? reported
+      : haversineKm({ lat: asked[0], lng: asked[1] }, { lat, lng }) * 1000
+    out.push({ asked, at, meters })
+  }
+  return out
 }
 
 function getDistanceUnit(): DistanceUnit {

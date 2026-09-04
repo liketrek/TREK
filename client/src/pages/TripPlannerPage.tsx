@@ -382,6 +382,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
               dayPlaces={dayPlaces}
               route={roadtripActive ? roadtripRoutes.lines : route}
               routeVias={roadtripActive ? [] : routeVias}
+              accessLines={roadtripActive ? roadtripRoutes.accessLines : undefined}
               showTransitRoutes={transitRoutesShown}
               // The route toggle belongs to one day, so the map needs that day to
               // know which automated transports may ride it (#2019).
