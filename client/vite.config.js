@@ -2,6 +2,7 @@ import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import { visualizer } from 'rollup-plugin-visualizer';
+import { rtlTextAlias } from './rtlTextAlias.js';
 
 // `npm run build:analyze` writes dist/stats.html — a treemap of what actually ended
 // up in each chunk. The plain build only reports chunk sizes, which tells you a chunk
@@ -46,8 +47,14 @@ export default defineConfig(({ mode }) => ({
         // Every route chunk is precached alongside the shell, deliberately: for an
         // offline-first travel planner a route the user never opened before losing
         // signal still has to work. The trade is that splitting buys first paint and
-        // not install size — 107 entries / 17,795 KiB before any of it, 220 /
-        // 17,855 KiB now.
+        // not install size: 107 entries / 17,795 KiB before any of it, 463 /
+        // 23,292 KiB now (measured, not estimated).
+        //
+        // Keep this figure honest. #2228 traced PWA boot failures to the browser
+        // evicting this origin's whole bucket, precached shell included, and this
+        // comment is the only record of what the install actually costs. Anything
+        // matching the globs below is fetched at service-worker install by every
+        // user, whether or not they ever reach the code.
         globPatterns: ['**/*.{js,css,html,svg,png,woff,woff2,ttf}'],
         // build:analyze drops a treemap next to the app; it must never end up in a
         // precache manifest if someone ships that build by accident.
@@ -227,6 +234,7 @@ export default defineConfig(({ mode }) => ({
       },
     }),
   ].filter(Boolean),
+  resolve: { alias: [rtlTextAlias] },
   build: {
     // Pin the output level instead of inheriting whatever the current Vite default
     // is, so a toolchain bump can't silently change which browsers still work.

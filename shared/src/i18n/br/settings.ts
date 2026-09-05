@@ -247,7 +247,7 @@ const settings: TranslationStrings = {
   'settings.oauth.modal.redirectUris': 'URIs de redirecionamento',
   'settings.oauth.modal.redirectUrisPlaceholder': 'https://your-app.com/callback\nhttps://your-app.com/auth',
   'settings.oauth.modal.redirectUrisHint':
-    'Uma URI por linha. HTTPS obrigatório (localhost isento). Correspondência exata.',
+    'Uma URI por linha. HTTPS, HTTP em loopback ou um esquema de aplicativo próprio (myapp://). Correspondência exata, exceto a porta de uma URI em loopback.',
   'settings.oauth.modal.scopes': 'Escopos permitidos',
   'settings.oauth.modal.scopesHint':
     'list_trips e get_trip_summary estão sempre disponíveis — sem escopo necessário. Permitem à IA descobrir IDs de viagem.',
@@ -494,6 +494,14 @@ const settings: TranslationStrings = {
   'settings.offline.storage.tripsTitle': 'Viagens',
   'settings.offline.storage.tripOn': 'Armazenada offline',
   'settings.offline.storage.tripOff': 'Não armazenada',
+  'settings.offline.storage.tripFinished': 'Concluída. Só fica salva se você ativar.',
+  'settings.offline.notice.stored': '{count} viagem(ns) salva(s) neste dispositivo',
+  'settings.offline.notice.nothing': 'Nada para salvar. Ative as viagens que você quer manter.',
+  'settings.offline.notice.busy': 'Já há uma sincronização em andamento. Tente de novo em instantes.',
+  'settings.offline.notice.offline': 'Sem conexão. Conecte-se para salvar viagens off-line.',
+  'settings.offline.notice.signedOut': 'Sua sessão expirou. Entre novamente para sincronizar.',
+  'settings.offline.notice.failed': 'O download não pôde ser concluído. Verifique sua conexão e tente de novo.',
+  'settings.offline.notice.loadFailed': 'Não foi possível ler o armazenamento off-line deste dispositivo. Limpar o cache costuma resolver.',
   'settings.offline.clear': 'Limpar cache',
   'settings.offline.clearConfirm':
     'Limpar todos os dados de viagem offline? Você pode sincronizar novamente a qualquer momento quando estiver online.',

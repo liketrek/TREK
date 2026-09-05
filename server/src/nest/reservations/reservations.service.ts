@@ -4,6 +4,7 @@ import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 import { RealtimeService } from '../realtime/realtime.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { ReservationsReadRepository, toTraveler } from './reservations-read.repository';
+import { keepMirroredPrice } from './reservation-metadata';
 import type { Reservation, User } from '../../types';
 import { BudgetService } from '../budget/budget.service';
 import { typeToCostCategory } from '@trek/shared';
@@ -720,6 +721,13 @@ export class ReservationsService {
       }
     }
 
+    // metadata.price / priceCurrency are written by the expense side and by the
+    // booking importer, never by the booking form: the client rebuilds metadata
+    // from its fields on every save and carries only transit / airtrail_ids
+    // over, so a plain edit used to wipe the price off the card until the
+    // expense was re-saved. A payload that does not name the keys keeps them.
+    const nextMetadata = keepMirroredPrice(metadata, current.metadata);
+
     const resolvedType = (type ?? current.type) || 'other';
     const nextReservationTime = resolvedType === 'hotel'
       ? null
@@ -790,7 +798,7 @@ export class ReservationsService {
       status || null,
       type || null,
       resolvedAccId,
-      metadata !== undefined ? (metadata ? JSON.stringify(metadata) : null) : current.metadata,
+      nextMetadata !== undefined ? (nextMetadata ? JSON.stringify(nextMetadata) : null) : current.metadata,
       needs_review === undefined ? null : (needs_review ? 1 : 0),
       id
     );
@@ -800,7 +808,7 @@ export class ReservationsService {
     }
 
     // Sync check-in/out to accommodation if linked
-    const resolvedMeta = metadata !== undefined ? metadata : (current.metadata ? JSON.parse(current.metadata as string) : null);
+    const resolvedMeta = nextMetadata !== undefined ? nextMetadata : (current.metadata ? JSON.parse(current.metadata as string) : null);
     if (resolvedAccId && resolvedMeta) {
       const meta = (typeof resolvedMeta === 'string' ? JSON.parse(resolvedMeta) : resolvedMeta) as AccommodationTimesMeta;
       if (meta.check_in_time || meta.check_in_end_time || meta.check_out_time) {

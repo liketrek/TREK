@@ -204,7 +204,7 @@ const settings: TranslationStrings = {
   'settings.oauth.modal.redirectUris': 'Redirect URIs',
   'settings.oauth.modal.redirectUrisPlaceholder': 'https://your-app.com/callback\nhttps://your-app.com/auth',
   'settings.oauth.modal.redirectUrisHint':
-    'Ένα URI ανά γραμμή. Απαιτείται HTTPS (το localhost εξαιρείται). Επιβάλλεται ακριβής αντιστοίχιση.',
+    'Ένα URI ανά γραμμή. HTTPS, HTTP σε loopback ή ιδιωτικό σχήμα εφαρμογής (myapp://). Ακριβής αντιστοίχιση, εκτός από τη θύρα σε loopback URI.',
   'settings.oauth.modal.scopes': 'Επιτρεπόμενα Scopes',
   'settings.oauth.modal.scopesHint':
     'Τα list_trips και get_trip_summary είναι πάντα διαθέσιμα — δεν απαιτείται scope. Επιτρέπουν στο AI να εντοπίζει τα trip IDs που χρειάζονται για τη χρήση οποιουδήποτε άλλου εργαλείου.',
@@ -505,6 +505,14 @@ const settings: TranslationStrings = {
   'settings.offline.storage.tripsTitle': 'Ταξίδια',
   'settings.offline.storage.tripOn': 'Αποθηκευμένο εκτός σύνδεσης',
   'settings.offline.storage.tripOff': 'Μη αποθηκευμένο',
+  'settings.offline.storage.tripFinished': 'Ολοκληρώθηκε. Αποθηκεύεται μόνο αν το ενεργοποιήσετε.',
+  'settings.offline.notice.stored': 'Αποθηκεύτηκαν {count} ταξίδια σε αυτή τη συσκευή',
+  'settings.offline.notice.nothing': 'Δεν υπάρχει τίποτα για αποθήκευση. Ενεργοποιήστε τα ταξίδια που θέλετε να κρατήσετε.',
+  'settings.offline.notice.busy': 'Γίνεται ήδη συγχρονισμός. Δοκιμάστε ξανά σε λίγο.',
+  'settings.offline.notice.offline': 'Δεν υπάρχει σύνδεση. Συνδεθείτε για να αποθηκεύσετε ταξίδια για χρήση χωρίς σύνδεση.',
+  'settings.offline.notice.signedOut': 'Η συνεδρία σας έληξε. Συνδεθείτε ξανά για συγχρονισμό.',
+  'settings.offline.notice.failed': 'Η λήψη δεν ολοκληρώθηκε. Ελέγξτε τη σύνδεσή σας και δοκιμάστε ξανά.',
+  'settings.offline.notice.loadFailed': 'Δεν ήταν δυνατή η ανάγνωση του τοπικού χώρου αποθήκευσης. Συνήθως βοηθάει η εκκαθάριση της προσωρινής μνήμης.',
   'settings.offline.clear': 'Εκκαθάριση προσωρινής μνήμης',
   'settings.offline.clearConfirm':
     'Εκκαθάριση όλων των δεδομένων ταξιδιού εκτός σύνδεσης; Μπορείτε να επανασυγχρονίσετε ανά πάσα στιγμή όσο είστε συνδεδεμένοι.',

@@ -159,7 +159,7 @@ const settings: TranslationStrings = {
   'settings.oauth.modal.redirectUris': 'URI перенаправлення',
   'settings.oauth.modal.redirectUrisPlaceholder': 'https://your-app.com/callback\nhttps://your-app.com/auth',
   'settings.oauth.modal.redirectUrisHint':
-    'Один URI на рядок. Потрібен HTTPS (localhost виключено). Потрібне точне співпадіння.',
+    'Один URI на рядок. HTTPS, локальний HTTP або власна схема застосунку (myapp://). Потрібне точне співпадіння, окрім порту локального URI.',
   'settings.oauth.modal.scopes': 'Дозволені області доступу',
   'settings.oauth.modal.scopesHint':
     'list_trips і get_trip_summary завжди доступні — область не потрібна. Вони допомагають ШІ знаходити потрібні ID поїздок.',
@@ -495,6 +495,14 @@ const settings: TranslationStrings = {
   'settings.offline.storage.tripsTitle': 'Поїздки',
   'settings.offline.storage.tripOn': 'Збережено офлайн',
   'settings.offline.storage.tripOff': 'Не збережено',
+  'settings.offline.storage.tripFinished': 'Завершено. Зберігається, лише якщо ви це увімкнете.',
+  'settings.offline.notice.stored': 'На цьому пристрої збережено подорожей: {count}',
+  'settings.offline.notice.nothing': 'Нічого зберігати. Увімкніть подорожі, які хочете залишити.',
+  'settings.offline.notice.busy': 'Синхронізація вже триває. Спробуйте ще раз за мить.',
+  'settings.offline.notice.offline': 'Немає з’єднання. Під’єднайтеся, щоб зберегти подорожі офлайн.',
+  'settings.offline.notice.signedOut': 'Сеанс завершився. Увійдіть знову, щоб синхронізувати.',
+  'settings.offline.notice.failed': 'Не вдалося завершити завантаження. Перевірте з’єднання і спробуйте ще раз.',
+  'settings.offline.notice.loadFailed': 'Не вдалося прочитати офлайн-сховище цього пристрою. Зазвичай допомагає очищення кешу.',
   'settings.offline.clear': 'Очистити кеш',
   'settings.offline.clearConfirm':
     'Очистити всі офлайн-дані поїздок? Ви можете синхронізувати їх будь-коли в режимі онлайн.',

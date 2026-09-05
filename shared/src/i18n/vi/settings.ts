@@ -201,7 +201,7 @@ const settings: TranslationStrings = {
   'settings.oauth.modal.redirectUris': 'URI chuyển hướng',
   'settings.oauth.modal.redirectUrisPlaceholder': 'https://your-app.com/callback\nhttps://your-app.com/auth',
   'settings.oauth.modal.redirectUrisHint':
-    'Một URI trên mỗi dòng. Yêu cầu HTTPS (miễn trừ localhost). Đối sánh chính xác được thực thi.',
+    'Một URI trên mỗi dòng. HTTPS, HTTP loopback hoặc lược đồ ứng dụng riêng (myapp://). Đối sánh chính xác, ngoại trừ cổng của URI loopback.',
   'settings.oauth.modal.scopes': 'Phạm vi được phép',
   'settings.oauth.modal.scopesHint':
     'list_trips và get_trip_summary luôn có sẵn — không yêu cầu phạm vi. Họ cho phép AI khám phá ID chuyến đi cần thiết để sử dụng bất kỳ công cụ nào khác.',
@@ -496,6 +496,14 @@ const settings: TranslationStrings = {
   'settings.offline.storage.tripsTitle': 'Chuyến đi',
   'settings.offline.storage.tripOn': 'Đã lưu ngoại tuyến',
   'settings.offline.storage.tripOff': 'Chưa lưu',
+  'settings.offline.storage.tripFinished': 'Đã kết thúc. Chỉ lưu nếu bạn bật lên.',
+  'settings.offline.notice.stored': 'Đã lưu {count} chuyến đi trên thiết bị này',
+  'settings.offline.notice.nothing': 'Không có gì để lưu. Hãy bật những chuyến đi bạn muốn giữ.',
+  'settings.offline.notice.busy': 'Đang đồng bộ. Vui lòng thử lại sau giây lát.',
+  'settings.offline.notice.offline': 'Không có kết nối. Hãy kết nối để lưu chuyến đi ngoại tuyến.',
+  'settings.offline.notice.signedOut': 'Phiên của bạn đã kết thúc. Hãy đăng nhập lại để đồng bộ.',
+  'settings.offline.notice.failed': 'Không thể hoàn tất việc tải xuống. Hãy kiểm tra kết nối và thử lại.',
+  'settings.offline.notice.loadFailed': 'Không đọc được bộ nhớ ngoại tuyến của thiết bị này. Xóa bộ nhớ đệm thường khắc phục được.',
   'settings.offline.clear': 'Xóa bộ nhớ đệm',
   'settings.offline.clearConfirm':
     'Xóa tất cả dữ liệu chuyến đi ngoại tuyến? Bạn có thể đồng bộ lại bất cứ lúc nào khi trực tuyến.',

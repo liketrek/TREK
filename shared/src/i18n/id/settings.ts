@@ -192,7 +192,7 @@ const settings: TranslationStrings = {
   'settings.oauth.modal.redirectUris': 'Redirect URI',
   'settings.oauth.modal.redirectUrisPlaceholder': 'https://aplikasiku.com/callback\nhttps://aplikasiku.com/auth',
   'settings.oauth.modal.redirectUrisHint':
-    'Satu URI per baris. HTTPS wajib (localhost dikecualikan). Kecocokan tepat diberlakukan.',
+    'Satu URI per baris. HTTPS, HTTP loopback, atau skema aplikasi pribadi (myapp://). Kecocokan tepat, kecuali port pada URI loopback.',
   'settings.oauth.modal.scopes': 'Cakupan yang Diizinkan',
   'settings.oauth.modal.scopesHint':
     'list_trips dan get_trip_summary selalu tersedia — tidak perlu cakupan. Keduanya memungkinkan AI menemukan ID perjalanan yang diperlukan untuk menggunakan alat lainnya.',
@@ -492,6 +492,14 @@ const settings: TranslationStrings = {
   'settings.offline.storage.tripsTitle': 'Perjalanan',
   'settings.offline.storage.tripOn': 'Disimpan offline',
   'settings.offline.storage.tripOff': 'Tidak disimpan',
+  'settings.offline.storage.tripFinished': 'Selesai. Hanya disimpan jika kamu mengaktifkannya.',
+  'settings.offline.notice.stored': '{count} perjalanan tersimpan di perangkat ini',
+  'settings.offline.notice.nothing': 'Tidak ada yang perlu disimpan. Aktifkan perjalanan yang ingin kamu simpan.',
+  'settings.offline.notice.busy': 'Sinkronisasi sedang berjalan. Coba lagi sebentar.',
+  'settings.offline.notice.offline': 'Tidak ada koneksi. Hubungkan untuk menyimpan perjalanan secara offline.',
+  'settings.offline.notice.signedOut': 'Sesimu telah berakhir. Masuk lagi untuk menyinkronkan.',
+  'settings.offline.notice.failed': 'Unduhan tidak dapat diselesaikan. Periksa koneksimu dan coba lagi.',
+  'settings.offline.notice.loadFailed': 'Tidak dapat membaca penyimpanan offline perangkat ini. Membersihkan cache biasanya memperbaikinya.',
   'settings.offline.clear': 'Hapus cache',
   'settings.offline.clearConfirm':
     'Hapus semua data perjalanan offline? Kamu bisa menyinkronkan ulang kapan saja saat online.',

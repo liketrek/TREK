@@ -157,7 +157,7 @@ const settings: TranslationStrings = {
   'settings.oauth.modal.redirectUris': 'URI перенаправления',
   'settings.oauth.modal.redirectUrisPlaceholder': 'https://your-app.com/callback\nhttps://your-app.com/auth',
   'settings.oauth.modal.redirectUrisHint':
-    'Один URI на строку. Требуется HTTPS (localhost исключён). Требуется точное совпадение.',
+    'Один URI на строку. HTTPS, локальный HTTP или собственная схема приложения (myapp://). Требуется точное совпадение, кроме порта локального URI.',
   'settings.oauth.modal.scopes': 'Разрешённые области доступа',
   'settings.oauth.modal.scopesHint':
     'list_trips и get_trip_summary всегда доступны — область не требуется. Они помогают ИИ находить нужные ID поездок.',
@@ -496,6 +496,14 @@ const settings: TranslationStrings = {
   'settings.offline.storage.tripsTitle': 'Поездки',
   'settings.offline.storage.tripOn': 'Хранится офлайн',
   'settings.offline.storage.tripOff': 'Не хранится',
+  'settings.offline.storage.tripFinished': 'Завершёна. Сохраняется, только если вы её включите.',
+  'settings.offline.notice.stored': 'На этом устройстве сохранено поездок: {count}',
+  'settings.offline.notice.nothing': 'Сохранять нечего. Включите поездки, которые хотите оставить.',
+  'settings.offline.notice.busy': 'Синхронизация уже идёт. Повторите попытку через мгновение.',
+  'settings.offline.notice.offline': 'Нет соединения. Подключитесь, чтобы сохранить поездки офлайн.',
+  'settings.offline.notice.signedOut': 'Сеанс завершён. Войдите снова, чтобы синхронизировать.',
+  'settings.offline.notice.failed': 'Загрузку не удалось завершить. Проверьте соединение и повторите попытку.',
+  'settings.offline.notice.loadFailed': 'Не удалось прочитать офлайн-хранилище этого устройства. Обычно помогает очистка кэша.',
   'settings.offline.clear': 'Очистить кэш',
   'settings.offline.clearConfirm':
     'Очистить все офлайн-данные поездок? Вы сможете синхронизировать их снова в любой момент при наличии подключения.',

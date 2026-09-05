@@ -156,7 +156,7 @@ const settings: TranslationStrings = {
   'settings.oauth.modal.redirectUris': 'Přesměrovací URI',
   'settings.oauth.modal.redirectUrisPlaceholder': 'https://your-app.com/callback\nhttps://your-app.com/auth',
   'settings.oauth.modal.redirectUrisHint':
-    'Jedno URI na řádek. Vyžadováno HTTPS (localhost vyjmuto). Vyžadována přesná shoda.',
+    'Jedno URI na řádek. HTTPS, HTTP na loopbacku nebo vlastní schéma aplikace (myapp://). Přesná shoda, kromě portu u loopback URI.',
   'settings.oauth.modal.scopes': 'Povolená oprávnění',
   'settings.oauth.modal.scopesHint':
     'list_trips a get_trip_summary jsou vždy dostupné — bez požadovaného oprávnění. Umožňují AI zjistit potřebná ID výletů.',
@@ -487,6 +487,14 @@ const settings: TranslationStrings = {
   'settings.offline.storage.tripsTitle': 'Cesty',
   'settings.offline.storage.tripOn': 'Uloženo offline',
   'settings.offline.storage.tripOff': 'Neuloženo',
+  'settings.offline.storage.tripFinished': 'Ukončeno. Uloží se, jen když to zapnete.',
+  'settings.offline.notice.stored': 'Uloženo {count} cest v tomto zařízení',
+  'settings.offline.notice.nothing': 'Není co ukládat. Zapněte cesty, které si chcete ponechat.',
+  'settings.offline.notice.busy': 'Synchronizace už probíhá. Zkuste to za chvíli znovu.',
+  'settings.offline.notice.offline': 'Bez připojení. Připojte se, abyste mohli ukládat cesty offline.',
+  'settings.offline.notice.signedOut': 'Vaše relace vypršela. Pro synchronizaci se znovu přihlaste.',
+  'settings.offline.notice.failed': 'Stahování se nepodařilo dokončit. Zkontrolujte připojení a zkuste to znovu.',
+  'settings.offline.notice.loadFailed': 'Offline úložiště tohoto zařízení se nepodařilo načíst. Obvykle pomůže vymazání mezipaměti.',
   'settings.offline.clear': 'Vymazat mezipaměť',
   'settings.offline.clearConfirm': 'Vymazat všechna offline data cest? Kdykoli online je můžete znovu synchronizovat.',
   'settings.offline.stats.trips': 'Cesty v mezipaměti',

@@ -195,7 +195,7 @@ const settings: TranslationStrings = {
   'settings.oauth.modal.redirectUris': "URI'leri Yönlendir",
   'settings.oauth.modal.redirectUrisPlaceholder': 'https://uygulamaniz.com/callback\\nhttps://uygulamaniz.com/auth',
   'settings.oauth.modal.redirectUrisHint':
-    'Satır başına bir URI. HTTPS gerekli (yerel ana bilgisayar hariç). Tam eşleşme uygulandı.',
+    'Satır başına bir URI. HTTPS, geri döngü HTTP veya kendi uygulama şeması (myapp://). Geri döngü URI portu dışında tam eşleşme gerekir.',
   'settings.oauth.modal.scopes': 'İzin Verilen Kapsamlar',
   'settings.oauth.modal.scopesHint':
     'list_trips ve get_trip_summary her zaman kullanılabilir; kapsam gerektirmez. Yapay zekanın başka herhangi bir aracı kullanmak için gereken yolculuk kimliklerini keşfetmesine olanak tanıyorlar.',
@@ -492,6 +492,14 @@ const settings: TranslationStrings = {
   'settings.offline.storage.tripsTitle': 'Geziler',
   'settings.offline.storage.tripOn': 'Çevrimdışı saklandı',
   'settings.offline.storage.tripOff': 'Saklanmadı',
+  'settings.offline.storage.tripFinished': 'Tamamlandı. Yalnızca açarsanız saklanır.',
+  'settings.offline.notice.stored': 'Bu cihaza {count} gezi kaydedildi',
+  'settings.offline.notice.nothing': 'Kaydedilecek bir şey yok. Saklamak istediğiniz gezileri açın.',
+  'settings.offline.notice.busy': 'Zaten bir eşitleme sürüyor. Birazdan yeniden deneyin.',
+  'settings.offline.notice.offline': 'Bağlantı yok. Gezileri çevrimdışı kaydetmek için bağlanın.',
+  'settings.offline.notice.signedOut': 'Oturumunuz sona erdi. Eşitlemek için tekrar giriş yapın.',
+  'settings.offline.notice.failed': 'İndirme tamamlanamadı. Bağlantınızı kontrol edip yeniden deneyin.',
+  'settings.offline.notice.loadFailed': 'Bu cihazın çevrimdışı deposu okunamadı. Genellikle önbelleği temizlemek sorunu çözer.',
   'settings.offline.clear': 'Önbelleği temizle',
   'settings.offline.clearConfirm':
     'Tüm çevrimdışı gezi verileri silinsin mi? Çevrimiçiyken istediğiniz zaman yeniden senkronize edebilirsiniz.',

@@ -41,6 +41,12 @@ test('#1432 iPad: places list is scrollable, not draggable', async ({ page }) =>
   }
   await page.reload()
   await expect(page.locator('.leaflet-container')).toBeVisible({ timeout: 20_000 })
+
+  // An iPad is inside the 768-1023px band, where only one side panel is open at a
+  // time so the map keeps a usable width (#2247). The places list is one tap away.
+  // Located by the tab's own aria-label, not by role+name: the tab bar carries a
+  // "Plan" button of its own.
+  await page.locator('button[aria-label="Places"]').click()
   await expect(page.getByText('Place 1').first()).toBeVisible({ timeout: 20_000 })
 
   // The context must really be the one from the bug report: coarse pointer, desktop
@@ -74,6 +80,9 @@ test('#1432 iPad: places list is scrollable, not draggable', async ({ page }) =>
   })
   expect(['1', 'absent']).toContain(arrowOpacity)
 
-  // 4. The iPad must still get the desktop two-pane layout — isMobile stayed width-based.
+  // 4. The iPad must still get the desktop shell — isMobile stayed width-based. One
+  //    panel at a time (#2247), so opening Places closed the day plan and left its
+  //    tab as the way back.
   await expect(page.locator('.leaflet-container')).toBeVisible()
+  await expect(page.locator('button[aria-label="Plan"]')).toBeVisible()
 })

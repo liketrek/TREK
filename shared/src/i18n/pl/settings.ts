@@ -154,7 +154,7 @@ const settings: TranslationStrings = {
   'settings.oauth.modal.redirectUris': 'URI przekierowania',
   'settings.oauth.modal.redirectUrisPlaceholder': 'https://your-app.com/callback\nhttps://your-app.com/auth',
   'settings.oauth.modal.redirectUrisHint':
-    'Jeden URI na linię. Wymagane HTTPS (localhost zwolniony). Wymagana dokładna zgodność.',
+    'Jeden URI na linię. HTTPS, HTTP na loopbacku lub własny schemat aplikacji (myapp://). Dokładna zgodność, z wyjątkiem portu w URI loopback.',
   'settings.oauth.modal.scopes': 'Dozwolone uprawnienia',
   'settings.oauth.modal.scopesHint':
     'list_trips i get_trip_summary są zawsze dostępne — bez wymaganych uprawnień. Umożliwiają AI odkrycie potrzebnych ID podróży.',
@@ -494,6 +494,14 @@ const settings: TranslationStrings = {
   'settings.offline.storage.tripsTitle': 'Podróże',
   'settings.offline.storage.tripOn': 'Przechowywane offline',
   'settings.offline.storage.tripOff': 'Nieprzechowywane',
+  'settings.offline.storage.tripFinished': 'Zakończona. Zapisywana tylko wtedy, gdy ją włączysz.',
+  'settings.offline.notice.stored': 'Zapisano {count} podróży na tym urządzeniu',
+  'settings.offline.notice.nothing': 'Nie ma czego zapisać. Włącz podróże, które chcesz zachować.',
+  'settings.offline.notice.busy': 'Synchronizacja już trwa. Spróbuj ponownie za chwilę.',
+  'settings.offline.notice.offline': 'Brak połączenia. Połącz się, aby zapisać podróże offline.',
+  'settings.offline.notice.signedOut': 'Twoja sesja wygasła. Zaloguj się ponownie, aby zsynchronizować.',
+  'settings.offline.notice.failed': 'Nie udało się ukończyć pobierania. Sprawdź połączenie i spróbuj ponownie.',
+  'settings.offline.notice.loadFailed': 'Nie udało się odczytać pamięci offline tego urządzenia. Zwykle pomaga wyczyszczenie pamięci podręcznej.',
   'settings.offline.clear': 'Wyczyść pamięć podręczną',
   'settings.offline.clearConfirm':
     'Wyczyścić wszystkie dane podróży zapisane offline? Możesz je w każdej chwili zsynchronizować ponownie, będąc online.',

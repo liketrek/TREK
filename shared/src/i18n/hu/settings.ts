@@ -159,7 +159,7 @@ const settings: TranslationStrings = {
   'settings.oauth.modal.redirectUris': 'Átirányítási URI-k',
   'settings.oauth.modal.redirectUrisPlaceholder': 'https://your-app.com/callback\nhttps://your-app.com/auth',
   'settings.oauth.modal.redirectUrisHint':
-    'Soronként egy URI. HTTPS szükséges (localhost kivételével). Pontos egyezés szükséges.',
+    'Soronként egy URI. HTTPS, loopback HTTP vagy saját alkalmazásséma (myapp://). Pontos egyezés, kivéve a loopback URI portját.',
   'settings.oauth.modal.scopes': 'Engedélyezett jogosultságok',
   'settings.oauth.modal.scopesHint':
     'A list_trips és get_trip_summary mindig elérhető — jogosultság nélkül. Segítenek az AI-nak megtalálni az utazás azonosítókat.',
@@ -495,6 +495,14 @@ const settings: TranslationStrings = {
   'settings.offline.storage.tripsTitle': 'Utazások',
   'settings.offline.storage.tripOn': 'Offline tárolva',
   'settings.offline.storage.tripOff': 'Nincs tárolva',
+  'settings.offline.storage.tripFinished': 'Befejezve. Csak akkor mentjük, ha bekapcsolod.',
+  'settings.offline.notice.stored': '{count} utazás mentve ezen az eszközön',
+  'settings.offline.notice.nothing': 'Nincs mit menteni. Kapcsold be azokat az utazásokat, amelyeket meg szeretnél tartani.',
+  'settings.offline.notice.busy': 'Már fut egy szinkronizálás. Próbáld újra egy pillanat múlva.',
+  'settings.offline.notice.offline': 'Nincs kapcsolat. Csatlakozz, hogy offline menthesd az utazásokat.',
+  'settings.offline.notice.signedOut': 'A munkamenet lejárt. Jelentkezz be újra a szinkronizáláshoz.',
+  'settings.offline.notice.failed': 'A letöltés nem fejeződött be. Ellenőrizd a kapcsolatot, és próbáld újra.',
+  'settings.offline.notice.loadFailed': 'Nem sikerült olvasni az eszköz offline tárhelyét. Általában segít a gyorsítótár törlése.',
   'settings.offline.clear': 'Gyorsítótár törlése',
   'settings.offline.clearConfirm':
     'Törlöd az összes offline utazási adatot? Online állapotban bármikor újraszinkronizálhatsz.',

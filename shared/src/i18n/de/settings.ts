@@ -160,7 +160,7 @@ const settings: TranslationStrings = {
   'settings.oauth.modal.redirectUris': 'Redirect-URIs',
   'settings.oauth.modal.redirectUrisPlaceholder': 'https://your-app.com/callback\nhttps://your-app.com/auth',
   'settings.oauth.modal.redirectUrisHint':
-    'Eine URI pro Zeile. HTTPS erforderlich (localhost ausgenommen). Exakte Übereinstimmung erforderlich.',
+    'Eine URI pro Zeile. HTTPS, Loopback-HTTP oder ein eigenes App-Schema (myapp://). Exakte Übereinstimmung, außer beim Port einer Loopback-URI.',
   'settings.oauth.modal.scopes': 'Erlaubte Berechtigungen',
   'settings.oauth.modal.scopesHint':
     'list_trips und get_trip_summary sind immer verfügbar — keine Berechtigung nötig. Sie helfen der KI, Trip-IDs zu ermitteln.',
@@ -496,6 +496,14 @@ const settings: TranslationStrings = {
   'settings.offline.storage.tripsTitle': 'Reisen',
   'settings.offline.storage.tripOn': 'Offline gespeichert',
   'settings.offline.storage.tripOff': 'Nicht gespeichert',
+  'settings.offline.storage.tripFinished': 'Abgeschlossen. Wird nur gespeichert, wenn du es einschaltest.',
+  'settings.offline.notice.stored': '{count} Reise(n) auf diesem Gerät gespeichert',
+  'settings.offline.notice.nothing': 'Nichts zu speichern. Schalte die Reisen ein, die du behalten willst.',
+  'settings.offline.notice.busy': 'Eine Synchronisierung läuft bereits. Versuche es gleich noch einmal.',
+  'settings.offline.notice.offline': 'Keine Verbindung. Verbinde dich, um Reisen offline zu speichern.',
+  'settings.offline.notice.signedOut': 'Deine Sitzung ist abgelaufen. Melde dich erneut an, um zu synchronisieren.',
+  'settings.offline.notice.failed': 'Der Download konnte nicht abgeschlossen werden. Prüfe deine Verbindung und versuche es erneut.',
+  'settings.offline.notice.loadFailed': 'Der Offline-Speicher dieses Geräts konnte nicht gelesen werden. Meist hilft es, den Cache zu leeren.',
   'settings.offline.clear': 'Cache leeren',
   'settings.offline.clearConfirm':
     'Alle offline gespeicherten Reisedaten löschen? Du kannst jederzeit online neu synchronisieren.',

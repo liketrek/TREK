@@ -142,7 +142,7 @@ const settings: TranslationStrings = {
   'settings.oauth.modal.redirectUris': 'URIs de redirecció',
   'settings.oauth.modal.redirectUrisPlaceholder': 'https://your-app.com/callback\nhttps://your-app.com/auth',
   'settings.oauth.modal.redirectUrisHint':
-    'Un URI per línia. HTTPS obligatori (localhost exempt). Coincidència exacta.',
+    'Un URI per línia. HTTPS, HTTP en bucle local o un esquema propi com myapp://. Coincidència exacta, excepte el port en bucle local.',
   'settings.oauth.modal.scopes': 'Àmbits permesos',
   'settings.oauth.modal.scopesHint':
     'list_trips i get_trip_summary sempre estan disponibles — sense àmbit requerit. Permeten a la IA descobrir els IDs de viatge necessaris.',
@@ -475,6 +475,14 @@ const settings: TranslationStrings = {
   'settings.offline.storage.tripsTitle': 'Viatges',
   'settings.offline.storage.tripOn': 'Desat fora de línia',
   'settings.offline.storage.tripOff': 'No desat',
+  'settings.offline.storage.tripFinished': 'Finalitzat. Només es desa si l’actives.',
+  'settings.offline.notice.stored': '{count} viatge(s) desat(s) en aquest dispositiu',
+  'settings.offline.notice.nothing': 'No hi ha res a desar. Activa els viatges que vulguis conservar.',
+  'settings.offline.notice.busy': 'Ja hi ha una sincronització en curs. Torna-ho a provar d’aquí a un moment.',
+  'settings.offline.notice.offline': 'Sense connexió. Connecta’t per desar viatges fora de línia.',
+  'settings.offline.notice.signedOut': 'La teva sessió ha caducat. Torna a iniciar la sessió per sincronitzar.',
+  'settings.offline.notice.failed': 'La descàrrega no s’ha pogut completar. Comprova la connexió i torna-ho a provar.',
+  'settings.offline.notice.loadFailed': 'No s’ha pogut llegir l’emmagatzematge fora de línia d’aquest dispositiu. Normalment es resol buidant la memòria cau.',
   'settings.offline.clear': 'Netejar memòria cau',
   'settings.offline.clearConfirm':
     'Vols netejar totes les dades de viatge fora de línia? Pots tornar a sincronitzar en qualsevol moment mentre estiguis connectat.',

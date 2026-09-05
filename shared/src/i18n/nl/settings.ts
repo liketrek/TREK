@@ -158,7 +158,7 @@ const settings: TranslationStrings = {
   'settings.oauth.modal.redirectUris': "Redirect-URI's",
   'settings.oauth.modal.redirectUrisPlaceholder': 'https://your-app.com/callback\nhttps://your-app.com/auth',
   'settings.oauth.modal.redirectUrisHint':
-    'Eén URI per regel. HTTPS vereist (localhost uitgezonderd). Exacte overeenkomst vereist.',
+    'Eén URI per regel. HTTPS, loopback-HTTP of een eigen app-schema (myapp://). Exacte overeenkomst, behalve de poort van een loopback-URI.',
   'settings.oauth.modal.scopes': 'Toegestane rechten',
   'settings.oauth.modal.scopesHint':
     "list_trips en get_trip_summary zijn altijd beschikbaar — geen recht vereist. Ze helpen de AI trip-ID's te ontdekken.",
@@ -495,6 +495,14 @@ const settings: TranslationStrings = {
   'settings.offline.storage.tripsTitle': 'Reizen',
   'settings.offline.storage.tripOn': 'Offline opgeslagen',
   'settings.offline.storage.tripOff': 'Niet opgeslagen',
+  'settings.offline.storage.tripFinished': 'Afgelopen. Alleen opgeslagen als je het inschakelt.',
+  'settings.offline.notice.stored': '{count} reis/reizen op dit apparaat opgeslagen',
+  'settings.offline.notice.nothing': 'Niets op te slaan. Schakel de reizen in die je wilt bewaren.',
+  'settings.offline.notice.busy': 'Er loopt al een synchronisatie. Probeer het zo opnieuw.',
+  'settings.offline.notice.offline': 'Geen verbinding. Maak verbinding om reizen offline op te slaan.',
+  'settings.offline.notice.signedOut': 'Je sessie is verlopen. Meld je opnieuw aan om te synchroniseren.',
+  'settings.offline.notice.failed': 'De download kon niet worden voltooid. Controleer je verbinding en probeer het opnieuw.',
+  'settings.offline.notice.loadFailed': 'Kan de offlineopslag van dit apparaat niet lezen. De cache wissen helpt meestal.',
   'settings.offline.clear': 'Cache wissen',
   'settings.offline.clearConfirm':
     'Alle offline reisgegevens wissen? Je kunt altijd opnieuw synchroniseren wanneer je online bent.',

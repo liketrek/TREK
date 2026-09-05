@@ -112,6 +112,11 @@ export const envSchema = z.object({
   // non-http(s) entries today — left unvalidated to keep that behavior.
   OVERPASS_URL: anyString,
   OVERPASS_TIMEOUT_MS: positiveNumber,
+  // Whole milliseconds, and inside setTimeout's 32-bit range. A fractional value
+  // would floor to 0 and abort every model call on the next tick; anything past
+  // 2^31-1 makes Node clamp the delay to 1 ms and do the same. Both refuse at
+  // boot rather than degrading into a timeout of zero.
+  LLM_TIMEOUT_MS: integer(1, 2_147_483_647, 'must be a whole number of milliseconds between 1 and 2147483647'),
   KITINERARY_EXTRACTOR_PATH: anyString,
   // The OS search path. Not configuration anybody sets for TREK — it is here so
   // the kitinerary probe can resolve its binary to an absolute path itself
@@ -150,6 +155,7 @@ export const envSchema = z.object({
   TREK_API_DOCS_ENABLED: boolStr,
   TREK_PLUGINS_ENABLED: boolStr,
   TREK_PLUGINS_DEV_LINK: boolStr,
+  TREK_PLUGINS_IGNORE_TREK_RANGE: boolStr,
   TREK_PLUGINS_DIR: anyString,
   TREK_PLUGINS_DATA_DIR: anyString,
   TREK_PLUGIN_PERMISSIONS: boolStr,

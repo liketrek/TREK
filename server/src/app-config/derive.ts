@@ -200,6 +200,12 @@ export function derivePlugins(raw: RawEnv) {
     /** Kill-switch is default-on: only an explicit falsy value disables (plugins/kill-switch.ts). */
     enabled: parseBool(raw.TREK_PLUGINS_ENABLED) !== false,
     devLink: parseBool(raw.TREK_PLUGINS_DEV_LINK) === true,
+    /**
+     * Range bypass is default-OFF: only an explicit truthy value turns the TREK-version
+     * gates into warnings (plugins/install/host-compat.ts). Never inferred from any
+     * other switch — an admin has to ask for "install it anyway" by name.
+     */
+    ignoreTrekRange: parseBool(raw.TREK_PLUGINS_IGNORE_TREK_RANGE) === true,
     dir: raw.TREK_PLUGINS_DIR,
     dataDir: raw.TREK_PLUGINS_DATA_DIR,
     /** Permission jail is default-on: only an explicit falsy value turns it off. */
@@ -235,6 +241,14 @@ export function deriveIntegrations(raw: RawEnv) {
     overpassUrl: raw.OVERPASS_URL,
     overpassTimeoutMs: positiveNumberOr(raw.OVERPASS_TIMEOUT_MS, 12000),
     kitineraryExtractorPath: raw.KITINERARY_EXTRACTOR_PATH,
+    /**
+     * One ceiling for a model call, replacing the three per-client constants
+     * that used to disagree. The default is deliberately generous: heavier
+     * parsing work should fit without a code change.
+     * Floored to a whole number — it reaches undici's headersTimeout, which
+     * rejects a fractional value.
+     */
+    llmTimeoutMs: Math.floor(positiveNumberOr(raw.LLM_TIMEOUT_MS, 900_000)),
     // Windows spells it Path; every other platform PATH. Split here so callers
     // get a list and never re-implement the delimiter.
     searchPath: (raw.PATH || raw.Path || '')
