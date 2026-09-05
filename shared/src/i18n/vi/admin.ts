@@ -219,6 +219,9 @@ const admin: TranslationStrings = {
   'admin.transitProvider.googleHint': 'Dùng khóa Google ở trên, cho những khu vực Transitous không có dữ liệu. Tính phí theo mỗi lượt tìm kiếm — khi chưa đặt khóa thì vẫn dùng Transitous.',
   'admin.transitProvider.noKeyWarning': 'Đã chọn Google, nhưng chưa cấu hình khóa Google — tìm kiếm giao thông vẫn dùng Transitous. Thêm khóa ở mục Khóa API phía trên.',
   'admin.transitProvider.personalKeyWarning': 'Chỉ khóa Google của riêng bạn được đặt, nên tìm kiếm của các thành viên khác vẫn quay về Transitous. Lưu khóa ở trên với quyền quản trị để áp dụng cho toàn bộ máy chủ.',
+  'admin.placeShadow.title': 'Nhật ký tìm kiếm địa điểm',
+  'admin.placeShadow.subtitle':
+    'Ghi lại kết quả tìm kiếm nào đã được chọn, để sau này có thể đánh giá một chỉ mục địa điểm khác bằng những lượt tìm kiếm thật. Không có gì rời khỏi máy chủ này, và quản trị viên có thể xuất hoặc xóa nhật ký bất cứ lúc nào.',
   'admin.bagTracking.title': 'Theo dõi túi',
   'admin.bagTracking.subtitle': 'Cho phép phân bổ trọng lượng và túi để đóng gói các mặt hàng',
   'admin.collab.chat.title': 'Trò chuyện',

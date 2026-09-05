@@ -208,6 +208,9 @@ const admin: TranslationStrings = {
   'admin.transitProvider.googleHint': '上記の Google キーを使用し、Transitous にデータがない地域に対応します。検索ごとに課金されます。キーが未設定の間は Transitous を使用します。',
   'admin.transitProvider.noKeyWarning': 'Google が選択されていますが、Google キーが設定されていません。公共交通の検索は引き続き Transitous を使用します。上の「API キー」でキーを追加してください。',
   'admin.transitProvider.personalKeyWarning': 'あなた自身の Google キーのみが設定されているため、他のメンバーの検索は引き続き Transitous になります。インスタンス全体に適用するには、管理者として上でキーを保存してください。',
+  'admin.placeShadow.title': '場所検索の記録',
+  'admin.placeShadow.subtitle':
+    'どの検索結果が選ばれたかを記録し、後で別の場所インデックスを実際の検索で評価できるようにします。データがこのインスタンスの外に出ることはなく、管理者はいつでも書き出しや削除ができます。',
   'admin.bagTracking.title': 'バッグ管理',
   'admin.bagTracking.subtitle': '持ち物の重量とバッグ割り当てを有効化',
   'admin.collab.chat.title': 'チャット',

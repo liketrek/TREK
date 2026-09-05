@@ -219,6 +219,9 @@ const admin: TranslationStrings = {
   'admin.transitProvider.googleHint': 'Menggunakan kunci Google di atas, untuk wilayah yang tidak memiliki data Transitous. Ditagih per pencarian — selama belum ada kunci, Transitous yang dipakai.',
   'admin.transitProvider.noKeyWarning': 'Google dipilih, tetapi belum ada kunci Google yang dikonfigurasi — pencarian transportasi masih memakai Transitous. Tambahkan kunci di Kunci API di atas.',
   'admin.transitProvider.personalKeyWarning': 'Hanya kunci Google milikmu yang disetel, sehingga pencarian anggota lain tetap kembali ke Transitous. Simpan kunci di atas sebagai admin agar berlaku untuk seluruh instance.',
+  'admin.placeShadow.title': 'Log pencarian tempat',
+  'admin.placeShadow.subtitle':
+    'Mencatat hasil pencarian mana yang dipilih, agar indeks tempat lain nanti bisa diukur dengan pencarian sungguhan. Tidak ada yang meninggalkan instans ini, dan admin bisa mengekspor atau menghapus log kapan saja.',
   'admin.bagTracking.title': 'Pelacak Tas',
   'admin.bagTracking.subtitle': 'Aktifkan berat dan penugasan tas untuk item packing',
   'admin.collab.chat.title': 'Chat',

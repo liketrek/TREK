@@ -214,6 +214,9 @@ const admin: TranslationStrings = {
   'admin.transitProvider.googleHint': '위의 Google 키를 사용하여 Transitous에 데이터가 없는 지역을 처리합니다. 검색당 과금되며, 키가 없으면 Transitous를 사용합니다.',
   'admin.transitProvider.noKeyWarning': 'Google이 선택되었지만 Google 키가 설정되지 않았습니다 — 대중교통 검색은 여전히 Transitous를 사용합니다. 위의 API 키에서 키를 추가하세요.',
   'admin.transitProvider.personalKeyWarning': '본인의 Google 키만 설정되어 있어 다른 멤버의 검색은 여전히 Transitous로 대체됩니다. 인스턴스 전체에 적용하려면 관리자로 위에서 키를 저장하세요.',
+  'admin.placeShadow.title': '장소 검색 기록',
+  'admin.placeShadow.subtitle':
+    '어떤 검색 결과가 선택되었는지 기록하여, 나중에 다른 장소 색인을 실제 검색으로 평가할 수 있게 합니다. 이 인스턴스 밖으로 나가는 것은 없으며 관리자는 언제든지 기록을 내보내거나 삭제할 수 있습니다.',
   'admin.bagTracking.title': '가방 추적',
   'admin.bagTracking.subtitle': '짐 항목에 무게 및 가방 배정을 활성화합니다',
   'admin.collab.chat.title': '채팅',

@@ -19,13 +19,14 @@ interface AdminSettingsTabProps {
 export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): React.ReactElement {
   const {
     toast,
-    setPlacesPhotosEnabled, setPlacesAutocompleteEnabled, setPlacesDetailsEnabled, setPlacesEnrichEnabled,
+    setPlacesPhotosEnabled, setPlacesAutocompleteEnabled, setPlacesDetailsEnabled, setPlacesEnrichEnabled, setPlaceShadowEnabled,
     placesPhotosEnabled, setPlacesPhotosEnabledState,
     placesAutocompleteEnabled, setPlacesAutocompleteEnabledState,
     placesDetailsEnabled, setPlacesDetailsEnabledState,
     placesEnrichEnabled, setPlacesEnrichEnabledState,
     transitProvider, setTransitProviderState,
     transitGoogleKeySource, setTransitGoogleKeySource,
+    placeShadowEnabled, setPlaceShadowEnabledState,
     oidcConfig, setOidcConfig, savingOidc, setSavingOidc,
     passwordLogin, setPasswordLogin, passwordRegistration, setPasswordRegistration,
     oidcLogin, setOidcLogin, oidcRegistration, setOidcRegistration,
@@ -544,9 +545,6 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
               <p className="text-xs text-content-faint mt-1.5">{t('admin.unsplashKeyHint')}</p>
             </div>
           </ProviderBlock>
-          </>)}
-
-
           {/* Transit Backend (#1699) — Transitous has no GTFS for much of Asia,
               so an install can point transit search at Google instead, on the
               same key. Falls back to Transitous when no key resolves. A block of
@@ -595,6 +593,28 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
               )}
             </div>
           </ProviderBlock>
+          </>)}
+
+          {/* The search log sits with the index rather than with a provider:
+              it records which result somebody picked, so a candidate index can
+              be judged against real searches later. Off unless switched on,
+              and nothing it records leaves the instance. */}
+          <div className="flex items-center justify-between gap-4 border-t border-edge-faint pt-4">
+            <div>
+              <p className="text-sm font-medium text-content-secondary">{t('admin.placeShadow.title')}</p>
+              <p className="mt-0.5 text-xs text-content-faint">{t('admin.placeShadow.subtitle')}</p>
+            </div>
+            <ToggleSwitch
+              on={placeShadowEnabled}
+              label={t('admin.placeShadow.title')}
+              onToggle={async () => {
+                const next = !placeShadowEnabled
+                setPlaceShadowEnabledState(next)
+                setPlaceShadowEnabled(next)
+                try { await adminApi.updatePlaceShadow(next) } catch { setPlaceShadowEnabledState(!next); setPlaceShadowEnabled(!next) }
+              }}
+            />
+          </div>
 
           <button type="button"
             onClick={handleSaveApiKeys}

@@ -174,6 +174,9 @@ const admin: TranslationStrings = {
   'admin.transitProvider.googleHint': 'Usa a chave do Google acima, para regiões sem dados no Transitous. Cobrado por busca — o Transitous é usado enquanto nenhuma chave estiver configurada.',
   'admin.transitProvider.noKeyWarning': 'O Google está selecionado, mas nenhuma chave do Google está configurada — a busca de transporte ainda usa o Transitous. Adicione uma chave em Chaves de API acima.',
   'admin.transitProvider.personalKeyWarning': 'Apenas a sua própria chave do Google está definida, então a busca dos outros membros ainda cai no Transitous. Salve a chave acima como admin para aplicá-la a toda a instância.',
+  'admin.placeShadow.title': 'Registo de pesquisas de locais',
+  'admin.placeShadow.subtitle':
+    'Registar qual resultado de pesquisa foi escolhido, para que outro índice de locais possa ser avaliado depois com pesquisas reais. Nada sai desta instância e um administrador pode exportar ou apagar o registo a qualquer momento.',
   'admin.bagTracking.title': 'Rastreamento de malas',
   'admin.bagTracking.subtitle': 'Ativar peso e atribuição de mala para itens da lista',
   'admin.collab.chat.title': 'Chat',

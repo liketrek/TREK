@@ -178,6 +178,9 @@ const admin: TranslationStrings = {
   'admin.transitProvider.googleHint': 'Utilitza la clau de Google anterior, per a regions sense dades a Transitous. Es factura per cerca: mentre no hi hagi clau s\'utilitza Transitous.',
   'admin.transitProvider.noKeyWarning': 'Google està seleccionat, però no hi ha cap clau de Google configurada: la cerca de transport encara utilitza Transitous. Afegeix una clau a Claus d\'API a dalt.',
   'admin.transitProvider.personalKeyWarning': 'Només hi ha la teva pròpia clau de Google, de manera que la cerca dels altres membres continua recorrent a Transitous. Desa la clau a dalt com a administrador per aplicar-la a tota la instància.',
+  'admin.placeShadow.title': 'Registre de cerques de llocs',
+  'admin.placeShadow.subtitle':
+    'Desar quin resultat de cerca s\'ha triat, per poder avaluar més endavant un altre índex de llocs amb cerques reals. No surt res d\'aquesta instància i un administrador pot exportar o esborrar el registre quan vulgui.',
   'admin.bagTracking.title': "Seguiment d'equipatge",
   'admin.bagTracking.subtitle': "Activar pes i assignació d'equipatge per a articles de la llista",
   'admin.collab.chat.title': 'Xat',

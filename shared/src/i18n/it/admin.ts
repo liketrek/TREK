@@ -176,6 +176,9 @@ const admin: TranslationStrings = {
   'admin.transitProvider.googleHint': 'Usa la chiave Google qui sopra, per le regioni senza dati Transitous. Addebitato per ricerca: finché non è impostata una chiave viene usato Transitous.',
   'admin.transitProvider.noKeyWarning': 'Google è selezionato, ma non è configurata alcuna chiave Google: la ricerca del trasporto usa ancora Transitous. Aggiungi una chiave in Chiavi API qui sopra.',
   'admin.transitProvider.personalKeyWarning': 'È impostata solo la tua chiave Google, quindi la ricerca degli altri membri continua a ripiegare su Transitous. Salva la chiave qui sopra come amministratore per applicarla all\'intera istanza.',
+  'admin.placeShadow.title': 'Registro delle ricerche di luoghi',
+  'admin.placeShadow.subtitle':
+    'Annotare quale risultato di ricerca è stato scelto, così da poter valutare in seguito un altro indice di luoghi su ricerche reali. Nulla esce da questa istanza e un amministratore può esportare o cancellare il registro in qualsiasi momento.',
   'admin.bagTracking.title': 'Tracciamento valigia',
   'admin.bagTracking.subtitle': "Abilita il peso e l'assegnazione della valigia per gli elementi della lista valigia",
   'admin.collab.chat.title': 'Chat',

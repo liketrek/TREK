@@ -220,6 +220,9 @@ const admin: TranslationStrings = {
   'admin.transitProvider.googleHint': 'Använder Google-nyckeln ovan, för regioner som Transitous saknar data för. Debiteras per sökning – så länge ingen nyckel är angiven används Transitous.',
   'admin.transitProvider.noKeyWarning': 'Google är valt, men ingen Google-nyckel är konfigurerad – kollektivtrafiksökningen använder fortfarande Transitous. Lägg till en nyckel under API-nycklar ovan.',
   'admin.transitProvider.personalKeyWarning': 'Bara din egen Google-nyckel är angiven, så andra medlemmars sökningar faller fortfarande tillbaka på Transitous. Spara nyckeln ovan som administratör för att den ska gälla hela instansen.',
+  'admin.placeShadow.title': 'Logg över platssökningar',
+  'admin.placeShadow.subtitle':
+    'Registrera vilket sökresultat som valdes, så att ett annat platsindex senare kan mätas mot verkliga sökningar. Ingenting lämnar den här instansen och en administratör kan när som helst exportera eller radera loggen.',
   'admin.bagTracking.title': 'Spårning av väskor',
   'admin.bagTracking.subtitle': 'Aktivera vikt- och väskfördelning för packningsartiklar',
   'admin.collab.chat.title': 'Chatt',

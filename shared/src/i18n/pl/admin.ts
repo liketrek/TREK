@@ -170,6 +170,9 @@ const admin: TranslationStrings = {
   'admin.transitProvider.googleHint': 'Używa powyższego klucza Google w regionach, dla których Transitous nie ma danych. Rozliczane za wyszukiwanie — dopóki nie ustawiono klucza, działa Transitous.',
   'admin.transitProvider.noKeyWarning': 'Wybrano Google, ale nie skonfigurowano klucza Google — wyszukiwanie transportu nadal korzysta z Transitous. Dodaj klucz w sekcji Klucze API powyżej.',
   'admin.transitProvider.personalKeyWarning': 'Ustawiono tylko Twój własny klucz Google, więc wyszukiwanie pozostałych członków nadal wraca do Transitous. Zapisz klucz powyżej jako administrator, aby obowiązywał w całej instancji.',
+  'admin.placeShadow.title': 'Dziennik wyszukiwania miejsc',
+  'admin.placeShadow.subtitle':
+    'Zapisywanie, który wynik wyszukiwania został wybrany, aby później ocenić inny indeks miejsc na prawdziwych zapytaniach. Nic nie opuszcza tej instancji, a administrator może w każdej chwili wyeksportować lub usunąć dziennik.',
   'admin.bagTracking.title': 'Kontrola bagażu',
   'admin.bagTracking.subtitle': 'Włącz wagę i przypisywanie do toreb dla przedmiotów do pakowania',
   'admin.collab.chat.title': 'Czat',
