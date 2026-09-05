@@ -39,6 +39,12 @@ const settings: TranslationStrings = {
   'settings.mapCartoKeyLink': 'carto.com ベースマップ API キー',
   'settings.mapCartoKeyMissing':
     'このテンプレートは CARTO のベースマップです。キーがないと CARTO はすべてのタイルに "API KEY REQUIRED" を焼き込みます。 キーを入力するまで、TREK は既定のベースマップを表示します。',
+  'settings.mapGoogleSubtitle': 'Google のベースマップ。地図の読み込みごとに課金されます',
+  'settings.mapGoogleKey': 'Google Maps API キー',
+  'settings.mapGoogleKeyHint': 'Maps JavaScript API 用のブラウザキー。HTTP リファラーで制限します。取得元:',
+  'settings.mapGoogleKeyLink': 'console.cloud.google.com → 認証情報',
+  'settings.mapGoogleKeyMissing':
+    'Google マップにはキーが必要です。キーがないと地図を読み込めないため、TREK は Leaflet に戻ります。',
   'settings.mapStyle': '地図スタイル',
   'settings.mapStylePlaceholder': 'Mapboxスタイルを選択',
   'settings.mapStyleHint': 'プリセットまたは mapbox://styles/USER/ID のURL',

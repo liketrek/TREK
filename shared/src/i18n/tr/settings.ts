@@ -40,6 +40,12 @@ const settings: TranslationStrings = {
   'settings.mapCartoKeyLink': 'carto.com temel harita API anahtarı',
   'settings.mapCartoKeyMissing':
     'Bu şablon bir CARTO temel haritası. Anahtar olmadan CARTO her karoya "API KEY REQUIRED" damgası basar. Anahtar girilene kadar TREK varsayılan temel haritayı gösterir.',
+  'settings.mapGoogleSubtitle': 'Google harita altlığı, harita yüklemesi başına ücretlendirilir',
+  'settings.mapGoogleKey': 'Google Maps API anahtarı',
+  'settings.mapGoogleKeyHint': 'Maps JavaScript API için tarayıcı anahtarı, HTTP yönlendireni ile sınırlandırılmış, şuradan',
+  'settings.mapGoogleKeyLink': 'console.cloud.google.com → Kimlik bilgileri',
+  'settings.mapGoogleKeyMissing':
+    'Google Maps bir anahtar gerektirir. Anahtar olmadan harita yüklenemez, bu yüzden TREK Leaflet\'e döner.',
   'settings.mapStyle': 'Harita Stili',
   'settings.mapStylePlaceholder': 'Bir Mapbox stili seçin',
   'settings.mapStyleHint': 'Ön ayar veya kendi mapbox://styles/KULLANICI/ID adresiniz',

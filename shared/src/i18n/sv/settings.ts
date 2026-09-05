@@ -42,6 +42,12 @@ const settings: TranslationStrings = {
   'settings.mapCartoKeyLink': 'API-nyckel för bakgrundskartor på carto.com',
   'settings.mapCartoKeyMissing':
     'Den här mallen är en CARTO-bakgrundskarta. Utan nyckel stämplar CARTO "API KEY REQUIRED" på varje ruta. Tills en nyckel anges visar TREK standardbakgrundskartan.',
+  'settings.mapGoogleSubtitle': 'Google-baskarta, debiteras per kartladdning',
+  'settings.mapGoogleKey': 'API-nyckel för Google Maps',
+  'settings.mapGoogleKeyHint': 'Webbläsarnyckel för Maps JavaScript API, begränsad via HTTP-referrer, från',
+  'settings.mapGoogleKeyLink': 'console.cloud.google.com → Autentiseringsuppgifter',
+  'settings.mapGoogleKeyMissing':
+    'Google Maps kräver en nyckel. Utan den kan kartan inte laddas, så TREK faller tillbaka på Leaflet.',
   'settings.mapStyle': 'Kartstil',
   'settings.mapStylePlaceholder': 'Välj en Mapbox-stil',
   'settings.mapStyleHint': 'Förinställda eller egna mapbox://styles/USER/ID länk',

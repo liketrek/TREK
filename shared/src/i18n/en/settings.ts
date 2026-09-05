@@ -48,6 +48,12 @@ const settings: TranslationStrings = {
   'settings.mapCartoKeyLink': 'carto.com basemap API key',
   'settings.mapCartoKeyMissing':
     'This template is a CARTO basemap. Without a key CARTO stamps "API KEY REQUIRED" onto every tile. Until you enter one, TREK shows the default basemap instead.',
+  'settings.mapGoogleSubtitle': 'Google basemap, billed per map load',
+  'settings.mapGoogleKey': 'Google Maps API key',
+  'settings.mapGoogleKeyHint': 'Browser key for the Maps JavaScript API, restricted by HTTP referrer, from',
+  'settings.mapGoogleKeyLink': 'console.cloud.google.com → Credentials',
+  'settings.mapGoogleKeyMissing':
+    'Google Maps needs a key. Without one the map cannot load, so TREK falls back to Leaflet.',
   'settings.mapStyle': 'Map Style',
   'settings.mapStylePlaceholder': 'Select a Mapbox style',
   'settings.mapStyleHint': 'Preset or your own mapbox://styles/USER/ID URL',

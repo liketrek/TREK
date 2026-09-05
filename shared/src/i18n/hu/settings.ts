@@ -40,6 +40,12 @@ const settings: TranslationStrings = {
   'settings.mapCartoKeyLink': 'carto.com alaptérkép API-kulcs',
   'settings.mapCartoKeyMissing':
     'Ez a sablon CARTO alaptérkép. Kulcs nélkül a CARTO minden csempére ráírja: "API KEY REQUIRED". Amíg nincs kulcs megadva, a TREK az alapértelmezett alaptérképet mutatja.',
+  'settings.mapGoogleSubtitle': 'Google alaptérkép, betöltésenként számlázva',
+  'settings.mapGoogleKey': 'Google Maps API-kulcs',
+  'settings.mapGoogleKeyHint': 'Böngészőkulcs a Maps JavaScript API-hoz, HTTP-hivatkozóval korlátozva, innen',
+  'settings.mapGoogleKeyLink': 'console.cloud.google.com → Hitelesítő adatok',
+  'settings.mapGoogleKeyMissing':
+    'A Google Maps kulcsot igényel. Enélkül a térkép nem tölthető be, ezért a TREK a Leafletre vált.',
   'settings.mapStyle': 'Térkép stílus',
   'settings.mapStylePlaceholder': 'Válassz Mapbox stílust',
   'settings.mapStyleHint': 'Preset vagy saját mapbox://styles/USER/ID URL',

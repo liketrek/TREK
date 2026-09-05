@@ -40,6 +40,12 @@ const settings: TranslationStrings = {
   'settings.mapCartoKeyLink': 'khóa API bản đồ nền carto.com',
   'settings.mapCartoKeyMissing':
     'Mẫu này là bản đồ nền CARTO. Không có khóa, CARTO in "API KEY REQUIRED" lên mọi ô bản đồ. Cho đến khi bạn nhập khóa, TREK hiển thị bản đồ nền mặc định.',
+  'settings.mapGoogleSubtitle': 'Bản đồ nền Google, tính phí theo mỗi lần tải bản đồ',
+  'settings.mapGoogleKey': 'Khóa API Google Maps',
+  'settings.mapGoogleKeyHint': 'Khóa trình duyệt cho Maps JavaScript API, giới hạn theo HTTP referrer, từ',
+  'settings.mapGoogleKeyLink': 'console.cloud.google.com → Thông tin xác thực',
+  'settings.mapGoogleKeyMissing':
+    'Google Maps cần một khóa. Không có khóa thì bản đồ không tải được, nên TREK quay lại dùng Leaflet.',
   'settings.mapStyle': 'Kiểu bản đồ',
   'settings.mapStylePlaceholder': 'Chọn kiểu Mapbox',
   'settings.mapStyleHint': 'Đặt trước hoặc của riêng bạn mapbox://styles/USER/ID URL',

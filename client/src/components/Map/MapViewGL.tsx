@@ -4,16 +4,14 @@ import { renderIconMarkup } from '../../utils/iconMarkup'
 import type mapboxgl from 'mapbox-gl'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useAuthStore } from '../../store/authStore'
-import { getCached, isLoading, fetchPhoto, onThumbReady, getAllThumbs } from '../../services/photoService'
-import { isCustomPlaceImage, photoCacheKey } from './placePhoto'
+import { usePlacePhotos, placePhotoUrl } from './usePlacePhotos'
 import { CATEGORY_ICON_MAP } from '../shared/categoryIcons'
 import { isStandardFamily, supportsCustom3d, wantsTerrain, addCustom3dBuildings, addTerrainAndSky } from './mapboxSetup'
 import { attachLocationMarker, type LocationMarkerHandle } from './locationMarkerMapbox'
 import { ReservationMapboxOverlay } from './reservationsMapbox'
 import { useTransportRoutes } from '../../hooks/useTransportRoutes'
 import { visibleRouteReservations } from '../../utils/reservationRoutes'
-import { safeHexColor } from '../../utils/safeColor'
-import { escapeHtml } from '@trek/shared'
+import { createMarkerElement } from './placeMarkerElement'
 import { MAPBOX_DEFAULT_STYLE, styleForActiveProvider, basemapLanguage, type GlMapProvider } from './glProviders'
 import LocationButton from './LocationButton'
 import { useGeolocation } from '../../hooks/useGeolocation'
@@ -25,12 +23,6 @@ import { pluginsApi, type PluginMapMarker, type PluginMapLayer } from '../../api
 import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '../../constants/mapDefaults'
 import { computeMapViewport, TILE_SIZE_GL } from '../../utils/mapViewport'
 
-function categoryIconSvg(iconName: string | null | undefined, size: number): string {
-  const IconComponent = (iconName && CATEGORY_ICON_MAP[iconName]) || CATEGORY_ICON_MAP['MapPin']
-  try {
-    return renderIconMarkup(createElement(IconComponent, { size, color: 'white', strokeWidth: 2.5 }))
-  } catch { return '' }
-}
 
 // Marker grouping for the GL map (#1385): MapLibre/Mapbox can't show the rich
 // HTML photo markers *and* cluster them natively, so we feed the place points
@@ -134,83 +126,6 @@ interface Props {
   onMapReady?: (map: any | null) => void
 }
 
-function createMarkerElement(place: Place & { category_color?: string; category_icon?: string }, photoUrl: string | null, orderNumbers: number[] | null, selected: boolean): HTMLDivElement {
-  const size = selected ? 44 : 36
-  // See MapView: allow-listed rather than escaped, because this is a CSS context.
-  const borderColor = selected ? '#111827' : safeHexColor(place.category_color, 'white')
-  const borderWidth = selected ? 3 : 2.5
-  const shadow = selected
-    ? '0 0 0 3px rgba(17,24,39,0.25), 0 4px 14px rgba(0,0,0,0.3)'
-    : '0 2px 8px rgba(0,0,0,0.22)'
-  const bgColor = safeHexColor(place.category_color, '#6b7280')
-
-  // The visual circle is `size` + 2*border on each side. To make the
-  // mapbox `anchor: 'center'` land on the real visual middle of the marker
-  // (rather than just the inner content box), the wrapper has to be the
-  // full outer size. If we gave the wrapper only `size`, the border would
-  // bleed outside it and the route lines would appear slightly off.
-  const outer = size + borderWidth * 2
-
-  let badgeHtml = ''
-  if (orderNumbers && orderNumbers.length > 0) {
-    const label = orderNumbers.join(' · ')
-    badgeHtml = `<span style="
-      position:absolute;bottom:-2px;right:-2px;
-      min-width:18px;height:${orderNumbers.length > 1 ? 16 : 18}px;border-radius:${orderNumbers.length > 1 ? 8 : 9}px;
-      padding:0 ${orderNumbers.length > 1 ? 4 : 3}px;
-      background:rgba(255,255,255,0.94);
-      border:1.5px solid rgba(0,0,0,0.15);
-      box-shadow:0 1px 4px rgba(0,0,0,0.18);
-      display:flex;align-items:center;justify-content:center;
-      font-size:${orderNumbers.length > 1 ? 7.5 : 9}px;font-weight:800;color:#111827;
-      font-family:var(--font-system);line-height:1;
-      box-sizing:border-box;white-space:nowrap;
-    ">${label}</span>`
-  }
-
-  const wrap = document.createElement('div')
-  // Do NOT set `position: relative` here — GL map libraries ship
-  // marker classes with `position: absolute` and rely on it. An inline
-  // `position: relative` here overrides the class, turns every marker into
-  // a static block element, and stacks them in document order inside the
-  // canvas container. The result looks exactly like "markers drift as the
-  // map zooms" because each marker's transform is then applied relative
-  // to its stacked slot, not to the map viewport.
-  wrap.style.cssText = `width:${outer}px;height:${outer}px;cursor:pointer;`
-
-  const hasPhoto = photoUrl && (photoUrl.startsWith('data:') || photoUrl.startsWith('/api/maps/place-photo/') || photoUrl.startsWith('/uploads/'))
-  if (hasPhoto) {
-    wrap.innerHTML = `
-      <div style="
-        position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-        width:${size}px;height:${size}px;border-radius:50%;
-        border:${borderWidth}px solid ${borderColor};
-        box-shadow:${shadow};
-        overflow:hidden;background:${bgColor};
-        box-sizing:content-box;
-      ">
-        <img src="${escapeHtml(photoUrl)}" width="${size}" height="${size}" style="display:block;border-radius:50%;object-fit:cover;" />
-      </div>
-      ${badgeHtml}
-    `
-  } else {
-    wrap.innerHTML = `
-      <div style="
-        position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-        width:${size}px;height:${size}px;border-radius:50%;
-        border:${borderWidth}px solid ${borderColor};
-        box-shadow:${shadow};
-        background:${bgColor};
-        display:flex;align-items:center;justify-content:center;
-        box-sizing:content-box;
-      ">
-        ${categoryIconSvg(place.category_icon, selected ? 18 : 15)}
-      </div>
-      ${badgeHtml}
-    `
-  }
-  return wrap
-}
 
 // Plugin map contributions (mapMarkerProvider / mapLayerProvider hooks) — the GL
 // twins of MapPluginMarkers/MapPluginLayers. Same contract: host-vetted declarative
@@ -449,8 +364,7 @@ export function MapViewGL({
   const isMapLibre = glProvider === 'maplibre-gl'
   const glStyle = styleForActiveProvider(glProvider, rawMapboxStyle, rawMaplibreStyle)
   const enableMapbox3d = !isMapLibre && mapbox3d
-  const placesPhotosEnabled = useAuthStore(s => s.placesPhotosEnabled)
-  const [photoUrls, setPhotoUrls] = useState<Record<string, string>>(getAllThumbs)
+  const photoUrls = usePlacePhotos(places)
   const [mapReady, setMapReady] = useState(false)
   // Hover tooltip — a cursor-following name/category/address card, matching the
   // Leaflet map's overlay exactly (no anchored popup, no photo thumbnail).
@@ -1040,62 +954,6 @@ export function MapViewGL({
     try { map.setConfigProperty('basemap', 'language', basemapLanguage(mapLang)) } catch { /* style/SDK may not support the basemap language property */ }
   }, [mapLang, mapReady, isMapLibre, glStyle])
 
-  // Photo loading — mirrors the Leaflet MapView. Updates via RAF to batch
-  // simultaneous thumb arrivals into one re-render.
-  const pendingThumbsRef = useRef<Record<string, string>>({})
-  const thumbRafRef = useRef<number | null>(null)
-  const placeIds = useMemo(() => places.map(p => p.id).join(','), [places])
-  useEffect(() => {
-    if (!places || places.length === 0 || !placesPhotosEnabled) return
-    const cleanups: (() => void)[] = []
-
-    const setThumb = (cacheKey: string, thumb: string) => {
-      pendingThumbsRef.current[cacheKey] = thumb
-      if (thumbRafRef.current !== null) return
-      thumbRafRef.current = requestAnimationFrame(() => {
-        thumbRafRef.current = null
-        const pending = pendingThumbsRef.current
-        pendingThumbsRef.current = {}
-        setPhotoUrls(prev => {
-          const hasChange = Object.entries(pending).some(([k, v]) => prev[k] !== v)
-          return hasChange ? { ...prev, ...pending } : prev
-        })
-      })
-    }
-
-    for (const place of places) {
-      // A custom uploaded image is shown directly — never auto-fetch a provider
-      // photo for it (that request would 404 for OSM-only places and, worse, the
-      // fetched thumb would shadow the user's own image). (#1136)
-      if (isCustomPlaceImage(place.image_url)) continue
-      const cacheKey = photoCacheKey(place)
-      if (!cacheKey) continue
-      const cached = getCached(cacheKey)
-      if (cached?.thumbDataUrl) {
-        setThumb(cacheKey, cached.thumbDataUrl)
-        continue
-      }
-      cleanups.push(onThumbReady(cacheKey, thumb => setThumb(cacheKey, thumb)))
-      if (!cached && !isLoading(cacheKey)) {
-        const photoId =
-          (place.image_url?.startsWith('/api/maps/place-photo/') ? place.image_url : null)
-          || place.google_place_id
-          || place.osm_id
-          || place.image_url
-        if (photoId || (place.lat && place.lng)) {
-          fetchPhoto(cacheKey, photoId || `coords:${place.lat}:${place.lng}`, place.lat, place.lng, place.name)
-        }
-      }
-    }
-
-    return () => {
-      cleanups.forEach(fn => fn())
-      if (thumbRafRef.current !== null) {
-        cancelAnimationFrame(thumbRafRef.current)
-        thumbRafRef.current = null
-      }
-    }
-  }, [placeIds, placesPhotosEnabled]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Reconcile markers with places + photos. The clustered GeoJSON source decides
   // which points are currently unclustered, and we render the existing rich HTML
@@ -1125,9 +983,8 @@ export function MapViewGL({
 
       visiblePlaces.forEach(place => {
         const orderNumbers = dayOrderMap[place.id] ?? null
-        const pck = photoCacheKey(place)
         // A custom image wins over the auto-fetched thumb; otherwise fall back to it.
-        const photoUrl = isCustomPlaceImage(place.image_url) ? place.image_url! : ((pck && photoUrls[pck]) || place.image_url || null)
+        const photoUrl = placePhotoUrl(place, photoUrls)
         const selected = place.id === selectedPlaceId
         const el = createMarkerElement(place as Place & { category_color?: string; category_icon?: string }, photoUrl, orderNumbers, selected)
         // Drag onto a day in the plan (#891). Markers are rebuilt from scratch

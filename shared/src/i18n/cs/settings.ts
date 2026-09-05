@@ -39,6 +39,12 @@ const settings: TranslationStrings = {
   'settings.mapCartoKeyLink': 'carto.com API klíč pro podkladové mapy',
   'settings.mapCartoKeyMissing':
     'Tato šablona je podkladová mapa CARTO. Bez klíče CARTO vypálí do každé dlaždice nápis "API KEY REQUIRED". Dokud klíč nezadáte, TREK zobrazuje výchozí podkladovou mapu.',
+  'settings.mapGoogleSubtitle': 'Podkladová mapa Google, účtováno za každé načtení',
+  'settings.mapGoogleKey': 'Klíč API Google Maps',
+  'settings.mapGoogleKeyHint': 'Klíč prohlížeče pro Maps JavaScript API, omezený podle HTTP referreru, z',
+  'settings.mapGoogleKeyLink': 'console.cloud.google.com → Přihlašovací údaje',
+  'settings.mapGoogleKeyMissing':
+    'Google Maps vyžaduje klíč. Bez něj se mapa nenačte, takže TREK se vrátí k Leaflet.',
   'settings.mapStyle': 'Styl mapy',
   'settings.mapStylePlaceholder': 'Vyberte styl Mapbox',
   'settings.mapStyleHint': 'Preset nebo vaše vlastní URL mapbox://styles/USER/ID',

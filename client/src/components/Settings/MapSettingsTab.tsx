@@ -135,14 +135,18 @@ function StyleDropdown({ value, provider, onChange }: { value: string; provider:
   )
 }
 
-type Provider = 'leaflet' | GlMapProvider
+type Provider = 'leaflet' | GlMapProvider | 'google-maps'
 
 function normalizeProvider(value: unknown): Provider {
-  return value === 'mapbox-gl' || value === 'maplibre-gl' ? value : 'leaflet'
+  // Anything unrecognised falls back to Leaflet, which is what makes this the
+  // one place a new provider must be registered: without it the tab shows
+  // Leaflet as selected and the next save writes that over the user's real
+  // choice.
+  return value === 'mapbox-gl' || value === 'maplibre-gl' || value === 'google-maps' ? value : 'leaflet'
 }
 
 function styleForProvider(provider: Provider, style?: string | null): string {
-  if (provider === 'leaflet') return style || MAPBOX_DEFAULT_STYLE
+  if (provider === 'leaflet' || provider === 'google-maps') return style || MAPBOX_DEFAULT_STYLE
   if (provider === 'mapbox-gl' && isOpenFreeMapStyle(style)) return MAPBOX_DEFAULT_STYLE
   return normalizeStyleForProvider(provider, style)
 }
@@ -171,18 +175,23 @@ export default function MapSettingsTab(): React.ReactElement {
   const [mapTileUrl, setMapTileUrl] = useState<string>(settings.map_tile_url || '')
   const managed = useAuthStore((s) => s.managed)
   const [mapboxToken, setMapboxToken] = useState<string>(settings.mapbox_access_token || '')
+  const [googleKey, setGoogleKey] = useState<string>(settings.google_maps_api_key || '')
   const [cartoKey, setCartoKey] = useState<string>(settings.carto_api_key || '')
   const [mapboxStyle, setMapboxStyle] = useState<string>(styleForProvider(initialProvider, slotStyle(initialProvider, settings)))
   const [mapbox3d, setMapbox3d] = useState<boolean>(settings.mapbox_3d_enabled !== false)
   const [mapboxQuality, setMapboxQuality] = useState<boolean>(settings.mapbox_quality_mode === true)
   // One chunk per engine — see components/Map/glLazy.tsx.
   const GlMapPreview = provider === 'maplibre-gl' ? GlMapPreviewMaplibre : GlMapPreviewMapbox
+  // 'not leaflet' used to be the same thing as 'a GL provider'. Google broke
+  // that equivalence: it has no style spec, no style slot and no token.
+  const isGl = provider === 'mapbox-gl' || provider === 'maplibre-gl'
 
   useEffect(() => {
     const nextProvider = normalizeProvider(settings.map_provider)
     setProvider(nextProvider)
     setMapTileUrl(settings.map_tile_url || '')
     setMapboxToken(settings.mapbox_access_token || '')
+    setGoogleKey(settings.google_maps_api_key || '')
     setCartoKey(settings.carto_api_key || '')
     setMapboxStyle(styleForProvider(nextProvider, slotStyle(nextProvider, settings)))
     setMapbox3d(settings.mapbox_3d_enabled !== false)
@@ -211,13 +220,14 @@ export default function MapSettingsTab(): React.ReactElement {
   const saveMapSettings = async (): Promise<void> => {
     setSaving(true)
     try {
-      const glStyle = provider === 'leaflet' ? mapboxStyle : normalizeStyleForProvider(provider, mapboxStyle)
+      const glStyle = isGl ? normalizeStyleForProvider(provider, mapboxStyle) : mapboxStyle
       // Save into the active provider's own slot so the other provider's style survives.
       const stylePatch = provider === 'maplibre-gl' ? { maplibre_style: glStyle } : { mapbox_style: glStyle }
       await updateSettings({
         map_provider: provider,
         map_tile_url: mapTileUrl,
         mapbox_access_token: mapboxToken,
+        google_maps_api_key: googleKey,
         carto_api_key: cartoKey,
         ...stylePatch,
         mapbox_3d_enabled: mapbox3d,
@@ -304,6 +314,27 @@ export default function MapSettingsTab(): React.ReactElement {
               <div className="hidden sm:block text-xs text-slate-500 mt-0.5">{t('settings.mapMapLibreSubtitle')}</div>
             </div>
           </button>
+          <button
+            type="button"
+            onClick={() => changeProvider('google-maps')}
+            className={`relative flex items-start gap-3 p-3 rounded-lg border text-left transition-colors ${
+              provider === 'google-maps'
+                ? 'border-slate-900 bg-slate-50 dark:bg-slate-800 dark:border-slate-200'
+                : 'border-slate-200 hover:border-slate-400 dark:border-slate-700'
+            }`}
+          >
+            <Globe2 size={18} className="mt-0.5 flex-shrink-0 text-slate-700 dark:text-slate-300" />
+            <div className="min-w-0">
+              <div className="text-sm font-medium text-slate-900 dark:text-white">
+                <span className="sm:hidden">Google</span>
+                <span className="hidden sm:inline">Google Maps</span>
+              </div>
+              <div className="hidden sm:block text-xs text-slate-500 mt-0.5">{t('settings.mapGoogleSubtitle')}</div>
+            </div>
+            <span className="absolute top-1.5 right-1.5 text-[10px] uppercase tracking-wide text-amber-600 dark:text-amber-400">
+              {t('settings.mapExperimental')}
+            </span>
+          </button>
         </div>
         <p className="text-xs text-slate-400 mt-2">
           {t('settings.mapProviderHint')}
@@ -357,8 +388,33 @@ export default function MapSettingsTab(): React.ReactElement {
         </div>
       )}
 
+      {/* A Google Maps key reaches the browser by design and is restricted by HTTP
+          referrer, not kept secret — same handling as the Mapbox token above. */}
+      {provider === 'google-maps' && !managed && (
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('settings.mapGoogleKey')}</label>
+          <input
+            type="text"
+            value={googleKey}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setGoogleKey(e.target.value)}
+            spellCheck={false}
+            autoComplete="off"
+            className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-slate-400 focus:border-transparent"
+          />
+          <p className="text-xs text-slate-400 mt-1">
+            {t('settings.mapGoogleKeyHint')}{' '}
+            <a href="https://console.cloud.google.com/google/maps-apis/credentials" target="_blank" rel="noreferrer" className="underline">
+              {t('settings.mapGoogleKeyLink')}
+            </a>
+          </p>
+          {!googleKey && (
+            <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">{t('settings.mapGoogleKeyMissing')}</p>
+          )}
+        </div>
+      )}
+
       {/* GL settings */}
-      {provider !== 'leaflet' && (
+      {isGl && (
         <div className="space-y-3">
           {/* The token comes with the instance on a managed install, injected when the
               settings are read. A field here would only let somebody save a worse one. */}
@@ -443,7 +499,7 @@ export default function MapSettingsTab(): React.ReactElement {
 
       <div>
         <div style={{ position: 'relative', inset: 0, height: '200px', width: '100%' }}>
-          {provider !== 'leaflet' ? (
+          {isGl ? (
             /* A net of its own: the preview is the one place a user flips providers
                live, so it is the likeliest chunk to fail — and a broken preview must
                not take the rest of the settings tab with it. */

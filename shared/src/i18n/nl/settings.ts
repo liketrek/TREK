@@ -40,6 +40,12 @@ const settings: TranslationStrings = {
   'settings.mapCartoKeyLink': 'carto.com basemap API-sleutel',
   'settings.mapCartoKeyMissing':
     'Deze sjabloon is een CARTO-basiskaart. Zonder sleutel drukt CARTO "API KEY REQUIRED" op elke tegel. Zolang er geen sleutel is, toont TREK de standaardbasiskaart.',
+  'settings.mapGoogleSubtitle': 'Google-basiskaart, afgerekend per kaartlading',
+  'settings.mapGoogleKey': 'Google Maps API-sleutel',
+  'settings.mapGoogleKeyHint': 'Browsersleutel voor de Maps JavaScript API, beperkt via HTTP-referrer, van',
+  'settings.mapGoogleKeyLink': 'console.cloud.google.com → Inloggegevens',
+  'settings.mapGoogleKeyMissing':
+    'Google Maps heeft een sleutel nodig. Zonder sleutel kan de kaart niet laden en valt TREK terug op Leaflet.',
   'settings.mapStyle': 'Kaartstijl',
   'settings.mapStylePlaceholder': 'Kies een Mapbox-stijl',
   'settings.mapStyleHint': 'Preset of eigen mapbox://styles/USER/ID URL',

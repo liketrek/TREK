@@ -2,7 +2,8 @@ import { Suspense } from 'react'
 import { useSettingsStore } from '../../store/settingsStore'
 import { MapView } from './MapView'
 import ErrorBoundary from '../shared/ErrorBoundary'
-import { MapViewGLMapbox, MapViewGLMaplibre } from './glLazy'
+import { MapViewGLMapbox, MapViewGLMaplibre, MapViewGoogleLazy } from './glLazy'
+import { basemapLanguage } from './glProviders'
 
 // Auto-selects the map renderer based on user settings. Keeps the existing
 // Leaflet MapView untouched so the Mapbox GL variant can mature iteratively
@@ -16,11 +17,25 @@ import { MapViewGLMapbox, MapViewGLMaplibre } from './glLazy'
 export function MapViewAuto(props: any) {
   const provider = useSettingsStore(s => s.settings.map_provider)
   const token = useSettingsStore(s => s.settings.mapbox_access_token)
+  const googleKey = useSettingsStore(s => s.settings.google_maps_api_key)
+  const language = useSettingsStore(s => s.settings.language)
   // Fall back to Leaflet when Mapbox is selected but no token is set,
   // so trip planner never shows an empty map due to a missing token.
   const glProvider = provider === 'maplibre-gl' ? 'maplibre-gl'
     : provider === 'mapbox-gl' && token ? 'mapbox-gl'
     : null
+  // Same fallback rule as Mapbox: a provider selected without the key it needs
+  // would render an empty map, so Leaflet keeps the planner usable instead.
+  if (provider === 'google-maps' && googleKey) {
+    return (
+      <ErrorBoundary boundaryId="map:google" resetKeys={[googleKey]} fallback={<MapView {...props} />}>
+        <Suspense fallback={<MapView {...props} />}>
+          <MapViewGoogleLazy {...props} apiKey={googleKey} language={basemapLanguage(language)} />
+        </Suspense>
+      </ErrorBoundary>
+    )
+  }
+
   // One chunk per engine: picking the binding here is what keeps mapbox-gl and
   // maplibre-gl out of each other's downloads.
   const MapViewGL = glProvider === 'maplibre-gl' ? MapViewGLMaplibre : MapViewGLMapbox

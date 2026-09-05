@@ -39,6 +39,12 @@ const settings: TranslationStrings = {
   'settings.mapCartoKeyLink': 'kunci API peta dasar carto.com',
   'settings.mapCartoKeyMissing':
     'Templat ini adalah peta dasar CARTO. Tanpa kunci, CARTO mencetak "API KEY REQUIRED" di setiap ubin. Sampai kunci dimasukkan, TREK menampilkan peta dasar bawaan.',
+  'settings.mapGoogleSubtitle': 'Peta dasar Google, ditagih per pemuatan peta',
+  'settings.mapGoogleKey': 'Kunci API Google Maps',
+  'settings.mapGoogleKeyHint': 'Kunci browser untuk Maps JavaScript API, dibatasi menurut perujuk HTTP, dari',
+  'settings.mapGoogleKeyLink': 'console.cloud.google.com → Kredensial',
+  'settings.mapGoogleKeyMissing':
+    'Google Maps memerlukan kunci. Tanpa kunci peta tidak dapat dimuat, sehingga TREK kembali ke Leaflet.',
   'settings.mapStyle': 'Gaya peta',
   'settings.mapStylePlaceholder': 'Pilih gaya Mapbox',
   'settings.mapStyleHint': 'Preset atau URL mapbox://styles/USER/ID milikmu',

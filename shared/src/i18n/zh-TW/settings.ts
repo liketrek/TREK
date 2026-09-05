@@ -38,6 +38,12 @@ const settings: TranslationStrings = {
   'settings.mapCartoKeyHint': '沒有金鑰時 CARTO 底圖會顯示浮水印。免費且無需帳戶，來自',
   'settings.mapCartoKeyLink': 'carto.com 底圖 API 金鑰',
   'settings.mapCartoKeyMissing': '此範本是 CARTO 底圖。沒有金鑰時，CARTO 會在每個圖磚上印上 "API KEY REQUIRED"。 在輸入金鑰之前，TREK 會顯示預設底圖。',
+  'settings.mapGoogleSubtitle': 'Google 底圖，依地圖載入次數計費',
+  'settings.mapGoogleKey': 'Google Maps API 金鑰',
+  'settings.mapGoogleKeyHint': '用於 Maps JavaScript API 的瀏覽器金鑰，以 HTTP 參照網址限制，來自',
+  'settings.mapGoogleKeyLink': 'console.cloud.google.com → 憑證',
+  'settings.mapGoogleKeyMissing':
+    'Google 地圖需要金鑰。沒有金鑰就無法載入地圖，因此 TREK 會退回使用 Leaflet。',
   'settings.mapStyle': '地圖樣式',
   'settings.mapStylePlaceholder': '選擇 Mapbox 樣式',
   'settings.mapStyleHint': '預設或您自己的 mapbox://styles/USER/ID URL',

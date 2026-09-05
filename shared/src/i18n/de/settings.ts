@@ -40,6 +40,12 @@ const settings: TranslationStrings = {
   'settings.mapCartoKeyLink': 'carto.com Basemap-API-Key',
   'settings.mapCartoKeyMissing':
     'Diese Vorlage ist eine CARTO-Basiskarte. Ohne Key brennt CARTO "API KEY REQUIRED" in jede Kachel. Bis ein Key eingetragen ist, zeigt TREK die Standard-Basiskarte.',
+  'settings.mapGoogleSubtitle': 'Google-Basiskarte, Abrechnung pro Kartenaufruf',
+  'settings.mapGoogleKey': 'Google Maps API-Schlüssel',
+  'settings.mapGoogleKeyHint': 'Browser-Schlüssel für die Maps JavaScript API, per HTTP-Referrer eingeschränkt, von',
+  'settings.mapGoogleKeyLink': 'console.cloud.google.com → Anmeldedaten',
+  'settings.mapGoogleKeyMissing':
+    'Google Maps benötigt einen Schlüssel. Ohne ihn lässt sich die Karte nicht laden, daher weicht TREK auf Leaflet aus.',
   'settings.mapStyle': 'Kartenstil',
   'settings.mapStylePlaceholder': 'Mapbox-Stil wählen',
   'settings.mapStyleHint': 'Preset oder eigene mapbox://styles/USER/ID URL',

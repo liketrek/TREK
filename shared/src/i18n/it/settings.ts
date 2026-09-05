@@ -39,6 +39,12 @@ const settings: TranslationStrings = {
   'settings.mapCartoKeyLink': 'chiave API mappe base di carto.com',
   'settings.mapCartoKeyMissing':
     'Questo modello è una mappa base CARTO. Senza chiave, CARTO stampa "API KEY REQUIRED" su ogni tassello. Finché non inserisci una chiave, TREK mostra la mappa base predefinita.',
+  'settings.mapGoogleSubtitle': 'Mappa base Google, addebitata per caricamento',
+  'settings.mapGoogleKey': 'Chiave API di Google Maps',
+  'settings.mapGoogleKeyHint': 'Chiave browser per l\'API Maps JavaScript, limitata per referrer HTTP, da',
+  'settings.mapGoogleKeyLink': 'console.cloud.google.com → Credenziali',
+  'settings.mapGoogleKeyMissing':
+    'Google Maps richiede una chiave. Senza, la mappa non può caricarsi e TREK torna a Leaflet.',
   'settings.mapStyle': 'Stile mappa',
   'settings.mapStylePlaceholder': 'Seleziona uno stile Mapbox',
   'settings.mapStyleHint': 'Preset o il tuo URL mapbox://styles/USER/ID',

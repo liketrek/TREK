@@ -42,6 +42,12 @@ const settings: TranslationStrings = {
   'settings.mapCartoKeyLink': 'κλειδί API βασικών χαρτών carto.com',
   'settings.mapCartoKeyMissing':
     'Αυτό το πρότυπο είναι βασικός χάρτης CARTO. Χωρίς κλειδί, η CARTO τυπώνει "API KEY REQUIRED" σε κάθε πλακίδιο. Μέχρι να εισαγάγετε κλειδί, το TREK εμφανίζει τον προεπιλεγμένο βασικό χάρτη.',
+  'settings.mapGoogleSubtitle': 'Χάρτης βάσης Google, χρεώνεται ανά φόρτωση χάρτη',
+  'settings.mapGoogleKey': 'Κλειδί API Google Maps',
+  'settings.mapGoogleKeyHint': 'Κλειδί προγράμματος περιήγησης για το Maps JavaScript API, περιορισμένο βάσει HTTP referrer, από',
+  'settings.mapGoogleKeyLink': 'console.cloud.google.com → Διαπιστευτήρια',
+  'settings.mapGoogleKeyMissing':
+    'Το Google Maps χρειάζεται κλειδί. Χωρίς αυτό ο χάρτης δεν φορτώνει, οπότε το TREK επιστρέφει στο Leaflet.',
   'settings.mapStyle': 'Στυλ Χάρτη',
   'settings.mapStylePlaceholder': 'Επιλέξτε ένα στυλ Mapbox',
   'settings.mapStyleHint': 'Προκαθορισμένο ή δικό σας mapbox://styles/USER/ID URL',

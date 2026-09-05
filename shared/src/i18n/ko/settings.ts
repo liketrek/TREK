@@ -40,6 +40,12 @@ const settings: TranslationStrings = {
   'settings.mapCartoKeyLink': 'carto.com 배경 지도 API 키',
   'settings.mapCartoKeyMissing':
     '이 템플릿은 CARTO 배경 지도입니다. 키가 없으면 CARTO가 모든 타일에 "API KEY REQUIRED"를 새깁니다. 키를 입력하기 전까지 TREK은 기본 배경 지도를 표시합니다.',
+  'settings.mapGoogleSubtitle': 'Google 기본 지도, 지도 로드마다 과금',
+  'settings.mapGoogleKey': 'Google Maps API 키',
+  'settings.mapGoogleKeyHint': 'Maps JavaScript API용 브라우저 키이며 HTTP 리퍼러로 제한됩니다. 발급처:',
+  'settings.mapGoogleKeyLink': 'console.cloud.google.com → 사용자 인증 정보',
+  'settings.mapGoogleKeyMissing':
+    'Google 지도에는 키가 필요합니다. 키가 없으면 지도를 불러올 수 없어 TREK이 Leaflet으로 대체합니다.',
   'settings.mapStyle': '지도 스타일',
   'settings.mapStylePlaceholder': 'Mapbox 스타일 선택',
   'settings.mapStyleHint': '프리셋 또는 mapbox://styles/USER/ID URL 직접 입력',

@@ -41,6 +41,12 @@ const settings: TranslationStrings = {
   'settings.mapCartoKeyLink': 'ключ API базових карт carto.com',
   'settings.mapCartoKeyMissing':
     'Цей шаблон є базовою картою CARTO. Без ключа CARTO наносить "API KEY REQUIRED" на кожен тайл. Доки ключ не вказано, TREK показує базову карту за замовчуванням.',
+  'settings.mapGoogleSubtitle': 'Базова карта Google, оплата за кожне завантаження',
+  'settings.mapGoogleKey': 'Ключ API Google Maps',
+  'settings.mapGoogleKeyHint': 'Ключ браузера для Maps JavaScript API, обмежений за HTTP-реферером, з',
+  'settings.mapGoogleKeyLink': 'console.cloud.google.com → Облікові дані',
+  'settings.mapGoogleKeyMissing':
+    'Google Maps потребує ключа. Без нього карта не завантажиться, тож TREK повернеться до Leaflet.',
   'settings.mapStyle': 'Стиль карти',
   'settings.mapStylePlaceholder': 'Виберіть стиль Mapbox',
   'settings.mapStyleHint': 'Preset або власний URL mapbox://styles/USER/ID',

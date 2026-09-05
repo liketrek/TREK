@@ -74,3 +74,13 @@ export const GlMapPreviewMaplibre = lazyWithRetry(async () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return { default: (props: any) => <GlMapPreview {...props} gl={engine.default} /> }
 })
+
+/**
+ * The Google renderer is lazy for the same reason as the GL engines, minus the
+ * chunk-splitting concern: its SDK is fetched from Google at runtime rather than
+ * bundled, so this chunk only carries TREK's own component.
+ */
+export const MapViewGoogleLazy = lazyWithRetry(async () => {
+  const component = await import('./MapViewGoogle')
+  return { default: component.MapViewGoogle }
+})

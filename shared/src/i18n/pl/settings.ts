@@ -39,6 +39,12 @@ const settings: TranslationStrings = {
   'settings.mapCartoKeyLink': 'klucz API map podkładowych carto.com',
   'settings.mapCartoKeyMissing':
     'Ten szablon to mapa podkładowa CARTO. Bez klucza CARTO nanosi "API KEY REQUIRED" na każdy kafelek. Dopóki nie podasz klucza, TREK pokazuje domyślną mapę podkładową.',
+  'settings.mapGoogleSubtitle': 'Mapa bazowa Google, rozliczana za każde załadowanie',
+  'settings.mapGoogleKey': 'Klucz API Google Maps',
+  'settings.mapGoogleKeyHint': 'Klucz przeglądarki do Maps JavaScript API, ograniczony przez odsyłacz HTTP, z',
+  'settings.mapGoogleKeyLink': 'console.cloud.google.com → Dane logowania',
+  'settings.mapGoogleKeyMissing':
+    'Google Maps wymaga klucza. Bez niego mapa się nie załaduje, więc TREK wraca do Leaflet.',
   'settings.mapStyle': 'Styl mapy',
   'settings.mapStylePlaceholder': 'Wybierz styl Mapbox',
   'settings.mapStyleHint': 'Preset lub własny URL mapbox://styles/USER/ID',

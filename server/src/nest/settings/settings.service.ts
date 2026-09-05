@@ -14,6 +14,7 @@ export const ENCRYPTED_SETTING_KEYS = new Set([
   'ntfy_token',
   'mapbox_access_token',
   'carto_api_key',
+  'google_maps_api_key',
   'llm_api_key',
 ]);
 // Encrypted keys that are masked (••••••••) when returned to the client.
@@ -37,6 +38,10 @@ export const DEFAULTABLE_USER_SETTING_KEYS = [
   // Instance-wide GL map defaults: admins can set Mapbox token/style or
   // tokenless MapLibre/OpenFreeMap style defaults for new users (#920).
   'map_provider',
+  // Google Maps bills per map load against whoever owns the key, so it is a
+  // per-instance value like the CARTO one rather than something each member
+  // is expected to bring: one admin key clears it for everybody.
+  'google_maps_api_key',
   'mapbox_access_token',
   'mapbox_style',
   'maplibre_style',
@@ -60,7 +65,7 @@ const VALID_VALUES: Partial<Record<DefaultableKey, unknown[]>> = {
   distance_unit: ['metric', 'imperial'],
   time_format: ['12h', '24h'],
   dark_mode: [true, false, 'light', 'dark', 'auto'],
-  map_provider: ['leaflet', 'mapbox-gl', 'maplibre-gl'],
+  map_provider: ['leaflet', 'mapbox-gl', 'maplibre-gl', 'google-maps'],
   llm_provider: ['local', 'openai', 'anthropic'],
 };
 

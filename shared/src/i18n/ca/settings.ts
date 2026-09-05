@@ -29,6 +29,12 @@ const settings: TranslationStrings = {
   'settings.mapCartoKeyLink': "clau d'API de mapes base de carto.com",
   'settings.mapCartoKeyMissing':
     'Aquesta plantilla és un mapa base de CARTO. Sense clau, CARTO estampa "API KEY REQUIRED" a cada tessel·la. Mentre no hi hagi clau, TREK mostra el mapa base per defecte.',
+  'settings.mapGoogleSubtitle': 'Mapa base de Google, facturat per càrrega de mapa',
+  'settings.mapGoogleKey': 'Clau d\'API de Google Maps',
+  'settings.mapGoogleKeyHint': 'Clau de navegador per a l\'API Maps JavaScript, restringida per referent HTTP, de',
+  'settings.mapGoogleKeyLink': 'console.cloud.google.com → Credencials',
+  'settings.mapGoogleKeyMissing':
+    'Google Maps necessita una clau. Sense ella el mapa no es pot carregar, així que TREK torna a Leaflet.',
   'settings.mapStyle': 'Estil de mapa',
   'settings.mapStylePlaceholder': 'Selecciona un estil de Mapbox',
   'settings.mapStyleHint': 'Predefinit o la teva pròpia URL mapbox://styles/USUARI/ID',

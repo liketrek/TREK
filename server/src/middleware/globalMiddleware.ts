@@ -181,7 +181,13 @@ export function applyGlobalMiddleware(
         // means switching client/src/utils/convertHeic.ts over to it and
         // verifying a real .heic upload in a browser, not just deleting the
         // string here.
-        scriptSrc: ["'self'", "'wasm-unsafe-eval'", "'unsafe-eval'"],
+        // maps.googleapis.com is listed because the Google Maps provider loads its
+        // SDK from there at runtime; the API then pulls further modules from the
+        // same host. Unlike the other providers, Google's renderer cannot be
+        // bundled — the terms only license it through their hosted loader. The
+        // entry is unconditional so a per-user provider switch does not need a
+        // per-request CSP.
+        scriptSrc: ["'self'", "'wasm-unsafe-eval'", "'unsafe-eval'", "https://maps.googleapis.com"],
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://unpkg.com"],
         imgSrc: ["'self'", "data:", "blob:", "https:"],
         connectSrc: [
@@ -207,7 +213,10 @@ export function applyGlobalMiddleware(
           "https://geocoding-api.open-meteo.com", "https://api.frankfurter.dev",
           "https://router.project-osrm.org/route/v1/", "https://routing.openstreetmap.de/",
           "https://api.mapbox.com", "https://*.tiles.mapbox.com", "https://events.mapbox.com",
-          "https://tiles.openfreemap.org"
+          "https://tiles.openfreemap.org",
+          // Google Maps fetches its tiles, styles and telemetry from these.
+          "https://maps.googleapis.com", "https://maps.gstatic.com",
+          "https://khms0.googleapis.com", "https://khms1.googleapis.com"
         ],
         workerSrc: ["'self'", "blob:"],
         childSrc: ["'self'", "blob:"],

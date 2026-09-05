@@ -38,6 +38,12 @@ const settings: TranslationStrings = {
   'settings.mapCartoKeyLink': 'مفتاح API لخرائط carto.com الأساسية',
   'settings.mapCartoKeyMissing':
     'هذا القالب خريطة أساسية من CARTO. بدون مفتاح تطبع CARTO عبارة "API KEY REQUIRED" على كل بلاطة. إلى أن تُدخل مفتاحًا، تعرض TREK الخريطة الأساسية الافتراضية بدلاً منها.',
+  'settings.mapGoogleSubtitle': 'خريطة جوجل، تُحتسب التكلفة لكل تحميل',
+  'settings.mapGoogleKey': 'مفتاح Google Maps API',
+  'settings.mapGoogleKeyHint': 'مفتاح متصفح لواجهة Maps JavaScript، مقيَّد بمُحيل HTTP، من',
+  'settings.mapGoogleKeyLink': 'console.cloud.google.com ← بيانات الاعتماد',
+  'settings.mapGoogleKeyMissing':
+    'تحتاج خرائط جوجل إلى مفتاح. بدونه لا يمكن تحميل الخريطة، لذا يعود TREK إلى Leaflet.',
   'settings.mapStyle': 'نمط الخريطة',
   'settings.mapStylePlaceholder': 'اختر نمط Mapbox',
   'settings.mapStyleHint': 'إعداد مسبق أو عنوان URL mapbox://styles/USER/ID خاص بك',

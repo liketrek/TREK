@@ -121,11 +121,14 @@ export interface Settings {
   map_poi_pill_enabled?: boolean
   map_always_show_routes?: boolean
   optimize_from_accommodation?: boolean
-  map_provider?: 'leaflet' | 'mapbox-gl' | 'maplibre-gl'
+  map_provider?: 'leaflet' | 'mapbox-gl' | 'maplibre-gl' | 'google-maps'
   /** Leaflet base layer: default street tiles or a satellite/aerial view. */
   map_base_layer?: 'default' | 'satellite'
   /** CARTO basemaps watermark keyless tiles; the key is appended as ?key= (#2054). */
   carto_api_key?: string
+  /** Google Maps JS API key. Reaches the browser by design — restrict it by
+   *  HTTP referrer in the Google console, it is not a secret. */
+  google_maps_api_key?: string
   mapbox_access_token?: string
   mapbox_style?: string
   maplibre_style?: string

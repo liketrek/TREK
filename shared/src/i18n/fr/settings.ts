@@ -40,6 +40,12 @@ const settings: TranslationStrings = {
   'settings.mapCartoKeyLink': "clé d'API de fonds de carte carto.com",
   'settings.mapCartoKeyMissing':
     'Ce modèle est un fond de carte CARTO. Sans clé, CARTO appose "API KEY REQUIRED" sur chaque tuile. Tant que la clé manque, TREK affiche le fond de carte par défaut.',
+  'settings.mapGoogleSubtitle': 'Fond de carte Google, facturé par chargement',
+  'settings.mapGoogleKey': 'Clé API Google Maps',
+  'settings.mapGoogleKeyHint': 'Clé navigateur pour l\'API Maps JavaScript, restreinte par référent HTTP, depuis',
+  'settings.mapGoogleKeyLink': 'console.cloud.google.com → Identifiants',
+  'settings.mapGoogleKeyMissing':
+    'Google Maps a besoin d\'une clé. Sans elle la carte ne peut pas se charger, TREK revient donc à Leaflet.',
   'settings.mapStyle': 'Style de carte',
   'settings.mapStylePlaceholder': 'Sélectionner un style Mapbox',
   'settings.mapStyleHint': 'Preset ou votre propre URL mapbox://styles/USER/ID',
