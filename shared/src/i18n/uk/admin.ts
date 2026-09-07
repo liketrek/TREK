@@ -93,10 +93,10 @@ const admin: TranslationStrings = {
   'admin.googleCaveat.badge': 'Не рекомендовано',
   'admin.googleCaveat.body':
     'TREK має відкритий код, і ми тут не нейтральні. У такому масштабі відгуки та світлини звичайних закладів є лише в Google, і це і є монополія. Поле тут через брак альтернативи, а не тому, що ми його радимо. Тоді кожен запит іде до Google.',
-  'admin.trekApi.badgeSoon':
-    'Незабаром',
-  'admin.trekApi.badgeActive':
-    'Увімкнено',
+  'admin.trekApi.toggleLabel':
+    'Індекс місць TREK',
+  'admin.trekApi.offNote':
+    'Вимкнено. Пошук місць використовує OpenStreetMap, а також Google, якщо задано ключ.',
   'admin.trekApi.tagline':
     'Власний покажчик місць TREK. Пошук без ключа Google, без квоти й без того, щоб хтось рахував ваші запити.',
   'admin.trekApi.factPlaces':

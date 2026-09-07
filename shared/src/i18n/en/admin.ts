@@ -133,10 +133,10 @@ const admin: TranslationStrings = {
   'admin.googleCaveat.badge': 'Not recommended',
   'admin.googleCaveat.body':
     'TREK is open source and we are not neutral here. Ratings and photos of ordinary businesses exist at this scale only at Google, and that is what a monopoly is. The field is here because there is no alternative, not because we recommend it. Every lookup then goes to Google.',
-  'admin.trekApi.badgeSoon':
-    'Coming',
-  'admin.trekApi.badgeActive':
-    'Active',
+  'admin.trekApi.toggleLabel':
+    'TREK place index',
+  'admin.trekApi.offNote':
+    'Switched off. Place search uses OpenStreetMap, and Google where a key is set.',
   'admin.trekApi.tagline':
     'TREK\'s own place index. Search without a Google key, without a quota and without anyone counting your lookups.',
   'admin.trekApi.factPlaces':

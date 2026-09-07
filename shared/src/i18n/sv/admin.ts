@@ -135,10 +135,10 @@ const admin: TranslationStrings = {
   'admin.googleCaveat.badge': 'Avrådes',
   'admin.googleCaveat.body':
     'TREK är öppen källkod och vi är inte neutrala här. I den här skalan finns omdömen och foton på vanliga verksamheter bara hos Google, och det är ett monopol. Fältet finns i brist på alternativ, inte för att vi rekommenderar det. Varje uppslagning går då till Google.',
-  'admin.trekApi.badgeSoon':
-    'Snart',
-  'admin.trekApi.badgeActive':
-    'Aktiv',
+  'admin.trekApi.toggleLabel':
+    'TREK:s platsindex',
+  'admin.trekApi.offNote':
+    'Avstängt. Platssökningen använder OpenStreetMap och Google om en nyckel är angiven.',
   'admin.trekApi.tagline':
     'TREK:s eget platsregister. Sök utan Google-nyckel, utan kvot och utan att någon räknar dina sökningar.',
   'admin.trekApi.factPlaces':

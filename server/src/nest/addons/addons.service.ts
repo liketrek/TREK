@@ -218,6 +218,28 @@ export class AddonsService {
 
   updatePlacesEnrich(enabled: boolean) { return this.writeFlag('places_enrich_enabled', enabled); }
 
+  /**
+   * The TREK place index, read fail-OPEN for the same reason enrichment is.
+   *
+   * This is the one switch on the card that is about egress rather than about
+   * spending: with it on, every search and every keystroke in the place box
+   * leaves the instance for places.liketrek.com. An operator who does not want
+   * that needs somewhere to say so, and until this pair existed the key was
+   * read by six call paths and written by nobody — the only way to turn the
+   * index off was an INSERT against app_settings by hand.
+   *
+   * It has to agree with MapsService.trekPlacesEnabled(), which reads the same
+   * key the same way. If the two ever disagree, the panel shows "off" while the
+   * queries keep leaving, which is the worst of both.
+   */
+  getTrekPlaces() {
+    const row = this.db.prepare("SELECT value FROM app_settings WHERE key = 'trek_places_enabled'").get() as
+      | { value: string }
+      | undefined;
+    return { enabled: row?.value !== 'false' };
+  }
+  updateTrekPlaces(enabled: boolean) { return this.writeFlag('trek_places_enabled', enabled); }
+
   // ── Transit backend (#1699) ────────────────────────────────────────────────
   // Not a flag: two named backends, so it stores the name rather than a
   // boolean. The read/write pair lives in transit/transit-provider.ts because

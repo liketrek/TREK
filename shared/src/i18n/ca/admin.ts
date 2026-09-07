@@ -98,10 +98,10 @@ const admin: TranslationStrings = {
   'admin.googleCaveat.badge': 'No recomanat',
   'admin.googleCaveat.body':
     "TREK és programari lliure i aquí no som neutrals. En aquesta escala, les valoracions i les fotos de negocis corrents només existeixen a Google, i això és un monopoli. El camp hi és per manca d'alternativa, no perquè el recomanem. Llavors cada consulta va a Google.",
-  'admin.trekApi.badgeSoon':
-    'Aviat',
-  'admin.trekApi.badgeActive':
-    'Actiu',
+  'admin.trekApi.toggleLabel':
+    'Índex de llocs de TREK',
+  'admin.trekApi.offNote':
+    'Desactivat. La cerca de llocs utilitza OpenStreetMap i Google si hi ha una clau configurada.',
   'admin.trekApi.tagline':
     'L\'índex de llocs propi de TREK. Cercar sense clau de Google, sense quota i sense que ningú compti les teves cerques.',
   'admin.trekApi.factPlaces':

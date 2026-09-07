@@ -134,10 +134,10 @@ const admin: TranslationStrings = {
   'admin.googleCaveat.badge': 'Tidak disarankan',
   'admin.googleCaveat.body':
     'TREK adalah perangkat lunak sumber terbuka dan di sini kami tidak netral. Pada skala ini ulasan dan foto usaha biasa hanya ada di Google, dan itulah monopoli. Kolom ini ada karena tidak ada penggantinya, bukan karena kami menyarankan. Lalu setiap pencarian pergi ke Google.',
-  'admin.trekApi.badgeSoon':
-    'Segera',
-  'admin.trekApi.badgeActive':
-    'Aktif',
+  'admin.trekApi.toggleLabel':
+    'Indeks tempat TREK',
+  'admin.trekApi.offNote':
+    'Dimatikan. Pencarian tempat memakai OpenStreetMap, dan Google bila ada kunci yang disetel.',
   'admin.trekApi.tagline':
     'Indeks tempat milik TREK sendiri. Mencari tanpa kunci Google, tanpa kuota, dan tanpa ada yang menghitung pencarian Anda.',
   'admin.trekApi.factPlaces':

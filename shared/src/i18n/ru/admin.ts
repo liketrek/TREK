@@ -93,10 +93,10 @@ const admin: TranslationStrings = {
   'admin.googleCaveat.badge': 'Не рекомендуется',
   'admin.googleCaveat.body':
     'TREK с открытым исходным кодом, и мы здесь не нейтральны. В таком масштабе отзывы и фотографии обычных заведений есть только у Google, и это и есть монополия. Поле здесь из-за отсутствия альтернативы, а не потому, что мы его советуем. Тогда каждый запрос уходит в Google.',
-  'admin.trekApi.badgeSoon':
-    'Скоро',
-  'admin.trekApi.badgeActive':
-    'Включено',
+  'admin.trekApi.toggleLabel':
+    'Индекс мест TREK',
+  'admin.trekApi.offNote':
+    'Выключено. Поиск мест использует OpenStreetMap, а также Google, если задан ключ.',
   'admin.trekApi.tagline':
     'Собственный указатель мест TREK. Поиск без ключа Google, без квоты и без того, чтобы кто-то считал ваши запросы.',
   'admin.trekApi.factPlaces':

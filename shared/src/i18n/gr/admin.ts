@@ -138,10 +138,10 @@ const admin: TranslationStrings = {
   'admin.googleCaveat.badge': 'Δεν συνιστάται',
   'admin.googleCaveat.body':
     'Το TREK είναι ανοιχτού κώδικα και εδώ δεν είμαστε ουδέτεροι. Σε αυτή την κλίμακα, βαθμολογίες και φωτογραφίες συνηθισμένων καταστημάτων υπάρχουν μόνο στη Google, και αυτό είναι μονοπώλιο. Το πεδίο υπάρχει ελλείψει εναλλακτικής, όχι επειδή το συνιστούμε. Τότε κάθε αναζήτηση πηγαίνει στη Google.',
-  'admin.trekApi.badgeSoon':
-    'Σύντομα',
-  'admin.trekApi.badgeActive':
-    'Ενεργό',
+  'admin.trekApi.toggleLabel':
+    'Ευρετήριο τοποθεσιών TREK',
+  'admin.trekApi.offNote':
+    'Απενεργοποιημένο. Η αναζήτηση τοποθεσιών χρησιμοποιεί το OpenStreetMap και το Google όπου έχει οριστεί κλειδί.',
   'admin.trekApi.tagline':
     'Το δικό του ευρετήριο τόπων του TREK. Αναζήτηση χωρίς κλειδί Google, χωρίς όριο και χωρίς να μετράει κανείς τις αναζητήσεις σας.',
   'admin.trekApi.factPlaces':

@@ -48,6 +48,9 @@ const addonsStub = () => ({
   // Fail-open, unlike its three neighbours — see AddonsService.getPlacesEnrich.
   getPlacesEnrich: vi.fn(() => ({ enabled: true })),
   updatePlacesEnrich: vi.fn((enabled: boolean) => ({ enabled })),
+  // Fail-open too, and the only switch here about egress rather than spending.
+  getTrekPlaces: vi.fn(() => ({ enabled: true })),
+  updateTrekPlaces: vi.fn((enabled: boolean) => ({ enabled })),
   getCollabFeatures: vi.fn(() => ({ chat: false })),
   updateCollabFeatures: vi.fn(() => ({ features: { chat: true }, changed: true })),
   getTransitProvider: vi.fn(() => ({ provider: 'transitous', googleKeySource: null })),
@@ -297,6 +300,26 @@ describe('AdminController feature toggles', () => {
     expect(writeAudit).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'admin.transit_provider', details: { provider: 'google' } }),
     );
+  });
+
+  it('ADMIN-TOGGLE-005 trek-places forwards the body value and audits the stored one', () => {
+    // The audit row carries what the service stored, not what the request
+    // asked for: this switch decides whether every search leaves the instance,
+    // so a row claiming it was turned off when it was not would be worse than
+    // no row at all.
+    const updateTrekPlaces = vi.fn(() => ({ enabled: true }));
+    const c = adminCtl(svc(), undefined, { ...addonsStub(), updateTrekPlaces } as unknown as AddonsService);
+    expect(c.updateTrekPlaces(user, { enabled: false }, req)).toEqual({ enabled: true });
+    expect(updateTrekPlaces).toHaveBeenCalledWith(false);
+    expect(writeAudit).toHaveBeenCalledWith({ userId: user.id, action: 'admin.trek_places', ip: '1.2.3.4', details: { enabled: true } });
+  });
+
+  it('ADMIN-TOGGLE-005b trek-places reads through to AddonsService instead of a controller-side default', () => {
+    const getTrekPlaces = vi.fn(() => ({ enabled: false }));
+    const c = adminCtl(svc(), undefined, { ...addonsStub(), getTrekPlaces } as unknown as AddonsService);
+    expect(c.getTrekPlaces()).toEqual({ enabled: false });
+    expect(getTrekPlaces).toHaveBeenCalledTimes(1);
+    expect(writeAudit).not.toHaveBeenCalled();
   });
 
   it('ADMIN-TOGGLE-004 place-shadow forwards the body value and audits the stored one', () => {

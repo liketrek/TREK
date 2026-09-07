@@ -130,10 +130,10 @@ const admin: TranslationStrings = {
   'admin.googleCaveat.badge': '不建議',
   'admin.googleCaveat.body':
     'TREK 是開源軟體，在這件事上我們並不中立。在這個規模上，評分和一般店家的照片只有 Google 有，這就是壟斷。這個欄位存在是因為沒有替代品，而不是因為我們推薦。填了它，每次查詢都會送往 Google。',
-  'admin.trekApi.badgeSoon':
-    '即將推出',
-  'admin.trekApi.badgeActive':
-    '已啟用',
+  'admin.trekApi.toggleLabel':
+    'TREK 地點索引',
+  'admin.trekApi.offNote':
+    '已關閉。地點搜尋使用 OpenStreetMap；若已設定金鑰，也會使用 Google。',
   'admin.trekApi.tagline':
     'TREK 自己的地點索引。不用 Google 金鑰，沒有配額，也沒有人統計你搜了什麼。',
   'admin.trekApi.factPlaces':

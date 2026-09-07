@@ -493,4 +493,51 @@ describe('AdminSettingsTab', () => {
 
     expect(admin.setShowRotateJwtModal).toHaveBeenCalledWith(true);
   });
+
+  describe('FE-ADMSET-041: the index switch', () => {
+    // The one control on this card about egress rather than about spending:
+    // with the index on, every search and every keystroke in the place box
+    // leaves the instance. The flag was read by six call paths and written by
+    // nothing, so before this there was no way to turn it off short of an
+    // INSERT against app_settings by hand.
+    const switchFor = () =>
+      screen.getByRole('button', { name: /trek place index/i });
+
+    it('turns the index off and tells the server', async () => {
+      let sent: unknown = null;
+      server.use(
+        http.put('/api/admin/trek-places', async ({ request }) => {
+          sent = await request.json();
+          return HttpResponse.json({ enabled: false });
+        }),
+      );
+      const admin = renderTab({ trekPlacesEnabled: true });
+
+      expect(switchFor()).toHaveAttribute('aria-pressed', 'true');
+      fireEvent.click(switchFor());
+
+      expect(admin.setTrekPlacesEnabledState).toHaveBeenCalledWith(false);
+      await waitFor(() => expect(sent).toEqual({ enabled: false }));
+    });
+
+    it('rolls back when the save fails, instead of showing a state the server never took', async () => {
+      server.use(http.put('/api/admin/trek-places', () => HttpResponse.error()));
+      const admin = renderTab({ trekPlacesEnabled: true });
+
+      fireEvent.click(switchFor());
+
+      await waitFor(() => expect(admin.setTrekPlacesEnabledState).toHaveBeenLastCalledWith(true));
+    });
+
+    it('says what answers instead, but only while it is off', () => {
+      renderTab({ trekPlacesEnabled: false });
+      expect(screen.getByText(/place search uses openstreetmap/i)).toBeInTheDocument();
+      expect(switchFor()).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    it('stays quiet about the fallback while the index is on', () => {
+      renderTab({ trekPlacesEnabled: true });
+      expect(screen.queryByText(/place search uses openstreetmap/i)).not.toBeInTheDocument();
+    });
+  });
 });
