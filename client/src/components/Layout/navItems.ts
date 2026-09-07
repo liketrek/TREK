@@ -35,8 +35,18 @@ const ADDON_ICONS: Record<string, LucideIcon> = {
 /** The bar holds Dashboard + at most this many custom items; the rest go to More.
  * Two keeps the dock at 3 destinations (Dashboard + 2) so the More slot still fits. */
 export const MOBILE_NAV_MAX_BAR = 2
-/** The built-in dock next to Dashboard for an un-customised account; everything else starts under More. */
-export const DEFAULT_DOCK_IDS = ['vacay', 'atlas']
+/**
+ * The built-in dock next to Dashboard for an un-customised account, in priority
+ * order: the first MOBILE_NAV_MAX_BAR of these that are actually enabled take the
+ * slots, everything else starts under More.
+ *
+ * Journey outranks Atlas because a phone in the field wants the journal it writes
+ * to every day, not the map of countries it already visited. Journey ships
+ * disabled though, so an instance that never turned it on keeps the Vacay/Atlas
+ * dock it has today. Listing all four known global addons rather than just the
+ * top two also keeps the dock filled when one of them is switched off.
+ */
+export const DEFAULT_DOCK_IDS = ['vacay', 'journey', 'atlas', 'collections']
 
 export function buildNavItems(
   globalAddons: { id: string; name: string; icon: string }[],
@@ -90,10 +100,10 @@ export interface MobileNavSplit {
 /**
  * Resolve the persisted `{ bar, more }` id split against the live nav items.
  * Dashboard is always pinned first in the bar. An empty/absent config falls back
- * to the built-in dock (Dashboard + Vacay/Atlas where enabled, everything else
- * under More) so an un-customised user sees exactly today's layout. Stored ids
- * that no longer resolve are dropped; newly available items are appended under
- * More.
+ * to the built-in dock (Dashboard + the top DEFAULT_DOCK_IDS that are enabled,
+ * everything else under More). Stored ids that no longer resolve are dropped;
+ * newly available items are appended under More, so an account that once picked
+ * its own dock keeps it untouched.
  */
 export function splitMobileNav(
   items: NavItemDef[],
@@ -102,16 +112,20 @@ export function splitMobileNav(
   const dashboard = items.find((i) => i.id === 'dashboard')
   const head = dashboard ? [dashboard] : []
   const rest = items.filter((i) => i.id !== 'dashboard')
+  const byId = new Map(rest.map((i) => [i.id, i]))
+  const pick = (ids: string[]) => ids.map((id) => byId.get(id)).filter((x): x is NavItemDef => !!x)
 
   if (!cfg || (cfg.bar.length === 0 && cfg.more.length === 0)) {
+    const dock = pick(DEFAULT_DOCK_IDS).slice(0, MOBILE_NAV_MAX_BAR)
+    const docked = new Set(dock.map((i) => i.id))
     return {
-      bar: [...head, ...rest.filter((i) => DEFAULT_DOCK_IDS.includes(i.id))],
-      more: rest.filter((i) => !DEFAULT_DOCK_IDS.includes(i.id)),
+      bar: [...head, ...dock],
+      // Store order, not DEFAULT_DOCK_IDS order, so More keeps reading like the
+      // addon list itself.
+      more: rest.filter((i) => !docked.has(i.id)),
     }
   }
 
-  const byId = new Map(rest.map((i) => [i.id, i]))
-  const pick = (ids: string[]) => ids.map((id) => byId.get(id)).filter((x): x is NavItemDef => !!x)
   const known = new Set([...cfg.bar, ...cfg.more])
 
   const barPicked = pick(cfg.bar)
