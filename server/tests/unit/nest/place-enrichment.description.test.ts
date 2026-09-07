@@ -362,6 +362,56 @@ describe("the description on the place's own website", () => {
     lang: 'de',
   };
 
+  it('ENRICH-100: reads the description the details lookup already fetched', async () => {
+    // The details call fetched this place a moment ago and its answer carries
+    // the description. Asking again made adding one place cost two full round
+    // trips to the index, each with its own timeout, for a field already in
+    // hand.
+    mockTrekPlacesById.mockClear();
+
+    const out = await make(mapsStub()).enrich(1, {
+      ...GERS_REQ,
+      details: { description: { text: 'Pizza in Rostock, seit 2015.', sourceUrl: 'https://losteria.net/rostock' } },
+    });
+
+    expect(out.description).toMatchObject({ text: 'Pizza in Rostock, seit 2015.', source: 'website' });
+    expect(mockTrekPlacesById).not.toHaveBeenCalled();
+  });
+
+  it('ENRICH-101: still asks when the caller passed no details', async () => {
+    mockTrekPlacesById.mockClear();
+    mockTrekPlacesById.mockResolvedValue({
+      description: { text: 'Pizza in Rostock, seit 2015.', sourceUrl: 'https://losteria.net/rostock' },
+    });
+
+    const out = await make(mapsStub()).enrich(1, GERS_REQ);
+
+    expect(out.description).toMatchObject({ source: 'website' });
+    expect(mockTrekPlacesById).toHaveBeenCalledWith('abc-123');
+  });
+
+  it('ENRICH-102: a source URL that is not http(s) loses the link, not the text', async () => {
+    // It becomes an href on the client, and the value comes from whatever index
+    // the instance is pointed at. The same allow-list a place's website goes
+    // through, for the same reason.
+    mockTrekPlacesById.mockClear();
+
+    for (const bad of ['javascript:alert(1)', 'data:text/html,<script>', 'file:///etc/passwd', 'not a url']) {
+      const out = await make(mapsStub()).enrich(1, {
+        ...GERS_REQ,
+        details: { description: { text: 'Pizza in Rostock.', sourceUrl: bad } },
+      });
+      expect(out.description, bad).toMatchObject({ text: 'Pizza in Rostock.', sourceUrl: null });
+    }
+
+    // The ordinary case still keeps its link.
+    const ok = await make(mapsStub()).enrich(1, {
+      ...GERS_REQ,
+      details: { description: { text: 'Pizza in Rostock.', sourceUrl: 'https://losteria.net/rostock' } },
+    });
+    expect(ok.description).toMatchObject({ sourceUrl: 'https://losteria.net/rostock' });
+  });
+
   it('ENRICH-090: quotes the site and credits it by URL', async () => {
     mockTrekPlacesById.mockResolvedValue({
       description: { text: 'Pizza in Rostock, seit 2015.', sourceUrl: 'https://losteria.net/rostock' },

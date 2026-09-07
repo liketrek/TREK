@@ -1060,6 +1060,19 @@ export const memoriesApi = {
  * by a query, and a miss has to stay a miss — a place the cache does not hold
  * must fail the way it did before, not answer with somebody else's record.
  */
+/**
+ * The rejection both search surfaces already know to swallow.
+ *
+ * They filter on the axios cancel code and on the DOMException name, so an
+ * abort from the cache path has to look like one or it surfaces as a toast.
+ */
+function abortedError(): Error & { code: string } {
+  const err = new Error('canceled') as Error & { code: string }
+  err.name = 'CanceledError'
+  err.code = 'ERR_CANCELED'
+  return err
+}
+
 async function withCachedPlace(
   placeId: string,
   online: () => Promise<{ place: Record<string, unknown> | null }>,
@@ -1091,10 +1104,19 @@ async function withCachedPlaces<T>(
   query: string,
   shape: (places: Record<string, unknown>[]) => T,
   online: () => Promise<T>,
+  signal?: AbortSignal,
 ): Promise<T> {
   const fromCache = async (): Promise<Record<string, unknown>[]> => {
     const { searchCachedPlaces, cachedToPlaceRecord } = await import('../sync/placePrefetcher')
-    return (await searchCachedPlaces(query)).map(cachedToPlaceRecord)
+    const found = (await searchCachedPlaces(query)).map(cachedToPlaceRecord)
+    // The keystroke this answers may already be two keystrokes old. Both search
+    // surfaces order their suggestions by aborting the previous request and
+    // discarding the rejection — there is no request counter — so an offline
+    // answer that resolves regardless of the signal can overwrite a newer list.
+    // The two cache reads are also very unequal: a prefix hit comes off the
+    // index, the substring pass walks every cached place of every trip.
+    if (signal?.aborted) throw abortedError()
+    return found
   }
 
   if (isEffectivelyOffline()) return shape(await fromCache())
@@ -1135,6 +1157,7 @@ export const mapsApi = {
         source: 'offline-cache',
       }),
       () => apiClient.post('/maps/autocomplete', { input, lang, locationBias, sessionToken }, { signal }).then(r => checkInDev(mapsAutocompleteResultSchema, r.data, 'maps.autocomplete')),
+      signal,
     ),
   // Answered from the cache when the network is not there, for the ids the
   // offline suggestion list hands out. Without it, picking an offline

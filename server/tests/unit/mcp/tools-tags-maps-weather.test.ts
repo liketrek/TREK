@@ -483,7 +483,11 @@ describe('Tool: search_pois', () => {
       // The index carries opening hours; dropping them would leave the tool
       // description promising something the answer never has.
       expect(data.pois[0].opening_hours).toBe('Mo-Fr 09:00-17:00');
-      expect(data.source).toBe('openstreetmap');
+      // The answer names the index that produced it, over MCP as over REST. An
+      // assistant reading `source` to attribute the data would otherwise credit
+      // OpenStreetMap for rows Overture carries under other licences.
+      expect(data.source).toBe('trek-places');
+      expect(data.pois[0].source).toBe('trek-places');
       expect(data.clamped).toBe(false);
       expect(MapsService.prototype.searchOverpassPois).not.toHaveBeenCalled();
 

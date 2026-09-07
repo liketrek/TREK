@@ -89,7 +89,7 @@ export class MapsMcp {
    */
   @Tool({
     name: 'search_pois',
-    description: 'List OpenStreetMap points of interest of one category inside a map rectangle, with address, opening hours, website, phone and cuisine wherever OSM carries them. This is the discovery tool: use it to answer "what is around here" for a neighbourhood or a whole city district. Prefer search_place when the user already named the place they mean. Never calls Google, so it costs nothing and works on an instance with no Places key.',
+    description: 'List points of interest of one category inside a map rectangle, with address, opening hours, website, phone and cuisine wherever the source carries them. Answers from the TREK place index where it can and from OpenStreetMap otherwise; each result names which one it came from in its `source` field. This is the discovery tool: use it to answer "what is around here" for a neighbourhood or a whole city district. Prefer search_place when the user already named the place they mean. Never calls Google, so it costs nothing and works on an instance with no Places key.',
     inputSchema: {
       category: z.enum(POI_CATEGORY_KEYS).describe('Which kind of place to look for'),
       bbox: z.object({

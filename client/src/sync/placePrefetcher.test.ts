@@ -7,6 +7,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import 'fake-indexeddb/auto'
 import { offlineDb, clearAll } from '../db/offlineDb'
+import { setAuthed } from './authGate'
 import {
   AREA_PLACE_LIMIT,
   cachedToPlaceRecord,
@@ -42,6 +43,9 @@ function apiRow(name: string, over: Record<string, unknown> = {}) {
 
 beforeEach(async () => {
   await clearAll()
+  // The prefetch re-checks this after its request comes back, so a suite that
+  // never signs in would exercise the abandon path and nothing else.
+  setAuthed(true)
   areaMock.mockReset()
   areaMock.mockResolvedValue({ results: [apiRow("L'Osteria"), apiRow('Café Central')], truncated: false })
   await offlineDb.syncMeta.put({
@@ -178,6 +182,20 @@ describe('searchCachedPlaces', () => {
     const [hit] = await searchCachedPlaces('osteria')
     const found = await getCachedPlace(`gers:${hit.gers}`)
     expect(found?.name).toBe("L'Osteria")
+  })
+
+  it('FE-PLACEPRE-018: a logout while the request is in flight leaves the database alone', async () => {
+    // The handle repoints at the anonymous database on logout, so writing the
+    // answer after that seeds one person's trip area into the next person's
+    // offline search. A shared tablet is all it takes.
+    await clearAll()
+    areaMock.mockImplementation(async () => {
+      setAuthed(false)
+      return { results: [apiRow('Nach dem Logout')], truncated: false }
+    })
+
+    await expect(prefetchPlacesForTrip(7, TRIP_PLACES, true)).resolves.toBe(0)
+    expect(await offlineDb.areaPlaces.count()).toBe(0)
   })
 
   it('FE-PLACEPRE-017: an id the cache does not hold is a miss, not somebody else record', async () => {

@@ -9,10 +9,31 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Mutable, so the instance URL and the operator's own index can be set per test.
 const { env } = vi.hoisted(() => ({
-  env: { maps: { trekPlacesUrl: '' }, app: { appUrl: 'https://trip.example.org' } },
+  env: {
+    maps: { trekPlacesUrl: '' },
+    app: { appUrl: 'https://trip.example.org', port: 3001 },
+    http: { allowedOriginsRaw: '' },
+  },
 }));
 
-vi.mock('../../../src/app-config', () => ({ readEnv: () => env }));
+// getAppUrl is the real resolution chain, reproduced here rather than stubbed
+// to a constant: the instance token depends on the whole chain, and the case
+// that matters is the one where APP_URL is unset — the shipped compose file
+// leaves it commented out, so that is the default install, not an edge case.
+vi.mock('../../../src/app-config', () => ({
+  readEnv: () => env,
+  getAppUrl: () => {
+    const strip = (v: string) => v.replace(/\/+$/, '');
+    if (env.app.appUrl) {
+      try { new URL(env.app.appUrl); return strip(env.app.appUrl); } catch { /* fall through */ }
+    }
+    const first = env.http.allowedOriginsRaw.split(',')[0]?.trim();
+    if (first) {
+      try { new URL(first); return strip(first); } catch { /* fall through */ }
+    }
+    return `http://localhost:${env.app.port}`;
+  },
+}));
 
 import {
   DEFAULT_TREK_PLACES_URL,
@@ -92,6 +113,8 @@ beforeEach(() => {
   resetTrekPlacesBreaker();
   env.maps.trekPlacesUrl = '';
   env.app.appUrl = 'https://trip.example.org';
+  env.app.port = 3001;
+  env.http.allowedOriginsRaw = '';
   // Nothing in this file may reach the real service: a test that forgets to
   // stub gets a thrown request rather than a request.
   vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('unstubbed fetch'); }));
@@ -166,6 +189,33 @@ describe('trekPlacesSearch', () => {
     expect(unconfigured).toMatch(/^trek-[a-z0-9]+$/);
     // Two instances the far side must be able to tell apart for its rate limit.
     expect(unconfigured).not.toBe(configured);
+  });
+
+  it('tells two unconfigured instances apart, which is the default install', async () => {
+    // APP_URL is commented out in the shipped compose file, so "unset" is the
+    // ordinary case rather than the odd one. Reading it raw gave every such
+    // install the same token, and a token every caller shares is not a caller:
+    // one instance running a large import would rate-limit all the others,
+    // who would fall back to Nominatim with nothing to point at.
+    const token = async () => {
+      stubFetch({ query: 'x', results: [] });
+      await trekPlacesSearch('x');
+      return (calls[0].init?.headers as Record<string, string>)['X-TREK-Instance'];
+    };
+
+    env.app.appUrl = '';
+    env.http.allowedOriginsRaw = 'https://a.example.net';
+    const viaOrigins = await token();
+
+    env.http.allowedOriginsRaw = 'https://b.example.net';
+    expect(await token()).not.toBe(viaOrigins);
+
+    // And with nothing at all, the port still separates two instances on one host.
+    env.http.allowedOriginsRaw = '';
+    env.app.port = 3001;
+    const onDefaultPort = await token();
+    env.app.port = 8080;
+    expect(await token()).not.toBe(onDefaultPort);
   });
 
   it('omits parameters that were not given rather than sending empties', async () => {

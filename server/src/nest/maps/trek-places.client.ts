@@ -11,7 +11,7 @@
  * to configure and no quota to exhaust, so the failure modes are the network
  * and the service being down, both of which fall back to what TREK did before.
  */
-import { readEnv } from '../../app-config';
+import { readEnv, getAppUrl } from '../../app-config';
 
 /** The public instance. An operator may point at their own copy instead. */
 export const DEFAULT_TREK_PLACES_URL = 'https://places.liketrek.com';
@@ -89,7 +89,14 @@ export interface TrekPlacesSearchResponse {
  * identifies a person. It is never resolved back to anything on the far side.
  */
 function instanceToken(): string {
-  const url = readEnv().app.appUrl || 'unconfigured';
+  // getAppUrl(), not the raw APP_URL. The variable is commented out in the
+  // shipped compose file, so reading it raw gave every default install the same
+  // string — and a token every caller shares is not a caller. One install
+  // running a large import would then rate-limit all the others, who would fall
+  // back to Nominatim with nothing to point at. The resolver falls through to
+  // ALLOWED_ORIGINS and then to the port, so an unconfigured instance still
+  // differs from its neighbours.
+  const url = getAppUrl();
   let hash = 0;
   for (let i = 0; i < url.length; i++) {
     hash = ((hash << 5) - hash + url.charCodeAt(i)) | 0;
@@ -358,6 +365,11 @@ export function toPlaceRecord(p: TrekPlace): Record<string, unknown> {
     // with the chain's logo and described as the company, which is the failure
     // readBrandIdentity and WIKI_IDENTITY_TAGS exist to prevent.
     'brand:wikidata': p.brand?.wikidata ?? null,
+    // Carried rather than dropped: the enrichment wants exactly this field a
+    // moment later, and re-fetching the same place to get it made adding one
+    // place cost two full round trips to the index. Left as the service shaped
+    // it — the reader validates the URL before it becomes a link.
+    description: p.description ?? null,
     source: 'trek-places',
   };
 }

@@ -142,12 +142,15 @@ describe('MapsService.pois answered from the index', () => {
         phone: '+43 1 5333763',
         opening_hours: 'Mo-Sa 07:30-22:00',
         cuisine: null,
-        source: 'openstreetmap',
+        // Named as what it is. Overture is not OpenStreetMap — it carries OSM
+        // among other sources under other licences — and this branch argues
+        // elsewhere that naming a source is a licence obligation rather than a
+        // courtesy. Nothing on the client switches on the field, and the wire
+        // contract keeps it an open string, so saying so costs nothing.
+        source: 'trek-places',
       },
     ]);
-    // 'trek-places' would be a third value for a field the client treats as a
-    // closed set, and these are the same places either way.
-    expect(out.source).toBe('openstreetmap');
+    expect(out.source).toBe('trek-places');
   });
 
   it('MAPS-POIS-002: a row without address, contact or hours becomes nulls, typed as the pill', async () => {
@@ -169,7 +172,7 @@ describe('MapsService.pois answered from the index', () => {
       phone: null,
       opening_hours: null,
       cuisine: null,
-      source: 'openstreetmap',
+      source: 'trek-places',
     });
   });
 
@@ -203,7 +206,7 @@ describe('MapsService.pois answered from the index', () => {
       phone: null,
       opening_hours: 'Mo-Sa 07:30-22:00',
       cuisine: null,
-      source: 'openstreetmap',
+      source: 'trek-places',
     });
   });
 

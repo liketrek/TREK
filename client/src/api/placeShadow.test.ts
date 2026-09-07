@@ -85,6 +85,23 @@ describe('recordPlacePick', () => {
     expect(cap.seen()).toBeNull()
   })
 
+  it('does not record a pick made out of the offline cache', async () => {
+    // Such a row describes the local cache's ordering, not a provider's, and
+    // the two figures this corpus exists for — how often the live answer was
+    // first, and how often it was in the top five — are averaged over every
+    // row. Mixing these in moves exactly the number a candidate index is later
+    // judged against. Not merely an offline concern either: offline is a
+    // setting, so the network is usually reachable and the POST would land.
+    let posted = false
+    server.use(http.post('/api/place-shadow/pick', () => { posted = true; return HttpResponse.json({ recorded: true }) }))
+
+    recordPlacePick({ ...PICK, source: 'search:offline-cache' })
+    recordPlacePick({ ...PICK, source: 'autocomplete:offline-cache' })
+    await new Promise(r => setTimeout(r, 20))
+
+    expect(posted).toBe(false)
+  })
+
   it('swallows a server error instead of surfacing it to the pick that triggered it', async () => {
     const cap = capture(500)
     const onUnhandled = vi.fn()

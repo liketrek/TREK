@@ -23,6 +23,15 @@ export function recordPlacePick(pick: PlaceShadowPickRequest): void {
   if (!useAuthStore.getState().placeShadowEnabled) return
   if (!Number.isFinite(pick.pickedLat) || !Number.isFinite(pick.pickedLng)) return
   if (pick.liveRank >= pick.liveCount) return
+  // A pick out of the offline cache describes the cache's ordering, not a
+  // provider's, and the two numbers this corpus exists for — how often the live
+  // answer was first, and how often it was in the top five — are averaged over
+  // every row. Mixing local rows in would move exactly the figure a candidate
+  // index is later judged against.
+  //
+  // Not merely an offline concern: the offline switch is a setting, so the
+  // network is usually reachable and the POST would go through.
+  if (pick.source.endsWith('offline-cache')) return
 
   const body: PlaceShadowPickRequest = {
     ...pick,

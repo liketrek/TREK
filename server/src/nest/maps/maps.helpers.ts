@@ -261,7 +261,13 @@ export interface OverpassPoi {
   phone: string | null;
   opening_hours: string | null;
   cuisine: string | null;
-  source: 'openstreetmap';
+  /**
+   * Which index the row came from. Overture is not OpenStreetMap: it carries
+   * OSM among other sources under other licences, so a row from the TREK index
+   * says so rather than borrowing OSM's name. The wire contract keeps this an
+   * open string, so widening it here breaks nothing.
+   */
+  source: 'openstreetmap' | 'trek-places';
 }
 
 // Each pill category → the OSM tag selectors it searches. Keys here are the

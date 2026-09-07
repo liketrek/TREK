@@ -586,17 +586,32 @@ export class PlaceEnrichmentService {
    * it from there. Only places carrying a GERS id can be looked up, which is
    * exactly the ones that came from the API in the first place.
    */
-  private async websiteDescription(placeId: string): Promise<PlaceDescription | null> {
+  private async websiteDescription(
+    placeId: string,
+    details?: Record<string, unknown> | null,
+  ): Promise<PlaceDescription | null> {
     if (!placeId.startsWith('gers:')) return null;
     try {
-      const place = await trekPlacesById(placeId.slice(5));
-      const got = (place as { description?: { text?: string; sourceUrl?: string } } | null)?.description;
+      // The details lookup already fetched this place and now carries its
+      // description, so the ordinary path costs nothing. Asking again meant two
+      // full round trips to the index for one added place, each with its own
+      // timeout budget, for a field the first answer already contained.
+      const carried = (details as { description?: { text?: string; sourceUrl?: string } } | null | undefined)
+        ?.description;
+      const got = carried
+        ?? (await trekPlacesById(placeId.slice(5)) as { description?: { text?: string; sourceUrl?: string } } | null)
+          ?.description;
       const text = typeof got?.text === 'string' ? got.text.trim() : '';
       if (!text) return null;
+      // Through the same allow-list a place's website goes through: this
+      // becomes an href on the client, and the value comes from whatever the
+      // configured index answered with. Anything but http(s) loses the link and
+      // keeps the text, rather than being rendered as one.
+      const rawUrl = typeof got?.sourceUrl === 'string' ? got.sourceUrl : null;
       return {
         text,
         source: 'website',
-        sourceUrl: typeof got?.sourceUrl === 'string' ? got.sourceUrl : null,
+        sourceUrl: rawUrl && placeWebsiteSchema.safeParse(rawUrl).success ? rawUrl : null,
         // Not a licensed corpus: a quoted summary from the operator's own page,
         // credited and linked back. Saying "CC-something" here would be a claim
         // about terms nobody granted.
@@ -647,7 +662,7 @@ export class PlaceEnrichmentService {
     // exists, and it is published in JSON-LD or og:description precisely so
     // machines can read it. That covers roughly 43 percent of places, where the
     // encyclopaedias cover a fraction of a percent.
-    const fromSite = await this.websiteDescription(placeId);
+    const fromSite = await this.websiteDescription(placeId, details);
     if (fromSite) return fromSite;
 
     const apiKey = this.maps.getMapsKey(userId);

@@ -434,7 +434,13 @@ interface OverpassPoiElement {
 
 interface PoiSearchResult {
   pois: OverpassPoi[];
-  source: 'openstreetmap';
+  /**
+   * Which index answered. Not decoration: this branch calls naming the sources
+   * a licence obligation rather than a courtesy, and Overture carries more than
+   * OpenStreetMap under more than one licence, so stamping its rows as OSM is a
+   * wrong attribution rather than a rounding of one.
+   */
+  source: 'openstreetmap' | 'trek-places';
   truncated: boolean;
   // True when the requested viewport was too large and got shrunk to a centred
   // window before querying — the results then cover the middle of the view only.
@@ -666,10 +672,17 @@ export class MapsService {
         });
         if (found.length > 0) {
           // Same shape the Overpass path produces, so the client and the map
-          // renderer need no branch. `source` stays 'openstreetmap' because it
-          // is a typed contract the client switches on, and the places are the
-          // same places; where they came from is an implementation detail of
-          // this method, not something the pill should render differently.
+          // renderer need no branch — but named as what it is. Overture is not
+          // OpenStreetMap: it carries OSM among other sources under other
+          // licences, and this branch argues elsewhere that naming a source is
+          // a licence obligation. The wire contract keeps `source` an open
+          // string, so widening it costs nothing.
+          //
+          // One thing the index cannot do is localise. The Overpass path picks
+          // `name:<lang>` and falls back to `int_name`; the service has no
+          // language parameter at all, so a German user exploring Tokyo gets
+          // the Japanese primary names here. Named rather than hidden: whoever
+          // adds localisation upstream should find this comment.
           return {
             pois: found.map(p => ({
               osm_id: `gers:${p.gers}`,
@@ -685,9 +698,9 @@ export class MapsService {
               // The index has no cuisine field, so this null is the truth
               // rather than a field being dropped on the way through.
               cuisine: null,
-              source: 'openstreetmap' as const,
+              source: 'trek-places' as const,
             })),
-            source: 'openstreetmap' as const,
+            source: 'trek-places' as const,
             truncated: found.length >= 50,
             // A wide viewport is narrowed here too, and the caller is told so
             // for the same reason the Overpass path tells it.

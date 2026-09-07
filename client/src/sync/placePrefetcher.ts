@@ -11,6 +11,7 @@
  * trip's area actually changes. A trip to Rostock costs roughly a megabyte.
  */
 import { mapsApi } from '../api/client'
+import { isAuthed } from './authGate'
 import { offlineDb, type CachedAreaPlace } from '../db/offlineDb'
 import type { Place } from '../types'
 import { computeBbox } from './tilePrefetcher'
@@ -119,6 +120,13 @@ export async function prefetchPlacesForTrip(
   try {
     const area = await mapsApi.area(bbox, AREA_PLACE_LIMIT)
     if (area.unavailable) return 0
+
+    // Checked after the await, not only before it: the area request has a long
+    // timeout, and a logout in the meantime deletes the user's database and
+    // repoints the handle at the anonymous one. Writing then would seed one
+    // person's trip area into the next person's offline search — the same
+    // reason cacheFilesForTrip and the tile prefetch re-check here.
+    if (!isAuthed()) return 0
 
     const now = Date.now()
     const rows = (area.results || [])
