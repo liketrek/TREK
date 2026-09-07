@@ -2348,6 +2348,22 @@ describe('isGooglePlaceId', () => {
     // The collection views send the bare coordinate pair when a place has no ids.
     expect(isGooglePlaceId('36.7617499,-3.8448432')).toBe(false);
   });
+
+  it('MAPS-045b: rejects the TREK index ids that search and autocomplete now hand out', () => {
+    // The index answers before Google, so `gers:` is what an ordinary new place
+    // carries. Sending one to Google costs a billable 400 INVALID_ARGUMENT and can
+    // never return anything, and three separate call sites gate on this function:
+    // photo refs, the editorial summary, and the place-photo route.
+    expect(isGooglePlaceId('gers:08f2ab12345678901234567890abcd')).toBe(false);
+    expect(isGooglePlaceId('gers:abc-123')).toBe(false);
+    // Case-insensitive, like every other prefix in the list.
+    expect(isGooglePlaceId('GERS:abc-123')).toBe(false);
+    // The photo-picker cache key keeps its suffix meaning on top of the prefix.
+    expect(isGooglePlaceId('gers:abc-123~p3')).toBe(false);
+    // Guard against over-matching: a Google id that merely starts with those
+    // letters is still a Google id, because the prefix only counts before a colon.
+    expect(isGooglePlaceId('gersChIJLU7jZClu5kcR')).toBe(true);
+  });
 });
 
 describe('googleFtidFromMapsUrl', () => {

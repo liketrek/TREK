@@ -213,6 +213,86 @@ describe('reading the body', () => {
     await expect(trekPlacesSearch('x')).rejects.toThrow('TREK Places API response too large');
     expect(streamCancelled).toBe(true);
   });
+
+  it('gives the area download a budget that follows the rows it asked for', async () => {
+    // The search cap is a megabyte because a search answer is a few kB. The area
+    // download is the one call that is neither: it asks for thousands of rows at
+    // once for the offline cache, and a city-sized answer sits right on that
+    // megabyte. Holding it to the search budget threw, the caller could only
+    // report "index unavailable", and the trip went offline with nothing cached.
+    // A real answer, just a big one: 1200 rows of a padded name puts the body
+    // comfortably past the megabyte the search path would refuse.
+    const pad = 'x'.repeat(1000);
+    const rows = Array.from({ length: 1200 }, (_, i) => ({ ...PLACE, gers: `row-${i}`, name: pad }));
+    const payload = JSON.stringify({ count: rows.length, truncated: false, results: rows });
+    expect(payload.length).toBeGreaterThan(1_000_000);
+    stubStreamingFetch([encoder.encode(payload)]);
+    const area = await trekPlacesArea(BOX, 3000);
+    expect(area.results).toHaveLength(1200);
+    expect(streamCancelled).toBe(false);
+  });
+
+  it('still caps the area download, at the budget its own limit buys', async () => {
+    // Not unbounded — a hostile or broken upstream must not be able to hand the
+    // instance an endless body just because the path is the bulk one.
+    stubStreamingFetch(Array.from({ length: 8 }, () => BIG));
+    await expect(trekPlacesArea(BOX, 1)).rejects.toThrow('TREK Places API response too large');
+    expect(streamCancelled).toBe(true);
+  });
+});
+
+describe('getJson request shape', () => {
+  it('carries an abort signal on every call, and aborts when the answer never comes', async () => {
+    // The repo rule is that no outbound fetch runs without a timeout. Nothing
+    // asserted the signal before, so removing it would not have failed a test.
+    vi.useFakeTimers();
+    try {
+      calls = [];
+      vi.stubGlobal('fetch', vi.fn((url: URL | string, init?: RequestInit) => {
+        calls.push({ url: String(url), init });
+        // Answers only when the caller gives up.
+        return new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => reject(new Error('aborted')));
+        }) as Promise<Response>;
+      }));
+
+      const pending = trekPlacesSearch('never answered');
+      const failed = expect(pending).rejects.toThrow('aborted');
+      expect(calls[0].init?.signal).toBeInstanceOf(AbortSignal);
+      expect(calls[0].init?.signal?.aborted).toBe(false);
+      await vi.advanceTimersByTimeAsync(3500);
+      expect(calls[0].init?.signal?.aborted).toBe(true);
+      await failed;
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('lets the area download run longer than a keystroke would', async () => {
+    // The search timeout sits in front of a keystroke. The offline prefetch is a
+    // background bulk download that nobody is watching, and 3.5 s is not enough
+    // to move thousands of rows — it would abort mid-body and cache nothing.
+    vi.useFakeTimers();
+    try {
+      calls = [];
+      vi.stubGlobal('fetch', vi.fn((url: URL | string, init?: RequestInit) => {
+        calls.push({ url: String(url), init });
+        return new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => reject(new Error('aborted')));
+        }) as Promise<Response>;
+      }));
+
+      const pending = trekPlacesArea(BOX, 3000);
+      const failed = expect(pending).rejects.toThrow('aborted');
+      await vi.advanceTimersByTimeAsync(3500);
+      expect(calls[0].init?.signal?.aborted).toBe(false);
+      await vi.advanceTimersByTimeAsync(20_000);
+      expect(calls[0].init?.signal?.aborted).toBe(true);
+      await failed;
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
 
 describe('trekPlacesById', () => {

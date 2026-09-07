@@ -1226,11 +1226,18 @@ export class PlacesService {
     if (place.google_place_id) return;
     if (typeof place.lat !== 'number' || typeof place.lng !== 'number') return;
 
-    const { places: results } = await this.maps.searchPlaces(userId, place.name, lang, {
-      lat: place.lat,
-      lng: place.lng,
-      radius: SEARCH_BIAS_RADIUS_METERS,
-    });
+    // Asked for a Google identity rather than for the best answer: the whole
+    // point here is the `google_place_id` that `pickEnrichmentMatch` selects on,
+    // and the TREK index and OpenStreetMap have none to give. Without this the
+    // search returns index records, every candidate is discarded for a missing
+    // id, and the import quietly stays unenriched on an instance with a key.
+    const { places: results } = await this.maps.searchPlaces(
+      userId,
+      place.name,
+      lang,
+      { lat: place.lat, lng: place.lng, radius: SEARCH_BIAS_RADIUS_METERS },
+      { googleIdentityOnly: true },
+    );
     const match = pickEnrichmentMatch(results, { lat: place.lat, lng: place.lng });
     if (!match) return;
 

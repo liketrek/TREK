@@ -1625,6 +1625,7 @@ export class MapsService {
     query: string,
     lang?: string,
     locationBias?: { lat: number; lng: number; radius?: number },
+    opts: { googleIdentityOnly?: boolean } = {},
   ): Promise<{ places: Record<string, unknown>[]; source: string }> {
     const { key: apiKey, source: keySource } = this.resolveMapsKey(userId);
 
@@ -1636,7 +1637,17 @@ export class MapsService {
     // It never throws upward. A search that used to work must keep working when
     // the service is slow or down, so a failure drops through to exactly what
     // this method did before.
-    if (this.trekPlacesEnabled()) {
+    //
+    // `googleIdentityOnly` skips it. One caller does not want the best answer,
+    // it wants a Google id: list-import enrichment (#886) exists to attach a
+    // `google_place_id` to a bare imported pin, and `pickEnrichmentMatch`
+    // discards every candidate that has none. Index and OpenStreetMap records
+    // both carry `google_place_id: null`, so answering that caller from them
+    // returns matches it must throw away, and the import silently stays
+    // unenriched on an instance that pays for a key. It changes nothing for an
+    // instance without one: enrichment could never resolve anything there
+    // either, before this branch existed or after.
+    if (this.trekPlacesEnabled() && !(opts.googleIdentityOnly && apiKey)) {
       try {
         // Both at once. The index is a dataset of businesses and is very good
         // at those; OpenStreetMap is where the temples, bridges, riverside

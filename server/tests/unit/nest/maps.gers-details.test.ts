@@ -97,4 +97,26 @@ describe('MapsService.getPlaceDetails for a gers: id', () => {
     mockById.mockRejectedValue(new Error('places api down'));
     expect(await make(null).getPlaceDetails(1, 'gers:abc-123')).toEqual({ place: null });
   });
+
+  it('MAPS-GERS-008: Overpass being down costs the OSM half, not the whole place', async () => {
+    // The index has already answered by the time OSM is asked; the second lookup
+    // only adds what OSM knows about the same building. Letting its failure
+    // through would turn a working answer into an error for the one user whose
+    // details request happened to land while Overpass was unreachable.
+    const database = { get: vi.fn(() => undefined) } as unknown as DatabaseService;
+    const svc = new MapsService(database, {} as PlacePhotoCacheService);
+    vi.spyOn(svc, 'resolveOsmIdentity').mockRejectedValue(new Error('overpass down'));
+    mockById.mockResolvedValue({ ...PLACE, hours: { osm: 'Mo-Su 12:00-22:00' } });
+
+    const out = await svc.getPlaceDetails(1, 'gers:abc-123');
+
+    expect(out.place).toMatchObject({
+      name: "L'Osteria",
+      osm_id: 'gers:abc-123',
+      source: 'trek-places',
+      website: 'https://losteria.net/',
+    });
+    // The index's own hours survive: they came with the record, not from OSM.
+    expect(out.place?.opening_hours).toBeTruthy();
+  });
 });

@@ -26,6 +26,22 @@ const TIMEOUT_MS = 3500;
 /** A search answer is a few kB. A megabyte means something is wrong upstream. */
 const MAX_BYTES = 1_000_000;
 
+/**
+ * The area download is the one call that is neither short nor interactive.
+ *
+ * It runs from the offline prefetch, asks for thousands of rows at once, and
+ * nobody is watching a spinner while it does. Holding it to the search budget
+ * capped a Rostock-sized city at the megabyte the prefetch was measured to need
+ * and threw, which the caller could only report as "index unavailable" — the
+ * trip then went offline with an empty place cache and nothing said so.
+ *
+ * Budgeted per row rather than as a flat number so the ceiling follows the
+ * limit the caller actually asked for, with a floor for small boxes.
+ */
+const AREA_TIMEOUT_MS = 20_000;
+const AREA_BYTES_PER_ROW = 1_200;
+const AREA_MIN_BYTES = 2_000_000;
+
 export interface TrekPlace {
   gers: string;
   name: string;
@@ -86,14 +102,18 @@ export function trekPlacesBaseUrl(): string {
   return (configured || DEFAULT_TREK_PLACES_URL).replace(/\/+$/, '');
 }
 
-async function getJson<T>(path: string, params: Record<string, string | number | undefined>): Promise<T> {
+async function getJson<T>(
+  path: string,
+  params: Record<string, string | number | undefined>,
+  opts: { maxBytes?: number; timeoutMs?: number } = {},
+): Promise<T> {
   const url = new URL(trekPlacesBaseUrl() + path);
   for (const [k, v] of Object.entries(params)) {
     if (v !== undefined && v !== null && v !== '') url.searchParams.set(k, String(v));
   }
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), opts.timeoutMs ?? TIMEOUT_MS);
   try {
     const res = await fetch(url, {
       signal: controller.signal,
@@ -109,7 +129,7 @@ async function getJson<T>(path: string, params: Record<string, string | number |
     }
     // Read with a cap rather than res.json(): a hostile or broken upstream
     // should not be able to hand us an unbounded body to buffer.
-    const text = await readCapped(res, MAX_BYTES);
+    const text = await readCapped(res, opts.maxBytes ?? MAX_BYTES);
     return JSON.parse(text) as T;
   } finally {
     clearTimeout(timer);
@@ -212,7 +232,14 @@ export async function trekPlacesArea(
   bbox: { minLat: number; minLng: number; maxLat: number; maxLng: number },
   limit = 2000,
 ): Promise<TrekPlacesArea> {
-  const body = await getJson<TrekPlacesArea>('/v1/bbox', { ...bbox, limit });
+  const body = await getJson<TrekPlacesArea>(
+    '/v1/bbox',
+    { ...bbox, limit },
+    {
+      maxBytes: Math.max(AREA_MIN_BYTES, limit * AREA_BYTES_PER_ROW),
+      timeoutMs: AREA_TIMEOUT_MS,
+    },
+  );
   return {
     count: Number(body.count) || 0,
     truncated: !!body.truncated,
