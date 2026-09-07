@@ -447,6 +447,7 @@ export async function clearTripData(tripId: number): Promise<void> {
       offlineDb.mutationQueue,
       offlineDb.syncMeta,
       offlineDb.blobCache,
+      offlineDb.areaPlaces,
     ],
     async () => {
       await offlineDb.days.where('trip_id').equals(tripId).delete();
@@ -462,6 +463,11 @@ export async function clearTripData(tripId: number): Promise<void> {
       await offlineDb.mutationQueue.where('tripId').equals(tripId).and(m => m.status === 'failed').delete();
       await offlineDb.syncMeta.where('tripId').equals(tripId).delete();
       await offlineDb.blobCache.where('tripId').equals(tripId).delete();
+      // The cached places around this trip's area go with it. They are searched
+      // across every trip, so leaving them behind kept a switched-off trip
+      // answering offline searches — and nothing else ever deleted them, so they
+      // accumulated for the life of the install.
+      await offlineDb.areaPlaces.where('tripId').equals(tripId).delete();
     },
   );
   // Remove the trip row itself outside the transaction since it's a separate table

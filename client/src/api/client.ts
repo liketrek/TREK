@@ -1051,6 +1051,40 @@ export const memoriesApi = {
  * Only network-level failures fall through. A 4xx or 5xx means the server did
  * answer and the caller has to see it.
  */
+/**
+ * The same offline treatment as `withCachedPlaces`, for the single-place lookup.
+ *
+ * Separate because the shape is different: this one is keyed by id rather than
+ * by a query, and a miss has to stay a miss — a place the cache does not hold
+ * must fail the way it did before, not answer with somebody else's record.
+ */
+async function withCachedPlace(
+  placeId: string,
+  online: () => Promise<{ place: Record<string, unknown> | null }>,
+): Promise<{ place: Record<string, unknown> | null }> {
+  const fromCache = async (): Promise<{ place: Record<string, unknown> | null } | null> => {
+    const { getCachedPlace, cachedToPlaceRecord } = await import('../sync/placePrefetcher')
+    const hit = await getCachedPlace(placeId)
+    return hit ? { place: cachedToPlaceRecord(hit) } : null
+  }
+
+  if (isEffectivelyOffline()) {
+    const cached = await fromCache()
+    if (cached) return cached
+    return online()
+  }
+  try {
+    return await online()
+  } catch (err) {
+    const e = err as { isAxiosError?: boolean; response?: unknown; code?: string } | null
+    const neverArrived = !!e && e.isAxiosError === true && e.response == null && e.code !== 'ERR_CANCELED'
+    if (!neverArrived) throw err
+    const cached = await fromCache()
+    if (!cached) throw err
+    return cached
+  }
+}
+
 async function withCachedPlaces<T>(
   query: string,
   shape: (places: Record<string, unknown>[]) => T,
@@ -1100,7 +1134,16 @@ export const mapsApi = {
       }),
       () => apiClient.post('/maps/autocomplete', { input, lang, locationBias, sessionToken }, { signal }).then(r => checkInDev(mapsAutocompleteResultSchema, r.data, 'maps.autocomplete')),
     ),
-  details: (placeId: string, lang?: string, sessionToken?: string) => apiClient.get(`/maps/details/${encodeURIComponent(placeId)}`, { params: { lang, sessionToken } }).then(r => checkInDev(mapsPlaceDetailsResultSchema, r.data, 'maps.details')),
+  // Answered from the cache when the network is not there, for the ids the
+  // offline suggestion list hands out. Without it, picking an offline
+  // suggestion failed here and the callers fell back to searching for
+  // "name, address" — which the cache matches on the folded NAME alone, so it
+  // found nothing and the user got an error toast for a place that was sitting
+  // in the cache all along.
+  details: (placeId: string, lang?: string, sessionToken?: string) =>
+    withCachedPlace(placeId, () =>
+      apiClient.get(`/maps/details/${encodeURIComponent(placeId)}`, { params: { lang, sessionToken } })
+        .then(r => checkInDev(mapsPlaceDetailsResultSchema, r.data, 'maps.details'))),
   // Pictures and a description for a place that is being looked at but not yet
   // saved. Fans out to several providers server-side, so it takes a signal and
   // the caller is expected to abort it when the selection changes, and a longer

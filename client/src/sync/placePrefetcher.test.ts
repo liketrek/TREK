@@ -10,8 +10,8 @@ import { offlineDb, clearAll } from '../db/offlineDb'
 import {
   AREA_PLACE_LIMIT,
   cachedToPlaceRecord,
-  clearCachedPlaces,
   foldName,
+  getCachedPlace,
   prefetchPlacesForTrip,
   searchCachedPlaces,
 } from './placePrefetcher'
@@ -167,14 +167,25 @@ describe('searchCachedPlaces', () => {
       rating: null,
     })
   })
-})
 
-describe('clearCachedPlaces', () => {
-  it('FE-PLACEPRE-016: drops one trip and leaves the others', async () => {
-    await prefetchPlacesForTrip(7, TRIP_PLACES)
-    await offlineDb.areaPlaces.toCollection().modify({ tripId: 8 })
-    await prefetchPlacesForTrip(7, TRIP_PLACES, true)
-    await clearCachedPlaces(7)
-    expect((await offlineDb.areaPlaces.toArray()).every((r) => r.tripId === 8)).toBe(true)
+  it('FE-PLACEPRE-016: finds a place by the id its own suggestion handed out', async () => {
+    // This closes the loop offline. The suggestion list gives out `gers:` ids;
+    // picking one calls the details lookup with exactly that string, and before
+    // this the lookup had no cache path, failed, and the callers fell back to
+    // searching for "name, address" — which matches on the folded NAME alone,
+    // so it found nothing and the user got an error for a place that was
+    // sitting in the cache.
+    const [hit] = await searchCachedPlaces('osteria')
+    const found = await getCachedPlace(`gers:${hit.gers}`)
+    expect(found?.name).toBe("L'Osteria")
+  })
+
+  it('FE-PLACEPRE-017: an id the cache does not hold is a miss, not somebody else record', async () => {
+    // A miss has to stay a miss: answering the wrong place would be worse than
+    // the failure it replaces.
+    expect(await getCachedPlace('gers:not-cached')).toBeNull()
+    // Ids from sources the cache never holds are not looked up at all.
+    expect(await getCachedPlace('node:5255005321')).toBeNull()
+    expect(await getCachedPlace('ChIJLU7jZClu5kcR4PcOOO6p3I0')).toBeNull()
   })
 })

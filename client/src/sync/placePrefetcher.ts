@@ -133,7 +133,18 @@ export async function prefetchPlacesForTrip(
       if (rows.length) await offlineDb.areaPlaces.bulkPut(rows)
     })
 
-    if (meta) await offlineDb.syncMeta.put({ ...meta, areaPlacesKey: key })
+    // Written whether or not a sync row exists yet. Skipping it when there is
+    // none left the fingerprint unwritten for a trip cached before its first
+    // sync, so the next run re-downloaded the same area for nothing.
+    await offlineDb.syncMeta.put({
+      tripId,
+      lastSyncedAt: meta?.lastSyncedAt ?? 0,
+      status: meta?.status ?? 'idle',
+      tilesBbox: meta?.tilesBbox ?? null,
+      filesCachedCount: meta?.filesCachedCount ?? 0,
+      ...meta,
+      areaPlacesKey: key,
+    })
     if (rows.length) {
       console.info(
         `[placePrefetch] trip ${tripId}: cached ${rows.length} places${area.truncated ? ' (area trimmed)' : ''}`,
@@ -177,6 +188,19 @@ export async function searchCachedPlaces(query: string, limit = 10): Promise<Cac
 }
 
 /** A cached row in the shape every search caller already reads. */
+/**
+ * One cached place by the id the suggestion list handed out.
+ *
+ * Takes the `gers:`-prefixed form the server puts on `osm_id`, because that is
+ * what a suggestion carries and what the details lookup is called with. Any
+ * other id shape belongs to a source the cache does not hold, and is a miss
+ * rather than an error.
+ */
+export async function getCachedPlace(placeId: string): Promise<CachedAreaPlace | null> {
+  if (!placeId.startsWith('gers:')) return null
+  return (await offlineDb.areaPlaces.get(placeId.slice('gers:'.length))) ?? null
+}
+
 export function cachedToPlaceRecord(p: CachedAreaPlace): Record<string, unknown> {
   return {
     google_place_id: null,
@@ -193,7 +217,3 @@ export function cachedToPlaceRecord(p: CachedAreaPlace): Record<string, unknown>
   }
 }
 
-/** Drop a trip's cached area. Called when the trip leaves the offline set. */
-export async function clearCachedPlaces(tripId: number): Promise<void> {
-  await offlineDb.areaPlaces.where('tripId').equals(tripId).delete()
-}

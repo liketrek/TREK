@@ -22,6 +22,7 @@ import {
   trekPlacesNearby,
   toPlaceRecord,
   POI_CATEGORY_TO_TREK,
+  type TrekPlace,
 } from './trek-places.client';
 import {
   UA,
@@ -1647,51 +1648,72 @@ export class MapsService {
     // unenriched on an instance that pays for a key. It changes nothing for an
     // instance without one: enrichment could never resolve anything there
     // either, before this branch existed or after.
+    // Set once the OpenStreetMap half below has run, so the fallback does not ask
+    // the same question twice. `null` means it never ran.
+    let osmAnswer: Record<string, unknown>[] | null = null;
+
     if (this.trekPlacesEnabled() && !(opts.googleIdentityOnly && apiKey)) {
-      try {
-        // Both at once. The index is a dataset of businesses and is very good
-        // at those; OpenStreetMap is where the temples, bridges, riverside
-        // walks and viewpoints are, and a travel search asks for those
-        // constantly. Concurrently, so the pair costs the slower one rather
-        // than the sum. This is the explicit search, not the keystroke path
-        // Nominatim's policy rules out.
-        const [found, osm] = await Promise.all([
-          trekPlacesSearch(query, {
-            lat: locationBias?.lat,
-            lng: locationBias?.lng,
-            limit: 10,
-          }),
-          this.searchNominatim(query, lang, 'interactive', locationBias).catch((err: unknown) => {
-            console.warn('OpenStreetMap search failed, index only:', (err as Error).message);
-            return [] as Record<string, unknown>[];
-          }),
-        ]);
-        const places = mergeSearchResults(found.map(toPlaceRecord), osm);
-        if (places.length > 0) {
-          return {
-            places,
-            source: osm.length > 0 ? 'trek-places+openstreetmap' : 'trek-places',
-          };
-        }
-      } catch (err: unknown) {
-        // Logged, not surfaced: the fallback below is a working answer.
-        console.warn('TREK Places search failed, falling back:', (err as Error).message);
+      // Both at once. The index is a dataset of businesses and is very good
+      // at those; OpenStreetMap is where the temples, bridges, riverside
+      // walks and viewpoints are, and a travel search asks for those
+      // constantly. Concurrently, so the pair costs the slower one rather
+      // than the sum. This is the explicit search, not the keystroke path
+      // Nominatim's policy rules out.
+      //
+      // Each side catches its own failure. A rejection reaching Promise.all
+      // would throw away the answer the other side had already produced — and
+      // the index refusing a query is ordinary traffic, not an outage: a common
+      // single word without coordinates is turned down upstream as too
+      // expensive. That used to discard ten good OpenStreetMap results and ask
+      // Nominatim the same question a second time, behind its own 1.1 s
+      // process-wide throttle.
+      const [found, osm] = await Promise.all([
+        trekPlacesSearch(query, {
+          lat: locationBias?.lat,
+          lng: locationBias?.lng,
+          limit: 10,
+        }).catch((err: unknown) => {
+          console.warn('TREK Places search failed, falling back:', (err as Error).message);
+          return [] as TrekPlace[];
+        }),
+        this.searchNominatim(query, lang, 'interactive', locationBias).catch((err: unknown) => {
+          console.warn('OpenStreetMap search failed, index only:', (err as Error).message);
+          return [] as Record<string, unknown>[];
+        }),
+      ]);
+      osmAnswer = osm;
+      const places = mergeSearchResults(found.map(toPlaceRecord), osm);
+      if (places.length > 0) {
+        return {
+          places,
+          source: osm.length > 0 ? 'trek-places+openstreetmap' : 'trek-places',
+        };
       }
     }
 
     if (!apiKey) {
-      const places = await this.searchNominatim(query, lang);
+      // Reuse what OpenStreetMap already said rather than asking again. The
+      // first call carried a viewbox with bounded=0, which orders results
+      // without changing which ones exist, so a second call can only return the
+      // same empty list a throttle-interval later.
+      const places = osmAnswer ?? (await this.searchNominatim(query, lang));
       return { places, source: 'openstreetmap' };
     }
 
     const searchBody: Record<string, unknown> = { textQuery: query, languageCode: toApiLang(lang) };
     // Bias results toward the caller's area when supplied — without it Google Text
     // Search falls back to the API key's billing region, which skews foreign-region queries.
+    //
+    // Clamped, like the nearby path above: Google caps the circle at 50 km and
+    // answers a wider one with a 400 that this method throws, so a trip spread
+    // across a hundred kilometres would turn an ordinary search into an error
+    // toast. The client keeps its own ceiling; this one is here because the
+    // radius arrives over the wire and the schema cannot know Google's limit.
     if (locationBias) {
       searchBody.locationBias = {
         circle: {
           center: { latitude: locationBias.lat, longitude: locationBias.lng },
-          radius: locationBias.radius ?? 50000,
+          radius: Math.min(50000, Math.max(1, locationBias.radius ?? 50000)),
         },
       };
     }
@@ -2066,8 +2088,16 @@ export class MapsService {
     // keep the details they do have (Overpass, via the plain lookup); coordinate
     // pseudo-ids and legacy image URLs have no details source at all. Neither may be
     // forwarded to Google, which bills the 400 INVALID_ARGUMENT it answers with.
+    //
+    // Index ids degrade the same way, for the same reason: the plain lookup has a
+    // whole record for them — name, address, contact, hours — and only the reviews
+    // and the editorial summary are Google's to add. Answering `expand=1` with a
+    // null while `expand=0` answers in full would make the richer request the
+    // poorer one.
     if (!isGooglePlaceId(placeId)) {
-      return OSM_PLACE_ID.test(placeId) ? this.getPlaceDetails(userId, placeId, lang) : { place: null };
+      return OSM_PLACE_ID.test(placeId) || placeId.startsWith('gers:')
+        ? this.getPlaceDetails(userId, placeId, lang)
+        : { place: null };
     }
 
     const langKey = toApiLang(lang); // 'en' default — see getPlaceDetails

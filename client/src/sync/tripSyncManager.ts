@@ -124,7 +124,16 @@ async function syncTrip(tripId: number): Promise<void> {
   await upsertTripFiles(bundle.files)
   await upsertAccommodations(bundle.accommodations || [])
   await upsertTripMembers(tripId, bundle.members || [])
+  // Merged onto the existing row, not written over it: `put` replaces the whole
+  // record, and the row also carries `areaPlacesKey` — the fingerprint that says
+  // the cached places for this trip's area are still current. Losing it on every
+  // sync meant the prefetch re-downloaded the whole area (megabytes, and a bbox
+  // query upstream) on every login, every reconnect and every manual sync, for
+  // data that had not changed. The two fields below keep being reset on purpose,
+  // exactly as before.
+  const previous = await offlineDb.syncMeta.get(tripId)
   await upsertSyncMeta({
+    ...previous,
     tripId,
     lastSyncedAt: Date.now(),
     status: 'idle',

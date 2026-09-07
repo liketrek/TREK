@@ -87,7 +87,11 @@ export function pointFromBox(box: LocationBiasBox | undefined): LocationBiasPoin
   return {
     lat: (box.low.lat + box.high.lat) / 2,
     lng: (box.low.lng + box.high.lng) / 2,
-    radius: Math.round(Math.max(radiusKm(box), 5) * 1000),
+    // Google caps a Text Search bias circle at 50 km and rejects a wider one
+    // outright, so the box for a trip spread over more than that is clamped
+    // rather than sent and refused. A bias is a hint about where to look; the
+    // hint is no worse for being drawn at the largest radius the API accepts.
+    radius: Math.min(50_000, Math.round(Math.max(radiusKm(box), 5) * 1000)),
   }
 }
 

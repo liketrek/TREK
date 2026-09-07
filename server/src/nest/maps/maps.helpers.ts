@@ -163,6 +163,34 @@ export function namesOverlap(a: string, b: string): boolean {
         .filter((word) => word.length > 2),
     );
   const left = [...words(a)];
+  const right = [...words(b)];
+
+  /**
+   * Neither name has a Latin word to compare.
+   *
+   * `words()` splits on `[^a-z0-9]`, so a name written in Japanese, Korean,
+   * Chinese, Greek, Cyrillic, Arabic, Hebrew or Thai tokenises to nothing at
+   * all, and returning false there made this function blind to exactly the
+   * places the two sources most often both know: 長谷寺 came back once from the
+   * index and once from OpenStreetMap, one above the other in the same list.
+   *
+   * Compared strictly, not by overlap. Two CJK names that merely share a
+   * character are usually two different places (東京タワー and 東京駅 share
+   * 東京), and deduping the wrong pair swallows a real result — the failure this
+   * whole function is written to avoid. Identical names at the same coordinate
+   * are the case worth catching, and it is the common one, because both sources
+   * carry the official local name.
+   *
+   * NFKC folds the width and compatibility variants the two sources disagree
+   * on (ﾀﾜｰ against タワー), which NFD, used for the Latin path above, does not.
+   */
+  if (left.length === 0 && right.length === 0) {
+    const strict = (value: string): string =>
+      value.normalize('NFKC').toLowerCase().replace(/\s+/gu, '');
+    const [sa, sb] = [strict(a), strict(b)];
+    return sa.length > 0 && sa === sb;
+  }
+
   if (left.length === 0) return false;
 
   /**
@@ -181,7 +209,7 @@ export function namesOverlap(a: string, b: string): boolean {
   };
 
   let shared = 0;
-  for (const word of words(b)) {
+  for (const word of right) {
     const match = left.find((candidate) => sameStem(candidate, word));
     if (!match) continue;
     if (Math.min(match.length, word.length) >= 4) return true;

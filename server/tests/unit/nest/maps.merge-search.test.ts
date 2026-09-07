@@ -80,4 +80,45 @@ describe('mergeSearchResults', () => {
     const osm = [{ name: 'B', lat: null, lng: null, source: 'openstreetmap' }];
     expect(mergeSearchResults(index, osm)).toHaveLength(2);
   });
+
+  it('MAPS-MERGE-009: one copy of a place both sources name in the local script', () => {
+    // The word split is `[^a-z0-9]`, so a name written in any non-Latin script
+    // tokenised to nothing and the dedup could never fire — the very corpus this
+    // feature was measured on. The user saw 長谷寺 twice, one row under the other,
+    // and picking either one gave the place a different id.
+    for (const name of ['長谷寺', '東京タワー', '스타벅스', 'Ακρόπολη', 'Кремль', 'مسجد الشيخ زايد']) {
+      const index = [p(name, 35.3125, 139.5335, 'trek-places')];
+      const osm = [p(name, 35.3126, 139.5336, 'openstreetmap')];
+      const out = mergeSearchResults(index, osm);
+      expect(out, name).toHaveLength(1);
+      expect(out[0].source, name).toBe('trek-places');
+    }
+  });
+
+  it('MAPS-MERGE-010: two different places at one address stay two places', () => {
+    // The other half of the same rule, and the one that costs a real result if
+    // it goes wrong: sharing a character is not being the same thing. 東京 is in
+    // both of these, and a station is not a tower.
+    const index = [p('東京タワー', 35.6586, 139.7454, 'trek-places')];
+    const osm = [p('東京タワー駅前郵便局', 35.6587, 139.7455, 'openstreetmap')];
+    expect(mergeSearchResults(index, osm)).toHaveLength(2);
+  });
+
+  it('MAPS-MERGE-011: width variants of the same name are still the same name', () => {
+    // The two sources disagree on half-width and full-width katakana for the
+    // same official name. NFKC folds them; NFD, which the Latin path uses,
+    // does not.
+    const index = [p('東京ﾀﾜｰ', 35.6586, 139.7454, 'trek-places')];
+    const osm = [p('東京タワー', 35.6586, 139.7454, 'openstreetmap')];
+    expect(mergeSearchResults(index, osm)).toHaveLength(1);
+  });
+
+  it('MAPS-MERGE-012: a local name and a romanised one are not merged on a guess', () => {
+    // Nothing here can tell that these are one temple, and inventing the link
+    // would swallow whichever copy the ranker put second. Two rows is the honest
+    // answer; MAPS-MERGE-001 is the case that makes it useful.
+    const index = [p('Hase-dera', 35.3125, 139.5335, 'trek-places')];
+    const osm = [p('長谷寺', 35.3125, 139.5335, 'openstreetmap')];
+    expect(mergeSearchResults(index, osm)).toHaveLength(2);
+  });
 });
