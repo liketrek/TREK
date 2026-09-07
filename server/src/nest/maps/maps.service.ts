@@ -1697,10 +1697,16 @@ export class MapsService {
       osmAnswer = osm;
       const places = mergeSearchResults(found.map(toPlaceRecord), osm);
       if (places.length > 0) {
-        return {
-          places,
-          source: osm.length > 0 ? 'trek-places+openstreetmap' : 'trek-places',
-        };
+        // Names the sources that actually contributed, not the ones that were
+        // asked. Either side can come back empty — the index turns down a common
+        // single word without coordinates, and OpenStreetMap can be down — and
+        // the search log writes this into the corpus a candidate index is later
+        // scored against, so a list that is entirely OpenStreetMap must not be
+        // recorded as though the index had a hand in it.
+        const source = found.length > 0
+          ? (osm.length > 0 ? 'trek-places+openstreetmap' : 'trek-places')
+          : 'openstreetmap';
+        return { places, source };
       }
     }
 

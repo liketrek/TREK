@@ -134,6 +134,24 @@ describe('MapsService.searchPlaces — the merged path', () => {
     expect(mockNominatim).toHaveBeenCalledTimes(1);
   });
 
+  it('MAPS-SEARCH-009: names the sources that answered, not the ones that were asked', async () => {
+    // Either side can come back empty in ordinary use: the index turns down a
+    // common single word without coordinates, and OpenStreetMap can be down. The
+    // search log writes this field into the corpus a candidate index is scored
+    // against later, so a list that is entirely OpenStreetMap must not be
+    // recorded as though the index had a hand in it.
+    mockSearch.mockRejectedValue(new Error('refused'));
+    mockNominatim.mockResolvedValue(osmAnswer([osmRow('Museum')]));
+    expect((await make().searchPlaces(1, 'museum')).source).toBe('openstreetmap');
+
+    mockSearch.mockResolvedValue([indexHit("L'Osteria")]);
+    mockNominatim.mockResolvedValue(osmAnswer([]));
+    expect((await make().searchPlaces(1, "L'Osteria")).source).toBe('trek-places');
+
+    mockNominatim.mockResolvedValue(osmAnswer([osmRow('Steinstrasse', 36.5, 12.2)]));
+    expect((await make().searchPlaces(1, "L'Osteria")).source).toBe('trek-places+openstreetmap');
+  });
+
   it('MAPS-SEARCH-005: both empty asks nobody a second time', async () => {
     mockSearch.mockResolvedValue([]);
     mockNominatim.mockResolvedValue(osmAnswer([]));

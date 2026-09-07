@@ -120,16 +120,26 @@ vi.mock('../../../src/config', () => ({
   ENCRYPTION_KEY: '0'.repeat(64),
 }));
 
-// pois() asks the index before Overpass and trekPlacesEnabled fails open, so a
-// case that reaches it with no fetch stub in place leaves the runner for
-// places.liketrek.com. Only the one export pois() calls is replaced; the rest of
-// the client stays real. The index path itself is covered in maps.pois.test.ts.
-const { mockNearby } = vi.hoisted(() => ({
+// pois(), searchPlaces() and autocompletePlaces() all ask the index before the
+// old path, and trekPlacesEnabled fails open — so a case that reaches one of
+// them with no fetch stub in place leaves the runner for places.liketrek.com.
+//
+// Search is stubbed for a second reason. The fetch stubs in this file answer
+// with `json()` and no `text()`, which is not what the index client reads, so
+// the index branch was entered and then failed on the stub. That made the cases
+// pass for the wrong reason — 'uses Nominatim when user has no API key' was
+// really testing that a stub is incomplete — and it left the client's circuit
+// breaker counting real consecutive failures, which is process state and leaks
+// into whatever file runs next. The index paths themselves are covered in
+// maps.pois.test.ts, maps.autocomplete.test.ts and maps.search-merge.test.ts.
+const { mockNearby, mockSearch } = vi.hoisted(() => ({
   mockNearby: vi.fn(async (): Promise<unknown[]> => []),
+  mockSearch: vi.fn(async (): Promise<unknown[]> => []),
 }));
 vi.mock('../../../src/nest/maps/trek-places.client', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../../src/nest/maps/trek-places.client')>()),
   trekPlacesNearby: mockNearby,
+  trekPlacesSearch: mockSearch,
 }));
 
 // Injected stub since the photo-cache fold (was a path mock of the module).
