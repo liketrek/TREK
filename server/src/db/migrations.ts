@@ -4374,6 +4374,47 @@ function runMigrations(db: Database.Database): void {
       `);
       db.exec('CREATE INDEX IF NOT EXISTS idx_roadtrip_day_tracks_place ON roadtrip_day_tracks(place_id)');
     },
+    /**
+     * Rename the misnamed Guangdong Province (shipped as "Guangzhou Province").
+     *
+     * geoBoundaries labelled the whole province with the name of its capital, so
+     * every row a user collected under it carries the wrong code. All three
+     * tables that key on a region are moved over: the two per-user ones with an
+     * UPDATE OR IGNORE plus a DELETE, because a user who already holds the
+     * correct region would otherwise hit the unique index and keep a duplicate,
+     * and place_regions with a plain UPDATE, because place_id is its primary key
+     * and nothing there can collide.
+     *
+     * Appended LAST: the array is index-addressed against schema_version.
+     */
+    () => {
+      db.prepare(
+        `UPDATE OR IGNORE visited_regions
+         SET region_code = 'CN-GUANGDONGPROVINCE', region_name = 'Guangdong Province'
+         WHERE UPPER(country_code) = 'CN' AND (region_code = 'CN-GUANGZHOUPROVINCE' OR region_name = 'Guangzhou Province')`,
+      ).run();
+      db.prepare(
+        `DELETE FROM visited_regions
+         WHERE UPPER(country_code) = 'CN' AND (region_code = 'CN-GUANGZHOUPROVINCE' OR region_name = 'Guangzhou Province')`,
+      ).run();
+      db.prepare(
+        `UPDATE OR IGNORE place_regions
+         SET region_code = 'CN-GUANGDONGPROVINCE', region_name = 'Guangdong Province'
+         WHERE UPPER(country_code) = 'CN' AND (region_code = 'CN-GUANGZHOUPROVINCE' OR region_name = 'Guangzhou Province')`,
+      ).run();
+      // hidden_regions is the other direction: it remembers which derived region
+      // a user switched off. Left behind, the tombstone stops matching and the
+      // region a user deliberately hid comes back.
+      db.prepare(
+        `UPDATE OR IGNORE hidden_regions
+         SET region_code = 'CN-GUANGDONGPROVINCE'
+         WHERE UPPER(country_code) = 'CN' AND region_code = 'CN-GUANGZHOUPROVINCE'`,
+      ).run();
+      db.prepare(
+        `DELETE FROM hidden_regions
+         WHERE UPPER(country_code) = 'CN' AND region_code = 'CN-GUANGZHOUPROVINCE'`,
+      ).run();
+    },
   ];
 
   if (currentVersion < migrations.length) {
