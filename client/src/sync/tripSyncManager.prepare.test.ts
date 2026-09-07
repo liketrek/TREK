@@ -9,6 +9,7 @@ import { tripSyncManager, type PrepareProgress } from './tripSyncManager'
 import { prefetchTilesForTrip } from './tilePrefetcher'
 import { setAuthed } from './authGate'
 import { setCacheTiles, setTripOfflineEnabled, _resetOfflinePrefs } from './offlinePrefs'
+import { prefetchPlacesForTrip } from './placePrefetcher'
 import { offlineDb, clearAll, upsertTrip } from '../db/offlineDb'
 import { buildTrip, buildDay, buildPlace, buildTripFile } from '../../tests/helpers/factories'
 import type { Trip, TripFile } from '../types'
@@ -16,8 +17,12 @@ import type { Trip, TripFile } from '../types'
 vi.mock('./tilePrefetcher', () => ({
   prefetchTilesForTrip: vi.fn(async () => {}),
 }))
+vi.mock('./placePrefetcher', () => ({
+  prefetchPlacesForTrip: vi.fn(async () => 0),
+}))
 
 const prefetchMock = vi.mocked(prefetchTilesForTrip)
+const placesMock = vi.mocked(prefetchPlacesForTrip)
 
 function dateOffset(days: number): string {
   const d = new Date()
@@ -62,6 +67,8 @@ beforeEach(async () => {
   setOnline(true)
   prefetchMock.mockClear()
   prefetchMock.mockResolvedValue(undefined)
+  placesMock.mockClear()
+  placesMock.mockResolvedValue(0)
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
     ok: true,
     blob: async () => new Blob(['pdf-bytes'], { type: 'application/pdf' }),
@@ -158,6 +165,13 @@ describe('tripSyncManager.prepareForOffline — full run', () => {
 
     expect(progress.map(p => p.phase)).toEqual(['trips', 'files', 'done'])
     expect(prefetchMock).not.toHaveBeenCalled()
+    // The places still come down. That switch is about tens of megabytes of
+    // imagery; a trip's places are about one, and hanging them off it meant
+    // somebody who turned it off for space got an empty offline search with no
+    // explanation, while this very run reported success.
+    expect(placesMock).toHaveBeenCalledTimes(1)
+    expect(placesMock.mock.calls[0][0]).toBe(604)
+    expect(placesMock.mock.calls[0][2]).toBe(true)
   })
 
   it('FE-SYNC-PREP-008: caches the global tags and categories', async () => {

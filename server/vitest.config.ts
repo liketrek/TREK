@@ -103,6 +103,14 @@ export default defineConfig({
         // close. Set with a few points of slack against the Linux/Windows drift.
         'src/nest/place-enrichment/**/*.ts': { statements: 96, branches: 95, functions: 94, lines: 97 },
         'src/nest/place-photos/**/*.ts': { statements: 87, branches: 79, functions: 72, lines: 89 },
+        // New domain in this change. Measured over its own suites at
+        // 98.3/89.8/96.2/100, and pinned well under that on purpose: the
+        // subset run does not load the controller the way the full run does,
+        // so the real figure is not this one. Regenerate with
+        // scripts/coverage-thresholds.mjs after a full run. What matters now is
+        // that it is off the 80 catch-all, where a new domain could shed twenty
+        // points without anything noticing.
+        'src/nest/place-shadow/**/*.ts': { statements: 90, branches: 80, functions: 90, lines: 95 },
         'src/nest/places/**/*.ts': { statements: 91, branches: 82, functions: 96, lines: 94 },
         'src/nest/platform/**/*.ts': { statements: 99, branches: 99, functions: 99, lines: 99 },
         'src/nest/plugins/**/*.ts': { statements: 86, branches: 81, functions: 78, lines: 89 },

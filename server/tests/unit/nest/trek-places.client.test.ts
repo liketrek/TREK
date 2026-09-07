@@ -23,6 +23,7 @@ import {
   trekPlacesById,
   trekPlacesNearby,
   trekPlacesSearch,
+  resetTrekPlacesBreaker,
   type TrekPlace,
 } from '../../../src/nest/maps/trek-places.client';
 
@@ -87,6 +88,8 @@ function stubStreamingFetch(chunks: (string | Uint8Array)[], status = 200) {
 
 beforeEach(() => {
   calls = [];
+  // Process state, so it leaks between cases unless it is cleared.
+  resetTrekPlacesBreaker();
   env.maps.trekPlacesUrl = '';
   env.app.appUrl = 'https://trip.example.org';
   // Nothing in this file may reach the real service: a test that forgets to
@@ -238,6 +241,79 @@ describe('reading the body', () => {
     stubStreamingFetch(Array.from({ length: 8 }, () => BIG));
     await expect(trekPlacesArea(BOX, 1)).rejects.toThrow('TREK Places API response too large');
     expect(streamCancelled).toBe(true);
+  });
+});
+
+describe('the circuit breaker', () => {
+  const BIG_BODY = new Uint8Array(600_000);
+
+  // Every call site here sits in front of something a person is waiting for and
+  // falls back to the old path when the index fails — but it pays the timeout
+  // first, every time. On an instance that cannot reach the service at all,
+  // that is 3.5 s per keystroke of autocomplete, and over a hundred seconds for
+  // a ten-venue booking import.
+
+  it('stops dialling out after a few consecutive failures', async () => {
+    stubFetch({}, 503);
+    for (let i = 0; i < 4; i++) {
+      await expect(trekPlacesSearch('x')).rejects.toThrow();
+    }
+    const dialled = calls.length;
+
+    // The next call must not reach the network at all.
+    await expect(trekPlacesSearch('x')).rejects.toThrow('unreachable, not retrying yet');
+    expect(calls.length).toBe(dialled);
+  });
+
+  it('tries again once the cooldown is over', async () => {
+    vi.useFakeTimers();
+    try {
+      stubFetch({}, 503);
+      for (let i = 0; i < 4; i++) await expect(trekPlacesSearch('x')).rejects.toThrow();
+      const dialled = calls.length;
+      await expect(trekPlacesSearch('x')).rejects.toThrow('unreachable');
+      expect(calls.length).toBe(dialled);
+
+      vi.advanceTimersByTime(60_000);
+      stubFetch({ query: 'x', results: [PLACE] });
+      await expect(trekPlacesSearch('x')).resolves.toHaveLength(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('an answer clears the count, so scattered failures never open it', async () => {
+    for (let i = 0; i < 20; i++) {
+      stubFetch({}, 503);
+      await expect(trekPlacesSearch('x')).rejects.toThrow(/503/);
+      stubFetch({ query: 'x', results: [] });
+      await expect(trekPlacesSearch('x')).resolves.toEqual([]);
+    }
+    // Still dialling: the failures never ran consecutively.
+    stubFetch({}, 503);
+    await expect(trekPlacesSearch('x')).rejects.toThrow(/503/);
+  });
+
+  it('a 404 is an answer, not an outage', async () => {
+    // "No such place" says the service is there and working. Counting it would
+    // open the breaker for a caller who asked about places that do not exist.
+    for (let i = 0; i < 10; i++) {
+      stubFetch({}, 404);
+      await expect(trekPlacesById('nope')).resolves.toBeNull();
+    }
+    stubFetch({ place: PLACE });
+    await expect(trekPlacesById('abc-123')).resolves.toMatchObject({ gers: 'abc-123' });
+  });
+
+  it('an oversized body is an answer too', async () => {
+    // The service replied, and replied too much. That is a bug upstream, not a
+    // reason to stop asking — and the caller already falls back for this one.
+    for (let i = 0; i < 10; i++) {
+      stubStreamingFetch([BIG_BODY, BIG_BODY]);
+      await expect(trekPlacesSearch('x')).rejects.toThrow('too large');
+    }
+    stubFetch({ query: 'x', results: [PLACE] });
+    await expect(trekPlacesSearch('x')).resolves.toHaveLength(1);
   });
 });
 

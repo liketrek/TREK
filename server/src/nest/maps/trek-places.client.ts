@@ -97,6 +97,51 @@ function instanceToken(): string {
   return `trek-${(hash >>> 0).toString(36)}`;
 }
 
+/**
+ * Stop asking a service that is not answering.
+ *
+ * Every call site here is in front of something a person is waiting for, and
+ * each one falls back to the old path when the index fails — but it pays the
+ * timeout first, every single time. An instance behind a firewall that drops
+ * rather than refuses, or one whose network simply cannot reach the service,
+ * therefore pays it on every keystroke of autocomplete and on every one of the
+ * three queries a booking import runs per venue. Ten venues is over a hundred
+ * seconds of waiting for an answer that was never going to come.
+ *
+ * So: after a few consecutive failures, fail instantly for a while instead of
+ * dialling out. One request pays the timeout, the rest are free, and after the
+ * cooldown the next call tries again for real — if it works, the count resets
+ * and nothing was permanently switched off.
+ *
+ * Counted per process, deliberately. This guards the instance's own latency,
+ * not the service, so it neither needs nor deserves storage.
+ */
+const BREAKER_FAILURES_BEFORE_OPEN = 4;
+const BREAKER_COOLDOWN_MS = 60_000;
+let breakerFailures = 0;
+let breakerOpenUntil = 0;
+
+/**
+ * Whether a failure says anything about reachability.
+ *
+ * A 404 does not: "no such place" is a perfectly good answer, and
+ * trekPlacesById turns it into null. Nor does an oversized body, which means
+ * the service answered and answered too much. What counts is a request that
+ * never came back, and a server error, because both mean asking again costs the
+ * same and returns the same.
+ */
+function countsAgainstReachability(err: unknown): boolean {
+  const status = (err as { status?: number } | null)?.status;
+  if (typeof status === 'number') return status >= 500 || status === 429;
+  return !(err instanceof Error && err.message === 'TREK Places API response too large');
+}
+
+/** Test seam: the breaker is process state, so a suite has to be able to clear it. */
+export function resetTrekPlacesBreaker(): void {
+  breakerFailures = 0;
+  breakerOpenUntil = 0;
+}
+
 export function trekPlacesBaseUrl(): string {
   const configured = (readEnv().maps.trekPlacesUrl || '').trim();
   return (configured || DEFAULT_TREK_PLACES_URL).replace(/\/+$/, '');
@@ -110,6 +155,10 @@ async function getJson<T>(
   const url = new URL(trekPlacesBaseUrl() + path);
   for (const [k, v] of Object.entries(params)) {
     if (v !== undefined && v !== null && v !== '') url.searchParams.set(k, String(v));
+  }
+
+  if (Date.now() < breakerOpenUntil) {
+    throw new Error('TREK Places API unreachable, not retrying yet');
   }
 
   const controller = new AbortController();
@@ -130,7 +179,25 @@ async function getJson<T>(
     // Read with a cap rather than res.json(): a hostile or broken upstream
     // should not be able to hand us an unbounded body to buffer.
     const text = await readCapped(res, opts.maxBytes ?? MAX_BYTES);
-    return JSON.parse(text) as T;
+    const parsed = JSON.parse(text) as T;
+    // An answer of any kind means the service is there.
+    breakerFailures = 0;
+    return parsed;
+  } catch (err: unknown) {
+    if (countsAgainstReachability(err)) {
+      breakerFailures += 1;
+      if (breakerFailures >= BREAKER_FAILURES_BEFORE_OPEN) {
+        breakerOpenUntil = Date.now() + BREAKER_COOLDOWN_MS;
+        // Back to the threshold rather than to zero: when the cooldown ends,
+        // one more failure re-opens the breaker instead of buying another four
+        // full timeouts.
+        breakerFailures = BREAKER_FAILURES_BEFORE_OPEN - 1;
+      }
+    } else {
+      // The service answered. A 404 is an answer.
+      breakerFailures = 0;
+    }
+    throw err;
   } finally {
     clearTimeout(timer);
   }

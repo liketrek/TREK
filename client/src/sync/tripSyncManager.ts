@@ -268,19 +268,25 @@ export const tripSyncManager = {
       // after login, where the app is still mounting the first screen — starting
       // a bulk tile download into that leaves the UI waiting behind our own
       // background traffic.
-      if (cacheTiles) {
-        whenIdle(async () => {
-          for (const trip of toSync) {
-            if (!isAuthed() || !navigator.onLine) return
-            const places = await offlineDb.places.where('trip_id').equals(trip.id).toArray()
+      // The place cache is not tied to the tile setting. That switch is about
+      // map tiles — "off keeps the cache to trip data + documents only" — and it
+      // is turned off for space, tens of megabytes of them. A trip's places are
+      // about a megabyte, and hanging them off that switch meant somebody who
+      // turned it off got an empty offline search with no explanation, while
+      // "prepare for offline" still reported success having stored no place at
+      // all.
+      whenIdle(async () => {
+        for (const trip of toSync) {
+          if (!isAuthed() || !navigator.onLine) return
+          const places = await offlineDb.places.where('trip_id').equals(trip.id).toArray()
+          // Tiles first when they are wanted: they are the bigger win, and the
+          // two should not compete for the connection.
+          if (cacheTiles) {
             await prefetchTilesForTrip(trip.id, places, tileUrl, undefined, cartoKey).catch(console.error)
-            // The places around the trip, so search answers with no network.
-            // Sequential rather than parallel: the tiles are the bigger win and
-            // should not be competing with this for the connection.
-            await prefetchPlacesForTrip(trip.id, places).catch(console.error)
           }
-        })
-      }
+          await prefetchPlacesForTrip(trip.id, places).catch(console.error)
+        }
+      })
       return { status: 'done', trips: toSync.length }
     } finally {
       _syncing = false
@@ -332,16 +338,25 @@ export const tripSyncManager = {
         await cacheFilesForTrip(trip.id, files).catch(console.error)
       }
 
-      // 3) Map tiles — awaited, and only when the user opted to store them.
-      if (getOfflinePrefs().cacheTiles) {
+      // 3) Map tiles — awaited, and only when the user opted to store them. The
+      // places go with every run: "prepared" has to mean the offline search
+      // works, and the tile switch is about tens of megabytes of imagery, not
+      // about the megabyte a trip's places cost.
+      {
+        const wantTiles = getOfflinePrefs().cacheTiles
         const tileUrl = useSettingsStore.getState().settings.map_tile_url || undefined
         const cartoKey = useSettingsStore.getState().settings.carto_api_key || undefined
         i = 0
         for (const trip of toSync) {
           if (!isAuthed()) return { status: 'skipped', reason: 'signed-out' }
-          onProgress?.({ phase: 'tiles', current: ++i, total, label: trip.title })
+          // Reported only when there is a tile phase to report. The place
+          // prefetch rides along quietly, the way it always did — it is a
+          // megabyte, not the tens the progress bar exists for.
+          if (wantTiles) onProgress?.({ phase: 'tiles', current: ++i, total, label: trip.title })
           const places = await offlineDb.places.where('trip_id').equals(trip.id).toArray()
-          await prefetchTilesForTrip(trip.id, places, tileUrl, true, cartoKey).catch(console.error)
+          if (wantTiles) {
+            await prefetchTilesForTrip(trip.id, places, tileUrl, true, cartoKey).catch(console.error)
+          }
           await prefetchPlacesForTrip(trip.id, places, true).catch(console.error)
         }
       }
