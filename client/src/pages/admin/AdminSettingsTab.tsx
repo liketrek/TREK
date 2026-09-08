@@ -3,6 +3,7 @@ import { adminApi, authApi } from '../../api/client'
 import { getApiErrorMessage } from '../../types'
 import { Eye, EyeOff, Save, CheckCircle, XCircle, Loader2, RefreshCw, AlertTriangle } from 'lucide-react'
 import ToggleSwitch from '../../components/Settings/ToggleSwitch'
+import CustomSelect from '../../components/shared/CustomSelect'
 import GoogleOptions from './GoogleOptions'
 import ProviderBlock from './ProviderBlock'
 import TrekApiCard from './TrekApiCard'
@@ -553,11 +554,18 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
           <ProviderBlock title={t('admin.transitProvider.title')}>
             <div>
               <p className="text-xs text-content-faint">{t('admin.transitProvider.subtitle')}</p>
-              <select
+              {/* The app's own select rather than the browser's: a native option list
+                  is drawn by the OS, so it ignores the scheme, the radius and the
+                  text-size setting the rest of this card follows. The menu portals to
+                  the body, which is what lets it escape the card's overflow-hidden. */}
+              <CustomSelect
                 value={transitProvider}
-                aria-label={t('admin.transitProvider.title')}
-                onChange={async e => {
-                  const next = e.target.value === 'google' ? 'google' : 'transitous'
+                onChange={async value => {
+                  // A native select stayed silent when the option already selected was
+                  // picked again; this one reports every pick, and a no-op PUT is still
+                  // a write on an audited settings route.
+                  if (value === transitProvider) return
+                  const next = value === 'google' ? 'google' : 'transitous'
                   const previous = transitProvider
                   setTransitProviderState(next)
                   try {
@@ -565,11 +573,13 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
                     setTransitGoogleKeySource(saved.googleKeySource)
                   } catch { setTransitProviderState(previous) }
                 }}
-                className="mt-2 w-full px-3 py-2 border border-edge rounded-lg text-sm bg-surface-input text-content focus:ring-2 focus:ring-accent focus:border-transparent"
-              >
-                <option value="transitous">{t('admin.transitProvider.transitous')}</option>
-                <option value="google">{t('admin.transitProvider.google')}</option>
-              </select>
+                options={[
+                  { value: 'transitous', label: t('admin.transitProvider.transitous') },
+                  { value: 'google', label: t('admin.transitProvider.google') },
+                ]}
+                size="sm"
+                style={{ marginTop: 8 }}
+              />
               <p className="text-xs text-content-faint mt-1.5">
                 {transitProvider === 'google' ? t('admin.transitProvider.googleHint') : t('admin.transitProvider.transitousHint')}
               </p>

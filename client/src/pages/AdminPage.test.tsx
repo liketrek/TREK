@@ -517,6 +517,16 @@ describe('AdminPage', () => {
     });
   });
 
+  /**
+   * The transit-provider trigger. CustomSelect renders a plain button whose accessible
+   * name is the selected option, so it is found through its own card rather than by
+   * role and label the way the native select was.
+   */
+  function transitTrigger(): HTMLElement {
+    const block = screen.getByText('Transit Provider').closest<HTMLElement>('.rounded-xl');
+    return within(block!).getByRole('button');
+  }
+
   describe('FE-PAGE-ADMIN-023b: Transit provider select in Settings tab (#1699)', () => {
     it('choosing Google calls PUT /api/admin/transit-provider', async () => {
       let capturedBody: Record<string, unknown> | null = null;
@@ -535,12 +545,47 @@ describe('AdminPage', () => {
       await waitFor(() => expect(screen.getByRole('button', { name: /^users$/i })).toBeInTheDocument());
       fireEvent.click(screen.getByRole('button', { name: /settings/i }));
 
-      const select = await screen.findByRole('combobox', { name: /transit provider/i });
-      await waitFor(() => expect(select).toHaveValue('transitous'));
-      fireEvent.change(select, { target: { value: 'google' } });
+      await screen.findByText('Transit Provider');
+      await waitFor(() => expect(transitTrigger()).toHaveTextContent('Transitous'));
+      fireEvent.click(transitTrigger());
+      fireEvent.click(screen.getByText('Google'));
 
       await waitFor(() => expect(capturedBody).toEqual({ provider: 'google' }));
-      expect(select).toHaveValue('google');
+      expect(transitTrigger()).toHaveTextContent('Google');
+    });
+
+    it('FE-PAGE-ADMIN-023d: re-picking the provider already selected sends no request', async () => {
+      let puts = 0;
+      server.use(
+        http.get('/api/admin/transit-provider', () =>
+          HttpResponse.json({ provider: 'transitous', googleKeySource: 'instance' })),
+        http.put('/api/admin/transit-provider', () => {
+          puts += 1;
+          return HttpResponse.json({ provider: 'google', googleKeySource: 'instance' });
+        })
+      );
+
+      seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
+      render(<AdminPage />);
+
+      await waitFor(() => expect(screen.getByRole('button', { name: /^users$/i })).toBeInTheDocument());
+      fireEvent.click(screen.getByRole('button', { name: /settings/i }));
+      await screen.findByText('Transit Provider');
+
+      // A real change first, so the counter is proven to move at all.
+      fireEvent.click(transitTrigger());
+      fireEvent.click(screen.getByText('Google'));
+      await waitFor(() => expect(puts).toBe(1));
+
+      // Picking the same option again must not send a second PUT. Trigger and menu
+      // entry carry the same label, so the entry is the one that is not the trigger.
+      const trigger = transitTrigger();
+      fireEvent.click(trigger);
+      const entry = screen.getAllByRole('button', { name: /^google$/i }).find(b => b !== trigger);
+      fireEvent.click(entry!);
+
+      await waitFor(() => expect(transitTrigger()).toHaveTextContent('Google'));
+      expect(puts).toBe(1);
     });
   });
 
@@ -554,7 +599,8 @@ describe('AdminPage', () => {
       render(<AdminPage />);
       await waitFor(() => expect(screen.getByRole('button', { name: /^users$/i })).toBeInTheDocument());
       fireEvent.click(screen.getByRole('button', { name: /settings/i }));
-      await screen.findByRole('combobox', { name: /transit provider/i });
+      await screen.findByText('Transit Provider');
+      await waitFor(() => expect(transitTrigger()).toHaveTextContent('Google'));
     }
 
     it('warns that Google is selected but no key is configured', async () => {
@@ -569,8 +615,6 @@ describe('AdminPage', () => {
 
     it('stays quiet when an instance-wide key resolves', async () => {
       await openSettingsWith('instance');
-      await waitFor(() =>
-        expect(screen.getByRole('combobox', { name: /transit provider/i })).toHaveValue('google'));
       expect(screen.queryByText(/no google api key is configured/i)).not.toBeInTheDocument();
       expect(screen.queryByText(/only your own google key is set/i)).not.toBeInTheDocument();
     });

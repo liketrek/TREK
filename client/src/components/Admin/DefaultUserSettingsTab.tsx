@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Settings2 } from 'lucide-react'
+import { Map as MapIcon, Settings2 } from 'lucide-react'
 import { adminApi } from '../../api/client'
 import { useTranslation } from '../../i18n'
 import { useToast } from '../shared/Toast'
@@ -223,11 +223,23 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
   }
 
   return (
-    <Section title={t('admin.defaultSettings.title')} icon={Settings2}>
-      <p className="text-sm text-content-faint" style={{ marginTop: -8 }}>
+    <div>
+      <p className="text-sm text-content-faint mb-4">
         {t('admin.defaultSettings.description')}
       </p>
 
+      {/* Two columns from xl up, the same idea as the Settings tab: as one flat list
+          the map fields sat a screen below the units while the right half of the page
+          stayed empty. Grouped by subject rather than by height — what a user ends up
+          seeing on the left, everything that configures the map on the right.
+          The columns are deliberately uneven: the left one never needs more than the
+          widest option row, while the right one holds four text fields whose values
+          are 60-character tile URLs. Only the column gap is set, because Section
+          carries its own bottom margin and a row gap would double it once the grid
+          collapses. Two cards can sit straight in the grid; a third would need the
+          explicit per-column stacks the Settings tab uses, or it leaves a hole. */}
+      <div className="grid grid-cols-1 gap-x-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)] xl:items-start">
+      <Section title={t('admin.defaultSettings.title')} icon={Settings2}>
       {/* Color Mode */}
       <OptionRow label={<>{t('settings.colorMode')} <ResetButton field="dark_mode" /></>}>
         {([
@@ -325,7 +337,9 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
           </OptionButton>
         ))}
       </OptionRow>
+      </Section>
 
+      <Section title={t('settings.map')} icon={MapIcon}>
       {/* Map Tile URL */}
       <div>
         <label className="block text-sm font-medium mb-1.5 text-content-secondary">
@@ -520,6 +534,8 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
           </div>
         )}
       </div>
-    </Section>
+      </Section>
+      </div>
+    </div>
   )
 }
