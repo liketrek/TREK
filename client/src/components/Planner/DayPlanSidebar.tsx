@@ -1903,13 +1903,22 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                       {onCreatePlaceForDay ? (
                         <button type="button"
                           onClick={e => { e.stopPropagation(); onCreatePlaceForDay(day.id) }}
-                          className="border border-dashed border-edge text-content-muted"
+                          className="text-content-muted"
                           style={{
                             display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                            width: '100%', padding: '6px 12px', borderRadius: 8,
-                            background: 'none', fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 500,
+                            width: '100%', padding: '8px 12px', borderRadius: 8,
+                            // A solid outline and a whisper of tint rather than the
+                            // dashed grey placeholder it replaced: it is the one thing
+                            // to do on an empty day, so it should read as an offer
+                            // without competing with the day rows around it.
+                            background: 'color-mix(in srgb, var(--accent) 4%, transparent)',
+                            border: '1px solid var(--border-primary)',
+                            fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 500,
                             cursor: 'pointer', fontFamily: 'inherit',
+                            transition: 'background 0.15s',
                           }}
+                          onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--accent) 10%, transparent)' }}
+                          onMouseLeave={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--accent) 4%, transparent)' }}
                         >
                           <Plus size={13} strokeWidth={2} /> {t('dayplan.addPlaceHere')}
                         </button>
