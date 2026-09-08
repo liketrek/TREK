@@ -31,6 +31,15 @@ export interface PlacesSidebarProps {
   selectedPlaceId: number | null
   onPlaceClick: (placeId: number | null) => void
   onAddPlace: () => void
+  /**
+   * Create a place and drop it straight into the day that is open.
+   *
+   * Only reachable while a day is selected, which is what the split button in
+   * the header is about: the pool is one click away from the plan, and adding a
+   * place you already know belongs to today should not need a second trip
+   * through the day picker.
+   */
+  onAddPlaceToSelectedDay?: () => void
   onAssignToDay: (placeId: number, dayId: number) => void
   onEditPlace: (place: Place) => void
   onDeletePlace: (placeId: number) => void

@@ -2,6 +2,9 @@ import type { TranslationStrings } from '../types';
 
 const places: TranslationStrings = {
   'places.addPlace': 'Ort/Aktivität hinzufügen',
+  'places.addToSelectedDay': 'Zum geöffneten Tag hinzufügen',
+  'places.addPlaceShort': 'Neuer Ort',
+  'places.addToDayShort': 'Zum Tag',
   'places.importFile': 'Dateimport',
   'places.trackIndicator': 'Strecke / Route',
   'places.sidebarDrop': 'Ablegen zum Importieren',

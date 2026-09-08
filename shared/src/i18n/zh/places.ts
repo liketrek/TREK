@@ -2,6 +2,9 @@ import type { TranslationStrings } from '../types';
 
 const places: TranslationStrings = {
   'places.addPlace': '添加地点/活动',
+  'places.addToSelectedDay': '添加到当前打开的日期',
+  'places.addPlaceShort': '新地点',
+  'places.addToDayShort': '加入当天',
   'places.importFile': '导入文件',
   'places.trackIndicator': '轨迹 / 路线',
   'places.sidebarDrop': '拖放以导入',

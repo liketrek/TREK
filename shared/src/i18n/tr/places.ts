@@ -2,6 +2,9 @@ import type { TranslationStrings } from '../types';
 
 const places: TranslationStrings = {
   'places.addPlace': 'Yer/etkinlik Ekle',
+  'places.addToSelectedDay': 'Açık güne ekle',
+  'places.addPlaceShort': 'Yeni yer',
+  'places.addToDayShort': 'Güne',
   'places.importFile': 'Dosyayı içe aktar',
   'places.trackIndicator': 'İz / rota',
   'places.sidebarDrop': 'İçe aktarmak için bırakın',

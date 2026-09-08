@@ -183,7 +183,10 @@ export default function CollectionPicker({ bias, onSelect, t }: CollectionPicker
   ]
 
   return (
-    <aside className="w-full sm:w-64 shrink-0 flex flex-col rounded-xl border border-edge bg-surface-secondary overflow-hidden self-stretch">
+    // Same 320px as the details column on the other side of the form: two panels
+    // of different widths flanking one form read as a mistake rather than a
+    // hierarchy, and neither of them is the more important one.
+    <aside className="w-full sm:w-80 shrink-0 flex flex-col rounded-xl border border-edge bg-surface-secondary overflow-hidden self-stretch">
       <div className="flex items-center gap-2 px-3 py-2.5 border-b border-edge shrink-0">
         <Bookmark size={15} className="text-accent" />
         <span className="text-[13px] font-semibold text-content">{t('collections.picker.title')}</span>

@@ -2,6 +2,9 @@ import type { TranslationStrings } from '../types';
 
 const places: TranslationStrings = {
   'places.addPlace': 'Hely/Tevékenység hozzáadása',
+  'places.addToSelectedDay': 'Hozzáadás a megnyitott naphoz',
+  'places.addPlaceShort': 'Új hely',
+  'places.addToDayShort': 'A naphoz',
   'places.importFile': 'Fájl importálása',
   'places.trackIndicator': 'Nyomvonal / útvonal',
   'places.sidebarDrop': 'Ejtse el az importáláshoz',

@@ -2,6 +2,9 @@ import type { TranslationStrings } from '../types';
 
 const places: TranslationStrings = {
   'places.addPlace': 'Lägg till plats/aktivitet',
+  'places.addToSelectedDay': 'Lägg till i den öppna dagen',
+  'places.addPlaceShort': 'Ny plats',
+  'places.addToDayShort': 'Till dagen',
   'places.importFile': 'Importera fil',
   'places.trackIndicator': 'Spår / rutt',
   'places.sidebarDrop': 'Släpp för att importera',

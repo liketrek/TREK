@@ -215,6 +215,7 @@ function baseState(): HookState {
     setDayDetailCollapsed: vi.fn(),
     showPlaceForm: false,
     setShowPlaceForm: vi.fn(),
+    setPlaceFormDayId: vi.fn(),
     editingPlace: null,
     setEditingPlace: vi.fn(),
     prefillCoords: null,

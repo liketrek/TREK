@@ -88,6 +88,39 @@ describe('PlacesSidebar', () => {
     expect(onAddPlace).toHaveBeenCalled();
   });
 
+  /**
+   * The split add button (a day is open).
+   *
+   * Two buttons rather than one, because the pool sits a click away from the plan
+   * and a place you already know belongs to today should not need a second trip
+   * through the day picker. The second one stays mounted and collapsed so it has
+   * something to animate out of.
+   */
+  it('FE-COMP-PLACES-005b: with no day open there is one add button, at full length', () => {
+    render(<PlacesSidebar {...defaultProps} selectedDayId={null} onAddPlaceToSelectedDay={vi.fn()} />);
+
+    expect(screen.getAllByText(/Add Place\/Activity/i).length).toBeGreaterThan(0);
+    expect(screen.queryByText('New place')).not.toBeInTheDocument();
+    // Present in the DOM so it can animate, but out of reach until a day is open.
+    const quick = screen.getByTestId('add-place-to-day');
+    expect(quick).toHaveAttribute('aria-hidden', 'true');
+    expect(quick).toHaveAttribute('tabindex', '-1');
+  });
+
+  it('FE-COMP-PLACES-005c: an open day splits the button and shortens the main label', async () => {
+    const user = userEvent.setup();
+    const onAddPlaceToSelectedDay = vi.fn();
+    render(<PlacesSidebar {...defaultProps} selectedDayId={7} onAddPlaceToSelectedDay={onAddPlaceToSelectedDay} />);
+
+    // Shortened so both fit side by side without either truncating.
+    expect(screen.getByText('New place')).toBeInTheDocument();
+
+    const quick = screen.getByTestId('add-place-to-day');
+    expect(quick).toHaveAttribute('tabindex', '0');
+    await user.click(quick);
+    expect(onAddPlaceToSelectedDay).toHaveBeenCalled();
+  });
+
   it('FE-COMP-PLACES-006: clicking a place calls onPlaceClick with place id', async () => {
     const user = userEvent.setup();
     const onPlaceClick = vi.fn();

@@ -2,6 +2,9 @@ import type { TranslationStrings } from '../types';
 
 const places: TranslationStrings = {
   'places.addPlace': 'Προσθήκη Μέρους/Δραστηριότητας',
+  'places.addToSelectedDay': 'Προσθήκη στην ανοιχτή ημέρα',
+  'places.addPlaceShort': 'Νέο σημείο',
+  'places.addToDayShort': 'Στην ημέρα',
   'places.importFile': 'Εισαγωγή αρχείου',
   'places.trackIndicator': 'Ίχνος / διαδρομή',
   'places.sidebarDrop': 'Αφήστε για εισαγωγή',

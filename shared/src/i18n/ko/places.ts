@@ -2,6 +2,9 @@ import type { TranslationStrings } from '../types';
 
 const places: TranslationStrings = {
   'places.addPlace': '장소/활동 추가',
+  'places.addToSelectedDay': '열린 날짜에 추가',
+  'places.addPlaceShort': '새 장소',
+  'places.addToDayShort': '해당 날짜로',
   'places.importFile': '파일 가져오기',
   'places.trackIndicator': '트랙 / 경로',
   'places.sidebarDrop': '끌어다 가져오기',

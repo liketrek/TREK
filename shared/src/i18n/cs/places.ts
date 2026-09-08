@@ -2,6 +2,9 @@ import type { TranslationStrings } from '../types';
 
 const places: TranslationStrings = {
   'places.addPlace': 'Přidat místo/aktivitu',
+  'places.addToSelectedDay': 'Přidat k otevřenému dni',
+  'places.addPlaceShort': 'Nové místo',
+  'places.addToDayShort': 'Ke dni',
   'places.importFile': 'Importovat soubor',
   'places.trackIndicator': 'Trasa',
   'places.sidebarDrop': 'Pusťte pro import',

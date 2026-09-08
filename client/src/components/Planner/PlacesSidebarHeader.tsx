@@ -1,4 +1,4 @@
-import { Search, Plus, X, Upload, FileDown, ChevronDown, Check, MapPin, Star } from 'lucide-react'
+import { Search, Plus, X, Upload, FileDown, ChevronDown, Check, MapPin, Star, CalendarPlus } from 'lucide-react'
 import { getCategoryIcon } from '../shared/categoryIcons'
 import Tooltip from '../shared/Tooltip'
 import type { SidebarState } from './usePlacesSidebar'
@@ -21,27 +21,66 @@ export function PlacesDropOverlay({ t }: SidebarState) {
 
 export function PlacesHeader(S: SidebarState) {
   const {
-    canEditPlaces, onAddPlace, t, setFileImportOpen, setListImportOpen, hasMultipleListImportProviders,
+    canEditPlaces, onAddPlace, onAddPlaceToSelectedDay, selectedDayId, t, setFileImportOpen, setListImportOpen, hasMultipleListImportProviders,
     places, categories, categoryFilters, search, setSearch, plannedIds, hasTracks,
     filter, setFilter, setSelectedIds, selectMode, setSelectMode,
     catDropOpen, setCatDropOpen, toggleCategoryFilter, setCategoryFilters,
     ratingFilter, setRatingFilter,
     starDropOpen, setStarDropOpen,
   } = S
+  const dayOpen = selectedDayId != null
   return (
     <div className="border-b border-edge-faint" style={{ padding: '14px 16px 10px', flexShrink: 0 }}>
-      {canEditPlaces && <button type="button"
-        onClick={onAddPlace}
-        className="bg-accent text-accent-text"
-        style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-          width: '100%', padding: '8px 12px', borderRadius: 12, border: 'none',
-          fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500,
-          cursor: 'pointer', fontFamily: 'inherit', marginBottom: 10,
-        }}
-      >
-        <Plus size={14} strokeWidth={2} /> {t('places.addPlace')}
-      </button>}
+      {canEditPlaces && <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+        <button type="button"
+          onClick={onAddPlace}
+          className="bg-accent text-accent-text"
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            flex: 1, minWidth: 0, padding: '8px 12px', borderRadius: 12, border: 'none',
+            fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500,
+            cursor: 'pointer', fontFamily: 'inherit',
+          }}
+        >
+          <Plus size={14} strokeWidth={2} />
+          {/* Shortened while the second button is out, so both fit side by side
+              in a 320px rail without either one truncating. */}
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {t(dayOpen ? 'places.addPlaceShort' : 'places.addPlace')}
+          </span>
+        </button>
+        {/* Kept mounted and collapsed rather than unmounted, so it has something
+            to animate out of: a button that only exists while a day is open
+            would appear and vanish on the spot. Hidden from the tab order and
+            from screen readers in the same breath, because a zero-width button
+            is still focusable otherwise. */}
+        {onAddPlaceToSelectedDay && (
+          <Tooltip label={t('places.addToSelectedDay')} disabled={!dayOpen}>
+            <button type="button"
+              onClick={onAddPlaceToSelectedDay}
+              aria-label={t('places.addToSelectedDay')}
+              data-testid="add-place-to-day"
+              aria-hidden={!dayOpen}
+              tabIndex={dayOpen ? 0 : -1}
+              className="bg-accent text-accent-text motion-reduce:transition-none"
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                maxWidth: dayOpen ? 160 : 0,
+                opacity: dayOpen ? 1 : 0,
+                padding: dayOpen ? '8px 12px' : 0,
+                borderRadius: 12, border: 'none', flexShrink: 0,
+                fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500,
+                cursor: 'pointer', fontFamily: 'inherit', overflow: 'hidden', whiteSpace: 'nowrap',
+                pointerEvents: dayOpen ? 'auto' : 'none',
+                transition: 'max-width 180ms ease, opacity 140ms ease, padding 180ms ease',
+              }}
+            >
+              <CalendarPlus size={14} strokeWidth={2} style={{ flexShrink: 0 }} />
+              {t('places.addToDayShort')}
+            </button>
+          </Tooltip>
+        )}
+      </div>}
       {canEditPlaces && <>
       <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
         <button type="button"

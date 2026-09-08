@@ -2,6 +2,9 @@ import type { TranslationStrings } from '../types';
 
 const places: TranslationStrings = {
   'places.addPlace': 'Thêm địa điểm/Hoạt động',
+  'places.addToSelectedDay': 'Thêm vào ngày đang mở',
+  'places.addPlaceShort': 'Địa điểm mới',
+  'places.addToDayShort': 'Vào ngày',
   'places.importFile': 'Nhập tập tin',
   'places.trackIndicator': 'Đường đi / tuyến đường',
   'places.sidebarDrop': 'Thả để nhập',

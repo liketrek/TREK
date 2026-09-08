@@ -2,6 +2,9 @@ import type { TranslationStrings } from '../types';
 
 const places: TranslationStrings = {
   'places.addPlace': '場所／アクティビティを追加',
+  'places.addToSelectedDay': '開いている日に追加',
+  'places.addPlaceShort': '新しい場所',
+  'places.addToDayShort': 'この日へ',
   'places.importFile': 'ファイルをインポート',
   'places.trackIndicator': 'トラック / ルート',
   'places.sidebarDrop': 'ドロップしてインポート',

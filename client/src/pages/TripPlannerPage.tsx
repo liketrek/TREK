@@ -260,7 +260,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
     startResizeLeft, startResizeRight,
     selectedPlaceId, selectedAssignmentId, setSelectedPlaceId, selectAssignment,
     showDayDetail, setShowDayDetail, dayDetailCollapsed, setDayDetailCollapsed,
-    showPlaceForm, setShowPlaceForm, editingPlace, setEditingPlace,
+    showPlaceForm, setShowPlaceForm, editingPlace, setEditingPlace, setPlaceFormDayId,
     prefillCoords, setPrefillCoords, editingAssignmentId, setEditingAssignmentId,
     stopDraft, setStopDraft, saveStopDraft, saveStopDraftAsNight, stopDraftToForm, stopDraftDuplicate, reorderRoadtripStop,
     setRoadtripStopKind,
@@ -674,7 +674,8 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
                     selectedDayId={selectedDayId}
                     selectedPlaceId={selectedPlaceId}
                     onPlaceClick={handlePlaceClick}
-                    onAddPlace={() => { setEditingPlace(null); setShowPlaceForm(true) }}
+                    onAddPlace={() => { setEditingPlace(null); setPlaceFormDayId(null); setShowPlaceForm(true) }}
+                    onAddPlaceToSelectedDay={selectedDayId != null ? () => { setEditingPlace(null); setPlaceFormDayId(selectedDayId); setShowPlaceForm(true) } : undefined}
                     onAssignToDay={handleAssignToDay}
                     onEditPlace={(place) => openPlaceEditor(place)}
                     onDeletePlace={(placeId) => handleDeletePlace(placeId)}
