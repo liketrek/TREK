@@ -126,10 +126,6 @@ const admin: TranslationStrings = {
   'admin.googleCaveat.badge': '推奨しません',
   'admin.googleCaveat.body':
     'TREK はオープンソースで、この点で中立ではありません。この規模でレビューとふつうの店舗の写真があるのは Google だけで、それが独占です。この欄は代わりがないから置いてあるのであって、勧めているからではありません。使えば問い合わせはすべて Google に届きます。',
-  'admin.trekApi.toggleLabel':
-    'TREK 地点インデックス',
-  'admin.trekApi.offNote':
-    'オフです。地点検索は OpenStreetMap を使い、キーが設定されていれば Google も使います。',
   'admin.trekApi.tagline':
     'TREK 自前の場所インデックス。Google のキーなし、上限なし、そして誰にも検索を数えられずに探せます。',
   'admin.trekApi.factPlaces':

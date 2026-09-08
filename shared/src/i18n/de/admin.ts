@@ -93,10 +93,6 @@ const admin: TranslationStrings = {
   'admin.googleCaveat.badge': 'Nicht empfohlen',
   'admin.googleCaveat.body':
     'TREK ist quelloffen und wir sind hier nicht neutral. Bewertungen und Fotos gewöhnlicher Läden gibt es in dieser Größenordnung nur bei Google, und genau das ist ein Monopol. Das Feld steht hier, weil es keine Alternative gibt, nicht weil wir es empfehlen. Jede Abfrage geht dann an Google.',
-  'admin.trekApi.toggleLabel':
-    'TREK-Ortsindex',
-  'admin.trekApi.offNote':
-    'Ausgeschaltet. Die Ortssuche nutzt OpenStreetMap und, sofern ein Schlüssel hinterlegt ist, Google.',
   'admin.trekApi.tagline':
     'TREKs eigener Ortsindex. Suchen ohne Google-Schlüssel, ohne Kontingent und ohne dass jemand mitzählt.',
   'admin.trekApi.factPlaces':

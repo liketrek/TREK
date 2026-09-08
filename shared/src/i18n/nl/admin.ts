@@ -93,10 +93,6 @@ const admin: TranslationStrings = {
   'admin.googleCaveat.badge': 'Niet aanbevolen',
   'admin.googleCaveat.body':
     "TREK is open source en wij zijn hier niet neutraal. Op deze schaal bestaan beoordelingen en foto's van gewone zaken alleen bij Google, en dat is een monopolie. Het veld staat er bij gebrek aan alternatief, niet omdat wij het aanraden. Elke opvraging gaat dan naar Google.",
-  'admin.trekApi.toggleLabel':
-    'TREK-plaatsenindex',
-  'admin.trekApi.offNote':
-    'Uitgeschakeld. Zoeken naar plaatsen gebruikt OpenStreetMap, en Google als er een sleutel is ingesteld.',
   'admin.trekApi.tagline':
     'TREK\'s eigen plaatsenindex. Zoeken zonder Google-sleutel, zonder quotum en zonder dat iemand meetelt.',
   'admin.trekApi.factPlaces':

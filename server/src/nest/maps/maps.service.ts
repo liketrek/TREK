@@ -662,16 +662,19 @@ export class MapsService {
   }
 
   /**
-   * Fail-OPEN, unlike the three Google switches: the index is the path we want
-   * people on, and an install that upgrades without visiting the admin panel
-   * should land on it rather than stay on Nominatim, whose usage policy forbids
-   * what TREK was doing with it.
+   * Whether the index answers on this instance.
+   *
+   * On unless TREK_PLACES_ENABLED says otherwise, because the index is the path
+   * we want people on and an upgrade must not quietly drop back to Nominatim,
+   * whose usage policy forbids what TREK was doing with it.
+   *
+   * An environment variable rather than an admin switch on purpose. This decides
+   * whether a search leaves the instance at all, which is a property of the
+   * deployment: an operator pins it in their compose file, and it cannot be
+   * turned off from a browser by whoever holds an admin account that day.
    */
   trekPlacesEnabled(): boolean {
-    const row = this.database.get<{ value: string }>(
-      "SELECT value FROM app_settings WHERE key = 'trek_places_enabled'",
-    );
-    return row?.value !== 'false';
+    return readEnv().maps.trekPlacesEnabled;
   }
 
   /**

@@ -92,10 +92,6 @@ const admin: TranslationStrings = {
   'admin.googleCaveat.badge': 'Nem ajánlott',
   'admin.googleCaveat.body':
     'A TREK nyílt forráskódú, és ebben nem vagyunk semlegesek. Ebben a méretben az értékelések és a hétköznapi üzletek fotói csak a Google-nél léteznek, és ez a monopólium. A mező alternatíva híján van itt, nem mert ajánljuk. Minden lekérdezés ilyenkor a Google-höz megy.',
-  'admin.trekApi.toggleLabel':
-    'TREK helyindex',
-  'admin.trekApi.offNote':
-    'Kikapcsolva. A helykeresés az OpenStreetMapot használja, és a Google-t, ha van beállított kulcs.',
   'admin.trekApi.tagline':
     'A TREK saját helyindexe. Keresés Google-kulcs nélkül, kvóta nélkül, és anélkül, hogy bárki számolná a lekérdezéseidet.',
   'admin.trekApi.factPlaces':

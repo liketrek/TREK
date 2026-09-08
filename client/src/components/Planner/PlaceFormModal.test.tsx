@@ -349,10 +349,55 @@ describe('PlaceFormModal', () => {
     delete window.__addToast;
   });
 
-  it('FE-PLANNER-PLACEFORM-022: hasMapsKey=false shows OSM active message', () => {
-    // hasMapsKey is false by default in beforeEach
+  it('FE-PLANNER-PLACEFORM-022: no standing notice about which index is in use', () => {
+    // It used to say "Using OpenStreetMap" above the box whenever no Google key
+    // was set, which was a sentence about configuration in the middle of a form
+    // about a place. Each result names its own source now, which is the question
+    // people actually had.
     render(<PlaceFormModal {...defaultProps} />);
-    expect(screen.getByText(/OpenStreetMap/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Using OpenStreetMap/i)).not.toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-PLACEFORM-022b: a suggestion says which index answered', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.post('/api/maps/autocomplete', () =>
+        HttpResponse.json({
+          suggestions: [{ placeId: 'gers:abc', mainText: 'Eiffel Tower', secondaryText: 'Paris, France' }],
+          source: 'trek-places',
+        }),
+      ),
+    );
+
+    render(<PlaceFormModal {...defaultProps} />);
+    await user.type(screen.getByPlaceholderText('Search places...'), 'Eiffel');
+
+    expect(await screen.findByText('TREK')).toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-PLACEFORM-022c: an interleaved result list marks each row with its own index', async () => {
+    // The whole point of putting it on the row: with both indexes answering,
+    // a label above the list could only name one of them. The index marks its
+    // own rows, so the unmarked one is OpenStreetMap by elimination.
+    const user = userEvent.setup();
+    server.use(
+      http.post('/api/maps/search', () =>
+        HttpResponse.json({
+          places: [
+            { name: 'Eiffel Tower', address: 'Paris', lat: '48.85', lng: '2.29', source: 'trek-places' },
+            { name: 'Champ de Mars', address: 'Paris', lat: '48.85', lng: '2.29' },
+          ],
+          source: 'trek-places+openstreetmap',
+        }),
+      ),
+    );
+
+    render(<PlaceFormModal {...defaultProps} />);
+    await user.type(screen.getByPlaceholderText('Search places...'), 'Eiffel');
+    await user.keyboard('{Enter}');
+
+    expect(await screen.findByText('TREK')).toBeInTheDocument();
+    expect(await screen.findByText('OpenStreetMap')).toBeInTheDocument();
   });
 
   // ── Category ─────────────────────────────────────────────────────────────────

@@ -92,10 +92,6 @@ const admin: TranslationStrings = {
   'admin.googleCaveat.badge': 'Sconsigliato',
   'admin.googleCaveat.body':
     "TREK è software libero e su questo non siamo neutrali. A questa scala recensioni e foto degli esercizi comuni esistono solo da Google, ed è questo un monopolio. Il campo c'è per mancanza di alternative, non perché lo consigliamo. Ogni interrogazione va allora a Google.",
-  'admin.trekApi.toggleLabel':
-    'Indice dei luoghi TREK',
-  'admin.trekApi.offNote':
-    'Disattivato. La ricerca dei luoghi usa OpenStreetMap e Google se è configurata una chiave.',
   'admin.trekApi.tagline':
     'L\'indice di luoghi di TREK. Cercare senza chiave Google, senza quota e senza che nessuno conti le tue ricerche.',
   'admin.trekApi.factPlaces':

@@ -168,11 +168,14 @@ describe('RoadtripSidebar', () => {
     expect(screen.getByText('Hamburg').closest('button')).not.toHaveAttribute('aria-current')
   })
 
-  it('FE-ROADTRIP-SIDEBAR-009: a trip with nothing to drive explains itself', () => {
+  it('FE-ROADTRIP-SIDEBAR-009: a trip with nothing to drive shows the empty state, not a zeroed rail', () => {
+    // Nothing to total up, so no "0 km" standing over an empty list. The mascot
+    // is the shape every other empty state in TREK uses.
     wrap(<RoadtripSidebar routes={routes({ days: [], totalDistance: 0, totalDuration: 0, totalStops: 0 })} />)
 
-    expect(screen.getByRole('heading', { level: 3 })).toBeInTheDocument()
+    expect(screen.getByText('No route yet')).toBeInTheDocument()
     expect(screen.queryByText('Hamburg')).not.toBeInTheDocument()
+    expect(screen.queryByText(/0 km/)).not.toBeInTheDocument()
   })
 
   it('FE-ROADTRIP-SIDEBAR-010: each day carries its own distance and time', () => {

@@ -87,7 +87,6 @@ const places: TranslationStrings = {
   'places.loadingDetails': 'Plaatsgegevens laden…',
   'places.osmHint':
     "Zoeken via OpenStreetMap (geen foto's, openingstijden of beoordelingen). Voeg een Google API-sleutel toe in instellingen voor volledige details.",
-  'places.osmActive': 'OpenStreetMap wordt gebruikt. Een Google API-sleutel voegt beoordelingen en openingstijden toe.',
   'places.details.title': 'Plaatsdetails',
   'places.details.empty': 'Kies een zoekresultaat om afbeeldingen en een beschrijving te zien.',
   'places.details.loading': 'Details laden...',
@@ -100,8 +99,6 @@ const places: TranslationStrings = {
   'places.details.adoptBlocked': 'Maak eerst het beschrijvingsveld leeg',
   'places.details.facts': 'Goed om te weten',
   'places.details.nothing': 'Niets gevonden voor deze plaats.',
-  'places.details.noKeyTitle': 'Meer details beschikbaar',
-  'places.details.noKeyHint': 'Zonder Google API-sleutel gebruikt deze installatie alleen vrije bronnen. Vraag je TREK-beheerder er een toe te voegen voor beoordelingen, openingstijden en foto\'s.',
   'places.details.aboutBrand': 'Over de keten',
   'places.details.aboutBrandNote': 'Beschrijft de keten, niet deze vestiging.',
   'places.details.fact.rating': 'Beoordeling',

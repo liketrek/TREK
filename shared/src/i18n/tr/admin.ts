@@ -135,10 +135,6 @@ const admin: TranslationStrings = {
   'admin.googleCaveat.badge': 'Önerilmez',
   'admin.googleCaveat.body':
     "TREK açık kaynaklıdır ve burada tarafsız değiliz. Bu ölçekte değerlendirmeler ve sıradan işletme fotoğrafları yalnızca Google'da vardır; tekel budur. Alan, başka seçenek olmadığı için burada; önerdiğimiz için değil. O zaman her sorgu Google'a gider.",
-  'admin.trekApi.toggleLabel':
-    'TREK yer dizini',
-  'admin.trekApi.offNote':
-    'Kapalı. Yer araması OpenStreetMap kullanır, anahtar tanımlıysa Google da kullanılır.',
   'admin.trekApi.tagline':
     'TREK\'in kendi yer dizini. Google anahtarı olmadan, kota olmadan ve kimse aramalarınızı saymadan arama.',
   'admin.trekApi.factPlaces':

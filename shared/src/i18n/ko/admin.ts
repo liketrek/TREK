@@ -131,10 +131,6 @@ const admin: TranslationStrings = {
   'admin.googleCaveat.badge': '권장하지 않음',
   'admin.googleCaveat.body':
     'TREK은 오픈 소스이며 이 점에서 중립이 아닙니다. 이 규모에서 평점과 일반 상점 사진은 Google에만 있고, 그것이 독점입니다. 이 입력란은 대안이 없어서 있는 것이지 권해서가 아닙니다. 쓰면 모든 조회가 Google로 갑니다.',
-  'admin.trekApi.toggleLabel':
-    'TREK 장소 색인',
-  'admin.trekApi.offNote':
-    '꺼져 있습니다. 장소 검색은 OpenStreetMap을 사용하며, 키가 설정되어 있으면 Google도 사용합니다.',
   'admin.trekApi.tagline':
     'TREK 자체 장소 색인. Google 키 없이, 할당량 없이, 누구도 검색 횟수를 세지 않는 채로 찾습니다.',
   'admin.trekApi.factPlaces':

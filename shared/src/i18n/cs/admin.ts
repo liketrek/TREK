@@ -91,10 +91,6 @@ const admin: TranslationStrings = {
   'admin.googleCaveat.badge': 'Nedoporučeno',
   'admin.googleCaveat.body':
     'TREK je otevřený software a nejsme v tom neutrální. V tomto měřítku existují hodnocení a fotografie běžných podniků jen u Googlu, a to je monopol. Pole tu je z nedostatku alternativy, ne proto, že bychom je doporučovali. Každý dotaz pak jde do Googlu.',
-  'admin.trekApi.toggleLabel':
-    'Index míst TREK',
-  'admin.trekApi.offNote':
-    'Vypnuto. Vyhledávání míst používá OpenStreetMap a Google, pokud je nastaven klíč.',
   'admin.trekApi.tagline':
     'Vlastní rejstřík míst TREKu. Hledání bez klíče od Googlu, bez kvóty a bez toho, aby někdo počítal vaše dotazy.',
   'admin.trekApi.factPlaces':

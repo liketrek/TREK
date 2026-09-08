@@ -87,7 +87,6 @@ const places: TranslationStrings = {
   'places.loadingDetails': 'Cargando detalles del lugar…',
   'places.osmHint':
     'Usando búsqueda con OpenStreetMap (sin fotos, horarios ni valoraciones). Añade una clave API de Google en Ajustes para obtener todos los detalles.',
-  'places.osmActive': 'Se usa OpenStreetMap. Una clave de API de Google añade valoraciones y horarios.',
   'places.details.title': 'Detalles del lugar',
   'places.details.empty': 'Elige un resultado para ver imágenes y una descripción.',
   'places.details.loading': 'Cargando detalles...',
@@ -100,8 +99,6 @@ const places: TranslationStrings = {
   'places.details.adoptBlocked': 'Vacía primero el campo de descripción',
   'places.details.facts': 'Bueno saber',
   'places.details.nothing': 'No se encontró nada para este lugar.',
-  'places.details.noKeyTitle': 'Hay más detalles disponibles',
-  'places.details.noKeyHint': 'Sin una clave de API de Google, esta instancia solo usa fuentes libres. Pide a tu administrador de TREK que añada una para valoraciones, horarios y fotos.',
   'places.details.aboutBrand': 'Sobre la cadena',
   'places.details.aboutBrandNote': 'Describe la cadena, no este local.',
   'places.details.fact.rating': 'Valoración',

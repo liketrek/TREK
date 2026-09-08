@@ -87,7 +87,6 @@ const places: TranslationStrings = {
   'places.loadingDetails': 'Chargement des détails du lieu…',
   'places.osmHint':
     'Recherche via OpenStreetMap (pas de photos, horaires ni notes). Ajoutez une clé API Google dans les paramètres pour plus de détails.',
-  'places.osmActive': 'OpenStreetMap est utilisé. Une clé API Google ajoute notes et horaires.',
   'places.details.title': 'Détails du lieu',
   'places.details.empty': 'Choisis un résultat pour voir des images et une description.',
   'places.details.loading': 'Chargement des détails...',
@@ -100,8 +99,6 @@ const places: TranslationStrings = {
   'places.details.adoptBlocked': "Videz d'abord le champ description",
   'places.details.facts': 'Bon à savoir',
   'places.details.nothing': 'Rien trouvé pour ce lieu.',
-  'places.details.noKeyTitle': 'Plus de détails disponibles',
-  'places.details.noKeyHint': 'Sans clé API Google, cette instance n\'utilise que des sources libres. Demandez à votre administrateur TREK d\'en ajouter une pour les avis, les horaires et les photos.',
   'places.details.aboutBrand': 'À propos de la chaîne',
   'places.details.aboutBrandNote': 'Décrit la chaîne, pas cet établissement.',
   'places.details.fact.rating': 'Note',

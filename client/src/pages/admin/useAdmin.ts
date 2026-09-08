@@ -114,8 +114,6 @@ export function useAdmin() {
   // false rather than the true the four switches above start from.
   // The index switch. Read fail-open like the server does, so the state shown
   // before the request lands matches what an unset row actually means.
-  const [trekPlacesEnabled, setTrekPlacesEnabledState] = useState<boolean>(true)
-  useEffect(() => { adminApi.getTrekPlaces().then(d => setTrekPlacesEnabledState(d.enabled)).catch(() => {}) }, [])
 
   const [placeShadowEnabled, setPlaceShadowEnabledState] = useState<boolean>(false)
   useEffect(() => { adminApi.getPlaceShadow().then(d => setPlaceShadowEnabledState(d.enabled)).catch(() => {}) }, [])
@@ -453,7 +451,6 @@ export function useAdmin() {
     placesEnrichEnabled, setPlacesEnrichEnabledState,
     transitProvider, setTransitProviderState,
     transitGoogleKeySource, setTransitGoogleKeySource,
-    trekPlacesEnabled, setTrekPlacesEnabledState,
     placeShadowEnabled, setPlaceShadowEnabledState,
     collabFeatures, setCollabFeatures,
     oidcConfig, setOidcConfig, savingOidc, setSavingOidc,

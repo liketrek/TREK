@@ -86,7 +86,6 @@ const places: TranslationStrings = {
   'places.loadingDetails': 'Memuat detail tempat…',
   'places.osmHint':
     'Menggunakan pencarian OpenStreetMap (tanpa foto, jam buka, atau penilaian). Tambahkan Google API key di pengaturan untuk detail lengkap.',
-  'places.osmActive': 'Menggunakan OpenStreetMap. Kunci API Google menambahkan rating dan jam buka.',
   'places.details.title': 'Detail tempat',
   'places.details.empty': 'Pilih hasil pencarian untuk melihat gambar dan deskripsi.',
   'places.details.loading': 'Memuat detail...',
@@ -99,8 +98,6 @@ const places: TranslationStrings = {
   'places.details.adoptBlocked': 'Kosongkan dulu kolom deskripsi',
   'places.details.facts': 'Perlu diketahui',
   'places.details.nothing': 'Tidak ada yang ditemukan untuk tempat ini.',
-  'places.details.noKeyTitle': 'Tersedia detail lebih lanjut',
-  'places.details.noKeyHint': 'Tanpa kunci API Google, instans ini hanya memakai sumber bebas. Minta administrator TREK menambahkannya untuk rating, jam buka, dan foto.',
   'places.details.aboutBrand': 'Tentang jaringan',
   'places.details.aboutBrandNote': 'Menjelaskan jaringannya, bukan cabang ini.',
   'places.details.fact.rating': 'Peringkat',

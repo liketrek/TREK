@@ -87,7 +87,6 @@ const places: TranslationStrings = {
   'places.loadingDetails': 'Načítání podrobností místa…',
   'places.osmHint':
     'Používáte hledání přes OpenStreetMap (bez fotek a hodnocení). Pro plné detaily přidejte Google API klíč v nastavení.',
-  'places.osmActive': 'Používá se OpenStreetMap. Klíč Google API přidá hodnocení a otevírací dobu.',
   'places.details.title': 'Podrobnosti místa',
   'places.details.empty': 'Vyber výsledek hledání a zobrazí se obrázky a popis.',
   'places.details.loading': 'Načítání podrobností...',
@@ -100,8 +99,6 @@ const places: TranslationStrings = {
   'places.details.adoptBlocked': 'Nejdřív vyprázdni pole popisu',
   'places.details.facts': 'Dobré vědět',
   'places.details.nothing': 'Pro toto místo se nic nenašlo.',
-  'places.details.noKeyTitle': 'K dispozici je více podrobností',
-  'places.details.noKeyHint': 'Bez klíče Google API používá tato instance jen volné zdroje. Požádejte správce TREK o jeho přidání pro hodnocení, otevírací dobu a fotografie.',
   'places.details.aboutBrand': 'O řetězci',
   'places.details.aboutBrandNote': 'Popisuje řetězec, ne tuto pobočku.',
   'places.details.fact.rating': 'Hodnocení',

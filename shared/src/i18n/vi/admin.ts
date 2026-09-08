@@ -134,10 +134,6 @@ const admin: TranslationStrings = {
   'admin.googleCaveat.badge': 'Không khuyến nghị',
   'admin.googleCaveat.body':
     'TREK là phần mềm nguồn mở và ở đây chúng tôi không trung lập. Ở quy mô này, đánh giá và ảnh của các cửa hàng thông thường chỉ có ở Google, và đó là độc quyền. Ô này có mặt vì không có lựa chọn khác, không phải vì chúng tôi khuyến nghị. Khi đó mọi truy vấn đều đi tới Google.',
-  'admin.trekApi.toggleLabel':
-    'Chỉ mục địa điểm TREK',
-  'admin.trekApi.offNote':
-    'Đã tắt. Tìm kiếm địa điểm dùng OpenStreetMap, và Google nếu đã đặt khóa.',
   'admin.trekApi.tagline':
     'Chỉ mục địa điểm của riêng TREK. Tìm kiếm không cần khóa Google, không hạn mức, và không ai đếm lượt tìm của bạn.',
   'admin.trekApi.factPlaces':

@@ -253,20 +253,6 @@ export class AdminController {
     return result;
   }
 
-  // The one switch here that is about egress rather than about spending: with
-  // the index on, every search and every keystroke in the place box leaves the
-  // instance. Six call paths read the key; until this pair existed nothing
-  // wrote it, so an operator who wanted it off had no way to say so.
-  @Get('trek-places')
-  getTrekPlaces() { return this.addons.getTrekPlaces(); }
-
-  @Put('trek-places')
-  updateTrekPlaces(@CurrentUser() user: User, @Body() body: AdminFeatureToggleDto, @Req() req: Request) {
-    const result = this.addons.updateTrekPlaces(body.enabled);
-    this.audit.writeAudit({ userId: user.id, action: 'admin.trek_places', ip: getClientIp(req), details: { enabled: result.enabled } });
-    return result;
-  }
-
   @Get('collab-features')
   getCollabFeatures() { return this.addons.getCollabFeatures(); }
 

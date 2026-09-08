@@ -34,6 +34,22 @@ import { MapsService } from '../../../src/nest/maps/maps.service';
 import type { DatabaseService } from '../../../src/nest/database/database.service';
 import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
 
+// The index switch is an environment variable now, not an admin row: it decides
+// whether a search leaves the instance at all, so it is pinned by the operator
+// rather than flippable from a browser. `setTrekPlaces()` below drives it.
+const trekPlaces = vi.hoisted(() => ({ on: true }));
+vi.mock('../../../src/app-config', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../src/app-config')>();
+  return {
+    ...actual,
+    readEnv: () => {
+      const env = actual.readEnv();
+      return { ...env, maps: { ...env.maps, trekPlacesEnabled: trekPlaces.on } };
+    },
+  };
+});
+
+
 /** An index row, far enough from the OSM one below not to be deduped. */
 const indexHit = (name: string, lat = 35.31, lng = 139.53) => ({
   gers: name.toLowerCase().replace(/\W/g, ''),
@@ -62,11 +78,8 @@ const osmAnswer = (rows: unknown[]) => ({ ok: true, json: async () => rows });
  * `'false'` to the API-key resolver, which would send the fallback at Google.
  */
 function make(enabled = true) {
-  const database = {
-    get: vi.fn((sql: string) =>
-      sql.includes('trek_places_enabled') && !enabled ? { value: 'false' } : undefined,
-    ),
-  } as unknown as DatabaseService;
+  trekPlaces.on = enabled;
+  const database = { get: vi.fn(() => undefined) } as unknown as DatabaseService;
   return new MapsService(database, {} as PlacePhotoCacheService);
 }
 

@@ -84,10 +84,6 @@ const admin: TranslationStrings = {
   'admin.googleCaveat.badge': 'Niezalecane',
   'admin.googleCaveat.body':
     'TREK jest otwartym oprogramowaniem i nie jesteśmy tu neutralni. W tej skali oceny i zdjęcia zwykłych lokali istnieją tylko u Google, i to jest właśnie monopol. Pole jest tu z braku alternatywy, a nie dlatego, że je zalecamy. Każde zapytanie idzie wtedy do Google.',
-  'admin.trekApi.toggleLabel':
-    'Indeks miejsc TREK',
-  'admin.trekApi.offNote':
-    'Wyłączone. Wyszukiwanie miejsc korzysta z OpenStreetMap oraz z Google, jeśli ustawiono klucz.',
   'admin.trekApi.tagline':
     'Własny indeks miejsc TREK-a. Wyszukiwanie bez klucza Google, bez limitu i bez tego, żeby ktoś liczył twoje zapytania.',
   'admin.trekApi.factPlaces':

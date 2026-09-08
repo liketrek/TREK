@@ -87,7 +87,6 @@ const places: TranslationStrings = {
   'places.loadingDetails': 'Đang tải chi tiết địa điểm…',
   'places.osmHint':
     'Sử dụng tìm kiếm OpenStreetMap (không có ảnh, giờ mở cửa hoặc xếp hạng). Thêm khóa Google API trong cài đặt để biết đầy đủ chi tiết.',
-  'places.osmActive': 'Đang dùng OpenStreetMap. Khóa API Google bổ sung đánh giá và giờ mở cửa.',
   'places.details.title': 'Chi tiết địa điểm',
   'places.details.empty': 'Chọn một kết quả tìm kiếm để xem hình ảnh và mô tả.',
   'places.details.loading': 'Đang tải chi tiết...',
@@ -100,8 +99,6 @@ const places: TranslationStrings = {
   'places.details.adoptBlocked': 'Hãy xóa trống ô mô tả trước',
   'places.details.facts': 'Thông tin hữu ích',
   'places.details.nothing': 'Không tìm thấy gì cho địa điểm này.',
-  'places.details.noKeyTitle': 'Có thêm thông tin chi tiết',
-  'places.details.noKeyHint': 'Không có khóa API Google, phiên bản này chỉ dùng nguồn miễn phí. Hãy đề nghị quản trị viên TREK thêm khóa để có xếp hạng, giờ mở cửa và ảnh.',
   'places.details.aboutBrand': 'Về chuỗi',
   'places.details.aboutBrandNote': 'Mô tả chuỗi, không phải chi nhánh này.',
   'places.details.fact.rating': 'Đánh giá',

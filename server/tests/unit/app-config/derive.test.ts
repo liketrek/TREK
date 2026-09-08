@@ -7,6 +7,7 @@ import {
   deriveHttp,
   deriveSession,
   deriveDemo,
+  deriveMaps,
   deriveOidc,
   deriveSmtp,
   deriveMcp,
@@ -267,6 +268,19 @@ describe('deriveAll', () => {
       'plugins', 'webauthn', 'integrations', 'backup', 'db', 'paths', 'net',
     ] as const) {
       expect(env[ns]).toBeDefined();
+    }
+  });
+});
+
+describe('deriveMaps', () => {
+  it('TREK_PLACES_ENABLED is on unless it says the literal "false"', () => {
+    // Fail-open, and deliberately not the boolean-like family the switches
+    // above accept: a typo must not silently drop a whole install back to
+    // Nominatim, whose usage policy forbids what TREK was doing with it.
+    expect(deriveMaps({} as never).trekPlacesEnabled).toBe(true);
+    expect(deriveMaps({ TREK_PLACES_ENABLED: 'false' } as never).trekPlacesEnabled).toBe(false);
+    for (const value of ['true', 'FALSE', '0', 'no', '']) {
+      expect(deriveMaps({ TREK_PLACES_ENABLED: value } as never).trekPlacesEnabled, value).toBe(true);
     }
   });
 });

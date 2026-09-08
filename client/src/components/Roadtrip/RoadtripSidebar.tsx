@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import {
-  MapPin, CarFront, Footprints, Bike, Zap, AlertTriangle, Moon,
+  CarFront, Footprints, Bike, Zap, AlertTriangle, Moon,
   ParkingSquare, Shuffle, Fuel, Clock, Spline,
   type LucideIcon,
 } from 'lucide-react'
@@ -18,6 +18,7 @@ import type { QuietDay, RoadtripDay, RoadtripRoutes, RoadtripStop } from './useR
 import type { RouteVia } from '../../types'
 import { FS } from './typeScale'
 import type { RouteSegment } from '../../types'
+import EmptyState from '../shared/EmptyState'
 
 interface RoadtripSidebarProps {
   /** Legs and totals for the whole trip, computed once in the planner hook. */
@@ -1045,11 +1046,17 @@ export default function RoadtripSidebar({
   if (routes.days.length === 0) {
     return (
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="px-5 py-8 text-center">
-          <MapPin size={18} className="mx-auto mb-2 text-content-faint" aria-hidden />
-          <h3 className="font-semibold text-content" style={{ fontSize: FS.name }}>{t('roadtrip.empty.title')}</h3>
-          <p className="mt-1 text-content-muted" style={{ fontSize: FS.meta }}>{t('roadtrip.empty.body')}</p>
-        </div>
+        {/* The mascot rather than a pin and two lines of instructions. The rail
+            is empty because the trip has no days with places yet, which is a
+            state, not a task list: the same look every other empty state in TREK
+            has. */}
+        <EmptyState
+          scene="transport"
+          mood="sad"
+          title={t('roadtrip.empty.title')}
+          size={96}
+          surface="var(--bg-secondary)"
+        />
       </div>
     )
   }

@@ -91,10 +91,6 @@ const admin: TranslationStrings = {
   'admin.googleCaveat.badge': 'Não recomendado',
   'admin.googleCaveat.body':
     'O TREK é código aberto e aqui não somos neutros. Nesta escala, avaliações e fotos de estabelecimentos comuns só existem no Google, e isso é um monopólio. O campo está aqui por falta de alternativa, não porque o recomendamos. Aí cada consulta vai para o Google.',
-  'admin.trekApi.toggleLabel':
-    'Índice de lugares do TREK',
-  'admin.trekApi.offNote':
-    'Desativado. A busca de lugares usa o OpenStreetMap e o Google quando há uma chave configurada.',
   'admin.trekApi.tagline':
     'O índice de locais do próprio TREK. Pesquisar sem chave do Google, sem cota e sem que ninguém conte as suas buscas.',
   'admin.trekApi.factPlaces':

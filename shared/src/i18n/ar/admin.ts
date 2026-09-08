@@ -113,10 +113,6 @@ const admin: TranslationStrings = {
   'admin.googleCaveat.badge': 'غير مُستحسَن',
   'admin.googleCaveat.body':
     'TREK مفتوح المصدر ولسنا محايدين هنا. بهذا الحجم لا توجد التقييمات وصور المحال العادية إلا لدى Google، وهذا هو الاحتكار. الحقل موجود لانعدام البديل، لا لأننا نوصي به. عندئذ يذهب كل استعلام إلى Google.',
-  'admin.trekApi.toggleLabel':
-    'فهرس أماكن TREK',
-  'admin.trekApi.offNote':
-    'مُعطَّل. يستخدم البحث عن الأماكن OpenStreetMap، ويستخدم Google عند ضبط مفتاح.',
   'admin.trekApi.tagline':
     'فهرس الأماكن الخاص بـ TREK. بحث بلا مفتاح من Google، بلا حصة، وبلا أن يُحصي أحد عمليات بحثك.',
   'admin.trekApi.factPlaces':

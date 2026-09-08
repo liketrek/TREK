@@ -87,7 +87,6 @@ const places: TranslationStrings = {
   'places.loadingDetails': 'Ortsdetails werden geladen…',
   'places.osmHint':
     'OpenStreetMap-Suche aktiv (ohne Bilder, Öffnungszeiten, Bewertungen). Für erweiterte Daten Google API Key in den Einstellungen hinterlegen.',
-  'places.osmActive': 'OpenStreetMap wird genutzt. Ein Google-API-Key ergänzt Bewertungen und Öffnungszeiten.',
   'places.details.title': 'Ortsdetails',
   'places.details.empty': 'Wähle ein Suchergebnis, um Bilder und eine Beschreibung zu sehen.',
   'places.details.loading': 'Details werden geladen...',
@@ -100,8 +99,6 @@ const places: TranslationStrings = {
   'places.details.adoptBlocked': 'Erst das Beschreibungsfeld leeren',
   'places.details.facts': 'Gut zu wissen',
   'places.details.nothing': 'Zu diesem Ort wurde nichts gefunden.',
-  'places.details.noKeyTitle': 'Mehr Details möglich',
-  'places.details.noKeyHint': 'Ohne Google-API-Key nutzt diese Instanz nur freie Quellen. Wende dich an deine TREK-Administration, um Bewertungen, Öffnungszeiten und Fotos freizuschalten.',
   'places.details.aboutBrand': 'Über die Kette',
   'places.details.aboutBrandNote': 'Beschreibt die Kette, nicht diese Filiale.',
   'places.details.fact.rating': 'Bewertung',

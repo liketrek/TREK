@@ -87,7 +87,6 @@ const places: TranslationStrings = {
   'places.loadingDetails': 'Caricamento dettagli del luogo…',
   'places.osmHint':
     'Uso della ricerca OpenStreetMap (senza foto, orari di apertura o valutazioni). Aggiungi una chiave API Google nelle impostazioni per i dettagli completi.',
-  'places.osmActive': 'Si usa OpenStreetMap. Una chiave API Google aggiunge valutazioni e orari.',
   'places.details.title': 'Dettagli del luogo',
   'places.details.empty': 'Scegli un risultato per vedere immagini e una descrizione.',
   'places.details.loading': 'Caricamento dettagli...',
@@ -100,8 +99,6 @@ const places: TranslationStrings = {
   'places.details.adoptBlocked': 'Svuota prima il campo descrizione',
   'places.details.facts': 'Da sapere',
   'places.details.nothing': 'Nessun risultato per questo luogo.',
-  'places.details.noKeyTitle': 'Sono disponibili più dettagli',
-  'places.details.noKeyHint': 'Senza una chiave API di Google questa istanza usa solo fonti libere. Chiedi all\'amministratore di TREK di aggiungerne una per valutazioni, orari e foto.',
   'places.details.aboutBrand': 'Sulla catena',
   'places.details.aboutBrandNote': 'Descrive la catena, non questa sede.',
   'places.details.fact.rating': 'Valutazione',

@@ -1,23 +1,10 @@
 import React from 'react'
 import { Check, ChevronRight, Globe2, KeyRound, Library, ShieldOff, WifiOff, X } from 'lucide-react'
 import TrekMark from '../../components/shared/TrekMark'
-import ToggleSwitch from '../../components/Settings/ToggleSwitch'
 import type { TranslationFn } from '../../types'
 
 interface TrekApiCardProps {
   t: TranslationFn
-  /**
-   * Whether the index answers on this instance.
-   *
-   * A real switch rather than a badge, and the only one on this card that is
-   * about egress rather than about spending: with it on, every search and every
-   * keystroke in the place box leaves the instance for the service. An operator
-   * who does not want that has to be able to say so here — the flag was read by
-   * six call paths and written by nothing, so the only way to turn it off was an
-   * INSERT against app_settings by hand.
-   */
-  enabled: boolean
-  onToggle: () => void
 }
 
 /**
@@ -39,7 +26,7 @@ interface TrekApiCardProps {
  */
 const SOURCES = ['Overture Maps Foundation', 'OpenStreetMap', 'Wikivoyage', 'Wikimedia']
 
-export default function TrekApiCard({ t, enabled, onToggle }: TrekApiCardProps): React.ReactElement {
+export default function TrekApiCard({ t }: TrekApiCardProps): React.ReactElement {
   // Reuses the words TREK already has for these fields wherever it has them,
   // so the chip row costs two new strings instead of ten.
   const fields = [
@@ -84,21 +71,11 @@ export default function TrekApiCard({ t, enabled, onToggle }: TrekApiCardProps):
       <div className="px-5 pt-6 pb-4">
         <div className="flex items-start justify-between gap-4">
           <TrekMark className="h-8 w-auto text-content" aria-label="TREK Places API" />
-          <ToggleSwitch on={enabled} onToggle={onToggle} label={t('admin.trekApi.toggleLabel')} />
         </div>
 
         <p className="mt-3 text-sm leading-relaxed text-content-secondary">
           {t('admin.trekApi.tagline')}
         </p>
-
-        {/* Said only when it is off, and said plainly: this is the state where
-            searches stop using the index, and the reader should know what
-            answers instead rather than being left to guess. */}
-        {!enabled && (
-          <p className="mt-2 text-xs leading-relaxed text-content-faint">
-            {t('admin.trekApi.offNote')}
-          </p>
-        )}
 
         <ul className="mt-4 grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
           {facts.map(({ Icon, text }) => (

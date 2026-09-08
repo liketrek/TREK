@@ -87,7 +87,6 @@ const places: TranslationStrings = {
   'places.loadingDetails': 'Loading place details…',
   'places.osmHint':
     'Using OpenStreetMap search (no photos, opening hours, or ratings). Add a Google API key in settings for full details.',
-  'places.osmActive': 'Using OpenStreetMap. A Google API key adds ratings and opening hours.',
   'places.details.title': 'Place details',
   'places.details.empty': 'Pick a search result to see pictures and a description.',
   'places.details.loading': 'Loading details...',
@@ -100,8 +99,6 @@ const places: TranslationStrings = {
   'places.details.adoptBlocked': 'Clear the description field first',
   'places.details.facts': 'Good to know',
   'places.details.nothing': 'Nothing found for this place.',
-  'places.details.noKeyTitle': 'More detail is available',
-  'places.details.noKeyHint': 'Without a Google API key this instance can only use free sources. Ask your TREK administrator to add one for ratings, opening hours and photos.',
   'places.details.aboutBrand': 'About the chain',
   'places.details.aboutBrandNote': 'This describes the chain, not this branch.',
   'places.details.fact.rating': 'Rating',

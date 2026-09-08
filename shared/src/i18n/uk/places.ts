@@ -87,7 +87,6 @@ const places: TranslationStrings = {
   'places.loadingDetails': 'Завантаження даних про місце…',
   'places.osmHint':
     'Пошук через OpenStreetMap (без фото, годин роботи та рейтингів). Додайте API-ключ Google у налаштуваннях для повної інформації.',
-  'places.osmActive': 'Використовується OpenStreetMap. Ключ Google API додасть рейтинги та години роботи.',
   'places.details.title': 'Відомості про місце',
   'places.details.empty': 'Виберіть результат пошуку, щоб побачити зображення та опис.',
   'places.details.loading': 'Завантаження відомостей...',
@@ -100,8 +99,6 @@ const places: TranslationStrings = {
   'places.details.adoptBlocked': 'Спершу очистіть поле опису',
   'places.details.facts': 'Корисно знати',
   'places.details.nothing': 'Для цього місця нічого не знайдено.',
-  'places.details.noKeyTitle': 'Доступно більше деталей',
-  'places.details.noKeyHint': 'Без ключа Google API цей екземпляр використовує лише вільні джерела. Попросіть адміністратора TREK додати ключ, щоб отримати оцінки, години роботи та фото.',
   'places.details.aboutBrand': 'Про мережу',
   'places.details.aboutBrandNote': 'Описує мережу, а не цей заклад.',
   'places.details.fact.rating': 'Рейтинг',

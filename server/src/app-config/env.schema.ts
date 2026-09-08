@@ -144,6 +144,7 @@ export const envSchema = z.object({
   TREK_MANAGED: boolStr,
   PLACES_API_BASE: url,
   TREK_PLACES_URL: url,
+  TREK_PLACES_ENABLED: boolStr,
   PLACES_API_KEY: anyString,
   MAPBOX_ACCESS_TOKEN: anyString,
   CARTO_API_KEY: anyString,

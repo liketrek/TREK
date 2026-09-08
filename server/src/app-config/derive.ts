@@ -140,6 +140,18 @@ export function deriveMaps(raw: RawEnv) {
      * who wants nothing to leave their network points at their own machine.
      */
     trekPlacesUrl: raw.TREK_PLACES_URL || undefined,
+    /**
+     * Whether the index answers at all. On unless an operator says otherwise,
+     * because it is the path we want people on and an upgrade must not quietly
+     * drop back to Nominatim, whose usage policy forbids what TREK was doing
+     * with it.
+     *
+     * Deliberately an environment variable and not an admin switch: it decides
+     * whether searches leave the instance, and a setting that reaches for the
+     * network is one an operator wants pinned in their compose file, not one a
+     * second admin can flip in a browser.
+     */
+    trekPlacesEnabled: raw.TREK_PLACES_ENABLED !== 'false',
     placesApiKey: raw.PLACES_API_KEY || undefined,
     /** Public pk.* token shipped with a managed instance; reaches the browser by design. */
     mapboxToken: raw.MAPBOX_ACCESS_TOKEN || undefined,

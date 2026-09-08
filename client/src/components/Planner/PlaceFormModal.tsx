@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import Modal from '../shared/Modal'
 import type { RoadtripStopType } from '@trek/shared'
-import { STOP_KINDS } from '../Roadtrip/stopKinds'
 import CustomSelect from '../shared/CustomSelect'
 import NoteFormatToolbar from '../shared/NoteFormatToolbar'
 import { mapsApi } from '../../api/client'
@@ -56,6 +55,49 @@ interface PlaceFormModalProps {
 }
 
 
+/**
+ * Which index a search result came from, as a short mark beside it.
+ *
+ * A place list can be two indexes interleaved, so the source belongs on the row
+ * rather than above the list: with the TREK index and OpenStreetMap answering
+ * together, "one of these came from somewhere" is not an answer anyone can use.
+ *
+ * The three names are proper nouns, so they are not translated, and that is also
+ * why there is no fourth: a source without a name people already know would need
+ * a string in 23 languages to say less than nothing.
+ */
+const SOURCE_LABELS: Record<string, string> = {
+  'trek-places': 'TREK',
+  openstreetmap: 'OpenStreetMap',
+  nominatim: 'OpenStreetMap',
+  google: 'Google',
+}
+
+/**
+ * The label for one row.
+ *
+ * A place carries its own source when the index that produced it says so, which
+ * is what makes an interleaved list readable. Everything else falls back to what
+ * answered the call: Google never marks its places, and a merged list marks only
+ * the index side, so an unmarked row in one is OpenStreetMap by elimination.
+ */
+function sourceLabelFor(place: unknown, listSource: string): string | null {
+  const own = (place as { source?: unknown } | null)?.source
+  if (typeof own === 'string' && own) return SOURCE_LABELS[own] ?? null
+  if (listSource.includes('openstreetmap')) return SOURCE_LABELS.openstreetmap
+  return SOURCE_LABELS[listSource] ?? null
+}
+
+/** The mark itself. Quiet on purpose: it answers a question, it does not advertise. */
+function SourceBadge({ label }: { label: string | null }) {
+  if (!label) return null
+  return (
+    <span className="shrink-0 rounded-md border border-edge bg-surface-secondary px-1.5 py-0.5 text-[10px] font-medium text-content-faint">
+      {label}
+    </span>
+  )
+}
+
 /** Place create/edit form state: maps search + Google-URL resolve + autocomplete,
  * category creation, file attachments and submit. Keeps PlaceFormModal a thin
  * render over the form fields. */
@@ -92,10 +134,11 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
   } = props
   // Hidden while the addon is off, because the kinds only mean anything to the road trip
   // rail: on an instance without it they would be six labels that change nothing.
-  const roadtripEnabled = useAddonStore(s => s.isEnabled('roadtrip'))
   const [form, setForm] = useState(DEFAULT_FORM)
   const [mapsSearch, setMapsSearch] = useState('')
   const [mapsResults, setMapsResults] = useState([])
+  /** What answered the last full search. Only a fallback: a merged list carries the source per place. */
+  const [searchSource, setSearchSource] = useState<string>('')
   /**
    * What produced the list currently on screen, kept for the shadow log: the
    * query as typed and the provider the envelope named. A ref rather than
@@ -119,6 +162,10 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
   const fileRef = useRef(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const [acSuggestions, setAcSuggestions] = useState<{ placeId: string; mainText: string; secondaryText: string }[]>([])
+  // Which index answered the last keystroke. One call is served by one source,
+  // so the whole list carries it; the search below is per place, because that
+  // list can be two indexes interleaved.
+  const [acSource, setAcSource] = useState<string>('')
   const [acHighlight, setAcHighlight] = useState(-1)
   const acDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const acAbortRef = useRef<AbortController | null>(null)
@@ -255,6 +302,7 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
       const result = await mapsApi.autocomplete(query, language, locationBias, controller.signal, placesSessionRef.current.current())
       acMetaRef.current = { query, source: result.source || 'unknown' }
       setAcSuggestions(result.suggestions || [])
+      setAcSource(result.source || '')
       setAcHighlight(-1)
     } catch (err: unknown) {
       if (err instanceof Error && err.name === 'AbortError') return
@@ -315,6 +363,7 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
       const result = await mapsApi.search(mapsSearch, language, locationBiasPoint)
       searchMetaRef.current = { query: mapsSearch.trim(), source: result.source || 'unknown' }
       setMapsResults(result.places || [])
+      setSearchSource(result.source || '')
     } catch (err: unknown) {
       toast.error(getApiErrorMessage(err, t('places.mapsSearchError')))
     } finally {
@@ -569,7 +618,6 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
     dayAssignments,
     isMobile,
     collectionsEnabled,
-    roadtripEnabled,
     form,
     setForm,
     mapsSearch,
@@ -589,6 +637,8 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
     fileRef,
     acSuggestions,
     setAcSuggestions,
+    acSource,
+    searchSource,
     acHighlight,
     setAcHighlight,
     acDebounceRef,
@@ -642,7 +692,6 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
     dayAssignments,
     isMobile,
     collectionsEnabled,
-    roadtripEnabled,
     form,
     setForm,
     mapsSearch,
@@ -662,6 +711,8 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
     fileRef,
     acSuggestions,
     setAcSuggestions,
+    acSource,
+    searchSource,
     acHighlight,
     setAcHighlight,
     acDebounceRef,
@@ -743,18 +794,12 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
           language={language}
           timeFormat={S.timeFormat}
           locale={S.locale}
-          hasMapsKey={S.hasMapsKey}
           t={t}
         />
       )}
       <form onSubmit={handleSubmit} className={twoColumn || showDetails ? 'flex-1 min-w-0 space-y-3' : 'space-y-3'} onPaste={handlePaste}>
         {/* Place Search */}
         <div className="bg-surface-secondary rounded-xl p-3 border border-edge">
-          {!hasMapsKey && (
-            <p className="mb-2 text-xs text-content-faint">
-              {t('places.osmActive')}
-            </p>
-          )}
           <div className="relative">
             <div className="flex gap-2">
               <input
@@ -795,10 +840,15 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
                       idx === acHighlight ? 'bg-surface-tertiary' : 'hover:bg-surface-hover'
                     }`}
                   >
-                    <div className="font-medium text-sm">{s.mainText}</div>
-                    {s.secondaryText && (
-                      <div className="text-xs text-content-muted truncate">{s.secondaryText}</div>
-                    )}
+                    <div className="flex items-center gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="font-medium text-sm truncate">{s.mainText}</div>
+                        {s.secondaryText && (
+                          <div className="text-xs text-content-muted truncate">{s.secondaryText}</div>
+                        )}
+                      </div>
+                      <SourceBadge label={sourceLabelFor(s, acSource)} />
+                    </div>
                   </button>
                 ))}
               </div>
@@ -815,8 +865,13 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
                   onClick={() => handleSelectMapsResult(result, { mode: 'search', rank: idx, count: mapsResults.length })}
                   className="w-full text-left px-3 py-2 hover:bg-surface-hover border-b border-edge-faint last:border-0"
                 >
-                  <div className="font-medium text-sm">{result.name}</div>
-                  <div className="text-xs text-content-muted truncate">{result.address}</div>
+                  <div className="flex items-center gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium text-sm truncate">{result.name}</div>
+                      <div className="text-xs text-content-muted truncate">{result.address}</div>
+                    </div>
+                    <SourceBadge label={sourceLabelFor(result, searchSource)} />
+                  </div>
                 </button>
               ))}
             </div>
@@ -913,30 +968,6 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
             />
           </div>
         </div>
-
-        {/* What kind of stop this is on a drive.
-            Under the category rather than beside it, because the two answer different
-            questions: a category is the traveller's own label, editable and shared across
-            the whole instance, while this is a fact about the place. Refuelling is not a
-            taste. Shown always, not only in road trip mode: a fuel stop added on a Tuesday
-            is still a fuel stop when the mode is switched on later, and this is the only
-            place in the web UI where the kind can be taken off again. */}
-        {roadtripEnabled ? (
-          <div>
-            <label className="block text-sm font-medium text-content-secondary mb-1">{t('roadtrip.stop.kind')}</label>
-            <CustomSelect
-              value={form.stop_type ?? ''}
-              onChange={value => handleChange('stop_type', String(value) as RoadtripStopType | '')}
-              placeholder={t('roadtrip.stop.none')}
-              options={[
-                { value: '', label: t('roadtrip.stop.none') },
-                ...STOP_KINDS.map(k => ({ value: k.key, label: t(k.labelKey) })),
-              ]}
-              size="sm"
-            />
-            <p className="mt-1 text-caption text-content-faint">{t('roadtrip.stop.kindHelp')}</p>
-          </div>
-        ) : null}
 
         {/* Category */}
         <div>

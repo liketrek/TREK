@@ -26,7 +26,6 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
     placesEnrichEnabled, setPlacesEnrichEnabledState,
     transitProvider, setTransitProviderState,
     transitGoogleKeySource, setTransitGoogleKeySource,
-    trekPlacesEnabled, setTrekPlacesEnabledState,
     placeShadowEnabled, setPlaceShadowEnabledState,
     oidcConfig, setOidcConfig, savingOidc, setSavingOidc,
     passwordLogin, setPasswordLogin, passwordRegistration, setPasswordRegistration,
@@ -382,15 +381,7 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
           {/* Three comparable blocks, in the order we would have people choose
               them. Weather moved out entirely: it needs no key and had nothing
               to configure, so it had no business in a card about keys. */}
-          <TrekApiCard
-            t={t}
-            enabled={trekPlacesEnabled}
-            onToggle={async () => {
-              const next = !trekPlacesEnabled
-              setTrekPlacesEnabledState(next)
-              try { await adminApi.updateTrekPlaces(next) } catch { setTrekPlacesEnabledState(!next) }
-            }}
-          />
+          <TrekApiCard t={t} />
 
           {!managed && (<>
           <ProviderBlock title={t('admin.mapsKey')}>
