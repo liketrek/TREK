@@ -8,7 +8,7 @@ import fsPromises from 'node:fs/promises';
 import path from 'node:path';
 import { DatabaseService } from '../database/database.service';
 import { MemoriesAccessService } from './memories-access.service';
-import { fail, handleServiceResult, pipeAsset, type Selection } from './memories.helpers';
+import { fail, handleServiceResult, pipeAsset, sortAssetsByTakenAtDesc, type Selection } from './memories.helpers';
 
 const ALBUM_PAGE_SIZE = 1000;
 const ALBUM_MAX_PAGES = 20;
@@ -226,6 +226,12 @@ export class ImmichService {
           // below is the only guard on those versions. Do not remove it.
           visibility: 'timeline',
           withExif: true,
+          // Immich's own default order has moved between versions, and the picker
+          // pages lazily: an unordered page 2 lands in the wrong day heading.
+          // Same whitelist reasoning as `visibility` above — an older server that
+          // does not know the property drops it instead of failing the request,
+          // which is why the result is sorted again below.
+          order: 'desc',
           size,
           page,
         }),
@@ -249,7 +255,7 @@ export class ImmichService {
           lng: typeof a.exifInfo?.longitude === 'number' ? a.exifInfo.longitude : null,
           mediaType: a.type === 'VIDEO' ? 'video' : 'image',
         }));
-      return { assets, hasMore: items.length >= size };
+      return { assets: sortAssetsByTakenAtDesc(assets), hasMore: items.length >= size };
     } catch {
       return { error: 'Could not reach Immich', status: 502 };
     }
@@ -279,6 +285,7 @@ export class ImmichService {
         data: {
           id: asset.id,
           takenAt: asset.fileCreatedAt || asset.createdAt,
+          mediaType: asset.type === 'VIDEO' ? 'video' as const : 'image' as const,
           width: asset.exifInfo?.exifImageWidth || null,
           height: asset.exifInfo?.exifImageHeight || null,
           camera: asset.exifInfo?.make && asset.exifInfo?.model ? `${asset.exifInfo.make} ${asset.exifInfo.model}` : null,
@@ -487,6 +494,7 @@ export class ImmichService {
           albumIds: [albumId],
           withExif: true,
           withDeleted: false,
+          order: 'desc',
           size: ALBUM_PAGE_SIZE,
           page,
         }),
@@ -529,7 +537,9 @@ export class ImmichService {
           lng: typeof a.exifInfo?.longitude === 'number' ? a.exifInfo.longitude : null,
           mediaType: a.type === 'VIDEO' ? 'video' : 'image',
         }));
-      return { assets };
+      // The v2 branch reads /api/albums/{id} and never passes a search at all, so
+      // this is the only ordering an album ever gets there.
+      return { assets: sortAssetsByTakenAtDesc(assets) };
     } catch {
       return { error: 'Could not reach Immich', status: 502 };
     }
