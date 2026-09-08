@@ -86,7 +86,7 @@ const places: TranslationStrings = {
   'places.loadingDetails': '正在加载地点详情…',
   'places.osmHint': '使用 OpenStreetMap 搜索（无照片、营业时间或评分）。在设置中添加 Google API 密钥以获取完整信息。',
   'places.details.title': '地点详情',
-  'places.details.empty': '选择一条搜索结果即可查看图片和描述。',
+  'places.details.empty': '选择一个结果查看详情',
   'places.details.loading': '正在加载详情...',
   'places.details.error': '无法加载详情。',
   'places.details.disabled': '管理员已关闭信息补充。',

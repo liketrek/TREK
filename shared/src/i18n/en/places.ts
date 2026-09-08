@@ -88,7 +88,7 @@ const places: TranslationStrings = {
   'places.osmHint':
     'Using OpenStreetMap search (no photos, opening hours, or ratings). Add a Google API key in settings for full details.',
   'places.details.title': 'Place details',
-  'places.details.empty': 'Pick a search result to see pictures and a description.',
+  'places.details.empty': 'Pick a result to see more',
   'places.details.loading': 'Loading details...',
   'places.details.error': 'Details could not be loaded.',
   'places.details.disabled': 'Enrichment is switched off by the administrator.',

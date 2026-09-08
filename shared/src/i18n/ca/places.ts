@@ -86,7 +86,7 @@ const places: TranslationStrings = {
   'places.osmHint':
     "S'està utilitzant la cerca amb OpenStreetMap (sense fotos, horaris ni valoracions). Afegeix una clau API de Google a Configuració per obtenir tots els detalls.",
   'places.details.title': 'Detalls del lloc',
-  'places.details.empty': 'Tria un resultat per veure imatges i una descripció.',
+  'places.details.empty': 'Tria un resultat per veure’n més',
   'places.details.loading': "S'estan carregant els detalls...",
   'places.details.error': "No s'han pogut carregar els detalls.",
   'places.details.disabled': "L'enriquiment està desactivat per l'administrador.",

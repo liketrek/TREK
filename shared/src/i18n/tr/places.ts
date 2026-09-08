@@ -90,7 +90,7 @@ const places: TranslationStrings = {
   'places.osmHint':
     'OpenStreetMap aramasını kullanma (fotoğraf, açılış saatleri veya derecelendirme yok). Tüm ayrıntılar için ayarlara bir Google API anahtarı ekleyin.',
   'places.details.title': 'Yer ayrıntıları',
-  'places.details.empty': 'Görseller ve açıklama için bir arama sonucu seç.',
+  'places.details.empty': 'Ayrıntılar için bir sonuç seç',
   'places.details.loading': 'Ayrıntılar yükleniyor...',
   'places.details.error': 'Ayrıntılar yüklenemedi.',
   'places.details.disabled': 'Zenginleştirme yönetici tarafından kapatıldı.',

@@ -1044,8 +1044,11 @@ export default function RoadtripSidebar({
 
   // Nothing to total up, so nothing pretends to: no "0 km" standing above "No route yet".
   if (routes.days.length === 0) {
+    // Centred in the rail rather than sitting at its top: the state is about the
+    // whole column being empty, and a mascot pinned under the header reads as a
+    // header decoration.
     return (
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="flex min-h-0 flex-1 items-center justify-center overflow-y-auto">
         {/* The mascot rather than a pin and two lines of instructions. The rail
             is empty because the trip has no days with places yet, which is a
             state, not a task list: the same look every other empty state in TREK

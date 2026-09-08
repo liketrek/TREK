@@ -205,7 +205,17 @@ export default function PlaceDetailsColumn({
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-3.5">
-        {!selection && <p className="text-caption text-content-muted">{t('places.details.empty')}</p>}
+        {/* Nothing picked yet, which is a state rather than a fault: the mascot
+            waits with an idle look instead of a sad one. */}
+        {!selection && (
+          <EmptyState
+            scene="idle"
+            title={t('places.details.empty')}
+            size={92}
+            fill
+            surface="var(--bg-secondary)"
+          />
+        )}
 
         {selection && state === 'loading' && (
           <div className="flex items-center gap-2 text-caption text-content-muted">
@@ -231,8 +241,8 @@ export default function PlaceDetailsColumn({
             mood="sad"
             title={t('places.details.nothing')}
             size={92}
+            fill
             surface="var(--bg-secondary)"
-            compact
           />
         )}
 

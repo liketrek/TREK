@@ -215,8 +215,8 @@ export default function CollectionPicker({ bias, onSelect, t }: CollectionPicker
             scene="search"
             title={t('collections.picker.empty')}
             size={84}
+            fill
             surface="var(--bg-secondary)"
-            compact
           />
         ) : (
           <div className="flex flex-col gap-1">

@@ -88,7 +88,7 @@ const places: TranslationStrings = {
   'places.osmHint':
     'Recherche via OpenStreetMap (pas de photos, horaires ni notes). Ajoutez une clé API Google dans les paramètres pour plus de détails.',
   'places.details.title': 'Détails du lieu',
-  'places.details.empty': 'Choisis un résultat pour voir des images et une description.',
+  'places.details.empty': 'Choisis un résultat pour en voir plus',
   'places.details.loading': 'Chargement des détails...',
   'places.details.error': 'Impossible de charger les détails.',
   'places.details.disabled': "L'enrichissement est désactivé par l'administrateur.",

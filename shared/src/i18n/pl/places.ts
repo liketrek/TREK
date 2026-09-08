@@ -78,7 +78,7 @@ const places: TranslationStrings = {
   'places.osmHint':
     'Korzystając z OpenStreetMap (brak zdjęć, godzin otwarcia czy ocen). Dodaj klucz API Google w ustawieniach aby uzyskać pełne dane.',
   'places.details.title': 'Szczegóły miejsca',
-  'places.details.empty': 'Wybierz wynik wyszukiwania, aby zobaczyć zdjęcia i opis.',
+  'places.details.empty': 'Wybierz wynik, aby zobaczyć więcej',
   'places.details.loading': 'Wczytywanie szczegółów...',
   'places.details.error': 'Nie udało się wczytać szczegółów.',
   'places.details.disabled': 'Wzbogacanie jest wyłączone przez administratora.',

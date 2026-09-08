@@ -88,7 +88,7 @@ const places: TranslationStrings = {
   'places.osmHint':
     'OpenStreetMap-Suche aktiv (ohne Bilder, Öffnungszeiten, Bewertungen). Für erweiterte Daten Google API Key in den Einstellungen hinterlegen.',
   'places.details.title': 'Ortsdetails',
-  'places.details.empty': 'Wähle ein Suchergebnis, um Bilder und eine Beschreibung zu sehen.',
+  'places.details.empty': 'Wähle ein Ergebnis für Details',
   'places.details.loading': 'Details werden geladen...',
   'places.details.error': 'Details konnten nicht geladen werden.',
   'places.details.disabled': 'Die Anreicherung ist vom Administrator deaktiviert.',

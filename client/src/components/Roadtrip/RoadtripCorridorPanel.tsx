@@ -509,7 +509,7 @@ export default function RoadtripCorridorPanel({ corridor, routes, onAddPoi }: Ro
               scene={search.loading ? 'search' : 'idle'}
               mood={filteredToNothing ? 'confused' : undefined}
               size={88}
-              compact
+              fill
               surface="var(--bg-secondary)"
               title={
                 search.loading

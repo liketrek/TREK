@@ -88,7 +88,7 @@ const places: TranslationStrings = {
   'places.osmHint':
     'Uso della ricerca OpenStreetMap (senza foto, orari di apertura o valutazioni). Aggiungi una chiave API Google nelle impostazioni per i dettagli completi.',
   'places.details.title': 'Dettagli del luogo',
-  'places.details.empty': 'Scegli un risultato per vedere immagini e una descrizione.',
+  'places.details.empty': 'Scegli un risultato per saperne di più',
   'places.details.loading': 'Caricamento dettagli...',
   'places.details.error': 'Impossibile caricare i dettagli.',
   'places.details.disabled': "L'arricchimento è disattivato dall'amministratore.",

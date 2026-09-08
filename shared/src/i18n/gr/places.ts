@@ -88,7 +88,7 @@ const places: TranslationStrings = {
   'places.osmHint':
     'Χρήση αναζήτησης OpenStreetMap (χωρίς φωτογραφίες, ώρες λειτουργίας ή αξιολογήσεις). Προσθέστε ένα κλειδί Google API στις ρυθμίσεις για πλήρεις λεπτομέρειες.',
   'places.details.title': 'Λεπτομέρειες τοποθεσίας',
-  'places.details.empty': 'Διάλεξε ένα αποτέλεσμα για να δεις εικόνες και περιγραφή.',
+  'places.details.empty': 'Επίλεξε ένα αποτέλεσμα για περισσότερα',
   'places.details.loading': 'Φόρτωση λεπτομερειών...',
   'places.details.error': 'Δεν ήταν δυνατή η φόρτωση των λεπτομερειών.',
   'places.details.disabled': 'Ο εμπλουτισμός είναι απενεργοποιημένος από τον διαχειριστή.',

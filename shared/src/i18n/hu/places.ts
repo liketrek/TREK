@@ -88,7 +88,7 @@ const places: TranslationStrings = {
   'places.osmHint':
     'OpenStreetMap keresés aktív (képek, nyitvatartás és értékelések nélkül). Bővített adatokhoz add meg a Google API kulcsot a beállításokban.',
   'places.details.title': 'Hely részletei',
-  'places.details.empty': 'Válassz egy találatot a képekhez és a leíráshoz.',
+  'places.details.empty': 'Válassz egy találatot a részletekhez',
   'places.details.loading': 'Részletek betöltése...',
   'places.details.error': 'A részleteket nem sikerült betölteni.',
   'places.details.disabled': 'A gazdagítást a rendszergazda kikapcsolta.',

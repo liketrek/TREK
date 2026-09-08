@@ -88,7 +88,7 @@ const places: TranslationStrings = {
   'places.osmHint':
     "Zoeken via OpenStreetMap (geen foto's, openingstijden of beoordelingen). Voeg een Google API-sleutel toe in instellingen voor volledige details.",
   'places.details.title': 'Plaatsdetails',
-  'places.details.empty': 'Kies een zoekresultaat om afbeeldingen en een beschrijving te zien.',
+  'places.details.empty': 'Kies een resultaat voor meer',
   'places.details.loading': 'Details laden...',
   'places.details.error': 'Details konden niet worden geladen.',
   'places.details.disabled': 'Verrijking is uitgeschakeld door de beheerder.',

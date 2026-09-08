@@ -88,7 +88,7 @@ const places: TranslationStrings = {
   'places.osmHint':
     'Поиск через OpenStreetMap (без фото, часов работы и рейтингов). Добавьте API-ключ Google в настройках для полной информации.',
   'places.details.title': 'Сведения о месте',
-  'places.details.empty': 'Выберите результат поиска, чтобы увидеть изображения и описание.',
+  'places.details.empty': 'Выберите результат, чтобы узнать больше',
   'places.details.loading': 'Загрузка сведений...',
   'places.details.error': 'Не удалось загрузить сведения.',
   'places.details.disabled': 'Обогащение отключено администратором.',

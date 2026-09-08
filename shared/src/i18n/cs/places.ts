@@ -88,7 +88,7 @@ const places: TranslationStrings = {
   'places.osmHint':
     'Používáte hledání přes OpenStreetMap (bez fotek a hodnocení). Pro plné detaily přidejte Google API klíč v nastavení.',
   'places.details.title': 'Podrobnosti místa',
-  'places.details.empty': 'Vyber výsledek hledání a zobrazí se obrázky a popis.',
+  'places.details.empty': 'Vyber výsledek a zobraz detaily',
   'places.details.loading': 'Načítání podrobností...',
   'places.details.error': 'Podrobnosti se nepodařilo načíst.',
   'places.details.disabled': 'Obohacení je vypnuté správcem.',
