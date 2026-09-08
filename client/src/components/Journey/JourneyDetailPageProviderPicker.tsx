@@ -95,7 +95,7 @@ export function ProviderPicker({
     setSearchPage(page);
     try {
       const data = await memoriesApi.search(provider, { from, to, page, size: 50 }, signal);
-      const assets = sortProviderPhotos(data.assets || [], contextLocation);
+      const assets = data.assets || [];
       setPhotos((prev) => (append ? [...prev, ...assets] : assets));
       setHasMore(!!data.hasMore);
     } catch {
@@ -121,7 +121,7 @@ export function ProviderPicker({
     setHasMore(false);
     try {
       const assets = (await memoriesApi.albumPhotos(provider, album.id, album.passphrase, signal)).assets || [];
-      setPhotos(sortProviderPhotos(assets, contextLocation));
+      setPhotos(assets);
     } catch {
       /* ignore */
     }
@@ -150,6 +150,17 @@ export function ProviderPicker({
   const handleCustomSearch = () => {
     if (customFrom && customTo) searchPhotos(customFrom, customTo);
   };
+
+  // Sorted here rather than in the two fetches above. contextLocation is live
+  // editor state: the place search and "use my location" write it while this
+  // picker stays mounted, and its key is only provider plus date, so a fetch-time
+  // sort would leave the grid frozen while the caption already says "near Rome".
+  // It also keeps the ranking global instead of per page, which a sort inside
+  // the appending search cannot do.
+  const sortedPhotos = useMemo(
+    () => sortProviderPhotos(photos, contextLocation),
+    [photos, contextLocation?.lat, contextLocation?.lng],
+  );
 
   const toggleAsset = (id: string) => {
     setSelected((prev) => {
@@ -411,9 +422,9 @@ export function ProviderPicker({
 
         {/* Select all bar — sticky above grid */}
         {!loading &&
-          photos.length > 0 &&
+          sortedPhotos.length > 0 &&
           (() => {
-            const selectable = photos.filter((a: any) => !existingAssetIds.has(a.id));
+            const selectable = sortedPhotos.filter((a: any) => !existingAssetIds.has(a.id));
             const allSelected = selectable.length > 0 && selectable.every((a: any) => selected.has(a.id));
             if (selectable.length === 0) return null;
             return (
@@ -461,7 +472,7 @@ export function ProviderPicker({
             <div className="flex justify-center py-12">
               <div className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-900" />
             </div>
-          ) : photos.length === 0 ? (
+          ) : sortedPhotos.length === 0 ? (
             <div className="py-12 text-center">
               <p className="text-[13px] text-zinc-500">
                 {filter === 'trip' && !tripRange.from
@@ -471,7 +482,7 @@ export function ProviderPicker({
             </div>
           ) : (
             <div>
-              {groupPhotosByDate(photos).map((group) => (
+              {groupPhotosByDate(sortedPhotos).map((group) => (
                 <div key={group.date}>
                   {(!embedded || filter !== 'day') && (
                     <p className="mt-4 mb-2 text-[11px] font-medium text-zinc-500 first:mt-0 dark:text-zinc-400">
@@ -520,7 +531,7 @@ export function ProviderPicker({
                             </div>
                           )}
                           {asset.mediaType === 'video' && (
-                            <div className="absolute bottom-1.5 left-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-black/60">
+                            <div className="pointer-events-none absolute bottom-1.5 left-1.5 z-10 flex h-4 w-4 items-center justify-center rounded-full bg-black/60">
                               <Play size={8} className="ml-px text-white" fill="currentColor" />
                             </div>
                           )}
