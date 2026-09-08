@@ -4,7 +4,7 @@ import { getIntlLanguage, getLocaleForLanguage, useTranslation } from '../../i18
 import { useSettingsStore } from '../../store/settingsStore'
 import { useTileUrl } from '../../hooks/useTileUrl'
 import { OFM_DARK, OFM_POSITRON } from '../../constants/mapDefaults'
-import { attachVectorBasemap, hideLabelLayers, type GlLeafletLayer } from '../../components/Map/VectorBasemap'
+import { attachVectorBasemap, detachBasemapLayer, hideLabelLayers, restyleBasemap, type BasemapLayer } from '../../components/Map/VectorBasemap'
 import { isVectorStyle } from '../../utils/tileUrl'
 import apiClient, { mapsApi, pluginsApi, type PluginAtlasLayer } from '../../api/client'
 import L from 'leaflet'
@@ -92,7 +92,8 @@ export function useAtlas() {
   const tileUrlRef = useRef(tileUrl)
   tileUrlRef.current = tileUrl
   const tileLayersRef = useRef<L.TileLayer[]>([])
-  const glLayerRef = useRef<GlLeafletLayer | null>(null)
+  // GL layer or the raster stand-in a browser without WebGL gets instead (#2288).
+  const glLayerRef = useRef<BasemapLayer | null>(null)
   // The vector basemap loads async; a map torn down before it lands must not get one.
   const cancelledRef = useRef(false)
   const mapRef = useRef<HTMLDivElement>(null)
@@ -457,7 +458,7 @@ export function useAtlas() {
       renderedRegionSigRef.current = ''
       tileLayersRef.current = []
       cancelledRef.current = true
-      glLayerRef.current?.remove()
+      detachBasemapLayer(glLayerRef.current)
       glLayerRef.current = null
     }
   }, [dark, loading])
@@ -470,9 +471,10 @@ export function useAtlas() {
     if (isVectorStyle(tileUrl)) {
       const layer = glLayerRef.current
       if (!layer) return
-      layer.getMaplibreMap()?.setStyle(tileUrl)
+      restyleBasemap(layer, tileUrl)
       // setStyle drops the layer list, and style.load fires again with the new
-      // one, so the label rule has to be re-armed rather than assumed.
+      // one, so the label rule has to be re-armed rather than assumed. Both calls
+      // are no-ops on the raster stand-in, which has neither styles nor layers.
       hideLabelLayers(layer)
       return
     }

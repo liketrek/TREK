@@ -86,6 +86,9 @@ vi.mock('@maplibre/maplibre-gl-leaflet', () => ({
   }),
 }));
 vi.mock('../Map/engines/maplibre', () => ({ default: {} }));
+// jsdom refuses a WebGL context, and the basemap now believes it (#2288). These
+// cases are about the GL layer, so the probe says yes here.
+vi.mock('../../utils/webgl', () => ({ hasWebGL: () => true, resetWebGLProbe: () => {} }));
 
 const entriesWithCoords = [
   { id: 'e1', lat: 48.8566, lng: 2.3522, title: 'Paris', mood: null, entry_date: '2025-06-01' },

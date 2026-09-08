@@ -99,6 +99,9 @@ vi.mock('@maplibre/maplibre-gl-leaflet', () => ({
   }),
 }));
 vi.mock('../../components/Map/engines/maplibre', () => ({ default: {} }));
+// jsdom refuses a WebGL context, and the basemap now believes it (#2288). These
+// cases are about the GL layer, so the probe says yes here.
+vi.mock('../../utils/webgl', () => ({ hasWebGL: () => true, resetWebGLProbe: () => {} }));
 
 vi.mock('leaflet', () => {
   // The bounds a country layer reports carry its own code, so the map's bounds can
