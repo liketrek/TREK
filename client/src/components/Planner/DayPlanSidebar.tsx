@@ -95,6 +95,8 @@ interface DayPlanSidebarProps {
   onSetRouteProfile?: (profile: string) => void
   onAddPlace?: () => void
   onAddPlaceToDay?: (placeId: number, dayId: number) => void
+  /** Open the place form already pointed at this day, to create a new place there. */
+  onCreatePlaceForDay?: (dayId: number) => void
   onExpandedDaysChange?: (expandedDayIds: Set<number>) => void
   pushUndo?: (label: string, undoFn: () => Promise<void> | void) => void
   canUndo?: boolean
@@ -146,6 +148,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
   onAddReservation,
   onAddPlace,
   onAddPlaceToDay,
+  onCreatePlaceForDay,
   onNavigateToFiles,
   routeShown = false,
   routeProfile = 'driving',
@@ -1073,6 +1076,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     onAddReservation,
     onAddPlace,
     onAddPlaceToDay,
+    onCreatePlaceForDay,
     onNavigateToFiles,
     routeShown,
     routeProfile,
@@ -1244,6 +1248,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
     onAddReservation,
     onAddPlace,
     onAddPlaceToDay,
+    onCreatePlaceForDay,
     onNavigateToFiles,
     routeShown,
     routeProfile,
@@ -1892,7 +1897,25 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                         border: dragOverDayId === day.id ? '2px dashed rgba(17,24,39,0.2)' : '2px dashed transparent',
                       }}
                     >
-                      <span className="text-content-faint" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))' }}>{t('dayplan.emptyDay')}</span>
+                      {/* An empty day is where somebody wants to add something, so
+                          the slot offers to do it instead of only stating the fact.
+                          Without the handler (no edit rights) it stays the sentence. */}
+                      {onCreatePlaceForDay ? (
+                        <button type="button"
+                          onClick={e => { e.stopPropagation(); onCreatePlaceForDay(day.id) }}
+                          className="border border-dashed border-edge text-content-muted"
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                            width: '100%', padding: '6px 12px', borderRadius: 8,
+                            background: 'none', fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 500,
+                            cursor: 'pointer', fontFamily: 'inherit',
+                          }}
+                        >
+                          <Plus size={13} strokeWidth={2} /> {t('dayplan.addPlaceHere')}
+                        </button>
+                      ) : (
+                        <span className="text-content-faint" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))' }}>{t('dayplan.emptyDay')}</span>
+                      )}
                     </div>
                   ) : (
                     merged.map((item, idx) => {

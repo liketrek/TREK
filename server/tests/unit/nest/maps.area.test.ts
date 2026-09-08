@@ -5,7 +5,7 @@
  * inside an offline sync, which is why every failure path here ends in null
  * rather than an exception.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const { mockArea } = vi.hoisted(() => ({
   mockArea: vi.fn(async (): Promise<unknown> => ({ results: [], truncated: false, count: 0 })),
@@ -38,10 +38,20 @@ const PLACE = {
   hours: null,
 };
 
+const ORIGINAL_TREK_PLACES = process.env.TREK_PLACES_ENABLED;
+
+afterEach(() => {
+  if (ORIGINAL_TREK_PLACES === undefined) delete process.env.TREK_PLACES_ENABLED;
+  else process.env.TREK_PLACES_ENABLED = ORIGINAL_TREK_PLACES;
+});
+
+// The index is an operator switch, not an admin row, so switching it off means
+// moving the env rather than stubbing a settings lookup. The service reads the
+// flag per call, which is why the restore above belongs in afterEach.
 function make(enabled = true) {
-  const database = {
-    get: vi.fn(() => (enabled ? undefined : { value: 'false' })),
-  } as unknown as DatabaseService;
+  if (enabled) delete process.env.TREK_PLACES_ENABLED;
+  else process.env.TREK_PLACES_ENABLED = 'false';
+  const database = { get: vi.fn(() => undefined) } as unknown as DatabaseService;
   return new MapsService(database, {} as PlacePhotoCacheService);
 }
 
@@ -69,7 +79,7 @@ describe('MapsService.placesInArea', () => {
     expect((await make().placesInArea(BOX))?.truncated).toBe(true);
   });
 
-  it('MAPS-AREA-003: returns null when the admin switched the index off', async () => {
+  it('MAPS-AREA-003: returns null when the operator switched the index off', async () => {
     expect(await make(false).placesInArea(BOX)).toBeNull();
     expect(mockArea).not.toHaveBeenCalled();
   });

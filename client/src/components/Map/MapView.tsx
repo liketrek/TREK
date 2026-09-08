@@ -937,7 +937,12 @@ export const MapView = memo(function MapView({
     // Store flips state synchronously (instant, works offline); a failed save is logged there.
     updateSetting('map_base_layer', isSatellite ? 'default' : 'satellite').catch(() => {})
   }, [isSatellite, updateSetting])
-  const switcherBottom = hasDayDetail
+  // The day panel is a centred card between the two sidebars, so on the desktop
+  // map it never reaches this pill sitting hard against the left sidebar. Lifting
+  // it by the panel height only made it hop on every collapse and expand, since
+  // --day-panel-h changes while hasDayDetail stays true. On a phone the panel is
+  // full width and does cover the pill, so the lift stays there.
+  const switcherBottom = isMobile && hasDayDetail
     ? 'calc(var(--bottom-nav-h, 0px) + 20px + var(--day-panel-h, 0px) + 12px)'
     : 'calc(var(--bottom-nav-h, 0px) + 12px)'
 

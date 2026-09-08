@@ -376,9 +376,11 @@ describe('TripPlannerPage — shell', () => {
   it('FE-PAGE-TPW-006: the tab bar renders every tab and forwards a switch to the hook', () => {
     renderPage()
 
-    const tabs = props('tabs').tabs as unknown as Array<{ id: string; title: string }>
+    const tabs = props('tabs').tabs as unknown as Array<{ id: string; title?: string }>
     expect(tabs.map(t => t.id)).toContain('collab')
-    expect(tabs.find(t => t.id === 'buchungen')?.title).toBe('Bookings')
+    // No native tooltip on any of them: the label is right there, so a title
+    // would only repeat it under the cursor.
+    expect(tabs.every(t => t.title === undefined)).toBe(true)
 
     act(() => { props('tabs').onChange('dateien') })
     expect(hookState.handleTabChange).toHaveBeenCalledWith('dateien')

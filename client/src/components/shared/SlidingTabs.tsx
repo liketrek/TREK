@@ -3,7 +3,18 @@ import React, { useLayoutEffect, useRef, useState, type CSSProperties } from 're
 export interface SlidingTab<T extends string> {
   id: T
   label: React.ReactNode
+  /**
+   * Native tooltip. Opt-in and never derived from the label: a tooltip that only
+   * repeats the text next to the cursor is noise, so a caller sets this solely
+   * when the tab shows something the label does not spell out.
+   */
   title?: string
+  /**
+   * Accessible name, for a tab whose visible label is an abbreviation. Silent on
+   * screen, unlike `title`, so it carries the full name without putting a
+   * tooltip under the cursor.
+   */
+  ariaLabel?: string
   icon?: React.ComponentType<{ size?: number; className?: string }>
   count?: number
 }
@@ -130,7 +141,8 @@ export function SlidingTabs<T extends string>({
             ref={el => { tabRefs.current.set(tab.id, el) }}
             onClick={() => onChange(tab.id)}
             style={btnStyle}
-            title={tab.title ?? (typeof tab.label === 'string' ? tab.label : undefined)}
+            title={tab.title}
+            aria-label={tab.ariaLabel}
           >
             {Icon && <Icon size={size === 'sm' ? 13 : 15} />}
             {tab.label}

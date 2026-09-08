@@ -8,7 +8,7 @@
  * admin leaves it on), and that a failure on either side ends as a coordinate
  * or a null rather than a half-answer the importer would store.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const { mockSearch, mockNominatim } = vi.hoisted(() => ({
   mockSearch: vi.fn(async (_query: string, _opts?: { limit?: number }): Promise<unknown> => []),
@@ -51,10 +51,20 @@ const OSM_ROW = {
 
 const osmAnswer = (rows: unknown[]) => ({ ok: true, json: async () => rows });
 
+const ORIGINAL_TREK_PLACES = process.env.TREK_PLACES_ENABLED;
+
+afterEach(() => {
+  if (ORIGINAL_TREK_PLACES === undefined) delete process.env.TREK_PLACES_ENABLED;
+  else process.env.TREK_PLACES_ENABLED = ORIGINAL_TREK_PLACES;
+});
+
+// The index is an operator switch, not an admin row, so switching it off means
+// moving the env rather than stubbing a settings lookup. The service reads the
+// flag per call, which is why the restore above belongs in afterEach.
 function make(enabled = true) {
-  const database = {
-    get: vi.fn(() => (enabled ? undefined : { value: 'false' })),
-  } as unknown as DatabaseService;
+  if (enabled) delete process.env.TREK_PLACES_ENABLED;
+  else process.env.TREK_PLACES_ENABLED = 'false';
+  const database = { get: vi.fn(() => undefined) } as unknown as DatabaseService;
   return new MapsService(database, {} as PlacePhotoCacheService);
 }
 
@@ -106,7 +116,7 @@ describe('MapsService.geocodeQuery', () => {
     expect(console.warn).toHaveBeenCalledWith('TREK Places geocode failed, falling back:', 'places api down');
   });
 
-  it('MAPS-GEOCODE-006: the query never leaves for the index while the admin has it off', async () => {
+  it('MAPS-GEOCODE-006: the query never leaves for the index while the operator has it off', async () => {
     // The index has an answer, and a different one: the OSM coordinate coming
     // back is what proves the gate held rather than the call merely being made.
     mockSearch.mockResolvedValue(indexHit(1.2345, 2.3456));
