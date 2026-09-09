@@ -26,6 +26,8 @@ const settings: TranslationStrings = {
   'settings.mapDefaultHint': 'Laissez vide pour OpenStreetMap (par défaut)',
   'settings.routingBase': 'Moteur de calcul d’itinéraire propre',
   'settings.routingBaseHint': 'Votre propre instance OSRM. Vide utilise les serveurs publics, limités à environ une requête par seconde : suffisant pour une journée, juste pour un road trip. Prend effet après un redémarrage du serveur.',
+  'settings.valhallaBase': 'Instance Valhalla propre',
+  'settings.valhallaBaseHint': 'Votre propre instance Valhalla. Elle est interrogée quand une étape doit éviter les péages, les autoroutes ou les ferries — les serveurs OSRM publics ne savent pas répondre à cela. Vide utilise le Valhalla public de FOSSGIS, sauf si un moteur de calcul d’itinéraire propre est indiqué ci-dessus, auquel cas aucun second moteur n’est interrogé. Prend effet après un redémarrage du serveur.',
   'settings.mapHint': "Modèle d'URL pour les tuiles de carte",
   'settings.mapProvider': 'Fournisseur de carte',
   'settings.mapProviderHint': 'Affecte les cartes Trip Planner et Journey. Atlas utilise toujours Leaflet.',

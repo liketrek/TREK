@@ -86,12 +86,18 @@ export async function buildApp(): Promise<INestApplication> {
   // config instead of reading process.env itself.
   const http = app.get<ConfigType<typeof httpConfig>>(httpConfig.KEY);
   // Same pre-init bridge: a self-hosted routing engine has to be named in connect-src, or
-  // the browser blocks every request to it without an error the app could report.
+  // the browser blocks every request to it without an error the app could report. Both
+  // engines go through the same door — the second one answers the avoidance questions
+  // the first cannot, and is blocked just as silently when the policy leaves it out.
   const settings = app.get(SettingsService, { strict: false });
-  const routingBase = settings?.getAdminUserDefaults()?.routing_base_url;
+  const defaults = settings?.getAdminUserDefaults();
+  const asUrl = (value: unknown) => (typeof value === 'string' ? value : null);
   applyGlobalMiddleware(instance, {
     http,
-    extraConnectSrc: routingCspOrigins([typeof routingBase === 'string' ? routingBase : null]),
+    extraConnectSrc: routingCspOrigins([
+      asUrl(defaults?.routing_base_url),
+      asUrl(defaults?.valhalla_base_url),
+    ]),
   });
   // Same pre-init consumption bridge as httpConfig above: the StorageService
   // instance is resolvable before init, and the handlers only *register* here —

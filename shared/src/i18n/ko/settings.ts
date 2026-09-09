@@ -26,6 +26,8 @@ const settings: TranslationStrings = {
   'settings.mapDefaultHint': '비워두면 OpenStreetMap (기본값) 사용',
   'settings.routingBase': '자체 경로 서버',
   'settings.routingBaseHint': '자체 OSRM 인스턴스입니다. 비워 두면 초당 약 한 번의 요청만 허용하는 공개 서버를 사용합니다. 하루치는 충분하지만 로드트립에는 빠듯합니다. 서버를 다시 시작해야 적용됩니다.',
+  'settings.valhallaBase': '자체 Valhalla 인스턴스',
+  'settings.valhallaBaseHint': '자체 Valhalla 인스턴스. 구간에서 통행료, 고속도로, 페리를 피해야 할 때 이 서버에 묻습니다. 공개 OSRM 서버는 이에 답하지 못합니다. 비워 두면 FOSSGIS의 공개 Valhalla를 쓰지만, 위에 자체 라우팅 서버를 적어 두었다면 두 번째 엔진은 아예 묻지 않습니다. 서버를 다시 시작한 뒤에 적용됩니다.',
   'settings.mapHint': '지도 타일 URL 템플릿',
   'settings.mapProvider': '지도 공급자',
   'settings.mapProviderHint': '여행 플래너 및 Journey 지도에 영향을 줍니다. Atlas는 항상 Leaflet을 사용합니다.',

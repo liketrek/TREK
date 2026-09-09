@@ -25,6 +25,8 @@ const settings: TranslationStrings = {
   'settings.mapDefaultHint': 'اتركه فارغًا لاستخدام OpenStreetMap افتراضيًا',
   'settings.routingBase': 'محرك مسارات خاص',
   'settings.routingBaseHint': 'خادم OSRM خاص بك. اتركه فارغًا لاستخدام الخوادم العامة التي تسمح بطلب واحد تقريبًا في الثانية — يكفي ليوم واحد، وضيّق لرحلة برية. يسري بعد إعادة تشغيل الخادم.',
+  'settings.valhallaBase': 'خادم Valhalla خاص بك',
+  'settings.valhallaBaseHint': 'خادم Valhalla خاص بك. يُسأل عندما يجب أن تتجنب المرحلة الرسوم أو الطرق السريعة أو العبّارات — الخوادم العامة لـ OSRM لا تستطيع الإجابة عن ذلك. الفراغ يستخدم Valhalla العام من FOSSGIS، إلا إذا حُدِّد أعلاه محرك توجيه خاص بك، فلا يُسأل أي محرك ثانٍ. يسري بعد إعادة تشغيل الخادم.',
   'settings.mapHint': 'قالب URL لبلاطات الخريطة',
   'settings.mapProvider': 'مزود الخريطة',
   'settings.mapProviderHint': 'يؤثر على خرائط Trip Planner و Journey. يستخدم Atlas دائمًا Leaflet.',

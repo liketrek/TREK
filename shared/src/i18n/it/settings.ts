@@ -26,6 +26,8 @@ const settings: TranslationStrings = {
   'settings.mapDefaultHint': 'Lascia vuoto per OpenStreetMap (predefinito)',
   'settings.routingBase': 'Motore di percorso proprio',
   'settings.routingBaseHint': 'Una tua istanza OSRM. Vuoto usa i server pubblici, che consentono circa una richiesta al secondo: sufficiente per un giorno, poco per un viaggio in auto. Ha effetto dopo il riavvio del server.',
+  'settings.valhallaBase': 'Istanza Valhalla propria',
+  'settings.valhallaBaseHint': 'Una istanza Valhalla propria. Viene interrogata quando una tappa deve evitare pedaggi, autostrade o traghetti: i server OSRM pubblici non sanno rispondere. Vuoto usa il Valhalla pubblico di FOSSGIS, a meno che sopra non sia indicato un motore di routing proprio, nel qual caso non viene interrogato alcun secondo motore. Ha effetto dopo il riavvio del server.',
   'settings.mapHint': 'Modello URL per i tile della mappa',
   'settings.mapProvider': 'Provider mappa',
   'settings.mapProviderHint': 'Influisce sulle mappe Trip Planner e Journey. Atlas usa sempre Leaflet.',

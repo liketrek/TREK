@@ -26,6 +26,8 @@ const settings: TranslationStrings = {
   'settings.mapDefaultHint': 'Lämna fältet tomt för OpenStreetMap (standard)',
   'settings.routingBase': 'Egen ruttmotor',
   'settings.routingBaseHint': 'En egen OSRM-instans. Tomt använder de publika servrarna, som tillåter ungefär en förfrågan per sekund – nog för en dag, knappt för en bilresa. Träder i kraft efter omstart av servern.',
+  'settings.valhallaBase': 'Egen Valhalla-instans',
+  'settings.valhallaBaseHint': 'En egen Valhalla-instans. Den frågas när en etapp ska undvika vägavgifter, motorvägar eller färjor — de publika OSRM-servrarna kan inte svara på det. Tomt använder FOSSGIS publika Valhalla, om inte en egen ruttmotor angetts ovan; då frågas ingen andra motor alls. Börjar gälla efter en omstart av servern.',
   'settings.mapHint': 'URL-mall för kartrutor',
   'settings.mapProvider': 'Kartleverantör',
   'settings.mapProviderHint': 'Påverkar resplaneraren och resedagbokens kartor. Atlas använder alltid Leaflet.',

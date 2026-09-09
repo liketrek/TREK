@@ -797,6 +797,119 @@ describe('calculateAlternatives', () => {
     expect(asked).toHaveLength(1)
   })
 
+  // The second engine, which is what made this whole branch produce anything on a
+  // default install. Every case here overrides the 503 the shared handlers answer with,
+  // so the OSRM path above stays the one the cases before this measure.
+  const VALHALLA = 'https://valhalla1.openstreetmap.de/route'
+  const valhallaAnswer = (summary: Record<string, unknown>) => ({
+    trip: {
+      // The detour twoRoutes describes, re-encoded as the polyline6 Valhalla sends.
+      legs: [{ shape: '_szadB_gjaR~po]_yqwC~po]~tpzA' }],
+      summary: { length: 130, time: 4500, has_toll: false, has_highway: false, has_ferry: false, ...summary },
+    },
+  })
+
+  it('FE-COMP-ROUTECALCULATOR-050: one answer from OSRM is offered a second way by Valhalla', async () => {
+    server.use(
+      http.get(`${FOSSGIS.driving}/:coords`, () => HttpResponse.json({ code: 'Ok', routes: [twoRoutes.routes[0]] })),
+      http.post(VALHALLA, () => HttpResponse.json(valhallaAnswer({ has_highway: false })))
+    )
+
+    const routes = await calculateAlternatives({ lat: 53, lng: 10 }, { lat: 52, lng: 11 })
+
+    expect(routes).toHaveLength(2)
+    expect(routes[1].avoids).toBe('motorway')
+    expect(routes[1].distance).toBeCloseTo(130000, 0)
+    expect(routes[1].duration).toBe(4500)
+  })
+
+  it('FE-COMP-ROUTECALCULATOR-051: a road that still has the class is not offered as avoiding it', async () => {
+    // use_highways: 0 is a weighting, so a leg with no way round the motorway comes back
+    // on the motorway and says so. Offering that as "No motorway" would put a lie on the
+    // map, so it is dropped and the leg keeps the single way OSRM found.
+    //
+    // Asserted on the result rather than on which excludes OSRM was asked: by this point
+    // `excludeUnsupported` has already recorded the public host from the case above, and
+    // that Set is module state for the lifetime of the file.
+    server.use(
+      http.get(`${FOSSGIS.driving}/:coords`, ({ request }) => {
+        const exclude = new URL(request.url).searchParams.get('exclude')
+        if (!exclude) return HttpResponse.json({ code: 'Ok', routes: [twoRoutes.routes[0]] })
+        return new HttpResponse(null, { status: 400 })
+      }),
+      http.post(VALHALLA, () => HttpResponse.json(valhallaAnswer({ has_highway: true, has_toll: true, has_ferry: true })))
+    )
+
+    const routes = await calculateAlternatives({ lat: 53, lng: 10 }, { lat: 52.5, lng: 11.5 })
+
+    expect(routes).toHaveLength(1)
+    expect(routes[0].avoids).toBeUndefined()
+  })
+
+  it('FE-COMP-ROUTECALCULATOR-052: a ferry-free way is offered, which OSRM alone never managed', async () => {
+    server.use(
+      http.get(`${FOSSGIS.driving}/:coords`, ({ request }) => {
+        const exclude = new URL(request.url).searchParams.get('exclude')
+        if (!exclude) return HttpResponse.json({ code: 'Ok', routes: [twoRoutes.routes[0]] })
+        return new HttpResponse(null, { status: 400 })
+      }),
+      http.post(VALHALLA, async ({ request }) => {
+        const body = await request.json() as { costing_options: { auto: Record<string, number> } }
+        // Only the ferry question gets a usable answer, so the first two fall through.
+        if (!('use_ferry' in body.costing_options.auto)) {
+          return HttpResponse.json(valhallaAnswer({ has_highway: true, has_toll: true }))
+        }
+        return HttpResponse.json(valhallaAnswer({ has_ferry: false }))
+      })
+    )
+
+    const routes = await calculateAlternatives({ lat: 54, lng: 10 }, { lat: 55, lng: 12 })
+
+    expect(routes).toHaveLength(2)
+    expect(routes[1].avoids).toBe('ferry')
+  })
+
+  it('FE-COMP-ROUTECALCULATOR-054: the same road from the other engine is not offered as a second one', async () => {
+    // The reason the geometry decides rather than the numbers. Valhalla prices roads
+    // differently, so on a long leg the SAME road comes back kilometres apart in both
+    // length and time — here 13 km and 5 minutes, which is the measured spread between
+    // the two engines and comfortably past the 200 m the numbers used to allow. Judged
+    // on those it reads as a discovery and puts a second blue line on top of the first.
+    server.use(
+      http.get(`${FOSSGIS.driving}/:coords`, () => HttpResponse.json({ code: 'Ok', routes: [twoRoutes.routes[0]] })),
+      http.post(VALHALLA, () => HttpResponse.json({
+        trip: {
+          // twoRoutes.routes[0]'s own line, re-encoded: the identical road.
+          legs: [{ shape: '_szadB_gjaR~po]_qo]~po]_qo]' }],
+          summary: { length: 113, time: 3900, has_toll: false, has_highway: false, has_ferry: false },
+        },
+      }))
+    )
+
+    const routes = await calculateAlternatives({ lat: 53, lng: 10 }, { lat: 52, lng: 11 })
+
+    expect(routes).toHaveLength(1)
+  })
+
+  it('FE-COMP-ROUTECALCULATOR-053: an instance with its own OSRM is never sent to the public Valhalla', async () => {
+    let valhallaCalls = 0
+    useSettingsStore.setState(st => ({ settings: { ...st.settings, routing_base_url: 'https://osrm.example.org' } }))
+    server.use(
+      http.get('https://osrm.example.org/route/v1/driving/:coords', ({ request }) => {
+        const exclude = new URL(request.url).searchParams.get('exclude')
+        if (!exclude) return HttpResponse.json({ code: 'Ok', routes: [twoRoutes.routes[0]] })
+        return HttpResponse.json({ code: 'Ok', routes: [twoRoutes.routes[1]] })
+      }),
+      http.post(VALHALLA, () => { valhallaCalls++; return HttpResponse.json(valhallaAnswer({})) })
+    )
+
+    const routes = await calculateAlternatives({ lat: 53, lng: 10 }, { lat: 52, lng: 12 })
+
+    expect(valhallaCalls).toBe(0)
+    expect(routes[1].avoids).toBe('motorway')
+    useSettingsStore.setState(st => ({ settings: { ...st.settings, routing_base_url: '' } }))
+  })
+
   it('FE-COMP-ROUTECALCULATOR-033: the snap positions come back with the route', async () => {
     // OSRM reports these in every answer and TREK threw them away since the first route
     // was drawn. Without them a place set back from the road looks like it is on the

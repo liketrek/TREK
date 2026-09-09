@@ -26,6 +26,8 @@ const settings: TranslationStrings = {
   'settings.mapDefaultHint': 'Ponechte prázdné pro OpenStreetMap (výchozí)',
   'settings.routingBase': 'Vlastní směrovací server',
   'settings.routingBaseHint': 'Vlastní instance OSRM. Prázdné použije veřejné servery s limitem asi jednoho požadavku za sekundu — na den to stačí, na road trip je to málo. Projeví se po restartu serveru.',
+  'settings.valhallaBase': 'Vlastní instance Valhalla',
+  'settings.valhallaBaseHint': 'Vlastní instance Valhalla. Ptáme se jí, když má úsek objet mýtné, dálnice nebo trajekty — veřejné servery OSRM to neumí zodpovědět. Prázdné použije veřejnou Valhallu od FOSSGIS, ledaže je výše uveden vlastní směrovací engine; pak se žádný druhý engine neptá. Projeví se po restartu serveru.',
   'settings.mapHint': 'URL šablony pro mapové dlaždice',
   'settings.mapProvider': 'Poskytovatel mapy',
   'settings.mapProviderHint': 'Ovlivňuje mapy v Trip Planneru a Journey. Atlas vždy používá Leaflet.',

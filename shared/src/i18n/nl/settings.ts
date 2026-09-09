@@ -27,6 +27,8 @@ const settings: TranslationStrings = {
   'settings.mapDefaultHint': 'Laat leeg voor OpenStreetMap (standaard)',
   'settings.routingBase': 'Eigen routeserver',
   'settings.routingBaseHint': 'Een eigen OSRM-server. Leeg gebruikt de publieke servers, die ongeveer één verzoek per seconde toestaan — genoeg voor een dag, krap voor een roadtrip. Werkt na een herstart van de server.',
+  'settings.valhallaBase': 'Eigen Valhalla-instantie',
+  'settings.valhallaBaseHint': 'Een eigen Valhalla-instantie. Die wordt geraadpleegd wanneer een traject tol, snelwegen of veerboten moet vermijden — dat kunnen de publieke OSRM-servers niet beantwoorden. Leeg gebruikt de publieke FOSSGIS-Valhalla, tenzij hierboven een eigen routeringsmotor staat; dan wordt er helemaal geen tweede motor geraadpleegd. Werkt pas na een herstart van de server.',
   'settings.mapHint': 'URL-sjabloon voor kaarttegels',
   'settings.mapProvider': 'Kaartprovider',
   'settings.mapProviderHint': 'Geldt voor Trip Planner en Journey kaarten. Atlas gebruikt altijd Leaflet.',

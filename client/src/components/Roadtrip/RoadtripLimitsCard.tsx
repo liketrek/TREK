@@ -1,11 +1,13 @@
 import React, { useState } from 'react'
-import { Clock, Fuel, CalendarClock, SlidersHorizontal, ChevronRight } from 'lucide-react'
+import { Clock, Fuel, CalendarClock, SlidersHorizontal, ChevronRight, Coins, Signpost, Ship } from 'lucide-react'
 import Modal from '../shared/Modal'
 import { useTranslation } from '../../i18n/TranslationContext'
 import { useSettingsStore } from '../../store/settingsStore'
 import { convertDistance, formatDistance } from '../../utils/units'
-import { formatDurationShort } from './roadtripModel'
-import type { DistanceUnit } from '../../types'
+import { formatDurationShort, parseAvoid, serializeAvoid, AVOIDABLE } from './roadtripModel'
+import { valhallaAvailable } from '../Map/valhallaRoute'
+import ToggleSwitch from '../Settings/ToggleSwitch'
+import type { DistanceUnit, RouteAvoidClass } from '../../types'
 import { FS } from './typeScale'
 
 /**
@@ -76,9 +78,39 @@ function LimitRow({ icon: Icon, label, suffix, value, placeholder, onChange }: {
   )
 }
 
+/**
+ * One class the drive should leave out, with the switch that asks for it.
+ *
+ * Disabled rather than hidden when there is no engine that can answer: an operator who
+ * pointed the instance at their own OSRM has no second engine, and a switch that flips
+ * and changes nothing is worse than one that says why it cannot.
+ */
+function AvoidRow({ icon: Icon, label, on, disabled, onToggle }: {
+  icon: typeof Coins
+  label: string
+  on: boolean
+  disabled: boolean
+  onToggle: () => void
+}): React.ReactElement {
+  return (
+    <div className={`flex items-center gap-3 ${disabled ? 'opacity-50' : ''}`}>
+      <Icon size={16} className="shrink-0 text-content-faint" aria-hidden />
+      <span className="min-w-0 flex-1 text-body text-content-secondary">{label}</span>
+      {disabled
+        ? <span className="text-caption text-content-faint">{'—'}</span>
+        : <ToggleSwitch on={on} onToggle={onToggle} label={label} />}
+    </div>
+  )
+}
+
 export default function RoadtripLimitsCard({ onSave }: {
-  /** Persists one setting. Absent leaves the dialog read-only. */
-  onSave?: (key: string, value: number) => void
+  /**
+   * Persists one setting. Absent leaves the dialog read-only.
+   *
+   * A string as well as a number since the avoidance is stored as a comma list: one
+   * decision with three parts, which goes to the router as one request either way.
+   */
+  onSave?: (key: string, value: number | string) => void
 }): React.ReactElement {
   const { t } = useTranslation()
   const settings = useSettingsStore(s => s.settings)
@@ -88,6 +120,23 @@ export default function RoadtripLimitsCard({ onSave }: {
   const legMinutes = settings.roadtrip_leg_minutes
   const dayMinutes = settings.roadtrip_day_minutes
   const rangeKm = settings.roadtrip_range_km
+
+  // Parsed rather than trusted: a per-user setting gets no server-side validation, and
+  // an unknown word here would become a costing option the router does not have.
+  const avoiding = parseAvoid(settings.roadtrip_avoid)
+  // No second engine, no avoidance. An instance pointed at its own OSRM has one, and its
+  // car profile is built without excludable classes on every public host.
+  const canAvoid = valhallaAvailable()
+  const toggleAvoid = (cls: RouteAvoidClass) => {
+    const next = avoiding.includes(cls) ? avoiding.filter(c => c !== cls) : [...avoiding, cls]
+    onSave?.('roadtrip_avoid', serializeAvoid(next))
+  }
+
+  const AVOID_ROWS: { cls: RouteAvoidClass; icon: typeof Coins; label: string }[] = [
+    { cls: 'toll', icon: Coins, label: t('roadtrip.avoid.toll') },
+    { cls: 'motorway', icon: Signpost, label: t('roadtrip.avoid.motorway') },
+    { cls: 'ferry', icon: Ship, label: t('roadtrip.avoid.ferry') },
+  ]
 
   // Kilometres in storage, the traveller's own unit on screen. Without the round trip an
   // imperial user types 400 meaning miles, 400 km gets stored, and the warnings arrive a
@@ -107,6 +156,12 @@ export default function RoadtripLimitsCard({ onSave }: {
     legMinutes ? { key: 'leg', Icon: Clock, text: formatDurationShort(legMinutes * 60) } : null,
     dayMinutes ? { key: 'day', Icon: CalendarClock, text: formatDurationShort(dayMinutes * 60) } : null,
     rangeKm ? { key: 'range', Icon: Fuel, text: formatDistance(rangeKm, distanceUnit) } : null,
+    // The avoidance rides here too, and as ONE badge rather than three: it is a single
+    // decision, the three icons already say which parts of it are on, and a fourth,
+    // fifth and sixth badge would wrap the row onto a second line in a narrow rail.
+    avoiding.length && canAvoid
+      ? { key: 'avoid', Icon: AVOID_ROWS.find(r => r.cls === avoiding[0])!.icon, text: t('roadtrip.avoid.badge', { count: avoiding.length }) }
+      : null,
   ].filter(Boolean) as { key: string; Icon: typeof Clock; text: string }[]
 
   return (
@@ -193,6 +248,35 @@ export default function RoadtripLimitsCard({ onSave }: {
                 rail does not model one. A limit called "travel time per day" over that
                 number would be a lie that looks tidy. */}
             <p className="text-caption text-content-faint">{t('roadtrip.limit.hint')}</p>
+
+            {/* A heading and a rule, because six rows in one list stop reading as a form
+                and start reading as a wall. The three above are numbers that warn; the
+                three below change the road itself, which is a different kind of setting
+                and worth the separation. */}
+            <div className="mt-1 border-t border-edge-faint pt-4">
+              <p className="mb-3 text-caption font-semibold uppercase tracking-wide text-content-faint">
+                {t('roadtrip.avoid.section')}
+              </p>
+              <div className="flex flex-col gap-3">
+                {AVOID_ROWS.map(({ cls, icon, label }) => (
+                  <AvoidRow
+                    key={cls}
+                    icon={icon}
+                    label={label}
+                    on={avoiding.includes(cls)}
+                    disabled={!canAvoid}
+                    onToggle={() => toggleAvoid(cls)}
+                  />
+                ))}
+              </div>
+              {/* "Where possible" is doing real work in the label, so it is spelled out
+                  here: the router weights a class down rather than banning it, and on a
+                  drive with no way round one the road still uses it. The day says so
+                  itself when that happens, which is the only honest way to offer this. */}
+              <p className="mt-3 text-caption text-content-faint">
+                {canAvoid ? t('roadtrip.avoid.hint') : t('roadtrip.avoid.unavailable')}
+              </p>
+            </div>
           </div>
         </Modal>
       ) : null}

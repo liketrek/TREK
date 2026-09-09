@@ -44,6 +44,7 @@ type Defaults = {
   map_tile_url?: string
   carto_api_key?: string
   routing_base_url?: string
+  valhalla_base_url?: string
   map_provider?: string
   mapbox_access_token?: string
   mapbox_style?: string
@@ -121,6 +122,7 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
   const [mapboxToken, setMapboxToken] = useState('')
   const [cartoKey, setCartoKey] = useState('')
   const [routingBase, setRoutingBase] = useState('')
+  const [valhallaBase, setValhallaBase] = useState('')
   const [mapboxStyle, setMapboxStyle] = useState('')
 
   useEffect(() => {
@@ -131,6 +133,7 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
       setMapboxToken(data.mapbox_access_token || '')
       setCartoKey(data.carto_api_key || '')
       setRoutingBase(data.routing_base_url || '')
+      setValhallaBase(data.valhalla_base_url || '')
       setMapboxStyle(provider === 'leaflet' ? (data.mapbox_style || '') : styleForProvider(provider, provider === 'maplibre-gl' ? data.maplibre_style : data.mapbox_style))
       setLoaded(true)
     }).catch(() => setLoaded(true))
@@ -154,6 +157,7 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
       if (key === 'mapbox_access_token') setMapboxToken('')
       if (key === 'carto_api_key') setCartoKey('')
       if (key === 'routing_base_url') setRoutingBase('')
+      if (key === 'valhalla_base_url') setValhallaBase('')
       if (key === 'mapbox_style' || key === 'maplibre_style') {
         const provider = normalizeProvider(defaults.map_provider)
         setMapboxStyle(provider === 'leaflet' ? '' : defaultStyleForProvider(provider))
@@ -407,6 +411,28 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
             className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-400 focus:border-transparent"
           />
           <p className="text-xs mt-1 text-content-faint">{t('settings.routingBaseHint')}</p>
+        </div>
+        )}
+        {/* The second engine, next to the first because it is the same kind of decision
+            and carries the same restart caveat. Only ever asked to leave a road class
+            out of one leg, which is the one question the OSRM above refuses. */}
+        {!managed && (
+        <div style={{ marginTop: 14 }}>
+          <label className="block text-sm font-medium mb-1.5 text-content-secondary">
+            {t('settings.valhallaBase')}
+            <ResetButton field="valhalla_base_url" />
+          </label>
+          <input
+            type="text"
+            value={valhallaBase}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setValhallaBase(e.target.value)}
+            onBlur={() => save({ valhalla_base_url: valhallaBase.trim() })}
+            placeholder="https://valhalla.example.org"
+            spellCheck={false}
+            autoComplete="off"
+            className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-400 focus:border-transparent"
+          />
+          <p className="text-xs mt-1 text-content-faint">{t('settings.valhallaBaseHint')}</p>
         </div>
         )}
         <div style={{ position: 'relative', height: '200px', width: '100%', marginTop: 12 }}>

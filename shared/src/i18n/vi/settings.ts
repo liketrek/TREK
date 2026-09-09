@@ -26,6 +26,8 @@ const settings: TranslationStrings = {
   'settings.mapDefaultHint': 'Để trống cho OpenStreetMap (mặc định)',
   'settings.routingBase': 'Máy chủ định tuyến riêng',
   'settings.routingBaseHint': 'Máy chủ OSRM của riêng bạn. Để trống sẽ dùng máy chủ công cộng, cho phép khoảng một yêu cầu mỗi giây — đủ cho một ngày, chật cho chuyến đi dài. Có hiệu lực sau khi khởi động lại máy chủ.',
+  'settings.valhallaBase': 'Máy chủ Valhalla riêng',
+  'settings.valhallaBaseHint': 'Máy chủ Valhalla riêng. Nó được hỏi khi một chặng cần tránh trạm thu phí, đường cao tốc hoặc phà — các máy chủ OSRM công cộng không trả lời được việc đó. Để trống sẽ dùng Valhalla công cộng của FOSSGIS, trừ khi ở trên đã ghi một máy chủ định tuyến riêng; khi đó không hỏi máy chủ thứ hai nào cả. Có hiệu lực sau khi khởi động lại máy chủ.',
   'settings.mapHint': 'Mẫu URL cho ô bản đồ',
   'settings.mapProvider': 'Nhà cung cấp bản đồ',
   'settings.mapProviderHint':

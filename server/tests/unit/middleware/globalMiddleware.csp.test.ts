@@ -52,6 +52,24 @@ describe('global CSP: the other shipped raster presets (#2180)', () => {
   });
 });
 
+describe('global CSP: the second routing engine', () => {
+  it('allows the public Valhalla, which is a shipped default like the OSRM hosts', async () => {
+    // It is asked only when a leg should avoid tolls, a motorway or a ferry — the
+    // question the OSRM hosts answer with HTTP 400, because their car profile carries
+    // no excludable classes. Left out here it fails the way CSP always fails a fetch:
+    // silently, with the switch working and no tile of an answer arriving.
+    expect(await connectSrcSources()).toContain('https://valhalla1.openstreetmap.de');
+  });
+
+  it('names the origin without a path, because it is a POST to /route', async () => {
+    // The OSRM entries carry `/route/v1/` because a source with a path matches that
+    // path alone, and OSRM is only ever asked there. Valhalla is a different shape and
+    // would grow endpoints (isochrones, map matching), so the origin is the right unit.
+    const sources = await connectSrcSources();
+    expect(sources).not.toContain('https://valhalla1.openstreetmap.de/route');
+  });
+});
+
 describe('global CSP: the imagery host (#2307)', () => {
   it('allows server.arcgisonline.com, which a GL map reaches through fetch', async () => {
     // The gap hid behind Leaflet for as long as Leaflet was the only renderer to
@@ -165,6 +183,17 @@ describe('routingCspOrigins', () => {
       'https://osrm.example.org/route/v1/driving',
       'https://osrm.example.org/table/v1/driving',
     ])).toEqual(['https://osrm.example.org']);
+  });
+
+  it('CSP-ROUTING-006: both engines get named, because both are reached from the browser', () => {
+    // bootstrap hands in the OSRM default and the Valhalla default together. An
+    // instance that configures its own Valhalla and leaves OSRM public still has to
+    // have that host in the policy, and the other way round.
+    expect(routingCspOrigins([
+      'https://osrm.example.org/route/v1/driving',
+      'https://valhalla.example.org',
+    ])).toEqual(['https://osrm.example.org', 'https://valhalla.example.org']);
+    expect(routingCspOrigins([null, 'https://valhalla.example.org'])).toEqual(['https://valhalla.example.org']);
   });
 });
 

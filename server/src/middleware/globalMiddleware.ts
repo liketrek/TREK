@@ -245,6 +245,12 @@ export function applyGlobalMiddleware(
           "https://unpkg.com", "https://open-meteo.com", "https://api.open-meteo.com",
           "https://geocoding-api.open-meteo.com", "https://api.frankfurter.dev",
           "https://router.project-osrm.org/route/v1/", "https://routing.openstreetmap.de/",
+          // The second routing engine, shipped as a default the same way the OSRM hosts
+          // above are. It is asked only when a leg should avoid tolls, motorways or a
+          // ferry — which the OSRM hosts answer with HTTP 400, because their car profile
+          // carries no excludable classes. Origin only, no path: unlike OSRM this one is
+          // a POST to /route and would grow more endpoints if isochrones ever land.
+          "https://valhalla1.openstreetmap.de",
           "https://api.mapbox.com", "https://*.tiles.mapbox.com", "https://events.mapbox.com",
           "https://tiles.openfreemap.org",
           // A self-hosted routing engine, when the instance has one configured. Without

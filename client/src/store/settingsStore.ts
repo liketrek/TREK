@@ -61,6 +61,9 @@ export const DEFAULT_SETTINGS: Settings = {
   map_tile_url: '',
   // Empty = the public routing hosts TREK ships with.
   routing_base_url: '',
+  // Empty = the public Valhalla, unless routing_base_url names an own router, in which
+  // case no second engine is asked at all. See valhallaBase().
+  valhalla_base_url: '',
   dark_mode: false,
   // Empty = no personal display currency, so Costs falls back to the trip's own.
   default_currency: '',

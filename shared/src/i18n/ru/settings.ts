@@ -26,6 +26,8 @@ const settings: TranslationStrings = {
   'settings.mapDefaultHint': 'Оставьте пустым для OpenStreetMap (по умолчанию)',
   'settings.routingBase': 'Собственный сервер маршрутов',
   'settings.routingBaseHint': 'Собственный экземпляр OSRM. Пусто — используются публичные серверы с ограничением около одного запроса в секунду: на день хватает, для автопутешествия мало. Вступает в силу после перезапуска сервера.',
+  'settings.valhallaBase': 'Свой сервер Valhalla',
+  'settings.valhallaBaseHint': 'Свой сервер Valhalla. К нему обращаются, когда участок должен обойти платные дороги, автомагистрали или паромы — публичные серверы OSRM на это ответить не могут. Пусто использует публичный Valhalla от FOSSGIS, если выше не указан свой маршрутизатор; тогда второй движок не запрашивается вовсе. Действует после перезапуска сервера.',
   'settings.mapHint': 'URL-шаблон для тайлов карты',
   'settings.mapProvider': 'Провайдер карты',
   'settings.mapProviderHint': 'Применяется к Trip Planner и Journey. Atlas всегда использует Leaflet.',

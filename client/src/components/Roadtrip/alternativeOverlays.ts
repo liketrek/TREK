@@ -83,7 +83,7 @@ function mostDistinctPoint(
  */
 export function buildAlternativeOverlays(
   routes: (RouteAlternative & { current?: boolean; direct?: boolean })[] | undefined,
-  labels: { fastest: string; current: string; noMotorway: string; noToll: string },
+  labels: { fastest: string; current: string; noMotorway: string; noToll: string; noFerry: string },
 ): AlternativeOverlay[] {
   if (!routes?.length) return []
   // A single answer is not a choice; drawing it would just double the route already there.
@@ -114,7 +114,9 @@ export function buildAlternativeOverlays(
           ? labels.noMotorway
           : route.avoids === 'toll'
             ? labels.noToll
-            : index === quickest ? labels.fastest : '',
+            : route.avoids === 'ferry'
+              ? labels.noFerry
+              : index === quickest ? labels.fastest : '',
       duration: route.duration,
       distance: route.distance,
       slowerThanQuickest: Math.max(0, Math.round(route.duration - routes[quickest].duration)),

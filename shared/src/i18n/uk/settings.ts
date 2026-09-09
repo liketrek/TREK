@@ -27,6 +27,8 @@ const settings: TranslationStrings = {
   'settings.mapDefaultHint': 'Залиште порожнім для OpenStreetMap (за замовчуванням)',
   'settings.routingBase': 'Власний сервер маршрутів',
   'settings.routingBaseHint': 'Власний примірник OSRM. Порожньо — використовуються публічні сервери з обмеженням близько одного запиту на секунду: на день вистачає, для автоподорожі мало. Діє після перезапуску сервера.',
+  'settings.valhallaBase': 'Власний сервер Valhalla',
+  'settings.valhallaBaseHint': 'Власний сервер Valhalla. До нього звертаються, коли ділянка має обійти платні дороги, автомагістралі або пороми — публічні сервери OSRM на це відповісти не можуть. Порожнє використовує публічний Valhalla від FOSSGIS, якщо вище не вказано власний маршрутизатор; тоді другий рушій не запитують узагалі. Діє після перезапуску сервера.',
   'settings.mapHint': 'URL-шаблон для тайлів карти',
   'settings.mapProvider': 'Провайдер карти',
   'settings.mapProviderHint': 'Застосовується до Trip Planner та Journey. Atlas завжди використовує Leaflet.',

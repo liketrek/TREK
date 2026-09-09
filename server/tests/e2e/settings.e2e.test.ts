@@ -175,6 +175,23 @@ describe('Settings e2e (real auth guard + temp SQLite)', () => {
       expect(countRows()).toBe(0);
     });
 
+    it('PUT 403 for a non-admin naming the second routing engine', async () => {
+      // The Valhalla is the same class as the OSRM above and fails the same way: its
+      // origin has to be in the boot-time connect-src, which is assembled from the
+      // admin default alone. A personal row would be read by the route calculator and
+      // then refused by the browser, so "other ways" would quietly stop offering any.
+      const res = await request(server).put('/api/settings').set('Cookie', sessionCookie(1))
+        .send({ key: 'valhalla_base_url', value: 'https://valhalla.example.org' });
+      expect(res.status).toBe(403);
+      expect(res.body).toEqual({ error: 'Admin access required' });
+      expect(countRows()).toBe(0);
+    });
+
+    it('PUT lets a non-admin clear the second routing engine', async () => {
+      expect((await request(server).put('/api/settings').set('Cookie', sessionCookie(1))
+        .send({ key: 'valhalla_base_url', value: '' })).status).toBe(200);
+    });
+
     it('PUT is unaffected for a non-LLM key with the same value', async () => {
       const res = await request(server).put('/api/settings').set('Cookie', sessionCookie(1))
         .send({ key: 'start_page', value: 'local' });

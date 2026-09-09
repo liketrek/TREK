@@ -70,6 +70,7 @@ describe('managed key assignment', () => {
       'smtp_skip_tls_verify',
       'smtp_user',
       'unsplash_api_key',
+      'valhalla_base_url',
       'webauthn_origins',
       'webauthn_rp_id',
     ]);

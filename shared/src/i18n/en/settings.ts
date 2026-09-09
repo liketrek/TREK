@@ -35,6 +35,8 @@ const settings: TranslationStrings = {
   'settings.mapDefaultHint': 'Leave empty for OpenStreetMap (default)',
   'settings.routingBase': 'Own routing engine',
   'settings.routingBaseHint': 'An OSRM instance of your own. Empty uses the public servers, which allow about one request a second — enough for a day, tight for a road trip. Takes effect after a server restart.',
+  'settings.valhallaBase': 'Own Valhalla instance',
+  'settings.valhallaBaseHint': 'A Valhalla of your own. It is asked when a leg should avoid tolls, motorways or ferries — the public OSRM servers cannot answer that. Empty uses the public FOSSGIS Valhalla, unless an own routing engine is named above, in which case no second engine is asked at all. Takes effect after a server restart.',
   'settings.mapHint': 'URL template for map tiles',
   'settings.mapProvider': 'Map Provider',
   'settings.mapProviderHint': 'Affects Trip Planner and Journey maps. Atlas always uses Leaflet.',

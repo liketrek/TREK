@@ -26,6 +26,8 @@ const settings: TranslationStrings = {
   'settings.mapDefaultHint': '留空则使用 OpenStreetMap（默认）',
   'settings.routingBase': '自建路径规划服务',
   'settings.routingBaseHint': '你自己的 OSRM 实例。留空则使用公共服务器，约每秒一个请求 — 单日够用，长途自驾则吃紧。需重启服务器后生效。',
+  'settings.valhallaBase': '自建 Valhalla 实例',
+  'settings.valhallaBaseHint': '自建的 Valhalla 实例。当某段路程需要避开收费站、高速公路或轮渡时会向它询问，公共 OSRM 服务器无法回答这类问题。留空则使用 FOSSGIS 的公共 Valhalla；若上方已填写自建路径规划服务，则完全不询问第二个引擎。重启服务器后生效。',
   'settings.mapHint': '地图瓦片 URL 模板',
   'settings.mapProvider': '地图提供商',
   'settings.mapProviderHint': '影响行程规划器和旅程地图。足迹始终使用 Leaflet。',

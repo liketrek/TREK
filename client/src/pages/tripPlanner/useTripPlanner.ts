@@ -772,7 +772,7 @@ export function useTripPlanner() {
    * per-user preferences on the settings table, the same path the map provider and the
    * distance unit take, and they are read locally the moment they change.
    */
-  const saveRoadtripLimit = useCallback(async (key: string, value: number) => {
+  const saveRoadtripLimit = useCallback(async (key: string, value: number | string) => {
     try {
       await updateSettings({ [key]: value } as Partial<Settings>)
     } catch {
@@ -1054,6 +1054,7 @@ export function useTripPlanner() {
       current: t('roadtrip.alt.current'),
       noMotorway: t('roadtrip.alt.noMotorway'),
       noToll: t('roadtrip.alt.noToll'),
+      noFerry: t('roadtrip.alt.noFerry'),
     }),
     [routeAlternatives.open, t],
   )

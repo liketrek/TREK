@@ -3,11 +3,10 @@ import { calculateRouteWithLegs, RoutingRefusedError } from '../Map/RouteCalcula
 import { resolveLegMode } from '../Planner/legMode'
 import {
   computeSchedule, deriveDriveWarnings, isServiceStopType, legIndexForAlong, refuelsRange, splitIntoRuns,
-  type DayWarning, type DriveLimits, type Schedule, type ScheduleWarning,
-} from './roadtripModel'
+  type DayWarning, type DriveLimits, type Schedule, type ScheduleWarning, parseAvoid,} from './roadtripModel'
 import { projectOntoRoute } from './corridor'
 import { useSettingsStore } from '../../store/settingsStore'
-import type { Assignment, AssignmentsMap, Day, RouteSegment, RouteVia, SnappedWaypoint } from '../../types'
+import type { Assignment, AssignmentsMap, Day, RouteAvoidClass, RouteSegment, RouteVia, SnappedWaypoint } from '../../types'
 import { spurFor } from './accessSpur'
 import type { RoadtripVia } from '@trek/shared'
 
@@ -53,6 +52,15 @@ export interface RoadtripDay {
    * stop. Kept out of `RouteSegment` because that type is read by half the map.
    */
   legVias: RouteVia[][]
+  /**
+   * Classes this day was asked to leave out and could not.
+   *
+   * Empty when the drive got what it asked for, and empty when nothing was asked. The
+   * switch says "where possible", and this is what makes that honest rather than a
+   * hedge: a drive with no untolled crossing comes back on the toll road, and the day
+   * has to be able to say so instead of wearing a label the road disproves.
+   */
+  avoidMissed?: RouteAvoidClass[]
   /**
    * The roads actually driven that day, as [lat, lng] — not the straight lines between
    * stops. Anything asking "what is along this day" has to use this: between Hamburg and
@@ -247,12 +255,25 @@ export function useRoadtripRoutes(
    * filing it twice would draw the spur twice.
    */
   const [snapByDay, setSnapByDay] = useState<Record<number, Record<string, SnappedWaypoint>>>({})
+  /** Per day, the classes it was asked to avoid and did not get. See RoadtripDay.avoidMissed. */
+  const [missedByDay, setMissedByDay] = useState<Record<number, RouteAvoidClass[]>>({})
   const [loading, setLoading] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
 
   const legMinutes = useSettingsStore(s => s.settings.roadtrip_leg_minutes)
   const dayMinutes = useSettingsStore(s => s.settings.roadtrip_day_minutes)
   const rangeKm = useSettingsStore(s => s.settings.roadtrip_range_km)
+  /**
+   * Road classes to weight away, as the settings row stores them: a comma list.
+   *
+   * Parsed against the known classes rather than trusted, because there is no
+   * server-side validation for a per-user setting — the write route stores any key with
+   * any value — and an unknown word here would become a costing option the router does
+   * not have.
+   */
+  const avoidSetting = useSettingsStore(s => s.settings.roadtrip_avoid)
+  const avoid = useMemo(() => parseAvoid(avoidSetting), [avoidSetting])
+  const avoidKey = avoid.join(',')
   // Zero and absent both mean "no limit": zero is a legal thing to type and says the
   // same thing, so it is folded here rather than guarded at every reading.
   const limits = useMemo<DriveLimits>(
@@ -327,6 +348,7 @@ export function useRoadtripRoutes(
     if (!plan.length) {
       setLegsByDay({})
       setSnapByDay({})
+      setMissedByDay({})
       setLoading(false)
       return
     }
@@ -339,6 +361,7 @@ export function useRoadtripRoutes(
 
     const collected: Record<number, Record<string, RoutedLeg>> = {}
     const collectedSnaps: Record<number, Record<string, SnappedWaypoint>> = {}
+    const collectedMisses: Record<number, RouteAvoidClass[]> = {}
     const tasks: (() => Promise<void>)[] = []
 
     for (const day of plan) {
@@ -379,7 +402,7 @@ export function useRoadtripRoutes(
             try {
               const r = await calculateRouteWithLegs(
                 waypoints,
-                { signal: controller.signal, profile: mode, tripId: tripId ?? null, dayId: day.dayId },
+                { signal: controller.signal, profile: mode, tripId: tripId ?? null, dayId: day.dayId, avoid },
               )
               // Where each stop ended up. stopAt[i] is that stop's waypoint index, so the
               // vias threaded in between are skipped: a via is a shape handle, not a
@@ -456,6 +479,7 @@ export function useRoadtripRoutes(
         if (controller.signal.aborted) return
         setLegsByDay({ ...collected })
         setSnapByDay({ ...collectedSnaps })
+        setMissedByDay({ ...collectedMisses })
         // Only pace what actually went out. RouteCalculator answers a repeat from its
         // cache in well under a millisecond, and switching back into road trip mode is
         // all repeats — waiting a second between those made a warm view feel broken.
@@ -468,7 +492,8 @@ export function useRoadtripRoutes(
     return () => controller.abort()
     // planKey stands in for `plan`: same geometry, same legs.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [planKey, routeProfile, distanceUnit, tripId])
+    // avoidKey, not `avoid`: a fresh array every render would re-route on every render.
+  }, [planKey, routeProfile, distanceUnit, tripId, avoidKey])
 
   return useMemo(() => {
     const lines: [number, number][][] = []

@@ -4,6 +4,8 @@
  * on its own and reused by the map, the rail and (later) the MCP tool.
  */
 
+import type { RouteAvoidClass } from '../../types'
+
 /**
  * The stop kinds that interrupt a drive rather than end it.
  *
@@ -669,4 +671,27 @@ export function reanchorAfterReorder(
 /** Whether a re-anchoring has anything to write at all. */
 export function isEmptyReanchoring(r: Reanchoring): boolean {
   return r.vias.length === 0 && r.remove.length === 0
+}
+
+/**
+ * The road classes a stored setting asks to leave out, validated.
+ *
+ * Parsed rather than trusted. A per-user setting has no server-side validation at all —
+ * the write route stores any key with any value and says so — so an unknown word here
+ * would travel straight into a costing option the router does not have. Unknown entries
+ * are dropped, the order is fixed so two equal settings produce one cache key, and
+ * anything that is not a non-empty list reads as "route normally".
+ */
+export function parseAvoid(raw: unknown): RouteAvoidClass[] {
+  if (typeof raw !== 'string' || !raw.trim()) return []
+  const asked = new Set(raw.split(',').map(part => part.trim().toLowerCase()))
+  return AVOIDABLE.filter(cls => asked.has(cls))
+}
+
+/** Every class that can be avoided, in the order they are offered and stored. */
+export const AVOIDABLE: readonly RouteAvoidClass[] = ['toll', 'motorway', 'ferry']
+
+/** The setting value for a set of classes, in the fixed order. */
+export function serializeAvoid(classes: readonly RouteAvoidClass[]): string {
+  return AVOIDABLE.filter(cls => classes.includes(cls)).join(',')
 }

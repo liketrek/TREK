@@ -27,6 +27,8 @@ const settings: TranslationStrings = {
   'settings.mapDefaultHint': 'Deixe vazio para OpenStreetMap (padrão)',
   'settings.routingBase': 'Servidor de rotas próprio',
   'settings.routingBaseHint': 'Uma instância própria do OSRM. Vazio usa os servidores públicos, que permitem cerca de uma requisição por segundo — suficiente para um dia, apertado para uma viagem de carro. Passa a valer após reiniciar o servidor.',
+  'settings.valhallaBase': 'Instância Valhalla própria',
+  'settings.valhallaBaseHint': 'Uma instância Valhalla própria. Ela é consultada quando um trecho deve evitar pedágios, rodovias ou balsas — os servidores OSRM públicos não conseguem responder isso. Vazio usa a Valhalla pública da FOSSGIS, a não ser que acima esteja indicado um motor de rotas próprio; nesse caso nenhum segundo motor é consultado. Só vale após reiniciar o servidor.',
   'settings.mapHint': 'URL do modelo de blocos do mapa',
   'settings.mapProvider': 'Provedor de mapa',
   'settings.mapProviderHint': 'Afeta os mapas do Planejador de Viagem e Diário. Atlas sempre usa Leaflet.',

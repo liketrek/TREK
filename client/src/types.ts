@@ -115,6 +115,12 @@ export interface Settings {
    * FOSSGIS hosts, which allow about one request a second.
    */
   routing_base_url?: string
+  /**
+   * Base URL of the Valhalla asked for the avoidance questions OSRM cannot answer.
+   * Undefined means the public FOSSGIS instance TREK ships with; empty means an
+   * operator turned the second engine off and "other ways" goes back to OSRM alone.
+   */
+  valhalla_base_url?: string
   dark_mode: boolean | string
   /** Display currency for Costs. Empty/null = follow each trip's own currency. */
   default_currency: string | null
@@ -143,6 +149,16 @@ export interface Settings {
   roadtrip_leg_minutes?: number
   roadtrip_day_minutes?: number
   roadtrip_range_km?: number
+  /**
+   * Road classes the drive should leave out where it can, as a comma list
+   * ("toll,ferry"). Absent means route normally, which is the right meaning for absent:
+   * the settings row does not exist until somebody turns one of them on, and the first
+   * paint of every session reads this before the settings have loaded.
+   *
+   * A list rather than three booleans because it is one decision with three parts, and
+   * because it goes to the router as one request either way.
+   */
+  roadtrip_avoid?: string
   /** CARTO basemaps watermark keyless tiles; the key is appended as ?key= (#2054). */
   carto_api_key?: string
   mapbox_access_token?: string
@@ -228,7 +244,19 @@ export interface RouteWithLegs {
   vias?: RouteVia[]
   /** One entry per REQUESTED waypoint, in request order. Absent on plugin routes. */
   snapped?: SnappedWaypoint[]
+  /**
+   * What was asked to be left out, and what the road actually left out.
+   *
+   * The two differ, and that is the point. Valhalla weights a class away rather than
+   * banning it, so a drive with no untolled connection comes back on a toll road and
+   * says so. Present only on a route that was asked to avoid something, so `undefined`
+   * means the question was never put rather than "avoided nothing".
+   */
+  avoidance?: { asked: RouteAvoidClass[]; achieved: RouteAvoidClass[] }
 }
+
+/** A road class a route can be asked to leave out. */
+export type RouteAvoidClass = 'motorway' | 'toll' | 'ferry'
 
 export interface RouteResult {
   coordinates: [number, number][]

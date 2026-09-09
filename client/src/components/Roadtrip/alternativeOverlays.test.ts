@@ -12,7 +12,7 @@ import type { RouteAlternative } from '../Map/RouteCalculator'
  * reason this is not simply the midpoint.
  */
 
-const LABELS = { fastest: 'Fastest', current: 'Current', noMotorway: 'No motorway', noToll: 'No tolls' }
+const LABELS = { fastest: 'Fastest', current: 'Current', noMotorway: 'No motorway', noToll: 'No tolls', noFerry: 'No ferry' }
 
 /** A straight line of `n` points from (0,0) heading east, offset north by `lat`. */
 function line(n: number, lat: number): [number, number][] {

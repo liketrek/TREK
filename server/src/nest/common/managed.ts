@@ -96,6 +96,7 @@ export const MANAGED_LOCKED_SETTING_KEYS = [
   'smtp_skip_tls_verify',
   'smtp_user',
   'unsplash_api_key',
+  'valhalla_base_url',
   'webauthn_origins',
   'webauthn_rp_id',
 ] as const;

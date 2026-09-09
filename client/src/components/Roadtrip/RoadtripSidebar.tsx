@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import {
   CarFront, Footprints, Bike, Zap, AlertTriangle,
-  ParkingSquare, Shuffle, Fuel, Clock, Spline,
+  ParkingSquare, Shuffle, Fuel, Clock, Spline, Ban,
   type LucideIcon,
 } from 'lucide-react'
 import MDancingTrek from '../../mobile/components/MDancingTrek'
@@ -887,6 +887,21 @@ function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, on
           <span className={`${DAY_BADGE} bg-surface-tertiary`} style={{ fontSize: FS.label }}>
             {t('roadtrip.day.stopCount', { count: day.stops.filter(s => !isServiceStopType(s.stopType)).length })}
           </span>
+          {/* The other half of "where possible". The setting is a weighting, so a day
+              with no untolled crossing comes back on the toll road — and the only thing
+              worse than not avoiding it is not avoiding it silently, which reads as the
+              switch being broken. Among the day's facts because that is what it is: a
+              fact about this day's roads, not a warning about the plan. */}
+          {day.avoidMissed?.length ? (
+            <Tooltip label={t('roadtrip.avoid.missedHint')}>
+              <span className={`${DAY_BADGE} gap-1 bg-surface-tertiary text-content-secondary`} style={{ fontSize: FS.label }}>
+                <Ban size={10} className="shrink-0" aria-hidden />
+                {t('roadtrip.avoid.missed', {
+                  classes: day.avoidMissed.map(cls => t(`roadtrip.avoid.${cls}`)).join(', '),
+                })}
+              </span>
+            </Tooltip>
+          ) : null}
           {/* Among the day's facts rather than beside its title, because "which road this
               day takes" is one of them. Tinted once the day carries vias: the rail draws
               none of them, so this badge is the only place a drive shaped by hand differs

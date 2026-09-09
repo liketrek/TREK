@@ -42,6 +42,18 @@ export const DEFAULTABLE_USER_SETTING_KEYS = [
    * once at boot, and a router the policy does not name fails silently.
    */
   'routing_base_url',
+  /**
+   * The second engine, asked only what OSRM cannot answer: drive this leg without the
+   * tolls, the motorway or the ferry. The shipped OSRM hosts refuse `exclude` outright,
+   * so on a default install that question has never had an answer.
+   *
+   * Same class as the key above and for the same reason: it names an origin the BROWSER
+   * connects to, so it has to be in the boot-time connect-src, and changing it needs a
+   * restart. Empty falls back to the public Valhalla, unless routing_base_url names an
+   * own engine — an operator who chose their own router is not given a public third
+   * party they never asked for.
+   */
+  'valhalla_base_url',
   // CARTO stamps an "API KEY REQUIRED" watermark into keyless tiles (#2054), and
   // the key is per-instance rather than per-person: defaultable so one admin
   // value clears the watermark for everybody at once.
@@ -100,7 +112,7 @@ const BOOLEAN_KEYS = new Set<DefaultableKey>(['blur_booking_codes', 'mapbox_3d_e
  * on the next save instead of blocking it.
  */
 export function isAdminOnlyEndpointSetting(key: string, value: unknown): boolean {
-  if (key === 'llm_base_url' || key === 'routing_base_url') {
+  if (key === 'llm_base_url' || key === 'routing_base_url' || key === 'valhalla_base_url') {
     return typeof value === 'string' && value.trim() !== '';
   }
   if (key === 'llm_provider') return value === 'local';
