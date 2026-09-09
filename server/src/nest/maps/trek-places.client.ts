@@ -228,17 +228,72 @@ async function readCapped(res: Response, max: number): Promise<string> {
   return Buffer.concat(chunks).toString('utf8');
 }
 
+/**
+ * A row from the service's OpenStreetMap layer, which answers alongside the
+ * index when `sources` asks for it.
+ *
+ * A different shape from TrekPlace, and that is the point rather than an
+ * oversight: the layer carries every name form a place is known under, which is
+ * what the index does not have. `name` is the one that matched the query and
+ * `local_name` the one written on the building, so a German searching "Tokio
+ * Hauptbahnhof" gets that as the label and 東京駅丸の内駅舎 underneath.
+ *
+ * It has no address block. OpenStreetMap does not carry one per node, and
+ * inventing an empty one here would let a caller read `address.locality` and
+ * quietly get nothing.
+ */
+export interface TrekOsmPlace {
+  /** Always `osm:<type>/<id>`, e.g. `osm:node/9712313`. */
+  id: string;
+  osm_type: 'node' | 'way' | 'relation';
+  osm_id: number;
+  name: string;
+  local_name: string | null;
+  lat: number;
+  lng: number;
+  category: string | null;
+  source: 'openstreetmap';
+  distance_km?: number;
+}
+
+export type TrekSearchHit = TrekPlace | TrekOsmPlace;
+
+export const isOsmHit = (hit: TrekSearchHit): hit is TrekOsmPlace =>
+  hit.source === 'openstreetmap';
+
+/**
+ * Turn the layer's id into the form the rest of this service already speaks.
+ *
+ * `osm:node/9712313` becomes `node:9712313`, which is what OSM_PLACE_ID matches
+ * and what getPlaceDetails resolves through the existing OpenStreetMap path.
+ * Without this the suggestion would carry an id nothing downstream recognises,
+ * and picking it would fail after the user had already chosen it.
+ */
+export function osmPlaceId(hit: TrekOsmPlace): string {
+  return `${hit.osm_type}:${hit.osm_id}`;
+}
+
 export async function trekPlacesSearch(
   query: string,
-  opts: { lat?: number; lng?: number; limit?: number } = {},
-): Promise<TrekPlace[]> {
-  const body = await getJson<TrekPlacesSearchResponse>('/v1/search', {
+  opts: { lat?: number; lng?: number; limit?: number; sources?: string } = {},
+): Promise<TrekSearchHit[]> {
+  const body = await getJson<{ results?: TrekSearchHit[] }>('/v1/search', {
     q: query,
     lat: opts.lat,
     lng: opts.lng,
     limit: opts.limit ?? 10,
+    // Left off unless asked for, so the service applies its own default. That
+    // default is the index alone, which is what every existing caller here
+    // wants: the explicit search path already asks Nominatim in parallel, and
+    // adding the layer there would return the same OpenStreetMap places twice.
+    sources: opts.sources,
   });
   return Array.isArray(body.results) ? body.results : [];
+}
+
+/** The index-only rows of a mixed result, for callers that need Overture fields. */
+export function indexHitsOnly(hits: TrekSearchHit[]): TrekPlace[] {
+  return hits.filter((h): h is TrekPlace => !isOsmHit(h));
 }
 
 /**
