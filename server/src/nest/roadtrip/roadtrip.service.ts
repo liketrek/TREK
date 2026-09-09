@@ -154,14 +154,34 @@ export class RoadtripService {
   }
 
   /** Moving a via is the whole edit; where it sits in the chain does not change. */
-  move(id: string | number, dayId: string | number, lat: number, lng: number): RoadtripVia | null {
+  move(
+    id: string | number,
+    dayId: string | number,
+    lat: number,
+    lng: number,
+    afterOrderIndex?: number,
+  ): RoadtripVia | null {
     const existing = this.db.get<{ id: number }>(
       'SELECT id FROM roadtrip_vias WHERE id = ? AND day_id = ?',
       id,
       dayId,
     );
     if (!existing) return null;
-    this.db.run('UPDATE roadtrip_vias SET lat = ?, lng = ? WHERE id = ?', lat, lng, id);
+    // The anchor moves with the point when the caller worked out a new one. It is not a
+    // property of the via but of where the via sits along the drive, so dragging one past
+    // a stop changes which leg it belongs to — and leaving it behind is what made the
+    // route run out to the point and back instead of bending through it.
+    if (afterOrderIndex === undefined) {
+      this.db.run('UPDATE roadtrip_vias SET lat = ?, lng = ? WHERE id = ?', lat, lng, id);
+    } else {
+      this.db.run(
+        'UPDATE roadtrip_vias SET lat = ?, lng = ?, after_order_index = ? WHERE id = ?',
+        lat,
+        lng,
+        afterOrderIndex,
+        id,
+      );
+    }
     return this.byId(Number(id));
   }
 

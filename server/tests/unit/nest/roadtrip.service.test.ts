@@ -82,12 +82,35 @@ describe('RoadtripService', () => {
     expect(service.listForTrip(7).map(v => v.day_id)).toEqual([1, 2]);
   });
 
-  it('ROADTRIP-SVC-005: moving a via changes where it is, not where it sits in the chain', () => {
+  it('ROADTRIP-SVC-005: a move with no new anchor leaves the chain alone', () => {
+    // The drag stayed between the same two stops, so there is nothing to re-pin. The
+    // sequence is never touched by a move either way: it orders the vias that share one
+    // anchor, and dragging one does not reorder its neighbours.
     const via = service.create(1, { after_order_index: 1, lat: 53, lng: 10 });
 
     const moved = service.move(via.id, 1, 52.5, 11.5);
 
     expect(moved).toMatchObject({ lat: 52.5, lng: 11.5, after_order_index: 1, sequence: via.sequence });
+  });
+
+  it('ROADTRIP-SVC-007: a via dragged past a stop is re-pinned to the leg it landed on', () => {
+    // The bug this exists for: a drag used to carry only the coordinates, so a via pulled
+    // beyond the stop it used to precede kept claiming the earlier leg. The route then ran
+    // out to the point and back before carrying on, which reads as the drag doing nothing.
+    const via = service.create(1, { after_order_index: 0, lat: 53.87, lng: 10.7 });
+
+    const moved = service.move(via.id, 1, 53.87, 11.53, 1);
+
+    expect(moved).toMatchObject({ lat: 53.87, lng: 11.53, after_order_index: 1 });
+  });
+
+  it('ROADTRIP-SVC-008: a re-pin through the wrong day changes nothing at all', () => {
+    // The day check has to guard the anchor as well as the coordinates, or an id from
+    // another day could be renumbered through a day the caller does happen to reach.
+    const via = service.create(1, { after_order_index: 0, lat: 53, lng: 10 });
+
+    expect(service.move(via.id, 2, 51, 12, 3)).toBeNull();
+    expect(service.listForDay(1)[0]).toMatchObject({ lat: 53, lng: 10, after_order_index: 0 });
   });
 
   it('ROADTRIP-SVC-006: a via cannot be moved or removed through the wrong day', () => {

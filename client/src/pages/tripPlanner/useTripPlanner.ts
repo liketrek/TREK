@@ -1148,10 +1148,19 @@ export function useTripPlanner() {
    * third stop" means the same thing everywhere. The day is the one whose line was hit,
    * found by trying each day's geometry and keeping the closest.
    */
-  const addRoadtripVia = useCallback(async (lat: number, lng: number) => {
-    if (!can('day_edit', trip)) return
+  /**
+   * Which stop of which day a point belongs behind, measured along the drive.
+   *
+   * Shared by placing a via and by dragging one, because it is the same question both
+   * times and the answer has to be recomputed both times. A drag used to send only the
+   * new coordinates, so a via pulled past the stop it used to precede kept claiming the
+   * earlier leg: the route then ran out to the point and back before carrying on, which
+   * looks exactly like a drag that did nothing.
+   */
+  const anchorFor = useCallback((lat: number, lng: number, onlyDayId?: number) => {
     let best: { dayId: number; afterIndex: number; offRouteKm: number } | null = null
     for (const day of roadtripRoutes.days) {
+      if (onlyDayId !== undefined && day.dayId !== onlyDayId) continue
       if (day.geometry.length < 2) continue
       const spine = day.geometry.map(([la, ln]) => ({ lat: la, lng: ln }))
       const hit = projectOntoRoute({ lat, lng }, spine)
@@ -1162,6 +1171,12 @@ export function useTripPlanner() {
       const afterIndex = Math.max(0, insertIndexForAlong(stopsAlong, hit.alongKm) - 1)
       best = { dayId: day.dayId, afterIndex, offRouteKm: hit.offRouteKm }
     }
+    return best
+  }, [roadtripRoutes.days])
+
+  const addRoadtripVia = useCallback(async (lat: number, lng: number) => {
+    if (!can('day_edit', trip)) return
+    const best = anchorFor(lat, lng)
     // A click that landed on some other line is not a via anywhere.
     if (!best || best.offRouteKm > 2) return
     try {
@@ -1169,17 +1184,25 @@ export function useTripPlanner() {
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : t('common.unknownError'))
     }
-  }, [roadtripRoutes.days, roadtripVias, can, trip, toast, t])
+  }, [anchorFor, roadtripVias, can, trip, toast, t])
 
   /** Dragging a via redraws the route through its new position. */
   const moveRoadtripVia = useCallback(async (dayId: number, id: number, lat: number, lng: number) => {
     if (!can('day_edit', trip)) return
+    // Measured against this day only. A drag is a drag WITHIN a day: letting the nearest
+    // day win, the way placing one does, would hand the via to a neighbouring day whose
+    // road happens to pass closer, and it would vanish from the day it was dragged in.
+    //
+    // No distance guard either. Dragging a via well off the current road is the whole
+    // point of dragging it, and refusing that would be refusing the gesture; the anchor
+    // just says which leg gets bent, and the router answers the rest.
+    const anchor = anchorFor(lat, lng, dayId)
     try {
-      await roadtripVias.move(dayId, id, lat, lng)
+      await roadtripVias.move(dayId, id, lat, lng, anchor?.afterIndex)
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : t('common.unknownError'))
     }
-  }, [roadtripVias, can, trip, toast, t])
+  }, [anchorFor, roadtripVias, can, trip, toast, t])
 
   /** Removing a via lets the drive take the direct road again. */
   const removeRoadtripVia = useCallback(async (dayId: number, id: number) => {

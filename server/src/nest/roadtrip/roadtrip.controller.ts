@@ -108,7 +108,7 @@ export class RoadtripController {
     @Body() body: RoadtripViaUpdateDto,
   ): { via: RoadtripVia } {
     this.requireDay(dayId, tripId);
-    const via = this.roadtrip.move(id, dayId, body.lat, body.lng);
+    const via = this.roadtrip.move(id, dayId, body.lat, body.lng, body.after_order_index);
     if (!via) throw new HttpException({ error: 'Via not found' }, 404);
     return { via };
   }

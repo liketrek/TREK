@@ -1060,11 +1060,63 @@ describe('useTripPlanner road trip: shaping the drive on the map', () => {
     const { result } = await renderRoadtrip()
 
     await act(async () => { await result.current.moveRoadtripVia(5, 3, 53.2, 11.7) })
-    expect(rt.vias.move).toHaveBeenCalledWith(5, 3, 53.2, 11.7)
+    expect(rt.vias.move).toHaveBeenCalledWith(5, 3, 53.2, 11.7, 0)
 
     rt.vias.move.mockRejectedValue(new Error('stale'))
     await act(async () => { await result.current.moveRoadtripVia(5, 3, 53.2, 11.7) })
     expect(toasts.some(t => t.type === 'error' && t.message === 'stale')).toBe(true)
+  })
+
+  it('FE-TP-ROAD-053: a via dragged past a stop is re-pinned to the leg it landed on', async () => {
+    // The bug this exists for. A drag used to send only the new coordinates, so a via
+    // pulled beyond the stop it used to precede kept claiming the earlier leg: the route
+    // ran out to the point and back before carrying on, which reads as the drag doing
+    // nothing at all. Three stops so there are two legs to land between.
+    seedTrip({ days: [buildDay({ id: 5, day_number: 1 })] })
+    rt.corridor.day = { dayId: 5, dayNumber: 1 }
+    rt.routes.days = [{
+      dayId: 5,
+      stops: [{ lat: 53.55, lng: 9.99 }, { lat: 53.85, lng: 11.45 }, { lat: 52.52, lng: 13.4 }],
+      geometry: [[53.55, 9.99], [53.87, 10.7], [53.85, 11.45], [53.87, 11.53], [52.52, 13.4]],
+    }]
+    const { result } = await renderRoadtrip()
+
+    // Dropped on the first leg, then dragged past the middle stop onto the second.
+    await act(async () => { await result.current.addRoadtripVia(53.87, 10.7) })
+    expect(rt.vias.add).toHaveBeenCalledWith(5, 0, 53.87, 10.7)
+
+    await act(async () => { await result.current.moveRoadtripVia(5, 9, 53.87, 11.53) })
+    expect(rt.vias.move).toHaveBeenCalledWith(5, 9, 53.87, 11.53, 1)
+  })
+
+  it('FE-TP-ROAD-054: a drag is measured against its own day, however close another one runs', async () => {
+    // Placing a via lets the nearest day win, which is right for a click on the map.
+    // A drag is not that: the via already belongs to a day, and handing it to a
+    // neighbouring day whose road happens to pass closer would make it vanish from the
+    // one it was dragged in.
+    twoRoutedDays()
+    const { result } = await renderRoadtrip()
+
+    // Right on day 6's line, but dragged within day 5.
+    await act(async () => { await result.current.moveRoadtripVia(5, 3, 47.9, 12.3) })
+
+    expect(rt.vias.move).toHaveBeenCalledWith(5, 3, 47.9, 12.3, expect.any(Number))
+    // Day 6 never saw it.
+    expect(rt.vias.move).not.toHaveBeenCalledWith(6, expect.anything(), expect.anything(), expect.anything(), expect.anything())
+  })
+
+  it('FE-TP-ROAD-055: a drag far off the road still moves, without an anchor to offer', async () => {
+    // No distance guard on a drag, unlike on a click: pulling a via well away from the
+    // current road is the whole point of the gesture. A day with no line to measure
+    // against simply sends no anchor, and the existing pin stays as it was.
+    seedTrip({ days: [buildDay({ id: 5, day_number: 1 })] })
+    rt.corridor.day = { dayId: 5, dayNumber: 1 }
+    rt.routes.days = [{ dayId: 5, stops: [], geometry: [] }]
+    const { result } = await renderRoadtrip()
+
+    await act(async () => { await result.current.moveRoadtripVia(5, 3, 41.9, 12.5) })
+
+    expect(rt.vias.move).toHaveBeenCalledWith(5, 3, 41.9, 12.5, undefined)
   })
 
   it('FE-TP-ROAD-052: removing a via lets the drive take the direct road again', async () => {

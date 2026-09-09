@@ -43,10 +43,20 @@ export const roadtripViaCreateRequestSchema = z.object({
 });
 export type RoadtripViaCreateRequest = z.infer<typeof roadtripViaCreateRequestSchema>;
 
-/** Moving a via is the whole edit — dragging it somewhere else on the map. */
+/**
+ * Moving a via is the whole edit — dragging it somewhere else on the map.
+ *
+ * `after_order_index` travels with the drag because the anchor is not a property of the
+ * point, it is a property of where the point sits along the drive. Without it a via
+ * dragged past the stop it used to precede keeps claiming the earlier leg, and the route
+ * runs out to it and back again before carrying on — which reads as the drag having done
+ * nothing at all. Optional so an older client, and a drag that did not move the via
+ * across a stop, still send just the coordinates.
+ */
 export const roadtripViaUpdateRequestSchema = z.object({
   lat: latSchema,
   lng: lngSchema,
+  after_order_index: z.number().int().min(0).optional(),
 });
 export type RoadtripViaUpdateRequest = z.infer<typeof roadtripViaUpdateRequestSchema>;
 

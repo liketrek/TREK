@@ -66,7 +66,7 @@ export interface RoadtripVias {
     /** Absent leaves the day's track alone, null clears it, an object records a new one. */
     track?: { place_id: number; stray_km?: number | null } | null,
   ) => Promise<void>
-  move: (dayId: number, id: number, lat: number, lng: number) => Promise<void>
+  move: (dayId: number, id: number, lat: number, lng: number, afterOrderIndex?: number) => Promise<void>
   remove: (dayId: number, id: number) => Promise<void>
   /**
    * Correct a day's anchors after its stops changed shape.
@@ -171,9 +171,16 @@ export function useRoadtripVias(tripId: number | string | null, active: boolean)
     await reload()
   }, [tripId, reload])
 
-  const move = useCallback(async (dayId: number, id: number, lat: number, lng: number) => {
+  const move = useCallback(async (dayId: number, id: number, lat: number, lng: number, afterOrderIndex?: number) => {
     if (!tripId) return
-    await roadtripApi.moveVia(tripId, dayId, id, { lat, lng })
+    // The anchor rides along when the caller worked out a new one: a via dragged past the
+    // stop it used to sit before belongs to the next leg now, and saying only where it is
+    // leaves it claiming the old one.
+    await roadtripApi.moveVia(tripId, dayId, id, {
+      lat,
+      lng,
+      ...(afterOrderIndex === undefined ? {} : { after_order_index: afterOrderIndex }),
+    })
     await reload()
   }, [tripId, reload])
 

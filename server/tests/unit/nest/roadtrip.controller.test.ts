@@ -160,7 +160,15 @@ describe('RoadtripController — writes', () => {
   it('ROADTRIP-CTL-012: moving a via reports where it went', () => {
     const s = svc();
     expect(new RoadtripController(s).update('7', '4', '5', { lat: 54, lng: 11 })).toEqual({ via: VIA });
-    expect(s.move).toHaveBeenCalledWith('5', '4', 54, 11);
+    // Undefined anchor, explicitly: a drag that stayed between the same two stops sends
+    // no new one, and the service must leave the existing pin alone rather than clear it.
+    expect(s.move).toHaveBeenCalledWith('5', '4', 54, 11, undefined);
+  });
+
+  it('ROADTRIP-CTL-015: a new anchor is passed on, so a via dragged past a stop is re-pinned', () => {
+    const s = svc();
+    new RoadtripController(s).update('7', '4', '5', { lat: 54, lng: 11, after_order_index: 2 });
+    expect(s.move).toHaveBeenCalledWith('5', '4', 54, 11, 2);
   });
 
   it('ROADTRIP-CTL-013: a via that is not on this day is a 404, not a silent no-op', () => {
