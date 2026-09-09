@@ -68,6 +68,26 @@ export const mapsAutocompleteSuggestionSchema = z.object({
   placeId: z.string(),
   mainText: z.string(),
   secondaryText: z.string(),
+  /**
+   * Which index this one row came from, when the answer is more than one index
+   * interleaved. The list-level `source` cannot say it: the keystroke path asks
+   * the TREK index and the OpenStreetMap layer together, so a single name above
+   * the list marks half the rows wrong.
+   *
+   * Optional because Google and the Nominatim fallback each answer from one
+   * place, and a row that names no source falls back to the list's.
+   */
+  source: z.string().optional(),
+  /**
+   * Where the place is, when the index that answered already said so.
+   *
+   * The OpenStreetMap layer returns coordinates with every row, and throwing
+   * them away here cost the client a second round trip on every pick — and,
+   * when that round trip failed, a text search built out of a name and its
+   * local spelling, which is not a query anybody would type.
+   */
+  lat: z.number().optional(),
+  lng: z.number().optional(),
 });
 export const mapsAutocompleteResultSchema = z.object({
   suggestions: z.array(mapsAutocompleteSuggestionSchema),

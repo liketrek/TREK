@@ -2021,7 +2021,7 @@ export class MapsService {
     lang?: string,
     locationBias?: { low: { lat: number; lng: number }; high: { lat: number; lng: number } },
     sessionToken?: string,
-  ): Promise<{ suggestions: { placeId: string; mainText: string; secondaryText: string }[]; source: string }> {
+  ): Promise<MapsAutocompleteResult> {
     const { key: apiKey, source: keySource } = this.resolveMapsKey(userId);
 
     // This is the path that mattered most. Nominatim's usage policy names
@@ -2071,11 +2071,25 @@ export class MapsService {
                     // place is called on the spot, which is more use under a
                     // translated label than an empty line.
                     secondaryText: p.local_name && p.local_name !== p.name ? p.local_name : '',
+                    // Per row, because this list is two indexes interleaved.
+                    // The name above the list says `trek-places`, which is true
+                    // of the call and false of half the rows in it — the layer
+                    // is OpenStreetMap, and a reader deciding whether to trust
+                    // a suggestion is asking exactly that.
+                    source: 'openstreetmap',
+                    // Both indexes hand these over with the row. Carried rather
+                    // than dropped so picking a suggestion has something to fall
+                    // back on when the details lookup cannot answer.
+                    lat: p.lat,
+                    lng: p.lng,
                   }
                 : {
                     placeId: `gers:${p.gers}`,
                     mainText: p.name,
                     secondaryText: [p.address?.locality, p.address?.country].filter(Boolean).join(', '),
+                    source: 'trek-places',
+                    lat: p.lat,
+                    lng: p.lng,
                   },
             ),
             source: 'trek-places',
@@ -2143,7 +2157,7 @@ export class MapsService {
   private async autocompleteNominatim(
     input: string,
     lang?: string,
-  ): Promise<{ suggestions: { placeId: string; mainText: string; secondaryText: string }[]; source: string }> {
+  ): Promise<MapsAutocompleteResult> {
     try {
       const places = await this.searchNominatim(input, lang);
       const suggestions = places

@@ -196,6 +196,19 @@ describe('MapsService.autocompletePlaces', () => {
     expect(second.suggestions[0].secondaryText).toBe('');
   });
 
+  it('MAPS-AUTO-010: each row says which index it came from, because the list is two', async () => {
+    mockSearch.mockResolvedValue([hit(), osmHit()]);
+
+    const { suggestions, source } = await make().autocompletePlaces(1, INPUT);
+
+    // The name above the list describes the call, and the call asked both. Only
+    // the row can say which of the two answered it — without that the reader is
+    // told a place from OpenStreetMap came out of the TREK index, which is the
+    // one thing the mark beside a suggestion exists to answer.
+    expect(source).toBe('trek-places');
+    expect(suggestions.map(s => s.source)).toEqual(['trek-places', 'openstreetmap']);
+  });
+
   it('MAPS-AUTO-007: the keystroke never leaves for the index while the admin has it off', async () => {
     mockSearch.mockResolvedValue([hit()]);
 

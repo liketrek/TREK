@@ -18,6 +18,7 @@ import { useTranslation } from '../../i18n'
 import CustomTimePicker from '../shared/CustomTimePicker'
 import { DEFAULT_FORM, isGoogleMapsUrl, mergeResult, type PlaceFormData, type ResultField } from './PlaceFormModal.helpers'
 import { getApiErrorMessage } from '../../utils/apiError'
+import { sourceLabelFor } from '../../utils/placeSource'
 import { useLocationBias } from '../../hooks/useLocationBias'
 import { BookingCostsSection } from './BookingCostsSection'
 import type { BookingExpenseRequest } from './BookingCostsSection.types'
@@ -56,36 +57,19 @@ interface PlaceFormModalProps {
 
 
 /**
- * Which index a search result came from, as a short mark beside it.
+ * One row of the typed-ahead list, as the server sends it.
  *
- * A place list can be two indexes interleaved, so the source belongs on the row
- * rather than above the list: with the TREK index and OpenStreetMap answering
- * together, "one of these came from somewhere" is not an answer anyone can use.
- *
- * The three names are proper nouns, so they are not translated, and that is also
- * why there is no fourth: a source without a name people already know would need
- * a string in 23 languages to say less than nothing.
+ * `source`, `lat` and `lng` are optional because not every index fills them:
+ * Google answers with neither, and the mark falls back to the name the whole
+ * list carries.
  */
-const SOURCE_LABELS: Record<string, string> = {
-  'trek-places': 'TREK',
-  openstreetmap: 'OpenStreetMap',
-  nominatim: 'OpenStreetMap',
-  google: 'Google',
-}
-
-/**
- * The label for one row.
- *
- * A place carries its own source when the index that produced it says so, which
- * is what makes an interleaved list readable. Everything else falls back to what
- * answered the call: Google never marks its places, and a merged list marks only
- * the index side, so an unmarked row in one is OpenStreetMap by elimination.
- */
-function sourceLabelFor(place: unknown, listSource: string): string | null {
-  const own = (place as { source?: unknown } | null)?.source
-  if (typeof own === 'string' && own) return SOURCE_LABELS[own] ?? null
-  if (listSource.includes('openstreetmap')) return SOURCE_LABELS.openstreetmap
-  return SOURCE_LABELS[listSource] ?? null
+type Suggestion = {
+  placeId: string
+  mainText: string
+  secondaryText: string
+  source?: string
+  lat?: number
+  lng?: number
 }
 
 /** The mark itself. Quiet on purpose: it answers a question, it does not advertise. */
@@ -161,10 +145,10 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
   const [pendingFiles, setPendingFiles] = useState([])
   const fileRef = useRef(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
-  const [acSuggestions, setAcSuggestions] = useState<{ placeId: string; mainText: string; secondaryText: string }[]>([])
-  // Which index answered the last keystroke. One call is served by one source,
-  // so the whole list carries it; the search below is per place, because that
-  // list can be two indexes interleaved.
+  const [acSuggestions, setAcSuggestions] = useState<Suggestion[]>([])
+  // Which index answered the last keystroke, for the rows that do not say so
+  // themselves. Google and the OpenStreetMap fallback each answer from one
+  // place; the index path answers from two at once and marks every row.
   const [acSource, setAcSource] = useState<string>('')
   const [acHighlight, setAcHighlight] = useState(-1)
   const acDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -420,7 +404,7 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
     setMapsSearch('')
   }
 
-  const handleSelectSuggestion = async (suggestion: { placeId: string; mainText: string; secondaryText: string }) => {
+  const handleSelectSuggestion = async (suggestion: Suggestion) => {
     // Read before the list is cleared: this is the rank the user saw.
     const acRank = acSuggestions.findIndex(s => s.placeId === suggestion.placeId)
     const acCount = acSuggestions.length
@@ -447,6 +431,21 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
         }
       } catch (err) {
         console.error('Failed to fetch place details:', err)
+      }
+      if (!place && suggestion.source === 'openstreetmap' && suggestion.lat != null && suggestion.lng != null) {
+        // The layer's rows carry no address; their second line is the name
+        // written on the building. Searching for "Tokio Hauptbahnhof, 東京駅"
+        // is not a question anybody asked, and its first answer would be
+        // whatever the index made of it — a different place, chosen silently.
+        // The suggestion already knows where it is, so use that.
+        place = {
+          name: suggestion.mainText,
+          address: '',
+          lat: suggestion.lat,
+          lng: suggestion.lng,
+          osm_id: suggestion.placeId,
+          source: 'openstreetmap',
+        }
       }
       if (!place) {
         const query = [suggestion.mainText, suggestion.secondaryText].filter(Boolean).join(', ')

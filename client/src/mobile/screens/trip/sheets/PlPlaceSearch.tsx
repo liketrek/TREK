@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Loader2, Search } from 'lucide-react'
 import { mapsApi } from '../../../../api/client'
+import { sourceLabelFor } from '../../../../utils/placeSource'
 import { recordPlacePick } from '../../../../api/placeShadow'
 import { PlacesSession } from '../../../../utils/placesSession'
 import { isGoogleMapsUrl } from '../../../../components/Planner/PlaceFormModal.helpers'
@@ -26,9 +27,23 @@ interface Suggestion {
   placeId: string
   mainText: string
   secondaryText: string
+  /** Which of the two indexes this row came from, when the list is both. */
+  source?: string
+  lat?: number
+  lng?: number
 }
 
 type MapsPlace = Record<string, unknown>
+
+/** The same mark the desktop form shows, in the sheet's own tokens. */
+function SourceMark({ label }: { label: string | null }) {
+  if (!label) return null
+  return (
+    <span className="shrink-0 rounded-md border border-[color:var(--m-rowbr)] px-1.5 py-0.5 font-geist text-[0.5625rem] font-medium text-m-muted">
+      {label}
+    </span>
+  )
+}
 
 interface PlPlaceSearchProps {
   planner: TripPlanner
@@ -76,6 +91,8 @@ export default function PlPlaceSearch({ planner, locationBias, onPick, onResolvi
   // has to read the values that belonged to that list. Mirrors PlaceFormModal.
   const searchMetaRef = useRef<{ query: string; source: string } | null>(null)
   const acMetaRef = useRef<{ query: string; source: string } | null>(null)
+  // The name the whole list carries, for rows that do not name their own index.
+  const [acSource, setAcSource] = useState('')
 
   const setResolving = useCallback(
     (v: boolean) => {
@@ -93,6 +110,7 @@ export default function PlPlaceSearch({ planner, locationBias, onPick, onResolvi
       try {
         const result = await mapsApi.autocomplete(input, language, locationBias, controller.signal, placesSessionRef.current.current())
         acMetaRef.current = { query: input, source: result.source || 'unknown' }
+        setAcSource(result.source || '')
         setSuggestions(result.suggestions || [])
       } catch (err: unknown) {
         // Superseded request — axios rejects an aborted call with CanceledError.
@@ -211,6 +229,20 @@ export default function PlPlaceSearch({ planner, locationBias, onPick, onResolvi
       } catch {
         // fall through to text search
       }
+      if (!place && suggestion.source === 'openstreetmap' && suggestion.lat != null && suggestion.lng != null) {
+        // The layer's second line is the local name, not an address, so joining
+        // the two makes a query nobody typed — and its first answer would be
+        // silently taken as the place the user picked. The row already knows
+        // where it is.
+        place = {
+          name: suggestion.mainText,
+          address: '',
+          lat: suggestion.lat,
+          lng: suggestion.lng,
+          osm_id: suggestion.placeId,
+          source: 'openstreetmap',
+        }
+      }
       if (!place) {
         const fullQuery = [suggestion.mainText, suggestion.secondaryText].filter(Boolean).join(', ')
         const search = await mapsApi.search(fullQuery, language, pointFromBox(locationBias))
@@ -269,10 +301,15 @@ export default function PlPlaceSearch({ planner, locationBias, onPick, onResolvi
               onClick={() => handleSelectSuggestion(s)}
               className="block w-full border-t border-[color:var(--m-rowbr)] px-[13px] py-[10px] text-left first:border-t-0"
             >
-              <div className="truncate text-[0.8125rem] font-semibold text-m-ink">{s.mainText}</div>
-              {s.secondaryText && (
-                <div className="truncate font-geist text-[0.65625rem] text-m-muted">{s.secondaryText}</div>
-              )}
+              <div className="flex items-center gap-2">
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-[0.8125rem] font-semibold text-m-ink">{s.mainText}</div>
+                  {s.secondaryText && (
+                    <div className="truncate font-geist text-[0.65625rem] text-m-muted">{s.secondaryText}</div>
+                  )}
+                </div>
+                <SourceMark label={sourceLabelFor(s, acSource)} />
+              </div>
             </button>
           ))}
         </div>
