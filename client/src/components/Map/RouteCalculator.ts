@@ -3,6 +3,8 @@ import { pluginsApi } from '../../api/client'
 import type { DistanceUnit, RouteResult, RouteSegment, RouteWithLegs, SnappedWaypoint, Waypoint, RouteAnchors } from '../../types'
 import { haversineKm } from '../../utils/geo'
 import { formatDistance } from '../../utils/units'
+import { countRoute } from './routeUsageCounter'
+import type { RouteUsageSurface } from '@trek/shared'
 
 // FOSSGIS hosts OSRM with real per-profile routing (car/foot/bike) — the
 // project-osrm.org demo is car-only (it ignores the profile in the URL). Use
@@ -48,6 +50,44 @@ function routeBaseFor(profile: 'driving' | 'walking' | 'cycling'): string {
   const configured = useSettingsStore.getState().settings.routing_base_url?.trim()
   if (!configured) return OSRM_PROFILE_BASE[profile]
   return `${withoutTrailingSlashes(configured)}/route/v1/${OSRM_PROFILE_PATH[profile]}`
+}
+
+/**
+ * `fetch`, with the request counted.
+ *
+ * Every route TREK draws goes out from here, and nowhere else, which makes this the one
+ * place that can answer how much routing an instance really does — the number behind
+ * "could we host an engine ourselves". Counted: how many requests, of what kind, how
+ * many waypoints, roughly how far, and whether the host refused. Not counted, because it
+ * is never sent: where any of it was.
+ *
+ * Distance is the straight line along the waypoint chain rather than the routed length,
+ * which is only in the answer and differs per response shape. It is a floor on the real
+ * figure, and a floor is enough to tell a 1500 km per-request limit from a 150 km one.
+ *
+ * An aborted request is not a failure: the map cancels constantly while someone drags.
+ */
+async function routedFetch(
+  url: string,
+  signal: AbortSignal | undefined,
+  kind: RouteUsageSurface,
+  profile: 'driving' | 'walking' | 'cycling',
+  waypoints: readonly Waypoint[],
+): Promise<Response> {
+  const selfHosted = !!useSettingsStore.getState().settings.routing_base_url?.trim()
+  let km = 0
+  for (let i = 1; i < waypoints.length; i++) km += haversineKm(waypoints[i - 1], waypoints[i])
+  const sample = { profile, surface: kind, selfHosted, waypoints: waypoints.length, km }
+  try {
+    const response = await fetch(url, { signal })
+    countRoute({ ...sample, failed: !response.ok })
+    return response
+  } catch (err) {
+    if (!(err instanceof DOMException && err.name === 'AbortError')) {
+      countRoute({ ...sample, failed: true })
+    }
+    throw err
+  }
 }
 
 /**
@@ -114,7 +154,7 @@ export async function calculateRoute(
   const coords = waypoints.map((p) => `${p.lng},${p.lat}`).join(';')
   const url = `${routeBaseFor(profile)}/${coords}?overview=full&geometries=geojson&steps=false`
 
-  const response = await fetch(url, { signal })
+  const response = await routedFetch(url, signal, 'route', profile, waypoints)
   if (!response.ok) {
     throw new RoutingRefusedError(response.status, retryAfterMs(response))
   }
@@ -321,7 +361,7 @@ export async function calculateSegments(
   const coords = waypoints.map((p) => `${p.lng},${p.lat}`).join(';')
   const url = `${routeBaseFor('driving')}/${coords}?overview=false&geometries=geojson&steps=false&annotations=distance,duration`
 
-  const response = await fetch(url, { signal })
+  const response = await routedFetch(url, signal, 'segments', 'driving', waypoints)
   if (!response.ok) throw new RoutingRefusedError(response.status, retryAfterMs(response))
 
   const data = await response.json()
@@ -416,7 +456,7 @@ export async function calculateRouteWithLegs(
   const osrmProfile: 'driving' | 'walking' | 'cycling' =
     profile === 'walking' ? 'walking' : profile === 'cycling' ? 'cycling' : 'driving'
   const url = `${routeBaseFor(osrmProfile)}/${coords}?overview=full&geometries=geojson&annotations=distance,duration`
-  const response = await fetch(url, { signal })
+  const response = await routedFetch(url, signal, 'legs', osrmProfile, waypoints)
   if (!response.ok) throw new RoutingRefusedError(response.status, retryAfterMs(response))
 
   const data = await response.json()
@@ -572,7 +612,13 @@ async function routeExcluding(
   if (excludeUnsupported.has(base)) return null
   try {
     const url = `${base}/${coords}?exclude=${exclude}&overview=full&geometries=geojson`
-    const response = await fetch(url, { signal })
+    // This one is handed its points already encoded, so they are read back out for the
+    // counter rather than threaded through a second parameter nobody else needs.
+    const points = coords.split(';').map(pair => {
+      const [lng, lat] = pair.split(',').map(Number)
+      return { lat, lng }
+    })
+    const response = await routedFetch(url, signal, 'alternatives', profile, points)
     if (!response.ok) {
       // 400 is the router saying the parameter itself is not available here, which is
       // true of every leg from now on. Anything else is about this request alone.
@@ -614,7 +660,7 @@ export async function calculateAlternatives(
 ): Promise<RouteAlternative[]> {
   const coords = `${from.lng},${from.lat};${to.lng},${to.lat}`
   const url = `${routeBaseFor(profile)}/${coords}?alternatives=${limit}&overview=full&geometries=geojson`
-  const response = await fetch(url, { signal })
+  const response = await routedFetch(url, signal, 'alternatives', profile, [from, to])
   if (!response.ok) throw new RoutingRefusedError(response.status, retryAfterMs(response))
 
   const data = await response.json()
