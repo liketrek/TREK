@@ -140,4 +140,21 @@ describe('RoadtripStayModal', () => {
     expect(onSave).not.toHaveBeenCalled()
     expect(onClose).toHaveBeenCalled()
   })
+
+  it('FE-STAYMODAL-013: a stay running past midnight says which day it leaves on', () => {
+    // The clock wraps modulo 24 h, so without the carry this reads "01:00" for a
+    // departure the chain places on the next day — the rail says +1 beside it and
+    // the dialog used to say nothing.
+    open({ minutes: 180, arrival: '22:00' })
+
+    expect(screen.getByText('01:00')).toBeInTheDocument()
+    expect(screen.getByText('+1')).toBeInTheDocument()
+  })
+
+  it('FE-STAYMODAL-014: a stay inside one day carries no day marker', () => {
+    open({ minutes: 60, arrival: '12:00' })
+
+    expect(screen.getByText('13:00')).toBeInTheDocument()
+    expect(screen.queryByText('+1')).not.toBeInTheDocument()
+  })
 })

@@ -302,6 +302,23 @@ describe('RoadtripSidebar', () => {
     expect(onEditStay).toHaveBeenCalledWith({ placeId: 20, name: 'Berlin', minutes: null, arrival: null })
   })
 
+  it('FE-ROADTRIP-SIDEBAR-034: a pause reached late says so, the same as a numbered stop', () => {
+    // The schedule restarts its chain at any pinned time, whatever kind of stop carries
+    // it, so it computes the finding for a fuel halt too. The rail used to hand `late`
+    // only to the numbered branch and throw the pause's own away.
+    const stops = [
+      stop({ assignmentId: 1, name: 'Hamburg' }),
+      stop({ assignmentId: 2, name: 'Aral Autohof', stopType: 'fuel', dwellMinutes: 15 }),
+    ]
+    const schedule = {
+      entries: stops.map(() => ({ arrival: '09:00', departure: '09:15', anchored: true, dayOffset: 0 })),
+      warnings: [{ index: 1, code: 'late' as const, minutes: 45 }],
+    }
+    wrap(<RoadtripSidebar routes={routes({ days: [day({ stops, schedule, legs: [leg()] })] })} />)
+
+    expect(screen.getByLabelText(/45/)).toBeInTheDocument()
+  })
+
   it('FE-ROADTRIP-SIDEBAR-033: without the right to edit, a stop with no stay shows nothing', () => {
     const stops = [
       stop({ assignmentId: 1, name: 'Hamburg', dwellMinutes: 90 }),

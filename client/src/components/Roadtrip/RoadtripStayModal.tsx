@@ -81,6 +81,11 @@ export default function RoadtripStayModal({ stop, onClose, onSave }: RoadtripSta
     return {
       arrive: formatClockTime(formatClock(arrival), is12h),
       leave: formatClockTime(formatClock(arrival + minutes), is12h),
+      // `formatClock` wraps modulo 24 h, so a stay that runs past midnight reads as a
+      // small number again. The rail carries the day it belongs to along with the time;
+      // without the same carry here the dialog would quietly say "leave 01:00" for a
+      // stop the chain places on the next day.
+      leaveCarry: Math.floor((arrival + minutes) / (24 * 60)) - Math.floor(arrival / (24 * 60)),
     }
   }, [stop?.arrival, minutes, is12h])
 
@@ -164,7 +169,15 @@ export default function RoadtripStayModal({ stop, onClose, onSave }: RoadtripSta
               <span className="font-geist text-caption font-semibold uppercase tracking-[0.12em] text-content-faint">
                 {t('roadtrip.stay.leave')}
               </span>
-              <span dir="ltr" className="text-body font-semibold tabular-nums text-content">{times.leave}</span>
+              <span dir="ltr" className="text-body font-semibold tabular-nums text-content">
+                {times.leave}
+                {times.leaveCarry > 0 ? (
+                  <span className="ms-0.5">
+                    {`+${times.leaveCarry}`}
+                    <span className="sr-only">{` ${t('roadtrip.warn.overnight')}`}</span>
+                  </span>
+                ) : null}
+              </span>
             </span>
           </div>
         ) : null}

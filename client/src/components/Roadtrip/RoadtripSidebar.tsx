@@ -1,9 +1,10 @@
 import React, { useState } from 'react'
 import {
-  CarFront, Footprints, Bike, Zap, AlertTriangle, Moon,
+  CarFront, Footprints, Bike, Zap, AlertTriangle,
   ParkingSquare, Shuffle, Fuel, Clock, Spline,
   type LucideIcon,
 } from 'lucide-react'
+import MDancingTrek from '../../mobile/components/MDancingTrek'
 import { useTranslation } from '../../i18n/TranslationContext'
 import { Tooltip } from '../shared/Tooltip'
 import { useSettingsStore } from '../../store/settingsStore'
@@ -377,9 +378,12 @@ function DriveBand({ leg, onAskAlternatives, alternativesOpen }: {
  * the trip is actually for. Its own icon on one flat disc: three kinds of pause that all
  * mean "we are still driving", and the icon is what tells them apart.
  */
-function ServiceStop({ stop, entry, driveFindings, selected, onSelect, onEditStay, onPickKind }: {
+function ServiceStop({ stop, entry, late, driveFindings, selected, onSelect, onEditStay, onPickKind }: {
   stop: RoadtripStop
   entry: ScheduleEntry | undefined
+  /** How late the drive reaches a time pinned on this pause, the same finding a numbered
+   *  stop shows. A fuel or charging halt can carry a pinned time like anything else. */
+  late: ScheduleWarning | undefined
   /** Findings about the drive that ARRIVES here. A charging halt is a stop like any other
    *  as far as the tank is concerned, so it carries them the same way a numbered one does. */
   driveFindings?: ScheduleWarning[]
@@ -459,6 +463,7 @@ function ServiceStop({ stop, entry, driveFindings, selected, onSelect, onEditSta
             <StayBadge minutes={stop.dwellMinutes} onEdit={onEditStay} />
             {spurWorthLabelling(stop.offRoadMeters) ? <OffRoadBadge meters={stop.offRoadMeters ?? 0} /> : null}
             {(driveFindings ?? []).map(w => <DriveFindingBadge key={w.code} warning={w} />)}
+            <LateBadge late={late} />
           </span>
         </span>
         {entry?.arrival ? <Arrival entry={entry} /> : null}
@@ -566,19 +571,41 @@ function DriveFindingBadge({ warning }: { warning: ScheduleWarning }): React.Rea
  * The schedule has carried this since it was written and nothing ever drew it: a day
  * running past midnight showed "02:30" as if it were tonight.
  */
+/**
+ * Where the chain crosses midnight.
+ *
+ * The one band in the rail that breaks the line instead of hanging off it, and the only
+ * thing here that moves: a night is not a place and not a drive, it is the day running
+ * out, and the rail should look like it stops. So it spans the marker column too, the
+ * dashes end above it and start again below, and the mascot dozes in the gap with three
+ * z's drifting off it.
+ *
+ * The ground is mixed rather than the soft info token: that token is translucent in the
+ * dark theme, and the mascot cuts its eyes out in the colour behind it, which would show
+ * the body through them. Mixing against the card keeps it opaque in both themes.
+ */
 function OvernightBreak(): React.ReactElement {
   const { t } = useTranslation()
+  const night = 'color-mix(in srgb, var(--info) 13%, var(--bg-card))'
   return (
-    <div className="grid items-center" style={RAIL_GRID}>
-      <span className="flex flex-col items-center" aria-hidden>
-        <span className="h-full" style={RAIL_DASH} />
-      </span>
+    <div
+      className="my-1 flex w-full items-center gap-2 rounded-xl py-1 pe-2.5 ps-1.5 text-info"
+      style={{ background: night, '--m-bg': night, '--m-ink': 'var(--info)' } as React.CSSProperties}
+    >
+      <MDancingTrek scene="idle" mood="sleepy" size={26} />
       <span
-        className="my-1 inline-flex w-fit items-center gap-1 rounded-full bg-info-soft px-1.5 py-0.5 font-medium text-info"
+        className="font-geist font-semibold uppercase tracking-[0.16em]"
         style={{ fontSize: FS.label }}
       >
-        <Moon size={10} className="shrink-0" aria-hidden />
         {t('roadtrip.warn.overnight')}
+      </span>
+      {/* Three z's on one baseline, each starting a third of the loop after the last, so
+          one is always on its way up. Purely decorative: the word beside it already says
+          what this band is. */}
+      <span className="trek-doze ms-auto flex items-end gap-[3px]" aria-hidden>
+        <span style={{ fontSize: FS.micro }}>z</span>
+        <span style={{ fontSize: FS.label }}>z</span>
+        <span style={{ fontSize: FS.meta }}>z</span>
       </span>
     </div>
   )
@@ -651,8 +678,6 @@ function Stop({ stop, number, entry, late, driveFindings, selected, continues, s
   onEditStay?: () => void
 }): React.ReactElement {
   const { t } = useTranslation()
-  const distanceUnit = useSettingsStore(s => s.settings.distance_unit)
-  const lateText = late ? t('roadtrip.warn.late', { minutes: late.minutes ?? 0 }) : null
   return (
     <button
       type="button"
@@ -735,23 +760,49 @@ function Stop({ stop, number, entry, late, driveFindings, selected, continues, s
             <StayBadge minutes={stop.dwellMinutes} onEdit={onEditStay} />
             {spurWorthLabelling(stop.offRoadMeters) ? <OffRoadBadge meters={stop.offRoadMeters ?? 0} /> : null}
             {(driveFindings ?? []).map(w => <DriveFindingBadge key={w.code} warning={w} />)}
+            <LateBadge late={late} />
           </span>
-          {lateText ? (
-            <Tooltip label={lateText}>
-              <span
-                dir="ltr"
-                className="mt-0.5 inline-flex w-fit items-center gap-1 self-start rounded-full bg-warning-soft px-1.5 py-0.5 font-semibold tabular-nums text-warning"
-                style={{ fontSize: FS.label }}
-              >
-                <AlertTriangle size={10} className="shrink-0" aria-label={lateText} />
-                {`+${formatDurationShort((late?.minutes ?? 0) * 60)}`}
-              </span>
-            </Tooltip>
-          ) : null}
         </span>
         {entry?.arrival ? <Arrival entry={entry} /> : null}
       </span>
     </button>
+  )
+}
+
+/**
+ * How far past the time you set this stop is reached. Its own component because a pause
+ * runs late exactly like a numbered stop does: the schedule computes the finding for both
+ * (roadtripModel restarts the chain at any anchor, whatever kind of stop carries it), and
+ * drawing it in only one of them threw the other one's away.
+ *
+ * It sits in the badge row beside the stay and the drive findings rather than on a line of
+ * its own: they are all answers to "what does this stop cost", and a warning on its own row
+ * pushed every following stop down for a finding that fits in a pill.
+ */
+function LateBadge({ late }: { late: ScheduleWarning | undefined }): React.ReactElement | null {
+  const { t } = useTranslation()
+  if (!late) return null
+  const label = t('roadtrip.warn.late', { minutes: late.minutes ?? 0 })
+  return (
+    <Tooltip label={label}>
+      <span
+        dir="ltr"
+        // The same two-part shell the stay and the drive findings wear, so a row of badges
+        // reads as one set instead of a pill among boxes. Warning-coloured edge like the
+        // drive finding: at this size a tinted edge disappears into the card.
+        className="inline-flex h-[16px] items-stretch self-start overflow-hidden rounded border border-warning"
+      >
+        <span className="flex items-center bg-warning-soft px-1 text-warning" style={{ fontSize: FS.micro }}>
+          <AlertTriangle size={9} aria-label={label} />
+        </span>
+        <span
+          className="flex items-center border-s border-warning bg-surface-card px-1.5 font-semibold tabular-nums text-warning"
+          style={{ fontSize: FS.label }}
+        >
+          {`+${formatDurationShort((late.minutes ?? 0) * 60)}`}
+        </span>
+      </span>
+    </Tooltip>
   )
 }
 
@@ -905,6 +956,7 @@ function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, on
                 <ServiceStop
                   stop={stop}
                   entry={day.schedule.entries[i]}
+                  late={marks.find(w => w.code === 'late')}
                   driveFindings={day.driveWarnings.filter(w => w.index === i)}
                   selected={selectedAssignmentId === stop.assignmentId}
                   onSelect={onSelectStop ? () => onSelectStop(stop.placeId, stop.assignmentId) : undefined}
