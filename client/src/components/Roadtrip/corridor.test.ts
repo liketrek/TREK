@@ -1,8 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import {
+  boxAround,
   corridorTiles,
   distanceToSegmentKm,
   haversineKm,
+  pointAtMeters,
   projectOntoRoute,
   simplifyLine,
   type LatLng,
@@ -153,5 +155,62 @@ describe('simplifyLine', () => {
 
   it('leaves a two-point line alone', () => {
     expect(simplifyLine([BERLIN, DRESDEN], 5)).toEqual([BERLIN, DRESDEN])
+  })
+})
+
+describe('pointAtMeters', () => {
+  // A straight run due east along one parallel, so the arithmetic is checkable by hand:
+  // at 52° north a degree of longitude is about 68.5 km.
+  const WEST: LatLng = { lat: 52, lng: 13 }
+  const EAST: LatLng = { lat: 52, lng: 14 }
+  const LEG = haversineKm(WEST, EAST) * 1000
+
+  it('lands halfway along a single segment', () => {
+    const mid = pointAtMeters([WEST, EAST], LEG / 2)!
+    expect(mid.lat).toBeCloseTo(52, 5)
+    expect(mid.lng).toBeCloseTo(13.5, 3)
+  })
+
+  it('walks past the first segment into the second', () => {
+    const line = [WEST, EAST, { lat: 52, lng: 15 }]
+    const at = pointAtMeters(line, LEG * 1.5)!
+    // One and a half segments in, so halfway through the second.
+    expect(at.lng).toBeGreaterThan(14)
+    expect(at.lng).toBeLessThan(15)
+  })
+
+  it('returns the last point past the end rather than nothing', () => {
+    // A tank that runs out after the day's final stop still ran out somewhere; the
+    // caller decides what to do about that, so this must not answer null.
+    expect(pointAtMeters([WEST, EAST], LEG * 10)).toEqual(EAST)
+  })
+
+  it('answers the first point for zero, and nothing for an empty line', () => {
+    expect(pointAtMeters([WEST, EAST], 0)).toEqual(WEST)
+    expect(pointAtMeters([WEST, EAST], -5)).toEqual(WEST)
+    expect(pointAtMeters([], 100)).toBeNull()
+    expect(pointAtMeters([WEST], 100)).toEqual(WEST)
+  })
+
+  it('survives a repeated vertex without dividing by zero', () => {
+    // A route line concatenated from several runs does contain these.
+    const at = pointAtMeters([WEST, WEST, EAST], LEG / 2)!
+    expect(at.lng).toBeCloseTo(13.5, 3)
+  })
+})
+
+describe('boxAround', () => {
+  it('reaches the asked radius on all four sides', () => {
+    const box = boxAround(BERLIN, 10)
+    // North and south are the easy ones: a degree of latitude is constant.
+    expect(haversineKm(BERLIN, { lat: box.north, lng: BERLIN.lng })).toBeCloseTo(10, 0)
+    expect(haversineKm(BERLIN, { lat: BERLIN.lat, lng: box.east })).toBeCloseTo(10, 0)
+  })
+
+  it('widens the longitude span the further north it sits', () => {
+    // The same radius is more degrees of longitude in Tromsø than in Berlin.
+    const berlin = boxAround(BERLIN, 10)
+    const tromso = boxAround({ lat: 69.65, lng: 18.96 }, 10)
+    expect(tromso.east - tromso.west).toBeGreaterThan(berlin.east - berlin.west)
   })
 })

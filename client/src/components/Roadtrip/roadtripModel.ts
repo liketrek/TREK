@@ -342,6 +342,29 @@ export function sumLegSeconds(legSeconds: (number | undefined)[]): number {
  * a rounding edge and not a missing leg.
  */
 /**
+ * Where a tank runs dry, in the day's own driving coordinates.
+ *
+ * A separate thing from the range WARNING, and the difference is the whole point. The
+ * warning is filed against the stop the car arrives at, which is where somebody finds
+ * out; this is where the fuel actually runs out, which can be most of a leg earlier and
+ * is the only place worth suggesting a filling station.
+ *
+ * `drivenMeters` counts DRIVING legs only, so it is not an offset into the day's drawn
+ * line: that line also carries ferry and walking runs. Converting it to a coordinate
+ * means walking the driving legs, which `dryPointOn` does.
+ */
+export interface DryPoint {
+  /** Index into the day's legs, i.e. the leg the car is on when the tank empties. */
+  legIndex: number
+  /** How far into that leg, in kilometres. */
+  intoLegKm: number
+  /** Metres of driving from the start of the day to that point. */
+  drivenMeters: number
+  /** The range limit that was crossed, which is what the traveller set. */
+  sinceKm: number
+}
+
+/**
  * The findings about the driving itself: too long at the wheel, too long in one day, and
  * the tank running out before anywhere to fill it.
  *
@@ -377,10 +400,16 @@ export function deriveDriveWarnings(
   limits: DriveLimits,
   /** Kilometres already on the tank when the day starts; null when that is unknown. */
   carryKm: number | null,
-): { warnings: ScheduleWarning[]; day: DayWarning | null; carryKm: number | null } {
+): { warnings: ScheduleWarning[]; day: DayWarning | null; carryKm: number | null; emptyAt: DryPoint[] } {
   const warnings: ScheduleWarning[] = []
+  const emptyAt: DryPoint[] = []
   let budget = carryKm
   let totalSeconds = 0
+  // Metres of DRIVING covered so far. Not the same as metres along the day's line: the
+  // line carries every run, and a ferry or a walk in the middle of a day adds to it
+  // without adding to this. Whatever converts a dry point back into a coordinate has to
+  // walk the driving legs only, which is why this is counted here rather than derived.
+  let drivenMeters = 0
 
   for (let i = 0; i < legs.length; i++) {
     if (refuelsAt[i]) budget = 0
@@ -403,7 +432,25 @@ export function deriveDriveWarnings(
     if (typeof metres !== 'number') {
       budget = null
     } else if (budget !== null) {
+      const before = budget
       budget += metres / 1000
+      // Where the tank actually runs dry, as opposed to where somebody notices. The
+      // warning below sits on the arriving stop, which can be a hundred kilometres past
+      // the point the fuel ran out; a suggestion has to be offered at the point, or it
+      // suggests filling up somewhere the car cannot reach.
+      //
+      // Once per tank, not once per warning. A long stretch with nothing on it produces
+      // a run of warnings on purpose (see the note above), and one refuel offer per
+      // warning would stack three identical offers down one day for a single fill-up.
+      if (limits.rangeKm && before <= limits.rangeKm && budget > limits.rangeKm) {
+        const intoLegKm = limits.rangeKm - before
+        emptyAt.push({
+          legIndex: i,
+          intoLegKm,
+          drivenMeters: drivenMeters + intoLegKm * 1000,
+          sinceKm: Math.round(limits.rangeKm),
+        })
+      }
       // Not on a stop that fills up: arriving at a petrol station with an empty tank is
       // the plan working, not a problem, and a warning there would sit on the one stop
       // that answers it. No reset either — a warning is not a fill-up, and the figure has
@@ -411,6 +458,7 @@ export function deriveDriveWarnings(
       if (limits.rangeKm && budget > limits.rangeKm && !refuelsAt[at]) {
         warnings.push({ index: at, code: 'range', sinceKm: Math.round(budget) })
       }
+      drivenMeters += metres
     }
   }
   // The last stop of the day counts too: filling up on arrival is what makes the next
@@ -422,7 +470,7 @@ export function deriveDriveWarnings(
     ? { code: 'dayDriving' as const, minutes, limitMinutes: limits.dayMinutes }
     : null
 
-  return { warnings, day, carryKm: budget }
+  return { warnings, day, carryKm: budget, emptyAt }
 }
 
 export function legIndexForAlong(legEndMeters: number[], alongMeters: number): number {

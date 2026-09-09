@@ -232,3 +232,56 @@ export function simplifyLine(line: LatLng[], toleranceKm: number): LatLng[] {
   const right = simplifyLine(line.slice(index), toleranceKm)
   return [...left.slice(0, -1), ...right]
 }
+
+/**
+ * The point that lies `metres` along a line, measured the way a car drives it.
+ *
+ * Every other helper in this file goes the other way: given a point, where on the line
+ * is it. This is the inverse, and it exists because the range budget produces a distance
+ * ("the tank is empty 340 km in") with no idea where that is on the map.
+ *
+ * Walked segment by segment rather than approximated, and interpolated inside the
+ * segment it lands in, because the answer becomes a marker somebody drives to. Past the
+ * end it returns the last point rather than null: a tank that runs out after the day's
+ * final stop still ran out somewhere, and the caller decides what to do about that.
+ */
+export function pointAtMeters(line: LatLng[], metres: number): LatLng | null {
+  if (!line.length) return null
+  if (line.length === 1 || metres <= 0) return line[0]
+
+  let covered = 0
+  for (let i = 1; i < line.length; i++) {
+    const step = haversineKm(line[i - 1], line[i]) * 1000
+    if (covered + step >= metres) {
+      // How far into this segment, as a fraction. A zero-length segment (two identical
+      // vertices, which a concatenated route line does produce) would divide by zero,
+      // and its start point is the right answer anyway.
+      const t = step > 0 ? (metres - covered) / step : 0
+      return {
+        lat: line[i - 1].lat + (line[i].lat - line[i - 1].lat) * t,
+        lng: line[i - 1].lng + (line[i].lng - line[i - 1].lng) * t,
+      }
+    }
+    covered += step
+  }
+  return line[line.length - 1]
+}
+
+/**
+ * A box around a point, sized so its inscribed circle reaches `radiusKm`.
+ *
+ * The server turns a box into centre plus half the diagonal, so a box of ±r asks for
+ * r·√2 of reach and finds things in the corners that are further away than they look.
+ * Sized from the radius rather than guessed, and the caller still has to read the
+ * answer's own `clamped` flag: above 20 km the index narrows the search silently.
+ */
+export function boxAround(point: LatLng, radiusKm: number): Bbox {
+  const dLat = radiusKm / KM_PER_DEG_LAT
+  const dLng = radiusKm / (KM_PER_DEG_LAT * Math.max(0.01, Math.cos(toRad(point.lat))))
+  return {
+    south: point.lat - dLat,
+    west: point.lng - dLng,
+    north: point.lat + dLat,
+    east: point.lng + dLng,
+  }
+}

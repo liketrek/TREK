@@ -3,8 +3,8 @@ import { calculateRouteWithLegs, RoutingRefusedError } from '../Map/RouteCalcula
 import { resolveLegMode } from '../Planner/legMode'
 import {
   computeSchedule, deriveDriveWarnings, isServiceStopType, legIndexForAlong, refuelsRange, splitIntoRuns,
-  type DayWarning, type DriveLimits, type Schedule, type ScheduleWarning, parseAvoid,} from './roadtripModel'
-import { projectOntoRoute } from './corridor'
+  type DayWarning, type DriveLimits, type Schedule, type ScheduleWarning, parseAvoid, type DryPoint,} from './roadtripModel'
+import { projectOntoRoute, pointAtMeters} from './corridor'
 import { useSettingsStore } from '../../store/settingsStore'
 import type { Assignment, AssignmentsMap, Day, RouteAvoidClass, RouteSegment, RouteVia, SnappedWaypoint } from '../../types'
 import { spurFor } from './accessSpur'
@@ -61,6 +61,13 @@ export interface RoadtripDay {
    * has to be able to say so instead of wearing a label the road disproves.
    */
   avoidMissed?: RouteAvoidClass[]
+  /**
+   * Where the tank runs dry on this day, once per fill-up, with a coordinate.
+   *
+   * Empty when no range limit is set, when the day never crosses it, or when a leg did
+   * not route — the budget gives up rather than guessing, and so does this.
+   */
+  dryPoints?: (DryPoint & { lat: number; lng: number })[]
   /**
    * The roads actually driven that day, as [lat, lng] — not the straight lines between
    * stops. Anything asking "what is along this day" has to use this: between Hamburg and
@@ -539,8 +546,23 @@ export function useRoadtripRoutes(
         carryKm,
       )
       carryKm = drive.carryKm
+      // Where each tank runs dry, as a place rather than a distance.
+      //
+      // Walked along the DRIVING legs only. `geometry` above is every run end to end,
+      // ferries and walks included, while the budget counts none of those — so walking
+      // the drawn line to the same figure overshoots by the whole length of any crossing
+      // the day happens to contain, and the marker lands a ferry's width off the road.
+      const drivingLine = routed
+        .filter(l => l && l.seg.mode !== undefined && l.seg.mode === 'driving')
+        .flatMap(l => l?.line ?? [])
+      const dryPoints = drive.emptyAt
+        .map(dry => {
+          const at = pointAtMeters(drivingLine.map(([lat, lng]) => ({ lat, lng })), dry.drivenMeters)
+          return at ? { ...dry, lat: at.lat, lng: at.lng } : null
+        })
+        .filter((d): d is DryPoint & { lat: number; lng: number } => d !== null)
       out.push({
-        ...day, stops, legs, legVias, schedule, geometry, distance, duration,
+        ...day, stops, legs, legVias, schedule, geometry, distance, duration, dryPoints,
         driveWarnings: drive.warnings,
         dayWarning: drive.day,
       })

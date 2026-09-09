@@ -579,3 +579,111 @@ describe('deriveDriveWarnings — what counts as driving', () => {
     expect(out.warnings).toEqual([{ index: 1, code: 'leg', overMinutes: 30 }])
   })
 })
+
+describe('deriveDriveWarnings — where the tank actually runs dry', () => {
+  const drive = (minutes: number, km: number) =>
+    ({ duration: minutes * 60, distance: km * 1000, mode: 'driving' })
+  const ferry = (minutes: number, km: number) =>
+    ({ duration: minutes * 60, distance: km * 1000, mode: 'ferry' })
+
+  it('FE-ROADTRIP-MODEL-089: the dry point sits where the fuel ends, not where somebody notices', () => {
+    // 300 km of range, two legs of 200. The warning lands on stop 2, which is 400 km in;
+    // the tank was empty 100 km earlier, halfway through the second leg. Suggesting a
+    // filling station at the warning would suggest one the car cannot reach.
+    const out = deriveDriveWarnings(
+      [drive(120, 200), drive(120, 200)],
+      [false, false, false],
+      { legMinutes: null, dayMinutes: null, rangeKm: 300 },
+      0,
+    )
+    expect(out.warnings).toEqual([{ index: 2, code: 'range', sinceKm: 400 }])
+    expect(out.emptyAt).toEqual([
+      { legIndex: 1, intoLegKm: 100, drivenMeters: 300000, sinceKm: 300 },
+    ])
+  })
+
+  it('FE-ROADTRIP-MODEL-090: one dry point per tank, however many warnings the stretch produces', () => {
+    // A long run with nothing on it warns at every stop on purpose, because a warning is
+    // not a fill-up. One refuel offer per warning would stack three identical offers for
+    // a single tank down one day.
+    const out = deriveDriveWarnings(
+      [drive(60, 400), drive(60, 400), drive(60, 400)],
+      [false, false, false, false],
+      { legMinutes: null, dayMinutes: null, rangeKm: 600 },
+      0,
+    )
+    expect(out.warnings).toHaveLength(2)
+    expect(out.emptyAt).toHaveLength(1)
+    expect(out.emptyAt[0]).toMatchObject({ legIndex: 1, drivenMeters: 600000 })
+  })
+
+  it('FE-ROADTRIP-MODEL-091: filling up starts a new tank, and the next one runs dry again', () => {
+    const out = deriveDriveWarnings(
+      [drive(60, 400), drive(60, 400), drive(60, 400)],
+      [false, false, true, false],
+      { legMinutes: null, dayMinutes: null, rangeKm: 600 },
+      0,
+    )
+    // Empty once before the fuel stop, then once more after it.
+    expect(out.emptyAt).toHaveLength(1)
+    expect(out.emptyAt[0].drivenMeters).toBe(600000)
+  })
+
+  it('FE-ROADTRIP-MODEL-092: a ferry carries the car without burning a drop', () => {
+    // The trap this field exists for. The budget skips a ferry, so the dry point must be
+    // counted in DRIVING metres only; measuring along the day's drawn line instead would
+    // overshoot by the whole crossing and put the marker out at sea.
+    const out = deriveDriveWarnings(
+      [drive(60, 200), ferry(120, 50), drive(60, 200)],
+      [false, false, false, false],
+      { legMinutes: null, dayMinutes: null, rangeKm: 300 },
+      0,
+    )
+    expect(out.emptyAt).toEqual([
+      { legIndex: 2, intoLegKm: 100, drivenMeters: 300000, sinceKm: 300 },
+    ])
+  })
+
+  it('FE-ROADTRIP-MODEL-093: a tank carried over midnight runs dry earlier the next day', () => {
+    const out = deriveDriveWarnings(
+      [drive(60, 200), drive(60, 200)],
+      [false, false, false],
+      { legMinutes: null, dayMinutes: null, rangeKm: 300 },
+      250,
+    )
+    // Only 50 km left on arrival, so it empties a quarter into the first leg.
+    expect(out.emptyAt).toEqual([
+      { legIndex: 0, intoLegKm: 50, drivenMeters: 50000, sinceKm: 300 },
+    ])
+  })
+
+  it('FE-ROADTRIP-MODEL-094: no range limit and no crossing produce no dry point at all', () => {
+    const noLimit = deriveDriveWarnings(
+      [drive(60, 900)],
+      [false, false],
+      { legMinutes: null, dayMinutes: null, rangeKm: null },
+      0,
+    )
+    expect(noLimit.emptyAt).toEqual([])
+
+    const withinRange = deriveDriveWarnings(
+      [drive(60, 100)],
+      [false, false],
+      { legMinutes: null, dayMinutes: null, rangeKm: 300 },
+      0,
+    )
+    expect(withinRange.emptyAt).toEqual([])
+  })
+
+  it('FE-ROADTRIP-MODEL-095: an unrouted leg gives the tank up rather than guessing where it ends', () => {
+    // The budget goes null and stays null, so there is no honest dry point to offer.
+    const out = deriveDriveWarnings(
+      [drive(60, 200), undefined, drive(60, 400)],
+      [false, false, false, false],
+      { legMinutes: null, dayMinutes: null, rangeKm: 300 },
+      0,
+    )
+    expect(out.emptyAt).toEqual([])
+    expect(out.carryKm).toBeNull()
+  })
+})
