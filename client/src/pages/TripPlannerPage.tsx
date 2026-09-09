@@ -47,6 +47,7 @@ import type { Accommodation, TripMember, Day, Place, Reservation, PackingItem, T
 import { ListTodo, Download, Plus, Trash2, FolderPlus } from 'lucide-react'
 import { useTripPlanner } from './tripPlanner/useTripPlanner'
 import { usePoiExplore } from '../components/Map/usePoiExplore'
+import { useMergedMapPois } from '../components/Map/useMergedMapPois'
 import PoiCategoryPill from '../components/Map/PoiCategoryPill'
 import { useTouchDragBridge } from '../hooks/useTouchDragBridge'
 
@@ -320,7 +321,11 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
   const [glMap, setGlMap] = useState<CompassMap | null>(null)
   // The corridor search draws into the same map channel and answers the same question for
   // a drive, so the explore pill stands down while road trip mode is on.
-  const poiPillEnabled = useSettingsStore(s => s.settings.map_poi_pill_enabled) !== false && !roadtripActive
+  // Also in road trip mode: searching the view is a different question from searching the
+  // drive ("is there a hotel at tonight's stop" versus "what is along the way"), and the
+  // two answers are drawn side by side rather than one hiding the other.
+  const poiPillEnabled = useSettingsStore(s => s.settings.map_poi_pill_enabled) !== false
+  const mapPois = useMergedMapPois(roadtripActive ? roadtripCorridor.visible : null, poi.pois)
 
   // Costs expense editor opened from a booking modal (save-then-open). Lives at the
   // page level so it has tripMembers / base currency / current user available.
@@ -425,12 +430,11 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
                 const r = reservations.find(x => x.id === rid)
                 if (r) setMapTransportDetail(r)
               }}
-              pois={roadtripActive
-                /* `visible`, not `search.results`: the map is the picture of this very
-                   list, and filtering the list while seventy pins stay on the map no
-                   longer answers "which of these". */
-                ? roadtripCorridor.visible
-                : poi.pois}
+              /* In road trip mode the corridor's `visible` (not `search.results`: the map is
+                 the picture of that very list, and filtering the list while seventy pins stay
+                 on the map no longer answers "which of these") plus whatever the category
+                 pill found in view. Outside it, only the pill's hits. */
+              pois={mapPois}
               onPoiClick={handlePoiClick}
               // Only while road trip mode is on: outside it there is no drive to drop onto.
               onPoiDropOnRoute={roadtripActive ? dropPoiOnRoute : undefined}
