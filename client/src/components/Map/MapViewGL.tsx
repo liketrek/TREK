@@ -8,6 +8,7 @@ import { serviceMarkerHtml, serviceMarkerOuter } from '../Roadtrip/serviceMarker
 import { renderIconMarkup } from '../../utils/iconMarkup'
 import type mapboxgl from 'mapbox-gl'
 import { useSettingsStore } from '../../store/settingsStore'
+import { MapLayerSwitcher, type BaseLayer } from './MapLayerSwitcher'
 import { useAuthStore } from '../../store/authStore'
 import { getCached, isLoading, fetchPhoto, onThumbReady, getAllThumbs } from '../../services/photoService'
 import { isCustomPlaceImage, photoCacheKey } from './placePhoto'
@@ -27,7 +28,7 @@ import { POI_CATEGORY_BY_KEY, type Poi } from './poiCategories'
 import { resolveTrackColor, hasManualTrackColor } from './trackColors'
 import { buildPoiPopupHtml } from './placePopup'
 import { pluginsApi, type PluginMapMarker, type PluginMapLayer } from '../../api/client'
-import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '../../constants/mapDefaults'
+import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM, SATELLITE_TILE_URL, SATELLITE_TILE_ATTRIBUTION, SATELLITE_TILE_MAXZOOM } from '../../constants/mapDefaults'
 import { computeMapViewport, TILE_SIZE_GL } from '../../utils/mapViewport'
 
 function categoryIconSvg(iconName: string | null | undefined, size: number): string {
@@ -48,6 +49,21 @@ const PLACE_CLUSTER_CIRCLE_LAYER_ID = 'trip-place-clusters-circle'
 const PLACE_CLUSTER_COUNT_LAYER_ID = 'trip-place-clusters-count'
 const PLACE_UNCLUSTERED_LAYER_ID = 'trip-place-unclustered-hit'
 const GPX_HIT_LAYER_ID = 'trip-gpx-hit'
+/**
+ * The satellite base layer, the GL twin of the Leaflet one.
+ *
+ * Leaflet swaps its whole tile layer for the imagery; a GL map cannot, because the
+ * basemap is a style with dozens of layers in it. So the imagery goes on as a raster
+ * layer of its own, drawn over the style and under everything TREK adds — the route,
+ * the pins and the tracks stay on top and stay legible, which is the same order the
+ * Leaflet map ends up with.
+ *
+ * Same tokenless ESRI source as Leaflet, so the two look alike and neither needs a key.
+ */
+const SATELLITE_SOURCE_ID = 'trip-satellite'
+const SATELLITE_LAYER_ID = 'trip-satellite-raster'
+/** Everything TREK draws is prefixed; the imagery is inserted before the first of them. */
+const OWN_LAYER_PREFIXES = ['trip-', 'trek-']
 
 type PlaceWithCoords = Place & { lat: number; lng: number }
 
@@ -231,6 +247,44 @@ function addPlaceClusterLayers(map: any): void {
           'circle-stroke-opacity': 0,
         },
       })
+}
+
+/**
+ * Puts the imagery on the map, or takes it off again.
+ *
+ * Built on demand rather than once at load: a style change drops every source the map
+ * had, and a hot reload does the same. Guarded on its own absence, so the usual pass is
+ * a no-op and only the visibility flips.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function applySatellite(map: any, on: boolean): void {
+  try {
+    if (!map.isStyleLoaded?.()) return
+    if (!map.getSource(SATELLITE_SOURCE_ID)) {
+      if (!on) return // Nothing to build while it is switched off.
+      map.addSource(SATELLITE_SOURCE_ID, {
+        type: 'raster',
+        tiles: [SATELLITE_TILE_URL],
+        tileSize: 256,
+        maxzoom: SATELLITE_TILE_MAXZOOM,
+        attribution: SATELLITE_TILE_ATTRIBUTION,
+      })
+      // Under the first thing TREK draws, over everything the basemap style draws.
+      // Without the anchor the imagery lands on top and buries the route.
+      const layers = map.getStyle?.()?.layers ?? []
+      const firstOwn = layers.find((l: { id: string }) =>
+        OWN_LAYER_PREFIXES.some(prefix => l.id.startsWith(prefix)))
+      map.addLayer({
+        id: SATELLITE_LAYER_ID,
+        type: 'raster',
+        source: SATELLITE_SOURCE_ID,
+        paint: { 'raster-opacity': 1 },
+      }, firstOwn?.id)
+    }
+    if (map.getLayer(SATELLITE_LAYER_ID)) {
+      map.setLayoutProperty(SATELLITE_LAYER_ID, 'visibility', on ? 'visible' : 'none')
+    }
+  } catch { /* a style that refuses the layer keeps the plain basemap */ }
 }
 
 function createMarkerElement(place: Place & { category_color?: string; category_icon?: string }, photoUrl: string | null, orderNumbers: number[] | null, selected: boolean): HTMLDivElement {
@@ -594,6 +648,15 @@ export function MapViewGL({
   const rawMapboxStyle = useSettingsStore(s => s.settings.mapbox_style || MAPBOX_DEFAULT_STYLE)
   const rawMaplibreStyle = useSettingsStore(s => s.settings.maplibre_style || '')
   const mapboxToken = useSettingsStore(s => s.settings.mapbox_access_token || '')
+  // The same stored choice the Leaflet map reads, so the two renderers agree.
+  const baseLayer = useSettingsStore(s => s.settings.map_base_layer) || 'default'
+  const updateSetting = useSettingsStore(s => s.updateSetting)
+  const isSatellite = baseLayer === 'satellite'
+  const toggleBaseLayer = useCallback(() => {
+    // The store flips synchronously, so the map switches even offline; a failed save
+    // is logged there rather than blocking the switch.
+    updateSetting('map_base_layer', isSatellite ? 'default' : 'satellite').catch(() => {})
+  }, [isSatellite, updateSetting])
   const mapbox3d = useSettingsStore(s => s.settings.mapbox_3d_enabled !== false)
   const mapboxQuality = useSettingsStore(s => s.settings.mapbox_quality_mode === true)
   const showEndpointLabels = useSettingsStore(s => s.settings.map_booking_labels) === true
@@ -2058,6 +2121,18 @@ export function MapViewGL({
     else map.once('load', apply)
   }, [userPosition, trackingMode, glProvider])
 
+  // Satellite, the same setting the Leaflet map reads, so switching it on one renderer
+  // and reloading into the other keeps the choice. `styledata` is subscribed because a
+  // basemap change rebuilds the style from scratch and takes the imagery with it.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapReady) return
+    const apply = () => applySatellite(map, isSatellite)
+    apply()
+    map.on('styledata', apply)
+    return () => { map.off('styledata', apply) }
+  }, [isSatellite, mapReady, glProvider])
+
   if (!isMapLibre && !mapboxToken) {
     return (
       <div className="w-full h-full flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-center px-6">
@@ -2093,6 +2168,18 @@ export function MapViewGL({
           bottomOffset={buttonBottom as unknown as number}
         />
       )}
+      {/* Same pill, same corner, same offsets as the Leaflet map: the switch should not
+          move when an instance changes renderer. The day panel is a centred card on the
+          desktop map and never reaches the pill, but on a phone it is full width and
+          does, which is why the lift is only there. */}
+      <div style={{
+        position: 'absolute', left: leftWidth + 20, zIndex: 1000, pointerEvents: 'none',
+        bottom: isMobile && hasDayDetail
+          ? 'calc(var(--bottom-nav-h, 0px) + 20px + var(--day-panel-h, 0px) + 12px)'
+          : 'calc(var(--bottom-nav-h, 0px) + 12px)',
+      }}>
+        <MapLayerSwitcher active={baseLayer as BaseLayer} onToggle={toggleBaseLayer} />
+      </div>
       {/* Hover tooltip — cursor-following name/category/address card, identical to
           the Leaflet map's overlay (no anchored popup, no photo). */}
       {!hoverDisabled && hoverPlace && hoverPos && !isMobile && (

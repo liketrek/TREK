@@ -1955,4 +1955,68 @@ describe('MapViewGL', () => {
     // in the wrong place.
     expect(layer.firstElementChild).not.toBe(handle)
   })
+  // ── Satellite ───────────────────────────────────────────────────────────────
+  //
+  // Leaflet has had the imagery for a while and swaps its whole tile layer for it.
+  // A GL map cannot do that, because its basemap is a style with dozens of layers,
+  // so the imagery goes on as a raster layer under everything TREK draws.
+
+  it('FE-COMP-MAPVIEWGL-074: satellite adds the imagery under the first TREK layer', async () => {
+    loadOnAttach()
+    useSettingsStore.setState({
+      settings: { ...useSettingsStore.getState().settings, map_base_layer: 'satellite' },
+    } as never)
+    glMap.getStyle.mockReturnValue({
+      layers: [{ id: 'background' }, { id: 'road' }, { id: 'trip-route' }, { id: 'trip-gpx-hit' }],
+    })
+
+    render(<MapViewGL places={[]} fitKey={1} />)
+    await flushFrames()
+
+    expect(glMap.addSource).toHaveBeenCalledWith('trip-satellite', expect.objectContaining({
+      type: 'raster',
+      tiles: [expect.stringContaining('arcgisonline.com')],
+    }))
+    // Anchored before the route, or the imagery would be painted over it.
+    expect(glMap.addLayer).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'trip-satellite-raster', type: 'raster' }),
+      'trip-route',
+    )
+  })
+
+  it('FE-COMP-MAPVIEWGL-075: with the default basemap no imagery is fetched at all', async () => {
+    loadOnAttach()
+    useSettingsStore.setState({
+      settings: { ...useSettingsStore.getState().settings, map_base_layer: 'default' },
+    } as never)
+
+    render(<MapViewGL places={[]} fitKey={1} />)
+    await flushFrames()
+
+    expect(glMap.addSource).not.toHaveBeenCalledWith('trip-satellite', expect.anything())
+  })
+
+  it('FE-COMP-MAPVIEWGL-076: switching back hides the layer instead of tearing it down', async () => {
+    loadOnAttach()
+    useSettingsStore.setState({
+      settings: { ...useSettingsStore.getState().settings, map_base_layer: 'satellite' },
+    } as never)
+    glMap.getStyle.mockReturnValue({ layers: [{ id: 'background' }, { id: 'trip-route' }] })
+    // Present from the first pass on, the way the real map reports it afterwards.
+    glMap.getSource.mockImplementation((id: string) => (id === 'trip-satellite' ? {} : null))
+    glMap.getLayer.mockImplementation((id: string) => (id === 'trip-satellite-raster' ? {} : null))
+
+    const { rerender } = render(<MapViewGL places={[]} fitKey={1} />)
+    await flushFrames()
+
+    act(() => {
+      useSettingsStore.setState({
+        settings: { ...useSettingsStore.getState().settings, map_base_layer: 'default' },
+      } as never)
+    })
+    rerender(<MapViewGL places={[]} fitKey={1} />)
+    await flushFrames()
+
+    expect(glMap.setLayoutProperty).toHaveBeenCalledWith('trip-satellite-raster', 'visibility', 'none')
+  })
 })
