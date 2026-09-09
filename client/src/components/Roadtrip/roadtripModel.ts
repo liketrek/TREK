@@ -212,8 +212,10 @@ function resolveArrival(
 }
 
 export function computeSchedule(stops: ScheduleStop[], legSeconds: (number | undefined)[]): Schedule {
-  const entries: ScheduleEntry[] = []
   const warnings: ScheduleWarning[] = []
+  // Arrivals in minutes, so the chain can be walked twice before anything is formatted.
+  const arrivals: (number | null)[] = new Array(stops.length).fill(null)
+  const anchored: boolean[] = new Array(stops.length).fill(false)
   // Minutes since the first stop's midnight, so a chain crossing midnight keeps counting.
   let cursor: number | null = null
   let dayOffset = 0
@@ -224,28 +226,57 @@ export function computeSchedule(stops: ScheduleStop[], legSeconds: (number | und
     const { arrival, lateBy } = resolveArrival(anchor, cursor, dayOffset)
     if (lateBy !== null) warnings.push({ index: i, code: 'late', minutes: lateBy })
 
-    if (arrival === null) {
+    if (arrival === null) continue
+
+    const offset = Math.floor(arrival / DAY_MINUTES)
+    if (offset > dayOffset) dayOffset = offset
+
+    arrivals[i] = arrival
+    anchored[i] = anchor !== null
+
+    const leg = legSeconds[i]
+    cursor = leg === undefined ? null : arrival + (stop.dwellMinutes ?? 0) + Math.round(leg / 60)
+  }
+
+  // Then backwards, for the stops the forward walk left blank because nobody had pinned
+  // a time yet. Pinning a time on the second stop is the ordinary way to plan: the museum
+  // opens at ten, so when do we have to leave? Working back from the first known arrival
+  // answers it — departure = the next arrival minus the drive, arrival = that minus the
+  // stay — and it stops at the first leg that never routed rather than inventing one.
+  const firstKnown = arrivals.findIndex(a => a !== null)
+  for (let i = firstKnown - 1; i >= 0; i--) {
+    const leg = legSeconds[i]
+    const next = arrivals[i + 1]
+    if (leg === undefined || next === null) break
+    arrivals[i] = next - Math.round(leg / 60) - (stops[i].dwellMinutes ?? 0)
+  }
+
+  // Working back can land before the anchor day's midnight, which would print as a
+  // negative day. `dayOffset` counts days past the FIRST stop, so the whole chain shifts
+  // up instead until the earliest stop sits on day zero again.
+  const earliest = arrivals.reduce<number | null>((m, a) => (a === null ? m : m === null || a < m ? a : m), null)
+  const shift = earliest === null || earliest >= 0 ? 0 : -Math.floor(earliest / DAY_MINUTES) * DAY_MINUTES
+
+  const entries: ScheduleEntry[] = []
+  let lastOffset = 0
+  for (let i = 0; i < stops.length; i++) {
+    const raw = arrivals[i]
+    if (raw === null) {
       entries.push({ arrival: null, departure: null, anchored: false, dayOffset: 0 })
       continue
     }
-
-    const offset = Math.floor(arrival / (24 * 60))
-    if (offset > dayOffset) {
-      dayOffset = offset
-      warnings.push({ index: i, code: 'overnight' })
-    }
-
-    const dwell = stop.dwellMinutes ?? 0
-    const departure = arrival + dwell
+    const arrival = raw + shift
+    const offset = Math.floor(arrival / DAY_MINUTES)
+    // Read off the finished chain rather than during the forward walk, so a midnight the
+    // backward pass introduced is marked too.
+    if (offset > lastOffset) warnings.push({ index: i, code: 'overnight' })
+    lastOffset = offset
     entries.push({
       arrival: formatClock(arrival),
-      departure: formatClock(departure),
-      anchored: anchor !== null,
+      departure: formatClock(arrival + (stops[i].dwellMinutes ?? 0)),
+      anchored: anchored[i],
       dayOffset: offset,
     })
-
-    const leg = legSeconds[i]
-    cursor = leg === undefined ? null : departure + Math.round(leg / 60)
   }
 
   return { entries, warnings }

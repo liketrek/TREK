@@ -89,7 +89,10 @@ describe('computeSchedule', () => {
     expect(entries[2]).toMatchObject({ arrival: '12:55', departure: '13:40', anchored: false })
   })
 
-  it('leaves stops before the first pinned time blank rather than inventing one', () => {
+  it('works back from the first pinned time to say when to set off', () => {
+    // The museum opens at ten and we want an hour at the stop before it, an hour of
+    // driving in between: be there at eight. Answering that is the reason to pin a time
+    // on the second stop at all.
     const { entries } = computeSchedule(
       [
         { anchor: null, dwellMinutes: 60 },
@@ -97,8 +100,39 @@ describe('computeSchedule', () => {
       ],
       [hours(1)],
     )
-    expect(entries[0]).toMatchObject({ arrival: null, departure: null })
+    expect(entries[0]).toMatchObject({ arrival: '08:00', departure: '09:00', anchored: false })
     expect(entries[1]).toMatchObject({ arrival: '10:00', anchored: true })
+  })
+
+  it('stops working back at a leg that never routed rather than inventing one', () => {
+    const { entries } = computeSchedule(
+      [
+        { anchor: null, dwellMinutes: 60 },
+        { anchor: null, dwellMinutes: 30 },
+        { anchor: '10:00', dwellMinutes: 30 },
+      ],
+      [undefined, hours(1)],
+    )
+    expect(entries[0]).toMatchObject({ arrival: null, departure: null })
+    // Leaves at 09:00 to arrive at 10:00, and its own half hour puts it there at 08:30.
+    expect(entries[1]).toMatchObject({ arrival: '08:30', departure: '09:00' })
+    expect(entries[2]).toMatchObject({ arrival: '10:00', anchored: true })
+  })
+
+  it('keeps the earliest stop on day zero when working back crosses midnight', () => {
+    // Pinned at one in the morning with three hours of driving before it: the stop before
+    // is the evening before. The chain shifts up a day rather than printing a day below
+    // zero, so the boundary shows between the two stops instead of under the first one.
+    const { entries, warnings } = computeSchedule(
+      [
+        { anchor: null, dwellMinutes: 0 },
+        { anchor: '01:00', dwellMinutes: 0 },
+      ],
+      [hours(3)],
+    )
+    expect(entries[0]).toMatchObject({ arrival: '22:00', dayOffset: 0 })
+    expect(entries[1]).toMatchObject({ arrival: '01:00', dayOffset: 1, anchored: true })
+    expect(warnings).toContainEqual({ index: 1, code: 'overnight' })
   })
 
   it('restarts the cascade at a pinned stop instead of pushing it', () => {
