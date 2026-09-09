@@ -77,8 +77,11 @@ describe('outcomeOf', () => {
     // failed request states a fact that was never checked.
     expect(outcomeOf([], null)).toBe('failed')
     expect(outcomeOf([], { truncated: true })).toBe('incomplete')
-    expect(outcomeOf([], { clamped: true })).toBe('incomplete')
     expect(outcomeOf([], {})).toBe('none')
+    // `clamped` is not the same thing: it means the server searched a smaller circle
+    // than the box described, and the caller sizes the box so that never happens.
+    // Treating it as "could not check" turned every empty answer into a shrug.
+    expect(outcomeOf([], { clamped: true })).toBe('none')
   })
 
   it('FE-ROADTRIP-REFUEL-008: a hit is a hit even when the answer was cut short', () => {

@@ -11,6 +11,7 @@ import {
   parseClock,
   splitIntoRuns,
   sumLegSeconds,
+  refuelStopTypeFor,
 } from './roadtripModel'
 
 describe('formatDurationShort', () => {
@@ -685,5 +686,43 @@ describe('deriveDriveWarnings — where the tank actually runs dry', () => {
     )
     expect(out.emptyAt).toEqual([])
     expect(out.carryKm).toBeNull()
+  })
+})
+
+describe('refuelsRange — what fills which tank', () => {
+  it('FE-ROADTRIP-MODEL-096: with no vehicle named, either kind fills up', () => {
+    // What TREK did before the setting existed, and the right answer for somebody who
+    // never opened the dialog. Anything else would quietly change their warnings.
+    expect(refuelsRange('fuel')).toBe(true)
+    expect(refuelsRange('charging')).toBe(true)
+    expect(refuelsRange('fuel', null)).toBe(true)
+    expect(refuelsRange('charging', null)).toBe(true)
+  })
+
+  it('FE-ROADTRIP-MODEL-097: a petrol station does not charge a battery', () => {
+    // The bug this exists for: an electric car pausing at a petrol station had its
+    // battery refilled on paper, the warnings went quiet for the rest of the day, and
+    // the driver was told nothing.
+    expect(refuelsRange('charging', 'electric')).toBe(true)
+    expect(refuelsRange('fuel', 'electric')).toBe(false)
+  })
+
+  it('FE-ROADTRIP-MODEL-098: and a charger does not fill a tank', () => {
+    expect(refuelsRange('fuel', 'combustion')).toBe(true)
+    expect(refuelsRange('charging', 'combustion')).toBe(false)
+  })
+
+  it('FE-ROADTRIP-MODEL-099: nothing else refuels anything, whatever is driven', () => {
+    for (const vehicle of [null, 'combustion', 'electric'] as const) {
+      expect(refuelsRange('rest_area', vehicle)).toBe(false)
+      expect(refuelsRange('restaurant', vehicle)).toBe(false)
+      expect(refuelsRange(null, vehicle)).toBe(false)
+    }
+  })
+
+  it('FE-ROADTRIP-MODEL-100: the search looks for what the vehicle actually takes', () => {
+    expect(refuelStopTypeFor('combustion')).toEqual(['fuel'])
+    expect(refuelStopTypeFor('electric')).toEqual(['charging'])
+    expect(refuelStopTypeFor(null)).toEqual(['fuel', 'charging'])
   })
 })

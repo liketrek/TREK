@@ -1075,6 +1075,21 @@ export function useTripPlanner() {
     [alternativeOverlays],
   )
 
+  /**
+   * What the map should bring into view.
+   *
+   * Refuel offers win while they are open, and for the reason they exist at all: somebody
+   * is being asked to accept a stop, and a stop off the edge of the map cannot be judged.
+   * They are the newer, smaller and more specific answer, so they take the view from the
+   * alternatives rather than being averaged with them into a frame that shows neither.
+   */
+  const mapFocusPoints = useMemo<[number, number][]>(
+    () => (refuel.offered.length
+      ? refuel.offered.map(p => [p.lat, p.lng] as [number, number])
+      : alternativeFocusPoints),
+    [refuel.offered, alternativeFocusPoints],
+  )
+
   /** Asks the router for other ways of driving one leg of one day. */
   const askRouteAlternatives = useCallback((dayId: number, legIndex: number) => {
     const day = roadtripRoutes.days.find(d => d.dayId === dayId)
@@ -1870,7 +1885,7 @@ export function useTripPlanner() {
     saveRoadtripLimit,
     roadtripVias, addRoadtripVia, moveRoadtripVia, removeRoadtripVia,
     refuel, askRefuel, acceptRefuel,
-    routeAlternatives, askRouteAlternatives, chooseRouteAlternative, alternativeOverlays, alternativeFocusPoints,
+    routeAlternatives, askRouteAlternatives, chooseRouteAlternative, alternativeOverlays, alternativeFocusPoints, mapFocusPoints,
     stayDraft, setStayDraft, setRoadtripStay,
     highlightedAlternative, setHighlightedAlternative,
     moveRoadtripStopToDay,

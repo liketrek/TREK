@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import {
   CarFront, Footprints, Bike, Zap, AlertTriangle,
-  ParkingSquare, Shuffle, Fuel, Clock, Spline, Ban,
+  ParkingSquare, Shuffle, Fuel, Clock, Spline, Ban, Plus, Search, RotateCcw, X,
   type LucideIcon,
 } from 'lucide-react'
 import MDancingTrek from '../../mobile/components/MDancingTrek'
@@ -327,81 +327,110 @@ function RefuelBand({ dry, refuel, dayId, onAsk, onAccept }: {
   const distanceUnit = useSettingsStore(s => s.settings.distance_unit)
   const key = `${dayId}:${dry.legIndex}`
   const open = refuel.openFor === key
+  const settled = open && !refuel.loading && refuel.outcome
 
   return (
-    <div className="my-1 ms-[30px] flex flex-col gap-1.5 rounded-lg border border-edge-faint bg-surface-secondary px-2.5 py-2">
-      <div className="flex items-center gap-2">
-        <Fuel size={12} className="shrink-0 text-content-faint" aria-hidden />
-        <span className="min-w-0 flex-1 text-content-secondary" style={{ fontSize: FS.label }}>
-          {t('roadtrip.refuel.dry', { distance: formatDistance(dry.sinceKm, distanceUnit) })}
-        </span>
-        {open ? (
-          <button
-            type="button"
-            onClick={refuel.close}
-            className="shrink-0 rounded px-1.5 py-0.5 text-content-faint transition-colors hover:text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-            style={{ fontSize: FS.label }}
-          >
-            {t('common.close')}
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={onAsk}
-            className="shrink-0 rounded bg-surface-card px-2 py-0.5 font-semibold text-content-secondary transition-colors hover:bg-surface-hover hover:text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-            style={{ fontSize: FS.label }}
-          >
-            {t('roadtrip.refuel.find')}
-          </button>
-        )}
+    <div className="grid" style={RAIL_GRID}>
+      <span className="relative z-[1] flex flex-col items-center" aria-hidden>
+        <span className="flex-1" style={RAIL_DASH} />
+      </span>
+      <div className="min-w-0">
+        {/* Built as a drive band, because that is what it belongs to: the leg the fuel
+            runs out on. Same height, same type, same rail. The warning ring is the only
+            difference, and it is the whole message — this is the band where the tank
+            ends. */}
+        <div className="my-1.5 flex flex-col gap-1 rounded-lg bg-warning-soft px-2 py-1">
+          <div className="flex items-center gap-1.5">
+            <Fuel size={12} strokeWidth={1.7} className="shrink-0 text-warning" aria-hidden />
+            <span className="min-w-0 truncate font-medium text-content" style={{ fontSize: FS.meta }}>
+              {t('roadtrip.refuel.dry')}
+            </span>
+            {/* How far INTO this leg, where a drive band keeps its figures. Not the range
+                that was crossed: that is the traveller's own setting, says nothing about
+                where, and made every band on a day read the same number. */}
+            <span className="ms-auto shrink-0 tabular-nums text-content-muted" style={{ fontSize: FS.meta }}>
+              {t('roadtrip.refuel.after', { distance: formatDistance(Math.round(dry.intoLegKm), distanceUnit) })}
+            </span>
+            {/* An icon, the size of the shuffle mark a drive band carries, because the
+                band has to stay one line high beside its neighbours. What it does is in
+                the tooltip and in the label a screen reader gets. */}
+            {open && (refuel.loading || refuel.results.length) ? (
+              <Tooltip label={t('common.close')}>
+                <button
+                  type="button"
+                  onClick={refuel.close}
+                  aria-label={t('common.close')}
+                  className="grid h-[18px] w-[18px] shrink-0 place-items-center rounded-md text-content-muted transition-colors hover:bg-surface-card hover:text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                >
+                  <X size={12} aria-hidden />
+                </button>
+              </Tooltip>
+            ) : (
+              /* An answer that found nothing leaves the button, not a dead end. The place
+                 search is a shared public service that does time out, and "it did not
+                 answer" with no way to ask again reads as broken rather than as busy. */
+              <Tooltip label={settled && refuel.outcome !== 'found' ? t('roadtrip.refuel.again') : t('roadtrip.refuel.find')}>
+                <button
+                  type="button"
+                  onClick={onAsk}
+                  aria-label={settled && refuel.outcome !== 'found' ? t('roadtrip.refuel.again') : t('roadtrip.refuel.find')}
+                  className="grid h-[18px] w-[18px] shrink-0 place-items-center rounded-md bg-surface-card text-content-secondary transition-colors hover:bg-surface-hover hover:text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                >
+                  {settled && refuel.outcome !== 'found'
+                    ? <RotateCcw size={11} aria-hidden />
+                    : <Search size={11} aria-hidden />}
+                </button>
+              </Tooltip>
+            )}
+          </div>
+
+          {open && refuel.loading ? (
+            <span className="text-content-muted" style={{ fontSize: FS.meta }}>{t('roadtrip.refuel.looking')}</span>
+          ) : null}
+
+          {settled ? (
+            refuel.results.length ? (
+              <ul className="flex flex-col gap-0.5">
+                {/* Three at most. This is an offer beside a plan, not a list to browse;
+                    the corridor panel is where somebody goes to see all of them. */}
+                {refuel.results.slice(0, 3).map(poi => (
+                  <li key={poi.osm_id} className="flex items-center gap-1.5">
+                    <span className="min-w-0 flex-1 truncate text-content" style={{ fontSize: FS.meta }}>
+                      {poi.name}
+                    </span>
+                    <span className="shrink-0 tabular-nums text-content-muted" style={{ fontSize: FS.meta }}>
+                      {/* What is left when the car draws level, the figure that decides
+                          whether this one is any use. The detour is already in it. */}
+                      {t('roadtrip.refuel.spare', { distance: formatDistance(Math.round(poi.spareKm), distanceUnit) })}
+                    </span>
+                    {onAccept ? (
+                      <button
+                        type="button"
+                        onClick={() => onAccept(poi)}
+                        aria-label={t('roadtrip.refuel.add', { name: poi.name })}
+                        className="grid h-[18px] w-[18px] shrink-0 place-items-center rounded-md bg-surface-card text-content-secondary transition-colors hover:bg-surface-hover hover:text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                      >
+                        <Plus size={11} aria-hidden />
+                      </button>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              /* Three different sentences for three different facts. "Nothing on this
+                 stretch" after a request that failed or was cut short states something
+                 that was never checked, which is worse than saying nothing. */
+              <span className="text-content-muted" style={{ fontSize: FS.meta }}>
+                {refuel.outcome === 'none'
+                  ? t('roadtrip.refuel.none')
+                  : refuel.outcome === 'incomplete'
+                    ? t('roadtrip.refuel.incomplete')
+                    : t('roadtrip.refuel.failed')}
+              </span>
+            )
+          ) : null}
+        </div>
       </div>
-
-      {open && refuel.loading ? (
-        <span className="text-content-faint" style={{ fontSize: FS.label }}>{t('roadtrip.refuel.looking')}</span>
-      ) : null}
-
-      {open && !refuel.loading && refuel.outcome ? (
-        refuel.results.length ? (
-          <ul className="flex flex-col gap-1">
-            {/* Three at most. This is an offer beside a plan, not a list to browse; the
-                corridor panel is where somebody goes to see all of them. */}
-            {refuel.results.slice(0, 3).map(poi => (
-              <li key={poi.osm_id} className="flex items-center gap-2">
-                <span className="min-w-0 flex-1 truncate text-content" style={{ fontSize: FS.label }}>
-                  {poi.name}
-                </span>
-                <span className="shrink-0 tabular-nums text-content-faint" style={{ fontSize: FS.label }}>
-                  {/* What is left when the car draws level, which is the figure that
-                      decides whether this one is any use. The detour is in it already. */}
-                  {t('roadtrip.refuel.spare', { distance: formatDistance(Math.round(poi.spareKm), distanceUnit) })}
-                </span>
-                {onAccept ? (
-                  <button
-                    type="button"
-                    onClick={() => onAccept(poi)}
-                    aria-label={t('roadtrip.refuel.add', { name: poi.name })}
-                    className="shrink-0 rounded bg-surface-card px-1.5 py-0.5 font-semibold text-content-secondary transition-colors hover:bg-surface-hover hover:text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                    style={{ fontSize: FS.label }}
-                  >
-                    +
-                  </button>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          /* Three different sentences for three different facts. "Nothing on this
-             stretch" after a request that failed or was cut short states something that
-             was never checked, and that is worse than saying nothing. */
-          <span className="text-content-faint" style={{ fontSize: FS.label }}>
-            {refuel.outcome === 'none'
-              ? t('roadtrip.refuel.none')
-              : refuel.outcome === 'incomplete'
-                ? t('roadtrip.refuel.incomplete')
-                : t('roadtrip.refuel.failed')}
-          </span>
-        )
-      ) : null}
     </div>
   )
 }
@@ -956,6 +985,17 @@ function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, on
   const { t, language } = useTranslation()
   const distanceUnit = useSettingsStore(s => s.settings.distance_unit)
   const last = day.stops.length - 1
+  /**
+   * The findings a stop wears, minus the one the refuel band already says better.
+   *
+   * The range warning marks the stop somebody FINDS OUT at and counts the whole tank;
+   * the band sits on the leg the fuel actually ends on and offers somewhere to stop. Both
+   * at once says the same thing twice, in the wrong order — the answer above the problem
+   * — so the warning stands down wherever the band is showing.
+   */
+  const showingBand = !!refuel && !loading && !!day.dryPoints?.length
+  const findingsFor = (i: number) =>
+    day.driveWarnings.filter(w => w.index === i && !(showingBand && w.code === 'range'))
   // The running number a stop wears, with the service stops passed over — so a day with a
   // charger halfway through still counts one, two, three the way its map pins do.
   let counted = 0
@@ -1091,7 +1131,7 @@ function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, on
                   stop={stop}
                   entry={day.schedule.entries[i]}
                   late={marks.find(w => w.code === 'late')}
-                  driveFindings={day.driveWarnings.filter(w => w.index === i)}
+                  driveFindings={findingsFor(i)}
                   selected={selectedAssignmentId === stop.assignmentId}
                   onSelect={onSelectStop ? () => onSelectStop(stop.placeId, stop.assignmentId) : undefined}
                   onEditStay={onEditStay ? () => onEditStay({ placeId: stop.placeId, name: stop.name, minutes: stop.dwellMinutes, arrival: day.schedule.entries[i]?.arrival ?? null }) : undefined}
@@ -1103,7 +1143,7 @@ function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, on
                   number={counted}
                   entry={day.schedule.entries[i]}
                   late={marks.find(w => w.code === 'late')}
-                  driveFindings={day.driveWarnings.filter(w => w.index === i)}
+                  driveFindings={findingsFor(i)}
                   selected={selectedAssignmentId === stop.assignmentId}
                   continues={i < last}
                   starts={i === 0}

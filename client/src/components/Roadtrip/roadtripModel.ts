@@ -123,9 +123,32 @@ export interface ScheduleWarning {
  */
 export const REFUELLING_STOP_TYPES = ['fuel', 'charging'] as const
 
-/** Whether stopping here starts the range budget over. */
-export function refuelsRange(stopType: string | null | undefined): boolean {
-  return (REFUELLING_STOP_TYPES as readonly string[]).includes(stopType ?? '')
+/**
+ * What the traveller drives, which decides what actually fills the tank.
+ *
+ * Absent means both count, which is what TREK did before the setting existed and is the
+ * right answer for somebody who never said. It is only wrong once a vehicle IS named:
+ * a petrol station does not charge a battery, and a charger does not fill a tank.
+ */
+export type VehicleKind = 'combustion' | 'electric'
+
+/** The stop kind that refills the named vehicle, for filtering a search. */
+export function refuelStopTypeFor(vehicle: VehicleKind | null | undefined): readonly string[] {
+  if (vehicle === 'combustion') return ['fuel']
+  if (vehicle === 'electric') return ['charging']
+  return REFUELLING_STOP_TYPES
+}
+
+/**
+ * Whether stopping here starts the range budget over.
+ *
+ * With no vehicle named, either kind does — a plain reading of "I filled up". Once one is
+ * named the other stops counting, because the alternative is arithmetic that is simply
+ * wrong: an electric car pausing at a petrol station had its battery refilled on paper,
+ * the warnings went quiet for the rest of the day, and the driver was told nothing.
+ */
+export function refuelsRange(stopType: string | null | undefined, vehicle?: VehicleKind | null): boolean {
+  return refuelStopTypeFor(vehicle).includes(stopType ?? '')
 }
 
 /**

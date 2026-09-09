@@ -86,7 +86,10 @@ export function outcomeOf(
 ): RefuelOutcome {
   if (!answer) return 'failed'
   if (candidates.length) return 'found'
-  return answer.truncated || answer.clamped ? 'incomplete' : 'none'
+  // `truncated` alone. `clamped` only means the server searched a smaller circle than
+  // the box described, which the caller now sizes so it never happens — and reporting it
+  // as "we could not check" turned every empty answer into a shrug.
+  return answer.truncated ? 'incomplete' : 'none'
 }
 
 /**

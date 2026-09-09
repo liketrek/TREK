@@ -57,3 +57,30 @@ describe('useMergedMapPois', () => {
     expect(result.current).toBe(first)
   })
 })
+
+describe('useMergedMapPois — the refuel offers', () => {
+  const poi = (id: string): Poi => ({ osm_id: id, name: id, lat: 0, lng: 0 } as Poi)
+
+  it('FE-MAP-MERGEPOI-007: an offered station is drawn even with no search running', () => {
+    // In road trip mode this is the only channel a POI reaches the map through, so
+    // without it somebody is asked to accept a stop they cannot see.
+    const { result } = renderHook(() => useMergedMapPois([], [], [poi('offer')]))
+    expect(result.current.map(p => p.osm_id)).toEqual(['offer'])
+  })
+
+  it('FE-MAP-MERGEPOI-008: an offer already on the route is one pin, not two', () => {
+    const { result } = renderHook(() => useMergedMapPois([poi('a')], [], [poi('a'), poi('b')]))
+    expect(result.current.map(p => p.osm_id)).toEqual(['a', 'b'])
+  })
+
+  it('FE-MAP-MERGEPOI-009: nothing offered keeps the same array, so no pin is rebuilt', () => {
+    const corridor = [poi('a')]
+    const { result, rerender } = renderHook(({ o }: { o: Poi[] }) => useMergedMapPois(corridor, [], o), {
+      initialProps: { o: [] as Poi[] },
+    })
+    const first = result.current
+    rerender({ o: [] })
+    expect(result.current).toBe(first)
+    expect(result.current).toBe(corridor)
+  })
+})

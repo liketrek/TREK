@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
-import { Clock, Fuel, CalendarClock, SlidersHorizontal, ChevronRight, Coins, Signpost, Ship } from 'lucide-react'
+import { Clock, Fuel, CalendarClock, SlidersHorizontal, ChevronRight, Coins, Signpost, Ship, Car, Zap } from 'lucide-react'
 import Modal from '../shared/Modal'
+import CustomSelect from '../shared/CustomSelect'
 import { useTranslation } from '../../i18n/TranslationContext'
 import { useSettingsStore } from '../../store/settingsStore'
 import { convertDistance, formatDistance } from '../../utils/units'
@@ -103,6 +104,13 @@ function AvoidRow({ icon: Icon, label, on, disabled, onToggle }: {
   )
 }
 
+/** Not said, petrol, electric. "Not said" first, because it is what everybody starts on. */
+const VEHICLES: { key: 'combustion' | 'electric' | null; labelKey: string; Icon: typeof Car }[] = [
+  { key: null, labelKey: 'roadtrip.limit.vehicleAny', Icon: Car },
+  { key: 'combustion', labelKey: 'roadtrip.limit.vehicleCombustion', Icon: Fuel },
+  { key: 'electric', labelKey: 'roadtrip.limit.vehicleElectric', Icon: Zap },
+]
+
 export default function RoadtripLimitsCard({ onSave }: {
   /**
    * Persists one setting. Absent leaves the dialog read-only.
@@ -123,6 +131,7 @@ export default function RoadtripLimitsCard({ onSave }: {
 
   // Parsed rather than trusted: a per-user setting gets no server-side validation, and
   // an unknown word here would become a costing option the router does not have.
+  const vehicle = settings.roadtrip_vehicle ?? ''
   const avoiding = parseAvoid(settings.roadtrip_avoid)
   // No second engine, no avoidance. An instance pointed at its own OSRM has one, and its
   // car profile is built without excludable classes on every public host.
@@ -234,6 +243,25 @@ export default function RoadtripLimitsCard({ onSave }: {
               placeholder={t('roadtrip.limit.off')}
               onChange={v => onSave?.('roadtrip_day_minutes', v)}
             />
+            {/* Above the range, because it decides what the range even means: with no
+                vehicle named, a petrol station and a charger both fill the tank, which
+                is arithmetic that is wrong for everybody who drives just one of them. */}
+            <label className="flex items-center gap-3">
+              <Car size={16} className="shrink-0 text-content-faint" aria-hidden />
+              <span className="min-w-0 flex-1 text-body text-content-secondary">{t('roadtrip.limit.vehicleLabel')}</span>
+              <span className="w-[132px] shrink-0">
+                <CustomSelect
+                  value={vehicle}
+                  onChange={next => onSave?.('roadtrip_vehicle', String(next))}
+                  size="sm"
+                  options={VEHICLES.map(({ key, labelKey, Icon }) => ({
+                    value: key ?? '',
+                    label: t(labelKey),
+                    icon: <Icon size={14} aria-hidden />,
+                  }))}
+                />
+              </span>
+            </label>
             <LimitRow
               icon={Fuel}
               label={t('roadtrip.limit.rangeLabel')}

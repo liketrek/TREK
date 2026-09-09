@@ -64,6 +64,8 @@ export const DEFAULT_SETTINGS: Settings = {
   // Empty = the public Valhalla, unless routing_base_url names an own router, in which
   // case no second engine is asked at all. See valhallaBase().
   valhalla_base_url: '',
+  // Empty = not said, and then a stop of either kind fills up. See refuelsRange().
+  roadtrip_vehicle: '',
   dark_mode: false,
   // Empty = no personal display currency, so Costs falls back to the trip's own.
   default_currency: '',

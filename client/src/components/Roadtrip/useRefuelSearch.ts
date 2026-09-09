@@ -1,8 +1,10 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { mapsApi } from '../../api/client'
 import { useTranslation } from '../../i18n'
 import { isEffectivelyOffline } from '../../sync/networkMode'
-import { boxAround, type LatLng } from './corridor'
+import { useSettingsStore } from '../../store/settingsStore'
+import { refuelStopTypeFor, type VehicleKind } from './roadtripModel'
+import { boxAround, pointAtMeters, type LatLng } from './corridor'
 import { reachableRefuels, outcomeOf, type RefuelCandidate, type RefuelOutcome } from './refuelSuggestion'
 
 /**
@@ -21,8 +23,27 @@ import { reachableRefuels, outcomeOf, type RefuelCandidate, type RefuelOutcome }
  * One request, one day, no shared state touched.
  */
 
-/** How far around the dry point to look, in kilometres. */
-const LOOK_KM = 25
+/**
+ * How far around the search point to look, in kilometres.
+ *
+ * Fourteen and not more, because the server turns a box into a circle of half its
+ * diagonal and silently narrows anything past 20 km. A box of ±14 asks for 19.8, which
+ * is the largest question it answers in full — ±25 asked for 35 and came back flagged
+ * as narrowed every single time, which then read on screen as "we could not check".
+ */
+const LOOK_KM = 14
+
+/**
+ * How far BEFORE the dry point to centre that circle, in kilometres.
+ *
+ * Only the road already driven is any use: a station past the point is on the far side
+ * of an empty tank. Centring on the dry point spends half the circle on road nobody can
+ * reach, so it is pulled back far enough that the useful half becomes the whole of it.
+ */
+const LOOK_BACK_KM = 12
+
+/** Nothing on offer, as one stable array, so an idle search never redraws the map. */
+const NONE: RefuelCandidate[] = []
 
 export interface RefuelSearch {
   /** Which dry point is being answered, as `<dayId>:<legIndex>`, or null when idle. */
@@ -30,6 +51,15 @@ export interface RefuelSearch {
   loading: boolean
   outcome: RefuelOutcome | null
   results: RefuelCandidate[]
+  /**
+   * The ones on offer, for the map to draw.
+   *
+   * The same three the rail lists and no more: somebody is being asked to accept a stop,
+   * and a stop that cannot be seen is not one that can be judged. Empty while nothing is
+   * open, and the same array each time, because the map rebuilds every pin when this
+   * reference changes.
+   */
+  offered: RefuelCandidate[]
   /** Runs the one request. `key` identifies the dry point, so only one is open at a time. */
   ask: (key: string, at: LatLng, line: LatLng[], dryAlongKm: number, existing: LatLng[]) => Promise<void>
   close: () => void
@@ -37,6 +67,9 @@ export interface RefuelSearch {
 
 export function useRefuelSearch(): RefuelSearch {
   const { locale } = useTranslation()
+  // What to look for. Somebody who said they drive an electric car has no use for a
+  // petrol station in the list, and the other way round; with nothing said, both.
+  const vehicle = useSettingsStore(s => s.settings.roadtrip_vehicle)
   const [openFor, setOpenFor] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [outcome, setOutcome] = useState<RefuelOutcome | null>(null)
@@ -76,7 +109,14 @@ export function useRefuelSearch(): RefuelSearch {
 
     setLoading(true)
     try {
-      const answer = await mapsApi.pois('fuel,charging', boxAround(at, LOOK_KM), locale, controller.signal)
+      const kind: VehicleKind | null =
+        vehicle === 'combustion' || vehicle === 'electric' ? vehicle : null
+      const wanted = refuelStopTypeFor(kind).join(',')
+      // Pulled back along the road, because only what lies before the dry point can be
+      // reached. `at` stays the dry point itself: it is what the band names and what the
+      // map is asked to show.
+      const centre = pointAtMeters(line, Math.max(0, (dryAlongKm - LOOK_BACK_KM) * 1000)) ?? at
+      const answer = await mapsApi.pois(wanted, boxAround(centre, LOOK_KM), locale, controller.signal)
       if (controller.signal.aborted) return
       const candidates = reachableRefuels(answer.pois, line, dryAlongKm, { existing })
       setResults(candidates)
@@ -86,7 +126,9 @@ export function useRefuelSearch(): RefuelSearch {
     } finally {
       if (!controller.signal.aborted) setLoading(false)
     }
-  }, [locale])
+  }, [locale, vehicle])
 
-  return { openFor, loading, outcome, results, ask, close }
+  const offered = useMemo(() => (openFor ? results.slice(0, 3) : NONE), [openFor, results])
+
+  return { openFor, loading, outcome, results, offered, ask, close }
 }

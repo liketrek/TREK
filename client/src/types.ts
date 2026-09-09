@@ -159,6 +159,14 @@ export interface Settings {
    * because it goes to the router as one request either way.
    */
   roadtrip_avoid?: string
+  /**
+   * What the traveller drives: 'combustion', 'electric', or absent for "did not say".
+   *
+   * Absent has to mean BOTH kinds refill, which is what the range budget did before this
+   * existed. Anything else would quietly change the warnings of every traveller who never
+   * opened the dialog.
+   */
+  roadtrip_vehicle?: string
   /** CARTO basemaps watermark keyless tiles; the key is appended as ?key= (#2054). */
   carto_api_key?: string
   mapbox_access_token?: string

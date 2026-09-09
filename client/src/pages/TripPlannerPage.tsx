@@ -267,7 +267,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
     setRoadtripStopKind,
     saveRoadtripLimit,
     roadtripVias, addRoadtripVia, moveRoadtripVia, removeRoadtripVia,
-    routeAlternatives, askRouteAlternatives, refuel, askRefuel, acceptRefuel, chooseRouteAlternative, alternativeOverlays, alternativeFocusPoints,
+    routeAlternatives, askRouteAlternatives, refuel, askRefuel, acceptRefuel, chooseRouteAlternative, alternativeOverlays, alternativeFocusPoints, mapFocusPoints,
     stayDraft, setStayDraft, setRoadtripStay,
     highlightedAlternative, setHighlightedAlternative,
     moveRoadtripStopToDay,
@@ -325,7 +325,10 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
   // drive ("is there a hotel at tonight's stop" versus "what is along the way"), and the
   // two answers are drawn side by side rather than one hiding the other.
   const poiPillEnabled = useSettingsStore(s => s.settings.map_poi_pill_enabled) !== false
-  const mapPois = useMergedMapPois(roadtripActive ? roadtripCorridor.visible : null, poi.pois)
+  // The refuel offers ride the same channel: in road trip mode this is the only way a
+  // POI reaches the map, so without them somebody is asked to accept a stop they cannot
+  // see. They vanish with the offer rather than lingering as a search result.
+  const mapPois = useMergedMapPois(roadtripActive ? roadtripCorridor.visible : null, poi.pois, refuel.offered)
 
   // Costs expense editor opened from a booking modal (save-then-open). Lives at the
   // page level so it has tripMembers / base currency / current user available.
@@ -443,7 +446,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
               onRouteClick={roadtripActive && can('day_edit', trip) ? addRoadtripVia : undefined}
               roadtripVias={roadtripActive ? roadtripVias.byDay : undefined}
               alternativeRoutes={alternativeOverlays}
-              focusPoints={alternativeFocusPoints}
+              focusPoints={mapFocusPoints}
               clusterLoosely={roadtripActive}
               activeAlternative={highlightedAlternative}
               onChooseAlternative={chooseRouteAlternative}

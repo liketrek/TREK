@@ -3,7 +3,7 @@ import { calculateRouteWithLegs, RoutingRefusedError } from '../Map/RouteCalcula
 import { resolveLegMode } from '../Planner/legMode'
 import {
   computeSchedule, deriveDriveWarnings, isServiceStopType, legIndexForAlong, refuelsRange, splitIntoRuns,
-  type DayWarning, type DriveLimits, type Schedule, type ScheduleWarning, parseAvoid, type DryPoint,} from './roadtripModel'
+  type DayWarning, type DriveLimits, type Schedule, type ScheduleWarning, parseAvoid, type DryPoint, type VehicleKind } from './roadtripModel'
 import { projectOntoRoute, pointAtMeters} from './corridor'
 import { useSettingsStore } from '../../store/settingsStore'
 import type { Assignment, AssignmentsMap, Day, RouteAvoidClass, RouteSegment, RouteVia, SnappedWaypoint } from '../../types'
@@ -283,8 +283,13 @@ export function useRoadtripRoutes(
    * any value — and an unknown word here would become a costing option the router does
    * not have.
    */
+  const vehicle = useSettingsStore(s => s.settings.roadtrip_vehicle)
   const avoidSetting = useSettingsStore(s => s.settings.roadtrip_avoid)
   const avoid = useMemo(() => parseAvoid(avoidSetting), [avoidSetting])
+  // Validated rather than trusted, like the avoidance above: a per-user setting gets no
+  // server-side check, and an unknown word here would silently stop both kinds counting.
+  const vehicleKind: VehicleKind | null =
+    vehicle === 'combustion' || vehicle === 'electric' ? vehicle : null
   const avoidKey = avoid.join(',')
   // Zero and absent both mean "no limit": zero is a legal thing to type and says the
   // same thing, so it is folded here rather than guarded at every reading.
@@ -546,7 +551,7 @@ export function useRoadtripRoutes(
         legs,
         // One longer than the legs: the last stop of the day counts too, because filling
         // up on arrival is what makes the next morning start full.
-        stops.map(s => refuelsRange(s.stopType)),
+        stops.map(s => refuelsRange(s.stopType, vehicleKind)),
         limits,
         carryKm,
       )
