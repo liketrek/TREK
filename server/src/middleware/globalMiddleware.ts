@@ -235,6 +235,13 @@ export function applyGlobalMiddleware(
           // document and never reaches the Service Worker that would cache it
           // (#2180). routing.openstreetmap.de below is a different host.
           "https://tile.openstreetmap.de", "https://tiles.stadiamaps.com",
+          // The imagery host, for the same reason and one more. Leaflet fetches a tile
+          // as an <img>, which img-src's blanket `https:` waves through, so the satellite
+          // view worked on Leaflet with this host missing. A GL map reads the raster
+          // through fetch to hand it to WebGL, and the prefetch does too, so both were
+          // refused here while nothing in the app could see it: the switch flipped, the
+          // layer went on, and no tile ever arrived (#2307).
+          "https://server.arcgisonline.com",
           "https://unpkg.com", "https://open-meteo.com", "https://api.open-meteo.com",
           "https://geocoding-api.open-meteo.com", "https://api.frankfurter.dev",
           "https://router.project-osrm.org/route/v1/", "https://routing.openstreetmap.de/",

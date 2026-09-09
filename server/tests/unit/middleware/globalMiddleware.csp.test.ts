@@ -52,6 +52,25 @@ describe('global CSP: the other shipped raster presets (#2180)', () => {
   });
 });
 
+describe('global CSP: the imagery host (#2307)', () => {
+  it('allows server.arcgisonline.com, which a GL map reaches through fetch', async () => {
+    // The gap hid behind Leaflet for as long as Leaflet was the only renderer to
+    // show the imagery: it loads a tile as an <img>, and img-src allows `https:`
+    // outright. A GL map reads the raster through fetch to hand it to WebGL, so
+    // it lands on connect-src instead and was refused with nothing to see for it.
+    expect(await connectSrcSources()).toContain('https://server.arcgisonline.com');
+  });
+
+  it('names the apex host, because img-src is what used to carry it', async () => {
+    // img-src keeps its blanket `https:`, which is why Leaflet never noticed. The
+    // fix belongs on connect-src alone; widening img-src further would buy nothing
+    // and widening connect-src to a wildcard would not match the apex anyway.
+    const sources = await connectSrcSources();
+    expect(sources).not.toContain('https://*.arcgisonline.com');
+    expect(await directiveSources('img-src')).toContain('https:');
+  });
+});
+
 describe('global CSP: script-src', () => {
   it("allows 'wasm-unsafe-eval' so the WASM decoders keep running", async () => {
     expect(await directiveSources('script-src')).toContain("'wasm-unsafe-eval'");
