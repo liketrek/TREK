@@ -1,4 +1,4 @@
-import { Search, Plus, X, Upload, FileDown, ChevronDown, Check, MapPin, Star, CalendarPlus } from 'lucide-react'
+import { Search, Plus, X, Upload, FileDown, ChevronDown, Check, MapPin, Star, CalendarPlus, CalendarDays } from 'lucide-react'
 import { getCategoryIcon } from '../shared/categoryIcons'
 import Tooltip from '../shared/Tooltip'
 import { useElementSize } from '../../hooks/useElementSize'
@@ -32,7 +32,7 @@ export function PlacesDropOverlay({ t }: SidebarState) {
 export function PlacesHeader(S: SidebarState) {
   const {
     canEditPlaces, onAddPlace, onAddPlaceToSelectedDay, selectedDayId, t, setFileImportOpen, setListImportOpen, hasMultipleListImportProviders,
-    places, categories, categoryFilters, search, setSearch, plannedIds, hasTracks,
+    places, categories, categoryFilters, search, setSearch, plannedIds, plannedFilterIds, dayScoped, onClearSelectedDay, hasTracks,
     filter, setFilter, setSelectedIds, selectMode, setSelectMode,
     catDropOpen, setCatDropOpen, toggleCategoryFilter, setCategoryFilters,
     ratingFilter, setRatingFilter,
@@ -163,7 +163,11 @@ export function PlacesHeader(S: SidebarState) {
         const counts = {
           all: baseFiltered.length,
           unplanned: baseFiltered.filter(p => !plannedIds.has(p.id)).length,
-          planned: baseFiltered.filter(p => plannedIds.has(p.id)).length,
+          // While a day is open this counts that day's plan, the same set the list and
+          // the map show. Counting the whole trip here is what made the tab read 55
+          // beside five pins, with nothing to say the two were answering different
+          // questions.
+          planned: baseFiltered.filter(p => plannedFilterIds.has(p.id)).length,
           tracks: baseFiltered.filter(p => p.route_geometry).length,
         }
         const tabs = ([
@@ -210,6 +214,42 @@ export function PlacesHeader(S: SidebarState) {
           </div>
         )
       })()}
+
+      {/* Says out loud what the count above already narrowed to.
+          The map has followed the open day on this filter since #2024, and until now
+          nothing anywhere said so: the pool read 55, the map drew five, and the honest
+          conclusion was that the map was broken. It sits under the tabs rather than on
+          the map because a chip over the canvas is unreachable on a phone, which is
+          where this was reported from. */}
+      {dayScoped && (
+        <div
+          className="border border-edge-faint bg-surface-tertiary text-content-secondary"
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: '4px 6px 4px 9px', borderRadius: 8, marginBottom: 8,
+            fontSize: 'calc(11px * var(--fs-scale-caption, 1))',
+          }}
+        >
+          <CalendarDays size={11} strokeWidth={2} style={{ flexShrink: 0 }} />
+          <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {t('places.dayScoped')}
+          </span>
+          {onClearSelectedDay && (
+            <button type="button"
+              onClick={onClearSelectedDay}
+              aria-label={t('places.dayScopedClear')}
+              title={t('places.dayScopedClear')}
+              className="text-content-faint hover:text-content"
+              style={{
+                marginInlineStart: 'auto', display: 'flex', alignItems: 'center',
+                background: 'none', border: 'none', padding: 3, cursor: 'pointer', flexShrink: 0,
+              }}
+            >
+              <X size={12} strokeWidth={2.2} />
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Suchfeld */}
       <div style={{ position: 'relative' }}>

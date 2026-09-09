@@ -47,6 +47,8 @@ const places: TranslationStrings = {
   'places.all': 'Semua',
   'places.unplanned': 'Belum direncanakan',
   'places.planned': 'Direncanakan',
+  'places.dayScoped': 'Hanya menampilkan hari yang dibuka',
+  'places.dayScopedClear': 'Tampilkan seluruh perjalanan',
   'places.filterTracks': 'Trek',
   'places.filterByRating': 'Saring menurut penilaian',
   'places.yourRating': 'Rating kamu',

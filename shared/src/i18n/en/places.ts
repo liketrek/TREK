@@ -48,6 +48,9 @@ const places: TranslationStrings = {
   'places.all': 'All',
   'places.unplanned': 'Unplanned',
   'places.planned': 'Planned',
+  /** Shown under the filter tabs while an open day narrows both the list and the map. */
+  'places.dayScoped': 'Showing the open day only',
+  'places.dayScopedClear': 'Show the whole trip',
   'places.filterTracks': 'Tracks',
   'places.filterByRating': 'Filter by rating',
   'places.yourRating': 'Your rating',

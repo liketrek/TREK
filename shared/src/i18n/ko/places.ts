@@ -47,6 +47,8 @@ const places: TranslationStrings = {
   'places.all': '전체',
   'places.unplanned': '미계획',
   'places.planned': '계획됨',
+  'places.dayScoped': '열린 날짜만 표시 중',
+  'places.dayScopedClear': '전체 여행 보기',
   'places.filterTracks': '트랙',
   'places.filterByRating': '평점으로 필터링',
   'places.yourRating': '내 평점',

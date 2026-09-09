@@ -48,6 +48,8 @@ const places: TranslationStrings = {
   'places.all': 'الكل',
   'places.unplanned': 'غير مخطط',
   'places.planned': 'مخطط لها',
+  'places.dayScoped': 'يظهر اليوم المفتوح فقط',
+  'places.dayScopedClear': 'عرض الرحلة كاملة',
   'places.filterTracks': 'المسارات',
   'places.filterByRating': 'تصفية حسب التقييم',
   'places.yourRating': 'تقييمك',

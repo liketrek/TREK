@@ -48,6 +48,8 @@ const places: TranslationStrings = {
   'places.all': 'すべて',
   'places.unplanned': '未計画',
   'places.planned': '計画済み',
+  'places.dayScoped': '開いている日のみ表示中',
+  'places.dayScopedClear': '旅行全体を表示',
   'places.filterTracks': 'トラック',
   'places.filterByRating': '評価で絞り込む',
   'places.yourRating': 'あなたの評価',

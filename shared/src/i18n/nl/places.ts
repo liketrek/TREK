@@ -48,6 +48,8 @@ const places: TranslationStrings = {
   'places.all': 'Alle',
   'places.unplanned': 'Ongepland',
   'places.planned': 'Gepland',
+  'places.dayScoped': 'Alleen de geopende dag wordt getoond',
+  'places.dayScopedClear': 'Hele reis tonen',
   'places.filterTracks': 'Tracks',
   'places.filterByRating': 'Filteren op beoordeling',
   'places.yourRating': 'Jouw beoordeling',

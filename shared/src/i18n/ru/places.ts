@@ -48,6 +48,8 @@ const places: TranslationStrings = {
   'places.all': 'Все',
   'places.unplanned': 'Незапланированные',
   'places.planned': 'Запланированные',
+  'places.dayScoped': 'Показан только открытый день',
+  'places.dayScopedClear': 'Показать всю поездку',
   'places.filterTracks': 'Треки',
   'places.filterByRating': 'Фильтр по оценке',
   'places.yourRating': 'Твоя оценка',

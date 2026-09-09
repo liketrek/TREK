@@ -50,6 +50,8 @@ const places: TranslationStrings = {
   'places.all': 'Tüm',
   'places.unplanned': 'Planlanmamış',
   'places.planned': 'Planlanmış',
+  'places.dayScoped': 'Yalnızca açık gün gösteriliyor',
+  'places.dayScopedClear': 'Tüm yolculuğu göster',
   'places.filterTracks': 'Parçalar',
   'places.filterByRating': 'Puana göre filtrele',
   'places.yourRating': 'Senin puanın',

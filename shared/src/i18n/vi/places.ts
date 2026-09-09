@@ -48,6 +48,8 @@ const places: TranslationStrings = {
   'places.all': 'Tất cả',
   'places.unplanned': 'Không có kế hoạch',
   'places.planned': 'Có kế hoạch',
+  'places.dayScoped': 'Chỉ hiển thị ngày đang mở',
+  'places.dayScopedClear': 'Hiện toàn bộ chuyến đi',
   'places.filterTracks': 'Bài hát',
   'places.filterByRating': 'Lọc theo đánh giá',
   'places.yourRating': 'Đánh giá của bạn',

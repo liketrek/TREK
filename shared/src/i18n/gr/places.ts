@@ -48,6 +48,8 @@ const places: TranslationStrings = {
   'places.all': 'Όλα',
   'places.unplanned': 'Μη προγραμματισμένα',
   'places.planned': 'Προγραμματισμένα',
+  'places.dayScoped': 'Εμφανίζεται μόνο η ανοιχτή ημέρα',
+  'places.dayScopedClear': 'Εμφάνιση όλου του ταξιδιού',
   'places.filterTracks': 'Ίχνη',
   'places.filterByRating': 'Φιλτράρισμα κατά βαθμολογία',
   'places.yourRating': 'Η βαθμολογία σου',

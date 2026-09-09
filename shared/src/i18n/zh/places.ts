@@ -47,6 +47,8 @@ const places: TranslationStrings = {
   'places.all': '全部',
   'places.unplanned': '未规划',
   'places.planned': '已规划',
+  'places.dayScoped': '仅显示当前打开的日期',
+  'places.dayScopedClear': '显示整个行程',
   'places.filterTracks': '路线',
   'places.filterByRating': '按评分筛选',
   'places.yourRating': '你的评分',

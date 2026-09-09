@@ -48,6 +48,8 @@ const places: TranslationStrings = {
   'places.all': 'Vše',
   'places.unplanned': 'Nezařazené',
   'places.planned': 'Naplánované',
+  'places.dayScoped': 'Zobrazuje se jen otevřený den',
+  'places.dayScopedClear': 'Zobrazit celou cestu',
   'places.filterTracks': 'Trasy',
   'places.filterByRating': 'Filtrovat podle hodnocení',
   'places.yourRating': 'Tvé hodnocení',

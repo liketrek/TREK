@@ -288,6 +288,113 @@ describe('Filter tabs', () => {
     expect(screen.getByText('Planned Place')).toBeInTheDocument();
     expect(screen.queryByText('Unplanned Place')).not.toBeInTheDocument();
   });
+
+  // ── The open day narrows the pool, and says so ──────────────────────────────
+  //
+  // The map has followed the selected day on this filter since #2024 while the list
+  // did not, so a trip with everything planned read "55" in the pool beside five pins
+  // on the map. Reported twice in the same Discord thread as the map being broken.
+
+  it('FE-PLANNER-SIDEBAR-052: with a day open, "Planned" shows that day, not the whole trip', () => {
+    const today = buildPlace({ id: 91, name: 'On This Day' });
+    const otherDay = buildPlace({ id: 92, name: 'On Another Day' });
+    const assignments = {
+      '1': [buildAssignment({ place: today, day_id: 1 })],
+      '2': [buildAssignment({ place: otherDay, day_id: 2 })],
+    };
+    seedStore(useTripStore, { placesFilter: 'planned' });
+    render(
+      <PlacesSidebar
+        {...defaultProps}
+        places={[today, otherDay]}
+        assignments={assignments}
+        days={[{ id: 1 }, { id: 2 }] as never}
+        selectedDayId={1}
+      />,
+    );
+
+    expect(screen.getByText('On This Day')).toBeInTheDocument();
+    expect(screen.queryByText('On Another Day')).not.toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-SIDEBAR-053: without a day open it is the whole trip again', () => {
+    const dayOne = buildPlace({ id: 91, name: 'On This Day' });
+    const dayTwo = buildPlace({ id: 92, name: 'On Another Day' });
+    const assignments = {
+      '1': [buildAssignment({ place: dayOne, day_id: 1 })],
+      '2': [buildAssignment({ place: dayTwo, day_id: 2 })],
+    };
+    seedStore(useTripStore, { placesFilter: 'planned' });
+    render(
+      <PlacesSidebar
+        {...defaultProps}
+        places={[dayOne, dayTwo]}
+        assignments={assignments}
+        days={[{ id: 1 }, { id: 2 }] as never}
+        selectedDayId={null}
+      />,
+    );
+
+    expect(screen.getByText('On This Day')).toBeInTheDocument();
+    expect(screen.getByText('On Another Day')).toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-SIDEBAR-054: the note only appears while the day is actually narrowing', () => {
+    const today = buildPlace({ id: 91, name: 'On This Day' });
+    const assignments = { '1': [buildAssignment({ place: today, day_id: 1 })] };
+    const onClearSelectedDay = vi.fn();
+    seedStore(useTripStore, { placesFilter: 'planned' });
+    const { rerender } = render(
+      <PlacesSidebar
+        {...defaultProps}
+        places={[today]}
+        assignments={assignments}
+        days={[{ id: 1 }] as never}
+        selectedDayId={1}
+        onClearSelectedDay={onClearSelectedDay}
+      />,
+    );
+    expect(screen.getByText('Showing the open day only')).toBeInTheDocument();
+
+    // Dismissing it asks for the day to be closed rather than changing the filter.
+    fireEvent.click(screen.getByLabelText('Show the whole trip'));
+    expect(onClearSelectedDay).toHaveBeenCalledTimes(1);
+
+    // No day open, nothing narrowed, no note.
+    rerender(
+      <PlacesSidebar
+        {...defaultProps}
+        places={[today]}
+        assignments={assignments}
+        days={[{ id: 1 }] as never}
+        selectedDayId={null}
+        onClearSelectedDay={onClearSelectedDay}
+      />,
+    );
+    expect(screen.queryByText('Showing the open day only')).not.toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-SIDEBAR-055: "Unplanned" stays trip-wide while a day is open', () => {
+    // A place assigned to some other day is planned, whichever day happens to be open,
+    // so it must not reappear in the unplanned pool.
+    const otherDay = buildPlace({ id: 92, name: 'On Another Day' });
+    const loose = buildPlace({ id: 93, name: 'Not Planned At All' });
+    const assignments = { '2': [buildAssignment({ place: otherDay, day_id: 2 })] };
+    seedStore(useTripStore, { placesFilter: 'unplanned' });
+    render(
+      <PlacesSidebar
+        {...defaultProps}
+        places={[otherDay, loose]}
+        assignments={assignments}
+        days={[{ id: 1 }, { id: 2 }] as never}
+        selectedDayId={1}
+      />,
+    );
+
+    expect(screen.getByText('Not Planned At All')).toBeInTheDocument();
+    expect(screen.queryByText('On Another Day')).not.toBeInTheDocument();
+    expect(screen.queryByText('Showing the open day only')).not.toBeInTheDocument();
+  });
 });
 
 // ── Search ────────────────────────────────────────────────────────────────────

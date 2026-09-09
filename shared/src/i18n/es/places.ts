@@ -48,6 +48,8 @@ const places: TranslationStrings = {
   'places.all': 'Todo',
   'places.unplanned': 'Sin planificar',
   'places.planned': 'Planificados',
+  'places.dayScoped': 'Se muestra solo el día abierto',
+  'places.dayScopedClear': 'Mostrar todo el viaje',
   'places.filterTracks': 'Rutas',
   'places.filterByRating': 'Filtrar por valoración',
   'places.yourRating': 'Tu valoración',

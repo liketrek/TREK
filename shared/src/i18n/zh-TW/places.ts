@@ -47,6 +47,8 @@ const places: TranslationStrings = {
   'places.all': '全部',
   'places.unplanned': '未規劃',
   'places.planned': '已規劃',
+  'places.dayScoped': '僅顯示目前開啟的日期',
+  'places.dayScopedClear': '顯示整趟行程',
   'places.filterTracks': '路線',
   'places.filterByRating': '依評分篩選',
   'places.yourRating': '你的評分',

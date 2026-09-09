@@ -48,6 +48,8 @@ const places: TranslationStrings = {
   'places.all': 'Alla',
   'places.unplanned': 'Oplanerat',
   'places.planned': 'Planerat',
+  'places.dayScoped': 'Visar bara den öppna dagen',
+  'places.dayScopedClear': 'Visa hela resan',
   'places.filterTracks': 'Spår',
   'places.filterByRating': 'Filtrera efter betyg',
   'places.yourRating': 'Ditt betyg',
