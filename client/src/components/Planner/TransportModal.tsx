@@ -234,6 +234,20 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
   // Travelers assigned to this booking (#1517) — seeded on open, persisted after save.
   const [travelerIds, setTravelerIds] = useState<Set<number>>(new Set())
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const filePickerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!showFilePicker) return
+    const closeOnOutsidePointer = (event: PointerEvent) => {
+      if (!filePickerRef.current?.contains(event.target as Node)) setShowFilePicker(false)
+    }
+    document.addEventListener('pointerdown', closeOnOutsidePointer)
+    return () => document.removeEventListener('pointerdown', closeOnOutsidePointer)
+  }, [showFilePicker])
+
+  useEffect(() => {
+    if (!isOpen) setShowFilePicker(false)
+  }, [isOpen])
 
   useEffect(() => {
     if (!isOpen) return
@@ -1182,7 +1196,7 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
                 {uploadingFile ? t('reservations.uploading') : t('reservations.attachFile')}
               </button>}
               {reservation?.id && files.filter(f => !f.deleted_at && !attachedFiles.some(af => af.id === f.id)).length > 0 && (
-                <div style={{ position: 'relative' }}>
+                <div ref={filePickerRef} style={{ position: 'relative' }}>
                   <button type="button" onClick={() => setShowFilePicker(v => !v)} className="text-content-faint" style={{
                     display: 'flex', alignItems: 'center', gap: 5, padding: '6px 10px',
                     border: '1px dashed var(--border-primary)', borderRadius: 8, background: 'none',

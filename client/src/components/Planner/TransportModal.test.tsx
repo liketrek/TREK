@@ -1,4 +1,4 @@
-// FE-PLANNER-TRANSMODAL-001 to FE-PLANNER-TRANSMODAL-061
+// FE-PLANNER-TRANSMODAL-001 to FE-PLANNER-TRANSMODAL-064
 import { render, screen, waitFor, fireEvent, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -257,6 +257,35 @@ describe('TransportModal', () => {
     await waitFor(() => {
       expect(screen.queryByRole('button', { name: /Link existing file/i })).not.toBeInTheDocument();
     });
+  });
+
+  it('FE-PLANNER-TRANSMODAL-063: an outside pointer closes the file picker while an inside pointer keeps it open', async () => {
+    const res = buildReservation({ id: 5, type: 'flight' });
+    const unattachedFile = buildTripFile({ id: 99, original_name: 'invoice.pdf' });
+
+    render(<TransportModal {...defaultProps} reservation={res} files={[unattachedFile]} />);
+    await userEvent.click(screen.getByRole('button', { name: /Link existing file/i }));
+
+    const pickerItem = screen.getByText('invoice.pdf');
+    fireEvent.pointerDown(pickerItem);
+    expect(screen.getByText('invoice.pdf')).toBeInTheDocument();
+
+    fireEvent.pointerDown(document.body);
+    expect(screen.queryByText('invoice.pdf')).not.toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-TRANSMODAL-064: closing and reopening the modal resets the file picker', async () => {
+    const res = buildReservation({ id: 5, type: 'flight' });
+    const unattachedFile = buildTripFile({ id: 99, original_name: 'invoice.pdf' });
+    const { rerender } = render(<TransportModal {...defaultProps} reservation={res} files={[unattachedFile]} />);
+
+    await userEvent.click(screen.getByRole('button', { name: /Link existing file/i }));
+    expect(screen.getByText('invoice.pdf')).toBeInTheDocument();
+
+    rerender(<TransportModal {...defaultProps} isOpen={false} reservation={res} files={[unattachedFile]} />);
+    rerender(<TransportModal {...defaultProps} reservation={res} files={[unattachedFile]} />);
+
+    expect(screen.queryByText('invoice.pdf')).not.toBeInTheDocument();
   });
 
   it('FE-PLANNER-TRANSMODAL-022: removing pending file removes it from list', async () => {
