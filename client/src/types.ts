@@ -167,6 +167,39 @@ export interface Settings {
    * opened the dialog.
    */
   roadtrip_vehicle?: string
+  /**
+   * How full a fill-up goes, 1 to 100. Absent or 100 means all the way.
+   *
+   * Nobody charges to 100 % on the road, so an electric traveller who leaves this at full
+   * gets a range figure a fifth too generous after every stop.
+   */
+  roadtrip_fill_percent?: number
+  /**
+   * What the vehicle is made of, for travellers who would rather not do the division.
+   *
+   * Optional throughout, and stored METRIC throughout — litres and kilowatt-hours, per
+   * 100 kilometres — exactly as roadtrip_range_km is always kilometres. The dialog does
+   * the round trip into gallons, miles per gallon and kWh per 100 miles for an imperial
+   * traveller; storage stays one system so the arithmetic never has to ask.
+   *
+   * When a pair is complete it WINS over roadtrip_range_km, because it is the more
+   * specific answer. Half a pair computes nothing: a made-up range here would put the
+   * fuel warnings at the wrong place while looking exact.
+   */
+  roadtrip_tank_litres?: number
+  roadtrip_litres_per_100?: number
+  roadtrip_battery_kwh?: number
+  roadtrip_kwh_per_100?: number
+  /**
+   * Percent of the battery the years have taken. Absent means none.
+   *
+   * The one figure of ABRP's list that changes the answer here. Plug type, reference
+   * speed and drive style shape a consumption PREDICTION; this addon does not predict
+   * one, it divides a capacity by a consumption the traveller states. Degradation is
+   * different in kind: it shrinks the capacity itself, and on a five-year-old car by
+   * enough to decide whether the last leg of a day arrives.
+   */
+  roadtrip_battery_degradation?: number
   /** CARTO basemaps watermark keyless tiles; the key is appended as ?key= (#2054). */
   carto_api_key?: string
   mapbox_access_token?: string

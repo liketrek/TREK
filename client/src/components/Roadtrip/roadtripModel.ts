@@ -156,6 +156,15 @@ export function refuelsRange(stopType: string | null | undefined, vehicle?: Vehi
  * rather than a sentinel: zero is a legal thing to type and means the same as unset.
  */
 export interface DriveLimits {
+  /**
+   * How full a fill-up actually goes, 1 to 100, or null for "all the way".
+   *
+   * Nobody charges an electric car to 100 % on the road: the last fifth takes as long as
+   * the first four and the manual says not to. Treating every stop as a full tank
+   * overstates the range after it by exactly that fifth, which is a whole leg on a long
+   * day.
+   */
+  fillPercent?: number | null
   /** Longest single drive between two stops, in minutes. */
   legMinutes: number | null
   /** Longest total driving in one day, in minutes. */
@@ -434,8 +443,15 @@ export function deriveDriveWarnings(
   // walk the driving legs only, which is why this is counted here rather than derived.
   let drivenMeters = 0
 
+  // What is left on the clock straight after a stop. A tank filled to 80 % has already
+  // used a fifth of its range before the car moves, which is the honest way to say it in
+  // a budget that counts upwards.
+  const usedAfterFilling = limits.rangeKm && limits.fillPercent
+    ? limits.rangeKm * (1 - limits.fillPercent / 100)
+    : 0
+
   for (let i = 0; i < legs.length; i++) {
-    if (refuelsAt[i]) budget = 0
+    if (refuelsAt[i]) budget = usedAfterFilling
     const leg = legs[i]
     // The stop this leg arrives at. Both findings are about what is true on arrival.
     const at = i + 1
@@ -486,7 +502,7 @@ export function deriveDriveWarnings(
   }
   // The last stop of the day counts too: filling up on arrival is what makes the next
   // morning start with a full tank.
-  if (refuelsAt[legs.length]) budget = 0
+  if (refuelsAt[legs.length]) budget = usedAfterFilling
 
   const minutes = Math.round(totalSeconds / 60)
   const day = limits.dayMinutes && minutes > limits.dayMinutes

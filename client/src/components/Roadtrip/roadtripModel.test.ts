@@ -726,3 +726,46 @@ describe('refuelsRange — what fills which tank', () => {
     expect(refuelStopTypeFor(null)).toEqual(['fuel', 'charging'])
   })
 })
+
+describe('deriveDriveWarnings — filling only part way', () => {
+  const drive = (minutes: number, km: number) =>
+    ({ duration: minutes * 60, distance: km * 1000, mode: 'driving' })
+
+  it('FE-ROADTRIP-MODEL-101: a stop that fills to 80 % leaves a fifth already used', () => {
+    // Nobody charges to 100 % on the road: the last fifth takes as long as the first
+    // four. Counting a stop as a full tank overstates what comes after it by that fifth.
+    const out = deriveDriveWarnings(
+      [drive(60, 100), drive(60, 450)],
+      [false, true, false],
+      { legMinutes: null, dayMinutes: null, rangeKm: 500, fillPercent: 80 },
+      0,
+    )
+    // After the stop the budget restarts at 100 km rather than 0, so the tank is dry
+    // 400 km into the second leg. Filled all the way it would have gone the whole 450.
+    expect(out.emptyAt).toHaveLength(1)
+    expect(out.emptyAt[0]).toMatchObject({ legIndex: 1, intoLegKm: 400 })
+  })
+
+  it('FE-ROADTRIP-MODEL-102: filling all the way is what absent, zero and 100 all mean', () => {
+    const legs = [drive(60, 100), drive(60, 450)]
+    const refuels = [false, true, false]
+    const full = { legMinutes: null, dayMinutes: null, rangeKm: 500 }
+    for (const fillPercent of [undefined, null, 0, 100]) {
+      const out = deriveDriveWarnings(legs, refuels, { ...full, fillPercent }, 0)
+      // A full tank after the stop covers the remaining 450 km without a finding.
+      expect(out.emptyAt).toEqual([])
+      expect(out.warnings).toEqual([])
+    }
+  })
+
+  it('FE-ROADTRIP-MODEL-103: with no range set, the fill level changes nothing', () => {
+    const out = deriveDriveWarnings(
+      [drive(60, 900)],
+      [true, false],
+      { legMinutes: null, dayMinutes: null, rangeKm: null, fillPercent: 50 },
+      0,
+    )
+    expect(out.warnings).toEqual([])
+    expect(out.emptyAt).toEqual([])
+  })
+})

@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import {
   CarFront, Footprints, Bike, Zap, AlertTriangle,
-  ParkingSquare, Shuffle, Fuel, Clock, Spline, Ban, Plus, Search, RotateCcw, X,
+  ParkingSquare, Shuffle, Fuel, Clock, Spline, Ban, Plus, Search, RotateCcw, X, BatteryCharging,
   type LucideIcon,
 } from 'lucide-react'
 import MDancingTrek from '../../mobile/components/MDancingTrek'
@@ -13,7 +13,7 @@ import { Tooltip } from '../shared/Tooltip'
 import { useSettingsStore } from '../../store/settingsStore'
 import { formatDistance } from '../../utils/units'
 import { formatDate, formatClockTime } from '../../utils/formatters'
-import { formatDurationShort, isServiceStopType, serviceColor, type ScheduleEntry, type ScheduleWarning } from './roadtripModel'
+import { formatDurationShort, isServiceStopType, serviceColor, type ScheduleEntry, type ScheduleWarning, refuelsRange, type VehicleKind} from './roadtripModel'
 import { STOP_KIND_BY_KEY } from './stopKinds'
 import { spurWorthLabelling } from './accessSpur'
 import StopKindPicker from './StopKindPicker'
@@ -159,6 +159,35 @@ function OffRoadBadge({ meters }: { meters: number }): React.ReactElement {
           style={{ fontSize: FS.label }}
         >
           {formatDistance(meters / 1000, distanceUnit)}
+        </span>
+      </span>
+    </Tooltip>
+  )
+}
+
+/**
+ * What a fill-up here actually puts in, beside the stay it takes.
+ *
+ * Only on a stop that refuels, and only when it is not a full tank: "100 %" would be a
+ * badge for the default. It reads as the second half of the stay badge because that is
+ * what it is — how long you stand here, and what you get for it.
+ */
+function FillBadge({ percent }: { percent: number }): React.ReactElement {
+  const { t } = useTranslation()
+  return (
+    <Tooltip label={t('roadtrip.limit.fillBadge', { percent })}>
+      <span className="inline-flex h-[16px] items-stretch self-start overflow-hidden rounded border border-edge">
+        <span
+          className="flex items-center bg-surface-tertiary px-1 text-content-faint"
+          style={{ fontSize: FS.micro }}
+        >
+          <BatteryCharging size={9} aria-hidden />
+        </span>
+        <span
+          className="flex items-center border-s border-edge bg-surface-card px-1.5 font-semibold tabular-nums text-content-secondary"
+          style={{ fontSize: FS.micro }}
+        >
+          {`${percent} %`}
         </span>
       </span>
     </Tooltip>
@@ -538,6 +567,12 @@ function ServiceStop({ stop, entry, late, driveFindings, selected, onSelect, onE
   onEditStay?: () => void
 }): React.ReactElement {
   const { t } = useTranslation()
+  // Read here rather than threaded down: both stop shapes need the same two, and the
+  // badge is the only thing in the rail that depends on them.
+  const fillPercent = useSettingsStore(st => st.settings.roadtrip_fill_percent)
+  const vehicleSetting = useSettingsStore(st => st.settings.roadtrip_vehicle)
+  const vehicle: VehicleKind | null =
+    vehicleSetting === 'combustion' || vehicleSetting === 'electric' ? vehicleSetting : null
   const kind = STOP_KIND_BY_KEY[stop.stopType ?? '']
   const Icon = kind?.Icon ?? ParkingSquare
   const label = t(kind?.labelKey ?? 'roadtrip.poi.rest')
@@ -604,6 +639,7 @@ function ServiceStop({ stop, entry, late, driveFindings, selected, onSelect, onE
           </span>
           <span className="flex flex-wrap items-center gap-1">
             <StayBadge minutes={stop.dwellMinutes} onEdit={onEditStay} />
+            {fillPercent && refuelsRange(stop.stopType, vehicle) ? <FillBadge percent={fillPercent} /> : null}
             {spurWorthLabelling(stop.offRoadMeters) ? <OffRoadBadge meters={stop.offRoadMeters ?? 0} /> : null}
             {(driveFindings ?? []).map(w => <DriveFindingBadge key={w.code} warning={w} />)}
             <LateBadge late={late} />
@@ -821,6 +857,12 @@ function Stop({ stop, number, entry, late, driveFindings, selected, continues, s
   onEditStay?: () => void
 }): React.ReactElement {
   const { t } = useTranslation()
+  // Read here rather than threaded down: both stop shapes need the same two, and the
+  // badge is the only thing in the rail that depends on them.
+  const fillPercent = useSettingsStore(st => st.settings.roadtrip_fill_percent)
+  const vehicleSetting = useSettingsStore(st => st.settings.roadtrip_vehicle)
+  const vehicle: VehicleKind | null =
+    vehicleSetting === 'combustion' || vehicleSetting === 'electric' ? vehicleSetting : null
   return (
     <button
       type="button"
@@ -901,6 +943,7 @@ function Stop({ stop, number, entry, late, driveFindings, selected, continues, s
               one; the number is for luggage, a gate, a track a hire car should not be on. */}
           <span className="flex flex-wrap items-center gap-1">
             <StayBadge minutes={stop.dwellMinutes} onEdit={onEditStay} />
+            {fillPercent && refuelsRange(stop.stopType, vehicle) ? <FillBadge percent={fillPercent} /> : null}
             {spurWorthLabelling(stop.offRoadMeters) ? <OffRoadBadge meters={stop.offRoadMeters ?? 0} /> : null}
             {(driveFindings ?? []).map(w => <DriveFindingBadge key={w.code} warning={w} />)}
             <LateBadge late={late} />

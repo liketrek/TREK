@@ -5,7 +5,7 @@ import { useSettingsStore } from '../../store/settingsStore'
 import RoadtripLimitsCard from './RoadtripLimitsCard'
 
 /**
- * FE-ROADTRIP-LIMITS-001..008 — the three numbers that decide every warning.
+ * FE-ROADTRIP-LIMITS-001..012 — the numbers that decide every warning.
  *
  * The one that matters is when a number is written. These fields had no local
  * state, so every keystroke was a settings PUT: typing "180" sent three, and
@@ -18,7 +18,7 @@ function open(onSave?: (key: string, value: number) => void) {
   fireEvent.click(screen.getByRole('button'))
 }
 
-/** The three inputs, in the order the dialog lists them. */
+/** Every number field, in the order the dialog lists them. */
 const inputs = () => screen.getAllByRole('spinbutton') as HTMLInputElement[]
 
 beforeEach(() => {
@@ -126,5 +126,76 @@ describe('RoadtripLimitsCard', () => {
     // Nothing to assert but the absence of a crash: the commit path has no
     // handler to call, and must not assume one.
     expect(() => fireEvent.blur(leg)).not.toThrow()
+  })
+
+  it('FE-ROADTRIP-LIMITS-009: naming the kind of car brings out its own figures', () => {
+    useSettingsStore.setState({
+      settings: { roadtrip_vehicle: 'electric', distance_unit: 'metric' } as never,
+    })
+    open(vi.fn())
+
+    // Leg, day, battery, consumption, wear, range, fill. The three in the middle
+    // do not exist until there is a kind of car to have them.
+    expect(inputs()).toHaveLength(7)
+    expect(screen.getByText('kWh')).toBeInTheDocument()
+    expect(screen.getByText('kWh/100 km')).toBeInTheDocument()
+  })
+
+  it('FE-ROADTRIP-LIMITS-010: a complete pair takes the range field over', () => {
+    useSettingsStore.setState({
+      settings: {
+        roadtrip_vehicle: 'electric',
+        roadtrip_battery_kwh: 58,
+        roadtrip_kwh_per_100: 16,
+        // Deliberately different from what the figures work out to: the point of
+        // the row going read-only is that there is no longer a second answer.
+        roadtrip_range_km: 500,
+        distance_unit: 'metric',
+      } as never,
+    })
+    open(vi.fn())
+
+    expect(screen.getByTestId('limit-derived')).toHaveTextContent('363')
+    // Leg, day, battery, consumption, wear, fill — the range input is gone.
+    expect(inputs()).toHaveLength(6)
+  })
+
+  it('FE-ROADTRIP-LIMITS-011: gallons typed by an imperial reader are stored as litres', () => {
+    useSettingsStore.setState({
+      settings: { roadtrip_vehicle: 'combustion', distance_unit: 'imperial' } as never,
+    })
+    const onSave = vi.fn()
+    open(onSave)
+
+    // Leg, day, tank, consumption, range, fill.
+    const tank = inputs()[2]
+    fireEvent.change(tank, { target: { value: '15' } })
+    fireEvent.blur(tank)
+
+    // 15 US gallons, not 15 litres. Storing the number as typed would have made
+    // every fuel warning fire at a quarter of the right distance.
+    expect(onSave).toHaveBeenCalledWith('roadtrip_tank_litres', 56.78)
+  })
+  it('FE-ROADTRIP-LIMITS-012: the range answers while the figure is still being typed', () => {
+    useSettingsStore.setState({
+      settings: {
+        roadtrip_vehicle: 'electric',
+        roadtrip_battery_kwh: 58,
+        roadtrip_kwh_per_100: 16,
+        distance_unit: 'metric',
+      } as never,
+    })
+    const onSave = vi.fn()
+    open(onSave)
+
+    // Leg, day, battery, consumption, wear, fill — the range row is read-only here.
+    const consumption = inputs()[3]
+    fireEvent.change(consumption, { target: { value: '20' } })
+
+    // 58 kWh at 20 per hundred is 290 km, shown before anything is written: the gauge
+    // is the argument that these figures ARE the range, and it only makes it if it
+    // answers now rather than after the field is left.
+    expect(screen.getAllByText('290').length).toBeGreaterThan(0)
+    expect(onSave).not.toHaveBeenCalled()
   })
 })
