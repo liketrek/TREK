@@ -209,6 +209,18 @@ describe('MapsService.autocompletePlaces', () => {
     expect(suggestions.map(s => s.source)).toEqual(['trek-places', 'openstreetmap']);
   });
 
+  it('MAPS-AUTO-011: a suggestion carries the coordinates the index already gave, so the pick needs no second hop', async () => {
+    mockSearch.mockResolvedValue([hit(), osmHit()]);
+
+    const { suggestions } = await make().autocompletePlaces(1, INPUT);
+
+    // Without these the client, when the details lookup cannot answer, searches
+    // for the label instead — and for a layer row that label is a name plus its
+    // local spelling, which is not a query anybody typed.
+    expect(suggestions[0]).toMatchObject({ lat: 54.0879, lng: 12.1408 });
+    expect(suggestions[1]).toMatchObject({ lat: 35.6811816, lng: 139.76598265 });
+  });
+
   it('MAPS-AUTO-007: the keystroke never leaves for the index while the admin has it off', async () => {
     mockSearch.mockResolvedValue([hit()]);
 
