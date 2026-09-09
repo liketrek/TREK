@@ -180,25 +180,27 @@ export class PlacesMcp {
       google_place_id: z.string().optional().describe('Google Place ID (e.g. "ChIJd8BlQ2BZwokRAFUEcm_qrcA")'),
       google_ftid: z.string().optional().describe('Google Maps feature ID (e.g. "0x89c259b7abdd4769:0x103aaf1c8bf8a050")'),
       stop_type: roadtripStopTypeSchema.nullable().optional().describe('What kind of stop on a drive this is: fuel, charging, rest_area, campsite, restaurant or sights. Pass null to turn a service stop back into an ordinary place.'),
+      fill_percent: z.number().int().min(1).max(100).nullable().optional().describe('How full THIS stop fills the tank, 1-100. A motorway rapid charger is worth about 80 %, the one at the hotel 100 %. Pass null to follow whatever the traveller set as their default fill.'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     access: { group: 'places', mode: 'write' },
   })
   async updatePlace(
-    { tripId, placeId, name, description, lat, lng, address, category_id, price, currency, place_time, end_time, duration_minutes, notes, website, phone, image_url, transport_mode, osm_id, google_place_id, google_ftid, stop_type }: {
+    { tripId, placeId, name, description, lat, lng, address, category_id, price, currency, place_time, end_time, duration_minutes, notes, website, phone, image_url, transport_mode, osm_id, google_place_id, google_ftid, stop_type, fill_percent }: {
       tripId: number; placeId: number; name?: string; description?: string; lat?: number; lng?: number;
       address?: string; category_id?: number; price?: number; currency?: string; place_time?: string;
       end_time?: string; duration_minutes?: number; notes?: string; website?: string; phone?: string;
       image_url?: string | null;
       transport_mode?: 'walking' | 'driving' | 'cycling' | 'transit' | 'flight'; osm_id?: string;
       google_place_id?: string; google_ftid?: string; stop_type?: RoadtripStopType | null;
+      fill_percent?: number | null;
     },
     ctx: McpContext,
   ) {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.db.canAccessTrip(tripId, ctx.userId)) return noAccess();
     if (!this.guards.hasTripPermission('place_edit', tripId, ctx.userId)) return permissionDenied();
-    const place = await this.places.update(String(tripId), String(placeId), { name, description, lat, lng, address, category_id, price, currency, place_time, end_time, duration_minutes, notes, website, phone, image_url, transport_mode, osm_id, google_place_id, google_ftid, stop_type });
+    const place = await this.places.update(String(tripId), String(placeId), { name, description, lat, lng, address, category_id, price, currency, place_time, end_time, duration_minutes, notes, website, phone, image_url, transport_mode, osm_id, google_place_id, google_ftid, stop_type, fill_percent });
     if (!place) return { content: [{ type: 'text' as const, text: 'Place not found.' }], isError: true };
     this.guards.safeBroadcast(tripId, 'place:updated', { place });
     return ok({ place });
@@ -427,16 +429,18 @@ export class PlacesMcp {
       image_url: placeImageUrlSchema.nullable().optional().describe('Thumbnail for every listed place: an /uploads/ path, an /api/maps/place-photo/ path, an inline data: image, or an https URL. Pass null to strip the pictures off a batch at once'),
       description: z.string().max(2000).optional(),
       stop_type: roadtripStopTypeSchema.nullable().optional().describe('What kind of stop on a drive this is: fuel, charging, rest_area, campsite, restaurant or sights. Pass null to turn a service stop back into an ordinary place.'),
+      fill_percent: z.number().int().min(1).max(100).nullable().optional().describe('How full THIS stop fills the tank, 1-100. A motorway rapid charger is worth about 80 %, the one at the hotel 100 %. Pass null to follow whatever the traveller set as their default fill.'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     access: { group: 'places', mode: 'write' },
   })
   async bulkUpdatePlaces(
-    { tripId, placeIds, category_id, price, currency, transport_mode, place_time, end_time, duration_minutes, notes, website, phone, image_url, description, stop_type }: {
+    { tripId, placeIds, category_id, price, currency, transport_mode, place_time, end_time, duration_minutes, notes, website, phone, image_url, description, stop_type, fill_percent }: {
       tripId: number; placeIds: number[]; category_id?: number; price?: number; currency?: string;
       transport_mode?: 'walking' | 'driving' | 'cycling' | 'transit' | 'flight'; place_time?: string;
       end_time?: string; duration_minutes?: number; notes?: string; website?: string; phone?: string;
       image_url?: string | null; description?: string; stop_type?: RoadtripStopType | null;
+      fill_percent?: number | null;
     },
     ctx: McpContext,
   ) {
@@ -444,7 +448,7 @@ export class PlacesMcp {
     if (!this.db.canAccessTrip(tripId, ctx.userId)) return noAccess();
     if (!this.guards.hasTripPermission('place_edit', tripId, ctx.userId)) return permissionDenied();
 
-    const fields = { category_id, price, currency, transport_mode, place_time, end_time, duration_minutes, notes, website, phone, image_url, description, stop_type };
+    const fields = { category_id, price, currency, transport_mode, place_time, end_time, duration_minutes, notes, website, phone, image_url, description, stop_type, fill_percent };
     if (Object.values(fields).every(v => v === undefined)) {
       return { content: [{ type: 'text' as const, text: 'Provide at least one field to update.' }], isError: true };
     }

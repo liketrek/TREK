@@ -94,6 +94,14 @@ export type PlaceRatingVote = z.infer<typeof placeRatingVoteSchema>;
 export const roadtripStopTypeSchema = z.enum(['fuel', 'charging', 'rest_area', 'campsite', 'restaurant', 'sights']);
 export type RoadtripStopType = z.infer<typeof roadtripStopTypeSchema>;
 
+/**
+ * A percentage of a tank, 1 to 100, or null for "no opinion, use the setting".
+ *
+ * Integer because a tenth of a percent of a tank is not a thing anybody knows about
+ * their own car, and bounded away from zero because a fill of nothing is not a fill.
+ */
+const fillPercentSchema = z.number().int().min(1).max(100).nullable().optional();
+
 export const placeSchema = z.object({
   id: z.number(),
   trip_id: z.number(),
@@ -128,6 +136,16 @@ export const placeSchema = z.object({
    * already knows and that owns its own icon and colour.
    */
   stop_type: roadtripStopTypeSchema.nullable().optional(),
+  /**
+   * How full THIS stop fills the tank, 1-100 (#1797). null follows the traveller's own
+   * setting, which is every place that predates the field.
+   *
+   * A property of the stop rather than of the person: a motorway rapid charger is worth
+   * 80 % because the last fifth costs as long again, while the one at the hotel is worth
+   * 100 % because the car stands there all night. One figure for the whole trip cannot
+   * say both, and the difference between them is a leg.
+   */
+  fill_percent: fillPercentSchema,
   website: z.string().nullable().optional(),
   phone: z.string().nullable().optional(),
   transport_mode: z.string().nullable().optional(),
@@ -175,6 +193,9 @@ export const assignmentPlaceSchema = z.object({
   // Carried through so the road-trip rail can mark a fuel stop as one without a
   // second request per stop.
   stop_type: roadtripStopTypeSchema.nullable().optional(),
+  // Carried for the same reason as stop_type: the rail resets a range budget at this
+  // stop and needs to know how far it fills without a request per stop.
+  fill_percent: fillPercentSchema,
   category: placeCategorySchema.optional(),
   tags: z.array(tagSchema.partial()).optional(),
 });
@@ -191,7 +212,13 @@ export type AssignmentPlace = z.infer<typeof assignmentPlaceSchema>;
  * Nullable: an explicit null is how a fuel stop becomes an ordinary place again, and the
  * service already reads it that way rather than as "leave alone".
  */
-const stopTypeField = z.object({ stop_type: roadtripStopTypeSchema.nullable().optional() });
+const stopTypeField = z.object({
+  stop_type: roadtripStopTypeSchema.nullable().optional(),
+  // Named for the same reason: a bounded vocabulary on an otherwise open body. Zero is
+  // outside it on purpose — a stop that fills nothing is not a stop, and letting one
+  // through would leave a range budget that never resets.
+  fill_percent: fillPercentSchema,
+});
 
 export const placeCreateRequestSchema = open.and(z.object({ name: z.string().min(1) })).and(stopTypeField);
 export type PlaceCreateRequest = z.infer<typeof placeCreateRequestSchema>;

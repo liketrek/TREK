@@ -34,7 +34,7 @@ const { db } = vi.hoisted(() => {
   tmp.exec(`CREATE TABLE days (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL,
     day_number INTEGER, date TEXT, title TEXT, notes TEXT);`);
   tmp.exec(`CREATE TABLE places (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL, name TEXT,
-    lat REAL, lng REAL, route_geometry TEXT, stop_type TEXT);`);
+    lat REAL, lng REAL, route_geometry TEXT, stop_type TEXT, fill_percent INTEGER);`);
   tmp.exec(`CREATE TABLE roadtrip_vias (id INTEGER PRIMARY KEY AUTOINCREMENT,
     day_id INTEGER NOT NULL REFERENCES days(id) ON DELETE CASCADE,
     after_order_index INTEGER NOT NULL, sequence INTEGER NOT NULL DEFAULT 0,

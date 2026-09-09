@@ -70,6 +70,8 @@ export interface PlaceCreateInput {
   google_place_id?: string; google_ftid?: string; osm_id?: string; website?: string; phone?: string;
   /** What kind of stop this is on a drive (fuel, charging, rest_area, campsite); null for an ordinary place. */
   stop_type?: string | null;
+  /** How full THIS stop fills the tank, 1-100; null to follow the traveller's own setting. */
+  fill_percent?: number | null;
   transport_mode?: string; route_geometry?: string; route_color?: string; tags?: number[];
 }
 
@@ -82,6 +84,8 @@ export interface PlaceUpdateInput {
   google_place_id?: string; google_ftid?: string; osm_id?: string; website?: string; phone?: string;
   /** What kind of stop this is on a drive (fuel, charging, rest_area, campsite); null for an ordinary place. */
   stop_type?: string | null;
+  /** How full THIS stop fills the tank, 1-100; null to follow the traveller's own setting. */
+  fill_percent?: number | null;
   transport_mode?: string; route_color?: string | null; tags?: number[];
 }
 
@@ -229,15 +233,15 @@ export class PlacesService {
       name, description, lat, lng, address, category_id, price, currency,
       place_time, end_time,
       duration_minutes, notes, image_url, google_place_id, google_ftid, osm_id, website, phone,
-      transport_mode, route_geometry, route_color, stop_type, tags = [],
+      transport_mode, route_geometry, route_color, stop_type, fill_percent, tags = [],
     } = body;
 
     const result = this.dbs.run(`
     INSERT INTO places (trip_id, name, description, lat, lng, address, category_id, price, currency,
       place_time, end_time,
       duration_minutes, notes, image_url, google_place_id, google_ftid, osm_id, website, phone, transport_mode,
-      route_geometry, route_color, stop_type)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      route_geometry, route_color, stop_type, fill_percent)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `,
       // lat/lng/price/duration_minutes use an explicit undefined check, not `||`:
       // 0 is a legitimate value for all four (Null Island, a free entry, a
@@ -253,6 +257,9 @@ export class PlacesService {
       place_time || null, end_time || null, duration_minutes ?? 60, notes || null, image_url || null,
       google_place_id || null, google_ftid || null, osm_id || null, website || null, phone || null, transport_mode || 'walking',
       route_geometry || null, route_color || null, stop_type || null,
+      // `?? null` rather than `|| null`, the same reason lat/lng have it: the column is a
+      // percentage and the falsy check would be a silent floor.
+      fill_percent ?? null,
     );
 
     const placeId = result.lastInsertRowid;
@@ -317,7 +324,7 @@ export class PlacesService {
       name, description, lat, lng, address, category_id, price, currency,
       place_time, end_time,
       duration_minutes, notes, image_url, google_place_id, google_ftid, osm_id, website, phone,
-      transport_mode, route_color, stop_type, tags,
+      transport_mode, route_color, stop_type, fill_percent, tags,
     } = body;
 
     this.dbs.run(`
@@ -343,6 +350,7 @@ export class PlacesService {
       transport_mode = COALESCE(?, transport_mode),
       route_color = ?,
       stop_type = ?,
+      fill_percent = ?,
       updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
   `,
@@ -372,6 +380,8 @@ export class PlacesService {
       route_color !== undefined ? route_color : existingPlace.route_color,
       // Same shape: an explicit null is how a fuel stop becomes an ordinary place again.
       stop_type !== undefined ? stop_type : existingPlace.stop_type,
+      // And how a stop that had its own fill amount goes back to following the setting.
+      fill_percent !== undefined ? fill_percent : existingPlace.fill_percent,
       placeId,
     );
 

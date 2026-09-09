@@ -17,6 +17,8 @@ import { formatDurationShort, isServiceStopType, serviceColor, type ScheduleEntr
 import { STOP_KIND_BY_KEY } from './stopKinds'
 import { spurWorthLabelling } from './accessSpur'
 import StopKindPicker from './StopKindPicker'
+import StopFillPicker from './StopFillPicker'
+import { useVehicleRange } from './useVehicleRange'
 import type { RoadtripStopType } from '@trek/shared'
 import type { QuietDay, RoadtripDay, RoadtripRoutes, RoadtripStop } from './useRoadtripRoutes'
 import type { RouteVia } from '../../types'
@@ -60,6 +62,11 @@ interface RoadtripSidebarProps {
    * Absent leaves every disc read-only, which is also what a viewer sees.
    */
   onSetStopKind?: (placeId: number, kind: RoadtripStopType | null) => Promise<void> | void
+  /**
+   * How full one stop fills the tank, 1-100, or null to follow the traveller's own
+   * setting. Absent leaves the badge readable but not editable.
+   */
+  onSetStopFill?: (placeId: number, percent: number | null) => Promise<void> | void
   /**
    * Opens the dialog that makes a day follow an imported track (#1797).
    *
@@ -168,27 +175,80 @@ function OffRoadBadge({ meters }: { meters: number }): React.ReactElement {
 /**
  * What a fill-up here actually puts in, beside the stay it takes.
  *
- * Only on a stop that refuels, and only when it is not a full tank: "100 %" would be a
- * badge for the default. It reads as the second half of the stay badge because that is
- * what it is — how long you stand here, and what you get for it.
+ * Only on a stop that refuels, because it is the only stop where the answer changes
+ * anything. It reads as the second half of the stay badge because that is what it is —
+ * how long you stand here, and what you get for it.
+ *
+ * The figure is the stop's own when it has one and the traveller's default otherwise, so
+ * what the badge says is always what the range budget will actually use. With neither it
+ * shows a "+", the same invitation the stay badge makes when nothing is planned yet: this
+ * badge is the only way into the per-stop figure, and a badge that hid itself until a
+ * value existed could never be used to create one.
  */
-function FillBadge({ percent }: { percent: number }): React.ReactElement {
+/**
+ * What a stop will actually fill to: its own figure, else the traveller's default.
+ *
+ * Null means nothing worth saying — no per-stop figure and a default that fills right up,
+ * which is what the budget did before any of this existed. An explicit 100 on the stop is
+ * NOT null: on a trip whose default is 80 %, "this one goes right up" is a decision, and
+ * hiding it would leave the traveller reading 80 on a stop that fills to 100.
+ */
+function effectiveFill(own: number | null | undefined, setting: number | undefined): number | null {
+  if (own !== null && own !== undefined) return own
+  return setting && setting > 0 && setting < 100 ? setting : null
+}
+
+function FillBadge({ percent, own, onEdit }: {
+  /** What this stop will actually fill to, inherited or not. Null when nothing says. */
+  percent: number | null
+  /** Whether that figure is the stop's own rather than the traveller's default. */
+  own: boolean
+  onEdit?: (anchor: HTMLElement) => void
+}): React.ReactElement | null {
   const { t } = useTranslation()
+  if (percent === null && !onEdit) return null
+
+  const shell = 'inline-flex h-[16px] items-stretch self-start overflow-hidden rounded border border-edge'
+  const icon = (
+    <span
+      className="flex items-center bg-surface-tertiary px-1 text-content-faint"
+      style={{ fontSize: FS.micro }}
+    >
+      <BatteryCharging size={9} aria-hidden />
+    </span>
+  )
+  const value = (
+    <span
+      className={`flex items-center border-s border-edge bg-surface-card px-1.5 font-semibold tabular-nums ${
+        percent === null ? 'text-content-faint' : own ? 'text-content-secondary' : 'text-content-faint'
+      }`}
+      style={{ fontSize: FS.micro }}
+    >
+      {percent === null ? '+' : `${percent} %`}
+    </span>
+  )
+
+  if (!onEdit) return <span className={shell}>{icon}{value}</span>
+  // A span carrying the button role, not a <button>: the whole stop row is already one,
+  // and a button inside a button is invalid HTML that React warns about and that browsers
+  // resolve by dropping the inner element.
   return (
-    <Tooltip label={t('roadtrip.limit.fillBadge', { percent })}>
-      <span className="inline-flex h-[16px] items-stretch self-start overflow-hidden rounded border border-edge">
-        <span
-          className="flex items-center bg-surface-tertiary px-1 text-content-faint"
-          style={{ fontSize: FS.micro }}
-        >
-          <BatteryCharging size={9} aria-hidden />
-        </span>
-        <span
-          className="flex items-center border-s border-edge bg-surface-card px-1.5 font-semibold tabular-nums text-content-secondary"
-          style={{ fontSize: FS.micro }}
-        >
-          {`${percent} %`}
-        </span>
+    <Tooltip label={percent === null ? t('roadtrip.stop.fillSet') : t('roadtrip.limit.fillBadge', { percent })}>
+      <span
+        role="button"
+        tabIndex={0}
+        // Stops the click reaching the row, which would select the stop and move the map
+        // out from under the panel that is about to open.
+        onClick={e => { e.stopPropagation(); onEdit(e.currentTarget as HTMLElement) }}
+        onKeyDown={e => {
+          if (e.key !== 'Enter' && e.key !== ' ') return
+          e.preventDefault()
+          e.stopPropagation()
+          onEdit(e.currentTarget as HTMLElement)
+        }}
+        className={`${shell} cursor-pointer transition-colors hover:border-content-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent`}
+      >
+        {icon}{value}
       </span>
     </Tooltip>
   )
@@ -550,7 +610,7 @@ function DriveBand({ leg, onAskAlternatives, alternativesOpen }: {
  * the trip is actually for. Its own icon on one flat disc: three kinds of pause that all
  * mean "we are still driving", and the icon is what tells them apart.
  */
-function ServiceStop({ stop, entry, late, driveFindings, selected, onSelect, onEditStay, onPickKind }: {
+function ServiceStop({ stop, entry, late, driveFindings, selected, onSelect, onEditStay, onPickKind, onPickFill }: {
   stop: RoadtripStop
   entry: ScheduleEntry | undefined
   /** How late the drive reaches a time pinned on this pause, the same finding a numbered
@@ -561,6 +621,8 @@ function ServiceStop({ stop, entry, late, driveFindings, selected, onSelect, onE
   driveFindings?: ScheduleWarning[]
   /** Opens the kind picker on the disc. Absent leaves the rail read-only. */
   onPickKind?: (anchor: HTMLElement) => void
+  /** Opens the panel that sets how full THIS stop fills, hung under the badge. */
+  onPickFill?: (anchor: HTMLElement) => void
   selected: boolean
   onSelect?: () => void
   /** Opens the dialog for how long this pause takes. Absent means the rail is read-only. */
@@ -570,9 +632,7 @@ function ServiceStop({ stop, entry, late, driveFindings, selected, onSelect, onE
   // Read here rather than threaded down: both stop shapes need the same two, and the
   // badge is the only thing in the rail that depends on them.
   const fillPercent = useSettingsStore(st => st.settings.roadtrip_fill_percent)
-  const vehicleSetting = useSettingsStore(st => st.settings.roadtrip_vehicle)
-  const vehicle: VehicleKind | null =
-    vehicleSetting === 'combustion' || vehicleSetting === 'electric' ? vehicleSetting : null
+  const { vehicleKind } = useVehicleRange()
   const kind = STOP_KIND_BY_KEY[stop.stopType ?? '']
   const Icon = kind?.Icon ?? ParkingSquare
   const label = t(kind?.labelKey ?? 'roadtrip.poi.rest')
@@ -639,7 +699,13 @@ function ServiceStop({ stop, entry, late, driveFindings, selected, onSelect, onE
           </span>
           <span className="flex flex-wrap items-center gap-1">
             <StayBadge minutes={stop.dwellMinutes} onEdit={onEditStay} />
-            {fillPercent && refuelsRange(stop.stopType, vehicle) ? <FillBadge percent={fillPercent} /> : null}
+            {refuelsRange(stop.stopType, vehicleKind) ? (
+              <FillBadge
+                percent={effectiveFill(stop.fillPercent, fillPercent)}
+                own={stop.fillPercent !== null && stop.fillPercent !== undefined}
+                onEdit={onPickFill}
+              />
+            ) : null}
             {spurWorthLabelling(stop.offRoadMeters) ? <OffRoadBadge meters={stop.offRoadMeters ?? 0} /> : null}
             {(driveFindings ?? []).map(w => <DriveFindingBadge key={w.code} warning={w} />)}
             <LateBadge late={late} />
@@ -833,7 +899,7 @@ function Arrival({ entry }: { entry: ScheduleEntry }): React.ReactElement {
   )
 }
 
-function Stop({ stop, number, entry, late, driveFindings, selected, continues, starts, onSelect, onMove, canMove, onEditStay, onPickKind }: {
+function Stop({ stop, number, entry, late, driveFindings, selected, continues, starts, onSelect, onMove, canMove, onEditStay, onPickKind, onPickFill }: {
   stop: RoadtripStop
   /** Position within the day — the same count the map badges its markers with. */
   number: number
@@ -848,6 +914,8 @@ function Stop({ stop, number, entry, late, driveFindings, selected, continues, s
   starts?: boolean
   /** Opens the kind picker on the number. Absent leaves the rail read-only. */
   onPickKind?: (anchor: HTMLElement) => void
+  /** Opens the panel that sets how full THIS stop fills, hung under the badge. */
+  onPickFill?: (anchor: HTMLElement) => void
   onSelect?: () => void
   /** Moves this stop by one place. Absent means the chain is read-only. */
   onMove?: (delta: number) => void
@@ -860,9 +928,7 @@ function Stop({ stop, number, entry, late, driveFindings, selected, continues, s
   // Read here rather than threaded down: both stop shapes need the same two, and the
   // badge is the only thing in the rail that depends on them.
   const fillPercent = useSettingsStore(st => st.settings.roadtrip_fill_percent)
-  const vehicleSetting = useSettingsStore(st => st.settings.roadtrip_vehicle)
-  const vehicle: VehicleKind | null =
-    vehicleSetting === 'combustion' || vehicleSetting === 'electric' ? vehicleSetting : null
+  const { vehicleKind } = useVehicleRange()
   return (
     <button
       type="button"
@@ -943,7 +1009,13 @@ function Stop({ stop, number, entry, late, driveFindings, selected, continues, s
               one; the number is for luggage, a gate, a track a hire car should not be on. */}
           <span className="flex flex-wrap items-center gap-1">
             <StayBadge minutes={stop.dwellMinutes} onEdit={onEditStay} />
-            {fillPercent && refuelsRange(stop.stopType, vehicle) ? <FillBadge percent={fillPercent} /> : null}
+            {refuelsRange(stop.stopType, vehicleKind) ? (
+              <FillBadge
+                percent={effectiveFill(stop.fillPercent, fillPercent)}
+                own={stop.fillPercent !== null && stop.fillPercent !== undefined}
+                onEdit={onPickFill}
+              />
+            ) : null}
             {spurWorthLabelling(stop.offRoadMeters) ? <OffRoadBadge meters={stop.offRoadMeters ?? 0} /> : null}
             {(driveFindings ?? []).map(w => <DriveFindingBadge key={w.code} warning={w} />)}
             <LateBadge late={late} />
@@ -999,7 +1071,7 @@ function LateBadge({ late }: { late: ScheduleWarning | undefined }): React.React
  * (`dayOrderMap` numbers the selected day's assignments from 1). A rail counting across
  * the trip would put "17" beside a pin the map calls "3".
  */
-function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, onMoveStopToDay, drag, onAskAlternatives, openAlternatives, onEditStay, onSetStopKind, onFollowTrack, viaCount, trackName, refuel, onAskRefuel, onAcceptRefuel, loading }: {
+function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, onMoveStopToDay, drag, onAskAlternatives, openAlternatives, onEditStay, onSetStopKind, onSetStopFill, onFollowTrack, viaCount, trackName, refuel, onAskRefuel, onAcceptRefuel, loading }: {
   day: RoadtripDay
   selectedAssignmentId?: number | null
   onSelectStop?: (placeId: number, assignmentId: number) => void
@@ -1011,6 +1083,7 @@ function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, on
   openAlternatives?: RoadtripSidebarProps['openAlternatives']
   onEditStay?: RoadtripSidebarProps['onEditStay']
   onSetStopKind?: RoadtripSidebarProps['onSetStopKind']
+  onSetStopFill?: RoadtripSidebarProps['onSetStopFill']
   onFollowTrack?: RoadtripSidebarProps['onFollowTrack']
   viaCount?: number
   trackName?: string
@@ -1025,6 +1098,7 @@ function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, on
   // Which disc the picker hangs under, and for which stop. One at a time: two open
   // popovers over the same rail is two answers to one question.
   const [picking, setPicking] = useState<{ anchor: HTMLElement; stop: RoadtripStop } | null>(null)
+  const [filling, setFilling] = useState<{ anchor: HTMLElement; stop: RoadtripStop } | null>(null)
   const { t, language } = useTranslation()
   const distanceUnit = useSettingsStore(s => s.settings.distance_unit)
   const last = day.stops.length - 1
@@ -1179,6 +1253,7 @@ function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, on
                   onSelect={onSelectStop ? () => onSelectStop(stop.placeId, stop.assignmentId) : undefined}
                   onEditStay={onEditStay ? () => onEditStay({ placeId: stop.placeId, name: stop.name, minutes: stop.dwellMinutes, arrival: day.schedule.entries[i]?.arrival ?? null }) : undefined}
                   onPickKind={onSetStopKind ? anchor => setPicking({ anchor, stop }) : undefined}
+                  onPickFill={onSetStopFill ? anchor => setFilling({ anchor, stop }) : undefined}
                 />
               ) : (
                 <Stop
@@ -1195,6 +1270,7 @@ function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, on
                   canMove={{ up: i > 0, down: i < last }}
                   onEditStay={onEditStay ? () => onEditStay({ placeId: stop.placeId, name: stop.name, minutes: stop.dwellMinutes, arrival: day.schedule.entries[i]?.arrival ?? null }) : undefined}
                   onPickKind={onSetStopKind ? anchor => setPicking({ anchor, stop }) : undefined}
+                  onPickFill={onSetStopFill ? anchor => setFilling({ anchor, stop }) : undefined}
                 />
               )}
               {i < last ? (
@@ -1239,6 +1315,17 @@ function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, on
           onPick={kind => {
             setPicking(null)
             void onSetStopKind?.(picking.stop.placeId, kind)
+          }}
+        />
+      ) : null}
+      {filling ? (
+        <StopFillPicker
+          anchor={filling.anchor}
+          current={filling.stop.fillPercent ?? null}
+          onClose={() => setFilling(null)}
+          onPick={percent => {
+            setFilling(null)
+            void onSetStopFill?.(filling.stop.placeId, percent)
           }}
         />
       ) : null}
@@ -1320,7 +1407,7 @@ function QuietDaySection({ day, onMoveStopToDay, drag }: {
  */
 export default function RoadtripSidebar({
   routes, selectedAssignmentId, onSelectStop, onReorderStop, onMoveStopToDay, onAskAlternatives, openAlternatives, onEditStay,
-  onSetStopKind, onFollowTrack, viaCounts, trackNames, refuel, onAskRefuel, onAcceptRefuel,
+  onSetStopKind, onSetStopFill, onFollowTrack, viaCounts, trackNames, refuel, onAskRefuel, onAcceptRefuel,
 }: RoadtripSidebarProps): React.ReactElement {
   const { t } = useTranslation()
   // One drag state for the whole rail rather than one per day: a stop that cannot leave
@@ -1372,6 +1459,7 @@ export default function RoadtripSidebar({
             openAlternatives={openAlternatives}
             onEditStay={onEditStay}
             onSetStopKind={onSetStopKind}
+            onSetStopFill={onSetStopFill}
             onFollowTrack={onFollowTrack}
             viaCount={viaCounts?.[day.dayId] ?? 0}
             trackName={trackNames?.[day.dayId]}

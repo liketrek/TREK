@@ -4514,6 +4514,26 @@ function runMigrations(db: Database.Database): void {
       // Retention deletes by day, and the summary reads the newest days first.
       db.exec('CREATE INDEX IF NOT EXISTS idx_route_usage_day ON route_usage_daily(day)');
     },
+    /**
+     * How full THIS stop fills the tank, 1 to 100 (#1797).
+     *
+     * Beside stop_type rather than in the traveller's settings, because it is a property
+     * of the stop and not of the person: a motorway rapid charger gets 80 % because the
+     * last fifth would cost as long again, while the one at the hotel gets 100 % because
+     * the car stands there all night. One figure for the whole trip cannot say both, and
+     * the difference between them is a leg.
+     *
+     * NULL means "whatever the traveller's own setting says", which is every row that
+     * exists today and every stop nobody has an opinion about.
+     *
+     * Appended LAST: the array is index-addressed against schema_version.
+     */
+    () => {
+      const cols = db.prepare("SELECT name FROM pragma_table_info('places')").all() as Array<{ name: string }>;
+      if (!cols.some(c => c.name === 'fill_percent')) {
+        db.exec('ALTER TABLE places ADD COLUMN fill_percent INTEGER');
+      }
+    },
   ];
 
   if (currentVersion < migrations.length) {

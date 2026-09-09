@@ -80,6 +80,8 @@ export interface Place {
   transport_mode?: string;
   /** What kind of stop this is on a drive (#1797); null for an ordinary place. */
   stop_type?: string | null;
+  /** How full this stop fills the tank, 1-100; null follows the traveller's own setting. */
+  fill_percent?: number | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -348,6 +350,8 @@ export interface AssignmentRow extends DayAssignment {
   website: string | null;
   phone: string | null;
   stop_type: string | null;
+  /** How full this stop fills the tank, 1-100; null follows the traveller's own setting. */
+  fill_percent: number | null;
   category_name: string | null;
   category_color: string | null;
   category_icon: string | null;

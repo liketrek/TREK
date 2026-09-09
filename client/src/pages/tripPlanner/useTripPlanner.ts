@@ -889,6 +889,22 @@ export function useTripPlanner() {
   }, [tripId, tripActions, toast, t])
 
   /**
+   * How full THIS stop fills the tank, from the road trip rail.
+   *
+   * The same shape as the kind above and for the same reason: one field on one place,
+   * with the rail redrawing off the store the moment it lands. Null hands the stop back
+   * to whatever the traveller set as their own default, which is what every stop does
+   * until somebody has an opinion about one.
+   */
+  const setRoadtripStopFill = useCallback(async (placeId: number, percent: number | null) => {
+    try {
+      await tripActions.updatePlace(tripId, placeId, { fill_percent: percent })
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : t('common.unknownError'))
+    }
+  }, [tripId, tripActions, toast, t])
+
+  /**
    * Moves a stop within its day, from the road trip rail.
    *
    * The rail reports only "this assignment, from here to there" and the full order is
@@ -1882,6 +1898,7 @@ export function useTripPlanner() {
     placeFormDayId, setPlaceFormDayId, reservationModalDayId, setReservationModalDayId,
     stopDraft, setStopDraft, saveStopDraft, saveStopDraftAsNight, stopDraftToForm, stopDraftDuplicate, reorderRoadtripStop,
     setRoadtripStopKind,
+    setRoadtripStopFill,
     saveRoadtripLimit,
     roadtripVias, addRoadtripVia, moveRoadtripVia, removeRoadtripVia,
     refuel, askRefuel, acceptRefuel,

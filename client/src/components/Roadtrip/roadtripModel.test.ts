@@ -768,4 +768,46 @@ describe('deriveDriveWarnings — filling only part way', () => {
     expect(out.warnings).toEqual([])
     expect(out.emptyAt).toEqual([])
   })
+
+  it('FE-ROADTRIP-MODEL-104: a stop that says how full it fills is read against itself', () => {
+    // The motorway charger tops up to 60 %; the traveller's own default is 80. Reading
+    // the default here would promise 100 km the car does not have.
+    const out = deriveDriveWarnings(
+      [drive(60, 100), drive(60, 450)],
+      [false, true, false],
+      { legMinutes: null, dayMinutes: null, rangeKm: 500, fillPercent: 80 },
+      0,
+      [null, 60, null],
+    )
+    // 60 % of 500 km is 300, so the tank is dry 300 km into the second leg rather than
+    // the 400 the traveller's own figure would have given.
+    expect(out.emptyAt).toHaveLength(1)
+    expect(out.emptyAt[0]).toMatchObject({ legIndex: 1, intoLegKm: 300 })
+  })
+
+  it('FE-ROADTRIP-MODEL-105: a stop with no opinion still follows the traveller', () => {
+    // Same day, same stop, nothing said about it: the default has to keep applying, or
+    // adding the field would have quietly changed every trip that never used it.
+    const out = deriveDriveWarnings(
+      [drive(60, 100), drive(60, 450)],
+      [false, true, false],
+      { legMinutes: null, dayMinutes: null, rangeKm: 500, fillPercent: 80 },
+      0,
+      [null, null, null],
+    )
+    expect(out.emptyAt[0]).toMatchObject({ legIndex: 1, intoLegKm: 400 })
+  })
+
+  it('FE-ROADTRIP-MODEL-106: a stop can also say it fills right up', () => {
+    // The charger at the hotel: the car stands there all night, so this one goes to 100
+    // even on a trip whose default stops at 80.
+    const out = deriveDriveWarnings(
+      [drive(60, 100), drive(60, 450)],
+      [false, true, false],
+      { legMinutes: null, dayMinutes: null, rangeKm: 500, fillPercent: 80 },
+      0,
+      [null, 100, null],
+    )
+    expect(out.emptyAt).toEqual([])
+  })
 })

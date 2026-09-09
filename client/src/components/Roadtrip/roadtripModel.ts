@@ -432,6 +432,18 @@ export function deriveDriveWarnings(
   limits: DriveLimits,
   /** Kilometres already on the tank when the day starts; null when that is unknown. */
   carryKm: number | null,
+  /**
+   * Per stop, how full THAT stop fills up, 1-100. Absent follows `limits.fillPercent`.
+   *
+   * A property of the stop rather than of the traveller: a motorway rapid charger is
+   * worth about 80 % because the last fifth costs as long again, while the one at the
+   * hotel is worth all of it because the car stands there all night. One figure for the
+   * whole trip cannot say both, and the difference between them is a leg.
+   *
+   * Last and optional so the four-argument call, which is every caller that has no
+   * per-stop opinion, keeps meaning exactly what it did.
+   */
+  fillAt: readonly (number | null | undefined)[] = [],
 ): { warnings: ScheduleWarning[]; day: DayWarning | null; carryKm: number | null; emptyAt: DryPoint[] } {
   const warnings: ScheduleWarning[] = []
   const emptyAt: DryPoint[] = []
@@ -443,15 +455,22 @@ export function deriveDriveWarnings(
   // walk the driving legs only, which is why this is counted here rather than derived.
   let drivenMeters = 0
 
-  // What is left on the clock straight after a stop. A tank filled to 80 % has already
-  // used a fifth of its range before the car moves, which is the honest way to say it in
-  // a budget that counts upwards.
-  const usedAfterFilling = limits.rangeKm && limits.fillPercent
-    ? limits.rangeKm * (1 - limits.fillPercent / 100)
-    : 0
+  /**
+   * What is already on the clock the moment the car pulls away from stop `i`.
+   *
+   * A tank filled to 80 % has used a fifth of its range before it moves, which is how a
+   * budget that counts upwards says "not full". Zero, absent and 100 all mean it filled
+   * right up, so all three land on nothing used.
+   */
+  const usedAfterFilling = (i: number): number => {
+    const percent = fillAt[i] ?? limits.fillPercent
+    return limits.rangeKm && percent && percent > 0 && percent < 100
+      ? limits.rangeKm * (1 - percent / 100)
+      : 0
+  }
 
   for (let i = 0; i < legs.length; i++) {
-    if (refuelsAt[i]) budget = usedAfterFilling
+    if (refuelsAt[i]) budget = usedAfterFilling(i)
     const leg = legs[i]
     // The stop this leg arrives at. Both findings are about what is true on arrival.
     const at = i + 1
@@ -502,7 +521,7 @@ export function deriveDriveWarnings(
   }
   // The last stop of the day counts too: filling up on arrival is what makes the next
   // morning start with a full tank.
-  if (refuelsAt[legs.length]) budget = usedAfterFilling
+  if (refuelsAt[legs.length]) budget = usedAfterFilling(legs.length)
 
   const minutes = Math.round(totalSeconds / 60)
   const day = limits.dayMinutes && minutes > limits.dayMinutes

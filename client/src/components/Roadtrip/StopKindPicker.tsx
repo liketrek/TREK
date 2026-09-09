@@ -1,8 +1,8 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
+import React from 'react'
 import { MapPin } from 'lucide-react'
 import { useTranslation } from '../../i18n/TranslationContext'
 import { Tooltip } from '../shared/Tooltip'
+import AnchoredPopover from './AnchoredPopover'
 import { STOP_KINDS } from './stopKinds'
 import type { RoadtripStopType } from '@trek/shared'
 
@@ -33,61 +33,9 @@ export default function StopKindPicker({ anchor, current, onPick, onClose }: {
   onClose: () => void
 }): React.ReactElement | null {
   const { t } = useTranslation()
-  const ref = useRef<HTMLDivElement>(null)
-  const [pos, setPos] = useState<{ top: number; left: number } | null>(null)
 
-  // Measured after paint, before the browser shows it: reading the size first and then
-  // placing it is what stops the panel appearing at 0,0 for one frame.
-  useLayoutEffect(() => {
-    if (!anchor || !ref.current) return
-    const a = anchor.getBoundingClientRect()
-    const p = ref.current.getBoundingClientRect()
-    const gap = 8
-    let top = a.bottom + gap
-    // Flips above when there is no room below, which is most of the rail on a short
-    // window: a panel clipped by the viewport is one that cannot be used at all.
-    if (top + p.height > window.innerHeight - 8) top = Math.max(8, a.top - p.height - gap)
-    // Centred on the column, not on the number. The number sits hard against the left
-    // edge of the rail, so a panel centred on it hangs half off the sidebar and points at
-    // the map. Vertically it still follows the row it belongs to.
-    const column = anchor.closest('section')?.getBoundingClientRect() ?? a
-    const left = Math.min(
-      Math.max(8, column.left + column.width / 2 - p.width / 2),
-      window.innerWidth - p.width - 8,
-    )
-    setPos({ top, left })
-  }, [anchor])
-
-  useEffect(() => {
-    if (!anchor) return
-    const onDown = (e: MouseEvent) => {
-      if (ref.current?.contains(e.target as Node)) return
-      if (anchor.contains(e.target as Node)) return
-      onClose()
-    }
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
-    document.addEventListener('mousedown', onDown)
-    document.addEventListener('keydown', onKey)
-    // Any scroll moves the anchor out from under the panel, and following it would mean
-    // measuring on every frame for a menu that is open for two seconds.
-    window.addEventListener('scroll', onClose, true)
-    return () => {
-      document.removeEventListener('mousedown', onDown)
-      document.removeEventListener('keydown', onKey)
-      window.removeEventListener('scroll', onClose, true)
-    }
-  }, [anchor, onClose])
-
-  if (!anchor) return null
-
-  return createPortal(
-    <div
-      ref={ref}
-      role="dialog"
-      aria-label={t('roadtrip.stop.kind')}
-      className="fixed z-[70] rounded-2xl border border-edge bg-surface-card p-2 shadow-xl"
-      style={{ top: pos?.top ?? -9999, left: pos?.left ?? -9999, visibility: pos ? 'visible' : 'hidden' }}
-    >
+  return (
+    <AnchoredPopover anchor={anchor} label={t('roadtrip.stop.kind')} onClose={onClose}>
       <div className="flex gap-1">
         {STOP_KINDS.map(({ key, labelKey, Icon, color }) => {
           const on = current === key
@@ -127,7 +75,6 @@ export default function StopKindPicker({ anchor, current, onPick, onClose }: {
           {t('roadtrip.stop.backToDestination')}
         </button>
       ) : null}
-    </div>,
-    document.body,
+    </AnchoredPopover>
   )
 }

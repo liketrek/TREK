@@ -46,6 +46,9 @@ export function formatAssignmentWithPlace(a: AssignmentRow, tags: Partial<Tag>[]
       // The rail marks a fuel stop as one; without it here every stop would need
       // its own place request to find out what kind it is.
       stop_type: a.stop_type ?? null,
+      // Same reason: the rail resets a range budget here and has to know how far this
+      // stop fills, not how far the traveller's default one does.
+      fill_percent: a.fill_percent ?? null,
       category: a.category_id ? {
         id: a.category_id,
         name: a.category_name,

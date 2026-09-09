@@ -6,7 +6,7 @@ import {
   type DayWarning, type DriveLimits, type Schedule, type ScheduleWarning, parseAvoid, type DryPoint, type VehicleKind } from './roadtripModel'
 import { projectOntoRoute, pointAtMeters} from './corridor'
 import { useSettingsStore } from '../../store/settingsStore'
-import { effectiveRangeKm } from './vehicleRange'
+import { useVehicleRange } from './useVehicleRange'
 import type { Assignment, AssignmentsMap, Day, RouteAvoidClass, RouteSegment, RouteVia, SnappedWaypoint } from '../../types'
 import { spurFor } from './accessSpur'
 import type { RoadtripVia } from '@trek/shared'
@@ -27,6 +27,17 @@ export interface RoadtripStop {
   incomingLegMode: string | null
   /** fuel / charging / rest_area / campsite, or null for an ordinary place (#1797). */
   stopType: string | null
+  /**
+   * How full THIS stop fills up, 1-100, or null to follow the traveller's own setting.
+   *
+   * A property of the stop: the motorway rapid charger is worth 80 % because the last
+   * fifth costs as long again, the one at the hotel is worth all of it because the car
+   * stands there all night.
+   *
+   * Optional, like `offRoadMeters`: absent and null say the same thing, and a stop built
+   * anywhere that has no opinion about filling up should not have to say so.
+   */
+  fillPercent?: number | null
   /**
    * How far the router had to go to find a road, in metres, once this stop has routed.
    *
@@ -228,6 +239,7 @@ const asStop = (a: Assignment): RoadtripStop | null => {
     legMode: a.leg_transport_mode ?? null,
     incomingLegMode: a.incoming_leg_transport_mode ?? null,
     stopType: p.stop_type ?? null,
+    fillPercent: typeof p.fill_percent === 'number' ? p.fill_percent : null,
   }
 }
 
@@ -275,7 +287,6 @@ export function useRoadtripRoutes(
 
   const legMinutes = useSettingsStore(s => s.settings.roadtrip_leg_minutes)
   const dayMinutes = useSettingsStore(s => s.settings.roadtrip_day_minutes)
-  const rangeKm = useSettingsStore(s => s.settings.roadtrip_range_km)
   const fillPercent = useSettingsStore(s => s.settings.roadtrip_fill_percent)
   /**
    * Road classes to weight away, as the settings row stores them: a comma list.
@@ -285,37 +296,11 @@ export function useRoadtripRoutes(
    * any value — and an unknown word here would become a costing option the router does
    * not have.
    */
-  const vehicle = useSettingsStore(s => s.settings.roadtrip_vehicle)
   const avoidSetting = useSettingsStore(s => s.settings.roadtrip_avoid)
   const avoid = useMemo(() => parseAvoid(avoidSetting), [avoidSetting])
-  // Validated rather than trusted, like the avoidance above: a per-user setting gets no
-  // server-side check, and an unknown word here would silently stop both kinds counting.
-  const vehicleKind: VehicleKind | null =
-    vehicle === 'combustion' || vehicle === 'electric' ? vehicle : null
-  /**
-   * What the vehicle is made of, when the traveller filled that in instead of a range.
-   *
-   * Read as five primitives rather than as one object so the memo below compares numbers.
-   * An object rebuilt each render would give `limits` a new identity every time, and
-   * `limits` is what the route effect watches — every keystroke anywhere in the app would
-   * recalculate every day's driving.
-   */
-  const tankLitres = useSettingsStore(s => s.settings.roadtrip_tank_litres)
-  const litresPer100 = useSettingsStore(s => s.settings.roadtrip_litres_per_100)
-  const batteryKwh = useSettingsStore(s => s.settings.roadtrip_battery_kwh)
-  const kwhPer100 = useSettingsStore(s => s.settings.roadtrip_kwh_per_100)
-  const degradationPercent = useSettingsStore(s => s.settings.roadtrip_battery_degradation)
-  // The parts win over the typed number when they add up, because they are the more
-  // specific answer; the dialog shows the result, so it is never a surprise. Zero and
-  // absent both mean "no limit", which is why the falsy fold happens here once.
-  const planningRangeKm = useMemo(
-    () => effectiveRangeKm(
-      vehicleKind,
-      { tankLitres, litresPer100, batteryKwh, kwhPer100, degradationPercent },
-      rangeKm,
-    ) || null,
-    [vehicleKind, tankLitres, litresPer100, batteryKwh, kwhPer100, degradationPercent, rangeKm],
-  )
+  // What the car is and how far it goes on one fill, assembled in one place because the
+  // rail needs the same answer to say what a given fill buys at a given stop.
+  const { vehicleKind, rangeKm: planningRangeKm } = useVehicleRange()
   const avoidKey = avoid.join(',')
   // Zero and absent both mean "no limit": zero is a legal thing to type and says the
   // same thing, so it is folded here rather than guarded at every reading.
@@ -587,6 +572,9 @@ export function useRoadtripRoutes(
         stops.map(s => refuelsRange(s.stopType, vehicleKind)),
         limits,
         carryKm,
+        // Same length and same order, so a stop that says how far it fills is read
+        // against itself rather than against the traveller's default.
+        stops.map(s => s.fillPercent),
       )
       carryKm = drive.carryKm
       // Where each tank runs dry, as a place rather than a distance.
