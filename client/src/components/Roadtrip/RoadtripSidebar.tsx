@@ -5,6 +5,9 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import MDancingTrek from '../../mobile/components/MDancingTrek'
+import type { RefuelSearch } from './useRefuelSearch'
+import type { RefuelCandidate } from './refuelSuggestion'
+import type { DryPoint } from './roadtripModel'
 import { useTranslation } from '../../i18n/TranslationContext'
 import { Tooltip } from '../shared/Tooltip'
 import { useSettingsStore } from '../../store/settingsStore'
@@ -35,6 +38,15 @@ interface RoadtripSidebarProps {
   onMoveStopToDay?: (fromDayId: number, assignmentId: number, toDayId: number, toIndex: number) => void
   /** Asks for other ways of driving one leg (#1797). */
   onAskAlternatives?: (dayId: number, legIndex: number) => void
+  /**
+   * The one-shot search for somewhere to fill up before the tank runs out.
+   *
+   * Absent leaves the range findings as they were, a warning and nothing else — which is
+   * also what a viewer sees, since accepting one writes a stop.
+   */
+  refuel?: RefuelSearch
+  onAskRefuel?: (dayId: number, dry: DryPoint & { lat: number; lng: number }) => void
+  onAcceptRefuel?: (dayId: number, poi: RefuelCandidate, dry: DryPoint & { lat: number; lng: number }) => void
   /** Which leg's alternatives are on show, so the rail can mark it. */
   openAlternatives?: { dayId: number; index: number } | null
   /**
@@ -292,6 +304,108 @@ function TripSummary({ routes }: { routes: RoadtripRoutes }): React.ReactElement
  * distance and the time belong together, and it leaves the row's right edge for the
  * button instead of a second number.
  */
+
+/**
+ * Where the tank runs out on this leg, and somewhere to do something about it.
+ *
+ * Sits under the drive band rather than on the stop that carries the range warning,
+ * because those are two different places: the warning is filed where somebody finds out,
+ * this is where the fuel actually ends. A filling station offered at the warning is one
+ * the car cannot reach.
+ *
+ * Nothing is searched until it is asked for. Every press is a real request against a
+ * shared service, which is the same reason the corridor search next door is manual.
+ */
+function RefuelBand({ dry, refuel, dayId, onAsk, onAccept }: {
+  dry: DryPoint & { lat: number; lng: number }
+  refuel: RefuelSearch
+  dayId: number
+  onAsk: () => void
+  onAccept?: (poi: RefuelCandidate) => void
+}): React.ReactElement {
+  const { t } = useTranslation()
+  const distanceUnit = useSettingsStore(s => s.settings.distance_unit)
+  const key = `${dayId}:${dry.legIndex}`
+  const open = refuel.openFor === key
+
+  return (
+    <div className="my-1 ms-[30px] flex flex-col gap-1.5 rounded-lg border border-edge-faint bg-surface-secondary px-2.5 py-2">
+      <div className="flex items-center gap-2">
+        <Fuel size={12} className="shrink-0 text-content-faint" aria-hidden />
+        <span className="min-w-0 flex-1 text-content-secondary" style={{ fontSize: FS.label }}>
+          {t('roadtrip.refuel.dry', { distance: formatDistance(dry.sinceKm, distanceUnit) })}
+        </span>
+        {open ? (
+          <button
+            type="button"
+            onClick={refuel.close}
+            className="shrink-0 rounded px-1.5 py-0.5 text-content-faint transition-colors hover:text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            style={{ fontSize: FS.label }}
+          >
+            {t('common.close')}
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={onAsk}
+            className="shrink-0 rounded bg-surface-card px-2 py-0.5 font-semibold text-content-secondary transition-colors hover:bg-surface-hover hover:text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            style={{ fontSize: FS.label }}
+          >
+            {t('roadtrip.refuel.find')}
+          </button>
+        )}
+      </div>
+
+      {open && refuel.loading ? (
+        <span className="text-content-faint" style={{ fontSize: FS.label }}>{t('roadtrip.refuel.looking')}</span>
+      ) : null}
+
+      {open && !refuel.loading && refuel.outcome ? (
+        refuel.results.length ? (
+          <ul className="flex flex-col gap-1">
+            {/* Three at most. This is an offer beside a plan, not a list to browse; the
+                corridor panel is where somebody goes to see all of them. */}
+            {refuel.results.slice(0, 3).map(poi => (
+              <li key={poi.osm_id} className="flex items-center gap-2">
+                <span className="min-w-0 flex-1 truncate text-content" style={{ fontSize: FS.label }}>
+                  {poi.name}
+                </span>
+                <span className="shrink-0 tabular-nums text-content-faint" style={{ fontSize: FS.label }}>
+                  {/* What is left when the car draws level, which is the figure that
+                      decides whether this one is any use. The detour is in it already. */}
+                  {t('roadtrip.refuel.spare', { distance: formatDistance(Math.round(poi.spareKm), distanceUnit) })}
+                </span>
+                {onAccept ? (
+                  <button
+                    type="button"
+                    onClick={() => onAccept(poi)}
+                    aria-label={t('roadtrip.refuel.add', { name: poi.name })}
+                    className="shrink-0 rounded bg-surface-card px-1.5 py-0.5 font-semibold text-content-secondary transition-colors hover:bg-surface-hover hover:text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                    style={{ fontSize: FS.label }}
+                  >
+                    +
+                  </button>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          /* Three different sentences for three different facts. "Nothing on this
+             stretch" after a request that failed or was cut short states something that
+             was never checked, and that is worse than saying nothing. */
+          <span className="text-content-faint" style={{ fontSize: FS.label }}>
+            {refuel.outcome === 'none'
+              ? t('roadtrip.refuel.none')
+              : refuel.outcome === 'incomplete'
+                ? t('roadtrip.refuel.incomplete')
+                : t('roadtrip.refuel.failed')}
+          </span>
+        )
+      ) : null}
+    </div>
+  )
+}
+
 function DriveBand({ leg, onAskAlternatives, alternativesOpen }: {
   leg: RouteSegment | undefined
   /** Asks for other ways of driving this leg. Absent means the route is not editable. */
@@ -813,7 +927,7 @@ function LateBadge({ late }: { late: ScheduleWarning | undefined }): React.React
  * (`dayOrderMap` numbers the selected day's assignments from 1). A rail counting across
  * the trip would put "17" beside a pin the map calls "3".
  */
-function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, onMoveStopToDay, drag, onAskAlternatives, openAlternatives, onEditStay, onSetStopKind, onFollowTrack, viaCount, trackName }: {
+function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, onMoveStopToDay, drag, onAskAlternatives, openAlternatives, onEditStay, onSetStopKind, onFollowTrack, viaCount, trackName, refuel, onAskRefuel, onAcceptRefuel, loading }: {
   day: RoadtripDay
   selectedAssignmentId?: number | null
   onSelectStop?: (placeId: number, assignmentId: number) => void
@@ -828,6 +942,11 @@ function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, on
   onFollowTrack?: RoadtripSidebarProps['onFollowTrack']
   viaCount?: number
   trackName?: string
+  refuel?: RefuelSearch
+  onAskRefuel?: RoadtripSidebarProps['onAskRefuel']
+  onAcceptRefuel?: RoadtripSidebarProps['onAcceptRefuel']
+  /** True while any day is still routing; the range findings are not settled until then. */
+  loading?: boolean
 }): React.ReactElement {
   const { from, setFrom, dropAt, setDropAt } = drag
   const dragging = from?.dayId === day.dayId ? from.index : null
@@ -1002,6 +1121,24 @@ function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, on
                   alternativesOpen={openAlternatives?.dayId === day.dayId && openAlternatives.index === i}
                 />
               ) : null}
+              {/* Only on the leg the fuel actually runs out on, and only once the day has
+                  finished routing: the warnings are republished after every routing task
+                  and the early ones are wrong, so an offer that appears and moves while
+                  the trip loads reads as a fault. */}
+              {refuel && !loading
+                ? (day.dryPoints ?? [])
+                    .filter(dry => dry.legIndex === i)
+                    .map(dry => (
+                      <RefuelBand
+                        key={`dry-${dry.legIndex}`}
+                        dry={dry}
+                        dayId={day.dayId}
+                        refuel={refuel}
+                        onAsk={() => onAskRefuel?.(day.dayId, dry)}
+                        onAccept={onAcceptRefuel ? poi => onAcceptRefuel(day.dayId, poi, dry) : undefined}
+                      />
+                    ))
+                : null}
               {/* After the band, because a plugin halt happens on the drive it describes
                   rather than before setting off. */}
               {i < last ? (day.legVias[i] ?? []).map((via, vi) => (
@@ -1100,7 +1237,7 @@ function QuietDaySection({ day, onMoveStopToDay, drag }: {
  */
 export default function RoadtripSidebar({
   routes, selectedAssignmentId, onSelectStop, onReorderStop, onMoveStopToDay, onAskAlternatives, openAlternatives, onEditStay,
-  onSetStopKind, onFollowTrack, viaCounts, trackNames,
+  onSetStopKind, onFollowTrack, viaCounts, trackNames, refuel, onAskRefuel, onAcceptRefuel,
 }: RoadtripSidebarProps): React.ReactElement {
   const { t } = useTranslation()
   // One drag state for the whole rail rather than one per day: a stop that cannot leave
@@ -1155,6 +1292,10 @@ export default function RoadtripSidebar({
             onFollowTrack={onFollowTrack}
             viaCount={viaCounts?.[day.dayId] ?? 0}
             trackName={trackNames?.[day.dayId]}
+            refuel={refuel}
+            onAskRefuel={onAskRefuel}
+            onAcceptRefuel={onAcceptRefuel}
+            loading={routes.loading}
           />
         ))}
         {routes.quietDays.map(day => (

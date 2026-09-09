@@ -24,6 +24,8 @@ import { useRouteCalculation } from '../../hooks/useRouteCalculation'
 import { useRoadtripRoutes } from '../../components/Roadtrip/useRoadtripRoutes'
 import { useRoadtripCorridor } from '../../components/Roadtrip/useRoadtripCorridor'
 import { useRoadtripVias } from '../../components/Roadtrip/useRoadtripVias'
+import { useRefuelSearch } from '../../components/Roadtrip/useRefuelSearch'
+import type { RefuelCandidate } from '../../components/Roadtrip/refuelSuggestion'
 import { useFollowTrack } from '../../components/Roadtrip/useFollowTrack'
 import { useRouteAlternatives } from '../../components/Roadtrip/useRouteAlternatives'
 import { buildAlternativeOverlays } from '../../components/Roadtrip/alternativeOverlays'
@@ -34,8 +36,7 @@ import {
   reanchorAfterInsert,
   reanchorAfterRemove,
   reanchorByStopOrder,
-  reanchorAfterReorder,
-} from '../../components/Roadtrip/roadtripModel'
+  reanchorAfterReorder, type DryPoint } from '../../components/Roadtrip/roadtripModel'
 import type { RoadtripStopDraft } from '../../components/Roadtrip/RoadtripStopPopup'
 import type { RoadtripStopType } from '@trek/shared'
 import { usePlaceSelection } from '../../hooks/usePlaceSelection'
@@ -539,6 +540,7 @@ export function useTripPlanner() {
   // Passing no days while the mode is off keeps it inert — no routing requests, no state.
   const roadtripActive = !!enabledAddons.roadtrip && roadtripMode
   const roadtripVias = useRoadtripVias(tripId, roadtripActive)
+  const refuel = useRefuelSearch()
   const roadtripRoutes = useRoadtripRoutes(
     tripId,
     roadtripActive ? days : EMPTY_DAYS,
@@ -1204,6 +1206,49 @@ export function useTripPlanner() {
     }
   }, [anchorFor, roadtripVias, can, trip, toast, t])
 
+  /**
+   * Somewhere to fill up before this tank runs out.
+   *
+   * Measured against the day's DRIVING line, the same one the dry point was placed on, so
+   * a station's distance along the road is comparable with the distance the fuel lasts.
+   * The day's own places go in as well: a pump already on the plan should not be offered
+   * beside itself.
+   */
+  const askRefuel = useCallback((dayId: number, dry: DryPoint & { lat: number; lng: number }) => {
+    const day = roadtripRoutes.days.find(d => d.dayId === dayId)
+    if (!day) return
+    const line = (day.drivingGeometry ?? day.geometry).map(([lat, lng]) => ({ lat, lng }))
+    if (line.length < 2) return
+    void refuel.ask(
+      `${dayId}:${dry.legIndex}`,
+      { lat: dry.lat, lng: dry.lng },
+      line,
+      dry.drivenMeters / 1000,
+      day.stops.map(stop => ({ lat: stop.lat, lng: stop.lng })),
+    )
+  }, [roadtripRoutes.days, refuel])
+
+  /**
+   * Accepting one hands it to the same popup a corridor hit goes through.
+   *
+   * Deliberately not a direct write: the popup is where the stop kind and the time spent
+   * are decided, it defaults both from the category, and every step after it — the place,
+   * the assignment at the right position, the via re-anchoring, the re-route — is already
+   * correct there and pinned by tests. A second path to the same end would be a second
+   * place for it to go wrong.
+   */
+  const acceptRefuel = useCallback((dayId: number, poi: RefuelCandidate, dry: DryPoint & { lat: number; lng: number }) => {
+    if (!can('day_edit', trip)) return
+    const day = roadtripRoutes.days.find(d => d.dayId === dayId)
+    if (!day) return
+    // Before the stop the tank would have run out on, which is the leg the dry point
+    // names. A station reached after the day's last stop is tomorrow's problem, and
+    // clamping it onto the final leg would re-route the arrival through it.
+    const position = Math.min(dry.legIndex + 1, day.stops.length - 1)
+    refuel.close()
+    setStopDraft({ poi, dayId, position, dayNumber: day.dayNumber })
+  }, [roadtripRoutes.days, refuel, can, trip])
+
   /** Removing a via lets the drive take the direct road again. */
   const removeRoadtripVia = useCallback(async (dayId: number, id: number) => {
     if (!can('day_edit', trip)) return
@@ -1824,6 +1869,7 @@ export function useTripPlanner() {
     setRoadtripStopKind,
     saveRoadtripLimit,
     roadtripVias, addRoadtripVia, moveRoadtripVia, removeRoadtripVia,
+    refuel, askRefuel, acceptRefuel,
     routeAlternatives, askRouteAlternatives, chooseRouteAlternative, alternativeOverlays, alternativeFocusPoints,
     stayDraft, setStayDraft, setRoadtripStay,
     highlightedAlternative, setHighlightedAlternative,

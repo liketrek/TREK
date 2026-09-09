@@ -69,6 +69,11 @@ export interface RoadtripDay {
    */
   dryPoints?: (DryPoint & { lat: number; lng: number })[]
   /**
+   * `geometry` with the non-driving runs left out, which is what `dryPoints` are measured
+   * along. The same array as `geometry` on a day that drives the whole way.
+   */
+  drivingGeometry?: [number, number][]
+  /**
    * The roads actually driven that day, as [lat, lng] — not the straight lines between
    * stops. Anything asking "what is along this day" has to use this: between Hamburg and
    * Berlin the straight line runs across open country while the motorway swings north of
@@ -561,8 +566,13 @@ export function useRoadtripRoutes(
           return at ? { ...dry, lat: at.lat, lng: at.lng } : null
         })
         .filter((d): d is DryPoint & { lat: number; lng: number } => d !== null)
+      // The same line the dry points are measured along, so anything offered against
+      // them is projected in the same space. Handed on as the SAME array when the day
+      // drives all the way through, which is nearly every day — only a day carrying a
+      // ferry or a walk pays for a second copy.
+      const drivingGeometry = drivingLine.length === geometry.length ? geometry : drivingLine
       out.push({
-        ...day, stops, legs, legVias, schedule, geometry, distance, duration, dryPoints,
+        ...day, stops, legs, legVias, schedule, geometry, distance, duration, dryPoints, drivingGeometry,
         driveWarnings: drive.warnings,
         dayWarning: drive.day,
       })

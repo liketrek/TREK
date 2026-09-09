@@ -267,7 +267,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
     setRoadtripStopKind,
     saveRoadtripLimit,
     roadtripVias, addRoadtripVia, moveRoadtripVia, removeRoadtripVia,
-    routeAlternatives, askRouteAlternatives, chooseRouteAlternative, alternativeOverlays, alternativeFocusPoints,
+    routeAlternatives, askRouteAlternatives, refuel, askRefuel, acceptRefuel, chooseRouteAlternative, alternativeOverlays, alternativeFocusPoints,
     stayDraft, setStayDraft, setRoadtripStay,
     highlightedAlternative, setHighlightedAlternative,
     moveRoadtripStopToDay,
@@ -549,6 +549,9 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
                       onFollowTrack={can('day_edit', trip) && followTrack.available ? followTrack.open : undefined}
                       viaCounts={roadtripViaCounts}
                       trackNames={followTrack.namesByDay}
+                      refuel={refuel}
+                      onAskRefuel={askRefuel}
+                      onAcceptRefuel={can('day_edit', trip) ? acceptRefuel : undefined}
                     />
                   </LazyPanel>
                 ) : (
