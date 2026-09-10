@@ -94,6 +94,49 @@ module.exports = {
 }
 ```
 
+## Answer place searches from your own index
+
+**Needs:** `hook:search-provider` (+ `http:outbound:<host>` and a matching `egress` when
+the index is somebody else's server)
+
+TREK searches its own place index and OpenStreetMap. This hook adds a third one, and
+its hits are drawn into the same list the user is already looking at.
+
+`rating` is the reason to reach for it: open data carries no ratings at all, so a
+question like "the best rated hotel around here" cannot be answered from OpenStreetMap.
+Whatever your index knows, this is where it reaches the search list.
+
+```js
+module.exports = {
+  hooks: {
+    searchProvider: {
+      async search({ query, limit, lang, near }, ctx) {
+        const res = await fetch(
+          `https://your-index.example/search?q=${encodeURIComponent(query)}&n=${limit}`,
+        )
+        const { results } = await res.json()
+        return results.map(r => ({
+          id: r.ref,                    // namespaced host-side to plugin:<yourId>:<ref>
+          name: r.title,
+          lat: r.lat,
+          lng: r.lon,
+          address: r.address,
+          rating: r.stars,              // 0..5, clamped host-side
+          website: r.url,               // http/https only
+        }))
+      },
+    },
+  },
+}
+```
+
+Called for an explicit search, never per keystroke, so an index with rate limits is
+safe here. You get two seconds to answer and at most 20 of your places are kept: a
+person is waiting on the list, and the app stops waiting at two and a half seconds
+whatever happens, so a provider that misses that window is left out of the list rather
+than holding it up. `near` is the coordinate the search is biased toward,
+and it is what tells the four places called "Hase-dera" apart — use it when you have it.
+
 ## Raise validation warnings on a trip
 
 **Needs:** `hook:trip-warning-provider`

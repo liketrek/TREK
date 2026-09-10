@@ -20,7 +20,7 @@ import { AppConfigModule } from '../app-config/app-config.module';
  *
  * - `PluginsRuntimeModule` — supervisor, capability router, hook contracts. The half
  *   with the domain imports, and the only half AdminModule needs.
- * - `PluginContributionsModule` — the 14 read-only hook controllers.
+ * - `PluginContributionsModule` — the 15 read-only hook controllers.
  * - `PluginOAuthModule` — the outbound-OAuth leaf.
  *
  * What is left here is the CRUD and delivery surface: install/activate/configure, the

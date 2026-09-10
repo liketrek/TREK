@@ -368,6 +368,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:calendar-source': 'Fornire eventi al calendario',
   'admin.plugins.perm.hook:place-detail-provider':
     'Fornire dettagli aggiuntivi (recensioni, valutazioni, link) a un luogo',
+  'admin.plugins.perm.hook:search-provider':
+    'Rispondere alle ricerche di luoghi dal proprio indice, accanto ai risultati di TREK',
   'admin.plugins.perm.hook:trip-warning-provider':
     'Segnala avvisi di validazione su un viaggio (mostrati nel pianificatore)',
   'admin.plugins.perm.hook:table-contributor':
@@ -525,6 +527,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.photos': 'Fornisce foto',
   'admin.plugins.cap.calendar': 'Fornisce eventi calendario',
   'admin.plugins.cap.placeDetails': 'Arricchisce luoghi',
+  'admin.plugins.cap.search': 'Risponde alle ricerche',
   'admin.plugins.cap.warnings': 'Segnala problemi',
   'admin.plugins.cap.mapLayers': 'Disegna sulla mappa',
   'admin.plugins.cap.routing': 'Offre routing',

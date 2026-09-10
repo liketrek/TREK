@@ -1143,6 +1143,50 @@ async function withCachedPlaces<T>(
   }
 }
 
+/**
+ * What plugins implementing `searchProvider` found for the same query (#2221).
+ *
+ * Its own request beside the core one rather than a branch inside it: the core search
+ * is TREK's own indexes and must not wait on, or fail with, somebody's plugin. This
+ * answers with an empty list for every failure there is — no provider installed, one
+ * that timed out, a 404 on an older server, the network gone — because a search that
+ * breaks when an optional index is unwell is worse than one without it.
+ */
+/**
+ * How long a plugin index may keep the search list waiting, in milliseconds.
+ *
+ * The host gives a provider two seconds to answer and this gives the round trip a
+ * little more. It is a ceiling on the WAIT, not on the provider: with no search
+ * plugin installed the route answers immediately without reaching any of them, so
+ * the normal case costs one local round trip and nothing else.
+ *
+ * A deadline rather than patience, because the alternative is a search that feels
+ * broken. A list that arrives without an optional index is a smaller answer; a list
+ * that arrives four seconds late is no answer at all.
+ */
+const PLUGIN_SEARCH_DEADLINE_MS = 2500
+
+async function pluginSearchPlaces(
+  query: string,
+  lang?: string,
+  near?: { lat: number; lng: number },
+): Promise<Record<string, unknown>[]> {
+  const stop = new AbortController()
+  const timer = setTimeout(() => stop.abort(), PLUGIN_SEARCH_DEADLINE_MS)
+  try {
+    const r = await apiClient.get('/plugin-search', {
+      params: { q: query, lang: lang || 'en', lat: near?.lat, lng: near?.lng },
+      signal: stop.signal,
+    })
+    const places = (r.data as { places?: unknown })?.places
+    return Array.isArray(places) ? (places as Record<string, unknown>[]) : []
+  } catch {
+    return []
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 export const mapsApi = {
   /**
    * `locationBias` is what tells the search which "Hase-dera" is meant, and it
@@ -1152,10 +1196,25 @@ export const mapsApi = {
    * It also decides whether the index answers at all: a common single word
    * without coordinates is refused upstream as too expensive, and the search
    * then falls back to Nominatim alone.
+   *
+   * Plugin indexes are asked at the same time and their hits are appended, so every
+   * caller of this one function gets them without knowing they exist. Appended rather
+   * than interleaved: the core list is ordered by relevance and has earned that order,
+   * and a plugin's row carries its own `source` for a caller that wants to mark it.
    */
   search: (query: string, lang?: string, locationBias?: { lat: number; lng: number; radius?: number }) =>
-    withCachedPlaces(query, (places) => ({ places, source: 'offline-cache' }), () =>
-      apiClient.post(`/maps/search?lang=${lang || 'en'}`, { query, locationBias }).then(r => checkInDev(mapsSearchResultSchema, r.data, 'maps.search'))),
+    withCachedPlaces(query, (places) => ({ places, source: 'offline-cache' }), async () => {
+      // Side by side, so the wait is the slower of the two rather than their sum. Only
+      // the core call may reject: that rejection is what hands withCachedPlaces the
+      // offline path, and a plugin failure must never trigger it.
+      const [core, extra] = await Promise.all([
+        apiClient.post(`/maps/search?lang=${lang || 'en'}`, { query, locationBias }).then(r => checkInDev(mapsSearchResultSchema, r.data, 'maps.search')),
+        pluginSearchPlaces(query, lang, locationBias),
+      ])
+      if (extra.length === 0) return core
+      const from = [...new Set(extra.map(p => String(p.source ?? 'plugin')))].join('+')
+      return { places: [...core.places, ...extra], source: `${core.source}+${from}` }
+    }),
   autocomplete: (input: string, lang?: string, locationBias?: { low: { lat: number; lng: number }; high: { lat: number; lng: number } }, signal?: AbortSignal, sessionToken?: string) =>
     withCachedPlaces(
       input,

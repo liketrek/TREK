@@ -225,6 +225,7 @@ skipped, never fatal):
 | `mapMarkerProvider` | ≤200 markers per provider |
 | `warningProvider` | ≤20 warnings per provider, each message ≤300 chars |
 | `placeDetailProvider` | ≤12 items per provider |
+| `searchProvider` | ≤20 places per provider, 2 s to answer |
 | `photoProvider` | ≤60 photos per page |
 | `calendarSource` | ≤500 events per source per request |
 | `tableContributor` | ≤20 columns / ≤10 actions per entity |

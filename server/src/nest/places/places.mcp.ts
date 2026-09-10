@@ -292,7 +292,7 @@ export class PlacesMcp {
 
   @Tool({
     name: 'search_place',
-    description: 'Search for a real-world place by name or address. Returns results with osm_id (and google_place_id/google_ftid if configured). Use these IDs when calling create_place so the app can display opening hours, ratings, and map links. Pass locationBias whenever the trip has a destination: a bare name like "Central Station" or "Museum of Modern Art" otherwise resolves wherever the provider guesses, which is regularly the wrong continent.',
+    description: 'Search for a real-world place by name or address. Returns results with osm_id (and google_place_id/google_ftid if configured). Use these IDs when calling create_place so the app can display opening hours, ratings, and map links. Pass locationBias whenever the trip has a destination: a bare name like "Central Station" or "Museum of Modern Art" otherwise resolves wherever the provider guesses, which is regularly the wrong continent. Searches the TREK index and OpenStreetMap only: if the instance has a plugin providing its own search index, call search_places_via_plugins as well, and note that ratings can only come from there.',
     inputSchema: {
       query: z.string().min(1).max(500).describe('Place name or address to search for'),
       locationBias: mapsSearchRequestSchema.shape.locationBias.describe('Centre the search on a coordinate: { lat, lng, radius? } with radius in metres (default 50000). Only the Google provider honours it; the OpenStreetMap fallback ignores it'),

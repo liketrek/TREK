@@ -361,6 +361,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:calendar-source': 'Fornecer eventos para o calendário',
   'admin.plugins.perm.hook:place-detail-provider':
     'Contribuir com detalhes extras (avaliações, notas, links) para um local',
+  'admin.plugins.perm.hook:search-provider':
+    'Responder buscas de lugares a partir de um índice próprio, ao lado dos resultados do TREK',
   'admin.plugins.perm.hook:trip-warning-provider': 'Emitir avisos de validação em uma viagem (exibidos no planejador)',
   'admin.plugins.perm.hook:table-contributor':
     'Adicionar colunas e ações às visualizações da viagem (reservas, locais, dias)',
@@ -518,6 +520,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.photos': 'Fornece fotos',
   'admin.plugins.cap.calendar': 'Fornece eventos de calendário',
   'admin.plugins.cap.placeDetails': 'Enriquece locais',
+  'admin.plugins.cap.search': 'Responde buscas',
   'admin.plugins.cap.warnings': 'Sinaliza problemas',
   'admin.plugins.cap.mapLayers': 'Desenha no mapa',
   'admin.plugins.cap.routing': 'Oferece roteamento',

@@ -522,6 +522,8 @@ const admin: TranslationStrings = {
   'admin.plugins.requiresTrek': 'Requereix TREK {version}+',
   'admin.plugins.reviewedOn': 'Verificat el {date}',
   'admin.plugins.perm.hook:map-layer-provider': 'Dibuixar rutes, corredors i zones al mapa del viatge',
+  'admin.plugins.perm.hook:search-provider':
+    "Respondre cerques de llocs des d'un índex propi, al costat dels resultats de TREK",
   'admin.plugins.perm.hook:route-provider':
     'Oferir perfils de ruta amb què el planificador pot calcular els dies (p. ex. rutes per a cotxe elèctric amb parades de recàrrega)',
   'admin.plugins.perm.hook:day-schedule-provider':
@@ -654,6 +656,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.photos': 'Proporciona fotos',
   'admin.plugins.cap.calendar': 'Proporciona esdeveniments de calendari',
   'admin.plugins.cap.placeDetails': 'Enriqueix els llocs',
+  'admin.plugins.cap.search': 'Respon cerques',
   'admin.plugins.cap.warnings': 'Marca problemes',
   'admin.plugins.cap.mapLayers': 'Dibuixa al mapa',
   'admin.plugins.cap.routing': 'Calcula rutes',

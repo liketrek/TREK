@@ -18,6 +18,21 @@ export interface HookMcpToolCall {
   args: unknown;
 }
 
+/**
+ * What a search provider is asked to look for.
+ *
+ * `near` is the same bias the core search uses, and it is what decides which of the
+ * four places called "Hase-dera" the answer is about. Optional, because a search from
+ * a trip with no places yet has nothing to bias toward.
+ */
+export interface HookSearchRequest {
+  query: string;
+  limit: number;
+  /** The caller's language tag, for providers that return localized names. */
+  lang?: string;
+  near?: { lat: number; lng: number };
+}
+
 /** The waypoint request a route provider is asked to solve. */
 export interface HookRouteRequest {
   tripId: number;
@@ -29,7 +44,7 @@ export interface HookRouteRequest {
 /**
  * Every host-to-plugin hook call, in one place.
  *
- * The 15 hooks the consent screen offers used to be invoked straight from the
+ * The 16 hooks the consent screen offers used to be invoked straight from the
  * controllers, with the fn name and the timeout written out at each call site. That
  * made three things impossible to check: that a granted `hook:*` permission actually
  * has a consumer (a dead grant on the consent screen looks exactly like a live one),
@@ -79,6 +94,20 @@ export class PluginHooks {
   @PluginHook('placeDetailProvider', { permission: 'hook:place-detail-provider', fn: 'getDetails', timeoutMs: 5000 })
   placeDetails(pluginId: string, placeId: number, userId: number): Promise<unknown> {
     return this.runtime.invokeHook(pluginId, 'placeDetailProvider', 'getDetails', [placeId], userId, 5000);
+  }
+
+  /**
+   * The shortest leash of any hook here, because a person is waiting on a list.
+   *
+   * The core search and this one run side by side, so the wait is the slower of the
+   * two rather than their sum, and the client stops waiting at two and a half seconds
+   * whatever happens. Two seconds is therefore the whole of what a provider can
+   * usefully spend: past it the list is already drawn and its answer is discarded, so
+   * a longer budget would only hold an IPC call open for nothing.
+   */
+  @PluginHook('searchProvider', { permission: 'hook:search-provider', fn: 'search', timeoutMs: 2000 })
+  searchPlaces(pluginId: string, request: HookSearchRequest, userId: number): Promise<unknown> {
+    return this.runtime.invokeHook(pluginId, 'searchProvider', 'search', [request], userId, 2000);
   }
 
   @PluginHook('warningProvider', { permission: 'hook:trip-warning-provider', fn: 'getWarnings', timeoutMs: 5000 })
