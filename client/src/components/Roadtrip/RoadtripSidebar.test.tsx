@@ -5,6 +5,9 @@ import { TranslationProvider } from '../../i18n'
 import RoadtripSidebar from './RoadtripSidebar'
 import RoadtripModeSwitch from './RoadtripModeSwitch'
 import type { RoadtripDay, RoadtripRoutes, RoadtripStop } from './useRoadtripRoutes'
+import type { DryPoint } from './roadtripModel'
+import type { RefuelSearch } from './useRefuelSearch'
+import type { RefuelCandidate, RefuelOutcome } from './refuelSuggestion'
 import type { RouteSegment } from '../../types'
 
 const wrap = (ui: React.ReactElement) => render(<TranslationProvider>{ui}</TranslationProvider>)
@@ -641,6 +644,376 @@ describe('RoadtripSidebar', () => {
     it('FE-ROADTRIP-SIDEBAR-033: an ordinary day draws no block at all', () => {
       wrap(<RoadtripSidebar routes={routes()} />)
       expect(screen.queryByText(/From day/)).toBeNull()
+    })
+  })
+
+  /**
+   * The band where the fuel actually ends, and the one search offered from it.
+   *
+   * It hangs off the leg rather than off a stop, because those are two different places:
+   * the range warning marks where somebody finds out, and that can be a long way past the
+   * point the tank ran dry. A station offered at the warning is one the car cannot reach.
+   */
+  describe('the leg the tank runs out on', () => {
+    const dry = (over: Partial<DryPoint> = {}): DryPoint & { lat: number; lng: number } => ({
+      legIndex: 0,
+      intoLegKm: 182,
+      drivenMeters: 182000,
+      // The range that was crossed, kept deliberately unlike `intoLegKm`: it is the
+      // traveller's own setting, so a band printing it would read the same figure on
+      // every leg of the day.
+      sinceKm: 600,
+      lat: 52.4,
+      lng: 10.2,
+      ...over,
+    })
+
+    /** Idle unless a case says which part of the search it is standing in. */
+    const search = (over: Partial<RefuelSearch> = {}): RefuelSearch => ({
+      openFor: null,
+      loading: false,
+      outcome: null,
+      results: [],
+      offered: [],
+      ask: vi.fn(),
+      close: vi.fn(),
+      ...over,
+    })
+
+    const pump = (name: string, offRouteKm: number, spareKm: number): RefuelCandidate => ({
+      osm_id: `osm-${name}`,
+      name,
+      lat: 52.4,
+      lng: 10.1,
+      category: 'fuel',
+      poi_type: 'fuel',
+      address: null,
+      website: null,
+      phone: null,
+      opening_hours: null,
+      cuisine: null,
+      source: 'openstreetmap',
+      alongKm: 170,
+      offRouteKm,
+      spareKm,
+    })
+
+    const empties = dry({ legIndex: 1 })
+    // Three stops, so the leg that empties has one it is not on to be absent from.
+    const thirsty = (): RoadtripDay => day({
+      stops: [
+        stop({ assignmentId: 1, name: 'Hamburg' }),
+        stop({ assignmentId: 2, name: 'Hannover' }),
+        stop({ assignmentId: 3, name: 'Kassel' }),
+      ],
+      legs: [leg(), leg()],
+      dryPoints: [empties],
+    })
+
+    it('FE-ROADTRIP-SIDEBAR-035: the band sits on the leg the fuel ends on, and says how far into it', () => {
+      const { container } = wrap(
+        <RoadtripSidebar routes={routes({ days: [thirsty()], totalStops: 3 })} refuel={search()} />,
+      )
+
+      // The second row owns the second leg. Drawn on every row instead, the rail would
+      // offer a fill-up on a stretch the car drives with a full tank.
+      const rows = container.querySelectorAll('li')
+      expect(screen.getAllByText('Tank runs out here')).toHaveLength(1)
+      expect(within(rows[1] as HTMLElement).getByText('Tank runs out here')).toBeInTheDocument()
+      // Distance into the leg, which is where a drive band keeps its figures. The 600 is
+      // the setting that was crossed and belongs to no place on the map.
+      expect(screen.getByText('after 182 km')).toBeInTheDocument()
+      expect(screen.queryByText(/600 km/)).not.toBeInTheDocument()
+    })
+
+    it('FE-ROADTRIP-SIDEBAR-036: the low-fuel lamp is itself the button that goes looking', () => {
+      const onAskRefuel = vi.fn()
+      wrap(
+        <RoadtripSidebar
+          routes={routes({ days: [thirsty()], totalStops: 3 })}
+          refuel={search()}
+          onAskRefuel={onAskRefuel}
+        />,
+      )
+
+      // Not a lamp with a magnifier beside it, which says the same thing twice: the lamp
+      // reports the empty tank and pressing it is what does something about it, so the
+      // lamp has to be inside the button rather than next to one.
+      const ask = screen.getByRole('button', { name: 'Find fuel' })
+      expect(ask.querySelector('svg.lucide-fuel')).toBeInTheDocument()
+      expect(within(ask).queryByRole('button')).toBeNull()
+
+      fireEvent.click(ask)
+      // The dry point travels with the ask: the search is a circle pulled back from that
+      // coordinate, and the day alone does not say where on it to look.
+      expect(onAskRefuel).toHaveBeenCalledWith(1, empties)
+    })
+
+    it('FE-ROADTRIP-SIDEBAR-037: a band inside a borrowed stretch is filed under the card it is drawn on', () => {
+      const onAskRefuel = vi.fn()
+      const overnight = dry({ legIndex: 0 })
+      const card = day({
+        dayNumber: 2,
+        stops: [
+          stop({ assignmentId: 1, name: 'Neuruppin', ownerDayId: 9, ownerIndex: 3 }),
+          stop({ assignmentId: 2, name: 'Wittenberg' }),
+        ],
+        dryPoints: [overnight],
+        spills: [{
+          at: 0,
+          count: 1,
+          fromDayNumber: 1,
+          departure: '22:30',
+          leg: leg(),
+          line: [[53, 10], [52, 11]],
+          fromStop: stop({ assignmentId: 99, name: 'Circle K', ownerDayId: 9, ownerIndex: 2 }),
+        }],
+      })
+      const { unmount } = wrap(
+        <RoadtripSidebar
+          routes={routes({ days: [card] })}
+          refuel={search({ openFor: '1:0', loading: true })}
+          onAskRefuel={onAskRefuel}
+        />,
+      )
+
+      // Everything that WRITES names the day a stop is stored on, day 9 here. This is the
+      // exception and it has to be: the open search is filed under the card day and the
+      // leg, so a band asking as day 9 would have its answers arrive under a key no band
+      // is watching and would never open. That it opened at all is the assertion.
+      expect(screen.getByText(/Looking along the route/)).toBeInTheDocument()
+
+      unmount()
+      wrap(
+        <RoadtripSidebar
+          routes={routes({ days: [card] })}
+          refuel={search()}
+          onAskRefuel={onAskRefuel}
+        />,
+      )
+      fireEvent.click(screen.getByRole('button', { name: 'Find fuel' }))
+      expect(onAskRefuel).toHaveBeenCalledWith(1, overnight)
+    })
+
+    it('FE-ROADTRIP-SIDEBAR-038: while the request is in flight the lamp steps aside for the way out', () => {
+      const close = vi.fn()
+      wrap(
+        <RoadtripSidebar
+          routes={routes({ days: [thirsty()], totalStops: 3 })}
+          refuel={search({ openFor: '1:1', loading: true, close })}
+        />,
+      )
+
+      expect(screen.getByText(/Looking along the route/)).toBeInTheDocument()
+      // Gone, not merely quieter. Every press is a real request against a shared service,
+      // and a lamp still standing there invites a second one nobody asked for.
+      expect(screen.queryByRole('button', { name: 'Find fuel' })).toBeNull()
+
+      fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+      expect(close).toHaveBeenCalled()
+    })
+
+    it('FE-ROADTRIP-SIDEBAR-039: an answer carries the detour and what is left in the tank as two figures', () => {
+      const onAcceptRefuel = vi.fn()
+      const shell = pump('Shell Hannover', 1.4, 48.6)
+      wrap(
+        <RoadtripSidebar
+          routes={routes({ days: [thirsty()], totalStops: 3 })}
+          refuel={search({ openFor: '1:1', outcome: 'found', results: [shell] })}
+          onAcceptRefuel={onAcceptRefuel}
+        />,
+      )
+
+      // Two facts about two different things: the detour is what the stop costs and what
+      // the list is sorted by, the spare is what is left when the car draws level. Joined
+      // into one line with a separator, neither exact lookup finds anything.
+      expect(screen.getByText('1.4 km')).toBeInTheDocument()
+      expect(screen.getByText('49 km')).toBeInTheDocument()
+
+      fireEvent.click(screen.getByRole('button', { name: 'Add Shell Hannover as a fuel stop' }))
+      // With the dry point, because the caller has no other way of knowing which leg the
+      // accepted stop belongs on.
+      expect(onAcceptRefuel).toHaveBeenCalledWith(1, shell, empties)
+    })
+
+    it('FE-ROADTRIP-SIDEBAR-040: a search that came back with nothing says which nothing it was', () => {
+      const answered = (outcome: RefuelOutcome) => (
+        <TranslationProvider>
+          <RoadtripSidebar
+            routes={routes({ days: [thirsty()], totalStops: 3 })}
+            refuel={search({ openFor: '1:1', outcome })}
+          />
+        </TranslationProvider>
+      )
+      const { rerender } = render(answered('none'))
+
+      // Only the first of these is a statement about the road. Telling somebody there is
+      // nothing on a stretch that was never fully checked, or never checked at all, is
+      // worse than saying nothing.
+      expect(screen.getByText(/Nothing found/)).toBeInTheDocument()
+      rerender(answered('incomplete'))
+      expect(screen.getByText(/cut short/)).toBeInTheDocument()
+      rerender(answered('failed'))
+      expect(screen.getByText(/did not answer/)).toBeInTheDocument()
+
+      // And a way to ask again rather than a dead end: the place search is a shared
+      // service that does time out, and no answer with no retry reads as broken.
+      expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Find fuel' })).toBeNull()
+    })
+
+    it('FE-ROADTRIP-SIDEBAR-041: the stop stops repeating what the band already says better', () => {
+      // The warning marks the stop somebody finds out at and counts the whole tank; the
+      // band sits where the fuel ends and offers a way out. Both at once prints the answer
+      // above the problem.
+      const warned = (): RoadtripDay => ({
+        ...thirsty(),
+        driveWarnings: [{ index: 2, code: 'range', sinceKm: 640 }],
+      })
+      const { unmount } = wrap(
+        <RoadtripSidebar routes={routes({ days: [warned()], totalStops: 3 })} refuel={search()} />,
+      )
+      expect(screen.queryByText('640 km')).toBeNull()
+
+      unmount()
+      // With no search to run there is nothing better, so the finding is all there is and
+      // has to stay.
+      wrap(<RoadtripSidebar routes={routes({ days: [warned()], totalStops: 3 })} />)
+      expect(screen.getByText('640 km')).toBeInTheDocument()
+    })
+  })
+
+  /**
+   * Folding a day down to its header.
+   *
+   * The whole header is the control and the hover is the only sign of it: a chevron or a
+   * fold label sitting among the day's own facts reads as a fourth fact about the day
+   * rather than as something to press. Nothing on screen says which way it stands, so the
+   * header has to say it to a screen reader.
+   */
+  describe('a day folded down to its header', () => {
+    it('FE-ROADTRIP-SIDEBAR-042: the header is the control, and it folds by id rather than by number', () => {
+      const onToggleDay = vi.fn()
+      // Id and number deliberately apart. The card is titled by its number and folded by
+      // its id, and on a trip whose days were not created in order those two differ —
+      // mixing them up folds a card the reader did not click.
+      wrap(<RoadtripSidebar routes={routes({ days: [day({ dayId: 42 })] })} onToggleDay={onToggleDay} />)
+
+      const header = screen.getByRole('button', { name: /Day 1/ })
+      expect(header).toHaveAttribute('aria-expanded', 'true')
+
+      fireEvent.click(header)
+      expect(onToggleDay).toHaveBeenCalledWith(42)
+    })
+
+    it('FE-ROADTRIP-SIDEBAR-043: folded, the stops are gone and the header is what is left', () => {
+      // Folded by id, again with a card whose id is not its number: a set read as numbers
+      // would fold the card titled "Day 42" here, or nothing at all.
+      wrap(<RoadtripSidebar
+        routes={routes({ days: [day({ dayId: 42 }), day({ dayId: 2, dayNumber: 2 })], totalStops: 4 })}
+        onToggleDay={vi.fn()}
+        collapsedDayIds={new Set([42])}
+      />)
+
+      const folded = screen.getByRole('button', { name: /Day 1/ })
+      expect(folded).toHaveAttribute('aria-expanded', 'false')
+      // The card keeps its head: a day put away is still one the reader scrolls past, and
+      // its own figures are how it is found again.
+      expect(within(folded).getByText('2 stops')).toBeInTheDocument()
+      expect(screen.getAllByText('Hamburg')[0]).not.toBeVisible()
+      // One card at a time. Folding is per day, and the id is what decides which.
+      expect(screen.getByRole('button', { name: /Day 2/ })).toHaveAttribute('aria-expanded', 'true')
+      expect(screen.getAllByText('Berlin')[1]).toBeVisible()
+    })
+
+    it('FE-ROADTRIP-SIDEBAR-044: the header answers the keys that mean press, and no others', () => {
+      const onToggleDay = vi.fn()
+      wrap(<RoadtripSidebar routes={routes()} onToggleDay={onToggleDay} />)
+      const header = screen.getByRole('button', { name: /Day 1/ })
+
+      // A header wearing a button role gets none of a real button's keyboard behaviour, so
+      // it answers both keys itself. Space has to be swallowed as well as answered, or the
+      // rail scrolls a page down behind the day that was just put away. fireEvent reports
+      // a cancelled event as false.
+      fireEvent.keyDown(header, { key: 'Enter' })
+      expect(fireEvent.keyDown(header, { key: ' ' })).toBe(false)
+      expect(onToggleDay).toHaveBeenCalledTimes(2)
+
+      fireEvent.keyDown(header, { key: 'ArrowDown' })
+      expect(onToggleDay).toHaveBeenCalledTimes(2)
+    })
+
+    it('FE-ROADTRIP-SIDEBAR-045: a rail with nothing to fold offers no control at all', () => {
+      wrap(<RoadtripSidebar routes={routes()} />)
+
+      // A viewer gets a heading. A control that does nothing when pressed is worse than
+      // one that is not there.
+      expect(screen.queryByRole('button', { name: /Day 1/ })).toBeNull()
+      expect(screen.getByRole('heading', { level: 3 })).toBeVisible()
+      expect(screen.getByText('Hamburg')).toBeVisible()
+    })
+  })
+
+  /**
+   * How full one stop fills the tank.
+   *
+   * A property of the stop rather than of the traveller: the motorway rapid charger is
+   * worth 80 % because the last fifth costs as long again, the one at the hotel is worth
+   * all of it. The badge is the only way into that figure anywhere in TREK.
+   */
+  describe('the fill badge on a stop that puts fuel back', () => {
+    const refuelling = (fillPercent?: number | null): RoadtripDay => day({
+      stops: [
+        stop({ assignmentId: 1, name: 'Hamburg' }),
+        stop({ assignmentId: 2, name: 'Aral Autohof', stopType: 'fuel', fillPercent }),
+      ],
+    })
+
+    it('FE-ROADTRIP-SIDEBAR-046: the badge is the way into a figure that is not there yet', () => {
+      const onSelectStop = vi.fn()
+      const onSetStopFill = vi.fn()
+      wrap(<RoadtripSidebar
+        routes={routes({ days: [refuelling()] })}
+        onSelectStop={onSelectStop}
+        onSetStopFill={onSetStopFill}
+      />)
+
+      // The plus stands in the slot the number will occupy: a badge that hid itself until
+      // a figure existed could never be used to make one.
+      fireEvent.click(screen.getByRole('button', { name: '+' }))
+      expect(screen.getByRole('dialog', { name: 'Fills to' })).toBeInTheDocument()
+      // The whole row is a button too. A click that reached it would select the stop and
+      // move the map out from under the panel that just opened.
+      expect(onSelectStop).not.toHaveBeenCalled()
+
+      fireEvent.click(screen.getByRole('button', { name: '80' }))
+      expect(onSetStopFill).toHaveBeenCalledWith(20, 80)
+      expect(screen.queryByRole('dialog')).toBeNull()
+    })
+
+    it('FE-ROADTRIP-SIDEBAR-047: the badge opens from the keyboard and swallows the key', () => {
+      wrap(<RoadtripSidebar routes={routes({ days: [refuelling()] })} onSetStopFill={vi.fn()} />)
+      const badge = screen.getByRole('button', { name: '+' })
+
+      // The same span-with-a-role bargain as the header, one row further in: unanswered,
+      // the only way to the figure is a mouse.
+      fireEvent.keyDown(badge, { key: 'ArrowDown' })
+      expect(screen.queryByRole('dialog')).toBeNull()
+
+      expect(fireEvent.keyDown(badge, { key: 'Enter' })).toBe(false)
+      expect(screen.getByRole('dialog', { name: 'Fills to' })).toBeInTheDocument()
+    })
+
+    it('FE-ROADTRIP-SIDEBAR-048: only a stop that fills up carries the badge, and its own figure reads as one', () => {
+      wrap(<RoadtripSidebar routes={routes({ days: [refuelling(100)] })} onSetStopFill={vi.fn()} />)
+
+      // An explicit 100 is a decision, not an absent figure: on a trip whose default is 80
+      // it says this one goes right up, and folding it into the invitation would leave the
+      // traveller reading 80 on a stop that fills to 100.
+      expect(screen.getAllByRole('button', { name: '100 %' })).toHaveLength(1)
+      // Hamburg has none at all. A place the trip is for fills no tank, so a fill figure
+      // there is a control for a decision nobody makes.
+      expect(screen.queryByText('+')).toBeNull()
     })
   })
 })

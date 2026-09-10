@@ -1,4 +1,4 @@
-// FE-TP-ROAD-001 to FE-TP-ROAD-056
+// FE-TP-ROAD-001 to FE-TP-ROAD-074
 import React from 'react'
 import { renderHook, act, waitFor } from '@testing-library/react'
 import { TranslationProvider } from '../../i18n/TranslationContext'
@@ -15,6 +15,7 @@ import {
   addonsApi, accommodationsApi, authApi, tripsApi, healthApi, airtrailApi, mapsApi,
 } from '../../api/client'
 import { accommodationRepo } from '../../repo/accommodationRepo'
+import { dayColor } from '../../components/Roadtrip/dayColors'
 
 /**
  * The road trip half of the planner hook.
@@ -89,6 +90,7 @@ const rt = vi.hoisted(() => {
     days: [] as Array<Record<string, unknown>>,
     quietDays: [] as unknown[],
     lines: [] as unknown[],
+    lineDays: [] as number[],
     accessLines: [] as unknown[],
     vias: [] as unknown[],
     segments: [] as unknown[],
@@ -271,6 +273,8 @@ beforeEach(() => {
   rt.vias.stale = false
   rt.vias.editable = true
   rt.routes.days = []
+  rt.routes.lines = []
+  rt.routes.lineDays = []
   rt.corridor.day = undefined
   rt.corridor.visible = []
   rt.corridor.widthKm = 5
@@ -1185,6 +1189,349 @@ describe('useTripPlanner road trip: dropping a hit where it belongs', () => {
     const { result } = await renderRoadtrip()
 
     act(() => { result.current.dropPoiOnRoute('node/7', 53.0, 11.5) })
+
+    expect(result.current.stopDraft).toBeNull()
+  })
+})
+
+/** A stop as the rail DRAWS it: a point on a card, naming the day it is STORED on. */
+const drawn = (placeId: number, lat: number, lng: number, ownerDayId: number, ownerIndex: number) => ({
+  placeId, name: `Stop ${placeId}`, lat, lng, ownerDayId, ownerIndex,
+})
+
+/** Four drawn legs: two on the first day, one each on the two after it. */
+const LINES: [number, number][][] = [
+  [[53.55, 9.99], [53.2, 10.7]],
+  [[53.2, 10.7], [52.52, 13.4]],
+  [[52.52, 13.4], [50.1, 12.0]],
+  [[50.1, 12.0], [48.13, 11.58]],
+]
+
+/** Per-day colours on or off, without dropping the defaults the providers read. */
+function setDayColors(on: boolean) {
+  useSettingsStore.setState({ settings: { ...useSettingsStore.getState().settings, roadtrip_day_colors: on } })
+}
+
+describe('useTripPlanner road trip: folding a day off the map', () => {
+  /**
+   * Three cards, and two of the places drawn on two cards each: the stop a day ends on is
+   * the stop the next one sets off from. That overlap is what the second pass below is
+   * about, and a fixture without it would let a one-pass answer through.
+   */
+  const threeCards = () => {
+    seedTrip({
+      days: [buildDay({ id: 5, day_number: 1 }), buildDay({ id: 6, day_number: 2 }), buildDay({ id: 7, day_number: 3 })],
+      places: [
+        buildPlace({ id: 1101, lat: 53.55, lng: 9.99 }),
+        buildPlace({ id: 1102, lat: 52.52, lng: 13.4 }),
+        buildPlace({ id: 1103, lat: 50.1, lng: 12.0 }),
+        buildPlace({ id: 1104, lat: 48.13, lng: 11.58 }),
+      ],
+    })
+    rt.corridor.day = { dayId: 5, dayNumber: 1 }
+    rt.routes.days = [
+      { dayId: 5, dayNumber: 1, stops: [drawn(1101, 53.55, 9.99, 5, 0), drawn(1102, 52.52, 13.4, 5, 1)], geometry: LINES[0] },
+      { dayId: 6, dayNumber: 2, stops: [drawn(1102, 52.52, 13.4, 6, 0), drawn(1103, 50.1, 12.0, 6, 1)], geometry: LINES[2] },
+      { dayId: 7, dayNumber: 3, stops: [drawn(1103, 50.1, 12.0, 7, 0), drawn(1104, 48.13, 11.58, 7, 1)], geometry: LINES[3] },
+    ]
+    rt.routes.lines = LINES
+    rt.routes.lineDays = [1, 1, 2, 3]
+  }
+
+  it('FE-TP-ROAD-060: folding a day folds that one alone, and folding it again brings it back', async () => {
+    // One set for the whole rail, so a header that wrote its own answer over it instead
+    // of editing a copy would fold one card and unfold every other in the same click.
+    threeCards()
+    const { result } = await renderRoadtrip()
+
+    act(() => { result.current.toggleRoadtripDay(6) })
+    act(() => { result.current.toggleRoadtripDay(7) })
+    expect([...result.current.collapsedRoadtripDays]).toEqual([6, 7])
+
+    act(() => { result.current.toggleRoadtripDay(6) })
+    expect([...result.current.collapsedRoadtripDays]).toEqual([7])
+  })
+
+  it('FE-TP-ROAD-061: a folded card takes ITS lines off the map and leaves the rest drawn', async () => {
+    // The fold is keyed by day id and the lines are labelled by day number. They are
+    // different numbers on this trip, as on any trip whose days were not created in
+    // order, so a filter built from the wrong one quietly hides nothing at all.
+    threeCards()
+    const { result } = await renderRoadtrip()
+    expect(result.current.roadtripMapLines).toHaveLength(4)
+
+    act(() => { result.current.toggleRoadtripDay(6) })
+
+    expect(result.current.roadtripMapLines).toEqual([LINES[0], LINES[1], LINES[3]])
+  })
+
+  it('FE-TP-ROAD-062: the colours drop with the lines, so what is left still lines up', async () => {
+    // The map reads the two lists side by side. Leaving a folded day colour in shifts
+    // every colour after it onto the wrong road, which reads as the days having moved.
+    threeCards()
+    const { result } = await renderRoadtrip()
+    // Off is an absent list rather than a list of blues: a trip that never turns this on
+    // is handed nothing and the map paints what it always painted.
+    expect(result.current.roadtripLineColors).toBeUndefined()
+
+    act(() => { setDayColors(true) })
+    act(() => { result.current.toggleRoadtripDay(6) })
+
+    expect(result.current.roadtripLineColors).toEqual([dayColor(1), dayColor(1), dayColor(3)])
+    expect(result.current.roadtripLineColors).toHaveLength(result.current.roadtripMapLines.length)
+  })
+
+  it('FE-TP-ROAD-063: a folded card takes its own stops off the map with it', async () => {
+    threeCards()
+    const { result } = await renderRoadtrip()
+
+    act(() => { result.current.toggleRoadtripDay(5) })
+
+    expect(result.current.roadtripMapPlaces.map(p => p.id)).not.toContain(1101)
+    // The fold and nothing else: the planner own map still holds it, so a filter that
+    // dropped the place for some unrelated reason would show up right here.
+    expect(result.current.mapPlaces.map(p => p.id)).toContain(1101)
+  })
+
+  it('FE-TP-ROAD-064: a stop another card still draws stays, and goes only when that card folds too', async () => {
+    // The second pass is the whole rule. The place a day ends on is the place the next
+    // day sets off from, so folding one card must not rub it off the other.
+    threeCards()
+    const { result } = await renderRoadtrip()
+
+    act(() => { result.current.toggleRoadtripDay(5) })
+    expect(result.current.roadtripMapPlaces.map(p => p.id)).toEqual([1102, 1103, 1104])
+
+    act(() => { result.current.toggleRoadtripDay(6) })
+    expect(result.current.roadtripMapPlaces.map(p => p.id)).toEqual([1103, 1104])
+  })
+})
+
+describe('useTripPlanner road trip: how full one stop fills up', () => {
+  it('FE-TP-ROAD-065: the fill is one field on one place, and handing it back sends null rather than nothing', async () => {
+    // null is not "leave it alone", it is "follow my own setting again" — the only way
+    // back from a figure typed on a single stop. Left out of the payload the update folds
+    // it into "unchanged" and the stop keeps the number for good.
+    seedTrip({ days: [buildDay({ id: 5, day_number: 1 })], assignments: { '5': [stopAt(11, 5, 0)] } })
+    rt.corridor.day = { dayId: 5, dayNumber: 1 }
+    const { result } = await renderRoadtrip()
+
+    await act(async () => { await result.current.setRoadtripStopFill(1011, 80) })
+    expect(actions.updatePlace).toHaveBeenCalledWith(42, 1011, { fill_percent: 80 })
+
+    actions.updatePlace.mockRejectedValue(new Error('read only'))
+    await act(async () => { await result.current.setRoadtripStopFill(1011, null) })
+    expect(actions.updatePlace).toHaveBeenLastCalledWith(42, 1011, { fill_percent: null })
+    expect(toasts.some(t => t.type === 'error' && t.message === 'read only')).toBe(true)
+  })
+})
+
+describe('useTripPlanner road trip: a card that opens with yesterday stop', () => {
+  /**
+   * One card, day 6, whose drive begins with a stop stored on day 5: the night drive
+   * arrived after midnight, so the rail draws that stop here while the server still files
+   * it under the day it set off from.
+   */
+  const spilledCard = () => {
+    seedTrip({ days: [buildDay({ id: 5, day_number: 1 }), buildDay({ id: 6, day_number: 2 })] })
+    rt.corridor.day = { dayId: 6, dayNumber: 2 }
+    rt.routes.days = [{
+      dayId: 6,
+      dayNumber: 2,
+      stops: [drawn(1102, 53.0, 11.5, 5, 1), drawn(1103, 52.52, 13.4, 6, 0)],
+      geometry: [[53.55, 9.99], [53.0, 11.5], [52.8, 12.4], [52.52, 13.4]],
+    }]
+  }
+
+  it('FE-TP-ROAD-066: a via is filed under the day its anchor stop is STORED on, not the card it is drawn on', async () => {
+    // Written with the card own numbers the via matches no stop the next time the day is
+    // routed: the road springs back to where it was and the gesture reads as having done
+    // nothing at all.
+    spilledCard()
+    const { result } = await renderRoadtrip()
+
+    await act(async () => { await result.current.addRoadtripVia(52.8, 12.4) })
+
+    expect(rt.vias.add).toHaveBeenCalledWith(5, 1, 52.8, 12.4)
+  })
+
+  it('FE-TP-ROAD-072: a via dropped on the incoming night drive follows the stop it left from', async () => {
+    // The stretch between the card first drawn point and its first stop is last night
+    // driving: it is drawn here, but it leaves from a stop on the card before this one.
+    // Anchored to this card first stop instead, the via would be filed on the leg AFTER
+    // that stop, and the route would run forward, double back to the point and carry on.
+    //
+    // The rule used to be asked of the insert index, which cannot answer it:
+    // insertIndexForAlong clamps to at least 1 for any card with two stops or more, and
+    // the rail publishes no other kind. The guard read correctly and never ran.
+    spilledCard()
+    rt.routes.days[0].spills = [{
+      at: 0,
+      count: 1,
+      fromDayNumber: 1,
+      // The stop the night drive left from: FIRST on day 5, while the first stop drawn
+      // on this card is the second one, reached after midnight. Different numbers on
+      // purpose, or the two paths through the lookup would answer alike and this case
+      // would pass whichever one ran.
+      fromStop: drawn(1101, 53.55, 9.99, 5, 0),
+    }]
+    const { result } = await renderRoadtrip()
+
+    // Half way along the night stretch, well before the first stop drawn on this card.
+    await act(async () => { await result.current.addRoadtripVia(53.3, 10.7) })
+
+    expect(rt.vias.add).toHaveBeenCalledWith(5, 0, 53.3, 10.7)
+  })
+
+  it('FE-TP-ROAD-073: a point before the first stop of an ordinary card still takes that stop', async () => {
+    // The other half of the same rule, and the reason it is asked of the spill rather
+    // than of the distance alone: a card that received no night drive has nothing before
+    // its first stop but its own first leg, so a point there belongs on that leg.
+    spilledCard()
+    rt.routes.days[0].spills = []
+    const { result } = await renderRoadtrip()
+
+    await act(async () => { await result.current.addRoadtripVia(53.3, 10.7) })
+
+    expect(rt.vias.add).toHaveBeenCalledWith(5, 1, 53.3, 10.7)
+  })
+
+  it('FE-TP-ROAD-067: a drag keeps to the day the via is stored on, wherever that day stops are drawn', async () => {
+    // Not "the card with that id". After a night drive the stops of day 5 are drawn on
+    // card 6, and measuring the drag against card 5 alone leaves it with no anchor to
+    // offer — which is exactly the anchor it needed.
+    spilledCard()
+    const { result } = await renderRoadtrip()
+
+    await act(async () => { await result.current.moveRoadtripVia(5, 9, 52.8, 12.4) })
+    expect(rt.vias.move).toHaveBeenCalledWith(5, 9, 52.8, 12.4, 1)
+
+    // The same rule the other way round: the stop nearest that point belongs to day 5, so
+    // a via of day 6 takes no anchor from it and the pin it already has stands.
+    await act(async () => { await result.current.moveRoadtripVia(6, 9, 52.8, 12.4) })
+    expect(rt.vias.move).toHaveBeenLastCalledWith(6, 9, 52.8, 12.4, undefined)
+  })
+})
+
+describe('useTripPlanner road trip: somewhere to fill up', () => {
+  /**
+   * A day driven straight down the tenth meridian, so a kilometre along the road is a
+   * kilometre anybody can check: a degree of latitude is 111 km and nothing here bends.
+   * Its first two stops are stored on the day before, the night drive having arrived
+   * after midnight, which is what the accepting case turns on.
+   */
+  const drivenCard = () => {
+    seedTrip({ days: [buildDay({ id: 5, day_number: 1 }), buildDay({ id: 6, day_number: 2 })] })
+    rt.corridor.day = { dayId: 6, dayNumber: 2 }
+    rt.routes.days = [{
+      dayId: 6,
+      dayNumber: 2,
+      stops: [drawn(1201, 53, 10, 5, 1), drawn(1202, 52, 10, 5, 2), drawn(1203, 51, 10, 6, 0)],
+      geometry: [[53, 10], [52, 10], [51, 10]],
+      drivingGeometry: [[53, 10], [52, 10], [51, 10]],
+    }]
+  }
+
+  /** Where the tank runs out: 190 km into a 222 km day, on the second leg. */
+  const dry = { legIndex: 1, intoLegKm: 79, drivenMeters: 190_000, sinceKm: 500, lat: 51.29, lng: 10 }
+
+  const pump = (name: string, lat: number) => ({
+    osm_id: `node/${name}`, name, lat, lng: 10, category: 'fuel', poi_type: 'fuel',
+    address: null, website: null, phone: null, opening_hours: null, cuisine: null,
+  })
+
+  it('FE-TP-ROAD-068: the day own stops go with the question, so a pump already on the plan is not offered again', async () => {
+    drivenCard()
+    const pois = vi.spyOn(mapsApi, 'pois').mockResolvedValue({
+      pois: [pump('Rasthof Dammer Berge', 52.5), pump('Schon geplant', 52)],
+      source: 'openstreetmap',
+      truncated: false,
+    } as never)
+    const { result } = await renderRoadtrip()
+
+    // A day the rail draws no drive for has no line to measure along, and asking anyway
+    // spends a request on a question that cannot be answered.
+    act(() => { result.current.askRefuel(999, dry) })
+    expect(pois).not.toHaveBeenCalled()
+
+    await act(async () => { result.current.askRefuel(6, dry) })
+    await waitFor(() => expect(result.current.refuel.outcome).toBe('found'))
+
+    expect(pois).toHaveBeenCalledTimes(1)
+    // The second one stands on the day own middle stop, and both are within range of the
+    // dry point — so only the day stops travelling with the question keep it out.
+    expect(result.current.refuel.results.map(r => r.name)).toEqual(['Rasthof Dammer Berge'])
+    // Which dry point is being answered, so a second warning cannot read the first list.
+    expect(result.current.refuel.openFor).toBe('6:1')
+  })
+
+  it('FE-TP-ROAD-069: while offers are on the table the map frames THEM, not the alternatives under them', async () => {
+    // Somebody is being asked to accept a stop, and a stop off the edge of the map cannot
+    // be judged. Averaging the two frames would have shown neither properly.
+    drivenCard()
+    rt.alt.open = {
+      dayId: 6, index: 0, loading: false, error: false,
+      // Two of them, because one road is not a choice and the picker draws nothing for it.
+      routes: [
+        { coordinates: [[53, 10], [51, 10]], distance: 222_000, duration: 8_400, divergence: { lat: 52, lng: 10 } },
+        { coordinates: [[53, 10], [52.4, 10.6], [51, 10]], distance: 240_000, duration: 9_000, divergence: { lat: 52.4, lng: 10.6 } },
+      ],
+    }
+    vi.spyOn(mapsApi, 'pois').mockResolvedValue({
+      pois: [pump('Rasthof Dammer Berge', 52.5)], source: 'openstreetmap', truncated: false,
+    } as never)
+    const { result } = await renderRoadtrip()
+    expect(result.current.mapFocusPoints).toEqual(result.current.alternativeFocusPoints)
+    expect(result.current.mapFocusPoints.length).toBeGreaterThan(0)
+
+    await act(async () => { result.current.askRefuel(6, dry) })
+    await waitFor(() => expect(result.current.refuel.offered).toHaveLength(1))
+
+    expect(result.current.mapFocusPoints).toEqual([[52.5, 10]])
+  })
+
+  it('FE-TP-ROAD-070: accepting one closes the offers and opens the popup at the stop OWN day and position', async () => {
+    // The index the offer was measured at counts along the card, and this card begins
+    // with two stops stored on the day before. Written with the card numbers the new stop
+    // lands in the wrong day list, at a position that means something else there.
+    drivenCard()
+    vi.spyOn(mapsApi, 'pois').mockResolvedValue({
+      pois: [pump('Rasthof Dammer Berge', 52.5)], source: 'openstreetmap', truncated: false,
+    } as never)
+    const { result } = await renderRoadtrip()
+
+    await act(async () => { result.current.askRefuel(6, dry) })
+    await waitFor(() => expect(result.current.refuel.offered).toHaveLength(1))
+
+    // Dry on the first leg, so the stop goes in front of the one it was measured against:
+    // the card second, which day 5 holds at position 2.
+    act(() => { result.current.acceptRefuel(6, result.current.refuel.offered[0], { ...dry, legIndex: 0 }) })
+
+    expect(result.current.stopDraft).toMatchObject({ dayId: 5, position: 2, dayNumber: 2 })
+    expect(result.current.refuel.openFor).toBeNull()
+  })
+
+  it('FE-TP-ROAD-074: a reader changing a stop from the rail writes nothing at all', async () => {
+    // The two one-field writes the rail offers used to go straight to the API while their
+    // neighbour setRoadtripStay checked first. The server refused them, so nothing was
+    // ever saved, but the reader got an error toast for touching a control that should
+    // not have acted — and the rail redrew off a store the write never reached.
+    asReader('place_edit')
+    drivenCard()
+    const { result } = await renderRoadtrip()
+
+    await act(async () => { await result.current.setRoadtripStopKind(1102, 'fuel') })
+    await act(async () => { await result.current.setRoadtripStopFill(1102, 80) })
+
+    expect(actions.updatePlace).not.toHaveBeenCalled()
+  })
+
+  it('FE-TP-ROAD-071: a reader is not handed the stop to accept', async () => {
+    asReader('day_edit')
+    drivenCard()
+    const { result } = await renderRoadtrip()
+
+    act(() => { result.current.acceptRefuel(6, pump('Rasthof Dammer Berge', 52.5) as never, dry) })
 
     expect(result.current.stopDraft).toBeNull()
   })

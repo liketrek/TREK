@@ -957,12 +957,13 @@ export function useTripPlanner() {
    * field on one place, and the rail redraws itself off the store the moment it lands.
    */
   const setRoadtripStopKind = useCallback(async (placeId: number, kind: RoadtripStopType | null) => {
+    if (!can('place_edit', trip)) return
     try {
       await tripActions.updatePlace(tripId, placeId, { stop_type: kind })
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : t('common.unknownError'))
     }
-  }, [tripId, tripActions, toast, t])
+  }, [tripId, tripActions, toast, t, can, trip])
 
   /**
    * How full THIS stop fills the tank, from the road trip rail.
@@ -973,12 +974,13 @@ export function useTripPlanner() {
    * until somebody has an opinion about one.
    */
   const setRoadtripStopFill = useCallback(async (placeId: number, percent: number | null) => {
+    if (!can('place_edit', trip)) return
     try {
       await tripActions.updatePlace(tripId, placeId, { fill_percent: percent })
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : t('common.unknownError'))
     }
-  }, [tripId, tripActions, toast, t])
+  }, [tripId, tripActions, toast, t, can, trip])
 
   /**
    * Moves a stop within its day, from the road trip rail.
@@ -1286,20 +1288,25 @@ export function useTripPlanner() {
       if (best && hit.offRouteKm >= best.offRouteKm) continue
       // Which stop the via follows: the last one the car passes before reaching it.
       const stopsAlong = day.stops.map(stop => projectOntoRoute({ lat: stop.lat, lng: stop.lng }, spine)?.alongKm ?? 0)
-      const before = insertIndexForAlong(stopsAlong, hit.alongKm) - 1
       // Before the card's first stop means the incoming night drive, which is drawn here
       // but leaves from a stop on the card BEFORE this one (`nightSpill.ts`). Anchoring
       // it to this card's first stop would file the via on the leg AFTER that stop, and
       // the route would run forward, double back to the point, and carry on.
-      if (before < 0) {
-        const from = day.spills?.find(sp => sp.at === 0)?.fromStop
-        if (!from) continue
-        const owner = from.ownerDayId ?? day.dayId
+      //
+      // Asked of the distance rather than of the index, because the index cannot answer
+      // it: `insertIndexForAlong` clamps to at least 1 for any list of two or more, and
+      // the rail only ever publishes cards with two stops or more. Written against the
+      // index this read as a guard and behaved as dead code, so a via dropped on the
+      // night stretch went to the first drawn stop after all, which is the exact failure
+      // the paragraph above describes.
+      const spilledIn = day.spills?.find(sp => sp.at === 0)?.fromStop
+      if (spilledIn && hit.alongKm < (stopsAlong[0] ?? 0)) {
+        const owner = spilledIn.ownerDayId ?? day.dayId
         if (onlyDayId !== undefined && owner !== onlyDayId) continue
-        best = { dayId: owner, afterIndex: from.ownerIndex ?? 0, offRouteKm: hit.offRouteKm }
+        best = { dayId: owner, afterIndex: spilledIn.ownerIndex ?? 0, offRouteKm: hit.offRouteKm }
         continue
       }
-      const at = before
+      const at = insertIndexForAlong(stopsAlong, hit.alongKm) - 1
       // Named by the day the anchor stop is STORED on and its position there, not by the
       // card and the position within it. A card is a date and can hold stops from the day
       // before (`nightSpill.ts`), so those two numbers differ on any day that received a
