@@ -1352,4 +1352,86 @@ describe('SharedTripPage', () => {
       await waitFor(() => expect(screen.getByText(/Airport Parking/)).toBeInTheDocument());
     });
   });
+
+  describe('FE-PAGE-SHARED-042: richer public place and booking details', () => {
+    const day = { id: 7, trip_id: 1, day_number: 1, date: '2026-07-02', title: 'Day One' };
+    const place = {
+      id: 201,
+      name: 'Colosseum',
+      lat: 41.8902,
+      lng: 12.4922,
+      address: 'Piazza del Colosseo, Rome',
+      description: 'Ancient amphitheatre',
+      notes: 'Use the east entrance',
+      duration_minutes: 90,
+      place_time: '09:00',
+      end_time: '10:30',
+      website: 'https://colosseo.it/',
+      phone: '+39 06 3996 7700',
+      category_id: null,
+      image_url: null,
+    };
+
+    it('renders separate place context, assignment notes, duration and safe contact links', async () => {
+      await open('rich-place-token', payload({
+        days: [day],
+        places: [place],
+        assignments: {
+          '7': [{ id: 301, day_id: 7, place_id: 201, order_index: 0, notes: 'Arrive before opening', place }],
+        },
+      }));
+
+      fireEvent.click(screen.getByText('Day One'));
+
+      await waitFor(() => expect(screen.getByText('Piazza del Colosseo, Rome')).toBeInTheDocument());
+      expect(screen.getByText('Ancient amphitheatre')).toBeInTheDocument();
+      expect(screen.getByText('Arrive before opening')).toBeInTheDocument();
+      expect(screen.getByText('Use the east entrance')).toBeInTheDocument();
+      expect(screen.getByText(/1 hr.*30 min/)).toBeInTheDocument();
+      expect(screen.getByText(/09:00 – 10:30/)).toBeInTheDocument();
+
+      const maps = screen.getByRole('link', { name: /google maps/i });
+      expect(maps).toHaveAttribute('href', expect.stringContaining('google.com/maps/search'));
+      expect(maps).toHaveAttribute('target', '_blank');
+      expect(maps).toHaveAttribute('rel', 'noopener noreferrer');
+
+      const website = screen.getByRole('link', { name: /website/i });
+      expect(website).toHaveAttribute('href', 'https://colosseo.it/');
+      expect(website).toHaveAttribute('target', '_blank');
+      expect(website).toHaveAttribute('rel', 'noopener noreferrer');
+      expect(screen.getByRole('link', { name: '+39 06 3996 7700' })).toHaveAttribute('href', 'tel:+390639967700');
+    });
+
+    it('renders reservation notes and only links an HTTP(S) booking URL', async () => {
+      await open('rich-booking-token', payload({
+        permissions: { share_bookings: true, share_packing: false, share_budget: false, share_collab: false },
+        reservations: [
+          { id: 1, title: 'Museum entry', type: 'ticket', status: 'confirmed', notes: 'Use gate B', url: 'https://tickets.example.com/booking/123' },
+          { id: 2, title: 'Unsafe booking', type: 'ticket', status: 'pending', notes: 'Text only', url: 'javascript:alert(1)' },
+        ],
+      }));
+
+      fireEvent.click(screen.getByRole('button', { name: /bookings/i }));
+      await waitFor(() => expect(screen.getByText('Use gate B')).toBeInTheDocument());
+      expect(screen.getByText('Text only')).toBeInTheDocument();
+      const booking = document.querySelector('a[href="https://tickets.example.com/booking/123"]');
+      expect(booking).toBeInTheDocument();
+      expect(booking).toHaveAttribute('target', '_blank');
+      expect(booking).toHaveAttribute('rel', 'noopener noreferrer');
+      expect(document.querySelector('a[href^="javascript:"]')).toBeNull();
+    });
+
+    it('does not link a non-HTTP(S) place website', async () => {
+      const unsafePlace = { ...place, website: 'data:text/html,unsafe' };
+      await open('unsafe-place-token', payload({
+        days: [day],
+        places: [unsafePlace],
+        assignments: { '7': [{ id: 301, day_id: 7, place_id: 201, order_index: 0, place: unsafePlace }] },
+      }));
+
+      fireEvent.click(screen.getByText('Day One'));
+      await waitFor(() => expect(screen.getByText('Ancient amphitheatre')).toBeInTheDocument());
+      expect(document.querySelector('a[href^="data:"]')).toBeNull();
+    });
+  });
 });

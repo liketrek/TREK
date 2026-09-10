@@ -13,6 +13,61 @@ type Trip = TripAccess;
 
 const PLACE_PHOTO_PROXY_PREFIX = '/api/maps/place-photo/';
 
+const PUBLIC_RESERVATION_METADATA_KEYS = new Set([
+  'airline',
+  'arrival_airport',
+  'departure_airport',
+  'flight_number',
+  'platform',
+  'seat',
+  'train_number',
+]);
+const PUBLIC_RESERVATION_LEG_KEYS = new Set([
+  'airline',
+  'arr_day_id',
+  'arr_time',
+  'dep_day_id',
+  'dep_time',
+  'flight_number',
+  'from',
+  'platform',
+  'seat',
+  'to',
+  'train_number',
+]);
+
+function sanitizePublicReservationMetadata(raw: unknown): unknown {
+  const wasString = typeof raw === 'string';
+  let parsed: unknown = raw;
+  if (wasString) {
+    try {
+      parsed = JSON.parse(raw);
+      if (typeof parsed === 'string') parsed = JSON.parse(parsed);
+    } catch {
+      return '{}';
+    }
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return wasString ? '{}' : {};
+
+  const source = parsed as Record<string, unknown>;
+  const sanitized: Record<string, unknown> = {};
+  for (const key of PUBLIC_RESERVATION_METADATA_KEYS) {
+    const value = source[key];
+    if (value == null || ['string', 'number', 'boolean'].includes(typeof value)) sanitized[key] = value;
+  }
+  if (Array.isArray(source.legs)) {
+    sanitized.legs = source.legs
+      .filter((leg): leg is Record<string, unknown> => Boolean(leg) && typeof leg === 'object' && !Array.isArray(leg))
+      .map((leg) => Object.fromEntries(
+        Object.entries(leg).filter(([key, value]) =>
+          PUBLIC_RESERVATION_LEG_KEYS.has(key)
+          && (value == null || ['string', 'number', 'boolean'].includes(typeof value)),
+        ),
+      ));
+  }
+  return wasString ? JSON.stringify(sanitized) : sanitized;
+}
+
 /**
  * Place photo proxy URLs (`/api/maps/place-photo/<id>/bytes`) are served by the
  * JWT-guarded MapsController, so they 401 for an unauthenticated shared-trip
@@ -181,6 +236,7 @@ export class ShareService {
             COALESCE(da.assignment_time, p.place_time) as place_time,
             COALESCE(da.assignment_end_time, p.end_time) as end_time,
             p.duration_minutes, p.notes as place_notes, p.image_url, p.transport_mode,
+            p.website, p.phone,
             c.name as category_name, c.color as category_color, c.icon as category_icon
           FROM day_assignments da
           JOIN places p ON da.place_id = p.id
@@ -201,6 +257,8 @@ export class ShareService {
               id: a.place_id, name: a.place_name, description: a.place_description,
               lat: a.lat, lng: a.lng, address: a.address, category_id: a.category_id,
               price: a.price, place_time: a.place_time, end_time: a.end_time,
+              duration_minutes: a.duration_minutes, notes: a.place_notes,
+              website: a.website, phone: a.phone,
               image_url: rewritePlacePhotoUrl(a.image_url, token), transport_mode: a.transport_mode,
               category: a.category_id ? { id: a.category_id, name: a.category_name, color: a.category_color, icon: a.category_icon } : null,
               tags: tagsByPlace[a.place_id] ?? [],
@@ -245,13 +303,23 @@ export class ShareService {
       // The alias is not cosmetic: the visibility predicate qualifies its column,
       // and this query had no alias to qualify against.
       reservations = this.dbs.all<any>(
-        `SELECT r.* FROM reservations r
+        `SELECT r.id, r.trip_id, r.day_id, r.end_day_id, r.place_id, r.assignment_id,
+                r.title, r.accommodation_id, r.reservation_time, r.reservation_end_time,
+                r.location, r.notes, r.status, r.type, r.metadata, r.needs_review,
+                r.url, r.created_at
+         FROM reservations r
          WHERE r.trip_id = ? AND ${publicReservationSql('r')}
          ORDER BY r.reservation_time ASC`, tripId)
-        .map((r) => ({ ...r, day_positions: posMap.get(r.id) ?? null }));
+        .map((reservation) => ({
+          ...reservation,
+          metadata: sanitizePublicReservationMetadata(reservation.metadata),
+          day_positions: posMap.get(reservation.id) ?? null,
+        }));
 
       accommodations = this.dbs.all(`
-        SELECT a.*, p.name as place_name, p.address as place_address, p.lat as place_lat, p.lng as place_lng
+        SELECT a.id, a.trip_id, a.place_id, a.start_day_id, a.end_day_id,
+               a.check_in, a.check_in_end, a.check_out, a.notes, a.created_at,
+               p.name as place_name, p.address as place_address, p.lat as place_lat, p.lng as place_lng
         FROM day_accommodations a JOIN places p ON a.place_id = p.id
         WHERE a.trip_id = ? AND ${publicStaySql('a')}
       `, tripId);

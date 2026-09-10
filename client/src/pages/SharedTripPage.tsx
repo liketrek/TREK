@@ -3,12 +3,15 @@ import {
   Bus,
   Car,
   Clock,
+  ExternalLink,
   FileText,
+  Globe,
   Hotel,
   Luggage,
   Map,
   MapPin,
   MessageCircle,
+  Phone,
   Plane,
   Ship,
   Ticket,
@@ -18,6 +21,7 @@ import {
 import { createElement, useEffect, useRef } from 'react';
 import { renderIconMarkup } from '../utils/iconMarkup';
 import { MapContainer, Marker, Polyline, TileLayer, Tooltip, useMap } from 'react-leaflet';
+import { getGoogleMapsUrlForPlace } from '../components/Planner/placeGoogleMaps';
 import { getCategoryIcon } from '../components/shared/categoryIcons';
 import PublicLanguagePicker from '../components/shared/PublicLanguagePicker';
 import { OFM_POSITRON, DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM, MAP_MAX_ZOOM, attributionForTile } from '../constants/mapDefaults';
@@ -31,9 +35,32 @@ import { getFlightLegs, getTrainLegs } from '../utils/flightLegs';
 import { splitReservationDateTime } from '../utils/formatters';
 import { computeMapViewport, TILE_SIZE_RASTER } from '../utils/mapViewport';
 import { resolveBasemap } from '../utils/tileUrl';
+import { safeHttpUrl } from '../utils/safeUrl';
 import { useSharedTrip } from './sharedTrip/useSharedTrip';
 
 const TRANSPORT_ICONS = { flight: Plane, train: Train, bus: Bus, car: Car, cruise: Ship };
+
+function formatDuration(minutes: unknown, locale: string): string | null {
+  const total = Math.floor(Number(minutes));
+  if (!Number.isFinite(total) || total <= 0) return null;
+  const hours = Math.floor(total / 60);
+  const mins = total % 60;
+  const formatUnit = (value: number, unit: 'hour' | 'minute') => new Intl.NumberFormat(locale, {
+    style: 'unit', unit, unitDisplay: 'short',
+  }).format(value);
+  if (hours && mins) return `${formatUnit(hours, 'hour')} ${formatUnit(mins, 'minute')}`;
+  if (hours) return formatUnit(hours, 'hour');
+  return formatUnit(mins, 'minute');
+}
+
+function visiblePlaceNotes(value: unknown): string {
+  if (typeof value !== 'string') return '';
+  return value
+    .split('\n')
+    .filter(line => !line.trim().startsWith('Google Maps:'))
+    .join('\n')
+    .trim();
+}
 
 // Injected into Leaflet's marker HTML, where CSS variables cannot reach - the same
 // reason MapView.tsx is exempt from theme:lint outright.
@@ -733,14 +760,21 @@ export default function SharedTripPage() {
                           const place = item.data.place;
                           if (!place) return null;
                           const cat = categories?.find((c: any) => c.id === place.category_id);
+                          const mapsUrl = getGoogleMapsUrlForPlace(place);
+                          const websiteUrl = safeHttpUrl(place.website);
+                          const phoneNumber = typeof place.phone === 'string' ? place.phone.trim() : '';
+                          const phoneTarget = phoneNumber.replace(/[^+\d]/g, '');
+                          const phoneHref = /\d/.test(phoneTarget) ? `tel:${phoneTarget}` : null;
+                          const duration = formatDuration(place.duration_minutes, locale);
+                          const placeNotes = visiblePlaceNotes(place.notes);
                           return (
                             <div
                               key={`p-${item.data.id}`}
                               style={{
                                 display: 'flex',
-                                alignItems: 'center',
+                                alignItems: 'flex-start',
                                 gap: 10,
-                                padding: '6px 8px',
+                                padding: '9px 8px',
                                 borderRadius: 6,
                               }}
                             >
@@ -767,42 +801,60 @@ export default function SharedTripPage() {
                                 )}
                               </div>
                               <div style={{ flex: 1, minWidth: 0 }}>
-                                <div
-                                  className="text-[#111827]"
-                                  style={{ fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', fontWeight: 500 }}
-                                >
+                                <div className="text-body font-semibold text-content">
                                   {place.name}
                                 </div>
-                                {(place.address || place.description) && (
-                                  <div
-                                    className="text-[#9ca3af]"
-                                    style={{
-                                      fontSize: 'calc(10px * var(--fs-scale-caption, 1))',
-                                      overflow: 'hidden',
-                                      textOverflow: 'ellipsis',
-                                      whiteSpace: 'nowrap',
-                                    }}
-                                  >
-                                    {place.address || place.description}
+                                {place.address && (
+                                  <div className="mt-0.5 text-caption text-content-muted">
+                                    {place.address}
+                                  </div>
+                                )}
+                                {place.description && (
+                                  <div className="mt-1 whitespace-pre-wrap text-caption text-content-muted">
+                                    {place.description}
+                                  </div>
+                                )}
+                                {item.data.notes && (
+                                  <div className="mt-1.5 whitespace-pre-wrap text-caption text-content-muted">
+                                    {item.data.notes}
+                                  </div>
+                                )}
+                                {placeNotes && (
+                                  <div className="mt-1 whitespace-pre-wrap text-caption text-content-muted">
+                                    {placeNotes}
+                                  </div>
+                                )}
+                                {(place.place_time || duration) && (
+                                  <div className="mt-1.5 flex flex-wrap items-center gap-2 text-caption text-content-muted">
+                                    {place.place_time && (
+                                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                                        <Clock size={9} />
+                                        {place.place_time}{place.end_time ? ` – ${place.end_time}` : ''}
+                                      </span>
+                                    )}
+                                    {duration && <span>{duration}</span>}
+                                  </div>
+                                )}
+                                {(mapsUrl || websiteUrl || phoneHref) && (
+                                  <div className="mt-2 flex flex-wrap gap-2.5 text-caption">
+                                    {mapsUrl && (
+                                      <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="text-accent" style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                                        <ExternalLink size={10} /> {t('inspector.google')}
+                                      </a>
+                                    )}
+                                    {websiteUrl && (
+                                      <a href={websiteUrl} target="_blank" rel="noopener noreferrer" className="text-accent" style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                                        <Globe size={10} /> {t('inspector.website')}
+                                      </a>
+                                    )}
+                                    {phoneHref && (
+                                      <a href={phoneHref} className="text-accent" style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                                        <Phone size={10} /> {phoneNumber}
+                                      </a>
+                                    )}
                                   </div>
                                 )}
                               </div>
-                              {place.place_time && (
-                                <span
-                                  className="text-[#6b7280]"
-                                  style={{
-                                    fontSize: 'calc(10px * var(--fs-scale-caption, 1))',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 3,
-                                    flexShrink: 0,
-                                  }}
-                                >
-                                  <Clock size={9} />
-                                  {place.place_time}
-                                  {place.end_time ? ` – ${place.end_time}` : ''}
-                                </span>
-                              )}
                             </div>
                           );
                         })}
@@ -830,6 +882,7 @@ export default function SharedTripPage() {
                     timeZone: 'UTC',
                   })
                 : '';
+              const bookingUrl = safeHttpUrl(r.url);
               return (
                 <div
                   key={r.id}
@@ -900,6 +953,16 @@ export default function SharedTripPage() {
                               </span>
                             )}
                     </div>
+                    {r.notes && (
+                      <div className="mt-1.5 whitespace-pre-wrap text-caption text-content-muted">
+                        {r.notes}
+                      </div>
+                    )}
+                    {bookingUrl && (
+                      <a href={bookingUrl} target="_blank" rel="noopener noreferrer" className="mt-1.5 inline-flex items-center gap-1 text-caption text-accent">
+                        <ExternalLink size={10} /> {t('reservations.urlLabel')}
+                      </a>
+                    )}
                   </div>
                   <span
                     className={

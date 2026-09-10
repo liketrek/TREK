@@ -219,6 +219,33 @@ describe('Shared trip access', () => {
     expect(res.body.budget).toHaveLength(0);
   });
 
+  it('SHARE-031 — withholds all reservation details when share_bookings=false', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id);
+    const place = createPlace(testDb, trip.id);
+    testDb.prepare(`
+      INSERT INTO reservations (trip_id, day_id, title, notes, url, confirmation_number, status, type)
+      VALUES (?, ?, 'Private booking', 'Private reservation note', 'https://private.example.com', 'PRIVATE-CODE', 'confirmed', 'other')
+    `).run(trip.id, day.id);
+    testDb.prepare(`
+      INSERT INTO day_accommodations (trip_id, place_id, start_day_id, end_day_id, confirmation, notes)
+      VALUES (?, ?, ?, ?, 'PRIVATE-STAY-CODE', 'Private stay note')
+    `).run(trip.id, place.id, day.id, day.id);
+
+    const create = await request(app)
+      .post(`/api/trips/${trip.id}/share-link`)
+      .set('Cookie', authCookie(user.id))
+      .send({ share_bookings: false });
+    const res = await request(app).get(`/api/shared/${create.body.token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.reservations).toEqual([]);
+    expect(res.body.accommodations).toEqual([]);
+    expect(JSON.stringify(res.body)).not.toContain('Private reservation note');
+    expect(JSON.stringify(res.body)).not.toContain('Private stay note');
+  });
+
   // Regression: a co-member's private packing item (#858) must never reach a public share.
   it('SHARE-026 — hides private packing items from the public payload', async () => {
     const { user } = createUser(testDb);
@@ -244,6 +271,11 @@ describe('Shared trip access', () => {
     const trip = createTrip(testDb, user.id, { title: 'Secret Route' });
     const day = createDay(testDb, trip.id, { date: '2025-06-01' });
     const place = createPlace(testDb, trip.id, { name: 'Safehouse', lat: 12.3456, lng: 65.4321 });
+    testDb.prepare(`
+      UPDATE places SET duration_minutes = 75, notes = 'Private place note',
+        website = 'https://private.example.com', phone = '+1 212 555 0199'
+      WHERE id = ?
+    `).run(place.id);
     createDayAssignment(testDb, day.id, place.id);
     createDayNote(testDb, day.id, trip.id, { text: 'Do not share' });
 
@@ -264,6 +296,8 @@ describe('Shared trip access', () => {
     // …and the coordinates never appear anywhere in the response.
     expect(JSON.stringify(res.body)).not.toContain('12.3456');
     expect(JSON.stringify(res.body)).not.toContain('65.4321');
+    expect(JSON.stringify(res.body)).not.toContain('Private place note');
+    expect(JSON.stringify(res.body)).not.toContain('https://private.example.com');
   });
 
   it('SHARE-008 — GET /shared/:invalid-token returns 404', async () => {
@@ -378,6 +412,73 @@ describe('Shared trip — day assignments and notes', () => {
     expect(Array.isArray(dayNotes)).toBe(true);
     expect(dayNotes).toHaveLength(1);
     expect(dayNotes[0].text).toBe('Meet at the station');
+  });
+
+  it('SHARE-030 — exposes richer itinerary place details but no confirmation numbers', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Detailed Rome Trip' });
+    const day = createDay(testDb, trip.id, { date: '2025-07-01' });
+    const place = createPlace(testDb, trip.id, { name: 'Colosseum', description: 'Ancient amphitheatre' });
+    testDb.prepare(`
+      UPDATE places
+      SET address = ?, duration_minutes = ?, notes = ?, website = ?, phone = ?
+      WHERE id = ?
+    `).run('Piazza del Colosseo, Rome', 90, 'Use the east entrance', 'https://colosseo.it/', '+39 06 3996 7700', place.id);
+    const assignment = createDayAssignment(testDb, day.id, place.id, { notes: 'Arrive before opening' });
+    testDb.prepare(`
+      INSERT INTO reservations
+        (trip_id, day_id, assignment_id, title, notes, url, metadata, confirmation_number, status, type)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'confirmed', 'ticket')
+    `).run(
+      trip.id,
+      day.id,
+      assignment.id,
+      'Colosseum entry',
+      'Use gate B',
+      'https://tickets.example.com/booking/123',
+      JSON.stringify({
+        airline: 'Public Air',
+        passenger_name: 'Private Traveler',
+        pnr: 'PRIVATE-PNR',
+        legs: [{ from: 'FCO', to: 'JFK', flight_number: 'PA123', confirmation_number: 'PRIVATE-LEG-CODE' }],
+      }),
+      'PRIVATE-CODE-123',
+    );
+    testDb.prepare(`
+      INSERT INTO day_accommodations
+        (trip_id, place_id, start_day_id, end_day_id, confirmation, notes)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(trip.id, place.id, day.id, day.id, 'PRIVATE-STAY-CODE', 'Check in after 15:00');
+
+    const { body: { token } } = await request(app)
+      .post(`/api/trips/${trip.id}/share-link`)
+      .set('Cookie', authCookie(user.id))
+      .send({ share_map: true, share_bookings: true });
+
+    const res = await request(app).get(`/api/shared/${token}`);
+    expect(res.status).toBe(200);
+    const sharedAssignment = res.body.assignments[day.id][0];
+    expect(sharedAssignment.notes).toBe('Arrive before opening');
+    expect(sharedAssignment.place).toMatchObject({
+      address: 'Piazza del Colosseo, Rome',
+      description: 'Ancient amphitheatre',
+      duration_minutes: 90,
+      notes: 'Use the east entrance',
+      website: 'https://colosseo.it/',
+      phone: '+39 06 3996 7700',
+    });
+    expect(res.body.reservations[0]).toMatchObject({
+      title: 'Colosseum entry',
+      notes: 'Use gate B',
+      url: 'https://tickets.example.com/booking/123',
+    });
+    expect(res.body.reservations[0]).not.toHaveProperty('confirmation_number');
+    expect(JSON.parse(res.body.reservations[0].metadata)).toEqual({
+      airline: 'Public Air',
+      legs: [{ from: 'FCO', to: 'JFK', flight_number: 'PA123' }],
+    });
+    expect(res.body.accommodations[0]).toMatchObject({ notes: 'Check in after 15:00' });
+    expect(res.body.accommodations[0]).not.toHaveProperty('confirmation');
   });
 
   it('SHARE-012 — share_collab=true includes collab messages in response', async () => {
