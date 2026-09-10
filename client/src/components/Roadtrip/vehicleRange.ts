@@ -46,12 +46,25 @@ function positive(value: number | null | undefined): number | null {
  * Null rather than a guess whenever a piece is missing: half a specification is not a
  * range, and a made-up figure here becomes a fuel warning that fires at the wrong place.
  */
+/**
+ * A rounded range that came out at nothing is a typo, not a car.
+ *
+ * A consumption typed as 500 rather than 5.0 rounds to a range of zero, and zero is a
+ * number: `effectiveRangeKm` would take it as the answer and throw away the range the
+ * traveller had typed by hand right next to it. What reached the rail was "no range at
+ * all", so every warning went quiet, with nothing on screen to say which field did it.
+ * Reported as nothing instead, so the typed figure gets its turn.
+ */
+function atLeastAKilometre(km: number): number | null {
+  return km >= 1 ? km : null
+}
+
 export function rangeFromSpec(vehicle: VehicleKind | null | undefined, spec: VehicleSpec): number | null {
   if (vehicle === 'combustion') {
     const tank = positive(spec.tankLitres)
     const per100 = positive(spec.litresPer100)
     if (!tank || !per100) return null
-    return Math.round((tank / per100) * 100)
+    return atLeastAKilometre(Math.round((tank / per100) * 100))
   }
 
   if (vehicle === 'electric') {
@@ -63,7 +76,7 @@ export function rangeFromSpec(vehicle: VehicleKind | null | undefined, spec: Veh
     // the first metre of the trip.
     const lost = Math.min(90, Math.max(0, positive(spec.degradationPercent) ?? 0))
     const usable = battery * (1 - lost / 100)
-    return Math.round((usable / per100) * 100)
+    return atLeastAKilometre(Math.round((usable / per100) * 100))
   }
 
   return null

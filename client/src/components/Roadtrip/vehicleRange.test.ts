@@ -105,6 +105,22 @@ describe('unit round trip', () => {
     expect(showSpec('batteryKwh', 58, true)).toBe(58)
   })
 
+  it('FE-ROADTRIP-VEHRANGE-016: a consumption typed a hundred times too high does not silence the typed range', () => {
+    // A consumption of 500 rather than 5.0 makes the parts round to nothing. Zero used
+    // to count as an answer, so the `??` in effectiveRangeKm never reached the 500 km
+    // the traveller had typed by hand, and every range warning went quiet with nothing
+    // on screen to say which field did it.
+    expect(rangeFromSpec('combustion', { tankLitres: 1, litresPer100: 500 })).toBeNull()
+    expect(effectiveRangeKm('combustion', { tankLitres: 1, litresPer100: 500 }, 500)).toBe(500)
+
+    // Same shape on the other kind of car, where a decimal point is just as easy to lose.
+    expect(rangeFromSpec('electric', { batteryKwh: 0.5, kwhPer100: 200 })).toBeNull()
+    expect(effectiveRangeKm('electric', { batteryKwh: 0.5, kwhPer100: 200 }, 420)).toBe(420)
+
+    // One kilometre is still a figure, so the cut is below it and not at some round guess.
+    expect(rangeFromSpec('combustion', { tankLitres: 1, litresPer100: 100 })).toBe(1)
+  })
+
   it('FE-ROADTRIP-VEHRANGE-015: an empty field stays empty rather than becoming a zero', () => {
     expect(showSpec('tankLitres', undefined, false)).toBeUndefined()
     expect(showSpec('tankLitres', 0, true)).toBeUndefined()
