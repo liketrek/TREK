@@ -252,7 +252,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
     selectedDayId, isLoading, tripActions, can, canUploadFiles,
     pushUndo, undo, canUndo, lastActionLabel, handleUndo,
     enabledAddons, collabFeatures, tripAccommodations, setTripAccommodations,
-    roadtripMode, toggleRoadtripMode, roadtripActive, roadtripRoutes, roadtripCorridor,
+    roadtripMode, toggleRoadtripMode, roadtripActive, roadtripRoutes, roadtripLineColors, roadtripMapLines, roadtripMapPlaces, collapsedRoadtripDays, toggleRoadtripDay, roadtripCorridor,
     followTrack, roadtripViaCounts,
     allowedFileTypes, tripMembers, setTripMembers, refreshMembers, loadAccommodations,
     TRANSPORT_TYPES, TRIP_TABS, activeTab, setActiveTab, handleTabChange,
@@ -403,9 +403,10 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
           <div style={{ position: 'absolute', inset: 0 }}>
             <MapView
               tripId={tripId}
-              places={mapPlaces}
+              places={roadtripActive ? roadtripMapPlaces : mapPlaces}
               dayPlaces={dayPlaces}
-              route={roadtripActive ? roadtripRoutes.lines : route}
+              route={roadtripActive ? roadtripMapLines : route}
+              routeColors={roadtripActive ? roadtripLineColors : undefined}
               routeVias={roadtripActive ? roadtripRoutes.vias : routeVias}
               accessLines={roadtripActive ? roadtripRoutes.accessLines : undefined}
               showTransitRoutes={transitRoutesShown}
@@ -557,6 +558,8 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
                       refuel={refuel}
                       onAskRefuel={askRefuel}
                       onAcceptRefuel={can('day_edit', trip) ? acceptRefuel : undefined}
+                      collapsedDayIds={collapsedRoadtripDays}
+                      onToggleDay={toggleRoadtripDay}
                     />
                   </LazyPanel>
                 ) : (

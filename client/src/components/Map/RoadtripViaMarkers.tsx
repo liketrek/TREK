@@ -1,5 +1,5 @@
-import React, { useMemo, useRef } from 'react'
-import { Marker, Tooltip } from 'react-leaflet'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { Marker, Tooltip, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import { useTranslation } from '../../i18n/TranslationContext'
 import { useStableVias } from './viaMarkerState'
@@ -31,6 +31,9 @@ interface RoadtripViaMarkersProps {
 }
 
 /** Leaflet's half; the GL renderers draw their own inside `MapViewGL`. */
+/** Below this the handles are not drawn. Shared with the GL renderer's own copy. */
+const VIA_MIN_ZOOM = 9
+
 export default function RoadtripViaMarkers({
   viasByDay, onMoveVia, onRemoveVia,
 }: RoadtripViaMarkersProps): React.ReactElement | null {
@@ -44,6 +47,22 @@ export default function RoadtripViaMarkers({
   const handlersRef = useRef({ onMoveVia, onRemoveVia })
   handlersRef.current = { onMoveVia, onRemoveVia }
   const draggable = !!onMoveVia
+  /**
+   * Zoomed out, the handles go away.
+   *
+   * A via is a handle for a few hundred metres of road, and at a continental zoom a whole
+   * day's worth collapses into a cluster of dots over one town — not something anybody can
+   * aim at, and a drag there moves the route by kilometres per pixel. Below this the drive
+   * is read, not shaped.
+   */
+  const map = useMap()
+  const [zoomedIn, setZoomedIn] = useState(() => map.getZoom() >= VIA_MIN_ZOOM)
+  useEffect(() => {
+    const update = () => setZoomedIn(map.getZoom() >= VIA_MIN_ZOOM)
+    update()
+    map.on('zoomend', update)
+    return () => { map.off('zoomend', update) }
+  }, [map])
 
   const markers = useMemo(() => vias.map(via => ({
     via,
@@ -62,7 +81,7 @@ export default function RoadtripViaMarkers({
     },
   })), [vias])
 
-  if (!markers.length) return null
+  if (!markers.length || !zoomedIn) return null
 
   return (
     <>

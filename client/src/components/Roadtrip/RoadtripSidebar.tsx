@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import {
   CarFront, Footprints, Bike, Zap, AlertTriangle,
-  ParkingSquare, Shuffle, Fuel, Clock, Spline, Ban, Plus, Search, RotateCcw, X, BatteryCharging,
+  ParkingSquare, Shuffle, Fuel, Clock, Spline, Ban, Plus, RotateCcw, X, BatteryCharging, Moon, Milestone,
   type LucideIcon,
 } from 'lucide-react'
 import MDancingTrek from '../../mobile/components/MDancingTrek'
@@ -13,7 +13,7 @@ import { Tooltip } from '../shared/Tooltip'
 import { useSettingsStore } from '../../store/settingsStore'
 import { formatDistance } from '../../utils/units'
 import { formatDate, formatClockTime } from '../../utils/formatters'
-import { formatDurationShort, isServiceStopType, serviceColor, type ScheduleEntry, type ScheduleWarning, refuelsRange, type VehicleKind} from './roadtripModel'
+import { formatDurationShort, isServiceStopType, serviceColor, type ScheduleEntry, type ScheduleWarning, refuelsRange } from './roadtripModel'
 import { STOP_KIND_BY_KEY } from './stopKinds'
 import { spurWorthLabelling } from './accessSpur'
 import StopKindPicker from './StopKindPicker'
@@ -21,6 +21,8 @@ import StopFillPicker from './StopFillPicker'
 import { useVehicleRange } from './useVehicleRange'
 import type { RoadtripStopType } from '@trek/shared'
 import type { QuietDay, RoadtripDay, RoadtripRoutes, RoadtripStop } from './useRoadtripRoutes'
+import type { SpillMark } from './nightSpill'
+import { dayColor } from './dayColors'
 import type { RouteVia } from '../../types'
 import { FS } from './typeScale'
 import type { RouteSegment } from '../../types'
@@ -83,6 +85,16 @@ interface RoadtripSidebarProps {
   viaCounts?: Record<number, number>
   /** The name of the track each day follows, so the badge can say which road it is. */
   trackNames?: Record<number, string>
+  /**
+   * Days folded down to their header, by id.
+   *
+   * A long trip is a long rail, and reading the shape of one day means scrolling past the
+   * four before it. Folding is also what takes that day OFF the map: a card with nothing
+   * under its header would otherwise still be drawing its road.
+   */
+  collapsedDayIds?: Set<number>
+  /** Absent leaves every card open and its header unclickable. */
+  onToggleDay?: (dayId: number) => void
 }
 
 const MODE_ICON: Record<string, LucideIcon> = {
@@ -108,6 +120,15 @@ const RAIL_DASH: React.CSSProperties = {
   width: 1.5,
   backgroundImage: 'repeating-linear-gradient(var(--border-primary) 0 4px, transparent 4px 8px)',
 }
+
+/**
+ * A figure in the two-part shell the rail uses everywhere: what it is on the left, the
+ * number on the right, one hairline between them.
+ *
+ * Named because more than one place builds it now — the walk from the road, and the two
+ * figures on a refuel offer — and a second copy is how the two drift apart.
+ */
+const FIGURE_BADGE = 'inline-flex h-[16px] items-stretch self-start overflow-hidden rounded border border-edge'
 
 /** A 24px disc — a stop's number, or a service stop's icon. */
 const DISC = 'grid h-6 w-6 shrink-0 place-items-center rounded-full'
@@ -414,60 +435,115 @@ function RefuelBand({ dry, refuel, dayId, onAsk, onAccept }: {
 }): React.ReactElement {
   const { t } = useTranslation()
   const distanceUnit = useSettingsStore(s => s.settings.distance_unit)
+  // What the traveller drives, so the band says the right word and offers the right
+  // thing. An electric car does not run out of TANK, and a lamp shaped like a pump on a
+  // band about a battery is the kind of detail that makes the rest look careless.
+  const { vehicleKind } = useVehicleRange()
+  const electric = vehicleKind === 'electric'
+  const DryIcon = electric ? Zap : Fuel
   const key = `${dayId}:${dry.legIndex}`
   const open = refuel.openFor === key
   const settled = open && !refuel.loading && refuel.outcome
 
   return (
-    <div className="grid" style={RAIL_GRID}>
-      <span className="relative z-[1] flex flex-col items-center" aria-hidden>
-        <span className="flex-1" style={RAIL_DASH} />
-      </span>
-      <div className="min-w-0">
-        {/* Built as a drive band, because that is what it belongs to: the leg the fuel
-            runs out on. Same height, same type, same rail. The warning ring is the only
-            difference, and it is the whole message — this is the band where the tank
-            ends. */}
-        <div className="my-1.5 flex flex-col gap-1 rounded-lg bg-warning-soft px-2 py-1">
-          <div className="flex items-center gap-1.5">
-            <Fuel size={12} strokeWidth={1.7} className="shrink-0 text-warning" aria-hidden />
-            <span className="min-w-0 truncate font-medium text-content" style={{ fontSize: FS.meta }}>
-              {t('roadtrip.refuel.dry')}
-            </span>
-            {/* How far INTO this leg, where a drive band keeps its figures. Not the range
-                that was crossed: that is the traveller's own setting, says nothing about
-                where, and made every band on a day read the same number. */}
-            <span className="ms-auto shrink-0 tabular-nums text-content-muted" style={{ fontSize: FS.meta }}>
-              {t('roadtrip.refuel.after', { distance: formatDistance(Math.round(dry.intoLegKm), distanceUnit) })}
-            </span>
-            {/* An icon, the size of the shuffle mark a drive band carries, because the
-                band has to stay one line high beside its neighbours. What it does is in
-                the tooltip and in the label a screen reader gets. */}
+    <div className="min-w-0">
+      {/* Across the whole rail, marker column included, the way the day change used to
+          be drawn. It belongs to no stop: the tank runs out between two of them, and
+          hanging it off the one after would put it where somebody finds out rather than
+          where it happens. Full width is also what makes it the ONLY thing saying this —
+          the per-stop "so far on this tank" badge stands down wherever a search can be
+          run, because after the band has said where the fuel ends, every later stop
+          repeating it with a bigger number is the same message again. */}
+      <div
+        className="my-1.5 flex flex-col gap-1 overflow-hidden rounded-xl border px-2 py-1.5"
+        style={{
+          borderColor: 'color-mix(in srgb, var(--danger) 22%, transparent)',
+          // Danger, not warning. The rail's amber says "this is more than you asked
+          // for" — a day over its driving budget, a leg longer than allowed, all of
+          // which are still plans that work. An empty tank is the point the drive stops
+          // being possible, which is the one thing in the rail that is not a matter of
+          // degree.
+          //
+          // The make-up is the night block's, a step quieter. That one is a break in the
+          // day and can afford to lift off the card; this sits between two stops in a
+          // running chain, and lit as hard it pulled the eye off everything around it.
+          // Shallow tint, no drop shadow, the top edge only just catching the light.
+          backgroundImage: 'linear-gradient(180deg, color-mix(in srgb, var(--danger) 11%, var(--bg-card)) 0%, color-mix(in srgb, var(--danger) 4%, var(--bg-card)) 70%, var(--bg-card) 100%)',
+          boxShadow: 'inset 0 1px 0 color-mix(in srgb, var(--danger) 20%, transparent)',
+          // The mascot draws itself in `--m-ink` and cuts its eyes out in `--m-bg`, so
+          // both have to be named here: the ink is the band's warning colour, and the
+          // ground has to be OPAQUE or the eyes show the body through them.
+          '--m-ink': 'var(--danger)',
+          '--m-bg': 'color-mix(in srgb, var(--danger) 11%, var(--bg-card))',
+        } as React.CSSProperties}
+      >
+          <div className="flex items-center gap-2">
+            {/* Out of fuel is a thing that happens to the DRIVE, so the mascot is the one
+                with the vehicle, and it is not enjoying it. */}
+            <MDancingTrek scene="transport" mood="sad" size={26} />
+            <div className="min-w-0 flex-1">
+              <div
+                className="truncate font-geist font-semibold uppercase tracking-[0.16em] text-danger"
+                style={{ fontSize: FS.label }}
+              >
+                {t(electric ? 'roadtrip.refuel.dryElectric' : 'roadtrip.refuel.dry')}
+              </div>
+              {/* How far INTO this leg, where a drive band keeps its figures. Not the
+                  range that was crossed: that is the traveller's own setting, says
+                  nothing about where, and made every band on a day read the same
+                  number. */}
+              <div className="truncate tabular-nums text-content-muted" style={{ fontSize: FS.meta }}>
+                {t('roadtrip.refuel.after', { distance: formatDistance(Math.round(dry.intoLegKm), distanceUnit) })}
+              </div>
+            </div>
+            {/* The low-fuel lamp IS the button.
+                It was a lamp beside a magnifier, which is the same thing said twice: the
+                lamp says the tank is empty and the magnifier offers to do something
+                about it, and nobody reads a dashboard warning as decoration. So the lamp
+                glows, and pressing it goes looking. Larger than the 18px marks a drive
+                band carries, because unlike those it is the one thing in the band worth
+                pressing. What it does is in the tooltip and in the screen reader label.
+
+                Once a search is open the lamp steps aside for the state that matters:
+                the way to close the answer, or the way to ask again. An answer that
+                found nothing leaves a button rather than a dead end — the place search
+                is a shared public service that does time out, and "it did not answer"
+                with no way to retry reads as broken rather than as busy. */}
             {open && (refuel.loading || refuel.results.length) ? (
               <Tooltip label={t('common.close')}>
                 <button
                   type="button"
                   onClick={refuel.close}
                   aria-label={t('common.close')}
-                  className="grid h-[18px] w-[18px] shrink-0 place-items-center rounded-md text-content-muted transition-colors hover:bg-surface-card hover:text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                  className="grid h-[22px] w-[22px] shrink-0 place-items-center rounded-lg text-content-muted transition-colors hover:bg-surface-card hover:text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                 >
-                  <X size={12} aria-hidden />
+                  <X size={13} aria-hidden />
                 </button>
               </Tooltip>
             ) : (
-              /* An answer that found nothing leaves the button, not a dead end. The place
-                 search is a shared public service that does time out, and "it did not
-                 answer" with no way to ask again reads as broken rather than as busy. */
-              <Tooltip label={settled && refuel.outcome !== 'found' ? t('roadtrip.refuel.again') : t('roadtrip.refuel.find')}>
+              <Tooltip label={settled && refuel.outcome !== 'found'
+                ? t('roadtrip.refuel.again')
+                : t(electric ? 'roadtrip.refuel.findElectric' : 'roadtrip.refuel.find')}>
                 <button
                   type="button"
                   onClick={onAsk}
-                  aria-label={settled && refuel.outcome !== 'found' ? t('roadtrip.refuel.again') : t('roadtrip.refuel.find')}
-                  className="grid h-[18px] w-[18px] shrink-0 place-items-center rounded-md bg-surface-card text-content-secondary transition-colors hover:bg-surface-hover hover:text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                  aria-label={settled && refuel.outcome !== 'found'
+                    ? t('roadtrip.refuel.again')
+                    : t(electric ? 'roadtrip.refuel.findElectric' : 'roadtrip.refuel.find')}
+                  className="group/fuel grid h-[22px] w-[22px] shrink-0 place-items-center rounded-lg text-danger transition-colors hover:bg-danger-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                 >
                   {settled && refuel.outcome !== 'found'
-                    ? <RotateCcw size={11} aria-hidden />
-                    : <Search size={11} aria-hidden />}
+                    ? <RotateCcw size={13} strokeWidth={2} aria-hidden />
+                    : (
+                      /* The glow stops under the pointer: a lamp that keeps blinking
+                         while it is being aimed at reads as unresponsive. */
+                      <DryIcon
+                        size={14}
+                        strokeWidth={2}
+                        className="trek-lowfuel group-hover/fuel:[animation-play-state:paused]"
+                        aria-hidden
+                      />
+                    )}
                 </button>
               </Tooltip>
             )}
@@ -479,31 +555,94 @@ function RefuelBand({ dry, refuel, dayId, onAsk, onAccept }: {
 
           {settled ? (
             refuel.results.length ? (
-              <ul className="flex flex-col gap-0.5">
+              <ul className="flex flex-col gap-1">
                 {/* Three at most. This is an offer beside a plan, not a list to browse;
-                    the corridor panel is where somebody goes to see all of them. */}
-                {refuel.results.slice(0, 3).map(poi => (
-                  <li key={poi.osm_id} className="flex items-center gap-1.5">
-                    <span className="min-w-0 flex-1 truncate text-content" style={{ fontSize: FS.meta }}>
-                      {poi.name}
-                    </span>
-                    <span className="shrink-0 tabular-nums text-content-muted" style={{ fontSize: FS.meta }}>
-                      {/* What is left when the car draws level, the figure that decides
-                          whether this one is any use. The detour is already in it. */}
-                      {t('roadtrip.refuel.spare', { distance: formatDistance(Math.round(poi.spareKm), distanceUnit) })}
-                    </span>
-                    {onAccept ? (
-                      <button
-                        type="button"
-                        onClick={() => onAccept(poi)}
-                        aria-label={t('roadtrip.refuel.add', { name: poi.name })}
-                        className="grid h-[18px] w-[18px] shrink-0 place-items-center rounded-md bg-surface-card text-content-secondary transition-colors hover:bg-surface-hover hover:text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                      >
-                        <Plus size={11} aria-hidden />
-                      </button>
-                    ) : null}
-                  </li>
-                ))}
+                    the corridor panel is where somebody goes to see all of them.
+
+                    Each one on its own surface rather than as bare text in the band: the
+                    band is the problem and these are the answers, and a row somebody is
+                    meant to press has to look like it can be. Two lines, because one was
+                    not enough to tell them apart — measured on a real day the top three
+                    came back as "Vattenfall InCharge" three times over, identical but for
+                    a number nobody could see the meaning of. */}
+                {refuel.results.slice(0, 3).map(poi => {
+                  const kind = STOP_KIND_BY_KEY[poi.category]
+                  const KindIcon = kind?.Icon ?? Fuel
+                  return (
+                    <li key={poi.osm_id}>
+                      {/* Logical padding, not left/right: the rail runs the other way in Arabic and
+                          the disc has to keep its distance from the reading edge either way. */}
+                      <div className="flex items-center gap-2 rounded-lg bg-surface-card py-1 pe-1.5 ps-2.5">
+                        <span
+                          className={`${DISC} h-[22px] w-[22px] shrink-0`}
+                          style={{ background: `color-mix(in srgb, ${kind?.color ?? 'var(--danger)'} 16%, transparent)`, color: kind?.color }}
+                          aria-hidden
+                        >
+                          <KindIcon size={12} strokeWidth={2} />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate font-medium text-content" style={{ fontSize: FS.name }}>
+                            {poi.name}
+                          </span>
+                          {/* The two figures that decide it, in the order they decide it,
+                              and as two badges rather than one line with a middot in it.
+                              No value in this rail is ever joined to another that way:
+                              they are separate facts, and a separator invites them to be
+                              read as one number about one thing.
+
+                              The detour is what the list is SORTED by — everything here
+                              is reachable already, so what separates them is what the
+                              stop costs — and it is also the only thing telling three
+                              branches of one chain apart. What is left in the tank when
+                              the car draws level comes second, with the detour already
+                              counted into it. The badge carries the figure and the
+                              tooltip says which one it is, which is how two numbers stay
+                              legible in a column this narrow. */}
+                          <span className="mt-0.5 flex items-center gap-1">
+                            <Tooltip label={t('roadtrip.poi.offRoute', { distance: formatDistance(poi.offRouteKm, distanceUnit) })}>
+                              <span className={FIGURE_BADGE}>
+                                <span className="flex items-center bg-surface-tertiary px-1 text-content-faint">
+                                  <Milestone size={9} aria-hidden />
+                                </span>
+                                <span
+                                  className="flex items-center border-s border-edge bg-surface-card px-1.5 font-semibold tabular-nums text-content-secondary"
+                                  style={{ fontSize: FS.label }}
+                                >
+                                  {formatDistance(poi.offRouteKm, distanceUnit)}
+                                </span>
+                              </span>
+                            </Tooltip>
+                            <Tooltip label={t('roadtrip.refuel.spare', { distance: formatDistance(Math.round(poi.spareKm), distanceUnit) })}>
+                              <span className={FIGURE_BADGE}>
+                                <span className="flex items-center bg-surface-tertiary px-1 text-content-faint">
+                                  <DryIcon size={9} aria-hidden />
+                                </span>
+                                <span
+                                  className="flex items-center border-s border-edge bg-surface-card px-1.5 font-semibold tabular-nums text-content-secondary"
+                                  style={{ fontSize: FS.label }}
+                                >
+                                  {formatDistance(Math.round(poi.spareKm), distanceUnit)}
+                                </span>
+                              </span>
+                            </Tooltip>
+                          </span>
+                        </span>
+                        {onAccept ? (
+                          <Tooltip label={t(electric ? 'roadtrip.refuel.addElectric' : 'roadtrip.refuel.add', { name: poi.name })}>
+                            <button
+                              type="button"
+                              onClick={() => onAccept(poi)}
+                              aria-label={t(electric ? 'roadtrip.refuel.addElectric' : 'roadtrip.refuel.add', { name: poi.name })}
+                              className="grid h-[22px] w-[22px] shrink-0 place-items-center rounded-lg bg-surface-secondary text-content-secondary transition-colors hover:bg-accent hover:text-accent-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                            >
+                              <Plus size={13} strokeWidth={2.2} aria-hidden />
+                            </button>
+                          </Tooltip>
+                        ) : null}
+                      </div>
+                    </li>
+                  )
+                })}
               </ul>
             ) : (
               /* Three different sentences for three different facts. "Nothing on this
@@ -518,7 +657,6 @@ function RefuelBand({ dry, refuel, dayId, onAsk, onAccept }: {
               </span>
             )
           ) : null}
-        </div>
       </div>
     </div>
   )
@@ -810,53 +948,6 @@ function DriveFindingBadge({ warning }: { warning: ScheduleWarning }): React.Rea
 }
 
 /**
- * Midnight, marked where it happens — in the chain, between the two stops the drive runs
- * between, rather than as a fourth badge hanging off one of them.
- *
- * The schedule has carried this since it was written and nothing ever drew it: a day
- * running past midnight showed "02:30" as if it were tonight.
- */
-/**
- * Where the chain crosses midnight.
- *
- * The one band in the rail that breaks the line instead of hanging off it, and the only
- * thing here that moves: a night is not a place and not a drive, it is the day running
- * out, and the rail should look like it stops. So it spans the marker column too, the
- * dashes end above it and start again below, and the mascot dozes in the gap with three
- * z's drifting off it.
- *
- * The ground is mixed rather than the soft info token: that token is translucent in the
- * dark theme, and the mascot cuts its eyes out in the colour behind it, which would show
- * the body through them. Mixing against the card keeps it opaque in both themes.
- */
-function OvernightBreak(): React.ReactElement {
-  const { t } = useTranslation()
-  const night = 'color-mix(in srgb, var(--info) 13%, var(--bg-card))'
-  return (
-    <div
-      className="my-1 flex w-full items-center gap-2 rounded-xl py-1 pe-2.5 ps-1.5 text-info"
-      style={{ background: night, '--m-bg': night, '--m-ink': 'var(--info)' } as React.CSSProperties}
-    >
-      <MDancingTrek scene="idle" mood="sleepy" size={26} />
-      <span
-        className="font-geist font-semibold uppercase tracking-[0.16em]"
-        style={{ fontSize: FS.label }}
-      >
-        {t('roadtrip.warn.overnight')}
-      </span>
-      {/* Three z's on one baseline, each starting a third of the loop after the last, so
-          one is always on its way up. Purely decorative: the word beside it already says
-          what this band is. */}
-      <span className="trek-doze ms-auto flex items-end gap-[3px]" aria-hidden>
-        <span style={{ fontSize: FS.micro }}>z</span>
-        <span style={{ fontSize: FS.label }}>z</span>
-        <span style={{ fontSize: FS.meta }}>z</span>
-      </span>
-    </div>
-  )
-}
-
-/**
  * The arrival — the one value in the rail the user may have decided themselves.
  *
  * A pinned time is filled, pilled and carries the clock; a computed one is bare text.
@@ -1065,14 +1156,149 @@ function LateBadge({ late }: { late: ScheduleWarning | undefined }): React.React
 }
 
 /**
+ * What a night drive leaves on the next morning's card.
+ *
+ * The one thing in the rail that is not the day it sits under. A drive leaving at 21:00
+ * and arriving at 01:23 arrives tomorrow, and the rail draws it there — under tomorrow's
+ * date, with the night it came through kept in front of it so the kilometres reach the
+ * stops rather than being left on a day nobody drives them on.
+ *
+ * Nothing has been written to say so. The stops still belong to the day they were planned
+ * on and the day plan still shows them there; this is the arrangement the arrival times
+ * imply, worked out again every time they change. Shorten the stay before the night drive
+ * and the first stop crosses back on its own.
+ *
+ * The ground fades from night at the head to the card's own surface at the foot, because
+ * that is what the block is: the end of one day handed to the beginning of the next.
+ */
+function SpillBlock({ spill, children }: {
+  spill: SpillMark
+  children: React.ReactNode
+}): React.ReactElement {
+  const { t } = useTranslation()
+  const distanceUnit = useSettingsStore(s => s.settings.distance_unit)
+  const is12h = useSettingsStore(s => s.settings.time_format) === '12h'
+  const leg = spill.leg
+  const departure = spill.departure
+  // Mixed against the card rather than laid over it with alpha: the mascot cuts its eyes
+  // out in the colour behind it, and a translucent ground would show its body through
+  // them. The same reason the old overnight band mixed instead of tinting.
+  const night = 'color-mix(in srgb, var(--info) 11%, var(--bg-card))'
+  const dawn = 'color-mix(in srgb, var(--info) 4%, var(--bg-card))'
+  const edge = 'color-mix(in srgb, var(--info) 22%, transparent)'
+  return (
+    <li
+      // Pulled out by exactly the padding it puts back inside, so the stops in here sit
+      // on the SAME left edge as the day's own stops below. Otherwise the block indents
+      // them by its own padding and their numbers and dashed line stand a few pixels
+      // right of every other number and line in the card — which reads as two lists
+      // rather than as one chain with a night in it.
+      className="trek-spill-in -mx-2 mb-1.5 mt-0.5 overflow-hidden rounded-xl border"
+      style={{
+        borderColor: edge,
+        backgroundImage: `linear-gradient(180deg, ${night} 0%, ${dawn} 58%, var(--bg-card) 100%)`,
+        // A lit pixel along the top edge, and nothing under it. The shadow that used to
+        // lift the block off the card made it the loudest thing on a screen where it is
+        // only ever context: what matters here are the stops inside it, not the frame.
+        boxShadow: `inset 0 1px 0 color-mix(in srgb, var(--info) 20%, transparent)`,
+      }}
+    >
+      {/* Moonlight from the left, falling on the mascot. A radial wash rather than a
+          second background colour: it has no edge of its own, so the head reads as lit
+          rather than as another box stacked on the first. */}
+      <div
+        className="px-2 pb-1 pt-2"
+        style={{ backgroundImage: `radial-gradient(140px 64px at 22px 26px, color-mix(in srgb, var(--info) 12%, transparent), transparent 72%)` }}
+      >
+        <div className="flex items-center gap-2 text-info">
+          <MDancingTrek scene="idle" mood="sleepy" size={26} />
+          <span
+            className="min-w-0 flex-1 truncate font-geist font-semibold uppercase tracking-[0.16em]"
+            style={{ fontSize: FS.label }}
+          >
+            {t('roadtrip.spill.title', { number: spill.fromDayNumber })}
+          </span>
+          {/* Three z's on one baseline, each starting a third of the loop after the last,
+              so one is always on its way up. Decorative: the line beside it already says
+              what the block is. */}
+          <span className="trek-doze flex items-end gap-[3px] self-start" aria-hidden>
+            <span style={{ fontSize: FS.micro }}>z</span>
+            <span style={{ fontSize: FS.label }}>z</span>
+            <span style={{ fontSize: FS.meta }}>z</span>
+          </span>
+        </div>
+        {/* The drive itself, in the band the rail uses everywhere else — this is the
+            reason the block exists, and the kilometres on it are the ones the card's
+            header now counts. Not clickable: alternatives are asked for on the day the
+            leg is stored on, and offering the same leg twice would be two answers. */}
+        <div className="grid" style={RAIL_GRID}>
+          <span className="relative z-[1] flex flex-col items-center" aria-hidden>
+            <span className="flex-1" style={RAIL_DASH} />
+          </span>
+          <div className="min-w-0">
+            {/* Shaped like every other drive in the rail: what it cost on the left, the
+                clock on the right, in the column every arrival in this card already
+                reads down. The time used to sit inside the sentence, which put a
+                reading in the one place the eye does not look for one — and gave the
+                row two competing figures with no order between them. */}
+            <div
+              className="my-1.5 flex w-full items-center gap-2 rounded-lg py-1 pe-2 ps-2"
+              style={{ background: 'color-mix(in srgb, var(--info) 12%, transparent)', color: 'var(--info)' }}
+            >
+              <Moon size={12} strokeWidth={1.7} className="shrink-0" aria-hidden />
+              <span className="min-w-0 truncate font-medium tabular-nums" style={{ fontSize: FS.meta }}>
+                {leg
+                  ? t('roadtrip.leg.driveText', {
+                      distance: formatDistance((leg.distance ?? 0) / 1000, distanceUnit),
+                      time: formatDurationShort(leg.duration ?? 0),
+                    })
+                  : t('roadtrip.leg.pending')}
+              </span>
+              {/* Departure, not arrival, so it says so in words: everything else in this
+                  column is a time of arrival, and a bare 23:57 there would read as one.
+                  The stop it leaves from is not named — it is drawn on yesterday's card
+                  directly above, and a second row for it would read as a stop made
+                  twice. */}
+              {departure ? (
+                <span
+                  dir="ltr"
+                  className="ms-auto shrink-0 whitespace-nowrap font-semibold leading-6 tabular-nums"
+                  style={{ fontSize: FS.time }}
+                >
+                  {t('roadtrip.spill.departs', { time: formatClockTime(departure, is12h) })}
+                </span>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      </div>
+      {/* Seven, not eight: the block is pulled out by 8 and draws a 1px border, so the
+          inside edge lands one pixel in unless the padding gives that pixel back. It is
+          the difference between the numbers in here standing on the same line as the ones
+          below and standing almost on it. */}
+      <ol className="px-[7px] pb-2">{children}</ol>
+    </li>
+  )
+}
+
+/**
  * One day, one card: its own numbers in its own head, its stops chained below.
  *
  * Stops count from one inside the day because that is what the map badges on its markers
  * (`dayOrderMap` numbers the selected day's assignments from 1). A rail counting across
  * the trip would put "17" beside a pin the map calls "3".
+ *
+ * A card is no longer one stored day. It is one DATE, and it draws whatever is reached on
+ * it — which on the morning after a night drive means a stretch that is stored on
+ * yesterday. Every stop keeps the day it is stored on in `block.source`, so a reorder, a
+ * move, a stay edit or a refuel offer still names the day the server knows it by. See
+ * `nightSpill.ts`.
  */
-function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, onMoveStopToDay, drag, onAskAlternatives, openAlternatives, onEditStay, onSetStopKind, onSetStopFill, onFollowTrack, viaCount, trackName, refuel, onAskRefuel, onAcceptRefuel, loading }: {
+function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, onMoveStopToDay, drag, onAskAlternatives, openAlternatives, onEditStay, onSetStopKind, onSetStopFill, onFollowTrack, viaCount, trackName, refuel, onAskRefuel, onAcceptRefuel, loading, collapsed, onToggle }: {
   day: RoadtripDay
+  /** Folded down to the header, and off the map with it. */
+  collapsed?: boolean
+  onToggle?: () => void
   selectedAssignmentId?: number | null
   onSelectStop?: (placeId: number, assignmentId: number) => void
   onReorderStop?: (dayId: number, assignmentId: number, toIndex: number) => void
@@ -1094,13 +1320,16 @@ function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, on
   loading?: boolean
 }): React.ReactElement {
   const { from, setFrom, dropAt, setDropAt } = drag
-  const dragging = from?.dayId === day.dayId ? from.index : null
   // Which disc the picker hangs under, and for which stop. One at a time: two open
   // popovers over the same rail is two answers to one question.
   const [picking, setPicking] = useState<{ anchor: HTMLElement; stop: RoadtripStop } | null>(null)
   const [filling, setFilling] = useState<{ anchor: HTMLElement; stop: RoadtripStop } | null>(null)
   const { t, language } = useTranslation()
   const distanceUnit = useSettingsStore(s => s.settings.distance_unit)
+  // The colour the map draws this day in, or none at all while the map is drawing one
+  // blue line for the whole trip.
+  const dayColorsOn = useSettingsStore(s => !!s.settings.roadtrip_day_colors)
+  const tint = dayColorsOn ? dayColor(day.dayNumber).line : null
   const last = day.stops.length - 1
   /**
    * The findings a stop wears, minus the one the refuel band already says better.
@@ -1110,12 +1339,147 @@ function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, on
    * at once says the same thing twice, in the wrong order — the answer above the problem
    * — so the warning stands down wherever the band is showing.
    */
-  const showingBand = !!refuel && !loading && !!day.dryPoints?.length
+  const showingBand = !!refuel && !loading
   const findingsFor = (i: number) =>
     day.driveWarnings.filter(w => w.index === i && !(showingBand && w.code === 'range'))
   // The running number a stop wears, with the service stops passed over — so a day with a
   // charger halfway through still counts one, two, three the way its map pins do.
   let counted = 0
+
+  /**
+   * One row of the chain: the stop, the drive leaving it, whatever hangs off that drive.
+   *
+   * The day's own index `i` addresses everything that belongs to this DATE — the leg, the
+   * schedule entry, the dry points. Everything that WRITES uses `stop.ownerDayId` and
+   * `stop.ownerIndex` instead, because a stop driven onto this date through the night is
+   * still stored on the day it set off from (`nightSpill.ts`).
+   */
+  const renderStop = (stop: RoadtripStop, i: number): React.ReactElement => {
+    const service = isServiceStopType(stop.stopType)
+    if (!service) counted += 1
+    // Every finding at this index is read on its own. Taking the first match let an
+    // overnight crossing swallow the "you arrive late" flag without a trace.
+    const marks = day.schedule.warnings.filter(w => w.index === i)
+    const ownDay = stop.ownerDayId
+    const ownIndex = stop.ownerIndex
+    return (
+      <li
+        key={stop.assignmentId}
+        draggable={!!onReorderStop}
+        onDragStart={onReorderStop ? e => {
+          setFrom({ dayId: ownDay, index: ownIndex, assignmentId: stop.assignmentId })
+          e.dataTransfer.effectAllowed = 'move'
+          // Firefox refuses to start a drag without payload, even an unused one.
+          e.dataTransfer.setData('text/plain', String(stop.assignmentId))
+        } : undefined}
+        onDragEnd={() => { setFrom(null); setDropAt(null) }}
+        onDragOver={onReorderStop && from ? e => {
+          e.preventDefault()
+          if (dropAt?.dayId !== ownDay || dropAt.index !== ownIndex) setDropAt({ dayId: ownDay, index: ownIndex })
+        } : undefined}
+        onDrop={onReorderStop && from ? e => {
+          e.preventDefault()
+          const src = from
+          setFrom(null)
+          setDropAt(null)
+          if (src.dayId === ownDay) {
+            if (src.index !== ownIndex) onReorderStop(ownDay, src.assignmentId, ownIndex)
+          } else {
+            onMoveStopToDay?.(src.dayId, src.assignmentId, ownDay, ownIndex)
+          }
+        } : undefined}
+        className={`rounded-lg transition-opacity ${from?.dayId === ownDay && from.index === ownIndex ? 'opacity-40' : ''} ${
+          dropAt?.dayId === ownDay && dropAt.index === ownIndex && from && !(from.dayId === ownDay && from.index === ownIndex)
+            ? 'ring-2 ring-inset ring-accent'
+            : ''
+        }`}
+      >
+        {service ? (
+          <ServiceStop
+            stop={stop}
+            entry={day.schedule.entries[i]}
+            late={marks.find(w => w.code === 'late')}
+            driveFindings={findingsFor(i)}
+            selected={selectedAssignmentId === stop.assignmentId}
+            onSelect={onSelectStop ? () => onSelectStop(stop.placeId, stop.assignmentId) : undefined}
+            onEditStay={onEditStay ? () => onEditStay({ placeId: stop.placeId, name: stop.name, minutes: stop.dwellMinutes, arrival: day.schedule.entries[i]?.arrival ?? null }) : undefined}
+            onPickKind={onSetStopKind ? anchor => setPicking({ anchor, stop }) : undefined}
+            onPickFill={onSetStopFill ? anchor => setFilling({ anchor, stop }) : undefined}
+          />
+        ) : (
+          <Stop
+            stop={stop}
+            number={counted}
+            entry={day.schedule.entries[i]}
+            late={marks.find(w => w.code === 'late')}
+            driveFindings={findingsFor(i)}
+            selected={selectedAssignmentId === stop.assignmentId}
+            continues={i < last}
+            starts={i === 0}
+            onSelect={onSelectStop ? () => onSelectStop(stop.placeId, stop.assignmentId) : undefined}
+            onMove={onReorderStop ? delta => onReorderStop(ownDay, stop.assignmentId, ownIndex + delta) : undefined}
+            canMove={{ up: i > 0, down: i < last }}
+            onEditStay={onEditStay ? () => onEditStay({ placeId: stop.placeId, name: stop.name, minutes: stop.dwellMinutes, arrival: day.schedule.entries[i]?.arrival ?? null }) : undefined}
+            onPickKind={onSetStopKind ? anchor => setPicking({ anchor, stop }) : undefined}
+            onPickFill={onSetStopFill ? anchor => setFilling({ anchor, stop }) : undefined}
+          />
+        )}
+        {i < last ? (
+          <DriveBand
+            leg={day.legs[i]}
+            onAskAlternatives={onAskAlternatives ? () => onAskAlternatives(day.dayId, i) : undefined}
+            alternativesOpen={openAlternatives?.dayId === day.dayId && openAlternatives.index === i}
+          />
+        ) : null}
+        {/* Only on the leg the fuel actually runs out on, and only once the day has
+            finished routing: the warnings are republished after every routing task
+            and the early ones are wrong, so an offer that appears and moves while
+            the trip loads reads as a fault. */}
+        {refuel && !loading
+          ? (day.dryPoints ?? [])
+              .filter(dry => dry.legIndex === i)
+              .map(dry => (
+                <RefuelBand
+                  key={`dry-${dry.legIndex}`}
+                  dry={dry}
+                  // The card's day, not the stop's stored one. This is the key the open
+                  // search is filed under, and the hook is asked with the same number —
+                  // a band inside a borrowed stretch had them differ, so the results
+                  // arrived, drew on the map, and the band they belonged to never opened.
+                  dayId={day.dayId}
+                  refuel={refuel}
+                  onAsk={() => onAskRefuel?.(day.dayId, dry)}
+                  onAccept={onAcceptRefuel ? poi => onAcceptRefuel(day.dayId, poi, dry) : undefined}
+                />
+              ))
+          : null}
+        {/* After the band, because a plugin halt happens on the drive it describes
+            rather than before setting off. */}
+        {i < last ? (day.legVias[i] ?? []).map((via, vi) => (
+          <RouteViaStop key={`via-${vi}-${via.lat},${via.lng}`} via={via} />
+        )) : null}
+      </li>
+    )
+  }
+
+  /**
+   * The chain in runs: the stretches driven onto this date through the night, and the
+   * day's own stops between and after them.
+   *
+   * Built rather than mapped straight through, because a spill is drawn inside a block of
+   * its own and a block cannot be opened halfway down a `map`.
+   */
+  const runs: { spill: SpillMark | null; from: number; to: number }[] = []
+  {
+    let at = 0
+    for (const spill of day.spills ?? []) {
+      if (spill.at > at) runs.push({ spill: null, from: at, to: spill.at })
+      runs.push({ spill, from: spill.at, to: spill.at + spill.count })
+      at = spill.at + spill.count
+    }
+    if (at < day.stops.length) runs.push({ spill: null, from: at, to: day.stops.length })
+  }
+
   return (
     <section className="mx-3.5 shrink-0 overflow-hidden rounded-2xl border border-edge-faint bg-surface-card">
       {/* Centred, with the day's facts as badges beneath its name: at this width a row
@@ -1125,7 +1489,38 @@ function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, on
           and the list below holds its stops, and `--bg-hover` at 40% is 1% black in light
           mode — a separation nobody could see. `--bg-secondary` lifts off the card in
           both themes while staying a step under the badges sitting on it. */}
-      <header className="mb-1 border-b border-edge-faint bg-surface-secondary px-3.5 pb-2.5 pt-3">
+      <header
+        // A button when there is something to fold, a plain header when there is not, so
+        // a read-only rail never offers a control that does nothing. The whole header is
+        // the target and the hover is the only sign of it: a chevron or a "fold" label
+        // beside the day's own facts read as a fourth fact about the day rather than as a
+        // control, and the header is what somebody is already looking at when they decide
+        // to put a day away.
+        {...(onToggle ? {
+          role: 'button' as const,
+          tabIndex: 0,
+          'aria-expanded': !collapsed,
+          onClick: onToggle,
+          onKeyDown: (e: React.KeyboardEvent) => {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle() }
+          },
+        } : {})}
+        // The margin and the bottom rule belong to the header only while there is a list
+        // under them. Folded, they left a white strip of card below the tinted header —
+        // and once the day is tinted, that strip is the one thing on the card that is not.
+        className={`border-edge-faint bg-surface-secondary px-3.5 pb-2.5 pt-3 ${collapsed ? '' : 'mb-1 border-b'} ${
+          onToggle ? 'cursor-pointer transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent' : ''
+        }`}
+        // Washed with the colour this day is drawn in, and only while the map is drawing
+        // days in colour: on the map the colour is what tells one day from the next, and
+        // a rail that ignored it would leave the reader matching a green line to a card
+        // that gives no sign of being the green one. A tenth of the hue is enough to
+        // recognise and quiet enough that the day's own facts still read first.
+        style={tint ? {
+          backgroundImage: `linear-gradient(180deg, color-mix(in srgb, ${tint} 13%, var(--bg-secondary)), color-mix(in srgb, ${tint} 5%, var(--bg-secondary)))`,
+          borderBottomColor: `color-mix(in srgb, ${tint} 30%, transparent)`,
+        } : undefined}
+      >
         <h3
           className="text-center font-semibold tracking-[-0.015em] text-content"
           style={{ fontSize: FS.dayTitle }}
@@ -1140,11 +1535,11 @@ function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, on
         ) : null}
         <div className="mt-1.5 flex flex-wrap justify-center gap-1">
           {day.date ? (
-            <time dateTime={day.date} className={`${DAY_BADGE} border border-edge`} style={{ fontSize: FS.label }}>
+            <time dateTime={day.date} className={`${DAY_BADGE} border border-edge bg-surface-card`} style={{ fontSize: FS.label }}>
               {formatDate(day.date, language)}
             </time>
           ) : null}
-          <span className={`${DAY_BADGE} bg-surface-tertiary`} style={{ fontSize: FS.label }}>
+          <span className={`${DAY_BADGE} bg-surface-card`} style={{ fontSize: FS.label }}>
             {t('roadtrip.leg.driveText', {
               distance: formatDistance(day.distance / 1000, distanceUnit),
               time: formatDurationShort(day.duration),
@@ -1160,7 +1555,7 @@ function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, on
               </span>
             </Tooltip>
           ) : null}
-          <span className={`${DAY_BADGE} bg-surface-tertiary`} style={{ fontSize: FS.label }}>
+          <span className={`${DAY_BADGE} bg-surface-card`} style={{ fontSize: FS.label }}>
             {t('roadtrip.day.stopCount', { count: day.stops.filter(s => !isServiceStopType(s.stopType)).length })}
           </span>
           {/* The other half of "where possible". The setting is a weighting, so a day
@@ -1170,7 +1565,7 @@ function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, on
               fact about this day's roads, not a warning about the plan. */}
           {day.avoidMissed?.length ? (
             <Tooltip label={t('roadtrip.avoid.missedHint')}>
-              <span className={`${DAY_BADGE} gap-1 bg-surface-tertiary text-content-secondary`} style={{ fontSize: FS.label }}>
+              <span className={`${DAY_BADGE} gap-1 bg-surface-card text-content-secondary`} style={{ fontSize: FS.label }}>
                 <Ban size={10} className="shrink-0" aria-hidden />
                 {t('roadtrip.avoid.missed', {
                   classes: day.avoidMissed.map(cls => t(`roadtrip.avoid.${cls}`)).join(', '),
@@ -1188,7 +1583,7 @@ function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, on
                 type="button"
                 onClick={() => onFollowTrack(day.dayId)}
                 className={`${DAY_BADGE} gap-1 transition-colors hover:text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
-                  viaCount ? 'bg-accent-subtle text-content' : 'bg-surface-tertiary hover:bg-surface-hover'
+                  viaCount ? 'bg-accent-subtle text-content' : 'bg-surface-card hover:bg-surface-hover'
                 }`}
                 style={{ fontSize: FS.label }}
               >
@@ -1203,109 +1598,20 @@ function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, on
           list of places, not of alternating places and connectors. A service stop owns
           the drive leaving it in exactly the same way, which is what splits its leg into
           band, marker, band without the list needing a second shape. */}
-      <ol className="px-3.5 pb-3 pt-3">
-        {day.stops.map((stop, i) => {
-          const service = isServiceStopType(stop.stopType)
-          if (!service) counted += 1
-          // Every finding at this index is read on its own. Taking the first match let an
-          // overnight crossing swallow the "you arrive late" flag without a trace.
-          const marks = day.schedule.warnings.filter(w => w.index === i)
-          return (
-            <li
-              key={stop.assignmentId}
-              draggable={!!onReorderStop}
-              onDragStart={onReorderStop ? e => {
-                setFrom({ dayId: day.dayId, index: i, assignmentId: stop.assignmentId })
-                e.dataTransfer.effectAllowed = 'move'
-                // Firefox refuses to start a drag without payload, even an unused one.
-                e.dataTransfer.setData('text/plain', String(stop.assignmentId))
-              } : undefined}
-              onDragEnd={() => { setFrom(null); setDropAt(null) }}
-              onDragOver={onReorderStop && from ? e => {
-                e.preventDefault()
-                if (dropAt?.dayId !== day.dayId || dropAt.index !== i) setDropAt({ dayId: day.dayId, index: i })
-              } : undefined}
-              onDrop={onReorderStop && from ? e => {
-                e.preventDefault()
-                const src = from
-                setFrom(null)
-                setDropAt(null)
-                if (src.dayId === day.dayId) {
-                  if (src.index !== i) onReorderStop(day.dayId, src.assignmentId, i)
-                } else {
-                  onMoveStopToDay?.(src.dayId, src.assignmentId, day.dayId, i)
-                }
-              } : undefined}
-              className={`rounded-lg transition-opacity ${dragging === i ? 'opacity-40' : ''} ${
-                dropAt?.dayId === day.dayId && dropAt.index === i && from && !(from.dayId === day.dayId && from.index === i)
-                  ? 'ring-2 ring-inset ring-accent'
-                  : ''
-              }`}
-            >
-              {marks.some(w => w.code === 'overnight') ? <OvernightBreak /> : null}
-              {service ? (
-                <ServiceStop
-                  stop={stop}
-                  entry={day.schedule.entries[i]}
-                  late={marks.find(w => w.code === 'late')}
-                  driveFindings={findingsFor(i)}
-                  selected={selectedAssignmentId === stop.assignmentId}
-                  onSelect={onSelectStop ? () => onSelectStop(stop.placeId, stop.assignmentId) : undefined}
-                  onEditStay={onEditStay ? () => onEditStay({ placeId: stop.placeId, name: stop.name, minutes: stop.dwellMinutes, arrival: day.schedule.entries[i]?.arrival ?? null }) : undefined}
-                  onPickKind={onSetStopKind ? anchor => setPicking({ anchor, stop }) : undefined}
-                  onPickFill={onSetStopFill ? anchor => setFilling({ anchor, stop }) : undefined}
-                />
-              ) : (
-                <Stop
-                  stop={stop}
-                  number={counted}
-                  entry={day.schedule.entries[i]}
-                  late={marks.find(w => w.code === 'late')}
-                  driveFindings={findingsFor(i)}
-                  selected={selectedAssignmentId === stop.assignmentId}
-                  continues={i < last}
-                  starts={i === 0}
-                  onSelect={onSelectStop ? () => onSelectStop(stop.placeId, stop.assignmentId) : undefined}
-                  onMove={onReorderStop ? delta => onReorderStop(day.dayId, stop.assignmentId, i + delta) : undefined}
-                  canMove={{ up: i > 0, down: i < last }}
-                  onEditStay={onEditStay ? () => onEditStay({ placeId: stop.placeId, name: stop.name, minutes: stop.dwellMinutes, arrival: day.schedule.entries[i]?.arrival ?? null }) : undefined}
-                  onPickKind={onSetStopKind ? anchor => setPicking({ anchor, stop }) : undefined}
-                  onPickFill={onSetStopFill ? anchor => setFilling({ anchor, stop }) : undefined}
-                />
-              )}
-              {i < last ? (
-                <DriveBand
-                  leg={day.legs[i]}
-                  onAskAlternatives={onAskAlternatives ? () => onAskAlternatives(day.dayId, i) : undefined}
-                  alternativesOpen={openAlternatives?.dayId === day.dayId && openAlternatives.index === i}
-                />
-              ) : null}
-              {/* Only on the leg the fuel actually runs out on, and only once the day has
-                  finished routing: the warnings are republished after every routing task
-                  and the early ones are wrong, so an offer that appears and moves while
-                  the trip loads reads as a fault. */}
-              {refuel && !loading
-                ? (day.dryPoints ?? [])
-                    .filter(dry => dry.legIndex === i)
-                    .map(dry => (
-                      <RefuelBand
-                        key={`dry-${dry.legIndex}`}
-                        dry={dry}
-                        dayId={day.dayId}
-                        refuel={refuel}
-                        onAsk={() => onAskRefuel?.(day.dayId, dry)}
-                        onAccept={onAcceptRefuel ? poi => onAcceptRefuel(day.dayId, poi, dry) : undefined}
-                      />
-                    ))
-                : null}
-              {/* After the band, because a plugin halt happens on the drive it describes
-                  rather than before setting off. */}
-              {i < last ? (day.legVias[i] ?? []).map((via, vi) => (
-                <RouteViaStop key={`via-${vi}-${via.lat},${via.lng}`} via={via} />
-              )) : null}
-            </li>
+      {/* Folded to the header, and with it off the map: what is not listed here is not
+          drawn there either, which is the whole point of putting a day away. */}
+      <ol className="px-3.5 pb-3 pt-3" hidden={collapsed}>
+        {runs.map(run => (
+          run.spill ? (
+            <SpillBlock key={`spill-${run.from}`} spill={run.spill}>
+              {day.stops.slice(run.from, run.to).map((stop, n) => renderStop(stop, run.from + n))}
+            </SpillBlock>
+          ) : (
+            <React.Fragment key={`run-${run.from}`}>
+              {day.stops.slice(run.from, run.to).map((stop, n) => renderStop(stop, run.from + n))}
+            </React.Fragment>
           )
-        })}
+        ))}
       </ol>
       {picking ? (
         <StopKindPicker
@@ -1408,6 +1714,7 @@ function QuietDaySection({ day, onMoveStopToDay, drag }: {
 export default function RoadtripSidebar({
   routes, selectedAssignmentId, onSelectStop, onReorderStop, onMoveStopToDay, onAskAlternatives, openAlternatives, onEditStay,
   onSetStopKind, onSetStopFill, onFollowTrack, viaCounts, trackNames, refuel, onAskRefuel, onAcceptRefuel,
+  collapsedDayIds, onToggleDay,
 }: RoadtripSidebarProps): React.ReactElement {
   const { t } = useTranslation()
   // One drag state for the whole rail rather than one per day: a stop that cannot leave
@@ -1467,6 +1774,8 @@ export default function RoadtripSidebar({
             onAskRefuel={onAskRefuel}
             onAcceptRefuel={onAcceptRefuel}
             loading={routes.loading}
+            collapsed={collapsedDayIds?.has(day.dayId)}
+            onToggle={onToggleDay ? () => onToggleDay(day.dayId) : undefined}
           />
         ))}
         {routes.quietDays.map(day => (

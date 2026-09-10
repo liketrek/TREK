@@ -167,6 +167,10 @@ export interface Settings {
    * opened the dialog.
    */
   roadtrip_vehicle?: string
+  /** Route the gaps between days too, so the trip is one continuous drive. */
+  roadtrip_connect_days?: boolean
+  /** Draw each day of the trip in its own colour. */
+  roadtrip_day_colors?: boolean
   /**
    * How full a fill-up goes, 1 to 100. Absent or 100 means all the way.
    *

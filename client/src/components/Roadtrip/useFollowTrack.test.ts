@@ -30,8 +30,8 @@ function day(over: Partial<RoadtripDay> = {}): RoadtripDay {
   return {
     dayId: 7, dayNumber: 1, date: null, title: null,
     stops: [
-      { assignmentId: 1, placeId: 10, name: 'A', lat: START.lat, lng: START.lng, time: null, dwellMinutes: null, legMode: null, incomingLegMode: null, stopType: null },
-      { assignmentId: 2, placeId: 20, name: 'B', lat: END.lat, lng: END.lng, time: null, dwellMinutes: null, legMode: null, incomingLegMode: null, stopType: null },
+      { assignmentId: 1, ownerDayId: 1, ownerIndex: 0, placeId: 10, name: 'A', lat: START.lat, lng: START.lng, time: null, dwellMinutes: null, legMode: null, incomingLegMode: null, stopType: null },
+      { assignmentId: 2, ownerDayId: 1, ownerIndex: 1, placeId: 20, name: 'B', lat: END.lat, lng: END.lng, time: null, dwellMinutes: null, legMode: null, incomingLegMode: null, stopType: null },
     ],
     legs: [], legVias: [], driveWarnings: [], dayWarning: null, schedule: { entries: [], warnings: [] },
     geometry: [[START.lat, START.lng], [END.lat, END.lng]],
@@ -41,7 +41,7 @@ function day(over: Partial<RoadtripDay> = {}): RoadtripDay {
 }
 
 const routes = (days: RoadtripDay[]): RoadtripRoutes => ({
-  days, lines: [], segments: [], accessLines: [], vias: [], totalDistance: 0, totalDuration: 0, totalStops: 0, quietDays: [], loading: false,
+  days, lines: [], lineDays: [], segments: [], accessLines: [], vias: [], totalDistance: 0, totalDuration: 0, totalStops: 0, quietDays: [], loading: false,
 })
 
 function viasStub(over: Partial<RoadtripVias> = {}): RoadtripVias {

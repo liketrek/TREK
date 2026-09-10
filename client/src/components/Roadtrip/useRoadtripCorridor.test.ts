@@ -21,8 +21,8 @@ function day(over: Partial<RoadtripDay> = {}): RoadtripDay {
   return {
     dayId: 1, dayNumber: 1, date: null, title: null,
     stops: [
-      { assignmentId: 1, placeId: 10, name: 'A', lat: 53.5, lng: 9.9, time: null, dwellMinutes: null, legMode: null, incomingLegMode: null, stopType: null },
-      { assignmentId: 2, placeId: 20, name: 'B', lat: 52.5, lng: 13.4, time: null, dwellMinutes: null, legMode: null, incomingLegMode: null, stopType: null },
+      { assignmentId: 1, ownerDayId: 1, ownerIndex: 0, placeId: 10, name: 'A', lat: 53.5, lng: 9.9, time: null, dwellMinutes: null, legMode: null, incomingLegMode: null, stopType: null },
+      { assignmentId: 2, ownerDayId: 1, ownerIndex: 1, placeId: 20, name: 'B', lat: 52.5, lng: 13.4, time: null, dwellMinutes: null, legMode: null, incomingLegMode: null, stopType: null },
     ],
     legs: [], legVias: [], driveWarnings: [], dayWarning: null, schedule: { entries: [], warnings: [] },
     geometry: [[53.5, 9.9], [53.0, 11.0], [52.5, 13.4]],
@@ -32,7 +32,7 @@ function day(over: Partial<RoadtripDay> = {}): RoadtripDay {
 }
 
 const routes = (days: RoadtripDay[]): RoadtripRoutes => ({
-  days, lines: [], segments: [], accessLines: [], vias: [], totalDistance: 0, totalDuration: 0, totalStops: 0, quietDays: [], loading: false,
+  days, lines: [], lineDays: [], segments: [], accessLines: [], vias: [], totalDistance: 0, totalDuration: 0, totalStops: 0, quietDays: [], loading: false,
 })
 
 /** The search state the mocked hook hands back, results included. */

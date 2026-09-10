@@ -11,6 +11,8 @@ const wrap = (ui: React.ReactElement) => render(<TranslationProvider>{ui}</Trans
 
 const stop = (id: number, name: string): RoadtripStop => ({
   assignmentId: id,
+  ownerDayId: 1,
+  ownerIndex: id - 1,
   placeId: id * 10,
   name,
   lat: 53.5,
@@ -41,7 +43,7 @@ const day = (dayId: number, dayNumber: number): RoadtripDay => ({
 
 const routes = (days: RoadtripDay[]): RoadtripRoutes => ({
   days,
-  lines: [],
+  lines: [], lineDays: [],
   accessLines: [],
   vias: [],
   segments: [],
@@ -202,9 +204,9 @@ describe('RoadtripCorridorPanel', () => {
     })
     wrap(<RoadtripCorridorPanel corridor={c} routes={routes([day(1, 1)])} />)
 
-    // "Fuel" also names an option in the kind picker; the group header is the one
-    // inside a <header>.
-    const fuelGroup = screen.getAllByText('Fuel').map(el => el.closest('header')).find(Boolean)!
+    // "Fuel" also names an option in the kind picker; the group header is the one that
+    // folds its list, so it is the button.
+    const fuelGroup = screen.getAllByText('Fuel').map(el => el.closest('button')).find(Boolean)!
     expect(within(fuelGroup).getByText('2 on the way')).toBeInTheDocument()
     expect(screen.getByText('Camping Elbe')).toBeInTheDocument()
   })
@@ -291,11 +293,17 @@ describe('RoadtripCorridorPanel', () => {
     expect(screen.getByText('The route is long — only the first stretch was searched.')).toBeInTheDocument()
   })
 
-  it('FE-ROADTRIP-PANEL-017: a stretch the server cut short is admitted, not passed off as empty', () => {
+  it('FE-ROADTRIP-PANEL-017: a stretch the server cut short is not reported as a fault', () => {
+    // It used to say so, and it said so on nearly every search of a long day: the ceiling
+    // is per box and a busy corridor reaches it as a matter of course. That made a
+    // permanent complaint about a search that had worked, and its advice — narrow the
+    // corridor — makes the answer smaller rather than better. The warnings that remain
+    // are the ones about a search that did not happen.
     const c = corridor({}, { results: [poi({ osm_id: 'a', name: 'Aral' })], truncatedAreas: 2 })
     wrap(<RoadtripCorridorPanel corridor={c} routes={routes([day(1, 1)])} />)
 
-    expect(screen.getByText(/2 stretches had more than fits in one answer/)).toBeInTheDocument()
+    expect(screen.queryByText(/had more than fits in one answer/)).not.toBeInTheDocument()
+    expect(screen.getByText('Aral')).toBeInTheDocument()
   })
 
   it('FE-ROADTRIP-PANEL-018: the filter appears only once there is something to narrow', () => {

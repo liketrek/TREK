@@ -6,6 +6,7 @@ import {
   haversineKm,
   pointAtMeters,
   projectOntoRoute,
+  sliceAtMeters,
   simplifyLine,
   type LatLng,
 } from './corridor'
@@ -212,5 +213,51 @@ describe('boxAround', () => {
     const berlin = boxAround(BERLIN, 10)
     const tromso = boxAround({ lat: 69.65, lng: 18.96 }, 10)
     expect(tromso.east - tromso.west).toBeGreaterThan(berlin.east - berlin.west)
+  })
+})
+
+describe('sliceAtMeters', () => {
+  // A degree of latitude is about 111 km, so this line is roughly 111 km long and every
+  // figure below can be read off it without a calculator.
+  const line: LatLng[] = [{ lat: 52, lng: 13 }, { lat: 53, lng: 13 }]
+
+  it('cuts a stretch out of the middle and interpolates both ends', () => {
+    const out = sliceAtMeters(line, 30_000, 60_000)
+    expect(out).toHaveLength(2)
+    expect(haversineKm(out[0], out[1]) * 1000).toBeGreaterThan(29_000)
+    expect(haversineKm(out[0], out[1]) * 1000).toBeLessThan(31_000)
+  })
+
+  it('two adjacent slices meet exactly, so the parts rebuild the whole', () => {
+    // The reason this exists: a day's line is its legs end to end, and a night drive
+    // takes its own leg to the next card. A gap at the join would draw as a break in
+    // the road.
+    const first = sliceAtMeters(line, 0, 40_000)
+    const second = sliceAtMeters(line, 40_000, 80_000)
+    const end = first[first.length - 1]
+    expect(haversineKm(end, second[0])).toBeLessThan(0.001)
+  })
+
+  it('clamps to the line rather than running past its end', () => {
+    const out = sliceAtMeters(line, 0, 999_000_000)
+    expect(out[out.length - 1]).toEqual(line[line.length - 1])
+  })
+
+  it('is empty for a zero-length or backwards range', () => {
+    expect(sliceAtMeters(line, 50_000, 50_000)).toEqual([])
+    expect(sliceAtMeters(line, 60_000, 30_000)).toEqual([])
+  })
+
+  it('is empty for a line that is not one', () => {
+    expect(sliceAtMeters([], 0, 100)).toEqual([])
+    expect(sliceAtMeters([{ lat: 52, lng: 13 }], 0, 100)).toEqual([])
+  })
+
+  it('survives a repeated vertex without producing NaN', () => {
+    // A concatenated route line really does contain these, and dividing by a zero-length
+    // segment is how a route full of NaN reaches the map.
+    const doubled: LatLng[] = [{ lat: 52, lng: 13 }, { lat: 52, lng: 13 }, { lat: 53, lng: 13 }]
+    const out = sliceAtMeters(doubled, 10_000, 20_000)
+    expect(out.every(p => Number.isFinite(p.lat) && Number.isFinite(p.lng))).toBe(true)
   })
 })

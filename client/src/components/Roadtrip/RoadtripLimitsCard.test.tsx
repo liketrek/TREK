@@ -13,13 +13,25 @@ import RoadtripLimitsCard from './RoadtripLimitsCard'
  * tenth of what was typed and only say so after the next reload.
  */
 
-function open(onSave?: (key: string, value: number) => void) {
+function open(onSave?: (key: string, value: number | string | boolean) => void) {
   render(<RoadtripLimitsCard onSave={onSave} />)
   fireEvent.click(screen.getByRole('button'))
 }
 
 /** Every number field, in the order the dialog lists them. */
 const inputs = () => screen.getAllByRole('spinbutton') as HTMLInputElement[]
+
+/**
+ * Unfolds the car's own figures.
+ *
+ * They sit behind a disclosure now, open from the start only when one of them is already
+ * stored — so a test that arrives with an empty vehicle has to ask for them, and one that
+ * arrives with values does not.
+ */
+function openSpec() {
+  const toggle = screen.queryByRole('button', { name: /Work it out from the car/i })
+  if (toggle && toggle.getAttribute('aria-expanded') === 'false') fireEvent.click(toggle)
+}
 
 beforeEach(() => {
   useSettingsStore.setState({
@@ -134,8 +146,13 @@ describe('RoadtripLimitsCard', () => {
     })
     open(vi.fn())
 
-    // Leg, day, battery, consumption, wear, range, fill. The three in the middle
-    // do not exist until there is a kind of car to have them.
+    // Four are always out: leg, day, range, fill. The car's own three are folded away
+    // until asked for, because nothing is stored on this vehicle yet.
+    expect(inputs()).toHaveLength(4)
+    openSpec()
+
+    // Leg, day, range, fill, battery, consumption, wear. The three at the end do not
+    // exist until there is a kind of car to have them.
     expect(inputs()).toHaveLength(7)
     expect(screen.getByText('kWh')).toBeInTheDocument()
     expect(screen.getByText('kWh/100 km')).toBeInTheDocument()
@@ -168,7 +185,8 @@ describe('RoadtripLimitsCard', () => {
     open(onSave)
 
     // Leg, day, tank, consumption, range, fill.
-    const tank = inputs()[2]
+    openSpec()
+    const tank = screen.getByTestId('limit-tankLitres') as HTMLInputElement
     fireEvent.change(tank, { target: { value: '15' } })
     fireEvent.blur(tank)
 
@@ -188,8 +206,10 @@ describe('RoadtripLimitsCard', () => {
     const onSave = vi.fn()
     open(onSave)
 
-    // Leg, day, battery, consumption, wear, fill — the range row is read-only here.
-    const consumption = inputs()[3]
+    openSpec()
+    // By name rather than by position: the rows are no longer at fixed indices now that
+    // the car's figures live behind a disclosure.
+    const consumption = screen.getByTestId('limit-kwhPer100') as HTMLInputElement
     fireEvent.change(consumption, { target: { value: '20' } })
 
     // 58 kWh at 20 per hundred is 290 km, shown before anything is written: the gauge
@@ -197,5 +217,47 @@ describe('RoadtripLimitsCard', () => {
     // answers now rather than after the field is left.
     expect(screen.getAllByText('290').length).toBeGreaterThan(0)
     expect(onSave).not.toHaveBeenCalled()
+  })
+
+  /**
+   * The two switches over the route line itself.
+   *
+   * Both are off by default and both change what the map draws, so what is asserted is
+   * that each reports its own key and that neither is written until it is pressed.
+   */
+  describe('the route line', () => {
+    it('FE-ROADTRIP-LIMITS-013: joining the days up is off until it is asked for', () => {
+      const onSave = vi.fn()
+      open(onSave)
+
+      const toggle = screen.getByRole('button', { name: 'Connect the days' })
+      expect(toggle).toHaveAttribute('aria-pressed', 'false')
+      fireEvent.click(toggle)
+      // Costs a routing request per join and changes every day's kilometres, so it is a
+      // decision rather than a default.
+      expect(onSave).toHaveBeenCalledWith('roadtrip_connect_days', true)
+    })
+
+    it('FE-ROADTRIP-LIMITS-014: a colour per day is its own switch', () => {
+      const onSave = vi.fn()
+      open(onSave)
+
+      fireEvent.click(screen.getByRole('button', { name: 'A colour per day' }))
+      expect(onSave).toHaveBeenCalledWith('roadtrip_day_colors', true)
+      expect(onSave).toHaveBeenCalledTimes(1)
+    })
+
+    it('FE-ROADTRIP-LIMITS-015: a switch that is on reports the way back off', () => {
+      useSettingsStore.setState({
+        settings: { roadtrip_connect_days: true, distance_unit: 'metric' } as never,
+      })
+      const onSave = vi.fn()
+      open(onSave)
+
+      const toggle = screen.getByRole('button', { name: 'Connect the days' })
+      expect(toggle).toHaveAttribute('aria-pressed', 'true')
+      fireEvent.click(toggle)
+      expect(onSave).toHaveBeenCalledWith('roadtrip_connect_days', false)
+    })
   })
 })

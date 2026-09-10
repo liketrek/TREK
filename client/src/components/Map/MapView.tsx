@@ -606,6 +606,9 @@ export const MapView = memo(function MapView({
   places = [],
   dayPlaces = [],
   route = null,
+  // One colour pair per entry of `route`, or absent for the blue the route has always
+  // been. Only the road trip passes these, and only while colouring by day is on.
+  routeColors = null,
   routeSegments = [],
   selectedPlaceId = null,
   hoverDisabled = false,
@@ -1032,7 +1035,7 @@ export const MapView = memo(function MapView({
         <Polyline
           key={`${i}-casing`}
           positions={seg}
-          pathOptions={{ color: '#0a5cc2', weight: 8, opacity: 1, lineCap: 'round', lineJoin: 'round' }}
+          pathOptions={{ color: routeColors?.[i]?.casing ?? '#0a5cc2', weight: 8, opacity: 1, lineCap: 'round', lineJoin: 'round' }}
           interactive={!!onRouteClick}
           eventHandlers={onRouteClick ? {
             click: (e: { latlng: { lat: number; lng: number }; originalEvent: MouseEvent }) => {
@@ -1046,7 +1049,7 @@ export const MapView = memo(function MapView({
         <Polyline
           key={`${i}-core`}
           positions={seg}
-          pathOptions={{ color: '#0a84ff', weight: 5, opacity: 1, lineCap: 'round', lineJoin: 'round' }}
+          pathOptions={{ color: routeColors?.[i]?.line ?? '#0a84ff', weight: 5, opacity: 1, lineCap: 'round', lineJoin: 'round' }}
           interactive={false}
         />,
       ] : [])}

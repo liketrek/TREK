@@ -1,15 +1,15 @@
 import React, { useState } from 'react'
 import {
   Clock, Fuel, CalendarClock, SlidersHorizontal, ChevronRight, Coins, Signpost, Ship,
-  Car, Zap, BatteryCharging, BatteryFull, BatteryWarning, Gauge, Route, Sparkles,
+  Car, Zap, BatteryCharging, BatteryFull, BatteryWarning, Gauge, Route, Sparkles, Link2, Palette,
 } from 'lucide-react'
 import Modal from '../shared/Modal'
-import CustomSelect from '../shared/CustomSelect'
 import { useTranslation } from '../../i18n/TranslationContext'
 import { useSettingsStore } from '../../store/settingsStore'
-import { convertDistance, formatDistance, getDistanceUnitLabel } from '../../utils/units'
+import { convertDistance, formatDistance } from '../../utils/units'
 import { formatDurationShort, parseAvoid, serializeAvoid, type VehicleKind } from './roadtripModel'
 import { effectiveRangeKm, rangeFromSpec, showSpec, storeSpec, specUnit, type SpecKey, type VehicleSpec } from './vehicleRange'
+import RangeStrip from './RangeStrip'
 import { valhallaAvailable } from '../Map/valhallaRoute'
 import ToggleSwitch from '../Settings/ToggleSwitch'
 import type { DistanceUnit, RouteAvoidClass } from '../../types'
@@ -48,7 +48,7 @@ function parseLimit(raw: string): number {
  * its shape either way, because a range that switched between an input and a line of text
  * would move every row under it the moment a consumption was typed.
  */
-function LimitRow({ icon: Icon, label, suffix, value, placeholder, step, derived, wide, onDraft, onChange }: {
+function LimitRow({ icon: Icon, label, suffix, value, placeholder, step, derived, testId, onDraft, onChange }: {
   icon: typeof Clock
   label: string
   suffix: string
@@ -57,15 +57,12 @@ function LimitRow({ icon: Icon, label, suffix, value, placeholder, step, derived
   step?: number
   derived?: string
   /**
-   * Room for a unit longer than a symbol, set per section rather than per row.
+   * A stable handle for the tests, because the rows are no longer at fixed indices.
    *
-   * "kWh/100 km" and "L/100 km" are units people actually quote, and a column sized for
-   * "min" wrapped them onto a second line, which made one row of the vehicle section
-   * taller than the rest. Sizing it from the string would have done the same thing
-   * sideways: only the consumption row would widen, and the section's right edge would
-   * come out ragged.
+   * The vehicle figures now live behind a disclosure, so "the fourth number field" means
+   * different things depending on whether it is open.
    */
-  wide?: boolean
+  testId?: string
   /**
    * What is in the field right now, on every keystroke, saved or not.
    *
@@ -93,40 +90,57 @@ function LimitRow({ icon: Icon, label, suffix, value, placeholder, step, derived
   }
 
   return (
-    <label className="flex items-center gap-3">
+    <label className="flex min-h-9 items-center gap-4">
       <Icon size={16} className="shrink-0 text-content-faint" aria-hidden />
-      <span className="min-w-0 flex-1 text-body text-content-secondary">{label}</span>
-      {derived ? (
-        // A mark rather than a word: "computed" is eight characters in English and
-        // fourteen in half the locales, and the column is as wide as the input it
-        // replaces. The sentence lives in the title and in the screen-reader text.
-        <span
-          className={`flex items-center justify-end gap-1.5 ${wide ? 'w-16' : 'w-20'}`}
-          title={derived}
-          data-testid="limit-derived"
-        >
-          <Sparkles size={12} className="shrink-0 text-accent-on" aria-hidden />
-          <span className="text-body font-semibold tabular-nums text-content">{value ?? 0}</span>
-          <span className="sr-only">{derived}</span>
+      {/* Label and unit in one wrapping flow, not in two columns. The unit used to have a
+          column of its own, sized per section, because "kWh/100 km" does not fit where
+          "min" does — and that column was the reason every section had a right edge of
+          its own. In the flow it simply wraps under a long label and costs nothing. */}
+      <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
+        <span className="text-body text-content-secondary">{label}</span>
+        {/* The unit as a chip rather than as more grey words after the label. "kWh/100 km"
+            set as prose reads as part of the question; on a chip it reads as what the
+            number beside it will be measured in, which is what it is. */}
+        <span className="inline-flex items-center rounded-md bg-surface-tertiary px-1.5 py-0.5 text-caption leading-none text-content-muted">
+          {suffix}
         </span>
-      ) : (
-        <input
-          type="number"
-          inputMode="decimal"
-          min={0}
-          step={step ?? 1}
-          value={shown}
-          placeholder={placeholder}
-          onChange={e => { setDraft(e.target.value); onDraft?.(parseLimit(e.target.value)) }}
-          onBlur={commit}
-          // Committed here rather than by blurring and letting onBlur do it: a
-          // second commit is a no-op anyway, and going through blur made Enter
-          // depend on focus handling instead of on the key.
-          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); commit(); (e.target as HTMLInputElement).blur() } }}
-          className={`${wide ? 'w-16' : 'w-20'} rounded-lg border border-edge bg-surface px-2 py-1 text-end text-body tabular-nums text-content focus:border-accent focus:outline-none`}
-        />
-      )}
-      <span className={`${wide ? 'w-[86px]' : 'w-7'} whitespace-nowrap text-caption text-content-faint`}>{suffix}</span>
+      </span>
+      {/* The one right edge of the whole dialog. Sized from the type rather than in fixed
+          pixels, so it grows with the reader's text-size setting instead of clipping: six
+          digits of tabular figures plus the field's own padding, and never narrower than
+          a switch. Geometry, which the styleguide allows inline. */}
+      <span className="flex shrink-0 justify-end" style={{ width: 'max(5.5rem, calc(6ch + 1.75rem))' }}>
+        {derived ? (
+          // A mark rather than a word: "computed" is eight characters in English and
+          // fourteen in half the locales. The sentence lives in the title and in the
+          // screen-reader text.
+          <span className="flex items-center gap-1.5" title={derived} data-testid="limit-derived">
+            <Sparkles size={12} className="shrink-0 text-accent-on" aria-hidden />
+            <span className="text-body font-semibold tabular-nums text-content">{value ?? 0}</span>
+            <span className="sr-only">{derived}</span>
+          </span>
+        ) : (
+          <input
+            type="number"
+            inputMode="decimal"
+            min={0}
+            step={step ?? 1}
+            value={shown}
+            placeholder={placeholder}
+            aria-label={`${label}, ${suffix}`}
+            data-testid={testId}
+            onChange={e => { setDraft(e.target.value); onDraft?.(parseLimit(e.target.value)) }}
+            onBlur={commit}
+            // Committed here rather than by blurring and letting onBlur do it: a
+            // second commit is a no-op anyway, and going through blur made Enter
+            // depend on focus handling instead of on the key.
+            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); commit(); (e.target as HTMLInputElement).blur() } }}
+            // The spinners are the other half of the width problem: they eat a third of a
+            // narrow field and nobody sets a driving limit by clicking an arrow.
+            className="w-full rounded-lg border border-edge bg-surface px-2.5 py-1.5 text-end text-body tabular-nums text-content [appearance:textfield] focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          />
+        )}
+      </span>
     </label>
   )
 }
@@ -156,7 +170,35 @@ function AvoidRow({ icon: Icon, label, on, disabled, onToggle }: {
   )
 }
 
-/** The name of one half of the form. */
+/**
+ * One section of the dialog, as a panel of its own.
+ *
+ * The complaint the redesign started from was "untidy", and the cause was that four
+ * sections sat in two columns with nothing between them but a heading: no edges, so the
+ * eye had to work out where one ended, and two right edges, so nothing lined up across
+ * the middle. A panel draws that boundary once and the rows inside inherit one rhythm.
+ *
+ * The closing note is part of the panel rather than a paragraph somebody remembers to add:
+ * every one of these sections has a sentence that has to be said (driving time is driving
+ * time only; avoidance is a weighting, not a ban), and left to each caller they drifted
+ * apart in spacing and in colour.
+ */
+function Panel({ icon: Icon, title, note, children }: {
+  icon: typeof Clock
+  title: string
+  note?: string
+  children: React.ReactNode
+}): React.ReactElement {
+  return (
+    <section className="flex flex-col gap-3 rounded-xl border border-edge-faint bg-surface-secondary px-4 py-3.5">
+      <SectionTitle icon={Icon}>{title}</SectionTitle>
+      {children}
+      {note ? <p className="text-caption leading-snug text-content-faint">{note}</p> : null}
+    </section>
+  )
+}
+
+/** The name of one section, inside its panel. */
 function SectionTitle({ icon: Icon, children }: {
   icon: typeof Clock
   children: React.ReactNode
@@ -166,118 +208,6 @@ function SectionTitle({ icon: Icon, children }: {
       <Icon size={13} aria-hidden />
       {children}
     </p>
-  )
-}
-
-/**
- * The range, drawn as the thing it describes.
- *
- * The bar is the tank the day it left the factory, left to right, and it carries the two
- * figures a bare number cannot say on its own:
- *
- *  - The filled part is what a stop actually puts back in. Nobody charges to 100 % on the
- *    road, and a traveller who set 80 % is looking at four fifths of a bar, which is the
- *    honest picture of what the next leg has.
- *  - The hatched tail is what age has taken off an electric car's battery. It is already
- *    out of the number above, so without the tail that figure looks like an unexplained
- *    disagreement with the car's own data sheet.
- *
- * Widths animate because this sits directly under the fields that feed it: typing a
- * consumption and watching the bar move is what makes the two ways of stating a range
- * visibly the same thing.
- */
-function RangeGauge({ rangeKm, fillPercent, wearPercent, unit, electric, t }: {
-  rangeKm: number | null
-  fillPercent: number | null
-  wearPercent: number | null
-  unit: DistanceUnit
-  electric: boolean
-  t: (key: string, params?: Record<string, string | number>) => string
-}): React.ReactElement {
-  // Capped where the arithmetic caps it, so the picture cannot claim a battery is gone.
-  const wear = rangeKm ? Math.min(90, Math.max(0, wearPercent ?? 0)) : 0
-  const fill = fillPercent && fillPercent > 0 && fillPercent < 100 ? fillPercent : 100
-  const usable = 100 - wear
-  const filled = rangeKm ? (usable * fill) / 100 : 0
-  const rest = 100 - wear - filled
-  // Split rather than formatted whole, so the unit can sit smaller beside the figure.
-  // The rounding is formatDistance's own, because the badge on the trigger uses that and
-  // the two must not disagree by a tenth.
-  const shown = rangeKm ? Math.round(convertDistance(rangeKm, unit) * 10) / 10 : null
-  const stripes = 'repeating-linear-gradient(135deg, var(--border-primary) 0 3px, transparent 3px 6px)'
-
-  return (
-    <div className="flex flex-col gap-3 rounded-xl border border-edge-faint bg-surface-tertiary px-4 py-3.5">
-      <div className="flex items-center gap-3">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent-subtle text-accent-on">
-          {electric ? <Zap size={18} aria-hidden /> : <Fuel size={18} aria-hidden />}
-        </span>
-        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="flex items-baseline gap-1">
-            <span className="font-semibold tabular-nums leading-none text-content" style={{ fontSize: FS.total }}>
-              {shown ?? '—'}
-            </span>
-            {shown !== null ? (
-              <span className="font-semibold leading-none text-content-muted" style={{ fontSize: FS.totalUnit }}>
-                {getDistanceUnitLabel(unit)}
-              </span>
-            ) : null}
-          </span>
-          <span className="truncate text-caption text-content-muted">
-            {shown === null
-              ? t('roadtrip.limit.rangeEmpty')
-              : t(electric ? 'roadtrip.limit.perCharge' : 'roadtrip.limit.perFill')}
-          </span>
-        </span>
-      </div>
-
-      {/* The quarter marks are painted over the whole bar rather than drawn into each
-          segment, so they stay put while the segments under them move. They are the
-          card's own colour, which makes them read as cut-outs: visible across the filled
-          part, invisible over the empty track, where there is nothing to divide. */}
-      <div className="relative h-3.5 w-full overflow-hidden rounded-full bg-surface">
-        <div className="flex h-full w-full">
-          <div
-            className="h-full transition-[width] duration-500 ease-out"
-            style={{ width: `${filled}%`, background: 'linear-gradient(90deg, var(--accent-hover), var(--accent))' }}
-          />
-          <div className="h-full transition-[width] duration-500 ease-out" style={{ width: `${rest}%` }} />
-          <div
-            className="h-full transition-[width] duration-500 ease-out"
-            style={{ width: `${wear}%`, backgroundImage: stripes }}
-          />
-        </div>
-        <div
-          className="pointer-events-none absolute inset-0"
-          style={{
-            backgroundImage:
-              'repeating-linear-gradient(90deg, transparent 0, transparent calc(25% - 1px), var(--bg-tertiary) calc(25% - 1px), var(--bg-tertiary) 25%)',
-          }}
-        />
-      </div>
-
-      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-caption leading-snug text-content-faint">
-        {shown === null ? (
-          <span>{t('roadtrip.limit.rangeEmptyHint')}</span>
-        ) : (
-          <>
-            <span>
-              {fill < 100
-                ? t('roadtrip.limit.afterFill', { percent: fill, distance: formatDistance((rangeKm! * fill) / 100, unit) })
-                : t('roadtrip.limit.fullNote')}
-            </span>
-            {/* The swatch is what ties the sentence to the tail of the bar. Without it the
-                hatching is an unexplained stripe and the sentence an unexplained loss. */}
-            {wear > 0 ? (
-              <span className="inline-flex items-center gap-1.5">
-                <span className="h-2 w-3.5 shrink-0 rounded-sm" style={{ backgroundImage: stripes }} aria-hidden />
-                {t('roadtrip.limit.wearNote', { percent: wear })}
-              </span>
-            ) : null}
-          </>
-        )}
-      </div>
-    </div>
   )
 }
 
@@ -310,6 +240,14 @@ const SPEC_ROWS: Record<VehicleKind, { key: SpecKey; setting: string; Icon: type
   ],
 }
 
+/**
+ * The settings every one of the car's own figures is stored under.
+ *
+ * Read once, to decide whether the disclosure below the range starts open: a stored
+ * figure means the range row is derived, and its cause has to be in sight.
+ */
+const SPEC_SETTINGS = ['roadtrip_tank_litres', 'roadtrip_litres_per_100', 'roadtrip_battery_kwh', 'roadtrip_kwh_per_100', 'roadtrip_battery_degradation'] as const
+
 export default function RoadtripLimitsCard({ onSave }: {
   /**
    * Persists one setting. Absent leaves the dialog read-only.
@@ -317,7 +255,7 @@ export default function RoadtripLimitsCard({ onSave }: {
    * A string as well as a number since the avoidance is stored as a comma list: one
    * decision with three parts, which goes to the router as one request either way.
    */
-  onSave?: (key: string, value: number | string) => void
+  onSave?: (key: string, value: number | string | boolean) => void
 }): React.ReactElement {
   const { t } = useTranslation()
   const settings = useSettingsStore(s => s.settings)
@@ -354,6 +292,16 @@ export default function RoadtripLimitsCard({ onSave }: {
    * through the same conversion the save would have used.
    */
   const [preview, setPreview] = useState<{ key: SpecKey | 'range' | 'fill'; value: number } | null>(null)
+  /**
+   * Whether the car's own figures are unfolded.
+   *
+   * Open from the start the moment any of them is stored, because then the range row is
+   * read-only and folding its cause away would leave a field nobody can edit with no
+   * visible reason. Read once at mount: re-deriving it would slam the panel shut under
+   * the hand of somebody clearing the last field.
+   */
+  const [specOpen, setSpecOpen] = useState(() =>
+    SPEC_SETTINGS.some(k => typeof (settings as unknown as Record<string, unknown>)[k] === 'number'))
   const spec: VehicleSpec = preview && preview.key !== 'range' && preview.key !== 'fill'
     ? { ...saved, [preview.key]: storeSpec(preview.key, preview.value, imperial) }
     : saved
@@ -464,147 +412,213 @@ export default function RoadtripLimitsCard({ onSave }: {
       </button>
 
       {open ? (
-        <Modal isOpen onClose={() => { setOpen(false); setPreview(null) }} size="2xl" title={
+        <Modal isOpen onClose={() => { setOpen(false); setPreview(null) }} size="4xl" title={
           <span className="flex items-center gap-2">
             <SlidersHorizontal size={15} className="text-content-faint" aria-hidden />
             {t('roadtrip.limit.title')}
           </span>
         }>
-          {/* Two columns from the small breakpoint up. One narrow column stopped reading
-              as a form and started reading as a wall, and the halves are different in
-              kind anyway: the left is the trip, the right is the car. */}
-          <div className="grid gap-x-8 gap-y-7 sm:grid-cols-2">
-            <div className="flex flex-col gap-7">
-              <section className="flex flex-col gap-4">
-                <SectionTitle icon={Clock}>{t('roadtrip.limit.sectionDriving')}</SectionTitle>
-                <LimitRow
-                  icon={Clock}
-                  label={t('roadtrip.limit.legLabel')}
-                  suffix={t('roadtrip.limit.minutes')}
-                  value={legMinutes}
-                  placeholder={t('roadtrip.limit.off')}
-                  onChange={v => onSave?.('roadtrip_leg_minutes', v)}
-                />
-                <LimitRow
-                  icon={CalendarClock}
-                  label={t('roadtrip.limit.dayLabel')}
-                  suffix={t('roadtrip.limit.minutes')}
-                  value={dayMinutes}
-                  placeholder={t('roadtrip.limit.off')}
-                  onChange={v => onSave?.('roadtrip_day_minutes', v)}
-                />
-                {/* Said out loud rather than left to be discovered: the day figure this is
-                    measured against is driving time only. It does not include how long
-                    anyone stands still, and it does not include the leg to the hotel,
-                    because the rail does not model one. A limit called "travel time per
-                    day" over that number would be a lie that looks tidy. */}
-                <p className="text-caption leading-snug text-content-faint">{t('roadtrip.limit.hint')}</p>
-              </section>
+          <div className="flex flex-col gap-4">
+            {/* Two columns, kept. One column reads more tidily but turns the dialog into
+                something that has to be scrolled, and a setting you cannot see while you
+                change another is worse than a seam down the middle.
 
-              <section className="flex flex-col gap-3">
-                <SectionTitle icon={Signpost}>{t('roadtrip.avoid.section')}</SectionTitle>
-                {AVOID_ROWS.map(({ cls, icon, label }) => (
+                What answers the seam is not the count of columns but what is in them: each
+                section is now a panel of its own with a visible edge, every row inside it
+                ends on the same right edge, and the panels are stacked to one rhythm. The
+                left column is the trip, the right one is the car. */}
+            <div className="grid items-start gap-4 sm:grid-cols-2">
+              <div className="flex flex-col gap-4">
+                <Panel icon={Clock} title={t('roadtrip.limit.sectionDriving')} note={t('roadtrip.limit.hint')}>
+                  <LimitRow
+                    icon={Clock}
+                    label={t('roadtrip.limit.legLabel')}
+                    suffix={t('roadtrip.limit.minutes')}
+                    value={legMinutes}
+                    placeholder={t('roadtrip.limit.off')}
+                    testId="limit-legMinutes"
+                    onChange={v => onSave?.('roadtrip_leg_minutes', v)}
+                  />
+                  <LimitRow
+                    icon={CalendarClock}
+                    label={t('roadtrip.limit.dayLabel')}
+                    suffix={t('roadtrip.limit.minutes')}
+                    value={dayMinutes}
+                    placeholder={t('roadtrip.limit.off')}
+                    testId="limit-dayMinutes"
+                    onChange={v => onSave?.('roadtrip_day_minutes', v)}
+                  />
+                </Panel>
+
+                <Panel
+                  icon={Signpost}
+                  title={t('roadtrip.avoid.section')}
+                  note={canAvoid ? t('roadtrip.avoid.hint') : t('roadtrip.avoid.unavailable')}
+                >
+                  {AVOID_ROWS.map(({ cls, icon, label }) => (
+                    <AvoidRow
+                      key={cls}
+                      icon={icon}
+                      label={label}
+                      on={avoiding.includes(cls)}
+                      disabled={!canAvoid}
+                      onToggle={() => toggleAvoid(cls)}
+                    />
+                  ))}
+                </Panel>
+
+                <Panel icon={Route} title={t('roadtrip.line.section')} note={t('roadtrip.line.hint')}>
+                  {/* The road between one day's last stop and the next day's first is real
+                      driving that the rail has never drawn: days are routed one at a time,
+                      so that gap was never asked for. Off by default because it costs a
+                      routing request per join and changes every day's kilometres. */}
                   <AvoidRow
-                    key={cls}
-                    icon={icon}
-                    label={label}
-                    on={avoiding.includes(cls)}
-                    disabled={!canAvoid}
-                    onToggle={() => toggleAvoid(cls)}
+                    icon={Link2}
+                    label={t('roadtrip.line.connect')}
+                    on={!!settings.roadtrip_connect_days}
+                    disabled={false}
+                    onToggle={() => onSave?.('roadtrip_connect_days', !settings.roadtrip_connect_days)}
                   />
-                ))}
-                {/* "Where possible" is doing real work in the label, so it is spelled out
-                    here: the router weights a class down rather than banning it, and on a
-                    drive with no way round one the road still uses it. The day says so
-                    itself when that happens, which is the only honest way to offer this. */}
-                <p className="text-caption leading-snug text-content-faint">
-                  {canAvoid ? t('roadtrip.avoid.hint') : t('roadtrip.avoid.unavailable')}
-                </p>
-              </section>
-            </div>
-
-            <section className="flex flex-col gap-4">
-              <SectionTitle icon={Car}>{t('roadtrip.limit.sectionVehicle')}</SectionTitle>
-              {/* First, because it decides what everything under it means: with no vehicle
-                  named, a petrol station and a charger both fill the tank, which is
-                  arithmetic that is wrong for everybody who drives just one of them. */}
-              <label className="flex items-center gap-3">
-                <Car size={16} className="shrink-0 text-content-faint" aria-hidden />
-                <span className="min-w-0 flex-1 text-body text-content-secondary">{t('roadtrip.limit.vehicleLabel')}</span>
-                <span className="w-[132px] shrink-0">
-                  <CustomSelect
-                    value={vehicle}
-                    onChange={next => onSave?.('roadtrip_vehicle', String(next))}
-                    size="sm"
-                    options={VEHICLES.map(({ key, labelKey, Icon }) => ({
-                      value: key ?? '',
-                      label: t(labelKey),
-                      icon: <Icon size={14} aria-hidden />,
-                    }))}
+                  {/* Which matters most once the line IS continuous: end to end it is one
+                      stroke, and a colour per day is what puts the days back into it. */}
+                  <AvoidRow
+                    icon={Palette}
+                    label={t('roadtrip.line.dayColors')}
+                    on={!!settings.roadtrip_day_colors}
+                    disabled={false}
+                    onToggle={() => onSave?.('roadtrip_day_colors', !settings.roadtrip_day_colors)}
                   />
-                </span>
-              </label>
+                </Panel>
+              </div>
 
-              <RangeGauge
-                rangeKm={planningKm}
-                fillPercent={shownFill}
-                wearPercent={vehicleKind === 'electric' ? spec.degradationPercent ?? null : null}
-                unit={distanceUnit}
-                electric={vehicleKind === 'electric'}
-                t={t}
-              />
+              <Panel
+                icon={Car}
+                title={t('roadtrip.limit.sectionVehicle')}
+                note={vehicleKind ? t('roadtrip.limit.specHint') : t('roadtrip.limit.vehicleHint')}
+              >
+                {/* First, because it decides what everything under it means: with no
+                    vehicle named, a petrol station and a charger both fill the tank, which
+                    is arithmetic that is wrong for everybody who drives just one of them.
 
-              {/* The parts, when there is a kind of car to have parts of. Nothing here is
-                  required: a traveller who knows their range types it below and never
-                  looks at these. */}
-              {vehicleKind ? SPEC_ROWS[vehicleKind].map(({ key, setting, Icon, labelKey, step }) => (
-                <LimitRow
-                  key={key}
-                  icon={Icon}
-                  label={t(labelKey)}
-                  suffix={specUnit(key, imperial)}
-                  step={step}
-                  wide
-                  value={showSpec(key, saved[key], imperial)}
-                  placeholder={t('roadtrip.limit.off')}
-                  onDraft={v => setPreview({ key, value: v })}
-                  onChange={v => onSave?.(setting, storeSpec(key, v, imperial))}
+                    Radios in a segmented shell rather than a dropdown: three options that
+                    change the meaning of everything below them should be readable without
+                    being opened, and the arrow keys, the names and the roles then come
+                    from the browser instead of from a rebuilt listbox. */}
+                <fieldset className="min-w-0">
+                  <legend className="sr-only">{t('roadtrip.limit.vehicleLabel')}</legend>
+                  <div className="grid grid-cols-3 gap-1 rounded-xl border border-edge bg-surface-tertiary p-1">
+                    {VEHICLES.map(({ key, labelKey, Icon }) => (
+                      <label key={key ?? 'unset'} className="min-w-0">
+                        <input
+                          type="radio"
+                          name="roadtrip-vehicle"
+                          className="peer sr-only"
+                          checked={(settings.roadtrip_vehicle || '') === (key ?? '')}
+                          onChange={() => {
+                            // Never writes the car's figures away: switching kind leaves
+                            // both sets stored, `rangeFromSpec` simply returns null for
+                            // the other one, and the typed range comes back as an editable
+                            // field. Deleting the other kind's values here would lose data
+                            // on a mis-click.
+                            setPreview(null)
+                            onSave?.('roadtrip_vehicle', key ?? '')
+                          }}
+                        />
+                        <span className="flex min-w-0 cursor-pointer items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-center text-body text-content-secondary transition-colors hover:bg-surface-hover peer-checked:bg-accent peer-checked:text-accent-text peer-focus-visible:ring-2 peer-focus-visible:ring-accent">
+                          <Icon size={14} className="shrink-0" aria-hidden />
+                          {t(labelKey)}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+
+                <RangeStrip
+                  rangeKm={planningKm}
+                  fillPercent={shownFill}
+                  wearPercent={vehicleKind === 'electric' ? spec.degradationPercent ?? null : null}
+                  unit={distanceUnit}
+                  electric={vehicleKind === 'electric'}
                 />
-              )) : null}
 
-              {/* Read-only once the parts add up, because then it IS the parts. Leaving it
-                  editable would offer a second answer to a question that already has
-                  one, and the traveller would have no way of telling which the warnings
-                  were using. Clearing a field above hands the row straight back. */}
-              <LimitRow
-                icon={Route}
-                // "on one tank" is the wrong noun for half the travellers who set this.
-                label={t(vehicleKind === 'electric' ? 'roadtrip.limit.rangeLabelCharge' : 'roadtrip.limit.rangeLabel')}
-                suffix={imperial ? 'mi' : 'km'}
-                value={rangeShown}
-                placeholder={t('roadtrip.limit.off')}
-                derived={computedKm ? t('roadtrip.limit.computed') : undefined}
-                wide
-                onDraft={v => setPreview({ key: 'range', value: v })}
-                onChange={setRange}
-              />
-              {/* Under the range, because it is a fraction OF it. Nobody charges to 100 %
-                  on the road: the last fifth takes as long as the first four, so a stop
-                  counted as a full tank overstates everything after it by that fifth. */}
-              <LimitRow
-                icon={BatteryCharging}
-                label={t('roadtrip.limit.fillLabel')}
-                suffix="%"
-                value={settings.roadtrip_fill_percent}
-                placeholder={t('roadtrip.limit.fillFull')}
-                wide
-                onDraft={v => setPreview({ key: 'fill', value: v > 100 ? 100 : v })}
-                onChange={v => onSave?.('roadtrip_fill_percent', v > 100 ? 100 : v)}
-              />
-              <p className="text-caption leading-snug text-content-faint">
-                {vehicleKind ? t('roadtrip.limit.specHint') : t('roadtrip.limit.vehicleHint')}
-              </p>
-            </section>
+                {/* Read-only once the parts add up, because then it IS the parts. Leaving
+                    it editable would offer a second answer to a question that already has
+                    one, and the traveller would have no way of telling which the warnings
+                    were using. Clearing a field above hands the row straight back. */}
+                <LimitRow
+                  icon={Route}
+                  // "on one tank" is the wrong noun for half the travellers who set this.
+                  label={t(vehicleKind === 'electric' ? 'roadtrip.limit.rangeLabelCharge' : 'roadtrip.limit.rangeLabel')}
+                  suffix={imperial ? 'mi' : 'km'}
+                  value={rangeShown}
+                  placeholder={t('roadtrip.limit.off')}
+                  derived={computedKm ? t('roadtrip.limit.computed') : undefined}
+                  testId="limit-range"
+                  onDraft={v => setPreview({ key: 'range', value: v })}
+                  onChange={setRange}
+                />
+                {/* Under the range, because it is a fraction OF it. Nobody charges to
+                    100 % on the road: the last fifth takes as long as the first four, so a
+                    stop counted as a full tank overstates everything after it by that
+                    fifth. */}
+                <LimitRow
+                  icon={BatteryCharging}
+                  label={t('roadtrip.limit.fillLabel')}
+                  suffix="%"
+                  value={settings.roadtrip_fill_percent}
+                  placeholder={t('roadtrip.limit.fillFull')}
+                  testId="limit-fill"
+                  onDraft={v => setPreview({ key: 'fill', value: v > 100 ? 100 : v })}
+                  onChange={v => onSave?.('roadtrip_fill_percent', v > 100 ? 100 : v)}
+                />
+
+                {/* The car's own figures, folded away. Nothing here is required — somebody
+                    who knows their range types it above and never opens this — but it
+                    starts open the moment any of them is stored, because otherwise the
+                    range row is read-only with its cause out of sight. */}
+                {vehicleKind ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => { setSpecOpen(o => !o); setPreview(null) }}
+                      aria-expanded={specOpen}
+                      aria-controls="roadtrip-spec"
+                      className="-mx-1 flex items-center gap-1.5 self-start rounded-lg px-1 py-0.5 text-caption font-semibold text-accent-on transition-colors hover:text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                    >
+                      <ChevronRight
+                        size={13}
+                        className={`shrink-0 transition-transform ${specOpen ? 'rotate-90' : ''}`}
+                        aria-hidden
+                      />
+                      {t('roadtrip.limit.specToggle')}
+                    </button>
+                    {/* `hidden` rather than unmounting: it really leaves the tab order,
+                        and a field that kept a draft while folded away would be a draft
+                        nobody can see. */}
+                    {/* The display class only while it is open. `[hidden]` sets
+                        `display: none` in the preflight, but a `flex` class beats it on
+                        specificity — so the attribute flipped, the semantics were right,
+                        and the panel stayed on screen. */}
+                    <div id="roadtrip-spec" hidden={!specOpen} className={specOpen ? 'flex flex-col gap-3' : ''}>
+                      {SPEC_ROWS[vehicleKind].map(({ key, setting, Icon, labelKey, step }) => (
+                        <LimitRow
+                          key={key}
+                          icon={Icon}
+                          label={t(labelKey)}
+                          suffix={specUnit(key, imperial)}
+                          step={step}
+                          value={showSpec(key, saved[key], imperial)}
+                          placeholder={t('roadtrip.limit.off')}
+                          testId={`limit-${key}`}
+                          onDraft={v => setPreview({ key, value: v })}
+                          onChange={v => onSave?.(setting, storeSpec(key, v, imperial))}
+                        />
+                      ))}
+                    </div>
+                  </>
+                ) : null}
+              </Panel>
+            </div>
           </div>
         </Modal>
       ) : null}

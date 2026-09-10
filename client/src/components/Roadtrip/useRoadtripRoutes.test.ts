@@ -352,6 +352,74 @@ describe('useRoadtripRoutes', () => {
     await waitFor(() => expect(calculateRouteWithLegs).toHaveBeenCalledTimes(2))
   })
 
+  /**
+   * Days read by the date each stop is REACHED, and the road between them.
+   *
+   * The arrangement itself is tested in `nightSpill.test.ts`; what is asserted here is
+   * what the hook does with it — the roads it has to ask for that a day-at-a-time plan
+   * never needed, and what the switch over them turns on.
+   */
+  describe('driving that crosses a day boundary', () => {
+    /** Two days, the first of which sets off late enough to arrive after midnight. */
+    const overnight = () => ({
+      days: [day(1, 1), day(2, 2)],
+      assignments: {
+        ...map(1, [{ id: 1, at: HAMBURG, time: '21:00', dwell: 90 }, { id: 2, at: LUENEBURG }]),
+        ...map(2, [{ id: 3, at: BERLIN, time: '10:00' }, { id: 4, at: HAMBURG }]),
+      } as AssignmentsMap,
+    })
+
+    it('FE-ROADTRIP-ROUTES-017: routes the road onto the day a night drive lands on', async () => {
+      // The stop reached after midnight is drawn under day 2, next to day 2's own first
+      // stop. Those two were never neighbours before, so their road was never asked for —
+      // and a chain with a hole in it draws as two runs with a gap across the middle.
+      const { days, assignments } = overnight()
+      // Three hours per leg, which is what puts the second stop past midnight.
+      calculateRouteWithLegs.mockResolvedValue({ ...routed(1), duration: 10800, legs: [{ distance: 100000, duration: 10800, text: '100 km' }] })
+
+      const { result } = renderHook(() => useRoadtripRoutes(7, days, assignments))
+      await waitFor(() => expect(result.current.loading).toBe(false))
+      await waitFor(() => expect(calculateRouteWithLegs.mock.calls.length).toBeGreaterThan(2))
+
+      // A two-point request, which is the seam rather than either day's own run.
+      const seam = calculateRouteWithLegs.mock.calls.find(c => c[0].length === 2
+        && c[0][0].lat === LUENEBURG[0] && c[0][1].lat === BERLIN[0])
+      expect(seam).toBeTruthy()
+    })
+
+    it('FE-ROADTRIP-ROUTES-018: leaves the gap between two ordinary days alone', async () => {
+      // Nothing moved here, so the road from one day's last stop to the next day's first
+      // is a gap the plan simply has. Asking for it is what the switch is for.
+      const daysList = [day(1, 1), day(2, 2)]
+      const assignments = {
+        ...map(1, [{ id: 1, at: HAMBURG, time: '09:00' }, { id: 2, at: LUENEBURG }]),
+        ...map(2, [{ id: 3, at: BERLIN, time: '10:00' }, { id: 4, at: HAMBURG }]),
+      } as AssignmentsMap
+
+      const { result } = renderHook(() => useRoadtripRoutes(7, daysList, assignments))
+      await waitFor(() => expect(result.current.loading).toBe(false))
+
+      // One request per day and no more: the seam is not asked for.
+      expect(calculateRouteWithLegs).toHaveBeenCalledTimes(2)
+      expect(result.current.days).toHaveLength(2)
+    })
+
+    it('FE-ROADTRIP-ROUTES-019: hands the map a line per leg, coloured by the day it is driven on', async () => {
+      const daysList = [day(1, 1), day(2, 2)]
+      const assignments = {
+        ...map(1, [{ id: 1, at: HAMBURG, time: '09:00' }, { id: 2, at: LUENEBURG }]),
+        ...map(2, [{ id: 3, at: BERLIN, time: '10:00' }, { id: 4, at: HAMBURG }]),
+      } as AssignmentsMap
+
+      const { result } = renderHook(() => useRoadtripRoutes(7, daysList, assignments))
+      await waitFor(() => expect(result.current.loading).toBe(false))
+
+      // Same length and same order as `lines`, which is the contract the map paints from.
+      expect(result.current.lineDays).toHaveLength(result.current.lines.length)
+      expect(result.current.lineDays).toEqual([1, 2])
+    })
+  })
+
   it('FE-ROADTRIP-ROUTES-011: leaving the view aborts the request in flight', async () => {
     const days = [day(1, 1)]
     const stops: StopSpec[] = [{ id: 1, at: HAMBURG }, { id: 2, at: BERLIN }]

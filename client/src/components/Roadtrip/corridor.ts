@@ -268,6 +268,61 @@ export function pointAtMeters(line: LatLng[], metres: number): LatLng | null {
 }
 
 /**
+ * How long a line is, in metres, measured the way `sliceAtMeters` walks it.
+ *
+ * Not the same figure the router reports for the same road: that comes off its own graph
+ * while this is great-circle hops between the vertices it sent back. Anything cutting a
+ * line at a distance has to measure it with this, or the last cut falls short of the end
+ * by the difference.
+ */
+export function lineMetres(line: LatLng[]): number {
+  let total = 0
+  for (let i = 1; i < line.length; i++) total += haversineKm(line[i - 1], line[i]) * 1000
+  return total
+}
+
+/**
+ * The stretch of a line between two distances along it, ends included.
+ *
+ * The router answers a whole run with one polyline and a leg list beside it, so the road
+ * belonging to any single leg has to be cut out afterwards. Which matters because a road
+ * trip draws its stops by the day they are REACHED: a drive across midnight hands its
+ * stops to the next card, and the road under them has to go with them — otherwise the
+ * day they set off from keeps a line nobody drives on it, and the corridor search along
+ * "day 2" looks at road that was covered yesterday.
+ *
+ * Both ends are interpolated inside the segment they fall in rather than snapped to the
+ * nearest vertex, so two adjacent slices meet exactly and concatenating them gives the
+ * original line back.
+ */
+export function sliceAtMeters(line: LatLng[], fromMetres: number, toMetres: number): LatLng[] {
+  if (line.length < 2 || toMetres <= fromMetres) return []
+  const from = Math.max(0, fromMetres)
+  const out: LatLng[] = []
+  let covered = 0
+  for (let i = 1; i < line.length; i++) {
+    const step = haversineKm(line[i - 1], line[i]) * 1000
+    const segStart = covered
+    const segEnd = covered + step
+    covered = segEnd
+    if (segEnd < from) continue
+    if (segStart > toMetres) break
+    // A zero-length segment divides by zero; both its ends are the same point, so the
+    // fraction does not matter and zero is the one that never produces NaN.
+    const at = (m: number): LatLng => {
+      const t = step > 0 ? (m - segStart) / step : 0
+      return {
+        lat: line[i - 1].lat + (line[i].lat - line[i - 1].lat) * t,
+        lng: line[i - 1].lng + (line[i].lng - line[i - 1].lng) * t,
+      }
+    }
+    if (!out.length) out.push(segStart >= from ? line[i - 1] : at(from))
+    out.push(segEnd <= toMetres ? line[i] : at(toMetres))
+  }
+  return out.length > 1 ? out : []
+}
+
+/**
  * A box around a point, sized so its inscribed circle reaches `radiusKm`.
  *
  * The server turns a box into centre plus half the diagonal, so a box of ±r asks for

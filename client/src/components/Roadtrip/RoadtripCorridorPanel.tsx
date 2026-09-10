@@ -1,6 +1,6 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
 import {
-  Search, Plus, RotateCw, AlertTriangle, X, BedDouble, MapPin,
+  Search, Plus, RotateCw, AlertTriangle, X, BedDouble, MapPin, ChevronDown,
 } from 'lucide-react'
 import { useTranslation } from '../../i18n/TranslationContext'
 import { Tooltip } from '../shared/Tooltip'
@@ -85,6 +85,14 @@ function ResultBadge({ category }: { category: string }): React.ReactElement {
   )
 }
 
+/**
+ * One fact about a hit, on its own surface.
+ *
+ * `bg-surface-secondary` rather than a literal: the row lifts to `surface-hover` under the
+ * pointer, and a chip painted white would stop lifting with it in the dark scheme.
+ */
+const POI_CHIP = 'inline-flex items-center rounded-md bg-surface-secondary px-1.5 py-0.5 leading-none tabular-nums text-content-muted'
+
 function ResultRow({ poi, onAdd }: { poi: CorridorPoi; onAdd?: () => void }): React.ReactElement {
   const { t } = useTranslation()
   const distanceUnit = useSettingsStore(s => s.settings.distance_unit)
@@ -95,16 +103,16 @@ function ResultRow({ poi, onAdd }: { poi: CorridorPoi; onAdd?: () => void }): Re
         <div className="truncate font-semibold tracking-[-0.012em] text-content" style={{ fontSize: FS.name }}>
           {poi.name}
         </div>
-        {/* Two facts, two elements. Both are translated phrases rather than short fixed
-            values, so they stay text and the gap does the separating a middot used to —
-            which also lets them wrap onto their own lines instead of breaking around a
-            dot left stranded at the end of a line. */}
-        <div
-          className="flex flex-wrap items-baseline gap-x-2 tabular-nums text-content-faint"
-          style={{ fontSize: FS.meta }}
-        >
-          <span>{t('roadtrip.poi.offRoute', { distance: formatDistance(poi.offRouteKm, distanceUnit) })}</span>
-          <span>
+        {/* Two facts, two chips. Where it is off the road and how far into the drive it
+            comes are separate answers, and as two phrases sharing a line they read as one
+            run-on sentence about the same thing. A chip each gives them an edge, and the
+            row still wraps cleanly at a narrow width because nothing has to break around
+            a separator. */}
+        <div className="flex flex-wrap items-center gap-1" style={{ fontSize: FS.meta }}>
+          <span className={POI_CHIP}>
+            {t('roadtrip.poi.offRoute', { distance: formatDistance(poi.offRouteKm, distanceUnit) })}
+          </span>
+          <span className={POI_CHIP}>
             {poi.alongKm < 0.5
               ? t('roadtrip.poi.atStart')
               : t('roadtrip.poi.alongRoute', { distance: formatDistance(poi.alongKm, distanceUnit) })}
@@ -167,9 +175,30 @@ function ResultGroup({ category, pois, dayId, insertIndexFor, onAddPoi }: {
   const meta = CATEGORY_META[category]
   const Icon = meta?.Icon ?? MapPin
   const color = serviceColor(category)
+  /**
+   * Folded away, per category.
+   *
+   * A search for fuel AND food comes back as two lists that push each other off the
+   * screen, and the one being read is never the one at the top. Local state on purpose:
+   * which group somebody has open right now is a way of looking, not a setting — it
+   * should not outlive the search that produced these groups.
+   */
+  const [open, setOpen] = useState(true)
+  const label = meta ? t(meta.labelKey) : category
   return (
-    <section className="pb-1">
-      <header className="flex items-center gap-2.5 px-2 pb-1.5 pt-3">
+    // The gap between two groups belongs to the section, not to the strip: as padding on
+    // the strip it became part of the hover surface, which then hung well above the row
+    // it highlights.
+    <section className="pb-1 pt-1.5 first:pt-0">
+      {/* The whole strip is the control, not a chevron at its end: it is what the eye is
+          on when it decides this is not the list it wants, and at this width a 12px
+          target in the corner is a miss waiting to happen. */}
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        aria-expanded={open}
+        className="group/cat flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-start transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
+      >
         <span
           className="grid h-[22px] w-[22px] shrink-0 place-items-center rounded-[7px]"
           // theme-lint-disable — see ResultBadge.
@@ -178,13 +207,21 @@ function ResultGroup({ category, pois, dayId, insertIndexFor, onAddPoi }: {
           <Icon size={12} strokeWidth={2} aria-hidden />
         </span>
         <span className="font-semibold tracking-[-0.01em] text-content" style={{ fontSize: FS.name }}>
-          {meta ? t(meta.labelKey) : category}
+          {label}
         </span>
         <span className={`ms-auto ${EYEBROW} tabular-nums`} style={{ fontSize: FS.micro }}>
           {t('roadtrip.poi.found', { count: pois.length })}
         </span>
-      </header>
-      <ul>
+        {/* Quiet until the strip is under the pointer, then it says which way this goes.
+            A chevron that is always at full contrast reads as a fourth piece of data in a
+            header that already carries three. */}
+        <ChevronDown
+          size={13}
+          className={`shrink-0 text-content-faint transition-all group-hover/cat:text-content ${open ? '' : '-rotate-90'}`}
+          aria-hidden
+        />
+      </button>
+      <ul hidden={!open}>
         {pois.map(poi => (
           <ResultRow
             key={poi.osm_id}
@@ -267,9 +304,11 @@ export default function RoadtripCorridorPanel({ corridor, routes, onAddPoi }: Ro
   // Some boxes answered and some did not. Saying so is the difference between "there is
   // no fuel on this stretch" and "nobody looked at this stretch".
   else if (search.failedAreas > 0) warnings.push(['partial', t('roadtrip.poi.partial', { count: search.failedAreas })])
-  // The stretch was searched and the answer came back short. Without this line a filter
-  // finding nothing looks like proof there is nothing.
-  if (search.truncatedAreas > 0) warnings.push(['truncated', t('roadtrip.poi.truncated', { count: search.truncatedAreas })])
+  // A stretch that answered short is deliberately NOT reported. It fired on almost every
+  // search of a long day — the ceiling is per box and a busy corridor reaches it easily —
+  // so it read as a permanent complaint about a search that had in fact worked, and the
+  // advice it gave ("narrow the corridor") makes the answer smaller rather than better.
+  // The two warnings that remain are about a search that did not happen.
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3 px-3.5 pb-3.5 pt-3">
@@ -328,12 +367,16 @@ export default function RoadtripCorridorPanel({ corridor, routes, onAddPoi }: Ro
 
         {/* One word, so it can be read at the size a primary action deserves. The panel
             it sits in is headed "along the route" and every control above it narrows the
-            same search; repeating that on the button only made it small. */}
+            same search; repeating that on the button only made it small.
+
+            Its height is the controls' height, not a size of its own. At 38px it stood a
+            head above the segmented rows it follows and read as a second panel rather
+            than as the end of this one. */}
         <button
           type="button"
           onClick={search.search}
           disabled={!canSearch}
-          className="flex h-[38px] w-full items-center justify-center gap-2 rounded-xl bg-accent text-body font-semibold text-accent-text transition-opacity disabled:opacity-50"
+          className="flex h-[32px] w-full items-center justify-center gap-2 rounded-lg bg-accent text-body font-semibold text-accent-text transition-opacity disabled:opacity-50"
         >
           {search.loading
             ? <RotateCw size={15} className="animate-spin" aria-hidden />

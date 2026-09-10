@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router'
 import { useTripStore } from '../../store/tripStore'
 import { useCanDo } from '../../store/permissionsStore'
 import { useSettingsStore } from '../../store/settingsStore'
+import { dayColor } from '../../components/Roadtrip/dayColors'
 import { getCached, fetchPhoto } from '../../services/photoService'
 import { useToast } from '../../components/shared/Toast'
 import { Map, Ticket, PackageCheck, Wallet, FolderOpen, Users, Train } from 'lucide-react'
@@ -774,7 +775,82 @@ export function useTripPlanner() {
    * per-user preferences on the settings table, the same path the map provider and the
    * distance unit take, and they are read locally the moment they change.
    */
-  const saveRoadtripLimit = useCallback(async (key: string, value: number | string) => {
+  /**
+   * A colour per drawn line, or none at all.
+   *
+   * Off is not "all the same colour" but an absent array: the map then paints the blue it
+   * has always painted, so a trip that never turns this on renders byte for byte the way
+   * it did.
+   */
+  /**
+   * Days folded down to their header in the road trip rail.
+   *
+   * Its own state rather than the day plan's `expandedDayIds`: that one is owned by
+   * `DayPlanSidebar`, which republishes it from its own state every time it mounts — so a
+   * day folded in the rail would spring back open the moment the other view was visited.
+   */
+  const [collapsedRoadtripDays, setCollapsedRoadtripDays] = useState<Set<number>>(new Set())
+  const toggleRoadtripDay = useCallback((dayId: number) => {
+    setCollapsedRoadtripDays(prev => {
+      const next = new Set(prev)
+      if (!next.delete(dayId)) next.add(dayId)
+      return next
+    })
+  }, [])
+
+  /**
+   * The road trip's lines, minus the days that are folded away.
+   *
+   * Folding a card takes that day off the map, which is most of what folding is for: a
+   * rail entry can be scrolled past, a line across the map cannot be looked away from.
+   * `lineDays` runs parallel to `lines`, so both are filtered in one pass and the colours
+   * stay lined up with what is left.
+   */
+  const roadtripMapLines = useMemo(() => {
+    if (!collapsedRoadtripDays.size) return roadtripRoutes.lines
+    const hidden = new Set(
+      roadtripRoutes.days.filter(d => collapsedRoadtripDays.has(d.dayId)).map(d => d.dayNumber),
+    )
+    return roadtripRoutes.lines.filter((_, i) => !hidden.has(roadtripRoutes.lineDays[i]))
+  }, [roadtripRoutes.lines, roadtripRoutes.lineDays, roadtripRoutes.days, collapsedRoadtripDays])
+
+  /**
+   * The map's places with the folded cards' stops taken out.
+   *
+   * A second pass rather than a branch inside `mapPlaces`: that memo runs long before the
+   * road trip is routed, and the answer here needs the CHAINS — a card is a date, and
+   * after a night drive it holds stops stored on the day before (`nightSpill.ts`), so
+   * what a folded card hides is what is drawn on it, not what is filed under its day.
+   *
+   * A place still drawn on some other card stays, which is the rule the day plan's own
+   * declutter follows.
+   */
+  const roadtripMapPlaces = useMemo(() => {
+    if (!collapsedRoadtripDays.size) return mapPlaces
+    const hidden = new Set<number>()
+    for (const day of roadtripRoutes.days) {
+      if (!collapsedRoadtripDays.has(day.dayId)) continue
+      for (const stop of day.stops) hidden.add(stop.placeId)
+    }
+    for (const day of roadtripRoutes.days) {
+      if (collapsedRoadtripDays.has(day.dayId)) continue
+      for (const stop of day.stops) hidden.delete(stop.placeId)
+    }
+    return mapPlaces.filter(p => !hidden.has(p.id))
+  }, [mapPlaces, roadtripRoutes.days, collapsedRoadtripDays])
+
+  const roadtripLineColors = useMemo(
+    () => {
+      if (!settings.roadtrip_day_colors) return undefined
+      const hidden = new Set(
+        roadtripRoutes.days.filter(d => collapsedRoadtripDays.has(d.dayId)).map(d => d.dayNumber),
+      )
+      return roadtripRoutes.lineDays.filter(n => !hidden.has(n)).map(n => dayColor(n))
+    },
+    [settings.roadtrip_day_colors, roadtripRoutes.lineDays, roadtripRoutes.days, collapsedRoadtripDays],
+  )
+
+  const saveRoadtripLimit = useCallback(async (key: string, value: number | string | boolean) => {
     try {
       await updateSettings({ [key]: value } as Partial<Settings>)
     } catch {
@@ -1166,7 +1242,7 @@ export function useTripPlanner() {
     const stop = day?.stops[open.index]
     if (!day || !stop) return
     try {
-      await roadtripVias.add(open.dayId, day.stops.indexOf(stop), alt.divergence.lat, alt.divergence.lng)
+      await roadtripVias.add(stop.ownerDayId ?? day.dayId, stop.ownerIndex ?? open.index, alt.divergence.lat, alt.divergence.lng)
       routeAlternatives.close()
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : t('common.unknownError'))
@@ -1193,7 +1269,16 @@ export function useTripPlanner() {
   const anchorFor = useCallback((lat: number, lng: number, onlyDayId?: number) => {
     let best: { dayId: number; afterIndex: number; offRouteKm: number } | null = null
     for (const day of roadtripRoutes.days) {
-      if (onlyDayId !== undefined && day.dayId !== onlyDayId) continue
+      // NOT `day.dayId !== onlyDayId`. A dragged via has to stay on the day it is stored
+      // on, but that day's stops are no longer all on the card of the same name: after a
+      // night drive they are drawn on the next one (`nightSpill.ts`). Filtering by card
+      // measured the new position against a line that no longer covers those stops — a
+      // point dragged near Brandenburg was projected onto the short remainder of card 1
+      // and came back anchored to its last stop, which put the via on the night drive
+      // itself and pushed the stop before it over midnight.
+      //
+      // So every card is measured, and the answer is filtered by the day the ANCHOR is
+      // stored on. Same promise, kept against the stops rather than against the card.
       if (day.geometry.length < 2) continue
       const spine = day.geometry.map(([la, ln]) => ({ lat: la, lng: ln }))
       const hit = projectOntoRoute({ lat, lng }, spine)
@@ -1201,8 +1286,34 @@ export function useTripPlanner() {
       if (best && hit.offRouteKm >= best.offRouteKm) continue
       // Which stop the via follows: the last one the car passes before reaching it.
       const stopsAlong = day.stops.map(stop => projectOntoRoute({ lat: stop.lat, lng: stop.lng }, spine)?.alongKm ?? 0)
-      const afterIndex = Math.max(0, insertIndexForAlong(stopsAlong, hit.alongKm) - 1)
-      best = { dayId: day.dayId, afterIndex, offRouteKm: hit.offRouteKm }
+      const before = insertIndexForAlong(stopsAlong, hit.alongKm) - 1
+      // Before the card's first stop means the incoming night drive, which is drawn here
+      // but leaves from a stop on the card BEFORE this one (`nightSpill.ts`). Anchoring
+      // it to this card's first stop would file the via on the leg AFTER that stop, and
+      // the route would run forward, double back to the point, and carry on.
+      if (before < 0) {
+        const from = day.spills?.find(sp => sp.at === 0)?.fromStop
+        if (!from) continue
+        const owner = from.ownerDayId ?? day.dayId
+        if (onlyDayId !== undefined && owner !== onlyDayId) continue
+        best = { dayId: owner, afterIndex: from.ownerIndex ?? 0, offRouteKm: hit.offRouteKm }
+        continue
+      }
+      const at = before
+      // Named by the day the anchor stop is STORED on and its position there, not by the
+      // card and the position within it. A card is a date and can hold stops from the day
+      // before (`nightSpill.ts`), so those two numbers differ on any day that received a
+      // night drive — and a via filed under the card's numbers matches no stop when the
+      // route is next built, which reads as a drag that did nothing at all.
+      const anchor = day.stops[at]
+      if (!anchor) continue
+      // Falling back to the card's own numbers is not a guard against a bug, it is the
+      // meaning: a stop that names no other day IS stored on the card it is drawn on,
+      // which is every stop on a trip that never drives past midnight.
+      const owner = anchor.ownerDayId ?? day.dayId
+      // A drag stays on its own day; a fresh click may land wherever it landed.
+      if (onlyDayId !== undefined && owner !== onlyDayId) continue
+      best = { dayId: owner, afterIndex: anchor.ownerIndex ?? at, offRouteKm: hit.offRouteKm }
     }
     return best
   }, [roadtripRoutes.days])
@@ -1275,9 +1386,16 @@ export function useTripPlanner() {
     // Before the stop the tank would have run out on, which is the leg the dry point
     // names. A station reached after the day's last stop is tomorrow's problem, and
     // clamping it onto the final leg would re-route the arrival through it.
-    const position = Math.min(dry.legIndex + 1, day.stops.length - 1)
+    const at = Math.min(dry.legIndex + 1, day.stops.length - 1)
+    // That index counts along the CARD, and after a night drive a card is not one stored
+    // day: its first stops belong to yesterday. The new stop goes in front of the one it
+    // was measured against, so it is that stop's own day and position that place it —
+    // written against the card's day it would land in the wrong list, at an index that
+    // means something else there.
+    const anchor = day.stops[at]
+    if (!anchor) return
     refuel.close()
-    setStopDraft({ poi, dayId, position, dayNumber: day.dayNumber })
+    setStopDraft({ poi, dayId: anchor.ownerDayId, position: anchor.ownerIndex, dayNumber: day.dayNumber })
   }, [roadtripRoutes.days, refuel, can, trip])
 
   /** Removing a via lets the drive take the direct road again. */
@@ -1884,7 +2002,7 @@ export function useTripPlanner() {
     selectedDayId, isLoading, tripActions, can, canUploadFiles,
     pushUndo, undo, canUndo, lastActionLabel, handleUndo,
     enabledAddons, collabFeatures, tripAccommodations, setTripAccommodations,
-    roadtripMode, toggleRoadtripMode, roadtripActive, roadtripRoutes, roadtripCorridor,
+    roadtripMode, toggleRoadtripMode, roadtripActive, roadtripRoutes, roadtripLineColors, roadtripMapLines, roadtripMapPlaces, collapsedRoadtripDays, toggleRoadtripDay, roadtripCorridor,
     followTrack, roadtripViaCounts,
     allowedFileTypes, tripMembers, setTripMembers, refreshMembers, loadAccommodations,
     TRANSPORT_TYPES, TRIP_TABS, activeTab, setActiveTab, handleTabChange,

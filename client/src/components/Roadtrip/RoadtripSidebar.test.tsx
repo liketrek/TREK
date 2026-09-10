@@ -12,6 +12,11 @@ const wrap = (ui: React.ReactElement) => render(<TranslationProvider>{ui}</Trans
 function stop(over: Partial<RoadtripStop> & { assignmentId: number; name: string }): RoadtripStop {
   return {
     placeId: over.assignmentId * 10,
+    // Filled in by `day()` from the card it is put on, unless the case under test says
+    // otherwise: a stop names the day it is STORED on, which after a night drive is not
+    // the card it is drawn on. -1 is "not stated", never a real id.
+    ownerDayId: -1,
+    ownerIndex: -1,
     lat: 53.5,
     lng: 9.9,
     time: null,
@@ -31,12 +36,12 @@ function day(over: Partial<RoadtripDay> = {}): RoadtripDay {
     stop({ assignmentId: 1, name: 'Hamburg' }),
     stop({ assignmentId: 2, name: 'Berlin' }),
   ]
+  const dayId = over.dayId ?? 1
   return {
-    dayId: 1,
+    dayId,
     dayNumber: 1,
     date: null,
     title: null,
-    stops,
     legs: [leg()],
     legVias: [], driveWarnings: [], dayWarning: null,
     schedule: { entries: stops.map(() => ({ arrival: null, departure: null, anchored: false, dayOffset: 0 })), warnings: [] },
@@ -44,6 +49,13 @@ function day(over: Partial<RoadtripDay> = {}): RoadtripDay {
     distance: 100000,
     duration: 3600,
     ...over,
+    // After the spread, because `over` carries the raw stops this was built from: the
+    // same pair the hook fills in, for every stop that did not state its own.
+    stops: stops.map((s, i) => ({
+      ...s,
+      ownerDayId: s.ownerDayId === -1 ? dayId : s.ownerDayId,
+      ownerIndex: s.ownerIndex === -1 ? i : s.ownerIndex,
+    })),
   }
 }
 
@@ -51,6 +63,7 @@ function routes(over: Partial<RoadtripRoutes> = {}): RoadtripRoutes {
   return {
     days: [day()],
     lines: [],
+    lineDays: [],
     segments: [],
     accessLines: [],
     vias: [],
@@ -201,11 +214,15 @@ describe('RoadtripSidebar', () => {
     }
     wrap(<RoadtripSidebar routes={routes({ days: [day({ stops, schedule })] })} />)
 
-    // Said twice on purpose: once as the break in the chain, once on the arrival after
-    // it, where "01:30" would otherwise read as tonight.
-    expect(screen.getAllByText('Next day')).toHaveLength(2)
-    // The day marker rides on the arrival that crossed midnight, where "01:30" would
-    // otherwise read as tonight.
+    // The crossing is no longer a band in the chain: a drive past midnight hands its
+    // stops to the next day's card, and the block around them there is what says so
+    // (`nightSpill.ts`). What is left on a day that could not hand them on — the last day
+    // of a trip, or one whose arrivals are supplied directly as they are here — is the
+    // marker on the arrival, where "01:30" would otherwise read as tonight.
+    // One mention, not two: the marker on the arrival, spelled out for a screen reader.
+    // The band that used to repeat it in the chain is gone — a drive past midnight hands
+    // its stops to the next day's card now, and the block around them there says it.
+    expect(screen.getAllByText('Next day')).toHaveLength(1)
     expect(screen.getByText('01:30').textContent).toContain('+1')
   })
 
@@ -224,7 +241,9 @@ describe('RoadtripSidebar', () => {
     }
     wrap(<RoadtripSidebar routes={routes({ days: [day({ stops, schedule })] })} />)
 
-    expect(screen.getAllByText('Next day')).toHaveLength(2)
+    // Both findings still reach the stop; only the band that used to repeat the crossing
+    // is gone. Reading just the first warning used to drop the late flag entirely.
+    expect(screen.getByText('01:30').textContent).toContain('+1')
     expect(screen.getByLabelText(/45/)).toBeInTheDocument()
   })
 
@@ -556,6 +575,73 @@ describe('RoadtripSidebar', () => {
     const stops = [stop({ assignmentId: 1, name: 'Hamburg' }), stop({ assignmentId: 2, name: 'Berlin' })]
     wrap(<RoadtripSidebar routes={routes({ days: [day({ stops })] })} />)
     expect(screen.queryByRole('button', { name: 'Track' })).toBeNull()
+  })
+
+  /**
+   * The block a night drive leaves on the next morning's card.
+   *
+   * The stops are stored on the day they set off from and drawn on the day they are
+   * reached, so what is asserted here is that the block says where they came from and
+   * that the drive through the night is drawn with them. See `nightSpill.ts`.
+   */
+  describe('a stretch driven onto this day through the night', () => {
+    const spilled = () => day({
+      dayNumber: 2,
+      stops: [
+        stop({ assignmentId: 1, name: 'Neuruppin', ownerDayId: 9, ownerIndex: 3 }),
+        stop({ assignmentId: 2, name: 'Wittenberg' }),
+      ],
+      spills: [{
+        at: 0,
+        count: 1,
+        fromDayNumber: 1,
+        departure: '22:30',
+        leg: leg({ distance: 253000, duration: 10380 }),
+        line: [[53, 10], [52, 11]],
+        fromStop: stop({ assignmentId: 99, name: 'Circle K', ownerDayId: 9, ownerIndex: 2 }),
+      }],
+    })
+
+    it('FE-ROADTRIP-SIDEBAR-031: names the day the stretch came from', () => {
+      wrap(<RoadtripSidebar routes={routes({ days: [spilled()] })} />)
+      expect(screen.getByText('From day 1')).toBeTruthy()
+    })
+
+    it('FE-ROADTRIP-SIDEBAR-032: draws the night drive, so the kilometres reach the stops', () => {
+      wrap(<RoadtripSidebar routes={routes({ days: [spilled()] })} />)
+      // Without it the card would gain a stop and none of the driving that reaches it.
+      expect(screen.getByText('253 km in 2 h 53 min')).toBeTruthy()
+      expect(screen.getByText('leaves 22:30')).toBeTruthy()
+    })
+
+    it('FE-ROADTRIP-SIDEBAR-030: a drag names the day the stop is STORED on, not the card', () => {
+      const onReorderStop = vi.fn()
+      const onMoveStopToDay = vi.fn()
+      const { container } = wrap(<RoadtripSidebar
+        routes={routes({ days: [spilled()] })}
+        onReorderStop={onReorderStop}
+        onMoveStopToDay={onMoveStopToDay}
+      />)
+
+      // Dropping the borrowed stop onto its neighbour is a reorder inside day 9 — the day
+      // the server knows it by — even though both are drawn under day 2.
+      // The draggable rows only: the block around the borrowed stretch is a list item
+      // too, and it contains the text of every stop inside it.
+      const rows = container.querySelectorAll('li[draggable="true"]')
+      const dataTransfer = { effectAllowed: '', setData: vi.fn() }
+      fireEvent.dragStart(rows[0], { dataTransfer })
+      fireEvent.dragOver(rows[1], { dataTransfer })
+      fireEvent.drop(rows[1], { dataTransfer })
+      // Dragged from day 9 index 3 — where the server has it — onto day 1 index 1, the
+      // stored position of the row it was dropped on. Neither number is the card's.
+      expect(onMoveStopToDay).toHaveBeenCalledWith(9, 1, 1, 1)
+      expect(onReorderStop).not.toHaveBeenCalled()
+    })
+
+    it('FE-ROADTRIP-SIDEBAR-033: an ordinary day draws no block at all', () => {
+      wrap(<RoadtripSidebar routes={routes()} />)
+      expect(screen.queryByText(/From day/)).toBeNull()
+    })
   })
 })
 

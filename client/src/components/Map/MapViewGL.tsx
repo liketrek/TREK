@@ -123,6 +123,11 @@ interface Props {
   /** The dashed last bit to a place the road network does not reach. */
   accessLines?: { line: [[number, number], [number, number]]; meters: number }[]
   route?: [number, number][][] | null
+  /**
+   * One colour pair per entry of `route`, or absent for the blue the route has always
+   * been. Only the road trip passes these, and only while colouring by day is on.
+   */
+  routeColors?: ({ line: string; casing: string } | undefined)[] | null
   routeSegments?: RouteSegment[]
   selectedPlaceId?: number | null
   onMarkerClick?: (id: number) => void
@@ -606,6 +611,7 @@ export function MapViewGL({
   routeVias = NO_ROUTE_VIAS,
   accessLines = NO_ACCESS_LINES,
   route = null,
+  routeColors = null,
   routeSegments = NO_ROUTE_SEGMENTS,
   selectedPlaceId = null,
   hoverDisabled = false,
@@ -762,6 +768,23 @@ export function MapViewGL({
     viaCleanupRef.current = []
     viaPinsRef.current.forEach(p => p.remove())
     viaPinsRef.current = []
+    /**
+     * Zoomed out, the handles go away.
+     *
+     * A via is a handle for a few hundred metres of road, and at a continental zoom a
+     * whole day's worth of them collapses into a cluster of dots over one town — not
+     * something anybody can aim at, and dragging one there moves the route by kilometres
+     * per pixel. Below this the drive is read, not shaped.
+     */
+    const VIA_MIN_ZOOM = 9
+    const applyViaZoom = () => {
+      const on = map.getZoom() >= VIA_MIN_ZOOM
+      for (const pin of viaPinsRef.current) {
+        const node = (pin as { getElement?: () => HTMLElement | null }).getElement?.()
+        if (node) node.style.display = on ? '' : 'none'
+      }
+    }
+
     for (const via of vias) {
       const el = document.createElement('span')
       el.style.cssText = 'display:block;width:12px;height:12px;border-radius:9999px;background:#0a84ff;border:2.5px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.45);cursor:grab;touch-action:none'
@@ -850,8 +873,26 @@ export function MapViewGL({
         el.removeEventListener('dblclick', swallow)
       })
     }
+
+    // Applied now and on every zoom that settles, so a handle that should not be there is
+    // gone before the first frame rather than after the first gesture.
+    applyViaZoom()
+    map.on('zoomend', applyViaZoom)
+    viaCleanupRef.current.push(() => map.off('zoomend', applyViaZoom))
   }, [vias, viasDraggable, mapReady, glProvider])
 
+  /**
+   * The other people's pointers, and this person's own going the other way.
+   *
+   * Built as plain elements on the same pin layer the vias use, so they ride the map
+   * during a pan instead of being re-placed a frame later — the same reason the via
+   * handles are not library markers.
+   *
+   * No interpolation between frames, unlike the studio's book: a map pans and zooms under
+   * the arrow, so a position eased towards over several frames is a position that was
+   * never true at any of them. Ten frames a second placed exactly reads as a hand; the
+   * same frames chasing a moving target read as a drift.
+   */
   /**
    * The offered routes, drawn under the current one.
    *
@@ -1178,7 +1219,9 @@ export function MapViewGL({
           id: 'trip-route-casing',
           type: 'line',
           source: 'trip-route',
-          paint: { 'line-color': '#0a5cc2', 'line-width': 8 },
+          // Per feature where the caller gave one, else the blue the route has always
+          // been. `coalesce` rather than a second layer: one source, one stroke.
+          paint: { 'line-color': ['coalesce', ['get', 'casing'], '#0a5cc2'], 'line-width': 8 },
           layout: { 'line-cap': 'round', 'line-join': 'round' },
         })
         // An invisible band over the route, purely to be clicked. The drawn line is 8px
@@ -1195,7 +1238,7 @@ export function MapViewGL({
           id: 'trip-route-line',
           type: 'line',
           source: 'trip-route',
-          paint: { 'line-color': '#0a84ff', 'line-width': 5 },
+          paint: { 'line-color': ['coalesce', ['get', 'color'], '#0a84ff'], 'line-width': 5 },
           layout: { 'line-cap': 'round', 'line-join': 'round' },
         })
       }
@@ -1885,13 +1928,18 @@ export function MapViewGL({
     if (!map) return
     const src = map.getSource('trip-route') as mapboxgl.GeoJSONSource | undefined
     if (!src) return
-    const features = (route || []).filter(seg => seg && seg.length > 1).map(seg => ({
-      type: 'Feature' as const,
-      properties: {},
-      geometry: { type: 'LineString' as const, coordinates: seg.map(([lat, lng]) => [lng, lat]) },
-    }))
+    const features = (route || [])
+      .map((seg, i) => ({ seg, colors: routeColors?.[i] }))
+      .filter(({ seg }) => seg && seg.length > 1)
+      .map(({ seg, colors }) => ({
+        type: 'Feature' as const,
+        // Null rather than absent: `coalesce` in the paint expression falls through on
+        // null, and an absent property would make every line the default colour.
+        properties: { color: colors?.line ?? null, casing: colors?.casing ?? null },
+        geometry: { type: 'LineString' as const, coordinates: seg.map(([lat, lng]) => [lng, lat]) },
+      }))
     src.setData({ type: 'FeatureCollection', features })
-  }, [route, mapReady])
+  }, [route, routeColors, mapReady])
 
   // Update access-spur geojson
   useEffect(() => {
