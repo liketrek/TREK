@@ -92,6 +92,25 @@ export const TREK_WS_EVENTS = {
     payload: z.union([z.object({ orderedIds: idList }), z.object({ day: entity })]),
   },
 
+  // ── Road trip ────────────────────────────────────────────────────────────
+  // The points a drive is routed through, and the tracks a day follows. Broadcast in one
+  // event carrying the day's whole list rather than one event per point: a via has no
+  // identity anyone reads, the client keeps them per day anyway, and a drag is a rapid
+  // burst of writes whose only interesting state is the one that lands last.
+  //
+  // These used to be silent, on the reasoning that a via is how one person draws a route
+  // rather than a change to the itinerary everybody reads. That does not hold: two people
+  // planning a road trip see the same line on the same map, and a reshaped drive changes
+  // every arrival time after it.
+  'roadtripVia:changed': {
+    scope: 'trip',
+    payload: z.object({ dayId: id, vias: z.array(entity) }),
+  },
+  'roadtripTrack:changed': {
+    scope: 'trip',
+    payload: z.object({ dayId: id, track: entity.nullable() }),
+  },
+
   // ── Day notes ────────────────────────────────────────────────────────────
   'dayNote:created': { scope: 'trip', payload: z.object({ dayId: id, note: entity }) },
   'dayNote:updated': { scope: 'trip', payload: z.object({ dayId: id, note: entity }) },

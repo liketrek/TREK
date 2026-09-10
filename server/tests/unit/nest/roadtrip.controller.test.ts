@@ -37,6 +37,8 @@ function svc(o: Partial<RoadtripService> = {}): RoadtripService {
     reanchor: vi.fn().mockReturnValue([VIA]),
     move: vi.fn().mockReturnValue(VIA),
     remove: vi.fn().mockReturnValue(true),
+    // Every write announces the day's new shape to the trip's other clients.
+    broadcast: vi.fn(),
     ...o,
   } as unknown as RoadtripService;
 }
@@ -187,5 +189,53 @@ describe('RoadtripController — writes', () => {
     const s = svc({ remove: vi.fn().mockReturnValue(false) });
     expect(thrown(() => new RoadtripController(s).remove('7', '4', '999')))
       .toEqual({ status: 404, body: { error: 'Via not found' } });
+  });
+
+  /**
+   * Two people planning one road trip look at the same line on the same map, and a
+   * reshaped drive moves every arrival time after it. These routes used to write in
+   * silence, which left the other side reading a route nobody could see change.
+   */
+  describe('telling the trip', () => {
+    it('SRV-ROADTRIP-020: every write announces the new shape of the day', () => {
+      const cases: [string, (c: RoadtripController) => unknown][] = [
+        ['create', c => c.create('7', '4', { after_order_index: 0, lat: 1, lng: 2 }, 'sock')],
+        ['createMany', c => c.createMany('7', '4', { vias: [{ after_order_index: 0, lat: 1, lng: 2 }] }, 'sock')],
+        ['reanchor', c => c.reanchor('7', '4', { vias: [] }, 'sock')],
+        ['update', c => c.update('7', '4', '9', { lat: 1, lng: 2 }, 'sock')],
+        ['remove', c => c.remove('7', '4', '9', 'sock')],
+      ];
+      for (const [name, run] of cases) {
+        const s = svc();
+        run(new RoadtripController(s));
+        expect(s.broadcast, name).toHaveBeenCalledWith(
+          '7',
+          'roadtripVia:changed',
+          { dayId: '4', vias: [VIA] },
+          'sock',
+        );
+      }
+    });
+
+    it('SRV-ROADTRIP-021: the day list is read back, not assembled from the write', () => {
+      // A reanchor rewrites the whole set and a batch may clear legs before filling them,
+      // so what the write returned is not what the day now holds.
+      const s = svc({ reanchor: vi.fn().mockReturnValue([]) } as Partial<RoadtripService>);
+      new RoadtripController(s).reanchor('7', '4', { vias: [] }, 'sock');
+      expect(s.broadcast).toHaveBeenCalledWith('7', 'roadtripVia:changed', { dayId: '4', vias: [VIA] }, 'sock');
+    });
+
+    it('SRV-ROADTRIP-022: laying a track down says which track the day now follows', () => {
+      const track = { day_id: 4, place_id: 3, name: 'B96' };
+      const s = svc({ tracksForTrip: vi.fn().mockReturnValue([track]) } as Partial<RoadtripService>);
+      new RoadtripController(s).createMany('7', '4', { vias: [], track: { place_id: 3 } }, 'sock');
+      expect(s.broadcast).toHaveBeenCalledWith('7', 'roadtripTrack:changed', { dayId: '4', track }, 'sock');
+    });
+
+    it('SRV-ROADTRIP-023: a refused write announces nothing', () => {
+      const s = svc({ remove: vi.fn().mockReturnValue(false) } as Partial<RoadtripService>);
+      expect(() => new RoadtripController(s).remove('7', '4', '9', 'sock')).toThrow();
+      expect(s.broadcast).not.toHaveBeenCalled();
+    });
   });
 });

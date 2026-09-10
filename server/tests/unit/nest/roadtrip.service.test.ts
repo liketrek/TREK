@@ -43,7 +43,9 @@ function makeService() {
     run: (sql: string, ...params: unknown[]) => raw.prepare(sql).run(...params as never[]),
     transaction: <T>(fn: (conn: unknown) => T) => raw.transaction(() => fn(raw))(),
   };
-  return new RoadtripService(db as never);
+  // The realtime side is exercised through the controller and the MCP layer; here the
+  // service is under test for what it writes, so a broadcast that goes nowhere is right.
+  return new RoadtripService(db as never, { broadcast: () => {} } as never);
 }
 
 describe('RoadtripService', () => {

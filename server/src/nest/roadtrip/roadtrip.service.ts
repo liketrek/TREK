@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import type { RoadtripDayTrack, RoadtripVia } from '@trek/shared';
+import type { RoadtripDayTrack, RoadtripVia, TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 import { DatabaseService } from '../database/database.service';
+import { RealtimeService } from '../realtime/realtime.service';
 
 /**
  * Via points: the places a day's drive is made to pass through without stopping.
@@ -12,7 +13,25 @@ import { DatabaseService } from '../database/database.service';
  */
 @Injectable()
 export class RoadtripService {
-  constructor(private readonly db: DatabaseService) {}
+  constructor(
+    private readonly db: DatabaseService,
+    private readonly realtime: RealtimeService,
+  ) {}
+
+  /**
+   * Tells the trip's other clients what the drive looks like now.
+   *
+   * Two people planning a road trip look at the same line on the same map, and a reshaped
+   * drive moves every arrival time after it — so this is not "how one person draws their
+   * route", which is what it was taken for when these routes were written silent.
+   *
+   * The whole day's list goes out rather than the one point that changed: a via carries no
+   * identity anybody reads, the client holds them per day, and a drag is a burst of writes
+   * whose only interesting state is the one that lands last.
+   */
+  broadcast<E extends TrekWsTripEventName>(tripId: string, event: E, payload: TrekWsPayload<E>, socketId: string | undefined): void {
+    this.realtime.broadcast(tripId, event, payload, socketId);
+  }
 
   /** The day exists and belongs to this trip. 404 material, checked before every write. */
   dayExists(dayId: string | number, tripId: string | number): boolean {

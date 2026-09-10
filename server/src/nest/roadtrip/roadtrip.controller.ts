@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpException, Param, Post, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Headers, HttpCode, HttpException, Param, Post, Put, UseGuards } from '@nestjs/common';
 import type { RoadtripDayTrack, RoadtripVia } from '@trek/shared';
 import { RoadtripService } from './roadtrip.service';
 import { RoadtripViaBatchDto, RoadtripViaCreateDto, RoadtripViaReanchorDto, RoadtripViaUpdateDto } from './roadtrip.dto';
@@ -14,11 +14,12 @@ import { ADDON_IDS } from '../../addons';
  * Gated on the road trip addon: an instance with it switched off gets 404s here, the same
  * as every other addon surface, and nothing about the plain day plan changes.
  *
- * No WebSocket broadcast, unlike the assignment routes. A via is a detail of how one
- * person's route is drawn rather than a change to the itinerary everybody reads, and
- * adding an event family for it would mean extending the typed trip-event catalogue for
- * something a collaborator sees on their next load anyway. Worth revisiting if vias ever
- * become shared editing rather than route shaping.
+ * Every write here broadcasts, like the assignment routes. This used to be silent, on
+ * the reasoning that a via is how one person draws their route rather than a change to
+ * the itinerary everybody reads. That does not survive contact with two people planning
+ * one road trip: they look at the same line on the same map, and a reshaped drive moves
+ * every arrival time after it. Waiting for the other side's next reload is not "eventual
+ * consistency", it is two people editing a route neither can see the other change.
  */
 @Controller('api/trips/:tripId/roadtrip')
 // AddonGuard FIRST: @RequireAddon is metadata and does nothing on its own, and the guard
@@ -48,9 +49,12 @@ export class RoadtripController {
     @Param('tripId') tripId: string,
     @Param('dayId') dayId: string,
     @Body() body: RoadtripViaCreateDto,
+    @Headers('x-socket-id') socketId?: string,
   ): { via: RoadtripVia } {
     this.requireDay(dayId, tripId);
-    return { via: this.roadtrip.create(dayId, body) };
+    const via = this.roadtrip.create(dayId, body);
+    this.announce(tripId, dayId, socketId);
+    return { via };
   }
 
   /**
@@ -68,6 +72,7 @@ export class RoadtripController {
     @Param('tripId') tripId: string,
     @Param('dayId') dayId: string,
     @Body() body: RoadtripViaBatchDto,
+    @Headers('x-socket-id') socketId?: string,
   ): { vias: RoadtripVia[] } {
     this.requireDay(dayId, tripId);
     // Permission is not enough on its own: a place id from somebody else's trip would
@@ -76,7 +81,15 @@ export class RoadtripController {
     if (body.track && !this.roadtrip.trackExists(body.track.place_id, tripId)) {
       throw new HttpException({ error: 'Track not found' }, 404);
     }
-    return { vias: this.roadtrip.createMany(dayId, body) };
+    const vias = this.roadtrip.createMany(dayId, body);
+    this.announce(tripId, dayId, socketId);
+    // A batch is how a day starts following a recorded track, so the track it now follows
+    // is news in its own right: the rail draws a badge for it and the map a line.
+    this.roadtrip.broadcast(tripId, 'roadtripTrack:changed', {
+      dayId,
+      track: this.roadtrip.tracksForTrip(tripId).find(t => String(t.day_id) === String(dayId)) ?? null,
+    }, socketId);
+    return { vias };
   }
 
   /**
@@ -93,9 +106,12 @@ export class RoadtripController {
     @Param('tripId') tripId: string,
     @Param('dayId') dayId: string,
     @Body() body: RoadtripViaReanchorDto,
+    @Headers('x-socket-id') socketId?: string,
   ): { vias: RoadtripVia[] } {
     this.requireDay(dayId, tripId);
-    return { vias: this.roadtrip.reanchor(dayId, body) };
+    const vias = this.roadtrip.reanchor(dayId, body);
+    this.announce(tripId, dayId, socketId);
+    return { vias };
   }
 
   @RequirePermission('day_edit')
@@ -106,10 +122,12 @@ export class RoadtripController {
     @Param('dayId') dayId: string,
     @Param('id') id: string,
     @Body() body: RoadtripViaUpdateDto,
+    @Headers('x-socket-id') socketId?: string,
   ): { via: RoadtripVia } {
     this.requireDay(dayId, tripId);
     const via = this.roadtrip.move(id, dayId, body.lat, body.lng, body.after_order_index);
     if (!via) throw new HttpException({ error: 'Via not found' }, 404);
+    this.announce(tripId, dayId, socketId);
     return { via };
   }
 
@@ -119,12 +137,29 @@ export class RoadtripController {
     @Param('tripId') tripId: string,
     @Param('dayId') dayId: string,
     @Param('id') id: string,
+    @Headers('x-socket-id') socketId?: string,
   ): { success: true } {
     this.requireDay(dayId, tripId);
     if (!this.roadtrip.remove(id, dayId)) {
       throw new HttpException({ error: 'Via not found' }, 404);
     }
+    this.announce(tripId, dayId, socketId);
     return { success: true };
+  }
+
+  /**
+   * Says what this day's drive is routed through now.
+   *
+   * Read back rather than assembled from what the write returned: a reanchor rewrites the
+   * whole set, a batch may clear legs before filling them, and one shape for all five
+   * routes means a client applies them all the same way. The originating socket is
+   * excluded, so the person dragging does not get their own point handed back mid-drag.
+   */
+  private announce(tripId: string, dayId: string, socketId: string | undefined): void {
+    this.roadtrip.broadcast(tripId, 'roadtripVia:changed', {
+      dayId,
+      vias: this.roadtrip.listForDay(dayId),
+    }, socketId);
   }
 
   /**
