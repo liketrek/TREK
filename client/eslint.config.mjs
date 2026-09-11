@@ -30,6 +30,14 @@ export default tseslint.config(
       'public',
       'test-results',
       'playwright-report',
+      // Capacitor native shells. `npx cap sync` copies the built bundle from
+      // dist/ into both platforms, so without these ESLint lints the minified
+      // output and `npm run lint` reports tens of thousands of errors that have
+      // nothing to do with the source. gitignore() does not cover them: the iOS
+      // and Android .gitignore files live one level down, and this config's
+      // gitignore integration only reads client/.gitignore.
+      'android/**',
+      'ios/**',
       'e2e/**',
       'scripts/**',
       '**/*.config.js',

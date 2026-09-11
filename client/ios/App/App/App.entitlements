@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+	  The Push Notifications capability. Xcode normally writes this when you tick
+	  "Push Notifications" under Signing & Capabilities; it is committed here so a
+	  clean checkout builds with push already enabled.
+
+	  `development` is correct for debug builds and for TestFlight. Xcode's
+	  automatic signing rewrites this to `production` when archiving for
+	  distribution, so it does not need a second value here.
+
+	  Enabling the capability in the Apple Developer portal for the App ID
+	  com.liketrek.trek is a separate, manual step — the entitlement alone will
+	  fail to sign until the App ID has it too.
+	-->
+	<key>aps-environment</key>
+	<string>development</string>
+</dict>
+</plist>

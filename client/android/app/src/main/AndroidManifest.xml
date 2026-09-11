@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme">
+
+        <activity
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
+            android:name=".MainActivity"
+            android:label="@string/title_activity_main"
+            android:theme="@style/AppTheme.NoActionBarLaunch"
+            android:launchMode="singleTask"
+            android:exported="true">
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- Deep links (@capacitor/app appUrlOpen).
+
+                 The scheme is @string/custom_url_scheme (com.liketrek.trek).
+                 launchMode is singleTask above, so a link delivers into the
+                 running task via onNewIntent rather than starting a second copy
+                 of the app on top of the first.
+
+                 This is the return path for native OIDC/OAuth login: the flow
+                 opens in a Custom Tab and the provider redirects back to
+                 com.liketrek.trek://… , which lands here.
+
+                 Not an App Link (autoVerify + https). App Links are verified
+                 against a specific domain via assetlinks.json, and TREK is
+                 self-hosted — there is no single domain to verify against. A
+                 custom scheme is the only form that works for every user's
+                 server. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="@string/custom_url_scheme" />
+            </intent-filter>
+
+        </activity>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths"></meta-data>
+        </provider>
+
+        <!-- Notification icon, shared by @capacitor/push-notifications (via this
+             FCM meta-data) and @capacitor/local-notifications (via the smallIcon
+             option in capacitor.config.ts).
+
+             It must be a white silhouette on transparency; the launcher icon is a
+             full-colour square and Android would render it as a white blob.
+             notification_icon is generated from public/icons/icon-white.svg by
+             scripts/generate-native-icons.mjs.
+
+             default_notification_channel_id names the channel FCM uses for any
+             message that does not carry its own. The channel itself still has to
+             be created at runtime with PushNotifications.createChannel() using
+             this exact id — Android drops notifications for a channel that was
+             never created, and FCM silently falls back to its own channel.
+
+             No default_notification_color on purpose. TREK's palette is neutral
+             and user-selectable, so there is no one brand colour to tint with;
+             left unset, Android tints the small icon with the system accent,
+             which stays legible in both the light and dark shade. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/notification_icon" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="@string/default_notification_channel_id" />
+
+        <!-- Asks Play services to install the backported Android photo picker on
+             Android 11/12 devices, so @capacitor/camera gets the modern picker
+             instead of falling back to ACTION_OPEN_DOCUMENT. Disabled by design:
+             it is a dependency declaration, not a service that runs.
+
+             Drop this block if TREK ever ships a Play-services-free build
+             (F-Droid); the fallback picker keeps working without it. -->
+        <service
+            android:name="com.google.android.gms.metadata.ModuleDependencies"
+            android:enabled="false"
+            android:exported="false"
+            tools:ignore="MissingClass">
+            <intent-filter>
+                <action android:name="com.google.android.gms.metadata.MODULE_DEPENDENCIES" />
+            </intent-filter>
+            <meta-data android:name="photopicker_activity:0:required" android:value="" />
+        </service>
+    </application>
+
+    <!-- Permissions.
+
+         Declared here only where the app itself needs them. Plugins that ship
+         their own manifest contribute theirs through the merge and are NOT
+         repeated: @capacitor/haptics (VIBRATE), @capacitor/calendar
+         (READ_CALENDAR, WRITE_CALENDAR) and @capacitor/local-notifications
+         (RECEIVE_BOOT_COMPLETED, WAKE_LOCK, SCHEDULE_EXACT_ALARM). -->
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Reachability: connectivity.ts probes the server on an interval, and on
+         native we want to skip the probe entirely when there is no transport.
+         @capacitor/network declares this too; kept explicit because
+         connectivity.ts depends on it directly. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Android 13+ gates notifications behind a runtime grant. firebase-messaging
+         and @capacitor/local-notifications declare this too, but relying on a
+         transitive manifest merge for a permission the app must request by hand is
+         a silent-failure waiting to happen — it must be requested via
+         requestPermissions() before register()/schedule(). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- @capacitor/geolocation. Declares no permissions of its own, so both are
+         required here. COARSE is listed first because it is the weaker grant and
+         is enough for "what city am I in" — request FINE only where the map
+         genuinely needs it. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <!-- required="false" on purpose: TREK is a planner, and everything except
+         "locate me" works without GPS hardware. Marking it required would have
+         Play hide the app from tablets and other GPS-less devices. -->
+    <uses-feature android:name="android.hardware.location.gps" android:required="false" />
+
+    <!-- @capacitor/camera. Not strictly required — the plugin launches the system
+         camera activity, which carries its own permission — but io.ionic.libs's
+         inappbrowser transitively declares CAMERA anyway, and once it is declared
+         Android routes the plugin through the runtime-grant path. Declared here
+         explicitly so it is a decision rather than something inherited. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <!-- Stripped from the merge. io.ionic.libs:ioninappbrowser-android declares
+         RECORD_AUDIO and MODIFY_AUDIO_SETTINGS so that pages opened in its WebView
+         mode can use getUserMedia for microphone capture. TREK records no audio
+         anywhere, and shipping these would put "Microphone" on the store listing
+         and in the app's permission screen for a capability that does not exist.
+
+         Revisit only if a feature genuinely needs mic input in an embedded page. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" tools:node="remove" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" tools:node="remove" />
+
+    <!-- Deliberately NOT declared: READ/WRITE_EXTERNAL_STORAGE.
+         @capacitor/camera needs storage permissions only for saveToGallery, and
+         TREK uploads photos to the server rather than writing them to the device
+         gallery. Add them the day a feature actually needs them. -->
+</manifest>

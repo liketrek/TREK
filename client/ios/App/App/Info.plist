@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CAPACITOR_DEBUG</key>
+	<string>$(CAPACITOR_DEBUG)</string>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleDisplayName</key>
+        <string>TREK - Plan your trips!</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<!-- TREK is self-hosted: the user types in their own server address, so the
+	     app cannot know its scheme, hostname or certificate authority at build
+	     time. NSAllowsArbitraryLoads is the only ATS setting that covers all of
+	     https://trek.example.com, http://192.168.1.10:3001 and a Tailscale host
+	     on 100.64.0.0/10 (which is NOT RFC1918, so NSAllowsLocalNetworking alone
+	     would not reach it).
+
+	     Deliberately the ONLY key in this dict. From iOS 10 on, the presence of
+	     NSAllowsLocalNetworking, NSAllowsArbitraryLoadsInWebContent or
+	     NSAllowsArbitraryLoadsForMedia makes the system IGNORE
+	     NSAllowsArbitraryLoads — adding one of them "to be safe" would silently
+	     re-block every cleartext server outside the local subnet.
+
+	     App Review will ask for a justification; the answer is that the app is a
+	     client for a server the user hosts and names themselves. https remains
+	     the documented recommendation for anything past a LAN. -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
+	<!-- Local Network Privacy is a separate gate from ATS: since iOS 14 any
+	     connection to a local-network address prompts the user, and no ATS key
+	     waives it. Without this string the prompt has no explanation and iOS
+	     logs "Local network prohibited" instead of a useful error. -->
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>TREK connects to the TREK server you choose, which is often running on your home or office network.</string>
+	<!-- Permission usage descriptions. iOS does not merely deny a missing one —
+	     it terminates the app the first time the API is touched, so every key
+	     below is load-bearing even where the feature is optional.
+
+	     @capacitor/camera -->
+	<key>NSCameraUsageDescription</key>
+	<string>TREK uses the camera so you can photograph a place, a journey entry or a booking document and add it to your trip.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>TREK needs access to your photos so you can add them to trips, places and journey entries.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>TREK saves photos and exports you download from your trips back to your photo library.</string>
+	<!-- @capacitor/geolocation. NSLocationAlwaysAndWhenInUse is required by
+	     Apple because the underlying ion-ios-geolocation library is capable of
+	     background reporting; TREK never asks for it, so the user only ever sees
+	     the when-in-use prompt. -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>TREK uses your location to centre the map on you and to find places near you.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>TREK uses your location to centre the map on you and to find places near you.</string>
+	<!-- @capacitor/calendar. iOS 17 split calendar access into full and
+	     write-only, each with its own key; the pre-17 key stays for older
+	     devices. Adding a trip to the device calendar needs only write-only
+	     access, which is the weaker prompt. -->
+	<key>NSCalendarsWriteOnlyAccessUsageDescription</key>
+	<string>TREK adds your trip days and bookings to your calendar.</string>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>TREK reads your calendar to show existing commitments alongside your trip, and adds trip events to it.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>TREK adds your trip days and bookings to your calendar.</string>
+	<!-- Deep links (@capacitor/app appUrlOpen), matching the intent-filter in
+	     AndroidManifest.xml and @string/custom_url_scheme there. This is the
+	     return path for native OIDC/OAuth login, which opens in an
+	     SFSafariViewController and redirects back to com.liketrek.trek://…
+
+	     Not a Universal Link: those are verified against one specific domain via
+	     apple-app-site-association, and a self-hosted app has no single domain to
+	     verify against. SceneDelegate already forwards openURLContexts to
+	     Capacitor, so no Swift change is needed. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.liketrek.trek</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.liketrek.trek</string>
+			</array>
+		</dict>
+	</array>
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+    <false/>
+    <key>UISceneConfigurations</key>
+    <dict>
+      <key>UIWindowSceneSessionRoleApplication</key>
+      <array>
+        <dict>
+            <key>UISceneConfigurationName</key>
+            <string>Default Configuration</string>
+            <key>UISceneDelegateClassName</key>
+            <string>$(PRODUCT_MODULE_NAME).SceneDelegate</string>
+            <key>UISceneStoryboardFile</key>
+            <string>Main</string>
+        </dict>
+      </array>
+    </dict>
+	</dict>
+	<key>UILaunchStoryboardName</key>
+	<string>LaunchScreen</string>
+	<key>UIMainStoryboardFile</key>
+	<string>Main</string>
+	<key>UIRequiredDeviceCapabilities</key>
+	<array>
+		<string>armv7</string>
+	</array>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UISupportedInterfaceOrientations~ipad</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UIViewControllerBasedStatusBarAppearance</key>
+	<true/>
+</dict>
+</plist>

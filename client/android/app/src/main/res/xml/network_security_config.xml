@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  TREK is self-hosted: the user points the app at their own server, so we cannot
+  know its scheme or its certificate authority ahead of time. Two deliberate
+  relaxations, both required for that to work at all:
+
+  1. cleartextTrafficPermitted="true" — Android blocks http:// by default from
+     targetSdk 28 on. A bare LAN server (http://192.168.1.10:3001) and a
+     Tailscale host (100.64.0.0/10, which is NOT RFC1918, so a private-range
+     allowlist would not cover it) both need this. https:// is unaffected and
+     remains the recommended setup.
+
+  2. <certificates src="user" /> — since Android 7 apps ignore user-installed
+     CAs unless they opt in. Self-hosters running their own CA (step-ca, mkcert,
+     an internal PKI) install its root on the device; without this the app would
+     reject their perfectly valid https:// server. System CAs stay first so
+     public certs keep validating normally.
+
+  The tradeoff is that a user-installed CA can also be a MITM proxy's. That is
+  the same tradeoff the browser-based PWA already makes, and it is the price of
+  letting people run their own infrastructure.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

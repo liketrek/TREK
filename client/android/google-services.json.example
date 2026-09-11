@@ -1,0 +1,44 @@
+{
+  "_comment": [
+    "Template only — this file is not read by the build.",
+    "",
+    "To enable Android push notifications:",
+    "  1. Create a Firebase project at https://console.firebase.google.com",
+    "  2. Add an Android app with package name com.liketrek.trek",
+    "  3. Download the generated google-services.json",
+    "  4. Place it at client/android/app/google-services.json (gitignored)",
+    "",
+    "Without it, app/build.gradle skips the google-services plugin and the app",
+    "still builds and runs — PushNotifications.register() simply fails at runtime.",
+    "",
+    "The server that SENDS the notifications needs a service-account key from the",
+    "SAME Firebase project. See docs for the self-hosting implications."
+  ],
+  "project_info": {
+    "project_number": "000000000000",
+    "project_id": "your-firebase-project-id",
+    "storage_bucket": "your-firebase-project-id.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
+        "android_client_info": {
+          "package_name": "com.liketrek.trek"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "REPLACE_WITH_YOUR_ANDROID_API_KEY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
