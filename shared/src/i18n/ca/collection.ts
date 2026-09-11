@@ -135,6 +135,23 @@ const collection: TranslationStrings = {
   'collections.picker.empty': 'No hi ha llocs desats per afegir',
   'collections.picker.hint': 'Tria un lloc de les teves col·leccions',
   'collections.picker.use': 'Utilitza',
+  // Export / import a list as a file (#2198)
+  'collections.file.export': 'Exporta',
+  'collections.file.exportTitle': 'Baixa aquesta llista com a fitxer',
+  'collections.file.importButton': 'Importa una llista des d’un fitxer',
+  'collections.file.importTitle': 'Importa una llista',
+  'collections.file.choose': 'Tria un fitxer de llista',
+  'collections.file.confirm': 'Importa',
+  'collections.file.change': 'Canvia',
+  'collections.file.labelCount': '{count} etiquetes',
+  'collections.file.hint':
+    'Els llocs arriben com una llista nova teva. Les valoracions, els membres i les fotos pujades es queden enrere.',
+  'collections.file.done': '{count} llocs importats',
+  'collections.file.doneSkipped': '{count} llocs importats, {skipped} omesos',
+  'collections.file.errorTooLarge': 'Aquest fitxer és massa gran per ser una llista.',
+  'collections.file.errorUnreadable': 'No s’ha pogut llegir aquest fitxer.',
+  'collections.file.errorNotACollection': 'Això no és un fitxer de llista del TREK.',
+
   'collections.share.title': 'Compartir llista',
   'collections.share.titleNamed': 'Compartir «{name}»',
   'collections.share.button': 'Compartir',

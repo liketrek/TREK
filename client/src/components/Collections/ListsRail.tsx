@@ -1,5 +1,5 @@
 import React from 'react'
-import { Plus, Layers, Users } from 'lucide-react'
+import { Plus, Layers, Users, Upload } from 'lucide-react'
 import type { Collection } from '@trek/shared'
 import type { TranslationFn } from '../../types'
 import { ALL_SAVED } from '../../store/collectionStore'
@@ -12,6 +12,8 @@ interface ListsRailProps {
   incomingInvites: IncomingCollectionInvite[]
   onSelect: (id: ActiveCollectionId) => void
   onNewList: () => void
+  /** Read a list file as a new list (#2198). */
+  onImportList: () => void
   onAcceptInvite: (id: number) => void
   onDeclineInvite: (id: number) => void
   t: TranslationFn
@@ -30,7 +32,7 @@ function ListRow({ list, active, onSelect }: { list: Collection; active: boolean
 }
 
 /**
- * Left rail of the user's lists: a "New list" action, the "All saved" union
+ * Left rail of the user's lists: "New list" and "Import list" actions, the "All saved" union
  * pseudo-list, owned lists (colour dot + count), a shared section, and an
  * incoming-invites block. Selecting a list makes it active; editing / deleting
  * happens from the Edit button in the hero of the active list.
@@ -38,14 +40,27 @@ function ListRow({ list, active, onSelect }: { list: Collection; active: boolean
 export default function ListsRail(props: ListsRailProps): React.ReactElement {
   const {
     ownedLists, sharedLists, activeId, incomingInvites,
-    onSelect, onNewList, onAcceptInvite, onDeclineInvite, t,
+    onSelect, onNewList, onImportList, onAcceptInvite, onDeclineInvite, t,
   } = props
 
   return (
     <>
-      <button type="button" onClick={onNewList} className="col-rail-new">
-        <Plus size={16} /> {t('collections.newList')}
-      </button>
+      <div className="col-rail-newrow">
+        <button type="button" onClick={onNewList} className="col-rail-new">
+          <Plus size={16} /> {t('collections.newList')}
+        </button>
+        {/* Import sits beside New rather than in the hero: a file becomes a NEW
+            list, so it belongs where lists are made, not on the one open. */}
+        <button
+          type="button"
+          onClick={onImportList}
+          className="col-rail-new col-rail-import"
+          aria-label={t('collections.file.importButton')}
+          title={t('collections.file.importTitle')}
+        >
+          <Upload size={15} />
+        </button>
+      </div>
 
       <div className="col-row">
         <button type="button" onClick={() => onSelect(ALL_SAVED)} className={`col-row-btn${activeId === ALL_SAVED ? ' on' : ''}`}>

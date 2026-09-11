@@ -145,6 +145,23 @@ const collection: TranslationStrings = {
   'collections.picker.hint': 'Válassz egy helyet a gyűjteményeidből',
   'collections.picker.use': 'Használat',
 
+  // Export / import a list as a file (#2198)
+  'collections.file.export': 'Exportálás',
+  'collections.file.exportTitle': 'A lista letöltése fájlként',
+  'collections.file.importButton': 'Lista importálása fájlból',
+  'collections.file.importTitle': 'Lista importálása',
+  'collections.file.choose': 'Válassz listafájlt',
+  'collections.file.confirm': 'Importálás',
+  'collections.file.change': 'Csere',
+  'collections.file.labelCount': '{count} címke',
+  'collections.file.hint':
+    'A helyek új, saját listaként érkeznek. Az értékelések, a tagok és a feltöltött fotók nem jönnek át.',
+  'collections.file.done': '{count} hely importálva',
+  'collections.file.doneSkipped': '{count} hely importálva, {skipped} kihagyva',
+  'collections.file.errorTooLarge': 'Ez a fájl túl nagy ahhoz, hogy lista legyen.',
+  'collections.file.errorUnreadable': 'Ezt a fájlt nem sikerült beolvasni.',
+  'collections.file.errorNotACollection': 'Ez nem TREK-listafájl.',
+
   'collections.share.title': 'Lista megosztása',
   'collections.share.titleNamed': '„{name}” megosztása',
   'collections.share.button': 'Megosztás',

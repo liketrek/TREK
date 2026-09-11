@@ -144,6 +144,23 @@ const collection: TranslationStrings = {
   'collections.picker.hint': 'Koleksiyonlarından bir yer seç',
   'collections.picker.use': 'Kullan',
 
+  // Export / import a list as a file (#2198)
+  'collections.file.export': 'Dışa aktar',
+  'collections.file.exportTitle': 'Bu listeyi dosya olarak indir',
+  'collections.file.importButton': 'Dosyadan liste içe aktar',
+  'collections.file.importTitle': 'Liste içe aktar',
+  'collections.file.choose': 'Bir liste dosyası seç',
+  'collections.file.confirm': 'İçe aktar',
+  'collections.file.change': 'Değiştir',
+  'collections.file.labelCount': '{count} etiket',
+  'collections.file.hint':
+    'Yerler size ait yeni bir liste olarak gelir. Puanlar, üyeler ve yüklenen fotoğraflar geride kalır.',
+  'collections.file.done': '{count} yer içe aktarıldı',
+  'collections.file.doneSkipped': '{count} yer içe aktarıldı, {skipped} tanesi atlandı',
+  'collections.file.errorTooLarge': 'Bu dosya liste olamayacak kadar büyük.',
+  'collections.file.errorUnreadable': 'Bu dosya okunamadı.',
+  'collections.file.errorNotACollection': 'Bu bir TREK liste dosyası değil.',
+
   'collections.share.title': 'Listeyi paylaş',
   'collections.share.titleNamed': '“{name}” listesini paylaş',
   'collections.share.button': 'Paylaş',

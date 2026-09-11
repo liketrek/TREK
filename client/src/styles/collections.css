@@ -27,13 +27,16 @@
   padding: 12px; display: flex; flex-direction: column; gap: 2px;
   max-height: calc(100vh - var(--nav-h) - 44px); overflow-y: auto; overscroll-behavior: contain;
 }
+.trek-dash .col-rail-newrow { display: flex; align-items: stretch; gap: 6px; margin-bottom: 6px; }
 .trek-dash .col-rail-new {
   display: flex; align-items: center; gap: 9px; width: 100%;
-  padding: 10px 12px; margin-bottom: 6px; border-radius: var(--r-sm);
+  padding: 10px 12px; border-radius: var(--r-sm);
   border: 1px dashed var(--line-2); color: var(--ink-2);
   font-size: 13px; font-weight: 500; transition: background .15s, color .15s, border-color .15s;
 }
 .trek-dash .col-rail-new:hover { background: var(--surface-2); color: var(--ink); border-color: var(--ink-3); }
+/* Square, icon-only: "New list" is the primary action and keeps the label. */
+.trek-dash .col-rail-import { width: auto; flex: 0 0 auto; padding: 10px; justify-content: center; }
 .trek-dash .col-rail-label {
   display: flex; align-items: center; gap: 6px; padding: 14px 11px 5px;
   font-size: 10.5px; text-transform: uppercase; letter-spacing: .13em; color: var(--ink-3); font-weight: 600;
@@ -539,6 +542,7 @@
   .trek-dash .col-detail-icon-btn { min-width: 40px; min-height: 40px; }
   .trek-dash .col-drawer .col-row-btn { min-height: 44px; }
   .trek-dash .col-drawer .col-rail-new { min-height: 44px; }
+  .trek-dash .col-drawer .col-rail-import { min-width: 44px; }
   /* enlarge the interactive status badge's tap area without changing its look */
   .trek-dash .col-lrow-end > [role="button"] { position: relative; }
   .trek-dash .col-lrow-end > [role="button"]::after { content: ''; position: absolute; inset: -9px -6px; }

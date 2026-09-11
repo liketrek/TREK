@@ -144,6 +144,23 @@ const collection: TranslationStrings = {
   'collections.picker.hint': 'Pick a place from your collections',
   'collections.picker.use': 'Use',
 
+  // Export / import a list as a file (#2198)
+  'collections.file.export': 'Export',
+  'collections.file.exportTitle': 'Download this list as a file',
+  'collections.file.importButton': 'Import a list from a file',
+  'collections.file.importTitle': 'Import a list',
+  'collections.file.choose': 'Choose a list file',
+  'collections.file.confirm': 'Import',
+  'collections.file.change': 'Change',
+  'collections.file.labelCount': '{count} labels',
+  'collections.file.hint':
+    'The places arrive as a new list of your own. Ratings, members and uploaded photos stay behind.',
+  'collections.file.done': '{count} places imported',
+  'collections.file.doneSkipped': '{count} places imported, {skipped} skipped',
+  'collections.file.errorTooLarge': 'That file is too large to be a list.',
+  'collections.file.errorUnreadable': 'That file could not be read.',
+  'collections.file.errorNotACollection': 'That is not a TREK list file.',
+
   'collections.share.title': 'Share list',
   'collections.share.titleNamed': 'Share “{name}”',
   'collections.share.button': 'Share',

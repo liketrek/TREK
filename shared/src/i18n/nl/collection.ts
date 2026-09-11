@@ -144,6 +144,23 @@ const collection: TranslationStrings = {
   'collections.picker.hint': 'Kies een plek uit je collecties',
   'collections.picker.use': 'Gebruiken',
 
+  // Export / import a list as a file (#2198)
+  'collections.file.export': 'Exporteren',
+  'collections.file.exportTitle': 'Deze lijst als bestand downloaden',
+  'collections.file.importButton': 'Een lijst uit een bestand importeren',
+  'collections.file.importTitle': 'Lijst importeren',
+  'collections.file.choose': 'Kies een lijstbestand',
+  'collections.file.confirm': 'Importeren',
+  'collections.file.change': 'Wijzigen',
+  'collections.file.labelCount': '{count} labels',
+  'collections.file.hint':
+    'De plekken komen binnen als een nieuwe eigen lijst. Beoordelingen, leden en geüploade foto’s blijven achter.',
+  'collections.file.done': '{count} plekken geïmporteerd',
+  'collections.file.doneSkipped': '{count} plekken geïmporteerd, {skipped} overgeslagen',
+  'collections.file.errorTooLarge': 'Dit bestand is te groot om een lijst te zijn.',
+  'collections.file.errorUnreadable': 'Dit bestand kon niet worden gelezen.',
+  'collections.file.errorNotACollection': 'Dit is geen TREK-lijstbestand.',
+
   'collections.share.title': 'Lijst delen',
   'collections.share.titleNamed': '“{name}” delen',
   'collections.share.button': 'Delen',

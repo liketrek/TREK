@@ -1,6 +1,6 @@
 import React from 'react'
 import { avatarSrc } from '../../utils/avatarSrc'
-import { Share2, Users, Link2, Pencil } from 'lucide-react'
+import { Share2, Users, Link2, Pencil, Download, Loader2 } from 'lucide-react'
 import type { CollectionMember, CollectionLink } from '@trek/shared'
 import type { TranslationFn } from '../../types'
 
@@ -26,14 +26,18 @@ interface CollectionHeroProps {
   onEdit: () => void
   shareMemberCount: number
   onShare: () => void
+  /** Absent on the "All saved" pseudo-list, which is a view rather than a list. */
+  onExport?: () => void
+  exporting?: boolean
   t: TranslationFn
 }
 
 /**
  * The page header — a colour-washed (or cover-image) glass hero that gives the
  * active list an identity: an eyebrow with the sharing state + member avatars,
- * the big list name, an optional description + link chips, and a Share action
- * top-right. Filtering lives in the toolbar above the places, not here.
+ * the big list name, an optional description + link chips, and the Edit,
+ * Export and Share actions top-right. Filtering lives in the toolbar above the
+ * places, not here.
  * Modelled on the dashboard hero-trip.
  */
 function linkHost(url: string): string {
@@ -42,7 +46,7 @@ function linkHost(url: string): string {
 
 export default function CollectionHero({
   eyebrow, title, color, coverImage, description, links,
-  members, canShare, isOwner, canEdit, onEdit, shareMemberCount, onShare, t,
+  members, canShare, isOwner, canEdit, onEdit, shareMemberCount, onShare, onExport, exporting, t,
 }: CollectionHeroProps): React.ReactElement {
   const accepted = members.filter(m => m.status === 'accepted' || m.is_owner)
   const showAvatars = accepted.length > 1
@@ -92,6 +96,19 @@ export default function CollectionHero({
               <button type="button" onClick={onEdit} aria-label={t('common.edit')} title={t('common.edit')} className="col-glass-btn">
                 <Pencil size={15} />
                 <span className="txt">{t('common.edit')}</span>
+              </button>
+            )}
+            {onExport && (
+              <button
+                type="button"
+                onClick={onExport}
+                disabled={exporting}
+                aria-label={t('collections.file.export')}
+                title={t('collections.file.exportTitle')}
+                className="col-glass-btn"
+              >
+                {exporting ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
+                <span className="txt">{t('collections.file.export')}</span>
               </button>
             )}
             {canShare && (

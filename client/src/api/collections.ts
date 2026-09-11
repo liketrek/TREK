@@ -10,6 +10,9 @@ import type {
   CollectionSavePlaceRequest,
   CollectionSaveFromTripRequest,
   CollectionImportablesResponse,
+  CollectionFile,
+  CollectionImportRequest,
+  CollectionImportResult,
   CollectionPlaceUpdateRequest,
   CollectionCopyToTripRequest,
   CollectionInviteRequest,
@@ -53,6 +56,12 @@ export const collectionsApi = {
     ax.get(base).then((r: AxiosResponse) => r.data),
   get: (id: number): Promise<CollectionDetailResponse> =>
     ax.get(`${base}/${id}`).then((r: AxiosResponse) => r.data),
+  // Export / import as a file (#2198). The export body IS the file; the import
+  // sends the parsed file back through the same contract.
+  exportFile: (id: number): Promise<CollectionFile> =>
+    ax.get(`${base}/${id}/export`).then((r: AxiosResponse) => r.data),
+  importFile: (body: CollectionImportRequest): Promise<CollectionImportResult> =>
+    ax.post(`${base}/import`, body satisfies CollectionImportRequest).then((r: AxiosResponse) => r.data),
   // Both answer with the bare collection, not a { collection } envelope — the
   // controller returns the service's `Collection` straight through, and the e2e
   // suite pins that shape. Declaring the envelope made createCollection() resolve

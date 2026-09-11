@@ -12,7 +12,19 @@ import {
   trackInsertedInDedupSet,
   type DedupSet,
 } from '../places/places.helpers';
-import { placeMatchStrategies, type PlaceMatchCandidate } from '@trek/shared';
+import {
+  placeMatchStrategies,
+  collectionFilePlaceSchema,
+  COLLECTION_FILE_FORMAT,
+  COLLECTION_FILE_VERSION,
+  MAX_COLLECTION_FILE_LABELS,
+  type PlaceMatchCandidate,
+  type CollectionFile,
+  type CollectionFileLabel,
+  type CollectionFilePlace,
+  type CollectionImportRequest,
+  type CollectionImportResult,
+} from '@trek/shared';
 import type {
   Collection,
   CollectionDetailResponse,
@@ -337,6 +349,170 @@ export class CollectionsService {
       collection: { ...collection, is_owner: collection.owner_id === userId, labels: this.loadLabelsByCollection(id) },
       places: this.hydratePlaces(rows),
     };
+  }
+
+  // -------------------------------------------------------------------------
+  // Export / import as a file (#2198)
+  // -------------------------------------------------------------------------
+
+  /**
+   * A list as a portable file.
+   *
+   * Built here rather than in the browser from what the page happens to hold,
+   * for two reasons: the read is access-checked like every other read, and the
+   * decision about what may leave the instance is one decision in one place
+   * instead of whatever the client forgot to strip. The contract in
+   * `collection-file.schema.ts` says what travels and why.
+   *
+   * Any member may export. A list is shared with somebody so they can use it,
+   * and a viewer who can read all of this on screen loses nothing by having it
+   * as a file; what a viewer must not do is write, which no export does.
+   */
+  exportCollection(userId: number, id: number): CollectionFile {
+    this.assertAccess(userId, id);
+    const collection = this.getCollectionRow(id);
+    const labels = this.loadLabelsByCollection(id);
+    const labelNameById = new Map(labels.map(l => [l.id, l.name]));
+
+    const rows = this.db.all<PlaceRow>(`
+    SELECT cp.*, c.name AS category_name, c.color AS category_color, c.icon AS category_icon
+    FROM collection_places cp
+    LEFT JOIN categories c ON cp.category_id = c.id
+    WHERE cp.collection_id = ?
+    ORDER BY cp.sort_order, cp.created_at
+  `, id);
+    const labelIdsByPlace = this.loadLabelIdsByPlaceIds(rows.map(r => r.id));
+
+    const places: CollectionFilePlace[] = rows.map(row => ({
+      name: row.name,
+      description: row.description ?? null,
+      lat: row.lat ?? null,
+      lng: row.lng ?? null,
+      address: row.address ?? null,
+      notes: row.notes ?? null,
+      price: row.price ?? null,
+      currency: row.currency ?? null,
+      website: row.website ?? null,
+      phone: row.phone ?? null,
+      // Only an absolute https URL survives: a /uploads path resolves on this
+      // server, not the reader's. See the note in the file contract.
+      image_url: typeof row.image_url === 'string' && /^https:\/\//i.test(row.image_url) ? row.image_url : null,
+      google_place_id: row.google_place_id ?? null,
+      google_ftid: row.google_ftid ?? null,
+      osm_id: row.osm_id ?? null,
+      status: row.status,
+      links: parseLinks((row as { links?: unknown }).links),
+      category: row.category_name ?? null,
+      labels: (labelIdsByPlace[row.id] || []).map(lid => labelNameById.get(lid)).filter((n): n is string => !!n),
+    }));
+
+    return {
+      format: COLLECTION_FILE_FORMAT,
+      version: COLLECTION_FILE_VERSION,
+      name: collection.name,
+      description: collection.description ?? null,
+      color: collection.color ?? null,
+      icon: collection.icon ?? null,
+      exported_at: new Date().toISOString(),
+      labels: labels.map(l => ({ name: l.name, color: l.color ?? null })),
+      places,
+    };
+  }
+
+  /**
+   * Read a file back as a new list of the caller's own.
+   *
+   * Always a new list. Importing into an existing one would mean deciding what
+   * happens to a place that is already there, and every answer to that is a
+   * merge somebody did not ask for; a fresh list is a thing they can look at
+   * and then move places out of, which the list UI already does well.
+   *
+   * The places go in through the same INSERT the rest of the service uses,
+   * inside one transaction, so a file that fails halfway leaves nothing
+   * behind. Each place is re-validated against the file contract on the way
+   * in — the body was validated once at the pipe, and this is the second pass
+   * that lets one bad row be dropped instead of failing the whole import.
+   */
+  importCollection(userId: number, body: CollectionImportRequest): CollectionImportResult {
+    const file = body.file;
+    const name = (body.name ?? file.name).trim().slice(0, 120) || file.name;
+
+    // The palette is instance-wide and read-only here: a file names a category,
+    // it does not get to create one.
+    const categoryIdByName = new Map<string, number>();
+    for (const c of this.db.all<{ id: number; name: string }>('SELECT id, name FROM categories')) {
+      categoryIdByName.set(c.name.trim().toLowerCase(), c.id);
+    }
+
+    const result = this.db.transaction(() => {
+      const collection = this.createCollection(userId, {
+        name,
+        description: file.description ?? null,
+        color: file.color ?? undefined,
+        icon: file.icon ?? undefined,
+      });
+
+      const labelIdByName = new Map<string, number>();
+      for (const label of (file.labels ?? []).slice(0, MAX_COLLECTION_FILE_LABELS)) {
+        const key = label.name.trim().toLowerCase();
+        if (!key || labelIdByName.has(key)) continue;
+        labelIdByName.set(key, this.insertImportedLabel(collection.id, label, labelIdByName.size));
+      }
+
+      const insertPlace = this.db.prepare(`
+    INSERT INTO collection_places (
+      collection_id, owner_id, saved_by, name, description, lat, lng, address,
+      category_id, price, currency, notes, image_url, google_place_id, google_ftid,
+      osm_id, website, phone, status, links, sort_order
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+      const assignLabel = this.db.prepare('INSERT OR IGNORE INTO collection_place_labels (collection_place_id, label_id) VALUES (?, ?)');
+
+      let imported = 0;
+      let skipped = 0;
+      for (const raw of file.places) {
+        const parsed = collectionFilePlaceSchema.safeParse(raw);
+        if (!parsed.success) { skipped += 1; continue; }
+        const place = parsed.data;
+        const res = insertPlace.run(
+          collection.id, userId, userId,
+          place.name, place.description ?? null, place.lat ?? null, place.lng ?? null, place.address ?? null,
+          place.category ? (categoryIdByName.get(place.category.trim().toLowerCase()) ?? null) : null,
+          place.price ?? null, place.currency ?? null, place.notes ?? null,
+          place.image_url ?? null, place.google_place_id ?? null, place.google_ftid ?? null,
+          place.osm_id ?? null, place.website ?? null, place.phone ?? null,
+          place.status ?? 'idea', serializeLinks(place.links), imported,
+        );
+        const placeId = Number(res.lastInsertRowid);
+        for (const labelName of place.labels ?? []) {
+          const labelId = labelIdByName.get(labelName.trim().toLowerCase());
+          if (labelId) assignLabel.run(placeId, labelId);
+        }
+        imported += 1;
+      }
+      return { collectionId: collection.id, imported, skipped };
+    });
+
+    const collection = this.getCollectionRow(result.collectionId);
+    return {
+      collection: { ...collection, is_owner: true, labels: this.loadLabelsByCollection(result.collectionId) },
+      imported: result.imported,
+      skipped: result.skipped,
+    };
+  }
+
+  /**
+   * A label straight from a file, without createLabel's duplicate check.
+   *
+   * The caller already de-duplicates by name, the list is empty, and
+   * createLabel would notify the (nonexistent) members once per label.
+   */
+  private insertImportedLabel(collectionId: number, label: CollectionFileLabel, sortOrder: number): number {
+    const res = this.db.run(
+      'INSERT INTO collection_labels (collection_id, name, color, sort_order) VALUES (?, ?, ?, ?)',
+      collectionId, label.name.trim(), label.color ?? '#6366f1', sortOrder,
+    );
+    return Number(res.lastInsertRowid);
   }
 
   createCollection(userId: number, body: CollectionCreateRequest): Collection {
