@@ -1,4 +1,5 @@
 import {
+  modelReadsPhotos,
   adminUserCreateRequestSchema,
   adminUserUpdateRequestSchema,
   adminPermissionsRequestSchema,
@@ -152,5 +153,29 @@ describe('adminTestNotificationRequestSchema', () => {
       }).success,
     ).toBe(true);
     expect(adminTestNotificationRequestSchema.safeParse({ targetId: 'one' }).success).toBe(false);
+  });
+});
+
+describe('modelReadsPhotos', () => {
+  it('recognises the model the addon offers to pull', () => {
+    expect(modelReadsPhotos('qwen3.5:4b')).toBe(true);
+  });
+
+  it('ignores the whitespace an operator leaves around a pasted id', () => {
+    expect(modelReadsPhotos('  qwen3.5:4b  ')).toBe(true);
+  });
+
+  it('assumes a hand-typed id from a family that advertises vision can see', () => {
+    expect(modelReadsPhotos('llava:13b')).toBe(true);
+    expect(modelReadsPhotos('qwen2.5-vl:7b')).toBe(true);
+    expect(modelReadsPhotos('gpt-4o-mini')).toBe(true);
+    expect(modelReadsPhotos('minicpm-v:8b')).toBe(true);
+  });
+
+  it('says nothing about an id it cannot place, which the admin switch is there to settle', () => {
+    // Text-only: booking imports and PDF invoices, never a photographed receipt.
+    expect(modelReadsPhotos('qwen3:8b')).toBe(false);
+    expect(modelReadsPhotos('mistral:7b')).toBe(false);
+    expect(modelReadsPhotos('')).toBe(false);
   });
 });

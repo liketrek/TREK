@@ -22,6 +22,18 @@ export class LlmLocalController {
   }
 
   /**
+   * What the local server says a model can do — `vision`, `thinking`, `tools`.
+   * Lets the addon screen fill the "reads images" switch from the truth instead
+   * of guessing from the model id. `null` when the server cannot answer or is
+   * too old to report it, and the screen falls back to the id heuristic.
+   */
+  @ManagedForbidden('the model list belongs to the operator runtime, not to one instance')
+  @Get('capabilities')
+  async capabilities(@Query('model') model?: string, @Query('baseUrl') baseUrl?: string) {
+    return { capabilities: model ? await this.local.capabilities(baseUrl, model) : null };
+  }
+
+  /**
    * Stream a model pull. Proxies Ollama's NDJSON progress lines
    * ({ status, total?, completed? }) straight to the client, which reads the
    * response body to render a progress bar. Uses @Res() to stream manually.

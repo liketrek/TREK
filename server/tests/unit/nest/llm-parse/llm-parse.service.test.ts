@@ -24,11 +24,19 @@ vi.mock('../../../../src/nest/llm-parse/router/extraction-router', () => ({ rout
 
 import { LlmParseService } from '../../../../src/nest/llm-parse/llm-parse.service';
 import type { LlmConfigResolver } from '../../../../src/nest/llm-parse/llm-config.resolver';
+import type { LlmLocalService } from '../../../../src/nest/llm-parse/llm-local.service';
 import type { RuntimeEnvService } from '../../../../src/nest/app-config/runtime-env.service';
 
 const cfg = (over: Record<string, unknown> = {}) => ({ provider: 'openai', model: 'm', multimodal: false, ...over });
 const llmConfigStub = { resolve: resolveLlmConfig } as unknown as LlmConfigResolver;
-const svc = () => new LlmParseService(llmConfigStub, { isManaged: () => false } as unknown as RuntimeEnvService);
+/** Ollama's own answer about a model. `null` = an older server with nothing to say. */
+const localCapabilities = vi.fn<(baseUrl: string | undefined, model: string) => Promise<string[] | null>>(
+  async () => null,
+);
+const llmLocalStub = { capabilities: localCapabilities } as unknown as LlmLocalService;
+
+const svc = () =>
+  new LlmParseService(llmConfigStub, llmLocalStub, { isManaged: () => false } as unknown as RuntimeEnvService);
 const file = (name: string, body = 'Flight AB123') => ({ buffer: Buffer.from(body), originalName: name });
 
 beforeEach(() => {
@@ -186,5 +194,53 @@ describe('LlmParseService', () => {
     expect(res.kiItems).toEqual([]);
     expect(res.warnings[0]).toMatch(/could not read file/i);
     expect(res.warnings[0]).toContain('corrupt pdf');
+  });
+});
+
+describe('LlmParseService.readsPhotos', () => {
+  beforeEach(() => localCapabilities.mockResolvedValue(null));
+
+  it('takes the operator at their word when the switch is on', async () => {
+    resolveLlmConfig.mockReturnValue(cfg({ model: 'some-local-thing', multimodal: true }));
+    await expect(svc().readsPhotos(1)).resolves.toBe(true);
+  });
+
+  it('asks the local server, which knows, instead of guessing from the id', async () => {
+    // Verified against Ollama 0.32.15: qwen3.5:4b reports vision, qwen3:8b does not.
+    resolveLlmConfig.mockReturnValue(cfg({ provider: 'local', model: 'anything-at-all' }));
+    localCapabilities.mockResolvedValue(['completion', 'vision', 'tools', 'thinking']);
+    await expect(svc().readsPhotos(1)).resolves.toBe(true);
+    expect(localCapabilities).toHaveBeenCalledWith(undefined, 'anything-at-all');
+  });
+
+  it('believes the local server when it says the model is blind, id notwithstanding', async () => {
+    resolveLlmConfig.mockReturnValue(cfg({ provider: 'local', model: 'qwen3.5:4b' }));
+    localCapabilities.mockResolvedValue(['completion', 'tools']);
+    await expect(svc().readsPhotos(1)).resolves.toBe(false);
+  });
+
+  it('falls back to the id when the server is too old to answer', async () => {
+    // A model that works must not be hidden because Ollama predates the field.
+    resolveLlmConfig.mockReturnValue(cfg({ provider: 'local', model: 'qwen3.5:4b' }));
+    localCapabilities.mockResolvedValue(null);
+    await expect(svc().readsPhotos(1)).resolves.toBe(true);
+  });
+
+  it('never asks the local server about a cloud model', async () => {
+    resolveLlmConfig.mockReturnValue(cfg({ provider: 'openai', model: 'gpt-4o' }));
+    await expect(svc().readsPhotos(1)).resolves.toBe(true);
+    expect(localCapabilities).not.toHaveBeenCalled();
+  });
+
+  it('says no to a text-only model when the switch is off', async () => {
+    // Not a lesser choice for a photograph — the wrong one: the provider rejects
+    // the image rather than doing its best with it.
+    resolveLlmConfig.mockReturnValue(cfg({ model: 'qwen3:8b', multimodal: false }));
+    await expect(svc().readsPhotos(1)).resolves.toBe(false);
+  });
+
+  it('says no when nothing is configured at all', async () => {
+    resolveLlmConfig.mockReturnValue(null);
+    await expect(svc().readsPhotos(1)).resolves.toBe(false);
   });
 });

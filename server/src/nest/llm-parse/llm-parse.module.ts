@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { LlmParseService } from './llm-parse.service';
 import { LlmLocalService } from './llm-local.service';
 import { LlmLocalController } from './llm-local.controller';
+import { LlmCapabilitiesController } from './llm-capabilities.controller';
 import { LlmConfigResolver } from './llm-config.resolver';
 import { SettingsModule } from '../settings/settings.module';
 import { AddonsModule } from '../addons/addons.module';
@@ -13,7 +14,7 @@ import { AppConfigModule } from '../app-config/app-config.module';
  */
 @Module({
   imports: [AppConfigModule, SettingsModule, AddonsModule],
-  controllers: [LlmLocalController],
+  controllers: [LlmLocalController, LlmCapabilitiesController],
   providers: [LlmParseService, LlmLocalService, LlmConfigResolver],
   exports: [LlmParseService, LlmConfigResolver],
 })
