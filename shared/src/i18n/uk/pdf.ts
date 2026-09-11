@@ -7,5 +7,8 @@ const pdf: TranslationStrings = {
   'pdf.preview': 'Попередній перегляд PDF',
   'pdf.saveAsPdf': 'Зберегти як PDF',
   'pdf.pageBreakPerDay': 'Розрив сторінки для кожного дня',
+  'pdf.mapTitle': 'Огляд маршруту',
+  'pdf.distanceLabel': 'Відстань',
+  'pdf.mapCredit': 'Контури країн: geoBoundaries (CC BY 4.0)',
 };
 export default pdf;
