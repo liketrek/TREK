@@ -1,3 +1,4 @@
+import { manualSchoolRegionId } from '@trek/shared'
 import { create } from 'zustand'
 import apiClient from '../api/client'
 import { useAuthStore } from './authStore'
@@ -113,6 +114,8 @@ const api: VacayApi = {
   updateStats: (year, days, targetUserId) => ax.put(`/addons/vacay/stats/${year}`, { vacation_days: days, target_user_id: targetUserId } satisfies VacayUpdateStatsRequest).then((r: AxiosResponse) => r.data),
   getHolidays: (year, country) => ax.get(`/addons/vacay/holidays/${year}/${country}`).then((r: AxiosResponse) => r.data),
   getSchoolHolidays: (year, country, subdivision, group) => {
+    const manualId = subdivision ? manualSchoolRegionId(subdivision) : null
+    if (manualId) return ax.get(`/school-holiday-catalog/regions/${manualId}/holidays/${year}`).then((r: AxiosResponse) => r.data)
     const params = new URLSearchParams()
     if (group) params.set('group', group)
     const qs = params.toString()
@@ -416,7 +419,7 @@ export const useVacayStore = create<VacayState>((set, get) => ({
       for (const cy of calendarYears) {
         try {
           if ((cal.type ?? 'public_holiday') === 'school_holiday') {
-            if (!isSchoolHolidayCountrySupported(country)) continue
+            if (!isSchoolHolidayCountrySupported(country) && !manualSchoolRegionId(cal.region)) continue
             const data = await api.getSchoolHolidays(cy, country, subdivision, group)
             data.forEach((h: VacaySchoolHolidayRaw) => {
               if (!h.startDate) return

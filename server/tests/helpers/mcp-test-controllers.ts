@@ -1,4 +1,6 @@
 import { createTestRegistry, type McpRegistry } from '../../src/nest-mcp';
+import { SchoolHolidaysMcp } from '../../src/nest/school-holidays/school-holidays.mcp';
+import { SchoolHolidaysService } from '../../src/nest/school-holidays/school-holidays.service';
 import { db } from '../../src/db/database';
 import { trekMcpAccessPolicy, trekMcpValidateAccess } from '../../src/mcp/nest-mcp-policy';
 import { AssignmentsMcp } from '../../src/nest/assignments/assignments.mcp';
@@ -221,6 +223,7 @@ export function createMcpTestRegistry(): McpRegistry {
       new AssignmentsMcp(assignmentsService, daysService, authService, guards),
       new CollabMcp(collabService, authService, addonsService, guards),
       new VacayMcp(new VacayService(dbService, realtimeService, notificationsStub()), authService, addonsService),
+      new SchoolHolidaysMcp(new SchoolHolidaysService(dbService), guards),
       new TripsMcp(tripsService, todoService, collabService, authService, calendarService, membersService, readModelService, addonsService, guards),
       new TripPromptsMcp(tripsService, readModelService, packingService, addonsService),
       new ShareMcp(new ShareService(dbService, new SettingsService(dbService), permissionsService, queryHelpersService, placePhotoCache), authService, guards),

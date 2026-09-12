@@ -27,6 +27,9 @@ import type { RateLimitService } from '../../src/nest/common/rate-limit.service'
 // Keep in sync with schema.ts + migrations.ts. Intentionally excluded: categories, addons,
 // photo_providers, photo_provider_fields, schema_version (seed/config data, not user data).
 const RESET_TABLES = [
+  'school_holiday_periods',
+  'school_holiday_regions',
+  'school_holiday_countries',
   // Collab
   'file_links',
   'collab_message_reactions',

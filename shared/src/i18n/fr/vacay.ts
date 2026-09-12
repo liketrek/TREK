@@ -1,6 +1,28 @@
 import type { TranslationStrings } from '../types';
 
 const vacay: TranslationStrings = {
+  'schoolCatalog.refreshError':
+    'La modification a été enregistrée, mais la liste n’a pas pu être actualisée. Réessayez de la charger.',
+  'schoolCatalog.title': 'Vacances scolaires',
+  'schoolCatalog.hint': 'Gérez les régions partagées. Chacun peut les choisir dans les paramètres des congés.',
+  'schoolCatalog.periodHint': 'Les deux dates sont incluses. Ajoutez les périodes de chaque année scolaire.',
+  'schoolCatalog.region': 'Région ou district scolaire',
+  'schoolCatalog.name': 'Nom des vacances',
+  'schoolCatalog.start': 'Date de début',
+  'schoolCatalog.end': 'Date de fin',
+  'schoolCatalog.addPeriod': 'Ajouter une période',
+  'schoolCatalog.invalid': 'Vérifiez les noms et les dates.',
+  'schoolCatalog.discard': 'Abandonner les modifications non enregistrées ?',
+  'schoolCatalog.country': 'Pays',
+  'schoolCatalog.deleteHint': 'Supprimez les régions en premier. Les régions utilisées ne peuvent pas être supprimées.',
+  'schoolCatalog.deleteCountry': 'Supprimer le pays',
+  'schoolCatalog.addCountry': 'Ajouter un pays',
+  'schoolCatalog.code': 'Code du pays (ex. US)',
+  'schoolCatalog.empty': 'Aucune région pour le moment.',
+  'schoolCatalog.addRegion': 'Ajouter une région',
+  'schoolCatalog.offline': 'Connectez-vous à Internet pour gérer les vacances scolaires.',
+  'schoolCatalog.loadError': 'Impossible de charger les régions. Rouvrez les paramètres pour réessayer.',
+  'schoolCatalog.retry': 'Réessayer',
   'vacay.subtitle': 'Planifiez et gérez vos jours de congés',
   'vacay.settings': 'Paramètres',
   'vacay.year': 'Année',

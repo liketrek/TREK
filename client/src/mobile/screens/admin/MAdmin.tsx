@@ -1,3 +1,4 @@
+import SchoolHolidayCatalog from '../../../components/Admin/SchoolHolidayCatalog'
 import { useState } from 'react'
 import {
   ArrowUp,
@@ -214,6 +215,7 @@ export default function MAdmin() {
         <div className="space-y-4">
           <MAdminPackingTemplateManager />
           <MAdminCategoryManager />
+          <SchoolHolidayCatalog />
         </div>
       )}
       {activeTab === 'addons' && (

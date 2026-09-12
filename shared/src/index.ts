@@ -75,3 +75,5 @@ export * from './i18n/languages';
 export * from './plugin-permissions';
 // Plugin settings contracts: the settings-field descriptor + admin instance-config wire shapes.
 export * from './plugins/plugins.schema';
+
+export * from './vacay/school-holiday-catalog.schema';
