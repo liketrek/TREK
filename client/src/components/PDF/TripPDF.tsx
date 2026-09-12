@@ -3,13 +3,17 @@ import { createElement } from 'react'
 import { getCategoryIcon } from '../shared/categoryIcons'
 import { FileText, Info, Clock, MapPin, Navigation, Train, Plane, Bus, Car, Ship, Sailboat, Bike, CarTaxiFront, Route, Coffee, Ticket, Star, Heart, Camera, Flag, Lightbulb, AlertTriangle, ShoppingBag, Bookmark, Hotel, LogIn, LogOut, KeyRound, BedDouble, Utensils, Users, ParkingSquare, LucideIcon } from 'lucide-react'
 import { accommodationsApi, mapsApi, pluginsApi } from '../../api/client'
-import type { Trip, Day, Place, Category, AssignmentsMap, DayNote } from '../../types'
+import type { Trip, Day, Place, Category, AssignmentsMap, DayNote, DistanceUnit } from '../../types'
 import { isDayInAccommodationRange, getDayOrder } from '../../utils/dayOrder'
 import { hidesOnMiddleDay, getTransportForDay, getMergedItems, getSpanPhase, getDisplayTimeForDay } from '../../utils/dayMerge'
 import { safeHexColor } from '../../utils/safeColor'
 import { renderIconMarkup } from '../../utils/iconMarkup'
 import { formatMoney, formatMoneySum, formatClockTime, splitReservationDateTime, type MoneyEntry } from '../../utils/formatters'
 import { useSettingsStore } from '../../store/settingsStore'
+import { routeTrip, type TripRouteSummary } from '../Map/tripRouteGeometry'
+import { buildTripMapSvg } from './tripMapSvg'
+import { renderTripMapImage } from './tripMapImage'
+import { formatDistance } from '../../utils/units'
 import { fetchExchangeRates } from '../../hooks/useExchangeRates'
 import { getFlightLegs, getTrainLegs } from '../../utils/flightLegs'
 
@@ -87,6 +91,14 @@ function escHtml(str) {
 // declaration. Percent-encoding is transparent to the fetch.
 function cssUrl(url) {
   return String(url).replace(/["'()\\\s]/g, c => '%' + c.codePointAt(0).toString(16).padStart(2, '0'))
+}
+
+// The day colours come from a fixed palette, but this is a style attribute being built
+// by string concatenation — the same place cssUrl exists for. Anything that is not a
+// plain hex triple is not a colour, and gets the route blue instead of a chance to
+// close the declaration.
+function hexColour(value) {
+  return /^#[0-9a-f]{6}$/i.test(String(value)) ? String(value) : '#0a84ff'
 }
 
 function absUrl(url) {
@@ -185,11 +197,13 @@ interface downloadTripPDFProps {
    * way `locale` does (#2066).
    */
   timeFormat?: string
+  /** 'metric' | 'imperial'. Same reasoning as `timeFormat` — read as a prop, not a hook. */
+  distanceUnit?: string
 }
 
 // `assignments` is normalised here once — every read below (and fetchPlacePhotos)
 // relies on it being an object.
-export async function downloadTripPDF({ trip, days, places, assignments = {}, categories, dayNotes, reservations = [], t: _t, locale: _locale, timeFormat: _timeFormat }: downloadTripPDFProps) {
+export async function downloadTripPDF({ trip, days, places, assignments = {}, categories, dayNotes, reservations = [], t: _t, locale: _locale, timeFormat: _timeFormat, distanceUnit: _distanceUnit }: downloadTripPDFProps) {
   const breaksPerDay = pageBreakPerDay()
   const loc = _locale || undefined
   const tr = _t || (k => k)
@@ -202,11 +216,81 @@ export async function downloadTripPDF({ trip, days, places, assignments = {}, ca
   const coverImg = safeImg(trip?.cover_image)
   //retrieve accommodations for the trip to display on the day sections and prefetch their photos if needed
   const accommodations = await accommodationsApi.list(trip.id);
+  // The endpoint answers `{ accommodations: [...] }`, not a bare array. Unwrapped once
+  // here so every reader below gets the list itself — passing the envelope on is what
+  // cost the route map its hotel legs, and silently (#1736).
+  const accommodationList = Array.isArray(accommodations?.accommodations) ? accommodations.accommodations : []
 
   // Sections contributed by pdfSectionProvider plugins — server-normalized plain
   // text (counts + lengths capped), appended after the days. Fail-safe: an error
   // just means no extra sections, the core export is untouched.
   const pluginSections = await pluginsApi.pdfSections(trip.id).then(r => r.sections || []).catch(() => [])
+
+  // The trip's route as one map (#1736), drawn from the same builder the planner map
+  // uses so the document and the screen agree. Fail-safe and time-boxed: whatever the
+  // router answered inside the budget is drawn, the rest stay straight lines, and any
+  // failure at all simply means no map rather than no PDF.
+  const unit: DistanceUnit = (_distanceUnit || useSettingsStore.getState().settings.distance_unit) === 'imperial'
+    ? 'imperial' : 'metric'
+  let tripRoute: TripRouteSummary | null = null
+  try {
+    tripRoute = await routeTrip(
+      {
+        days: sorted,
+        assignments,
+        reservations,
+        accommodations: accommodationList,
+        optimizeFromAccommodation: useSettingsStore.getState().settings.optimize_from_accommodation,
+      },
+      { profile: 'driving', tripId: trip.id, timeoutMs: 8000 },
+    )
+  } catch (err) {
+    // Logged rather than swallowed: a map that is silently absent looks exactly like a
+    // trip that has no route, and the two need different answers from whoever is
+    // looking. The export itself carries on — the itinerary matters more than the map.
+    console.warn('[tripPdfMap] routing the trip failed; the export continues without a map', err)
+  }
+  // A real basemap first — at city scale the bundled outlines are a country-sized
+  // blank, and only streets carry context that small. The outline map is what is left
+  // when there is no WebGL, no network, or a style that will not load.
+  const mapFrame = { width: 720, height: 420, formatDistance: (km: number) => formatDistance(km, unit) }
+  const tripMapSvg = tripRoute
+    ? (await renderTripMapImage(tripRoute.days, {
+      ...mapFrame,
+      style: useSettingsStore.getState().settings.maplibre_style,
+    })) ?? buildTripMapSvg(tripRoute.days, mapFrame)
+    : null
+  // The other way to end up mapless, and the one that is not a failure: nothing in the
+  // trip routed. Only worth saying when there were stops to route — a trip nobody has
+  // planned yet is meant to print without a map.
+  if (tripRoute && !tripMapSvg && Object.values(assignments).some(list => list?.length)) {
+    console.warn(
+      `[tripPdfMap] no map drawn: ${tripRoute.days.length} of ${sorted.length} day(s) produced a route.`
+      + ' A day needs two located stops, or one located stop with an accommodation either side of it.',
+    )
+  }
+  const totalDistanceLabel = tripRoute && tripRoute.totalDistance > 0
+    ? formatDistance(tripRoute.totalDistance / 1000, unit)
+    : null
+  // Each day named and coloured exactly as the legend on the planner map, so the two
+  // read as the same picture. Days that routed to nothing are already out of `days`.
+  const tripMapHtml = tripMapSvg ? `
+<div class="trip-map">
+  <div class="trip-map-head">
+    <span class="trip-map-title">${escHtml(tr('pdf.mapTitle'))}</span>
+    ${totalDistanceLabel ? `<span class="trip-map-total">${escHtml(tr('pdf.distanceLabel'))}: ${escHtml(totalDistanceLabel)}</span>` : ''}
+  </div>
+  ${tripMapSvg}
+  <div class="trip-map-legend">
+    ${tripRoute.days.filter(d => d.lines.length).map(d => `<span class="trip-map-leg">
+      <span class="trip-map-dot" style="background:${hexColour(d.color.line)}"></span>
+      ${escHtml(d.title || tr('dayplan.dayN', { n: d.dayNumber }))}
+      <span class="trip-map-leg-dist">${escHtml(formatDistance(d.distance / 1000, unit))}</span>
+    </span>`).join('')}
+  </div>
+  <div class="trip-map-credit">${escHtml(tr('pdf.mapCredit'))}</div>
+</div>` : ''
+
 
   // Pre-fetch place photos (Google, OSM and coords-only places)
   const photoMap = await fetchPlacePhotos(assignments, places)
@@ -463,7 +547,7 @@ export async function downloadTripPDF({ trip, days, places, assignments = {}, ca
             </div>`
       }).join('')
 
-    const accommodationsForDay = (accommodations.accommodations || []).filter(a =>
+    const accommodationsForDay = accommodationList.filter(a =>
       day ? isDayInAccommodationRange(day, a.start_day_id, a.end_day_id, days) : false
     ).sort((a, b) => {
       const startA = days.find(d => d.id === a.start_day_id)
@@ -603,6 +687,19 @@ export async function downloadTripPDF({ trip, days, places, assignments = {}, ca
   .cover-stats { display: flex; gap: 36px; }
   .cover-stat-num { font-size: 28px; font-weight: 700; color: #fff; line-height: 1; }
   .cover-stat-lbl { font-size: 9px; font-weight: 500; color: rgba(255,255,255,0.4); letter-spacing: 1px; margin-top: 4px; text-transform: uppercase; }
+
+  /* ── Trip map ──────────────────────────────────── */
+  .trip-map { padding: 26px 30px 20px; page-break-after: always; page-break-inside: avoid; }
+  .pdf-flow .trip-map { page-break-after: auto; }
+  .trip-map-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
+  .trip-map-title { font-size: 11px; font-weight: 600; letter-spacing: 1.4px; text-transform: uppercase; color: #64748b; }
+  .trip-map-total { font-size: 12px; font-weight: 600; color: #334155; }
+  .trip-map-svg { width: 100%; height: auto; border-radius: 8px; border: 1px solid #e2e8f0; display: block; }
+  .trip-map-legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 12px; }
+  .trip-map-leg { display: flex; align-items: center; gap: 6px; font-size: 9px; color: #475569; }
+  .trip-map-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .trip-map-leg-dist { color: #94a3b8; }
+  .trip-map-credit { font-size: 7.5px; color: #94a3b8; margin-top: 10px; }
 
   /* ── Day ───────────────────────────────────────── */
   /* .day-section is a real <table>; its <thead> day header repeats on overflow pages. */
@@ -763,6 +860,10 @@ export async function downloadTripPDF({ trip, days, places, assignments = {}, ca
         <div class="cover-stat-num">${totalAssigned}</div>
         <div class="cover-stat-lbl">${escHtml(tr('pdf.planned'))}</div>
       </div>
+      ${totalDistanceLabel ? `<div>
+        <div class="cover-stat-num">${escHtml(totalDistanceLabel)}</div>
+        <div class="cover-stat-lbl">${escHtml(tr('pdf.distanceLabel'))}</div>
+      </div>` : ''}
       ${totalCostLabel ? `<div>
         <div class="cover-stat-num">${totalCostLabel}</div>
         <div class="cover-stat-lbl">${escHtml(tr('pdf.costLabel'))}</div>
@@ -770,6 +871,9 @@ export async function downloadTripPDF({ trip, days, places, assignments = {}, ca
     </div>
   </div>
 </div>
+
+<!-- Trip map -->
+${tripMapHtml}
 
 <!-- Days -->
 ${daysHtml}
