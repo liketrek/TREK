@@ -1,4 +1,4 @@
-// FE-MOB-AADD-001 to FE-MOB-AADD-025
+// FE-MOB-AADD-001 to FE-MOB-AADD-029
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { delay, http, HttpResponse } from 'msw';
@@ -62,7 +62,11 @@ beforeEach(() => {
   resetAllStores();
   seedStore(useSettingsStore, { settings: buildSettings({ dark_mode: false }) });
   loadAddonsSpy = vi.spyOn(useAddonStore.getState(), 'loadAddons').mockResolvedValue(undefined);
-  server.use(addonsRoute([]));
+  server.use(
+    addonsRoute([]),
+    // What Ollama says about a model: nothing, unless a test says otherwise.
+    http.get('/api/admin/llm/local/capabilities', () => HttpResponse.json({ capabilities: null })),
+  );
 });
 
 afterEach(() => {
@@ -555,5 +559,48 @@ describe('MAdminAddonManager', () => {
 
     await user.type(screen.getByDisplayValue('sk-secret'), '-rotated');
     expect(screen.getByDisplayValue('sk-secret-rotated')).toBeInTheDocument();
+  });
+
+  it('FE-MOB-AADD-028: a local model the server says reads images turns the switch on, and it is saved', async () => {
+    const user = userEvent.setup();
+    const bodies: unknown[] = [];
+    server.use(
+      addonsRoute([llmAddon({ provider: 'local', model: 'some-vision-model', baseUrl: '', apiKey: '', multimodal: false })]),
+      modelsRoute(['some-vision-model']),
+      http.get('/api/admin/llm/local/capabilities', () => HttpResponse.json({ capabilities: ['completion', 'vision'] })),
+      http.put('/api/admin/addons/llm_parsing', async ({ request }) => {
+        bodies.push(await request.json());
+        return HttpResponse.json({ success: true });
+      }),
+    );
+    render(<><ToastContainer /><MAdminAddonManager /></>);
+
+    await screen.findByText('The server reports that some-vision-model reads images.');
+    expect(screen.getByRole('switch', { name: 'This model reads images' })).toHaveAttribute('aria-checked', 'true');
+
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await screen.findByText('Saved');
+    expect(bodies[0]).toEqual({
+      config: { provider: 'local', model: 'some-vision-model', baseUrl: '', apiKey: '', multimodal: true },
+    });
+  });
+
+  it('FE-MOB-AADD-029: turning the switch on against what the server reports warns rather than blocks', async () => {
+    const user = userEvent.setup();
+    server.use(
+      addonsRoute([llmAddon({ provider: 'local', model: 'qwen3:8b', baseUrl: '', apiKey: '' })]),
+      modelsRoute(['qwen3:8b']),
+      http.get('/api/admin/llm/local/capabilities', () => HttpResponse.json({ capabilities: ['completion', 'tools'] })),
+    );
+    render(<MAdminAddonManager />);
+
+    await screen.findByText('The server reports that qwen3:8b does not read images.');
+    const toggle = screen.getByRole('switch', { name: 'This model reads images' });
+    expect(toggle).toHaveAttribute('aria-checked', 'false');
+
+    await user.click(toggle);
+
+    expect(toggle).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByText(/against what the server reports/)).toBeInTheDocument();
   });
 });

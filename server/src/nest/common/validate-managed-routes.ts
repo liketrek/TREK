@@ -73,6 +73,7 @@ export const MANAGED_ROUTE_ALLOW_LIST: string[] = [
   'BackupController.restore',
   'BackupController.updateAutoSettings',
   'BackupController.uploadRestore',
+  'LlmLocalController.capabilities',
   'LlmLocalController.models',
   'LlmLocalController.pull',
   'NotificationsController.testSmtp',

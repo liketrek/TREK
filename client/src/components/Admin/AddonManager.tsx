@@ -1,5 +1,6 @@
 import { useEffect, useState, type ComponentType } from 'react'
 import { adminApi } from '../../api/client'
+import { useModelVision } from './useModelVision'
 import { useTranslation } from '../../i18n'
 import { useAddonStore } from '../../store/addonStore'
 import { useIsDark } from '../../hooks/useIsDark'
@@ -335,6 +336,7 @@ function LlmParsingConfig({ addon }: { addon: Addon }) {
   const [pullStatus, setPullStatus] = useState('')
 
   const effectiveUrl = baseUrl.trim() || DEFAULT_OLLAMA_URL
+  const vision = useModelVision({ provider, model, baseUrl: effectiveUrl, stored: cfg })
   const isInstalled = (id: string) => installed.some(n => n === id || n.startsWith(id + ':') || n.startsWith(id))
 
   const loadModels = async () => {
@@ -385,7 +387,7 @@ function LlmParsingConfig({ addon }: { addon: Addon }) {
     setSaving(true)
     try {
       // Send the masked sentinel unchanged so the server keeps the stored key.
-      await adminApi.updateAddon(addon.id, { config: { provider, model: model.trim(), baseUrl: provider === 'anthropic' ? '' : baseUrl.trim(), apiKey, multimodal: cfg.multimodal === true } })
+      await adminApi.updateAddon(addon.id, { config: { provider, model: model.trim(), baseUrl: provider === 'anthropic' ? '' : baseUrl.trim(), apiKey, multimodal: vision.multimodal } })
       toast.success('Saved')
     } catch {
       toast.error('Failed to save')
@@ -432,6 +434,19 @@ function LlmParsingConfig({ addon }: { addon: Addon }) {
         <span className={labelCls}>Model</span>
         <input autoComplete="off" className={fieldCls} value={model} onChange={e => setModel(e.target.value)} placeholder={provider === 'anthropic' ? 'claude-opus-4-8' : provider === 'openai' ? 'gpt-4o' : 'select or pull below'} />
       </label>
+
+      <div className="rounded-lg border border-edge-secondary px-2.5 py-2">
+        <label className="flex items-center gap-2">
+          <input type="checkbox" checked={vision.multimodal} onChange={e => vision.setMultimodal(e.target.checked)} />
+          <span className="text-caption font-medium text-content">This model reads images</span>
+        </label>
+        <p className="mt-1 text-caption text-content-faint">
+          A vision model is handed the document itself — a scanned page, a photo — instead of text pulled out of it.
+          Leave this off for a text-only model: the provider refuses an image rather than doing its best with it.
+        </p>
+        {vision.serverNote && <p className="mt-1.5 text-caption text-content-muted">{vision.serverNote}</p>}
+        {vision.warning && <p className="mt-1.5 text-caption text-warning">{vision.warning}</p>}
+      </div>
 
       {/* Local model management (Ollama) */}
       {provider === 'local' && (

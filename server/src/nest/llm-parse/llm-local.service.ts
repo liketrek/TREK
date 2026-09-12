@@ -46,6 +46,38 @@ export class LlmLocalService {
   }
 
   /**
+   * What Ollama says a model can do.
+   *
+   * `/api/show` reports a `capabilities` list — `vision`, `thinking`, `tools` —
+   * which is the authoritative answer to a question TREK otherwise guesses at
+   * from the model id. Verified against Ollama 0.32.15:
+   *
+   *   qwen3.5:4b -> ['completion', 'vision', 'tools', 'thinking']
+   *   qwen3:8b   -> ['completion', 'tools', 'thinking']
+   *
+   * Returns null rather than throwing when the server cannot answer or predates
+   * the field: the caller falls back to the id heuristic, and a model that works
+   * must not be hidden because an older Ollama has nothing to say about it.
+   */
+  async capabilities(baseUrl: string | undefined, model: string): Promise<string[] | null> {
+    const root = this.ollamaRoot(baseUrl);
+    try {
+      const res = await safeFetchLlm(`${root}/api/show`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ model }),
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (!res.ok) return null;
+      const data = (await res.json()) as { capabilities?: unknown };
+      if (!Array.isArray(data.capabilities)) return null;
+      return data.capabilities.filter((c): c is string => typeof c === 'string');
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * Start a streamed pull. Returns the upstream NDJSON body so the controller can
    * pipe Ollama's progress lines straight to the client.
    */

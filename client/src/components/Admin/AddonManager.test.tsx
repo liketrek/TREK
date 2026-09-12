@@ -72,7 +72,9 @@ beforeEach(() => {
   seedStore(useSettingsStore, { settings: { dark_mode: false } });
   vi.spyOn(useAddonStore.getState(), 'loadAddons').mockResolvedValue(undefined);
   server.use(
-    http.get('/api/admin/addons', () => HttpResponse.json({ addons: [] }))
+    http.get('/api/admin/addons', () => HttpResponse.json({ addons: [] })),
+    // What Ollama says about a model: nothing, unless a test says otherwise.
+    http.get('/api/admin/llm/local/capabilities', () => HttpResponse.json({ capabilities: null })),
   );
 });
 
@@ -693,5 +695,66 @@ describe('AddonManager', () => {
 
     await waitFor(() => expect(screen.getByDisplayValue('https://proxy.local/v1')).toBeInTheDocument());
     expect(urls).toHaveLength(0);
+  });
+
+  it('FE-ADMIN-ADDON-033: a local model the server calls text-only starts off, and turning it on warns', async () => {
+    const user = userEvent.setup();
+    server.use(
+      addonsRoute([llmAddon({ provider: 'local', model: 'qwen3:8b', baseUrl: '', apiKey: '' })]),
+      modelsRoute(['qwen3:8b']),
+      http.get('/api/admin/llm/local/capabilities', () => HttpResponse.json({ capabilities: ['completion', 'tools', 'thinking'] })),
+    );
+    render(<AddonManager />);
+
+    await screen.findByText('The server reports that qwen3:8b does not read images.');
+    const toggle = screen.getByRole('checkbox', { name: 'This model reads images' });
+    expect(toggle).not.toBeChecked();
+
+    await user.click(toggle);
+
+    expect(toggle).toBeChecked();
+    expect(screen.getByText(/against what the server reports/)).toBeInTheDocument();
+  });
+
+  it('FE-ADMIN-ADDON-034: a local model the server says reads images turns the switch on, and it is saved', async () => {
+    const user = userEvent.setup();
+    const bodies: unknown[] = [];
+    server.use(
+      addonsRoute([llmAddon({ provider: 'local', model: 'some-vision-model', baseUrl: '', apiKey: '', multimodal: false })]),
+      modelsRoute(['some-vision-model']),
+      http.get('/api/admin/llm/local/capabilities', () => HttpResponse.json({ capabilities: ['completion', 'vision'] })),
+      http.put('/api/admin/addons/llm_parsing', async ({ request }) => {
+        bodies.push(await request.json());
+        return HttpResponse.json({ success: true });
+      }),
+    );
+    render(<><ToastContainer /><AddonManager /></>);
+
+    await screen.findByText('The server reports that some-vision-model reads images.');
+    expect(screen.getByRole('checkbox', { name: 'This model reads images' })).toBeChecked();
+
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await screen.findByText('Saved');
+    expect(bodies[0]).toEqual({
+      config: { provider: 'local', model: 'some-vision-model', baseUrl: '', apiKey: '', multimodal: true },
+    });
+  });
+
+  it('FE-ADMIN-ADDON-035: a cloud model has only its id to go on, and an unknown one turned on warns', async () => {
+    const user = userEvent.setup();
+    let asked = 0;
+    server.use(
+      addonsRoute([llmAddon({ provider: 'openai', model: 'mistral-large', baseUrl: '', apiKey: '' })]),
+      http.get('/api/admin/llm/local/capabilities', () => { asked += 1; return HttpResponse.json({ capabilities: ['vision'] }); }),
+    );
+    render(<AddonManager />);
+
+    const toggle = await screen.findByRole('checkbox', { name: 'This model reads images' });
+    expect(toggle).not.toBeChecked();
+
+    await user.click(toggle);
+
+    expect(screen.getByText('mistral-large is not known to read images — if the provider refuses the document, this is why.')).toBeInTheDocument();
+    expect(asked).toBe(0);
   });
 });

@@ -1,12 +1,13 @@
 import type { KiReservation } from '../booking-import/kitinerary.types';
 import { createLlmClient } from './llm-client.factory';
 import { LlmConfigResolver } from './llm-config.resolver';
+import { LlmLocalService } from './llm-local.service';
 import { buildSystemPrompt, KI_RESERVATION_JSON_SCHEMA } from './llm-prompt';
 import type { LlmExtractionInput } from './llm-provider.interface';
 import { isPdf, extractText } from './text-extract';
 import { routeExtraction, detectFlightNumbers } from './router/extraction-router';
 import { Injectable } from '@nestjs/common';
-import { kiReservationSchema } from '@trek/shared';
+import { kiReservationSchema, modelReadsPhotos } from '@trek/shared';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
 
 const MIME_BY_EXT: Record<string, string> = {
@@ -29,12 +30,39 @@ export interface LlmParseResult {
 export class LlmParseService {
   constructor(
     private readonly llmConfig: LlmConfigResolver,
+    private readonly llmLocal: LlmLocalService,
     private readonly env: RuntimeEnvService,
   ) {}
 
   /** True when the addon is enabled AND a usable config resolves for this user. */
   isAvailable(userId: number): boolean {
     return this.llmConfig.resolve(userId) !== null;
+  }
+
+  /**
+   * Whether this user's model can be handed an image at all.
+   *
+   * A text-only model does not do its best with one, the provider rejects it —
+   * after the minutes a read takes. So the answer decides whether the affordance
+   * is offered in the first place. The operator's switch is taken at its word;
+   * without it a local server is asked, and the id is guessed from only when
+   * nothing better answers, which keeps a working setup working without anyone
+   * having to go and confirm it.
+   */
+  async readsPhotos(userId: number): Promise<boolean> {
+    const config = this.llmConfig.resolve(userId);
+    if (!config) return false;
+    // The operator's switch is an explicit override and wins outright.
+    if (config.multimodal) return true;
+    // On a self-hosted server the answer is not a matter of opinion: Ollama
+    // reports it. `null` means an older server with nothing to say, and the
+    // guess below takes over rather than hiding a model that works.
+    if (config.provider === 'local') {
+      const caps = await this.llmLocal.capabilities(config.baseUrl, config.model);
+      if (caps) return caps.includes('vision');
+    }
+    // Cloud providers have no equivalent endpoint — the id is all there is.
+    return modelReadsPhotos(config.model);
   }
 
   async parse(file: { buffer: Buffer; originalName: string }, userId: number): Promise<LlmParseResult> {

@@ -4,6 +4,7 @@ import { useTranslation } from '../../../i18n'
 import { useSettingsStore } from '../../../store/settingsStore'
 import { useAddonStore } from '../../../store/addonStore'
 import { useToast } from '../../../components/shared/Toast'
+import { useModelVision } from '../../../components/Admin/useModelVision'
 import {
   Puzzle, ListChecks, Wallet, FileText, CalendarDays, Globe, Briefcase, Image, Terminal, Link2, Compass, BookOpen,
   MessageCircle, StickyNote, BarChart3, Sparkles, Luggage, Plane, Server, Cloud, Bookmark, Check, Loader2,
@@ -380,6 +381,7 @@ function LlmParsingConfig({ addon }: { addon: Addon }) {
   const [pullStatus, setPullStatus] = useState('')
 
   const effectiveUrl = baseUrl.trim() || DEFAULT_OLLAMA_URL
+  const vision = useModelVision({ provider, model, baseUrl: effectiveUrl, stored: cfg })
   const isInstalled = (id: string) => installed.some(n => n === id || n.startsWith(id + ':') || n.startsWith(id))
 
   const loadModels = async () => {
@@ -430,7 +432,7 @@ function LlmParsingConfig({ addon }: { addon: Addon }) {
     setSaving(true)
     try {
       // Send the masked sentinel unchanged so the server keeps the stored key.
-      await adminApi.updateAddon(addon.id, { config: { provider, model: model.trim(), baseUrl: baseUrl.trim(), apiKey, multimodal: cfg.multimodal === true } })
+      await adminApi.updateAddon(addon.id, { config: { provider, model: model.trim(), baseUrl: baseUrl.trim(), apiKey, multimodal: vision.multimodal } })
       toast.success('Saved')
     } catch {
       toast.error('Failed to save')
@@ -517,6 +519,19 @@ function LlmParsingConfig({ addon }: { addon: Addon }) {
           onChange={e => setModel(e.target.value)}
           placeholder={provider === 'anthropic' ? 'claude-opus-4-8' : provider === 'openai' ? 'gpt-4o' : 'select or pull below'}
         />
+
+        <div className="rounded-xl border border-[color:var(--m-rowbr)] px-3 py-[10px]">
+          <div className="flex items-center gap-[10px]">
+            <span className="flex-1 text-[0.8125rem] font-semibold text-m-ink">This model reads images</span>
+            <MToggle checked={vision.multimodal} onChange={vision.setMultimodal} ariaLabel="This model reads images" />
+          </div>
+          <p className="mt-1 font-geist text-[0.6875rem] text-m-faint">
+            A vision model is handed the document itself — a scanned page, a photo — instead of text pulled out of it.
+            Leave this off for a text-only model: the provider refuses an image rather than doing its best with it.
+          </p>
+          {vision.serverNote && <p className="mt-2 font-geist text-[0.6875rem] text-m-muted">{vision.serverNote}</p>}
+          {vision.warning && <p className="mt-2 font-geist text-[0.6875rem] text-warning">{vision.warning}</p>}
+        </div>
 
         {/* Local model management (Ollama) */}
         {provider === 'local' && (

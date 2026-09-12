@@ -68,3 +68,50 @@ describe('LlmLocalService.pull', () => {
     expect(JSON.parse(init.body)).toEqual({ model: 'nuextract', stream: true });
   });
 });
+
+describe('LlmLocalService.capabilities', () => {
+  const ok = (body: unknown) => ({ ok: true, json: async () => body });
+
+  it('reports what the server says the model can do', async () => {
+    // Verified against Ollama 0.32.15: qwen3.5:4b answers with vision, qwen3:8b
+    // does not. This is the answer the id heuristic exists to guess at.
+    mockFetch(async () => ok({ capabilities: ['completion', 'vision', 'tools', 'thinking'] }));
+    await expect(svc().capabilities('http://localhost:11434/v1', 'qwen3.5:4b')).resolves.toEqual([
+      'completion',
+      'vision',
+      'tools',
+      'thinking',
+    ]);
+  });
+
+  it('asks the native API at the root, not the /v1 path, and names the model', async () => {
+    const fetchMock = mockFetch(async () => ok({ capabilities: [] }));
+    await svc().capabilities('http://ollama.lan:11434/v1', 'qwen3:8b');
+
+    expect(fetchMock.mock.calls[0][0]).toBe('http://ollama.lan:11434/api/show');
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ model: 'qwen3:8b' });
+  });
+
+  it('answers null when the server refuses, so the caller falls back to the id', async () => {
+    mockFetch(async () => ({ ok: false, status: 404, json: async () => ({}) }));
+    await expect(svc().capabilities(undefined, 'nope')).resolves.toBeNull();
+  });
+
+  it('answers null when the server is too old to report capabilities', async () => {
+    // A model that works must not be hidden because Ollama predates the field.
+    mockFetch(async () => ok({ details: { family: 'qwen3' } }));
+    await expect(svc().capabilities(undefined, 'qwen3.5:4b')).resolves.toBeNull();
+  });
+
+  it('answers null rather than throwing when the server cannot be reached', async () => {
+    // Reject only the one call, as above: a persistent rejection surfaces as an
+    // unhandled rejection on vitest's own probe of the mock.
+    safeFetchLlmMock.mockImplementationOnce(() => Promise.reject(new Error('ECONNREFUSED')));
+    await expect(svc().capabilities(undefined, 'qwen3.5:4b')).resolves.toBeNull();
+  });
+
+  it('drops anything in the list that is not a string', async () => {
+    mockFetch(async () => ok({ capabilities: ['vision', 7, null] }));
+    await expect(svc().capabilities(undefined, 'm')).resolves.toEqual(['vision']);
+  });
+});

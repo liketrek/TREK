@@ -613,6 +613,13 @@ export const adminApi = {
   // Local LLM (Ollama) management for the AI-parsing addon.
   llmLocalModels: (baseUrl: string): Promise<{ models: { name: string; size: number }[] }> =>
     apiClient.get('/admin/llm/local/models', { params: { baseUrl } }).then(r => r.data),
+  /**
+   * What the local server says a model can do. `capabilities: null` means the
+   * server could not answer (unreachable, unknown model, or an Ollama too old to
+   * report it) — the caller falls back to guessing from the id.
+   */
+  llmLocalCapabilities: (baseUrl: string, model: string): Promise<{ capabilities: string[] | null }> =>
+    apiClient.get('/admin/llm/local/capabilities', { params: { baseUrl, model } }).then(r => r.data),
   /** Pull a model, streaming Ollama's NDJSON progress to `onProgress`. */
   llmLocalPull: async (
     baseUrl: string,
