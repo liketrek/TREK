@@ -24,6 +24,11 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Térkép sablon',
   'settings.mapTemplatePlaceholder.select': 'Sablon kiválasztása...',
   'settings.mapDefaultHint': 'Hagyd üresen az OpenStreetMap használatához (alapértelmezett)',
+  'settings.routingBase': 'Saját útvonaltervező',
+  'settings.routingBaseHint': 'Saját OSRM-példány. Üresen hagyva a nyilvános kiszolgálókat használja, amelyek másodpercenként körülbelül egy kérést engednek — egy napra elég, egy autós útra kevés. A kiszolgáló újraindítása után lép életbe.',
+  'settings.valhallaBase': 'Saját Valhalla-példány',
+  'settings.valhallaBaseHint':
+    'A TREK alapértelmezés szerint a FOSSGIS nyilvános Valhalláját használja a fizetős utak, autópályák és kompok elkerüléséhez. Itt megadhatja saját Valhallája URL-jét, hogy azt használja helyette. Ha csak saját útvonaltervező van beállítva, a nyilvános Valhalla nem használatos. Saját URL megadása után indítsa újra a szervert, és töltse újra az oldalt.',
   'settings.mapHint': 'URL sablon a térképcsempékhez',
   'settings.mapProvider': 'Térkép szolgáltató',
   'settings.mapProviderHint': 'A Trip Planner és Journey térképekre érvényes. Az Atlas mindig Leafletet használ.',
@@ -86,6 +91,9 @@ const settings: TranslationStrings = {
   'settings.notifyTodoDue': 'Teendő esedékes',
   'settings.notifyVacayInvite': 'Vacay összevonási meghívók',
   'settings.notifyVacayShare': 'Vacay naptármegosztások',
+  'settings.notifyCollectionInvite': 'Gyűjteménymeghívók',
+  'settings.notifySynologySessionCleared': 'Synology munkamenet törölve',
+  'settings.notifyPluginNotification': 'Bővítményértesítések',
   'settings.notifyPhotosShared': 'Megosztott fotók (Immich)',
   'settings.notifyCollabMessage': 'Csevegés üzenetek (Collab)',
   'settings.notifyPackingTagged': 'Csomagolási lista: hozzárendelések',
@@ -277,6 +285,7 @@ const settings: TranslationStrings = {
   'settings.bookingLabelsHint':
     'Állomás- / repülőtér-nevek megjelenítése a térképen. Ha ki van kapcsolva, csak az ikon látszik.',
   'settings.notifyVersionAvailable': 'Új verzió elérhető',
+  'settings.notifyReplicaFailure': 'Tárhely-replika hiba',
   'settings.notificationPreferences.noChannels':
     'Nincsenek értesítési csatornák beállítva. Kérd meg a rendszergazdát, hogy állítson be e-mail vagy webhook értesítéseket.',
   'settings.webhookUrl.label': 'Webhook URL',

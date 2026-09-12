@@ -1,3 +1,4 @@
+import { ROADTRIP_PREFERENCE_KEYS } from '@trek/shared';
 import { readEnv } from '../app-config';
 import { encrypt_api_key } from '../nest/common/crypto/apiKeyCrypto';
 
@@ -4255,6 +4256,338 @@ function runMigrations(db: Database.Database): void {
       const cols = db.prepare("SELECT name FROM pragma_table_info('journey_entries')").all() as Array<{ name: string }>;
       if (!cols.some((c) => c.name === 'stats_excluded')) {
         db.exec('ALTER TABLE journey_entries ADD COLUMN stats_excluded INTEGER NOT NULL DEFAULT 0');
+      }
+    },
+    /**
+    /**
+     * Place shadow log: which search result a user actually picked.
+     *
+     * The corpus behind "would our own index have found that too". No user id,
+     * no trip, no session and no result list — the evaluation compares a query
+     * against a pick, and anything beyond that would be collecting for its own
+     * sake on an instance that promises not to.
+     *
+     * The table is created regardless of the switch: the switch decides whether
+     * rows are written, and a schema that appears only when a feature is
+     * enabled is a schema that differs between installs.
+     *
+     * Appended LAST: the array is index-addressed against schema_version.
+     */
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS place_shadow_picks (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          query TEXT NOT NULL,
+          lang TEXT,
+          bias_lat REAL,
+          bias_lng REAL,
+          source TEXT NOT NULL,
+          live_rank INTEGER NOT NULL,
+          live_count INTEGER NOT NULL,
+          picked_name TEXT NOT NULL,
+          picked_lat REAL NOT NULL,
+          picked_lng REAL NOT NULL,
+          picked_place_id TEXT
+        )
+      `);
+      // Retention deletes by age, the export pages by id.
+      db.exec('CREATE INDEX IF NOT EXISTS idx_place_shadow_created ON place_shadow_picks(created_at)');
+    },
+    /**
+     * What kind of stop a place is on a drive — fuel, charging, rest area, campsite.
+     *
+     * Deliberately NOT a `categories` row. Those are the traveller's own list, editable
+     * and instance-wide (`categories.service.ts` selects them without a user filter), so
+     * seeding four road-trip kinds there would push them into everyone's dropdown and hand
+     * their colour to whoever edits the list first. A refuelling stop is not a taste; it is
+     * a fact about the place, and the road-trip categories already own its icon and colour
+     * (`poiCategories.ts`).
+     *
+     * Free text rather than a CHECK constraint: the set grows with what the corridor
+     * search can look for, and SQLite cannot alter a constraint without rebuilding the
+     * table. NULL means an ordinary place, which is every row that exists today.
+     *
+     * Appended LAST: the array is index-addressed against schema_version.
+     */
+    () => {
+      const cols = db.prepare("SELECT name FROM pragma_table_info('places')").all() as Array<{ name: string }>;
+      if (!cols.some(c => c.name === 'stop_type')) {
+        db.exec('ALTER TABLE places ADD COLUMN stop_type TEXT');
+      }
+    },
+    /**
+     * Points a day's drive is made to pass through, without being stops (#1797).
+     *
+     * The difference is the whole point: a stop is somewhere you go, and it takes a
+     * number in the chain, a place row, an arrival time and a line in the itinerary. A
+     * via is none of that — it only bends the route, which is what "take the coast road
+     * instead" means. Storing one as a place was the alternative, and it would have put a
+     * numbered stop in the middle of the day for a spot nobody stops at.
+     *
+     * Anchored to `after_order_index` rather than to an assignment id: a stop added
+     * mid-day is written with a temporary negative id and swapped for the real one moments
+     * later, so a foreign key to it would dangle. The index is what the routing request is
+     * built from anyway.
+     *
+     * Appended LAST: the array is index-addressed against schema_version.
+     */
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS roadtrip_vias (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          day_id INTEGER NOT NULL REFERENCES days(id) ON DELETE CASCADE,
+          after_order_index INTEGER NOT NULL,
+          sequence INTEGER NOT NULL DEFAULT 0,
+          lat REAL NOT NULL,
+          lng REAL NOT NULL,
+          created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      db.exec('CREATE INDEX IF NOT EXISTS idx_roadtrip_vias_day ON roadtrip_vias(day_id, after_order_index, sequence)');
+    },
+
+    /**
+     * Which imported track a day's drive was fitted to.
+     *
+     * The vias alone already make the day follow it, so this stores nothing the drive
+     * needs — it stores what the traveller needs: the name of the road they chose, still
+     * on the day after a reload, and something to re-fit against when the stops change.
+     *
+     * One row per day, hence `day_id` as the key: a day follows one road or none. The
+     * cascade on `place_id` is the point of the foreign key — delete the imported track
+     * and the label goes with it, rather than leaving a day claiming to follow a line
+     * nobody can see any more. The vias it laid down stay, because they are the drive.
+     *
+     * `stray_km` is how far the fitted route still ran from the track at its worst point,
+     * kept so the day can say how good a fit it is without routing again.
+     *
+     * Appended LAST: the array is index-addressed against schema_version.
+     */
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS roadtrip_day_tracks (
+          day_id INTEGER PRIMARY KEY REFERENCES days(id) ON DELETE CASCADE,
+          place_id INTEGER NOT NULL REFERENCES places(id) ON DELETE CASCADE,
+          stray_km REAL,
+          created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      db.exec('CREATE INDEX IF NOT EXISTS idx_roadtrip_day_tracks_place ON roadtrip_day_tracks(place_id)');
+    },
+    /**
+     * Rename the misnamed Guangdong Province (shipped as "Guangzhou Province").
+     *
+     * geoBoundaries labelled the whole province with the name of its capital, so
+     * every row a user collected under it carries the wrong code. All three
+     * tables that key on a region are moved over: the two per-user ones with an
+     * UPDATE OR IGNORE plus a DELETE, because a user who already holds the
+     * correct region would otherwise hit the unique index and keep a duplicate,
+     * and place_regions with a plain UPDATE, because place_id is its primary key
+     * and nothing there can collide.
+     *
+     * Appended LAST: the array is index-addressed against schema_version.
+     */
+    () => {
+      db.prepare(
+        `UPDATE OR IGNORE visited_regions
+         SET region_code = 'CN-GUANGDONGPROVINCE', region_name = 'Guangdong Province'
+         WHERE UPPER(country_code) = 'CN' AND (region_code = 'CN-GUANGZHOUPROVINCE' OR region_name = 'Guangzhou Province')`,
+      ).run();
+      db.prepare(
+        `DELETE FROM visited_regions
+         WHERE UPPER(country_code) = 'CN' AND (region_code = 'CN-GUANGZHOUPROVINCE' OR region_name = 'Guangzhou Province')`,
+      ).run();
+      db.prepare(
+        `UPDATE OR IGNORE place_regions
+         SET region_code = 'CN-GUANGDONGPROVINCE', region_name = 'Guangdong Province'
+         WHERE UPPER(country_code) = 'CN' AND (region_code = 'CN-GUANGZHOUPROVINCE' OR region_name = 'Guangzhou Province')`,
+      ).run();
+      // hidden_regions is the other direction: it remembers which derived region
+      // a user switched off. Left behind, the tombstone stops matching and the
+      // region a user deliberately hid comes back.
+      db.prepare(
+        `UPDATE OR IGNORE hidden_regions
+         SET region_code = 'CN-GUANGDONGPROVINCE'
+         WHERE UPPER(country_code) = 'CN' AND region_code = 'CN-GUANGZHOUPROVINCE'`,
+      ).run();
+      db.prepare(
+        `DELETE FROM hidden_regions
+         WHERE UPPER(country_code) = 'CN' AND region_code = 'CN-GUANGZHOUPROVINCE'`,
+      ).run();
+    },
+    /**
+     * Let a file hang off an expense, so a receipt or an invoice can be attached
+     * to what it paid for.
+     *
+     * A column on `file_links` rather than a table of its own: the row already
+     * ties one file to one thing, and every other attachment kind is a column
+     * here too. The unique index stops the same receipt being linked twice;
+     * SQLite treats NULLs as distinct, so the rows that exist today, which all
+     * carry a NULL here, do not collide with each other.
+     *
+     * SET NULL rather than CASCADE, unlike the three columns beside it, because
+     * those predate the shared row: one row can carry a place link AND a receipt
+     * link for the same file, and a cascade would delete the whole row when the
+     * expense goes, silently detaching the file from the place as well. Deleting
+     * the expense drops the receipt link and nothing else; the budget service
+     * removes the row afterwards when it carries no other link.
+     *
+     * Appended LAST: the array is index-addressed against schema_version.
+     */
+    () => {
+      const flCols = db.prepare("SELECT name FROM pragma_table_info('file_links')").all() as Array<{ name: string }>;
+      if (!flCols.some((c) => c.name === 'budget_item_id')) {
+        db.exec('ALTER TABLE file_links ADD COLUMN budget_item_id INTEGER REFERENCES budget_items(id) ON DELETE SET NULL');
+      }
+      db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_file_links_file_budget ON file_links(file_id, budget_item_id)');
+      db.exec('CREATE INDEX IF NOT EXISTS idx_file_links_budget_item_id ON file_links(budget_item_id)');
+    },
+    /**
+     * Which chat message an uploaded image belongs to.
+     *
+     * A column on `trip_files` rather than a link row, matching the two that
+     * predate it: a chat image is uploaded for exactly one message and dies with
+     * it, so the cascade is the whole relationship. Guarded through
+     * pragma_table_info like every other column add here, not through a caught
+     * "duplicate column name": that swallows the next error too.
+     *
+     * Appended LAST: the array is index-addressed against schema_version.
+     */
+    () => {
+      const cols = db.prepare("SELECT name FROM pragma_table_info('trip_files')").all() as Array<{ name: string }>;
+      if (!cols.some((c) => c.name === 'message_id')) {
+        db.exec('ALTER TABLE trip_files ADD COLUMN message_id INTEGER REFERENCES collab_messages(id) ON DELETE CASCADE');
+      }
+      db.exec('CREATE INDEX IF NOT EXISTS idx_trip_files_message_id ON trip_files(message_id)');
+    },
+    /**
+     * Links somebody shared with the trip.
+     *
+     * Its own table rather than a note with a URL in it: a link is pinned,
+     * ordered and opened, and none of that is what a note does. `user_id` is who
+     * shared it, so the list can say so and so a member leaving takes their rows
+     * with them.
+     *
+     * Appended LAST: the array is index-addressed against schema_version.
+     */
+    () => {
+      db.exec(`CREATE TABLE IF NOT EXISTS collab_links (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        title TEXT NOT NULL,
+        url TEXT NOT NULL,
+        pinned INTEGER DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )`);
+      db.exec('CREATE INDEX IF NOT EXISTS idx_collab_links_trip ON collab_links(trip_id)');
+    },
+    /**
+     * Route usage counters — how much routing this instance really does.
+     *
+     * Daily aggregates, not a log: one row per day, profile, surface and engine
+     * kind, carrying totals. No query, no coordinate, no route, no user, no trip.
+     * The question they answer is whether TREK could host a router itself, and
+     * that needs volume, not itineraries.
+     *
+     * The table is created regardless of the switch, like the shadow log above:
+     * the switch decides whether rows are written, and a schema that appears only
+     * when a feature is on is a schema that differs between installs.
+     *
+     * Appended LAST: the array is index-addressed against schema_version.
+     */
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS route_usage_daily (
+          day TEXT NOT NULL,
+          profile TEXT NOT NULL,
+          surface TEXT NOT NULL,
+          self_hosted INTEGER NOT NULL,
+          requests INTEGER NOT NULL DEFAULT 0,
+          waypoints INTEGER NOT NULL DEFAULT 0,
+          km REAL NOT NULL DEFAULT 0,
+          failed INTEGER NOT NULL DEFAULT 0,
+          PRIMARY KEY (day, profile, surface, self_hosted)
+        )
+      `);
+      // Retention deletes by day, and the summary reads the newest days first.
+      db.exec('CREATE INDEX IF NOT EXISTS idx_route_usage_day ON route_usage_daily(day)');
+    },
+    /**
+     * How full THIS stop fills the tank, 1 to 100 (#1797).
+     *
+     * Beside stop_type rather than in the traveller's settings, because it is a property
+     * of the stop and not of the person: a motorway rapid charger gets 80 % because the
+     * last fifth would cost as long again, while the one at the hotel gets 100 % because
+     * the car stands there all night. One figure for the whole trip cannot say both, and
+     * the difference between them is a leg.
+     *
+     * NULL means "whatever the traveller's own setting says", which is every row that
+     * exists today and every stop nobody has an opinion about.
+     *
+     * Appended LAST: the array is index-addressed against schema_version.
+     */
+    () => {
+      const cols = db.prepare("SELECT name FROM pragma_table_info('places')").all() as Array<{ name: string }>;
+      if (!cols.some(c => c.name === 'fill_percent')) {
+        db.exec('ALTER TABLE places ADD COLUMN fill_percent INTEGER');
+      }
+    },
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS school_holiday_countries (
+          code TEXT PRIMARY KEY, name TEXT NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS school_holiday_regions (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          country TEXT NOT NULL REFERENCES school_holiday_countries(code),
+          name TEXT NOT NULL COLLATE NOCASE, revision INTEGER NOT NULL DEFAULT 1,
+          UNIQUE(country, name)
+        );
+        CREATE TABLE IF NOT EXISTS school_holiday_periods (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          region_id INTEGER NOT NULL REFERENCES school_holiday_regions(id) ON DELETE CASCADE,
+          name TEXT NOT NULL, start_date TEXT NOT NULL, end_date TEXT NOT NULL,
+          CHECK (end_date >= start_date)
+        );
+        CREATE INDEX IF NOT EXISTS idx_school_holiday_periods_region ON school_holiday_periods(region_id);
+      `);
+    },
+    () => {
+      const cols = db.prepare("SELECT name FROM pragma_table_info('day_assignments')").all() as Array<{ name: string }>;
+      if (!cols.some(c => c.name === 'end_day')) {
+        db.exec('ALTER TABLE day_assignments ADD COLUMN end_day INTEGER NOT NULL DEFAULT 0');
+      }
+    },
+    () => {
+      db.exec(`CREATE TABLE IF NOT EXISTS roadtrip_day_boundaries (
+        trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+        day_number INTEGER NOT NULL CHECK (day_number BETWEEN 1 AND 366),
+        from_assignment_id INTEGER NOT NULL REFERENCES day_assignments(id) ON DELETE CASCADE,
+        to_assignment_id INTEGER REFERENCES day_assignments(id) ON DELETE CASCADE,
+        fraction REAL NOT NULL CHECK (fraction BETWEEN 0 AND 1),
+        PRIMARY KEY (trip_id, day_number)
+      )`);
+    },
+    () => {
+      db.exec('CREATE TABLE IF NOT EXISTS roadtrip_preferences (trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE, key TEXT NOT NULL, value TEXT NOT NULL, PRIMARY KEY (trip_id, key))');
+      const inherit = db.prepare('INSERT OR IGNORE INTO roadtrip_preferences (trip_id, key, value) SELECT t.id, s.key, s.value FROM trips t JOIN settings s ON s.user_id = t.user_id WHERE s.key = ? AND s.value IS NOT NULL');
+      for (const key of ROADTRIP_PREFERENCE_KEYS) inherit.run(key);
+    },
+
+    // A settle-up payment's date was silently `created_at` (when it was recorded),
+    // not editable like a regular expense's `expense_date`. Add the same split:
+    // settled_at is the calendar day the transfer actually happened, independent
+    // of when someone got around to logging it. NULL on legacy rows and rows
+    // whose caller didn't set it; the read side falls back to created_at's date.
+    //
+    // Appended LAST: the array is index-addressed against schema_version.
+    () => {
+      const cols = db.prepare("SELECT name FROM pragma_table_info('budget_settlements')").all() as Array<{ name: string }>;
+      if (!cols.some(c => c.name === 'settled_at')) {
+        db.exec('ALTER TABLE budget_settlements ADD COLUMN settled_at TEXT');
       }
     },
   ];

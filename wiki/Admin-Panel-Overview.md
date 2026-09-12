@@ -30,6 +30,14 @@ The Admin Panel is divided into tabs. Most tabs are always visible; a few appear
 
 ![Admin panel on the User Defaults tab, setting instance-wide defaults for colour mode, temperature unit, distance unit, time format, currency and blurred booking codes](assets/AdminUserDefaults.png)
 
+### Routing services
+
+On desktop and mobile, **User Defaults** includes optional **Custom routing instance** and **Custom Valhalla instance** fields in the map section. Changes save when you leave the field; **reset** restores the built-in default. These fields are hidden on managed instances.
+
+With both fields empty, TREK uses public OSRM servers for routing and the public FOSSGIS Valhalla for avoiding toll roads, motorways and ferries. Configuring only a custom routing instance disables the public Valhalla fallback. After entering a custom server URL, restart TREK and reload the page.
+
+> **AI / MCP:** These fields configure browser routing services and do not change stored trip data.
+
 ### Linking to a tab directly
 
 Every panel is reachable by URL, so a bookmark, an onboarding mail or a support reply can point at the one tab it is about instead of at the top of a page with thirteen of them:

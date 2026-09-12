@@ -22,6 +22,21 @@ export const SATELLITE_TILE_ATTRIBUTION =
   'Imagery &copy; <a href="https://www.esri.com">Esri</a>, Maxar, Earthstar Geographics'
 export const SATELLITE_TILE_MAXZOOM = 19
 
+/**
+ * The basemap for a browser that will not give MapLibre a WebGL context (#2288).
+ *
+ * OpenFreeMap serves vector tiles only, so the app default needs a GL canvas, and
+ * with WebGL off there is nothing to draw it on. Of the keyless raster sources
+ * TREK already points at, this is the only street map: the ESRI layer above is
+ * imagery, and the CARTO templates below have carried an "API KEY REQUIRED"
+ * watermark since 26.08.2026. It is preset one in the Map settings tab, so this
+ * aims no new traffic at OSM's servers, and the volume is bounded by how few
+ * browsers refuse a context in the first place. Attribution is required and comes
+ * from attributionForTile(), which already reads this host as OpenStreetMap.
+ */
+export const RASTER_FALLBACK_TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+export const RASTER_FALLBACK_MAX_ZOOM = 19
+
 // OpenFreeMap, the default basemap since CARTO began watermarking keyless tiles
 // on 26.08.2026 and moved its key behind a request by mail. No key, no
 // registration, no request limits, commercial use allowed, attribution required.

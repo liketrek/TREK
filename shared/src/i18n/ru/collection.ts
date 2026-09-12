@@ -143,6 +143,23 @@ const collection: TranslationStrings = {
   'collections.picker.hint': 'Выберите место из своих коллекций',
   'collections.picker.use': 'Использовать',
 
+  // Export / import a list as a file (#2198)
+  'collections.file.export': 'Экспорт',
+  'collections.file.exportTitle': 'Скачать этот список файлом',
+  'collections.file.importButton': 'Импортировать список из файла',
+  'collections.file.importTitle': 'Импорт списка',
+  'collections.file.choose': 'Выберите файл списка',
+  'collections.file.confirm': 'Импортировать',
+  'collections.file.change': 'Изменить',
+  'collections.file.labelCount': 'Меток: {count}',
+  'collections.file.hint':
+    'Места появятся в новом собственном списке. Оценки, участники и загруженные фотографии остаются на прежнем месте.',
+  'collections.file.done': 'Импортировано мест: {count}',
+  'collections.file.doneSkipped': 'Импортировано мест: {count}, пропущено: {skipped}',
+  'collections.file.errorTooLarge': 'Этот файл слишком велик для списка.',
+  'collections.file.errorUnreadable': 'Не удалось прочитать этот файл.',
+  'collections.file.errorNotACollection': 'Это не файл списка TREK.',
+
   'collections.share.title': 'Поделиться списком',
   'collections.share.titleNamed': 'Поделиться «{name}»',
   'collections.share.button': 'Поделиться',

@@ -754,6 +754,52 @@ describe('folded trip CRUD', () => {
     expect((testDb.prepare('SELECT title FROM trips WHERE id = ?').get(secondCopy) as any).title).toBe('Origin');
   });
 
+  it('TRIP-SVC-061: copy carries the road-trip shaping, not just the places', () => {
+    // A via is the road the traveller chose over the one the router prefers, and
+    // a day track is the line a day was fitted to. Leaving them behind gave back
+    // a trip that looks complete and quietly drives somewhere else — noticed
+    // only once somebody edits the copy, with nothing left to recover from.
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Norway', start_date: '2025-06-01', end_date: '2025-06-02' });
+    const days = getDays(trip.id);
+    const stop = createPlace(testDb, trip.id, { name: 'Geiranger' });
+    const track = createPlace(testDb, trip.id, { name: 'Scenic route' });
+    testDb.prepare("UPDATE places SET stop_type = 'fuel' WHERE id = ?").run(stop.id);
+    testDb.prepare("UPDATE places SET route_geometry = '[[1,2],[3,4]]' WHERE id = ?").run(track.id);
+    createDayAssignment(testDb, days[0].id, stop.id);
+    testDb.prepare(
+      'INSERT INTO roadtrip_vias (day_id, after_order_index, sequence, lat, lng) VALUES (?, 0, 0, 62.1, 7.2), (?, 0, 1, 62.2, 7.3)',
+    ).run(days[0].id, days[0].id);
+    testDb.prepare('INSERT INTO roadtrip_day_tracks (day_id, place_id, stray_km) VALUES (?, ?, 1.5)')
+      .run(days[0].id, track.id);
+
+    const newTripId = svc.copy(trip.id, user.id, 'Clone');
+    const newDays = getDays(newTripId);
+
+    // The kind of stop each place is survives the copy.
+    const copiedStop = testDb.prepare("SELECT stop_type FROM places WHERE trip_id = ? AND name = 'Geiranger'")
+      .get(newTripId) as { stop_type: string | null };
+    expect(copiedStop.stop_type).toBe('fuel');
+
+    const vias = testDb.prepare('SELECT after_order_index, sequence, lat, lng FROM roadtrip_vias WHERE day_id = ? ORDER BY sequence')
+      .all(newDays[0].id) as { after_order_index: number; sequence: number; lat: number; lng: number }[];
+    expect(vias).toEqual([
+      { after_order_index: 0, sequence: 0, lat: 62.1, lng: 7.2 },
+      { after_order_index: 0, sequence: 1, lat: 62.2, lng: 7.3 },
+    ]);
+
+    // The track points at the COPY's place, never back at the original.
+    const copiedTrack = testDb.prepare('SELECT place_id, stray_km FROM roadtrip_day_tracks WHERE day_id = ?')
+      .get(newDays[0].id) as { place_id: number; stray_km: number };
+    const copiedTrackPlace = testDb.prepare("SELECT id FROM places WHERE trip_id = ? AND name = 'Scenic route'")
+      .get(newTripId) as { id: number };
+    expect(copiedTrack.place_id).toBe(copiedTrackPlace.id);
+    expect(copiedTrack.stray_km).toBe(1.5);
+
+    // And the original keeps exactly what it had.
+    expect(testDb.prepare('SELECT COUNT(*) c FROM roadtrip_vias WHERE day_id = ?').get(days[0].id)).toEqual({ c: 2 });
+  });
+
   it('TRIP-SVC-060: copying a trip keeps a staged booking staged', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'Origin', start_date: '2025-06-01', end_date: '2025-06-02' });

@@ -108,11 +108,47 @@ const admin: TranslationStrings = {
   'admin.requireMfa': 'فرض المصادقة الثنائية (2FA)',
   'admin.requireMfaHint': 'يجب على المستخدمين الذين لا يملكون 2FA إكمال الإعداد في الإعدادات قبل استخدام التطبيق.',
   'admin.apiKeys': 'مفاتيح API',
-  'admin.apiKeysHint': 'اختياري. يُفعّل بيانات الأماكن الموسعة مثل الصور والطقس.',
+  'admin.apiKeysHint': 'من أين تأتي بيانات الأماكن. فهرس TREK لا يحتاج مفتاحًا؛ والمزوّدان أدناه اختياريان.',
+  'admin.trekApi.badgeDefault': 'الافتراضي الموصى به',
+  'admin.googleCaveat.badge': 'غير مُستحسَن',
+  'admin.googleCaveat.body':
+    'TREK مفتوح المصدر ولسنا محايدين هنا. بهذا الحجم لا توجد التقييمات وصور المحال العادية إلا لدى Google، وهذا هو الاحتكار. الحقل موجود لانعدام البديل، لا لأننا نوصي به. عندئذ يذهب كل استعلام إلى Google.',
+  'admin.trekApi.tagline':
+    'فهرس الأماكن الخاص بـ TREK. بحث بلا مفتاح من Google، بلا حصة، وبلا أن يُحصي أحد عمليات بحثك.',
+  'admin.trekApi.factPlaces':
+    '73.6 مليون مكان حول العالم',
+  'admin.trekApi.factNoKey':
+    'بلا مفتاح وبلا حصة',
+  'admin.trekApi.factOffline':
+    'حِزَم الدول تعمل دون اتصال',
+  'admin.trekApi.factPrivacy':
+    'لا تُسجَّل عمليات البحث أبدًا',
+  'admin.trekApi.more':
+    'ماذا يحتوي',
+  'admin.trekApi.fieldPhone':
+    'هاتف',
+  'admin.trekApi.fieldStableId':
+    'معرّف ثابت',
+  'admin.trekApi.includedNote':
+    'الأوصاف تأتي من موقع المكان نفسه، وساعات العمل من OpenStreetMap حيث تكون مُدخَلة.',
+  'admin.trekApi.notRatings':
+    'التقييمات',
+  'admin.trekApi.notPhotos':
+    'صور المحال العادية',
+  'admin.trekApi.notIncludedNote':
+    'لا يوفّر أيًّا منهما أي مصدر مفتوح بأي ثمن. يبقى مفتاح Google هو السبيل الوحيد إليهما.',
+  'admin.trekApi.sourcesLabel':
+    'المصادر',
+  'admin.trekApi.sourcesNote':
+    'كل حقل في الاستجابة يذكر من أيٍّ منها جاء.',
+  'admin.trekApi.included':
+    'مشمول',
+  'admin.trekApi.notIncluded':
+    'غير مشمول',
   'admin.mapsKey': 'مفتاح Google Maps API',
   'admin.mapsKeyHint': 'مطلوب للبحث عن الأماكن. احصل عليه من console.cloud.google.com',
   'admin.mapsKeyHintLong':
-    'بدون مفتاح API، يُستخدم OpenStreetMap للبحث. مع مفتاح Google يمكن تحميل الصور والتقييمات وساعات العمل أيضًا. احصل عليه من console.cloud.google.com.',
+    'بدون مفتاح Google API يُستخدَم TREK API المُوصى به. ومع المفتاح يمكن إضافةً تحميل الصور والتقييمات وساعات العمل. أنشئ مفتاحًا على console.cloud.google.com.',
   'admin.recommended': 'مُوصى به',
   'admin.weatherKey': 'مفتاح OpenWeatherMap API',
   'admin.weatherKeyHint': 'لبيانات الطقس. مجاني من openweathermap.org',
@@ -135,6 +171,8 @@ const admin: TranslationStrings = {
   'admin.fileTypesHint': 'حدد أنواع الملفات التي يمكن للمستخدمين رفعها.',
   'admin.fileTypesFormat': 'امتدادات مفصولة بفواصل (مثل jpg,png,pdf,doc). استخدم * للسماح بجميع الأنواع.',
   'admin.fileTypesSaved': 'تم حفظ إعدادات أنواع الملفات',
+  'admin.googleOptions': 'فيمَ يُستخدَم المفتاح',
+  'admin.googleOptionsSummary': '{on} من {total} مُفعَّل',
   'admin.placesPhotos.title': 'صور الأماكن',
   'admin.placesPhotos.subtitle': 'جلب الصور من Google Places API. عطّلها للحفاظ على حصة API. صور Wikimedia غير متأثرة.',
   'admin.placesAutocomplete.title': 'الإكمال التلقائي للأماكن',
@@ -145,6 +183,17 @@ const admin: TranslationStrings = {
   'admin.placesEnrich.title': 'إثراء الأماكن',
   'admin.placesEnrich.subtitle':
     'يعرض صورًا ووصفًا أثناء إضافة مكان. تُستخدم ويكيبيديا وOpenStreetMap دائمًا، وتُضاف Google عند تفعيل صور الأماكن أو تفاصيل الأماكن.',
+  'admin.transitProvider.title': 'مزود النقل العام',
+  'admin.transitProvider.subtitle': 'الخدمة التي تجيب على بحث النقل العام.',
+  'admin.transitProvider.transitous': 'Transitous (مجاني)',
+  'admin.transitProvider.google': 'Google',
+  'admin.transitProvider.transitousHint': 'تغذيات GTFS مجتمعية. مجانية وبدون مفتاح، وأفضل تغطية في أوروبا.',
+  'admin.transitProvider.googleHint': 'يستخدم مفتاح Google أعلاه للمناطق التي لا تتوفر لها بيانات في Transitous. يُحاسب على كل بحث — ويُستخدم Transitous ما دام لا يوجد مفتاح.',
+  'admin.transitProvider.noKeyWarning': 'تم اختيار Google، لكن لا يوجد مفتاح Google مُهيأ — لا يزال بحث النقل يستخدم Transitous. أضف مفتاحًا ضمن مفاتيح API أعلاه.',
+  'admin.transitProvider.personalKeyWarning': 'مفتاح Google الخاص بك وحده مضبوط، لذا يعود بحث النقل لبقية الأعضاء إلى Transitous. احفظ المفتاح أعلاه كمسؤول لتطبيقه على مستوى المثيل.',
+  'admin.placeShadow.title': 'سجل البحث عن الأماكن',
+  'admin.placeShadow.subtitle':
+    'تسجيل نتيجة البحث التي جرى اختيارها، حتى يمكن لاحقًا قياس فهرس أماكن آخر على عمليات بحث حقيقية. لا يغادر أي شيء هذا الخادم، ويمكن للمشرف تصدير السجل أو حذفه في أي وقت.',
   'admin.bagTracking.title': 'تتبع الأمتعة',
   'admin.bagTracking.subtitle': 'تفعيل الوزن وتعيين الأمتعة للعناصر',
   'admin.collab.chat.title': 'الدردشة',
@@ -329,6 +378,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:photo-provider': 'توفير الصور لميزة الذكريات',
   'admin.plugins.perm.hook:calendar-source': 'توفير الأحداث للتقويم',
   'admin.plugins.perm.hook:place-detail-provider': 'المساهمة بتفاصيل إضافية (مراجعات، تقييمات، روابط) لمكان ما',
+  'admin.plugins.perm.hook:search-provider': 'الإجابة على عمليات البحث عن الأماكن من فهرس خاص به، إلى جانب نتائج TREK',
   'admin.plugins.perm.hook:trip-warning-provider': 'إظهار تحذيرات التحقق على الرحلة (تظهر في المخطط)',
   'admin.plugins.perm.hook:table-contributor': 'إضافة أعمدة وإجراءات إلى عروض الرحلة (الحجوزات، الأماكن، الأيام)',
   'admin.plugins.perm.hook:map-marker-provider': 'إضافة علامات إلى خريطة الرحلة (مثل عرض الحجوزات أو نقاط الاهتمام)',
@@ -480,6 +530,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.photos': 'يوفّر الصور',
   'admin.plugins.cap.calendar': 'يوفّر أحداث التقويم',
   'admin.plugins.cap.placeDetails': 'يُثري الأماكن',
+  'admin.plugins.cap.search': 'يجيب على عمليات البحث',
   'admin.plugins.cap.warnings': 'يرصد المشكلات',
   'admin.plugins.cap.mapLayers': 'يرسم على الخريطة',
   'admin.plugins.cap.routing': 'يوفّر التوجيه',
@@ -538,6 +589,8 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.atlas.description': 'خريطة العالم مع الدول التي تمت زيارتها وإحصائيات السفر',
   'admin.addons.catalog.collab.name': 'التعاون',
   'admin.addons.catalog.collab.description': 'ملاحظات واستطلاعات ومحادثة واقتراحات للتخطيط المشترك',
+  'admin.addons.catalog.roadtrip.name': 'رحلة برية',
+  'admin.addons.catalog.roadtrip.description': 'خطّط رحلات القيادة مع محطات توقف، وتُحدَّث أوقات القيادة والوصول تلقائيًا',
   'admin.addons.catalog.memories.name': 'صور (Immich)',
   'admin.addons.catalog.memories.description': 'شارك صور رحلتك عبر Immich',
   'admin.addons.catalog.mcp.description': 'بروتوكول سياق النموذج لتكامل مساعد الذكاء الاصطناعي',

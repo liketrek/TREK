@@ -9,6 +9,7 @@ import { useStudioStore } from '../../store/studioStore'
 import { formatDate } from '../../utils/formatters'
 import { useToast } from '../shared/Toast'
 import { SpreadFold, SpreadView } from './SpreadView'
+import { folioLabel, foliosOf } from './bookSheets'
 import { photoSrc } from './bookRender'
 import { elementId as uid } from './bookIds'
 import { formatBookCoords, formatBookDate, type CoordFormat } from './entryText'
@@ -200,14 +201,14 @@ function PagesPanel({
                         transform: `scale(${scale})`, transformOrigin: 'top left',
                       }}
                     >
-                      <SpreadView spread={sp} page={page} spreadIndex={i} />
+                      <SpreadView spread={sp} page={page} folios={foliosOf(spreads, i, page.pageNumbers.startAt)} />
                     </div>
                     {bookView && !single && <SpreadFold page={page} scaled={pxPerMm * scale} />}
                   </div>
                   <span className="st-thumb-label">
                     {sp.role === 'cover' ? t('journey.studio.cover')
                       : sp.role === 'back' ? t('journey.studio.backCover')
-                      : `${i * 2} – ${i * 2 + 1}`}
+                      : folioLabel(foliosOf(spreads, i, page.pageNumbers.startAt))}
                   </span>
                 </button>
 

@@ -1,5 +1,6 @@
 import { Map as MapIcon, Satellite } from 'lucide-react'
 import { useTranslation } from '../../i18n'
+import { MAP_CONTROL_SHADOW } from './mapControlShadow'
 
 export type BaseLayer = 'default' | 'satellite'
 
@@ -18,7 +19,7 @@ export function MapLayerSwitcher({ active, onToggle }: { active: BaseLayer; onTo
       background: 'var(--sidebar-bg)',
       backdropFilter: 'blur(20px) saturate(180%)',
       WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-      boxShadow: 'var(--sidebar-shadow, 0 4px 16px rgba(0,0,0,0.14))',
+      boxShadow: MAP_CONTROL_SHADOW,
     }}>
       <button
         type="button"

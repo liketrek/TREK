@@ -22,5 +22,8 @@ const map: TranslationStrings = {
   'map.location.denied': 'Quyền truy cập vị trí đang bị chặn. Hãy kiểm tra cài đặt thiết bị; ứng dụng đã cài đặt có quyền vị trí riêng, tách biệt với trình duyệt.',
   'map.location.unavailable': 'Không thể xác định vị trí của bạn.',
   'map.location.timeout': 'Việc xác định vị trí mất quá nhiều thời gian. Hãy thử lại ở nơi nhìn thấy bầu trời thoáng hơn.',
+  'map.overview.show': 'Hiện toàn bộ chuyến đi',
+  'map.overview.hide': 'Ẩn toàn bộ chuyến đi',
+  'map.overview.total': 'Tổng quãng đường',
 };
 export default map;

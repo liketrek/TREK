@@ -80,6 +80,10 @@ const budget: TranslationStrings = {
   'costs.pays': 'płaci',
   'costs.settle': 'Rozlicz',
   'costs.balances': 'Salda',
+  'costs.finalBudget': 'Budżet końcowy',
+  'costs.finalExpenses': 'Zapłacone wydatki',
+  'costs.finalReimbursed': 'Zwroty netto',
+  'costs.finalPending': 'Oczekujące zwroty',
   'costs.byCategory': 'Według kategorii',
   'costs.noCategories': 'Brak wydatków.',
   'costs.settleHistory': 'Historia rozliczeń',
@@ -147,5 +151,12 @@ const budget: TranslationStrings = {
   'costs.splitSumUnder': 'Suma podziałów: {sum} z {total} (brakuje {diff})',
   'costs.splitSumOver': 'Suma podziałów: {sum} z {total} (o {diff} za dużo)',
   'costs.toggleSign': 'Przełącz między wydatkiem a zwrotem',
+  'costs.receipts': 'Paragony',
+  'costs.receiptsTitle': 'Paragony i faktury',
+  'costs.attachReceipt': 'Załącz paragon / fakturę',
+  'costs.noReceipts': 'Brak załączonych paragonów',
+  'costs.deleteReceipt': 'Usuń paragon',
+  'costs.viewReceipt': 'Zobacz paragon',
+  'costs.receiptLeftBehind': 'Zapis nie powiódł się, a {count} przesłanych paragonów wciąż tam jest. Usuń je w zakładce Pliki.',
 };
 export default budget;

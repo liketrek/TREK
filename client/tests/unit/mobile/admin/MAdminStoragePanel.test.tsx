@@ -271,7 +271,12 @@ describe('MAdminStoragePanel', () => {
     await screen.findByText('Storage configuration saved');
     // files is default-sourced (uploads-local) in baseState() — stripping restores "no override".
     expect((putBody as StorageConfig).categories.files).toBeUndefined();
-    expect(migrationBody).toEqual({ category: 'files', to: 'off-box' });
+    // Waited for, not read straight after the toast. The toast comes from the
+    // PUT, while the migration POST is fired by the queue effect one commit
+    // later, so the two are not the same tick. Reading it immediately only held
+    // while that effect happened to flush first, which under CI load it does
+    // not. Same fix as FE-ADMIN-STOR-030 on the desktop twin.
+    await waitFor(() => expect(migrationBody).toEqual({ category: 'files', to: 'off-box' }));
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
   });
 

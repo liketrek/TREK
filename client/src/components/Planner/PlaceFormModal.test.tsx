@@ -299,6 +299,43 @@ describe('PlaceFormModal', () => {
     delete window.__addToast;
   });
 
+  it('FE-PLANNER-PLACEFORM-021e: an OpenStreetMap suggestion keeps its own coordinates instead of searching for its label', async () => {
+    // The layer's second line is the name written on the building, not an
+    // address. Joining the two and searching for it asks a question nobody
+    // typed, and whatever came back first was taken as the place the user had
+    // already picked. The row carries coordinates, so the fallback uses those.
+    const user = userEvent.setup();
+    let searched = 0;
+    server.use(
+      http.post('/api/maps/autocomplete', () =>
+        HttpResponse.json({
+          suggestions: [{
+            placeId: 'node:9712313',
+            mainText: 'Tokio Hauptbahnhof',
+            secondaryText: '東京駅丸の内駅舎',
+            source: 'openstreetmap',
+            lat: 35.6811816,
+            lng: 139.76598265,
+          }],
+          source: 'trek-places',
+        }),
+      ),
+      http.get('/api/maps/details/:placeId', () => HttpResponse.json({ place: null, disabled: true })),
+      http.post('/api/maps/search', () => {
+        searched += 1;
+        return HttpResponse.json({ places: [{ name: 'Etwas ganz anderes', lat: '1', lng: '1' }], source: 'trek-places' });
+      }),
+    );
+
+    render(<PlaceFormModal {...defaultProps} />);
+    await user.type(screen.getByPlaceholderText('Search places...'), 'Tokio');
+    await user.click(await screen.findByText('Tokio Hauptbahnhof'));
+
+    expect(await screen.findByDisplayValue('35.6811816')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('139.76598265')).toBeInTheDocument();
+    expect(searched).toBe(0);
+  });
+
   it('FE-PLANNER-PLACEFORM-021c: suggestion click falls back when details is disabled (place: null)', async () => {
     const user = userEvent.setup();
     server.use(
@@ -349,10 +386,80 @@ describe('PlaceFormModal', () => {
     delete window.__addToast;
   });
 
-  it('FE-PLANNER-PLACEFORM-022: hasMapsKey=false shows OSM active message', () => {
-    // hasMapsKey is false by default in beforeEach
+  it('FE-PLANNER-PLACEFORM-022: no standing notice about which index is in use', () => {
+    // It used to say "Using OpenStreetMap" above the box whenever no Google key
+    // was set, which was a sentence about configuration in the middle of a form
+    // about a place. Each result names its own source now, which is the question
+    // people actually had.
     render(<PlaceFormModal {...defaultProps} />);
-    expect(screen.getByText(/OpenStreetMap/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Using OpenStreetMap/i)).not.toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-PLACEFORM-022b: a suggestion says which index answered', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.post('/api/maps/autocomplete', () =>
+        HttpResponse.json({
+          suggestions: [{ placeId: 'gers:abc', mainText: 'Eiffel Tower', secondaryText: 'Paris, France' }],
+          source: 'trek-places',
+        }),
+      ),
+    );
+
+    render(<PlaceFormModal {...defaultProps} />);
+    await user.type(screen.getByPlaceholderText('Search places...'), 'Eiffel');
+
+    expect(await screen.findByText('TREK')).toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-PLACEFORM-022d: the typed-ahead list marks the OpenStreetMap rows as such', async () => {
+    // The keystroke path asks both indexes at once, so the name the response
+    // carries for the whole list ('trek-places') is true of the call and wrong
+    // for half the rows. Marking every suggestion TREK is how a list that did
+    // contain OpenStreetMap places read as if it never had.
+    const user = userEvent.setup();
+    server.use(
+      http.post('/api/maps/autocomplete', () =>
+        HttpResponse.json({
+          suggestions: [
+            { placeId: 'gers:abc', mainText: 'Tokyo Station Beer Stand', secondaryText: 'Chiyoda', source: 'trek-places' },
+            { placeId: 'node:9712313', mainText: 'Tokio Hauptbahnhof', secondaryText: '東京駅', source: 'openstreetmap' },
+          ],
+          source: 'trek-places',
+        }),
+      ),
+    );
+
+    render(<PlaceFormModal {...defaultProps} />);
+    await user.type(screen.getByPlaceholderText('Search places...'), 'Tokyo Station');
+
+    expect(await screen.findByText('TREK')).toBeInTheDocument();
+    expect(await screen.findByText('OpenStreetMap')).toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-PLACEFORM-022c: an interleaved result list marks each row with its own index', async () => {
+    // The whole point of putting it on the row: with both indexes answering,
+    // a label above the list could only name one of them. The index marks its
+    // own rows, so the unmarked one is OpenStreetMap by elimination.
+    const user = userEvent.setup();
+    server.use(
+      http.post('/api/maps/search', () =>
+        HttpResponse.json({
+          places: [
+            { name: 'Eiffel Tower', address: 'Paris', lat: '48.85', lng: '2.29', source: 'trek-places' },
+            { name: 'Champ de Mars', address: 'Paris', lat: '48.85', lng: '2.29' },
+          ],
+          source: 'trek-places+openstreetmap',
+        }),
+      ),
+    );
+
+    render(<PlaceFormModal {...defaultProps} />);
+    await user.type(screen.getByPlaceholderText('Search places...'), 'Eiffel');
+    await user.keyboard('{Enter}');
+
+    expect(await screen.findByText('TREK')).toBeInTheDocument();
+    expect(await screen.findByText('OpenStreetMap')).toBeInTheDocument();
   });
 
   // ── Category ─────────────────────────────────────────────────────────────────

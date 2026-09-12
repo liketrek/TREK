@@ -320,7 +320,7 @@ describe('Tool: list_addons', () => {
         type: row.type,
         enabled: true,
       });
-      expect(data.collabFeatures).toEqual({ chat: true, notes: true, polls: true, whatsnext: true });
+      expect(data.collabFeatures).toEqual({ chat: true, notes: true, links: true, polls: true, whatsnext: true });
       expect(data.bagTracking).toBe(false);
     });
   });

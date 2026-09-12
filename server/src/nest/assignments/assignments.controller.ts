@@ -17,6 +17,7 @@ import {
   AssignmentReorderDto,
   AssignmentMoveDto,
   AssignmentTimeDto,
+  AssignmentEndDayDto,
   AssignmentNotesDto,
   AssignmentTransportDto,
   AssignmentParticipantsDto,
@@ -169,6 +170,22 @@ export class AssignmentOpsController {
     const assignment = this.assignments.updateTime(id, body.place_time, body.end_time);
     this.assignments.broadcast(tripId, 'assignment:updated', { assignment }, socketId);
     this.assignments.reconcile(tripId, socketId);
+    return { assignment };
+  }
+
+  @RequirePermission('day_edit')
+  @Put(':id/end-day')
+  endDay(
+    @Param('tripId') tripId: string,
+    @Param('id') id: string,
+    @Body() body: AssignmentEndDayDto,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
+    if (!this.assignments.getAssignmentForTrip(id, tripId)) {
+      throw new HttpException({ error: 'Assignment not found' }, 404);
+    }
+    const assignment = this.assignments.setEndDay(id, body.end_day);
+    this.assignments.broadcast(tripId, 'assignment:updated', { assignment }, socketId);
     return { assignment };
   }
 

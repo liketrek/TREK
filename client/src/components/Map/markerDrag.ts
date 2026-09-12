@@ -48,3 +48,51 @@ export function makeMarkerDraggable(el: HTMLElement, placeId: number): () => voi
     el.removeEventListener('mousedown', onMouseDown)
   }
 }
+
+/**
+ * Wire a corridor hit up as a drag source, so it can be dropped onto the drive.
+ *
+ * The same HTML5 drag as `makeMarkerDraggable`, with the OSM id as payload instead of a
+ * place id — a corridor hit is not a place yet. The drop target is the map itself rather
+ * than the drawn line: a route polyline is a real element only in Leaflet (the GL
+ * renderers draw it into the canvas), and the drop coordinate answers "where on the drive"
+ * just as well once it is projected onto the routed geometry.
+ */
+export function makePoiDraggable(el: HTMLElement, osmId: string): () => void {
+  el.setAttribute('draggable', 'true')
+
+  const onDragStart = (e: DragEvent) => {
+    e.dataTransfer?.setData('poiOsmId', osmId)
+    if (e.dataTransfer) e.dataTransfer.effectAllowed = 'copy'
+    window.__dragData = { poiOsmId: osmId }
+    el.classList.add('marker-dragging')
+    document.body.classList.add('dragging-poi')
+  }
+  const onDragEnd = () => {
+    window.__dragData = null
+    el.classList.remove('marker-dragging')
+    document.body.classList.remove('dragging-poi')
+  }
+  // Same reason as above: without this the map pans out from under the pointer as the
+  // drag begins, and the route is impossible to aim at.
+  const onMouseDown = (e: MouseEvent) => e.stopPropagation()
+
+  el.addEventListener('dragstart', onDragStart)
+  el.addEventListener('dragend', onDragEnd)
+  el.addEventListener('mousedown', onMouseDown)
+
+  return () => {
+    el.removeAttribute('draggable')
+    el.removeEventListener('dragstart', onDragStart)
+    el.removeEventListener('dragend', onDragEnd)
+    el.removeEventListener('mousedown', onMouseDown)
+  }
+}
+
+/** The OSM id being dragged, when a corridor hit is in flight. */
+export function draggedPoiId(e: DragEvent): string | null {
+  const fromTransfer = e.dataTransfer?.getData('poiOsmId')
+  if (fromTransfer) return fromTransfer
+  // dataTransfer is unreadable during dragover, so the window mirror answers instead.
+  return window.__dragData?.poiOsmId ?? null
+}

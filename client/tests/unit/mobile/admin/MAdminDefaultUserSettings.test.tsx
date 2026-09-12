@@ -408,6 +408,39 @@ describe('MAdminDefaultUserSettings', () => {
     await screen.findByText('Default User Settings');
 
     expect(screen.queryByText('Shared CARTO key')).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('https://osrm.example.org')).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('https://valhalla.example.org')).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['routing_base_url', 'https://osrm.example.org'],
+    ['valhalla_base_url', 'https://valhalla.example.org'],
+  ])('loads, saves and resets the mobile %s field', async (key, placeholder) => {
+    const { puts } = stubDefaults({ [key]: 'https://router.example.org' });
+    render(<MAdminDefaultUserSettings />);
+    const input = await screen.findByPlaceholderText(placeholder);
+    expect(input).toHaveValue('https://router.example.org');
+    fireEvent.change(input, { target: { value: '  https://new.example.org  ' } });
+    expect(puts).toEqual([]);
+    fireEvent.blur(input);
+    await waitFor(() => expect(puts).toEqual([{ [key]: 'https://new.example.org' }]));
+    await waitFor(() => expect(input).toHaveValue('https://new.example.org'));
+    await waitFor(() => expect(input).toBeEnabled());
+    fireEvent.click(within(input.parentElement!).getByRole('button', { name: 'reset' }));
+    await waitFor(() => expect(input).toHaveValue(''));
+    expect(puts[1]).toEqual({ [key]: null });
+  });
+
+  it('restores the saved routing URL and shows the error when saving fails', async () => {
+    stubDefaults({ routing_base_url: 'https://router.example.org' });
+    server.use(http.put('/api/admin/default-user-settings', () => HttpResponse.json({ error: 'Routing URL rejected' }, { status: 400 })));
+    withToast();
+    const input = await screen.findByPlaceholderText('https://osrm.example.org');
+    fireEvent.change(input, { target: { value: 'https://new.example.org' } });
+    fireEvent.blur(input);
+    expect(await screen.findByText('Routing URL rejected')).toBeInTheDocument();
+    await waitFor(() => expect(input).toHaveValue('https://router.example.org'));
+    expect(input).toBeEnabled();
   });
 
   it('FE-MOB-MDUS-027: a managed instance hides the shared Mapbox token as well', async () => {

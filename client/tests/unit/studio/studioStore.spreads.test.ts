@@ -311,3 +311,66 @@ describe('turning an element', () => {
     expect(rotationOf('one')).toBe(0)
   })
 })
+
+/*
+ * The single first and last pages are fixed the way the covers are (#2317):
+ * a bound book opens onto one right-hand page and closes on one left-hand
+ * page, and an inner spread may only ever go between them.
+ */
+describe('a book with a first and a last page', () => {
+  beforeEach(() => {
+    useStudioStore.getState().load(book(
+      spread('cover', 'cover'),
+      spread('first', 'first'),
+      spread('a', 'inner'),
+      spread('last', 'last'),
+      spread('back', 'back'),
+    ))
+  })
+
+  it('treats them as fixed points, not as inner spreads', () => {
+    expect(store().canEditSpread(1)).toBe(false)
+    expect(store().canEditSpread(3)).toBe(false)
+    expect(store().canEditSpread(2)).toBe(true)
+  })
+
+  it('adds after the first page when asked to add at the cover or the first page', () => {
+    store().addSpread(0)
+    expect(roles()).toEqual(['cover', 'first', 'inner', 'inner', 'last', 'back'])
+    expect(store().activeSpread).toBe(2)
+  })
+
+  it('never lands on or behind the last page', () => {
+    store().addSpread(3)
+    expect(roles()).toEqual(['cover', 'first', 'inner', 'inner', 'last', 'back'])
+    store().addSpread(9)
+    expect(roles()).toEqual(['cover', 'first', 'inner', 'inner', 'inner', 'last', 'back'])
+  })
+
+  it('inserts a spread inside them too', () => {
+    store().insertSpread(0, spread('x', 'inner'))
+    expect(roles()).toEqual(['cover', 'first', 'inner', 'inner', 'last', 'back'])
+  })
+
+  it('will not move an inner spread onto either of them', () => {
+    store().moveSpread(2, -1)
+    store().moveSpread(2, 1)
+    expect(ids()).toEqual(['cover', 'first', 'a', 'last', 'back'])
+  })
+
+  it('will not move, copy or delete them', () => {
+    store().moveSpread(1, 1)
+    store().moveSpread(3, -1)
+    store().duplicateSpread(1)
+    store().removeSpread(3)
+    expect(ids()).toEqual(['cover', 'first', 'a', 'last', 'back'])
+  })
+
+  it('adds the first inner spread of an empty book between them', () => {
+    useStudioStore.getState().load(book(
+      spread('cover', 'cover'), spread('first', 'first'), spread('last', 'last'), spread('back', 'back'),
+    ))
+    store().addSpread(-1)
+    expect(roles()).toEqual(['cover', 'first', 'inner', 'last', 'back'])
+  })
+})

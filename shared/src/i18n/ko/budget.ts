@@ -80,6 +80,10 @@ const budget: TranslationStrings = {
   'costs.pays': '지불',
   'costs.settle': '정산',
   'costs.balances': '잔액',
+  'costs.finalBudget': '최종 부담액',
+  'costs.finalExpenses': '지불한 지출',
+  'costs.finalReimbursed': '정산 (순액)',
+  'costs.finalPending': '미정산 금액',
   'costs.byCategory': '카테고리별',
   'costs.noCategories': '아직 지출이 없습니다.',
   'costs.settleHistory': '정산 내역',
@@ -147,5 +151,12 @@ const budget: TranslationStrings = {
   'costs.splitSumUnder': '분할 합계: {total} 중 {sum} ({diff} 부족)',
   'costs.splitSumOver': '분할 합계: {total} 중 {sum} ({diff} 초과)',
   'costs.toggleSign': '지출과 환불 전환',
+  'costs.receipts': '영수증',
+  'costs.receiptsTitle': '영수증 및 청구서',
+  'costs.attachReceipt': '영수증 / 청구서 첨부',
+  'costs.noReceipts': '첨부된 영수증 없음',
+  'costs.deleteReceipt': '영수증 삭제',
+  'costs.viewReceipt': '영수증 보기',
+  'costs.receiptLeftBehind': '저장에 실패했고 업로드된 영수증 {count}개가 남아 있습니다. 파일 탭에서 삭제하세요.',
 };
 export default budget;

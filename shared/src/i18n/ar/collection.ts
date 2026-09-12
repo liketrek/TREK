@@ -144,6 +144,22 @@ const collection: TranslationStrings = {
   'collections.picker.hint': 'اختر مكانًا من مجموعاتك',
   'collections.picker.use': 'استخدام',
 
+  // Export / import a list as a file (#2198)
+  'collections.file.export': 'تصدير',
+  'collections.file.exportTitle': 'تنزيل هذه القائمة كملف',
+  'collections.file.importButton': 'استيراد قائمة من ملف',
+  'collections.file.importTitle': 'استيراد قائمة',
+  'collections.file.choose': 'اختر ملف قائمة',
+  'collections.file.confirm': 'استيراد',
+  'collections.file.change': 'تغيير',
+  'collections.file.labelCount': '{count} تسمية',
+  'collections.file.hint': 'تصل الأماكن كقائمة جديدة خاصة بك. أما التقييمات والأعضاء والصور المرفوعة فلا تأتي معها.',
+  'collections.file.done': 'تم استيراد {count} مكانًا',
+  'collections.file.doneSkipped': 'تم استيراد {count} مكانًا وتخطّي {skipped}',
+  'collections.file.errorTooLarge': 'هذا الملف أكبر من أن يكون قائمة.',
+  'collections.file.errorUnreadable': 'تعذّرت قراءة هذا الملف.',
+  'collections.file.errorNotACollection': 'هذا ليس ملف قائمة من TREK.',
+
   'collections.share.title': 'مشاركة القائمة',
   'collections.share.titleNamed': 'مشاركة «{name}»',
   'collections.share.button': 'مشاركة',

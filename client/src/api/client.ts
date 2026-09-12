@@ -1,6 +1,8 @@
+import { isEffectivelyOffline } from '../sync/networkMode'
 import axios, { AxiosInstance } from 'axios'
 import type { z } from 'zod'
 import type { Place } from '../types'
+import type { TransitProvider } from '@trek/shared'
 import { randomId } from '../utils/randomId'
 import {
   weatherResultSchema, type WeatherResult,
@@ -59,6 +61,12 @@ import {
   type PluginActionDescriptor,
   type PluginActionResult,
   type PluginInstallRequest,
+  RoadtripDayTrack,
+  RoadtripVia,
+  RoadtripViaBatchRequest,
+  RoadtripViaCreateRequest,
+  RoadtripViaReanchorRequest,
+  RoadtripViaUpdateRequest,
 } from '@trek/shared'
 import { getSocketId } from './websocket'
 import { probeNow } from '../sync/connectivity'
@@ -464,8 +472,15 @@ export const placesApi = {
     if (opts?.paths !== undefined) fd.append('importPaths', String(opts.paths))
     return postMultipart(`/trips/${tripId}/places/import/map`, fd)
   },
+  // A longer timeout than the shared 8 s, like the other routes here that wait
+  // on somebody else's service. A directions link whose stops are only named
+  // has to be geocoded one at a time behind a 1.1 s throttle, so a route with
+  // eight stops needs about ten seconds. Giving up at eight left the server
+  // finishing the import and writing the places while the browser reported a
+  // failure, and a retry then spent the whole geocoding budget again only to
+  // have the dedupe skip every stop.
   importGoogleList: (tripId: number | string, url: string, enrich?: boolean) =>
-      apiClient.post(`/trips/${tripId}/places/import/google-list`, { url, enrich } satisfies PlaceImportListRequest).then(r => r.data),
+      apiClient.post(`/trips/${tripId}/places/import/google-list`, { url, enrich } satisfies PlaceImportListRequest, { timeout: 60000 }).then(r => r.data),
   importNaverList: (tripId: number | string, url: string, enrich?: boolean) =>
       apiClient.post(`/trips/${tripId}/places/import/naver-list`, { url, enrich } satisfies PlaceImportListRequest).then(r => r.data),
   bulkDelete: (tripId: number | string, ids: number[]) =>
@@ -646,12 +661,16 @@ export const adminApi = {
   updateBagTracking: (enabled: boolean) => apiClient.put('/admin/bag-tracking', { enabled }).then(r => r.data),
   getPlacesPhotos: () => apiClient.get('/admin/places-photos').then(r => r.data),
   updatePlacesPhotos: (enabled: boolean) => apiClient.put('/admin/places-photos', { enabled }).then(r => r.data),
+  getPlaceShadow: () => apiClient.get('/admin/place-shadow').then(r => r.data),
+  updatePlaceShadow: (enabled: boolean) => apiClient.put('/admin/place-shadow', { enabled }).then(r => r.data),
   getPlacesAutocomplete: () => apiClient.get('/admin/places-autocomplete').then(r => r.data),
   updatePlacesAutocomplete: (enabled: boolean) => apiClient.put('/admin/places-autocomplete', { enabled }).then(r => r.data),
   getPlacesDetails: () => apiClient.get('/admin/places-details').then(r => r.data),
   updatePlacesDetails: (enabled: boolean) => apiClient.put('/admin/places-details', { enabled }).then(r => r.data),
   getPlacesEnrich: () => apiClient.get('/admin/places-enrich').then(r => r.data),
   updatePlacesEnrich: (enabled: boolean) => apiClient.put('/admin/places-enrich', { enabled }).then(r => r.data),
+  getTransitProvider: () => apiClient.get('/admin/transit-provider').then(r => r.data),
+  updateTransitProvider: (provider: TransitProvider) => apiClient.put('/admin/transit-provider', { provider }).then(r => r.data),
   getCollabFeatures: () => apiClient.get('/admin/collab-features').then(r => r.data),
   updateCollabFeatures: (features: Record<string, boolean>) => apiClient.put('/admin/collab-features', features).then(r => r.data),
   packingTemplates: () => apiClient.get('/admin/packing-templates').then(r => r.data),
@@ -1033,11 +1052,193 @@ export const memoriesApi = {
     }).then(r => r.data),
 }
 
+/**
+ * Place search that still answers with no network.
+ *
+ * The cache is what `sync/placePrefetcher` stored for the trip's area, and this
+ * is the one place it is read from, so all ten call sites got the offline path
+ * without any of them learning about it. `source` says 'offline-cache' rather
+ * than pretending to be the index — several screens show it, and a stale answer
+ * that claims to be live is worse than one that says what it is.
+ *
+ * Only network-level failures fall through. A 4xx or 5xx means the server did
+ * answer and the caller has to see it.
+ */
+/**
+ * The same offline treatment as `withCachedPlaces`, for the single-place lookup.
+ *
+ * Separate because the shape is different: this one is keyed by id rather than
+ * by a query, and a miss has to stay a miss — a place the cache does not hold
+ * must fail the way it did before, not answer with somebody else's record.
+ */
+/**
+ * The rejection both search surfaces already know to swallow.
+ *
+ * They filter on the axios cancel code and on the DOMException name, so an
+ * abort from the cache path has to look like one or it surfaces as a toast.
+ */
+function abortedError(): Error & { code: string } {
+  const err = new Error('canceled') as Error & { code: string }
+  err.name = 'CanceledError'
+  err.code = 'ERR_CANCELED'
+  return err
+}
+
+async function withCachedPlace(
+  placeId: string,
+  online: () => Promise<{ place: Record<string, unknown> | null }>,
+): Promise<{ place: Record<string, unknown> | null }> {
+  const fromCache = async (): Promise<{ place: Record<string, unknown> | null } | null> => {
+    const { getCachedPlace, cachedToPlaceRecord } = await import('../sync/placePrefetcher')
+    const hit = await getCachedPlace(placeId)
+    return hit ? { place: cachedToPlaceRecord(hit) } : null
+  }
+
+  if (isEffectivelyOffline()) {
+    const cached = await fromCache()
+    if (cached) return cached
+    return online()
+  }
+  try {
+    return await online()
+  } catch (err) {
+    const e = err as { isAxiosError?: boolean; response?: unknown; code?: string } | null
+    const neverArrived = !!e && e.isAxiosError === true && e.response == null && e.code !== 'ERR_CANCELED'
+    if (!neverArrived) throw err
+    const cached = await fromCache()
+    if (!cached) throw err
+    return cached
+  }
+}
+
+async function withCachedPlaces<T>(
+  query: string,
+  shape: (places: Record<string, unknown>[]) => T,
+  online: () => Promise<T>,
+  signal?: AbortSignal,
+): Promise<T> {
+  const fromCache = async (): Promise<Record<string, unknown>[]> => {
+    const { searchCachedPlaces, cachedToPlaceRecord } = await import('../sync/placePrefetcher')
+    const found = (await searchCachedPlaces(query)).map(cachedToPlaceRecord)
+    // The keystroke this answers may already be two keystrokes old. Both search
+    // surfaces order their suggestions by aborting the previous request and
+    // discarding the rejection — there is no request counter — so an offline
+    // answer that resolves regardless of the signal can overwrite a newer list.
+    // The two cache reads are also very unequal: a prefix hit comes off the
+    // index, the substring pass walks every cached place of every trip.
+    if (signal?.aborted) throw abortedError()
+    return found
+  }
+
+  if (isEffectivelyOffline()) return shape(await fromCache())
+  try {
+    return await online()
+  } catch (err) {
+    const e = err as { isAxiosError?: boolean; response?: unknown; code?: string } | null
+    const neverArrived = !!e && e.isAxiosError === true && e.response == null && e.code !== 'ERR_CANCELED'
+    if (!neverArrived) throw err
+    const cached = await fromCache()
+    if (!cached.length) throw err
+    return shape(cached)
+  }
+}
+
+/**
+ * What plugins implementing `searchProvider` found for the same query (#2221).
+ *
+ * Its own request beside the core one rather than a branch inside it: the core search
+ * is TREK's own indexes and must not wait on, or fail with, somebody's plugin. This
+ * answers with an empty list for every failure there is — no provider installed, one
+ * that timed out, a 404 on an older server, the network gone — because a search that
+ * breaks when an optional index is unwell is worse than one without it.
+ */
+/**
+ * How long a plugin index may keep the search list waiting, in milliseconds.
+ *
+ * The host gives a provider two seconds to answer and this gives the round trip a
+ * little more. It is a ceiling on the WAIT, not on the provider: with no search
+ * plugin installed the route answers immediately without reaching any of them, so
+ * the normal case costs one local round trip and nothing else.
+ *
+ * A deadline rather than patience, because the alternative is a search that feels
+ * broken. A list that arrives without an optional index is a smaller answer; a list
+ * that arrives four seconds late is no answer at all.
+ */
+const PLUGIN_SEARCH_DEADLINE_MS = 2500
+
+async function pluginSearchPlaces(
+  query: string,
+  lang?: string,
+  near?: { lat: number; lng: number },
+): Promise<Record<string, unknown>[]> {
+  const stop = new AbortController()
+  const timer = setTimeout(() => stop.abort(), PLUGIN_SEARCH_DEADLINE_MS)
+  try {
+    const r = await apiClient.get('/plugin-search', {
+      params: { q: query, lang: lang || 'en', lat: near?.lat, lng: near?.lng },
+      signal: stop.signal,
+    })
+    const places = (r.data as { places?: unknown })?.places
+    return Array.isArray(places) ? (places as Record<string, unknown>[]) : []
+  } catch {
+    return []
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 export const mapsApi = {
-  search: (query: string, lang?: string) => apiClient.post(`/maps/search?lang=${lang || 'en'}`, { query }).then(r => checkInDev(mapsSearchResultSchema, r.data, 'maps.search')),
+  /**
+   * `locationBias` is what tells the search which "Hase-dera" is meant, and it
+   * is the difference between finding the temple the user stands next to and
+   * one 400km away. The route has always accepted it; nothing passed it.
+   *
+   * It also decides whether the index answers at all: a common single word
+   * without coordinates is refused upstream as too expensive, and the search
+   * then falls back to Nominatim alone.
+   *
+   * Plugin indexes are asked at the same time and their hits are appended, so every
+   * caller of this one function gets them without knowing they exist. Appended rather
+   * than interleaved: the core list is ordered by relevance and has earned that order,
+   * and a plugin's row carries its own `source` for a caller that wants to mark it.
+   */
+  search: (query: string, lang?: string, locationBias?: { lat: number; lng: number; radius?: number }) =>
+    withCachedPlaces(query, (places) => ({ places, source: 'offline-cache' }), async () => {
+      // Side by side, so the wait is the slower of the two rather than their sum. Only
+      // the core call may reject: that rejection is what hands withCachedPlaces the
+      // offline path, and a plugin failure must never trigger it.
+      const [core, extra] = await Promise.all([
+        apiClient.post(`/maps/search?lang=${lang || 'en'}`, { query, locationBias }).then(r => checkInDev(mapsSearchResultSchema, r.data, 'maps.search')),
+        pluginSearchPlaces(query, lang, locationBias),
+      ])
+      if (extra.length === 0) return core
+      const from = [...new Set(extra.map(p => String(p.source ?? 'plugin')))].join('+')
+      return { places: [...core.places, ...extra], source: `${core.source}+${from}` }
+    }),
   autocomplete: (input: string, lang?: string, locationBias?: { low: { lat: number; lng: number }; high: { lat: number; lng: number } }, signal?: AbortSignal, sessionToken?: string) =>
-      apiClient.post('/maps/autocomplete', { input, lang, locationBias, sessionToken }, { signal }).then(r => checkInDev(mapsAutocompleteResultSchema, r.data, 'maps.autocomplete')),
-  details: (placeId: string, lang?: string, sessionToken?: string) => apiClient.get(`/maps/details/${encodeURIComponent(placeId)}`, { params: { lang, sessionToken } }).then(r => checkInDev(mapsPlaceDetailsResultSchema, r.data, 'maps.details')),
+    withCachedPlaces(
+      input,
+      (places) => ({
+        suggestions: places.map((p) => ({
+          placeId: String(p.osm_id),
+          mainText: String(p.name),
+          secondaryText: String(p.address || ''),
+        })),
+        source: 'offline-cache',
+      }),
+      () => apiClient.post('/maps/autocomplete', { input, lang, locationBias, sessionToken }, { signal }).then(r => checkInDev(mapsAutocompleteResultSchema, r.data, 'maps.autocomplete')),
+      signal,
+    ),
+  // Answered from the cache when the network is not there, for the ids the
+  // offline suggestion list hands out. Without it, picking an offline
+  // suggestion failed here and the callers fell back to searching for
+  // "name, address" — which the cache matches on the folded NAME alone, so it
+  // found nothing and the user got an error toast for a place that was sitting
+  // in the cache all along.
+  details: (placeId: string, lang?: string, sessionToken?: string) =>
+    withCachedPlace(placeId, () =>
+      apiClient.get(`/maps/details/${encodeURIComponent(placeId)}`, { params: { lang, sessionToken } })
+        .then(r => checkInDev(mapsPlaceDetailsResultSchema, r.data, 'maps.details'))),
   // Pictures and a description for a place that is being looked at but not yet
   // saved. Fans out to several providers server-side, so it takes a signal and
   // the caller is expected to abort it when the selection changes, and a longer
@@ -1057,8 +1258,58 @@ export const mapsApi = {
   // OSM-only POI explore: places of a category within the current map viewport bbox.
   // Overpass can be slow on a fresh (uncached) area, so this call gets a longer
   // timeout than the global default instead of aborting at 8s and showing nothing.
+  /**
+   * Every place in a box, for the offline cache. One call per trip area, not
+   * per keystroke, so the timeout is generous where the search ones are short.
+   */
+  area: (
+    bbox: { minLat: number; minLng: number; maxLat: number; maxLng: number },
+    limit?: number,
+    signal?: AbortSignal,
+  ) =>
+    apiClient
+      .get('/maps/area', { params: { ...bbox, limit }, signal, timeout: 30000 })
+      .then(
+        (r) =>
+          r.data as {
+            results: Record<string, unknown>[]
+            truncated: boolean
+            unavailable?: boolean
+          },
+      ),
+
   pois: (category: string, bbox: { south: number; west: number; north: number; east: number }, lang?: string, signal?: AbortSignal) =>
     apiClient.get('/maps/pois', { params: { category, ...bbox, lang }, signal, timeout: 20000 }).then(r => r.data as { pois: import('../components/Map/poiCategories').Poi[]; source: string; truncated: boolean; clamped?: boolean }),
+}
+
+/**
+ * Road-trip via points (#1797): the places a day's drive is routed through without
+ * stopping. Separate from places on purpose — a via bends the route, a stop is somewhere
+ * you go.
+ */
+export const roadtripApi = {
+  /** Every via of the trip, so all days can be routed without a request per day. */
+  listVias: (tripId: number | string) =>
+    apiClient.get(`/trips/${tripId}/roadtrip/vias`).then(r => r.data as { vias: RoadtripVia[]; tracks: RoadtripDayTrack[] }),
+  addVia: (tripId: number | string, dayId: number | string, body: RoadtripViaCreateRequest) =>
+    apiClient.post(`/trips/${tripId}/roadtrip/days/${dayId}/vias`, body).then(r => r.data as { via: RoadtripVia }),
+  /**
+   * Lay a chain of vias on one day in one write. Anything that derives its anchors from a
+   * line produces dozens of them, and one request each would re-route the whole trip once
+   * per point at better than a second apart.
+   */
+  addVias: (tripId: number | string, dayId: number | string, body: RoadtripViaBatchRequest) =>
+    apiClient.post(`/trips/${tripId}/roadtrip/days/${dayId}/vias/batch`, body).then(r => r.data as { vias: RoadtripVia[] }),
+  /**
+   * Re-pin a day's vias in one write, after its stops changed shape. One request, not one
+   * per via: the anchors are only correct as a set.
+   */
+  reanchorVias: (tripId: number | string, dayId: number | string, body: RoadtripViaReanchorRequest) =>
+    apiClient.put(`/trips/${tripId}/roadtrip/days/${dayId}/vias`, body).then(r => r.data as { vias: RoadtripVia[] }),
+  moveVia: (tripId: number | string, dayId: number | string, id: number, body: RoadtripViaUpdateRequest) =>
+    apiClient.put(`/trips/${tripId}/roadtrip/days/${dayId}/vias/${id}`, body).then(r => r.data as { via: RoadtripVia }),
+  removeVia: (tripId: number | string, dayId: number | string, id: number) =>
+    apiClient.delete(`/trips/${tripId}/roadtrip/days/${dayId}/vias/${id}`).then(r => r.data),
 }
 
 export const airportsApi = {
@@ -1076,8 +1327,8 @@ export const budgetApi = {
   setPayers: (tripId: number | string, id: number, payers: { user_id: number; amount: number }[]) => apiClient.put(`/trips/${tripId}/budget/${id}/payers`, { payers }).then(r => r.data),
   perPersonSummary: (tripId: number | string) => apiClient.get(`/trips/${tripId}/budget/summary/per-person`).then(r => r.data),
   settlement: (tripId: number | string, base?: string) => apiClient.get(`/trips/${tripId}/budget/settlement`, base ? { params: { base } } : undefined).then(r => r.data),
-  createSettlement: (tripId: number | string, data: { from_user_id: number; to_user_id: number; amount: number; currency?: string }) => apiClient.post(`/trips/${tripId}/budget/settlements`, data).then(r => r.data),
-  updateSettlement: (tripId: number | string, settlementId: number, data: { from_user_id: number; to_user_id: number; amount: number; currency?: string }) => apiClient.put(`/trips/${tripId}/budget/settlements/${settlementId}`, data).then(r => r.data),
+  createSettlement: (tripId: number | string, data: { from_user_id: number; to_user_id: number; amount: number; currency?: string; settled_at?: string | null }) => apiClient.post(`/trips/${tripId}/budget/settlements`, data).then(r => r.data),
+  updateSettlement: (tripId: number | string, settlementId: number, data: { from_user_id: number; to_user_id: number; amount: number; currency?: string; settled_at?: string | null }) => apiClient.put(`/trips/${tripId}/budget/settlements/${settlementId}`, data).then(r => r.data),
   deleteSettlement: (tripId: number | string, settlementId: number) => apiClient.delete(`/trips/${tripId}/budget/settlements/${settlementId}`).then(r => r.data),
   reorderItems: (tripId: number | string, orderedIds: number[]) => apiClient.put(`/trips/${tripId}/budget/reorder/items`, { orderedIds }).then(r => r.data),
   reorderCategories: (tripId: number | string, orderedCategories: string[]) => apiClient.put(`/trips/${tripId}/budget/reorder/categories`, { orderedCategories } satisfies BudgetReorderCategoriesRequest).then(r => r.data),
@@ -1190,13 +1441,19 @@ export const collabApi = {
   deleteNote: (tripId: number | string, id: number) => apiClient.delete(`/trips/${tripId}/collab/notes/${id}`).then(r => r.data),
   uploadNoteFile: (tripId: number | string, noteId: number, formData: FormData) => postMultipart(`/trips/${tripId}/collab/notes/${noteId}/files`, formData),
   deleteNoteFile: (tripId: number | string, noteId: number, fileId: number) => apiClient.delete(`/trips/${tripId}/collab/notes/${noteId}/files/${fileId}`).then(r => r.data),
+  getLinks: (tripId: number | string) => apiClient.get(`/trips/${tripId}/collab/links`).then(r => r.data),
+  createLink: (tripId: number | string, data: { title: string; url: string; pinned?: boolean }) => apiClient.post(`/trips/${tripId}/collab/links`, data).then(r => r.data),
+  updateLink: (tripId: number | string, id: number, data: { title?: string; url?: string; pinned?: boolean }) => apiClient.put(`/trips/${tripId}/collab/links/${id}`, data).then(r => r.data),
+  deleteLink: (tripId: number | string, id: number) => apiClient.delete(`/trips/${tripId}/collab/links/${id}`).then(r => r.data),
   getPolls: (tripId: number | string) => apiClient.get(`/trips/${tripId}/collab/polls`).then(r => r.data),
   createPoll: (tripId: number | string, data: CollabPollCreateRequest) => apiClient.post(`/trips/${tripId}/collab/polls`, data).then(r => r.data),
   votePoll: (tripId: number | string, id: number, optionIndex: number) => apiClient.post(`/trips/${tripId}/collab/polls/${id}/vote`, { option_index: optionIndex } satisfies CollabPollVoteRequest).then(r => r.data),
   closePoll: (tripId: number | string, id: number) => apiClient.put(`/trips/${tripId}/collab/polls/${id}/close`).then(r => r.data),
   deletePoll: (tripId: number | string, id: number) => apiClient.delete(`/trips/${tripId}/collab/polls/${id}`).then(r => r.data),
   getMessages: (tripId: number | string, before?: string) => apiClient.get(`/trips/${tripId}/collab/messages${before ? `?before=${before}` : ''}`).then(r => r.data),
-  sendMessage: (tripId: number | string, data: CollabMessageCreateRequest) => apiClient.post(`/trips/${tripId}/collab/messages`, data).then(r => r.data),
+  sendMessage: (tripId: number | string, data: CollabMessageCreateRequest | FormData, opts?: UploadOptions) => data instanceof FormData
+    ? postMultipart(`/trips/${tripId}/collab/messages`, data, opts)
+    : apiClient.post(`/trips/${tripId}/collab/messages`, data).then(r => r.data),
   deleteMessage: (tripId: number | string, id: number) => apiClient.delete(`/trips/${tripId}/collab/messages/${id}`).then(r => r.data),
   reactMessage: (tripId: number | string, id: number, emoji: string) => apiClient.post(`/trips/${tripId}/collab/messages/${id}/react`, { emoji } satisfies CollabReactionRequest).then(r => r.data),
   linkPreview: (tripId: number | string, url: string) => apiClient.get(`/trips/${tripId}/collab/link-preview?url=${encodeURIComponent(url)}`).then(r => r.data),
@@ -1230,11 +1487,13 @@ export const shareApi = {
   getSharedTrip: (token: string) => apiClient.get(`/shared/${token}`).then(r => r.data),
 }
 
-// Public transit routing (#1065) — Transitous/MOTIS proxied through the server.
+// Public transit routing (#1065) — proxied through the server, which picks the
+// backend (Transitous/MOTIS, or Google since #1699). `lang` reaches the Google
+// backend as the languageCode, so station names come back in the user's script.
 export const transitApi = {
   geocode: (q: string, opts?: { lang?: string; near?: string }) =>
     apiClient.get('/transit/geocode', { params: { q, lang: opts?.lang, near: opts?.near } }).then(r => r.data),
-  plan: (params: { from: string; to: string; time?: string; arriveBy?: boolean; modes?: string; maxTransfers?: number }) =>
+  plan: (params: { from: string; to: string; time?: string; arriveBy?: boolean; modes?: string; maxTransfers?: number; lang?: string }) =>
     apiClient.get('/transit/plan', { params }).then(r => r.data),
 }
 

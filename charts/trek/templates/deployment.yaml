@@ -80,18 +80,14 @@ spec:
               mountPath: /app/data
             - name: uploads
               mountPath: /app/uploads
+          {{- with (default dict .Values.probes).liveness }}
           livenessProbe:
-            httpGet:
-              path: /api/health
-              port: 3000
-            initialDelaySeconds: 15
-            periodSeconds: 30
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with (default dict .Values.probes).readiness }}
           readinessProbe:
-            httpGet:
-              path: /api/health
-              port: 3000
-            initialDelaySeconds: 5
-            periodSeconds: 10
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
       volumes:
         - name: data
           {{- if .Values.persistence.enabled }}

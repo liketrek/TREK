@@ -129,11 +129,47 @@ const admin: TranslationStrings = {
   'admin.requireMfaHint':
     'Pengguna tanpa 2FA harus menyelesaikan pengaturan di Pengaturan sebelum menggunakan aplikasi.',
   'admin.apiKeys': 'Kunci API',
-  'admin.apiKeysHint': 'Opsional. Mengaktifkan data tempat yang lebih lengkap seperti foto dan cuaca.',
+  'admin.apiKeysHint': 'Dari mana data tempat berasal. Indeks TREK tidak butuh kunci; dua penyedia di bawah bersifat opsional.',
+  'admin.trekApi.badgeDefault': 'Sumber baku yang disarankan',
+  'admin.googleCaveat.badge': 'Tidak disarankan',
+  'admin.googleCaveat.body':
+    'TREK adalah perangkat lunak sumber terbuka dan di sini kami tidak netral. Pada skala ini ulasan dan foto usaha biasa hanya ada di Google, dan itulah monopoli. Kolom ini ada karena tidak ada penggantinya, bukan karena kami menyarankan. Lalu setiap pencarian pergi ke Google.',
+  'admin.trekApi.tagline':
+    'Indeks tempat milik TREK sendiri. Mencari tanpa kunci Google, tanpa kuota, dan tanpa ada yang menghitung pencarian Anda.',
+  'admin.trekApi.factPlaces':
+    '73,6 juta tempat di seluruh dunia',
+  'admin.trekApi.factNoKey':
+    'Tanpa kunci, tanpa kuota',
+  'admin.trekApi.factOffline':
+    'Paket per negara jalan offline',
+  'admin.trekApi.factPrivacy':
+    'Pencarian tidak pernah dicatat',
+  'admin.trekApi.more':
+    'Apa isinya',
+  'admin.trekApi.fieldPhone':
+    'Telepon',
+  'admin.trekApi.fieldStableId':
+    'Id tetap',
+  'admin.trekApi.includedNote':
+    'Deskripsi berasal dari situs tempat itu sendiri, jam buka dari OpenStreetMap di mana sudah diisi.',
+  'admin.trekApi.notRatings':
+    'Ulasan',
+  'admin.trekApi.notPhotos':
+    'Foto usaha biasa',
+  'admin.trekApi.notIncludedNote':
+    'Tidak ada sumber terbuka yang punya keduanya, dengan harga berapa pun. Untuk keduanya kunci Google tetap satu-satunya jalan.',
+  'admin.trekApi.sourcesLabel':
+    'Sumber',
+  'admin.trekApi.sourcesNote':
+    'Setiap ruas dalam respons menyebutkan berasal dari yang mana.',
+  'admin.trekApi.included':
+    'Termasuk',
+  'admin.trekApi.notIncluded':
+    'Tidak termasuk',
   'admin.mapsKey': 'Kunci API Google Maps',
   'admin.mapsKeyHint': 'Diperlukan untuk pencarian tempat. Dapatkan di console.cloud.google.com',
   'admin.mapsKeyHintLong':
-    'Tanpa kunci API, OpenStreetMap digunakan untuk pencarian tempat. Dengan kunci API Google, foto, rating, dan jam buka juga bisa dimuat. Dapatkan di console.cloud.google.com.',
+    'Tanpa kunci API Google, TREK API yang disarankan akan dipakai. Dengan kunci, foto, ulasan, dan jam buka bisa dimuat sebagai tambahan. Buat kunci di console.cloud.google.com.',
   'admin.recommended': 'Direkomendasikan',
   'admin.weatherKey': 'Kunci API OpenWeatherMap',
   'admin.weatherKeyHint': 'Untuk data cuaca. Gratis di openweathermap.org',
@@ -157,6 +193,8 @@ const admin: TranslationStrings = {
   'admin.fileTypesFormat':
     'Ekstensi dipisahkan koma (contoh: jpg,png,pdf,doc). Gunakan * untuk mengizinkan semua jenis.',
   'admin.fileTypesSaved': 'Pengaturan jenis file disimpan',
+  'admin.googleOptions': 'Kunci ini dipakai untuk apa',
+  'admin.googleOptionsSummary': '{on} dari {total} aktif',
   'admin.placesPhotos.title': 'Foto Tempat',
   'admin.placesPhotos.subtitle':
     'Mengambil foto dari Google Places API. Nonaktifkan untuk menghemat kuota API. Foto Wikimedia tidak terpengaruh.',
@@ -169,6 +207,17 @@ const admin: TranslationStrings = {
   'admin.placesEnrich.title': 'Pengayaan tempat',
   'admin.placesEnrich.subtitle':
     'Menampilkan gambar dan deskripsi saat menambahkan tempat. Wikipedia dan OpenStreetMap selalu digunakan; Google ditambahkan bila Foto Tempat atau Detail Tempat aktif.',
+  'admin.transitProvider.title': 'Penyedia transportasi umum',
+  'admin.transitProvider.subtitle': 'Layanan mana yang menjawab pencarian transportasi umum.',
+  'admin.transitProvider.transitous': 'Transitous (gratis)',
+  'admin.transitProvider.google': 'Google',
+  'admin.transitProvider.transitousHint': 'Umpan GTFS komunitas. Gratis dan tanpa kunci, dengan cakupan terbaik di Eropa.',
+  'admin.transitProvider.googleHint': 'Menggunakan kunci Google di atas, untuk wilayah yang tidak memiliki data Transitous. Ditagih per pencarian — selama belum ada kunci, Transitous yang dipakai.',
+  'admin.transitProvider.noKeyWarning': 'Google dipilih, tetapi belum ada kunci Google yang dikonfigurasi — pencarian transportasi masih memakai Transitous. Tambahkan kunci di Kunci API di atas.',
+  'admin.transitProvider.personalKeyWarning': 'Hanya kunci Google milikmu yang disetel, sehingga pencarian anggota lain tetap kembali ke Transitous. Simpan kunci di atas sebagai admin agar berlaku untuk seluruh instance.',
+  'admin.placeShadow.title': 'Log pencarian tempat',
+  'admin.placeShadow.subtitle':
+    'Mencatat hasil pencarian mana yang dipilih, agar indeks tempat lain nanti bisa diukur dengan pencarian sungguhan. Tidak ada yang meninggalkan instans ini, dan admin bisa mengekspor atau menghapus log kapan saja.',
   'admin.bagTracking.title': 'Pelacak Tas',
   'admin.bagTracking.subtitle': 'Aktifkan berat dan penugasan tas untuk item packing',
   'admin.collab.chat.title': 'Chat',
@@ -367,6 +416,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:calendar-source': 'Menyediakan acara untuk kalender',
   'admin.plugins.perm.hook:place-detail-provider':
     'Menyumbangkan detail tambahan (ulasan, peringkat, tautan) untuk suatu tempat',
+  'admin.plugins.perm.hook:search-provider': 'Menjawab pencarian tempat dari indeks sendiri, di samping hasil TREK',
   'admin.plugins.perm.hook:trip-warning-provider':
     'Munculkan peringatan validasi pada perjalanan (ditampilkan di perencana)',
   'admin.plugins.perm.hook:table-contributor':
@@ -523,6 +573,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.photos': 'Menyediakan foto',
   'admin.plugins.cap.calendar': 'Menyediakan acara kalender',
   'admin.plugins.cap.placeDetails': 'Memperkaya tempat',
+  'admin.plugins.cap.search': 'Menjawab pencarian',
   'admin.plugins.cap.warnings': 'Tandai masalah',
   'admin.plugins.cap.mapLayers': 'Menggambar di peta',
   'admin.plugins.cap.routing': 'Menyediakan routing',
@@ -582,6 +633,8 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.atlas.description': 'Peta dunia dengan negara yang pernah dikunjungi dan statistik perjalanan',
   'admin.addons.catalog.collab.name': 'Collab',
   'admin.addons.catalog.collab.description': 'Catatan, jajak pendapat, obrolan, dan saran untuk merencanakan bersama',
+  'admin.addons.catalog.roadtrip.name': 'Perjalanan darat',
+  'admin.addons.catalog.roadtrip.description': 'Rencanakan perjalanan dengan perhentian; waktu berkendara dan tiba dihitung ulang otomatis',
   'admin.addons.catalog.memories.name': 'Foto (Immich)',
   'admin.addons.catalog.memories.description': 'Bagikan foto perjalanan melalui instans Immich kamu',
   'admin.addons.catalog.mcp.name': 'MCP',

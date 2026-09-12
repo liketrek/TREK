@@ -1,11 +1,20 @@
 import {
   assignmentCreateRequestSchema,
+  assignmentEndDayRequestSchema,
   assignmentMoveRequestSchema,
   assignmentParticipantsRequestSchema,
   assignmentTransportRequestSchema,
 } from './assignment.schema';
 
 import { describe, it, expect } from 'vitest';
+
+it('requires a boolean for an explicit day end', () => {
+  expect(assignmentEndDayRequestSchema.parse({ end_day: true })).toEqual({ end_day: true });
+  expect(assignmentEndDayRequestSchema.parse({ end_day: false })).toEqual({ end_day: false });
+  for (const end_day of [1, 'true', null, undefined]) {
+    expect(assignmentEndDayRequestSchema.safeParse({ end_day }).success).toBe(false);
+  }
+});
 
 describe('assignmentCreateRequestSchema', () => {
   it('requires a place_id; notes optional/nullable', () => {

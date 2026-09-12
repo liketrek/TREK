@@ -129,11 +129,47 @@ const admin: TranslationStrings = {
   'admin.requireMfa': 'Yêu cầu xác thực hai yếu tố (2FA)',
   'admin.requireMfaHint': 'Người dùng không có 2FA phải hoàn tất thiết lập trong Cài đặt trước khi sử dụng ứng dụng.',
   'admin.apiKeys': 'API Key',
-  'admin.apiKeysHint': 'Không bắt buộc. Cho phép dữ liệu địa điểm mở rộng như ảnh và thời tiết.',
+  'admin.apiKeysHint': 'Dữ liệu địa điểm đến từ đâu. Chỉ mục TREK không cần khóa; hai nhà cung cấp bên dưới là tùy chọn.',
+  'admin.trekApi.badgeDefault': 'Nguồn mặc định khuyến nghị',
+  'admin.googleCaveat.badge': 'Không khuyến nghị',
+  'admin.googleCaveat.body':
+    'TREK là phần mềm nguồn mở và ở đây chúng tôi không trung lập. Ở quy mô này, đánh giá và ảnh của các cửa hàng thông thường chỉ có ở Google, và đó là độc quyền. Ô này có mặt vì không có lựa chọn khác, không phải vì chúng tôi khuyến nghị. Khi đó mọi truy vấn đều đi tới Google.',
+  'admin.trekApi.tagline':
+    'Chỉ mục địa điểm của riêng TREK. Tìm kiếm không cần khóa Google, không hạn mức, và không ai đếm lượt tìm của bạn.',
+  'admin.trekApi.factPlaces':
+    '73,6 triệu địa điểm trên toàn thế giới',
+  'admin.trekApi.factNoKey':
+    'Không khóa, không hạn mức',
+  'admin.trekApi.factOffline':
+    'Gói theo quốc gia dùng được ngoại tuyến',
+  'admin.trekApi.factPrivacy':
+    'Không bao giờ ghi lại nội dung tìm kiếm',
+  'admin.trekApi.more':
+    'Bên trong có gì',
+  'admin.trekApi.fieldPhone':
+    'Điện thoại',
+  'admin.trekApi.fieldStableId':
+    'Mã định danh ổn định',
+  'admin.trekApi.includedNote':
+    'Mô tả lấy từ trang web của chính địa điểm, giờ mở cửa lấy từ OpenStreetMap ở nơi đã được điền.',
+  'admin.trekApi.notRatings':
+    'Đánh giá',
+  'admin.trekApi.notPhotos':
+    'Ảnh của cửa hàng thông thường',
+  'admin.trekApi.notIncludedNote':
+    'Không nguồn mở nào có cả hai, với bất kỳ giá nào. Với hai thứ đó khóa Google vẫn là con đường duy nhất.',
+  'admin.trekApi.sourcesLabel':
+    'Nguồn',
+  'admin.trekApi.sourcesNote':
+    'Mọi trường trong phản hồi đều cho biết nó đến từ nguồn nào.',
+  'admin.trekApi.included':
+    'Có',
+  'admin.trekApi.notIncluded':
+    'Không có',
   'admin.mapsKey': 'Google Maps API Key',
   'admin.mapsKeyHint': 'Cần thiết cho tìm kiếm địa điểm. Truy cập tại console.cloud.google.com',
   'admin.mapsKeyHintLong':
-    'Nếu không có khóa API, OpenStreetMap sẽ được sử dụng để tìm kiếm địa điểm. Với khóa Google API, bạn cũng có thể tải ảnh, xếp hạng và giờ mở cửa. Nhận một cái tại console.cloud.google.com.',
+    'Không có khóa API của Google thì TREK API được khuyến nghị sẽ được dùng. Có khóa thì có thể tải thêm ảnh, đánh giá và giờ mở cửa. Tạo khóa tại console.cloud.google.com.',
   'admin.recommended': 'Khuyến khích',
   'admin.weatherKey': 'OpenWeatherMap API Key',
   'admin.weatherKeyHint': 'Đối với dữ liệu thời tiết. Miễn phí tại openweathermap.org',
@@ -157,6 +193,8 @@ const admin: TranslationStrings = {
   'admin.fileTypesFormat':
     'Các phần mở rộng được phân tách bằng dấu phẩy (ví dụ: jpg,png,pdf,doc). Sử dụng * để cho phép tất cả các loại.',
   'admin.fileTypesSaved': 'Đã lưu cài đặt loại tệp',
+  'admin.googleOptions': 'Khóa được dùng vào việc gì',
+  'admin.googleOptionsSummary': '{on}/{total} đang bật',
   'admin.placesPhotos.title': 'Đặt ảnh',
   'admin.placesPhotos.subtitle':
     'Tìm nạp ảnh từ Google Địa điểm API. Tắt để lưu hạn ngạch API. Hình ảnh của Wikimedia không bị ảnh hưởng.',
@@ -169,6 +207,17 @@ const admin: TranslationStrings = {
   'admin.placesEnrich.title': 'Làm giàu địa điểm',
   'admin.placesEnrich.subtitle':
     'Hiển thị hình ảnh và mô tả khi thêm địa điểm. Wikipedia và OpenStreetMap luôn được dùng; Google được thêm vào khi bật Ảnh địa điểm hoặc Chi tiết địa điểm.',
+  'admin.transitProvider.title': 'Nhà cung cấp giao thông công cộng',
+  'admin.transitProvider.subtitle': 'Dịch vụ nào trả lời tìm kiếm giao thông công cộng.',
+  'admin.transitProvider.transitous': 'Transitous (miễn phí)',
+  'admin.transitProvider.google': 'Google',
+  'admin.transitProvider.transitousHint': 'Nguồn GTFS cộng đồng. Miễn phí và không cần khóa, phủ sóng tốt nhất ở châu Âu.',
+  'admin.transitProvider.googleHint': 'Dùng khóa Google ở trên, cho những khu vực Transitous không có dữ liệu. Tính phí theo mỗi lượt tìm kiếm — khi chưa đặt khóa thì vẫn dùng Transitous.',
+  'admin.transitProvider.noKeyWarning': 'Đã chọn Google, nhưng chưa cấu hình khóa Google — tìm kiếm giao thông vẫn dùng Transitous. Thêm khóa ở mục Khóa API phía trên.',
+  'admin.transitProvider.personalKeyWarning': 'Chỉ khóa Google của riêng bạn được đặt, nên tìm kiếm của các thành viên khác vẫn quay về Transitous. Lưu khóa ở trên với quyền quản trị để áp dụng cho toàn bộ máy chủ.',
+  'admin.placeShadow.title': 'Nhật ký tìm kiếm địa điểm',
+  'admin.placeShadow.subtitle':
+    'Ghi lại kết quả tìm kiếm nào đã được chọn, để sau này có thể đánh giá một chỉ mục địa điểm khác bằng những lượt tìm kiếm thật. Không có gì rời khỏi máy chủ này, và quản trị viên có thể xuất hoặc xóa nhật ký bất cứ lúc nào.',
   'admin.bagTracking.title': 'Theo dõi túi',
   'admin.bagTracking.subtitle': 'Cho phép phân bổ trọng lượng và túi để đóng gói các mặt hàng',
   'admin.collab.chat.title': 'Trò chuyện',
@@ -319,6 +368,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:calendar-source': 'Cung cấp sự kiện cho lịch',
   'admin.plugins.perm.hook:place-detail-provider':
     'Đóng góp thêm thông tin chi tiết (đánh giá, xếp hạng, liên kết) cho một địa điểm',
+  'admin.plugins.perm.hook:search-provider': 'Trả lời tìm kiếm địa điểm từ chỉ mục riêng, bên cạnh kết quả của TREK',
   'admin.plugins.perm.hook:trip-warning-provider':
     'Đưa ra cảnh báo xác thực trên một chuyến đi (hiển thị trong trình lập kế hoạch)',
   'admin.plugins.perm.hook:table-contributor':
@@ -476,6 +526,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.photos': 'Cung cấp ảnh',
   'admin.plugins.cap.calendar': 'Cung cấp sự kiện lịch',
   'admin.plugins.cap.placeDetails': 'Làm phong phú địa điểm',
+  'admin.plugins.cap.search': 'Trả lời tìm kiếm',
   'admin.plugins.cap.warnings': 'Gắn cờ vấn đề',
   'admin.plugins.cap.mapLayers': 'Vẽ trên bản đồ',
   'admin.plugins.cap.routing': 'Cung cấp định tuyến',
@@ -535,6 +586,8 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.atlas.description': 'Bản đồ thế giới với các quốc gia đã ghé thăm và số liệu thống kê du lịch',
   'admin.addons.catalog.collab.name': 'Cộng tác',
   'admin.addons.catalog.collab.description': 'Ghi chú, bình chọn, trò chuyện và gợi ý để cùng lên kế hoạch',
+  'admin.addons.catalog.roadtrip.name': 'Chuyến đi đường bộ',
+  'admin.addons.catalog.roadtrip.description': 'Lên kế hoạch lái xe có điểm dừng; thời gian lái và giờ đến tự tính lại',
   'admin.addons.catalog.memories.name': 'Hình ảnh (Immich)',
   'admin.addons.catalog.memories.description': 'Chia sẻ ảnh chuyến đi qua phiên bản Immich của bạn',
   'admin.addons.catalog.mcp.name': 'MCP',

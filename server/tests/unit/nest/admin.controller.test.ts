@@ -42,11 +42,17 @@ const addonsStub = () => ({
   updatePlacesAutocomplete: vi.fn((enabled: boolean) => ({ enabled })),
   getPlacesDetails: vi.fn(() => ({ enabled: false })),
   updatePlacesDetails: vi.fn((enabled: boolean) => ({ enabled })),
+  // Fail-closed with nothing to backfill — see AddonsService.getPlaceShadow.
+  getPlaceShadow: vi.fn(() => ({ enabled: false })),
+  updatePlaceShadow: vi.fn((enabled: boolean) => ({ enabled })),
   // Fail-open, unlike its three neighbours — see AddonsService.getPlacesEnrich.
   getPlacesEnrich: vi.fn(() => ({ enabled: true })),
   updatePlacesEnrich: vi.fn((enabled: boolean) => ({ enabled })),
+  // Fail-open too, and the only switch here about egress rather than spending.
   getCollabFeatures: vi.fn(() => ({ chat: false })),
   updateCollabFeatures: vi.fn(() => ({ features: { chat: true }, changed: true })),
+  getTransitProvider: vi.fn(() => ({ provider: 'transitous', googleKeySource: null })),
+  updateTransitProvider: vi.fn((provider: string) => ({ provider, googleKeySource: null })),
 }) as unknown as AddonsService;
 
 // The MCP-token routes read TokenService now, not AdminService. Stubbed via a
@@ -253,6 +259,7 @@ describe('AdminController feature toggles', () => {
       [() => c.updatePlacesPhotos(user, { enabled: true }, req), 'admin.places_photos', 'updatePlacesPhotos'],
       [() => c.updatePlacesAutocomplete(user, { enabled: true }, req), 'admin.places_autocomplete', 'updatePlacesAutocomplete'],
       [() => c.updatePlacesDetails(user, { enabled: true }, req), 'admin.places_details', 'updatePlacesDetails'],
+      [() => c.updatePlaceShadow(user, { enabled: true }, req), 'admin.place_shadow', 'updatePlaceShadow'],
     ];
     for (const [run, action, method] of cases) {
       writeAudit.mockClear();
@@ -268,6 +275,7 @@ describe('AdminController feature toggles', () => {
     expect(c.getPlacesPhotos()).toEqual({ enabled: false });
     expect(c.getPlacesAutocomplete()).toEqual({ enabled: false });
     expect(c.getPlacesDetails()).toEqual({ enabled: false });
+    expect(c.getPlaceShadow()).toEqual({ enabled: false });
     expect(c.getPlacesEnrich()).toEqual({ enabled: true });
     expect(c.getCollabFeatures()).toEqual({ chat: false });
   });
@@ -276,6 +284,42 @@ describe('AdminController feature toggles', () => {
     const c = adminCtl(svc());
     expect(c.updatePlacesEnrich(user, { enabled: false }, req)).toEqual({ enabled: false });
     expect(writeAudit).toHaveBeenCalledWith(expect.objectContaining({ action: 'admin.places_enrich' }));
+  });
+
+  it('ADMIN-TOGGLE-002c transit-provider reads and writes through the addons domain and is audited (#1699)', () => {
+    const addons = addonsStub();
+    const c = adminCtl(svc(), undefined, addons);
+    expect(c.getTransitProvider(user)).toEqual({ provider: 'transitous', googleKeySource: null });
+    expect(c.updateTransitProvider(user, { provider: 'google' }, req)).toEqual({ provider: 'google', googleKeySource: null });
+    // The acting admin's id drives key resolution — the panel warns about the
+    // key THEY would search with.
+    expect(addons.getTransitProvider).toHaveBeenCalledWith(user.id);
+    expect(addons.updateTransitProvider).toHaveBeenCalledWith('google', user.id);
+    expect(writeAudit).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'admin.transit_provider', details: { provider: 'google' } }),
+    );
+  });
+
+  it('ADMIN-TOGGLE-004 place-shadow forwards the body value and audits the stored one', () => {
+    // The handler audits result.enabled. A service that declines the flip must
+    // not leave behind an audit row claiming the shadow log was switched on.
+    const updatePlaceShadow = vi.fn(() => ({ enabled: false }));
+    const c = adminCtl(svc(), undefined, { ...addonsStub(), updatePlaceShadow } as unknown as AddonsService);
+    expect(c.updatePlaceShadow(user, { enabled: true }, req)).toEqual({ enabled: false });
+    expect(updatePlaceShadow).toHaveBeenCalledWith(true);
+    expect(writeAudit).toHaveBeenCalledWith({ userId: user.id, action: 'admin.place_shadow', ip: '1.2.3.4', details: { enabled: false } });
+    // Off is carried too: the table above only ever asks for true, so a handler
+    // that hardcoded the argument would pass it.
+    c.updatePlaceShadow(user, { enabled: false }, req);
+    expect(updatePlaceShadow).toHaveBeenLastCalledWith(false);
+  });
+
+  it('ADMIN-TOGGLE-004b place-shadow reads through to AddonsService instead of a controller-side default', () => {
+    const getPlaceShadow = vi.fn(() => ({ enabled: true }));
+    const c = adminCtl(svc(), undefined, { ...addonsStub(), getPlaceShadow } as unknown as AddonsService);
+    expect(c.getPlaceShadow()).toEqual({ enabled: true });
+    expect(getPlaceShadow).toHaveBeenCalledTimes(1);
+    expect(writeAudit).not.toHaveBeenCalled();
   });
 
   it('ADMIN-TOGGLE-003 collab-features invalidates MCP sessions only when a flag flipped (#1414)', () => {

@@ -1,13 +1,15 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import Modal from '../shared/Modal'
+import type { RoadtripStopType } from '@trek/shared'
 import CustomSelect from '../shared/CustomSelect'
 import NoteFormatToolbar from '../shared/NoteFormatToolbar'
 import { mapsApi } from '../../api/client'
+import { recordPlacePick } from '../../api/placeShadow'
 import { useAuthStore } from '../../store/authStore'
+import { useAddonStore } from '../../store/addonStore'
 import { useCanDo } from '../../store/permissionsStore'
 import { useTripStore } from '../../store/tripStore'
 import { useSettingsStore } from '../../store/settingsStore'
-import { useAddonStore } from '../../store/addonStore'
 import CollectionPicker from '../Collections/CollectionPicker'
 import PlaceDetailsColumn, { type PlaceDetailsSelection } from './PlaceDetailsColumn'
 import { useToast } from '../shared/Toast'
@@ -16,6 +18,8 @@ import { useTranslation } from '../../i18n'
 import CustomTimePicker from '../shared/CustomTimePicker'
 import { DEFAULT_FORM, isGoogleMapsUrl, mergeResult, type PlaceFormData, type ResultField } from './PlaceFormModal.helpers'
 import { getApiErrorMessage } from '../../utils/apiError'
+import { sourceLabelFor } from '../../utils/placeSource'
+import { useLocationBias } from '../../hooks/useLocationBias'
 import { BookingCostsSection } from './BookingCostsSection'
 import type { BookingExpenseRequest } from './BookingCostsSection.types'
 import type { Place, Category, Assignment, BudgetItem } from '../../types'
@@ -36,7 +40,7 @@ interface PlaceFormModalProps {
   onClose: () => void
   onSave: (data: PlaceSubmitData, files?: File[]) => Promise<{ id: number } | void> | void
   place: Place | null
-  prefillCoords?: { lat: number; lng: number; name?: string; address?: string; website?: string; phone?: string; osm_id?: string } | null
+  prefillCoords?: { lat: number; lng: number; name?: string; address?: string; website?: string; phone?: string; osm_id?: string; stop_type?: RoadtripStopType | null; duration_minutes?: number } | null
   tripId: number
   categories: Category[]
   onCategoryCreated: (category: { name: string; color?: string; icon?: string }) => Promise<Category> | undefined
@@ -51,6 +55,32 @@ interface PlaceFormModalProps {
   onOpenExpense?: (req: BookingExpenseRequest) => void
 }
 
+
+/**
+ * One row of the typed-ahead list, as the server sends it.
+ *
+ * `source`, `lat` and `lng` are optional because not every index fills them:
+ * Google answers with neither, and the mark falls back to the name the whole
+ * list carries.
+ */
+type Suggestion = {
+  placeId: string
+  mainText: string
+  secondaryText: string
+  source?: string
+  lat?: number
+  lng?: number
+}
+
+/** The mark itself. Quiet on purpose: it answers a question, it does not advertise. */
+function SourceBadge({ label }: { label: string | null }) {
+  if (!label) return null
+  return (
+    <span className="shrink-0 rounded-md border border-edge bg-surface-secondary px-1.5 py-0.5 text-[10px] font-medium text-content-faint">
+      {label}
+    </span>
+  )
+}
 
 /** Place create/edit form state: maps search + Google-URL resolve + autocomplete,
  * category creation, file attachments and submit. Keeps PlaceFormModal a thin
@@ -86,9 +116,21 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
   onCategoryCreated, assignmentId, dayAssignments = [], isMobile = false,
   onOpenExpense,
   } = props
+  // Hidden while the addon is off, because the kinds only mean anything to the road trip
+  // rail: on an instance without it they would be six labels that change nothing.
   const [form, setForm] = useState(DEFAULT_FORM)
   const [mapsSearch, setMapsSearch] = useState('')
   const [mapsResults, setMapsResults] = useState([])
+  /** What answered the last full search. Only a fallback: a merged list carries the source per place. */
+  const [searchSource, setSearchSource] = useState<string>('')
+  /**
+   * What produced the list currently on screen, kept for the shadow log: the
+   * query as typed and the provider the envelope named. A ref rather than
+   * state because nothing renders from it and a pick must read the value that
+   * belonged to the list, not a value a re-render replaced.
+   */
+  const searchMetaRef = useRef<{ query: string; source: string } | null>(null)
+  const acMetaRef = useRef<{ query: string; source: string } | null>(null)
   const [isSearchingMaps, setIsSearchingMaps] = useState(false)
   const [newCategoryName, setNewCategoryName] = useState('')
   const [showNewCategory, setShowNewCategory] = useState(false)
@@ -103,7 +145,11 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
   const [pendingFiles, setPendingFiles] = useState([])
   const fileRef = useRef(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
-  const [acSuggestions, setAcSuggestions] = useState<{ placeId: string; mainText: string; secondaryText: string }[]>([])
+  const [acSuggestions, setAcSuggestions] = useState<Suggestion[]>([])
+  // Which index answered the last keystroke, for the rows that do not say so
+  // themselves. Google and the OpenStreetMap fallback each answer from one
+  // place; the index path answers from two at once and marks every row.
+  const [acSource, setAcSource] = useState<string>('')
   const [acHighlight, setAcHighlight] = useState(-1)
   const acDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const acAbortRef = useRef<AbortController | null>(null)
@@ -143,6 +189,11 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
         notes: place.notes || '',
         transport_mode: place.transport_mode || 'walking',
         website: place.website || '',
+        // Carried through every edit. Without it, opening a fuel stop to fix a typo
+        // submits an empty kind and turns it back into a numbered destination.
+        // duration_minutes deliberately stays out: how long a stay takes belongs to the
+        // rail's own dialog, and sending it from here would overwrite what was set there.
+        stop_type: place.stop_type ?? null,
         // The day-specific note rides only with an assignment in context (#2163);
         // otherwise the key stays absent so submit never sends a notes write.
         ...(assignment ? { assignment_notes: assignment.notes || '' } : {}),
@@ -157,6 +208,8 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
         website: prefillCoords.website || '',
         phone: prefillCoords.phone || '',
         osm_id: prefillCoords.osm_id,
+        stop_type: prefillCoords.stop_type ?? null,
+        duration_minutes: prefillCoords.duration_minutes,
       })
     } else {
       setForm(DEFAULT_FORM)
@@ -213,32 +266,11 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
     }
   }, [isOpen])
 
-  // Derive location bias bounding box from the trip's existing places
   const places = useTripStore((s) => s.places)
-  const locationBias = useMemo(() => {
-    const withCoords = (places || []).filter((p) => p.lat != null && p.lng != null)
-    if (withCoords.length === 0) return undefined
-
-    let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity
-    for (const p of withCoords) {
-      const lat = Number(p.lat), lng = Number(p.lng)
-      if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue
-      if (lat < minLat) minLat = lat
-      if (lat > maxLat) maxLat = lat
-      if (lng < minLng) minLng = lng
-      if (lng > maxLng) maxLng = lng
-    }
-    if (!Number.isFinite(minLat)) return undefined
-
-    // Skip bias if the bounding box is too large (~500 km diagonal)
-    const dlat = maxLat - minLat
-    const dlng = maxLng - minLng
-    const avgLatRad = ((minLat + maxLat) / 2) * (Math.PI / 180)
-    const diagKm = Math.sqrt((dlat * 111) ** 2 + (dlng * 111 * Math.cos(avgLatRad)) ** 2)
-    if (diagKm > 500) return undefined
-
-    return { low: { lat: minLat, lng: minLng }, high: { lat: maxLat, lng: maxLng } }
-  }, [places])
+  // Where the trip is happening — the hint that tells the search which of a
+  // thousand identically named places is meant. Autocomplete wants a box, the
+  // search wants a point; useLocationBias derives both from the same places.
+  const { box: locationBias, point: locationBiasPoint } = useLocationBias()
 
   // Autocomplete fetch — aborts any in-flight request before starting a new one
   const fetchSuggestions = useCallback(async (query: string) => {
@@ -252,7 +284,9 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
     acAbortRef.current = controller
     try {
       const result = await mapsApi.autocomplete(query, language, locationBias, controller.signal, placesSessionRef.current.current())
+      acMetaRef.current = { query, source: result.source || 'unknown' }
       setAcSuggestions(result.suggestions || [])
+      setAcSource(result.source || '')
       setAcHighlight(-1)
     } catch (err: unknown) {
       if (err instanceof Error && err.name === 'AbortError') return
@@ -310,8 +344,10 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
           return
         }
       }
-      const result = await mapsApi.search(mapsSearch, language)
+      const result = await mapsApi.search(mapsSearch, language, locationBiasPoint)
+      searchMetaRef.current = { query: mapsSearch.trim(), source: result.source || 'unknown' }
       setMapsResults(result.places || [])
+      setSearchSource(result.source || '')
     } catch (err: unknown) {
       toast.error(getApiErrorMessage(err, t('places.mapsSearchError')))
     } finally {
@@ -319,7 +355,13 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
     }
   }
 
-  const handleSelectMapsResult = (result) => {
+  /**
+   * `pick` is present only when the click came from a ranked list. The
+   * collection picker and the autocomplete detour reach this function with a
+   * place that was never ranked against a query, and a made-up rank would be
+   * worse than no row at all.
+   */
+  const handleSelectMapsResult = (result, pick?: { mode: 'search' | 'autocomplete'; rank: number; count: number }) => {
     setForm(prev => mergeResult(prev, result, autoFilledRef.current))
     // The one point every pick flows through, so the detail column hangs here.
     // A new pick drops whatever hero image belonged to the previous place.
@@ -336,12 +378,36 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
         details: result,
       })
       setForm(prev => ({ ...prev, image_url: undefined }))
+      if (pick) {
+        const meta = pick.mode === 'search' ? searchMetaRef.current : acMetaRef.current
+        if (meta) {
+          recordPlacePick({
+            query: meta.query,
+            lang: language,
+            // The bias the search actually ran under is a box around the trip's
+            // existing places; the corpus stores its centre, which is what an
+            // evaluation needs to bias its own index the same way.
+            biasLat: locationBias ? (locationBias.low.lat + locationBias.high.lat) / 2 : undefined,
+            biasLng: locationBias ? (locationBias.low.lng + locationBias.high.lng) / 2 : undefined,
+            source: `${pick.mode}:${meta.source}`,
+            liveRank: pick.rank,
+            liveCount: pick.count,
+            pickedName: result.name || '',
+            pickedLat: lat,
+            pickedLng: lng,
+            pickedPlaceId: result.google_place_id || result.osm_id || null,
+          })
+        }
+      }
     }
     setMapsResults([])
     setMapsSearch('')
   }
 
-  const handleSelectSuggestion = async (suggestion: { placeId: string; mainText: string; secondaryText: string }) => {
+  const handleSelectSuggestion = async (suggestion: Suggestion) => {
+    // Read before the list is cleared: this is the rank the user saw.
+    const acRank = acSuggestions.findIndex(s => s.placeId === suggestion.placeId)
+    const acCount = acSuggestions.length
     setAcSuggestions([])
     setAcHighlight(-1)
     const previousSearch = mapsSearch
@@ -366,13 +432,28 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
       } catch (err) {
         console.error('Failed to fetch place details:', err)
       }
+      if (!place && suggestion.source === 'openstreetmap' && suggestion.lat != null && suggestion.lng != null) {
+        // The layer's rows carry no address; their second line is the name
+        // written on the building. Searching for "Tokio Hauptbahnhof, 東京駅"
+        // is not a question anybody asked, and its first answer would be
+        // whatever the index made of it — a different place, chosen silently.
+        // The suggestion already knows where it is, so use that.
+        place = {
+          name: suggestion.mainText,
+          address: '',
+          lat: suggestion.lat,
+          lng: suggestion.lng,
+          osm_id: suggestion.placeId,
+          source: 'openstreetmap',
+        }
+      }
       if (!place) {
         const query = [suggestion.mainText, suggestion.secondaryText].filter(Boolean).join(', ')
-        const search = await mapsApi.search(query, language)
+        const search = await mapsApi.search(query, language, locationBiasPoint)
         place = search.places?.[0] ?? null
       }
       if (place) {
-        handleSelectMapsResult(place)
+        handleSelectMapsResult(place, acRank >= 0 ? { mode: 'autocomplete', rank: acRank, count: acCount } : undefined)
       } else {
         setMapsSearch(previousSearch)
         toast.error(t('places.mapsSearchError'))
@@ -479,6 +560,15 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
         lat: form.lat ? Number.parseFloat(form.lat) : null,
         lng: form.lng ? Number.parseFloat(form.lng) : null,
         category_id: form.category_id || null,
+        // An explicit null is how a stop stops being a fuel stop; the service reads it
+        // that way rather than as "leave alone", which is what a missing key means.
+        stop_type: form.stop_type || null,
+        // Only on the way in, and only with a kind: it is the popup's suggestion for how
+        // long that kind of pause takes. On an edit it is left out entirely, because the
+        // stay belongs to the rail's dialog and sending it here would overwrite it.
+        ...(!place && form.stop_type && form.duration_minutes
+          ? { duration_minutes: form.duration_minutes }
+          : {}),
         _pendingFiles: pendingFiles.length > 0 ? pendingFiles : undefined,
       }
       // #2163: the per-assignment note only travels when an assignment is in
@@ -546,6 +636,8 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
     fileRef,
     acSuggestions,
     setAcSuggestions,
+    acSource,
+    searchSource,
     acHighlight,
     setAcHighlight,
     acDebounceRef,
@@ -618,6 +710,8 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
     fileRef,
     acSuggestions,
     setAcSuggestions,
+    acSource,
+    searchSource,
     acHighlight,
     setAcHighlight,
     acDebounceRef,
@@ -699,18 +793,12 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
           language={language}
           timeFormat={S.timeFormat}
           locale={S.locale}
-          hasMapsKey={S.hasMapsKey}
           t={t}
         />
       )}
       <form onSubmit={handleSubmit} className={twoColumn || showDetails ? 'flex-1 min-w-0 space-y-3' : 'space-y-3'} onPaste={handlePaste}>
         {/* Place Search */}
         <div className="bg-surface-secondary rounded-xl p-3 border border-edge">
-          {!hasMapsKey && (
-            <p className="mb-2 text-xs text-content-faint">
-              {t('places.osmActive')}
-            </p>
-          )}
           <div className="relative">
             <div className="flex gap-2">
               <input
@@ -751,10 +839,15 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
                       idx === acHighlight ? 'bg-surface-tertiary' : 'hover:bg-surface-hover'
                     }`}
                   >
-                    <div className="font-medium text-sm">{s.mainText}</div>
-                    {s.secondaryText && (
-                      <div className="text-xs text-content-muted truncate">{s.secondaryText}</div>
-                    )}
+                    <div className="flex items-center gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="font-medium text-sm truncate">{s.mainText}</div>
+                        {s.secondaryText && (
+                          <div className="text-xs text-content-muted truncate">{s.secondaryText}</div>
+                        )}
+                      </div>
+                      <SourceBadge label={sourceLabelFor(s, acSource)} />
+                    </div>
                   </button>
                 ))}
               </div>
@@ -768,11 +861,16 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
                 <button
                   key={idx}
                   type="button"
-                  onClick={() => handleSelectMapsResult(result)}
+                  onClick={() => handleSelectMapsResult(result, { mode: 'search', rank: idx, count: mapsResults.length })}
                   className="w-full text-left px-3 py-2 hover:bg-surface-hover border-b border-edge-faint last:border-0"
                 >
-                  <div className="font-medium text-sm">{result.name}</div>
-                  <div className="text-xs text-content-muted truncate">{result.address}</div>
+                  <div className="flex items-center gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium text-sm truncate">{result.name}</div>
+                      <div className="text-xs text-content-muted truncate">{result.address}</div>
+                    </div>
+                    <SourceBadge label={sourceLabelFor(result, searchSource)} />
+                  </div>
                 </button>
               ))}
             </div>

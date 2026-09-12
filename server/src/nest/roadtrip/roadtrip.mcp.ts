@@ -1,0 +1,219 @@
+import { McpController, Tool, TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_NON_IDEMPOTENT, ok, type McpContext } from '../../nest-mcp';
+import { z } from 'zod';
+import { RoadtripService } from './roadtrip.service';
+import { DatabaseService } from '../database/database.service';
+import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
+import { demoDenied, noAccess, permissionDenied } from '../../mcp/tools/_shared';
+import { AuthService } from '../auth/auth.service';
+import { ADDON_IDS } from '../../addons';
+import { addonGate } from '../addons/addon-gate';
+import { AddonsService } from '../addons/addons.service';
+import { roadtripViaUpdateRequestSchema, type RoadtripViaUpdateRequest } from '@trek/shared';
+
+/**
+ * The whole surface rides the road trip addon, the same way the controller does
+ * (`@RequireAddon`). Without the gate the REST route answers 404 on an instance that
+ * left the addon off while these four tools kept reading and writing vias, which is
+ * exactly the parity the repo forbids breaking.
+ */
+const roadtripAddonOn = addonGate(ADDON_IDS.ROADTRIP);
+
+/**
+ * Road-trip via points over MCP, the same surface the REST routes expose (#1797).
+ *
+ * Parity is the point: the permission checked here is `day_edit`, the same action string
+ * the controller demands, so an assistant can never do through a tool what a person
+ * cannot do through the UI. Reads go through the same day-belongs-to-trip check, so a
+ * valid day id from another trip is not reachable by way of one the caller can see.
+ */
+@McpController()
+export class RoadtripMcp {
+  constructor(
+    private readonly roadtrip: RoadtripService,
+    private readonly db: DatabaseService,
+    private readonly guards: McpToolGuardsService,
+    private readonly auth: AuthService,
+    readonly addons: AddonsService,
+  ) {}
+
+  @Tool({
+    name: 'list_route_vias',
+    description: 'List the points a day\'s drive is routed through without stopping at them. These bend the route (a scenic road, a pass, avoiding a motorway) and are not stops on the itinerary.',
+    inputSchema: {
+      tripId: z.number().int().positive(),
+      dayId: z.number().int().positive().optional().describe('Omit to list the vias of every day of the trip'),
+    },
+    annotations: TOOL_ANNOTATIONS_READONLY,
+    access: { group: 'trips', mode: 'read' },
+    when: roadtripAddonOn,
+  })
+  async listVias({ tripId, dayId }: { tripId: number; dayId?: number }, ctx: McpContext) {
+    if (!this.db.canAccessTrip(tripId, ctx.userId)) return noAccess();
+    if (dayId != null) {
+      if (!this.roadtrip.dayExists(dayId, tripId)) return noAccess();
+      return ok({ vias: this.roadtrip.listForDay(dayId) });
+    }
+    return ok({ vias: this.roadtrip.listForTrip(tripId), tracks: this.roadtrip.tracksForTrip(tripId) });
+  }
+
+  @Tool({
+    name: 'add_route_via',
+    description: 'Make a day\'s drive pass through a point without stopping there — use it to send the route over a particular road or away from one. For somewhere the traveller actually stops, add a place and assign it to the day instead.',
+    inputSchema: {
+      tripId: z.number().int().positive(),
+      dayId: z.number().int().positive(),
+      after_order_index: z.number().int().min(0).describe('Which stop of the day the via follows, counting from 0'),
+      lat: z.number().min(-90).max(90),
+      lng: z.number().min(-180).max(180),
+    },
+    annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+    access: { group: 'trips', mode: 'write' },
+    when: roadtripAddonOn,
+  })
+  async addVia(
+    { tripId, dayId, after_order_index, lat, lng }: { tripId: number; dayId: number; after_order_index: number; lat: number; lng: number },
+    ctx: McpContext,
+  ) {
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
+    if (!this.db.canAccessTrip(tripId, ctx.userId)) return noAccess();
+    if (!this.guards.hasTripPermission('day_edit', tripId, ctx.userId)) return permissionDenied();
+    if (!this.roadtrip.dayExists(dayId, tripId)) return noAccess();
+    const via = this.roadtrip.create(dayId, { after_order_index, lat, lng });
+    this.announce(tripId, dayId);
+    return ok({ via });
+  }
+
+  @Tool({
+    name: 'add_route_vias',
+    description: 'Lay a whole chain of via points on one day at once, so the drive follows a particular road for a stretch rather than being nudged at a single point. Use this when the shape comes from a line — a recorded track, a signed scenic route — and add_route_via when it is one detour. Pass replace_legs to clear the vias on those legs first; leave it out to add to what is already there, which is what leaves hand-placed detours on other legs alone.',
+    inputSchema: {
+      tripId: z.number().int().positive(),
+      dayId: z.number().int().positive(),
+      vias: z.array(z.object({
+        after_order_index: z.number().int().min(0).describe('Which stop of the day this via follows, counting from 0'),
+        lat: z.number().min(-90).max(90),
+        lng: z.number().min(-180).max(180),
+      })).max(100).describe('In the order the drive passes through them'),
+      replace_legs: z.array(z.number().int().min(0)).max(100).optional()
+        .describe('Legs to clear before inserting, by the index of the stop they follow'),
+      track: z.object({
+        place_id: z.number().int().positive().describe('The imported track this chain was fitted to, as its place id'),
+        stray_km: z.number().min(0).max(40_000).nullable().optional()
+          .describe('How far the fitted route still runs from the track at its worst point'),
+      }).nullable().optional()
+        .describe('Records which imported track the day now follows. Leave it out to keep whatever it followed before; pass null to say it follows nothing.'),
+    },
+    annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+    access: { group: 'trips', mode: 'write' },
+    when: roadtripAddonOn,
+  })
+  async addVias(
+    { tripId, dayId, vias, replace_legs, track }: {
+      tripId: number; dayId: number;
+      vias: { after_order_index: number; lat: number; lng: number }[];
+      replace_legs?: number[];
+      track?: { place_id: number; stray_km?: number | null } | null;
+    },
+    ctx: McpContext,
+  ) {
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
+    if (!this.db.canAccessTrip(tripId, ctx.userId)) return noAccess();
+    if (!this.guards.hasTripPermission('day_edit', tripId, ctx.userId)) return permissionDenied();
+    if (!this.roadtrip.dayExists(dayId, tripId)) return noAccess();
+    // The same check the REST route makes, in the same change: permission alone would let
+    // a place id from another trip, or a place that is not a track at all, become this
+    // day's label.
+    if (track && !this.roadtrip.trackExists(track.place_id, tripId)) return noAccess();
+    const made = this.roadtrip.createMany(dayId, { vias, replace_legs, track });
+    this.announce(tripId, dayId);
+    this.roadtrip.broadcast(String(tripId), 'roadtripTrack:changed', {
+      dayId,
+      track: this.roadtrip.tracksForTrip(String(tripId)).find(t => String(t.day_id) === String(dayId)) ?? null,
+    }, undefined);
+    return ok({ vias: made });
+  }
+
+  @Tool({
+    name: 'reanchor_route_vias',
+    description: 'Re-pin a day\'s via points after its stops changed. A via records which stop it follows by position, so adding, removing or reordering a stop leaves every later via pointing at the wrong leg and the drive silently reverts to the road it was steered away from. Send the corrected positions for the whole day at once; ids left out keep the position they have.',
+    inputSchema: {
+      tripId: z.number().int().positive(),
+      dayId: z.number().int().positive(),
+      vias: z.array(z.object({
+        id: z.number().int().positive(),
+        after_order_index: z.number().int().min(0).describe('Which stop of the day the via now follows, counting from 0'),
+      })).max(500),
+      remove: z.array(z.number().int().positive()).max(500).optional()
+        .describe('Vias whose leg no longer exists at all — deleting the last stop of a day leaves the leg into it with nothing to sit on'),
+    },
+    annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+    access: { group: 'trips', mode: 'write' },
+    when: roadtripAddonOn,
+  })
+  async reanchorVias(
+    { tripId, dayId, vias, remove }: { tripId: number; dayId: number; vias: { id: number; after_order_index: number }[]; remove?: number[] },
+    ctx: McpContext,
+  ) {
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
+    if (!this.db.canAccessTrip(tripId, ctx.userId)) return noAccess();
+    if (!this.guards.hasTripPermission('day_edit', tripId, ctx.userId)) return permissionDenied();
+    if (!this.roadtrip.dayExists(dayId, tripId)) return noAccess();
+    const next = this.roadtrip.reanchor(dayId, { vias, remove });
+    this.announce(tripId, dayId);
+    return ok({ vias: next });
+  }
+
+  @Tool({
+    name: 'remove_route_via',
+    description: 'Remove a via point, letting the drive take the direct route again.',
+    inputSchema: {
+      tripId: z.number().int().positive(),
+      dayId: z.number().int().positive(),
+      viaId: z.number().int().positive(),
+    },
+    annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+    access: { group: 'trips', mode: 'write' },
+    when: roadtripAddonOn,
+  })
+  async removeVia({ tripId, dayId, viaId }: { tripId: number; dayId: number; viaId: number }, ctx: McpContext) {
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
+    if (!this.db.canAccessTrip(tripId, ctx.userId)) return noAccess();
+    if (!this.guards.hasTripPermission('day_edit', tripId, ctx.userId)) return permissionDenied();
+    if (!this.roadtrip.dayExists(dayId, tripId)) return noAccess();
+    if (!this.roadtrip.remove(viaId, dayId)) return noAccess();
+    this.announce(tripId, dayId);
+    return ok({ success: true });
+  }
+
+  @Tool({
+    name: 'update_route_via',
+    description: 'Move an existing via point and optionally attach it to another outgoing leg of the same day. This is the same change as dragging a route handle. A via bends the route and does not add a stop or stay.',
+    inputSchema: { tripId: z.number().int().positive(), dayId: z.number().int().positive(), viaId: z.number().int().positive(), ...roadtripViaUpdateRequestSchema.shape },
+    annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT, access: { group: 'trips', mode: 'write' }, when: roadtripAddonOn,
+  })
+  async updateVia(input: RoadtripViaUpdateRequest & { tripId: number; dayId: number; viaId: number }, ctx: McpContext) {
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
+    if (!this.db.canAccessTrip(input.tripId, ctx.userId)) return noAccess();
+    if (!this.guards.hasTripPermission('day_edit', input.tripId, ctx.userId)) return permissionDenied();
+    if (!this.roadtrip.dayExists(input.dayId, input.tripId)) return noAccess();
+    const via = this.roadtrip.move(input.viaId, input.dayId, input.lat, input.lng, input.after_order_index);
+    if (!via) return noAccess();
+    this.announce(input.tripId, input.dayId);
+    return ok({ via });
+  }
+
+  /**
+   * Says what this day's drive is routed through now.
+   *
+   * The same announcement the REST routes make, because it is the same change: a via laid
+   * by an assistant moves the line on everybody's map exactly as one dragged by hand.
+   * No originating socket to exclude here — a tool call has no socket of its own, so the
+   * client that asked for it hears about it like everyone else.
+   */
+  private announce(tripId: number, dayId: number): void {
+    this.roadtrip.broadcast(String(tripId), 'roadtripVia:changed', {
+      dayId,
+      vias: this.roadtrip.listForDay(String(dayId)),
+    }, undefined);
+  }
+}

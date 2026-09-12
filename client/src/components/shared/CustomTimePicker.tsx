@@ -13,9 +13,12 @@ interface CustomTimePickerProps {
   /** Read-only surfaces keep the field, they just cannot type in it — same
    *  affordance the native input they replaced offered (#2067). */
   disabled?: boolean
+  'aria-label'?: string
+  'aria-describedby'?: string
+  'aria-invalid'?: boolean
 }
 
-export default function CustomTimePicker({ value, onChange, placeholder = '00:00', style = {}, disabled = false }: CustomTimePickerProps) {
+export default function CustomTimePicker({ value, onChange, placeholder = '00:00', style = {}, disabled = false, ...aria }: CustomTimePickerProps) {
   const is12h = useSettingsStore(s => s.settings.time_format) === '12h'
   const [open, setOpen] = useState(false)
   const [inputFocused, setInputFocused] = useState(false)
@@ -129,6 +132,7 @@ export default function CustomTimePicker({ value, onChange, placeholder = '00:00
         transition: 'border-color 0.15s',
       }}>
         <input
+          {...aria}
           type="text"
           value={inputFocused ? value : formatClockTime(value, is12h)}
           onChange={handleInput}

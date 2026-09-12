@@ -383,22 +383,34 @@ export function CustomDatePicker({
               position: 'fixed',
               // reanchor ticks on scroll / resize / keyboard so this recomputes
               // against a fresh rect instead of the one measured on open (#1999).
-              ...((): { top: number; left: number } => {
+              ...((): { top?: number; bottom?: number; left: number } => {
                 void reanchor;
                 const r = ref.current?.getBoundingClientRect();
                 if (!r) return { top: 0, left: 0 };
                 const w = 268,
                   pad = 8,
+                  // Only used to decide *whether* the popup fits below the trigger —
+                  // its real height varies with the month's row count and the view
+                  // (days/months/years), so it can't be known before it renders.
                   h = 360;
                 const vw = window.innerWidth;
                 const vh = window.visualViewport?.height ?? window.innerHeight;
                 let left = r.left;
-                let top = r.bottom + 4;
                 if (left + w > vw - pad) left = Math.max(pad, vw - w - pad);
-                if (top + h > vh - pad) top = r.top - h - 4;
-                top = Math.max(pad, Math.min(top, vh - h - pad));
                 if (vw < 360) left = Math.max(pad, (vw - w) / 2);
-                return { top, left };
+                const below = r.bottom + 4;
+                if (below + h <= vh - pad) return { top: below, left };
+                // Flipped: anchor from the trigger's own top edge via `bottom`
+                // instead of subtracting a guessed height from `top`. A guessed
+                // `top` leaves a gap sized by however wrong the guess was — in a
+                // short modal (e.g. the settle-up form) that gap was big enough to
+                // land the popup over unrelated fields instead of the trigger it
+                // belongs to. Anchoring the opposite edge means the popup always
+                // sits flush against the trigger no matter its real height.
+                if (r.top - 4 - h >= pad) return { bottom: vh - r.top + 4, left };
+                // No room on either side (a phone in landscape): keep the top edge
+                // inside the viewport and let the popup cover the trigger instead.
+                return { top: Math.max(pad, Math.min(below, vh - h - pad)), left };
               })(),
               zIndex: 99999,
               background: 'var(--bg-card)',

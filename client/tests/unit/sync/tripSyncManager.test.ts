@@ -435,3 +435,5 @@ describe('tripSyncManager.syncAll — logout while syncing', () => {
     expect(await offlineDb.trips.get(secondId)).toBeUndefined();
   });
 });
+
+vi.mock('../../../src/repo/roadtripPreferencesRepo', () => ({ roadtripPreferencesRepo: { read: vi.fn(async () => ({})) } }))

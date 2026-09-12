@@ -1531,7 +1531,7 @@ function backSpread(input: AutoInput): BookSpread {
 }
 
 export function buildBook(input: AutoInput): BookDocument {
-  const spreads: BookSpread[] = [coverSpread(input)]
+  const spreads: BookSpread[] = [coverSpread(input), blankSpread('first')]
 
   /*
    * The summary and the countries open the book, before the entries.
@@ -1572,13 +1572,39 @@ export function buildBook(input: AutoInput): BookDocument {
     }
   }
   flushRun()
-  spreads.push(backSpread(input))
+  spreads.push(blankSpread('last'), backSpread(input))
   return {
     version: 1,
     title: input.title.slice(0, MAX_BOOK_TITLE),
-    page: input.page,
+    page: withFirstPage(input.page),
     spreads: spreads.slice(0, MAX_SPREADS),
   }
+}
+
+/**
+ * A page with nothing on it, of the given kind.
+ *
+ * The first and the last page of a book are laid down empty on purpose: the
+ * first is where a title page or a dedication goes, the last where a colophon
+ * does, and neither is something a layout should decide for a person.
+ */
+function blankSpread(role: BookSpread['role']): BookSpread {
+  return { id: uid('sp'), role, background: null, elements: [], parked: [], entryId: null }
+}
+
+/**
+ * The page setup for a book that opens on a single page.
+ *
+ * `startAt` numbers the first page inside the covers. A book from before the
+ * single first page existed opened straight onto a spread and started at 2,
+ * so that its left-hand page read as the second page of the object. With a
+ * first page in front of that spread the first page is page 1 — so a book laid
+ * out with one starts there, whatever the setup it inherited said (#2317).
+ * Nothing else of the setup is touched: the format and the folio styling are
+ * the person's, only the count moved with the page that moved.
+ */
+function withFirstPage(page: BookPageSetup): BookPageSetup {
+  return { ...page, pageNumbers: { ...page.pageNumbers, startAt: 1 } }
 }
 
 /**
@@ -1592,17 +1618,15 @@ export function buildBook(input: AutoInput): BookDocument {
  *
  * The covers are here rather than left out because a book has them and there is
  * no other way to add one: the pages rail only inserts inner spreads, between
- * the two. Empty, though, in the same way the page between them is.
+ * the two. The single first and last pages likewise (#2317). Empty, though, in
+ * the same way the spread between them is.
  */
 export function emptyBook(input: AutoInput): BookDocument {
-  const blank = (role: BookSpread['role']): BookSpread => ({
-    id: uid('sp'), role, background: null, elements: [], parked: [], entryId: null,
-  })
   return {
     version: 1,
     title: input.title.slice(0, MAX_BOOK_TITLE),
-    page: input.page,
-    spreads: [blank('cover'), blank('inner'), blank('back')],
+    page: withFirstPage(input.page),
+    spreads: [blankSpread('cover'), blankSpread('first'), blankSpread('inner'), blankSpread('last'), blankSpread('back')],
   }
 }
 

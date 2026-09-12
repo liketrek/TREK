@@ -80,6 +80,10 @@ const budget: TranslationStrings = {
   'costs.pays': 'paga',
   'costs.settle': 'Salda',
   'costs.balances': 'Saldi',
+  'costs.finalBudget': 'Budget finale',
+  'costs.finalExpenses': 'Spese pagate',
+  'costs.finalReimbursed': 'Rimborsi netti',
+  'costs.finalPending': 'Rimborsi in sospeso',
   'costs.byCategory': 'Per categoria',
   'costs.noCategories': 'Ancora nessuna spesa.',
   'costs.settleHistory': 'Cronologia saldi',
@@ -147,5 +151,12 @@ const budget: TranslationStrings = {
   'costs.splitSumUnder': 'Somma delle quote: {sum} di {total} (mancano {diff})',
   'costs.splitSumOver': 'Somma delle quote: {sum} di {total} ({diff} in più)',
   'costs.toggleSign': 'Passa da spesa a rimborso',
+  'costs.receipts': 'Ricevute',
+  'costs.receiptsTitle': 'Ricevute e fatture',
+  'costs.attachReceipt': 'Allega ricevuta / fattura',
+  'costs.noReceipts': 'Nessuna ricevuta allegata',
+  'costs.deleteReceipt': 'Rimuovi ricevuta',
+  'costs.viewReceipt': 'Visualizza ricevuta',
+  'costs.receiptLeftBehind': 'Salvataggio non riuscito e {count} ricevute caricate sono ancora lì. Rimuovile nella scheda File.',
 };
 export default budget;

@@ -77,6 +77,34 @@ interface StudioState {
   canRedo: () => boolean
 }
 
+/**
+ * Where an inner spread may go: after the cover and the first page, before
+ * the last page and the back cover.
+ *
+ * Read from the document each time rather than assumed, because a book from
+ * before the single first page existed has none, and a book with no covers at
+ * all (the tests build those) has nothing to stay inside of. The lower bound
+ * is not decoration either: a book with no inner spreads yet reports its last
+ * inner one as -1, which asked for a page at 0 — in front of the cover, where
+ * it could not be moved back from, because a move only ever swaps with
+ * another inner spread.
+ */
+function innerBounds(spreads: readonly BookSpread[]): { first: number; limit: number } {
+  let first = 0
+  for (let i = 0; i < spreads.length; i++) {
+    const role = spreads[i].role
+    if (role === 'cover' || role === 'first') first = i + 1
+    else break
+  }
+  let limit = spreads.length
+  for (let i = spreads.length - 1; i >= 0; i--) {
+    const role = spreads[i].role
+    if (role === 'back' || role === 'last') limit = i
+    else break
+  }
+  return { first, limit: Math.max(first, limit) }
+}
+
 function replaceSpread(doc: BookDocument, index: number, fn: (s: BookSpread) => BookSpread): BookDocument {
   const spreads = doc.spreads.slice()
   if (!spreads[index]) return doc
@@ -197,10 +225,14 @@ export const useStudioStore = create<StudioState>((set, get) => ({
    *
    * The cover and the back cover are fixed points: a book has exactly one of
    * each, they are single pages rather than spreads, and the layouts panel
-   * already refuses to touch them. So everything here operates on the inner
-   * spreads between them, and `canEditSpread` is the one place that decides
-   * what counts as inner — the rail, the menu and the store all ask it rather
-   * than each testing `role` for themselves.
+   * already refuses to touch them. The single first and last pages inside
+   * them are fixed the same way (#2317): a bound book opens onto one
+   * right-hand page and closes on one left-hand page, and moving either into
+   * the middle of the book would put a half-width page between two spreads.
+   * So everything here operates on the inner spreads between them, and
+   * `canEditSpread` is the one place that decides what counts as inner — the
+   * rail, the menu and the store all ask it rather than each testing `role`
+   * for themselves.
    */
   canEditSpread: index => {
     const sp = get().doc?.spreads[index]
@@ -219,10 +251,7 @@ export const useStudioStore = create<StudioState>((set, get) => ({
      * move only ever swaps with another inner spread. The first page of an
      * empty book is the one this catches.
      */
-    const cover = doc.spreads.findIndex(sp => sp.role === 'cover')
-    const back = doc.spreads.findIndex(sp => sp.role === 'back')
-    const first = cover === -1 ? 0 : cover + 1
-    const limit = back === -1 ? doc.spreads.length : back
+    const { first, limit } = innerBounds(doc.spreads)
     const at = Math.min(Math.max(index + 1, first), limit)
     get().commit(d => ({
       ...d,
@@ -246,10 +275,7 @@ export const useStudioStore = create<StudioState>((set, get) => ({
     const doc = get().doc
     if (!doc) return
     // Same bounds as addSpread: inside the covers at both ends.
-    const cover = doc.spreads.findIndex(sp => sp.role === 'cover')
-    const back = doc.spreads.findIndex(sp => sp.role === 'back')
-    const first = cover === -1 ? 0 : cover + 1
-    const limit = back === -1 ? doc.spreads.length : back
+    const { first, limit } = innerBounds(doc.spreads)
     const at = Math.min(Math.max(index + 1, first), limit)
     get().commit(d => ({
       ...d,

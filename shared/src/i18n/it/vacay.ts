@@ -1,6 +1,28 @@
 import type { TranslationStrings } from '../types';
 
 const vacay: TranslationStrings = {
+  'schoolCatalog.refreshError':
+    'La modifica è stata salvata, ma non è stato possibile aggiornare l’elenco. Riprova a caricarlo.',
+  'schoolCatalog.title': 'Vacanze scolastiche',
+  'schoolCatalog.hint': 'Gestisci le regioni condivise. Tutti possono sceglierle nelle impostazioni delle ferie.',
+  'schoolCatalog.periodHint': 'Entrambe le date sono incluse. Aggiungi i periodi di ogni anno scolastico.',
+  'schoolCatalog.region': 'Regione o distretto scolastico',
+  'schoolCatalog.name': 'Nome delle vacanze',
+  'schoolCatalog.start': 'Data di inizio',
+  'schoolCatalog.end': 'Data di fine',
+  'schoolCatalog.addPeriod': 'Aggiungi periodo',
+  'schoolCatalog.invalid': 'Controlla i nomi e le date.',
+  'schoolCatalog.discard': 'Scartare le modifiche non salvate?',
+  'schoolCatalog.country': 'Paese',
+  'schoolCatalog.deleteHint': 'Rimuovi prima le regioni. Le regioni in uso non possono essere eliminate.',
+  'schoolCatalog.deleteCountry': 'Elimina paese',
+  'schoolCatalog.addCountry': 'Aggiungi paese',
+  'schoolCatalog.code': 'Codice paese (es. US)',
+  'schoolCatalog.empty': 'Nessuna regione presente.',
+  'schoolCatalog.addRegion': 'Aggiungi regione',
+  'schoolCatalog.offline': 'Connettiti a Internet per gestire le vacanze scolastiche.',
+  'schoolCatalog.loadError': 'Impossibile caricare le regioni. Riapri le impostazioni.',
+  'schoolCatalog.retry': 'Riprova',
   'vacay.subtitle': 'Pianifica e gestisci i giorni di ferie',
   'vacay.settings': 'Impostazioni',
   'vacay.year': 'Anno',

@@ -22,5 +22,8 @@ const map: TranslationStrings = {
   'map.location.denied': 'Dostęp do lokalizacji jest zablokowany. Sprawdź ustawienia urządzenia; zainstalowana aplikacja ma własne uprawnienie do lokalizacji, niezależne od przeglądarki.',
   'map.location.unavailable': 'Nie udało się ustalić Twojej lokalizacji.',
   'map.location.timeout': 'Ustalanie lokalizacji trwało zbyt długo. Spróbuj ponownie przy lepszej widoczności nieba.',
+  'map.overview.show': 'Pokaż całą podróż',
+  'map.overview.hide': 'Ukryj całą podróż',
+  'map.overview.total': 'Łączny dystans',
 };
 export default map;

@@ -76,6 +76,11 @@ export function buildAdminHook(overrides: Record<string, unknown> = {}): AdminHo
     setPlacesDetailsEnabledState: vi.fn(),
     placesEnrichEnabled: true,
     setPlacesEnrichEnabledState: vi.fn(),
+    // Fail-open on the server, so the harness starts where an unset row lands.
+    trekPlacesEnabled: true,
+    setTrekPlacesEnabledState: vi.fn(),
+    placeShadowEnabled: false,
+    setPlaceShadowEnabledState: vi.fn(),
     collabFeatures: { chat: true, notes: true, polls: true, whatsnext: true },
     setCollabFeatures: vi.fn(),
 

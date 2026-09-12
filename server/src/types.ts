@@ -78,6 +78,10 @@ export interface Place {
   website?: string | null;
   phone?: string | null;
   transport_mode?: string;
+  /** What kind of stop this is on a drive (#1797); null for an ordinary place. */
+  stop_type?: string | null;
+  /** How full this stop fills the tank, 1-100; null follows the traveller's own setting. */
+  fill_percent?: number | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -110,6 +114,7 @@ export interface DayAssignment {
   reservation_datetime?: string | null;
   assignment_time?: string | null;
   assignment_end_time?: string | null;
+  end_day?: number;
   leg_transport_mode?: string | null;
   incoming_leg_transport_mode?: string | null;
   created_at?: string;
@@ -123,6 +128,15 @@ export interface PackingItem {
   category?: string | null;
   sort_order: number;
   created_at?: string;
+}
+
+export interface BudgetItemReceipt {
+  id: number;
+  filename: string;
+  original_name: string;
+  file_size?: number | null;
+  mime_type?: string | null;
+  url: string;
 }
 
 export interface BudgetItem {
@@ -148,6 +162,7 @@ export interface BudgetItem {
   created_at?: string;
   members?: BudgetItemMember[];
   payers?: BudgetItemPayer[];
+  receipts?: BudgetItemReceipt[];
 }
 
 export interface BudgetItemMember {
@@ -335,6 +350,9 @@ export interface AssignmentRow extends DayAssignment {
   osm_id: string | null;
   website: string | null;
   phone: string | null;
+  stop_type: string | null;
+  /** How full this stop fills the tank, 1-100; null follows the traveller's own setting. */
+  fill_percent: number | null;
   category_name: string | null;
   category_color: string | null;
   category_icon: string | null;

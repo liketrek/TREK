@@ -1,5 +1,6 @@
 import { readEnv, getAppUrl } from '../../app-config';
 import { stripHtmlTags } from '../common/stripHtmlTags';
+import { haversineMetres } from '../common/geo';
 
 /**
  * Pure maps/geo helpers — no DB, no Nest, no side effects beyond reading env.
@@ -75,7 +76,7 @@ export function toWikiLang(lang: string | undefined, fallback = 'en'): string {
 
 // Re-exported, not redefined: this was one of three copies. Kept as an export
 // here because callers and a test import it from maps.helpers.
-export { haversineMetres } from '../common/geo';
+export { haversineMetres };
 
 /**
  * Whether two place names plausibly refer to the same thing.
@@ -91,6 +92,66 @@ export { haversineMetres } from '../common/geo';
  * list for all of them is its own maintenance problem. Anything the pair rule
  * lets through has already survived the distance check.
  */
+/**
+ * Put the index's answer and OpenStreetMap's into one list.
+ *
+ * Overture Places is a dataset of businesses. It is very good at those and
+ * largely does not carry temples, bridges, riverside walks, viewpoints or
+ * observation decks, which is a fair share of what somebody planning a trip
+ * searches for. Measured against 128 places out of a real trip to Japan, saved
+ * through the old search: the index answered 51.6 percent inside its top five,
+ * and for most of the rest it returned the shops AROUND the landmark rather
+ * than nothing, which is worse than nothing because it looks like an answer.
+ *
+ * Three orderings were tried against that corpus, and the two clever ones lost.
+ *
+ * A score threshold cannot tell the cases apart: at 0.75 it catches 19 of 62
+ * misses and throws away 6 of 66 hits. Promoting results whose name matches
+ * what was typed is worse than it sounds, because "Hase Station" shares a word
+ * with "Hase-dera" while OpenStreetMap answers in the local language and
+ * returns the correct temple under a name that shares nothing at all: the rule
+ * pushed seven weak index matches above the right answer, which landed at
+ * position eight.
+ *
+ * So this does not rank. It alternates, index first, and lets each source's own
+ * ordering stand. An exact business match still opens the list, because the
+ * index put it first; a landmark the index does not carry is second rather than
+ * eleventh. Neither source has to be judged by the other's yardstick.
+ *
+ * A place both sources know is kept once, as the index's copy, because that is
+ * the one carrying a stable id, contact details and hours.
+ */
+export function mergeSearchResults(
+  fromIndex: Record<string, unknown>[],
+  fromOsm: Record<string, unknown>[],
+  limit = 10,
+): Record<string, unknown>[] {
+  const sameThing = (a: Record<string, unknown>, b: Record<string, unknown>): boolean => {
+    const [aLat, aLng, bLat, bLng] = [a.lat, a.lng, b.lat, b.lng];
+    if (![aLat, aLng, bLat, bLng].every((v) => typeof v === 'number')) return false;
+    // 60 m is close enough to be the same shop. It is NOT enough on its own:
+    // a temple and the coffee shop at its gate are fifty metres apart, and
+    // deduping on distance alone swallowed the temple, which is the exact
+    // result this function exists to surface. Two things in one spot with
+    // unrelated names are two things.
+    if (haversineMetres(aLat as number, aLng as number, bLat as number, bLng as number) >= 60) {
+      return false;
+    }
+    return (
+      typeof a.name === 'string' && typeof b.name === 'string' && namesOverlap(a.name, b.name)
+    );
+  };
+
+  const extra = fromOsm.filter((o) => !fromIndex.some((i) => sameThing(i, o)));
+
+  const out: Record<string, unknown>[] = [];
+  for (let i = 0; i < Math.max(fromIndex.length, extra.length) && out.length < limit; i++) {
+    if (i < fromIndex.length) out.push(fromIndex[i]);
+    if (i < extra.length && out.length < limit) out.push(extra[i]);
+  }
+  return out;
+}
+
 export function namesOverlap(a: string, b: string): boolean {
   const words = (value: string): Set<string> =>
     new Set(
@@ -102,6 +163,34 @@ export function namesOverlap(a: string, b: string): boolean {
         .filter((word) => word.length > 2),
     );
   const left = [...words(a)];
+  const right = [...words(b)];
+
+  /**
+   * Neither name has a Latin word to compare.
+   *
+   * `words()` splits on `[^a-z0-9]`, so a name written in Japanese, Korean,
+   * Chinese, Greek, Cyrillic, Arabic, Hebrew or Thai tokenises to nothing at
+   * all, and returning false there made this function blind to exactly the
+   * places the two sources most often both know: 長谷寺 came back once from the
+   * index and once from OpenStreetMap, one above the other in the same list.
+   *
+   * Compared strictly, not by overlap. Two CJK names that merely share a
+   * character are usually two different places (東京タワー and 東京駅 share
+   * 東京), and deduping the wrong pair swallows a real result — the failure this
+   * whole function is written to avoid. Identical names at the same coordinate
+   * are the case worth catching, and it is the common one, because both sources
+   * carry the official local name.
+   *
+   * NFKC folds the width and compatibility variants the two sources disagree
+   * on (ﾀﾜｰ against タワー), which NFD, used for the Latin path above, does not.
+   */
+  if (left.length === 0 && right.length === 0) {
+    const strict = (value: string): string =>
+      value.normalize('NFKC').toLowerCase().replace(/\s+/gu, '');
+    const [sa, sb] = [strict(a), strict(b)];
+    return sa.length > 0 && sa === sb;
+  }
+
   if (left.length === 0) return false;
 
   /**
@@ -120,7 +209,7 @@ export function namesOverlap(a: string, b: string): boolean {
   };
 
   let shared = 0;
-  for (const word of words(b)) {
+  for (const word of right) {
     const match = left.find((candidate) => sameStem(candidate, word));
     if (!match) continue;
     if (Math.min(match.length, word.length) >= 4) return true;
@@ -172,7 +261,84 @@ export interface OverpassPoi {
   phone: string | null;
   opening_hours: string | null;
   cuisine: string | null;
-  source: 'openstreetmap';
+  /** Brand name and its Wikidata id, when OSM carries them — the logo is looked up from the id. */
+  brand: string | null;
+  brand_wikidata: string | null;
+  /** What a charging station offers, when it is one and OSM says. */
+  charging: ChargingInfo | null;
+  /**
+   * Which index the row came from. Overture is not OpenStreetMap: it carries
+   * OSM among other sources under other licences, so a row from the TREK index
+   * says so rather than borrowing OSM's name. The wire contract keeps this an
+   * open string, so widening it here breaks nothing.
+   */
+  source: 'openstreetmap' | 'trek-places';
+}
+
+/**
+ * The part of a charging station that decides whether it is any use to a particular car.
+ *
+ * Read out of tags the query has always returned and the projection has always thrown
+ * away: `out center tags` hands back the whole tag set, and only six keys of it were ever
+ * passed on. Nothing here costs an extra request.
+ *
+ * Coverage is the reason this is all optional. Across the charging stations in OSM,
+ * roughly a third carry a socket type, about seven in ten a capacity, and about half say
+ * whether they charge a fee. A filter built on it has to treat "not stated" as its own
+ * answer rather than as a no.
+ */
+export interface ChargingInfo {
+  /** One entry per socket family the station lists, with how many and how fast. */
+  sockets: { type: string; count: number | null; kw: number | null }[];
+  /** How many vehicles can charge at once, across all sockets. */
+  capacity: number | null;
+  /** true = costs money, false = free, null = OSM does not say. */
+  fee: boolean | null;
+}
+
+/**
+ * OSM writes sockets as one key per family: `socket:type2=4` is the count, and
+ * `socket:type2:output=22 kW` the power. Both are free text in practice, so the count is
+ * only taken when it parses as a whole number and the power only when a number can be
+ * read off the front of it.
+ *
+ * The families are listed rather than derived from the tag names, because `socket:` also
+ * carries keys that are not a socket family at all.
+ */
+const SOCKET_FAMILIES = [
+  'type2', 'type2_combo', 'type2_cable', 'ccs', 'chademo', 'type1', 'type1_combo',
+  'schuko', 'tesla_supercharger', 'tesla_destination',
+] as const;
+
+/** Leading number out of a free-text value like "22 kW" or "50kw". */
+function leadingNumber(raw: string | undefined): number | null {
+  if (!raw) return null;
+  const n = Number.parseFloat(raw.replace(',', '.'));
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+export function readChargingInfo(tags: Record<string, string>): ChargingInfo | null {
+  const sockets: ChargingInfo['sockets'] = [];
+  for (const family of SOCKET_FAMILIES) {
+    const raw = tags[`socket:${family}`];
+    if (raw === undefined) continue;
+    const count = Number.parseInt(raw, 10);
+    sockets.push({
+      type: family,
+      count: Number.isInteger(count) && count > 0 ? count : null,
+      kw: leadingNumber(tags[`socket:${family}:output`]),
+    });
+  }
+  const capacity = Number.parseInt(tags.capacity ?? '', 10);
+  const fee = tags.fee === 'yes' ? true : tags.fee === 'no' ? false : null;
+  const info: ChargingInfo = {
+    sockets,
+    capacity: Number.isInteger(capacity) && capacity > 0 ? capacity : null,
+    fee,
+  };
+  // Nothing said is null rather than an empty shell, so the client can tell "no data"
+  // from "no sockets" without inspecting three fields.
+  return sockets.length || info.capacity !== null || fee !== null ? info : null;
 }
 
 // Each pill category → the OSM tag selectors it searches. Keys here are the
@@ -196,9 +362,36 @@ export const CATEGORY_OSM_FILTERS: Record<string, string[]> = {
   activity: ['tourism=theme_park', 'tourism=zoo', 'tourism=aquarium', 'leisure=water_park'],
   shopping: ['shop=mall', 'shop=department_store', 'amenity=marketplace'],
   supermarket: ['shop=supermarket', 'shop=convenience'],
+  // What a drive needs rather than what a city visit does (#1797). Separate from
+  // `activity`/`nature` on purpose: nobody browsing museums wants petrol stations in
+  // the same result set, and the road trip panel asks for these by name.
+  fuel: ['amenity=fuel'],
+  charging: ['amenity=charging_station'],
+  rest_area: ['highway=rest_area', 'highway=services'],
+  campsite: ['tourism=camp_site', 'tourism=caravan_site'],
 };
 
 export const POI_CATEGORY_KEYS = Object.keys(CATEGORY_OSM_FILTERS);
+
+/** How many categories one POI query may carry, so a caller can't fan out the mirrors. */
+export const MAX_POI_CATEGORIES = 8;
+
+/**
+ * Reads the `category` parameter, which is either one key or a comma-separated list.
+ *
+ * Asking for several kinds at once is one Overpass round-trip instead of one per kind —
+ * the road trip corridor searches four categories over a dozen boxes, and as separate
+ * requests that is four times the load on a shared mirror for the same answer.
+ */
+export function parsePoiCategories(raw: string): string[] {
+  const seen = new Set<string>();
+  for (const part of raw.split(',')) {
+    const key = part.trim();
+    if (key) seen.add(key);
+    if (seen.size >= MAX_POI_CATEGORIES) break;
+  }
+  return [...seen];
+}
 
 // Public Overpass mirrors, queried in PARALLEL (first valid response wins).
 // Reachability and load vary a lot by network/region — the canonical instance is
@@ -237,10 +430,24 @@ export function resolveOverpassEndpoints(raw: string | undefined = readEnv().int
 // slow self-hosted endpoint can raise it via OVERPASS_TIMEOUT_MS. A non-positive or
 // non-numeric value falls back to the default — a 0/negative cap would abort every
 // request immediately and 502 the search.
+/**
+ * How long Overpass is allowed to spend on one query, in seconds.
+ *
+ * Sent inside the query as `[timeout:N]`, so the mirror itself enforces it. Anything we
+ * wait client-side has to be longer than this or we hang up on an answer that was still
+ * coming — which is exactly what used to happen: the query asked for twenty seconds of
+ * work and the fetch was aborted after twelve, so a mirror under load never got to
+ * finish and a corridor search reported half its stretches as unsearchable.
+ */
+export const OVERPASS_QUERY_TIMEOUT_S = 20;
+
+/** The client-side budget: the mirror's own, plus room to hand the answer back. */
+export const OVERPASS_TIMEOUT_DEFAULT_MS = (OVERPASS_QUERY_TIMEOUT_S + 5) * 1000;
+
 export function resolveOverpassTimeoutMs(raw?: string): number {
   if (raw === undefined) return readEnv().integrations.overpassTimeoutMs;
   const n = Number(raw);
-  return Number.isFinite(n) && n > 0 ? n : 12000;
+  return Number.isFinite(n) && n > 0 ? n : OVERPASS_TIMEOUT_DEFAULT_MS;
 }
 
 // ── Opening hours parsing ────────────────────────────────────────────────────
@@ -519,12 +726,18 @@ export function parseWikipediaTag(tag: string | undefined | null): { lang: strin
 // Ids that can never resolve against the Google Places API: coordinate pseudo-ids
 // (right-click places, in both the coords: and the bare "lat,lng" spelling the
 // collection views send), OSM ids the client sends when a place has no
-// google_place_id, the raw photo URLs legacy rows keep in image_url, and photo
-// cache keys of the form "<placeId>~p3" that enrichment mints for the picker.
+// google_place_id, GERS ids from the TREK index, the raw photo URLs legacy rows
+// keep in image_url, and photo cache keys of the form "<placeId>~p3" that
+// enrichment mints for the picker.
 // Google answers those with a billable 400 INVALID_ARGUMENT, so every lookup
 // sorts them out before the call and uses the OSM/Wikimedia path instead.
+//
+// `gers:` belongs here for the same reason as `node:`, and it matters more: the
+// index answers first for search and autocomplete, so a GERS id is what an
+// ordinary new place now carries. Leaving it out billed three invalid lookups
+// per place — photo refs, editorial summary, and the photo route.
 const NON_GOOGLE_PLACE_ID =
-  /^(?:coords|node|way|relation):|^https?:\/\/|^-?\d+(?:\.\d+)?,\s*-?\d+(?:\.\d+)?$|~p\d+$/i;
+  /^(?:coords|gers|node|way|relation):|^https?:\/\/|^-?\d+(?:\.\d+)?,\s*-?\d+(?:\.\d+)?$|~p\d+$/i;
 // The subset that still has a provider behind it — Overpass for details,
 // Wikimedia for photos.
 export const OSM_PLACE_ID = /^(?:node|way|relation):/i;

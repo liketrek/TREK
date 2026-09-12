@@ -15,7 +15,7 @@ import { placeToSaveTarget } from '../Collections/saveTarget'
 import type { Place, Category, Day, AssignmentsMap } from '../../types'
 import { getGoogleMapsUrlForPlace } from './placeGoogleMaps'
 import { safeHttpUrl } from '../../utils/safeUrl'
-import { plannedPlaceIds, type PlannedAccommodation } from '../../utils/plannedPlaces'
+import { plannedPlaceIds, plannedPlaceIdsForDay, type PlannedAccommodation } from '../../utils/plannedPlaces'
 
 /** Stable identity — a fresh [] default would invalidate the planned memo on every render. */
 const NO_ACCOMMODATIONS: PlannedAccommodation[] = []
@@ -31,6 +31,21 @@ export interface PlacesSidebarProps {
   selectedPlaceId: number | null
   onPlaceClick: (placeId: number | null) => void
   onAddPlace: () => void
+  /**
+   * Create a place and drop it straight into the day that is open.
+   *
+   * Only reachable while a day is selected, which is what the split button in
+   * the header is about: the pool is one click away from the plan, and adding a
+   * place you already know belongs to today should not need a second trip
+   * through the day picker.
+   */
+  onAddPlaceToSelectedDay?: () => void
+  /**
+   * Close the open day, from the note that says the pool is showing only that day.
+   * Absent leaves the note without its dismiss, which is what the mobile day picker
+   * wants: there the day is closed by the picker itself.
+   */
+  onClearSelectedDay?: () => void
   onAssignToDay: (placeId: number, dayId: number) => void
   onEditPlace: (place: Place) => void
   onDeletePlace: (placeId: number) => void
@@ -51,7 +66,7 @@ export interface PlacesSidebarProps {
  */
 export function usePlacesSidebar(props: PlacesSidebarProps) {
   const {
-    tripId, places, assignments, selectedDayId, accommodations = NO_ACCOMMODATIONS,
+    tripId, places, assignments, selectedDayId, days, accommodations = NO_ACCOMMODATIONS,
     pushUndo, initialScrollTop, onScrollTopChange,
   } = props
   const { t } = useTranslation()
@@ -229,10 +244,30 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
     [assignments, accommodations, reservations],
   )
 
+  /**
+   * What "planned" means while a day is open: that day's plan, not the whole trip's.
+   *
+   * The map has narrowed to the selected day since #2024, and the list did not, which is
+   * how a trip with 55 planned places showed 55 in the pool and five pins on the map with
+   * nothing to explain the gap — read, reasonably, as the map being broken. The list now
+   * follows the map, and `dayScoped` tells the header to say so.
+   *
+   * Only "planned" narrows. "Unplanned" stays trip-wide on purpose: a place assigned to
+   * some other day is planned, whichever day happens to be open.
+   */
+  const plannedInDayIds = useMemo(
+    () => (selectedDayId
+      ? plannedPlaceIdsForDay(selectedDayId, days, { assignments, accommodations, reservations })
+      : null),
+    [selectedDayId, days, assignments, accommodations, reservations],
+  )
+  const plannedFilterIds = plannedInDayIds ?? plannedIds
+  const dayScoped = filter === 'planned' && plannedInDayIds !== null
+
   const filtered = useMemo(() => {
     const list = places.filter(p => {
       if (filter === 'unplanned' && plannedIds.has(p.id)) return false
-      if (filter === 'planned' && !plannedIds.has(p.id)) return false
+      if (filter === 'planned' && !plannedFilterIds.has(p.id)) return false
       if (filter === 'tracks' && !p.route_geometry) return false
       if (categoryFilters.size > 0) {
         if (p.category_id == null) {
@@ -245,7 +280,7 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
       return true
     })
     return list
-  }, [places, filter, categoryFilters, search, plannedIds, ratingFilter])
+  }, [places, filter, categoryFilters, search, plannedIds, plannedFilterIds, ratingFilter])
 
   const registerPlaceRow = useCallback((placeId: number, element: HTMLDivElement | null) => {
     if (element) {
@@ -313,7 +348,7 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
     markSelectionVisited, markVisitedBusy,
     exitSelectMode, toggleSelected, toggleCategoryFilter, dayPickerPlace, setDayPickerPlace,
     catDropOpen, setCatDropOpen, mobileShowDays, setMobileShowDays,
-    hasTracks, plannedIds, filtered, registerPlaceRow, isAssignedToSelectedDay, inDaySet, openContextMenu,
+    hasTracks, plannedIds, plannedFilterIds, dayScoped, filtered, registerPlaceRow, isAssignedToSelectedDay, inDaySet, openContextMenu,
   }
 }
 

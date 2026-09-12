@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const dayplan: TranslationStrings = {
   'dayplan.icsTooltip': 'تصدير التقويم (ICS)',
   'dayplan.emptyDay': 'لا توجد أماكن مخططة لهذا اليوم',
+  'dayplan.addPlaceHere': 'أضف مكانًا إلى هذا اليوم',
   'dayplan.cannotReorderTransport': 'لا يمكن إعادة ترتيب الحجوزات ذات الوقت الثابت',
   'dayplan.confirmRemoveTimeTitle': 'إزالة الوقت؟',
   'dayplan.confirmRemoveTimeBody': 'هذا المكان له وقت ثابت ({time}). نقله سيزيل الوقت ويسمح بالترتيب الحر.',

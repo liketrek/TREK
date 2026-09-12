@@ -430,11 +430,70 @@ export class CollabService {
   }
 
   /* ------------------------------------------------------------------ */
+  /*  Shared links                                                       */
+  /* ------------------------------------------------------------------ */
+
+  listLinks(tripId: string | number) {
+    return this.db.all(
+      `SELECT l.*, u.username FROM collab_links l JOIN users u ON u.id = l.user_id
+       WHERE l.trip_id = ? ORDER BY l.pinned DESC, l.created_at DESC`,
+      tripId,
+    );
+  }
+
+  createLink(tripId: string | number, userId: number, data: { title: string; url: string; pinned?: boolean }) {
+    const result = this.db.run(
+      'INSERT INTO collab_links (trip_id,user_id,title,url,pinned) VALUES (?,?,?,?,?)',
+      tripId, userId, data.title.trim(), data.url.trim(), data.pinned ? 1 : 0,
+    );
+    return this.db.get('SELECT l.*, u.username FROM collab_links l JOIN users u ON u.id = l.user_id WHERE l.id = ?', result.lastInsertRowid);
+  }
+
+  updateLink(tripId: string | number, linkId: string | number, data: { title?: string; url?: string; pinned?: boolean | number }) {
+    const existing = this.db.get<any>('SELECT * FROM collab_links WHERE id = ? AND trip_id = ?', linkId, tripId);
+    if (!existing) return null;
+    this.db.run(
+      'UPDATE collab_links SET title = ?, url = ?, pinned = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND trip_id = ?',
+      data.title?.trim() || existing.title,
+      data.url?.trim() || existing.url,
+      data.pinned === undefined ? existing.pinned : (data.pinned ? 1 : 0),
+      linkId,
+      tripId,
+    );
+    return this.db.get('SELECT l.*, u.username FROM collab_links l JOIN users u ON u.id = l.user_id WHERE l.id = ?', linkId);
+  }
+
+  deleteLink(tripId: string | number, linkId: string | number): boolean {
+    return this.db.run('DELETE FROM collab_links WHERE id = ? AND trip_id = ?', linkId, tripId).changes > 0;
+  }
+
+  /* ------------------------------------------------------------------ */
   /*  Messages                                                           */
   /* ------------------------------------------------------------------ */
 
   private formatMessage(msg: CollabMessage, reactions?: GroupedReaction[]) {
-    return { ...msg, user_avatar: avatarUrl(msg), avatar_url: avatarUrl(msg), reactions: reactions || [] };
+    const attachments = msg.id && msg.trip_id
+      ? this.db.all<any>(
+        `SELECT id, trip_id, message_id, filename, original_name, file_size, mime_type
+         FROM trip_files WHERE message_id = ? AND trip_id = ? AND deleted_at IS NULL
+         ORDER BY id ASC`,
+        msg.id, msg.trip_id,
+      )
+      : [];
+    return {
+      ...msg,
+      user_avatar: avatarUrl(msg),
+      avatar_url: avatarUrl(msg),
+      reactions: reactions || [],
+      attachments: attachments.map((a: any) => ({
+        id: a.id,
+        filename: a.filename,
+        original_name: a.original_name,
+        file_size: a.file_size,
+        mime_type: a.mime_type,
+        url: `/api/trips/${a.trip_id}/files/${a.id}/download`,
+      })),
+    };
   }
 
   countMessages(tripId: string | number): number {
@@ -486,7 +545,13 @@ export class CollabService {
     return messages.map(m => this.formatMessage(m, this.groupReactions(reactionsByMsg[m.id] || [])));
   }
 
-  createMessage(tripId: string | number, userId: number, text: string, replyTo?: number | null): { error?: string; message?: ReturnType<CollabService['formatMessage']> } {
+  createMessage(
+    tripId: string | number,
+    userId: number,
+    text: string,
+    replyTo?: number | null,
+    files: Array<{ filename: string; originalname: string; size: number; mimetype: string }> = [],
+  ): { error?: string; message?: ReturnType<CollabService['formatMessage']> } {
     if (replyTo) {
       // A soft-deleted message is gone as far as anyone replying is concerned:
       // its row survives only so the placeholder can be drawn where it was.
@@ -496,9 +561,23 @@ export class CollabService {
       if (!replyMsg) return { error: 'reply_not_found' };
     }
 
-    const result = this.db.run(`
+    // One transaction: the caller has already committed the image bytes to
+    // storage, so a message row that lands without its attachment rows would
+    // leave those bytes with nothing pointing at them and nothing to sweep them.
+    const result = this.db.transaction(() => {
+      const inserted = this.db.run(`
     INSERT INTO collab_messages (trip_id, user_id, text, reply_to) VALUES (?, ?, ?, ?)
   `, tripId, userId, text.trim(), replyTo || null);
+
+      for (const file of files) {
+        this.db.run(
+          `INSERT INTO trip_files (trip_id, message_id, filename, original_name, file_size, mime_type, uploaded_by)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          tripId, inserted.lastInsertRowid, file.filename, file.originalname, file.size, file.mimetype, userId,
+        );
+      }
+      return inserted;
+    });
 
     const message = this.db.get<CollabMessage>(`
     SELECT m.*, u.username, u.avatar,
@@ -519,7 +598,17 @@ export class CollabService {
     if (!message) return { error: 'not_found' };
     if (Number(message.user_id) !== Number(userId)) return { error: 'not_owner' };
 
-    this.db.run('UPDATE collab_messages SET deleted = 1 WHERE id = ?', messageId);
+    const attachments = this.db.all<{ filename: string }>('SELECT filename FROM trip_files WHERE message_id = ? AND trip_id = ?', messageId, tripId);
+    this.db.transaction(() => {
+      this.db.run('DELETE FROM trip_files WHERE message_id = ? AND trip_id = ?', messageId, tripId);
+      this.db.run('UPDATE collab_messages SET deleted = 1 WHERE id = ?', messageId);
+    });
+    // Only once the rows are actually gone. Dropping the blobs first left a
+    // live message pointing at attachments whose bytes no longer existed
+    // whenever the second statement failed.
+    for (const file of attachments) {
+      void this.storage.delete('files', path.basename(file.filename)).catch(() => { /* best effort */ });
+    }
     return { username: message.username };
   }
 

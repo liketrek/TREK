@@ -5,6 +5,7 @@ import { collectionsApi } from '../../api/collections'
 import { STATUS_META, STATUS_ORDER } from '../../pages/collections/collectionsModel'
 import type { CollectionPlace, CollectionStatus } from '@trek/shared'
 import type { TranslationFn } from '../../types'
+import EmptyState from '../shared/EmptyState'
 
 interface LocationBias {
   low: { lat: number; lng: number }
@@ -53,7 +54,16 @@ async function loadSavedPlaces(ids: number[]): Promise<CollectionPlace[]> {
   return merged
 }
 
-/** Compact click-away dropdown (Tailwind — this panel lives outside .trek-dash). */
+/**
+ * Compact click-away dropdown (Tailwind, this panel lives outside .trek-dash).
+ *
+ * The panel is positioned against the FILTER ROW rather than against this
+ * button, so it opens across the full width of the row instead of the half its
+ * own trigger occupies. The two filters sit side by side and only one can be
+ * open at a time, so the wider panel costs nothing and stops list names being
+ * truncated at roughly ten characters. The row carries the `relative` this
+ * needs; there is no other call site.
+ */
 function FilterDropdown({ current, options, onSelect, lead }: {
   current: string | number
   options: Opt[]
@@ -72,7 +82,7 @@ function FilterDropdown({ current, options, onSelect, lead }: {
   }, [open])
   const cur = options.find(o => o.key === current) ?? options[0]
   return (
-    <div className="relative min-w-0 flex-1" ref={ref}>
+    <div className="min-w-0 flex-1" ref={ref}>
       <button type="button" onClick={() => setOpen(o => !o)} aria-haspopup="listbox" aria-expanded={open}
         className={`w-full flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border bg-surface-input text-[12px] font-medium text-content-secondary transition-colors ${open ? 'border-accent' : 'border-edge hover:bg-surface-hover'}`}>
         <span className="shrink-0 text-content-faint">{cur.icon ?? lead}</span>
@@ -80,7 +90,7 @@ function FilterDropdown({ current, options, onSelect, lead }: {
         <ChevronDown size={13} className="shrink-0 text-content-faint" />
       </button>
       {open && (
-        <div role="listbox" className="absolute z-30 left-0 right-0 mt-1 max-h-[240px] overflow-y-auto p-1 rounded-xl border border-edge bg-surface-card shadow-lg flex flex-col gap-0.5">
+        <div role="listbox" className="absolute z-30 top-full left-0 right-0 mt-1 max-h-[240px] overflow-y-auto p-1 rounded-xl border border-edge bg-surface-card shadow-lg flex flex-col gap-0.5">
           {options.map(o => (
             <button key={o.key} type="button" role="option" aria-selected={o.key === current} onClick={() => { onSelect(o.key); setOpen(false) }}
               className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-[12.5px] text-left transition-colors hover:bg-surface-hover ${o.key === current ? 'text-content font-semibold' : 'text-content-secondary'}`}>
@@ -173,7 +183,10 @@ export default function CollectionPicker({ bias, onSelect, t }: CollectionPicker
   ]
 
   return (
-    <aside className="w-full sm:w-64 shrink-0 flex flex-col rounded-xl border border-edge bg-surface-secondary overflow-hidden self-stretch">
+    // Same 320px as the details column on the other side of the form: two panels
+    // of different widths flanking one form read as a mistake rather than a
+    // hierarchy, and neither of them is the more important one.
+    <aside className="w-full sm:w-80 shrink-0 flex flex-col rounded-xl border border-edge bg-surface-secondary overflow-hidden self-stretch">
       <div className="flex items-center gap-2 px-3 py-2.5 border-b border-edge shrink-0">
         <Bookmark size={15} className="text-accent" />
         <span className="text-[13px] font-semibold text-content">{t('collections.picker.title')}</span>
@@ -189,7 +202,7 @@ export default function CollectionPicker({ bias, onSelect, t }: CollectionPicker
           />
         </div>
         {lists.length > 0 && (
-          <div className="flex gap-2">
+          <div className="relative flex gap-2">
             <FilterDropdown current={listFilter} options={listOpts} onSelect={k => setListFilter(k as number | 'all')} lead={<Layers size={13} />} />
             <FilterDropdown current={statusFilter} options={statusOpts} onSelect={k => setStatusFilter(k as CollectionStatus | 'all')} lead={<Bookmark size={13} />} />
           </div>
@@ -201,7 +214,13 @@ export default function CollectionPicker({ bias, onSelect, t }: CollectionPicker
             <Loader2 size={18} className="animate-spin" />
           </div>
         ) : visible.length === 0 ? (
-          <p className="text-center text-[12px] text-content-faint py-10 px-3">{t('collections.picker.empty')}</p>
+          <EmptyState
+            scene="search"
+            title={t('collections.picker.empty')}
+            size={84}
+            fill
+            surface="var(--bg-secondary)"
+          />
         ) : (
           <div className="flex flex-col gap-1">
             {page.map(place => (

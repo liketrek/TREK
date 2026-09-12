@@ -128,6 +128,9 @@ describe('MCostSheet', () => {
       total_price: 85.5,
       note: null,
       ticket_json: null,
+      // Always sent, empty when nothing was attached: the server treats the
+      // array as the full set of receipts for the expense.
+      receipt_file_ids: [],
     })
     await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1))
   })

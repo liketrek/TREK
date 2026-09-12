@@ -1,9 +1,11 @@
 import { useSettingsStore } from '../../store/settingsStore'
 import { pluginsApi } from '../../api/client'
-import type { DistanceUnit, RouteResult, RouteSegment, RouteWithLegs, Waypoint, RouteAnchors } from '../../types'
+import type { DistanceUnit, RouteResult, RouteSegment, RouteWithLegs, SnappedWaypoint, Waypoint, RouteAnchors } from '../../types'
+import { haversineKm } from '../../utils/geo'
 import { formatDistance } from '../../utils/units'
-
-const OSRM_BASE = 'https://router.project-osrm.org/route/v1'
+import { countRoute } from './routeUsageCounter'
+import { valhallaRouteAvoiding, valhallaRun, valhallaAvailable, legAvoids, type AvoidClass } from './valhallaRoute'
+import type { RouteUsageSurface } from '@trek/shared'
 
 // FOSSGIS hosts OSRM with real per-profile routing (car/foot/bike) — the
 // project-osrm.org demo is car-only (it ignores the profile in the URL). Use
@@ -12,6 +14,112 @@ const OSRM_PROFILE_BASE: Record<'driving' | 'walking' | 'cycling', string> = {
   driving: 'https://routing.openstreetmap.de/routed-car/route/v1/driving',
   walking: 'https://routing.openstreetmap.de/routed-foot/route/v1/foot',
   cycling: 'https://routing.openstreetmap.de/routed-bike/route/v1/bike',
+}
+
+/** OSRM's own profile names, which a self-hosted instance serves under its own paths. */
+const OSRM_PROFILE_PATH: Record<'driving' | 'walking' | 'cycling', string> = {
+  driving: 'driving',
+  walking: 'foot',
+  cycling: 'bike',
+}
+
+/**
+ * Where to ask for a route.
+ *
+ * The public FOSSGIS hosts allow roughly one request a second, which a road trip — every
+ * leg of every day — runs into immediately. An instance that runs its own OSRM sets
+ * `routing_base_url` and everything routes against that instead; the server has to name
+ * the same origin in its connect-src, or the browser blocks the requests silently.
+ *
+ * A configured base is expected to serve the standard OSRM layout,
+ * `<base>/route/v1/<profile>/…`, which is what `osrm-routed` does out of the box.
+ */
+/**
+ * A configured base URL without its trailing slashes.
+ *
+ * Walked rather than matched with `/\/+$/`: that pattern backtracks over a run of
+ * slashes, and the value comes from an instance setting somebody types. Linear either
+ * way in practice, but the regex is the shape a scanner is right to flag.
+ */
+function withoutTrailingSlashes(value: string): string {
+  let end = value.length
+  while (end > 0 && value[end - 1] === '/') end -= 1
+  return value.slice(0, end)
+}
+
+function routeBaseFor(profile: 'driving' | 'walking' | 'cycling'): string {
+  const configured = useSettingsStore.getState().settings.routing_base_url?.trim()
+  if (!configured) return OSRM_PROFILE_BASE[profile]
+  return `${withoutTrailingSlashes(configured)}/route/v1/${OSRM_PROFILE_PATH[profile]}`
+}
+
+/**
+ * `fetch`, with the request counted.
+ *
+ * Every route TREK draws goes out from here, and nowhere else, which makes this the one
+ * place that can answer how much routing an instance really does — the number behind
+ * "could we host an engine ourselves". Counted: how many requests, of what kind, how
+ * many waypoints, roughly how far, and whether the host refused. Not counted, because it
+ * is never sent: where any of it was.
+ *
+ * Distance is the straight line along the waypoint chain rather than the routed length,
+ * which is only in the answer and differs per response shape. It is a floor on the real
+ * figure, and a floor is enough to tell a 1500 km per-request limit from a 150 km one.
+ *
+ * An aborted request is not a failure: the map cancels constantly while someone drags.
+ */
+async function routedFetch(
+  url: string,
+  signal: AbortSignal | undefined,
+  kind: RouteUsageSurface,
+  profile: 'driving' | 'walking' | 'cycling',
+  waypoints: readonly Waypoint[],
+): Promise<Response> {
+  const selfHosted = !!useSettingsStore.getState().settings.routing_base_url?.trim()
+  let km = 0
+  for (let i = 1; i < waypoints.length; i++) km += haversineKm(waypoints[i - 1], waypoints[i])
+  const sample = { profile, surface: kind, selfHosted, waypoints: waypoints.length, km }
+  try {
+    const response = await fetch(url, { signal })
+    countRoute({ ...sample, failed: !response.ok })
+    return response
+  } catch (err) {
+    if (!(err instanceof DOMException && err.name === 'AbortError')) {
+      countRoute({ ...sample, failed: true })
+    }
+    throw err
+  }
+}
+
+/**
+ * A routing request the host refused, as opposed to one it answered with "no route".
+ *
+ * The public OSRM instances allow roughly one request a second and answer 429 above that.
+ * Both used to arrive as the same generic Error, so a caller could not tell "back off and
+ * try again" from "these two points are not connected by road" — and a road trip, which
+ * asks for every leg of every day, hits the first case constantly while the second is
+ * rare. `retryAfterMs` carries the host's own `Retry-After` when it sends one.
+ */
+export class RoutingRefusedError extends Error {
+  constructor(readonly status: number, readonly retryAfterMs: number | null) {
+    super(status === 429 ? 'Routing rate limit reached' : 'Route could not be calculated')
+    this.name = 'RoutingRefusedError'
+  }
+
+  /** True when waiting and asking again is the right response. */
+  get isRateLimit(): boolean {
+    return this.status === 429 || this.status === 503
+  }
+}
+
+/** `Retry-After` is either seconds or an HTTP date; anything else is no answer at all. */
+function retryAfterMs(response: Response): number | null {
+  const raw = response.headers.get('Retry-After')
+  if (!raw) return null
+  const seconds = Number(raw)
+  if (Number.isFinite(seconds) && seconds >= 0) return Math.round(seconds * 1000)
+  const at = Date.parse(raw)
+  return Number.isNaN(at) ? null : Math.max(0, at - Date.now())
 }
 
 // Cache route responses keyed by the exact waypoint list. Routes are stable, so
@@ -45,11 +153,11 @@ export async function calculateRoute(
   }
 
   const coords = waypoints.map((p) => `${p.lng},${p.lat}`).join(';')
-  const url = `${OSRM_BASE}/${profile}/${coords}?overview=full&geometries=geojson&steps=false`
+  const url = `${routeBaseFor(profile)}/${coords}?overview=full&geometries=geojson&steps=false`
 
-  const response = await fetch(url, { signal })
+  const response = await routedFetch(url, signal, 'route', profile, waypoints)
   if (!response.ok) {
-    throw new Error('Route could not be calculated')
+    throw new RoutingRefusedError(response.status, retryAfterMs(response))
   }
 
   const data = await response.json()
@@ -252,10 +360,10 @@ export async function calculateSegments(
   if (!waypoints || waypoints.length < 2) return []
 
   const coords = waypoints.map((p) => `${p.lng},${p.lat}`).join(';')
-  const url = `${OSRM_BASE}/driving/${coords}?overview=false&geometries=geojson&steps=false&annotations=distance,duration`
+  const url = `${routeBaseFor('driving')}/${coords}?overview=false&geometries=geojson&steps=false&annotations=distance,duration`
 
-  const response = await fetch(url, { signal })
-  if (!response.ok) throw new Error('Route could not be calculated')
+  const response = await routedFetch(url, signal, 'segments', 'driving', waypoints)
+  if (!response.ok) throw new RoutingRefusedError(response.status, retryAfterMs(response))
 
   const data = await response.json()
   if (data.code !== 'Ok' || !data.routes?.[0]) throw new Error('No route found')
@@ -285,11 +393,22 @@ export async function calculateSegments(
  */
 export async function calculateRouteWithLegs(
   waypoints: Waypoint[],
-  { signal, profile = 'driving', tripId, dayId }: { signal?: AbortSignal; profile?: RouteProfileKey; tripId?: number | string | null; dayId?: number | null } = {}
+  { signal, profile = 'driving', tripId, dayId, avoid = [] }: {
+    signal?: AbortSignal
+    profile?: RouteProfileKey
+    tripId?: number | string | null
+    dayId?: number | null
+    /** Road classes to weight away. Only the driving profile has any, and only Valhalla can. */
+    avoid?: readonly AvoidClass[]
+  } = {}
 ): Promise<RouteWithLegs> {
   if (!waypoints || waypoints.length < 2) {
     return { coordinates: [], distance: 0, duration: 0, legs: [] }
   }
+
+  const avoiding = profile === 'driving' && avoid.length > 0 && valhallaAvailable()
+    ? [...avoid].sort((a, b) => a.localeCompare(b))
+    : []
 
   const coords = waypoints.map((p) => `${p.lng},${p.lat}`).join(';')
   // The cached result carries formatted leg distances, so the active distance unit is
@@ -297,10 +416,31 @@ export async function calculateRouteWithLegs(
   // A plugin route is trip-/day-specific (it may return different charging stops for
   // the same coordinates on a different day), so its key includes tripId/dayId;
   // the built-in OSRM profiles are context-free and leave those out.
+  //
+  // The avoidance belongs in the key for two reasons pointing opposite ways. Without it
+  // turning the switch on returns the tolled route out of cache in under a millisecond,
+  // so nothing on screen changes and it reads as a broken toggle. And the leak the other
+  // way is worse: this Map is shared with the ordinary day planner, the studio and the
+  // booking geometry, none of which ask for avoidance, so an avoid-routed answer stored
+  // under the plain key would hand them a road nobody drives and a second engine's
+  // times. `avoiding` is empty whenever the request goes to OSRM after all, so the key
+  // also separates the two engines.
   const pluginScope = profile.startsWith('plugin:') ? `:${tripId ?? ''}:${dayId ?? ''}` : ''
-  const cacheKey = `${profile}:${getDistanceUnit()}:${coords}${pluginScope}`
+  const avoidScope = avoiding.length ? `:avoid=${avoiding.join(',')}` : ''
+  const cacheKey = `${profile}:${getDistanceUnit()}:${coords}${pluginScope}${avoidScope}`
   const cached = routeCache.get(cacheKey)
   if (cached) return cached
+
+  if (avoiding.length) {
+    const routed = await routeAvoidingWithLegs(waypoints, avoiding, signal)
+    // Null is a Valhalla that could not answer at all. Falling through to OSRM keeps a
+    // day drawn rather than blank, and `avoidance` stays absent on that result so the
+    // rail can say the avoidance did not happen instead of implying it did.
+    if (routed) {
+      cacheRoute(cacheKey, routed)
+      return routed
+    }
+  }
 
   // Plugin profile (`plugin:<id>/<profile>`): the server invokes that routeProvider
   // and normalizes its answer; null means the provider failed or refused, and the
@@ -344,10 +484,13 @@ export async function calculateRouteWithLegs(
     return result
   }
 
-  const osrmProfile = (profile === 'walking' || profile === 'cycling') ? profile : 'driving'
-  const url = `${OSRM_PROFILE_BASE[osrmProfile]}/${coords}?overview=full&geometries=geojson&annotations=distance,duration`
-  const response = await fetch(url, { signal })
-  if (!response.ok) throw new Error('Route could not be calculated')
+  // Written as literals rather than narrowing `profile`: its type is an open string union
+  // (plugins name their own modes), which no comparison narrows to the three OSRM knows.
+  const osrmProfile: 'driving' | 'walking' | 'cycling' =
+    profile === 'walking' ? 'walking' : profile === 'cycling' ? 'cycling' : 'driving'
+  const url = `${routeBaseFor(osrmProfile)}/${coords}?overview=full&geometries=geojson&annotations=distance,duration`
+  const response = await routedFetch(url, signal, 'legs', osrmProfile, waypoints)
+  if (!response.ok) throw new RoutingRefusedError(response.status, retryAfterMs(response))
 
   const data = await response.json()
   if (data.code !== 'Ok' || !data.routes?.[0]) throw new Error('No route found')
@@ -374,13 +517,106 @@ export async function calculateRouteWithLegs(
     }
   )
 
-  const result: RouteWithLegs = { coordinates, distance: route.distance, duration: route.duration, legs }
-  routeCache.set(cacheKey, result)
+  const snapped = readSnapped(data, waypoints)
+  const result: RouteWithLegs = { coordinates, distance: route.distance, duration: route.duration, legs, ...(snapped ? { snapped } : {}) }
+  cacheRoute(cacheKey, result)
+  return result
+}
+
+/** Store a route and drop the oldest once the cache is over its cap. */
+function cacheRoute(key: string, route: RouteWithLegs): void {
+  routeCache.set(key, route)
   if (routeCache.size > ROUTE_CACHE_MAX) {
     const oldest = routeCache.keys().next().value
     if (oldest !== undefined) routeCache.delete(oldest)
   }
-  return result
+}
+
+/**
+ * A whole chain from the second engine, weighted away from some road classes.
+ *
+ * Shaped exactly like the OSRM answer above so the callers never branch on which engine
+ * spoke — same leg list, same formatted text, same snap positions. What it adds is
+ * `avoidance`: what was asked for against what the road actually turned out to be, which
+ * is the only honest way to label a weighting that can fail.
+ *
+ * Null rather than a throw when it cannot answer, so the caller falls through to OSRM
+ * and the day stays drawn.
+ */
+async function routeAvoidingWithLegs(
+  waypoints: Waypoint[],
+  avoid: AvoidClass[],
+  signal?: AbortSignal,
+): Promise<RouteWithLegs | null> {
+  const sample = {
+    profile: 'driving' as const,
+    surface: 'legs' as const,
+    selfHosted: !!useSettingsStore.getState().settings.routing_base_url?.trim(),
+    waypoints: waypoints.length,
+    km: waypoints.slice(1).reduce((sum, point, i) => sum + haversineKm(waypoints[i], point), 0),
+  }
+  const run = await valhallaRun(waypoints, 'driving', avoid, signal)
+  // Counted by hand because the adapter speaks to a different engine with a different
+  // verb, and the counter exists to answer "how much routing does this instance do" —
+  // an engine it cannot see is exactly the traffic that would go missing from it.
+  if (!signal?.aborted) countRoute({ ...sample, failed: !run })
+  if (!run) return null
+
+  const legs: RouteSegment[] = run.legs.map((leg, i): RouteSegment => {
+    const from: [number, number] = [waypoints[i].lat, waypoints[i].lng]
+    const to: [number, number] = [waypoints[i + 1].lat, waypoints[i + 1].lng]
+    return {
+      mid: [(from[0] + to[0]) / 2, (from[1] + to[1]) / 2],
+      from,
+      to,
+      distance: leg.distance,
+      duration: leg.duration,
+      walkingText: formatDuration(leg.distance / (5000 / 3600)),
+      drivingText: formatDuration(leg.duration),
+      distanceText: formatRouteDistance(leg.distance),
+      durationText: formatDuration(leg.duration),
+    }
+  })
+
+  return {
+    coordinates: run.total.coordinates,
+    distance: run.total.distance,
+    duration: run.total.duration,
+    legs,
+    snapped: run.snapped,
+    avoidance: { asked: avoid, achieved: avoid.filter(cls => legAvoids(run.total, cls)) },
+  }
+}
+
+/**
+ * The snap positions out of an OSRM answer, or undefined if it did not describe them.
+ *
+ * OSRM reports this in every response and TREK has thrown it away since the first route
+ * was drawn. `distance` is the straight line from the coordinate we sent to the road it
+ * used; it is recomputed from the two points when the field is missing or nonsense, so a
+ * mirror that trims its answers still produces a usable gap rather than a wrong one.
+ *
+ * All-or-nothing on purpose: a partial list would have to be indexed by waypoint anyway,
+ * and one bad entry would put a spur on the wrong stop.
+ */
+function readSnapped(data: unknown, waypoints: Waypoint[]): SnappedWaypoint[] | undefined {
+  const raw = (data as { waypoints?: unknown })?.waypoints
+  if (!Array.isArray(raw) || raw.length !== waypoints.length) return undefined
+  const out: SnappedWaypoint[] = []
+  for (let i = 0; i < raw.length; i++) {
+    const loc = (raw[i] as { location?: unknown })?.location
+    if (!Array.isArray(loc) || loc.length < 2) return undefined
+    const [lng, lat] = loc as [number, number]
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return undefined
+    const asked: [number, number] = [waypoints[i].lat, waypoints[i].lng]
+    const at: [number, number] = [lat, lng]
+    const reported = (raw[i] as { distance?: unknown })?.distance
+    const meters = typeof reported === 'number' && Number.isFinite(reported) && reported >= 0
+      ? reported
+      : haversineKm({ lat: asked[0], lng: asked[1] }, { lat, lng }) * 1000
+    out.push({ asked, at, meters })
+  }
+  return out
 }
 
 function getDistanceUnit(): DistanceUnit {
@@ -402,4 +638,285 @@ function formatDuration(seconds: number): string {
     return `${h} h ${m} min`
   }
   return `${m} min`
+}
+
+/** One way of driving a leg, as OSRM offers it. */
+export interface RouteAlternative {
+  coordinates: [number, number][]
+  distance: number
+  duration: number
+  /** Where this route differs most from the first one — the point that would pin it. */
+  divergence: { lat: number; lng: number } | null
+  /** Set when this way exists because a road class was left out of it. */
+  avoids?: AvoidClass
+}
+
+/**
+ * Road classes worth asking the router to leave out, in the order they are tried.
+ *
+ * OSRM's own alternative search is conservative: it only offers a second road when the
+ * detour is short enough and shares little enough with the first, so on a long motorway
+ * run it usually answers with exactly one route — while a perfectly good, slower way over
+ * the B-roads exists and is what somebody opening "other ways" is looking for. Excluding
+ * a class asks a different question and reliably produces that road.
+ *
+ * Only for driving: the foot and bike profiles have no excludable classes, and asking
+ * anyway earns an `InvalidOptions` for nothing.
+ *
+ * Ferry is on the list for Valhalla's sake and skipped on the OSRM path below. OSRM
+ * does carry a ferry class, but on a leg where a ferry is the only crossing it answers
+ * NoRoute rather than the long way round, which is not an alternative anybody can use.
+ * Valhalla weights it instead and drives around, which is the whole point.
+ */
+const EXCLUDABLE_CLASSES = ['motorway', 'toll', 'ferry'] as const
+
+/**
+ * How far two lines may stray from each other and still be the same road, in kilometres.
+ *
+ * Parallel carriageways, a different slip road onto the same motorway and the noise
+ * between two engines' idea of where a road is all sit well under this. A way somebody
+ * would call an alternative leaves it by kilometres: the ferry-free run from Hamburg to
+ * Copenhagen, which is a genuinely different road, peaks 2.3 km off the default.
+ */
+const SAME_ROAD_KM = 0.5
+
+/**
+ * Two lines are the same road.
+ *
+ * Length and duration used to decide this, and stopped being enough when a second engine
+ * started answering. Valhalla prices roads differently — measured over ten European legs
+ * its distances ran 2.8 % above OSRM's and its times 5.4 % — so on a 470 km leg the same
+ * road comes back thirteen kilometres apart and a 200 m tolerance calls it a discovery.
+ * Two identical blue lines on the map is exactly what that looks like.
+ *
+ * The geometry does not care which engine drew it, so it decides whenever there is one.
+ * The numbers stay as the fallback for a line with no shape to compare.
+ */
+function sameRoad(a: RouteAlternative, b: RouteAlternative): boolean {
+  const stray = furthestFrom(b.coordinates, a.coordinates)
+  if (stray) return stray.km < SAME_ROAD_KM
+  return Math.abs(a.distance - b.distance) < 200 && Math.abs(a.duration - b.duration) < 60
+}
+
+/**
+ * Hosts that have already answered "I do not do exclude", by base URL.
+ *
+ * Both public hosts TREK ships with reject the parameter outright with HTTP 400: the
+ * upstream car profile is built without excludable classes, and only a self-hosted OSRM
+ * built through the MLD pipeline supports it. Without this, every long leg on a default
+ * install pays two extra requests to be told twice that it cannot have what it asked for,
+ * against a host that allows one request per second.
+ *
+ * The first real attempt is the probe; there is no separate one. Only a 400 is recorded,
+ * because only a 400 is about the host rather than about this particular question: a 429
+ * is a rate limit, an abort is the user moving on, and a `NoRoute` means this leg has no
+ * way round the motorway while the next one might.
+ *
+ * Per base URL rather than global, so pointing the instance at an own router that does
+ * support it starts asking again without a reload.
+ */
+const excludeUnsupported = new Set<string>()
+
+/**
+ * One route with a road class left out, or null when the router will not or cannot.
+ *
+ * Every failure is a null: a rate limit answers 429, and a leg with no way round the
+ * motorway answers `NoRoute`. Neither is worth an error on screen — they just mean this
+ * particular question had no answer.
+ */
+async function routeExcluding(
+  from: Waypoint,
+  to: Waypoint,
+  profile: 'driving' | 'walking' | 'cycling',
+  exclude: AvoidClass,
+  signal?: AbortSignal,
+): Promise<RouteAlternative | null> {
+  // Valhalla first, because on a default install it is the only one of the two that
+  // can answer at all. It weights the class away instead of banning it, so it also
+  // answers on a leg where the class cannot be avoided — and says so, which is why the
+  // result is thrown away below unless the road really came back without it.
+  const weighted = await valhallaExcluding(from, to, profile, exclude, signal)
+  if (weighted) return weighted
+
+  // OSRM has a ferry class too, but on a leg where the ferry IS the crossing it answers
+  // NoRoute rather than driving round, so there is nothing to offer and no point paying
+  // a request to be told so.
+  if (exclude === 'ferry') return null
+  return osrmExcluding(from, to, profile, exclude, signal)
+}
+
+/**
+ * The same leg from Valhalla, weighted away from one class, or null.
+ *
+ * The check that makes this honest is `legAvoids`: `use_tolls: 0` is a preference, so
+ * between two points with no untolled connection the answer is still a tolled road.
+ * Offering that as "No tolls" would put a lie on the map, so it is dropped and the
+ * OSRM attempt gets its turn.
+ */
+async function valhallaExcluding(
+  from: Waypoint,
+  to: Waypoint,
+  profile: 'driving' | 'walking' | 'cycling',
+  exclude: AvoidClass,
+  signal?: AbortSignal,
+): Promise<RouteAlternative | null> {
+  if (!valhallaAvailable()) return null
+  const sample = {
+    profile,
+    surface: 'alternatives' as const,
+    selfHosted: !!useSettingsStore.getState().settings.routing_base_url?.trim(),
+    waypoints: 2,
+    km: haversineKm(from, to),
+  }
+  const leg = await valhallaRouteAvoiding(from, to, profile, exclude, signal)
+  // Counted here rather than in the adapter, so the adapter stays a format translator
+  // and every routing request an instance makes still lands in the one counter.
+  if (!signal?.aborted) countRoute({ ...sample, failed: !leg })
+  if (!leg || !legAvoids(leg, exclude)) return null
+  return {
+    coordinates: leg.coordinates,
+    distance: leg.distance,
+    duration: leg.duration,
+    divergence: null,
+  }
+}
+
+/** The same leg from OSRM with the class excluded outright, or null. */
+async function osrmExcluding(
+  from: Waypoint,
+  to: Waypoint,
+  profile: 'driving' | 'walking' | 'cycling',
+  exclude: AvoidClass,
+  signal?: AbortSignal,
+): Promise<RouteAlternative | null> {
+  const base = routeBaseFor(profile)
+  if (excludeUnsupported.has(base)) return null
+  try {
+    const coords = `${from.lng},${from.lat};${to.lng},${to.lat}`
+    const url = `${base}/${coords}?exclude=${exclude}&overview=full&geometries=geojson`
+    const response = await routedFetch(url, signal, 'alternatives', profile, [from, to])
+    if (!response.ok) {
+      // 400 is the router saying the parameter itself is not available here, which is
+      // true of every leg from now on. Anything else is about this request alone.
+      if (response.status === 400) excludeUnsupported.add(base)
+      return null
+    }
+    const data = await response.json()
+    const route = data?.code === 'Ok' && Array.isArray(data.routes) ? data.routes[0] : null
+    if (!route?.geometry?.coordinates?.length) return null
+    return {
+      coordinates: route.geometry.coordinates.map(([lng, lat]: [number, number]) => [lat, lng] as [number, number]),
+      distance: route.distance,
+      duration: route.duration,
+      divergence: null,
+    }
+  } catch {
+    return null
+  }
+}
+
+/**
+ * The ways of driving one leg, not one day.
+ *
+ * Deliberately per leg: OSRM only offers alternatives between exactly two coordinates, so
+ * asking for a whole day would mean splitting it into one request per leg — which is the
+ * bundling `splitIntoRuns` exists to avoid, and the reason a road trip appears at once
+ * instead of trickling in. Asked for a single leg, on demand, it costs one extra request.
+ *
+ * `divergence` is the point on each alternative that lies furthest from the default route.
+ * It is what makes a choice persistable: saving that point as a via forces the router back
+ * onto this road on every future request, without storing a polyline that would go stale
+ * with the next OSM update.
+ */
+export async function calculateAlternatives(
+  from: Waypoint,
+  to: Waypoint,
+  profile: 'driving' | 'walking' | 'cycling' = 'driving',
+  { signal, limit = 3 }: { signal?: AbortSignal; limit?: number } = {},
+): Promise<RouteAlternative[]> {
+  const coords = `${from.lng},${from.lat};${to.lng},${to.lat}`
+  const url = `${routeBaseFor(profile)}/${coords}?alternatives=${limit}&overview=full&geometries=geojson`
+  const response = await routedFetch(url, signal, 'alternatives', profile, [from, to])
+  if (!response.ok) throw new RoutingRefusedError(response.status, retryAfterMs(response))
+
+  const data = await response.json()
+  if (data.code !== 'Ok' || !Array.isArray(data.routes) || !data.routes.length) return []
+
+  const routes: RouteAlternative[] = data.routes.map((r: { geometry: { coordinates: [number, number][] }; distance: number; duration: number }) => ({
+    coordinates: r.geometry.coordinates.map(([lng, lat]) => [lat, lng] as [number, number]),
+    distance: r.distance,
+    duration: r.duration,
+    divergence: null,
+  }))
+
+  // Nothing but the router's own preference came back, which is what it answers on most
+  // long legs. Rather than reporting "only one sensible way", ask a different question:
+  // the same drive without the motorway, then without the tolls, then without a ferry.
+  // Tried one at a time and stopped as soon as one lands, so a leg that does have a
+  // second road costs one extra request rather than three.
+  //
+  // This used to produce nothing at all on a default install: OSRM's `exclude` is HTTP
+  // 400 on both public hosts, whose car profile is built without excludable classes. It
+  // now asks Valhalla first, where avoidance is a runtime weighting, and only falls back
+  // to OSRM's `exclude` for an instance running its own MLD-built router.
+  if (routes.length < 2 && profile === 'driving') {
+    for (const exclude of EXCLUDABLE_CLASSES) {
+      if (signal?.aborted) break
+      const detour = await routeExcluding(from, to, profile, exclude, signal)
+      if (detour && !routes.some(r => sameRoad(r, detour))) {
+        detour.avoids = exclude
+        routes.push(detour)
+        break
+      }
+    }
+  }
+
+  // The first route is what the router would have given anyway; the others are measured
+  // against it so each one can be pinned by the point that makes it different.
+  const [primary, ...rest] = routes
+  for (const alt of rest) alt.divergence = furthestPointFrom(alt.coordinates, primary.coordinates)
+  return routes
+}
+
+/** The point of `line` that lies furthest from `reference`, in plain degrees. */
+function furthestPointFrom(line: [number, number][], reference: [number, number][]): { lat: number; lng: number } | null {
+  const furthest = furthestFrom(line, reference)
+  return furthest ? { lat: furthest.lat, lng: furthest.lng } : null
+}
+
+/**
+ * The same point, plus how far off it actually is.
+ *
+ * The search itself stays in squared degrees with a cosine on the longitude: it only has
+ * to ORDER the candidates, and a haversine per pair of a 200-by-200 comparison buys
+ * nothing for it. The winner is converted once at the end, because `sameRoad` needs a
+ * real distance rather than a rank, and half a degree is a different number of metres in
+ * Andalusia than in Lapland.
+ */
+function furthestFrom(
+  line: [number, number][],
+  reference: [number, number][],
+): { lat: number; lng: number; km: number } | null {
+  if (!line.length || !reference.length) return null
+  // Every tenth vertex is plenty: alternatives differ over kilometres, not metres, and a
+  // full cross product of two thousand-point lines is not worth the milliseconds.
+  const step = Math.max(1, Math.floor(reference.length / 200))
+  let best: { lat: number; lng: number } | null = null
+  let bestNeighbour: [number, number] | null = null
+  let bestDist = -1
+  for (let i = 0; i < line.length; i += Math.max(1, Math.floor(line.length / 200))) {
+    const [lat, lng] = line[i]
+    let nearest = Infinity
+    let nearestPoint: [number, number] | null = null
+    for (let j = 0; j < reference.length; j += step) {
+      const dLat = lat - reference[j][0]
+      const dLng = (lng - reference[j][1]) * Math.cos((lat * Math.PI) / 180)
+      const d = dLat * dLat + dLng * dLng
+      if (d < nearest) { nearest = d; nearestPoint = reference[j] }
+    }
+    if (nearest > bestDist) { bestDist = nearest; best = { lat, lng }; bestNeighbour = nearestPoint }
+  }
+  if (!best) return null
+  const km = bestNeighbour ? haversineKm(best, { lat: bestNeighbour[0], lng: bestNeighbour[1] }) : 0
+  return { ...best, km }
 }

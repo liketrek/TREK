@@ -143,6 +143,23 @@ const collection: TranslationStrings = {
   'collections.picker.hint': 'Välj en plats från dina samlingar',
   'collections.picker.use': 'Använd',
 
+  // Export / import a list as a file (#2198)
+  'collections.file.export': 'Exportera',
+  'collections.file.exportTitle': 'Ladda ner den här listan som en fil',
+  'collections.file.importButton': 'Importera en lista från en fil',
+  'collections.file.importTitle': 'Importera lista',
+  'collections.file.choose': 'Välj en listfil',
+  'collections.file.confirm': 'Importera',
+  'collections.file.change': 'Byt',
+  'collections.file.labelCount': '{count} etiketter',
+  'collections.file.hint':
+    'Platserna kommer in som en ny egen lista. Betyg, medlemmar och uppladdade foton följer inte med.',
+  'collections.file.done': '{count} platser importerade',
+  'collections.file.doneSkipped': '{count} platser importerade, {skipped} överhoppade',
+  'collections.file.errorTooLarge': 'Filen är för stor för att vara en lista.',
+  'collections.file.errorUnreadable': 'Filen gick inte att läsa.',
+  'collections.file.errorNotACollection': 'Det här är ingen TREK-listfil.',
+
   'collections.share.title': 'Dela lista',
   'collections.share.titleNamed': 'Dela ”{name}”',
   'collections.share.button': 'Dela',

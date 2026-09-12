@@ -2,6 +2,9 @@ import type { TranslationStrings } from '../types';
 
 const places: TranslationStrings = {
   'places.addPlace': 'Add Place/Activity',
+  'places.addToSelectedDay': 'Add to the open day',
+  'places.addPlaceShort': 'New place',
+  'places.addToDayShort': 'To day',
   'places.importFile': 'Import file',
   'places.trackIndicator': 'Track / route',
   'places.sidebarDrop': 'Drop to import',
@@ -34,6 +37,7 @@ const places: TranslationStrings = {
   'places.importGoogleList': 'Google List',
   'places.importNaverList': 'Naver List',
   'places.googleListHint': 'Paste a shared Google Maps list link to import all places.',
+  'places.googleDirHint': 'A directions link works too: its stops become places, in driving order.',
   'places.googleListImported': '{count} places imported from "{list}"',
   'places.googleListError': 'Failed to import Google Maps list',
   'places.naverListHint': 'Paste a shared Naver Maps list link to import all places.',
@@ -44,6 +48,9 @@ const places: TranslationStrings = {
   'places.all': 'All',
   'places.unplanned': 'Unplanned',
   'places.planned': 'Planned',
+  /** Shown under the filter tabs while an open day narrows both the list and the map. */
+  'places.dayScoped': 'Showing the open day only',
+  'places.dayScopedClear': 'Show the whole trip',
   'places.filterTracks': 'Tracks',
   'places.filterByRating': 'Filter by rating',
   'places.yourRating': 'Your rating',
@@ -86,9 +93,8 @@ const places: TranslationStrings = {
   'places.loadingDetails': 'Loading place details…',
   'places.osmHint':
     'Using OpenStreetMap search (no photos, opening hours, or ratings). Add a Google API key in settings for full details.',
-  'places.osmActive': 'Using OpenStreetMap. A Google API key adds ratings and opening hours.',
   'places.details.title': 'Place details',
-  'places.details.empty': 'Pick a search result to see pictures and a description.',
+  'places.details.empty': 'Pick a result to see more',
   'places.details.loading': 'Loading details...',
   'places.details.error': 'Details could not be loaded.',
   'places.details.disabled': 'Enrichment is switched off by the administrator.',
@@ -99,8 +105,6 @@ const places: TranslationStrings = {
   'places.details.adoptBlocked': 'Clear the description field first',
   'places.details.facts': 'Good to know',
   'places.details.nothing': 'Nothing found for this place.',
-  'places.details.noKeyTitle': 'More detail is available',
-  'places.details.noKeyHint': 'Without a Google API key this instance can only use free sources. Ask your TREK administrator to add one for ratings, opening hours and photos.',
   'places.details.aboutBrand': 'About the chain',
   'places.details.aboutBrandNote': 'This describes the chain, not this branch.',
   'places.details.fact.rating': 'Rating',

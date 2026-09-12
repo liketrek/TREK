@@ -143,6 +143,23 @@ const collection: TranslationStrings = {
   'collections.picker.hint': 'Vyberte místo ze svých sbírek',
   'collections.picker.use': 'Použít',
 
+  // Export / import a list as a file (#2198)
+  'collections.file.export': 'Exportovat',
+  'collections.file.exportTitle': 'Stáhnout tento seznam jako soubor',
+  'collections.file.importButton': 'Importovat seznam ze souboru',
+  'collections.file.importTitle': 'Import seznamu',
+  'collections.file.choose': 'Vyberte soubor se seznamem',
+  'collections.file.confirm': 'Importovat',
+  'collections.file.change': 'Změnit',
+  'collections.file.labelCount': 'Štítky: {count}',
+  'collections.file.hint':
+    'Místa se objeví jako váš nový seznam. Hodnocení, členové a nahrané fotky zůstanou tam, kde byly.',
+  'collections.file.done': 'Importováno míst: {count}',
+  'collections.file.doneSkipped': 'Importováno míst: {count}, přeskočeno: {skipped}',
+  'collections.file.errorTooLarge': 'Tento soubor je na seznam příliš velký.',
+  'collections.file.errorUnreadable': 'Tento soubor se nepodařilo přečíst.',
+  'collections.file.errorNotACollection': 'Toto není soubor se seznamem TREK.',
+
   'collections.share.title': 'Sdílet seznam',
   'collections.share.titleNamed': 'Sdílet „{name}“',
   'collections.share.button': 'Sdílet',

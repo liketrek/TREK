@@ -27,6 +27,9 @@ import type { RateLimitService } from '../../src/nest/common/rate-limit.service'
 // Keep in sync with schema.ts + migrations.ts. Intentionally excluded: categories, addons,
 // photo_providers, photo_provider_fields, schema_version (seed/config data, not user data).
 const RESET_TABLES = [
+  'school_holiday_periods',
+  'school_holiday_regions',
+  'school_holiday_countries',
   // Collab
   'file_links',
   'collab_message_reactions',
@@ -34,6 +37,11 @@ const RESET_TABLES = [
   'collab_messages',
   'collab_polls',
   'collab_notes',
+  // Road trip (#1797). Both hang off days, so they go before it like the rest
+  // of the day content; a new domain's tables belong here or its rows leak from
+  // one case into the next.
+  'roadtrip_day_tracks',
+  'roadtrip_vias',
   // Day content
   'day_notes',
   'todo_category_assignees',

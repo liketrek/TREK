@@ -169,6 +169,28 @@ describe('PlaceDetailsColumn', () => {
     expect(link.parentElement).toHaveTextContent('CC BY-SA 4.0')
   })
 
+  it('FE-PDC-010b: credits a website description by host', async () => {
+    // The source labels used to be a ternary chain ending in 'Wikipedia', so a
+    // restaurant's own marketing copy would have been credited to an
+    // encyclopaedia. There is no fixed name for "the place's own website", and
+    // the host is the honest one.
+    placeEnrichment.mockResolvedValue({
+      photos: [],
+      facts: [],
+      description: {
+        text: 'Pizza in Rostock, seit 2015.',
+        source: 'website',
+        sourceUrl: 'https://www.losteria.net/rostock',
+        license: null,
+      },
+    })
+    renderColumn()
+
+    const link = await screen.findByRole('link', { name: /losteria\.net/ })
+    expect(link).toHaveAttribute('href', 'https://www.losteria.net/rostock')
+    expect(screen.queryByText(/Wikipedia/)).not.toBeInTheDocument()
+  })
+
   it('FE-PDC-011: says so when the admin switched enrichment off', async () => {
     placeEnrichment.mockResolvedValue({ photos: [], description: null, facts: [], disabled: true })
     renderColumn()
@@ -445,41 +467,33 @@ describe('PlaceDetailsColumn — hours and rating', () => {
   })
 })
 /**
- * FE-PDC-027..029 — the nudge towards a Google key.
+ * FE-PDC-027 — nothing came back for this place.
  *
- * Deliberately narrow: it appears only when the free sources came up empty AND
- * no key is configured. On an instance with a key there is nothing to suggest,
- * and on a place the free sources described it would read as an advert.
+ * It used to be a line of grey text plus, when no Google key was set, a panel
+ * telling the reader to go and ask an administrator for one. The mascot says the
+ * same thing in the shape every other empty state in TREK uses, and whose key is
+ * missing is not this panel's business.
  */
-describe('PlaceDetailsColumn — no Google key', () => {
-  const empty = () => placeEnrichment.mockResolvedValue({ photos: [], facts: [], description: null })
+describe('PlaceDetailsColumn — nothing found', () => {
+  it('FE-PDC-027: shows the empty state once, and no advice about API keys', async () => {
+    placeEnrichment.mockResolvedValue({ photos: [], facts: [], description: null })
+    renderColumn()
 
-  it('FE-PDC-027: suggests a key when nothing was found and none is set', async () => {
-    empty()
-    renderColumn({ hasMapsKey: false })
-
-    expect(await screen.findByText('places.details.noKeyTitle')).toBeInTheDocument()
-    expect(screen.getByText('places.details.noKeyHint')).toBeInTheDocument()
-  })
-
-  it('FE-PDC-028: stays quiet when a key is already configured', async () => {
-    empty()
-    renderColumn({ hasMapsKey: true })
-
-    await screen.findByText('places.details.nothing')
+    expect(await screen.findByText('places.details.nothing')).toBeInTheDocument()
     expect(screen.queryByText('places.details.noKeyTitle')).not.toBeInTheDocument()
+    expect(screen.queryByText('places.details.noKeyHint')).not.toBeInTheDocument()
   })
 
-  it('FE-PDC-029: stays quiet when the free sources did find something', async () => {
+  it('FE-PDC-028: stays quiet when the free sources did find something', async () => {
     placeEnrichment.mockResolvedValue({
       photos: [],
       facts: [],
       description: { text: 'Ein Museum.', source: 'wikipedia', sourceUrl: null, license: 'CC BY-SA 4.0' },
     })
-    renderColumn({ hasMapsKey: false })
+    renderColumn()
 
     await screen.findByText('Ein Museum.')
-    expect(screen.queryByText('places.details.noKeyTitle')).not.toBeInTheDocument()
+    expect(screen.queryByText('places.details.nothing')).not.toBeInTheDocument()
   })
 })
 /**

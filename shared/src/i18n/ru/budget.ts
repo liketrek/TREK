@@ -80,6 +80,10 @@ const budget: TranslationStrings = {
   'costs.pays': 'платит',
   'costs.settle': 'Рассчитать',
   'costs.balances': 'Балансы',
+  'costs.finalBudget': 'Итоговый бюджет',
+  'costs.finalExpenses': 'Оплаченные расходы',
+  'costs.finalReimbursed': 'Возмещения нетто',
+  'costs.finalPending': 'Ожидаемые возмещения',
   'costs.byCategory': 'По категориям',
   'costs.noCategories': 'Расходов пока нет.',
   'costs.settleHistory': 'История расчётов',
@@ -147,5 +151,12 @@ const budget: TranslationStrings = {
   'costs.splitSumUnder': 'Сумма долей: {sum} из {total} (не хватает {diff})',
   'costs.splitSumOver': 'Сумма долей: {sum} из {total} (больше на {diff})',
   'costs.toggleSign': 'Переключить между расходом и возвратом',
+  'costs.receipts': 'Чеки',
+  'costs.receiptsTitle': 'Чеки и счета',
+  'costs.attachReceipt': 'Прикрепить чек / счет',
+  'costs.noReceipts': 'Нет прикрепленных чеков',
+  'costs.deleteReceipt': 'Удалить чек',
+  'costs.viewReceipt': 'Просмотреть чек',
+  'costs.receiptLeftBehind': 'Не удалось сохранить, {count} загруженных чеков остались. Удалите их на вкладке «Файлы».',
 };
 export default budget;

@@ -32,6 +32,8 @@ import { splitReservationDateTime } from '../utils/formatters';
 import { computeMapViewport, TILE_SIZE_RASTER } from '../utils/mapViewport';
 import { resolveBasemap } from '../utils/tileUrl';
 import { useSharedTrip } from './sharedTrip/useSharedTrip';
+import { SharedPlaceDetails } from './sharedTrip/SharedPlaceDetails';
+import { SharedBookingDetails } from './sharedTrip/SharedBookingDetails';
 
 const TRANSPORT_ICONS = { flight: Plane, train: Train, bus: Bus, car: Car, cruise: Ship };
 
@@ -738,7 +740,7 @@ export default function SharedTripPage() {
                               key={`p-${item.data.id}`}
                               style={{
                                 display: 'flex',
-                                alignItems: 'center',
+                                alignItems: 'flex-start',
                                 gap: 10,
                                 padding: '6px 8px',
                                 borderRadius: 6,
@@ -773,19 +775,7 @@ export default function SharedTripPage() {
                                 >
                                   {place.name}
                                 </div>
-                                {(place.address || place.description) && (
-                                  <div
-                                    className="text-[#9ca3af]"
-                                    style={{
-                                      fontSize: 'calc(10px * var(--fs-scale-caption, 1))',
-                                      overflow: 'hidden',
-                                      textOverflow: 'ellipsis',
-                                      whiteSpace: 'nowrap',
-                                    }}
-                                  >
-                                    {place.address || place.description}
-                                  </div>
-                                )}
+                                <SharedPlaceDetails place={place} assignmentNotes={item.data.notes} />
                               </div>
                               {place.place_time && (
                                 <span
@@ -834,7 +824,7 @@ export default function SharedTripPage() {
                 <div
                   key={r.id}
                   className="border border-edge-faint bg-surface-card"
-                  style={{ borderRadius: 10, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}
+                  style={{ borderRadius: 10, padding: '12px 16px', display: 'flex', alignItems: 'flex-start', gap: 12 }}
                 >
                   <div
                     className="bg-[#f3f4f6]"
@@ -900,6 +890,7 @@ export default function SharedTripPage() {
                               </span>
                             )}
                     </div>
+                    <SharedBookingDetails notes={r.notes} url={r.url} />
                   </div>
                   <span
                     className={

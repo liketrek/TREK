@@ -56,48 +56,62 @@ describe('a custom trim size', () => {
 describe('page numbers', () => {
   it('are off until asked for', () => {
     expect(page().pageNumbers.show).toBe(false)
-    const { container } = render(<SpreadView spread={spread()} page={page()} spreadIndex={1} />)
+    const { container } = render(<SpreadView spread={spread()} page={page()} folios={[2, 3]} />)
     expect(container.textContent).toBe('')
   })
 
   it('number both pages of a spread, left then right', () => {
     const { container } = render(
-      <SpreadView spread={spread()} page={page({ pageNumbers: { show: true } })} spreadIndex={1} />,
+      <SpreadView spread={spread()} page={page({ pageNumbers: { show: true } })} folios={[2, 3]} />,
     )
     expect(container.textContent).toBe('23')
   })
 
   /*
-   * The first inner spread opens on `startAt`, and the cover is a separate
-   * sheet — which is why the index has to be offset rather than used raw.
+   * The numbers come from the caller (foliosOf, tested with bookSheets): the
+   * sheet draws whatever it is handed, so a spread deep in the book reads
+   * what the book says it is.
    */
-  it('advance by two for each spread further into the book', () => {
+  it('draw the numbers they are handed, wherever the spread sits', () => {
     const p = page({ pageNumbers: { show: true } })
-    const third = render(<SpreadView spread={spread()} page={p} spreadIndex={3} />)
+    const third = render(<SpreadView spread={spread()} page={p} folios={[6, 7]} />)
     expect(third.container.textContent).toBe('67')
-  })
-
-  it('start where the book says, since a binder may or may not count the cover', () => {
-    const p = page({ pageNumbers: { show: true, startAt: 1 } })
-    const { container } = render(<SpreadView spread={spread()} page={p} spreadIndex={1} />)
-    expect(container.textContent).toBe('12')
   })
 
   /* A folio on a cover is a mistake in every book ever bound. */
   it('never appear on the cover or the back cover', () => {
     const p = page({ pageNumbers: { show: true } })
     for (const role of ['cover', 'back'] as const) {
-      const { container } = render(<SpreadView spread={spread({ role })} page={p} spreadIndex={0} />)
+      const { container } = render(<SpreadView spread={spread({ role })} page={p} folios={[1]} />)
       expect(container.textContent, role).toBe('')
     }
   })
 
+  /* The single first page is a right-hand leaf and the last a left-hand one (#2317). */
+  it('put one number on a first or last page, on the side it is bound', () => {
+    const p = page({ pageNumbers: { show: true, position: 'outer' } })
+    const first = render(<SpreadView spread={spread({ role: 'first' })} page={p} folios={[1]} />)
+    const last = render(<SpreadView spread={spread({ role: 'last' })} page={p} folios={[9]} />)
+    expect(first.container.textContent).toBe('1')
+    expect(last.container.textContent).toBe('9')
+    const box = (c: HTMLElement) => (c.firstElementChild!.children[0]) as HTMLElement
+    // Outer on a right-hand page is the right edge; on a left-hand page the left.
+    expect(box(first.container).style.textAlign).toBe('right')
+    expect(box(last.container).style.textAlign).toBe('left')
+  })
+
+  it('draw nothing for a numbered page handed no numbers', () => {
+    const p = page({ pageNumbers: { show: true } })
+    const { container } = render(<SpreadView spread={spread()} page={p} folios={[]} />)
+    expect(container.textContent).toBe('')
+  })
+
   it('sit against the cut edge on outer, and in the gutter on inner', () => {
     const outer = render(
-      <SpreadView spread={spread()} page={page({ pageNumbers: { show: true, position: 'outer' } })} spreadIndex={1} />,
+      <SpreadView spread={spread()} page={page({ pageNumbers: { show: true, position: 'outer' } })} folios={[2, 3]} />,
     )
     const inner = render(
-      <SpreadView spread={spread()} page={page({ pageNumbers: { show: true, position: 'inner' } })} spreadIndex={1} />,
+      <SpreadView spread={spread()} page={page({ pageNumbers: { show: true, position: 'inner' } })} folios={[2, 3]} />,
     )
     const leftOf = (c: HTMLElement) =>
       parseFloat(((c.firstElementChild!.children[0]) as HTMLElement).style.left)

@@ -178,9 +178,9 @@ describe('an entry with words but no pictures', () => {
 })
 
 describe('a journey with nothing at all', () => {
-  it('produces a book of a cover and a back, and no blank pages between', () => {
+  it('produces a book of the covers and the single pages inside them, and no spreads between', () => {
     const spreads = build([])
     expect(inner(spreads)).toHaveLength(0)
-    expect(spreads.map(s => s.role)).toEqual(['cover', 'back'])
+    expect(spreads.map(s => s.role)).toEqual(['cover', 'first', 'last', 'back'])
   })
 })

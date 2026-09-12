@@ -298,7 +298,10 @@ describe('searchPhotos', () => {
       ] } },
     }));
 
-    const [a, b] = (await svc.searchPhotos(USER)).assets!;
+    // By id, not by position: the result is ordered newest first, so 'b' leads.
+    const assets = (await svc.searchPhotos(USER)).assets!;
+    const a = assets.find(x => x.id === 'a');
+    const b = assets.find(x => x.id === 'b');
 
     expect(a).toMatchObject({ takenAt: '2026-02-02', city: 'Kyoto', country: 'JP', lat: 35.0, lng: 135.7, mediaType: 'video' });
     // A non-numeric coordinate becomes null rather than reaching the client as a string.
@@ -327,6 +330,23 @@ describe('searchPhotos', () => {
     expect(body.takenBefore).toBe('2026-01-31T23:59:59.999Z');
     // Load-bearing on Immich >= 1.133: hidden assets must not cross the wire.
     expect(body.visibility).toBe('timeline');
+    expect(body.order).toBe('desc');
+  });
+
+  it('IMMICH-032b: orders each page itself, so an unsorted page still lands chronological within itself', async () => {
+    // Older builds drop the unknown property silently (whitelist: true without
+    // forbidNonWhitelisted), which is exactly why the request cannot be trusted.
+    safeFetch.mockResolvedValue(upstream({
+      json: { assets: { items: [
+        { id: 'older', fileCreatedAt: '2026-03-01T09:00:00Z' },
+        { id: 'newest', fileCreatedAt: '2026-03-31T09:00:00Z' },
+        { id: 'middle', fileCreatedAt: '2026-03-15T09:00:00Z' },
+      ] } },
+    }));
+
+    const result = await svc.searchPhotos(USER);
+
+    expect(result.assets!.map(a => a.id)).toEqual(['newest', 'middle', 'older']);
   });
 });
 
@@ -371,6 +391,41 @@ describe('getAssetInfo', () => {
     safeFetch.mockResolvedValue(upstream({ json: { id: 'bare' } }));
     const data = (await svc.getAssetInfo(USER, 'bare')).data;
     expect(data).toMatchObject({ id: 'bare', width: null, height: null, city: null, fileName: null });
+  });
+
+  it('IMMICH-037b: reports the media type here too, not only in the listing', async () => {
+    // Same mapping as the listing, so the detail route and the picker agree on
+    // what an asset is. Nothing persists it from here yet — trek_photos.media_type
+    // comes from the add call's media_types.
+    safeFetch.mockResolvedValueOnce(upstream({ json: { id: 'clip', type: 'VIDEO' } }));
+    expect((await svc.getAssetInfo(USER, 'clip')).data.mediaType).toBe('video');
+
+    safeFetch.mockResolvedValueOnce(upstream({ json: { id: 'still', type: 'IMAGE' } }));
+    expect((await svc.getAssetInfo(USER, 'still')).data.mediaType).toBe('image');
+  });
+});
+
+describe('getAlbumPhotos', () => {
+  it('IMMICH-037c: 400s without credentials', async () => {
+    seedUser(11, null, null);
+    expect(await svc.getAlbumPhotos(11, 'alb-1')).toEqual({ error: 'Immich not configured', status: 400 });
+  });
+
+  it('IMMICH-037d: orders an album newest first and keeps its coordinates and media type', async () => {
+    // The v2 branch reads /api/albums/{id} directly and never passes a search,
+    // so this ordering is the only one an album on that version ever gets.
+    safeFetch.mockResolvedValue(upstream({
+      json: { assets: [
+        { id: 'older', fileCreatedAt: '2026-03-01T09:00:00Z', type: 'IMAGE', exifInfo: { latitude: 35.0, longitude: 135.7 } },
+        { id: 'clip', fileCreatedAt: '2026-03-31T09:00:00Z', type: 'VIDEO' },
+      ] },
+    }));
+
+    const assets = (await svc.getAlbumPhotos(USER, 'alb-1')).assets!;
+
+    expect(assets.map(a => a.id)).toEqual(['clip', 'older']);
+    expect(assets[0].mediaType).toBe('video');
+    expect(assets[1]).toMatchObject({ lat: 35.0, lng: 135.7 });
   });
 });
 

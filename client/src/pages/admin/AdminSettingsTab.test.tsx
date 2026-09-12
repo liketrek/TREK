@@ -374,11 +374,15 @@ describe('AdminSettingsTab', () => {
     expect(toggleFor('Place Enrichment')).toHaveAttribute('aria-label', 'Place Enrichment');
   });
 
-  it('FE-ADMSET-031: shows the Open-Meteo info block', () => {
+  it('FE-ADMSET-031: the API keys card leads with the TREK index and no weather panel', () => {
     renderTab();
 
-    expect(screen.getByText('Weather Data')).toBeInTheDocument();
-    expect(screen.getByText('16-day forecast')).toBeInTheDocument();
+    const keys = card('API Keys');
+    expect(within(keys).getByRole('img', { name: 'TREK Places API' })).toBeInTheDocument();
+    expect(within(keys).getByText('Recommended default')).toBeInTheDocument();
+    // Weather needs no key, so it left a card about keys. The panel itself lives
+    // on in the mobile section, where FE-MOB-ASET-019 asserts it.
+    expect(screen.queryByText('Weather Data')).not.toBeInTheDocument();
   });
 
   it('FE-ADMSET-032: the API keys save button calls handleSaveApiKeys', () => {
@@ -488,5 +492,17 @@ describe('AdminSettingsTab', () => {
     fireEvent.click(screen.getByRole('button', { name: /^rotate$/i }));
 
     expect(admin.setShowRotateJwtModal).toHaveBeenCalledWith(true);
+  });
+
+  it('FE-ADMSET-041: the index has no switch, because turning it off is a deployment decision', () => {
+    // It decides whether a search leaves the instance at all, so it belongs in
+    // the compose file rather than in a browser: TREK_PLACES_ENABLED=false.
+    // A card that offered the choice here also had to explain what answers
+    // instead, which is a paragraph about configuration inside a card about a
+    // data source.
+    renderTab();
+
+    expect(screen.queryByRole('button', { name: /trek place index/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/place search uses openstreetmap/i)).not.toBeInTheDocument();
   });
 });

@@ -896,6 +896,32 @@ describe('Tool: import_places_from_url', () => {
     spy.mockRestore();
   });
 
+  it('sends a directions link to the directions importer, the same way the REST route does', async () => {
+    // The parity that matters here is not the wire shape but the dispatch: a pasted
+    // route has to reach the same importer through the tool as through the box.
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const dir = vi.spyOn(PlacesService.prototype, 'importGoogleDirections').mockResolvedValue({
+      places: [{ id: 7, name: 'Berlin' }] as never,
+      listName: 'Berlin \u2192 Prague',
+      skipped: 1,
+    });
+    const list = vi.spyOn(PlacesService.prototype, 'importGoogleList');
+
+    await withHarness(user.id, async (h) => {
+      const url = 'https://www.google.com/maps/dir/Berlin/Dresden/Prague';
+      const result = await h.client.callTool({
+        name: 'import_places_from_url',
+        arguments: { tripId: trip.id, url, source: 'google-list' },
+      });
+      expect(parseToolResult(result) as any).toMatchObject({ count: 1, skipped: 1 });
+      expect(dir).toHaveBeenCalledWith(String(trip.id), url, { enrich: false, userId: user.id });
+      expect(list).not.toHaveBeenCalled();
+    });
+    dir.mockRestore();
+    list.mockRestore();
+  });
+
   it('surfaces the naver importer\'s { error, status } as a tool error', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);

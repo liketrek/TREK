@@ -476,6 +476,48 @@ export interface PlaceDetailProvider {
    * The host caps results at 12 items per provider. */
   getDetails(placeId: number, ctx: PluginContext): Promise<PlaceDetailItem[]>;
 }
+/**
+ * A place a search provider found, in the shape the host turns into a search row.
+ *
+ * `rating` is the one field open data cannot answer, and the reason this hook exists:
+ * OpenStreetMap carries no ratings at all, so "the best one around here" needs an
+ * index that has them. Zero to five, the scale every such index uses.
+ */
+export interface SearchResultPlace {
+  /** Stable id in your own index. The host namespaces it as `plugin:<yourId>:<id>`. */
+  id?: string;
+  name: string;
+  lat: number;
+  lng: number;
+  address?: string;
+  rating?: number;
+  website?: string;
+  phone?: string;
+  category?: string;
+  description?: string;
+}
+/** What the host asks a search provider to look for. */
+export interface SearchRequest {
+  query: string;
+  /** The most rows worth returning. The host caps it at 20 whatever it is asked for. */
+  limit: number;
+  /** The caller's language tag, for indexes that carry localized names. */
+  lang?: string;
+  /** Where the person is looking, when there is somewhere to bias toward. */
+  near?: { lat: number; lng: number };
+  /** Category search within a Roadtrip search rectangle. Older hosts omit these fields. */
+  category?: string;
+  bounds?: { south: number; west: number; north: number; east: number };
+}
+export interface SearchProvider {
+  /** Places for a query, drawn into TREK's own search list beside the core results.
+   * Needs `hook:search-provider`. The host caps results at 20 places per provider and
+   * gives you 2 seconds to answer, because somebody is waiting on the list.
+   *
+   * Called for an explicit search, not for every keystroke: an external index has rate
+   * limits, and a request per typed letter would spend them on words nobody finished. */
+  search(request: SearchRequest, ctx: PluginContext): Promise<SearchResultPlace[]>;
+}
 /** A validation/warning a plugin raises on a trip; TREK surfaces it in the planner. */
 export interface TripWarning { level: 'info' | 'warning' | 'error'; message: string; dayId?: number; placeId?: number; }
 export interface WarningProvider {
@@ -828,6 +870,7 @@ export interface PluginDefinition {
     photoProvider?: PhotoProvider;
     calendarSource?: CalendarSource;
     placeDetailProvider?: PlaceDetailProvider;
+    searchProvider?: SearchProvider;
     warningProvider?: WarningProvider;
     tableContributor?: TableContributor;
     mapMarkerProvider?: MapMarkerProvider;

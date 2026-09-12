@@ -62,6 +62,7 @@ describe('managed key assignment', () => {
       'oidc_login',
       'oidc_registration',
       'openweather_api_key',
+      'routing_base_url',
       'smtp_from',
       'smtp_host',
       'smtp_pass',
@@ -69,6 +70,7 @@ describe('managed key assignment', () => {
       'smtp_skip_tls_verify',
       'smtp_user',
       'unsplash_api_key',
+      'valhalla_base_url',
       'webauthn_origins',
       'webauthn_rp_id',
     ]);

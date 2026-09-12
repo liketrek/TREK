@@ -298,6 +298,12 @@ describe('costsModel — list filters and grouping', () => {
     const b = settlement({ id: 2, created_at: '2026-07-02T09:00:00Z' });
     expect(filterSettlements([a, b], filters({ dayKey: '2026-07-02' }), 1).map(s => s.id)).toEqual([2]);
   });
+
+  it('FE-MOB-CMOD-036: filterSettlements narrows by settled_at when set, over the day it was recorded', () => {
+    const a = settlement({ id: 1, settled_at: '2026-07-05', created_at: '2026-07-01T09:00:00Z' });
+    expect(filterSettlements([a], filters({ dayKey: '2026-07-05' }), 1).map(s => s.id)).toEqual([1]);
+    expect(filterSettlements([a], filters({ dayKey: '2026-07-01' }), 1)).toEqual([]);
+  });
 });
 
 describe('costsModel — ledger grouping (expenses + settlement payments)', () => {
@@ -330,6 +336,11 @@ describe('costsModel — ledger grouping (expenses + settlement payments)', () =
   it('FE-MOB-CMOD-034: a payment on a day with no expense still creates its own day group', () => {
     const s = settlement({ id: 3, created_at: '2026-07-09T08:00:00Z' });
     expect(groupLedgerByDay([], [s])).toEqual([{ dateKey: '2026-07-09', entries: [{ kind: 'payment', date: '2026-07-09', settlement: s }] }]);
+  });
+
+  it('FE-MOB-CMOD-037: a payment groups by its own settled_at, not the day it was recorded', () => {
+    const s = settlement({ id: 4, settled_at: '2026-07-11', created_at: '2026-07-09T08:00:00Z' });
+    expect(groupLedgerByDay([], [s])).toEqual([{ dateKey: '2026-07-11', entries: [{ kind: 'payment', date: '2026-07-11', settlement: s }] }]);
   });
 
   it('FE-MOB-CMOD-035: empty inputs produce no groups', () => {

@@ -22,6 +22,7 @@ import type {
   PackingBagMember,
   BudgetItem,
   BudgetItemMember,
+  BudgetItemReceipt,
   Reservation,
   ReservationEndpoint,
   Accommodation,
@@ -45,6 +46,7 @@ export type {
   PackingBagMember,
   BudgetItem,
   BudgetItemMember,
+  BudgetItemReceipt,
   Reservation,
   ReservationEndpoint,
   Accommodation,
@@ -108,6 +110,17 @@ export type DistanceUnit = 'metric' | 'imperial'
 
 export interface Settings {
   map_tile_url: string
+  /**
+   * Base URL of a self-hosted routing engine (#1797). Empty falls back to the public
+   * FOSSGIS hosts, which allow about one request a second.
+   */
+  routing_base_url?: string
+  /**
+   * Base URL of the Valhalla asked for the avoidance questions OSRM cannot answer.
+   * Undefined means the public FOSSGIS instance TREK ships with; empty means an
+   * operator turned the second engine off and "other ways" goes back to OSRM alone.
+   */
+  valhalla_base_url?: string
   dark_mode: boolean | string
   /** Display currency for Costs. Empty/null = follow each trip's own currency. */
   default_currency: string | null
@@ -124,6 +137,76 @@ export interface Settings {
   map_provider?: 'leaflet' | 'mapbox-gl' | 'maplibre-gl'
   /** Leaflet base layer: default street tiles or a satellite/aerial view. */
   map_base_layer?: 'default' | 'satellite'
+  /**
+   * The three road-trip driving limits (#1797). All three are personal rather than
+   * instance configuration — how long you are willing to drive and how far your car goes
+   * are properties of the traveller, so they are plain per-user settings and stay out of
+   * the defaultable list.
+   *
+   * Stored as numbers; 0 or absent means no limit. Kilometres are always kilometres in
+   * storage and converted for display, the same rule the corridor widths follow.
+   */
+  roadtrip_leg_minutes?: number
+  roadtrip_day_minutes?: number
+  roadtrip_day_start?: string
+  roadtrip_day_end?: string
+  roadtrip_day_end_mode?: 'route' | 'stop'
+  roadtrip_range_km?: number
+  /**
+   * Road classes the drive should leave out where it can, as a comma list
+   * ("toll,ferry"). Absent means route normally, which is the right meaning for absent:
+   * the settings row does not exist until somebody turns one of them on, and the first
+   * paint of every session reads this before the settings have loaded.
+   *
+   * A list rather than three booleans because it is one decision with three parts, and
+   * because it goes to the router as one request either way.
+   */
+  roadtrip_avoid?: string
+  /**
+   * What the traveller drives: 'combustion', 'electric', or absent for "did not say".
+   *
+   * Absent has to mean BOTH kinds refill, which is what the range budget did before this
+   * existed. Anything else would quietly change the warnings of every traveller who never
+   * opened the dialog.
+   */
+  roadtrip_vehicle?: string
+  /** Route the gaps between days too, so the trip is one continuous drive. */
+  roadtrip_connect_days?: boolean
+  /** Draw each day of the trip in its own colour. */
+  roadtrip_day_colors?: boolean
+  /**
+   * How full a fill-up goes, 1 to 100. Absent or 100 means all the way.
+   *
+   * Nobody charges to 100 % on the road, so an electric traveller who leaves this at full
+   * gets a range figure a fifth too generous after every stop.
+   */
+  roadtrip_fill_percent?: number
+  /**
+   * What the vehicle is made of, for travellers who would rather not do the division.
+   *
+   * Optional throughout, and stored METRIC throughout — litres and kilowatt-hours, per
+   * 100 kilometres — exactly as roadtrip_range_km is always kilometres. The dialog does
+   * the round trip into gallons, miles per gallon and kWh per 100 miles for an imperial
+   * traveller; storage stays one system so the arithmetic never has to ask.
+   *
+   * When a pair is complete it WINS over roadtrip_range_km, because it is the more
+   * specific answer. Half a pair computes nothing: a made-up range here would put the
+   * fuel warnings at the wrong place while looking exact.
+   */
+  roadtrip_tank_litres?: number
+  roadtrip_litres_per_100?: number
+  roadtrip_battery_kwh?: number
+  roadtrip_kwh_per_100?: number
+  /**
+   * Percent of the battery the years have taken. Absent means none.
+   *
+   * The one figure of ABRP's list that changes the answer here. Plug type, reference
+   * speed and drive style shape a consumption PREDICTION; this addon does not predict
+   * one, it divides a capacity by a consumption the traveller states. Degradation is
+   * different in kind: it shrinks the capacity itself, and on a five-year-old car by
+   * enough to decide whether the last leg of a day arrives.
+   */
+  roadtrip_battery_degradation?: number
   /** CARTO basemaps watermark keyless tiles; the key is appended as ?key= (#2054). */
   carto_api_key?: string
   mapbox_access_token?: string
@@ -176,11 +259,30 @@ export interface RouteSegment {
 
 /** An intermediate stop a plugin route places on the drawn line (charging stop, rest area). */
 export interface RouteVia {
+  hoverCard?: boolean
+  nightPause?: { day: number; atPlace: boolean; position?: number; manual?: boolean; minPosition?: number; maxPosition?: number }
   lat: number
   lng: number
   label?: string
   tone: 'default' | 'success' | 'warn' | 'danger'
   dwellSeconds?: number
+}
+
+/**
+ * Where the router put a waypoint we asked about, and how far that is from where we asked.
+ *
+ * Every routing engine snaps a coordinate to the nearest road before it starts, and OSRM
+ * does it with no distance limit at all. A place set back from the road — a viewpoint, a
+ * farmhouse, a marina — is therefore driven to from somewhere else entirely, and the drawn
+ * line starts at that somewhere else without saying so.
+ */
+export interface SnappedWaypoint {
+  /** The coordinate that was asked for, unchanged. */
+  asked: [number, number]
+  /** The point on the road network the router actually used. */
+  at: [number, number]
+  /** Straight-line metres between the two. */
+  meters: number
 }
 
 export interface RouteWithLegs {
@@ -190,7 +292,21 @@ export interface RouteWithLegs {
   legs: RouteSegment[]
   /** Present on plugin-provided routes only. */
   vias?: RouteVia[]
+  /** One entry per REQUESTED waypoint, in request order. Absent on plugin routes. */
+  snapped?: SnappedWaypoint[]
+  /**
+   * What was asked to be left out, and what the road actually left out.
+   *
+   * The two differ, and that is the point. Valhalla weights a class away rather than
+   * banning it, so a drive with no untolled connection comes back on a toll road and
+   * says so. Present only on a route that was asked to avoid something, so `undefined`
+   * means the question was never put rather than "avoided nothing".
+   */
+  avoidance?: { asked: RouteAvoidClass[]; achieved: RouteAvoidClass[] }
 }
+
+/** A road class a route can be asked to leave out. */
+export type RouteAvoidClass = 'motorway' | 'toll' | 'ferry'
 
 export interface RouteResult {
   coordinates: [number, number][]

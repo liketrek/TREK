@@ -3,6 +3,10 @@ import { ADDON_IDS } from '../../addons';
 import { DatabaseService } from '../database/database.service';
 import type { Addon } from '../../types';
 import { getPhotoProviderConfig } from '../memories/memories.helpers';
+import { readTransitProvider, writeTransitProvider } from '../transit/transit-provider';
+import { resolveApiKey, type ApiKeySource } from '../settings/instance-api-keys';
+import { readEnv } from '../../app-config';
+import type { TransitProvider } from '@trek/shared';
 
 /**
  * Thin wrapper around the enabled-addons + photo-provider read that the legacy
@@ -49,7 +53,7 @@ export class AddonsService {
   getCollabFeatures() {
     const rows = this.db
       .prepare(
-        "SELECT key, value FROM app_settings WHERE key IN ('collab_chat_enabled', 'collab_notes_enabled', 'collab_polls_enabled', 'collab_whatsnext_enabled')",
+        "SELECT key, value FROM app_settings WHERE key IN ('collab_chat_enabled', 'collab_notes_enabled', 'collab_links_enabled', 'collab_polls_enabled', 'collab_whatsnext_enabled')",
       )
       .all() as { key: string; value: string }[];
     const map: Record<string, string> = {};
@@ -57,15 +61,17 @@ export class AddonsService {
     return {
       chat: map['collab_chat_enabled'] !== 'false',
       notes: map['collab_notes_enabled'] !== 'false',
+      links: map['collab_links_enabled'] !== 'false',
       polls: map['collab_polls_enabled'] !== 'false',
       whatsnext: map['collab_whatsnext_enabled'] !== 'false',
     };
   }
 
-  updateCollabFeatures(features: { chat?: boolean; notes?: boolean; polls?: boolean; whatsnext?: boolean }) {
+  updateCollabFeatures(features: { chat?: boolean; notes?: boolean; links?: boolean; polls?: boolean; whatsnext?: boolean }) {
     const mapping: Record<string, string> = {
       chat: 'collab_chat_enabled',
       notes: 'collab_notes_enabled',
+      links: 'collab_links_enabled',
       polls: 'collab_polls_enabled',
       whatsnext: 'collab_whatsnext_enabled',
     };
@@ -183,6 +189,16 @@ export class AddonsService {
   updatePlacesDetails(enabled: boolean) { return this.writeFlag('places_details_enabled', enabled); }
 
   /**
+   * The shadow log, fail-CLOSED like the three above but for the opposite
+   * reason: they read `=== 'true'` because a migration backfilled a row for
+   * installs that were already using the feature. Nothing is using this one,
+   * so there is nothing to backfill and an absent row correctly means off.
+   * PlaceShadowService.enabled() reads the same key the same way.
+   */
+  getPlaceShadow() { return this.readFlag('place_shadow_enabled'); }
+  updatePlaceShadow(enabled: boolean) { return this.writeFlag('place_shadow_enabled', enabled); }
+
+  /**
    * Enrichment reads fail-OPEN, unlike the three switches above.
    *
    * Those needed migration 185 to backfill 'true' precisely because they read
@@ -203,4 +219,35 @@ export class AddonsService {
   }
 
   updatePlacesEnrich(enabled: boolean) { return this.writeFlag('places_enrich_enabled', enabled); }
+
+  // ── Transit backend (#1699) ────────────────────────────────────────────────
+  // Not a flag: two named backends, so it stores the name rather than a
+  // boolean. The read/write pair lives in transit/transit-provider.ts because
+  // TransitService reads the same row on every request — one key, one reader,
+  // one writer.
+
+  /**
+   * Where the Google key would come from for this caller, or null if nowhere.
+   *
+   * Reported alongside the provider so the admin panel can say that picking
+   * Google changed nothing. The fallback to Transitous is deliberate and
+   * silent at request time (GoogleTransitProvider.isActive), which means the
+   * only place it can be surfaced is here, before a search is ever run.
+   *
+   * The distinction between 'instance' and 'user-row' is the one that matters:
+   * the resolver's last step is the caller's OWN row, so an admin holding a
+   * personal key gets Google while every other member silently gets Transitous
+   * — the #1939 shape, one layer up.
+   */
+  private googleKeySource(userId: number): ApiKeySource | null {
+    return resolveApiKey(this.dbs, 'maps_api_key', userId, readEnv().maps.placesApiKey).source;
+  }
+
+  getTransitProvider(userId = 0) {
+    return { provider: readTransitProvider(this.dbs), googleKeySource: this.googleKeySource(userId) };
+  }
+
+  updateTransitProvider(provider: TransitProvider, userId = 0) {
+    return { provider: writeTransitProvider(this.dbs, provider), googleKeySource: this.googleKeySource(userId) };
+  }
 }

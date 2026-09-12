@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Loader2, Search } from 'lucide-react'
 import { mapsApi } from '../../../../api/client'
+import { sourceLabelFor } from '../../../../utils/placeSource'
+import { recordPlacePick } from '../../../../api/placeShadow'
 import { PlacesSession } from '../../../../utils/placesSession'
 import { isGoogleMapsUrl } from '../../../../components/Planner/PlaceFormModal.helpers'
 import { getApiErrorMessage } from '../../../../utils/apiError'
+import { pointFromBox } from '../../../../hooks/useLocationBias'
 import { FIELD_CLS } from './PlSheetChrome'
 import type { TripPlanner } from '../MTripShell'
 
@@ -24,9 +27,23 @@ interface Suggestion {
   placeId: string
   mainText: string
   secondaryText: string
+  /** Which of the two indexes this row came from, when the list is both. */
+  source?: string
+  lat?: number
+  lng?: number
 }
 
 type MapsPlace = Record<string, unknown>
+
+/** The same mark the desktop form shows, in the sheet's own tokens. */
+function SourceMark({ label }: { label: string | null }) {
+  if (!label) return null
+  return (
+    <span className="shrink-0 rounded-md border border-[color:var(--m-rowbr)] px-1.5 py-0.5 font-geist text-[0.5625rem] font-medium text-m-muted">
+      {label}
+    </span>
+  )
+}
 
 interface PlPlaceSearchProps {
   planner: TripPlanner
@@ -70,6 +87,12 @@ export default function PlPlaceSearch({ planner, locationBias, onPick, onResolvi
   const abortRef = useRef<AbortController | null>(null)
   // One Google billing session per search (see utils/placesSession).
   const placesSessionRef = useRef(new PlacesSession())
+  // What produced the list on screen, for the shadow log. Refs, because a pick
+  // has to read the values that belonged to that list. Mirrors PlaceFormModal.
+  const searchMetaRef = useRef<{ query: string; source: string } | null>(null)
+  const acMetaRef = useRef<{ query: string; source: string } | null>(null)
+  // The name the whole list carries, for rows that do not name their own index.
+  const [acSource, setAcSource] = useState('')
 
   const setResolving = useCallback(
     (v: boolean) => {
@@ -86,6 +109,8 @@ export default function PlPlaceSearch({ planner, locationBias, onPick, onResolvi
       abortRef.current = controller
       try {
         const result = await mapsApi.autocomplete(input, language, locationBias, controller.signal, placesSessionRef.current.current())
+        acMetaRef.current = { query: input, source: result.source || 'unknown' }
+        setAcSource(result.source || '')
         setSuggestions(result.suggestions || [])
       } catch (err: unknown) {
         // Superseded request — axios rejects an aborted call with CanceledError.
@@ -110,8 +135,32 @@ export default function PlPlaceSearch({ planner, locationBias, onPick, onResolvi
     }
   }, [query, fetchSuggestions])
 
-  const applyPlace = (place: MapsPlace) => {
+  /**
+   * `pick` is present only when the place came out of a ranked list, so a
+   * coordinate paste or a resolved Google URL contributes no row.
+   */
+  const applyPlace = (place: MapsPlace, pick?: { mode: 'search' | 'autocomplete'; rank: number; count: number }) => {
     onPick(placeToPick(place))
+    if (pick) {
+      const meta = pick.mode === 'search' ? searchMetaRef.current : acMetaRef.current
+      const lat = Number(place.lat)
+      const lng = Number(place.lng)
+      if (meta && Number.isFinite(lat) && Number.isFinite(lng)) {
+        recordPlacePick({
+          query: meta.query,
+          lang: language,
+          biasLat: locationBias ? (locationBias.low.lat + locationBias.high.lat) / 2 : undefined,
+          biasLng: locationBias ? (locationBias.low.lng + locationBias.high.lng) / 2 : undefined,
+          source: `${pick.mode}:${meta.source}`,
+          liveRank: pick.rank,
+          liveCount: pick.count,
+          pickedName: String(place.name ?? ''),
+          pickedLat: lat,
+          pickedLng: lng,
+          pickedPlaceId: (place.google_place_id as string) || (place.osm_id as string) || null,
+        })
+      }
+    }
     setResults([])
     setSuggestions([])
     setQuery('')
@@ -147,7 +196,10 @@ export default function PlPlaceSearch({ planner, locationBias, onPick, onResolvi
           return
         }
       }
-      const result = await mapsApi.search(trimmed, language)
+      // Derselbe Hinweis, den die Vervollstaendigung schon bekommt: die Suche
+      // braucht ihn genauso, nur als Punkt statt als Kasten.
+      const result = await mapsApi.search(trimmed, language, pointFromBox(locationBias))
+      searchMetaRef.current = { query: trimmed, source: result.source || 'unknown' }
       setResults(result.places || [])
     } catch (err: unknown) {
       toast.error(getApiErrorMessage(err, t('places.mapsSearchError')))
@@ -158,6 +210,9 @@ export default function PlPlaceSearch({ planner, locationBias, onPick, onResolvi
   }
 
   const handleSelectSuggestion = async (suggestion: Suggestion) => {
+    // Read before the list is cleared: this is the rank the user saw.
+    const acRank = suggestions.findIndex(s => s.placeId === suggestion.placeId)
+    const acCount = suggestions.length
     setSuggestions([])
     const previousQuery = query
     setQuery('')
@@ -174,13 +229,27 @@ export default function PlPlaceSearch({ planner, locationBias, onPick, onResolvi
       } catch {
         // fall through to text search
       }
+      if (!place && suggestion.source === 'openstreetmap' && suggestion.lat != null && suggestion.lng != null) {
+        // The layer's second line is the local name, not an address, so joining
+        // the two makes a query nobody typed — and its first answer would be
+        // silently taken as the place the user picked. The row already knows
+        // where it is.
+        place = {
+          name: suggestion.mainText,
+          address: '',
+          lat: suggestion.lat,
+          lng: suggestion.lng,
+          osm_id: suggestion.placeId,
+          source: 'openstreetmap',
+        }
+      }
       if (!place) {
         const fullQuery = [suggestion.mainText, suggestion.secondaryText].filter(Boolean).join(', ')
-        const search = await mapsApi.search(fullQuery, language)
+        const search = await mapsApi.search(fullQuery, language, pointFromBox(locationBias))
         place = (search.places?.[0] as MapsPlace | undefined) ?? null
       }
       if (place) {
-        applyPlace(place)
+        applyPlace(place, acRank >= 0 ? { mode: 'autocomplete', rank: acRank, count: acCount } : undefined)
       } else {
         setQuery(previousQuery)
         toast.error(t('places.mapsSearchError'))
@@ -232,10 +301,15 @@ export default function PlPlaceSearch({ planner, locationBias, onPick, onResolvi
               onClick={() => handleSelectSuggestion(s)}
               className="block w-full border-t border-[color:var(--m-rowbr)] px-[13px] py-[10px] text-left first:border-t-0"
             >
-              <div className="truncate text-[0.8125rem] font-semibold text-m-ink">{s.mainText}</div>
-              {s.secondaryText && (
-                <div className="truncate font-geist text-[0.65625rem] text-m-muted">{s.secondaryText}</div>
-              )}
+              <div className="flex items-center gap-2">
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-[0.8125rem] font-semibold text-m-ink">{s.mainText}</div>
+                  {s.secondaryText && (
+                    <div className="truncate font-geist text-[0.65625rem] text-m-muted">{s.secondaryText}</div>
+                  )}
+                </div>
+                <SourceMark label={sourceLabelFor(s, acSource)} />
+              </div>
             </button>
           ))}
         </div>
@@ -247,7 +321,7 @@ export default function PlPlaceSearch({ planner, locationBias, onPick, onResolvi
             <button
               key={idx}
               type="button"
-              onClick={() => applyPlace(result)}
+              onClick={() => applyPlace(result, { mode: 'search', rank: idx, count: results.length })}
               className="block w-full border-t border-[color:var(--m-rowbr)] px-[13px] py-[10px] text-left first:border-t-0"
             >
               <div className="truncate text-[0.8125rem] font-semibold text-m-ink">{String(result.name ?? '')}</div>

@@ -80,6 +80,10 @@ const budget: TranslationStrings = {
   'costs.pays': 'betalar',
   'costs.settle': 'Lösa',
   'costs.balances': 'Balanser',
+  'costs.finalBudget': 'Slutlig budget',
+  'costs.finalExpenses': 'Betalda utgifter',
+  'costs.finalReimbursed': 'Återbetalningar netto',
+  'costs.finalPending': 'Väntande återbetalningar',
   'costs.byCategory': 'Via kategori',
   'costs.noCategories': 'Inga utgifter än.',
   'costs.settleHistory': 'Historik över reglering',
@@ -147,5 +151,12 @@ const budget: TranslationStrings = {
   'costs.splitSumUnder': 'Summan av delarna: {sum} av {total} ({diff} saknas)',
   'costs.splitSumOver': 'Summan av delarna: {sum} av {total} ({diff} för mycket)',
   'costs.toggleSign': 'Växla mellan utgift och återbetalning',
+  'costs.receipts': 'Kvitton',
+  'costs.receiptsTitle': 'Kvitton & fakturor',
+  'costs.attachReceipt': 'Bifoga kvitto / faktura',
+  'costs.noReceipts': 'Inga bifogade kvitton',
+  'costs.deleteReceipt': 'Ta bort kvitto',
+  'costs.viewReceipt': 'Visa kvitto',
+  'costs.receiptLeftBehind': 'Sparandet misslyckades och {count} uppladdade kvitton finns kvar. Ta bort dem under Filer.',
 };
 export default budget;

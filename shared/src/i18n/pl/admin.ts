@@ -79,11 +79,47 @@ const admin: TranslationStrings = {
     'Użytkownicy bez 2FA muszą ukończyć konfigurację w Ustawieniach zanim zaczną korzystać z aplikacji.',
   'admin.apiKeys': 'Klucze API',
   'admin.apiKeysHint':
-    'Opcjonalne. Umożliwiają pobieranie większej ilości danych o miejscach, takich jak zdjęcia i pogoda.',
+    'Skąd pochodzą dane miejsc. Indeks TREK nie potrzebuje klucza; dwaj dostawcy poniżej są opcjonalni.',
+  'admin.trekApi.badgeDefault': 'Zalecane źródło domyślne',
+  'admin.googleCaveat.badge': 'Niezalecane',
+  'admin.googleCaveat.body':
+    'TREK jest otwartym oprogramowaniem i nie jesteśmy tu neutralni. W tej skali oceny i zdjęcia zwykłych lokali istnieją tylko u Google, i to jest właśnie monopol. Pole jest tu z braku alternatywy, a nie dlatego, że je zalecamy. Każde zapytanie idzie wtedy do Google.',
+  'admin.trekApi.tagline':
+    'Własny indeks miejsc TREK-a. Wyszukiwanie bez klucza Google, bez limitu i bez tego, żeby ktoś liczył twoje zapytania.',
+  'admin.trekApi.factPlaces':
+    '73,6 miliona miejsc na świecie',
+  'admin.trekApi.factNoKey':
+    'Bez klucza, bez limitu',
+  'admin.trekApi.factOffline':
+    'Pakiety krajowe działają offline',
+  'admin.trekApi.factPrivacy':
+    'Zapytania nigdy nie są zapisywane',
+  'admin.trekApi.more':
+    'Co w tym jest',
+  'admin.trekApi.fieldPhone':
+    'Telefon',
+  'admin.trekApi.fieldStableId':
+    'Stały identyfikator',
+  'admin.trekApi.includedNote':
+    'Opisy pochodzą ze strony samego miejsca, a godziny otwarcia z OpenStreetMap tam, gdzie je wpisano.',
+  'admin.trekApi.notRatings':
+    'Oceny',
+  'admin.trekApi.notPhotos':
+    'Zdjęcia zwykłych lokali',
+  'admin.trekApi.notIncludedNote':
+    'Żadne otwarte źródło nie ma ani jednego, ani drugiego, za żadną cenę. Do tych dwóch klucz Google pozostaje jedyną drogą.',
+  'admin.trekApi.sourcesLabel':
+    'Źródła',
+  'admin.trekApi.sourcesNote':
+    'Każde pole w odpowiedzi mówi, z którego z nich pochodzi.',
+  'admin.trekApi.included':
+    'Zawiera',
+  'admin.trekApi.notIncluded':
+    'Nie zawiera',
   'admin.mapsKey': 'Klucz Google Maps API',
   'admin.mapsKeyHint': 'Wymagany do wyszukiwania miejsc. Uzyskaj go na console.cloud.google.com',
   'admin.mapsKeyHintLong':
-    'Bez klucza API, OpenStreetMap jest wykorzystywany do wyszukiwania miejsc. Z kluczem API Google, zdjęcia, oceny i godziny otwarcia również mogą być pobierane. Uzyskaj go na console.cloud.google.com.',
+    'Bez klucza API Google używane jest zalecane API TREK. Z kluczem można dodatkowo wczytać zdjęcia, oceny i godziny otwarcia. Klucz utworzysz na console.cloud.google.com.',
   'admin.recommended': 'Polecane',
   'admin.weatherKey': 'Klucz OpenWeatherMap API',
   'admin.weatherKeyHint': 'Do danych pogodowych. Uzyskaj go bezpłatnie na openweathermap.org',
@@ -108,6 +144,8 @@ const admin: TranslationStrings = {
   'admin.fileTypesFormat':
     'Rozszerzenia oddzielone przecinkami (np. jpg,png,pdf,doc). Użyj * aby zezwolić na wszystkie typy.',
   'admin.fileTypesSaved': 'Ustawienia typów plików zostały zapisane',
+  'admin.googleOptions': 'Do czego służy klucz',
+  'admin.googleOptionsSummary': '{on} z {total} włączone',
   'admin.placesPhotos.title': 'Zdjęcia miejsc',
   'admin.placesPhotos.subtitle':
     'Pobiera zdjęcia z Google Places API. Wyłącz, aby zaoszczędzić limit API. Zdjęcia z Wikimedia nie są objęte.',
@@ -120,6 +158,17 @@ const admin: TranslationStrings = {
   'admin.placesEnrich.title': 'Wzbogacanie miejsc',
   'admin.placesEnrich.subtitle':
     'Pokazuje zdjęcia i opis podczas dodawania miejsca. Wikipedia i OpenStreetMap są używane zawsze; Google dochodzi, gdy włączone są Zdjęcia miejsc lub Szczegóły miejsc.',
+  'admin.transitProvider.title': 'Dostawca transportu publicznego',
+  'admin.transitProvider.subtitle': 'Która usługa odpowiada na wyszukiwanie transportu publicznego.',
+  'admin.transitProvider.transitous': 'Transitous (bezpłatnie)',
+  'admin.transitProvider.google': 'Google',
+  'admin.transitProvider.transitousHint': 'Społecznościowe źródła GTFS. Bezpłatne i bez klucza, z najlepszym zasięgiem w Europie.',
+  'admin.transitProvider.googleHint': 'Używa powyższego klucza Google w regionach, dla których Transitous nie ma danych. Rozliczane za wyszukiwanie — dopóki nie ustawiono klucza, działa Transitous.',
+  'admin.transitProvider.noKeyWarning': 'Wybrano Google, ale nie skonfigurowano klucza Google — wyszukiwanie transportu nadal korzysta z Transitous. Dodaj klucz w sekcji Klucze API powyżej.',
+  'admin.transitProvider.personalKeyWarning': 'Ustawiono tylko Twój własny klucz Google, więc wyszukiwanie pozostałych członków nadal wraca do Transitous. Zapisz klucz powyżej jako administrator, aby obowiązywał w całej instancji.',
+  'admin.placeShadow.title': 'Dziennik wyszukiwania miejsc',
+  'admin.placeShadow.subtitle':
+    'Zapisywanie, który wynik wyszukiwania został wybrany, aby później ocenić inny indeks miejsc na prawdziwych zapytaniach. Nic nie opuszcza tej instancji, a administrator może w każdej chwili wyeksportować lub usunąć dziennik.',
   'admin.bagTracking.title': 'Kontrola bagażu',
   'admin.bagTracking.subtitle': 'Włącz wagę i przypisywanie do toreb dla przedmiotów do pakowania',
   'admin.collab.chat.title': 'Czat',
@@ -315,6 +364,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:calendar-source': 'Dostarczanie wydarzeń do kalendarza',
   'admin.plugins.perm.hook:place-detail-provider':
     'Dodawanie dodatkowych szczegółów (recenzji, ocen, linków) do miejsca',
+  'admin.plugins.perm.hook:search-provider': 'Odpowiadać na wyszukiwania miejsc z własnego indeksu, obok wyników TREK',
   'admin.plugins.perm.hook:trip-warning-provider':
     'Zgłaszanie ostrzeżeń walidacyjnych dla podróży (widocznych w planerze)',
   'admin.plugins.perm.hook:table-contributor': 'Dodawanie kolumn i akcji do widoków podróży (rezerwacje, miejsca, dni)',
@@ -473,6 +523,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.photos': 'Dostarcza zdjęcia',
   'admin.plugins.cap.calendar': 'Dostarcza wydarzenia kalendarza',
   'admin.plugins.cap.placeDetails': 'Wzbogaca miejsca',
+  'admin.plugins.cap.search': 'Odpowiada na wyszukiwania',
   'admin.plugins.cap.warnings': 'Zgłasza problemy',
   'admin.plugins.cap.mapLayers': 'Rysuje na mapie',
   'admin.plugins.cap.routing': 'Oferuje trasowanie',
@@ -532,6 +583,8 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.atlas.description': 'Mapa świata z odwiedzonymi krajami i statystykami podróży',
   'admin.addons.catalog.collab.name': 'Współpraca',
   'admin.addons.catalog.collab.description': 'Notatki, ankiety, czat i podpowiedzi do wspólnego planowania',
+  'admin.addons.catalog.roadtrip.name': 'Podróż samochodowa',
+  'admin.addons.catalog.roadtrip.description': 'Planuj przejazdy z przystankami — czasy jazdy i godziny przyjazdu przeliczają się same',
   'admin.addons.catalog.memories.name': 'Zdjęcia (Immich)',
   'admin.addons.catalog.memories.description': 'Udostępniaj zdjęcia z podróży za pośrednictwem swojej instancji Immich',
   'admin.addons.catalog.mcp.name': 'MCP',

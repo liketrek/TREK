@@ -80,6 +80,10 @@ const budget: TranslationStrings = {
   'costs.pays': 'يدفع',
   'costs.settle': 'تسوية',
   'costs.balances': 'الأرصدة',
+  'costs.finalBudget': 'الميزانية النهائية',
+  'costs.finalExpenses': 'المصاريف المدفوعة',
+  'costs.finalReimbursed': 'صافي المبالغ المستردة',
+  'costs.finalPending': 'المبالغ المستردة المعلقة',
   'costs.byCategory': 'حسب الفئة',
   'costs.noCategories': 'لا توجد مصروفات بعد.',
   'costs.settleHistory': 'سجل التسويات',
@@ -147,5 +151,12 @@ const budget: TranslationStrings = {
   'costs.splitSumUnder': 'مجموع الحصص: {sum} من {total} (ناقص {diff})',
   'costs.splitSumOver': 'مجموع الحصص: {sum} من {total} (زائد {diff})',
   'costs.toggleSign': 'التبديل بين المصروف والاسترداد',
+  'costs.receipts': 'الإيصالات',
+  'costs.receiptsTitle': 'الإيصالات والفواتير',
+  'costs.attachReceipt': 'إرفاق إيصال / فاتورة',
+  'costs.noReceipts': 'لا توجد إيصالات مرفقة',
+  'costs.deleteReceipt': 'حذف الإيصال',
+  'costs.viewReceipt': 'عرض الإيصال',
+  'costs.receiptLeftBehind': 'فشل الحفظ، وما زال هناك {count} إيصالات مرفوعة. احذفها من تبويب الملفات.',
 };
 export default budget;

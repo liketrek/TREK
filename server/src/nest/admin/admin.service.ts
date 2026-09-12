@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
-import { ADDON_IDS } from '../../addons';
+import { ADDON_IDS, MCP_GATED_ADDON_IDS } from '../../addons';
 import { readEnv } from '../../app-config';
 import { updateJwtSecret } from '../../config';
 // Import from sessionManager directly, NOT the ../../mcp barrel — the direct
@@ -698,19 +698,17 @@ export class AdminService {
           }
         : null;
 
-    // Only these addons gate MCP tool/resource/prompt registration (see
-    // registerTools/registerResources) — and only a real enabled-flip changes
-    // what a session would register. Config-only saves, photo providers and
-    // MCP-irrelevant addons must not tear down every live session (#1414).
-    const MCP_RELEVANT_ADDONS = new Set<string>([
-      ADDON_IDS.MCP,
-      ADDON_IDS.PACKING,
-      ADDON_IDS.BUDGET,
-      ADDON_IDS.COLLAB,
-      ADDON_IDS.ATLAS,
-      ADDON_IDS.VACAY,
-      ADDON_IDS.JOURNEY,
-    ]);
+    // Only addons that gate MCP registration matter here — and only a real
+    // enabled-flip changes what a session would register. Config-only saves,
+    // photo providers and MCP-irrelevant addons must not tear down every live
+    // session (#1414).
+    //
+    // The list lives beside ADDON_IDS and is held to the gates by a parity test.
+    // As a copy kept here it had drifted: airtrail and collections gate tools
+    // and were missing, so their write tools stayed callable on an open session
+    // after an admin switched them off, while the REST half answered 404 for the
+    // same user in the same moment.
+    const MCP_RELEVANT_ADDONS = new Set<string>(MCP_GATED_ADDON_IDS);
     const enabledChanged = !!addon && data.enabled !== undefined && (data.enabled ? 1 : 0) !== addon.enabled;
 
     return {

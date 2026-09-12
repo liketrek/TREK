@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { DatabaseService, type TripAccess } from '../database/database.service';
-import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
+import type { BudgetParticipantFinal, TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 import { RealtimeService } from '../realtime/realtime.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { avatarUrl } from '../common/avatarUrl';
-import type { User, BudgetItem, BudgetItemMember, BudgetItemPayer } from '../../types';
+import type { User, BudgetItem, BudgetItemMember, BudgetItemPayer, BudgetItemReceipt } from '../../types';
 import { ExchangeRatesService } from './exchange-rates.service';
 
 type Trip = TripAccess;
@@ -12,7 +12,7 @@ type Trip = TripAccess;
 type SettlementRow = {
   id: number; trip_id: string; from_user_id: number; to_user_id: number;
   amount: number; currency: string | null; exchange_rate: number | null;
-  created_at: string; created_by_user_id: number | null;
+  created_at: string; settled_at: string | null; created_by_user_id: number | null;
   from_username: string; from_avatar: string | null;
   to_username: string; to_avatar: string | null;
 };
@@ -69,11 +69,18 @@ function sumMoney(amounts: number[]): number {
   return amounts.reduce((a, v) => a + Math.round(v * 100), 0) / 100;
 }
 
-function allocateDisplayCents(cents: number[], factor: number): number[] {
+/**
+ * Convert a set of trip cents to display cents so that they still add up: floor
+ * each one, then hand the cents lost to flooring to the largest fractions. `total`
+ * is what the set has to sum to. By default that is the rounded conversion of its
+ * own sum; the rows behind a figure pass the figure's already allocated cents
+ * instead, so a list nested under a line lands exactly on that line.
+ */
+function allocateDisplayCents(cents: number[], factor: number, total = Math.round(cents.reduce((a, c) => a + c, 0) * factor)): number[] {
   if (factor === 1) return [...cents];
   const exact = cents.map(c => c * factor);
   const out = exact.map(v => Math.floor(v));
-  const drift = Math.round(cents.reduce((a, c) => a + c, 0) * factor) - out.reduce((a, v) => a + v, 0);
+  const drift = total - out.reduce((a, v) => a + v, 0);
   const byFraction = exact
     .map((v, i) => ({ i, frac: v - Math.floor(v) }))
     .sort((a, b) => b.frac - a.frac || a.i - b.i);
@@ -143,6 +150,32 @@ export class BudgetService {
     return rows.map(p => ({ ...p, avatar_url: avatarUrl(p) }));
   }
 
+  private loadItemReceipts(itemId: number | string): BudgetItemReceipt[] {
+    const rows = this.db.all<{
+      id: number;
+      filename: string;
+      original_name: string;
+      file_size: number | null;
+      mime_type: string | null;
+      trip_id: number;
+    }>(`
+      SELECT f.id, f.filename, f.original_name, f.file_size, f.mime_type, f.trip_id
+      FROM trip_files f
+      JOIN file_links fl ON fl.file_id = f.id
+      WHERE f.deleted_at IS NULL AND fl.budget_item_id = ?
+      ORDER BY f.created_at ASC
+    `, itemId);
+
+    return rows.map(f => ({
+      id: f.id,
+      filename: f.filename,
+      original_name: f.original_name,
+      file_size: f.file_size,
+      mime_type: f.mime_type,
+      url: `/api/trips/${f.trip_id}/files/${f.id}/download`,
+    }));
+  }
+
   /**
    * The subset of `userIds` that is actually on this trip. Used to be a plain
    * existence check against `users`, which let any id on the instance become a
@@ -175,6 +208,39 @@ export class BudgetService {
     const total = sumMoney(accepted);
     this.db.run('UPDATE budget_items SET total_price = ? WHERE id = ?', total, itemId);
     return total;
+  }
+
+  /**
+   * Drop this item's receipt links, leaving the files themselves alone.
+   *
+   * The files are deliberately NOT trashed. `budget_edit` and `file_delete` are
+   * separate, separately configurable permissions, and a receipt id is any file
+   * on the trip, so trashing here would let anyone who may edit an expense
+   * delete a document they may not delete, from three surfaces that never see a
+   * file permission at all: the REST route, the MCP tool and the plugin RPC.
+   * Cleaning up a file nobody references is what the Files trash is for.
+   *
+   * A row is only removed when the receipt link was all it carried. The same
+   * row can also tie the file to a place or a booking, and those links have
+   * nothing to do with the expense. A link whose file already sits in the trash
+   * is left in place, so restoring that file brings it back attached.
+   */
+  private unlinkReceipts(budgetItemId: number | string, keep: ReadonlySet<number> = new Set()) {
+    const rows = this.db.all<{ id: number; file_id: number; reservation_id: number | null; assignment_id: number | null; place_id: number | null }>(
+      `SELECT fl.id, fl.file_id, fl.reservation_id, fl.assignment_id, fl.place_id
+       FROM file_links fl
+       JOIN trip_files f ON f.id = fl.file_id
+       WHERE fl.budget_item_id = ? AND f.deleted_at IS NULL`,
+      budgetItemId,
+    );
+    for (const row of rows) {
+      if (keep.has(row.file_id)) continue;
+      if (row.reservation_id || row.assignment_id || row.place_id) {
+        this.db.run('UPDATE file_links SET budget_item_id = NULL WHERE id = ?', row.id);
+      } else {
+        this.db.run('DELETE FROM file_links WHERE id = ?', row.id);
+      }
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -225,9 +291,42 @@ export class BudgetService {
       }
     }
 
+    const receiptsByItem: Record<number, BudgetItemReceipt[]> = {};
+    if (itemIds.length > 0) {
+      const placeholders = itemIds.map(() => '?').join(',');
+      const allReceipts = this.db.all<{
+        id: number;
+        filename: string;
+        original_name: string;
+        file_size: number | null;
+        mime_type: string | null;
+        trip_id: number;
+        budget_item_id: number;
+      }>(`
+        SELECT f.id, f.filename, f.original_name, f.file_size, f.mime_type, f.trip_id, fl.budget_item_id
+        FROM trip_files f
+        JOIN file_links fl ON fl.file_id = f.id
+        WHERE f.deleted_at IS NULL AND fl.budget_item_id IN (${placeholders})
+        ORDER BY f.created_at ASC
+      `, ...itemIds);
+
+      for (const r of allReceipts) {
+        if (!receiptsByItem[r.budget_item_id]) receiptsByItem[r.budget_item_id] = [];
+        receiptsByItem[r.budget_item_id].push({
+          id: r.id,
+          filename: r.filename,
+          original_name: r.original_name,
+          file_size: r.file_size,
+          mime_type: r.mime_type,
+          url: `/api/trips/${r.trip_id}/files/${r.id}/download`,
+        });
+      }
+    }
+
     items.forEach(item => {
       item.members = membersByItem[item.id] || [];
       item.payers = payersByItem[item.id] || [];
+      item.receipts = receiptsByItem[item.id] || [];
     });
     return items;
   }
@@ -352,6 +451,7 @@ export class BudgetService {
       ticket_json?: string | null;
       reservation_id?: number | null;
       place_id?: number | null;
+      receipt_file_ids?: number[];
     },
   ) {
     return this.db.transaction(() => {
@@ -409,19 +509,32 @@ export class BudgetService {
         for (const uid of memberIds) insert.run(itemId, uid);
       }
 
+      if (data.receipt_file_ids && data.receipt_file_ids.length > 0) {
+        const insertLink = this.db.prepare('INSERT OR IGNORE INTO file_links (file_id, budget_item_id) VALUES (?, ?)');
+        for (const fid of data.receipt_file_ids) {
+          // Verify file belongs to this trip
+          const belongs = this.db.get('SELECT id FROM trip_files WHERE id = ? AND trip_id = ? AND deleted_at IS NULL', fid, tripId);
+          if (belongs) {
+            insertLink.run(fid, itemId);
+          }
+        }
+      }
+
       const item = this.db.get<BudgetItem>('SELECT * FROM budget_items WHERE id = ?', itemId)!;
       item.members = this.loadItemMembers(itemId);
       item.payers = this.loadItemPayers(itemId);
+      item.receipts = this.loadItemReceipts(itemId);
       return item;
     });
   }
 
-  /** Fetch a single budget item hydrated with its members and payers, scoped to the trip. */
+  /** Fetch a single budget item hydrated with its members, payers, and receipts, scoped to the trip. */
   getBudgetItem(id: string | number, tripId: string | number): BudgetItem | null {
     const item = this.db.get<BudgetItem>('SELECT * FROM budget_items WHERE id = ? AND trip_id = ?', id, tripId);
     if (!item) return null;
     item.members = this.loadItemMembers(id);
     item.payers = this.loadItemPayers(id);
+    item.receipts = this.loadItemReceipts(id);
     return item;
   }
 
@@ -445,6 +558,7 @@ export class BudgetService {
       members?: { user_id: number; amount?: number | null }[];
       persons?: number | null; days?: number | null; note?: string | null; sort_order?: number; expense_date?: string | null;
       ticket_json?: string | null;
+      receipt_file_ids?: number[];
     },
   ) {
     return this.db.transaction(() => {
@@ -522,9 +636,33 @@ export class BudgetService {
         }
       }
 
+      if (data.receipt_file_ids !== undefined) {
+        // The ids that survive are left linked rather than dropped and re-added,
+        // so a receipt the request keeps never loses its row for an instant.
+        const keep = new Set(data.receipt_file_ids.map(Number));
+        this.unlinkReceipts(id, keep);
+        if (data.receipt_file_ids.length > 0) {
+          const insertLink = this.db.prepare('INSERT OR IGNORE INTO file_links (file_id, budget_item_id) VALUES (?, ?)');
+          const adopt = this.db.prepare('UPDATE file_links SET budget_item_id = ? WHERE id = ?');
+          for (const fid of data.receipt_file_ids) {
+            const belongs = this.db.get('SELECT id FROM trip_files WHERE id = ? AND trip_id = ? AND deleted_at IS NULL', fid, tripId);
+            if (!belongs) continue;
+            // A file already tied to a place or a booking gets the receipt link
+            // written onto that row, because the unique index is per file and
+            // item and a second row for the same pair would be refused anyway.
+            const spare = this.db.get<{ id: number }>(
+              'SELECT id FROM file_links WHERE file_id = ? AND budget_item_id IS NULL LIMIT 1', fid,
+            );
+            if (spare) adopt.run(id, spare.id);
+            else insertLink.run(fid, id);
+          }
+        }
+      }
+
       const updated = this.db.get<BudgetItem>('SELECT * FROM budget_items WHERE id = ?', id)!;
       updated.members = this.loadItemMembers(id);
       updated.payers = this.loadItemPayers(id);
+      updated.receipts = this.loadItemReceipts(id);
       return updated;
     });
   }
@@ -551,7 +689,15 @@ export class BudgetService {
     );
     if (!item) return false;
     return this.db.transaction(() => {
+      // Find all receipts attached to this item before deleting it
+      // The receipts stay; only their tie to this expense goes. Rows that
+      // carry nothing else are removed, rows that also point at a place or a
+      // booking keep those. A link on a file already in the trash is left for
+      // the SET NULL on the foreign key, so restoring the file does not bring
+      // back a pointer to an expense that no longer exists.
+      this.unlinkReceipts(id);
       this.db.run('DELETE FROM budget_items WHERE id = ?', id);
+
       // The booking keeps a copy of this expense's total in its metadata, and
       // the reservation update path preserves that copy across edits. With the
       // expense gone there is nothing left to mirror, so drop it here rather
@@ -708,6 +854,21 @@ export class BudgetService {
     return shares;
   }
 
+  /**
+   * Who owes whom (`balances` + the simplified `flows`), the recorded transfers
+   * (`settlements`), and what the trip ends up costing each participant
+   * (`finalBudgets`).
+   *
+   * The final budget is the same ledger read from the other end. The balances
+   * answer "who still has to pay whom"; `finalBudgets` answers "what did the trip
+   * cost me", which no other figure on the Costs screen gives: a participant's
+   * gross outlay minus the reimbursements already recorded minus the ones still
+   * to come. It is derived from the same integer cents rather than recomputed, so
+   * a breakdown can never contradict the balance printed next to it. The rows
+   * behind each figure (`sources`) travel with it, in the same display cents: an
+   * expense list converted again on the client with today's rate would not add up
+   * to a figure that was booked at the rate frozen on entry.
+   */
   calculateSettlement(
     tripId: string | number,
     opts: { base?: string; rates?: Record<string, number> | null; tripCurrency?: string } = {},
@@ -791,6 +952,17 @@ export class BudgetService {
       if (!balances[id]) balances[id] = { user_id: id, username: src.username || '', avatar_url: avatarUrl(src), cents: 0 };
       return balances[id];
     };
+    // The two halves of the balance, kept apart so the per-person final budget can
+    // show its own arithmetic: what each person fronted, and what the recorded
+    // transfers have already moved back. Same trip cents as `balances`, filled by
+    // the same two loops, so the three figures cannot drift from the balance they
+    // are derived from.
+    const frontedCents: Record<number, number> = {};
+    const reimbursedCents: Record<number, number> = {};
+    // ...and the rows they are made of, so the breakdown lists them in these same
+    // cents rather than converting the expense list a second time on the client.
+    const frontedRows: Record<number, { item_id: number; cents: number }[]> = {};
+    const movedRows: Record<number, { settlement_id: number; from_user_id: number; to_user_id: number; cents: number }[]> = {};
 
     for (const item of items) {
       const members = allMembers.filter(m => m.budget_item_id === item.id);
@@ -822,6 +994,8 @@ export class BudgetService {
       for (const p of payers) {
         const paid = toTripCents(p.amount, item.currency, item.exchange_rate);
         ensure(p.user_id, p).cents += paid;
+        frontedCents[p.user_id] = (frontedCents[p.user_id] || 0) + paid;
+        if (paid !== 0) (frontedRows[p.user_id] ??= []).push({ item_id: item.id, cents: paid });
         creditCents += paid;
       }
       // …and each split participant owes their share — a custom per-member amount
@@ -861,6 +1035,14 @@ export class BudgetService {
       const inTrip = Math.round(settleToTrip(s.amount, s.currency, s.exchange_rate) * 100);
       ensureSettled(s.from_user_id, s.from_username, s.from_avatar_url).cents += inTrip;
       ensureSettled(s.to_user_id, s.to_username, s.to_avatar_url).cents -= inTrip;
+      // Net of the transfers in both directions: sending one back is a reimbursement
+      // received in reverse, and netting them is what keeps the final budget's
+      // subtraction equal to the balance it is taken from.
+      reimbursedCents[s.to_user_id] = (reimbursedCents[s.to_user_id] || 0) + inTrip;
+      reimbursedCents[s.from_user_id] = (reimbursedCents[s.from_user_id] || 0) - inTrip;
+      const moved = { settlement_id: s.id, from_user_id: s.from_user_id, to_user_id: s.to_user_id };
+      (movedRows[s.to_user_id] ??= []).push({ ...moved, cents: inTrip });
+      (movedRows[s.from_user_id] ??= []).push({ ...moved, cents: -inTrip });
     }
 
     // Into the display currency as one set, then simplify — balances and flows are
@@ -868,6 +1050,14 @@ export class BudgetService {
     // what "Settle up" offers to move, down to the last cent (#1382).
     const ledger = Object.values(balances);
     const displayCents = allocateDisplayCents(ledger.map(b => b.cents), displayFactor);
+    // Each component of the final budget is re-denominated as its own set, for the
+    // same reason the balances are: rounding one person at a time lets the column
+    // drift away from the figure it converted from. The final itself is then
+    // subtracted in display cents rather than converted separately, so the three
+    // lines the breakdown shows always add up to the total beside them, whatever
+    // currency the viewer picked.
+    const frontedDisplayCents = allocateDisplayCents(ledger.map(b => frontedCents[b.user_id] || 0), displayFactor);
+    const reimbursedDisplayCents = allocateDisplayCents(ledger.map(b => reimbursedCents[b.user_id] || 0), displayFactor);
 
     // Calculate optimized payment flows (greedy algorithm)
     const people = ledger
@@ -903,6 +1093,35 @@ export class BudgetService {
       })),
       flows,
       settlements,
+      finalBudgets: ledger.map((b, i) => {
+        // The rows behind each figure, converted against the figure itself: the
+        // same largest-remainder split, with the cents already allocated to the
+        // figure as the target, so each list adds up to the line it sits under.
+        const fronted = frontedRows[b.user_id] || [];
+        const moved = movedRows[b.user_id] || [];
+        const frontedDisplay = allocateDisplayCents(fronted.map(r => r.cents), displayFactor, frontedDisplayCents[i]);
+        const movedDisplay = allocateDisplayCents(moved.map(r => r.cents), displayFactor, reimbursedDisplayCents[i]);
+        return {
+          user_id: b.user_id, username: b.username, avatar_url: b.avatar_url,
+          expenses: frontedDisplayCents[i] / 100,
+          reimbursed: reimbursedDisplayCents[i] / 100,
+          pending: displayCents[i] / 100,
+          final: (frontedDisplayCents[i] - reimbursedDisplayCents[i] - displayCents[i]) / 100,
+          sources: {
+            fronted: fronted.map((r, k) => ({ item_id: r.item_id, cents: frontedDisplay[k] })),
+            moved: moved.map((r, k) => ({ ...r, cents: movedDisplay[k] })),
+            // The flows are display cents already, and the greedy pass drains every
+            // balance completely, so the flows on a person's side sum to their balance.
+            outstanding: flows
+              .filter(f => f.from.user_id === b.user_id || f.to.user_id === b.user_id)
+              .map(f => ({
+                from_user_id: f.from.user_id,
+                to_user_id: f.to.user_id,
+                cents: Math.round(f.amount * 100) * (f.to.user_id === b.user_id ? 1 : -1),
+              })),
+          },
+        };
+      }) satisfies BudgetParticipantFinal[],
     };
   }
 
@@ -913,7 +1132,7 @@ export class BudgetService {
   // Settlement usernames use COALESCE(display_name, username) like every item
   // query (the legacy raw fu.username was the odd one out).
   private static readonly SETTLEMENT_SELECT = `
-    SELECT s.id, s.trip_id, s.from_user_id, s.to_user_id, s.amount, s.currency, s.exchange_rate, s.created_at, s.created_by_user_id,
+    SELECT s.id, s.trip_id, s.from_user_id, s.to_user_id, s.amount, s.currency, s.exchange_rate, s.created_at, s.settled_at, s.created_by_user_id,
            COALESCE(fu.display_name, fu.username) AS from_username, fu.avatar AS from_avatar,
            COALESCE(tu.display_name, tu.username) AS to_username,   tu.avatar AS to_avatar
     FROM budget_settlements s
@@ -926,7 +1145,7 @@ export class BudgetService {
       id: r.id, trip_id: r.trip_id,
       from_user_id: r.from_user_id, to_user_id: r.to_user_id,
       amount: r.amount, currency: r.currency ?? null, exchange_rate: r.exchange_rate ?? 1,
-      created_at: r.created_at, created_by_user_id: r.created_by_user_id,
+      created_at: r.created_at, settled_at: r.settled_at ?? null, created_by_user_id: r.created_by_user_id,
       from_username: r.from_username, from_avatar_url: avatarUrl({ avatar: r.from_avatar }),
       to_username: r.to_username, to_avatar_url: avatarUrl({ avatar: r.to_avatar }),
     };
@@ -953,14 +1172,15 @@ export class BudgetService {
   /** Raw settlement insert (no FX freeze) — the REST path wraps it in createSettlement. */
   insertSettlement(
     tripId: string | number,
-    data: { from_user_id: number; to_user_id: number; amount: number; currency?: string | null; exchange_rate?: number },
+    data: { from_user_id: number; to_user_id: number; amount: number; currency?: string | null; exchange_rate?: number; settled_at?: string | null },
     createdByUserId?: number,
   ) {
     const result = this.db.run(
-      'INSERT INTO budget_settlements (trip_id, from_user_id, to_user_id, amount, currency, exchange_rate, created_by_user_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO budget_settlements (trip_id, from_user_id, to_user_id, amount, currency, exchange_rate, settled_at, created_by_user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
       tripId, data.from_user_id, data.to_user_id, Math.round(data.amount * 100) / 100,
       data.currency ? data.currency.toUpperCase() : null,
       data.exchange_rate != null ? data.exchange_rate : 1,
+      data.settled_at || null,
       createdByUserId ?? null,
     );
     return this.getSettlement(Number(result.lastInsertRowid), tripId);
@@ -970,7 +1190,7 @@ export class BudgetService {
   applySettlementUpdate(
     id: string | number,
     tripId: string | number,
-    data: { from_user_id: number; to_user_id: number; amount: number; currency?: string | null; exchange_rate?: number },
+    data: { from_user_id: number; to_user_id: number; amount: number; currency?: string | null; exchange_rate?: number; settled_at?: string | null },
   ) {
     const row = this.db.get('SELECT id FROM budget_settlements WHERE id = ? AND trip_id = ?', id, tripId);
     if (!row) return null;
@@ -978,12 +1198,14 @@ export class BudgetService {
     UPDATE budget_settlements SET
       from_user_id = ?, to_user_id = ?, amount = ?,
       currency = CASE WHEN ? THEN ? ELSE currency END,
-      exchange_rate = CASE WHEN ? IS NOT NULL THEN ? ELSE exchange_rate END
+      exchange_rate = CASE WHEN ? IS NOT NULL THEN ? ELSE exchange_rate END,
+      settled_at = CASE WHEN ? THEN ? ELSE settled_at END
     WHERE id = ?
   `,
       data.from_user_id, data.to_user_id, Math.round(data.amount * 100) / 100,
       data.currency !== undefined ? 1 : 0, data.currency ? data.currency.toUpperCase() : null,
       data.exchange_rate !== undefined ? 1 : null, data.exchange_rate !== undefined ? data.exchange_rate : 1,
+      data.settled_at !== undefined ? 1 : 0, data.settled_at || null,
       id,
     );
     return this.getSettlement(id, tripId);
@@ -1045,7 +1267,7 @@ export class BudgetService {
     return roster.has(data.from_user_id) && roster.has(data.to_user_id);
   }
 
-  async createSettlement(tripId: string | number, data: { from_user_id: number; to_user_id: number; amount: number; currency?: string | null }, userId: number) {
+  async createSettlement(tripId: string | number, data: { from_user_id: number; to_user_id: number; amount: number; currency?: string | null; settled_at?: string | null }, userId: number) {
     if (!this.settlementPartiesOnTrip(tripId, data)) return null;
     // Freeze the FX rate for the display currency the amount was entered in so the
     // transfer keeps cancelling its expense when live rates drift (#1445).
@@ -1053,7 +1275,7 @@ export class BudgetService {
     return this.insertSettlement(tripId, data, userId);
   }
 
-  async updateSettlement(id: string | number, tripId: string | number, data: { from_user_id: number; to_user_id: number; amount: number; currency?: string | null }) {
+  async updateSettlement(id: string | number, tripId: string | number, data: { from_user_id: number; to_user_id: number; amount: number; currency?: string | null; settled_at?: string | null }) {
     // Pass the settlement's stored currency so an edit that doesn't change it keeps
     // the already-frozen rate (#1445) — otherwise a live-rate drift would re-open a
     // settled position on an unrelated edit.

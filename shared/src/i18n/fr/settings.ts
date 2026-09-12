@@ -24,6 +24,11 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Modèle de carte',
   'settings.mapTemplatePlaceholder.select': 'Sélectionner un modèle…',
   'settings.mapDefaultHint': 'Laissez vide pour OpenStreetMap (par défaut)',
+  'settings.routingBase': 'Moteur de calcul d’itinéraire propre',
+  'settings.routingBaseHint': 'Votre propre instance OSRM. Vide utilise les serveurs publics, limités à environ une requête par seconde : suffisant pour une journée, juste pour un road trip. Prend effet après un redémarrage du serveur.',
+  'settings.valhallaBase': 'Instance Valhalla propre',
+  'settings.valhallaBaseHint':
+    'TREK utilise par défaut la Valhalla publique de FOSSGIS pour éviter les péages, autoroutes et ferries. Saisissez ici l’URL de votre propre Valhalla pour l’utiliser à la place. Si seule une instance de routage personnalisée est configurée, la Valhalla publique n’est pas utilisée. Après avoir saisi une URL personnalisée, redémarrez le serveur et rechargez la page.',
   'settings.mapHint': "Modèle d'URL pour les tuiles de carte",
   'settings.mapProvider': 'Fournisseur de carte',
   'settings.mapProviderHint': 'Affecte les cartes Trip Planner et Journey. Atlas utilise toujours Leaflet.',
@@ -88,6 +93,9 @@ const settings: TranslationStrings = {
   'settings.notifyTodoDue': 'Tâche à échéance',
   'settings.notifyVacayInvite': 'Invitations de fusion Vacay',
   'settings.notifyVacayShare': 'Partages de calendrier Vacay',
+  'settings.notifyCollectionInvite': 'Invitations à des collections',
+  'settings.notifySynologySessionCleared': 'Session Synology effacée',
+  'settings.notifyPluginNotification': 'Notifications des extensions',
   'settings.notifyPhotosShared': 'Photos partagées (Immich)',
   'settings.notifyCollabMessage': 'Messages de chat (Collab)',
   'settings.notifyPackingTagged': 'Liste de bagages : attributions',
@@ -280,6 +288,7 @@ const settings: TranslationStrings = {
   'settings.bookingLabelsHint':
     "Affiche les noms des gares / aéroports sur la carte. Si désactivé, seule l'icône est affichée.",
   'settings.notifyVersionAvailable': 'Nouvelle version disponible',
+  'settings.notifyReplicaFailure': 'Échec de réplique de stockage',
   'settings.notificationPreferences.noChannels':
     "Aucun canal de notification n'est configuré. Demandez à un administrateur de configurer les notifications par e-mail ou webhook.",
   'settings.webhookUrl.label': 'URL du webhook',

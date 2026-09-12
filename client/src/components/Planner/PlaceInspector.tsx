@@ -1,3 +1,4 @@
+import ChargingInfo from '../Roadtrip/ChargingInfo'
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { avatarSrc } from '../../utils/avatarSrc'
 import { safeHttpUrl } from '../../utils/safeUrl'
@@ -35,6 +36,8 @@ import { TRANSPORT_TYPES, getAssignmentReservations } from '../../utils/dayMerge
 import { NavigationMenu } from '../shared/NavigationMenu'
 import { resolveOpenNow, resolvePlaceTimeZone, placeWeekdayIndex } from './placeOpenState'
 import { convertHoursLine } from './placeHoursFormat'
+import type { EndDayControlProps } from '../Roadtrip/EndDayControl'
+import VisitControls, { type RoadtripStayControl } from '../Roadtrip/VisitControls'
 
 const detailsCache = new Map()
 
@@ -133,6 +136,9 @@ interface TripMember {
 }
 
 interface PlaceInspectorProps {
+  roadtripActive?: boolean
+  roadtripEndDay?: EndDayControlProps
+  roadtripStay?: RoadtripStayControl
   place: Place | null
   categories: Category[]
   /** 'trip' (default) keeps every existing trip-planner behaviour byte-identical;
@@ -179,7 +185,7 @@ export default function PlaceInspector({
   onClose, onEdit, onDelete, onAssignToDay, onRemoveAssignment,
   files = [], onFileUpload, tripMembers = [], onSetParticipants, onUpdatePlace, onUploadImage, onRate,
   leftWidth = 0, rightWidth = 0,
-  collectionStatus, onCopyToTrip, onSetStatus, onRemoveFromList,
+  collectionStatus, onCopyToTrip, onSetStatus, onRemoveFromList, roadtripEndDay, roadtripStay, roadtripActive,
 }: PlaceInspectorProps) {
   // Plugins that declared a place-detail slot mount at the bottom of this panel,
   // scoped to the open place (trip mode only). Inline-filter like the other sites.
@@ -417,6 +423,8 @@ export default function PlaceInspector({
           )}
 
           {/* Description / Summary */}
+          {roadtripActive && place.stop_type === 'charging' && <ChargingInfo placeId={place.id} />}
+          {(roadtripEndDay || roadtripStay) && <VisitControls endDay={roadtripEndDay} stay={roadtripStay} />}
           {(place.description || googleDetails?.summary) && (
             <div className="collab-note-md bg-surface-hover text-content-muted" style={{ borderRadius: 10, overflow: 'hidden', flexShrink: 0, fontSize: 'calc(12px * var(--fs-scale-body, 1))', lineHeight: '1.5', padding: '8px 12px', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
               <Markdown remarkPlugins={[remarkGfm, remarkBreaks]} components={markdownLinkComponents}>{place.description || googleDetails?.summary || ''}</Markdown>

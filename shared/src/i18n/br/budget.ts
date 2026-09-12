@@ -80,6 +80,10 @@ const budget: TranslationStrings = {
   'costs.pays': 'paga',
   'costs.settle': 'Acertar',
   'costs.balances': 'Saldos',
+  'costs.finalBudget': 'Orçamento final',
+  'costs.finalExpenses': 'Despesas pagas',
+  'costs.finalReimbursed': 'Reembolsos líquidos',
+  'costs.finalPending': 'Reembolsos pendentes',
   'costs.byCategory': 'Por categoria',
   'costs.noCategories': 'Nenhuma despesa ainda.',
   'costs.settleHistory': 'Histórico de acertos',
@@ -147,5 +151,12 @@ const budget: TranslationStrings = {
   'costs.splitSumUnder': 'Soma das partes: {sum} de {total} (faltam {diff})',
   'costs.splitSumOver': 'Soma das partes: {sum} de {total} (sobram {diff})',
   'costs.toggleSign': 'Alternar entre despesa e reembolso',
+  'costs.receipts': 'Comprovantes',
+  'costs.receiptsTitle': 'Comprovantes e notas',
+  'costs.attachReceipt': 'Anexar comprovante / nota',
+  'costs.noReceipts': 'Nenhum comprovante anexado',
+  'costs.deleteReceipt': 'Remover comprovante',
+  'costs.viewReceipt': 'Ver comprovante',
+  'costs.receiptLeftBehind': 'Falha ao salvar, e {count} recibos enviados ainda estão lá. Remova-os na aba Arquivos.',
 };
 export default budget;

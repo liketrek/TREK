@@ -730,8 +730,17 @@ export type BookUnits = z.infer<typeof bookUnitsSchema>;
 
 export const bookSpreadSchema = z.object({
   id: z.string().min(1),
-  /** 'cover' and 'back' are single pages; everything else is a double spread. */
-  role: z.enum(['cover', 'back', 'inner']).default('inner'),
+  /**
+   * Which leaf of the bound book this is.
+   *
+   * 'inner' is a double spread; the other four are single pages. 'cover' and
+   * 'back' are the outside of the book. 'first' is the right-hand page a book
+   * opens onto, and 'last' the left-hand page before the back cover: the
+   * inside of each cover is blank in a bound book, so the first and the last
+   * inner page stand alone rather than facing anything (#2317). Both are
+   * optional so that a document from before they existed still reads.
+   */
+  role: z.enum(['cover', 'first', 'inner', 'last', 'back']).default('inner'),
   background: hex.nullable().default(null),
   /** Back to front. */
   elements: z.array(bookElementSchema).max(MAX_SPREAD_ELEMENTS).default([]),

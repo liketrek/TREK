@@ -408,8 +408,8 @@ describe('MapViewGL', () => {
     expect(glMap.addSource).toHaveBeenCalledWith('trip-place-clusters', expect.objectContaining({
       type: 'geojson',
       cluster: true,
-      clusterRadius: 30,
-      clusterMaxZoom: 10,
+      clusterRadius: 20,
+      clusterMaxZoom: 8,
     }))
     expect(glMap.addLayer).toHaveBeenCalledWith(expect.objectContaining({ id: 'trip-place-clusters-circle' }))
     expect(glMap.addLayer).toHaveBeenCalledWith(expect.objectContaining({ id: 'trip-place-clusters-count' }))
@@ -1389,6 +1389,32 @@ describe('MapViewGL', () => {
     expect(glMarkers.created[1].element.innerHTML).toContain('#6b7280')
   })
 
+  it('clusters roadtrip stations and zooms before offering overlapping stations individually', async () => {
+    loadOnAttach()
+    vi.mocked(glMap.getZoom).mockReturnValue(8)
+    const poi: Poi = {
+      osm_id: 'n1', name: 'Station A', lat: 48.854, lng: 2.332, category: 'charging_station',
+      poi_type: 'charging_station', address: null, website: null, phone: null,
+      opening_hours: null, cuisine: null, source: 'openstreetmap',
+    }
+    const other = { ...poi, osm_id: 'n2', name: 'Station B' }
+    const onPoiClick = vi.fn()
+    render(<MapViewGL places={[]} fitKey={1} pois={[poi, other]} clusterLoosely onPoiClick={onPoiClick} />)
+    await act(async () => {})
+    const cluster = glMarkers.created.find(pin => pin.element.querySelector('[data-poi-cluster="2"]'))!
+    expect(cluster).toBeDefined()
+    act(() => { cluster.element.click() })
+    expect(glMap.fitBounds).toHaveBeenCalledWith(expect.anything(), { padding: 70, maxZoom: 18 })
+    expect(onPoiClick).not.toHaveBeenCalled()
+    vi.mocked(glMap.getZoom).mockReturnValueOnce(18)
+    act(() => { cluster.element.click() })
+    const calls = vi.mocked(glPopup.setDOMContent).mock.calls
+    const list = calls[calls.length - 1][0]
+    act(() => { list.querySelectorAll('button')[1].click() })
+    expect(onPoiClick).toHaveBeenCalledWith(other)
+    vi.mocked(glMap.getZoom).mockReturnValue(10)
+  })
+
   it('FE-COMP-MAPVIEWGL-043: plugin markers render as tone dots with a text-only popup', async () => {
     loadOnAttach()
     const markers: PluginMapMarker[] = [
@@ -1538,6 +1564,21 @@ describe('MapViewGL', () => {
     // A one-point segment is not a line.
     expect(features).toHaveLength(1)
     expect(features[0].geometry.coordinates).toEqual([[2, 48], [3, 49]])
+  })
+
+  it('FE-COMP-MAPVIEWGL-048b: a caller-coloured route rides its colours on the feature', async () => {
+    const routeSource = geoSource()
+    glMap.getSource.mockImplementation((id: string) => (id === 'trip-route' ? routeSource : null))
+
+    render(<MapViewGL places={[]} fitKey={1} route={[[[48, 2], [49, 3]], [[50, 4], [51, 5]]]}
+      routeColors={[{ line: '#ff9f0a', casing: '#c2740a' }, undefined]} />)
+    await act(async () => {})
+
+    const { features } = lastData(routeSource)
+    expect(features[0].properties.color).toBe('#ff9f0a')
+    expect(features[0].properties.casing).toBe('#c2740a')
+    // No colour means the day route's own blue, which the layer paint falls back to.
+    expect(features[1].properties.color).toBeNull()
   })
 
   it('FE-COMP-MAPVIEWGL-049: unusable GPX geometry is skipped instead of breaking the layer', async () => {
@@ -1854,5 +1895,169 @@ describe('MapViewGL', () => {
 
     expect(glMap.off).toHaveBeenCalledWith('moveend', expect.any(Function))
     expect(glMap.off).toHaveBeenCalledWith('zoomend', expect.any(Function))
+  })
+
+  it('FE-COMP-MAPVIEWGL-071: POI suggestions ride the map render clock instead of the pointer', async () => {
+    // Same drift the planned-place pins had: a library Marker repositions on every
+    // `move` event — one per pointer sample — while the canvas draws once a frame, so
+    // the suggestions swam over the map during a drag and snapped back on release.
+    loadOnAttach()
+    glCanvasContainer.replaceChildren()
+    glMap.project.mockReturnValue({ x: 100, y: 80 })
+
+    render(
+      <MapViewGL
+        places={[]}
+        fitKey={1}
+        glProvider="maplibre-gl"
+        pois={[{ osm_id: 'node:1', name: 'Aral', lat: 48.1, lng: 2.1, category: 'fuel', source: 'openstreetmap' } as never]}
+      />,
+    )
+    await flushFrames()
+
+    const layer = glCanvasContainer.firstElementChild as HTMLElement
+    expect(layer.children.length).toBe(1)
+    const pin = layer.firstElementChild as HTMLElement
+    expect(pin.style.transform).toContain('translate(100px, 80px)')
+
+    glMap.project.mockReturnValue({ x: 140, y: 60 })
+    act(() => { mapHandler('render')() })
+
+    expect(pin.style.transform).toContain('translate(140px, 60px)')
+  })
+
+  // A via handle is a DOM element, and a pointerdown belongs to the element it happened
+  // on. Rebuilding the handles on an unrelated render pulled that element out from under
+  // the pointer, so a freshly placed via lost its first drag — the re-route it triggered
+  // landed about a second later, which is exactly when somebody reaches for it.
+  it('FE-COMP-MAPVIEWGL-VIA-001: a via handle survives a render it has nothing to do with', async () => {
+    loadOnAttach()
+    glCanvasContainer.replaceChildren()
+    glMap.project.mockReturnValue({ x: 100, y: 80 })
+
+    const stored = { id: 5, day_id: 1, after_order_index: 0, sequence: 0, lat: 48.1, lng: 2.1 }
+    const { rerender } = render(
+      <MapViewGL
+        places={[]}
+        fitKey={1}
+        glProvider="maplibre-gl"
+        roadtripVias={{ 1: [stored] }}
+        onMoveVia={() => {}}
+      />,
+    )
+    await flushFrames()
+
+    const layer = glCanvasContainer.firstElementChild as HTMLElement
+    const handle = layer.firstElementChild
+    expect(handle).toBeTruthy()
+
+    // The same via in a fresh object, with a fresh callback: what every render of the
+    // planner hands down while the day re-routes.
+    rerender(
+      <MapViewGL
+        places={[]}
+        fitKey={1}
+        glProvider="maplibre-gl"
+        roadtripVias={{ 1: [{ ...stored }] }}
+        onMoveVia={() => {}}
+      />,
+    )
+    await flushFrames()
+
+    expect(layer.firstElementChild).toBe(handle)
+  })
+
+  it('FE-COMP-MAPVIEWGL-VIA-002: a via that actually moved is drawn again', async () => {
+    loadOnAttach()
+    glCanvasContainer.replaceChildren()
+    glMap.project.mockReturnValue({ x: 100, y: 80 })
+
+    const stored = { id: 5, day_id: 1, after_order_index: 0, sequence: 0, lat: 48.1, lng: 2.1 }
+    const { rerender } = render(
+      <MapViewGL places={[]} fitKey={1} glProvider="maplibre-gl" roadtripVias={{ 1: [stored] }} onMoveVia={() => {}} />,
+    )
+    await flushFrames()
+
+    const layer = glCanvasContainer.firstElementChild as HTMLElement
+    const handle = layer.firstElementChild
+
+    rerender(
+      <MapViewGL
+        places={[]}
+        fitKey={1}
+        glProvider="maplibre-gl"
+        roadtripVias={{ 1: [{ ...stored, lat: 48.9 }] }}
+        onMoveVia={() => {}}
+      />,
+    )
+    await flushFrames()
+
+    // The other half of the contract: holding the element still must not mean holding it
+    // in the wrong place.
+    expect(layer.firstElementChild).not.toBe(handle)
+  })
+  // ── Satellite ───────────────────────────────────────────────────────────────
+  //
+  // Leaflet has had the imagery for a while and swaps its whole tile layer for it.
+  // A GL map cannot do that, because its basemap is a style with dozens of layers,
+  // so the imagery goes on as a raster layer under everything TREK draws.
+
+  it('FE-COMP-MAPVIEWGL-074: satellite adds the imagery under the first TREK layer', async () => {
+    loadOnAttach()
+    useSettingsStore.setState({
+      settings: { ...useSettingsStore.getState().settings, map_base_layer: 'satellite' },
+    } as never)
+    glMap.getStyle.mockReturnValue({
+      layers: [{ id: 'background' }, { id: 'road' }, { id: 'trip-route' }, { id: 'trip-gpx-hit' }],
+    })
+
+    render(<MapViewGL places={[]} fitKey={1} />)
+    await flushFrames()
+
+    expect(glMap.addSource).toHaveBeenCalledWith('trip-satellite', expect.objectContaining({
+      type: 'raster',
+      tiles: [expect.stringContaining('arcgisonline.com')],
+    }))
+    // Anchored before the route, or the imagery would be painted over it.
+    expect(glMap.addLayer).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'trip-satellite-raster', type: 'raster' }),
+      'trip-route',
+    )
+  })
+
+  it('FE-COMP-MAPVIEWGL-075: with the default basemap no imagery is fetched at all', async () => {
+    loadOnAttach()
+    useSettingsStore.setState({
+      settings: { ...useSettingsStore.getState().settings, map_base_layer: 'default' },
+    } as never)
+
+    render(<MapViewGL places={[]} fitKey={1} />)
+    await flushFrames()
+
+    expect(glMap.addSource).not.toHaveBeenCalledWith('trip-satellite', expect.anything())
+  })
+
+  it('FE-COMP-MAPVIEWGL-076: switching back hides the layer instead of tearing it down', async () => {
+    loadOnAttach()
+    useSettingsStore.setState({
+      settings: { ...useSettingsStore.getState().settings, map_base_layer: 'satellite' },
+    } as never)
+    glMap.getStyle.mockReturnValue({ layers: [{ id: 'background' }, { id: 'trip-route' }] })
+    // Present from the first pass on, the way the real map reports it afterwards.
+    glMap.getSource.mockImplementation((id: string) => (id === 'trip-satellite' ? {} : null))
+    glMap.getLayer.mockImplementation((id: string) => (id === 'trip-satellite-raster' ? {} : null))
+
+    const { rerender } = render(<MapViewGL places={[]} fitKey={1} />)
+    await flushFrames()
+
+    act(() => {
+      useSettingsStore.setState({
+        settings: { ...useSettingsStore.getState().settings, map_base_layer: 'default' },
+      } as never)
+    })
+    rerender(<MapViewGL places={[]} fitKey={1} />)
+    await flushFrames()
+
+    expect(glMap.setLayoutProperty).toHaveBeenCalledWith('trip-satellite-raster', 'visibility', 'none')
   })
 })

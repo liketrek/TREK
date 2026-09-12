@@ -1,8 +1,12 @@
 import { Suspense } from 'react'
+import { AlertTriangle, Clock, Info } from 'lucide-react'
+import { Tooltip } from '../shared/Tooltip'
 import { useSettingsStore } from '../../store/settingsStore'
 import { MapView } from './MapView'
 import ErrorBoundary from '../shared/ErrorBoundary'
 import { MapViewGLMapbox, MapViewGLMaplibre } from './glLazy'
+import { useRoadtripHazards } from './useRoadtripHazards'
+import { useTranslation } from '../../i18n/TranslationContext'
 
 // Auto-selects the map renderer based on user settings. Keeps the existing
 // Leaflet MapView untouched so the Mapbox GL variant can mature iteratively
@@ -14,6 +18,9 @@ import { MapViewGLMapbox, MapViewGLMaplibre } from './glLazy'
 // them online (see the GL tile rules in vite.config.js), not prefetched.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function MapViewAuto(props: any) {
+  const { t } = useTranslation()
+  const hazards = useRoadtripHazards(props.tripId, !!props.clusterLoosely)
+  const mapProps = { ...props, hazards: hazards.feed?.hazards }
   const provider = useSettingsStore(s => s.settings.map_provider)
   const token = useSettingsStore(s => s.settings.mapbox_access_token)
   // Fall back to Leaflet when Mapbox is selected but no token is set,
@@ -33,12 +40,12 @@ export function MapViewAuto(props: any) {
       // to Leaflet keeps a usable map instead of an error card.
       // resetKeys: with two engine chunks, a failure under one provider must not
       // keep showing Leaflet after the user switches to the other.
-      <ErrorBoundary boundaryId="map:gl" resetKeys={[glProvider]} fallback={<MapView {...props} />}>
-        <Suspense fallback={<MapView {...props} />}>
-          <MapViewGL {...props} glProvider={glProvider} />
+      <ErrorBoundary boundaryId="map:gl" resetKeys={[glProvider]} fallback={<MapView {...mapProps} />}>
+        <Suspense fallback={<MapView {...mapProps} />}>
+          <MapViewGL {...mapProps} glProvider={glProvider} />
         </Suspense>
       </ErrorBoundary>
     )
   }
-  return <MapView {...props} />
+  return <MapView {...mapProps} />
 }

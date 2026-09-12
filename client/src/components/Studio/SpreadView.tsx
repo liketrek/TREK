@@ -427,7 +427,7 @@ export function ElementView({
 export function SpreadView({
   spread,
   page,
-  spreadIndex = 0,
+  folios = [],
   big = false,
   showGuides = false,
   print = false,
@@ -436,11 +436,12 @@ export function SpreadView({
   spread: BookSpread
   page: BookPageSetup
   /**
-   * Where this spread sits in the book. Only the folios need it — a page
-   * number is the one thing on the page that is a function of position rather
-   * than of the document.
+   * The page numbers this spread carries, from foliosOf. Only PageNumbers
+   * needs them — a page number is the one thing on the page that is a
+   * function of position in the book rather than of the spread itself, and
+   * the caller is the one holding the book.
    */
-  spreadIndex?: number
+  folios?: readonly number[]
   big?: boolean
   showGuides?: boolean
   /** The print renderer passes this: no guides, no placeholders, no chrome. */
@@ -470,7 +471,7 @@ export function SpreadView({
         <ElementView key={el.id} el={el} big={big} print={print} dropLabel={dropLabel} />
       ))}
 
-      <PageNumbers spread={spread} page={page} spreadIndex={spreadIndex} />
+      <PageNumbers spread={spread} page={page} folios={folios} />
 
       {showGuides && (
         <>

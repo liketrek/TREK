@@ -517,6 +517,109 @@ describe('AdminPage', () => {
     });
   });
 
+  /**
+   * The transit-provider trigger. CustomSelect renders a plain button whose accessible
+   * name is the selected option, so it is found through its own card rather than by
+   * role and label the way the native select was.
+   */
+  function transitTrigger(): HTMLElement {
+    const block = screen.getByText('Transit Provider').closest<HTMLElement>('.rounded-xl');
+    return within(block!).getByRole('button');
+  }
+
+  describe('FE-PAGE-ADMIN-023b: Transit provider select in Settings tab (#1699)', () => {
+    it('choosing Google calls PUT /api/admin/transit-provider', async () => {
+      let capturedBody: Record<string, unknown> | null = null;
+      server.use(
+        http.get('/api/admin/transit-provider', () =>
+          HttpResponse.json({ provider: 'transitous', googleKeySource: 'instance' })),
+        http.put('/api/admin/transit-provider', async ({ request }) => {
+          capturedBody = (await request.json()) as Record<string, unknown>;
+          return HttpResponse.json({ provider: 'google', googleKeySource: 'instance' });
+        })
+      );
+
+      seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
+      render(<AdminPage />);
+
+      await waitFor(() => expect(screen.getByRole('button', { name: /^users$/i })).toBeInTheDocument());
+      fireEvent.click(screen.getByRole('button', { name: /settings/i }));
+
+      await screen.findByText('Transit Provider');
+      await waitFor(() => expect(transitTrigger()).toHaveTextContent('Transitous'));
+      fireEvent.click(transitTrigger());
+      fireEvent.click(screen.getByText('Google'));
+
+      await waitFor(() => expect(capturedBody).toEqual({ provider: 'google' }));
+      expect(transitTrigger()).toHaveTextContent('Google');
+    });
+
+    it('FE-PAGE-ADMIN-023d: re-picking the provider already selected sends no request', async () => {
+      let puts = 0;
+      server.use(
+        http.get('/api/admin/transit-provider', () =>
+          HttpResponse.json({ provider: 'transitous', googleKeySource: 'instance' })),
+        http.put('/api/admin/transit-provider', () => {
+          puts += 1;
+          return HttpResponse.json({ provider: 'google', googleKeySource: 'instance' });
+        })
+      );
+
+      seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
+      render(<AdminPage />);
+
+      await waitFor(() => expect(screen.getByRole('button', { name: /^users$/i })).toBeInTheDocument());
+      fireEvent.click(screen.getByRole('button', { name: /settings/i }));
+      await screen.findByText('Transit Provider');
+
+      // A real change first, so the counter is proven to move at all.
+      fireEvent.click(transitTrigger());
+      fireEvent.click(screen.getByText('Google'));
+      await waitFor(() => expect(puts).toBe(1));
+
+      // Picking the same option again must not send a second PUT. Trigger and menu
+      // entry carry the same label, so the entry is the one that is not the trigger.
+      const trigger = transitTrigger();
+      fireEvent.click(trigger);
+      const entry = screen.getAllByRole('button', { name: /^google$/i }).find(b => b !== trigger);
+      fireEvent.click(entry!);
+
+      await waitFor(() => expect(transitTrigger()).toHaveTextContent('Google'));
+      expect(puts).toBe(1);
+    });
+  });
+
+  describe('FE-PAGE-ADMIN-023c: Transit provider key warnings (#1699)', () => {
+    async function openSettingsWith(googleKeySource: string | null) {
+      server.use(
+        http.get('/api/admin/transit-provider', () =>
+          HttpResponse.json({ provider: 'google', googleKeySource })),
+      );
+      seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
+      render(<AdminPage />);
+      await waitFor(() => expect(screen.getByRole('button', { name: /^users$/i })).toBeInTheDocument());
+      fireEvent.click(screen.getByRole('button', { name: /settings/i }));
+      await screen.findByText('Transit Provider');
+      await waitFor(() => expect(transitTrigger()).toHaveTextContent('Google'));
+    }
+
+    it('warns that Google is selected but no key is configured', async () => {
+      await openSettingsWith(null);
+      expect(await screen.findByText(/no google api key is configured/i)).toBeInTheDocument();
+    });
+
+    it('warns that only the admin\'s own key is set, so others fall back', async () => {
+      await openSettingsWith('user-row');
+      expect(await screen.findByText(/only your own google key is set/i)).toBeInTheDocument();
+    });
+
+    it('stays quiet when an instance-wide key resolves', async () => {
+      await openSettingsWith('instance');
+      expect(screen.queryByText(/no google api key is configured/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/only your own google key is set/i)).not.toBeInTheDocument();
+    });
+  });
+
   describe('FE-PAGE-ADMIN-024: JWT rotation modal opens from Danger Zone', () => {
     it('clicking Rotate in Danger Zone opens the JWT rotation confirmation modal', async () => {
       seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
@@ -1032,7 +1135,7 @@ describe('AdminPage', () => {
 
       // Wait for the API Keys section to appear
       const apiKeysHeading = await screen.findByRole('heading', { name: /^api keys$/i });
-      const apiKeysCard = apiKeysHeading.closest<HTMLElement>('.bg-white');
+      const apiKeysCard = apiKeysHeading.closest<HTMLElement>('.rounded-xl');
 
       // Type in the maps key field (type="password" by default)
       const keyInputs = within(apiKeysCard!).getAllByPlaceholderText('Enter key...');
@@ -1063,7 +1166,7 @@ describe('AdminPage', () => {
       fireEvent.click(screen.getByRole('button', { name: /settings/i }));
 
       const apiKeysHeading = await screen.findByRole('heading', { name: /^api keys$/i });
-      const apiKeysCard = apiKeysHeading.closest<HTMLElement>('.bg-white');
+      const apiKeysCard = apiKeysHeading.closest<HTMLElement>('.rounded-xl');
 
       // The Unsplash key is the second 'Enter key...' input (after Maps).
       const keyInputs = within(apiKeysCard!).getAllByPlaceholderText('Enter key...');
@@ -1096,15 +1199,15 @@ describe('AdminPage', () => {
 
       // Wait for the API Keys section
       const apiKeysHeading = await screen.findByRole('heading', { name: /^api keys$/i });
-      const apiKeysCard = apiKeysHeading.closest<HTMLElement>('.bg-white');
+      const apiKeysCard = apiKeysHeading.closest<HTMLElement>('.rounded-xl');
 
       // Type a key value to enable the Test button
       const keyInputs = within(apiKeysCard!).getAllByPlaceholderText('Enter key...');
       fireEvent.change(keyInputs[0], { target: { value: 'test-maps-key' } });
 
-      // Click the validate (Test) button for maps key — first "Test" button in the card
-      const testBtns = within(apiKeysCard!).getAllByRole('button', { name: /^test$/i });
-      fireEvent.click(testBtns[0]);
+      // The maps key is the only one with a Test button now: weather left the card
+      // when it stopped needing a key at all.
+      fireEvent.click(within(apiKeysCard!).getByRole('button', { name: /^test$/i }));
 
       await waitFor(() => {
         // After validation, valid indicator appears (admin.keyValid = 'Connected')

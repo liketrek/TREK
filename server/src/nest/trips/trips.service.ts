@@ -552,15 +552,48 @@ export class TripsService {
         INSERT INTO places (trip_id, name, description, lat, lng, address, category_id, price, currency,
           reservation_status, reservation_notes, reservation_datetime, place_time, end_time,
           duration_minutes, notes, image_url, google_place_id, google_ftid, website, phone, transport_mode, osm_id,
-          route_geometry, route_color)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          route_geometry, route_color, stop_type)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
       for (const p of oldPlaces) {
         const r = insertPlace.run(newTripId, p.name, p.description, p.lat, p.lng, p.address, p.category_id,
           p.price, p.currency, p.reservation_status, p.reservation_notes, p.reservation_datetime,
           p.place_time, p.end_time, p.duration_minutes, p.notes, p.image_url, p.google_place_id,
-          p.google_ftid, p.website, p.phone, p.transport_mode, p.osm_id, p.route_geometry, p.route_color);
+          p.google_ftid, p.website, p.phone, p.transport_mode, p.osm_id, p.route_geometry, p.route_color,
+          p.stop_type);
         placeMap.set(p.id, r.lastInsertRowid);
+      }
+
+      // The road-trip shaping goes with the copy. A via is not decoration: it is
+      // the road the traveller chose over the one the router prefers, and a day
+      // track is the line a day was fitted to. Leaving them behind gave back a
+      // trip that looks complete and quietly drives somewhere else — visible
+      // only once somebody starts editing the copy, with nothing to recover
+      // from. Both tables are keyed by day, so they ride on `dayMap`.
+      const oldVias = this.db.prepare(`
+        SELECT v.* FROM roadtrip_vias v JOIN days d ON d.id = v.day_id WHERE d.trip_id = ?
+      `).all(sourceTripId) as any[];
+      const insertVia = this.db.prepare(
+        'INSERT INTO roadtrip_vias (day_id, after_order_index, sequence, lat, lng) VALUES (?, ?, ?, ?, ?)',
+      );
+      for (const v of oldVias) {
+        const newDayId = dayMap.get(v.day_id);
+        if (newDayId) insertVia.run(newDayId, v.after_order_index, v.sequence, v.lat, v.lng);
+      }
+
+      const oldTracks = this.db.prepare(`
+        SELECT t.* FROM roadtrip_day_tracks t JOIN days d ON d.id = t.day_id WHERE d.trip_id = ?
+      `).all(sourceTripId) as any[];
+      const insertTrack = this.db.prepare(
+        'INSERT INTO roadtrip_day_tracks (day_id, place_id, stray_km) VALUES (?, ?, ?)',
+      );
+      for (const t of oldTracks) {
+        const newDayId = dayMap.get(t.day_id);
+        // The track is a place of the trip, so it has been copied too — but skip
+        // the row rather than point it at the original, the way the assignment
+        // and accommodation loops below skip an id they cannot map.
+        const newPlaceId = placeMap.get(t.place_id);
+        if (newDayId && newPlaceId) insertTrack.run(newDayId, newPlaceId, t.stray_km);
       }
 
       const oldTags = this.db.prepare(`
@@ -577,8 +610,8 @@ export class TripsService {
       `).all(sourceTripId) as any[];
       const assignmentMap = new Map<number, number | bigint>();
       const insertAssignment = this.db.prepare(`
-        INSERT INTO day_assignments (day_id, place_id, order_index, notes, reservation_status, reservation_notes, reservation_datetime, assignment_time, assignment_end_time)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO day_assignments (day_id, place_id, order_index, notes, reservation_status, reservation_notes, reservation_datetime, assignment_time, assignment_end_time, end_day)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
       for (const a of oldAssignments) {
         const newDayId = dayMap.get(a.day_id);
@@ -586,9 +619,20 @@ export class TripsService {
         if (newDayId && newPlaceId) {
           const r = insertAssignment.run(newDayId, newPlaceId, a.order_index, a.notes,
             a.reservation_status, a.reservation_notes, a.reservation_datetime,
-            a.assignment_time, a.assignment_end_time);
+            a.assignment_time, a.assignment_end_time, a.end_day ?? 0);
           assignmentMap.set(a.id, r.lastInsertRowid);
         }
+      }
+
+      this.db.prepare('INSERT INTO roadtrip_preferences (trip_id, key, value) SELECT ?, key, value FROM roadtrip_preferences WHERE trip_id = ?').run(newTripId, sourceTripId);
+      const oldBoundaries = this.db.prepare('SELECT * FROM roadtrip_day_boundaries WHERE trip_id = ?').all(sourceTripId) as {
+        day_number: number; from_assignment_id: number; to_assignment_id: number | null; fraction: number;
+      }[];
+      const insertBoundary = this.db.prepare('INSERT INTO roadtrip_day_boundaries (trip_id, day_number, from_assignment_id, to_assignment_id, fraction) VALUES (?, ?, ?, ?, ?)');
+      for (const boundary of oldBoundaries) {
+        const from = assignmentMap.get(boundary.from_assignment_id);
+        const to = boundary.to_assignment_id === null ? null : assignmentMap.get(boundary.to_assignment_id);
+        if (from && to !== undefined) insertBoundary.run(newTripId, boundary.day_number, from, to, boundary.fraction);
       }
 
       const oldParticipants = this.db.prepare(`

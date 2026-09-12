@@ -70,7 +70,7 @@ export default function AdminNotificationsPanel({ t, toast }: { t: (k: string) =
         <div className="p-6">
           {saving && <p className="text-content-faint" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', marginBottom: 8 }}>Saving…</p>}
           {/* Header row */}
-          <div className="border-b border-edge" style={{ display: 'grid', gridTemplateColumns: `1fr ${visibleChannels.map(() => '80px').join(' ')}`, gap: 4, paddingBottom: 6, marginBottom: 4 }}>
+          <div className="border-b border-edge" style={{ display: 'grid', gridTemplateColumns: `minmax(0, 1fr) ${visibleChannels.map(() => '80px').join(' ')}`, gap: 4, paddingBottom: 6, marginBottom: 4 }}>
             <span />
             {visibleChannels.map(ch => (
               <span key={ch} className="text-content-faint" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
@@ -82,7 +82,7 @@ export default function AdminNotificationsPanel({ t, toast }: { t: (k: string) =
           {matrix.event_types.map((eventType: string) => {
             const implementedForEvent = matrix.implemented_combos[eventType] ?? []
             return (
-              <div key={eventType} className="border-b border-edge" style={{ display: 'grid', gridTemplateColumns: `1fr ${visibleChannels.map(() => '80px').join(' ')}`, gap: 4, alignItems: 'center', padding: '8px 0' }}>
+              <div key={eventType} className="border-b border-edge" style={{ display: 'grid', gridTemplateColumns: `minmax(0, 1fr) ${visibleChannels.map(() => '80px').join(' ')}`, gap: 4, alignItems: 'center', padding: '8px 0' }}>
                 <span className="text-content" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))' }}>
                   {t(ADMIN_EVENT_LABEL_KEYS[eventType]) || eventType}
                 </span>

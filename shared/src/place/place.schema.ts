@@ -29,23 +29,26 @@ export const hexColorSchema = z.string().regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}
  * against — the escaping in the marker builders stops being the only thing
  * standing between the database and the DOM.
  */
-export const placeImageUrlSchema = z.string().max(2048).refine(
-  v =>
-    v.startsWith('/uploads/')
-    || v.startsWith('/api/maps/place-photo/')
-    || /^data:image\/(png|jpe?g|webp|gif|avif);base64,/i.test(v)
-    || /^https:\/\//i.test(v),
-  { message: 'must be an uploaded path, a photo-proxy path, an inline image or an https URL' },
-);
+export const placeImageUrlSchema = z
+  .string()
+  .max(2048)
+  .refine(
+    (v) =>
+      v.startsWith('/uploads/') ||
+      v.startsWith('/api/maps/place-photo/') ||
+      /^data:image\/(png|jpe?g|webp|gif|avif);base64,/i.test(v) ||
+      /^https:\/\//i.test(v),
+    { message: 'must be an uploaded path, a photo-proxy path, an inline image or an https URL' },
+  );
 
 /**
  * A place's homepage. It reaches window.open() on the client, where a
  * javascript: value would run in this origin rather than opening a page.
  */
-export const placeWebsiteSchema = z.string().max(500).refine(
-  v => /^https?:\/\//i.test(v),
-  { message: 'must be an http or https URL' },
-);
+export const placeWebsiteSchema = z
+  .string()
+  .max(500)
+  .refine((v) => /^https?:\/\//i.test(v), { message: 'must be an http or https URL' });
 
 /**
  * Embedded category as returned on a place — a trimmed projection of the
@@ -78,6 +81,38 @@ export const placeRatingVoteSchema = z.object({
 });
 export type PlaceRatingVote = z.infer<typeof placeRatingVoteSchema>;
 
+/**
+ * The kinds of stop a drive has.
+ *
+ * The client reads the same six out of one table (`client/src/components/Roadtrip/
+ * stopKinds.ts`), which carries their icon, colour and usual length; that table is pinned
+ * against this enum by its own test, because it cannot import from here without dragging
+ * React into the shared package.
+ *
+ * A closed list, and enforced as one on both write routes below. It was not: the request
+ * schemas are open objects, so a POST with an invented kind used to be written straight
+ * to the column, where `isServiceStopType` then read it as false and the stop quietly
+ * counted as a destination.
+ */
+export const roadtripStopTypeSchema = z.enum([
+  'fuel',
+  'charging',
+  'rest_area',
+  'campsite',
+  'restaurant',
+  'sights',
+  'hotel',
+]);
+export type RoadtripStopType = z.infer<typeof roadtripStopTypeSchema>;
+
+/**
+ * A percentage of a tank, 1 to 100, or null for "no opinion, use the setting".
+ *
+ * Integer because a tenth of a percent of a tank is not a thing anybody knows about
+ * their own car, and bounded away from zero because a fill of nothing is not a fill.
+ */
+const fillPercentSchema = z.number().int().min(1).max(100).nullable().optional();
+
 export const placeSchema = z.object({
   id: z.number(),
   trip_id: z.number(),
@@ -103,6 +138,25 @@ export const placeSchema = z.object({
   route_geometry: z.string().nullable().optional(),
   // Manual track colour (#776). null = inherit the category colour like before.
   route_color: hexColorSchema.nullable().optional(),
+  /**
+   * What kind of stop this place is on a drive (#1797). null is an ordinary place, which
+   * is every place that predates the road trip addon.
+   *
+   * Separate from `category_id` on purpose: categories are the traveller's own editable,
+   * instance-wide list, while this is a fact about the place that the corridor search
+   * already knows and that owns its own icon and colour.
+   */
+  stop_type: roadtripStopTypeSchema.nullable().optional(),
+  /**
+   * How full THIS stop fills the tank, 1-100 (#1797). null follows the traveller's own
+   * setting, which is every place that predates the field.
+   *
+   * A property of the stop rather than of the person: a motorway rapid charger is worth
+   * 80 % because the last fifth costs as long again, while the one at the hotel is worth
+   * 100 % because the car stands there all night. One figure for the whole trip cannot
+   * say both, and the difference between them is a leg.
+   */
+  fill_percent: fillPercentSchema,
   website: z.string().nullable().optional(),
   phone: z.string().nullable().optional(),
   transport_mode: z.string().nullable().optional(),
@@ -147,15 +201,40 @@ export const assignmentPlaceSchema = z.object({
   osm_id: z.string().nullable().optional(),
   website: z.string().nullable().optional(),
   phone: z.string().nullable().optional(),
+  // Carried through so the road-trip rail can mark a fuel stop as one without a
+  // second request per stop.
+  stop_type: roadtripStopTypeSchema.nullable().optional(),
+  // Carried for the same reason as stop_type: the rail resets a range budget at this
+  // stop and needs to know how far it fills without a request per stop.
+  fill_percent: fillPercentSchema,
   category: placeCategorySchema.optional(),
   tags: z.array(tagSchema.partial()).optional(),
 });
 export type AssignmentPlace = z.infer<typeof assignmentPlaceSchema>;
 
-export const placeCreateRequestSchema = open.and(z.object({ name: z.string().min(1) }));
+/**
+ * Additive on one field, deliberately not a closed object.
+ *
+ * Both request schemas stay open because roughly 190 call sites still post whatever the
+ * form happens to hold, and closing them would reject all of them at once. Naming
+ * `stop_type` on top of the open object validates that one key and leaves every other
+ * untouched, which is the only part of the body with a fixed vocabulary.
+ *
+ * Nullable: an explicit null is how a fuel stop becomes an ordinary place again, and the
+ * service already reads it that way rather than as "leave alone".
+ */
+const stopTypeField = z.object({
+  stop_type: roadtripStopTypeSchema.nullable().optional(),
+  // Named for the same reason: a bounded vocabulary on an otherwise open body. Zero is
+  // outside it on purpose — a stop that fills nothing is not a stop, and letting one
+  // through would leave a range budget that never resets.
+  fill_percent: fillPercentSchema,
+});
+
+export const placeCreateRequestSchema = open.and(z.object({ name: z.string().min(1) })).and(stopTypeField);
 export type PlaceCreateRequest = z.infer<typeof placeCreateRequestSchema>;
 
-export const placeUpdateRequestSchema = open;
+export const placeUpdateRequestSchema = open.and(stopTypeField);
 export type PlaceUpdateRequest = z.infer<typeof placeUpdateRequestSchema>;
 
 // Collaborative ratings (#1435): one 1-5 star vote per user and place.

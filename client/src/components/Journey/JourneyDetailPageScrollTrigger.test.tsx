@@ -1,4 +1,4 @@
-// FE-COMP-JSCROLLTRIG-001 to FE-COMP-JSCROLLTRIG-006
+// FE-COMP-JSCROLLTRIG-001 to FE-COMP-JSCROLLTRIG-009
 
 import { render } from '../../../tests/helpers/render'
 import { resetAllStores } from '../../../tests/helpers/store'
@@ -85,6 +85,46 @@ describe('ScrollTrigger', () => {
   it('FE-COMP-JSCROLLTRIG-006: unmounting disconnects the observer', () => {
     const { unmount } = render(<ScrollTrigger onVisible={vi.fn()} loading={false} />)
     unmount()
+    expect(observers[0].disconnect).toHaveBeenCalled()
+  })
+
+  it('FE-COMP-JSCROLLTRIG-007: a fresh callback identity alone does not rebuild the observer', () => {
+    // Both callers hand in a new arrow every render; rebuilding for that churn
+    // replays the initial callback and pulls pages nobody asked for.
+    const { rerender } = render(<ScrollTrigger onVisible={vi.fn()} loading={false} />)
+    expect(observers).toHaveLength(1)
+
+    rerender(<ScrollTrigger onVisible={vi.fn()} loading={false} />)
+    rerender(<ScrollTrigger onVisible={vi.fn()} loading={false} />)
+
+    expect(observers).toHaveLength(1)
+    expect(observers[0].disconnect).not.toHaveBeenCalled()
+  })
+
+  it('FE-COMP-JSCROLLTRIG-008: the surviving observer calls the newest callback, not the one it was built with', () => {
+    const first = vi.fn()
+    const second = vi.fn()
+    const { rerender } = render(<ScrollTrigger onVisible={first} loading={false} />)
+    rerender(<ScrollTrigger onVisible={second} loading={false} />)
+
+    intersect(observers[0], true)
+
+    expect(first).not.toHaveBeenCalled()
+    expect(second).toHaveBeenCalledTimes(1)
+  })
+
+  it('FE-COMP-JSCROLLTRIG-009: a settled page really re-observes the sentinel', () => {
+    // A browser observer only fires on a threshold crossing plus once per
+    // observe(). A sentinel that never leaves the 200px margin therefore only
+    // gets another callback because the loading flip rebuilds the observer, so
+    // loading must stay a dependency rather than moving into a ref as well.
+    const onVisible = vi.fn()
+    const { rerender } = render(<ScrollTrigger onVisible={onVisible} loading />)
+    expect(observers).toHaveLength(1)
+
+    rerender(<ScrollTrigger onVisible={onVisible} loading={false} />)
+
+    expect(observers).toHaveLength(2)
     expect(observers[0].disconnect).toHaveBeenCalled()
   })
 })

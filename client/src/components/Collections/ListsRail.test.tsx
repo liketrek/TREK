@@ -35,6 +35,7 @@ function renderRail(overrides: Partial<RailProps> = {}) {
     incomingInvites: [],
     onSelect: vi.fn(),
     onNewList: vi.fn(),
+    onImportList: vi.fn(),
     onAcceptInvite: vi.fn(),
     onDeclineInvite: vi.fn(),
     ...overrides,
@@ -93,7 +94,7 @@ describe('ListsRail', () => {
   it('FE-COMP-LISTSRAIL-007: renders a Shared section with its lists only when there are shared lists', () => {
     const { unmount } = render(<Harness {...{
       ownedLists: [rome], sharedLists: [], activeId: null, incomingInvites: [],
-      onSelect: vi.fn(), onNewList: vi.fn(), onAcceptInvite: vi.fn(), onDeclineInvite: vi.fn(),
+      onSelect: vi.fn(), onNewList: vi.fn(), onImportList: vi.fn(), onAcceptInvite: vi.fn(), onDeclineInvite: vi.fn(),
     }} />);
     expect(screen.queryByText('Shared')).not.toBeInTheDocument();
     unmount();
@@ -126,5 +127,19 @@ describe('ListsRail', () => {
     expect(document.querySelector('.col-rail-sep')).toBeNull();
     expect(screen.queryByText('Invites')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'All saved' })).toBeInTheDocument();
+  });
+
+  it('FE-COMP-LISTSRAIL-011: offers Import beside New list, and it opens the file dialog (#2198)', async () => {
+    const user = userEvent.setup();
+    const props = renderRail();
+
+    const importBtn = screen.getByRole('button', { name: 'Import a list from a file' });
+    await user.click(importBtn);
+
+    expect(props.onImportList).toHaveBeenCalledTimes(1);
+    expect(props.onNewList).not.toHaveBeenCalled();
+    // New list keeps its label; import is the icon beside it.
+    expect(screen.getByRole('button', { name: 'New list' })).toHaveTextContent('New list');
+    expect(importBtn).toHaveTextContent('');
   });
 });

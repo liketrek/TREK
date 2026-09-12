@@ -84,7 +84,7 @@ describe('GET /api/addons e2e (real auth guard + temp SQLite)', () => {
     const res = await request(server).get('/api/addons').set('Cookie', sessionCookie(1));
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
-      collabFeatures: { chat: true, notes: true, polls: true, whatsnext: true },
+      collabFeatures: { chat: true, notes: true, links: true, polls: true, whatsnext: true },
       bagTracking: true,
       addons: [
         { id: 'packing', name: 'Packing', type: 'trip', icon: 'Backpack', enabled: true },

@@ -120,6 +120,7 @@ function seedAddons(db: Database.Database): void {
       { id: 'mcp', name: 'MCP', description: 'Model Context Protocol for AI assistant integration', type: 'integration', icon: 'Terminal', enabled: 0, sort_order: 12 },
       { id: 'naver_list_import', name: 'Naver List Import', description: 'Import places from a shared Naver Maps list', type: 'integration', icon: 'Link2', enabled: 1, sort_order: 13 },
       { id: 'collab', name: 'Collab', description: 'Notes, polls, and live chat for trip collaboration', type: 'trip', icon: 'Users', enabled: 1, sort_order: 6 },
+      { id: 'roadtrip', name: 'Road trip', description: 'Drives with stops along the route, driving times, and arrival times that update themselves', type: 'trip', icon: 'Route', enabled: 0, sort_order: 7 },
       { id: 'journey', name: 'Journey', description: 'Trip tracking & travel journal — check-ins, photos, daily stories', type: 'global', icon: 'Compass', enabled: 0, sort_order: 35 },
       { id: 'airtrail', name: 'AirTrail', description: 'Sync flights from your AirTrail instance', type: 'integration', icon: 'Plane', enabled: 0, sort_order: 14 },
       { id: 'llm_parsing', name: 'AI Parsing', description: 'LLM fallback for booking imports kitinerary cannot read', type: 'integration', icon: 'Sparkles', enabled: 0, sort_order: 15 },

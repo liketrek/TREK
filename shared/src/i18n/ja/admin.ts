@@ -121,11 +121,47 @@ const admin: TranslationStrings = {
   'admin.requireMfa': '二要素認証（2FA）を必須にする',
   'admin.requireMfaHint': '2FA未設定のユーザーは、利用前に設定が必要です。',
   'admin.apiKeys': 'APIキー',
-  'admin.apiKeysHint': '任意。写真や天気などの拡張データを有効化します。',
+  'admin.apiKeysHint': '場所データの出どころ。TREK のインデックスにキーは不要で、下の二つの提供元は任意です。',
+  'admin.trekApi.badgeDefault': '推奨の既定ソース',
+  'admin.googleCaveat.badge': '推奨しません',
+  'admin.googleCaveat.body':
+    'TREK はオープンソースで、この点で中立ではありません。この規模でレビューとふつうの店舗の写真があるのは Google だけで、それが独占です。この欄は代わりがないから置いてあるのであって、勧めているからではありません。使えば問い合わせはすべて Google に届きます。',
+  'admin.trekApi.tagline':
+    'TREK 自前の場所インデックス。Google のキーなし、上限なし、そして誰にも検索を数えられずに探せます。',
+  'admin.trekApi.factPlaces':
+    '世界で 7,360 万件の場所',
+  'admin.trekApi.factNoKey':
+    'キーも上限も不要',
+  'admin.trekApi.factOffline':
+    '国別パッケージはオフラインでも使えます',
+  'admin.trekApi.factPrivacy':
+    '検索内容は一切記録しません',
+  'admin.trekApi.more':
+    '何が入っているか',
+  'admin.trekApi.fieldPhone':
+    '電話',
+  'admin.trekApi.fieldStableId':
+    '不変の識別子',
+  'admin.trekApi.includedNote':
+    '説明はその場所自身のサイトから、営業時間は記入されている範囲で OpenStreetMap から取得します。',
+  'admin.trekApi.notRatings':
+    'レビュー',
+  'admin.trekApi.notPhotos':
+    'ふつうの店舗の写真',
+  'admin.trekApi.notIncludedNote':
+    'どちらもどんな価格でも公開データセットには存在しません。この二つには Google のキーが唯一の道として残ります。',
+  'admin.trekApi.sourcesLabel':
+    '出典',
+  'admin.trekApi.sourcesNote':
+    '応答のどの項目も、このうちどれに由来するかを示します。',
+  'admin.trekApi.included':
+    '含まれるもの',
+  'admin.trekApi.notIncluded':
+    '含まれないもの',
   'admin.mapsKey': 'Google Maps APIキー',
   'admin.mapsKeyHint': '場所検索に必要。console.cloud.google.com で取得',
   'admin.mapsKeyHintLong':
-    'APIキーなしではOpenStreetMapを使用します。Google APIキーがあれば写真、評価、営業時間も表示できます。',
+    'Google の API キーがなくても、推奨の TREK API が使われます。キーがあれば、写真・評価・営業時間を追加で読み込めます。キーは console.cloud.google.com で作成できます。',
   'admin.recommended': '推奨',
   'admin.weatherKey': 'OpenWeatherMap APIキー',
   'admin.weatherKeyHint': '天気データ用。openweathermap.org で無料',
@@ -147,6 +183,8 @@ const admin: TranslationStrings = {
   'admin.fileTypesHint': 'ユーザーがアップロードできるファイル形式を設定します。',
   'admin.fileTypesFormat': '拡張子をカンマ区切り（例：jpg,png,pdf,doc）。すべて許可する場合は *。',
   'admin.fileTypesSaved': 'ファイル形式の設定を保存しました',
+  'admin.googleOptions': 'キーの使いみち',
+  'admin.googleOptionsSummary': '{total} 件中 {on} 件が有効',
   'admin.placesPhotos.title': '場所の写真',
   'admin.placesPhotos.subtitle':
     'Google Places APIから写真を取得します。APIクォータ節約のため無効にできます。Wikimediaの写真には影響しません。',
@@ -158,6 +196,17 @@ const admin: TranslationStrings = {
   'admin.placesEnrich.title': '場所の情報補完',
   'admin.placesEnrich.subtitle':
     '場所を追加するときに写真と説明を表示します。WikipediaとOpenStreetMapは常に使用され、「場所の写真」または「場所の詳細」が有効な場合はGoogleも追加されます。',
+  'admin.transitProvider.title': '公共交通のプロバイダー',
+  'admin.transitProvider.subtitle': '公共交通の検索に応答するサービス。',
+  'admin.transitProvider.transitous': 'Transitous（無料）',
+  'admin.transitProvider.google': 'Google',
+  'admin.transitProvider.transitousHint': 'コミュニティの GTFS フィード。無料でキー不要、ヨーロッパのカバー率が最も高い。',
+  'admin.transitProvider.googleHint': '上記の Google キーを使用し、Transitous にデータがない地域に対応します。検索ごとに課金されます。キーが未設定の間は Transitous を使用します。',
+  'admin.transitProvider.noKeyWarning': 'Google が選択されていますが、Google キーが設定されていません。公共交通の検索は引き続き Transitous を使用します。上の「API キー」でキーを追加してください。',
+  'admin.transitProvider.personalKeyWarning': 'あなた自身の Google キーのみが設定されているため、他のメンバーの検索は引き続き Transitous になります。インスタンス全体に適用するには、管理者として上でキーを保存してください。',
+  'admin.placeShadow.title': '場所検索の記録',
+  'admin.placeShadow.subtitle':
+    'どの検索結果が選ばれたかを記録し、後で別の場所インデックスを実際の検索で評価できるようにします。データがこのインスタンスの外に出ることはなく、管理者はいつでも書き出しや削除ができます。',
   'admin.bagTracking.title': 'バッグ管理',
   'admin.bagTracking.subtitle': '持ち物の重量とバッグ割り当てを有効化',
   'admin.collab.chat.title': 'チャット',
@@ -338,6 +387,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:photo-provider': '「写真」機能への写真の提供',
   'admin.plugins.perm.hook:calendar-source': 'カレンダーへの予定の提供',
   'admin.plugins.perm.hook:place-detail-provider': '場所に追加の詳細情報（レビュー、評価、リンク）を提供',
+  'admin.plugins.perm.hook:search-provider': '独自のインデックスから場所の検索に回答（TREK 自身の結果と並べて表示）',
   'admin.plugins.perm.hook:trip-warning-provider': '旅程に検証警告を表示（プランナー内に表示）',
   'admin.plugins.perm.hook:table-contributor': '旅行のビュー（予約、場所、日程）に列とアクションを追加',
   'admin.plugins.perm.hook:map-marker-provider': '旅行の地図にマーカーを追加（例: 予約や POI を表示）',
@@ -488,6 +538,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.photos': '写真を提供',
   'admin.plugins.cap.calendar': 'カレンダー予定を提供',
   'admin.plugins.cap.placeDetails': '場所を充実',
+  'admin.plugins.cap.search': '検索に回答',
   'admin.plugins.cap.warnings': '問題を検出',
   'admin.plugins.cap.mapLayers': '地図に描画',
   'admin.plugins.cap.routing': 'ルーティングを提供',
@@ -546,6 +597,8 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.atlas.description': '訪問国と旅行統計の世界地図',
   'admin.addons.catalog.collab.name': 'Collab',
   'admin.addons.catalog.collab.description': 'メモ、投票、チャット、提案で一緒に計画',
+  'admin.addons.catalog.roadtrip.name': 'ロードトリップ',
+  'admin.addons.catalog.roadtrip.description': '立ち寄り先付きのドライブを計画。運転時間と到着時刻は自動で再計算されます',
   'admin.addons.catalog.memories.name': '写真（Immich）',
   'admin.addons.catalog.memories.description': 'Immichで旅行写真を共有',
   'admin.addons.catalog.mcp.name': 'MCP',

@@ -38,7 +38,7 @@ describe('an empty frame', () => {
    */
   it('wears the frame it will wear once it is filled', () => {
     const { container } = render(
-      <SpreadView spread={spread([frame({ frameStyle: 'polaroid' })])} page={page} spreadIndex={1} />,
+      <SpreadView spread={spread([frame({ frameStyle: 'polaroid' })])} page={page} />,
     )
     const outer = container.querySelector<HTMLElement>('[style*="left: 20mm"]')!
     // A Polaroid's white card and the shadow of a print lying on a page.
@@ -48,7 +48,7 @@ describe('an empty frame', () => {
 
   it('shows a film frame as film, black card and all', () => {
     const { container } = render(
-      <SpreadView spread={spread([frame({ frameStyle: 'film' })])} page={page} spreadIndex={1} />,
+      <SpreadView spread={spread([frame({ frameStyle: 'film' })])} page={page} />,
     )
     const outer = container.querySelector<HTMLElement>('[style*="left: 20mm"]')!
     expect(outer.style.background).toContain('rgb(20, 20, 20)')
@@ -56,7 +56,7 @@ describe('an empty frame', () => {
 
   it('leaves a plain frame plain', () => {
     const { container } = render(
-      <SpreadView spread={spread([frame()])} page={page} spreadIndex={1} />,
+      <SpreadView spread={spread([frame()])} page={page} />,
     )
     const outer = container.querySelector<HTMLElement>('[style*="left: 20mm"]')!
     expect(outer.style.boxShadow).toBe('')
@@ -65,7 +65,7 @@ describe('an empty frame', () => {
   /* In the bound book an unfilled frame is nothing at all. */
   it('prints as nothing', () => {
     const { container } = render(
-      <SpreadView spread={spread([frame({ frameStyle: 'polaroid' })])} page={page} spreadIndex={1} print />,
+      <SpreadView spread={spread([frame({ frameStyle: 'polaroid' })])} page={page} print />,
     )
     expect(container.querySelector('[style*="left: 20mm"]')).toBeNull()
   })

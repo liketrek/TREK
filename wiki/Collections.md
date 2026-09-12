@@ -96,6 +96,22 @@ When sharing, the owner assigns each member a permission role, and can change it
 
 The owner always has full control. The owner can also remove a member, and a member can leave a shared list themselves. Permissions are enforced on the server, so a role can only ever do what it is allowed to.
 
+## Sending a list to someone else
+
+Sharing works between people on the same TREK. To give a list to somebody who runs their own, or to keep a copy of your own, export it as a file.
+
+**Export** sits next to Edit and Share in the list header, on desktop. It downloads the open list as a `.trekcollection.json` file: the list's name, description and colour, its labels, and every place with its address, coordinates, notes, status, website, phone, category name and labels. Any member of a shared list may export it.
+
+**Import** sits next to **New list** in the lists rail, as the button with the upload arrow. Pick a file and TREK shows what is in it before anything happens: the name, how many places, how many labels. Rename it there if you like, then import. The file always becomes a **new list of your own**, so nothing you already have can be overwritten, and you land on the new list when it is done.
+
+A few things deliberately stay behind, because they belong to the instance the file came from rather than to the list:
+
+- **Star ratings and members.** A rating is an opinion somebody gave the people on that list.
+- **Uploaded photos and cover images.** They live on the sender's server; a place keeps an image only when it is an ordinary `https://` address.
+- **Ids of any kind**, including which trip a place was originally saved from. The receiving instance issues its own; a category comes across by name and is matched against the palette on the other side, or left empty when there is no match.
+
+A file that is not a TREK list is refused with a reason. A single place inside a file that cannot be read is skipped and reported, so one bad line does not cost you the rest of the list.
+
 ## See also
 
 - [Addons-Overview](Addons-Overview)

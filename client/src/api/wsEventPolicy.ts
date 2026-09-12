@@ -20,6 +20,9 @@ export const HANDLED_OUTSIDE_TRIP_STORE = [
   'collab:note:created',
   'collab:note:updated',
   'collab:note:deleted',
+  'collab:link:created',
+  'collab:link:updated',
+  'collab:link:deleted',
   'collab:poll:created',
   'collab:poll:voted',
   'collab:poll:closed',
@@ -27,6 +30,14 @@ export const HANDLED_OUTSIDE_TRIP_STORE = [
   'collab:message:created',
   'collab:message:reacted',
   'collab:message:deleted',
+  // Road trip shaping — components/Roadtrip/useRoadtripVias. The points a drive is
+  // routed through live in that hook and nowhere else; a store slice for them would be a
+  // second copy of the same list to keep in step.
+  'roadtripVia:changed',
+  'roadtripTrack:changed',
+  'roadtripPreferences:changed',
+  // components/Roadtrip/useDayBoundaries reloads the shared boundaries.
+  'roadtripBoundary:changed',
   // In-app notifications — hooks/useInAppNotificationListener
   'notification:new',
   'notification:updated',

@@ -3,11 +3,13 @@ import type { StoreApi } from 'zustand'
 import type { TripStoreState } from '../tripStore'
 import type { Assignment, AssignmentsMap } from '../../types'
 import { getApiErrorMessage } from '../../types'
+import { assignmentRepo } from '../../repo/assignmentRepo'
 
 type SetState = StoreApi<TripStoreState>['setState']
 type GetState = StoreApi<TripStoreState>['getState']
 
 export interface AssignmentsSlice {
+  setAssignmentEndDay: (tripId: number | string, dayId: number, assignmentId: number, endDay: boolean) => Promise<void>
   assignPlaceToDay: (tripId: number | string, dayId: number | string, placeId: number | string, position?: number | null) => Promise<Assignment | undefined>
   removeAssignment: (tripId: number | string, dayId: number | string, assignmentId: number) => Promise<void>
   reorderAssignments: (tripId: number | string, dayId: number | string, orderedIds: number[]) => Promise<void>
@@ -16,6 +18,23 @@ export interface AssignmentsSlice {
 }
 
 export const createAssignmentsSlice = (set: SetState, get: GetState): AssignmentsSlice => ({
+  setAssignmentEndDay: async (tripId, dayId, assignmentId, endDay) => {
+    const assignment = get().assignments[String(dayId)]?.find(a => a.id === assignmentId)
+    if (!assignment || assignmentId < 0) return
+    const apply = (value: boolean) => set(state => ({
+      assignments: Object.fromEntries(Object.entries(state.assignments).map(([key, items]) => [
+        key, items.map(a => a.id === assignmentId ? { ...a, end_day: value } : a),
+      ])),
+    }))
+    apply(endDay)
+    try {
+      const saved = await assignmentRepo.setEndDay(tripId, assignment, endDay)
+      apply(saved.end_day === true)
+    } catch (err: unknown) {
+      apply(assignment.end_day === true)
+      throw err
+    }
+  },
   assignPlaceToDay: async (tripId, dayId, placeId, position) => {
     const state = get()
     const place = state.places.find(p => p.id === Number.parseInt(String(placeId)))
@@ -140,9 +159,13 @@ export const createAssignmentsSlice = (set: SetState, get: GetState): Assignment
     const toItems = (state.assignments[String(toDayId)] || []).slice().sort((a, b) => a.order_index - b.order_index)
     const insertAt = toOrderIndex !== null ? toOrderIndex : toItems.length
 
-    const newToItems = [...toItems]
-    newToItems.splice(insertAt, 0, { ...assignment, day_id: Number.parseInt(String(toDayId)) })
-    newToItems.forEach((a, i) => { a.order_index = i })
+    const withMoved = [...toItems]
+    withMoved.splice(insertAt, 0, { ...assignment, day_id: Number.parseInt(String(toDayId)) })
+    // Renumber into copies. Assigning `order_index` in place would mutate the very objects
+    // still held in `prevAssignments`, so the rollback below would restore a list whose
+    // indices had already been overwritten — a failed move left the order wrong instead of
+    // putting it back.
+    const newToItems = withMoved.map((a, i) => ({ ...a, order_index: i }))
 
     set(s => ({
       assignments: {

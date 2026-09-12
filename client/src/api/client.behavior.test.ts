@@ -387,6 +387,33 @@ describe('client > dev-only contract drift checks', () => {
     )
   })
 
+  it('FE-APIWIRE-037: search-provider hits are appended to the core results and name their index', async () => {
+    server.use(
+      http.post('/api/maps/search', () => HttpResponse.json({ places: [{ name: 'Core hit' }], source: 'openstreetmap' })),
+      http.get('/api/plugin-search', () =>
+        HttpResponse.json({ places: [{ name: 'Plugin hit', source: 'plugin:demo' }] })),
+    )
+
+    // Appended, not interleaved: the core list keeps the order it earned.
+    await expect(mapsApi.search('Rome')).resolves.toEqual({
+      places: [{ name: 'Core hit' }, { name: 'Plugin hit', source: 'plugin:demo' }],
+      source: 'openstreetmap+plugin:demo',
+    })
+  })
+
+  it('FE-APIWIRE-038: a failing search provider leaves the search exactly as it was', async () => {
+    server.use(
+      http.post('/api/maps/search', () => HttpResponse.json({ places: [{ name: 'Core hit' }], source: 'openstreetmap' })),
+      http.get('/api/plugin-search', () => HttpResponse.json({ error: 'boom' }, { status: 500 })),
+    )
+
+    // The optional index being unwell must never cost the search that worked.
+    await expect(mapsApi.search('Rome')).resolves.toEqual({
+      places: [{ name: 'Core hit' }],
+      source: 'openstreetmap',
+    })
+  })
+
   it('FE-APIWIRE-023: a drifting maps response is reported under its own label', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     server.use(http.post('/api/maps/search', () => HttpResponse.json({ nonsense: true })))

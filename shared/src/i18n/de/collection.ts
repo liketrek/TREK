@@ -145,6 +145,23 @@ const collection: TranslationStrings = {
   'collections.picker.hint': 'Wähle einen Ort aus deinen Sammlungen',
   'collections.picker.use': 'Übernehmen',
 
+  // Export / import a list as a file (#2198)
+  'collections.file.export': 'Exportieren',
+  'collections.file.exportTitle': 'Diese Liste als Datei herunterladen',
+  'collections.file.importButton': 'Liste aus einer Datei importieren',
+  'collections.file.importTitle': 'Liste importieren',
+  'collections.file.choose': 'Listendatei auswählen',
+  'collections.file.confirm': 'Importieren',
+  'collections.file.change': 'Ändern',
+  'collections.file.labelCount': '{count} Labels',
+  'collections.file.hint':
+    'Die Orte landen in einer neuen eigenen Liste. Bewertungen, Mitglieder und hochgeladene Fotos bleiben zurück.',
+  'collections.file.done': '{count} Orte importiert',
+  'collections.file.doneSkipped': '{count} Orte importiert, {skipped} übersprungen',
+  'collections.file.errorTooLarge': 'Diese Datei ist zu groß für eine Liste.',
+  'collections.file.errorUnreadable': 'Diese Datei konnte nicht gelesen werden.',
+  'collections.file.errorNotACollection': 'Das ist keine TREK-Listendatei.',
+
   'collections.share.title': 'Liste teilen',
   'collections.share.titleNamed': '„{name}“ teilen',
   'collections.share.button': 'Teilen',

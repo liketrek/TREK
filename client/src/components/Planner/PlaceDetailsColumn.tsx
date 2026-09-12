@@ -10,13 +10,11 @@ import {
   ChevronUp,
   Clock,
   ExternalLink,
-  ImageOff,
   Landmark,
   Leaf,
   Loader2,
   ScrollText,
   ShoppingBag,
-  Sparkles,
   Sprout,
   Star,
   Sun,
@@ -27,6 +25,7 @@ import { mapsApi } from '../../api/client'
 import { resolveOpenNow, resolvePlaceTimeZone, placeWeekdayIndex } from './placeOpenState'
 import { convertHoursLine, isUnknownHoursLine, splitHoursLine } from './placeHoursFormat'
 import { safeHttpUrl } from '../../utils/safeUrl'
+import EmptyState from '../shared/EmptyState'
 import type { TranslationFn } from '../../types'
 
 /** The place the column is describing. Null while nothing is selected. */
@@ -53,7 +52,6 @@ interface PlaceDetailsColumnProps {
   /** For grouping the rating count's digits. */
   locale?: string
   /** False on an instance with no Google key, which is most of them. */
-  hasMapsKey?: boolean
   t: TranslationFn
 }
 
@@ -119,7 +117,6 @@ export default function PlaceDetailsColumn({
   language,
   timeFormat = '24h',
   locale = 'en-US',
-  hasMapsKey = false,
   t,
 }: PlaceDetailsColumnProps): React.ReactElement {
   const [data, setData] = useState<MapsPlaceEnrichmentResult | null>(null)
@@ -208,7 +205,17 @@ export default function PlaceDetailsColumn({
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-3.5">
-        {!selection && <p className="text-caption text-content-muted">{t('places.details.empty')}</p>}
+        {/* Nothing picked yet, which is a state rather than a fault: the mascot
+            waits with an idle look instead of a sad one. */}
+        {!selection && (
+          <EmptyState
+            scene="idle"
+            title={t('places.details.empty')}
+            size={92}
+            fill
+            surface="var(--bg-secondary)"
+          />
+        )}
 
         {selection && state === 'loading' && (
           <div className="flex items-center gap-2 text-caption text-content-muted">
@@ -223,17 +230,20 @@ export default function PlaceDetailsColumn({
           <p className="text-caption text-content-muted">{t('places.details.disabled')}</p>
         )}
 
+        {/* The mascot rather than a line of grey text and, under it, a paragraph
+            telling the reader to go and ask an administrator for a Google key.
+            Nothing came back for this place, which is worth saying once and
+            plainly; whose key is missing is not this panel's business, and on a
+            place the free sources describe fine it read as an advert. */}
         {isEmpty && (
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-caption text-content-muted">
-              <ImageOff className="w-4 h-4 shrink-0" />
-              {t('places.details.nothing')}
-            </div>
-            {/* Only when both are true. With a key configured there is nothing
-                to suggest, and on a place the free sources DID describe the
-                suggestion would be an advert. */}
-            {!hasMapsKey && <NoKeyHint t={t} />}
-          </div>
+          <EmptyState
+            scene="search"
+            mood="sad"
+            title={t('places.details.nothing')}
+            size={92}
+            fill
+            surface="var(--bg-secondary)"
+          />
         )}
 
         {selection && state === 'ready' && !data?.disabled && !isEmpty && (
@@ -379,6 +389,37 @@ function PhotoTile({
   )
 }
 
+/**
+ * Who the description came from, as the reader would name them.
+ *
+ * `website` has no fixed name — it is the place's own site — so it is credited
+ * by host: "losteria.net" says where the text is from far better than a generic
+ * word would. Deliberately not a ternary chain: the previous one fell through
+ * to 'Wikipedia', which would have credited a restaurant's marketing copy to an
+ * encyclopaedia.
+ */
+function descriptionSourceLabel(
+  source: NonNullable<MapsPlaceEnrichmentResult['description']>['source'],
+  sourceUrl: string | null,
+): string {
+  switch (source) {
+    case 'google':
+      return 'Google'
+    case 'osm':
+      return 'OpenStreetMap'
+    case 'wikivoyage':
+      return 'Wikivoyage'
+    case 'wikipedia':
+      return 'Wikipedia'
+    case 'website':
+      try {
+        return new URL(sourceUrl || '').hostname.replace(/^www\./, '')
+      } catch {
+        return 'Website'
+      }
+  }
+}
+
 function sourceLabelFor(source: PlacePhotoCandidate['source']): string {
   if (source === 'google') return 'Google'
   if (source === 'wikipedia') return 'Wikipedia'
@@ -431,19 +472,6 @@ function PhotoCredit({ photo }: { photo: PlacePhotoCandidate }): React.ReactElem
  * It also names who to ask: the key is an instance-wide setting, so on most
  * installs the person reading this cannot act on it themselves.
  */
-function NoKeyHint({ t }: { t: TranslationFn }): React.ReactElement {
-  return (
-    <div className="rounded-xl border border-accent/25 bg-accent-subtle p-3">
-      <div className="flex items-center gap-2">
-        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent text-accent-text">
-          <Sparkles className="h-3 w-3" />
-        </span>
-        <p className="text-caption font-semibold text-content">{t('places.details.noKeyTitle')}</p>
-      </div>
-      <p className="mt-2 text-caption leading-relaxed text-content-secondary">{t('places.details.noKeyHint')}</p>
-    </div>
-  )
-}
 
 /**
  * The star rating, as stars.
@@ -659,14 +687,7 @@ function DescriptionBlock({
 }): React.ReactElement | null {
   if (!description) return null
 
-  const sourceLabel =
-    description.source === 'google'
-      ? 'Google'
-      : description.source === 'osm'
-        ? 'OpenStreetMap'
-        : description.source === 'wikivoyage'
-          ? 'Wikivoyage'
-          : 'Wikipedia'
+  const sourceLabel = descriptionSourceLabel(description.source, description.sourceUrl)
 
   // A description of the chain is not a description of this place, and the
   // heading is where that gets said. Without it the reader has no way to tell

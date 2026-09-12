@@ -86,11 +86,47 @@ const admin: TranslationStrings = {
   'admin.requireMfa': '要求双因素身份验证（2FA）',
   'admin.requireMfaHint': '未启用 2FA 的用户必须先完成设置中的配置才能使用应用。',
   'admin.apiKeys': 'API 密钥',
-  'admin.apiKeysHint': '可选。启用地点的扩展数据，如照片和天气。',
+  'admin.apiKeysHint': '地点数据从哪里来。TREK 索引不需要密钥，下面两个提供方是可选的。',
+  'admin.trekApi.badgeDefault': '推荐的默认来源',
+  'admin.googleCaveat.badge': '不推荐',
+  'admin.googleCaveat.body':
+    'TREK 是开源软件，在这件事上我们并不中立。在这个规模上，评分和普通店铺的照片只有 Google 有，这就是垄断。这个输入框存在是因为没有替代品，而不是因为我们推荐。填了它，每次查询都会发往 Google。',
+  'admin.trekApi.tagline':
+    'TREK 自己的地点索引。不用 Google 密钥，没有配额，也没有人统计你搜了什么。',
+  'admin.trekApi.factPlaces':
+    '全球 7363 万个地点',
+  'admin.trekApi.factNoKey':
+    '无需密钥，没有配额',
+  'admin.trekApi.factOffline':
+    '国家数据包可离线使用',
+  'admin.trekApi.factPrivacy':
+    '搜索内容从不记录',
+  'admin.trekApi.more':
+    '里面有什么',
+  'admin.trekApi.fieldPhone':
+    '电话',
+  'admin.trekApi.fieldStableId':
+    '稳定标识',
+  'admin.trekApi.includedNote':
+    '简介取自地点自己的网站，营业时间在已填写的地方取自 OpenStreetMap。',
+  'admin.trekApi.notRatings':
+    '评分',
+  'admin.trekApi.notPhotos':
+    '普通店铺的照片',
+  'admin.trekApi.notIncludedNote':
+    '两者在任何开放数据集中都没有，出多少钱也没有。这两项仍然只能走 Google 密钥。',
+  'admin.trekApi.sourcesLabel':
+    '来源',
+  'admin.trekApi.sourcesNote':
+    '响应里的每个字段都会标明它来自其中哪一个。',
+  'admin.trekApi.included':
+    '包含',
+  'admin.trekApi.notIncluded':
+    '不包含',
   'admin.mapsKey': 'Google Maps API 密钥',
   'admin.mapsKeyHint': '用于地点搜索。在 console.cloud.google.com 获取',
   'admin.mapsKeyHintLong':
-    '没有 API 密钥时，使用 OpenStreetMap 搜索地点。有了 Google API 密钥，还可以加载照片、评分和营业时间。在 console.cloud.google.com 获取。',
+    '没有 Google API 密钥时，会使用推荐的 TREK API。有密钥时可以额外加载照片、评分和营业时间。可在 console.cloud.google.com 创建密钥。',
   'admin.recommended': '推荐',
   'admin.weatherKey': 'OpenWeatherMap API 密钥',
   'admin.weatherKeyHint': '用于天气数据。在 openweathermap.org 免费获取',
@@ -112,6 +148,8 @@ const admin: TranslationStrings = {
   'admin.fileTypesHint': '配置用户可以上传的文件类型。',
   'admin.fileTypesFormat': '以逗号分隔的扩展名（如 jpg,png,pdf,doc）。使用 * 允许所有类型。',
   'admin.fileTypesSaved': '文件类型设置已保存',
+  'admin.googleOptions': '该密钥的用途',
+  'admin.googleOptionsSummary': '已开启 {on}/{total}',
   'admin.placesPhotos.title': '地点照片',
   'admin.placesPhotos.subtitle': '从 Google Places API 获取照片。禁用可节省 API 配额。Wikimedia 照片不受影响。',
   'admin.placesAutocomplete.title': '地点自动补全',
@@ -122,6 +160,17 @@ const admin: TranslationStrings = {
   'admin.placesEnrich.title': '地点信息补充',
   'admin.placesEnrich.subtitle':
     '添加地点时显示图片和描述。始终使用维基百科和 OpenStreetMap；开启「地点照片」或「地点详情」时会额外使用 Google。',
+  'admin.transitProvider.title': '公共交通数据源',
+  'admin.transitProvider.subtitle': '由哪个服务响应公共交通搜索。',
+  'admin.transitProvider.transitous': 'Transitous（免费）',
+  'admin.transitProvider.google': 'Google',
+  'admin.transitProvider.transitousHint': '社区 GTFS 数据源。免费且无需密钥，在欧洲覆盖最好。',
+  'admin.transitProvider.googleHint': '使用上方的 Google 密钥，覆盖 Transitous 没有数据的地区。按每次搜索计费——未设置密钥时仍使用 Transitous。',
+  'admin.transitProvider.noKeyWarning': '已选择 Google，但未配置 Google 密钥——公共交通搜索仍在使用 Transitous。请在上方的 API 密钥中添加密钥。',
+  'admin.transitProvider.personalKeyWarning': '只设置了你自己的 Google 密钥，因此其他成员的搜索仍会回退到 Transitous。请以管理员身份在上方保存密钥，使其对整个实例生效。',
+  'admin.placeShadow.title': '地点搜索记录',
+  'admin.placeShadow.subtitle':
+    '记录用户选中了哪条搜索结果，以便日后用真实的搜索来评估另一套地点索引。数据不会离开本实例，管理员随时可以导出或删除记录。',
   'admin.bagTracking.title': '行李追踪',
   'admin.bagTracking.subtitle': '为打包物品启用重量和行李分配',
   'admin.collab.chat.title': '聊天',
@@ -286,6 +335,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:photo-provider': '为回忆提供照片',
   'admin.plugins.perm.hook:calendar-source': '为日历提供事件',
   'admin.plugins.perm.hook:place-detail-provider': '为地点补充额外信息（评论、评分、链接）',
+  'admin.plugins.perm.hook:search-provider': '从自有索引回答地点搜索，与 TREK 自身的结果并列显示',
   'admin.plugins.perm.hook:trip-warning-provider': '对行程发出校验警告（显示在规划器中）',
   'admin.plugins.perm.hook:table-contributor': '向行程视图（预订、地点、日期）添加列和操作',
   'admin.plugins.perm.hook:map-marker-provider': '向旅行地图添加标记（例如显示预订或兴趣点）',
@@ -430,6 +480,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.photos': '提供照片',
   'admin.plugins.cap.calendar': '提供日历事件',
   'admin.plugins.cap.placeDetails': '丰富地点信息',
+  'admin.plugins.cap.search': '回答搜索',
   'admin.plugins.cap.warnings': '标记问题',
   'admin.plugins.cap.mapLayers': '在地图上绘制',
   'admin.plugins.cap.routing': '提供路线规划',
@@ -492,6 +543,8 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.atlas.description': '标记已访问国家和旅行统计的世界地图',
   'admin.addons.catalog.collab.name': '协作',
   'admin.addons.catalog.collab.description': '备忘、投票、聊天和建议，方便一起规划',
+  'admin.addons.catalog.roadtrip.name': '公路旅行',
+  'admin.addons.catalog.roadtrip.description': '规划带停靠点的驾驶行程，驾驶时间和到达时间会自动重算',
   'admin.addons.subtitleBefore': '启用或禁用功能以自定义你的 ',
   'admin.addons.subtitleAfter': ' 体验。',
   'admin.addons.catalog.naver_list_import.name': 'Naver List Import',

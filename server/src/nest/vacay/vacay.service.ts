@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
+import { manualSchoolRegionId } from '@trek/shared';
 import { RealtimeService } from '../realtime/realtime.service';
 import { DatabaseService } from '../database/database.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -578,6 +579,7 @@ export class VacayService {
   // -------------------------------------------------------------------------
 
   addHolidayCalendar(planId: number, region: string, label: string | null, color: string | undefined, sortOrder: number | undefined, socketId: string | undefined, type: 'public_holiday' | 'school_holiday' = 'public_holiday') {
+    this.validateManualRegion(region, type);
     const result = this.db.run(
       'INSERT INTO vacay_holiday_calendars (plan_id, type, region, label, color, sort_order) VALUES (?, ?, ?, ?, ?, ?)',
       planId, type, region, label || null, color || (type === 'school_holiday' ? '#a5f3fc' : '#fecaca'), sortOrder ?? 0
@@ -595,6 +597,7 @@ export class VacayService {
   ): VacayHolidayCalendar | null {
     const cal = this.db.get<VacayHolidayCalendar>('SELECT * FROM vacay_holiday_calendars WHERE id = ? AND plan_id = ?', calId, planId);
     if (!cal) return null;
+    this.validateManualRegion(body.region ?? cal.region, body.type ?? cal.type);
     const { region, label, color, sort_order, type } = body;
     const updates: string[] = [];
     const params: (string | number | null)[] = [];
@@ -618,6 +621,14 @@ export class VacayService {
     this.db.run('DELETE FROM vacay_holiday_calendars WHERE id = ?', calId);
     this.notifyPlanUsers(planId, socketId, 'vacay:settings');
     return true;
+  }
+
+  private validateManualRegion(code: string, type: string) {
+    if (!code.includes('-MANUAL-')) return;
+    const id = manualSchoolRegionId(code);
+    if (type !== 'school_holiday' || !id || !this.db.get('SELECT id FROM school_holiday_regions WHERE id = ? AND country = ?', id, code.slice(0, 2))) {
+      throw new BadRequestException('Unknown manual school holiday region');
+    }
   }
 
   // -------------------------------------------------------------------------

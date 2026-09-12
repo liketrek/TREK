@@ -1,7 +1,7 @@
 {
   "name": "@trek/root",
   "private": true,
-  "version": "4.2.1",
+  "version": "4.2.0",
   "workspaces": [
     "client",
     "server",
@@ -36,12 +36,12 @@
   "overrides": {
     "react": "19.2.6",
     "react-dom": "19.2.6",
-    "multer": "^2.2.0"
+    "multer": "^2.3.0"
   },
   "comment:optionalDependencies": "The lockfile is generated on glibc, so the musl builds the Alpine image needs never land in it on their own. Keep the @img/* pins on the same version as client's sharp — a mismatch nests the binary away from libvips and the image build dies in generate-icons.",
   "optionalDependencies": {
-    "@img/sharp-linuxmusl-arm64": "0.35.0",
-    "@img/sharp-linuxmusl-x64": "0.35.0",
+    "@img/sharp-linuxmusl-arm64": "0.35.4",
+    "@img/sharp-linuxmusl-x64": "0.35.4",
     "@rollup/rollup-linux-arm64-musl": "4.62.0",
     "@rollup/rollup-linux-x64-musl": "4.62.0"
   }

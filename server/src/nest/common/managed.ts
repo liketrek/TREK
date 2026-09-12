@@ -88,6 +88,7 @@ export const MANAGED_LOCKED_SETTING_KEYS = [
   'oidc_login',
   'oidc_registration',
   'openweather_api_key',
+  'routing_base_url',
   'smtp_from',
   'smtp_host',
   'smtp_pass',
@@ -95,6 +96,7 @@ export const MANAGED_LOCKED_SETTING_KEYS = [
   'smtp_skip_tls_verify',
   'smtp_user',
   'unsplash_api_key',
+  'valhalla_base_url',
   'webauthn_origins',
   'webauthn_rp_id',
 ] as const;

@@ -87,10 +87,46 @@ export type AssetsList = {
     hasMore: boolean
 };
 
+/**
+ * Newest first, by capture time, with a stable fallback.
+ *
+ * Neither provider guarantees an order: Immich sorts by whatever its version
+ * defaults to and Synology's search API documents none at all. The picker groups
+ * by day and lazily appends pages, so an unordered page puts photos in the wrong
+ * day heading and, worse, drops them above the fold the reader is looking at.
+ * Asking upstream for `desc` is the fix; this is the belt to that pair of braces,
+ * and it is load-bearing for the album paths, which do not run through a sorted
+ * search at all.
+ *
+ * Assets without a usable timestamp keep their relative order at the end, which
+ * matches how the client groups them under its unknown-date heading. That, and
+ * the order of assets sharing a timestamp, rests on Array.prototype.sort being
+ * stable, which it has been since ES2019.
+ *
+ * Timestamps are parsed once up front rather than inside the comparator, which
+ * would re-parse the same string O(n log n) times.
+ */
+export function sortAssetsByTakenAtDesc<T extends { takenAt?: string | null }>(assets: T[]): T[] {
+    return assets
+        .map(asset => {
+            const parsed = asset.takenAt ? Date.parse(asset.takenAt) : Number.NaN;
+            return { asset, at: Number.isNaN(parsed) ? null : parsed };
+        })
+        .sort((a, b) => {
+            if (a.at === null && b.at === null) return 0;
+            if (a.at === null) return 1;
+            if (b.at === null) return -1;
+            return b.at - a.at;
+        })
+        .map(entry => entry.asset);
+}
+
 
 export type AssetInfo = {
     id: string;
     takenAt: string | null;
+    /** What the provider says this is. Absent means the provider does not tell us. */
+    mediaType?: 'image' | 'video';
     city: string | null;
     country: string | null;
     state?: string | null;

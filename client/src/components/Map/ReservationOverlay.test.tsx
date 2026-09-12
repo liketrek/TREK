@@ -1,4 +1,4 @@
-// FE-COMP-RESOVERLAY-001 to FE-COMP-RESOVERLAY-024
+// FE-COMP-RESOVERLAY-001 to FE-COMP-RESOVERLAY-045
 import React from 'react'
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen } from '../../../tests/helpers/render'
@@ -387,6 +387,43 @@ describe('ReservationOverlay declutter floors and road routes', () => {
       roadRoutes: new Map([[7, [[48, 16]] as [number, number][]]]),
     })
     expect(JSON.parse(lines()[0].getAttribute('data-points') || '[]')).toEqual([[48, 16], [51.5, 16]])
+  })
+
+  it('FE-COMP-RESOVERLAY-043: a routed drive whose ends project close together still draws (#2275)', () => {
+    // Endpoints 50 px apart, under the 80 px car floor, so the straight hop would
+    // hide. The road between them loops out 0.3° (300 px) and back, which is what
+    // is actually drawn — and what the person was missing on their map.
+    const road: [number, number][] = [[48, 16], [48.3, 16.1], [48.3, 16.3], [48.05, 16]]
+    const { unmount } = renderOverlay({ reservations: [hop('car', 7, 0.05)] })
+    expect(lines()).toHaveLength(0)
+    unmount()
+
+    renderOverlay({ reservations: [hop('car', 7, 0.05)], roadRoutes: new Map([[7, road]]) })
+    expect(lines()).toHaveLength(1)
+    expect(JSON.parse(lines()[0].getAttribute('data-points') || '[]')).toEqual(road)
+  })
+
+  it('FE-COMP-RESOVERLAY-044: a drive with a stop on the way is measured along its legs, not its ends', () => {
+    // From and to sit 20 px apart; the stop is 400 px away, so the two legs
+    // together draw 800 px of line.
+    renderOverlay({
+      reservations: [booking({
+        id: 8, type: 'car',
+        endpoints: [
+          endpoint({ role: 'from', sequence: 0, name: 'Home', lat: 48, lng: 16 }),
+          endpoint({ role: 'stop', sequence: 1, name: 'Lake', lat: 48.4, lng: 16 }),
+          endpoint({ role: 'to', sequence: 2, name: 'Back', lat: 48.02, lng: 16 }),
+        ],
+      })],
+    })
+    expect(lines()).toHaveLength(2)
+  })
+
+  it('FE-COMP-RESOVERLAY-045: a routed drive that really is tiny on screen stays decluttered', () => {
+    // Every point of the road projects within 30 px: nothing worth drawing yet.
+    const road: [number, number][] = [[48, 16], [48.01, 16.01], [48.02, 16.02], [48.03, 16]]
+    renderOverlay({ reservations: [hop('car', 7, 0.03)], roadRoutes: new Map([[7, road]]) })
+    expect(lines()).toHaveLength(0)
   })
 
   it('FE-COMP-RESOVERLAY-036: a booking without an endpoints array is skipped', () => {

@@ -1,6 +1,7 @@
 import type { BookPageSetup, BookSpread } from '@trek/shared'
 import { fontStack } from './bookFonts'
 import { folioInk } from './folioColour'
+import { isNumbered } from './bookSheets'
 
 /**
  * The folios.
@@ -17,33 +18,46 @@ import { folioInk } from './folioColour'
  * not the ones that get printed.
  *
  * The cover and the back cover carry none. A folio on a cover is a mistake in
- * every book ever bound.
+ * every book ever bound. The single first and last pages carry one each, on
+ * the side of the book they are bound on (#2317).
  */
 export function PageNumbers({
-  spread, page, spreadIndex,
+  spread, page, folios,
 }: {
   spread: BookSpread
   page: BookPageSetup
-  /** Position in the document, cover included. */
-  spreadIndex: number
+  /**
+   * The numbers this spread carries, from foliosOf: two for a spread, one for
+   * a first or last page, none for a cover. Counted by the caller, which has
+   * the whole book — a spread on its own does not know how many pages sit
+   * before it.
+   */
+  folios: readonly number[]
 }) {
   const cfg = page.pageNumbers
-  if (!cfg?.show || spread.role !== 'inner') return null
+  if (!cfg?.show || !isNumbered(spread.role) || folios.length === 0) return null
 
   /*
-   * The cover is one sheet with a front and a back, so the first inner spread
-   * opens on `startAt` — 2 by default, the page you see when you open a book
-   * whose cover is page 1. `spreadIndex` counts the cover, hence the -1.
+   * Which page of the sheet each number sits on. A spread numbers both; the
+   * first page is a right-hand leaf and the last a left-hand one, and each
+   * carries its one number on the side it actually is.
    */
-  const left = cfg.startAt + (spreadIndex - 1) * 2
-  const right = left + 1
+  const sides: Array<['left' | 'right', number]> = spread.role === 'inner'
+    ? [['left', folios[0]], ['right', folios[1]]]
+    : [[spread.role === 'first' ? 'right' : 'left', folios[0]]]
 
   const size = cfg.size
   const y = page.pageHeight - cfg.margin
 
-  /** Where the number sits on each page, given which edge it hangs from. */
+  /**
+   * Where the number sits on each page, given which edge it hangs from.
+   *
+   * A single page is one page wide, so its number sits at x 0 whichever
+   * side of the book it is bound on; the side only decides which edge is
+   * the outer one.
+   */
   const place = (side: 'left' | 'right') => {
-    const pageX = side === 'left' ? 0 : page.pageWidth
+    const pageX = side === 'left' || spread.role !== 'inner' ? 0 : page.pageWidth
     if (cfg.position === 'centre') {
       return { x: pageX, w: page.pageWidth, align: 'center' as const }
     }
@@ -58,7 +72,7 @@ export function PageNumbers({
 
   return (
     <>
-      {([['left', left], ['right', right]] as const).map(([side, number]) => {
+      {sides.map(([side, number]) => {
         const at = place(side)
         /*
          * Sampled at the middle of the number's own box, which is where the

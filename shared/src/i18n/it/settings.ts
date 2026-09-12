@@ -24,6 +24,11 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Modello Mappa',
   'settings.mapTemplatePlaceholder.select': 'Seleziona modello...',
   'settings.mapDefaultHint': 'Lascia vuoto per OpenStreetMap (predefinito)',
+  'settings.routingBase': 'Motore di percorso proprio',
+  'settings.routingBaseHint': 'Una tua istanza OSRM. Vuoto usa i server pubblici, che consentono circa una richiesta al secondo: sufficiente per un giorno, poco per un viaggio in auto. Ha effetto dopo il riavvio del server.',
+  'settings.valhallaBase': 'Istanza Valhalla propria',
+  'settings.valhallaBaseHint':
+    'TREK usa per impostazione predefinita la Valhalla pubblica di FOSSGIS per evitare pedaggi, autostrade e traghetti. Inserisci qui l’URL della tua Valhalla per usarla al suo posto. Se è configurata solo un’istanza di routing personalizzata, la Valhalla pubblica non viene usata. Dopo aver inserito un URL personalizzato, riavvia il server e ricarica la pagina.',
   'settings.mapHint': 'Modello URL per i tile della mappa',
   'settings.mapProvider': 'Provider mappa',
   'settings.mapProviderHint': 'Influisce sulle mappe Trip Planner e Journey. Atlas usa sempre Leaflet.',
@@ -86,6 +91,9 @@ const settings: TranslationStrings = {
   'settings.notifyTodoDue': 'Attività in scadenza',
   'settings.notifyVacayInvite': 'Inviti fusione Vacay',
   'settings.notifyVacayShare': 'Condivisioni calendario Vacay',
+  'settings.notifyCollectionInvite': 'Inviti alle raccolte',
+  'settings.notifySynologySessionCleared': 'Sessione Synology rimossa',
+  'settings.notifyPluginNotification': 'Notifiche dei plugin',
   'settings.notifyPhotosShared': 'Foto condivise (Immich)',
   'settings.notifyCollabMessage': 'Messaggi chat (Collab)',
   'settings.notifyPackingTagged': 'Lista valigia: assegnazioni',
@@ -275,6 +283,7 @@ const settings: TranslationStrings = {
   'settings.bookingLabelsHint':
     "Mostra i nomi di stazioni / aeroporti sulla mappa. Se disattivato, viene mostrata solo l'icona.",
   'settings.notifyVersionAvailable': 'Nuova versione disponibile',
+  'settings.notifyReplicaFailure': "Errore di replica dell'archiviazione",
   'settings.notificationPreferences.noChannels':
     'Nessun canale di notifica configurato. Chiedi a un amministratore di configurare notifiche via e-mail o webhook.',
   'settings.webhookUrl.label': 'URL webhook',

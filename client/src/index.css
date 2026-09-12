@@ -42,6 +42,13 @@ body { height: 100%; overflow: auto; overscroll-behavior: none; -webkit-overflow
 .journey-feed-scroll { scrollbar-width: none; -ms-overflow-style: none; }
 .journey-feed-scroll::-webkit-scrollbar { display: none; }
 
+/* Road trip rail: hide the scrollbar of the day list. The totals card is pinned
+   above the list and therefore outside its scroll box, so a visible scrollbar
+   would take width from the day cards alone and leave the two stacks a few
+   pixels out of line — the one thing a column of nested cards cannot hide. */
+.roadtrip-rail-scroll { scrollbar-width: none; -ms-overflow-style: none; }
+.roadtrip-rail-scroll::-webkit-scrollbar { display: none; }
+
 /* Journey video: let the player fill the box the lightbox gives it.
  *
  * Plyr sizes its wrapper from the video's intrinsic aspect ratio via a
@@ -516,6 +523,44 @@ input[type="number"], input[type="time"], input[type="date"], input[type="dateti
   will-change: transform, opacity;
 }
 
+/* Roadtrip: die Zzz am Tageswechsel im Streckenstrang. Drei Buchstaben auf einer
+   Grundlinie, jeder ein Drittel des Laufs nach dem vorigen, damit immer einer
+   unterwegs ist. Rein dekorativ — das Wort daneben sagt schon, was das Band ist. */
+@keyframes trek-doze {
+  0%   { opacity: 0; transform: translate(0, 3px) scale(0.7); }
+  22%  { opacity: 0.9; }
+  100% { opacity: 0; transform: translate(6px, -10px) scale(1.15); }
+}
+.trek-doze > * {
+  animation: trek-doze 3s ease-out infinite;
+}
+.trek-doze > *:nth-child(2) { animation-delay: 1s; }
+.trek-doze > *:nth-child(3) { animation-delay: 2s; }
+
+/* Roadtrip: der Block, den eine Nachtfahrt auf dem Folgetag hinterlaesst. Er faellt
+   von oben in die Karte, weil er von der Karte darueber kommt — kurz genug, dass ein
+   Neuberechnen der Ankunftszeiten nicht als Zappeln liest. */
+@keyframes trek-spill-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.985); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.trek-spill-in {
+  animation: trek-spill-in 320ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+/* Roadtrip: die Reserveleuchte am Band, an dem der Tank leerlaeuft. Das Gegenstueck
+   zu den Zzz am Tageswechsel — dort schlaeft der Tag ein, hier geht die Lampe im
+   Armaturenbrett an. Langsam an, kurz aus: eine Warnleuchte blinkt nicht hektisch,
+   sie glimmt. */
+@keyframes trek-lowfuel {
+  0%, 62%, 100% { opacity: 1; }
+  74%           { opacity: 0.28; }
+  86%           { opacity: 1; }
+}
+.trek-lowfuel {
+  animation: trek-lowfuel 2.6s ease-in-out infinite;
+}
+
 /* Stagger-Helpers für Listen — Enter-Animation mit Offset */
 @keyframes trek-fade-up {
   from { opacity: 0; transform: translateY(6px); }
@@ -537,12 +582,23 @@ input[type="number"], input[type="time"], input[type="date"], input[type="dateti
 /* Reduced motion — Emil's Accessibility-Regel: fewer and gentler, not zero */
 @media (prefers-reduced-motion: reduce) {
   .trek-menu-enter, .trek-menu-enter-left, .trek-popover-enter,
-  .trek-modal-enter, .trek-toast-enter, .trek-stagger > * {
+  .trek-modal-enter, .trek-toast-enter, .trek-stagger > *, .trek-spill-in {
     animation: trek-backdrop-enter 120ms ease-out;
+  }
+  /* Die Reserveleuchte steht still statt zu glimmen — sie bleibt an, was die Aussage
+     ohnehin ist. */
+  .trek-lowfuel {
+    animation: none;
   }
   .trek-skeleton {
     animation: none;
     background: var(--bg-tertiary);
+  }
+  /* Die Zzz stehen still statt zu treiben — der Tageswechsel bleibt lesbar. */
+  .trek-doze > * {
+    animation: none;
+    opacity: 0.6;
+    transform: none;
   }
   button:not(:disabled):not([data-no-press]):active,
   [role="button"]:not([aria-disabled="true"]):not([data-no-press]):active,

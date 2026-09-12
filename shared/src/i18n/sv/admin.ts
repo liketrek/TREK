@@ -130,11 +130,47 @@ const admin: TranslationStrings = {
   'admin.requireMfaHint':
     'Användare som inte har tvåfaktorsautentisering måste slutföra inställningarna under inställningar innan de använder appen.',
   'admin.apiKeys': 'API Nycklar',
-  'admin.apiKeysHint': 'Valfritt. Aktiverar utökade platsuppgifter, såsom foton och väderinformation.',
+  'admin.apiKeysHint': 'Var platsdata kommer ifrån. TREK-indexet behöver ingen nyckel; de två leverantörerna nedan är valfria.',
+  'admin.trekApi.badgeDefault': 'Rekommenderad standardkälla',
+  'admin.googleCaveat.badge': 'Avrådes',
+  'admin.googleCaveat.body':
+    'TREK är öppen källkod och vi är inte neutrala här. I den här skalan finns omdömen och foton på vanliga verksamheter bara hos Google, och det är ett monopol. Fältet finns i brist på alternativ, inte för att vi rekommenderar det. Varje uppslagning går då till Google.',
+  'admin.trekApi.tagline':
+    'TREK:s eget platsregister. Sök utan Google-nyckel, utan kvot och utan att någon räknar dina sökningar.',
+  'admin.trekApi.factPlaces':
+    '73,6 miljoner platser i världen',
+  'admin.trekApi.factNoKey':
+    'Ingen nyckel, ingen kvot',
+  'admin.trekApi.factOffline':
+    'Landpaket fungerar offline',
+  'admin.trekApi.factPrivacy':
+    'Sökningar loggas aldrig',
+  'admin.trekApi.more':
+    'Vad som ingår',
+  'admin.trekApi.fieldPhone':
+    'Telefon',
+  'admin.trekApi.fieldStableId':
+    'Stabilt id',
+  'admin.trekApi.includedNote':
+    'Beskrivningar kommer från platsens egen webbplats, öppettider från OpenStreetMap där de är ifyllda.',
+  'admin.trekApi.notRatings':
+    'Omdömen',
+  'admin.trekApi.notPhotos':
+    'Foton på vanliga verksamheter',
+  'admin.trekApi.notIncludedNote':
+    'Ingen öppen källa har någotdera, till något pris. En Google-nyckel förblir enda vägen till de två.',
+  'admin.trekApi.sourcesLabel':
+    'Källor',
+  'admin.trekApi.sourcesNote':
+    'Varje fält i ett svar anger vilken av dem det kommer från.',
+  'admin.trekApi.included':
+    'Ingår',
+  'admin.trekApi.notIncluded':
+    'Ingår inte',
   'admin.mapsKey': 'Google Maps API Nyckel',
   'admin.mapsKeyHint': 'Krävs för att söka efter platser. Hämta på console.cloud.google.com',
   'admin.mapsKeyHintLong':
-    'Utan en API-nyckel används OpenStreetMap för platssökning. Med en Google API-nyckel kan även foton, betyg och öppettider hämtas. Skaffa en på console.cloud.google.com.',
+    'Utan Google-API-nyckel används det rekommenderade TREK-API:et. Med en nyckel kan foton, omdömen och öppettider laddas dessutom. Skapa en på console.cloud.google.com.',
   'admin.recommended': 'Rekommenderat',
   'admin.weatherKey': 'OpenWeatherMap API Nyckel',
   'admin.weatherKeyHint': 'För väderdata. Gratis på openweathermap.org',
@@ -158,6 +194,8 @@ const admin: TranslationStrings = {
   'admin.fileTypesFormat':
     'Filändelser separerade med kommatecken (t.ex. jpg, png, pdf, doc). Använd * för att tillåta alla filtyper.',
   'admin.fileTypesSaved': 'Inställningar för filtyper har sparats',
+  'admin.googleOptions': 'Vad nyckeln används till',
+  'admin.googleOptionsSummary': '{on} av {total} på',
   'admin.placesPhotos.title': 'Plats Foton',
   'admin.placesPhotos.subtitle':
     'Hämta bilder från Google Places API. Inaktivera för att spara API-kvoten. Wikimedia-bilder påverkas inte.',
@@ -170,6 +208,17 @@ const admin: TranslationStrings = {
   'admin.placesEnrich.title': 'Platsberikning',
   'admin.placesEnrich.subtitle':
     'Visar bilder och en beskrivning när du lägger till en plats. Wikipedia och OpenStreetMap används alltid; Google tillkommer när Platsfoton eller Platsdetaljer är på.',
+  'admin.transitProvider.title': 'Kollektivtrafikleverantör',
+  'admin.transitProvider.subtitle': 'Vilken tjänst som besvarar sökningar i kollektivtrafiken.',
+  'admin.transitProvider.transitous': 'Transitous (gratis)',
+  'admin.transitProvider.google': 'Google',
+  'admin.transitProvider.transitousHint': 'GTFS-flöden från communityn. Gratis och utan nyckel, med bäst täckning i Europa.',
+  'admin.transitProvider.googleHint': 'Använder Google-nyckeln ovan, för regioner som Transitous saknar data för. Debiteras per sökning – så länge ingen nyckel är angiven används Transitous.',
+  'admin.transitProvider.noKeyWarning': 'Google är valt, men ingen Google-nyckel är konfigurerad – kollektivtrafiksökningen använder fortfarande Transitous. Lägg till en nyckel under API-nycklar ovan.',
+  'admin.transitProvider.personalKeyWarning': 'Bara din egen Google-nyckel är angiven, så andra medlemmars sökningar faller fortfarande tillbaka på Transitous. Spara nyckeln ovan som administratör för att den ska gälla hela instansen.',
+  'admin.placeShadow.title': 'Logg över platssökningar',
+  'admin.placeShadow.subtitle':
+    'Registrera vilket sökresultat som valdes, så att ett annat platsindex senare kan mätas mot verkliga sökningar. Ingenting lämnar den här instansen och en administratör kan när som helst exportera eller radera loggen.',
   'admin.bagTracking.title': 'Spårning av väskor',
   'admin.bagTracking.subtitle': 'Aktivera vikt- och väskfördelning för packningsartiklar',
   'admin.collab.chat.title': 'Chatt',
@@ -378,6 +427,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:calendar-source': 'Tillhandahålla händelser till kalendern',
   'admin.plugins.perm.hook:place-detail-provider':
     'Bidra med extra detaljer (recensioner, betyg, länkar) till en plats',
+  'admin.plugins.perm.hook:search-provider':
+    'Besvara platssökningar från ett eget index, vid sidan av TREK:s egna resultat',
   'admin.plugins.perm.hook:trip-warning-provider': 'Visa valideringsvarningar på en resa (visas i planeraren)',
   'admin.plugins.perm.hook:table-contributor':
     'Lägga till kolumner och åtgärder i rese­vyer (bokningar, platser, dagar)',
@@ -534,6 +585,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.photos': 'Tillhandahåller foton',
   'admin.plugins.cap.calendar': 'Tillhandahåller kalenderhändelser',
   'admin.plugins.cap.placeDetails': 'Berikar platser',
+  'admin.plugins.cap.search': 'Besvarar sökningar',
   'admin.plugins.cap.warnings': 'Flaggar problem',
   'admin.plugins.cap.mapLayers': 'Ritar på kartan',
   'admin.plugins.cap.routing': 'Erbjuder ruttplanering',
@@ -593,6 +645,8 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.atlas.description': 'Världskarta med besökta länder och resestatistik',
   'admin.addons.catalog.collab.name': 'Samarbete',
   'admin.addons.catalog.collab.description': 'Anteckningar, omröstningar, chatt och förslag för gemensam planering',
+  'admin.addons.catalog.roadtrip.name': 'Bilresa',
+  'admin.addons.catalog.roadtrip.description': 'Planera körningar med stopp – körtider och ankomsttider räknas om automatiskt',
   'admin.addons.catalog.memories.name': 'Foton (Immich)',
   'admin.addons.catalog.memories.description': 'Dela resefoton via din Immich-instans',
   'admin.addons.catalog.mcp.name': 'MCP',

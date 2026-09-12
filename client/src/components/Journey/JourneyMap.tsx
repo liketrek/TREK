@@ -4,7 +4,7 @@ import { useSettingsStore } from '../../store/settingsStore'
 import { useCartoApiKey } from '../../hooks/useTileUrl'
 import { isVectorStyle, resolveTileUrl } from '../../utils/tileUrl'
 import { OFM_DARK, OFM_POSITRON, attributionForTile } from '../../constants/mapDefaults'
-import { attachVectorBasemap, type GlLeafletLayer } from '../Map/VectorBasemap'
+import { attachVectorBasemap, detachBasemapLayer, restyleBasemap, type BasemapLayer } from '../Map/VectorBasemap'
 import { escapeHtml, type JourneyTrack } from '@trek/shared'
 
 export interface MapMarkerItem {
@@ -162,7 +162,8 @@ function JourneyMap(
   const tileUrlRef = useRef(tileUrl)
   tileUrlRef.current = tileUrl
   const tileLayerRef = useRef<L.TileLayer | null>(null)
-  const glLayerRef = useRef<GlLeafletLayer | null>(null)
+  // GL layer or the raster stand-in a browser without WebGL gets instead (#2288).
+  const glLayerRef = useRef<BasemapLayer | null>(null)
   // The vector basemap loads async; a map torn down before it lands must not get one.
   const cancelledRef = useRef(false)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -379,7 +380,7 @@ function JourneyMap(
       map.remove()
       mapRef.current = null
       tileLayerRef.current = null
-      glLayerRef.current?.remove()
+      detachBasemapLayer(glLayerRef.current)
       glLayerRef.current = null
       markersRef.current.clear()
     }
@@ -389,7 +390,7 @@ function JourneyMap(
   // marker and track it just drew. A vector basemap restyles instead, which also
   // avoids spending a WebGL context on every theme toggle.
   useEffect(() => {
-    if (isVectorStyle(tileUrl)) glLayerRef.current?.getMaplibreMap()?.setStyle(tileUrl)
+    if (isVectorStyle(tileUrl)) restyleBasemap(glLayerRef.current, tileUrl)
     else tileLayerRef.current?.setUrl(tileUrl)
   }, [tileUrl])
 

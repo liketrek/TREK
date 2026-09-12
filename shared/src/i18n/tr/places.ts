@@ -2,6 +2,9 @@ import type { TranslationStrings } from '../types';
 
 const places: TranslationStrings = {
   'places.addPlace': 'Yer/etkinlik Ekle',
+  'places.addToSelectedDay': 'Açık güne ekle',
+  'places.addPlaceShort': 'Yeni yer',
+  'places.addToDayShort': 'Güne',
   'places.importFile': 'Dosyayı içe aktar',
   'places.trackIndicator': 'İz / rota',
   'places.sidebarDrop': 'İçe aktarmak için bırakın',
@@ -35,6 +38,7 @@ const places: TranslationStrings = {
   'places.importNaverList': 'Naver Listesi',
   'places.googleListHint':
     'Tüm yerleri içe aktarmak için paylaşılan bir Google Haritalar listesi bağlantısını yapıştırın.',
+  'places.googleDirHint': 'Yol tarifi bağlantısı da olur: durakları, sürüş sırasına göre yerlere dönüşür.',
   'places.googleListImported': '"{list}"ten {count} yer içe aktarıldı',
   'places.googleListError': 'Google Haritalar listesi içe aktarılamadı',
   'places.naverListHint':
@@ -46,6 +50,8 @@ const places: TranslationStrings = {
   'places.all': 'Tüm',
   'places.unplanned': 'Planlanmamış',
   'places.planned': 'Planlanmış',
+  'places.dayScoped': 'Yalnızca açık gün gösteriliyor',
+  'places.dayScopedClear': 'Tüm yolculuğu göster',
   'places.filterTracks': 'Parçalar',
   'places.filterByRating': 'Puana göre filtrele',
   'places.yourRating': 'Senin puanın',
@@ -88,9 +94,8 @@ const places: TranslationStrings = {
   'places.loadingDetails': 'Yer ayrıntıları yükleniyor…',
   'places.osmHint':
     'OpenStreetMap aramasını kullanma (fotoğraf, açılış saatleri veya derecelendirme yok). Tüm ayrıntılar için ayarlara bir Google API anahtarı ekleyin.',
-  'places.osmActive': 'OpenStreetMap kullanılıyor. Google API anahtarı puan ve çalışma saatleri ekler.',
   'places.details.title': 'Yer ayrıntıları',
-  'places.details.empty': 'Görseller ve açıklama için bir arama sonucu seç.',
+  'places.details.empty': 'Ayrıntılar için bir sonuç seç',
   'places.details.loading': 'Ayrıntılar yükleniyor...',
   'places.details.error': 'Ayrıntılar yüklenemedi.',
   'places.details.disabled': 'Zenginleştirme yönetici tarafından kapatıldı.',
@@ -101,8 +106,6 @@ const places: TranslationStrings = {
   'places.details.adoptBlocked': 'Önce açıklama alanını boşalt',
   'places.details.facts': 'Bilmekte fayda var',
   'places.details.nothing': 'Bu yer için bir şey bulunamadı.',
-  'places.details.noKeyTitle': 'Daha fazla ayrıntı mevcut',
-  'places.details.noKeyHint': 'Google API anahtarı olmadan bu örnek yalnızca özgür kaynakları kullanır. Puanlar, açılış saatleri ve fotoğraflar için TREK yöneticinizden bir anahtar eklemesini isteyin.',
   'places.details.aboutBrand': 'Zincir hakkında',
   'places.details.aboutBrandNote': 'Bu şubeyi değil, zinciri anlatır.',
   'places.details.fact.rating': 'Puan',

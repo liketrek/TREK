@@ -144,6 +144,23 @@ const collection: TranslationStrings = {
   'collections.picker.hint': 'Διάλεξε ένα μέρος από τις συλλογές σου',
   'collections.picker.use': 'Χρήση',
 
+  // Export / import a list as a file (#2198)
+  'collections.file.export': 'Εξαγωγή',
+  'collections.file.exportTitle': 'Λήψη αυτής της λίστας ως αρχείο',
+  'collections.file.importButton': 'Εισαγωγή λίστας από αρχείο',
+  'collections.file.importTitle': 'Εισαγωγή λίστας',
+  'collections.file.choose': 'Επιλέξτε αρχείο λίστας',
+  'collections.file.confirm': 'Εισαγωγή',
+  'collections.file.change': 'Αλλαγή',
+  'collections.file.labelCount': '{count} ετικέτες',
+  'collections.file.hint':
+    'Τα μέρη έρχονται ως νέα δική σας λίστα. Οι βαθμολογίες, τα μέλη και οι φωτογραφίες που ανέβηκαν μένουν πίσω.',
+  'collections.file.done': 'Εισήχθησαν {count} μέρη',
+  'collections.file.doneSkipped': 'Εισήχθησαν {count} μέρη, παραλείφθηκαν {skipped}',
+  'collections.file.errorTooLarge': 'Αυτό το αρχείο είναι πολύ μεγάλο για λίστα.',
+  'collections.file.errorUnreadable': 'Δεν ήταν δυνατή η ανάγνωση αυτού του αρχείου.',
+  'collections.file.errorNotACollection': 'Αυτό δεν είναι αρχείο λίστας του TREK.',
+
   'collections.share.title': 'Κοινή χρήση λίστας',
   'collections.share.titleNamed': 'Κοινή χρήση «{name}»',
   'collections.share.button': 'Κοινή χρήση',

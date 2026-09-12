@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { calculateTicketShares, hasTicketSplit, payerSum, payersBalanced, readTicketItems, readUserNote, rebalancePayers, splitCents, splitEqualShares, writeTicketItems, type TicketItem } from './CostsPanel.helpers'
+import { calculateTicketShares, finalBudgetFor, finalBudgetSources, hasTicketSplit, paidByUser, payerSum, payersBalanced, readTicketItems, readUserNote, rebalancePayers, settlementDate, splitCents, splitEqualShares, writeTicketItems, type TicketItem } from './CostsPanel.helpers'
 
 describe('splitCents', () => {
   it('splits evenly when it divides cleanly', () => {
@@ -188,6 +188,21 @@ describe('readUserNote', () => {
   })
 })
 
+describe('settlementDate', () => {
+  it('prefers settled_at over created_at', () => {
+    expect(settlementDate({ settled_at: '2026-07-05', created_at: '2026-07-01T09:00:00Z' })).toBe('2026-07-05')
+  })
+
+  it('falls back to the day it was recorded when settled_at is unset', () => {
+    expect(settlementDate({ created_at: '2026-07-01T09:00:00Z' })).toBe('2026-07-01')
+    expect(settlementDate({ settled_at: null, created_at: '2026-07-01T09:00:00Z' })).toBe('2026-07-01')
+  })
+
+  it('is empty when neither is set', () => {
+    expect(settlementDate({})).toBe('')
+  })
+})
+
 // ── Receipt splits have to reconcile (#1382) ─────────────────────────────────
 
 describe('calculateTicketShares', () => {
@@ -229,5 +244,69 @@ describe('calculateTicketShares', () => {
 
   it('is empty for an empty receipt', () => {
     expect(calculateTicketShares([])).toEqual({ shares: {}, total: 0 })
+  })
+})
+
+describe('paidByUser', () => {
+  it('adds up what one participant fronted and ignores the other payers', () => {
+    const item = { payers: [{ user_id: 1, amount: 30 }, { user_id: 2, amount: 70 }, { user_id: 1, amount: 5 }] }
+    expect(paidByUser(item, 1)).toBe(35)
+    expect(paidByUser(item, 2)).toBe(70)
+    expect(paidByUser(item, 3)).toBe(0)
+  })
+
+  it('is zero for an expense with no payer list', () => {
+    expect(paidByUser({ payers: null }, 1)).toBe(0)
+    expect(paidByUser({}, 1)).toBe(0)
+  })
+})
+
+describe('finalBudgetFor', () => {
+  const finals = [{
+    user_id: 1, username: 'alice', avatar_url: null, expenses: 100, reimbursed: 50, pending: 0, final: 50,
+    sources: { fronted: [{ item_id: 1, cents: 10000 }], moved: [], outstanding: [] },
+  }]
+
+  it("returns the server's row for a participant in the ledger", () => {
+    expect(finalBudgetFor(finals, { id: 1, username: 'alice' })).toBe(finals[0])
+  })
+
+  it('reads a participant the ledger left out as costing nothing, with nothing behind it', () => {
+    expect(finalBudgetFor(finals, { id: 2, username: 'bob' })).toEqual({
+      user_id: 2, username: 'bob', avatar_url: null, expenses: 0, reimbursed: 0, pending: 0, final: 0,
+      sources: { fronted: [], moved: [], outstanding: [] },
+    })
+  })
+})
+
+describe('finalBudgetSources', () => {
+  const items = [{ id: 1, name: 'Dinner' }, { id: 2, name: 'Taxi' }]
+  const sources = {
+    fronted: [{ item_id: 1, cents: 6000 }, { item_id: 3, cents: -1000 }],
+    moved: [
+      { settlement_id: 1, from_user_id: 2, to_user_id: 1, cents: 1500 },
+      { settlement_id: 2, from_user_id: 1, to_user_id: 3, cents: -500 },
+    ],
+    outstanding: [{ from_user_id: 3, to_user_id: 1, cents: 501 }],
+  }
+
+  it("names the expenses and prints the server's cents as amounts, a refund's negative row included", () => {
+    const { fronted } = finalBudgetSources({ sources }, items)
+    // An expense the list does not know yet keeps its row; only the name is missing.
+    expect(fronted).toEqual([{ item_id: 1, name: 'Dinner', amount: 60 }, { item_id: 3, name: '?', amount: -10 }])
+  })
+
+  it('keeps the transfers and open flows signed as the server sent them', () => {
+    const { moved, outstanding } = finalBudgetSources({ sources }, items)
+    expect(moved).toEqual([
+      { settlement_id: 1, from_user_id: 2, to_user_id: 1, amount: 15 },
+      { settlement_id: 2, from_user_id: 1, to_user_id: 3, amount: -5 },
+    ])
+    expect(outstanding).toEqual([{ from_user_id: 3, to_user_id: 1, amount: 5.01 }])
+  })
+
+  it('is empty for a participant with no activity', () => {
+    expect(finalBudgetSources({ sources: { fronted: [], moved: [], outstanding: [] } }, items))
+      .toEqual({ fronted: [], moved: [], outstanding: [] })
   })
 })

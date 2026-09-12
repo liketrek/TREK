@@ -1,5 +1,7 @@
+import { useRoadtripSettings } from '../../hooks/useRoadtripSettings'
+import { isServiceStopType } from '../Roadtrip/roadtripModel'
 /* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
-interface DragDataPayload { placeId?: string; assignmentId?: string; noteId?: string; reservationId?: string; fromDayId?: string; phase?: 'single' | 'start' | 'middle' | 'end' }
+interface DragDataPayload { placeId?: string; assignmentId?: string; noteId?: string; reservationId?: string; fromDayId?: string; phase?: 'single' | 'start' | 'middle' | 'end'; /** A corridor hit on its way onto the drive (#1797) — not a place yet. */ poiOsmId?: string }
 declare global { interface Window { __dragData: DragDataPayload | null } }
 
 import React, { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react'
@@ -95,6 +97,8 @@ interface DayPlanSidebarProps {
   onSetRouteProfile?: (profile: string) => void
   onAddPlace?: () => void
   onAddPlaceToDay?: (placeId: number, dayId: number) => void
+  /** Open the place form already pointed at this day, to create a new place there. */
+  onCreatePlaceForDay?: (dayId: number) => void
   onExpandedDaysChange?: (expandedDayIds: Set<number>) => void
   pushUndo?: (label: string, undoFn: () => Promise<void> | void) => void
   canUndo?: boolean
@@ -146,6 +150,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
   onAddReservation,
   onAddPlace,
   onAddPlaceToDay,
+  onCreatePlaceForDay,
   onNavigateToFiles,
   routeShown = false,
   routeProfile = 'driving',
@@ -177,6 +182,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
   const { t, language, locale } = useTranslation()
   const ctxMenu = useContextMenu()
   const timeFormat = useSettingsStore(s => s.settings.time_format) || '24h'
+  const mirrorServiceStops = useRoadtripSettings(s => s.roadtrip_service_stops_in_days !== false)
   const tripActions = useRef(useTripStore.getState()).current
   const can = useCanDo()
   const canEditDays = can('day_edit', trip)
@@ -406,7 +412,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
   }
 
   const getDayAssignments = (dayId) =>
-    (assignments[String(dayId)] || []).slice().sort((a, b) => a.order_index - b.order_index)
+    (assignments[String(dayId)] || []).filter(a => mirrorServiceStops || !isServiceStopType(a.place?.stop_type)).slice().sort((a, b) => a.order_index - b.order_index)
 
   // Compute initial day_plan_position for a transport based on time
   const computeTransportPosition = (r, da) => {
@@ -482,7 +488,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     return map
   // getMergedItems is redefined each render but captures assignments/dayNotes/reservations/days via closure
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [days, assignments, dayNotes, reservations, transportPosVersion])
+  }, [days, assignments, dayNotes, reservations, transportPosVersion, mirrorServiceStops])
 
   // Days whose inline route legs should be computed & shown. Desktop: the selected
   // day while the Route toggle is on. Mobile: each expanded day the user tapped
@@ -707,7 +713,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
   // Unified reorder: assigns positions to ALL item types based on new visual order
   const applyMergedOrder = async (dayId: number, newOrder: { type: string; data: any }[]) => {
     // Capture previous place order for undo
-    const prevAssignmentIds = getDayAssignments(dayId).map(a => a.id)
+    const prevAssignmentIds = (assignments[String(dayId)] || []).slice().sort((a, b) => a.order_index - b.order_index).map(a => a.id)
     // …and, per booking, the fields this call is about to overwrite, so a failed write
     // can put the visible order back instead of leaving a phantom one behind the error
     // toast. Restoring the whole array instead would also drop what a collaborator's
@@ -954,7 +960,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     const da = getDayAssignments(dayId)
     if (da.length < 3) return
 
-    const prevIds = da.map(a => a.id)
+    const prevIds = (assignments[String(dayId)] || []).slice().sort((a, b) => a.order_index - b.order_index).map(a => a.id)
 
     // Separate fixed (stay at their index) and movable assignments. A place is
     // fixed if it's locked OR has a set time — timed places are anchored by their
@@ -1073,6 +1079,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     onAddReservation,
     onAddPlace,
     onAddPlaceToDay,
+    onCreatePlaceForDay,
     onNavigateToFiles,
     routeShown,
     routeProfile,
@@ -1244,6 +1251,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
     onAddReservation,
     onAddPlace,
     onAddPlaceToDay,
+    onCreatePlaceForDay,
     onNavigateToFiles,
     routeShown,
     routeProfile,
@@ -1892,7 +1900,34 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                         border: dragOverDayId === day.id ? '2px dashed rgba(17,24,39,0.2)' : '2px dashed transparent',
                       }}
                     >
-                      <span className="text-content-faint" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))' }}>{t('dayplan.emptyDay')}</span>
+                      {/* An empty day is where somebody wants to add something, so
+                          the slot offers to do it instead of only stating the fact.
+                          Without the handler (no edit rights) it stays the sentence. */}
+                      {onCreatePlaceForDay ? (
+                        <button type="button"
+                          onClick={e => { e.stopPropagation(); onCreatePlaceForDay(day.id) }}
+                          className="text-content-muted"
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                            width: '100%', padding: '8px 12px', borderRadius: 8,
+                            // A solid outline and a whisper of tint rather than the
+                            // dashed grey placeholder it replaced: it is the one thing
+                            // to do on an empty day, so it should read as an offer
+                            // without competing with the day rows around it.
+                            background: 'color-mix(in srgb, var(--accent) 4%, transparent)',
+                            border: '1px solid var(--border-primary)',
+                            fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 500,
+                            cursor: 'pointer', fontFamily: 'inherit',
+                            transition: 'background 0.15s',
+                          }}
+                          onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--accent) 10%, transparent)' }}
+                          onMouseLeave={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--accent) 4%, transparent)' }}
+                        >
+                          <Plus size={13} strokeWidth={2} /> {t('dayplan.addPlaceHere')}
+                        </button>
+                      ) : (
+                        <span className="text-content-faint" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))' }}>{t('dayplan.emptyDay')}</span>
+                      )}
                     </div>
                   ) : (
                     merged.map((item, idx) => {

@@ -78,6 +78,10 @@ const budget: TranslationStrings = {
   'costs.pays': 'paga',
   'costs.settle': 'Liquidar',
   'costs.balances': 'Balanços',
+  'costs.finalBudget': 'Pressupost final',
+  'costs.finalExpenses': 'Despeses pagades',
+  'costs.finalReimbursed': 'Reemborsaments nets',
+  'costs.finalPending': 'Reemborsaments pendents',
   'costs.byCategory': 'Per categoria',
   'costs.noCategories': 'Encara no hi ha despeses.',
   'costs.settleHistory': 'Historial de liquidacions',
@@ -147,6 +151,13 @@ const budget: TranslationStrings = {
   'costs.splitSumUnder': 'Suma de les parts: {sum} de {total} (en falten {diff})',
   'costs.splitSumOver': 'Suma de les parts: {sum} de {total} ({diff} de més)',
   'costs.toggleSign': 'Alterna entre despesa i devolució',
+  'costs.receipts': 'Rebuts',
+  'costs.receiptsTitle': 'Rebuts i factures',
+  'costs.attachReceipt': 'Adjuntar rebut / factura',
+  'costs.noReceipts': 'Cap rebut adjunt',
+  'costs.deleteReceipt': 'Eliminar rebut',
+  'costs.viewReceipt': 'Veure rebut',
+  'costs.receiptLeftBehind': 'No es pot desar i encara hi ha {count} rebuts pujats. Elimina aquests fitxers a la pestanya Fitxers.',
 };
 
 export default budget;

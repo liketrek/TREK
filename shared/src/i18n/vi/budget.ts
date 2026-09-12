@@ -80,6 +80,10 @@ const budget: TranslationStrings = {
   'costs.pays': 'trả tiền',
   'costs.settle': 'Thanh toán',
   'costs.balances': 'Số dư',
+  'costs.finalBudget': 'Ngân sách cuối cùng',
+  'costs.finalExpenses': 'Chi phí đã trả',
+  'costs.finalReimbursed': 'Hoàn trả ròng',
+  'costs.finalPending': 'Khoản hoàn trả đang chờ',
   'costs.byCategory': 'Theo danh mục',
   'costs.noCategories': 'Chưa có chi phí nào.',
   'costs.settleHistory': 'Lịch sử thanh toán',
@@ -147,6 +151,13 @@ const budget: TranslationStrings = {
   'costs.splitSumUnder': 'Tổng các phần: {sum} trên {total} (thiếu {diff})',
   'costs.splitSumOver': 'Tổng các phần: {sum} trên {total} (thừa {diff})',
   'costs.toggleSign': 'Chuyển giữa khoản chi và khoản hoàn',
+  'costs.receipts': 'Hóa đơn',
+  'costs.receiptsTitle': 'Hóa đơn & Biên lai',
+  'costs.attachReceipt': 'Đính kèm hóa đơn / biên lai',
+  'costs.noReceipts': 'Chưa đính kèm hóa đơn nào',
+  'costs.deleteReceipt': 'Xóa hóa đơn',
+  'costs.viewReceipt': 'Xem hóa đơn',
+  'costs.receiptLeftBehind': 'Lưu thất bại và {count} biên lai đã tải lên vẫn còn. Hãy xoá chúng trong tab Tệp.',
 };
 
 export default budget;

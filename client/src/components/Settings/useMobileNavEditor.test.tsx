@@ -38,8 +38,8 @@ describe('useMobileNavEditor', () => {
   it('FE-COMP-NAVEDITOR-001: an empty value falls back to the built-in dock split', () => {
     const { result } = setup({ bar: [], more: [] });
 
-    expect(ids(result.current.barItems)).toEqual(['vacay', 'atlas']);
-    expect(ids(result.current.moreItems)).toEqual(['journey', 'collections']);
+    expect(ids(result.current.barItems)).toEqual(['vacay', 'journey']);
+    expect(ids(result.current.moreItems)).toEqual(['atlas', 'collections']);
     expect(result.current.hasMore).toBe(true);
     expect(result.current.barFull).toBe(true);
   });

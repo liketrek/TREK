@@ -83,6 +83,10 @@ const budget: TranslationStrings = {
   'costs.pays': 'zahlt',
   'costs.settle': 'Ausgleichen',
   'costs.balances': 'Salden',
+  'costs.finalBudget': 'Endbudget',
+  'costs.finalExpenses': 'Bezahlte Ausgaben',
+  'costs.finalReimbursed': 'Rückzahlungen netto',
+  'costs.finalPending': 'Ausstehende Rückzahlungen',
   'costs.byCategory': 'Nach Kategorie',
   'costs.noCategories': 'Noch keine Ausgaben.',
   'costs.settleHistory': 'Ausgleichs-Verlauf',
@@ -147,5 +151,12 @@ const budget: TranslationStrings = {
   'costs.splitSumUnder': 'Summe der Anteile: {sum} von {total} (es fehlen {diff})',
   'costs.splitSumOver': 'Summe der Anteile: {sum} von {total} ({diff} zu viel)',
   'costs.toggleSign': 'Zwischen Ausgabe und Erstattung wechseln',
+  'costs.receipts': 'Belege',
+  'costs.receiptsTitle': 'Belege & Rechnungen',
+  'costs.attachReceipt': 'Beleg / Rechnung anhängen',
+  'costs.noReceipts': 'Keine Belege angehängt',
+  'costs.deleteReceipt': 'Beleg entfernen',
+  'costs.viewReceipt': 'Beleg ansehen',
+  'costs.receiptLeftBehind': 'Speichern fehlgeschlagen, {count} hochgeladene Belege liegen noch da. Im Dateien-Tab entfernen.',
 };
 export default budget;

@@ -40,6 +40,7 @@ export const assignmentSchema = z.object({
   notes: z.string().nullable().optional(),
   assignment_time: z.string().nullable().optional(),
   assignment_end_time: z.string().nullable().optional(),
+  end_day: z.boolean().optional(),
   // Per-segment travel mode (#1281): the transport mode of the leg LEAVING this
   // stop for the next one. null = inherit the day's default_transport_mode.
   leg_transport_mode: z.string().nullable().optional(),
@@ -77,6 +78,11 @@ export const assignmentTimeRequestSchema = z.object({
   end_time: z.string().nullable().optional(),
 });
 export type AssignmentTimeRequest = z.infer<typeof assignmentTimeRequestSchema>;
+
+export const assignmentEndDayRequestSchema = z.object({
+  end_day: z.boolean(),
+});
+export type AssignmentEndDayRequest = z.infer<typeof assignmentEndDayRequestSchema>;
 
 /**
  * PUT /:id/notes (#2163) — edit the per-assignment note after creation.

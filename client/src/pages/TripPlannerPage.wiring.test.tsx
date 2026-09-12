@@ -141,6 +141,42 @@ function baseState(): HookState {
     collabFeatures: { chat: true, notes: true, polls: true, whatsnext: true },
     tripAccommodations: [],
     setTripAccommodations: vi.fn(),
+    // Road trip mode off, which is the state every assertion below reads: the page keeps
+    // its ordinary map, sidebar and route wiring, and the road-trip branches stay unmounted.
+    // The shapes still have to be here, because the page reaches into routeAlternatives.open,
+    // roadtripRoutes.lines and roadtripVias.byDay before it ever checks whether the mode is on.
+    roadtripMode: false,
+    toggleRoadtripMode: vi.fn(),
+    roadtripActive: false,
+    roadtripRoutes: { lines: [], segments: [], days: [], loading: false, totalStops: 0 },
+    roadtripCorridor: { visible: [], day: null, dayId: '', setDayId: vi.fn(), categories: [], toggleCategory: vi.fn(), widthKm: 5, setWidthKm: vi.fn(), search: vi.fn(), nameFilter: '', setNameFilter: vi.fn(), insertIndexFor: vi.fn() },
+    refuel: { openFor: null, loading: false, outcome: null, results: [], offered: [], ask: vi.fn(), close: vi.fn() },
+    askRefuel: vi.fn(),
+    acceptRefuel: vi.fn(),
+    followTrack: { dayId: null, open: vi.fn(), close: vi.fn(), tracks: [], busy: false, round: 0, error: null, outcome: null, apply: vi.fn(), clear: vi.fn(), viaCount: 0, available: false },
+    roadtripViaCounts: {},
+    stopDraft: null,
+    setStopDraft: vi.fn(),
+    saveStopDraft: vi.fn(async () => undefined),
+    stopDraftToForm: vi.fn(),
+    stopDraftDuplicate: null,
+    reorderRoadtripStop: vi.fn(async () => undefined),
+    roadtripVias: { byDay: {}, refresh: vi.fn(async () => undefined) },
+    addRoadtripVia: vi.fn(async () => undefined),
+    moveRoadtripVia: vi.fn(async () => undefined),
+    removeRoadtripVia: vi.fn(async () => undefined),
+    routeAlternatives: { open: null, close: vi.fn(), loading: false, ask: vi.fn(async () => undefined) },
+    askRouteAlternatives: vi.fn(async () => undefined),
+    chooseRouteAlternative: vi.fn(async () => undefined),
+    alternativeOverlays: [],
+    alternativeFocusPoints: [],
+    stayDraft: null,
+    setStayDraft: vi.fn(),
+    setRoadtripStay: vi.fn(async () => undefined),
+    highlightedAlternative: null,
+    setHighlightedAlternative: vi.fn(),
+    moveRoadtripStopToDay: vi.fn(async () => undefined),
+    dropPoiOnRoute: vi.fn(async () => undefined),
     allowedFileTypes: 'pdf',
     tripMembers: [],
     setTripMembers: vi.fn(),
@@ -182,6 +218,7 @@ function baseState(): HookState {
     setDayDetailCollapsed: vi.fn(),
     showPlaceForm: false,
     setShowPlaceForm: vi.fn(),
+    setPlaceFormDayId: vi.fn(),
     editingPlace: null,
     setEditingPlace: vi.fn(),
     prefillCoords: null,
@@ -342,9 +379,11 @@ describe('TripPlannerPage — shell', () => {
   it('FE-PAGE-TPW-006: the tab bar renders every tab and forwards a switch to the hook', () => {
     renderPage()
 
-    const tabs = props('tabs').tabs as unknown as Array<{ id: string; title: string }>
+    const tabs = props('tabs').tabs as unknown as Array<{ id: string; title?: string }>
     expect(tabs.map(t => t.id)).toContain('collab')
-    expect(tabs.find(t => t.id === 'buchungen')?.title).toBe('Bookings')
+    // No native tooltip on any of them: the label is right there, so a title
+    // would only repeat it under the cursor.
+    expect(tabs.every(t => t.title === undefined)).toBe(true)
 
     act(() => { props('tabs').onChange('dateien') })
     expect(hookState.handleTabChange).toHaveBeenCalledWith('dateien')
@@ -413,7 +452,9 @@ describe('TripPlannerPage — plan tab', () => {
   it('FE-PAGE-TPW-013: the collapse buttons toggle each side panel', () => {
     renderPage()
 
-    const [leftBtn, rightBtn] = screen.getAllByRole('button')
+    // By name, not by position: the map layer carries controls of its own, so the
+    // tabs are not simply the first two buttons on the page.
+    const [leftBtn, rightBtn] = screen.getAllByLabelText('common.collapse')
     fireEvent.click(leftBtn)
     expect(hookState.toggleLeft).toHaveBeenCalled()
 
@@ -430,9 +471,8 @@ describe('TripPlannerPage — plan tab', () => {
   // announce themselves with nothing but a hover colour (#2247).
   it('FE-PAGE-TPW-013b: each collapse tab is named for what it does', () => {
     renderPage({ leftHidden: true, rightHidden: false })
-    const [leftBtn, rightBtn] = screen.getAllByRole('button')
-    expect(leftBtn).toHaveAttribute('aria-label', 'trip.mobilePlan')
-    expect(rightBtn).toHaveAttribute('aria-label', 'common.collapse')
+    expect(screen.getByLabelText('trip.mobilePlan')).toBeInTheDocument()
+    expect(screen.getByLabelText('common.collapse')).toBeInTheDocument()
   })
 
   // At a foldable's ~860px the viewport centre sits under the Places panel, so the
@@ -447,6 +487,17 @@ describe('TripPlannerPage — plan tab', () => {
     const { container } = renderPage({ leftWidth: 340, rightWidth: 300, rightHidden: true })
     const cluster = container.querySelector('div[style*="translateX(-50%)"][style*="z-index: 25"]') as HTMLElement
     expect(cluster.style.left).toBe('calc(350px + 0.5 * (100% - 350px - 0px))')
+  })
+
+  // Leaflet's base-layer switcher owns the bottom-LEFT corner at z-index 1000, so an
+  // overview control placed there is simply covered by it (#1736).
+  it('FE-PAGE-TPW-013d: the trip-overview control hugs the right edge, clear of the layer switcher', () => {
+    renderPage()
+
+    const stack = screen.getByTestId('trip-overview-pill').closest('[style*="position: absolute"]') as HTMLElement
+    expect(stack).not.toBeNull()
+    expect(stack.style.right).not.toBe('')
+    expect(stack.style.left).toBe('')
   })
 
   it('FE-PAGE-TPW-014: a collapsed panel keeps its toggle but drops the hover highlight', () => {

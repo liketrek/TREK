@@ -24,6 +24,11 @@ const settings: TranslationStrings = {
   'settings.mapTemplate': 'Шаблон карты',
   'settings.mapTemplatePlaceholder.select': 'Выберите шаблон...',
   'settings.mapDefaultHint': 'Оставьте пустым для OpenStreetMap (по умолчанию)',
+  'settings.routingBase': 'Собственный сервер маршрутов',
+  'settings.routingBaseHint': 'Собственный экземпляр OSRM. Пусто — используются публичные серверы с ограничением около одного запроса в секунду: на день хватает, для автопутешествия мало. Вступает в силу после перезапуска сервера.',
+  'settings.valhallaBase': 'Свой сервер Valhalla',
+  'settings.valhallaBaseHint':
+    'По умолчанию TREK использует публичную Valhalla FOSSGIS для объезда платных дорог, автомагистралей и паромов. Введите здесь URL собственной Valhalla, чтобы использовать её вместо публичной. Если настроен только собственный сервер маршрутизации, публичная Valhalla не используется. После ввода собственного URL перезапустите сервер и обновите страницу.',
   'settings.mapHint': 'URL-шаблон для тайлов карты',
   'settings.mapProvider': 'Провайдер карты',
   'settings.mapProviderHint': 'Применяется к Trip Planner и Journey. Atlas всегда использует Leaflet.',
@@ -84,6 +89,9 @@ const settings: TranslationStrings = {
   'settings.notifyTodoDue': 'Задача к сроку',
   'settings.notifyVacayInvite': 'Приглашения слияния Vacay',
   'settings.notifyVacayShare': 'Общий доступ к календарю Vacay',
+  'settings.notifyCollectionInvite': 'Приглашения в коллекции',
+  'settings.notifySynologySessionCleared': 'Сессия Synology сброшена',
+  'settings.notifyPluginNotification': 'Уведомления плагинов',
   'settings.notifyPhotosShared': 'Общие фото (Immich)',
   'settings.notifyCollabMessage': 'Сообщения чата (Collab)',
   'settings.notifyPackingTagged': 'Список вещей: назначения',
@@ -275,6 +283,7 @@ const settings: TranslationStrings = {
   'settings.bookingLabelsHint':
     'Отображает названия станций / аэропортов на карте. Если выключено, показывается только значок.',
   'settings.notifyVersionAvailable': 'Доступна новая версия',
+  'settings.notifyReplicaFailure': 'Сбой реплики хранилища',
   'settings.notificationPreferences.noChannels':
     'Каналы уведомлений не настроены. Попросите администратора настроить уведомления по электронной почте или через webhook.',
   'settings.webhookUrl.label': 'URL вебхука',
