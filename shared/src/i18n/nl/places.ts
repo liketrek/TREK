@@ -92,6 +92,7 @@ const places: TranslationStrings = {
   'places.loadingDetails': 'Plaatsgegevens laden…',
   'places.osmHint':
     "Zoeken via OpenStreetMap (geen foto's, openingstijden of beoordelingen). Voeg een Google API-sleutel toe in instellingen voor volledige details.",
+  'places.source.amap': 'Amap',
   'places.details.title': 'Plaatsdetails',
   'places.details.empty': 'Kies een resultaat voor meer',
   'places.details.loading': 'Details laden...',

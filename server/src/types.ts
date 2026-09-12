@@ -8,6 +8,8 @@ export interface User {
   password_hash?: string;
   maps_api_key?: string | null;
   unsplash_api_key?: string | null;
+  /** Amap (高德) web-service key — the per-user fallback for the Amap provider. */
+  amap_api_key?: string | null;
   openweather_api_key?: string | null;
   avatar?: string | null;
   oidc_sub?: string | null;
@@ -73,6 +75,7 @@ export interface Place {
   google_place_id?: string | null;
   google_ftid?: string | null;
   osm_id?: string | null;
+  amap_poi_id?: string | null;
   route_geometry?: string | null;
   route_color?: string | null;
   website?: string | null;
@@ -348,6 +351,7 @@ export interface AssignmentRow extends DayAssignment {
   google_place_id: string | null;
   google_ftid: string | null;
   osm_id: string | null;
+  amap_poi_id: string | null;
   website: string | null;
   phone: string | null;
   stop_type: string | null;

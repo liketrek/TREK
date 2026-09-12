@@ -90,6 +90,7 @@ const places: TranslationStrings = {
   'places.mapsSearchError': '地点搜索失败。',
   'places.loadingDetails': '正在加载地点详情…',
   'places.osmHint': '使用 OpenStreetMap 搜索（无照片、营业时间或评分）。在设置中添加 Google API 密钥以获取完整信息。',
+  'places.source.amap': '高德地图',
   'places.details.title': '地点详情',
   'places.details.empty': '选择一个结果查看详情',
   'places.details.loading': '正在加载详情...',

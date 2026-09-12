@@ -176,6 +176,19 @@ const admin: TranslationStrings = {
   'admin.weatherKeyHint': 'För väderdata. Gratis på openweathermap.org',
   'admin.unsplashKey': 'Unsplash API-nyckel',
   'admin.unsplashKeyHint': 'För bildsökning. Gratis på unsplash.com/developers',
+  'admin.amapKey': 'Amap (高德地图) API-nyckel',
+  'admin.amapKeyHint':
+    'För platssökning i Fastlandskina, där Google inte går att nå och OpenStreetMap har tunn täckning. Kräver en "Web 服务"-nyckel (webbtjänst), inte en JS API-nyckel. Skaffa en på console.amap.com.',
+  'admin.placesProvider.title': 'Leverantör för platssökning',
+  'admin.placesProvider.subtitle':
+    'Vilken tjänst som svarar på platssökning, autokomplettering och detaljer. Automatisk använder Google när en Google-nyckel är konfigurerad, därefter Amap och sedan OpenStreetMap.',
+  'admin.placesProvider.auto': 'Automatisk',
+  'admin.placesProvider.google': 'Google Places',
+  'admin.placesProvider.amap': 'Amap (高德地图)',
+  'admin.placesProvider.openstreetmap': 'OpenStreetMap',
+  'admin.placesProvider.missingKey':
+    'Den valda leverantören har ingen API-nyckel konfigurerad, så platssökningen faller tillbaka på OpenStreetMap.',
+  'admin.placesProvider.saved': 'Leverantör för platssökning sparad',
   'admin.validateKey': 'Test',
   'admin.keyValid': 'Ansluten',
   'admin.keyInvalid': 'Felaktig',

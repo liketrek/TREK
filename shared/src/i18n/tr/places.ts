@@ -94,6 +94,7 @@ const places: TranslationStrings = {
   'places.loadingDetails': 'Yer ayrıntıları yükleniyor…',
   'places.osmHint':
     'OpenStreetMap aramasını kullanma (fotoğraf, açılış saatleri veya derecelendirme yok). Tüm ayrıntılar için ayarlara bir Google API anahtarı ekleyin.',
+  'places.source.amap': 'Amap',
   'places.details.title': 'Yer ayrıntıları',
   'places.details.empty': 'Ayrıntılar için bir sonuç seç',
   'places.details.loading': 'Ayrıntılar yükleniyor...',

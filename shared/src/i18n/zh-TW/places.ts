@@ -90,6 +90,7 @@ const places: TranslationStrings = {
   'places.mapsSearchError': '地點搜尋失敗。',
   'places.loadingDetails': '正在載入地點詳情…',
   'places.osmHint': '使用 OpenStreetMap 搜尋（無照片、營業時間或評分）。在設定中新增 Google API 金鑰以獲取完整資訊。',
+  'places.source.amap': '高德地圖',
   'places.details.title': '地點詳細資料',
   'places.details.empty': '選擇一個結果查看詳細資訊',
   'places.details.loading': '正在載入詳細資料...',

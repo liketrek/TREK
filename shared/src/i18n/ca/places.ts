@@ -90,6 +90,7 @@ const places: TranslationStrings = {
   'places.loadingDetails': 'Carregant els detalls del lloc…',
   'places.osmHint':
     "S'està utilitzant la cerca amb OpenStreetMap (sense fotos, horaris ni valoracions). Afegeix una clau API de Google a Configuració per obtenir tots els detalls.",
+  'places.source.amap': 'Amap',
   'places.details.title': 'Detalls del lloc',
   'places.details.empty': 'Tria un resultat per veure’n més',
   'places.details.loading': "S'estan carregant els detalls...",

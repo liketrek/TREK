@@ -17,6 +17,7 @@ export interface PlaceFormData {
   google_place_id?: string
   google_ftid?: string
   osm_id?: string
+  amap_poi_id?: string
   // Hero image picked from the detail column. Optional and absent from
   // DEFAULT_FORM on purpose: the mobile sheet shares this type and never sets
   // it, and places.service already writes image_url through on create/update.
@@ -55,6 +56,26 @@ export function isGoogleMapsUrl(input: string): boolean {
   }
 }
 
+/**
+ * Amap's own hosts, the same set the server resolves (amap.provider.ts). An
+ * exact list rather than a shape: Amap has no ccTLD family, so a pattern would
+ * only widen what the search box hands to the resolver.
+ */
+const AMAP_HOSTS = new Set(['amap.com', 'www.amap.com', 'uri.amap.com', 'wb.amap.com', 'surl.amap.com', 'gaode.com', 'www.gaode.com'])
+
+export function isAmapUrl(input: string): boolean {
+  try {
+    return AMAP_HOSTS.has(new URL(input.trim()).hostname.toLowerCase())
+  } catch {
+    return false
+  }
+}
+
+/** A pasted link the server can turn into a place, from either provider. */
+export function isMapUrl(input: string): boolean {
+  return isGoogleMapsUrl(input) || isAmapUrl(input)
+}
+
 export const DEFAULT_FORM: PlaceFormData = {
   name: '',
   description: '',
@@ -81,6 +102,7 @@ export const RESULT_FIELDS = [
   'google_place_id',
   'google_ftid',
   'osm_id',
+  'amap_poi_id',
   'website',
   'phone',
 ] as const

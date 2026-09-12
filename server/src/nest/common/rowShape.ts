@@ -42,6 +42,7 @@ export function formatAssignmentWithPlace(a: AssignmentRow, tags: Partial<Tag>[]
       google_place_id: a.google_place_id,
       google_ftid: a.google_ftid,
       osm_id: a.osm_id,
+      amap_poi_id: a.amap_poi_id,
       website: a.website,
       phone: a.phone,
       // The rail marks a fuel stop as one; without it here every stop would need

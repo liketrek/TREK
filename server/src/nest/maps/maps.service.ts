@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { isOutsideChina } from '@trek/shared';
 import type {
   MapsSearchResult,
   MapsAutocompleteResult,
@@ -12,6 +13,14 @@ import { readEnv, getAppUrl } from '../../app-config';
 import { safeFetchFollow, SsrfBlockedError } from '../../utils/ssrfGuard';
 import { discardBody, exceedsDeclaredLength, readCappedText } from '../../utils/cappedFetch';
 import { resolveApiKey, type ApiKeySource } from '../settings/instance-api-keys';
+import { isPlacesProviderChoice, type PlacesProviderChoice } from './providers/places-provider';
+import {
+  AMAP_SHORT_HOSTS,
+  AmapPlacesProvider,
+  isAmapHost,
+  isAmapPlaceId,
+  parseAmapUrl,
+} from './providers/amap.provider';
 // ── Photo cache (disk-backed) ────────────────────────────────────────────────
 import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
 import { DatabaseService } from '../database/database.service';
@@ -634,6 +643,24 @@ async function overpassFetch(query: string): Promise<OverpassPoiElement[]> {
 type LocationBias = { low: { lat: number; lng: number }; high: { lat: number; lng: number } };
 
 /**
+ * The app_settings row that names the keyed places provider.
+ *
+ * A setting rather than "whichever key is configured": an install can hold both
+ * credentials (a team split between China and elsewhere), and then only an
+ * admin can say which one should answer. Absent, which is every install that
+ * predates Amap, means `auto`, which keeps Google.
+ */
+export const PLACES_PROVIDER_SETTING = 'places_provider';
+
+/**
+ * Whoever holds the keyed slot beside the index for one request: Google's
+ * credential, an Amap provider, or nobody (the OpenStreetMap stack alone).
+ */
+type KeyedProvider =
+  | { id: 'google'; key: string; source: ApiKeySource | null }
+  | { id: 'amap'; provider: AmapPlacesProvider };
+
+/**
  * /api/maps domain service — geocoding, the provider fan-out
  * (Nominatim/Overpass/Google), the place-details/photo caches and the SSRF
  * guard on every outbound URL. DI-native since the maps fold: the legacy
@@ -944,6 +971,88 @@ export class MapsService {
 
   getMapsKey(userId: number): string | null {
     return this.resolveMapsKey(userId).key;
+  }
+
+  /** The Amap credential, resolved through the identical three-step chain. */
+  resolveAmapKey(userId: number): { key: string | null; source: ApiKeySource | null } {
+    return resolveApiKey(this.database, 'amap_api_key', userId, readEnv().maps.amapApiKey);
+  }
+
+  // ── Keyed provider selection ───────────────────────────────────────────────
+
+  /**
+   * Which keyed provider the admin picked, or `auto`.
+   *
+   * An unrecognised stored value degrades to `auto` rather than throwing: this
+   * is read on the hot path of every search, and a hand-edited settings row must
+   * not take place search down.
+   */
+  placesProviderChoice(): PlacesProviderChoice {
+    const row = this.database.get<{ value: string }>(
+      'SELECT value FROM app_settings WHERE key = ?',
+      PLACES_PROVIDER_SETTING,
+    );
+    return isPlacesProviderChoice(row?.value) ? row.value : 'auto';
+  }
+
+  /**
+   * Who holds the keyed slot for this request, or null for the OpenStreetMap
+   * stack alone. The index and OpenStreetMap are asked either way; this only
+   * decides what answers once they have nothing.
+   *
+   * `auto`, the default and what every install that predates Amap has, prefers
+   * Google. That is deliberately the incumbent rather than "the newest provider
+   * wins": an existing install must not silently start querying somewhere
+   * else, with a different bill and different results, because a release added
+   * a provider. An admin who wants Amap says so.
+   *
+   * Key resolution is ordered to match: under `auto` the Amap chain is only
+   * walked when there is no Google key, so an install on Google issues exactly
+   * the database reads it always did.
+   */
+  keyedProvider(userId: number): KeyedProvider | null {
+    const choice = this.placesProviderChoice();
+    if (choice === 'openstreetmap') return null;
+
+    if (choice !== 'amap') {
+      const google = this.resolveMapsKey(userId);
+      if (google.key) return { id: 'google', key: google.key, source: google.source };
+      // An explicit 'google' choice with no key is not a reason to query Amap
+      // instead: this install is on Google and is misconfigured. OSM answers,
+      // the way a keyless install has always been answered.
+      if (choice === 'google') return null;
+    }
+
+    const amap = this.resolveAmapKey(userId);
+    return amap.key
+      ? { id: 'amap', provider: new AmapPlacesProvider({ key: amap.key, source: amap.source, userId }) }
+      : null;
+  }
+
+  /** The Amap provider, when Amap holds the keyed slot; null otherwise. */
+  resolvePlacesProvider(userId: number): AmapPlacesProvider | null {
+    const keyed = this.keyedProvider(userId);
+    return keyed?.id === 'amap' ? keyed.provider : null;
+  }
+
+  /**
+   * The Amap provider for an `amap:` id, regardless of which provider is
+   * currently selected.
+   *
+   * Places outlive the setting. An install that ran on Amap for a year and then
+   * switches to Google still holds its `amap:` places, and every one of those
+   * keeps opening against the Amap key that is still configured. Google ids do
+   * not come through here at all: they take the inline Google path, which
+   * resolves its own key the same way.
+   *
+   * Null means nobody can resolve it: a Google id, or an Amap place on an
+   * install that has since dropped its Amap key. Callers treat that as a miss,
+   * not an error.
+   */
+  private providerForPlaceId(userId: number, placeId: string): AmapPlacesProvider | null {
+    if (!isAmapPlaceId(placeId)) return null;
+    const amap = this.resolveAmapKey(userId);
+    return amap.key ? new AmapPlacesProvider({ key: amap.key, source: amap.source, userId }) : null;
   }
 
   /**
@@ -1874,7 +1983,8 @@ export class MapsService {
     locationBias?: { lat: number; lng: number; radius?: number },
     opts: { googleIdentityOnly?: boolean } = {},
   ): Promise<{ places: Record<string, unknown>[]; source: string }> {
-    const { key: apiKey, source: keySource } = this.resolveMapsKey(userId);
+    const keyed = this.keyedProvider(userId);
+    const { key: apiKey, source: keySource } = keyed?.id === 'google' ? keyed : { key: null, source: null };
 
     // The TREK index answers first, whether or not a Google key exists. It is
     // the only source here that may be stored, works offline as a country
@@ -1941,6 +2051,13 @@ export class MapsService {
           : 'openstreetmap';
         return { places, source };
       }
+    }
+
+    // Amap in the slot Google otherwise holds: asked only once the index and
+    // OpenStreetMap came back empty, exactly like the Google call below.
+    if (keyed?.id === 'amap') {
+      const places = await keyed.provider.searchText(query, lang, locationBias);
+      return { places, source: 'amap' };
     }
 
     if (!apiKey) {
@@ -2022,7 +2139,8 @@ export class MapsService {
     locationBias?: { low: { lat: number; lng: number }; high: { lat: number; lng: number } },
     sessionToken?: string,
   ): Promise<MapsAutocompleteResult> {
-    const { key: apiKey, source: keySource } = this.resolveMapsKey(userId);
+    const keyed = this.keyedProvider(userId);
+    const { key: apiKey, source: keySource } = keyed?.id === 'google' ? keyed : { key: null, source: null };
 
     // This is the path that mattered most. Nominatim's usage policy names
     // autocomplete as unacceptable use in its own words, regardless of rate,
@@ -2098,6 +2216,11 @@ export class MapsService {
       } catch (err: unknown) {
         console.warn('TREK Places autocomplete failed, falling back:', (err as Error).message);
       }
+    }
+
+    if (keyed?.id === 'amap') {
+      const suggestions = await keyed.provider.autocomplete(input, lang, locationBias);
+      return { suggestions, source: 'amap' };
     }
 
     if (!apiKey) {
@@ -2252,6 +2375,11 @@ export class MapsService {
       };
     }
 
+    // An Amap id is `amap:<poiid>` and so carries a colon too. Before the OSM
+    // branch, which would otherwise send "amap" to Overpass as an element type
+    // and answer every Chinese place with an empty record.
+    if (isAmapPlaceId(placeId)) return this.amapDetails(userId, placeId, lang);
+
     // OSM details: placeId is "node:123456" or "way:123456" etc.
     if (placeId.includes(':')) {
       const [osmType, osmId] = placeId.split(':');
@@ -2374,6 +2502,50 @@ export class MapsService {
     return { place };
   }
 
+  /**
+   * The Amap half of getPlaceDetails, behind the same cache the Google half
+   * uses. Keyed by place_id, and an Amap id carries its `amap:` prefix, so the
+   * two providers' rows cannot collide.
+   *
+   * No key for the id is an empty result, not a client error, for the same
+   * reason the Google half answers its keyless case that way: an Amap place
+   * opened on an install that has since dropped its Amap key is a miss.
+   */
+  private async amapDetails(
+    userId: number,
+    placeId: string,
+    lang?: string,
+  ): Promise<{ place: Record<string, unknown> | null }> {
+    const provider = this.providerForPlaceId(userId, placeId);
+    if (!provider) return { place: null };
+
+    const langKey = toApiLang(lang);
+    const DETAILS_TTL = 7 * 24 * 60 * 60 * 1000;
+    const cached = this.database.get<{ payload_json: string; fetched_at: number }>(
+      'SELECT payload_json, fetched_at FROM place_details_cache WHERE place_id = ? AND lang = ? AND expanded = 0',
+      placeId,
+      langKey,
+    );
+    if (cached && Date.now() - cached.fetched_at < DETAILS_TTL) return { place: JSON.parse(cached.payload_json) };
+
+    const place = await provider.placeDetails(placeId, lang);
+    if (!place) return { place: null };
+
+    try {
+      this.database.run(
+        'INSERT OR REPLACE INTO place_details_cache (place_id, lang, expanded, payload_json, fetched_at) VALUES (?, ?, 0, ?, ?)',
+        placeId,
+        langKey,
+        JSON.stringify(place),
+        Date.now(),
+      );
+    } catch (dbErr) {
+      console.error('Failed to cache place details:', dbErr);
+    }
+
+    return { place };
+  }
+
   async getPlaceDetailsExpanded(
     userId: number,
     placeId: string,
@@ -2390,9 +2562,10 @@ export class MapsService {
     // whole record for them — name, address, contact, hours — and only the reviews
     // and the editorial summary are Google's to add. Answering `expand=1` with a
     // null while `expand=0` answers in full would make the richer request the
-    // poorer one.
+    // poorer one. An Amap id has no richer tier either, so it takes the plain
+    // lookup as well.
     if (!isGooglePlaceId(placeId)) {
-      return OSM_PLACE_ID.test(placeId) || placeId.startsWith('gers:')
+      return OSM_PLACE_ID.test(placeId) || placeId.startsWith('gers:') || isAmapPlaceId(placeId)
         ? this.getPlaceDetails(userId, placeId, lang)
         : { place: null };
     }
@@ -2647,6 +2820,28 @@ export class MapsService {
     lang?: string,
     opts?: { lane?: GeoLane; timeoutMs?: number; locality?: boolean },
   ): Promise<{ name: string | null; address: string | null }> {
+    // Amap answers first when it holds the keyed slot, and only for a point it
+    // can possibly know: outside its box the call would cost a round trip to
+    // come back empty before Nominatim is asked anyway. Resolved at userId 0,
+    // because most callers here have no person behind them (a booking import,
+    // an Atlas tile, a right-click on a shared map): the chain stops at the
+    // operator env var and the instance-wide row, and nobody's personal key is
+    // read on somebody else's behalf (#1939). Nominatim stays the fallback, so
+    // an Amap outage does not take a right-click down with it.
+    const amap = this.resolvePlacesProvider(0);
+    if (amap) {
+      const latNum = Number.parseFloat(lat);
+      const lngNum = Number.parseFloat(lng);
+      if (Number.isFinite(latNum) && Number.isFinite(lngNum) && !isOutsideChina(latNum, lngNum)) {
+        try {
+          const answer = await amap.reverse(latNum, lngNum, lang);
+          if (answer) return answer;
+        } catch (err) {
+          console.error('[Maps] amap reverse geocode failed, falling back to Nominatim:', (err as Error).message);
+        }
+      }
+    }
+
     const params = new URLSearchParams({
       lat,
       lon: lng,
@@ -2705,10 +2900,29 @@ export class MapsService {
     // usually carries the !3d!4d data param we can then parse. Redirects are
     // followed manually so every hop is SSRF-re-checked.
     const parsed = new URL(url);
-    const isShort = GOOGLE_SHORT_HOSTS.includes(parsed.hostname);
+    const isShort = GOOGLE_SHORT_HOSTS.includes(parsed.hostname) || AMAP_SHORT_HOSTS.includes(parsed.hostname);
     const isGoogleMaps = isGoogleMapsHost(parsed.hostname);
     if (isShort || (isGoogleMaps && !extractCoords(url))) {
       resolvedUrl = (await followRedirects(url)).url || resolvedUrl;
+    }
+
+    let resolvedHost = '';
+    try { resolvedHost = new URL(resolvedUrl).hostname; } catch { /* keep the empty host, both host branches are skipped */ }
+
+    // Amap links first, and on their own: they spell the coordinate `lng,lat`
+    // in GCJ-02, which the Google patterns below would read as a WGS-84
+    // `lat,lng` and put a Shanghai restaurant in the East China Sea.
+    // parseAmapUrl owns both the ordering and the datum conversion.
+    if (isAmapHost(resolvedHost)) {
+      const amap = parseAmapUrl(resolvedUrl);
+      // A POI page without a coordinate would need a keyed detail lookup, and
+      // this method has no user to resolve a key for: the same answer a Google
+      // page without coordinates gets.
+      if (!amap || !Number.isFinite(amap.lat) || !Number.isFinite(amap.lng)) {
+        throw Object.assign(new Error('Could not extract coordinates from URL'), { status: 400 });
+      }
+      const reverse = await this.reverseGeocode(String(amap.lat), String(amap.lng), undefined, { timeoutMs: 8000 });
+      return { lat: amap.lat, lng: amap.lng, name: amap.name || reverse.name, address: reverse.address, google_ftid: null };
     }
 
     let coords = extractCoords(resolvedUrl);
@@ -2717,8 +2931,6 @@ export class MapsService {
     // page body once and parse the coordinates out of the embedded map data.
     // Only Google's own pages get read; the resolved host is what counts, so a
     // short link that lands on maps.google.com still qualifies.
-    let resolvedHost = '';
-    try { resolvedHost = new URL(resolvedUrl).hostname; } catch { /* keep the empty host, the branch is skipped */ }
     if (!coords && isGoogleMapsHost(resolvedHost)) {
       try {
         const pageRes = await followRedirects(resolvedUrl, {

@@ -70,9 +70,9 @@ export class MapsMcp {
 
   @Tool({
     name: 'resolve_maps_url',
-    description: 'Resolve a Google Maps share URL to coordinates and place name.',
+    description: 'Resolve a Google Maps or Amap (高德地图) share URL to coordinates and place name.',
     inputSchema: {
-      url: z.string().describe('Google Maps share URL'),
+      url: z.string().describe('Google Maps or Amap share URL'),
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: { group: 'geo', mode: 'read' },

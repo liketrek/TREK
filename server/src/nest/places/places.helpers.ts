@@ -126,7 +126,7 @@ export async function reclaimPhotoCache(cache: PlacePhotoCacheService, googlePla
 export interface DedupSet {
   names: Set<string>;
   coords: Array<{ lat: number; lng: number }>;
-  /** Provider ids (google_place_id, google_ftid, osm_id) of the places already in the trip. */
+  /** Provider ids (google_place_id, google_ftid, osm_id, amap_poi_id) of the places already in the trip. */
   externalIds: Set<string>;
 }
 

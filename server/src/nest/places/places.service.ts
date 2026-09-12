@@ -67,7 +67,7 @@ export interface PlaceCreateInput {
   category_id?: number; price?: number; currency?: string;
   place_time?: string; end_time?: string;
   duration_minutes?: number; notes?: string; image_url?: string;
-  google_place_id?: string; google_ftid?: string; osm_id?: string; website?: string; phone?: string;
+  google_place_id?: string; google_ftid?: string; osm_id?: string; amap_poi_id?: string; website?: string; phone?: string;
   /** What kind of stop this is on a drive (fuel, charging, rest_area, campsite); null for an ordinary place. */
   stop_type?: string | null;
   /** How full THIS stop fills the tank, 1-100; null to follow the traveller's own setting. */
@@ -81,7 +81,7 @@ export interface PlaceUpdateInput {
   category_id?: number; price?: number; currency?: string;
   place_time?: string; end_time?: string;
   duration_minutes?: number; notes?: string; image_url?: string;
-  google_place_id?: string; google_ftid?: string; osm_id?: string; website?: string; phone?: string;
+  google_place_id?: string; google_ftid?: string; osm_id?: string; amap_poi_id?: string; website?: string; phone?: string;
   /** What kind of stop this is on a drive (fuel, charging, rest_area, campsite); null for an ordinary place. */
   stop_type?: string | null;
   /** How full THIS stop fills the tank, 1-100; null to follow the traveller's own setting. */
@@ -232,16 +232,16 @@ export class PlacesService {
     const {
       name, description, lat, lng, address, category_id, price, currency,
       place_time, end_time,
-      duration_minutes, notes, image_url, google_place_id, google_ftid, osm_id, website, phone,
+      duration_minutes, notes, image_url, google_place_id, google_ftid, osm_id, amap_poi_id, website, phone,
       transport_mode, route_geometry, route_color, stop_type, fill_percent, tags = [],
     } = body;
 
     const result = this.dbs.run(`
     INSERT INTO places (trip_id, name, description, lat, lng, address, category_id, price, currency,
       place_time, end_time,
-      duration_minutes, notes, image_url, google_place_id, google_ftid, osm_id, website, phone, transport_mode,
+      duration_minutes, notes, image_url, google_place_id, google_ftid, osm_id, amap_poi_id, website, phone, transport_mode,
       route_geometry, route_color, stop_type, fill_percent)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `,
       // lat/lng/price/duration_minutes use an explicit undefined check, not `||`:
       // 0 is a legitimate value for all four (Null Island, a free entry, a
@@ -255,7 +255,7 @@ export class PlacesService {
       tripId, name, description || null, lat ?? null, lng ?? null, address || null,
       category_id || null, price ?? null, currency || null,
       place_time || null, end_time || null, duration_minutes ?? 60, notes || null, image_url || null,
-      google_place_id || null, google_ftid || null, osm_id || null, website || null, phone || null, transport_mode || 'walking',
+      google_place_id || null, google_ftid || null, osm_id || null, amap_poi_id || null, website || null, phone || null, transport_mode || 'walking',
       route_geometry || null, route_color || null, stop_type || null,
       // `?? null` rather than `|| null`, the same reason lat/lng have it: the column is a
       // percentage and the falsy check would be a silent floor.
@@ -323,7 +323,7 @@ export class PlacesService {
     const {
       name, description, lat, lng, address, category_id, price, currency,
       place_time, end_time,
-      duration_minutes, notes, image_url, google_place_id, google_ftid, osm_id, website, phone,
+      duration_minutes, notes, image_url, google_place_id, google_ftid, osm_id, amap_poi_id, website, phone,
       transport_mode, route_color, stop_type, fill_percent, tags,
     } = body;
 
@@ -345,6 +345,7 @@ export class PlacesService {
       google_place_id = ?,
       google_ftid = ?,
       osm_id = ?,
+      amap_poi_id = ?,
       website = ?,
       phone = ?,
       transport_mode = COALESCE(?, transport_mode),
@@ -372,6 +373,7 @@ export class PlacesService {
       google_place_id !== undefined ? google_place_id : existingPlace.google_place_id,
       google_ftid !== undefined ? google_ftid : existingPlace.google_ftid,
       osm_id !== undefined ? osm_id : existingPlace.osm_id,
+      amap_poi_id !== undefined ? amap_poi_id : existingPlace.amap_poi_id,
       website !== undefined ? website : existingPlace.website,
       phone !== undefined ? phone : existingPlace.phone,
       transport_mode || null,
@@ -518,9 +520,9 @@ export class PlacesService {
   private buildDedupSet(tripId: string): DedupSet {
     const rows = this.dbs.all<{
       name: string | null; lat: number | null; lng: number | null;
-      google_place_id: string | null; google_ftid: string | null; osm_id: string | null;
+      google_place_id: string | null; google_ftid: string | null; osm_id: string | null; amap_poi_id: string | null;
     }>(
-      'SELECT name, lat, lng, google_place_id, google_ftid, osm_id FROM places WHERE trip_id = ?', tripId,
+      'SELECT name, lat, lng, google_place_id, google_ftid, osm_id, amap_poi_id FROM places WHERE trip_id = ?', tripId,
     );
     const names = new Set<string>();
     const coords: Array<{ lat: number; lng: number }> = [];
@@ -585,10 +587,10 @@ export class PlacesService {
       if (strategy.by === 'externalId') {
         hit = this.dbs.get<{ id: number; google_ftid: string | null }>(`
       SELECT id, google_ftid FROM places
-      WHERE trip_id = ? AND (google_place_id = ? OR google_ftid = ? OR osm_id = ?)
+      WHERE trip_id = ? AND (google_place_id = ? OR google_ftid = ? OR osm_id = ? OR amap_poi_id = ?)
       ORDER BY id ASC
       LIMIT 1
-    `, tripId, strategy.id, strategy.id, strategy.id);
+    `, tripId, strategy.id, strategy.id, strategy.id, strategy.id);
       } else if (strategy.by === 'name') {
         hit = this.dbs.get<{ id: number; google_ftid: string | null }>(`
       SELECT id, google_ftid FROM places

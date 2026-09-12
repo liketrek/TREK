@@ -92,6 +92,7 @@ const places: TranslationStrings = {
   'places.loadingDetails': 'Hely adatainak betöltése…',
   'places.osmHint':
     'OpenStreetMap keresés aktív (képek, nyitvatartás és értékelések nélkül). Bővített adatokhoz add meg a Google API kulcsot a beállításokban.',
+  'places.source.amap': 'Amap',
   'places.details.title': 'Hely részletei',
   'places.details.empty': 'Válassz egy találatot a részletekhez',
   'places.details.loading': 'Részletek betöltése...',

@@ -92,6 +92,7 @@ const places: TranslationStrings = {
   'places.loadingDetails': 'Načítání podrobností místa…',
   'places.osmHint':
     'Používáte hledání přes OpenStreetMap (bez fotek a hodnocení). Pro plné detaily přidejte Google API klíč v nastavení.',
+  'places.source.amap': 'Amap',
   'places.details.title': 'Podrobnosti místa',
   'places.details.empty': 'Vyber výsledek a zobraz detaily',
   'places.details.loading': 'Načítání podrobností...',

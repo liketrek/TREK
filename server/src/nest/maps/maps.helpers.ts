@@ -726,18 +726,19 @@ export function parseWikipediaTag(tag: string | undefined | null): { lang: strin
 // Ids that can never resolve against the Google Places API: coordinate pseudo-ids
 // (right-click places, in both the coords: and the bare "lat,lng" spelling the
 // collection views send), OSM ids the client sends when a place has no
-// google_place_id, GERS ids from the TREK index, the raw photo URLs legacy rows
-// keep in image_url, and photo cache keys of the form "<placeId>~p3" that
-// enrichment mints for the picker.
+// google_place_id, GERS ids from the TREK index, Amap POI ids (`amap:<poiid>`,
+// which are otherwise shaped exactly like a Google id), the raw photo URLs
+// legacy rows keep in image_url, and photo cache keys of the form "<placeId>~p3"
+// that enrichment mints for the picker.
 // Google answers those with a billable 400 INVALID_ARGUMENT, so every lookup
-// sorts them out before the call and uses the OSM/Wikimedia path instead.
+// sorts them out before the call and uses the right provider instead.
 //
 // `gers:` belongs here for the same reason as `node:`, and it matters more: the
 // index answers first for search and autocomplete, so a GERS id is what an
 // ordinary new place now carries. Leaving it out billed three invalid lookups
 // per place — photo refs, editorial summary, and the photo route.
 const NON_GOOGLE_PLACE_ID =
-  /^(?:coords|gers|node|way|relation):|^https?:\/\/|^-?\d+(?:\.\d+)?,\s*-?\d+(?:\.\d+)?$|~p\d+$/i;
+  /^(?:coords|gers|node|way|relation|amap):|^https?:\/\/|^-?\d+(?:\.\d+)?,\s*-?\d+(?:\.\d+)?$|~p\d+$/i;
 // The subset that still has a provider behind it — Overpass for details,
 // Wikimedia for photos.
 export const OSM_PLACE_ID = /^(?:node|way|relation):/i;

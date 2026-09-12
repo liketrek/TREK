@@ -16,7 +16,7 @@ import { useToast } from '../shared/Toast'
 import { Search, Paperclip, X, AlertTriangle, Loader2, Plus } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import CustomTimePicker from '../shared/CustomTimePicker'
-import { DEFAULT_FORM, isGoogleMapsUrl, mergeResult, type PlaceFormData, type ResultField } from './PlaceFormModal.helpers'
+import { DEFAULT_FORM, isMapUrl, mergeResult, type PlaceFormData, type ResultField } from './PlaceFormModal.helpers'
 import { getApiErrorMessage } from '../../utils/apiError'
 import { sourceLabelFor } from '../../utils/placeSource'
 import { useLocationBias } from '../../hooks/useLocationBias'
@@ -235,7 +235,7 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
     // because only handleSelectMapsResult ever set it.
     if (place && place.lat != null && place.lng != null) {
       setDetailsSelection({
-        placeId: place.google_place_id || place.osm_id || undefined,
+        placeId: place.google_place_id || place.amap_poi_id || place.osm_id || undefined,
         lat: Number(place.lat),
         lng: Number(place.lng),
         name: place.name || '',
@@ -274,7 +274,7 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
 
   // Autocomplete fetch — aborts any in-flight request before starting a new one
   const fetchSuggestions = useCallback(async (query: string) => {
-    if (query.length < 2 || isGoogleMapsUrl(query)) {
+    if (query.length < 2 || isMapUrl(query)) {
       setAcSuggestions([])
       setAcHighlight(-1)
       return
@@ -301,7 +301,7 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
     if (acDebounceRef.current) clearTimeout(acDebounceRef.current)
 
     const trimmed = mapsSearch.trim()
-    if (trimmed.length < 2 || isGoogleMapsUrl(trimmed)) {
+    if (trimmed.length < 2 || isMapUrl(trimmed)) {
       setAcSuggestions([])
       setAcHighlight(-1)
       placesSessionRef.current.end()
@@ -325,9 +325,9 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
     if (!mapsSearch.trim()) return
     setIsSearchingMaps(true)
     try {
-      // Detect Google Maps URLs and resolve them directly
+      // A pasted Google Maps or Amap link resolves server-side into a place
       const trimmed = mapsSearch.trim()
-      if (isGoogleMapsUrl(trimmed)) {
+      if (isMapUrl(trimmed)) {
         const resolved = await mapsApi.resolveUrl(trimmed)
         if (resolved.lat && resolved.lng) {
           setForm(prev => ({
@@ -369,7 +369,7 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
     const lng = Number(result.lng)
     if (Number.isFinite(lat) && Number.isFinite(lng)) {
       setDetailsSelection({
-        placeId: result.google_place_id || result.osm_id || undefined,
+        placeId: result.google_place_id || result.amap_poi_id || result.osm_id || undefined,
         lat,
         lng,
         name: result.name || '',
@@ -395,7 +395,7 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
             pickedName: result.name || '',
             pickedLat: lat,
             pickedLng: lng,
-            pickedPlaceId: result.google_place_id || result.osm_id || null,
+            pickedPlaceId: result.google_place_id || result.amap_poi_id || result.osm_id || null,
           })
         }
       }
@@ -846,7 +846,7 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
                           <div className="text-xs text-content-muted truncate">{s.secondaryText}</div>
                         )}
                       </div>
-                      <SourceBadge label={sourceLabelFor(s, acSource)} />
+                      <SourceBadge label={sourceLabelFor(s, acSource, t)} />
                     </div>
                   </button>
                 ))}
@@ -869,7 +869,7 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
                       <div className="font-medium text-sm truncate">{result.name}</div>
                       <div className="text-xs text-content-muted truncate">{result.address}</div>
                     </div>
-                    <SourceBadge label={sourceLabelFor(result, searchSource)} />
+                    <SourceBadge label={sourceLabelFor(result, searchSource, t)} />
                   </div>
                 </button>
               ))}

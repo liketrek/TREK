@@ -175,6 +175,19 @@ const admin: TranslationStrings = {
   'admin.weatherKeyHint': 'Đối với dữ liệu thời tiết. Miễn phí tại openweathermap.org',
   'admin.unsplashKey': 'Khóa API Unsplash',
   'admin.unsplashKeyHint': 'Đối với tìm kiếm hình ảnh. Miễn phí tại unsplash.com/developers',
+  'admin.amapKey': 'Khóa API Amap (高德地图)',
+  'admin.amapKeyHint':
+    'Dùng cho tìm kiếm địa điểm tại Trung Quốc đại lục, nơi không truy cập được Google và dữ liệu OpenStreetMap còn thưa. Cần khóa loại "Web 服务" (dịch vụ web), không phải khóa JS API. Lấy khóa tại console.amap.com.',
+  'admin.placesProvider.title': 'Nhà cung cấp tìm kiếm địa điểm',
+  'admin.placesProvider.subtitle':
+    'Dịch vụ nào trả lời tìm kiếm địa điểm, tự động hoàn thành và chi tiết. Tự động dùng Google khi đã cấu hình khóa Google, sau đó là Amap, rồi đến OpenStreetMap.',
+  'admin.placesProvider.auto': 'Tự động',
+  'admin.placesProvider.google': 'Google Places',
+  'admin.placesProvider.amap': 'Amap (高德地图)',
+  'admin.placesProvider.openstreetmap': 'OpenStreetMap',
+  'admin.placesProvider.missingKey':
+    'Nhà cung cấp đã chọn chưa có khóa API, nên tìm kiếm địa điểm sẽ dùng OpenStreetMap thay thế.',
+  'admin.placesProvider.saved': 'Đã lưu nhà cung cấp tìm kiếm địa điểm',
   'admin.validateKey': 'Bài kiểm tra',
   'admin.keyValid': 'Đã kết nối',
   'admin.keyInvalid': 'Không hợp lệ',

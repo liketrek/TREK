@@ -11,16 +11,25 @@
  * nothing on the other is worse than either alone.
  */
 
+import type { TranslationFn } from '../types'
+
 /**
- * The three names are proper nouns, so they are not translated, and that is
- * also why there is no fourth: a source without a name people already know
- * would need a string in 23 languages to say less than nothing.
+ * Proper nouns, so they are not translated. A source without a name people
+ * already know would need a string in 23 languages to say less than nothing.
  */
 export const SOURCE_LABELS: Record<string, string> = {
   'trek-places': 'TREK',
   openstreetmap: 'OpenStreetMap',
   nominatim: 'OpenStreetMap',
   google: 'Google',
+}
+
+/**
+ * The one name that changes with the reader: 高德地图 to the people it exists
+ * for, Amap to everyone else. Hence a locale string rather than a fourth noun.
+ */
+const SOURCE_KEYS: Record<string, string> = {
+  amap: 'places.source.amap',
 }
 
 /**
@@ -31,9 +40,11 @@ export const SOURCE_LABELS: Record<string, string> = {
  * answered the call: Google never marks its places, and a merged list marks only
  * the index side, so an unmarked row in one is OpenStreetMap by elimination.
  */
-export function sourceLabelFor(place: unknown, listSource: string): string | null {
+export function sourceLabelFor(place: unknown, listSource: string, t: TranslationFn): string | null {
   const own = (place as { source?: unknown } | null)?.source
-  if (typeof own === 'string' && own) return SOURCE_LABELS[own] ?? null
-  if (listSource.includes('openstreetmap')) return SOURCE_LABELS.openstreetmap
-  return SOURCE_LABELS[listSource] ?? null
+  const source = typeof own === 'string' && own
+    ? own
+    : listSource.includes('openstreetmap') ? 'openstreetmap' : listSource
+  if (SOURCE_KEYS[source]) return t(SOURCE_KEYS[source])
+  return SOURCE_LABELS[source] ?? null
 }

@@ -92,6 +92,7 @@ const places: TranslationStrings = {
   'places.loadingDetails': 'Φόρτωση λεπτομερειών μέρους…',
   'places.osmHint':
     'Χρήση αναζήτησης OpenStreetMap (χωρίς φωτογραφίες, ώρες λειτουργίας ή αξιολογήσεις). Προσθέστε ένα κλειδί Google API στις ρυθμίσεις για πλήρεις λεπτομέρειες.',
+  'places.source.amap': 'Amap',
   'places.details.title': 'Λεπτομέρειες τοποθεσίας',
   'places.details.empty': 'Επίλεξε ένα αποτέλεσμα για περισσότερα',
   'places.details.loading': 'Φόρτωση λεπτομερειών...',

@@ -4,7 +4,7 @@ import { mapsApi } from '../../../../api/client'
 import { sourceLabelFor } from '../../../../utils/placeSource'
 import { recordPlacePick } from '../../../../api/placeShadow'
 import { PlacesSession } from '../../../../utils/placesSession'
-import { isGoogleMapsUrl } from '../../../../components/Planner/PlaceFormModal.helpers'
+import { isMapUrl } from '../../../../components/Planner/PlaceFormModal.helpers'
 import { getApiErrorMessage } from '../../../../utils/apiError'
 import { pointFromBox } from '../../../../hooks/useLocationBias'
 import { FIELD_CLS } from './PlSheetChrome'
@@ -19,6 +19,7 @@ export interface PlSearchPick {
   google_place_id?: string
   google_ftid?: string
   osm_id?: string
+  amap_poi_id?: string
   website?: string
   phone?: string
 }
@@ -67,6 +68,7 @@ function placeToPick(place: MapsPlace): PlSearchPick {
     google_place_id: s(place.google_place_id),
     google_ftid: s(place.google_ftid),
     osm_id: s(place.osm_id),
+    amap_poi_id: s(place.amap_poi_id),
     website: s(place.website),
     phone: s(place.phone),
   }
@@ -125,7 +127,7 @@ export default function PlPlaceSearch({ planner, locationBias, onPick, onResolvi
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
     const trimmed = query.trim()
-    if (trimmed.length < 2 || isGoogleMapsUrl(trimmed) || COORD_RE.test(trimmed)) {
+    if (trimmed.length < 2 || isMapUrl(trimmed) || COORD_RE.test(trimmed)) {
       setSuggestions([])
       return
     }
@@ -157,7 +159,7 @@ export default function PlPlaceSearch({ planner, locationBias, onPick, onResolvi
           pickedName: String(place.name ?? ''),
           pickedLat: lat,
           pickedLng: lng,
-          pickedPlaceId: (place.google_place_id as string) || (place.osm_id as string) || null,
+          pickedPlaceId: (place.google_place_id as string) || (place.amap_poi_id as string) || (place.osm_id as string) || null,
         })
       }
     }
@@ -181,7 +183,7 @@ export default function PlPlaceSearch({ planner, locationBias, onPick, onResolvi
 
     setResolving(true)
     try {
-      if (isGoogleMapsUrl(trimmed)) {
+      if (isMapUrl(trimmed)) {
         const resolved = await mapsApi.resolveUrl(trimmed)
         if (resolved.lat && resolved.lng) {
           onPick({
@@ -308,7 +310,7 @@ export default function PlPlaceSearch({ planner, locationBias, onPick, onResolvi
                     <div className="truncate font-geist text-[0.65625rem] text-m-muted">{s.secondaryText}</div>
                   )}
                 </div>
-                <SourceMark label={sourceLabelFor(s, acSource)} />
+                <SourceMark label={sourceLabelFor(s, acSource, t)} />
               </div>
             </button>
           ))}

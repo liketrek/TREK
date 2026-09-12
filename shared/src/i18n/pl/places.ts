@@ -82,6 +82,7 @@ const places: TranslationStrings = {
   'places.loadingDetails': 'Ładowanie szczegółów miejsca…',
   'places.osmHint':
     'Korzystając z OpenStreetMap (brak zdjęć, godzin otwarcia czy ocen). Dodaj klucz API Google w ustawieniach aby uzyskać pełne dane.',
+  'places.source.amap': 'Amap',
   'places.details.title': 'Szczegóły miejsca',
   'places.details.empty': 'Wybierz wynik, aby zobaczyć więcej',
   'places.details.loading': 'Wczytywanie szczegółów...',

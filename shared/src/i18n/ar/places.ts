@@ -92,6 +92,7 @@ const places: TranslationStrings = {
   'places.loadingDetails': 'جارٍ تحميل تفاصيل المكان…',
   'places.osmHint':
     'يتم البحث عبر OpenStreetMap (بدون صور أو ساعات عمل أو تقييمات). أضف مفتاح Google API في الإعدادات للحصول على جميع التفاصيل.',
+  'places.source.amap': 'Amap',
   'places.details.title': 'تفاصيل المكان',
   'places.details.empty': 'اختر نتيجة لعرض التفاصيل',
   'places.details.loading': 'جارٍ تحميل التفاصيل...',

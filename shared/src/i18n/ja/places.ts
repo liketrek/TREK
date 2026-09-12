@@ -92,6 +92,7 @@ const places: TranslationStrings = {
   'places.loadingDetails': '詳細を読み込み中…',
   'places.osmHint':
     'OpenStreetMapで検索しています（写真・営業時間・評価なし）。設定でGoogle APIキーを追加すると詳細が表示されます。',
+  'places.source.amap': 'Amap',
   'places.details.title': '場所の詳細',
   'places.details.empty': '検索結果を選ぶと詳細が表示されます',
   'places.details.loading': '詳細を読み込み中...',

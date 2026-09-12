@@ -2,9 +2,10 @@ import { useEffect, useRef, useImperativeHandle, useCallback, type Ref } from 'r
 import L from 'leaflet'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useCartoApiKey } from '../../hooks/useTileUrl'
-import { isVectorStyle, resolveTileUrl } from '../../utils/tileUrl'
+import { isGcj02Basemap, isVectorStyle, resolveTileUrl } from '../../utils/tileUrl'
 import { OFM_DARK, OFM_POSITRON, attributionForTile } from '../../constants/mapDefaults'
 import { attachVectorBasemap, detachBasemapLayer, restyleBasemap, type BasemapLayer } from '../Map/VectorBasemap'
+import { crsForBasemap } from '../Map/gcj02Crs'
 import { escapeHtml, type JourneyTrack } from '@trek/shared'
 
 export interface MapMarkerItem {
@@ -156,6 +157,10 @@ function JourneyMap(
   const storedCartoKey = useCartoApiKey()
   const cartoKey = cartoApiKey || storedCartoKey
   const tileUrl = resolveTileUrl(mapTileUrl, dark ? OFM_DARK : OFM_POSITRON, cartoKey)
+  // Amap's tiles are GCJ-02 (see gcj02Crs.ts), the same shift the planner map
+  // applies. Leaflet fixes a map's CRS at construction, so this one value is
+  // allowed to rebuild the map where a template change only retiles it.
+  const isGcjBasemap = !isVectorStyle(tileUrl) && isGcj02Basemap(tileUrl)
   // Read through a ref by the map effect, retiled in place by its own effect below:
   // the CARTO key reaches the store after the first render, and rebuilding the map
   // for that raced with the markers and layers already on it (#2097).
@@ -235,7 +240,9 @@ function JourneyMap(
 
     markersRef.current.clear()
 
+    const crs = crsForBasemap(isGcjBasemap)
     const map = L.map(containerRef.current, {
+      ...(crs ? { crs } : {}),
       zoomControl: false,
       attributionControl: true,
       scrollWheelZoom: fullScreen ? true : false,
@@ -384,7 +391,7 @@ function JourneyMap(
       glLayerRef.current = null
       markersRef.current.clear()
     }
-  }, [entries, stableTrail, stableTracks, dark, fullScreen, paddingBottom])
+  }, [entries, stableTrail, stableTracks, dark, fullScreen, paddingBottom, isGcjBasemap])
 
   // Retile in place rather than through the effect above, which would drop every
   // marker and track it just drew. A vector basemap restyles instead, which also

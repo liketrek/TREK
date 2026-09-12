@@ -462,6 +462,36 @@ describe('PlaceFormModal', () => {
     expect(await screen.findByText('OpenStreetMap')).toBeInTheDocument();
   });
 
+  it('FE-PLANNER-PLACEFORM-022d: an Amap list marks its rows, and a pick keeps the Amap id', async () => {
+    // Amap answers from the slot Google otherwise holds, so its rows get the
+    // same mark the other sources get. The id travels with the place: it is
+    // what lets the saved place keep opening against Amap after the admin
+    // switches providers.
+    const user = userEvent.setup();
+    const onSave = vi.fn();
+    server.use(
+      http.post('/api/maps/search', () =>
+        HttpResponse.json({
+          places: [
+            { name: '天安门', address: '北京市东城区', lat: '39.9087', lng: '116.3975', amap_poi_id: 'amap:B000A7BD6C', source: 'amap' },
+          ],
+          source: 'amap',
+        }),
+      ),
+    );
+
+    render(<PlaceFormModal {...defaultProps} onSave={onSave} />);
+    await user.type(screen.getByPlaceholderText('Search places...'), 'Tiananmen');
+    await user.keyboard('{Enter}');
+
+    expect(await screen.findByText('Amap')).toBeInTheDocument();
+    await user.click(screen.getByText('天安门'));
+    await user.click(screen.getByRole('button', { name: /^Add$/i }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave.mock.calls[0][0].amap_poi_id).toBe('amap:B000A7BD6C');
+  });
+
   // ── Category ─────────────────────────────────────────────────────────────────
 
   it('FE-PLANNER-PLACEFORM-023: category selector renders options', () => {

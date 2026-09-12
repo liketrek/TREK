@@ -92,6 +92,7 @@ const places: TranslationStrings = {
   'places.loadingDetails': 'Hämtar information om platsen…',
   'places.osmHint':
     'Använder OpenStreetMap-sökningen (inga bilder, öppettider eller betyg). Lägg till en Google API-nyckel i inställningarna för fullständig information.',
+  'places.source.amap': 'Amap',
   'places.details.title': 'Platsdetaljer',
   'places.details.empty': 'Välj ett resultat för att se mer',
   'places.details.loading': 'Laddar detaljer...',

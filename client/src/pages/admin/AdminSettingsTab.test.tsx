@@ -29,6 +29,15 @@ function card(heading: string | RegExp): HTMLElement {
   return screen.getByRole('heading', { name: heading }).closest<HTMLElement>('.rounded-xl')!;
 }
 
+/**
+ * The key input in the block whose show/hide toggle carries the given name. The
+ * toggle is the labelled element and the input its sibling, so this still finds
+ * the right field when the card gains a block, where an index would not.
+ */
+function keyInput(name: string | RegExp): HTMLInputElement {
+  return within(card('API Keys')).getByLabelText(name).parentElement!.querySelector('input')!;
+}
+
 /** The toggle button in the row belonging to a label paragraph. */
 function toggleFor(label: string): HTMLElement {
   const row = screen.getAllByText(label).map(el => el.closest<HTMLElement>('.flex.items-center.justify-between'));
@@ -253,23 +262,75 @@ describe('AdminSettingsTab', () => {
     expect(admin.toggleKey).toHaveBeenCalledWith('maps');
   });
 
-  it('FE-ADMSET-021: showKeys switches both key inputs to plain text', () => {
-    renderTab({ showKeys: { maps: true, unsplash: true } });
+  // Selected by accessible name rather than by position: the API-keys card has
+  // grown a field before now (Amap), and an index-based lookup silently starts
+  // asserting about a different input when it does.
+  it('FE-ADMSET-021: showKeys switches every key input to plain text', () => {
+    renderTab({ showKeys: { maps: true, unsplash: true, amap: true } });
 
-    const inputs = within(card('API Keys')).getAllByPlaceholderText('Enter key...');
-    expect(inputs[0]).toHaveAttribute('type', 'text');
-    expect(inputs[1]).toHaveAttribute('type', 'text');
+    expect(keyInput('Google Maps API Key')).toHaveAttribute('type', 'text');
+    expect(keyInput('Unsplash API Key')).toHaveAttribute('type', 'text');
+    expect(keyInput(/Amap/)).toHaveAttribute('type', 'text');
   });
 
   it('FE-ADMSET-022: unsplash key input and its visibility toggle', () => {
     const admin = renderTab({ unsplashKey: '' });
 
-    const unsplashInput = within(card('API Keys')).getAllByPlaceholderText('Enter key...')[1];
+    const unsplashInput = keyInput('Unsplash API Key');
     fireEvent.change(unsplashInput, { target: { value: 'unsplash-key' } });
     expect(admin.setUnsplashKey).toHaveBeenCalledWith('unsplash-key');
 
     fireEvent.click(unsplashInput.parentElement!.querySelector('button')!);
     expect(admin.toggleKey).toHaveBeenCalledWith('unsplash');
+  });
+
+  it('FE-ADMSET-022b: amap key input and its visibility toggle', () => {
+    const admin = renderTab({ amapKey: '' });
+
+    const amapInput = keyInput(/Amap/);
+    fireEvent.change(amapInput, { target: { value: 'amap-key' } });
+    expect(admin.setAmapKey).toHaveBeenCalledWith('amap-key');
+
+    fireEvent.click(amapInput.parentElement!.querySelector('button')!);
+    expect(admin.toggleKey).toHaveBeenCalledWith('amap');
+  });
+
+  it('FE-ADMSET-022c: warns when the selected provider has no key behind it', () => {
+    // A provider chosen without a key answers with OpenStreetMap rather than
+    // failing, which is quiet enough to be mistaken for the provider working.
+    renderTab({ placesProvider: 'amap', hasAmapKey: false });
+    expect(
+      within(card('API Keys')).getByText(/falls back to OpenStreetMap/i),
+    ).toBeInTheDocument();
+  });
+
+  it('FE-ADMSET-022d: saving the provider goes through updateAppSettings, not the keys', () => {
+    const admin = renderTab({ placesProvider: 'auto' });
+    // A CustomSelect: the trigger shows the current choice, the menu is portaled.
+    fireEvent.click(within(card('API Keys')).getByRole('button', { name: 'Automatic' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Amap (高德地图)' }));
+    expect(admin.handleSavePlacesProvider).toHaveBeenCalledWith('amap');
+  });
+
+  it('FE-ADMSET-022e: a managed install hides the keys but keeps the provider choice', () => {
+    // The operator owns the credentials; which of them answers place search is
+    // still the admin's call (server managed.ts lists places_provider as theirs).
+    renderTab({ managed: true, placesProvider: 'auto' });
+
+    const keys = within(card('API Keys'));
+    expect(keys.queryByLabelText('Google Maps API Key')).not.toBeInTheDocument();
+    expect(keys.queryByLabelText(/Amap/)).not.toBeInTheDocument();
+    expect(keys.getByRole('button', { name: 'Automatic' })).toBeInTheDocument();
+  });
+
+  it('FE-ADMSET-022f: an operator key keeps the managed install quiet', () => {
+    // The key fields are not on the page here, and an operator key set through
+    // the environment would not show up in them anyway. app-config knows.
+    renderTab({ managed: true, placesProvider: 'google', mapsKey: '', hasMapsKey: true });
+
+    expect(
+      within(card('API Keys')).queryByText(/falls back to OpenStreetMap/i),
+    ).not.toBeInTheDocument();
   });
 
   it('FE-ADMSET-023: the maps Test button is disabled without a key', () => {

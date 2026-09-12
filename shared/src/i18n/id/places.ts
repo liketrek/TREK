@@ -91,6 +91,7 @@ const places: TranslationStrings = {
   'places.loadingDetails': 'Memuat detail tempat…',
   'places.osmHint':
     'Menggunakan pencarian OpenStreetMap (tanpa foto, jam buka, atau penilaian). Tambahkan Google API key di pengaturan untuk detail lengkap.',
+  'places.source.amap': 'Amap',
   'places.details.title': 'Detail tempat',
   'places.details.empty': 'Pilih hasil untuk melihat detail',
   'places.details.loading': 'Memuat detail...',

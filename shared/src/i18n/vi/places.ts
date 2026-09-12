@@ -92,6 +92,7 @@ const places: TranslationStrings = {
   'places.loadingDetails': 'Đang tải chi tiết địa điểm…',
   'places.osmHint':
     'Sử dụng tìm kiếm OpenStreetMap (không có ảnh, giờ mở cửa hoặc xếp hạng). Thêm khóa Google API trong cài đặt để biết đầy đủ chi tiết.',
+  'places.source.amap': 'Amap',
   'places.details.title': 'Chi tiết địa điểm',
   'places.details.empty': 'Chọn một kết quả để xem thêm',
   'places.details.loading': 'Đang tải chi tiết...',

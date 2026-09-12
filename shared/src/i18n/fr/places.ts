@@ -92,6 +92,7 @@ const places: TranslationStrings = {
   'places.loadingDetails': 'Chargement des détails du lieu…',
   'places.osmHint':
     'Recherche via OpenStreetMap (pas de photos, horaires ni notes). Ajoutez une clé API Google dans les paramètres pour plus de détails.',
+  'places.source.amap': 'Amap',
   'places.details.title': 'Détails du lieu',
   'places.details.empty': 'Choisis un résultat pour en voir plus',
   'places.details.loading': 'Chargement des détails...',

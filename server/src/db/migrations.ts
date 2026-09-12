@@ -4590,6 +4590,36 @@ function runMigrations(db: Database.Database): void {
         db.exec('ALTER TABLE budget_settlements ADD COLUMN settled_at TEXT');
       }
     },
+
+    /**
+     * Amap (高德) as a keyed places provider.
+     *
+     * users.amap_api_key has the same shape and role as maps_api_key: encrypted
+     * with apiKeyCrypto, and the last step of the resolver after the operator
+     * env var and the instance-wide app_settings row. Nullable with no default,
+     * because "this install does not use Amap" is the correct state for almost
+     * everybody. Nothing is backfilled: a Google key is not an Amap key, and
+     * the two are chosen by the places_provider setting, not by which column
+     * happens to be populated.
+     *
+     * places.amap_poi_id is the provider id a place was found by, beside
+     * google_place_id and osm_id. Amap ids are bare strings shaped like Google
+     * ones, so the column holds them with the `amap:` prefix the maps domain
+     * uses everywhere, and a place keeps opening against Amap after the admin
+     * switches provider.
+     *
+     * Appended LAST: the array is index-addressed against schema_version.
+     */
+    () => {
+      const userCols = db.prepare("SELECT name FROM pragma_table_info('users')").all() as Array<{ name: string }>;
+      if (!userCols.some(c => c.name === 'amap_api_key')) {
+        db.exec('ALTER TABLE users ADD COLUMN amap_api_key TEXT');
+      }
+      const placeCols = db.prepare("SELECT name FROM pragma_table_info('places')").all() as Array<{ name: string }>;
+      if (!placeCols.some(c => c.name === 'amap_poi_id')) {
+        db.exec('ALTER TABLE places ADD COLUMN amap_poi_id TEXT');
+      }
+    },
   ];
 
   if (currentVersion < migrations.length) {

@@ -62,6 +62,7 @@ import { render, act, fireEvent, waitFor } from '../../../tests/helpers/render';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { useSettingsStore } from '../../store/settingsStore';
 import { buildSettings } from '../../../tests/helpers/factories';
+import { AMAP_ROAD } from '../../constants/mapDefaults';
 import type { Mock } from 'vitest';
 import L from 'leaflet';
 import JourneyMap from './JourneyMap';
@@ -89,6 +90,11 @@ vi.mock('../Map/engines/maplibre', () => ({ default: {} }));
 // jsdom refuses a WebGL context, and the basemap now believes it (#2288). These
 // cases are about the GL layer, so the probe says yes here.
 vi.mock('../../utils/webgl', () => ({ hasWebGL: () => true, resetWebGLProbe: () => {} }));
+// The real CRS is built from Leaflet's projection, which the mock above does not
+// carry. What matters here is only that the map is handed one for Amap tiles.
+vi.mock('../Map/gcj02Crs', () => ({
+  crsForBasemap: (gcj02: boolean) => (gcj02 ? { code: 'TREK:GCJ02' } : undefined),
+}));
 
 const entriesWithCoords = [
   { id: 'e1', lat: 48.8566, lng: 2.3522, title: 'Paris', mood: null, entry_date: '2025-06-01' },
@@ -420,6 +426,18 @@ describe('JourneyMap', () => {
     seedStore(useSettingsStore, { settings: buildSettings({ map_tile_url: 'https://tiles.test/{z}/{x}/{y}.png' }) });
     render(<JourneyMap checkins={[]} entries={entriesWithCoords} />);
     expect(vi.mocked(L.tileLayer).mock.calls[0][0]).toBe('https://tiles.test/{z}/{x}/{y}.png');
+    // A WGS-84 template leaves the projection alone: passing the default CRS
+    // explicitly would be the same value, but omitting it keeps the map as it was.
+    expect(vi.mocked(L.map).mock.calls[0][1]).not.toHaveProperty('crs');
+  });
+
+  it('FE-COMP-JOURNEYMAP-027b: an Amap preset builds the map on the GCJ-02 projection', () => {
+    // The same shift the planner map applies. Miss it here and every entry on
+    // the journey page sits a few hundred metres from where the planner drew it.
+    seedStore(useSettingsStore, { settings: buildSettings({ map_tile_url: AMAP_ROAD }) });
+    render(<JourneyMap checkins={[]} entries={entriesWithCoords} />);
+    expect(vi.mocked(L.tileLayer).mock.calls[0][0]).toBe(AMAP_ROAD);
+    expect(vi.mocked(L.map).mock.calls[0][1]).toMatchObject({ crs: { code: 'TREK:GCJ02' } });
   });
 
   it('FE-COMP-JOURNEYMAP-041: a basemap change restyles in place instead of rebuilding the map (#2097)', async () => {

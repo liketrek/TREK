@@ -127,6 +127,18 @@ export default defineConfig(({ mode }) => ({
             },
           },
           {
+            // Amap road and satellite presets, served from the shard hosts under
+            // is.autonavi.com (src/constants/mapDefaults.ts). Without a rule here
+            // they would be the #2180 hole all over again.
+            urlPattern: /^https:\/\/(?:[a-z0-9]+\.)?is\.autonavi\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'map-tiles',
+              expiration: { maxEntries: 12288, maxAgeSeconds: 30 * 24 * 60 * 60 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
             // The GL style DOCUMENT, for both providers. It has to be matched
             // before the tile rules below, because Workbox takes the first route
             // that matches and the broad tile patterns cover this URL too (#1924).

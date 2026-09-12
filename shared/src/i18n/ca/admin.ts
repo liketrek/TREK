@@ -436,6 +436,19 @@ const admin: TranslationStrings = {
     "S'utilitza per a cada usuari que no hagi introduït la seva pròpia clau, de manera que tota la instància obtingui tessel·les de CARTO sense marca d'aigua. S'emmagatzema xifrada.",
   'admin.unsplashKey': "Clau API d'Unsplash",
   'admin.unsplashKeyHint': "Per a la cerca d'imatges. Gratuït a unsplash.com/developers",
+  'admin.amapKey': "Clau API d'Amap (高德地图)",
+  'admin.amapKeyHint':
+    "Per a la cerca de llocs a la Xina continental, on Google no és accessible i la cobertura d'OpenStreetMap és escassa. Cal una clau «Web 服务» (servei web), no una clau de l'API JS. Se n'obté una a console.amap.com.",
+  'admin.placesProvider.title': 'Proveïdor de la cerca de llocs',
+  'admin.placesProvider.subtitle':
+    "Quin servei respon la cerca de llocs, l'autocompleció i els detalls. Automàtic fa servir Google quan hi ha una clau de Google configurada, després Amap i després OpenStreetMap.",
+  'admin.placesProvider.auto': 'Automàtic',
+  'admin.placesProvider.google': 'Google Places',
+  'admin.placesProvider.amap': 'Amap (高德地图)',
+  'admin.placesProvider.openstreetmap': 'OpenStreetMap',
+  'admin.placesProvider.missingKey':
+    'El proveïdor seleccionat no té cap clau API configurada, així que la cerca de llocs recorre a OpenStreetMap.',
+  'admin.placesProvider.saved': 'Proveïdor de la cerca de llocs desat',
   'admin.tabs.plugins': 'Connectors',
   'admin.tabs.storage': 'Emmagatzematge',
   'admin.plugins.rescan': 'Torna a escanejar',

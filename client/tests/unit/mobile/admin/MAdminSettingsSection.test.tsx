@@ -250,14 +250,43 @@ describe('MAdminSettingsSection', () => {
     const user = userEvent.setup();
     const admin = renderSettings();
 
-    await user.type(screen.getAllByPlaceholderText('Enter key...')[0], 'm');
+    // By accessible name rather than by position: the card gained an Amap field
+    // between Maps and Unsplash, and an index quietly starts asserting about a
+    // different input when that happens.
+    await user.type(screen.getByLabelText('Google Maps API Key'), 'm');
     expect(admin.setMapsKey).toHaveBeenCalledWith('m');
 
-    await user.type(screen.getAllByPlaceholderText('Enter key...')[1], 'u');
+    await user.type(screen.getByLabelText('Unsplash API Key'), 'u');
     expect(admin.setUnsplashKey).toHaveBeenCalledWith('u');
+
+    await user.type(screen.getByLabelText(/Amap/), 'a');
+    expect(admin.setAmapKey).toHaveBeenCalledWith('a');
 
     await user.click(screen.getAllByRole('button', { name: 'Save' })[2]);
     expect(admin.handleSaveApiKeys).toHaveBeenCalled();
+  });
+
+  it('FE-MOB-ASET-016b: a managed install hides the keys but keeps the provider choice', () => {
+    // The operator owns the credentials; which of them answers place search is
+    // still the admin's call, the same split the desktop tab makes.
+    renderSettings({ managed: true });
+
+    expect(screen.queryByLabelText('Google Maps API Key')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Amap/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Unsplash API Key')).not.toBeInTheDocument();
+    expect(screen.getByDisplayValue('Automatic')).toBeInTheDocument();
+  });
+
+  it('FE-MOB-ASET-016c: the missing-key notice follows app-config, not the fields', () => {
+    // A provider chosen without a key answers with OpenStreetMap rather than
+    // failing. Which of the two is true is app-config's answer: the key fields
+    // are empty on a managed install and on a key set by the environment.
+    const { unmount } = render(<Harness admin={buildAdminHook({ placesProvider: 'amap', hasAmapKey: false })} />);
+    expect(screen.getByText(/falls back to OpenStreetMap/i)).toBeInTheDocument();
+    unmount();
+
+    renderSettings({ managed: true, placesProvider: 'google', mapsKey: '', hasMapsKey: true });
+    expect(screen.queryByText(/falls back to OpenStreetMap/i)).not.toBeInTheDocument();
   });
 
   it('FE-MOB-ASET-017: the Google Places toggles persist optimistically', async () => {

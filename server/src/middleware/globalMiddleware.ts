@@ -242,6 +242,11 @@ export function applyGlobalMiddleware(
           // refused here while nothing in the app could see it: the switch flipped, the
           // layer went on, and no tile ever arrived (#2307).
           "https://server.arcgisonline.com",
+          // Amap's raster tiles, for an install whose users are in China, for the
+          // same reason as the hosts above (#2180). Road (webrd01..04) and
+          // satellite (webst01..04) are numbered shards of one domain, so the
+          // wildcard is the whole list.
+          "https://*.is.autonavi.com",
           "https://unpkg.com", "https://open-meteo.com", "https://api.open-meteo.com",
           "https://geocoding-api.open-meteo.com", "https://api.frankfurter.dev",
           "https://router.project-osrm.org/route/v1/", "https://routing.openstreetmap.de/",

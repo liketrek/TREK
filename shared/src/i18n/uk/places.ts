@@ -92,6 +92,7 @@ const places: TranslationStrings = {
   'places.loadingDetails': 'Завантаження даних про місце…',
   'places.osmHint':
     'Пошук через OpenStreetMap (без фото, годин роботи та рейтингів). Додайте API-ключ Google у налаштуваннях для повної інформації.',
+  'places.source.amap': 'Amap',
   'places.details.title': 'Відомості про місце',
   'places.details.empty': 'Виберіть результат, щоб побачити більше',
   'places.details.loading': 'Завантаження відомостей...',
