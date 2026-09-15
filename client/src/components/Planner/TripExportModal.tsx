@@ -60,6 +60,7 @@ export function TripExportModal({
   const [busy, setBusy] = useState<string | null>(null)
   // The PDF is built outside React, so it cannot read this itself (#2066).
   const timeFormat = useSettingsStore(s => s.settings.time_format) || '24h'
+  const distanceUnit = useSettingsStore(s => s.settings.distance_unit)
   const fileBase = trip?.title || 'trip'
 
   // Shared tail of every download: Firefox and Safari cancel the download when
@@ -86,7 +87,7 @@ export function TripExportModal({
       // exported. A missing chunk lands in the catch and shows the same error
       // the export already had.
       const { downloadTripPDF } = await import('../PDF/TripPDF')
-      await downloadTripPDF({ trip, days, places, assignments, categories, dayNotes: flatNotes, reservations, t, locale, timeFormat })
+      await downloadTripPDF({ trip, days, places, assignments, categories, dayNotes: flatNotes, reservations, t, locale, timeFormat, distanceUnit })
       onClose()
     } catch (e) {
       console.error('PDF error:', e)
