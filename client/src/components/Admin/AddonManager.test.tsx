@@ -473,7 +473,7 @@ describe('AddonManager', () => {
   it('FE-ADMIN-ADDON-021: the local provider lists installed models and a chip fills the model field', async () => {
     const user = userEvent.setup();
     const urls: (string | null)[] = [];
-    server.use(addonsRoute([llmAddon({ provider: 'local' })]), modelsRoute(['qwen3:8b', 'llama3:8b'], urls));
+    server.use(addonsRoute([llmAddon({ provider: 'local' })]), modelsRoute(['qwen3.5:4b', 'llama3:8b'], urls));
     render(<AddonManager />);
 
     await screen.findByText('Installed on the server');
@@ -483,9 +483,9 @@ describe('AddonManager', () => {
     await user.click(screen.getByRole('button', { name: 'llama3:8b' }));
     expect(screen.getByPlaceholderText('select or pull below')).toHaveValue('llama3:8b');
 
-    // qwen3:8b is already installed, so the recommended row offers "Use" instead of "Pull"
+    // qwen3.5:4b is already installed, so the recommended row offers "Use" instead of "Pull"
     await user.click(screen.getByRole('button', { name: 'Use' }));
-    expect(screen.getByPlaceholderText('select or pull below')).toHaveValue('qwen3:8b');
+    expect(screen.getByPlaceholderText('select or pull below')).toHaveValue('qwen3.5:4b');
     expect(screen.getByRole('button', { name: 'Selected' })).toBeDisabled();
   });
 
@@ -545,7 +545,7 @@ describe('AddonManager', () => {
       addonsRoute([llmAddon({ provider: 'local' })]),
       http.get('/api/admin/llm/local/models', () => {
         modelCalls += 1;
-        return HttpResponse.json({ models: modelCalls === 1 ? [] : [{ name: 'qwen3:8b', size: 1 }] });
+        return HttpResponse.json({ models: modelCalls === 1 ? [] : [{ name: 'qwen3.5:4b', size: 1 }] });
       }),
       http.post('/api/admin/llm/local/pull', async ({ request }) => {
         pulled = await request.json();
@@ -565,8 +565,8 @@ describe('AddonManager', () => {
     expect(screen.getByText('starting…')).toBeInTheDocument();
 
     await screen.findByText('Model pulled');
-    expect(pulled).toEqual({ baseUrl: 'http://localhost:11434/v1', model: 'qwen3:8b' });
-    expect(screen.getByPlaceholderText('select or pull below')).toHaveValue('qwen3:8b');
+    expect(pulled).toEqual({ baseUrl: 'http://localhost:11434/v1', model: 'qwen3.5:4b' });
+    expect(screen.getByPlaceholderText('select or pull below')).toHaveValue('qwen3.5:4b');
     await waitFor(() => expect(screen.getByRole('button', { name: 'Selected' })).toBeDisabled());
   });
 

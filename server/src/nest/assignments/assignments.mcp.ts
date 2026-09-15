@@ -6,6 +6,7 @@ import {
 } from '../../nest-mcp';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { z } from 'zod';
+import { assignmentEndDayRequestSchema, type AssignmentEndDayRequest } from '@trek/shared';
 import { AuthService } from '../auth/auth.service';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import { AssignmentsService } from './assignments.service';
@@ -53,6 +54,30 @@ export class AssignmentsMcp {
     const assignment = this.assignments.createAssignment(dayId, placeId, notes || null);
     this.guards.safeBroadcast(tripId, 'assignment:created', { assignment });
     this.assignments.reconcile(tripId);
+    return ok({ assignment });
+  }
+
+  @Tool({
+    name: 'set_assignment_end_day',
+    description: 'End the travel day after this visit and its stay. Applies only with daily travel times enabled. Pass false to follow the default again.',
+    inputSchema: {
+      tripId: z.number().int().positive(),
+      assignmentId: z.number().int().positive(),
+      ...assignmentEndDayRequestSchema.shape,
+    },
+    annotations: TOOL_ANNOTATIONS_WRITE,
+    access: { group: 'places', mode: 'write' },
+  })
+  async setAssignmentEndDay(
+    { tripId, assignmentId, end_day }: AssignmentEndDayRequest & { tripId: number; assignmentId: number },
+    ctx: McpContext,
+  ) {
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
+    if (!this.assignments.verifyTripAccess(tripId, ctx.userId)) return noAccess();
+    if (!this.guards.hasTripPermission('day_edit', tripId, ctx.userId)) return permissionDenied();
+    if (!this.assignments.getAssignmentForTrip(assignmentId, tripId)) return errorResult('Assignment not found.');
+    const assignment = this.assignments.setEndDay(assignmentId, end_day);
+    this.guards.safeBroadcast(tripId, 'assignment:updated', { assignment });
     return ok({ assignment });
   }
 

@@ -262,6 +262,7 @@ function deriveCaps(perms: string[], caps: { widget?: { slot?: string }; tripPag
   if (perms.includes('hook:photo-provider')) out.push({ icon: Image, label: t('admin.plugins.cap.photos') })
   if (perms.includes('hook:calendar-source')) out.push({ icon: CalendarDays, label: t('admin.plugins.cap.calendar') })
   if (perms.includes('hook:place-detail-provider')) out.push({ icon: MapPin, label: t('admin.plugins.cap.placeDetails') })
+  if (perms.includes('hook:search-provider')) out.push({ icon: Search, label: t('admin.plugins.cap.search') })
   if (perms.includes('hook:trip-warning-provider')) out.push({ icon: AlertTriangle, label: t('admin.plugins.cap.warnings') })
   if (perms.includes('hook:map-layer-provider')) out.push({ icon: Route, label: t('admin.plugins.cap.mapLayers') })
   if (perms.includes('hook:route-provider')) out.push({ icon: Navigation, label: t('admin.plugins.cap.routing') })

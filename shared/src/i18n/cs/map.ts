@@ -22,5 +22,8 @@ const map: TranslationStrings = {
   'map.location.denied': 'Přístup k poloze je zablokován. Zkontrolujte nastavení zařízení; nainstalovaná aplikace má vlastní oprávnění k poloze, nezávislé na prohlížeči.',
   'map.location.unavailable': 'Vaši polohu se nepodařilo zjistit.',
   'map.location.timeout': 'Zjišťování polohy trvalo příliš dlouho. Zkuste to znovu s volným výhledem na oblohu.',
+  'map.overview.show': 'Zobrazit celou cestu',
+  'map.overview.hide': 'Skrýt celou cestu',
+  'map.overview.total': 'Celková vzdálenost',
 };
 export default map;

@@ -38,6 +38,7 @@ import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createTrip } from '../../helpers/factories';
+import { accommodationsOver } from '../../helpers/accommodations-service';
 import { isUpdateConflict } from '../../../src/nest/common/conflictResult';
 import { DatabaseService } from '../../../src/nest/database/database.service';
 import { PackingService } from '../../../src/nest/packing/packing.service';
@@ -72,6 +73,7 @@ const places = new PlacesService(
   photoCache,
   new JourneyDomainService(dbs, realtime, new TrekPhotosRepository(dbs)),
   makeStorageFixture('').storage,
+  accommodationsOver(dbs),
 );
 
 beforeAll(() => {

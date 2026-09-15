@@ -22,5 +22,8 @@ const map: TranslationStrings = {
   'map.location.denied': 'Der Standortzugriff ist blockiert. Prüfe die Geräteeinstellungen; eine installierte App hat eine eigene Standortberechtigung, unabhängig vom Browser.',
   'map.location.unavailable': 'Dein Standort konnte nicht ermittelt werden.',
   'map.location.timeout': 'Die Standortbestimmung hat zu lange gedauert. Versuche es mit freier Sicht zum Himmel erneut.',
+  'map.overview.show': 'Ganze Reise anzeigen',
+  'map.overview.hide': 'Ganze Reise ausblenden',
+  'map.overview.total': 'Gesamtstrecke',
 };
 export default map;

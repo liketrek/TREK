@@ -3,6 +3,7 @@ import { Plane, Save } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { useToast } from '../shared/Toast'
 import { airtrailApi } from '../../api/client'
+import AirTrailIcon from '../shared/AirTrailIcon'
 import Section from './Section'
 import ToggleSwitch from './ToggleSwitch'
 
@@ -78,7 +79,7 @@ export default function AirTrailConnectionSection(): React.ReactElement {
   const canSave = !!url.trim() && (connected || !!apiKey.trim())
 
   return (
-    <Section title={t('settings.airtrail.title')} icon={Plane}>
+    <Section title={t('settings.airtrail.title')} icon={AirTrailIcon}>
       <div className="space-y-3">
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('settings.airtrail.url')}</label>

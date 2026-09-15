@@ -8,6 +8,7 @@ import { getTransitMapSegments, type TransitMapSegment } from './transitGeometry
 import { geodesicArcs } from './flightGeodesy'
 import { cleanEndpointName } from './reservationName'
 import { useSettingsStore } from '../../store/settingsStore'
+import { hopIsVisible, labelFloorPx } from '../../utils/reservationRoutes'
 import type { Reservation, ReservationEndpoint } from '../../types'
 
 const ENDPOINT_PANE = 'reservation-endpoints'
@@ -122,6 +123,12 @@ function computeDuration(from: ReservationEndpoint, to: ReservationEndpoint, fal
   return h > 0 ? `${h}h ${m}m` : `${m}m`
 }
 
+/** What a hop will draw: the road it was routed along when there is one, else its arcs. */
+function linesFor(item: TransportItem, roadRoutes: Map<number, [number, number][]> | undefined): [number, number][][] {
+  const road = roadRoutes?.get(item.res.id)
+  return road && road.length >= 2 ? [road] : item.arcs
+}
+
 interface TransportItem {
   res: Reservation
   from: ReservationEndpoint
@@ -200,26 +207,25 @@ export default function ReservationOverlay({ reservations, showConnections, onEn
   }, [reservations])
 
   const visibleItems = useMemo(() => {
+    const project = (p: readonly [number, number]) => map.latLngToContainerPoint([p[0], p[1]])
     return items.filter(item => {
       // A transit journey draws its real rail/bus alignment, not a straight from->to
       // line, so the endpoint-proximity declutter (which exists to hide tiny no-op
       // straight connectors) must not suppress it. Otherwise a zoomed-out day — e.g. one
       // with no other places to tighten the map onto — hides the whole route (#1570).
       if (item.transitSegs.length > 0) return true
-      const fromPx = map.latLngToContainerPoint([item.from.lat, item.from.lng])
-      const toPx = map.latLngToContainerPoint([item.to.lat, item.to.lng])
-      const minPx = item.type === 'flight' ? 50 : item.type === 'cruise' ? 150 : item.type === 'car' ? 80 : 200
-      return fromPx.distanceTo(toPx) >= minPx
+      // Measured along what is drawn, not between the ends: a routed drive can
+      // cover half the screen while its endpoints sit close together (#2275).
+      return hopIsVisible(item.type, linesFor(item, roadRoutes), project)
     })
-  }, [items, zoom, map])
+  }, [items, zoom, map, roadRoutes])
 
   const labelVisibleIds = useMemo(() => {
     const set = new Set<number>()
     for (const item of visibleItems) {
       const fromPx = map.latLngToContainerPoint([item.from.lat, item.from.lng])
       const toPx = map.latLngToContainerPoint([item.to.lat, item.to.lng])
-      const minPx = item.type === 'flight' ? 50 : item.type === 'cruise' ? 300 : item.type === 'car' ? 150 : item.type === 'transit' ? 900 : 400
-      if (fromPx.distanceTo(toPx) >= minPx) set.add(item.res.id)
+      if (fromPx.distanceTo(toPx) >= labelFloorPx(item.type)) set.add(item.res.id)
     }
     return set
   }, [visibleItems, zoom, map])
@@ -248,9 +254,7 @@ export default function ReservationOverlay({ reservations, showConnections, onEn
           ))
         }
         // Prefer the real road route (car/bus/taxi/bicycle) over the straight arc.
-        const road = roadRoutes?.get(item.res.id)
-        const lines = road && road.length >= 2 ? [road] : item.arcs
-        return lines.map((seg, segIdx) => (
+        return linesFor(item, roadRoutes).map((seg, segIdx) => (
           <Polyline
             key={`line-${item.res.id}-${segIdx}`}
             positions={seg}

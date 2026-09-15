@@ -24,6 +24,13 @@ vi.mock('react-leaflet', () => ({
   }),
 }));
 
+// The real cluster group needs the map context the stubbed MapContainer lacks (#2343).
+vi.mock('react-leaflet-cluster', () => ({
+  default: ({ children }: { children?: React.ReactNode }) => (
+    <div data-testid="marker-cluster-group">{children}</div>
+  ),
+}));
+
 // The basemap is a MapLibre style now, and the real component reaches for
 // maplibre-gl through a dynamic import. The page test only cares that it is the
 // thing being rendered.
@@ -1350,6 +1357,152 @@ describe('SharedTripPage', () => {
 
       fireEvent.click(screen.getByText('Day Three'));
       await waitFor(() => expect(screen.getByText(/Airport Parking/)).toBeInTheDocument());
+    });
+  });
+
+  describe('FE-PAGE-SHARED-037b: a booked night is not listed twice on a shared day', () => {
+    // Booking a night puts its hotel on the check-in day as a stop, because road trip
+    // mode drives to it. A shared link has no road trip view and already shows the
+    // booking as its own chip on the day, so that stop would be the same hotel again.
+    const days = [{ id: 41, trip_id: 1, day_number: 1, date: '2026-07-01', title: 'Day One' }];
+    // The address is the tell: the list row prints it, the map marker's tooltip does not,
+    // so it says whether the row rendered rather than whether the place exists at all.
+    const place = (id: number, name: string, address: string) => ({
+      id, name, description: null, address, lat: 48.86, lng: 2.34, category_id: null,
+      price: null, place_time: null, end_time: null, duration_minutes: null, notes: null,
+      website: null, phone: null, image_url: null, transport_mode: null, category: null, tags: [],
+    });
+
+    it('leaves out the stop the booking wrote and keeps the one the traveller placed', async () => {
+      await open('stay-token', payload({
+        days,
+        assignments: {
+          41: [
+            { id: 401, day_id: 41, order_index: 0, notes: null, accommodation_id: null, place: place(601, 'Musee Rodin', '77 Rue de Varenne') },
+            { id: 402, day_id: 41, order_index: 1, notes: null, accommodation_id: 7, place: place(602, 'Hotel Adlon', 'Unter den Linden 77') },
+          ],
+        },
+        accommodations: [{ id: 7, place_id: 602, start_day_id: 41, end_day_id: 41, place_name: 'Hotel Adlon' }],
+      }));
+
+      fireEvent.click(screen.getByText('Day One'));
+      // The stop the traveller placed is listed, address and all.
+      await waitFor(() => expect(screen.getByText('77 Rue de Varenne')).toBeInTheDocument());
+      // The booked night is not: it is already on the day as its own chip.
+      expect(screen.queryByText('Unter den Linden 77')).toBeNull();
+    });
+  });
+
+  // ── #2320: the richer read-only detail ─────────────────────────────────
+
+  describe('FE-PAGE-SHARED-038: a stop shows its address, description, both notes, duration and contact (#2320)', () => {
+    const days = [{ id: 21, trip_id: 1, day_number: 1, date: '2026-07-01', title: 'Day One' }];
+    const assignments = {
+      21: [
+        {
+          id: 301, day_id: 21, order_index: 0, notes: 'go early, before the coaches',
+          place: {
+            id: 501, name: 'Louvre', description: 'The big one', address: 'Rue de Rivoli, Paris',
+            lat: 48.86, lng: 2.34, category_id: null, price: null, place_time: '09:00', end_time: null,
+            duration_minutes: 150, notes: 'Skip the pyramid queue', website: 'https://louvre.fr',
+            phone: '+33 1 40 20 50 50', image_url: null, transport_mode: 'walking', category: null, tags: [],
+          },
+        },
+      ],
+    };
+
+    it('renders every field the owner filled, as separate lines', async () => {
+      await open('detail-token', payload({ days, assignments }));
+      fireEvent.click(screen.getByText('Day One'));
+      // The name is also on the map marker's tooltip, so the list row is the one with the address under it.
+      await waitFor(() => expect(screen.getByText('Rue de Rivoli, Paris')).toBeInTheDocument());
+      expect(screen.getAllByText('Louvre').length).toBeGreaterThan(0);
+
+      expect(screen.getByText('The big one')).toBeInTheDocument();
+      expect(screen.getByText('go early, before the coaches')).toBeInTheDocument();
+      expect(screen.getByText('Skip the pyramid queue')).toBeInTheDocument();
+      expect(screen.getByText('2 h 30 min')).toBeInTheDocument();
+
+      const website = screen.getByRole('link', { name: /website/i });
+      expect(website).toHaveAttribute('href', 'https://louvre.fr');
+      expect(website).toHaveAttribute('target', '_blank');
+      expect(website).toHaveAttribute('rel', 'noopener noreferrer');
+
+      const maps = screen.getByRole('link', { name: /google maps/i });
+      expect(maps.getAttribute('href')).toContain('google.com/maps/search/');
+      expect(maps.getAttribute('href')).toContain(encodeURIComponent('Louvre, Rue de Rivoli, Paris'));
+      expect(maps).toHaveAttribute('rel', 'noopener noreferrer');
+
+      const phone = screen.getByRole('link', { name: '+33 1 40 20 50 50' });
+      expect(phone).toHaveAttribute('href', 'tel:+33140205050');
+    });
+
+    it('leaves out what is empty and never renders a link that is not http(s)', async () => {
+      const bare = {
+        21: [{
+          id: 302, day_id: 21, order_index: 0, notes: null,
+          place: {
+            id: 502, name: 'Somewhere', description: null, address: null, lat: null, lng: null,
+            duration_minutes: 0, notes: '   ', website: 'javascript:alert(1)', phone: null,
+            category_id: null, price: null, place_time: null, end_time: null, image_url: null,
+            transport_mode: 'walking', category: null, tags: [],
+          },
+        }],
+      };
+      await open('bare-token', payload({ days, assignments: bare }));
+      fireEvent.click(screen.getByText('Day One'));
+      await waitFor(() => expect(screen.getByText('Somewhere')).toBeInTheDocument());
+
+      expect(screen.queryByRole('link', { name: /website/i })).toBeNull();
+      expect(screen.queryByRole('link', { name: /google maps/i })).toBeNull();
+      expect(document.querySelector('a[href^="javascript:"]')).toBeNull();
+      expect(screen.queryByText(/min$/)).toBeNull();
+    });
+  });
+
+  describe('FE-PAGE-SHARED-039: a booking shows its note and its link, and nothing that is not http(s) (#2320)', () => {
+    it('renders the note and a link labelled by its host', async () => {
+      await open('booking-token', payload({
+        permissions: { share_bookings: true, share_packing: false, share_budget: false, share_collab: false },
+        reservations: [
+          {
+            id: 91, title: 'Night train', type: 'train', status: 'confirmed', day_id: null, end_day_id: null,
+            reservation_time: '2026-07-01T21:00:00', reservation_end_time: null, metadata: null,
+            notes: 'Meet at the north entrance', url: 'https://www.bahn.example/booking/abc',
+          },
+          {
+            id: 92, title: 'Sketchy', type: 'other', status: 'pending', day_id: null, end_day_id: null,
+            reservation_time: null, reservation_end_time: null, metadata: null,
+            notes: null, url: 'javascript:alert(1)',
+          },
+        ],
+      }));
+      fireEvent.click(screen.getByText('Bookings'));
+      await waitFor(() => expect(screen.getByText('Night train')).toBeInTheDocument());
+
+      expect(screen.getByText('Meet at the north entrance')).toBeInTheDocument();
+      const link = screen.getByRole('link', { name: 'bahn.example' });
+      expect(link).toHaveAttribute('href', 'https://www.bahn.example/booking/abc');
+      expect(link).toHaveAttribute('target', '_blank');
+      expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+
+      expect(screen.getByText('Sketchy')).toBeInTheDocument();
+      expect(document.querySelector('a[href^="javascript:"]')).toBeNull();
+    });
+  });
+
+  // ── #2345: the header has to clip the decoration it bleeds ──────────────
+
+  describe('FE-PAGE-SHARED-042: the header clips the circles it bleeds (#2345)', () => {
+    it('does not let them widen the page', async () => {
+      await open('overflow-token', payload({}));
+
+      // Both circles sit outside the header on purpose, so the page only stays
+      // as wide as the viewport if the header itself is the clip. The header is
+      // the first gradient panel on the page and carries the trip title.
+      const header = document.querySelector<HTMLElement>('div[style*="linear-gradient(135deg"]');
+      expect(header?.textContent).toContain('Shared Paris Trip');
+      expect(header?.style.overflow).toBe('hidden');
     });
   });
 });

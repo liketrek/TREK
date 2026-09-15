@@ -32,6 +32,22 @@ const noTimeLoopHolds = (hotel: Accommodation, stop?: EdgeStop, dayHasCarrier?: 
   return withinDayTripRange({ lat: hotel.place_lat, lng: hotel.place_lng }, { lat: stop.lat, lng: stop.lng })
 }
 
+/**
+ * The hotel and the day's edge waypoint are one and the same spot.
+ *
+ * Booking a night also puts its hotel on the check-in day as a stop, so that day's
+ * last waypoint IS the hotel far more often than not, and the bookend leg drawn to
+ * it would be a zero-kilometre round trip: in the drawn line, in the sidebar's leg
+ * list and in every exported directions link, which would carry the hotel twice in
+ * a row. Compared by coordinates, because the bookend comes off the stay row and
+ * the waypoint off the assignment, and the same tie holds for two places pinned at
+ * the same spot.
+ */
+const hotelIsTheStop = (hotel: Accommodation | undefined, stop?: EdgeStop): boolean =>
+  !!hotel && hotel.place_lat != null && hotel.place_lng != null
+  && stop?.lat != null && stop.lng != null
+  && hotel.place_lat === stop.lat && hotel.place_lng === stop.lng
+
 // The two hotels that bookend a day: the one you woke up in (morning) and the one you sleep in
 // tonight (evening). On a transfer day these differ; on any other day both are the single hotel.
 // The morning hotel is keyed off "checked in on an earlier day and still in range" (i.e. you slept
@@ -119,6 +135,7 @@ export const shouldDrawMorningLeg = (
   firstStop?: EdgeStop,
   dayHasCarrier?: boolean,
 ): boolean => {
+  if (hotelIsTheStop(bookends.morning, firstStop)) return false
   // You landed here. Whatever hotel the day belongs to, nobody drove out of it to the
   // airport they arrived at — so there is no morning leg, not even on a night you
   // provably slept in that hotel (#2133).
@@ -150,6 +167,7 @@ export const shouldDrawEveningLeg = (
   lastStop?: EdgeStop,
   dayHasCarrier?: boolean,
 ): boolean => {
+  if (hotelIsTheStop(bookends.evening, lastStop)) return false
   // Mirror: you took off from here, so no drive leads from it back to tonight's hotel —
   // the reported "flight starting airport connected to the accommodation" (#2133).
   if (lastStop?.carrierEdge === 'departure') return false

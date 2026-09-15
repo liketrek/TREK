@@ -623,5 +623,21 @@ const journey: TranslationStrings = {
   'journey.editor.statsExcludedHint':
     'تبقى المحطة في اليوميات لكنها لا تُحتسب ضمن المسافة أو الدول أو الخريطة في Studio.',
   'journey.entry.offRoute': 'خارج المسار',
+  'journey.suggestions.dismiss': 'تجاهل هذا الاقتراح',
+  'journey.suggestions.dismissed': 'تم تجاهل الاقتراح',
+  'journey.suggestions.restore': 'استعادة الاقتراحات المتجاهَلة',
+  'journey.suggestions.restoreCount': 'الاقتراحات المتجاهَلة ({count})',
+  'journey.suggestions.restored': 'عادت {count} اقتراحات',
+  'journey.detail.addOnThisDay': 'إضافة مدخل في هذا اليوم',
+  'journey.detail.jumpToDay': 'الانتقال إلى {date}',
+  'journey.detail.searchPlaceholder': 'ابحث في هذه الرحلة',
+  'journey.detail.searchEmpty': 'لا يوجد مدخل يطابق «{query}»',
+  'journey.settings.entryFields': 'حقول المدخل',
+  'journey.settings.entryFieldsHint': 'أوقف ما لا تستخدمه هذه الرحلة. لا يضيع شيء مما كُتب بالفعل.',
+  'journey.settings.showVerdict': 'الإيجابيات والسلبيات',
+  'journey.settings.showMood': 'المزاج',
+  'journey.settings.showWeather': 'الطقس',
+  'journey.entry.suggestion': 'اقتراح',
+  'journey.editor.addDetails': '+ تفاصيل',
 };
 export default journey;

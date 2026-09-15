@@ -11,6 +11,7 @@
  * Amounts are the raw input strings, parsed on use (same as customAmounts).
  */
 
+import type { BudgetParticipantFinal } from '@trek/shared'
 import { currencyDecimals } from '../../utils/formatters'
 
 // The split and receipt fields guard their own precision on every keystroke, so the
@@ -32,6 +33,67 @@ export function splitCents(amount: number, n: number): number[] {
   const base = Math.floor(cents / n)
   const rem = cents - base * n
   return Array.from({ length: n }, (_, i) => (base + (i < rem ? 1 : 0)) / 100)
+}
+
+/**
+ * The calendar day a settle-up payment counts on for grouping/filtering: its own
+ * `settled_at` if the user set one, else the day it was recorded (`created_at`).
+ * Mirrors `expense_date` falling back nowhere on a budget item — a settlement's
+ * `created_at` doubled as its date before `settled_at` existed, so this keeps
+ * every pre-existing row grouped exactly where it already was.
+ */
+export function settlementDate(s: { settled_at?: string | null; created_at?: string | null }): string {
+  return (s.settled_at || s.created_at || '').slice(0, 10)
+}
+
+/**
+ * What one participant fronted for an expense, in the expense's own currency.
+ *
+ * Several payers can share one bill, and the same person can appear only once,
+ * but the reduce covers a row that somehow carries them twice rather than
+ * picking one of the two. The caller converts the result — this file never
+ * touches exchange rates.
+ */
+export function paidByUser(
+  item: { payers?: { user_id: number; amount: number }[] | null },
+  userId: number,
+): number {
+  return (item.payers || []).filter(p => p.user_id === userId).reduce((a, p) => a + p.amount, 0)
+}
+
+/** The figures a final budget is made of, for someone the server left out of the ledger. */
+export function finalBudgetFor(finals: BudgetParticipantFinal[], member: { id: number; username: string }): BudgetParticipantFinal {
+  // Absent means they neither fronted anything nor were split into an expense:
+  // the trip has cost them nothing, which is worth a row of its own.
+  return finals.find(f => f.user_id === member.id) || {
+    user_id: member.id, username: member.username, avatar_url: null,
+    expenses: 0, reimbursed: 0, pending: 0, final: 0,
+    sources: { fronted: [], moved: [], outstanding: [] },
+  }
+}
+
+/**
+ * The rows behind one traveler's final budget, ready to print. They arrive as
+ * ids and display cents: the server spreads each of the three figures over its
+ * rows with the same largest-remainder split the figure came from, so every list
+ * adds up to the line it sits under, in whatever currency was asked for and
+ * whether or not the live rates have loaded yet. Only the expense names are
+ * looked up here; who "you" is in a transfer is the shell's call.
+ */
+export function finalBudgetSources(
+  row: Pick<BudgetParticipantFinal, 'sources'>,
+  items: { id: number; name: string }[],
+): {
+  fronted: { item_id: number; name: string; amount: number }[]
+  moved: { settlement_id: number; from_user_id: number; to_user_id: number; amount: number }[]
+  outstanding: { from_user_id: number; to_user_id: number; amount: number }[]
+} {
+  const { fronted, moved, outstanding } = row.sources
+  return {
+    fronted: fronted.map(r => ({ item_id: r.item_id, name: items.find(i => i.id === r.item_id)?.name ?? '?', amount: r.cents / 100 })),
+    moved: moved.map(r => ({ settlement_id: r.settlement_id, from_user_id: r.from_user_id, to_user_id: r.to_user_id, amount: r.cents / 100 })),
+    outstanding: outstanding.map(r => ({ from_user_id: r.from_user_id, to_user_id: r.to_user_id, amount: r.cents / 100 })),
+  }
 }
 
 /** Sum the amounts of the selected payers. */

@@ -99,6 +99,9 @@ vi.mock('@maplibre/maplibre-gl-leaflet', () => ({
   }),
 }));
 vi.mock('../../components/Map/engines/maplibre', () => ({ default: {} }));
+// jsdom refuses a WebGL context, and the basemap now believes it (#2288). These
+// cases are about the GL layer, so the probe says yes here.
+vi.mock('../../utils/webgl', () => ({ hasWebGL: () => true, resetWebGLProbe: () => {} }));
 
 vi.mock('leaflet', () => {
   // The bounds a country layer reports carry its own code, so the map's bounds can
@@ -309,6 +312,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
   delete window.__addToast;
 });
 
@@ -749,6 +753,24 @@ describe('useAtlas', () => {
       act(() => de!.layer.handlers.click({}));
       expect(atlas.confirmAction).toEqual({ type: 'choose', code: 'DE', name: atlas.resolveName('DE') });
       expect(atlas.confirmAction?.name).not.toBe('GERMANY_EN_ONLY');
+    });
+
+    it('FE-HOOK-ATLAS-062: the country tooltip names both dates and shows their months (#1535)', async () => {
+      // FR's dates fall on the 1st, which a UTC parse moves into the month before over here.
+      vi.stubEnv('TZ', 'America/New_York');
+      await mountAtlas({ geo: geoCountries });
+      await waitFor(() => expect(lf.geoJson.length).toBeGreaterThan(0));
+
+      const countryLayer = lf.geoJson[0] as MockGeoJson;
+      const fr = countryLayer.entries.find((e) => (e.feature.properties as Record<string, string>).ISO_A2 === 'FR');
+      const html = fr!.layer.bindTooltip.mock.calls[0][0] as string;
+
+      expect(html).toContain('First trip');
+      expect(html).toContain('Last trip');
+      expect(html).not.toContain('atlas.lastVisitLabel');
+      const month = (y: number, m: number) => new Date(y, m, 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+      expect(html).toContain(month(2023, 0));
+      expect(html).toContain(month(2024, 5));
     });
 
     it('FE-HOOK-ATLAS-026: plugin tint layers are drawn in their own pane and redrawn on theme change', async () => {

@@ -233,6 +233,10 @@
 @keyframes trek-handle { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
 /* collections map pin bobbing */
 @keyframes trek-pin { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+/* Chain: the pair sways, and the near link slides out along its own axis and
+   clicks back in. Moving only the near one keeps the joint readable at 88px. */
+@keyframes trek-chain { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-6deg); } }
+@keyframes trek-link { 0%, 62%, 100% { transform: translateX(0); } 30% { transform: translateX(2.6px); } }
 /* atlas globe meridian drifting to fake a slow spin */
 @keyframes trek-globe { 0%, 100% { transform: translateX(-2px); } 50% { transform: translateX(2px); } }
 /* costs top coin bouncing on */
@@ -274,6 +278,8 @@
 .trek-suitcase { animation: trek-suitcase 1.5s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 100%; }
 .trek-handle   { animation: trek-handle 1.5s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 100%; }
 .trek-pin      { animation: trek-pin 2.2s ease-in-out infinite;   transform-box: fill-box; transform-origin: 50% 100%; }
+.trek-chain    { animation: trek-chain 3s ease-in-out infinite;    transform-box: fill-box; transform-origin: center; }
+.trek-link     { animation: trek-link 2.4s ease-in-out infinite;   transform-box: fill-box; transform-origin: center; }
 .trek-globe    { animation: trek-globe 3s ease-in-out infinite;   transform-box: fill-box; transform-origin: center; }
 .trek-coin     { animation: trek-coin 2s ease-in-out infinite;    transform-box: fill-box; transform-origin: 50% 100%; }
 .trek-page     { animation: trek-page 3.4s ease-in-out infinite;  transform-box: fill-box; transform-origin: 0% 50%; }
@@ -323,7 +329,7 @@
   .trek-bounce--idle, .trek-bounce--polls, .trek-bounce--transport,
   .trek-board, .trek-wheel, .trek-flag, .trek-ticket, .trek-note, .trek-pencil, .trek-write, .trek-bar,
   .trek-suitcase, .trek-handle, .trek-pin, .trek-globe, .trek-coin, .trek-page, .trek-plane,
-  .trek-magnifier, .trek-z, .trek-check { animation: none; }
+  .trek-magnifier, .trek-z, .trek-check, .trek-chain, .trek-link { animation: none; }
   /* Zzz would sit invisible at opacity 0 without their animation — pin them visible */
   .trek-z { opacity: 1; }
 }

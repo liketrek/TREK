@@ -30,7 +30,8 @@ type AccommodationInput = {
  *
  * Everything delegates to AccommodationsService, so the auto-created partner hotel reservation,
  * the metadata sync on update and the delete cascade behave exactly like the
- * accommodations REST controller, cascade broadcasts included.
+ * accommodations REST controller, cascade broadcasts included -- the day stop a booking
+ * puts on the route among them.
  */
 @PluginController()
 export class AccommodationsRpc {
@@ -55,7 +56,7 @@ export class AccommodationsRpc {
     // Verifies the place and both days belong to this trip.
     const errors = this.days.validateAccommodationRefs(tripId, placeId, startDayId, endDayId);
     if (errors.length > 0) throw new ForbiddenResource(errors[0].message);
-    const accommodation = this.days.createAccommodation(tripId, {
+    const { accommodation, mirror } = this.days.createAccommodation(tripId, {
       place_id: placeId,
       start_day_id: startDayId,
       end_day_id: endDayId,
@@ -68,6 +69,7 @@ export class AccommodationsRpc {
     this.realtime.broadcast(tripId, 'accommodation:created', { accommodation });
     // The block creates a partner hotel reservation, so the bookings view refreshes too.
     this.realtime.broadcast(tripId, 'reservation:created', {});
+    this.days.announceMirror(tripId, mirror, (event, payload) => this.realtime.broadcast(tripId, event, payload));
     return accommodation;
   }
 
@@ -84,8 +86,9 @@ export class AccommodationsRpc {
     const input = parsed.data as { place_id?: number; start_day_id?: number; end_day_id?: number; check_in?: string; check_in_end?: string; check_out?: string; confirmation?: string; notes?: string };
     const errors = this.days.validateAccommodationRefs(tripId, input.place_id, input.start_day_id, input.end_day_id);
     if (errors.length > 0) throw new ForbiddenResource(errors[0].message);
-    const accommodation = this.days.updateAccommodation(accommodationId, existing, input);
+    const { accommodation, mirror } = this.days.updateAccommodation(accommodationId, existing, input);
     this.realtime.broadcast(tripId, 'accommodation:updated', { accommodation });
+    this.days.announceMirror(tripId, mirror, (event, payload) => this.realtime.broadcast(tripId, event, payload));
     return accommodation;
   }
 
@@ -99,7 +102,8 @@ export class AccommodationsRpc {
       throw new ForbiddenResource(`no accommodation ${accommodationId} on trip ${tripId}`);
     }
     // Deleting a block can take its partner reservation and budget item with it.
-    const { linkedReservationIds, deletedBudgetItemIds } = this.days.deleteAccommodation(accommodationId);
+    const { linkedReservationIds, deletedBudgetItemIds, mirror } = this.days.deleteAccommodation(accommodationId);
+    this.days.announceMirror(tripId, mirror, (event, payload) => this.realtime.broadcast(tripId, event, payload));
     for (const reservationId of linkedReservationIds) this.realtime.broadcast(tripId, 'reservation:deleted', { reservationId });
     for (const itemId of deletedBudgetItemIds) this.realtime.broadcast(tripId, 'budget:deleted', { itemId });
     this.realtime.broadcast(tripId, 'accommodation:deleted', { accommodationId });

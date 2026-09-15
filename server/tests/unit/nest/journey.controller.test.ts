@@ -356,6 +356,15 @@ describe('JourneyController', () => {
     expect(ctl(svc({ reorderEntries: vi.fn().mockReturnValue(true) } as Partial<JourneyService>)).reorderEntries(user, '9', { orderedIds: [3, 1, 2] })).toEqual({ success: true });
   });
 
+  it('restoreSuggestions answers with the count, and refuses a viewer the same way its siblings do', () => {
+    const restore = vi.fn().mockReturnValue({ restored: 3 });
+    expect(ctl(svc({ restoreDismissedSuggestions: restore } as Partial<JourneyService>)).restoreSuggestions(user, '9')).toEqual({ restored: 3 });
+    expect(restore).toHaveBeenCalledWith(9, 1);
+    expect(
+      thrown(() => ctl(svc({ restoreDismissedSuggestions: vi.fn().mockReturnValue(null) } as Partial<JourneyService>)).restoreSuggestions(user, '9')),
+    ).toEqual({ status: 403, body: { error: 'Not allowed' } });
+  });
+
   it('preferences returns the result on success', () => {
     expect(ctl(svc({ updateJourneyPreferences: vi.fn().mockReturnValue({ ok: true }) } as Partial<JourneyService>)).preferences(user, '9', { theme: 'dark' })).toEqual({ ok: true });
   });

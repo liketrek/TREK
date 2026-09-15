@@ -369,6 +369,25 @@ describe('updateTime', () => {
     expect([order(a.id), order(c.id), order(b.id)]).toEqual([0, 1, 2]);
   });
 
+  it('ASG-SVC-022b: a booked night sorts by its check-in, which is where its hour lives', () => {
+    // Nobody types a time into a hotel row, they type a check-in, and it sits on the
+    // booking. Counted as untimed, the night stayed wherever it had been dropped: pin an
+    // afternoon stop and the hotel it was booked around ended up behind it.
+    const { trip, day, place } = fixture();
+    const hotel = createPlace(testDb, trip.id, { name: 'Billstedt' });
+    const afternoon = createDayAssignment(testDb, day.id, place.id, { order_index: 0 });
+    const night = createDayAssignment(testDb, day.id, hotel.id, { order_index: 1 });
+    const stay = testDb.prepare(
+      "INSERT INTO day_accommodations (trip_id, place_id, start_day_id, end_day_id, check_in) VALUES (?, ?, ?, ?, '11:00')"
+    ).run(trip.id, hotel.id, day.id, day.id);
+    testDb.prepare('UPDATE day_assignments SET accommodation_id = ? WHERE id = ?').run(Number(stay.lastInsertRowid), night.id);
+
+    svc.updateTime(afternoon.id, '16:00', null);
+
+    const order = (id: number) => (testDb.prepare('SELECT order_index FROM day_assignments WHERE id = ?').get(id) as { order_index: number }).order_index;
+    expect(order(night.id)).toBeLessThan(order(afternoon.id));
+  });
+
   it('ASG-SVC-023: clearing with null persists but skips the auto-sort (falsy gate)', () => {
     const { day, place } = fixture();
     const a = createDayAssignment(testDb, day.id, place.id, { order_index: 0 });

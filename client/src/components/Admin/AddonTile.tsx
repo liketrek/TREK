@@ -44,7 +44,9 @@ export default function AddonTile({
     >
       <div className="flex items-start gap-3 p-4">
         <div
-          className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${
+          // overflow-hidden so a brand mark that fills the slot keeps the slot's
+          // rounded corners instead of squaring them off.
+          className={`grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-xl ${
             enabled ? 'border border-accent bg-accent-subtle text-accent-on' : 'bg-surface-tertiary text-content-faint'
           }`}
         >

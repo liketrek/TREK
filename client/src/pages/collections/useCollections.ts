@@ -6,12 +6,14 @@ import { useElementRect } from '../../hooks/useElementRect'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useAuthStore } from '../../store/authStore'
 import { useToast } from '../../components/shared/Toast'
+import { collectionsApi } from '../../api/collections'
+import { downloadCollectionFile } from '../../components/Collections/collectionFile'
 import { getApiErrorMessage } from '../../types'
 import { addListener, removeListener } from '../../api/websocket'
 import { useCollectionStore, ALL_SAVED } from '../../store/collectionStore'
 import type { ActiveCollectionId } from '../../store/collectionStore'
 import { categoriesApi } from '../../api/client'
-import type { Collection, CollectionStatus } from '@trek/shared'
+import type { Collection, CollectionStatus, CollectionFile } from '@trek/shared'
 import type { Category, Place } from '../../types'
 import { filterPlaces, sortPlaces, statusCounts, mappablePlaces, presentCategories, presentLabels } from './collectionsModel'
 import type { CollectionLabelUpdateRequest } from '@trek/shared'
@@ -69,6 +71,10 @@ export function useCollections() {
   const [showShare, setShowShare] = useState(false)
   const [showAddPlace, setShowAddPlace] = useState(false)
   const [showImport, setShowImport] = useState(false)
+  // Export / import as a file (#2198) — distinct from showImport above, which
+  // is the "pull places out of one of my trips" dialog.
+  const [exporting, setExporting] = useState(false)
+  const [showImportFile, setShowImportFile] = useState(false)
   // The place ids the Copy-to-trip modal is open for (null = closed). Single
   // place from the detail panel, or the select-mode set for a bulk copy.
   const [copyIds, setCopyIds] = useState<number[] | null>(null)
@@ -198,6 +204,43 @@ export function useCollections() {
   }, [navigate])
 
   const handlePlaceAdded = useCallback(() => { refreshActive() }, [refreshActive])
+
+  /**
+   * Download the active list as a file.
+   *
+   * The file is fetched rather than built from what this page holds: the page
+   * has the places for display, the server decides what may leave the instance.
+   */
+  const handleExportList = useCallback(async () => {
+    if (typeof activeId !== 'number') return
+    setExporting(true)
+    try {
+      downloadCollectionFile(await collectionsApi.exportFile(activeId))
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, t('common.error')))
+    } finally {
+      setExporting(false)
+    }
+  }, [activeId, toast, t])
+
+  /**
+   * Read a chosen file and create the list it describes.
+   *
+   * Lands on the new list, because that is the thing the person was after and
+   * an import that leaves you where you were reads as one that did nothing.
+   */
+  const handleImportFile = useCallback(async (file: CollectionFile, name?: string) => {
+    const result = await collectionsApi.importFile({ file, name })
+    await loadAll()
+    const created = result.collection as Collection
+    navigate(`/collections/${created.id}`)
+    if (result.skipped > 0) {
+      toast.info(t('collections.file.doneSkipped', { count: result.imported, skipped: result.skipped }))
+    } else {
+      toast.success(t('collections.file.done', { count: result.imported }))
+    }
+    setShowImportFile(false)
+  }, [loadAll, navigate, toast, t])
 
   const handleDeleteList = useCallback(async () => {
     if (confirmDeleteList == null) return
@@ -405,6 +448,8 @@ export function useCollections() {
     editorTarget, setEditorTarget, handleEditorCreated,
     showAddPlace, setShowAddPlace, handlePlaceAdded,
     showImport, setShowImport,
+    exporting, handleExportList,
+    showImportFile, setShowImportFile, handleImportFile,
     confirmDeleteList, setConfirmDeleteList,
     mobileRailOpen, setMobileRailOpen,
     showShare, setShowShare, handleAfterLeave,

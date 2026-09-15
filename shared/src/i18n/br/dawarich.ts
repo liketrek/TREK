@@ -1,0 +1,180 @@
+import type { TranslationStrings } from '../types';
+
+const dawarich: TranslationStrings = {
+  // ── Connection ─────────────────────────────────────────────────────────────
+  'dawarich.title': 'Dawarich',
+  'dawarich.intro':
+    'Conecte sua própria instância do Dawarich para ver onde você realmente esteve. O TREK lê os dados e sugere entradas de diário, lugares e países — nada é adicionado antes de você confirmar, e nada é gravado de volta no Dawarich.',
+  'dawarich.url': 'Endereço da instância',
+  'dawarich.apiKey': 'Chave de API',
+  'dawarich.apiKeyPlaceholder': 'Cole sua chave de API do Dawarich',
+  'dawarich.apiKeyHint':
+    'Encontrada no Dawarich em Conta → Chave de API. Guardada criptografada e nunca exibida de novo.',
+  'dawarich.allowInsecureTls': 'Permitir certificado autoassinado',
+  'dawarich.allowInsecureTlsHint':
+    'Só é necessário se sua instância usa um certificado em que seu servidor não confia.',
+  'dawarich.syncEnabled': 'Procurar novas estadias automaticamente',
+  'dawarich.syncEnabledHint': 'Desligado significa que o TREK só lê o Dawarich quando você pedir.',
+  'dawarich.test.button': 'Testar conexão',
+  'dawarich.test.success': 'Conectado. {count} estadias encontradas nos últimos 30 dias.',
+  'dawarich.test.failed': 'Não foi possível acessar o Dawarich.',
+  'dawarich.syncNow': 'Procurar agora',
+  'dawarich.connected': 'Conectado',
+  'dawarich.notConnected': 'Não conectado',
+  'dawarich.disconnect': 'Desconectar',
+  'dawarich.lastSync': 'Última verificação {when}',
+  'dawarich.neverSynced': 'Ainda não verificado',
+  'dawarich.syncPartial': 'algumas viagens não puderam ser lidas',
+  'dawarich.serverVersion': 'Dawarich {version}',
+
+  'dawarich.toast.saved': 'Conexão com o Dawarich salva',
+  'dawarich.toast.saveError': 'Não foi possível salvar a conexão',
+  'dawarich.toast.disconnected': 'Dawarich desconectado',
+  'dawarich.toast.synced': '{count} novas estadias encontradas',
+  'dawarich.toast.syncError': 'Não foi possível ler o Dawarich',
+  'dawarich.toast.syncRunning': 'Já há uma verificação em andamento',
+  'dawarich.toast.acceptError': 'Não foi possível adicionar isso',
+  'dawarich.toast.updateError': 'Não foi possível atualizar esta sugestão',
+  'dawarich.toast.accepted.place': 'Adicionado à viagem',
+  'dawarich.toast.accepted.journal': 'Adicionado ao diário',
+  'dawarich.toast.accepted.bucket_list': 'Riscado da sua lista de desejos',
+
+  // ── What the connected instance can do ─────────────────────────────────────
+  'dawarich.capability.visits': 'estadias',
+  'dawarich.capability.track': 'rota gravada',
+  'dawarich.capability.locations': 'correspondência com a lista de desejos',
+  'dawarich.capability.visitedCities': 'países e cidades',
+  'dawarich.capability.missing': 'Esta versão do Dawarich não oferece: {features}.',
+
+  // ── Failure reasons, as sentences the reader can act on ────────────────────
+  'dawarich.error.unreachable': 'O TREK não conseguiu acessar esse endereço.',
+  'dawarich.error.unauthorized': 'O Dawarich recusou a chave de API.',
+  'dawarich.error.forbidden': 'Essa chave de API não tem permissão para ler isto.',
+  'dawarich.error.not_found': 'Esta versão do Dawarich não tem esse endpoint.',
+  'dawarich.error.rate_limited': 'O Dawarich pediu que o TREK diminuísse o ritmo. Tente de novo em instantes.',
+  'dawarich.error.server_error': 'O Dawarich respondeu com um erro.',
+  'dawarich.error.invalid_response': 'Esse endereço respondeu com algo que não é o Dawarich.',
+  'dawarich.error.too_large': 'O Dawarich enviou mais dados do que o TREK lê de uma vez.',
+  'dawarich.error.not_connected': 'Nenhuma instância do Dawarich está conectada ainda.',
+  'dawarich.error.addon_disabled': 'O complemento Dawarich está desativado nesta instância.',
+  'dawarich.error.offline': 'Isso precisa de conexão — o TREK está offline agora.',
+  'dawarich.error.invalid_url': 'O TREK não pode usar esse endereço.',
+  'dawarich.warning.private_ip': 'Esse endereço aponta para um IP privado ({ip}). Confirme se é isso mesmo — o servidor pode precisar de ALLOW_INTERNAL_NETWORK=true para alcançá-lo.',
+  'dawarich.error.unknown': 'Algo deu errado na conversa com o Dawarich.',
+
+  // ── The recorded route on the map ──────────────────────────────────────────
+  'dawarich.trail.show': 'Mostrar rota gravada',
+  'dawarich.trail.hide': 'Ocultar rota gravada',
+  'dawarich.trail.loading': 'Carregando a rota gravada…',
+  'dawarich.trail.empty': 'Nada foi gravado nessas datas',
+  'dawarich.trail.offline': 'A rota gravada precisa de conexão',
+  'dawarich.trail.unavailable': 'Não foi possível carregar a rota gravada',
+
+  // ── Suggestions ────────────────────────────────────────────────────────────
+  'dawarich.duration.minutes': '{minutes} min',
+  'dawarich.duration.hours': '{hours} h',
+  'dawarich.duration.hoursMinutes': '{hours} h {minutes} min',
+  'dawarich.checkedAgo': 'verificado {ago}',
+
+  'dawarich.badge.lowConfidence': 'Incerto',
+  'dawarich.badge.sourceChanged': 'Alterado no Dawarich',
+  'dawarich.badge.sourceMissing': 'Sumiu do Dawarich',
+
+  'dawarich.suggestions.title': 'Do Dawarich',
+  'dawarich.suggestions.pending': '{count} esperando por você',
+  'dawarich.suggestions.loading': 'Lendo o Dawarich…',
+  'dawarich.suggestions.notConnected': 'Conecte o Dawarich nas Configurações para ver suas estadias aqui.',
+  'dawarich.suggestions.unavailable': 'Não foi possível ler o Dawarich.',
+  'dawarich.suggestions.allHandled': 'Tudo o que foi gravado aqui já foi resolvido.',
+  'dawarich.suggestions.asJournal': 'Escrever uma entrada no diário',
+  'dawarich.suggestions.asPlace': 'Adicionar como lugar',
+  'dawarich.suggestions.dismiss': 'Não é um lugar que visitei',
+  'dawarich.suggestions.dismissed': 'Dispensado',
+  'dawarich.suggestions.restore': 'Colocar de volta',
+  'dawarich.suggestions.showHandled': 'Mostrar {count} já resolvidas',
+  'dawarich.suggestions.hideHandled': 'Ocultar as que já foram resolvidas',
+  'dawarich.suggestions.matchesWish': 'Na sua lista de desejos: {name}',
+  'dawarich.suggestions.acceptedAs.place': 'Adicionado como lugar',
+  'dawarich.suggestions.acceptedAs.journal': 'No diário',
+  'dawarich.suggestions.acceptedAs.bucket_list': 'Desejo riscado',
+  'dawarich.suggestions.sourceChanged':
+    'Esta estadia mudou no Dawarich depois que você a usou. O que você escreveu no TREK continua intacto.',
+  'dawarich.suggestions.sourceMissing':
+    'Esta estadia não existe mais no Dawarich. O que você escreveu no TREK continua intacto.',
+  'dawarich.sourceStatus.suggested': 'Detectada, não confirmada',
+  'dawarich.confidence.high': 'Detecção confiável',
+  'dawarich.confidence.medium': 'Detecção razoavelmente confiável',
+  'dawarich.confidence.low': 'Detecção incerta',
+
+  // ── The review step ────────────────────────────────────────────────────────
+  'dawarich.accept.title.place': 'Adicionar esta estadia como lugar',
+  'dawarich.accept.title.journal': 'Escrever uma entrada no diário',
+  'dawarich.accept.title.bucket_list': 'Riscar um desejo',
+  'dawarich.accept.confirm.place': 'Adicionar lugar',
+  'dawarich.accept.confirm.journal': 'Adicionar entrada',
+  'dawarich.accept.confirm.bucket_list': 'Riscar',
+  'dawarich.accept.recorded': 'Gravado de {from} até {to}',
+  'dawarich.accept.duration': '{minutes} min',
+  'dawarich.accept.name': 'Nome',
+  'dawarich.accept.date': 'Data',
+  'dawarich.accept.from': 'Chegada',
+  'dawarich.accept.to': 'Saída',
+  'dawarich.accept.trip': 'Viagem',
+  'dawarich.accept.thisTrip': 'Esta viagem',
+  'dawarich.accept.pickTrip': 'Escolha uma viagem',
+  'dawarich.accept.day': 'Dia',
+  'dawarich.accept.noDay': 'Ainda sem dia definido',
+  'dawarich.accept.journal': 'Diário',
+  'dawarich.accept.pickJournal': 'Escolha um diário',
+  'dawarich.accept.notes': 'Notas',
+  'dawarich.accept.story': 'Sua história',
+  'dawarich.accept.storyPlaceholder': 'O que aconteceu aqui?',
+  'dawarich.accept.photosHint': 'Adicione fotos à entrada depois que ela for criada.',
+
+  // ── A place that came out of a recording ──────────────────────────────────
+  'dawarich.place.fromDawarich': 'Adicionado a partir dos seus registros do Dawarich',
+
+  // ── Wishlist ───────────────────────────────────────────────────────────────
+  'dawarich.bucket.title': 'Conferir sua lista de desejos com o Dawarich',
+  'dawarich.bucket.description':
+    'Procura nas suas gravações os lugares que você queria conhecer. Uma visita precisa de proximidade e de tempo parado — passar de carro não conta.',
+  'dawarich.bucket.scan': 'Conferir lista de desejos',
+  'dawarich.bucket.scanning': 'Conferindo…',
+  'dawarich.bucket.noMatches': 'Nada da sua lista de desejos apareceu nas suas gravações.',
+  'dawarich.bucket.alreadyVisited': 'Já riscado',
+  'dawarich.bucket.confirm': 'Riscar {count}',
+  'dawarich.bucket.confirmed': '{count} desejos riscados',
+  'dawarich.bucket.skipped': '{count} entradas não têm coordenadas e não puderam ser conferidas.',
+  'dawarich.bucket.truncated': 'Só as primeiras entradas foram conferidas. Rode de novo para as demais.',
+  'dawarich.bucket.visitedFrom': 'Riscado a partir das suas gravações do Dawarich',
+  'dawarich.bucket.clearVisit': 'Desfazer',
+
+  // ── Atlas ──────────────────────────────────────────────────────────────────
+  'dawarich.atlas.title': 'Países do Dawarich',
+  'dawarich.atlas.description':
+    'Países em que suas gravações dizem que você esteve. Confirme os que quiser no seu Atlas — nada é adicionado por conta própria, e o que você marcou à mão continua seu.',
+  'dawarich.atlas.load': 'Procurar países',
+  'dawarich.atlas.loading': 'Lendo suas gravações…',
+  'dawarich.atlas.empty': 'Suas gravações não mostram países que o TREK ainda não tenha.',
+  'dawarich.atlas.cities': '{count} cidades',
+  'dawarich.atlas.citiesOne': '1 cidade',
+  'dawarich.atlas.accept': 'Adicionar {count} países',
+  'dawarich.atlas.accepted': '{count} países adicionados',
+  'dawarich.atlas.unresolved': 'O TREK não conseguiu associar estes a um país: {names}.',
+  'dawarich.atlas.source': 'Do Dawarich',
+  'dawarich.atlas.range': 'Analisado de {from} a {to}',
+
+  'dawarich.atlas.trigger': 'Desejos e países dos seus registros',
+  'dawarich.atlas.dialogSubtitle': 'O que seus registros dizem sobre o seu Atlas',
+  'dawarich.atlas.tab.wishes': 'Lista de desejos',
+  'dawarich.atlas.tab.countries': 'Países',
+  'dawarich.atlas.window': 'Foram analisados os últimos 12 meses.',
+  'dawarich.selected': '{count} selecionados',
+  'dawarich.again': 'Verificar de novo',
+  'dawarich.bucket.metersAway': 'a {meters} m',
+  'dawarich.bucket.kilometersAway': 'a {km} km',
+  'dawarich.bucket.rule': 'Um desejo conta como alcançado a até {meters} m e após {minutes} minutos no local.',
+
+};
+
+export default dawarich;

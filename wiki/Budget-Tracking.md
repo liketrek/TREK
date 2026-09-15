@@ -83,16 +83,19 @@ An expense with no payer is flagged **Unfinished** on its row and counted into t
 
 ## Settlement calculator
 
-Costs works out the minimum number of transfers needed to settle all debts (using a greedy matching algorithm) and keeps the answer in the right-hand column, split across two cards:
+Costs works out the minimum number of transfers needed to settle all debts (using a greedy matching algorithm) and keeps the answer in the right-hand column, split across three cards:
 
 - **Settle up** — the transfer flows: who pays whom and how much. The number of open flows sits in the card header, and each flow has a **Settle** button that records it as done.
 - **Balances** — net balances: each member's overall surplus or deficit.
+- **Final budget** — what the trip costs each member once every reimbursement is accounted for: **expenses paid − net reimbursements − pending reimbursements**. Clicking a name opens that breakdown, with the expenses the member paid, the payments already recorded and the transfers still open on their side. The server works those rows out in the currency you are viewing in, at the exchange rate each expense was booked at, so every list adds up to the line above it even before live rates have loaded.
+
+The final budget comes to each member's share of the paid expenses (exact in the trip's own currency; in another display currency, rounding can leave a single figure a cent off while the column still adds up), so recording a payment moves an amount from *pending* to *net reimbursements* without changing it. An expense nobody has paid yet stays out of it, as it stays out of the balances.
 
 **Settle up** in the panel header records every open flow at once. **Add payment** on the card records a single transfer by hand, for a repayment that did not follow a suggested flow. Recorded payments then appear in the expense ledger as their own rows, with edit and undo beside them.
 
 Balances are always netted in the **trip currency** and converted to your display currency once, at the end — so they stay stable even when the trip mixes currencies.
 
-A recorded payment carries **its own currency** too: settling a rouble debt with a euro transfer is normal, so the payment modal has a currency picker, and its rate is frozen when you record it. A payment made in another currency shows both amounts in the ledger (`$30.00 → 27,00 €`).
+A recorded payment carries **its own currency** too: settling a rouble debt with a euro transfer is normal, so the payment modal has a currency picker, and its rate is frozen when you record it. A payment made in another currency shows both amounts in the ledger (`$30.00 → 27,00 €`). A payment also carries the day it happened, editable like an expense's date, so a transfer you only get round to recording three days later still lands on the right day; payments recorded before this field existed stay on the day they were recorded.
 
 ![Add payment dialog with From and To member pickers, an amount field and a currency selector](assets/CostsSettleUp.png)
 

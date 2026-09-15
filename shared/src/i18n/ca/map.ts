@@ -22,5 +22,8 @@ const map: TranslationStrings = {
   'map.location.denied': 'L’accés a la ubicació està bloquejat. Revisa la configuració del dispositiu; una app instal·lada té el seu propi permís d’ubicació, separat del navegador.',
   'map.location.unavailable': 'No s’ha pogut determinar la teva ubicació.',
   'map.location.timeout': 'La localització ha trigat massa. Torna-ho a provar amb una vista més clara del cel.',
+  'map.overview.show': 'Mostra tot el viatge',
+  'map.overview.hide': 'Amaga tot el viatge',
+  'map.overview.total': 'Distància total',
 };
 export default map;

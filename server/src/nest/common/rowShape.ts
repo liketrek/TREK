@@ -18,8 +18,13 @@ export function formatAssignmentWithPlace(a: AssignmentRow, tags: Partial<Tag>[]
     notes: a.notes,
     assignment_time: a.assignment_time ?? null,
     assignment_end_time: a.assignment_end_time ?? null,
+    end_day: a.end_day === 1,
     leg_transport_mode: a.leg_transport_mode ?? null,
     incoming_leg_transport_mode: a.incoming_leg_transport_mode ?? null,
+    // Which booking put this stop here, if a booking did. The day list has nothing
+    // else to tell it from a place the traveller added, and it must not draw the
+    // hotel a second time under the overnight block that already names it.
+    accommodation_id: a.accommodation_id ?? null,
     participants: participants || [],
     created_at: a.created_at,
     place: {
@@ -41,8 +46,15 @@ export function formatAssignmentWithPlace(a: AssignmentRow, tags: Partial<Tag>[]
       google_place_id: a.google_place_id,
       google_ftid: a.google_ftid,
       osm_id: a.osm_id,
+      amap_poi_id: a.amap_poi_id,
       website: a.website,
       phone: a.phone,
+      // The rail marks a fuel stop as one; without it here every stop would need
+      // its own place request to find out what kind it is.
+      stop_type: a.stop_type ?? null,
+      // Same reason: the rail resets a range budget here and has to know how far this
+      // stop fills, not how far the traveller's default one does.
+      fill_percent: a.fill_percent ?? null,
       category: a.category_id ? {
         id: a.category_id,
         name: a.category_name,

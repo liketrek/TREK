@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const dayplan: TranslationStrings = {
   'dayplan.icsTooltip': 'Εξαγωγή ημερολογίου (ICS)',
   'dayplan.emptyDay': 'Δεν υπάρχουν προγραμματισμένα μέρη για αυτή την ημέρα',
+  'dayplan.addPlaceHere': 'Προσθήκη τόπου σε αυτήν την ημέρα',
   'dayplan.cannotReorderTransport': 'Οι κρατήσεις με σταθερή ώρα δεν μπορούν να αναδιαταχθούν',
   'dayplan.confirmRemoveTimeTitle': 'Αφαίρεση ώρας;',
   'dayplan.confirmRemoveTimeBody':

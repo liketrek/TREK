@@ -228,22 +228,41 @@ describe('Budget e2e (real auth guard + temp SQLite, real budget SQL)', () => {
     }
   });
 
-  it('200 on settlement update with permission, persisting the new amount', async () => {
+  it('200 on settlement update with permission, persisting the new amount and day', async () => {
     const created = await request(server)
       .post(`/api/trips/${tripId}/budget/settlements`)
       .set('Cookie', sessionCookie(1))
-      .send({ from_user_id: 2, to_user_id: 1, amount: 10 });
+      .send({ from_user_id: 2, to_user_id: 1, amount: 10, settled_at: '2026-01-05' });
+    expect(created.status).toBe(201);
+    expect(created.body.settlement.settled_at).toBe('2026-01-05');
+
+    const res = await request(server)
+      .put(`/api/trips/${tripId}/budget/settlements/${created.body.settlement.id}`)
+      .set('Cookie', sessionCookie(1))
+      .send({ from_user_id: 2, to_user_id: 1, amount: 15, settled_at: '2026-01-09' });
+    expect(res.status).toBe(200);
+    expect(res.body.settlement).toMatchObject({ id: created.body.settlement.id, from_user_id: 2, to_user_id: 1, amount: 15, settled_at: '2026-01-09' });
+
+    const row = db.prepare('SELECT amount, settled_at FROM budget_settlements WHERE id = ?').get(created.body.settlement.id);
+    expect(row).toEqual({ amount: 15, settled_at: '2026-01-09' });
+  });
+
+  it('200 on settlement update that clears the day, leaving NULL in the column', async () => {
+    const created = await request(server)
+      .post(`/api/trips/${tripId}/budget/settlements`)
+      .set('Cookie', sessionCookie(1))
+      .send({ from_user_id: 2, to_user_id: 1, amount: 10, settled_at: '2026-01-05' });
     expect(created.status).toBe(201);
 
     const res = await request(server)
       .put(`/api/trips/${tripId}/budget/settlements/${created.body.settlement.id}`)
       .set('Cookie', sessionCookie(1))
-      .send({ from_user_id: 2, to_user_id: 1, amount: 15 });
+      .send({ from_user_id: 2, to_user_id: 1, amount: 10, settled_at: null });
     expect(res.status).toBe(200);
-    expect(res.body.settlement).toMatchObject({ id: created.body.settlement.id, from_user_id: 2, to_user_id: 1, amount: 15 });
+    expect(res.body.settlement.settled_at).toBeNull();
 
-    const row = db.prepare('SELECT amount FROM budget_settlements WHERE id = ?').get(created.body.settlement.id);
-    expect(row).toEqual({ amount: 15 });
+    const row = db.prepare('SELECT settled_at FROM budget_settlements WHERE id = ?').get(created.body.settlement.id);
+    expect(row).toEqual({ settled_at: null });
   });
 
   it('404 on settlement update when it does not exist', async () => {

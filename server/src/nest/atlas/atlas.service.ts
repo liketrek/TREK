@@ -16,6 +16,7 @@ import { KNOWN_COUNTRIES } from './known-countries';
 import { cityFromAddress } from './city-from-address';
 import { transferEndpointIds } from './transfer-endpoints';
 import type { FlightEndpointRow } from './transfer-endpoints';
+import { countryVisitDates } from './visit-dates';
 import { haversineKm } from '../common/geo';
 
 /**
@@ -80,6 +81,19 @@ export class BucketItemExistsError extends Error {
 // bucket forms send '' where the map dialogs send null.
 function blankToNull(value: string | null | undefined): string | null {
   return value === undefined || value === null || value === '' ? null : value;
+}
+
+/**
+ * Who ticked a country off, for the detail sheet.
+ *
+ * Null when there is no row at all — a country derived from a trip's places was
+ * never marked by anyone, and reporting 'manual' for it would claim a decision
+ * nobody made. A row written before the column existed defaults to 'manual',
+ * which is exactly what it was.
+ */
+function markedSource(row: { source?: string | null } | undefined): string | null {
+  if (!row) return null;
+  return row.source || 'manual';
 }
 
 /**
@@ -249,21 +263,16 @@ export class AtlasService {
       }
     }
 
-    const countries = [...countrySet.values()].map((c) => {
-      const countryTrips = trips.filter((t) => c.tripIds.has(t.id));
-      const dates = countryTrips
-        .map((t) => t.start_date)
-        .filter(Boolean)
-        .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
-      return {
-        code: c.code,
-        placeCount: c.places.length,
-        tripCount: c.tripIds.size,
-        firstVisit: dates[0] || null,
-        lastVisit: dates[dates.length - 1] || null,
-        status: c.status,
-      };
-    });
+    // The dates are filled in at the end, once a manual mark or a booking has had its
+    // say on the status: they come only from the trips that match that final status.
+    const countries = [...countrySet.values()].map((c) => ({
+      code: c.code,
+      placeCount: c.places.length,
+      tripCount: c.tripIds.size,
+      firstVisit: null as string | null,
+      lastVisit: null as string | null,
+      status: c.status,
+    }));
 
     const citySet = new Set<string>();
     for (const place of places) {
@@ -354,14 +363,17 @@ export class AtlasService {
 
     // Collapse to one entry per coordinate before resolving countries —
     // getCountryFromCoords is a point-in-polygon scan and used to run once per point.
-    const endpointStatus = new Map<string, { lat: number; lng: number; status: VisitStatus }>();
+    const endpointStatus = new Map<string, { lat: number; lng: number; status: VisitStatus; tripIds: Set<number> }>();
     for (const e of endpoints) {
       const status = tripStatus.get(e.trip_id) ?? 'idea';
       const key = `${e.lat},${e.lng}`;
       const seen = endpointStatus.get(key);
-      if (seen) seen.status = strongerVisitStatus(seen.status, status);
-      else endpointStatus.set(key, { lat: e.lat, lng: e.lng, status });
+      if (seen) {
+        seen.status = strongerVisitStatus(seen.status, status);
+        seen.tripIds.add(e.trip_id);
+      } else endpointStatus.set(key, { lat: e.lat, lng: e.lng, status, tripIds: new Set([e.trip_id]) });
     }
+    const bookingTripIds = new Map<string, Set<number>>();
     for (const e of endpointStatus.values()) {
       const code = getCountryFromCoords(e.lat, e.lng);
       if (!code || hidden.has(code)) continue;
@@ -369,6 +381,20 @@ export class AtlasService {
       if (existing) existing.status = strongerVisitStatus(existing.status, e.status);
       else
         countries.push({ code, placeCount: 0, tripCount: 0, firstVisit: null, lastVisit: null, status: e.status });
+      const ids = bookingTripIds.get(code) ?? new Set<number>();
+      for (const id of e.tripIds) ids.add(id);
+      bookingTripIds.set(code, ids);
+    }
+
+    // A booking can be what makes a country with places visited, so its trip dates the
+    // country as well. A country reached by bookings alone has no trip in its tooltip
+    // and stays without dates.
+    for (const c of countries) {
+      const fromPlaces = countrySet.get(c.code);
+      if (!fromPlaces) continue;
+      const fromBookings = bookingTripIds.get(c.code);
+      const dated = trips.filter((t) => fromPlaces.tripIds.has(t.id) || fromBookings?.has(t.id));
+      Object.assign(c, countryVisitDates(dated, c.status, now));
     }
 
     // Everything below counts actual visits only. countries[] still carries planned and
@@ -469,10 +495,17 @@ export class AtlasService {
     if (tripIds.length === 0) {
       // Post-fold quirk fix: the legacy early return hardcoded manually_marked
       // false, so a trip-less user's manually marked country read as unmarked.
-      const marked = !!this.db
-        .prepare('SELECT 1 FROM visited_countries WHERE user_id = ? AND country_code = ?')
-        .get(userId, code);
-      return { places: [], trips: [], manually_marked: marked, status: marked ? 'visited' : 'idea' };
+      const row = this.db
+        .prepare('SELECT source FROM visited_countries WHERE user_id = ? AND country_code = ?')
+        .get(userId, code) as { source?: string | null } | undefined;
+      const marked = !!row;
+      return {
+        places: [],
+        trips: [],
+        manually_marked: marked,
+        marked_source: markedSource(row),
+        status: marked ? 'visited' : 'idea',
+      };
     }
 
     const places = this.getPlacesForTrips(tripIds);
@@ -506,9 +539,10 @@ export class AtlasService {
       .filter((t) => matchingTripIds.has(t.id))
       .map((t) => ({ id: t.id, title: t.title, start_date: t.start_date, end_date: t.end_date }));
 
-    const isManuallyMarked = !!this.db
-      .prepare('SELECT 1 FROM visited_countries WHERE user_id = ? AND country_code = ?')
-      .get(userId, code);
+    const markRow = this.db
+      .prepare('SELECT source FROM visited_countries WHERE user_id = ? AND country_code = ?')
+      .get(userId, code) as { source?: string | null } | undefined;
+    const isManuallyMarked = !!markRow;
 
     // Take the status from the same trip classification stats() uses rather than deriving
     // it again here — the detail sheet and the map must agree on what this country is.
@@ -517,15 +551,24 @@ export class AtlasService {
     for (const id of matchingTripIds) status = strongerVisitStatus(status, tripStatus.get(id) ?? 'idea');
     if (isManuallyMarked) status = 'visited';
 
-    return { places: matchingPlaces, trips: matchingTrips, manually_marked: isManuallyMarked, status };
+    return {
+      places: matchingPlaces,
+      trips: matchingTrips,
+      manually_marked: isManuallyMarked,
+      // Where the tick came from, so the sheet can say "confirmed from your
+      // Dawarich recordings" instead of implying the user typed it in. Null when
+      // the country is only derived from trips and carries no row at all.
+      marked_source: markedSource(markRow),
+      status,
+    };
   }
 
   // ── Mark / unmark country ─────────────────────────────────────────────────
 
-  listVisitedCountries(userId: number): { country_code: string; created_at: string }[] {
+  listVisitedCountries(userId: number): { country_code: string; created_at: string; source: string }[] {
     return this.db
-      .prepare('SELECT country_code, created_at FROM visited_countries WHERE user_id = ? ORDER BY created_at DESC')
-      .all(userId) as { country_code: string; created_at: string }[];
+      .prepare('SELECT country_code, created_at, source FROM visited_countries WHERE user_id = ? ORDER BY created_at DESC')
+      .all(userId) as { country_code: string; created_at: string; source: string }[];
   }
 
   /** Countries the user explicitly removed, which stats() must not re-derive (#1490). */
@@ -536,11 +579,24 @@ export class AtlasService {
     return new Set(rows.map((r) => r.country_code));
   }
 
-  markCountry(userId: number, code: string): void {
-    this.db.transaction(() => {
-      this.db.prepare('INSERT OR IGNORE INTO visited_countries (user_id, country_code) VALUES (?, ?)').run(userId, code);
+  /**
+   * `source` records who decided. It defaults to 'manual' because that is what
+   * every mark was until an integration could make one, and `INSERT OR IGNORE`
+   * means a country already ticked by hand keeps that provenance — confirming
+   * it again from a recording does not relabel somebody's own work as imported.
+   */
+  /**
+   * Returns whether this actually added the country, so a caller reporting
+   * "3 countries added" is not counting the ones that were already there.
+   */
+  markCountry(userId: number, code: string, source: 'manual' | 'dawarich' = 'manual'): boolean {
+    return this.db.transaction(() => {
+      const inserted = this.db
+        .prepare('INSERT OR IGNORE INTO visited_countries (user_id, country_code, source) VALUES (?, ?, ?)')
+        .run(userId, code, source).changes > 0;
       // Marking it visited again lifts a previous removal.
       this.db.prepare('DELETE FROM hidden_countries WHERE user_id = ? AND country_code = ?').run(userId, code);
+      return inserted;
     });
   }
 

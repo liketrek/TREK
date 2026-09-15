@@ -1,4 +1,4 @@
-// FE-JRN-PICKER-001 to FE-JRN-PICKER-020
+// FE-JRN-PICKER-001 to FE-JRN-PICKER-021
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { http, HttpResponse, delay } from 'msw'
@@ -322,6 +322,39 @@ describe('ProviderPicker', () => {
     const range = ranges[0] as { from: string; to: string }
     expect(range.from.endsWith('-03')).toBe(true)
     expect(range.to.endsWith('-09')).toBe(true)
+  })
+
+  it('FE-JRN-PICKER-021: a location picked after the photos loaded reorders the grid', async () => {
+    // contextLocation is live editor state: the place search and "use my location"
+    // write it while this picker stays mounted, and the key is only provider plus
+    // date. Sorting inside the fetch instead of in a memo leaves the grid frozen
+    // while the caption above it already claims nearest-first.
+    searchReturns([
+      asset('rome', { lat: 41.9, lng: 12.5, takenAt: '2026-03-15T09:00:00.000Z' }),
+      asset('helsinki', { lat: 60.17, lng: 24.94, takenAt: '2026-03-15T11:00:00.000Z' }),
+    ])
+    const props = {
+      provider: 'immich',
+      userId: 42,
+      entries,
+      trips,
+      existingAssetIds: new Set<string>(),
+      onClose: vi.fn(),
+      onAdd: vi.fn(async () => {}),
+    } as React.ComponentProps<typeof ProviderPicker>
+    const { container, rerender } = render(<ProviderPicker {...props} />)
+    await screen.findByText('March 15, 2026')
+
+    const order = () => Array.from(container.querySelectorAll('img'))
+      .map(img => (img.getAttribute('src') || '').split('/assets/0/')[1]?.split('/')[0])
+      .filter(Boolean)
+
+    // Nothing to be near yet, so newest first.
+    expect(order()).toEqual(['helsinki', 'rome'])
+
+    rerender(<ProviderPicker {...props} contextLocation={{ lat: 41.9, lng: 12.5, name: 'Rome' }} />)
+
+    await waitFor(() => expect(order()).toEqual(['rome', 'helsinki']))
   })
 
   it('FE-JRN-PICKER-020: closes through the header button and the backdrop', async () => {

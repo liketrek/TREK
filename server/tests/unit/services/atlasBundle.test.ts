@@ -78,4 +78,14 @@ describe('Atlas admin1 region bundle (#1217)', () => {
       expect(names.has(borough), `${borough} should be a region of its own`).toBe(true);
     }
   });
+
+  it('ATLAS-BUNDLE-006 — China ships Guangdong Province, not Guangzhou Province', () => {
+    const cn = (features as unknown as { properties: { iso_a2: string | null; name?: string; iso_3166_2: string } }[])
+      .filter(f => f.properties.iso_a2 === 'CN');
+    const names = cn.map(f => f.properties.name);
+    expect(names).toContain('Guangdong Province');
+    expect(names).not.toContain('Guangzhou Province');
+    expect(cn.some(f => f.properties.iso_3166_2 === 'CN-GUANGDONGPROVINCE')).toBe(true);
+    expect(cn.some(f => f.properties.iso_3166_2 === 'CN-GUANGZHOUPROVINCE')).toBe(false);
+  });
 });

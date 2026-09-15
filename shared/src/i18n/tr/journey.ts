@@ -625,5 +625,21 @@ const journey: TranslationStrings = {
   'journey.editor.statsExcludedHint':
     'Durak günlükte kalır ama mesafeye, ülkelere veya Studio içindeki haritaya dahil edilmez.',
   'journey.entry.offRoute': 'Rota dışı',
+  'journey.suggestions.dismiss': 'Bu öneriyi yok say',
+  'journey.suggestions.dismissed': 'Öneri yok sayıldı',
+  'journey.suggestions.restore': 'Yok sayılan önerileri geri getir',
+  'journey.suggestions.restoreCount': 'Yok sayılan öneriler ({count})',
+  'journey.suggestions.restored': '{count} öneri geri geldi',
+  'journey.detail.addOnThisDay': 'Bu güne bir kayıt ekle',
+  'journey.detail.jumpToDay': '{date} tarihine git',
+  'journey.detail.searchPlaceholder': 'Bu yolculukta ara',
+  'journey.detail.searchEmpty': '“{query}” ile eşleşen kayıt yok',
+  'journey.settings.entryFields': 'Kayıt alanları',
+  'journey.settings.entryFieldsHint': 'Bu yolculuğun kullanmadıklarını kapat. Yazılmış hiçbir şey kaybolmaz.',
+  'journey.settings.showVerdict': 'Artılar ve eksiler',
+  'journey.settings.showMood': 'Ruh hâli',
+  'journey.settings.showWeather': 'Hava durumu',
+  'journey.entry.suggestion': 'Öneri',
+  'journey.editor.addDetails': '+ Ayrıntılar',
 };
 export default journey;

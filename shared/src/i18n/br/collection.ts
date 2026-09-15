@@ -144,6 +144,23 @@ const collection: TranslationStrings = {
   'collections.picker.hint': 'Escolha um lugar das suas coleções',
   'collections.picker.use': 'Usar',
 
+  // Export / import a list as a file (#2198)
+  'collections.file.export': 'Exportar',
+  'collections.file.exportTitle': 'Baixar esta lista como arquivo',
+  'collections.file.importButton': 'Importar uma lista de um arquivo',
+  'collections.file.importTitle': 'Importar lista',
+  'collections.file.choose': 'Escolher um arquivo de lista',
+  'collections.file.confirm': 'Importar',
+  'collections.file.change': 'Trocar',
+  'collections.file.labelCount': '{count} etiquetas',
+  'collections.file.hint':
+    'Os lugares chegam como uma nova lista sua. Avaliações, membros e fotos enviadas ficam para trás.',
+  'collections.file.done': '{count} lugares importados',
+  'collections.file.doneSkipped': '{count} lugares importados, {skipped} ignorados',
+  'collections.file.errorTooLarge': 'Esse arquivo é grande demais para ser uma lista.',
+  'collections.file.errorUnreadable': 'Não foi possível ler esse arquivo.',
+  'collections.file.errorNotACollection': 'Esse não é um arquivo de lista do TREK.',
+
   'collections.share.title': 'Compartilhar lista',
   'collections.share.titleNamed': 'Compartilhar “{name}”',
   'collections.share.button': 'Compartilhar',

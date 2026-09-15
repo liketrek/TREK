@@ -80,6 +80,10 @@ const budget: TranslationStrings = {
   'costs.pays': 'ödüyor',
   'costs.settle': 'Hesaplaş',
   'costs.balances': 'Bakiyeler',
+  'costs.finalBudget': 'Nihai bütçe',
+  'costs.finalExpenses': 'Ödenen harcamalar',
+  'costs.finalReimbursed': 'Net geri ödemeler',
+  'costs.finalPending': 'Bekleyen geri ödemeler',
   'costs.byCategory': 'Kategoriye göre',
   'costs.noCategories': 'Henüz harcama yok.',
   'costs.settleHistory': 'Hesaplaşma geçmişi',
@@ -147,5 +151,12 @@ const budget: TranslationStrings = {
   'costs.splitSumUnder': 'Payların toplamı: {total} tutarın {sum} kadarı ({diff} eksik)',
   'costs.splitSumOver': 'Payların toplamı: {total} tutarın {sum} kadarı ({diff} fazla)',
   'costs.toggleSign': 'Gider ve iade arasında geçiş yap',
+  'costs.receipts': 'Fişler',
+  'costs.receiptsTitle': 'Fişler ve Faturalar',
+  'costs.attachReceipt': 'Fiş / fatura ekle',
+  'costs.noReceipts': 'Ekli fiş yok',
+  'costs.deleteReceipt': 'Fişi kaldır',
+  'costs.viewReceipt': 'Fişi görüntüle',
+  'costs.receiptLeftBehind': 'Kaydetme başarısız oldu ve yüklenen {count} fiş hâlâ duruyor. Dosyalar sekmesinden silin.',
 };
 export default budget;

@@ -5,7 +5,7 @@ import { DatabaseService, type TripAccess } from '../database/database.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { QueryHelpersService } from '../query-helpers/query-helpers.service';
 import { formatAssignmentWithPlace } from '../common/rowShape';
-import type { AssignmentRow, DayAssignment, User } from '../../types';
+import type { AssignmentRow, DayAssignment, User, Participant } from '../../types';
 import { JourneyDomainService } from '../journey/journey-domain.service';
 
 type Trip = TripAccess;
@@ -53,14 +53,19 @@ export class AssignmentsService {
     try { this.journey.reconcileTripSkeletons(Number(tripId), socketId); } catch { /* non-fatal */ }
   }
 
-  private getAssignmentWithPlace(assignmentId: number | bigint) {
+  /**
+   * One stop, shaped the way every assignment event and REST answer carries it.
+   * Public because the accommodation mirror moves a stop in place and has to hand
+   * the moved row back in exactly this shape.
+   */
+  getAssignmentWithPlace(assignmentId: number | bigint) {
     const a = this.dbs.get<AssignmentRow>(`
       SELECT da.*, p.id as place_id, p.name as place_name, p.description as place_description,
         p.lat, p.lng, p.address, p.category_id, p.price, p.currency as place_currency,
         COALESCE(da.assignment_time, p.place_time) as place_time,
         COALESCE(da.assignment_end_time, p.end_time) as end_time,
         p.duration_minutes, p.notes as place_notes,
-        p.image_url, p.transport_mode, p.google_place_id, p.google_ftid, p.osm_id, p.website, p.phone,
+        p.image_url, p.transport_mode, p.google_place_id, p.google_ftid, p.osm_id, p.amap_poi_id, p.website, p.phone, p.stop_type, p.fill_percent,
         c.name as category_name, c.color as category_color, c.icon as category_icon
       FROM day_assignments da
       JOIN places p ON da.place_id = p.id
@@ -74,55 +79,19 @@ export class AssignmentsService {
     // one wire shape regardless of which read path produced it.
     const tags = this.queryHelpers.loadTagsByPlaceIds([a.place_id], { compact: true })[a.place_id] || [];
 
-    const participants = this.dbs.all(`
+    const participants = this.dbs.all<Participant>(`
       SELECT ap.user_id, COALESCE(u.display_name, u.username) AS username, u.avatar
       FROM assignment_participants ap
       JOIN users u ON ap.user_id = u.id
       WHERE ap.assignment_id = ?
     `, a.id);
 
-    return {
-      id: a.id,
-      day_id: a.day_id,
-      place_id: a.place_id,
-      order_index: a.order_index,
-      notes: a.notes,
-      assignment_time: a.assignment_time ?? null,
-      assignment_end_time: a.assignment_end_time ?? null,
-      leg_transport_mode: a.leg_transport_mode ?? null,
-      incoming_leg_transport_mode: a.incoming_leg_transport_mode ?? null,
-      participants,
-      created_at: a.created_at,
-      place: {
-        id: a.place_id,
-        name: a.place_name,
-        description: a.place_description,
-        lat: a.lat,
-        lng: a.lng,
-        address: a.address,
-        category_id: a.category_id,
-        price: a.price,
-        currency: a.place_currency,
-        place_time: a.place_time,
-        end_time: a.end_time,
-        duration_minutes: a.duration_minutes,
-        notes: a.place_notes,
-        image_url: a.image_url,
-        transport_mode: a.transport_mode,
-        google_place_id: a.google_place_id,
-        google_ftid: a.google_ftid,
-        osm_id: a.osm_id,
-        website: a.website,
-        phone: a.phone,
-        category: a.category_id ? {
-          id: a.category_id,
-          name: a.category_name,
-          color: a.category_color,
-          icon: a.category_icon,
-        } : null,
-        tags,
-      }
-    };
+    // The same shaper the list path uses. It was spelled out here as a third hand-kept
+    // copy of the place shape, and the copy silently dropped `stop_type`: the optimistic
+    // row the client had drawn as a fuel stop was replaced, a beat later, by this answer
+    // without it — so a petrol station turned into an ordinary numbered place while you
+    // watched.
+    return formatAssignmentWithPlace(a, tags, participants);
   }
 
   listDayAssignments(dayId: string | number) {
@@ -132,7 +101,7 @@ export class AssignmentsService {
         COALESCE(da.assignment_time, p.place_time) as place_time,
         COALESCE(da.assignment_end_time, p.end_time) as end_time,
         p.duration_minutes, p.notes as place_notes,
-        p.image_url, p.transport_mode, p.google_place_id, p.google_ftid, p.osm_id, p.website, p.phone,
+        p.image_url, p.transport_mode, p.google_place_id, p.google_ftid, p.osm_id, p.amap_poi_id, p.website, p.phone, p.stop_type, p.fill_percent,
         c.name as category_name, c.color as category_color, c.icon as category_icon
       FROM day_assignments da
       JOIN places p ON da.place_id = p.id
@@ -160,14 +129,28 @@ export class AssignmentsService {
     return !!this.dbs.get('SELECT id FROM places WHERE id = ? AND trip_id = ?', placeId, tripId);
   }
 
-  createAssignment(dayId: string | number, placeId: unknown, notes?: string | null) {
+  /**
+   * @param opts.accommodationId The lodging booking this stop belongs to, when a
+   * booking is what put it there. Written by the INSERT rather than stamped on
+   * afterwards: the row this returns is what the answer hands the client, and a
+   * stop that reaches it without its booking id is one the day list cannot tell
+   * from a place the traveller added, so it draws the hotel a second time.
+   */
+  createAssignment(dayId: string | number, placeId: unknown, notes?: string | null, opts: { accommodationId?: number; orderIndex?: number } = {}) {
     const result = this.dbs.transaction(() => {
       const maxOrder = this.dbs.get<{ max: number | null }>('SELECT MAX(order_index) as max FROM day_assignments WHERE day_id = ?', dayId)!;
-      const orderIndex = (maxOrder.max !== null ? maxOrder.max : -1) + 1;
+      const end = (maxOrder.max !== null ? maxOrder.max : -1) + 1;
+      // Somewhere in the middle when the caller says so, which means everything from
+      // there on moves down. The end is still the default and still what every caller
+      // but one asks for.
+      const orderIndex = opts.orderIndex !== undefined ? Math.max(0, Math.min(opts.orderIndex, end)) : end;
+      if (orderIndex < end) {
+        this.dbs.run('UPDATE day_assignments SET order_index = order_index + 1 WHERE day_id = ? AND order_index >= ?', dayId, orderIndex);
+      }
 
       return this.dbs.run(
-        'INSERT INTO day_assignments (day_id, place_id, order_index, notes) VALUES (?, ?, ?, ?)',
-        dayId, placeId, orderIndex, notes || null
+        'INSERT INTO day_assignments (day_id, place_id, order_index, notes, accommodation_id) VALUES (?, ?, ?, ?, ?)',
+        dayId, placeId, orderIndex, notes || null, opts.accommodationId ?? null
       );
     });
 
@@ -234,10 +217,16 @@ export class AssignmentsService {
       if (placeTime) {
         const assignment = this.dbs.get<{ day_id: number }>('SELECT day_id FROM day_assignments WHERE id = ?', id);
         if (assignment) {
+          // A booked night's hour lives on the booking, not on the stop: nobody types a
+          // time into a hotel row, they type a check-in. Left out of this, the night
+          // counted as untimed and stayed wherever it had been dropped, so pinning an
+          // afternoon stop sorted that one and left the hotel sitting in front of or
+          // behind it by accident.
           const dayAssignments = this.dbs.all<{ id: number; effective_time: string | null }>(`
-            SELECT da.id, COALESCE(da.assignment_time, p.place_time) as effective_time
+            SELECT da.id, COALESCE(da.assignment_time, p.place_time, acc.check_in) as effective_time
             FROM day_assignments da
             JOIN places p ON da.place_id = p.id
+            LEFT JOIN day_accommodations acc ON acc.id = da.accommodation_id
             WHERE da.day_id = ?
             ORDER BY da.order_index ASC
           `, assignment.day_id);
@@ -258,6 +247,11 @@ export class AssignmentsService {
       }
     });
 
+    return this.getAssignmentWithPlace(Number(id));
+  }
+
+  setEndDay(id: string | number, endDay: boolean) {
+    this.dbs.run('UPDATE day_assignments SET end_day = ? WHERE id = ?', endDay ? 1 : 0, id);
     return this.getAssignmentWithPlace(Number(id));
   }
 

@@ -93,11 +93,47 @@ const admin: TranslationStrings = {
   'admin.requireMfaHint':
     "Els usuaris sense 2FA han de completar la configuració a Ajustos abans d'utilitzar l'aplicació.",
   'admin.apiKeys': 'Claus API',
-  'admin.apiKeysHint': 'Opcional. Activa dades ampliades de llocs, com ara fotos i previsió meteorològica.',
+  'admin.apiKeysHint': "D'on vénen les dades de llocs. L'índex de TREK no necessita clau; els dos proveïdors de sota són opcionals.",
+  'admin.trekApi.badgeDefault': 'Font recomanada per defecte',
+  'admin.googleCaveat.badge': 'No recomanat',
+  'admin.googleCaveat.body':
+    "TREK és programari lliure i aquí no som neutrals. En aquesta escala, les valoracions i les fotos de negocis corrents només existeixen a Google, i això és un monopoli. El camp hi és per manca d'alternativa, no perquè el recomanem. Llavors cada consulta va a Google.",
+  'admin.trekApi.tagline':
+    'L\'índex de llocs propi de TREK. Cercar sense clau de Google, sense quota i sense que ningú compti les teves cerques.',
+  'admin.trekApi.factPlaces':
+    '73,6 milions de llocs al món',
+  'admin.trekApi.factNoKey':
+    'Sense clau, sense quota',
+  'admin.trekApi.factOffline':
+    'Els paquets per país funcionen sense connexió',
+  'admin.trekApi.factPrivacy':
+    'Les cerques no es registren mai',
+  'admin.trekApi.more':
+    'Què hi ha a dins',
+  'admin.trekApi.fieldPhone':
+    'Telèfon',
+  'admin.trekApi.fieldStableId':
+    'Identificador estable',
+  'admin.trekApi.includedNote':
+    'Les descripcions vénen del web del lloc mateix; els horaris, d\'OpenStreetMap allà on hi són.',
+  'admin.trekApi.notRatings':
+    'Valoracions',
+  'admin.trekApi.notPhotos':
+    'Fotos de negocis corrents',
+  'admin.trekApi.notIncludedNote':
+    'Cap font oberta no té ni les unes ni les altres, a cap preu. Per a aquestes dues una clau de Google continua sent l\'únic camí.',
+  'admin.trekApi.sourcesLabel':
+    'Fonts',
+  'admin.trekApi.sourcesNote':
+    'Cada camp d\'una resposta diu de quina d\'elles ve.',
+  'admin.trekApi.included':
+    'Inclòs',
+  'admin.trekApi.notIncluded':
+    'No inclòs',
   'admin.mapsKey': 'Clau API de Google Maps',
   'admin.mapsKeyHint': 'Obligatòria per cercar llocs. Aconsegueix-la a console.cloud.google.com',
   'admin.mapsKeyHintLong':
-    "Sense una clau API, la cerca de llocs fa servir OpenStreetMap. Amb una clau de Google també es poden carregar fotos, valoracions i horaris d'obertura. Aconsegueix-la a console.cloud.google.com.",
+    "Sense clau d'API de Google s'utilitza l'API de TREK recomanada. Amb una clau es poden carregar a més fotos, valoracions i horaris. Crea-la a console.cloud.google.com.",
   'admin.recommended': 'Recomanat',
   'admin.weatherKey': "Clau API d'OpenWeatherMap",
   'admin.weatherKeyHint': 'Per a dades meteorològiques. Gratuït a openweathermap.org',
@@ -116,6 +152,8 @@ const admin: TranslationStrings = {
   'admin.fileTypesFormat':
     'Extensions separades per comes (p. ex. jpg,png,pdf,doc). Utilitza * per permetre tots els tipus.',
   'admin.fileTypesSaved': 'Ajustos de tipus de fitxer desats',
+  'admin.googleOptions': 'Per a què s\'utilitza la clau',
+  'admin.googleOptionsSummary': '{on} de {total} actius',
   'admin.placesPhotos.title': 'Fotos de Llocs',
   'admin.placesPhotos.subtitle':
     "Obtén fotos de la Google Places API. Desactiva per estalviar quota d'API. Les fotos de Wikimedia no es veuen afectades.",
@@ -128,6 +166,17 @@ const admin: TranslationStrings = {
   'admin.placesEnrich.title': 'Enriquiment de llocs',
   'admin.placesEnrich.subtitle':
     "Mostra imatges i una descripció en afegir un lloc. Wikipedia i OpenStreetMap s'usen sempre; Google s'hi afegeix si Fotos de llocs o Detalls de llocs estan actius.",
+  'admin.transitProvider.title': 'Proveïdor de transport públic',
+  'admin.transitProvider.subtitle': 'Quin servei respon la cerca de transport públic.',
+  'admin.transitProvider.transitous': 'Transitous (gratuït)',
+  'admin.transitProvider.google': 'Google',
+  'admin.transitProvider.transitousHint': 'Fluxos GTFS de la comunitat. Gratuït i sense clau, amb la millor cobertura a Europa.',
+  'admin.transitProvider.googleHint': 'Utilitza la clau de Google anterior, per a regions sense dades a Transitous. Es factura per cerca: mentre no hi hagi clau s\'utilitza Transitous.',
+  'admin.transitProvider.noKeyWarning': 'Google està seleccionat, però no hi ha cap clau de Google configurada: la cerca de transport encara utilitza Transitous. Afegeix una clau a Claus d\'API a dalt.',
+  'admin.transitProvider.personalKeyWarning': 'Només hi ha la teva pròpia clau de Google, de manera que la cerca dels altres membres continua recorrent a Transitous. Desa la clau a dalt com a administrador per aplicar-la a tota la instància.',
+  'admin.placeShadow.title': 'Registre de cerques de llocs',
+  'admin.placeShadow.subtitle':
+    'Desar quin resultat de cerca s\'ha triat, per poder avaluar més endavant un altre índex de llocs amb cerques reals. No surt res d\'aquesta instància i un administrador pot exportar o esborrar el registre quan vulgui.',
   'admin.bagTracking.title': "Seguiment d'equipatge",
   'admin.bagTracking.subtitle': "Activar pes i assignació d'equipatge per a articles de la llista",
   'admin.collab.chat.title': 'Xat',
@@ -175,6 +224,9 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.naver_list_import.description': 'Importa llocs des d’una llista compartida de Naver Maps',
   'admin.addons.catalog.airtrail.name': 'AirTrail',
   'admin.addons.catalog.airtrail.description': 'Sincronitza vols des de la teva instància d’AirTrail',
+  'admin.addons.catalog.dawarich.name': 'Dawarich',
+  'admin.addons.catalog.dawarich.description':
+    'Llegeix estades i recorreguts enregistrats d’una instància de Dawarich que cada lector connecta pel seu compte',
   'admin.addons.catalog.llm_parsing.name': 'Anàlisi amb IA',
   'admin.addons.catalog.llm_parsing.description': 'Llegeix reserves que l’analitzador integrat no entén, amb un model d’IA que triïs',
   'admin.addons.enabled': 'Actiu',
@@ -291,6 +343,8 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.atlas.description': 'Mapa del món amb els països visitats i estadístiques de viatge',
   'admin.addons.catalog.collab.name': 'Col·laboració',
   'admin.addons.catalog.collab.description': 'Notes, enquestes, xat i suggeriments per planificar en grup',
+  'admin.addons.catalog.roadtrip.name': 'Viatge per carretera',
+  'admin.addons.catalog.roadtrip.description': 'Planifica trajectes amb parades: els temps de conducció i les hores d’arribada es recalculen sols',
   'admin.addons.catalog.collections.name': 'Col·leccions',
   'admin.addons.catalog.collections.description': 'Recull llocs de qualsevol viatge en llistes amb nom i reutilitza’ls',
   'admin.oidcOnlyMode': 'Desactivar autenticació per contrasenya',
@@ -385,6 +439,19 @@ const admin: TranslationStrings = {
     "S'utilitza per a cada usuari que no hagi introduït la seva pròpia clau, de manera que tota la instància obtingui tessel·les de CARTO sense marca d'aigua. S'emmagatzema xifrada.",
   'admin.unsplashKey': "Clau API d'Unsplash",
   'admin.unsplashKeyHint': "Per a la cerca d'imatges. Gratuït a unsplash.com/developers",
+  'admin.amapKey': "Clau API d'Amap (高德地图)",
+  'admin.amapKeyHint':
+    "Per a la cerca de llocs a la Xina continental, on Google no és accessible i la cobertura d'OpenStreetMap és escassa. Cal una clau «Web 服务» (servei web), no una clau de l'API JS. Se n'obté una a console.amap.com.",
+  'admin.placesProvider.title': 'Proveïdor de la cerca de llocs',
+  'admin.placesProvider.subtitle':
+    "L'índex propi de TREK i OpenStreetMap responen cada cerca. Aquí es tria a qui més es consulta quan no troben res: Automàtic prefereix Google si hi ha clau, després Amap.",
+  'admin.placesProvider.auto': 'Automàtic',
+  'admin.placesProvider.google': 'Google Places',
+  'admin.placesProvider.amap': 'Amap (高德地图)',
+  'admin.placesProvider.openstreetmap': 'OpenStreetMap',
+  'admin.placesProvider.missingKey':
+    "El proveïdor seleccionat no té cap clau d'API configurada, així que la cerca de llocs la responen només l'índex de TREK i OpenStreetMap.",
+  'admin.placesProvider.saved': 'Proveïdor de la cerca de llocs desat',
   'admin.tabs.plugins': 'Connectors',
   'admin.tabs.storage': 'Emmagatzematge',
   'admin.plugins.rescan': 'Torna a escanejar',
@@ -471,6 +538,8 @@ const admin: TranslationStrings = {
   'admin.plugins.requiresTrek': 'Requereix TREK {version}+',
   'admin.plugins.reviewedOn': 'Verificat el {date}',
   'admin.plugins.perm.hook:map-layer-provider': 'Dibuixar rutes, corredors i zones al mapa del viatge',
+  'admin.plugins.perm.hook:search-provider':
+    "Respondre cerques de llocs des d'un índex propi, al costat dels resultats de TREK",
   'admin.plugins.perm.hook:route-provider':
     'Oferir perfils de ruta amb què el planificador pot calcular els dies (p. ex. rutes per a cotxe elèctric amb parades de recàrrega)',
   'admin.plugins.perm.hook:day-schedule-provider':
@@ -603,6 +672,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.photos': 'Proporciona fotos',
   'admin.plugins.cap.calendar': 'Proporciona esdeveniments de calendari',
   'admin.plugins.cap.placeDetails': 'Enriqueix els llocs',
+  'admin.plugins.cap.search': 'Respon cerques',
   'admin.plugins.cap.warnings': 'Marca problemes',
   'admin.plugins.cap.mapLayers': 'Dibuixa al mapa',
   'admin.plugins.cap.routing': 'Calcula rutes',
@@ -650,5 +720,8 @@ const admin: TranslationStrings = {
   'admin.plugins.metaRequires': 'Requereix',
   'admin.plugins.metaReviewed': 'Revisat el',
   'admin.plugins.downloads': 'Baixades',
+  'admin.placesUsageTitle': "Per a què s'usa la clau",
+  'admin.mapsKeyHintShort': 'Afegeix fotos, valoracions i horaris. Cada consulta passa llavors per Google.',
+  'admin.amapKeyHintShort': 'Per a la cerca de llocs a la Xina continental. Cal una clau de servei web, no una clau API JS.',
 };
 export default admin;

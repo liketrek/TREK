@@ -144,6 +144,23 @@ const collection: TranslationStrings = {
   'collections.picker.hint': 'Chọn một địa điểm từ bộ sưu tập của bạn',
   'collections.picker.use': 'Dùng',
 
+  // Export / import a list as a file (#2198)
+  'collections.file.export': 'Xuất',
+  'collections.file.exportTitle': 'Tải danh sách này về dưới dạng tệp',
+  'collections.file.importButton': 'Nhập danh sách từ tệp',
+  'collections.file.importTitle': 'Nhập danh sách',
+  'collections.file.choose': 'Chọn tệp danh sách',
+  'collections.file.confirm': 'Nhập',
+  'collections.file.change': 'Đổi',
+  'collections.file.labelCount': '{count} nhãn',
+  'collections.file.hint':
+    'Các địa điểm sẽ vào một danh sách mới của bạn. Đánh giá, thành viên và ảnh đã tải lên không đi kèm.',
+  'collections.file.done': 'Đã nhập {count} địa điểm',
+  'collections.file.doneSkipped': 'Đã nhập {count} địa điểm, bỏ qua {skipped}',
+  'collections.file.errorTooLarge': 'Tệp này quá lớn để là một danh sách.',
+  'collections.file.errorUnreadable': 'Không đọc được tệp này.',
+  'collections.file.errorNotACollection': 'Đây không phải tệp danh sách của TREK.',
+
   'collections.share.title': 'Chia sẻ danh sách',
   'collections.share.titleNamed': 'Chia sẻ “{name}”',
   'collections.share.button': 'Chia sẻ',

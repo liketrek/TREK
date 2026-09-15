@@ -1,5 +1,7 @@
 import { Map as MapIcon, Satellite } from 'lucide-react'
 import { useTranslation } from '../../i18n'
+import { Tooltip } from '../shared/Tooltip'
+import { MAP_CONTROL_SHADOW } from './mapControlShadow'
 
 export type BaseLayer = 'default' | 'satellite'
 
@@ -18,26 +20,31 @@ export function MapLayerSwitcher({ active, onToggle }: { active: BaseLayer; onTo
       background: 'var(--sidebar-bg)',
       backdropFilter: 'blur(20px) saturate(180%)',
       WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-      boxShadow: 'var(--sidebar-shadow, 0 4px 16px rgba(0,0,0,0.14))',
+      boxShadow: MAP_CONTROL_SHADOW,
     }}>
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-label={label}
-        title={label}
-        aria-pressed={isSatellite}
-        className="text-content-muted"
-        style={{
-          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-          width: 34, height: 34, borderRadius: 999, border: 'none', cursor: 'pointer',
-          background: 'transparent', padding: 0,
-          transition: 'background 0.14s, color 0.14s',
-        }}
-        onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
-        onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
-      >
-        <Icon size={17} strokeWidth={2} />
-      </button>
+      {/* Same tooltip as its neighbours on the map, for the same reasons — see
+          TripRouteOverviewPill. To the right, though: this one sits at the
+          bottom left of the map, where a tooltip to the left would land on the
+          day sidebar and one below would land off the screen. */}
+      <Tooltip label={label} placement="right">
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-label={label}
+          aria-pressed={isSatellite}
+          className="text-content-muted"
+          style={{
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            width: 34, height: 34, borderRadius: 999, border: 'none', cursor: 'pointer',
+            background: 'transparent', padding: 0,
+            transition: 'background 0.14s, color 0.14s',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+        >
+          <Icon size={17} strokeWidth={2} />
+        </button>
+      </Tooltip>
     </div>
   )
 }

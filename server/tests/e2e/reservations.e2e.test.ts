@@ -170,6 +170,30 @@ describe('Reservations + accommodations e2e (real auth guard + temp SQLite, real
     expect(badRefs.body).toEqual({ error: 'Place not found' });
   });
 
+  it('201 create also puts the place on its check-in day, and the delete takes that stop back', async () => {
+    // The road-trip view builds its stops from day_assignments and only looks the stay
+    // up afterwards, so a booking without one never reaches the route: the complaint
+    // was having to enter the same hotel a second time as an ordinary place.
+    const placeId = Number(db.prepare('INSERT INTO places (trip_id, name) VALUES (?, ?)').run(tripId, 'Hotel Adlon').lastInsertRowid);
+    const dayId = Number(db.prepare('INSERT INTO days (trip_id, day_number, date) VALUES (?, 4, ?)').run(tripId, '2026-03-04').lastInsertRowid);
+
+    const create = await request(server)
+      .post(`/api/trips/${tripId}/accommodations`)
+      .set('Cookie', sessionCookie(1))
+      .send({ place_id: placeId, start_day_id: dayId, end_day_id: dayId });
+    expect(create.status).toBe(201);
+    // In the answer, not only on the socket: the broadcast skips the sender.
+    expect(create.body.assignment).toMatchObject({ day_id: dayId, place_id: placeId });
+    expect(db.prepare('SELECT stop_type FROM places WHERE id = ?').get(placeId)).toMatchObject({ stop_type: 'hotel' });
+
+    const del = await request(server)
+      .delete(`/api/trips/${tripId}/accommodations/${create.body.accommodation.id}`)
+      .set('Cookie', sessionCookie(1));
+    expect(del.status).toBe(200);
+    expect(del.body.removedAssignments).toEqual([{ id: create.body.assignment.id, dayId }]);
+    expect(db.prepare('SELECT id FROM day_assignments WHERE day_id = ?').all(dayId)).toEqual([]);
+  });
+
   it('404 when trip not accessible (accommodations)', async () => {
     canAccessTrip.mockReturnValue(undefined);
     const res = await request(server).get(`/api/trips/${tripId}/accommodations`).set('Cookie', sessionCookie(1));

@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router'
-import { X, ImagePlus, Plus, Trash2, UserPlus, Archive, ArchiveRestore } from 'lucide-react'
+import { X, ImagePlus, Plus, Trash2, UserPlus, Archive, ArchiveRestore, Undo2 } from 'lucide-react'
 import { useJourneyStore } from '../../store/journeyStore'
 import { useTranslation } from '../../i18n'
 import { journeyApi } from '../../api/client'
@@ -12,12 +12,14 @@ import { pickGradient } from '../../pages/journeyDetail/JourneyDetailPage.helper
 import { AddTripDialog } from './JourneyDetailPageAddTripDialog'
 import { normalizeImageFile } from '../../utils/convertHeic'
 
-export function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite, onRefresh }: {
+export function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite, onRefresh, onRestoreSuggestions }: {
   journey: JourneyDetail
   onClose: () => void
   onSaved: () => void
   onOpenInvite: () => void
   onRefresh: () => void
+  /** Bring back every suggestion waved away card by card. Absent for a viewer. */
+  onRestoreSuggestions?: () => Promise<void> | void
 }) {
   const { t } = useTranslation()
   const [title, setTitle] = useState(journey.title)
@@ -92,6 +94,30 @@ export function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite,
       toast.error(t('journey.settings.saveFailed'))
     } finally {
       setSavingTracks(false)
+    }
+  }
+
+  /**
+   * Turn one of the optional entry fields off for this journey.
+   *
+   * Saved on the spot for the same reason the tracks switch is, and through
+   * `onRefresh` rather than `onSaved` so flipping a switch does not close the
+   * dialog out from under a half-typed title.
+   *
+   * Nothing is erased: an entry that already carries a mood keeps it in the
+   * database, the form simply stops asking. Switching back on brings it into
+   * view again.
+   */
+  const [savingField, setSavingField] = useState<string | null>(null)
+  const handleFieldToggle = async (field: 'show_verdict' | 'show_mood' | 'show_weather') => {
+    setSavingField(field)
+    try {
+      await updateJourney(journey.id, { [field]: journey[field] === 0 })
+      onRefresh()
+    } catch {
+      toast.error(t('journey.settings.saveFailed'))
+    } finally {
+      setSavingField(null)
     }
   }
 
@@ -182,6 +208,57 @@ export function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite,
               </span>
             </button>
           </div>
+
+          {/* The three fields a journey may put away (discussion #2299) */}
+          <div>
+            <label className="text-[10px] font-semibold tracking-[0.12em] uppercase text-zinc-500 block mb-1.5">{t('journey.settings.entryFields')}</label>
+            <p className="text-[11px] leading-snug text-zinc-500 mb-2">{t('journey.settings.entryFieldsHint')}</p>
+            <div className="flex flex-col gap-1.5">
+              {([
+                ['show_verdict', t('journey.settings.showVerdict')],
+                ['show_mood', t('journey.settings.showMood')],
+                ['show_weather', t('journey.settings.showWeather')],
+              ] as const).map(([field, label]) => {
+                const on = journey[field] !== 0
+                return (
+                  <button
+                    key={field}
+                    type="button"
+                    role="switch"
+                    aria-checked={on}
+                    aria-label={label}
+                    disabled={savingField !== null}
+                    onClick={() => handleFieldToggle(field)}
+                    className="w-full flex items-center gap-3 px-3.5 py-2.5 border border-zinc-200 dark:border-zinc-700 rounded-xl bg-white dark:bg-zinc-800 text-left disabled:opacity-60"
+                  >
+                    <span className="flex-1 min-w-0 text-[14px] text-zinc-900 dark:text-white">{label}</span>
+                    <span aria-hidden="true" className={`w-9 h-5 rounded-full flex-shrink-0 p-0.5 transition-colors ${on ? 'bg-emerald-500' : 'bg-zinc-300 dark:bg-zinc-600'}`}>
+                      <span className={`block w-4 h-4 rounded-full bg-white transition-transform ${on ? 'translate-x-4' : ''}`} />
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* The way back from dismissing suggestions one at a time. Only ever shown
+              when there is something to bring back, so it is not a permanent row
+              about a feature most journeys never touch. */}
+          {onRestoreSuggestions && (journey.dismissed_count ?? 0) > 0 && (
+            <button
+              type="button"
+              onClick={() => { void onRestoreSuggestions() }}
+              className="w-full flex items-center gap-3 px-3.5 py-2.5 border border-zinc-200 dark:border-zinc-700 rounded-xl bg-white dark:bg-zinc-800 text-left hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors"
+            >
+              <Undo2 size={15} className="text-zinc-400 flex-shrink-0" />
+              <span className="flex-1 min-w-0">
+                <span className="block text-[14px] text-zinc-900 dark:text-white">{t('journey.suggestions.restore')}</span>
+                <span className="block text-[11px] text-zinc-500">
+                  {t('journey.suggestions.restoreCount', { count: String(journey.dismissed_count) })}
+                </span>
+              </span>
+            </button>
+          )}
 
           </div>
 

@@ -625,5 +625,21 @@ const journey: TranslationStrings = {
   'journey.editor.statsExcludedHint':
     'Điểm dừng vẫn nằm trong nhật ký nhưng không được tính vào quãng đường, các quốc gia hay bản đồ trong Studio.',
   'journey.entry.offRoute': 'Ngoài lộ trình',
+  'journey.suggestions.dismiss': 'Bỏ qua gợi ý này',
+  'journey.suggestions.dismissed': 'Đã bỏ qua gợi ý',
+  'journey.suggestions.restore': 'Lấy lại các gợi ý đã bỏ qua',
+  'journey.suggestions.restoreCount': 'Gợi ý đã bỏ qua ({count})',
+  'journey.suggestions.restored': '{count} gợi ý đã trở lại',
+  'journey.detail.addOnThisDay': 'Thêm một mục vào ngày này',
+  'journey.detail.jumpToDay': 'Chuyển đến {date}',
+  'journey.detail.searchPlaceholder': 'Tìm trong hành trình này',
+  'journey.detail.searchEmpty': 'Không có mục nào khớp với “{query}”',
+  'journey.settings.entryFields': 'Các trường của mục',
+  'journey.settings.entryFieldsHint': 'Tắt những gì hành trình này không dùng. Không mất gì đã viết.',
+  'journey.settings.showVerdict': 'Ưu và nhược',
+  'journey.settings.showMood': 'Tâm trạng',
+  'journey.settings.showWeather': 'Thời tiết',
+  'journey.entry.suggestion': 'Gợi ý',
+  'journey.editor.addDetails': '+ Chi tiết',
 };
 export default journey;

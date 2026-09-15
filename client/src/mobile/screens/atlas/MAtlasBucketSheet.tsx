@@ -236,6 +236,7 @@ export default function MAtlasBucketSheet({ atlas, open, onClose }: MAtlasBucket
             {t('atlas.addPoi')}
           </button>
         )}
+
       </div>
     </MSheet>
   )

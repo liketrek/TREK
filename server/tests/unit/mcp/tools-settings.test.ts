@@ -48,7 +48,7 @@ import { encrypt_api_key } from '../../../src/nest/common/crypto/apiKeyCrypto';
 import { MASKED_SETTING_VALUE } from '@trek/shared';
 import { DISPLAY_PREFERENCE_KEYS } from '../../../src/nest/settings/settings.mcp';
 import { MANAGED_LOCKED_SETTING_KEYS } from '../../../src/nest/common/managed';
-import { isAdminOnlyLlmSetting, ENCRYPTED_SETTING_KEYS, MASKED_SETTING_KEYS } from '../../../src/nest/settings/settings.service';
+import { isAdminOnlyEndpointSetting, ENCRYPTED_SETTING_KEYS, MASKED_SETTING_KEYS } from '../../../src/nest/settings/settings.service';
 
 beforeAll(() => {
   createTables(testDb);
@@ -493,11 +493,11 @@ describe('Display-preference allow-list', () => {
     expect(overlap).toEqual([]);
   });
 
-  it('holds no key assertMayWriteLlmEndpoint would have to refuse', () => {
-    // isAdminOnlyLlmSetting is value-dependent, so probe it with the values
+  it('holds no key assertMayWriteInstanceEndpoint would have to refuse', () => {
+    // isAdminOnlyEndpointSetting is value-dependent, so probe it with the values
     // that trip it rather than matching on the key name.
     const offenders = DISPLAY_PREFERENCE_KEYS.filter((key) =>
-      isAdminOnlyLlmSetting(key, 'http://127.0.0.1:11434') || isAdminOnlyLlmSetting(key, 'local'));
+      isAdminOnlyEndpointSetting(key, 'http://127.0.0.1:11434') || isAdminOnlyEndpointSetting(key, 'local'));
     expect(offenders).toEqual([]);
   });
 

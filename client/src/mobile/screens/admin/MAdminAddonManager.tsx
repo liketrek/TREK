@@ -8,11 +8,14 @@ import {
   Puzzle, ListChecks, Wallet, FileText, CalendarDays, Globe, Briefcase, Image, Terminal, Link2, Compass, BookOpen,
   MessageCircle, StickyNote, BarChart3, Sparkles, Luggage, Plane, Server, Cloud, Bookmark, Check, Loader2,
 } from 'lucide-react'
+import DawarichIcon from '../../../components/shared/DawarichIcon'
+import AirTrailIcon from '../../../components/shared/AirTrailIcon'
 import MToggle from '../../components/MToggle'
 import { MAdminButton, MAdminCard, MAdminField, MAdminInput, MAdminSecretInput } from './MAdminUi'
 
 const ICON_MAP = {
   ListChecks, Wallet, FileText, CalendarDays, Puzzle, Globe, Briefcase, Image, Terminal, Link2, Compass, BookOpen, Plane, Bookmark,
+  Dawarich: DawarichIcon,
 }
 
 function ImmichIcon({ size = 14 }: { size?: number }) {
@@ -57,18 +60,26 @@ interface ProviderOption {
 interface AddonIconProps {
   name: string
   size?: number
+  /** A switched-off addon greys its icon out, brand marks included. */
+  enabled?: boolean
 }
 
-function AddonIcon({ name, size = 18 }: AddonIconProps) {
+function AddonIcon({ name, size = 18, enabled = true }: AddonIconProps) {
+  if (name === 'Dawarich') return <DawarichIcon fill muted={!enabled} />
+  // 'Plane' is the icon string airtrail was seeded with, and INSERT OR IGNORE
+  // means every existing install still carries it — so the brand is keyed on
+  // that rather than on a new name no row would ever have.
+  if (name === 'Plane') return <AirTrailIcon fill muted={!enabled} />
   const Icon = ICON_MAP[name] || Puzzle
   return <Icon size={size} />
 }
 
-interface CollabFeatures { chat: boolean; notes: boolean; polls: boolean; whatsnext: boolean }
+interface CollabFeatures { chat: boolean; notes: boolean; links?: boolean; polls: boolean; whatsnext: boolean }
 
 const COLLAB_SUB_FEATURES = [
   { key: 'chat', icon: MessageCircle, titleKey: 'admin.collab.chat.title', subtitleKey: 'admin.collab.chat.subtitle' },
   { key: 'notes', icon: StickyNote, titleKey: 'admin.collab.notes.title', subtitleKey: 'admin.collab.notes.subtitle' },
+  { key: 'links', icon: Link2, titleKey: 'collab.tabs.links', subtitleKey: 'collab.links.empty' },
   { key: 'polls', icon: BarChart3, titleKey: 'admin.collab.polls.title', subtitleKey: 'admin.collab.polls.subtitle' },
   { key: 'whatsnext', icon: Sparkles, titleKey: 'admin.collab.whatsnext.title', subtitleKey: 'admin.collab.whatsnext.subtitle' },
 ] as const
@@ -303,8 +314,9 @@ function MAddonRow({ addon, onToggle, t, first }: MAddonRowProps) {
     addon.type === 'global' ? t('admin.addons.type.global') : addon.type === 'integration' ? t('admin.addons.type.integration') : t('admin.addons.type.trip')
   return (
     <div className={`flex items-center gap-3 py-[11px] ${first ? '' : 'border-t border-[color:var(--m-rowbr)]'}`}>
-      <span className="flex h-[38px] w-[38px] flex-none items-center justify-center rounded-[11px] bg-[color:var(--m-ic)] text-m-ink">
-        <AddonIcon name={addon.icon} size={18} />
+      {/* overflow-hidden so a brand mark that fills the slot keeps its rounded corners. */}
+      <span className="flex h-[38px] w-[38px] flex-none items-center justify-center overflow-hidden rounded-[11px] bg-[color:var(--m-ic)] text-m-ink">
+        <AddonIcon name={addon.icon} size={18} enabled={addon.enabled} />
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
@@ -352,7 +364,7 @@ const DEFAULT_OLLAMA_URL = 'http://localhost:11434/v1'
  *  one model per document via Ollama's grammar-constrained `format`; "thinking" is disabled
  *  automatically, so the Qwen3 family works without any tuning. A host only needs one. */
 const RECOMMENDED_MODELS: { id: string; label: string; note: string; recommended: boolean; vision: boolean }[] = [
-  { id: 'qwen3:8b', label: 'Qwen3 — 8B', note: 'Recommended · best extraction quality & speed on CPU (thinking auto-disabled) · Apache-2.0', recommended: true, vision: false },
+  { id: 'qwen3.5:4b', label: 'Qwen3.5 — 4B', note: 'Recommended · small and quick on CPU, 3.4 GB download, 256K context (thinking auto-disabled) · Apache-2.0', recommended: true, vision: true },
 ]
 
 /**

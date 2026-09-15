@@ -193,6 +193,13 @@ export function buildPlanner(overrides: Partial<TripPlanner> = {}): TripPlanner 
     expandedDayIds: new Set<number>(),
     setExpandedDayIds: vi.fn(),
     mapPlaces: [],
+    // The recorded-route overlay (#2279): off and empty. MMapArea reads
+    // `dawarichTrail.track` unconditionally, so the shape has to be here even
+    // when the addon is not in play.
+    dawarichEnabled: false,
+    dawarichTrailShown: false,
+    toggleDawarichTrail: vi.fn(),
+    dawarichTrail: { track: null, status: 'idle', reload: vi.fn() },
 
     route: null,
     routeSegments: [],

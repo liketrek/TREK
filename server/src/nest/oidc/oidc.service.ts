@@ -60,7 +60,9 @@ export interface OidcConfig {
 // Constants / TTLs
 // ---------------------------------------------------------------------------
 
-const AUTH_CODE_TTL = 60000;          // 1 minute
+/** 1 minute — the auth-code lifetime AND the controller's binding-cookie maxAge. */
+export const OIDC_AUTH_CODE_TTL_MS = 60000;
+const AUTH_CODE_TTL = OIDC_AUTH_CODE_TTL_MS;
 const AUTH_CODE_CLEANUP = 30000;      // 30 seconds
 /** 5 minutes — the server-side pending-state TTL AND the controller's state-cookie maxAge. */
 export const OIDC_STATE_TTL_MS = 5 * 60 * 1000;
@@ -85,6 +87,19 @@ type JwksEntry = { keys: Array<Record<string, unknown>>; fetchedAt: number };
 
 function base64url(buf: Buffer): string {
   return buf.toString('base64url');
+}
+
+function sha256Hex(value: string): string {
+  return crypto.createHash('sha256').update(value, 'utf8').digest('hex');
+}
+
+/** Constant-time compare of a presented binding secret against its stored hash. */
+function bindingMatches(expectedHash: string, presented: string): boolean {
+  const expected = Buffer.from(expectedHash, 'hex');
+  const actual = crypto.createHash('sha256').update(presented, 'utf8').digest();
+  // Both are sha256 digests, so the lengths always agree; the guard is there
+  // because timingSafeEqual throws rather than returning false on a mismatch.
+  return expected.length === actual.length && crypto.timingSafeEqual(expected, actual);
 }
 
 const isRecord = (v: unknown): v is Record<string, unknown> =>
@@ -170,7 +185,11 @@ export class OidcService implements OnModuleDestroy {
   // Auth code management – short-lived codes exchanged for JWT
   // -------------------------------------------------------------------------
 
-  private readonly authCodes = new Map<string, { token: string; created: number; remember?: boolean }>();
+  // `bindingHash` is the sha256 of a secret that only the browser which finished
+  // the callback holds, in a cookie. The code itself travels in a URL — through
+  // history, referrers and any log in between — so on its own it is not a
+  // credential, and /exchange must not accept it as one.
+  private readonly authCodes = new Map<string, { token: string; created: number; remember?: boolean; bindingHash: string }>();
 
   // Discovery document cache (1 h TTL), keyed by discovery URL so two
   // configured issuers no longer thrash a single slot.
@@ -229,17 +248,31 @@ export class OidcService implements OnModuleDestroy {
     return pending;
   }
 
-  createAuthCode(token: string, remember?: boolean): string {
+  /**
+   * Mint a one-time login code plus the secret that redeems it.
+   *
+   * The caller puts `code` in the redirect URL and `binding` in an httpOnly
+   * cookie, so redeeming the code takes both halves and only the browser that
+   * completed the provider handshake has both.
+   */
+  createAuthCode(token: string, remember?: boolean): { code: string; binding: string } {
     const authCode: string = uuidv4();
-    this.authCodes.set(authCode, { token, created: Date.now(), remember });
-    return authCode;
+    const binding = crypto.randomBytes(32).toString('base64url');
+    this.authCodes.set(authCode, { token, created: Date.now(), remember, bindingHash: sha256Hex(binding) });
+    return { code: authCode, binding };
   }
 
-  consumeAuthCode(code: string): { token: string; remember?: boolean } | { error: string } {
+  consumeAuthCode(code: string, binding?: string): { token: string; remember?: boolean } | { error: string } {
     const entry = this.authCodes.get(code);
     if (!entry) return { error: 'Invalid or expired code' };
+    // Single use, burnt on every outcome: a code seen by someone else must not
+    // survive their attempt for a second guess, and the browser that owns it can
+    // simply log in again.
     this.authCodes.delete(code);
     if (Date.now() - entry.created > AUTH_CODE_TTL) return { error: 'Code expired' };
+    // Same wording as the unknown-code case on purpose — whoever presents a code
+    // without its binding learns nothing about whether the code was real.
+    if (!binding || !bindingMatches(entry.bindingHash, binding)) return { error: 'Invalid or expired code' };
     return { token: entry.token, remember: entry.remember };
   }
 

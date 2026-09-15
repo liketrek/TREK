@@ -33,6 +33,7 @@ import {
   MfaEnableDto,
   MfaDisableDto,
   McpTokenCreateDto,
+  ApiTokenCreateDto,
   ResourceTokenDto,
 } from './auth.dto';
 import { RateLimitService } from '../common/rate-limit.service';
@@ -340,9 +341,12 @@ export class AuthController {
 
   @Post('api-tokens')
   @HttpCode(201)
-  createApiToken(@CurrentUser() user: User, @Body() body: McpTokenCreateDto, @Req() req: Request) {
+  createApiToken(@CurrentUser() user: User, @Body() body: ApiTokenCreateDto, @Req() req: Request) {
     this.limit('login', req, 5);
-    const result = this.tokens.createApiToken(user.id, body.name);
+    // No `scopes` means the key reads everything, which is what every key minted
+    // before this field existed does. Narrowing stays opt-in so the change
+    // cannot break an integration that is already running.
+    const result = this.tokens.createApiToken(user.id, body.name, body.scopes);
     if (result.error) {
       throw new HttpException({ error: result.error }, result.status!);
     }

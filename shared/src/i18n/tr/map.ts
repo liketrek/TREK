@@ -22,5 +22,8 @@ const map: TranslationStrings = {
   'map.location.denied': 'Konum erişimi engellendi. Cihaz ayarlarını kontrol edin; yüklü bir uygulamanın tarayıcıdan ayrı kendi konum izni vardır.',
   'map.location.unavailable': 'Konumunuz belirlenemedi.',
   'map.location.timeout': 'Konum belirleme çok uzun sürdü. Gökyüzünü daha iyi gören bir yerde tekrar deneyin.',
+  'map.overview.show': 'Tüm geziyi göster',
+  'map.overview.hide': 'Tüm geziyi gizle',
+  'map.overview.total': 'Toplam mesafe',
 };
 export default map;

@@ -40,7 +40,8 @@ function build(opts: { canEdit?: boolean; journeyThrows?: boolean } = {}) {
     create: vi.fn((_t: string, i: Record<string, unknown>) => ({ id: 10, ...i })),
     update: vi.fn((_t: string, id: string) => Promise.resolve(id === '7' ? { id: 7, name: 'updated' } : null)),
     get: vi.fn((_t: string, id: string) => (id === '7' ? { id: 7 } : undefined)),
-    remove: vi.fn((_t: string, id: string) => Promise.resolve(id === '7')),
+    remove: vi.fn((_t: string, id: string) =>
+      Promise.resolve({ deleted: id === '7', cancelled: { reservationIds: [], budgetItemIds: [] } })),
     linkedExpenseIds: vi.fn(() => []),
   };
   const journey = {
@@ -167,7 +168,8 @@ describe('PlacesRpc', () => {
     const f = build();
     // place.get finds it (it exists), but the actual delete comes back false — the
     // race the null/false-vs-Promise bug used to paper over by always being truthy.
-    f.places.remove.mockImplementationOnce(() => Promise.resolve(false));
+    f.places.remove.mockImplementationOnce(() =>
+      Promise.resolve({ deleted: false, cancelled: { reservationIds: [], budgetItemIds: [] } }));
     const res = (await f.host('db:write:places').dispatch(req('places.delete', { tripId: 1, placeId: 7 }), 42)) as RpcError;
     expect(res.ok).toBe(false);
     expect(res.error.code).toBe('RESOURCE_FORBIDDEN');

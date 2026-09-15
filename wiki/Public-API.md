@@ -19,7 +19,8 @@ It cannot write anything. An integration that reads your itinerary needs no abil
 
 1. Open **Settings → Integrations**
 2. Under **API Keys**, click **Create key** and give it a name you will recognise later (the name is only for you — "Dawarich", "home assistant", "laptop script")
-3. **Copy the key immediately.** It is shown once. TREK stores only a hash of it, so it cannot be shown again — if you lose it, delete the key and make a new one.
+3. Choose **what the key may read.** Everything is selected by default. Anything you switch off is refused for that key.
+4. **Copy the key immediately.** It is shown once. TREK stores only a hash of it, so it cannot be shown again — if you lose it, delete the key and make a new one.
 
 Keys look like `trek_` followed by 48 characters. You can hold ten at a time.
 
@@ -44,6 +45,21 @@ curl -H "X-API-Key: trek_your_key_here" \
 ```
 
 Both are equivalent. Use whichever the other side offers.
+
+## What a key may read
+
+A key can be narrowed when you create it, to any subset of:
+
+`trips` · `days` · `places` · `notes` · `reservations` · `accommodations` · `travellers` · `bucket-list` · `stats`
+
+This is **not** the same as `include`. `include` chooses which sections a response carries and any key may ask for any of them; this decides what the key may see at all, and the server refuses the rest with a `403`. A key given only `days` and `notes` reads exactly that, however it asks.
+
+Two rules make it predictable:
+
+- **A section you named but may not read is a `403`**, with the missing one in `required_scope`. Silently dropping what you explicitly asked for would send you debugging your own correct code.
+- **A section you did not name is simply left out.** `include` defaults to everything, so a narrow key that omits `include` gets what it may have rather than an error for wanting sections it never mentioned.
+
+Keys created before this existed, and keys created with everything selected, read all of it — nothing that worked before stops working.
 
 ## Endpoints
 
@@ -220,6 +236,7 @@ A Homepage widget then needs no scripting:
 |---|---|
 | `400` | malformed trip id, or an unknown `include` section |
 | `401` | missing, malformed or unknown key — also what you get for a key of the wrong kind |
+| `403` | the key is valid but not allowed to read what was asked for (`code: "API_SCOPE_FORBIDDEN"`, with the missing section in `required_scope`) |
 | `404` | no such trip, or not one of yours |
 | `429` | rate limit exceeded |
 
@@ -227,7 +244,7 @@ A Homepage widget then needs no scripting:
 
 ## What is not here yet
 
-- **Writing.** Read-only for now. Write access needs per-scope enforcement that this surface does not implement, and a key that only reads is a much safer thing to hand out.
+- **Writing.** Read-only. A key that can only read is a very different thing to hand to third-party software, and every integration asking for this surface so far wants to read.
 - **Incremental sync.** There is no `?since=` filter, because TREK cannot yet answer it truthfully — child records carry no modification timestamp, so a filter on `updated_at` would silently hide trips whose itinerary changed. Fetch the list and compare.
 - **Webhooks.** Nothing pushes; poll at a sensible interval.
 

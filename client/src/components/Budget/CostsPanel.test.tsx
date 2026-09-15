@@ -11,6 +11,7 @@ import { usePermissionsStore } from '../../store/permissionsStore'
 import { clearExchangeRateCache } from '../../hooks/useExchangeRates'
 import { resetAllStores, seedStore } from '../../../tests/helpers/store'
 import { buildUser, buildTrip, buildBudgetItem, buildSettings } from '../../../tests/helpers/factories'
+import type { BudgetParticipantFinal } from '@trek/shared'
 import type { BudgetItem } from '../../types'
 import CostsPanel, { ExpenseModal } from './CostsPanel'
 import { splitEqualShares, calculateTicketShares, type TicketItem } from './CostsPanel.helpers'
@@ -19,6 +20,9 @@ const tripMembers = [
   { id: 1, username: 'alice', avatar_url: null },
   { id: 2, username: 'bob', avatar_url: null },
 ]
+
+/** Bob's buttons in the expense form — his final-budget row in the sidebar answers to his name too. */
+const bobInForm = () => screen.getAllByRole('button', { name: /bob/i }).filter(b => !b.hasAttribute('aria-expanded'))
 
 beforeEach(() => {
   resetAllStores()
@@ -610,7 +614,7 @@ describe('CostsPanel — settlements in the ledger', () => {
 
     await user.type(itemNames[1], 'chocolate cake')
     await user.type(itemPrices[2], '50')
-    const bobButtons = screen.getAllByRole('button', { name: /bob/i })
+    const bobButtons = bobInForm()
     await user.click(bobButtons[1])
 
     await user.type(itemNames[2], 'Milk')
@@ -740,7 +744,7 @@ describe('CostsPanel — settlements in the ledger', () => {
 
 type Flow = { from: { user_id: number; username: string }; to: { user_id: number; username: string }; amount: number }
 type Balance = { user_id: number; username: string; avatar_url: string | null; balance: number }
-type Payment = { id: number; from_user_id: number; to_user_id: number; amount: number; currency?: string | null; created_at?: string }
+type Payment = { id: number; from_user_id: number; to_user_id: number; amount: number; currency?: string | null; created_at?: string; settled_at?: string | null }
 
 // `members` here is the wire shape the panel reads; `paid` is only set by the server.
 type MemberFixture = { user_id: number; username?: string; amount?: number; paid?: number }
@@ -749,7 +753,7 @@ const expense = (over: Partial<Omit<BudgetItem, 'members'>> & { members?: Member
 
 function mount(
   items: BudgetItem[],
-  settlement: { balances?: Balance[]; flows?: Flow[]; settlements?: Payment[] } = {},
+  settlement: { balances?: Balance[]; flows?: Flow[]; settlements?: Payment[]; finalBudgets?: BudgetParticipantFinal[] } = {},
   entries?: string[],
 ) {
   server.use(
@@ -826,8 +830,70 @@ describe('CostsPanel — overview', () => {
     mount([], { balances: [{ user_id: 1, username: 'alice', avatar_url: null, balance: 0 }] })
 
     // Both travellers appear; neither has a signed amount.
-    await screen.findByText('Balances')
-    expect(screen.getAllByText('0,00 €')).toHaveLength(2)
+    const balances = (await screen.findByText('Balances')).parentElement as HTMLElement
+    expect(within(balances).getAllByText('0,00 €')).toHaveLength(2)
+  })
+
+  it('FE-W5COSTS-004b: the final budget gives one amount per traveler and its arithmetic on click', async () => {
+    // Dinner is 100 USD fronted by Alice, booked by the server at the rate frozen
+    // on entry as 92 €; taxi 30 € by Bob; both split evenly, so the trip costs each
+    // of them 61. Bob has sent 15 of the 31 he owed, 16 is still open. No live rate
+    // is loaded here, so a client converting the dinner itself would print 100 €.
+    const user = userEvent.setup()
+    mount([{ ...dinner(), currency: 'USD', total_price: 100, payers: [{ user_id: 1, amount: 100 }] }, taxi()], {
+      balances: [
+        { user_id: 1, username: 'alice', avatar_url: null, balance: 16 },
+        { user_id: 2, username: 'bob', avatar_url: null, balance: -16 },
+      ],
+      flows: [{ from: { user_id: 2, username: 'bob' }, to: { user_id: 1, username: 'alice' }, amount: 16 }],
+      settlements: [{ id: 9, from_user_id: 2, to_user_id: 1, amount: 15, currency: 'EUR', created_at: '2025-06-17 10:00:00' }],
+      finalBudgets: [
+        {
+          user_id: 1, username: 'alice', avatar_url: null, expenses: 92, reimbursed: 15, pending: 16, final: 61,
+          sources: {
+            fronted: [{ item_id: 101, cents: 9200 }],
+            moved: [{ settlement_id: 9, from_user_id: 2, to_user_id: 1, cents: 1500 }],
+            outstanding: [{ from_user_id: 2, to_user_id: 1, cents: 1600 }],
+          },
+        },
+        {
+          user_id: 2, username: 'bob', avatar_url: null, expenses: 30, reimbursed: -15, pending: -16, final: 61,
+          sources: {
+            fronted: [{ item_id: 102, cents: 3000 }],
+            moved: [{ settlement_id: 9, from_user_id: 2, to_user_id: 1, cents: -1500 }],
+            outstanding: [{ from_user_id: 2, to_user_id: 1, cents: -1600 }],
+          },
+        },
+      ],
+    })
+
+    const card = (await screen.findByText('Final budget')).parentElement as HTMLElement
+    await waitFor(() => expect(within(card).getAllByText('61,00 €')).toHaveLength(2))
+    // The main view stays one figure per person until someone asks for more.
+    expect(within(card).queryByText('Expenses paid')).toBeNull()
+
+    const alice = within(card).getByRole('button', { name: /You/ })
+    await user.click(alice)
+    expect(alice).toHaveAttribute('aria-expanded', 'true')
+    // The dinner is the server's 92 €, once as the line and once as its only row;
+    // the raw 100 USD never shows up in the card.
+    expect(within(card).getAllByText('+92,00 €')).toHaveLength(2)
+    expect(within(card).queryByText(/100,00/)).toBeNull()
+    // Received and still pending both lower her cost, each line with its one row.
+    expect(within(card).getAllByText('−15,00 €')).toHaveLength(2)
+    expect(within(card).getAllByText('−16,00 €')).toHaveLength(2)
+    expect(within(card).getByText('Dinner')).toBeInTheDocument()
+    expect(within(card).queryByText('Taxi')).toBeNull()
+    expect(within(card).getAllByText(/^bob → /)).toHaveLength(2)
+
+    // Opening Bob closes Alice: what he sent back and what he still owes raise his.
+    await user.click(within(card).getByRole('button', { name: /bob/ }))
+    expect(alice).toHaveAttribute('aria-expanded', 'false')
+    expect(within(card).getAllByText('+30,00 €')).toHaveLength(2)
+    expect(within(card).getAllByText('+15,00 €')).toHaveLength(2)
+    expect(within(card).getAllByText('+16,00 €')).toHaveLength(2)
+    expect(within(card).getByText('Taxi')).toBeInTheDocument()
+    expect(within(card).queryByText('Dinner')).toBeNull()
   })
 
   it('FE-W5COSTS-005: the category breakdown ranks categories by spend', async () => {
@@ -980,8 +1046,8 @@ describe('CostsPanel — settle up', () => {
     render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
 
     await screen.findByText('Balances')
-    // Settle up and Balances both hang off the one failed request.
-    await waitFor(() => expect(screen.getAllByText('Unknown error')).toHaveLength(2))
+    // Settle up, Balances and Final budget all hang off the one failed request.
+    await waitFor(() => expect(screen.getAllByText('Unknown error')).toHaveLength(3))
     expect(screen.queryByText("Everyone's square")).toBeNull()
   })
 
@@ -1049,6 +1115,21 @@ describe('CostsPanel — filtering the ledger', () => {
     expect(screen.queryByText('Taxi')).not.toBeInTheDocument()
     // The 16th carries the payment, so it is filtered out with the day too.
     expect(screen.queryByText('Payment')).not.toBeInTheDocument()
+  })
+
+  it('FE-W5COSTS-076: a payment groups by its own settled day, not the day it was recorded', async () => {
+    // Recorded (created_at) on the 16th, but settled on the 15th — the ledger
+    // must follow settled_at, the same way it already follows expense_date over
+    // an expense's own created_at.
+    mount([dinner(), taxi()], { settlements: [{ ...payment, settled_at: '2025-06-15' }] })
+
+    await screen.findByText('Taxi')
+    fireEvent.click(screen.getByRole('button', { name: /All days/ }))
+    pickOption('Sun, Jun 15')
+
+    expect(screen.getByText('Dinner')).toBeInTheDocument()
+    expect(screen.queryByText('Taxi')).not.toBeInTheDocument()
+    expect(screen.getByText('Payment')).toBeInTheDocument()
   })
 
   it('FE-W5COSTS-018: expenses without a date are grouped under "No date"', async () => {
@@ -1252,6 +1333,62 @@ describe('CostsPanel — payment modal', () => {
     await waitFor(() => expect(addToast).toHaveBeenCalledWith('Unknown error', 'error', undefined))
     delete window.__addToast
   })
+
+  it('FE-W5COSTS-074: a new payment defaults its day to today, by the local calendar', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    const behindUtc = new Date(2026, 7, 12).getTimezoneOffset() > 0
+    vi.setSystemTime(new Date(2026, 7, 12, behindUtc ? 23 : 1, 30, 0))
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    let posted: Record<string, unknown> | null = null
+    server.use(http.post('/api/trips/1/budget/settlements', async ({ request }) => {
+      posted = await request.json() as Record<string, unknown>
+      return HttpResponse.json({ settlement: { id: 9 } })
+    }))
+    mount([])
+
+    try {
+      await user.click(await screen.findByRole('button', { name: 'Add payment' }))
+      await user.type(await screen.findByPlaceholderText('0.00'), '10')
+      const submits = screen.getAllByRole('button', { name: 'Add payment' })
+      await user.click(submits[submits.length - 1])
+
+      await waitFor(() => expect(posted).toBeTruthy())
+      expect(posted!.settled_at).toBe('2026-08-12')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('FE-W5COSTS-075: editing a payment keeps its own settled day, not the day it was recorded', async () => {
+    const user = userEvent.setup()
+    let put: Record<string, unknown> | null = null
+    server.use(http.put('/api/trips/1/budget/settlements/7', async ({ request }) => {
+      put = await request.json() as Record<string, unknown>
+      return HttpResponse.json({ settlement: { id: 7 } })
+    }))
+    mount([], { settlements: [{ id: 7, from_user_id: 2, to_user_id: 1, amount: 30, settled_at: '2025-06-10', created_at: '2025-06-16 10:00:00' }] })
+
+    await user.click(await screen.findByTitle('Edit'))
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(put).toBeTruthy())
+    expect(put!.settled_at).toBe('2025-06-10')
+  })
+
+  it('FE-W5COSTS-077: a payment cannot be saved without a day', async () => {
+    // Cleared, the server would store NULL and the ledger would quietly move
+    // the payment back to the day it was recorded on.
+    const user = userEvent.setup()
+    mount([], { settlements: [{ id: 7, from_user_id: 2, to_user_id: 1, amount: 30, settled_at: '2025-06-10', created_at: '2025-06-16 10:00:00' }] })
+
+    await user.click(await screen.findByTitle('Edit'))
+    const save = screen.getByRole('button', { name: 'Save' })
+    expect(save).toBeEnabled()
+
+    await user.click(document.querySelector('button[aria-haspopup="dialog"]') as HTMLElement)
+    await user.click(screen.getByRole('button', { name: 'Clear date' }))
+    expect(save).toBeDisabled()
+  })
 })
 
 describe('CostsPanel — expense modal', () => {
@@ -1289,7 +1426,7 @@ describe('CostsPanel — expense modal', () => {
     const rows = screen.getAllByPlaceholderText('Item name')
     await user.click(rows[1].parentElement!.parentElement!.querySelectorAll('button')[0])
     expect(screen.queryByDisplayValue('Cake')).not.toBeInTheDocument()
-    await user.click(screen.getAllByRole('button', { name: /bob/i })[0])
+    await user.click(bobInForm()[0])
 
     await user.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(put).toBeTruthy())
@@ -1330,7 +1467,8 @@ describe('CostsPanel — expense modal', () => {
     expect(screen.getByDisplayValue('30,00')).toBeInTheDocument()
 
     // Excluding Bob drops his amount; the split no longer matches the total.
-    await user.click(screen.getByRole('button', { name: /bob/i }))
+    expect(bobInForm()).toHaveLength(1)
+    await user.click(bobInForm()[0])
     expect(screen.getByText(/Sum of splits/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
 

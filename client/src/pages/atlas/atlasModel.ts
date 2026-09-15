@@ -62,6 +62,15 @@ export function isCountryVisible(c: Pick<AtlasCountry, 'status'>, showPlanned: b
 }
 
 /**
+ * The month a 'YYYY-MM-DD' visit date falls in, as a local date. `new Date('2025-06-01')`
+ * reads the string as UTC midnight, which is still May anywhere west of Greenwich (#1535).
+ */
+export function visitMonth(date: string | null | undefined): Date | null {
+  const match = date ? /^(\d{4})-(\d{2})/.exec(date) : null
+  return match ? new Date(Number(match[1]), Number(match[2]) - 1, 1) : null
+}
+
+/**
  * Fold a manual "I have been here" mark into the loaded data without refetching — the
  * map redraws from `data`, so a reload would flash the whole globe. A country that was
  * merely planned moves over to the visited tally instead of being added twice.
@@ -75,7 +84,8 @@ export function withCountryMarkedVisited(prev: AtlasData, code: string): AtlasDa
   return {
     ...prev,
     countries: existing
-      ? prev.countries.map(c => (c.code === code ? { ...c, status: 'visited' as const } : c))
+      // A country that was not visited yet has no visited trip to take dates from (#1535).
+      ? prev.countries.map(c => (c.code === code ? { ...c, status: 'visited' as const, firstVisit: null, lastVisit: null } : c))
       : [...prev.countries, { code, placeCount: 0, tripCount: 0, firstVisit: null, lastVisit: null, status: 'visited' as const }],
     stats: {
       ...prev.stats,
@@ -105,6 +115,10 @@ export interface BucketItem {
   country_code: string | null
   notes: string | null
   target_date: string | null
+  /** ISO-8601 of the stay that fulfilled this wish, or null while it is still a wish. */
+  visited_at?: string | null
+  /** Who decided it was reached: 'manual' or 'dawarich' (#2279). */
+  visited_source?: string | null
 }
 
 // Normalize a region name for matching: strip diacritics (the geocoder and the

@@ -22,5 +22,8 @@ const map: TranslationStrings = {
   'map.location.denied': 'Locatietoegang is geblokkeerd. Controleer de apparaatinstellingen; een geïnstalleerde app heeft een eigen locatiemachtiging, los van de browser.',
   'map.location.unavailable': 'Je locatie kon niet worden bepaald.',
   'map.location.timeout': 'Het bepalen van je locatie duurde te lang. Probeer het opnieuw met vrij zicht op de lucht.',
+  'map.overview.show': 'Hele reis tonen',
+  'map.overview.hide': 'Hele reis verbergen',
+  'map.overview.total': 'Totale afstand',
 };
 export default map;

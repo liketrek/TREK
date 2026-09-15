@@ -27,12 +27,14 @@ const { db } = vi.hoisted(() => {
   // reservations/places/day_assignments).
   tmp.exec('CREATE TABLE trips (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, title TEXT);');
   tmp.exec(`CREATE TABLE trip_files (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL,
-    place_id INTEGER, reservation_id INTEGER, filename TEXT NOT NULL, original_name TEXT NOT NULL,
-    file_size INTEGER, mime_type TEXT, description TEXT, uploaded_by INTEGER, starred INTEGER DEFAULT 0,
+    place_id INTEGER, reservation_id INTEGER, message_id INTEGER, filename TEXT NOT NULL,
+    original_name TEXT NOT NULL, file_size INTEGER, mime_type TEXT, description TEXT,
+    uploaded_by INTEGER, starred INTEGER DEFAULT 0,
     deleted_at DATETIME, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
   tmp.exec(`CREATE TABLE file_links (id INTEGER PRIMARY KEY AUTOINCREMENT, file_id INTEGER NOT NULL,
-    reservation_id INTEGER, assignment_id INTEGER, place_id INTEGER,
+    reservation_id INTEGER, assignment_id INTEGER, place_id INTEGER, budget_item_id INTEGER,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
+  tmp.exec('CREATE TABLE budget_items (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER, name TEXT);');
   tmp.exec('CREATE TABLE reservations (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER, title TEXT);');
   tmp.exec('CREATE TABLE places (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER);');
   tmp.exec('CREATE TABLE days (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER);');

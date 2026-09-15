@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { useJourneyStudio } from '../../pages/journeyStudio/useJourneyStudio'
 import { PAGE_PRESET_ORDER, PAGE_PRESETS } from './pagePresets'
+import { foliosOf } from './bookSheets'
 import { StudioSidebar } from './StudioSidebar'
 import { StudioCanvas } from './StudioCanvas'
 import { StudioInspector } from './StudioInspector'
@@ -427,6 +428,7 @@ function Workbench({ s, bookView }: { s: Studio; bookView: boolean }) {
         <StudioCanvas
           spread={s.spread}
           spreadIndex={s.activeSpread}
+          folios={s.doc ? foliosOf(s.doc.spreads, s.activeSpread, s.page.pageNumbers.startAt) : []}
           page={s.page}
           zoom={s.zoom}
           pxPerMm={s.pxPerMm}

@@ -309,6 +309,19 @@ describe('updatePlan', () => {
 // ── addHolidayCalendar ────────────────────────────────────────────────────────
 
 describe('addHolidayCalendar', () => {
+  it('validates manual region references for creates and updates', () => {
+    const { plan } = setupUserWithPlan();
+    testDb.prepare("INSERT INTO school_holiday_countries (code, name) VALUES ('US', 'USA')").run();
+    const inserted = testDb.prepare("INSERT INTO school_holiday_regions (country, name) VALUES ('US', 'Seattle')").run();
+    const code = `US-MANUAL-${inserted.lastInsertRowid}`;
+    const calendar = svc.addHolidayCalendar(plan.id, code, null, undefined, 0, undefined, 'school_holiday');
+    expect(calendar.region).toBe(code);
+    expect(svc.updateHolidayCalendar(calendar.id, plan.id, { label: 'School' }, undefined)?.region).toBe(code);
+    expect(() => svc.updateHolidayCalendar(calendar.id, plan.id, { type: 'public_holiday' }, undefined)).toThrow('Unknown manual');
+    for (const region of ['US-MANUAL-0', 'US-MANUAL-999999', `CA-MANUAL-${inserted.lastInsertRowid}`]) {
+      expect(() => svc.addHolidayCalendar(plan.id, region, null, undefined, 0, undefined, 'school_holiday')).toThrow('Unknown manual');
+    }
+  });
   it('VACAY-SVC-019: inserts a new calendar row and returns the calendar object', () => {
     const { plan } = setupUserWithPlan();
 

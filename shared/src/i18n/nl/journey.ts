@@ -627,5 +627,21 @@ const journey: TranslationStrings = {
   'journey.editor.statsExcludedHint':
     'De stop blijft in het dagboek maar telt niet mee voor de afstand, de landen of de kaart in Studio.',
   'journey.entry.offRoute': 'Buiten de route',
+  'journey.suggestions.dismiss': 'Deze suggestie verwerpen',
+  'journey.suggestions.dismissed': 'Suggestie verworpen',
+  'journey.suggestions.restore': 'Verworpen suggesties terughalen',
+  'journey.suggestions.restoreCount': 'Verworpen suggesties ({count})',
+  'journey.suggestions.restored': '{count} suggesties zijn terug',
+  'journey.detail.addOnThisDay': 'Een item op deze dag toevoegen',
+  'journey.detail.jumpToDay': 'Naar {date} springen',
+  'journey.detail.searchPlaceholder': 'Zoeken in deze reis',
+  'journey.detail.searchEmpty': 'Geen item komt overeen met “{query}”',
+  'journey.settings.entryFields': 'Velden van het item',
+  'journey.settings.entryFieldsHint': 'Zet uit wat deze reis niet gebruikt. Wat al geschreven is, blijft bewaard.',
+  'journey.settings.showVerdict': 'Plus- en minpunten',
+  'journey.settings.showMood': 'Stemming',
+  'journey.settings.showWeather': 'Weer',
+  'journey.entry.suggestion': 'Suggestie',
+  'journey.editor.addDetails': '+ Details',
 };
 export default journey;

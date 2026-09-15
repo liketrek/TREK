@@ -251,9 +251,61 @@ describe('listFiles', () => {
     expect(bareRow.linked_reservation_ids).toEqual([]);
     expect(bareRow.linked_place_ids).toEqual([]);
 
+    const item = Number(testDb.prepare('INSERT INTO budget_items (trip_id, name) VALUES (?, ?)').run(trip.id, 'Dinner').lastInsertRowid);
+    svc.createFileLink(linked.id, { budget_item_id: item });
+    const withReceipt = (svc.listFiles(trip.id, false) as Record<string, unknown>[]).find((f) => f.id === linked.id);
+    expect(withReceipt.linked_budget_item_ids).toEqual([item]);
+    expect((svc.listFiles(trip.id, false) as Record<string, unknown>[]).find((f) => f.id === bare.id).linked_budget_item_ids).toEqual([]);
+
     // The empty-trip guard skips the IN () batch entirely.
     const empty = createTrip(testDb, user.id);
     expect(svc.listFiles(empty.id, false)).toEqual([]);
+  });
+});
+
+// ── receipts on an expense ────────────────────────────────────────────────────
+
+describe('budget receipts', () => {
+  function seedItem(tripId: number) {
+    return Number(testDb.prepare('INSERT INTO budget_items (trip_id, name) VALUES (?, ?)').run(tripId, 'Dinner').lastInsertRowid);
+  }
+
+  it('FILE-SVC-040: an upload naming an expense gets its link row straight away', () => {
+    const { user, trip } = seedTrip();
+    const item = seedItem(trip.id);
+    const file = makeFile(trip.id, user.id, {}, { budget_item_id: item });
+    expect(testDb.prepare('SELECT COUNT(*) c FROM file_links WHERE file_id = ? AND budget_item_id = ?').get(file.id, item)).toEqual({ c: 1 });
+  });
+
+  it('FILE-SVC-041: an upload without one writes no link at all', () => {
+    const { user, trip } = seedTrip();
+    const file = makeFile(trip.id, user.id);
+    expect(testDb.prepare('SELECT COUNT(*) c FROM file_links WHERE file_id = ?').get(file.id)).toEqual({ c: 0 });
+  });
+
+  it('FILE-SVC-042: updateFile attaches to an expense and detaches on a falsy id', () => {
+    const { user, trip } = seedTrip();
+    const item = seedItem(trip.id);
+    const file = makeFile(trip.id, user.id);
+
+    svc.updateFile(file.id, file, { budget_item_id: item });
+    expect(testDb.prepare('SELECT COUNT(*) c FROM file_links WHERE file_id = ? AND budget_item_id = ?').get(file.id, item)).toEqual({ c: 1 });
+
+    // Sending it twice must not double the row.
+    svc.updateFile(file.id, file, { budget_item_id: item });
+    expect(testDb.prepare('SELECT COUNT(*) c FROM file_links WHERE file_id = ?').get(file.id)).toEqual({ c: 1 });
+
+    svc.updateFile(file.id, file, { budget_item_id: null });
+    expect(testDb.prepare('SELECT COUNT(*) c FROM file_links WHERE file_id = ? AND budget_item_id IS NOT NULL').get(file.id)).toEqual({ c: 0 });
+  });
+
+  it('FILE-SVC-043: leaving budget_item_id out touches no link', () => {
+    const { user, trip } = seedTrip();
+    const item = seedItem(trip.id);
+    const file = makeFile(trip.id, user.id, {}, { budget_item_id: item });
+
+    svc.updateFile(file.id, file, { description: 'renamed' });
+    expect(testDb.prepare('SELECT COUNT(*) c FROM file_links WHERE file_id = ? AND budget_item_id = ?').get(file.id, item)).toEqual({ c: 1 });
   });
 });
 
@@ -424,6 +476,12 @@ describe('findForeignLinkTarget', () => {
     expect(svc.findForeignLinkTarget(mine.id, { place_id: foreignPlace.id })).toBe('place_id');
     expect(svc.findForeignLinkTarget(mine.id, { assignment_id: foreignAssignment.id })).toBe('assignment_id');
     expect(svc.findForeignLinkTarget(mine.id, { reservation_id: myRes.id })).toBeNull();
+
+    // A receipt may only point at an expense on the same trip.
+    const foreignItem = Number(testDb.prepare('INSERT INTO budget_items (trip_id, name) VALUES (?, ?)').run(foreign.id, 'Foreign').lastInsertRowid);
+    const myItem = Number(testDb.prepare('INSERT INTO budget_items (trip_id, name) VALUES (?, ?)').run(mine.id, 'Mine').lastInsertRowid);
+    expect(svc.findForeignLinkTarget(mine.id, { budget_item_id: foreignItem })).toBe('budget_item_id');
+    expect(svc.findForeignLinkTarget(mine.id, { budget_item_id: myItem })).toBeNull();
   });
 
   it('FILE-SVC-028: falsy ids are skipped (they clear the link) and reservation is checked first', () => {

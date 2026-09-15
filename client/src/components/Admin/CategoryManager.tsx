@@ -192,7 +192,7 @@ export default function CategoryManager() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="font-semibold text-content">{t('categories.title')}</h2>
-          <p className="text-xs mt-1 text-content-muted">{t('categories.subtitle')}</p>
+          <p className="mt-1 text-caption text-content-faint">{t('categories.subtitle')}</p>
         </div>
         <button type="button" onClick={handleStartCreate}
           className="flex items-center gap-2 bg-slate-900 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-slate-700 text-sm font-medium">

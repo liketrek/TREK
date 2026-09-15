@@ -28,6 +28,7 @@ const atlas: TranslationStrings = {
   'atlas.oceania': 'Океания',
   'atlas.other': 'Другое',
   'atlas.firstVisit': 'Первая поездка',
+  'atlas.lastVisitLabel': 'Последняя поездка',
   'atlas.tripSingular': 'Поездка',
   'atlas.tripPlural': 'Поездки',
   'atlas.placeVisited': 'Посещённое место',

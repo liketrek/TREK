@@ -28,6 +28,7 @@ const atlas: TranslationStrings = {
   'atlas.oceania': '大洋洲',
   'atlas.other': '其他',
   'atlas.firstVisit': '首次旅行',
+  'atlas.lastVisitLabel': '最近旅行',
   'atlas.tripSingular': '次旅行',
   'atlas.tripPlural': '次旅行',
   'atlas.placeVisited': '個地點已訪問',

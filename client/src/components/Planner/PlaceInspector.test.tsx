@@ -1478,4 +1478,24 @@ describe('PlaceInspector', () => {
     expect(screen.getByText('Museum Ticket').closest('[role="button"]')).toHaveAttribute('data-no-press');
   });
 
-});
+
+  it('FE-PLANNER-INSPECTOR-017b: a stop a booked night wrote is neither removed nor doubled here', () => {
+    // Taking it off the day would leave the booking behind with nothing on the drive and
+    // no way back short of saving it again; offering to add it would put a second copy
+    // of the same hotel beside it. The night is removed where it is made: the day's
+    // overnight block, or turning it back into a pause in road trip mode.
+    const onRemoveAssignment = vi.fn();
+    const booked = [{ id: 99, place, day_id: 1, place_id: place.id, order_index: 0, notes: null, accommodation_id: 4 }];
+    render(
+      <PlaceInspector
+        {...defaultProps}
+        selectedDayId={1}
+        assignments={{ '1': booked } as never}
+        onRemoveAssignment={onRemoveAssignment}
+      />
+    );
+
+    expect(screen.queryByRole('button', { name: /remove from day/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /add to day/i })).toBeNull();
+  });
+})

@@ -80,6 +80,10 @@ const budget: TranslationStrings = {
   'costs.pays': 'zaplatí',
   'costs.settle': 'Vyrovnat',
   'costs.balances': 'Zůstatky',
+  'costs.finalBudget': 'Konečný rozpočet',
+  'costs.finalExpenses': 'Zaplacené výdaje',
+  'costs.finalReimbursed': 'Náhrady netto',
+  'costs.finalPending': 'Nevyřízené náhrady',
   'costs.byCategory': 'Podle kategorie',
   'costs.noCategories': 'Zatím žádné výdaje.',
   'costs.settleHistory': 'Historie vyrovnání',
@@ -147,5 +151,12 @@ const budget: TranslationStrings = {
   'costs.splitSumUnder': 'Součet podílů: {sum} z {total} (chybí {diff})',
   'costs.splitSumOver': 'Součet podílů: {sum} z {total} (o {diff} více)',
   'costs.toggleSign': 'Přepnout mezi výdajem a vratkou',
+  'costs.receipts': 'Účtenky',
+  'costs.receiptsTitle': 'Účtenky a faktury',
+  'costs.attachReceipt': 'Připojit účtenku / fakturu',
+  'costs.noReceipts': 'Žádné připojené účtenky',
+  'costs.deleteReceipt': 'Odebrat účtenku',
+  'costs.viewReceipt': 'Zobrazit účtenku',
+  'costs.receiptLeftBehind': 'Uložení selhalo, {count} nahraných účtenek tam stále je. Odstraňte je v záložce Soubory.',
 };
 export default budget;

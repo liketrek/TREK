@@ -144,6 +144,23 @@ const collection: TranslationStrings = {
   'collections.picker.hint': 'Pilih tempat dari koleksimu',
   'collections.picker.use': 'Gunakan',
 
+  // Export / import a list as a file (#2198)
+  'collections.file.export': 'Ekspor',
+  'collections.file.exportTitle': 'Unduh daftar ini sebagai berkas',
+  'collections.file.importButton': 'Impor daftar dari berkas',
+  'collections.file.importTitle': 'Impor daftar',
+  'collections.file.choose': 'Pilih berkas daftar',
+  'collections.file.confirm': 'Impor',
+  'collections.file.change': 'Ganti',
+  'collections.file.labelCount': '{count} label',
+  'collections.file.hint':
+    'Tempat-tempat itu masuk sebagai daftar baru milikmu. Penilaian, anggota, dan foto yang diunggah tidak ikut.',
+  'collections.file.done': '{count} tempat diimpor',
+  'collections.file.doneSkipped': '{count} tempat diimpor, {skipped} dilewati',
+  'collections.file.errorTooLarge': 'Berkas ini terlalu besar untuk sebuah daftar.',
+  'collections.file.errorUnreadable': 'Berkas ini tidak bisa dibaca.',
+  'collections.file.errorNotACollection': 'Ini bukan berkas daftar TREK.',
+
   'collections.share.title': 'Bagikan daftar',
   'collections.share.titleNamed': 'Bagikan “{name}”',
   'collections.share.button': 'Bagikan',

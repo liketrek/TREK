@@ -14,6 +14,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { HttpException } from '@nestjs/common';
 import type { Request } from 'express';
+import { PUBLIC_API_SCOPES, type PublicApiGrant } from '@trek/shared';
 import { PublicStatsController } from '../../../src/nest/atlas/public-stats.controller';
 import type { AtlasService } from '../../../src/nest/atlas/atlas.service';
 import { RateLimitService } from '../../../src/nest/common/rate-limit.service';
@@ -22,8 +23,15 @@ import type { User } from '../../../src/types';
 
 // `null` rather than `undefined` for "no user": passing undefined would trip the
 // default parameter and hand back a request that still has one.
+// `apiToken` is the read grant the guard resolves alongside the user (#2279);
+// the full one here, so these cases still test what they always tested.
+const FULL_GRANT: PublicApiGrant = { mode: 'all', scopes: [...PUBLIC_API_SCOPES] };
 const req = (userId: number | null = 7) =>
-  ({ headers: {}, user: userId === null ? undefined : ({ id: userId } as User) }) as Request;
+  ({
+    headers: {},
+    user: userId === null ? undefined : ({ id: userId } as User),
+    apiToken: FULL_GRANT,
+  }) as Request;
 
 const travel = (o: Partial<ReturnType<AtlasService['getTravelStats']>> = {}) => ({
   countries: ['JP', 'IT'],

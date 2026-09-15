@@ -1,0 +1,180 @@
+import type { TranslationStrings } from '../types';
+
+const dawarich: TranslationStrings = {
+  // ── Connection ─────────────────────────────────────────────────────────────
+  'dawarich.title': 'Dawarich',
+  'dawarich.intro':
+    'Hubungkan instans Dawarich milikmu sendiri untuk melihat ke mana kamu benar-benar pergi. TREK membacanya dan mengusulkan entri jurnal, tempat, dan negara — tidak ada yang ditambahkan sebelum kamu mengonfirmasinya, dan tidak ada yang ditulis kembali ke Dawarich.',
+  'dawarich.url': 'Alamat instans',
+  'dawarich.apiKey': 'Kunci API',
+  'dawarich.apiKeyPlaceholder': 'Tempelkan kunci API Dawarich milikmu',
+  'dawarich.apiKeyHint':
+    'Ada di Dawarich pada Account → API key. Disimpan terenkripsi dan tidak pernah ditampilkan lagi.',
+  'dawarich.allowInsecureTls': 'Izinkan sertifikat yang ditandatangani sendiri',
+  'dawarich.allowInsecureTlsHint':
+    'Hanya perlu jika instansmu memakai sertifikat yang tidak dipercaya oleh servermu.',
+  'dawarich.syncEnabled': 'Periksa persinggahan baru secara otomatis',
+  'dawarich.syncEnabledHint': 'Jika mati, TREK hanya membaca Dawarich saat kamu memintanya.',
+  'dawarich.test.button': 'Uji koneksi',
+  'dawarich.test.success': 'Terhubung. {count} persinggahan ditemukan dalam 30 hari terakhir.',
+  'dawarich.test.failed': 'Tidak dapat menjangkau Dawarich.',
+  'dawarich.syncNow': 'Periksa sekarang',
+  'dawarich.connected': 'Terhubung',
+  'dawarich.notConnected': 'Tidak terhubung',
+  'dawarich.disconnect': 'Putuskan',
+  'dawarich.lastSync': 'Terakhir diperiksa {when}',
+  'dawarich.neverSynced': 'Belum pernah diperiksa',
+  'dawarich.syncPartial': 'beberapa perjalanan tidak dapat dibaca',
+  'dawarich.serverVersion': 'Dawarich {version}',
+
+  'dawarich.toast.saved': 'Koneksi Dawarich disimpan',
+  'dawarich.toast.saveError': 'Tidak dapat menyimpan koneksi',
+  'dawarich.toast.disconnected': 'Dawarich diputuskan',
+  'dawarich.toast.synced': '{count} persinggahan baru ditemukan',
+  'dawarich.toast.syncError': 'Tidak dapat membaca Dawarich',
+  'dawarich.toast.syncRunning': 'Pemeriksaan sedang berjalan',
+  'dawarich.toast.acceptError': 'Tidak dapat menambahkan ini',
+  'dawarich.toast.updateError': 'Tidak dapat memperbarui saran ini',
+  'dawarich.toast.accepted.place': 'Ditambahkan ke perjalanan',
+  'dawarich.toast.accepted.journal': 'Ditambahkan ke jurnal',
+  'dawarich.toast.accepted.bucket_list': 'Dicoret dari daftar keinginanmu',
+
+  // ── What the connected instance can do ─────────────────────────────────────
+  'dawarich.capability.visits': 'persinggahan',
+  'dawarich.capability.track': 'rute terekam',
+  'dawarich.capability.locations': 'pencocokan daftar keinginan',
+  'dawarich.capability.visitedCities': 'negara dan kota',
+  'dawarich.capability.missing': 'Versi Dawarich ini tidak menyediakan: {features}.',
+
+  // ── Failure reasons, as sentences the reader can act on ────────────────────
+  'dawarich.error.unreachable': 'TREK tidak dapat menjangkau alamat itu.',
+  'dawarich.error.unauthorized': 'Dawarich menolak kunci API tersebut.',
+  'dawarich.error.forbidden': 'Kunci API itu tidak diizinkan membaca ini.',
+  'dawarich.error.not_found': 'Versi Dawarich ini tidak punya endpoint tersebut.',
+  'dawarich.error.rate_limited': 'Dawarich meminta TREK memperlambat. Coba lagi sebentar lagi.',
+  'dawarich.error.server_error': 'Dawarich menjawab dengan galat.',
+  'dawarich.error.invalid_response': 'Alamat itu menjawab dengan sesuatu yang bukan Dawarich.',
+  'dawarich.error.too_large': 'Dawarich mengirim data lebih banyak daripada yang dibaca TREK sekaligus.',
+  'dawarich.error.not_connected': 'Belum ada instans Dawarich yang terhubung.',
+  'dawarich.error.addon_disabled': 'Addon Dawarich dimatikan untuk instans ini.',
+  'dawarich.error.offline': 'Ini butuh koneksi — TREK sedang offline.',
+  'dawarich.error.invalid_url': 'TREK tidak bisa memakai alamat itu.',
+  'dawarich.warning.private_ip': 'Alamat itu mengarah ke IP privat ({ip}). Pastikan memang itu maksudmu — server mungkin perlu ALLOW_INTERNAL_NETWORK=true untuk menjangkaunya.',
+  'dawarich.error.unknown': 'Terjadi kesalahan saat berkomunikasi dengan Dawarich.',
+
+  // ── The recorded route on the map ──────────────────────────────────────────
+  'dawarich.trail.show': 'Tampilkan rute terekam',
+  'dawarich.trail.hide': 'Sembunyikan rute terekam',
+  'dawarich.trail.loading': 'Memuat rute terekam…',
+  'dawarich.trail.empty': 'Tidak ada yang terekam pada tanggal ini',
+  'dawarich.trail.offline': 'Rute terekam memerlukan koneksi',
+  'dawarich.trail.unavailable': 'Rute terekam tidak dapat dimuat',
+
+  // ── Suggestions ────────────────────────────────────────────────────────────
+  'dawarich.duration.minutes': '{minutes} mnt',
+  'dawarich.duration.hours': '{hours} j',
+  'dawarich.duration.hoursMinutes': '{hours} j {minutes} mnt',
+  'dawarich.checkedAgo': 'diperiksa {ago}',
+
+  'dawarich.badge.lowConfidence': 'Ragu',
+  'dawarich.badge.sourceChanged': 'Berubah di Dawarich',
+  'dawarich.badge.sourceMissing': 'Hilang dari Dawarich',
+
+  'dawarich.suggestions.title': 'Dari Dawarich',
+  'dawarich.suggestions.pending': '{count} menunggumu',
+  'dawarich.suggestions.loading': 'Membaca Dawarich…',
+  'dawarich.suggestions.notConnected': 'Hubungkan Dawarich di Pengaturan untuk melihat persinggahanmu di sini.',
+  'dawarich.suggestions.unavailable': 'Dawarich tidak dapat dibaca.',
+  'dawarich.suggestions.allHandled': 'Semua yang terekam di sini sudah ditangani.',
+  'dawarich.suggestions.asJournal': 'Tulis entri jurnal',
+  'dawarich.suggestions.asPlace': 'Tambahkan sebagai tempat',
+  'dawarich.suggestions.dismiss': 'Bukan tempat yang saya kunjungi',
+  'dawarich.suggestions.dismissed': 'Diabaikan',
+  'dawarich.suggestions.restore': 'Kembalikan',
+  'dawarich.suggestions.showHandled': 'Tampilkan {count} yang sudah ditangani',
+  'dawarich.suggestions.hideHandled': 'Sembunyikan yang sudah ditangani',
+  'dawarich.suggestions.matchesWish': 'Ada di daftar keinginanmu: {name}',
+  'dawarich.suggestions.acceptedAs.place': 'Ditambahkan sebagai tempat',
+  'dawarich.suggestions.acceptedAs.journal': 'Ada di jurnal',
+  'dawarich.suggestions.acceptedAs.bucket_list': 'Keinginan dicoret',
+  'dawarich.suggestions.sourceChanged':
+    'Persinggahan ini berubah di Dawarich sejak kamu memakainya. Apa yang kamu tulis di TREK tetap utuh.',
+  'dawarich.suggestions.sourceMissing':
+    'Persinggahan ini tidak ada lagi di Dawarich. Apa yang kamu tulis di TREK tetap utuh.',
+  'dawarich.sourceStatus.suggested': 'Terdeteksi, belum dikonfirmasi',
+  'dawarich.confidence.high': 'Deteksi meyakinkan',
+  'dawarich.confidence.medium': 'Deteksi cukup meyakinkan',
+  'dawarich.confidence.low': 'Deteksi tidak pasti',
+
+  // ── The review step ────────────────────────────────────────────────────────
+  'dawarich.accept.title.place': 'Tambahkan persinggahan ini sebagai tempat',
+  'dawarich.accept.title.journal': 'Tulis entri jurnal',
+  'dawarich.accept.title.bucket_list': 'Coret sebuah keinginan',
+  'dawarich.accept.confirm.place': 'Tambah tempat',
+  'dawarich.accept.confirm.journal': 'Tambah entri',
+  'dawarich.accept.confirm.bucket_list': 'Coret',
+  'dawarich.accept.recorded': 'Terekam {from} sampai {to}',
+  'dawarich.accept.duration': '{minutes} mnt',
+  'dawarich.accept.name': 'Nama',
+  'dawarich.accept.date': 'Tanggal',
+  'dawarich.accept.from': 'Tiba',
+  'dawarich.accept.to': 'Pergi',
+  'dawarich.accept.trip': 'Perjalanan',
+  'dawarich.accept.thisTrip': 'Perjalanan ini',
+  'dawarich.accept.pickTrip': 'Pilih perjalanan',
+  'dawarich.accept.day': 'Hari',
+  'dawarich.accept.noDay': 'Belum pada suatu hari',
+  'dawarich.accept.journal': 'Jurnal',
+  'dawarich.accept.pickJournal': 'Pilih jurnal',
+  'dawarich.accept.notes': 'Catatan',
+  'dawarich.accept.story': 'Kisahmu',
+  'dawarich.accept.storyPlaceholder': 'Apa yang terjadi di sini?',
+  'dawarich.accept.photosHint': 'Tambahkan foto ke entri setelah entri dibuat.',
+
+  // ── A place that came out of a recording ──────────────────────────────────
+  'dawarich.place.fromDawarich': 'Ditambahkan dari rekaman Dawarich-mu',
+
+  // ── Wishlist ───────────────────────────────────────────────────────────────
+  'dawarich.bucket.title': 'Cocokkan daftar keinginanmu dengan Dawarich',
+  'dawarich.bucket.description':
+    'Menelusuri rekamanmu untuk mencari tempat-tempat yang ingin kamu capai. Sebuah kunjungan butuh kedekatan sekaligus waktu yang dihabiskan — sekadar lewat tidak dihitung.',
+  'dawarich.bucket.scan': 'Periksa daftar keinginan',
+  'dawarich.bucket.scanning': 'Memeriksa…',
+  'dawarich.bucket.noMatches': 'Tidak ada isi daftar keinginanmu yang muncul di rekamanmu.',
+  'dawarich.bucket.alreadyVisited': 'Sudah dicoret',
+  'dawarich.bucket.confirm': 'Coret {count}',
+  'dawarich.bucket.confirmed': '{count} keinginan dicoret',
+  'dawarich.bucket.skipped': '{count} entri tidak punya koordinat dan tidak dapat diperiksa.',
+  'dawarich.bucket.truncated': 'Hanya entri pertama yang diperiksa. Jalankan lagi untuk sisanya.',
+  'dawarich.bucket.visitedFrom': 'Dicoret dari rekaman Dawarich milikmu',
+  'dawarich.bucket.clearVisit': 'Batalkan',
+
+  // ── Atlas ──────────────────────────────────────────────────────────────────
+  'dawarich.atlas.title': 'Negara dari Dawarich',
+  'dawarich.atlas.description':
+    'Negara-negara yang menurut rekamanmu pernah kamu singgahi. Konfirmasi mana yang kamu inginkan di Atlas-mu — tidak ada yang ditambahkan dengan sendirinya, dan yang kamu tandai sendiri tetap milikmu.',
+  'dawarich.atlas.load': 'Cari negara',
+  'dawarich.atlas.loading': 'Membaca rekamanmu…',
+  'dawarich.atlas.empty': 'Rekamanmu tidak menunjukkan negara yang belum dimiliki TREK.',
+  'dawarich.atlas.cities': '{count} kota',
+  'dawarich.atlas.citiesOne': '1 kota',
+  'dawarich.atlas.accept': 'Tambah {count} negara',
+  'dawarich.atlas.accepted': '{count} negara ditambahkan',
+  'dawarich.atlas.unresolved': 'TREK tidak dapat mencocokkan ini dengan sebuah negara: {names}.',
+  'dawarich.atlas.source': 'Dari Dawarich',
+  'dawarich.atlas.range': 'Ditinjau dari {from} sampai {to}',
+
+  'dawarich.atlas.trigger': 'Keinginan dan negara dari rekamanmu',
+  'dawarich.atlas.dialogSubtitle': 'Apa kata rekamanmu tentang Atlas-mu',
+  'dawarich.atlas.tab.wishes': 'Daftar keinginan',
+  'dawarich.atlas.tab.countries': 'Negara',
+  'dawarich.atlas.window': 'Yang diperiksa adalah 12 bulan terakhir.',
+  'dawarich.selected': '{count} dipilih',
+  'dawarich.again': 'Periksa lagi',
+  'dawarich.bucket.metersAway': '{meters} m dari sana',
+  'dawarich.bucket.kilometersAway': '{km} km dari sana',
+  'dawarich.bucket.rule': 'Sebuah keinginan dianggap tercapai dalam radius {meters} m dan setelah {minutes} menit di lokasi.',
+
+};
+
+export default dawarich;

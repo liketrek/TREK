@@ -20,6 +20,7 @@ import {
   collectionLabelCreateRequestSchema,
   collectionLabelUpdateRequestSchema,
   collectionLabelAssignRequestSchema,
+  collectionImportRequestSchema,
 } from '@trek/shared';
 
 /**
@@ -49,3 +50,4 @@ export class CollectionSetMemberRoleDto extends createZodDto(collectionSetMember
 export class CollectionLabelCreateDto extends createZodDto(collectionLabelCreateRequestSchema) {}
 export class CollectionLabelUpdateDto extends createZodDto(collectionLabelUpdateRequestSchema) {}
 export class CollectionLabelAssignDto extends createZodDto(collectionLabelAssignRequestSchema) {}
+export class CollectionImportDto extends createZodDto(collectionImportRequestSchema) {}

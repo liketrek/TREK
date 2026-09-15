@@ -72,6 +72,23 @@ async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>)
 // ---------------------------------------------------------------------------
 
 describe('Tool: assign_place_to_day', () => {
+  it('sets and clears a visit day end through the shared service', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id);
+    const place = createPlace(testDb, trip.id);
+    const visit = createDayAssignment(testDb, day.id, place.id);
+    await withHarness(user.id, async h => {
+      for (const end_day of [true, false]) {
+        const changed = await h.client.callTool({ name: 'set_assignment_end_day', arguments: { tripId: trip.id, assignmentId: visit.id, end_day } });
+        expect(parseToolResult(changed)).toMatchObject({ assignment: { end_day } });
+      }
+      const other = createTrip(testDb, user.id);
+      const refused = await h.client.callTool({ name: 'set_assignment_end_day', arguments: { tripId: other.id, assignmentId: visit.id, end_day: true } });
+      expect(refused.isError).toBe(true);
+    });
+  });
+
   it('assigns a place to a day', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);

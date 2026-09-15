@@ -1,16 +1,18 @@
-import React, { useEffect, useMemo, useState, useRef } from 'react'
+import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react'
 import { useNavigate } from 'react-router'
 import { getIntlLanguage, getLocaleForLanguage, useTranslation } from '../../i18n'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useTileUrl } from '../../hooks/useTileUrl'
 import { OFM_DARK, OFM_POSITRON } from '../../constants/mapDefaults'
-import { attachVectorBasemap, hideLabelLayers, type GlLeafletLayer } from '../../components/Map/VectorBasemap'
+import { attachVectorBasemap, detachBasemapLayer, hideLabelLayers, restyleBasemap, type BasemapLayer } from '../../components/Map/VectorBasemap'
 import { isVectorStyle } from '../../utils/tileUrl'
 import apiClient, { mapsApi, pluginsApi, type PluginAtlasLayer } from '../../api/client'
 import L from 'leaflet'
 import type { GeoJsonFeatureCollection } from '../../types'
-import { A2_TO_A3, countryStatus, findBucketDuplicate, isBucketDuplicateError, isCountryVisible, normalizeRegionName, regionCacheEvictions, withCountryMarkedVisited, wishlistA3Codes, countryColor, REGION_CACHE_MAX, bucketTooltipWidth, bucketTooltipPlacement, bucketTooltipNeedsScroll, type AtlasData, type AtlasPlaceHit, type CountryDetail, type BucketItem } from './atlasModel'
+import { A2_TO_A3, countryStatus, visitMonth, findBucketDuplicate, isBucketDuplicateError, isCountryVisible, normalizeRegionName, regionCacheEvictions, withCountryMarkedVisited, wishlistA3Codes, countryColor, REGION_CACHE_MAX, bucketTooltipWidth, bucketTooltipPlacement, bucketTooltipNeedsScroll, type AtlasData, type AtlasPlaceHit, type CountryDetail, type BucketItem } from './atlasModel'
 import { continentForCountry, escapeHtml, type VisitStatus } from '@trek/shared'
+import { useGlassGlare } from '../../components/Atlas/useGlassGlare'
+import { dawarichApi } from '../../api/dawarich'
 import { useToast } from '../../components/shared/Toast'
 import { getApiErrorMessage } from '../../types'
 
@@ -92,7 +94,8 @@ export function useAtlas() {
   const tileUrlRef = useRef(tileUrl)
   tileUrlRef.current = tileUrl
   const tileLayersRef = useRef<L.TileLayer[]>([])
-  const glLayerRef = useRef<GlLeafletLayer | null>(null)
+  // GL layer or the raster stand-in a browser without WebGL gets instead (#2288).
+  const glLayerRef = useRef<BasemapLayer | null>(null)
   // The vector basemap loads async; a map torn down before it lands must not get one.
   const cancelledRef = useRef(false)
   const mapRef = useRef<HTMLDivElement>(null)
@@ -104,28 +107,10 @@ export function useAtlas() {
   // kept redrawing itself on every pan for the rest of the session (#1950).
   const countryRendererRef = useRef<L.Canvas | null>(null)
   const regionRendererRef = useRef<L.SVG | null>(null)
-  const glareRef = useRef<HTMLDivElement>(null)
-  const borderGlareRef = useRef<HTMLDivElement>(null)
-  const panelRef = useRef<HTMLDivElement>(null)
+  // The panel's hover light, shared with the Dawarich panel beside it.
+  const { panelRef, glareRef, borderGlareRef, onMouseMove: handlePanelMouseMove, onMouseLeave: handlePanelMouseLeave } =
+    useGlassGlare(dark)
   const country_layer_by_a2_ref = useRef<Record<string, any>>({})
-
-  const handlePanelMouseMove = (e: React.MouseEvent<HTMLDivElement>): void => {
-    if (!panelRef.current || !glareRef.current || !borderGlareRef.current) return
-    const rect = panelRef.current.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
-    // Subtle inner glow
-    glareRef.current.style.background = `radial-gradient(circle 300px at ${x}px ${y}px, ${dark ? 'rgba(255,255,255,0.025)' : 'rgba(255,255,255,0.25)'} 0%, transparent 70%)`
-    glareRef.current.style.opacity = '1'
-    // Border glow that follows cursor
-    borderGlareRef.current.style.opacity = '1'
-    borderGlareRef.current.style.maskImage = `radial-gradient(circle 150px at ${x}px ${y}px, black 0%, transparent 100%)`
-    borderGlareRef.current.style.webkitMaskImage = `radial-gradient(circle 150px at ${x}px ${y}px, black 0%, transparent 100%)`
-  }
-  const handlePanelMouseLeave = () => {
-    if (glareRef.current) glareRef.current.style.opacity = '0'
-    if (borderGlareRef.current) borderGlareRef.current.style.opacity = '0'
-  }
 
   const [data, setData] = useState<AtlasData | null>(null)
   const [loading, setLoading] = useState<boolean>(true)
@@ -223,6 +208,30 @@ export function useAtlas() {
   }, [geoData, resolveName])
 
   // Load atlas data + bucket list
+  //
+  // Re-run on `atlasEpoch` so a confirmation made elsewhere on the page — the
+  // Dawarich card ticking wishes off or marking countries (#2279) — lands in the
+  // same numbers the map is drawing, rather than only after a reload.
+  const [atlasEpoch, setAtlasEpoch] = useState(0)
+  const reloadAfterDawarich = useCallback(() => setAtlasEpoch(epoch => epoch + 1), [])
+
+  /**
+   * Undo a wish that a recording ticked off.
+   *
+   * A suggestion that cannot be taken back is not a suggestion, and this one
+   * writes into the wishlist — the one list on this page somebody curates by
+   * hand. The row is kept; only the visit is cleared.
+   */
+  const handleClearBucketVisit = useCallback(async (itemId: number) => {
+    try {
+      await dawarichApi.clearBucketVisit(itemId)
+      setBucketList(prev => prev.map(item => (
+        item.id === itemId ? { ...item, visited_at: null, visited_source: null } : item
+      )))
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, t('common.error')))
+    }
+  }, [t, toast])
   useEffect(() => {
     Promise.all([
       apiClient.get('/addons/atlas/stats'),
@@ -232,7 +241,7 @@ export function useAtlas() {
       setBucketList(bucketRes.data.items || [])
       setLoading(false)
     }).catch(() => setLoading(false))
-  }, [])
+  }, [atlasEpoch])
 
   // Load country-border GeoJSON from our API (geoBoundaries, served server-side —
   // no third-party fetch from the browser). Even gzipped the payload is a few MB, so
@@ -457,7 +466,7 @@ export function useAtlas() {
       renderedRegionSigRef.current = ''
       tileLayersRef.current = []
       cancelledRef.current = true
-      glLayerRef.current?.remove()
+      detachBasemapLayer(glLayerRef.current)
       glLayerRef.current = null
     }
   }, [dark, loading])
@@ -470,9 +479,10 @@ export function useAtlas() {
     if (isVectorStyle(tileUrl)) {
       const layer = glLayerRef.current
       if (!layer) return
-      layer.getMaplibreMap()?.setStyle(tileUrl)
+      restyleBasemap(layer, tileUrl)
       // setStyle drops the layer list, and style.load fires again with the new
-      // one, so the label rule has to be re-armed rather than assumed.
+      // one, so the label rule has to be re-armed rather than assumed. Both calls
+      // are no-ops on the raster stand-in, which has neither styles nor layers.
       hideLabelLayers(layer)
       return
     }
@@ -550,7 +560,7 @@ export function useAtlas() {
         if (c) {
           country_layer_by_a2_ref.current[c.code] = layer
           const name = resolveName(c.code)
-          const formatDate = (d) => { if (!d) return '—'; const dt = new Date(d); return dt.toLocaleDateString(getLocaleForLanguage(language), { month: 'short', year: 'numeric' }) }
+          const formatDate = (d) => { const month = visitMonth(d); return month ? month.toLocaleDateString(getLocaleForLanguage(language), { month: 'short', year: 'numeric' }) : '—' }
           // "First trip / Last trip" is simply wrong for a country you haven't reached yet —
           // a planned one gets a single departure date instead.
           const planned = countryStatus(c) !== 'visited'
@@ -1174,6 +1184,6 @@ export function useAtlas() {
     handleAddBucketItem, handleDeleteBucketItem, handleBucketPoiSearch, handleSelectBucketPoi,
     bucketSearchResults, setBucketSearchResults,
     bucketPoiMonth, setBucketPoiMonth, bucketPoiYear, setBucketPoiYear,
-    bucketSearching, bucketSearch, setBucketSearch,
+    bucketSearching, bucketSearch, setBucketSearch, reloadAfterDawarich, handleClearBucketVisit,
   }
 }

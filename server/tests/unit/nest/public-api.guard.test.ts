@@ -8,6 +8,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { HttpException } from '@nestjs/common';
 import type { ExecutionContext } from '@nestjs/common';
+import { PUBLIC_API_SCOPES } from '@trek/shared';
 import { ApiTokenGuard } from '../../../src/nest/public-api/api-token.guard';
 import type { TokenService } from '../../../src/nest/tokens/token.service';
 import type { User } from '../../../src/types';
@@ -22,8 +23,17 @@ function contextWith(headers: Record<string, string | undefined>) {
   } as unknown as ExecutionContext & { req: Record<string, unknown> };
 }
 
+/**
+ * The guard resolves the user and the key's read grant in one lookup (#2279).
+ * These cases are about the credential, so every accepted token here carries the
+ * full grant; what a narrowed one may read is public-api-scopes.test.ts.
+ */
 function makeGuard(verify: (raw: string) => User | null) {
-  return new ApiTokenGuard({ verifyApiToken: verify } as unknown as TokenService);
+  const verifyApiTokenWithGrant = (raw: string) => {
+    const user = verify(raw);
+    return user ? { user, grant: { mode: 'all', scopes: [...PUBLIC_API_SCOPES] } } : null;
+  };
+  return new ApiTokenGuard({ verifyApiTokenWithGrant } as unknown as TokenService);
 }
 
 /** Run the guard, expecting a refusal; return its { status, body }. */
@@ -70,11 +80,13 @@ describe('ApiTokenGuard', () => {
   });
 
   it('never reaches for the MCP verifier, so the two credentials cannot swap', () => {
-    const verifyApiToken = vi.fn().mockReturnValue(USER);
+    const verifyApiTokenWithGrant = vi
+      .fn()
+      .mockReturnValue({ user: USER, grant: { mode: 'all', scopes: [...PUBLIC_API_SCOPES] } });
     const verifyMcpToken = vi.fn();
-    const guard = new ApiTokenGuard({ verifyApiToken, verifyMcpToken } as unknown as TokenService);
+    const guard = new ApiTokenGuard({ verifyApiTokenWithGrant, verifyMcpToken } as unknown as TokenService);
     guard.canActivate(contextWith({ authorization: 'Bearer trek_abc123' }));
-    expect(verifyApiToken).toHaveBeenCalledTimes(1);
+    expect(verifyApiTokenWithGrant).toHaveBeenCalledTimes(1);
     expect(verifyMcpToken).not.toHaveBeenCalled();
   });
 

@@ -2,20 +2,24 @@ import { useEffect, useRef, useImperativeHandle, useCallback, type Ref } from 'r
 import L from 'leaflet'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useCartoApiKey } from '../../hooks/useTileUrl'
-import { isVectorStyle, resolveTileUrl } from '../../utils/tileUrl'
+import { isGcj02Basemap, isVectorStyle, resolveTileUrl } from '../../utils/tileUrl'
 import { OFM_DARK, OFM_POSITRON, attributionForTile } from '../../constants/mapDefaults'
-import { attachVectorBasemap, type GlLeafletLayer } from '../Map/VectorBasemap'
+import { attachVectorBasemap, detachBasemapLayer, restyleBasemap, type BasemapLayer } from '../Map/VectorBasemap'
+import { crsForBasemap } from '../Map/gcj02Crs'
 import { escapeHtml, type JourneyTrack } from '@trek/shared'
+import { ensureJourneyPopupStyle, formatMarkerDate, journeyPopupHtml } from './journeyMapPopup'
 
 export interface MapMarkerItem {
   id: string
   lat: number
   lng: number
   label: string
+  locationName: string
   mood?: string | null
   time: string
   dayColor: string
   dayLabel: number
+  photoUrls: string[]
 }
 
 /**
@@ -76,10 +80,13 @@ interface MapEntry {
   lat: number
   lng: number
   title?: string | null
+  location_name?: string | null
   mood?: string | null
   entry_date: string
   dayColor?: string
   dayLabel?: number
+  /** Thumbnails for the marker card, already resolved by the caller (the share view signs its own). */
+  photoUrls?: string[]
 }
 
 interface Props {
@@ -97,6 +104,16 @@ interface Props {
   activeMarkerId?: string | null
   onMarkerClick?: (id: string, type?: string) => void
   fullScreen?: boolean
+  /**
+   * Leave the marker labels off.
+   *
+   * On the phone the map sits above a carousel whose active card already carries
+   * the entry's name, and a tooltip on touch is a tap-to-open box rather than a
+   * hover hint — so it says the same thing twice and covers the map to do it
+   * (discussion #2299). On desktop the label is the only name a marker has, so
+   * this stays off there.
+   */
+  hideMarkerTooltip?: boolean
   paddingBottom?: number
   /** CARTO key from the share payload: the public journey has no settings store to read. */
   cartoApiKey?: string
@@ -111,10 +128,12 @@ function buildMarkerItems(entries: MapEntry[]): MapMarkerItem[] {
         lat: e.lat,
         lng: e.lng,
         label: e.title || 'Entry',
+        locationName: e.location_name || '',
         mood: e.mood,
         time: e.entry_date,
         dayColor: e.dayColor || '#52525B',
         dayLabel: e.dayLabel ?? 1,
+        photoUrls: e.photoUrls ?? [],
       })
     }
   }
@@ -148,21 +167,30 @@ const EMPTY_TRACKS: JourneyTrack[] = []
 const TRACK_FALLBACK_COLOR = '#4f46e5'
 
 function JourneyMap(
-  { entries, photos, onPhotoClick, trail, tracks, height = 220, dark, activeMarkerId, onMarkerClick, fullScreen, paddingBottom, cartoApiKey, ref }: Props,
+  { entries, photos, onPhotoClick, trail, tracks, height = 220, dark, activeMarkerId, onMarkerClick, fullScreen, paddingBottom, cartoApiKey, hideMarkerTooltip, ref }: Props,
 ) {
+  // Read through a ref: the flag is fixed per surface, and putting it in the
+  // marker effect's deps would rebuild every marker for nothing.
+  const hideMarkerTooltipRef = useRef(hideMarkerTooltip)
+  hideMarkerTooltipRef.current = hideMarkerTooltip
   const stableTrail = trail || EMPTY_TRAIL
   const stableTracks = tracks || EMPTY_TRACKS
   const mapTileUrl = useSettingsStore(s => s.settings.map_tile_url)
   const storedCartoKey = useCartoApiKey()
   const cartoKey = cartoApiKey || storedCartoKey
   const tileUrl = resolveTileUrl(mapTileUrl, dark ? OFM_DARK : OFM_POSITRON, cartoKey)
+  // Amap's tiles are GCJ-02 (see gcj02Crs.ts), the same shift the planner map
+  // applies. Leaflet fixes a map's CRS at construction, so this one value is
+  // allowed to rebuild the map where a template change only retiles it.
+  const isGcjBasemap = !isVectorStyle(tileUrl) && isGcj02Basemap(tileUrl)
   // Read through a ref by the map effect, retiled in place by its own effect below:
   // the CARTO key reaches the store after the first render, and rebuilding the map
   // for that raced with the markers and layers already on it (#2097).
   const tileUrlRef = useRef(tileUrl)
   tileUrlRef.current = tileUrl
   const tileLayerRef = useRef<L.TileLayer | null>(null)
-  const glLayerRef = useRef<GlLeafletLayer | null>(null)
+  // GL layer or the raster stand-in a browser without WebGL gets instead (#2288).
+  const glLayerRef = useRef<BasemapLayer | null>(null)
   // The vector basemap loads async; a map torn down before it lands must not get one.
   const cancelledRef = useRef(false)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -213,12 +241,22 @@ function JourneyMap(
     }
   }, [])
 
+  /**
+   * Bring an entry's marker under the reader without changing how far out they are.
+   *
+   * This fires on every step through the timeline, and it used to force zoom 12.
+   * Reading a journey from a country view therefore yanked the map to street level
+   * on the first scroll and kept it there: every marker filled the screen, and the
+   * one thing a map is for — where is this, relative to everything else — was gone
+   * (discussion #2299). Panning keeps the frame the reader chose; the initial
+   * fitBounds is what decides how close the journey starts out.
+   */
   const focusMarker = useCallback((id: string) => {
     highlightMarker(id)
     const marker = markersRef.current.get(id)
     if (marker && mapRef.current) {
       try {
-        mapRef.current.flyTo(marker.getLatLng(), Math.max(mapRef.current.getZoom(), 12), { duration: 0.5 })
+        mapRef.current.panTo(marker.getLatLng(), { animate: true, duration: 0.5 })
       } catch { /* map not yet initialized */ }
     }
   }, [])
@@ -234,13 +272,18 @@ function JourneyMap(
 
     markersRef.current.clear()
 
+    const crs = crsForBasemap(isGcjBasemap)
     const map = L.map(containerRef.current, {
+      ...(crs ? { crs } : {}),
       zoomControl: false,
-      attributionControl: true,
+      // Added below with `prefix: false` so it collapses to the credit alone; see
+      // the GL twin for why it is not a strip of text across the bottom.
+      attributionControl: false,
       scrollWheelZoom: fullScreen ? true : false,
       dragging: true,
       touchZoom: true,
     })
+    L.control.attribution({ position: 'bottomright', prefix: false }).addTo(map)
     mapRef.current = map
     cancelledRef.current = false
 
@@ -338,13 +381,27 @@ function JourneyMap(
       })
 
       const marker = L.marker(pos, { icon }).addTo(map)
-      // Escaped for the same reason as the track tooltip above: the label is an
-      // entry title, and this map is what the public journey page renders.
-      marker.bindTooltip(escapeHtml(item.label), {
-        direction: 'top',
-        offset: [0, -MARKER_H],
-        className: 'map-tooltip',
-      })
+      // The same card the GL renderer shows, from the same builder: which map
+      // engine a reader happens to have selected should not change what a marker
+      // tells them (discussion #2299). The builder escapes everything that came
+      // from a person, which matters most here — this map is what the public
+      // journey page renders.
+      if (!hideMarkerTooltipRef.current) {
+        ensureJourneyPopupStyle()
+        marker.bindTooltip(
+          journeyPopupHtml({
+            title: item.label || item.locationName || 'Entry',
+            place: item.label ? item.locationName : '',
+            date: formatMarkerDate(item.time),
+            photoUrls: item.photoUrls,
+          }),
+          {
+            direction: 'top',
+            offset: [0, -MARKER_H],
+            className: 'map-tooltip trek-journey-tooltip',
+          },
+        )
+      }
 
       marker.on('click', () => {
         onMarkerClickRef.current?.(item.id)
@@ -379,17 +436,17 @@ function JourneyMap(
       map.remove()
       mapRef.current = null
       tileLayerRef.current = null
-      glLayerRef.current?.remove()
+      detachBasemapLayer(glLayerRef.current)
       glLayerRef.current = null
       markersRef.current.clear()
     }
-  }, [entries, stableTrail, stableTracks, dark, fullScreen, paddingBottom])
+  }, [entries, stableTrail, stableTracks, dark, fullScreen, paddingBottom, isGcjBasemap])
 
   // Retile in place rather than through the effect above, which would drop every
   // marker and track it just drew. A vector basemap restyles instead, which also
   // avoids spending a WebGL context on every theme toggle.
   useEffect(() => {
-    if (isVectorStyle(tileUrl)) glLayerRef.current?.getMaplibreMap()?.setStyle(tileUrl)
+    if (isVectorStyle(tileUrl)) restyleBasemap(glLayerRef.current, tileUrl)
     else tileLayerRef.current?.setUrl(tileUrl)
   }, [tileUrl])
 
@@ -454,11 +511,11 @@ function JourneyMap(
       highlightMarker(activeMarkerId)
       const marker = markersRef.current.get(activeMarkerId)
       if (!marker || !mapRef.current) return
-      // fitBounds may still be pending when this fires — getZoom() throws
-      // "Set map center and zoom first" until the map has a view. Guard it.
+      // Pan, don't zoom — see focusMarker. fitBounds may still be pending when this
+      // fires, and panTo on a map with no view throws "Set map center and zoom
+      // first", so the catch is where the map gets its first one.
       try {
-        const currentZoom = mapRef.current.getZoom()
-        mapRef.current.flyTo(marker.getLatLng(), Math.max(currentZoom, 12), { duration: 0.5 })
+        mapRef.current.panTo(marker.getLatLng(), { animate: true, duration: 0.5 })
       } catch {
         mapRef.current.setView(marker.getLatLng(), 12)
       }

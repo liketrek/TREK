@@ -103,38 +103,44 @@ function HeroCard({ journey, onOpen }: { journey: JourneyListItem; onOpen: () =>
   const src = journeyCoverSrc(journey.cover_image)
 
   return (
+    // Built like the dashboard's spotlight trip: the photo carries the card and
+    // everything written sits on one panel of dark glass at its foot, rather than
+    // a badge floating in one corner and text bleeding into a gradient at the
+    // other. Two hero cards, two different languages, was the complaint.
     <button
       type="button"
       onClick={onOpen}
-      className="relative mb-3 block h-[180px] w-full overflow-hidden rounded-[22px] text-left shadow-[0_16px_38px_-20px_rgba(0,0,0,.5)]"
+      className="relative mb-3 block h-[220px] w-full overflow-hidden rounded-[26px] text-left shadow-[0_24px_56px_-22px_rgba(0,0,0,.5)]"
     >
       {src ? (
-        <img src={src} alt="" className="h-full w-full object-cover" />
+        <img src={src} alt="" className="absolute inset-0 h-full w-full object-cover" />
       ) : (
-        <div className="h-full w-full" style={journeyCoverStyle(journey)} />
+        <div className="absolute inset-0" style={journeyCoverStyle(journey)} />
       )}
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,.05)_40%,rgba(0,0,0,.66))]" />
-      <span className="absolute left-[11px] top-[11px] flex items-center gap-1 rounded-full bg-white/90 px-[10px] py-1 font-geist text-[0.59375rem] font-extrabold uppercase tracking-[.04em] text-[#101013]">
-        {t('mobileJourney.latestJourney')}
-      </span>
-      <div className="absolute bottom-[13px] left-[14px] right-[14px] text-white">
-        <div className="truncate text-[1.25rem] font-extrabold">{journey.title}</div>
+      <div className="absolute right-[10px] bottom-[10px] left-[10px] rounded-[18px] border border-white/[.16] bg-[rgba(14,14,17,.52)] p-[12px_14px] text-white backdrop-blur-[22px] backdrop-saturate-[1.6]">{/* theme-lint-disable — fixed dark glass on the cover photo */}
+        <span className="flex gap-[6px]">
+          <span className="rounded-full bg-white/[.92] px-2 py-[3px] text-[0.625rem] font-bold tracking-[.07em] text-[#101013] uppercase">{/* theme-lint-disable — fixed on-photo badge */}
+            {t('mobileJourney.latestJourney')}
+          </span>
+        </span>
+        <div className="mt-[7px] truncate text-[1.4375rem] font-bold">{journey.title}</div>
         <div className="mt-[9px] flex gap-[6px]">
-          <span className="inline-flex items-center gap-1 rounded-full bg-white/20 px-[9px] py-[3px] font-geist text-[0.59375rem] font-bold backdrop-blur-[6px]">
-            <NotebookPen size={10} strokeWidth={2.2} />
-            {t('mobileJourney.entriesCount', { count: journey.entry_count ?? 0 })}
-          </span>
-          <span className="inline-flex items-center gap-1 rounded-full bg-white/20 px-[9px] py-[3px] font-geist text-[0.59375rem] font-bold backdrop-blur-[6px]">
-            <Image size={10} strokeWidth={2.2} />
-            {t('mobileJourney.photosCount', { count: journey.photo_count ?? 0 })}
-          </span>
-          <span className="inline-flex items-center gap-1 rounded-full bg-white/20 px-[9px] py-[3px] font-geist text-[0.59375rem] font-bold backdrop-blur-[6px]">
-            <MapPin size={10} strokeWidth={2.2} />
-            {t('mobileJourney.placesCount', { count: journey.place_count ?? 0 })}
-          </span>
+          <HeroPill icon={<NotebookPen size={10} strokeWidth={2.2} />} label={t('mobileJourney.entriesCount', { count: journey.entry_count ?? 0 })} />
+          <HeroPill icon={<Image size={10} strokeWidth={2.2} />} label={t('mobileJourney.photosCount', { count: journey.photo_count ?? 0 })} />
+          <HeroPill icon={<MapPin size={10} strokeWidth={2.2} />} label={t('mobileJourney.placesCount', { count: journey.place_count ?? 0 })} />
         </div>
       </div>
     </button>
+  )
+}
+
+/** One fact about the journey, set like the spotlight trip's pills on the dashboard. */
+function HeroPill({ icon, label }: { icon: React.ReactElement; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-white/[.28] px-[9px] py-[3px] font-geist text-[0.5625rem] font-bold tracking-[.07em] uppercase">
+      {icon}
+      {label}
+    </span>
   )
 }
 

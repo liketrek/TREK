@@ -52,6 +52,7 @@ const atlas: TranslationStrings = {
   'atlas.oceania': '오세아니아',
   'atlas.other': '기타',
   'atlas.firstVisit': '첫 번째 여행',
+  'atlas.lastVisitLabel': '마지막 여행',
   'atlas.tripSingular': '여행',
   'atlas.tripPlural': '여행',
   'atlas.placeVisited': '방문한 장소',

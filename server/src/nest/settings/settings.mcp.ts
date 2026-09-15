@@ -83,8 +83,9 @@ const KEY_LIST = DISPLAY_PREFERENCE_KEYS.join(', ');
  * write carries the demo gate the other write tools carry.
  *
  * The controller's own two refusals stay out of reach by construction rather
- * than by being repeated: assertMayWriteLlmEndpoint guards llm_base_url and
- * llm_provider, and isManagedLockedKey guards the operator-owned keys, and not
+ * than by being repeated: assertMayWriteInstanceEndpoint guards llm_base_url,
+ * llm_provider and routing_base_url, and isManagedLockedKey guards the
+ * operator-owned keys, and not
  * one name from either list is on the allow-list above. tools-settings.test.ts
  * asserts that intersection is empty instead of trusting the reading.
  */

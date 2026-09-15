@@ -85,9 +85,14 @@ export function useJourneyPublic() {
         entry_date: e.entry_date,
         dayColor: DAY_COLORS[dayIdx % DAY_COLORS.length],
         dayLabel,
+        // Through the share token, like every other picture on this page: the
+        // reader has no session, so `/api/photos/:id` would answer 401.
+        photoUrls: (e.photos ?? [])
+          .slice(0, 3)
+          .map((p: { photo_id: number }) => `/api/public/journey/${token}/photos/${p.photo_id}/original`),
       }
     })
-  }, [mapEntries, sortedDates])
+  }, [mapEntries, sortedDates, token])
 
   // The same number the marker carries, so the timeline is the key to the map
   // rather than a second, unrelated numbering.

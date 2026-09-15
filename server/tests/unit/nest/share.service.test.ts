@@ -56,7 +56,7 @@ import {
 } from '../../helpers/factories';
 import { DatabaseService } from '../../../src/nest/database/database.service';
 import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { ShareService } from '../../../src/nest/share/share.service';
+import { ShareService, publicReservationMetadata } from '../../../src/nest/share/share.service';
 import { SettingsService } from '../../../src/nest/settings/settings.service';
 import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
 import type { User } from '../../../src/types';
@@ -425,6 +425,140 @@ describe('getSharedTripData', () => {
     const rows = svc.getSharedTripData(token)!.accommodations as any[];
 
     expect(rows.map((a) => a.id)).toEqual([unlinkedStay]);
+  });
+});
+
+// ── #2320: what the public payload carries, and what it withholds ───────────
+
+describe('getSharedTripData redaction (#2320)', () => {
+  it('SHARE-SVC-032: a booking travels without its confirmation, import trail or travellers', () => {
+    const { trip, token } = seedSharedTrip();
+    testDb.prepare(`INSERT INTO reservations
+      (trip_id, title, type, status, confirmation_number, notes, url, external_source, external_id, sync_enabled, needs_review)
+      VALUES (?, 'Night train', 'train', 'confirmed', 'PNR9XY', 'Bring the tickets', 'https://bahn.example/booking/1', 'kitinerary', 'ext-42', 1, 0)`)
+      .run(trip.id);
+
+    const [row] = svc.getSharedTripData(token)!.reservations as any[];
+
+    expect(Object.keys(row).sort()).toEqual([
+      'accommodation_id', 'created_at', 'day_id', 'day_positions', 'end_day_id', 'endpoints', 'id', 'location',
+      'metadata', 'notes', 'place_id', 'reservation_end_time', 'reservation_time', 'status', 'title', 'trip_id', 'type', 'url',
+    ]);
+    expect(row.notes).toBe('Bring the tickets');
+    expect(row.url).toBe('https://bahn.example/booking/1');
+    expect(JSON.stringify(svc.getSharedTripData(token))).not.toContain('PNR9XY');
+    expect(JSON.stringify(svc.getSharedTripData(token))).not.toContain('ext-42');
+  });
+
+  it('SHARE-SVC-033: booking metadata keeps the journey and drops the ticket', () => {
+    const { trip, token } = seedSharedTrip();
+    const metadata = JSON.stringify({
+      airline: 'LH', flight_number: 'LH400', departure_airport: 'FRA', arrival_airport: 'JFK',
+      seat: '14A', price: 812, passenger_name: 'Ada Lovelace', confirmation_number: 'LOC123',
+      legs: [
+        { from: 'FRA', to: 'BER', airline: 'LH', flight_number: 'LH170', dep_time: '08:00', arr_time: '09:05', confirmation_number: 'LEG1', seat: '3C' },
+        { from: 'BER', to: 'JFK', airline: 'LH', flight_number: 'LH400', dep_time: '11:00', arr_time: '14:10', confirmation_number: 'LEG2' },
+      ],
+    });
+    testDb.prepare(`INSERT INTO reservations (trip_id, title, type, status, metadata)
+      VALUES (?, 'To New York', 'flight', 'confirmed', ?)`).run(trip.id, metadata);
+
+    const data = svc.getSharedTripData(token)!;
+    const [row] = data.reservations as any[];
+    const meta = JSON.parse(row.metadata);
+
+    expect(meta).toEqual({
+      airline: 'LH', flight_number: 'LH400', departure_airport: 'FRA', arrival_airport: 'JFK',
+      legs: [
+        { from: 'FRA', to: 'BER', airline: 'LH', flight_number: 'LH170', dep_time: '08:00', arr_time: '09:05' },
+        { from: 'BER', to: 'JFK', airline: 'LH', flight_number: 'LH400', dep_time: '11:00', arr_time: '14:10' },
+      ],
+    });
+    const whole = JSON.stringify(data);
+    for (const secret of ['14A', '812', 'Ada Lovelace', 'LOC123', 'LEG1', 'LEG2', '3C']) {
+      expect(whole, secret).not.toContain(secret);
+    }
+  });
+
+  it('SHARE-SVC-034: a booking carries its ordered stops', () => {
+    const { trip, token } = seedSharedTrip();
+    const id = testDb.prepare(`INSERT INTO reservations (trip_id, title, type, status)
+      VALUES (?, 'Coach', 'bus', 'confirmed')`).run(trip.id).lastInsertRowid;
+    const ins = testDb.prepare(`INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng)
+      VALUES (?, ?, ?, ?, ?, ?, ?)`);
+    ins.run(id, 'to', 1, 'Lyon', null, 45.76, 4.84);
+    ins.run(id, 'from', 0, 'Paris', 'PAR', 48.85, 2.35);
+
+    const [row] = svc.getSharedTripData(token)!.reservations as any[];
+
+    expect(row.endpoints.map((e: any) => [e.role, e.name])).toEqual([['from', 'Paris'], ['to', 'Lyon']]);
+    expect(Object.keys(row.endpoints[0]).sort()).toEqual(
+      ['code', 'lat', 'lng', 'local_date', 'local_time', 'name', 'role', 'sequence', 'timezone'],
+    );
+  });
+
+  it('SHARE-SVC-035: only http(s) links reach the page, on bookings and places alike', () => {
+    const { trip, token } = seedSharedTrip();
+    const day = createDay(testDb, trip.id, { date: '2026-09-01' });
+    for (const [title, url] of [['ok', 'https://example.com/x'], ['js', 'javascript:alert(1)'], ['data', 'data:text/html,hi'], ['junk', 'not a url'], ['blank', '   ']]) {
+      testDb.prepare(`INSERT INTO reservations (trip_id, title, type, status, url) VALUES (?, ?, 'other', 'confirmed', ?)`).run(trip.id, title, url);
+    }
+    const place = createPlace(testDb, trip.id, { name: 'Museum' });
+    testDb.prepare('UPDATE places SET website = ?, phone = ? WHERE id = ?').run('javascript:alert(2)', '+43 1 234', place.id);
+    createDayAssignment(testDb, day.id, place.id, {});
+
+    const data = svc.getSharedTripData(token)!;
+    const urls = Object.fromEntries((data.reservations as any[]).map((r) => [r.title, r.url]));
+    expect(urls).toEqual({ ok: 'https://example.com/x', js: null, data: null, junk: null, blank: null });
+    expect(data.assignments[day.id][0].place.website).toBeNull();
+    expect(data.assignments[day.id][0].place.phone).toBe('+43 1 234');
+    expect((data.places as any[])[0].website).toBeNull();
+  });
+
+  it('SHARE-SVC-036: an assignment carries the place notes, duration and contact, the pool carries no booking notes', () => {
+    const { trip, token } = seedSharedTrip();
+    const day = createDay(testDb, trip.id, { date: '2026-09-01' });
+    const place = createPlace(testDb, trip.id, { name: 'Louvre' });
+    testDb.prepare(`UPDATE places SET description = 'Big museum', address = 'Rue de Rivoli', notes = 'Skip the pyramid queue',
+      duration_minutes = 180, website = 'https://louvre.fr', phone = '+33 1', reservation_notes = 'Booked under Ada', google_place_id = 'ChIJ123' WHERE id = ?`).run(place.id);
+    createDayAssignment(testDb, day.id, place.id, { notes: 'go early' });
+
+    const data = svc.getSharedTripData(token)!;
+    const entry = data.assignments[day.id][0];
+    expect(entry.notes).toBe('go early');
+    expect(entry.place).toEqual(expect.objectContaining({
+      description: 'Big museum', address: 'Rue de Rivoli', notes: 'Skip the pyramid queue',
+      duration_minutes: 180, website: 'https://louvre.fr', phone: '+33 1',
+    }));
+    const pool = (data.places as any[])[0];
+    expect(pool.notes).toBe('Skip the pyramid queue');
+    expect(pool).not.toHaveProperty('reservation_notes');
+    expect(pool).not.toHaveProperty('google_place_id');
+    expect(JSON.stringify(data)).not.toContain('Booked under Ada');
+    expect(JSON.stringify(data)).not.toContain('ChIJ123');
+  });
+
+  it('SHARE-SVC-037: a stay carries its desk times and note, not its confirmation', () => {
+    const { trip, token } = seedSharedTrip();
+    const place = createPlace(testDb, trip.id, { name: 'Hotel' });
+    const day = createDay(testDb, trip.id, { date: '2026-09-01' });
+    testDb.prepare(`INSERT INTO day_accommodations (trip_id, place_id, start_day_id, end_day_id, check_in, check_out, confirmation, notes)
+      VALUES (?, ?, ?, ?, '15:00', '11:00', 'HOTEL-777', 'Ask for a quiet room')`).run(trip.id, place.id, day.id, day.id);
+
+    const data = svc.getSharedTripData(token)!;
+    const [stay] = data.accommodations as any[];
+    expect(stay).toEqual(expect.objectContaining({ check_in: '15:00', check_out: '11:00', notes: 'Ask for a quiet room', place_name: 'Hotel' }));
+    expect(stay).not.toHaveProperty('confirmation');
+    expect(JSON.stringify(data)).not.toContain('HOTEL-777');
+  });
+
+  it('SHARE-SVC-038: metadata that is not an object comes back as nothing', () => {
+    expect(publicReservationMetadata(null)).toBeNull();
+    expect(publicReservationMetadata('not json')).toBeNull();
+    expect(publicReservationMetadata('[1,2]')).toBeNull();
+    expect(publicReservationMetadata('"str"')).toBeNull();
+    expect(publicReservationMetadata({ airline: 'OS', legs: [null, 'x', { from: 'VIE', seat: '1A' }] }))
+      .toBe(JSON.stringify({ airline: 'OS', legs: [{ from: 'VIE' }] }));
   });
 });
 

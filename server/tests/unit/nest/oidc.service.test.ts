@@ -200,38 +200,71 @@ describe('createState / consumeState', () => {
 // ── createAuthCode / consumeAuthCode ─────────────────────────────────────────
 
 describe('createAuthCode / consumeAuthCode', () => {
-  it('OIDC-SVC-005: createAuthCode returns a UUID-like string', () => {
-    const code = svc.createAuthCode('my.jwt.token');
+  it('OIDC-SVC-005: createAuthCode returns a code and the secret that redeems it', () => {
+    const { code, binding } = svc.createAuthCode('my.jwt.token');
     expect(typeof code).toBe('string');
     expect(code.length).toBeGreaterThan(0);
+    // 32 random bytes as base64url; the code alone must never be enough.
+    expect(binding).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(binding).not.toBe(code);
+  });
+
+  it('OIDC-SVC-005b: every code gets its own binding secret', () => {
+    const a = svc.createAuthCode('t');
+    const b = svc.createAuthCode('t');
+    expect(a.binding).not.toBe(b.binding);
+    expect(a.code).not.toBe(b.code);
   });
 
   it('OIDC-SVC-006: consumeAuthCode returns the stored token', () => {
-    const code = svc.createAuthCode('real.jwt.here');
-    const result = svc.consumeAuthCode(code);
+    const { code, binding } = svc.createAuthCode('real.jwt.here');
+    const result = svc.consumeAuthCode(code, binding);
     expect('token' in result).toBe(true);
     expect((result as { token: string }).token).toBe('real.jwt.here');
   });
 
   it('OIDC-SVC-007: auth code is single-use (second consume returns error)', () => {
-    const code = svc.createAuthCode('single.use.token');
-    svc.consumeAuthCode(code); // first use
-    const second = svc.consumeAuthCode(code);
+    const { code, binding } = svc.createAuthCode('single.use.token');
+    svc.consumeAuthCode(code, binding); // first use
+    const second = svc.consumeAuthCode(code, binding);
     expect('error' in second).toBe(true);
   });
 
   it('OIDC-SVC-008: consumeAuthCode returns error for unknown code', () => {
-    const result = svc.consumeAuthCode('not-a-real-code');
+    const result = svc.consumeAuthCode('not-a-real-code', 'whatever');
     expect('error' in result).toBe(true);
+  });
+
+  it('OIDC-SVC-008b: a valid code without its binding is refused, and indistinguishable from an unknown one', () => {
+    const { code } = svc.createAuthCode('bound.token');
+    expect(svc.consumeAuthCode(code, undefined)).toEqual({ error: 'Invalid or expired code' });
+    expect(svc.consumeAuthCode('not-a-real-code', undefined)).toEqual({ error: 'Invalid or expired code' });
+  });
+
+  it('OIDC-SVC-008c: another browser binding is refused', () => {
+    const mine = svc.createAuthCode('mine');
+    const theirs = svc.createAuthCode('theirs');
+    expect('error' in svc.consumeAuthCode(mine.code, theirs.binding)).toBe(true);
+  });
+
+  it('OIDC-SVC-008d: a wrong binding burns the code, so it cannot be retried', () => {
+    const { code, binding } = svc.createAuthCode('burn.me');
+    svc.consumeAuthCode(code, 'not-the-binding');
+    expect('error' in svc.consumeAuthCode(code, binding)).toBe(true);
+  });
+
+  it('OIDC-SVC-008e: a binding that is not even base64 is refused instead of throwing', () => {
+    const { code } = svc.createAuthCode('t');
+    expect('error' in svc.consumeAuthCode(code, '!!!!')).toBe(true);
   });
 
   it('OIDC-SVC-056: auth code round-trips the remember flag', () => {
     const cTrue = svc.createAuthCode('t1', true);
     const cFalse = svc.createAuthCode('t2', false);
     const cAbsent = svc.createAuthCode('t3');
-    expect((svc.consumeAuthCode(cTrue) as { remember?: boolean }).remember).toBe(true);
-    expect((svc.consumeAuthCode(cFalse) as { remember?: boolean }).remember).toBe(false);
-    expect((svc.consumeAuthCode(cAbsent) as { remember?: boolean }).remember).toBeUndefined();
+    expect((svc.consumeAuthCode(cTrue.code, cTrue.binding) as { remember?: boolean }).remember).toBe(true);
+    expect((svc.consumeAuthCode(cFalse.code, cFalse.binding) as { remember?: boolean }).remember).toBe(false);
+    expect((svc.consumeAuthCode(cAbsent.code, cAbsent.binding) as { remember?: boolean }).remember).toBeUndefined();
   });
 });
 

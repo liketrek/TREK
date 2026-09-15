@@ -628,5 +628,21 @@ const journey: TranslationStrings = {
   'journey.editor.statsExcludedHint':
     'Η στάση παραμένει στο ημερολόγιο, αλλά δεν μετράει στην απόσταση, τις χώρες ή τον χάρτη στο Studio.',
   'journey.entry.offRoute': 'Εκτός διαδρομής',
+  'journey.suggestions.dismiss': 'Απόρριψη αυτής της πρότασης',
+  'journey.suggestions.dismissed': 'Η πρόταση απορρίφθηκε',
+  'journey.suggestions.restore': 'Επαναφορά των απορριμμένων προτάσεων',
+  'journey.suggestions.restoreCount': 'Απορριμμένες προτάσεις ({count})',
+  'journey.suggestions.restored': 'Επέστρεψαν {count} προτάσεις',
+  'journey.detail.addOnThisDay': 'Προσθήκη καταχώρισης σε αυτήν την ημέρα',
+  'journey.detail.jumpToDay': 'Μετάβαση στις {date}',
+  'journey.detail.searchPlaceholder': 'Αναζήτηση σε αυτό το ταξίδι',
+  'journey.detail.searchEmpty': 'Καμία καταχώριση δεν ταιριάζει με «{query}»',
+  'journey.settings.entryFields': 'Πεδία της καταχώρισης',
+  'journey.settings.entryFieldsHint': 'Απενεργοποιήστε ό,τι δεν χρησιμοποιεί αυτό το ταξίδι. Τίποτα από όσα έχουν γραφτεί δεν χάνεται.',
+  'journey.settings.showVerdict': 'Υπέρ και κατά',
+  'journey.settings.showMood': 'Διάθεση',
+  'journey.settings.showWeather': 'Καιρός',
+  'journey.entry.suggestion': 'Πρόταση',
+  'journey.editor.addDetails': '+ Λεπτομέρειες',
 };
 export default journey;

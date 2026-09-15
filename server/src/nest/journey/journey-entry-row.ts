@@ -26,19 +26,21 @@ import type { JourneyEntry } from '../../types';
  * the reason the JSON does, so that a client comparing it with `=== true` is
  * comparing against something that can be true on every path.
  */
-export interface JourneyEntryWire extends Omit<JourneyEntry, 'tags' | 'pros_cons' | 'stats_excluded'> {
+export interface JourneyEntryWire extends Omit<JourneyEntry, 'tags' | 'pros_cons' | 'stats_excluded' | 'dismissed'> {
   tags: string[];
   pros_cons: { pros: string[]; cons: string[] } | null;
   stats_excluded: boolean;
+  dismissed: boolean;
 }
 
-/** Decode a row's JSON columns and its flag. The one place that knows how they are stored. */
+/** Decode a row's JSON columns and its flags. The one place that knows how they are stored. */
 export function decodeEntryRow(row: JourneyEntry): JourneyEntryWire {
-  const { tags, pros_cons, stats_excluded, ...rest } = row;
+  const { tags, pros_cons, stats_excluded, dismissed, ...rest } = row;
   return {
     ...rest,
     tags: tags ? JSON.parse(tags) : [],
     pros_cons: pros_cons ? JSON.parse(pros_cons) : null,
     stats_excluded: !!stats_excluded,
+    dismissed: !!dismissed,
   };
 }

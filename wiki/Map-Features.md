@@ -36,6 +36,16 @@ A day's route is drawn as a solid blue line — a bright core over a darker casi
 
 A straight line is drawn immediately, then upgraded to real road geometry from a public OSRM router (or from a plugin route profile), each leg routed in the transport mode that leg carries. If routing fails, that leg stays a straight line between the two stops.
 
+### The whole trip at once
+
+The **Show whole trip** button in the bottom-right corner of the map swaps the single day for every travel day of the trip, each drawn in its own colour over a white casing so neighbouring days stay apart on any basemap. It is on desktop and on the phone, and your choice is remembered per trip for the rest of the session.
+
+A card above the button lists the days: each one by its title, or by its number when it has none, with an icon per travel mode it is actually driven or walked in and the distance covered that day. The trip's **Total distance** sits at the top. Picking a day in the list selects it, the same as picking it anywhere else.
+
+The total is real routed distance summed over every leg — road geometry from the router, not straight lines between stops — which is what makes it worth building a fuel estimate on. It arrives a few legs at a time: while they are still coming in the total is followed by an ellipsis to say it is a partial sum, and it settles once every leg has answered. A leg the router refuses keeps its straight line on the map and contributes nothing to the total, so a trip with an unroutable hop reads low rather than wrong. Days with fewer than two located stops have no route and are left out of the list entirely.
+
+Road trip mode already draws the whole trip its own way, so the button is not offered while it is on.
+
 ## GPX tracks
 
 Tracks and routes imported from a `.gpx`, `.kml`, or `.kmz` file are drawn as lines on the map. Each track imported into a trip is given its own colour automatically, so several walks in the same area stay distinguishable without any setup.

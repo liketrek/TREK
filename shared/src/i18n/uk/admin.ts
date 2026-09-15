@@ -88,16 +88,64 @@ const admin: TranslationStrings = {
   'admin.requireMfaHint':
     'Користувачі без 2FA повинні завершити налаштування в розділі «Налаштування» перед використанням програми.',
   'admin.apiKeys': 'API-ключі',
-  'admin.apiKeysHint': 'Необов’язково. Включає розширені дані про місця, такі як фото та погода.',
+  'admin.apiKeysHint': "Звідки беруться дані про місця. Покажчику TREK ключ не потрібен; два постачальники нижче необов'язкові.",
+  'admin.trekApi.badgeDefault': 'Рекомендоване джерело',
+  'admin.googleCaveat.badge': 'Не рекомендовано',
+  'admin.googleCaveat.body':
+    'TREK має відкритий код, і ми тут не нейтральні. У такому масштабі відгуки та світлини звичайних закладів є лише в Google, і це і є монополія. Поле тут через брак альтернативи, а не тому, що ми його радимо. Тоді кожен запит іде до Google.',
+  'admin.trekApi.tagline':
+    'Власний покажчик місць TREK. Пошук без ключа Google, без квоти й без того, щоб хтось рахував ваші запити.',
+  'admin.trekApi.factPlaces':
+    '73,6 мільйона місць у світі',
+  'admin.trekApi.factNoKey':
+    'Без ключа, без квоти',
+  'admin.trekApi.factOffline':
+    'Пакети країн працюють офлайн',
+  'admin.trekApi.factPrivacy':
+    'Запити ніколи не записуються',
+  'admin.trekApi.more':
+    'Що всередині',
+  'admin.trekApi.fieldPhone':
+    'Телефон',
+  'admin.trekApi.fieldStableId':
+    'Стала позначка',
+  'admin.trekApi.includedNote':
+    'Описи беруться із сайту самого місця, години роботи — з OpenStreetMap там, де їх зазначено.',
+  'admin.trekApi.notRatings':
+    'Відгуки',
+  'admin.trekApi.notPhotos':
+    'Світлини звичайних закладів',
+  'admin.trekApi.notIncludedNote':
+    'Ані того, ані іншого немає в жодному відкритому джерелі за жодну ціну. До цих двох ключ Google лишається єдиним шляхом.',
+  'admin.trekApi.sourcesLabel':
+    'Джерела',
+  'admin.trekApi.sourcesNote':
+    'Кожне поле у відповіді вказує, з якого з них воно походить.',
+  'admin.trekApi.included':
+    'Входить',
+  'admin.trekApi.notIncluded':
+    'Не входить',
   'admin.mapsKey': 'API-ключ Google Maps',
   'admin.mapsKeyHint': 'Необхідний для пошуку місць. Отримайте на console.cloud.google.com',
   'admin.mapsKeyHintLong':
-    'Без API-ключа для пошуку місць використовується OpenStreetMap. З ключем Google API можна завантажувати фото, рейтинги та години роботи. Отримайте ключ на console.cloud.google.com.',
+    'Без ключа Google API використовується рекомендований TREK API. З ключем додатково завантажуються світлини, оцінки та години роботи. Створити ключ можна на console.cloud.google.com.',
   'admin.recommended': 'Рекомендується',
   'admin.weatherKey': 'API-ключ OpenWeatherMap',
   'admin.weatherKeyHint': 'Для даних про погоду. Безкоштовно на openweathermap.org',
   'admin.unsplashKey': 'Ключ API Unsplash',
   'admin.unsplashKeyHint': 'Для пошуку зображень. Безкоштовно на unsplash.com/developers',
+  'admin.amapKey': 'API-ключ Amap (高德地图)',
+  'admin.amapKeyHint':
+    'Для пошуку місць у континентальному Китаї, де Google недоступний, а даних OpenStreetMap обмаль. Потрібен ключ типу «Web 服务» (вебсервіс), а не ключ JS API. Отримати можна на console.amap.com.',
+  'admin.placesProvider.title': 'Постачальник пошуку місць',
+  'admin.placesProvider.subtitle':
+    'Власний індекс TREK і OpenStreetMap відповідають на кожен пошук. Тут обирається, кого запитати додатково, якщо вони нічого не знайшли: «Автоматично» надає перевагу Google за наявності ключа, потім Amap.',
+  'admin.placesProvider.auto': 'Автоматично',
+  'admin.placesProvider.google': 'Google Places',
+  'admin.placesProvider.amap': 'Amap (高德地图)',
+  'admin.placesProvider.openstreetmap': 'OpenStreetMap',
+  'admin.placesProvider.missingKey': 'Для обраного постачальника не задано ключ API, тому на пошук місць відповідають лише індекс TREK і OpenStreetMap.',
+  'admin.placesProvider.saved': 'Постачальника пошуку місць збережено',
   'admin.validateKey': 'Перевірити',
   'admin.keyValid': 'Підключено',
   'admin.keyInvalid': 'Недійсний',
@@ -115,6 +163,8 @@ const admin: TranslationStrings = {
   'admin.fileTypesHint': 'Налаштуйте, які типи файлів можуть завантажувати користувачі.',
   'admin.fileTypesFormat': 'Розширення через кому (напр. jpg,png,pdf,doc). Використовуйте * для дозволу всіх типів.',
   'admin.fileTypesSaved': 'Налаштування типів файлів збережено',
+  'admin.googleOptions': 'Для чого використовується ключ',
+  'admin.googleOptionsSummary': 'увімкнено {on} з {total}',
   'admin.placesPhotos.title': 'Фотографії місць',
   'admin.placesPhotos.subtitle':
     'Завантаження фотографій з Google Places API. Вимкніть для економії квоти API. Фотографії Wikimedia не зачіпаються.',
@@ -127,6 +177,17 @@ const admin: TranslationStrings = {
   'admin.placesEnrich.title': 'Збагачення місць',
   'admin.placesEnrich.subtitle':
     'Показує зображення та опис під час додавання місця. Wikipedia та OpenStreetMap використовуються завжди; Google додається, якщо ввімкнено «Фото місць» або «Деталі місць».',
+  'admin.transitProvider.title': 'Постачальник громадського транспорту',
+  'admin.transitProvider.subtitle': 'Яка служба відповідає на пошук громадського транспорту.',
+  'admin.transitProvider.transitous': 'Transitous (безкоштовно)',
+  'admin.transitProvider.google': 'Google',
+  'admin.transitProvider.transitousHint': 'Спільнотні GTFS-стрічки. Безкоштовно та без ключа, з найкращим покриттям у Європі.',
+  'admin.transitProvider.googleHint': 'Використовує наведений вище ключ Google для регіонів, де Transitous не має даних. Оплата за кожен пошук — доки ключ не задано, використовується Transitous.',
+  'admin.transitProvider.noKeyWarning': 'Вибрано Google, але ключ Google не налаштовано — пошук транспорту досі використовує Transitous. Додайте ключ у розділі «Ключі API» вище.',
+  'admin.transitProvider.personalKeyWarning': 'Задано лише ваш власний ключ Google, тож пошук інших учасників усе одно повертається до Transitous. Збережіть ключ вище як адміністратор, щоб він діяв для всієї інсталяції.',
+  'admin.placeShadow.title': 'Журнал пошуку місць',
+  'admin.placeShadow.subtitle':
+    'Записувати, який результат пошуку було обрано, щоб згодом оцінити інший індекс місць на справжніх запитах. Ніщо не залишає цей сервер, і адміністратор будь-коли може вивантажити або видалити журнал.',
   'admin.bagTracking.title': 'Відстеження багажу',
   'admin.bagTracking.subtitle': 'Увімкнути вагу та прив’язку до багажу для речей',
   'admin.collab.chat.title': 'Чат',
@@ -317,6 +378,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:photo-provider': 'Надавати фотографії для Спогадів',
   'admin.plugins.perm.hook:calendar-source': 'Надавати події для календаря',
   'admin.plugins.perm.hook:place-detail-provider': 'Додавати додаткові деталі (відгуки, оцінки, посилання) до місця',
+  'admin.plugins.perm.hook:search-provider':
+    'Відповідати на пошук місць із власного індексу, поряд із результатами TREK',
   'admin.plugins.perm.hook:trip-warning-provider':
     'Створювати попередження перевірки для подорожі (показуються в планувальнику)',
   'admin.plugins.perm.hook:table-contributor': 'Додавати стовпці та дії до подань подорожі (бронювання, місця, дні)',
@@ -474,6 +537,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.photos': 'Надає фотографії',
   'admin.plugins.cap.calendar': 'Надає події календаря',
   'admin.plugins.cap.placeDetails': 'Збагачує місця',
+  'admin.plugins.cap.search': 'Відповідає на пошук',
   'admin.plugins.cap.warnings': 'Позначає проблеми',
   'admin.plugins.cap.mapLayers': 'Малює на карті',
   'admin.plugins.cap.routing': 'Пропонує маршрутизацію',
@@ -537,12 +601,17 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.atlas.description': 'Карта світу з відвіданими країнами та статистикою подорожей',
   'admin.addons.catalog.collab.name': 'Collab',
   'admin.addons.catalog.collab.description': 'Нотатки, опитування, чат і підказки для спільного планування',
+  'admin.addons.catalog.roadtrip.name': 'Автоподорож',
+  'admin.addons.catalog.roadtrip.description': 'Плануйте поїздки із зупинками — час у дорозі та прибуття перераховуються автоматично',
   'admin.addons.subtitleBefore': 'Увімкніть або вимкніть функції для налаштування ',
   'admin.addons.subtitleAfter': ' під себе.',
   'admin.addons.catalog.naver_list_import.name': 'Naver List Import',
   'admin.addons.catalog.naver_list_import.description': 'Імпорт місць зі спільного списку Naver Maps',
   'admin.addons.catalog.airtrail.name': 'AirTrail',
   'admin.addons.catalog.airtrail.description': 'Синхронізація рейсів із вашого сервера AirTrail',
+  'admin.addons.catalog.dawarich.name': 'Dawarich',
+  'admin.addons.catalog.dawarich.description':
+    'Читає перебування та записані маршрути із сервера Dawarich, який кожен користувач підключає сам',
   'admin.addons.catalog.llm_parsing.name': 'Розбір за допомогою ШІ',
   'admin.addons.catalog.llm_parsing.description': 'Читає бронювання, які не розпізнає вбудований аналізатор, за допомогою обраної вами моделі ШІ',
   'admin.addons.enabled': 'Увімкнено',
@@ -733,5 +802,8 @@ const admin: TranslationStrings = {
   'admin.invite.tripNone': 'Без подорожі',
   'admin.invite.tripHint': 'Новий користувач автоматично додається до цієї подорожі, коли реєструється за посиланням.',
   'admin.invite.boundTo': 'додає до {trip}',
+  'admin.placesUsageTitle': 'Для чого використовується ключ',
+  'admin.mapsKeyHintShort': 'Додає фото, оцінки та години роботи. Кожен запит тоді йде до Google.',
+  'admin.amapKeyHintShort': 'Для пошуку місць у материковому Китаї. Потрібен ключ вебсервісу, а не ключ JS API.',
 };
 export default admin;

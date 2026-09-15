@@ -558,7 +558,8 @@ describe('Immich album photos', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.assets).toHaveLength(2);
-    expect(res.body.assets.map((a: any) => a.id)).toEqual(['asset-sync-1', 'asset-sync-2']);
+    // Newest first: asset-sync-2 was taken on the 2nd, asset-sync-1 on the 1st.
+    expect(res.body.assets.map((a: any) => a.id)).toEqual(['asset-sync-2', 'asset-sync-1']);
   });
 
   it('IMMICH-063 — GET /albums/:id/photos filters hidden assets (both visibility and legacy isVisible markers)', async () => {
@@ -582,14 +583,17 @@ describe('Immich album photos', () => {
       .get(`${IMMICH}/albums/album-uuid-1/photos`)
       .set('Cookie', authCookie(user.id));
 
-    expect(res.body.assets[0]).toMatchObject({
+    // Keyed by id, not by position: the response is sorted by capture time now,
+    // so an index would pin the ordering here as a side effect.
+    const byId = Object.fromEntries(res.body.assets.map((a: any) => [a.id, a]));
+    expect(byId['asset-sync-1']).toMatchObject({
       id: 'asset-sync-1',
       takenAt: '2024-06-01T10:00:00.000Z',
       city: 'Paris',
       country: 'France',
       mediaType: 'image',
     });
-    expect(res.body.assets[1].mediaType).toBe('video');
+    expect(byId['asset-sync-2'].mediaType).toBe('video');
   });
 
   // #1614 — the album mapping used to drop lat/lng even though the search path
@@ -602,11 +606,12 @@ describe('Immich album photos', () => {
       .get(`${IMMICH}/albums/album-uuid-1/photos`)
       .set('Cookie', authCookie(user.id));
 
-    expect(res.body.assets[0]).toMatchObject({ lat: 48.8584, lng: 2.2945 });
-    // The second fixture asset has no coordinates; it must come back null, not undefined
+    const byId = Object.fromEntries(res.body.assets.map((a: any) => [a.id, a]));
+    expect(byId['asset-sync-1']).toMatchObject({ lat: 48.8584, lng: 2.2945 });
+    // asset-sync-2 has no coordinates; it must come back null, not undefined
     // or a half pair.
-    expect(res.body.assets[1].lat).toBeNull();
-    expect(res.body.assets[1].lng).toBeNull();
+    expect(byId['asset-sync-2'].lat).toBeNull();
+    expect(byId['asset-sync-2'].lng).toBeNull();
   });
 
   it('IMMICH-065 — album photos are fetched via search/metadata with albumIds and withExif', async () => {
@@ -623,6 +628,9 @@ describe('Immich album photos', () => {
     expect(immichState.searchCalls[0]).toMatchObject({
       albumIds: ['album-uuid-1'],
       withExif: true,
+      // The album path asks for the order too; without this it could fall out
+      // again unnoticed, because the local sort would still hide it here.
+      order: 'desc',
       page: 1,
     });
   });
@@ -644,7 +652,10 @@ describe('Immich album photos', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.assets).toHaveLength(1001);
-    expect(res.body.assets[1000].id).toBe('tail-asset');
+    // tail-asset is the only one from page two and the newest of the 1001, so
+    // the chronological sort puts it first. Its presence is what proves page
+    // two was fetched at all.
+    expect(res.body.assets[0].id).toBe('tail-asset');
     expect(immichState.searchCalls.map((c) => c.page)).toEqual([1, 2]);
   });
 
@@ -661,7 +672,7 @@ describe('Immich album photos', () => {
       .set('Cookie', authCookie(user.id));
 
     expect(res.status).toBe(200);
-    expect(res.body.assets.map((a: any) => a.id)).toEqual(['asset-sync-1', 'asset-sync-2']);
+    expect(res.body.assets.map((a: any) => a.id)).toEqual(['asset-sync-2', 'asset-sync-1']);
     expect(immichState.searchCalls).toHaveLength(0);
   });
 

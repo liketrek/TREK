@@ -143,6 +143,22 @@ const collection: TranslationStrings = {
   'collections.picker.hint': '컬렉션에서 장소를 선택하세요',
   'collections.picker.use': '사용',
 
+  // Export / import a list as a file (#2198)
+  'collections.file.export': '내보내기',
+  'collections.file.exportTitle': '이 목록을 파일로 다운로드',
+  'collections.file.importButton': '파일에서 목록 가져오기',
+  'collections.file.importTitle': '목록 가져오기',
+  'collections.file.choose': '목록 파일 선택',
+  'collections.file.confirm': '가져오기',
+  'collections.file.change': '변경',
+  'collections.file.labelCount': '라벨 {count}개',
+  'collections.file.hint': '장소는 내 새 목록으로 들어옵니다. 평가, 멤버, 업로드한 사진은 함께 오지 않습니다.',
+  'collections.file.done': '장소 {count}개를 가져왔습니다',
+  'collections.file.doneSkipped': '장소 {count}개를 가져오고 {skipped}개를 건너뛰었습니다',
+  'collections.file.errorTooLarge': '이 파일은 목록이라고 하기에 너무 큽니다.',
+  'collections.file.errorUnreadable': '이 파일을 읽을 수 없습니다.',
+  'collections.file.errorNotACollection': 'TREK 목록 파일이 아닙니다.',
+
   'collections.share.title': '목록 공유',
   'collections.share.titleNamed': '“{name}” 공유',
   'collections.share.button': '공유',

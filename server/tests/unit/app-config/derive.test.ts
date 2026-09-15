@@ -1,10 +1,13 @@
 import { describe, it, expect } from 'vitest';
 
+import { OVERPASS_TIMEOUT_DEFAULT_MS } from '../../../src/nest/maps/maps.helpers';
+
 import {
   deriveApp,
   deriveHttp,
   deriveSession,
   deriveDemo,
+  deriveMaps,
   deriveOidc,
   deriveSmtp,
   deriveMcp,
@@ -215,8 +218,10 @@ describe('deriveIntegrations', () => {
     expect(deriveIntegrations({ UNSPLASH_ACCESS_KEY: ' key ' }).unsplashAccessKey).toBe('key');
     expect(deriveIntegrations({}).transitApiBase).toBe('https://api.transitous.org');
     expect(deriveIntegrations({ TRANSIT_API_URL: 'https://t.example//' }).transitApiBase).toBe('https://t.example');
-    expect(deriveIntegrations({}).overpassTimeoutMs).toBe(12000);
-    expect(deriveIntegrations({ OVERPASS_TIMEOUT_MS: '-1' }).overpassTimeoutMs).toBe(12000);
+    // Against the constant, not a literal: the client budget is derived from the timeout
+    // the query itself carries, and pinning the number here is how the two drifted apart.
+    expect(deriveIntegrations({}).overpassTimeoutMs).toBe(OVERPASS_TIMEOUT_DEFAULT_MS);
+    expect(deriveIntegrations({ OVERPASS_TIMEOUT_MS: '-1' }).overpassTimeoutMs).toBe(OVERPASS_TIMEOUT_DEFAULT_MS);
   });
 
   it('floors the LLM ceiling to a whole number — undici rejects a fractional headersTimeout', () => {
@@ -263,6 +268,19 @@ describe('deriveAll', () => {
       'plugins', 'webauthn', 'integrations', 'backup', 'db', 'paths', 'net',
     ] as const) {
       expect(env[ns]).toBeDefined();
+    }
+  });
+});
+
+describe('deriveMaps', () => {
+  it('TREK_PLACES_ENABLED is on unless it says the literal "false"', () => {
+    // Fail-open, and deliberately not the boolean-like family the switches
+    // above accept: a typo must not silently drop a whole install back to
+    // Nominatim, whose usage policy forbids what TREK was doing with it.
+    expect(deriveMaps({} as never).trekPlacesEnabled).toBe(true);
+    expect(deriveMaps({ TREK_PLACES_ENABLED: 'false' } as never).trekPlacesEnabled).toBe(false);
+    for (const value of ['true', 'FALSE', '0', 'no', '']) {
+      expect(deriveMaps({ TREK_PLACES_ENABLED: value } as never).trekPlacesEnabled, value).toBe(true);
     }
   });
 });

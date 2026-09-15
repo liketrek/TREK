@@ -1,7 +1,17 @@
-import { Search, Plus, X, Upload, FileDown, ChevronDown, Check, MapPin, Star } from 'lucide-react'
+import { Search, Plus, X, Upload, FileDown, ChevronDown, Check, MapPin, Star, CalendarPlus, CalendarDays } from 'lucide-react'
 import { getCategoryIcon } from '../shared/categoryIcons'
 import Tooltip from '../shared/Tooltip'
+import { useElementSize } from '../../hooks/useElementSize'
 import type { SidebarState } from './usePlacesSidebar'
+
+/**
+ * Below this the two labels stop fitting side by side and both buttons fall back
+ * to their icon. Measured on the button row itself rather than derived from the
+ * sidebar width: the labels are translated, so how much room they need differs
+ * per locale, and the row is what actually runs out of space. The rail is
+ * draggable down to 200px, which leaves the row 168.
+ */
+const COMPACT_BUTTONS_WIDTH = 232
 
 export function PlacesDropOverlay({ t }: SidebarState) {
   return (
@@ -21,52 +31,118 @@ export function PlacesDropOverlay({ t }: SidebarState) {
 
 export function PlacesHeader(S: SidebarState) {
   const {
-    canEditPlaces, onAddPlace, t, setFileImportOpen, setListImportOpen, hasMultipleListImportProviders,
-    places, categories, categoryFilters, search, setSearch, plannedIds, hasTracks,
+    canEditPlaces, onAddPlace, onAddPlaceToSelectedDay, selectedDayId, t, setFileImportOpen, setListImportOpen, hasMultipleListImportProviders,
+    places, categories, categoryFilters, search, setSearch, plannedIds, plannedFilterIds, dayScoped, onClearSelectedDay, hasTracks,
     filter, setFilter, setSelectedIds, selectMode, setSelectMode,
     catDropOpen, setCatDropOpen, toggleCategoryFilter, setCategoryFilters,
     ratingFilter, setRatingFilter,
     starDropOpen, setStarDropOpen,
   } = S
+  const dayOpen = selectedDayId != null
+  const { ref: buttonRowRef, width: buttonRowWidth } = useElementSize<HTMLDivElement>()
+  // Zero is the first paint, before the observer has measured anything — treat
+  // that as roomy so the labels do not flash away and back on every mount.
+  const compact = buttonRowWidth > 0 && buttonRowWidth < COMPACT_BUTTONS_WIDTH
+  const addLabel = t(dayOpen ? 'places.addPlaceShort' : 'places.addPlace')
+  const fileImportLabel = t('places.importFile')
+  const listImportLabel = t(hasMultipleListImportProviders ? 'places.importList' : 'places.importGoogleList')
   return (
     <div className="border-b border-edge-faint" style={{ padding: '14px 16px 10px', flexShrink: 0 }}>
-      {canEditPlaces && <button type="button"
-        onClick={onAddPlace}
-        className="bg-accent text-accent-text"
-        style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-          width: '100%', padding: '8px 12px', borderRadius: 12, border: 'none',
-          fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500,
-          cursor: 'pointer', fontFamily: 'inherit', marginBottom: 10,
-        }}
-      >
-        <Plus size={14} strokeWidth={2} /> {t('places.addPlace')}
-      </button>}
+      {canEditPlaces && <div ref={buttonRowRef} style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+        {/* The label shortens while the second button is out, so both fit side by
+            side in a default rail without either one truncating; a squeezed rail
+            drops it entirely and the aria-label carries the name instead. */}
+        <button type="button"
+          onClick={onAddPlace}
+          aria-label={compact ? addLabel : undefined}
+          title={compact ? addLabel : undefined}
+          className="bg-accent text-accent-text motion-reduce:transition-none"
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            // Both halves are driven by flex-basis rather than by grow, so the
+            // pair lands on an exact 50/50 and the handover animates in both
+            // directions. Half of the 6px gap comes off each side.
+            flexGrow: 0, flexShrink: 1, flexBasis: dayOpen ? 'calc(50% - 3px)' : '100%',
+            minWidth: 0, padding: '8px 12px', borderRadius: 12, border: 'none',
+            fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500,
+            cursor: 'pointer', fontFamily: 'inherit',
+            overflow: 'hidden', whiteSpace: 'nowrap',
+            transition: 'flex-basis 180ms ease',
+          }}
+        >
+          <Plus size={14} strokeWidth={2} />
+          {!compact && (
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {addLabel}
+            </span>
+          )}
+        </button>
+        {/* Kept mounted and collapsed rather than unmounted, so it has something
+            to animate out of: a button that only exists while a day is open
+            would appear and vanish on the spot. Hidden from the tab order and
+            from screen readers in the same breath, because a zero-width button
+            is still focusable otherwise. */}
+        {onAddPlaceToSelectedDay && (
+          <Tooltip label={t('places.addToSelectedDay')} disabled={!dayOpen}>
+            <button type="button"
+              onClick={onAddPlaceToSelectedDay}
+              aria-label={t('places.addToSelectedDay')}
+              data-testid="add-place-to-day"
+              aria-hidden={!dayOpen}
+              tabIndex={dayOpen ? 0 : -1}
+              className="bg-accent text-accent-text motion-reduce:transition-none"
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                flexGrow: 0, flexShrink: 1, flexBasis: dayOpen ? 'calc(50% - 3px)' : '0%',
+                minWidth: 0,
+                opacity: dayOpen ? 1 : 0,
+                padding: dayOpen ? '8px 12px' : 0,
+                borderRadius: 12, border: 'none',
+                fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500,
+                cursor: 'pointer', fontFamily: 'inherit', overflow: 'hidden', whiteSpace: 'nowrap',
+                pointerEvents: dayOpen ? 'auto' : 'none',
+                transition: 'flex-basis 180ms ease, opacity 140ms ease, padding 180ms ease',
+              }}
+            >
+              <CalendarPlus size={14} strokeWidth={2} style={{ flexShrink: 0 }} />
+              {!compact && t('places.addToDayShort')}
+            </button>
+          </Tooltip>
+        )}
+      </div>}
       {canEditPlaces && <>
+      {/* Same squeeze rule as the row above, measured off the same rail: once the
+          add buttons lose their labels these two would not fit either. */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
         <button type="button"
           onClick={() => setFileImportOpen(true)}
+          aria-label={compact ? fileImportLabel : undefined}
+          title={compact ? fileImportLabel : undefined}
           className="border border-dashed border-edge text-content-faint"
           style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-            flex: 1, padding: '5px 12px', borderRadius: 8,
+            flex: 1, minWidth: 0, padding: '5px 12px', borderRadius: 8,
             background: 'none', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 500,
             cursor: 'pointer', fontFamily: 'inherit',
+            overflow: 'hidden', whiteSpace: 'nowrap',
           }}
         >
-          <FileDown size={11} strokeWidth={2} /> {t('places.importFile')}
+          <FileDown size={11} strokeWidth={2} /> {!compact && fileImportLabel}
         </button>
         <button type="button"
           onClick={() => setListImportOpen(true)}
+          aria-label={compact ? listImportLabel : undefined}
+          title={compact ? listImportLabel : undefined}
           className="border border-dashed border-edge text-content-faint"
           style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-            flex: 1, padding: '5px 12px', borderRadius: 8,
+            flex: 1, minWidth: 0, padding: '5px 12px', borderRadius: 8,
             background: 'none', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 500,
             cursor: 'pointer', fontFamily: 'inherit',
+            overflow: 'hidden', whiteSpace: 'nowrap',
           }}
         >
-          <MapPin size={11} strokeWidth={2} /> {t(hasMultipleListImportProviders ? 'places.importList' : 'places.importGoogleList')}
+          <MapPin size={11} strokeWidth={2} /> {!compact && listImportLabel}
         </button>
       </div>
       <div className="bg-edge" style={{ height: 1, margin: '2px 0 10px' }} />
@@ -87,7 +163,11 @@ export function PlacesHeader(S: SidebarState) {
         const counts = {
           all: baseFiltered.length,
           unplanned: baseFiltered.filter(p => !plannedIds.has(p.id)).length,
-          planned: baseFiltered.filter(p => plannedIds.has(p.id)).length,
+          // While a day is open this counts that day's plan, the same set the list and
+          // the map show. Counting the whole trip here is what made the tab read 55
+          // beside five pins, with nothing to say the two were answering different
+          // questions.
+          planned: baseFiltered.filter(p => plannedFilterIds.has(p.id)).length,
           tracks: baseFiltered.filter(p => p.route_geometry).length,
         }
         const tabs = ([
@@ -97,7 +177,11 @@ export function PlacesHeader(S: SidebarState) {
           hasTracks ? { id: 'tracks', label: t('places.filterTracks') } : null,
         ] as const).filter(Boolean) as Array<{ id: 'all' | 'unplanned' | 'planned' | 'tracks'; label: string }>
         return (
-          <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
+          // The group always spans the rail and never wraps onto a second line.
+          // Each tab keeps its own text width and only the leftover space is
+          // shared out, so "Unplanned" stays wider than "All" instead of the four
+          // being forced to one size.
+          <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'nowrap' }}>
             {tabs.map(f => {
               const active = filter === f.id
               return (
@@ -107,18 +191,20 @@ export function PlacesHeader(S: SidebarState) {
                   className={active ? 'bg-accent text-accent-text' : 'bg-surface-card text-content'}
                   style={{
                     appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                    display: 'inline-flex', alignItems: 'center', gap: 5,
-                    padding: '4px 9px', borderRadius: 99,
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                    flex: '1 1 auto', minWidth: 0, overflow: 'hidden',
+                    padding: compact ? '4px 5px' : '4px 9px', borderRadius: 99,
                     fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 500, whiteSpace: 'nowrap',
                     boxShadow: active ? 'none' : '0 1px 2px rgba(0,0,0,0.06)',
                     transition: 'background 0.15s, color 0.15s, box-shadow 0.15s',
                   }}
                 >
-                  {f.label}
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.label}</span>
                   <span className={active ? 'text-accent-text' : 'text-content-faint'} style={{
                     fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 600, lineHeight: 1,
                     background: active ? 'color-mix(in srgb, var(--accent-text) 22%, transparent)' : 'var(--bg-tertiary)',
                     padding: '1px 5px', borderRadius: 99, minWidth: 14, textAlign: 'center',
+                    flexShrink: 0,
                   }}>
                     {counts[f.id]}
                   </span>
@@ -129,6 +215,42 @@ export function PlacesHeader(S: SidebarState) {
         )
       })()}
 
+      {/* Says out loud what the count above already narrowed to.
+          The map has followed the open day on this filter since #2024, and until now
+          nothing anywhere said so: the pool read 55, the map drew five, and the honest
+          conclusion was that the map was broken. It sits under the tabs rather than on
+          the map because a chip over the canvas is unreachable on a phone, which is
+          where this was reported from. */}
+      {dayScoped && (
+        <div
+          className="border border-edge-faint bg-surface-tertiary text-content-secondary"
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: '4px 6px 4px 9px', borderRadius: 8, marginBottom: 8,
+            fontSize: 'calc(11px * var(--fs-scale-caption, 1))',
+          }}
+        >
+          <CalendarDays size={11} strokeWidth={2} style={{ flexShrink: 0 }} />
+          <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {t('places.dayScoped')}
+          </span>
+          {onClearSelectedDay && (
+            <button type="button"
+              onClick={onClearSelectedDay}
+              aria-label={t('places.dayScopedClear')}
+              title={t('places.dayScopedClear')}
+              className="text-content-faint hover:text-content"
+              style={{
+                marginInlineStart: 'auto', display: 'flex', alignItems: 'center',
+                background: 'none', border: 'none', padding: 3, cursor: 'pointer', flexShrink: 0,
+              }}
+            >
+              <X size={12} strokeWidth={2.2} />
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Suchfeld */}
       <div style={{ position: 'relative' }}>
         <Search size={13} strokeWidth={1.8} color="var(--text-faint)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
@@ -137,10 +259,14 @@ export function PlacesHeader(S: SidebarState) {
           value={search}
           onChange={e => { setSearch(e.target.value); if (selectMode) setSelectedIds(new Set()) }}
           placeholder={t('places.search')}
-          className="bg-surface-tertiary text-content"
+          className="bg-surface-card text-content"
           style={{
             width: '100%', padding: '7px 30px 7px 30px', borderRadius: 10,
-            border: 'none', fontSize: 'calc(12px * var(--fs-scale-body, 1))',
+            // Borderless on the tertiary surface it sat almost flush with the
+            // panel; the outline is the one the category dropdown below already
+            // uses, so the two read as the same kind of control.
+            border: '1px solid var(--border-primary)',
+            fontSize: 'calc(12px * var(--fs-scale-body, 1))',
             outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
           }}
         />

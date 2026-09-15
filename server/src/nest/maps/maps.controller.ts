@@ -105,6 +105,37 @@ export class MapsController {
     }
   }
 
+  /**
+   * Every place in a box, for the offline cache. Read-only and cheap.
+   *
+   * Not a browse endpoint: the index caps the box at 1.5 degrees a side, and
+   * this passes the cap's refusal straight through rather than paging around
+   * it. The honest use is one trip's area, taken once.
+   */
+  @Get('area')
+  async area(
+    @Query('minLat') minLat?: string,
+    @Query('minLng') minLng?: string,
+    @Query('maxLat') maxLat?: string,
+    @Query('maxLng') maxLng?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const bbox = {
+      minLat: Number(minLat),
+      minLng: Number(minLng),
+      maxLat: Number(maxLat),
+      maxLng: Number(maxLng),
+    };
+    if (Object.values(bbox).some((v) => !Number.isFinite(v))) {
+      throw new HttpException({ error: 'A valid bbox (minLat, minLng, maxLat, maxLng) is required' }, 400);
+    }
+    const capped = Math.min(Math.max(Number(limit) || 2000, 1), 5000);
+    const area = await this.maps.placesInArea(bbox, capped);
+    // A null means the index is off or unreachable. An empty area is not an
+    // error — the caller caches nothing and carries on.
+    return area ?? { results: [], truncated: false, unavailable: true };
+  }
+
   @Post('autocomplete')
   @HttpCode(200)
   async autocomplete(
@@ -213,6 +244,28 @@ export class MapsController {
       // (to the exception filter, which now no-ops safely on headersSent).
       if (!isClientAbortError(err)) throw err;
     }
+  }
+
+  /**
+   * A brand's logo, by Wikidata id — what makes a corridor full of petrol stations
+   * readable at a glance.
+   *
+   * Proxied rather than linked: the browser never announces to Wikimedia which brands
+   * a user is looking at, and one instance asking for a handful of logos is a very
+   * different egress profile from every visitor doing it. An unknown or logo-less
+   * brand answers 204, like the photo route above and for the same reason — a marker
+   * per petrol station would otherwise be a burst of 404s from one address.
+   */
+  @Get('brand-logo/:wikidataId')
+  async brandLogo(@Param('wikidataId') wikidataId: string, @Res() res: Response): Promise<void> {
+    const logo = await this.maps.brandLogo(wikidataId);
+    if (!logo) {
+      this.emptyPhoto(res);
+      return;
+    }
+    res.set('Cache-Control', 'public, max-age=2592000, immutable');
+    res.type(logo.contentType);
+    res.send(logo.bytes);
   }
 
   // 204 for "no bytes to serve". Overrides the immutable Cache-Control the hit

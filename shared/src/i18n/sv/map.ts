@@ -22,5 +22,8 @@ const map: TranslationStrings = {
   'map.location.denied': 'Platsåtkomst är blockerad. Kontrollera enhetens inställningar; en installerad app har ett eget platstillstånd, skilt från webbläsaren.',
   'map.location.unavailable': 'Din plats kunde inte fastställas.',
   'map.location.timeout': 'Platsbestämningen tog för lång tid. Försök igen med friare sikt mot himlen.',
+  'map.overview.show': 'Visa hela resan',
+  'map.overview.hide': 'Dölj hela resan',
+  'map.overview.total': 'Total sträcka',
 };
 export default map;

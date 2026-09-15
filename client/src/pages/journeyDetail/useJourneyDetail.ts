@@ -13,6 +13,8 @@ import { lockBodyScroll } from '../../utils/bodyScrollLock'
 import type { JourneyEntry } from '../../store/journeyStore'
 import { createDraftJourneyEntry } from './JourneyDetailPage.helpers'
 
+import { useDawarichJournalTrail } from '../../hooks/useDawarichJournalTrail'
+
 /** Stable identity for "this journey draws no trip tracks" (#2194). */
 const NO_TRACKS: JourneyTrack[] = []
 
@@ -69,6 +71,7 @@ export function useJourneyDetail() {
   const [unlinkTrip, setUnlinkTrip] = useState<{ trip_id: number; title: string } | null>(null)
   const [showSettings, setShowSettings] = useState(false)
   const [hideSkeletons, setHideSkeletons] = useState(false)
+  const [query, setQuery] = useState('')
 
   useEffect(() => {
     if (id) loadJourney(Number(id)).catch(() => {})
@@ -267,6 +270,34 @@ export function useJourneyDetail() {
     el.scrollTo({ top: edge === 'top' ? 0 : el.scrollHeight, behavior: 'smooth' })
   }, [])
 
+  /**
+   * Wave one trip-derived suggestion away.
+   *
+   * Optimistic in effect rather than in code: the server drops the row from every
+   * read, and the store's own update already removes an entry the response no
+   * longer describes — so a reload is all the confirmation the list needs.
+   */
+  const dismissSuggestion = useCallback(async (entry: JourneyEntry) => {
+    try {
+      await updateEntry(entry.id, { dismissed: true })
+      if (current) await loadJourney(current.id)
+      toast.success(t('journey.suggestions.dismissed'))
+    } catch {
+      toast.error(t('common.errorTitle'))
+    }
+  }, [updateEntry, loadJourney, current, toast, t])
+
+  const restoreSuggestions = useCallback(async () => {
+    if (!current) return
+    try {
+      const { restored } = await journeyApi.restoreSuggestions(current.id)
+      await loadJourney(current.id)
+      toast.success(t('journey.suggestions.restored', { count: String(restored) }))
+    } catch {
+      toast.error(t('common.errorTitle'))
+    }
+  }, [current, loadJourney, toast, t])
+
   const handleMarkerClick = useCallback((entryId: string) => {
     const el = document.querySelector(`[data-entry-id="${entryId}"]`)
     if (!el) return
@@ -345,9 +376,59 @@ export function useJourneyDetail() {
         entry_date: e.entry_date,
         dayColor: DAY_COLORS[dayIdx % DAY_COLORS.length],
         dayLabel,
+        // A glimpse of the entry's own pictures on its marker card. Three is what
+        // the card has room for; the rest are one tap away in the entry itself.
+        photoUrls: (e.photos ?? []).slice(0, 3).map(p => `/api/photos/${p.photo_id}/thumbnail`),
       }
     })
   }, [mapEntries, current?.entries])
+
+  /**
+   * Where a journey should open: on today, when today is part of it.
+   *
+   * Every load used to start at the first entry, so keeping a journal on a trip
+   * meant scrolling past everything already written before you could add to it
+   * (discussion #2299). "Today" means the last day at or before now — a rest day
+   * with nothing written still lands you at yesterday rather than at the start.
+   *
+   * Only while the journey is running, though. A journey that ended last spring
+   * is something you read, and reading starts at the beginning; opening it at the
+   * last page would be the worse of the two mistakes.
+   */
+  const openAtEntryId = useMemo(() => {
+    const entries = current?.entries ?? []
+    if (entries.length === 0) return null
+    const dated = [...entries].sort((a, b) => a.entry_date.localeCompare(b.entry_date))
+    const today = new Date()
+    const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+    const first = dated[0]!.entry_date
+    const last = dated[dated.length - 1]!.entry_date
+    if (todayKey < first || todayKey > last) return null
+    const reached = dated.filter(e => e.entry_date <= todayKey)
+    const target = reached[reached.length - 1] ?? dated[0]!
+    // The first entry OF that day, not the last one before now: a day is read
+    // from its beginning.
+    const dayStart = dated.find(e => e.entry_date === target.entry_date) ?? target
+    return String(dayStart.id)
+  }, [current?.entries])
+
+  // Desktop only: scroll it into the feed once per journey, after the list is up.
+  // The scroll-sync primes at 300ms and would otherwise pick a winner from the top
+  // of the feed and pin the map there.
+  const openedAtRef = useRef<number | null>(null)
+  useEffect(() => {
+    if (isMobile || !current || view !== 'timeline') return
+    if (openedAtRef.current === current.id) return
+    if (!openAtEntryId) { openedAtRef.current = current.id; return }
+    const timer = window.setTimeout(() => {
+      const el = document.querySelector(`[data-entry-id="${openAtEntryId}"]`)
+      if (!el) return
+      openedAtRef.current = current.id
+      el.scrollIntoView({ block: 'center' })
+      setActiveEntryId(openAtEntryId)
+    }, 350)
+    return () => window.clearTimeout(timer)
+  }, [current, openAtEntryId, isMobile, view])
 
   const locatedEntryIdsRef = useRef(new Set<string>())
   useEffect(() => {
@@ -370,6 +451,17 @@ export function useJourneyDetail() {
     }
     return dates
   }, [current?.trips])
+
+  // The route actually recorded over the journal's own dates (#2279), drawn on
+  // the same layer as the GPX tracks because it is the same kind of thing: a
+  // recording, not a line connecting entries. Gated on `show_trip_tracks` for
+  // the same reason that switch exists — it gates the REQUEST, and a map nobody
+  // asked for should not reach across the network for it.
+  const dawarichTrail = useDawarichJournalTrail(tripDates, showTripTracks)
+  const mapTracks = useMemo(
+    () => (dawarichTrail.tracks.length > 0 ? [...tracks, ...dawarichTrail.tracks] : tracks),
+    [tracks, dawarichTrail.tracks],
+  )
 
   /** Studio's margin to the window on all four sides — see `.st-root` in studio.css. */
   const STUDIO_INSET = 16
@@ -410,9 +502,11 @@ export function useJourneyDetail() {
     showInvite, setShowInvite, showAddTrip, setShowAddTrip,
     unlinkTrip, setUnlinkTrip, showSettings, setShowSettings,
     hideSkeletons, setHideSkeletons,
+    query, setQuery, dismissSuggestion, restoreSuggestions,
+    openAtEntryId,
     mapRef, fullMapRef, galleryUploadRef, galleryProviders, setGalleryProviders, galleryBrowseRef,
     activeLocationId, handleMarkerClick, handleLocationClick,
-    mapEntries, sidebarMapItems, tripDates, isMobile, tracks,
+    mapEntries, sidebarMapItems, tripDates, isMobile, tracks: mapTracks, dawarichTrail,
     feedEdge, scrollFeedTo,
     loadJourney, updateEntry, deleteEntry, reorderEntries, uploadPhotos, deletePhoto,
   }

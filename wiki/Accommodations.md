@@ -33,6 +33,38 @@ For each day between the **From** day and **To** day (inclusive), the accommodat
 
 ![Day planner side bar with accomodation](assets/Hotel-ReservationDaySidebar.png)
 
+## On the route
+
+Booking a night also puts its place on the check-in day, as a stop of its own. That stop
+is what the map draws a line to and what the Road Trip view builds its route from, so the
+hotel shows up on the drive without having to be entered a second time as an ordinary
+place. It works the same way whichever way you book the night: the Day Detail panel, the
+booking form under Bookings, the phone, the Road Trip view, an MCP client or a plugin.
+
+The two views show the same night differently, and both are the whole picture:
+
+- **Days** keeps it in the day header, as the badge it has always been. The stop itself is
+  hidden there, because the row would be that same hotel a second time.
+- **Road Trip** draws it as a service stop in the driving chain, which is the view that
+  needs to know where the day ends.
+
+A few details worth knowing:
+
+- Only the check-in day gets a stop, however many nights the stay runs. That is the day
+  you travel there; the later nights keep showing as badges in the day header.
+- The place is marked as a **hotel** stop, which is why it carries no number in the Road
+  Trip rail and does not count towards the day's stop total. If you had already given the
+  place a stop type of your own, that one is kept.
+- If the place was already planned for that day, nothing is added. You keep the stop you
+  placed, and the booking simply rides along with it.
+- Moving the booking to a different check-in day moves its stop with it. Deleting the
+  booking removes the stop it created, and leaves a stop you placed yourself standing.
+- Hotels are service stops, so **Show in Days too** under **Service stops** in the Road
+  Trip settings also decides whether they appear in the places list.
+
+Nights booked before this existed are given their stop when the server upgrades, so trips
+you already have show their hotels on the drive without anyone re-saving anything.
+
 ## In the day plan sidebar
 
 Accommodations appear as small colour-coded badges in the day header row of the day plan sidebar:

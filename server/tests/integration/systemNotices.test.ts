@@ -97,7 +97,7 @@ describe('GET /api/system-notices/active', () => {
     // login_count > 1 means firstLogin does not match; first_seen_version >= 3.0.0 means
     // existingUserBeforeVersion('3.0.0') does not match either. Notices that gate on
     // nothing but the install being self-hosted still apply, and which ones those are
-    // changes every release — the thank-you modal handed over to release-4-0-0 at 4.0.0.
+    // changes every release (the thank-you modal handed over to the release notes at 4.0.0).
     // Read the set out of the registry rather than naming them, or this ages out again.
     testDb.prepare('UPDATE users SET login_count = 5, first_seen_version = ? WHERE id = ?').run('3.0.0', user.id);
     const alwaysOn = new Set(
@@ -225,6 +225,47 @@ describe('GET /api/system-notices/active', () => {
       const idx = SYSTEM_NOTICES.indexOf(RECURRING);
       if (idx !== -1) SYSTEM_NOTICES.splice(idx, 1);
     }
+  });
+
+  // The release notes carry the support links, so the promise is exact: once per
+  // update for every user, whatever they did with it before, and never again on a
+  // reload of the same version. Driven through the real registry entry and the real
+  // dismiss route, so neither half can drift away from the other unnoticed.
+  it('shows the release notes once per update, however often they were closed before', async () => {
+    const { user } = createUser(testDb);
+    testDb.prepare('UPDATE users SET login_count = 5, first_seen_version = ? WHERE id = ?').run('3.0.0', user.id);
+
+    const shows = async () => {
+      const res = await request(app)
+        .get('/api/system-notices/active')
+        .set('Cookie', authCookie(user.id));
+      expect(res.status).toBe(200);
+      return res.body.some((n: { id: string }) => n.id === 'release-notes');
+    };
+    const dismiss = async () => {
+      const res = await request(app)
+        .post('/api/system-notices/release-notes/dismiss')
+        .set('Cookie', authCookie(user.id));
+      expect(res.status).toBe(204);
+    };
+
+    expect(await shows()).toBe(true);
+
+    // Closed on this version: gone for every reload after it.
+    await dismiss();
+    expect(await shows()).toBe(false);
+    expect(await shows()).toBe(false);
+
+    // The next update brings it back, although it was closed before...
+    testDb.prepare(
+      'UPDATE user_notice_dismissals SET dismissed_app_version = ? WHERE user_id = ? AND notice_id = ?'
+    ).run('4.0.0', user.id, 'release-notes');
+    expect(await shows()).toBe(true);
+    expect(await shows()).toBe(true);
+
+    // ...and closing it again holds until the one after that.
+    await dismiss();
+    expect(await shows()).toBe(false);
   });
 });
 

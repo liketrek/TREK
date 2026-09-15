@@ -56,6 +56,7 @@ import { CalendarService, foldICS } from '../../../src/nest/calendar/calendar.se
 import { CalendarModule } from '../../../src/nest/calendar/calendar.module';
 import { expectRegisteredProvider } from '../../helpers/module-providers';
 import { notificationsStub } from '../../helpers/notifications';
+import { accommodationsOver } from '../../helpers/accommodations-service';
 
 const dbs = () => new DatabaseService(testDb);
 const budgetSvc = new BudgetService(dbs(), new PermissionsService(dbs()), new ExchangeRatesService(), new RealtimeService());
@@ -63,7 +64,7 @@ const budgetSvc = new BudgetService(dbs(), new PermissionsService(dbs()), new Ex
 // Named `svc` so the moved cases below read exactly as they did on TripsService.
 const svc = new CalendarService(
   dbs(),
-  new ReservationsService(dbs(), new PermissionsService(dbs()), budgetSvc, new RealtimeService(), notificationsStub(), new ReservationsReadRepository(dbs())),
+  new ReservationsService(dbs(), new PermissionsService(dbs()), budgetSvc, new RealtimeService(), notificationsStub(), new ReservationsReadRepository(dbs()), accommodationsOver(dbs())),
 );
 
 beforeAll(() => {

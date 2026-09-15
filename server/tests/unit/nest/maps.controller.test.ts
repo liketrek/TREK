@@ -74,6 +74,40 @@ describe('MapsController (parity with the legacy /api/maps route)', () => {
     });
   });
 
+  describe('GET /area', () => {
+    const BOX = { minLat: 54, minLng: 12, maxLat: 54.2, maxLng: 12.3 };
+
+    it('delegates a valid box with parsed numbers', async () => {
+      const placesInArea = vi.fn().mockResolvedValue({ results: [{ name: 'x' }], truncated: false });
+      const res = await makeController({ placesInArea }).area('54', '12', '54.2', '12.3');
+      expect(res).toEqual({ results: [{ name: 'x' }], truncated: false });
+      expect(placesInArea).toHaveBeenCalledWith(BOX, 2000);
+    });
+
+    it('400 when the box has a non-finite value', async () => {
+      const placesInArea = vi.fn();
+      expect(await thrown(() => makeController({ placesInArea }).area('x', '12', '54.2', '12.3'))).toEqual({
+        status: 400,
+        body: { error: 'A valid bbox (minLat, minLng, maxLat, maxLng) is required' },
+      });
+      expect(placesInArea).not.toHaveBeenCalled();
+    });
+
+    it('caps the limit rather than passing a caller number straight through', async () => {
+      const placesInArea = vi.fn().mockResolvedValue({ results: [], truncated: false });
+      await makeController({ placesInArea }).area('54', '12', '54.2', '12.3', '999999');
+      expect(placesInArea).toHaveBeenCalledWith(BOX, 5000);
+    });
+
+    it('says the index is unavailable instead of failing the caller', async () => {
+      // This runs inside an offline sync. A null here means the index is off or
+      // unreachable, and the client caches nothing and carries on.
+      const placesInArea = vi.fn().mockResolvedValue(null);
+      const res = await makeController({ placesInArea }).area('54', '12', '54.2', '12.3');
+      expect(res).toEqual({ results: [], truncated: false, unavailable: true });
+    });
+  });
+
   describe('GET /pois', () => {
     it('400 when category is missing', async () => {
       const pois = vi.fn();
@@ -402,6 +436,69 @@ describe('MapsController (parity with the legacy /api/maps route)', () => {
       const reverse = vi.fn().mockResolvedValue({ name: null, address: null });
       await makeController({ reverse }).reverse('1', '2', 'fr');
       expect(reverse).toHaveBeenCalledWith('1', '2', 'fr');
+    });
+  });
+
+  describe('GET /brand-logo/:wikidataId', () => {
+    /** The same response double the photo-bytes cases use, minus their streaming. */
+    function makeRes() {
+      const sent: Buffer[] = [];
+      const res = {
+        statusCode: 200,
+        status: vi.fn((c: number) => { res.statusCode = c; return res; }),
+        set: vi.fn(),
+        type: vi.fn(),
+        send: vi.fn((b: Buffer) => { sent.push(b); return res; }),
+        end: vi.fn(),
+        json: vi.fn(),
+        body: () => Buffer.concat(sent),
+      };
+      return res as unknown as Response & {
+        status: ReturnType<typeof vi.fn>;
+        set: ReturnType<typeof vi.fn>;
+        type: ReturnType<typeof vi.fn>;
+        send: ReturnType<typeof vi.fn>;
+        end: ReturnType<typeof vi.fn>;
+        body: () => Buffer;
+      };
+    }
+
+    it('serves the flattened bytes with the type the service reports', async () => {
+      const bytes = Buffer.from('89504e470d0a1a0a', 'hex');
+      const brandLogo = vi.fn().mockResolvedValue({ bytes, contentType: 'image/png' });
+      const res = makeRes();
+
+      await makeController({ brandLogo }).brandLogo('Q565734', res);
+
+      expect(brandLogo).toHaveBeenCalledWith('Q565734');
+      expect(res.type).toHaveBeenCalledWith('image/png');
+      expect(res.set).toHaveBeenCalledWith('Cache-Control', 'public, max-age=2592000, immutable');
+      expect(res.body()).toEqual(bytes);
+    });
+
+    // A pin whose brand has no logo keeps its category icon. Answering 404 for each of
+    // those is the ban vector from #1727 all over again — a map full of them is a burst
+    // of 404s at the instance — so an unknown brand answers 204 with no body.
+    it('204 without a body, and without an immutable header, when there is no logo', async () => {
+      const res = makeRes();
+
+      await makeController({ brandLogo: vi.fn().mockResolvedValue(null) }).brandLogo('Q1', res);
+
+      expect(res.status).toHaveBeenCalledWith(204);
+      expect(res.end).toHaveBeenCalled();
+      expect(res.send).not.toHaveBeenCalled();
+      // A brand whose logo appears later must not stay hidden behind a month-old empty.
+      expect(res.set).toHaveBeenCalledWith('Cache-Control', 'no-store');
+    });
+
+    it('an id that is not a wikidata id is answered, not thrown at the caller', async () => {
+      const brandLogo = vi.fn().mockResolvedValue(null);
+      const res = makeRes();
+
+      await makeController({ brandLogo }).brandLogo('../../etc/passwd', res);
+
+      expect(res.status).toHaveBeenCalledWith(204);
+      expect(brandLogo).toHaveBeenCalledWith('../../etc/passwd');
     });
   });
 });

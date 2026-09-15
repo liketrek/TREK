@@ -49,7 +49,7 @@ vi.mock('../../src/nest/memories/photo-resolver.service', async (importOriginal)
 const { jsvc } = vi.hoisted(() => ({
   jsvc: {
     listJourneys: vi.fn(), createJourney: vi.fn(), getJourneyFull: vi.fn(),
-    journeyStats: vi.fn(), updateEntry: vi.fn(),
+    journeyStats: vi.fn(), updateEntry: vi.fn(), restoreDismissedSuggestions: vi.fn(),
   },
 }));
 import { JourneyDomainService } from '../../src/nest/journey/journey-domain.service';
@@ -393,6 +393,26 @@ describe('Journey e2e (real auth guard + temp SQLite)', () => {
       .set('Cookie', sessionCookie(1))
       .attach('cover', Buffer.from('MZ'), { filename: 'payload.exe', contentType: 'application/octet-stream' });
     expect(res.status).toBe(400);
+  });
+
+  it('restoring suggestions answers 200 with the count, not 201', async () => {
+    // POST defaults to 201 in Nest, and the route carries @HttpCode(200) to match
+    // every other action-shaped POST in this controller.
+    jsvc.restoreDismissedSuggestions.mockReturnValueOnce({ restored: 2 });
+    const res = await request(server)
+      .post('/api/journeys/9/suggestions/restore')
+      .set('Cookie', sessionCookie(1));
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ restored: 2 });
+  });
+
+  it('restoring suggestions 403 for someone who may not edit the journey', async () => {
+    jsvc.restoreDismissedSuggestions.mockReturnValueOnce(null);
+    const res = await request(server)
+      .post('/api/journeys/9/suggestions/restore')
+      .set('Cookie', sessionCookie(1));
+    expect(res.status).toBe(403);
+    expect(res.body).toEqual({ error: 'Not allowed' });
   });
 
   it('public journey 404 for an unknown token', async () => {

@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
+import DawarichIcon from '../../../../components/shared/DawarichIcon'
 import {
   Bookmark, Camera, ChevronRight, ExternalLink, Loader2, Map as MapIcon, Navigation, Paperclip,
   Pencil, Phone, Plus, Route, Trash2, Upload, X,
@@ -301,7 +302,16 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <div className="text-[1rem] font-bold leading-snug">{place.name}</div>
+                <div className="flex items-center gap-1.5">
+                  <span className="min-w-0 truncate text-[1rem] font-bold leading-snug">{place.name}</span>
+                  {/* Accepted out of the traveller's own recordings — the same
+                      mark the desktop inspector carries. */}
+                  {place.source === 'dawarich' && (
+                    <span className="flex-none overflow-hidden rounded-[5px]">
+                      <DawarichIcon size={15} />
+                    </span>
+                  )}
+                </div>
                 {place.address && (
                   <div className="mt-[2px] font-geist text-[0.6875rem] leading-[1.4] text-m-muted">{place.address}</div>
                 )}

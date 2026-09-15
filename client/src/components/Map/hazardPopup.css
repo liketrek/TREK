@@ -1,0 +1,133 @@
+.trek-hazard-content {
+  font-family: var(--font-system);
+}
+
+.trek-hazard-score {
+  padding: 7px 10px 5px;
+  border: 1px solid var(--border-faint);
+  border-radius: 10px;
+  background: var(--bg-hover);
+}
+
+.trek-hazard-score-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.trek-hazard-score-heading strong {
+  font-size: calc(16px * var(--fs-scale-caption, 1));
+  font-weight: 650;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.trek-hazard-score-track {
+  position: relative;
+  display: flex;
+  gap: 3px;
+  height: 5px;
+}
+
+.trek-hazard-score-track > span:not(.trek-hazard-score-marker) {
+  flex: 1;
+  border-radius: 3px;
+  opacity: 0.75;
+}
+
+.trek-hazard-score-marker {
+  position: absolute;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--bg-card);
+  border-radius: 50%;
+  background: var(--text-primary);
+  box-sizing: border-box;
+  transform: translate(-50%, -50%);
+  box-shadow: var(--shadow-sm);
+}
+
+.trek-hazard-score-ticks {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: calc(10px * var(--fs-scale-caption, 1));
+  font-variant-numeric: tabular-nums;
+}
+
+.trek-hazard-popup .leaflet-popup-content {
+  margin: 14px 16px;
+}
+
+.trek-hazard-popup .mapboxgl-popup-content,
+.trek-hazard-popup .maplibregl-popup-content {
+  padding: 14px 16px;
+  border: 1px solid var(--border-faint);
+  border-radius: 14px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-popover);
+}
+
+.trek-hazard-popup a.trek-hazard-source {
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+
+.trek-hazard-popup a.trek-hazard-source:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.leaflet-container .trek-hazard-popup a.leaflet-popup-close-button,
+.trek-hazard-popup .mapboxgl-popup-close-button,
+.trek-hazard-popup .maplibregl-popup-close-button {
+  top: 10px;
+  right: 10px;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0;
+  transition: background-color 150ms ease, color 150ms ease !important;
+}
+
+.leaflet-container .trek-hazard-popup a.leaflet-popup-close-button span {
+  display: none;
+}
+
+.trek-hazard-popup :is(.leaflet-popup-close-button, .mapboxgl-popup-close-button, .maplibregl-popup-close-button)::before,
+.trek-hazard-popup :is(.leaflet-popup-close-button, .mapboxgl-popup-close-button, .maplibregl-popup-close-button)::after {
+  content: '';
+  position: absolute;
+  top: 12px;
+  left: 6px;
+  width: 14px;
+  height: 1.5px;
+  border-radius: 1px;
+  background: currentColor;
+  transform: rotate(45deg);
+}
+
+.trek-hazard-popup :is(.leaflet-popup-close-button, .mapboxgl-popup-close-button, .maplibregl-popup-close-button)::after {
+  transform: rotate(-45deg);
+}
+
+.trek-hazard-popup :is(.leaflet-popup-close-button, .mapboxgl-popup-close-button, .maplibregl-popup-close-button):hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  transform: none;
+}
+
+.trek-hazard-popup :is(a, button):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

@@ -13,6 +13,10 @@ import { getCategoryIcon } from '../../../../components/shared/categoryIcons'
 import { resolveTrackColor } from '../../../../components/Map/trackColors'
 import MConfirmSheet from '../../settings/MConfirmSheet'
 import type { MPlacesBrowserProps } from '../MTripShell'
+import DawarichSuggestionsPanel from '../../../../components/Dawarich/DawarichSuggestionsPanel'
+import { formatDayOption } from '../../../../components/Dawarich/dawarichSuggestionModel'
+import { refreshTripAfterAccept } from '../../../../components/Dawarich/dawarichTripRefresh'
+import { useTranslation } from '../../../../i18n'
 import type { Place } from '../../../../types'
 import MPlacesBulkCategorySheet from './MPlacesBulkCategorySheet'
 import MPlacesSaveToCollectionSheet from './MPlacesSaveToCollectionSheet'
@@ -31,6 +35,8 @@ import { filterPool, firstPlannedDayNumbers, plannedPlaceIds } from './placesBro
  */
 export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) {
   const { t, places, categories, assignments, days, trip } = planner
+  // The planner hook carries `t` but not the locale; day labels need both.
+  const { locale } = useTranslation()
   const canEditPlaces = planner.can('place_edit', trip)
   const collectionsEnabled = useAddonStore(s => s.isEnabled('collections'))
 
@@ -229,6 +235,24 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
               <Plus size={18} strokeWidth={2.2} />
             </button>
           )}
+        </div>
+
+        {/* Stays Dawarich recorded on these dates (#2279). Same component as the
+            desktop rail — the rows are the same rows, and the panel renders
+            nothing when there is nothing pending. */}
+        <div className="mt-3">
+          <DawarichSuggestionsPanel
+            tripId={planner.tripId}
+            trips={[{ id: planner.tripId, label: t('dawarich.accept.thisTrip') }]}
+            daysForTrip={() => days.map(day => ({
+              id: day.id,
+              ...formatDayOption(day.day_number, day.date, locale, t),
+            }))}
+            // The place it just created belongs on the map and in the list
+            // now, not after a reload.
+            onAccepted={() => { void refreshTripAfterAccept(planner.tripId) }}
+            initiallyCollapsed
+          />
         </div>
 
         {/* ── Selection toolbar ── */}

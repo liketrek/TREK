@@ -3,7 +3,11 @@ import type { LucideIcon } from 'lucide-react'
 
 interface SectionProps {
   title: string
-  icon: LucideIcon
+  /**
+   * A lucide icon, or anything that takes the same `className` — a brand mark
+   * standing in for a glyph gets sized by the same utilities.
+   */
+  icon: LucideIcon | React.ComponentType<{ className?: string }>
   badge?: React.ReactNode
   children: React.ReactNode
 }

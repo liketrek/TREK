@@ -1,0 +1,180 @@
+import type { TranslationStrings } from '../types';
+
+const dawarich: TranslationStrings = {
+  // ── Connection ─────────────────────────────────────────────────────────────
+  'dawarich.title': 'Dawarich',
+  'dawarich.intro':
+    'Koppel je eigen Dawarich-instantie om te zien waar je echt bent geweest. TREK leest hem uit en stelt dagboekvermeldingen, plaatsen en landen voor — er wordt niets toegevoegd voordat jij het bevestigt, en er wordt niets teruggeschreven naar Dawarich.',
+  'dawarich.url': 'Adres van de instantie',
+  'dawarich.apiKey': 'API-sleutel',
+  'dawarich.apiKeyPlaceholder': 'Plak je Dawarich-API-sleutel',
+  'dawarich.apiKeyHint':
+    'Te vinden in Dawarich onder Account → API key. Wordt versleuteld opgeslagen en nooit meer getoond.',
+  'dawarich.allowInsecureTls': 'Zelfondertekend certificaat toestaan',
+  'dawarich.allowInsecureTlsHint':
+    'Alleen nodig als je instantie een certificaat gebruikt dat je server niet vertrouwt.',
+  'dawarich.syncEnabled': 'Automatisch op nieuwe bezoeken controleren',
+  'dawarich.syncEnabledHint': 'Uit betekent dat TREK Dawarich alleen uitleest als jij erom vraagt.',
+  'dawarich.test.button': 'Verbinding testen',
+  'dawarich.test.success': 'Verbonden. {count} bezoeken gevonden in de laatste 30 dagen.',
+  'dawarich.test.failed': 'Kon Dawarich niet bereiken.',
+  'dawarich.syncNow': 'Nu controleren',
+  'dawarich.connected': 'Verbonden',
+  'dawarich.notConnected': 'Niet verbonden',
+  'dawarich.disconnect': 'Verbinding verbreken',
+  'dawarich.lastSync': 'Laatst gecontroleerd {when}',
+  'dawarich.neverSynced': 'Nog niet gecontroleerd',
+  'dawarich.syncPartial': 'sommige reizen konden niet worden gelezen',
+  'dawarich.serverVersion': 'Dawarich {version}',
+
+  'dawarich.toast.saved': 'Dawarich-verbinding opgeslagen',
+  'dawarich.toast.saveError': 'Kon de verbinding niet opslaan',
+  'dawarich.toast.disconnected': 'Dawarich losgekoppeld',
+  'dawarich.toast.synced': '{count} nieuwe bezoeken gevonden',
+  'dawarich.toast.syncError': 'Kon Dawarich niet uitlezen',
+  'dawarich.toast.syncRunning': 'Er loopt al een controle',
+  'dawarich.toast.acceptError': 'Kon dit niet toevoegen',
+  'dawarich.toast.updateError': 'Kon deze suggestie niet bijwerken',
+  'dawarich.toast.accepted.place': 'Toegevoegd aan de reis',
+  'dawarich.toast.accepted.journal': 'Toegevoegd aan het reisverslag',
+  'dawarich.toast.accepted.bucket_list': 'Afgevinkt op je wensenlijst',
+
+  // ── What the connected instance can do ─────────────────────────────────────
+  'dawarich.capability.visits': 'bezoeken',
+  'dawarich.capability.track': 'opgenomen route',
+  'dawarich.capability.locations': 'wensenlijst vergelijken',
+  'dawarich.capability.visitedCities': 'landen en steden',
+  'dawarich.capability.missing': 'Deze versie van Dawarich biedt niet: {features}.',
+
+  // ── Failure reasons, as sentences the reader can act on ────────────────────
+  'dawarich.error.unreachable': 'TREK kon dat adres niet bereiken.',
+  'dawarich.error.unauthorized': 'Dawarich heeft de API-sleutel geweigerd.',
+  'dawarich.error.forbidden': 'Die API-sleutel mag dit niet lezen.',
+  'dawarich.error.not_found': 'Deze versie van Dawarich heeft dat eindpunt niet.',
+  'dawarich.error.rate_limited': 'Dawarich vroeg TREK om het rustiger aan te doen. Probeer het zo meteen opnieuw.',
+  'dawarich.error.server_error': 'Dawarich antwoordde met een fout.',
+  'dawarich.error.invalid_response': 'Dat adres antwoordde met iets dat geen Dawarich is.',
+  'dawarich.error.too_large': 'Dawarich stuurde meer gegevens dan TREK in één keer leest.',
+  'dawarich.error.not_connected': 'Er is nog geen Dawarich-instantie verbonden.',
+  'dawarich.error.addon_disabled': 'De Dawarich-add-on staat uit voor deze instantie.',
+  'dawarich.error.offline': 'Hiervoor is een verbinding nodig — TREK is nu offline.',
+  'dawarich.error.invalid_url': 'TREK kan dit adres niet gebruiken.',
+  'dawarich.warning.private_ip': 'Dit adres wijst naar een privé-IP ({ip}). Controleer of dat de bedoeling is — de server heeft er mogelijk ALLOW_INTERNAL_NETWORK=true voor nodig.',
+  'dawarich.error.unknown': 'Er ging iets mis in het contact met Dawarich.',
+
+  // ── The recorded route on the map ──────────────────────────────────────────
+  'dawarich.trail.show': 'Opgenomen route tonen',
+  'dawarich.trail.hide': 'Opgenomen route verbergen',
+  'dawarich.trail.loading': 'De opgenomen route wordt geladen…',
+  'dawarich.trail.empty': 'Op deze datums is er niets opgenomen',
+  'dawarich.trail.offline': 'De opgenomen route heeft een verbinding nodig',
+  'dawarich.trail.unavailable': 'De opgenomen route kon niet worden geladen',
+
+  // ── Suggestions ────────────────────────────────────────────────────────────
+  'dawarich.duration.minutes': '{minutes} min',
+  'dawarich.duration.hours': '{hours} u',
+  'dawarich.duration.hoursMinutes': '{hours} u {minutes} min',
+  'dawarich.checkedAgo': 'gecontroleerd {ago}',
+
+  'dawarich.badge.lowConfidence': 'Onzeker',
+  'dawarich.badge.sourceChanged': 'Gewijzigd in Dawarich',
+  'dawarich.badge.sourceMissing': 'Weg uit Dawarich',
+
+  'dawarich.suggestions.title': 'Uit Dawarich',
+  'dawarich.suggestions.pending': '{count} wachten op je',
+  'dawarich.suggestions.loading': 'Dawarich wordt uitgelezen…',
+  'dawarich.suggestions.notConnected': 'Koppel Dawarich in Instellingen om je bezoeken hier te zien.',
+  'dawarich.suggestions.unavailable': 'Dawarich kon niet worden uitgelezen.',
+  'dawarich.suggestions.allHandled': 'Alles wat hier is opgenomen, is afgehandeld.',
+  'dawarich.suggestions.asJournal': 'Een dagboekvermelding schrijven',
+  'dawarich.suggestions.asPlace': 'Als plaats toevoegen',
+  'dawarich.suggestions.dismiss': 'Hier ben ik niet geweest',
+  'dawarich.suggestions.dismissed': 'Weggelegd',
+  'dawarich.suggestions.restore': 'Terugzetten',
+  'dawarich.suggestions.showHandled': '{count} al afgehandelde tonen',
+  'dawarich.suggestions.hideHandled': 'De al afgehandelde verbergen',
+  'dawarich.suggestions.matchesWish': 'Op je wensenlijst: {name}',
+  'dawarich.suggestions.acceptedAs.place': 'Toegevoegd als plaats',
+  'dawarich.suggestions.acceptedAs.journal': 'In het reisverslag',
+  'dawarich.suggestions.acceptedAs.bucket_list': 'Wens afgevinkt',
+  'dawarich.suggestions.sourceChanged':
+    'Dit bezoek is in Dawarich gewijzigd sinds je het hebt gebruikt. Wat je in TREK hebt geschreven, blijft onaangeroerd.',
+  'dawarich.suggestions.sourceMissing':
+    'Dit bezoek bestaat niet meer in Dawarich. Wat je in TREK hebt geschreven, blijft onaangeroerd.',
+  'dawarich.sourceStatus.suggested': 'Herkend, niet bevestigd',
+  'dawarich.confidence.high': 'Zekere herkenning',
+  'dawarich.confidence.medium': 'Redelijk zekere herkenning',
+  'dawarich.confidence.low': 'Onzekere herkenning',
+
+  // ── The review step ────────────────────────────────────────────────────────
+  'dawarich.accept.title.place': 'Dit bezoek als plaats toevoegen',
+  'dawarich.accept.title.journal': 'Een dagboekvermelding schrijven',
+  'dawarich.accept.title.bucket_list': 'Een wens afvinken',
+  'dawarich.accept.confirm.place': 'Plaats toevoegen',
+  'dawarich.accept.confirm.journal': 'Vermelding toevoegen',
+  'dawarich.accept.confirm.bucket_list': 'Afvinken',
+  'dawarich.accept.recorded': 'Opgenomen van {from} tot {to}',
+  'dawarich.accept.duration': '{minutes} min',
+  'dawarich.accept.name': 'Naam',
+  'dawarich.accept.date': 'Datum',
+  'dawarich.accept.from': 'Aangekomen',
+  'dawarich.accept.to': 'Vertrokken',
+  'dawarich.accept.trip': 'Reis',
+  'dawarich.accept.thisTrip': 'Deze reis',
+  'dawarich.accept.pickTrip': 'Kies een reis',
+  'dawarich.accept.day': 'Dag',
+  'dawarich.accept.noDay': 'Nog niet op een dag',
+  'dawarich.accept.journal': 'Reisverslag',
+  'dawarich.accept.pickJournal': 'Kies een reisverslag',
+  'dawarich.accept.notes': 'Notities',
+  'dawarich.accept.story': 'Jouw verhaal',
+  'dawarich.accept.storyPlaceholder': 'Wat is hier gebeurd?',
+  'dawarich.accept.photosHint': "Voeg foto's toe aan de vermelding nadat die is aangemaakt.",
+
+  // ── A place that came out of a recording ──────────────────────────────────
+  'dawarich.place.fromDawarich': 'Toegevoegd uit je Dawarich-opnames',
+
+  // ── Wishlist ───────────────────────────────────────────────────────────────
+  'dawarich.bucket.title': 'Je wensenlijst naast Dawarich leggen',
+  'dawarich.bucket.description':
+    'Doorzoekt je opnames op de plaatsen die je wilde bereiken. Voor een bezoek tellen zowel nabijheid als verblijfsduur — voorbijrijden telt niet.',
+  'dawarich.bucket.scan': 'Wensenlijst controleren',
+  'dawarich.bucket.scanning': 'Bezig met controleren…',
+  'dawarich.bucket.noMatches': 'Niets van je wensenlijst kwam in je opnames voor.',
+  'dawarich.bucket.alreadyVisited': 'Al afgevinkt',
+  'dawarich.bucket.confirm': '{count} afvinken',
+  'dawarich.bucket.confirmed': '{count} wensen afgevinkt',
+  'dawarich.bucket.skipped': '{count} vermeldingen hebben geen coördinaten en konden niet worden gecontroleerd.',
+  'dawarich.bucket.truncated': 'Alleen de eerste vermeldingen zijn gecontroleerd. Voer het opnieuw uit voor de rest.',
+  'dawarich.bucket.visitedFrom': 'Afgevinkt op basis van je Dawarich-opnames',
+  'dawarich.bucket.clearVisit': 'Ongedaan maken',
+
+  // ── Atlas ──────────────────────────────────────────────────────────────────
+  'dawarich.atlas.title': 'Landen uit Dawarich',
+  'dawarich.atlas.description':
+    'Landen waar je volgens je opnames bent geweest. Bevestig degene die je in je Atlas wilt — er wordt niets uit zichzelf toegevoegd, en wat je met de hand hebt aangevinkt, blijft van jou.',
+  'dawarich.atlas.load': 'Naar landen zoeken',
+  'dawarich.atlas.loading': 'Je opnames worden uitgelezen…',
+  'dawarich.atlas.empty': 'Je opnames tonen geen landen die TREK nog niet heeft.',
+  'dawarich.atlas.cities': '{count} steden',
+  'dawarich.atlas.citiesOne': '1 stad',
+  'dawarich.atlas.accept': '{count} landen toevoegen',
+  'dawarich.atlas.accepted': '{count} landen toegevoegd',
+  'dawarich.atlas.unresolved': 'TREK kon deze niet aan een land koppelen: {names}.',
+  'dawarich.atlas.source': 'Uit Dawarich',
+  'dawarich.atlas.range': 'Gekeken van {from} tot {to}',
+
+  'dawarich.atlas.trigger': 'Wensen en landen uit je opnames',
+  'dawarich.atlas.dialogSubtitle': 'Wat je opnames over je Atlas zeggen',
+  'dawarich.atlas.tab.wishes': 'Wensenlijst',
+  'dawarich.atlas.tab.countries': 'Landen',
+  'dawarich.atlas.window': 'De laatste 12 maanden zijn bekeken.',
+  'dawarich.selected': '{count} geselecteerd',
+  'dawarich.again': 'Opnieuw controleren',
+  'dawarich.bucket.metersAway': '{meters} m verderop',
+  'dawarich.bucket.kilometersAway': '{km} km verderop',
+  'dawarich.bucket.rule': 'Een wens telt als bereikt binnen {meters} m en na {minutes} minuten ter plaatse.',
+
+};
+
+export default dawarich;

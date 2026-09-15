@@ -22,5 +22,8 @@ const map: TranslationStrings = {
   'map.location.denied': 'تم حظر الوصول إلى الموقع. تحقق من إعدادات الجهاز؛ فالتطبيق المثبت لديه إذن موقع خاص به منفصل عن المتصفح.',
   'map.location.unavailable': 'تعذر تحديد موقعك.',
   'map.location.timeout': 'استغرق تحديد موقعك وقتًا طويلًا. حاول مرة أخرى تحت سماء مكشوفة.',
+  'map.overview.show': 'عرض الرحلة كاملة',
+  'map.overview.hide': 'إخفاء الرحلة كاملة',
+  'map.overview.total': 'المسافة الإجمالية',
 };
 export default map;

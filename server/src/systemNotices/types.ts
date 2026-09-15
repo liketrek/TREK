@@ -30,15 +30,10 @@ export type NoticeCta =
 
 export interface NoticeReleaseFeature {
   iconName: string;
+  /** A small illustration the client draws on the card; unknown names fall back to the icon. */
+  visual?: string;
   titleKey: string;
   bodyKey: string;
-  badgeKey?: string;
-}
-
-export interface NoticeReleaseStat {
-  /** The figure itself ("~150") — shown as-is, never translated. */
-  value: string;
-  labelKey: string;
 }
 
 /**
@@ -49,11 +44,11 @@ export interface NoticeReleaseStat {
 export interface NoticeRelease {
   version: string;
   eyebrowKey: string;
-  tagKey: string;
   headlineKey: string;
   introKey: string;
+  featuresLabelKey: string;
+  featuresAsideKey?: string;
   features: NoticeReleaseFeature[];
-  stats?: NoticeReleaseStat[];
   notes?: { labelKey: string; href: string };
   footnoteKey?: string;
   note: {
@@ -61,11 +56,12 @@ export interface NoticeRelease {
     titleKey: string;
     bodyKey: string;
     promiseLabelKey: string;
+    promiseLeadKey: string;
     promiseTextKey: string;
     bodyAfterKey: string;
     closingKey: string;
-    signatureKey: string;
   };
+  supportLeadKey: string;
   supportTextKey: string;
 }
 

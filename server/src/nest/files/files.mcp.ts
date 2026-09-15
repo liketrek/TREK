@@ -112,6 +112,7 @@ export class FilesMcp {
       description: fileUpdateRequestSchema.shape.description.describe('Free-text description, or an empty string to clear it'),
       place_id: fileUpdateRequestSchema.shape.place_id.describe('Place on the same trip to attach the file to, or null to detach it'),
       reservation_id: fileUpdateRequestSchema.shape.reservation_id.describe('Booking on the same trip to attach the file to, or null to detach it'),
+      budget_item_id: fileUpdateRequestSchema.shape.budget_item_id.describe('Expense on the same trip to attach the file to (a receipt), or null to detach it'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     access: { group: 'files', mode: 'write' },
@@ -131,6 +132,7 @@ export class FilesMcp {
     const foreign = this.files.findForeignLinkTarget(tripId, {
       reservation_id: fields.reservation_id,
       place_id: fields.place_id,
+      budget_item_id: fields.budget_item_id,
     });
     if (foreign) return errorResult(`Linked item does not belong to this trip (${foreign}).`);
     // The rest spread carries only the keys the caller actually sent, which is what
@@ -150,6 +152,7 @@ export class FilesMcp {
       reservation_id: fileLinkRequestSchema.shape.reservation_id.describe('Booking on the same trip'),
       assignment_id: fileLinkRequestSchema.shape.assignment_id.describe('Day assignment (a place scheduled on a specific day) on the same trip'),
       place_id: fileLinkRequestSchema.shape.place_id.describe('Place on the same trip'),
+      budget_item_id: fileLinkRequestSchema.shape.budget_item_id.describe('Expense on the same trip, for a receipt'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     access: { group: 'files', mode: 'write' },
@@ -165,8 +168,8 @@ export class FilesMcp {
     // The REST body allows all three to be absent and stores a link row pointing at
     // nothing. A tool caller that gets here with no target made a mistake, and saying
     // so is more useful than a success that attached the file to nothing.
-    if (!targets.reservation_id && !targets.assignment_id && !targets.place_id) {
-      return errorResult('Pass at least one of reservation_id, assignment_id or place_id.');
+    if (!targets.reservation_id && !targets.assignment_id && !targets.place_id && !targets.budget_item_id) {
+      return errorResult('Pass at least one of reservation_id, assignment_id, place_id or budget_item_id.');
     }
     const foreign = this.files.findForeignLinkTarget(tripId, targets);
     if (foreign) return errorResult(`Linked item does not belong to this trip (${foreign}).`);

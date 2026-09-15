@@ -52,7 +52,7 @@ const { isAddonEnabledMock } = vi.hoisted(() => {
 // of behind an import path.
 const addonsStub = {
   isAddonEnabled: isAddonEnabledMock,
-  getCollabFeatures: () => ({ chat: true, notes: true, polls: true, whatsnext: true }),
+  getCollabFeatures: () => ({ chat: true, notes: true, links: true, polls: true, whatsnext: true }),
 } as unknown as AddonsService;
 
 const { mockGetTripSummary } = vi.hoisted(() => ({

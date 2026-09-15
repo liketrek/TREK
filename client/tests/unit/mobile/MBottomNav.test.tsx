@@ -89,14 +89,30 @@ describe('MBottomNav', () => {
     expect(screen.getByRole('button', { name: 'Manual Booking' })).toBeInTheDocument();
   });
 
-  it('FE-MOB-NAV-006: journey and collections live in the More popover, not the dock', () => {
+  it('FE-MOB-NAV-006: atlas and collections live in the More popover, not the dock', () => {
     seedAddons(['vacay', 'atlas', 'journey', 'collections']);
     render(<MBottomNav />, { initialEntries: ['/dashboard'] });
 
-    expect(screen.queryByRole('button', { name: 'Journey' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Atlas' })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { expanded: false }));
-    expect(screen.getByRole('button', { name: /Journey/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Atlas/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Collections/ })).toBeInTheDocument();
+  });
+
+  it('FE-MOB-NAV-006b: the dock keeps Journey next to Vacay when both are enabled', () => {
+    seedAddons(['vacay', 'atlas', 'journey', 'collections']);
+    render(<MBottomNav />, { initialEntries: ['/dashboard'] });
+
+    expect(screen.getByRole('button', { name: 'Journey' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Vacay' })).toBeInTheDocument();
+  });
+
+  it('FE-MOB-NAV-006c: an instance without the journey addon keeps the Vacay/Atlas dock', () => {
+    seedAddons(['vacay', 'atlas', 'collections']);
+    render(<MBottomNav />, { initialEntries: ['/dashboard'] });
+
+    expect(screen.getByRole('button', { name: 'Vacay' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Atlas' })).toBeInTheDocument();
   });
 
   it('FE-MOB-NAV-007: no More slot without popover entries', () => {
@@ -126,7 +142,7 @@ describe('MBottomNav', () => {
     render(<MBottomNav />, { initialEntries: ['/dashboard'] });
 
     fireEvent.click(screen.getByRole('button', { name: 'More' }));
-    fireEvent.click(screen.getByRole('button', { name: /Journey/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Atlas/ }));
 
     const more = screen.getByRole('button', { name: 'More' });
     expect(more).toHaveAttribute('aria-expanded', 'false');

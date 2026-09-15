@@ -91,7 +91,7 @@ export class DaysService {
       COALESCE(da.assignment_time, p.place_time) as place_time,
       COALESCE(da.assignment_end_time, p.end_time) as end_time,
       p.duration_minutes, p.notes as place_notes,
-      p.image_url, p.transport_mode, p.google_place_id, p.google_ftid, p.osm_id, p.website, p.phone,
+      p.image_url, p.transport_mode, p.google_place_id, p.google_ftid, p.osm_id, p.amap_poi_id, p.website, p.phone, p.stop_type, p.fill_percent,
       c.name as category_name, c.color as category_color, c.icon as category_icon
     FROM day_assignments da
     JOIN places p ON da.place_id = p.id
@@ -112,7 +112,11 @@ export class DaysService {
         id: a.id,
         day_id: a.day_id,
         order_index: a.order_index,
+        end_day: a.end_day === 1,
         notes: a.notes,
+        // Repeated here for the same reason stop_type is: the day list hides the stop
+        // a booking wrote, and this copy is one of the paths that feed it.
+        accommodation_id: a.accommodation_id ?? null,
         created_at: a.created_at,
         place: {
           id: a.place_id,
@@ -133,8 +137,13 @@ export class DaysService {
           google_place_id: a.google_place_id,
           google_ftid: a.google_ftid,
           osm_id: a.osm_id,
+          amap_poi_id: a.amap_poi_id,
           website: a.website,
           phone: a.phone,
+          // Hand-built here rather than through `formatAssignmentWithPlace`, so every
+          // place column has to be repeated twice — which is how the road-trip kind went
+          // missing and made a petrol station render as an ordinary numbered stop.
+          stop_type: a.stop_type ?? null,
           category: a.category_id ? {
             id: a.category_id,
             name: a.category_name,
@@ -167,7 +176,7 @@ export class DaysService {
       COALESCE(da.assignment_time, p.place_time) as place_time,
       COALESCE(da.assignment_end_time, p.end_time) as end_time,
       p.duration_minutes, p.notes as place_notes,
-      p.image_url, p.transport_mode, p.google_place_id, p.google_ftid, p.osm_id, p.website, p.phone,
+      p.image_url, p.transport_mode, p.google_place_id, p.google_ftid, p.osm_id, p.amap_poi_id, p.website, p.phone, p.stop_type, p.fill_percent,
       c.name as category_name, c.color as category_color, c.icon as category_icon
     FROM day_assignments da
     JOIN places p ON da.place_id = p.id
@@ -359,6 +368,16 @@ export class DaysService {
         ELSE :date || SUBSTR(reservation_time, 11) END
     WHERE accommodation_id = :accId AND type = 'hotel'
   `);
+    // The day stop a booking wrote moves with it, the way its linked booking does.
+    // Left behind it would sit on a day the traveller no longer sleeps there, with
+    // nothing on screen to say why. Re-indexed to the end of the target day, because
+    // its old position belonged to a day it is leaving.
+    const moveStayStop = this.db.prepare(`
+    UPDATE day_assignments
+    SET day_id = :dayId,
+        order_index = COALESCE((SELECT MAX(order_index) FROM day_assignments WHERE day_id = :dayId), -1) + 1
+    WHERE accommodation_id = :accId
+  `);
 
     for (const stay of stays) {
       const oldStartDate = prevDateByDayId.get(stay.start_day_id);
@@ -369,6 +388,7 @@ export class DaysService {
         if (newStart && newEnd && newStart.day_number <= newEnd.day_number
           && (newStart.id !== stay.start_day_id || newEnd.id !== stay.end_day_id)) {
           updateStay.run(newStart.id, newEnd.id, stay.id);
+          moveStayStop.run({ dayId: newStart.id, accId: stay.id });
           stay.start_day_id = newStart.id;
         }
       }

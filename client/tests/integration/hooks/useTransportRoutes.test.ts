@@ -62,6 +62,33 @@ describe('useTransportRoutes (#1425 real road routes)', () => {
     expect(calculateRouteWithLegs).not.toHaveBeenCalled()
   })
 
+  it('routes a road trip whose stops add up past the cap, because no single leg does (#1797)', async () => {
+    // Paris → Munich → Vienna → Budapest: ~1800 km end to end, every leg well under
+    // the cap. Before the cap moved to the leg, the sum alone dropped the whole drive.
+    const res = [{
+      id: 20,
+      type: 'car',
+      status: 'confirmed',
+      endpoints: [
+        { role: 'from', sequence: 0, name: 'Paris', code: null, lat: 48.8566, lng: 2.3522, timezone: null, local_time: null, local_date: null },
+        { role: 'stop', sequence: 1, name: 'Munich', code: null, lat: 48.1351, lng: 11.582, timezone: null, local_time: null, local_date: null },
+        { role: 'stop', sequence: 2, name: 'Vienna', code: null, lat: 48.2082, lng: 16.3738, timezone: null, local_time: null, local_date: null },
+        { role: 'to', sequence: 3, name: 'Budapest', code: null, lat: 47.4979, lng: 19.0402, timezone: null, local_time: null, local_date: null },
+      ],
+    } as unknown as Reservation]
+    const { result } = renderHook(() => useTransportRoutes(res))
+    await waitFor(() => expect(result.current.get(20)).toBeTruthy())
+    expect(calculateRouteWithLegs).toHaveBeenCalledWith(
+      [
+        { lat: 48.8566, lng: 2.3522 },
+        { lat: 48.1351, lng: 11.582 },
+        { lat: 48.2082, lng: 16.3738 },
+        { lat: 47.4979, lng: 19.0402 },
+      ],
+      expect.objectContaining({ profile: 'driving' }),
+    )
+  })
+
   it('falls back silently (no entry) when routing throws', async () => {
     calculateRouteWithLegs.mockRejectedValueOnce(new Error('OSRM down'))
     const res = [booking(7, 'taxi', PARIS, VERSAILLES)]

@@ -247,19 +247,42 @@ export class JourneyMcp {
       title: z.string().min(1).max(200).optional(),
       subtitle: z.string().max(300).optional(),
       status: z.enum(['draft', 'active', 'completed', 'archived']).optional(),
+      show_verdict: z.boolean().optional().describe('Whether entries in this journey offer a pros/cons list'),
+      show_mood: z.boolean().optional().describe('Whether entries in this journey offer a mood'),
+      show_weather: z.boolean().optional().describe('Whether entries in this journey offer a weather note'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: journeyAddonOn,
     access: { group: 'journey', mode: 'write' },
   })
   updateJourney(
-    { journeyId, title, subtitle, status }: { journeyId: number; title?: string; subtitle?: string; status?: string },
+    { journeyId, ...data }: {
+      journeyId: number; title?: string; subtitle?: string; status?: string;
+      show_verdict?: boolean; show_mood?: boolean; show_weather?: boolean;
+    },
     ctx: McpContext,
   ) {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    const journey = this.journey.updateJourney(journeyId, ctx.userId, { title, subtitle, status });
+    const journey = this.journey.updateJourney(journeyId, ctx.userId, data);
     if (!journey) return notFound('Journey not found or access denied.');
     return ok({ journey });
+  }
+
+  @Tool({
+    name: 'restore_journey_suggestions',
+    description: 'Bring back every trip-derived suggestion that was dismissed from this journey. Answers with how many came back.',
+    inputSchema: {
+      journeyId: z.number().int().positive(),
+    },
+    annotations: TOOL_ANNOTATIONS_WRITE,
+    when: journeyAddonOn,
+    access: { group: 'journey', mode: 'write' },
+  })
+  restoreJourneySuggestions({ journeyId }: { journeyId: number }, ctx: McpContext) {
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
+    const result = this.journey.restoreDismissedSuggestions(journeyId, ctx.userId);
+    if (!result) return notFound('Journey not found or access denied.');
+    return ok(result);
   }
 
   @Tool({
@@ -366,6 +389,7 @@ export class JourneyMcp {
       type: ENTRY_TYPE.optional().describe('Promote a trip-derived "skeleton" to a real "entry" once it has been written up'),
       sort_order: z.number().int().min(0).optional(),
       stats_excluded: z.boolean().optional().describe('True leaves the entry in the journal but takes it off the journey route and out of its distance, countries and step count (see get_journey_stats); false puts it back. For the home airport, a stopover, the place the trip was planned from'),
+      dismissed: z.boolean().optional().describe('True waves a trip-derived suggestion away: it leaves the journey without being deleted, so the trip sync does not offer it again. restore_journey_suggestions brings every dismissed one back'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: journeyAddonOn,
@@ -378,6 +402,7 @@ export class JourneyMcp {
       location_lng?: number | null; mood?: string | null; weather?: string | null;
       tags?: string[] | null; pros_cons?: { pros: string[]; cons: string[] } | null;
       visibility?: EntryVisibility; type?: EntryType; sort_order?: number; stats_excluded?: boolean;
+      dismissed?: boolean;
     },
     ctx: McpContext,
   ) {

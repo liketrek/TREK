@@ -132,6 +132,47 @@ describe('PlPlaceSearch', () => {
     expect(onPick).toHaveBeenLastCalledWith(expect.objectContaining({ name: 'Louvre Museum', lat: '48.8606' }))
   })
 
+  it('FE-MOB-PLSRCH-005b: an OpenStreetMap row keeps its own coordinates instead of searching for its label', async () => {
+    // The layer's second line is the name written on the building, not an
+    // address, so joining the two asks a question nobody typed — and whatever
+    // came back first was taken as the place the user had already picked.
+    server.use(
+      recordAutocomplete([{
+        placeId: 'node:9712313',
+        mainText: 'Tokio Hauptbahnhof',
+        secondaryText: '東京駅丸の内駅舎',
+        source: 'openstreetmap',
+        lat: 35.6811816,
+        lng: 139.76598265,
+      }]),
+      http.get('/api/maps/details/:placeId', () => HttpResponse.json({ place: null, disabled: true })),
+      recordSearch(),
+    )
+    const { input, onPick } = setup()
+    fireEvent.change(input, { target: { value: 'Tok' } })
+    fireEvent.click(await screen.findByText('Tokio Hauptbahnhof'))
+
+    await waitFor(() => expect(onPick).toHaveBeenCalledTimes(2))
+    expect(searchBodies).toHaveLength(0)
+    expect(onPick).toHaveBeenLastCalledWith(expect.objectContaining({
+      name: 'Tokio Hauptbahnhof', lat: '35.6811816', lng: '139.76598265',
+    }))
+  })
+
+  it('FE-MOB-PLSRCH-005c: a suggestion says which index answered', async () => {
+    // Both indexes answer the keystroke path at once, so the name the response
+    // carries for the whole list is true of the call and wrong for half its rows.
+    server.use(recordAutocomplete([
+      { ...SUGGESTION, source: 'trek-places' },
+      { placeId: 'node:1', mainText: 'Louvre Palace', secondaryText: 'Palais du Louvre', source: 'openstreetmap' },
+    ]))
+    const { input } = setup()
+    fireEvent.change(input, { target: { value: 'Lou' } })
+
+    expect(await screen.findByText('TREK')).toBeInTheDocument()
+    expect(await screen.findByText('OpenStreetMap')).toBeInTheDocument()
+  })
+
   it('FE-MOB-PLSRCH-006: also falls back when the details hop answers without coordinates', async () => {
     server.use(
       recordAutocomplete(),

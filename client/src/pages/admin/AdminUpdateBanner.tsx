@@ -10,7 +10,7 @@ interface AdminUpdateBannerProps {
 }
 
 // The "new version available" banner shown at the top of the admin page.
-// Purely presentational — extracted from AdminPage with identical markup.
+// Purely presentational — extracted from AdminPage.
 export default function AdminUpdateBanner({ updateInfo, t, onHowTo }: AdminUpdateBannerProps): React.ReactElement {
   return (
     <div className="mb-6 p-4 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-700">
@@ -25,23 +25,28 @@ export default function AdminUpdateBanner({ updateInfo, t, onHowTo }: AdminUpdat
           </p>
         </div>
       </div>
+      {/* Both controls carry the same box metrics — padding, text size, icon, and a
+          border the filled one only needs to stop the outlined one from ending up
+          2px shorter. Two buttons side by side read as one group, so a size gap
+          reads as a mistake rather than as hierarchy; the fill, the colour and the
+          weight are what mark the primary action. */}
       <div className="flex items-center gap-2 flex-shrink-0">
         {updateInfo.release_url && (
           <a
             href={updateInfo.release_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-600 hover:bg-amber-100 dark:hover:bg-amber-900/50"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-600 hover:bg-amber-100 dark:hover:bg-amber-900/50"
           >
-            <ExternalLink className="w-3.5 h-3.5" />
+            <ExternalLink className="w-4 h-4 flex-shrink-0" />
             {t('admin.update.button')}
           </a>
         )}
         <button type="button"
           onClick={onHowTo}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-colors bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-700 dark:hover:bg-gray-200"
+          className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-colors border border-transparent bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-700 dark:hover:bg-gray-200"
         >
-          <Download className="w-4 h-4" />
+          <Download className="w-4 h-4 flex-shrink-0" />
           {t('admin.update.howTo')}
         </button>
       </div>

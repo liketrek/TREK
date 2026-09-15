@@ -143,6 +143,23 @@ const collection: TranslationStrings = {
   'collections.picker.hint': 'コレクションから場所を選択',
   'collections.picker.use': '使用',
 
+  // Export / import a list as a file (#2198)
+  'collections.file.export': 'エクスポート',
+  'collections.file.exportTitle': 'このリストをファイルとしてダウンロード',
+  'collections.file.importButton': 'ファイルからリストをインポート',
+  'collections.file.importTitle': 'リストのインポート',
+  'collections.file.choose': 'リストファイルを選択',
+  'collections.file.confirm': 'インポート',
+  'collections.file.change': '変更',
+  'collections.file.labelCount': 'ラベル {count} 件',
+  'collections.file.hint':
+    '場所は自分の新しいリストとして追加されます。評価、メンバー、アップロードした写真は引き継がれません。',
+  'collections.file.done': '{count} 件の場所をインポートしました',
+  'collections.file.doneSkipped': '{count} 件の場所をインポートし、{skipped} 件をスキップしました',
+  'collections.file.errorTooLarge': 'このファイルはリストとしては大きすぎます。',
+  'collections.file.errorUnreadable': 'このファイルを読み取れませんでした。',
+  'collections.file.errorNotACollection': 'これは TREK のリストファイルではありません。',
+
   'collections.share.title': 'リストを共有',
   'collections.share.titleNamed': '「{name}」を共有',
   'collections.share.button': '共有',

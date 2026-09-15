@@ -180,7 +180,11 @@ function normalizeAdm1(geo, a3, countryName) {
     return code
   }
   return geo.features.map(f => {
-    const name = f.properties?.shapeName || ''
+    let name = f.properties?.shapeName || ''
+    // geoBoundaries erroneously names Guangdong Province as "Guangzhou Province" (Guangzhou is the capital city).
+    if (a3 === 'CHN' && name === 'Guangzhou Province') {
+      name = 'Guangdong Province'
+    }
     const geometry = quantizeGeometry(f.geometry, ADM1_DECIMALS)
     if (!geometry) return null
     // shapeISO is a real ISO 3166-2 code for most features, but geoBoundaries sometimes

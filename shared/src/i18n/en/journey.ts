@@ -626,5 +626,21 @@ const journey: TranslationStrings = {
   'journey.editor.statsExcludedHint':
     'The stop stays in the journal but does not count toward the distance, the countries or the map in Studio.',
   'journey.entry.offRoute': 'Off route',
+  'journey.suggestions.dismiss': 'Dismiss this suggestion',
+  'journey.suggestions.dismissed': 'Suggestion dismissed',
+  'journey.suggestions.restore': 'Bring back dismissed suggestions',
+  'journey.suggestions.restoreCount': 'Dismissed suggestions ({count})',
+  'journey.suggestions.restored': '{count} suggestions are back',
+  'journey.detail.addOnThisDay': 'Add an entry on this day',
+  'journey.detail.jumpToDay': 'Jump to {date}',
+  'journey.detail.searchPlaceholder': 'Search this journey',
+  'journey.detail.searchEmpty': 'No entry matches "{query}"',
+  'journey.settings.entryFields': 'Entry fields',
+  'journey.settings.entryFieldsHint': 'Switch off what this journey does not use. Nothing already written is lost.',
+  'journey.settings.showVerdict': 'Pros & cons',
+  'journey.settings.showMood': 'Mood',
+  'journey.settings.showWeather': 'Weather',
+  'journey.entry.suggestion': 'Suggestion',
+  'journey.editor.addDetails': '+ Details',
 };
 export default journey;

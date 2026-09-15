@@ -52,6 +52,7 @@ const atlas: TranslationStrings = {
   'atlas.oceania': 'Châu Đại Dương',
   'atlas.other': 'Khác',
   'atlas.firstVisit': 'Chuyến đi đầu tiên',
+  'atlas.lastVisitLabel': 'Chuyến đi cuối cùng',
   'atlas.tripSingular': 'Chuyến đi',
   'atlas.tripPlural': 'Chuyến đi',
   'atlas.placeVisited': 'Nơi đã ghé thăm',

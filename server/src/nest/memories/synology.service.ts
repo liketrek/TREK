@@ -9,6 +9,7 @@ import {
   handleServiceResult,
   success,
   pipeAsset,
+  sortAssetsByTakenAtDesc,
   type AlbumsList,
   type AssetInfo,
   type AssetsList,
@@ -526,7 +527,8 @@ export class SynologyService {
           lng: typeof item.additional?.gps?.longitude === 'number' ? item.additional.gps.longitude : null,
       })).filter(a => a.id);
 
-      return success({ assets, total: assets.length, hasMore: false });
+      const ordered = sortAssetsByTakenAtDesc(assets);
+      return success({ assets: ordered, total: ordered.length, hasMore: false });
   }
 
   /**
@@ -593,7 +595,13 @@ export class SynologyService {
       if (!result.success) return result as ServiceResult<AssetsList>;
 
       const allItems = result.data.list || [];
-      const assets = allItems.map(item => this._normalizeSynologyPhotoInfo(item));
+      // Deliberately no sort parameter upstream, on this path or the album one.
+      // Synology documents none for Search.Search, and _fetchSynologyJson maps
+      // every app code except 106/107/119 onto a 400 — a parameter one DSM build
+      // rejects would take listing down entirely for that user. Both paths read
+      // every page anyway, so ordering the mapped result costs nothing and
+      // cannot fail.
+      const assets = sortAssetsByTakenAtDesc(allItems.map(item => this._normalizeSynologyPhotoInfo(item)));
 
       return success({
           assets,

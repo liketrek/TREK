@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { MapViewAuto } from '../../../../components/Map/MapViewAuto'
 import { MapCompassPill, type CompassMap } from '../../../../components/Map/MapCompassPill'
+import { TripRouteOverviewPill, TripRouteOverviewPanel } from '../../../../components/Map/TripRouteOverview'
+import { DawarichTrailPill } from '../../../../components/Map/DawarichTrailPill'
 import PoiCategoryPill from '../../../../components/Map/PoiCategoryPill'
 import { usePoiExplore } from '../../../../components/Map/usePoiExplore'
 import { useSettingsStore } from '../../../../store/settingsStore'
@@ -29,6 +31,7 @@ export default function MMapArea({ planner, shell }: MMapAreaProps) {
   const poi = usePoiExplore()
   const [glMap, setGlMap] = useState<CompassMap | null>(null)
   const poiPillEnabled = useSettingsStore(s => s.settings.map_poi_pill_enabled) !== false
+  const distanceUnit = useSettingsStore(s => s.settings.distance_unit)
 
   const mapActive = shell.view === 'map'
 
@@ -42,16 +45,19 @@ export default function MMapArea({ planner, shell }: MMapAreaProps) {
     <div className="absolute inset-0 isolate overflow-hidden bg-[color:var(--m-mapb)] [--bottom-nav-h:calc(env(safe-area-inset-bottom,0px)+74px)]">
       <MapViewAuto
         tripId={planner.tripId}
+        dawarichTrack={planner.dawarichTrail.track}
         places={planner.mapPlaces}
         dayPlaces={planner.dayPlaces}
-        route={planner.route}
+        route={planner.overviewActive ? planner.tripOverview.lines : planner.route}
+        routeColors={planner.overviewActive ? planner.tripOverview.lineColors : undefined}
+        focusPoints={planner.overviewActive ? planner.tripOverview.focusPoints : undefined}
         routeVias={planner.routeVias}
         showTransitRoutes={planner.transitRoutesShown}
         // The route toggle belongs to one day, so the map needs that day to know
         // which automated transports may ride it (#2019).
         days={planner.days}
         selectedDayId={planner.selectedDayId}
-        routeSegments={planner.routeSegments}
+        routeSegments={planner.overviewActive ? planner.tripOverview.segments : planner.routeSegments}
         selectedPlaceId={planner.selectedPlaceId}
         onMarkerClick={planner.handleMarkerClick}
         // Tap on empty map = deselect, same contract as desktop.
@@ -102,6 +108,40 @@ export default function MMapArea({ planner, shell }: MMapAreaProps) {
       {mapActive && glMap && (
         <div className="pointer-events-none absolute left-3 z-[25]" style={{ bottom: 'calc(var(--bottom-nav-h, 84px) + 12px)' }}>
           <MapCompassPill map={glMap} />
+        </div>
+      )}
+
+      {/* Whole-trip overview (#1736): the stages stack above their toggle on the right,
+          clear of the round-controls band below it and of the compass and Leaflet's
+          base-layer switcher, which both sit in the bottom-LEFT corner. The offset is
+          Tailwind rather than inline because the compass band is identified by being
+          the one element with an inline --bottom-nav-h, and a second would make that
+          ambiguous. */}
+      {mapActive && (!planner.roadtripActive || planner.dawarichEnabled) && (
+        <div className="pointer-events-none absolute left-3 right-3 z-[25] flex flex-col items-end gap-2 bottom-[calc(var(--bottom-nav-h,84px)+58px)]">
+          {!planner.roadtripActive && planner.overviewActive && (
+            <TripRouteOverviewPanel
+              overview={planner.tripOverview}
+              unit={distanceUnit}
+              selectedDayId={planner.selectedDayId}
+              onSelectDay={planner.handleSelectDay}
+              // Tighter than the desktop card: the map is the whole screen here, so a
+              // long day name ellipsizes rather than eating another 80px of it.
+              maxWidth={240}
+            />
+          )}
+          {!planner.roadtripActive && (
+            <TripRouteOverviewPill active={planner.overviewShown} onToggle={planner.toggleOverview} />
+          )}
+          {/* Kept in road-trip mode: the recorded route beside the planned one is
+              exactly the comparison a drive invites. */}
+          {planner.dawarichEnabled && (
+            <DawarichTrailPill
+              active={planner.dawarichTrailShown}
+              status={planner.dawarichTrail.status}
+              onToggle={planner.toggleDawarichTrail}
+            />
+          )}
         </div>
       )}
     </div>

@@ -413,9 +413,22 @@ describe('client > endpoint wiring', () => {
     expect(rec.url).toBe('/api/integrations/memories/synologyphotos/albums/alb-2/photos?passphrase=p%2Fw%3F')
   })
 
+  /**
+   * The one call in this file that is deliberately TWO requests, which is why it is not
+   * in the list above: a search asks TREK's own indexes and any installed search-provider
+   * plugin at the same time, and the caller gets one list back (#2221).
+   */
+  it('FE-APISURF-055: mapsApi.search asks the core index and the plugin providers side by side', async () => {
+    log = []
+    await mapsApi.search('Rome')
+    expect(log.map(r => `${r.method} ${r.url.split('?')[0]}`).sort()).toEqual([
+      'GET /api/plugin-search',
+      'POST /api/maps/search',
+    ])
+  })
+
   it('FE-APISURF-016: mapsApi and airportsApi map the geo endpoints', async () => {
     await assertCalls([
-      { n: 'maps.search', r: () => mapsApi.search('Rome'), e: 'POST /api/maps/search' },
       { n: 'maps.autocomplete', r: () => mapsApi.autocomplete('Rom'), e: 'POST /api/maps/autocomplete' },
       { n: 'maps.details', r: () => mapsApi.details('place/1'), e: 'GET /api/maps/details/place%2F1' },
       { n: 'maps.placePhoto', r: () => mapsApi.placePhoto('place/1'), e: 'GET /api/maps/place-photo/place%2F1' },
