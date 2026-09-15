@@ -1888,6 +1888,164 @@ describe('reconcileTripSkeletons', () => {
   });
 });
 
+// -- the same place on two days (#2329) ---------------------------------------
+
+describe('a place standing on more than one day', () => {
+  function linkedJourneyTrip() {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const trip = createTrip(testDb, user.id, {
+      title: 'Repeat Trip',
+      start_date: '2026-05-01',
+      end_date: '2026-05-03',
+    });
+    svc.addTripToJourney(journey.id, trip.id, user.id);
+    return { user, journey, trip };
+  }
+
+  function daysOf(tripId: number) {
+    return testDb.prepare('SELECT id, date FROM days WHERE trip_id = ? ORDER BY date ASC').all(tripId) as {
+      id: number;
+      date: string;
+    }[];
+  }
+
+  function skeletonsFor(journeyId: number, placeId: number) {
+    return testDb
+      .prepare('SELECT * FROM journey_entries WHERE journey_id = ? AND source_place_id = ? ORDER BY entry_date ASC')
+      .all(journeyId, placeId) as any[];
+  }
+
+  it('JOURNEY-SVC-REPEAT-001: syncTripPlaces writes one skeleton per day, not one per place', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const trip = createTrip(testDb, user.id, { title: 'Two Nights', start_date: '2026-05-01', end_date: '2026-05-03' });
+    const days = daysOf(trip.id);
+    const place = createPlace(testDb, trip.id, { name: 'Reykjavík' });
+    createDayAssignment(testDb, days[0].id, place.id);
+    createDayAssignment(testDb, days[1].id, place.id);
+
+    svc.syncTripPlaces(journey.id, trip.id, user.id);
+
+    expect(skeletonsFor(journey.id, place.id).map((e) => e.entry_date)).toEqual([days[0].date, days[1].date]);
+  });
+
+  it('JOURNEY-SVC-REPEAT-002: a second call adds nothing', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const trip = createTrip(testDb, user.id, { title: 'Idempotent', start_date: '2026-05-01', end_date: '2026-05-03' });
+    const days = daysOf(trip.id);
+    const place = createPlace(testDb, trip.id, { name: 'Vík' });
+    createDayAssignment(testDb, days[0].id, place.id);
+    createDayAssignment(testDb, days[1].id, place.id);
+
+    svc.syncTripPlaces(journey.id, trip.id, user.id);
+    svc.syncTripPlaces(journey.id, trip.id, user.id);
+
+    expect(skeletonsFor(journey.id, place.id)).toHaveLength(2);
+  });
+
+  it('JOURNEY-SVC-REPEAT-003: onPlaceCreated fires once per day the place already stands on', () => {
+    const { journey, trip } = linkedJourneyTrip();
+    const days = daysOf(trip.id);
+    const place = createPlace(testDb, trip.id, { name: 'Höfn' });
+    createDayAssignment(testDb, days[1].id, place.id);
+    createDayAssignment(testDb, days[2].id, place.id);
+
+    svc.onPlaceCreated(trip.id, place.id);
+
+    expect(skeletonsFor(journey.id, place.id).map((e) => e.entry_date)).toEqual([days[1].date, days[2].date]);
+  });
+
+  it('JOURNEY-SVC-REPEAT-004: assigning the place to a second day adds a second entry and keeps the first', () => {
+    const { journey, trip } = linkedJourneyTrip();
+    const days = daysOf(trip.id);
+    const place = createPlace(testDb, trip.id, { name: 'Akureyri' });
+    createDayAssignment(testDb, days[0].id, place.id);
+    svc.reconcileTripSkeletons(trip.id);
+    const first = skeletonsFor(journey.id, place.id)[0];
+    testDb.prepare("UPDATE journey_entries SET type = 'entry', story = 'Sunset' WHERE id = ?").run(first.id);
+
+    createDayAssignment(testDb, days[1].id, place.id);
+    svc.reconcileTripSkeletons(trip.id);
+
+    const both = skeletonsFor(journey.id, place.id);
+    expect(both.map((e) => e.entry_date)).toEqual([days[0].date, days[1].date]);
+    expect(both[0].id).toBe(first.id);
+    expect(both[0].story).toBe('Sunset');
+    expect(both[1].type).toBe('skeleton');
+  });
+
+  it('JOURNEY-SVC-REPEAT-005: unassigning one day drops only that day', () => {
+    const { journey, trip } = linkedJourneyTrip();
+    const days = daysOf(trip.id);
+    const place = createPlace(testDb, trip.id, { name: 'Selfoss' });
+    createDayAssignment(testDb, days[0].id, place.id);
+    const second = createDayAssignment(testDb, days[1].id, place.id);
+    svc.reconcileTripSkeletons(trip.id);
+    expect(skeletonsFor(journey.id, place.id)).toHaveLength(2);
+
+    testDb.prepare('DELETE FROM day_assignments WHERE id = ?').run(second.id);
+    svc.reconcileTripSkeletons(trip.id);
+
+    expect(skeletonsFor(journey.id, place.id).map((e) => e.entry_date)).toEqual([days[0].date]);
+  });
+
+  it('JOURNEY-SVC-REPEAT-006: moving one of the two assignments moves its entry rather than replacing it', () => {
+    const { journey, trip } = linkedJourneyTrip();
+    const days = daysOf(trip.id);
+    const place = createPlace(testDb, trip.id, { name: 'Geysir' });
+    createDayAssignment(testDb, days[0].id, place.id);
+    const second = createDayAssignment(testDb, days[1].id, place.id);
+    svc.reconcileTripSkeletons(trip.id);
+    const movedId = skeletonsFor(journey.id, place.id)[1].id;
+
+    testDb.prepare('UPDATE day_assignments SET day_id = ? WHERE id = ?').run(days[2].id, second.id);
+    svc.reconcileTripSkeletons(trip.id);
+
+    const after = skeletonsFor(journey.id, place.id);
+    expect(after.map((e) => e.entry_date)).toEqual([days[0].date, days[2].date]);
+    expect(after[1].id).toBe(movedId);
+  });
+
+  it('JOURNEY-SVC-REPEAT-007: editing the place leaves each entry on its own day', () => {
+    const { journey, trip } = linkedJourneyTrip();
+    const days = daysOf(trip.id);
+    const place = createPlace(testDb, trip.id, { name: 'Old Name' });
+    createDayAssignment(testDb, days[0].id, place.id);
+    createDayAssignment(testDb, days[1].id, place.id);
+    svc.reconcileTripSkeletons(trip.id);
+
+    testDb.prepare('UPDATE places SET name = ? WHERE id = ?').run('New Name', place.id);
+    svc.onPlaceUpdated(place.id);
+
+    const after = skeletonsFor(journey.id, place.id);
+    expect(after.map((e) => e.entry_date)).toEqual([days[0].date, days[1].date]);
+    expect(after.map((e) => e.title)).toEqual(['New Name', 'New Name']);
+  });
+
+  it('JOURNEY-SVC-REPEAT-008: an entry with no assignment link is claimed, not annotated out', () => {
+    const { journey, trip } = linkedJourneyTrip();
+    const days = daysOf(trip.id);
+    const place = createPlace(testDb, trip.id, { name: 'Legacy Stop' });
+    createDayAssignment(testDb, days[0].id, place.id);
+    svc.reconcileTripSkeletons(trip.id);
+    const legacy = skeletonsFor(journey.id, place.id)[0];
+    // What an install upgraded from before the column existed looks like.
+    testDb
+      .prepare("UPDATE journey_entries SET source_assignment_id = NULL, type = 'entry', story = 'Kept' WHERE id = ?")
+      .run(legacy.id);
+
+    svc.reconcileTripSkeletons(trip.id);
+
+    const after = skeletonsFor(journey.id, place.id);
+    expect(after).toHaveLength(1);
+    expect(after[0].id).toBe(legacy.id);
+    expect(after[0].source_assignment_id).not.toBeNull();
+    expect(after[0].story).toBe('Kept');
+  });
+});
+
 // ---------------------------------------------------------------------------
 // Skeleton lifecycle, the photo gallery and the per-user preference row. These
 // paths were reachable only through the REST controller before the fold, so the

@@ -391,6 +391,12 @@ export interface JourneyEntry {
   journey_id: number;
   source_trip_id?: number | null;
   source_place_id?: number | null;
+  /**
+   * The `day_assignments` row this entry was derived from (#2329). A place standing
+   * on two days is two entries, and only this tells them apart. May dangle: an
+   * unassigned stop keeps the id so reconciliation can see the assignment is gone.
+   */
+  source_assignment_id?: number | null;
   author_id: number;
   type: 'entry' | 'checkin' | 'skeleton';
   title?: string | null;

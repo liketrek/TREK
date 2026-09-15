@@ -488,7 +488,7 @@ export class TripsService {
       `).run(tripId);
       // Detach filled entries (keep user's written content, just remove trip link)
       this.db.prepare(`
-        UPDATE journey_entries SET source_trip_id = NULL, source_place_id = NULL
+        UPDATE journey_entries SET source_trip_id = NULL, source_place_id = NULL, source_assignment_id = NULL
         WHERE source_trip_id = ?
       `).run(tripId);
 

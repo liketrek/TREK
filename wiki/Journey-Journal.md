@@ -16,7 +16,7 @@ When the admin has enabled the Journey addon, a **Journey** entry appears in the
 
 ## Creating a journey
 
-From the Journey list, click **Create journey**. Give it a title and optional subtitle, then select one or more existing trips to link. Linking a trip imports the trip's places as location anchors for your entries. You can link additional trips later from the journal settings.
+From the Journey list, click **Create journey**. Give it a title and optional subtitle, then select one or more existing trips to link. Linking a trip imports the trip's places as location anchors for your entries — one anchor per day the place stands on, so a place you kept across two days gives you an entry on each of them. You can link additional trips later from the journal settings.
 
 ## Journal entries
 

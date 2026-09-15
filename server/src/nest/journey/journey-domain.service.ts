@@ -32,6 +32,20 @@ function regionNames(): Intl.DisplayNames | null {
   }
 }
 
+/**
+ * What makes a journal skeleton unique: the place *and* the day assignment it
+ * stands on (#2329). Keyed on the place alone, a stop kept across two days — the
+ * city you land in at dusk and walk through the next morning — got one entry, and
+ * the second day's photographs had nowhere to go.
+ *
+ * The assignment rather than the day, because moving a stop updates
+ * `day_assignments.day_id` in place: keyed this way an entry follows the move
+ * instead of being read as one stop leaving the plan and another arriving.
+ */
+function skeletonKey(placeId: number, assignmentId: number | null | undefined): string {
+  return `${placeId}:${assignmentId ?? ''}`;
+}
+
 function countryNamesFor(points: { country: string | null }[]): Record<string, string> {
   const out: Record<string, string> = {};
   const display = regionNames();
@@ -467,7 +481,7 @@ export class JourneyDomainService {
     // detach filled entries from this trip
     this.db.prepare(
       `
-      UPDATE journey_entries SET source_trip_id = NULL, source_place_id = NULL
+      UPDATE journey_entries SET source_trip_id = NULL, source_place_id = NULL, source_assignment_id = NULL
       WHERE journey_id = ? AND source_trip_id = ? AND type != 'skeleton'
     `,
     ).run(journeyId, tripId);
@@ -482,7 +496,7 @@ export class JourneyDomainService {
     const places = this.db
       .prepare(
         `
-      SELECT p.*, da.day_id, d.date as day_date, da.assignment_time, da.assignment_end_time, d.day_number
+      SELECT p.*, da.id AS assignment_id, da.day_id, d.date as day_date, da.assignment_time, da.assignment_end_time, d.day_number
       FROM places p
       INNER JOIN day_assignments da ON da.place_id = p.id
       INNER JOIN days d ON da.day_id = d.id
@@ -494,9 +508,9 @@ export class JourneyDomainService {
 
     const now = this.ts();
     const existing = this.db
-      .prepare('SELECT source_place_id FROM journey_entries WHERE journey_id = ? AND source_trip_id = ?')
-      .all(journeyId, tripId) as { source_place_id: number }[];
-    const existingPlaceIds = new Set(existing.map((e) => e.source_place_id));
+      .prepare('SELECT source_place_id, source_assignment_id FROM journey_entries WHERE journey_id = ? AND source_trip_id = ?')
+      .all(journeyId, tripId) as { source_place_id: number; source_assignment_id: number | null }[];
+    const existingKeys = new Set(existing.map((e) => skeletonKey(e.source_place_id, e.source_assignment_id)));
 
     // Track next sort_order per date so synced skeletons get unique, sequential positions.
     const dateMaxOrder = new Map<string, number>();
@@ -508,8 +522,9 @@ export class JourneyDomainService {
     for (const row of maxRows) dateMaxOrder.set(row.entry_date, row.m);
 
     for (const place of places) {
-      if (existingPlaceIds.has(place.id)) continue;
-      existingPlaceIds.add(place.id);
+      const key = skeletonKey(place.id, place.assignment_id);
+      if (existingKeys.has(key)) continue;
+      existingKeys.add(key);
 
       const entryDate = place.day_date || new Date().toISOString().split('T')[0];
       const entryTime = place.assignment_time || place.place_time || null;
@@ -520,6 +535,7 @@ export class JourneyDomainService {
         journeyId,
         tripId,
         placeId: place.id,
+        assignmentId: place.assignment_id ?? null,
         authorId,
         title: place.name,
         entryDate,
@@ -540,47 +556,55 @@ export class JourneyDomainService {
     }[];
     if (!links.length) return;
 
-    const place = this.db
+    // One row per assignment, not one per place: a place can already stand on
+    // several days by the time this fires, and each of those days is its own
+    // entry (#2329).
+    const assignments = this.db
       .prepare(
         `
-      SELECT p.*, da.day_id, d.date as day_date, da.assignment_time, d.day_number
+      SELECT p.*, da.id AS assignment_id, da.day_id, d.date as day_date, da.assignment_time, d.day_number
       FROM places p
       INNER JOIN day_assignments da ON da.place_id = p.id
       INNER JOIN days d ON da.day_id = d.id
       WHERE p.id = ?
+      ORDER BY d.day_number ASC, da.order_index ASC
     `,
       )
-      .get(placeId) as any;
-    if (!place) return; // not assigned to a day yet — skip
+      .all(placeId) as any[];
+    if (!assignments.length) return; // not assigned to a day yet — skip
 
     const now = this.ts();
     for (const link of links) {
-      const already = this.db
-        .prepare('SELECT 1 FROM journey_entries WHERE journey_id = ? AND source_place_id = ?')
-        .get(link.journey_id, placeId);
-      if (already) continue;
-
       const journey = this.db.prepare('SELECT user_id FROM journeys WHERE id = ?').get(link.journey_id) as { user_id: number };
-      const entryDate = place.day_date;
-      const maxOrder = this.db
-        .prepare('SELECT MAX(sort_order) AS m FROM journey_entries WHERE journey_id = ? AND entry_date = ?')
-        .get(link.journey_id, entryDate) as { m: number | null };
-      const nextOrder = (maxOrder?.m ?? -1) + 1;
 
-      this.insertSkeletonEntry({
-        journeyId: link.journey_id,
-        tripId,
-        placeId,
-        authorId: journey.user_id,
-        title: place.name,
-        entryDate,
-        entryTime: place.assignment_time || place.place_time || null,
-        locationName: place.address || place.name,
-        lat: place.lat || null,
-        lng: place.lng || null,
-        sortOrder: nextOrder,
-        now,
-      });
+      for (const place of assignments) {
+        const already = this.db
+          .prepare('SELECT 1 FROM journey_entries WHERE journey_id = ? AND source_place_id = ? AND source_assignment_id IS ?')
+          .get(link.journey_id, placeId, place.assignment_id ?? null);
+        if (already) continue;
+
+        const entryDate = place.day_date;
+        const maxOrder = this.db
+          .prepare('SELECT MAX(sort_order) AS m FROM journey_entries WHERE journey_id = ? AND entry_date = ?')
+          .get(link.journey_id, entryDate) as { m: number | null };
+        const nextOrder = (maxOrder?.m ?? -1) + 1;
+
+        this.insertSkeletonEntry({
+          journeyId: link.journey_id,
+          tripId,
+          placeId,
+          assignmentId: place.assignment_id ?? null,
+          authorId: journey.user_id,
+          title: place.name,
+          entryDate,
+          entryTime: place.assignment_time || place.place_time || null,
+          locationName: place.address || place.name,
+          lat: place.lat || null,
+          lng: place.lng || null,
+          sortOrder: nextOrder,
+          now,
+        });
+      }
     }
   }
 
@@ -589,21 +613,30 @@ export class JourneyDomainService {
     const entries = this.db.prepare('SELECT * FROM journey_entries WHERE source_place_id = ?').all(placeId) as JourneyEntry[];
     if (!entries.length) return;
 
-    const place = this.db
+    const place = this.db.prepare('SELECT * FROM places WHERE id = ?').get(placeId) as any;
+    if (!place) return;
+
+    // Every day this place stands on, so each entry can follow its own rather
+    // than all of them collapsing onto whichever assignment the join returned
+    // first (#2329).
+    const assignments = this.db
       .prepare(
         `
-      SELECT p.*, da.day_id, d.date as day_date, da.assignment_time, d.day_number
-      FROM places p
-      LEFT JOIN day_assignments da ON da.place_id = p.id
-      LEFT JOIN days d ON da.day_id = d.id
-      WHERE p.id = ?
+      SELECT da.id AS assignment_id, d.date as day_date, da.assignment_time
+      FROM day_assignments da
+      INNER JOIN days d ON d.id = da.day_id
+      WHERE da.place_id = ?
+      ORDER BY d.day_number ASC, da.order_index ASC
     `,
       )
-      .get(placeId) as any;
-    if (!place) return;
+      .all(placeId) as { assignment_id: number; day_date: string; assignment_time: string | null }[];
+    const byAssignment = new Map(assignments.map((a) => [a.assignment_id, a]));
+    const assignmentFor = (entry: JourneyEntry) =>
+      (entry.source_assignment_id != null ? byAssignment.get(entry.source_assignment_id) : undefined) ?? assignments[0];
 
     const now = this.ts();
     for (const entry of entries) {
+      const assignment = assignmentFor(entry);
       if (entry.type === 'skeleton') {
         // update everything on skeletons
         this.db.prepare(
@@ -613,8 +646,8 @@ export class JourneyDomainService {
         `,
         ).run(
           place.name,
-          place.day_date || entry.entry_date,
-          place.assignment_time || place.place_time || entry.entry_time,
+          assignment?.day_date || entry.entry_date,
+          assignment?.assignment_time || place.place_time || entry.entry_time,
           place.address || place.name,
           place.lat || null,
           place.lng || null,
@@ -656,7 +689,7 @@ export class JourneyDomainService {
       const note = '\n\n> _Note: the original trip place was removed from the trip plan_';
       const newStory = (entry.story || '') + note;
       this.db.prepare(
-        'UPDATE journey_entries SET source_place_id = NULL, source_trip_id = NULL, type = ?, story = ?, updated_at = ? WHERE id = ?',
+        'UPDATE journey_entries SET source_place_id = NULL, source_trip_id = NULL, source_assignment_id = NULL, type = ?, story = ?, updated_at = ? WHERE id = ?',
       ).run(entry.type === 'skeleton' ? 'entry' : entry.type, newStory, this.ts(), entry.id);
     }
   }
@@ -682,6 +715,7 @@ export class JourneyDomainService {
     journeyId: number;
     tripId: number;
     placeId: number;
+    assignmentId: number | null;
     authorId: number;
     title: string;
     entryDate: string;
@@ -694,13 +728,14 @@ export class JourneyDomainService {
   }) {
     this.db.prepare(
       `
-      INSERT INTO journey_entries (journey_id, source_trip_id, source_place_id, author_id, type, title, entry_date, entry_time, location_name, location_lat, location_lng, country_code, sort_order, created_at, updated_at)
-      VALUES (?, ?, ?, ?, 'skeleton', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO journey_entries (journey_id, source_trip_id, source_place_id, source_assignment_id, author_id, type, title, entry_date, entry_time, location_name, location_lat, location_lng, country_code, sort_order, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, 'skeleton', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     ).run(
       p.journeyId,
       p.tripId,
       p.placeId,
+      p.assignmentId,
       p.authorId,
       p.title,
       p.entryDate,
@@ -715,12 +750,13 @@ export class JourneyDomainService {
     );
   }
 
-  // Make every journey linked to `tripId` mirror the trip's currently day-assigned
-  // places: add skeletons for newly-assigned places, refresh skeleton snapshots when a
-  // place is moved to another day / its time changes, and drop skeletons for places no
-  // longer assigned. Filled entries are never destroyed — only detached + annotated,
-  // mirroring onPlaceDeleted. Idempotent: a second call with no underlying change is a
-  // no-op (no writes, no broadcast). Called from every assignment mutation path.
+  // Make every journey linked to `tripId` mirror the trip's current day assignments:
+  // one skeleton per assignment, so a place standing on two days is two entries (#2329);
+  // refresh skeleton snapshots when a stop is moved to another day / its time changes;
+  // and drop skeletons whose assignment is gone. Filled entries are never destroyed —
+  // only detached + annotated, mirroring onPlaceDeleted. Idempotent: a second call with
+  // no underlying change is a no-op (no writes, no broadcast). Called from every
+  // assignment mutation path.
   reconcileTripSkeletons(tripId: number, sid?: string | number) {
     const links = this.db.prepare('SELECT journey_id FROM journey_trips WHERE trip_id = ?').all(tripId) as {
       journey_id: number;
@@ -730,7 +766,7 @@ export class JourneyDomainService {
     const places = this.db
       .prepare(
         `
-      SELECT p.*, da.day_id, d.date as day_date, da.assignment_time, d.day_number, da.order_index
+      SELECT p.*, da.id AS assignment_id, da.day_id, d.date as day_date, da.assignment_time, d.day_number, da.order_index
       FROM places p
       INNER JOIN day_assignments da ON da.place_id = p.id
       INNER JOIN days d ON da.day_id = d.id
@@ -740,11 +776,10 @@ export class JourneyDomainService {
       )
       .all(tripId) as any[];
 
-    // One skeleton per place (a place on multiple days keeps its first-by-day/order row),
-    // matching the one-skeleton-per-place model used by onPlaceCreated.
-    const placeById = new Map<number, any>();
-    for (const place of places) if (!placeById.has(place.id)) placeById.set(place.id, place);
-    const assignedPlaceIds = new Set(placeById.keys());
+    // One skeleton per assignment, not per place: a stop kept across two days is
+    // two days of the journal (#2329).
+    const assignedKeys = new Set(places.map((p) => skeletonKey(p.id, p.assignment_id)));
+    const assignedPlaceIds = new Set<number>(places.map((p) => p.id));
 
     const now = this.ts();
     for (const { journey_id } of links) {
@@ -756,12 +791,13 @@ export class JourneyDomainService {
       let changed = false;
       const existing = this.db
         .prepare(
-          `SELECT id, source_place_id, type, story, title, entry_date, entry_time, location_name, location_lat, location_lng
+          `SELECT id, source_place_id, source_assignment_id, type, story, title, entry_date, entry_time, location_name, location_lat, location_lng
            FROM journey_entries WHERE journey_id = ? AND source_trip_id = ?`,
         )
         .all(journey_id, tripId) as {
         id: number;
         source_place_id: number | null;
+        source_assignment_id: number | null;
         type: string;
         story: string | null;
         title: string | null;
@@ -771,8 +807,21 @@ export class JourneyDomainService {
         location_lat: number | null;
         location_lng: number | null;
       }[];
-      const existingByPlace = new Map<number, (typeof existing)[number]>();
-      for (const e of existing) if (e.source_place_id != null) existingByPlace.set(e.source_place_id, e);
+      const existingByKey = new Map<string, (typeof existing)[number]>();
+      // Rows from before the assignment link existed, and any the backfill could not
+      // resolve. The place's earliest assignment claims one below, rather than the row
+      // being read as "no longer in the plan" and annotated out from under its author.
+      const unclaimed = new Map<number, (typeof existing)[number][]>();
+      for (const e of existing) {
+        if (e.source_place_id == null) continue;
+        if (e.source_assignment_id == null) {
+          const pool = unclaimed.get(e.source_place_id);
+          if (pool) pool.push(e);
+          else unclaimed.set(e.source_place_id, [e]);
+        } else {
+          existingByKey.set(skeletonKey(e.source_place_id, e.source_assignment_id), e);
+        }
+      }
 
       // Next sort_order per date for freshly inserted skeletons.
       const dateMaxOrder = new Map<string, number>();
@@ -783,14 +832,27 @@ export class JourneyDomainService {
         .all(journey_id) as { entry_date: string; m: number }[];
       for (const row of maxRows) dateMaxOrder.set(row.entry_date, row.m);
 
-      // 1) Upsert a skeleton for every currently-assigned place.
-      for (const place of placeById.values()) {
+      // 1) Upsert a skeleton for every current day assignment.
+      for (const place of places) {
         const entryDate = place.day_date || new Date().toISOString().split('T')[0];
         const entryTime = place.assignment_time || place.place_time || null;
         const locationName = place.address || place.name;
         const lat = place.lat || null;
         const lng = place.lng || null;
-        const found = existingByPlace.get(place.id);
+        let found = existingByKey.get(skeletonKey(place.id, place.assignment_id));
+
+        if (!found) {
+          // `places` is ordered by day, so the earliest assignment claims it.
+          const adopted = unclaimed.get(place.id)?.shift();
+          if (adopted) {
+            this.db
+              .prepare('UPDATE journey_entries SET source_assignment_id = ? WHERE id = ?')
+              .run(place.assignment_id ?? null, adopted.id);
+            adopted.source_assignment_id = place.assignment_id ?? null;
+            existingByKey.set(skeletonKey(place.id, place.assignment_id), adopted);
+            found = adopted;
+          }
+        }
 
         if (!found) {
           const nextOrder = (dateMaxOrder.get(entryDate) ?? -1) + 1;
@@ -799,6 +861,7 @@ export class JourneyDomainService {
             journeyId: journey_id,
             tripId,
             placeId: place.id,
+            assignmentId: place.assignment_id ?? null,
             authorId: journey.user_id,
             title: place.name,
             entryDate,
@@ -838,9 +901,15 @@ export class JourneyDomainService {
         }
       }
 
-      // 2) Drop skeletons whose place is no longer assigned to a day in this trip.
+      // 2) Drop skeletons whose assignment is gone. One still waiting to be claimed is
+      //    spared while its place is on the plan somewhere: having no link yet is not
+      //    the same as the stop having left.
       for (const e of existing) {
-        if (e.source_place_id == null || assignedPlaceIds.has(e.source_place_id)) continue;
+        if (e.source_place_id == null) continue;
+        if (e.source_assignment_id == null && assignedPlaceIds.has(e.source_place_id)) continue;
+        if (e.source_assignment_id != null && assignedKeys.has(skeletonKey(e.source_place_id, e.source_assignment_id))) {
+          continue;
+        }
         if (e.type === 'skeleton') {
           const hasPhotos = this.db.prepare('SELECT 1 FROM journey_entry_photos WHERE entry_id = ?').get(e.id);
           if (!hasPhotos && !e.story) {
@@ -852,7 +921,7 @@ export class JourneyDomainService {
         const note = '\n\n> _Note: the original trip place was removed from the trip plan_';
         const newStory = (e.story || '') + note;
         this.db.prepare(
-          'UPDATE journey_entries SET source_place_id = NULL, source_trip_id = NULL, type = ?, story = ?, updated_at = ? WHERE id = ?',
+          'UPDATE journey_entries SET source_place_id = NULL, source_trip_id = NULL, source_assignment_id = NULL, type = ?, story = ?, updated_at = ? WHERE id = ?',
         ).run(e.type === 'skeleton' ? 'entry' : e.type, newStory, now, e.id);
         changed = true;
       }
