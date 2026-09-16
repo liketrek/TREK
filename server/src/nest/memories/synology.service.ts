@@ -5,6 +5,7 @@ import { safeFetch, SsrfBlockedError, checkSsrf } from '../../utils/ssrfGuard';
 import { DatabaseService } from '../database/database.service';
 import { MemoriesAccessService } from './memories-access.service';
 import {
+  dayStartEpochSeconds,
   fail,
   handleServiceResult,
   success,
@@ -569,7 +570,12 @@ export class SynologyService {
       return success({ selection, total: allItems.length });
   }
 
-  async searchSynologyPhotos(userId: number, from?: string, to?: string, offset = 0, limit = 300): Promise<ServiceResult<AssetsList>> {
+  /**
+   * `offset` is the NAS row offset — pagination. `tzOffsetMinutes` is minutes
+   * east of UTC and says which 24 hours `from`/`to` name; they sit next to each
+   * other and mean nothing alike.
+   */
+  async searchSynologyPhotos(userId: number, from?: string, to?: string, offset = 0, limit = 300, tzOffsetMinutes = 0): Promise<ServiceResult<AssetsList>> {
       const params: ApiCallParams = {
           api: 'SYNO.Foto.Search.Search',
           method: 'list_item',
@@ -581,11 +587,17 @@ export class SynologyService {
       };
 
       if (from || to) {
+          // Synology has no local capture stamp to anchor on the way Immich does,
+          // so the day has to come from the caller: a bare `new Date('2026-03-15')`
+          // is UTC midnight by spec, which for a UTC+10 reader searched from
+          // 10:00 that morning to 09:59 the next (#2336). tzOffsetMinutes 0 is
+          // that same UTC day, so a caller that says nothing is unaffected.
+          // The two bounds stay independent — the MCP tool makes both optional.
           if (from) {
-              params.start_time = Math.floor(new Date(from).getTime() / 1000);
+              params.start_time = dayStartEpochSeconds(from, tzOffsetMinutes);
           }
           if (to) {
-              params.end_time = Math.floor(new Date(to).getTime() / 1000) + 86400; //adding it as the next day 86400 seconds in day
+              params.end_time = dayStartEpochSeconds(to, tzOffsetMinutes) + 86400; //adding it as the next day 86400 seconds in day
           }
       }
 

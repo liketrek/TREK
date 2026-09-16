@@ -1,6 +1,6 @@
-// FE-JRN-PICKER-001 to FE-JRN-PICKER-021
+// FE-JRN-PICKER-001 to FE-JRN-PICKER-023
 
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, afterAll, beforeAll, beforeEach, vi } from 'vitest'
 import { http, HttpResponse, delay } from 'msw'
 import userEvent from '@testing-library/user-event'
 import { render, screen, waitFor, within, fireEvent } from '../../../tests/helpers/render'
@@ -54,6 +54,16 @@ function mountPicker(props: Partial<React.ComponentProps<typeof ProviderPicker>>
   return { ...utils, onClose, onAdd }
 }
 
+// The day headings follow the reader's wall clock now, so they would follow the
+// runner's zone too. Nothing in the vitest config pins one, so this file does.
+const runnerTimeZone = process.env.TZ
+
+beforeAll(() => { process.env.TZ = 'UTC' })
+afterAll(() => {
+  if (runnerTimeZone === undefined) delete process.env.TZ
+  else process.env.TZ = runnerTimeZone
+})
+
 beforeEach(() => {
   searchReturns([asset('a1')])
 })
@@ -103,7 +113,9 @@ describe('ProviderPicker', () => {
     await user.click(screen.getByRole('button', { name: /All Photos/ }))
 
     await waitFor(() => expect(ranges).toHaveLength(2))
-    expect(ranges[1]).toEqual({ from: '', to: '', page: 1, size: 50 })
+    // utc_offset_minutes rides along on every search: the server cannot tell
+    // which 24 hours a date-only bound means without it (#2336).
+    expect(ranges[1]).toEqual({ from: '', to: '', page: 1, size: 50, utc_offset_minutes: 0 })
   })
 
   it('FE-JRN-PICKER-006: the album tab loads albums and reports when there are none', async () => {
@@ -281,6 +293,55 @@ describe('ProviderPicker', () => {
       await waitFor(() => expect(pages).toEqual([1, 2]))
       expect(observers.length).toBeGreaterThan(0)
       expect(await screen.findAllByAltText('')).toHaveLength(2)
+    } finally {
+      globalThis.IntersectionObserver = original
+    }
+  })
+
+  it('FE-JRN-PICKER-022: says which zone the searched day is meant in', async () => {
+    const ranges: Record<string, unknown>[] = []
+    server.use(http.post('/api/integrations/memories/immich/search', async ({ request }) => {
+      ranges.push(await request.json() as Record<string, unknown>)
+      return HttpResponse.json({ assets: [asset('a1')], hasMore: false })
+    }))
+    process.env.TZ = 'Australia/Sydney'
+    try {
+      mountPicker({ initialDate: '2026-03-15' })
+      await waitFor(() => expect(ranges).toHaveLength(1))
+    } finally {
+      process.env.TZ = 'UTC'
+    }
+
+    // +11 on 15 March, read at local noon of the day being searched rather than
+    // at "now" — Sydney is +10 for half the year, so a day picked out of the
+    // other half would otherwise be an hour off.
+    expect(ranges[0]).toMatchObject({ from: '2026-03-15', to: '2026-03-15', utc_offset_minutes: 660 })
+  })
+
+  it('FE-JRN-PICKER-023: keeps paging when a page holds no photos of the searched day', async () => {
+    // The local-day filter can empty a whole page (50 shots taken the next
+    // morning). The sentinel used to live inside the grid, so an empty page
+    // mounted none and the picker sat on "no photos" forever (#2336).
+    const pages: number[] = []
+    server.use(http.post('/api/integrations/memories/immich/search', async ({ request }) => {
+      const body = await request.json() as { page: number }
+      pages.push(body.page)
+      return HttpResponse.json({ assets: body.page < 2 ? [] : [asset('a1')], hasMore: body.page < 2 })
+    }))
+    class ImmediateObserver {
+      constructor(private cb: IntersectionObserverCallback) {}
+      observe() { this.cb([{ isIntersecting: true } as IntersectionObserverEntry], this as unknown as IntersectionObserver) }
+      unobserve() {}
+      disconnect() {}
+    }
+    const original = globalThis.IntersectionObserver
+    globalThis.IntersectionObserver = ImmediateObserver as unknown as typeof IntersectionObserver
+    try {
+      mountPicker()
+      await waitFor(() => expect(pages).toEqual([1, 2]))
+      expect(await screen.findAllByAltText('')).toHaveLength(1)
+      // And the empty first page never claimed there were none to find.
+      expect(screen.queryByText('No photos yet')).not.toBeInTheDocument()
     } finally {
       globalThis.IntersectionObserver = original
     }

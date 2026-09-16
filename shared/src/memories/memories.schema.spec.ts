@@ -1,4 +1,3 @@
-import { describe, it, expect } from 'vitest';
 import {
   addTripPhotosSchema,
   createAlbumLinkSchema,
@@ -9,6 +8,8 @@ import {
   synologySettingsSchema,
   synologyTestSchema,
 } from './memories.schema';
+
+import { describe, it, expect } from 'vitest';
 
 /**
  * These contracts exist to describe what the endpoints already accept, not to
@@ -36,6 +37,13 @@ describe('immich contracts', () => {
   it('rejects a page that is neither', () => {
     expect(immichSearchSchema.safeParse({ page: { nope: true } }).success).toBe(false);
   });
+
+  it('takes the zone the dates are meant in, even though Immich answers by the photo', () => {
+    // One body goes to whichever provider, so the field has to parse on both.
+    expect(immichSearchSchema.safeParse({ from: '2026-03-15', utc_offset_minutes: 600 }).success).toBe(true);
+    expect(immichSearchSchema.safeParse({ utc_offset_minutes: '-480' }).success).toBe(true);
+    expect(immichSearchSchema.safeParse({}).success).toBe(true);
+  });
 });
 
 describe('synology contracts', () => {
@@ -57,6 +65,20 @@ describe('synology contracts', () => {
 
   it('accepts every paging field of the search body, in either type', () => {
     expect(synologySearchSchema.safeParse({ offset: '10', page: 2, limit: '100', size: 0 }).success).toBe(true);
+  });
+
+  it('keeps the row offset and the UTC offset as two separate fields', () => {
+    // `offset` is rows to skip on the NAS; `utc_offset_minutes` is which 24
+    // hours from/to name. A UTC+10 reader sending the zone as `offset` would
+    // have asked the NAS to skip 600 photos (#2336).
+    const parsed = synologySearchSchema.safeParse({ offset: 40, utc_offset_minutes: 600 });
+    expect(parsed.success).toBe(true);
+    expect(parsed.success && parsed.data.offset).toBe(40);
+    expect(parsed.success && parsed.data.utc_offset_minutes).toBe(600);
+  });
+
+  it('leaves the search body valid without a zone, which is the UTC day as before', () => {
+    expect(synologySearchSchema.safeParse({ from: '2026-03-15', to: '2026-03-15' }).success).toBe(true);
   });
 });
 
@@ -87,6 +109,8 @@ describe('unified contracts', () => {
 
   it('leaves the album-link fields untyped — the service validates them, and it answers 400 with its own wording', () => {
     expect(createAlbumLinkSchema.safeParse({}).success).toBe(true);
-    expect(createAlbumLinkSchema.safeParse({ provider: 'synology', album_id: 12, album_name: null }).success).toBe(true);
+    expect(createAlbumLinkSchema.safeParse({ provider: 'synology', album_id: 12, album_name: null }).success).toBe(
+      true,
+    );
   });
 });

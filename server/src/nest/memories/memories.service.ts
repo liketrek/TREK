@@ -144,8 +144,8 @@ export class MemoriesService {
     return this.unified.syncSynologyAlbum(userId, tripId, linkId, sid);
   }
 
-  synologySearchPhotos(userId: number, from: string | undefined, to: string | undefined, offset: number, limit: number) {
-    return this.synology.searchSynologyPhotos(userId, from, to, offset, limit);
+  synologySearchPhotos(userId: number, from: string | undefined, to: string | undefined, offset: number, limit: number, tzOffsetMinutes = 0) {
+    return this.synology.searchSynologyPhotos(userId, from, to, offset, limit, tzOffsetMinutes);
   }
 
   synologyGetAssetInfo(userId: number, photoId: string, ownerId: number, passphrase?: string) {

@@ -8,10 +8,21 @@ import fsPromises from 'node:fs/promises';
 import path from 'node:path';
 import { DatabaseService } from '../database/database.service';
 import { MemoriesAccessService } from './memories-access.service';
-import { fail, handleServiceResult, pipeAsset, sortAssetsByTakenAtDesc, type Selection } from './memories.helpers';
+import { fail, handleServiceResult, isWithinLocalDayRange, pipeAsset, shiftCalendarDay, sortAssetsByTakenAtDesc, type Selection } from './memories.helpers';
 
 const ALBUM_PAGE_SIZE = 1000;
 const ALBUM_MAX_PAGES = 20;
+/**
+ * How many upstream pages one search may read while filling one answered page.
+ *
+ * The day filter runs after the fetch, so the number of raw pages an answered
+ * page costs depends on how much of the padding days sits in front of it. This
+ * is the backstop: a library with thousands of photos on the neighbouring days
+ * would otherwise keep a single request fetching, so the scan stops here and
+ * answers `hasMore: false` rather than spinning or handing back the same
+ * partial page for every page the caller asks for.
+ */
+const SEARCH_MAX_RAW_PAGES = 20;
 
 /**
  * Immich photo provider: credentials, connection test, timeline/search browsing,
@@ -195,6 +206,64 @@ export class ImmichService {
     }
   }
 
+  /**
+   * One raw page of /api/search/metadata.
+   *
+   * Split out so the page-filling scan below can ask for the next one without
+   * restating the request body, which carries version-specific compatibility
+   * that has to stay identical on every page of the same search.
+   */
+  private async fetchSearchPage(
+    creds: { immich_url: string; immich_api_key: string },
+    from: string | undefined,
+    to: string | undefined,
+    page: number,
+    size: number,
+  ): Promise<{ items?: any[]; status?: number }> {
+    const resp = await safeFetch(`${creds.immich_url}/api/search/metadata`, {
+      method: 'POST',
+      headers: { 'x-api-key': creds.immich_api_key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        // Padded by a day on each end and narrowed again by the caller. These
+        // two filter on fileCreatedAt, a UTC instant, while `from`/`to` name
+        // calendar days on somebody's wall clock — for a UTC+10 reader the
+        // unpadded window really ran from 10:00 local on the first day to
+        // 09:59 on the day after the last (#2336). The padding is what makes
+        // the assets that belong to those days available to the local-date
+        // filter; nothing wider than a day is needed, since no zone sits
+        // further than 14 hours from UTC.
+        takenAfter: from ? `${shiftCalendarDay(from, -1)}T00:00:00.000Z` : undefined,
+        takenBefore: to ? `${shiftCalendarDay(to, 1)}T23:59:59.999Z` : undefined,
+        // No type filter — surface videos alongside images (#823).
+        // Immich 1.133–1.144 defaulted metadata search to `timeline` visibility;
+        // v3 defaults to any visibility except `locked`, which is what started
+        // surfacing Live Photo motion parts as broken tiles (#1474). Ask for
+        // `timeline` explicitly so hidden assets never cross the wire and a full
+        // page stays a full page of renderable tiles.
+        //
+        // `visibility` only exists from 1.133.0. Older servers strip it — Immich
+        // validates with `whitelist: true` and no `forbidNonWhitelisted`, so an
+        // unknown property is dropped, never a 400 — and they never defaulted
+        // `isVisible` either, so they still return hidden assets. this.isVisibleAsset()
+        // below is the only guard on those versions. Do not remove it.
+        visibility: 'timeline',
+        withExif: true,
+        // Immich's own default order has moved between versions, and the picker
+        // pages lazily: an unordered page 2 lands in the wrong day heading.
+        // Same whitelist reasoning as `visibility` above — an older server that
+        // does not know the property drops it instead of failing the request,
+        // which is why the result is sorted again below.
+        order: 'desc',
+        size,
+        page,
+      }),
+      signal: AbortSignal.timeout(15000) as any,
+    });
+    if (!resp.ok) return { status: resp.status };
+    const data = await resp.json() as { assets?: { items?: any[] } };
+    return { items: data.assets?.items || [] };
+  }
+
   async searchPhotos(
     userId: number,
     from?: string,
@@ -205,60 +274,67 @@ export class ImmichService {
     const creds = this.getImmichCredentials(userId);
     if (!creds) return { error: 'Immich not configured', status: 400 };
 
+    // Once a day filter is in play the raw pages and the answered pages stop
+    // being the same pages: `order: 'desc'` hands back the padding day first and
+    // the filter drops all of it, so a raw page can arrive thinned or empty. An
+    // answered page is therefore filled from as many raw pages as it takes —
+    // otherwise a day with a busy neighbour costs the picker several round trips
+    // of nothing, and the MCP tool answers `{ assets: [], hasMore: true }` for a
+    // day that does have photos (#2336). The scan always restarts at raw page 1
+    // and skips the assets that filled the earlier answered pages, which is what
+    // keeps two calls from handing back the same asset twice. Without bounds
+    // nothing narrows a page, so raw page and answered page still line up and
+    // the single round trip stays a single round trip.
+    const narrowed = Boolean(from || to);
+    const skip = narrowed ? (page - 1) * size : 0;
+    const wanted = skip + size;
+    const maxRawPages = narrowed ? SEARCH_MAX_RAW_PAGES : 1;
+
+    const kept: any[] = [];
+    let rawPage = narrowed ? 1 : page;
+    let rawPagesRead = 0;
+    let windowDrained = false;
+
     try {
-      const resp = await safeFetch(`${creds.immich_url}/api/search/metadata`, {
-        method: 'POST',
-        headers: { 'x-api-key': creds.immich_api_key, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          takenAfter: from ? `${from}T00:00:00.000Z` : undefined,
-          takenBefore: to ? `${to}T23:59:59.999Z` : undefined,
-          // No type filter — surface videos alongside images (#823).
-          // Immich 1.133–1.144 defaulted metadata search to `timeline` visibility;
-          // v3 defaults to any visibility except `locked`, which is what started
-          // surfacing Live Photo motion parts as broken tiles (#1474). Ask for
-          // `timeline` explicitly so hidden assets never cross the wire and a full
-          // page stays a full page of renderable tiles.
-          //
-          // `visibility` only exists from 1.133.0. Older servers strip it — Immich
-          // validates with `whitelist: true` and no `forbidNonWhitelisted`, so an
-          // unknown property is dropped, never a 400 — and they never defaulted
-          // `isVisible` either, so they still return hidden assets. this.isVisibleAsset()
-          // below is the only guard on those versions. Do not remove it.
-          visibility: 'timeline',
-          withExif: true,
-          // Immich's own default order has moved between versions, and the picker
-          // pages lazily: an unordered page 2 lands in the wrong day heading.
-          // Same whitelist reasoning as `visibility` above — an older server that
-          // does not know the property drops it instead of failing the request,
-          // which is why the result is sorted again below.
-          order: 'desc',
-          size,
-          page,
-        }),
-        signal: AbortSignal.timeout(15000) as any,
-      });
-      if (!resp.ok) return { error: 'Search failed', status: resp.status };
-      const data = await resp.json() as { assets?: { items?: any[] } };
-      const items = data.assets?.items || [];
-      // Belt-and-braces: `visibility: 'timeline'` above should mean Immich never
-      // sends a hidden asset, but an older server that ignores the filter would
-      // otherwise render broken tiles. hasMore stays on the raw page length so
-      // pagination still advances past a filtered page.
-      const assets = items
-        .filter((a: unknown) => this.isVisibleAsset(a))
-        .map((a: any) => ({
-          id: a.id,
-          takenAt: a.fileCreatedAt || a.createdAt,
-          city: a.exifInfo?.city || null,
-          country: a.exifInfo?.country || null,
-          lat: typeof a.exifInfo?.latitude === 'number' ? a.exifInfo.latitude : null,
-          lng: typeof a.exifInfo?.longitude === 'number' ? a.exifInfo.longitude : null,
-          mediaType: a.type === 'VIDEO' ? 'video' : 'image',
-        }));
-      return { assets: sortAssetsByTakenAtDesc(assets), hasMore: items.length >= size };
+      while (kept.length < wanted && rawPagesRead < maxRawPages && !windowDrained) {
+        const raw = await this.fetchSearchPage(creds, from, to, rawPage, size);
+        if (!raw.items) return { error: 'Search failed', status: raw.status };
+        rawPage++;
+        rawPagesRead++;
+        // A short page is the end of the padded window; a full one may have more
+        // behind it, whatever the filter leaves of this one.
+        windowDrained = raw.items.length < size;
+        for (const a of raw.items) {
+          // Belt-and-braces: `visibility: 'timeline'` above should mean Immich
+          // never sends a hidden asset, but an older server that ignores the
+          // filter would otherwise render broken tiles.
+          if (!this.isVisibleAsset(a)) continue;
+          const asset = {
+            id: a.id,
+            takenAt: a.fileCreatedAt || a.createdAt,
+            // Immich's own timeline groups by this: the photographer's local time,
+            // stored without a zone. Absent on servers that predate it, and the
+            // readers fall back to takenAt, which is the behaviour they had.
+            localTakenAt: a.localDateTime || null,
+            city: a.exifInfo?.city || null,
+            country: a.exifInfo?.country || null,
+            lat: typeof a.exifInfo?.latitude === 'number' ? a.exifInfo.latitude : null,
+            lng: typeof a.exifInfo?.longitude === 'number' ? a.exifInfo.longitude : null,
+            mediaType: a.type === 'VIDEO' ? 'video' : 'image',
+          };
+          if (isWithinLocalDayRange(asset, from, to)) kept.push(asset);
+        }
+      }
     } catch {
       return { error: 'Could not reach Immich', status: 502 };
     }
+
+    // hasMore answers for the padded window rather than for whichever raw page
+    // was read last, so a page the filter emptied still pages forward. Running
+    // out of the page budget is the one case that stops: the next call would
+    // scan the same pages and hand back the same short page for ever.
+    const hasMore = windowDrained ? kept.length > wanted : kept.length >= wanted || !narrowed;
+    return { assets: sortAssetsByTakenAtDesc(kept.slice(skip, wanted)), hasMore };
   }
 
 
@@ -528,6 +604,9 @@ export class ImmichService {
         .map((a: any) => ({
           id: a.id,
           takenAt: a.fileCreatedAt || a.createdAt,
+          // Same local stamp the search path carries, so an album groups under
+          // the same day headings a search does.
+          localTakenAt: a.localDateTime || null,
           city: a.exifInfo?.city || null,
           country: a.exifInfo?.country || null,
           // The search path has always carried these; dropping them here meant a

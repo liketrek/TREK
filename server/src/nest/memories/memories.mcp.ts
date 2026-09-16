@@ -101,13 +101,14 @@ export class MemoriesMcp {
       to: ISO_DATE.optional().describe('Latest capture date, YYYY-MM-DD, inclusive'),
       page: z.number().int().min(1).optional().describe('1-based page number, defaults to 1. Page forward while hasMore is true'),
       size: z.number().int().min(1).max(MAX_PAGE_SIZE).optional().describe(`Photos per page, at most ${MAX_PAGE_SIZE}. Defaults to ${IMMICH_DEFAULT_SIZE} for Immich and ${SYNOLOGY_DEFAULT_LIMIT} for Synology Photos, as the REST routes do`),
+      utc_offset_minutes: z.number().int().min(-720).max(840).optional().describe('Which zone the dates are meant in, as minutes east of UTC (600 for UTC+10, -480 for UTC-8). Omitted means they name UTC days. Only Synology Photos needs it; Immich answers by the local capture date stored on each photo'),
     },
     annotations: TOOL_ANNOTATIONS_OPEN_WORLD_READONLY,
     when: anyPhotoProviderEnabled,
     access: { group: 'journey', mode: 'read' },
   })
   async searchProviderPhotos(
-    { provider, from, to, page, size }: { provider: ProviderId; from?: string; to?: string; page?: number; size?: number },
+    { provider, from, to, page, size, utc_offset_minutes }: { provider: ProviderId; from?: string; to?: string; page?: number; size?: number; utc_offset_minutes?: number },
     ctx: McpContext,
   ) {
     const refused = this.providerRefusal(provider);
@@ -125,7 +126,9 @@ export class MemoriesMcp {
     // meaning the same thing for both providers.
     const limit = size && size > 0 ? size : SYNOLOGY_DEFAULT_LIMIT;
     const pageIndex = (page ?? 1) - 1;
-    const result = await this.synology.searchSynologyPhotos(ctx.userId, from, to, pageIndex > 0 ? pageIndex * limit : 0, limit);
+    // Synology stores instants and knows nothing about the caller's zone, so a
+    // date-only bound is a UTC day unless the caller says which one it meant.
+    const result = await this.synology.searchSynologyPhotos(ctx.userId, from, to, pageIndex > 0 ? pageIndex * limit : 0, limit, utc_offset_minutes ?? 0);
     if ('error' in result) return errorResult(result.error.message);
     return ok({ provider, assets: result.data.assets, total: result.data.total, hasMore: result.data.hasMore });
   }

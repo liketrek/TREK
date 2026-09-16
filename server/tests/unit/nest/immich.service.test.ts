@@ -262,6 +262,24 @@ describe('browseTimeline', () => {
   });
 });
 
+/**
+ * Three raw pages of a Sydney library, read newest first: the whole of 16 March
+ * comes back before 15 March starts, which is what makes an answered page cost
+ * more than one raw page once the day filter runs (#2336).
+ */
+const NEXT_DAY = [
+  { id: 'next-1', fileCreatedAt: '2026-03-16T01:00:00.000Z', localDateTime: '2026-03-16T12:00:00.000Z' },
+  { id: 'next-2', fileCreatedAt: '2026-03-16T00:30:00.000Z', localDateTime: '2026-03-16T11:30:00.000Z' },
+];
+const DAY_HEAD = [
+  { id: 'day-1', fileCreatedAt: '2026-03-15T09:00:00.000Z', localDateTime: '2026-03-15T20:00:00.000Z' },
+  { id: 'day-2', fileCreatedAt: '2026-03-15T08:00:00.000Z', localDateTime: '2026-03-15T19:00:00.000Z' },
+];
+const DAY_TAIL = [
+  { id: 'day-3', fileCreatedAt: '2026-03-15T07:00:00.000Z', localDateTime: '2026-03-15T18:00:00.000Z' },
+  { id: 'day-4', fileCreatedAt: '2026-03-15T06:00:00.000Z', localDateTime: '2026-03-15T17:00:00.000Z' },
+];
+
 describe('searchPhotos', () => {
   it('IMMICH-027: 400s without credentials and 502s when the server is unreachable', async () => {
     seedUser(7, null, null);
@@ -320,17 +338,135 @@ describe('searchPhotos', () => {
     expect(result.hasMore).toBe(true);
   });
 
-  it('IMMICH-032: turns a from/to pair into the upstream date bounds', async () => {
+  it('IMMICH-032: pads the upstream date bounds by a day on each side', async () => {
+    // The bounds filter on fileCreatedAt, a UTC instant, while from/to name
+    // calendar days on a wall clock. No zone sits further than 14 hours from
+    // UTC, so a day of slack each way reaches every asset that belongs to them;
+    // the local-date filter below narrows the page again (#2336).
     safeFetch.mockResolvedValue(upstream({ json: { assets: { items: [] } } }));
 
     await svc.searchPhotos(USER, '2026-01-01', '2026-01-31');
 
     const body = JSON.parse((safeFetch.mock.calls[0][1] as { body: string }).body);
-    expect(body.takenAfter).toBe('2026-01-01T00:00:00.000Z');
-    expect(body.takenBefore).toBe('2026-01-31T23:59:59.999Z');
+    expect(body.takenAfter).toBe('2025-12-31T00:00:00.000Z');
+    expect(body.takenBefore).toBe('2026-02-01T23:59:59.999Z');
     // Load-bearing on Immich >= 1.133: hidden assets must not cross the wire.
     expect(body.visibility).toBe('timeline');
     expect(body.order).toBe('desc');
+  });
+
+  it('IMMICH-032c: pads only the bound it was given', async () => {
+    safeFetch.mockResolvedValue(upstream({ json: { assets: { items: [] } } }));
+
+    await svc.searchPhotos(USER, '2026-01-01');
+    const fromOnly = JSON.parse((safeFetch.mock.calls[0][1] as { body: string }).body);
+    expect(fromOnly.takenAfter).toBe('2025-12-31T00:00:00.000Z');
+    expect(fromOnly.takenBefore).toBeUndefined();
+
+    await svc.searchPhotos(USER, undefined, '2026-01-31');
+    const toOnly = JSON.parse((safeFetch.mock.calls[1][1] as { body: string }).body);
+    expect(toOnly.takenAfter).toBeUndefined();
+    expect(toOnly.takenBefore).toBe('2026-02-01T23:59:59.999Z');
+  });
+
+  it('IMMICH-032d: keeps the photos whose OWN local capture date is the day asked for', async () => {
+    // A Sydney reader asking for the 15th: the 07:32 shot is 20:32Z on the 14th
+    // and the UTC window used to miss it, while the next morning leaked in.
+    safeFetch.mockResolvedValue(upstream({
+      json: { assets: { items: [
+        { id: 'morning', fileCreatedAt: '2026-03-14T20:32:00.000Z', localDateTime: '2026-03-15T07:32:00.000Z' },
+        { id: 'evening', fileCreatedAt: '2026-03-15T09:00:00.000Z', localDateTime: '2026-03-15T20:00:00.000Z' },
+        { id: 'next-morning', fileCreatedAt: '2026-03-15T21:00:00.000Z', localDateTime: '2026-03-16T08:00:00.000Z' },
+      ] } },
+    }));
+
+    const result = await svc.searchPhotos(USER, '2026-03-15', '2026-03-15');
+
+    expect(result.assets!.map(a => a.id)).toEqual(['evening', 'morning']);
+    expect(result.assets![1]).toMatchObject({ takenAt: '2026-03-14T20:32:00.000Z', localTakenAt: '2026-03-15T07:32:00.000Z' });
+  });
+
+  it('IMMICH-049: a server without localDateTime answers exactly as it did before', async () => {
+    // An old or forked Immich: the fallback is the capture instant, so the day
+    // is the UTC day the window has always searched, and the padding buys the
+    // neighbouring days nothing.
+    safeFetch.mockResolvedValue(upstream({
+      json: { assets: { items: [
+        { id: 'day-before', fileCreatedAt: '2026-03-14T23:00:00.000Z' },
+        { id: 'in-day', fileCreatedAt: '2026-03-15T09:00:00.000Z' },
+        { id: 'day-after', fileCreatedAt: '2026-03-16T01:00:00.000Z' },
+      ] } },
+    }));
+
+    const result = await svc.searchPhotos(USER, '2026-03-15', '2026-03-15');
+
+    expect(result.assets!.map(a => a.id)).toEqual(['in-day']);
+    expect(result.assets![0].localTakenAt).toBeNull();
+  });
+
+  it('IMMICH-050: fills the answered page from as many raw pages as the day filter costs', async () => {
+    // `order: 'desc'` hands the padding day back first, so the first raw page of
+    // a day whose neighbour was busy is entirely the wrong day. Answering that
+    // page empty made the picker load nothing several times over, and made the
+    // MCP tool report a day that has photos as having none (#2336).
+    safeFetch
+      .mockResolvedValueOnce(upstream({ json: { assets: { items: NEXT_DAY } } }))
+      .mockResolvedValueOnce(upstream({ json: { assets: { items: DAY_HEAD } } }));
+
+    const result = await svc.searchPhotos(USER, '2026-03-15', '2026-03-15', 1, 2);
+
+    expect(result.assets!.map(a => a.id)).toEqual(['day-1', 'day-2']);
+    expect(result.hasMore).toBe(true);
+    expect(safeFetch).toHaveBeenCalledTimes(2);
+    expect(JSON.parse((safeFetch.mock.calls[1][1] as { body: string }).body).page).toBe(2);
+  });
+
+  it('IMMICH-050b: pages on without repeating an asset the page before already answered with', async () => {
+    // The scan restarts at raw page 1 every call, so what it skips has to be
+    // counted in assets that survived the filter rather than in raw rows.
+    const page = (items: unknown[]) => upstream({ json: { assets: { items } } });
+    safeFetch
+      .mockResolvedValueOnce(page(NEXT_DAY))
+      .mockResolvedValueOnce(page(DAY_HEAD))
+      .mockResolvedValueOnce(page(NEXT_DAY))
+      .mockResolvedValueOnce(page(DAY_HEAD))
+      .mockResolvedValueOnce(page(DAY_TAIL));
+
+    const first = await svc.searchPhotos(USER, '2026-03-15', '2026-03-15', 1, 2);
+    const second = await svc.searchPhotos(USER, '2026-03-15', '2026-03-15', 2, 2);
+
+    expect(first.assets!.map(a => a.id)).toEqual(['day-1', 'day-2']);
+    expect(second.assets!.map(a => a.id)).toEqual(['day-3', 'day-4']);
+  });
+
+  it('IMMICH-050c: gives up after the page budget instead of scanning a library forever', async () => {
+    // Every raw page is the padding day, so the answered page can never fill.
+    // hasMore has to go false here: the next call would scan the same pages and
+    // hand back the same empty page for ever.
+    safeFetch.mockResolvedValue(upstream({ json: { assets: { items: NEXT_DAY } } }));
+
+    const result = await svc.searchPhotos(USER, '2026-03-15', '2026-03-15', 1, 2);
+
+    expect(result.assets).toEqual([]);
+    expect(result.hasMore).toBe(false);
+    // SEARCH_MAX_RAW_PAGES.
+    expect(safeFetch).toHaveBeenCalledTimes(20);
+  });
+
+  it('IMMICH-050d: an unfiltered browse still costs one round trip, at the page it was asked for', async () => {
+    // Nothing narrows those pages, so a raw page and an answered page are the
+    // same page and the scan must not start over at page 1.
+    safeFetch.mockResolvedValue(upstream({
+      json: { assets: { items: [{ id: 'x', visibility: 'hidden' }, { id: 'y', visibility: 'hidden' }] } },
+    }));
+
+    const result = await svc.searchPhotos(USER, undefined, undefined, 3, 2);
+
+    expect(safeFetch).toHaveBeenCalledTimes(1);
+    expect(JSON.parse((safeFetch.mock.calls[0][1] as { body: string }).body).page).toBe(3);
+    // Every row was hidden, and pagination still advances past that page.
+    expect(result.assets).toEqual([]);
+    expect(result.hasMore).toBe(true);
   });
 
   it('IMMICH-032b: orders each page itself, so an unsorted page still lands chronological within itself', async () => {
@@ -416,7 +552,7 @@ describe('getAlbumPhotos', () => {
     // so this ordering is the only one an album on that version ever gets.
     safeFetch.mockResolvedValue(upstream({
       json: { assets: [
-        { id: 'older', fileCreatedAt: '2026-03-01T09:00:00Z', type: 'IMAGE', exifInfo: { latitude: 35.0, longitude: 135.7 } },
+        { id: 'older', fileCreatedAt: '2026-03-01T09:00:00Z', localDateTime: '2026-03-01T18:00:00.000Z', type: 'IMAGE', exifInfo: { latitude: 35.0, longitude: 135.7 } },
         { id: 'clip', fileCreatedAt: '2026-03-31T09:00:00Z', type: 'VIDEO' },
       ] },
     }));
@@ -426,6 +562,12 @@ describe('getAlbumPhotos', () => {
     expect(assets.map(a => a.id)).toEqual(['clip', 'older']);
     expect(assets[0].mediaType).toBe('video');
     expect(assets[1]).toMatchObject({ lat: 35.0, lng: 135.7 });
+    // The album path carries the same local capture stamp the search path does,
+    // so a photo picked out of an album lands under the day heading a search
+    // would have given it instead of under the UTC one (#2336). A server that
+    // predates the field leaves it null, and the readers fall back to takenAt.
+    expect(assets[1].localTakenAt).toBe('2026-03-01T18:00:00.000Z');
+    expect(assets[0].localTakenAt).toBeNull();
   });
 });
 

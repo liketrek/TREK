@@ -8,7 +8,12 @@
  * inside either provider suite.
  */
 import { describe, it, expect } from 'vitest';
-import { sortAssetsByTakenAtDesc } from '../../../src/nest/memories/memories.helpers';
+import {
+  dayStartEpochSeconds,
+  isWithinLocalDayRange,
+  shiftCalendarDay,
+  sortAssetsByTakenAtDesc,
+} from '../../../src/nest/memories/memories.helpers';
 
 const asset = (id: string, takenAt?: string | null) => ({ id, takenAt });
 
@@ -76,5 +81,71 @@ describe('sortAssetsByTakenAtDesc', () => {
     ]);
 
     expect(ids(out)).toEqual(['utc', 'offset']);
+  });
+});
+
+
+describe('shiftCalendarDay', () => {
+  it('MEM-DAY-001: pads a day outwards, crossing month and year ends', () => {
+    expect(shiftCalendarDay('2026-03-15', -1)).toBe('2026-03-14');
+    expect(shiftCalendarDay('2026-03-15', 1)).toBe('2026-03-16');
+    expect(shiftCalendarDay('2026-03-01', -1)).toBe('2026-02-28');
+    expect(shiftCalendarDay('2026-12-31', 1)).toBe('2027-01-01');
+  });
+
+  it('MEM-DAY-002: hands a bound it cannot read straight back, so it fails upstream as before', () => {
+    expect(shiftCalendarDay('not-a-day', -1)).toBe('not-a-day');
+    expect(shiftCalendarDay('', 1)).toBe('');
+  });
+});
+
+
+describe('isWithinLocalDayRange', () => {
+  const at = (takenAt: string | null, localTakenAt?: string | null) => ({ takenAt, localTakenAt });
+
+  it('MEM-DAY-010: reads the day off the local capture stamp when the provider sends one', () => {
+    // 21:00 UTC on the 14th is already the 15th in Sydney, and Immich says so.
+    expect(isWithinLocalDayRange(at('2026-03-14T21:00:00Z', '2026-03-15T08:00:00.000Z'), '2026-03-15', '2026-03-15')).toBe(true);
+    // And the mirror: 22:00 UTC on the 15th is already the 16th there, so it
+    // does not belong to the 15th however the UTC day reads.
+    expect(isWithinLocalDayRange(at('2026-03-15T22:00:00Z', '2026-03-16T09:00:00.000Z'), '2026-03-15', '2026-03-15')).toBe(false);
+  });
+
+  it('MEM-DAY-011: falls back to the capture instant, which is the UTC day it always used', () => {
+    expect(isWithinLocalDayRange(at('2026-03-15T23:30:00Z'), '2026-03-15', '2026-03-15')).toBe(true);
+    expect(isWithinLocalDayRange(at('2026-03-16T00:30:00Z'), '2026-03-15', '2026-03-15')).toBe(false);
+  });
+
+  it('MEM-DAY-012: narrows only the bound it was given', () => {
+    expect(isWithinLocalDayRange(at('2026-03-10T09:00:00Z'), '2026-03-15', undefined)).toBe(false);
+    expect(isWithinLocalDayRange(at('2026-03-20T09:00:00Z'), '2026-03-15', undefined)).toBe(true);
+    expect(isWithinLocalDayRange(at('2026-03-10T09:00:00Z'), undefined, '2026-03-15')).toBe(true);
+    expect(isWithinLocalDayRange(at('2026-03-20T09:00:00Z'), undefined, '2026-03-15')).toBe(false);
+    expect(isWithinLocalDayRange(at('2026-03-20T09:00:00Z'))).toBe(true);
+  });
+
+  it('MEM-DAY-013: keeps an asset with no usable timestamp rather than losing it', () => {
+    expect(isWithinLocalDayRange(at(null), '2026-03-15', '2026-03-15')).toBe(true);
+    expect(isWithinLocalDayRange(at('nope'), '2026-03-15', '2026-03-15')).toBe(true);
+  });
+});
+
+
+describe('dayStartEpochSeconds', () => {
+  it('MEM-DAY-020: with no offset it is the UTC midnight the window always used', () => {
+    expect(dayStartEpochSeconds('2026-03-15')).toBe(Math.floor(new Date('2026-03-15').getTime() / 1000));
+  });
+
+  it('MEM-DAY-021: an eastern offset starts the day earlier in UTC, a western one later', () => {
+    const utc = dayStartEpochSeconds('2026-03-15');
+    // UTC+10 reaches midnight ten hours before UTC does.
+    expect(dayStartEpochSeconds('2026-03-15', 600)).toBe(utc - 600 * 60);
+    expect(dayStartEpochSeconds('2026-03-15', -480)).toBe(utc + 480 * 60);
+  });
+
+  it('MEM-DAY-022: a bound that is not a calendar day is parsed as before, offset ignored', () => {
+    const instant = '2026-03-15T06:00:00Z';
+    expect(dayStartEpochSeconds(instant, 600)).toBe(Math.floor(Date.parse(instant) / 1000));
+    expect(Number.isNaN(dayStartEpochSeconds('nope'))).toBe(true);
   });
 });

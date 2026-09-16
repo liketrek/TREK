@@ -373,7 +373,18 @@ describe('Memories e2e (real auth guard + temp SQLite)', () => {
       expect(res.status).toBe(200);
       expect(res.body).toEqual({ assets: [], total: 0, hasMore: false });
       // page=3 -> (3-1)=2; size=20 -> limit=20; offset = 2 * 20 = 40
-      expect(synology.searchSynologyPhotos).toHaveBeenCalledWith(1, undefined, undefined, 40, 20);
+      expect(synology.searchSynologyPhotos).toHaveBeenCalledWith(1, undefined, undefined, 40, 20, 0);
+    });
+
+    it('200 search carries the zone the dates are meant in, separately from the row offset', async () => {
+      synology.searchSynologyPhotos.mockResolvedValue({ success: true, data: { assets: [], total: 0, hasMore: false } });
+      const res = await request(server)
+        .post(`${SYNO}/search`)
+        .set('Cookie', sessionCookie(1))
+        .send({ from: '2026-03-15', to: '2026-03-15', offset: 5, utc_offset_minutes: 600 });
+      expect(res.status).toBe(200);
+      // Two numbers that mean nothing alike and must not swap places (#2336).
+      expect(synology.searchSynologyPhotos).toHaveBeenCalledWith(1, '2026-03-15', '2026-03-15', 5, 100, 600);
     });
 
     it('200 album sync (POST stays 200)', async () => {

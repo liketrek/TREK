@@ -1050,7 +1050,10 @@ const MEMORIES_TIMEOUT = 0
 export const memoriesApi = {
   status: (provider: string): Promise<{ connected: boolean }> =>
     apiClient.get(`/integrations/memories/${provider}/status`, { timeout: MEMORIES_TIMEOUT }).then(r => r.data),
-  search: (provider: string, body: { from: string; to: string; page: number; size: number }, signal?: AbortSignal) =>
+  // utc_offset_minutes says which 24 hours from/to name. It is NOT the Synology
+  // `offset`, which is rows to skip: one body goes to whichever provider, so the
+  // two names have to stay apart (#2336).
+  search: (provider: string, body: { from: string; to: string; page: number; size: number; utc_offset_minutes?: number }, signal?: AbortSignal) =>
     apiClient.post(`/integrations/memories/${provider}/search`, body, { timeout: MEMORIES_TIMEOUT, signal }).then(r => r.data),
   albums: (provider: string) =>
     apiClient.get(`/integrations/memories/${provider}/albums`, { timeout: MEMORIES_TIMEOUT }).then(r => r.data),

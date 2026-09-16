@@ -5,6 +5,7 @@ import { useTranslation } from '../../i18n';
 import {
   groupPhotosByDate,
   sortProviderPhotos,
+  utcOffsetMinutesForDay,
   type GeoPoint,
 } from '../../pages/journeyDetail/JourneyDetailPage.helpers';
 import type { JourneyEntry, JourneyTrip } from '../../store/journeyStore';
@@ -94,7 +95,17 @@ export function ProviderPicker({
     setSearchTo(to);
     setSearchPage(page);
     try {
-      const data = await memoriesApi.search(provider, { from, to, page, size: 50 }, signal);
+      // The bounds are calendar days as this browser reads them, so the zone they
+      // are meant in travels with them. Without it the server can only take them
+      // as UTC days and a reader outside UTC gets somebody else's 24 hours
+      // (#2336). A single offset leaves a one-hour sliver at the far end of a
+      // multi-day range that crosses a DST change, and none at all for a single
+      // day, which is the case this fixes.
+      const data = await memoriesApi.search(
+        provider,
+        { from, to, page, size: 50, utc_offset_minutes: utcOffsetMinutesForDay(from || to) },
+        signal,
+      );
       const assets = data.assets || [];
       setPhotos((prev) => (append ? [...prev, ...assets] : assets));
       setHasMore(!!data.hasMore);
@@ -161,6 +172,9 @@ export function ProviderPicker({
     () => sortProviderPhotos(photos, contextLocation),
     [photos, contextLocation?.lat, contextLocation?.lng],
   );
+
+  // Albums come back whole, so they never page.
+  const morePagesPending = hasMore && !selectedAlbum;
 
   const toggleAsset = (id: string) => {
     setSelected((prev) => {
@@ -474,82 +488,91 @@ export function ProviderPicker({
             <div className="flex justify-center py-12">
               <div className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-900" />
             </div>
-          ) : sortedPhotos.length === 0 ? (
-            <div className="py-12 text-center">
-              <p className="text-[13px] text-zinc-500">
-                {filter === 'trip' && !tripRange.from
-                  ? t('journey.trips.noTripsLinkedSettings')
-                  : t('journey.detail.noPhotos')}
-              </p>
-            </div>
           ) : (
             <div>
-              {groupPhotosByDate(sortedPhotos).map((group) => (
-                <div key={group.date}>
-                  {(!embedded || filter !== 'day') && (
-                    <p className="mt-4 mb-2 text-[11px] font-medium text-zinc-500 first:mt-0 dark:text-zinc-400">
-                      {group.label}
-                    </p>
-                  )}
-                  <div className="mb-1 grid grid-cols-3 gap-1.5 sm:grid-cols-4 md:grid-cols-5">
-                    {group.assets.map((asset: any) => {
-                      const isSelected = selected.has(asset.id);
-                      const alreadyAdded = existingAssetIds.has(asset.id);
-                      return (
-                        <button
-                          type="button"
-                          key={asset.id}
-                          disabled={alreadyAdded}
-                          aria-pressed={isSelected}
-                          aria-label={asset.city || group.label}
-                          onClick={() => !alreadyAdded && toggleAsset(asset.id)}
-                          className={`relative block aspect-square w-full overflow-hidden rounded-lg ${
-                            alreadyAdded
-                              ? 'cursor-not-allowed opacity-40'
-                              : isSelected
-                                ? 'cursor-pointer ring-2 ring-zinc-900 ring-offset-2 dark:ring-white dark:ring-offset-zinc-900'
-                                : 'cursor-pointer'
-                          }`}
-                        >
-                          <img
-                            src={`/api/integrations/memories/${provider}/assets/0/${asset.id}/${userId}/thumbnail${selectedAlbumPassphrase ? `?passphrase=${encodeURIComponent(selectedAlbumPassphrase)}` : ''}`}
-                            alt=""
-                            className="h-full w-full object-cover"
-                            loading="lazy"
-                            onError={(e) => {
-                              const img = e.currentTarget;
-                              const original = `/api/integrations/memories/${provider}/assets/0/${asset.id}/${userId}/original${selectedAlbumPassphrase ? `?passphrase=${encodeURIComponent(selectedAlbumPassphrase)}` : ''}`;
-                              if (!img.src.includes('/original')) img.src = original;
-                            }}
-                          />
-                          {alreadyAdded && (
-                            <div className="absolute top-1.5 right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-zinc-500 text-white">
-                              <Check size={12} />
-                            </div>
-                          )}
-                          {isSelected && !alreadyAdded && (
-                            <div className="absolute top-1.5 right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-zinc-900 text-white dark:bg-white dark:text-zinc-900">
-                              <Check size={12} />
-                            </div>
-                          )}
-                          {asset.mediaType === 'video' && (
-                            <div className="pointer-events-none absolute bottom-1.5 left-1.5 z-10 flex h-4 w-4 items-center justify-center rounded-full bg-black/60">
-                              <Play size={8} className="ml-px text-white" fill="currentColor" />
-                            </div>
-                          )}
-                          {asset.city && (
-                            <div className="absolute right-0 bottom-0 left-0 bg-gradient-to-t from-black/50 to-transparent p-1">
-                              <p className="truncate text-[8px] text-white">{asset.city}</p>
-                            </div>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
+              {sortedPhotos.length === 0 ? (
+                <div className="py-12 text-center">
+                  <p className="text-[13px] text-zinc-500">
+                    {filter === 'trip' && !tripRange.from
+                      ? t('journey.trips.noTripsLinkedSettings')
+                      : morePagesPending
+                        ? t('common.loading')
+                        : t('journey.detail.noPhotos')}
+                  </p>
                 </div>
-              ))}
-              {/* Infinite scroll trigger */}
-              {hasMore && !selectedAlbum && <ScrollTrigger onVisible={loadMorePhotos} loading={loadingMore} />}
+              ) : (
+                <div>
+                  {groupPhotosByDate(sortedPhotos).map((group) => (
+                    <div key={group.date}>
+                      {(!embedded || filter !== 'day') && (
+                        <p className="mt-4 mb-2 text-[11px] font-medium text-zinc-500 first:mt-0 dark:text-zinc-400">
+                          {group.label}
+                        </p>
+                      )}
+                      <div className="mb-1 grid grid-cols-3 gap-1.5 sm:grid-cols-4 md:grid-cols-5">
+                        {group.assets.map((asset: any) => {
+                          const isSelected = selected.has(asset.id);
+                          const alreadyAdded = existingAssetIds.has(asset.id);
+                          return (
+                            <button
+                              type="button"
+                              key={asset.id}
+                              disabled={alreadyAdded}
+                              aria-pressed={isSelected}
+                              aria-label={asset.city || group.label}
+                              onClick={() => !alreadyAdded && toggleAsset(asset.id)}
+                              className={`relative block aspect-square w-full overflow-hidden rounded-lg ${
+                                alreadyAdded
+                                  ? 'cursor-not-allowed opacity-40'
+                                  : isSelected
+                                    ? 'cursor-pointer ring-2 ring-zinc-900 ring-offset-2 dark:ring-white dark:ring-offset-zinc-900'
+                                    : 'cursor-pointer'
+                              }`}
+                            >
+                              <img
+                                src={`/api/integrations/memories/${provider}/assets/0/${asset.id}/${userId}/thumbnail${selectedAlbumPassphrase ? `?passphrase=${encodeURIComponent(selectedAlbumPassphrase)}` : ''}`}
+                                alt=""
+                                className="h-full w-full object-cover"
+                                loading="lazy"
+                                onError={(e) => {
+                                  const img = e.currentTarget;
+                                  const original = `/api/integrations/memories/${provider}/assets/0/${asset.id}/${userId}/original${selectedAlbumPassphrase ? `?passphrase=${encodeURIComponent(selectedAlbumPassphrase)}` : ''}`;
+                                  if (!img.src.includes('/original')) img.src = original;
+                                }}
+                              />
+                              {alreadyAdded && (
+                                <div className="absolute top-1.5 right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-zinc-500 text-white">
+                                  <Check size={12} />
+                                </div>
+                              )}
+                              {isSelected && !alreadyAdded && (
+                                <div className="absolute top-1.5 right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-zinc-900 text-white dark:bg-white dark:text-zinc-900">
+                                  <Check size={12} />
+                                </div>
+                              )}
+                              {asset.mediaType === 'video' && (
+                                <div className="pointer-events-none absolute bottom-1.5 left-1.5 z-10 flex h-4 w-4 items-center justify-center rounded-full bg-black/60">
+                                  <Play size={8} className="ml-px text-white" fill="currentColor" />
+                                </div>
+                              )}
+                              {asset.city && (
+                                <div className="absolute right-0 bottom-0 left-0 bg-gradient-to-t from-black/50 to-transparent p-1">
+                                  <p className="truncate text-[8px] text-white">{asset.city}</p>
+                                </div>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {/* Outside the empty/grid choice on purpose: a page whose photos all
+                  belong to a neighbouring day leaves the grid empty, and a sentinel
+                  that only exists next to photos would never ask for the next page
+                  (#2336). */}
+              {morePagesPending && <ScrollTrigger onVisible={loadMorePhotos} loading={loadingMore} />}
             </div>
           )}
         </div>

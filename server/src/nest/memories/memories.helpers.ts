@@ -74,6 +74,12 @@ export type AlbumsList = {
 export type Asset = {
     id: string;
     takenAt: string;
+    /**
+     * The wall clock the photographer read, timezone-agnostic, when the provider
+     * knows it. Absent from providers that store instants only, so read it with
+     * `takenAt` as the fallback.
+     */
+    localTakenAt?: string | null;
     mediaType?: string;
     city?: string | null;
     country?: string | null;
@@ -119,6 +125,67 @@ export function sortAssetsByTakenAtDesc<T extends { takenAt?: string | null }>(a
             return b.at - a.at;
         })
         .map(entry => entry.asset);
+}
+
+
+/**
+ * A calendar day shifted by whole days, as 'YYYY-MM-DD'.
+ *
+ * Used to pad a provider window before it is narrowed again by local capture
+ * date: the widest zones sit 14 hours east and 12 hours west of UTC, so a day on
+ * anybody's wall clock lies inside the UTC days either side of it, and one day
+ * of slack on each end provably catches every asset that belongs to it.
+ *
+ * Anything that is not a plain calendar day comes back untouched, so a malformed
+ * bound still reaches upstream exactly as it did before and fails there, rather
+ * than turning into a different window here.
+ */
+export function shiftCalendarDay(day: string, deltaDays: number): string {
+    const parsed = Date.parse(`${day}T00:00:00.000Z`);
+    if (Number.isNaN(parsed)) return day;
+    return new Date(parsed + deltaDays * 86400000).toISOString().slice(0, 10);
+}
+
+
+/**
+ * Does this asset belong to the requested calendar days?
+ *
+ * Answered against the photographer's own local capture stamp where the provider
+ * sends one, and otherwise against the capture instant — which is the UTC-day
+ * reading the window had before, so a provider or a fork without a local stamp
+ * keeps answering exactly as it does today. Both bounds are optional and
+ * independent: a one-sided range narrows only the side it was given.
+ *
+ * An asset with no usable timestamp at all is kept. Dropping it would lose a
+ * photo the caller could see before this filter existed.
+ */
+export function isWithinLocalDayRange(
+    asset: { takenAt?: string | null; localTakenAt?: string | null },
+    from?: string,
+    to?: string,
+): boolean {
+    const day = (asset.localTakenAt || asset.takenAt || '').slice(0, 10);
+    if (day.length < 10) return true;
+    if (from && day < from) return false;
+    if (to && day > to) return false;
+    return true;
+}
+
+
+/**
+ * When a calendar day starts, in whole epoch seconds, read in the caller's zone.
+ *
+ * `tzOffsetMinutes` is minutes east of UTC (600 for UTC+10), so 0 means the UTC
+ * day — the only reading available before the caller could say which day it
+ * meant, and therefore the behaviour a caller that sends nothing keeps.
+ *
+ * A bound that is not a plain calendar day falls back to whatever Date makes of
+ * it, which is what the window did with it before.
+ */
+export function dayStartEpochSeconds(day: string, tzOffsetMinutes = 0): number {
+    const dayOnly = Date.parse(`${day}T00:00:00.000Z`);
+    if (Number.isNaN(dayOnly)) return Math.floor(Date.parse(day) / 1000);
+    return Math.floor(dayOnly / 1000) - tzOffsetMinutes * 60;
 }
 
 

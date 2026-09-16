@@ -387,6 +387,49 @@ describe('the search order', () => {
 
 });
 
+describe('the search window', () => {
+  const windowOf = async (from?: string, to?: string, tzOffsetMinutes?: number) => {
+    safeFetch.mockResolvedValue(api({ list: [] }));
+    await svc.searchSynologyPhotos(USER, from, to, 0, 100, tzOffsetMinutes);
+    return new URLSearchParams(String((safeFetch.mock.calls[0][1] as { body: URLSearchParams }).body));
+  };
+
+  it('SYNO-U081: with no offset the day is the UTC day it has always been', async () => {
+    const body = await windowOf('2026-03-15', '2026-03-15');
+
+    expect(body.get('start_time')).toBe(String(Date.UTC(2026, 2, 15) / 1000));
+    expect(body.get('end_time')).toBe(String(Date.UTC(2026, 2, 15) / 1000 + 86400));
+  });
+
+  it("SYNO-U082: the caller's offset moves both bounds onto the day it meant", async () => {
+    // UTC+10: the 15th there runs from 14:00Z on the 14th. Without this the NAS
+    // was asked for 10:00 that morning to 09:59 the next (#2336).
+    const body = await windowOf('2026-03-15', '2026-03-15', 600);
+
+    expect(body.get('start_time')).toBe(String(Date.UTC(2026, 2, 15) / 1000 - 600 * 60));
+    expect(body.get('end_time')).toBe(String(Date.UTC(2026, 2, 15) / 1000 - 600 * 60 + 86400));
+  });
+
+  it('SYNO-U083: a one-sided range still sets only the bound it was given', async () => {
+    // Both are optional on the MCP tool, so this is reachable.
+    const fromOnly = await windowOf('2026-03-15', undefined, 600);
+    expect(fromOnly.get('start_time')).toBe(String(Date.UTC(2026, 2, 15) / 1000 - 600 * 60));
+    expect(fromOnly.get('end_time')).toBeNull();
+
+    vi.clearAllMocks();
+    const toOnly = await windowOf(undefined, '2026-03-15', -480);
+    expect(toOnly.get('start_time')).toBeNull();
+    expect(toOnly.get('end_time')).toBe(String(Date.UTC(2026, 2, 15) / 1000 + 480 * 60 + 86400));
+  });
+
+  it('SYNO-U084: no dates at all still means no window, offset or not', async () => {
+    const body = await windowOf(undefined, undefined, 600);
+
+    expect(body.get('start_time')).toBeNull();
+    expect(body.get('end_time')).toBeNull();
+  });
+});
+
 describe('fetchSynologyThumbnailBytes', () => {
   it('SYNO-U080: fails without credentials rather than fetching', async () => {
     seedUser(6, { synology_url: null });

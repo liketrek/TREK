@@ -1,5 +1,6 @@
 import { GeoOnceError } from '../../hooks/useGeolocation';
 import type { JourneyEntry } from '../../store/journeyStore';
+import { localIsoDate } from '../../utils/localDate';
 import { GRADIENTS } from './JourneyDetailPage.constants';
 
 // Shared by the desktop entry editor and the mobile entry sheet so a failed
@@ -72,10 +73,67 @@ export function photoUrl(p: { photo_id: number }, size: 'thumbnail' | 'original'
   return `/api/photos/${p.photo_id}/${size}`;
 }
 
+/**
+ * Which calendar day a provider photo belongs to.
+ *
+ * Providers that keep the photographer's wall clock send it along
+ * (`localTakenAt`, Immich's `localDateTime`) and it is already a date, so it is
+ * read as one. Everything else only has the capture instant, and the day that
+ * instant fell on is the reader's local day, never the UTC one: slicing the
+ * instant files a 07:32 photo in Sydney under the day before (#2336).
+ *
+ * A bare date with no time is passed through — it is a calendar date already,
+ * and putting it through a Date would shift it by a zone it never carried.
+ */
+export function photoLocalDay(asset: { takenAt?: string | null; localTakenAt?: string | null }): string {
+  const local = asset.localTakenAt;
+  if (typeof local === 'string' && local.length >= 10) return local.slice(0, 10);
+  const taken = asset.takenAt;
+  if (!taken) return '__unknown__';
+  if (taken.length === 10) return taken;
+  const parsed = new Date(taken);
+  return Number.isNaN(parsed.getTime()) ? taken.slice(0, 10) : localIsoDate(parsed);
+}
+
+/**
+ * The reader's own UTC offset where a given calendar day starts, in minutes east
+ * of UTC.
+ *
+ * Read on the day being searched rather than at "now", so a summer day looked up
+ * in winter is not an hour off, and where that day starts rather than at its
+ * midday, because the start is what the server derives from it: `from` becomes
+ * exactly that instant. It needs the offset at all because a date-only bound is
+ * otherwise a UTC day, which is the wrong 24 hours for everyone outside UTC
+ * (#2336).
+ *
+ * One number cannot describe both ends of a window, and the server closes its
+ * own at the start of `to` plus twenty-four hours. So a range whose ends sit on
+ * either side of a daylight-saving change is an hour out at the far end, and the
+ * twenty-five-hour day a zone gets when its clocks go back loses its last hour
+ * even when `from` and `to` name that one day. Both are an hour of a listing
+ * rather than the wrong day, and closing them means giving each bound its own
+ * offset.
+ */
+export function utcOffsetMinutesForDay(day?: string): number {
+  if (!day || !/^\d{4}-\d{2}-\d{2}$/.test(day)) return -new Date().getTimezoneOffset() || 0;
+  // An offset can only be read at an instant, and the instant this day starts on
+  // is the thing being looked for. So: read the offset half a day into the UTC
+  // day, which for every real zone lands inside the local day; use it to step
+  // back to roughly local midnight; read the offset there. Parsing
+  // `${day}T00:00:00` as a local time instead would be guesswork on the day a
+  // zone moves its clocks across midnight, where that wall clock is unreal or
+  // happens twice.
+  const utcDayStart = Date.parse(`${day}T00:00:00.000Z`);
+  const midDay = -new Date(utcDayStart + 43200000).getTimezoneOffset();
+  // `|| 0` catches both an unreal date, which gives NaN, and the negative zero
+  // that negating a zero offset would otherwise hand to the server.
+  return -new Date(utcDayStart - midDay * 60000).getTimezoneOffset() || 0;
+}
+
 export function groupPhotosByDate(photos: any[]): { date: string; label: string; assets: any[] }[] {
   const map = new Map<string, any[]>();
   for (const asset of photos) {
-    const key = asset.takenAt ? asset.takenAt.slice(0, 10) : '__unknown__';
+    const key = photoLocalDay(asset);
     if (!map.has(key)) map.set(key, []);
     map.get(key)!.push(asset);
   }
@@ -106,6 +164,8 @@ export function groupPhotosByDate(photos: any[]): { date: string; label: string;
 export interface ProviderPhotoAsset {
   id: string;
   takenAt?: string | null;
+  /** The photographer's wall clock, when the provider knows it. Immich only. */
+  localTakenAt?: string | null;
   lat?: number | null;
   lng?: number | null;
   [key: string]: unknown;
