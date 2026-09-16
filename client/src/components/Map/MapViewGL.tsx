@@ -28,6 +28,7 @@ import type { Day, Place, Reservation, RouteVia } from '../../types'
 import type { MapHoverInfo } from './mapHover'
 import { nightPauseMarker, NIGHT_PAUSE_MIN_ZOOM } from './nightPauseMarker'
 import { clusterPois, poiClusterMarkup, poiClusterList, POI_CLUSTER_DETAIL_ZOOM } from './poiClusters'
+import { groupCoincidentPlaces } from './coincidentPlaces'
 import type { RoadtripHazard } from '@trek/shared'
 import { useHazardLayerGL } from './useHazardLayerGL'
 import { useDawarichTrailGL } from './useDawarichTrailGL'
@@ -216,7 +217,15 @@ interface Props {
   onMapReady?: (map: any | null) => void
 }
 
-/** How eagerly place markers merge into a cluster. */
+/**
+ * How eagerly place markers merge into a cluster.
+ *
+ * The overview band the Leaflet map clusters in as well (`CLUSTER_UNTIL_ZOOM` there),
+ * kept as plain numbers rather than shared constants so the GL bundle does not have to
+ * carry Leaflet for them. Above the cutoff supercluster hands every point back on its
+ * own, and the stops that share a coordinate are folded together at the pin level
+ * instead — see the reconcile below.
+ */
 const CLUSTER_RADIUS = 20
 const CLUSTER_MAX_ZOOM = 8
 
@@ -1829,7 +1838,24 @@ export function MapViewGL({
         seen.add(id)
         visiblePlaces.push(place)
       }
-      reconcileMarkers(visiblePlaces)
+      // Without a projection there is no way to tell which pins land on each other, so
+      // nothing is folded and every stop keeps the pin it has always had.
+      if (typeof map.project !== 'function') {
+        reconcileMarkers(visiblePlaces)
+        return
+      }
+      // Above the cluster cutoff supercluster reports every point unclustered, so stops
+      // on one coordinate would each get a pin and all but one of them would be buried
+      // (#2344). There is no spiderfy on a GL map to fan them out, so the pile draws as
+      // the one pin that is wanted: the selected stop when it is in there, which is what
+      // makes picking it from the places rail visible at all. Only pins that sit on each
+      // other fold — this side cannot undo a fold, hence its own tight radius.
+      const stacks = groupCoincidentPlaces(
+        visiblePlaces,
+        place => map.project([place.lng, place.lat]),
+        selectedPlaceId,
+      )
+      reconcileMarkers(stacks.map(stack => stack.lead))
     }
     const scheduleReconcile = () => {
       if (raf !== null) return

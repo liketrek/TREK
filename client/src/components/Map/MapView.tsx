@@ -4,7 +4,7 @@ import { renderIconMarkup } from '../../utils/iconMarkup'
 import { MapContainer, TileLayer, Marker, Polyline, CircleMarker, Circle, useMap, Tooltip } from 'react-leaflet'
 import MarkerClusterGroup from 'react-leaflet-cluster'
 import { makeMarkerDraggable, makePoiDraggable, draggedPoiId } from './markerDrag'
-import { CLUSTER_OPTIONS, createClusterIcon } from './markerCluster'
+import { CLUSTER_OPTIONS, createClusterIcon, revealInCluster, type ClusterGroupLike } from './markerCluster'
 import RoadtripViaMarkers from './RoadtripViaMarkers'
 import HazardLayers from './HazardLayers'
 import { ALT_CASING, ALT_LABEL_TEXT } from '../Roadtrip/alternativeColors'
@@ -607,16 +607,25 @@ interface MemoMarkerProps {
   onHoverOut: () => void
   /** Off in read-only trips and on the phone, where HTML5 drag does not exist. */
   draggable: boolean
+  /** Hands the Leaflet marker up, so a selection can find the bubble it is hiding in. */
+  onRegister: (id: number, marker: unknown) => void
 }
 
 const MemoMarker = memo(function MemoMarker({
-  place, isSelected, orderNumbers, photoUrl, onClickPlace, onHover, onHoverOut, draggable,
+  place, isSelected, orderNumbers, photoUrl, onClickPlace, onHover, onHoverOut, draggable, onRegister,
 }: MemoMarkerProps) {
   const icon = createPlaceIcon({ ...place, image_url: photoUrl }, orderNumbers, isSelected)
   const cleanupRef = useRef<(() => void) | null>(null)
+  // react-leaflet compares `position` by reference and calls setLatLng whenever it
+  // differs, and the cluster group answers a moved child by taking it out and putting
+  // it back — which collapses an open fan. A fresh array literal here did that on
+  // every render the marker took part in.
+  const position = useMemo<[number, number]>(() => [place.lat, place.lng], [place.lat, place.lng])
+  const register = useCallback((marker: unknown) => { onRegister(place.id, marker) }, [onRegister, place.id])
   return (
     <Marker
-      position={[place.lat, place.lng]}
+      ref={register}
+      position={position}
       icon={icon}
       eventHandlers={{
         // The element only exists once Leaflet has put the marker on the map,
@@ -882,6 +891,39 @@ export const MapView = memo(function MapView({
   // HTML5 drag does not exist — and the day plan is not on screen there anyway.
   const markersDraggable = !isTouchDevice
 
+  /**
+   * Reaching a stop that shares its coordinates with others.
+   *
+   * Such a stop has no pin of its own while the stack is collapsed — it is inside a
+   * cluster bubble — so the z-index that used to lift the selected pin out of the pile
+   * has nothing to lift. Fan the bubble open instead, which leaves the camera alone
+   * (#2344). The registry is what lets a selection find its Leaflet marker at all.
+   */
+  const clusterGroupRef = useRef<ClusterGroupLike | null>(null)
+  const placeMarkersRef = useRef(new Map<number, unknown>())
+  const registerClusterGroup = useCallback((group: unknown) => {
+    clusterGroupRef.current = (group as ClusterGroupLike | null) ?? null
+  }, [])
+  const registerMarker = useCallback((id: number, marker: unknown) => {
+    if (marker) placeMarkersRef.current.set(id, marker)
+    else placeMarkersRef.current.delete(id)
+  }, [])
+
+  useEffect(() => {
+    if (selectedPlaceId == null) return
+    let frame: number | null = null
+    const reveal = () => {
+      frame = null
+      revealInCluster(clusterGroupRef.current, placeMarkersRef.current.get(selectedPlaceId))
+    }
+    reveal()
+    // The group takes its markers in on a microtask and adds them in chunks, so a
+    // selection that arrives with the map — a link straight into a day — finds nothing
+    // on the first pass. A second attempt one frame later does.
+    if (typeof requestAnimationFrame === 'function') frame = requestAnimationFrame(reveal)
+    return () => { if (frame !== null) cancelAnimationFrame(frame) }
+  }, [selectedPlaceId, places])
+
   const markers = useMemo(() => places.map((place) => {
     const isSelected = place.id === selectedPlaceId
     const pck = photoCacheKey(place)
@@ -899,9 +941,10 @@ export const MapView = memo(function MapView({
         onHover={handleMarkerHover}
         onHoverOut={handleMarkerHoverOut}
         draggable={markersDraggable}
+        onRegister={registerMarker}
       />
     )
-  }), [places, selectedPlaceId, dayOrderMap, photoUrls, handleMarkerClick, handleMarkerHover, handleMarkerHoverOut, markersDraggable])
+  }), [places, selectedPlaceId, dayOrderMap, photoUrls, handleMarkerClick, handleMarkerHover, handleMarkerHoverOut, markersDraggable, registerMarker])
 
   // Parsing track geometry is the expensive part (tracks run to tens of thousands
   // of points), so it hangs off `places` alone — a selection change must not
@@ -1068,7 +1111,7 @@ export const MapView = memo(function MapView({
       <PoiDropTarget onPoiDropOnRoute={onPoiDropOnRoute} />
       <LeafletLocationLayer position={userPosition} mode={trackingMode} />
 
-      <MarkerClusterGroup {...CLUSTER_OPTIONS} iconCreateFunction={createClusterIcon}>
+      <MarkerClusterGroup ref={registerClusterGroup} {...CLUSTER_OPTIONS} iconCreateFunction={createClusterIcon}>
         {markers}
       </MarkerClusterGroup>
 

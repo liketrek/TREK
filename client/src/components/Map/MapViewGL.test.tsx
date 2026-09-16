@@ -863,6 +863,17 @@ describe('MapViewGL', () => {
     properties: Record<string, unknown>
     geometry: { type: string; coordinates: number[] | number[][] | number[][][] }
   }
+  // A projection for the tests that care how far apart two pins land on screen. The map
+  // double projects 10 px per degree, an overview so coarse that a whole city sits under
+  // one pin; a real map is around 1500 px per degree at the zoom a day is fitted to.
+  // Setting an implementation at all is also what puts project() back: an earlier test
+  // pins it to a single point, and clearAllMocks keeps an implementation once set.
+  const PX_PER_DEGREE = 1500
+  const projectAtDayZoom = () =>
+    glMap.project.mockImplementation((lngLat: [number, number]) => (
+      { x: lngLat[0] * PX_PER_DEGREE, y: lngLat[1] * PX_PER_DEGREE }
+    ))
+
   const geoSource = () => ({ setData: vi.fn((_data: unknown) => {}) })
   function lastData(src: ReturnType<typeof geoSource>): { features: GeoFeature[] } {
     const calls = vi.mocked(src.setData).mock.calls
@@ -1527,6 +1538,7 @@ describe('MapViewGL', () => {
 
   it('FE-COMP-MAPVIEWGL-047: only the unclustered leaves of the cluster source get a rich marker (#1385)', async () => {
     loadOnAttach()
+    projectAtDayZoom()
     const clusterSource = geoSource()
     glMap.getSource.mockImplementation((id: string) => (id === 'trip-place-clusters' ? clusterSource : null))
     glMap.querySourceFeatures.mockReturnValue([
@@ -1556,6 +1568,102 @@ describe('MapViewGL', () => {
     expect(drawn).toContainEqual([2.2, 48.2])
     // 63 is inside a cluster bubble, so no HTML marker is drawn for it.
     expect(drawn).not.toContainEqual([2.3, 48.3])
+  })
+
+  // One building modelled as several stops — drop the bags, check in, the museum inside
+  // it — puts every pin on the same spot, and all but the top one are unreachable. There
+  // is no spiderfy on a GL map, so the stack draws as the one pin worth seeing (#2344).
+  it('FE-COMP-MAPVIEWGL-077: stops on one coordinate draw one pin, and picking a buried one makes it that pin', async () => {
+    loadOnAttach()
+    projectAtDayZoom()
+    const clusterSource = geoSource()
+    glMap.getSource.mockImplementation((id: string) => (id === 'trip-place-clusters' ? clusterSource : null))
+    glMap.querySourceFeatures.mockReturnValue([
+      { properties: { placeId: 71 } },
+      { properties: { placeId: 72 } },
+      { properties: { placeId: 73 } },
+    ])
+    const hotel = { lat: 48.8584, lng: 2.2945 }
+    const places = [
+      buildMapPlace({ id: 71, name: 'Drop the bags', ...hotel }),
+      buildMapPlace({ id: 72, name: 'Check in', ...hotel }),
+      buildMapPlace({ id: 73, name: 'Louvre', lat: 60.1, lng: 9.3 }),
+    ]
+    // The order badge is what tells the two stops on the hotel apart on screen.
+    const dayOrderMap = { 71: [1], 72: [2], 73: [3] }
+    const pinsOnTheHotel = () => glMarkers.created.filter(marker => marker.lngLat?.[0] === hotel.lng)
+
+    const { rerender } = render(<MapViewGL places={places} fitKey={1} dayOrderMap={dayOrderMap} />)
+    await flushFrames()
+
+    expect(pinsOnTheHotel()).toHaveLength(1)
+    expect(pinsOnTheHotel()[0].element.innerHTML).toContain('>1</span>')
+    // The stop elsewhere is untouched by the folding.
+    expect(glMarkers.created.map(m => m.lngLat)).toContainEqual([9.3, 60.1])
+
+    glMarkers.clear()
+    rerender(<MapViewGL places={places} fitKey={1} dayOrderMap={dayOrderMap} selectedPlaceId={72} />)
+    await flushFrames()
+
+    expect(pinsOnTheHotel()).toHaveLength(1)
+    expect(pinsOnTheHotel()[0].element.innerHTML).toContain('>2</span>')
+  })
+
+  // Two ordinary neighbours — a hotel and the restaurant across the street — are not a
+  // pile. Nothing here can fan a bubble open again, so anything the fold reaches beyond
+  // the pins that cover each other is a stop the map simply loses (#2344).
+  it('FE-COMP-MAPVIEWGL-078: stops a few hundred metres apart keep a pin each', async () => {
+    loadOnAttach()
+    projectAtDayZoom()
+    const clusterSource = geoSource()
+    glMap.getSource.mockImplementation((id: string) => (id === 'trip-place-clusters' ? clusterSource : null))
+    glMap.querySourceFeatures.mockReturnValue([
+      { properties: { placeId: 81 } },
+      { properties: { placeId: 82 } },
+    ])
+    // ~300 m apart at this latitude, which the projection above puts 6 px apart: well
+    // inside the width of a pin, and still two stops a user has to be able to reach.
+    const places = [
+      buildMapPlace({ id: 81, name: 'Hotel Le Marais', lat: 48.8584, lng: 2.2945 }),
+      buildMapPlace({ id: 82, name: 'Chez Julien', lat: 48.8584, lng: 2.2986 }),
+    ]
+
+    render(<MapViewGL places={places} fitKey={1} />)
+    await flushFrames()
+
+    const drawn = glMarkers.created.map(m => m.lngLat)
+    expect(drawn).toContainEqual([2.2945, 48.8584])
+    expect(drawn).toContainEqual([2.2986, 48.8584])
+  })
+
+  // Without a projection there is no telling which pins land on each other, and a guess
+  // costs a stop its marker for good. Draw them all instead, as the map always did.
+  it('FE-COMP-MAPVIEWGL-079: a map that cannot place its pins still draws every one of them', async () => {
+    loadOnAttach()
+    const clusterSource = geoSource()
+    glMap.getSource.mockImplementation((id: string) => (id === 'trip-place-clusters' ? clusterSource : null))
+    glMap.querySourceFeatures.mockReturnValue([
+      { properties: { placeId: 91 } },
+      { properties: { placeId: 92 } },
+    ])
+    const places = [
+      buildMapPlace({ id: 91, lat: 48.1, lng: 2.1 }),
+      buildMapPlace({ id: 92, lat: 48.2, lng: 2.2 }),
+    ]
+
+    const projection = glMap.project
+    const engine = glMap as unknown as { project?: unknown }
+    try {
+      engine.project = undefined
+      render(<MapViewGL places={places} fitKey={1} />)
+      await flushFrames()
+    } finally {
+      engine.project = projection
+    }
+
+    const drawn = glMarkers.created.map(m => m.lngLat)
+    expect(drawn).toContainEqual([2.1, 48.1])
+    expect(drawn).toContainEqual([2.2, 48.2])
   })
 
   it('FE-COMP-MAPVIEWGL-048: the day route becomes one LineString per drawn segment', async () => {

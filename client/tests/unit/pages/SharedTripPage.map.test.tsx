@@ -6,7 +6,9 @@ import React from 'react';
 import L from 'leaflet';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, within } from '../../helpers/render';
-import { CLUSTER_OPTIONS, createClusterIcon } from '../../../src/components/Map/markerCluster';
+import { CLUSTER_OPTIONS, CLUSTER_RADIUS_PX, CLUSTER_UNTIL_ZOOM, createClusterIcon } from '../../../src/components/Map/markerCluster';
+import { STACK_RADIUS_PX } from '../../../src/components/Map/coincidentPlaces';
+import { MAP_MAX_ZOOM } from '../../../src/constants/mapDefaults';
 import SharedTripPage from '../../../src/pages/SharedTripPage';
 
 const mocks = vi.hoisted(() => ({
@@ -117,6 +119,22 @@ describe('the map on a public share page', () => {
     expect(small.options.html).toContain('<span>7</span>');
     expect([small, medium, large].map((icon) => icon.options.iconSize)).toEqual([L.point(36, 36), L.point(42, 42), L.point(48, 48)]);
     expect(small.options.html).toContain('width:36px;height:36px');
+  });
+
+  it('FE-PAGE-SHARED-MAP-005: two stops on one coordinate stay in a bubble a guest can open (#2344)', () => {
+    mocks.hook = hookState(
+      payload([place(11, 'Drop the bags', 31.24, 121.49), place(12, 'Check in', 31.24, 121.49)]),
+    );
+    render(<SharedTripPage />);
+
+    const props = mocks.clusterProps[0];
+    // A guest has no places rail to fall back on, so the bubble is the only way in and
+    // nothing may switch clustering off above the zoom the trip is read at.
+    expect(props).not.toHaveProperty('disableClusteringAtZoom');
+    expect(props.spiderfyOnMaxZoom).toBe(true);
+    const radius = props.maxClusterRadius as (zoom: number) => number;
+    expect(radius(MAP_MAX_ZOOM)).toBe(STACK_RADIUS_PX);
+    expect(radius(CLUSTER_UNTIL_ZOOM - 1)).toBe(CLUSTER_RADIUS_PX);
   });
 
   it('FE-PAGE-SHARED-MAP-004: a place without coordinates is left out of the map, as before', () => {
