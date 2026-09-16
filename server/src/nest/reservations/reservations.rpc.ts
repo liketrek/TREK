@@ -38,6 +38,7 @@ export class ReservationsRpc {
     const input = parsed.data as Record<string, unknown>;
     this.requireValidEndpoints(input.endpoints);
     this.guards.requireTripEdit(tripId, actor, RESERVATION_EDIT_ACTION);
+    this.requireResolvableReferences(tripId, input);
     const { reservation, accommodationCreated } = this.reservations.create(String(tripId), input as never);
     if (accommodationCreated) this.realtime.broadcast(tripId, 'accommodation:created', {}, undefined);
     const i = input as { title?: string; type?: string; create_budget_entry?: unknown };
@@ -59,6 +60,7 @@ export class ReservationsRpc {
     this.guards.requireTripEdit(tripId, actor, RESERVATION_EDIT_ACTION);
     const current = this.reservations.getReservation(String(reservationId), String(tripId));
     if (!current) throw new ForbiddenResource(`no reservation ${reservationId} on trip ${tripId}`);
+    this.requireResolvableReferences(tripId, input);
     const { reservation, accommodationChanged } = this.reservations.update(String(reservationId), String(tripId), input as never, current as never);
     if (accommodationChanged) this.realtime.broadcast(tripId, 'accommodation:updated', {}, undefined);
     const cur = current as { title: string; type?: string };
@@ -95,6 +97,22 @@ export class ReservationsRpc {
     if (value === undefined) return;
     const parsed = reservationEndpointsInputSchema.safeParse(value);
     if (!parsed.success) throw new BadParams(`invalid endpoints: ${schemaMessage(parsed.error)}`);
+  }
+
+  /**
+   * An id that resolves to nothing is a foreign-key error the plugin reads as a
+   * crash (#2355), so it is named here instead. Only that case: a plugin has
+   * always been able to point at another trip's day or place through this
+   * surface, and taking that away is a decision for the plugin contract, not a
+   * side effect of a bug fix — so the ids the REST route refuses for being
+   * somebody else's are filtered back out.
+   */
+  private requireResolvableReferences(tripId: number, input: Record<string, unknown>): void {
+    const elsewhere = new Set(this.reservations.referencesOutsideTrip(String(tripId), input as never));
+    const unknown = this.reservations
+      .unresolvedReferences(String(tripId), input as never)
+      .filter((field) => !elsewhere.has(field));
+    if (unknown.length > 0) throw new BadParams(`unknown reference: ${unknown.join(', ')}`);
   }
 
   /** Fire-and-forget, exactly as the REST controller sends it, so it never blocks the write. */

@@ -27,6 +27,10 @@ const { db } = vi.hoisted(() => {
   const Database = require('better-sqlite3');
   const tmp = new Database(':memory:');
   tmp.exec('PRAGMA journal_mode = WAL');
+  // What production runs (db/database.ts) and what createTestDb gives every
+  // unit suite. Without it the reservation foreign keys are inert here, and an
+  // id that resolves to nothing passes the mount unnoticed.
+  tmp.exec('PRAGMA foreign_keys = ON');
   return { db: tmp };
 });
 
@@ -144,6 +148,54 @@ describe('Reservations + accommodations e2e (real auth guard + temp SQLite, real
     const bad = await request(server).post(`/api/trips/${tripId}/reservations`).set('Cookie', sessionCookie(1)).send({});
     expect(bad.status).toBe(400);
     expect(bad.body.error).toContain('title');
+  });
+
+  // The reported repro (#2355): an id that resolves to nothing used to reach
+  // the statement and come back as an unhandled SqliteError, i.e. a bare 500.
+  it('400 on an update whose place_id exists nowhere, and the row is left alone', async () => {
+    const rid = Number(db.prepare("INSERT INTO reservations (trip_id, title, type) VALUES (?, 'Dinner', 'other')").run(tripId).lastInsertRowid);
+
+    const res = await request(server)
+      .put(`/api/trips/${tripId}/reservations/${rid}`)
+      .set('Cookie', sessionCookie(1))
+      .send({ title: 'Dinner, later', place_id: 999999 });
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: 'Unknown reference: place_id' });
+    expect(db.prepare('SELECT title, place_id FROM reservations WHERE id = ?').get(rid)).toEqual({ title: 'Dinner', place_id: null });
+  });
+
+  it('400 on a create whose create_accommodation day exists nowhere, and no stay is written', async () => {
+    const placeId = Number(db.prepare('INSERT INTO places (trip_id, name) VALUES (?, ?)').run(tripId, 'Hotel Unknown').lastInsertRowid);
+    const dayId = Number(db.prepare('INSERT INTO days (trip_id, day_number, date) VALUES (?, 7, ?)').run(tripId, '2026-03-07').lastInsertRowid);
+    const before = db.prepare('SELECT COUNT(*) as c FROM day_accommodations WHERE trip_id = ?').get(tripId);
+
+    const res = await request(server)
+      .post(`/api/trips/${tripId}/reservations`)
+      .set('Cookie', sessionCookie(1))
+      .send({ title: 'Stay', type: 'hotel', create_accommodation: { place_id: placeId, start_day_id: dayId, end_day_id: 999999 } });
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: 'Unknown reference: create_accommodation.end_day_id' });
+    expect(db.prepare('SELECT COUNT(*) as c FROM day_accommodations WHERE trip_id = ?').get(tripId)).toEqual(before);
+  });
+
+  // #522, which must survive all of the above: shortening a trip cascades the
+  // stay away and leaves the booking pointing at a gap, and the booking still
+  // has to be savable.
+  it('200 on an update whose stored accommodation_id no longer resolves', async () => {
+    const rid = Number(
+      db.prepare("INSERT INTO reservations (trip_id, title, type, accommodation_id) VALUES (?, 'Stay', 'hotel', 999999)").run(tripId).lastInsertRowid,
+    );
+
+    const res = await request(server)
+      .put(`/api/trips/${tripId}/reservations/${rid}`)
+      .set('Cookie', sessionCookie(1))
+      .send({ title: 'Stay, renamed', accommodation_id: 999999 });
+
+    expect(res.status).toBe(200);
+    expect(db.prepare('SELECT title, accommodation_id FROM reservations WHERE id = ?').get(rid))
+      .toEqual({ title: 'Stay, renamed', accommodation_id: null });
   });
 
   it('200 list accommodations + 201 create (real insert + auto hotel reservation), 404 on bad refs', async () => {

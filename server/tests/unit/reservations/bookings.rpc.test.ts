@@ -30,7 +30,7 @@ const req = (method: string, params: Record<string, unknown> = {}): RpcRequest =
 const events = (r: { broadcast: ReturnType<typeof vi.fn> }) => r.broadcast.mock.calls.map((c) => c[1]);
 
 /** Trip 1 belongs to user 42; reservation 5 and accommodation 11 sit on it. */
-function build(opts: { canEdit?: boolean; cascade?: boolean; stop?: boolean; seenActions?: string[] } = {}) {
+function build(opts: { canEdit?: boolean; cascade?: boolean; stop?: boolean; seenActions?: string[]; unresolved?: string[]; foreign?: string[] } = {}) {
   const realtime = { broadcast: vi.fn() } as unknown as RealtimeService & { broadcast: ReturnType<typeof vi.fn> };
   const reservations = {
     create: vi.fn(() => ({ reservation: { id: 40 }, accommodationCreated: !!opts.cascade })),
@@ -44,6 +44,9 @@ function build(opts: { canEdit?: boolean; cascade?: boolean; stop?: boolean; see
     syncBudgetOnCreate: vi.fn(),
     syncBudgetOnUpdate: vi.fn(),
     notifyBookingChange: vi.fn(),
+    // Both guards run before a write now, so the fixture answers for them.
+    referencesOutsideTrip: vi.fn(() => opts.foreign ?? []),
+    unresolvedReferences: vi.fn(() => opts.unresolved ?? []),
   } as unknown as ReservationsService & Record<string, ReturnType<typeof vi.fn>>;
   /** What a stay write did to the day plan, on top of writing the stay itself. */
   type Mirror = { created: { id: number; day_id: number } | null; removed: { id: number; dayId: number }[]; stamped: null };
@@ -191,6 +194,34 @@ describe('ReservationsRpc', () => {
     )) as RpcError;
     expect(res.error.code).toBe('BAD_PARAMS');
     expect(f.reservations.update).not.toHaveBeenCalled();
+  });
+
+  it('BOOK-RPC-018 an id that resolves to nothing is BAD_PARAMS, not a constraint failure', async () => {
+    const f = build({ unresolved: ['place_id'] });
+    const res = (await f.host().dispatch(
+      req('reservations.create', { tripId: 1, input: { title: 'Hotel', type: 'lodging', place_id: 999999 } }), 42,
+    )) as RpcError;
+    expect(res.error.code).toBe('BAD_PARAMS');
+    expect(res.error.message).toBe('unknown reference: place_id');
+    expect(f.reservations.create).not.toHaveBeenCalled();
+  });
+
+  it('BOOK-RPC-019 the same on update, while an id on another trip still writes', async () => {
+    const f = build({ unresolved: ['day_id'] });
+    const res = (await f.host().dispatch(
+      req('reservations.update', { tripId: 1, reservationId: 5, input: { title: 'x', type: 'lodging', day_id: 999999 } }), 42,
+    )) as RpcError;
+    expect(res.error.code).toBe('BAD_PARAMS');
+    expect(f.reservations.update).not.toHaveBeenCalled();
+
+    // A plugin has always been able to name another trip's row through this
+    // surface. Taking that away is a change to the plugin contract, not part of
+    // turning a crash into an error.
+    const foreign = build({ unresolved: ['day_id'], foreign: ['day_id'] });
+    expect((await foreign.host().dispatch(
+      req('reservations.update', { tripId: 1, reservationId: 5, input: { title: 'x', type: 'lodging', day_id: 7 } }), 42,
+    )).ok).toBe(true);
+    expect(foreign.reservations.update).toHaveBeenCalled();
   });
 
   it('BOOK-RPC-009 the class is listed in its module providers', () => {

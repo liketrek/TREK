@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { DatabaseService, type TripAccess } from '../database/database.service';
 import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 import { RealtimeService } from '../realtime/realtime.service';
@@ -565,6 +565,104 @@ export class ReservationsService {
     return offenders;
   }
 
+  /**
+   * Name every id in the body that resolves to nothing on this trip.
+   *
+   * A second guard rather than a stricter referencesOutsideTrip: that one
+   * answers "does this id belong to someone else", and a row that exists
+   * nowhere cannot. accommodation_id depends on that answer staying no, or a
+   * booking whose stay was cascaded away could never be saved again (#522).
+   * The fields here are the ones carrying a real foreign key, where an id that
+   * resolves to nothing is not a gap but a constraint failure, and SQLite
+   * raising it reaches the caller as a bare 500 (#2355). accommodation_id is
+   * absent by design; do not complete the list.
+   *
+   * Only a truthy id is looked up. The write paths below coerce 0 and '' to
+   * NULL before they reach SQL, so naming one here would turn a body that
+   * stores a null today into a 400.
+   *
+   * Returns the offending field names, empty when the body is clean. An id
+   * that belongs to another trip is named here too — the REST controller asks
+   * the older guard first, so that case keeps its own answer.
+   */
+  unresolvedReferences(tripId: string | number, data: CreateReservationData | UpdateReservationData): string[] {
+    const offenders: string[] = [];
+    const onTrip = (table: 'days' | 'places', id: unknown) =>
+      !!this.db.get(`SELECT id FROM ${table} WHERE id = ? AND trip_id = ?`, id, tripId);
+
+    if (data.day_id && !onTrip('days', data.day_id)) offenders.push('day_id');
+    if (data.end_day_id && !onTrip('days', data.end_day_id)) offenders.push('end_day_id');
+    if (data.place_id && !onTrip('places', data.place_id)) offenders.push('place_id');
+    if (data.assignment_id) {
+      // An assignment belongs to a trip through its day, the same join the
+      // other guard walks.
+      const row = this.db.get(
+        'SELECT da.id FROM day_assignments da JOIN days d ON da.day_id = d.id WHERE da.id = ? AND d.trip_id = ?',
+        data.assignment_id, tripId,
+      );
+      if (!row) offenders.push('assignment_id');
+    }
+
+    // Only a hotel booking writes the stay row, so only there do these ids
+    // reach SQL. Any other body carries them as dead weight today, and a 400
+    // on a write that currently succeeds is not what this guard is for.
+    if (data.create_accommodation && data.type === 'hotel') {
+      const acc = data.create_accommodation;
+      const errors = this.accommodations.validateAccommodationRefs(
+        tripId, acc.place_id || undefined, acc.start_day_id || undefined, acc.end_day_id || undefined,
+      );
+      for (const { field } of errors) offenders.push(`create_accommodation.${field}`);
+    }
+
+    return offenders;
+  }
+
+  /** Is there still a row behind this id? Existence only — which trip it sits
+   *  on is the guards' question, and they answer it before the write. */
+  private referenceExists(table: 'days' | 'places' | 'day_assignments', id: unknown): boolean {
+    return !!this.db.get(`SELECT id FROM ${table} WHERE id = ?`, id);
+  }
+
+  /**
+   * An id whose row is gone reads as no id at all.
+   *
+   * day_id, end_day_id, place_id and assignment_id are declared ON DELETE SET
+   * NULL, so a reference that resolves to nothing is precisely the state the
+   * cascade leaves behind, and clearing it is what the column already promises.
+   * Binding it instead is the foreign-key error that arrives as a bare 500
+   * (#2355), and an update rebinds whatever the row already held, so a guard
+   * on the body alone never reaches it.
+   */
+  private resolvedOrNull(table: 'days' | 'places' | 'day_assignments', id: number | null): number | null {
+    return id != null && this.referenceExists(table, id) ? id : null;
+  }
+
+  /**
+   * day_accommodations.start_day_id and end_day_id are NOT NULL, so there is
+   * nothing to heal an unresolvable one to and it can only be refused. The
+   * write surfaces name the field long before this; this is the floor under
+   * the importers and the plugin host, and it refuses rather than skipping so
+   * an edit is never dropped in silence.
+   *
+   * Both days are already known to be set where this is called. A place is
+   * not: the booking form writes stays that never had one.
+   *
+   * BadRequestException rather than a domain error class, because the filter
+   * already knows what to do with it: a caller that reaches this over HTTP gets
+   * the same 400 { error } the controller's own guard sends, and not the 500 an
+   * unplaceable class would collapse to (#2355). Its message survives, so the
+   * importer that logs and moves on still names the field.
+   */
+  private requireResolvableStay(acc: CreateAccommodation): void {
+    const missing: string[] = [];
+    if (acc.place_id && !this.referenceExists('places', acc.place_id)) missing.push('place_id');
+    if (!this.referenceExists('days', acc.start_day_id)) missing.push('start_day_id');
+    if (!this.referenceExists('days', acc.end_day_id)) missing.push('end_day_id');
+    if (missing.length > 0) {
+      throw new BadRequestException(`Unknown reference: ${missing.map((field) => `create_accommodation.${field}`).join(', ')}`);
+    }
+  }
+
   /** The accommodation insert, the reservation insert, the endpoint save and
    *  the metadata sync are one logical write — all-or-nothing. */
   create(tripId: string | number, data: CreateReservationData): { reservation: ReservationRow; accommodationCreated: boolean } {
@@ -594,6 +692,7 @@ export class ReservationsService {
     if (type === 'hotel' && !resolvedAccommodationId && create_accommodation) {
       const { place_id: accPlaceId, start_day_id, end_day_id, check_in, check_out, confirmation: accConf } = create_accommodation;
       if (start_day_id && end_day_id) {
+        this.requireResolvableStay(create_accommodation);
         const accResult = this.db.run(
           'INSERT INTO day_accommodations (trip_id, place_id, start_day_id, end_day_id, check_in, check_out, confirmation) VALUES (?, ?, ?, ?, ?, ?, ?)',
           tripId, accPlaceId || null, start_day_id, end_day_id, check_in || null, check_out || null, accConf || confirmation_number || null
@@ -621,6 +720,11 @@ export class ReservationsService {
       resolvedEndDayId = this.resolveDayIdFromTime(tripId, reservation_end_time);
     }
 
+    resolvedDayId = this.resolvedOrNull('days', resolvedDayId);
+    resolvedEndDayId = this.resolvedOrNull('days', resolvedEndDayId);
+    const resolvedPlaceId = this.resolvedOrNull('places', place_id || null);
+    const resolvedAssignmentId = this.resolvedOrNull('day_assignments', assignment_id || null);
+
     const result = this.db.run(`
     INSERT INTO reservations (trip_id, day_id, end_day_id, place_id, assignment_id, title, reservation_time, reservation_end_time, location, confirmation_number, notes, url, status, type, accommodation_id, metadata, needs_review)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -628,8 +732,8 @@ export class ReservationsService {
       tripId,
       resolvedDayId,
       resolvedEndDayId,
-      place_id || null,
-      assignment_id || null,
+      resolvedPlaceId,
+      resolvedAssignmentId,
       title,
       reservation_time || null,
       reservation_end_time || null,
@@ -740,6 +844,7 @@ export class ReservationsService {
     if (type === 'hotel' && create_accommodation) {
       const { place_id: accPlaceId, start_day_id, end_day_id, check_in, check_out, confirmation: accConf } = create_accommodation;
       if (start_day_id && end_day_id) {
+        this.requireResolvableStay(create_accommodation);
         if (resolvedAccId) {
           this.db.run(
             'UPDATE day_accommodations SET place_id = ?, start_day_id = ?, end_day_id = ?, check_in = ?, check_out = ?, confirmation = ? WHERE id = ?',
@@ -804,6 +909,11 @@ export class ReservationsService {
       nextEndDayId = current.end_day_id ?? null;
     }
 
+    nextDayId = this.resolvedOrNull('days', nextDayId);
+    nextEndDayId = this.resolvedOrNull('days', nextEndDayId);
+    const nextPlaceId = this.resolvedOrNull('places', place_id !== undefined ? (place_id || null) : (current.place_id ?? null));
+    const nextAssignmentId = this.resolvedOrNull('day_assignments', assignment_id !== undefined ? (assignment_id || null) : (current.assignment_id ?? null));
+
     this.db.run(`
     UPDATE reservations SET
       title = COALESCE(?, title),
@@ -833,8 +943,8 @@ export class ReservationsService {
       url !== undefined ? (url || null) : (current as Reservation & { url?: string | null }).url,
       nextDayId,
       nextEndDayId,
-      place_id !== undefined ? (place_id || null) : current.place_id,
-      assignment_id !== undefined ? (assignment_id || null) : current.assignment_id,
+      nextPlaceId,
+      nextAssignmentId,
       status || null,
       type || null,
       resolvedAccId,

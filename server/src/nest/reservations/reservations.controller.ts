@@ -172,11 +172,22 @@ export class ReservationsController {
    * and a foreign accommodation_id used to be stored verbatim and deleted with
    * the reservation. The MCP tools have refused foreign ids since they were
    * written; this is the REST half of the same rule.
+   *
+   * Two questions, two answers. Reaching into another trip is the older one and
+   * keeps its wording. An id that resolves to nothing at all is the other half
+   * of the same rule — it used to reach the statement and come back as the bare
+   * 500 SQLite's foreign keys produce (#2355) — and saying "not part of this
+   * trip" about an id that is part of nothing would send the caller looking in
+   * the wrong place.
    */
   private rejectForeignReferences(tripId: string, body: ReservationBody): void {
     const offenders = this.reservations.referencesOutsideTrip(tripId, body as never);
     if (offenders.length > 0) {
       throw new HttpException({ error: `Not part of this trip: ${offenders.join(', ')}` }, 400);
+    }
+    const unknown = this.reservations.unresolvedReferences(tripId, body as never);
+    if (unknown.length > 0) {
+      throw new HttpException({ error: `Unknown reference: ${unknown.join(', ')}` }, 400);
     }
   }
 }

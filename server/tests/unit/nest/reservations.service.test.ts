@@ -43,10 +43,11 @@ const budget = { createBudgetItem: vi.fn(), updateBudgetItem: vi.fn(), deleteBud
 
 const { notif } = vi.hoisted(() => ({ notif: { send: vi.fn().mockResolvedValue(undefined) } }));
 
+import { HttpException } from '@nestjs/common';
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, createReservation, createBudgetItem, createPlace, createDay, createDayAccommodation, addTripMember } from '../../helpers/factories';
+import { createUser, createTrip, createReservation, createBudgetItem, createPlace, createDay, createDayAccommodation, createDayAssignment, addTripMember } from '../../helpers/factories';
 import { DatabaseService } from '../../../src/nest/database/database.service';
 import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { ReservationsService } from '../../../src/nest/reservations/reservations.service';
@@ -1053,6 +1054,151 @@ describe('ReservationsService — referenced ids stay inside the trip', () => {
 
     expect(testDb.prepare('SELECT check_in FROM day_accommodations WHERE id = ?').get(foreignAcc.id)).toEqual({ check_in: '14:00' });
     expect(testDb.prepare('SELECT accommodation_id FROM reservations WHERE id = ?').get(res.id)).toEqual({ accommodation_id: null });
+  });
+
+  /** A row from before the foreign keys, or from a window where they were off:
+   *  the only way to plant one today is the way it got there. */
+  function withForeignKeysOff(plant: () => void) {
+    testDb.exec('PRAGMA foreign_keys = OFF');
+    try { plant(); } finally { testDb.exec('PRAGMA foreign_keys = ON'); }
+  }
+
+  it('RESV-SCOPE-006: an id that resolves to nothing is named too, accommodation_id excepted', () => {
+    const { mine } = twoTrips();
+    const gone = 999999;
+
+    expect(svc.unresolvedReferences(String(mine.id), {
+      title: 'x', type: 'hotel',
+      day_id: gone, end_day_id: gone, place_id: gone, assignment_id: gone, accommodation_id: gone,
+      create_accommodation: { place_id: gone, start_day_id: gone, end_day_id: gone },
+    })).toEqual([
+      'day_id', 'end_day_id', 'place_id', 'assignment_id',
+      'create_accommodation.place_id', 'create_accommodation.start_day_id', 'create_accommodation.end_day_id',
+    ]);
+  });
+
+  it('RESV-SCOPE-007: ids on the trip pass, and a falsy one is not a reference at all', () => {
+    const { mine } = twoTrips();
+    const place = createPlace(testDb, mine.id);
+    const day = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY day_number').get(mine.id) as { id: number };
+    const assignment = createDayAssignment(testDb, day.id, place.id);
+
+    expect(svc.unresolvedReferences(String(mine.id), {
+      title: 'x', type: 'hotel',
+      day_id: day.id, end_day_id: day.id, place_id: place.id, assignment_id: assignment.id,
+      create_accommodation: { place_id: place.id, start_day_id: day.id, end_day_id: day.id },
+    })).toEqual([]);
+    // The write paths coerce these to NULL before they reach SQL, so naming
+    // them would 400 a body that stores a null today.
+    expect(svc.unresolvedReferences(String(mine.id), { title: 'x', day_id: 0, end_day_id: 0, place_id: 0, assignment_id: 0 })).toEqual([]);
+    // Only a hotel booking writes the stay row.
+    expect(svc.unresolvedReferences(String(mine.id), {
+      title: 'x', type: 'flight', create_accommodation: { place_id: 999999, start_day_id: 999999, end_day_id: 999999 },
+    })).toEqual([]);
+    // A stay without a place is a state the booking form writes.
+    expect(svc.unresolvedReferences(String(mine.id), {
+      title: 'x', type: 'hotel', create_accommodation: { start_day_id: day.id, end_day_id: day.id },
+    })).toEqual([]);
+  });
+
+  it('RESV-SCOPE-008: an id from another trip is named by both guards, so the older one answers first', () => {
+    const { mine, theirs } = twoTrips();
+    const foreignPlace = createPlace(testDb, theirs.id);
+    const body = { title: 'x', place_id: foreignPlace.id };
+
+    expect(svc.referencesOutsideTrip(String(mine.id), body)).toEqual(['place_id']);
+    expect(svc.unresolvedReferences(String(mine.id), body)).toEqual(['place_id']);
+  });
+
+  it('RESV-SCOPE-009: an update heals the stored ids whose rows are gone instead of failing on them', () => {
+    const { mine } = twoTrips();
+    const res = createReservation(testDb, mine.id, { title: 'Dinner' });
+    withForeignKeysOff(() => {
+      testDb.prepare('UPDATE reservations SET day_id = ?, end_day_id = ?, place_id = ?, assignment_id = ? WHERE id = ?')
+        .run(999999, 999998, 999997, 999996, res.id);
+    });
+    const current = svc.getReservation(String(res.id), String(mine.id))!;
+
+    // The body names none of them, so the statement rebinds what the row holds.
+    svc.update(String(res.id), String(mine.id), { title: 'Dinner, later' }, current);
+
+    expect(testDb.prepare('SELECT title, day_id, end_day_id, place_id, assignment_id FROM reservations WHERE id = ?').get(res.id))
+      .toEqual({ title: 'Dinner, later', day_id: null, end_day_id: null, place_id: null, assignment_id: null });
+  });
+
+  it('RESV-SCOPE-010: a supplied id that resolves to nothing is stored as NULL, on create and on update', () => {
+    const { mine } = twoTrips();
+    const { reservation } = svc.create(String(mine.id), {
+      title: 'Dinner', day_id: 999999, end_day_id: 999998, place_id: 999997, assignment_id: 999996,
+    });
+    expect(testDb.prepare('SELECT day_id, end_day_id, place_id, assignment_id FROM reservations WHERE id = ?').get(reservation.id))
+      .toEqual({ day_id: null, end_day_id: null, place_id: null, assignment_id: null });
+
+    const current = svc.getReservation(String(reservation.id), String(mine.id))!;
+    svc.update(String(reservation.id), String(mine.id), { place_id: 999997 }, current);
+    expect(testDb.prepare('SELECT place_id FROM reservations WHERE id = ?').get(reservation.id)).toEqual({ place_id: null });
+  });
+
+  it('RESV-SCOPE-011: a stay whose refs resolve to nothing is refused, never written and never dropped in silence', () => {
+    const { mine } = twoTrips();
+    const place = createPlace(testDb, mine.id);
+    const days = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY day_number').all(mine.id) as { id: number }[];
+
+    expect(() => svc.create(String(mine.id), {
+      title: 'Hotel', type: 'hotel',
+      create_accommodation: { place_id: 999999, start_day_id: 999998, end_day_id: 999997 },
+    })).toThrow('Unknown reference: create_accommodation.place_id, create_accommodation.start_day_id, create_accommodation.end_day_id');
+    expect(testDb.prepare('SELECT COUNT(*) as c FROM day_accommodations WHERE trip_id = ?').get(mine.id)).toEqual({ c: 0 });
+    expect(testDb.prepare('SELECT COUNT(*) as c FROM reservations WHERE trip_id = ?').get(mine.id)).toEqual({ c: 0 });
+
+    // On an existing stay the edit is refused rather than skipped: dropping it
+    // would leave the caller with a 200 and the old dates.
+    const acc = createDayAccommodation(testDb, mine.id, place.id, days[0].id, days[1].id);
+    const res = createReservation(testDb, mine.id, { title: 'Hotel', type: 'hotel' });
+    testDb.prepare('UPDATE reservations SET accommodation_id = ? WHERE id = ?').run(acc.id, res.id);
+    const current = svc.getReservation(String(res.id), String(mine.id))!;
+
+    expect(() => svc.update(String(res.id), String(mine.id), {
+      type: 'hotel', create_accommodation: { place_id: place.id, start_day_id: days[0].id, end_day_id: 999999 },
+    }, current)).toThrow('Unknown reference: create_accommodation.end_day_id');
+    expect(testDb.prepare('SELECT end_day_id FROM day_accommodations WHERE id = ?').get(acc.id)).toEqual({ end_day_id: days[1].id });
+  });
+
+  it('RESV-SCOPE-012: a stay booked without a place is still written', () => {
+    const { mine } = twoTrips();
+    const days = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY day_number').all(mine.id) as { id: number }[];
+
+    const { reservation, accommodationCreated } = svc.create(String(mine.id), {
+      title: 'Hotel', type: 'hotel',
+      create_accommodation: { start_day_id: days[0].id, end_day_id: days[1].id, check_in: '15:00' },
+    });
+
+    expect(accommodationCreated).toBe(true);
+    expect(testDb.prepare('SELECT place_id, start_day_id FROM day_accommodations WHERE id = ?').get(Number(reservation.accommodation_id)))
+      .toEqual({ place_id: null, start_day_id: days[0].id });
+  });
+
+  it('RESV-SCOPE-013: the refusal carries the 400 the write surfaces send, not a status the filter has to guess', () => {
+    const { mine } = twoTrips();
+
+    // The write surfaces name the field before the service ever sees it, so the
+    // class only matters to whoever reaches this floor without one. It answers
+    // as they do — the filter passes a 400 through and keeps the message, where
+    // a class it cannot place would become 'Internal server error' (#2355).
+    let thrown: unknown;
+    try {
+      svc.create(String(mine.id), {
+        title: 'Hotel', type: 'hotel',
+        create_accommodation: { start_day_id: 999998, end_day_id: 999997 },
+      });
+    } catch (e) {
+      thrown = e;
+    }
+
+    expect(thrown).toBeInstanceOf(HttpException);
+    expect((thrown as HttpException).getStatus()).toBe(400);
+    expect((thrown as HttpException).message)
+      .toBe('Unknown reference: create_accommodation.start_day_id, create_accommodation.end_day_id');
   });
 });
 

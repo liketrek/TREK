@@ -195,6 +195,8 @@ describe('service errors are translated into the RPC taxonomy', () => {
       getReservation: vi.fn(() => ({ id: 5, title: 'Hotel', type: 'lodging' })),
       update: vi.fn(() => ({ reservation: { id: 5 }, accommodationChanged: false })),
       syncBudgetOnUpdate: vi.fn(),
+      referencesOutsideTrip: vi.fn(() => []),
+      unresolvedReferences: vi.fn(() => []),
       notifyBookingChange,
     } as never;
     const host = new PluginRpcHost('p', ALL, makeDeps(), createTestPluginRegistry([new ReservationsRpc(reservations, realtime(), guards)]));
