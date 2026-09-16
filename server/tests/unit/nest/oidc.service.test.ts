@@ -798,6 +798,236 @@ describe('findOrCreateUser', () => {
   });
 });
 
+// ── claim-based role mapping on login (#2364) ────────────────────────────────
+
+describe('findOrCreateUser role mapping', () => {
+  type RoleResult = { user: any; roleChange?: { from: string; to: string; claim: string } };
+
+  function ssoUser(email: string, sub: string, role: 'admin' | 'user') {
+    const { user } = createUser(testDb, { email, role });
+    testDb.prepare('UPDATE users SET oidc_sub = ?, oidc_issuer = ? WHERE id = ?').run(sub, MOCK_CONFIG.issuer, user.id);
+    return user;
+  }
+  const storedRole = (id: number) => (testDb.prepare('SELECT role FROM users WHERE id = ?').get(id) as { role: string }).role;
+
+  it('OIDC-SVC-063: an admin keeps the role when the configured claim is absent from the payload', () => {
+    process.env.OIDC_ADMIN_VALUE = 'trek-admins';
+    process.env.OIDC_ADMIN_CLAIM = 'entitlements';
+    // A second admin row, so the #1274 last-admin guard cannot be what saves them.
+    createUser(testDb, { email: 'bootstrap@example.com', role: 'admin' });
+    const user = ssoUser('sso-admin@example.com', 'sub-keep-admin', 'admin');
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    try {
+      const result = svc.findOrCreateUser(
+        { sub: 'sub-keep-admin', email: 'sso-admin@example.com', groups: ['authentik Admins'] },
+        MOCK_CONFIG
+      ) as RoleResult;
+
+      expect(result.user.role).toBe('admin');
+      expect(storedRole(user.id)).toBe('admin');
+      expect(result.roleChange).toBeUndefined();
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it('OIDC-SVC-064: an absent claim does not promote a plain user either', () => {
+    process.env.OIDC_ADMIN_VALUE = 'trek-admins';
+    process.env.OIDC_ADMIN_CLAIM = 'entitlements';
+    const user = ssoUser('plain@example.com', 'sub-keep-user', 'user');
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    try {
+      const result = svc.findOrCreateUser(
+        { sub: 'sub-keep-user', email: 'plain@example.com', groups: ['authentik Admins'] },
+        MOCK_CONFIG
+      ) as RoleResult;
+
+      expect(result.user.role).toBe('user');
+      expect(storedRole(user.id)).toBe('user');
+      expect(result.roleChange).toBeUndefined();
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it('OIDC-SVC-065: a custom claim that does arrive still promotes, and reports the change', () => {
+    process.env.OIDC_ADMIN_VALUE = 'trek-admins';
+    process.env.OIDC_ADMIN_CLAIM = 'entitlements';
+    const user = ssoUser('promote@example.com', 'sub-promote', 'user');
+
+    const result = svc.findOrCreateUser(
+      { sub: 'sub-promote', email: 'promote@example.com', entitlements: ['trek-users', 'trek-admins'] },
+      MOCK_CONFIG
+    ) as RoleResult;
+
+    expect(storedRole(user.id)).toBe('admin');
+    expect(result.roleChange).toEqual({ from: 'user', to: 'admin', claim: 'entitlements' });
+  });
+
+  it('OIDC-SVC-066: a claim that arrives without the admin value still demotes', () => {
+    process.env.OIDC_ADMIN_VALUE = 'trek-admins';
+    process.env.OIDC_ADMIN_CLAIM = 'entitlements';
+    createUser(testDb, { email: 'bootstrap2@example.com', role: 'admin' });
+    const user = ssoUser('demote@example.com', 'sub-demote', 'admin');
+
+    const result = svc.findOrCreateUser(
+      { sub: 'sub-demote', email: 'demote@example.com', entitlements: ['trek-users'] },
+      MOCK_CONFIG
+    ) as RoleResult;
+
+    expect(storedRole(user.id)).toBe('user');
+    expect(result.roleChange).toEqual({ from: 'admin', to: 'user', claim: 'entitlements' });
+  });
+
+  it('OIDC-SVC-067: the only admin is still kept when the claim arrives without the admin value (#1274)', () => {
+    process.env.OIDC_ADMIN_VALUE = 'trek-admins';
+    process.env.OIDC_ADMIN_CLAIM = 'entitlements';
+    const user = ssoUser('lonely@example.com', 'sub-lonely', 'admin');
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    try {
+      const result = svc.findOrCreateUser(
+        { sub: 'sub-lonely', email: 'lonely@example.com', entitlements: ['trek-users'] },
+        MOCK_CONFIG
+      ) as RoleResult;
+
+      expect(storedRole(user.id)).toBe('admin');
+      expect(result.roleChange).toBeUndefined();
+      expect(warn.mock.calls[0][0]).toContain('only admin');
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it('OIDC-SVC-068: for a plain user the absent-claim warning names the claim and the keys that arrived, never their values, and fires once', () => {
+    process.env.OIDC_ADMIN_VALUE = 'trek-admins';
+    process.env.OIDC_ADMIN_CLAIM = 'trek_roles';
+    ssoUser('warned@example.com', 'sub-warned', 'user');
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    // The warning is deduped per claim name for the life of the process, so this
+    // case needs an instance that has not seen the claim yet.
+    const fresh = new OidcService(new DatabaseService(testDb), auth, membership);
+
+    try {
+      const info = { sub: 'sub-warned', email: 'warned@example.com', groups: ['authentik Admins'] };
+      fresh.findOrCreateUser(info, MOCK_CONFIG);
+      fresh.findOrCreateUser(info, MOCK_CONFIG);
+
+      expect(warn).toHaveBeenCalledTimes(1);
+      const line = warn.mock.calls[0][0] as string;
+      expect(line).toContain('"trek_roles"');
+      expect(line).toContain('sub, email, groups');
+      expect(line).toContain('OIDC_SCOPE');
+      expect(line).not.toContain('authentik Admins');
+      expect(line).not.toContain('warned@example.com');
+    } finally {
+      fresh.onModuleDestroy();
+      warn.mockRestore();
+    }
+  });
+
+  it('OIDC-SVC-069: a new account is registered with the default role when the claim is absent', () => {
+    process.env.OIDC_ADMIN_VALUE = 'trek-admins';
+    process.env.OIDC_ADMIN_CLAIM = 'reg_entitlements';
+    createUser(testDb, { email: 'someone@example.com' }); // not the first user any more
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    try {
+      const result = svc.findOrCreateUser(
+        { sub: 'sub-fresh', email: 'fresh@example.com', name: 'Fresh', groups: ['authentik Admins'] },
+        MOCK_CONFIG
+      ) as RoleResult;
+
+      expect(storedRole(result.user.id)).toBe('user');
+      expect(result.roleChange).toBeUndefined();
+      expect(warn.mock.calls[0][0]).toContain('during registration');
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it('OIDC-SVC-070: a claim that already agrees with the stored role reports no change', () => {
+    process.env.OIDC_ADMIN_VALUE = 'trek-admins';
+    process.env.OIDC_ADMIN_CLAIM = 'entitlements';
+    const user = ssoUser('steady@example.com', 'sub-steady', 'admin');
+
+    const result = svc.findOrCreateUser(
+      { sub: 'sub-steady', email: 'steady@example.com', entitlements: ['trek-admins'] },
+      MOCK_CONFIG
+    ) as RoleResult;
+
+    expect(storedRole(user.id)).toBe('admin');
+    expect(result.roleChange).toBeUndefined();
+  });
+
+  it('OIDC-SVC-071: resolveOidcRoleDetailed only reports a missing claim where the mapping is actually consulted', () => {
+    process.env.OIDC_ADMIN_CLAIM = 'entitlements';
+    const info = { sub: 'x', groups: ['authentik Admins'] };
+
+    delete process.env.OIDC_ADMIN_VALUE;
+    expect(svc.resolveOidcRoleDetailed(info, false)).toMatchObject({ role: 'user', claimMissing: false, claimKey: 'entitlements' });
+
+    process.env.OIDC_ADMIN_VALUE = 'trek-admins';
+    expect(svc.resolveOidcRoleDetailed(info, true)).toMatchObject({ role: 'admin', claimMissing: false });
+    expect(svc.resolveOidcRoleDetailed(info, false)).toMatchObject({ role: 'user', claimMissing: true, seenKeys: ['sub', 'groups'] });
+    expect(svc.resolveOidcRoleDetailed({ ...info, entitlements: ['trek-admins'] }, false)).toMatchObject({ role: 'admin', claimMissing: false });
+  });
+
+  it('OIDC-SVC-072: a stored admin whose claim never arrives is warned about on every login, by id, with the admin panel as the way out', () => {
+    process.env.OIDC_ADMIN_VALUE = 'trek-admins';
+    process.env.OIDC_ADMIN_CLAIM = 'kept_admin_roles';
+    createUser(testDb, { email: 'bootstrap3@example.com', role: 'admin' });
+    const user = ssoUser('kept@example.com', 'sub-kept-admin', 'admin');
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    try {
+      const info = { sub: 'sub-kept-admin', email: 'kept@example.com', groups: ['authentik Admins'] };
+      svc.findOrCreateUser(info, MOCK_CONFIG);
+      svc.findOrCreateUser(info, MOCK_CONFIG);
+
+      // No dedup here: this is the login where an IdP-side revocation quietly fails.
+      expect(warn).toHaveBeenCalledTimes(2);
+      for (const call of warn.mock.calls) {
+        const line = call[0] as string;
+        expect(line).toContain(`User ${user.id} (${user.username}) is stored as an admin`);
+        expect(line).toContain('"kept_admin_roles"');
+        expect(line).toContain('admin panel');
+        expect(line).toContain('sub, email, groups');
+        expect(line).not.toContain('authentik Admins');
+        expect(line).not.toContain('kept@example.com');
+      }
+      expect(storedRole(user.id)).toBe('admin');
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it('OIDC-SVC-073: warning about a stored admin does not use up the once-per-claim warning for everybody else', () => {
+    process.env.OIDC_ADMIN_VALUE = 'trek-admins';
+    process.env.OIDC_ADMIN_CLAIM = 'shared_roles';
+    createUser(testDb, { email: 'bootstrap4@example.com', role: 'admin' });
+    ssoUser('shared-admin@example.com', 'sub-shared-admin', 'admin');
+    ssoUser('shared-plain@example.com', 'sub-shared-plain', 'user');
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const fresh = new OidcService(new DatabaseService(testDb), auth, membership);
+
+    try {
+      fresh.findOrCreateUser({ sub: 'sub-shared-admin', email: 'shared-admin@example.com' }, MOCK_CONFIG);
+      fresh.findOrCreateUser({ sub: 'sub-shared-plain', email: 'shared-plain@example.com' }, MOCK_CONFIG);
+      fresh.findOrCreateUser({ sub: 'sub-shared-plain', email: 'shared-plain@example.com' }, MOCK_CONFIG);
+
+      expect(warn).toHaveBeenCalledTimes(2);
+      expect(warn.mock.calls[0][0]).toContain('is stored as an admin');
+      expect(warn.mock.calls[1][0]).toContain('so their stored role is left unchanged');
+    } finally {
+      fresh.onModuleDestroy();
+      warn.mockRestore();
+    }
+  });
+});
+
 // ── exchangeCodeForToken ──────────────────────────────────────────────────────
 
 describe('exchangeCodeForToken', () => {

@@ -34,7 +34,10 @@ const OIDC_EXCHANGE_COOKIE = 'trek_oidc_exchange';
 @Public('the OIDC handshake happens before a TREK session exists; the provider state is the credential')
 @Controller('api/auth/oidc')
 export class OidcController {
-  constructor(private readonly oidc: OidcService) {}
+  constructor(
+    private readonly oidc: OidcService,
+    private readonly audit: AuditService,
+  ) {}
 
   @Get('login')
   async login(@Req() req: Request, @Res() res: Response): Promise<void> {
@@ -164,6 +167,19 @@ export class OidcController {
 
       const result = this.oidc.findOrCreateUser(userInfo, config, pending.inviteToken);
       if ('error' in result) return f('/login?oidc_error=' + result.error);
+      if (result.roleChange) {
+        // The claim mapping changing someone's privileges is a security event, and
+        // the row is written here because this is where the client IP is. The claim
+        // NAME goes in the details, never its value: that column is readable by
+        // every admin and a claim can carry group memberships and worse.
+        this.audit.writeAudit({
+          userId: result.user.id,
+          action: 'oidc.role_change',
+          resource: String(result.user.id),
+          ip: getClientIp(req),
+          details: { from: result.roleChange.from, to: result.roleChange.to, claim: result.roleChange.claim },
+        });
+      }
 
       this.oidc.touchLastLogin(result.user.id);
       const jwtToken = this.oidc.generateToken(result.user, pending.remember === true);

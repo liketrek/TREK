@@ -56,6 +56,26 @@ export interface OidcConfig {
   discoveryUrl: string | null;
 }
 
+export interface OidcRoleResolution {
+  role: 'admin' | 'user';
+  /**
+   * The mapping is configured but the claim it names is not in the payload, so
+   * there is no verdict to act on — which is not the same as a verdict of
+   * "not an admin".
+   */
+  claimMissing: boolean;
+  claimKey: string;
+  /** Claim NAMES only — the values can carry personal data and must not be logged. */
+  seenKeys: string[];
+}
+
+/** What findOrCreateUser hands back so the controller can audit it with the client IP. */
+export interface OidcRoleChange {
+  from: 'admin' | 'user';
+  to: 'admin' | 'user';
+  claim: string;
+}
+
 // ---------------------------------------------------------------------------
 // Constants / TTLs
 // ---------------------------------------------------------------------------
@@ -196,6 +216,10 @@ export class OidcService implements OnModuleDestroy {
   private readonly discoveryCache = new Map<string, { doc: OidcDiscoveryDoc; fetchedAt: number }>();
 
   private readonly jwksCache = new Map<string, JwksEntry>();
+
+  // Claim names already reported as missing, so the warning is a diagnosis and
+  // not a line on every login.
+  private readonly warnedMissingAdminClaims = new Set<string>();
 
   private readonly stateSweeper: NodeJS.Timeout;
   private readonly codeSweeper: NodeJS.Timeout;
@@ -351,6 +375,62 @@ export class OidcService implements OnModuleDestroy {
       return claimData === adminValue ? 'admin' : 'user';
     }
     return 'user';
+  }
+
+  // Same mapping, plus the third outcome its callers need: an IdP that never sent
+  // the configured claim — because the scope carrying it was never requested, or
+  // because the name is a typo — says nothing about this user, and must not cost
+  // them a role they already have. #2364
+  resolveOidcRoleDetailed(userInfo: OidcUserInfo, isFirstUser: boolean): OidcRoleResolution {
+    const claimKey = readEnv().oidc.adminClaim;
+    const claimMissing =
+      !isFirstUser &&
+      !!readEnv().oidc.adminValue &&
+      !Object.prototype.hasOwnProperty.call(userInfo, claimKey);
+    return {
+      role: this.resolveOidcRole(userInfo, isFirstUser),
+      claimMissing,
+      claimKey,
+      seenKeys: Object.keys(userInfo),
+    };
+  }
+
+  // Once per claim name per process for the ordinary case: an operator who has not
+  // noticed after the first login will not notice after the thousandth, and this
+  // runs on a path that is hit on every single SSO login.
+  //
+  // A user who is stored as an admin is the exception and is never deduped. Okta
+  // sends a filtered `groups` claim only when the filter matches something and
+  // Entra ID drops `groups` for a user in no group at all, so on those providers
+  // taking somebody out of the admin group makes the claim vanish rather than
+  // arrive empty — which is exactly the login where keeping the role quiet would
+  // hide a revocation that never happened. #2364
+  private warnMissingAdminClaim(
+    resolution: OidcRoleResolution,
+    user: { id: number; username: string; role: 'admin' | 'user' } | null,
+  ): void {
+    const received = `Claims received: ${resolution.seenKeys.join(', ')}.`;
+    const scopeHint =
+      `A provider only sends a claim when one of the requested scopes carries it — add that scope to OIDC_SCOPE ` +
+      `(Authentik's "entitlements", for one, rides a scope of its own).`;
+    if (user?.role === 'admin') {
+      console.warn(
+        `[OIDC] User ${user.id} (${user.username}) is stored as an admin and the configured OIDC_ADMIN_CLAIM ` +
+        `"${resolution.claimKey}" was not in their userinfo response, so the admin role is kept. Providers that omit a ` +
+        `claim instead of sending it empty (Okta filtered groups, Entra ID) cannot take admin away this way — remove it ` +
+        `in TREK's admin panel. ${received} ${scopeHint}`,
+      );
+      return;
+    }
+    if (this.warnedMissingAdminClaims.has(resolution.claimKey)) return;
+    this.warnedMissingAdminClaims.add(resolution.claimKey);
+    const consequence = user === null
+      ? 'during registration, so the new account keeps its default role'
+      : `for user ${user.id}, so their stored role is left unchanged`;
+    console.warn(
+      `[OIDC] The configured OIDC_ADMIN_CLAIM "${resolution.claimKey}" was not in the userinfo response ${consequence}. ` +
+      `${received} ${scopeHint}`,
+    );
   }
 
   // -------------------------------------------------------------------------
@@ -531,7 +611,7 @@ export class OidcService implements OnModuleDestroy {
     userInfo: OidcUserInfo,
     config: OidcConfig,
     inviteToken?: string,
-  ): { user: User } | { error: string } {
+  ): { user: User; roleChange?: OidcRoleChange } | { error: string } {
     // Defense-in-depth for direct callers — the controller redirects on a
     // missing email before it ever calls this; the same code flows through its
     // `oidc_error=' + result.error` pass-through if reached here.
@@ -568,9 +648,13 @@ export class OidcService implements OnModuleDestroy {
         user = { ...user, oidc_sub: sub, oidc_issuer: config.issuer } as User;
       }
       // Update role based on OIDC claims on every login (if claim mapping is configured)
+      let roleChange: OidcRoleChange | undefined;
       if (readEnv().oidc.adminValue) {
-        const newRole = this.resolveOidcRole(userInfo, false);
-        if (user.role !== newRole) {
+        const resolution = this.resolveOidcRoleDetailed(userInfo, false);
+        const newRole = resolution.role;
+        if (resolution.claimMissing) {
+          this.warnMissingAdminClaim(resolution, user);
+        } else if (user.role !== newRole) {
           // Never let the claim-based downgrade strip the last admin. The bootstrap
           // admin (first SSO user) usually doesn't carry the admin claim, so a forced
           // re-login — e.g. after a JWT-secret rotation — would otherwise demote it and
@@ -583,6 +667,7 @@ export class OidcService implements OnModuleDestroy {
             console.warn(`[OIDC] Kept admin role for user ${user.id}: their OIDC claims map to '${newRole}', but they are the only admin — demoting would lock the instance out.`);
           } else {
             this.db.prepare('UPDATE users SET role = ? WHERE id = ?').run(newRole, user.id);
+            roleChange = { from: user.role, to: newRole, claim: resolution.claimKey };
             user = { ...user, role: newRole } as User;
           }
         }
@@ -601,7 +686,7 @@ export class OidcService implements OnModuleDestroy {
         this.db.prepare('UPDATE users SET avatar = ? WHERE id = ?').run(picture, user.id);
         user = { ...user, avatar: picture } as User;
       }
-      return { user };
+      return { user, roleChange };
     }
 
     // --- New user registration ---
@@ -624,7 +709,11 @@ export class OidcService implements OnModuleDestroy {
       }
     }
 
-    const role = this.resolveOidcRole(userInfo, isFirstUser);
+    // Same three outcomes as above; a missing claim here means the account is
+    // created with the role it would have had without any mapping at all.
+    const resolution = this.resolveOidcRoleDetailed(userInfo, isFirstUser);
+    if (resolution.claimMissing) this.warnMissingAdminClaim(resolution, null);
+    const role = resolution.role;
     const randomPass = crypto.randomBytes(32).toString('hex');
     const hash = bcrypt.hashSync(randomPass, 10);
 

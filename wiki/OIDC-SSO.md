@@ -51,10 +51,38 @@ For example: `https://trek.example.com/api/auth/oidc/callback`
 |---|---|
 | `OIDC_DISPLAY_NAME` | Label shown on the SSO button. Defaults to `SSO`. |
 | `OIDC_ONLY` | Set to `true` to disable local password login and password registration. SSO login and SSO registration remain governed by their own toggles. This is an environment-variable-only setting and cannot be toggled at runtime via the admin panel. |
-| `OIDC_ADMIN_CLAIM` | OIDC claim to inspect for admin role mapping. Defaults to `groups`. The claim value may be an array or a plain string. **Env var only — not configurable via the admin panel.** |
+| `OIDC_ADMIN_CLAIM` | OIDC claim to inspect for admin role mapping. Defaults to `groups`. The claim value may be an array or a plain string. The claim only reaches TREK if one of the scopes in `OIDC_SCOPE` carries it — see *Admin role mapping* below. **Env var only — not configurable via the admin panel.** |
 | `OIDC_ADMIN_VALUE` | Value that must be present in `OIDC_ADMIN_CLAIM` to grant the admin role. If unset, claim-based role mapping is disabled. When set, the role is re-evaluated on every login. **Env var only — not configurable via the admin panel.** |
-| `OIDC_SCOPE` | Overrides the default scope list sent to the provider. Defaults to `openid email profile`. Ensure `openid` and `email` are always included. **Env var only — not configurable via the admin panel.** |
+| `OIDC_SCOPE` | Overrides the default scope list sent to the provider. Defaults to `openid email profile`. Ensure `openid` and `email` are always included, plus whichever scope carries your `OIDC_ADMIN_CLAIM`. **Env var only — not configurable via the admin panel.** |
 | `OIDC_DISCOVERY_URL` | Full URL to the OIDC discovery document. Use this for providers with non-standard discovery paths (e.g. Authentik tenants). If unset, discovery is attempted at `<OIDC_ISSUER>/.well-known/openid-configuration`. The discovery document is cached for 1 hour. |
+
+## Admin role mapping
+
+TREK requests exactly the scopes listed in `OIDC_SCOPE` and nothing else, and a provider only emits a claim when a requested scope carries it. So a claim that is not covered by `OIDC_SCOPE` never arrives, and a claim that never arrives can never grant the admin role — no matter how `OIDC_ADMIN_CLAIM` is spelled.
+
+Authentik is the usual example: `groups` rides the default `profile` scope, so it works out of the box, while `entitlements` has a scope of its own. Mapping admins onto an entitlement therefore takes all three variables:
+
+```
+OIDC_ADMIN_CLAIM=entitlements
+OIDC_ADMIN_VALUE=trek-admins
+OIDC_SCOPE=openid email profile entitlements
+```
+
+Keycloak (group and role mappers carry their own "Add to userinfo" switch) and Entra ID (optional claims) behave the same way — whatever the claim is called, check that its scope is requested.
+
+If the configured claim is missing from the userinfo response entirely, TREK leaves the stored role untouched — a claim that never arrived is not a statement that somebody is no longer an admin — and writes one line to the server log naming the claim it looked for and the claims it did receive. Read that line first when role mapping does not do what you expect. A claim that *does* arrive without `OIDC_ADMIN_VALUE` in it still demotes on the next login; that is how the mapping takes admin away. Every role change it makes is recorded in the admin audit log.
+
+### Taking admin away
+
+Some providers omit a claim instead of sending it empty. Okta emits a filtered `groups` claim only when the filter matches at least one group, and Entra ID leaves `groups` out for a user who is in no group at all. **On those providers, removing somebody from the admin group does not demote them in TREK.** Their next login carries no claim, and no claim means no verdict, so the account keeps `admin` for as long as it exists. Take the role away in TREK as well, in **Admin → Users** ([Admin-Users-and-Invites](Admin-Users-and-Invites)) — the IdP side alone is not enough.
+
+TREK writes a warning to the server log on **every** login where this happens, naming the account, so `docker logs trek | grep OIDC` lists the users it affects:
+
+```
+[OIDC] User 7 (alex) is stored as an admin and the configured OIDC_ADMIN_CLAIM "groups" was not in their userinfo response, so the admin role is kept. …
+```
+
+A provider that sends the claim as an empty list instead of dropping it is not affected: the empty list arrives, does not contain `OIDC_ADMIN_VALUE`, and demotes the account on that same login.
 
 ## New-user registration via SSO
 
