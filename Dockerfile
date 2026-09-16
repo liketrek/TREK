@@ -62,7 +62,8 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/* /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx && \
     chown -R node:node /app
 
-# gosu rebuilt with a current Go toolchain (stage 0) — used by CMD to drop to node.
+# gosu rebuilt with a current Go toolchain (stage 0) — the entrypoint script uses
+# it to drop to node.
 COPY --from=gosu-build /out/gosu /usr/local/bin/gosu
 
 ENV XDG_CACHE_HOME=/tmp/kf6-cache
@@ -117,9 +118,14 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
   CMD wget -qO- http://localhost:3000/api/health || exit 1
 
+# Start-up lives in a script, not an inline `sh -c` string: container management
+# UIs re-tokenise Config.Cmd when you edit a container in place, and a command
+# carrying quotes does not survive that round-trip (the container then dies with
+# a shell syntax error before Node starts). A CMD of one bare token does.
+COPY server/scripts/entrypoint.sh /usr/local/bin/trek-entrypoint
+# Root-owned on purpose — this is what calls gosu, so it runs before the drop to
+# node. chmod is explicit because a checkout on Windows carries no exec bit.
+RUN chmod 0755 /usr/local/bin/trek-entrypoint
+
 ENTRYPOINT ["dumb-init", "--"]
-# Preflight: if the app code is missing, a volume was almost certainly mounted
-# over /app (it hides the image's node_modules + dist). Fail with actionable
-# guidance instead of a cryptic "Cannot find module 'tsconfig-paths/register'".
-# cd into server/ so tsconfig-paths/register finds tsconfig.json and ../node_modules resolves correctly.
-CMD ["sh", "-c", "if [ ! -f /app/server/dist/index.js ] || [ ! -d /app/node_modules/tsconfig-paths ]; then echo 'FATAL: TREK application files are missing from the image.'; echo 'A volume is likely mounted over /app, which hides the app code.'; echo 'Mount ONLY your data and uploads dirs: -v ./data:/app/data -v ./uploads:/app/uploads'; echo 'Do NOT mount a volume at /app. See the Troubleshooting section of the README.'; exit 1; fi; chown -R node:node /app/data /app/uploads 2>/dev/null || true; cd /app/server && exec gosu node node --require tsconfig-paths/register dist/index.js"]
+CMD ["/usr/local/bin/trek-entrypoint"]

@@ -32,6 +32,8 @@ Set at minimum `ENCRYPTION_KEY`, `TZ`, and `ALLOWED_ORIGINS` in the **Environmen
 
 Every other variable ships commented out, so setting it here does nothing. To use one — `APP_URL`, for example, which OIDC needs and which email notification links are built from — uncomment its line in the **Web editor** and put the value there directly, or change it to `- APP_URL=${APP_URL:-}` so the stack variable is picked up.
 
+> Change a variable later by editing the **stack** and redeploying it — never by editing the container in place. Portainer's container editor rewrites the container's start-up command as well, which leaves it unable to boot; see [Troubleshooting](Troubleshooting#container-wont-start-syntax-error-end-of-file-unexpected-expecting-fi).
+
 Generate an encryption key with:
 
 ```bash

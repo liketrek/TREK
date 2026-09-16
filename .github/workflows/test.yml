@@ -51,6 +51,12 @@ on:
       - 'package-lock.json'
       - 'sonar-project.properties'
       - '.github/workflows/test.yml'
+      # The image's start-up shape is pinned by a unit test
+      # (server/tests/unit/docker-entrypoint.test.ts), so a change to the
+      # Dockerfile or to the entrypoint script has to run the suite — that is
+      # exactly the change the test exists to catch.
+      - 'Dockerfile'
+      - 'server/scripts/**'
       # Docs inside the workspaces (CLAUDE.md, READMEs, PATTERN.md) affect
       # neither the tests nor the scan — no test reads checked-in markdown
       # and SonarCloud has no markdown analyzer. Negations must stay last.
@@ -69,6 +75,12 @@ on:
       - 'package-lock.json'
       - 'sonar-project.properties'
       - '.github/workflows/test.yml'
+      # The image's start-up shape is pinned by a unit test
+      # (server/tests/unit/docker-entrypoint.test.ts), so a change to the
+      # Dockerfile or to the entrypoint script has to run the suite — that is
+      # exactly the change the test exists to catch.
+      - 'Dockerfile'
+      - 'server/scripts/**'
       # Docs inside the workspaces (CLAUDE.md, READMEs, PATTERN.md) affect
       # neither the tests nor the scan — no test reads checked-in markdown
       # and SonarCloud has no markdown analyzer. Negations must stay last.
