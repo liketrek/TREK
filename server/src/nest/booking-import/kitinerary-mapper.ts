@@ -375,6 +375,21 @@ function applyCommonMeta(item: ParsedBookingItem, r: KiReservation): ParsedBooki
   return item;
 }
 
+/**
+ * Why a mapper answered null, in the words of the node it refused.
+ *
+ * Every type mapper drops out on one of two things: no `reservationFor` at all,
+ * or one that carries no name. Said out loud, because a recognised booking that
+ * cannot be mapped used to disappear between the mapper and the preview, and an
+ * import that found one weak node looked exactly like a document with nothing in
+ * it (#2375). Shaped like the unknown-type warning below so the two read as one
+ * list.
+ */
+function unmappableWarning(r: KiReservation, fileName: string, index: number): string {
+  const reason = r.reservationFor ? 'no name in reservationFor' : 'no reservationFor';
+  return `Incomplete ${r['@type']} in ${fileName}[${index}] (${reason}) — skipped`;
+}
+
 export function mapReservations(kiItems: KiReservation[], fileName: string): { items: ParsedBookingItem[]; warnings: string[] } {
   const items: ParsedBookingItem[] = [];
   const warnings: string[] = [];
@@ -382,7 +397,7 @@ export function mapReservations(kiItems: KiReservation[], fileName: string): { i
   for (let i = 0; i < kiItems.length; i++) {
     const r = kiItems[i];
     const source = { fileName, index: i };
-    let item: ParsedBookingItem | null = null;
+    let item: ParsedBookingItem | null;
 
     // Group consecutive connecting flight legs that share a PNR into one booking.
     if (r['@type'] === 'FlightReservation') {
@@ -398,7 +413,10 @@ export function mapReservations(kiItems: KiReservation[], fileName: string): { i
         group.push(kiItems[++i]);
       }
       item = group.length > 1 ? mapFlightGroup(group, source) : mapFlight(r, source);
+      // `i` sits on the last leg the group swallowed, so the index comes from
+      // `source` — the node the warning is actually describing.
       if (item) items.push(applyCommonMeta(item, r));
+      else warnings.push(unmappableWarning(r, fileName, source.index));
       continue;
     }
 
@@ -413,9 +431,11 @@ export function mapReservations(kiItems: KiReservation[], fileName: string): { i
       case 'TouristAttractionVisit':      item = mapEvent(r, source);   break;
       default:
         warnings.push(`Unknown type "${r['@type']}" in ${fileName}[${i}] — skipped`);
+        continue;
     }
 
     if (item) items.push(applyCommonMeta(item, r));
+    else warnings.push(unmappableWarning(r, fileName, i));
   }
 
   return { items, warnings };

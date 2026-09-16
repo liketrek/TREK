@@ -107,3 +107,62 @@ describe('kitinerary mapper — printed 12-hour clocks (#2094)', () => {
     expect(items).toHaveLength(2);
   });
 });
+
+/**
+ * A recognised @type whose mapper cannot build an item used to leave nothing
+ * behind: no item, no warning, no log. With a single node in the file the
+ * service's own "no reservations found" never fired either, so a hotel voucher
+ * the model had read correctly but namelessly came back as an empty preview,
+ * indistinguishable from a document holding no booking at all (#2375).
+ */
+describe('kitinerary mapper — a recognised type that cannot be mapped (#2375)', () => {
+  it('warns instead of dropping a lodging whose reservationFor carries no name', () => {
+    const { items, warnings } = mapReservations([
+      { '@type': 'LodgingReservation', reservationNumber: 'HMTRSX', reservationFor: {} },
+    ] as any, 'airbnb.pdf');
+
+    expect(items).toHaveLength(0);
+    expect(warnings).toEqual([
+      'Incomplete LodgingReservation in airbnb.pdf[0] (no name in reservationFor) — skipped',
+    ]);
+  });
+
+  it('warns for a flight that carries no reservationFor at all', () => {
+    const { items, warnings } = mapReservations([
+      { '@type': 'FlightReservation', reservationNumber: 'ABC123' },
+    ] as any, 'ticket.eml');
+
+    expect(items).toHaveLength(0);
+    expect(warnings).toEqual([
+      'Incomplete FlightReservation in ticket.eml[0] (no reservationFor) — skipped',
+    ]);
+  });
+
+  it('names the type it could not map, TouristAttractionVisit included', () => {
+    const { warnings } = mapReservations([
+      { '@type': 'TouristAttractionVisit', reservationFor: {} },
+    ] as any, 'museum.pdf');
+
+    expect(warnings[0]).toBe('Incomplete TouristAttractionVisit in museum.pdf[0] (no name in reservationFor) — skipped');
+  });
+
+  it('keeps the bookings it could map and warns only about the weak one', () => {
+    const { items, warnings } = mapReservations([
+      flight('MIX1', FRA, BER, '2026-06-11T10:00:00', '2026-06-11T12:00:00', 'LH 800'),
+      { '@type': 'LodgingReservation', reservationFor: {} },
+    ] as any, 'trip.eml');
+
+    expect(items).toHaveLength(1);
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain('trip.eml[1]');
+  });
+
+  it('still warns exactly once for an unknown type', () => {
+    const { items, warnings } = mapReservations([
+      { '@type': 'RocketLaunchReservation', reservationFor: { name: 'Starbase' } },
+    ] as any, 'mars.eml');
+
+    expect(items).toHaveLength(0);
+    expect(warnings).toEqual(['Unknown type "RocketLaunchReservation" in mars.eml[0] — skipped']);
+  });
+});

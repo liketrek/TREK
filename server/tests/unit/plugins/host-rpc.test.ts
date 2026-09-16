@@ -61,6 +61,7 @@ import { DbRpc } from '../../../src/nest/plugins/host/rpc/db.rpc';
 import type { PluginUserSettingsService } from '../../../src/nest/plugins/plugin-user-settings.service';
 import { MetaRpc } from '../../../src/nest/plugins/host/rpc/meta.rpc';
 import { HostSurfaceRpc } from '../../../src/nest/plugins/host/rpc/host-surface.rpc';
+import { UnreadableLlmResponse } from '../../../src/nest/llm-parse/clients/openai-compatible.client';
 import { getPluginDataDb, closePluginDataDb } from '../../../src/nest/plugins/host/plugin-host-state';
 import { db as mockDb } from '../../../src/db/database';
 import { DatabaseService } from '../../../src/nest/database/database.service';
@@ -470,6 +471,27 @@ describe('HostSurfaceRpc — users, broadcasts, notify, ai, oauth, scheduler', (
     expect((await call(makeHost('surface', 'ai:invoke'), 'ai.complete', { prompt: 'p' }, 5)).result).toEqual({ text: '' });
     llmExtract.mockResolvedValueOnce([]);
     expect((await call(makeHost('surface', 'ai:invoke'), 'ai.complete', { prompt: 'p' }, 5)).result).toEqual({ text: '' });
+  });
+
+  /*
+   * The clients raise on a response nothing could read so the booking import can
+   * warn per file (#2375). This surface answered an empty value for a model that
+   * talks prose long before that, and it is versioned on its own, so the plugin
+   * keeps the empty value — while a request that genuinely failed still has to
+   * reach it as an error.
+   */
+  it('HOSTRPC-026a an unreadable answer stays empty here, a failed request does not (#2375)', async () => {
+    const host = makeHost('surface', 'ai:invoke');
+    llmExtract.mockRejectedValueOnce(new UnreadableLlmResponse('the model did not answer with JSON: Sure, happy to help.'));
+    expect((await call(host, 'ai.complete', { prompt: 'p' }, 5)).result).toEqual({ text: '' });
+
+    llmExtract.mockRejectedValueOnce(new UnreadableLlmResponse('the model returned an empty response'));
+    expect((await call(host, 'ai.extract', { text: 't', jsonSchema: { type: 'object' } }, 5)).result).toEqual({ results: [] });
+
+    llmExtract.mockRejectedValueOnce(new Error('LLM request failed (503): upstream is down'));
+    const failed = await call(host, 'ai.complete', { prompt: 'p' }, 5);
+    expect(failed.error?.code).toBe('HOST_ERROR');
+    expect(failed.error?.message).toMatch(/503/);
   });
 
   it('HOSTRPC-027 oauth.getToken returns only the acting user\'s access token', async () => {

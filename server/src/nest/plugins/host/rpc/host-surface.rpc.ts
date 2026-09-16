@@ -9,6 +9,9 @@ import { RealtimeService } from '../../../realtime/realtime.service';
 import { NotificationsService } from '../../../notifications/notifications.service';
 import { LlmConfigResolver } from '../../../llm-parse/llm-config.resolver';
 import { createLlmClient } from '../../../llm-parse/llm-client.factory';
+import { UnreadableLlmResponse } from '../../../llm-parse/clients/openai-compatible.client';
+import type { ResolvedLlmConfig } from '../../../llm-parse/llm-config';
+import type { LlmExtractionInput } from '../../../llm-parse/llm-provider.interface';
 import { PluginOAuthService } from '../../oauth/plugin-oauth.service';
 import { stripEmoji } from '../../text-sanitize';
 
@@ -125,7 +128,7 @@ export class HostSurfaceRpc {
     if (prompt.length > AI_TEXT_MAX) throw new BadParams(`prompt exceeds the ${AI_TEXT_MAX}-char cap`);
     this.takeAiBudget(ctx);
     const system = typeof params.system === 'string' ? params.system.slice(0, 4000) : undefined;
-    const results = await createLlmClient(config).extract({
+    const results = await this.runModel(config, {
       prompt: system || 'You are a helpful assistant. Reply with a JSON object of the form {"text": "..."} whose "text" field holds your answer.',
       jsonSchema: { type: 'object', properties: { text: { type: 'string' } }, required: ['text'] },
       model: config.model,
@@ -149,7 +152,7 @@ export class HostSurfaceRpc {
     }
     this.takeAiBudget(ctx);
     const hint = typeof params.prompt === 'string' ? params.prompt.slice(0, 4000) : '';
-    const results = await createLlmClient(config).extract({
+    const results = await this.runModel(config, {
       prompt: hint || 'Extract structured data from the text into the given JSON schema.',
       jsonSchema: params.jsonSchema as object,
       model: config.model,
@@ -222,6 +225,24 @@ export class HostSurfaceRpc {
     const config = this.llmConfig.resolve(userId);
     if (!config) throw new BadParams('no AI provider is configured for this user');
     return config;
+  }
+
+  /**
+   * The model's answer, without the diagnosis the booking import asked for.
+   *
+   * A client raises `UnreadableLlmResponse` when the model replies with prose or
+   * with nothing at all, so an import can warn about that file (#2375). Plugins
+   * were written against the older contract here — an empty answer, never an
+   * error — and this surface is versioned on its own, so that one stays empty. A
+   * request that actually failed still reaches the plugin as HOST_ERROR.
+   */
+  private async runModel(config: ResolvedLlmConfig, input: LlmExtractionInput): Promise<Record<string, unknown>[]> {
+    try {
+      return await createLlmClient(config).extract(input);
+    } catch (err) {
+      if (err instanceof UnreadableLlmResponse) return [];
+      throw err;
+    }
   }
 
   private takeAiBudget(ctx: PluginRpcContext): void {
