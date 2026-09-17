@@ -1,0 +1,48 @@
+name: Publish NZ Travel Planner
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/nz-pages.yml'
+      - 'client/nz.html'
+      - 'client/public/fonts/**'
+      - 'client/src/nz/**'
+      - 'client/vite.nz.config.ts'
+      - 'client/package.json'
+      - 'package.json'
+      - 'package-lock.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: nz-pages
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm run build:nz
+        env:
+          NZ_BASE: /${{ github.event.repository.name }}/
+      - run: cp client/dist-nz/nz.html client/dist-nz/index.html
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: client/dist-nz
+      - id: deployment
+        uses: actions/deploy-pages@v4

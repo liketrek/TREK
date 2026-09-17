@@ -22,7 +22,10 @@
     "test:e2e": "npm run test:e2e --workspace=server",
     "lint": "npm run lint --workspace=shared && npm run lint --workspace=server && npm run lint --workspace=client",
     "format": "npm run format --workspace=shared && npm run format --workspace=server && npm run format --workspace=client",
-    "format:check": "npm run format:check --workspace=shared && npm run format:check --workspace=server && npm run format:check --workspace=client"
+    "format:check": "npm run format:check --workspace=shared && npm run format:check --workspace=server && npm run format:check --workspace=client",
+    "dev:nz": "npm run dev:nz --workspace=client",
+    "build:nz": "npm run build:nz --workspace=client",
+    "preview:nz": "npm run preview:nz --workspace=client"
   },
   "devDependencies": {
     "concurrently": "^10.0.4",

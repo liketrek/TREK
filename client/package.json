@@ -26,7 +26,10 @@
     "shots:promote": "node e2e/screenshots/promote.mjs",
     "e2e:report": "playwright show-report",
     "format": "prettier --write \"src/**/*.tsx\" \"src/**/*.css\"",
-    "format:check": "prettier --check \"src/**/*.tsx\" \"src/**/*.css\""
+    "format:check": "prettier --check \"src/**/*.tsx\" \"src/**/*.css\"",
+    "dev:nz": "vite --config vite.nz.config.ts",
+    "build:nz": "vite build --config vite.nz.config.ts",
+    "preview:nz": "vite preview --config vite.nz.config.ts --host 127.0.0.1"
   },
   "dependencies": {
     "@fontsource/bebas-neue": "^5.3.0",

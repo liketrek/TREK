@@ -6,3 +6,6 @@ playwright/.cache/
 
 # vite-plugin-pwa dev output (devOptions.enabled)
 dev-dist/
+
+# Local New Zealand planner build
+dist-nz/

@@ -1,0 +1,1404 @@
+/* Standalone NZ travel edition: scoped design tokens, independent of the account-based TREK shell. */
+@font-face {
+  font-family: NZPoppins;
+  src: url('/fonts/Poppins-Regular.ttf');
+}
+@font-face {
+  font-family: NZPoppins;
+  src: url('/fonts/Poppins-SemiBold.ttf');
+  font-weight: 600;
+}
+:root {
+  font-family:
+    NZPoppins,
+    -apple-system,
+    BlinkMacSystemFont,
+    'PingFang SC',
+    'Microsoft YaHei',
+    sans-serif;
+  color: #293f37;
+  background: #f8faf7;
+  font-synthesis: none;
+  --nz-ink: #244d43;
+  --nz-muted: #849088;
+  --nz-line: #e6eae3;
+  --nz-sage: #eff3ec;
+  --nz-gold: #bda878;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+button,
+input,
+textarea {
+  font: inherit;
+}
+button,
+a,
+input,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+button {
+  cursor: pointer;
+  color: inherit;
+}
+button {
+  border: 0;
+  background: none;
+}
+button:disabled {
+  cursor: default;
+  opacity: 0.3;
+}
+a {
+  color: inherit;
+  text-decoration: none;
+}
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #648f76;
+  outline-offset: 4px;
+}
+button,
+a {
+  touch-action: manipulation;
+}
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+button:hover {
+  filter: brightness(0.95);
+}
+.nz-app {
+  display: flex;
+  height: 100dvh;
+  min-height: 620px;
+  overflow: hidden;
+}
+.nz-rail {
+  width: 88px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--nz-line);
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  background: #f3f5ef;
+  padding: 26px 12px 18px;
+  gap: 13px;
+}
+.nz-logo {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  line-height: 1.2;
+  color: var(--nz-ink);
+}
+.nz-logo strong {
+  font-size: 24px;
+  letter-spacing: -1.5px;
+}
+.nz-logo strong span {
+  font-size: 10px;
+  vertical-align: top;
+}
+.nz-rail-divider {
+  height: 1px;
+  background: #dce2d8;
+  width: 28px;
+  margin: 20px 0 9px;
+}
+.nz-rail > button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 7px;
+  width: 60px;
+  padding: 14px 0;
+  border-radius: 12px;
+  color: #7f8981;
+}
+.nz-rail > button span {
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+.nz-rail > button.active {
+  background: var(--nz-ink);
+  color: white;
+  box-shadow: 0 4px 14px #244d4318;
+}
+.nz-rail-bottom {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+}
+.nz-avatar {
+  border-radius: 50%;
+  width: 35px;
+  height: 35px;
+  display: grid;
+  place-items: center;
+  background: #dddac7;
+  font-size: 11px;
+  border: 3px solid white;
+}
+.nz-rail-bottom small {
+  font-size: 9px;
+  color: var(--nz-muted);
+  white-space: nowrap;
+}
+.nz-workspace {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.nz-header {
+  height: 66px;
+  flex-shrink: 0;
+  padding: 0 34px;
+  border-bottom: 1px solid var(--nz-line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+}
+.nz-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  font-size: 11px;
+  color: #8c948e;
+}
+.nz-breadcrumb span {
+  color: #3c5045;
+}
+.nz-header-actions {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+}
+.nz-private {
+  font-size: 10px;
+  color: #819080;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.nz-private > span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #97b098;
+}
+.nz-export {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 13px;
+  border: 1px solid #dce3d8;
+  border-radius: 6px;
+  font-size: 11px;
+  background: #fff;
+}
+.nz-trip-hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 27px 36px 25px;
+  background: #f9faf6;
+  flex-shrink: 0;
+  background-image: radial-gradient(ellipse at 87% 45%, #e7eddf75, transparent 42%);
+}
+.nz-eyebrow {
+  font-size: 9px;
+  letter-spacing: 2.8px;
+  color: #849181;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.nz-eyebrow span {
+  font-size: 8px;
+  border: 1px solid #d7dfce;
+  padding: 2px 5px;
+  border-radius: 3px;
+  letter-spacing: 1px;
+}
+.nz-trip-hero h1 {
+  font-family: 'Songti SC', 'STSong', serif;
+  font-size: 34px;
+  letter-spacing: 3px;
+  font-weight: 500;
+  margin: 11px 0 9px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.nz-spark {
+  font-size: 35px;
+  color: #b0b995;
+  font-family: serif;
+  font-weight: 400;
+}
+.nz-trip-hero p {
+  color: #859082;
+  font-size: 11px;
+  letter-spacing: 0.8px;
+}
+.nz-trip-meta {
+  display: flex;
+  gap: 20px;
+  margin-top: 19px;
+  font-size: 10px;
+  color: #667361;
+}
+.nz-trip-meta > span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.nz-trip-numbers {
+  display: flex;
+  align-items: center;
+  margin-right: 12px;
+}
+.nz-trip-numbers > div {
+  display: flex;
+  flex-direction: column;
+  padding: 0 24px;
+  border-left: 1px solid #dce3d5;
+  gap: 5px;
+}
+.nz-trip-numbers > div:first-child {
+  border: 0;
+}
+.nz-trip-numbers strong {
+  font-size: 28px;
+  font-weight: 400;
+  letter-spacing: -1px;
+}
+.nz-trip-numbers strong span {
+  font-size: 10px;
+  margin-left: 5px;
+  color: #85907e;
+  letter-spacing: 0;
+}
+.nz-trip-numbers small {
+  font-size: 9px;
+  color: #8b9484;
+  letter-spacing: 1px;
+}
+.nz-day-strip {
+  display: flex;
+  border-top: 1px solid var(--nz-line);
+  border-bottom: 1px solid var(--nz-line);
+  background: #fff;
+  flex-shrink: 0;
+  padding: 0 25px;
+  gap: 20px;
+}
+.nz-overview {
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  min-width: 73px;
+  font-size: 10px;
+  color: #8b9389;
+  padding: 13px 8px;
+  border-radius: 8px;
+}
+.nz-overview.active {
+  background: var(--nz-sage);
+  color: var(--nz-ink);
+}
+.nz-days {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.nz-days > button {
+  flex: 1;
+  text-align: left;
+  min-width: 89px;
+  padding: 14px 14px 13px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-bottom: 3px solid transparent;
+}
+.nz-days > button > span {
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: #9ba296;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+.nz-days > button > span small {
+  font-size: 8px;
+  letter-spacing: 0;
+}
+.nz-days strong {
+  font-size: 18px;
+  font-weight: 400;
+  letter-spacing: 0.5px;
+  color: #62705f;
+}
+.nz-days > button > small {
+  font-size: 9px;
+  color: #949c8f;
+  white-space: nowrap;
+}
+.nz-days > button.active {
+  background: linear-gradient(#f9faf6, #edf3e9);
+  border-bottom-color: #42694f;
+}
+.nz-days > button.active strong,
+.nz-days > button.active > span {
+  color: #315340;
+}
+.nz-main {
+  min-height: 0;
+  flex: 1;
+  display: flex;
+}
+.nz-panel {
+  width: 398px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  background: #fff;
+  border-right: 1px solid var(--nz-line);
+  position: relative;
+  padding-bottom: 66px;
+}
+.nz-panel-tabs {
+  display: flex;
+  gap: 24px;
+  padding: 0 26px;
+  border-bottom: 1px solid var(--nz-line);
+  height: 47px;
+  align-items: stretch;
+  background: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+.nz-panel-tabs > button {
+  font-size: 11px;
+  color: #8b9489;
+  border-bottom: 2px solid transparent;
+  padding: 0 2px;
+}
+.nz-panel-tabs > button.active {
+  border-color: var(--nz-ink);
+  color: var(--nz-ink);
+  font-weight: 600;
+}
+.nz-day-heading {
+  padding: 24px 26px 17px;
+}
+.nz-overline {
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  color: #929b88;
+  margin-bottom: 10px;
+}
+.nz-day-heading h2 {
+  font-size: 21px;
+  letter-spacing: 1px;
+  font-weight: 600;
+}
+.nz-day-heading > p {
+  font-size: 11px;
+  color: #939c8d;
+  margin-top: 8px;
+}
+.nz-day-stats {
+  display: flex;
+  gap: 16px;
+  font-size: 10px;
+  margin-top: 18px;
+  color: #74816c;
+}
+.nz-day-stats span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.nz-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 25px 24px;
+  padding: 9px 11px;
+  background: #f6f8f3;
+  border: 1px solid #eaf0e4;
+  border-radius: 6px;
+  color: #9da692;
+}
+.nz-search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: none;
+  font-size: 10px;
+  color: #495b42;
+}
+.nz-search input::placeholder {
+  color: #a0aa97;
+}
+.nz-search button {
+  display: flex;
+  padding: 0;
+}
+.nz-timeline {
+  padding: 0 25px;
+}
+.nz-stop {
+  display: flex;
+  gap: 13px;
+  position: relative;
+  padding-bottom: 25px;
+}
+.nz-stop:not(:last-child):before {
+  content: '';
+  position: absolute;
+  top: 29px;
+  bottom: 0;
+  left: 12px;
+  border-left: 1px dashed #d7e0ce;
+}
+.nz-stop-number {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border: 1px solid #d7e2d0;
+  border-radius: 50%;
+  color: #678155;
+  background: #f7faf4;
+  font-size: 10px;
+  z-index: 1;
+  margin-top: 0;
+}
+.nz-stop:first-child .nz-stop-number,
+.nz-stop.selected .nz-stop-number {
+  background: #3c654a;
+  color: #fff;
+  border-color: #3c654a;
+}
+.nz-stop-body {
+  padding: 0 0 4px;
+  min-width: 0;
+  flex: 1;
+  border-radius: 6px;
+}
+.nz-stop.selected .nz-stop-body {
+  background: #f1f5ed;
+  outline: 8px solid #f1f5ed;
+}
+.nz-stop-time {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10px;
+  color: #738465;
+  margin: 3px 0 8px;
+}
+.nz-category {
+  font-size: 8px;
+  color: #939f87;
+  border: 1px solid #e5eadf;
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+.nz-stop-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  text-align: left;
+  font-size: 14px;
+  padding: 0;
+  font-weight: 600;
+  gap: 7px;
+}
+.nz-stop-title svg {
+  color: #a8b09c;
+  flex-shrink: 0;
+}
+.nz-english {
+  color: #a2a997;
+  font-size: 9px;
+  margin-top: 3px;
+  letter-spacing: 0.1px;
+}
+.nz-stop-body p {
+  font-size: 11px;
+  line-height: 1.85;
+  color: #859077;
+  margin-top: 8px;
+}
+.nz-stop-footer {
+  font-size: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+  color: #a6af9a;
+  gap: 8px;
+}
+.nz-stop-footer a {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  color: #5d7d51;
+}
+.nz-tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 13px 14px;
+  background: #f5f3e9;
+  color: #8b8668;
+  font-size: 10px;
+  line-height: 1.9;
+  border-radius: 6px;
+  margin: 2px 25px 20px;
+}
+.nz-tip > svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+.nz-notes {
+  margin: 20px 25px;
+}
+.nz-notes label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  margin-bottom: 10px;
+}
+.nz-notes label span {
+  margin-left: auto;
+  font-size: 8px;
+  color: #a4ac9a;
+}
+.nz-notes textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 88px;
+  border: 1px solid #e2e8dc;
+  border-radius: 6px;
+  background: #fafbf8;
+  font-size: 11px;
+  padding: 12px;
+  line-height: 1.8;
+  color: #45573d;
+}
+.nz-notes textarea::placeholder {
+  color: #adb5a3;
+}
+.nz-panel-footer {
+  position: fixed;
+  bottom: 0;
+  width: 397px;
+  height: 57px;
+  background: #fffffff5;
+  border-top: 1px solid var(--nz-line);
+  z-index: 9;
+  display: flex;
+  align-items: center;
+  padding: 0 23px;
+  gap: 10px;
+}
+.nz-panel-footer > span {
+  font-size: 10px;
+  white-space: nowrap;
+}
+.nz-panel-footer > span > span {
+  color: #a5ae99;
+}
+.nz-panel-footer > button {
+  display: flex;
+  padding: 5px;
+}
+.nz-panel-footer > a {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: #fff;
+  background: #315c44;
+  border-radius: 5px;
+  padding: 10px 12px;
+}
+.nz-map-panel {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: #e9eee4;
+}
+.nz-map-wrap {
+  flex: 1;
+  position: relative;
+  min-height: 0;
+}
+.nz-map {
+  height: 100%;
+  width: 100%;
+  background: #e6ecdf;
+  z-index: 1;
+}
+.nz-map .leaflet-tile-pane {
+  filter: saturate(0.55);
+}
+.nz-map .leaflet-tooltip {
+  font:
+    10px NZPoppins,
+    'PingFang SC',
+    sans-serif;
+  border: 1px solid #dce3d5;
+  color: #496044;
+  background: #fffffff0;
+  box-shadow: 0 2px 5px #00000008;
+  border-radius: 4px;
+  padding: 4px 7px;
+}
+.nz-marker {
+  display: grid;
+  place-items: center;
+  width: 29px;
+  height: 29px;
+  background: #426950;
+  color: #fff;
+  border: 3px solid #fff;
+  box-shadow: 0 2px 7px #29432a40;
+  border-radius: 50%;
+  font-size: 10px;
+  font-family: NZPoppins, sans-serif;
+}
+.nz-marker.active {
+  background: #b58b4e;
+  transform: scale(1.25);
+}
+.nz-map-top {
+  position: absolute;
+  top: 20px;
+  left: 21px;
+  right: 21px;
+  z-index: 500;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  pointer-events: none;
+}
+.nz-map-top > span,
+.nz-map-top > button {
+  background: #fffffff0;
+  border: 1px solid #e6eadf;
+  box-shadow: 0 3px 10px #23392206;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  padding: 9px 12px;
+  gap: 7px;
+  font-size: 9px;
+  color: #728064;
+}
+.nz-map-top > button {
+  pointer-events: auto;
+  white-space: nowrap;
+}
+.nz-live-dot {
+  width: 5px;
+  height: 5px;
+  background: #839b70;
+  border-radius: 50%;
+}
+.nz-map-bottom {
+  position: absolute;
+  bottom: 22px;
+  left: 20px;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: #fffffff0;
+  padding: 8px 11px;
+  border-radius: 5px;
+  color: #87917b;
+  font-size: 8px;
+  max-width: calc(100% - 85px);
+}
+.nz-map-controls {
+  position: absolute;
+  right: 21px;
+  bottom: 33px;
+  z-index: 500;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  box-shadow: 0 2px 12px #244d4314;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.nz-map-controls button {
+  display: grid;
+  place-items: center;
+  width: 33px;
+  height: 33px;
+  background: white;
+  font-size: 20px;
+  color: #66775b;
+}
+.nz-map-controls button:last-child {
+  border-top: 1px solid #e5eadf;
+  margin-top: 4px;
+}
+.nz-map-caption {
+  height: 37px;
+  background: #f7f9f3;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  color: #9ba58e;
+  font-size: 9px;
+  border-top: 1px solid #e4eadb;
+  gap: 10px;
+}
+.nz-map-caption > span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.nz-map-caption small {
+  font-size: 8px;
+}
+.nz-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #9baa88;
+}
+.nz-place-card {
+  position: absolute;
+  bottom: 100px;
+  left: 24px;
+  right: 76px;
+  z-index: 501;
+  background: white;
+  border: 1px solid #e0e7d8;
+  border-radius: 9px;
+  box-shadow: 0 8px 35px #1f3a2220;
+  padding: 15px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.nz-place-icon {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  background: #eef3e7;
+  display: grid;
+  place-items: center;
+  color: #698252;
+}
+.nz-place-card > div {
+  min-width: 0;
+  flex: 1;
+}
+.nz-place-card strong {
+  font-size: 12px;
+  display: block;
+}
+.nz-place-card small {
+  font-size: 9px;
+  color: #97a088;
+  display: block;
+  margin-top: 5px;
+}
+.nz-place-card > button,
+.nz-place-card > a {
+  padding: 4px;
+  color: #96a185;
+}
+.nz-map-error {
+  position: absolute;
+  z-index: 501;
+  top: 65px;
+  left: 20px;
+  font-size: 10px;
+  background: #fff8de;
+  padding: 10px;
+  border-radius: 5px;
+}
+.nz-overview-list {
+  padding: 0 25px;
+}
+.nz-overview-list > button {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  width: 100%;
+  text-align: left;
+  border-bottom: 1px solid var(--nz-line);
+  padding: 18px 0;
+}
+.nz-overview-list > button > span {
+  width: 34px;
+  height: 34px;
+  border-radius: 7px;
+  background: #eef3e7;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  color: #6e8858;
+}
+.nz-overview-list > button > div {
+  flex: 1;
+}
+.nz-overview-list strong {
+  font-size: 12px;
+  display: block;
+  font-weight: 500;
+}
+.nz-overview-list small {
+  display: block;
+  font-size: 9px;
+  color: #9aa48d;
+  margin-top: 6px;
+}
+.nz-detail-content {
+  padding: 25px;
+}
+.nz-section-heading {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+.nz-section-heading > svg {
+  width: 20px;
+  color: #8b9d7b;
+  margin-top: 3px;
+  flex-shrink: 0;
+}
+.nz-section-heading h2 {
+  font-size: 19px;
+  letter-spacing: 0.3px;
+}
+.nz-section-heading p {
+  font-size: 10px;
+  line-height: 1.8;
+  color: #9aa48e;
+  margin-top: 7px;
+}
+.nz-detail-card {
+  padding: 17px;
+  border: 1px solid #e4eadc;
+  border-radius: 8px;
+  margin-bottom: 14px;
+  background: #fafbf8;
+}
+.nz-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  font-size: 9px;
+  color: #9aa68d;
+  margin-bottom: 14px;
+}
+.nz-pill {
+  font-size: 9px;
+  background: #edf2e6;
+  color: #7c9067;
+  border-radius: 4px;
+  padding: 3px 6px;
+}
+.nz-pending {
+  font-size: 8px;
+  color: #a9976c;
+}
+.nz-detail-card h3 {
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.nz-detail-card p {
+  font-size: 11px;
+  line-height: 1.9;
+  color: #869378;
+  margin-bottom: 12px;
+}
+.nz-preline {
+  white-space: pre-line;
+}
+.nz-text-link {
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #64814e;
+  margin-top: 12px;
+}
+.nz-footnote {
+  font-size: 9px !important;
+  color: #a2aa97 !important;
+  line-height: 1.9 !important;
+}
+.nz-flight {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.nz-flight > div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.nz-flight > div:last-child {
+  text-align: right;
+}
+.nz-flight strong {
+  font-size: 20px;
+  font-weight: 400;
+}
+.nz-flight span {
+  font-size: 9px;
+  color: #92a080;
+}
+.nz-flight > svg {
+  color: #bdc6b2;
+}
+.nz-progress {
+  height: 4px;
+  background: #e9efdf;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 18px;
+}
+.nz-progress span {
+  display: block;
+  height: 100%;
+  background: #6b8d56;
+  transition: width 0.2s;
+}
+.nz-check {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  font-size: 11px;
+  padding: 14px 0;
+  border-bottom: 1px solid #edf1e6;
+  cursor: pointer;
+}
+.nz-check input {
+  accent-color: #446d4c;
+  width: 16px;
+  height: 16px;
+}
+.nz-check.done span {
+  text-decoration: line-through;
+  color: #a0ab92;
+}
+.nz-check + .nz-detail-card {
+  margin-top: 25px;
+}
+.nz-costs {
+  margin: 0;
+}
+.nz-costs > div {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  font-size: 11px;
+  color: #8b977b;
+}
+.nz-costs > div:last-child {
+  border-top: 1px solid #e0e7d5;
+  color: #4c663d;
+}
+.nz-source {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  line-height: 1.9;
+  border-bottom: 1px solid #edf1e7;
+  padding: 15px 0;
+}
+.nz-source > span {
+  font-size: 9px;
+  color: #a1ad90;
+}
+.nz-source + .nz-detail-card {
+  margin-top: 20px;
+}
+.nz-empty {
+  padding: 30px;
+  text-align: center;
+  color: #9aa88c;
+  font-size: 11px;
+}
+.nz-empty > svg {
+  margin-bottom: 10px;
+}
+.nz-empty button {
+  font-size: 10px;
+  color: #5b7d47;
+  margin-top: 12px;
+}
+.nz-toast {
+  position: fixed;
+  bottom: 25px;
+  right: 25px;
+  z-index: 9999;
+  background: #244d43;
+  color: white;
+  padding: 13px 20px;
+  border-radius: 8px;
+  font-size: 12px;
+  box-shadow: 0 4px 20px #0002;
+}
+@media (min-width: 1600px) {
+  .nz-panel {
+    width: 445px;
+  }
+  .nz-panel-footer {
+    width: 444px;
+  }
+  .nz-trip-hero {
+    padding-top: 35px;
+    padding-bottom: 34px;
+  }
+  .nz-days > button {
+    padding-top: 18px;
+    padding-bottom: 17px;
+  }
+  .nz-day-heading {
+    padding-top: 29px;
+  }
+  .nz-stop {
+    padding-bottom: 32px;
+  }
+}
+@media (max-width: 1150px) {
+  .nz-trip-numbers > div {
+    padding: 0 14px;
+  }
+  .nz-trip-numbers strong {
+    font-size: 23px;
+  }
+  .nz-rail {
+    width: 72px;
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+  .nz-panel {
+    width: 350px;
+  }
+  .nz-panel-footer {
+    width: 349px;
+  }
+  .nz-header {
+    padding: 0 25px;
+  }
+  .nz-trip-hero {
+    padding: 24px;
+  }
+  .nz-trip-hero h1 {
+    font-size: 29px;
+  }
+  .nz-trip-meta {
+    gap: 12px;
+  }
+  .nz-day-strip {
+    padding: 0 14px;
+    gap: 6px;
+  }
+  .nz-map-caption small {
+    display: none;
+  }
+  .nz-map-top > span {
+    max-width: 70%;
+    line-height: 1.6;
+  }
+  .nz-map-top > button {
+    padding: 7px;
+  }
+  .nz-days > button {
+    padding-left: 11px;
+    padding-right: 11px;
+  }
+}
+@media (max-width: 800px) {
+  .nz-app {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+  .nz-rail {
+    display: none;
+  }
+  .nz-header {
+    height: 53px;
+    padding: 0 18px;
+  }
+  .nz-private {
+    display: none;
+  }
+  .nz-header-actions {
+    gap: 0;
+  }
+  .nz-trip-hero {
+    padding: 22px 20px;
+  }
+  .nz-trip-hero h1 {
+    font-size: 29px;
+  }
+  .nz-trip-hero p {
+    font-size: 10px;
+  }
+  .nz-trip-numbers {
+    display: none;
+  }
+  .nz-trip-meta {
+    font-size: 9px;
+    flex-wrap: wrap;
+    gap: 8px 13px;
+  }
+  .nz-eyebrow {
+    font-size: 8px;
+  }
+  .nz-day-strip {
+    position: sticky;
+    top: 0;
+    z-index: 600;
+    padding: 0 6px;
+    gap: 0;
+  }
+  .nz-overview {
+    min-width: 57px;
+    font-size: 9px;
+    padding-left: 3px;
+    padding-right: 3px;
+  }
+  .nz-days > button {
+    min-width: 83px;
+    padding: 11px 10px;
+  }
+  .nz-days strong {
+    font-size: 17px;
+  }
+  .nz-main {
+    display: flex;
+    flex-direction: column-reverse;
+    min-height: 0;
+  }
+  .nz-map-panel {
+    height: 350px;
+    flex: none;
+  }
+  .nz-map-wrap {
+    min-height: 310px;
+  }
+  .nz-map-caption {
+    height: 30px;
+    font-size: 8px;
+  }
+  .nz-map-top {
+    top: 12px;
+    left: 12px;
+    right: 12px;
+  }
+  .nz-map-top > span {
+    font-size: 8px;
+    padding: 7px 9px;
+  }
+  .nz-map-top > button {
+    font-size: 8px;
+  }
+  .nz-map-bottom {
+    font-size: 7px;
+    bottom: 19px;
+    left: 12px;
+  }
+  .nz-map-controls {
+    right: 12px;
+    bottom: 30px;
+  }
+  .nz-place-card {
+    left: 12px;
+    right: 57px;
+    bottom: 88px;
+    padding: 11px;
+  }
+  .nz-panel {
+    width: 100%;
+    overflow: visible;
+    padding-bottom: 65px;
+    border: 0;
+  }
+  .nz-panel-tabs {
+    top: 94px;
+    z-index: 590;
+    padding-left: 25px;
+    justify-content: space-between;
+    padding-right: 25px;
+    height: 46px;
+  }
+  .nz-panel-footer {
+    width: 100%;
+    left: 0;
+    bottom: 0;
+    height: 58px;
+    z-index: 700;
+    padding: 0 20px;
+  }
+  .nz-day-heading {
+    padding-top: 23px;
+  }
+  .nz-timeline {
+    padding: 0 25px;
+  }
+  .nz-stop {
+    padding-bottom: 26px;
+  }
+  .nz-stop-body p {
+    font-size: 12px;
+  }
+  .nz-stop-title {
+    font-size: 15px;
+  }
+  .nz-stop-time {
+    font-size: 11px;
+  }
+  .nz-stop-footer {
+    font-size: 9px;
+  }
+  .nz-day-heading h2 {
+    font-size: 23px;
+  }
+  .nz-stop-body {
+    max-width: none;
+  }
+  .nz-toast {
+    bottom: 70px;
+    right: 15px;
+    left: 15px;
+    text-align: center;
+    font-size: 11px;
+  }
+  .nz-detail-content {
+    padding: 25px;
+  }
+  .nz-map-error {
+    font-size: 8px;
+    left: 12px;
+    top: 55px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    scroll-behavior: auto !important;
+    transition: none !important;
+  }
+}
+/* Keep the itinerary readable on laptop screens. */
+.nz-stop-body p,
+.nz-day-heading > p {
+  color: #708067;
+}
+.nz-english {
+  color: #89967e;
+}
+.nz-search input {
+  font-size: 11px;
+}
+.nz-stop-footer {
+  font-size: 9px;
+}
+.nz-category {
+  font-size: 9px;
+}
+.nz-day-stats {
+  font-size: 11px;
+}
+.nz-map-top > span,
+.nz-map-top > button {
+  font-size: 10px;
+}
+.nz-map .leaflet-tile-pane {
+  filter: saturate(0.72);
+}
+@media (min-width: 801px) and (max-height: 850px) {
+  .nz-header {
+    height: 51px;
+  }
+  .nz-trip-hero {
+    padding-top: 17px;
+    padding-bottom: 17px;
+  }
+  .nz-trip-hero h1 {
+    font-size: 28px;
+    margin: 7px 0;
+  }
+  .nz-trip-meta {
+    margin-top: 13px;
+  }
+  .nz-days > button {
+    padding-top: 9px;
+    padding-bottom: 8px;
+  }
+  .nz-days strong {
+    font-size: 17px;
+  }
+  .nz-day-heading {
+    padding-top: 17px;
+    padding-bottom: 13px;
+  }
+  .nz-day-heading h2 {
+    font-size: 20px;
+  }
+  .nz-day-stats {
+    margin-top: 13px;
+  }
+  .nz-search {
+    margin-bottom: 20px;
+  }
+  .nz-panel-tabs {
+    height: 42px;
+  }
+}
