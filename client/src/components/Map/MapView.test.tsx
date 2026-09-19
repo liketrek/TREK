@@ -1180,6 +1180,31 @@ describe('MapView photo thumbnails', () => {
     expect(thumbCallbacks.size).toBe(0)
     expect(vi.mocked(photoService.fetchPhoto)).not.toHaveBeenCalled()
   })
+
+  it('FE-COMP-MAPVIEW-080: an uploaded photo fills its marker whatever its proportions', () => {
+    // Leaflet's marker pane sets `width: auto` on every img in it, so a photo sized
+    // by attributes was drawn at its full pixel size and the circle only ever showed
+    // the transparent corner of it, over the category colour.
+    render(<MapView places={[buildMapPlace({ id: 27, lat: 48, lng: 2, image_url: '/uploads/places/wide.jpg' })]} />)
+    const holder = document.createElement('div')
+    holder.innerHTML = iconHtmlOf(screen.getAllByTestId('marker')[0])
+    const img = holder.querySelector('img')!
+
+    expect(img.getAttribute('src')).toBe('/uploads/places/wide.jpg')
+    expect(img.style.width).toBe('100%')
+    expect(img.style.height).toBe('100%')
+  })
+
+  it('FE-COMP-MAPVIEW-081: taking the upload off a place asks for its auto photo again, without a reload', () => {
+    const place = buildMapPlace({ id: 28, lat: 48, lng: 2, google_place_id: 'gp-28', name: 'Tower', image_url: '/uploads/places/own.jpg' })
+    const { rerender } = render(<MapView places={[place]} />)
+    expect(vi.mocked(photoService.fetchPhoto)).not.toHaveBeenCalled()
+
+    rerender(<MapView places={[{ ...place, image_url: null }]} />)
+
+    expect(vi.mocked(photoService.fetchPhoto)).toHaveBeenCalledWith('gp-28', 'gp-28', 48, 2, 'Tower')
+    expect(thumbCallbacks.has('gp-28')).toBe(true)
+  })
 })
 
 // The marker HTML is a hand-built string handed to L.divIcon, i.e. innerHTML.

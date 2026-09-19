@@ -431,9 +431,10 @@
 .trek-dash .col-detail-cover { position: relative; height: 116px; flex-shrink: 0; background-size: cover; background-position: center; }
 .trek-dash .col-detail-cover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .trek-dash .col-detail-cover-scrim { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.12) 0%, rgba(0,0,0,.55) 100%); }
-.trek-dash .col-detail-cover-cat { position: absolute; top: 12px; left: 14px; z-index: 2; display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px 4px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; color: #fff; background: color-mix(in oklch, var(--cat, #6366f1) 82%, black); box-shadow: 0 2px 8px rgba(0,0,0,.3); }
+/* chip and close sit in the cover's top bar (CollectionPlaceDetail), which places them */
+.trek-dash .col-detail-cover-cat { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px 4px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; color: #fff; background: color-mix(in oklch, var(--cat, #6366f1) 82%, black); box-shadow: 0 2px 8px rgba(0,0,0,.3); }
 .trek-dash .col-detail-close {
-  position: absolute; top: 12px; right: 12px; z-index: 2; width: 32px; height: 32px; border-radius: 50%;
+  width: 32px; height: 32px; border-radius: 50%;
   display: grid; place-items: center; background: rgba(0,0,0,.4); color: #fff; border: 1px solid rgba(255,255,255,.25);
   backdrop-filter: blur(8px); transition: background .12s;
 }

@@ -1,3 +1,4 @@
+import { chronoOrder } from '@trek/shared'
 // `orderedEndpoints` is the geometry order's single source of truth, in the module
 // that documents the multi-leg model. Sorting endpoints a second time here is how
 // the two drift.
@@ -270,26 +271,22 @@ export function getAssignmentReservations<T extends {
  * transport/leg display time, a timed note) sorts by that time. An item WITHOUT a
  * time inherits the time of the timed item before it, so untimed items stay where
  * they were manually placed. Stable on the incoming order for ties.
+ *
+ * The rule itself is `chronoOrder` in @trek/shared, the same one the server uses when
+ * a start time is saved. The server feeds it the day's stops only, though. An untimed
+ * place behind a timed note or booking inherits that item's time here and the previous
+ * stop's time there, so on such a day the stored order and this one can differ.
  */
 function applyChronoOrder(
   items: MergedItem[],
   dayId: number,
   getDisplayTime: (r: any, dayId: number) => string | null
 ): MergedItem[] {
-  const timeOf = (it: MergedItem): number | null => {
+  return chronoOrder(items, it => {
     if (it.type === 'place') return parseTimeToMinutes(it.data?.place?.place_time)
     if (it.type === 'note') return parseTimeToMinutes(it.data?.time)
     return parseTimeToMinutes(getDisplayTime(it.data, dayId))
-  }
-  let last = -Infinity
-  return items
-    .map((it, i) => {
-      const t = timeOf(it)
-      if (t != null) last = t
-      return { it, i, eff: t != null ? t : last }
-    })
-    .sort((a, b) => a.eff - b.eff || a.i - b.i)
-    .map(k => k.it)
+  })
 }
 
 /** Merge places, notes, and transports into a single ordered day timeline. */

@@ -1,4 +1,4 @@
-// FE-APISURF-001 to FE-APISURF-054
+// FE-APISURF-001 to FE-APISURF-056
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import type { AxiosResponse } from 'axios'
 import { http, HttpResponse } from 'msw'
@@ -10,6 +10,7 @@ import {
   mapsApi, airportsApi, budgetApi, filesApi, reservationsApi, healthApi, weatherApi,
   configApi, helpApi, settingsApi, accommodationsApi, dayNotesApi, collabApi, backupApi,
   shareApi, transitApi, tripInviteApi, notificationsApi, inAppNotificationsApi, memoriesApi,
+  docsyncApi,
 } from './client'
 
 interface Recorded { method: string; url: string; body: unknown }
@@ -664,6 +665,12 @@ describe('client > request payloads', () => {
     const rec = await traceOne(() => authApi.passkey.delete(3, 'hunter2'))
     expect(rec.method).toBe('DELETE')
     expect(rec.body).toEqual({ password: 'hunter2' })
+  })
+
+  it('FE-APISURF-056: docsyncApi.createScope names the connection in the path only', async () => {
+    const rec = await traceOne(() => docsyncApi.createScope(1, 5, 'Norway'))
+    expect(`${rec.method} ${rec.url}`).toBe('POST /api/trips/1/docsync/connections/5/scopes')
+    expect(rec.body).toEqual({ name: 'Norway' })
   })
 })
 

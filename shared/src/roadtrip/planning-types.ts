@@ -17,6 +17,12 @@ export interface RoadtripStop {
 
   time: string | null;
 
+  /**
+   * When the traveller leaves this stop: the visit's own end time, or the place's.
+   * The stay then runs until it rather than for `dwellMinutes`.
+   */
+  leaveAt?: string | null;
+
   dwellMinutes: number | null;
   checkInTime?: string | null;
   endDay?: boolean;

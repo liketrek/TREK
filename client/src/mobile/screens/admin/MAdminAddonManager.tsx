@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import DawarichIcon from '../../../components/shared/DawarichIcon'
 import AirTrailIcon from '../../../components/shared/AirTrailIcon'
+import { DOCUMENT_PROVIDER_ICONS } from '../../../components/shared/DocumentProviderIcons'
 import MToggle from '../../components/MToggle'
 import { MAdminButton, MAdminCard, MAdminField, MAdminInput, MAdminSecretInput } from './MAdminUi'
 
@@ -37,6 +38,7 @@ function SynologyIcon({ size = 14 }: { size?: number }) {
 const PROVIDER_ICONS: Record<string, ComponentType<{ size?: number }>> = {
   immich: ImmichIcon,
   synologyphotos: SynologyIcon,
+  ...DOCUMENT_PROVIDER_ICONS,
 }
 
 interface Addon {
@@ -121,8 +123,9 @@ export default function MAdminAddonManager({ bagTrackingEnabled, onToggleBagTrac
     refreshGlobalAddons()
     // Journey off disables every photo provider with it, and the response carries
     // only Journey. Without re-reading, switching Journey back on brings the shelf
-    // up with providers the database has long since turned off.
-    if (addon.id === 'journey') await loadAddons()
+    // up with providers the database has long since turned off. Documents does
+    // the same to the document providers.
+    if (addon.id === 'journey' || addon.id === 'documents') await loadAddons()
     toast.success(t('admin.addons.toast.updated'))
   }
 
@@ -152,6 +155,7 @@ export default function MAdminAddonManager({ bagTrackingEnabled, onToggleBagTrac
   }
 
   const photoProviderAddons = addons.filter(isPhotoProviderAddon)
+  const documentProviderAddons = addons.filter(a => a.type === 'document_provider')
   const tripAddons = addons.filter(a => a.type === 'trip' && !isPhotosAddon(a))
   const globalAddons = addons.filter(a => a.type === 'global')
   const integrationAddons = addons.filter(a => a.type === 'integration')
@@ -161,6 +165,16 @@ export default function MAdminAddonManager({ bagTrackingEnabled, onToggleBagTrac
       description: provider.description,
       enabled: provider.enabled,
       toggle: () => handleTogglePhotoProvider(provider),
+    }))
+  // No credential form under these, unlike the photo providers: a document
+  // connection belongs to a trip and is entered there. The admin only decides
+  // whether a provider may be offered at all.
+  const documentProviderOptions: ProviderOption[] = documentProviderAddons.map((provider) => ({
+      key: provider.id,
+      label: provider.name,
+      description: provider.description,
+      enabled: provider.enabled,
+      toggle: () => handleToggle(provider),
     }))
 
   if (loading) {
@@ -207,6 +221,7 @@ export default function MAdminAddonManager({ bagTrackingEnabled, onToggleBagTrac
                       onToggle={onToggleBagTracking}
                     />
                   )}
+                  {addon.id === 'documents' && addon.enabled && <MProviderShelf options={documentProviderOptions} />}
                   {addon.id === 'collab' && addon.enabled && collabFeatures && onToggleCollabFeature && (
                     <>
                       {COLLAB_SUB_FEATURES.map(feat => (
@@ -234,23 +249,7 @@ export default function MAdminAddonManager({ bagTrackingEnabled, onToggleBagTrac
                 <div key={addon.id}>
                   <MAddonRow addon={addon} onToggle={handleToggle} t={t} first={i === 0} />
                   {/* Memories providers as sub-items under Journey addon — only while it is on */}
-                  {addon.id === 'journey' && addon.enabled && providerOptions.length > 0 && (
-                    <>
-                      {providerOptions.map(provider => {
-                        const ProviderIcon = PROVIDER_ICONS[provider.key]
-                        return (
-                          <MSubRow
-                            key={provider.key}
-                            providerIcon={ProviderIcon}
-                            title={provider.label}
-                            subtitle={provider.description}
-                            enabled={provider.enabled}
-                            onToggle={provider.toggle}
-                          />
-                        )
-                      })}
-                    </>
-                  )}
+                  {addon.id === 'journey' && addon.enabled && <MProviderShelf options={providerOptions} />}
                 </div>
               ))}
             </MAdminCard>
@@ -329,6 +328,24 @@ function MAddonRow({ addon, onToggle, t, first }: MAddonRowProps) {
       </div>
       <MToggle checked={addon.enabled} ariaLabel={label.name} onChange={() => onToggle(addon)} />
     </div>
+  )
+}
+
+/** A provider shelf under its addon: Journey's photo providers, Documents' document providers. */
+function MProviderShelf({ options }: { options: ProviderOption[] }) {
+  return (
+    <>
+      {options.map(provider => (
+        <MSubRow
+          key={provider.key}
+          providerIcon={PROVIDER_ICONS[provider.key]}
+          title={provider.label}
+          subtitle={provider.description}
+          enabled={provider.enabled}
+          onToggle={provider.toggle}
+        />
+      ))}
+    </>
   )
 }
 

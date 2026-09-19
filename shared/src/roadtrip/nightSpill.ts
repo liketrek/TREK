@@ -1,6 +1,13 @@
 import type { QuietDay, RoadtripDay, RoadtripStop } from './planning-types';
 import type { RouteSegment } from './planning-types';
-import { computeSchedule, parseClock, type Schedule, hasChosenArrival } from './roadtripModel';
+import {
+  computeSchedule,
+  parseClock,
+  scheduleStopOf,
+  type Schedule,
+  type ScheduleWarning,
+  hasChosenArrival,
+} from './roadtripModel';
 
 export interface SpillMark {
   automatic?: boolean;
@@ -44,8 +51,8 @@ interface Placed {
 
   dayOffset: number;
 
-  codes: ('late' | 'overnight' | 'leg' | 'range')[];
-  lateMinutes: number | null;
+  /** The findings the day's own schedule filed at this stop, minutes and all. */
+  marks: ScheduleWarning[];
 
   fromDayNumber: number | null;
   departedAt: string | null;
@@ -93,11 +100,7 @@ export function spillChains(plan: PlanDay[], quietDays: QuietDay[], legFor: LegL
     const routed = d.stops.slice(0, -1).map((s, i) => legFor(s, d.stops[i + 1]!));
     const legs = routed.map((l) => l?.seg);
     const schedule = computeSchedule(
-      d.stops.map((s) => ({
-        anchor: s.time ?? null,
-        earliest: s.checkInTime ?? null,
-        dwellMinutes: s.dwellMinutes,
-      })),
+      d.stops.map(scheduleStopOf),
       legs.map((l) => l?.duration),
       { notBefore },
     );
@@ -145,8 +148,7 @@ export function spillChains(plan: PlanDay[], quietDays: QuietDay[], legFor: LegL
 
         dayOffset: moved ? 0 : offset,
 
-        codes: marks.map((w) => w.code).filter((c) => !(moved && c === 'overnight')),
-        lateMinutes: marks.find((w) => w.code === 'late')?.minutes ?? null,
+        marks: marks.filter((w) => !(moved && w.code === 'overnight')),
         fromDayNumber: moved ? d.dayNumber : null,
         departedAt: moved ? (schedule.entries[i - 1]?.departure ?? null) : null,
         leg: moved ? legs[i - 1] : undefined,
@@ -192,11 +194,7 @@ export function spillChains(plan: PlanDay[], quietDays: QuietDay[], legFor: LegL
           anchored: hasChosenArrival(p.stop),
           dayOffset: p.dayOffset,
         })),
-        warnings: placed.flatMap((p, i) =>
-          p.codes.map((code) =>
-            code === 'late' ? { index: i, code, minutes: p.lateMinutes ?? 0 } : { index: i, code },
-          ),
-        ),
+        warnings: placed.flatMap((p, i) => p.marks.map((w) => ({ ...w, index: i }))),
       },
       spills,
     });

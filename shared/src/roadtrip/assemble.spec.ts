@@ -11,6 +11,7 @@
  * at the charger, and a run of warnings that should collapse to one did not.
  */
 import { assembleRoadtrip } from './assemble';
+import type { DayWindow } from './dayWindow';
 import type { PlanDay, RoadtripStop, RoutedLeg } from './planning-types';
 
 import { describe, it, expect } from 'vitest';
@@ -53,7 +54,7 @@ const stopKey = (s: RoadtripStop): string =>
   `${s.lat.toFixed(5)},${s.lng.toFixed(5)},${s.legMode ?? ''},${s.incomingLegMode ?? ''}`;
 const legKey = (from: RoadtripStop, to: RoadtripStop): string => `${stopKey(from)}>${stopKey(to)}`;
 
-function assemble(stops: RoadtripStop[], legs: number[]) {
+function assemble(stops: RoadtripStop[], legs: number[], window: DayWindow | null = null) {
   const day: PlanDay = { dayId: 1, dayNumber: 1, date: '2026-06-01', title: null, stops };
   const allLegs: Record<string, RoutedLeg> = {};
   legs.forEach((km, i) => {
@@ -62,7 +63,7 @@ function assemble(stops: RoadtripStop[], legs: number[]) {
   return assembleRoadtrip({
     plan: [day],
     quietDays: [],
-    window: null,
+    window,
     distanceUnit: 'metric',
     allLegs,
     snapByDay: {},
@@ -255,5 +256,41 @@ describe('assembleRoadtrip connected days', () => {
     // drives its own. Only that first one of day 2's is the connection.
     expect(routes.lineDays).toEqual([1, 1, 2, 2]);
     expect(routes.lineJoins).toEqual([false, false, true, false]);
+  });
+});
+
+describe('assembleRoadtrip leave times', () => {
+  // 90 km at the 40 seconds a kilometre `leg` drives is an hour.
+  const hour = 90;
+
+  it('ROADTRIP-ASSEMBLE-010: a stop left at a set time holds the day until then', () => {
+    const stops = [
+      stop({ ownerIndex: 0, time: '09:00', dwellMinutes: 0 }),
+      stop({ ownerIndex: 1, dwellMinutes: 30, leaveAt: '14:00' }),
+      stop({ ownerIndex: 2 }),
+    ];
+
+    const { schedule } = assemble(stops, [hour, hour]).days[0]!;
+
+    expect(schedule.entries[1]!).toMatchObject({ arrival: '10:00', departure: '14:00' });
+    expect(schedule.entries[2]!.arrival).toBe('15:00');
+  });
+
+  it('ROADTRIP-ASSEMBLE-011: the plain schedule a conflicting window falls back to still reads it', () => {
+    // Leaving at two with an hour to drive cannot make a stop pinned at half past two,
+    // which is a conflict for the daily window. The day is then scheduled without it, and
+    // that schedule has to keep the departure and report the pin it makes late.
+    const stops = [
+      stop({ ownerIndex: 0, time: '09:00', dwellMinutes: 0 }),
+      stop({ ownerIndex: 1, dwellMinutes: 30, leaveAt: '14:00' }),
+      stop({ ownerIndex: 2, time: '14:30' }),
+    ];
+
+    const routes = assemble(stops, [hour, hour], { start: 480, end: 1200 });
+
+    expect(routes.dayWindowIssue).toBe('conflict');
+    const { schedule } = routes.days[0]!;
+    expect(schedule.entries[1]!).toMatchObject({ arrival: '10:00', departure: '14:00' });
+    expect(schedule.warnings).toContainEqual({ index: 2, code: 'late', minutes: 30 });
   });
 });

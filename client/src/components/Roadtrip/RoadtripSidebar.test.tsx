@@ -322,7 +322,10 @@ describe('RoadtripSidebar', () => {
     const add = within(chain).getByText('+')
 
     fireEvent.click(add)
-    expect(onEditStay).toHaveBeenCalledWith({ placeId: 20, name: 'Berlin', minutes: null, arrival: null })
+    // The visit rides along with the place, so the dialog can reach its end time.
+    expect(onEditStay).toHaveBeenCalledWith({
+      placeId: 20, name: 'Berlin', minutes: null, arrival: null, departure: null, leaveAt: null, missedBy: null, assignmentId: 2, dayId: 1,
+    })
   })
 
   it('FE-ROADTRIP-SIDEBAR-034: a pause reached late says so, the same as a numbered stop', () => {
@@ -340,6 +343,53 @@ describe('RoadtripSidebar', () => {
     wrap(<RoadtripSidebar routes={routes({ days: [day({ stops, schedule, legs: [leg()] })] })} />)
 
     expect(screen.getByLabelText(/45/)).toBeInTheDocument()
+  })
+
+  it('FE-ROADTRIP-SIDEBAR-049: a stop left at a set time shows the stay that makes, and until when', () => {
+    // The stay the place carries is 30 min; the End at two is what the drive keeps to.
+    const onEditStay = vi.fn()
+    const stops = [
+      stop({ assignmentId: 1, name: 'Hamburg' }),
+      stop({ assignmentId: 2, name: 'Lueneburg', dwellMinutes: 30, leaveAt: '14:00' }),
+    ]
+    const schedule = {
+      entries: [
+        { arrival: '09:00', departure: '09:00', anchored: true, dayOffset: 0 },
+        { arrival: '10:00', departure: '14:00', anchored: false, dayOffset: 0 },
+      ],
+      warnings: [],
+    }
+    wrap(<RoadtripSidebar routes={routes({ days: [day({ stops, schedule })] })} onEditStay={onEditStay} />)
+
+    expect(screen.getByText('4 h')).toBeInTheDocument()
+    expect(screen.getByText('until 14:00')).toBeInTheDocument()
+    expect(screen.queryByText('30 min')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Time at this stop: 4 h until 14:00' }))
+    expect(onEditStay).toHaveBeenCalledWith(expect.objectContaining({ leaveAt: '14:00', arrival: '10:00', departure: '14:00' }))
+  })
+
+  it('FE-ROADTRIP-SIDEBAR-050: a stop reached after the time it is left at says so, beside a late arrival', () => {
+    const stops = [
+      stop({ assignmentId: 1, name: 'Hamburg' }),
+      stop({ assignmentId: 2, name: 'Aral Autohof', stopType: 'fuel', leaveAt: '14:00', time: '14:00' }),
+    ]
+    const schedule = {
+      entries: stops.map(() => ({ arrival: '14:30', departure: '14:30', anchored: true, dayOffset: 0 })),
+      warnings: [
+        { index: 1, code: 'late' as const, minutes: 30 },
+        { index: 1, code: 'missedLeave' as const, minutes: 30 },
+      ],
+    }
+    const onEditStay = vi.fn()
+    wrap(<RoadtripSidebar routes={routes({ days: [day({ stops, schedule, legs: [leg()] })] })} onEditStay={onEditStay} />)
+
+    expect(screen.getByLabelText('Arrives 30 min after the time you set')).toBeInTheDocument()
+    expect(screen.getByLabelText('Arrives 30 min after the time you set to leave')).toBeInTheDocument()
+    // Left the moment it is reached: a zero, until the time it was meant to go.
+    expect(screen.getByText('0 min')).toBeInTheDocument()
+    // The dialog is handed the schedule's own finding, so it can say the same.
+    fireEvent.click(screen.getByRole('button', { name: 'Time at this stop: 0 min until 14:00' }))
+    expect(onEditStay).toHaveBeenCalledWith(expect.objectContaining({ leaveAt: '14:00', missedBy: 30 }))
   })
 
   it('FE-ROADTRIP-SIDEBAR-033: without the right to edit, a stop with no stay shows nothing', () => {

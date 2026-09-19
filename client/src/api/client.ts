@@ -1358,6 +1358,36 @@ export const filesApi = {
   getLinks: (tripId: number | string, fileId: number) => apiClient.get(`/trips/${tripId}/files/${fileId}/links`).then(r => r.data),
 }
 
+/**
+ * Document sync: one provider connection per trip, shared by every member.
+ *
+ * Trip-scoped rather than user-scoped on purpose: a per-user connection would
+ * make a document's visibility depend on whose credentials fetched it, which is
+ * the opposite of what a shared trip needs.
+ */
+export const docsyncApi = {
+  providers: (tripId: number | string) => apiClient.get(`/trips/${tripId}/docsync/providers`).then(r => r.data),
+  status: (tripId: number | string) => apiClient.get(`/trips/${tripId}/docsync/status`).then(r => r.data),
+  listConnections: (tripId: number | string) => apiClient.get(`/trips/${tripId}/docsync/connections`).then(r => r.data),
+  saveConnection: (tripId: number | string, data: unknown) => apiClient.put(`/trips/${tripId}/docsync/connections`, data).then(r => r.data),
+  testConnection: (tripId: number | string, data: unknown) => apiClient.post(`/trips/${tripId}/docsync/connections/test`, data).then(r => r.data),
+  deleteConnection: (tripId: number | string, connectionId: number) => apiClient.delete(`/trips/${tripId}/docsync/connections/${connectionId}`).then(r => r.data),
+  listScopes: (tripId: number | string, connectionId: number, q?: string) =>
+    apiClient.get(`/trips/${tripId}/docsync/connections/${connectionId}/scopes`, { params: q ? { q } : {} }).then(r => r.data),
+  createScope: (tripId: number | string, connectionId: number, name: string) =>
+    apiClient.post(`/trips/${tripId}/docsync/connections/${connectionId}/scopes`, { name }).then(r => r.data),
+  listLinks: (tripId: number | string) => apiClient.get(`/trips/${tripId}/docsync/links`).then(r => r.data),
+  createLink: (tripId: number | string, data: unknown) => apiClient.post(`/trips/${tripId}/docsync/links`, data).then(r => r.data),
+  updateLink: (tripId: number | string, linkId: number, data: unknown) => apiClient.patch(`/trips/${tripId}/docsync/links/${linkId}`, data).then(r => r.data),
+  deleteLink: (tripId: number | string, linkId: number) => apiClient.delete(`/trips/${tripId}/docsync/links/${linkId}`).then(r => r.data),
+  syncNow: (tripId: number | string, linkId: number, full = false) =>
+    apiClient.post(`/trips/${tripId}/docsync/links/${linkId}/sync`, { full }).then(r => r.data),
+  items: (tripId: number | string, state?: string) =>
+    apiClient.get(`/trips/${tripId}/docsync/items`, { params: state ? { state } : {} }).then(r => r.data),
+  resolve: (tripId: number | string, itemId: number, keep: 'trek' | 'provider' | 'both') =>
+    apiClient.post(`/trips/${tripId}/docsync/items/${itemId}/resolve`, { keep }).then(r => r.data),
+}
+
 export const reservationsApi = {
   list: (tripId: number | string) => apiClient.get(`/trips/${tripId}/reservations`).then(r => r.data),
   upcoming: () => apiClient.get('/reservations/upcoming').then(r => r.data),

@@ -1,5 +1,5 @@
 import type { RoadtripStop } from './planning-types';
-import { formatClock, parseClock, type Schedule } from './roadtripModel';
+import { formatClock, leaveAfter, parseClock, type Schedule } from './roadtripModel';
 
 export function continueSchedule(
   stops: RoadtripStop[],
@@ -23,7 +23,10 @@ export function continueSchedule(
       previous.dayOffset * 1440 + departure + (previousArrival !== null && departure < previousArrival ? 1440 : 0);
     const arrivalAt = departureAt + Math.round(duration / 60);
     const stop = stops[i]!;
-    const leaveAt = arrivalAt + (stop.dwellMinutes ?? 0);
+    const leave = parseClock(stop.leaveAt);
+    const left = leave === null ? null : leaveAfter(arrivalAt, leave, departureAt);
+    if (left && left.missedBy !== null) warnings.push({ index: i, code: 'missedLeave', minutes: left.missedBy });
+    const leaveAt = left ? left.departure : arrivalAt + (stop.dwellMinutes ?? 0);
     entry.arrival = formatClock(arrivalAt);
     entry.departure = formatClock(leaveAt);
     entry.dayOffset = Math.floor(arrivalAt / 1440);

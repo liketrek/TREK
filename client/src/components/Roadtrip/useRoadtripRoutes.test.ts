@@ -33,6 +33,10 @@ interface StopSpec {
   incoming?: string | null
   stopType?: string | null
   noCoords?: boolean
+  /** The visit's own End. */
+  end?: string | null
+  /** An End only the place carries, for a visit that has none of its own. */
+  placeEnd?: string | null
 }
 
 function day(id: number, number: number, extra: Partial<Day> = {}): Day {
@@ -45,6 +49,7 @@ function assignment(spec: StopSpec, order: number): Assignment {
     place_id: spec.id * 10,
     order_index: order,
     assignment_time: spec.time ?? null,
+    assignment_end_time: spec.end ?? null,
     leg_transport_mode: spec.legMode ?? null,
     incoming_leg_transport_mode: spec.incoming ?? null,
     place: {
@@ -53,6 +58,9 @@ function assignment(spec: StopSpec, order: number): Assignment {
       lat: spec.noCoords ? null : spec.at[0],
       lng: spec.noCoords ? null : spec.at[1],
       place_time: null,
+      // Folded in the way the store keeps a visit (mergeAssignmentPlace): its own End,
+      // or else the place's.
+      end_time: spec.end ?? spec.placeEnd ?? null,
       duration_minutes: spec.dwell ?? null,
       stop_type: spec.stopType ?? null,
     },
@@ -761,6 +769,80 @@ describe('useRoadtripRoutes', () => {
       expect(inboundDry.lat).toBeGreaterThan(BERLIN[0])
       expect(inboundDry.lat).toBeLessThan(LUENEBURG[0])
     })
+  })
+})
+
+describe('a visit End on the road trip', () => {
+  /** An hour from Hamburg to Lueneburg and another on to Berlin. */
+  const hourly = () => ({
+    coordinates: [HAMBURG, LUENEBURG, BERLIN],
+    distance: 200000,
+    duration: 7200,
+    legs: [{ distance: 100000, duration: 3600, text: '' }, { distance: 100000, duration: 3600, text: '' }],
+  })
+
+  async function drive(stops: StopSpec[]) {
+    calculateRouteWithLegs.mockResolvedValue(hourly())
+    const { result } = renderHook(() => useRoadtripRoutes(7, [day(1, 1)], map(1, stops)))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    await waitFor(() => expect(result.current.days).toHaveLength(1))
+    return result.current.days[0]
+  }
+
+  afterEach(() => act(() => useSettingsStore.setState({ settings: { ...DEFAULT_SETTINGS } })))
+
+  it('FE-ROADTRIP-ROUTES-030: the drive leaves a stop at its End, not after its stay', async () => {
+    const d = await drive([
+      { id: 1, at: HAMBURG, time: '09:00', dwell: 0 },
+      { id: 2, at: LUENEBURG, end: '14:00', dwell: 30 },
+      { id: 3, at: BERLIN },
+    ])
+    expect(d.stops[1].leaveAt).toBe('14:00')
+    expect(d.schedule.entries[1]).toMatchObject({ arrival: '10:00', departure: '14:00' })
+    expect(d.schedule.entries[2].arrival).toBe('15:00')
+    expect(d.schedule.warnings).toEqual([])
+  })
+
+  it('FE-ROADTRIP-ROUTES-031: an End the place carries counts for a visit without its own', async () => {
+    const d = await drive([
+      { id: 1, at: HAMBURG, time: '09:00', dwell: 0 },
+      { id: 2, at: LUENEBURG, placeEnd: '13:00', dwell: 30 },
+      { id: 3, at: BERLIN },
+    ])
+    expect(d.schedule.entries[1].departure).toBe('13:00')
+    expect(d.schedule.entries[2].arrival).toBe('14:00')
+  })
+
+  it('FE-ROADTRIP-ROUTES-032: Start and End together make the stay the time between them', async () => {
+    const d = await drive([
+      { id: 1, at: HAMBURG, time: '09:00', dwell: 0 },
+      { id: 2, at: LUENEBURG, time: '10:00', end: '14:00', dwell: 60 },
+      { id: 3, at: BERLIN },
+    ])
+    expect(d.schedule.entries[1]).toMatchObject({ arrival: '10:00', departure: '14:00', anchored: true })
+    expect(d.schedule.entries[2].arrival).toBe('15:00')
+  })
+
+  it('FE-ROADTRIP-ROUTES-033: a stop reached after its End says so instead of leaving quietly', async () => {
+    const d = await drive([
+      { id: 1, at: HAMBURG, time: '13:30', dwell: 0 },
+      { id: 2, at: LUENEBURG, end: '14:00', dwell: 30 },
+      { id: 3, at: BERLIN },
+    ])
+    expect(d.schedule.entries[1]).toMatchObject({ arrival: '14:30', departure: '14:30' })
+    expect(d.schedule.warnings).toEqual([{ index: 1, code: 'missedLeave', minutes: 30 }])
+  })
+
+  it('FE-ROADTRIP-ROUTES-034: daily travel times spend the hours until the End as well', async () => {
+    act(() => useSettingsStore.setState({ settings: { ...DEFAULT_SETTINGS, roadtrip_day_start: '08:00', roadtrip_day_end: '20:00' } }))
+    const d = await drive([
+      { id: 1, at: HAMBURG, time: '09:00', dwell: 0 },
+      { id: 2, at: LUENEBURG, end: '14:00', dwell: 30 },
+      { id: 3, at: BERLIN },
+    ])
+    expect(d.automaticSchedule).toBe(true)
+    expect(d.schedule.entries[1]).toMatchObject({ arrival: '10:00', departure: '14:00' })
+    expect(d.schedule.entries[2].arrival).toBe('15:00')
   })
 })
 

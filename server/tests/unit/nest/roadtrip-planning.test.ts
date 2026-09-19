@@ -176,6 +176,24 @@ describe('browser-independent roadtrip calculation', () => {
     const plan = await s.plans.calculate(10, 5);
     expect(plan.omittedVisits).toEqual([2]);
   });
+  it('hands calculate_roadtrip the end time of a visit as the moment the drive leaves it', async () => {
+    const s = setup();
+    // Stop 1 is left at 07:30 and the road takes two hours, so stop 2 is reached half an
+    // hour after the 09:00 it was meant to be left at. Stop 3 is left at noon, whatever
+    // its stay says.
+    Object.assign(s.visits[1], { end_time: '09:00' });
+    Object.assign(s.visits[2], { end_time: '12:00' });
+    const mcp = new RoadtripPlanningMcp(s.plans, {} as never, {} as never);
+    const answer = await mcp.calculate(
+      { tripId: 10, includeGeometry: false, settings: { roadtrip_day_start: '', roadtrip_day_end: '' } },
+      ctx,
+    );
+    const body = JSON.parse(answer.content[0].text as string);
+    const [day] = body.days;
+    expect(day.stops.map((stop: { leaveAt: string | null }) => stop.leaveAt)).toEqual([undefined, '09:00', '12:00']);
+    expect(day.schedule.entries.map((e: { departure: string }) => e.departure)).toEqual(['07:30', '09:30', '12:00']);
+    expect(day.schedule.warnings).toEqual([{ index: 1, code: 'missedLeave', minutes: 30 }]);
+  });
   it('keeps explicit end-day visits and manual boundaries in the shared planning path', async () => {
     const s = setup();
     s.visits[0].end_day = 1;

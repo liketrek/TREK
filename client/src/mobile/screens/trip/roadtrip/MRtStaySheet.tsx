@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowRight, Minus, Plus } from 'lucide-react'
+import { AlertTriangle, ArrowRight, Minus, Plus } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import MChip from '../../../components/MChip'
 import type { MTripSheetsProps } from '../MTripShell'
@@ -7,9 +7,11 @@ import { useTranslation } from '../../../../i18n'
 import { useSettingsStore } from '../../../../store/settingsStore'
 import { formatClock, formatDurationShort, parseClock } from '../../../../components/Roadtrip/roadtripModel'
 import { stageOf } from '../../../../components/Roadtrip/roadtripRowModel'
+import { locateStop, missedLeaveOf } from '../../../../components/Roadtrip/stayReading'
+import { useLeaveMode, type LeaveMode } from '../../../../components/Roadtrip/useLeaveMode'
 import { formatClockTime } from '../../../../utils/formatters'
 import { FormSheetHeader } from '../sheets/PlSheetChrome'
-import { INNER_CLS } from '../sheets/MTripSheetUi'
+import { INNER_CLS, displayTime } from '../sheets/MTripSheetUi'
 
 /** What the chain hands over when a stop's stay is tapped. */
 interface RtStaySheetPayload {
@@ -102,12 +104,24 @@ export default function MRtStaySheet({ planner, shell }: MTripSheetsProps) {
    */
   const stage = stageOf(planner.roadtripRoutes.days, planner.selectedDayId)
   const stopPlaceId = stop?.placeId
+  // The visit itself when the stop sheet named it, read off the same stage: its end time
+  // decides whether there is a stay to choose here at all.
+  const located = stage && stop?.assignmentId != null ? locateStop([stage], stop.assignmentId) : null
   const arrival = useMemo(() => {
+    if (located) return located.entry?.arrival ?? null
     if (!stage || stopPlaceId == null) return null
     const index = stage.stops.findIndex(s => s.placeId === stopPlaceId)
     if (index === -1) return null
     return stage.schedule.entries[index]?.arrival ?? null
-  }, [stage, stopPlaceId])
+  }, [located, stage, stopPlaceId])
+  const leave = useLeaveMode(located && {
+    leaveAt: located.stop.leaveAt,
+    arrival: located.entry?.arrival,
+    departure: located.entry?.departure,
+    missedBy: missedLeaveOf(located.day, located.index),
+    assignmentId: located.stop.assignmentId,
+    dayId: located.stop.ownerDayId,
+  })
 
   // What the stay does to this stop: the arrival is fixed by the drive, the departure is
   // the one end this sheet moves.
@@ -170,9 +184,13 @@ export default function MRtStaySheet({ planner, shell }: MTripSheetsProps) {
       onClose={shell.closeSheet}
       variant="bottom"
       material="opaque"
-      ariaLabel={t('roadtrip.stay.add')}
+      // Named for what it holds: a stop left at a set time has no stay to add.
+      ariaLabel={leave.until ? t('roadtrip.stop.stay') : t('roadtrip.stay.add')}
     >
-      {stop && (
+      {stop && leave.until && (
+        <RtLeaveTime name={stop.name} leave={leave} arrival={arrival} departure={located?.entry?.departure ?? null} onClose={shell.closeSheet} />
+      )}
+      {stop && !leave.until && (
         <>
           <FormSheetHeader
             title={t('roadtrip.stay.add')}
@@ -291,5 +309,76 @@ export default function MRtStaySheet({ planner, shell }: MTripSheetsProps) {
         </>
       )}
     </MSheet>
+  )
+}
+
+/**
+ * The sheet for a stop the traveller leaves at a set time, where there is no stay to pick.
+ *
+ * It says when the drive leaves and what stay that makes, and offers the one thing there
+ * is to do: take the end time off the visit, after which the stay is a choice again.
+ */
+function RtLeaveTime({ name, leave, arrival, departure, onClose }: {
+  name?: string
+  leave: LeaveMode
+  arrival: string | null
+  departure: string | null
+  onClose: () => void
+}) {
+  const { t, locale } = useTranslation()
+  const timeFormat = useSettingsStore(s => s.settings.time_format) || '24h'
+  const until = displayTime(leave.until, locale, timeFormat)
+  const captionCls = 'font-geist text-[0.5625rem] font-bold uppercase tracking-[.09em] text-m-faint'
+  return (
+    <>
+      <FormSheetHeader title={t('roadtrip.stop.stay')} onClose={onClose} closeLabel={t('common.close')} />
+      <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-1">
+        {name && <div className="truncate text-[0.875rem] font-semibold text-m-ink">{name}</div>}
+        <div className="mt-[18px] text-center text-[2.5rem] font-extrabold leading-none tabular-nums text-m-ink">
+          {leave.minutes === null ? t('roadtrip.stay.until', { time: until }) : formatDurationShort(leave.minutes * 60)}
+        </div>
+        {/* What the drive actually does, as the desktop dialog says it: reached too late it
+            leaves on arrival, with the travel hours over first it goes on in the morning. */}
+        {leave.missedBy !== null ? (
+          <div className="mt-[10px] flex items-center justify-center gap-1.5 text-center text-[0.8125rem] font-medium leading-snug text-[color:var(--m-st-pending)]">
+            <AlertTriangle size={14} strokeWidth={2} className="flex-none" aria-hidden="true" />
+            {t('roadtrip.warn.missedLeave', { minutes: leave.missedBy })}
+          </div>
+        ) : (
+          <div className="mt-[10px] text-center text-[0.8125rem] leading-snug text-m-muted">
+            {t(leave.dayEndsFirst ? 'roadtrip.stay.dayEndsFirst' : 'roadtrip.stay.leavesAt', { time: until })}
+          </div>
+        )}
+        {arrival && !leave.dayEndsFirst && (
+          <div className={`mt-[18px] flex items-center justify-center gap-4 rounded-[16px] px-3 py-[11px] ${INNER_CLS}`}>
+            <span className="flex flex-col items-center gap-[2px]">
+              <span className={captionCls}>{t('roadtrip.stay.arrive')}</span>
+              <span dir="ltr" className="text-[0.875rem] font-bold tabular-nums text-m-muted">
+                {displayTime(arrival, locale, timeFormat)}
+              </span>
+            </span>
+            <ArrowRight size={14} strokeWidth={2} className="mt-[11px] flex-none text-m-faint" aria-hidden="true" />
+            <span className="flex flex-col items-center gap-[2px]">
+              <span className={captionCls}>{t('roadtrip.stay.leave')}</span>
+              <span dir="ltr" className="text-[0.875rem] font-bold tabular-nums text-m-ink">
+                {displayTime(departure ?? leave.until, locale, timeFormat)}
+              </span>
+            </span>
+          </div>
+        )}
+      </div>
+      {leave.remove && (
+        <div className="flex flex-none items-center gap-2 border-t border-[color:var(--m-rowbr)] px-[18px] pb-4 pt-3">
+          <button
+            type="button"
+            onClick={() => { void leave.remove?.() }}
+            disabled={leave.removing}
+            className="ml-auto inline-flex h-11 items-center rounded-full bg-m-act px-[18px] text-[0.8125rem] font-semibold text-m-actfg disabled:opacity-40"
+          >
+            {t('roadtrip.stay.clearLeave')}
+          </button>
+        </div>
+      )}
+    </>
   )
 }

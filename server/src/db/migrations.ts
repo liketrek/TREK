@@ -1,6 +1,7 @@
 import { ROADTRIP_PREFERENCE_KEYS } from '@trek/shared';
 import { readEnv } from '../app-config';
 import { encrypt_api_key } from '../nest/common/crypto/apiKeyCrypto';
+import { seedDocumentProviders } from './document-provider-seed';
 
 import Database from 'better-sqlite3';
 import fs from 'fs';
@@ -4948,6 +4949,202 @@ function runMigrations(db: Database.Database): void {
       db.exec(
         'CREATE INDEX IF NOT EXISTS idx_journey_entries_source_assignment ON journey_entries(source_place_id, source_assignment_id)',
       );
+    },
+
+    /*
+     * Document providers, part 1 of 3: the registry (#214).
+     *
+     * Deliberately its own pair of tables rather than a `kind` column on
+     * `photo_providers`. The client filters on `type === 'photo_provider'`, the
+     * Journey cascade runs `UPDATE photo_providers SET enabled = 0` with no
+     * WHERE clause, and migrations are append-only. Reusing those tables would
+     * change the behaviour of three existing paths, which is exactly what the
+     * no-breaking-changes rule forbids. The field columns follow
+     * `photo_provider_fields` except for `settings_key` and `payload_key`.
+     * Those map a photo field onto a settings key and a request key; a document
+     * field is stored under its own `field_key` in one JSON column, and the
+     * connect form takes its fields from /docsync/providers rather than from
+     * the generic settings form, so nothing would ever read them.
+     */
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS document_providers (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          description TEXT,
+          icon TEXT DEFAULT 'FileText',
+          enabled INTEGER DEFAULT 0,
+          sort_order INTEGER DEFAULT 0
+        );
+
+        CREATE TABLE IF NOT EXISTS document_provider_fields (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          provider_id TEXT NOT NULL REFERENCES document_providers(id) ON DELETE CASCADE,
+          field_key TEXT NOT NULL,
+          label TEXT NOT NULL,
+          input_type TEXT NOT NULL DEFAULT 'text',
+          placeholder TEXT,
+          hint TEXT,
+          required INTEGER DEFAULT 0,
+          secret INTEGER DEFAULT 0,
+          sort_order INTEGER DEFAULT 0,
+          UNIQUE(provider_id, field_key)
+        );
+      `);
+      seedDocumentProviders(db);
+    },
+
+    /*
+     * Document providers, part 2 of 3: the connection, and the trip binding.
+     *
+     * The connection carries a `trip_id`, and that is the one place this design
+     * departs from every integration already in the repo. Immich, Synology
+     * Photos, AirTrail and Dawarich all hang off a user, and even
+     * `trip_album_links` carries a `user_id`; photos become visible to the rest
+     * of a trip only through an opt-in `shared` flag. None of that can satisfy
+     * "everyone on the trip sees the same documents": it would make a
+     * document's visibility depend on whose credentials fetched it. So the trip
+     * admin binds the trip once, the server talks to the provider under that
+     * single identity, and TREK's own membership decides who sees what.
+     *
+     * `owner_user_id` stays separate from `trip_id` so the credential holder is
+     * always explicit: when that person leaves the trip the binding goes to
+     * `orphaned` rather than silently continuing to use an ex-member's token.
+     *
+     * Secrets live in one encrypted JSON blob instead of per-provider columns:
+     * a sixth provider then needs no migration, and the key rotation in
+     * scripts/migrate-encryption.ts stays one line instead of a field list that
+     * someone will forget, and a forgotten column does not survive a rotation.
+     */
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS document_connections (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+          provider_id TEXT NOT NULL REFERENCES document_providers(id) ON DELETE CASCADE,
+          owner_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          base_url TEXT NOT NULL,
+          secrets TEXT,
+          settings TEXT NOT NULL DEFAULT '{}',
+          allow_insecure_tls INTEGER NOT NULL DEFAULT 0,
+          capabilities TEXT,
+          last_probe_at TEXT,
+          last_probe_state TEXT NOT NULL DEFAULT 'never',
+          last_probe_error TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(trip_id, provider_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_document_connections_trip ON document_connections(trip_id);
+        CREATE INDEX IF NOT EXISTS idx_document_connections_owner ON document_connections(owner_user_id);
+
+        CREATE TABLE IF NOT EXISTS trip_document_links (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+          connection_id INTEGER NOT NULL REFERENCES document_connections(id) ON DELETE CASCADE,
+          provider_id TEXT NOT NULL,
+          remote_scope_key TEXT NOT NULL,
+          remote_root_id TEXT,
+          remote_root_path TEXT,
+          remote_label TEXT NOT NULL DEFAULT '',
+          direction TEXT NOT NULL DEFAULT 'both',
+          delete_policy TEXT NOT NULL DEFAULT 'unlink',
+          conflict_policy TEXT NOT NULL DEFAULT 'manual',
+          sync_enabled INTEGER NOT NULL DEFAULT 1,
+          webhook_token TEXT,
+          webhook_secret TEXT,
+          webhook_subscription_id TEXT,
+          remote_cursor TEXT,
+          last_sync_at TEXT,
+          last_sync_state TEXT NOT NULL DEFAULT 'never',
+          last_sync_error TEXT,
+          failure_count INTEGER NOT NULL DEFAULT 0,
+          next_attempt_at TEXT,
+          created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(trip_id, connection_id, remote_scope_key)
+        );
+        CREATE INDEX IF NOT EXISTS idx_trip_document_links_trip ON trip_document_links(trip_id);
+        CREATE INDEX IF NOT EXISTS idx_trip_document_links_due ON trip_document_links(sync_enabled, next_attempt_at);
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_trip_document_links_token
+          ON trip_document_links(webhook_token) WHERE webhook_token IS NOT NULL;
+      `);
+    },
+
+    /*
+     * Document providers, part 3 of 3: the pairing and its sync state.
+     *
+     * `content_sha256` and `pushed_sha256` are two columns on purpose. The
+     * first is the bytes both sides last agreed on, the second is what TREK
+     * itself last uploaded. Collapsing them into one is precisely the mistake
+     * that builds an echo loop: a webhook fires for TREK's own write, the core
+     * cannot tell it from a stranger's edit, and the file bounces.
+     *
+     * `remote_missing_at` records that something vanished upstream instead of
+     * acting on it, the rule Dawarich already follows with `source_missing_at`.
+     * An unmounted share answers with an empty listing, and reading that as
+     * "everything was deleted" would empty a trip.
+     *
+     * `file_id ON DELETE SET NULL` keeps a tombstone behind after a document is
+     * permanently deleted in TREK, so the next run does not cheerfully download
+     * it again.
+     */
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS document_sync_items (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          link_id INTEGER NOT NULL REFERENCES trip_document_links(id) ON DELETE CASCADE,
+          trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+          file_id INTEGER REFERENCES trip_files(id) ON DELETE SET NULL,
+          trek_doc_uid TEXT NOT NULL,
+          remote_id TEXT,
+          remote_name TEXT,
+          remote_version TEXT,
+          remote_size INTEGER,
+          remote_modified_at TEXT,
+          content_sha256 TEXT,
+          pushed_sha256 TEXT,
+          state TEXT NOT NULL DEFAULT 'pending',
+          error_code TEXT,
+          attempts INTEGER NOT NULL DEFAULT 0,
+          next_attempt_at TEXT,
+          remote_missing_at TEXT,
+          first_seen_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          last_seen_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          synced_at TEXT
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_document_sync_items_remote
+          ON document_sync_items(link_id, remote_id) WHERE remote_id IS NOT NULL;
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_document_sync_items_file
+          ON document_sync_items(link_id, file_id) WHERE file_id IS NOT NULL;
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_document_sync_items_uid
+          ON document_sync_items(link_id, trek_doc_uid);
+        CREATE INDEX IF NOT EXISTS idx_document_sync_items_trip_state ON document_sync_items(trip_id, state);
+        CREATE INDEX IF NOT EXISTS idx_document_sync_items_hash ON document_sync_items(link_id, content_sha256);
+        CREATE INDEX IF NOT EXISTS idx_document_sync_items_due ON document_sync_items(link_id, next_attempt_at);
+      `);
+    },
+
+    /*
+     * Document providers: when TREK itself put a provider copy in the bin.
+     *
+     * A file deleted in TREK under the `trash` policy takes its provider copy
+     * with it. Taken back out of TREK's trash, it has to go up again; a copy
+     * somebody else deleted in the meantime must not. Both leave the same gap
+     * in a listing, so the difference is written down when TREK acts rather
+     * than guessed at later.
+     *
+     * No backfill from the binding's current policy: that policy may not be
+     * the one the deletion ran under, and reading it back is the retroactive
+     * mistake this column exists to avoid. A row left NULL is treated like a
+     * copy somebody else deleted, which flags it instead of uploading it.
+     */
+    () => {
+      const hasColumn = db
+        .prepare("SELECT 1 FROM pragma_table_info('document_sync_items') WHERE name = 'remote_trashed_at'")
+        .get();
+      if (!hasColumn) db.exec('ALTER TABLE document_sync_items ADD COLUMN remote_trashed_at TEXT');
     },
   ];
 

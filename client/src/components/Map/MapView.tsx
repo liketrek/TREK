@@ -195,7 +195,7 @@ function createPlaceIcon(place, orderNumbers, isSelected) {
           box-shadow:${shadow};
           overflow:hidden;background:${bgColor};
         ">
-          <img src="${escapeHtml(place.image_url)}" width="${size}" height="${size}" style="display:block;border-radius:50%;object-fit:cover;" />
+          ${markerPhotoHtml(place.image_url)}
         </div>
         ${badgeHtml}
       </div>`,
@@ -543,7 +543,7 @@ function MapContextMenuHandler({ onContextMenu }: { onContextMenu: ((e: L.Leafle
 
 // Module-level photo cache shared with PlaceAvatar
 import { getCached, isLoading, fetchPhoto, onThumbReady, getAllThumbs } from '../../services/photoService'
-import { isCustomPlaceImage, photoCacheKey } from './placePhoto'
+import { isCustomPlaceImage, markerPhotoHtml, photoCacheKey, photoSourcesKey } from './placePhoto'
 import { useAuthStore } from '../../store/authStore'
 import { useGeolocation } from '../../hooks/useGeolocation'
 import LocationButton from './LocationButton'
@@ -838,7 +838,7 @@ export const MapView = memo(function MapView({
   const pendingThumbsRef = useRef<Record<string, string>>({})
   const thumbRafRef = useRef<number | null>(null)
 
-  const placeIds = useMemo(() => places.map(p => p.id).join(','), [places])
+  const photoSources = useMemo(() => photoSourcesKey(places), [places])
   // Flattened [lat,lng] points of the selected day's route, so the bounds fit can
   // include the full polyline once it has been computed.
   const routeCoords = useMemo<[number, number][]>(() => (route || []).flat() as [number, number][], [route])
@@ -895,7 +895,7 @@ export const MapView = memo(function MapView({
         thumbRafRef.current = null
       }
     }
-  }, [placeIds, placesPhotosEnabled])
+  }, [photoSources, placesPhotosEnabled])
 
   const isTouchDevice = typeof window !== 'undefined' && navigator.maxTouchPoints > 0
   // Drag a marker onto a day (#891). Pointer-driven, so it is off wherever

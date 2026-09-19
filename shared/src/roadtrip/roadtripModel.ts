@@ -1,4 +1,4 @@
-import type { RouteAvoidClass } from './planning-types';
+import type { RoadtripStop, RouteAvoidClass } from './planning-types';
 
 export const SERVICE_STOP_TYPES = [
   'fuel',
@@ -73,6 +73,14 @@ export function formatClock(minutes: number): string {
 }
 
 export interface ScheduleStop {
+  /**
+   * Minute this stop is left at. A time of day is put on a day against the arrival (see
+   * `leaveAfter`); past 1440 it is counted from the start of the day the stop is reached
+   * on and reaches into the days after.
+   *
+   * The stay then lasts until then instead of for `dwellMinutes`, and the chain carries
+   * on from it.
+   */
   departureAt?: number;
   /** A time somebody fixed this stop to. The chain restarts from it, and arriving
    *  after it is being late. */
@@ -90,7 +98,8 @@ export interface ScheduleStop {
 
 export interface ScheduleWarning {
   index: number;
-  code: 'late' | 'overnight' | 'leg' | 'range';
+  /** `missedLeave` is a stop reached after the time it was set to be left at. */
+  code: 'late' | 'overnight' | 'leg' | 'range' | 'missedLeave';
 
   minutes?: number;
 
@@ -173,6 +182,63 @@ function resolveArrival(
 }
 
 /**
+ * When a stop that is left at a set time is left, reached at `arrival`.
+ *
+ * Getting there after the time is not a reason to wait for the same time tomorrow: the
+ * traveller is late for a departure they chose themselves, so the drive leaves on arrival
+ * and `missedBy` says how late. The question is only which passing of the clock counts.
+ *
+ * The one the clock last showed before the arrival counts when the drive went past it on
+ * the road, which is what `setOut` (when the drive towards the stop left the one before,
+ * counted like the arrival) is for: a 23:30 reached at 00:30 is missed, midnight or not.
+ * It also counts when it went by earlier the same day and less than half a day ago, like
+ * a stop meant to be left at two and reached at half past.
+ *
+ * Anything else is the next one. Ten in the morning after a night drive is that
+ * morning's, one at night after an evening arrival is that night's, and a stop reached
+ * at nine with an End of half past nine in the evening is stood at all day.
+ */
+export function leaveAfter(
+  arrival: number,
+  departureAt: number,
+  setOut: number | null = null,
+): { departure: number; missedBy: number | null } {
+  // A departure a day or more out is on its day already, counted from the start of the one
+  // the stop is reached on. Only a time of day has to be put on one.
+  if (departureAt >= DAY_MINUTES) {
+    return { departure: departureAt + Math.floor(arrival / DAY_MINUTES) * DAY_MINUTES, missedBy: null };
+  }
+  const before = departureAt + Math.floor((arrival - departureAt) / DAY_MINUTES) * DAY_MINUTES;
+  const late = arrival - before;
+  // The minute a rounded drive can add is not being late.
+  if (late <= 1) return { departure: arrival, missedBy: null };
+  const drivenPast = setOut !== null && before >= setOut;
+  const earlierToday =
+    Math.floor(before / DAY_MINUTES) === Math.floor(arrival / DAY_MINUTES) && late <= DAY_MINUTES / 2;
+  if (drivenPast || earlierToday) return { departure: arrival, missedBy: Math.round(late) };
+  return { departure: before + DAY_MINUTES, missedBy: null };
+}
+
+/**
+ * The part of a road trip stop the schedule reads.
+ *
+ * A visit's end time is when the drive leaves it. It is the traveller's own statement
+ * about this visit, unlike the check-out that used to feed `departureAt` (the LATEST a
+ * room has to be handed back, which is why #2357 took it out of the drive).
+ */
+export function scheduleStopOf(
+  stop: Pick<RoadtripStop, 'time' | 'checkInTime' | 'dwellMinutes' | 'leaveAt'>,
+): ScheduleStop {
+  const leave = parseClock(stop.leaveAt);
+  return {
+    anchor: stop.time ?? null,
+    earliest: stop.checkInTime ?? null,
+    dwellMinutes: stop.dwellMinutes,
+    ...(leave === null ? {} : { departureAt: leave }),
+  };
+}
+
+/**
  * @param opts.notBefore Minute of this day the first stop cannot be reached before,
  * because the day before is still running into it: a stop stood at past midnight ends
  * where it ends, and nothing can happen ahead of that. Behaves like the arrival of an
@@ -187,9 +253,15 @@ export function computeSchedule(
   const warnings: ScheduleWarning[] = [];
 
   const arrivals: (number | null)[] = new Array(stops.length).fill(null);
+  // Counted the same way as the arrivals. Set with every arrival, and on its own for a
+  // stop whose leave time is known before anything says when it is reached.
+  const departures: (number | null)[] = new Array(stops.length).fill(null);
   const anchored: boolean[] = new Array(stops.length).fill(false);
 
   let cursor: number | null = opts.notBefore ?? null;
+  // When the drive the cursor stands for left the stop before, which is what tells a leave
+  // time passed on the road from one still ahead.
+  let setOut: number | null = null;
   let dayOffset = 0;
 
   for (let i = 0; i < stops.length; i++) {
@@ -215,7 +287,14 @@ export function computeSchedule(
 
     if (arrival === null) {
       const leg = legSeconds[i];
-      if (stop.departureAt !== undefined && leg !== undefined) cursor = stop.departureAt + Math.round(leg / 60);
+      if (stop.departureAt !== undefined) {
+        const departure = stop.departureAt + dayOffset * DAY_MINUTES;
+        departures[i]! = departure;
+        if (leg !== undefined) {
+          cursor = departure + Math.round(leg / 60);
+          setOut = departure;
+        }
+      }
       continue;
     }
 
@@ -227,21 +306,39 @@ export function computeSchedule(
     // drive actually had to wait for it.
     anchored[i]! = anchor !== null || held;
 
+    let departure = arrival + (stop.dwellMinutes ?? 0);
+    if (stop.departureAt !== undefined) {
+      const left = leaveAfter(arrival, stop.departureAt, setOut);
+      departure = left.departure;
+      if (left.missedBy !== null) warnings.push({ index: i, code: 'missedLeave', minutes: left.missedBy });
+    }
+    departures[i]! = departure;
+
     const leg = legSeconds[i];
-    cursor =
-      leg === undefined
-        ? null
-        : (stop.departureAt === undefined ? arrival + (stop.dwellMinutes ?? 0) : Math.max(arrival, stop.departureAt)) +
-          Math.round(leg / 60);
+    cursor = leg === undefined ? null : departure + Math.round(leg / 60);
+    setOut = leg === undefined ? null : departure;
   }
 
-  const firstKnown = arrivals.findIndex((a) => a !== null);
-  for (let i = firstKnown - 1; i >= 0; i--) {
-    if (stops[i]!.departureAt !== undefined) break;
+  // Before the first time anything fixes, the chain runs backwards: every stop is reached
+  // early enough to stay its length and still make the next one. A stop left at a set time
+  // is reached its stay before that time, the way a pinned arrival is left a stay after.
+  // The first stop of the day is not reached before the day began, though: a hotel left at
+  // eight after a twelve hour stay is where the day starts, not a stop reached the evening
+  // before, and reading it that way moved everything after it onto tomorrow's card.
+  const firstKnown = stops.findIndex((_, i) => arrivals[i] !== null || departures[i] !== null);
+  for (let i = firstKnown; i >= 0; i--) {
+    if (arrivals[i] !== null) continue;
+    const dwell = stops[i]!.dwellMinutes ?? 0;
+    const fixed = departures[i]!;
+    if (fixed !== null) {
+      arrivals[i]! = i === 0 ? Math.max(0, fixed - dwell) : fixed - dwell;
+      continue;
+    }
     const leg = legSeconds[i];
-    const next = arrivals[i + 1]!;
+    const next = arrivals[i + 1] ?? null;
     if (leg === undefined || next === null) break;
-    arrivals[i]! = next - Math.round(leg / 60) - (stops[i]!.dwellMinutes ?? 0);
+    arrivals[i]! = next - Math.round(leg / 60) - dwell;
+    departures[i]! = next - Math.round(leg / 60);
   }
 
   const earliest = arrivals.reduce<number | null>((m, a) => (a === null ? m : m === null || a < m ? a : m), null);
@@ -251,10 +348,11 @@ export function computeSchedule(
   let lastOffset = 0;
   for (let i = 0; i < stops.length; i++) {
     const raw = arrivals[i]!;
+    const left = departures[i]!;
     if (raw === null) {
       entries.push({
         arrival: null,
-        departure: stops[i]!.departureAt === undefined ? null : formatClock(stops[i]!.departureAt!),
+        departure: left === null ? null : formatClock(left + shift),
         anchored: false,
         dayOffset: 0,
       });
@@ -267,11 +365,7 @@ export function computeSchedule(
     lastOffset = offset;
     entries.push({
       arrival: formatClock(arrival),
-      departure: formatClock(
-        stops[i]!.departureAt === undefined
-          ? arrival + (stops[i]!.dwellMinutes ?? 0)
-          : Math.max(arrival, stops[i]!.departureAt! + shift),
-      ),
+      departure: formatClock(left! + shift),
       anchored: anchored[i]!,
       dayOffset: offset,
     });
@@ -284,11 +378,7 @@ export function computeSchedule(
   for (let i = stops.length - 1; i >= 0; i--) {
     const raw = arrivals[i];
     if (raw === null || raw === undefined) continue;
-    const arrival = raw + shift;
-    endsAt =
-      stops[i]!.departureAt === undefined
-        ? arrival + (stops[i]!.dwellMinutes ?? 0)
-        : Math.max(arrival, stops[i]!.departureAt! + shift);
+    endsAt = departures[i]! + shift;
     break;
   }
 

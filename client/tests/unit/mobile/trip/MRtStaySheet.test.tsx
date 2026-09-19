@@ -2,12 +2,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import MRtStaySheet from '../../../../src/mobile/screens/trip/roadtrip/MRtStaySheet'
 import type { MTripShellApi, TripPlanner } from '../../../../src/mobile/screens/trip/MTripShell'
 import { useSettingsStore } from '../../../../src/store/settingsStore'
+import { useAuthStore } from '../../../../src/store/authStore'
+import { usePermissionsStore } from '../../../../src/store/permissionsStore'
+import { useTripStore } from '../../../../src/store/tripStore'
 import type { RoadtripDay } from '@trek/shared/roadtrip'
 import { buildPlanner, buildShell } from '../../../helpers/mobileTrip'
 import { resetAllStores, seedStore } from '../../../helpers/store'
 import { fireEvent, render, screen, waitFor } from '../../../helpers/render'
 
-// FE-MOB-RTSTAY-001 to FE-MOB-RTSTAY-018
+// FE-MOB-RTSTAY-001 to FE-MOB-RTSTAY-025
 //
 // The sheet renders inside the real TranslationProvider, so the copy is asserted
 // in English.
@@ -228,5 +231,94 @@ describe('MRtStaySheet', () => {
     renderSheet({}, { sheet: { id: 'rtstay', payload: { placeId: 909, minutes: 30, name: 'Elsewhere' } } })
     expect(screen.getByRole('dialog', { name: 'Add a stay' })).toBeInTheDocument()
     expect(screen.queryByText('Arrive')).not.toBeInTheDocument()
+  })
+
+  describe('a stop left at a set time', () => {
+    // Bremen's End is 23:45, so the stay is whatever the arrival at 22:30 leaves of it,
+    // and there is nothing for the buttons to set.
+    const LEAVING = {
+      ...STAGE,
+      stops: [STAGE.stops[0], { ...STAGE.stops[1], leaveAt: '23:45' }],
+      schedule: {
+        entries: [STAGE.schedule.entries[0], { arrival: '22:30', departure: '23:45', anchored: false, dayOffset: 0 }],
+        warnings: [],
+      },
+    } as unknown as RoadtripDay
+    let setAssignmentTimes: ReturnType<typeof vi.fn>
+
+    beforeEach(() => {
+      setAssignmentTimes = vi.fn(async () => undefined)
+      seedStore(useAuthStore, { user: { id: 1, role: 'user' } })
+      seedStore(useTripStore, {
+        trip: { id: 4, user_id: 1 },
+        assignments: { '11': [{ id: 102, day_id: 11, place_id: 202, order_index: 1, assignment_time: '22:00', assignment_end_time: '23:45' }] },
+      })
+      useTripStore.setState({ setAssignmentTimes, refreshDays: vi.fn(async () => undefined) } as never)
+    })
+
+    it('FE-MOB-RTSTAY-020: says when the drive leaves and what stay that makes, with nothing to set', () => {
+      renderSheet({ roadtripRoutes: { days: [LEAVING] } })
+      // Named for what it holds, as the desktop dialog is: there is no stay to add here.
+      expect(screen.getByRole('dialog', { name: 'Time at this stop' })).toBeInTheDocument()
+      expect(screen.getByText('Time at this stop')).toBeInTheDocument()
+      expect(screen.queryByText('Add a stay')).not.toBeInTheDocument()
+      expect(screen.getByText('1 h 15 min')).toBeInTheDocument()
+      expect(screen.getByText('This visit has an end time, so the drive leaves at 23:45.')).toBeInTheDocument()
+      expect(screen.getByText('22:30')).toBeInTheDocument()
+      expect(screen.getByText('23:45')).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: '5 minutes more' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument()
+    })
+
+    it('FE-MOB-RTSTAY-021: taking the end time off keeps the Start and writes through the visit', async () => {
+      const { planner } = renderSheet({ roadtripRoutes: { days: [LEAVING] } })
+      fireEvent.click(screen.getByRole('button', { name: 'Remove end time' }))
+      await waitFor(() => expect(setAssignmentTimes).toHaveBeenCalledWith(4, 11, 102, { place_time: '22:00', end_time: null }))
+      // The ordinary sheet is back, on the stay the place carries.
+      await waitFor(() => expect(value()).toHaveTextContent('30'))
+      expect(planner.setRoadtripStay).not.toHaveBeenCalled()
+    })
+
+    it('FE-MOB-RTSTAY-022: a traveller who may not change the day is not offered the removal', () => {
+      usePermissionsStore.setState({ permissions: { day_edit: 'trip_owner' } })
+      seedStore(useTripStore, { trip: { id: 4, user_id: 2 } })
+      renderSheet({ roadtripRoutes: { days: [LEAVING] } })
+      expect(screen.getByText('1 h 15 min')).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Remove end time' })).not.toBeInTheDocument()
+    })
+
+    it('FE-MOB-RTSTAY-024: reached after the time, it says so instead of promising it', () => {
+      const late = {
+        ...LEAVING,
+        schedule: {
+          entries: [STAGE.schedule.entries[0], { arrival: '23:55', departure: '23:55', anchored: false, dayOffset: 0 }],
+          warnings: [{ index: 1, code: 'missedLeave', minutes: 10 }],
+        },
+      } as unknown as RoadtripDay
+      renderSheet({ roadtripRoutes: { days: [late] } })
+      expect(screen.getByText('Arrives 10 min after the time you set to leave')).toBeInTheDocument()
+      expect(screen.queryByText('This visit has an end time, so the drive leaves at 23:45.')).not.toBeInTheDocument()
+      expect(screen.getAllByText('23:55')).toHaveLength(2)
+    })
+
+    it('FE-MOB-RTSTAY-025: travel hours over before the time say so, with no departure beside it', () => {
+      const closed = {
+        ...LEAVING,
+        schedule: {
+          entries: [STAGE.schedule.entries[0], { arrival: '17:30', departure: '18:00', anchored: false, dayOffset: 0 }],
+          warnings: [],
+        },
+      } as unknown as RoadtripDay
+      renderSheet({ roadtripRoutes: { days: [closed] } })
+      expect(screen.getByText('The travel day ends before 23:45, so the drive goes on the next morning.')).toBeInTheDocument()
+      expect(screen.queryByText('18:00')).not.toBeInTheDocument()
+    })
+
+    it('FE-MOB-RTSTAY-023: the close in the header writes nothing', () => {
+      const { shell } = renderSheet({ roadtripRoutes: { days: [LEAVING] } })
+      fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+      expect(shell.closeSheet).toHaveBeenCalledTimes(1)
+      expect(setAssignmentTimes).not.toHaveBeenCalled()
+    })
   })
 })

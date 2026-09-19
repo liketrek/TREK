@@ -28,4 +28,35 @@ describe('continuing after a moved day group', () => {
     expect(completed.entries[2]).toEqual(original.entries[2]);
     expect(completed.entries[3]!.arrival).toBe('09:00');
   });
+  it('holds a stop with a leave time until then, and reports one it reaches too late', () => {
+    const leaving = [
+      { dwellMinutes: 0 },
+      { dwellMinutes: 60, leaveAt: '23:30' },
+      { dwellMinutes: 60, leaveAt: '00:30' },
+      { dwellMinutes: 0 },
+    ] as RoadtripStop[];
+    const completed = continueSchedule(leaving, schedule(), [3600, 3600, 3600], 2);
+    // In at 19:15 and out at 23:30, not at 20:15.
+    expect(completed.entries[1]).toMatchObject({ arrival: '19:15', departure: '23:30' });
+    // Reached on the minute it is meant to be left at: gone at once, and not late.
+    expect(completed.entries[2]).toMatchObject({ arrival: '00:30', departure: '00:30', dayOffset: 1 });
+    expect(completed.entries[3]!.arrival).toBe('01:30');
+    expect(completed.warnings).not.toContainEqual(expect.objectContaining({ code: 'missedLeave' }));
+    // Another hour on the road and it is reached an hour after it should have been left.
+    const late = continueSchedule(leaving, schedule(), [3600, 7200, 3600], 2);
+    expect(late.warnings).toContainEqual({ index: 2, code: 'missedLeave', minutes: 60 });
+  });
+  it('reports a leave time the drive went past before midnight rather than waiting for the next one', () => {
+    const leaving = [
+      { dwellMinutes: 0 },
+      { dwellMinutes: 60, leaveAt: '23:30' },
+      { dwellMinutes: 60 },
+      { dwellMinutes: 0 },
+    ] as RoadtripStop[];
+    // Out of Munich at 18:15, six and a quarter hours to go: in at half past midnight.
+    const completed = continueSchedule(leaving, schedule(), [375 * 60, 3600, 3600], 2);
+    expect(completed.entries[1]).toMatchObject({ arrival: '00:30', departure: '00:30', dayOffset: 1 });
+    expect(completed.entries[2]!.arrival).toBe('01:30');
+    expect(completed.warnings).toContainEqual({ index: 1, code: 'missedLeave', minutes: 60 });
+  });
 });

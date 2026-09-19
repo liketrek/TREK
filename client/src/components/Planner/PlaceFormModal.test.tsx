@@ -585,6 +585,20 @@ describe('PlaceFormModal', () => {
     expect(screen.getByDisplayValue('20:34')).toBeInTheDocument();
   });
 
+  it('FE-PLANNER-PLACEFORM-086: on a road trip the End says the drive leaves at it', () => {
+    const place = buildPlace({ name: 'Test', place_time: '09:00', end_time: '14:00' });
+    const assignment = buildAssignment({ id: 10, day_id: 5, place });
+    render(<PlaceFormModal {...defaultProps} place={place} assignmentId={10} dayAssignments={[assignment]} roadtripActive />);
+    expect(screen.getByText('On the road trip, the drive leaves at this time.')).toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-PLACEFORM-087: in Days the End stays a plain label', () => {
+    const place = buildPlace({ name: 'Test', place_time: '09:00', end_time: '14:00' });
+    const assignment = buildAssignment({ id: 10, day_id: 5, place });
+    render(<PlaceFormModal {...defaultProps} place={place} assignmentId={10} dayAssignments={[assignment]} />);
+    expect(screen.queryByText('On the road trip, the drive leaves at this time.')).not.toBeInTheDocument();
+  });
+
   it('FE-PLANNER-PLACEFORM-027: end-before-start error disables submit', () => {
     // Build an assignment whose place has end_time before place_time
     const place = buildPlace({ name: 'Test', place_time: '14:00', end_time: '13:00' });

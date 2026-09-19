@@ -180,39 +180,45 @@ export default function CollectionPlaceDetail({
       <div className="col-detail-cover" style={banner ? undefined : { backgroundImage: entityGradient(place.id) }}>
         {banner && <img src={banner} alt="" />}
         <div className="col-detail-cover-scrim" />
-        {place.category?.name && (
-          <span className="col-detail-cover-cat" style={{ ['--cat' as string]: place.category.color || '#6366f1' }}>
-            <CatIcon size={12} /> {place.category.name}
-          </span>
-        )}
-        <button type="button" className="col-detail-close" onClick={onClose} aria-label={t('common.close')}><X size={16} /></button>
-        {canEdit && onUploadImage && (
-          <div style={{ position: 'absolute', top: 10, left: 10, display: 'flex', gap: 6, zIndex: 2 }}>
-            <Tooltip label={place.image_url ? t('places.changeImage') : t('places.uploadImage')} placement="bottom">
-              <button
-                type="button"
-                onClick={() => { if (!imgBusy) coverInputRef.current?.click() }}
-                aria-label={place.image_url ? t('places.changeImage') : t('places.uploadImage')}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 8, border: 'none', cursor: imgBusy ? 'default' : 'pointer', background: 'rgba(0,0,0,0.55)', color: '#fff', backdropFilter: 'blur(4px)' }}
-              >
-                {imgBusy ? <Loader2 size={15} className="animate-spin" /> : <Camera size={15} />}
-              </button>
-            </Tooltip>
-            {place.image_url && !imgBusy && (
-              <Tooltip label={t('places.removeImage')} placement="bottom">
-                <button
-                  type="button"
-                  onClick={handleImageRemove}
-                  aria-label={t('places.removeImage')}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 8, border: 'none', cursor: 'pointer', background: 'rgba(0,0,0,0.55)', color: '#fff', backdropFilter: 'blur(4px)' }}
-                >
-                  <Trash2 size={15} />
-                </button>
-              </Tooltip>
+        {/* Chip and cover controls share the top bar. The controls keep the end and
+            never shrink, so a long category name ellipsizes instead of sliding under
+            them, however many buttons there are and whatever size phones give them. */}
+        <div className="absolute left-[14px] right-[12px] top-[12px] z-[2] flex items-center gap-[8px]">
+          {place.category?.name && (
+            <span className="col-detail-cover-cat min-w-0" style={{ ['--cat' as string]: place.category.color || '#6366f1' }}>
+              <CatIcon size={12} className="flex-none" />
+              <span className="truncate">{place.category.name}</span>
+            </span>
+          )}
+          {/* The cover controls wear the close button's class, so they get its look,
+              hover and phone size. */}
+          <div className="ms-auto flex flex-none gap-[6px]">
+            {canEdit && onUploadImage && (
+              <>
+                <input ref={coverInputRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp,.heic,.heif" style={{ display: 'none' }} onChange={handleCoverPick} />
+                {place.image_url && !imgBusy && (
+                  <Tooltip label={t('places.removeImage')} placement="bottom">
+                    <button type="button" className="col-detail-close" onClick={handleImageRemove} aria-label={t('places.removeImage')}>
+                      <Trash2 size={16} />
+                    </button>
+                  </Tooltip>
+                )}
+                <Tooltip label={place.image_url ? t('places.changeImage') : t('places.uploadImage')} placement="bottom">
+                  <button
+                    type="button"
+                    className="col-detail-close"
+                    style={imgBusy ? { cursor: 'default' } : undefined}
+                    onClick={() => { if (!imgBusy) coverInputRef.current?.click() }}
+                    aria-label={place.image_url ? t('places.changeImage') : t('places.uploadImage')}
+                  >
+                    {imgBusy ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
+                  </button>
+                </Tooltip>
+              </>
             )}
-            <input ref={coverInputRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp,.heic,.heif" style={{ display: 'none' }} onChange={handleCoverPick} />
+            <button type="button" className="col-detail-close" onClick={onClose} aria-label={t('common.close')}><X size={16} /></button>
           </div>
-        )}
+        </div>
         <div className="col-detail-head">
           {editing
             ? <input value={name} onChange={e => setName(e.target.value)} className="col-detail-name-input" autoFocus aria-label={t('collections.listName')} />

@@ -23,9 +23,10 @@ function linkHost(url: string): string {
 
 // Hero chrome sits on a photo/gradient — fixed white/black scrims in both themes.
 const HERO_CAT_CHIP =
-  'relative inline-flex items-center gap-1 rounded-full bg-[rgba(255,255,255,.9)] px-[10px] py-[3px] font-geist text-[0.59375rem] font-extrabold text-[#101013]' // theme-lint-disable
-const HERO_CLOSE =
-  'absolute right-[14px] top-[14px] z-[1] flex h-8 w-8 items-center justify-center rounded-full bg-[rgba(0,0,0,.28)] text-white' // theme-lint-disable
+  'inline-flex min-w-0 items-center gap-1 rounded-full bg-[rgba(255,255,255,.9)] px-[10px] py-[3px] font-geist text-[0.59375rem] font-extrabold text-[#101013]' // theme-lint-disable
+// Close and the cover controls beside it.
+const HERO_BTN =
+  'flex h-8 w-8 items-center justify-center rounded-full bg-[rgba(0,0,0,.28)] text-white' // theme-lint-disable
 
 interface MCollPlaceSheetProps {
   place: CollectionPlace | null
@@ -158,7 +159,7 @@ export default function MCollPlaceSheet({
         <>
           {/* Hero: auto cover (photo when available, the design gradient otherwise) */}
           <div
-            className="relative flex-none px-[18px] py-4"
+            className="relative flex-none px-[18px] pb-4 pt-[14px]"
             style={cover ? undefined : { background: 'linear-gradient(120deg,#2FA9A0,#3B8C7E)' }}
           >
             {cover && (
@@ -167,43 +168,42 @@ export default function MCollPlaceSheet({
                 <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,.18),rgba(0,0,0,.44))]" />
               </>
             )}
-            {held.category?.name && (
-              <span className={HERO_CAT_CHIP}>
-                <MapPin size={9} strokeWidth={2.6} /> {held.category.name}
-              </span>
-            )}
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label={t('common.close')}
-              className={HERO_CLOSE}
-            >
-              <X size={15} strokeWidth={2.2} />
-            </button>
-            {canEdit && onUploadImage && (
-              <div className="absolute left-[14px] top-[14px] z-[1] flex gap-[6px]">
-                <button
-                  type="button"
-                  onClick={() => { if (!imgBusy) imageInputRef.current?.click() }}
-                  aria-label={held.image_url ? t('places.changeImage') : t('places.uploadImage')}
-                  className="flex h-8 w-8 items-center justify-center rounded-full bg-[rgba(0,0,0,.4)] text-white" // theme-lint-disable
-                >
-                  {imgBusy ? <Loader2 size={14} className="animate-spin" /> : <Camera size={14} />}
-                </button>
-                {held.image_url && !imgBusy && (
-                  <button
-                    type="button"
-                    onClick={handleImageRemove}
-                    aria-label={t('places.removeImage')}
-                    className="flex h-8 w-8 items-center justify-center rounded-full bg-[rgba(0,0,0,.4)] text-white" // theme-lint-disable
-                  >
-                    <Trash2 size={14} />
-                  </button>
+            {/* Chip and cover controls share the top row, in flow: the name always
+                starts below the buttons, chip or not, and a long category name
+                ellipsizes against them instead of running underneath. */}
+            <div className="relative flex items-center gap-2">
+              {held.category?.name && (
+                <span className={HERO_CAT_CHIP}>
+                  <MapPin size={9} strokeWidth={2.6} className="flex-none" />
+                  <span className="truncate">{held.category.name}</span>
+                </span>
+              )}
+              {/* -me-1 keeps the buttons 14px off the edge, where close has always sat. */}
+              <div className="-me-1 ms-auto flex flex-none gap-[6px]">
+                {canEdit && onUploadImage && (
+                  <>
+                    <input ref={imageInputRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp,.heic,.heif" className="hidden" onChange={handleImagePick} />
+                    {held.image_url && !imgBusy && (
+                      <button type="button" onClick={handleImageRemove} aria-label={t('places.removeImage')} className={HERO_BTN}>
+                        <Trash2 size={15} strokeWidth={2.2} />
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => { if (!imgBusy) imageInputRef.current?.click() }}
+                      aria-label={held.image_url ? t('places.changeImage') : t('places.uploadImage')}
+                      className={HERO_BTN}
+                    >
+                      {imgBusy ? <Loader2 size={15} strokeWidth={2.2} className="animate-spin" /> : <Camera size={15} strokeWidth={2.2} />}
+                    </button>
+                  </>
                 )}
-                <input ref={imageInputRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp,.heic,.heif" className="hidden" onChange={handleImagePick} />
+                <button type="button" onClick={onClose} aria-label={t('common.close')} className={HERO_BTN}>
+                  <X size={15} strokeWidth={2.2} />
+                </button>
               </div>
-            )}
-            <div className="relative mt-[10px] text-[1.3125rem] font-extrabold text-white">{held.name}</div>
+            </div>
+            <div className="relative mt-1 text-[1.3125rem] font-extrabold text-white">{held.name}</div>
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[18px] pt-[14px]">

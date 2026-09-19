@@ -1,10 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { act, fireEvent, render, screen, within } from '../../../helpers/render'
+import { http, HttpResponse } from 'msw'
+import { act, fireEvent, render, screen, waitFor, within } from '../../../helpers/render'
 import { buildPlanner, buildShell } from '../../../helpers/mobileTrip'
+import { server } from '../../../helpers/msw/server'
+import { seedStore } from '../../../helpers/store'
+import { buildUser } from '../../../helpers/factories'
+import { useAuthStore } from '../../../../src/store/authStore'
+import { useDocSyncOfferStore } from '../../../../src/store/docSyncOfferStore'
 import type { MTripShellApi, TripPlanner } from '../../../../src/mobile/screens/trip/MTripShell'
 import type { Day, PackingItem, TodoItem } from '../../../../src/types'
 
-// FE-MOB-SHELL-001 to FE-MOB-SHELL-066
+// FE-MOB-SHELL-001 to FE-MOB-SHELL-068
 
 const mocks = vi.hoisted(() => ({ planner: {} as TripPlanner }))
 
@@ -120,6 +126,13 @@ const spy = (planner: TripPlanner, name: keyof TripPlanner) =>
 describe('MTripShell', () => {
   beforeEach(() => {
     sessionStorage.clear()
+    // Document sync as a fresh install has it: every provider off, nothing bound.
+    useDocSyncOfferStore.setState({ bound: {}, providers: null })
+    seedStore(useAuthStore, { user: null, isAuthenticated: false })
+    server.use(
+      http.get('/api/trips/:tripId/docsync/providers', () => HttpResponse.json([])),
+      http.get('/api/trips/:tripId/docsync/links', () => HttpResponse.json([])),
+    )
   })
 
   it('FE-MOB-SHELL-001: shows the loading splash with the trip title while the planner loads', () => {
@@ -453,6 +466,32 @@ describe('MTripShell', () => {
     fireEvent.click(screen.getByRole('button', { name: 'common.upload' }))
     expect(shellApi.uploadFilesSignal).toBe(2)
     expect(shellApi.openFilesTrashSignal).toBe(1)
+  })
+
+  it('FE-MOB-SHELL-067: the files header leaves the sync button out while no provider is on and nothing is bound', async () => {
+    seedStore(useAuthStore, { user: buildUser({ id: 1, role: 'user' }), isAuthenticated: true })
+    const asked: string[] = []
+    server.use(
+      http.get('/api/trips/:tripId/docsync/links', () => {
+        asked.push('links')
+        return HttpResponse.json([])
+      }),
+    )
+    renderShell({ activeTab: 'dateien' } as Partial<TripPlanner>)
+
+    await waitFor(() => expect(asked).toContain('links'))
+    expect(screen.queryByRole('button', { name: 'docsync.title' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'common.upload' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'files.trash' })).toBeInTheDocument()
+  })
+
+  it('FE-MOB-SHELL-068: a bound trip shows the sync button to a member, and it raises the open signal', async () => {
+    seedStore(useAuthStore, { user: buildUser({ id: 999, role: 'user' }), isAuthenticated: true })
+    server.use(http.get('/api/trips/:tripId/docsync/links', () => HttpResponse.json([{ id: 1, providerId: 'paperless' }])))
+    renderShell({ activeTab: 'dateien' } as Partial<TripPlanner>)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'docsync.title' }))
+    expect(shellApi.openDocSyncSignal).toBe(1)
   })
 
   it('FE-MOB-SHELL-034: the lists header shows packed/open counts and persists the sub-tab', () => {

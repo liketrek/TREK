@@ -277,6 +277,86 @@ describe('spillChains', () => {
     expect(chains[1]!.spills[0]!).toMatchObject({ at: 0, count: 2, fromDayNumber: 1 });
   });
 
+  it('FE-NIGHTSPILL-018: a stop left at a set time holds the drive until then', () => {
+    const plan = [
+      day(1, 1, [
+        stop({ assignmentId: 1, name: 'Hamburg', time: '09:00', dwellMinutes: 0 }),
+        stop({ assignmentId: 2, name: 'Lueneburg', dwellMinutes: 30, leaveAt: '14:00' }),
+        stop({ assignmentId: 3, name: 'Celle' }),
+      ]),
+    ];
+
+    const chains = spillChains(plan, [], everyLeg(60));
+
+    expect(chains[0]!.schedule.entries[1]!).toMatchObject({ arrival: '10:00', departure: '14:00' });
+    expect(chains[0]!.schedule.entries[2]!.arrival).toBe('15:00');
+    expect(chains[0]!.schedule.warnings).toEqual([]);
+  });
+
+  it('FE-NIGHTSPILL-019: a missed leave time keeps its minutes when the stop moves', () => {
+    // Hamburg is left at 22:30 and the road takes three hours, so Neuruppin is reached at
+    // half past one: an hour after the half past midnight it was meant to be left at.
+    const plan = [
+      day(1, 1, [
+        stop({ assignmentId: 1, name: 'Hamburg', time: '21:00', dwellMinutes: 90 }),
+        stop({ assignmentId: 2, name: 'Neuruppin', leaveAt: '00:30' }),
+      ]),
+      day(2, 2, [stop({ assignmentId: 3, name: 'Wittenberg', time: '10:00' })]),
+    ];
+
+    const chains = spillChains(plan, [], everyLeg(180));
+
+    expect(chains[1]!.stops[0]!.name).toBe('Neuruppin');
+    expect(chains[1]!.schedule.warnings).toContainEqual({ index: 0, code: 'missedLeave', minutes: 60 });
+  });
+
+  it('FE-NIGHTSPILL-020: a leave time the night drive went past is missed, not held until the next evening', () => {
+    // Hamburg at eight, four and a half hours to Neuruppin: in at half past midnight, an
+    // hour after the half past eleven it was meant to be left at. Read on the day of the
+    // arrival it held the drive there for twenty-three hours and Potsdam fell a day behind.
+    const plan = [
+      day(1, 1, [
+        stop({ assignmentId: 1, name: 'Hamburg', time: '20:00', dwellMinutes: 0 }),
+        stop({ assignmentId: 2, name: 'Neuruppin', leaveAt: '23:30' }),
+        stop({ assignmentId: 3, name: 'Potsdam' }),
+      ]),
+      day(2, 2, [stop({ assignmentId: 4, name: 'Wittenberg', time: '10:00' })]),
+      day(3, 3, [stop({ assignmentId: 5, name: 'Leipzig', time: '10:00' })]),
+    ];
+
+    const chains = spillChains(plan, [], everyLeg(270));
+    const dayTwo = chains.find((c) => c.dayNumber === 2)!;
+
+    expect(dayTwo.stops.map((s) => s.name)).toEqual(['Neuruppin', 'Potsdam', 'Wittenberg']);
+    expect(dayTwo.schedule.entries[0]!).toMatchObject({ arrival: '00:30', departure: '00:30' });
+    expect(dayTwo.schedule.entries[1]!.arrival).toBe('05:00');
+    expect(dayTwo.schedule.warnings).toContainEqual({ index: 0, code: 'missedLeave', minutes: 60 });
+    expect(chains.find((c) => c.dayNumber === 3)!.stops.map((s) => s.name)).toEqual(['Leipzig']);
+  });
+
+  it('FE-NIGHTSPILL-021: a first stop left in the morning after a long stay keeps its day together', () => {
+    // A hotel stayed at for twelve hours and left at eight. Worked back from its stay it
+    // was reached the evening before, and the rest of the day moved onto the next card.
+    const plan = [
+      day(1, 1, [
+        stop({ assignmentId: 1, name: 'Hotel', dwellMinutes: 720, leaveAt: '08:00' }),
+        stop({ assignmentId: 2, name: 'Celle' }),
+        stop({ assignmentId: 3, name: 'Hannover' }),
+      ]),
+      day(2, 2, [stop({ assignmentId: 4, name: 'Hildesheim' }), stop({ assignmentId: 5, name: 'Goslar' })]),
+    ];
+
+    const chains = spillChains(plan, [], everyLeg(60));
+
+    expect(chains[0]!.stops.map((s) => s.name)).toEqual(['Hotel', 'Celle', 'Hannover']);
+    expect(chains[0]!.schedule.entries.map((e) => e.arrival)).toEqual(['00:00', '09:00', '10:00']);
+    expect(chains[0]!.schedule.warnings).toEqual([]);
+    // Nothing reaches into day two either: the day ended at ten in the morning.
+    expect(chains[1]!.stops.map((s) => s.name)).toEqual(['Hildesheim', 'Goslar']);
+    expect(chains[1]!.schedule.entries.map((e) => e.arrival)).toEqual([null, null]);
+    expect(chains[1]!.spills).toEqual([]);
+  });
+
   describe('a stay that runs past midnight carries the clock into the next day', () => {
     // Standing somewhere for twenty-four hours is not over when the date changes. The
     // day after used to begin at nothing, so a trip whose second day had no pinned time

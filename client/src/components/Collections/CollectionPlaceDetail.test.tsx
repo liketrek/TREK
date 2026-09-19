@@ -1,4 +1,4 @@
-// FE-COMP-COLDETAIL-001 to FE-COMP-COLDETAIL-043
+// FE-COMP-COLDETAIL-001 to FE-COMP-COLDETAIL-048
 import React from 'react';
 import { render, screen, fireEvent, waitFor, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
@@ -600,5 +600,91 @@ describe('CollectionPlaceDetail: editable address', () => {
 
     await user.click(screen.getByRole('button', { name: 'Edit' }));
     expect(screen.getByPlaceholderText('Street, City, Country')).toHaveValue('Somewhere');
+  });
+});
+
+// ── Cover controls sit beside the close button ───────────────────────────────
+
+describe('CollectionPlaceDetail: cover controls', () => {
+  it('FE-COMP-COLDETAIL-044: the camera sits in the top right row, just left of the close button', async () => {
+    renderDetail({ canEdit: true, onUploadImage: vi.fn() });
+    const camera = await screen.findByRole('button', { name: 'Upload image' });
+    const close = screen.getByRole('button', { name: 'Close' });
+
+    const row = close.parentElement as HTMLElement;
+    expect(camera.parentElement).toBe(row);
+    expect(camera.nextElementSibling).toBe(close);
+    // Same class as the close button, so the same round look, hover and phone size.
+    expect(camera).toHaveClass('col-detail-close');
+    // The category chip keeps the top left corner to itself.
+    const chip = screen.getByText('Food').closest('.col-detail-cover-cat') as HTMLElement;
+    expect(row.contains(chip)).toBe(false);
+  });
+
+  it('FE-COMP-COLDETAIL-045: with a custom cover the row reads remove, change, close and change still opens the picker', async () => {
+    const user = userEvent.setup();
+    renderDetail({ canEdit: true, onUploadImage: vi.fn(), place: { ...place, image_url: '/uploads/places/mock.jpg' } });
+    const change = await screen.findByRole('button', { name: 'Change image' });
+    const remove = screen.getByRole('button', { name: 'Remove image' });
+    const close = screen.getByRole('button', { name: 'Close' });
+
+    expect(Array.from((close.parentElement as HTMLElement).querySelectorAll('button'))).toEqual([remove, change, close]);
+    expect(remove).toHaveClass('col-detail-close');
+
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    const clicked = vi.fn();
+    input.addEventListener('click', clicked);
+    await user.click(change);
+    expect(clicked).toHaveBeenCalledTimes(1);
+  });
+
+  it('FE-COMP-COLDETAIL-046: while an upload runs the camera spins, ignores clicks and the remove control steps aside', async () => {
+    const user = userEvent.setup();
+    const onUploadImage = vi.fn(() => new Promise<void>(() => {}));
+    renderDetail({ canEdit: true, onUploadImage, place: { ...place, image_url: '/uploads/places/mock.jpg' } });
+    await screen.findByRole('button', { name: 'Change image' });
+
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [new File(['x'], 'cover.png', { type: 'image/png' })] } });
+
+    const change = screen.getByRole('button', { name: 'Change image' });
+    await waitFor(() => expect(change.querySelector('.animate-spin')).not.toBeNull());
+    expect(screen.queryByRole('button', { name: 'Remove image' })).not.toBeInTheDocument();
+    expect(change.nextElementSibling).toBe(screen.getByRole('button', { name: 'Close' }));
+
+    const clicked = vi.fn();
+    input.addEventListener('click', clicked);
+    await user.click(change);
+    expect(clicked).not.toHaveBeenCalled();
+  });
+
+  it('FE-COMP-COLDETAIL-047: a long category shares the top bar with the controls and ellipsizes instead of running under them', async () => {
+    const long = 'Restaurants, cafes and late night bars';
+    renderDetail({
+      canEdit: true,
+      onUploadImage: vi.fn(),
+      place: { ...place, image_url: '/uploads/places/mock.jpg', category: { id: 1, name: long, color: '#f00', icon: null } },
+    });
+    const controls = (await screen.findByRole('button', { name: 'Close' })).parentElement as HTMLElement;
+    const text = screen.getByText(long);
+    const chip = text.closest('.col-detail-cover-cat') as HTMLElement;
+    const bar = controls.parentElement as HTMLElement;
+
+    expect(controls.querySelectorAll('button')).toHaveLength(3);
+    // Chip first, controls last in one flex bar: the chip only gets what the buttons leave.
+    expect(Array.from(bar.children)).toEqual([chip, controls]);
+    expect(bar).toHaveClass('absolute', 'flex', 'left-[14px]', 'right-[12px]', 'top-[12px]');
+    expect(controls).toHaveClass('ms-auto', 'flex-none');
+    expect(chip).toHaveClass('min-w-0');
+    expect(text).toHaveClass('truncate');
+  });
+
+  it('FE-COMP-COLDETAIL-048: without a category the controls still hold the end of the bar', async () => {
+    renderDetail({ canEdit: true, onUploadImage: vi.fn(), place: { ...place, category: undefined } });
+    const controls = (await screen.findByRole('button', { name: 'Close' })).parentElement as HTMLElement;
+
+    expect(document.querySelector('.col-detail-cover-cat')).toBeNull();
+    expect(Array.from((controls.parentElement as HTMLElement).children)).toEqual([controls]);
+    expect(controls).toHaveClass('ms-auto');
   });
 });

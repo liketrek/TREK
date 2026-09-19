@@ -13,6 +13,7 @@ import { useTripStore } from '../../../../store/tripStore'
 import ChargingInfo from '../../../../components/Roadtrip/ChargingInfo'
 import { formatDurationShort } from '../../../../components/Roadtrip/roadtripModel'
 import { roadtripRows, stageOf, type StopRow } from '../../../../components/Roadtrip/roadtripRowModel'
+import { readStay, shownStay } from '../../../../components/Roadtrip/stayReading'
 import { STOP_KIND_BY_KEY } from '../../../../components/Roadtrip/stopKinds'
 import { getNavigationTargets, openNavigationTarget } from '../../../../components/Planner/placeNavigation'
 import { NavigationMenu } from '../../../../components/shared/NavigationMenu'
@@ -39,10 +40,11 @@ import type { RoadtripDay, ScheduleWarning } from '@trek/shared/roadtrip'
  *
  * Editing the place is the one way out of that rule, and it is a hand-over rather than a
  * control of this sheet: the pencil opens the place editor the plan tab opens, with this
- * very visit in context, and this sheet closes behind it. The time somebody fixed for a
- * stop is that editor's start time (the chain anchors on the visit's own start time), so
- * a time control here would be a second writer for one number. A booked night can also
- * be held by its check-in, which belongs to the booking and not to the place.
+ * very visit in context, and this sheet closes behind it. The times somebody fixed for a
+ * stop are that editor's Start and End (the chain arrives at the visit's own Start and
+ * leaves at its End), so a time control here would be a second writer for one number. A
+ * booked night can also be held by its check-in, which belongs to the booking and not to
+ * the place.
  */
 
 interface RtStopSheetPayload {
@@ -203,16 +205,17 @@ export default function MRtStopSheet({ planner, shell }: MTripSheetsProps) {
   // Every finding filed at this stop, not just the one the chain had room for: being late
   // and driving too far are separate answers and the sheet is where both fit.
   const warnings: ScheduleWarning[] = [
-    ...day.schedule.warnings.filter(w => w.index === index && w.code === 'late'),
+    ...day.schedule.warnings.filter(w => w.index === index && (w.code === 'late' || w.code === 'missedLeave')),
     ...day.driveWarnings.filter(w => w.index === index && (w.code === 'leg' || w.code === 'range')),
   ]
   const warningText = (w: ScheduleWarning): string => {
     if (w.code === 'late') return t('roadtrip.warn.late', { minutes: w.minutes ?? 0 })
+    if (w.code === 'missedLeave') return t('roadtrip.warn.missedLeave', { minutes: w.minutes ?? 0 })
     if (w.code === 'range') return t('roadtrip.limit.range', { distance: formatDistance(w.sinceKm ?? 0, unit) })
     return t('roadtrip.limit.legOver', { time: formatDurationShort((w.overMinutes ?? 0) * 60) })
   }
   const warningIcon = (w: ScheduleWarning): ReactNode => {
-    if (w.code === 'late') return <AlertTriangle size={15} strokeWidth={2} />
+    if (w.code === 'late' || w.code === 'missedLeave') return <AlertTriangle size={15} strokeWidth={2} />
     if (w.code === 'range') return <Fuel size={15} strokeWidth={2} />
     return <Hourglass size={15} strokeWidth={2} />
   }
@@ -226,7 +229,13 @@ export default function MRtStopSheet({ planner, shell }: MTripSheetsProps) {
     else if (navTargets.length > 1) setNavOpen(true)
   }
 
-  const stayMinutes = stop.dwellMinutes
+  // A stop left at a set time is stood at until then: the stay is what that time leaves
+  // of it, and the sheet says until when.
+  const stay = readStay(stop, entry)
+  const missed = warnings.some(w => w.code === 'missedLeave')
+  const shown = shownStay(stay)
+  const until = stay.until ? t('roadtrip.stay.until', { time: displayTime(stay.until, locale, timeFormat) }) : null
+  const stayText = [shown === null ? null : formatDurationShort(shown * 60), until].filter(Boolean).join(' ')
   const canEditPlace = planner.can('place_edit', planner.trip)
   const editStay = () => {
     // The row this sheet is on rides along, because the stay sheet comes back here when it
@@ -235,7 +244,7 @@ export default function MRtStopSheet({ planner, shell }: MTripSheetsProps) {
     // that is not on screen, which is what the day swipe reads to decide it is blocked.
     shell.openSheet('rtstay', {
       placeId: stop.placeId,
-      minutes: stayMinutes,
+      minutes: stop.dwellMinutes,
       name: stop.name,
       dayId: located.day.dayId,
       assignmentId: stop.assignmentId,
@@ -353,17 +362,27 @@ export default function MRtStopSheet({ planner, shell }: MTripSheetsProps) {
             <div className="mt-2 font-geist text-[0.65625rem] leading-snug text-m-faint">
               {entry?.anchored ? t('roadtrip.stop.pinned') : t('roadtrip.stop.computed')}
             </div>
+            {/* Only where it is true. Reached too late the stop is left on arrival, which
+                the finding below says; with the travel hours over first the drive goes on
+                in the morning, not at the time or at the Leave shown above. */}
+            {stay.until && !missed && (
+              <div className="mt-1 font-geist text-[0.65625rem] leading-snug text-m-faint">
+                {t(stay.dayEndsFirst ? 'roadtrip.stay.dayEndsFirst' : 'roadtrip.stay.leavesAt', {
+                  time: displayTime(stay.until, locale, timeFormat),
+                })}
+              </div>
+            )}
           </div>
         )}
 
         {/* ── What this stop costs, and what the drive to it went past ── */}
-        {(!!stayMinutes || !!row.offRoadMeters || warnings.length > 0) && (
+        {(!!stayText || !!row.offRoadMeters || warnings.length > 0) && (
           <div className="mt-2.5 flex flex-col gap-2">
-            {!!stayMinutes && (
+            {!!stayText && (
               <Finding
                 icon={<Hourglass size={15} strokeWidth={2} />}
                 label={t('roadtrip.stop.stayShort')}
-                value={formatDurationShort(stayMinutes * 60)}
+                value={stayText}
               />
             )}
             {!!row.offRoadMeters && (
@@ -399,7 +418,7 @@ export default function MRtStopSheet({ planner, shell }: MTripSheetsProps) {
           <ActionTile
             icon={<Clock size={16} strokeWidth={2} />}
             label={t('roadtrip.stop.stayShort')}
-            value={stayMinutes ? formatDurationShort(stayMinutes * 60) : t('roadtrip.stay.none')}
+            value={stayText || t('roadtrip.stay.none')}
             onClick={canEditPlace ? editStay : undefined}
           />
         </div>

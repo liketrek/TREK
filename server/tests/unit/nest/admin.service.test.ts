@@ -10,6 +10,7 @@
  * (it replaced ADMIN-BR-001 when the old admin bridge died with the cron move).
  */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
+import { ADDON_IDS, MCP_GATED_ADDON_IDS } from '../../../src/addons';
 
 // ── DB setup ──────────────────────────────────────────────────────────────────
 
@@ -502,9 +503,19 @@ describe('updateAddon', () => {
     // real flip of an MCP-relevant addon → invalidate
     expect((updateAddon('packing', { enabled: false }) as any).mcpAffected).toBe(true);
     expect((updateAddon('packing', { enabled: true }) as any).mcpAffected).toBe(true);
-    // real flip of an addon with no MCP surface → sessions survive
+    // real flip of an addon with no MCP surface → sessions survive. Taken from
+    // the list rather than named, because an addon that grows MCP tools joins it
+    // and would otherwise turn this assertion false without changing anything
+    // it is actually about (documents did, when document sync landed).
+    const noMcp = Object.values(ADDON_IDS).find(id => !MCP_GATED_ADDON_IDS.includes(id));
+    if (noMcp) {
+      const flip = updateAddon(noMcp, { enabled: false }) as any;
+      if (!flip.error) expect(flip.mcpAffected).toBe(false);
+    }
+
+    // and the one this change put on the list carries the opposite verdict
     const docsFlip = updateAddon('documents', { enabled: false }) as any;
-    if (!docsFlip.error) expect(docsFlip.mcpAffected).toBe(false);
+    if (!docsFlip.error) expect(docsFlip.mcpAffected).toBe(true);
   });
 
   it('ADMIN-SVC-087 — refuses to enable a photo provider while journey is off', () => {

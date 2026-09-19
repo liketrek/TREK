@@ -1,4 +1,4 @@
-// FE-MOB-AADD-001 to FE-MOB-AADD-025
+// FE-MOB-AADD-001 to FE-MOB-AADD-031
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { delay, http, HttpResponse } from 'msw';
@@ -354,6 +354,104 @@ describe('MAdminAddonManager', () => {
     await screen.findByText('Addon updated');
     expect(loads).toBe(1);
     expect(screen.getByRole('switch', { name: 'Todo List' })).toHaveAttribute('aria-checked', 'true');
+  });
+
+  describe('document providers', () => {
+    const documents = (enabled = true) =>
+      buildAddon({ id: 'documents', name: 'Documents', description: 'Store and manage travel documents', icon: 'FileText', enabled });
+    const docProvider = (id: string, name: string, enabled: boolean) =>
+      buildAddon({ id, name, description: `${name} archive`, icon: id, type: 'document_provider', enabled });
+
+    it('FE-MOB-AADD-028: they render as sub-rows under the Documents addon, not as addons of their own', async () => {
+      server.use(
+        addonsRoute([
+          documents(),
+          docProvider('paperless', 'Paperless-ngx', false),
+          docProvider('nextcloud', 'Nextcloud', true),
+        ]),
+      );
+      render(<MAdminAddonManager />);
+
+      await screen.findByText('Paperless-ngx');
+      expect(screen.getByText('Nextcloud archive')).toBeInTheDocument();
+      expect(screen.getByRole('switch', { name: 'Paperless-ngx' })).toHaveAttribute('aria-checked', 'false');
+      expect(screen.getByRole('switch', { name: 'Nextcloud' })).toHaveAttribute('aria-checked', 'true');
+      // Documents plus two providers, and neither provider carries a type badge of its own.
+      expect(screen.getAllByRole('switch')).toHaveLength(3);
+      expect(screen.getAllByText('Trip')).toHaveLength(1);
+    });
+
+    it('FE-MOB-AADD-029: the shelf stays hidden while Documents is off', async () => {
+      server.use(addonsRoute([documents(false), docProvider('paperless', 'Paperless-ngx', false)]));
+      render(<MAdminAddonManager />);
+
+      await screen.findByText('Documents');
+      expect(screen.queryByText('Paperless-ngx')).not.toBeInTheDocument();
+      expect(screen.getAllByRole('switch')).toHaveLength(1);
+    });
+
+    it('FE-MOB-AADD-030: toggling one persists it and rolls back on failure', async () => {
+      const user = userEvent.setup();
+      let body: unknown = null;
+      server.use(
+        addonsRoute([
+          documents(),
+          docProvider('paperless', 'Paperless-ngx', false),
+          docProvider('papra', 'Papra', false),
+        ]),
+        http.put('/api/admin/addons/paperless', async ({ request }) => {
+          body = await request.json();
+          return HttpResponse.json({ success: true });
+        }),
+        http.put('/api/admin/addons/papra', () => HttpResponse.error()),
+      );
+      render(<><ToastContainer /><MAdminAddonManager /></>);
+      await screen.findByText('Paperless-ngx');
+
+      await user.click(screen.getByRole('switch', { name: 'Paperless-ngx' }));
+      await waitFor(() => expect(body).toEqual({ enabled: true }));
+      expect(screen.getByRole('switch', { name: 'Paperless-ngx' })).toHaveAttribute('aria-checked', 'true');
+      await screen.findByText('Addon updated');
+      expect(loadAddonsSpy).toHaveBeenCalled();
+
+      await user.click(screen.getByRole('switch', { name: 'Papra' }));
+      await screen.findByText('Failed to update addon');
+      await waitFor(() => expect(screen.getByRole('switch', { name: 'Papra' })).toHaveAttribute('aria-checked', 'false'));
+      expect(screen.getByRole('switch', { name: 'Paperless-ngx' })).toHaveAttribute('aria-checked', 'true');
+    });
+
+    it('FE-MOB-AADD-031: switching Documents off and on again shows the cascaded providers as off', async () => {
+      const user = userEvent.setup();
+      let loads = 0;
+      let documentsOn = true;
+      let paperlessOn = true;
+      server.use(
+        http.get('/api/admin/addons', () => {
+          loads += 1;
+          return HttpResponse.json({
+            addons: [documents(documentsOn), docProvider('paperless', 'Paperless-ngx', paperlessOn)],
+          });
+        }),
+        http.put('/api/admin/addons/documents', async ({ request }) => {
+          documentsOn = (await request.json() as { enabled: boolean }).enabled;
+          // Documents off takes its providers with it, see admin.service.ts.
+          if (!documentsOn) paperlessOn = false;
+          return HttpResponse.json({ success: true });
+        }),
+      );
+      render(<><ToastContainer /><MAdminAddonManager /></>);
+      await screen.findByText('Paperless-ngx');
+
+      await user.click(screen.getByRole('switch', { name: 'Documents' }));
+      await screen.findByText('Addon updated');
+      expect(loads).toBe(2);
+      expect(screen.queryByText('Paperless-ngx')).not.toBeInTheDocument();
+
+      await user.click(screen.getByRole('switch', { name: 'Documents' }));
+
+      await screen.findByText('Paperless-ngx');
+      expect(screen.getByRole('switch', { name: 'Paperless-ngx' })).toHaveAttribute('aria-checked', 'false');
+    });
   });
 
   it('FE-MOB-AADD-016: a disabled AI-parsing addon renders the integration row without its config', async () => {

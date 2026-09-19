@@ -506,6 +506,47 @@ input[type="number"], input[type="time"], input[type="date"], input[type="dateti
   will-change: transform, opacity;
 }
 
+/* Dokumentenabgleich: die aktive Bahn laeuft, WAEHREND ein Lauf laeuft.
+   Bewegung als Antwort auf eine Handlung, nicht als Dekoration: sie hoert auf,
+   sobald der Lauf durch ist, und sagt in der Zwischenzeit, in welche Richtung
+   gerade etwas unterwegs ist. */
+@keyframes trek-docsync-lane {
+  from { background-position: 0 0; }
+  to   { background-position: 16px 0; }
+}
+.trek-docsync-lane-run {
+  background-image: repeating-linear-gradient(
+    90deg,
+    currentColor 0 5px,
+    transparent 5px 16px
+  );
+  animation: trek-docsync-lane 700ms linear infinite;
+}
+.trek-docsync-lane-run-rev {
+  animation-direction: reverse;
+}
+
+/* Die abgeschaltete Richtung bekommt eine Schraffur, dasselbe Zeichen, das eine
+   gesperrte Flaeche ueberall traegt. Es liest sich als "hier geht nichts durch",
+   ohne dass die Bahn verschwindet und die Zeile zusammenklappt. */
+.trek-docsync-lane-off {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--border-primary) 0 5px,
+    transparent 5px 20px
+  );
+}
+
+/* Dieselbe Schraffur im Telefon-Schema: die mobilen Flaechen kennen die
+   Desktop-Randfarbe nicht, und eine Fremdfarbe faellt dort sofort auf. */
+.trek-docsync-lane-off-m {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--m-rowbr) 0 5px,
+    transparent 5px 20px
+  );
+}
+
 /* Mobile-Drawer-Feel — Modal slidet von unten rein, wird unten am Screen angedockt */
 @keyframes trek-drawer-enter {
   from { opacity: 0; transform: translateY(100%); }
@@ -593,6 +634,11 @@ input[type="number"], input[type="time"], input[type="date"], input[type="dateti
   /* Die Reserveleuchte steht still statt zu glimmen — sie bleibt an, was die Aussage
      ohnehin ist. */
   .trek-lowfuel {
+    animation: none;
+  }
+  /* Die Bahn bleibt sichtbar, sie laeuft nur nicht mehr. Die Aussage
+     "hier ist gerade etwas unterwegs" traegt auch im Stillstand. */
+  .trek-docsync-lane-run {
     animation: none;
   }
   .trek-skeleton {

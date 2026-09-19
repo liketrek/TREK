@@ -1,5 +1,6 @@
 import { isServiceStopType, type ScheduleEntry, type ScheduleWarning } from './roadtripModel'
 import type { RoadtripDay, RoadtripStop, RouteSegment } from '@trek/shared/roadtrip'
+import { readStay } from './stayReading'
 
 /**
  * A road trip day, flattened into the rows a screen draws, with no React in sight.
@@ -32,12 +33,13 @@ export interface StopRow {
   entry: ScheduleEntry | undefined
   /** The clock this row shows on the right: when the traveller gets there. */
   time: string | null
-  /** When they leave again, which is arrival plus the stay. Null without a schedule. */
+  /** When they leave again: arrival plus the stay, or the time set to leave. Null without a schedule. */
   departure: string | null
   /** True when a person pinned that time, which is what the pin in front of it means. */
   pinned: boolean
   /** At most two marks fit a 375px row. This is the one warning that earned the second. */
   warning: ScheduleWarning | null
+  /** How long the stop is stood at, which for one left at a set time is what that time leaves. */
   dwellMinutes: number | null
   offRoadMeters: number | null
 }
@@ -47,14 +49,15 @@ export interface StopRow {
  *
  * The desktop stacks all of them, which is honest on a 420px rail and unreadable on a
  * phone. The order is by what changes the next decision soonest: being late moves every
- * arrival after it, running dry strands the car, and an over-long leg is a planning
- * remark you can act on tonight.
+ * arrival after it, and so does missing the time a stop was meant to be left at; running
+ * dry strands the car; and an over-long leg is a planning remark you can act on tonight.
  */
 const WARNING_RANK: Record<ScheduleWarning['code'], number> = {
   late: 0,
-  range: 1,
-  leg: 2,
-  overnight: 3,
+  missedLeave: 1,
+  range: 2,
+  leg: 3,
+  overnight: 4,
 }
 
 export function pickWarning(warnings: readonly ScheduleWarning[]): ScheduleWarning | null {
@@ -92,7 +95,7 @@ function stopRow(
     departure: entry?.departure ?? null,
     pinned: !!entry?.anchored,
     warning: pickWarning(mine),
-    dwellMinutes: stop.dwellMinutes,
+    dwellMinutes: readStay(stop, entry).minutes,
     offRoadMeters: stop.offRoadMeters ?? null,
   }
 }

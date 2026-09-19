@@ -8,7 +8,7 @@ import { useTripStore } from '../../../../src/store/tripStore'
 import { resetAllStores, seedStore } from '../../../helpers/store'
 import { fireEvent, render, screen, waitFor } from '../../../helpers/render'
 
-// FE-MOB-RTSTOP-001 to FE-MOB-RTSTOP-035
+// FE-MOB-RTSTOP-001 to FE-MOB-RTSTOP-038
 //
 // The sheet renders inside the real TranslationProvider, so the copy is asserted
 // in English. `planner.t` from the fixture is never consulted here.
@@ -510,5 +510,51 @@ describe('MRtStopSheet', () => {
     expect(shell.toggleRtView).not.toHaveBeenCalled()
     expect(shell.closeSheet).toHaveBeenCalledTimes(1)
     expect(planner.setSelectedPlaceId).not.toHaveBeenCalled()
+  })
+
+  describe('a stop left at a set time', () => {
+    // Lueneburg carries a stay of 30 min, but its End is two in the afternoon: the drive
+    // gets there at ten and keeps to the End.
+    const LUENEBURG = stop({ assignmentId: 105, placeId: 205, name: 'Lueneburg', dwellMinutes: 30, leaveAt: '14:00' })
+    const leaving = (arrival: string, departure: string, warnings: unknown[] = []) => ({
+      ...DAY_A,
+      stops: [HAMBURG, LUENEBURG],
+      schedule: {
+        entries: [
+          { arrival: '09:00', departure: '09:00', anchored: true, dayOffset: 0 },
+          { arrival, departure, anchored: false, dayOffset: 0 },
+        ],
+        warnings,
+      },
+      driveWarnings: [],
+    }) as unknown as RoadtripDay
+    const open = (day: RoadtripDay) =>
+      renderSheet({ roadtripRoutes: { days: [day] } }, { sheet: { id: 'rtstop', payload: { dayId: 11, assignmentId: 105 } } })
+
+    it('FE-MOB-RTSTOP-036: reads the stay the End makes, and until when, on the finding and the tile', () => {
+      open(leaving('10:00', '14:00'))
+      expect(screen.getAllByText('4 h until 14:00')).toHaveLength(2)
+      expect(screen.queryByText('30 min')).not.toBeInTheDocument()
+    })
+
+    it('FE-MOB-RTSTOP-037: under the two clocks it says the drive leaves at that time', () => {
+      open(leaving('10:00', '14:00'))
+      expect(screen.getByText('14:00')).toBeInTheDocument()
+      expect(screen.getByText('This visit has an end time, so the drive leaves at 14:00.')).toBeInTheDocument()
+    })
+
+    it('FE-MOB-RTSTOP-038: reached after it, the stop says by how much', () => {
+      open(leaving('14:30', '14:30', [{ index: 1, code: 'missedLeave', minutes: 30 }]))
+      expect(screen.getByText('Arrives 30 min after the time you set to leave')).toBeInTheDocument()
+      expect(screen.getAllByText('0 min until 14:00')).toHaveLength(2)
+      // Left at 14:30, so nothing under the clocks promises 14:00.
+      expect(screen.queryByText('This visit has an end time, so the drive leaves at 14:00.')).not.toBeInTheDocument()
+    })
+
+    it('FE-MOB-RTSTOP-039: with the travel hours over first, it reads until when and says the drive goes on in the morning', () => {
+      open(leaving('10:00', '12:00'))
+      expect(screen.getAllByText('until 14:00')).toHaveLength(2)
+      expect(screen.getByText('The travel day ends before 14:00, so the drive goes on the next morning.')).toBeInTheDocument()
+    })
   })
 })

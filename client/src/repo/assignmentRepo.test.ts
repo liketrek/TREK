@@ -5,13 +5,13 @@ import { offlineDb, clearAll } from '../db/offlineDb'
 import { saveAssignmentEndDay } from '../api/assignmentEndDay'
 import { isEffectivelyOffline } from '../sync/networkMode'
 import { mutationQueue } from '../sync/mutationQueue'
-import { apiClient } from '../api/client'
+import { apiClient, assignmentsApi } from '../api/client'
 import type { Assignment, Day } from '../types'
 
 vi.mock('../api/assignmentEndDay', () => ({ saveAssignmentEndDay: vi.fn() }))
 vi.mock('../sync/networkMode', () => ({ isEffectivelyOffline: vi.fn(() => true) }))
 vi.mock('../sync/authGate', () => ({ isAuthed: () => true }))
-vi.mock('../api/client', () => ({ apiClient: { request: vi.fn() } }))
+vi.mock('../api/client', () => ({ apiClient: { request: vi.fn() }, assignmentsApi: { updateTime: vi.fn() } }))
 const assignment = { id: 7, day_id: 1, place_id: 2, order_index: 0, assignment_time: '07:00', place: { id: 2, name: 'Berlin' } } as Assignment
 
 beforeEach(async () => {
@@ -48,5 +48,34 @@ describe('assignment day-end persistence', () => {
     vi.mocked(saveAssignmentEndDay).mockRejectedValue(new Error('Denied'))
     await expect(assignmentRepo.setEndDay(9, assignment, true)).rejects.toThrow('Denied')
     expect((await offlineDb.days.get(1))?.assignments?.[0].end_day).toBeUndefined()
+  })
+})
+
+describe('assignment time persistence', () => {
+  const times = { place_time: '07:00', end_time: null }
+
+  it('stores the offline times with a replayable write of both of them', async () => {
+    await assignmentRepo.setTimes(9, { ...assignment, assignment_end_time: '14:00' }, times)
+    expect((await offlineDb.days.get(1))?.assignments?.[0]).toMatchObject({ assignment_time: '07:00', assignment_end_time: null })
+    expect(await offlineDb.mutationQueue.toArray()).toEqual([expect.objectContaining({
+      url: '/trips/9/assignments/7/time', method: 'PUT', body: times, resource: 'assignments', entityId: 7,
+    })])
+  })
+
+  it('saves through the time route online and caches what came back', async () => {
+    vi.mocked(isEffectivelyOffline).mockReturnValue(false)
+    vi.mocked(assignmentsApi.updateTime).mockResolvedValue({ assignment: { ...assignment, assignment_end_time: null } })
+    const saved = await assignmentRepo.setTimes(9, { ...assignment, assignment_end_time: '14:00' }, times)
+    expect(assignmentsApi.updateTime).toHaveBeenCalledWith(9, 7, times)
+    expect(saved.assignment_end_time).toBeNull()
+    expect((await offlineDb.days.get(1))?.assignments?.[0].assignment_end_time).toBeNull()
+    expect(await offlineDb.mutationQueue.count()).toBe(0)
+  })
+
+  it('keeps the cached visit unchanged after a refused save', async () => {
+    vi.mocked(isEffectivelyOffline).mockReturnValue(false)
+    vi.mocked(assignmentsApi.updateTime).mockRejectedValue(new Error('Denied'))
+    await expect(assignmentRepo.setTimes(9, assignment, times)).rejects.toThrow('Denied')
+    expect((await offlineDb.days.get(1))?.assignments?.[0]).toEqual(assignment)
   })
 })

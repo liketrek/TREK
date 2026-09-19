@@ -52,6 +52,8 @@ import {
   isServiceStopType, refuelStopTypeFor, reanchorAfterReorder, type DryPoint } from '../../components/Roadtrip/roadtripModel'
 import type { ManualStopTarget, ServiceStopMode } from '../../components/Roadtrip/manualStop'
 import type { RoadtripStopDraft } from '../../components/Roadtrip/RoadtripStopPopup'
+import type { StayDraft } from '../../components/Roadtrip/RoadtripStayModal'
+import { inspectorStay } from '../../components/Roadtrip/stayReading'
 import type { RoadtripStopType } from '@trek/shared'
 import { usePlaceSelection } from '../../hooks/usePlaceSelection'
 import { usePlannerHistory } from '../../hooks/usePlannerHistory'
@@ -1229,7 +1231,7 @@ export function useTripPlanner() {
    * the rail is a list — putting a dialog's state inside a row means it dies whenever the
    * list re-renders around it.
    */
-  const [stayDraft, setStayDraft] = useState<{ placeId: number; name: string; minutes: number | null; arrival: string | null } | null>(null)
+  const [stayDraft, setStayDraft] = useState<StayDraft | null>(null)
 
   /**
    * Whether the day ends at this stop, from BOTH the things that can end it.
@@ -2437,7 +2439,7 @@ export function useTripPlanner() {
     ? { active: roadtripEndsDayAt(endDayStop), onToggle: () => setRoadtripEndDay(endDayStop) }
     : undefined
   const roadtripStay = roadtripActive && selectedPlace
-    ? { minutes: endDayStop ? endDayStop.dwellMinutes : selectedPlace.duration_minutes ?? null, onEdit: can('place_edit', trip) ? () => editRoadtripStay({ placeId: selectedPlace.id, name: selectedPlace.name, minutes: selectedPlace.duration_minutes ?? null, arrival: null }) : undefined }
+    ? inspectorStay(roadtripRoutes.days, endDayStop, selectedPlace, can('place_edit', trip) ? editRoadtripStay : undefined)
     : undefined
 
   // Build placeId → order-number map from the selected day's assignments

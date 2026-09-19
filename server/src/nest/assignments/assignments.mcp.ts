@@ -130,12 +130,15 @@ export class AssignmentsMcp {
     if (!this.guards.hasTripPermission('day_edit', tripId, ctx.userId)) return permissionDenied();
     const existing = this.assignments.getAssignmentForTrip(assignmentId, tripId);
     if (!existing) return errorResult('Assignment not found.');
-    const assignment = this.assignments.updateTime(
+    const { assignment, reordered, vias } = this.assignments.updateTime(
       assignmentId,
       place_time !== undefined ? place_time : existing.assignment_time,
       end_time !== undefined ? end_time : existing.assignment_end_time
     );
+    // Same three events as PUT /assignments/:id/time.
     this.guards.safeBroadcast(tripId, 'assignment:updated', { assignment });
+    if (reordered) this.guards.safeBroadcast(tripId, 'assignment:reordered', reordered);
+    if (vias) this.guards.safeBroadcast(tripId, 'roadtripVia:changed', vias);
     this.assignments.reconcile(tripId);
     return ok({ assignment });
   }

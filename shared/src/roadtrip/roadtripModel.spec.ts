@@ -12,6 +12,8 @@ import {
   splitIntoRuns,
   sumLegSeconds,
   refuelStopTypeFor,
+  leaveAfter,
+  scheduleStopOf,
 } from './roadtripModel';
 
 import { describe, it, expect } from 'vitest';
@@ -808,20 +810,274 @@ describe('checkout without daily travel times', () => {
   });
 });
 
-it('uses checkout as departure even without an arrival or daily start', () => {
+it('uses a set departure even without an arrival or daily start', () => {
+  // Nothing before the stop says when it is reached, so its own stay does: an hour
+  // before eight. The stop ahead of it is worked back from there like from a pin.
   const schedule = computeSchedule(
     [
       { anchor: null, dwellMinutes: 60 },
-      { anchor: null, dwellMinutes: 60, departureAt: 1440 + 480 },
+      { anchor: null, dwellMinutes: 60, departureAt: 480 },
       { anchor: null, dwellMinutes: 0 },
     ],
     [3600, 7200],
   );
-  expect(schedule.entries[0]!.arrival).toBeNull();
-  expect(schedule.entries[1]!.arrival).toBeNull();
-  expect(schedule.entries[1]!.departure).toBe('08:00');
-  expect(schedule.entries[2]!.arrival).toBe('10:00');
-  expect(schedule.entries[2]!.dayOffset).toBe(1);
+  expect(schedule.entries[0]!).toMatchObject({ arrival: '05:00', departure: '06:00', anchored: false });
+  expect(schedule.entries[1]!).toMatchObject({ arrival: '07:00', departure: '08:00', anchored: false });
+  expect(schedule.entries[2]!).toMatchObject({ arrival: '10:00', dayOffset: 0 });
+  expect(schedule.warnings).toEqual([]);
+});
+
+describe('a time set to leave a stop', () => {
+  const hour = 3600;
+
+  it('holds the stop until then, whatever its stay', () => {
+    // Arrive at ten, stay half an hour by default, but leave at two: the next stop is
+    // reached at three, not at half past eleven.
+    const schedule = computeSchedule(
+      [
+        { anchor: '09:00', dwellMinutes: 0 },
+        { anchor: null, dwellMinutes: 30, departureAt: 14 * 60 },
+        { anchor: null, dwellMinutes: 0 },
+      ],
+      [hour, hour],
+    );
+    expect(schedule.entries[1]!).toMatchObject({ arrival: '10:00', departure: '14:00' });
+    expect(schedule.entries[2]!).toMatchObject({ arrival: '15:00' });
+    expect(schedule.warnings).toEqual([]);
+    expect(schedule.endsAt).toBe(15 * 60);
+  });
+
+  it('is kept when the stop is reached later, as long as it is still ahead', () => {
+    const schedule = computeSchedule(
+      [
+        { anchor: '12:30', dwellMinutes: 0 },
+        { anchor: null, dwellMinutes: 60, departureAt: 14 * 60 },
+        { anchor: null, dwellMinutes: 0 },
+      ],
+      [hour, hour],
+    );
+    // Half an hour there, because that is what is left until two, not the hour it takes.
+    expect(schedule.entries[1]!).toMatchObject({ arrival: '13:30', departure: '14:00' });
+    expect(schedule.entries[2]!.arrival).toBe('15:00');
+  });
+
+  it('says so when the drive gets there after it, and leaves at once', () => {
+    const schedule = computeSchedule(
+      [
+        { anchor: '13:30', dwellMinutes: 0 },
+        { anchor: null, dwellMinutes: 30, departureAt: 14 * 60 },
+        { anchor: null, dwellMinutes: 0 },
+      ],
+      [hour, hour],
+    );
+    expect(schedule.entries[1]!).toMatchObject({ arrival: '14:30', departure: '14:30' });
+    expect(schedule.entries[2]!.arrival).toBe('15:30');
+    expect(schedule.warnings).toEqual([{ index: 1, code: 'missedLeave', minutes: 30 }]);
+  });
+
+  it('pins both ends of the stay when the arrival is set too', () => {
+    // Start and End on one visit: arrive at ten, leave at two. The stay is the four hours
+    // between them, not the hour the place carries.
+    const schedule = computeSchedule(
+      [
+        { anchor: '09:00', dwellMinutes: 0 },
+        { anchor: '10:00', dwellMinutes: 60, departureAt: 14 * 60 },
+        { anchor: null, dwellMinutes: 0 },
+      ],
+      [hour, hour],
+    );
+    expect(schedule.entries[1]!).toMatchObject({ arrival: '10:00', departure: '14:00', anchored: true });
+    expect(schedule.entries[2]!.arrival).toBe('15:00');
+    expect(schedule.warnings).toEqual([]);
+  });
+
+  it('works backwards from it like from a pinned arrival', () => {
+    // Nothing is pinned before the stop. Leaving at two with half an hour there means
+    // arriving at half past one, and the stop before it is left at half past twelve.
+    const schedule = computeSchedule(
+      [
+        { anchor: null, dwellMinutes: 0 },
+        { anchor: null, dwellMinutes: 30, departureAt: 14 * 60 },
+        { anchor: '15:00', dwellMinutes: 0 },
+      ],
+      [hour, hour],
+    );
+    expect(schedule.entries[0]!).toMatchObject({ arrival: '12:30', departure: '12:30', anchored: false });
+    expect(schedule.entries[1]!).toMatchObject({ arrival: '13:30', departure: '14:00', anchored: false });
+    expect(schedule.entries[2]!).toMatchObject({ arrival: '15:00', anchored: true });
+    expect(schedule.warnings).toEqual([]);
+  });
+
+  it('makes the next pinned stop late when it is left too late to reach it', () => {
+    const schedule = computeSchedule(
+      [
+        { anchor: '09:00', dwellMinutes: 0 },
+        { anchor: null, dwellMinutes: 0, departureAt: 14 * 60 },
+        { anchor: '14:30', dwellMinutes: 0 },
+      ],
+      [hour, hour],
+    );
+    expect(schedule.warnings).toEqual([{ index: 2, code: 'late', minutes: 30 }]);
+  });
+
+  it('counts on the day the stop is reached', () => {
+    // Reached after midnight on a drive through the night: the ten o'clock it is left at
+    // is that morning's, not the morning before.
+    const schedule = computeSchedule(
+      [
+        { anchor: '20:00', dwellMinutes: 0 },
+        { anchor: null, dwellMinutes: 0, departureAt: 10 * 60 },
+        { anchor: null, dwellMinutes: 0 },
+      ],
+      [6 * hour, hour],
+    );
+    expect(schedule.entries[1]!).toMatchObject({ arrival: '02:00', departure: '10:00', dayOffset: 1 });
+    expect(schedule.entries[2]!).toMatchObject({ arrival: '11:00', dayOffset: 1 });
+    expect(schedule.warnings).toEqual([{ index: 1, code: 'overnight' }]);
+  });
+
+  it('is missed when the drive passes it on the way, midnight or not', () => {
+    // Left at eight in the evening, four and a half hours on the road: the half past
+    // eleven the stop was to be left at went by on the way. It is not the half past
+    // eleven of the next evening, which held the drive there for twenty-three hours.
+    const schedule = computeSchedule(
+      [
+        { anchor: '20:00', dwellMinutes: 0 },
+        { anchor: null, dwellMinutes: 0, departureAt: 23 * 60 + 30 },
+        { anchor: null, dwellMinutes: 0 },
+      ],
+      [4.5 * hour, hour],
+    );
+    expect(schedule.entries[1]!).toMatchObject({ arrival: '00:30', departure: '00:30', dayOffset: 1 });
+    expect(schedule.entries[2]!).toMatchObject({ arrival: '01:30', dayOffset: 1 });
+    expect(schedule.warnings).toEqual([
+      { index: 1, code: 'missedLeave', minutes: 60 },
+      { index: 1, code: 'overnight' },
+    ]);
+  });
+
+  it('waits all day for a time late in the evening', () => {
+    const schedule = computeSchedule(
+      [
+        { anchor: '08:00', dwellMinutes: 0 },
+        { anchor: null, dwellMinutes: 60, departureAt: 21 * 60 + 30 },
+        { anchor: null, dwellMinutes: 0 },
+      ],
+      [hour, hour],
+    );
+    expect(schedule.entries[1]!).toMatchObject({ arrival: '09:00', departure: '21:30', dayOffset: 0 });
+    expect(schedule.entries[2]!.arrival).toBe('22:30');
+    expect(schedule.warnings).toEqual([]);
+  });
+
+  it('takes a time just after midnight as that night, with or without a start', () => {
+    // Reached at nine in the evening, left at one: four hours, not a departure twenty
+    // hours in the past. The same visit with a start at ten (which only MCP can write,
+    // the form refuses an end before its start) runs past midnight the same way.
+    for (const anchor of [null, '22:00']) {
+      const schedule = computeSchedule(
+        [
+          { anchor: '20:00', dwellMinutes: 0 },
+          { anchor, dwellMinutes: 30, departureAt: 60 },
+          { anchor: null, dwellMinutes: 0 },
+        ],
+        [hour, hour],
+      );
+      expect(schedule.entries[1]!.departure).toBe('01:00');
+      expect(schedule.entries[2]!).toMatchObject({ arrival: '02:00', dayOffset: 1 });
+      expect(schedule.warnings).toEqual([{ index: 2, code: 'overnight' }]);
+    }
+  });
+
+  it('lets the first stop of the day start at midnight at the earliest', () => {
+    // A hotel stayed at for twelve hours and left at eight. Worked back from its stay it
+    // was reached at eight the evening before, which pushed the whole day onto the next.
+    const schedule = computeSchedule(
+      [
+        { anchor: null, dwellMinutes: 720, departureAt: 8 * 60 },
+        { anchor: null, dwellMinutes: 0 },
+        { anchor: null, dwellMinutes: 0 },
+      ],
+      [hour, hour],
+    );
+    expect(schedule.entries.map((e) => [e.arrival, e.departure, e.dayOffset])).toEqual([
+      ['00:00', '08:00', 0],
+      ['09:00', '09:00', 0],
+      ['10:00', '10:00', 0],
+    ]);
+    expect(schedule.warnings).toEqual([]);
+    expect(schedule.endsAt).toBe(10 * 60);
+  });
+
+  it('keeps a departure it cannot place yet, after a leg that never routed', () => {
+    const schedule = computeSchedule(
+      [
+        { anchor: '09:00', dwellMinutes: 0 },
+        { anchor: null, dwellMinutes: 0, departureAt: 14 * 60 },
+        { anchor: null, dwellMinutes: 0 },
+      ],
+      [undefined, hour],
+    );
+    expect(schedule.entries[1]!).toMatchObject({ arrival: null, departure: '14:00' });
+    expect(schedule.entries[2]!.arrival).toBe('15:00');
+  });
+});
+
+describe('leaveAfter', () => {
+  it('waits for a time still ahead of the arrival', () => {
+    expect(leaveAfter(600, 840)).toEqual({ departure: 840, missedBy: null });
+  });
+
+  it('leaves on arrival for a time already past, and says by how much', () => {
+    expect(leaveAfter(870, 840)).toEqual({ departure: 870, missedBy: 30 });
+  });
+
+  it('forgives the minute a rounded drive can add', () => {
+    expect(leaveAfter(841, 840)).toEqual({ departure: 841, missedBy: null });
+  });
+
+  it('places the time on the day of the arrival', () => {
+    expect(leaveAfter(1440 + 120, 600)).toEqual({ departure: 1440 + 600, missedBy: null });
+  });
+
+  it('counts a time the drive went past on the way as missed, across midnight too', () => {
+    // Set out at 20:00, in at 00:30, meant to leave at 23:30.
+    expect(leaveAfter(1470, 1410, 1200)).toEqual({ departure: 1470, missedBy: 60 });
+  });
+
+  it('waits for a time more than half a day ahead rather than calling the last one missed', () => {
+    expect(leaveAfter(540, 1290, 480)).toEqual({ departure: 1290, missedBy: null });
+  });
+
+  it('takes a time after midnight as that night when the one this morning is long gone', () => {
+    expect(leaveAfter(1320, 60)).toEqual({ departure: 1500, missedBy: null });
+  });
+
+  it('still calls a time missed that went by before the drive set out, the same afternoon', () => {
+    // The stop before was left at half past two for a stop meant to be left at two. That
+    // is late, not a reason to stand there until two tomorrow.
+    expect(leaveAfter(930, 840, 870)).toEqual({ departure: 930, missedBy: 90 });
+  });
+});
+
+describe('scheduleStopOf', () => {
+  it('turns a leave time into a departure', () => {
+    expect(scheduleStopOf({ time: '10:00', checkInTime: null, dwellMinutes: 60, leaveAt: '14:00' })).toEqual({
+      anchor: '10:00',
+      earliest: null,
+      dwellMinutes: 60,
+      departureAt: 840,
+    });
+  });
+
+  it('leaves the departure out when there is no usable leave time', () => {
+    expect(scheduleStopOf({ time: null, dwellMinutes: 30 })).toEqual({
+      anchor: null,
+      earliest: null,
+      dwellMinutes: 30,
+    });
+    expect(scheduleStopOf({ time: null, dwellMinutes: 30, leaveAt: 'soon' })).not.toHaveProperty('departureAt');
+  });
 });
 
 

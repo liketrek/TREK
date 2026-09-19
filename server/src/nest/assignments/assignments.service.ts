@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
+import { chronoOrder, type RoadtripVia, type TrekWsPayload, type TrekWsTripEventName } from '@trek/shared';
+import { isEmptyReanchoring, reanchorByStopOrder, type AnchoredVia } from '@trek/shared/roadtrip';
 import { RealtimeService } from '../realtime/realtime.service';
 import { DatabaseService, type TripAccess } from '../database/database.service';
 import { PermissionsService } from '../permissions/permissions.service';
@@ -9,6 +10,39 @@ import type { AssignmentRow, DayAssignment, User, Participant } from '../../type
 import { JourneyDomainService } from '../journey/journey-domain.service';
 
 type Trip = TripAccess;
+
+/** One stop of a day as the time sort reads it. */
+interface DayStopRow {
+  id: number;
+  order_index: number;
+  effective_time: string | null;
+  located: number;
+}
+
+/**
+ * What saving a time changed besides the stop itself, so each caller can tell the
+ * trip. `reordered` carries the day's whole order and `vias` the day's re-pinned
+ * vias; both stay null when the save left every stop where it was.
+ */
+export interface AssignmentTimeUpdate {
+  assignment: ReturnType<AssignmentsService['getAssignmentWithPlace']>;
+  reordered: { dayId: number; orderedIds: number[] } | null;
+  vias: { dayId: number; vias: RoadtripVia[] } | null;
+}
+
+/**
+ * Where the time sort puts a value it cannot read as a clock time: after every real
+ * time, which is where the '99:99' sentinel has always put a time without a colon. A
+ * legacy "morning" keeps sorting where it did. The client reads such a value as no
+ * time at all; that difference is older than this rule and left alone.
+ */
+const UNREADABLE_TIME = 99 * 60 + 99;
+
+function sortMinutes(time: string | null): number | null {
+  if (!time) return null;
+  const clock = /(?:^|T)(\d{1,2}):(\d{2})/.exec(time);
+  return clock ? Number(clock[1]) * 60 + Number(clock[2]) : UNREADABLE_TIME;
+}
 
 /**
  * Assignments domain service — owns the day-assignment SQL (relocated from the
@@ -206,48 +240,136 @@ export class AssignmentsService {
     `, assignmentId);
   }
 
-  updateTime(id: string | number, placeTime: unknown, endTime: unknown) {
-    this.dbs.transaction(() => {
+  /**
+   * Saves a visit's own start and end, and puts the day back in time order when the
+   * start changed. The rule is the planner's (`chronoOrder`): an untimed stop stays
+   * behind the stop it followed. This used to append every untimed stop after the
+   * timed ones, so one start time pulled a stop planned last to the top of the day.
+   *
+   * The rule is shared, what it reads is not. This sorts the day's stops alone, with a
+   * booked night timed by its check-in. The planner sorts day notes and bookings in
+   * between them and never draws the night's row. An untimed stop behind a timed note
+   * or train takes that item's time there and the previous stop's time here, so on
+   * such a day the order stored and the order drawn can differ. The old sort did the
+   * same.
+   */
+  updateTime(id: string | number, placeTime: unknown, endTime: unknown): AssignmentTimeUpdate {
+    const sorted = this.dbs.transaction(() => {
+      const stored = this.dbs.get<{ day_id: number; start: string | null }>(`
+        SELECT da.day_id, COALESCE(da.assignment_time, p.place_time, acc.check_in) AS start
+        FROM day_assignments da
+        JOIN places p ON da.place_id = p.id
+        LEFT JOIN day_accommodations acc ON acc.id = da.accommodation_id
+        WHERE da.id = ?
+      `, id);
+
       // Falsy times (null, undefined, '') all clear the override — an empty
       // string is a clear, not a stored value.
       this.dbs.run('UPDATE day_assignments SET assignment_time = ?, assignment_end_time = ? WHERE id = ?',
         placeTime || null, endTime || null, id);
 
-      // Auto-sort: reorder timed assignments chronologically within the day
-      if (placeTime) {
-        const assignment = this.dbs.get<{ day_id: number }>('SELECT day_id FROM day_assignments WHERE id = ?', id);
-        if (assignment) {
-          // A booked night's hour lives on the booking, not on the stop: nobody types a
-          // time into a hotel row, they type a check-in. Left out of this, the night
-          // counted as untimed and stayed wherever it had been dropped, so pinning an
-          // afternoon stop sorted that one and left the hotel sitting in front of or
-          // behind it by accident.
-          const dayAssignments = this.dbs.all<{ id: number; effective_time: string | null }>(`
-            SELECT da.id, COALESCE(da.assignment_time, p.place_time, acc.check_in) as effective_time
-            FROM day_assignments da
-            JOIN places p ON da.place_id = p.id
-            LEFT JOIN day_accommodations acc ON acc.id = da.accommodation_id
-            WHERE da.day_id = ?
-            ORDER BY da.order_index ASC
-          `, assignment.day_id);
-
-          // Separate timed and untimed, sort timed by time
-          const timed = dayAssignments.filter(a => a.effective_time).sort((a, b) => {
-            const ta = a.effective_time!.includes(':') ? a.effective_time! : '99:99';
-            const tb = b.effective_time!.includes(':') ? b.effective_time! : '99:99';
-            return ta.localeCompare(tb);
-          });
-          const untimed = dayAssignments.filter(a => !a.effective_time);
-
-          // Interleave: timed in chronological order, untimed keep relative position
-          const reordered = [...timed, ...untimed];
-          const update = this.dbs.prepare('UPDATE day_assignments SET order_index = ? WHERE id = ?');
-          reordered.forEach((a, i) => update.run(i, a.id));
-        }
-      }
+      // Only a start that moved sorts. An end is a label. A start sent again as it
+      // stood (the place form saving an End, the stay dialog taking one off, an MCP
+      // call that names only the end) leaves the day the way the traveller left it,
+      // which can be out of time order on purpose. Compared the way the sort reads
+      // it, so a visit given the time its place already had moves nothing either. A
+      // cleared start leaves the day alone too.
+      if (!placeTime || !stored) return null;
+      if (sortMinutes(String(placeTime)) === sortMinutes(stored.start)) return null;
+      return this.sortDayByTime(stored.day_id);
     });
 
-    return this.getAssignmentWithPlace(Number(id));
+    return {
+      assignment: this.getAssignmentWithPlace(Number(id)),
+      reordered: sorted ? { dayId: sorted.dayId, orderedIds: sorted.orderedIds } : null,
+      vias: sorted?.viasMoved ? { dayId: sorted.dayId, vias: this.listDayVias(sorted.dayId) } : null,
+    };
+  }
+
+  /**
+   * Puts one day in time order. Writes nothing when it already is, which is the usual
+   * case: most starts are typed in the order the day is planned.
+   */
+  private sortDayByTime(dayId: number): { dayId: number; orderedIds: number[]; viasMoved: boolean } | null {
+    // A booked night's hour lives on the booking, not on the stop: nobody types a
+    // time into a hotel row, they type a check-in. Left out of this, the night
+    // counted as untimed and stayed wherever it had been dropped, so pinning an
+    // afternoon stop sorted that one and left the hotel sitting in front of or
+    // behind it by accident.
+    const rows = this.dbs.all<DayStopRow>(`
+      SELECT da.id, da.order_index, COALESCE(da.assignment_time, p.place_time, acc.check_in) as effective_time,
+        (p.lat IS NOT NULL AND p.lng IS NOT NULL) as located
+      FROM day_assignments da
+      JOIN places p ON da.place_id = p.id
+      LEFT JOIN day_accommodations acc ON acc.id = da.accommodation_id
+      WHERE da.day_id = ?
+      ORDER BY da.order_index ASC, da.created_at ASC, da.id ASC
+    `, dayId);
+
+    const sorted = chronoOrder(rows, row => sortMinutes(row.effective_time));
+    if (sorted.every((row, i) => row === rows[i])) return null;
+
+    // Numbered from 0, the way a drag stores a day (`reorderAssignments`). The order
+    // goes out as a list of ids and every client numbers it by position, so keys kept
+    // with their gaps would put the day notes and bookings that sort between stops in
+    // one place for the writer, who reads the day back, and in another for everyone
+    // else. Only a stop whose key changes is written.
+    const update = this.dbs.prepare('UPDATE day_assignments SET order_index = ? WHERE id = ?');
+    sorted.forEach((row, i) => {
+      if (row.order_index !== i) update.run(i, row.id);
+    });
+
+    return { dayId, orderedIds: sorted.map(row => row.id), viasMoved: this.reanchorVias(dayId, rows, sorted) };
+  }
+
+  /**
+   * Keeps every drawn road behind the stop it was drawn after, the rule the planner
+   * applies when stops are dragged (`reanchorByStopOrder`). A via is pinned to a
+   * POSITION among the day's located stops, so a sort that moves a stop would
+   * otherwise hand the vias behind it to other legs. Inside the sort's transaction:
+   * an order without its vias is a road the traveller never drew.
+   *
+   * No sequence renumbering, unlike RoadtripService.reanchor: a reorder maps each leg
+   * onto a different one, so two legs' vias never end up on the same leg.
+   */
+  private reanchorVias(dayId: number, before: DayStopRow[], after: DayStopRow[]): boolean {
+    const located = (rows: DayStopRow[]) => rows.filter(row => row.located).map(row => row.id);
+    const previousIds = located(before);
+    const nextIds = located(after);
+    // Only stops without coordinates moved. The router never sees those, so every leg
+    // is still the one it was.
+    if (previousIds.every((stopId, i) => stopId === nextIds[i])) return false;
+
+    // A via behind the day's last stop bends the drive into the next day, on a trip
+    // with connected days or a night drive (the planner's `anchorFor` files it there).
+    // `reanchorByStopOrder` gives a last stop no leg and deletes what follows it, which
+    // is right for a stop the sort made last and wrong for one that was last already.
+    const lastAt = previousIds.length - 1;
+    const seam = previousIds[lastAt] === nextIds[lastAt] ? lastAt : null;
+    const vias = this.dbs.all<AnchoredVia>('SELECT id, after_order_index, lat, lng FROM roadtrip_vias WHERE day_id = ?', dayId)
+      .filter(via => via.after_order_index !== seam);
+    const plan = reanchorByStopOrder(vias, previousIds, nextIds);
+    for (const viaId of plan.remove) {
+      this.dbs.run('DELETE FROM roadtrip_vias WHERE id = ? AND day_id = ?', viaId, dayId);
+    }
+    for (const via of plan.vias) {
+      this.dbs.run('UPDATE roadtrip_vias SET after_order_index = ? WHERE id = ? AND day_id = ?', via.after_order_index, via.id, dayId);
+    }
+    return !isEmptyReanchoring(plan);
+  }
+
+  /**
+   * The day's vias in the shape the road trip routes broadcast them. RoadtripService
+   * has this query too, but its module imports this one, so it cannot be injected here.
+   */
+  private listDayVias(dayId: number): RoadtripVia[] {
+    return this.dbs.all<RoadtripVia>(
+      `SELECT id, day_id, after_order_index, sequence, lat, lng, created_at
+         FROM roadtrip_vias
+        WHERE day_id = ?
+        ORDER BY after_order_index, sequence, id`,
+      dayId,
+    );
   }
 
   setEndDay(id: string | number, endDay: boolean) {

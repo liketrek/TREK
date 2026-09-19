@@ -17,3 +17,14 @@ it('keeps stay editing when daily travel times are off', () => {
   expect(screen.getByRole('button', { name: 'roadtrip.stop.stayShort +' })).toBeEnabled()
   expect(screen.queryByRole('button', { name: 'roadtrip.window.endHere' })).not.toBeInTheDocument()
 })
+
+it('reads the stay a set leave time makes, and says until when', () => {
+  render(<VisitControls stay={{ minutes: 240, until: '14:00', onEdit: vi.fn() }} />)
+  expect(screen.getByRole('button', { name: 'roadtrip.stop.stayShort 4 h roadtrip.stay.until' })).toBeEnabled()
+})
+
+it('says only until when while the drive has not timed the arrival', () => {
+  render(<VisitControls stay={{ minutes: null, until: '14:00' }} />)
+  expect(screen.getByRole('button', { name: 'roadtrip.stop.stayShort roadtrip.stay.until' })).toBeDisabled()
+  expect(screen.queryByText('+')).not.toBeInTheDocument()
+})

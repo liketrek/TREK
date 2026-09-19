@@ -12,7 +12,7 @@ import { useTranslation } from '../../i18n/TranslationContext'
 import { MapLayerSwitcher, MAP_LAYER_SWITCHER_INSET, type BaseLayer } from './MapLayerSwitcher'
 import { useAuthStore } from '../../store/authStore'
 import { getCached, isLoading, fetchPhoto, onThumbReady, getAllThumbs } from '../../services/photoService'
-import { isCustomPlaceImage, photoCacheKey } from './placePhoto'
+import { isCustomPlaceImage, markerPhotoHtml, photoCacheKey, photoSourcesKey } from './placePhoto'
 import { CATEGORY_ICON_MAP } from '../shared/categoryIcons'
 import { isStandardFamily, supportsCustom3d, wantsTerrain, addCustom3dBuildings, addTerrainAndSky } from './mapboxSetup'
 import { attachLocationMarker, type LocationMarkerHandle } from './locationMarkerMapbox'
@@ -20,7 +20,6 @@ import { ReservationMapboxOverlay } from './reservationsMapbox'
 import { useTransportRoutes } from '../../hooks/useTransportRoutes'
 import { visibleRouteReservations } from '../../utils/reservationRoutes'
 import { safeHexColor } from '../../utils/safeColor'
-import { escapeHtml } from '@trek/shared'
 import { MAPBOX_DEFAULT_STYLE, styleForActiveProvider, basemapLanguage, type GlMapProvider } from './glProviders'
 import LocationButton from './LocationButton'
 import { useGeolocation } from '../../hooks/useGeolocation'
@@ -406,7 +405,7 @@ function createMarkerElement(place: Place & { category_color?: string; category_
         overflow:hidden;background:${bgColor};
         box-sizing:content-box;
       ">
-        <img src="${escapeHtml(photoUrl)}" width="${size}" height="${size}" style="display:block;border-radius:50%;object-fit:cover;" />
+        ${markerPhotoHtml(photoUrl)}
       </div>
       ${badgeHtml}
     `
@@ -1720,7 +1719,7 @@ export function MapViewGL({
   // simultaneous thumb arrivals into one re-render.
   const pendingThumbsRef = useRef<Record<string, string>>({})
   const thumbRafRef = useRef<number | null>(null)
-  const placeIds = useMemo(() => places.map(p => p.id).join(','), [places])
+  const photoSources = useMemo(() => photoSourcesKey(places), [places])
   useEffect(() => {
     if (!places || places.length === 0 || !placesPhotosEnabled) return
     const cleanups: (() => void)[] = []
@@ -1771,7 +1770,7 @@ export function MapViewGL({
         thumbRafRef.current = null
       }
     }
-  }, [placeIds, placesPhotosEnabled]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [photoSources, placesPhotosEnabled]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Reconcile markers with places + photos. The clustered GeoJSON source decides
   // which points are currently unclustered, and we render the existing rich HTML

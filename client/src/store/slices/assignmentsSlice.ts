@@ -3,13 +3,15 @@ import type { StoreApi } from 'zustand'
 import type { TripStoreState } from '../tripStore'
 import type { Assignment, AssignmentsMap } from '../../types'
 import { getApiErrorMessage } from '../../types'
-import { assignmentRepo } from '../../repo/assignmentRepo'
+import { assignmentRepo, type AssignmentTimes } from '../../repo/assignmentRepo'
+import { mergeAssignmentPlace } from './placesSlice'
 
 type SetState = StoreApi<TripStoreState>['setState']
 type GetState = StoreApi<TripStoreState>['getState']
 
 export interface AssignmentsSlice {
   setAssignmentEndDay: (tripId: number | string, dayId: number, assignmentId: number, endDay: boolean) => Promise<void>
+  setAssignmentTimes: (tripId: number | string, dayId: number, assignmentId: number, times: AssignmentTimes) => Promise<void>
   assignPlaceToDay: (tripId: number | string, dayId: number | string, placeId: number | string, position?: number | null) => Promise<Assignment | undefined>
   removeAssignment: (tripId: number | string, dayId: number | string, assignmentId: number) => Promise<void>
   reorderAssignments: (tripId: number | string, dayId: number | string, orderedIds: number[]) => Promise<void>
@@ -32,6 +34,29 @@ export const createAssignmentsSlice = (set: SetState, get: GetState): Assignment
       apply(saved.end_day === true)
     } catch (err: unknown) {
       apply(assignment.end_day === true)
+      throw err
+    }
+  },
+  setAssignmentTimes: async (tripId, dayId, assignmentId, times) => {
+    const assignment = get().assignments[String(dayId)]?.find(a => a.id === assignmentId)
+    if (!assignment || assignmentId < 0) return
+    const replace = (next: Assignment) => set(state => ({
+      assignments: Object.fromEntries(Object.entries(state.assignments).map(([key, items]) => [
+        key, items.map(a => a.id === assignmentId ? next : a),
+      ])),
+    }))
+    // The embedded place carries the times the visit shows, its own or else the place's,
+    // so it is merged again from the pool rather than patched field by field. The merged
+    // row is also what an offline save caches, or the old end time would come back from
+    // the cache on the next read.
+    const pool = get().places.find(p => p.id === assignment.place_id)
+    const merge = (next: Assignment) => (pool ? mergeAssignmentPlace(next, pool) : next)
+    const draft = merge({ ...assignment, assignment_time: times.place_time, assignment_end_time: times.end_time })
+    replace(draft)
+    try {
+      replace(merge({ ...draft, ...await assignmentRepo.setTimes(tripId, draft, times) }))
+    } catch (err: unknown) {
+      replace(assignment)
       throw err
     }
   },

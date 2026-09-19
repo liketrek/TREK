@@ -15,7 +15,7 @@ import {
 import type { ScheduleEntry, ScheduleWarning } from './roadtripModel'
 import type { RoadtripDay, RoadtripStop, RouteSegment } from '@trek/shared/roadtrip'
 
-// FE-RTROW-001 to FE-RTROW-039
+// FE-RTROW-001 to FE-RTROW-044
 
 function stop(name: string, over: Partial<RoadtripStop> = {}): RoadtripStop {
   return {
@@ -276,6 +276,23 @@ describe('pickWarning', () => {
 
   it('FE-RTROW-014: nothing to report is null, not a placeholder', () => {
     expect(pickWarning([])).toBeNull()
+  })
+
+  it('FE-RTROW-043: missing the time a stop is left at ranks right after being late for it', () => {
+    const missed: ScheduleWarning = { index: 0, code: 'missedLeave', minutes: 30 }
+    expect(pickWarning([{ index: 0, code: 'range', sinceKm: 700 }, missed])).toBe(missed)
+    expect(pickWarning([missed, { index: 0, code: 'late', minutes: 5 }])?.code).toBe('late')
+  })
+})
+
+describe('a stop left at a set time', () => {
+  it('FE-RTROW-044: its row carries the stay the time makes, not the one the place has', () => {
+    const d = day([stop('A'), stop('Bremen', { dwellMinutes: 30, leaveAt: '14:00' })], {
+      schedule: { entries: [entry('09:00'), entry('10:00', { departure: '14:00' })], warnings: [] },
+    })
+    const [, bremen] = stopRows(roadtripRows(d))
+    expect(bremen.dwellMinutes).toBe(240)
+    expect(bremen.departure).toBe('14:00')
   })
 })
 

@@ -1735,7 +1735,7 @@ describe('MapViewGL', () => {
     expect(srcs()).toContain('data:image/png;base64,BBB')
   })
 
-  it('FE-COMP-MAPVIEWGL-056: an in-flight photo is not requested twice and the proxy url is used as the id', async () => {
+  it('FE-COMP-MAPVIEWGL-056: an in-flight photo is not requested twice and a picked proxy url is both id and cache key', async () => {
     vi.mocked(photoService.isLoading).mockImplementation((key: string) => key === 'osm-loading')
     const places = [
       buildMapPlace({ id: 94, lat: 48.4, lng: 2.4, osm_id: 'osm-loading' }),
@@ -1746,7 +1746,56 @@ describe('MapViewGL', () => {
     await act(async () => {})
 
     expect(photoService.fetchPhoto).toHaveBeenCalledTimes(1)
-    expect(photoService.fetchPhoto).toHaveBeenCalledWith('osm-5', '/api/maps/place-photo/abc', 48.5, 2.5, 'Museum')
+    expect(photoService.fetchPhoto).toHaveBeenCalledWith('/api/maps/place-photo/abc', '/api/maps/place-photo/abc', 48.5, 2.5, 'Museum')
+  })
+
+  it('FE-COMP-MAPVIEWGL-101: an uploaded photo fills its marker whatever its proportions', async () => {
+    // A phone photo is no 48px square like the thumbs. Sized by attributes it lost to
+    // the stylesheet's `height: auto` and sat as a sliver in a disc of category colour.
+    loadOnAttach()
+    render(<MapViewGL places={[buildMapPlace({ id: 14, lat: 48.14, lng: 2.14, image_url: '/uploads/places/wide.jpg' })]} fitKey={1} />)
+    await act(async () => {})
+
+    const img = glMarkers.created[0].element.querySelector('img')!
+    expect(img.getAttribute('src')).toBe('/uploads/places/wide.jpg')
+    expect(img.style.width).toBe('100%')
+    expect(img.style.height).toBe('100%')
+  })
+
+  it('FE-COMP-MAPVIEWGL-102: taking the upload off a place asks for its auto photo again, without a reload', async () => {
+    const place = buildMapPlace({ id: 15, lat: 48.15, lng: 2.15, google_place_id: 'gp-15', name: 'Tower', image_url: '/uploads/places/own.jpg' })
+    const { rerender } = render(<MapViewGL places={[place]} fitKey={1} />)
+    await act(async () => {})
+    expect(photoService.fetchPhoto).not.toHaveBeenCalled()
+
+    rerender(<MapViewGL places={[{ ...place, image_url: null }]} fitKey={1} />)
+    await act(async () => {})
+
+    expect(photoService.fetchPhoto).toHaveBeenCalledWith('gp-15', 'gp-15', 48.15, 2.15, 'Tower')
+  })
+
+  it('FE-COMP-MAPVIEWGL-103: picking another suggested photo replaces the thumb of the old one', async () => {
+    loadOnAttach()
+    const first = '/api/maps/place-photo/gp-16~p0/bytes'
+    const second = '/api/maps/place-photo/gp-16~p1/bytes'
+    // Everything seen before the new pick has a thumb: the place's auto photo under
+    // its provider id and the first pick under its own url.
+    vi.mocked(photoService.getCached).mockImplementation((key: string) => (
+      key === 'gp-16' || key === first
+        ? ({ thumbDataUrl: 'data:image/png;base64,OLD' } as unknown as ReturnType<typeof photoService.getCached>)
+        : undefined
+    ))
+    const place = buildMapPlace({ id: 16, lat: 48.16, lng: 2.16, google_place_id: 'gp-16', name: 'Tower', image_url: first })
+    const { rerender } = render(<MapViewGL places={[place]} fitKey={1} />)
+    await flushFrames()
+
+    rerender(<MapViewGL places={[{ ...place, image_url: second }]} fitKey={1} />)
+    await flushFrames()
+
+    expect(photoService.fetchPhoto).toHaveBeenCalledWith(second, second, 48.16, 2.16, 'Tower')
+    // Until its thumb is ready the marker shows the new pick itself, not the old thumb.
+    const latest = glMarkers.created[glMarkers.created.length - 1]
+    expect(latest.element.querySelector('img')?.getAttribute('src')).toBe(second)
   })
 
   it('FE-COMP-MAPVIEWGL-066: a place with neither provider id nor coordinates has no cache key and is skipped', async () => {

@@ -12,7 +12,6 @@ import {
   splitIntoRuns,
   spillChains,
   dayWindow,
-  parseClock,
   effectiveRangeKm,
   parseAvoid,
   formatDistance,
@@ -34,6 +33,7 @@ interface StoredDay {
 }
 interface VisitRow {
   check_in: string | null;
+  /** The drive does not read these two (#2357): they are the booking as get_roadtrip_context reports it. */
   check_out: string | null;
   checkout_day: number | null;
   id: number;
@@ -43,6 +43,7 @@ interface VisitRow {
   lat: number | null;
   lng: number | null;
   time: string | null;
+  end_time: string | null;
   duration_minutes: number | null;
   end_day: number;
   leg_transport_mode: string | null;
@@ -72,7 +73,8 @@ export class RoadtripPlanService {
     );
     const visits = this.db.all<VisitRow>(
       `SELECT a.id, a.day_id, a.place_id, p.name, p.lat, p.lng,
-      COALESCE(a.assignment_time, p.place_time) AS time, p.duration_minutes, a.end_day,
+      COALESCE(a.assignment_time, p.place_time) AS time, COALESCE(a.assignment_end_time, p.end_time) AS end_time,
+      p.duration_minutes, a.end_day,
       a.leg_transport_mode, a.incoming_leg_transport_mode, p.stop_type, p.fill_percent, stay.check_in, stay.check_out, checkout.day_number AS checkout_day
       FROM day_assignments a JOIN days d ON d.id = a.day_id JOIN places p ON p.id = a.place_id
       LEFT JOIN day_accommodations stay ON stay.id = (SELECT id FROM day_accommodations WHERE place_id = p.id AND start_day_id = d.id ORDER BY id LIMIT 1)
@@ -117,8 +119,10 @@ export class RoadtripPlanService {
           lat: v.lat!,
           lng: v.lng!,
           time: v.time,
+          // The visit's end time is when the drive leaves it, the same reading the
+          // planner makes in the browser (useRoadtripRoutes).
+          leaveAt: v.end_time,
           checkInTime: v.check_in,
-          ...(v.checkout_day != null && parseClock(v.check_out) !== null ? { checkoutAt: v.checkout_day * 1440 + parseClock(v.check_out)! } : {}),
           dwellMinutes: v.duration_minutes,
           endDay: v.end_day === 1,
           legMode: v.leg_transport_mode,

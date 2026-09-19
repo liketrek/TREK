@@ -416,3 +416,94 @@ it('waits for check-in without treating it as a fixed appointment', () => {
   expect(plan.chains[0]!.schedule.entries[1]!.arrival).toBe('15:00');
   expect(plan.chains[0]!.schedule.entries.at(-1)!.arrival).toBe('15:29');
 });
+
+describe('a time set to leave a stop, with daily travel times', () => {
+  it('spends the hours until then rather than the stay', () => {
+    const plan = calculate(
+      [stop(1, { time: '09:00' }), stop(2, { dwellMinutes: 30, leaveAt: '14:00' }), stop(3)],
+      [60, 60],
+    );
+    expect(plan.issue).toBeNull();
+    const entries = plan.chains[0]!.schedule.entries;
+    expect(entries[1]!).toMatchObject({ arrival: '10:00', departure: '14:00' });
+    expect(entries[2]!.arrival).toBe('15:00');
+    expect(plan.chains[0]!.schedule.warnings).toEqual([]);
+  });
+
+  it('pins both ends of the stay when the visit has a start as well', () => {
+    const plan = calculate(
+      [stop(1, { time: '09:00' }), stop(2, { time: '10:30', dwellMinutes: 60, leaveAt: '14:00' }), stop(3)],
+      [60, 60],
+    );
+    const entries = plan.chains[0]!.schedule.entries;
+    expect(entries[1]!).toMatchObject({ arrival: '10:30', departure: '14:00', anchored: true });
+    expect(entries[2]!.arrival).toBe('15:00');
+  });
+
+  it('leaves on arrival and says so when the drive gets there after it', () => {
+    const plan = calculate(
+      [stop(1, { time: '13:30' }), stop(2, { dwellMinutes: 30, leaveAt: '14:00' }), stop(3)],
+      [60, 60],
+    );
+    expect(plan.issue).toBeNull();
+    const chain = plan.chains[0]!;
+    expect(chain.schedule.entries[1]!).toMatchObject({ arrival: '14:30', departure: '14:30' });
+    expect(chain.schedule.entries[2]!.arrival).toBe('15:30');
+    expect(chain.schedule.warnings).toEqual([{ index: 1, code: 'missedLeave', minutes: 30 }]);
+  });
+
+  it('starts the day early for a first stop left before the travel hours begin', () => {
+    // A ferry at seven on a day whose hours begin at eight. A Start at seven already
+    // started the day then; an End was read against eight and reported an hour missed.
+    const plan = calculate([stop(1, { dwellMinutes: 30, leaveAt: '07:00' }), stop(2)], [60]);
+    expect(plan.issue).toBeNull();
+    const chain = plan.chains[0]!;
+    expect(chain.schedule.entries[0]!).toMatchObject({ arrival: '07:00', departure: '07:00' });
+    expect(chain.schedule.entries[1]!.arrival).toBe('08:00');
+    expect(chain.schedule.warnings).toEqual([]);
+  });
+
+  it('starts the morning after a night early enough to leave the first stop in time', () => {
+    const a = stop(1);
+    const b = stop(2, { ownerDayId: 2, ownerIndex: 0, leaveAt: '07:00' });
+    const plan = planDayWindow([day(1, [a]), day(2, [b])], hours, (from, to) => leg(60, from, to), 'metric', labels);
+    expect(plan.issue).toBeNull();
+    const morning = plan.chains[1]!;
+    expect(morning.schedule.entries.map((e) => [e.arrival, e.departure])).toEqual([
+      ['06:00', '06:00'],
+      ['07:00', '07:00'],
+    ]);
+    expect(morning.schedule.warnings).toEqual([]);
+  });
+
+  it('leaves a first stop whose time is inside the travel hours to them', () => {
+    const plan = calculate([stop(1, { dwellMinutes: 30, leaveAt: '09:00' }), stop(2)], [60]);
+    expect(plan.chains[0]!.schedule.entries[0]!).toMatchObject({ arrival: '08:00', departure: '09:00' });
+  });
+
+  it('reports a leave time a drive past midnight went by, on a day ended by hand', () => {
+    // Out at eight in the evening, four and a half hours on the road, the day ended by hand
+    // at the stop: in at half past midnight, an hour after the half past eleven it was
+    // meant to be left at, which is missed rather than the next evening's.
+    const stops = [stop(1, { time: '20:00' }), stop(2, { leaveAt: '23:30' }), stop(3)];
+    const plan = planDayWindow(
+      [day(1, stops), day(2)],
+      hours,
+      (a, b) => leg(a === stops[0] ? 270 : 60, a, b),
+      'metric',
+      labels,
+      [{ day_number: 1, from_assignment_id: 2, to_assignment_id: null, fraction: 1 }],
+    );
+    expect(plan.issue).toBeNull();
+    const chain = plan.chains[0]!;
+    expect(chain.schedule.entries[1]!).toMatchObject({ arrival: '00:30', departure: '00:30' });
+    expect(chain.schedule.warnings).toEqual([{ index: 1, code: 'missedLeave', minutes: 60 }]);
+  });
+
+  it('never hands the leave time on to the night it closes the day with', () => {
+    const plan = calculate([stop(1, { leaveAt: '09:00' }), stop(2, { lng: 12 })]);
+    const night = plan.chains[0]!.stops.find((s) => s.automaticNight);
+    expect(night).toBeDefined();
+    expect(night!.leaveAt).toBeUndefined();
+  });
+});

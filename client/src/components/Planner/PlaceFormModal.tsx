@@ -68,6 +68,8 @@ interface PlaceFormModalProps {
    * of the drive it belongs on. Absent, nothing about the form changes.
    */
   serviceStop?: ServiceStopMode | null
+  /** Road trip mode is on, where a visit's End is when the drive leaves it. */
+  roadtripActive?: boolean
 }
 
 
@@ -1181,6 +1183,7 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
             assignmentId={assignmentId}
             dayAssignments={dayAssignments}
             hasTimeError={hasTimeError}
+            endIsLeave={!!props.roadtripActive}
             t={t}
           />
         )}
@@ -1270,10 +1273,13 @@ interface TimeSectionProps {
   assignmentId: number | null
   dayAssignments: Assignment[]
   hasTimeError: boolean
+  /** On a road trip the End is when the drive leaves, which the field says. In Days it
+   *  stays the plain label it has always been: nothing is scheduled off it there. */
+  endIsLeave: boolean
   t: (key: string, params?: Record<string, string | number>) => string
 }
 
-function TimeSection({ form, handleChange, assignmentId, dayAssignments, hasTimeError, t }: TimeSectionProps) {
+function TimeSection({ form, handleChange, assignmentId, dayAssignments, hasTimeError, endIsLeave, t }: TimeSectionProps) {
 
   const collisions = useMemo(() => {
     if (!assignmentId || !form.place_time || form.place_time.length < 5) return []
@@ -1311,6 +1317,7 @@ function TimeSection({ form, handleChange, assignmentId, dayAssignments, hasTime
             value={form.end_time}
             onChange={v => handleChange('end_time', v)}
           />
+          {endIsLeave && <p className="mt-1 text-caption text-content-faint">{t('roadtrip.stop.endIsLeave')}</p>}
         </div>
       </div>
       {hasTimeError && (

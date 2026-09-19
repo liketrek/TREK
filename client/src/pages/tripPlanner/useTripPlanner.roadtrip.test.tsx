@@ -213,7 +213,7 @@ async function renderRoadtrip() {
     rt.routes.days = [{ ...rt.corridor.day, stops }]
   }
   rt.routes.days = rt.routes.days.map(day => ({
-    schedule: { entries: [] },
+    schedule: { entries: [], warnings: [] },
     legs: [],
     ...day,
     stops: (day.stops as Array<Record<string, unknown>>).map((stop, i) => ({
@@ -1972,7 +1972,7 @@ describe('useTripPlanner road trip: the phone feed', () => {
     rt.routes.days = [{
       dayId,
       dayNumber: 1,
-      schedule: { entries: [] },
+      schedule: { entries: [], warnings: [] },
       legs: [],
       stops: [0, 1, 2].map((i) => ({
         assignmentId: i + 1, placeId: i + 1, lat: 53 - i, lng: 10 + i,

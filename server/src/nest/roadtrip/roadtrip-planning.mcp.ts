@@ -27,7 +27,7 @@ export class RoadtripPlanningMcp {
   @Tool({
     name: 'get_roadtrip_context',
     description:
-      'Read the saved roadtrip days, visits, pinned times, stays, stop types, fill levels, travel modes, via points, followed tracks and manual day endings. Includes the shared driving preferences for this trip. No routing request and no browser needed. Coordinates missing from a visit prevent it from being routed. Use calculate_roadtrip to get the derived day layout. Edit visits with the existing place and assignment tools; change their saved order with reorder_day_assignments. Settings, visits and manual boundaries all belong to the shared trip.',
+      'Read the saved roadtrip days, visits, pinned times, end times (when the drive leaves a visit), stays, stop types, fill levels, travel modes, via points, followed tracks and manual day endings. Includes the shared driving preferences for this trip. No routing request and no browser needed. Coordinates missing from a visit prevent it from being routed. Use calculate_roadtrip to get the derived day layout. Edit visits with the existing place and assignment tools; change their saved order with reorder_day_assignments. Settings, visits and manual boundaries all belong to the shared trip.',
     inputSchema: { tripId: z.number().int().positive() },
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: { group: 'trips', mode: 'read' },
@@ -40,7 +40,7 @@ export class RoadtripPlanningMcp {
   @Tool({
     name: 'calculate_roadtrip',
     description:
-      'Calculate a saved trip without an open browser, using the same daily scheduling and vehicle-range rules as the planner. Returns derived days, arrivals, departures, driving limits, fuel warnings, automatic pauses and routing failures. Fixed visit times retain priority; no accommodation or place is created. Optional settings are a read-only preview, not saved. Distances are metres, durations seconds, dwell times minutes. A failed leg or conflicting window means the output is incomplete: never present its totals as a complete route. Up to 150 legs; requests are paced for public routing servers and can take time. Existing place/assignment tools edit stops, stays and ordering, update_roadtrip_settings saves preferences, set_assignment_end_day and set_day_boundary set exceptions. Recalculate after changes. Plugin profiles follow installed route-provider permissions.',
+      'Calculate a saved trip without an open browser, using the same daily scheduling and vehicle-range rules as the planner. Returns derived days, arrivals, departures, driving limits, fuel warnings, automatic pauses and routing failures. Fixed visit times retain priority. The end time of a visit is when the drive leaves it, in place of its stay; reaching the visit after it is reported as a missedLeave warning. No accommodation or place is created. Optional settings are a read-only preview, not saved. Distances are metres, durations seconds, dwell times minutes. A failed leg or conflicting window means the output is incomplete: never present its totals as a complete route. Up to 150 legs; requests are paced for public routing servers and can take time. Existing place/assignment tools edit stops, stays and ordering, update_roadtrip_settings saves preferences, set_assignment_end_day and set_day_boundary set exceptions. Recalculate after changes. Plugin profiles follow installed route-provider permissions.',
     inputSchema: roadtripPlanRequestSchema.shape,
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: { group: 'trips', mode: 'read' },

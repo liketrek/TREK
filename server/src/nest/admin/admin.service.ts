@@ -598,6 +598,28 @@ export class AdminService {
       fieldsByProvider.set(field.provider_id, arr);
     }
 
+    // Document providers are the Documents addon's shelf rows, the same way
+    // photo providers are Journey's. Hidden on a managed instance for the same
+    // reason: Paperless, Papra, Nextcloud, OpenCloud and a Synology NAS are all
+    // servers the admin runs at home, and a hosted TREK has no route to one.
+    //
+    // They carry no `config` routes, unlike photo providers: the credentials do
+    // not belong to a user here but to a trip, so they are entered in the trip
+    // rather than in settings. The admin decides only whether a provider may be
+    // offered at all.
+    const docProviders = this.db.all<{
+      id: string;
+      name: string;
+      description?: string | null;
+      icon: string;
+      enabled: number;
+      sort_order: number;
+    }>(`
+    SELECT id, name, description, icon, enabled, sort_order
+    FROM document_providers
+    ORDER BY sort_order, id
+  `).filter(() => !readEnv().managed.enabled);
+
     return [
       ...addons.map((a) => ({
         ...a,
@@ -628,6 +650,17 @@ export class AdminService {
         })),
         sort_order: p.sort_order,
       })),
+      ...docProviders.map((p) => ({
+        id: p.id,
+        name: p.name,
+        description: p.description,
+        type: 'document_provider',
+        icon: p.icon,
+        enabled: !!p.enabled,
+        config: {},
+        fields: [],
+        sort_order: p.sort_order,
+      })),
     ];
   }
 
@@ -635,7 +668,8 @@ export class AdminService {
     type ProviderRow = { id: string; name: string; description?: string | null; icon: string; enabled: number; sort_order: number };
     const addon = this.db.get<Addon>('SELECT * FROM addons WHERE id = ?', id);
     const provider = this.db.get<ProviderRow>('SELECT * FROM photo_providers WHERE id = ?', id);
-    if (!addon && !provider) return { error: 'Addon not found', status: 404 };
+    const docProvider = this.db.get<ProviderRow>('SELECT * FROM document_providers WHERE id = ?', id);
+    if (!addon && !provider && !docProvider) return { error: 'Addon not found', status: 404 };
 
     // The whole addon, not just its config: on a centrally administered install
     // the operator owns the endpoint, the model and the per-document cost, so
@@ -652,6 +686,13 @@ export class AdminService {
       return { error: 'Enable the Journey addon first', status: 409 };
     }
 
+    // Same rule one shelf down: a document provider only exists to serve the
+    // file manager, so switching one on under a disabled Documents addon would
+    // advertise a sync nothing can reach.
+    if (docProvider && data.enabled === true && !this.addons.isAddonEnabled(ADDON_IDS.DOCUMENTS)) {
+      return { error: 'Enable the Documents addon first', status: 409 };
+    }
+
     this.db.transaction(() => {
     if (addon) {
       if (data.enabled !== undefined) {
@@ -660,6 +701,10 @@ export class AdminService {
         // resurface the moment journey returns, which nobody switched on.
         if (id === ADDON_IDS.JOURNEY && !data.enabled)
           this.db.run('UPDATE photo_providers SET enabled = 0');
+        // Documents off takes its providers with it, for the reason above: a
+        // row left enabled would resurface the moment the addon returns.
+        if (id === ADDON_IDS.DOCUMENTS && !data.enabled)
+          this.db.run('UPDATE document_providers SET enabled = 0');
       }
       if (data.config !== undefined) {
         // The AI-parsing addon holds an API key — encrypt it at rest and preserve
@@ -670,9 +715,12 @@ export class AdminService {
             : data.config;
         this.db.run('UPDATE addons SET config = ? WHERE id = ?', JSON.stringify(configToStore), id);
       }
-    } else {
+    } else if (provider) {
       if (data.enabled !== undefined)
         this.db.run('UPDATE photo_providers SET enabled = ? WHERE id = ?', data.enabled ? 1 : 0, id);
+    } else {
+      if (data.enabled !== undefined)
+        this.db.run('UPDATE document_providers SET enabled = ? WHERE id = ?', data.enabled ? 1 : 0, id);
     }
     });
 

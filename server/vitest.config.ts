@@ -82,6 +82,7 @@ export default defineConfig({
         'src/nest/database/**/*.ts': { statements: 99, branches: 100, functions: 99, lines: 99 },
         'src/nest/day-notes/**/*.ts': { statements: 92, branches: 83, functions: 99, lines: 99 },
         'src/nest/days/**/*.ts': { statements: 92, branches: 82, functions: 98, lines: 97 },
+        'src/nest/doc-sync/**/*.ts': { statements: 91, branches: 79, functions: 96, lines: 95 },
         'src/nest/feeds/**/*.ts': { statements: 91, branches: 83, functions: 83, lines: 91 },
         'src/nest/files/**/*.ts': { statements: 97, branches: 95, functions: 99, lines: 98 },
         'src/nest/geo/**/*.ts': { statements: 99, branches: 95, functions: 99, lines: 99 },

@@ -1,5 +1,6 @@
 import admin from './admin';
 import dawarich from './dawarich';
+import docsync from './docsync';
 import airport from './airport';
 import atlas from './atlas';
 import backup from './backup';
@@ -108,5 +109,6 @@ const locale = {
   ...mobileCollections,
   ...storage,
   ...dawarich,
+  ...docsync,
 };
 export default locale;

@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Hourglass, Minus, Plus, ArrowRight } from 'lucide-react'
+import { AlertTriangle, Hourglass, Minus, Plus, ArrowRight } from 'lucide-react'
 import Modal from '../shared/Modal'
 import { useTranslation } from '../../i18n/TranslationContext'
 import { useSettingsStore } from '../../store/settingsStore'
 import { formatDurationShort, formatClock, parseClock } from './roadtripModel'
 import { formatClockTime } from '../../utils/formatters'
+import { useLeaveMode, type LeaveMode } from './useLeaveMode'
 
 /**
  * The lengths a stop usually takes, so the common answer is one tap.
@@ -33,6 +34,15 @@ export interface StayDraft {
   minutes: number | null
   /** When the drive gets here, so the dialog can show what the stay pushes back. */
   arrival?: string | null
+  /** When the schedule has it leave again. */
+  departure?: string | null
+  /** The time the visit is set to be left at, which makes the stay rather than taking one. */
+  leaveAt?: string | null
+  /** How many minutes after that time the drive gets here, when the schedule found it cannot make it. */
+  missedBy?: number | null
+  assignmentId?: number
+  /** The day the visit is stored on. */
+  dayId?: number
 }
 
 interface RoadtripStayModalProps {
@@ -75,6 +85,7 @@ export default function RoadtripStayModal({ stop, onClose, onSave }: RoadtripSta
   const is12h = useSettingsStore(s => s.settings.time_format) === '12h'
   const [minutes, setMinutes] = useState(0)
   const [saving, setSaving] = useState(false)
+  const leave = useLeaveMode(stop)
 
   // Reopened on a different stop, so it starts from that stop's own value rather than
   // from whatever the last one was left on.
@@ -97,6 +108,7 @@ export default function RoadtripStayModal({ stop, onClose, onSave }: RoadtripSta
   }, [stop?.arrival, minutes, is12h])
 
   if (!stop) return null
+  if (leave.until) return <LeaveTime stop={stop} leave={leave} until={leave.until} is12h={is12h} onClose={onClose} />
 
   const commit = async (value: number) => {
     if (saving) return
@@ -163,31 +175,7 @@ export default function RoadtripStayModal({ stop, onClose, onSave }: RoadtripSta
 
         {/* What the stay costs the rest of the day. The arrival cannot move — the drive
             decides it — so the arrow shows the one end this dialog does move. */}
-        {times ? (
-          <div className="flex items-center justify-center gap-3 rounded-xl border border-edge-faint bg-surface-secondary px-3 py-2.5">
-            <span className="flex flex-col items-center gap-0.5">
-              <span className="font-geist text-caption font-semibold uppercase tracking-[0.12em] text-content-faint">
-                {t('roadtrip.stay.arrive')}
-              </span>
-              <span dir="ltr" className="text-body font-semibold tabular-nums text-content-secondary">{times.arrive}</span>
-            </span>
-            <ArrowRight size={14} className="mt-3 shrink-0 text-content-faint" aria-hidden />
-            <span className="flex flex-col items-center gap-0.5">
-              <span className="font-geist text-caption font-semibold uppercase tracking-[0.12em] text-content-faint">
-                {t('roadtrip.stay.leave')}
-              </span>
-              <span dir="ltr" className="text-body font-semibold tabular-nums text-content">
-                {times.leave}
-                {times.leaveCarry > 0 ? (
-                  <span className="ms-0.5">
-                    {`+${times.leaveCarry}`}
-                    <span className="sr-only">{` ${t('roadtrip.warn.overnight')}`}</span>
-                  </span>
-                ) : null}
-              </span>
-            </span>
-          </div>
-        ) : null}
+        {times ? <ArriveLeave arrive={times.arrive} leave={times.leave} carry={times.leaveCarry} /> : null}
 
         <div className="flex flex-wrap justify-center gap-1.5">
           {PRESETS.map(value => (
@@ -235,5 +223,108 @@ export default function RoadtripStayModal({ stop, onClose, onSave }: RoadtripSta
         </button>
       </div>
     </Modal>
+  )
+}
+
+/**
+ * The dialog for a stop the traveller leaves at a set time.
+ *
+ * Nothing to choose: the stay is whatever is left between the arrival and that time, so
+ * it is shown rather than offered. The one thing to do here is take the end time off the
+ * visit, and the ordinary dialog takes over the moment that lands.
+ *
+ * The sentence under the number says what the drive actually does. Reached too late it
+ * leaves on arrival, which is the case this dialog gets opened to fix; with the travel
+ * hours over first it goes on the next morning. Saying "leaves at 14:00" over a box that
+ * reads 14:30 gave two departures for one stop.
+ */
+function LeaveTime({ stop, leave, until: leaveAt, is12h, onClose }: {
+  stop: StayDraft
+  leave: LeaveMode
+  until: string
+  is12h: boolean
+  onClose: () => void
+}): React.ReactElement {
+  const { t } = useTranslation()
+  const until = formatClockTime(leaveAt, is12h)
+  const arrive = stop.arrival ? formatClockTime(stop.arrival, is12h) : null
+  const departure = stop.departure ? formatClockTime(stop.departure, is12h) : until
+  return (
+    <Modal isOpen onClose={onClose} size="sm" title={
+      <span className="flex items-center gap-2">
+        <Hourglass size={15} className="text-content-faint" aria-hidden />
+        {t('roadtrip.stop.stay')}
+      </span>
+    }>
+      <div className="flex flex-col gap-5">
+        <p className="break-words text-center text-caption text-content-muted">{stop.name}</p>
+        <span className="text-center text-title font-semibold tabular-nums tracking-tight text-content">
+          {leave.minutes === null ? t('roadtrip.stay.until', { time: until }) : formatDurationShort(leave.minutes * 60)}
+        </span>
+        {leave.missedBy !== null ? (
+          <p className="flex items-center justify-center gap-1.5 text-center text-body font-medium text-warning">
+            <AlertTriangle size={14} className="shrink-0" aria-hidden />
+            {t('roadtrip.warn.missedLeave', { minutes: leave.missedBy })}
+          </p>
+        ) : (
+          <p className="text-center text-body text-content-secondary">
+            {t(leave.dayEndsFirst ? 'roadtrip.stay.dayEndsFirst' : 'roadtrip.stay.leavesAt', { time: until })}
+          </p>
+        )}
+        {/* The day ending first means the row's departure is only where it stops for the
+            night, not a time it leaves. */}
+        {arrive && !leave.dayEndsFirst ? <ArriveLeave arrive={arrive} leave={departure} /> : null}
+      </div>
+
+      <div className="mt-6 flex items-center gap-2">
+        {leave.remove ? (
+          <button
+            type="button"
+            disabled={leave.removing}
+            onClick={() => void leave.remove?.()}
+            className="rounded-lg px-3 py-2 text-caption font-medium text-content-muted transition-colors hover:bg-surface-hover hover:text-content disabled:opacity-40"
+          >
+            {t('roadtrip.stay.clearLeave')}
+          </button>
+        ) : null}
+        <button
+          type="button"
+          onClick={onClose}
+          className="ms-auto rounded-lg border border-edge px-3 py-2 text-caption font-medium text-content-secondary transition-colors hover:bg-surface-hover"
+        >
+          {t('common.close')}
+        </button>
+      </div>
+    </Modal>
+  )
+}
+
+/** Arrival, arrow, departure: the two ends of the stay, with the day the second lands on. */
+function ArriveLeave({ arrive, leave, carry = 0 }: { arrive: string; leave: string; carry?: number }): React.ReactElement {
+  const { t } = useTranslation()
+  return (
+    <div className="flex items-center justify-center gap-3 rounded-xl border border-edge-faint bg-surface-secondary px-3 py-2.5">
+      <span className="flex flex-col items-center gap-0.5">
+        <span className="font-geist text-caption font-semibold uppercase tracking-[0.12em] text-content-faint">
+          {t('roadtrip.stay.arrive')}
+        </span>
+        <span dir="ltr" className="text-body font-semibold tabular-nums text-content-secondary">{arrive}</span>
+      </span>
+      <ArrowRight size={14} className="mt-3 shrink-0 text-content-faint" aria-hidden />
+      <span className="flex flex-col items-center gap-0.5">
+        <span className="font-geist text-caption font-semibold uppercase tracking-[0.12em] text-content-faint">
+          {t('roadtrip.stay.leave')}
+        </span>
+        <span dir="ltr" className="text-body font-semibold tabular-nums text-content">
+          {leave}
+          {carry > 0 ? (
+            <span className="ms-0.5">
+              {`+${carry}`}
+              <span className="sr-only">{` ${t('roadtrip.warn.overnight')}`}</span>
+            </span>
+          ) : null}
+        </span>
+      </span>
+    </div>
   )
 }

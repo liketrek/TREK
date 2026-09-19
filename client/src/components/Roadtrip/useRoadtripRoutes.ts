@@ -87,6 +87,9 @@ const asStop = (a: Assignment, ownerDayId: number, ownerIndex: number, accommoda
     lat: p.lat,
     lng: p.lng,
     time: a.assignment_time ?? p.place_time ?? null,
+    // The visit's End is when the drive leaves it. Unlike a check-out it is the
+    // traveller's own statement about this stop, and the stay then runs until it.
+    leaveAt: a.assignment_end_time ?? p.end_time ?? null,
     checkInTime: stay?.check_in ?? null,
     dwellMinutes: typeof p.duration_minutes === 'number' ? p.duration_minutes : null,
     endDay: a.end_day === true,

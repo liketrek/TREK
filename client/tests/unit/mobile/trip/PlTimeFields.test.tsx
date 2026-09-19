@@ -7,7 +7,7 @@ import { seedStore } from '../../../helpers/store'
 import { buildSettings } from '../../../helpers/factories'
 import { useSettingsStore } from '../../../../src/store/settingsStore'
 
-// FE-MOB-PLTIME-001 to FE-MOB-PLTIME-013
+// FE-MOB-PLTIME-001 to FE-MOB-PLTIME-015
 
 const planner = buildPlanner()
 
@@ -150,5 +150,25 @@ describe('PlTimeFields', () => {
     // With a complete 11:00 end the 10:30 place would overlap — '11:0' must not count.
     setup({ endTime: '11:0', dayAssignments: [SELF, assignment(2, 'Park', '10:30', '12:00')] })
     expect(screen.queryByText(/places.timeCollision/)).not.toBeInTheDocument()
+  })
+
+  it('FE-MOB-PLTIME-014: opened from the road trip tab, End says the drive leaves at it', () => {
+    render(
+      <PlTimeFields
+        planner={buildPlanner({ activeTab: 'roadtrip' } as never)}
+        startTime="10:00"
+        endTime="14:00"
+        onChange={vi.fn()}
+        assignmentId={1}
+        dayAssignments={[SELF]}
+        hasTimeError={false}
+      />,
+    )
+    expect(screen.getByText('roadtrip.stop.endIsLeave')).toBeInTheDocument()
+  })
+
+  it('FE-MOB-PLTIME-015: from the plan tab End stays a plain label', () => {
+    setup()
+    expect(screen.queryByText('roadtrip.stop.endIsLeave')).not.toBeInTheDocument()
   })
 })

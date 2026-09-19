@@ -29,6 +29,9 @@ export default function PlTimeFields({
   planner, startTime, endTime, onChange, assignmentId, dayAssignments, hasTimeError,
 }: PlTimeFieldsProps) {
   const { t } = planner
+  // Opened from the road trip tab, where the End of a visit is when the drive leaves it.
+  // The plan tab reads the day as Days does, and there End stays a plain label.
+  const endIsLeave = planner.activeTab === 'roadtrip'
 
   const collisions = useMemo(() => {
     if (!startTime || startTime.length < 5) return []
@@ -58,6 +61,9 @@ export default function PlTimeFields({
         <div className="min-w-0 flex-1">
           <Eyebrow className="mb-[5px] uppercase">{t('places.endTime')}</Eyebrow>
           <CustomTimePicker value={endTime} onChange={v => onChange('end_time', v)} />
+          {endIsLeave && (
+            <div className="mt-[5px] font-geist text-[0.65625rem] leading-snug text-m-faint">{t('roadtrip.stop.endIsLeave')}</div>
+          )}
         </div>
       </div>
       {hasTimeError && (

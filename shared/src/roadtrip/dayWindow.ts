@@ -3,7 +3,7 @@ import type { RoadtripDayBoundary } from './day-boundary.schema';
 import type { SpillChain } from './nightSpill';
 import type { RoadtripDay, RoadtripStop, RoutedLeg } from './planning-types';
 import type { DistanceUnit } from './planning-types';
-import { formatClock, hasChosenArrival, parseClock } from './roadtripModel';
+import { formatClock, hasChosenArrival, leaveAfter, parseClock } from './roadtripModel';
 import { formatDurationShort } from './roadtripModel';
 import { formatDistance } from './units';
 
@@ -180,6 +180,7 @@ export function planDayWindow(
       assignmentId: -2000000000 - number * 2,
       name: labels.end,
       time: null,
+      leaveAt: undefined,
       dwellMinutes: 0,
       checkInTime: undefined,
       stopType: null,
@@ -206,6 +207,10 @@ export function planDayWindow(
   for (let i = 0; i < stops.length; i++) {
     const { stop, day } = stops[i]!;
     const pin = parseClock(stop.time);
+    const leave = parseClock(stop.leaveAt);
+    // When the drive into this stop set out, on this day's clock: for one a night broke
+    // up, the morning it went on.
+    let setOut: number | null = null;
     if (previous && number < day.dayNumber && !targets.has(number)) {
       if (window.endMode !== 'stop') clock = Math.max(clock, window.end);
       previous = night(previous);
@@ -215,7 +220,10 @@ export function planDayWindow(
       }
     } else if (!previous) {
       number = day.dayNumber;
-      clock = pin ?? window.start;
+      // A time set to leave the first stop starts the day early the way a pinned arrival
+      // does. Otherwise a ferry at seven on a day whose travel hours begin at nine was
+      // reported missed by two hours, when nothing but the preference made it late.
+      clock = pin ?? (leave === null ? window.start : Math.min(window.start, leave));
     }
     if (issue) return failed(issue);
     if (pin !== null && day.dayNumber !== number) return failed('conflict');
@@ -223,8 +231,15 @@ export function planDayWindow(
     if (previous) {
       const leg = legs[i - 1]!;
       const minutes = leg.seg.duration / 60;
-      if (pin !== null && chainAt(number).stops.every((s) => s.automaticNight)) {
-        clock = Math.min(clock, pin - minutes);
+      // The same for the first stop after a night: the morning starts early enough to get
+      // there by its pinned time, or to leave it by the time it is set to be left at. A
+      // pin that cannot be made is a conflict. A leave time is only ever missed, so one
+      // out of reach even from midnight moves nothing and says so once the stop is reached.
+      let early: number | null = null;
+      if (pin !== null) early = pin - minutes;
+      else if (leave !== null && leave - minutes >= 0) early = leave - minutes;
+      if (early !== null && early < clock && chainAt(number).stops.every((s) => s.automaticNight)) {
+        clock = early;
         if (clock < 0) return failed('conflict');
         const startEntry = chainAt(number).schedule.entries[0]!;
         startEntry.arrival = formatClock(Math.round(clock));
@@ -265,6 +280,7 @@ export function planDayWindow(
         if (issue) return failed(issue);
       }
       const remainder = portion(leg, fraction, 1, unit);
+      setOut = clock;
       clock += minutes * (1 - fraction);
       putLeg(previous, stop, remainder);
     }
@@ -281,8 +297,17 @@ export function planDayWindow(
     // driving hours. The night between two of them is not a pause in the stay: standing
     // somewhere for twenty-four hours takes twenty-four hours, and counting only the
     // hours the window is open stretched a single night over three days.
+    //
+    // A leave time decides the stay on its own: the traveller is here until then, however
+    // long the stop usually takes. Reached after it, the drive leaves at once and the
+    // stop says by how much it missed.
     const overnight = Math.max(0, 1440 - window.end + window.start);
-    let dwell = Math.max(0, stop.dwellMinutes ?? 0);
+    const left = leave === null ? null : leaveAfter(clock, leave, setOut);
+    if (left && left.missedBy !== null) {
+      const chain = chainAt(number);
+      chain.schedule.warnings.push({ index: chain.stops.length - 1, code: 'missedLeave', minutes: left.missedBy });
+    }
+    let dwell = left ? left.departure - clock : Math.max(0, stop.dwellMinutes ?? 0);
     while (dwell > 0) {
       const remaining = targets.has(number) ? dwell : Math.max(0, window.end - clock);
       const spend = Math.min(dwell, remaining);

@@ -1,10 +1,11 @@
-// FE-COMP-FILEMANAGER-001 to FE-COMP-FILEMANAGER-012
+// FE-COMP-FILEMANAGER-001 to FE-COMP-FILEMANAGER-038
 import { render, screen, waitFor, fireEvent } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
 import { useAuthStore } from '../../store/authStore';
 import { useTripStore } from '../../store/tripStore';
+import { useDocSyncOfferStore } from '../../store/docSyncOfferStore';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildUser, buildTrip } from '../../../tests/helpers/factories';
 import type { TripFile } from '../../types';
@@ -102,6 +103,15 @@ beforeEach(() => {
       }
       return HttpResponse.json({ files: [] });
     }),
+  );
+
+  // Document sync, as a fresh install has it: every provider off, nothing bound.
+  useDocSyncOfferStore.setState({ bound: {}, providers: null });
+  server.use(
+    http.get('/api/trips/:tripId/docsync/providers', () => HttpResponse.json([])),
+    http.get('/api/trips/:tripId/docsync/links', () => HttpResponse.json([])),
+    http.get('/api/trips/:tripId/docsync/connections', () => HttpResponse.json([])),
+    http.get('/api/trips/:tripId/docsync/status', () => HttpResponse.json({ links: [], items: {} })),
   );
 
   // Stub window.confirm
@@ -629,6 +639,62 @@ describe('FileManager', () => {
       expect(onUpload).toHaveBeenCalled();
       const call = onUpload.mock.calls[0];
       expect(call[0]).toBeInstanceOf(FormData);
+    });
+  });
+
+  describe('document sync button', () => {
+    const paperless = { id: 'paperless', name: 'Paperless-ngx', description: null, icon: 'paperless', available: true, fields: [] };
+    const trashButton = () => screen.getByText('Trash').closest('button') as HTMLButtonElement;
+
+    it('FE-COMP-FILEMANAGER-036: with no provider on and nothing bound there is no sync button, and the trash sits flush right', async () => {
+      const asked: string[] = [];
+      server.use(
+        http.get('/api/trips/:tripId/docsync/links', () => {
+          asked.push('links');
+          return HttpResponse.json([]);
+        }),
+      );
+      render(<FileManager {...defaultProps} />);
+
+      await waitFor(() => expect(asked).toContain('links'));
+      expect(screen.queryByTitle('Document sync')).not.toBeInTheDocument();
+      expect(trashButton()).toHaveStyle({ marginLeft: 'auto' });
+    });
+
+    it('FE-COMP-FILEMANAGER-037: somebody who may bind the trip gets it once a provider is on, and it opens the panel', async () => {
+      server.use(http.get('/api/trips/:tripId/docsync/providers', () => HttpResponse.json([paperless])));
+      render(<FileManager {...defaultProps} />);
+      const user = userEvent.setup();
+
+      const button = await screen.findByTitle('Document sync');
+      expect(button).toHaveStyle({ marginLeft: 'auto' });
+      expect(trashButton().style.marginLeft).toBe('');
+
+      await user.click(button);
+      expect(await screen.findByText('Connect a provider')).toBeInTheDocument();
+    });
+
+    it('FE-COMP-FILEMANAGER-038: a member sees it on a bound trip only', async () => {
+      seedStore(useAuthStore, { user: buildUser({ id: 999, role: 'user' }), isAuthenticated: true });
+      server.use(
+        http.get('/api/trips/:tripId/docsync/providers', () => HttpResponse.json([paperless])),
+        http.get('/api/trips/:tripId/docsync/links', () => HttpResponse.json([{ id: 1, providerId: 'paperless' }])),
+      );
+      const { unmount } = render(<FileManager {...defaultProps} />);
+      expect(await screen.findByTitle('Document sync')).toBeInTheDocument();
+      unmount();
+
+      useDocSyncOfferStore.setState({ bound: {}, providers: null });
+      const asked: string[] = [];
+      server.use(
+        http.get('/api/trips/:tripId/docsync/links', () => {
+          asked.push('links');
+          return HttpResponse.json([]);
+        }),
+      );
+      render(<FileManager {...defaultProps} />);
+      await waitFor(() => expect(asked).toContain('links'));
+      expect(screen.queryByTitle('Document sync')).not.toBeInTheDocument();
     });
   });
 });

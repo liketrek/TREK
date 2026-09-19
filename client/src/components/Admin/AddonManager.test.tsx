@@ -1,4 +1,4 @@
-// FE-ADMIN-ADDON-001 to FE-ADMIN-ADDON-025
+// FE-ADMIN-ADDON-001 to FE-ADMIN-ADDON-036
 import { render, screen, waitFor } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { delay, http, HttpResponse } from 'msw';
@@ -418,7 +418,102 @@ describe('AddonManager', () => {
     expect(isOn(addonToggle('Todo List'))).toBe(true);
   });
 
-  it('FE-ADMIN-ADDON-018: the collab sub-features render their state and report the toggled key', async () => {
+  it('FE-ADMIN-ADDON-033: document providers hang off Documents with their glyphs and stay out of the count', async () => {
+    server.use(addonsRoute([
+      buildAddon({ id: 'documents', name: 'Documents', icon: 'FileText', enabled: true }),
+      buildAddon({ id: 'journey', name: 'Journey', type: 'global', icon: 'Compass', enabled: false }),
+      buildAddon({ id: 'paperless', name: 'Paperless-ngx', description: 'Document archive', type: 'document_provider', enabled: true }),
+      buildAddon({ id: 'nextcloud', name: 'Nextcloud', description: 'WebDAV files', type: 'document_provider', enabled: false }),
+    ]));
+    render(<AddonManager />);
+
+    await screen.findByText('Paperless-ngx');
+    const paperlessRow = screen.getByText('Paperless-ngx').closest('li') as HTMLElement;
+    expect(paperlessRow.querySelector('svg')).toBeInTheDocument();
+    expect(isOn(subToggle('Paperless-ngx'))).toBe(true);
+    expect(isOn(subToggle('Nextcloud'))).toBe(false);
+    // Documents and Journey are the addons; an enabled provider is a shelf row
+    // and must not turn 1/2 into 2/2.
+    expect(screen.getByText('1/2')).toBeInTheDocument();
+  });
+
+  it('FE-ADMIN-ADDON-034: document providers stay hidden while Documents itself is off', async () => {
+    server.use(addonsRoute([
+      buildAddon({ id: 'documents', name: 'Documents', icon: 'FileText', enabled: false }),
+      buildAddon({ id: 'paperless', name: 'Paperless-ngx', type: 'document_provider', enabled: true }),
+    ]));
+    render(<AddonManager />);
+
+    await screen.findByText('Documents');
+    expect(screen.queryByText('Paperless-ngx')).not.toBeInTheDocument();
+  });
+
+  it('FE-ADMIN-ADDON-035: switching Documents off and on again shows the cascaded providers as off', async () => {
+    const user = userEvent.setup();
+    let loads = 0;
+    let documentsOn = true;
+    let paperlessOn = true;
+    server.use(
+      http.get('/api/admin/addons', () => {
+        loads += 1;
+        return HttpResponse.json({
+          addons: [
+            buildAddon({ id: 'documents', name: 'Documents', icon: 'FileText', enabled: documentsOn }),
+            buildAddon({ id: 'paperless', name: 'Paperless-ngx', type: 'document_provider', enabled: paperlessOn }),
+          ],
+        });
+      }),
+      http.put('/api/admin/addons/documents', async ({ request }) => {
+        documentsOn = (await request.json() as { enabled: boolean }).enabled;
+        if (!documentsOn) paperlessOn = false;
+        return HttpResponse.json({ success: true });
+      }),
+    );
+    render(<><ToastContainer /><AddonManager /></>);
+    await screen.findByText('Paperless-ngx');
+
+    await user.click(addonToggle('Documents'));
+    await screen.findByText('Addon updated');
+    expect(loads).toBe(2);
+    expect(screen.queryByText('Paperless-ngx')).not.toBeInTheDocument();
+
+    await user.click(addonToggle('Documents'));
+
+    await screen.findByText('Paperless-ngx');
+    expect(isOn(subToggle('Paperless-ngx'))).toBe(false);
+  });
+
+  it('FE-ADMIN-ADDON-036: toggling a document provider persists it without re-reading the list', async () => {
+    const user = userEvent.setup();
+    let loads = 0;
+    let body: unknown = null;
+    server.use(
+      http.get('/api/admin/addons', () => {
+        loads += 1;
+        return HttpResponse.json({
+          addons: [
+            buildAddon({ id: 'documents', name: 'Documents', icon: 'FileText', enabled: true }),
+            buildAddon({ id: 'papra', name: 'Papra', type: 'document_provider', enabled: false }),
+          ],
+        });
+      }),
+      http.put('/api/admin/addons/papra', async ({ request }) => {
+        body = await request.json();
+        return HttpResponse.json({ success: true });
+      }),
+    );
+    render(<><ToastContainer /><AddonManager /></>);
+    await screen.findByText('Papra');
+
+    await user.click(subToggle('Papra'));
+
+    await screen.findByText('Addon updated');
+    expect(body).toEqual({ enabled: true });
+    expect(loads).toBe(1);
+    expect(isOn(subToggle('Papra'))).toBe(true);
+  });
+
+  it('FE-ADMIN-ADDON-018:the collab sub-features render their state and report the toggled key', async () => {
     const user = userEvent.setup();
     const onToggleCollabFeature = vi.fn();
     server.use(addonsRoute([buildAddon({ id: 'collab', name: 'Collab', enabled: true })]));

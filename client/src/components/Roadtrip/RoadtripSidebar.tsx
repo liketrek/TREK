@@ -31,6 +31,8 @@ import { FS } from './typeScale'
 import type { RouteSegment } from '../../types'
 import EmptyState from '../shared/EmptyState'
 import AutomaticDayStop from './AutomaticDayStop'
+import type { StayDraft } from './RoadtripStayModal'
+import { missedLeaveOf, readStay, shownStay, stayDraftOf, type StayReading } from './stayReading'
 
 interface RoadtripSidebarProps {
   onFocusPoint?: (lat: number, lng: number) => void
@@ -62,7 +64,7 @@ interface RoadtripSidebarProps {
    * Opens the dialog for how long a stop takes. Absent leaves every stay read-only —
    * which is also what a viewer sees.
    */
-  onEditStay?: (stop: { placeId: number; name: string; minutes: number | null; arrival: string | null }) => void
+  onEditStay?: (stop: StayDraft) => void
   /**
    * Turns a stop into a pause on the drive, or back into a destination.
    *
@@ -280,10 +282,17 @@ function FillBadge({ percent, own, onEdit }: {
   )
 }
 
-function StayBadge({ minutes, onEdit }: { minutes: number | null; onEdit?: () => void }): React.ReactElement | null {
+/**
+ * How long the stop takes. A stop the traveller leaves at a set time is stood at until
+ * then, so it reads the stay the schedule made of that and says until when.
+ */
+function StayBadge({ stay, onEdit }: { stay: StayReading; onEdit?: () => void }): React.ReactElement | null {
   const { t } = useTranslation()
-  const text = minutes ? formatDurationShort(minutes * 60) : null
-  if (!text && !onEdit) return null
+  const is12h = useSettingsStore(s => s.settings.time_format) === '12h'
+  const shown = shownStay(stay)
+  const text = shown === null ? null : formatDurationShort(shown * 60)
+  const until = stay.until ? t('roadtrip.stay.until', { time: formatClockTime(stay.until, is12h) }) : null
+  if (!text && !until && !onEdit) return null
 
   const shell = 'inline-flex h-[16px] items-stretch self-start overflow-hidden rounded border border-edge'
   const label = (
@@ -301,7 +310,8 @@ function StayBadge({ minutes, onEdit }: { minutes: number | null; onEdit?: () =>
       }`}
       style={{ fontSize: FS.label }}
     >
-      {text ?? '+'}
+      {text ?? (until ? null : '+')}
+      {until ? <span className={`font-medium text-content-faint ${text ? 'ms-1' : ''}`}>{until}</span> : null}
     </span>
   )
 
@@ -323,7 +333,7 @@ function StayBadge({ minutes, onEdit }: { minutes: number | null; onEdit?: () =>
           e.stopPropagation()
           onEdit()
         }}
-        aria-label={text ? `${t('roadtrip.stop.stay')}: ${text}` : t('roadtrip.stay.add')}
+        aria-label={text || until ? `${t('roadtrip.stop.stay')}: ${[text, until].filter(Boolean).join(' ')}` : t('roadtrip.stay.add')}
         className={`${shell} cursor-pointer transition-colors hover:border-content-faint`}
       >
         {label}{value}
@@ -749,9 +759,10 @@ function DriveBand({ leg, onAskAlternatives, alternativesOpen }: {
 function ServiceStop({ stop, entry, late, driveFindings, selected, onSelect, onEditStay, onPickKind, onPickFill }: {
   stop: RoadtripStop
   entry: ScheduleEntry | undefined
-  /** How late the drive reaches a time pinned on this pause, the same finding a numbered
-   *  stop shows. A fuel or charging halt can carry a pinned time like anything else. */
-  late: ScheduleWarning | undefined
+  /** How late the drive reaches a time pinned on this pause, or the time it was set to
+   *  be left at: the same findings a numbered stop shows. A fuel or charging halt can
+   *  carry a pinned time like anything else. */
+  late: ScheduleWarning[]
   /** Findings about the drive that ARRIVES here. A charging halt is a stop like any other
    *  as far as the tank is concerned, so it carries them the same way a numbered one does. */
   driveFindings?: ScheduleWarning[]
@@ -834,7 +845,7 @@ function ServiceStop({ stop, entry, late, driveFindings, selected, onSelect, onE
             <span className="min-w-0 truncate">{stop.name}</span>{stop.stopType === 'charging' && <ChargingInfo placeId={stop.placeId} compact />}
           </span>
           <span className="flex flex-wrap items-center gap-1">
-            <StayBadge minutes={stop.dwellMinutes} onEdit={onEditStay} />
+            <StayBadge stay={readStay(stop, entry)} onEdit={onEditStay} />
             {refuelsRange(stop.stopType, vehicleKind) ? (
               <FillBadge
                 percent={effectiveFill(stop.fillPercent, fillPercent)}
@@ -844,7 +855,7 @@ function ServiceStop({ stop, entry, late, driveFindings, selected, onSelect, onE
             ) : null}
             {spurWorthLabelling(stop.offRoadMeters) ? <OffRoadBadge meters={stop.offRoadMeters ?? 0} /> : null}
             {(driveFindings ?? []).map(w => <DriveFindingBadge key={w.code} warning={w} />)}
-            <LateBadge late={late} />
+            {late.map(w => <LateBadge key={w.code} late={w} />)}
           </span>
         </span>
         {entry?.arrival ? <Arrival entry={entry} /> : null}
@@ -985,7 +996,8 @@ function Stop({ stop, number, entry, late, driveFindings, selected, continues, s
   /** Position within the day — the same count the map badges its markers with. */
   number: number
   entry: ScheduleEntry | undefined
-  late: ScheduleWarning | undefined
+  /** Arriving after a pinned time, or after the time this stop was set to be left at. */
+  late: ScheduleWarning[]
   /** Findings about the drive LEAVING this stop, when the limits are set and it goes over. */
   driveFindings?: ScheduleWarning[]
   selected: boolean
@@ -1089,7 +1101,7 @@ function Stop({ stop, number, entry, late, driveFindings, selected, continues, s
               enough to change the plan. The dashed line on the map already says there is
               one; the number is for luggage, a gate, a track a hire car should not be on. */}
           <span className="flex flex-wrap items-center gap-1">
-            <StayBadge minutes={stop.dwellMinutes} onEdit={onEditStay} />
+            <StayBadge stay={readStay(stop, entry)} onEdit={onEditStay} />
             {refuelsRange(stop.stopType, vehicleKind) ? (
               <FillBadge
                 percent={effectiveFill(stop.fillPercent, fillPercent)}
@@ -1099,7 +1111,7 @@ function Stop({ stop, number, entry, late, driveFindings, selected, continues, s
             ) : null}
             {spurWorthLabelling(stop.offRoadMeters) ? <OffRoadBadge meters={stop.offRoadMeters ?? 0} /> : null}
             {(driveFindings ?? []).map(w => <DriveFindingBadge key={w.code} warning={w} />)}
-            <LateBadge late={late} />
+            {late.map(w => <LateBadge key={w.code} late={w} />)}
           </span>
         </span>
         {entry?.arrival ? <Arrival entry={entry} /> : null}
@@ -1118,10 +1130,9 @@ function Stop({ stop, number, entry, late, driveFindings, selected, continues, s
  * its own: they are all answers to "what does this stop cost", and a warning on its own row
  * pushed every following stop down for a finding that fits in a pill.
  */
-function LateBadge({ late }: { late: ScheduleWarning | undefined }): React.ReactElement | null {
+function LateBadge({ late }: { late: ScheduleWarning }): React.ReactElement {
   const { t } = useTranslation()
-  if (!late) return null
-  const label = t('roadtrip.warn.late', { minutes: late.minutes ?? 0 })
+  const label = t(late.code === 'missedLeave' ? 'roadtrip.warn.missedLeave' : 'roadtrip.warn.late', { minutes: late.minutes ?? 0 })
   return (
     <Tooltip label={label}>
       <span
@@ -1348,8 +1359,9 @@ function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, on
     const service = isServiceStopType(stop.stopType)
     if (!service) counted += 1
     // Every finding at this index is read on its own. Taking the first match let an
-    // overnight crossing swallow the "you arrive late" flag without a trace.
-    const marks = day.schedule.warnings.filter(w => w.index === i)
+    // overnight crossing swallow the "you arrive late" flag without a trace, and a stop
+    // can be late for the time it is reached and the time it is left at both at once.
+    const lateness = day.schedule.warnings.filter(w => w.index === i && (w.code === 'late' || w.code === 'missedLeave'))
     const ownDay = stop.ownerDayId
     const ownIndex = stop.ownerIndex
     return (
@@ -1388,11 +1400,11 @@ function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, on
           <ServiceStop
             stop={stop}
             entry={day.schedule.entries[i]}
-            late={marks.find(w => w.code === 'late')}
+            late={lateness}
             driveFindings={findingsFor(i)}
             selected={selectedAssignmentId === stop.assignmentId}
             onSelect={onSelectStop ? () => onSelectStop(stop.placeId, stop.assignmentId) : undefined}
-            onEditStay={onEditStay ? () => onEditStay({ placeId: stop.placeId, name: stop.name, minutes: stop.dwellMinutes, arrival: day.schedule.entries[i]?.arrival ?? null }) : undefined}
+            onEditStay={onEditStay ? () => onEditStay(stayDraftOf(stop, day.schedule.entries[i], missedLeaveOf(day, i))) : undefined}
             onPickKind={onSetStopKind ? anchor => setPicking({ anchor, stop }) : undefined}
             onPickFill={onSetStopFill ? anchor => setFilling({ anchor, stop }) : undefined}
           />
@@ -1401,7 +1413,7 @@ function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, on
             stop={stop}
             number={counted}
             entry={day.schedule.entries[i]}
-            late={marks.find(w => w.code === 'late')}
+            late={lateness}
             driveFindings={findingsFor(i)}
             selected={selectedAssignmentId === stop.assignmentId}
             continues={i < last}
@@ -1409,7 +1421,7 @@ function DaySection({ day, selectedAssignmentId, onSelectStop, onReorderStop, on
             onSelect={onSelectStop ? () => onSelectStop(stop.placeId, stop.assignmentId) : undefined}
             onMove={onReorderStop ? delta => onReorderStop(ownDay, stop.assignmentId, ownIndex + delta) : undefined}
             canMove={{ up: i > 0, down: i < last }}
-            onEditStay={onEditStay ? () => onEditStay({ placeId: stop.placeId, name: stop.name, minutes: stop.dwellMinutes, arrival: day.schedule.entries[i]?.arrival ?? null }) : undefined}
+            onEditStay={onEditStay ? () => onEditStay(stayDraftOf(stop, day.schedule.entries[i], missedLeaveOf(day, i))) : undefined}
             onPickKind={onSetStopKind ? anchor => setPicking({ anchor, stop }) : undefined}
             onPickFill={onSetStopFill ? anchor => setFilling({ anchor, stop }) : undefined}
           />

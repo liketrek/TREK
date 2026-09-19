@@ -325,6 +325,7 @@ export function buildShell(overrides: Partial<MTripShellApi> = {}): MTripShellAp
     exportCostsCsvSignal: 0,
     uploadFilesSignal: 0,
     openFilesTrashSignal: 0,
+    openDocSyncSignal: 0,
   };
   return { ...base, ...overrides };
 }

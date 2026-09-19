@@ -73,6 +73,7 @@ const FIXTURES: Record<TrekWsEventName, Record<string, unknown>> = {
   'trip:deleted': { id: 1 },
   'member:added': { member: { user_id: 2 } },
   'member:removed': { userId: 2 },
+  'docsync:changed': { linkId: 4, pulled: 2, pushed: 1 },
   'file:created': { file: { id: 13 } },
   'file:updated': { file: { id: 13 } },
   'file:deleted': { fileId: 13 },
@@ -144,12 +145,14 @@ const DRIFT_VARIANTS: Partial<Record<TrekWsEventName, Record<string, unknown>[]>
 };
 
 describe('@trek/shared realtime event registry', () => {
-  it('WSEVT-REG-001: pins the authoritative inventory counts (73 trip + 32 user = 105)', () => {
+  it('WSEVT-REG-001: pins the authoritative inventory counts (74 trip + 32 user = 106)', () => {
     // 67th to 69th trip event: the three collab:link:* a shared link emits.
     // 70th and 71st: the road trip's vias and tracks, which used to be written silently.
-    expect(TREK_WS_TRIP_EVENT_NAMES).toHaveLength(73);
+    // 74th: docsync:changed, so a sync run that moved documents refreshes the
+    // panel without every member polling for it.
+    expect(TREK_WS_TRIP_EVENT_NAMES).toHaveLength(74);
     expect(TREK_WS_USER_EVENT_NAMES).toHaveLength(32);
-    expect(TREK_WS_EVENT_NAMES).toHaveLength(105);
+    expect(TREK_WS_EVENT_NAMES).toHaveLength(106);
   });
 
   it('WSEVT-REG-002: every name is domain:action shaped and outside the reserved plugin: namespace', () => {

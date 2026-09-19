@@ -6,6 +6,9 @@ import { filesApi } from '../../api/client'
 import type { Place, Reservation, TripFile, Day, AssignmentsMap } from '../../types'
 import { useCanDo } from '../../store/permissionsStore'
 import { useTripStore } from '../../store/tripStore'
+import { useAuthStore } from '../../store/authStore'
+import { canManageDocSync } from './docsync/useDocSync'
+import { useDocSyncOffered } from './docsync/useDocSyncOffered'
 import { getAuthUrl } from '../../api/authUrl'
 import { isImage, isMedia, isWalletPass } from './FileManager.helpers'
 import { openFile as openFileInTab } from '../../utils/fileDownload'
@@ -30,6 +33,7 @@ export interface FileManagerProps {
  */
 export function useFileManager({ files = [], onUpload, onDelete, onUpdate, places, days = [], assignments = {}, reservations = [], tripId, allowedFileTypes }: FileManagerProps) {
   const [uploading, setUploading] = useState(false)
+  const [showDocSync, setShowDocSync] = useState(false)
   const [filterType, setFilterType] = useState('all')
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const [showTrash, setShowTrash] = useState(false)
@@ -38,6 +42,9 @@ export function useFileManager({ files = [], onUpload, onDelete, onUpdate, place
   const toast = useToast()
   const can = useCanDo()
   const trip = useTripStore((s) => s.trip)
+  const currentUser = useAuthStore((s) => s.user)
+  const canManageSync = canManageDocSync(currentUser, trip)
+  const docSyncOffered = useDocSyncOffered(tripId, canManageSync)
   const { t, locale } = useTranslation()
 
   const loadTrash = useCallback(async () => {
@@ -210,6 +217,7 @@ export function useFileManager({ files = [], onUpload, onDelete, onUpdate, place
     previewFile, setPreviewFile, previewFileUrl, assignFileId, setAssignFileId,
     getRootProps, getInputProps, isDragActive, handlePaste, filteredFiles, handleDelete,
     handleAssign, mediaFiles, openFile,
+    showDocSync, setShowDocSync, canManageSync, docSyncOffered,
   }
 }
 

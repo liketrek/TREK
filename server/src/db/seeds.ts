@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3';
 import crypto from 'crypto';
 import { readEnv } from '../app-config';
+import { seedDocumentProviders } from './document-provider-seed';
 
 // bcrypt cost factor for the seeded admin password — kept in sync with authService.
 const BCRYPT_COST = 12;
@@ -164,6 +165,13 @@ function seedAddons(db: Database.Database): void {
     for (const f of providerFields) {
       insertProviderField.run(f.provider_id, f.field_key, f.label, f.input_type, f.placeholder, f.hint, f.required, f.secret, f.settings_key, f.payload_key, f.sort_order);
     }
+
+    // Document providers live in their own pair of tables (see the migration
+    // for why they are not a `kind` column on photo_providers). Seeded from the
+    // same helper the migration uses, so a fresh install and an upgraded one
+    // agree.
+    seedDocumentProviders(db);
+
     console.log('Default addons seeded');
   } catch (err: unknown) {
     console.error('Error seeding addons:', err instanceof Error ? err.message : err);

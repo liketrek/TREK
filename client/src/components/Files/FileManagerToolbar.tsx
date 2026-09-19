@@ -1,8 +1,8 @@
-import { Star, Trash2 } from 'lucide-react'
+import { FolderSync, Star, Trash2 } from 'lucide-react'
 import type { FileManagerState } from './useFileManager'
 
 export function FileManagerToolbar(S: FileManagerState) {
-  const { showTrash, t, files, filterType, setFilterType, toggleTrash } = S
+  const { showTrash, t, files, filterType, setFilterType, toggleTrash, setShowDocSync, docSyncOffered } = S
   return (
     <div style={{ padding: '24px 28px 0', flexShrink: 0 }} className="max-md:!px-4 max-md:!pt-4">
       <div style={{
@@ -63,12 +63,29 @@ export function FileManagerToolbar(S: FileManagerState) {
           </>
         )}
 
+        {/* Opens the sync panel. Placed next to the trash rather than in a menu
+            because the question it answers, "where do these documents live",
+            belongs on the same screen as the documents. Only where there is
+            something behind it: see useDocSyncOffered. */}
+        {docSyncOffered && (
+          <button type="button" onClick={() => setShowDocSync(true)} title={t('docsync.title')} style={{
+            appearance: 'none', border: '1px solid var(--edge)', cursor: 'pointer', fontFamily: 'inherit',
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            padding: '9px 12px', borderRadius: 10, fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500,
+            background: 'transparent', color: 'var(--content-muted)', flexShrink: 0, marginLeft: 'auto',
+          }}>
+            <FolderSync size={14} strokeWidth={2.5} /> <span className="hidden sm:inline">{t('docsync.title')}</span>
+          </button>
+        )}
+
+        {/* The first of the two takes the free space, so without the sync
+            button the trash sits flush right the way it always has. */}
         <button type="button" onClick={toggleTrash} style={{
           appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
           display: 'inline-flex', alignItems: 'center', gap: 6,
           padding: '9px 14px', borderRadius: 10, fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500,
           background: 'var(--accent)', color: 'var(--accent-text)',
-          flexShrink: 0, marginLeft: 'auto',
+          flexShrink: 0, marginLeft: docSyncOffered ? undefined : 'auto',
           opacity: showTrash ? 1 : 0.88,
           transition: 'opacity 0.15s ease',
         }}
