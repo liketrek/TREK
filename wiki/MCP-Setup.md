@@ -94,7 +94,7 @@ Use this when your AI agent or automation script needs to authenticate silently 
 
 ### Create a machine client
 
-1. Go to your **Settings → Integrations → MCP → OAuth 2.1 Clients** and click **New Client**.
+1. Go to **Settings → Integrations → MCP → OAuth 2.1 Clients** and click **New Client**.
 2. Tick **Machine client (no browser login)**. The redirect URI field disappears — machine clients don't need one.
 3. Give it a name, select scopes, and click **Register Client**.
 4. Copy the `client_id` and `client_secret` shown — the secret is displayed only once.
