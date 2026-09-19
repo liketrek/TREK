@@ -370,6 +370,28 @@ describe('Tool: create_place_accommodation', () => {
       expect(testDb.prepare('SELECT COUNT(*) as n FROM places WHERE trip_id = ?').get(trip.id)).toMatchObject({ n: 0 });
     });
   });
+
+  it('a write that fails inside the transaction rolls both halves back and says so', async () => {
+    // The place, the stay and the day stop the stay implies go in together or not at
+    // all. A category that is not there is the cheapest way to make the first insert
+    // fail on a foreign key; what matters is that the tool answers with an error
+    // instead of a half-written trip.
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_place_accommodation',
+        arguments: { tripId: trip.id, name: 'Hotel Nirgendwo', category_id: 99999, start_day_id: day.id, end_day_id: day.id },
+      });
+      expect(result.isError).toBe(true);
+      const { content } = result as { content: { type: string; text?: string }[] };
+      expect(content[0].text).toContain('Failed to create place and accommodation');
+      expect(testDb.prepare('SELECT COUNT(*) as n FROM places WHERE trip_id = ?').get(trip.id)).toMatchObject({ n: 0 });
+      expect(testDb.prepare('SELECT COUNT(*) as n FROM day_accommodations WHERE trip_id = ?').get(trip.id)).toMatchObject({ n: 0 });
+      expect(testDb.prepare('SELECT COUNT(*) as n FROM day_assignments WHERE day_id = ?').get(day.id)).toMatchObject({ n: 0 });
+    });
+  });
 });
 
 // ---------------------------------------------------------------------------

@@ -74,8 +74,9 @@ const bridge = {
 };
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { notificationsStub } from '../../helpers/notifications';
+import { makeAccommodationsService } from '../../helpers/accommodations-service';
 
-const svc = new ReservationsService(new DatabaseService(testDb), permissionsStub, budget as unknown as BudgetService, new RealtimeService(), notificationsStub(notif.send), new ReservationsReadRepository(new DatabaseService(testDb)));
+const svc = new ReservationsService(new DatabaseService(testDb), permissionsStub, budget as unknown as BudgetService, new RealtimeService(), notificationsStub(notif.send), new ReservationsReadRepository(new DatabaseService(testDb)), makeAccommodationsService(testDb));
 
 beforeAll(() => { createTables(testDb); runMigrations(testDb); });
 beforeEach(() => {
@@ -1052,5 +1053,133 @@ describe('ReservationsService — referenced ids stay inside the trip', () => {
 
     expect(testDb.prepare('SELECT check_in FROM day_accommodations WHERE id = ?').get(foreignAcc.id)).toEqual({ check_in: '14:00' });
     expect(testDb.prepare('SELECT accommodation_id FROM reservations WHERE id = ?').get(res.id)).toEqual({ accommodation_id: null });
+  });
+});
+
+describe('the day stop a hotel booking implies', () => {
+  // Booking a night on this form is booking a night: it shows in the day header
+  // exactly like one entered under Days, and road trip mode draws the same booking
+  // as a service stop instead. Before this the booking form was the one door that
+  // wrote the stay without the stop, so a hotel entered here was invisible to the
+  // drive and had to be added a second time as an ordinary place.
+  const stopsOn = (dayId: number) =>
+    testDb.prepare('SELECT id, place_id, accommodation_id FROM day_assignments WHERE day_id = ? ORDER BY order_index').all(dayId) as
+      { id: number; place_id: number; accommodation_id: number | null }[];
+  const tripWithDays = () => {
+    const { trip } = ownerTrip({ start_date: '2030-05-01', end_date: '2030-05-03' });
+    const days = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY day_number').all(trip.id) as { id: number }[];
+    return { trip, days };
+  };
+
+  it('RESV-STAY-001: a hotel booked on the form lands on its check-in day', () => {
+    const { trip, days } = tripWithDays();
+    const place = createPlace(testDb, trip.id, { name: 'Hotel Adlon' });
+
+    const { reservation } = svc.create(String(trip.id), {
+      title: 'Hotel', type: 'hotel',
+      create_accommodation: { place_id: place.id, start_day_id: days[0].id, end_day_id: days[2].id },
+    });
+
+    expect(stopsOn(days[0].id)).toEqual([expect.objectContaining({ place_id: place.id, accommodation_id: Number(reservation.accommodation_id) })]);
+    // Typed as lodging, so the road trip draws it as the service stop it is.
+    expect(testDb.prepare('SELECT stop_type FROM places WHERE id = ?').get(place.id)).toMatchObject({ stop_type: 'hotel' });
+    // Only the check-in day, the same as every other door.
+    expect(stopsOn(days[2].id)).toEqual([]);
+  });
+
+  it('RESV-STAY-002: a booking that is not a hotel puts nothing on the plan', () => {
+    const { trip, days } = tripWithDays();
+    svc.create(String(trip.id), { title: 'Museum tour', type: 'tour', day_id: days[0].id });
+    expect(stopsOn(days[0].id)).toEqual([]);
+  });
+
+  it('RESV-STAY-003: moving the booking to another day takes its stop along', () => {
+    const { trip, days } = tripWithDays();
+    const place = createPlace(testDb, trip.id, { name: 'Hotel Adlon' });
+    const { reservation } = svc.create(String(trip.id), {
+      title: 'Hotel', type: 'hotel',
+      create_accommodation: { place_id: place.id, start_day_id: days[0].id, end_day_id: days[0].id },
+    });
+    const current = svc.getReservation(String(reservation.id), String(trip.id))!;
+
+    svc.update(String(reservation.id), String(trip.id), {
+      type: 'hotel',
+      create_accommodation: { place_id: place.id, start_day_id: days[1].id, end_day_id: days[2].id },
+    } as never, current);
+
+    // Left behind it would sit on a day nobody sleeps there, hidden from the day
+    // list because it still carries this booking's id.
+    expect(stopsOn(days[0].id)).toEqual([]);
+    expect(stopsOn(days[1].id)).toEqual([expect.objectContaining({ place_id: place.id, accommodation_id: Number(reservation.accommodation_id) })]);
+  });
+
+  it('RESV-STAY-004: an edit that first creates the stay writes the stop too', () => {
+    // A booking saved without a date range, then given one. resolvedAccId is null on
+    // the way in, so this takes the insert branch rather than the update branch.
+    const { trip, days } = tripWithDays();
+    const place = createPlace(testDb, trip.id, { name: 'Hotel Adlon' });
+    const { reservation } = svc.create(String(trip.id), { title: 'Hotel', type: 'hotel' });
+    const current = svc.getReservation(String(reservation.id), String(trip.id))!;
+
+    svc.update(String(reservation.id), String(trip.id), {
+      type: 'hotel',
+      create_accommodation: { place_id: place.id, start_day_id: days[1].id, end_day_id: days[1].id },
+    } as never, current);
+
+    const stay = testDb.prepare('SELECT id FROM day_accommodations WHERE trip_id = ?').get(trip.id) as { id: number };
+    expect(stopsOn(days[1].id)).toEqual([expect.objectContaining({ place_id: place.id, accommodation_id: stay.id })]);
+  });
+
+  it('RESV-STAY-005: deleting the booking takes the stop with the stay', () => {
+    const { trip, days } = tripWithDays();
+    const place = createPlace(testDb, trip.id, { name: 'Hotel Adlon' });
+    const { reservation } = svc.create(String(trip.id), {
+      title: 'Hotel', type: 'hotel',
+      create_accommodation: { place_id: place.id, start_day_id: days[0].id, end_day_id: days[0].id },
+    });
+
+    const { accommodationDeleted } = svc.remove(String(reservation.id), String(trip.id));
+
+    expect(accommodationDeleted).toBe(true);
+    // A stop still carrying a dead booking's id is one the day list hides and
+    // nobody can reach to remove.
+    expect(stopsOn(days[0].id)).toEqual([]);
+  });
+
+  it('RESV-STAY-006: a place the traveller already planned that day keeps its own row', () => {
+    const { trip, days } = tripWithDays();
+    const place = createPlace(testDb, trip.id, { name: 'Hotel Adlon' });
+    const own = testDb.prepare('INSERT INTO day_assignments (day_id, place_id, order_index) VALUES (?, ?, 0)').run(days[0].id, place.id);
+
+    const { reservation } = svc.create(String(trip.id), {
+      title: 'Hotel', type: 'hotel',
+      create_accommodation: { place_id: place.id, start_day_id: days[0].id, end_day_id: days[0].id },
+    });
+
+    // No second row, and the booking claims neither: cancelling it must not delete
+    // a stop the traveller placed.
+    expect(stopsOn(days[0].id)).toEqual([{ id: Number(own.lastInsertRowid), place_id: place.id, accommodation_id: null }]);
+    svc.remove(String(reservation.id), String(trip.id));
+    expect(stopsOn(days[0].id)).toHaveLength(1);
+  });
+
+  it('RESV-STAY-007: a foreign accommodation_id reaches no stop on the other trip', () => {
+    // The trip_id guard on the stay delete is what denies that reach; the stops go
+    // by accommodation id alone and would otherwise follow it straight over.
+    const { user: attacker } = createUser(testDb);
+    const { user: victim } = createUser(testDb, { email: 'victim@example.test' });
+    const mine = createTrip(testDb, attacker.id, { start_date: '2030-05-01', end_date: '2030-05-03' });
+    const theirs = createTrip(testDb, victim.id, { start_date: '2030-05-01', end_date: '2030-05-03' });
+    const foreignPlace = createPlace(testDb, theirs.id, { name: 'Their hotel' });
+    const foreignDay = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY day_number').get(theirs.id) as { id: number };
+    const foreignAcc = createDayAccommodation(testDb, theirs.id, foreignPlace.id, foreignDay.id, foreignDay.id);
+    const theirStop = testDb.prepare('INSERT INTO day_assignments (day_id, place_id, order_index, accommodation_id) VALUES (?, ?, 0, ?)')
+      .run(foreignDay.id, foreignPlace.id, foreignAcc.id);
+    const res = createReservation(testDb, mine.id, { title: 'Hotel', type: 'hotel' });
+    testDb.prepare('UPDATE reservations SET accommodation_id = ? WHERE id = ?').run(foreignAcc.id, res.id);
+
+    svc.remove(String(res.id), String(mine.id));
+
+    expect(testDb.prepare('SELECT id FROM day_assignments WHERE id = ?').get(Number(theirStop.lastInsertRowid))).toBeTruthy();
   });
 });

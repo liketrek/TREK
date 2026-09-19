@@ -267,6 +267,56 @@ export class JourneyController {
     return { photos: results };
   }
 
+  /**
+   * A clip on an entry.
+   *
+   * The gallery has taken video since #823 and an entry could not: everything an
+   * entry uploaded went through the images-only filter above, so picking an mp4
+   * in the editor came back 400 and the save reported "1 of 1 photos failed"
+   * (issue #2341). Same two parts as the gallery route — the clip plus the poster
+   * frame the browser grabbed — and the same absence of transcoding.
+   */
+  @Post('entries/:entryId/video')
+  @UseInterceptors(FileFieldsInterceptor(
+    [{ name: 'video', maxCount: 1 }, { name: 'poster', maxCount: 1 }],
+    { limits: { fileSize: MAX_VIDEO_SIZE }, fileFilter: VIDEO_FILE_FILTER },
+  ))
+  async uploadEntryVideo(
+    @CurrentUser() user: User,
+    @Param('entryId') entryId: string,
+    @UploadedFiles() files: { video?: Express.Multer.File[]; poster?: Express.Multer.File[] } | undefined,
+    @Body() body: JourneyGalleryVideoDto,
+  ) {
+    const video = files?.video?.[0];
+    const poster = files?.poster?.[0];
+    const cleanup = () => {
+      for (const f of [video, poster]) {
+        if (f?.path) { try { fs.unlinkSync(f.path); } catch { /* best-effort */ } }
+      }
+    };
+    if (!video) {
+      cleanup();
+      throw new HttpException({ error: 'No video uploaded' }, 400);
+    }
+    await this.commitJourneyUploads(poster ? [video, poster] : [video]);
+    const durationMs = body?.duration_ms != null ? Number(body.duration_ms) : null;
+    const photo = this.journey.addPhoto(
+      Number(entryId),
+      user.id,
+      `journey/${video.filename}`,
+      poster ? `journey/${poster.filename}` : undefined,
+      undefined,
+      { mediaType: 'video', durationMs: durationMs != null && Number.isFinite(durationMs) ? durationMs : null },
+    );
+    if (!photo) {
+      // Committed already, so the pre-commit unlink would orphan the bytes.
+      await this.storage.delete('journey', video.filename).catch(() => {});
+      if (poster) await this.storage.delete('journey', poster.filename).catch(() => {});
+      throw new HttpException({ error: 'Not allowed' }, 403);
+    }
+    return { photos: [photo] };
+  }
+
   @Post('entries/:entryId/provider-photos')
   providerPhotos(@CurrentUser() user: User, @Param('entryId') entryId: string, @Body() body: JourneyProviderPhotosDto) {
     const pp = body.passphrase && typeof body.passphrase === 'string' ? body.passphrase : undefined;
@@ -692,6 +742,17 @@ export class JourneyController {
       throw new HttpException({ error: 'Not allowed' }, 403);
     }
     return { success: true };
+  }
+
+  // ── Suggestions ─────────────────────────────────────────────────────────
+  @Post(':id/suggestions/restore')
+  @HttpCode(200)
+  restoreSuggestions(@CurrentUser() user: User, @Param('id') id: string) {
+    const result = this.journey.restoreDismissedSuggestions(Number(id), user.id);
+    if (!result) {
+      throw new HttpException({ error: 'Not allowed' }, 403);
+    }
+    return result;
   }
 
   // ── User Preferences ────────────────────────────────────────────────────

@@ -39,7 +39,7 @@ const { db } = vi.hoisted(() => {
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
   // deleteTrip cleans up synced journey entries before dropping the trip row.
   tmp.exec(`CREATE TABLE journey_entries (id INTEGER PRIMARY KEY AUTOINCREMENT, journey_id INTEGER,
-    source_trip_id INTEGER, source_place_id INTEGER, type TEXT NOT NULL);`);
+    source_trip_id INTEGER, source_place_id INTEGER, source_assignment_id INTEGER, type TEXT NOT NULL);`);
   // bundle()'s todoItems now runs TodoService's real SQL (DI-injected, no mock).
   tmp.exec(`CREATE TABLE todo_items (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL,
     name TEXT NOT NULL, checked INTEGER NOT NULL DEFAULT 0, category TEXT, sort_order INTEGER NOT NULL DEFAULT 0,
@@ -57,8 +57,9 @@ const { db } = vi.hoisted(() => {
   // bundle()'s files now runs FilesService's real SQL (DI-injected, no mock) —
   // empty tables satisfy the FILE_SELECT joins and the file_links batch.
   tmp.exec(`CREATE TABLE trip_files (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL,
-    place_id INTEGER, reservation_id INTEGER, filename TEXT NOT NULL, original_name TEXT NOT NULL,
-    file_size INTEGER, mime_type TEXT, description TEXT, uploaded_by INTEGER, starred INTEGER DEFAULT 0,
+    place_id INTEGER, reservation_id INTEGER, message_id INTEGER, filename TEXT NOT NULL,
+    original_name TEXT NOT NULL, file_size INTEGER, mime_type TEXT, description TEXT,
+    uploaded_by INTEGER, starred INTEGER DEFAULT 0,
     deleted_at DATETIME, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
   tmp.exec(`CREATE TABLE file_links (id INTEGER PRIMARY KEY AUTOINCREMENT, file_id INTEGER NOT NULL,
     reservation_id INTEGER, assignment_id INTEGER, place_id INTEGER,

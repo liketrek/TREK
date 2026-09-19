@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
+import DawarichIcon from '../../../../components/shared/DawarichIcon'
 import {
   Bookmark, Camera, ChevronRight, ExternalLink, Loader2, Map as MapIcon, Navigation, Paperclip,
   Pencil, Phone, Plus, Route, Trash2, Upload, X,
@@ -14,6 +15,7 @@ import { useSaveToCollectionStore } from '../../../../store/saveToCollectionStor
 import { collectionTargetFromPlace } from '../lib/collectionTarget'
 import { getCategoryIcon } from '../../../../components/shared/categoryIcons'
 import PlaceRating from '../../../../components/shared/StarRating'
+import MarkdownText from '../../../../components/shared/MarkdownText'
 import TrackColorPicker from '../../../../components/shared/TrackColorPicker'
 import { resolveTrackColor, inheritedTrackColor } from '../../../../components/Map/trackColors'
 import { avatarSrc } from '../../../../utils/avatarSrc'
@@ -301,7 +303,16 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <div className="text-[1rem] font-bold leading-snug">{place.name}</div>
+                <div className="flex items-center gap-1.5">
+                  <span className="min-w-0 truncate text-[1rem] font-bold leading-snug">{place.name}</span>
+                  {/* Accepted out of the traveller's own recordings — the same
+                      mark the desktop inspector carries. */}
+                  {place.source === 'dawarich' && (
+                    <span className="flex-none overflow-hidden rounded-[5px]">
+                      <DawarichIcon size={15} />
+                    </span>
+                  )}
+                </div>
                 {place.address && (
                   <div className="mt-[2px] font-geist text-[0.6875rem] leading-[1.4] text-m-muted">{place.address}</div>
                 )}
@@ -332,7 +343,7 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
 
             {place.description && (
               <div className={`mt-[10px] rounded-[14px] px-3 py-[10px] ${INNER_CLS}`}>
-                <div className="font-geist text-[0.75rem] leading-[1.5] text-m-muted">{place.description}</div>
+                <MarkdownText className="font-geist text-[0.75rem] leading-[1.5] text-m-muted [overflow-wrap:anywhere]">{place.description}</MarkdownText>
               </div>
             )}
 
@@ -340,7 +351,7 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
               <>
                 <Eyebrow className="mb-[6px] mt-3">{t('mobileTrip.notes')}</Eyebrow>
                 <div className={`rounded-[14px] px-3 py-[10px] ${INNER_CLS}`}>
-                  <div className="whitespace-pre-wrap font-geist text-[0.75rem] leading-[1.5] text-m-muted">{place.notes}</div>
+                  <MarkdownText className="font-geist text-[0.75rem] leading-[1.5] text-m-muted [overflow-wrap:anywhere]">{place.notes}</MarkdownText>
                 </div>
               </>
             )}

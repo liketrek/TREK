@@ -47,5 +47,26 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.upNext': 'Up Next',
   'mobileTrip.viewDetails': 'View details',
   'mobileTrip.transportsEmpty': 'No transport yet',
+  'mobileTrip.rtInfoTitle': 'Driving figures',
+  'mobileTrip.rtDesktopNote':
+    'These figures are set on the desktop, where you can also compare route alternatives and make a day follow an imported track.',
+  'mobileTrip.rtPlanOnDesktop': 'Planning happens on the desktop. TREK works out the drive once a day has two places.',
+  'mobileTrip.rtSearchOffline': 'Needs a connection: the search reads the route ahead.',
+  'mobileTrip.rtBehind': '{time} behind plan',
+  'mobileTrip.rtStart': 'Start',
+  'mobileTrip.rtStayScope': 'The stay belongs to the place, so it counts on every day this stop is planned.',
+  'mobileTrip.rtStayLess': '{count} minutes less',
+  'mobileTrip.rtStayMore': '{count} minutes more',
+  'mobileTrip.rtNightDesktopOnly':
+    'Booking a night at this place works in the desktop planner. Here you can only discard it.',
+  'mobileTrip.rtReach': 'How far',
+  'mobileTrip.rtReachAhead': '{distance} ahead',
+  'mobileTrip.rtFromNext': 'From your next stop',
+  'mobileTrip.rtFromStart': 'From the start of the stage',
+  'mobileTrip.rtNoneAhead': 'Nothing on the road ahead. Try the whole stage.',
+  'mobileTrip.rtNoneOnStage': 'Nothing of that kind along this stage.',
+  'mobileTrip.rtTruncated.one': '1 stretch had more than fits in one answer. Pick fewer kinds to see the rest.',
+  'mobileTrip.rtTruncated.other':
+    '{count} stretches had more than fits in one answer. Pick fewer kinds to see the rest.',
 };
 export default mobileTrip;

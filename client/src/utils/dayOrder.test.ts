@@ -308,6 +308,33 @@ describe('shouldDrawMorningLeg', () => {
   })
 })
 
+describe('the hotel is the edge stop itself', () => {
+  // Booking a night now puts its hotel on the check-in day as a stop of its own, so
+  // the day's last waypoint IS the hotel on most days. Without this the drawn line,
+  // the sidebar leg list and every exported directions link carry a hotel-to-hotel
+  // leg of zero kilometres.
+  const atHotel = { isPlace: true, time: null, lat: 48.1, lng: 11.5 }
+
+  it('draws no evening leg when the last stop is the hotel you sleep in tonight', () => {
+    const bookends = { evening: hotel({ end_day_id: 30 }), eveningIsOvernight: true }
+    expect(shouldDrawEveningLeg(bookends, days[0], atHotel)).toBe(false)
+    // A different stop at the same distance keeps its leg.
+    expect(shouldDrawEveningLeg(bookends, days[0], { ...atHotel, lat: 48.2 })).toBe(true)
+  })
+
+  it('draws no morning leg when the first stop is the hotel you woke up in', () => {
+    const bookends = { morning: hotel({}), morningIsSleptHere: true }
+    expect(shouldDrawMorningLeg(bookends, days[1], atHotel)).toBe(false)
+    expect(shouldDrawMorningLeg(bookends, days[1], { ...atHotel, lng: 11.6 })).toBe(true)
+  })
+
+  it('leaves a stop without coordinates alone', () => {
+    // A transport endpoint carries no lat/lng; the carrier rules below decide it.
+    const bookends = { evening: hotel({}), eveningIsOvernight: true }
+    expect(shouldDrawEveningLeg(bookends, days[0], { isPlace: false, time: null })).toBe(true)
+  })
+})
+
 describe('shouldDrawEveningLeg', () => {
   const checkOutDay = days[2] // id 30
   const out = (over: Partial<Accommodation> = {}) =>

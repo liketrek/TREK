@@ -52,40 +52,39 @@ const system_notice: TranslationStrings = {
   'system_notice.pager.counter': '{current} / {total}',
   'system_notice.pager.goto': '通知{n}へ',
   'system_notice.pager.position': '{total}件中{current}件目',
-  'system_notice.release_400.eyebrow': 'アップデート完了',
-  'system_notice.release_400.tag': 'リリース',
-  'system_notice.release_400.headline': 'TREK史上、最大のリリースです。',
-  'system_notice.release_400.intro':
-    'TREKにスマホと、本が加わりました。19人で書き上げ、報告されていたバグ約150件も一緒に片づきました。',
-  'system_notice.release_400.feature_mobile_title': 'TREKがモバイルへ',
-  'system_notice.release_400.feature_mobile_body':
-    '768px未満は専用のインターフェースです。ガラス調のドック、専用のシート、専用の旅行プランナー。スマホでTREKを開いてください。',
-  'system_notice.release_400.feature_studio_title': 'TREK Studio',
-  'system_notice.release_400.feature_studio_badge': 'Beta',
-  'system_notice.release_400.feature_studio_body':
-    'JourneyのPDFがフォトブックのデザイナーになりました。頼めばレイアウトを組み、あとは邪魔をしません。',
-  'system_notice.release_400.feature_vacay_title': 'Vacayが残りを覚える',
-  'system_notice.release_400.feature_vacay_body':
-    '半休、代休とフレックス、カレンダーに並ぶ学校の休暇。そして1月始まりでなくてもいい休暇年度。',
-  'system_notice.release_400.feature_places_title': '場所は自ら名乗り、ファイルは外へ',
-  'system_notice.release_400.feature_places_body':
-    '場所を保存する前に、写真と説明がひとりでに埋まります。アップロードしたファイルも、TREKが動くディスクに置かなくてよくなりました。',
-  'system_notice.release_400.footnote':
-    'これはそのうちの4つです。4.0.0にはCollectionsやAtlasから土台のサーバーまで、数百の変更が入っています。',
-  'system_notice.release_400.note_eyebrow': '開発者より',
-  'system_notice.release_400.note_title': 'TREKを使ってくれてありがとう。',
-  'system_notice.release_400.note_body':
-    'TREKは自分の旅のために、空いた時間で作った小さなツールとして始まりました。今もそれは変わりません。夜と週末、本業の合間の時間です。\n\nしばらくは私一人でした。もう違います。このリリースは19人で送り出し、何千もの人がスター、Issue、翻訳、プルリクエストを持って集まってくれました。そのすべてに感謝しています。',
-  'system_notice.release_400.promise_label': '約束',
-  'system_notice.release_400.promise_text':
-    'TREKのオープンソースはずっと無料です。有料プランも、サブスクも、隠れた仕掛けもありません。約束します。',
-  'system_notice.release_400.note_body_after':
-    '4.0.0には何週間もの夜なべがかかりました。スマホの画面、フォトブックのデザイナー、サーバーの移行。多くは深夜0時から2時のあいだに書きました。愚痴ではありません。作るのが好きです。この規模のリリースが片手間のプロジェクトからどう出るか、正直に答えればこうです。',
-  'system_notice.release_400.note_closing': 'ここにいてくれて、ありがとう。',
-  'system_notice.release_400.note_signature': '— Maurice',
-  'system_notice.release_400.support_text':
-    'これを続けさせてくれているのは応援です。サーバー代、ドメイン代、そして今回のようなリリースになる夜なべ。TREKに価値を感じてもらえたなら、コーヒー一杯がいちばん直接的な支えになります。',
-  'system_notice.release_400.cta_bmc': 'Buy me a coffee',
-  'system_notice.release_400.cta_kofi': 'Ko-fiで応援する',
+  'system_notice.release_notes.eyebrow': 'アップデート完了',
+  'system_notice.release_notes.headline': 'TREKが自前でできるようになった、3つのこと。',
+  'system_notice.release_notes.intro':
+    '自前の場所API、出発から到着まで計画できるロードトリップ、そしてあなたの手元に戻ってくる位置情報の履歴。',
+  'system_notice.release_notes.features_label': '今回の目玉',
+  'system_notice.release_notes.features_aside': 'ほんの一部です',
+  'system_notice.release_notes.feature_places_title': 'TREK Places API',
+  'system_notice.release_notes.feature_places_body':
+    '場所APIを自前で運用する、初めてのオープンソース旅行プランナーです。7,360万件の場所を毎月作り直しています。APIキーも利用上限もありません。',
+  'system_notice.release_notes.feature_roadtrip_title': 'ロードトリップアドオン',
+  'system_notice.release_notes.feature_roadtrip_body':
+    'ロードトリップモードは、ドライブそのものを計画します。ルート、距離、運転時間、立ち寄り先まで。アドオンなので、管理者が有効にするまではオフのままです。',
+  'system_notice.release_notes.feature_dawarich_title': 'Dawarich連携',
+  'system_notice.release_notes.feature_dawarich_body':
+    'Google Timelineのセルフホスト版とも言えるDawarichを、TREKの中で読めるようになりました。TREKは読み取るだけで、それ以上のことはしません。書き戻すことは一切ありません。',
+  'system_notice.release_notes.footnote': 'ほかにも、TREKのあちこちに細かな変更がたくさん入っています。',
+  'system_notice.release_notes.notes_label': 'リリースノート',
+  'system_notice.release_notes.note_eyebrow': '開発者より',
+  'system_notice.release_notes.note_title': 'あなたがいるから、TREKを作り続けています。',
+  'system_notice.release_notes.note_body':
+    'TREKは、自分の旅のための小さなツールとして始まりました。もっといい計画の立て方が欲しくて、仕事のあとに書いたものです。それからずっと、大きくなり続けてきました。いま使っていただいている機能のほとんどは、本業のかたわら、深夜や週末、電車の中で作ったものです。こんなもの、誰かが開いてくれる日は来るのだろうか。そうひとりで考えた夜も、何度もありました。',
+  'system_notice.release_notes.promise_label': '約束',
+  'system_notice.release_notes.promise_lead': 'TREKは、ずっと無料です。',
+  'system_notice.release_notes.promise_text':
+    'すべての機能も、すべてのアップデートも、すべての人に。有料プランも、サブスクも、隠れた仕掛けもありません。',
+  'system_notice.release_notes.note_body_after':
+    'そして、あなたが開いてくれました。数か月のうちに、それが何千人にもなりました。スター、バグ報告、私の話せない言語への翻訳、会ったこともない人からのプルリクエスト。今でも毎朝いちばんにリポジトリを確認していますが、まだ少し夢のように感じています。',
+  'system_notice.release_notes.note_closing': 'ここにいてくれて、ありがとう。Mauriceより',
+  'system_notice.release_notes.support_lead':
+    'TREKは無料で、これからもずっと無料です。でも、サーバーやドメイン、数えきれない夜なべはタダではありません。',
+  'system_notice.release_notes.support_text':
+    'TREKがあなたの旅に欠かせないものになっていたら、コーヒーを一杯おごってください。次のリリースを届ける力になります。',
+  'system_notice.release_notes.cta_bmc': 'Buy me a coffee',
+  'system_notice.release_notes.cta_kofi': 'Ko-fiで応援する',
 };
 export default system_notice;

@@ -8,6 +8,7 @@ import { RealtimeModule } from '../realtime/realtime.module';
 import { PlacesMcp } from './places.mcp';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { AssignmentsDomainModule } from '../assignments/assignments-domain.module';
+import { AccommodationsDomainModule } from '../accommodations/accommodations-domain.module';
 import { AppConfigModule } from '../app-config/app-config.module';
 import { UnsplashModule } from '../unsplash/unsplash.module';
 import { PlacePhotosModule } from '../place-photos/place-photos.module';
@@ -42,7 +43,9 @@ import { MAX_PLACE_IMAGE_SIZE } from '../common/place-image-upload';
         buildStorageUploadOptions(storage, { category: 'places', maxSize: MAX_PLACE_IMAGE_SIZE }),
     }),
     StorageModule,
-    McpSharedModule, PermissionsModule, QueryHelpersModule, MapsModule, AuthModule, AppConfigModule, UnsplashModule, PlacePhotosModule, JourneyDomainModule, RealtimeModule, PluginGuardsModule, AssignmentsDomainModule],
+    // AccommodationsDomainModule: deleting a place takes the nights booked at it with
+    // it, and the cascade behind a stay belongs to the domain that owns it.
+    McpSharedModule, PermissionsModule, QueryHelpersModule, MapsModule, AuthModule, AppConfigModule, UnsplashModule, PlacePhotosModule, JourneyDomainModule, RealtimeModule, PluginGuardsModule, AssignmentsDomainModule, AccommodationsDomainModule],
   controllers: [PlacesController],
   providers: [PlacesService, PlacesMcp, PlacesRpc],
   exports: [PlacesService],

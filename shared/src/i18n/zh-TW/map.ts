@@ -22,5 +22,9 @@ const map: TranslationStrings = {
   'map.location.denied': '定位權限已被封鎖。請檢查裝置設定,已安裝的應用程式擁有與瀏覽器分開的定位權限。',
   'map.location.unavailable': '無法判斷你的位置。',
   'map.location.timeout': '定位花費的時間過長。請在能看到天空的開闊位置重試。',
+  'map.overview.show': '顯示整趟行程',
+  'map.overview.hide': '隱藏整趟行程',
+  'map.overview.total': '總距離',
+  'map.attribution': '地圖來源',
 };
 export default map;

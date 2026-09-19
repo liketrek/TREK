@@ -22,6 +22,8 @@ export default function EmptyState({
   size = 104,
   surface = 'var(--bg-card)',
   layout = 'stack',
+  compact = false,
+  fill = false,
   className = '',
   action,
 }: {
@@ -31,20 +33,43 @@ export default function EmptyState({
   size?: number
   surface?: string
   layout?: 'stack' | 'row'
+  /**
+   * Quieter type for a state inside a narrow column rather than on a page.
+   *
+   * The sidebar's empty state sits under its own controls, so a line at the page size
+   * competes with them for the eye; at the caption tier it reads as what it is, a note
+   * about why the list below is blank.
+   */
+  compact?: boolean
+  /**
+   * Fill the parent and sit in the middle of it.
+   *
+   * The stack already centres what it contains, but with no height of its own
+   * `justify-center` has nothing to centre inside, so the state lands under
+   * whatever sits above it. A state that stands for a whole empty column wants
+   * the middle of that column; one that sits inline in a page does not, which is
+   * why this is a choice rather than the default. The parent has to be the one
+   * with the height, which every scroll container here already is.
+   *
+   * Optically centred rather than geometrically: the extra room goes underneath,
+   * which lands the mascot slightly above the middle. In a column you can scroll,
+   * dead centre reads as "fell to the bottom" the moment the list is short.
+   */
+  fill?: boolean
   className?: string
   /** Optional call to action under the title, for states that have an obvious next step. */
   action?: ReactNode
 }) {
   const layoutClasses = layout === 'row'
     ? 'flex flex-row items-center justify-center gap-3 px-6 py-3'
-    : 'flex flex-col items-center justify-center gap-3 px-6 py-12 text-center'
+    : `flex flex-col items-center justify-center gap-3 px-6 text-center ${fill ? 'min-h-full pt-4 pb-14' : 'py-12'}`
   return (
     <div
       className={`${layoutClasses} ${className}`}
       style={{ '--m-ink': 'var(--text-primary)', '--m-bg': surface } as CSSProperties}
     >
       <MDancingTrek scene={scene} mood={mood} size={size} />
-      <p className="text-[15px] font-semibold text-content-secondary">{title}</p>
+      <p className={compact ? 'text-caption text-content-muted' : 'text-[15px] font-semibold text-content-secondary'}>{title}</p>
       {action}
     </div>
   )

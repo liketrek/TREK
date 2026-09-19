@@ -27,8 +27,8 @@ const { db } = vi.hoisted(() => {
   tmp.exec(`CREATE TABLE places (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL, name TEXT,
     description TEXT, lat REAL, lng REAL, address TEXT, category_id INTEGER, price REAL, currency TEXT,
     place_time TEXT, end_time TEXT, duration_minutes INTEGER, notes TEXT, image_url TEXT,
-    google_place_id TEXT, google_ftid TEXT, osm_id TEXT, website TEXT, phone TEXT, transport_mode TEXT,
-    route_geometry TEXT, route_color TEXT,
+    google_place_id TEXT, google_ftid TEXT, osm_id TEXT, amap_poi_id TEXT, website TEXT, phone TEXT, transport_mode TEXT,
+    route_geometry TEXT, route_color TEXT, stop_type TEXT, fill_percent INTEGER,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
   tmp.exec(`CREATE TABLE categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, color TEXT, icon TEXT);`);
   tmp.exec(`CREATE TABLE tags (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, color TEXT,
@@ -44,6 +44,11 @@ const { db } = vi.hoisted(() => {
   tmp.exec(`CREATE TABLE day_assignments (id INTEGER PRIMARY KEY AUTOINCREMENT, day_id INTEGER NOT NULL,
     place_id INTEGER NOT NULL, order_index INTEGER DEFAULT 0);`);
   // reclaimPlaceImage ref-counts an uploaded thumbnail across both tables.
+  // Deleting a place cancels the nights booked at it (#2354), so the delete path
+  // reads this table even in a file that never books one.
+  tmp.exec(`CREATE TABLE day_accommodations (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER,
+    place_id INTEGER, start_day_id INTEGER, end_day_id INTEGER, check_in TEXT, check_in_end TEXT,
+    check_out TEXT, confirmation TEXT, notes TEXT, created_at TEXT DEFAULT (datetime('now')));`);
   tmp.exec(`CREATE TABLE collection_places (id INTEGER PRIMARY KEY AUTOINCREMENT, image_url TEXT);`);
   // reclaimPhotoCache's removeIfUnreferenced sweeps the Google photo cache.
   tmp.exec(`CREATE TABLE google_place_photo_meta (place_id TEXT PRIMARY KEY, attribution TEXT, error_at DATETIME);`);

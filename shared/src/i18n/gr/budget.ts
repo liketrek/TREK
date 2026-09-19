@@ -81,6 +81,10 @@ const budget: TranslationStrings = {
   'costs.pays': 'πληρώνει',
   'costs.settle': 'Εξόφληση',
   'costs.balances': 'Υπόλοιπα',
+  'costs.finalBudget': 'Τελικός προϋπολογισμός',
+  'costs.finalExpenses': 'Πληρωμένα έξοδα',
+  'costs.finalReimbursed': 'Καθαρές επιστροφές',
+  'costs.finalPending': 'Εκκρεμείς επιστροφές',
   'costs.byCategory': 'Ανά κατηγορία',
   'costs.noCategories': 'Δεν υπάρχουν έξοδα ακόμη.',
   'costs.settleHistory': 'Ιστορικό εξοφλήσεων',
@@ -148,5 +152,12 @@ const budget: TranslationStrings = {
   'costs.splitSumUnder': 'Άθροισμα μεριδίων: {sum} από {total} (λείπουν {diff})',
   'costs.splitSumOver': 'Άθροισμα μεριδίων: {sum} από {total} ({diff} παραπάνω)',
   'costs.toggleSign': 'Εναλλαγή μεταξύ εξόδου και επιστροφής',
+  'costs.receipts': 'Αποδείξεις',
+  'costs.receiptsTitle': 'Αποδείξεις & Τιμολόγια',
+  'costs.attachReceipt': 'Επισύναψη απόδειξης / τιμολογίου',
+  'costs.noReceipts': 'Δεν υπάρχουν συνημμένες αποδείξεις',
+  'costs.deleteReceipt': 'Αφαίρεση απόδειξης',
+  'costs.viewReceipt': 'Προβολή απόδειξης',
+  'costs.receiptLeftBehind': 'Η αποθήκευση απέτυχε και {count} ανεβασμένες αποδείξεις παραμένουν. Διαγράψτε τες στην καρτέλα Αρχεία.',
 };
 export default budget;

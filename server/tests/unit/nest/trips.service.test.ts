@@ -74,6 +74,7 @@ import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service'
 import { TripMembersService } from '../../../src/nest/trip-members/trip-members.service';
 import { TripReadModelService } from '../../../src/nest/trip-read-model/trip-read-model.service';
 import { AccommodationsService } from '../../../src/nest/accommodations/accommodations.service';
+import { accommodationsOver, makeAccommodationsService } from '../../helpers/accommodations-service';
 import { MapsService } from '../../../src/nest/maps/maps.service';
 import { UnsplashService } from '../../../src/nest/unsplash/unsplash.service';
 import { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
@@ -111,13 +112,14 @@ const placesSvc = new PlacesService(
   photoCache,
   new JourneyDomainService(dbs(), new RealtimeService(), new TrekPhotosRepository(dbs())),
   makeStorageFixture('').storage,
+  accommodationsOver(dbs()),
 );
-const accommodationsSvc = new AccommodationsService(dbs(), new PermissionsService(dbs()), new RealtimeService());
+const accommodationsSvc = makeAccommodationsService(testDb);
 const createAccommodation = accommodationsSvc.createAccommodation.bind(accommodationsSvc);
 
 const svc = new TripsService(
   dbs(),
-  new ReservationsService(dbs(), new PermissionsService(dbs()), budgetSvc, new RealtimeService(), notificationsStub(), new ReservationsReadRepository(dbs())),
+  new ReservationsService(dbs(), new PermissionsService(dbs()), budgetSvc, new RealtimeService(), notificationsStub(), new ReservationsReadRepository(dbs()), accommodationsSvc),
   daysSvc,
   new PermissionsService(dbs()),
   budgetSvc,
@@ -130,7 +132,7 @@ const membersSvc = new TripMembersService(dbs(), budgetSvc, new UserCleanupServi
 const readModelSvc = new TripReadModelService(
   dbs(), membersSvc, daysSvc, accommodationsSvc, budgetSvc,
   new PackingService(dbs(), new PermissionsService(dbs()), new RealtimeService(), notificationsStub()),
-  new ReservationsService(dbs(), new PermissionsService(dbs()), budgetSvc, new RealtimeService(), notificationsStub(), new ReservationsReadRepository(dbs())),
+  new ReservationsService(dbs(), new PermissionsService(dbs()), budgetSvc, new RealtimeService(), notificationsStub(), new ReservationsReadRepository(dbs()), accommodationsSvc),
   new CollabService(dbs(), new PermissionsService(dbs()), new RealtimeService(), notificationsStub(), coversFx.storage, new RateLimitService()),
   placesSvc,
   new TodoService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
@@ -449,9 +451,9 @@ describe('resyncAccommodationDays (#1288)', () => {
 
   const insertAccommodation = (tripId: number, startDayId: number, endDayId: number) => {
     const place = createPlace(testDb, tripId, { name: 'Grand Hotel' });
-    const acc = createAccommodation(tripId, {
+    const { accommodation: acc } = createAccommodation(tripId, {
       place_id: place.id, start_day_id: startDayId, end_day_id: endDayId,
-    }) as { id: number };
+    }) as { accommodation: { id: number } };
     const linkedRes = testDb.prepare(
       'SELECT id FROM reservations WHERE accommodation_id = ?',
     ).get(acc.id) as { id: number };
@@ -477,6 +479,22 @@ describe('resyncAccommodationDays (#1288)', () => {
     const res = getRes(linkedResId);
     expect(res.day_id).toBe(acc.start_day_id);
     expect(res.reservation_time?.slice(0, 10)).toBe('2025-06-11');
+  });
+
+  it('TRIP-SVC-059: the day stop a booking wrote follows it when the trip is re-dated', () => {
+    // Booking a night also puts its place on the check-in day. Re-dating the trip moves
+    // the stay to whichever day row now carries its date, and the stop has to go with
+    // it, or the route runs through a day the traveller is no longer staying on.
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { start_date: '2025-06-10', end_date: '2025-06-14' });
+    const { accId } = insertAccommodation(trip.id, dayFor(trip.id, '2025-06-11'), dayFor(trip.id, '2025-06-13'));
+    const stopOf = () => testDb.prepare('SELECT day_id FROM day_assignments WHERE accommodation_id = ?').get(accId) as { day_id: number };
+    expect(stopOf().day_id).toBe(dayFor(trip.id, '2025-06-11'));
+
+    svc.updateTrip(trip.id, user.id, { start_date: '2025-06-09', end_date: '2025-06-14' }, 'user');
+
+    expect(stopOf().day_id).toBe(getAcc(accId).start_day_id);
+    expect(stopOf().day_id).toBe(dayFor(trip.id, '2025-06-11'));
   });
 
   it('TRIP-SVC-036: moving the whole trip out of the old range keeps the accommodation glued to its days', () => {
@@ -752,6 +770,52 @@ describe('folded trip CRUD', () => {
     // No title → source title (|| fallback).
     const secondCopy = svc.copy(trip.id, user.id);
     expect((testDb.prepare('SELECT title FROM trips WHERE id = ?').get(secondCopy) as any).title).toBe('Origin');
+  });
+
+  it('TRIP-SVC-061: copy carries the road-trip shaping, not just the places', () => {
+    // A via is the road the traveller chose over the one the router prefers, and
+    // a day track is the line a day was fitted to. Leaving them behind gave back
+    // a trip that looks complete and quietly drives somewhere else — noticed
+    // only once somebody edits the copy, with nothing left to recover from.
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Norway', start_date: '2025-06-01', end_date: '2025-06-02' });
+    const days = getDays(trip.id);
+    const stop = createPlace(testDb, trip.id, { name: 'Geiranger' });
+    const track = createPlace(testDb, trip.id, { name: 'Scenic route' });
+    testDb.prepare("UPDATE places SET stop_type = 'fuel' WHERE id = ?").run(stop.id);
+    testDb.prepare("UPDATE places SET route_geometry = '[[1,2],[3,4]]' WHERE id = ?").run(track.id);
+    createDayAssignment(testDb, days[0].id, stop.id);
+    testDb.prepare(
+      'INSERT INTO roadtrip_vias (day_id, after_order_index, sequence, lat, lng) VALUES (?, 0, 0, 62.1, 7.2), (?, 0, 1, 62.2, 7.3)',
+    ).run(days[0].id, days[0].id);
+    testDb.prepare('INSERT INTO roadtrip_day_tracks (day_id, place_id, stray_km) VALUES (?, ?, 1.5)')
+      .run(days[0].id, track.id);
+
+    const newTripId = svc.copy(trip.id, user.id, 'Clone');
+    const newDays = getDays(newTripId);
+
+    // The kind of stop each place is survives the copy.
+    const copiedStop = testDb.prepare("SELECT stop_type FROM places WHERE trip_id = ? AND name = 'Geiranger'")
+      .get(newTripId) as { stop_type: string | null };
+    expect(copiedStop.stop_type).toBe('fuel');
+
+    const vias = testDb.prepare('SELECT after_order_index, sequence, lat, lng FROM roadtrip_vias WHERE day_id = ? ORDER BY sequence')
+      .all(newDays[0].id) as { after_order_index: number; sequence: number; lat: number; lng: number }[];
+    expect(vias).toEqual([
+      { after_order_index: 0, sequence: 0, lat: 62.1, lng: 7.2 },
+      { after_order_index: 0, sequence: 1, lat: 62.2, lng: 7.3 },
+    ]);
+
+    // The track points at the COPY's place, never back at the original.
+    const copiedTrack = testDb.prepare('SELECT place_id, stray_km FROM roadtrip_day_tracks WHERE day_id = ?')
+      .get(newDays[0].id) as { place_id: number; stray_km: number };
+    const copiedTrackPlace = testDb.prepare("SELECT id FROM places WHERE trip_id = ? AND name = 'Scenic route'")
+      .get(newTripId) as { id: number };
+    expect(copiedTrack.place_id).toBe(copiedTrackPlace.id);
+    expect(copiedTrack.stray_km).toBe(1.5);
+
+    // And the original keeps exactly what it had.
+    expect(testDb.prepare('SELECT COUNT(*) c FROM roadtrip_vias WHERE day_id = ?').get(days[0].id)).toEqual({ c: 2 });
   });
 
   it('TRIP-SVC-060: copying a trip keeps a staged booking staged', () => {
@@ -1035,7 +1099,7 @@ describe('quirk fixes', () => {
     const fdbs = failingConnection(match);
     return new TripsService(
       fdbs,
-      new ReservationsService(dbs(), new PermissionsService(dbs()), budgetSvc, new RealtimeService(), notificationsStub(), new ReservationsReadRepository(dbs())),
+      new ReservationsService(dbs(), new PermissionsService(dbs()), budgetSvc, new RealtimeService(), notificationsStub(), new ReservationsReadRepository(dbs()), accommodationsSvc),
       daysSvc,
       new PermissionsService(dbs()),
       budgetSvc,

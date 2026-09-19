@@ -47,5 +47,25 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.upNext': '다음 일정',
   'mobileTrip.viewDetails': '세부정보 보기',
   'mobileTrip.transportsEmpty': '아직 교통편이 없습니다',
+  'mobileTrip.rtInfoTitle': '주행 수치',
+  'mobileTrip.rtDesktopNote': '이 수치는 데스크톱에서 설정합니다. 데스크톱에서는 다른 경로를 비교하고, 가져온 트랙을 따라가도록 하루를 맞출 수도 있습니다.',
+  'mobileTrip.rtPlanOnDesktop': '계획은 데스크톱에서 세웁니다. 하루에 장소가 두 곳 생기면 TREK이 주행을 계산합니다.',
+  'mobileTrip.rtSearchOffline': '연결이 필요합니다: 이 검색은 앞으로 갈 경로를 읽습니다.',
+  'mobileTrip.rtBehind': '계획보다 {time} 늦음',
+  'mobileTrip.rtStart': '시작',
+  'mobileTrip.rtStayScope': '체류 시간은 장소에 속하므로, 이 경유지가 들어간 모든 날짜에 적용됩니다.',
+  'mobileTrip.rtStayLess': '{count}분 줄이기',
+  'mobileTrip.rtStayMore': '{count}분 늘리기',
+  'mobileTrip.rtNightDesktopOnly':
+    '이 장소에 숙박을 잡는 것은 데스크톱 플래너에서만 됩니다. 여기에서는 취소만 할 수 있습니다.',
+  'mobileTrip.rtReach': '어디까지',
+  'mobileTrip.rtReachAhead': '앞으로 {distance}',
+  'mobileTrip.rtFromNext': '다음 경유지부터',
+  'mobileTrip.rtFromStart': '구간 시작부터',
+  'mobileTrip.rtNoneAhead': '앞쪽 도로에는 아무것도 없습니다. 구간 전체로 찾아보세요.',
+  'mobileTrip.rtNoneOnStage': '이 구간에는 그런 곳이 없습니다.',
+  'mobileTrip.rtTruncated.one': '1개 구간은 한 번의 답에 담기지 않았습니다. 종류를 줄이면 나머지도 볼 수 있습니다.',
+  'mobileTrip.rtTruncated.other':
+    '{count}개 구간은 한 번의 답에 담기지 않았습니다. 종류를 줄이면 나머지도 볼 수 있습니다.',
 };
 export default mobileTrip;

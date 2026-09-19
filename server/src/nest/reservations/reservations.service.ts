@@ -9,6 +9,7 @@ import type { Reservation, User } from '../../types';
 import { BudgetService } from '../budget/budget.service';
 import { typeToCostCategory } from '@trek/shared';
 import { NotificationsService } from '../notifications/notifications.service';
+import { AccommodationsService, noStayMirror, type AccommodationMirror } from '../accommodations/accommodations.service';
 
 type Trip = TripAccess;
 type BudgetEntry = { total_price?: number; category?: string } | undefined;
@@ -149,6 +150,7 @@ export class ReservationsService {
     private readonly realtime: RealtimeService,
     private readonly notifications: NotificationsService,
     private readonly reads: ReservationsReadRepository,
+    private readonly accommodations: AccommodationsService,
   ) {}
 
   verifyTripAccess(tripId: string | number, userId: number) {
@@ -161,6 +163,23 @@ export class ReservationsService {
 
   broadcast<E extends TrekWsTripEventName>(tripId: string, event: E, payload: TrekWsPayload<E>, socketId: string | undefined): void {
     this.realtime.broadcast(tripId, event, payload, socketId);
+  }
+
+  /**
+   * Announce the day stop a hotel booking wrote, the way the accommodations
+   * routes announce theirs.
+   *
+   * Here rather than at each surface: eleven call sites reach create/update/
+   * remove, all but the hotel ones carry an empty mirror, and the fan-out is the
+   * one part that must not exist in eleven copies. Outside the transaction, so a
+   * write that rolls back announces nothing.
+   *
+   * No socket id to skip: the stop is news to the sender too. Every other
+   * booking event on this surface is echo-suppressed because the client already
+   * drew what it sent, and it never sent this.
+   */
+  private announceStayMirror(tripId: string | number, mirror: AccommodationMirror): void {
+    this.accommodations.announceMirror(tripId, mirror, (event, payload) => this.realtime.broadcast(tripId, event, payload));
   }
 
   /** Fire-and-forget booking-change notification, mirroring the legacy dynamic import. */
@@ -549,10 +568,12 @@ export class ReservationsService {
   /** The accommodation insert, the reservation insert, the endpoint save and
    *  the metadata sync are one logical write — all-or-nothing. */
   create(tripId: string | number, data: CreateReservationData): { reservation: ReservationRow; accommodationCreated: boolean } {
-    return this.db.transaction(() => this.createInTx(tripId, data));
+    const { stayMirror, ...written } = this.db.transaction(() => this.createInTx(tripId, data));
+    this.announceStayMirror(tripId, stayMirror);
+    return written;
   }
 
-  private createInTx(tripId: string | number, data: CreateReservationData): { reservation: ReservationRow; accommodationCreated: boolean } {
+  private createInTx(tripId: string | number, data: CreateReservationData): { reservation: ReservationRow; accommodationCreated: boolean; stayMirror: AccommodationMirror } {
     const {
       title, reservation_time, reservation_end_time, location,
       confirmation_number, notes, url, day_id, end_day_id, place_id, assignment_id,
@@ -561,8 +582,14 @@ export class ReservationsService {
     } = data;
 
     let accommodationCreated = false;
+    let stayMirror = noStayMirror();
 
-    // Auto-create accommodation for hotel reservations
+    // Auto-create accommodation for hotel reservations.
+    //
+    // The stay row is written here rather than through createAccommodation: this
+    // surface has its own field set and its own COALESCE semantics, and folding
+    // the two together would bend one of them out of shape. The day stop is the
+    // part that must not exist twice, so it comes from AccommodationsService.
     let resolvedAccommodationId: number | null = accommodation_id || null;
     if (type === 'hotel' && !resolvedAccommodationId && create_accommodation) {
       const { place_id: accPlaceId, start_day_id, end_day_id, check_in, check_out, confirmation: accConf } = create_accommodation;
@@ -573,6 +600,11 @@ export class ReservationsService {
         );
         resolvedAccommodationId = Number(accResult.lastInsertRowid);
         accommodationCreated = true;
+        // Same night, same day header, so the same stop the road trip draws for a
+        // night entered under Days. Without it the hotel booked on this form is the
+        // one place the drive does not know about, which is the duplicate entry this
+        // whole change exists to remove.
+        stayMirror = this.accommodations.attachStayStop(resolvedAccommodationId, accPlaceId || null, start_day_id, check_in);
       }
     }
 
@@ -638,7 +670,7 @@ export class ReservationsService {
 
     // The row was just inserted, so the re-select can't miss (legacy typed this any).
     const reservation = this.getReservationWithJoins(Number(result.lastInsertRowid))!;
-    return { reservation, accommodationCreated };
+    return { reservation, accommodationCreated, stayMirror };
   }
 
   updatePositions(tripId: string | number, positions: { id: number; day_plan_position?: number }[], dayId?: number | string | null) {
@@ -681,10 +713,12 @@ export class ReservationsService {
   /** The accommodation upsert, the reservation update, the endpoint replace
    *  and the metadata sync are one logical write — all-or-nothing. */
   update(id: string | number, tripId: string | number, data: UpdateReservationData, current: Reservation): { reservation: ReservationRow; accommodationChanged: boolean } {
-    return this.db.transaction(() => this.updateInTx(id, tripId, data, current));
+    const { stayMirror, ...written } = this.db.transaction(() => this.updateInTx(id, tripId, data, current));
+    this.announceStayMirror(tripId, stayMirror);
+    return written;
   }
 
-  private updateInTx(id: string | number, tripId: string | number, data: UpdateReservationData, current: Reservation): { reservation: ReservationRow; accommodationChanged: boolean } {
+  private updateInTx(id: string | number, tripId: string | number, data: UpdateReservationData, current: Reservation): { reservation: ReservationRow; accommodationChanged: boolean; stayMirror: AccommodationMirror } {
     const {
       title, reservation_time, reservation_end_time, location,
       confirmation_number, notes, url, day_id, end_day_id, place_id, assignment_id,
@@ -693,6 +727,7 @@ export class ReservationsService {
     } = data;
 
     let accommodationChanged = false;
+    let stayMirror = noStayMirror();
 
     // Update or create accommodation for hotel reservations
     let resolvedAccId: number | null = accommodation_id !== undefined ? (accommodation_id || null) : (current.accommodation_id ?? null);
@@ -710,12 +745,17 @@ export class ReservationsService {
             'UPDATE day_accommodations SET place_id = ?, start_day_id = ?, end_day_id = ?, check_in = ?, check_out = ?, confirmation = ? WHERE id = ?',
             accPlaceId || null, start_day_id, end_day_id, check_in || null, check_out || null, accConf || confirmation_number || null, resolvedAccId
           );
+          // The stay just moved. Its stop moves with it, or it is left sitting on a
+          // day nobody sleeps there any more, hidden from the day list because it
+          // still carries this booking's id and stranded in the middle of the drive.
+          stayMirror = this.accommodations.moveStayStop(resolvedAccId, accPlaceId || null, start_day_id, check_in);
         } else if (accPlaceId) {
           const accResult = this.db.run(
             'INSERT INTO day_accommodations (trip_id, place_id, start_day_id, end_day_id, check_in, check_out, confirmation) VALUES (?, ?, ?, ?, ?, ?, ?)',
             tripId, accPlaceId, start_day_id, end_day_id, check_in || null, check_out || null, accConf || confirmation_number || null
           );
           resolvedAccId = Number(accResult.lastInsertRowid);
+          stayMirror = this.accommodations.attachStayStop(resolvedAccId, accPlaceId, start_day_id, check_in);
         }
         accommodationChanged = true;
       }
@@ -829,27 +869,37 @@ export class ReservationsService {
     // The caller passed the pre-checked `current` row, so the re-select can't
     // miss (legacy typed this any).
     const reservation = this.getReservationWithJoins(id)!;
-    return { reservation, accommodationChanged };
+    return { reservation, accommodationChanged, stayMirror };
   }
 
   /** The accommodation + budget-item + reservation deletes are one logical
    *  cascade — all-or-nothing. */
   remove(id: string | number, tripId: string | number): { deleted: { id: number; title: string; type: string; accommodation_id: number | null } | undefined; accommodationDeleted: boolean; deletedBudgetItemId: number | null } {
-    return this.db.transaction(() => {
+    const removed = this.db.transaction(() => {
       const reservation = this.db.get<{ id: number; title: string; type: string; accommodation_id: number | null }>(
         'SELECT id, title, type, accommodation_id FROM reservations WHERE id = ? AND trip_id = ?', id, tripId
       );
-      if (!reservation) return { deleted: undefined, accommodationDeleted: false, deletedBudgetItemId: null };
+      if (!reservation) return { deleted: undefined, accommodationDeleted: false, deletedBudgetItemId: null, stayMirror: noStayMirror() };
 
       let accommodationDeleted = false;
+      let stayMirror = noStayMirror();
       if (reservation.accommodation_id) {
-        // trip_id in the WHERE, not just the reservation's own scope: a row
-        // written before referencesOutsideTrip existed can still carry a
-        // foreign accommodation_id, and the cascade must not follow it.
-        const removed = this.db.run(
-          'DELETE FROM day_accommodations WHERE id = ? AND trip_id = ?', reservation.accommodation_id, tripId,
+        // trip_id in the check, not just the reservation's own scope: a row written
+        // before referencesOutsideTrip existed can still carry a foreign
+        // accommodation_id, and the cascade must not follow it. The stops go by
+        // accommodation id alone, which is exactly the reach that guard denies.
+        const ownStay = this.db.get<{ id: number }>(
+          'SELECT id FROM day_accommodations WHERE id = ? AND trip_id = ?', reservation.accommodation_id, tripId,
         );
-        accommodationDeleted = removed.changes > 0;
+        if (ownStay) {
+          // Released before the row goes, not after: the release looks the stops up
+          // by accommodation id, and that pointer is cleared the moment the stay is
+          // deleted. Reversed, the stop stands with nothing left to remove it, and
+          // the day list hides it for carrying a booking id.
+          stayMirror = this.accommodations.dropStayStops(reservation.accommodation_id);
+          this.db.run('DELETE FROM day_accommodations WHERE id = ? AND trip_id = ?', reservation.accommodation_id, tripId);
+          accommodationDeleted = true;
+        }
       }
 
       const linkedBudget = this.db.get<{ id: number }>('SELECT id FROM budget_items WHERE trip_id = ? AND reservation_id = ?', tripId, id);
@@ -858,8 +908,11 @@ export class ReservationsService {
       }
 
       this.db.run('DELETE FROM reservations WHERE id = ?', id);
-      return { deleted: reservation, accommodationDeleted, deletedBudgetItemId: linkedBudget ? linkedBudget.id : null };
+      return { deleted: reservation, accommodationDeleted, deletedBudgetItemId: linkedBudget ? linkedBudget.id : null, stayMirror };
     });
+    const { stayMirror, ...answer } = removed;
+    this.announceStayMirror(tripId, stayMirror);
+    return answer;
   }
 
   /** POST side effect: auto-create a linked budget item when a price is provided. */

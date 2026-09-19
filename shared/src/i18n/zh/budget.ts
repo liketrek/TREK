@@ -79,6 +79,10 @@ const budget: TranslationStrings = {
   'costs.pays': '支付',
   'costs.settle': '结算',
   'costs.balances': '余额',
+  'costs.finalBudget': '最终花费',
+  'costs.finalExpenses': '已支付的支出',
+  'costs.finalReimbursed': '还款净额',
+  'costs.finalPending': '待还款项',
   'costs.byCategory': '按分类',
   'costs.noCategories': '暂无支出。',
   'costs.settleHistory': '结算历史',
@@ -146,5 +150,12 @@ const budget: TranslationStrings = {
   'costs.splitSumUnder': '分摊合计：{total} 中的 {sum}（少 {diff}）',
   'costs.splitSumOver': '分摊合计：{total} 中的 {sum}（多 {diff}）',
   'costs.toggleSign': '在支出和退款之间切换',
+  'costs.receipts': '收据',
+  'costs.receiptsTitle': '收据与发票',
+  'costs.attachReceipt': '附加收据/发票',
+  'costs.noReceipts': '未附加收据',
+  'costs.deleteReceipt': '删除收据',
+  'costs.viewReceipt': '查看收据',
+  'costs.receiptLeftBehind': '保存失败，还有 {count} 个已上传的收据。请在“文件”标签页中删除。',
 };
 export default budget;

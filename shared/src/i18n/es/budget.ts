@@ -80,6 +80,10 @@ const budget: TranslationStrings = {
   'costs.pays': 'paga',
   'costs.settle': 'Saldar',
   'costs.balances': 'Saldos',
+  'costs.finalBudget': 'Presupuesto final',
+  'costs.finalExpenses': 'Gastos pagados',
+  'costs.finalReimbursed': 'Reembolsos netos',
+  'costs.finalPending': 'Reembolsos pendientes',
   'costs.byCategory': 'Por categoría',
   'costs.noCategories': 'Aún no hay gastos.',
   'costs.settleHistory': 'Historial de pagos',
@@ -147,5 +151,12 @@ const budget: TranslationStrings = {
   'costs.splitSumUnder': 'Suma de las partes: {sum} de {total} (faltan {diff})',
   'costs.splitSumOver': 'Suma de las partes: {sum} de {total} (sobran {diff})',
   'costs.toggleSign': 'Cambiar entre gasto y reembolso',
+  'costs.receipts': 'Recibos',
+  'costs.receiptsTitle': 'Recibos y facturas',
+  'costs.attachReceipt': 'Adjuntar recibo / factura',
+  'costs.noReceipts': 'No hay recibos adjuntos',
+  'costs.deleteReceipt': 'Eliminar recibo',
+  'costs.viewReceipt': 'Ver recibo',
+  'costs.receiptLeftBehind': 'Error al guardar y quedan {count} recibos subidos. Elimínalos en la pestaña Archivos.',
 };
 export default budget;

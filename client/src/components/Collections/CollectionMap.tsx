@@ -29,7 +29,10 @@ export default function CollectionMap({ places, selectedPlaceId, onOpenPlace, on
       <MapViewAuto
         places={pts}
         selectedPlaceId={selectedPlaceId}
-        hoverDisabled
+        // Hover was off here, so a wall of round photos gave no way to tell what any of
+        // them were without clicking. The trip map has said what a marker is all along;
+        // this one adds the rating, because "which of these did I like" is exactly the
+        // question a small picture cannot answer.
         onMarkerClick={onOpenPlace}
         onMapClick={onDeselect ? () => onDeselect() : undefined}
         // No center/zoom: the map frames itself on the collection's places at mount, and

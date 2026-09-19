@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { weatherApi, accommodationsApi } from '../../api/client'
 import { isDayInAccommodationRange } from '../../utils/dayOrder'
+import { applyStayStops } from '../../store/stayStops'
 
 /** Day-detail data + accommodation logic: weather load, accommodations list,
  *  hotel picker form state and create/update/delete handlers. */
@@ -62,6 +63,7 @@ export function useDayDetail(day: any, days: any, tripId: any, lat: any, lng: an
         check_out: hotelForm.check_out || null,
         confirmation: hotelForm.confirmation || null,
       })
+      applyStayStops(data)
       const newAcc = data.accommodation
       const updated = [...accommodations, newAcc]
       setAccommodations(updated)
@@ -79,6 +81,7 @@ export function useDayDetail(day: any, days: any, tripId: any, lat: any, lng: an
     if (!accommodation) return
     try {
       const data = await accommodationsApi.update(tripId, accommodation.id, { [field]: value || null })
+      applyStayStops(data)
       setAccommodation(data.accommodation)
       onAccommodationChange?.()
     } catch {}
@@ -87,7 +90,7 @@ export function useDayDetail(day: any, days: any, tripId: any, lat: any, lng: an
   const handleRemoveAccommodation = async () => {
     if (!accommodation) return
     try {
-      await accommodationsApi.delete(tripId, accommodation.id)
+      applyStayStops(await accommodationsApi.delete(tripId, accommodation.id))
       const updated = accommodations.filter(a => a.id !== accommodation.id)
       setAccommodations(updated)
       setDayAccommodations(updated.filter(a =>

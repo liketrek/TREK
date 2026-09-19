@@ -11,7 +11,7 @@ import { buildPlanner, buildShell } from '../../../helpers/mobileTrip'
 import { resetAllStores, seedStore } from '../../../helpers/store'
 import { fireEvent, render, screen, waitFor } from '../../../helpers/render'
 
-// FE-MOB-SHOST-001 to FE-MOB-SHOST-027
+// FE-MOB-SHOST-001 to FE-MOB-SHOST-028
 //
 // Every child sheet is stubbed: this file is about the host — which sheet is
 // mounted for which shell.sheet id, and how the host's own callbacks wire the
@@ -34,6 +34,10 @@ vi.mock('../../../../src/mobile/screens/trip/sheets/MTransportSheet', () => ({ d
 vi.mock('../../../../src/mobile/screens/trip/sheets/MBrowseActionsSheet', () => ({ default: selfRouted('stub-bract') }))
 vi.mock('../../../../src/mobile/screens/trip/sheets/MMehrSheet', () => ({ default: selfRouted('stub-mehr') }))
 vi.mock('../../../../src/mobile/screens/trip/sheets/MExportSheet', () => ({ default: selfRouted('stub-export') }))
+vi.mock('../../../../src/mobile/screens/trip/roadtrip/MRtCorridorSheet', () => ({ default: selfRouted('stub-rtsearch') }))
+vi.mock('../../../../src/mobile/screens/trip/roadtrip/MRtDraftSheet', () => ({
+  default: ({ planner }: { planner: TripPlanner }) => <div data-testid="stub-rtdraft" data-trip={planner.tripId} />,
+}))
 
 vi.mock('../../../../src/mobile/screens/trip/sheets/MNoteSheet', () => ({
   default: ({ open, payload, onClose }: { open: boolean; payload?: { dayId?: number }; onClose: () => void }) => (
@@ -432,4 +436,17 @@ describe('MTripSheets', () => {
     renderHost({ deletePlaceId: 101, showPlaceForm: true })
     expect(screen.queryByTestId('stub-confirm')).not.toBeInTheDocument()
   })
+
+  it('FE-MOB-SHOST-028: the search sheet is mounted before the draft it opens', () => {
+    renderHost({}, { sheet: null })
+
+    const order = [...document.querySelectorAll('[data-testid]')]
+      .map(el => el.getAttribute('data-testid'))
+      .filter(id => id === 'stub-rtsearch' || id === 'stub-rtdraft')
+
+    // Both sit at the same z. Portal order is what decides which paints on top, and
+    // taking a hit onto the trip has to open the draft OVER the search it came from.
+    expect(order).toEqual(['stub-rtsearch', 'stub-rtdraft'])
+  })
+
 })

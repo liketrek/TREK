@@ -1,6 +1,28 @@
 import type { TranslationStrings } from '../types';
 
 const vacay: TranslationStrings = {
+  'schoolCatalog.refreshError':
+    'De wijziging is opgeslagen, maar de lijst kon niet worden vernieuwd. Probeer deze opnieuw te laden.',
+  'schoolCatalog.title': 'Schoolvakanties',
+  'schoolCatalog.hint': 'Beheer gedeelde vakantieregio’s. Iedereen kan ze kiezen in de vakantie-instellingen.',
+  'schoolCatalog.periodHint': 'Beide datums tellen mee. Voeg perioden voor elk schooljaar toe.',
+  'schoolCatalog.region': 'Regio of schooldistrict',
+  'schoolCatalog.name': 'Naam van de vakantie',
+  'schoolCatalog.start': 'Begindatum',
+  'schoolCatalog.end': 'Einddatum',
+  'schoolCatalog.addPeriod': 'Vakantieperiode toevoegen',
+  'schoolCatalog.invalid': 'Controleer de namen en datums.',
+  'schoolCatalog.discard': 'Niet-opgeslagen wijzigingen verwijderen?',
+  'schoolCatalog.country': 'Land',
+  'schoolCatalog.deleteHint': 'Verwijder eerst de regio’s. Regio’s die worden gebruikt kunnen niet worden verwijderd.',
+  'schoolCatalog.deleteCountry': 'Land verwijderen',
+  'schoolCatalog.addCountry': 'Land toevoegen',
+  'schoolCatalog.code': 'Landcode (bijv. US)',
+  'schoolCatalog.empty': 'Nog geen regio’s.',
+  'schoolCatalog.addRegion': 'Regio toevoegen',
+  'schoolCatalog.offline': 'Maak verbinding met internet om schoolvakanties te beheren.',
+  'schoolCatalog.loadError': 'Vakantieregio’s konden niet worden geladen. Open de instellingen opnieuw.',
+  'schoolCatalog.retry': 'Opnieuw proberen',
   'vacay.subtitle': 'Plan en beheer vakantiedagen',
   'vacay.settings': 'Instellingen',
   'vacay.year': 'Jaar',

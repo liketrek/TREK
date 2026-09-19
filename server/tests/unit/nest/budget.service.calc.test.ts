@@ -520,6 +520,232 @@ const SHARE_PARITY_FIXTURE: { totalCents: number; users: number[]; itemId: numbe
   { totalCents: -1, users: [1, 2, 3], itemId: 0, expected: { 1: 0, 2: 0, 3: -1 } },
 ];
 
+// ── Final budget per participant ──────────────────────────────────────────
+
+describe('calculateSettlement — finalBudgets', () => {
+  /**
+   * The whole point of the figure: gross outlay minus what came back minus what
+   * still has to. It is the same ledger the balances come from, read from the
+   * other end, so every case here also pins that the subtraction the UI prints
+   * lands on the number beside it.
+   */
+  const checkIdentity = (rows: { expenses: number; reimbursed: number; pending: number; final: number }[]) => {
+    for (const r of rows) {
+      expect(Math.round(r.final * 100))
+        .toBe(Math.round(r.expenses * 100) - Math.round(r.reimbursed * 100) - Math.round(r.pending * 100));
+    }
+  };
+
+  it('charges each participant their share of what the payer fronted', () => {
+    // Alice fronts 100 for the two of them. Nothing has been paid back yet, so the
+    // trip costs each of them 50: Alice is out 100 with 50 still coming, Bob is out
+    // nothing with 50 still to pay.
+    setupDb(
+      [makeItem(1, 100)],
+      [makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob')],
+      [makePayer(1, 1, 100, 'alice')],
+    );
+    const result = budget.calculateSettlement(1);
+
+    const alice = result.finalBudgets.find(f => f.user_id === 1)!;
+    const bob = result.finalBudgets.find(f => f.user_id === 2)!;
+    expect(alice).toMatchObject({ expenses: 100, reimbursed: 0, pending: 50, final: 50 });
+    expect(bob).toMatchObject({ expenses: 0, reimbursed: 0, pending: -50, final: 50 });
+    checkIdentity(result.finalBudgets);
+  });
+
+  it('a recorded transfer moves out of pending and into reimbursed, leaving the final alone', () => {
+    // Bob pays his 50 back. What the trip costs either of them cannot change — only
+    // which of the two lines under it the 50 now sits on.
+    setupDb(
+      [makeItem(1, 100)],
+      [makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob')],
+      [makePayer(1, 1, 100, 'alice')],
+      [makeSettlementRow(1, 2, 1, 50)],
+    );
+    const result = budget.calculateSettlement(1);
+
+    const alice = result.finalBudgets.find(f => f.user_id === 1)!;
+    const bob = result.finalBudgets.find(f => f.user_id === 2)!;
+    expect(alice).toMatchObject({ expenses: 100, reimbursed: 50, pending: 0, final: 50 });
+    expect(bob).toMatchObject({ expenses: 0, reimbursed: -50, pending: 0, final: 50 });
+    checkIdentity(result.finalBudgets);
+  });
+
+  it('sums the finals to what the trip actually spent', () => {
+    // 90 + 60 across three people, fronted by two of them. However the debts are
+    // arranged, the trip cost the group exactly what it spent.
+    setupDb(
+      [makeItem(1, 90), makeItem(2, 60)],
+      [
+        makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob'), makeMember(1, 3, 'carol'),
+        makeMember(2, 2, 'bob'), makeMember(2, 3, 'carol'),
+      ],
+      [makePayer(1, 1, 90, 'alice'), makePayer(2, 2, 60, 'bob')],
+    );
+    const result = budget.calculateSettlement(1);
+
+    expect(centSum(result.finalBudgets.map(f => f.final))).toBe(15000);
+    expect(result.finalBudgets.find(f => f.user_id === 1)!.final).toBe(30);
+    expect(result.finalBudgets.find(f => f.user_id === 2)!.final).toBe(60);
+    expect(result.finalBudgets.find(f => f.user_id === 3)!.final).toBe(60);
+    checkIdentity(result.finalBudgets);
+  });
+
+  it('follows a custom split rather than an equal one', () => {
+    // Alice fronts 100 but only owes 20 of it — the split says so.
+    setupDb(
+      [makeItem(1, 100)],
+      [
+        { ...makeMember(1, 1, 'alice'), amount: 20 },
+        { ...makeMember(1, 2, 'bob'), amount: 80 },
+      ],
+      [makePayer(1, 1, 100, 'alice')],
+    );
+    const result = budget.calculateSettlement(1);
+
+    expect(result.finalBudgets.find(f => f.user_id === 1)!.final).toBe(20);
+    expect(result.finalBudgets.find(f => f.user_id === 2)!.final).toBe(80);
+    checkIdentity(result.finalBudgets);
+  });
+
+  it('leaves an expense nobody paid out of the final budget (#2225)', () => {
+    // The unpaid row stays out of the ledger, so it cannot charge anybody either.
+    setupDb(
+      [makeItem(1, 90)],
+      [makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob'), makeMember(1, 3, 'carol')],
+      [],
+    );
+    const result = budget.calculateSettlement(1);
+
+    expect(result.finalBudgets).toEqual([]);
+  });
+
+  it('gives a refund back to whoever was charged for it (#2176)', () => {
+    // A 30 refund Alice received, split between the two of them: each is 15 better
+    // off, so the trip costs them -15 on this row alone.
+    setupDb(
+      [makeItem(1, -30)],
+      [makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob')],
+      [makePayer(1, 1, -30, 'alice')],
+    );
+    const result = budget.calculateSettlement(1);
+
+    expect(result.finalBudgets.find(f => f.user_id === 1)!).toMatchObject({ expenses: -30, final: -15 });
+    expect(result.finalBudgets.find(f => f.user_id === 2)!.final).toBe(-15);
+    checkIdentity(result.finalBudgets);
+  });
+
+  it('keeps the breakdown adding up in a display currency of its own', () => {
+    // The three lines are converted as their own sets, like the balances are, and
+    // the final is subtracted afterwards — so what the breakdown prints adds up in
+    // whatever currency the viewer picked, at whatever the live rate happens to be.
+    setupDb(
+      [makeItem(1, 100)],
+      [makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob'), makeMember(1, 3, 'carol')],
+      [makePayer(1, 1, 100, 'alice')],
+      [makeSettlementRow(1, 2, 1, 33.33)],
+    );
+    for (const eurPerUsd of [0.855, 0.9312, 0.94]) {
+      const result = budget.calculateSettlement(1, { base: 'USD', tripCurrency: 'EUR', rates: { USD: 1, EUR: eurPerUsd } });
+
+      checkIdentity(result.finalBudgets);
+      // And the pending line is the balance itself, not a second opinion on it.
+      for (const f of result.finalBudgets) {
+        expect(f.pending).toBe(result.balances.find(b => b.user_id === f.user_id)!.balance);
+      }
+    }
+  });
+
+  it('costs nobody anything when a transfer has no expense behind it', () => {
+    // Bob handed Alice 40 with no expense on the trip to justify it. Alice has the
+    // 40 but owes it straight back, so the trip has cost neither of them anything —
+    // the transfer shows up as reimbursed on one line and outstanding on the next.
+    setupDb([], [], [], [makeSettlementRow(1, 2, 1, 40)]);
+    const result = budget.calculateSettlement(1);
+
+    expect(result.finalBudgets.find(f => f.user_id === 1)!).toMatchObject({ expenses: 0, reimbursed: 40, pending: -40, final: 0 });
+    expect(result.finalBudgets.find(f => f.user_id === 2)!).toMatchObject({ expenses: 0, reimbursed: -40, pending: 40, final: 0 });
+    checkIdentity(result.finalBudgets);
+  });
+
+  it('lists the rows each figure is made of, signed the way the figure is', () => {
+    // The first case read row by row, with 20 of Bob's 50 already sent: Alice
+    // fronted the one expense, received the 20, and the open flow is the 30 coming
+    // to her; on Bob's side the same transfer and flow are going out.
+    setupDb(
+      [makeItem(1, 100)],
+      [makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob')],
+      [makePayer(1, 1, 100, 'alice')],
+      [makeSettlementRow(1, 2, 1, 20)],
+    );
+    const result = budget.calculateSettlement(1);
+
+    expect(result.finalBudgets.find(f => f.user_id === 1)!.sources).toEqual({
+      fronted: [{ item_id: 1, cents: 10000 }],
+      moved: [{ settlement_id: 1, from_user_id: 2, to_user_id: 1, cents: 2000 }],
+      outstanding: [{ from_user_id: 2, to_user_id: 1, cents: 3000 }],
+    });
+    expect(result.finalBudgets.find(f => f.user_id === 2)!.sources).toEqual({
+      fronted: [],
+      moved: [{ settlement_id: 1, from_user_id: 2, to_user_id: 1, cents: -2000 }],
+      outstanding: [{ from_user_id: 2, to_user_id: 1, cents: -3000 }],
+    });
+  });
+
+  it('keeps an expense with no split members out of the rows, as it is out of the ledger', () => {
+    // Item 1 has a payer but nobody to split it with: a planning-only entry that
+    // charges nobody, so it cannot be listed as something Alice fronted either.
+    setupDb(
+      [makeItem(1, 100), makeItem(2, 40)],
+      [makeMember(2, 1, 'alice'), makeMember(2, 2, 'bob')],
+      [makePayer(1, 1, 100, 'alice'), makePayer(2, 1, 40, 'alice')],
+    );
+    const result = budget.calculateSettlement(1);
+
+    const alice = result.finalBudgets.find(f => f.user_id === 1)!;
+    expect(alice.expenses).toBe(40);
+    expect(alice.sources.fronted).toEqual([{ item_id: 2, cents: 4000 }]);
+  });
+
+  it('spreads a foreign-currency figure over its rows so they still add up in the display currency', () => {
+    // Two USD expenses booked at their own frozen rates and one in the trip's euros,
+    // viewed in pounds: every row goes through the conversion its figure went
+    // through, and the cents lost to rounding land on rows instead of between them.
+    const sum = (rows: { cents: number }[]) => rows.reduce((a, r) => a + r.cents, 0);
+    setupDb(
+      [
+        { ...makeItem(1, 100), currency: 'USD', exchange_rate: 1.08 },
+        { ...makeItem(2, 33.33), currency: 'USD', exchange_rate: 1.1 },
+        makeItem(3, 50),
+      ],
+      [
+        makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob'), makeMember(1, 3, 'carol'),
+        makeMember(2, 1, 'alice'), makeMember(2, 2, 'bob'), makeMember(2, 3, 'carol'),
+        makeMember(3, 1, 'alice'), makeMember(3, 2, 'bob'), makeMember(3, 3, 'carol'),
+      ],
+      [makePayer(1, 1, 100, 'alice'), makePayer(2, 1, 33.33, 'alice'), makePayer(3, 2, 50, 'bob')],
+      [makeSettlementRow(1, 3, 1, 20, 'GBP', 0.8547), makeSettlementRow(2, 3, 2, 7.77, 'GBP', 0.8547)],
+    );
+    for (const eurPerGbp of [1.17, 1.1523, 1.2]) {
+      const result = budget.calculateSettlement(1, { base: 'GBP', tripCurrency: 'EUR', rates: { GBP: 1, EUR: eurPerGbp } });
+
+      checkIdentity(result.finalBudgets);
+      for (const f of result.finalBudgets) {
+        expect(sum(f.sources.fronted)).toBe(Math.round(f.expenses * 100));
+        expect(sum(f.sources.moved)).toBe(Math.round(f.reimbursed * 100));
+        expect(sum(f.sources.outstanding)).toBe(Math.round(f.pending * 100));
+      }
+      // Alice's two rows each stay within a cent of their own conversion: the
+      // remainder is handed out, not rounded away one row at a time.
+      const alice = result.finalBudgets.find(f => f.user_id === 1)!;
+      expect(alice.sources.fronted.map(r => r.item_id)).toEqual([1, 2]);
+      expect(Math.abs(alice.sources.fronted[0].cents - Math.round(100 / 1.08 * 100) / eurPerGbp)).toBeLessThan(1);
+      expect(Math.abs(alice.sources.fronted[1].cents - Math.round(33.33 / 1.1 * 100) / eurPerGbp)).toBeLessThan(1);
+    }
+  });
+});
+
 describe('splitEqualShares — client parity (#2176)', () => {
   // Private on purpose (only the settlement calls it); the parity pin reaches
   // through so the fixture exercises the real implementation, not a re-model.
@@ -837,9 +1063,10 @@ describe('applySettlementUpdate', () => {
     });
 
     const res = budget.applySettlementUpdate(7, 1, { from_user_id: 2, to_user_id: 1, amount: 10.126 });
-    // from, to, rounded amount, currency-flag(0)/value(null), rate-flag(null)/value(1), id.
-    // No currency/exchange_rate passed → both CASE guards keep the existing columns.
-    expect(run).toHaveBeenCalledWith(2, 1, 10.13, 0, null, null, 1, 7);
+    // from, to, rounded amount, currency-flag(0)/value(null), rate-flag(null)/value(1),
+    // settled_at-flag(0)/value(null), id.
+    // No currency/exchange_rate/settled_at passed → all three CASE guards keep the existing columns.
+    expect(run).toHaveBeenCalledWith(2, 1, 10.13, 0, null, null, 1, 0, null, 7);
     expect(res).toMatchObject({ id: 7, from_user_id: 2, to_user_id: 1, amount: 10.13 });
   });
 });

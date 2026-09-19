@@ -186,7 +186,9 @@ export function useLogin() {
           // Skip auto-redirect when config is from cache — network is unreliable
           // and auto-redirecting to the IdP could loop if the proxy changed.
           if (!fromCache && !config.password_login && config.oidc_login && config.oidc_configured && config.has_users && !invite && !noRedirect) {
-            window.location.href = '/api/auth/oidc/login'
+            // No switch to consult on this path: OIDC-only always asks for the
+            // remembered lifetime, matching the SSO button on the panel (#1927).
+            window.location.href = '/api/auth/oidc/login?remember=1'
           }
         }
       })

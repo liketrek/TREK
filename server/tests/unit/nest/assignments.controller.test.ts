@@ -67,6 +67,18 @@ describe('DayAssignmentsController (parity with the legacy day-assignments route
 });
 
 describe('AssignmentOpsController (parity with the per-assignment op routes)', () => {
+  it('scopes explicit day ends to the trip and broadcasts the saved visit', () => {
+    const setEndDay = vi.fn().mockReturnValue({ id: 9, end_day: true });
+    const s = svc({ getAssignmentForTrip: vi.fn().mockReturnValue({ id: 9 }), setEndDay });
+    const controller = new AssignmentOpsController(s);
+    expect(controller.endDay('5', '9', { end_day: true }, 'sock')).toEqual({ assignment: { id: 9, end_day: true } });
+    expect(s.getAssignmentForTrip).toHaveBeenCalledWith('9', '5');
+    expect(setEndDay).toHaveBeenCalledWith('9', true);
+    expect(s.broadcast).toHaveBeenCalledWith('5', 'assignment:updated', { assignment: { id: 9, end_day: true } }, 'sock');
+    vi.mocked(s.getAssignmentForTrip).mockReturnValue(undefined);
+    expect(thrown(() => controller.endDay('5', '9', { end_day: false }))).toEqual({ status: 404, body: { error: 'Assignment not found' } });
+  });
+
   it('PUT /:id/move 404 assignment, 404 target day, else moves', () => {
     expect(thrown(() => new AssignmentOpsController(svc({ getAssignmentForTrip: vi.fn().mockReturnValue(undefined) } as Partial<AssignmentsService>)).move(user, '5', '9', { new_day_id: 4 }))).toEqual({ status: 404, body: { error: 'Assignment not found' } });
     expect(thrown(() => new AssignmentOpsController(svc({ getAssignmentForTrip: vi.fn().mockReturnValue({ day_id: 3 }), dayExists: vi.fn().mockReturnValue(false) } as Partial<AssignmentsService>)).move(user, '5', '9', { new_day_id: 4 }))).toEqual({ status: 404, body: { error: 'Target day not found' } });

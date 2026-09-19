@@ -171,8 +171,9 @@ describe('Atlas e2e (real auth guard + real service + temp SQLite)', () => {
     expect(res.status).toBe(200);
 
     const byCode = Object.fromEntries((res.body.countries as { code: string }[]).map((c) => [c.code, c]));
-    expect(byCode['IT']).toMatchObject({ status: 'visited' });
-    expect(byCode['JP']).toMatchObject({ status: 'planned' });
+    // #1535: the dates run from the start to the end of the trip, not start to start.
+    expect(byCode['IT']).toMatchObject({ status: 'visited', firstVisit: iso(-40), lastVisit: iso(-30) });
+    expect(byCode['JP']).toMatchObject({ status: 'planned', firstVisit: iso(30), lastVisit: iso(40) });
     expect(res.body.stats.totalCountries).toBe(1);
     expect(res.body.stats.totalCountriesPlanned).toBe(1);
     expect(res.body.countries.length).toBeGreaterThan(res.body.stats.totalCountries);

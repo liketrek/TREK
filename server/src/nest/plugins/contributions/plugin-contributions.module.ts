@@ -3,8 +3,10 @@ import { PluginsRuntimeModule } from '../plugins-runtime.module';
 import { AddonsModule } from '../../addons/addons.module';
 import { JourneyDomainModule } from '../../journey/journey-domain.module';
 import { PlaceDetailsController } from './place-details.controller';
+import { PluginSearchController } from './plugin-search.controller';
 import { TripWarningsController } from './trip-warnings.controller';
 import { TripWarningsMcp } from './trip-warnings.mcp';
+import { PluginSearchMcp } from './plugin-search.mcp';
 import { PluginMcpToolsService } from './plugin-mcp-tools.service';
 import { ViewContributionsController } from './view-contributions.controller';
 import { TripCardContributionsController } from './trip-card-contributions.controller';
@@ -21,8 +23,9 @@ import { JournalEntryRowsController } from './journal-entry-rows.controller';
 
 /**
  * The read-only surface plugins contribute to the app: photos, calendar events,
- * place details, trip warnings, table columns, map markers and layers, routes, day
- * schedules and tints, PDF sections, atlas layers, journal entry rows, trip cards.
+ * place details, search results, trip warnings, table columns, map markers and
+ * layers, routes, day schedules and tints, PDF sections, atlas layers, journal entry
+ * rows, trip cards.
  *
  * Every one of these is the same shape — fan out over `providersOf(hook)`, call the
  * hook through `PluginHooks`, normalize and cap what comes back, skip a provider that
@@ -34,6 +37,7 @@ import { JournalEntryRowsController } from './journal-entry-rows.controller';
   imports: [PluginsRuntimeModule, AddonsModule, JourneyDomainModule],
   controllers: [
     PlaceDetailsController,
+    PluginSearchController,
     TripWarningsController,
     ViewContributionsController,
     TripCardContributionsController,
@@ -55,6 +59,6 @@ import { JournalEntryRowsController } from './journal-entry-rows.controller';
   // PluginMcpToolsService owns the process-level tool source. It lives here, and
   // not on PluginRuntimeService beside the other sinks, because it needs
   // PluginHooks and PluginHooks injects PluginRuntimeService.
-  providers: [TripWarningsMcp, PluginMcpToolsService],
+  providers: [TripWarningsMcp, PluginSearchMcp, PluginMcpToolsService],
 })
 export class PluginContributionsModule {}

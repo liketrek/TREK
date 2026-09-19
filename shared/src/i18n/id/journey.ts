@@ -625,5 +625,21 @@ const journey: TranslationStrings = {
   'journey.editor.statsExcludedHint':
     'Perhentian tetap ada di jurnal tetapi tidak dihitung untuk jarak, negara, atau peta di Studio.',
   'journey.entry.offRoute': 'Di luar rute',
+  'journey.suggestions.dismiss': 'Abaikan saran ini',
+  'journey.suggestions.dismissed': 'Saran diabaikan',
+  'journey.suggestions.restore': 'Kembalikan saran yang diabaikan',
+  'journey.suggestions.restoreCount': 'Saran yang diabaikan ({count})',
+  'journey.suggestions.restored': '{count} saran telah kembali',
+  'journey.detail.addOnThisDay': 'Tambahkan catatan pada hari ini',
+  'journey.detail.jumpToDay': 'Lompat ke {date}',
+  'journey.detail.searchPlaceholder': 'Cari di perjalanan ini',
+  'journey.detail.searchEmpty': 'Tidak ada catatan yang cocok dengan "{query}"',
+  'journey.settings.entryFields': 'Bidang catatan',
+  'journey.settings.entryFieldsHint': 'Matikan yang tidak dipakai perjalanan ini. Tidak ada tulisan yang hilang.',
+  'journey.settings.showVerdict': 'Kelebihan & kekurangan',
+  'journey.settings.showMood': 'Suasana hati',
+  'journey.settings.showWeather': 'Cuaca',
+  'journey.entry.suggestion': 'Saran',
+  'journey.editor.addDetails': '+ Detail',
 };
 export default journey;

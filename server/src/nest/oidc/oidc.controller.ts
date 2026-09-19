@@ -2,7 +2,7 @@ import { Body, Controller, Get, HttpException, Put, Query, Req, Res, UseGuards }
 import type { Request, Response } from 'express';
 import { oidcLoginQuerySchema } from '@trek/shared';
 import { readEnv } from '../../app-config';
-import { OidcService, OIDC_STATE_TTL_MS } from './oidc.service';
+import { OidcService, OIDC_STATE_TTL_MS, OIDC_AUTH_CODE_TTL_MS } from './oidc.service';
 import { cookieOptions } from '../common/cookie';
 import { AdminGuard } from '../auth/admin.guard';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -15,15 +15,21 @@ import { Public } from '../auth/public.decorator';
 import { ManagedForbidden } from '../common/managed';
 
 const OIDC_STATE_COOKIE = 'trek_oidc_state';
+const OIDC_EXCHANGE_COOKIE = 'trek_oidc_exchange';
 
 /**
  * /api/auth/oidc — OIDC SSO login flow (Authorization Code + PKCE).
  *
- * Byte-identical to the legacy Express route (server/src/routes/oidc.ts):
+ * Carried over from the legacy Express route (server/src/routes/oidc.ts):
  * unauthenticated, the sso-disabled / not-configured / HTTPS-issuer guards, the
  * strict id_token + userinfo.sub cross-check, all the frontend redirect error
  * codes, and the auth-code → cookie hand-off on /exchange. Uses @Res directly
  * because the flow mixes provider redirects with JSON error bodies.
+ *
+ * Two cookies bind the flow to one browser, and both are single use: the state
+ * cookie set at /login is required at /callback, and the binding cookie set at
+ * /callback is required at /exchange. Neither the provider state nor the auth
+ * code is a credential on its own — both travel in URLs.
  */
 @Public('the OIDC handshake happens before a TREK session exists; the provider state is the credential')
 @Controller('api/auth/oidc')
@@ -160,8 +166,18 @@ export class OidcController {
       if ('error' in result) return f('/login?oidc_error=' + result.error);
 
       this.oidc.touchLastLogin(result.user.id);
-      const jwtToken = this.oidc.generateToken(result.user, pending.remember === true);
-      const authCode = this.oidc.createAuthCode(jwtToken, pending.remember);
+      // Pass the flag through untouched: `undefined` must reach the token as
+      // "absent", not `false`, or the sliding renewal would later downgrade the
+      // default persistent cookie to a browser-session one (remember-me, #1927).
+      const jwtToken = this.oidc.generateToken(result.user, pending.remember);
+      const { code: authCode, binding } = this.oidc.createAuthCode(jwtToken, pending.remember);
+      // Bind the code to THIS browser, the way the state cookie binds the callback.
+      // The code rides home in a URL, so it is readable from history, from a
+      // referrer and from anything that logs URLs; without a second half nobody
+      // else holds, /exchange would hand a session to whoever presents it — either
+      // stealing this login, or (a code the attacker minted for their own account,
+      // fed to a victim's browser) fixing the victim into the attacker's session.
+      res.cookie(OIDC_EXCHANGE_COOKIE, binding, { ...cookieOptions(false, req), maxAge: OIDC_AUTH_CODE_TTL_MS });
       return f('/login?oidc_code=' + authCode);
     } catch (err: unknown) {
       console.error('[OIDC] Callback error:', err);
@@ -171,11 +187,16 @@ export class OidcController {
 
   @Get('exchange')
   exchange(@Query('code') code: string | undefined, @Req() req: Request, @Res() res: Response): void {
+    // The binding cookie is single-use like the state cookie: one redemption
+    // attempt per callback, whatever its outcome.
+    const binding = (req.cookies as Record<string, string> | undefined)?.[OIDC_EXCHANGE_COOKIE];
+    res.clearCookie(OIDC_EXCHANGE_COOKIE, cookieOptions(true, req));
+
     if (!code) {
       res.status(400).json({ error: 'Code required' });
       return;
     }
-    const result = this.oidc.consumeAuthCode(code);
+    const result = this.oidc.consumeAuthCode(code, binding);
     if ('error' in result) {
       res.status(400).json({ error: result.error });
       return;

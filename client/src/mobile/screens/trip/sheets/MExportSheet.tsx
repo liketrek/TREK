@@ -19,6 +19,7 @@ export default function MExportSheet({ planner, shell }: MTripSheetsProps) {
   const { t, locale } = useTranslation()
   // The PDF is built outside React, so it cannot read this itself (#2066).
   const timeFormat = useSettingsStore(s => s.settings.time_format) || '24h'
+  const distanceUnit = useSettingsStore(s => s.settings.distance_unit)
   const open = shell.sheet?.id === 'export'
   const dayNotes = useTripStore(s => s.dayNotes)
   const [subscribeOpen, setSubscribeOpen] = useState(false)
@@ -50,6 +51,7 @@ export default function MExportSheet({ planner, shell }: MTripSheetsProps) {
         t,
         locale,
         timeFormat,
+        distanceUnit,
       })
     } catch (e) {
       planner.toast.error(`${t('dayplan.pdfError')}: ${e instanceof Error ? e.message : String(e)}`)

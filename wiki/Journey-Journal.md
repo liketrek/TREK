@@ -16,7 +16,7 @@ When the admin has enabled the Journey addon, a **Journey** entry appears in the
 
 ## Creating a journey
 
-From the Journey list, click **Create journey**. Give it a title and optional subtitle, then select one or more existing trips to link. Linking a trip imports the trip's places as location anchors for your entries. You can link additional trips later from the journal settings.
+From the Journey list, click **Create journey**. Give it a title and optional subtitle, then select one or more existing trips to link. Linking a trip imports the trip's places as location anchors for your entries — one anchor per day the place stands on, so a place you kept across two days gives you an entry on each of them. You can link additional trips later from the journal settings.
 
 ## Journal entries
 
@@ -72,6 +72,7 @@ A journey can also be laid out as a printable photo book. Open a journey and cli
 ![The TREK Studio editor with the pages rail on the left, a spread on the workbench and the properties inspector on the right](assets/TREK-Studio-Editor.png)
 
 - **Page format** — Square 21 × 21 cm (the default), Square 30 × 30 cm, A4 landscape, A4 portrait, A5 landscape, or a custom width × height in millimetres. Everything is drawn as a spread (two pages side by side) with 3 mm bleed and a 5 mm safe margin.
+- **The shape of the book** follows a bound one: a cover, a single first page on the right (page 1, where a title page or a dedication goes), the spreads, a single last page on the left, and a back cover. The first and last pages take the cover layouts and, like the covers, stay where they are; new spreads always go between them. Page numbers, when switched on, count from the first page, and the number on screen is the number that prints. Books made before this had no single pages and keep their numbering as it was.
 - **Auto layout** has two entries. **This spread** builds the spread on screen again from the journal entry it came from, and is only offered on a spread that came from one. **The whole book** replaces every page, keeping your title and page setup. Both are ordinary undo steps, so you can press one, look at it, and undo.
 - **Pages, Content, Elements, Travel and Layouts** are the sections of the left rail. Content holds the journey's own photos and entries; Layouts has thirteen spread layouts (Hero and story, Four up, Strip and text, Mosaic and so on) plus a separate set of five for the cover and back; Elements has text styles, shapes, lines, grids, empty frames with their frame styles, and a searchable icon library; Travel builds figures out of the journey itself — route maps, country outlines and lists, flags, date, day and distance marks, and a trip summary.
 - **Properties** on the right edits whatever is selected: position and size, crop and focal point, fill or fit, a look filter, corner radius, frame style, stacking order, lock. An element that auto layout tied to a journal entry follows that entry until you edit it here, which breaks the link.

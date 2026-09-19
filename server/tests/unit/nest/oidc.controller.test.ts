@@ -19,7 +19,7 @@ function svc(o: Partial<OidcService> = {}): OidcService {
     findOrCreateUser: vi.fn(),
     touchLastLogin: vi.fn(),
     generateToken: vi.fn().mockReturnValue('jwt'),
-    createAuthCode: vi.fn().mockReturnValue('ac'),
+    createAuthCode: vi.fn().mockReturnValue({ code: 'ac', binding: 'bnd' }),
     consumeAuthCode: vi.fn(),
     frontendUrl: vi.fn((p: string) => 'https://app' + p),
     setAuthCookie: vi.fn(),
@@ -42,6 +42,8 @@ function makeRes() {
 }
 
 const req = { query: {}, headers: {} } as Request;
+// Exchange request carrying the binding cookie the callback handed this browser.
+const reqEx = (binding = 'bnd') => ({ query: {}, headers: {}, cookies: { trek_oidc_exchange: binding } } as unknown as Request);
 // Callback request carrying the state-binding cookie a real browser would send
 // after going through /login.
 const reqCb = (state = 's') => ({ query: {}, headers: {}, cookies: { trek_oidc_state: state } } as unknown as Request);
@@ -192,6 +194,9 @@ describe('OidcController /callback', () => {
     }));
     await c.callback('c', 's', undefined, reqCb('s'), ok);
     expect(ok.redirectedTo).toBe('https://app/login?oidc_code=ac');
+    // The code alone is not the credential: its other half goes out as a cookie
+    // that only this browser holds, and expires with the code.
+    expect(ok.cookie).toHaveBeenCalledWith('trek_oidc_exchange', 'bnd', expect.objectContaining({ httpOnly: true, maxAge: 60000, sameSite: 'lax' }));
   });
 
   it('rejects a callback whose state cookie does not match the query state', async () => {
@@ -353,14 +358,13 @@ describe('OidcController /callback', () => {
     expect(res.redirectedTo).toBe('https://app/login?oidc_error=server_error');
   });
 
-  it('threads the pending remember flag into generateToken and createAuthCode', async () => {
-    for (const [remember, expectedGenerate] of [
-      [true, true],
-      [false, false],
-      [undefined, false],
-    ] as const) {
+  it('threads the pending remember flag unchanged into generateToken and createAuthCode', async () => {
+    // An absent flag must stay absent in the token: coercing it to `false`
+    // would let the sliding renewal downgrade the default persistent cookie
+    // to a browser-session cookie half a lifetime later.
+    for (const remember of [true, false, undefined] as const) {
       const generateToken = vi.fn().mockReturnValue('jwt');
-      const createAuthCode = vi.fn().mockReturnValue('ac');
+      const createAuthCode = vi.fn().mockReturnValue({ code: 'ac', binding: 'bnd' });
       const res = makeRes();
       await new OidcController(svc({
         consumeState: vi.fn().mockReturnValue({ redirectUri: 'https://app/api/auth/oidc/callback', codeVerifier: 'cv', inviteToken: undefined, remember }),
@@ -371,7 +375,7 @@ describe('OidcController /callback', () => {
         generateToken,
         createAuthCode,
       })).callback('c', 's', undefined, reqCb('s'), res);
-      expect(generateToken).toHaveBeenCalledWith({ id: 1 }, expectedGenerate);
+      expect(generateToken).toHaveBeenCalledWith({ id: 1 }, remember);
       expect(createAuthCode).toHaveBeenCalledWith('jwt', remember);
     }
   });
@@ -380,19 +384,20 @@ describe('OidcController /callback', () => {
 describe('OidcController /exchange', () => {
   it('400 without a code, 400 on an invalid code, else sets the cookie + returns the token', () => {
     const r1 = makeRes();
-    new OidcController(svc()).exchange(undefined, req, r1);
+    new OidcController(svc()).exchange(undefined, reqEx(), r1);
     expect(r1.statusCode).toBe(400);
     expect(r1.body).toEqual({ error: 'Code required' });
 
     const r2 = makeRes();
-    new OidcController(svc({ consumeAuthCode: vi.fn().mockReturnValue({ error: 'invalid_code' }) })).exchange('x', req, r2);
+    new OidcController(svc({ consumeAuthCode: vi.fn().mockReturnValue({ error: 'invalid_code' }) })).exchange('x', reqEx(), r2);
     expect(r2.statusCode).toBe(400);
     expect(r2.body).toEqual({ error: 'invalid_code' });
 
     const r3 = makeRes();
     const setAuthCookie = vi.fn();
-    new OidcController(svc({ consumeAuthCode: vi.fn().mockReturnValue({ token: 'jwt' }), setAuthCookie })).exchange('x', req, r3);
-    expect(setAuthCookie).toHaveBeenCalledWith(r3, 'jwt', req, undefined);
+    const req3 = reqEx();
+    new OidcController(svc({ consumeAuthCode: vi.fn().mockReturnValue({ token: 'jwt' }), setAuthCookie })).exchange('x', req3, r3);
+    expect(setAuthCookie).toHaveBeenCalledWith(r3, 'jwt', req3, undefined);
     expect(r3.body).toEqual({ token: 'jwt' });
   });
 
@@ -400,9 +405,34 @@ describe('OidcController /exchange', () => {
     for (const remember of [true, false] as const) {
       const res = makeRes();
       const setAuthCookie = vi.fn();
-      new OidcController(svc({ consumeAuthCode: vi.fn().mockReturnValue({ token: 'jwt', remember }), setAuthCookie })).exchange('x', req, res);
-      expect(setAuthCookie).toHaveBeenCalledWith(res, 'jwt', req, remember);
+      const r = reqEx();
+      new OidcController(svc({ consumeAuthCode: vi.fn().mockReturnValue({ token: 'jwt', remember }), setAuthCookie })).exchange('x', r, res);
+      expect(setAuthCookie).toHaveBeenCalledWith(res, 'jwt', r, remember);
       expect(res.body).toEqual({ token: 'jwt' });
     }
+  });
+
+  it('hands the binding cookie to consumeAuthCode and clears it on the way out', () => {
+    const consumeAuthCode = vi.fn().mockReturnValue({ token: 'jwt' });
+    const res = makeRes();
+    new OidcController(svc({ consumeAuthCode })).exchange('x', reqEx('the-secret'), res);
+    expect(consumeAuthCode).toHaveBeenCalledWith('x', 'the-secret');
+    expect(res.clearCookie).toHaveBeenCalledWith('trek_oidc_exchange', expect.objectContaining({ httpOnly: true, path: '/' }));
+  });
+
+  it('passes undefined when the browser has no binding cookie, and still clears it', () => {
+    const consumeAuthCode = vi.fn().mockReturnValue({ error: 'Invalid or expired code' });
+    const res = makeRes();
+    // A request from any other context: no cookie jar for this origin at all.
+    new OidcController(svc({ consumeAuthCode })).exchange('stolen', { query: {}, headers: {} } as Request, res);
+    expect(consumeAuthCode).toHaveBeenCalledWith('stolen', undefined);
+    expect(res.statusCode).toBe(400);
+    expect(res.clearCookie).toHaveBeenCalledWith('trek_oidc_exchange', expect.anything());
+  });
+
+  it('clears the binding cookie even when no code was presented', () => {
+    const res = makeRes();
+    new OidcController(svc()).exchange(undefined, reqEx(), res);
+    expect(res.clearCookie).toHaveBeenCalledWith('trek_oidc_exchange', expect.anything());
   });
 });

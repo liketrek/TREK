@@ -10,8 +10,17 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, waitFor } from '@testing-library/react'
 import type * as L from 'leaflet'
 import { maplibreGL as bridge } from '@maplibre/maplibre-gl-leaflet'
-import { VectorBasemap, attachVectorBasemap, hideLabelLayers, type GlLeafletLayer } from './VectorBasemap'
-import { OFM_POSITRON, OFM_DARK, OFM_ATTRIBUTION } from '../../constants/mapDefaults'
+import { hasWebGL } from '../../utils/webgl'
+import {
+  VectorBasemap,
+  attachVectorBasemap,
+  detachBasemapLayer,
+  hideLabelLayers,
+  restyleBasemap,
+  type BasemapLayer,
+  type GlLeafletLayer,
+} from './VectorBasemap'
+import { OFM_POSITRON, OFM_DARK, OFM_ATTRIBUTION, RASTER_FALLBACK_TILE_URL } from '../../constants/mapDefaults'
 
 const addAttribution = vi.fn()
 /** Only the two things the component touches; casting keeps the mock honest about that. */
@@ -20,7 +29,16 @@ const leafletMap = asMap({ attributionControl: { addAttribution } })
 /** A map built without an attribution control, like the atlas. */
 const bareMap = asMap({})
 
-vi.mock('react-leaflet', () => ({ useMap: () => leafletMap }))
+// TileLayer as well as useMap: the component renders one when the browser has no
+// WebGL, and jsdom is exactly such a browser.
+vi.mock('react-leaflet', () => ({
+  useMap: () => leafletMap,
+  TileLayer: ({ url }: { url: string }) => <div data-testid="raster-basemap" data-url={url} />,
+}))
+
+// jsdom has no WebGL, so without this every case below would take the raster
+// branch. The suite is about the GL wiring; the raster branch has its own cases.
+vi.mock('../../utils/webgl', () => ({ hasWebGL: vi.fn(() => true), resetWebGLProbe: vi.fn() }))
 vi.mock('./engines/maplibre', () => ({ default: { __engine: 'maplibre' } }))
 vi.mock('@maplibre/maplibre-gl-leaflet', () => {
   const maplibreGL = vi.fn(() => {
@@ -199,5 +217,93 @@ describe('hideLabelLayers', () => {
   it('FE-COMP-VECBM-012: does nothing when the GL map is not up yet', () => {
     const layer = { getMaplibreMap: () => undefined } as unknown as GlLeafletLayer
     expect(() => hideLabelLayers(layer)).not.toThrow()
+  })
+})
+
+/**
+ * A browser that will not give MapLibre a WebGL context (#2288).
+ *
+ * Hardware acceleration off, a blocklisted driver, a VM or a remote desktop all
+ * land here. Before the probe, the throw came out of an async effect nobody could
+ * catch, and the layer it left behind took the page down on the way out.
+ */
+describe('VectorBasemap without WebGL', () => {
+  const noWebGL = vi.mocked(hasWebGL)
+
+  /** A map real Leaflet will accept, which the raster stand-in needs. */
+  const rasterMap = () => asMap({ addLayer: vi.fn(), attributionControl: { addAttribution } })
+
+  beforeEach(() => {
+    noWebGL.mockReturnValue(false)
+  })
+
+  it('FE-COMP-VECBM-013: draws raster tiles and never asks for the maplibre chunk', async () => {
+    // Not loading it is half the point: about a megabyte for a browser that could
+    // never have drawn it.
+    const { findByTestId } = render(<VectorBasemap style={OFM_POSITRON} />)
+
+    const tiles = await findByTestId('raster-basemap')
+    expect(tiles.getAttribute('data-url')).toBe(RASTER_FALLBACK_TILE_URL)
+    expect(maplibreGL).not.toHaveBeenCalled()
+  })
+
+  it('FE-COMP-VECBM-014: unmounting is quiet, with nothing to take off the map', () => {
+    const { unmount } = render(<VectorBasemap style={OFM_POSITRON} />)
+    // The crash in #2288 came from teardown, not from the failed attach.
+    expect(() => unmount()).not.toThrow()
+  })
+
+  it('FE-COMP-VECBM-015: the imperative maps get the raster stand-in in their ref', async () => {
+    const ref: { current: BasemapLayer | null } = { current: null }
+    const map = rasterMap()
+
+    await attachVectorBasemap(map, OFM_POSITRON, ref, () => false)
+
+    expect(maplibreGL).not.toHaveBeenCalled()
+    expect(ref.current).not.toBeNull()
+    // OpenStreetMap rather than OpenFreeMap: different tiles, different credit.
+    expect(addAttribution).toHaveBeenCalledWith(expect.stringContaining('openstreetmap.org/copyright'))
+  })
+
+  it('FE-COMP-VECBM-016: a map torn down mid-probe still gets nothing', async () => {
+    const ref: { current: BasemapLayer | null } = { current: null }
+    await attachVectorBasemap(rasterMap(), OFM_POSITRON, ref, () => true)
+    expect(ref.current).toBeNull()
+  })
+
+  it('FE-COMP-VECBM-017: the raster stand-in ignores a restyle and a label sweep', async () => {
+    const ref: { current: BasemapLayer | null } = { current: null }
+    await attachVectorBasemap(rasterMap(), OFM_POSITRON, ref, () => false)
+
+    // Both are GL-only operations. Called on raster tiles they must do nothing
+    // rather than reach for a maplibre map that is not there.
+    expect(() => restyleBasemap(ref.current, OFM_DARK)).not.toThrow()
+    expect(() => hideLabelLayers(ref.current!)).not.toThrow()
+  })
+})
+
+describe('detachBasemapLayer', () => {
+  it('FE-COMP-VECBM-018: a GL layer whose context never came off cleanly anyway', () => {
+    // This is the crash from #2288 in one line: maplibre-gl-leaflet's onRemove
+    // calls this._glMap.remove() without asking whether there is one, and after a
+    // refused context there is not. It ran inside a React cleanup, so the throw
+    // reached a boundary and replaced the page.
+    const remove = vi.fn(function (this: { _glMap?: { remove: () => void } }) {
+      this._glMap!.remove()
+    })
+    const halfBuilt = { getMaplibreMap: () => undefined, remove } as unknown as GlLeafletLayer
+
+    expect(() => detachBasemapLayer(halfBuilt)).not.toThrow()
+    expect(remove).toHaveBeenCalled()
+  })
+
+  it('FE-COMP-VECBM-019: a layer that throws for any other reason is swallowed too', () => {
+    // Unmounting a map is never allowed to fail because its basemap did.
+    const layer = { remove: vi.fn(() => { throw new Error('boom') }) } as unknown as BasemapLayer
+    expect(() => detachBasemapLayer(layer)).not.toThrow()
+  })
+
+  it('FE-COMP-VECBM-020: nothing to detach is not an error', () => {
+    expect(() => detachBasemapLayer(null)).not.toThrow()
   })
 })

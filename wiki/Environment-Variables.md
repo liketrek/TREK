@@ -314,6 +314,45 @@ To get a key: create a free account at [unsplash.com/developers](https://unsplas
 
 ---
 
+## Place Search (Amap / 高德地图)
+
+Google Places is unreachable from most networks inside mainland China, and OpenStreetMap's coverage of Chinese POIs
+(restaurants, shops, the things a trip is actually made of) is thin and rarely in Chinese. TREK can put
+[Amap (高德地图)](https://lbs.amap.com/) in the slot Google otherwise holds: the TREK Places index and OpenStreetMap
+still answer first, Amap answers when they have nothing, and autocomplete, place details and reverse geocoding go
+through it. There is an Amap basemap to match (see [[Map Settings|Map-Settings]]).
+
+| Variable          | Description                                                                                                                                                                                            | Default                     |
+|-------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------|
+| `AMAP_API_KEY`    | Amap **Web 服务** (web service) key. When set, it takes priority over any key configured in **Admin → Settings → API Keys**, exactly like `PLACES_API_KEY` does for Google.                                | unset                       |
+| `AMAP_API_SECRET` | The private secret (数字签名) of that key. Required exactly when the key was created with signing enabled: such a key rejects every unsigned request. Leave unset otherwise.                                | unset                       |
+| `AMAP_API_BASE`   | Send the calls somewhere other than `https://restapi.amap.com`: an egress proxy, a cache, a gateway that holds the credential. The replacement has to speak the same API. Mirrors `PLACES_API_BASE`.      | `https://restapi.amap.com`  |
+
+**Get a key** at [console.amap.com](https://console.amap.com/dev/key/app): create an application, then add a key of
+type **Web 服务**. A **Web 端 (JS API)** key is a different kind of credential and will be rejected with
+`INVALID_USER_KEY`. This is the single most common misconfiguration.
+
+**Two ways to configure it**, pick one; the env var wins if both are present:
+
+1. **Environment variable** (this page): instance-wide, ideal for Docker/Helm where you already manage config as env.
+2. **Admin → Settings → API Keys**: paste it into the **Amap (高德地图) API Key** field. Stored encrypted at rest.
+
+Setting a key is not enough on its own: **Admin → Settings → API Keys → Place search provider** decides which keyed
+provider answers. `Automatic`, the default, keeps Google when a Google key is configured, then takes Amap, then
+nobody, so adding an Amap key never silently moves an existing install off Google. Choose **Amap** explicitly to make
+it the provider. The choice is available on managed instances too, where the keys themselves come from the operator.
+
+### Coordinates
+
+Amap speaks **GCJ-02**, the offset datum Chinese law requires published maps to use; everything TREK stores is
+**WGS-84**. The conversion happens at the boundary, in both directions, so what lands in the database, in a GPX export
+or on a map is always WGS-84: a place added through Amap and opened in OpenStreetMap later is in the right spot. The
+place also keeps the Amap id it was found by, so it keeps opening against Amap whichever provider is selected later.
+You do not need to configure anything for this, but it is worth knowing if you compare raw coordinates against Amap's
+own website, which will differ by a few hundred metres.
+
+---
+
 ## Storage & Paths
 
 Storage backends and category assignment are configured in
@@ -357,6 +396,7 @@ next key rotation or admin reset would quietly switch the file back to WAL.
 | Variable                  | Description                                                                                                                                                                                                                                                                                                                | Default             |
 |---------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------|
 | `IDEMPOTENCY_TTL_SECONDS` | How long (in seconds) stored idempotency keys are kept before garbage collection. The offline client replays queued mutations with their `X-Idempotency-Key` on reconnect, so this must exceed the longest expected offline window or a replay could create a duplicate. Invalid values abort startup. | `2592000` (30 days) |
+| `NOMINATIM_URL`           | Custom HTTP(S) Nominatim base URL for every geocoding call the server makes: place search, reverse lookup, place details and the Atlas region fill. When set it **replaces** the public OpenStreetMap service for all of them, with no fallback, so point it at an instance whose import covers the places your users plan and that speaks the Nominatim API (`/search`, `/reverse`, `/lookup`). Photon, Geoapify and LocationIQ are not drop-in replacements. TREK keeps its client-side spacing of roughly one request a second whichever instance answers, so this changes where the requests go, not how fast they are sent. Unset or blank uses the default. | `https://nominatim.openstreetmap.org` |
 | `OVERPASS_URL`            | Custom [Overpass API](https://wiki.openstreetmap.org/wiki/Overpass_API) endpoint(s) used by the map's POI "explore" search, comma-separated. When set it **replaces** the bundled public mirrors — point it at an internal or self-hosted Overpass instance when the public mirrors are unreachable from your network (e.g. firewalled/locked-down egress in a Kubernetes cluster). Entries that aren't valid `http(s)` URLs are ignored. If you don't run your own Overpass but the public mirrors throttle TREK, first make sure `APP_URL` (or `ALLOWED_ORIGINS`) is set: that alone gives outbound Overpass/Nominatim requests a unique User-Agent, which the public mirrors rate-limit far less. | bundled public mirrors |
 | `OVERPASS_TIMEOUT_MS`     | Per-endpoint timeout (in milliseconds) for Overpass POI requests. Endpoints race in parallel and one that hasn't answered within this window is abandoned so a faster mirror can win. Raise it if you run a slow self-hosted Overpass instance. Invalid values abort startup. | `12000` |
 | `LLM_TIMEOUT_MS`          | How long (in milliseconds) one AI-parsing call may take before it is abandoned. One ceiling for every provider, applied to the abort signal and to the underlying HTTP client alike. The default is generous so heavier parsing work fits without a code change; lower it if you use a cloud provider and would rather fail fast. Invalid values abort startup. | `900000` (15 min) |

@@ -1,8 +1,8 @@
 import React from 'react';
-import * as LucideIcons from 'lucide-react';
-import { ArrowRight, Coffee, Heart, Infinity as InfinityIcon, Sparkles, X } from 'lucide-react';
+import { ArrowRight, Heart, Infinity as InfinityIcon, X } from 'lucide-react';
 import { useTranslation } from '../../i18n/TranslationContext.js';
 import type { SystemNoticeDTO } from '../../store/systemNoticeStore.js';
+import { ReleaseFeatureVisual } from './ReleaseNoticeVisuals.js';
 import './releaseNotice.css';
 
 interface Props {
@@ -13,6 +13,20 @@ interface Props {
   onSecondaryCTA: () => void;
 }
 
+/** Lucide's coffee cup, drawn here so its three steam strokes can drift up in waves. */
+function SteamingCoffee() {
+  return (
+    <svg className="rn-coffee" width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth={2.1} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M17 8h1a4 4 0 1 1 0 8h-1" />
+      <path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z" />
+      <path className="rn-steam" d="M6 5.5c-1.2-.9 1.2-1.7 0-2.6s1.2-1.7 0-2.6 1.2-1.7 0-2.6" />
+      <path className="rn-steam" d="M10 5.5c-1.2-.9 1.2-1.7 0-2.6s1.2-1.7 0-2.6 1.2-1.7 0-2.6" />
+      <path className="rn-steam" d="M14 5.5c-1.2-.9 1.2-1.7 0-2.6s1.2-1.7 0-2.6 1.2-1.7 0-2.6" />
+    </svg>
+  );
+}
+
 /** Splits a translated block into paragraphs the way the notice bodies are written. */
 function paragraphs(text: string): string[] {
   return text.split('\n\n').map(p => p.trim()).filter(Boolean);
@@ -21,10 +35,10 @@ function paragraphs(text: string): string[] {
 /**
  * The release modal: what shipped on the left, a note from the maintainer on
  * the right. Rendered instead of the generic notice body whenever a notice
- * carries `release` — every string comes from that block, so a later release
- * only edits the registry entry.
+ * carries `release`. Every string comes from that block, so a later release
+ * only edits the registry entry and its keys.
  *
- * Desktop only (the notices carrying it set `desktopOnly`), and it keeps the
+ * Desktop only (the notice carrying it sets `desktopOnly`), and it keeps the
  * generic modal's behaviour: the host hook still owns ESC, the scroll lock and
  * the dismissal, this component only draws.
  */
@@ -62,48 +76,37 @@ export function ReleaseNoticeModal({ notice, visible, onDismiss, onCTA, onSecond
               <span className="rn-eyebrow">{t(release.eyebrowKey)}</span>
             </div>
 
-            <div className="rn-version-row">
-              <div className="rn-version">{release.version}</div>
-              <div className="rn-tag">{t(release.tagKey)}</div>
-            </div>
+            <div className="rn-version">{release.version}</div>
 
             <h2 id={titleId} className="rn-headline">{t(release.headlineKey)}</h2>
             <p id={bodyId} className="rn-intro">{t(release.introKey)}</p>
 
-            <div className="rn-features">
-              {release.features.map(f => {
-                const Icon: React.ElementType =
-                  ((LucideIcons as Record<string, unknown>)[f.iconName] as React.ElementType) ?? Sparkles;
-                return (
-                  <div key={f.titleKey} className="rn-feature">
-                    <span className="rn-feature-icon">
-                      <Icon size={18} strokeWidth={1.9} aria-hidden="true" />
-                    </span>
-                    <div className="rn-feature-text">
-                      <div className="rn-feature-title">
-                        {t(f.titleKey)}
-                        {f.badgeKey && <span className="rn-badge">{t(f.badgeKey)}</span>}
-                      </div>
-                      <div className="rn-feature-body">{t(f.bodyKey)}</div>
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="rn-features-head">
+              <span className="rn-features-label">{t(release.featuresLabelKey)}</span>
+              <span className="rn-features-rule" aria-hidden="true" />
+              {release.featuresAsideKey && (
+                <span className="rn-features-aside">{t(release.featuresAsideKey)}</span>
+              )}
             </div>
 
-            {((release.stats?.length ?? 0) > 0 || release.notes) && (
-              <div className="rn-release-foot">
-                {release.stats && release.stats.length > 0 && (
-                  <div className="rn-stats">
-                    {release.stats.map(s => (
-                      <div key={s.labelKey}>
-                        <div className="rn-stat-value">{s.value}</div>
-                        <div className="rn-stat-label">{t(s.labelKey)}</div>
-                      </div>
-                    ))}
+            <div className="rn-features">
+              {release.features.map(f => (
+                <div key={f.titleKey} className="rn-feature">
+                  <div className="rn-feature-shine" aria-hidden="true" />
+                  <div className="rn-feature-visual" aria-hidden="true">
+                    <ReleaseFeatureVisual visual={f.visual} iconName={f.iconName} />
                   </div>
-                )}
+                  <div>
+                    <div className="rn-feature-title">{t(f.titleKey)}</div>
+                    <div className="rn-feature-body">{t(f.bodyKey)}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
 
+            {(release.footnoteKey || release.notes) && (
+              <div className="rn-release-foot">
+                <div className="rn-footnote">{release.footnoteKey ? t(release.footnoteKey) : null}</div>
                 {release.notes && (
                   <a
                     className="rn-notes"
@@ -119,10 +122,6 @@ export function ReleaseNoticeModal({ notice, visible, onDismiss, onCTA, onSecond
                 )}
               </div>
             )}
-
-            {release.footnoteKey && (
-              <div className="rn-footnote">{t(release.footnoteKey)}</div>
-            )}
           </div>
         </div>
 
@@ -130,7 +129,7 @@ export function ReleaseNoticeModal({ notice, visible, onDismiss, onCTA, onSecond
         <div className="rn-note">
           {notice.dismissible && (
             <button type="button" className="rn-close" onClick={onDismiss} aria-label={t('common.close')}>
-              <X size={18} strokeWidth={2} />
+              <X size={17} strokeWidth={2} />
             </button>
           )}
 
@@ -145,19 +144,21 @@ export function ReleaseNoticeModal({ notice, visible, onDismiss, onCTA, onSecond
                 <InfinityIcon size={14} strokeWidth={2.1} aria-hidden="true" />
                 {t(release.note.promiseLabelKey)}
               </div>
-              <div className="rn-promise-text">{t(release.note.promiseTextKey)}</div>
+              <div className="rn-promise-text">
+                <b>{t(release.note.promiseLeadKey)}</b>{' '}
+                <span>{t(release.note.promiseTextKey)}</span>
+              </div>
             </div>
 
             {paragraphs(t(release.note.bodyAfterKey)).map((p, i) => <p key={i}>{p}</p>)}
 
-            <div className="rn-signoff">
-              <div className="rn-closing">{t(release.note.closingKey)}</div>
-              <div className="rn-signature">{t(release.note.signatureKey)}</div>
-            </div>
+            <div className="rn-closing">{t(release.note.closingKey)}</div>
           </div>
 
           <div className="rn-support">
-            <div className="rn-support-text">{t(release.supportTextKey)}</div>
+            <div className="rn-support-text">
+              <b>{t(release.supportLeadKey)}</b> {t(release.supportTextKey)}
+            </div>
             <div className="rn-support-buttons">
               {notice.cta && (
                 <button type="button"
@@ -165,7 +166,7 @@ export function ReleaseNoticeModal({ notice, visible, onDismiss, onCTA, onSecond
                   className="rn-support-btn rn-support-bmc"
                   onClick={onCTA}
                 >
-                  <Coffee size={18} strokeWidth={2.1} aria-hidden="true" />
+                  <SteamingCoffee />
                   {t(notice.cta.labelKey)}
                 </button>
               )}
@@ -175,7 +176,7 @@ export function ReleaseNoticeModal({ notice, visible, onDismiss, onCTA, onSecond
                   className="rn-support-btn rn-support-kofi"
                   onClick={onSecondaryCTA}
                 >
-                  <Heart size={18} strokeWidth={2.1} aria-hidden="true" />
+                  <Heart className="rn-heart" size={18} strokeWidth={2.1} aria-hidden="true" />
                   {t(notice.secondaryCta.labelKey)}
                 </button>
               )}

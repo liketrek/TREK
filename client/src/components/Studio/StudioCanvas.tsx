@@ -59,6 +59,7 @@ const HANDLE_POS: Record<HandleId, { left: string; top: string; cursor: string }
 export function StudioCanvas({
   spread,
   spreadIndex,
+  folios = [],
   page,
   zoom,
   pxPerMm,
@@ -71,6 +72,8 @@ export function StudioCanvas({
 }: {
   spread: BookSpread | null
   spreadIndex: number
+  /** The page numbers this spread carries, from foliosOf. */
+  folios?: readonly number[]
   page: BookPageSetup
   zoom: number
   pxPerMm: number
@@ -256,7 +259,7 @@ export function StudioCanvas({
         }}
         onPointerDown={() => select([])}
       >
-        <SpreadView spread={spread} page={page} spreadIndex={spreadIndex} big={zoom > 0.34} showGuides dropLabel={dropLabel} />
+        <SpreadView spread={spread} page={page} folios={folios} big={zoom > 0.34} showGuides dropLabel={dropLabel} />
 
         {cursors && cursors.length > 0 && (
           <PeerCursors cursors={cursors} spreadIndex={spreadIndex} zoom={zoom} />

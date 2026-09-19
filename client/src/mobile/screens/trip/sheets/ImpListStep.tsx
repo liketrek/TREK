@@ -84,6 +84,7 @@ export default function ImpListStep({ planner, onBack, onDone }: ImpListStepProp
 
         <div className="mt-3 font-geist text-[0.71875rem] leading-[1.45] text-m-muted">
           {t(provider === 'google' ? 'places.googleListHint' : 'places.naverListHint')}
+          {provider === 'google' ? <div style={{ marginTop: 4 }}>{t('places.googleDirHint')}</div> : null}
         </div>
 
         <input

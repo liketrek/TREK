@@ -2,12 +2,9 @@ import { BedDouble, Car, ChevronDown, ChevronUp, Clock, Footprints, Pencil, Rout
 import type { ReactNode, MouseEvent, CSSProperties } from 'react'
 import PlaceAvatar from '../../../../components/shared/PlaceAvatar'
 import { getCategoryIcon } from '../../../../components/shared/categoryIcons'
-import Markdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
-import remarkBreaks from 'remark-breaks'
+import MarkdownText from '../../../../components/shared/MarkdownText'
 import { RES_ICONS, getNoteIcon } from '../../../../components/Planner/DayPlanSidebar.constants'
 import { noteSurface } from '../../../../components/Planner/noteSurface'
-import { markdownLinkComponents } from '../../../../components/shared/markdownLink'
 import { getDisplayTimeForDay, getSpanPhase } from '../../../../utils/dayMerge'
 import { formatTime, splitReservationDateTime } from '../../../../utils/formatters'
 import { transportSubtitle, type TransitMeta, type TransportEntry } from './planTimelineModel'
@@ -193,7 +190,7 @@ export function PlaceRow({ assignment, fullPlace, linkedReservations, chrome, re
         {(time || sub) && (
           <div className="mt-[2px] flex min-w-0 items-center gap-1.5">
             {time && <span className={TIME_CHIP}>{time}</span>}
-            {sub && <span className="min-w-0 truncate font-geist text-[0.71875rem] text-m-muted">{sub}</span>}
+            {sub && <MarkdownText clamp className="min-w-0 font-geist text-[0.71875rem] text-m-muted">{sub}</MarkdownText>}
           </div>
         )}
         {bookingLines.slice(1).map(line => (
@@ -207,7 +204,7 @@ export function PlaceRow({ assignment, fullPlace, linkedReservations, chrome, re
           // without opening the place sheet.
           <div className="mt-[2px] flex min-w-0 items-center gap-1">
             <StickyNote size={10} strokeWidth={2.2} className="flex-none text-m-faint" />
-            <span className="min-w-0 truncate font-geist text-[0.65625rem] text-m-faint">{assignment.notes}</span>
+            <MarkdownText clamp className="min-w-0 font-geist text-[0.65625rem] text-m-faint">{assignment.notes}</MarkdownText>
           </div>
         )}
       </div>
@@ -571,9 +568,7 @@ export function NoteRow({ note, chrome, reorder, drag, onEdit }: {
         {detail && (
           // Rendered, not raw: a note written with the formatting bar would
           // otherwise read as `**asterisks**` on the phone.
-          <div className="collab-note-md mt-px font-geist text-[0.71875rem] leading-[1.45] text-m-muted [overflow-wrap:anywhere]">
-            <Markdown remarkPlugins={[remarkGfm, remarkBreaks]} components={markdownLinkComponents}>{detail}</Markdown>
-          </div>
+          <MarkdownText className="mt-px font-geist text-[0.71875rem] leading-[1.45] text-m-muted [overflow-wrap:anywhere]">{detail}</MarkdownText>
         )}
       </div>
       {chrome.editing && <span className="flex flex-none items-center gap-1.5">{reorder}</span>}

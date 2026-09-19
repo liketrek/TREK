@@ -625,5 +625,21 @@ const journey: TranslationStrings = {
   'journey.editor.statsExcludedHint':
     'Zastávka zůstane v deníku, ale nepočítá se do vzdálenosti, zemí ani do mapy v Studio.',
   'journey.entry.offRoute': 'Mimo trasu',
+  'journey.suggestions.dismiss': 'Zahodit tento návrh',
+  'journey.suggestions.dismissed': 'Návrh zahozen',
+  'journey.suggestions.restore': 'Vrátit zahozené návrhy',
+  'journey.suggestions.restoreCount': 'Zahozené návrhy ({count})',
+  'journey.suggestions.restored': 'Vrátilo se {count} návrhů',
+  'journey.detail.addOnThisDay': 'Přidat záznam k tomuto dni',
+  'journey.detail.jumpToDay': 'Přejít na {date}',
+  'journey.detail.searchPlaceholder': 'Hledat v této cestě',
+  'journey.detail.searchEmpty': 'Žádný záznam neodpovídá „{query}“',
+  'journey.settings.entryFields': 'Pole záznamu',
+  'journey.settings.entryFieldsHint': 'Vypněte, co tato cesta nepoužívá. Nic z už napsaného se neztratí.',
+  'journey.settings.showVerdict': 'Pro a proti',
+  'journey.settings.showMood': 'Nálada',
+  'journey.settings.showWeather': 'Počasí',
+  'journey.entry.suggestion': 'Návrh',
+  'journey.editor.addDetails': '+ Podrobnosti',
 };
 export default journey;

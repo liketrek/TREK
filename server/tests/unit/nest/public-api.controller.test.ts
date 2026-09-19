@@ -9,7 +9,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { HttpException } from '@nestjs/common';
 import type { Request } from 'express';
-import { PUBLIC_API_INCLUDES } from '@trek/shared';
+import { PUBLIC_API_INCLUDES, PUBLIC_API_SCOPES, type PublicApiGrant } from '@trek/shared';
 import { PublicApiController } from '../../../src/nest/public-api/public-api.controller';
 import type { PublicApiService } from '../../../src/nest/public-api/public-api.service';
 import type { RateLimitService } from '../../../src/nest/common/rate-limit.service';
@@ -40,9 +40,15 @@ function makeController(svc: Partial<PublicApiService>, allow = true) {
   return new PublicApiController(svc as PublicApiService, rl);
 }
 
-const req = (userId = 7) => ({ user: { id: userId } }) as Request;
-/** A request the guard never touched — the shape the controller must refuse. */
-const reqWithoutUser = () => ({}) as Request;
+/**
+ * The guard leaves two things behind (#2279): who is calling, and what their key
+ * may read. Every request here carries the full grant, because these cases are
+ * about shaping; the narrowed ones live in public-api-scopes.test.ts.
+ */
+const FULL_GRANT: PublicApiGrant = { mode: 'all', scopes: [...PUBLIC_API_SCOPES] };
+const req = (userId = 7) => ({ user: { id: userId }, apiToken: FULL_GRANT }) as Request;
+/** A request the guard left no user on — the shape the controller must refuse. */
+const reqWithoutUser = () => ({ apiToken: FULL_GRANT }) as Request;
 
 function thrown(fn: () => unknown): { status: number; body: unknown } {
   try {
@@ -106,19 +112,19 @@ describe('PublicApiController', () => {
       const getTrip = vi.fn().mockReturnValue(TRIP);
       const res = makeController({ getTrip }).getTrip(req(7), '12', undefined);
       expect(res).toEqual(TRIP);
-      expect(getTrip).toHaveBeenCalledWith(12, 7, [...PUBLIC_API_INCLUDES]);
+      expect(getTrip).toHaveBeenCalledWith(12, 7, [...PUBLIC_API_INCLUDES], expect.arrayContaining(['days']));
     });
 
     it('treats an empty include the same as an absent one', () => {
       const getTrip = vi.fn().mockReturnValue(TRIP);
       makeController({ getTrip }).getTrip(req(7), '12', '   ');
-      expect(getTrip).toHaveBeenCalledWith(12, 7, [...PUBLIC_API_INCLUDES]);
+      expect(getTrip).toHaveBeenCalledWith(12, 7, [...PUBLIC_API_INCLUDES], expect.arrayContaining(['days']));
     });
 
     it('narrows to the requested sections and tolerates spacing', () => {
       const getTrip = vi.fn().mockReturnValue(TRIP);
       makeController({ getTrip }).getTrip(req(7), '12', 'days, notes');
-      expect(getTrip).toHaveBeenCalledWith(12, 7, ['days', 'notes']);
+      expect(getTrip).toHaveBeenCalledWith(12, 7, ['days', 'notes'], expect.arrayContaining(['days']));
     });
 
     /**

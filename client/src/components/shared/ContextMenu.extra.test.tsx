@@ -20,7 +20,7 @@ describe('useContextMenu', () => {
       result.current.open({ clientX: 120, clientY: 40, preventDefault, stopPropagation } as unknown as React.MouseEvent, items)
     })
 
-    expect(result.current.menu).toEqual({ x: 120, y: 40, items })
+    expect(result.current.menu).toEqual({ x: 120, y: 40, items, alignEnd: false })
     expect(preventDefault).toHaveBeenCalled()
     expect(stopPropagation).toHaveBeenCalled()
   })

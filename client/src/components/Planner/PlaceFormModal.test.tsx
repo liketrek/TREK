@@ -1,4 +1,4 @@
-// FE-COMP-PLACEFORM-001 to FE-COMP-PLACEFORM-036, FE-PLANNER-PLACEFORM-016 to FE-PLANNER-PLACEFORM-067, plus FE-PLANNER-PLACEFORM-068 to -072
+// FE-COMP-PLACEFORM-001 to FE-COMP-PLACEFORM-036, FE-PLANNER-PLACEFORM-016 to FE-PLANNER-PLACEFORM-067, plus FE-PLANNER-PLACEFORM-068 to -080
 import { render, screen, waitFor, fireEvent, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -299,6 +299,43 @@ describe('PlaceFormModal', () => {
     delete window.__addToast;
   });
 
+  it('FE-PLANNER-PLACEFORM-021e: an OpenStreetMap suggestion keeps its own coordinates instead of searching for its label', async () => {
+    // The layer's second line is the name written on the building, not an
+    // address. Joining the two and searching for it asks a question nobody
+    // typed, and whatever came back first was taken as the place the user had
+    // already picked. The row carries coordinates, so the fallback uses those.
+    const user = userEvent.setup();
+    let searched = 0;
+    server.use(
+      http.post('/api/maps/autocomplete', () =>
+        HttpResponse.json({
+          suggestions: [{
+            placeId: 'node:9712313',
+            mainText: 'Tokio Hauptbahnhof',
+            secondaryText: '東京駅丸の内駅舎',
+            source: 'openstreetmap',
+            lat: 35.6811816,
+            lng: 139.76598265,
+          }],
+          source: 'trek-places',
+        }),
+      ),
+      http.get('/api/maps/details/:placeId', () => HttpResponse.json({ place: null, disabled: true })),
+      http.post('/api/maps/search', () => {
+        searched += 1;
+        return HttpResponse.json({ places: [{ name: 'Etwas ganz anderes', lat: '1', lng: '1' }], source: 'trek-places' });
+      }),
+    );
+
+    render(<PlaceFormModal {...defaultProps} />);
+    await user.type(screen.getByPlaceholderText('Search places...'), 'Tokio');
+    await user.click(await screen.findByText('Tokio Hauptbahnhof'));
+
+    expect(await screen.findByDisplayValue('35.6811816')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('139.76598265')).toBeInTheDocument();
+    expect(searched).toBe(0);
+  });
+
   it('FE-PLANNER-PLACEFORM-021c: suggestion click falls back when details is disabled (place: null)', async () => {
     const user = userEvent.setup();
     server.use(
@@ -349,10 +386,110 @@ describe('PlaceFormModal', () => {
     delete window.__addToast;
   });
 
-  it('FE-PLANNER-PLACEFORM-022: hasMapsKey=false shows OSM active message', () => {
-    // hasMapsKey is false by default in beforeEach
+  it('FE-PLANNER-PLACEFORM-022: no standing notice about which index is in use', () => {
+    // It used to say "Using OpenStreetMap" above the box whenever no Google key
+    // was set, which was a sentence about configuration in the middle of a form
+    // about a place. Each result names its own source now, which is the question
+    // people actually had.
     render(<PlaceFormModal {...defaultProps} />);
-    expect(screen.getByText(/OpenStreetMap/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Using OpenStreetMap/i)).not.toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-PLACEFORM-022b: a suggestion says which index answered', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.post('/api/maps/autocomplete', () =>
+        HttpResponse.json({
+          suggestions: [{ placeId: 'gers:abc', mainText: 'Eiffel Tower', secondaryText: 'Paris, France' }],
+          source: 'trek-places',
+        }),
+      ),
+    );
+
+    render(<PlaceFormModal {...defaultProps} />);
+    await user.type(screen.getByPlaceholderText('Search places...'), 'Eiffel');
+
+    expect(await screen.findByText('TREK')).toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-PLACEFORM-022d: the typed-ahead list marks the OpenStreetMap rows as such', async () => {
+    // The keystroke path asks both indexes at once, so the name the response
+    // carries for the whole list ('trek-places') is true of the call and wrong
+    // for half the rows. Marking every suggestion TREK is how a list that did
+    // contain OpenStreetMap places read as if it never had.
+    const user = userEvent.setup();
+    server.use(
+      http.post('/api/maps/autocomplete', () =>
+        HttpResponse.json({
+          suggestions: [
+            { placeId: 'gers:abc', mainText: 'Tokyo Station Beer Stand', secondaryText: 'Chiyoda', source: 'trek-places' },
+            { placeId: 'node:9712313', mainText: 'Tokio Hauptbahnhof', secondaryText: '東京駅', source: 'openstreetmap' },
+          ],
+          source: 'trek-places',
+        }),
+      ),
+    );
+
+    render(<PlaceFormModal {...defaultProps} />);
+    await user.type(screen.getByPlaceholderText('Search places...'), 'Tokyo Station');
+
+    expect(await screen.findByText('TREK')).toBeInTheDocument();
+    expect(await screen.findByText('OpenStreetMap')).toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-PLACEFORM-022c: an interleaved result list marks each row with its own index', async () => {
+    // The whole point of putting it on the row: with both indexes answering,
+    // a label above the list could only name one of them. The index marks its
+    // own rows, so the unmarked one is OpenStreetMap by elimination.
+    const user = userEvent.setup();
+    server.use(
+      http.post('/api/maps/search', () =>
+        HttpResponse.json({
+          places: [
+            { name: 'Eiffel Tower', address: 'Paris', lat: '48.85', lng: '2.29', source: 'trek-places' },
+            { name: 'Champ de Mars', address: 'Paris', lat: '48.85', lng: '2.29' },
+          ],
+          source: 'trek-places+openstreetmap',
+        }),
+      ),
+    );
+
+    render(<PlaceFormModal {...defaultProps} />);
+    await user.type(screen.getByPlaceholderText('Search places...'), 'Eiffel');
+    await user.keyboard('{Enter}');
+
+    expect(await screen.findByText('TREK')).toBeInTheDocument();
+    expect(await screen.findByText('OpenStreetMap')).toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-PLACEFORM-022d: an Amap list marks its rows, and a pick keeps the Amap id', async () => {
+    // Amap answers from the slot Google otherwise holds, so its rows get the
+    // same mark the other sources get. The id travels with the place: it is
+    // what lets the saved place keep opening against Amap after the admin
+    // switches providers.
+    const user = userEvent.setup();
+    const onSave = vi.fn();
+    server.use(
+      http.post('/api/maps/search', () =>
+        HttpResponse.json({
+          places: [
+            { name: '天安门', address: '北京市东城区', lat: '39.9087', lng: '116.3975', amap_poi_id: 'amap:B000A7BD6C', source: 'amap' },
+          ],
+          source: 'amap',
+        }),
+      ),
+    );
+
+    render(<PlaceFormModal {...defaultProps} onSave={onSave} />);
+    await user.type(screen.getByPlaceholderText('Search places...'), 'Tiananmen');
+    await user.keyboard('{Enter}');
+
+    expect(await screen.findByText('Amap')).toBeInTheDocument();
+    await user.click(screen.getByText('天安门'));
+    await user.click(screen.getByRole('button', { name: /^Add$/i }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave.mock.calls[0][0].amap_poi_id).toBe('amap:B000A7BD6C');
   });
 
   // ── Category ─────────────────────────────────────────────────────────────────
@@ -1556,5 +1693,263 @@ describe('PlaceFormModal remaining branches', () => {
       expect(screen.queryByText('Orsay tickets')).not.toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Create expense/i })).toBeInTheDocument();
     });
+  });
+});
+
+// ── The road trip's own use of this form: a service stop added by hand ────────
+
+/**
+ * FE-PLANNER-PLACEFORM-073 to -080.
+ *
+ * The corridor search reads OpenStreetMap and misses a good share of the chargers
+ * actually standing at a junction, so "add manually" opens THIS form rather than a
+ * bespoke one: its typed-ahead search is the one the rest of TREK uses. Three things
+ * change and nothing else does, which is what the first two tests here pin.
+ *
+ * Where the stop goes cannot be decided when the dialog opens, because nothing has been
+ * chosen yet. It is worked out at the save, from the coordinates being saved.
+ */
+describe('PlaceFormModal as a road trip service stop', () => {
+  type Mode = NonNullable<React.ComponentProps<typeof PlaceFormModal>['serviceStop']>;
+
+  const serviceStop = (over: Partial<Mode> = {}): Mode => ({
+    days: [
+      { dayId: 5, dayNumber: 1, stops: ['Hamburg', 'Bremen', 'Berlin'] },
+      { dayId: 6, dayNumber: 2, stops: ['Berlin', 'Dresden'] },
+    ],
+    appendDay: { dayId: 5, dayNumber: 1, position: 3 },
+    // Everything east of the twelfth meridian falls on the second day's leg here; the
+    // real projection is the planner's and has its own suite.
+    targetFor: (_lat: number, lng: number) =>
+      lng > 12 ? { dayId: 6, position: 1, offRouteKm: 0.4 } : { dayId: 5, position: 1, offRouteKm: 0.2 },
+    ...over,
+  });
+
+  const withBudgetAddon = () => seedStore(useAddonStore, {
+    addons: [{ id: 'budget', name: 'Budget', type: 'budget', icon: '', enabled: true }],
+    loaded: true,
+  });
+
+  const typeCoords = (lat: string, lng: string) => {
+    fireEvent.change(screen.getByPlaceholderText(/Latitude/i), { target: { value: lat } });
+    fireEvent.change(screen.getByPlaceholderText(/Longitude/i), { target: { value: lng } });
+  };
+
+  const named = (name: string) => {
+    fireEvent.change(screen.getByPlaceholderText(/e\.g\. Eiffel Tower/i), { target: { value: name } });
+  };
+
+  it('FE-PLANNER-PLACEFORM-073: the ordinary add place keeps its category and its costs', () => {
+    withBudgetAddon();
+    render(<PlaceFormModal {...defaultProps} />);
+
+    expect(screen.getByText('Category')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Create expense/i })).toBeInTheDocument();
+    expect(screen.queryByText('Kind of stop')).not.toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-PLACEFORM-074: a service stop swaps the category for the kind and drops the costs', () => {
+    withBudgetAddon();
+    render(<PlaceFormModal {...defaultProps} serviceStop={serviceStop()} />);
+
+    expect(screen.getByText('Kind of stop')).toBeInTheDocument();
+    expect(screen.getByText('Time at this stop')).toBeInTheDocument();
+    // Nothing has been chosen yet, so the row that asks where on the drive it goes says
+    // what it needs first. It turns into the list of legs the moment a place arrives.
+    expect(screen.getByTestId('service-stop-needs-point')).toBeInTheDocument();
+    // A petrol stop is not an activity with a budget line, and it is not a taste either.
+    expect(screen.queryByText('Category')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Create expense/i })).not.toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-PLACEFORM-075: it opens on a kind rather than on none, and says which dialog it is', () => {
+    render(<PlaceFormModal {...defaultProps} serviceStop={serviceStop()} />);
+
+    // A stop left without a kind is a numbered destination that counts in every total,
+    // which is the very thing this path exists to avoid.
+    expect(screen.getByRole('button', { name: 'Fuel' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: /10 min/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getAllByText('Add as a stop').length).toBeGreaterThan(0);
+  });
+
+  it('FE-PLANNER-PLACEFORM-085: it opens on the kind the corridor was looking for, dwell and all', () => {
+    // The panel seeds itself to charging on an electric car, and a form opening on a
+    // fuel pump under a picker that says Charging is the fault this carries the answer to.
+    render(<PlaceFormModal {...defaultProps} serviceStop={serviceStop({ defaultKind: 'charging' })} />);
+
+    expect(screen.getByRole('button', { name: 'Charging' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: /30 min/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Fuel' })).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('FE-PLANNER-PLACEFORM-076: picking a kind also picks how long that kind takes', async () => {
+    const onSave = vi.fn().mockResolvedValue({ id: 9 });
+    render(<PlaceFormModal {...defaultProps} onSave={onSave} serviceStop={serviceStop()} />);
+
+    named('Supercharger');
+    fireEvent.click(screen.getByRole('button', { name: 'Charging' }));
+    fireEvent.click(screen.getByRole('button', { name: /^Add$/i }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
+      stop_type: 'charging',
+      duration_minutes: 30,
+      category_id: null,
+    }));
+  });
+
+  it('FE-PLANNER-PLACEFORM-077: where it goes is worked out from the coordinates that are saved', async () => {
+    const onSave = vi.fn().mockResolvedValue({ id: 9 });
+    render(<PlaceFormModal {...defaultProps} onSave={onSave} serviceStop={serviceStop()} />);
+
+    // The form opened on nothing at all. These coordinates arrive afterwards, and they
+    // are what the position has to follow.
+    named('Supercharger');
+    typeCoords('51.05', '13.73');
+    fireEvent.click(screen.getByRole('button', { name: /^Add$/i }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
+      _serviceStop: { dayId: 6, position: 1, offRouteKm: 0.4 },
+    }));
+  });
+
+  it('FE-PLANNER-PLACEFORM-078: the leg the traveller overrules is the one that lands', async () => {
+    const onSave = vi.fn().mockResolvedValue({ id: 9 });
+    render(<PlaceFormModal {...defaultProps} onSave={onSave} serviceStop={serviceStop()} />);
+
+    named('Supercharger');
+    typeCoords('51.05', '13.73');
+    fireEvent.click(screen.getByRole('button', { name: /Berlin · Dresden/ }));
+    fireEvent.click(screen.getByText(/Bremen · Berlin/));
+    fireEvent.click(screen.getByRole('button', { name: /^Add$/i }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
+      // Overruled onto another stretch, so the projection's distance does not come
+      // along: it was measured against the leg the drive guessed, not this one.
+      _serviceStop: { dayId: 5, position: 2, offRouteKm: null },
+    }));
+  });
+
+  it('FE-PLANNER-PLACEFORM-079: a place far off the drawn line is noted, never refused', async () => {
+    const onSave = vi.fn().mockResolvedValue({ id: 9 });
+    const far = serviceStop({ targetFor: () => ({ dayId: 5, position: 2, offRouteKm: 18.3 }) });
+    render(<PlaceFormModal {...defaultProps} onSave={onSave} serviceStop={far} />);
+
+    named('Supercharger');
+    typeCoords('41.9', '12.5');
+    expect(screen.getByText(/check which leg it belongs on/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /^Add$/i }));
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
+      _serviceStop: { dayId: 5, position: 2, offRouteKm: 18.3 },
+    }));
+  });
+
+  it('FE-PLANNER-PLACEFORM-081: a stop with no coordinates is not filed onto a leg by guesswork', async () => {
+    const onSave = vi.fn().mockResolvedValue({ id: 9 });
+    render(<PlaceFormModal {...defaultProps} onSave={onSave} serviceStop={serviceStop()} />);
+
+    // The premise case: the charger is in no index, so the traveller types the name. It
+    // cannot be measured onto a road, and picking a leg for it anyway used to file it as
+    // the first stop of the trip's first day without a word.
+    named('Supercharger Dammer Berge');
+    expect(screen.getByTestId('service-stop-needs-point')).toBeInTheDocument();
+    expect(screen.queryByText('Add between')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /^Add$/i }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ _serviceStop: null }));
+  });
+
+  it('FE-PLANNER-PLACEFORM-082: a second stop of the same brand saves on the first press', async () => {
+    // Four hundred kilometres apart and both called Aral, which on a motorway is the
+    // normal case and is exactly what this path is for. The name check used to refuse
+    // the first press and demand a second.
+    seedStore(useTripStore, {
+      trip: buildTrip({ id: 1 }),
+      places: [buildPlace({ id: 3, name: 'Aral', lat: 53.1, lng: 8.8 })],
+    });
+    const onSave = vi.fn().mockResolvedValue({ id: 9 });
+    render(<PlaceFormModal {...defaultProps} onSave={onSave} serviceStop={serviceStop()} />);
+
+    named('Aral');
+    typeCoords('51.05', '13.73');
+    fireEvent.click(screen.getByRole('button', { name: /^Add$/i }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    expect(screen.queryByRole('button', { name: /Add anyway/i })).not.toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-PLACEFORM-083: the same pump twice over is noted beside the name, not refused', async () => {
+    seedStore(useTripStore, {
+      trip: buildTrip({ id: 1 }),
+      places: [buildPlace({ id: 3, name: 'Aral Dammer Berge', lat: 52.5, lng: 8.2 })],
+    });
+    const onSave = vi.fn().mockResolvedValue({ id: 9 });
+    render(<PlaceFormModal {...defaultProps} onSave={onSave} serviceStop={serviceStop()} />);
+
+    named('Tankstelle');
+    typeCoords('52.5', '8.2');
+
+    // The same place standing at the same coordinates is worth saying. It is a note
+    // while the form is being filled, and the press that saves still saves.
+    expect(screen.getByText(/is already on this trip/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /^Add$/i }));
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+  });
+
+  it('FE-PLANNER-PLACEFORM-084: an expense intent left over from a refused save never reaches this form', async () => {
+    withBudgetAddon();
+    const refused = vi.fn().mockRejectedValue(new Error('Server error'));
+    const onOpenExpense = vi.fn();
+    const { rerender } = render(
+      <PlaceFormModal {...defaultProps} onSave={refused} onOpenExpense={onOpenExpense} />,
+    );
+
+    // An ordinary add place, asked for an expense, that the server refuses.
+    named('Louvre');
+    fireEvent.click(screen.getByRole('button', { name: /Create expense/i }));
+    await waitFor(() => expect(refused).toHaveBeenCalled());
+    expect(onOpenExpense).not.toHaveBeenCalled();
+
+    const saved = vi.fn().mockResolvedValue({ id: 9 });
+    rerender(<PlaceFormModal {...defaultProps} isOpen={false} onSave={saved} onOpenExpense={onOpenExpense} />);
+    rerender(
+      <PlaceFormModal
+        {...defaultProps}
+        onSave={saved}
+        onOpenExpense={onOpenExpense}
+        serviceStop={serviceStop()}
+      />,
+    );
+
+    named('Supercharger');
+    fireEvent.click(screen.getByRole('button', { name: /^Add$/i }));
+
+    // The one mode whose contract is that costs are gone: an editor opening here would
+    // file a petrol stop as an activity nobody asked to pay for.
+    await waitFor(() => expect(saved).toHaveBeenCalled());
+    expect(onOpenExpense).not.toHaveBeenCalled();
+  });
+
+  it('FE-PLANNER-PLACEFORM-080: with nothing routed it appends to the day the panel is on', async () => {
+    const onSave = vi.fn().mockResolvedValue({ id: 9 });
+    const unrouted = serviceStop({ days: [], appendDay: { dayId: 5, dayNumber: 1, position: 2 } });
+    render(<PlaceFormModal {...defaultProps} onSave={onSave} serviceStop={unrouted} />);
+
+    named('Supercharger');
+    typeCoords('53.55', '9.99');
+    expect(screen.getByText(/it goes at the end of day 1/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /^Add$/i }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
+      _serviceStop: { dayId: 5, position: 2, offRouteKm: 0 },
+    }));
   });
 });

@@ -54,40 +54,40 @@ const system_notice: TranslationStrings = {
   'system_notice.pager.counter': '{current} / {total}',
   'system_notice.pager.goto': '{n}. bildirime git',
   'system_notice.pager.position': '{total} Bildirimden {current}.',
-  'system_notice.release_400.eyebrow': 'Güncelleme yüklendi',
-  'system_notice.release_400.tag': 'Sürüm',
-  'system_notice.release_400.headline': "TREK'in bugüne kadarki en büyük sürümü.",
-  'system_notice.release_400.intro':
-    'TREK bir telefon ve bir kitap kazanıyor. Bunu on dokuz kişi yazdı — ve yaklaşık yüz elli bildirilen hata da onunla birlikte gitti.',
-  'system_notice.release_400.feature_mobile_title': 'TREK mobile geçiyor',
-  'system_notice.release_400.feature_mobile_body':
-    "768px altındaki her şey artık kendi arayüzü — cam bir dock, kendi panelleri, kendi seyahat planlayıcısı. TREK'i telefonunda aç.",
-  'system_notice.release_400.feature_studio_title': 'TREK Studio',
-  'system_notice.release_400.feature_studio_badge': 'Beta',
-  'system_notice.release_400.feature_studio_body':
-    "Journey PDF'i bir fotoğraf kitabı tasarımcısına dönüştü. İstediğinde kitabı kendisi düzenler, sonra yoldan çekilir.",
-  'system_notice.release_400.feature_vacay_title': 'Vacay gerisini öğreniyor',
-  'system_notice.release_400.feature_vacay_body':
-    'Yarım günler, telafi ve esnek günler, takvimde okul tatilleri — ve ocakta başlamak zorunda olmayan bir izin yılı.',
-  'system_notice.release_400.feature_places_title': 'Yerler kendini gösterir, dosyalar taşınır',
-  'system_notice.release_400.feature_places_body':
-    "Bir yeri kaydetmeden önce resimler ve açıklama kendiliğinden dolar. Ve yüklemelerinin artık TREK'in çalıştığı diskte durması gerekmiyor.",
-  'system_notice.release_400.footnote':
-    "Ve bunlar onlardan sadece dördü. 4.0.0, Collections ve Atlas'tan alttaki sunucunun tamamına kadar birkaç yüz değişiklik daha taşıyor.",
-  'system_notice.release_400.note_eyebrow': 'Geliştiriciden bir not',
-  'system_notice.release_400.note_title': "TREK'i kullandığın için teşekkürler.",
-  'system_notice.release_400.note_body':
-    "TREK, boş zamanlarımda kendi seyahatlerim için yazdığım küçük bir araç olarak başladı. Hâlâ da öyle: akşamlar, hafta sonları, tam zamanlı bir işin yanındaki saatler.\n\nBir süre yalnızca bendim. Artık değil — bu sürümü on dokuz kişi çıkardı ve binlerceniz yıldızlarla, issue'larla, çevirilerle ve pull request'lerle geldiniz. Her biri için minnettarım.",
-  'system_notice.release_400.promise_label': 'Söz',
-  'system_notice.release_400.promise_text':
-    "TREK'in açık kaynak tarafı sonsuza dek ücretsiz kalıyor. Ücretli paket yok, abonelik yok, gizli şart yok. Söz.",
-  'system_notice.release_400.note_body_after':
-    '4.0.0, haftalarca süren geç geceler demekti — bir telefon uygulaması, bir kitap tasarımcısı, bir sunucu taşıması, çoğu gece yarısı ile ikisi arasında yazıldı. Şikâyet değil: bunu geliştirmeyi seviyorum. Sadece bu büyüklükte bir sürümün boş zaman projesinden nasıl çıktığının dürüst cevabı.',
-  'system_notice.release_400.note_closing': 'Burada olduğun için teşekkür ederim.',
-  'system_notice.release_400.note_signature': '— Maurice',
-  'system_notice.release_400.support_text':
-    'Bunu ayakta tutan şey destek — sunucular, alan adları ve böyle sürümlere dönüşen geç geceler. TREK senin için bir şey ifade ediyorsa, bir kahve bunu sürdürmenin en doğrudan yolu.',
-  'system_notice.release_400.cta_bmc': 'Buy me a coffee',
-  'system_notice.release_400.cta_kofi': "Ko-fi'de Destek Ol",
+  'system_notice.release_notes.eyebrow': 'Güncelleme yüklendi',
+  'system_notice.release_notes.headline': "TREK'in artık kendi başına yaptığı üç şey.",
+  'system_notice.release_notes.intro':
+    "Kendi yer API'si, baştan sona planlanan yol gezileri ve yeniden senin elinde olan konum geçmişin.",
+  'system_notice.release_notes.features_label': 'Öne çıkanlar',
+  'system_notice.release_notes.features_aside': 'Hepsi bu kadar değil',
+  'system_notice.release_notes.feature_places_title': 'TREK Places API',
+  'system_notice.release_notes.feature_places_body':
+    "Kendi yer API'sini barındıran ilk açık kaynak seyahat planlayıcısı. 73,6 milyon yer, her ay yeniden oluşturuluyor. Anahtar yok, kota yok.",
+  'system_notice.release_notes.feature_roadtrip_title': 'Yol gezisi eklentisi',
+  'system_notice.release_notes.feature_roadtrip_body':
+    'Yol gezisi modu sürüşün kendisini planlar: rotayı, mesafeyi, süreyi ve durakları. Bir eklentidir ve bir yönetici açana kadar kapalı kalır.',
+  'system_notice.release_notes.feature_dawarich_title': 'Dawarich entegrasyonu',
+  'system_notice.release_notes.feature_dawarich_body':
+    "Google Timeline'ın kendi sunucunda çalışan alternatifi, artık TREK içinden okunabiliyor. TREK okur, yalnızca okur. Geriye hiçbir zaman hiçbir şey yazılmaz.",
+  'system_notice.release_notes.footnote':
+    "Ayrıca TREK'in geri kalanına yayılmış, daha küçük değişikliklerden oluşan uzun bir liste var.",
+  'system_notice.release_notes.notes_label': 'Sürüm notları',
+  'system_notice.release_notes.note_eyebrow': 'Geliştiriciden bir not',
+  'system_notice.release_notes.note_title': "TREK'i geliştirmeye devam etmemin sebebi sensin.",
+  'system_notice.release_notes.note_body':
+    'TREK, kendi seyahatlerim için küçük bir araç olarak başladı. Onları daha iyi planlamak istediğim için iş çıkışlarında yazıyordum. O günden beri de büyümeyi hiç tam olarak bırakmadı. Kullandığın neredeyse her şey gece geç saatlerde, hafta sonlarında, trenlerde, tam zamanlı bir işin yanında yapıldı ve birinin onu bir gün gerçekten açıp açmayacağını içten içe merak ettiğim çok akşam oldu.',
+  'system_notice.release_notes.promise_label': 'Söz',
+  'system_notice.release_notes.promise_lead': 'TREK sonsuza dek ücretsiz kalacak.',
+  'system_notice.release_notes.promise_text':
+    'Her özellik, her güncelleme, herkes için. Ücretli paket yok, abonelik yok, gizli şart yok.',
+  'system_notice.release_notes.note_body_after':
+    "Sonra sizler açtınız. Birkaç ay içinde sayınız binleri buldu: yıldızlar, hata bildirimleri, konuşmadığım dillere çeviriler, hiç tanışmadığım insanlardan pull request'ler. Hâlâ her sabah ilk iş repoya bakıyorum ve bu hâlâ tam olarak gerçekmiş gibi gelmiyor.",
+  'system_notice.release_notes.note_closing': 'Burada olduğun için teşekkür ederim. Sevgiler, Maurice.',
+  'system_notice.release_notes.support_lead':
+    'TREK ücretsiz ve hep öyle kalacak, ama sunucular, alan adları ve bir sürü geç gece ücretsiz değil.',
+  'system_notice.release_notes.support_text':
+    'TREK seyahatlerinde kendine bir yer edindiyse, bana bir kahve ısmarla ve bir sonraki sürümün gelmesine yardım et.',
+  'system_notice.release_notes.cta_bmc': 'Buy me a coffee',
+  'system_notice.release_notes.cta_kofi': "Ko-fi'de Destek Ol",
 };
 export default system_notice;

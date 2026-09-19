@@ -88,16 +88,63 @@ const admin: TranslationStrings = {
   'admin.requireMfaHint':
     'Gebruikers zonder 2FA moeten de installatie in Instellingen voltooien voordat ze de app kunnen gebruiken.',
   'admin.apiKeys': 'API-sleutels',
-  'admin.apiKeysHint': "Optioneel. Schakelt uitgebreide plaatsgegevens in zoals foto's en weer.",
+  'admin.apiKeysHint': 'Waar plaatsgegevens vandaan komen. De TREK-index heeft geen sleutel nodig; de twee aanbieders hieronder zijn optioneel.',
+  'admin.trekApi.badgeDefault': 'Aanbevolen standaardbron',
+  'admin.googleCaveat.badge': 'Niet aanbevolen',
+  'admin.googleCaveat.body':
+    "TREK is open source en wij zijn hier niet neutraal. Op deze schaal bestaan beoordelingen en foto's van gewone zaken alleen bij Google, en dat is een monopolie. Het veld staat er bij gebrek aan alternatief, niet omdat wij het aanraden. Elke opvraging gaat dan naar Google.",
+  'admin.trekApi.tagline':
+    'TREK\'s eigen plaatsenindex. Zoeken zonder Google-sleutel, zonder quotum en zonder dat iemand meetelt.',
+  'admin.trekApi.factPlaces':
+    '73,6 miljoen plaatsen wereldwijd',
+  'admin.trekApi.factNoKey':
+    'Geen sleutel, geen quotum',
+  'admin.trekApi.factOffline':
+    'Landpakketten werken offline',
+  'admin.trekApi.factPrivacy':
+    'Zoekopdrachten worden nooit vastgelegd',
+  'admin.trekApi.more':
+    'Wat erin zit',
+  'admin.trekApi.fieldPhone':
+    'Telefoon',
+  'admin.trekApi.fieldStableId':
+    'Stabiele id',
+  'admin.trekApi.includedNote':
+    'Beschrijvingen komen van de website van de plaats zelf; openingstijden uit OpenStreetMap waar ze zijn ingevuld.',
+  'admin.trekApi.notRatings':
+    'Beoordelingen',
+  'admin.trekApi.notPhotos':
+    'Foto\'s van gewone zaken',
+  'admin.trekApi.notIncludedNote':
+    'Geen enkele open bron heeft ze, voor geen prijs. Een Google-sleutel blijft de enige weg naar die twee.',
+  'admin.trekApi.sourcesLabel':
+    'Bronnen',
+  'admin.trekApi.sourcesNote':
+    'Elk veld in een antwoord vermeldt uit welke ervan het komt.',
+  'admin.trekApi.included':
+    'Inbegrepen',
+  'admin.trekApi.notIncluded':
+    'Niet inbegrepen',
   'admin.mapsKey': 'Google Maps API-sleutel',
   'admin.mapsKeyHint': 'Vereist voor het zoeken van plaatsen. Verkrijgbaar op console.cloud.google.com',
   'admin.mapsKeyHintLong':
-    "Zonder API-sleutel wordt OpenStreetMap gebruikt voor het zoeken van plaatsen. Met een Google API-sleutel kunnen ook foto's, beoordelingen en openingstijden worden geladen. Verkrijgbaar op console.cloud.google.com.",
+    "Zonder Google-API-sleutel wordt de aanbevolen TREK-API gebruikt. Met een sleutel kunnen daarnaast foto's, beoordelingen en openingstijden worden geladen. Maak er een aan op console.cloud.google.com.",
   'admin.recommended': 'Aanbevolen',
   'admin.weatherKey': 'OpenWeatherMap API-sleutel',
   'admin.weatherKeyHint': 'Voor weergegevens. Gratis op openweathermap.org',
   'admin.unsplashKey': 'Unsplash API-sleutel',
   'admin.unsplashKeyHint': 'Voor het zoeken naar afbeeldingen. Gratis op unsplash.com/developers',
+  'admin.amapKey': 'Amap (高德地图) API-sleutel',
+  'admin.amapKeyHint':
+    'Voor het zoeken naar plaatsen in het Chinese vasteland, waar Google onbereikbaar is en OpenStreetMap weinig gegevens heeft. Vereist een sleutel van het type ‘Web 服务’ (webservice), geen JS API-sleutel. Verkrijgbaar op console.amap.com.',
+  'admin.placesProvider.title': 'Provider voor plaatszoeken',
+  'admin.placesProvider.subtitle': 'De eigen index van TREK en OpenStreetMap beantwoorden elke zoekopdracht. Hier kies je wie er nog meer wordt gevraagd als zij niets vinden: Automatisch geeft de voorkeur aan Google als er een sleutel is, daarna Amap.',
+  'admin.placesProvider.auto': 'Automatisch',
+  'admin.placesProvider.google': 'Google Places',
+  'admin.placesProvider.amap': 'Amap (高德地图)',
+  'admin.placesProvider.openstreetmap': 'OpenStreetMap',
+  'admin.placesProvider.missingKey': 'Voor de gekozen aanbieder is geen API-sleutel ingesteld, dus plaatszoeken wordt alleen door de TREK-index en OpenStreetMap beantwoord.',
+  'admin.placesProvider.saved': 'Provider voor plaatszoeken opgeslagen',
   'admin.validateKey': 'Testen',
   'admin.keyValid': 'Verbonden',
   'admin.keyInvalid': 'Ongeldig',
@@ -115,6 +162,8 @@ const admin: TranslationStrings = {
   'admin.fileTypesHint': 'Configureer welke bestandstypen gebruikers kunnen uploaden.',
   'admin.fileTypesFormat': 'Kommagescheiden extensies (bijv. jpg,png,pdf,doc). Gebruik * om alle typen toe te staan.',
   'admin.fileTypesSaved': 'Bestandstype-instellingen opgeslagen',
+  'admin.googleOptions': 'Waarvoor de sleutel wordt gebruikt',
+  'admin.googleOptionsSummary': '{on} van {total} aan',
   'admin.placesPhotos.title': "Plaatsfoto's",
   'admin.placesPhotos.subtitle':
     "Haalt foto's op via de Google Places API. Schakel uit om API-quota te besparen. Wikimedia-foto's worden niet beïnvloed.",
@@ -127,6 +176,17 @@ const admin: TranslationStrings = {
   'admin.placesEnrich.title': 'Plaatsverrijking',
   'admin.placesEnrich.subtitle':
     "Toont afbeeldingen en een beschrijving bij het toevoegen van een plaats. Wikipedia en OpenStreetMap worden altijd gebruikt; Google komt erbij als Plaatsfoto's of Plaatsdetails aanstaan.",
+  'admin.transitProvider.title': 'Ov-provider',
+  'admin.transitProvider.subtitle': 'Welke dienst het ov-zoeken beantwoordt.',
+  'admin.transitProvider.transitous': 'Transitous (gratis)',
+  'admin.transitProvider.google': 'Google',
+  'admin.transitProvider.transitousHint': 'GTFS-feeds van de community. Gratis en zonder sleutel, met de beste dekking in Europa.',
+  'admin.transitProvider.googleHint': 'Gebruikt de Google-sleutel hierboven, voor regio\'s zonder Transitous-data. Wordt per zoekopdracht afgerekend — zolang er geen sleutel is, wordt Transitous gebruikt.',
+  'admin.transitProvider.noKeyWarning': 'Google is geselecteerd, maar er is geen Google-sleutel ingesteld — het ov-zoeken gebruikt nog steeds Transitous. Voeg hierboven een sleutel toe bij API-sleutels.',
+  'admin.transitProvider.personalKeyWarning': 'Alleen je eigen Google-sleutel is ingesteld, dus het zoeken van andere leden valt nog steeds terug op Transitous. Sla de sleutel hierboven op als beheerder om hem instantiebreed toe te passen.',
+  'admin.placeShadow.title': 'Logboek van plaatszoekopdrachten',
+  'admin.placeShadow.subtitle':
+    'Vastleggen welk zoekresultaat is gekozen, zodat een andere plaatsindex later aan echte zoekopdrachten kan worden getoetst. Er verlaat niets deze instantie en een beheerder kan het logboek altijd exporteren of verwijderen.',
   'admin.bagTracking.title': 'Bagagetracking',
   'admin.bagTracking.subtitle': 'Gewicht en bagagetoewijzing inschakelen voor paklijstitems',
   'admin.collab.chat.title': 'Chat',
@@ -319,6 +379,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:calendar-source': 'Evenementen aanleveren voor de kalender',
   'admin.plugins.perm.hook:place-detail-provider':
     'Extra details (reviews, beoordelingen, links) aan een plek toevoegen',
+  'admin.plugins.perm.hook:search-provider':
+    'Zoekopdrachten naar locaties beantwoorden vanuit een eigen index, naast de resultaten van TREK',
   'admin.plugins.perm.hook:trip-warning-provider':
     'Validatiewaarschuwingen tonen bij een reis (zichtbaar in de planner)',
   'admin.plugins.perm.hook:table-contributor':
@@ -475,6 +537,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.photos': "Levert foto's",
   'admin.plugins.cap.calendar': 'Levert kalenderevenementen',
   'admin.plugins.cap.placeDetails': 'Verrijkt plekken',
+  'admin.plugins.cap.search': 'Beantwoordt zoekopdrachten',
   'admin.plugins.cap.warnings': 'Signaleert problemen',
   'admin.plugins.cap.mapLayers': 'Tekent op de kaart',
   'admin.plugins.cap.routing': 'Biedt routering aan',
@@ -537,12 +600,17 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.atlas.description': 'Wereldkaart met bezochte landen en reisstatistieken',
   'admin.addons.catalog.collab.name': 'Samenwerking',
   'admin.addons.catalog.collab.description': 'Notities, peilingen, chat en suggesties om samen te plannen',
+  'admin.addons.catalog.roadtrip.name': 'Roadtrip',
+  'admin.addons.catalog.roadtrip.description': 'Plan ritten met tussenstops; rijtijden en aankomsttijden berekenen zichzelf opnieuw',
   'admin.addons.subtitleBefore': 'Schakel functies in of uit om je ',
   'admin.addons.subtitleAfter': '-ervaring aan te passen.',
   'admin.addons.catalog.naver_list_import.name': 'Naver List Import',
   'admin.addons.catalog.naver_list_import.description': 'Importeer plaatsen uit een gedeelde Naver Maps-lijst',
   'admin.addons.catalog.airtrail.name': 'AirTrail',
   'admin.addons.catalog.airtrail.description': 'Synchroniseer vluchten vanuit je AirTrail-instantie',
+  'admin.addons.catalog.dawarich.name': 'Dawarich',
+  'admin.addons.catalog.dawarich.description':
+    'Lees bezoeken en opgenomen routes uit een Dawarich-instantie die elke lezer zelf koppelt',
   'admin.addons.catalog.llm_parsing.name': 'AI-analyse',
   'admin.addons.catalog.llm_parsing.description': 'Leest boekingen die de ingebouwde parser niet begrijpt, met een AI-model naar keuze',
   'admin.addons.enabled': 'Ingeschakeld',
@@ -735,5 +803,8 @@ const admin: TranslationStrings = {
   'admin.invite.tripHint':
     'De nieuwe gebruiker wordt automatisch aan deze reis toegevoegd wanneer hij zich via de link registreert.',
   'admin.invite.boundTo': 'voegt toe aan {trip}',
+  'admin.placesUsageTitle': 'Waar de sleutel voor wordt gebruikt',
+  'admin.mapsKeyHintShort': 'Voegt foto\'s, beoordelingen en openingstijden toe. Elke opzoeking gaat dan naar Google.',
+  'admin.amapKeyHintShort': 'Voor plaatszoeken in het vasteland van China. Vereist een webservicesleutel, geen JS-API-sleutel.',
 };
 export default admin;

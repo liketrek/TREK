@@ -22,5 +22,9 @@ const map: TranslationStrings = {
   'map.location.denied': 'O acesso à localização está bloqueado. Verifique as configurações do aparelho; um app instalado tem permissão de localização própria, separada do navegador.',
   'map.location.unavailable': 'Não foi possível determinar sua localização.',
   'map.location.timeout': 'A localização demorou demais. Tente de novo com uma visão mais aberta do céu.',
+  'map.overview.show': 'Mostrar a viagem inteira',
+  'map.overview.hide': 'Ocultar a viagem inteira',
+  'map.overview.total': 'Distância total',
+  'map.attribution': 'Créditos do mapa',
 };
 export default map;

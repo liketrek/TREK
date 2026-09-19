@@ -625,5 +625,21 @@ const journey: TranslationStrings = {
   'journey.editor.statsExcludedHint':
     'Stoppet finns kvar i dagboken men räknas inte med i sträckan, länderna eller kartan i Studio.',
   'journey.entry.offRoute': 'Utanför rutten',
+  'journey.suggestions.dismiss': 'Avfärda det här förslaget',
+  'journey.suggestions.dismissed': 'Förslaget avfärdat',
+  'journey.suggestions.restore': 'Hämta tillbaka avfärdade förslag',
+  'journey.suggestions.restoreCount': 'Avfärdade förslag ({count})',
+  'journey.suggestions.restored': '{count} förslag är tillbaka',
+  'journey.detail.addOnThisDay': 'Lägg till ett inlägg den här dagen',
+  'journey.detail.jumpToDay': 'Hoppa till {date}',
+  'journey.detail.searchPlaceholder': 'Sök i den här resan',
+  'journey.detail.searchEmpty': 'Inget inlägg matchar ”{query}”',
+  'journey.settings.entryFields': 'Fält i inlägget',
+  'journey.settings.entryFieldsHint': 'Stäng av det som den här resan inte använder. Inget som redan skrivits går förlorat.',
+  'journey.settings.showVerdict': 'För- och nackdelar',
+  'journey.settings.showMood': 'Humör',
+  'journey.settings.showWeather': 'Väder',
+  'journey.entry.suggestion': 'Förslag',
+  'journey.editor.addDetails': '+ Detaljer',
 };
 export default journey;

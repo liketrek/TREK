@@ -47,5 +47,27 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.upNext': 'Härnäst',
   'mobileTrip.viewDetails': 'Visa detaljer',
   'mobileTrip.transportsEmpty': 'Ingen transport än',
+  'mobileTrip.rtInfoTitle': 'Kördata',
+  'mobileTrip.rtDesktopNote':
+    'De här värdena ställer du in på datorn. Där kan du också jämföra alternativa vägar och låta en dag följa ett importerat spår.',
+  'mobileTrip.rtPlanOnDesktop': 'Planeringen sker på datorn. TREK räknar ut körningen så snart en dag har två platser.',
+  'mobileTrip.rtSearchOffline': 'Kräver anslutning: sökningen läser rutten som ligger framför dig.',
+  'mobileTrip.rtBehind': '{time} efter planen',
+  'mobileTrip.rtStart': 'Start',
+  'mobileTrip.rtStayScope': 'Vistelsen hör till platsen och räknas därför varje dag som det här stoppet är inplanerat.',
+  'mobileTrip.rtStayLess': '{count} minuter mindre',
+  'mobileTrip.rtStayMore': '{count} minuter mer',
+  'mobileTrip.rtNightDesktopOnly':
+    'En övernattning på den här platsen lägger du till i planeraren på datorn. Här kan du bara ta bort den.',
+  'mobileTrip.rtReach': 'Hur långt',
+  'mobileTrip.rtReachAhead': '{distance} framåt',
+  'mobileTrip.rtFromNext': 'Från ditt nästa stopp',
+  'mobileTrip.rtFromStart': 'Från etappens början',
+  'mobileTrip.rtNoneAhead': 'Inget på vägen framför dig. Prova hela etappen.',
+  'mobileTrip.rtNoneOnStage': 'Inget sådant längs den här etappen.',
+  'mobileTrip.rtTruncated.one':
+    '1 sträcka hade mer än vad som får plats i ett svar. Välj färre sorter för att se resten.',
+  'mobileTrip.rtTruncated.other':
+    '{count} sträckor hade mer än vad som får plats i ett svar. Välj färre sorter för att se resten.',
 };
 export default mobileTrip;

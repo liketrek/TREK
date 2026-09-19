@@ -828,6 +828,8 @@ export default function JourneyPublicPage() {
               publicPhotoUrl={(photoId) => `/api/public/journey/${token}/photos/${photoId}/original`}
               carouselBottom="calc(env(safe-area-inset-bottom, 16px) + 8px)"
               cartoApiKey={cartoApiKey}
+              showMood={journey.show_mood !== 0}
+              showWeather={journey.show_weather !== 0}
             />
           )}
 

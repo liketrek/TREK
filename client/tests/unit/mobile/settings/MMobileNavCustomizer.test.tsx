@@ -36,8 +36,8 @@ describe('MMobileNavCustomizer', () => {
   it('FE-MOB-SETNAVC-001: an uncustomised value falls back to the built-in dock split', () => {
     render(<MMobileNavCustomizer value={{ bar: [], more: [] }} onChange={vi.fn()} />);
 
-    expect(rowLabels('In the bar')).toEqual(['Vacay', 'Atlas']);
-    expect(rowLabels('Under “More”')).toEqual(['Journey', 'Collections']);
+    expect(rowLabels('In the bar')).toEqual(['Vacay', 'Journey']);
+    expect(rowLabels('Under “More”')).toEqual(['Atlas', 'Collections']);
   });
 
   it('FE-MOB-SETNAVC-002: Dashboard is listed pinned and has no reorder buttons', () => {

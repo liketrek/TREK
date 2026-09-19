@@ -12,6 +12,7 @@
  */
 export const TRIP_TAB_IDS = [
   'plan',
+  'roadtrip',
   'transports',
   'buchungen',
   'listen',
@@ -30,6 +31,7 @@ export type TripTabId = (typeof TRIP_TAB_IDS)[number]
  */
 export const TRIP_TAB_LABEL_KEYS: Record<TripTabId, string> = {
   plan: 'trip.tabs.plan',
+  roadtrip: 'roadtrip.title',
   transports: 'trip.tabs.transports',
   buchungen: 'trip.tabs.reservations',
   listen: 'trip.tabs.lists',

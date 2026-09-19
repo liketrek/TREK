@@ -78,6 +78,11 @@ env:
   # Max MCP API requests per user per minute. Defaults to 300.
   # MCP_MAX_SESSION_PER_USER: "20"
   # Max concurrent MCP sessions per user. Defaults to 20.
+  # NOMINATIM_URL: ""
+  # Custom Nominatim base URL for every geocoding call the server makes (place search, reverse lookup, Atlas region
+  # fill). When set it REPLACES the public OpenStreetMap service, with no fallback, so the instance behind it needs
+  # the coverage you expect and has to speak the Nominatim API. TREK keeps its ~1 request per second spacing either
+  # way. Defaults to https://nominatim.openstreetmap.org.
   # OVERPASS_URL: ""
   # Custom Overpass endpoint(s) for the map POI "explore" search, comma-separated. When set, REPLACES the bundled
   # public mirrors — point it at an internal/self-hosted Overpass instance when the public mirrors are unreachable
@@ -133,6 +138,25 @@ persistence:
     # Specify an existing PVC to bind. The other values are then ignored.
     existingClaim: ""
     annotations: {}
+
+# Readiness and liveness probes. Overrides are merged over these defaults, so a key you
+# do not set stays as shipped: --set probes.liveness.initialDelaySeconds=60 keeps the
+# httpGet handler. Switching handler means clearing the old one in the same override
+# (httpGet: null together with tcpSocket), otherwise the API rejects the pod with
+# "may not specify more than 1 handler type". Set probes.liveness to null to drop a probe.
+probes:
+  liveness:
+    httpGet:
+      path: /api/health
+      port: 3000
+    initialDelaySeconds: 15
+    periodSeconds: 30
+  readiness:
+    httpGet:
+      path: /api/health
+      port: 3000
+    initialDelaySeconds: 5
+    periodSeconds: 10
 
 resources:
   requests:

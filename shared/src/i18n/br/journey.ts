@@ -626,5 +626,21 @@ const journey: TranslationStrings = {
   'journey.editor.statsExcludedHint':
     'A parada continua no diário, mas não conta para a distância, os países nem o mapa no Studio.',
   'journey.entry.offRoute': 'Fora da rota',
+  'journey.suggestions.dismiss': 'Descartar esta sugestão',
+  'journey.suggestions.dismissed': 'Sugestão descartada',
+  'journey.suggestions.restore': 'Trazer de volta as sugestões descartadas',
+  'journey.suggestions.restoreCount': 'Sugestões descartadas ({count})',
+  'journey.suggestions.restored': '{count} sugestões voltaram',
+  'journey.detail.addOnThisDay': 'Adicionar um registro neste dia',
+  'journey.detail.jumpToDay': 'Ir para {date}',
+  'journey.detail.searchPlaceholder': 'Buscar nesta viagem',
+  'journey.detail.searchEmpty': 'Nenhum registro corresponde a "{query}"',
+  'journey.settings.entryFields': 'Campos do registro',
+  'journey.settings.entryFieldsHint': 'Desligue o que esta viagem não usa. Nada do que já foi escrito se perde.',
+  'journey.settings.showVerdict': 'Prós e contras',
+  'journey.settings.showMood': 'Humor',
+  'journey.settings.showWeather': 'Clima',
+  'journey.entry.suggestion': 'Sugestão',
+  'journey.editor.addDetails': '+ Detalhes',
 };
 export default journey;

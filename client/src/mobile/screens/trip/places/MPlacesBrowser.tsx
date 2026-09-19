@@ -9,10 +9,15 @@ import { useAddonStore } from '../../../../store/addonStore'
 import { useToast } from '../../../../components/shared/Toast'
 import { collectionsApi } from '../../../../api/collections'
 import PlaceAvatar from '../../../../components/shared/PlaceAvatar'
+import MarkdownText from '../../../../components/shared/MarkdownText'
 import { getCategoryIcon } from '../../../../components/shared/categoryIcons'
 import { resolveTrackColor } from '../../../../components/Map/trackColors'
 import MConfirmSheet from '../../settings/MConfirmSheet'
 import type { MPlacesBrowserProps } from '../MTripShell'
+import DawarichSuggestionsPanel from '../../../../components/Dawarich/DawarichSuggestionsPanel'
+import { formatDayOption } from '../../../../components/Dawarich/dawarichSuggestionModel'
+import { refreshTripAfterAccept } from '../../../../components/Dawarich/dawarichTripRefresh'
+import { useTranslation } from '../../../../i18n'
 import type { Place } from '../../../../types'
 import MPlacesBulkCategorySheet from './MPlacesBulkCategorySheet'
 import MPlacesSaveToCollectionSheet from './MPlacesSaveToCollectionSheet'
@@ -31,6 +36,8 @@ import { filterPool, firstPlannedDayNumbers, plannedPlaceIds } from './placesBro
  */
 export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) {
   const { t, places, categories, assignments, days, trip } = planner
+  // The planner hook carries `t` but not the locale; day labels need both.
+  const { locale } = useTranslation()
   const canEditPlaces = planner.can('place_edit', trip)
   const collectionsEnabled = useAddonStore(s => s.isEnabled('collections'))
 
@@ -231,6 +238,24 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
           )}
         </div>
 
+        {/* Stays Dawarich recorded on these dates (#2279). Same component as the
+            desktop rail — the rows are the same rows, and the panel renders
+            nothing when there is nothing pending. */}
+        <div className="mt-3">
+          <DawarichSuggestionsPanel
+            tripId={planner.tripId}
+            trips={[{ id: planner.tripId, label: t('dawarich.accept.thisTrip') }]}
+            daysForTrip={() => days.map(day => ({
+              id: day.id,
+              ...formatDayOption(day.day_number, day.date, locale, t),
+            }))}
+            // The place it just created belongs on the map and in the list
+            // now, not after a reload.
+            onAccepted={() => { void refreshTripAfterAccept(planner.tripId) }}
+            initiallyCollapsed
+          />
+        </div>
+
         {/* ── Selection toolbar ── */}
         {selectMode && (
           <div className="mt-2 flex items-center gap-2 rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] py-[6px] pl-[14px] pr-[6px] backdrop-blur-[20px]">
@@ -326,7 +351,7 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
                 <button type="button" onClick={() => openRow(place)} className="flex min-w-0 flex-1 items-center gap-[11px] text-left">
                   {selectMode && <SquareCheck big checked={selectedIds.has(place.id)} />}
                   <PlaceAvatar place={place} category={cat} size={40} />
-                  <span className="min-w-0 flex-1">
+                  <div className="min-w-0 flex-1">
                     <span className="flex items-center gap-[6px]">
                       {/* Stroke in the track's colour — the mobile map is full-bleed
                           with no sidebar, so this is the only thing tying a line to
@@ -341,9 +366,9 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
                       <span className="truncate text-[0.8125rem] font-semibold text-m-ink">{place.name}</span>
                     </span>
                     {sub && (
-                      <span className="mt-px block truncate font-geist text-[0.65625rem] text-m-muted">{sub}</span>
+                      <MarkdownText clamp className="mt-px font-geist text-[0.65625rem] text-m-muted">{sub}</MarkdownText>
                     )}
-                  </span>
+                  </div>
                 </button>
                 {!selectMode && dayNumber != null && (
                   <span className="flex-none whitespace-nowrap rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-[9px] py-1 font-geist text-[0.59375rem] font-bold uppercase tracking-[.05em] text-m-muted">

@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const dayplan: TranslationStrings = {
   'dayplan.icsTooltip': 'Export calendar (ICS)',
   'dayplan.emptyDay': 'No places planned for this day',
+  'dayplan.addPlaceHere': 'Add place to this day',
   'dayplan.cannotReorderTransport': 'Bookings with a fixed time cannot be reordered',
   'dayplan.confirmRemoveTimeTitle': 'Remove time?',
   'dayplan.confirmRemoveTimeBody':

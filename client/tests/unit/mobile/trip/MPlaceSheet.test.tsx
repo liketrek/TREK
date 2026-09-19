@@ -10,7 +10,7 @@ import type { Assignment, Category, Day, Place, TripFile, TripMember } from '../
 import { resetAllStores, seedStore } from '../../../helpers/store'
 import { act, fireEvent, render, screen, waitFor } from '../../../helpers/render'
 
-// FE-MOB-PLSH-001 to FE-MOB-PLSH-025
+// FE-MOB-PLSH-001 to FE-MOB-PLSH-032
 
 vi.mock('../../../../src/utils/fileDownload', () => ({ openFile: vi.fn() }))
 
@@ -504,6 +504,19 @@ describe('MPlaceSheet', () => {
 
     const row = screen.getByText('Ferry to Corfu').closest('button') as HTMLButtonElement
     expect(row.disabled).toBe(true)
+  })
+
+  it('FE-MOB-PLSH-032: the description and the note are rendered markdown, as on the desktop inspector (#2337)', () => {
+    const marked = {
+      ...PLACE,
+      description: '# Kunsthistorisches\n\nThe **Habsburg** collections.',
+      notes: 'Book the *skip-the-line* ticket',
+    } as unknown as Place
+    renderSheet(makePlanner({ selectedPlace: marked }) as unknown as TripPlanner)
+
+    expect(screen.getByRole('heading', { name: 'Kunsthistorisches' })).toBeInTheDocument()
+    expect(screen.getByText('Habsburg').tagName).toBe('STRONG')
+    expect(screen.getByText('skip-the-line').tagName).toBe('EM')
   })
 
   it('FE-MOB-PLSH-031: a booking on another assignment is not shown here', () => {

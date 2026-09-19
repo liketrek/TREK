@@ -52,6 +52,7 @@ const atlas: TranslationStrings = {
   'atlas.oceania': 'أوقيانوسيا',
   'atlas.other': 'أخرى',
   'atlas.firstVisit': 'أول رحلة',
+  'atlas.lastVisitLabel': 'آخر رحلة',
   'atlas.tripSingular': 'رحلة',
   'atlas.tripPlural': 'رحلات',
   'atlas.placeVisited': 'مكان تمت زيارته',

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ChevronLeft, MapPin, Grid3x3, Upload, MoreHorizontal, Play, Image, Camera, EyeOff, Settings2 } from 'lucide-react'
+import { useSearchParams } from 'react-router'
+import { ChevronLeft, MapPin, Grid3x3, MoreHorizontal, Play, Image, Camera, EyeOff, Settings2 } from 'lucide-react'
 import JourneyMap from '../../../components/Journey/JourneyMapAuto'
 import type { JourneyMapAutoHandle } from '../../../components/Journey/JourneyMapAuto'
 import PhotoLightbox from '../../../components/Journey/PhotoLightbox'
@@ -9,6 +10,10 @@ import { ProviderPicker } from '../../../components/Journey/JourneyDetailPagePro
 import { photoUrl } from '../../../pages/journeyDetail/JourneyDetailPage.helpers'
 import { useJourneyDetail } from '../../../pages/journeyDetail/useJourneyDetail'
 import { useJourneyStore } from '../../../store/journeyStore'
+import { useAddonStore } from '../../../store/addonStore'
+import DawarichIcon from '../../../components/shared/DawarichIcon'
+import DawarichSuggestionsPanel from '../../../components/Dawarich/DawarichSuggestionsPanel'
+import { FormSheetHeader } from '../trip/sheets/PlSheetChrome'
 import type { JourneyEntry, GalleryPhoto } from '../../../store/journeyStore'
 import { useAuthStore } from '../../../store/authStore'
 import { journeyApi, addonsApi, memoriesApi } from '../../../api/client'
@@ -19,7 +24,9 @@ import MSheet from '../../components/MSheet'
 import MDancingTrek from '../../components/MDancingTrek'
 import MListRow from '../../components/MListRow'
 import MToggle from '../../components/MToggle'
-import MJourneyEntryCard from './MJourneyEntryCard'
+import JourneyEntryCover from '../../../components/Journey/JourneyEntryCover'
+import JourneyDayScrubber from '../../../components/Journey/JourneyDayScrubber'
+import { dayColorOf, journeyDays } from '../../../components/Journey/journeyCard'
 import MJourneyEntrySheet from './MJourneyEntrySheet'
 import MJourneySettingsSheet from './MJourneySettingsSheet'
 
@@ -40,8 +47,18 @@ export default function MJourneyDetail() {
     showSettings, setShowSettings,
     hideSkeletons, setHideSkeletons,
     sidebarMapItems, tracks,
-    loadJourney, updateEntry, deleteEntry, uploadPhotos,
+    dismissSuggestion, restoreSuggestions, openAtEntryId,
+    loadJourney, updateEntry, deleteEntry, reorderEntries, uploadPhotos,
   } = useJourneyDetail()
+
+  // The dock's FAB is a sibling of this screen: on the Gallery it becomes the
+  // upload button, so it has to know which tab is open — and it stops knowing
+  // when this screen goes away.
+  const setMobileGalleryOpen = useJourneyStore(state => state.setMobileGalleryOpen)
+  useEffect(() => {
+    setMobileGalleryOpen(view === 'gallery')
+    return () => setMobileGalleryOpen(false)
+  }, [view, setMobileGalleryOpen])
 
   const mapRef = useRef<JourneyMapAutoHandle>(null)
   const carouselRef = useRef<HTMLDivElement>(null)
@@ -98,17 +115,68 @@ export default function MJourneyDetail() {
     }
   }, [entries.length, pickNearestCard])
 
-  // Initial focus — give Leaflet time to initialise and fit bounds first.
+  // Initial focus — give Leaflet time to initialise and fit bounds first. Opens on
+  // today when today is part of the journey (see openAtEntryId), rather than always
+  // at the first entry (discussion #2299).
   useEffect(() => {
     if (entries.length === 0) return
-    const timer = window.setTimeout(() => syncMapToCard(0), 500)
+    const target = openAtEntryId ? entries.findIndex(e => String(e.id) === openAtEntryId) : -1
+    const index = target === -1 ? 0 : target
+    const timer = window.setTimeout(() => {
+      setActiveIndex(index)
+      syncMapToCard(index)
+      if (index > 0) cardRefs.current.get(index)?.scrollIntoView({ inline: 'center', block: 'nearest' })
+    }, 500)
     return () => window.clearTimeout(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [entries.length])
+  }, [entries.length, openAtEntryId])
 
   const scrollCardIntoCenter = useCallback((idx: number) => {
     cardRefs.current.get(idx)?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
   }, [])
+
+  const scrubberDays = useMemo(() => journeyDays(entries), [entries])
+
+  /**
+   * Move an entry within its day, from the entry sheet's header.
+   *
+   * Same rules as the desktop arrows: suggestions do not take part, because they
+   * are the trip's order rather than the traveller's, and a day with one entry
+   * has nothing to reorder. The whole day goes back to the server, which is what
+   * the reorder endpoint expects.
+   */
+  const moveWithinDay = useCallback(async (entry: JourneyEntry, direction: -1 | 1) => {
+    if (!current) return
+    const sameDay = entries.filter(e => e.entry_date === entry.entry_date && e.type !== 'skeleton')
+    const index = sameDay.findIndex(e => e.id === entry.id)
+    const target = index + direction
+    if (index === -1 || target < 0 || target >= sameDay.length) return
+    const reordered = [...sameDay]
+    const [moved] = reordered.splice(index, 1)
+    reordered.splice(target, 0, moved)
+    try {
+      await reorderEntries(current.id, reordered.map(e => e.id))
+      await loadJourney(current.id)
+    } catch {
+      toast.error(t('common.errorTitle'))
+    }
+  }, [current, entries, reorderEntries, loadJourney, toast, t])
+
+  /** Where in the day's run an entry sits, so the sheet knows which arrows to offer. */
+  const dayNeighbours = useCallback((entry: JourneyEntry) => {
+    const sameDay = entries.filter(e => e.entry_date === entry.entry_date && e.type !== 'skeleton')
+    const index = sameDay.findIndex(e => e.id === entry.id)
+    return { canMoveUp: index > 0, canMoveDown: index >= 0 && index < sameDay.length - 1 }
+  }, [entries])
+
+  /** The day bar lands on the first entry of that day. */
+  const jumpToDay = useCallback((date: string) => {
+    const idx = entries.findIndex(e => e.entry_date === date)
+    if (idx === -1) return
+    setActiveIndex(idx)
+    syncMapToCard(idx)
+    scrollCardIntoCenter(idx)
+  }, [entries, scrollCardIntoCenter, syncMapToCard])
 
   const handleMarkerClick = useCallback((markerId: string) => {
     const idx = entries.findIndex(e => String(e.id) === markerId)
@@ -129,10 +197,67 @@ export default function MJourneyDetail() {
   // Gallery upload — device files plus the connected photo providers (Immich/Synology).
   const galleryFileRef = useRef<HTMLInputElement>(null)
   const [availableProviders, setAvailableProviders] = useState<{ id: string; name: string }[]>([])
+  // Whether the probe below has finished — not whether it found anything.
+  const [providersReady, setProvidersReady] = useState(false)
   const [showUploadMenu, setShowUploadMenu] = useState(false)
   const [showActionMenu, setShowActionMenu] = useState(false)
   const [pickerProvider, setPickerProvider] = useState<string | null>(null)
+  const dawarichEnabled = useAddonStore(state => state.isEnabled)('dawarich')
+  const [dawarichOpen, setDawarichOpen] = useState(false)
+  /**
+   * How tall the card rail over the dock currently is.
+   *
+   * Measured rather than written down: the rail is a day scrubber over a row of covers,
+   * and a cover grows from 152 to 180px when it becomes the active one. The Dawarich
+   * button above it used to clear a hard-coded 128px, which was short of the rail on any
+   * screen and left the button sitting over the cards. Zero while there is no rail, which
+   * is also the empty-journal case, and the button then sits straight above the dock.
+   */
+  const [railHeight, setRailHeight] = useState(0)
+  const railRef = useRef<HTMLDivElement>(null)
   const [uploading, setUploading] = useState(false)
+
+  useEffect(() => {
+    const node = railRef.current
+    if (!node) { setRailHeight(0); return }
+    // Observed rather than read once: the rail changes height when the active card grows,
+    // and a height read at mount would be the wrong one from the first swipe onwards.
+    if (typeof ResizeObserver === 'undefined') { setRailHeight(node.offsetHeight); return }
+    const observer = new ResizeObserver(() => setRailHeight(node.offsetHeight))
+    observer.observe(node)
+    setRailHeight(node.offsetHeight)
+    return () => observer.disconnect()
+  }, [view, entries.length])
+
+  const openUpload = useCallback(() => {
+    if (availableProviders.length > 0) setShowUploadMenu(true)
+    else galleryFileRef.current?.click()
+  }, [availableProviders.length])
+
+  // The dock's FAB asks through the URL, the way every other "+" in the shell
+  // does. The parameter is cleared straight away so going back does not reopen
+  // the picker; the intent is held in state until the provider probe has
+  // answered, because "device or Immich?" cannot be asked before we know
+  // whether there is an Immich.
+  const [params, setParams] = useSearchParams()
+  const [pendingUpload, setPendingUpload] = useState(false)
+  useEffect(() => {
+    if (params.get('create') !== 'photo') return
+    setParams(prev => {
+      const next = new URLSearchParams(prev)
+      next.delete('create')
+      return next
+    }, { replace: true })
+    if (!canEditEntries) return
+    setView('gallery')
+    setPendingUpload(true)
+  }, [params, setParams, canEditEntries, setView])
+
+  useEffect(() => {
+    if (!pendingUpload || !providersReady) return
+    setPendingUpload(false)
+    openUpload()
+  }, [pendingUpload, providersReady, openUpload])
 
   useEffect(() => {
     let active = true
@@ -155,6 +280,7 @@ export default function MJourneyDetail() {
         }
         if (active) setAvailableProviders(connected)
       } catch { /* no providers */ }
+      finally { if (active) setProvidersReady(true) }
     })()
     return () => { active = false }
   }, [])
@@ -241,7 +367,7 @@ export default function MJourneyDetail() {
           activeMarkerId={entries[activeIndex] ? String(entries[activeIndex].id) : null}
           onMarkerClick={handleMarkerClick}
           fullScreen
-          paddingBottom={200}
+          paddingBottom={250}
         />
       </div>
 
@@ -314,20 +440,18 @@ export default function MJourneyDetail() {
           </button>
         </div>
         <span className="ml-auto flex flex-none items-center gap-2">
-          {view === 'gallery' && canEditEntries && (
-            <button
-              type="button"
-              onClick={() => (availableProviders.length > 0 ? setShowUploadMenu(true) : galleryFileRef.current?.click())}
-              disabled={uploading}
+          {/* Uploading lives on the dock's FAB while the Gallery is open — the
+              one big action on the screen. A second button up here would be the
+              same thing twice, so it only appears while an upload is running,
+              as its progress. */}
+          {view === 'gallery' && canEditEntries && uploading && (
+            <span
+              role="status"
               aria-label={t('common.upload')}
-              className="flex h-[38px] w-[38px] items-center justify-center rounded-full bg-m-act text-m-actfg shadow-[0_5px_14px_-6px_rgba(0,0,0,.3)] disabled:opacity-60"
+              className="flex h-[38px] w-[38px] items-center justify-center rounded-full bg-m-act text-m-actfg shadow-[0_5px_14px_-6px_rgba(0,0,0,.3)]"
             >
-              {uploading ? (
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-              ) : (
-                <Upload size={16} strokeWidth={2.2} />
-              )}
-            </button>
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            </span>
           )}
           <button
             type="button"
@@ -340,11 +464,64 @@ export default function MJourneyDetail() {
         </span>
       </div>
 
-      {/* Horizontal card timeline */}
+      {/* The stays Dawarich recorded for these dates, as candidate entries. Over
+          the map rather than in the header: it belongs to what is on the map,
+          and the header is already three controls wide on a phone. Sits above
+          the card rail so it never covers the card somebody is reading. */}
+      {dawarichEnabled && canEditEntries && view === 'timeline' && (
+        <button
+          type="button"
+          onClick={() => setDawarichOpen(true)}
+          aria-label={t('dawarich.suggestions.title')}
+          className="absolute right-4 z-[9] flex h-[46px] w-[46px] items-center justify-center overflow-hidden rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-sheet)] shadow-[0_6px_18px_-8px_rgba(0,0,0,.35)]"
+          // The rail's own offset over the dock, its measured height, then a gap. The 128px
+          // this used to guess at was short of the rail, so the button lay on the cards.
+          style={{ bottom: `calc(var(--bottom-nav-h, 84px) + 2px + ${railHeight}px + 12px)` }}
+        >
+          <DawarichIcon size={46} />
+        </button>
+      )}
+
+      {dawarichOpen && current && (
+        <MSheet open onClose={() => setDawarichOpen(false)} variant="bottom" material="glass" ariaLabel={t('dawarich.suggestions.title')}>
+          <div className="flex max-h-[82dvh] min-h-0 flex-col">
+            <FormSheetHeader
+              leading={
+                <span className="flex h-10 w-10 flex-none overflow-hidden rounded-[13px]">
+                  <DawarichIcon size={40} />
+                </span>
+              }
+              title={t('dawarich.suggestions.title')}
+              onClose={() => setDawarichOpen(false)}
+              closeLabel={t('common.close')}
+            />
+            <div className="min-h-0 flex-1 overflow-y-auto px-[14px] pb-4">
+              {/* Journal entries and nothing else: a journey is for writing, and
+                  the trip planner already offers the same stay as a place. */}
+              <DawarichSuggestionsPanel
+                bare
+                journals={[{ id: current.id, label: current.title }]}
+                onAccepted={() => { void loadJourney(current.id) }}
+              />
+            </div>
+          </div>
+        </MSheet>
+      )}
+
+      {/* Day bar + horizontal card timeline. The dock is a floating pill 62px tall
+          inside the 84px the variable reserves, so +16 left a band of map doing
+          nothing between the cards and it; two pixels keeps a hair of daylight and
+          gives the strip the rest. */}
       {view === 'timeline' && entries.length > 0 && (
+        <div ref={railRef} className="absolute left-0 right-0 z-[8] bottom-[calc(var(--bottom-nav-h,84px)+2px)]">
+        <JourneyDayScrubber
+          days={scrubberDays}
+          activeDate={entries[activeIndex]?.entry_date ?? null}
+          onPick={jumpToDay}
+        />
         <div
           ref={carouselRef}
-          className="absolute left-0 right-0 z-[8] flex gap-[10px] overflow-x-auto px-4 pb-1 bottom-[calc(var(--bottom-nav-h,84px)+16px)] [-webkit-overflow-scrolling:touch] [scrollbar-width:none]"
+          className="flex items-end gap-[10px] overflow-x-auto px-4 pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none]"
           style={{ scrollSnapType: 'x mandatory' }}
         >
           {entries.map((entry, i) => (
@@ -353,16 +530,28 @@ export default function MJourneyDetail() {
               ref={node => { if (node) cardRefs.current.set(i, node); else cardRefs.current.delete(i) }}
               style={{ scrollSnapAlign: 'center' }}
             >
-              <MJourneyEntryCard entry={entry} number={i + 1} onClick={() => handleCardTap(entry, i)} />
+              <JourneyEntryCover
+                entry={entry}
+                dayColor={dayColorOf(scrubberDays, entry.entry_date)}
+                isActive={i === activeIndex}
+                onClick={() => handleCardTap(entry, i)}
+                showMood={current.show_mood !== 0}
+                showWeather={current.show_weather !== 0}
+                tone="mobile"
+              />
             </div>
           ))}
+        </div>
         </div>
       )}
 
       <input ref={galleryFileRef} type="file" accept="image/*,video/*" multiple className="hidden" onChange={handleGalleryUpload} />
 
       {/* Upload source chooser (device / providers) */}
-      <MSheet open={showUploadMenu} onClose={() => setShowUploadMenu(false)} variant="bottom" ariaLabel={t('common.upload')}>
+      {/* Opaque, not the glass default: these two sit over a full-screen map whose
+          card carousel is bright and busy, and the frosted material let the titles
+          behind read straight through the menu. */}
+      <MSheet open={showUploadMenu} onClose={() => setShowUploadMenu(false)} variant="bottom" material="opaque" ariaLabel={t('common.upload')}>
         <div className="flex flex-col gap-2 p-[10px]">
           <MListRow
             icon={Camera}
@@ -381,7 +570,7 @@ export default function MJourneyDetail() {
       </MSheet>
 
       {/* Journey actions: book export, suggestions switch, settings */}
-      <MSheet open={showActionMenu} onClose={() => setShowActionMenu(false)} variant="bottom" ariaLabel={t('files.menu')}>
+      <MSheet open={showActionMenu} onClose={() => setShowActionMenu(false)} variant="bottom" material="opaque" ariaLabel={t('files.menu')}>
         <div className="flex flex-col gap-1 p-[10px]">
           <div className="flex items-center gap-[11px] px-[10px] py-[11px]">
             <EyeOff size={16} strokeWidth={2} className="flex-none text-m-muted" />
@@ -405,8 +594,26 @@ export default function MJourneyDetail() {
           galleryPhotos={gallery}
           quickCapture={editingEntry.id === 0}
           readOnly={!canEditEntries}
+          showVerdict={current.show_verdict !== 0}
+          showMood={current.show_mood !== 0}
+          showWeather={current.show_weather !== 0}
           userId={useAuthStore.getState().user?.id || 0}
           trips={current.trips}
+          onMoveEarlier={
+            canEditEntries && editingEntry.id !== 0 && editingEntry.type !== 'skeleton' && dayNeighbours(editingEntry).canMoveUp
+              ? () => { void moveWithinDay(editingEntry, -1) }
+              : undefined
+          }
+          onMoveLater={
+            canEditEntries && editingEntry.id !== 0 && editingEntry.type !== 'skeleton' && dayNeighbours(editingEntry).canMoveDown
+              ? () => { void moveWithinDay(editingEntry, 1) }
+              : undefined
+          }
+          onDismiss={
+            canEditEntries && editingEntry.type === 'skeleton' && editingEntry.id !== 0
+              ? () => { setEditingEntry(null); void dismissSuggestion(editingEntry) }
+              : undefined
+          }
           onClose={() => setEditingEntry(null)}
           onSave={async (data, existingEntryId) => {
             // existingEntryId is what the sheet already persisted in an earlier
@@ -443,6 +650,7 @@ export default function MJourneyDetail() {
           onSaved={() => { setShowSettings(false); loadJourney(Number(id)) }}
           onOpenInvite={() => setShowInvite(true)}
           onRefresh={() => loadJourney(Number(id))}
+          onRestoreSuggestions={canEditEntries ? restoreSuggestions : undefined}
         />
       )}
 

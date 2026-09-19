@@ -80,6 +80,10 @@ const budget: TranslationStrings = {
   'costs.pays': 'fizet',
   'costs.settle': 'Elszámol',
   'costs.balances': 'Egyenlegek',
+  'costs.finalBudget': 'Végső költségvetés',
+  'costs.finalExpenses': 'Kifizetett kiadások',
+  'costs.finalReimbursed': 'Nettó visszatérítések',
+  'costs.finalPending': 'Függőben lévő visszatérítések',
   'costs.byCategory': 'Kategóriánként',
   'costs.noCategories': 'Még nincs költség.',
   'costs.settleHistory': 'Elszámolási előzmények',
@@ -147,5 +151,12 @@ const budget: TranslationStrings = {
   'costs.splitSumUnder': 'A részek összege: {sum} / {total} (hiányzik {diff})',
   'costs.splitSumOver': 'A részek összege: {sum} / {total} ({diff} a többlet)',
   'costs.toggleSign': 'Váltás kiadás és visszatérítés között',
+  'costs.receipts': 'Nyugták',
+  'costs.receiptsTitle': 'Nyugták és számlák',
+  'costs.attachReceipt': 'Nyugta / számla csatolása',
+  'costs.noReceipts': 'Nincsenek csatolt nyugták',
+  'costs.deleteReceipt': 'Nyugta eltávolítása',
+  'costs.viewReceipt': 'Nyugta megtekintése',
+  'costs.receiptLeftBehind': 'A mentés nem sikerült, és {count} feltöltött blokk még ott van. Törölje őket a Fájlok fülön.',
 };
 export default budget;

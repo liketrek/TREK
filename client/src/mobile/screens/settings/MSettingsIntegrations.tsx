@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useAddonStore } from '../../../store/addonStore'
 import MPhotoProvidersSection from './MPhotoProvidersSection'
 import MAirTrailConnectionSection from './MAirTrailConnectionSection'
+import MDawarichConnectionSection from './MDawarichConnectionSection'
 import MLlmConnectionSection from './MLlmConnectionSection'
 import MSettingsMcp from './MSettingsMcp'
 import { useAuthStore } from '../../../store/authStore'
@@ -17,6 +18,7 @@ export default function MSettingsIntegrations() {
   const mcpEnabled = addonEnabled('mcp')
   const airtrailEnabled = addonEnabled('airtrail')
   const llmEnabled = addonEnabled('llm_parsing')
+  const dawarichEnabled = addonEnabled('dawarich')
   const managed = useAuthStore((s) => s.managed)
 
   useEffect(() => {
@@ -27,6 +29,9 @@ export default function MSettingsIntegrations() {
     <>
       <MPhotoProvidersSection />
       {airtrailEnabled && <MAirTrailConnectionSection />}
+      {/* Reaches a server the reader runs themselves, which a managed install has
+          no route to — the same gate the desktop shell puts on AirTrail. */}
+      {dawarichEnabled && !managed && <MDawarichConnectionSection />}
       {/* Which model reads a booking, and what that costs, comes with the instance on
        a managed install. The per-user fallback exists for people who supply their
        own key, and there nobody does. */}

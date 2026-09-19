@@ -377,8 +377,11 @@ describe('JourneySettingsDialog', () => {
   it('FE-JRN-SETTINGS-023: the trip-GPX switch reads off by default and turns on in one click (#2194)', async () => {
     const { onRefresh, onSaved } = mountDialog()
 
-    const sw = screen.getByRole('switch', { name: /GPX/i })
-    expect(sw).toHaveAttribute('aria-checked', 'false')
+    // The shared ToggleSwitch is a button with aria-pressed, not a role="switch" with
+    // aria-checked: the dialog drew its own switches by hand until they turned out to be
+    // white on near-white in the dark.
+    const sw = screen.getByRole('button', { name: /GPX/i })
+    expect(sw).toHaveAttribute('aria-pressed', 'false')
 
     await userEvent.click(sw)
 
@@ -393,8 +396,8 @@ describe('JourneySettingsDialog', () => {
     // The column is INTEGER, so what arrives over the wire is 1, not true.
     mountDialog(buildJourney({ show_trip_tracks: 1 }))
 
-    const sw = screen.getByRole('switch', { name: /GPX/i })
-    expect(sw).toHaveAttribute('aria-checked', 'true')
+    const sw = screen.getByRole('button', { name: /GPX/i })
+    expect(sw).toHaveAttribute('aria-pressed', 'true')
 
     await userEvent.click(sw)
     await waitFor(() => expect(updateJourney).toHaveBeenCalledWith(3, { show_trip_tracks: false }))
@@ -404,7 +407,7 @@ describe('JourneySettingsDialog', () => {
     updateJourney.mockRejectedValueOnce(new Error('nope'))
     const { onClose } = mountDialog()
 
-    await userEvent.click(screen.getByRole('switch', { name: /GPX/i }))
+    await userEvent.click(screen.getByRole('button', { name: /GPX/i }))
 
     await waitFor(() => expect(toastSpy).toHaveBeenCalled())
     expect(onClose).not.toHaveBeenCalled()

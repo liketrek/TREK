@@ -47,5 +47,29 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.upNext': 'A continuación',
   'mobileTrip.viewDetails': 'Ver detalles',
   'mobileTrip.transportsEmpty': 'Aún no hay transporte',
+  'mobileTrip.rtInfoTitle': 'Cifras del trayecto',
+  'mobileTrip.rtDesktopNote':
+    'Estas cifras se ajustan en el escritorio, donde también puedes comparar rutas alternativas y hacer que un día siga una traza importada.',
+  'mobileTrip.rtPlanOnDesktop':
+    'La planificación se hace en el escritorio. TREK calcula el trayecto en cuanto un día tiene dos lugares.',
+  'mobileTrip.rtSearchOffline': 'Hace falta conexión: la búsqueda lee la ruta que queda por delante.',
+  'mobileTrip.rtBehind': '{time} de retraso sobre lo previsto',
+  'mobileTrip.rtStart': 'Inicio',
+  'mobileTrip.rtStayScope':
+    'La duración de la parada pertenece al lugar, así que cuenta en cada día en el que esta parada está prevista.',
+  'mobileTrip.rtStayLess': '{count} minutos menos',
+  'mobileTrip.rtStayMore': '{count} minutos más',
+  'mobileTrip.rtNightDesktopOnly':
+    'Reservar una pernoctación en este lugar se hace en el planificador de escritorio. Aquí solo puedes descartarla.',
+  'mobileTrip.rtReach': 'Hasta dónde',
+  'mobileTrip.rtReachAhead': '{distance} por delante',
+  'mobileTrip.rtFromNext': 'Desde tu próxima parada',
+  'mobileTrip.rtFromStart': 'Desde el inicio de la etapa',
+  'mobileTrip.rtNoneAhead': 'No hay nada en la carretera que tienes por delante. Prueba con toda la etapa.',
+  'mobileTrip.rtNoneOnStage': 'No hay nada de eso a lo largo de esta etapa.',
+  'mobileTrip.rtTruncated.one':
+    '1 tramo tenía más de lo que cabe en una respuesta. Elige menos tipos para ver el resto.',
+  'mobileTrip.rtTruncated.other':
+    '{count} tramos tenían más de lo que cabe en una respuesta. Elige menos tipos para ver el resto.',
 };
 export default mobileTrip;

@@ -94,14 +94,12 @@ export function createPluginRpcHostFactory(dbs: DatabaseService): PluginRpcHostF
   const todos = new TodoService(dbs, permissions, realtime);
   const packing = new PackingService(dbs, permissions, realtime, notificationsStub());
   const files = new FilesService(dbs, permissions, realtime, new EphemeralTokenService(), generalStorage);
-  const reservations = new ReservationsService(dbs, permissions, budget, realtime, notificationsStub(), new ReservationsReadRepository(dbs));
   const collab = new CollabService(dbs, permissions, realtime, notificationsStub(), generalStorage, new RateLimitService());
   const vacay = new VacayService(dbs, realtime, notificationsStub());
   const days = new DaysService(dbs, permissions, realtime, queryHelpers);
   const photoCache = new PlacePhotoCacheService(dbs, makeStorageFixture('photos/google/').storage);
   const unsplash = new UnsplashService(dbs, new RuntimeEnvService(), generalStorage);
   const journey = new JourneyDomainService(dbs, realtime, new TrekPhotosRepository(dbs));
-  const places = new PlacesService(dbs, permissions, realtime, new MapsService(dbs, photoCache), queryHelpers, unsplash, photoCache, journey, generalStorage);
   const collections = new CollectionsService(dbs, permissions, realtime, notificationsStub(), generalStorage);
   const atlas = new AtlasService(dbs);
   const dayNotes = new DayNotesService(dbs, permissions, realtime);
@@ -110,7 +108,11 @@ export function createPluginRpcHostFactory(dbs: DatabaseService): PluginRpcHostF
   const notifications = makeNotificationsService(dbs, realtime);
   const llmConfig = new LlmConfigResolver(new SettingsService(dbs), dbs, addons);
   const oauth = new PluginOAuthService(dbs);
-  const accommodations = new AccommodationsService(dbs, permissions, realtime);
+  const accommodations = new AccommodationsService(dbs, permissions, realtime, assignments);
+  // After it: deleting a place cancels the nights booked at it through this one.
+  const places = new PlacesService(dbs, permissions, realtime, new MapsService(dbs, photoCache), queryHelpers, unsplash, photoCache, journey, generalStorage, accommodations);
+  // After accommodations: a hotel booking writes the stay's day stop through it.
+  const reservations = new ReservationsService(dbs, permissions, budget, realtime, notificationsStub(), new ReservationsReadRepository(dbs), accommodations);
   const trips = new TripsService(dbs, reservations, days, permissions, budget, vacay, realtime, unsplash, generalStorage);
   const members = new TripMembersService(dbs, budget, new UserCleanupService(dbs, budget), permissions, realtime, notificationsStub());
   const guards = new PluginGuards(dbs, permissions, addons);

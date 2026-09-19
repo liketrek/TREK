@@ -80,6 +80,10 @@ const budget: TranslationStrings = {
   'costs.pays': 'paie',
   'costs.settle': 'Régler',
   'costs.balances': 'Soldes',
+  'costs.finalBudget': 'Budget final',
+  'costs.finalExpenses': 'Dépenses payées',
+  'costs.finalReimbursed': 'Remboursements nets',
+  'costs.finalPending': 'Remboursements en attente',
   'costs.byCategory': 'Par catégorie',
   'costs.noCategories': 'Aucune dépense pour le moment.',
   'costs.settleHistory': 'Historique des règlements',
@@ -147,5 +151,12 @@ const budget: TranslationStrings = {
   'costs.splitSumUnder': 'Somme des parts : {sum} sur {total} (il manque {diff})',
   'costs.splitSumOver': 'Somme des parts : {sum} sur {total} ({diff} de trop)',
   'costs.toggleSign': 'Basculer entre dépense et remboursement',
+  'costs.receipts': 'Reçus',
+  'costs.receiptsTitle': 'Reçus et factures',
+  'costs.attachReceipt': 'Joindre un reçu / une facture',
+  'costs.noReceipts': 'Aucun reçu joint',
+  'costs.deleteReceipt': 'Supprimer le reçu',
+  'costs.viewReceipt': 'Voir le reçu',
+  'costs.receiptLeftBehind': 'Échec de la sauvegarde, {count} reçus téléversés sont toujours là. Supprimez-les dans les Fichiers.',
 };
 export default budget;

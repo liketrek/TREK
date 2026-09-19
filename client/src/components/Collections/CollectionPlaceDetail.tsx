@@ -222,35 +222,12 @@ export default function CollectionPlaceDetail({
 
       <div className="col-detail-body">
         {/* Meta (view only) */}
-        {!editing && (place.address || navigationTargets.length > 0) && (
+        {!editing && place.address && (
           <div className="col-detail-meta">
             {place.address && <span className="col-detail-addr"><MapPin size={12} /> {place.address}</span>}
             {/* Same picker as inside a trip (#1455). A saved place is somewhere
                 you intend to go, and until now the only way to get directions
                 was to add it to a trip first. */}
-            {navigationTargets.length > 0 && (
-              <>
-                <button
-                  ref={navBtnRef}
-                  type="button"
-                  className="col-detail-nav"
-                  onClick={() => {
-                    if (navigationTargets.length === 1) openNavigationTarget(navigationTargets[0])
-                    else setNavOpen(o => !o)
-                  }}
-                >
-                  <Navigation size={12} />
-                  {navigationTargets.length === 1 ? navigationTargets[0].label : t('inspector.navigation')}
-                </button>
-                {navOpen && (
-                  <NavigationMenu
-                    targets={navigationTargets}
-                    anchor={navBtnRef.current}
-                    onClose={() => setNavOpen(false)}
-                  />
-                )}
-              </>
-            )}
           </div>
         )}
 
@@ -258,9 +235,22 @@ export default function CollectionPlaceDetail({
         <StatusSegment status={place.status} onSet={canEdit ? onSetStatus : () => {}} t={t} />
 
         {/* Collaborative rating (#1435) — every member votes; the average shows. */}
-        {onRate && (
-          <div style={{ padding: '2px 0' }}>
-            <PlaceRating ratings={place.ratings ?? []} ratingAvg={place.rating_avg} onRate={onRate} />
+        {/* Rating and labels on one line, each on its own ground.
+            A bare line of stars read as another row of text, and the labels tried the
+            cover photo first — where a blue chip on a blue sky is simply not there.
+            Side by side they are two badges answering two questions about the place. */}
+        {(onRate || assignedLabels.length > 0) && (
+          <div className="col-detail-badges">
+            {onRate && (
+              <div className="col-detail-rating">
+                <PlaceRating ratings={place.ratings ?? []} ratingAvg={place.rating_avg} onRate={onRate} />
+              </div>
+            )}
+            {!editing && assignedLabels.map(l => (
+              <span key={l.id} className="col-labelchip on static big" style={{ ['--label' as string]: l.color || 'var(--accent)' }}>
+                <span className="col-labelchip-dot" /> {l.name}
+              </span>
+            ))}
           </div>
         )}
 
@@ -334,15 +324,6 @@ export default function CollectionPlaceDetail({
           </div>
         ) : (
           <>
-            {assignedLabels.length > 0 && (
-              <div className="col-detail-labels">
-                {assignedLabels.map(l => (
-                  <span key={l.id} className="col-labelchip on static" style={{ ['--label' as string]: l.color || 'var(--accent)' }}>
-                    <span className="col-labelchip-dot" /> {l.name}
-                  </span>
-                ))}
-              </div>
-            )}
             {place.description && (
               <div className="col-detail-md collab-note-md">
                 <Markdown remarkPlugins={[remarkGfm, remarkBreaks]} components={markdownLinkComponents}>{place.description}</Markdown>
@@ -371,6 +352,32 @@ export default function CollectionPlaceDetail({
           <>
             {canEdit && <button type="button" onClick={() => setEditing(true)} className="col-detail-btn"><Pencil size={14} /> {t('common.edit')}</button>}
             <button type="button" onClick={onCopyToTrip} className="col-detail-btn"><Copy size={14} /> {t('collections.copyToTrip')}</button>
+            {/* Beside the other two rather than up by the address: getting directions is
+                something you DO with the place, like editing it or copying it into a
+                trip, and the row of things you do belongs in one place. */}
+            {navigationTargets.length > 0 && (
+              <>
+                <button
+                  ref={navBtnRef}
+                  type="button"
+                  className="col-detail-btn"
+                  onClick={() => {
+                    if (navigationTargets.length === 1) openNavigationTarget(navigationTargets[0])
+                    else setNavOpen(o => !o)
+                  }}
+                >
+                  <Navigation size={14} />
+                  {navigationTargets.length === 1 ? navigationTargets[0].label : t('inspector.navigation')}
+                </button>
+                {navOpen && (
+                  <NavigationMenu
+                    targets={navigationTargets}
+                    anchor={navBtnRef.current}
+                    onClose={() => setNavOpen(false)}
+                  />
+                )}
+              </>
+            )}
             <div className="col-detail-footer-spacer" />
             {canDelete && <button type="button" onClick={onRemove} className="col-detail-btn danger"><Trash2 size={14} /> {t('collections.removeFromList')}</button>}
           </>

@@ -626,5 +626,21 @@ const journey: TranslationStrings = {
   'journey.editor.statsExcludedHint':
     "L'étape reste dans le journal mais ne compte ni pour la distance, ni pour les pays, ni pour la carte dans Studio.",
   'journey.entry.offRoute': 'Hors itinéraire',
+  'journey.suggestions.dismiss': 'Écarter cette suggestion',
+  'journey.suggestions.dismissed': 'Suggestion écartée',
+  'journey.suggestions.restore': 'Récupérer les suggestions écartées',
+  'journey.suggestions.restoreCount': 'Suggestions écartées ({count})',
+  'journey.suggestions.restored': '{count} suggestions sont de retour',
+  'journey.detail.addOnThisDay': 'Ajouter une entrée ce jour-là',
+  'journey.detail.jumpToDay': 'Aller au {date}',
+  'journey.detail.searchPlaceholder': 'Rechercher dans ce carnet',
+  'journey.detail.searchEmpty': 'Aucune entrée ne correspond à « {query} »',
+  'journey.settings.entryFields': 'Champs de l\'entrée',
+  'journey.settings.entryFieldsHint': 'Désactivez ce que ce carnet n\'utilise pas. Rien de ce qui est déjà écrit n\'est perdu.',
+  'journey.settings.showVerdict': 'Pour et contre',
+  'journey.settings.showMood': 'Humeur',
+  'journey.settings.showWeather': 'Météo',
+  'journey.entry.suggestion': 'Suggestion',
+  'journey.editor.addDetails': '+ Détails',
 };
 export default journey;

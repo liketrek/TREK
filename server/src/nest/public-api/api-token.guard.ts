@@ -21,13 +21,17 @@ import { TokenService } from '../tokens/token.service';
  * - **No session JWT.** A session cookie leaking into a third-party integration is
  *   exactly what a machine credential exists to prevent, and a JWT that reaches
  *   this surface is almost always an accident.
- * - **No OAuth tokens (yet).** They carry scopes this surface does not interpret
- *   yet, and accepting a credential whose restrictions you ignore is worse than
- *   refusing it. When `/api/v1` grows write routes, scopes get honoured first.
+ * - **No OAuth tokens.** They carry MCP scopes, which are a different vocabulary
+ *   from the read sections this surface understands — `trips:write` has no
+ *   meaning on a read-only API, and quietly mapping one onto the other would be
+ *   inventing permissions nobody granted. Accepting a credential whose
+ *   restrictions you reinterpret is worse than refusing it.
  *
- * The guard authenticates but does not authorise: it resolves `req.user` and stops
- * there. Which trips that user may read is decided per row against
- * `DatabaseService.canAccessTrip`, never from anything the caller sent.
+ * The guard resolves two things and then stops: **who** is calling (`req.user`)
+ * and **what their key may read** (`req.apiToken`). Both are needed and neither
+ * is sufficient. Which trips that user may reach is still decided per row
+ * against `DatabaseService.canAccessTrip`, never from anything the caller sent;
+ * the grant only narrows that further, and can never widen it.
  */
 @Injectable()
 export class ApiTokenGuard implements CanActivate {
@@ -42,14 +46,15 @@ export class ApiTokenGuard implements CanActivate {
         401,
       );
     }
-    const user = this.tokens.verifyApiToken(token);
-    if (!user) {
+    const resolved = this.tokens.verifyApiTokenWithGrant(token);
+    if (!resolved) {
       throw new HttpException(
         { error: 'Invalid API token', code: 'API_TOKEN_INVALID' },
         401,
       );
     }
-    req.user = user;
+    req.user = resolved.user;
+    req.apiToken = resolved.grant;
     return true;
   }
 }

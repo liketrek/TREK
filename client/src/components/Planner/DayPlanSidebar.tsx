@@ -1,5 +1,7 @@
+import { useRoadtripSettings } from '../../hooks/useRoadtripSettings'
+import { isServiceStopType } from '../Roadtrip/roadtripModel'
 /* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
-interface DragDataPayload { placeId?: string; assignmentId?: string; noteId?: string; reservationId?: string; fromDayId?: string; phase?: 'single' | 'start' | 'middle' | 'end' }
+interface DragDataPayload { placeId?: string; assignmentId?: string; noteId?: string; reservationId?: string; fromDayId?: string; phase?: 'single' | 'start' | 'middle' | 'end'; /** A corridor hit on its way onto the drive (#1797) — not a place yet. */ poiOsmId?: string }
 declare global { interface Window { __dragData: DragDataPayload | null } }
 
 import React, { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react'
@@ -27,6 +29,7 @@ import { usePluginStore } from '../../store/pluginStore'
 import { useSaveToCollectionStore } from '../../store/saveToCollectionStore'
 import { placeToSaveTarget } from '../Collections/saveTarget'
 import { useTranslation } from '../../i18n'
+import { Tooltip } from '../shared/Tooltip'
 import { isDayInAccommodationRange, getAccommodationAnchors, getDayBookendHotels, shouldDrawMorningLeg, shouldDrawEveningLeg, type CarrierEdge } from '../../utils/dayOrder'
 import {
   TRANSPORT_TYPES, parseTimeToMinutes, getSpanPhase, hidesOnMiddleDay, getDisplayTimeForDay, getTransportRouteEndpoints,
@@ -95,6 +98,8 @@ interface DayPlanSidebarProps {
   onSetRouteProfile?: (profile: string) => void
   onAddPlace?: () => void
   onAddPlaceToDay?: (placeId: number, dayId: number) => void
+  /** Open the place form already pointed at this day, to create a new place there. */
+  onCreatePlaceForDay?: (dayId: number) => void
   onExpandedDaysChange?: (expandedDayIds: Set<number>) => void
   pushUndo?: (label: string, undoFn: () => Promise<void> | void) => void
   canUndo?: boolean
@@ -146,6 +151,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
   onAddReservation,
   onAddPlace,
   onAddPlaceToDay,
+  onCreatePlaceForDay,
   onNavigateToFiles,
   routeShown = false,
   routeProfile = 'driving',
@@ -177,6 +183,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
   const { t, language, locale } = useTranslation()
   const ctxMenu = useContextMenu()
   const timeFormat = useSettingsStore(s => s.settings.time_format) || '24h'
+  const mirrorServiceStops = useRoadtripSettings(s => s.roadtrip_service_stops_in_days !== false)
   const tripActions = useRef(useTripStore.getState()).current
   const can = useCanDo()
   const canEditDays = can('day_edit', trip)
@@ -405,8 +412,20 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     })
   }
 
+  // Two reasons a stop can be road-trip-only, and they are not the same reason.
+  //
+  // The switch is the traveller's: it keeps the petrol stations and rest areas they
+  // added along the drive out of a day list they want to read as a plan.
+  //
+  // A stop a lodging booking put there is out whatever the switch says. The day
+  // already carries that booking as its own overnight block in the header, so the
+  // row would be the same hotel a second time. Road trip mode wants it, which is
+  // why it is a stop at all: the drive has to end somewhere, and that somewhere is
+  // where you sleep.
   const getDayAssignments = (dayId) =>
-    (assignments[String(dayId)] || []).slice().sort((a, b) => a.order_index - b.order_index)
+    (assignments[String(dayId)] || [])
+      .filter(a => a.accommodation_id == null && (mirrorServiceStops || !isServiceStopType(a.place?.stop_type)))
+      .slice().sort((a, b) => a.order_index - b.order_index)
 
   // Compute initial day_plan_position for a transport based on time
   const computeTransportPosition = (r, da) => {
@@ -482,7 +501,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     return map
   // getMergedItems is redefined each render but captures assignments/dayNotes/reservations/days via closure
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [days, assignments, dayNotes, reservations, transportPosVersion])
+  }, [days, assignments, dayNotes, reservations, transportPosVersion, mirrorServiceStops])
 
   // Days whose inline route legs should be computed & shown. Desktop: the selected
   // day while the Route toggle is on. Mobile: each expanded day the user tapped
@@ -707,7 +726,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
   // Unified reorder: assigns positions to ALL item types based on new visual order
   const applyMergedOrder = async (dayId: number, newOrder: { type: string; data: any }[]) => {
     // Capture previous place order for undo
-    const prevAssignmentIds = getDayAssignments(dayId).map(a => a.id)
+    const prevAssignmentIds = (assignments[String(dayId)] || []).slice().sort((a, b) => a.order_index - b.order_index).map(a => a.id)
     // …and, per booking, the fields this call is about to overwrite, so a failed write
     // can put the visible order back instead of leaving a phantom one behind the error
     // toast. Restoring the whole array instead would also drop what a collaborator's
@@ -954,7 +973,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     const da = getDayAssignments(dayId)
     if (da.length < 3) return
 
-    const prevIds = da.map(a => a.id)
+    const prevIds = (assignments[String(dayId)] || []).slice().sort((a, b) => a.order_index - b.order_index).map(a => a.id)
 
     // Separate fixed (stay at their index) and movable assignments. A place is
     // fixed if it's locked OR has a set time — timed places are anchored by their
@@ -1073,6 +1092,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     onAddReservation,
     onAddPlace,
     onAddPlaceToDay,
+    onCreatePlaceForDay,
     onNavigateToFiles,
     routeShown,
     routeProfile,
@@ -1182,8 +1202,34 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
   }
 }
 
+/**
+ * Below this the plan sidebar has no room for a word on the route button.
+ *
+ * The word goes early on purpose: it shares its row with two export buttons and
+ * an optimise button, and a "Route" squeezed to four letters and an ellipsis is
+ * worse than the icon that means the same thing. The icon keeps the accessible
+ * name, so nothing is lost but the letters.
+ */
+const NARROW_PLAN_PX = 320
+
 const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarProps) {
   const S = useDayPlanSidebar(props)
+  // The plan sidebar is resizable. Below this the route button's own word is the
+  // first thing that stops fitting beside the two export buttons — the icon says
+  // the same thing, and the accessible name still spells it out.
+  //
+  // A callback ref rather than `useRef`, so the measurement happens when the
+  // element exists rather than on a mount that may render nothing yet.
+  const [panel, setPanel] = useState<HTMLElement | null>(null)
+  const [narrowPanel, setNarrowPanel] = useState(false)
+  useEffect(() => {
+    if (!panel || typeof ResizeObserver === 'undefined') return
+    const measure = (): void => setNarrowPanel(panel.clientWidth < NARROW_PLAN_PX)
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(panel)
+    return () => ro.disconnect()
+  }, [panel])
   // A stable key for the current selection. A multi-day place renders one row per
   // day (same place_id, different assignment ids); selecting it by place_id alone
   // (e.g. clicking an accommodation) marks every one of those rows selected, so a
@@ -1244,6 +1290,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
     onAddReservation,
     onAddPlace,
     onAddPlaceToDay,
+    onCreatePlaceForDay,
     onNavigateToFiles,
     routeShown,
     routeProfile,
@@ -1496,7 +1543,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
   }
 
   return (
-    <div data-touch-drag={dragDisabled ? undefined : ''} style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative', fontFamily: "var(--font-system)" }}>
+    <div ref={setPanel} data-touch-drag={dragDisabled ? undefined : ''} style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative', fontFamily: "var(--font-system)" }}>
       {/* Toolbar */}
       <DayPlanSidebarToolbar
         tripId={tripId}
@@ -1782,19 +1829,23 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                         {/* Public transit search (#1065) — replaced the rename pencil,
                             which moved next to the day name in the day detail view. */}
                         {onPlanTransit ? (
-                          <button type="button" onClick={e => { e.stopPropagation(); onPlanTransit(day.id) }} title={t('transit.title')} aria-label={t('transit.title')} style={{ ...cell, border: 'none', borderRight: div, borderBottom: div }}>
-                            <TramFront size={14} strokeWidth={1.8} />
-                          </button>
+                          <Tooltip label={t('transit.title')} placement="top">
+                            <button type="button" onClick={e => { e.stopPropagation(); onPlanTransit(day.id) }}  aria-label={t('transit.title')} style={{ ...cell, border: 'none', borderRight: div, borderBottom: div }}>
+                              <TramFront size={14} strokeWidth={1.8} />
+                            </button>
+                          </Tooltip>
                         ) : <div style={{ borderRight: div, borderBottom: div }} />}
                         {onAddTransport ? (
-                          <button type="button" onClick={e => { e.stopPropagation(); onAddTransport(day.id) }} title={t('transport.addTransport')} style={{ ...cell, border: 'none', borderBottom: div }}>
-                            <Plus size={14} strokeWidth={1.8} />
-                          </button>
+                          <Tooltip label={t('transport.addTransport')} placement="top">
+                            <button type="button" onClick={e => { e.stopPropagation(); onAddTransport(day.id) }}  style={{ ...cell, border: 'none', borderBottom: div }} aria-label={t('transport.addTransport')}>
+                              <Plus size={14} strokeWidth={1.8} />
+                            </button>
+                          </Tooltip>
                         ) : <div style={{ borderBottom: div }} />}
                         <button type="button" onClick={e => openAddNote(day.id, e)} aria-label={t('dayplan.addNote')} style={{ ...cell, border: 'none', borderRight: div }}>
                           <FileText size={14} strokeWidth={1.8} />
                         </button>
-                        <button type="button" onClick={e => toggleDay(day.id, e)} title={isExpanded ? t('common.collapse') : t('common.expand')} style={{ ...cell, border: 'none' }}>
+                        <button type="button" onClick={e => toggleDay(day.id, e)}  style={{ ...cell, border: 'none' }} aria-label={isExpanded ? t('common.collapse') : t('common.expand')}>
                           {isExpanded ? <ChevronDown size={15} strokeWidth={1.8} /> : <ChevronRight size={15} strokeWidth={1.8} />}
                         </button>
                       </div>
@@ -1877,9 +1928,11 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                     const targetId = hotelLegs[day.id]?.top?.targetId
                     const connector = <HotelRouteConnector seg={hotelLegs[day.id]!.top!.seg} name={hotelLegs[day.id]!.top!.name} profile={routeProfile} placement="top" />
                     return canEditDays && targetId != null ? (
-                      <div role="button" tabIndex={0} title={t('dayplan.transportMode.change')} onClick={e => openIncomingLegModeMenu(e, targetId, day.id, hotelLegs[day.id]!.top!.seg)} onKeyDown={e => openLegMenuByKey(e, m => openIncomingLegModeMenu(m, targetId, day.id, hotelLegs[day.id]!.top!.seg))} style={{ cursor: 'pointer' }}>
-                        {connector}
-                      </div>
+                      <Tooltip label={t('dayplan.transportMode.change')} placement="top">
+                        <div role="button" tabIndex={0}  onClick={e => openIncomingLegModeMenu(e, targetId, day.id, hotelLegs[day.id]!.top!.seg)} onKeyDown={e => openLegMenuByKey(e, m => openIncomingLegModeMenu(m, targetId, day.id, hotelLegs[day.id]!.top!.seg))} style={{ cursor: 'pointer' }} aria-label={t('dayplan.transportMode.change')}>
+                          {connector}
+                        </div>
+                      </Tooltip>
                     ) : connector
                   })()}
                   {daySchedule.byPosition[day.id]?.start.map(si => <PluginDayScheduleRow key={`${si.pluginId}:${si.id}`} item={si} />)}
@@ -1892,7 +1945,34 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                         border: dragOverDayId === day.id ? '2px dashed rgba(17,24,39,0.2)' : '2px dashed transparent',
                       }}
                     >
-                      <span className="text-content-faint" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))' }}>{t('dayplan.emptyDay')}</span>
+                      {/* An empty day is where somebody wants to add something, so
+                          the slot offers to do it instead of only stating the fact.
+                          Without the handler (no edit rights) it stays the sentence. */}
+                      {onCreatePlaceForDay ? (
+                        <button type="button"
+                          onClick={e => { e.stopPropagation(); onCreatePlaceForDay(day.id) }}
+                          className="text-content-muted"
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                            width: '100%', padding: '8px 12px', borderRadius: 8,
+                            // A solid outline and a whisper of tint rather than the
+                            // dashed grey placeholder it replaced: it is the one thing
+                            // to do on an empty day, so it should read as an offer
+                            // without competing with the day rows around it.
+                            background: 'color-mix(in srgb, var(--accent) 4%, transparent)',
+                            border: '1px solid var(--border-primary)',
+                            fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 500,
+                            cursor: 'pointer', fontFamily: 'inherit',
+                            transition: 'background 0.15s',
+                          }}
+                          onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--accent) 10%, transparent)' }}
+                          onMouseLeave={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--accent) 4%, transparent)' }}
+                        >
+                          <Plus size={13} strokeWidth={2} /> {t('dayplan.addPlaceHere')}
+                        </button>
+                      ) : (
+                        <span className="text-content-faint" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))' }}>{t('dayplan.emptyDay')}</span>
+                      )}
                     </div>
                   ) : (
                     merged.map((item, idx) => {
@@ -2186,34 +2266,11 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                                           {timeLabel && <span className={tint} style={{ ...chip, fontWeight: 500 }}>{timeLabel}</span>}
                                           {carrierLabel && <span className={tint} style={{ ...chip, fontWeight: 500 }}>{carrierLabel}</span>}
                                           {hasEndpoints && (
-                                            <button
-                                              type="button"
-                                              onClick={e => { e.stopPropagation(); onToggleConnection!(res.id) }}
-                                              title={t(active ? 'map.hideConnections' : 'map.showConnections')}
-                                              className={active ? 'bg-[#3b82f6] text-[#fff]' : 'bg-transparent text-content-faint'}
-                                              style={{
-                                                flexShrink: 0, appearance: 'none',
-                                                width: 20, height: 20, borderRadius: 4,
-                                                display: 'grid', placeItems: 'center', cursor: 'pointer',
-                                                border: 'none',
-                                                transition: 'color 120ms cubic-bezier(0.23,1,0.32,1), background 120ms cubic-bezier(0.23,1,0.32,1)',
-                                              }}
-                                              onMouseEnter={e => { if (!active) e.currentTarget.style.color = 'var(--text-primary)' }}
-                                              onMouseLeave={e => { if (!active) e.currentTarget.style.color = 'var(--text-faint)' }}
-                                            >
-                                              <RouteIcon size={11} />
-                                            </button>
-                                          )}
-                                          {canEditDays && (() => {
-                                            const isTransport = TRANSPORT_TYPES.has(res.type)
-                                            const handler = isTransport ? onEditTransport : onEditReservation
-                                            if (!handler) return null
-                                            return (
-                                              <button
+                                            <Tooltip label={t(active ? 'map.hideConnections' : 'map.showConnections')} placement="top">
+                                              <button aria-label={t(active ? 'map.hideConnections' : 'map.showConnections')}
                                                 type="button"
-                                                onClick={e => { e.stopPropagation(); handler(res) }}
-                                                title={t('common.edit')}
-                                                className="bg-transparent text-content-faint"
+                                                onClick={e => { e.stopPropagation(); onToggleConnection!(res.id) }}
+                                                className={active ? 'bg-[#3b82f6] text-[#fff]' : 'bg-transparent text-content-faint'}
                                                 style={{
                                                   flexShrink: 0, appearance: 'none',
                                                   width: 20, height: 20, borderRadius: 4,
@@ -2221,11 +2278,36 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                                                   border: 'none',
                                                   transition: 'color 120ms cubic-bezier(0.23,1,0.32,1), background 120ms cubic-bezier(0.23,1,0.32,1)',
                                                 }}
-                                                onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)' }}
-                                                onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-faint)' }}
+                                                onMouseEnter={e => { if (!active) e.currentTarget.style.color = 'var(--text-primary)' }}
+                                                onMouseLeave={e => { if (!active) e.currentTarget.style.color = 'var(--text-faint)' }}
                                               >
-                                                <Pencil size={11} />
+                                                <RouteIcon size={11} />
                                               </button>
+                                            </Tooltip>
+                                          )}
+                                          {canEditDays && (() => {
+                                            const isTransport = TRANSPORT_TYPES.has(res.type)
+                                            const handler = isTransport ? onEditTransport : onEditReservation
+                                            if (!handler) return null
+                                            return (
+                                              <Tooltip label={t('common.edit')} placement="top">
+                                                <button aria-label={t('common.edit')}
+                                                  type="button"
+                                                  onClick={e => { e.stopPropagation(); handler(res) }}
+                                                  className="bg-transparent text-content-faint"
+                                                  style={{
+                                                    flexShrink: 0, appearance: 'none',
+                                                    width: 20, height: 20, borderRadius: 4,
+                                                    display: 'grid', placeItems: 'center', cursor: 'pointer',
+                                                    border: 'none',
+                                                    transition: 'color 120ms cubic-bezier(0.23,1,0.32,1), background 120ms cubic-bezier(0.23,1,0.32,1)',
+                                                  }}
+                                                  onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)' }}
+                                                  onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-faint)' }}
+                                                >
+                                                  <Pencil size={11} />
+                                                </button>
+                                              </Tooltip>
                                             )
                                           })()}
                                         </div>
@@ -2261,37 +2343,40 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                               </button>
                             </div>}
                             {canEditDays && onAddBookingToAssignment && hoveredAssignmentId === assignment.id && (
-                              <button type="button"
-                                onClick={e => {
-                                  e.stopPropagation()
-                                  onAddBookingToAssignment(day.id, assignment.id)
-                                }}
-                                title={t('reservations.addBooking')}
-                                style={{
-                                  flexShrink: 0,
-                                  background: 'none',
-                                  border: '1px solid var(--border-primary)',
-                                  borderRadius: 5,
-                                  padding: '2px 6px',
-                                  cursor: 'pointer',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: 3,
-                                  fontSize: 'calc(10px * var(--fs-scale-caption, 1))',
-                                  fontWeight: 500,
-                                  color: 'var(--text-muted)',
-                                  fontFamily: 'inherit',
-                                }}
-                              >
-                                <Plus size={11} strokeWidth={2} />
-                              </button>
+                              <Tooltip label={t('reservations.addBooking')} placement="top">
+                                <button type="button" aria-label={t('reservations.addBooking')}
+                                  onClick={e => {
+                                    e.stopPropagation()
+                                    onAddBookingToAssignment(day.id, assignment.id)
+                                  }}
+                                  style={{
+                                    flexShrink: 0,
+                                    background: 'none',
+                                    border: '1px solid var(--border-primary)',
+                                    borderRadius: 5,
+                                    padding: '2px 6px',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 3,
+                                    fontSize: 'calc(10px * var(--fs-scale-caption, 1))',
+                                    fontWeight: 500,
+                                    color: 'var(--text-muted)',
+                                    fontFamily: 'inherit',
+                                  }}
+                                >
+                                  <Plus size={11} strokeWidth={2} />
+                                </button>
+                              </Tooltip>
                             )}
                           </div>
                           {daySchedule.byAssignment[day.id]?.[assignment.id]?.map(si => <PluginDayScheduleRow key={`${si.pluginId}:${si.id}`} item={si} />)}
                           {routeLegs[day.id]?.[assignment.id] && (canEditDays ? (
-                            <div role="button" tabIndex={0} title={t('dayplan.transportMode.change')} onClick={e => openLegModeMenu(e, assignment.id, day.id, routeLegs[day.id]![assignment.id])} onKeyDown={e => openLegMenuByKey(e, m => openLegModeMenu(m, assignment.id, day.id, routeLegs[day.id]![assignment.id]))} style={{ cursor: 'pointer' }}>
-                              <RouteConnector seg={routeLegs[day.id]![assignment.id]} profile={routeProfile} />
-                            </div>
+                            <Tooltip label={t('dayplan.transportMode.change')} placement="top">
+                              <div role="button" tabIndex={0}  onClick={e => openLegModeMenu(e, assignment.id, day.id, routeLegs[day.id]![assignment.id])} onKeyDown={e => openLegMenuByKey(e, m => openLegModeMenu(m, assignment.id, day.id, routeLegs[day.id]![assignment.id]))} style={{ cursor: 'pointer' }} aria-label={t('dayplan.transportMode.change')}>
+                                <RouteConnector seg={routeLegs[day.id]![assignment.id]} profile={routeProfile} />
+                              </div>
+                            </Tooltip>
                           ) : (
                             <RouteConnector seg={routeLegs[day.id]![assignment.id]} profile={routeProfile} />
                           ))}
@@ -2497,7 +2582,6 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                                       return next
                                     })
                                   }}
-                                  title={t(expanded ? 'common.collapse' : 'common.expand')}
                                   aria-label={t(expanded ? 'common.collapse' : 'common.expand')}
                                   style={{
                                     flexShrink: 0, appearance: 'none', width: 26, height: 26, borderRadius: 6,
@@ -2514,24 +2598,25 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                             {!transitMeta && onToggleConnection && (!res.__leg || res.__leg.index === 0) && (res.endpoints || []).length >= 2 && (() => {
                               const active = visibleConnectionIds.includes(res.id)
                               return (
-                                <button
-                                  type="button"
-                                  onClick={e => { e.stopPropagation(); onToggleConnection(res.id) }}
-                                  title={t(active ? 'map.hideConnections' : 'map.showConnections')}
-                                  style={{
-                                    flexShrink: 0, appearance: 'none',
-                                    width: 26, height: 26, borderRadius: 6,
-                                    display: 'grid', placeItems: 'center', cursor: 'pointer',
-                                    border: 'none',
-                                    background: active ? color : 'transparent',
-                                    color: active ? '#fff' : 'var(--text-faint)',
-                                    transition: 'color 120ms cubic-bezier(0.23,1,0.32,1), background 120ms cubic-bezier(0.23,1,0.32,1)',
-                                  }}
-                                  onMouseEnter={e => { if (!active) e.currentTarget.style.color = 'var(--text-primary)' }}
-                                  onMouseLeave={e => { if (!active) e.currentTarget.style.color = 'var(--text-faint)' }}
-                                >
-                                  <RouteIcon size={13} />
-                                </button>
+                                <Tooltip label={t(active ? 'map.hideConnections' : 'map.showConnections')} placement="top">
+                                  <button aria-label={t(active ? 'map.hideConnections' : 'map.showConnections')}
+                                    type="button"
+                                    onClick={e => { e.stopPropagation(); onToggleConnection(res.id) }}
+                                    style={{
+                                      flexShrink: 0, appearance: 'none',
+                                      width: 26, height: 26, borderRadius: 6,
+                                      display: 'grid', placeItems: 'center', cursor: 'pointer',
+                                      border: 'none',
+                                      background: active ? color : 'transparent',
+                                      color: active ? '#fff' : 'var(--text-faint)',
+                                      transition: 'color 120ms cubic-bezier(0.23,1,0.32,1), background 120ms cubic-bezier(0.23,1,0.32,1)',
+                                    }}
+                                    onMouseEnter={e => { if (!active) e.currentTarget.style.color = 'var(--text-primary)' }}
+                                    onMouseLeave={e => { if (!active) e.currentTarget.style.color = 'var(--text-faint)' }}
+                                  >
+                                    <RouteIcon size={13} />
+                                  </button>
+                                </Tooltip>
                               )
                             })()}
                           </div>
@@ -2545,9 +2630,11 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                             const nextPlaceId = merged.slice(idx + 1).find(i => i.type === 'place' && i.data.place?.lat && i.data.place?.lng)?.data.id
                             const connector = <RouteConnector seg={routeLegs[day.id]![res.id]} profile={routeProfile} />
                             return canEditDays && nextPlaceId != null ? (
-                              <div role="button" tabIndex={0} title={t('dayplan.transportMode.change')} onClick={e => openIncomingLegModeMenu(e, Number(nextPlaceId), day.id, routeLegs[day.id]![res.id])} onKeyDown={e => openLegMenuByKey(e, m => openIncomingLegModeMenu(m, Number(nextPlaceId), day.id, routeLegs[day.id]![res.id]))} style={{ cursor: 'pointer' }}>
-                                {connector}
-                              </div>
+                              <Tooltip label={t('dayplan.transportMode.change')} placement="top">
+                                <div role="button" tabIndex={0}  onClick={e => openIncomingLegModeMenu(e, Number(nextPlaceId), day.id, routeLegs[day.id]![res.id])} onKeyDown={e => openLegMenuByKey(e, m => openIncomingLegModeMenu(m, Number(nextPlaceId), day.id, routeLegs[day.id]![res.id]))} style={{ cursor: 'pointer' }} aria-label={t('dayplan.transportMode.change')}>
+                                  {connector}
+                                </div>
+                              </Tooltip>
                             ) : connector
                           })()}
                           </React.Fragment>
@@ -2682,9 +2769,11 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                     const targetId = hotelLegs[day.id]?.bottom?.targetId
                     const connector = <HotelRouteConnector seg={hotelLegs[day.id]!.bottom!.seg} name={hotelLegs[day.id]!.bottom!.name} profile={routeProfile} placement="bottom" />
                     return canEditDays && targetId != null ? (
-                      <div role="button" tabIndex={0} title={t('dayplan.transportMode.change')} onClick={e => openLegModeMenu(e, targetId, day.id, hotelLegs[day.id]!.bottom!.seg)} onKeyDown={e => openLegMenuByKey(e, m => openLegModeMenu(m, targetId, day.id, hotelLegs[day.id]!.bottom!.seg))} style={{ cursor: 'pointer' }}>
-                        {connector}
-                      </div>
+                      <Tooltip label={t('dayplan.transportMode.change')} placement="top">
+                        <div role="button" tabIndex={0}  onClick={e => openLegModeMenu(e, targetId, day.id, hotelLegs[day.id]!.bottom!.seg)} onKeyDown={e => openLegMenuByKey(e, m => openLegModeMenu(m, targetId, day.id, hotelLegs[day.id]!.bottom!.seg))} style={{ cursor: 'pointer' }} aria-label={t('dayplan.transportMode.change')}>
+                          {connector}
+                        </div>
+                      </Tooltip>
                     ) : connector
                   })()}
                   {/* Drop-Zone am Listenende — immer vorhanden als Drop-Target */}
@@ -2751,6 +2840,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                               onToggleRoute?.()
                             }
                           }}
+                          aria-label={t('dayplan.route')}
                           className={routeActive ? 'bg-accent text-accent-text' : 'bg-transparent text-content-secondary'}
                           style={{
                             flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
@@ -2760,81 +2850,85 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                           }}
                         >
                           <RouteIcon size={12} strokeWidth={2} />
-                          {t('dayplan.route')}
+                          {!narrowPanel && t('dayplan.route')}
                         </button>
                         {/* Open the day's stops as a route in Google Maps (planned order). #1255 */}
-                        <button type="button"
-                          onClick={() => {
-                            const url = generateGoogleMapsUrl(dayExportStops())
-                            if (url) window.open(url, '_blank', 'noopener,noreferrer')
-                          }}
-                          aria-label={t('planner.openGoogleMaps')}
-                          title={t('planner.openGoogleMaps')}
-                          className="bg-transparent text-content-secondary"
-                          style={{
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border-faint)',
-                            cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
-                          }}
-                        >
-                          <GoogleMapsIcon size={14} />
-                        </button>
+                        <Tooltip label={t('planner.openGoogleMaps')} placement="top">
+                          <button type="button"
+                            onClick={() => {
+                              const url = generateGoogleMapsUrl(dayExportStops())
+                              if (url) window.open(url, '_blank', 'noopener,noreferrer')
+                            }}
+                            aria-label={t('planner.openGoogleMaps')}
+                            className="bg-transparent text-content-secondary"
+                            style={{
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border-faint)',
+                              cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
+                            }}
+                          >
+                            <GoogleMapsIcon size={14} />
+                          </button>
+                        </Tooltip>
                         {/* The same day, handed to CoMaps for offline navigation (#1904). The
                             day's own travel mode rides along, so the route it builds walks
                             when the plan walks. */}
-                        <button type="button"
-                          onClick={() => {
-                            const url = generateCoMapsUrl(dayExportStops(), day.default_transport_mode ?? routeProfile)
-                            if (url) window.open(url, '_blank', 'noopener,noreferrer')
-                          }}
-                          aria-label={t('planner.openCoMaps')}
-                          title={t('planner.openCoMaps')}
-                          className="bg-transparent text-content-secondary"
-                          style={{
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border-faint)',
-                            cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
-                          }}
-                        >
-                          <Compass size={14} strokeWidth={2} />
-                        </button>
+                        <Tooltip label={t('planner.openCoMaps')} placement="top">
+                          <button type="button"
+                            onClick={() => {
+                              const url = generateCoMapsUrl(dayExportStops(), day.default_transport_mode ?? routeProfile)
+                              if (url) window.open(url, '_blank', 'noopener,noreferrer')
+                            }}
+                            aria-label={t('planner.openCoMaps')}
+                            className="bg-transparent text-content-secondary"
+                            style={{
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border-faint)',
+                              cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
+                            }}
+                          >
+                            <Compass size={14} strokeWidth={2} />
+                          </button>
+                        </Tooltip>
                         {/* Icon-only, like the two map hand-offs beside it (#1981). It
                             was the one button here carrying a label with no room for
                             it: `flex: 1` alongside `padding: '6px 0'` meant the text
                             sat against both edges as soon as the row filled up, and
                             the row gained a button when CoMaps arrived. The label
                             stays as the accessible name and the tooltip. */}
-                        <button type="button"
-                          onClick={() => handleOptimize(day.id)}
-                          aria-label={t('dayplan.optimize')}
-                          title={t('dayplan.optimize')}
-                          className="bg-surface-hover text-content-secondary"
-                          style={{
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            padding: '6px 10px', borderRadius: 8, border: 'none',
-                            cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
-                          }}
-                        >
-                          <RotateCcw size={14} strokeWidth={2} />
-                        </button>
+                        <Tooltip label={t('dayplan.optimize')} placement="top">
+                          <button type="button"
+                            onClick={() => handleOptimize(day.id)}
+                            aria-label={t('dayplan.optimize')}
+                            className="bg-surface-hover text-content-secondary"
+                            style={{
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              padding: '6px 10px', borderRadius: 8, border: 'none',
+                              cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
+                            }}
+                          >
+                            <RotateCcw size={14} strokeWidth={2} />
+                          </button>
+                        </Tooltip>
                         <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-faint)', flexShrink: 0 }}>
                           {routeProfileOptions.map(p => {
                             const ModeIcon = p.key === 'driving' ? Car : p.key === 'walking' ? Footprints : Zap
                             const active = (day.default_transport_mode ?? routeProfile) === p.key
                             return (
-                              <button type="button"
-                                key={p.key}
-                                onClick={() => setDayDefaultMode(day.id, p.key)}
-                                aria-label={p.label}
-                                title={p.label}
-                                className={active ? 'bg-accent text-accent-text' : 'bg-transparent text-content-secondary'}
-                                style={{
-                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                  padding: '6px 10px', border: 'none', cursor: 'pointer',
-                                }}
-                              >
-                                <ModeIcon size={13} strokeWidth={2} />
-                              </button>
+                              <Tooltip label={p.label} placement="top">
+                                <button type="button"
+                                  key={p.key}
+                                  onClick={() => setDayDefaultMode(day.id, p.key)}
+                                  aria-label={p.label}
+                                  className={active ? 'bg-accent text-accent-text' : 'bg-transparent text-content-secondary'}
+                                  style={{
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    padding: '6px 10px', border: 'none', cursor: 'pointer',
+                                  }}
+                                >
+                                  <ModeIcon size={13} strokeWidth={2} />
+                                </button>
+                              </Tooltip>
                             )
                           })}
                         </div>

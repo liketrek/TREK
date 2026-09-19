@@ -143,6 +143,22 @@ const collection: TranslationStrings = {
   'collections.picker.hint': '从你的收藏中选择一个地点',
   'collections.picker.use': '使用',
 
+  // Export / import a list as a file (#2198)
+  'collections.file.export': '导出',
+  'collections.file.exportTitle': '将此列表下载为文件',
+  'collections.file.importButton': '从文件导入列表',
+  'collections.file.importTitle': '导入列表',
+  'collections.file.choose': '选择列表文件',
+  'collections.file.confirm': '导入',
+  'collections.file.change': '更换',
+  'collections.file.labelCount': '{count} 个标签',
+  'collections.file.hint': '这些地点会成为你自己的新列表。评分、成员和上传的照片不会一起导入。',
+  'collections.file.done': '已导入 {count} 个地点',
+  'collections.file.doneSkipped': '已导入 {count} 个地点，跳过 {skipped} 个',
+  'collections.file.errorTooLarge': '该文件太大，不像是一个列表。',
+  'collections.file.errorUnreadable': '无法读取该文件。',
+  'collections.file.errorNotACollection': '这不是 TREK 列表文件。',
+
   'collections.share.title': '共享列表',
   'collections.share.titleNamed': '共享“{name}”',
   'collections.share.button': '共享',

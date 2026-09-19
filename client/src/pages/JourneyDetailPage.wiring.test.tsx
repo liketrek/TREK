@@ -98,6 +98,12 @@ function buildHook(over: Record<string, unknown> = {}): Record<string, unknown> 
     unlinkTrip: null, setUnlinkTrip: vi.fn(),
     showSettings: false, setShowSettings: vi.fn(),
     hideSkeletons: false, setHideSkeletons: vi.fn(),
+    query: '', setQuery: vi.fn(), dismissSuggestion: vi.fn(async () => {}),
+    restoreSuggestions: vi.fn(async () => {}), openAtEntryId: null,
+    // The stays Dawarich recorded, by the day they fall on. Empty here: the fold each day
+    // carries has its own suite (FE-JRN-DAYDAW), and what this file pins is the wiring.
+    dawarichByDate: new Map(), dawarichBusyId: null,
+    acceptDawarich: vi.fn(async () => {}), dismissDawarich: vi.fn(),
     mapRef: { current: null }, fullMapRef: { current: null }, galleryUploadRef: { current: null },
     galleryProviders: [], setGalleryProviders: vi.fn(), galleryBrowseRef: { current: null },
     activeLocationId: null, handleMarkerClick: vi.fn(), handleLocationClick: vi.fn(),
@@ -231,22 +237,22 @@ describe('JourneyDetailPage wiring', () => {
 
   it('FE-JRN-DETWIRE-011: the reorder arrows move an entry within its day', async () => {
     const { hook } = setup();
-    const down = screen.getAllByRole('button', { name: 'Move down' })[0];
-    const upFirst = screen.getAllByRole('button', { name: 'Move up' })[0];
+    const down = screen.getAllByRole('button', { name: 'dayplan.moveDown' })[0];
+    const upFirst = screen.getAllByRole('button', { name: 'dayplan.moveUp' })[0];
     expect(upFirst).toBeDisabled();
 
     fireEvent.click(down);
     await waitFor(() => expect(hook.reorderEntries).toHaveBeenCalledWith(7, [2, 1]));
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'Move up' })[1]);
+    fireEvent.click(screen.getAllByRole('button', { name: 'dayplan.moveUp' })[1]);
     expect(hook.reorderEntries).toHaveBeenLastCalledWith(7, [2, 1]);
   });
 
   it('FE-JRN-DETWIRE-012: a failing reorder is reported to the user', async () => {
     const reorderEntries = vi.fn(async () => { throw new Error('conflict'); });
     setup({ reorderEntries });
-    fireEvent.click(screen.getAllByRole('button', { name: 'Move down' })[0]);
-    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('common.errorOccurred'));
+    fireEvent.click(screen.getAllByRole('button', { name: 'dayplan.moveDown' })[0]);
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('common.errorTitle'));
   });
 
   it('FE-JRN-DETWIRE-013: entry-card actions open the editor, the delete confirm and the lightbox', () => {

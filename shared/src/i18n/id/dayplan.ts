@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const dayplan: TranslationStrings = {
   'dayplan.icsTooltip': 'Ekspor kalender (ICS)',
   'dayplan.emptyDay': 'Belum ada tempat yang direncanakan untuk hari ini',
+  'dayplan.addPlaceHere': 'Tambah tempat ke hari ini',
   'dayplan.cannotReorderTransport': 'Pemesanan dengan waktu tetap tidak bisa diurutkan ulang',
   'dayplan.confirmRemoveTimeTitle': 'Hapus waktu?',
   'dayplan.confirmRemoveTimeBody':

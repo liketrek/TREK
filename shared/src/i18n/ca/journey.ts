@@ -625,5 +625,21 @@ const journey: TranslationStrings = {
   'journey.editor.statsExcludedHint':
     'La parada es manté al diari, però no compta per a la distància, els països ni el mapa de Studio.',
   'journey.entry.offRoute': 'Fora de ruta',
+  'journey.suggestions.dismiss': 'Descarta aquest suggeriment',
+  'journey.suggestions.dismissed': 'Suggeriment descartat',
+  'journey.suggestions.restore': 'Recupera els suggeriments descartats',
+  'journey.suggestions.restoreCount': 'Suggeriments descartats ({count})',
+  'journey.suggestions.restored': '{count} suggeriments han tornat',
+  'journey.detail.addOnThisDay': 'Afegeix una entrada en aquest dia',
+  'journey.detail.jumpToDay': 'Ves al {date}',
+  'journey.detail.searchPlaceholder': 'Cerca en aquest viatge',
+  'journey.detail.searchEmpty': 'Cap entrada coincideix amb «{query}»',
+  'journey.settings.entryFields': 'Camps de l\'entrada',
+  'journey.settings.entryFieldsHint': 'Desactiva el que aquest viatge no faci servir. No es perd res del que ja has escrit.',
+  'journey.settings.showVerdict': 'Pros i contres',
+  'journey.settings.showMood': 'Estat d\'ànim',
+  'journey.settings.showWeather': 'Temps',
+  'journey.entry.suggestion': 'Suggeriment',
+  'journey.editor.addDetails': '+ Detalls',
 };
 export default journey;

@@ -83,6 +83,10 @@ const budget: TranslationStrings = {
   'costs.pays': 'pays',
   'costs.settle': 'Settle',
   'costs.balances': 'Balances',
+  'costs.finalBudget': 'Final budget',
+  'costs.finalExpenses': 'Expenses paid',
+  'costs.finalReimbursed': 'Net reimbursements',
+  'costs.finalPending': 'Pending reimbursements',
   'costs.byCategory': 'By category',
   'costs.noCategories': 'No expenses yet.',
   'costs.settleHistory': 'Settle history',
@@ -147,6 +151,13 @@ const budget: TranslationStrings = {
   'costs.splitSumUnder': 'Sum of splits: {sum} of {total} (under by {diff})',
   'costs.splitSumOver': 'Sum of splits: {sum} of {total} (over by {diff})',
   'costs.toggleSign': 'Switch between expense and refund',
+  'costs.receipts': 'Receipts',
+  'costs.receiptsTitle': 'Receipts & Invoices',
+  'costs.attachReceipt': 'Attach receipt / invoice',
+  'costs.noReceipts': 'No receipts attached',
+  'costs.deleteReceipt': 'Remove receipt',
+  'costs.viewReceipt': 'View receipt',
+  'costs.receiptLeftBehind': 'Save failed, and {count} uploaded receipts are still there. Remove them in the Files tab.',
 };
 
 export default budget;

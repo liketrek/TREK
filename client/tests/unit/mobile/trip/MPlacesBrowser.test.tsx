@@ -10,7 +10,7 @@ import { resetAllStores, seedStore } from '../../../helpers/store'
 import type { MTripShellApi, TripPlanner } from '../../../../src/mobile/screens/trip/MTripShell'
 import type { AssignmentsMap, Category, Day, Place } from '../../../../src/types'
 
-// FE-MOB-PBROW-001 to FE-MOB-PBROW-030
+// FE-MOB-PBROW-001 to FE-MOB-PBROW-031
 
 const CATEGORIES = [
   { id: 1, name: 'Sights', color: '#123456', icon: 'landmark' },
@@ -380,6 +380,14 @@ describe('MPlacesBrowser', () => {
       rerender(<MPlacesBrowser planner={makePlanner({ places: [LOUVRE, EIFFEL] } as Partial<TripPlanner>)} shell={shell} />)
     })
     expect(screen.getByText('places.selectionCount:2')).toBeInTheDocument()
+  })
+
+  it('FE-MOB-PBROW-031: a markdown description in a row reads as formatted text, not as syntax (#2337)', () => {
+    const CHARLIE = place({ id: 4, name: 'Checkpoint Charlie', description: '# Checkpoint Charlie\n\nThe **most famous** crossing.' })
+    renderBrowser(makePlanner({ places: [CHARLIE], assignments: {} } as Partial<TripPlanner>))
+
+    expect(screen.getByRole('heading', { name: 'Checkpoint Charlie' })).toBeInTheDocument()
+    expect(screen.queryByText(/^# Checkpoint/)).toBeNull()
   })
 
   it('FE-MOB-PBROW-030: a selection that only matches the visible pool in size is not "all selected"', () => {

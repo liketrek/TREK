@@ -290,6 +290,7 @@ async function main() {
       'admin_ntfy_token',
       'maps_api_key',
       'unsplash_api_key',
+      'amap_api_key',
     ]) {
       const row = db.prepare('SELECT value FROM app_settings WHERE key = ?').get(key) as { value: string } | undefined;
       if (!row?.value) continue;
@@ -312,6 +313,9 @@ async function main() {
     const apiKeyColumns = [
       'maps_api_key',
       'unsplash_api_key',
+      // Added with the Amap provider; filtered against the real table below, so a
+      // database that has not run that migration yet is not a rotation failure.
+      'amap_api_key',
       'openweather_api_key',
       'immich_api_key',
       'synology_password',
@@ -523,6 +527,22 @@ async function main() {
       const newVal = migrateApiKeyValue(row.passphrase, `trip_album_links[${row.id}].passphrase`);
       if (newVal !== null) {
         db.prepare('UPDATE trip_album_links SET passphrase = ? WHERE id = ?').run(newVal, row.id);
+      }
+    }
+
+    // --- dawarich_connections: api_key ---
+    // Its own table rather than a users column, so it needs its own block. The
+    // table arrived with a later migration, hence the existence check: an older
+    // database simply has nothing to rotate here.
+    if (tableExists('dawarich_connections')) {
+      const connections = db
+        .prepare('SELECT user_id, api_key FROM dawarich_connections WHERE api_key IS NOT NULL')
+        .all() as { user_id: number; api_key: string }[];
+      for (const row of connections) {
+        const newVal = migrateApiKeyValue(row.api_key, `dawarich_connections[${row.user_id}].api_key`);
+        if (newVal !== null) {
+          db.prepare('UPDATE dawarich_connections SET api_key = ? WHERE user_id = ?').run(newVal, row.user_id);
+        }
       }
     }
 

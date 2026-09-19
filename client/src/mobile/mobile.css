@@ -233,6 +233,10 @@
 @keyframes trek-handle { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
 /* collections map pin bobbing */
 @keyframes trek-pin { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+/* Chain: the pair sways, and the near link slides out along its own axis and
+   clicks back in. Moving only the near one keeps the joint readable at 88px. */
+@keyframes trek-chain { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-6deg); } }
+@keyframes trek-link { 0%, 62%, 100% { transform: translateX(0); } 30% { transform: translateX(2.6px); } }
 /* atlas globe meridian drifting to fake a slow spin */
 @keyframes trek-globe { 0%, 100% { transform: translateX(-2px); } 50% { transform: translateX(2px); } }
 /* costs top coin bouncing on */
@@ -274,6 +278,8 @@
 .trek-suitcase { animation: trek-suitcase 1.5s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 100%; }
 .trek-handle   { animation: trek-handle 1.5s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 100%; }
 .trek-pin      { animation: trek-pin 2.2s ease-in-out infinite;   transform-box: fill-box; transform-origin: 50% 100%; }
+.trek-chain    { animation: trek-chain 3s ease-in-out infinite;    transform-box: fill-box; transform-origin: center; }
+.trek-link     { animation: trek-link 2.4s ease-in-out infinite;   transform-box: fill-box; transform-origin: center; }
 .trek-globe    { animation: trek-globe 3s ease-in-out infinite;   transform-box: fill-box; transform-origin: center; }
 .trek-coin     { animation: trek-coin 2s ease-in-out infinite;    transform-box: fill-box; transform-origin: 50% 100%; }
 .trek-page     { animation: trek-page 3.4s ease-in-out infinite;  transform-box: fill-box; transform-origin: 0% 50%; }
@@ -323,22 +329,32 @@
   .trek-bounce--idle, .trek-bounce--polls, .trek-bounce--transport,
   .trek-board, .trek-wheel, .trek-flag, .trek-ticket, .trek-note, .trek-pencil, .trek-write, .trek-bar,
   .trek-suitcase, .trek-handle, .trek-pin, .trek-globe, .trek-coin, .trek-page, .trek-plane,
-  .trek-magnifier, .trek-z, .trek-check { animation: none; }
+  .trek-magnifier, .trek-z, .trek-check, .trek-chain, .trek-link { animation: none; }
   /* Zzz would sit invisible at opacity 0 without their animation — pin them visible */
   .trek-z { opacity: 1; }
 }
 
-/* Map attribution clears the dock.
+/* The phone map carries no visible credit.
  *
- * Both engines park their attribution at the bottom of the map, and on a phone
- * the map is the whole screen — so the credit line lands under the floating nav
- * and reads as a broken bar (#2022's screenshots show it over the dock). Lift it
- * by the same variable everything else clears the dock with. Leaflet and
- * MapLibre both, because a phone meets either depending on the screen. */
+ * Both engines park a credit at the bottom of the map, and on a phone the map is the
+ * whole screen, so whatever is put there sits in the middle of the picture. It has been
+ * a band across the bottom (#2022) and then a round (i) beside the locate button, and
+ * neither reads as part of this shell: a lone control under the locate button is the
+ * first thing the eye lands on over a full-bleed map.
+ *
+ * So on the phone it is off. The desktop map is untouched and still shows the full
+ * credit with its links, which is where this belongs; `.m-root` is the phone shell only.
+ * Both engines and both corners, because a phone meets either depending on the screen,
+ * and the GL containers hold nothing else — MapViewGL adds no control of its own, so
+ * hiding the corner hides the credit and the wordmark and nothing besides.
+ *
+ * Owner's call, made knowingly: OSM and the tile vendors ask for a visible credit. */
 .m-root .leaflet-control-attribution,
 .m-root .maplibregl-ctrl-bottom-left,
-.m-root .maplibregl-ctrl-bottom-right {
-  bottom: var(--bottom-nav-h);
+.m-root .mapboxgl-ctrl-bottom-left,
+.m-root .maplibregl-ctrl-bottom-right,
+.m-root .mapboxgl-ctrl-bottom-right {
+  display: none;
 }
 
 /* Text fields carry the row's background, not their own.

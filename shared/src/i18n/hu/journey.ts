@@ -625,5 +625,21 @@ const journey: TranslationStrings = {
   'journey.editor.statsExcludedHint':
     'A megálló a naplóban marad, de nem számít bele a távolságba, az országokba és a Studio térképébe.',
   'journey.entry.offRoute': 'Útvonalon kívül',
+  'journey.suggestions.dismiss': 'Javaslat elvetése',
+  'journey.suggestions.dismissed': 'Javaslat elvetve',
+  'journey.suggestions.restore': 'Elvetett javaslatok visszahozása',
+  'journey.suggestions.restoreCount': 'Elvetett javaslatok ({count})',
+  'journey.suggestions.restored': '{count} javaslat visszatért',
+  'journey.detail.addOnThisDay': 'Bejegyzés hozzáadása ehhez a naphoz',
+  'journey.detail.jumpToDay': 'Ugrás ide: {date}',
+  'journey.detail.searchPlaceholder': 'Keresés ebben az útinaplóban',
+  'journey.detail.searchEmpty': 'Egyetlen bejegyzés sem illik erre: „{query}”',
+  'journey.settings.entryFields': 'A bejegyzés mezői',
+  'journey.settings.entryFieldsHint': 'Kapcsold ki, amit ez az útinapló nem használ. A már megírtakból semmi sem vész el.',
+  'journey.settings.showVerdict': 'Előnyök és hátrányok',
+  'journey.settings.showMood': 'Hangulat',
+  'journey.settings.showWeather': 'Időjárás',
+  'journey.entry.suggestion': 'Javaslat',
+  'journey.editor.addDetails': '+ Részletek',
 };
 export default journey;

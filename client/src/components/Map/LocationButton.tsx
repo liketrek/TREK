@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { MAP_CONTROL_SHADOW } from './mapControlShadow'
 import { Navigation, LocateFixed, Locate } from 'lucide-react'
 import type { TrackingMode, GeoWatchErrorCode } from '../../hooks/useGeolocation'
 import { useTranslation } from '../../i18n'
@@ -77,7 +78,7 @@ export default function LocationButton({ mode, error, errorCode, onClick, bottom
         cursor: 'pointer',
         background: isActive ? '#3b82f6' : 'var(--bg-card, white)',
         color: isActive ? 'white' : (error ? '#ef4444' : 'var(--text-muted, #6b7280)'),
-        boxShadow: '0 2px 10px rgba(0,0,0,0.25)',
+        boxShadow: MAP_CONTROL_SHADOW,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',

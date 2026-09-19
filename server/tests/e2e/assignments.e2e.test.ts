@@ -29,11 +29,18 @@ const { db } = vi.hoisted(() => {
   tmp.exec(`CREATE TABLE places (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL, name TEXT,
     description TEXT, lat REAL, lng REAL, address TEXT, category_id INTEGER, price REAL, currency TEXT,
     place_time TEXT, end_time TEXT, duration_minutes INTEGER DEFAULT 60, notes TEXT, image_url TEXT,
-    transport_mode TEXT DEFAULT 'walking', google_place_id TEXT, google_ftid TEXT, osm_id TEXT, website TEXT, phone TEXT);`);
+    transport_mode TEXT DEFAULT 'walking', google_place_id TEXT, google_ftid TEXT, osm_id TEXT, amap_poi_id TEXT, website TEXT, phone TEXT,
+    stop_type TEXT, fill_percent INTEGER);`);
   tmp.exec(`CREATE TABLE day_assignments (id INTEGER PRIMARY KEY AUTOINCREMENT, day_id INTEGER NOT NULL,
     place_id INTEGER NOT NULL, order_index INTEGER NOT NULL DEFAULT 0, notes TEXT,
     assignment_time TEXT, assignment_end_time TEXT, leg_transport_mode TEXT,
+    accommodation_id INTEGER,
     created_at TEXT DEFAULT (datetime('now')));`);
+  // The auto-sort reads a booked night's hour off its booking, so the table has to be
+  // here even though nothing in this file books one.
+  tmp.exec(`CREATE TABLE day_accommodations (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER,
+    place_id INTEGER, start_day_id INTEGER, end_day_id INTEGER, check_in TEXT, check_in_end TEXT,
+    check_out TEXT, confirmation TEXT, notes TEXT, created_at TEXT DEFAULT (datetime('now')));`);
   tmp.exec(`CREATE TABLE assignment_participants (assignment_id INTEGER NOT NULL, user_id INTEGER NOT NULL,
     UNIQUE(assignment_id, user_id));`);
   tmp.exec(`CREATE TABLE tags (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, color TEXT, created_at TEXT);`);

@@ -5,6 +5,7 @@ import { notificationHandlers } from './notifications';
 import { vacayHandlers } from './vacay';
 import { tripsHandlers } from './trips';
 import { placesHandlers } from './places';
+import { pluginSearchHandlers } from './pluginSearch';
 import { assignmentsHandlers } from './assignments';
 import { packingHandlers } from './packing';
 import { todoHandlers } from './todo';
@@ -25,6 +26,7 @@ export const defaultHandlers = [
   ...vacayHandlers,
   ...tripsHandlers,
   ...placesHandlers,
+  ...pluginSearchHandlers,
   ...assignmentsHandlers,
   ...packingHandlers,
   ...todoHandlers,

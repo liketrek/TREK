@@ -412,9 +412,20 @@ function MSpotlightCard({ trip, t, onOpen, actions }: {
   )
 }
 
+/**
+ * One fact about the spotlight trip: how long, how many places, how many people.
+ *
+ * Set like the DAY x OF y badge above it, a size down. The three used to be
+ * sentence case while the two badges over them were capitals, so the card had two
+ * voices in the same corner.
+ *
+ * No backdrop blur of its own: the glass panel these sit on already blurs, and a
+ * second backdrop-filter inside one opens a new backdrop root, so the same
+ * white/.28 composited darker here than on the badge two rows up.
+ */
 function SpotlightPill({ icon, label }: { icon: React.ReactElement; label: string }): React.ReactElement {
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-white/20 px-[9px] py-[3px] font-geist text-[0.625rem] font-bold text-white backdrop-blur-[6px]">
+    <span className="inline-flex items-center gap-1 rounded-full bg-white/[.28] px-[9px] py-[3px] font-geist text-[0.5625rem] font-bold tracking-[.07em] text-white uppercase">
       {icon}
       {label}
     </span>

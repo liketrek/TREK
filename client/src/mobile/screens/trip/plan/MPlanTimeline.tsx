@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useContextMenu, ContextMenu } from '../../../../components/shared/ContextMenu'
+import MarkdownText from '../../../../components/shared/MarkdownText'
 import { fmtTransitDuration } from '../../../../components/Planner/transitDisplay'
 import { formatTime } from '../../../../utils/formatters'
 import { useMPlanTimeline, type MPlanTimelineController } from './useMPlanTimeline'
@@ -323,7 +324,7 @@ function UpNextCard({ tl, t, onOpen }: {
             )}
             <span className="min-w-0 truncate text-[1.125rem] font-bold">{place?.name}</span>
           </div>
-          {sub && <div className="mt-[2px] truncate font-geist text-[0.75rem] text-m-muted">{sub}</div>}
+          {sub && <MarkdownText clamp className="mt-[2px] font-geist text-[0.75rem] text-m-muted">{sub}</MarkdownText>}
         </div>
         <span className="ml-2 flex h-8 w-8 flex-none items-center justify-center rounded-full bg-m-act text-m-actfg">
           <ChevronRight size={16} strokeWidth={2.4} />

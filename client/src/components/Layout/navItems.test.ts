@@ -25,12 +25,31 @@ describe('buildNavItems', () => {
 })
 
 describe('splitMobileNav', () => {
-  it('falls back to Dashboard + first two in the bar when there is no config', () => {
+  it('docks the top two enabled defaults when there is no config', () => {
     for (const cfg of [undefined, { bar: [], more: [] }]) {
       const s = splitMobileNav(items, cfg)
-      expect(ids(s.bar)).toEqual(['dashboard', 'vacay', 'atlas'])
-      expect(ids(s.more)).toEqual(['journey', 'collections'])
+      expect(ids(s.bar)).toEqual(['dashboard', 'vacay', 'journey'])
+      // Atlas is still reachable, one tap further under More.
+      expect(ids(s.more)).toEqual(['atlas', 'collections'])
     }
+  })
+
+  it('keeps the Vacay/Atlas dock on an instance where Journey is switched off', () => {
+    const s = splitMobileNav([item('dashboard'), item('vacay'), item('atlas')], undefined)
+    expect(ids(s.bar)).toEqual(['dashboard', 'vacay', 'atlas'])
+    expect(ids(s.more)).toEqual([])
+  })
+
+  it('fills the free slot from the next default rather than leaving it empty', () => {
+    const s = splitMobileNav([item('dashboard'), item('atlas'), item('journey')], undefined)
+    expect(ids(s.bar)).toEqual(['dashboard', 'journey', 'atlas'])
+    expect(ids(s.more)).toEqual([])
+  })
+
+  it('leaves an account that picked its own dock alone', () => {
+    const s = splitMobileNav(items, { bar: ['vacay', 'atlas'], more: ['journey', 'collections'] })
+    expect(ids(s.bar)).toEqual(['dashboard', 'vacay', 'atlas'])
+    expect(ids(s.more)).toEqual(['journey', 'collections'])
   })
 
   it('honours a custom split and order, Dashboard still first', () => {

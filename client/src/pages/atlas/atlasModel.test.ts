@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   A2_TO_A3,
   bucketTooltipHeight,
@@ -6,6 +6,7 @@ import {
   bucketTooltipPlacement,
   bucketTooltipWidth,
   countryStatus,
+  visitMonth,
   findBucketDuplicate,
   isBucketDuplicateError,
   isCountryVisible,
@@ -71,6 +72,31 @@ describe('countryStatus', () => {
   });
 });
 
+describe('visitMonth (#1535)', () => {
+  // West of Greenwich, where new Date('2024-06-01') is still the last evening of May.
+  beforeEach(() => {
+    vi.stubEnv('TZ', 'America/New_York');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('reads the year and month as a local date, so the 1st stays in its own month', () => {
+    const june = visitMonth('2024-06-01')!;
+    expect([june.getFullYear(), june.getMonth(), june.getDate()]).toEqual([2024, 5, 1]);
+    const january = visitMonth('2025-01-01')!;
+    expect([january.getFullYear(), january.getMonth()]).toEqual([2025, 0]);
+  });
+
+  it('gives nothing for a missing or malformed date', () => {
+    expect(visitMonth(null)).toBeNull();
+    expect(visitMonth(undefined)).toBeNull();
+    expect(visitMonth('')).toBeNull();
+    expect(visitMonth('June 2024')).toBeNull();
+  });
+});
+
 describe('isCountryVisible', () => {
   it('always shows visited countries', () => {
     expect(isCountryVisible({ status: 'visited' }, false)).toBe(true);
@@ -121,7 +147,7 @@ describe('withCountryMarkedVisited', () => {
     const prev = base({
       countries: [
         { code: 'FR', tripCount: 2, placeCount: 5, status: 'visited' },
-        { code: 'JP', tripCount: 1, placeCount: 0, status: 'planned' },
+        { code: 'JP', tripCount: 1, placeCount: 0, firstVisit: '2099-05-01', lastVisit: '2099-05-08', status: 'planned' },
       ],
       stats: { totalTrips: 3, totalPlaces: 10, totalCountries: 1, totalDays: 14, totalCountriesPlanned: 1 },
       continents: { Europe: 1 },
@@ -131,7 +157,8 @@ describe('withCountryMarkedVisited', () => {
     const next = withCountryMarkedVisited(prev, 'JP');
 
     expect(next.countries).toHaveLength(2);
-    expect(next.countries.find((c) => c.code === 'JP')?.status).toBe('visited');
+    // The planned trip's dates are not the dates of a visit, as the server agrees (#1535).
+    expect(next.countries.find((c) => c.code === 'JP')).toMatchObject({ status: 'visited', firstVisit: null, lastVisit: null });
     expect(next.stats.totalCountries).toBe(2);
     expect(next.stats.totalCountriesPlanned).toBe(0);
     expect(next.continents).toEqual({ Europe: 1, Asia: 1 });

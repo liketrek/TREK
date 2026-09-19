@@ -9,6 +9,7 @@ import {
   mfaEnableRequestSchema,
   mfaDisableRequestSchema,
   mcpTokenCreateRequestSchema,
+  apiTokenCreateRequestSchema,
   mapsKeyUpdateRequestSchema,
   apiKeysUpdateRequestSchema,
   settingsUpdateRequestSchema,
@@ -38,6 +39,12 @@ export class MfaVerifyLoginDto extends createZodDto(mfaVerifyLoginRequestSchema)
 export class MfaEnableDto extends createZodDto(mfaEnableRequestSchema) {}
 export class MfaDisableDto extends createZodDto(mfaDisableRequestSchema) {}
 export class McpTokenCreateDto extends createZodDto(mcpTokenCreateRequestSchema) {}
+/**
+ * Its own DTO rather than a field added to the one above: both create routes
+ * share that schema, and widening it would make POST /api/auth/mcp-tokens
+ * quietly accept read scopes that an MCP token has no way to honour.
+ */
+export class ApiTokenCreateDto extends createZodDto(apiTokenCreateRequestSchema) {}
 export class MapsKeyUpdateDto extends createZodDto(mapsKeyUpdateRequestSchema) {}
 export class ApiKeysUpdateDto extends createZodDto(apiKeysUpdateRequestSchema) {}
 export class SettingsUpdateDto extends createZodDto(settingsUpdateRequestSchema) {}

@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useLocation, useMatch } from 'react-router'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useTranslation } from '../../i18n'
-import { ChevronRight, MoreHorizontal, Plus, Search } from 'lucide-react'
+import { useJourneyStore } from '../../store/journeyStore'
+import { ChevronRight, MoreHorizontal, Plus, Search, Upload } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { normalizeAppearance } from '@trek/shared'
 import { useNavItems, splitMobileNav } from '../../components/Layout/navItems'
@@ -18,9 +19,10 @@ interface NavItem { to: string; label: string; icon: LucideIcon }
 // everywhere else it creates a new trip. Pages pick the intent up from the
 // query params. The result is unused on /vacay: that screen draws its own centre
 // FAB, so the dock yields the slot instead (see screenFabSlot below, #1811).
-function useCreateAction(): { label: string; run: () => void } {
+function useCreateAction(): { label: string; run: () => void; upload?: boolean } {
   const navigate = useNavigate()
   const { t } = useTranslation()
+  const galleryOpen = useJourneyStore(state => state.mobileGalleryOpen)
   const inTrip = useMatch('/trips/:id')
   const inJourney = useMatch('/journey/:id')
   const onJourneyList = useMatch('/journey')
@@ -40,7 +42,15 @@ function useCreateAction(): { label: string; run: () => void } {
     return { label: t('places.addPlace'), run: () => navigate(`/trips/${id}?create=place`) }
   }
   if (inJourney) {
-    return { label: t('journey.detail.addEntry'), run: () => navigate(`/journey/${inJourney.params.id}?create=entry`) }
+    // Context-aware per tab, like the trip's "+": the Gallery holds photos, so
+    // there the one big action is uploading one. Read from sessionStorage
+    // because the tab is the screen's own state and the dock is a sibling —
+    // exactly how the trip tabs hand theirs over.
+    const journeyId = inJourney.params.id
+    if (galleryOpen) {
+      return { label: t('common.upload'), run: () => navigate(`/journey/${journeyId}?create=photo`), upload: true }
+    }
+    return { label: t('journey.detail.addEntry'), run: () => navigate(`/journey/${journeyId}?create=entry`) }
   }
   if (onJourneyList) {
     return { label: t('journey.new'), run: () => navigate('/journey?create=1') }
@@ -174,7 +184,11 @@ export default function MBottomNav() {
           <span aria-hidden="true" className="mx-2 h-14 w-14 flex-none" />
         ) : (
           <MFab onClick={create.run} ariaLabel={create.label} className="mx-2">
-            {searchFab ? <Search size={24} strokeWidth={2.4} /> : <Plus size={26} strokeWidth={2.4} />}
+            {searchFab
+              ? <Search size={24} strokeWidth={2.4} />
+              : create.upload
+                ? <Upload size={23} strokeWidth={2.4} />
+                : <Plus size={26} strokeWidth={2.4} />}
           </MFab>
         )}
 

@@ -47,5 +47,29 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.upNext': 'Tiếp theo',
   'mobileTrip.viewDetails': 'Xem chi tiết',
   'mobileTrip.transportsEmpty': 'Chưa có phương tiện di chuyển',
+  'mobileTrip.rtInfoTitle': 'Số liệu lái xe',
+  'mobileTrip.rtDesktopNote':
+    'Các số liệu này được đặt trên máy tính, nơi bạn cũng có thể so sánh các lộ trình khác và cho một ngày đi theo tuyến đã nhập.',
+  'mobileTrip.rtPlanOnDesktop':
+    'Việc lên kế hoạch diễn ra trên máy tính. TREK tính chặng lái xe ngay khi một ngày có hai địa điểm.',
+  'mobileTrip.rtSearchOffline': 'Cần có kết nối: việc tìm kiếm đọc lộ trình phía trước.',
+  'mobileTrip.rtBehind': 'chậm {time} so với kế hoạch',
+  'mobileTrip.rtStart': 'Bắt đầu',
+  'mobileTrip.rtStayScope':
+    'Thời gian dừng thuộc về địa điểm, nên nó được tính vào mọi ngày có điểm dừng này trong kế hoạch.',
+  'mobileTrip.rtStayLess': 'ít hơn {count} phút',
+  'mobileTrip.rtStayMore': 'nhiều hơn {count} phút',
+  'mobileTrip.rtNightDesktopOnly':
+    'Việc đặt nghỉ đêm tại địa điểm này được thực hiện trong trình lập kế hoạch trên máy tính. Ở đây bạn chỉ có thể bỏ nó đi.',
+  'mobileTrip.rtReach': 'Xa đến đâu',
+  'mobileTrip.rtReachAhead': '{distance} phía trước',
+  'mobileTrip.rtFromNext': 'Từ điểm dừng kế tiếp',
+  'mobileTrip.rtFromStart': 'Từ đầu chặng',
+  'mobileTrip.rtNoneAhead': 'Không có gì trên đường phía trước. Thử cả chặng xem sao.',
+  'mobileTrip.rtNoneOnStage': 'Không có gì thuộc loại đó dọc chặng này.',
+  'mobileTrip.rtTruncated.one':
+    '1 đoạn có nhiều hơn mức vừa trong một câu trả lời. Chọn ít loại hơn để xem phần còn lại.',
+  'mobileTrip.rtTruncated.other':
+    '{count} đoạn có nhiều hơn mức vừa trong một câu trả lời. Chọn ít loại hơn để xem phần còn lại.',
 };
 export default mobileTrip;

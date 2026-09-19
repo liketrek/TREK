@@ -80,6 +80,10 @@ const budget: TranslationStrings = {
   'costs.pays': 'membayar',
   'costs.settle': 'Lunasi',
   'costs.balances': 'Saldo',
+  'costs.finalBudget': 'Anggaran akhir',
+  'costs.finalExpenses': 'Pengeluaran yang dibayar',
+  'costs.finalReimbursed': 'Penggantian bersih',
+  'costs.finalPending': 'Penggantian tertunda',
   'costs.byCategory': 'Per kategori',
   'costs.noCategories': 'Belum ada pengeluaran.',
   'costs.settleHistory': 'Riwayat pelunasan',
@@ -147,5 +151,12 @@ const budget: TranslationStrings = {
   'costs.splitSumUnder': 'Jumlah bagian: {sum} dari {total} (kurang {diff})',
   'costs.splitSumOver': 'Jumlah bagian: {sum} dari {total} (lebih {diff})',
   'costs.toggleSign': 'Beralih antara pengeluaran dan pengembalian dana',
+  'costs.receipts': 'Kuitansi',
+  'costs.receiptsTitle': 'Kuitansi & Faktur',
+  'costs.attachReceipt': 'Lampirkan kuitansi / faktur',
+  'costs.noReceipts': 'Tidak ada kuitansi terlampir',
+  'costs.deleteReceipt': 'Hapus kuitansi',
+  'costs.viewReceipt': 'Lihat kuitansi',
+  'costs.receiptLeftBehind': 'Gagal menyimpan, dan {count} struk yang diunggah masih ada. Hapus di tab Berkas.',
 };
 export default budget;

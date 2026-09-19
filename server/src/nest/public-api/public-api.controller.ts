@@ -10,7 +10,13 @@ import {
 } from '@trek/shared';
 import { ApiTokenGuard } from './api-token.guard';
 import { PublicApiService } from './public-api.service';
-import { enforcePublicApiRateLimit, requireUserId } from './public-api-request';
+import {
+  enforcePublicApiRateLimit,
+  grantedScopes,
+  narrowToGrant,
+  requireScope,
+  requireUserId,
+} from './public-api-request';
 import { RateLimitService } from '../common/rate-limit.service';
 
 /**
@@ -48,6 +54,7 @@ export class PublicApiController {
   @Get('trips')
   listTrips(@Req() req: Request): PublicApiTripList {
     this.limit(req);
+    requireScope(req, 'trips');
     return { trips: this.api.listTrips(requireUserId(req)) };
   }
 
@@ -61,6 +68,7 @@ export class PublicApiController {
   @Get('bucket-list')
   listBucketList(@Req() req: Request): PublicApiBucketList {
     this.limit(req);
+    requireScope(req, 'bucket-list');
     return { items: this.api.listBucketList(requireUserId(req)) };
   }
 
@@ -78,8 +86,23 @@ export class PublicApiController {
     @Query('include') include?: string,
   ): PublicApiTrip {
     this.limit(req);
+    requireScope(req, 'trips');
     const tripId = parseTripId(id);
-    const trip = this.api.getTrip(tripId, requireUserId(req), parseInclude(include));
+
+    // A named section the key may not read is refused outright; an unnamed one —
+    // `include` absent, which means "everything" — is simply narrowed. Silently
+    // dropping a section somebody asked for by name is how an integrator ends
+    // up debugging their own correct code.
+    const asked = parseInclude(include);
+    if (include !== undefined && include.trim() !== '') {
+      for (const section of asked) requireScope(req, section);
+    }
+    const allowed = narrowToGrant(asked, req);
+
+    // The grant goes in as well as the narrowed include: days are implied by any
+    // section that hangs off them, and the implied block must still be measured
+    // against what the key may read.
+    const trip = this.api.getTrip(tripId, requireUserId(req), allowed, grantedScopes(req));
     if (!trip) {
       throw new HttpException({ error: 'Trip not found' }, 404);
     }

@@ -47,5 +47,28 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.upNext': 'Další na řadě',
   'mobileTrip.viewDetails': 'Zobrazit podrobnosti',
   'mobileTrip.transportsEmpty': 'Zatím žádná doprava',
+  'mobileTrip.rtInfoTitle': 'Údaje o jízdě',
+  'mobileTrip.rtDesktopNote':
+    'Tyto údaje se nastavují na počítači, kde také můžete porovnávat jiné trasy a nechat den sledovat importovanou stopu.',
+  'mobileTrip.rtPlanOnDesktop': 'Plánování probíhá na počítači. Jakmile má den dvě místa, TREK jízdu spočítá.',
+  'mobileTrip.rtSearchOffline': 'Vyžaduje připojení: hledání čte trasu před vámi.',
+  'mobileTrip.rtBehind': 'o {time} za plánem',
+  'mobileTrip.rtStart': 'Začátek',
+  'mobileTrip.rtStayScope':
+    'Doba zastávky patří k místu, takže platí pro každý den, na který je tato zastávka naplánovaná.',
+  'mobileTrip.rtStayLess': 'o {count} minut méně',
+  'mobileTrip.rtStayMore': 'o {count} minut více',
+  'mobileTrip.rtNightDesktopOnly':
+    'Nocleh na tomto místě se zadává v plánovači na počítači. Tady jej můžete jen zrušit.',
+  'mobileTrip.rtReach': 'Jak daleko',
+  'mobileTrip.rtReachAhead': '{distance} před vámi',
+  'mobileTrip.rtFromNext': 'Od vaší příští zastávky',
+  'mobileTrip.rtFromStart': 'Od začátku etapy',
+  'mobileTrip.rtNoneAhead': 'Na cestě před vámi nic není. Zkuste celou etapu.',
+  'mobileTrip.rtNoneOnStage': 'Nic takového podél této etapy není.',
+  'mobileTrip.rtTruncated.one':
+    '1 úsek měl víc, než se vejde do jedné odpovědi. Vyberte méně druhů, ať uvidíte zbytek.',
+  'mobileTrip.rtTruncated.other':
+    'Úseky, kde bylo víc, než se vejde do jedné odpovědi: {count}. Vyberte méně druhů, ať uvidíte zbytek.',
 };
 export default mobileTrip;

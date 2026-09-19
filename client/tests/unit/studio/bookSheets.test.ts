@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import type { BookDocument, BookSpread } from '@trek/shared'
 import { bookPageSetupSchema } from '@trek/shared'
-import { MARK_LENGTH, sheetBox, sheetsFor } from '../../../src/components/Studio/bookSheets'
+import { MARK_LENGTH, folioLabel, foliosOf, isNumbered, sheetBox, sheetsFor } from '../../../src/components/Studio/bookSheets'
 
 /**
  * Cutting a book into sheets (#1973).
@@ -115,5 +115,77 @@ describe('spreads', () => {
 describe('an empty book', () => {
   it('produces no sheets rather than one blank one', () => {
     expect(sheetsFor(book([]), 'pages')).toEqual([])
+  })
+})
+
+/*
+ * A bound book opens onto one right-hand page and closes on one left-hand
+ * page (#2317). They are single leaves like the covers, but unlike the covers
+ * they are numbered — and the numbers count along the book, so a book with
+ * them and a book from before them both read right.
+ */
+describe('the first and last pages', () => {
+  it('stay whole in both modes, like the covers', () => {
+    const roles: BookSpread['role'][] = ['cover', 'first', 'inner', 'last', 'back']
+    for (const mode of ['pages', 'spreads'] as const) {
+      const sheets = sheetsFor(book(roles), mode)
+      const firstSheet = sheets.find(s => s.spread.role === 'first')!
+      const lastSheet = sheets.find(s => s.spread.role === 'last')!
+      expect(firstSheet.single, mode).toBe(true)
+      expect(firstSheet.width, mode).toBe(210)
+      expect(lastSheet.single, mode).toBe(true)
+      expect(lastSheet.width, mode).toBe(210)
+    }
+  })
+
+  it('are numbered, counting from startAt along the book', () => {
+    const roles: BookSpread['role'][] = ['cover', 'first', 'inner', 'inner', 'last', 'back']
+    const sheets = sheetsFor(book(roles, { pageNumbers: { startAt: 1 } }), 'pages')
+    expect(sheets.map(s => s.label)).toEqual(['', '1', '2', '3', '4', '5', '6', ''])
+    expect(sheetsFor(book(roles, { pageNumbers: { startAt: 1 } }), 'spreads').map(s => s.label))
+      .toEqual(['', '1', '2 – 3', '4 – 5', '6', ''])
+  })
+
+  it('leave a book without them on the numbers it always had', () => {
+    // startAt 2, no first page: the first spread still opens on 2 – 3.
+    const sheets = sheetsFor(book(['cover', 'inner', 'inner', 'back']), 'spreads')
+    expect(sheets.map(s => s.label)).toEqual(['', '2 – 3', '4 – 5', ''])
+  })
+})
+
+describe('foliosOf', () => {
+  const roles: BookSpread['role'][] = ['cover', 'first', 'inner', 'inner', 'last', 'back']
+  const spreads = book(roles).spreads
+
+  it('hands a cover nothing, a single page one number and a spread two', () => {
+    expect(foliosOf(spreads, 0, 1)).toEqual([])
+    expect(foliosOf(spreads, 1, 1)).toEqual([1])
+    expect(foliosOf(spreads, 2, 1)).toEqual([2, 3])
+    expect(foliosOf(spreads, 3, 1)).toEqual([4, 5])
+    expect(foliosOf(spreads, 4, 1)).toEqual([6])
+    expect(foliosOf(spreads, 5, 1)).toEqual([])
+  })
+
+  it('starts wherever the book says', () => {
+    expect(foliosOf(spreads, 1, 3)).toEqual([3])
+    expect(foliosOf(spreads, 2, 3)).toEqual([4, 5])
+  })
+
+  it('is empty past the end of the book', () => {
+    expect(foliosOf(spreads, 99, 1)).toEqual([])
+  })
+
+  it('numbers everything inside the covers', () => {
+    expect(isNumbered('cover')).toBe(false)
+    expect(isNumbered('back')).toBe(false)
+    expect(isNumbered('first')).toBe(true)
+    expect(isNumbered('inner')).toBe(true)
+    expect(isNumbered('last')).toBe(true)
+  })
+
+  it('labels a pair with a dash, one number plainly, and nothing as nothing', () => {
+    expect(folioLabel([2, 3])).toBe('2 – 3')
+    expect(folioLabel([7])).toBe('7')
+    expect(folioLabel([])).toBe('')
   })
 })

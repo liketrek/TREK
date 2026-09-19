@@ -62,11 +62,11 @@ const bridgeGetDay = (id: string | number, tripId: string | number) => svc.getDa
 const bridgeListDays = (tripId: string | number) => svc.list(tripId);
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
-import { AccommodationsService } from '../../../src/nest/accommodations/accommodations.service';
+import { makeAccommodationsService } from '../../helpers/accommodations-service';
 import type { Day } from '../../../src/types';
 
 const svc = new DaysService(new DatabaseService(testDb), new PermissionsService(new DatabaseService(testDb)), new RealtimeService(), new QueryHelpersService(new DatabaseService(testDb)));
-const accommodations = new AccommodationsService(new DatabaseService(testDb), new PermissionsService(new DatabaseService(testDb)), new RealtimeService());
+const accommodations = makeAccommodationsService(testDb);
 
 beforeAll(() => {
   createTables(testDb);
@@ -122,6 +122,24 @@ describe('getAssignmentsForDay', () => {
     expect(assignments[0].place).toBeDefined();
     expect(assignments[0].place.name).toBe('Eiffel Tower');
     expect(assignments[0].place.lat).toBe(48.8);
+  });
+
+  it('DAY-SVC-029 — a road-trip stop keeps its kind on both loaders', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id) as any;
+    const place = createPlace(testDb, trip.id, { name: 'Esso', lat: 53.8, lng: 10.4 }) as any;
+    testDb.prepare('UPDATE places SET stop_type = ? WHERE id = ?').run('fuel', place.id);
+    createDayAssignment(testDb, day.id, place.id, { order_index: 0 });
+
+    // Both queries build the same place shape by hand, and only one of them used to
+    // fetch the column — so the rail drew a petrol station as an ordinary numbered stop
+    // while the database had known it was fuel all along.
+    const single = svc.getAssignmentsForDay(day.id) as any[];
+    expect(single[0].place.stop_type).toBe('fuel');
+
+    const listed = svc.list(trip.id) as any;
+    expect(listed.days[0].assignments[0].place.stop_type).toBe('fuel');
   });
 
   it('DAY-SVC-005 — assignment includes tags array (empty when place has none)', () => {

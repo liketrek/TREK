@@ -47,5 +47,29 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.upNext': 'Következő',
   'mobileTrip.viewDetails': 'Részletek megtekintése',
   'mobileTrip.transportsEmpty': 'Még nincs közlekedés',
+  'mobileTrip.rtInfoTitle': 'Vezetési adatok',
+  'mobileTrip.rtDesktopNote':
+    'Ezeket az adatokat asztali gépen adod meg, ott hasonlíthatod össze az útvonalváltozatokat, és állíthatod be, hogy egy nap importált nyomvonalat kövessen.',
+  'mobileTrip.rtPlanOnDesktop':
+    'A tervezés asztali gépen történik. Amint egy napon két hely szerepel, a TREK kiszámolja az útvonalat.',
+  'mobileTrip.rtSearchOffline': 'Internetkapcsolat kell hozzá: a keresés az előtted lévő útvonalat olvassa be.',
+  'mobileTrip.rtBehind': '{time} késés a tervhez képest',
+  'mobileTrip.rtStart': 'Kezdés',
+  'mobileTrip.rtStayScope':
+    'Az itt töltött idő a helyhez tartozik, ezért minden olyan napon számít, amelyre ez a megálló be van tervezve.',
+  'mobileTrip.rtStayLess': '{count} perccel kevesebb',
+  'mobileTrip.rtStayMore': '{count} perccel több',
+  'mobileTrip.rtNightDesktopOnly':
+    'Az éjszakázást ezen a helyen az asztali tervezőben lehet megadni. Itt csak elvetni tudod.',
+  'mobileTrip.rtReach': 'Meddig',
+  'mobileTrip.rtReachAhead': '{distance} előre',
+  'mobileTrip.rtFromNext': 'A következő megállódtól',
+  'mobileTrip.rtFromStart': 'A szakasz elejétől',
+  'mobileTrip.rtNoneAhead': 'Az előtted lévő úton nincs semmi. Próbáld az egész szakaszt.',
+  'mobileTrip.rtNoneOnStage': 'Ezen a szakaszon nincs ilyesmi.',
+  'mobileTrip.rtTruncated.one':
+    '1 szakaszon több volt, mint ami egy válaszba fér. Válassz kevesebb fajtát, hogy lásd a többit.',
+  'mobileTrip.rtTruncated.other':
+    '{count} szakaszon több volt, mint ami egy válaszba fér. Válassz kevesebb fajtát, hogy lásd a többit.',
 };
 export default mobileTrip;

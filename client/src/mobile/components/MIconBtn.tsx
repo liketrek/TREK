@@ -8,6 +8,8 @@ interface MIconBtnProps {
   /** Diameter in px (topbar 38, sheet close 34) */
   size?: number
   className?: string
+  /** Dimmed and inert. For a button whose position should stay put even when it cannot act. */
+  disabled?: boolean
   children: ReactNode
 }
 
@@ -18,6 +20,7 @@ export default function MIconBtn({
   variant = 'glass',
   size = 38,
   className = '',
+  disabled = false,
   children,
 }: MIconBtnProps) {
   return (
@@ -25,7 +28,8 @@ export default function MIconBtn({
       type="button"
       onClick={onClick}
       aria-label={ariaLabel}
-      className={`relative flex flex-none items-center justify-center rounded-full text-m-ink ${
+      disabled={disabled}
+      className={`relative flex flex-none items-center justify-center rounded-full text-m-ink disabled:opacity-35 ${
         variant === 'glass'
           ? 'border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)]'
           : 'bg-[color:var(--m-ic)]'

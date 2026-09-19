@@ -6,7 +6,7 @@ import { useToast } from '../shared/Toast'
 import CustomSelect from '../shared/CustomSelect'
 import apiClient from '../../api/client'
 import { fetchRegionOptions, fetchSchoolHolidayRegionOptions } from './holidayRegions'
-import { SCHOOL_HOLIDAY_COUNTRY_CONFIG } from '../../vacay/schoolHolidayCountries'
+import { useSchoolHolidayCountries } from './useSchoolHolidayCountries'
 import { windowMonths } from '../../vacay/yearWindow'
 import type { VacayHolidayCalendar, VacayYearSettings } from '../../types'
 
@@ -38,12 +38,13 @@ export default function VacaySettings({ onClose }: VacaySettingsProps) {
     }).catch(() => {})
   }, [language])
 
+  const { countries: schoolHolidayCountries, error: schoolCountryError } = useSchoolHolidayCountries()
+
   if (!plan) return null
 
   const toggle = (key: string) => updatePlan({ [key]: !plan[key] })
   const publicHolidayCalendars = (plan.holiday_calendars ?? []).filter(cal => (cal.type ?? 'public_holiday') === 'public_holiday')
   const schoolHolidayCalendars = (plan.holiday_calendars ?? []).filter(cal => cal.type === 'school_holiday')
-  const schoolHolidayCountries = countries.filter(country => country.value in SCHOOL_HOLIDAY_COUNTRY_CONFIG)
 
   return (
     <div className="space-y-4">
@@ -216,6 +217,7 @@ export default function VacaySettings({ onClose }: VacaySettingsProps) {
           value={plan.school_holidays_enabled}
           onChange={() => toggle('school_holidays_enabled')}
         />
+        {schoolCountryError && <p role="alert" className="text-caption text-danger">{schoolCountryError}</p>}
         {plan.school_holidays_enabled && (
           <div className="ml-7 mt-2 space-y-2">
             {schoolHolidayCalendars.length === 0 && (
@@ -444,18 +446,18 @@ function SettingToggle({ icon: Icon, label, hint, value, onChange }: SettingTogg
  * apart from "this country has no regions"; on the list alone both are empty.
  */
 function useRegionOptions(country: string, calendarType: 'public_holiday' | 'school_holiday') {
-  const [loaded, setLoaded] = useState<{ country: string; options: { value: string; label: string }[] }>({ country: '', options: [] })
+  const [loaded, setLoaded] = useState<{ country: string; options: { value: string; label: string }[]; failed?: boolean }>({ country: '', options: [] })
 
   useEffect(() => {
     if (!country) return
     const load = calendarType === 'school_holiday' ? fetchSchoolHolidayRegionOptions : fetchRegionOptions
     let stale = false
-    load(country).then(options => { if (!stale) setLoaded({ country, options }) })
+    load(country).then(options => { if (!stale) setLoaded({ country, options }) }).catch(() => { if (!stale) setLoaded({ country, options: [], failed: true }) })
     return () => { stale = true }
   }, [calendarType, country])
 
   const ready = loaded.country === country
-  return { regions: ready ? loaded.options : [], loadingRegions: Boolean(country) && !ready }
+  return { regions: ready ? loaded.options : [], regionError: ready && loaded.failed, loadingRegions: Boolean(country) && !ready }
 }
 
 // ── Existing calendar row (inline edit) ──────────────────────────────────────
@@ -474,7 +476,7 @@ function CalendarRow({ cal, countries, calendarType, onUpdate, onDelete }: {
   const [baseRegion] = cal.region.split('|')
   const selectedCountry = baseRegion.split('-')[0]
   const selectedRegion = cal.region.includes('|group:') || baseRegion.includes('-') ? cal.region : ''
-  const { regions } = useRegionOptions(selectedCountry, calendarType)
+  const { regions, regionError } = useRegionOptions(selectedCountry, calendarType)
 
   useEffect(() => { setLocalColor(cal.color) }, [cal.color])
   useEffect(() => { setLocalLabel(cal.label || '') }, [cal.label])
@@ -516,9 +518,10 @@ function CalendarRow({ cal, countries, calendarType, onUpdate, onDelete }: {
           placeholder={t('vacay.selectCountry')}
           searchable
         />
+        {regionError && <p role="alert" className="text-caption text-danger">{t('schoolCatalog.loadError')}</p>}
         {regions.length > 0 && (
           <CustomSelect
-            value={selectedRegion}
+            value={selectedRegion || (regions.some(option => option.value === selectedCountry) ? selectedCountry : '')}
             onChange={v => onUpdate({ region: String(v) })}
             options={regions}
             placeholder={t('vacay.selectRegion')}
@@ -555,12 +558,12 @@ function AddCalendarForm({ countries, calendarType, onAdd, onCancel, defaultColo
   const [baseRegion] = region.split('|')
   const selectedCountry = baseRegion.split('-')[0] || ''
   const selectedRegion = region.includes('|group:') || baseRegion.includes('-') ? region : ''
-  const { regions, loadingRegions } = useRegionOptions(selectedCountry, calendarType)
+  const { regions, loadingRegions, regionError } = useRegionOptions(selectedCountry, calendarType)
 
   // Adding is blocked while the region list is on its way: an empty list would
   // otherwise pass as "this country needs no region" and create a calendar that
   // draws nothing (#1813). The button shows a spinner so the wait is visible.
-  const canAdd = Boolean(selectedCountry) && !loadingRegions && (regions.length === 0 || selectedRegion !== '')
+  const canAdd = Boolean(selectedCountry) && !loadingRegions && !regionError && (regions.length === 0 || regions.some(option => option.value === region))
 
   const PRESET_COLORS = ['#fecaca', '#fed7aa', '#fde68a', '#bbf7d0', '#a5f3fc', '#c7d2fe', '#e9d5ff', '#fda4af', '#6366f1', '#ef4444', '#22c55e', '#3b82f6']
   const [showColorPicker, setShowColorPicker] = useState(false)
@@ -597,9 +600,10 @@ function AddCalendarForm({ countries, calendarType, onAdd, onCancel, defaultColo
           placeholder={t('vacay.selectCountry')}
           searchable
         />
+        {regionError && <p role="alert" className="text-caption text-danger">{t('schoolCatalog.loadError')}</p>}
         {regions.length > 0 && (
           <CustomSelect
-            value={selectedRegion}
+            value={selectedRegion || (regions.some(option => option.value === selectedCountry) ? selectedCountry : '')}
             onChange={v => setRegion(String(v))}
             options={regions}
             placeholder={t('vacay.selectRegion')}

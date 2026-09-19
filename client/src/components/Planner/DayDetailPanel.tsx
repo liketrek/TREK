@@ -10,6 +10,7 @@ import { usePluginStore } from '../../store/pluginStore'
 import PluginFrame from '../Plugins/PluginFrame'
 import { useCanDo } from '../../store/permissionsStore'
 import { useTripStore } from '../../store/tripStore'
+import { applyStayStops } from '../../store/stayStops'
 import CustomSelect from '../shared/CustomSelect'
 import CustomTimePicker from '../shared/CustomTimePicker'
 import { useSettingsStore } from '../../store/settingsStore'
@@ -522,7 +523,7 @@ function HotelPickerModal({ showHotelPicker, setShowHotelPicker, font, t, hotelD
       return
     }
     try {
-      await accommodationsApi.update(tripId, accommodation.id, {
+      applyStayStops(await accommodationsApi.update(tripId, accommodation.id, {
         place_id: hotelForm.place_id,
         start_day_id: hotelDayRange.start,
         end_day_id: hotelDayRange.end,
@@ -530,7 +531,7 @@ function HotelPickerModal({ showHotelPicker, setShowHotelPicker, font, t, hotelD
         check_in_end: hotelForm.check_in_end || null,
         check_out: hotelForm.check_out || null,
         confirmation: hotelForm.confirmation || null,
-      })
+      }))
       setShowHotelPicker(false)
       setHotelForm({ check_in: '', check_in_end: '', check_out: '', confirmation: '', place_id: null })
       // Reload

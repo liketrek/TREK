@@ -1,6 +1,28 @@
 import type { TranslationStrings } from '../types';
 
 const vacay: TranslationStrings = {
+  'schoolCatalog.refreshError':
+    'Zmiana została zapisana, ale nie udało się odświeżyć listy. Spróbuj wczytać ją ponownie.',
+  'schoolCatalog.title': 'Ferie szkolne',
+  'schoolCatalog.hint': 'Zarządzaj wspólnymi regionami. Każdy może je wybrać w ustawieniach urlopu.',
+  'schoolCatalog.periodHint': 'Obie daty są wliczone. Dodaj okresy na każdy rok szkolny.',
+  'schoolCatalog.region': 'Region lub okręg szkolny',
+  'schoolCatalog.name': 'Nazwa ferii',
+  'schoolCatalog.start': 'Data rozpoczęcia',
+  'schoolCatalog.end': 'Data zakończenia',
+  'schoolCatalog.addPeriod': 'Dodaj okres',
+  'schoolCatalog.invalid': 'Sprawdź nazwy i daty.',
+  'schoolCatalog.discard': 'Odrzucić niezapisane zmiany?',
+  'schoolCatalog.country': 'Kraj',
+  'schoolCatalog.deleteHint': 'Najpierw usuń regiony. Nie można usunąć używanych regionów.',
+  'schoolCatalog.deleteCountry': 'Usuń kraj',
+  'schoolCatalog.addCountry': 'Dodaj kraj',
+  'schoolCatalog.code': 'Kod kraju (np. US)',
+  'schoolCatalog.empty': 'Brak regionów.',
+  'schoolCatalog.addRegion': 'Dodaj region',
+  'schoolCatalog.offline': 'Połącz się z internetem, aby zarządzać feriami szkolnymi.',
+  'schoolCatalog.loadError': 'Nie udało się wczytać regionów. Otwórz ponownie ustawienia.',
+  'schoolCatalog.retry': 'Spróbuj ponownie',
   'vacay.subtitle': 'Planuj i zarządzaj dniami urlopu',
   'vacay.settings': 'Ustawienia',
   'vacay.year': 'Rok',

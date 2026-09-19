@@ -6,18 +6,20 @@ import { DAY_COLORS } from '../components/Journey/dayColors'
 import PhotoLightbox from '../components/Journey/PhotoLightbox'
 import ContributorInviteDialog from '../components/Journey/ContributorInviteDialog'
 import ConfirmDialog from '../components/shared/ConfirmDialog'
+import { Tooltip } from '../components/shared/Tooltip'
 import EmptyState from '../components/shared/EmptyState'
 import { Outlet } from 'react-router'
 import {
   ArrowLeft, MoreHorizontal, List, Grid, MapPin,
-  Plus, ChevronUp, ChevronDown, Eye, EyeOff, BookOpen, Image,
+  Plus, ChevronUp, ChevronDown, Eye, EyeOff, BookOpen, Image, Search, X,
 } from 'lucide-react'
 import MobileMapTimeline from '../components/Journey/MobileMapTimeline'
+import JourneyDayDawarich from '../components/Journey/JourneyDayDawarich'
 import MobileEntryView from '../components/Journey/MobileEntryView'
 import { useJourneyStore } from '../store/journeyStore'
 import { computeJourneyLifecycle } from '../utils/journeyLifecycle'
 import { useJourneyDetail } from './journeyDetail/useJourneyDetail'
-import { createDraftJourneyEntry, pickGradient, groupByDate, formatDate, photoUrl } from './journeyDetail/JourneyDetailPage.helpers'
+import { createDraftJourneyEntry, pickGradient, groupByDate, formatDate, photoUrl, matchJourneyEntries } from './journeyDetail/JourneyDetailPage.helpers'
 import { EntryCard, SkeletonCard, CheckinCard } from '../components/Journey/JourneyDetailPageEntryCard'
 import { GalleryView } from '../components/Journey/JourneyDetailPageGalleryView'
 import { EntryEditor } from '../components/Journey/JourneyDetailPageEntryEditor'
@@ -44,6 +46,8 @@ function JourneyDetailPageDesktop() {
     showInvite, setShowInvite, showAddTrip, setShowAddTrip,
     unlinkTrip, setUnlinkTrip, showSettings, setShowSettings,
     hideSkeletons, setHideSkeletons,
+    query, setQuery, dismissSuggestion, restoreSuggestions, openAtEntryId,
+    dawarichByDate, dawarichBusyId, acceptDawarich, dismissDawarich,
     mapRef, fullMapRef, galleryUploadRef, galleryProviders, setGalleryProviders, galleryBrowseRef,
     activeLocationId, handleMarkerClick, handleLocationClick,
     mapEntries, sidebarMapItems, tripDates, isMobile, tracks,
@@ -62,16 +66,38 @@ function JourneyDetailPageDesktop() {
     )
   }
 
-  const timelineEntries = current.entries.filter(e => (!hideSkeletons || e.type !== 'skeleton'))
+  const timelineEntries = matchJourneyEntries(
+    current.entries.filter(e => (!hideSkeletons || e.type !== 'skeleton')),
+    query,
+  )
   const dayGroups = groupByDate(timelineEntries)
-  const sortedDates = [...dayGroups.keys()].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
-
   const tripDateMin = current.trips.length
     ? current.trips.reduce((min: string, t: any) => t.start_date && (!min || t.start_date < min) ? t.start_date : min, '')
     : null
   const tripDateMax = current.trips.length
     ? current.trips.reduce((max: string, t: any) => t.end_date && (!max || t.end_date > max) ? t.end_date : max, '')
     : null
+
+  // A stay falls on the day it happened, and that is often a day the journal has no entry
+  // on yet, which is the whole point of offering it. Those days join the timeline so the
+  // stay can be reached; without them the only way to a quiet day's stays would be to
+  // write an entry on it first.
+  //
+  // Bounded by this journal's own span, because the hook reads every open stay the account
+  // has: unbounded, a week in May grew a day section for every day Dawarich recorded
+  // anywhere, all year. The span is the entries it already holds together with the dates of
+  // the trips it links, so a journal that is still empty but linked to a trip still offers
+  // that trip's days. With no span at all there is nothing to place a stay against.
+  // Not while a search is running either: a day whose entries the query filtered out is not
+  // a day the reader is looking at.
+  const spanDates = [...dayGroups.keys(), tripDateMin, tripDateMax]
+    .filter((d): d is string => !!d)
+    .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
+  const suggestionDates = canEditEntries && !query && spanDates.length
+    ? [...dawarichByDate.keys()].filter(d => d >= spanDates[0] && d <= spanDates[spanDates.length - 1])
+    : []
+  const sortedDates = [...new Set([...dayGroups.keys(), ...suggestionDates])]
+    .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
   const lifecycle = computeJourneyLifecycle(current.status, tripDateMin || null, tripDateMax || null)
 
   const showMobileCombined = isMobile && view === 'timeline'
@@ -132,6 +158,9 @@ function JourneyDetailPageDesktop() {
           onAddEntry={canEditEntries ? () => {
             setEditingEntry(createDraftJourneyEntry(current.id))
           } : undefined}
+          showMood={current.show_mood !== 0}
+          showWeather={current.show_weather !== 0}
+          initialEntryId={openAtEntryId}
         />
       )}
 
@@ -314,7 +343,10 @@ function JourneyDetailPageDesktop() {
                 <div className="relative z-[3]">
                   <div className="inline-flex items-center gap-7 md:gap-9" style={{ padding: '13px 26px', borderRadius: 18, background: 'rgba(255,255,255,0.14)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.2)' }}>
                     {[
-                      { value: sortedDates.length, label: t('journey.stats.days') },
+                      // The journal's own days, not the ones a pending stay added to the
+                      // timeline: "11 days" for a trip of 7 counts somebody else's data as
+                      // the journey.
+                      { value: dayGroups.size, label: t('journey.stats.days') },
                       { value: current.stats.places, label: t('journey.stats.places') },
                       { value: current.stats.entries, label: t('journey.stats.entries') },
                       { value: current.stats.photos, label: t('journey.stats.photos') },
@@ -336,7 +368,7 @@ function JourneyDetailPageDesktop() {
           <div className={isMobile ? 'px-4' : ''}>
             <div>
               {/* View Controls — hidden on mobile (floating top bar has them) */}
-              <div className={`flex items-center justify-between mt-5 mb-5 ${isMobileChromeless ? 'hidden' : ''}`}>
+              <div className={`flex items-center justify-between gap-3 mt-5 mb-5 ${isMobileChromeless ? 'hidden' : ''}`}>
                 <div className="flex items-center gap-1 p-1 rounded-full" style={{ background: 'var(--vg-surf2)', border: '1px solid var(--vg-line)' }}>
                   {(isMobile
                     ? [
@@ -361,6 +393,31 @@ function JourneyDetailPageDesktop() {
                     </button>
                   ))}
                 </div>
+                {/* Search. A journey kept over a season is a very long scroll, and the
+                    wheel was the only way through it (discussion #2299). It takes the gap
+                    the row already had between the tabs and the Add button rather than a
+                    width of its own, so the placeholder is never clipped and the two
+                    things either side of it stay where they were. */}
+                {view === 'timeline' && !isMobile && (
+                  <div
+                    className="inline-flex h-9 min-w-[150px] max-w-[420px] flex-1 items-center gap-1.5 rounded-full px-3.5"
+                    style={{ background: 'var(--vg-surf2)', border: '1px solid var(--vg-line)' }}
+                  >
+                    <Search size={14} style={{ color: 'var(--vg-ink3)' }} className="flex-shrink-0" />
+                    <input
+                      value={query}
+                      onChange={e => setQuery(e.target.value)}
+                      placeholder={t('journey.detail.searchPlaceholder')}
+                      className="min-w-0 flex-1 bg-transparent text-[12.5px] outline-none"
+                      style={{ color: 'var(--vg-ink)' }}
+                    />
+                    {query && (
+                      <button type="button" onClick={() => setQuery('')} aria-label={t('common.clear')} className="flex-shrink-0">
+                        <X size={13} style={{ color: 'var(--vg-ink3)' }} />
+                      </button>
+                    )}
+                  </div>
+                )}
                 {canEditEntries && view === 'timeline' && (
                   <button type="button"
                     onClick={() => {
@@ -379,12 +436,17 @@ function JourneyDetailPageDesktop() {
               {/* Timeline (desktop only — mobile uses fullscreen combined view above) */}
               {!isMobile && (
                 <div className={`flex flex-col gap-6 pb-24 md:pb-6${view === 'timeline' ? '' : ' hidden'}`}>
-                  {sortedDates.length === 0 && (
-                    <EmptyState scene="journey" title={t('journey.detail.noEntries')} />
+                  {dayGroups.size === 0 && sortedDates.length === 0 && (
+                    <EmptyState
+                      scene="journey"
+                      title={query ? t('journey.detail.searchEmpty', { query }) : t('journey.detail.noEntries')}
+                    />
                   )}
 
                   {sortedDates.map((date, dayIdx) => {
-                    const entries = dayGroups.get(date)!
+                    // Empty on a day that only has stays waiting on it.
+                    const entries = dayGroups.get(date) ?? []
+                    const stays = canEditEntries ? dawarichByDate.get(date) ?? [] : []
                     const fd = formatDate(date, locale)
                     const locations = [...new Set(entries.map(e => e.location_name).filter(Boolean))]
 
@@ -397,7 +459,24 @@ function JourneyDetailPageDesktop() {
                             </div>
                             <h3 className="text-[14px] font-semibold capitalize" style={{ color: 'var(--vg-ink)' }}>{new Date(date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}</h3>
                           </div>
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-[0.07em]" style={{ background: 'var(--vg-surf2)', color: 'var(--vg-ink3)' }}><MapPin size={12} /> {entries.length} {t('journey.synced.places')}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-[0.07em]" style={{ background: 'var(--vg-surf2)', color: 'var(--vg-ink3)' }}><MapPin size={12} /> {entries.length} {t('journey.synced.places')}</span>
+                            {/* The only Add button used to be at the very top and always
+                                started on today, so putting something into an earlier day
+                                meant correcting the date by hand (discussion #2299). */}
+                            {canEditEntries && (
+                              <Tooltip label={t('journey.detail.addOnThisDay')} placement="top">
+                                <button type="button"
+                                  onClick={() => setEditingEntry(createDraftJourneyEntry(current.id, new Date(), date))}
+                                  aria-label={t('journey.detail.addOnThisDay')}
+                                  className="w-7 h-7 rounded-full flex items-center justify-center transition-colors hover:bg-surface-hover"
+                                  style={{ background: 'var(--vg-surf2)', color: 'var(--vg-ink)' }}
+                                >
+                                  <Plus size={14} strokeWidth={2.6} />
+                                </button>
+                              </Tooltip>
+                            )}
+                          </div>
                         </div>
 
                         {entries.map((entry, idx) => {
@@ -414,35 +493,48 @@ function JourneyDetailPageDesktop() {
                             const [moved] = reordered.splice(idx, 1)
                             reordered.splice(target, 0, moved)
                             reorderEntries(current.id, reordered.map(e => e.id))
-                              .catch(() => toast.error(t('common.errorOccurred')))
+                              .catch(() => toast.error(t('common.errorTitle')))
                           }
+                          // The active outline traces the card, so it has to know which
+                          // card: the three kinds round their corners differently, and a
+                          // 12px outline around a 20px card reads as a mistake.
+                          const cardRadius = entry.type === 'skeleton' ? 18 : entry.type === 'checkin' ? 12 : 20
+                          const arrowBtn = 'w-6 h-6 rounded-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-sm text-zinc-600 dark:text-zinc-300 flex items-center justify-center hover:bg-zinc-50 dark:hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors'
                           return (
-                            <div key={entry.id} data-entry-id={String(entry.id)} className={`relative ${canReorder ? 'flex items-stretch gap-2' : ''}`} onMouseEnter={() => { setActiveEntryId(String(entry.id)); mapRef.current?.highlightMarker(String(entry.id)) }} style={String(entry.id) === activeEntryId ? { outline: `2px solid ${DAY_COLORS[dayIdx % DAY_COLORS.length]}`, outlineOffset: '3px', borderRadius: '12px' } : undefined}>
+                            <div key={entry.id} data-entry-id={String(entry.id)} className="group relative" onMouseEnter={() => { setActiveEntryId(String(entry.id)); mapRef.current?.highlightMarker(String(entry.id)) }}>
+                              {/* Out in the column's own padding rather than in a track of
+                                  its own: a track pushed every card in by 36px and left the
+                                  feed misaligned with the day header above it. Shown on
+                                  hover, since they are for the one card you are working on. */}
                               {canReorder && (
-                                <div className="flex flex-col gap-1 justify-center flex-shrink-0 py-1">
+                                <div className="absolute right-full top-1/2 mr-1.5 flex -translate-y-1/2 flex-col gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-within:opacity-100">
                                   <button
                                     type="button"
                                     onClick={() => move(-1)}
                                     disabled={idx === 0}
-                                    aria-label="Move up"
-                                    className="w-7 h-7 rounded-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-sm text-zinc-600 dark:text-zinc-300 flex items-center justify-center hover:bg-zinc-50 dark:hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                    aria-label={t('dayplan.moveUp')}
+                                    className={arrowBtn}
                                   >
-                                    <ChevronUp size={14} />
+                                    <ChevronUp size={13} />
                                   </button>
                                   <button
                                     type="button"
                                     onClick={() => move(1)}
                                     disabled={idx === entries.length - 1}
-                                    aria-label="Move down"
-                                    className="w-7 h-7 rounded-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-sm text-zinc-600 dark:text-zinc-300 flex items-center justify-center hover:bg-zinc-50 dark:hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                    aria-label={t('dayplan.moveDown')}
+                                    className={arrowBtn}
                                   >
-                                    <ChevronDown size={14} />
+                                    <ChevronDown size={13} />
                                   </button>
                                 </div>
                               )}
-                              <div className={canReorder ? 'flex-1 min-w-0' : ''}>
+                              <div>
                                 {entry.type === 'skeleton' ? (
-                                  <SkeletonCard entry={entry} onClick={canEditEntries ? () => setEditingEntry(entry) : undefined} />
+                                  <SkeletonCard
+                                    entry={entry}
+                                    onClick={canEditEntries ? () => setEditingEntry(entry) : undefined}
+                                    onDismiss={canEditEntries ? () => dismissSuggestion(entry) : undefined}
+                                  />
                                 ) : entry.type === 'checkin' ? (
                                   <CheckinCard entry={entry} onClick={canEditEntries ? () => setEditingEntry(entry) : undefined} />
                                 ) : (
@@ -455,9 +547,31 @@ function JourneyDetailPageDesktop() {
                                   />
                                 )}
                               </div>
+                              {/* The day-coloured ring for the card the map is showing.
+                                  Drawn as a layer over the card rather than as an outline
+                                  on the row: an outline pulled in tight enough to sit on
+                                  the card's edge lands behind the card's own background
+                                  and disappears. */}
+                              {String(entry.id) === activeEntryId && (
+                                <span
+                                  aria-hidden
+                                  className="pointer-events-none absolute inset-0 z-20"
+                                  style={{ border: `2px solid ${DAY_COLORS[dayIdx % DAY_COLORS.length]}`, borderRadius: cardRadius }}
+                                />
+                              )}
                             </div>
                           )
                         })}
+
+                        {/* What Dawarich recorded on this day, folded into it. One line
+                            with a count, the mark for where it came from, and the rows on
+                            a tap. Nothing at all on a day with nothing pending. */}
+                        <JourneyDayDawarich
+                          suggestions={stays}
+                          busyId={dawarichBusyId}
+                          onAccept={acceptDawarich}
+                          onDismiss={dismissDawarich}
+                        />
                       </div>
                     )
                   })}
@@ -540,6 +654,14 @@ function JourneyDetailPageDesktop() {
                   activeMarkerId={activeEntryId}
                   onMarkerClick={handleMarkerClick}
                   fullScreen
+                  onMarkerPhotoClick={(entryId, index) => {
+                    const entry = current.entries.find(e => String(e.id) === entryId)
+                    if (!entry?.photos?.length) return
+                    setLightbox({
+                      photos: entry.photos.map(p => ({ id: p.id, src: photoUrl(p, 'original'), caption: p.caption, provider: p.provider, asset_id: p.asset_id, owner_id: p.owner_id, mediaType: p.media_type })),
+                      index,
+                    })
+                  }}
                 />
               </div>
             </aside>
@@ -571,6 +693,9 @@ function JourneyDetailPageDesktop() {
           onUploadPhotos={async (entryId, files, cbs) => {
             return await uploadPhotos(entryId, files, cbs)
           }}
+          showVerdict={current.show_verdict !== 0}
+          showMood={current.show_mood !== 0}
+          showWeather={current.show_weather !== 0}
           onAddProviderPhotos={async (entryId, group) => {
             await journeyApi.addProviderPhotos(entryId, group.provider, group.assetIds, undefined, group.passphrase, group.mediaTypes)
           }}
@@ -589,6 +714,7 @@ function JourneyDetailPageDesktop() {
           onSaved={() => { setShowSettings(false); loadJourney(Number(id)) }}
           onOpenInvite={() => { setShowInvite(true) }}
           onRefresh={() => loadJourney(Number(id))}
+          onRestoreSuggestions={canEditEntries ? restoreSuggestions : undefined}
         />
       )}
 

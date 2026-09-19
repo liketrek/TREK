@@ -164,7 +164,7 @@ export class JourneyShareService {
     // Entries with photos
     const entries = this.db.prepare(`
       SELECT je.* FROM journey_entries je
-      WHERE je.journey_id = ? AND je.type != 'skeleton'
+      WHERE je.journey_id = ? AND je.type != 'skeleton' AND je.dismissed = 0
       ORDER BY je.entry_date, je.sort_order
     `).all(row.journey_id) as any[];
 
@@ -256,6 +256,13 @@ export class JourneyShareService {
         subtitle: journey.subtitle,
         cover_image: journey.cover_image,
         status: journey.status,
+        // The three "this journey does not use that field" switches. A public
+        // reader was getting mood and weather chips on a journey that had them
+        // turned off, because the phone card reads these and they were not here
+        // to read: undefined never equals 0, so both always looked switched on.
+        show_verdict: journey.show_verdict ? 1 : 0,
+        show_mood: journey.show_mood ? 1 : 0,
+        show_weather: journey.show_weather ? 1 : 0,
       },
       entries: publicEntries,
       // A photo now carries the coordinates it was taken at, which is a location the

@@ -320,6 +320,29 @@ describe('offlineDb — clearTripData', () => {
     expect(await offlineDb.blobCache.get('/api/files/2/download')).toBeDefined();
   });
 
+  it('takes the trip cached area places with it, and leaves another trip its own', async () => {
+    // They are searched across every trip, so a trip switched off for offline
+    // use kept answering offline searches from an area nobody had asked to keep
+    // — and nothing else ever deleted them, so they piled up for the life of the
+    // install.
+    await upsertTrip(makeTrip(1));
+    await upsertTrip(makeTrip(2));
+    const cached = (gers: string, tripId: number, name: string) => ({
+      gers, tripId, name, searchName: name.toLowerCase(), address: '',
+      lat: 52.5, lng: 13.4, category: null, website: null, phone: null, cachedAt: 1,
+    });
+    await offlineDb.areaPlaces.bulkPut([
+      cached('a', 1, 'Ostpol'),
+      cached('b', 1, 'Kollo'),
+      cached('c', 2, 'Sonne'),
+    ]);
+
+    await clearTripData(1);
+
+    expect(await offlineDb.areaPlaces.where('tripId').equals(1).count()).toBe(0);
+    expect(await offlineDb.areaPlaces.where('tripId').equals(2).count()).toBe(1);
+  });
+
   it('preserves unsynced (pending/conflict) writes but drops dead failed ones (#1135)', async () => {
     await upsertTrip(makeTrip(1));
     await offlineDb.mutationQueue.bulkPut([

@@ -626,5 +626,21 @@ const journey: TranslationStrings = {
   'journey.editor.statsExcludedHint':
     'Остановка остаётся в дневнике, но не учитывается в расстоянии, странах и на карте в Studio.',
   'journey.entry.offRoute': 'Вне маршрута',
+  'journey.suggestions.dismiss': 'Отклонить это предложение',
+  'journey.suggestions.dismissed': 'Предложение отклонено',
+  'journey.suggestions.restore': 'Вернуть отклонённые предложения',
+  'journey.suggestions.restoreCount': 'Отклонённые предложения ({count})',
+  'journey.suggestions.restored': 'Вернулось предложений: {count}',
+  'journey.detail.addOnThisDay': 'Добавить запись в этот день',
+  'journey.detail.jumpToDay': 'Перейти к {date}',
+  'journey.detail.searchPlaceholder': 'Поиск по этому дневнику',
+  'journey.detail.searchEmpty': 'Ни одна запись не подходит под «{query}»',
+  'journey.settings.entryFields': 'Поля записи',
+  'journey.settings.entryFieldsHint': 'Выключите то, что этот дневник не использует. Ничего из уже написанного не пропадёт.',
+  'journey.settings.showVerdict': 'За и против',
+  'journey.settings.showMood': 'Настроение',
+  'journey.settings.showWeather': 'Погода',
+  'journey.entry.suggestion': 'Предложение',
+  'journey.editor.addDetails': '+ Подробности',
 };
 export default journey;

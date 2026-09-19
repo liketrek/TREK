@@ -1,22 +1,18 @@
 /*
- * The release notice modal — a two-column panel: the release on the left,
- * a note from the maintainer on the right.
+ * The release notice modal: a two-column panel, the release on the left and a
+ * note from the maintainer on the right.
  *
- * The measurements here are the design's own, kept in one stylesheet rather
- * than spread across inline styles (the same arrangement mobile.css uses for
- * the mobile shell). Every one of them is multiplied by --rn-s, so the whole
- * panel scales as one piece and the proportions never drift: change that one
- * number to resize the modal.
+ * The measurements are the design's own, at full size, kept in one stylesheet
+ * rather than spread across inline styles (the same arrangement mobile.css uses
+ * for the mobile shell). The panel is 1420px wide wherever the screen has room
+ * and gives up width, never size, where it has not.
  *
- * The left column is deliberately dark in both themes: it is a brand panel,
- * not a surface, so it does not read the surface tokens. Everything on the
- * right does.
+ * The left column is deliberately dark in both themes: it is a brand panel, not
+ * a surface, so it does not read the surface tokens. Everything on the right
+ * does. theme-lint-disable: the brand panel's colours are fixed by design.
  */
 
 .rn-overlay {
-  /* Design is drawn at 1420px wide; anything below full size is this factor. */
-  --rn-s: 0.72;
-
   position: fixed;
   inset: 0;
   /* Above the navbar, the page-bound sticky bars and the page-owned
@@ -25,20 +21,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 28px;
+  padding: 34px;
   background: oklch(0.12 0.01 60 / 0.52);
   backdrop-filter: blur(14px) saturate(1.1);
   -webkit-backdrop-filter: blur(14px) saturate(1.1);
   animation: rn-fade 0.35s ease both;
-}
-
-/* Roomy screens can carry a little more of the design's own scale. */
-@media (min-width: 1900px) and (min-height: 1150px) {
-  .rn-overlay { --rn-s: 0.86; }
-}
-
-@media (max-width: 1280px), (max-height: 760px) {
-  .rn-overlay { --rn-s: 0.64; padding: 16px; }
 }
 
 @keyframes rn-fade {
@@ -51,18 +38,30 @@
   to   { opacity: 1; transform: none; }
 }
 
+/*
+ * The design draws these boxes with their border outside the stated size, the
+ * browser default. TREK sets border-box globally, which would take 2px off each.
+ */
+.rn-panel,
+.rn-mark,
+.rn-feature,
+.rn-feature-visual,
+.rn-notes,
+.rn-close { box-sizing: content-box; }
+
 .rn-panel {
-  width: calc(1420px * var(--rn-s));
-  max-width: 100%;
+  width: min(1420px, calc(100% - 2px));
   max-height: 100%;
   display: grid;
-  grid-template-columns: 1.3fr 1fr;
-  border-radius: calc(34px * var(--rn-s));
+  grid-template-columns: 1.2fr 1fr;
+  border-radius: 30px;
   overflow: hidden;
   box-shadow: 0 4px 12px oklch(0 0 0 / 0.2), 0 60px 130px -40px oklch(0 0 0 / 0.7);
   border: 1px solid oklch(1 0 0 / 0.1);
   animation: rn-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
   font-family: var(--font-system);
+  /* The design sets no base line height; the app's 1.5 would add 3px to every label. */
+  line-height: normal;
 }
 
 /* Below the two-column breakpoint the halves stack and the panel scrolls. */
@@ -85,7 +84,7 @@
   position: relative;
   background: radial-gradient(120% 95% at 18% 0%, #1b1b22 0%, #0e0e12 52%, #08080a 100%);
   color: #f5f5f7;
-  padding: calc(50px * var(--rn-s)) calc(54px * var(--rn-s)) calc(38px * var(--rn-s));
+  padding: 44px 46px 34px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -110,14 +109,17 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  scrollbar-width: none;
 }
 
-.rn-eyebrow-row { display: flex; align-items: center; gap: calc(11px * var(--rn-s)); }
+.rn-release-inner::-webkit-scrollbar { display: none; }
+
+.rn-eyebrow-row { display: flex; align-items: center; gap: 11px; }
 
 .rn-mark {
-  width: calc(32px * var(--rn-s));
-  height: calc(32px * var(--rn-s));
-  border-radius: calc(10px * var(--rn-s));
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
   background: oklch(1 0 0 / 0.1);
   border: 1px solid oklch(1 0 0 / 0.16);
   display: flex;
@@ -126,167 +128,156 @@
   flex: none;
 }
 
-.rn-mark img {
-  width: calc(19px * var(--rn-s));
-  height: calc(19px * var(--rn-s));
-  display: block;
-}
+.rn-mark img { width: 18px; height: 18px; display: block; }
 
-.rn-eyebrow {
+.rn-eyebrow,
+.rn-features-label {
   font-family: var(--font-subtext);
-  font-size: calc(11.5px * var(--rn-s));
+  font-size: 11px;
+  line-height: 14px;
   font-weight: 600;
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: oklch(1 0 0 / 0.5);
 }
 
-.rn-version-row {
-  margin-top: calc(30px * var(--rn-s));
-  display: flex;
-  align-items: flex-end;
-  gap: calc(20px * var(--rn-s));
-}
-
 .rn-version {
+  margin-top: 22px;
   font-family: var(--font-subtext);
-  font-size: calc(112px * var(--rn-s));
+  font-size: 74px;
   font-weight: 600;
-  line-height: 0.82;
+  line-height: 0.84;
   letter-spacing: -0.055em;
   color: #fbfbfd;
-  font-variant-numeric: tabular-nums;
-}
-
-.rn-tag {
-  padding-bottom: calc(11px * var(--rn-s));
-  font-size: calc(12.5px * var(--rn-s));
-  font-weight: 500;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: oklch(0.84 0.18 85);
 }
 
 .rn-headline {
+  /* CJK breaks anywhere by default; break at phrase boundaries where supported. */
   word-break: auto-phrase;
-  margin: calc(24px * var(--rn-s)) 0 0;
-  font-size: calc(30px * var(--rn-s));
+  margin: 20px 0 0;
+  font-size: 26px;
   font-weight: 600;
-  line-height: 1.22;
+  line-height: 1.24;
   letter-spacing: -0.03em;
-  max-width: calc(600px * var(--rn-s));
+  max-width: 560px;
   text-wrap: pretty;
 }
 
 .rn-intro {
-  margin: calc(13px * var(--rn-s)) 0 0;
-  max-width: calc(620px * var(--rn-s));
-  font-size: calc(15.5px * var(--rn-s));
-  line-height: 1.62;
+  margin: 11px 0 0;
+  max-width: 560px;
+  font-size: 16.5px;
+  line-height: 1.6;
   color: oklch(1 0 0 / 0.62);
   text-wrap: pretty;
 }
 
-.rn-features {
-  margin-top: calc(30px * var(--rn-s));
+.rn-features-head {
+  margin-top: 28px;
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.rn-features-label { white-space: nowrap; }
+
+.rn-features-rule { flex: 1; height: 1px; background: oklch(1 0 0 / 0.12); }
+
+.rn-features-aside {
+  font-size: 13px;
+  font-weight: 500;
+  color: oklch(1 0 0 / 0.4);
+  white-space: nowrap;
+}
+
+.rn-features {
+  margin-top: 14px;
+  /* Keeps the foot clear of the cards when the column has no height to spare. */
+  margin-bottom: 26px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 14px;
 }
 
 .rn-feature {
+  position: relative;
   display: flex;
-  gap: calc(18px * var(--rn-s));
-  padding: calc(16px * var(--rn-s)) 0;
-  border-top: 1px solid oklch(1 0 0 / 0.09);
+  flex-direction: column;
+  gap: 18px;
+  min-height: 0;
+  padding: 14px 14px 18px;
+  border-radius: 20px;
+  background: linear-gradient(160deg, oklch(1 0 0 / 0.1) 0%, oklch(1 0 0 / 0.045) 62%);
+  border: 1px solid oklch(1 0 0 / 0.13);
+  backdrop-filter: blur(16px) saturate(1.2);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.16), 0 12px 28px -16px oklch(0 0 0 / 0.7);
+  overflow: hidden;
 }
 
-.rn-feature:last-child { border-bottom: 1px solid oklch(1 0 0 / 0.09); }
-
-.rn-feature-icon {
-  width: calc(38px * var(--rn-s));
-  height: calc(38px * var(--rn-s));
-  flex: none;
-  border-radius: calc(12px * var(--rn-s));
-  background: oklch(1 0 0 / 0.07);
-  border: 1px solid oklch(1 0 0 / 0.1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: oklch(0.9 0.16 88);
+.rn-feature-shine {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, oklch(1 0 0 / 0.4), transparent);
 }
 
-.rn-feature-text { min-width: 0; }
+.rn-feature-visual {
+  position: relative;
+  height: 112px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: oklch(1 0 0 / 0.06);
+  border: 1px solid oklch(1 0 0 / 0.12);
+}
 
 .rn-feature-title {
-  font-size: calc(16.5px * var(--rn-s));
+  font-size: 17px;
   font-weight: 600;
-  letter-spacing: -0.01em;
-}
-
-.rn-badge {
-  display: inline-flex;
-  align-items: center;
-  margin-left: calc(4px * var(--rn-s));
-  padding: calc(3px * var(--rn-s)) calc(8px * var(--rn-s));
-  border-radius: calc(6px * var(--rn-s));
-  background: oklch(0.84 0.18 85 / 0.16);
-  border: 1px solid oklch(0.84 0.18 85 / 0.4);
-  font-family: var(--font-subtext);
-  font-size: calc(9.5px * var(--rn-s));
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: oklch(0.9 0.16 88);
-  vertical-align: 2px;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  text-wrap: pretty;
 }
 
 .rn-feature-body {
-  margin-top: calc(5px * var(--rn-s));
-  font-size: calc(14.5px * var(--rn-s));
+  margin-top: 7px;
+  font-size: 13.5px;
   line-height: 1.55;
-  color: oklch(1 0 0 / 0.58);
+  color: oklch(1 0 0 / 0.6);
   text-wrap: pretty;
 }
 
 .rn-release-foot {
   margin-top: auto;
-  padding-top: calc(28px * var(--rn-s));
+  padding-top: 26px;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
-  gap: calc(24px * var(--rn-s));
-  flex-wrap: wrap;
+  gap: 20px;
+  border-top: 1px solid oklch(1 0 0 / 0.09);
 }
 
-.rn-stats { display: flex; gap: calc(34px * var(--rn-s)); }
-
-.rn-stat-value {
-  font-family: var(--font-subtext);
-  font-size: calc(20px * var(--rn-s));
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums;
-}
-
-.rn-stat-label {
-  margin-top: calc(3px * var(--rn-s));
-  font-size: calc(11px * var(--rn-s));
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: oklch(1 0 0 / 0.42);
+.rn-footnote {
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: oklch(1 0 0 / 0.46);
+  max-width: 360px;
+  text-wrap: pretty;
 }
 
 .rn-notes {
   display: inline-flex;
   align-items: center;
-  gap: calc(12px * var(--rn-s));
-  height: calc(46px * var(--rn-s));
-  padding: 0 calc(8px * var(--rn-s)) 0 calc(20px * var(--rn-s));
+  gap: 11px;
+  height: 44px;
+  padding: 0 7px 0 18px;
   border-radius: 999px;
   background: oklch(1 0 0 / 0.07);
   border: 1px solid oklch(1 0 0 / 0.14);
   color: #f5f5f7;
-  font-size: calc(14px * var(--rn-s));
+  font-size: 15px;
   font-weight: 600;
   white-space: nowrap;
   box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.1);
@@ -298,10 +289,10 @@
 .rn-notes:hover { background: oklch(1 0 0 / 0.12); color: #f5f5f7; }
 
 .rn-notes-arrow {
-  width: calc(30px * var(--rn-s));
-  height: calc(30px * var(--rn-s));
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
-  background: oklch(0.9 0.16 88);
+  background: #f5f5f7;
   color: #101013;
   display: flex;
   align-items: center;
@@ -309,23 +300,191 @@
   flex: none;
 }
 
-.rn-footnote {
-  margin-top: calc(22px * var(--rn-s));
-  padding-top: calc(18px * var(--rn-s));
-  font-size: calc(14px * var(--rn-s));
-  line-height: 1.6;
-  color: oklch(1 0 0 / 0.5);
-  text-wrap: pretty;
+/* ── The card pictures ─────────────────────────────────────────────────── */
+
+.rn-vis {
+  position: absolute;
+  inset: 0;
+  color: #f5f5f7;
+  font-family: var(--font-system);
 }
 
-/*
- * Its own rule so the footnote only draws a divider when something sits between
- * it and the feature list. Without the stats row the list's closing border is
- * already right above it, and two lines land on top of each other.
- */
-.rn-release-foot + .rn-footnote {
-  border-top: 1px solid oklch(1 0 0 / 0.09);
+.rn-vis-road > svg,
+.rn-vis-trail > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+.rn-vis-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: oklch(1 0 0 / 0.55);
 }
+
+/* Places API: the index answering a search while it is typed. */
+.rn-vis-places {
+  padding: 9px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* The same wordmark the API keys card leads with, centred; its pill text inverts against the tile. */
+.rn-vis-trekbadge { align-self: center; display: flex; align-items: center; height: 24px; }
+
+.rn-vis-trekmark { display: block; height: 20px; width: auto; color: #f5f5f7; }
+
+.rn-vis-places .trek-mark .pill-fg { fill: #101013; }
+
+.rn-vis-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 8px;
+  background: oklch(1 0 0 / 0.08);
+  border: 1px solid oklch(1 0 0 / 0.16);
+  font-size: 10px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.rn-vis-search svg { width: 11px; height: 11px; flex: none; color: oklch(1 0 0 / 0.55); }
+
+/* The query types itself out once, then the answer arrives under it. */
+.rn-vis-typed {
+  display: inline-block;
+  max-width: 90px;
+  overflow: hidden;
+  white-space: nowrap;
+  animation: rn-type 1.3s steps(13, end) 0.7s both;
+}
+
+@keyframes rn-type { from { max-width: 0; } to { max-width: 90px; } }
+
+.rn-vis-caret {
+  width: 1px;
+  height: 12px;
+  margin-left: -4px;
+  background: #f5f5f7;
+  animation: rn-caret 1s steps(1) infinite;
+}
+
+@keyframes rn-caret { 50% { opacity: 0; } }
+
+.rn-vis-result {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  background: oklch(1 0 0 / 0.07);
+  animation: rn-answer 0.3s ease 2.1s both;
+}
+
+@keyframes rn-answer { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
+
+.rn-vis-cat {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid #ffffff;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  box-sizing: border-box;
+}
+
+.rn-vis-place { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
+
+.rn-vis-place span {
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rn-vis-place small { font-size: 8.5px; color: oklch(1 0 0 / 0.5); }
+
+@media (prefers-reduced-motion: reduce) {
+  .rn-vis-typed, .rn-vis-caret, .rn-vis-result { animation: none; }
+}
+
+[data-reduce-motion='true'] .rn-vis-typed,
+[data-reduce-motion='true'] .rn-vis-caret,
+[data-reduce-motion='true'] .rn-vis-result { animation: none; }
+
+/* Road trip: the drive on the map, in the planner's route blue and marker style. */
+.rn-vis-road-casing { fill: none; stroke: #0a5cc2; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
+
+.rn-vis-road-line { fill: none; stroke: #0a84ff; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+
+.rn-vis-marker {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  box-sizing: border-box;
+  box-shadow: 0 1px 4px oklch(0 0 0 / 0.35);
+  color: #ffffff;
+  font-size: 8.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.rn-vis-distance {
+  position: absolute;
+  right: 9px;
+  bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 99px;
+  background: #f5f5f7;
+  color: #101013;
+  font-size: 9px;
+  font-weight: 600;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Dawarich: a recorded day, in the trail colour the map draws it with. */
+.rn-vis-trail-line { fill: none; stroke: #2563eb; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+
+.rn-vis-trail-stay { fill: #ffffff; stroke: #2563eb; stroke-width: 2; }
+
+/* The mark itself, unframed, with its corners rounded like an app icon. */
+.rn-vis-brand {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  width: 58px;
+  height: 58px;
+  border-radius: 15px;
+  overflow: hidden;
+  box-shadow: 0 4px 14px oklch(0 0 0 / 0.45), 0 0 0 1px oklch(1 0 0 / 0.14);
+}
+
+/* A glass sheen over the mark: a soft light from the top and a bright inner edge. */
+.rn-vis-brand::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(160deg, oklch(1 0 0 / 0.42) 0%, oklch(1 0 0 / 0.08) 38%, transparent 55%, oklch(0 0 0 / 0.12) 100%);
+  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.55), inset 0 0 0 1px oklch(1 0 0 / 0.22);
+  pointer-events: none;
+}
+
+.rn-vis-brand img { display: block; width: 100%; height: 100%; }
 
 /* ── Right: the note ───────────────────────────────────────────────────── */
 
@@ -340,10 +499,10 @@
 
 .rn-close {
   position: absolute;
-  top: calc(24px * var(--rn-s));
-  right: calc(24px * var(--rn-s));
-  width: calc(38px * var(--rn-s));
-  height: calc(38px * var(--rn-s));
+  top: 22px;
+  right: 22px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background: var(--bg-hover);
   border: 1px solid var(--border-faint);
@@ -361,15 +520,19 @@
 .rn-note-body {
   flex: 1;
   min-height: 0;
-  padding: calc(50px * var(--rn-s)) calc(52px * var(--rn-s)) calc(30px * var(--rn-s));
+  padding: 44px 44px 26px;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  scrollbar-width: none;
 }
+
+.rn-note-body::-webkit-scrollbar { display: none; }
 
 .rn-note-eyebrow {
   font-family: var(--font-subtext);
-  font-size: calc(11.5px * var(--rn-s));
+  font-size: 11px;
+  line-height: 14px;
   font-weight: 600;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -377,103 +540,139 @@
 }
 
 .rn-note-title {
-  /* CJK breaks anywhere by default; break at phrase boundaries where supported. */
   word-break: auto-phrase;
-  margin: calc(16px * var(--rn-s)) 0 0;
-  font-size: calc(29px * var(--rn-s));
+  margin: 14px 0 0;
+  font-size: 29px;
   font-weight: 600;
   line-height: 1.2;
   letter-spacing: -0.03em;
-  max-width: calc(420px * var(--rn-s));
+  max-width: 420px;
   text-wrap: pretty;
 }
 
 .rn-note p {
-  margin: calc(20px * var(--rn-s)) 0 0;
-  font-size: calc(15px * var(--rn-s));
-  line-height: 1.68;
+  margin: 20px 0 0;
+  font-size: 16px;
+  line-height: 1.66;
   color: var(--text-secondary);
   text-wrap: pretty;
 }
 
-.rn-note p + p { margin-top: calc(15px * var(--rn-s)); }
+.rn-note p + p { margin-top: 14px; }
 
+/*
+ * The promise is a pane of glass in the inverse of the note: dark on a light note,
+ * light on a dark one, with the same sheen and edge light as the release cards.
+ */
 .rn-promise {
-  margin-top: calc(24px * var(--rn-s));
-  padding: calc(20px * var(--rn-s)) calc(22px * var(--rn-s));
-  border-radius: calc(20px * var(--rn-s));
-  background: oklch(0.72 0.11 190 / 0.1);
-  border: 1px solid oklch(0.72 0.11 190 / 0.28);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  margin-top: 24px;
+  padding: 18px 20px;
+  border-radius: 18px;
+  background: linear-gradient(
+    160deg,
+    color-mix(in oklch, var(--text-primary) 94%, transparent) 0%,
+    color-mix(in oklch, var(--text-primary) 80%, transparent) 100%
+  );
+  border: 1px solid color-mix(in oklch, var(--text-primary) 55%, transparent);
+  backdrop-filter: blur(16px) saturate(1.3);
+  -webkit-backdrop-filter: blur(16px) saturate(1.3);
+  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.2), 0 16px 34px -20px oklch(0 0 0 / 0.6);
+  color: var(--bg-primary);
+}
+
+/* The edge light along the top, as on the cards. */
+.rn-promise::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, oklch(1 0 0 / 0.5), transparent);
+  z-index: 1;
+}
+
+/* A soft light falling in from the top left, and a faint glow where it leaves. */
+.rn-promise::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(120% 110% at 0% 0%, oklch(1 0 0 / 0.16) 0%, transparent 55%),
+    radial-gradient(80% 90% at 100% 100%, oklch(0.84 0.18 85 / 0.12) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: -1;
 }
 
 .rn-promise-label {
   display: flex;
   align-items: center;
-  gap: calc(9px * var(--rn-s));
+  gap: 9px;
   font-family: var(--font-subtext);
-  font-size: calc(11px * var(--rn-s));
+  font-size: 10.5px;
   font-weight: 600;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: oklch(0.55 0.09 190);
+  color: color-mix(in oklch, var(--bg-primary) 55%, transparent);
 }
 
-.dark .rn-promise-label { color: oklch(0.78 0.1 190); }
-
 .rn-promise-text {
-  margin-top: calc(10px * var(--rn-s));
-  font-size: calc(15.5px * var(--rn-s));
-  font-weight: 600;
-  line-height: 1.55;
+  margin-top: 9px;
+  font-size: 16.5px;
+  line-height: 1.5;
   letter-spacing: -0.01em;
   text-wrap: pretty;
 }
 
-.rn-signoff { margin-top: auto; padding-top: calc(26px * var(--rn-s)); }
+.rn-promise-text b { font-weight: 600; }
+
+.rn-promise-text span { font-weight: 400; color: color-mix(in oklch, var(--bg-primary) 68%, transparent); }
 
 .rn-closing {
-  font-size: calc(18px * var(--rn-s));
+  margin-top: auto;
+  padding-top: 24px;
+  font-size: 16.5px;
   font-weight: 600;
   letter-spacing: -0.02em;
   color: var(--text-primary);
 }
 
-.rn-signature {
-  margin-top: calc(8px * var(--rn-s));
-  font-size: calc(15px * var(--rn-s));
-  font-weight: 500;
-  color: var(--text-secondary);
-}
-
 .rn-support {
-  padding: calc(26px * var(--rn-s)) calc(52px * var(--rn-s)) calc(34px * var(--rn-s));
+  padding: 22px 44px 26px;
   border-top: 1px solid var(--border-primary);
-  background: var(--bg-secondary);
+  background: var(--bg-hover);
 }
 
 .rn-support-text {
-  font-size: calc(15px * var(--rn-s));
-  line-height: 1.68;
+  font-size: 15.5px;
+  line-height: 1.62;
   color: var(--text-secondary);
   text-wrap: pretty;
 }
 
+.rn-support-text b { font-weight: 600; color: var(--text-primary); }
+
 .rn-support-buttons {
-  margin-top: calc(16px * var(--rn-s));
+  margin-top: 14px;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: calc(10px * var(--rn-s));
+  gap: 10px;
 }
 
 .rn-support-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: calc(9px * var(--rn-s));
-  height: calc(50px * var(--rn-s));
-  border-radius: calc(16px * var(--rn-s));
-  font-size: calc(14.5px * var(--rn-s));
+  gap: 9px;
+  height: 50px;
+  border-radius: 15px;
+  font-size: 15.5px;
   font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   box-shadow: 0 2px 6px oklch(0 0 0 / 0.1);
   cursor: pointer;
   border: 0;
@@ -482,19 +681,41 @@
 
 .rn-support-btn:hover { filter: brightness(0.96); }
 
-/* Brand colours — theme-lint-disable: Buy Me a Coffee and Ko-fi own these. */
-.rn-support-bmc  { background: #ffdd00; color: #101013; }
-.rn-support-kofi { background: #ff5e5b; color: #ffffff; }
+/* The steam lifts off the cup in turn, and the heart beats. */
+.rn-coffee { overflow: visible; }
+.rn-steam { stroke-width: 1.8; animation: rn-steam 3s ease-in-out infinite; }
+.rn-steam:nth-of-type(4) { animation-delay: 0.5s; }
+.rn-steam:nth-of-type(5) { animation-delay: 1s; }
+
+@keyframes rn-steam {
+  0%   { opacity: 0; transform: translate(0, 3px); }
+  25%  { opacity: 1; transform: translate(-0.7px, -1px); }
+  55%  { opacity: 0.85; transform: translate(0.7px, -5px); }
+  100% { opacity: 0; transform: translate(-0.4px, -10px); }
+}
+
+.rn-heart { transform-origin: 50% 55%; animation: rn-beat 1.3s ease-in-out infinite; }
+
+@keyframes rn-beat {
+  0%, 60%, 100% { transform: scale(1); }
+  15% { transform: scale(1.2); }
+  30% { transform: scale(1); }
+  45% { transform: scale(1.12); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rn-steam, .rn-heart { animation: none; }
+}
+
+[data-reduce-motion='true'] .rn-steam,
+[data-reduce-motion='true'] .rn-heart { animation: none; }
+
+/* Brand colours: Buy Me a Coffee and Ko-fi own these. */
+.rn-support-bmc  { background: #ffdd00; color: #101013; } /* theme-lint-disable */
+.rn-support-kofi { background: #ff5e5b; color: #ffffff; } /* theme-lint-disable */
 
 /* Narrow viewports: keep the proportions, drop the outer padding. */
 @media (max-width: 900px) {
   .rn-overlay { padding: 0; }
   .rn-panel { border-radius: 0; border: 0; max-height: 100%; }
 }
-
-/* Icons carry fixed size attributes from lucide; scale them with the panel. */
-.rn-feature-icon svg  { width: calc(18px * var(--rn-s)); height: calc(18px * var(--rn-s)); }
-.rn-notes-arrow svg   { width: calc(16px * var(--rn-s)); height: calc(16px * var(--rn-s)); }
-.rn-promise-label svg { width: calc(14px * var(--rn-s)); height: calc(14px * var(--rn-s)); flex: none; }
-.rn-support-btn svg   { width: calc(18px * var(--rn-s)); height: calc(18px * var(--rn-s)); flex: none; }
-.rn-close svg         { width: calc(18px * var(--rn-s)); height: calc(18px * var(--rn-s)); }

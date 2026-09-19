@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { act, fireEvent, render, screen } from '../../../helpers/render'
+import { act, fireEvent, render, screen, within } from '../../../helpers/render'
 import { buildPlanner, buildShell } from '../../../helpers/mobileTrip'
 import type { MTripShellApi, TripPlanner } from '../../../../src/mobile/screens/trip/MTripShell'
 import type { Day, PackingItem, TodoItem } from '../../../../src/types'
 
-// FE-MOB-SHELL-001 to FE-MOB-SHELL-051
+// FE-MOB-SHELL-001 to FE-MOB-SHELL-066
 
 const mocks = vi.hoisted(() => ({ planner: {} as TripPlanner }))
 
@@ -32,6 +32,16 @@ function slot(testId: string) {
   }
 }
 
+/**
+ * One identity per slot, created once. Built inside the wrapper's render body instead,
+ * every rerender hands the shell four brand-new component types and React remounts all
+ * of them, which would quietly mask the one thing FE-MOB-SHELL-054 is watching for.
+ */
+const PlanTimelineSlot = slot('plan-timeline')
+const MapAreaSlot = slot('map-area')
+const PlacesBrowserSlot = slot('places-browser')
+const SheetsSlot = slot('sheets')
+
 function TabSlot({ shell, tab }: { planner: TripPlanner; shell: MTripShellApi; tab: string }) {
   shellApi = shell
   return <div data-testid="tab-panel">{tab}</div>
@@ -52,6 +62,33 @@ const DAYS = [
   { id: 12, trip_id: 1, day_number: 2, date: '2026-05-03', title: null },
 ] as unknown as Day[]
 
+/**
+ * The same sections with the road trip addon on, in the order the planner hook builds
+ * them, which is NOT the dock's order. The dock seats by its own priority list, so a
+ * fixture that mirrors the hook is the only one that can tell the two apart.
+ */
+const RT_TABS = [
+  { id: 'plan', label: 'Plan' },
+  { id: 'transports', label: 'Transport' },
+  { id: 'buchungen', label: 'Bookings' },
+  { id: 'roadtrip', label: 'Road trip' },
+  { id: 'listen', label: 'Lists' },
+  { id: 'finanzplan', label: 'Budget' },
+  { id: 'dateien', label: 'Files' },
+  { id: 'collab', label: 'Collaboration' },
+]
+
+/** One routed stage, as the addon reports it. */
+const stage = (over: Record<string, unknown> = {}) => ({
+  dayId: 11, dayNumber: 1, date: '2026-05-02', title: null, distance: 123000, duration: 5400,
+  stops: [], legs: [], legVias: [], geometry: [], schedule: { entries: [] }, driveWarnings: [],
+  ...over,
+})
+
+/** The dock's seats, in order, plus the More button at the end. */
+const dockLabels = () =>
+  within(screen.getByRole('navigation')).getAllByRole('button').map(b => b.getAttribute('aria-label'))
+
 function todayIso(): string {
   const now = new Date()
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
@@ -66,11 +103,11 @@ function renderShell(overrides: Partial<TripPlanner> = {}) {
   } as Partial<TripPlanner>)
   const Shell = () => (
     <MTripShell
-      PlanTimeline={slot('plan-timeline')}
-      MapArea={slot('map-area')}
-      PlacesBrowser={slot('places-browser')}
+      PlanTimeline={PlanTimelineSlot}
+      MapArea={MapAreaSlot}
+      PlacesBrowser={PlacesBrowserSlot}
       TabPanel={TabSlot}
-      Sheets={slot('sheets')}
+      Sheets={SheetsSlot}
     />
   )
   const view = render(<Shell />)
@@ -571,6 +608,207 @@ describe('MTripShell', () => {
 
       expect(shellApi.sheet).toEqual({ id: 'day', payload: { dayId: 11 } })
       expect(planner.handleSelectDay).not.toHaveBeenCalled()
+    })
+  })
+
+  // The road trip tab. The drive is a second reading of the same trip on the same map,
+  // so it does not get a map of its own: the shell's single instance now lies under
+  // BOTH tabs, and everything floating over it keys off `mapFront` rather than off
+  // `view`, which only ever meant the plan tab.
+  describe('the road trip tab', () => {
+    /** Commit a tab change the way the planner would, and redraw. */
+    function goToTab(planner: TripPlanner, rerenderShell: () => void, tabId: string) {
+      ;(planner as { activeTab: string }).activeTab = tabId
+      rerenderShell()
+    }
+
+    const rtSwitch = () => screen.getByRole('button', { name: 'mobileTrip.mapView' })
+    const backToList = () => screen.getByRole('button', { name: 'mobileTrip.listView' })
+
+    it('FE-MOB-SHELL-052: the drive takes the second dock seat and the packing list loses its own', () => {
+      renderShell({ TRIP_TABS: RT_TABS } as Partial<TripPlanner>)
+      // Second seat, not fourth: the dock orders by its own priority list, so the drive
+      // sits beside the plan however late the hook appends it.
+      expect(dockLabels()).toEqual(['Plan', 'Road trip', 'Transport', 'Bookings', 'Budget', 'mobileTrip.more'])
+      // Six sections would leave 3px between the circles, so the cap cuts the last one
+      // and the More sheet picks it up.
+      expect(screen.queryByRole('button', { name: 'Lists' })).not.toBeInTheDocument()
+    })
+
+    it('FE-MOB-SHELL-053: without the addon the dock is exactly what it was', () => {
+      renderShell()
+      expect(dockLabels()).toEqual(['Plan', 'Transport', 'Bookings', 'Budget', 'Lists', 'mobileTrip.more'])
+    })
+
+    it('FE-MOB-SHELL-054: the map survives the move between the plan tab and the drive', () => {
+      const { planner, rerenderShell } = renderShell({ TRIP_TABS: RT_TABS } as Partial<TripPlanner>)
+      const map = screen.getByTestId('map-area')
+
+      goToTab(planner, rerenderShell, 'roadtrip')
+      expect(screen.getByTestId('tab-panel')).toHaveTextContent('roadtrip')
+      // Identity, not presence. Written as two JSX positions the map remounts here,
+      // which tears down the WebGL context and reloads every tile, a flash on the
+      // device that a presence check would happily call a pass.
+      expect(screen.getByTestId('map-area')).toBe(map)
+
+      goToTab(planner, rerenderShell, 'plan')
+      expect(screen.getByTestId('map-area')).toBe(map)
+      expect(screen.getByTestId('plan-timeline')).toBeInTheDocument()
+    })
+
+    it('FE-MOB-SHELL-055: a tab with no map still tears it down', () => {
+      const { planner, rerenderShell } = renderShell({ TRIP_TABS: RT_TABS, activeTab: 'roadtrip' } as Partial<TripPlanner>)
+      expect(screen.getByTestId('map-area')).toBeInTheDocument()
+
+      goToTab(planner, rerenderShell, 'transports')
+
+      expect(screen.queryByTestId('map-area')).not.toBeInTheDocument()
+      expect(screen.getByTestId('tab-panel')).toHaveTextContent('transports')
+    })
+
+    it('FE-MOB-SHELL-056: the switch in the drive flips its own half, not the plan view', () => {
+      renderShell({ TRIP_TABS: RT_TABS, activeTab: 'roadtrip' } as Partial<TripPlanner>)
+      expect(shellApi.mapFront).toBe(false)
+
+      fireEvent.click(rtSwitch())
+      expect(shellApi.rtView).toBe('map')
+      expect(shellApi.mapFront).toBe(true)
+      expect(shellApi.view).toBe('plan')
+
+      fireEvent.click(backToList())
+      expect(shellApi.rtView).toBe('list')
+      expect(shellApi.mapFront).toBe(false)
+    })
+
+    it('FE-MOB-SHELL-057: the drive switch draws the route and otherwise leaves the camera alone', () => {
+      const { planner } = renderShell({
+        TRIP_TABS: RT_TABS, activeTab: 'roadtrip', selectedDayId: null,
+      } as Partial<TripPlanner>)
+
+      fireEvent.click(rtSwitch())
+      expect(planner.autoShowRoute).toHaveBeenCalledTimes(1)
+      // Deliberately quieter than the plan tab's toggle: the stage is always one day,
+      // both halves show the same one, and the camera belongs to whoever looked last.
+      expect(planner.handleSelectDay).not.toHaveBeenCalled()
+      expect(planner.setExpandedDayIds).not.toHaveBeenCalled()
+
+      fireEvent.click(backToList())
+      // And no day restore on the way out, which is what the plan tab does here.
+      expect(planner.handleSelectDay).not.toHaveBeenCalled()
+      expect(planner.setExpandedDayIds).not.toHaveBeenCalled()
+    })
+
+    it('FE-MOB-SHELL-058: the two halves are separate states, so neither tab drags the other into its own', () => {
+      const { planner, rerenderShell } = renderShell({ TRIP_TABS: RT_TABS } as Partial<TripPlanner>)
+
+      fireEvent.click(rtSwitch())
+      expect(shellApi.view).toBe('map')
+      expect(shellApi.rtView).toBe('list')
+      expect(shellApi.mapFront).toBe(true)
+
+      goToTab(planner, rerenderShell, 'roadtrip')
+      // The plan tab is still on its map; the drive opens on its chain regardless.
+      expect(shellApi.view).toBe('map')
+      expect(shellApi.mapFront).toBe(false)
+      expect(screen.getByRole('button', { name: 'mobileTrip.mapView' })).toBeInTheDocument()
+    })
+
+    it('FE-MOB-SHELL-059: the all-days button follows the map into the drive', () => {
+      const { planner } = renderShell({ TRIP_TABS: RT_TABS, activeTab: 'roadtrip' } as Partial<TripPlanner>)
+      expect(screen.queryByRole('button', { name: 'mobileTrip.allDays' })).not.toBeInTheDocument()
+
+      fireEvent.click(rtSwitch())
+      vi.mocked(planner.setExpandedDayIds).mockClear()
+      fireEvent.click(screen.getByRole('button', { name: 'mobileTrip.allDays' }))
+
+      // The whole drive in its day colours, off the same handler the plan map uses.
+      expect(planner.handleSelectDay).toHaveBeenLastCalledWith(null, false)
+      expect(planner.setExpandedDayIds).toHaveBeenCalledWith(null)
+    })
+
+    it('FE-MOB-SHELL-060: the stage header opens the driving settings', () => {
+      renderShell({ TRIP_TABS: RT_TABS, activeTab: 'roadtrip' } as Partial<TripPlanner>)
+      fireEvent.click(screen.getByRole('button', { name: 'roadtrip.title' }))
+      expect(shellApi.sheet).toEqual({ id: 'rtinfo', payload: undefined })
+    })
+
+    it('FE-MOB-SHELL-061: the stage header names the day on screen and what it costs', () => {
+      renderShell({
+        TRIP_TABS: RT_TABS,
+        activeTab: 'roadtrip',
+        roadtripRoutes: { days: [stage()], totalDistance: 240000 },
+      } as unknown as Partial<TripPlanner>)
+      // The stage beats the total: 123 km is today's drive, 240 km is the whole trip.
+      const header = screen.getByRole('button', { name: 'Sat 2, 123 km' })
+      // Two badges rather than one line joined with a dot.
+      expect(within(header).getByText('Sat 2')).not.toBe(within(header).getByText('123 km'))
+      expect(header.textContent).not.toContain('·')
+    })
+
+    it('FE-MOB-SHELL-062: with the day filter off it reads the whole drive', () => {
+      renderShell({
+        TRIP_TABS: RT_TABS,
+        activeTab: 'roadtrip',
+        selectedDayId: null,
+        roadtripRoutes: { days: [stage()], totalDistance: 240000 },
+      } as unknown as Partial<TripPlanner>)
+      const header = screen.getByRole('button', { name: '240 km' })
+      // The total alone: without a stage there is no day to badge.
+      const badges = header.querySelectorAll('span.rounded-full')
+      expect(badges).toHaveLength(1)
+      expect(badges[0]).toHaveTextContent('240 km')
+    })
+
+    it('FE-MOB-SHELL-063: before anything has routed it falls back to the addon name, and the plan tab never shows it', () => {
+      const { planner, rerenderShell } = renderShell({ TRIP_TABS: RT_TABS, activeTab: 'roadtrip' } as Partial<TripPlanner>)
+      // Never an empty figure: the header is the only way into the driving settings.
+      expect(screen.getByRole('button', { name: 'roadtrip.title' })).toBeInTheDocument()
+
+      goToTab(planner, rerenderShell, 'plan')
+      expect(screen.queryByRole('button', { name: 'roadtrip.title' })).not.toBeInTheDocument()
+    })
+
+    it('FE-MOB-SHELL-064: a stage whose day the rail has lost still reads as a day number', () => {
+      // A remote day:deleted can retire the day while its legs are still on screen.
+      renderShell({
+        TRIP_TABS: RT_TABS,
+        activeTab: 'roadtrip',
+        selectedDayId: 99,
+        roadtripRoutes: { days: [stage({ dayId: 99, dayNumber: 4, distance: 50000 })], totalDistance: 240000 },
+      } as unknown as Partial<TripPlanner>)
+      expect(screen.getByRole('button', { name: 'planner.dayN:4, 50 km' })).toBeInTheDocument()
+    })
+
+    it('FE-MOB-SHELL-065: a stage the round has not measured yet shows its day badge alone', () => {
+      renderShell({
+        TRIP_TABS: RT_TABS,
+        activeTab: 'roadtrip',
+        roadtripRoutes: { days: [stage({ distance: 0 })], totalDistance: 240000 },
+      } as unknown as Partial<TripPlanner>)
+      // Not "Sat 2 · 0 m", and not the whole trip's 240 km standing in for the day either.
+      // The active day chip below shares the name, so the header is the one with the sliders.
+      const header = screen.getAllByRole('button', { name: 'Sat 2' })
+        .find(button => button.querySelector('.lucide-sliders-horizontal')) as HTMLElement
+      expect(header).toBeDefined()
+      expect(within(header).queryByText('0 m')).toBeNull()
+      expect(within(header).queryByText('240 km')).toBeNull()
+    })
+
+    it('FE-MOB-SHELL-066: the header figures are badges, the day in caps and the distance in its own case', () => {
+      renderShell({
+        TRIP_TABS: RT_TABS,
+        activeTab: 'roadtrip',
+        roadtripRoutes: { days: [stage()], totalDistance: 240000 },
+      } as unknown as Partial<TripPlanner>)
+      const header = screen.getByRole('button', { name: 'Sat 2, 123 km' })
+      const badges = Array.from(header.children).filter(el => el.tagName === 'SPAN')
+      expect(badges.map(b => b.textContent)).toEqual(['Sat 2', '123 km'])
+      for (const badge of badges) expect(badge.className).toContain('rounded-full')
+      expect(badges[0].className).toContain('uppercase')
+      // m and M are different units, so the distance keeps its case.
+      expect(badges[1].className).not.toContain('uppercase')
+      // Neutral, both: the active day chip right below is already the filled pill.
+      expect(badges[0].className).not.toContain('bg-m-act')
     })
   })
 })

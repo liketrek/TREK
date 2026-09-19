@@ -135,6 +135,8 @@ const ALLOWED_DESTRUCTIVE: Record<string, string> = {
     'Atlas enclave fix: DELETE ... WHERE place_id IN (places inside specific enclave boxes) — invalidate stale region cache; re-resolved on next request.',
   'DELETE FROM visited_regions':
     'Atlas geoBoundaries swap (#1119): DELETE ... WHERE id = ? — after UPDATE OR IGNORE re-codes a manually-marked region to its current code, drop only the single leftover row whose UNIQUE(user_id, region_code) collision caused the update to be skipped (a duplicate of a region the user already has).',
+  'DELETE FROM hidden_regions':
+    'Guangdong rename (#2284): DELETE ... WHERE region_code = the retired CN-GUANGZHOUPROVINCE, run right after an UPDATE OR IGNORE re-codes the tombstone. Only a row the update had to skip survives to here, and it can only be skipped because UNIQUE(user_id, region_code) already holds the same tombstone under the correct code, so the user keeps the region hidden either way.',
   'DELETE FROM reservation_day_positions':
     'DELETE ... WHERE the row joins a reservation and a day sitting on different trips. The table has no trip_id and its two foreign keys only require the ids to exist, so a pair that never belonged together was storable; the writer scopes to the trip now and this clears what earlier builds allowed. Bounded by the join — a row whose reservation and day agree on their trip is untouched.',
 };

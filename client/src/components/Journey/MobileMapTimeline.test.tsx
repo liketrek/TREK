@@ -24,6 +24,7 @@ vi.mock('./JourneyMap', async () => {
   }
 })
 
+import userEvent from '@testing-library/user-event'
 import { render, screen, fireEvent, act } from '../../../tests/helpers/render'
 import { resetAllStores } from '../../../tests/helpers/store'
 import MobileMapTimeline from './MobileMapTimeline'
@@ -119,24 +120,37 @@ describe('MobileMapTimeline', () => {
   it('FE-COMP-JMAPTL-001: renders one card per entry on top of a full-screen map', () => {
     renderTimeline()
     expect(screen.getByTestId('journey-map')).toBeInTheDocument()
-    expect(lastMapProps.current).toMatchObject({ height: 9999, fullScreen: true, paddingBottom: 200 })
+    // The strip below the map grew with the cover cards and the day bar (#2299), so
+    // the map keeps that much clear when it frames the journey.
+    expect(lastMapProps.current).toMatchObject({ height: 9999, fullScreen: true, paddingBottom: 250 })
     expect(screen.getByText('Louvre')).toBeInTheDocument()
     expect(screen.getByText('Museumsinsel')).toBeInTheDocument()
     expect(screen.getByText('Reichstag')).toBeInTheDocument()
   })
 
-  it('FE-COMP-JMAPTL-002: entries on the same day share a colour and count up', () => {
+  it('FE-COMP-JMAPTL-002: entries carry their day as a colour rather than as a number', () => {
+    // The number used to say which stop of the day this was, which is not a
+    // question anybody asks; the day bar answers the one they do (#2299). What
+    // survives is the colour, on a hairline at the foot of each card.
     const { container } = renderTimeline()
     const { cards } = carouselOf(container)
-    const badge = (card: HTMLElement) => card.querySelector('span[style]') as HTMLElement
+    const ring = (card: HTMLElement) => (card.querySelector('button') as HTMLElement).style.boxShadow
 
-    expect(badge(cards[0]).textContent).toBe('1')
-    expect(badge(cards[0])).toHaveStyle({ background: DAY_COLORS[0] })
-    // second day, first and second entry of that day
-    expect(badge(cards[1]).textContent).toBe('1')
-    expect(badge(cards[2]).textContent).toBe('2')
-    expect(badge(cards[1])).toHaveStyle({ background: DAY_COLORS[1] })
-    expect(badge(cards[2])).toHaveStyle({ background: DAY_COLORS[1] })
+    expect(ring(cards[0])).toContain(DAY_COLORS[0])
+    expect(ring(cards[1])).toContain(DAY_COLORS[1])
+    expect(ring(cards[2])).toContain(DAY_COLORS[1])
+  })
+
+  it('FE-COMP-JMAPTL-002b: the day bar offers one segment per day and jumps to it', async () => {
+    const { container } = renderTimeline()
+    const segments = screen.getAllByRole('button').filter(b => b.getAttribute('aria-label')?.startsWith('Jump to'))
+
+    expect(segments).toHaveLength(2)
+
+    await userEvent.click(segments[1])
+
+    const { cards } = carouselOf(container)
+    expect(cards[1].querySelector('button')!.className).toContain('w-[164px]')
   })
 
   it('FE-COMP-JMAPTL-003: the first entry starts out active and drives the map highlight', () => {

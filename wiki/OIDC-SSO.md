@@ -13,6 +13,7 @@ OpenID Connect (OIDC) lets users log in with an existing identity provider — G
 3. Authenticate and grant consent.
 4. The provider redirects back to TREK at `GET /api/auth/oidc/callback`. If this is your first login, an account is created automatically (subject to registration settings).
 5. The server issues a short-lived one-time code and redirects your browser to `/login?oidc_code=<code>`. The frontend immediately exchanges that code at `GET /api/auth/oidc/exchange?code=<code>` to obtain the session.
+   The code is only half of what the exchange needs: the callback also sets a one-minute `HttpOnly` cookie (`trek_oidc_exchange`) holding a secret that never appears in a URL, and the exchange requires both. A code copied out of the address bar, out of history, or out of a proxy log is therefore worthless in any other browser, and it is spent by the first attempt to redeem it whether that attempt succeeds or not. If your reverse proxy strips cookies on the way back from the identity provider, SSO login will fail here with `Invalid or expired code`.
 6. Your `trek_session` cookie is set and you land on the dashboard.
 
 **Remember me.** The Remember-me switch on the login page is carried into SSO as a query flag on the login URL: `GET /api/auth/oidc/login?remember=1` (or `remember=0`), appended with `&` when an invite token is already present. Only `0` and `1` are accepted; any other value — and starting SSO from the register tab, where the switch is not shown — is treated as if the parameter were absent. The choice is held in the server-side login state, survives the provider round-trip and the one-time-code exchange, and decides both the session lifetime and the cookie lifetime:
@@ -22,6 +23,8 @@ OpenID Connect (OIDC) lets users log in with an existing identity provider — G
 | `1` | `SESSION_DURATION_REMEMBER` (default `30d`) | persistent, `maxAge` matches |
 | `0` | `SESSION_DURATION` (default `24h`) | browser-session cookie, cleared when the browser closes |
 | omitted | `SESSION_DURATION` (default `24h`) | persistent, `maxAge` matches |
+
+In OIDC-only mode (password login disabled) there is no switch: both the SSO button and the automatic redirect to the provider always send `remember=1`, so SSO sessions get the `SESSION_DURATION_REMEMBER` lifetime. Tune that variable if you want shorter sessions on an OIDC-only instance.
 
 If SSO sessions are dying at browser close, the login link is sending `remember=0`.
 

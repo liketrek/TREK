@@ -52,6 +52,7 @@ const atlas: TranslationStrings = {
   'atlas.oceania': 'Óceánia',
   'atlas.other': 'Egyéb',
   'atlas.firstVisit': 'Első utazás',
+  'atlas.lastVisitLabel': 'Utolsó utazás',
   'atlas.tripSingular': 'Utazás',
   'atlas.tripPlural': 'Utazások',
   'atlas.placeVisited': 'Meglátogatott hely',

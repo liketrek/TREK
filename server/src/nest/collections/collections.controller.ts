@@ -51,6 +51,7 @@ import {
   CollectionLabelCreateDto,
   CollectionLabelUpdateDto,
   CollectionLabelAssignDto,
+  CollectionImportDto,
 } from './collections.dto';
 import { PlaceRatingDto } from '../places/places.dto';
 
@@ -199,6 +200,17 @@ export class CollectionsController {
   }
 
   // ── Copy to trip ────────────────────────────────────────────────────────────
+  /**
+   * Read a list file back as a new list of the caller's own (#2198).
+   *
+   * 201, like POST / above, because it creates a list. The other POSTs here
+   * are @HttpCode(200) because they act on one that already exists.
+   */
+  @Post('import')
+  importCollection(@CurrentUser() user: User, @Body() body: CollectionImportDto) {
+    return this.collections.importCollection(user.id, body);
+  }
+
   @Post('copy-to-trip')
   @HttpCode(200)
   copyToTrip(@CurrentUser() user: User, @Body() body: CollectionCopyToTripDto) {
@@ -370,6 +382,16 @@ export class CollectionsController {
   /** Preview for the bulk trip import: the trip's places plus, per place, the same
    *  duplicate verdict the import itself applies. Read-only, so the dialog can grey out
    *  what would be skipped instead of reporting it afterwards. */
+  /**
+   * The list as a file (#2198). A plain JSON body: the browser turns it into a
+   * download, so there is no Content-Disposition to get wrong here and no
+   * filename decided by the server.
+   */
+  @Get(':id/export')
+  exportCollection(@CurrentUser() user: User, @Param('id') id: string) {
+    return this.collections.exportCollection(user.id, Number(id));
+  }
+
   @Get(':id/importable/:tripId')
   importable(@CurrentUser() user: User, @Param('id') id: string, @Param('tripId') tripId: string) {
     return this.collections.importablePlaces(user.id, Number(id), Number(tripId));

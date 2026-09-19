@@ -1,4 +1,4 @@
-// FE-COMP-COLHERO-001 to FE-COMP-COLHERO-011
+// FE-COMP-COLHERO-001 to FE-COMP-COLHERO-015
 import React from 'react';
 import { render, screen, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
@@ -159,5 +159,40 @@ describe('CollectionHero', () => {
     expect(share).not.toHaveClass('has-count');
     expect(within(share).queryByText('3')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Share' })).not.toBeInTheDocument();
+  });
+
+  // ── Export as a file (#2198) ───────────────────────────────────────────
+
+  it('FE-COMP-COLHERO-012: offers Export beside Edit and Share, in that order', async () => {
+    const onExport = vi.fn();
+    renderHero({ canEdit: true, canShare: true, isOwner: true, onExport });
+
+    const actions = ['Edit', 'Export', 'Share'].map(name => screen.getByRole('button', { name }));
+    // Reading order in the DOM is the reading order on screen.
+    const all = [...document.querySelectorAll('.col-hero-actions button')];
+    expect(all).toEqual(actions);
+
+    await userEvent.click(actions[1]);
+    expect(onExport).toHaveBeenCalledTimes(1);
+  });
+
+  it('FE-COMP-COLHERO-013: has no Export button where there is no list to export', () => {
+    renderHero({ onExport: undefined });
+    expect(screen.queryByRole('button', { name: 'Export' })).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-COLHERO-014: a viewer may export, since exporting reads and does not write', async () => {
+    const onExport = vi.fn();
+    renderHero({ canEdit: false, canShare: false, isOwner: false, onExport });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Export' }));
+
+    expect(onExport).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-COLHERO-015: refuses a second click while the first export is still running', () => {
+    renderHero({ onExport: vi.fn(), exporting: true });
+    expect(screen.getByRole('button', { name: 'Export' })).toBeDisabled();
   });
 });

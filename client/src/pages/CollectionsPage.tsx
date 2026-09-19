@@ -13,6 +13,7 @@ import MoveToListModal from '../components/Collections/MoveToListModal'
 import ShareCollectionModal from '../components/Collections/ShareCollectionModal'
 import AddPlaceToCollectionModal from '../components/Collections/AddPlaceToCollectionModal'
 import ImportFromTripModal from '../components/Collections/ImportFromTripModal'
+import ImportCollectionModal from '../components/Collections/ImportCollectionModal'
 import CollectionPlaceDetail from '../components/Collections/CollectionPlaceDetail'
 import LabelManager from '../components/Collections/LabelManager'
 import BulkAssignLabelModal from '../components/Collections/BulkAssignLabelModal'
@@ -180,6 +181,7 @@ function CollectionsPageDesktop(): React.ReactElement {
       incomingInvites={c.incomingInvites}
       onSelect={c.handleSelectList}
       onNewList={() => { c.setMobileRailOpen(false); c.setEditorTarget('new') }}
+      onImportList={() => { c.setMobileRailOpen(false); c.setShowImportFile(true) }}
       onAcceptInvite={c.handleAcceptInvite}
       onDeclineInvite={c.handleDeclineInvite}
       t={t}
@@ -218,6 +220,8 @@ function CollectionsPageDesktop(): React.ReactElement {
                     onEdit={() => { if (c.activeCollection) c.setEditorTarget(c.activeCollection) }}
                     shareMemberCount={c.shareMemberCount}
                     onShare={() => c.setShowShare(true)}
+                    onExport={c.isAllSaved || !c.activeCollection ? undefined : c.handleExportList}
+                    exporting={c.exporting}
                     t={t}
                   />
                 </div>
@@ -337,6 +341,15 @@ function CollectionsPageDesktop(): React.ReactElement {
           categories={c.categories}
           onClose={() => c.setShowAddPlace(false)}
           onAdded={c.handlePlaceAdded}
+          t={t}
+        />
+      )}
+
+      {/* A list file as a new list — no active list needed, it makes one (#2198) */}
+      {c.showImportFile && (
+        <ImportCollectionModal
+          onImport={c.handleImportFile}
+          onClose={() => c.setShowImportFile(false)}
           t={t}
         />
       )}

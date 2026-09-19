@@ -54,41 +54,40 @@ const system_notice: TranslationStrings = {
   'system_notice.v3014_whitespace_collision.title': 'Vyžadována akce: konflikt uživatelského účtu',
   'system_notice.v3014_whitespace_collision.body':
     'Aktualizace 3.0.14 zjistila jeden nebo více konfliktů uživatelského jména nebo e-mailu způsobených mezerami na začátku nebo konci uložených hodnot. Dotčené účty byly automaticky přejmenovány. Zkontrolujte protokoly serveru na řádky začínající **[migration] WHITESPACE COLLISION** a zjistěte, které účty vyžadují kontrolu.',
-  // 4.0.0 release modal — the release on the left, the note from the maintainer on the right
-  'system_notice.release_400.eyebrow': 'Aktualizace nainstalována',
-  'system_notice.release_400.tag': 'Vydání',
-  'system_notice.release_400.headline': 'Největší vydání, jaké kdy TREK měl.',
-  'system_notice.release_400.intro':
-    'TREK dostává telefon a knihu. Tohle vydání psalo devatenáct lidí — a šlo s ním asi sto padesát nahlášených chyb.',
-  'system_notice.release_400.feature_mobile_title': 'TREK jde do mobilu',
-  'system_notice.release_400.feature_mobile_body':
-    'Všechno pod 768px je teď vlastní rozhraní — skleněný dok, vlastní panely, vlastní plánovač cesty. Otevřete TREK v telefonu.',
-  'system_notice.release_400.feature_studio_title': 'TREK Studio',
-  'system_notice.release_400.feature_studio_badge': 'Beta',
-  'system_notice.release_400.feature_studio_body':
-    'Z PDF v Journey se stal návrhář fotoknihy. Rozvrhne knihu, když si řeknete, a pak jde stranou.',
-  'system_notice.release_400.feature_vacay_title': 'Vacay umí i zbytek',
-  'system_notice.release_400.feature_vacay_body':
-    'Půldny, náhradní volno a flexi dny, školní prázdniny v mřížce — a rok dovolené, který nemusí začínat v lednu.',
-  'system_notice.release_400.feature_places_title': 'Místa se ukážou, soubory se odstěhují',
-  'system_notice.release_400.feature_places_body':
-    'Obrázky a popis se doplní samy, ještě než místo uložíte. A nahrané soubory už nemusí ležet na disku, kde běží TREK.',
-  'system_notice.release_400.footnote':
-    'A tohle jsou čtyři z nich. 4.0.0 nese několik stovek dalších změn, od Collections a Atlas až po celý server pod nimi.',
-  'system_notice.release_400.note_eyebrow': 'Slovo od autora',
-  'system_notice.release_400.note_title': 'Děkuji, že používáte TREK.',
-  'system_notice.release_400.note_body':
-    'TREK začal jako malý nástroj pro mé vlastní cesty, psaný ve volném čase. Pořád jím je: večery, víkendy, hodiny vedle práce na plný úvazek.\n\nChvíli jsem na to byl sám. Už ne — tohle vydání dotáhlo devatenáct lidí a tisíce z vás přišly s hvězdičkami, issues, překlady a pull requesty. Jsem vděčný za každý kousek.',
-  'system_notice.release_400.promise_label': 'Slib',
-  'system_notice.release_400.promise_text':
-    'Open source část TREK zůstane zdarma, navždy. Žádné placené verze, žádná předplatná, žádné háčky. Slibuji.',
-  'system_notice.release_400.note_body_after':
-    '4.0.0 stálo týdny pozdních nocí — aplikace do telefonu, návrhář knih, migrace serveru, většina psaná mezi půlnocí a druhou. Není to stížnost: baví mě to stavět. Je to jen upřímná odpověď na to, jak z projektu ve volném čase vznikne takhle velké vydání.',
-  'system_notice.release_400.note_closing': 'Děkuji, že jste tady.',
-  'system_notice.release_400.note_signature': '— Maurice',
-  'system_notice.release_400.support_text':
-    'Podpora je to, co tohle drží v chodu — servery, domény a pozdní noci, ze kterých vznikají vydání jako tohle. Pokud pro vás TREK něco znamená, káva je nejpřímější způsob, jak ho udržet v běhu.',
-  'system_notice.release_400.cta_bmc': 'Buy me a coffee',
-  'system_notice.release_400.cta_kofi': 'Podpořit na Ko-fi',
+  // The release modal. One stable set of keys: each big release swaps the copy in place.
+  'system_notice.release_notes.eyebrow': 'Aktualizace nainstalována',
+  'system_notice.release_notes.headline': 'Tři věci, které TREK teď zvládne sám.',
+  'system_notice.release_notes.intro':
+    'Vlastní API pro místa, cesty autem naplánované od začátku do konce a vaše historie polohy opět ve vašich rukou.',
+  'system_notice.release_notes.features_label': 'Hlavní novinky',
+  'system_notice.release_notes.features_aside': 'Zdaleka ne všechno',
+  'system_notice.release_notes.feature_places_title': 'TREK Places API',
+  'system_notice.release_notes.feature_places_body':
+    'První open source plánovač cest, který provozuje vlastní API pro místa. 73,6 milionu míst, každý měsíc nově sestavených. Žádný klíč, žádná kvóta.',
+  'system_notice.release_notes.feature_roadtrip_title': 'Doplněk Cesta autem',
+  'system_notice.release_notes.feature_roadtrip_body':
+    'Režim Cesta autem naplánuje i samotnou jízdu: trasu, vzdálenost, hodiny za volantem i zastávky. Jde o doplněk, který zůstává vypnutý, dokud ho nezapne správce.',
+  'system_notice.release_notes.feature_dawarich_title': 'Integrace Dawarich',
+  'system_notice.release_notes.feature_dawarich_body':
+    'Self-hosted odpověď na Google Timeline, teď čitelná přímo v TREK. TREK čte, a jen čte. Nic se nikdy nezapisuje zpět.',
+  'system_notice.release_notes.footnote': 'A k tomu dlouhý seznam menších změn napříč zbytkem TREK.',
+  'system_notice.release_notes.notes_label': 'Poznámky k vydání',
+  'system_notice.release_notes.note_eyebrow': 'Slovo od autora',
+  'system_notice.release_notes.note_title': 'Vy jste důvod, proč na TREK pořád pracuji.',
+  'system_notice.release_notes.note_body':
+    'TREK začal jako malý nástroj pro mé vlastní cesty, psaný po práci, protože jsem je chtěl plánovat lépe. Vlastně nikdy nepřestal růst. Skoro všechno, co používáte, vzniklo pozdě v noci, o víkendech, ve vlacích, vedle práce na plný úvazek, a bylo spoustu večerů, kdy jsem se potichu ptal, jestli ho tam venku vůbec někdy někdo otevře.',
+  'system_notice.release_notes.promise_label': 'Slib',
+  'system_notice.release_notes.promise_lead': 'TREK zůstane zdarma, navždy.',
+  'system_notice.release_notes.promise_text':
+    'Každá funkce, každá aktualizace, pro všechny. Žádné placené verze, žádná předplatná, žádné háčky.',
+  'system_notice.release_notes.note_body_after':
+    'A pak jste ho otevřeli. Během pár měsíců vás byly tisíce: hvězdičky, hlášení chyb, překlady do jazyků, kterými nemluvím, pull requesty od lidí, které jsem nikdy nepotkal. Každé ráno se pořád nejdřív podívám do repozitáře a pořád mi to nepřijde úplně skutečné.',
+  'system_notice.release_notes.note_closing': 'Děkuji, že jste tady. Váš Maurice',
+  'system_notice.release_notes.support_lead':
+    'TREK je a vždycky bude zdarma, ale servery, domény a spousta pozdních nocí zdarma nejsou.',
+  'system_notice.release_notes.support_text':
+    'Pokud si TREK získal místo na vašich cestách, kupte mi kávu a pomozte, aby přišlo i další vydání.',
+  'system_notice.release_notes.cta_bmc': 'Buy me a coffee',
+  'system_notice.release_notes.cta_kofi': 'Podpořit na Ko-fi',
 };
 export default system_notice;

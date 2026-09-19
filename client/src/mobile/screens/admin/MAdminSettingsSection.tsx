@@ -1,9 +1,12 @@
-import { AlertTriangle, RefreshCw, Sun } from 'lucide-react'
+import { useState } from 'react'
+import { AlertTriangle, ChevronDown, RefreshCw } from 'lucide-react'
 import { adminApi, authApi } from '../../../api/client'
 import { getApiErrorMessage } from '../../../types'
 import type { TranslationFn } from '../../../types'
 import type { useAdmin } from '../../../pages/admin/useAdmin'
 import MToggle from '../../components/MToggle'
+import { MBlockDisclosure, MProviderBlock, MTrekApiBlock } from './MApiProviderBlocks'
+import MSetPickerSheet from '../settings/MSetPickerSheet'
 import {
   MAdminButton,
   MAdminCard,
@@ -23,13 +26,15 @@ interface MAdminSettingsSectionProps {
 // types, API keys, OIDC and the danger zone — the full desktop settings tab
 // relaid as mobile cards. All state and mutations come from useAdmin.
 export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectionProps) {
+  const [providerPickerOpen, setProviderPickerOpen] = useState(false)
   const {
     toast,
-    setPlacesPhotosEnabled, setPlacesAutocompleteEnabled, setPlacesDetailsEnabled, setPlacesEnrichEnabled,
+    setPlacesPhotosEnabled, setPlacesAutocompleteEnabled, setPlacesDetailsEnabled, setPlacesEnrichEnabled, setPlaceShadowEnabled,
     placesPhotosEnabled, setPlacesPhotosEnabledState,
     placesAutocompleteEnabled, setPlacesAutocompleteEnabledState,
     placesDetailsEnabled, setPlacesDetailsEnabledState,
     placesEnrichEnabled, setPlacesEnrichEnabledState,
+    placeShadowEnabled, setPlaceShadowEnabledState,
     oidcConfig, setOidcConfig, savingOidc, setSavingOidc,
     passwordLogin, setPasswordLogin, passwordRegistration, setPasswordRegistration,
     oidcLogin, setOidcLogin, oidcRegistration, setOidcRegistration,
@@ -37,7 +42,9 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
     passkeyLogin, setPasskeyLogin, passkeyConfigured,
     webauthnRpId, setWebauthnRpId, webauthnOrigins, setWebauthnOrigins, savingWebauthn, handleSaveWebauthn,
     allowedFileTypes, setAllowedFileTypes, savingFileTypes, setSavingFileTypes,
-    mapsKey, setMapsKey, unsplashKey, setUnsplashKey, savingKeys, validating, validation,
+    mapsKey, setMapsKey, unsplashKey, setUnsplashKey, amapKey, setAmapKey, hasMapsKey, hasAmapKey, savingKeys, validating, validation,
+    placesProvider, savingPlacesProvider, handleSavePlacesProvider,
+    managed,
     setShowRotateJwtModal,
     handleToggleAuthSetting, handleToggleRequireMfa,
     handleSaveApiKeys, handleValidateKey,
@@ -214,20 +221,26 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
       <MAdminCard>
         <MAdminCardHead title={t('admin.apiKeys')} hint={t('admin.apiKeysHint')} />
         <div className="space-y-3">
-          <MAdminField
-            label={
-              <span className="flex items-center gap-2">
-                {t('admin.mapsKey')}
-                <span className="rounded-full bg-[color:color-mix(in_srgb,var(--m-st-confirmed)_14%,transparent)] px-[7px] py-[2px] font-geist text-[0.5625rem] font-bold text-[color:var(--m-st-confirmed)]">
-                  {t('admin.recommended')}
-                </span>
-              </span>
-            }
-            hint={t('admin.mapsKeyHintLong')}
-          >
+          {/* Comparable blocks in the order we would have somebody choose them,
+              matching the desktop tab: the free source first, the keys after it.
+              The recommendation used to sit on the Google field here, which told
+              a phone admin the opposite of what the same setting says on a
+              laptop. */}
+          <MTrekApiBlock />
+
+          {/* The keys belong to the operator on a managed install, same as on the
+              desktop tab; the provider choice below stays the admin's. */}
+          {!managed && (<>
+          <MProviderBlock title={t('admin.mapsKey')} badge={t('admin.googleCaveat.badge')} tone="caution">
+            {/* Said before the field, not after it: somebody about to paste a key
+                should read this while deciding, not once they already have. */}
+            <p className="font-geist text-[0.625rem] leading-relaxed text-m-faint">
+              {t('admin.mapsKeyHintShort')}
+            </p>
             <div className="flex gap-2">
               <div className="min-w-0 flex-1">
                 <MAdminSecretInput
+                  aria-label={t('admin.mapsKey')}
                   value={mapsKey}
                   onChange={(e) => setMapsKey(e.target.value)}
                   placeholder={t('settings.keyPlaceholder')}
@@ -244,26 +257,19 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
               </MAdminButton>
             </div>
             {validation.maps === true && (
-              <p className="mt-1 font-geist text-[0.625rem] font-bold text-[color:var(--m-st-confirmed)]">
+              <p className="font-geist text-[0.625rem] font-bold text-[color:var(--m-st-confirmed)]">
                 {t('admin.keyValid')}
               </p>
             )}
             {validation.maps === false && (
-              <p className="mt-1 font-geist text-[0.625rem] font-bold text-[color:var(--m-st-danger)]">
+              <p className="font-geist text-[0.625rem] font-bold text-[color:var(--m-st-danger)]">
                 {t('admin.keyInvalid')}
               </p>
             )}
-          </MAdminField>
-
-          <MAdminField label={t('admin.unsplashKey')} hint={t('admin.unsplashKeyHint')}>
-            <MAdminSecretInput
-              value={unsplashKey}
-              onChange={(e) => setUnsplashKey(e.target.value)}
-              placeholder={t('settings.keyPlaceholder')}
-            />
-          </MAdminField>
-
-          <div>
+            {/* What the key is allowed to be spent on. Under the key rather than
+                loose at the foot of the card: every one of them is a Google
+                request, and none of them mean anything without it. */}
+            <MBlockDisclosure label={t('admin.placesUsageTitle')}>
             <MAdminRow
               title={t('admin.placesPhotos.title')}
               hint={t('admin.placesPhotos.subtitle')}
@@ -344,44 +350,97 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
                 />
               }
             />
+            </MBlockDisclosure>
+          </MProviderBlock>
+
+          {/* No Test button, same as the desktop tab: /auth/validate-keys only
+              knows how to probe Google Places and OpenWeatherMap. */}
+          <MProviderBlock title={t('admin.amapKey')}>
+            <p className="font-geist text-[0.625rem] leading-relaxed text-m-faint">{t('admin.amapKeyHintShort')}</p>
+            <MAdminSecretInput
+              aria-label={t('admin.amapKey')}
+              value={amapKey}
+              onChange={(e) => setAmapKey(e.target.value)}
+              placeholder={t('settings.keyPlaceholder')}
+            />
+          </MProviderBlock>
+
+          <MProviderBlock title={t('admin.unsplashKey')}>
+            <p className="font-geist text-[0.625rem] leading-relaxed text-m-faint">{t('admin.unsplashKeyHint')}</p>
+            <MAdminSecretInput
+              aria-label={t('admin.unsplashKey')}
+              value={unsplashKey}
+              onChange={(e) => setUnsplashKey(e.target.value)}
+              placeholder={t('settings.keyPlaceholder')}
+            />
+          </MProviderBlock>
+          </>)}
+
+          <MAdminField label={t('admin.placesProvider.title')} hint={t('admin.placesProvider.subtitle')}>
+            {/* The app's own picker rather than a bare <select>: a native one is
+                drawn by the operating system and was the one control on this page
+                that did not belong to TREK. Same sheet the settings selects use. */}
+            <button
+              type="button"
+              disabled={savingPlacesProvider}
+              onClick={() => setProviderPickerOpen(true)}
+              className="flex h-[42px] w-full items-center gap-2 rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 text-left text-[0.84375rem] text-m-ink disabled:opacity-50"
+            >
+              <span className="min-w-0 flex-1 truncate">{t(`admin.placesProvider.${placesProvider}`)}</span>
+              <ChevronDown size={15} strokeWidth={2.2} className="flex-none text-m-faint" aria-hidden />
+            </button>
+            <MSetPickerSheet
+              open={providerPickerOpen}
+              onClose={() => setProviderPickerOpen(false)}
+              title={t('admin.placesProvider.title')}
+              value={placesProvider}
+              onSelect={(value) => { if (value !== placesProvider) void handleSavePlacesProvider(value) }}
+              options={[
+                { value: 'auto', label: t('admin.placesProvider.auto') },
+                { value: 'google', label: t('admin.placesProvider.google') },
+                { value: 'amap', label: t('admin.placesProvider.amap') },
+                { value: 'openstreetmap', label: t('admin.placesProvider.openstreetmap') },
+              ]}
+            />
+            {/* From app-config, like the desktop card: the key fields are empty
+                on a managed install and on an operator key set by environment. */}
+            {((placesProvider === 'google' && !hasMapsKey) || (placesProvider === 'amap' && !hasAmapKey)) && (
+              <p className="mt-1 font-geist text-[0.625rem] font-bold text-[color:var(--m-st-pending)]">
+                {t('admin.placesProvider.missingKey')}
+              </p>
+            )}
+          </MAdminField>
+
+          <div>
+            {/* The instance's own search log, which is not Google's to spend. */}
+            <MAdminRow
+              first
+              title={t('admin.placeShadow.title')}
+              hint={t('admin.placeShadow.subtitle')}
+              trailing={
+                <MToggle
+                  checked={placeShadowEnabled}
+                  ariaLabel={t('admin.placeShadow.title')}
+                  onChange={async (next) => {
+                    setPlaceShadowEnabledState(next)
+                    setPlaceShadowEnabled(next)
+                    try {
+                      await adminApi.updatePlaceShadow(next)
+                    } catch {
+                      setPlaceShadowEnabledState(!next)
+                      setPlaceShadowEnabled(!next)
+                    }
+                  }}
+                />
+              }
+            />
           </div>
 
-          {/* Open-Meteo weather info */}
-          <div className="rounded-2xl border border-[color:color-mix(in_srgb,var(--m-st-confirmed)_28%,transparent)] bg-[color:color-mix(in_srgb,var(--m-st-confirmed)_10%,transparent)] p-3">
-            <div className="flex items-center gap-2">
-              <span className="flex h-7 w-7 flex-none items-center justify-center rounded-lg bg-[color:var(--m-st-confirmed)] text-white">
-                <Sun size={14} strokeWidth={2.2} />
-              </span>
-              <span className="min-w-0 flex-1 truncate text-[0.78125rem] font-extrabold text-m-ink">
-                {t('admin.weather.title')}
-              </span>
-              <span className="flex-none rounded-full bg-[color:color-mix(in_srgb,var(--m-st-confirmed)_14%,transparent)] px-2 py-[2px] font-geist text-[0.5625rem] font-bold text-[color:var(--m-st-confirmed)]">
-                {t('admin.weather.badge')}
-              </span>
-            </div>
-            <p className="mt-2 font-geist text-[0.625rem] leading-relaxed text-m-muted">
-              {t('admin.weather.description')}
-            </p>
-            <p className="mt-1 font-geist text-[0.59375rem] leading-relaxed text-m-faint">
-              {t('admin.weather.locationHint')}
-            </p>
-            <div className="mt-2 space-y-[6px]">
-              {[
-                { title: t('admin.weather.forecast'), desc: t('admin.weather.forecastDesc') },
-                { title: t('admin.weather.climate'), desc: t('admin.weather.climateDesc') },
-                { title: t('admin.weather.requests'), desc: t('admin.weather.requestsDesc') },
-              ].map((row) => (
-                <div key={row.title} className="rounded-xl bg-[color:var(--m-ic)] px-3 py-2">
-                  <p className="text-[0.6875rem] font-bold text-m-ink">{row.title}</p>
-                  <p className="mt-[1px] font-geist text-[0.59375rem] text-m-muted">{row.desc}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <MAdminButton busy={savingKeys} onClick={handleSaveApiKeys}>
-            {t('common.save')}
-          </MAdminButton>
+          {!managed && (
+            <MAdminButton busy={savingKeys} onClick={handleSaveApiKeys}>
+              {t('common.save')}
+            </MAdminButton>
+          )}
         </div>
       </MAdminCard>
 

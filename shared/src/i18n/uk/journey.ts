@@ -627,5 +627,21 @@ const journey: TranslationStrings = {
   'journey.editor.statsExcludedHint':
     'Зупинка залишається в щоденнику, але не враховується у відстані, країнах і на карті в Studio.',
   'journey.entry.offRoute': 'Поза маршрутом',
+  'journey.suggestions.dismiss': 'Відхилити цю пропозицію',
+  'journey.suggestions.dismissed': 'Пропозицію відхилено',
+  'journey.suggestions.restore': 'Повернути відхилені пропозиції',
+  'journey.suggestions.restoreCount': 'Відхилені пропозиції ({count})',
+  'journey.suggestions.restored': 'Повернулося пропозицій: {count}',
+  'journey.detail.addOnThisDay': 'Додати запис у цей день',
+  'journey.detail.jumpToDay': 'Перейти до {date}',
+  'journey.detail.searchPlaceholder': 'Пошук у цьому щоденнику',
+  'journey.detail.searchEmpty': 'Жоден запис не відповідає «{query}»',
+  'journey.settings.entryFields': 'Поля запису',
+  'journey.settings.entryFieldsHint': 'Вимкніть те, чого цей щоденник не використовує. Нічого з написаного не втратиться.',
+  'journey.settings.showVerdict': 'За і проти',
+  'journey.settings.showMood': 'Настрій',
+  'journey.settings.showWeather': 'Погода',
+  'journey.entry.suggestion': 'Пропозиція',
+  'journey.editor.addDetails': '+ Деталі',
 };
 export default journey;

@@ -1,6 +1,7 @@
 import { http, HttpResponse } from 'msw';
 
 export const vacayHandlers = [
+  http.get('/api/school-holiday-catalog', () => HttpResponse.json({ countries: [], regions: [] })),
   http.get('/api/addons/vacay/plan', () => {
     return HttpResponse.json({
       plan: {

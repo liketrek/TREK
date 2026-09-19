@@ -1,6 +1,28 @@
 import type { TranslationStrings } from '../types';
 
 const vacay: TranslationStrings = {
+  'schoolCatalog.refreshError':
+    'Die Änderung wurde gespeichert, aber die Liste konnte nicht neu geladen werden. Versuche es erneut.',
+  'schoolCatalog.title': 'Schulferien',
+  'schoolCatalog.hint': 'Verwalte gemeinsame Ferienregionen. Alle können sie in den Urlaubseinstellungen auswählen.',
+  'schoolCatalog.periodHint': 'Beide Grenztage zählen mit. Ergänze Zeiträume für jedes Schuljahr.',
+  'schoolCatalog.region': 'Region oder Schulbezirk',
+  'schoolCatalog.name': 'Name der Ferien',
+  'schoolCatalog.start': 'Startdatum',
+  'schoolCatalog.end': 'Enddatum',
+  'schoolCatalog.addPeriod': 'Ferienzeitraum hinzufügen',
+  'schoolCatalog.invalid': 'Prüfe Namen und Datumsangaben.',
+  'schoolCatalog.discard': 'Ungespeicherte Änderungen verwerfen?',
+  'schoolCatalog.country': 'Land',
+  'schoolCatalog.deleteHint': 'Entferne zuerst die Regionen. Verwendete Regionen können nicht gelöscht werden.',
+  'schoolCatalog.deleteCountry': 'Land löschen',
+  'schoolCatalog.addCountry': 'Land hinzufügen',
+  'schoolCatalog.code': 'Ländercode (z. B. US)',
+  'schoolCatalog.empty': 'Noch keine Regionen vorhanden.',
+  'schoolCatalog.addRegion': 'Region hinzufügen',
+  'schoolCatalog.offline': 'Verbinde dich mit dem Internet, um Schulferien zu verwalten.',
+  'schoolCatalog.loadError': 'Ferienregionen konnten nicht geladen werden. Öffne die Einstellungen erneut.',
+  'schoolCatalog.retry': 'Erneut versuchen',
   'vacay.subtitle': 'Urlaubstage planen und verwalten',
   'vacay.settings': 'Einstellungen',
   'vacay.year': 'Jahr',

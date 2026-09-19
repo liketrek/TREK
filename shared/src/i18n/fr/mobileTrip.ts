@@ -47,5 +47,29 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.upNext': 'À suivre',
   'mobileTrip.viewDetails': 'Voir les détails',
   'mobileTrip.transportsEmpty': 'Aucun transport',
+  'mobileTrip.rtInfoTitle': 'Chiffres du trajet',
+  'mobileTrip.rtDesktopNote':
+    'Ces chiffres se règlent sur ordinateur, où vous pouvez aussi comparer d’autres itinéraires et faire suivre à un jour une trace importée.',
+  'mobileTrip.rtPlanOnDesktop':
+    'La planification se fait sur ordinateur. TREK calcule le trajet dès qu’un jour compte deux lieux.',
+  'mobileTrip.rtSearchOffline': 'Connexion nécessaire : la recherche lit l’itinéraire à venir.',
+  'mobileTrip.rtBehind': '{time} de retard sur le programme',
+  'mobileTrip.rtStart': 'Début',
+  'mobileTrip.rtStayScope':
+    'La durée sur place appartient au lieu : elle compte donc pour chaque jour où cet arrêt est prévu.',
+  'mobileTrip.rtStayLess': '{count} minutes de moins',
+  'mobileTrip.rtStayMore': '{count} minutes de plus',
+  'mobileTrip.rtNightDesktopOnly':
+    'Réserver une nuitée à ce lieu se fait dans le planificateur sur ordinateur. Ici, vous pouvez seulement la supprimer.',
+  'mobileTrip.rtReach': 'Jusqu’où',
+  'mobileTrip.rtReachAhead': '{distance} devant',
+  'mobileTrip.rtFromNext': 'À partir de votre prochain arrêt',
+  'mobileTrip.rtFromStart': 'Depuis le début de l’étape',
+  'mobileTrip.rtNoneAhead': 'Rien sur la route devant vous. Essayez toute l’étape.',
+  'mobileTrip.rtNoneOnStage': 'Rien de ce genre le long de cette étape.',
+  'mobileTrip.rtTruncated.one':
+    '1 tronçon avait plus que ce qui tient dans une réponse. Choisissez moins de types pour voir le reste.',
+  'mobileTrip.rtTruncated.other':
+    '{count} tronçons avaient plus que ce qui tient dans une réponse. Choisissez moins de types pour voir le reste.',
 };
 export default mobileTrip;
