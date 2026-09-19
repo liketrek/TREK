@@ -1,0 +1,30 @@
+import type { TranslationStrings } from '../types';
+
+const map: TranslationStrings = {
+  'map.connections': "การเชื่อมต่อ",
+  'map.showConnections': "แสดงเส้นทางการจอง",
+  'map.hideConnections': "ซ่อนเส้นทางการจอง",
+  'poi.searchThisArea': "ค้นหาบริเวณนี้",
+  'poi.cat.restaurants': "ร้านอาหาร",
+  'poi.cat.cafes': "คาเฟ่",
+  'poi.cat.bars': "บาร์และสถานบันเทิงยามค่ำคืน",
+  'poi.cat.hotels': "ที่พัก",
+  'poi.cat.sights': "สถานที่ท่องเที่ยว",
+  'poi.cat.museums': "พิพิธภัณฑ์และวัฒนธรรม",
+  'poi.cat.nature': "ธรรมชาติและอุทยาน",
+  'poi.cat.activities': "กิจกรรม",
+  'map.showAllConnections': "แสดงเส้นทางการจองทั้งหมด",
+  'map.hideAllConnections': "ซ่อนเส้นทางการจองทั้งหมด",
+  'map.baseLayer.default': "แผนที่",
+  'map.baseLayer.satellite': "ดาวเทียม",
+  'map.baseLayer.switchToSatellite': "สลับไปที่มุมมองดาวเทียม",
+  'map.baseLayer.switchToDefault': "สลับไปที่มุมมองแผนที่",
+  'map.location.denied': "การเข้าถึงตำแหน่งถูกบล็อก ตรวจสอบการตั้งค่าอุปกรณ์ของคุณ แอพที่ติดตั้งจะมีสิทธิ์เข้าถึงตำแหน่งของตัวเอง แยกจากเบราว์เซอร์",
+  'map.location.unavailable': "ไม่สามารถระบุตำแหน่งของคุณได้",
+  'map.location.timeout': "การค้นหาของคุณใช้เวลานานเกินไป ลองอีกครั้งด้วยมุมมองท้องฟ้าที่ชัดเจนยิ่งขึ้น",
+  'map.overview.show': "แสดงทั้งทริป",
+  'map.overview.hide': "ซ่อนทั้งทริป",
+  'map.overview.total': "ระยะทางรวม",
+  'map.attribution': "เครดิตแผนที่",
+};
+export default map;

@@ -21,6 +21,7 @@ export const SUPPORTED_LANGUAGES = [
   { value: 'gr', label: 'Ελληνικά', locale: 'el-GR' },
   { value: 'sv', label: 'Svenska', locale: 'sv-SE' },
   { value: 'vi', label: 'Tiếng Việt', locale: 'vi-VN' },
+  { value: 'th', label: 'ไทย', locale: 'th-TH' },
   { value: 'ca', label: 'Català', locale: 'ca-ES' },
 ] as const;
 

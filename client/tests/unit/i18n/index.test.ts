@@ -47,6 +47,7 @@ describe('getLocaleForLanguage', () => {
     expect(getLocaleForLanguage('zh-TW')).toBe('zh-TW')
     expect(getLocaleForLanguage('ar')).toBe('ar-SA')
     expect(getLocaleForLanguage('br')).toBe('pt-BR')
+    expect(getLocaleForLanguage('th')).toBe('th-TH')
   })
 
   it('FE-COMP-I18N-003: falls back to en-US for unknown language codes', () => {
@@ -61,6 +62,7 @@ describe('getIntlLanguage', () => {
     expect(getIntlLanguage('de')).toBe('de')
     expect(getIntlLanguage('fr')).toBe('fr')
     expect(getIntlLanguage('zh-TW')).toBe('zh-TW')
+    expect(getIntlLanguage('th')).toBe('th')
   })
 
   it('FE-COMP-I18N-005: maps br to pt-BR', () => {
@@ -91,7 +93,7 @@ describe('isRtlLanguage', () => {
 describe('SUPPORTED_LANGUAGES', () => {
   it('FE-COMP-I18N-009: contains expected entries with value/label shape', () => {
     expect(Array.isArray(SUPPORTED_LANGUAGES)).toBe(true)
-    expect(SUPPORTED_LANGUAGES).toHaveLength(23)
+    expect(SUPPORTED_LANGUAGES).toHaveLength(24)
     expect(SUPPORTED_LANGUAGES).toContainEqual(expect.objectContaining({ value: 'en', label: 'English' }))
     expect(SUPPORTED_LANGUAGES).toContainEqual(expect.objectContaining({ value: 'tr', label: 'Türkçe' }))
     expect(SUPPORTED_LANGUAGES).toContainEqual(expect.objectContaining({ value: 'ja', label: '日本語' }))
@@ -100,6 +102,7 @@ describe('SUPPORTED_LANGUAGES', () => {
     expect(SUPPORTED_LANGUAGES).toContainEqual(expect.objectContaining({ value: 'sv', label: 'Svenska' }))
     expect(SUPPORTED_LANGUAGES).toContainEqual(expect.objectContaining({ value: 'ar', label: 'العربية' }))
     expect(SUPPORTED_LANGUAGES).toContainEqual(expect.objectContaining({ value: 'vi', label: 'Tiếng Việt' }))
+    expect(SUPPORTED_LANGUAGES).toContainEqual(expect.objectContaining({ value: 'th', label: 'ไทย' }))
     expect(SUPPORTED_LANGUAGES).toContainEqual(expect.objectContaining({ value: 'ca', label: 'Català' }))
   })
 })
@@ -125,6 +128,11 @@ describe('detectBrowserLanguage', () => {
   it('FE-COMP-I18N-018: prefix match (de-AT → de)', () => {
     Object.defineProperty(navigator, 'languages', { value: ['de-AT'], configurable: true })
     expect(detectBrowserLanguage()).toBe('de')
+  })
+
+  it('detects Thai from its regional browser tag', () => {
+    Object.defineProperty(navigator, 'languages', { value: ['th-TH'], configurable: true })
+    expect(detectBrowserLanguage()).toBe('th')
   })
 
   it('FE-COMP-I18N-019: pt-PT returns null (European Portuguese is a distinct language)', () => {

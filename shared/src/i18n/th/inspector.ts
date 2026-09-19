@@ -1,0 +1,30 @@
+import type { TranslationStrings } from '../types';
+
+const inspector: TranslationStrings = {
+  'inspector.opened': "เปิด",
+  'inspector.closed': "ปิดแล้ว",
+  'inspector.openingHours': "เวลาทำการ",
+  'inspector.showHours': "แสดงเวลาเปิดทำการ",
+  'inspector.files': "ไฟล์",
+  'inspector.filesCount': "{count} ไฟล์",
+  'inspector.remove': "ลบ",
+  'inspector.removeFromDay': "ลบออกจากวัน",
+  'inspector.addToDay': "เพิ่มไปยังวัน",
+  'inspector.confirmedRes': "ยืนยันการจองแล้ว",
+  'inspector.pendingRes': "อยู่ระหว่างดำเนินการจอง",
+  'inspector.google': "Google แผนที่",
+  'inspector.navigation': "การนำทาง",
+  'inspector.openWith': "เปิดด้วย",
+  'inspector.openStreetMap': "OpenStreetMap",
+  'inspector.website': "เปิดเว็บไซต์",
+  'inspector.saveToCollection': "บันทึกลงคอลเลกชัน",
+  'inspector.savedToCollection': "บันทึกแล้ว",
+  'inspector.addRes': "เพิ่มการจอง",
+  'inspector.editRes': "แก้ไขการจอง",
+  'inspector.participants': "ผู้เข้าร่วม",
+  'inspector.trackStats': "ติดตามสถิติ",
+  'inspector.trackColor': "ติดตามสี",
+  'inspector.trackColorAuto': "สีอัตโนมัติ",
+  'inspector.trackColorCustom': "เลือกสีที่กำหนดเอง",
+};
+export default inspector;
