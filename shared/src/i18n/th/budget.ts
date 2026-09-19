@@ -147,6 +147,17 @@ const budget: TranslationStrings = {
   'costs.splitSumUnder': "ผลรวมของการแยก: {sum} จาก {total} (ต่ำกว่าโดย {diff})",
   'costs.splitSumOver': "ผลรวมของการแยก: {sum} จาก {total} (มากกว่า {diff})",
   'costs.toggleSign': "สลับระหว่างค่าใช้จ่ายและการคืนเงิน",
+  'costs.finalBudget': "งบประมาณสุดท้าย",
+  'costs.finalExpenses': "ค่าใช้จ่ายที่ชำระแล้ว",
+  'costs.finalReimbursed': "ยอดชดเชยสุทธิ",
+  'costs.finalPending': "ยอดชดเชยที่รอดำเนินการ",
+  'costs.receipts': "ใบเสร็จ",
+  'costs.receiptsTitle': "ใบเสร็จและใบแจ้งหนี้",
+  'costs.attachReceipt': "แนบใบเสร็จ / ใบแจ้งหนี้",
+  'costs.noReceipts': "ยังไม่มีใบเสร็จแนบ",
+  'costs.deleteReceipt': "ลบใบเสร็จ",
+  'costs.viewReceipt': "ดูใบเสร็จ",
+  'costs.receiptLeftBehind': "บันทึกไม่สำเร็จ และยังมีใบเสร็จที่อัปโหลด {count} รายการอยู่ ลบได้ในแท็บไฟล์",
 };
 
 export default budget;

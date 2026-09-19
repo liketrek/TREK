@@ -86,5 +86,7 @@ const trip: TranslationStrings = {
   'transit.transfersLabel': "การเปลี่ยนขบวน",
   'transit.walkLabel': "เดิน",
   'transit.searchHint': "ค้นหาการเชื่อมต่อจริงและเพิ่มโดยตรงไปยังวัน — ข้อมูลผ่าน Transitous",
+  'trip.toast.loadError': "ไม่สามารถโหลดทริปได้",
+  'transit.noResultsVia': "ไม่พบเส้นทางผ่าน {provider} ลองเปลี่ยนเวลาหรือตัวกรอง",
 };
 export default trip;

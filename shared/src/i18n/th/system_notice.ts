@@ -50,46 +50,35 @@ const system_notice: TranslationStrings = {
   'system_notice.thank_you_support.highlight_community': "สร้างขึ้นร่วมกับชุมชน",
   'system_notice.thank_you_support.cta_bmc': "ซื้อกาแฟให้ฉัน",
   'system_notice.thank_you_support.cta_kofi': "รองรับ Ko-fi",
-  // 4.0.0 release modal — the release on the left, the note from the maintainer on the right
-  'system_notice.release_400.eyebrow': "ติดตั้งการอัปเดตแล้ว",
-  'system_notice.release_400.tag': "รุ่นใหม่",
-  'system_notice.release_400.headline': "TREK ที่ใหญ่ที่สุดเท่าที่เคยมีมา",
-  'system_notice.release_400.intro':
-    "TREK มาพร้อมแอปมือถือและเครื่องมือทำหนังสือภาพ รุ่นนี้เกิดจากคน 19 คน และมีรายงานบั๊กประมาณ 150 รายการที่ช่วยให้มันดีขึ้น",
-  'system_notice.release_400.feature_mobile_title': "TREK ก้าวไปสู่อุปกรณ์เคลื่อนที่",
-  'system_notice.release_400.feature_mobile_body':
-    "ตอนนี้ทุกอย่างที่มีความกว้างต่ำกว่า 768px มีอินเทอร์เฟซสำหรับมือถือของตัวเอง ทั้งแถบนำทางแบบกระจก แผงหน้าจอ และเครื่องมือวางแผนทริป เปิด TREK บนโทรศัพท์ของคุณเพื่อใช้งานได้เลย",
-  'system_notice.release_400.feature_studio_title': "เทรค สตูดิโอ",
-  'system_notice.release_400.feature_studio_badge': "เบต้า",
-  'system_notice.release_400.feature_studio_body':
-    "PDF ของ Journey กลายเป็นเครื่องมือออกแบบสมุดภาพ โดยจะจัดเลย์เอาต์หนังสือให้เมื่อคุณต้องการ แล้วปล่อยให้คุณปรับแต่งต่อได้อย่างเต็มที่",
-  'system_notice.release_400.feature_vacay_title': "Vacay รองรับได้มากขึ้น",
-  'system_notice.release_400.feature_vacay_body':
-    "ครึ่งวัน, วันชดเชยและวันที่ยืดหยุ่น, วันหยุดโรงเรียนตามตาราง — และปีการลาที่ไม่ต้องเริ่มในเดือนมกราคม",
-  'system_notice.release_400.feature_places_title': "รายละเอียดสถานที่อัตโนมัติ และย้ายไฟล์ออกจากเซิร์ฟเวอร์",
-  'system_notice.release_400.feature_places_body':
-    "รูปภาพและคำอธิบายกรอกไว้ก่อนที่คุณจะบันทึกสถานที่ และการอัปโหลดของคุณไม่จำเป็นต้องอยู่บนดิสก์ TREK อีกต่อไป",
-  'system_notice.release_400.footnote':
-    "และนี่เป็นเพียงสี่ตัวอย่าง 4.0.0 ยังมีการเปลี่ยนแปลงอีกหลายร้อยรายการ ตั้งแต่ Collections และ Atlas ไปจนถึงระบบเซิร์ฟเวอร์ทั้งหมด",
-  'system_notice.release_400.note_eyebrow': "บันทึกจากผู้ดูแล",
-  'system_notice.release_400.note_title': "ขอบคุณที่ใช้ TREK",
-  'system_notice.release_400.note_body':
-    "TREK เริ่มต้นจากเครื่องมือเล็ก ๆ สำหรับทริปของผมเอง ซึ่งเขียนขึ้นในเวลาว่าง และยังคงเป็นเช่นนั้น: ช่วงเย็น วันหยุดสุดสัปดาห์ และชั่วโมงหลังเลิกงานประจำ\n\nช่วงหนึ่งมีเพียงผมคนเดียว แต่ไม่ใช่อีกแล้ว — คน 19 คนช่วยกันส่งมอบรุ่นนี้ และพวกคุณอีกหลายพันคนมาพร้อมดาว รายงานปัญหา คำแปล และ pull request ผมขอบคุณสำหรับทุกส่วนของมัน",
-  'system_notice.release_400.promise_label': "คำสัญญา",
-  'system_notice.release_400.promise_text':
-    "ด้านโอเพ่นซอร์สของ TREK นั้นฟรีตลอดไป ไม่มีระดับที่ต้องชำระเงิน ไม่มีการสมัครสมาชิก ไม่มีการจับ สัญญาไว้",
-  'system_notice.release_400.note_body_after':
-    "4.0.0 ใช้เวลาหลายสัปดาห์ของคืนดึก ทั้งแอปมือถือ เครื่องมือออกแบบหนังสือ และการย้ายเซิร์ฟเวอร์ โดยส่วนใหญ่เขียนระหว่างเที่ยงคืนถึงตีสอง นี่ไม่ใช่คำบ่น: ผมรักการสร้างสิ่งนี้ มันเป็นเพียงคำตอบอย่างตรงไปตรงมาว่าโปรเจ็กต์เวลาว่างสร้างรุ่นใหญ่ขนาดนี้ได้อย่างไร",
-  'system_notice.release_400.note_closing': "ขอบคุณที่อยู่ที่นี่",
-  'system_notice.release_400.note_signature': "— มอริซ",
-  'system_notice.release_400.support_text':
-    "การสนับสนุนช่วยให้สิ่งนี้เดินหน้าต่อได้ ทั้งค่าเซิร์ฟเวอร์ โดเมน และคืนดึกที่กลายมาเป็นรุ่นใหม่ ๆ หาก TREK มีความหมายสำหรับคุณ การเลี้ยงกาแฟคือวิธีที่ตรงที่สุดในการช่วยให้โครงการดำเนินต่อไป",
-  'system_notice.release_400.cta_bmc': "ซื้อกาแฟให้ฉันหน่อย",
-  'system_notice.release_400.cta_kofi': "รองรับ Ko-fi",
   'system_notice.pager.prev': "ประกาศก่อนหน้า",
   'system_notice.pager.next': "ประกาศถัดไป",
   'system_notice.pager.counter': "{current} / {total}",
   'system_notice.pager.goto': "ไปที่ประกาศ {n}",
   'system_notice.pager.position': "ประกาศ {current} จาก {total}",
+  'system_notice.release_notes.eyebrow': "ติดตั้งอัปเดตแล้ว",
+  'system_notice.release_notes.headline': "สามสิ่งที่ TREK ทำได้ด้วยตัวเองแล้ว",
+  'system_notice.release_notes.intro': "API สถานที่ของตัวเอง การวางแผนโรดทริปตั้งแต่ต้นจนจบ และประวัติตำแหน่งของคุณกลับมาอยู่ในมือคุณ",
+  'system_notice.release_notes.features_label': "ไฮไลต์สำคัญ",
+  'system_notice.release_notes.features_aside': "ไกลจากทุกสิ่ง",
+  'system_notice.release_notes.feature_places_title': "TREK Places API",
+  'system_notice.release_notes.feature_places_body': "โปรแกรมวางแผนท่องเที่ยวโอเพนซอร์สรายแรกที่โฮสต์ API สถานที่ของตัวเอง 73.6 ล้านสถานที่ สร้างใหม่ทุกเดือน ไม่ต้องมีคีย์ ไม่มีโควตา",
+  'system_notice.release_notes.feature_roadtrip_title': "ส่วนเสริมโรดทริป",
+  'system_notice.release_notes.feature_roadtrip_body': "โหมดโรดทริปวางแผนการขับรถเอง: เส้นทาง ระยะทาง เวลา และจุดแวะ เป็นส่วนเสริมที่ปิดไว้จนกว่าผู้ดูแลจะเปิดใช้",
+  'system_notice.release_notes.feature_dawarich_title': "การเชื่อมต่อ Dawarich",
+  'system_notice.release_notes.feature_dawarich_body': "คำตอบแบบโฮสต์เองแทน Google Timeline ซึ่งอ่านได้แล้วใน TREK TREK อ่านอย่างเดียว และจะไม่เขียนข้อมูลกลับ",
+  'system_notice.release_notes.footnote': "รวมถึงรายการการเปลี่ยนแปลงเล็ก ๆ อีกยาวเหยียดทั่วทั้ง TREK",
+  'system_notice.release_notes.notes_label': "บันทึกประจำรุ่น",
+  'system_notice.release_notes.note_eyebrow': "ข้อความจากผู้ดูแลโครงการ",
+  'system_notice.release_notes.note_title': "คุณคือเหตุผลที่ผมยังสร้าง TREK ต่อไป",
+  'system_notice.release_notes.note_body': "TREK เริ่มจากเครื่องมือเล็ก ๆ สำหรับทริปของผมเอง เขียนหลังเลิกงานเพราะอยากได้วิธีวางแผนที่ดีกว่า มันไม่เคยหยุดเติบโตเลย แทบทุกอย่างที่คุณใช้ถูกสร้างตอนดึก วันหยุด บนรถไฟ ควบคู่กับงานประจำ และมีหลายค่ำคืนที่ผมแอบสงสัยว่าใครสักคนจะเปิดมันใช้หรือไม่",
+  'system_notice.release_notes.promise_label': "คำมั่นสัญญา",
+  'system_notice.release_notes.promise_lead': "TREK จะฟรีตลอดไป",
+  'system_notice.release_notes.promise_text': "ทุกฟีเจอร์ ทุกอัปเดต สำหรับทุกคน ไม่มีระดับแบบเสียเงิน ไม่มีการสมัครสมาชิก ไม่มีเงื่อนไขแอบแฝง",
+  'system_notice.release_notes.note_body_after': "แล้วคุณก็ทำเช่นนั้น ภายในไม่กี่เดือนมีคุณหลายพันคน: ดาว รายงานบั๊ก คำแปลในภาษาที่ผมพูดไม่ได้ และ pull request จากผู้คนที่ผมไม่เคยพบ ผมยังตรวจดูคลังโค้ดเป็นสิ่งแรกทุกเช้า และมันก็ยังไม่ค่อยเหมือนเรื่องจริง",
+  'system_notice.release_notes.note_closing': "ขอบคุณที่อยู่ตรงนี้ จาก Maurice",
+  'system_notice.release_notes.support_lead': "TREK ฟรีและจะฟรีเสมอ แต่เซิร์ฟเวอร์ โดเมน และคืนดึก ๆ มากมายไม่ฟรี",
+  'system_notice.release_notes.support_text': "หาก TREK มีที่ในทริปของคุณ ซื้อกาแฟให้ผมสักแก้วและช่วยให้อัปเดตถัดไปเกิดขึ้นได้",
+  'system_notice.release_notes.cta_bmc': "ซื้อกาแฟให้ผม",
+  'system_notice.release_notes.cta_kofi': "สนับสนุนผ่าน Ko-fi",
 };
 export default system_notice;

@@ -22,5 +22,9 @@ const map: TranslationStrings = {
   'map.location.denied': "การเข้าถึงตำแหน่งถูกบล็อก ตรวจสอบการตั้งค่าอุปกรณ์ของคุณ แอพที่ติดตั้งจะมีสิทธิ์เข้าถึงตำแหน่งของตัวเอง แยกจากเบราว์เซอร์",
   'map.location.unavailable': "ไม่สามารถระบุตำแหน่งของคุณได้",
   'map.location.timeout': "การค้นหาของคุณใช้เวลานานเกินไป ลองอีกครั้งด้วยมุมมองท้องฟ้าที่ชัดเจนยิ่งขึ้น",
+  'map.overview.show': "แสดงทั้งทริป",
+  'map.overview.hide': "ซ่อนทั้งทริป",
+  'map.overview.total': "ระยะทางรวม",
+  'map.attribution': "เครดิตแผนที่",
 };
 export default map;

@@ -188,6 +188,20 @@ const collection: TranslationStrings = {
   'collections.labels.assignedCount': "ติดป้ายกำกับ {count} สถานที่",
   'collections.labels.empty': "ยังไม่มีป้ายกำกับ",
   'collections.labels.emptyHint': "สร้างป้ายกำกับก่อนเพื่อจัดกลุ่มสถานที่ในรายการนี้",
+  'collections.file.export': "ส่งออก",
+  'collections.file.exportTitle': "ดาวน์โหลดรายการนี้เป็นไฟล์",
+  'collections.file.importButton': "นำเข้ารายการจากไฟล์",
+  'collections.file.importTitle': "นำเข้ารายการ",
+  'collections.file.choose': "เลือกไฟล์รายการ",
+  'collections.file.confirm': "นำเข้า",
+  'collections.file.change': "เปลี่ยน",
+  'collections.file.labelCount': "{count} ป้ายกำกับ",
+  'collections.file.hint': "สถานที่จะเข้ามาเป็นรายการใหม่ของคุณเอง คะแนน สมาชิก และรูปภาพที่อัปโหลดจะไม่ถูกนำมาด้วย",
+  'collections.file.done': "นำเข้าสถานที่ {count} แห่งแล้ว",
+  'collections.file.doneSkipped': "นำเข้าสถานที่ {count} แห่งแล้ว ข้าม {skipped} แห่ง",
+  'collections.file.errorTooLarge': "ไฟล์นั้นใหญ่เกินกว่าจะเป็นรายการได้",
+  'collections.file.errorUnreadable': "ไม่สามารถอ่านไฟล์นั้นได้",
+  'collections.file.errorNotACollection': "ไฟล์นั้นไม่ใช่ไฟล์รายการของ TREK",
 };
 
 export default collection;

@@ -86,7 +86,6 @@ const places: TranslationStrings = {
   'places.loadingDetails': "กำลังโหลดรายละเอียดสถานที่...",
   'places.osmHint':
     "ใช้การค้นหา OpenStreetMap (ไม่มีรูปภาพ เวลาทำการ หรือการให้คะแนน) เพิ่มคีย์ Google API ในการตั้งค่าเพื่อดูรายละเอียดทั้งหมด",
-  'places.osmActive': "กำลังใช้ OpenStreetMap หากเพิ่ม Google API key จะมีคะแนนและเวลาเปิดทำการแสดงเพิ่ม",
   'places.details.title': "รายละเอียดสถานที่",
   'places.details.empty': "เลือกผลการค้นหาเพื่อดูรูปภาพและคำอธิบาย",
   'places.details.loading': "กำลังโหลดรายละเอียด...",
@@ -99,8 +98,6 @@ const places: TranslationStrings = {
   'places.details.adoptBlocked': "ล้างช่องคำอธิบายก่อน",
   'places.details.facts': "ข้อมูลน่ารู้",
   'places.details.nothing': "ไม่พบสิ่งใดสำหรับสถานที่นี้",
-  'places.details.noKeyTitle': "มีรายละเอียดเพิ่มเติม",
-  'places.details.noKeyHint': "หากไม่มีคีย์ Google API อินสแตนซ์นี้จะใช้ได้เฉพาะแหล่งข้อมูลฟรีเท่านั้น ขอให้ผู้ดูแลระบบ TREK เพิ่มคีย์เพื่อดูคะแนน เวลาเปิดทำการ และรูปภาพ",
   'places.details.aboutBrand': "เกี่ยวกับแบรนด์",
   'places.details.aboutBrandNote': "ข้อมูลนี้อธิบายแบรนด์ ไม่ใช่สาขานี้",
   'places.details.fact.rating': "เรตติ้ง",
@@ -128,5 +125,12 @@ const places: TranslationStrings = {
   'places.removeImage': "ลบรูปภาพ",
   'places.imageUploadError': "ไม่สามารถอัปโหลดภาพได้",
   'places.imageRemoveError': "ไม่สามารถลบรูปภาพได้",
+  'places.addToSelectedDay': "เพิ่มในวันที่เปิดอยู่",
+  'places.addPlaceShort': "สถานที่ใหม่",
+  'places.addToDayShort': "เพิ่มในวัน",
+  'places.googleDirHint': "ใช้ลิงก์เส้นทางได้เช่นกัน: จุดแวะจะกลายเป็นสถานที่ตามลำดับการขับรถ",
+  'places.dayScoped': "แสดงเฉพาะวันที่เปิดอยู่",
+  'places.dayScopedClear': "แสดงทั้งทริป",
+  'places.source.amap': "Amap",
 };
 export default places;

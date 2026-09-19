@@ -82,5 +82,16 @@ const collab: TranslationStrings = {
   'collab.polls.options': "ตัวเลือก",
   'collab.polls.delete': "ลบ",
   'collab.polls.closedSection': "ปิดแล้ว",
+  'collab.tabs.links': "ลิงก์",
+  'collab.links.add': "เพิ่มลิงก์",
+  'collab.chat.imageRejected': "อนุญาตเฉพาะรูป JPEG, PNG, GIF และ WebP ขนาดไม่เกิน 10 MB",
+  'collab.links.cancel': "ยกเลิก",
+  'collab.links.save': "บันทึกลิงก์",
+  'collab.links.titlePlaceholder': "ชื่อลิงก์",
+  'collab.links.urlPlaceholder': "https://...",
+  'collab.links.empty': "ยังไม่มีลิงก์ที่แชร์",
+  'collab.links.pin': "ปักหมุดลิงก์",
+  'collab.links.unpin': "เลิกปักหมุดลิงก์",
+  'collab.links.delete': "ลบลิงก์",
 };
 export default collab;

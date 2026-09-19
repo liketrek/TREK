@@ -626,5 +626,21 @@ const journey: TranslationStrings = {
   'journey.editor.statsExcludedHint':
     "จุดแวะพักจะอยู่ในบันทึกแต่ไม่นับรวมระยะทาง ประเทศ หรือแผนที่ใน Studio",
   'journey.entry.offRoute': "นอกเส้นทาง",
+  'journey.suggestions.dismiss': "ซ่อนคำแนะนำนี้",
+  'journey.suggestions.dismissed': "ซ่อนคำแนะนำแล้ว",
+  'journey.suggestions.restore': "เรียกคืนคำแนะนำที่ซ่อน",
+  'journey.suggestions.restoreCount': "คำแนะนำที่ซ่อน ({count})",
+  'journey.suggestions.restored': "เรียกคืนคำแนะนำ {count} รายการแล้ว",
+  'journey.detail.addOnThisDay': "เพิ่มบันทึกในวันนี้",
+  'journey.detail.jumpToDay': "ไปที่ {date}",
+  'journey.detail.searchPlaceholder': "ค้นหาในบันทึกการเดินทางนี้",
+  'journey.detail.searchEmpty': "ไม่มีบันทึกที่ตรงกับ “{query}”",
+  'journey.settings.entryFields': "ฟิลด์ของบันทึก",
+  'journey.settings.entryFieldsHint': "ปิดสิ่งที่บันทึกการเดินทางนี้ไม่ได้ใช้ ข้อมูลที่เขียนไว้แล้วจะไม่สูญหาย",
+  'journey.settings.showVerdict': "ข้อดีและข้อเสีย",
+  'journey.settings.showMood': "อารมณ์",
+  'journey.settings.showWeather': "สภาพอากาศ",
+  'journey.entry.suggestion': "คำแนะนำ",
+  'journey.editor.addDetails': "+ รายละเอียด",
 };
 export default journey;

@@ -88,5 +88,6 @@ const dayplan: TranslationStrings = {
   'dayplan.reorderUndo': "จัดลำดับวันใหม่",
   'dayplan.reorderError': "ไม่สามารถเรียงลำดับวันใหม่ได้",
   'dayplan.addDayError': "ไม่สามารถเพิ่มวันได้",
+  'dayplan.addPlaceHere': "เพิ่มสถานที่ในวันนี้",
 };
 export default dayplan;

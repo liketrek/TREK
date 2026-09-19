@@ -60,5 +60,6 @@ const atlas: TranslationStrings = {
   'atlas.showPlanned': "แสดงประเทศที่วางแผนไว้",
   'atlas.plannedFor': "วางแผนไว้สำหรับ",
   'atlas.antarctica': "แอนตาร์กติกา",
+  'atlas.lastVisitLabel': "ทริปล่าสุด",
 };
 export default atlas;
