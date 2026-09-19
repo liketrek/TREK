@@ -203,7 +203,8 @@ describe('LoginPage — OIDC-only mode', () => {
 
     expect(screen.queryByPlaceholderText(EMAIL_PLACEHOLDER)).toBeNull();
     const link = screen.getByRole('link', { name: /sign in with authentik/i });
-    expect(link).toHaveAttribute('href', '/api/auth/oidc/login');
+    // No switch in OIDC-only mode: the link always asks for the remembered lifetime.
+    expect(link).toHaveAttribute('href', '/api/auth/oidc/login?remember=1');
     expect(
       screen.getByText('Password authentication is disabled. Please sign in using your SSO provider.'),
     ).toBeInTheDocument();
@@ -222,7 +223,7 @@ describe('LoginPage — OIDC-only mode', () => {
     expect(screen.getByText('Invalid session. Please try again.')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /sign in with sso/i })).toHaveAttribute(
       'href',
-      '/api/auth/oidc/login?invite=inv%2F42',
+      '/api/auth/oidc/login?invite=inv%2F42&remember=1',
     );
   });
 

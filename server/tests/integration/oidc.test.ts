@@ -429,6 +429,12 @@ describe('OIDC remember-me (#1927)', () => {
     const res = await runFlow('', 'sub-rm-abs', 'rmabs@example.com');
     expect(res.status).toBe(200);
     expect(sessionCookie(res)).toContain('Max-Age=86400');
+    // The JWT must not carry `remember: false` either — the sliding renewal
+    // re-issues the cookie from that claim, and `false` would turn the
+    // persistent default into a browser-session cookie half a day later.
+    const jwt = require('jsonwebtoken');
+    const decoded = jwt.decode(res.body.token) as { remember?: boolean };
+    expect(decoded.remember).toBeUndefined();
   });
 });
 

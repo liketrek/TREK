@@ -358,12 +358,11 @@ describe('OidcController /callback', () => {
     expect(res.redirectedTo).toBe('https://app/login?oidc_error=server_error');
   });
 
-  it('threads the pending remember flag into generateToken and createAuthCode', async () => {
-    for (const [remember, expectedGenerate] of [
-      [true, true],
-      [false, false],
-      [undefined, false],
-    ] as const) {
+  it('threads the pending remember flag unchanged into generateToken and createAuthCode', async () => {
+    // An absent flag must stay absent in the token: coercing it to `false`
+    // would let the sliding renewal downgrade the default persistent cookie
+    // to a browser-session cookie half a lifetime later.
+    for (const remember of [true, false, undefined] as const) {
       const generateToken = vi.fn().mockReturnValue('jwt');
       const createAuthCode = vi.fn().mockReturnValue({ code: 'ac', binding: 'bnd' });
       const res = makeRes();
@@ -376,7 +375,7 @@ describe('OidcController /callback', () => {
         generateToken,
         createAuthCode,
       })).callback('c', 's', undefined, reqCb('s'), res);
-      expect(generateToken).toHaveBeenCalledWith({ id: 1 }, expectedGenerate);
+      expect(generateToken).toHaveBeenCalledWith({ id: 1 }, remember);
       expect(createAuthCode).toHaveBeenCalledWith('jwt', remember);
     }
   });

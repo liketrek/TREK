@@ -24,6 +24,8 @@ OpenID Connect (OIDC) lets users log in with an existing identity provider — G
 | `0` | `SESSION_DURATION` (default `24h`) | browser-session cookie, cleared when the browser closes |
 | omitted | `SESSION_DURATION` (default `24h`) | persistent, `maxAge` matches |
 
+In OIDC-only mode (password login disabled) there is no switch: both the SSO button and the automatic redirect to the provider always send `remember=1`, so SSO sessions get the `SESSION_DURATION_REMEMBER` lifetime. Tune that variable if you want shorter sessions on an OIDC-only instance.
+
 If SSO sessions are dying at browser close, the login link is sending `remember=0`.
 
 ## Prerequisites

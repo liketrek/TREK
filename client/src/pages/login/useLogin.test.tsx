@@ -180,7 +180,9 @@ describe('useLogin — app config probe', () => {
     await ready(result);
 
     expect(result.current.oidcOnly).toBe(true);
-    await waitFor(() => expect(window.location.href).toBe('/api/auth/oidc/login'));
+    // OIDC-only has no remember-me switch and the IdP owns the session policy,
+    // so the auto-redirect always asks for the remembered lifetime.
+    await waitFor(() => expect(window.location.href).toBe('/api/auth/oidc/login?remember=1'));
   });
 
   it('FE-LOGIN-HOOK-008: does not bounce back to the IdP right after a logout', async () => {

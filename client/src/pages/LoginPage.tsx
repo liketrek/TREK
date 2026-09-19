@@ -498,7 +498,9 @@ export default function LoginPage(): React.ReactElement {
                 )}
                 <a
                   onClick={clearSignedOut}
-                  href={`/api/auth/oidc/login${inviteToken ? '?invite=' + encodeURIComponent(inviteToken) : ''}`}
+                  // No remember-me switch in OIDC-only mode: the IdP owns the session
+                  // policy, so always ask for the remembered lifetime (#1927).
+                  href={`/api/auth/oidc/login${inviteToken ? '?invite=' + encodeURIComponent(inviteToken) + '&' : '?'}remember=1`}
                   style={{
                     width: '100%',
                     padding: '12px',

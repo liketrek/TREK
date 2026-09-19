@@ -166,7 +166,10 @@ export class OidcController {
       if ('error' in result) return f('/login?oidc_error=' + result.error);
 
       this.oidc.touchLastLogin(result.user.id);
-      const jwtToken = this.oidc.generateToken(result.user, pending.remember === true);
+      // Pass the flag through untouched: `undefined` must reach the token as
+      // "absent", not `false`, or the sliding renewal would later downgrade the
+      // default persistent cookie to a browser-session one (remember-me, #1927).
+      const jwtToken = this.oidc.generateToken(result.user, pending.remember);
       const { code: authCode, binding } = this.oidc.createAuthCode(jwtToken, pending.remember);
       // Bind the code to THIS browser, the way the state cookie binds the callback.
       // The code rides home in a URL, so it is readable from history, from a
