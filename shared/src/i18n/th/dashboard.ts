@@ -158,7 +158,7 @@ const dashboard: TranslationStrings = {
   'dashboard.hero.lastDay': "วันสุดท้าย",
   'dashboard.hero.untilStart': "จนกระทั่งเริ่มต้น",
   'dashboard.hero.startsIn': "การเดินทางเริ่มต้นใน",
-  'dashboard.atlas.countriesVisited': "Atlas · ประเทศที่เยี่ยมชม",
+  'dashboard.atlas.countriesVisited': "แผนที่ · ประเทศที่เยี่ยมชม",
   'dashboard.atlas.ofTotal': "ของ {total}",
   'dashboard.atlas.tripsTotal': "ทริปทั้งหมด",
   'dashboard.atlas.placesMapped': "{count} สถานที่ที่แมปแล้ว",

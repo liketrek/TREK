@@ -16,6 +16,6 @@ const nav: TranslationStrings = {
   'nav.bottomAdmin': "การตั้งค่าผู้ดูแลระบบ",
   'nav.bottomLogout': "ออกจากระบบ",
   'nav.bottomAdminBadge': "ผู้ดูแลระบบ",
-  'nav.help': "ช่วยด้วย",
+  'nav.help': "ช่วยเหลือ",
 };
 export default nav;

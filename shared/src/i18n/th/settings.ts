@@ -6,7 +6,7 @@ const settings: TranslationStrings = {
   'settings.tabs.display': "ทั่วไป",
   'settings.tabs.map': "แผนที่",
   'settings.tabs.notifications': "การแจ้งเตือน",
-  'settings.tabs.integrations': "บูรณาการ",
+  'settings.tabs.integrations': "การเชื่อมต่อ",
   'settings.plugins.oauth.connected': "เชื่อมต่อแล้ว",
   'settings.plugins.oauth.notConnected': "ไม่ได้เชื่อมต่อ",
   'settings.plugins.oauth.connect': "เชื่อมต่อ",
