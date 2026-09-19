@@ -1,6 +1,6 @@
 # MCP Scopes
 
-OAuth scopes control exactly which data your AI client can read or write in TREK. You select scopes during the OAuth consent screen or when pre-creating an OAuth client. You can revoke access at any time by deleting the OAuth client or token from your **Settings → Integrations → MCP**.
+OAuth scopes control exactly which data your AI client can read or write in TREK. You select scopes during the OAuth consent screen or when pre-creating an OAuth client. You can revoke access at any time by deleting the OAuth client or token from **Settings → Integrations → MCP**.
 
 ![OAuth consent screen](assets/OAuthConsentDCR.png)
 
@@ -70,7 +70,7 @@ Grant only what you need. Some examples:
 | Packing list assistant | `trips:read` + `packing:read` + `packing:write` |
 | Journey writer | `trips:read` + `journey:read` + `journey:write` |
 
-The preset buttons in your **Settings → Integrations → MCP → OAuth 2.1 Clients** fill in a reasonable scope set for common clients. VS Code defaults to read-only scopes; Claude.ai and Claude Desktop default to all scopes except `:delete`.
+The preset buttons in **Settings → Integrations → MCP → OAuth Clients** fill in a reasonable scope set for common clients. VS Code defaults to read-only scopes; Claude.ai and Claude Desktop default to all scopes except `:delete`.
 
 ## Related
 

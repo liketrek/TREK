@@ -14,7 +14,7 @@ OAuth 2.1 is the preferred connection method. You grant specific scopes during t
 
 Claude.ai (web) supports native MCP connections — no JSON config file required:
 
-1. In TREK, go to your **Settings → Integrations → MCP → OAuth 2.1 Clients** and click **New Client**.
+1. In TREK, go to **Settings → Integrations → MCP → OAuth 2.1 Clients** and click **New Client**.
 2. Select the **Claude.ai** preset. This fills in the redirect URI (`https://claude.ai/api/mcp/auth_callback`) and a default scope set.
 3. Give the client a name, adjust scopes if needed, and save. Copy the client ID and client secret (`trekcs_` prefix) — the secret is shown only once.
 4. In Claude.ai, open the MCP settings and add a new server using your TREK URL (`https://<your-trek-instance>/mcp`). Claude.ai will open your browser to complete the OAuth consent flow.
@@ -23,7 +23,7 @@ Claude.ai (web) supports native MCP connections — no JSON config file required
 
 Claude Desktop supports native MCP connections — no JSON config file required:
 
-1. In TREK, go to your **Settings → Integrations → MCP → OAuth 2.1 Clients** and click **New Client**.
+1. In TREK, go to **Settings → Integrations → MCP → OAuth 2.1 Clients** and click **New Client**.
 2. Select the **Claude Desktop** preset. This fills in the redirect URI and a default scope set.
 3. Give the client a name, adjust scopes if needed, and save. Copy the client ID and client secret — the secret is shown only once.
 4. In Claude Desktop, open Settings → MCP and add a new server using your TREK URL (`https://<your-trek-instance>/mcp`). Claude Desktop will open your browser to complete the OAuth consent flow.
@@ -76,7 +76,7 @@ Create a client in TREK using the appropriate preset (Cursor, VS Code, Windsurf,
 
 ### Pre-created OAuth clients
 
-Your **Settings → Integrations → MCP → OAuth 2.1 Clients** page (your own settings, not the admin area) lets you create named OAuth clients before connecting. This gives you:
+**Settings → Integrations → MCP → OAuth 2.1 Clients** lets you create named OAuth clients before connecting. This gives you:
 
 - A fixed, named scope list defined up front
 - A client secret (`trekcs_` prefix, shown once) for confidential client mode
@@ -115,7 +115,7 @@ Machine clients are designed for **AI agent frameworks and custom MCP client imp
 
 Static tokens grant full access to all tools and resources with no scope restrictions. A static-token session is warned about the deprecation once, not on every call: the notice rides along with the result of the first `list_trips` or `get_trip_summary` in that session — the trip-discovery tools an AI client normally reaches for first — for the client to surface to you. The tool's own payload still comes with it, and every later call in that session returns a plain result. The notice is also part of the session instructions the server sends when the connection initializes.
 
-1. Go to your **Settings → Integrations → MCP**, open the **API Tokens** sub-tab, and click **Create New Token**.
+1. Go to **Settings → Integrations → MCP**, open the **API Tokens** sub-tab, and click **Create New Token**.
 2. Give the token a name and copy it immediately — it is shown only once. The token starts with `trek_`.
 3. Pass the token as a header in your client config:
 
