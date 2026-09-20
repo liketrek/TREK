@@ -494,7 +494,9 @@ export async function restoreFromZip(storage: StorageService, zipPath: string): 
       // files already landed on disk but whose connection failed to reopen
       // needs to be reported as "restart required", not swallowed.
       try {
-        reinitialize();
+        // Awaited: reopening also migrates the restored file, which may be an
+        // older backup, and rebuilds the ORM's cached connection.
+        await reinitialize();
       } catch (reinitErr) {
         reinitFailed = reinitErr;
       }

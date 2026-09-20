@@ -17,6 +17,9 @@ export default defineConfig({
     root: '.',
     include: ['tests/**/*.test.ts'],
     globals: true,
+    // Migrates one database for the whole run and snapshots it; workers open a
+    // copy instead of replaying 242 migrations per file. See tests/global-setup.ts.
+    globalSetup: ['tests/global-setup.ts'],
     setupFiles: ['tests/setup.ts', 'tests/setup.console-noise.ts'],
     testTimeout: 15000,
     hookTimeout: 15000,

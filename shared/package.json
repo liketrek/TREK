@@ -73,22 +73,22 @@
     "i18n:parity:strict": "node scripts/i18n-parity.mjs --strict"
   },
   "dependencies": {
-    "isomorphic-dompurify": "^3.15.0",
-    "zod": "^4.3.6"
+    "isomorphic-dompurify": "^3.23.0",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@trivago/prettier-plugin-sort-imports": "^6.0.2",
     "@vitest/coverage-v8": "^4.1.11",
-    "eslint": "^10.3.0",
-    "eslint-config-flat-gitignore": "^2.3.0",
+    "eslint": "^10.11.0",
+    "eslint-config-flat-gitignore": "^2.4.0",
     "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-prettier": "^5.5.5",
-    "prettier": "3.8.3",
+    "eslint-plugin-prettier": "^5.5.6",
+    "prettier": "3.9.8",
     "prettier-plugin-organize-imports": "^4.3.0",
-    "tsdown": "^0.22.2",
-    "typescript": "^6.0.2",
-    "typescript-eslint": "^8.58.2",
+    "tsdown": "^0.23.0",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.70.0",
     "vitest": "^4.1.11"
   }
 }

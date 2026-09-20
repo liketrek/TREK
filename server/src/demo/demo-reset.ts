@@ -12,7 +12,7 @@ function liveDbPath(db: { name: string }): string {
   return db.name;
 }
 
-function resetDemoUser(): void {
+async function resetDemoUser(): Promise<void> {
   if (!fs.existsSync(baselinePath)) {
     console.log('[Demo Reset] No baseline found, skipping. Admin must save baseline first.');
     return;
@@ -65,12 +65,12 @@ function resetDemoUser(): void {
     try { fs.unlinkSync(dbPath + '-shm'); } catch (e) {}
   } catch (e: unknown) {
     console.error('[Demo Reset] Failed to restore baseline:', e instanceof Error ? e.message : e);
-    reinitialize();
+    await reinitialize();
     return;
   }
 
   // Reinitialize DB connection with restored baseline
-  reinitialize();
+  await reinitialize();
 
   // Restore admin's latest credentials (in case admin changed password/API keys after baseline was saved)
   if (adminData) {

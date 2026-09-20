@@ -1,24 +1,27 @@
-import nodeHttp from 'node:http';
-import express from 'express';
-import type { Request, Response, NextFunction, RequestHandler } from 'express';
-import { NestFactory } from '@nestjs/core';
-import { ExpressAdapter } from '@nestjs/platform-express';
-import type { INestApplication } from '@nestjs/common';
-import type { ConfigType } from '@nestjs/config';
-import { AppModule } from './nest/app.module';
-import { httpConfig } from './nest/app-config';
+import { attachOrm, runSchemaBootstrap } from './db/orm';
 import { applyGlobalMiddleware, routingCspOrigins } from './middleware/globalMiddleware';
-import { SettingsService } from './nest/settings/settings.service';
-import { applyPlatformUploads, applyPlatformStatic } from './nest/platform/platform.routes';
+import { httpConfig } from './nest/app-config';
+import { AppModule } from './nest/app.module';
 import { apiDocsEnabled } from './nest/common/api-docs.kill-switch';
+import { validateBodyContracts } from './nest/common/validate-body-contracts';
+import { validateManagedRoutes } from './nest/common/validate-managed-routes';
+import { validateRouteGuards } from './nest/common/validate-route-guards';
 import { setupApiDocs } from './nest/platform/api-docs';
 import { MCP_METADATA_MIDDLEWARE } from './nest/platform/mcp-metadata.middleware';
-import { validateBodyContracts } from './nest/common/validate-body-contracts';
-import { validateRouteGuards } from './nest/common/validate-route-guards';
-import { validateManagedRoutes } from './nest/common/validate-managed-routes';
+import { applyPlatformUploads, applyPlatformStatic } from './nest/platform/platform.routes';
 import { TrekWsAdapter } from './nest/realtime/trek-ws.adapter';
+import { SettingsService } from './nest/settings/settings.service';
 import { StorageService } from './nest/storage/storage.service';
+import { MikroORM } from '@mikro-orm/core';
+import type { INestApplication } from '@nestjs/common';
+import type { ConfigType } from '@nestjs/config';
+import { NestFactory } from '@nestjs/core';
+import { ExpressAdapter } from '@nestjs/platform-express';
 import { MAX_COLLECTION_FILE_BYTES } from '@trek/shared';
+
+import express from 'express';
+import type { Request, Response, NextFunction, RequestHandler } from 'express';
+import nodeHttp from 'node:http';
 
 /**
  * Builds the unified TREK NestJS application that serves the ENTIRE surface — the
@@ -71,6 +74,13 @@ export async function buildApp(): Promise<INestApplication> {
   // route can verify a provider's HMAC signature over the exact payload (the
   // parsed JSON alone can't be re-serialised byte-for-byte).
   const app = await NestFactory.create(AppModule, new ExpressAdapter(), { rawBody: true });
+  // Schema first, before ANY consumer reads it. `database.ts` only opens the
+  // connection now; migrating and seeding is MikroORM's job and it is async, so
+  // this is the earliest point it can happen. It has to stay above the
+  // SettingsService resolution below, which is the boot's first DB read.
+  const orm = app.get(MikroORM);
+  attachOrm(orm);
+  await runSchemaBootstrap(orm);
   const instance = app.getHttpAdapter().getInstance();
   // The http server is created HERE, not by the caller after buildApp returns,
   // and that ordering is the whole point: Nest binds gateways during app.init(),
@@ -95,10 +105,7 @@ export async function buildApp(): Promise<INestApplication> {
   const asUrl = (value: unknown) => (typeof value === 'string' ? value : null);
   applyGlobalMiddleware(instance, {
     http,
-    extraConnectSrc: routingCspOrigins([
-      asUrl(defaults?.routing_base_url),
-      asUrl(defaults?.valhalla_base_url),
-    ]),
+    extraConnectSrc: routingCspOrigins([asUrl(defaults?.routing_base_url), asUrl(defaults?.valhalla_base_url)]),
   });
   // Same pre-init consumption bridge as httpConfig above: the StorageService
   // instance is resolvable before init, and the handlers only *register* here —
@@ -159,8 +166,7 @@ export async function buildApp(): Promise<INestApplication> {
   const json = express.json({ limit: '100kb', verify: rawBodyKeeper });
   const urlencoded = express.urlencoded({ limit: '100kb', extended: true, verify: rawBodyKeeper });
   const isMcp = (req: Request) => req.path === '/mcp' || req.path === '/mcp/';
-  const isBookWrite = (req: Request) =>
-    req.method === 'PUT' && /^\/api\/journeys\/\d+\/book$/.test(req.path);
+  const isBookWrite = (req: Request) => req.method === 'PUT' && /^\/api\/journeys\/\d+\/book$/.test(req.path);
   const isListFile = (req: Request) =>
     req.method === 'POST' && /^\/api\/addons\/collections\/(import|gpx\/read|\d+\/import)$/.test(req.path);
 

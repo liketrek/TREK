@@ -63,8 +63,8 @@
     "dist"
   ],
   "dependencies": {
-    "@clack/prompts": "^1.7.0",
-    "semver": "^7.7.4",
+    "@clack/prompts": "^1.8.1",
+    "semver": "^7.8.5",
     "update-notifier": "^7.3.1"
   },
   "scripts": {
@@ -75,12 +75,12 @@
     "prepublishOnly": "npm run build && npm test"
   },
   "devDependencies": {
-    "@types/node": "^22.20.0",
-    "@types/semver": "^7.7.1",
+    "@types/node": "^22.20.4",
+    "@types/semver": "^7.8.0",
     "@types/update-notifier": "^6.0.8",
-    "@vitest/coverage-v8": "^4.1.9",
+    "@vitest/coverage-v8": "^4.1.11",
     "typescript": "^5.9.3",
-    "vitest": "^4.1.9"
+    "vitest": "^4.1.11"
   },
   "keywords": [
     "trek",

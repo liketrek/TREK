@@ -21,13 +21,13 @@ export class DemoResetJob implements OnApplicationBootstrap {
 
   onApplicationBootstrap(): void {
     if (!this.registrar.isEnabled() || !this.runtimeEnv.isDemoMode()) return;
-    this.registrar.register('demo-reset', '0 * * * *', () => this.tick(), { timezone: 'none' });
+    this.registrar.register('demo-reset', '0 * * * *', () => void this.tick(), { timezone: 'none' });
     logInfo('Demo hourly reset scheduled');
   }
 
-  tick(): void {
+  async tick(): Promise<void> {
     try {
-      resetDemoUser();
+      await resetDemoUser();
     } catch (err: unknown) {
       logError(`Demo reset: ${err instanceof Error ? err.message : err}`);
     }
