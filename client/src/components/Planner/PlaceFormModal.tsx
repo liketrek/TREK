@@ -318,6 +318,12 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
   }, [place, prefillCoords, isOpen, assignmentId])
 
   useEffect(() => {
+    if (!isOpen) {
+      setMapsSearch('')
+    }
+  }, [isOpen])
+
+  useEffect(() => {
     if (isOpen) {
       setTimeout(() => {
         const modal = searchInputRef.current?.closest('[role="dialog"]') ?? document.body

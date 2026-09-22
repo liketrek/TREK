@@ -162,6 +162,17 @@ describe('PlaceFormModal', () => {
     expect(screen.queryByDisplayValue('Old Place')).not.toBeInTheDocument();
   });
 
+  it('clears the maps search input after the modal closes and reopens', async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(<PlaceFormModal {...defaultProps} isOpen />);
+    await user.type(screen.getByPlaceholderText('Search places...'), 'Eiffel Tower');
+
+    rerender(<PlaceFormModal {...defaultProps} isOpen={false} />);
+    rerender(<PlaceFormModal {...defaultProps} isOpen />);
+
+    expect(screen.getByPlaceholderText('Search places...')).toHaveValue('');
+  });
+
   // ── Maps search ──────────────────────────────────────────────────────────────
 
   it('FE-PLANNER-PLACEFORM-018: maps search populates results via button click', async () => {
