@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { App } from '@capacitor/app'
+import { Keyboard } from '@capacitor/keyboard'
 import { SplashScreen } from '@capacitor/splash-screen'
 import { StatusBar, Style } from '@capacitor/status-bar'
 import { startNativeApp } from './nativeApp'
@@ -8,6 +9,7 @@ import { keepOfflineShellFresh } from './offlineShell'
 import { isEffectivelyOffline } from '../sync/networkMode'
 
 vi.mock('@capacitor/app', () => ({ App: { addListener: vi.fn(), minimizeApp: vi.fn() } }))
+vi.mock('@capacitor/keyboard', () => ({ Keyboard: { setAccessoryBarVisible: vi.fn() } }))
 vi.mock('@capacitor/splash-screen', () => ({ SplashScreen: { hide: vi.fn() } }))
 vi.mock('@capacitor/status-bar', () => ({ StatusBar: { setStyle: vi.fn() }, Style: { Dark: 'DARK', Light: 'LIGHT' } }))
 vi.mock('./platform', () => ({ isNativeApp: vi.fn(), isNativeIos: vi.fn() }))
@@ -61,6 +63,14 @@ describe('startNativeApp', () => {
     expect(StatusBar.setStyle).toHaveBeenLastCalledWith({ style: Style.Light })
     document.documentElement.classList.add('dark')
     await vi.waitFor(() => expect(StatusBar.setStyle).toHaveBeenLastCalledWith({ style: Style.Dark }))
+  })
+
+  it('hides the keyboard accessory bar on iOS only', () => {
+    startNativeApp()
+    expect(Keyboard.setAccessoryBarVisible).not.toHaveBeenCalled()
+    vi.mocked(isNativeIos).mockReturnValue(true)
+    startNativeApp()
+    expect(Keyboard.setAccessoryBarVisible).toHaveBeenCalledWith({ isVisible: false })
   })
 
   it('refreshes the offline start on iOS once the first screen has settled', () => {

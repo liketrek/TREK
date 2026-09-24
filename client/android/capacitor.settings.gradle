@@ -8,6 +8,9 @@ project(':capacitor-app').projectDir = new File('../../node_modules/@capacitor/a
 include ':capacitor-filesystem'
 project(':capacitor-filesystem').projectDir = new File('../../node_modules/@capacitor/filesystem/android')
 
+include ':capacitor-haptics'
+project(':capacitor-haptics').projectDir = new File('../../node_modules/@capacitor/haptics/android')
+
 include ':capacitor-keyboard'
 project(':capacitor-keyboard').projectDir = new File('../../node_modules/@capacitor/keyboard/android')
 

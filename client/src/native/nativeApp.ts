@@ -1,4 +1,5 @@
 import { App } from '@capacitor/app'
+import { Keyboard } from '@capacitor/keyboard'
 import { SplashScreen } from '@capacitor/splash-screen'
 import { StatusBar, Style } from '@capacitor/status-bar'
 import { isNativeApp, isNativeIos } from './platform'
@@ -27,6 +28,8 @@ export function startNativeApp(): void {
   requestAnimationFrame(() => { void SplashScreen.hide() })
 
   if (isNativeIos()) {
+    // The "‹ › Done" strip above the keyboard is a web form's, not an app's.
+    void Keyboard.setAccessoryBarVisible({ isVisible: false })
     window.setTimeout(() => {
       if (isEffectivelyOffline()) return
       keepOfflineShellFresh().catch((err) => console.warn('[native] offline start page not refreshed', err))

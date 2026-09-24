@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react'
 import { CheckCircle, XCircle, AlertCircle, Info, X } from 'lucide-react'
+import { toastHaptic } from '../../native/haptics'
 
 type ToastType = 'success' | 'error' | 'warning' | 'info'
 
@@ -39,6 +40,7 @@ export function ToastContainer() {
   const addToast = useCallback((message: string, type: ToastType = 'info', duration: number = 3000) => {
     const id = ++toastIdCounter
     setToasts(prev => [...prev, { id, message, type, duration, removing: false }])
+    toastHaptic(type)
 
     if (duration > 0) {
       const t1 = setTimeout(() => {

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import MStatusDot, { MStatus } from './MStatusDot'
+import { toastHaptic } from '../../native/haptics'
 
 type ToastType = 'success' | 'error' | 'warning' | 'info'
 
@@ -75,6 +76,7 @@ export default function MToastHost() {
     (message: string, type: ToastType = 'info', duration: number = 3000) => {
       const id = ++toastId
       setToasts((prev) => [...prev, { id, message, type, sticky: duration <= 0, removing: false }])
+      toastHaptic(type)
 
       if (duration > 0) {
         const t = setTimeout(() => dismissToast(id), duration)

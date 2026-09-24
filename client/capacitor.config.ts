@@ -22,6 +22,10 @@ const config: CapacitorConfig = {
     // on iOS it first tries the stored offline copy of the server's start page.
     errorPath: 'index.html',
   },
+  ios: {
+    // Long-pressing a link shows a Safari preview otherwise, which no app does.
+    allowsLinkPreview: false,
+  },
   plugins: {
     SplashScreen: {
       // Matches <meta name="theme-color"> in index.html, so the launch image,
