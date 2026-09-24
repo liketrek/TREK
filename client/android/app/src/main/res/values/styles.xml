@@ -18,5 +18,8 @@
 
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
         <item name="android:background">@drawable/splash</item>
+        <!-- Android 12+ draws its own launch screen: the app icon on this colour.
+             The same near-black as the icon tile and the first painted frame. -->
+        <item name="windowSplashScreenBackground">@color/launch_background</item>
     </style>
 </resources>

@@ -5,7 +5,9 @@ import { KeyboardResize } from '@capacitor/keyboard';
 
 const config: CapacitorConfig = {
   appId: 'com.liketrek.trek',
-  appName: 'TREK - Plan your trips!',
+  // What the home screen shows under the icon; the longer title belongs to
+  // the store listings.
+  appName: 'TREK',
   // The app ships only the address screen. Once a server is picked, the native
   // side points the WebView at it (TrekBridgeViewController.swift,
   // MainActivity.java) and the UI comes from that server, always in the version

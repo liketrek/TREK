@@ -7,6 +7,7 @@
     "dev": "vite",
     "prebuild": "node scripts/patch-maplibre.mjs && node scripts/generate-icons.mjs",
     "icons:native": "node scripts/generate-native-icons.mjs",
+    "icons:app": "node scripts/generate-app-icons.mjs && npx @capacitor/assets generate --android --ios --iconBackgroundColor #09090b --iconBackgroundColorDark #09090b --splashBackgroundColor #09090b --splashBackgroundColorDark #09090b",
     "build:native": "vite build --config vite.native.config.js",
     "cap:sync": "npm run build:native && cap sync",
     "build": "vite build",
