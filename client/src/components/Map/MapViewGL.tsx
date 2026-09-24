@@ -43,6 +43,7 @@ import { pluginsApi, type PluginMapMarker, type PluginMapLayer } from '../../api
 import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM, SATELLITE_TILE_URL, SATELLITE_TILE_ATTRIBUTION, SATELLITE_TILE_MAXZOOM } from '../../constants/mapDefaults'
 import { computeMapViewport, TILE_SIZE_GL, type ViewportPadding } from '../../utils/mapViewport'
 import { selectedPlaceTarget } from './selectedPlaceTarget'
+import { offlineStyle } from '../../native/offlineTiles'
 
 function categoryIconSvg(iconName: string | null | undefined, size: number): string {
   const IconComponent = (iconName && CATEGORY_ICON_MAP[iconName]) || CATEGORY_ICON_MAP['MapPin']
@@ -1219,7 +1220,7 @@ export function MapViewGL({
 
     const mapOptions: Record<string, unknown> = {
       container: containerRef.current,
-      style: glStyle,
+      style: isMapLibre ? offlineStyle(glStyle) : glStyle,
       center: [initial.center[1], initial.center[0]],
       zoom: initial.zoom,
       pitch: enableMapbox3d ? 45 : 0,

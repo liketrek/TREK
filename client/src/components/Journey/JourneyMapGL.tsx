@@ -5,6 +5,7 @@ import { isStandardFamily, supportsCustom3d, wantsTerrain, addCustom3dBuildings,
 import { MAPBOX_DEFAULT_STYLE, styleForActiveProvider, basemapLanguage, type GlMapProvider } from '../Map/glProviders'
 import type { JourneyTrack } from '@trek/shared'
 import { SHOT_INDEX_ATTR, ensureJourneyPopupStyle, formatMarkerDate, journeyPopupHtml } from './journeyMapPopup'
+import { offlineStyle } from '../../native/offlineTiles'
 
 export interface JourneyMapGLHandle {
   highlightMarker: (id: string | null) => void
@@ -290,7 +291,7 @@ function JourneyMapGL(
 
     const mapOptions: Record<string, unknown> = {
       container: containerRef.current,
-      style: glStyle,
+      style: isMapLibre ? offlineStyle(glStyle) : glStyle,
       center: hasPoints ? bounds.getCenter() : [0, 30],
       zoom: hasPoints ? 2 : 1,
       pitch: enableMapbox3d && fullScreen ? 45 : 0,

@@ -4,10 +4,13 @@ import { useAuthStore } from '../../store/authStore'
 import { useSettingsStore, hasStoredLanguage } from '../../store/settingsStore'
 import { useTranslation, detectBrowserLanguage } from '../../i18n'
 import { startAuthentication } from '@simplewebauthn/browser'
-import { wasSignedOut } from '../../utils/signedOut'
+import { clearSignedOut, wasSignedOut } from '../../utils/signedOut'
 import { authApi, configApi } from '../../api/client'
 import { getApiErrorMessage } from '../../types'
 import { START_DESTINATION_ROUTE } from '../../utils/startDestination'
+import { isNativeApp } from '../../native/platform'
+import { BrowserSignInCancelled, signInThroughBrowser, type BrowserSignInStart } from '../../native/browserSignIn'
+import { TrekShell } from '../../native/trekShell'
 
 interface AppConfig {
   has_users: boolean
@@ -40,7 +43,9 @@ export function useLogin() {
   const [username, setUsername] = useState<string>('')
   const [email, setEmail] = useState<string>('')
   const [password, setPassword] = useState<string>('')
-  const [rememberMe, setRememberMe] = useState<boolean>(false)
+  // On by default in the app: a session cookie there dies with the app process,
+  // and nobody expects to sign in again every time the phone unloads an app.
+  const [rememberMe, setRememberMe] = useState<boolean>(isNativeApp)
   const [showPassword, setShowPassword] = useState<boolean>(false)
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [error, setError] = useState<string>('')
@@ -51,6 +56,7 @@ export function useLogin() {
   const [inviteToken, setInviteToken] = useState<string>('')
   const [inviteValid, setInviteValid] = useState<boolean>(false)
   const exchangeInitiated = useRef(false)
+  const [nativeApp] = useState(isNativeApp)
 
   const [langDropdownOpen, setLangDropdownOpen] = useState<boolean>(false)
 
@@ -185,14 +191,16 @@ export function useLogin() {
           if (!config.has_users) setMode('register')
           // Skip auto-redirect when config is from cache — network is unreliable
           // and auto-redirecting to the IdP could loop if the proxy changed.
-          if (!fromCache && !config.password_login && config.oidc_login && config.oidc_configured && config.has_users && !invite && !noRedirect) {
+          // Not in the app: its WebView cannot host the IdP, and opening the
+          // system browser uninvited on every launch would be worse than a button.
+          if (!fromCache && !nativeApp && !config.password_login && config.oidc_login && config.oidc_configured && config.has_users && !invite && !noRedirect) {
             // No switch to consult on this path: OIDC-only always asks for the
             // remembered lifetime, matching the SSO button on the panel (#1927).
             window.location.href = '/api/auth/oidc/login?remember=1'
           }
         }
       })
-  }, [navigate, t, noRedirect])
+  }, [navigate, t, noRedirect, nativeApp])
 
   // Language detection chain (runs once on mount, only if user has no saved preference):
   // 1. localStorage → already in store initial state, skip
@@ -233,7 +241,31 @@ export function useLogin() {
     }
   }
 
+  /** In the app: SSO and passkeys run in the system browser (native/browserSignIn.ts). */
+  const handleBrowserSignIn = async (start?: BrowserSignInStart): Promise<void> => {
+    setError('')
+    setIsLoading(true)
+    try {
+      await signInThroughBrowser(start)
+      await loadUser({ silent: true })
+      takeOff()
+    } catch (err: unknown) {
+      if (!(err instanceof BrowserSignInCancelled)) setError(t('native.login.failed'))
+      setIsLoading(false)
+    }
+  }
+
+  const handleSsoClick = (e: React.MouseEvent<HTMLAnchorElement>): void => {
+    clearSignedOut()
+    if (!nativeApp) return
+    e.preventDefault()
+    void handleBrowserSignIn('oidc')
+  }
+
+  const changeServer = (): void => { void TrekShell.resetServer() }
+
   const handlePasskeyLogin = async (): Promise<void> => {
+    if (nativeApp) return handleBrowserSignIn()
     setError('')
     setIsLoading(true)
     try {
@@ -334,5 +366,6 @@ export function useLogin() {
     passwordChangeStep, newPassword, setNewPassword, confirmPassword, setConfirmPassword,
     noRedirect, showRegisterOption, oidcOnly,
     handleDemoLogin, handleSubmit, handlePasskeyLogin,
+    nativeApp, handleSsoClick, changeServer,
   }
 }

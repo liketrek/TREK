@@ -185,6 +185,8 @@ export function applyPlatformSpa(app: express.Application): void {
   });
 }
 
+const HASHED_ASSET = /[\\/]assets[\\/][^\\/]+-[\w-]{8,}\.\w+$/;
+
 /**
  * Production static serving of the built client (JS/CSS/assets). Split out from
  * applyPlatformSpa because the NestJS bootstrap needs the static files served
@@ -200,6 +202,11 @@ export function applyPlatformStatic(app: express.Application): void {
       setHeaders: (res, filePath) => {
         if (filePath.endsWith('index.html')) {
           res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        } else if (HASHED_ASSET.test(filePath)) {
+          // Vite puts a content hash in every name under assets/, so a file there
+          // never changes. Without this the iOS app, which has no service worker,
+          // cannot start offline: WebKit would revalidate each script and fail.
+          res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
         }
       },
     }),

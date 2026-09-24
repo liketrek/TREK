@@ -17,6 +17,7 @@ import help from './help';
 import inspector from './inspector';
 import journey from './journey';
 import login from './login';
+import native from './native';
 import map from './map';
 import members from './members';
 import memories from './memories';
@@ -66,6 +67,7 @@ const locale = {
   ...share,
   ...shared,
   ...login,
+  ...native,
   ...register,
   ...vacay,
   ...collection,

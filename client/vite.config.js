@@ -265,6 +265,10 @@ export default defineConfig(({ mode }) => ({
     // is, so a toolchain bump can't silently change which browsers still work.
     target: 'es2022',
     sourcemap: false,
+    // Served as /asset-manifest.json. The iOS app, which runs no service worker,
+    // walks it to pull every chunk into WebKit's cache so TREK can start offline
+    // (src/native/offlineShell.ts).
+    manifest: 'asset-manifest.json',
     modulePreload: { polyfill: true },
     // Vite 8 bundles with rolldown, not rollup. `rollupOptions` is only an alias
     // onto `rolldownOptions`, and both `manualChunks` and `advancedChunks` are

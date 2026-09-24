@@ -30,6 +30,14 @@ export default tseslint.config(
       'public',
       'test-results',
       'playwright-report',
+      // Capacitor native shells. `npx cap sync` copies the built address screen
+      // from native-dist/ into both platforms, so without these ESLint lints the
+      // minified output. gitignore() does not cover them: the iOS and Android
+      // .gitignore files live one level down, and this config's gitignore
+      // integration only reads client/.gitignore.
+      'native-dist',
+      'android/**',
+      'ios/**',
       'e2e/**',
       'scripts/**',
       '**/*.config.js',

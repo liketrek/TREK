@@ -1,5 +1,7 @@
 import { getCachedBlob } from '../db/offlineDb'
 import { isEffectivelyOffline } from '../sync/networkMode'
+import { isNativeApp } from '../native/platform'
+import { fileNameFromUrl, shareFile } from '../native/nativeFiles'
 
 // MIME types safe to open inline (will not execute script in any browser).
 // Everything else (text/html, image/svg+xml, text/javascript, …) is forced to
@@ -80,6 +82,10 @@ async function getFileBlob(url: string): Promise<Blob> {
  * in the same tick can abort the download in other browsers.
  */
 export function downloadBlob(blob: Blob, filename: string): void {
+  if (isNativeApp()) {
+    shareFile(blob, filename).catch((err) => console.error('[download]', err))
+    return
+  }
   const blobUrl = URL.createObjectURL(blob)
   triggerAnchorDownload(blobUrl, filename)
 }
@@ -93,6 +99,7 @@ export function downloadBlob(blob: Blob, filename: string): void {
  */
 export async function downloadFile(url: string, filename?: string): Promise<void> {
   const blob = await getFileBlob(url)
+  if (isNativeApp()) return shareFile(blob, filename ?? fileNameFromUrl(url))
   const blobUrl = URL.createObjectURL(blob)
   triggerAnchorDownload(blobUrl, filename)
 }
@@ -116,6 +123,9 @@ export async function downloadFile(url: string, filename?: string): Promise<void
  */
 export async function openFile(url: string, filename?: string): Promise<void> {
   const blob = await getFileBlob(url)
+  // The share sheet previews PDFs and images too, and a blob tab has nowhere
+  // to open inside the app.
+  if (isNativeApp()) return shareFile(blob, filename ?? fileNameFromUrl(url))
   const blobUrl = URL.createObjectURL(blob)
 
   // Force download for MIME types that can execute script when rendered inline

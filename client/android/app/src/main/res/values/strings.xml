@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">TREK - Plan your trips!</string>
+    <string name="title_activity_main">TREK - Plan your trips!</string>
+    <string name="package_name">com.liketrek.trek</string>
+    <string name="custom_url_scheme">com.liketrek.trek</string>
+</resources>

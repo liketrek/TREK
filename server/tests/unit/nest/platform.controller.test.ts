@@ -385,6 +385,25 @@ describe('applyPlatformStatic', () => {
     opts.setHeaders(assetRes, '/some/app.js');
     expect(assetRes.headers['Cache-Control']).toBeUndefined();
   });
+
+  it('marks the hashed files under assets/ immutable, and nothing else', async () => {
+    process.env.NODE_ENV = 'production';
+    const expressMod = (await import('express')).default as unknown as { static: ReturnType<typeof vi.fn> };
+    expressMod.static.mockClear();
+    const { app } = fakeApp();
+    applyPlatformStatic(app);
+    const opts = expressMod.static.mock.calls[0][1] as { setHeaders: (res: unknown, p: string) => void };
+    const header = (p: string) => {
+      const res = makeRes();
+      opts.setHeaders(res, p);
+      return res.headers['Cache-Control'];
+    };
+    expect(header('/app/public/assets/index-DbM4_q2x.js')).toBe('public, max-age=31536000, immutable');
+    expect(header('C:\\app\\public\\assets\\Map-a1B2c3D4.css')).toBe('public, max-age=31536000, immutable');
+    expect(header('/app/public/sw.js')).toBeUndefined();
+    expect(header('/app/public/icons/icon-192.png')).toBeUndefined();
+    expect(header('/app/public/assets/plain.js')).toBeUndefined();
+  });
 });
 
 describe('applyPlatformSpa', () => {

@@ -23,17 +23,17 @@ function make(available: boolean, aiEnabled: boolean) {
 describe('FeaturesController (GET /api/health/features)', () => {
   it('FEAT-001: reports both flags on', () => {
     const { controller } = make(true, true);
-    expect(controller.features()).toEqual({ bookingImport: true, aiParsing: true });
+    expect(controller.features()).toEqual({ bookingImport: true, aiParsing: true, nativeApp: true });
   });
 
   it('FEAT-002: reports both flags off', () => {
     const { controller } = make(false, false);
-    expect(controller.features()).toEqual({ bookingImport: false, aiParsing: false });
+    expect(controller.features()).toEqual({ bookingImport: false, aiParsing: false, nativeApp: true });
   });
 
   it('FEAT-003: the two flags are independent', () => {
-    expect(make(true, false).controller.features()).toEqual({ bookingImport: true, aiParsing: false });
-    expect(make(false, true).controller.features()).toEqual({ bookingImport: false, aiParsing: true });
+    expect(make(true, false).controller.features()).toEqual({ bookingImport: true, aiParsing: false, nativeApp: true });
+    expect(make(false, true).controller.features()).toEqual({ bookingImport: false, aiParsing: true, nativeApp: true });
   });
 
   it('FEAT-004: aiParsing asks the addons service for the LLM parsing addon specifically', () => {

@@ -139,6 +139,9 @@ export const PUBLIC_ROUTE_ALLOW_LIST: string[] = [
   'McpTransportController.delete',
   'McpTransportController.get',
   'McpTransportController.post',
+  // The native app redeems a one-time code from the system browser here. The
+  // code is only good together with the verifier the app kept to itself.
+  'NativeAuthController.exchange',
   'OauthPublicController.revoke',
   'OauthPublicController.token',
   'OauthPublicController.userinfo',

@@ -10,6 +10,7 @@ import { currencyDecimals } from '../../utils/formatters'
 import { widgetTheme, fmtNum, calcPP, calcPD, calcPPD, hasCustomMemberSplit } from './BudgetPanel.helpers'
 import { PIE_COLORS } from './BudgetPanel.constants'
 import type { TripMember } from './BudgetPanelMemberChips'
+import { downloadBlob } from '../../utils/fileDownload'
 
 function useIsDark(): boolean {
   const [dark, setDark] = useState<boolean>(() => typeof document !== 'undefined' && document.documentElement.classList.contains('dark'))
@@ -183,13 +184,8 @@ export function useBudgetPanel(tripId: number, tripMembers: TripMember[]) {
 
     const bom = '﻿'
     const blob = new Blob([bom + rows.join('\r\n')], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
     const safeName = (trip?.title || 'trip').replace(/[^a-zA-Z0-9À-ɏ _-]/g, '').trim()
-    a.download = `budget-${safeName}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
+    downloadBlob(blob, `budget-${safeName}.csv`)
   }
 
   const th: CSSProperties = { padding: '6px 8px', textAlign: 'center', fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '2px solid var(--border-primary)', whiteSpace: 'nowrap', background: 'var(--bg-secondary)' }

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme">
+
+        <activity
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
+            android:name=".MainActivity"
+            android:label="@string/title_activity_main"
+            android:theme="@style/AppTheme.NoActionBarLaunch"
+            android:launchMode="singleTask"
+            android:exported="true">
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- Deep links.
+
+                 The scheme is @string/custom_url_scheme (com.liketrek.trek).
+                 launchMode is singleTask above, so a link delivers into the
+                 running task via onNewIntent rather than starting a second copy
+                 of the app on top of the first.
+
+                 This is the return path for SSO and passkey sign-in: TrekShell
+                 opens the server's login page in a Custom Tab, and after the
+                 hand-off it redirects to com.liketrek.trek://auth?code=…, which
+                 lands here and in TrekShellPlugin.handleOnNewIntent.
+
+                 Not an App Link (autoVerify + https). App Links are verified
+                 against a specific domain via assetlinks.json, and TREK is
+                 self-hosted — there is no single domain to verify against. A
+                 custom scheme is the only form that works for every user's
+                 server. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="@string/custom_url_scheme" />
+            </intent-filter>
+
+        </activity>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths"></meta-data>
+        </provider>
+
+    </application>
+
+    <!-- Permissions. Only what the WebView itself needs: the file picker's
+         camera option and navigator.geolocation for "locate me" on the map,
+         both granted at runtime through Capacitor's WebChromeClient. -->
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- COARSE is listed first because it is the weaker grant and is enough
+         for "what city am I in". -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <!-- required="false" on purpose: TREK is a planner, and everything except
+         "locate me" works without GPS hardware. Marking it required would have
+         Play hide the app from tablets and other GPS-less devices. -->
+    <uses-feature android:name="android.hardware.location.gps" android:required="false" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+</manifest>

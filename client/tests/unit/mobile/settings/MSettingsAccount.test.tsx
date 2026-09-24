@@ -634,7 +634,7 @@ describe('MSettingsAccount – backup codes', () => {
 
     expect(createObjectURL).toHaveBeenCalledWith(expect.any(Blob));
     expect(downloadName).toBe('trek-mfa-backup-codes.txt');
-    expect(revokeObjectURL).toHaveBeenCalledWith('blob:codes');
+    await waitFor(() => expect(revokeObjectURL).toHaveBeenCalledWith('blob:codes'));
     expect(document.querySelector('a[download]')).toBeNull();
 
     createObjectURL.mockRestore();

@@ -31,6 +31,10 @@ export class FeaturesController {
       // Addon-level flag (per-user config availability is reported per-file in
       // the preview response). Drives whether the client shows AI affordances.
       aiParsing: this.addons.isAddonEnabled(ADDON_IDS.LLM_PARSING),
+      // The native apps refuse to connect to a server without this: an older
+      // one serves a UI that knows neither the sign-in hand-off nor the way
+      // back to the server picker, and the user would be stuck in it.
+      nativeApp: true,
     };
   }
 }

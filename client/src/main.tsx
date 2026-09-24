@@ -36,6 +36,7 @@ import { startConnectivityProbe } from './sync/connectivity'
 import { requestPersistentStorage } from './sync/persistentStorage'
 import ErrorBoundary, { RootErrorFallback } from './components/shared/ErrorBoundary'
 import { installGlobalErrorHandlers } from './utils/globalErrorHandlers'
+import { startNativeApp } from './native/nativeApp'
 
 maybeInstallTouchDragPolyfill()
 startConnectivityProbe()
@@ -43,6 +44,8 @@ startConnectivityProbe()
 requestPersistentStorage()
 // Event handlers and async code never reach a boundary; this is where they land.
 installGlobalErrorHandlers()
+// Inside the iOS/Android app: splash, back button, status bar, offline start (iOS).
+startNativeApp()
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

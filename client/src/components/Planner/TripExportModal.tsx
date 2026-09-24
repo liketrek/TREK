@@ -7,6 +7,7 @@ import { useToast } from '../shared/Toast'
 import type { Trip, Day, Place, Category, AssignmentsMap, Reservation, DayNote } from '../../types'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useRoadtripSettings } from '../../hooks/useRoadtripSettings'
+import { downloadBlob } from '../../utils/fileDownload'
 
 /**
  * What a GPX download can carry. Worded by what someone wants on their device
@@ -67,18 +68,6 @@ export function TripExportModal({
   const showServiceStops = useRoadtripSettings(s => s.roadtrip_service_stops_in_days !== false, tripId)
   const fileBase = trip?.title || 'trip'
 
-  // Shared tail of every download: Firefox and Safari cancel the download when
-  // the object URL is revoked before they picked the blob up, hence the delay.
-  const saveBlob = (blob: Blob, filename: string) => {
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = filename
-    document.body.appendChild(a)
-    a.click()
-    setTimeout(() => { URL.revokeObjectURL(url); a.remove() }, 100)
-  }
-
   const exportPdf = async () => {
     if (busy) return
     setBusy('pdf')
@@ -107,7 +96,7 @@ export function TripExportModal({
     try {
       const res = await fetch(`/api/trips/${tripId}/export.ics`, { credentials: 'include' })
       if (!res.ok) throw new Error()
-      saveBlob(await res.blob(), `${fileBase}.ics`)
+      downloadBlob(await res.blob(), `${fileBase}.ics`)
       onClose()
     } catch {
       toast.error(t('planner.icsExportFailed'))
@@ -125,7 +114,7 @@ export function TripExportModal({
       // "nothing happened" and "the download broke" look identical otherwise.
       if (res.status === 404) { toast.info(t('dayplan.gpxEmpty')); return }
       if (!res.ok) throw new Error()
-      saveBlob(await res.blob(), `${fileBase}.gpx`)
+      downloadBlob(await res.blob(), `${fileBase}.gpx`)
       onClose()
     } catch {
       toast.error(t('dayplan.gpxFailed'))

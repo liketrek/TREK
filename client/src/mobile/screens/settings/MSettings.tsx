@@ -28,6 +28,7 @@ import MSettingsNotifications from './MSettingsNotifications'
 import MSettingsIntegrations from './MSettingsIntegrations'
 import MSettingsAccount from './MSettingsAccount'
 import MSettingsAbout from './MSettingsAbout'
+import MSettingsServer from './MSettingsServer'
 
 interface SectionTab {
   id: string
@@ -122,6 +123,7 @@ export default function MSettings() {
       {/* Per-plugin settings still reuse the existing responsive tab. */}
       {active.id === 'plugins' && hasPlugins && <MSettingsPlugins />}
       {active.id === 'offline' && <MSettingsOffline />}
+      {active.id === 'account' && <MSettingsServer />}
       {active.id === 'account' && <MSettingsAccount />}
       {active.id === 'about' && appVersion && <MSettingsAbout appVersion={appVersion} />}
 

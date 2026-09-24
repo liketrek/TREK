@@ -6,3 +6,7 @@ playwright/.cache/
 
 # vite-plugin-pwa dev output (devOptions.enabled)
 dev-dist/
+
+# The native apps' address screen (npm run build:native), copied into
+# android/ and ios/ by `cap sync`
+native-dist/
