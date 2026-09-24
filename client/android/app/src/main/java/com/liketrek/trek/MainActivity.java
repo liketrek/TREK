@@ -1,6 +1,7 @@
 package com.liketrek.trek;
 
 import android.os.Bundle;
+import android.view.View;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
@@ -17,5 +18,9 @@ public class MainActivity extends BridgeActivity {
             config = TrekServerStore.configFor(this, server);
         }
         super.onCreate(savedInstanceState);
+        // The UI asks for no overscroll effect (overscroll-behavior: none on html)
+        // and Chrome honours that, but the WebView draws the stretch on its root
+        // scroller natively. It scales the whole view, top bar and bottom dock included.
+        if (bridge != null) bridge.getWebView().setOverScrollMode(View.OVER_SCROLL_NEVER);
     }
 }
