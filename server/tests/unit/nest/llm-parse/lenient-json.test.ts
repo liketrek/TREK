@@ -79,6 +79,17 @@ describe('toReservationList', () => {
     expect(toReservationList(JSON.stringify({ reservations: [node] }))).toEqual([node]);
   });
 
+  /*
+   * A single booking answered on its own, with no array and no wrapper. The
+   * check only knew the two list shapes, so a perfectly good extraction was
+   * dropped without a word — the same silent empty preview as #1968, from a
+   * different direction (#2375).
+   */
+  it('takes a single reservation answered on its own', () => {
+    expect(toReservationList(node)).toEqual([node]);
+    expect(toReservationList(JSON.stringify(node))).toEqual([node]);
+  });
+
   it('takes the relaxed JSON a model might emit inside that string', () => {
     expect(toReservationList("[{'@type': 'FlightReservation', flightNumber: 'LH400',}]"))
       .toEqual([{ '@type': 'FlightReservation', flightNumber: 'LH400' }]);

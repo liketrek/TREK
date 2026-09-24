@@ -23,7 +23,7 @@ export function MobileDayPickerSheet(S: SidebarState) {
           <div className="text-content" style={{ fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))', fontWeight: 700 }}>{dayPickerPlace.name}</div>
           {dayPickerPlace.address && <div className="text-content-faint" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', marginTop: 2 }}>{dayPickerPlace.address}</div>}
         </div>
-        <div style={{ overflowY: 'auto', padding: '8px 12px' }}>
+        <div style={{ overflowY: 'auto', overscrollBehavior: 'contain', padding: '8px 12px' }}>
           {/* View details */}
           <button type="button"
             onClick={() => { onPlaceClick(dayPickerPlace.id); setDayPickerPlace(null); setMobileShowDays(false) }}

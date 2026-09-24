@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import {
   X, Image, Plus, Trash2, UserPlus, Link as LinkIcon,
-  List, Grid3x3, MapPin, Archive, ArchiveRestore,
+  List, Grid3x3, MapPin, Route, Archive, ArchiveRestore, Undo2,
 } from 'lucide-react'
 import MSheet from '../../components/MSheet'
 import MIconBtn from '../../components/MIconBtn'
@@ -38,6 +38,8 @@ interface MJourneySettingsSheetProps {
   onSaved: () => void
   onOpenInvite: () => void
   onRefresh: () => void
+  /** Bring back every suggestion waved away card by card. Absent for a viewer. */
+  onRestoreSuggestions?: () => Promise<void> | void
 }
 
 /**
@@ -45,7 +47,7 @@ interface MJourneySettingsSheetProps {
  * with per-section toggles (timeline / gallery / map), archive and delete.
  */
 export default function MJourneySettingsSheet({
-  journey, onClose, onSaved, onOpenInvite, onRefresh,
+  journey, onClose, onSaved, onOpenInvite, onRefresh, onRestoreSuggestions,
 }: MJourneySettingsSheetProps) {
   const { t } = useTranslation()
   const toast = useToast()
@@ -62,6 +64,7 @@ export default function MJourneySettingsSheet({
   const [availableTrips, setAvailableTrips] = useState<AvailableTrip[]>([])
   const [linkingTripId, setLinkingTripId] = useState<number | null>(null)
   const [shareLink, setShareLink] = useState<ShareLink | null>(null)
+  const [savingTracks, setSavingTracks] = useState(false)
   const [copied, setCopied] = useState(false)
   const coverRef = useRef<HTMLInputElement>(null)
 
@@ -95,6 +98,42 @@ export default function MJourneySettingsSheet({
       onRefresh()
     } catch {
       toast.error(t('journey.settings.coverFailed'))
+    }
+  }
+
+  // Written on the spot rather than on Save, like the archive button: it is a view
+  // setting and the point of it is watching the map change (#2194). onRefresh, not
+  // onSaved, because onSaved closes the sheet the instant the switch is flipped and
+  // would drop a title the owner has typed but not saved yet.
+  const handleTracksToggle = async (next: boolean) => {
+    setSavingTracks(true)
+    try {
+      await updateJourney(journey.id, { show_trip_tracks: next })
+      onRefresh()
+    } catch {
+      toast.error(t('journey.settings.saveFailed'))
+    } finally {
+      setSavingTracks(false)
+    }
+  }
+
+  /**
+   * Turn one of the optional entry fields off for this journey (discussion #2299).
+   *
+   * Written on the spot and through onRefresh, for the same two reasons the tracks
+   * switch above is. Nothing stored is erased: the form stops asking, the values
+   * stay, and switching back on brings them into view.
+   */
+  const [savingField, setSavingField] = useState<string | null>(null)
+  const handleFieldToggle = async (field: 'show_verdict' | 'show_mood' | 'show_weather', next: boolean) => {
+    setSavingField(field)
+    try {
+      await updateJourney(journey.id, { [field]: next })
+      onRefresh()
+    } catch {
+      toast.error(t('journey.settings.saveFailed'))
+    } finally {
+      setSavingField(null)
     }
   }
 
@@ -235,6 +274,58 @@ export default function MJourneySettingsSheet({
           placeholder={t('journey.settings.subtitlePlaceholder')}
           className={`${inputShell} text-[0.8125rem] font-medium`}
         />
+
+        {/* Trip GPX tracks on the journey map (#2194) */}
+        <div className={`${eyebrow} mb-[6px] mt-[14px]`}>{t('journey.settings.tracks')}</div>
+        <div className="flex items-center gap-[11px] rounded-[14px] bg-[color:var(--m-ic)] px-3 py-[10px]">
+          <Route size={16} strokeWidth={2} className="flex-none text-m-muted" />
+          <div className="min-w-0 flex-1">
+            <div className="text-[0.8125rem] font-bold">{t('journey.settings.showTripTracks')}</div>
+            <div className="font-geist text-[0.625rem] text-m-muted">{t('journey.settings.showTripTracksHint')}</div>
+          </div>
+          <MToggle
+            checked={!!journey.show_trip_tracks}
+            onChange={handleTracksToggle}
+            disabled={savingTracks}
+            ariaLabel={t('journey.settings.showTripTracks')}
+          />
+        </div>
+
+        {/* The three fields a journey may put away (discussion #2299) */}
+        <div className={`${eyebrow} mb-[6px] mt-[14px]`}>{t('journey.settings.entryFields')}</div>
+        <div className="mb-[6px] font-geist text-[0.625rem] leading-[1.45] text-m-muted">{t('journey.settings.entryFieldsHint')}</div>
+        {([
+          ['show_verdict', t('journey.settings.showVerdict')],
+          ['show_mood', t('journey.settings.showMood')],
+          ['show_weather', t('journey.settings.showWeather')],
+        ] as const).map(([field, label]) => (
+          <div key={field} className="mb-[6px] flex items-center gap-[11px] rounded-[14px] bg-[color:var(--m-ic)] px-3 py-[10px]">
+            <div className="min-w-0 flex-1 text-[0.8125rem] font-bold">{label}</div>
+            <MToggle
+              checked={journey[field] !== 0}
+              onChange={next => handleFieldToggle(field, next)}
+              disabled={savingField !== null}
+              ariaLabel={label}
+            />
+          </div>
+        ))}
+
+        {/* Only when there is something to bring back */}
+        {onRestoreSuggestions && (journey.dismissed_count ?? 0) > 0 && (
+          <button
+            type="button"
+            onClick={() => { void onRestoreSuggestions() }}
+            className="mb-[6px] flex w-full items-center gap-[11px] rounded-[14px] bg-[color:var(--m-ic)] px-3 py-[10px] text-left"
+          >
+            <Undo2 size={16} strokeWidth={2} className="flex-none text-m-muted" />
+            <div className="min-w-0 flex-1">
+              <div className="text-[0.8125rem] font-bold">{t('journey.suggestions.restore')}</div>
+              <div className="font-geist text-[0.625rem] text-m-muted">
+                {t('journey.suggestions.restoreCount', { count: String(journey.dismissed_count) })}
+              </div>
+            </div>
+          </button>
+        )}
 
         {/* Synced trips */}
         <div className={`${eyebrow} mb-[6px] mt-[14px]`}>{t('journey.detail.syncedTrips')}</div>

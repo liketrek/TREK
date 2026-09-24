@@ -9,6 +9,7 @@ import { tripSyncManager, type PrepareProgress } from './tripSyncManager'
 import { prefetchTilesForTrip } from './tilePrefetcher'
 import { setAuthed } from './authGate'
 import { setCacheTiles, setTripOfflineEnabled, _resetOfflinePrefs } from './offlinePrefs'
+import { prefetchPlacesForTrip } from './placePrefetcher'
 import { offlineDb, clearAll, upsertTrip } from '../db/offlineDb'
 import { buildTrip, buildDay, buildPlace, buildTripFile } from '../../tests/helpers/factories'
 import type { Trip, TripFile } from '../types'
@@ -16,8 +17,12 @@ import type { Trip, TripFile } from '../types'
 vi.mock('./tilePrefetcher', () => ({
   prefetchTilesForTrip: vi.fn(async () => {}),
 }))
+vi.mock('./placePrefetcher', () => ({
+  prefetchPlacesForTrip: vi.fn(async () => 0),
+}))
 
 const prefetchMock = vi.mocked(prefetchTilesForTrip)
+const placesMock = vi.mocked(prefetchPlacesForTrip)
 
 function dateOffset(days: number): string {
   const d = new Date()
@@ -62,6 +67,8 @@ beforeEach(async () => {
   setOnline(true)
   prefetchMock.mockClear()
   prefetchMock.mockResolvedValue(undefined)
+  placesMock.mockClear()
+  placesMock.mockResolvedValue(0)
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
     ok: true,
     blob: async () => new Blob(['pdf-bytes'], { type: 'application/pdf' }),
@@ -77,18 +84,18 @@ afterEach(() => {
 })
 
 describe('tripSyncManager.prepareForOffline — guards', () => {
-  it('FE-SYNC-PREP-001: returns 0 and hits no endpoint when logged out', async () => {
+  it('FE-SYNC-PREP-001: reports why it stopped and hits no endpoint when logged out', async () => {
     setAuthed(false)
     let called = false
     server.use(http.get('/api/trips', () => { called = true; return HttpResponse.json({ trips: [] }) }))
 
-    expect(await tripSyncManager.prepareForOffline()).toBe(0)
+    expect(await tripSyncManager.prepareForOffline()).toEqual({ status: 'skipped', reason: 'signed-out' })
     expect(called).toBe(false)
   })
 
-  it('FE-SYNC-PREP-002: returns 0 when the browser is offline', async () => {
+  it('FE-SYNC-PREP-002: reports that it stopped because the browser is offline', async () => {
     setOnline(false)
-    expect(await tripSyncManager.prepareForOffline()).toBe(0)
+    expect(await tripSyncManager.prepareForOffline()).toEqual({ status: 'skipped', reason: 'offline' })
   })
 
   it('FE-SYNC-PREP-003: a second concurrent run is refused by the syncing flag', async () => {
@@ -99,7 +106,11 @@ describe('tripSyncManager.prepareForOffline — guards', () => {
       tripSyncManager.prepareForOffline(),
       tripSyncManager.prepareForOffline(),
     ])
-    expect([first, second].sort()).toEqual([0, 1])
+    // The loser says so rather than reporting a successful run of nothing: the
+    // settings screen paints that answer instead of a finished progress bar
+    // (#2228).
+    expect(first).toEqual({ status: 'done', trips: 1 })
+    expect(second).toEqual({ status: 'skipped', reason: 'busy' })
   })
 })
 
@@ -112,7 +123,7 @@ describe('tripSyncManager.prepareForOffline — full run', () => {
     const progress: PrepareProgress[] = []
     const count = await tripSyncManager.prepareForOffline(p => progress.push(p))
 
-    expect(count).toBe(1)
+    expect(count).toEqual({ status: 'done', trips: 1 })
     expect(progress.map(p => p.phase)).toEqual(['trips', 'files', 'tiles', 'done'])
     expect(progress[0]).toMatchObject({ current: 1, total: 1, label: 'Munich' })
     expect(progress[3]).toMatchObject({ phase: 'done', current: 1, total: 1 })
@@ -154,6 +165,13 @@ describe('tripSyncManager.prepareForOffline — full run', () => {
 
     expect(progress.map(p => p.phase)).toEqual(['trips', 'files', 'done'])
     expect(prefetchMock).not.toHaveBeenCalled()
+    // The places still come down. That switch is about tens of megabytes of
+    // imagery; a trip's places are about one, and hanging them off it meant
+    // somebody who turned it off for space got an empty offline search with no
+    // explanation, while this very run reported success.
+    expect(placesMock).toHaveBeenCalledTimes(1)
+    expect(placesMock.mock.calls[0][0]).toBe(604)
+    expect(placesMock.mock.calls[0][2]).toBe(true)
   })
 
   it('FE-SYNC-PREP-008: caches the global tags and categories', async () => {
@@ -174,7 +192,7 @@ describe('tripSyncManager.prepareForOffline — full run', () => {
       http.get('/api/categories', () => HttpResponse.json({ error: 'boom' }, { status: 500 })),
     )
 
-    expect(await tripSyncManager.prepareForOffline()).toBe(1)
+    expect(await tripSyncManager.prepareForOffline()).toEqual({ status: 'done', trips: 1 })
     expect(await offlineDb.tags.count()).toBe(0)
   })
 
@@ -183,7 +201,7 @@ describe('tripSyncManager.prepareForOffline — full run', () => {
     const broken = buildTrip({ id: 608, end_date: dateOffset(4) })
     serveTrips([broken, good], { 607: bundleFor(good) })
 
-    expect(await tripSyncManager.prepareForOffline()).toBe(2)
+    expect(await tripSyncManager.prepareForOffline()).toEqual({ status: 'done', trips: 2 })
     expect(await offlineDb.trips.get(607)).toBeDefined()
     expect(await offlineDb.trips.get(608)).toBeUndefined()
     expect(console.error).toHaveBeenCalled()
@@ -196,7 +214,7 @@ describe('tripSyncManager.prepareForOffline — full run', () => {
     setTripOfflineEnabled(610, false)
     serveTrips([kept, excluded], { 609: bundleFor(kept), 610: bundleFor(excluded) })
 
-    expect(await tripSyncManager.prepareForOffline()).toBe(1)
+    expect(await tripSyncManager.prepareForOffline()).toEqual({ status: 'done', trips: 1 })
     expect(await offlineDb.trips.get(609)).toBeDefined()
     expect(await offlineDb.trips.get(610)).toBeUndefined()
   })
@@ -339,3 +357,5 @@ describe('tripSyncManager.syncAll — background tile pass', () => {
     expect(prefetchMock).not.toHaveBeenCalled()
   })
 })
+
+vi.mock('../repo/roadtripPreferencesRepo', () => ({ roadtripPreferencesRepo: { read: vi.fn(async () => ({})) } }))

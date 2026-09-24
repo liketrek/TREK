@@ -1,10 +1,13 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { Check, RouteOff } from 'lucide-react'
 import type { BookElement, BookMetric, BookPageSetup, JourneyStats } from '@trek/shared'
 import { BOOK_METRICS } from '@trek/shared'
 import { useStudioStore } from '../../store/studioStore'
 import { PanelHead } from './StudioPanelHead'
+import { Section } from './StudioControls'
 import { TravelPreview } from './TravelPreview'
 import { formatBookCoords } from './entryText'
+import { elementId as uid } from './bookIds'
 import { routeFor } from './travelRefresh'
 import { useMapSources } from './mapSources'
 import { fetchRoads } from './roadRoute'
@@ -36,7 +39,20 @@ import { fetchRoads } from './roadRoute'
  * short version is that the print renderer must never depend on a fetch.
  */
 
-const uid = (p: string) => `${p}-${Math.random().toString(36).slice(2, 9)}`
+/**
+ * One row of the stops list: a point of the route or a stop switched off.
+ *
+ * `entryId` is null for a stop the server took straight from a trip's places,
+ * which is what a journey has before anyone wrote an entry. Such a stop has no
+ * switch, because there is no entry to put it on.
+ */
+type StopRow = {
+  entryId: number | null
+  label: string
+  date: string | null
+  country: string | null
+  excluded: boolean
+}
 
 /*
  * How many cards share a row.
@@ -80,7 +96,7 @@ function Card({ label, onClick, children, recommended = false, title }: {
 }
 
 export function StudioTravelPanel({
-  page, stats, path, t, locale,
+  page, stats, path, t, locale, canEdit, onToggleStop,
 }: {
   page: BookPageSetup
   stats: JourneyStats | null
@@ -88,6 +104,10 @@ export function StudioTravelPanel({
   path: [number, number][][]
   t: (k: string) => string
   locale: string
+  /** False for a viewer: the stops are still listed, none of them can be switched. */
+  canEdit: boolean
+  /** Switch one stop on or off in the figures. Resolves false when it did not land. */
+  onToggleStop: (entryId: number, excluded: boolean) => Promise<boolean>
 }) {
   const addElement = useStudioStore(s => s.addElement)
   const updateElement = useStudioStore(s => s.updateElement)
@@ -108,6 +128,17 @@ export function StudioTravelPanel({
     roadJobs.current.forEach(c => c.abort())
     roadJobs.current.clear()
   }, [])
+
+  /*
+   * The stops whose switch is on its way to the server.
+   *
+   * No optimistic flip: which stop is furthest and which countries remain is
+   * the server's sum, so the row reads its state from the stats the hook
+   * fetches once the change has landed. Until then the chip is only held,
+   * so a second click cannot send the opposite of what the first one is
+   * still delivering.
+   */
+  const [pending, setPending] = useState<Set<number>>(() => new Set())
 
   const centre = (w: number, h: number) => {
     const W = single ? page.pageWidth : page.pageWidth * 2
@@ -182,6 +213,56 @@ export function StudioTravelPanel({
    */
   /** The linked trips that actually put stops on the route. */
   const tripsWithRoute = (stats.trips ?? []).filter(t => t.points > 0)
+
+  /*
+   * The route as rows, counting and left-out stops together.
+   *
+   * Every point is listed, so the list reads as the route. The left-out
+   * stops sit among the counting ones in date order rather than in a list of
+   * their own, because the question the section answers is "which of these
+   * count?", and that is only answerable with all of them in one sequence.
+   * Undated stops go last, then by name.
+   */
+  const stops: StopRow[] = [
+    ...stats.points.map(p => ({
+      entryId: p.entryId, label: p.label, date: p.date, country: p.country, excluded: false,
+    })),
+    ...(stats.excluded ?? []).map(x => ({
+      entryId: x.entryId, label: x.label, date: x.date, country: null, excluded: true,
+    })),
+  ].sort((a, b) => {
+    if (a.date !== b.date) {
+      if (a.date == null) return 1
+      if (b.date == null) return -1
+      return a.date < b.date ? -1 : 1
+    }
+    return a.label.localeCompare(b.label)
+  })
+  const excludedCount = stops.filter(s => s.excluded).length
+  /** Whether the country is worth a badge, or the same word on every row. */
+  const manyCountries = stats.countries.length > 1
+
+  /**
+   * The day of a stop, without the weekday.
+   *
+   * `formatDate` is the journal's format and carries "Tue," because a journal
+   * entry is about a day somebody lived. A row here is about a leg of a route,
+   * and it has 236px to hold a place name in as well: the weekday costs a
+   * third of the badge and answers nothing anybody asks of this list.
+   */
+  const stopDay = (iso: string) =>
+    new Date(`${iso}T00:00:00Z`).toLocaleDateString(locale, { day: 'numeric', month: 'short', timeZone: 'UTC' })
+
+  const toggleStop = async (entryId: number, excluded: boolean) => {
+    setPending(prev => new Set(prev).add(entryId))
+    // A refusal is the hook's to report; here it only frees the chip again.
+    await onToggleStop(entryId, excluded)
+    setPending(prev => {
+      const next = new Set(prev)
+      next.delete(entryId)
+      return next
+    })
+  }
 
   /* Satellite first: the recommendation should not be the second thing read. */
   const imagery = sources
@@ -382,6 +463,83 @@ export function StudioTravelPanel({
             })}
           </div>
         </div>
+
+        {/*
+          The switch is here, beside the maps and the figures it changes, and
+          not only in the entry editor: the moment somebody notices the home
+          airport on the printed route is the moment they are looking at this
+          panel. The rows carry no preview because they are not things to
+          place; they are the input every tile below reads.
+        */}
+        {stops.length > 0 && (
+          <Section
+            label={t('journey.studio.stops')}
+            hint={t('journey.studio.stopsHint')}
+            /*
+             * Folded to begin with, and saying how many count while it is.
+             *
+             * A fortnight is fourteen rows, which is longer than everything
+             * else in this panel put together, and most books never need to
+             * touch it. The figure in the head is what anyone opening it came
+             * to check anyway, so the closed section still answers the
+             * question and the maps below stay in reach.
+             */
+            defaultOpen={false}
+            badge={`${stops.length - excludedCount}/${stops.length}`}
+          >
+            <ul className="st-stops">
+              {stops.map((stop, i) => {
+                const entryId = stop.entryId
+                const on = !stop.excluded
+                const state = t(on ? 'journey.studio.stopOn' : 'journey.studio.stopOff')
+                const chip = `st-chip is-pick is-icon ${on ? 'is-on' : ''}`
+                /*
+                 * A mark rather than the word.
+                 *
+                 * "Counts" and "Left out" are different lengths, so a column of
+                 * them jitters, and together they cost a third of a row that
+                 * has a place name to fit. The tick and the crossed-out route
+                 * say the same thing at a glance, and the word is still there
+                 * for anyone who hovers or reads with a screen reader.
+                 */
+                const mark = on ? <Check size={13} strokeWidth={2.4} /> : <RouteOff size={13} strokeWidth={2.2} />
+                return (
+                  <li key={entryId ?? `place-${i}`} className={`st-stop ${on ? '' : 'is-off'}`}>
+                    {/*
+                      One line: the day, then the name, then the switch. The
+                      name and the day were stacked, which doubled the height
+                      of a list whose whole job is being read down.
+                    */}
+                    {stop.date && <span className="st-badge">{stopDay(stop.date)}</span>}
+                    <span className="st-stop-label">{stop.label || t('journey.studio.untitled')}</span>
+                    {/*
+                      The country only where there is more than one to tell
+                      apart. On a journey inside one country it is the same
+                      word fourteen times, in the row that has least room.
+                    */}
+                    {manyCountries && stop.country && (
+                      <span className="st-badge is-quiet">{countryName(stop.country)}</span>
+                    )}
+                    {canEdit && entryId != null ? (
+                      <button type="button"
+                        className={chip}
+                        title={`${state}: ${t('journey.studio.stopToggle')}`}
+                        aria-label={t('journey.studio.stopToggle')}
+                        aria-pressed={on}
+                        disabled={pending.has(entryId)}
+                        onClick={() => void toggleStop(entryId, !stop.excluded)}
+                      >
+                        {mark}
+                      </button>
+                    ) : (
+                      <span className={chip} title={state} aria-label={state}>{mark}</span>
+                    )}
+                  </li>
+                )
+              })}
+            </ul>
+          </Section>
+        )}
 
         <div className="st-section">
           <div className="st-section-label">{t('journey.studio.routeMap')}</div>

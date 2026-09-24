@@ -6,10 +6,13 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.addPlaceShort': 'Tempat',
   'mobileTrip.addToDayQuestion': 'Tambahkan ke hari?',
   'mobileTrip.addTransportShort': 'Transportasi',
+  'mobileTrip.allDays': 'Semua Hari',
   'mobileTrip.assignedDays': 'Hari yang ditetapkan',
+  'mobileTrip.assignmentNotes': 'Catatan khusus hari',
   'mobileTrip.bookingsEmpty': 'Belum ada reservasi',
   'mobileTrip.collabFeatureDisabled': 'Fitur ini dinonaktifkan untuk perjalanan ini',
   'mobileTrip.compactView': 'Tampilan ringkas',
+  'mobileTrip.dayAnnounce': 'Hari {current} dari {total}',
   'mobileTrip.dayTitlePlaceholder': 'Judul hari',
   'mobileTrip.export': 'Ekspor',
   'mobileTrip.filesEmpty': 'Belum ada file',
@@ -44,5 +47,31 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.upNext': 'Berikutnya',
   'mobileTrip.viewDetails': 'Lihat detail',
   'mobileTrip.transportsEmpty': 'Belum ada transportasi',
+  'mobileTrip.rtInfoTitle': 'Data berkendara',
+  'mobileTrip.rtDesktopNote':
+    'Data ini diatur di desktop, di sana kamu juga bisa membandingkan rute alternatif dan membuat satu hari mengikuti jalur yang diimpor.',
+  'mobileTrip.rtPlanOnDesktop':
+    'Perencanaan dilakukan di desktop. TREK menghitung perjalanannya begitu satu hari punya dua tempat.',
+  'mobileTrip.rtSearchOffline': 'Perlu koneksi: pencarian membaca rute di depan.',
+  'mobileTrip.rtBehind': 'terlambat {time} dari rencana',
+  'mobileTrip.rtStart': 'Mulai',
+  'mobileTrip.rtStayScope':
+    'Lama singgah melekat pada tempatnya, jadi ia terhitung di setiap hari perhentian ini direncanakan.',
+  'mobileTrip.rtStayLess': '{count} menit lebih singkat',
+  'mobileTrip.rtStayMore': '{count} menit lebih lama',
+  'mobileTrip.rtNightDesktopOnly':
+    'Memesan menginap di tempat ini dilakukan di perencana desktop. Di sini kamu hanya bisa menghapusnya.',
+  'mobileTrip.rtReach': 'Sejauh apa',
+  'mobileTrip.rtReachAhead': '{distance} ke depan',
+  'mobileTrip.rtFromNext': 'Dari perhentian berikutnya',
+  'mobileTrip.rtFromStart': 'Dari awal etape',
+  'mobileTrip.rtNoneAhead': 'Tidak ada apa-apa di jalan di depan. Coba seluruh etape.',
+  'mobileTrip.rtNoneOnStage': 'Tidak ada yang seperti itu di sepanjang etape ini.',
+  'mobileTrip.rtTruncated.one':
+    '1 ruas punya lebih banyak daripada yang muat dalam satu jawaban. Pilih lebih sedikit jenis untuk melihat sisanya.',
+  'mobileTrip.rtTruncated.other':
+    '{count} ruas punya lebih banyak daripada yang muat dalam satu jawaban. Pilih lebih sedikit jenis untuk melihat sisanya.',
+  'mobileTrip.rtNoDay': 'Belum ada hari yang dipilih',
+  'mobileTrip.rtNoDayHint': 'Peta menampilkan seluruh perjalanan. Ketuk hari di atas untuk melihat rutenya.',
 };
 export default mobileTrip;

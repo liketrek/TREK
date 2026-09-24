@@ -95,5 +95,20 @@ const oauth: TranslationStrings = {
   'oauth.authorize.alwaysIncluded': 'Always included', // en-fallback
   'oauth.authorize.alwaysTool.listTrips': 'List your trips so the AI can discover trip IDs', // en-fallback
   'oauth.authorize.alwaysTool.getTripSummary': 'Read a trip overview needed to use any other tool', // en-fallback
+  'oauth.scope.group.files': 'Файлы',
+  'oauth.scope.group.settings': 'Настройки',
+  'oauth.scope.files:read.label': 'Просмотр файлов поездки',
+  'oauth.scope.files:read.description': 'Список документов поездки: названия, размеры, кто их загрузил и с чем они связаны',
+  'oauth.scope.files:write.label': 'Управление файлами поездки',
+  'oauth.scope.files:write.description': 'Переименование и описание файлов, привязка к бронированиям и местам, отметка и удаление в корзину',
+  'oauth.scope.files:content.label': 'Чтение содержимого файлов',
+  'oauth.scope.files:content.description': 'Чтение содержимого загруженного документа, например PDF бронирования или билета',
+  'oauth.scope.settings:read.label': 'Просмотр ваших настроек',
+  'oauth.scope.settings:read.description': 'Чтение единиц измерения, формата времени, языка, валюты по умолчанию и стартовой страницы',
+  'oauth.scope.settings:write.label': 'Изменение ваших настроек',
+  'oauth.scope.settings:write.description': 'Изменение единиц измерения, формата времени, языка, валюты по умолчанию и стартовой страницы. Никогда сохранённых ключей API',
+  'oauth.scope.group.plugins': 'Плагины',
+  'oauth.scope.plugins:use.label': 'Запуск инструментов плагинов',
+  'oauth.scope.plugins:use.description': 'Позволяет этому клиенту вызывать инструменты, которые предоставляют плагины, установленные и одобренные администратором. Каждый плагин действует с уже выданными ему правами, а не с областями доступа этого токена',
 };
 export default oauth;

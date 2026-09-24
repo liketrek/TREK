@@ -6,7 +6,7 @@ import { useToast } from '../../../components/shared/Toast'
 import { MapView } from '../../../components/Map/MapView'
 import { SYMBOLS, currenciesWith } from '../../../components/Budget/BudgetPanel.constants'
 import { getApiErrorMessage, type DistanceUnit, type Place } from '../../../types'
-import { normalizeTileUrl } from '../../../utils/tileUrl'
+import { normalizeTileUrl, withTileApiKey } from '../../../utils/tileUrl'
 import {
   MAPBOX_DEFAULT_STYLE,
   defaultStyleForProvider,
@@ -16,21 +16,29 @@ import {
   styleSettingKey,
   type GlMapProvider,
 } from '../../../components/Map/glProviders'
+import { useAuthStore } from '../../../store/authStore'
 import MToggle from '../../components/MToggle'
 import MSegmented from '../../components/MSegmented'
 import { MAdminCard, MAdminCardHead, MAdminField, MAdminInput, MAdminRow } from './MAdminUi'
 import { MSetSelectRow } from '../settings/MSettingsUi'
 import MSetPickerSheet from '../settings/MSetPickerSheet'
+import RoutingInstanceFields, { type RoutingDefaults } from '../../../components/Admin/RoutingInstanceFields'
 
 const MAP_PRESETS = [
   { name: 'OpenStreetMap', url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png' },
   { name: 'OpenStreetMap DE', url: 'https://tile.openstreetmap.de/{z}/{x}/{y}.png' },
+  // The app default, and a vector style rather than a {z}/{x}/{y} template: no
+  // key, no registration, no request limits.
+  { name: 'OpenFreeMap Positron', url: 'https://tiles.openfreemap.org/styles/positron' },
+  { name: 'OpenFreeMap Bright', url: 'https://tiles.openfreemap.org/styles/bright' },
+  // CARTO watermarks keyless tiles since 26.08.2026 and issues keys by mail, so
+  // these two need one; without it the map falls back to the default (#2054).
   { name: 'CartoDB Light', url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png' },
   { name: 'CartoDB Dark', url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' },
   { name: 'Stadia Smooth', url: 'https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png' },
 ]
 
-type Defaults = {
+type Defaults = RoutingDefaults & {
   temperature_unit?: string
   distance_unit?: DistanceUnit
   dark_mode?: string | boolean
@@ -38,6 +46,7 @@ type Defaults = {
   default_currency?: string
   blur_booking_codes?: boolean
   map_tile_url?: string
+  carto_api_key?: string
   map_provider?: string
   mapbox_access_token?: string
   mapbox_style?: string
@@ -67,7 +76,9 @@ export default function MAdminDefaultUserSettings(): React.ReactElement {
   const [defaults, setDefaults] = useState<Defaults>({})
   const [loaded, setLoaded] = useState(false)
   const [mapTileUrl, setMapTileUrl] = useState('')
+  const managed = useAuthStore((s) => s.managed)
   const [mapboxToken, setMapboxToken] = useState('')
+  const [cartoKey, setCartoKey] = useState('')
   const [mapboxStyle, setMapboxStyle] = useState('')
   const [currencyOpen, setCurrencyOpen] = useState(false)
   const [presetOpen, setPresetOpen] = useState(false)
@@ -79,6 +90,7 @@ export default function MAdminDefaultUserSettings(): React.ReactElement {
       setDefaults(data)
       setMapTileUrl(normalizeTileUrl(data.map_tile_url || ''))
       setMapboxToken(data.mapbox_access_token || '')
+      setCartoKey(data.carto_api_key || '')
       setMapboxStyle(provider === 'leaflet' ? (data.mapbox_style || '') : styleForProvider(provider, provider === 'maplibre-gl' ? data.maplibre_style : data.mapbox_style))
       setLoaded(true)
     }).catch(() => setLoaded(true))
@@ -100,6 +112,7 @@ export default function MAdminDefaultUserSettings(): React.ReactElement {
       setDefaults(updated)
       if (key === 'map_tile_url') setMapTileUrl('')
       if (key === 'mapbox_access_token') setMapboxToken('')
+      if (key === 'carto_api_key') setCartoKey('')
       if (key === 'mapbox_style' || key === 'maplibre_style') {
         const provider = normalizeProvider(defaults.map_provider)
         setMapboxStyle(provider === 'leaflet' ? '' : defaultStyleForProvider(provider))
@@ -287,6 +300,26 @@ export default function MAdminDefaultUserSettings(): React.ReactElement {
             />
           </MAdminField>
 
+          {/* The key comes with the instance on a managed install, injected when the
+              settings are read. A field here would only let somebody save a worse one. */}
+          {!managed && (
+            <MAdminField
+              label={<>{t('admin.defaultSettings.cartoKey')} <ResetButton field="carto_api_key" /></>}
+              hint={t('admin.defaultSettings.cartoKeyHint')}
+            >
+              <MAdminInput
+                type="text"
+                value={cartoKey}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCartoKey(e.target.value)}
+                onBlur={() => save({ carto_api_key: cartoKey })}
+                spellCheck={false}
+                autoComplete="off"
+              />
+            </MAdminField>
+          )}
+
+          {!managed && <RoutingInstanceFields defaults={defaults} onSave={save} onReset={reset} hintClassName="font-geist text-[0.625rem] leading-relaxed text-m-muted" />}
+
           {/* Live tile preview */}
           <div className="relative h-[200px] w-full overflow-hidden rounded-xl">
             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
@@ -301,7 +334,9 @@ export default function MAdminDefaultUserSettings(): React.ReactElement {
               onMapContextMenu: null,
               center: [48.8566, 2.3522],
               zoom: 10,
-              tileUrl: mapTileUrl,
+              // As on the other three previews: the field holds what is being
+              // edited, so the key goes back on before the template resolves.
+              tileUrl: withTileApiKey(mapTileUrl, cartoKey),
               fitKey: null,
               dayOrderMap: [],
               leftWidth: 0,
@@ -322,7 +357,7 @@ export default function MAdminDefaultUserSettings(): React.ReactElement {
 
           {mapProvider !== 'leaflet' && (
             <div className="space-y-[14px]">
-              {mapProvider === 'mapbox-gl' && (
+              {mapProvider === 'mapbox-gl' && !managed && (
                 <MAdminField
                   label={<>{t('admin.defaultSettings.mapboxToken')} <ResetButton field="mapbox_access_token" /></>}
                   hint={t('admin.defaultSettings.mapboxTokenHint')}

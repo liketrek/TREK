@@ -17,7 +17,7 @@ import { createTestPluginRegistry } from '../../../src/nest/plugins/host/rpc-kit
 import { PluginGuards } from '../../../src/nest/plugins/host/plugin-guards.service';
 import { FilesRpc } from '../../../src/nest/files/files.rpc';
 import { FilesModule } from '../../../src/nest/files/files.module';
-import type { FilesService } from '../../../src/nest/files/files.service';
+import { FilesService } from '../../../src/nest/files/files.service';
 import type { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import type { DatabaseService } from '../../../src/nest/database/database.service';
 import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
@@ -60,6 +60,12 @@ function build(opts: { file?: Record<string, unknown> | undefined; foreign?: str
     })),
     put: vi.fn(async () => undefined),
   } as unknown as StorageService & Record<string, ReturnType<typeof vi.fn>>;
+  // readContent moved onto FilesService (the MCP read tool obeys the same cap and
+  // the same storage rules), and the RPC only maps its refusals onto the two wire
+  // error types. Bind the real implementation onto this double so the cases below
+  // keep exercising that code rather than a stub of it.
+  (files as unknown as { readContent: FilesService['readContent'] }).readContent =
+    FilesService.prototype.readContent.bind({ getFileById: files.getFileById, storage } as unknown as FilesService);
   const rpc = new FilesRpc(files, realtime, db, guards, storage);
   const host = (...grants: string[]) => new PluginRpcHost('p', new Set(grants), makeDeps(), createTestPluginRegistry([rpc]));
   return { files, realtime, permissions, storage, host };
@@ -110,6 +116,15 @@ describe('FilesRpc reads', () => {
     (f.storage.getStream as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new StorageInvalidKeyError('..'));
     const res = (await f.host('db:read:files:content').dispatch(req('files.getContent', { tripId: 1, fileId: 2 }), 42)) as RpcError;
     expect(res.error.message).toBe('file path is not accessible');
+  });
+
+  it('FILES-RPC-005e an unexpected storage failure keeps its own taxonomy', async () => {
+    const f = build();
+    // Only the two storage errors become an accessibility refusal; a backend
+    // outage must not be reported to the plugin as a missing file.
+    (f.storage.getStream as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('backend down'));
+    const res = (await f.host('db:read:files:content').dispatch(req('files.getContent', { tripId: 1, fileId: 2 }), 42)) as RpcError;
+    expect(res.error.code).toBe('HOST_ERROR');
   });
 
   it('FILES-RPC-005b an object whose stat exceeds the cap is refused before buffering', async () => {

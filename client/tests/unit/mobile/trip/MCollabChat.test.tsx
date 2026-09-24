@@ -11,7 +11,7 @@ import { resetAllStores, seedStore } from '../../../helpers/store'
 import { server } from '../../../helpers/msw/server'
 import { act, fireEvent, render, screen, waitFor } from '../../../helpers/render'
 
-// FE-MOB-CCHAT-001 to FE-MOB-CCHAT-031
+// FE-MOB-CCHAT-001 to FE-MOB-CCHAT-033
 
 const ME = 7
 
@@ -262,6 +262,39 @@ describe('MCollabChat', () => {
 
     await waitFor(() => expect(planner.toast.error).toHaveBeenCalledWith('common.error'))
     expect(input).toHaveValue('no network')
+  })
+
+  // The strip shows the four pictures that will go out; the two the cap turned
+  // away vanished without a word, and the sender believed all six were sent.
+  it('FE-MOB-CCHAT-032: picking more images than fit on one message says so, and says it once', async () => {
+    serveMessages([])
+    let minted = 0
+    vi.spyOn(URL, 'createObjectURL').mockImplementation(() => `blob:mock/${++minted}`)
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
+    const { planner } = await renderChat()
+
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement
+    const files = Array.from({ length: 6 }, (_, i) => new File([new Uint8Array(8)], `${i}.png`, { type: 'image/png' }))
+    fireEvent.change(input, { target: { files } })
+
+    await waitFor(() => expect(document.querySelectorAll('img[src^="blob:mock/"]')).toHaveLength(4))
+    expect(planner.toast.error).toHaveBeenCalledTimes(1)
+    expect(planner.toast.error).toHaveBeenCalledWith('collab.chat.imageLimit:4')
+    expect(planner.toast.error).not.toHaveBeenCalledWith('collab.chat.imageRejected')
+  })
+
+  it('FE-MOB-CCHAT-033: a file of the wrong kind is still turned away with the type message', async () => {
+    serveMessages([])
+    vi.spyOn(URL, 'createObjectURL').mockImplementation(() => 'blob:mock/1')
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
+    const { planner } = await renderChat()
+
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement
+    fireEvent.change(input, { target: { files: [new File([new Uint8Array(8)], 'notes.pdf', { type: 'application/pdf' })] } })
+
+    await waitFor(() => expect(planner.toast.error).toHaveBeenCalledWith('collab.chat.imageRejected'))
+    expect(planner.toast.error).toHaveBeenCalledTimes(1)
+    expect(document.querySelectorAll('img[src^="blob:mock/"]')).toHaveLength(0)
   })
 
   it('FE-MOB-CCHAT-015: auto-grows the composer and caps it at 100px', async () => {

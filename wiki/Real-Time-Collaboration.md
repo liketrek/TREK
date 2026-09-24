@@ -1,6 +1,6 @@
 # Real-Time Collaboration
 
-TREK keeps every trip in sync across all connected members without requiring a page refresh. A dedicated **Collab addon** adds a second layer on top of that sync: group chat, shared notes, polls, and a "What's Next" widget showing upcoming assigned places.
+TREK keeps every trip in sync across all connected members without requiring a page refresh. A dedicated **Collab addon** adds a second layer on top of that sync: group chat, shared notes, shared links, polls, and a "What's Next" widget showing upcoming assigned places.
 
 ![The Collab tab: chat, shared notes, polls and the What's Next widget side by side](assets/Collab.png)
 
@@ -28,18 +28,23 @@ An origin rejection happens before the socket exists, so it produces no close co
 
 ## The Collab addon
 
-The Collab addon (`collab`) must be enabled by an admin before the panel is visible inside a trip. Once enabled, it provides four sub-features that can each be toggled independently:
+The Collab addon (`collab`) must be enabled by an admin before the panel is visible inside a trip. Once enabled, it provides five sub-features that can each be toggled independently:
 
 | Sub-feature | What it provides |
 |-------------|-----------------|
-| **Chat** | Group chat with reactions, replies, and URL previews |
+| **Chat** | Group chat with reactions, replies, images, and URL previews |
 | **Notes** | Categorized, pinnable, markdown-formatted shared notes |
+| **Links** | Shared web addresses with a title, pinnable, synced live between members |
 | **Polls** | Single- or multiple-choice votes with optional deadlines |
 | **What's Next** | Upcoming assigned places across all trip days |
 
-> **Admin:** enable the Collab addon and individual sub-features in [Admin-Addons](Admin-Addons).
+> **Admin:** enable the Collab addon and individual sub-features in [Admin-Addons](Admin-Addons). Links is on by default, like the other four.
 
-On **desktop** the panel shows Chat as a fixed 380 px column on the left when other sub-features are also enabled; if only Chat is on, it expands to fill the full width. Notes, Polls, and What's Next share the remaining space on the right. On **mobile** a tab bar at the top lets you switch between the enabled sub-features one at a time. Disabled sub-features are hidden from the tab bar.
+On **desktop** the panel shows Chat as a fixed 380 px column on the left when other sub-features are also enabled; if only Chat is on, it expands to fill the full width. Notes, Links, Polls, and What's Next share the remaining space on the right. On **mobile** a tab bar at the top lets you switch between the enabled sub-features one at a time. Disabled sub-features are hidden from the tab bar.
+
+### Links
+
+The **Links** tab collects the web addresses a trip runs on: the booking portal, the shared photo album, the restaurant's menu. **Add link** asks for a title and an `http(s)` address; anything else is refused. Each link is a chip with the site's favicon, the title and the host, two to a row where the panel is wide enough and one to a row where it is narrow, as in the Collab tab on the phone; a pinned chip is drawn in the accent tint. The whole chip is the link and opens the address in a new tab. Members with `collab_edit` can **edit** it in place (the pencil, for title and address alike), **pin** it to the top of the list or **delete** it, which asks first because the link goes for every member; the three sit faint in the chip's tail and come forward on hover, and are always shown on touch. Pinned links come first, then the newest. Adding, editing, pinning and deleting show up for every connected member at once.
 
 ## Conflict handling
 
@@ -51,7 +56,7 @@ There is no operational-transform or CRDT merge — simultaneous edits to the sa
 
 ## Access control
 
-All Collab reads require trip membership. Writing — sending messages, creating notes, creating polls, voting — requires the `collab_edit` permission. Members without `collab_edit` can read but cannot post or interact.
+All Collab reads require trip membership. Writing — sending messages, creating notes, adding links, creating polls, voting — requires the `collab_edit` permission. Members without `collab_edit` can read but cannot post or interact.
 
 ## Related pages
 

@@ -7,10 +7,13 @@ import { authApi, oauthApi } from '../../api/client'
 import { useAddonStore } from '../../store/addonStore'
 import PhotoProvidersSection from './PhotoProvidersSection'
 import AirTrailConnectionSection from './AirTrailConnectionSection'
+import DawarichConnectionSection from './DawarichConnectionSection'
 import LlmConnectionSection from './LlmConnectionSection'
-import { ALL_SCOPES } from '../../api/oauthScopes'
+import ApiKeysSection from './ApiKeysSection'
+import { PRESET_SCOPES_DEFAULT, PRESET_SCOPES_READONLY } from '../../api/oauthScopes'
 import ScopeGroupPicker from '../OAuth/ScopeGroupPicker'
 import { useAuthStore } from '../../store/authStore'
+import { getApiErrorMessage } from '../../utils/apiError'
 
 interface OAuthPreset {
   id: string
@@ -26,42 +29,42 @@ const OAUTH_PRESETS: OAuthPreset[] = [
     label: 'Claude.ai',
     name: 'Claude.ai',
     uris: 'https://claude.ai/api/mcp/auth_callback',
-    scopes: ALL_SCOPES.filter(s => !s.includes(':delete')),
+    scopes: PRESET_SCOPES_DEFAULT,
   },
   {
     id: 'claude-desktop',
     label: 'Claude Desktop',
     name: 'Claude Desktop',
     uris: 'http://localhost',
-    scopes: ALL_SCOPES.filter(s => !s.includes(':delete')),
+    scopes: PRESET_SCOPES_DEFAULT,
   },
   {
     id: 'cursor',
     label: 'Cursor',
     name: 'Cursor',
     uris: 'http://localhost',
-    scopes: ALL_SCOPES.filter(s => !s.includes(':delete')),
+    scopes: PRESET_SCOPES_DEFAULT,
   },
   {
     id: 'vscode',
     label: 'VS Code',
     name: 'VS Code / Copilot',
     uris: 'http://localhost',
-    scopes: ALL_SCOPES.filter(s => s.endsWith(':read')),
+    scopes: PRESET_SCOPES_READONLY,
   },
   {
     id: 'windsurf',
     label: 'Windsurf',
     name: 'Windsurf',
     uris: 'http://localhost',
-    scopes: ALL_SCOPES.filter(s => !s.includes(':delete')),
+    scopes: PRESET_SCOPES_DEFAULT,
   },
   {
     id: 'zed',
     label: 'Zed',
     name: 'Zed',
     uris: 'http://localhost',
-    scopes: ALL_SCOPES.filter(s => !s.includes(':delete')),
+    scopes: PRESET_SCOPES_DEFAULT,
   },
 ]
 
@@ -105,10 +108,14 @@ export default function IntegrationsTab(): React.ReactElement {
           these would ask for an address that cannot be reached from here. */}
       {!managed && <PhotoProvidersSection />}
       {S.airtrailEnabled && !managed && <AirTrailConnectionSection />}
+      {S.dawarichEnabled && !managed && <DawarichConnectionSection />}
       {/* Which model reads a booking, and what that costs, comes with the instance on
        a managed install. The per-user fallback exists for people who supply their
        own key, and there nobody does. */}
       {S.llmEnabled && !managed && <LlmConnectionSection />}
+      {/* Above MCP on purpose: an API key needs no addon, and someone looking for
+          one should not have to read past a section about AI assistants. */}
+      <ApiKeysSection />
       {S.mcpEnabled && <IntegrationsMcpSection {...S} />}
       <McpTokenModals {...S} />
       <OAuthClientModals {...S} />
@@ -123,6 +130,7 @@ function useIntegrations() {
   const mcpEnabled = addonEnabled('mcp')
   const airtrailEnabled = addonEnabled('airtrail')
   const llmEnabled = addonEnabled('llm_parsing')
+  const dawarichEnabled = addonEnabled('dawarich')
 
   useEffect(() => {
     loadAddons()
@@ -259,8 +267,11 @@ function useIntegrations() {
       setOauthNewUris('')
       setOauthNewScopes([])
       setOauthIsMachine(false)
-    } catch {
-      toast.error(t('settings.oauth.toast.createError'))
+    } catch (err) {
+      // The server names the rule that refused the client (a scope, the
+      // ten-client cap, a redirect URI it will not take); swallowing it left
+      // "Failed to register OAuth client" and nothing to act on.
+      toast.error(getApiErrorMessage(err, t('settings.oauth.toast.createError')))
     } finally {
       setOauthCreating(false)
     }
@@ -303,7 +314,7 @@ function useIntegrations() {
 
 
   return {
-    t, locale, toast, mcpEnabled, airtrailEnabled, llmEnabled, oauthClients, setOauthClients, oauthSessions, setOauthSessions, oauthCreateOpen, setOauthCreateOpen, oauthNewName, setOauthNewName, oauthNewUris, setOauthNewUris, oauthNewScopes, setOauthNewScopes, oauthCreating, oauthCreatedClient, setOauthCreatedClient, oauthDeleteId, setOauthDeleteId, oauthRevokeId, setOauthRevokeId, oauthRotateId, setOauthRotateId, oauthRotatedSecret, setOauthRotatedSecret, oauthRotating, oauthScopesExpanded, setOauthScopesExpanded, oauthIsMachine, setOauthIsMachine, activeMcpTab, setActiveMcpTab, configOpenOAuth, setConfigOpenOAuth, configOpenToken, setConfigOpenToken, mcpTokens, setMcpTokens, mcpModalOpen, setMcpModalOpen, mcpNewName, setMcpNewName, mcpCreatedToken, setMcpCreatedToken, mcpCreating, mcpDeleteId, setMcpDeleteId, copiedKey, mcpEndpoint, mcpJsonConfigOAuth, mcpJsonConfig, handleCreateMcpToken, handleDeleteMcpToken, handleCopy, handleCreateOAuthClient, handleDeleteOAuthClient, handleRotateSecret, handleRevokeSession,
+    t, locale, toast, mcpEnabled, airtrailEnabled, llmEnabled, dawarichEnabled, oauthClients, setOauthClients, oauthSessions, setOauthSessions, oauthCreateOpen, setOauthCreateOpen, oauthNewName, setOauthNewName, oauthNewUris, setOauthNewUris, oauthNewScopes, setOauthNewScopes, oauthCreating, oauthCreatedClient, setOauthCreatedClient, oauthDeleteId, setOauthDeleteId, oauthRevokeId, setOauthRevokeId, oauthRotateId, setOauthRotateId, oauthRotatedSecret, setOauthRotatedSecret, oauthRotating, oauthScopesExpanded, setOauthScopesExpanded, oauthIsMachine, setOauthIsMachine, activeMcpTab, setActiveMcpTab, configOpenOAuth, setConfigOpenOAuth, configOpenToken, setConfigOpenToken, mcpTokens, setMcpTokens, mcpModalOpen, setMcpModalOpen, mcpNewName, setMcpNewName, mcpCreatedToken, setMcpCreatedToken, mcpCreating, mcpDeleteId, setMcpDeleteId, copiedKey, mcpEndpoint, mcpJsonConfigOAuth, mcpJsonConfig, handleCreateMcpToken, handleDeleteMcpToken, handleCopy, handleCreateOAuthClient, handleDeleteOAuthClient, handleRotateSecret, handleRevokeSession,
   }
 }
 

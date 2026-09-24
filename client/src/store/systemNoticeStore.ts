@@ -7,6 +7,10 @@ import { systemNoticeDtoSchema, type SystemNoticeDto } from '@trek/shared';
 // SystemNoticeBanner/Modal consumers don't need to change their imports.
 export type SystemNoticeDTO = SystemNoticeDto;
 
+// Baked in by `define` in vite.config.js; a build without it (a bare tsc run) sends
+// nothing and therefore gets no release notice, which is the safe side.
+const UI_VERSION: string = typeof __TREK_UI_VERSION__ === 'string' ? __TREK_UI_VERSION__ : '';
+
 interface SystemNoticeState {
   notices: SystemNoticeDTO[];
   loaded: boolean;
@@ -25,7 +29,14 @@ export const useSystemNoticeStore = create<SystemNoticeState>()((set, get) => ({
     if (get().fetching || get().loaded) return;
     set({ fetching: true });
     try {
-      const res = await axios.get('/system-notices/active');
+      // Names the layouts this bundle can draw and the version it was built as. The
+      // server hands the release notice only to a bundle that can draw it AND was
+      // built for the version the server runs: after an update the service worker
+      // serves the previous bundle until the new one is installed, and that bundle
+      // would draw the release notice as bare keys or with its own older texts, and
+      // let the reader dismiss it for good. It gets the notice after the reload,
+      // from this very line.
+      const res = await axios.get('/system-notices/active', { params: { supports: 'release', ui: UI_VERSION } });
       const notices = parseInDev(systemNoticeDtoSchema.array(), res.data, 'systemNotices.fetch');
       set({ notices, loaded: true, fetching: false });
     } catch (err) {

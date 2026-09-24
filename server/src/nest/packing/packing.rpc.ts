@@ -5,7 +5,7 @@ import { BadParams, ForbiddenResource } from '../plugins/host/rpc-errors';
 import { asPayload, num, schemaMessage } from '../plugins/host/rpc-params';
 import type { PluginRpcContext } from '../plugins/host/rpc-kit/types';
 import { RealtimeService } from '../realtime/realtime.service';
-import { PackingService } from './packing.service';
+import { PackingService, isInvalidBagRef } from './packing.service';
 import { isUpdateConflict } from '../common/conflictResult';
 
 /** Packing rides on the app's own 'packing_edit' permission, exactly like the REST path. */
@@ -48,7 +48,10 @@ export class PackingRpc {
     if (!parsed.success) throw new BadParams(`invalid packing item: ${schemaMessage(parsed.error)}`);
     this.guards.requireTripEdit(tripId, actor, PACKING_EDIT_ACTION);
     const item = this.packing.createItem(String(tripId), parsed.data as never, actor) as PrivacyItem;
+    // A referenced bag must exist on this trip (#2154), as on the REST route.
+    if (isInvalidBagRef(item)) throw new BadParams(`no packing bag ${parsed.data.bag_id} on trip ${tripId}`);
     this.packing.emitToViewers(String(tripId), 'packing:created', { item }, item, undefined);
+    this.packing.broadcastBagTotals(String(tripId));
     return item;
   }
 
@@ -66,7 +69,12 @@ export class PackingRpc {
     const updated = this.packing.updateItem(String(tripId), String(itemId), input as never, Object.keys(input), undefined, actor);
     if (!updated) throw new ForbiddenResource(`no packing item ${itemId} on trip ${tripId}`);
     if (isUpdateConflict(updated)) throw new BadParams('packing item was modified concurrently');
+    // A referenced bag must exist on this trip (#2154), as on the REST route.
+    if (isInvalidBagRef(updated)) throw new BadParams(`no packing bag ${parsed.data.bag_id} on trip ${tripId}`);
     this.packing.broadcastUpdate(String(tripId), itemId, updated as PrivacyItem, !!before?.is_private, undefined);
+    if (['weight_grams', 'quantity', 'bag_id'].some(k => Object.keys(input).includes(k))) {
+      this.packing.broadcastBagTotals(String(tripId));
+    }
     return updated;
   }
 
@@ -79,6 +87,7 @@ export class PackingRpc {
     const deleted = this.packing.deleteItem(String(tripId), String(itemId), actor) as PrivacyItem | null;
     if (!deleted) throw new ForbiddenResource(`no packing item ${itemId} on trip ${tripId}`);
     this.packing.emitToViewers(String(tripId), 'packing:deleted', { itemId }, deleted, undefined);
+    this.packing.broadcastBagTotals(String(tripId));
     return { deleted: true };
   }
 
@@ -96,7 +105,11 @@ export class PackingRpc {
     const input = asPayload(params.input);
     if (typeof input.name !== 'string' || input.name.trim() === '') throw new BadParams('bag name is required');
     this.guards.requireTripEdit(tripId, actor, PACKING_EDIT_ACTION);
-    const bag = this.packing.createBag(String(tripId), { name: input.name, color: typeof input.color === 'string' ? input.color : undefined });
+    const bag = this.packing.createBag(String(tripId), {
+      name: input.name,
+      color: typeof input.color === 'string' ? input.color : undefined,
+      weight_limit_grams: typeof input.weight_limit_grams === 'number' ? input.weight_limit_grams : undefined,
+    });
     this.realtime.broadcast(tripId, 'packing:bag-created', { bag }, undefined);
     return bag;
   }
@@ -124,6 +137,8 @@ export class PackingRpc {
       throw new ForbiddenResource(`no packing bag ${bagId} on trip ${tripId}`);
     }
     this.realtime.broadcast(tripId, 'packing:bag-deleted', { bagId }, undefined);
+    // bag_id is ON DELETE SET NULL — its items just moved to the unassigned pile.
+    this.packing.broadcastBagTotals(String(tripId));
     return { deleted: true };
   }
 

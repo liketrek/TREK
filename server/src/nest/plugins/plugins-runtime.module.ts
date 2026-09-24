@@ -36,7 +36,7 @@ import { CollectionsModule } from '../collections/collections.module';
 import { AtlasModule } from '../atlas/atlas.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { TripMembershipModule } from '../trip-membership/trip-membership.module';
-import { JourneyDomainModule } from '../journey/journey-domain.module';
+import { JournalRpcModule } from '../journey/journal-rpc.module';
 
 /**
  * The plugin execution half (#plugins, M1/M2): the process supervisor, the
@@ -66,7 +66,7 @@ import { JourneyDomainModule } from '../journey/journey-domain.module';
     TodoModule, PackingModule, DaysModule, DayNotesModule, AccommodationsModule, AssignmentsModule, LlmParseModule,
     FilesModule, CollabModule, VacayModule, TripsModule, PlacesModule,
     PermissionsModule, AuditModule, AddonsModule, CollectionsModule, AtlasModule,
-    NotificationsModule, TripMembershipModule, JourneyDomainModule,
+    NotificationsModule, TripMembershipModule, JournalRpcModule,
   ],
   providers: [
     PluginsService,

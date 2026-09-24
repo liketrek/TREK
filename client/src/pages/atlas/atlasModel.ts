@@ -62,6 +62,15 @@ export function isCountryVisible(c: Pick<AtlasCountry, 'status'>, showPlanned: b
 }
 
 /**
+ * The month a 'YYYY-MM-DD' visit date falls in, as a local date. `new Date('2025-06-01')`
+ * reads the string as UTC midnight, which is still May anywhere west of Greenwich (#1535).
+ */
+export function visitMonth(date: string | null | undefined): Date | null {
+  const match = date ? /^(\d{4})-(\d{2})/.exec(date) : null
+  return match ? new Date(Number(match[1]), Number(match[2]) - 1, 1) : null
+}
+
+/**
  * Fold a manual "I have been here" mark into the loaded data without refetching — the
  * map redraws from `data`, so a reload would flash the whole globe. A country that was
  * merely planned moves over to the visited tally instead of being added twice.
@@ -75,7 +84,8 @@ export function withCountryMarkedVisited(prev: AtlasData, code: string): AtlasDa
   return {
     ...prev,
     countries: existing
-      ? prev.countries.map(c => (c.code === code ? { ...c, status: 'visited' as const } : c))
+      // A country that was not visited yet has no visited trip to take dates from (#1535).
+      ? prev.countries.map(c => (c.code === code ? { ...c, status: 'visited' as const, firstVisit: null, lastVisit: null } : c))
       : [...prev.countries, { code, placeCount: 0, tripCount: 0, firstVisit: null, lastVisit: null, status: 'visited' as const }],
     stats: {
       ...prev.stats,
@@ -105,6 +115,10 @@ export interface BucketItem {
   country_code: string | null
   notes: string | null
   target_date: string | null
+  /** ISO-8601 of the stay that fulfilled this wish, or null while it is still a wish. */
+  visited_at?: string | null
+  /** Who decided it was reached: 'manual' or 'dawarich' (#2279). */
+  visited_source?: string | null
 }
 
 // Normalize a region name for matching: strip diacritics (the geocoder and the
@@ -211,6 +225,48 @@ export function regionCacheEvictions(order: string[], keep: Set<string>, max: nu
     remaining -= 1
   }
   return drop
+}
+
+/** Width (CSS px) the bucket-list marker tooltip renders at — mirrors .atlas-tooltip-scrollable in index.css. */
+export function bucketTooltipWidth(viewportWidth: number): number {
+  return Math.min(480, viewportWidth - 32)
+}
+
+/** Vertical space (CSS px) the bucket-list tooltip claims beside its marker: the
+ * .atlas-tooltip-scroll-inner cap of min(200px, 40vh), plus .atlas-tooltip's padding and
+ * border (2x10 + 2x1), plus the 14px offset and Leaflet's 6px .leaflet-tooltip-top margin. */
+export function bucketTooltipHeight(viewportHeight: number): number {
+  return Math.min(200, viewportHeight * 0.4) + 22 + 20
+}
+
+export interface TooltipPlacement {
+  direction: 'top' | 'bottom'
+  offset: [number, number]
+}
+
+/** Keeps the bucket-list marker tooltip on-screen (#2153): Leaflet has no viewport
+ * awareness, so flip below the marker when there's no room above, and nudge the
+ * horizontal offset to keep it within [margin, viewport.width - margin]. */
+export function bucketTooltipPlacement(
+  markerScreen: { x: number; y: number },
+  viewport: { width: number; height: number },
+  tooltipWidth: number,
+  opts: { margin?: number } = {},
+): TooltipPlacement {
+  const margin = opts.margin ?? 8
+  const roomAbove = markerScreen.y - margin
+  const roomBelow = viewport.height - markerScreen.y - margin
+  const flip = roomAbove < bucketTooltipHeight(viewport.height) && roomBelow > roomAbove
+  const defaultLeft = markerScreen.x - tooltipWidth / 2
+  const clampedLeft = Math.min(Math.max(defaultLeft, margin), viewport.width - margin - tooltipWidth)
+  const dx = clampedLeft - defaultLeft
+  return { direction: flip ? 'bottom' : 'top', offset: [dx, flip ? 14 : -14] }
+}
+
+/** scrollHeight ignores the CSS max-height clip, so this is the one place that decides
+ * whether the bucket-list tooltip actually needs its scrollbar (#2153). */
+export function bucketTooltipNeedsScroll(scrollHeight: number, clientHeight: number): boolean {
+  return scrollHeight > clientHeight + 1
 }
 
 // Convert country code to flag emoji

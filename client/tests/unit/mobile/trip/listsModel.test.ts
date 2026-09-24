@@ -23,7 +23,7 @@ import { STATUS_COLOR } from '../../../../src/mobile/screens/trip/tabs/tabModel'
 import { PACKING_PLACEHOLDER_NAME } from '../../../../src/components/Packing/packingListPanel.constants';
 import { buildPackingItem, buildTodoItem } from '../../../helpers/factories';
 
-// FE-MOB-LSTM-001 to FE-MOB-LSTM-020
+// FE-MOB-LSTM-001 to FE-MOB-LSTM-021
 
 const TODAY = '2026-07-15';
 
@@ -160,7 +160,7 @@ describe('listsModel — to-do', () => {
   });
 
   it('FE-MOB-LSTM-014: sortTodoRows floats overdue rows up and sinks done rows', () => {
-    const sorted = sortTodoRows(items, false, TODAY);
+    const sorted = sortTodoRows(items, null, TODAY);
     expect(sorted.map(i => i.id)).toEqual([3, 1, 2, 4]);
     // the input array stays untouched
     expect(items.map(i => i.id)).toEqual([1, 2, 3, 4]);
@@ -172,8 +172,19 @@ describe('listsModel — to-do', () => {
     const none = buildTodoItem({ id: 12, priority: 0 });
     const list = [p3, none, p1];
 
-    expect(sortTodoRows(list, false, TODAY).map(i => i.id)).toEqual([10, 12, 11]);
-    expect(sortTodoRows(list, true, TODAY).map(i => i.id)).toEqual([11, 10, 12]);
+    expect(sortTodoRows(list, null, TODAY).map(i => i.id)).toEqual([10, 12, 11]);
+    expect(sortTodoRows(list, 'priority', TODAY).map(i => i.id)).toEqual([11, 10, 12]);
+  });
+
+  it('FE-MOB-LSTM-021: sortTodoRows orders by nearest due date, undated last, creation order untouched otherwise (#2205)', () => {
+    const inTwoDays = buildTodoItem({ id: 20, due_date: '2026-07-17' });
+    const tomorrow = buildTodoItem({ id: 21, due_date: '2026-07-16' });
+    const undated = buildTodoItem({ id: 22 });
+    const list = [inTwoDays, undated, tomorrow];
+
+    // the issue's literal repro: created first, due later, must sort behind
+    expect(sortTodoRows(list, 'due', TODAY).map(i => i.id)).toEqual([21, 20, 22]);
+    expect(sortTodoRows(list, null, TODAY).map(i => i.id)).toEqual([20, 22, 21]);
   });
 
   it('FE-MOB-LSTM-016: todoCategories returns distinct categories alphabetically', () => {

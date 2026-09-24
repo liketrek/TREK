@@ -87,6 +87,7 @@ const dashboard: TranslationStrings = {
   'dashboard.useUnsplashPhoto': 'Gunakan foto Unsplash oleh {photographer}',
   'dashboard.titleRequired': 'Judul wajib diisi',
   'dashboard.endDateError': 'Tanggal selesai harus setelah tanggal mulai',
+  'dashboard.tripTooLong': 'Perjalanan paling lama {days} hari',
   'dashboard.dateShiftTitle': 'Tanggal mulai baru',
   'dashboard.dateShiftIntro':
     'Kamu mengubah tanggal mulai perjalanan ini. Bagaimana rencanamu harus mengikuti tanggal baru?',
@@ -97,7 +98,24 @@ const dashboard: TranslationStrings = {
   'dashboard.dateShiftAllDesc':
     'Seluruh rencana perjalanan berpindah ke tanggal baru, termasuk reservasi dan akomodasi.',
   'dashboard.dateShiftHint':
-    'Tip: untuk menggeser sebagian rencana perjalanan saja, gunakan "Tambah hari" di perencana.',
+    'Tip: untuk menggeser sebagian rencana perjalanan saja, buka “Atur ulang hari” di perencana, tambahkan hari setelah akhir perjalanan dengan tombol yang menampilkan tanggalnya, lalu pindahkan hari itu ke tempat jeda seharusnya berada.',
+  'dashboard.shrinkTitle': 'Hapus hari?',
+  'dashboard.shrinkIntro': 'Menyimpan tanggal baru akan menghapus hari-hari ini:',
+  'dashboard.shrinkMoreDays': '+{count} lainnya',
+  'dashboard.shrinkLastDays': 'Yang terhapus hari-hari terakhir, bukan yang pertama',
+  'dashboard.shrinkLastDaysHint':
+    'Rencana harian ikut bergeser bersama tanggal baru, jadi yang terhapus selalu hari-hari terakhir rencana Anda, juga saat tanggal mulai berubah.',
+  'dashboard.shrinkBookingsHint':
+    'Tetap ada di Pemesanan. Pemesanan yang tanggalnya masih termasuk dalam perjalanan kembali ke hari tersebut.',
+  'dashboard.shrinkBookingsShiftHint': 'Tetap ada di Pemesanan, tanpa hari.',
+  'dashboard.shrinkStayHint': 'Check-in atau check-out jatuh pada hari yang dihapus, jadi seluruh penginapan dihapus.',
+  'dashboard.shrinkStayBookedHint':
+    'Check-in atau check-out jatuh pada hari yang dihapus, jadi seluruh penginapan dihapus. Pemesanan “{booking}” dan pengeluarannya tetap ada di Pemesanan.',
+  'dashboard.shrinkStayBookingHint':
+    'Check-in atau check-out jatuh pada hari yang dihapus, jadi seluruh penginapan dihapus. Pemesanan “{booking}” tetap ada di Pemesanan.',
+  'dashboard.shrinkConfirm': 'Hapus hari dan simpan',
+  'dashboard.shrinkUnknown':
+    'Hari-hari perjalanan ini tidak dapat diperiksa. Jika tanggal baru mencakup lebih sedikit hari, menyimpan akan menghapus hari-hari terakhir beserta semua yang direncanakan di dalamnya.',
   'dashboard.greeting.morning': 'Selamat pagi,',
   'dashboard.greeting.afternoon': 'Selamat siang,',
   'dashboard.greeting.evening': 'Selamat malam,',

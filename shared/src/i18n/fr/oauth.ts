@@ -97,5 +97,20 @@ const oauth: TranslationStrings = {
   'oauth.authorize.alwaysIncluded': 'Always included', // en-fallback
   'oauth.authorize.alwaysTool.listTrips': 'List your trips so the AI can discover trip IDs', // en-fallback
   'oauth.authorize.alwaysTool.getTripSummary': 'Read a trip overview needed to use any other tool', // en-fallback
+  'oauth.scope.group.files': 'Fichiers',
+  'oauth.scope.group.settings': 'Paramètres',
+  'oauth.scope.files:read.label': 'Voir les fichiers du voyage',
+  'oauth.scope.files:read.description': 'Lister les documents d’un voyage : noms, tailles, qui les a envoyés et ce à quoi ils sont liés',
+  'oauth.scope.files:write.label': 'Gérer les fichiers du voyage',
+  'oauth.scope.files:write.description': 'Renommer et décrire les fichiers, les lier aux réservations et aux lieux, les épingler et les mettre à la corbeille',
+  'oauth.scope.files:content.label': 'Lire le contenu des fichiers',
+  'oauth.scope.files:content.description': 'Lire le contenu d’un document envoyé, par exemple un PDF de réservation ou un billet',
+  'oauth.scope.settings:read.label': 'Voir vos préférences',
+  'oauth.scope.settings:read.description': 'Lire les unités, le format horaire, la langue, la devise par défaut et la page d’accueil',
+  'oauth.scope.settings:write.label': 'Modifier vos préférences',
+  'oauth.scope.settings:write.description': 'Modifier les unités, le format horaire, la langue, la devise par défaut et la page d’accueil. Jamais les clés API enregistrées',
+  'oauth.scope.group.plugins': 'Extensions',
+  'oauth.scope.plugins:use.label': 'Exécuter les outils d\'extension',
+  'oauth.scope.plugins:use.description': 'Autorise ce client à appeler les outils publiés par les extensions installées et approuvées par un administrateur. Chaque extension agit avec les accès qui lui ont déjà été accordés, et non avec les portées de ce jeton',
 };
 export default oauth;

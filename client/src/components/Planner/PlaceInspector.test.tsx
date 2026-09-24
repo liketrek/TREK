@@ -8,9 +8,11 @@ import { useSettingsStore } from '../../store/settingsStore';
 import { useAddonStore } from '../../store/addonStore';
 import { usePluginStore } from '../../store/pluginStore';
 import { useSaveToCollectionStore } from '../../store/saveToCollectionStore';
+import { usePermissionsStore } from '../../store/permissionsStore';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
 import type { AssignmentsMap } from '../../types';
+import { isBlurred } from '../../../tests/helpers/bookingCodeBlur';
 
 // ── Module mocks ──────────────────────────────────────────────────────────────
 
@@ -423,6 +425,33 @@ describe('PlaceInspector', () => {
       />
     );
     expect(screen.getByText('Museum Ticket')).toBeTruthy();
+  });
+
+  it('FE-PLANNER-INSPECTOR-030g: every booking on the stop gets its own strip (#2201)', () => {
+    const onEditReservation = vi.fn();
+    const parking = buildReservation({
+      id: 530, title: 'Parking pass', status: 'confirmed', type: 'parking', assignment_id: 99,
+      reservation_time: '2025-06-01T09:00:00',
+    } as any);
+    const tickets = buildReservation({
+      id: 531, title: 'Zoo tickets', status: 'pending', type: 'activity', assignment_id: 99,
+      reservation_time: '2025-06-01T10:15:00',
+    } as any);
+    const assignmentInDay = [{ id: 99, place, day_id: 1, place_id: place.id, order_index: 0, notes: null }];
+    render(
+      <PlaceInspector
+        {...defaultProps}
+        selectedDayId={1}
+        selectedAssignmentId={99}
+        assignments={{ '1': assignmentInDay }}
+        reservations={[tickets, parking]}
+        onEditReservation={onEditReservation}
+      />
+    );
+    expect(screen.getByText('Parking pass')).toBeTruthy();
+    expect(screen.getByText('Zoo tickets')).toBeTruthy();
+    fireEvent.click(screen.getByText('Zoo tickets').closest('[role="button"]') as HTMLElement);
+    expect(onEditReservation).toHaveBeenCalledWith(tickets);
   });
 
   it('FE-PLANNER-INSPECTOR-030b: the linked reservation opens its editor (#2012)', () => {
@@ -1402,4 +1431,160 @@ describe('PlaceInspector', () => {
     expect(screen.getByText('Eiffel Tower')).toBeTruthy();
   });
 
+  // ── Day-specific assignment note (#2163) ─────────────────────────────────────
+
+  it('FE-PLANNER-INSPECTOR-099: the assignment note renders as markdown under its own eyebrow', () => {
+    const assignmentInDay = [{ id: 99, place, day_id: 1, place_id: place.id, order_index: 0, notes: 'Book the **10:00** timed entry' }];
+    render(
+      <PlaceInspector
+        {...defaultProps}
+        selectedDayId={1}
+        selectedAssignmentId={99}
+        assignments={{ '1': assignmentInDay }}
+      />
+    );
+    expect(screen.getByText('Notes for this day')).toBeTruthy();
+    const strong = Array.from(document.querySelectorAll('strong')).find(el => el.textContent === '10:00');
+    expect(strong).toBeTruthy();
+  });
+
+  it('FE-PLANNER-INSPECTOR-100: without a note (or without a day in context) the block stays away', () => {
+    const assignmentInDay = [{ id: 99, place, day_id: 1, place_id: place.id, order_index: 0, notes: null }];
+    const { rerender } = render(
+      <PlaceInspector {...defaultProps} selectedDayId={1} selectedAssignmentId={99} assignments={{ '1': assignmentInDay }} />
+    );
+    expect(screen.queryByText('Notes for this day')).toBeNull();
+    // A note exists but no day is selected — nothing to attribute it to, so no block.
+    rerender(
+      <PlaceInspector {...defaultProps} selectedDayId={null} assignments={{ '1': [{ ...assignmentInDay[0], notes: 'hidden' }] }} />
+    );
+    expect(screen.queryByText('Notes for this day')).toBeNull();
+  });
+
+  it('FE-PLANNER-INSPECTOR-101: the reservation strip opts out of the press-scale (#2158)', () => {
+    // jsdom cannot replay the browser mechanics: the :active scale on the
+    // composite strip slid the links inside out from under the pointer, so the
+    // click landed elsewhere. The data-no-press attribute is the pin.
+    const reservation = buildReservation({ title: 'Museum Ticket', status: 'confirmed', assignment_id: 99 } as any);
+    const assignmentInDay = [{ id: 99, place, day_id: 1, place_id: place.id, order_index: 0, notes: null }];
+    render(
+      <PlaceInspector
+        {...defaultProps}
+        selectedDayId={1}
+        selectedAssignmentId={99}
+        assignments={{ '1': assignmentInDay }}
+        reservations={[reservation]}
+        onEditReservation={vi.fn()}
+      />
+    );
+    expect(screen.getByText('Museum Ticket').closest('[role="button"]')).toHaveAttribute('data-no-press');
+  });
+
+  it('FE-PLANNER-INSPECTOR-102: a member without place_edit gets neither Edit nor Delete nor the inline rename (#2446)', () => {
+    // buildUser() is a plain member and buildTrip({ id: 1 }) belongs to somebody else.
+    usePermissionsStore.setState({ permissions: { place_edit: 'trip_owner' } });
+    const onEdit = vi.fn();
+    const onDelete = vi.fn();
+    const onUpdatePlace = vi.fn();
+    const member = render(<PlaceInspector {...defaultProps} onEdit={onEdit} onDelete={onDelete} onUpdatePlace={onUpdatePlace} />);
+    expect(screen.queryByText('Edit')).not.toBeInTheDocument();
+    expect(screen.queryByText('Delete')).not.toBeInTheDocument();
+    fireEvent.doubleClick(screen.getByText(place.name));
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    member.unmount();
+    // the same trip owned by this member shows them again
+    seedStore(useTripStore, { trip: buildTrip({ id: 1, user_id: useAuthStore.getState().user!.id }) });
+    render(<PlaceInspector {...defaultProps} onEdit={onEdit} onDelete={onDelete} onUpdatePlace={onUpdatePlace} />);
+    expect(screen.getByText('Edit')).toBeInTheDocument();
+    expect(screen.getByText('Delete')).toBeInTheDocument();
+  });
+
+
+  it('FE-PLANNER-INSPECTOR-017b: a stop a booked night wrote is neither removed nor doubled here', () => {
+    // Taking it off the day would leave the booking behind with nothing on the drive and
+    // no way back short of saving it again; offering to add it would put a second copy
+    // of the same hotel beside it. The night is removed where it is made: the day's
+    // overnight block, or turning it back into a pause in road trip mode.
+    const onRemoveAssignment = vi.fn();
+    const booked = [{ id: 99, place, day_id: 1, place_id: place.id, order_index: 0, notes: null, accommodation_id: 4 }];
+    render(
+      <PlaceInspector
+        {...defaultProps}
+        selectedDayId={1}
+        assignments={{ '1': booked } as never}
+        onRemoveAssignment={onRemoveAssignment}
+      />
+    );
+
+    expect(screen.queryByRole('button', { name: /remove from day/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /add to day/i })).toBeNull();
+  });
+
+  it('FE-PLANNER-INSPECTOR-017c: the booked stop stays off the buttons when the day list hides it', () => {
+    // The day view hands the inspector the day without the stop a booking wrote,
+    // while the store still holds it. Judged on the list alone the hotel looked
+    // unassigned, and "Add to day" put a second copy beside the booked night.
+    const booked = [{ id: 99, place, day_id: 1, place_id: place.id, order_index: 0, notes: null, accommodation_id: 4 }];
+    seedStore(useTripStore, { assignments: { '1': booked } as never });
+    render(<PlaceInspector {...defaultProps} selectedDayId={1} assignments={{ '1': [] }} />);
+
+    expect(screen.queryByText('Add to Day')).toBeNull();
+    expect(screen.queryByText('Remove from Day')).toBeNull();
+  });
+
+  it('FE-PLANNER-INSPECTOR-017d: a stop the traveller placed at the booked hotel can still be removed', () => {
+    // A second copy that did get onto the day is the traveller's own row and shows
+    // in the list. That one keeps its "Remove from day", which is the way back.
+    const onRemoveAssignment = vi.fn();
+    const booked = { id: 99, place, day_id: 1, place_id: place.id, order_index: 0, notes: null, accommodation_id: 4 };
+    const own = { id: 100, place, day_id: 1, place_id: place.id, order_index: 1, notes: null };
+    seedStore(useTripStore, { assignments: { '1': [booked, own] } as never });
+    render(
+      <PlaceInspector
+        {...defaultProps}
+        selectedDayId={1}
+        assignments={{ '1': [own] } as never}
+        onRemoveAssignment={onRemoveAssignment}
+      />
+    );
+
+    fireEvent.click(screen.getByText('Remove from Day').closest('button')!);
+    expect(onRemoveAssignment).toHaveBeenCalledWith(1, 100);
+    expect(screen.queryByText('Add to Day')).toBeNull();
+  });
+
+  it('FE-PLANNER-INSPECTOR-017e: any booked stop at the place keeps the buttons off, whichever row the store lists first', () => {
+    // With the service stops switched off the day list can hide a hotel the traveller
+    // placed as well, so the store may list that row ahead of the booked one. The
+    // question is whether a booking holds this place on this day, not which row comes first.
+    const own = { id: 100, place, day_id: 1, place_id: place.id, order_index: 0, notes: null };
+    const booked = { id: 99, place, day_id: 1, place_id: place.id, order_index: 1, notes: null, accommodation_id: 4 };
+    seedStore(useTripStore, { assignments: { '1': [own, booked] } as never });
+    render(<PlaceInspector {...defaultProps} selectedDayId={1} assignments={{ '1': [] }} />);
+
+    expect(screen.queryByText('Add to Day')).toBeNull();
+    expect(screen.queryByText('Remove from Day')).toBeNull();
+  });
+})
+
+// ── Blur booking codes on the linked-booking strip (#2457) ────────────────────
+
+describe('PlaceInspector blur booking codes (#2457)', () => {
+  const renderWithBooking = (blur: boolean) => {
+    seedStore(useSettingsStore, { settings: { time_format: '24h', temperature_unit: 'celsius', blur_booking_codes: blur } });
+    const res = { ...buildReservation({ id: 3, title: 'Dinner at Jules Verne', status: 'confirmed', confirmation_number: 'TABLE-SECRET' }), assignment_id: 9 };
+    render(<PlaceInspector {...defaultProps} selectedDayId={1} selectedAssignmentId={9}
+      assignments={{ '1': [{ id: 9, place, place_id: place.id, day_id: 1, order_index: 0, notes: null }] }}
+      reservations={[res]} onEditReservation={vi.fn()} />);
+  };
+
+  it('FE-PLANNER-INSPECTOR-103: the booking code on the linked-booking strip is blurred while the setting is on', () => {
+    renderWithBooking(true);
+    expect(isBlurred(screen.getByText(/TABLE-SECRET/))).toBe(true);
+  });
+
+  it('FE-PLANNER-INSPECTOR-104: with the setting off the strip shows the code plainly', () => {
+    renderWithBooking(false);
+    expect(isBlurred(screen.getByText(/TABLE-SECRET/))).toBe(false);
+  });
 });

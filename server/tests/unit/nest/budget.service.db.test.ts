@@ -314,8 +314,9 @@ function seedIssue1543Trip(tripCurrency: string) {
   testDb.prepare('UPDATE trips SET currency = ? WHERE id = ?').run(tripCurrency, trip.id);
   const members = [{ user_id: me.id }, { user_id: danil.id }, { user_id: serega.id }];
 
-  // 9 000 ₽ nobody has paid yet, 9 000 ₽ paid by me, and $100 paid by me. The USD row
-  // carries the rate frozen at entry time: units of USD per 1 RUB.
+  // 9 000 ₽ nobody has paid yet (outstanding, settled by nobody, #2225), 9 000 ₽ paid
+  // by me, and $100 paid by me. The USD row carries the rate frozen at entry time:
+  // units of USD per 1 RUB.
   budget.createBudgetItem(trip.id, { name: 'Проезд обратно', total_price: 9000, currency: 'RUB', members });
   budget.createBudgetItem(trip.id, { name: 'Проезд туда', currency: 'RUB', payers: [{ user_id: me.id, amount: 9000 }], members });
   budget.createBudgetItem(trip.id, {
@@ -332,18 +333,20 @@ describe('calculateSettlement with a foreign-currency expense (#1543)', () => {
     const result = budget.calculateSettlement(trip.id, { base: 'RUB', tripCurrency: 'RUB', rates: RATES.RUB });
     const balanceOf = (id: number) => result.balances.find(b => b.user_id === id)!.balance;
 
-    // Total spend is 9 000 + 9 000 + $100 (≈7 668 ₽), so each of the three owes a third
-    // of it and I am owed back everything I fronted beyond my own share. The bug divided
-    // the RUB shares by the USD rate and reported +451 092 / −230 080 / −230 012 instead.
-    // Tolerance is a rouble: the cent-rotation in splitEqualShares moves the odd cent of
-    // the $100 between members, which the USD rate magnifies ~77x.
-    const totalSpend = 18000 + 100 / RATES.RUB.USD;
-    const share = totalSpend / 3;
-    expect(balanceOf(me.id)).toBeCloseTo(9000 + 100 / RATES.RUB.USD - share, -1);
+    // What actually settles is 9 000 ₽ + $100 (≈7 668 ₽): the third expense is the
+    // 9 000 ₽ nobody has paid, which is outstanding rather than owed (#2225). Each of
+    // the three owes a third of that, and I am owed back everything I fronted beyond my
+    // own share. The bug divided the RUB shares by the USD rate and reported +451 092 /
+    // −230 080 / −230 012 instead. Tolerance is a rouble: the cent-rotation in
+    // splitEqualShares moves the odd cent of the $100 between members, which the USD
+    // rate magnifies ~77x.
+    const settledSpend = 9000 + 100 / RATES.RUB.USD;
+    const share = settledSpend / 3;
+    expect(balanceOf(me.id)).toBeCloseTo(settledSpend - share, -1);
     expect(balanceOf(danil.id)).toBeCloseTo(-share, -1);
     expect(balanceOf(serega.id)).toBeCloseTo(-share, -1);
-    // The 9 000 ₽ expense nobody paid is the only imbalance in the trip.
-    expect(result.balances.reduce((a, b) => a + b.balance, 0)).toBeCloseTo(-9000, 1);
+    // Nothing is left over: every rouble owed is a rouble somebody is owed.
+    expect(result.balances.reduce((a, b) => a + Math.round(b.balance * 100), 0)).toBe(0);
   });
 
   it('BUDGET-SVC-DB-005: reports the same balances when the display currency differs from the trip currency', () => {
@@ -353,7 +356,7 @@ describe('calculateSettlement with a foreign-currency expense (#1543)', () => {
     const inEur = budget.calculateSettlement(trip.id, { base: 'EUR', tripCurrency: 'RUB', rates: RATES.EUR });
     const danilEur = inEur.balances.find(b => b.user_id === danil.id)!.balance;
 
-    const shareRub = (18000 + 100 / RATES.RUB.USD) / 3;
+    const shareRub = (9000 + 100 / RATES.RUB.USD) / 3;
     expect(danilEur).toBeCloseTo(-shareRub / RATES.EUR.RUB, 0);
   });
 });
@@ -581,6 +584,177 @@ describe('settlement parties are confined to the trip', () => {
   });
 });
 
+// ── Refunds persist as negative expenses (#2176) ─────────────────────────────
+// The write path used to filter payers on amount > 0 and re-derive total_price
+// from the survivors, silently turning a negative entry into a 0 € one with no
+// payer row.
+
+describe('negative amounts persist end-to-end (#2176)', () => {
+  it('BUDGET-SVC-DB-032: stores a negative payer row and the negative total', () => {
+    const { user: alice } = createUser(testDb, { username: 'alice' });
+    const trip = createTrip(testDb, alice.id);
+
+    const item = budget.createBudgetItem(trip.id, {
+      name: 'Hotel partial refund',
+      total_price: -100,
+      payers: [{ user_id: alice.id, amount: -100 }],
+    }) as { id: number; payers: { user_id: number; amount: number }[]; total_price: number };
+
+    expect(item.total_price).toBe(-100);
+    expect(item.payers).toEqual([expect.objectContaining({ user_id: alice.id, amount: -100 })]);
+    const row = testDb.prepare('SELECT total_price FROM budget_items WHERE id = ?').get(item.id) as { total_price: number };
+    expect(row.total_price).toBe(-100);
+  });
+
+  it('BUDGET-SVC-DB-033: an update keeps a negative payer instead of nulling the entry', () => {
+    const { user: alice } = createUser(testDb, { username: 'alice' });
+    const { user: bob } = createUser(testDb, { username: 'bob' });
+    const trip = createTrip(testDb, alice.id);
+    addTripMember(testDb, trip.id, bob.id);
+    const item = budget.createBudgetItem(trip.id, {
+      name: 'Refund', total_price: -60, payers: [{ user_id: alice.id, amount: -60 }],
+    }) as { id: number };
+
+    const updated = budget.updateBudgetItem(item.id, trip.id, {
+      payers: [{ user_id: alice.id, amount: -40 }, { user_id: bob.id, amount: -20 }],
+    }) as { payers: { user_id: number; amount: number }[]; total_price: number };
+
+    expect(updated.total_price).toBe(-60);
+    expect(updated.payers).toHaveLength(2);
+    expect(updated.payers.map(p => p.amount).sort((a, b) => a - b)).toEqual([-40, -20]);
+  });
+
+  it('BUDGET-SVC-DB-034: mixed-sign payers derive the netted total', () => {
+    // Alice fronted 100 but bob pocketed a 30 refund on the same receipt.
+    const { user: alice } = createUser(testDb, { username: 'alice' });
+    const { user: bob } = createUser(testDb, { username: 'bob' });
+    const trip = createTrip(testDb, alice.id);
+    addTripMember(testDb, trip.id, bob.id);
+
+    const item = budget.createBudgetItem(trip.id, {
+      name: 'Tickets', payers: [{ user_id: alice.id, amount: 100 }, { user_id: bob.id, amount: -30 }],
+    }) as { payers: { user_id: number }[]; total_price: number };
+
+    expect(item.payers).toHaveLength(2);
+    expect(item.total_price).toBe(70);
+  });
+
+  it('BUDGET-SVC-DB-035: a zero-amount payer is still dropped', () => {
+    const { user: alice } = createUser(testDb, { username: 'alice' });
+    const { user: bob } = createUser(testDb, { username: 'bob' });
+    const trip = createTrip(testDb, alice.id);
+    addTripMember(testDb, trip.id, bob.id);
+
+    const item = budget.createBudgetItem(trip.id, {
+      name: 'Dinner', payers: [{ user_id: alice.id, amount: 90 }, { user_id: bob.id, amount: 0 }],
+    }) as { payers: { user_id: number }[]; total_price: number };
+
+    expect(item.payers.map(p => p.user_id)).toEqual([alice.id]);
+    expect(item.total_price).toBe(90);
+  });
+
+  it('BUDGET-SVC-DB-036: a negative expense settles against real rows — Σ balances = 0', () => {
+    const { user: alice } = createUser(testDb, { username: 'alice' });
+    const { user: bob } = createUser(testDb, { username: 'bob' });
+    const trip = createTrip(testDb, alice.id);
+    addTripMember(testDb, trip.id, bob.id);
+    budget.createBudgetItem(trip.id, {
+      name: 'Dinner', payers: [{ user_id: alice.id, amount: 90 }],
+      member_ids: [alice.id, bob.id],
+    });
+    budget.createBudgetItem(trip.id, {
+      name: 'Refund', payers: [{ user_id: alice.id, amount: -30 }],
+      member_ids: [alice.id, bob.id],
+    });
+
+    const result = budget.calculateSettlement(trip.id);
+    const balance = (uid: number) => result.balances.find(b => b.user_id === uid)!.balance;
+
+    // 90 out, 30 back, both split evenly: bob nets 45 - 15 = 30 owed to alice.
+    expect(balance(alice.id)).toBe(30);
+    expect(balance(bob.id)).toBe(-30);
+    expect(result.balances.reduce((a, b) => a + Math.round(b.balance * 100), 0)).toBe(0);
+    expect(result.flows).toEqual([
+      expect.objectContaining({ amount: 30, from: expect.objectContaining({ user_id: bob.id }), to: expect.objectContaining({ user_id: alice.id }) }),
+    ]);
+  });
+});
+
+describe('deleting an expense takes its price off the booking (#2233)', () => {
+  it('BUDGET-SVC-DB-040: the mirrored price and currency are cleared, the rest of the metadata stays', () => {
+    // The reservation update path keeps metadata.price across booking edits, so
+    // the expense side has to remove it when the expense itself goes away.
+    // Without this the card would show a price with nothing behind it, for good.
+    const { user } = createUser(testDb, { username: 'owner' });
+    const trip = createTrip(testDb, user.id, { title: 'Trip' });
+    const res = testDb.prepare(
+      "INSERT INTO reservations (trip_id, title, type, metadata) VALUES (?, 'Flight', 'flight', ?)",
+    ).run(trip.id, JSON.stringify({ airline: 'CZ', seat: '12A', price: '2040', priceCurrency: 'CNY' }));
+    const reservationId = Number(res.lastInsertRowid);
+
+    const item = budget.createBudgetItem(trip.id, { name: 'Flight', total_price: 2040 });
+    testDb.prepare('UPDATE budget_items SET reservation_id = ? WHERE id = ?').run(reservationId, item.id);
+
+    expect(budget.deleteBudgetItem(item.id, trip.id)).toBe(true);
+
+    const after = testDb.prepare('SELECT metadata FROM reservations WHERE id = ?').get(reservationId) as { metadata: string };
+    expect(JSON.parse(after.metadata)).toEqual({ airline: 'CZ', seat: '12A' });
+  });
+
+  it('BUDGET-SVC-DB-041: an expense that was never linked to a booking deletes as before', () => {
+    const { user } = createUser(testDb, { username: 'owner' });
+    const trip = createTrip(testDb, user.id, { title: 'Trip' });
+    const item = budget.createBudgetItem(trip.id, { name: 'Coffee', total_price: 4 });
+
+    expect(budget.deleteBudgetItem(item.id, trip.id)).toBe(true);
+    expect(testDb.prepare('SELECT id FROM budget_items WHERE id = ?').get(item.id)).toBeUndefined();
+  });
+});
+
+describe('an expense nobody paid stays out of the ledger (#2225)', () => {
+  it('BUDGET-SVC-DB-037: an unpaid expense moves neither the balances nor the offered flows', () => {
+    const { user: alice } = createUser(testDb, { username: 'alice' });
+    const { user: bob } = createUser(testDb, { username: 'bob' });
+    const { user: carol } = createUser(testDb, { username: 'carol' });
+    const trip = createTrip(testDb, alice.id, { title: 'Trip' });
+    addTripMember(testDb, trip.id, bob.id);
+    addTripMember(testDb, trip.id, carol.id);
+
+    budget.createBudgetItem(trip.id, {
+      name: 'Dinner', payers: [{ user_id: alice.id, amount: 120 }],
+      member_ids: [alice.id, bob.id, carol.id],
+    });
+    const before = budget.calculateSettlement(trip.id);
+
+    // The row from the issue: a recorded total left on "No one paid yet", split
+    // between the two people who were actually there.
+    const unpaid = budget.createBudgetItem(trip.id, {
+      name: 'Taxi', total_price: 161.57, payers: [], member_ids: [bob.id, carol.id],
+    }) as { id: number; payers: unknown[]; total_price: number };
+    expect(unpaid.payers).toEqual([]);
+    expect(unpaid.total_price).toBe(161.57);
+
+    // Re-saving it from the edit modal (payers cleared, total re-sent) must not
+    // let writeItemPayers derive the total back down to 0.
+    const resaved = budget.updateBudgetItem(unpaid.id, trip.id, {
+      total_price: 161.57, payers: [], member_ids: [bob.id, carol.id],
+    }) as { payers: unknown[]; total_price: number };
+    expect(resaved.payers).toEqual([]);
+    expect(resaved.total_price).toBe(161.57);
+    const payerRows = testDb
+      .prepare('SELECT count(*) AS cnt FROM budget_item_payers WHERE budget_item_id = ?')
+      .get(unpaid.id) as { cnt: number };
+    expect(payerRows.cnt).toBe(0);
+
+    // 161.57 with no credit behind it used to push bob and carol 80.79/80.78 further
+    // into the red and hand the whole of it to alice, who never fronted a rouble of it.
+    const after = budget.calculateSettlement(trip.id);
+    expect(after.balances).toEqual(before.balances);
+    expect(after.flows).toEqual(before.flows);
+    expect(after.balances.reduce((a, b) => a + Math.round(b.balance * 100), 0)).toBe(0);
+  });
+});
+
 describe('post-fold quirk fixes', () => {
   it('BUDGET-SVC-DB-019: settlements prefer display_name over username (quirk fix)', () => {
     const { user: alice } = createUser(testDb, { username: 'alice' });
@@ -593,6 +767,47 @@ describe('post-fold quirk fixes', () => {
     expect(created!.from_username).toBe('Alice Displayed');
     expect(created!.to_username).toBe('bob');
     expect(budget.listSettlements(trip.id)[0].from_username).toBe('Alice Displayed');
+  });
+
+  it('BUDGET-SVC-DB-042: a settle-up payment carries its own settled_at, independent of created_at', () => {
+    const { user: alice } = createUser(testDb, { username: 'alice' });
+    const { user: bob } = createUser(testDb, { username: 'bob' });
+    const trip = createTrip(testDb, alice.id);
+
+    const noDate = budget.insertSettlement(trip.id, { from_user_id: alice.id, to_user_id: bob.id, amount: 10 }, alice.id);
+    expect(noDate!.settled_at).toBeNull();
+
+    const dated = budget.insertSettlement(trip.id, { from_user_id: alice.id, to_user_id: bob.id, amount: 20, settled_at: '2026-01-05' }, alice.id);
+    expect(dated!.settled_at).toBe('2026-01-05');
+    expect(budget.getSettlement(dated!.id, trip.id)!.settled_at).toBe('2026-01-05');
+
+    const moved = budget.applySettlementUpdate(dated!.id, trip.id, { from_user_id: alice.id, to_user_id: bob.id, amount: 20, settled_at: '2026-01-09' });
+    expect(moved!.settled_at).toBe('2026-01-09');
+
+    // An update that omits settled_at (undefined) leaves the stored day alone,
+    // the same CASE WHEN pattern currency/exchange_rate already follow.
+    const untouched = budget.applySettlementUpdate(dated!.id, trip.id, { from_user_id: alice.id, to_user_id: bob.id, amount: 25 });
+    expect(untouched!.settled_at).toBe('2026-01-09');
+  });
+
+  it('BUDGET-SVC-DB-043: clearing settled_at stores NULL, whether it arrives as null or an empty string', () => {
+    const { user: alice } = createUser(testDb, { username: 'alice' });
+    const { user: bob } = createUser(testDb, { username: 'bob' });
+    const trip = createTrip(testDb, alice.id);
+    const parties = { from_user_id: alice.id, to_user_id: bob.id, amount: 20 };
+
+    // The date picker's clear button sends '' and the contract allows null; both
+    // mean "no day of its own", never a stored empty string.
+    const blank = budget.insertSettlement(trip.id, { ...parties, settled_at: '' }, alice.id);
+    expect(blank!.settled_at).toBeNull();
+
+    const dated = budget.insertSettlement(trip.id, { ...parties, settled_at: '2026-01-05' }, alice.id);
+    expect(budget.applySettlementUpdate(dated!.id, trip.id, { ...parties, settled_at: null })!.settled_at).toBeNull();
+
+    budget.applySettlementUpdate(dated!.id, trip.id, { ...parties, settled_at: '2026-01-05' });
+    expect(budget.applySettlementUpdate(dated!.id, trip.id, { ...parties, settled_at: '' })!.settled_at).toBeNull();
+    const row = testDb.prepare('SELECT settled_at FROM budget_settlements WHERE id = ?').get(dated!.id) as { settled_at: string | null };
+    expect(row.settled_at).toBeNull();
   });
 
   // ── Notes vs. itemized receipts (#1658) ────────────────────────────────────
@@ -772,4 +987,172 @@ describe('an expense whose split leaves a remainder', () => {
 
     expect(totalOf(item.id)).toBe(25);
   });
-})
+
+  it('attaches receipts created with receipt_file_ids and lists them', () => {
+    const { user: alice } = createUser(testDb);
+    const trip = createTrip(testDb, alice.id);
+
+    // Insert a file for this trip
+    const res = testDb.prepare('INSERT INTO trip_files (trip_id, filename, original_name, mime_type, file_size) VALUES (?, ?, ?, ?, ?)').run(
+      trip.id, 'receipt-123.jpg', 'receipt.jpg', 'image/jpeg', 1024
+    );
+    const fileId = Number(res.lastInsertRowid);
+
+    const item = budget.createBudgetItem(trip.id, {
+      name: 'Restaurant with receipt',
+      total_price: 45,
+      receipt_file_ids: [fileId],
+    });
+
+    expect(item.receipts).toBeDefined();
+    expect(item.receipts!.length).toBe(1);
+    expect(item.receipts![0].id).toBe(fileId);
+    expect(item.receipts![0].original_name).toBe('receipt.jpg');
+
+    const listed = budget.listBudgetItems(trip.id);
+    const found = listed.find(i => i.id === item.id);
+    expect(found?.receipts?.length).toBe(1);
+    expect(found?.receipts?.[0].id).toBe(fileId);
+  });
+
+  it('updates receipts on updateBudgetItem without deleting any file', () => {
+    const { user: alice } = createUser(testDb);
+    const trip = createTrip(testDb, alice.id);
+
+    // File 1: will be removed and is orphan -> should be trashed
+    const f1 = Number(testDb.prepare('INSERT INTO trip_files (trip_id, filename, original_name) VALUES (?, ?, ?)').run(trip.id, 'f1.jpg', 'f1.jpg').lastInsertRowid);
+    // File 2: will be kept
+    const f2 = Number(testDb.prepare('INSERT INTO trip_files (trip_id, filename, original_name) VALUES (?, ?, ?)').run(trip.id, 'f2.jpg', 'f2.jpg').lastInsertRowid);
+    // File 3: will be added
+    const f3 = Number(testDb.prepare('INSERT INTO trip_files (trip_id, filename, original_name) VALUES (?, ?, ?)').run(trip.id, 'f3.jpg', 'f3.jpg').lastInsertRowid);
+    // File 4: will be removed but is shared with another budget item -> should NOT be trashed
+    const f4 = Number(testDb.prepare('INSERT INTO trip_files (trip_id, filename, original_name) VALUES (?, ?, ?)').run(trip.id, 'f4.jpg', 'f4.jpg').lastInsertRowid);
+
+    budget.createBudgetItem(trip.id, { name: 'Other', receipt_file_ids: [f4] });
+    const item = budget.createBudgetItem(trip.id, { name: 'Dinner', receipt_file_ids: [f1, f2, f4] });
+
+    // Update item: remove f1 and f4, keep f2, add f3
+    const updated = budget.updateBudgetItem(item.id, trip.id, { receipt_file_ids: [f2, f3] });
+    expect(updated?.receipts?.map(r => r.id).sort()).toEqual([f2, f3].sort());
+
+    // Removing a receipt removes the link and nothing else. The file stays on
+    // the trip: deleting it needs file_delete, which this path never checks.
+    for (const fid of [f1, f2, f3, f4]) {
+      const row = testDb.prepare('SELECT deleted_at FROM trip_files WHERE id = ?').get(fid) as { deleted_at: string | null };
+      expect(row.deleted_at).toBeNull();
+    }
+    expect(testDb.prepare('SELECT COUNT(*) c FROM file_links WHERE budget_item_id = ?').get(item.id)).toEqual({ c: 2 });
+    // f4 keeps the link it has to the other expense.
+    expect(testDb.prepare('SELECT COUNT(*) c FROM file_links WHERE file_id = ?').get(f4)).toEqual({ c: 1 });
+  });
+
+  it('re-saving an expense whose receipt is also linked elsewhere twice does not 500', () => {
+    // A file may carry one link row per place and one per booking, and the receipt
+    // link is written onto a spare one of those. On the second save the row kept
+    // from last time is skipped, so the next spare used to be adopted into a
+    // second (file, item) pair — refused by the unique index, thrown inside the
+    // transaction, and the whole expense edit rolled back. Every time, for good.
+    const { user: alice } = createUser(testDb);
+    const trip = createTrip(testDb, alice.id);
+    const file = Number(testDb.prepare('INSERT INTO trip_files (trip_id, filename, original_name) VALUES (?, ?, ?)').run(trip.id, 'r.jpg', 'r.jpg').lastInsertRowid);
+    const place = testDb.prepare('INSERT INTO places (trip_id, name) VALUES (?, ?)').run(trip.id, 'Osteria').lastInsertRowid;
+    const reservation = testDb.prepare("INSERT INTO reservations (trip_id, title, type) VALUES (?, 'Table', 'restaurant')").run(trip.id).lastInsertRowid;
+    testDb.prepare('INSERT INTO file_links (file_id, place_id) VALUES (?, ?)').run(file, place);
+    testDb.prepare('INSERT INTO file_links (file_id, reservation_id) VALUES (?, ?)').run(file, reservation);
+
+    const item = budget.createBudgetItem(trip.id, { name: 'Dinner', total_price: 40, receipt_file_ids: [file] });
+    const again = budget.updateBudgetItem(item.id, trip.id, { total_price: 42, receipt_file_ids: [file] });
+
+    expect(again?.total_price).toBe(42);
+    expect(again?.receipts?.map(r => r.id)).toEqual([file]);
+    expect(testDb.prepare('SELECT COUNT(*) c FROM file_links WHERE file_id = ? AND budget_item_id = ?').get(file, item.id)).toEqual({ c: 1 });
+  });
+
+  it('a receipt named twice in one save is linked once', () => {
+    const { user: alice } = createUser(testDb);
+    const trip = createTrip(testDb, alice.id);
+    const file = Number(testDb.prepare('INSERT INTO trip_files (trip_id, filename, original_name) VALUES (?, ?, ?)').run(trip.id, 'dup.jpg', 'dup.jpg').lastInsertRowid);
+    const item = budget.createBudgetItem(trip.id, { name: 'Taxi' });
+
+    const updated = budget.updateBudgetItem(item.id, trip.id, { receipt_file_ids: [file, file] });
+
+    expect(updated?.receipts?.map(r => r.id)).toEqual([file]);
+  });
+
+  it('unlinks receipts on deleteBudgetItem and leaves every file in place', () => {
+    const { user: alice } = createUser(testDb);
+    const trip = createTrip(testDb, alice.id);
+
+    // File 1: orphan receipt
+    const f1 = Number(testDb.prepare('INSERT INTO trip_files (trip_id, filename, original_name) VALUES (?, ?, ?)').run(trip.id, 'del1.jpg', 'del1.jpg').lastInsertRowid);
+    // File 2: linked to a place directly
+    const place = testDb.prepare('INSERT INTO places (trip_id, name) VALUES (?, ?)').run(trip.id, 'Hotel').lastInsertRowid;
+    const f2 = Number(testDb.prepare('INSERT INTO trip_files (trip_id, filename, original_name, place_id) VALUES (?, ?, ?, ?)').run(trip.id, 'del2.jpg', 'del2.jpg', place).lastInsertRowid);
+
+    const item = budget.createBudgetItem(trip.id, { name: 'Lunch', receipt_file_ids: [f1, f2] });
+    const deleted = budget.deleteBudgetItem(item.id, trip.id);
+    expect(deleted).toBe(true);
+
+    // Neither file is touched; only the links to the deleted expense go.
+    for (const fid of [f1, f2]) {
+      const row = testDb.prepare('SELECT deleted_at FROM trip_files WHERE id = ?').get(fid) as { deleted_at: string | null };
+      expect(row.deleted_at).toBeNull();
+    }
+    const linkRows = testDb.prepare('SELECT * FROM file_links WHERE budget_item_id = ?').all(item.id);
+    expect(linkRows).toHaveLength(0);
+  });
+
+  it('unlinks receipts without ever trashing the file itself', () => {
+    const { user: alice } = createUser(testDb);
+    const trip = createTrip(testDb, alice.id);
+
+    // budget_edit and file_delete are separate permissions and a receipt id is
+    // any file on the trip, so the budget domain must never delete one.
+    const plain = Number(testDb.prepare('INSERT INTO trip_files (trip_id, filename, original_name) VALUES (?, ?, ?)').run(trip.id, 'r.pdf', 'r.pdf').lastInsertRowid);
+    const item = budget.createBudgetItem(trip.id, { name: 'Dinner', receipt_file_ids: [plain] });
+    budget.deleteBudgetItem(item.id, trip.id);
+    expect((testDb.prepare('SELECT deleted_at FROM trip_files WHERE id = ?').get(plain) as { deleted_at: string | null }).deleted_at).toBeNull();
+    // The link is gone, because it was all the row carried.
+    expect(testDb.prepare('SELECT COUNT(*) c FROM file_links WHERE file_id = ?').get(plain)).toEqual({ c: 0 });
+  });
+
+  it('keeps a place link on a row that also carried the receipt link', () => {
+    const { user: alice } = createUser(testDb);
+    const trip = createTrip(testDb, alice.id);
+    const place = Number(testDb.prepare('INSERT INTO places (trip_id, name) VALUES (?, ?)').run(trip.id, 'Cafe').lastInsertRowid);
+    const file = Number(testDb.prepare('INSERT INTO trip_files (trip_id, filename, original_name) VALUES (?, ?, ?)').run(trip.id, 'menu.pdf', 'menu.pdf').lastInsertRowid);
+    testDb.prepare('INSERT INTO file_links (file_id, place_id) VALUES (?, ?)').run(file, place);
+
+    const item = budget.createBudgetItem(trip.id, { name: 'Lunch', receipt_file_ids: [file] });
+    budget.deleteBudgetItem(item.id, trip.id);
+
+    const row = testDb.prepare('SELECT place_id, budget_item_id FROM file_links WHERE file_id = ?').get(file) as { place_id: number | null; budget_item_id: number | null };
+    expect(row.place_id).toBe(place);
+    expect(row.budget_item_id).toBeNull();
+    expect((testDb.prepare('SELECT deleted_at FROM trip_files WHERE id = ?').get(file) as { deleted_at: string | null }).deleted_at).toBeNull();
+  });
+
+  it('leaves a receipt already in the trash linked, so restoring it comes back attached', () => {
+    const { user: alice } = createUser(testDb);
+    const trip = createTrip(testDb, alice.id);
+    const file = Number(testDb.prepare('INSERT INTO trip_files (trip_id, filename, original_name) VALUES (?, ?, ?)').run(trip.id, 'old.pdf', 'old.pdf').lastInsertRowid);
+    const item = budget.createBudgetItem(trip.id, { name: 'Taxi', receipt_file_ids: [file] });
+    testDb.prepare('UPDATE trip_files SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?').run(file);
+
+    // A save that no longer mentions the trashed receipt must not drop its link.
+    budget.updateBudgetItem(item.id, trip.id, { receipt_file_ids: [] });
+    expect(testDb.prepare('SELECT COUNT(*) c FROM file_links WHERE file_id = ? AND budget_item_id = ?').get(file, item.id)).toEqual({ c: 1 });
+  });
+
+  it('an edit that keeps a receipt does not churn its link row', () => {
+    const { user: alice } = createUser(testDb);
+    const trip = createTrip(testDb, alice.id);
+    const file = Number(testDb.prepare('INSERT INTO trip_files (trip_id, filename, original_name) VALUES (?, ?, ?)').run(trip.id, 'keep.pdf', 'keep.pdf').lastInsertRowid);
+    const item = budget.createBudgetItem(trip.id, { name: 'Hotel', receipt_file_ids: [file] });
+    const before = testDb.prepare('SELECT id FROM file_links WHERE file_id = ? AND budget_item_id = ?').get(file, item.id) as { id: number };
+
+    budget.updateBudgetItem(item.id, trip.id, { name: 'Hotel 2', receipt_file_ids: [file] });
+    const after = testDb.prepare('SELECT id FROM file_links WHERE file_id = ? AND budget_item_id = ?').get(file, item.id) as { id: number };
+    expect(after.id).toBe(before.id);
+  });
+});

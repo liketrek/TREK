@@ -29,9 +29,19 @@ Go to **Settings → Integrations**. Each enabled provider gets its own settings
 |-------|----------|-------|
 | Server URL | Yes | Full URL of your Immich instance, e.g. `https://immich.example.com` |
 | API Key | Yes | Stored encrypted; never returned to the browser after saving |
+| Skip SSL certificate verification | No | Checkbox; lets TREK connect to an Immich server with a self-signed certificate. Off by default |
 | Mirror journey photos to Immich on upload | No | Checkbox; when enabled, photos you upload in TREK are also pushed to your Immich library |
 
 Enter the full URL of your Immich instance and an Immich API key. The API key is stored encrypted on the TREK server and is never returned to the browser after it is saved.
+
+#### Self-signed certificates
+
+If your Immich server uses a self-signed certificate (for example behind a reverse proxy on your home network), the connection test fails with `fetch failed (self-signed certificate)`. Turn on **Skip SSL certificate verification**, enter the API key again and test or save.
+
+- The setting is per user and only applies to your own Immich connection. Disconnecting Immich, or saving a different server URL without turning it on again, turns it off.
+- Only the certificate check is skipped. The connection is still encrypted, but TREK can no longer tell your server from an impostor on the same network, and your API key travels over that connection. Prefer a certificate from a trusted CA where you can.
+- Photos you share on a trip are loaded through your connection, so your setting applies when other trip members view them.
+- A server on a local or private address still needs internal network access on the TREK server. See [Internal-Network-Access](Internal-Network-Access).
 
 #### Required API key permissions
 

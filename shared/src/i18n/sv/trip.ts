@@ -24,6 +24,7 @@ const trip: TranslationStrings = {
   'trip.toast.placeDeleted': 'Plats raderad',
   'trip.toast.selectDay': 'Vänligen välj en dag först',
   'trip.toast.assignedToDay': 'Plats tilldelad till dag',
+  'trip.toast.loadError': 'Det gick inte att ladda resan',
   'trip.toast.reorderError': 'Misslyckades att ordna om',
   'trip.toast.reservationUpdated': 'Reservation uppdaterad',
   'trip.toast.reservationAdded': 'Reservation tillagd',
@@ -63,6 +64,7 @@ const trip: TranslationStrings = {
   'transit.search': 'Sök',
   'transit.searching': 'Söker…',
   'transit.searchError': 'Reseökningen misslyckades. Försök igen.',
+  'transit.noResultsVia': 'Inga förbindelser hittades via {provider}. Prova en annan tid eller andra filter.',
   'transit.noResults': 'Inga förbindelser hittades. Prova en annan tid eller andra filter.',
   'transit.direct': 'Direkt',
   'transit.transfers': '{count} byten',
@@ -78,6 +80,7 @@ const trip: TranslationStrings = {
   'transport.modeAutomated': 'Automatisk',
   'transit.sectionTitle': 'Automatisk kollektivtrafik',
   'transit.changeRoute': 'Ändra resväg',
+  'transit.editDetails': 'Redigera detaljer',
   'transit.journey': 'Kollektivtrafikresa',
   'transit.pickDay': 'Välj en dag att söka förbindelser för.',
   'transit.noItinerary': 'Den här posten har ingen sparad resplan – använd ”Ändra resväg” för att söka en.',
@@ -85,5 +88,10 @@ const trip: TranslationStrings = {
   'transit.transfersLabel': 'Byten',
   'transit.walkLabel': 'Gång',
   'transit.searchHint': 'Sök verkliga förbindelser och lägg till dem direkt i dagen – data via Transitous.',
+  'trip.confirm.deletePlaceNight': 'Då raderas även vistelsen som är bokad på ”{name}”.',
+  'trip.confirm.deletePlaceBooked':
+    'Då raderas även vistelsen som är bokad på ”{name}”, bokningen ”{booking}” och alla utgifter som hör till den.',
+  'trip.confirm.deletePlaceBookedSame':
+    'Då raderas även vistelsen som är bokad på ”{name}”, dess bokning och alla utgifter som hör till den.',
 };
 export default trip;

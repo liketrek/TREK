@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
-import { Check, FileText, Hotel, Link2, ParkingSquare, Plus, Ticket, Users, Utensils } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Check, ExternalLink, FileText, Hotel, Link2, ParkingSquare, Plus, Ticket, Users, Utensils } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import { useAddonStore } from '../../../../store/addonStore'
 import { useTranslation } from '../../../../i18n'
@@ -9,14 +9,18 @@ import { typeToCostCategory } from '@trek/shared'
 import CustomSelect from '../../../../components/shared/CustomSelect'
 import CustomTimePicker from '../../../../components/shared/CustomTimePicker'
 import { CustomDatePicker } from '../../../../components/shared/CustomDateTimePicker'
+import { BookingCodeInput } from '../../../../components/shared/BookingCode'
 import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetFooter, FormSheetHeader } from './PlSheetChrome'
 import PlFileAttach from './PlFileAttach'
+import { buildAssignmentOptions } from '../../../../components/Planner/assignmentOptions'
+import { openFile } from '../../../../utils/fileDownload'
 import GuestBadge from '../../../../components/shared/GuestBadge'
 import { SPLIT_COLORS } from '../../../../components/Budget/BudgetPanel.constants'
 import { useTripStore } from '../../../../store/tripStore'
 import type { TripMember } from '../../../../types'
 import type { BookingExpenseRequest } from '../../../../components/Planner/BookingCostsSection.types'
 import type { TripPlanner } from '../MTripShell'
+import { stayPlaces } from '../../../../utils/stayPlaces'
 
 export interface MReservationSheetProps {
   planner: TripPlanner
@@ -57,6 +61,7 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
     showReservationModal, setShowReservationModal,
     editingReservation, setEditingReservation, reservationPrefill,
     bookingForAssignmentId, setBookingForAssignmentId,
+    assignments, files,
     importReviewActive, advanceImportReview,
     handleSaveReservation, canUploadFiles, tripActions,
   } = planner
@@ -67,6 +72,11 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
 
   const [form, setForm] = useState(EMPTY)
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
+  const assignmentOptions = useMemo(
+    () => buildAssignmentOptions(days, assignments, t, locale),
+    [days, assignments, t, locale],
+  )
+
   // Travelers assigned to this booking (#1517) — seeded from the editing
   // reservation on open, persisted separately after the save resolves.
   const [travelerIds, setTravelerIds] = useState<Set<number>>(new Set())
@@ -77,10 +87,15 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
   const [snap, setSnap] = useState<{ res: typeof editingReservation; assignmentId: number | null }>(
     { res: null, assignmentId: null },
   )
+  // The stop this booking hangs on. Seeded from the booking being edited, not
+  // only from the create-for-a-stop flag, because saving used to write the flag
+  // straight back and an edit therefore erased the link (#2216).
+  const [assignmentId, setAssignmentId] = useState<number | ''>('')
 
   useEffect(() => {
     if (!showReservationModal) return
     setSnap({ res: editingReservation, assignmentId: bookingForAssignmentId ?? null })
+    setAssignmentId(bookingForAssignmentId ?? editingReservation?.assignment_id ?? '')
     expenseIntentRef.current = false
     setPendingFiles([])
     setTravelerIds(new Set((editingReservation?.travelers || []).map(tv => tv.user_id)))
@@ -147,6 +162,16 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
   }, [showReservationModal])
 
   const res = snap.res
+  // Files already on this booking. The sheet used to list only the ones picked
+  // in this session, so an upload from the desktop was invisible here (#2217).
+  const attachedFiles = res?.id
+    ? (files || []).filter(f =>
+        !f.deleted_at && (
+          String(f.reservation_id) === String(res.id) ||
+          (f.linked_reservation_ids || []).includes(res.id)
+        ),
+      )
+    : []
   const isHotel = form.type === 'hotel'
   const set = (field: keyof typeof EMPTY, value: string | number) => setForm(prev => ({ ...prev, [field]: value }))
 
@@ -188,6 +213,7 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
     d ? new Date(`${d.slice(0, 10)}T00:00:00Z`).toLocaleDateString(locale, { day: 'numeric', month: 'short', timeZone: 'UTC' }) : undefined
 
   const placeOptions = [{ value: '', label: '—' }, ...places.map(p => ({ value: p.id, label: p.name }))]
+  const hotelPlaceOptions = [{ value: '', label: '—' }, ...stayPlaces(places, form.hotel_place_id).map(p => ({ value: p.id, label: p.name }))]
   const dayOptions = days.map(d => ({
     value: d.id,
     label: d.title || t('dayplan.dayN', { n: d.day_number }),
@@ -233,11 +259,20 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
         location: isHotel ? form.hotel_address : form.location,
         confirmation_number: form.confirmation_number,
         notes: form.notes, url: form.url,
-        assignment_id: (isHotel && !form.accommodation_id) ? null : (snap.assignmentId || null),
+        assignment_id: (isHotel && !form.accommodation_id) ? null : (assignmentId || null),
         accommodation_id: isHotel ? (form.accommodation_id || null) : null,
         place_id: isHotel ? null : (form.place_id || null),
-        metadata: Object.keys(metadata).length > 0 ? metadata : null,
-        endpoints: [], needs_review: false,
+        // An empty object, not null: null clears the column outright, and that
+        // took the mirrored booking price with it on every edit of a type that
+        // fills no metadata of its own — restaurant, event, tour, parking, other,
+        // a hotel without check-in times (#2233). An object still clears what the
+        // form dropped, and lets the server carry the price across.
+        metadata,
+        // Omitted on an edit for the same reason as the desktop dialog: the
+        // server swaps the whole endpoint set when the key is present, and this
+        // sheet never edits endpoints (#2216).
+        ...(snap.res?.id ? {} : { endpoints: [] }),
+        needs_review: false,
       }
       if (isHotel && (form.hotel_start_day || form.hotel_end_day)) {
         saveData.create_accommodation = {
@@ -416,7 +451,7 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
                   return next
                 })
               }}
-              options={placeOptions}
+              options={hotelPlaceOptions}
               placeholder={t('reservations.meta.pickHotel')}
               searchable
               size="sm"
@@ -481,8 +516,7 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
         <div className="mt-3 flex gap-2">
           <div className="min-w-0 flex-1">
             <Eyebrow className="mb-[5px] uppercase">{t('reservations.confirmationCode')}</Eyebrow>
-            <input
-              type="text"
+            <BookingCodeInput
               value={form.confirmation_number}
               onChange={e => set('confirmation_number', e.target.value)}
               placeholder={t('reservations.confirmationPlaceholder')}
@@ -556,7 +590,46 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
           </div>
         )}
 
+        {/* LINK TO A STOP IN THE PLAN (#2216) */}
+        {!isHotel && assignmentOptions.length > 0 && (
+          <>
+            <Eyebrow className="mb-[6px] mt-3 uppercase">{t('reservations.linkAssignment')}</Eyebrow>
+            <CustomSelect
+              value={assignmentId}
+              onChange={value => {
+                setAssignmentId(value === '' ? '' : Number(value))
+                const opt = assignmentOptions.find(o => o.value === value)
+                // Same courtesy as the desktop dialog: an undated booking takes
+                // the day of the stop it was just linked to.
+                if (opt?.dayDate) setForm(prev => (prev.reservation_time ? prev : { ...prev, reservation_time: opt.dayDate! }))
+              }}
+              placeholder={t('reservations.pickAssignment')}
+              options={[{ value: '', label: t('reservations.noAssignment') }, ...assignmentOptions]}
+              searchable
+              size="sm"
+            />
+          </>
+        )}
+
         {/* FILES */}
+        {attachedFiles.length > 0 && (
+          <>
+            <Eyebrow className="mb-[6px] mt-3 uppercase">{t('files.title')}</Eyebrow>
+            <div className="flex flex-col gap-1">
+              {attachedFiles.map(f => (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => openFile(f.url, f.original_name)}
+                  className="flex w-full items-center gap-2 rounded-[10px] bg-[color:var(--m-ic)] px-[10px] py-[7px] text-left"
+                >
+                  <span className="min-w-0 flex-1 truncate text-[0.75rem] font-medium">{f.original_name}</span>
+                  <ExternalLink size={11} strokeWidth={2} className="flex-none text-m-faint" />
+                </button>
+              ))}
+            </div>
+          </>
+        )}
         {canUploadFiles && (
           <PlFileAttach
             planner={planner}

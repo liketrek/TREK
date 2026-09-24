@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ReactNode } from 'react'
+import { BedDouble, MapPin } from 'lucide-react'
 import type { BookingExpenseRequest } from '../../../../src/components/Planner/BookingCostsSection.types'
 import type { ExpensePrefill } from '../../../../src/components/Budget/CostsPanel'
 import type { MTripShellApi, TripPlanner } from '../../../../src/mobile/screens/trip/MTripShell'
@@ -11,7 +12,7 @@ import { buildPlanner, buildShell } from '../../../helpers/mobileTrip'
 import { resetAllStores, seedStore } from '../../../helpers/store'
 import { fireEvent, render, screen, waitFor } from '../../../helpers/render'
 
-// FE-MOB-SHOST-001 to FE-MOB-SHOST-027
+// FE-MOB-SHOST-001 to FE-MOB-SHOST-029 and FE-MOB-SHOST-032 (030 and 031 live in MTripSheets.members.test.tsx)
 //
 // Every child sheet is stubbed: this file is about the host — which sheet is
 // mounted for which shell.sheet id, and how the host's own callbacks wire the
@@ -34,6 +35,10 @@ vi.mock('../../../../src/mobile/screens/trip/sheets/MTransportSheet', () => ({ d
 vi.mock('../../../../src/mobile/screens/trip/sheets/MBrowseActionsSheet', () => ({ default: selfRouted('stub-bract') }))
 vi.mock('../../../../src/mobile/screens/trip/sheets/MMehrSheet', () => ({ default: selfRouted('stub-mehr') }))
 vi.mock('../../../../src/mobile/screens/trip/sheets/MExportSheet', () => ({ default: selfRouted('stub-export') }))
+vi.mock('../../../../src/mobile/screens/trip/roadtrip/MRtCorridorSheet', () => ({ default: selfRouted('stub-rtsearch') }))
+vi.mock('../../../../src/mobile/screens/trip/roadtrip/MRtDraftSheet', () => ({
+  default: ({ planner }: { planner: TripPlanner }) => <div data-testid="stub-rtdraft" data-trip={planner.tripId} />,
+}))
 
 vi.mock('../../../../src/mobile/screens/trip/sheets/MNoteSheet', () => ({
   default: ({ open, payload, onClose }: { open: boolean; payload?: { dayId?: number }; onClose: () => void }) => (
@@ -97,12 +102,14 @@ vi.mock('../../../../src/mobile/screens/trip/sheets/MCostSheet', () => ({
 }))
 
 vi.mock('../../../../src/mobile/screens/settings/MConfirmSheet', () => ({
-  default: ({ open, title, message, onClose, onConfirm }: {
+  default: ({ open, title, message, onClose, onConfirm, danger, confirmLabel, children }: {
     open: boolean; title: string; message: ReactNode; onClose: () => void; onConfirm?: () => void
+    danger?: boolean; confirmLabel?: string; children?: ReactNode
   }) =>
     open ? (
-      <div data-testid="stub-confirm" data-title={title}>
+      <div data-testid="stub-confirm" data-title={title} data-danger={String(!!danger)} data-confirm={confirmLabel}>
         <span>{message}</span>
+        {children}
         <button type="button" onClick={onConfirm}>confirm delete</button>
         <button type="button" onClick={onClose}>cancel delete</button>
       </div>
@@ -421,6 +428,18 @@ describe('MTripSheets', () => {
     expect(planner.setDeletePlaceId).toHaveBeenCalledWith(null)
   })
 
+  it('FE-MOB-SHOST-029: a night booked at the place is said before the yes, and only then', () => {
+    // The server takes the night down with the place, and the booking and the
+    // expense with the night. The planner builds the sentence; the sheet has to
+    // show it under the question.
+    const note = 'The booking at Hotel Okura and its expense go with it.'
+    renderHost({ deletePlaceId: 101, deletePlaceNote: note })
+
+    const confirm = screen.getByTestId('stub-confirm')
+    expect(confirm).toHaveTextContent('trip.confirm.deletePlace')
+    expect(screen.getByText(note)).toBeInTheDocument()
+  })
+
   it('FE-MOB-SHOST-026: cancelling the confirm only disarms the flag', () => {
     const { planner } = renderHost({ deletePlaceId: 101 })
     fireEvent.click(screen.getByText('cancel delete'))
@@ -428,8 +447,43 @@ describe('MTripSheets', () => {
     expect(planner.setDeletePlaceId).toHaveBeenCalledWith(null)
   })
 
+  it('FE-MOB-SHOST-032: the delete-day confirm names the day, lists what goes with it and runs the planner confirmation', () => {
+    const lines = [
+      { key: 'stay-9', icon: BedDouble, tone: 'danger' as const, text: 'Stay at Harbour Hotel', hint: 'Cancelled with its booking.' },
+      { key: 'places', icon: MapPin, tone: 'neutral' as const, text: 'Planned places: 2' },
+    ]
+    const { planner } = renderHost({ deleteDayId: 12, deleteDayTitle: 'Delete Tue, Oct 13?', deleteDayLines: lines })
+
+    const confirm = screen.getByTestId('stub-confirm')
+    expect(confirm).toHaveAttribute('data-title', 'Delete Tue, Oct 13?')
+    expect(confirm).toHaveAttribute('data-danger', 'true')
+    expect(confirm).toHaveAttribute('data-confirm', 'dayplan.deleteDay')
+    expect(confirm).toHaveTextContent('dayplan.deleteDayBody')
+    const list = screen.getByRole('list', { name: 'Delete Tue, Oct 13?' })
+    expect(list).toHaveTextContent('Stay at Harbour Hotel')
+    expect(list).toHaveTextContent('Planned places: 2')
+
+    fireEvent.click(screen.getByText('confirm delete'))
+    expect(planner.confirmDeleteDay).toHaveBeenCalledTimes(1)
+    fireEvent.click(screen.getByText('cancel delete'))
+    expect(planner.setDeleteDayId).toHaveBeenCalledWith(null)
+  })
+
   it('FE-MOB-SHOST-027: the place edit sheet owns the confirm while its own form is open', () => {
     renderHost({ deletePlaceId: 101, showPlaceForm: true })
     expect(screen.queryByTestId('stub-confirm')).not.toBeInTheDocument()
   })
+
+  it('FE-MOB-SHOST-028: the search sheet is mounted before the draft it opens', () => {
+    renderHost({}, { sheet: null })
+
+    const order = [...document.querySelectorAll('[data-testid]')]
+      .map(el => el.getAttribute('data-testid'))
+      .filter(id => id === 'stub-rtsearch' || id === 'stub-rtdraft')
+
+    // Both sit at the same z. Portal order is what decides which paints on top, and
+    // taking a hit onto the trip has to open the draft OVER the search it came from.
+    expect(order).toEqual(['stub-rtsearch', 'stub-rtdraft'])
+  })
+
 })

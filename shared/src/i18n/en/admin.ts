@@ -128,16 +128,63 @@ const admin: TranslationStrings = {
   'admin.requireMfa': 'Require two-factor authentication (2FA)',
   'admin.requireMfaHint': 'Users without 2FA must complete setup in Settings before using the app.',
   'admin.apiKeys': 'API Keys',
-  'admin.apiKeysHint': 'Optional. Enables extended place data like photos and weather.',
+  'admin.apiKeysHint': 'Where place data comes from. The TREK index needs no key; the two providers below are optional.',
+  'admin.trekApi.badgeDefault': 'Recommended default',
+  'admin.googleCaveat.badge': 'Not recommended',
+  'admin.googleCaveat.body':
+    'TREK is open source and we are not neutral here. Ratings and photos of ordinary businesses exist at this scale only at Google, and that is what a monopoly is. The field is here because there is no alternative, not because we recommend it. Every lookup then goes to Google.',
+  'admin.trekApi.tagline':
+    'TREK\'s own place index. Search without a Google key, without a quota and without anyone counting your lookups.',
+  'admin.trekApi.factPlaces':
+    '73.6 million places worldwide',
+  'admin.trekApi.factNoKey':
+    'No key, no quota',
+  'admin.trekApi.factOffline':
+    'Country packages work offline',
+  'admin.trekApi.factPrivacy':
+    'Searches are never logged',
+  'admin.trekApi.more':
+    'What is in it',
+  'admin.trekApi.fieldPhone':
+    'Phone',
+  'admin.trekApi.fieldStableId':
+    'Stable id',
+  'admin.trekApi.includedNote':
+    'Descriptions come from the place\'s own website; opening hours from OpenStreetMap where they are tagged.',
+  'admin.trekApi.notRatings':
+    'Ratings',
+  'admin.trekApi.notPhotos':
+    'Photos of ordinary businesses',
+  'admin.trekApi.notIncludedNote':
+    'No open dataset has either, at any price. A Google key stays the only way to those two.',
+  'admin.trekApi.sourcesLabel':
+    'Sources',
+  'admin.trekApi.sourcesNote':
+    'Every field in a response says which of these it came from.',
+  'admin.trekApi.included':
+    'Included',
+  'admin.trekApi.notIncluded':
+    'Not included',
   'admin.mapsKey': 'Google Maps API Key',
   'admin.mapsKeyHint': 'Required for place search. Get at console.cloud.google.com',
   'admin.mapsKeyHintLong':
-    'Without an API key, OpenStreetMap is used for place search. With a Google API key, photos, ratings, and opening hours can be loaded as well. Get one at console.cloud.google.com.',
+    'Without a Google API key the recommended TREK API is used. With one, photos, ratings and opening hours can be loaded on top. Create a key at console.cloud.google.com.',
   'admin.recommended': 'Recommended',
   'admin.weatherKey': 'OpenWeatherMap API Key',
   'admin.weatherKeyHint': 'For weather data. Free at openweathermap.org',
   'admin.unsplashKey': 'Unsplash API Key',
   'admin.unsplashKeyHint': 'For image search. Free at unsplash.com/developers',
+  'admin.amapKey': 'Amap (高德地图) API Key',
+  'admin.amapKeyHint':
+    'For place search inside mainland China, where Google is unreachable and OpenStreetMap coverage is thin. Needs a "Web 服务" (web service) key, not a JS API key. Get one at console.amap.com.',
+  'admin.placesProvider.title': 'Place search provider',
+  'admin.placesProvider.subtitle': "TREK's own index and OpenStreetMap answer every search. This picks who else is asked when they find nothing: Automatic prefers Google where a key exists, then Amap.",
+  'admin.placesProvider.auto': 'Automatic',
+  'admin.placesProvider.google': 'Google Places',
+  'admin.placesProvider.amap': 'Amap (高德地图)',
+  'admin.placesProvider.openstreetmap': 'OpenStreetMap',
+  'admin.placesProvider.missingKey': 'The selected provider has no API key configured, so place search is answered by the TREK index and OpenStreetMap alone.',
+  'admin.placesProvider.saved': 'Place search provider saved',
   'admin.validateKey': 'Test',
   'admin.keyValid': 'Connected',
   'admin.keyInvalid': 'Invalid',
@@ -155,6 +202,8 @@ const admin: TranslationStrings = {
   'admin.fileTypesHint': 'Configure which file types users can upload.',
   'admin.fileTypesFormat': 'Comma-separated extensions (e.g. jpg,png,pdf,doc). Use * to allow all types.',
   'admin.fileTypesSaved': 'File type settings saved',
+  'admin.googleOptions': 'What the key may be used for',
+  'admin.googleOptionsSummary': '{on} of {total} on',
   'admin.placesPhotos.title': 'Place Photos',
   'admin.placesPhotos.subtitle':
     'Fetch photos from the Google Places API. Disable to save API quota. Wikimedia photos are unaffected.',
@@ -166,6 +215,21 @@ const admin: TranslationStrings = {
   'admin.placesEnrich.title': 'Place Enrichment',
   'admin.placesEnrich.subtitle':
     'Show pictures and a description while adding a place. Wikipedia and OpenStreetMap are always used; Google is added on top when Place Photos or Place Details are on.',
+  'admin.placesGoogleOnly.title': 'Search with Google only',
+  'admin.placesGoogleOnly.subtitle': 'Every search and every suggestion goes to Google Places. Off, TREK\'s own index and OpenStreetMap answer first and Google is only asked when they find nothing.',
+  'admin.placesGoogleOnly.missingKey': 'Needs a Google Maps API key. Without one, search runs on TREK\'s own index and OpenStreetMap whatever this switch says.',
+  'admin.placesGoogleOnly.otherProvider': 'Needs Google as the places provider. With Amap or OpenStreetMap picked, search never goes to Google whatever this switch says.',
+  'admin.transitProvider.title': 'Transit Provider',
+  'admin.transitProvider.subtitle': 'Which service answers public transit search.',
+  'admin.transitProvider.transitous': 'Transitous (free)',
+  'admin.transitProvider.google': 'Google',
+  'admin.transitProvider.transitousHint': 'Community GTFS feeds. Free and keyless, with the best coverage in Europe.',
+  'admin.transitProvider.googleHint': 'Uses the Google API key above, for regions Transitous has no data for. Billed per search — Transitous is used while no key is set.',
+  'admin.transitProvider.noKeyWarning': 'Google is selected, but no Google API key is configured — transit search is still using Transitous. Add a key under API Keys above.',
+  'admin.transitProvider.personalKeyWarning': 'Only your own Google key is set, so other members\' transit searches still fall back to Transitous. Save the key above as an admin to apply it instance-wide.',
+  'admin.placeShadow.title': 'Place Search Log',
+  'admin.placeShadow.subtitle':
+    'Record which search result was picked, so a different place index can be measured against real searches later. Nothing leaves this instance, and an admin can export or delete the log at any time.',
   'admin.bagTracking.title': 'Bag Tracking',
   'admin.bagTracking.subtitle': 'Enable weight and bag assignment for packing items',
   'admin.collab.chat.title': 'Chat',
@@ -197,6 +261,9 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.mapboxStylePlaceholder': 'Choose a style…',
   'admin.defaultSettings.mapbox3d': '3D buildings & terrain',
   'admin.defaultSettings.mapboxQuality': 'High-quality mode',
+  'admin.defaultSettings.cartoKey': 'Shared CARTO key',
+  'admin.defaultSettings.cartoKeyHint':
+    'Used for every user who has not entered their own key, so the whole instance gets CARTO tiles without a watermark. Stored encrypted.',
   'admin.tabs.templates': 'Packing Templates',
   'admin.packingTemplates.title': 'Packing Templates',
   'admin.packingTemplates.subtitle': 'Create reusable packing lists for your trips',
@@ -319,7 +386,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:write:vacay':
     "Toggle vacation days and company holidays on the acting user's active plan (needs the Vacay addon)",
   'admin.plugins.perm.db:write:journal':
-    'Create, edit and delete journal entries on journeys the acting user can edit (needs the Journey addon)',
+    'Create, edit and delete journal entries, and attach photos to them, on journeys the acting user can edit (needs the Journey addon)',
   'admin.plugins.perm.db:write:collections':
     "Create and edit collections and save places to them, with the acting user's collection role (needs the Collections addon)",
   'admin.plugins.perm.db:write:files':
@@ -358,6 +425,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:photo-provider': 'Provide photos to Memories',
   'admin.plugins.perm.hook:calendar-source': 'Provide events to the calendar',
   'admin.plugins.perm.hook:place-detail-provider': 'Contribute extra details (reviews, ratings, links) to a place',
+  'admin.plugins.perm.hook:search-provider': "Answer place searches from its own index, beside TREK's own results",
   'admin.plugins.perm.hook:trip-warning-provider': 'Raise validation warnings on a trip (shown in the planner)',
   'admin.plugins.perm.hook:table-contributor': 'Add columns and actions to trip views (reservations, places, days)',
   'admin.plugins.perm.hook:map-marker-provider': 'Add markers to the trip map (e.g. show bookings or POIs)',
@@ -368,6 +436,11 @@ const admin: TranslationStrings = {
     'Attach time entries to the day plan (charging stops, security buffers)',
   'admin.plugins.perm.hook:day-tint-provider':
     'Colour-code days in the day plan (e.g. which leg of the trip a day belongs to)',
+  'admin.plugins.cap.mcpTools': 'Publishes AI tools',
+  'admin.plugins.mcpToolsTitle': 'AI tools it publishes',
+  'admin.plugins.mcpToolsHint': 'An assistant can run these on a user’s behalf. Each one acts with the access granted above.',
+  'admin.plugins.perm.mcp:tools':
+    'Publish tools that an AI assistant can run on your behalf (it acts with the access you grant the plugin here, not with the assistant’s own)',
   'admin.plugins.perm.geolocation:read':
     "Ask for your live position while one of its views is open (TREK reads it under this site's location permission, not the plugin's own)",
   'admin.plugins.perm.hook:pdf-section-provider': 'Append text sections to the trip PDF export',
@@ -477,6 +550,13 @@ const admin: TranslationStrings = {
   'admin.plugins.noMatchRegistry': 'No plugins in the registry match your search.',
   'admin.plugins.restart': 'Restart',
   'admin.plugins.restarted': 'Plugin restarted',
+  'admin.plugins.instanceSettings': 'Instance settings',
+  'admin.plugins.settingsSaved': 'Settings saved',
+  'admin.plugins.settingsSavedRestarted': 'Settings saved — plugin restarted',
+  'admin.plugins.actions': 'Actions',
+  'admin.plugins.actions.confirm': 'Run this action?',
+  'admin.plugins.actions.inactive': 'Activate the plugin to run its actions',
+  'admin.plugins.requiredMissing': '"{field}" is required',
   'admin.plugins.cap.readsTrips': 'Reads your trips',
   'admin.plugins.cap.readsUsers': 'Reads basic profiles',
   'admin.plugins.cap.readsCosts': 'Reads your costs',
@@ -499,6 +579,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.photos': 'Provides photos',
   'admin.plugins.cap.calendar': 'Provides calendar events',
   'admin.plugins.cap.placeDetails': 'Enriches places',
+  'admin.plugins.cap.search': 'Answers searches',
   'admin.plugins.cap.warnings': 'Flags issues',
   'admin.plugins.cap.mapLayers': 'Draws on the map',
   'admin.plugins.cap.routing': 'Offers routing',
@@ -521,6 +602,18 @@ const admin: TranslationStrings = {
   'admin.plugins.dep.trekIncompatible': 'Needs TREK {range} — this server runs {host}',
   'admin.plugins.dep.trekUnknown': 'Does not say which TREK versions it supports',
   'admin.plugins.installCompatible': 'Install {version}',
+  'admin.plugins.installAnyway': 'Install anyway',
+  'admin.plugins.rangeBypass.pill': 'Version checks off',
+  'admin.plugins.rangeBypass.pillHint':
+    'TREK_PLUGINS_IGNORE_TREK_RANGE is set — plugins may install and run outside the TREK versions their authors declared',
+  'admin.plugins.rangeBypass.title': 'Outside its supported TREK versions',
+  'admin.plugins.rangeBypass.noticeTitle': 'Installed outside its supported TREK versions',
+  'admin.plugins.rangeBypass.body':
+    '“{name}” declares support for TREK {range}, and this server runs {host}. TREK lets it through only because TREK_PLUGINS_IGNORE_TREK_RANGE is set. Its author has not updated the plugin’s version range for this TREK, so there is no guarantee it works — and in rare cases a mismatched plugin can corrupt TREK data. Continue only if you accept that risk.',
+  'admin.plugins.rangeBypass.bodyUnknown':
+    '“{name}” does not declare which TREK versions it supports; this server runs {host}. TREK lets it through only because TREK_PLUGINS_IGNORE_TREK_RANGE is set. Nothing says its author tested it on this TREK, so there is no guarantee it works — and in rare cases a mismatched plugin can corrupt TREK data. Continue only if you accept that risk.',
+  'admin.plugins.dep.trekBypassed': 'Outside its TREK range ({range}) — version checks off',
+  'admin.plugins.dep.trekBypassedUnknown': 'Declares no TREK range — version checks off',
   'admin.plugins.incompatible': 'Incompatible',
   'admin.plugins.accessTitle': 'What it can access',
   'admin.plugins.connectsTitle': 'Connects to',
@@ -536,7 +629,7 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.packing.name': 'Lists',
   'admin.addons.catalog.packing.description': 'Packing lists and to-do tasks for your trips',
   'admin.addons.catalog.budget.name': 'Costs',
-  'admin.addons.catalog.budget.description': 'Track expenses and plan your trip budget',
+  'admin.addons.catalog.budget.description': 'Track trip expenses and split them between travellers',
   'admin.addons.catalog.documents.name': 'Documents',
   'admin.addons.catalog.documents.description': 'Store and manage travel documents',
   'admin.addons.catalog.vacay.name': 'Vacay',
@@ -544,13 +637,24 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.atlas.name': 'Atlas',
   'admin.addons.catalog.atlas.description': 'World map with visited countries and travel stats',
   'admin.addons.catalog.collab.name': 'Collab',
-  'admin.addons.catalog.collab.description': 'Real-time notes, polls, and chat for trip planning',
+  'admin.addons.catalog.collab.description': 'Notes, polls, chat and suggestions for planning together',
+  'admin.addons.catalog.roadtrip.name': 'Road trip',
+  'admin.addons.catalog.roadtrip.description': 'Plan drives with stops along the route, driving times, and arrival times that update themselves',
   'admin.addons.catalog.memories.name': 'Photos (Immich)',
   'admin.addons.catalog.memories.description': 'Share trip photos via your Immich instance',
   'admin.addons.catalog.mcp.name': 'MCP',
   'admin.addons.catalog.mcp.description': 'Model Context Protocol for AI assistant integration',
   'admin.addons.subtitleBefore': 'Enable or disable features to customize your ',
   'admin.addons.subtitleAfter': ' experience.',
+  'admin.addons.catalog.naver_list_import.name': 'Naver List Import',
+  'admin.addons.catalog.naver_list_import.description': 'Import places from a shared Naver Maps list',
+  'admin.addons.catalog.airtrail.name': 'AirTrail',
+  'admin.addons.catalog.airtrail.description': 'Sync flights from your AirTrail instance',
+  'admin.addons.catalog.dawarich.name': 'Dawarich',
+  'admin.addons.catalog.dawarich.description':
+    'Read visits and recorded routes from a Dawarich instance each reader connects themselves',
+  'admin.addons.catalog.llm_parsing.name': 'AI Parsing',
+  'admin.addons.catalog.llm_parsing.description': 'Reads bookings the built-in parser cannot, using an AI model you choose',
   'admin.addons.enabled': 'Enabled',
   'admin.addons.disabled': 'Disabled',
   'admin.addons.type.trip': 'Trip',
@@ -561,6 +665,7 @@ const admin: TranslationStrings = {
   'admin.addons.integrationHint': 'Backend services and API integrations with no dedicated page',
   'admin.addons.toast.updated': 'Addon updated',
   'admin.addons.toast.error': 'Failed to update addon',
+  'admin.addons.group.count': '{enabled} of {total} enabled',
   'admin.addons.noAddons': 'No addons available',
   'admin.weather.title': 'Weather Data',
   'admin.weather.badge': 'Since March 24, 2026',
@@ -652,8 +757,7 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.journey.description':
     'Trip tracking & travel journal with check-ins, photos, and daily stories',
   'admin.addons.catalog.collections.name': 'Collections',
-  'admin.addons.catalog.collections.description':
-    'Personal place library — save places across trips into named lists, copy into any trip, share with others',
+  'admin.addons.catalog.collections.description': 'Collect places from any trip into named lists and reuse them',
   'admin.passkey.title': 'Passkey login',
   'admin.passkey.cardHint': 'Let users sign in with passkeys (WebAuthn). Off by default.',
   'admin.passkey.login': 'Enable passkey login',
@@ -679,5 +783,9 @@ const admin: TranslationStrings = {
   'admin.invite.tripNone': 'No trip',
   'admin.invite.tripHint': 'The new user is automatically added to this trip when they register via the link.',
   'admin.invite.boundTo': 'adds to {trip}',
+  'admin.placesUsageTitle': 'What the key is used for',
+  'admin.mapsKeyHintShort': 'Adds photos, ratings and opening hours. Every lookup then goes to Google.',
+  'admin.amapKeyHintShort': 'For place search inside mainland China. Needs a web service key, not a JS API key.',
+  'admin.collab.links.subtitle': 'Shared links and bookmarks',
 };
 export default admin;

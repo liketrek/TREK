@@ -88,6 +88,7 @@ const dashboard: TranslationStrings = {
   'dashboard.useUnsplashPhoto': 'Unsplash-Foto von {photographer} verwenden',
   'dashboard.titleRequired': 'Titel ist erforderlich',
   'dashboard.endDateError': 'Enddatum muss nach dem Startdatum liegen',
+  'dashboard.tripTooLong': 'Eine Reise kann höchstens {days} Tage umfassen',
   'dashboard.dateShiftTitle': 'Neues Startdatum',
   'dashboard.dateShiftIntro':
     'Du hast den Beginn dieser Reise geändert. Wie sollen deine Pläne den neuen Daten folgen?',
@@ -98,7 +99,25 @@ const dashboard: TranslationStrings = {
   'dashboard.dateShiftAllDesc':
     'Der gesamte Reiseplan wandert mit den neuen Daten, einschließlich Reservierungen und Unterkünften.',
   'dashboard.dateShiftHint':
-    'Tipp: Um nur einen Teil deines Reiseplans zu verschieben, nutze stattdessen "Tag hinzufügen" im Planer.',
+    'Tipp: Um nur einen Teil deines Reiseplans zu verschieben, öffne im Planer „Tage neu anordnen“, füge dort den Tag nach der Reise über den Knopf mit seinem Datum hinzu und schiebe ihn an die Stelle, an der die Lücke entstehen soll.',
+  'dashboard.shrinkTitle': 'Tage entfernen?',
+  'dashboard.shrinkIntro': 'Mit den neuen Daten entfallen beim Speichern diese Tage:',
+  'dashboard.shrinkMoreDays': '+{count} weitere',
+  'dashboard.shrinkLastDays': 'Es fallen die letzten Tage weg, nicht die ersten',
+  'dashboard.shrinkLastDaysHint':
+    'Die Tagespläne wandern mit den neuen Daten, deshalb entfallen immer die letzten Tage deines Plans, auch wenn sich der Start verschoben hat.',
+  'dashboard.shrinkBookingsHint':
+    'Sie bleiben unter Buchungen. Liegt ihr Datum noch in der Reise, kommen sie wieder auf diesen Tag.',
+  'dashboard.shrinkBookingsShiftHint': 'Sie bleiben unter Buchungen, ohne Tag.',
+  'dashboard.shrinkStayHint':
+    'Check-in oder Check-out an einem entfallenden Tag, deshalb wird die ganze Unterkunft entfernt.',
+  'dashboard.shrinkStayBookedHint':
+    'Check-in oder Check-out an einem entfallenden Tag, deshalb wird die ganze Unterkunft entfernt. Ihre Buchung „{booking}“ und deren Ausgabe bleiben unter Buchungen.',
+  'dashboard.shrinkStayBookingHint':
+    'Check-in oder Check-out an einem entfallenden Tag, deshalb wird die ganze Unterkunft entfernt. Ihre Buchung „{booking}“ bleibt unter Buchungen.',
+  'dashboard.shrinkConfirm': 'Tage entfernen und speichern',
+  'dashboard.shrinkUnknown':
+    'Die Tage dieser Reise ließen sich nicht prüfen. Haben die neuen Daten weniger Tage, entfernt das Speichern die letzten Tage mit allem, was darauf geplant ist.',
   'dashboard.greeting.morning': 'Guten Morgen,',
   'dashboard.greeting.afternoon': 'Guten Tag,',
   'dashboard.greeting.evening': 'Guten Abend,',

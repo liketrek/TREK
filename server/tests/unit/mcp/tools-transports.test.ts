@@ -1040,3 +1040,190 @@ describe('Tool: update_transport (multi-leg)', () => {
     });
   });
 });
+
+// ---------------------------------------------------------------------------
+// The full type list
+//
+// The planner's transport picker offers ten modes; these tools accepted four, so
+// a bus or a ferry could be planned in the UI and not through an assistant. The
+// cases below pin the whole picker list, and pin that widening it did not also
+// hand legs[] to a mode whose form never writes them.
+// ---------------------------------------------------------------------------
+
+/** client/src/components/Planner/TransportModal.tsx, in the picker's order. */
+const PICKER_TRANSPORT_TYPES = [
+  'flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'transport_other',
+] as const;
+
+/** The five the tools used to reject outright. */
+const NEWLY_ACCEPTED = ['bus', 'taxi', 'bicycle', 'ferry', 'transport_other'] as const;
+
+describe('Transport tools: the full type list', () => {
+  it.each(PICKER_TRANSPORT_TYPES)('create_transport accepts %s', async (type) => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_transport',
+        arguments: { tripId: trip.id, type, title: `A ${type} booking` },
+      });
+      expect((result as { isError?: boolean }).isError).toBeFalsy();
+      const data = parseToolResult(result) as any;
+      expect(data.reservation.type).toBe(type);
+      const row = testDb.prepare('SELECT type FROM reservations WHERE id = ?').get(data.reservation.id) as any;
+      expect(row.type).toBe(type);
+    });
+  });
+
+  it('stores a bus booking with its stops, times and booking reference', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const depDay = createDay(testDb, trip.id, { day_number: 1 });
+    const arrDay = createDay(testDb, trip.id, { day_number: 2 });
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_transport',
+        arguments: {
+          tripId: trip.id, type: 'bus', title: 'Zurich → Milan',
+          start_day_id: depDay.id, end_day_id: arrDay.id,
+          reservation_time: '22:30', reservation_end_time: '06:15',
+          confirmation_number: 'FLIX-8891',
+          endpoints: [
+            { role: 'from', sequence: 0, name: 'Zurich Sihlquai', lat: 47.3846, lng: 8.5324 },
+            { role: 'to', sequence: 1, name: 'Milano Lampugnano', lat: 45.4936, lng: 9.1177 },
+          ],
+        },
+      });
+      const data = parseToolResult(result) as any;
+      expect(data.reservation.type).toBe('bus');
+      expect(data.reservation.confirmation_number).toBe('FLIX-8891');
+      expect(data.reservation.endpoints).toHaveLength(2);
+      const row = testDb.prepare('SELECT day_id, end_day_id FROM reservations WHERE id = ?').get(data.reservation.id) as any;
+      expect(row.day_id).toBe(depDay.id);
+      expect(row.end_day_id).toBe(arrDay.id);
+    });
+  });
+
+  it('reports a missing coordinate on a non-flight endpoint rather than failing the insert', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_transport',
+        arguments: {
+          tripId: trip.id, type: 'ferry', title: 'Piraeus → Santorini',
+          endpoints: [{ role: 'from', sequence: 0, name: 'Piraeus' }],
+        },
+      });
+      expect((result as { isError?: boolean }).isError).toBe(true);
+      expect(errorText(result)).toContain('missing coordinates');
+    });
+  });
+
+  it.each(NEWLY_ACCEPTED)('update_transport accepts %s as the new type', async (type) => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const created = await h.client.callTool({
+        name: 'create_transport',
+        arguments: { tripId: trip.id, type: 'car', title: 'Rental' },
+      });
+      const { reservation } = parseToolResult(created) as { reservation: { id: number } };
+
+      const result = await h.client.callTool({
+        name: 'update_transport',
+        arguments: { tripId: trip.id, reservationId: reservation.id, type },
+      });
+      expect((result as { isError?: boolean }).isError).toBeFalsy();
+      const row = testDb.prepare('SELECT type FROM reservations WHERE id = ?').get(reservation.id) as any;
+      expect(row.type).toBe(type);
+    });
+  });
+
+  it('update_transport reaches a booking created as a bus', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const created = await h.client.callTool({
+        name: 'create_transport',
+        arguments: { tripId: trip.id, type: 'bus', title: 'Night bus' },
+      });
+      const { reservation } = parseToolResult(created) as { reservation: { id: number } };
+
+      const result = await h.client.callTool({
+        name: 'update_transport',
+        arguments: { tripId: trip.id, reservationId: reservation.id, status: 'confirmed' },
+      });
+      expect((result as { isError?: boolean }).isError).toBeFalsy();
+      const row = testDb.prepare('SELECT status FROM reservations WHERE id = ?').get(reservation.id) as any;
+      expect(row.status).toBe('confirmed');
+    });
+  });
+
+  it('still refuses a type the picker does not offer', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_transport',
+        arguments: { tripId: trip.id, type: 'teleport', title: 'Nope' },
+      });
+      expect((result as { isError?: boolean }).isError).toBe(true);
+    });
+  });
+
+  it('refuses to hand-make a transit booking, which create_transit_journey owns', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_transport',
+        arguments: { tripId: trip.id, type: 'transit', title: 'Tram 4' },
+      });
+      expect((result as { isError?: boolean }).isError).toBe(true);
+    });
+  });
+
+  it('still lets update_transport reach a stored transit booking', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    // As create_transit_journey leaves it: a transport row carrying an itinerary.
+    const reservationId = Number(testDb.prepare(
+      "INSERT INTO reservations (trip_id, title, type, status) VALUES (?, 'Tram 4', 'transit', 'pending')"
+    ).run(trip.id).lastInsertRowid);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'update_transport',
+        arguments: { tripId: trip.id, reservationId, status: 'confirmed' },
+      });
+      expect((result as { isError?: boolean }).isError).toBeFalsy();
+      const row = testDb.prepare('SELECT status, type FROM reservations WHERE id = ?').get(reservationId) as any;
+      expect(row).toMatchObject({ status: 'confirmed', type: 'transit' });
+    });
+  });
+
+  it('still refuses legs on a mode whose form never writes them', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id, { day_number: 1 });
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_transport',
+        arguments: {
+          tripId: trip.id, type: 'bus', title: 'Zurich → Milan via Lugano',
+          endpoints: [
+            { role: 'from', sequence: 0, name: 'Zurich', lat: 47.38, lng: 8.53 },
+            { role: 'stop', sequence: 1, name: 'Lugano', lat: 46.01, lng: 8.96 },
+            { role: 'to', sequence: 2, name: 'Milan', lat: 45.49, lng: 9.11 },
+          ],
+          legs: [
+            { dep_day_id: day.id, dep_time: '22:30', arr_day_id: day.id, arr_time: '00:40' },
+            { dep_day_id: day.id, dep_time: '00:50', arr_day_id: day.id, arr_time: '06:15' },
+          ],
+        },
+      });
+      expect((result as { isError?: boolean }).isError).toBe(true);
+      expect(errorText(result)).toContain('only supported for flight and train');
+    });
+  });
+});

@@ -23,9 +23,19 @@ export interface Place {
 export interface HeroBundle { members: Member[]; places: Place[] }
 export interface TravelStats { totalTrips?: number; totalDays?: number; totalPlaces?: number; totalDistanceKm?: number; countries?: string[] }
 export interface UpcomingReservation {
-  id: number; trip_id: number; title: string; type: string
+  /** Unique per `type`, not on its own: a stay's two moments carry the
+   *  accommodation id, which can collide with a reservation id. */
+  id: number; trip_id: number; title: string
+  /** A reservation type, or 'checkin' / 'checkout' for a stay's two moments. */
+  type: string
+  status?: string | null
   reservation_time?: string | null; day_date?: string | null
   location?: string | null; place_name?: string | null; trip_title?: string | null
+}
+
+/** Stable list key — see the note on `id`. */
+export function upcomingKey(r: UpcomingReservation): string {
+  return `${r.type}:${r.id}`
 }
 
 export const MS_PER_DAY = 86400000

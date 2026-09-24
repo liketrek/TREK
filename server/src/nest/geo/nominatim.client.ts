@@ -1,4 +1,5 @@
 import { UA } from '../maps/maps.helpers';
+import { readEnv } from '../../app-config';
 
 /**
  * The one Nominatim client.
@@ -21,7 +22,6 @@ import { UA } from '../maps/maps.helpers';
  * header, not the weaker one.
  */
 
-const BASE = 'https://nominatim.openstreetmap.org';
 const MIN_INTERVAL_MS = 1100;
 
 let lastCall = 0;
@@ -163,6 +163,12 @@ export interface NominatimOptions {
  * The abort signal is constructed after the throttle wait on purpose: building it
  * first would spend up to 1.1s of the caller's budget queueing rather than
  * fetching, which for the 2.5s identity lookup is nearly half of it.
+ *
+ * The base is `NOMINATIM_URL` where an operator set one and the public service
+ * otherwise, read live rather than frozen at import so a test (and a restart-free
+ * change) is seen on the next call. Neither the cursor nor the User-Agent asks
+ * which one it got: the spacing is what keeps an operator's installs inside the
+ * policy, and that holds for a gateway in front of the public service too.
  */
 export async function nominatimFetch(
   path: 'search' | 'reverse' | 'lookup',
@@ -171,7 +177,7 @@ export async function nominatimFetch(
 ): Promise<Response> {
   await throttle(opts.lane ?? 'interactive');
   const signal = opts.signal ?? (opts.timeoutMs ? AbortSignal.timeout(opts.timeoutMs) : undefined);
-  return fetch(`${BASE}/${path}?${params.toString()}`, {
+  return fetch(`${readEnv().integrations.nominatimUrl}/${path}?${params.toString()}`, {
     headers: { 'User-Agent': UA },
     ...(signal ? { signal } : {}),
   });

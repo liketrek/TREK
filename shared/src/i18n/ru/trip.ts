@@ -24,6 +24,7 @@ const trip: TranslationStrings = {
   'trip.toast.placeDeleted': 'Место удалено',
   'trip.toast.selectDay': 'Сначала выберите день',
   'trip.toast.assignedToDay': 'Место назначено на день',
+  'trip.toast.loadError': 'Не удалось загрузить поездку',
   'trip.toast.reorderError': 'Ошибка изменения порядка',
   'trip.toast.reservationUpdated': 'Бронирование обновлено',
   'trip.toast.reservationAdded': 'Бронирование добавлено',
@@ -63,6 +64,7 @@ const trip: TranslationStrings = {
   'transit.search': 'Поиск',
   'transit.searching': 'Поиск…',
   'transit.searchError': 'Не удалось найти маршрут. Попробуйте снова.',
+  'transit.noResultsVia': 'Через {provider} маршруты не найдены. Попробуйте другое время или фильтры.',
   'transit.noResults': 'Маршруты не найдены. Измените время или фильтры.',
   'transit.direct': 'Без пересадок',
   'transit.transfers': 'Пересадок: {count}',
@@ -78,6 +80,7 @@ const trip: TranslationStrings = {
   'transport.modeAutomated': 'Автоматически',
   'transit.sectionTitle': 'Автоматический общественный транспорт',
   'transit.changeRoute': 'Изменить маршрут',
+  'transit.editDetails': 'Редактировать детали',
   'transit.journey': 'Поездка на общественном транспорте',
   'transit.pickDay': 'Выберите день для поиска соединений.',
   'transit.noItinerary': 'Для этой записи нет сохранённого маршрута — нажмите «Изменить маршрут», чтобы найти его.',
@@ -85,5 +88,10 @@ const trip: TranslationStrings = {
   'transit.transfersLabel': 'Пересадки',
   'transit.walkLabel': 'Пешком',
   'transit.searchHint': 'Ищите реальные маршруты и добавляйте их прямо в день — данные от Transitous.',
+  'trip.confirm.deletePlaceNight': 'Также будет удалено проживание, забронированное в «{name}».',
+  'trip.confirm.deletePlaceBooked':
+    'Также будут удалены проживание, забронированное в «{name}», бронирование «{booking}» и связанные расходы.',
+  'trip.confirm.deletePlaceBookedSame':
+    'Также будут удалены проживание, забронированное в «{name}», его бронирование и связанные расходы.',
 };
 export default trip;

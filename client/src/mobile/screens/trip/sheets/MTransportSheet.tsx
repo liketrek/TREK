@@ -8,6 +8,7 @@ import { RES_ICONS } from '../../../../components/Planner/DayPlanSidebar.constan
 import { splitReservationDateTime } from '../../../../utils/formatters'
 import { getFlightLegs, getTrainLegs } from '../../../../utils/flightLegs'
 import { openFile } from '../../../../utils/fileDownload'
+import { runsOnDay } from '../../../../utils/reservationRoutes'
 import type { Reservation } from '../../../../types'
 import { Eyebrow, INNER_CLS, StatBox, TileHeader, displayTime } from './MTripSheetUi'
 
@@ -107,7 +108,11 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
 
   const confirmed = res.status === 'confirmed'
   const codeBlurred = blurCodes && !codeRevealed
-  const onMap = planner.visibleConnections.includes(res.id)
+  // The plan map only draws a switched-on booking on the days it runs on, so from any
+  // other day the button reads off, as the map does, and a tap takes the map to the
+  // booking instead of switching off a route that is not drawn here anyway.
+  const switchedOn = planner.visibleConnections.includes(res.id)
+  const onMap = switchedOn && runsOnDay(res, planner.selectedDayId, planner.days)
 
   // First tap draws the overlay and jumps to the map; while drawn, the same
   // button hides it again (per-booking overlay toggle, desktop parity).
@@ -116,10 +121,19 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
       planner.toggleConnection(res.id)
       return
     }
-    planner.toggleConnection(res.id)
+    if (!switchedOn) planner.toggleConnection(res.id)
     shell.closeSheet()
     if (shell.trTab !== 'plan') shell.setTrTab('plan')
     if (shell.view !== 'map') shell.toggleView()
+    // The map draws the day on the chips, and the Transports tab lists the whole trip, so
+    // the booking may run on a different day. Moved last, because entering the map picks
+    // the day the shell was already holding. A day inside the booking's span, the
+    // all-days view and a booking bound to no day are left as they are.
+    const bookingDayId = res.day_id ?? res.end_day_id
+    if (planner.selectedDayId != null && bookingDayId != null && !runsOnDay(res, planner.selectedDayId, planner.days)) {
+      planner.handleSelectDay(bookingDayId, false)
+      planner.setExpandedDayIds(new Set([bookingDayId]))
+    }
   }
 
   const editTransport = () => {

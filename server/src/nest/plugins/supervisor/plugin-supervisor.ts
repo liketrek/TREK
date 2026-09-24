@@ -57,6 +57,7 @@ interface Supervised {
   hooks: string[]; // provider hooks the plugin implements (e.g. 'placeDetailProvider')
   events: string[]; // core events the plugin subscribes to (names or '*')
   exports: string[]; // functions the plugin exposes to dependents (ctx.plugins.call)
+  mcpTools: string[]; // MCP tool names the plugin reported implementing at load
   subscriptions: Array<{ plugin: string; event: string }>; // other-plugin events it listens to
   pending: Map<string, Pending>; // host→child invokes awaiting a response
   invocations: Map<string, number | undefined>; // reqId -> acting user of that invoke (undefined = no user, e.g. a job)
@@ -144,6 +145,7 @@ export class PluginSupervisor {
       hooks: [],
       events: [],
       exports: [],
+      mcpTools: [],
       subscriptions: [],
       pending: new Map(),
       invocations: new Map(),
@@ -255,6 +257,18 @@ export class PluginSupervisor {
   exportsOf(id: string): string[] {
     const sup = this.running.get(id);
     return sup && sup.status === 'active' ? sup.exports : [];
+  }
+
+  /** MCP tool names an ACTIVE plugin reported at load. Intersect with the manifest. */
+  mcpToolsOf(id: string): string[] {
+    const sup = this.running.get(id);
+    return sup && sup.status === 'active' ? sup.mcpTools : [];
+  }
+
+  /** The grants an ACTIVE plugin holds. Read to clamp what its tools may claim. */
+  grantsOf(id: string): ReadonlySet<string> {
+    const sup = this.running.get(id);
+    return sup && sup.status === 'active' ? sup.granted : new Set<string>();
   }
 
   /** Ids of ACTIVE plugins that subscribed to `event` emitted by `sourceId`. */
@@ -578,6 +592,7 @@ export class PluginSupervisor {
           const d = msg.data as {
             routes?: PluginRouteInfo[]; jobs?: ScheduledJob[]; hooks?: string[]; events?: string[];
             exports?: string[]; subscriptions?: Array<{ plugin: string; event: string }>;
+            mcpTools?: string[];
           };
           sup.routes = d.routes ?? [];
           sup.jobs = Array.isArray(d.jobs)
@@ -586,6 +601,7 @@ export class PluginSupervisor {
           sup.hooks = d.hooks ?? [];
           sup.events = d.events ?? [];
           sup.exports = Array.isArray(d.exports) ? d.exports.filter((e): e is string => typeof e === 'string') : [];
+          sup.mcpTools = Array.isArray(d.mcpTools) ? d.mcpTools.filter((t): t is string => typeof t === 'string') : [];
           sup.subscriptions = Array.isArray(d.subscriptions)
             ? d.subscriptions.filter((s): s is { plugin: string; event: string } => !!s && typeof s.plugin === 'string' && typeof s.event === 'string')
             : [];

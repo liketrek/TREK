@@ -1,4 +1,4 @@
-// FE-MOB-JDET-001 to FE-MOB-JDET-037
+// FE-MOB-JDET-001 to FE-MOB-JDET-039
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '../../../helpers/render';
 import MJourneyDetail from '../../../../src/mobile/screens/journey/MJourneyDetail';
@@ -180,11 +180,18 @@ function buildHook(over: Record<string, unknown> = {}): Record<string, unknown> 
   };
 }
 
-function setup(over: Record<string, unknown> = {}) {
+function setup(over: Record<string, unknown> = {}, entries?: string[]) {
   mocks.detail = buildHook(over);
-  const view = render(<MJourneyDetail />);
+  const view = render(<MJourneyDetail />, entries ? { initialEntries: entries } : undefined);
   return { ...view, hook: mocks.detail };
 }
+
+/**
+ * Opening the upload the way the shell does since the Gallery took over the
+ * dock's FAB: the button asks through `?create=photo`, the screen answers. The
+ * header no longer carries an upload button of its own — one screen, one upload.
+ */
+const UPLOAD_URL = ['/journey/1?create=photo'];
 
 const journeyStoreInitial = useJourneyStore.getState();
 let uploadGalleryPhotos: ReturnType<typeof vi.fn>;
@@ -310,6 +317,15 @@ describe('MJourneyDetail', () => {
     expect(document.querySelector('.absolute.inset-0.flex.items-center')).toBeInTheDocument();
   });
 
+  it('FE-MOB-JDET-039: a provider clip shows the poster the provider serves, as the desktop gallery does', () => {
+    // A provider row never records a local thumbnail path, so the check the desktop
+    // shares (posterlessVideo) must be the one used here too (#2341 follow-up).
+    const gallery = [buildGalleryPhoto({ media_type: 'video', provider: 'immich', asset_id: 'a1', thumbnail_path: null })];
+    setup({ view: 'gallery', current: buildDetail({ gallery }) });
+    expect(document.querySelector('img[src="/api/photos/900/thumbnail"]')).toBeInTheDocument();
+    expect(document.querySelector('svg.lucide-play')).toBeInTheDocument();
+  });
+
   it('FE-MOB-JDET-014: uploading from the device sends the picked files and reloads', async () => {
     const { hook, container } = setup({ view: 'gallery' });
     const input = container.ownerDocument.querySelector('input[type="file"]') as HTMLInputElement;
@@ -355,9 +371,8 @@ describe('MJourneyDetail', () => {
       ],
     });
     vi.mocked(memoriesApi.status).mockResolvedValue({ connected: true });
-    setup({ view: 'gallery' });
+    setup({ view: 'gallery' }, UPLOAD_URL);
 
-    fireEvent.click(await screen.findByRole('button', { name: 'common.upload' }));
     expect(await screen.findByText('mobileJourney.uploadFromDevice')).toBeInTheDocument();
     fireEvent.click(screen.getByText('mobileJourney.browseProvider'));
     expect(await screen.findByTestId('provider-picker')).toBeInTheDocument();
@@ -370,10 +385,9 @@ describe('MJourneyDetail', () => {
     vi.mocked(memoriesApi.status).mockResolvedValue({ connected: true });
     const toGallery = vi.spyOn(journeyApi, 'addProviderPhotosToGallery').mockResolvedValue({ added: 3 });
     const toEntry = vi.spyOn(journeyApi, 'addProviderPhotos').mockResolvedValue({ added: 1 });
-    const { hook } = setup({ view: 'gallery' });
+    const { hook } = setup({ view: 'gallery' }, UPLOAD_URL);
 
-    fireEvent.click(await screen.findByRole('button', { name: 'common.upload' }));
-    fireEvent.click(screen.getByText('mobileJourney.browseProvider'));
+    fireEvent.click(await screen.findByText('mobileJourney.browseProvider'));
     await screen.findByTestId('provider-picker');
 
     const onAdd = mocks.captured.picker.onAdd as (g: { assetIds: string[] }[], entryId?: number) => Promise<void>;
@@ -392,10 +406,9 @@ describe('MJourneyDetail', () => {
     });
     vi.mocked(memoriesApi.status).mockResolvedValue({ connected: true });
     vi.spyOn(journeyApi, 'addProviderPhotosToGallery').mockRejectedValue(new Error('boom'));
-    setup({ view: 'gallery' });
+    setup({ view: 'gallery' }, UPLOAD_URL);
 
-    fireEvent.click(await screen.findByRole('button', { name: 'common.upload' }));
-    fireEvent.click(screen.getByText('mobileJourney.browseProvider'));
+    fireEvent.click(await screen.findByText('mobileJourney.browseProvider'));
     await screen.findByTestId('provider-picker');
 
     const onAdd = mocks.captured.picker.onAdd as (g: { assetIds: string[] }[], entryId?: number) => Promise<void>;
@@ -509,11 +522,11 @@ describe('MJourneyDetail', () => {
       addons: [{ id: 'immich', name: 'Immich', type: 'photo_provider', enabled: true }],
     });
     vi.mocked(memoriesApi.status).mockResolvedValue({ connected: true });
-    const { container } = setup({ view: 'gallery' });
-    const input = container.ownerDocument.querySelector('input[type="file"]') as HTMLInputElement;
-    const click = vi.spyOn(input, 'click').mockImplementation(() => {});
+    // The upload opens on mount now (the dock asks through the URL), so the spy
+    // goes on the prototype rather than on an input that does not exist yet.
+    const click = vi.spyOn(HTMLInputElement.prototype, 'click').mockImplementation(() => {});
+    setup({ view: 'gallery' }, UPLOAD_URL);
 
-    fireEvent.click(await screen.findByRole('button', { name: 'common.upload' }));
     fireEvent.click(await screen.findByText('mobileJourney.uploadFromDevice'));
     expect(click).toHaveBeenCalled();
     await waitFor(() => expect(screen.queryByText('mobileJourney.uploadFromDevice')).not.toBeInTheDocument());
@@ -524,12 +537,10 @@ describe('MJourneyDetail', () => {
       addons: [{ id: 'immich', name: 'Immich', type: 'photo_provider', enabled: true }],
     });
     vi.mocked(memoriesApi.status).mockResolvedValue({ connected: false });
-    const { container } = setup({ view: 'gallery' });
-    const input = container.ownerDocument.querySelector('input[type="file"]') as HTMLInputElement;
-    const click = vi.spyOn(input, 'click').mockImplementation(() => {});
+    const click = vi.spyOn(HTMLInputElement.prototype, 'click').mockImplementation(() => {});
+    setup({ view: 'gallery' }, UPLOAD_URL);
 
-    fireEvent.click(await screen.findByRole('button', { name: 'common.upload' }));
-    expect(click).toHaveBeenCalled();
+    await waitFor(() => expect(click).toHaveBeenCalled());
     expect(screen.queryByText('mobileJourney.uploadFromDevice')).not.toBeInTheDocument();
   });
 
@@ -545,7 +556,7 @@ describe('MJourneyDetail', () => {
       editingEntry: buildEntry({ id: 4 }),
       showSettings: true,
       showInvite: true,
-    });
+    }, UPLOAD_URL);
 
     (mocks.captured.entrySheet.onClose as () => void)();
     expect(hook.setEditingEntry).toHaveBeenCalledWith(null);
@@ -554,8 +565,7 @@ describe('MJourneyDetail', () => {
     (mocks.captured.invite.onClose as () => void)();
     expect(hook.setShowInvite).toHaveBeenCalledWith(false);
 
-    fireEvent.click(await screen.findByRole('button', { name: 'common.upload' }));
-    fireEvent.click(screen.getByText('mobileJourney.browseProvider'));
+    fireEvent.click(await screen.findByText('mobileJourney.browseProvider'));
     await screen.findByTestId('provider-picker');
     expect([...(mocks.captured.picker.existingAssetIds as Set<string>)]).toEqual(['asset-1']);
 

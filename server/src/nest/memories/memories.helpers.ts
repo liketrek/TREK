@@ -74,6 +74,12 @@ export type AlbumsList = {
 export type Asset = {
     id: string;
     takenAt: string;
+    /**
+     * The wall clock the photographer read, timezone-agnostic, when the provider
+     * knows it. Absent from providers that store instants only, so read it with
+     * `takenAt` as the fallback.
+     */
+    localTakenAt?: string | null;
     mediaType?: string;
     city?: string | null;
     country?: string | null;
@@ -87,10 +93,107 @@ export type AssetsList = {
     hasMore: boolean
 };
 
+/**
+ * Newest first, by capture time, with a stable fallback.
+ *
+ * Neither provider guarantees an order: Immich sorts by whatever its version
+ * defaults to and Synology's search API documents none at all. The picker groups
+ * by day and lazily appends pages, so an unordered page puts photos in the wrong
+ * day heading and, worse, drops them above the fold the reader is looking at.
+ * Asking upstream for `desc` is the fix; this is the belt to that pair of braces,
+ * and it is load-bearing for the album paths, which do not run through a sorted
+ * search at all.
+ *
+ * Assets without a usable timestamp keep their relative order at the end, which
+ * matches how the client groups them under its unknown-date heading. That, and
+ * the order of assets sharing a timestamp, rests on Array.prototype.sort being
+ * stable, which it has been since ES2019.
+ *
+ * Timestamps are parsed once up front rather than inside the comparator, which
+ * would re-parse the same string O(n log n) times.
+ */
+export function sortAssetsByTakenAtDesc<T extends { takenAt?: string | null }>(assets: T[]): T[] {
+    return assets
+        .map(asset => {
+            const parsed = asset.takenAt ? Date.parse(asset.takenAt) : Number.NaN;
+            return { asset, at: Number.isNaN(parsed) ? null : parsed };
+        })
+        .sort((a, b) => {
+            if (a.at === null && b.at === null) return 0;
+            if (a.at === null) return 1;
+            if (b.at === null) return -1;
+            return b.at - a.at;
+        })
+        .map(entry => entry.asset);
+}
+
+
+/**
+ * A calendar day shifted by whole days, as 'YYYY-MM-DD'.
+ *
+ * Used to pad a provider window before it is narrowed again by local capture
+ * date: the widest zones sit 14 hours east and 12 hours west of UTC, so a day on
+ * anybody's wall clock lies inside the UTC days either side of it, and one day
+ * of slack on each end provably catches every asset that belongs to it.
+ *
+ * Anything that is not a plain calendar day comes back untouched, so a malformed
+ * bound still reaches upstream exactly as it did before and fails there, rather
+ * than turning into a different window here.
+ */
+export function shiftCalendarDay(day: string, deltaDays: number): string {
+    const parsed = Date.parse(`${day}T00:00:00.000Z`);
+    if (Number.isNaN(parsed)) return day;
+    return new Date(parsed + deltaDays * 86400000).toISOString().slice(0, 10);
+}
+
+
+/**
+ * Does this asset belong to the requested calendar days?
+ *
+ * Answered against the photographer's own local capture stamp where the provider
+ * sends one, and otherwise against the capture instant — which is the UTC-day
+ * reading the window had before, so a provider or a fork without a local stamp
+ * keeps answering exactly as it does today. Both bounds are optional and
+ * independent: a one-sided range narrows only the side it was given.
+ *
+ * An asset with no usable timestamp at all is kept. Dropping it would lose a
+ * photo the caller could see before this filter existed.
+ */
+export function isWithinLocalDayRange(
+    asset: { takenAt?: string | null; localTakenAt?: string | null },
+    from?: string,
+    to?: string,
+): boolean {
+    const day = (asset.localTakenAt || asset.takenAt || '').slice(0, 10);
+    if (day.length < 10) return true;
+    if (from && day < from) return false;
+    if (to && day > to) return false;
+    return true;
+}
+
+
+/**
+ * When a calendar day starts, in whole epoch seconds, read in the caller's zone.
+ *
+ * `tzOffsetMinutes` is minutes east of UTC (600 for UTC+10), so 0 means the UTC
+ * day — the only reading available before the caller could say which day it
+ * meant, and therefore the behaviour a caller that sends nothing keeps.
+ *
+ * A bound that is not a plain calendar day falls back to whatever Date makes of
+ * it, which is what the window did with it before.
+ */
+export function dayStartEpochSeconds(day: string, tzOffsetMinutes = 0): number {
+    const dayOnly = Date.parse(`${day}T00:00:00.000Z`);
+    if (Number.isNaN(dayOnly)) return Math.floor(Date.parse(day) / 1000);
+    return Math.floor(dayOnly / 1000) - tzOffsetMinutes * 60;
+}
+
 
 export type AssetInfo = {
     id: string;
     takenAt: string | null;
+    /** What the provider says this is. Absent means the provider does not tell us. */
+    mediaType?: 'image' | 'video';
     city: string | null;
     country: string | null;
     state?: string | null;
@@ -108,6 +211,30 @@ export type AssetInfo = {
     height?: number | null;
     fileSize?: number | null;
     fileName?: string | null;
+}
+
+const NODE_OPERATOR_HINT = /;\s*if the root CA is installed locally.*$/is;
+
+/**
+ * Why a request to a provider never got an answer, worded for the settings card.
+ *
+ * undici rejects with a bare "fetch failed" and keeps the reason on `cause`
+ * (an unknown host, a refused connection, a self-signed certificate), so the
+ * message alone gave the user nothing to act on (#2475). The first cause that
+ * says something is appended; an error without one reads exactly as before.
+ * Node's own advice to operators that rides along on a certificate error
+ * ("try running Node.js with --use-system-ca") is cut off: whoever reads the
+ * card cannot act on it.
+ */
+export function describeFetchFailure(err: unknown): string {
+    if (!(err instanceof Error)) return 'Connection failed';
+    let cause: unknown = err.cause;
+    for (let depth = 0; depth < 3 && cause instanceof Error; depth++) {
+        const reason = cause.message.replace(NODE_OPERATOR_HINT, '').trim();
+        if (reason && reason !== err.message) return `${err.message} (${reason})`;
+        cause = cause.cause;
+    }
+    return err.message;
 }
 
 /**

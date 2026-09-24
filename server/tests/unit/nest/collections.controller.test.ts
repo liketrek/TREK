@@ -4,7 +4,9 @@ import { HttpException } from '@nestjs/common';
 import { CollectionsController } from '../../../src/nest/collections/collections.controller';
 import type { CollectionsService } from '../../../src/nest/collections/collections.service';
 import type { StorageService } from '../../../src/nest/storage/storage.service';
+import { CollectionGpxError } from '../../../src/nest/collections/collection-gpx.helpers';
 import type { User } from '../../../src/types';
+import type { CollectionGpxProblem } from '@trek/shared';
 
 const storageStub = { put: vi.fn().mockResolvedValue(undefined) } as unknown as StorageService;
 
@@ -247,6 +249,45 @@ describe('CollectionsController', () => {
 
       c.unassignLabels(user, { label_ids: [5], place_ids: [9] } as never, 'sock');
       expect(svc.assignLabels).toHaveBeenCalledWith(1, [5], [9], true, 'sock');
+    });
+  });
+
+  describe('GPX (#2301)', () => {
+    it('exports the list as GPX for the caller, with the id as a number', () => {
+      const exported = { name: 'Lisbon', gpx: '<gpx/>', waypoints: 0, omitted: 0 };
+      const svc = makeService({ exportCollectionGpx: vi.fn().mockReturnValue(exported) });
+      const c = new CollectionsController(svc, new RuntimeEnvService(), storageStub);
+
+      expect(c.exportCollectionGpx(user, '3')).toBe(exported);
+      expect(svc.exportCollectionGpx).toHaveBeenCalledWith(1, 3);
+    });
+
+    it('hands back the file a GPX was read into', () => {
+      const read = { file: { name: 'Lisbon' }, skipped: 1, track_points: 4 };
+      const svc = makeService({ readCollectionGpx: vi.fn().mockReturnValue(read) });
+      const c = new CollectionsController(svc, new RuntimeEnvService(), storageStub);
+
+      expect(c.readGpx({ gpx: '<gpx/>', file_name: 'lisbon.gpx' })).toBe(read);
+      expect(svc.readCollectionGpx).toHaveBeenCalledWith({ gpx: '<gpx/>', file_name: 'lisbon.gpx' });
+    });
+
+    it('turns a refusal into a 400 with a code the client can translate, 413 for size', () => {
+      const refuse = (code: CollectionGpxProblem) => makeService({
+        readCollectionGpx: vi.fn(() => { throw new CollectionGpxError(code, 'refused'); }),
+      });
+
+      for (const code of ['unreadable', 'not-gpx', 'too-many-places'] as const) {
+        const c = new CollectionsController(refuse(code), new RuntimeEnvService(), storageStub);
+        expect(thrown(() => c.readGpx({ gpx: 'x' }))).toEqual({ status: 400, body: { error: 'refused', code } });
+      }
+      const big = new CollectionsController(refuse('too-large'), new RuntimeEnvService(), storageStub);
+      expect(thrown(() => big.readGpx({ gpx: 'x' }))).toEqual({ status: 413, body: { error: 'refused', code: 'too-large' } });
+    });
+
+    it('lets any other failure through untouched', () => {
+      const svc = makeService({ readCollectionGpx: vi.fn(() => { throw new Error('disk on fire'); }) });
+      const c = new CollectionsController(svc, new RuntimeEnvService(), storageStub);
+      expect(() => c.readGpx({ gpx: 'x' })).toThrow('disk on fire');
     });
   });
 });

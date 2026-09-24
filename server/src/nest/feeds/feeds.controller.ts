@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { readEnv } from '../../app-config';
+import { contentDisposition } from '../common/content-disposition';
 import { FeedsService } from './feeds.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
@@ -48,7 +49,7 @@ export class FeedsPublicController {
       return;
     }
     res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
-    res.setHeader('Content-Disposition', `inline; filename="${result.filename}"`);
+    res.setHeader('Content-Disposition', contentDisposition(result.filename, 'inline'));
     res.setHeader('Cache-Control', 'no-cache, no-store');
     res.setHeader('X-Published-TTL', 'PT1H');
     res.send(result.ics);

@@ -51,8 +51,12 @@ import {
   CollectionLabelCreateDto,
   CollectionLabelUpdateDto,
   CollectionLabelAssignDto,
+  CollectionImportDto,
+  CollectionImportIntoDto,
+  CollectionGpxReadDto,
 } from './collections.dto';
 import { PlaceRatingDto } from '../places/places.dto';
+import { CollectionGpxError } from './collection-gpx.helpers';
 
 export const MAX_COVER_SIZE = 20 * 1024 * 1024;
 // Duplicated on purpose from trips.controller.ts (historical parity — no
@@ -199,6 +203,35 @@ export class CollectionsController {
   }
 
   // ── Copy to trip ────────────────────────────────────────────────────────────
+  /**
+   * Read a list file back as a new list of the caller's own (#2198).
+   *
+   * 201, like POST / above, because it creates a list. The other POSTs here
+   * are @HttpCode(200) because they act on one that already exists.
+   */
+  @Post('import')
+  importCollection(@CurrentUser() user: User, @Body() body: CollectionImportDto) {
+    return this.collections.importCollection(user.id, body);
+  }
+
+  /**
+   * A GPX document read into the list file it amounts to (#2301). Creates
+   * nothing, hence 200: the browser shows what came out and sends it to
+   * /import above, so a GPX goes through the same contract and the same one
+   * transaction as a list file. A refusal carries a `code` the client
+   * translates, beside the English `error` every other route has.
+   */
+  @Post('gpx/read')
+  @HttpCode(200)
+  readGpx(@Body() body: CollectionGpxReadDto) {
+    try {
+      return this.collections.readCollectionGpx(body);
+    } catch (err) {
+      if (!(err instanceof CollectionGpxError)) throw err;
+      throw new HttpException({ error: err.message, code: err.code }, err.code === 'too-large' ? 413 : 400);
+    }
+  }
+
   @Post('copy-to-trip')
   @HttpCode(200)
   copyToTrip(@CurrentUser() user: User, @Body() body: CollectionCopyToTripDto) {
@@ -370,6 +403,45 @@ export class CollectionsController {
   /** Preview for the bulk trip import: the trip's places plus, per place, the same
    *  duplicate verdict the import itself applies. Read-only, so the dialog can grey out
    *  what would be skipped instead of reporting it afterwards. */
+  /**
+   * The list as a file (#2198). A plain JSON body: the browser turns it into a
+   * download, so there is no Content-Disposition to get wrong here and no
+   * filename decided by the server.
+   */
+  @Get(':id/export')
+  exportCollection(@CurrentUser() user: User, @Param('id') id: string) {
+    return this.collections.exportCollection(user.id, Number(id));
+  }
+
+  /**
+   * The list as GPX (#2301). JSON around the document rather than the bare
+   * XML, for the same reason the list file has no Content-Disposition: the
+   * browser makes the download, and it also needs to say how many places had
+   * no coordinates and were left out.
+   */
+  @Get(':id/export/gpx')
+  exportCollectionGpx(@CurrentUser() user: User, @Param('id') id: string) {
+    return this.collections.exportCollectionGpx(user.id, Number(id));
+  }
+
+  /**
+   * The same file read into a list that already exists (#2301 follow-up).
+   *
+   * 200, unlike POST /import above: this one adds to a list rather than making
+   * one. Anyone who may add a place to the list may do it, and the socket id
+   * rides along so the browser that asked does not echo its own change.
+   */
+  @Post(':id/import')
+  @HttpCode(200)
+  importIntoCollection(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() body: CollectionImportIntoDto,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
+    return this.collections.importIntoCollection(user.id, Number(id), body, socketId);
+  }
+
   @Get(':id/importable/:tripId')
   importable(@CurrentUser() user: User, @Param('id') id: string, @Param('tripId') tripId: string) {
     return this.collections.importablePlaces(user.id, Number(id), Number(tripId));

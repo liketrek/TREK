@@ -7,6 +7,7 @@ import { isMarkdown } from './FileManager.helpers'
 import { FileManagerToolbar } from './FileManagerToolbar'
 import { TrashView } from './FileManagerTrashView'
 import { FilesView } from './FileManagerFilesView'
+import DocSyncPanel from './docsync/DocSyncPanel'
 
 export default function FileManager(props: FileManagerProps) {
   const S = useFileManager(props)
@@ -23,6 +24,19 @@ export default function FileManager(props: FileManagerProps) {
       {previewFile && (isMarkdown(previewFile.mime_type, previewFile.original_name)
         ? <MarkdownPreviewModal {...S} />
         : <PdfPreviewModal {...S} />)}
+
+      {/* Document sync opens as its own dialog: it is configuration for the
+          documents on this screen, so it belongs here rather than in settings,
+          but it is a task with a beginning and an end and does not belong
+          inside the list it configures. */}
+      {S.showDocSync && (
+        <DocSyncPanel
+          tripId={props.tripId}
+          tripTitle={S.trip?.title}
+          canManage={S.canManageSync}
+          onClose={() => S.setShowDocSync(false)}
+        />
+      )}
 
       {/* Toolbar */}
       <FileManagerToolbar {...S} />

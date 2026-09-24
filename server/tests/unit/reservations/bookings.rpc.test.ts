@@ -30,7 +30,7 @@ const req = (method: string, params: Record<string, unknown> = {}): RpcRequest =
 const events = (r: { broadcast: ReturnType<typeof vi.fn> }) => r.broadcast.mock.calls.map((c) => c[1]);
 
 /** Trip 1 belongs to user 42; reservation 5 and accommodation 11 sit on it. */
-function build(opts: { canEdit?: boolean; cascade?: boolean; seenActions?: string[] } = {}) {
+function build(opts: { canEdit?: boolean; cascade?: boolean; stop?: boolean; seenActions?: string[]; unresolved?: string[]; foreign?: string[] } = {}) {
   const realtime = { broadcast: vi.fn() } as unknown as RealtimeService & { broadcast: ReturnType<typeof vi.fn> };
   const reservations = {
     create: vi.fn(() => ({ reservation: { id: 40 }, accommodationCreated: !!opts.cascade })),
@@ -44,20 +44,39 @@ function build(opts: { canEdit?: boolean; cascade?: boolean; seenActions?: strin
     syncBudgetOnCreate: vi.fn(),
     syncBudgetOnUpdate: vi.fn(),
     notifyBookingChange: vi.fn(),
+    // Both guards run before a write now, so the fixture answers for them.
+    referencesOutsideTrip: vi.fn(() => opts.foreign ?? []),
+    unresolvedReferences: vi.fn(() => opts.unresolved ?? []),
   } as unknown as ReservationsService & Record<string, ReturnType<typeof vi.fn>>;
+  /** What a stay write did to the day plan, on top of writing the stay itself. */
+  type Mirror = { created: { id: number; day_id: number } | null; removed: { id: number; dayId: number }[]; stamped: null };
+  /** A stay write that left the day plan alone, which is what most of these cases are. */
+  const noMirror = (): Mirror => ({ created: null, removed: [], stamped: null });
+  /** With `stop`, the write moved its day stop from day 3 to day 4. */
+  const mirror = (): Mirror => (opts.stop ? { created: { id: 78, day_id: 4 }, removed: [{ id: 77, dayId: 3 }], stamped: null } : noMirror());
   // The lodging blocks live in AccommodationsService; AccommodationsRpc still calls its
   // injected copy `days`, which is why the fixture keeps that name.
   const days = {
     validateAccommodationRefs: vi.fn((_t: number, placeId?: number) => (placeId === 404 ? [{ message: 'place 404 is not on this trip' }] : [])),
-    createAccommodation: vi.fn(() => ({ id: 60 })),
+    createAccommodation: vi.fn(() => ({ accommodation: { id: 60 }, mirror: mirror() })),
     getAccommodation: vi.fn((id: number) => (id === 11 ? { id: 11 } : undefined)),
-    updateAccommodation: vi.fn(() => ({ id: 11 })),
+    updateAccommodation: vi.fn(() => ({ accommodation: { id: 11 }, mirror: mirror() })),
     deleteAccommodation: vi.fn(() => ({
       linkedReservationId: opts.cascade ? 40 : null,
       deletedBudgetItemId: opts.cascade ? 7 : null,
       linkedReservationIds: opts.cascade ? [40] : [],
       deletedBudgetItemIds: opts.cascade ? [7] : [],
+      mirror: mirror(),
     })),
+    // Stands in for the real fan-out rather than swallowing it, so the sender each
+    // handler builds is exercised: that sender is the plugin surface's only link
+    // between a stay write and the sockets, and a mock that never calls it would
+    // let a broken one through. Inert whenever the mirror is empty, which is every
+    // case not built with `stop`.
+    announceMirror: vi.fn((_tripId: number, m: Mirror, send: (event: string, payload: unknown) => void) => {
+      for (const stop of m.removed) send('assignment:deleted', { assignmentId: stop.id, dayId: stop.dayId });
+      if (m.created) send('assignment:created', { assignment: m.created });
+    }),
   } as unknown as AccommodationsService & Record<string, ReturnType<typeof vi.fn>>;
   const guards = new PluginGuards(
     {
@@ -177,6 +196,50 @@ describe('ReservationsRpc', () => {
     expect(f.reservations.update).not.toHaveBeenCalled();
   });
 
+  it('BOOK-RPC-018 an id that resolves to nothing is BAD_PARAMS, not a constraint failure', async () => {
+    const f = build({ unresolved: ['place_id'] });
+    const res = (await f.host().dispatch(
+      req('reservations.create', { tripId: 1, input: { title: 'Hotel', type: 'lodging', place_id: 999999 } }), 42,
+    )) as RpcError;
+    expect(res.error.code).toBe('BAD_PARAMS');
+    expect(res.error.message).toBe('unknown reference: place_id');
+    expect(f.reservations.create).not.toHaveBeenCalled();
+  });
+
+  it('BOOK-RPC-019 the same on update', async () => {
+    const f = build({ unresolved: ['day_id'] });
+    const res = (await f.host().dispatch(
+      req('reservations.update', { tripId: 1, reservationId: 5, input: { title: 'x', type: 'lodging', day_id: 999999 } }), 42,
+    )) as RpcError;
+    expect(res.error.code).toBe('BAD_PARAMS');
+    expect(f.reservations.update).not.toHaveBeenCalled();
+  });
+
+  it('BOOK-RPC-020 an id from another trip is RESOURCE_FORBIDDEN before the write, on create and update', async () => {
+    // reservation_edit on trip 1 says nothing about the ids in the body. A stay
+    // written against another trip's day puts a stop on that day, in a plan the
+    // acting user may not even read, so the body is checked the way the REST route
+    // and the MCP tool check it, and ownership is judged before existence.
+    const f = build({ foreign: ['create_accommodation.start_day_id'], unresolved: ['create_accommodation.start_day_id'] });
+    const stay = { title: 'Hotel', type: 'lodging', create_accommodation: { place_id: 9, start_day_id: 4711, end_day_id: 4712 } };
+    const created = (await f.host().dispatch(req('reservations.create', { tripId: 1, input: stay }), 42)) as RpcError;
+    expect(created.error.code).toBe('RESOURCE_FORBIDDEN');
+    expect(created.error.message).toBe('not part of trip 1: create_accommodation.start_day_id');
+    expect(f.reservations.create).not.toHaveBeenCalled();
+
+    const g = build({ foreign: ['day_id'] });
+    const updated = (await g.host().dispatch(req('reservations.update', { tripId: 1, reservationId: 5, input: { title: 'x', type: 'lodging', day_id: 4711 } }), 42)) as RpcError;
+    expect(updated.error.code).toBe('RESOURCE_FORBIDDEN');
+    expect(updated.error.message).toBe('not part of trip 1: day_id');
+    expect(g.reservations.update).not.toHaveBeenCalled();
+    expect(g.realtime.broadcast).not.toHaveBeenCalled();
+
+    // The same body with this trip's ids goes through.
+    const h = build();
+    expect((await h.host().dispatch(req('reservations.create', { tripId: 1, input: { ...stay, create_accommodation: { ...stay.create_accommodation, start_day_id: 3 } } }), 42)).ok).toBe(true);
+    expect(h.reservations.referencesOutsideTrip).toHaveBeenLastCalledWith('1', expect.objectContaining({ create_accommodation: expect.objectContaining({ start_day_id: 3 }) }));
+  });
+
   it('BOOK-RPC-009 the class is listed in its module providers', () => {
     expectRegisteredProvider(ReservationsModule, ReservationsRpc);
   });
@@ -241,6 +304,42 @@ describe('AccommodationsRpc', () => {
     const res = (await f.host().dispatch(req('accommodations.update', { tripId: 1, accommodationId: 11, input: { place_id: 404 } }), 42)) as RpcError;
     expect(res.error.message).toBe('place 404 is not on this trip');
     expect(f.days.updateAccommodation).not.toHaveBeenCalled();
+  });
+
+  it('BOOK-RPC-017 the day stop a booking writes is announced through the plugin surface too', async () => {
+    const f = build();
+    await f.host().dispatch(req('accommodations.create', { tripId: 1, input: { place_id: 7, start_day_id: 3, end_day_id: 4 } }), 42);
+    // Same call the REST route makes, so a plugin booking a night cannot leave the
+    // other sessions without the stop that puts it on the route.
+    expect(f.days.announceMirror).toHaveBeenCalledWith(1, { created: null, removed: [], stamped: null }, expect.any(Function));
+  });
+
+  it('BOOK-RPC-017b editing a block writes it, announces it and answers with the block', async () => {
+    const f = build();
+    const res = await f.host().dispatch(req('accommodations.update', { tripId: 1, accommodationId: 11, input: { check_in: '15:00' } }), 42);
+    expect(f.days.updateAccommodation).toHaveBeenCalledWith(11, { id: 11 }, expect.objectContaining({ check_in: '15:00' }));
+    expect(events(f.realtime)).toEqual(['accommodation:updated']);
+    expect(f.days.announceMirror).toHaveBeenCalledWith(1, { created: null, removed: [], stamped: null }, expect.any(Function));
+    // The block itself, not the { accommodation, mirror } pair the service returns:
+    // the mirror is a broadcast concern and plugins never asked for it.
+    expect(res).toMatchObject({ k: 'res', result: { id: 11 } });
+  });
+
+  it('BOOK-RPC-017c what announceMirror sends goes out over the trip socket, on all three writes', async () => {
+    // The sender each handler hands announceMirror is the plugin surface's only link
+    // between a stay write and the day plan every other session is looking at. What
+    // belongs in the mirror is the service's call; that it reaches a socket at all is
+    // this one's, which is why the fixture's mirror is the same on all three.
+    for (const request of [
+      req('accommodations.create', { tripId: 1, input: { place_id: 7, start_day_id: 3, end_day_id: 4 } }),
+      req('accommodations.update', { tripId: 1, accommodationId: 11, input: { start_day_id: 4 } }),
+      req('accommodations.delete', { tripId: 1, accommodationId: 11 }),
+    ]) {
+      const f = build({ stop: true });
+      await f.host().dispatch(request, 42);
+      expect(f.realtime.broadcast).toHaveBeenCalledWith(1, 'assignment:deleted', { assignmentId: 77, dayId: 3 });
+      expect(f.realtime.broadcast).toHaveBeenCalledWith(1, 'assignment:created', { assignment: { id: 78, day_id: 4 } });
+    }
   });
 
   it('BOOK-RPC-015d deleting a block without a partner cascades only its own event', async () => {

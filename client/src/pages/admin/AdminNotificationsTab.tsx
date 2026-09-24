@@ -57,7 +57,19 @@ export default function AdminNotificationsTab({ admin, t }: AdminNotificationsTa
   }
 
   return (<>
-    <div className="space-y-4">
+    {/* Two columns from xl up, the same shape as the Settings tab. Most of these
+        cards are a title with a switch on the far right, so on a wide screen the
+        middle stayed empty while the page still scrolled past the three tall ones.
+        Two explicit columns rather than a grid over the flat list: a plain grid
+        pairs cards row by row and leaves a hole under the shorter one, and the SMTP
+        card is taller than all the toggle rows together. Grouped by audience, not by
+        height — the channels a user can receive on the left, everything the operator
+        sends or receives themselves on the right. The three channel switches stay
+        together because they all write the same notification_channels list.
+        On a managed install the two admin-target cards are gone and the right column
+        is the matrix alone — still a column, so the grid keeps working. */}
+    <div className="grid grid-cols-1 gap-6 xl:grid-cols-2 xl:items-start">
+      <div className="space-y-6">
       {/* The relay is the operator's: their host, their credential, their sending
           reputation. An instance that could point it elsewhere would send under a
           domain it does not own. */}
@@ -87,9 +99,12 @@ export default function AdminNotificationsTab({ admin, t }: AdminNotificationsTa
           ].map(field => (
             <div key={field.key}>
               <label className="block text-xs font-medium text-slate-500 mb-1">{field.label}</label>
+              {/* A stored password comes back masked. Showing the mask as the VALUE meant
+                  typing a new one appended it to eight bullet characters and saved that,
+                  so the same treatment as the webhook URL below: mask as placeholder. */}
               <input
                 type={field.type || 'text'}
-                value={smtpValues[field.key] || ''}
+                value={smtpValues[field.key] === '••••••••' ? '' : smtpValues[field.key] || ''}
                 onChange={e => setSmtpValues(prev => ({ ...prev, [field.key]: e.target.value }))}
                 placeholder={field.placeholder}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-400 focus:border-transparent"
@@ -215,7 +230,9 @@ export default function AdminNotificationsTab({ admin, t }: AdminNotificationsTa
           </button>
         </div>
       </div>
+      </div>
 
+      <div className="space-y-6">
       {/* Admin alerts are about running the instance (version notices, and what else
           lands there later). On a managed install those go to whoever runs it. */}
       {!managed && (<>
@@ -372,9 +389,11 @@ export default function AdminNotificationsTab({ admin, t }: AdminNotificationsTa
       </div>
       </>)}
 
-    </div>
-    <div className="mt-6">
+      {/* The matrix decides which of those channels each admin-only event goes out
+          over, so it belongs under the targets it routes to rather than across the
+          full width below both columns. */}
       <AdminNotificationsPanel t={t} toast={toast} />
+      </div>
     </div>
   </>)
 }

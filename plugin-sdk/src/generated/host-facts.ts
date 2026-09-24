@@ -6,6 +6,7 @@ export const HOOK_PERMISSION: Readonly<Record<string, string>> = {
   photoProvider: 'hook:photo-provider',
   calendarSource: 'hook:calendar-source',
   placeDetailProvider: 'hook:place-detail-provider',
+  searchProvider: 'hook:search-provider',
   warningProvider: 'hook:trip-warning-provider',
   tableContributor: 'hook:table-contributor',
   mapMarkerProvider: 'hook:map-marker-provider',
@@ -18,6 +19,7 @@ export const HOOK_PERMISSION: Readonly<Record<string, string>> = {
   journalEntryProvider: 'hook:journal-entry-provider',
   tripCardProvider: 'hook:trip-card-provider',
   notificationChannel: 'hook:notification-channel',
+  mcpToolProvider: 'mcp:tools',
 };
 
 export const KNOWN_PERMISSIONS: string[] = [
@@ -64,6 +66,7 @@ export const KNOWN_PERMISSIONS: string[] = [
   'hook:photo-provider',
   'hook:calendar-source',
   'hook:place-detail-provider',
+  'hook:search-provider',
   'hook:trip-warning-provider',
   'hook:table-contributor',
   'hook:map-marker-provider',
@@ -84,6 +87,7 @@ export const KNOWN_PERMISSIONS: string[] = [
   'ai:invoke',
   'oauth:client',
   'geolocation:read',
+  'mcp:tools',
 ];
 
 export const METHOD_PERMISSION: Readonly<Record<string, string>> = {
@@ -155,6 +159,7 @@ export const METHOD_PERMISSION: Readonly<Record<string, string>> = {
   'vacay.toggleEntry': 'db:write:vacay',
   'vacay.toggleCompanyHoliday': 'db:write:vacay',
   'journal.createEntry': 'db:write:journal',
+  'journal.addEntryPhoto': 'db:write:journal',
   'journal.updateEntry': 'db:write:journal',
   'journal.deleteEntry': 'db:write:journal',
   'journal.createJourney': 'db:write:journal',
@@ -271,6 +276,7 @@ export const KNOWN_METHODS: string[] = [
   'journal.updateEntry',
   'journal.deleteEntry',
   'journal.createJourney',
+  'journal.addEntryPhoto',
   'journal.deleteJourney',
   'weather.get',
   'categories.list',

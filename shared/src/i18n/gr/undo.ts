@@ -19,6 +19,7 @@ const undo: TranslationStrings = {
   'undo.importNaverList': 'Εισαγωγή Naver Maps',
   'undo.addPlace': 'Η τοποθεσία προστέθηκε',
   'undo.done': 'Αναιρέθηκε: {action}',
+  'undo.failed': 'Η αναίρεση απέτυχε: {action}',
   'undo.importBooking': 'Εισαγωγή επιβεβαίωσης κράτησης',
 };
 export default undo;

@@ -3,14 +3,20 @@ import { createElement } from 'react'
 import { getCategoryIcon } from '../shared/categoryIcons'
 import { FileText, Info, Clock, MapPin, Navigation, Train, Plane, Bus, Car, Ship, Sailboat, Bike, CarTaxiFront, Route, Coffee, Ticket, Star, Heart, Camera, Flag, Lightbulb, AlertTriangle, ShoppingBag, Bookmark, Hotel, LogIn, LogOut, KeyRound, BedDouble, Utensils, Users, ParkingSquare, LucideIcon } from 'lucide-react'
 import { accommodationsApi, mapsApi, pluginsApi } from '../../api/client'
-import type { Trip, Day, Place, Category, AssignmentsMap, DayNote } from '../../types'
+import type { Trip, Day, Place, Category, AssignmentsMap, DayNote, DistanceUnit } from '../../types'
 import { isDayInAccommodationRange, getDayOrder } from '../../utils/dayOrder'
 import { hidesOnMiddleDay, getTransportForDay, getMergedItems, getSpanPhase, getDisplayTimeForDay } from '../../utils/dayMerge'
 import { safeHexColor } from '../../utils/safeColor'
 import { renderIconMarkup } from '../../utils/iconMarkup'
-import { formatMoney, formatMoneySum, splitReservationDateTime, type MoneyEntry } from '../../utils/formatters'
+import { formatMoney, formatMoneySum, formatClockTime, splitReservationDateTime, type MoneyEntry } from '../../utils/formatters'
+import { useSettingsStore } from '../../store/settingsStore'
+import { routeTrip, type TripRouteSummary } from '../Map/tripRouteGeometry'
+import { buildTripMapSvg } from './tripMapSvg'
+import { renderTripMapImage } from './tripMapImage'
+import { formatDistance } from '../../utils/units'
 import { fetchExchangeRates } from '../../hooks/useExchangeRates'
 import { getFlightLegs, getTrainLegs } from '../../utils/flightLegs'
+import { isServiceStopType } from '../Roadtrip/roadtripModel'
 
 /**
  * Every day starts a new page by default. On a trip of short days that prints
@@ -86,6 +92,14 @@ function escHtml(str) {
 // declaration. Percent-encoding is transparent to the fetch.
 function cssUrl(url) {
   return String(url).replace(/["'()\\\s]/g, c => '%' + c.codePointAt(0).toString(16).padStart(2, '0'))
+}
+
+// The day colours come from a fixed palette, but this is a style attribute being built
+// by string concatenation — the same place cssUrl exists for. Anything that is not a
+// plain hex triple is not a colour, and gets the route blue instead of a chance to
+// close the declaration.
+function hexColour(value) {
+  return /^#[0-9a-f]{6}$/i.test(String(value)) ? String(value) : '#0a84ff'
 }
 
 function absUrl(url) {
@@ -178,24 +192,129 @@ interface downloadTripPDFProps {
   reservations?: any[]
   t: (key: string, params?: Record<string, string | number>) => string
   locale: string
+  /**
+   * '12h' | '24h'. The document is a plain HTML string assembled outside React,
+   * so the setting cannot be read with a hook in here — it comes over the same
+   * way `locale` does (#2066).
+   */
+  timeFormat?: string
+  /** 'metric' | 'imperial'. Same reasoning as `timeFormat` — read as a prop, not a hook. */
+  distanceUnit?: string
+  /**
+   * The road trip setting "Show in Days too" (`roadtrip_service_stops_in_days`), read as a
+   * prop for the same reason. Off, the day plan keeps petrol stations and rest areas to
+   * the road trip view, and so does the print.
+   */
+  showServiceStops?: boolean
 }
 
-// `assignments` is normalised here once — every read below (and fetchPlacePhotos)
-// relies on it being an object.
-export async function downloadTripPDF({ trip, days, places, assignments = {}, categories, dayNotes, reservations = [], t: _t, locale: _locale }: downloadTripPDFProps) {
+/**
+ * The stops the day plan lists, out of everything the store holds for the trip.
+ *
+ * The stop a booked night wrote onto its check-in day is out whatever the switch says:
+ * the day already shows that booking as its accommodation block, and the row would be
+ * the same hotel a second time. The service stops go with the setting. One predicate
+ * for the whole document, so the day lists, the route map, the cover's planned count
+ * and every cost total agree with the plan and with each other, whichever shell asked.
+ */
+function planAssignments(assignments: AssignmentsMap, showServiceStops: boolean): AssignmentsMap {
+  return Object.fromEntries(Object.entries(assignments).map(([dayId, list]) => [
+    dayId,
+    (list || []).filter(a => a.accommodation_id == null && (showServiceStops || !isServiceStopType(a.place?.stop_type))),
+  ]))
+}
+
+// `assignments` is normalised here once, to the plan's own list; every read below
+// (and fetchPlacePhotos) relies on it being an object.
+export async function downloadTripPDF({ trip, days, places, assignments: stored = {}, categories, dayNotes, reservations = [], t: _t, locale: _locale, timeFormat: _timeFormat, distanceUnit: _distanceUnit, showServiceStops = true }: downloadTripPDFProps) {
+  const assignments = planAssignments(stored, showServiceStops)
   const breaksPerDay = pageBreakPerDay()
   const loc = _locale || undefined
   const tr = _t || (k => k)
+  // The store read is the fallback, not the source: a caller that forgets the
+  // prop still prints the reader's own format instead of silently reverting.
+  const is12h = (_timeFormat || useSettingsStore.getState().settings.time_format || '24h') === '12h'
+  const fmtTime = (v?: string | null) => formatClockTime(v, is12h)
   const sorted = [...(days || [])].sort((a, b) => a.day_number - b.day_number)
   const range = longDateRange(sorted, loc)
   const coverImg = safeImg(trip?.cover_image)
   //retrieve accommodations for the trip to display on the day sections and prefetch their photos if needed
   const accommodations = await accommodationsApi.list(trip.id);
+  // The endpoint answers `{ accommodations: [...] }`, not a bare array. Unwrapped once
+  // here so every reader below gets the list itself — passing the envelope on is what
+  // cost the route map its hotel legs, and silently (#1736).
+  const accommodationList = Array.isArray(accommodations?.accommodations) ? accommodations.accommodations : []
 
   // Sections contributed by pdfSectionProvider plugins — server-normalized plain
   // text (counts + lengths capped), appended after the days. Fail-safe: an error
   // just means no extra sections, the core export is untouched.
   const pluginSections = await pluginsApi.pdfSections(trip.id).then(r => r.sections || []).catch(() => [])
+
+  // The trip's route as one map (#1736), drawn from the same builder the planner map
+  // uses so the document and the screen agree. Fail-safe and time-boxed: whatever the
+  // router answered inside the budget is drawn, the rest stay straight lines, and any
+  // failure at all simply means no map rather than no PDF.
+  const unit: DistanceUnit = (_distanceUnit || useSettingsStore.getState().settings.distance_unit) === 'imperial'
+    ? 'imperial' : 'metric'
+  let tripRoute: TripRouteSummary | null = null
+  try {
+    tripRoute = await routeTrip(
+      {
+        days: sorted,
+        assignments,
+        reservations,
+        accommodations: accommodationList,
+        optimizeFromAccommodation: useSettingsStore.getState().settings.optimize_from_accommodation,
+      },
+      { profile: 'driving', tripId: trip.id, timeoutMs: 8000 },
+    )
+  } catch (err) {
+    // Logged rather than swallowed: a map that is silently absent looks exactly like a
+    // trip that has no route, and the two need different answers from whoever is
+    // looking. The export itself carries on — the itinerary matters more than the map.
+    console.warn('[tripPdfMap] routing the trip failed; the export continues without a map', err)
+  }
+  // A real basemap first — at city scale the bundled outlines are a country-sized
+  // blank, and only streets carry context that small. The outline map is what is left
+  // when there is no WebGL, no network, or a style that will not load.
+  const mapFrame = { width: 720, height: 420, formatDistance: (km: number) => formatDistance(km, unit) }
+  const tripMapSvg = tripRoute
+    ? (await renderTripMapImage(tripRoute.days, {
+      ...mapFrame,
+      style: useSettingsStore.getState().settings.maplibre_style,
+    })) ?? buildTripMapSvg(tripRoute.days, mapFrame)
+    : null
+  // The other way to end up mapless, and the one that is not a failure: nothing in the
+  // trip routed. Only worth saying when there were stops to route — a trip nobody has
+  // planned yet is meant to print without a map.
+  if (tripRoute && !tripMapSvg && Object.values(assignments).some(list => list?.length)) {
+    console.warn(
+      `[tripPdfMap] no map drawn: ${tripRoute.days.length} of ${sorted.length} day(s) produced a route.`
+      + ' A day needs two located stops, or one located stop with an accommodation either side of it.',
+    )
+  }
+  const totalDistanceLabel = tripRoute && tripRoute.totalDistance > 0
+    ? formatDistance(tripRoute.totalDistance / 1000, unit)
+    : null
+  // Each day named and coloured exactly as the legend on the planner map, so the two
+  // read as the same picture. Days that routed to nothing are already out of `days`.
+  const tripMapHtml = tripMapSvg ? `
+<div class="trip-map">
+  <div class="trip-map-head">
+    <span class="trip-map-title">${escHtml(tr('pdf.mapTitle'))}</span>
+    ${totalDistanceLabel ? `<span class="trip-map-total">${escHtml(tr('pdf.distanceLabel'))}: ${escHtml(totalDistanceLabel)}</span>` : ''}
+  </div>
+  ${tripMapSvg}
+  <div class="trip-map-legend">
+    ${tripRoute.days.filter(d => d.lines.length).map(d => `<span class="trip-map-leg">
+      <span class="trip-map-dot" style="background:${hexColour(d.color.line)}"></span>
+      ${escHtml(d.title || tr('dayplan.dayN', { n: d.dayNumber }))}
+      <span class="trip-map-leg-dist">${escHtml(formatDistance(d.distance / 1000, unit))}</span>
+    </span>`).join('')}
+  </div>
+  <div class="trip-map-credit">${escHtml(tr('pdf.mapCredit'))}</div>
+</div>` : ''
+
 
   // Pre-fetch place photos (Google, OSM and coords-only places)
   const photoMap = await fetchPlacePhotos(assignments, places)
@@ -212,7 +331,7 @@ export async function downloadTripPDF({ trip, days, places, assignments = {}, ca
   const allCostEntries: MoneyEntry[] = Object.values(assignments)
     .flatMap(a => a)
     .map(a => ({ amount: Number(a.place?.price) || 0, currency: a.place?.currency || tripCur }))
-  const needsFx = allCostEntries.some(e => e.amount > 0 && e.currency.toUpperCase() !== tripCur)
+  const needsFx = allCostEntries.some(e => e.amount !== 0 && e.currency.toUpperCase() !== tripCur)
   const fxRates = needsFx ? await fetchExchangeRates(tripCur) : null
   const totalCostLabel = formatMoneySum(allCostEntries, tripCur, loc || 'en', fxRates)
 
@@ -240,8 +359,11 @@ export async function downloadTripPDF({ trip, days, places, assignments = {}, ca
   }
   // Build day HTML
   const daysHtml = sorted.map((day, di) => {
-    const assigned = (assignments[String(day.id)] || []).slice()
-      .sort((a: any, b: any) => (a.order_index ?? 0) - (b.order_index ?? 0))
+    // What the plan lists (planAssignments): the stop a booked night wrote sat at the
+    // head of its day, so the hotel printed above a morning flight (#2434).
+    const assigned = (assignments[String(day.id)] || [])
+      .slice()
+      .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
     const notes = (dayNotes || []).filter(n => n.day_id === day.id).slice()
       .sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
     const cost = dayCost(assignments, day.id, loc, tripCur, fxRates)
@@ -342,6 +464,22 @@ export async function downloadTripPDF({ trip, days, places, assignments = {}, ca
                 subtitle = [meta.train_number, meta.platform ? `Gl. ${meta.platform}` : '', meta.seat ? `Seat ${meta.seat}` : '', route].filter(Boolean).join(' · ')
               }
             }
+            else if (r.type === 'car') {
+              // A rental with stops is a drive, and the printout is what people take
+              // into the car (#1797). Without this the route reads as pick-up and return
+              // with everything in between missing.
+              //
+              // Consecutive repeats collapse, and a chain that names one place only is
+              // dropped: the ordinary rental is picked up and returned at the same desk,
+              // which satisfies "two endpoints" and would otherwise print the counter's
+              // name twice with an arrow between. A genuine round trip keeps both ends,
+              // because Dresden sits between them.
+              const stops = (r.endpoints || []).slice()
+                .sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0))
+                .map(e => e.name)
+                .filter((name, i, all) => name && name !== all[i - 1])
+              subtitle = new Set(stops).size >= 2 ? stops.join(' → ') : ''
+            }
             else if (r.type === 'restaurant') subtitle = [meta.party_size ? `${meta.party_size} guests` : ''].filter(Boolean).join(' · ')
             else if (r.type === 'event') subtitle = [meta.venue].filter(Boolean).join(' · ')
             else if (r.type === 'tour') subtitle = [meta.operator].filter(Boolean).join(' · ')
@@ -358,8 +496,8 @@ export async function downloadTripPDF({ trip, days, places, assignments = {}, ca
             // span the arrival belongs to the arrival day, which already shows
             // it as its own time, and repeating it here would put tomorrow's
             // clock next to today's departure.
-            const startTime = splitReservationDateTime(displayTime).time ?? ''
-            const endTime = phase === 'single' ? (splitReservationDateTime(r.reservation_end_time).time ?? '') : ''
+            const startTime = fmtTime(splitReservationDateTime(displayTime).time)
+            const endTime = phase === 'single' ? fmtTime(splitReservationDateTime(r.reservation_end_time).time) : ''
             const time = [startTime, endTime].filter(Boolean).join(' – ')
             const titleHtml = `${spanLabel ? escHtml(spanLabel) + ': ' : ''}${escHtml(r.title)}`
             return `
@@ -412,7 +550,7 @@ export async function downloadTripPDF({ trip, days, places, assignments = {}, ca
                </div>`
 
           const chips = [
-            place.place_time ? `<span class="chip">${svgClock}${escHtml(place.place_time)}</span>` : '',
+            place.place_time ? `<span class="chip">${svgClock}${escHtml(fmtTime(place.place_time))}</span>` : '',
             place.price && Number.parseFloat(place.price) > 0 ? `<span class="chip chip-green">${svgMoney}${formatMoney(Number(place.price), place.currency || trip.currency, loc)}</span>` : '',
           ].filter(Boolean).join('')
 
@@ -431,11 +569,12 @@ export async function downloadTripPDF({ trip, days, places, assignments = {}, ca
                 ${place.description ? `<div class="info-row"><span class="info-spacer"></span><span class="info-text muted italic">${escHtml(place.description)}</span></div>` : ''}
                 ${chips ? `<div class="chips">${chips}</div>` : ''}
                 ${place.notes ? `<div class="info-row"><span class="info-spacer"></span><span class="info-text muted italic">${escHtml(place.notes)}</span></div>` : ''}
+                ${item.data.notes ? `<div class="info-row"><span class="info-spacer"></span><span class="info-text muted italic">${escHtml(item.data.notes)}</span></div>` : ''}
               </div>
             </div>`
       }).join('')
 
-    const accommodationsForDay = (accommodations.accommodations || []).filter(a =>
+    const accommodationsForDay = accommodationList.filter(a =>
       day ? isDayInAccommodationRange(day, a.start_day_id, a.end_day_id, days) : false
     ).sort((a, b) => {
       const startA = days.find(d => d.id === a.start_day_id)
@@ -452,8 +591,8 @@ export async function downloadTripPDF({ trip, days, places, assignments = {}, ca
       const actionIcon = isCheckIn ? accommodationIconSvg('checkin')
         : isCheckOut ? accommodationIconSvg('checkout')
         : accommodationIconSvg('accommodation')
-      const timeStr = isCheckIn ? (item.check_in || '')
-        : isCheckOut ? (item.check_out || '')
+      const timeStr = isCheckIn ? fmtTime(item.check_in)
+        : isCheckOut ? fmtTime(item.check_out)
         : ''
 
       return `
@@ -575,6 +714,19 @@ export async function downloadTripPDF({ trip, days, places, assignments = {}, ca
   .cover-stats { display: flex; gap: 36px; }
   .cover-stat-num { font-size: 28px; font-weight: 700; color: #fff; line-height: 1; }
   .cover-stat-lbl { font-size: 9px; font-weight: 500; color: rgba(255,255,255,0.4); letter-spacing: 1px; margin-top: 4px; text-transform: uppercase; }
+
+  /* ── Trip map ──────────────────────────────────── */
+  .trip-map { padding: 26px 30px 20px; page-break-after: always; page-break-inside: avoid; }
+  .pdf-flow .trip-map { page-break-after: auto; }
+  .trip-map-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
+  .trip-map-title { font-size: 11px; font-weight: 600; letter-spacing: 1.4px; text-transform: uppercase; color: #64748b; }
+  .trip-map-total { font-size: 12px; font-weight: 600; color: #334155; }
+  .trip-map-svg { width: 100%; height: auto; border-radius: 8px; border: 1px solid #e2e8f0; display: block; }
+  .trip-map-legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 12px; }
+  .trip-map-leg { display: flex; align-items: center; gap: 6px; font-size: 9px; color: #475569; }
+  .trip-map-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .trip-map-leg-dist { color: #94a3b8; }
+  .trip-map-credit { font-size: 7.5px; color: #94a3b8; margin-top: 10px; }
 
   /* ── Day ───────────────────────────────────────── */
   /* .day-section is a real <table>; its <thead> day header repeats on overflow pages. */
@@ -735,6 +887,10 @@ export async function downloadTripPDF({ trip, days, places, assignments = {}, ca
         <div class="cover-stat-num">${totalAssigned}</div>
         <div class="cover-stat-lbl">${escHtml(tr('pdf.planned'))}</div>
       </div>
+      ${totalDistanceLabel ? `<div>
+        <div class="cover-stat-num">${escHtml(totalDistanceLabel)}</div>
+        <div class="cover-stat-lbl">${escHtml(tr('pdf.distanceLabel'))}</div>
+      </div>` : ''}
       ${totalCostLabel ? `<div>
         <div class="cover-stat-num">${totalCostLabel}</div>
         <div class="cover-stat-lbl">${escHtml(tr('pdf.costLabel'))}</div>
@@ -742,6 +898,9 @@ export async function downloadTripPDF({ trip, days, places, assignments = {}, ca
     </div>
   </div>
 </div>
+
+<!-- Trip map -->
+${tripMapHtml}
 
 <!-- Days -->
 ${daysHtml}

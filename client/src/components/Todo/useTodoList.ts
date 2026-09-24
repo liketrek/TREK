@@ -45,6 +45,7 @@ export function useTodoList(tripId: number, items: TodoItem[], addItemSignal: nu
     lastHandledAddSignal.current = addItemSignal
   }, [addItemSignal])
   const [sortByPrio, setSortByPrio] = useState(false)
+  const [sortByDue, setSortByDue] = useState(false)
   const [addingCategory, setAddingCategory] = useState(false)
   const [newCategoryName, setNewCategoryName] = useState('')
   const [members, setMembers] = useState<Member[]>([])
@@ -86,8 +87,15 @@ export function useTodoList(tripId: number, items: TodoItem[], addItemSignal: nu
       const bp = b.priority || 99
       return ap - bp
     })
+    // Nearest deadline first, undated tasks after all dated ones; ties keep the
+    // manual order, the stable sort leaves them untouched (#2205).
+    else if (sortByDue) result = [...result].sort((a, b) => {
+      if (!a.due_date) return b.due_date ? 1 : 0
+      if (!b.due_date) return -1
+      return a.due_date < b.due_date ? -1 : a.due_date > b.due_date ? 1 : 0
+    })
     return result
-  }, [items, filter, currentUserId, today, sortByPrio])
+  }, [items, filter, currentUserId, today, sortByPrio, sortByDue])
 
   const selectedItem = items.find(i => i.id === selectedId) || null
   const totalCount = items.length
@@ -109,7 +117,7 @@ export function useTodoList(tripId: number, items: TodoItem[], addItemSignal: nu
   return {
     canEdit, t, formatDate, toggleTodoItem, reorderTodoItems,
     isMobile, filter, setFilter, selectedId, setSelectedId,
-    isAddingNew, setIsAddingNew, sortByPrio, setSortByPrio,
+    isAddingNew, setIsAddingNew, sortByPrio, setSortByPrio, sortByDue, setSortByDue,
     addingCategory, setAddingCategory, newCategoryName, setNewCategoryName,
     members, categories, today, filtered, selectedItem,
     totalCount, doneCount, overdueCount, myCount,

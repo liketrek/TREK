@@ -16,6 +16,7 @@ function makeService(overrides: Partial<ReservationsService> = {}): Reservations
     verifyTripAccess: vi.fn().mockReturnValue(trip),
     canEdit: vi.fn().mockReturnValue(true),
     referencesOutsideTrip: vi.fn().mockReturnValue([]),
+    unresolvedReferences: vi.fn().mockReturnValue([]),
     broadcast: vi.fn(),
     syncBudgetOnCreate: vi.fn(),
     syncBudgetOnUpdate: vi.fn(),
@@ -68,6 +69,30 @@ describe('ReservationsController (parity with the legacy /api/trips/:tripId/rese
         .toEqual({ status: 400, body: { error: 'Not part of this trip: accommodation_id' } });
       expect(create).not.toHaveBeenCalled();
     });
+
+    it('400s on a body id that exists nowhere, in its own words, without writing', () => {
+      const create = vi.fn();
+      const svc = makeService({
+        create,
+        unresolvedReferences: vi.fn().mockReturnValue(['place_id']),
+      } as Partial<ReservationsService>);
+      const body = { title: 'Hotel', place_id: 4711 };
+      // Not 'Not part of this trip': an id that is part of nothing would send
+      // the caller looking for it on another trip.
+      expect(thrown(() => new ReservationsController(svc, airtrailLink).create(user, '5', body)))
+        .toEqual({ status: 400, body: { error: 'Unknown reference: place_id' } });
+      expect(create).not.toHaveBeenCalled();
+    });
+
+    it('answers a foreign id with the older message when it is both', () => {
+      const svc = makeService({
+        create: vi.fn(),
+        referencesOutsideTrip: vi.fn().mockReturnValue(['place_id']),
+        unresolvedReferences: vi.fn().mockReturnValue(['place_id']),
+      } as Partial<ReservationsService>);
+      expect(thrown(() => new ReservationsController(svc, airtrailLink).create(user, '5', { title: 'Hotel', place_id: 4711 })))
+        .toEqual({ status: 400, body: { error: 'Not part of this trip: place_id' } });
+    });
   });
 
   describe('PUT /positions', () => {
@@ -110,6 +135,20 @@ describe('ReservationsController (parity with the legacy /api/trips/:tripId/rese
       } as Partial<ReservationsService>);
       expect(thrown(() => new ReservationsController(svc, airtrailLink).update(user, '5', '9', { day_id: 1, place_id: 2 })))
         .toEqual({ status: 400, body: { error: 'Not part of this trip: day_id, place_id' } });
+      expect(update).not.toHaveBeenCalled();
+    });
+
+    it('400s on a body id that exists nowhere, without writing', () => {
+      const update = vi.fn();
+      const svc = makeService({
+        getReservation: vi.fn().mockReturnValue({ title: 'Old', type: 'lodging' }),
+        update,
+        unresolvedReferences: vi.fn().mockReturnValue(['day_id', 'place_id']),
+      } as Partial<ReservationsService>);
+      // The reporter's request: a foreign-key error used to reach the caller as
+      // a bare 500 here.
+      expect(thrown(() => new ReservationsController(svc, airtrailLink).update(user, '5', '9', { day_id: 1, place_id: 2 })))
+        .toEqual({ status: 400, body: { error: 'Unknown reference: day_id, place_id' } });
       expect(update).not.toHaveBeenCalled();
     });
   });

@@ -1,3 +1,4 @@
+import { schoolHolidayCatalogRepo } from '../../repo/schoolHolidayCatalogRepo'
 import apiClient from '../../api/client'
 import { useSettingsStore } from '../../store/settingsStore'
 import { SCHOOL_HOLIDAY_COUNTRY_CONFIG } from '../../vacay/schoolHolidayCountries'
@@ -77,23 +78,32 @@ function activeLanguage(): string {
 
 export async function fetchSchoolHolidayRegionOptions(country: string, lang = activeLanguage()): Promise<{ value: string; label: string }[]> {
   const config = SCHOOL_HOLIDAY_COUNTRY_CONFIG[country]
-  if (!config || config.strategy === 'country') return []
+  const catalog = await schoolHolidayCatalogRepo.catalog().catch(error => {
+    if (!config) throw error
+    return { countries: [], regions: [] }
+  })
+  const manual = catalog.regions.filter(region => region.country === country).map(region => ({ value: region.code, label: region.name }))
+  if (!config) return manual
+  if (config.strategy === 'country') {
+    return manual.length ? [{ value: country, label: country }, ...manual] : []
+  }
 
   try {
     const r = await apiClient.get(`/addons/vacay/school-holidays/regions/${country}`)
     if (config.strategy === 'groups') {
-      return flattenOptions(r.data.groups, lang)
+      return [...manual, ...flattenOptions(r.data.groups, lang)
         .map(opt => ({
           value: `${country}|group:${opt.value}`,
           label: opt.label,
-        }))
+        }))]
         .sort((a, b) => a.label.localeCompare(b.label))
     }
 
-    return flattenOptions(r.data.subdivisions, lang)
-      .map(opt => ({ value: opt.value, label: opt.label }))
+    return [...manual, ...flattenOptions(r.data.subdivisions, lang)
+      .map(opt => ({ value: opt.value, label: opt.label }))]
       .sort((a, b) => a.label.localeCompare(b.label))
   } catch {
-    return []
+    if (manual.length) return manual
+    throw new Error('School holiday regions could not be loaded')
   }
 }

@@ -11,10 +11,14 @@ import { CustomDatePicker } from '../../../components/shared/CustomDateTimePicke
 import CustomSelect from '../../../components/shared/CustomSelect'
 import { currenciesWith, SYMBOLS } from '../../../components/Budget/BudgetPanel.constants'
 import type { DashboardTrip } from '../../../pages/dashboard/dashboardModel'
-import type { Trip, TripCreateRequest } from '@trek/shared'
+import { MAX_TRIP_DAYS, tripSpanDays, type Trip, type TripCreateRequest } from '@trek/shared'
 import MSheet from '../../components/MSheet'
 import MIconBtn from '../../components/MIconBtn'
 import MListRow from '../../components/MListRow'
+import MDayImpactList from '../../components/MDayImpactList'
+import MConfirmSheet from '../settings/MConfirmSheet'
+import { useTripRangeGuard, type RangeRemoval } from '../../../hooks/useTripRangeGuard'
+import { dayChips, shrinkTripLines } from '../../../utils/dayImpactLines'
 
 interface CoverSearchPhoto {
   id: string
@@ -72,6 +76,11 @@ export default function MNewTripSheet({ open, trip, onClose, onSave, onCoverUpda
   const [searchResults, setSearchResults] = useState<CoverSearchPhoto[]>([])
   const [searchError, setSearchError] = useState('')
   const [searching, setSearching] = useState(false)
+  // A save whose new dates remove days with something on them, held until the
+  // traveller confirms. The phone has no shift step, so bookings keep their dates.
+  const [pendingRemoval, setPendingRemoval] = useState<{ payload: TripCreateRequest; removal: RangeRemoval | 'unknown' } | null>(null)
+  const rangeGuard = useTripRangeGuard()
+  const busy = isSaving || rangeGuard.checking
 
   useEffect(() => {
     if (!open) return
@@ -87,6 +96,7 @@ export default function MNewTripSheet({ open, trip, onClose, onSave, onCoverUpda
     setSearchResults([])
     setSearchError('')
     setError('')
+    setPendingRemoval(null)
   }, [trip, open])
 
   // The local file preview is a blob url; release it once a new cover replaces it
@@ -109,22 +119,40 @@ export default function MNewTripSheet({ open, trip, onClose, onSave, onCoverUpda
     setStartDate(value)
   }
 
-  const handleSave = async () => {
+  /** The payload the form stands for, or null after putting the reason on screen. */
+  const validPayload = (): TripCreateRequest | null => {
     setError('')
-    if (!title.trim()) { setError(t('dashboard.titleRequired')); return }
-    if (startDate && endDate && new Date(endDate) < new Date(startDate)) {
-      setError(t('dashboard.endDateError')); return
+    if (!title.trim()) { setError(t('dashboard.titleRequired')); return null }
+    if (startDate && endDate) {
+      const span = tripSpanDays(startDate, endDate)
+      if (span < 1) { setError(t('dashboard.endDateError')); return null }
+      const datesTouched = !trip || startDate !== (trip.start_date || '') || endDate !== (trip.end_date || '')
+      if (datesTouched && span > MAX_TRIP_DAYS) { setError(t('dashboard.tripTooLong', { days: MAX_TRIP_DAYS })); return null }
     }
+    return {
+      title: title.trim(),
+      description: description.trim() || null,
+      start_date: startDate || null,
+      end_date: endDate || null,
+      currency,
+      ...(!startDate && !endDate && !isEditing ? { day_count: 7 } : {}),
+    }
+  }
+
+  const handleSave = async () => {
+    const payload = validPayload()
+    if (!payload) return
+    // New dates that remove days with something on them ask first, the same
+    // question the desktop dialog asks, with the same list.
+    const removal = isEditing && trip ? await rangeGuard.check(trip, payload) : null
+    if (removal) { setPendingRemoval({ payload, removal }); return }
+    await save(payload)
+  }
+
+  const save = async (payload: TripCreateRequest) => {
     setIsSaving(true)
     try {
-      const result = await onSave({
-        title: title.trim(),
-        description: description.trim() || null,
-        start_date: startDate || null,
-        end_date: endDate || null,
-        currency,
-        ...(!startDate && !endDate && !isEditing ? { day_count: 7 } : {}),
-      })
+      const result = await onSave(payload)
       const created = result ? result.trip : undefined
       if (pendingCoverFile && created?.id) {
         try {
@@ -238,7 +266,10 @@ export default function MNewTripSheet({ open, trip, onClose, onSave, onCoverUpda
   const boxCls = 'rounded-[14px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] p-[11px_12px]'
   const inputCls = 'w-full border-none bg-transparent pt-[2px] font-[inherit] text-[0.9375rem] font-semibold text-m-ink outline-none placeholder:text-m-faint'
 
+  const removalList = pendingRemoval && pendingRemoval.removal !== 'unknown' ? pendingRemoval.removal : null
+
   return (
+    <>
     <MSheet open={open} onClose={onClose} variant="card" material="opaque" ariaLabel={isEditing ? t('dashboard.editTrip') : t('dashboard.createTrip')}>
       <div className="flex items-center gap-[11px] p-[16px_16px_0]">
         <div className="min-w-0 flex-1 truncate text-[1.0625rem] font-bold">
@@ -430,12 +461,39 @@ export default function MNewTripSheet({ open, trip, onClose, onSave, onCoverUpda
         <button
           type="button"
           onClick={handleSave}
-          disabled={isSaving}
+          disabled={busy}
           className="flex-1 rounded-full bg-m-act py-[10px] text-[0.8125rem] font-semibold text-m-actfg disabled:opacity-50"
         >
-          {isSaving ? t('common.saving') : isEditing ? t('common.update') : t('dashboard.createTrip')}
+          {busy ? t('common.saving') : isEditing ? t('common.update') : t('dashboard.createTrip')}
         </button>
       </div>
     </MSheet>
+
+    {/* After the sheet, so it opens on top of it. */}
+    <MConfirmSheet
+      open={pendingRemoval != null}
+      onClose={() => setPendingRemoval(null)}
+      title={t('dashboard.shrinkTitle')}
+      message={t(removalList ? 'dashboard.shrinkIntro' : 'dashboard.shrinkUnknown')}
+      confirmLabel={t('dashboard.shrinkConfirm')}
+      cancelLabel={t('common.cancel')}
+      danger
+      busy={isSaving}
+      onConfirm={() => {
+        if (!pendingRemoval) return
+        const { payload } = pendingRemoval
+        setPendingRemoval(null)
+        void save(payload)
+      }}
+    >
+      {removalList && (
+        <MDayImpactList
+          lines={shrinkTripLines(removalList, t)}
+          days={dayChips(removalList.dayLabels, t)}
+          label={t('dashboard.shrinkTitle')}
+        />
+      )}
+    </MConfirmSheet>
+    </>
   )
 }

@@ -18,9 +18,10 @@
  * existing `nuExtractToKiReservations` mapper, so nothing downstream changes.
  */
 
+import { normalizeLocalDateTime, parseMeridiemClock } from '@trek/shared';
 import type { KiReservation } from '../../booking-import/kitinerary.types';
 import { nuExtractToKiReservations } from '../clients/nuextract';
-import { FLAT_SCHEMA_BY_TYPE, FLIGHTS_ARRAY_SCHEMA, UNION_SINGLE_SCHEMA, type FlatType, type FlatLike } from './flat-schemas';
+import { FLAT_SCHEMA_BY_TYPE, FLAT_TYPES, FLIGHTS_ARRAY_SCHEMA, UNION_SINGLE_SCHEMA, type FlatType, type FlatLike } from './flat-schemas';
 import { extractEnforced } from './ollama-format.client';
 
 export interface RouterContext {
@@ -38,22 +39,37 @@ const TYPE_HINT: Record<FlatType, string> = {
   train: 'train. from_name/to_name = stations, vehicle_number = train number, times = full ISO, price/currency = total fare.',
   bus: 'bus. from_name/to_name = stops, times = full ISO, price/currency = total fare.',
   ferry: 'ferry/cruise. from_name/to_name = terminals/ports, times = full ISO, price/currency = total fare.',
-  car: 'rental car. operator = the rental company, from_name = pick-up location, to_name = return location (may differ), departure_time = pick-up, arrival_time = return, price/currency = total rental cost.',
+  car: 'rental car. operator = the rental company, from_name = pick-up location, to_name = return location (may differ), departure_time = pick-up, arrival_time = return, times = full ISO (24-hour), price/currency = total rental cost.',
   hotel: 'hotel stay. name = hotel name, address = the hotel street address, checkin_time/checkout_time = full ISO date-time, price/currency = total paid.',
-  restaurant: 'restaurant booking. name = the restaurant, address = its street address, start_time = the reservation date-time, price/currency = total if shown.',
+  restaurant: 'restaurant booking. name = the restaurant, address = its street address, start_time = the reservation date-time as full ISO (24-hour), price/currency = total if shown.',
   event: 'event/attraction. name = the event/ticket, address = the venue, start_time/end_time = full ISO, price/currency = ticket price.',
 };
 
-/** Keyword → reservation type, so an obvious document skips the costlier union/strong path. */
+/**
+ * Keyword → reservation type, so an obvious document skips the costlier union/strong path.
+ *
+ * Order is the whole rule: the first pattern that matches wins. Lodging used to be
+ * tested second, on a group that included "check-in"/"check-out" — words printed on
+ * nearly every ferry, train and bus ticket there is — so a ferry ticket came back as
+ * a hotel and the user was handed a booking form with no transport type on it
+ * (#2076). Transport is tested first now, and the lodging pattern asks for a word
+ * that actually names lodging.
+ *
+ * "pick-up"/"drop-off" are gone from the rental pattern for the same reason: they
+ * appear on ferry, bus and airport-transfer vouchers. A rental names its rental.
+ */
 const TYPE_KEYWORDS: [FlatType, RegExp][] = [
-  ['car', /\b(sixt|europcar|hertz|avis|enterprise|mietwagen|rental\s*car|autovermietung|anmietung|r(?:ü|ue)ckgabe|pick-?up|drop-?off)\b/i],
-  ['hotel', /\b(hotel|check-?in|check-?out|(?:ü|ue)bernachtung|zimmer|room\s*night|lodging|airbnb|b&b|hostel|pension)\b/i],
   ['train', /\b(deutsche\s*bahn|bahn|train|railway|\bice\b|\bzug\b|gleis|sncf|trenitalia|renfe)\b/i],
   ['bus', /\b(flixbus|\bbus\b|coach|omnibus)\b/i],
-  ['ferry', /\b(f(?:ä|ae)hre|ferry|cruise|kreuzfahrt)\b/i],
+  ['ferry', /\b(f(?:ä|ae)hre|ferry|cruise|kreuzfahrt|einschiffung)\b/i],
+  ['car', /\b(sixt|europcar|hertz|avis|enterprise|mietwagen|rental\s*car|autovermietung|anmietung)\b/i],
+  ['hotel', /\b(hotel|(?:ü|ue)bernachtung|zimmer|room\s*night|lodging|airbnb|b&b|hostel|pension)\b/i],
   ['restaurant', /\b(restaurant|\btisch\b|table\s*for|men(?:ü|u)|gedeck)\b/i],
   ['event', /\b(ticket|concert|konzert|veranstaltung|eintritt|admission)\b/i],
 ];
+
+/** The transport half of the table, for the flight gate below. */
+const TRANSPORT_FLAT_TYPES = new Set<FlatType>(['train', 'bus', 'ferry', 'car']);
 
 function detectType(text: string): FlatType | null {
   for (const [type, re] of TYPE_KEYWORDS) if (re.test(text)) return type;
@@ -135,11 +151,16 @@ export function extractTotalPrice(text: string): { price: string; currency?: str
  */
 export function fixArrivalDate(flat: FlatLike): FlatLike {
   if (!TRANSPORT_TYPES.includes(flat.type)) return flat;
-  const dep = /(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/.exec(String(flat.departure_time ?? ''));
-  const arr = /(\d{2}:\d{2})/.exec(String(flat.arrival_time ?? ''));
-  if (!dep || !arr) return flat;
+  const dep = /(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/.exec(normalizeLocalDateTime(String(flat.departure_time ?? '')));
+  // The arrival reaches us either as a bare clock ("13:00", "01:11 pm") or as a
+  // full date-time, so try the bare form first and fall back to the normalized
+  // string. Reading it with a plain /(\d{2}:\d{2})/ used to throw a trailing
+  // "PM" away, and the comparison below is lexicographic: "01:11" sorts before
+  // a 09:51 departure, so a short hop was rolled onto the next day (#2094).
+  const rawArr = String(flat.arrival_time ?? '').trim();
+  const arrTime = parseMeridiemClock(rawArr) ?? /(\d{2}:\d{2})/.exec(normalizeLocalDateTime(rawArr))?.[1];
+  if (!dep || !arrTime) return flat;
   const [, depDate, depTime] = dep;
-  const arrTime = arr[1];
   const d = new Date(`${depDate}T00:00:00Z`);
   if (arrTime < depTime) d.setUTCDate(d.getUTCDate() + 1);
   flat.arrival_time = `${d.toISOString().slice(0, 10)}T${arrTime}:00`;
@@ -152,16 +173,25 @@ const DATE_FIELDS = ['departure_time', 'arrival_time', 'checkin_time', 'checkout
  * Coerce a date value to ISO 8601. Models occasionally ignore the format instruction and
  * emit a natural-language date ("Aug 23 2025 13:30"), which the downstream `splitIso` then
  * slices into garbage ("Aug 23 202"). Keep already-ISO values untouched; otherwise parse and
- * reformat. (The server runs in UTC, so the components line up.)
+ * reformat.
+ *
+ * These fields are naive local wall-clock strings everywhere else in TREK, so the components
+ * are read back locally. Reading with Date.parse and printing with getUTC* used to shift every
+ * such value by the container's UTC offset, which docker-compose sets from TZ and documents
+ * with Europe/Berlin. That is why a rental car came back off by the offset rather than by
+ * twelve hours: only `car` and `restaurant` lack the full-ISO instruction in TYPE_HINT, so
+ * only they reach this parse at all (#2094).
  */
 function toIso(value: unknown): unknown {
   if (typeof value !== 'string' || !value.trim()) return value;
-  if (/^\d{4}-\d{2}-\d{2}/.test(value)) return value;
+  // An ISO date with a printed meridiem behind it ("2026-06-11T02:30 PM") is not
+  // already ISO, it only looks like it. Resolve the clock, keep everything else.
+  if (/^\d{4}-\d{2}-\d{2}/.test(value)) return normalizeLocalDateTime(value);
   const t = Date.parse(value);
   if (Number.isNaN(t)) return value;
   const d = new Date(t);
   const p = (n: number) => String(n).padStart(2, '0');
-  return `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())}T${p(d.getUTCHours())}:${p(d.getUTCMinutes())}:00`;
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}:00`;
 }
 
 /** Normalize every date-ish field on a flat reservation to ISO before mapping. */
@@ -198,8 +228,21 @@ async function extractSingle(text: string, ctx: RouterContext): Promise<FlatLike
     return fixArrivalDate(normalizeDates({ ...out, type: known }));
   }
   const out = (await call(UNION_SINGLE_SCHEMA, 'Pick the correct "type".')) ?? {};
-  const type = (typeof out.type === 'string' ? out.type : 'hotel') as FlatType;
-  return fixArrivalDate(normalizeDates({ ...out, type }));
+  // "I could not tell" used to be written down as "hotel", and a hotel is a
+  // booking, so a ferry voucher imported from the Transport tab opened the
+  // booking form with no transport type to pick and stayed 'other' (#2076).
+  // An unvalidated cast also let any string through, and the item then vanished
+  // silently in nuExtractToKiReservations, which drops an unmapped type.
+  const raw = typeof out.type === 'string' ? out.type.toLowerCase().trim() : '';
+  const picked = (FLAT_TYPES as string[]).includes(raw) ? (raw as FlatType) : null;
+  // Still extract with the hotel shape so the item survives the mapping, but say
+  // out loud that the type was guessed. Only here: a valid pick by the model is
+  // a real answer, and flagging it would push AI-parsed hotels into the
+  // transport form whenever the document never says the word "hotel".
+  const flat: FlatLike = picked
+    ? { ...out, type: picked }
+    : { ...out, type: 'hotel' as FlatType, type_guessed: true };
+  return fixArrivalDate(normalizeDates(flat));
 }
 
 /**
@@ -236,7 +279,15 @@ export async function routeExtraction(text: string, ctx: RouterContext): Promise
   // Schicht 1 — exactly one model call.
   let flats: FlatLike[];
   try {
-    flats = detectFlightNumbers(text).length > 0 ? await extractFlights(text, ctx) : [await extractSingle(text, ctx)];
+    // The flight path forces type 'flight' on everything it returns, so it must not
+    // claim a document that already names another kind of transport: a German rail
+    // ticket carries numbers like "IC 2023" or "RE 4711", which the two-letters-plus-
+    // digits test cannot tell from an airline code, and the ticket came back a flight
+    // without detectType ever running (#2076).
+    const named = detectType(text);
+    const looksLikeFlight = detectFlightNumbers(text).length > 0
+      && !(named && TRANSPORT_FLAT_TYPES.has(named));
+    flats = looksLikeFlight ? await extractFlights(text, ctx) : [await extractSingle(text, ctx)];
   } catch (err) {
     return { kiItems: [], warnings: [`AI parsing failed — ${err instanceof Error ? err.message : String(err)}`] };
   }

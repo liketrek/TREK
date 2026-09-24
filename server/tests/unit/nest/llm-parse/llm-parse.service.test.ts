@@ -20,7 +20,12 @@ const { routeExtraction, detectFlightNumbers } = vi.hoisted(() => ({
   routeExtraction: vi.fn(),
   detectFlightNumbers: vi.fn(() => [] as string[]),
 }));
-vi.mock('../../../../src/nest/llm-parse/router/extraction-router', () => ({ routeExtraction, detectFlightNumbers }));
+// The router's pure helpers stay real: the currency fallback reads the document's
+// total through extractTotalPrice.
+vi.mock('../../../../src/nest/llm-parse/router/extraction-router', async (orig) => {
+  const actual = await orig() as Record<string, unknown>;
+  return { ...actual, routeExtraction, detectFlightNumbers };
+});
 
 import { LlmParseService } from '../../../../src/nest/llm-parse/llm-parse.service';
 import type { LlmConfigResolver } from '../../../../src/nest/llm-parse/llm-config.resolver';
@@ -186,5 +191,96 @@ describe('LlmParseService', () => {
     expect(res.kiItems).toEqual([]);
     expect(res.warnings[0]).toMatch(/could not read file/i);
     expect(res.warnings[0]).toContain('corrupt pdf');
+  });
+});
+
+/**
+ * What a schema-bound provider answered for one Booking.com stay (#2477): the
+ * same node twice, and a currency the model made up. Synthetic values in the
+ * reporter's shape.
+ */
+describe('LlmParseService: cleaning up an AI answer (#2477)', () => {
+  const stay = (over: Record<string, unknown> = {}) => ({
+    '@type': 'LodgingReservation',
+    checkinTime: '2026-09-06T13:00:00',
+    checkoutTime: '2026-09-07T11:00:00',
+    price: 89.35,
+    priceCurrency: 'EURials',
+    reservationFor: { name: 'Harbour View Inn', address: 'Example Road 1' },
+    ...over,
+  });
+  const PRINT = ['Harbour View Inn', 'PREIS', '1 Zimmer € 74,46', 'Preis', '(für 2 Gäste)', '€ 89,35'].join('\n');
+
+  it('collapses exact duplicate nodes from one AI answer', async () => {
+    extractText.mockResolvedValue(PRINT);
+    extract.mockResolvedValue([stay(), stay()]);
+    const res = await svc().parse(file('Bestätigung_1.pdf', '%PDF'), 1);
+    expect(res.kiItems).toHaveLength(1);
+    expect(res.warnings).toEqual([]);
+  });
+
+  it("collapses the reporter's two nodes without a venue into one as well", async () => {
+    extractText.mockResolvedValue(PRINT);
+    const bare = { '@type': 'LodgingReservation', checkinTime: '2026-09-06T13:00:00', checkoutTime: '2026-09-07T11:00:00', price: 89.35, priceCurrency: 'EURials' };
+    extract.mockResolvedValue([bare, { ...bare }]);
+    const res = await svc().parse(file('Bestätigung_1.pdf', '%PDF'), 1);
+    expect(res.kiItems).toEqual([{ ...bare, priceCurrency: 'EUR' }]);
+  });
+
+  it('treats the same fields in another key order as the same node', async () => {
+    const a = stay();
+    const b = { reservationFor: { address: 'Example Road 1', name: 'Harbour View Inn' }, priceCurrency: 'EURials', price: 89.35, checkoutTime: a.checkoutTime, checkinTime: a.checkinTime, '@type': a['@type'] };
+    extract.mockResolvedValue([a, b]);
+    const res = await svc().parse(file('a.txt'), 1);
+    expect(res.kiItems).toHaveLength(1);
+  });
+
+  it('keeps distinct nodes that only look alike', async () => {
+    extract.mockResolvedValue([stay(), stay({ checkinTime: '2026-09-07T13:00:00', checkoutTime: '2026-09-08T11:00:00' })]);
+    const res = await svc().parse(file('a.txt'), 1);
+    expect(res.kiItems).toHaveLength(2);
+  });
+
+  it('turns a garbled priceCurrency into the code it starts with', async () => {
+    extract.mockResolvedValue([stay()]);
+    const res = await svc().parse(file('a.txt'), 1);
+    expect(res.kiItems[0].priceCurrency).toBe('EUR');
+  });
+
+  it("falls back to the document's currency symbol when the model named no currency", async () => {
+    extractText.mockResolvedValue(PRINT);
+    extract.mockResolvedValue([stay({ priceCurrency: 'ZZZ' }), stay({ priceCurrency: undefined, checkinTime: '2026-10-01T15:00:00' })]);
+    const res = await svc().parse(file('b.pdf', '%PDF'), 1);
+    expect(res.kiItems.map((n) => n.priceCurrency)).toEqual(['EUR', 'EUR']);
+  });
+
+  it('drops the currency when neither the model nor the document names one', async () => {
+    extractText.mockResolvedValue('Harbour View Inn, 89.35 total');
+    extract.mockResolvedValue([stay({ priceCurrency: 'ZZZ' })]);
+    const res = await svc().parse(file('b.txt'), 1);
+    expect(res.kiItems[0]).not.toHaveProperty('priceCurrency');
+    expect(res.kiItems[0].price).toBe(89.35);
+  });
+
+  it('asks the document only when the node has a price', async () => {
+    extractText.mockResolvedValue(PRINT);
+    extract.mockResolvedValue([stay({ price: undefined, priceCurrency: 'Pesos' })]);
+    const res = await svc().parse(file('b.pdf', '%PDF'), 1);
+    expect(res.kiItems[0]).not.toHaveProperty('priceCurrency');
+  });
+
+  it('has no document to ask on the native PDF path', async () => {
+    resolveLlmConfig.mockReturnValue(cfg({ provider: 'anthropic' }));
+    extract.mockResolvedValue([stay({ priceCurrency: 'ZZZ' })]);
+    const res = await svc().parse(file('b.pdf', '%PDF'), 1);
+    expect(extractText).not.toHaveBeenCalled();
+    expect(res.kiItems[0]).not.toHaveProperty('priceCurrency');
+  });
+
+  it('leaves a node without price and currency as it came', async () => {
+    const plain = { '@type': 'FlightReservation', reservationFor: { flightNumber: 'X1' } };
+    extract.mockResolvedValue([plain]);
+    const res = await svc().parse(file('a.txt'), 1);
+    expect(res.kiItems).toEqual([plain]);
   });
 });

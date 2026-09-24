@@ -17,8 +17,6 @@ export {
   TOOL_ANNOTATIONS_WRITE,
 } from '../../nest-mcp';
 
-export const MAX_MCP_TRIP_DAYS = 90;
-
 export function noAccess() {
   return errorResult('Trip not found or access denied.');
 }

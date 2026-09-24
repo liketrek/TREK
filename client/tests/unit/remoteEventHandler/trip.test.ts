@@ -72,5 +72,16 @@ describe('remoteEventHandler > trip', () => {
       expect(refreshDays).not.toHaveBeenCalled();
       expect(loadReservations).not.toHaveBeenCalled();
     });
+
+    it('FE-WSEVT-TRIP-006: a trip grown by a dated day (end date alone) refetches days + reservations', () => {
+      useTripStore.setState({ trip: buildTrip({ id: 1, start_date: '2025-06-01', end_date: '2025-06-05' }) });
+      const { refreshDays, loadReservations, dispatchSpy } = stubRefresh();
+      const grown = buildTrip({ id: 1, start_date: '2025-06-01', end_date: '2025-06-06', day_count: 6 });
+      useTripStore.getState().handleRemoteEvent({ type: 'trip:updated', trip: grown });
+      expect(useTripStore.getState().trip).toMatchObject({ end_date: '2025-06-06', day_count: 6 });
+      expect(refreshDays).toHaveBeenCalledWith(1);
+      expect(loadReservations).toHaveBeenCalledWith(1);
+      expect(firedAccommodationsRefresh(dispatchSpy)).toBe(true);
+    });
   });
 });

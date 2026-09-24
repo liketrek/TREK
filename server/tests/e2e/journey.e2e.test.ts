@@ -49,7 +49,7 @@ vi.mock('../../src/nest/memories/photo-resolver.service', async (importOriginal)
 const { jsvc } = vi.hoisted(() => ({
   jsvc: {
     listJourneys: vi.fn(), createJourney: vi.fn(), getJourneyFull: vi.fn(),
-    journeyStats: vi.fn(),
+    journeyStats: vi.fn(), updateEntry: vi.fn(), restoreDismissedSuggestions: vi.fn(),
   },
 }));
 import { JourneyDomainService } from '../../src/nest/journey/journey-domain.service';
@@ -64,6 +64,7 @@ const { booksvc } = vi.hoisted(() => ({
   },
 }));
 import { JourneyBookService } from '../../src/nest/journey/journey-book.service';
+import { MAX_SPREAD_ELEMENTS } from '@trek/shared';
 
 import { JourneyModule } from '../../src/nest/journey/journey.module';
 import { AddonsService } from '../../src/nest/addons/addons.service';
@@ -150,6 +151,30 @@ describe('Journey e2e (real auth guard + temp SQLite)', () => {
     const res = await request(server).get('/api/journeys/9').set('Cookie', sessionCookie(1));
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'Journey not found' });
+  });
+
+  /*
+   * The stop switch (discussion #2064). The entry body is a loose contract, so
+   * what e2e pins is that the boolean reaches the service as it was sent,
+   * through the addon gate and the auth guard, and that the entry comes back
+   * bare rather than in an envelope.
+   */
+  it('PATCH entries/:entryId hands stats_excluded to the service as the boolean it was sent', async () => {
+    jsvc.updateEntry.mockReturnValue({ id: 3, journey_id: 9, stats_excluded: true });
+    const res = await request(server)
+      .patch('/api/journeys/entries/3')
+      .set('Cookie', sessionCookie(1))
+      .send({ stats_excluded: true });
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ id: 3, journey_id: 9, stats_excluded: true });
+    const [entryId, userId, body] = jsvc.updateEntry.mock.calls[0];
+    expect([entryId, userId]).toEqual([3, 1]);
+    expect(body).toEqual({ stats_excluded: true });
+  });
+
+  it('401 for PATCH entries/:entryId without a session', async () => {
+    const res = await request(server).patch('/api/journeys/entries/3').send({ stats_excluded: true });
+    expect(res.status).toBe(401);
   });
 
   /*
@@ -300,6 +325,37 @@ describe('Journey e2e (real auth guard + temp SQLite)', () => {
     expect(booksvc.saveBook).not.toHaveBeenCalled();
   });
 
+  /*
+   * The refusal Studio hit on its own auto layout (#2085).
+   *
+   * A spread past MAX_SPREAD_ELEMENTS is refused whole, and the editor can only
+   * report that as "couldn't save" — for the rest of the session, because
+   * autosave keeps offering the same document. The layout is what was fixed;
+   * this pins the other half, that the route does refuse such a book, so the
+   * client-side guarantee is a guarantee about something.
+   */
+  it('400 for a spread carrying more elements than the contract allows', async () => {
+    const element = (i: number) => ({
+      id: 'e' + i, kind: 'shape', frame: { x: 0, y: 0, w: 10, h: 10 }, shape: 'rect',
+    });
+    const res = await request(server)
+      .put('/api/journeys/9/book')
+      .set('Cookie', sessionCookie(1))
+      .send({
+        title: 'T',
+        document: {
+          version: 1,
+          spreads: [{
+            id: 'sp1',
+            role: 'inner',
+            elements: Array.from({ length: MAX_SPREAD_ELEMENTS + 1 }, (_, i) => element(i)),
+          }],
+        },
+      });
+    expect(res.status).toBe(400);
+    expect(booksvc.saveBook).not.toHaveBeenCalled();
+  });
+
   it('204 on delete, and 404 when the journey is out of reach', async () => {
     booksvc.deleteBook.mockReturnValue(true);
     const ok = await request(server).delete('/api/journeys/9/book').set('Cookie', sessionCookie(1));
@@ -337,6 +393,26 @@ describe('Journey e2e (real auth guard + temp SQLite)', () => {
       .set('Cookie', sessionCookie(1))
       .attach('cover', Buffer.from('MZ'), { filename: 'payload.exe', contentType: 'application/octet-stream' });
     expect(res.status).toBe(400);
+  });
+
+  it('restoring suggestions answers 200 with the count, not 201', async () => {
+    // POST defaults to 201 in Nest, and the route carries @HttpCode(200) to match
+    // every other action-shaped POST in this controller.
+    jsvc.restoreDismissedSuggestions.mockReturnValueOnce({ restored: 2 });
+    const res = await request(server)
+      .post('/api/journeys/9/suggestions/restore')
+      .set('Cookie', sessionCookie(1));
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ restored: 2 });
+  });
+
+  it('restoring suggestions 403 for someone who may not edit the journey', async () => {
+    jsvc.restoreDismissedSuggestions.mockReturnValueOnce(null);
+    const res = await request(server)
+      .post('/api/journeys/9/suggestions/restore')
+      .set('Cookie', sessionCookie(1));
+    expect(res.status).toBe(403);
+    expect(res.body).toEqual({ error: 'Not allowed' });
   });
 
   it('public journey 404 for an unknown token', async () => {

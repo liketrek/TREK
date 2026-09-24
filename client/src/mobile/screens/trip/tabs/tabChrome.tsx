@@ -3,6 +3,8 @@ import { ChevronDown, ChevronUp } from 'lucide-react'
 import type { ReservationTraveler } from '@trek/shared'
 import { avatarSrc } from '../../../../utils/avatarSrc'
 import GuestBadge from '../../../../components/shared/GuestBadge'
+import PluginFrame from '../../../../components/Plugins/PluginFrame'
+import { usePluginStore } from '../../../../store/pluginStore'
 
 /**
  * Scroll body shared by the list-style trip tabs (transports, bookings, costs,
@@ -118,6 +120,36 @@ export function ConfirmationCode({ code, label, blurred, onToggle }: {
 /** 7px status dot; `color` is a --m-st-* token from STATUS_COLOR. */
 export function StatusDot({ color }: { color: string }) {
   return <span className="h-[7px] w-[7px] flex-none rounded-full" style={{ background: color }} />
+}
+
+/**
+ * Plugins that declared a reservation-detail slot, mounted at the foot of a
+ * transport / booking card and scoped to that reservation: the phone half of
+ * what ReservationsPanel does on the desktop, which the phone cards never had,
+ * so a widget like Flight Tracker only appeared once the viewport crossed the
+ * desktop breakpoint (#2440). Sits outside the card's body button (buttons
+ * cannot nest, and a tap in the frame must not open the detail sheet), and the
+ * frame follows the host colour scheme like the desktop detail slots do, so a
+ * kit plugin that goes dark with TREK keeps compositing transparently.
+ */
+export function ReservationPluginSlots({ tripId, reservationId }: { tripId: number; reservationId: number }) {
+  const plugins = usePluginStore(s => s.plugins).filter(p => p.type === 'widget' && p.slot === 'reservation-detail')
+  if (plugins.length === 0) return null
+  return (
+    <div className="flex flex-col gap-2 px-3 pb-3">
+      {plugins.map(p => (
+        <div key={p.id} className="overflow-hidden rounded-[10px] border border-[color:var(--m-rowbr)] bg-m-card">
+          <PluginFrame
+            pluginId={p.id}
+            tripId={String(tripId)}
+            reservationId={String(reservationId)}
+            title={p.name}
+            surface="detail-slot"
+          />
+        </div>
+      ))}
+    </div>
+  )
 }
 
 /**

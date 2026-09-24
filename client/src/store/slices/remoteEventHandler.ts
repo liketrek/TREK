@@ -5,6 +5,7 @@ import type { Assignment, Place, Day, DayNote, PackingItem, TodoItem, BudgetItem
 import { offlineDb } from '../../db/offlineDb'
 import { useAuthStore } from '../authStore'
 import { mergeAssignmentPlace } from './placesSlice'
+import { withoutDay } from './daysSlice'
 
 type SetState = StoreApi<TripStoreState>['setState']
 type GetState = StoreApi<TripStoreState>['getState']
@@ -194,6 +195,20 @@ async function _writeDayToDb(dayId: number, state: TripStoreState): Promise<void
 
 // ── Zustand event reducer ─────────────────────────────────────────────────────
 
+/**
+ * A day with `incoming` seated where the server put it, the rows around it renumbered
+ * the way the local move reducer renumbers them. A booked night lands at the front of
+ * its day and the rows behind it were moved up one there; appended with that index it
+ * would sit tied with the old first row and be drawn second until the next reload. An
+ * index past the end, or none at all, appends.
+ */
+function seatByOrder(day: Assignment[], incoming: Assignment): Assignment[] {
+  const ordered = day.slice().sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
+  const at = Math.max(0, Math.min(incoming.order_index ?? ordered.length, ordered.length))
+  ordered.splice(at, 0, incoming)
+  return ordered.map((a, i) => (a.order_index === i ? a : { ...a, order_index: i }))
+}
+
 type StateApplier = (payload: Record<string, unknown>, state: TripStoreState) => Partial<TripStoreState>
 
 /**
@@ -252,13 +267,8 @@ export const STATE_APPLIERS: Partial<Record<TrekWsTripEventName, StateApplier>> 
     }
 
     // Genuinely new — including a legitimate second assignment of a place
-    // already on this day (no temp version to reconcile). Append.
-    return {
-      assignments: {
-        ...state.assignments,
-        [dayKey]: [...existing, incoming],
-      }
-    }
+    // already on this day (no temp version to reconcile).
+    return { assignments: { ...state.assignments, [dayKey]: seatByOrder(existing, incoming) } }
   },
   'assignment:updated': (payload, state) => {
     const dayKey = String((payload.assignment as Assignment).day_id)
@@ -284,11 +294,14 @@ export const STATE_APPLIERS: Partial<Record<TrekWsTripEventName, StateApplier>> 
     const oldKey = String(payload.oldDayId)
     const newKey = String(payload.newDayId)
     const movedAssignment = payload.assignment as Assignment
+    // The target day is read after the row has left it, so a night re-seated on its
+    // own day (oldKey === newKey) is taken out first and put back where it now sits.
+    const target = (state.assignments[newKey] || []).filter(a => a.id !== movedAssignment.id)
     return {
       assignments: {
         ...state.assignments,
         [oldKey]: (state.assignments[oldKey] || []).filter(a => a.id !== movedAssignment.id),
-        [newKey]: [...(state.assignments[newKey] || []).filter(a => a.id !== movedAssignment.id), movedAssignment],
+        [newKey]: seatByOrder(target, movedAssignment),
       }
     }
   },
@@ -318,18 +331,9 @@ export const STATE_APPLIERS: Partial<Record<TrekWsTripEventName, StateApplier>> 
   'day:updated': (payload, state) => ({
     days: state.days.map(d => d.id === (payload.day as Day).id ? payload.day as Day : d),
   }),
-  'day:deleted': (payload, state) => {
-    const removedDayId = String(payload.dayId)
-    const newAssignments = { ...state.assignments }
-    delete newAssignments[removedDayId]
-    const newDayNotes = { ...state.dayNotes }
-    delete newDayNotes[removedDayId]
-    return {
-      days: state.days.filter(d => d.id !== payload.dayId),
-      assignments: newAssignments,
-      dayNotes: newDayNotes,
-    }
-  },
+  // The same reducer the deleting tab ran optimistically: the later days move up
+  // one place, the dates stay on their positions, a selection on the day clears.
+  'day:deleted': (payload, state) => withoutDay(state, Number(payload.dayId)),
   'day:reordered': (payload, state) => {
     // Apply the new order instantly when we know all ids; the authoritative
     // dates + re-stamped booking times are pulled by the refresh below.
@@ -551,6 +555,13 @@ export function handleRemoteEvent(set: SetState, get: GetState, event: WebSocket
     const tripId = get().trip?.id
     if (tripId) get().loadReservations(tripId)
   }
+
+  // A deleted day cancels a stay that checked in or out on it, and the stays
+  // live in page-local planner state rather than this store. This rides the
+  // planner's existing accommodations:refresh event on purpose, the legacy
+  // window bus the place image and trip date handlers here use as well.
+  // Retiring it means moving the stays into a store slice, a change of its own.
+  if (type === 'day:deleted') window.dispatchEvent(new CustomEvent('accommodations:refresh'))
 
   // A reorder/insert re-pins dates and re-stamps booking times server-side, so
   // pull the authoritative days + reservations for collaborators.

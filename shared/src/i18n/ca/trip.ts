@@ -20,6 +20,7 @@ const trip: TranslationStrings = {
   'trip.toast.placeDeleted': 'Lloc eliminat',
   'trip.toast.selectDay': 'Selecciona un dia primer',
   'trip.toast.assignedToDay': 'Lloc assignat al dia',
+  'trip.toast.loadError': "No s'ha pogut carregar el viatge",
   'trip.toast.reorderError': "No s'ha pogut reordenar",
   'trip.toast.reservationUpdated': 'Reserva actualitzada',
   'trip.toast.reservationAdded': 'Reserva afegida',
@@ -59,6 +60,7 @@ const trip: TranslationStrings = {
   'transit.search': 'Cercar',
   'transit.searching': 'Cercant…',
   'transit.searchError': 'Ha fallat la cerca de la ruta. Torna-ho a provar.',
+  'transit.noResultsVia': 'No s\'ha trobat cap connexió mitjançant {provider}. Prova una altra hora o altres filtres.',
   'transit.noResults': "No s'han trobat connexions. Prova amb un altre horari o filtres.",
   'transit.direct': 'Directe',
   'transit.transfers': '{count} transbords',
@@ -74,6 +76,7 @@ const trip: TranslationStrings = {
   'transport.modeAutomated': 'Transport automatitzat',
   'transit.sectionTitle': 'Transport públic automatitzat',
   'transit.changeRoute': 'Canviar de ruta',
+  'transit.editDetails': 'Editar detalls',
   'transit.journey': 'Trajecte en transport públic',
   'transit.pickDay': 'Tria un dia per cercar connexions.',
   'transit.noItinerary': 'Aquesta entrada no té cap itinerari desat — utilitza «Canviar de ruta» per cercar-ne un.',
@@ -85,5 +88,10 @@ const trip: TranslationStrings = {
   'trip.loadingSteps.road': 'Sortint de camí...',
   'trip.loadingSteps.arrive': 'Gairebé hi som...',
   'trip.toast.tripUpdated': 'Viatge actualitzat',
+  'trip.confirm.deletePlaceNight': 'També s’elimina l’estada reservada a «{name}».',
+  'trip.confirm.deletePlaceBooked':
+    'També s’eliminen l’estada reservada a «{name}», la reserva «{booking}» i qualsevol despesa vinculada.',
+  'trip.confirm.deletePlaceBookedSame':
+    'També s’eliminen l’estada reservada a «{name}», la seva reserva i qualsevol despesa vinculada.',
 };
 export default trip;

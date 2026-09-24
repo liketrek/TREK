@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { MapPin, X } from 'lucide-react'
 import { mapsApi } from '../../api/client'
 import { useTranslation } from '../../i18n'
+import { useLocationBias } from '../../hooks/useLocationBias'
 
 export interface LocationPoint {
   name: string
@@ -15,10 +16,18 @@ interface Props {
   onChange: (loc: LocationPoint | null) => void
   placeholder?: string
   style?: React.CSSProperties
+  /**
+   * The trip's own places, offered while the field is empty or holds fewer than three
+   * characters, the way the transit search offers them (#2468). Typing narrows them by
+   * name; from the third character on the map search answers instead.
+   */
+  places?: LocationPoint[]
 }
 
-export default function LocationSelect({ value, onChange, placeholder, style }: Props) {
+export default function LocationSelect({ value, onChange, placeholder, style, places }: Props) {
   const { t, locale } = useTranslation()
+  // Ohne Reisekontext ist der Hinweis leer, und die Suche laeuft wie bisher.
+  const { point: locationBias } = useLocationBias()
   const [query, setQuery] = useState(value?.name || '')
   const [open, setOpen] = useState(false)
   const [results, setResults] = useState<any[]>([])
@@ -49,7 +58,7 @@ export default function LocationSelect({ value, onChange, placeholder, style }: 
     debounceRef.current = setTimeout(async () => {
       setLoading(true)
       try {
-        const data = await mapsApi.search(trimmed, locale)
+        const data = await mapsApi.search(trimmed, locale, locationBias)
         setResults(data.places || [])
         setHighlight(-1)
       } catch {
@@ -78,11 +87,20 @@ export default function LocationSelect({ value, onChange, placeholder, style }: 
     setResults([])
   }
 
+  // The trip's places stand in for the search below three characters. Derived rather
+  // than written into `results`, so a search answer that lands after the field was
+  // shortened cannot replace them, and a place already picked does not reopen them.
+  const typed = query.trim()
+  const showPicks = !value && typed.length < 3 && !!places?.length
+  const rows = showPicks
+    ? (places ?? []).filter(p => !typed || p.name.toLowerCase().includes(typed.toLowerCase()))
+    : results
+
   const onKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!open || results.length === 0) return
-    if (e.key === 'ArrowDown') { e.preventDefault(); setHighlight(h => Math.min(h + 1, results.length - 1)) }
+    if (!open || rows.length === 0) return
+    if (e.key === 'ArrowDown') { e.preventDefault(); setHighlight(h => Math.min(h + 1, rows.length - 1)) }
     else if (e.key === 'ArrowUp') { e.preventDefault(); setHighlight(h => Math.max(h - 1, 0)) }
-    else if (e.key === 'Enter' && highlight >= 0) { e.preventDefault(); pick(results[highlight]) }
+    else if (e.key === 'Enter' && rows[highlight]) { e.preventDefault(); pick(rows[highlight]) }
     else if (e.key === 'Escape') setOpen(false)
   }
 
@@ -94,7 +112,7 @@ export default function LocationSelect({ value, onChange, placeholder, style }: 
           type="text"
           value={query}
           placeholder={placeholder ?? t('reservations.searchLocation')}
-          onChange={(e) => { setQuery(e.target.value); setOpen(true); if (value) onChange(null) }}
+          onChange={(e) => { setQuery(e.target.value); setOpen(true); setHighlight(-1); if (value) onChange(null) }}
           onFocus={() => setOpen(true)}
           onKeyDown={onKey}
           className="bg-transparent text-content"
@@ -107,14 +125,14 @@ export default function LocationSelect({ value, onChange, placeholder, style }: 
         )}
       </div>
 
-      {open && (loading || results.length > 0) && (
+      {open && ((loading && !showPicks) || rows.length > 0) && (
         <div className="bg-surface-card" style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, border: '1px solid var(--border-primary)', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.18)', maxHeight: 260, overflowY: 'auto', zIndex: 1000 }}>
-          {loading && results.length === 0 && (
+          {loading && !showPicks && rows.length === 0 && (
             <div className="text-content-faint" style={{ padding: 10, fontSize: 'calc(12px * var(--fs-scale-body, 1))' }}>{t('common.loading')}</div>
           )}
-          {results.map((r, i) => (
+          {rows.map((r, i) => (
             <button
-              key={`${r.osm_id || r.google_place_id || i}`}
+              key={showPicks ? `pick:${r.name}:${r.lat}:${r.lng}` : `${r.osm_id || r.google_place_id || i}`}
               type="button"
               onClick={() => pick(r)}
               onMouseEnter={() => setHighlight(i)}

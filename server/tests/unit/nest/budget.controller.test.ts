@@ -82,13 +82,13 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
     // produced by the global ZodValidationPipe (budget.dto.ts) before the handler
     // runs — covered by the integration suite, not constructible here.
 
-    it('POST /settlements creates and broadcasts (amount 0 is allowed), forwarding the display currency', async () => {
+    it('POST /settlements creates and broadcasts (amount 0 is allowed), forwarding the display currency and the settled day', async () => {
       const createSettlement = vi.fn().mockResolvedValue({ id: 3, amount: 0 });
       const broadcast = vi.fn();
       const svc = makeService({ createSettlement, broadcast } as Partial<BudgetService>);
-      const res = await new BudgetController(svc).createSettlement(user, '5', { from_user_id: 1, to_user_id: 2, amount: 0, currency: 'USD' }, 'sock');
+      const res = await new BudgetController(svc).createSettlement(user, '5', { from_user_id: 1, to_user_id: 2, amount: 0, currency: 'USD', settled_at: '2026-01-05' }, 'sock');
       expect(res).toEqual({ settlement: { id: 3, amount: 0 } });
-      expect(createSettlement).toHaveBeenCalledWith('5', { from_user_id: 1, to_user_id: 2, amount: 0, currency: 'USD' }, user.id);
+      expect(createSettlement).toHaveBeenCalledWith('5', { from_user_id: 1, to_user_id: 2, amount: 0, currency: 'USD', settled_at: '2026-01-05' }, user.id);
       expect(broadcast).toHaveBeenCalledWith('5', 'budget:settlement-created', { settlement: { id: 3, amount: 0 } }, 'sock');
     });
 
@@ -114,13 +114,13 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
       });
     });
 
-    it('PUT /settlements/:id updates and broadcasts, forwarding the display currency', async () => {
+    it('PUT /settlements/:id updates and broadcasts, forwarding the display currency and the settled day', async () => {
       const updateSettlement = vi.fn().mockResolvedValue({ id: 7, from_user_id: 2, to_user_id: 1, amount: 15 });
       const broadcast = vi.fn();
       const svc = makeService({ updateSettlement, broadcast } as Partial<BudgetService>);
-      const res = await new BudgetController(svc).updateSettlement(user, '5', '7', { from_user_id: 2, to_user_id: 1, amount: 15, currency: 'USD' }, 'sock');
+      const res = await new BudgetController(svc).updateSettlement(user, '5', '7', { from_user_id: 2, to_user_id: 1, amount: 15, currency: 'USD', settled_at: '2026-01-06' }, 'sock');
       expect(res).toEqual({ settlement: { id: 7, from_user_id: 2, to_user_id: 1, amount: 15 } });
-      expect(updateSettlement).toHaveBeenCalledWith('7', '5', { from_user_id: 2, to_user_id: 1, amount: 15, currency: 'USD' });
+      expect(updateSettlement).toHaveBeenCalledWith('7', '5', { from_user_id: 2, to_user_id: 1, amount: 15, currency: 'USD', settled_at: '2026-01-06' });
       expect(broadcast).toHaveBeenCalledWith('5', 'budget:settlement-updated', { settlement: { id: 7, from_user_id: 2, to_user_id: 1, amount: 15 } }, 'sock');
     });
   });

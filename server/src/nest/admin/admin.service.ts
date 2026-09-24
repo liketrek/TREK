@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
-import { ADDON_IDS } from '../../addons';
+import { ADDON_IDS, MCP_GATED_ADDON_IDS } from '../../addons';
 import { readEnv } from '../../app-config';
 import { updateJwtSecret } from '../../config';
 // Import from sessionManager directly, NOT the ../../mcp barrel — the direct
@@ -548,13 +548,15 @@ export class AdminService {
       // to the operator, so there is no instance decision left to make — not even
       // whether it runs.
       //
-      // AirTrail: the addon exists to reach a server the admin runs themselves,
-      // and a managed instance has no route to one.
+      // AirTrail and Dawarich: both addons exist to reach a server the admin
+      // runs themselves, and a managed instance has no route to one.
       .filter(
         (a) =>
           !(
             readEnv().managed.enabled &&
-            (a.id === ADDON_IDS.LLM_PARSING || a.id === ADDON_IDS.AIRTRAIL)
+            (a.id === ADDON_IDS.LLM_PARSING ||
+              a.id === ADDON_IDS.AIRTRAIL ||
+              a.id === ADDON_IDS.DAWARICH)
           ),
       );
     const providers = this.db.all<{
@@ -596,6 +598,28 @@ export class AdminService {
       fieldsByProvider.set(field.provider_id, arr);
     }
 
+    // Document providers are the Documents addon's shelf rows, the same way
+    // photo providers are Journey's. Hidden on a managed instance for the same
+    // reason: Paperless, Papra, Nextcloud, OpenCloud and a Synology NAS are all
+    // servers the admin runs at home, and a hosted TREK has no route to one.
+    //
+    // They carry no `config` routes, unlike photo providers: the credentials do
+    // not belong to a user here but to a trip, so they are entered in the trip
+    // rather than in settings. The admin decides only whether a provider may be
+    // offered at all.
+    const docProviders = this.db.all<{
+      id: string;
+      name: string;
+      description?: string | null;
+      icon: string;
+      enabled: number;
+      sort_order: number;
+    }>(`
+    SELECT id, name, description, icon, enabled, sort_order
+    FROM document_providers
+    ORDER BY sort_order, id
+  `).filter(() => !readEnv().managed.enabled);
+
     return [
       ...addons.map((a) => ({
         ...a,
@@ -626,6 +650,17 @@ export class AdminService {
         })),
         sort_order: p.sort_order,
       })),
+      ...docProviders.map((p) => ({
+        id: p.id,
+        name: p.name,
+        description: p.description,
+        type: 'document_provider',
+        icon: p.icon,
+        enabled: !!p.enabled,
+        config: {},
+        fields: [],
+        sort_order: p.sort_order,
+      })),
     ];
   }
 
@@ -633,7 +668,8 @@ export class AdminService {
     type ProviderRow = { id: string; name: string; description?: string | null; icon: string; enabled: number; sort_order: number };
     const addon = this.db.get<Addon>('SELECT * FROM addons WHERE id = ?', id);
     const provider = this.db.get<ProviderRow>('SELECT * FROM photo_providers WHERE id = ?', id);
-    if (!addon && !provider) return { error: 'Addon not found', status: 404 };
+    const docProvider = this.db.get<ProviderRow>('SELECT * FROM document_providers WHERE id = ?', id);
+    if (!addon && !provider && !docProvider) return { error: 'Addon not found', status: 404 };
 
     // The whole addon, not just its config: on a centrally administered install
     // the operator owns the endpoint, the model and the per-document cost, so
@@ -643,10 +679,33 @@ export class AdminService {
       return { error: MANAGED_FORBIDDEN_ERROR.error, status: 403 };
     }
 
+    // Photo providers are Journey's shelf rows — their whole UI lives inside
+    // journeys, so enabling one under a disabled journey addon would only
+    // advertise an integration nothing can reach.
+    if (provider && data.enabled === true && !this.addons.isAddonEnabled(ADDON_IDS.JOURNEY)) {
+      return { error: 'Enable the Journey addon first', status: 409 };
+    }
+
+    // Same rule one shelf down: a document provider only exists to serve the
+    // file manager, so switching one on under a disabled Documents addon would
+    // advertise a sync nothing can reach.
+    if (docProvider && data.enabled === true && !this.addons.isAddonEnabled(ADDON_IDS.DOCUMENTS)) {
+      return { error: 'Enable the Documents addon first', status: 409 };
+    }
+
     this.db.transaction(() => {
     if (addon) {
-      if (data.enabled !== undefined)
+      if (data.enabled !== undefined) {
         this.db.run('UPDATE addons SET enabled = ? WHERE id = ?', data.enabled ? 1 : 0, id);
+        // Journey off takes its providers with it: a row left enabled would
+        // resurface the moment journey returns, which nobody switched on.
+        if (id === ADDON_IDS.JOURNEY && !data.enabled)
+          this.db.run('UPDATE photo_providers SET enabled = 0');
+        // Documents off takes its providers with it, for the reason above: a
+        // row left enabled would resurface the moment the addon returns.
+        if (id === ADDON_IDS.DOCUMENTS && !data.enabled)
+          this.db.run('UPDATE document_providers SET enabled = 0');
+      }
       if (data.config !== undefined) {
         // The AI-parsing addon holds an API key — encrypt it at rest and preserve
         // the stored key when the client echoes the mask sentinel (see llmConfig.ts).
@@ -656,9 +715,12 @@ export class AdminService {
             : data.config;
         this.db.run('UPDATE addons SET config = ? WHERE id = ?', JSON.stringify(configToStore), id);
       }
-    } else {
+    } else if (provider) {
       if (data.enabled !== undefined)
         this.db.run('UPDATE photo_providers SET enabled = ? WHERE id = ?', data.enabled ? 1 : 0, id);
+    } else {
+      if (data.enabled !== undefined)
+        this.db.run('UPDATE document_providers SET enabled = ? WHERE id = ?', data.enabled ? 1 : 0, id);
     }
     });
 
@@ -686,19 +748,17 @@ export class AdminService {
           }
         : null;
 
-    // Only these addons gate MCP tool/resource/prompt registration (see
-    // registerTools/registerResources) — and only a real enabled-flip changes
-    // what a session would register. Config-only saves, photo providers and
-    // MCP-irrelevant addons must not tear down every live session (#1414).
-    const MCP_RELEVANT_ADDONS = new Set<string>([
-      ADDON_IDS.MCP,
-      ADDON_IDS.PACKING,
-      ADDON_IDS.BUDGET,
-      ADDON_IDS.COLLAB,
-      ADDON_IDS.ATLAS,
-      ADDON_IDS.VACAY,
-      ADDON_IDS.JOURNEY,
-    ]);
+    // Only addons that gate MCP registration matter here — and only a real
+    // enabled-flip changes what a session would register. Config-only saves,
+    // photo providers and MCP-irrelevant addons must not tear down every live
+    // session (#1414).
+    //
+    // The list lives beside ADDON_IDS and is held to the gates by a parity test.
+    // As a copy kept here it had drifted: airtrail and collections gate tools
+    // and were missing, so their write tools stayed callable on an open session
+    // after an admin switched them off, while the REST half answered 404 for the
+    // same user in the same moment.
+    const MCP_RELEVANT_ADDONS = new Set<string>(MCP_GATED_ADDON_IDS);
     const enabledChanged = !!addon && data.enabled !== undefined && (data.enabled ? 1 : 0) !== addon.enabled;
 
     return {

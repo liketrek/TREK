@@ -9,8 +9,9 @@ import { useTripStore } from '../../../../src/store/tripStore'
 import type { Accommodation, Assignment, Day, DayNote, Reservation } from '../../../../src/types'
 import { resetAllStores, seedStore } from '../../../helpers/store'
 import { act, fireEvent, render, screen, waitFor } from '../../../helpers/render'
+import { isBlurred } from '../../../helpers/bookingCodeBlur'
 
-// FE-MOB-DAYSH-001 to FE-MOB-DAYSH-028
+// FE-MOB-DAYSH-001 to FE-MOB-DAYSH-030
 
 const DAYS = [
   { id: 1, trip_id: 5, day_number: 1, date: '2026-05-01', title: null },
@@ -163,6 +164,8 @@ describe('MDaySheet', () => {
     expect(screen.getByText('20°')).toBeInTheDocument()
     expect(screen.getByRole('dialog').textContent).toContain('24° / 12° ·')
     expect(screen.getByText('light rain')).toBeInTheDocument()
+    // #2167 (mrwulf) — the block names the place the forecast is anchored to.
+    expect(screen.getByText('Forecast for Museum')).toBeInTheDocument()
   })
 
   it('FE-MOB-DAYSH-005: converts to Fahrenheit when the user asked for it', async () => {
@@ -193,7 +196,8 @@ describe('MDaySheet', () => {
   })
 
   it('FE-MOB-DAYSH-009: skips the weather block entirely without coordinates', async () => {
-    await renderSheet(makePlanner({ assignments: {}, places: [] }))
+    // No located stop AND no stay — with a stay the hotel would anchor the weather (#2167).
+    await renderSheet(makePlanner({ assignments: {}, places: [], tripAccommodations: [] }))
     expect(weatherApi.getDetailed).not.toHaveBeenCalled()
     expect(screen.queryByText('No weather data available. Add a place with coordinates.')).not.toBeInTheDocument()
   })
@@ -374,13 +378,26 @@ describe('MDaySheet', () => {
     expect(screen.getByText('Stay')).toBeInTheDocument()
   })
 
-  it('FE-MOB-DAYSH-026: falls back to any trip place with coordinates as the weather anchor', async () => {
+  // #2167 — the anchor is day-local: never a place from another day, even when
+  // the trip pool has located places. The day's stay is the fallback instead.
+  it('FE-MOB-DAYSH-026: anchors the weather to the day bookend hotel, not some trip place', async () => {
     await renderSheet(makePlanner({
       assignments: {},
       places: [{ id: 200, name: 'Prater', lat: 48.31, lng: 16.41 }],
     }))
-    expect(weatherApi.getDetailed).toHaveBeenCalledWith(48.31, 16.41, '2026-05-02', 'en')
+    expect(weatherApi.getDetailed).toHaveBeenCalledWith(48.2, 16.35, '2026-05-02', 'en')
     expect(screen.getByText('20°')).toBeInTheDocument()
+    expect(screen.getByText('Forecast for Hotel Sacher')).toBeInTheDocument()
+  })
+
+  it('FE-MOB-DAYSH-026b: shows no weather at all without a day-local anchor (#2167)', async () => {
+    await renderSheet(makePlanner({
+      assignments: {},
+      places: [{ id: 200, name: 'Prater', lat: 48.31, lng: 16.41 }],
+      tripAccommodations: [],
+    }))
+    expect(weatherApi.getDetailed).not.toHaveBeenCalled()
+    expect(screen.queryByText('20°')).not.toBeInTheDocument()
   })
 
   it('FE-MOB-DAYSH-027: hides every editing affordance for a read-only member', async () => {
@@ -401,5 +418,23 @@ describe('MDaySheet', () => {
     ] as unknown as Day[]
     await renderSheet(makePlanner({ days, tripAccommodations: [] }))
     expect(screen.getByRole('dialog', { name: 'Day 2' })).toBeInTheDocument()
+  })
+
+  // ── Blur booking codes on the stay tile (#2457) ────────────────────────────
+
+  it('FE-MOB-DAYSH-029: with the blur on, the linked booking code under the stay is blurred like the stay code', async () => {
+    seedStore(useSettingsStore, { settings: { blur_booking_codes: true } })
+    await renderSheet()
+    // The stay's own code already honours the setting ...
+    expect(isBlurred(screen.getByText('ABC123'))).toBe(true)
+    // ... the linked booking's code right below it did not.
+    expect(isBlurred(screen.getByText(/#X9/))).toBe(true)
+  })
+
+  it('FE-MOB-DAYSH-030: with the blur off both codes stay plain', async () => {
+    seedStore(useSettingsStore, { settings: { blur_booking_codes: false } })
+    await renderSheet()
+    expect(isBlurred(screen.getByText('ABC123'))).toBe(false)
+    expect(isBlurred(screen.getByText(/#X9/))).toBe(false)
   })
 })

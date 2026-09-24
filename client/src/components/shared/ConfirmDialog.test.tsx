@@ -1,6 +1,7 @@
 import { render, screen, fireEvent } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import ConfirmDialog from './ConfirmDialog';
+import Modal from './Modal';
 
 describe('ConfirmDialog', () => {
   const onClose = vi.fn();
@@ -89,6 +90,59 @@ describe('ConfirmDialog', () => {
     expect(onClose).toHaveBeenCalledOnce();
     expect(unhandled).not.toHaveBeenCalled();
     process.off('unhandledRejection', unhandled);
+  });
+
+  it('FE-COMP-CONFIRM-010: extra content renders under the message, and the card widens for it', () => {
+    render(
+      <ConfirmDialog isOpen={true} onClose={onClose} onConfirm={onConfirm} message="Delete it?">
+        <ul aria-label="consequences"><li>Stay at Harbour Hotel</li></ul>
+      </ConfirmDialog>
+    );
+    const list = screen.getByRole('list', { name: 'consequences' });
+    expect(list).toHaveTextContent('Stay at Harbour Hotel');
+    expect(screen.getByText('Delete it?').compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(document.querySelector('.max-w-md')).not.toBeNull();
+  });
+
+  it('FE-COMP-CONFIRM-011: Escape takes back the question only, not the dialog it was asked from', () => {
+    const closeModal = vi.fn();
+    render(
+      <>
+        <Modal isOpen={true} onClose={closeModal} title="Reorder days">rows</Modal>
+        <ConfirmDialog isOpen={true} onClose={onClose} onConfirm={onConfirm} message="Delete it?" />
+      </>
+    );
+    fireEvent.keyDown(document.body, { key: 'Escape' });
+    expect(onClose).toHaveBeenCalledOnce();
+    expect(closeModal).not.toHaveBeenCalled();
+    // Other keys pass through untouched.
+    fireEvent.keyDown(document.body, { key: 'Enter' });
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it('FE-COMP-CONFIRM-012: the danger look comes from the danger tokens, the plain one from the accent', () => {
+    const { unmount } = render(<ConfirmDialog isOpen={true} onClose={onClose} onConfirm={onConfirm} />);
+    expect(screen.getByRole('button', { name: /delete/i })).toHaveClass('bg-danger');
+    expect(document.querySelector('.bg-danger-soft')).not.toBeNull();
+    unmount();
+    render(<ConfirmDialog isOpen={true} onClose={onClose} onConfirm={onConfirm} danger={false} confirmLabel="Keep" />);
+    expect(screen.getByRole('button', { name: 'Keep' })).toHaveClass('bg-accent', 'text-accent-text');
+    expect(document.querySelector('.bg-danger-soft')).toBeNull();
+  });
+
+  it('FE-COMP-CONFIRM-013: a long list scrolls inside the card, and the buttons stay outside it, always in reach', () => {
+    render(
+      <ConfirmDialog isOpen={true} onClose={onClose} onConfirm={onConfirm} message="Delete it?">
+        <ul aria-label="consequences">{Array.from({ length: 40 }, (_, i) => <li key={i}>Row {i}</li>)}</ul>
+      </ConfirmDialog>
+    );
+    const scroller = screen.getByRole('list', { name: 'consequences' }).closest('.overflow-y-auto') as HTMLElement;
+    expect(scroller).not.toBeNull();
+    expect(scroller.parentElement).toHaveClass('flex-col');
+    expect(scroller.parentElement!.className).toMatch(/max-h-\[/);
+    const confirm = screen.getByRole('button', { name: /delete/i });
+    expect(scroller.contains(confirm)).toBe(false);
+    expect(confirm.parentElement).toHaveClass('flex-none');
   });
 
   it('FE-COMP-CONFIRM-008: clicking backdrop calls onClose', async () => {

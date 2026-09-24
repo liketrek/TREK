@@ -318,6 +318,30 @@ describe('getSynologyAlbumPhotos', () => {
     safeFetch.mockResolvedValue(httpError(503));
     expect((await svc.getSynologyAlbumPhotos(USER, '7')).success).toBe(false);
   });
+
+  it('SYNO-U063: asks Browse.Item for no ordering of its own', async () => {
+    // The loop below drains every page before sorting, so an upstream sort buys
+    // nothing — while a parameter some DSM build rejects becomes a 400 and takes
+    // the whole album down.
+    safeFetch.mockResolvedValue(api({ list: [] }));
+
+    await svc.getSynologyAlbumPhotos(USER, '7');
+
+    const body = String((safeFetch.mock.calls[0][1] as { body: URLSearchParams }).body);
+    expect(body).not.toContain('sort_by');
+    expect(body).not.toContain('sort_direction');
+  });
+
+  it('SYNO-U064: orders the album by capture time, newest first', async () => {
+    safeFetch.mockResolvedValue(api({ list: [
+      { id: 1, time: 1700000000, additional: { thumbnail: { cache_key: 'older' } } },
+      { id: 2, time: 1800000000, additional: { thumbnail: { cache_key: 'newer' } } },
+    ] }));
+
+    const assets = (await svc.getSynologyAlbumPhotos(USER, '7') as { data: { assets: { id: string }[] } }).data.assets;
+
+    expect(assets.map(a => a.id)).toEqual(['newer', 'older']);
+  });
 });
 
 describe('collectSynologyAlbumSelection', () => {
@@ -340,6 +364,69 @@ describe('collectSynologyAlbumSelection', () => {
     // the empty cache key is filtered out of the selection but still counted
     expect(data.selection.asset_ids).toEqual(['ck-1']);
     expect(data.total).toBe(2);
+  });
+});
+
+describe('the search order', () => {
+  it('SYNO-U065: search results come back newest first without a sort parameter upstream', async () => {
+    // SYNO.Foto.Search.Search documents no sort_by, and _fetchSynologyJson maps
+    // every app code except 106/107/119 onto a 400, so a rejected parameter would
+    // take search down for that user entirely. Ordering happens here instead.
+    safeFetch.mockResolvedValue(api({ list: [
+      { id: 1, time: 1700000000, additional: { thumbnail: { cache_key: 'older' } } },
+      { id: 2, time: 1800000000, additional: { thumbnail: { cache_key: 'newer' } } },
+    ] }));
+
+    const result = await svc.searchSynologyPhotos(USER);
+
+    const assets = (result as { data: { assets: { id: string }[] } }).data.assets;
+    expect(assets.map(a => a.id)).toEqual(['newer', 'older']);
+    const body = String((safeFetch.mock.calls[0][1] as { body: URLSearchParams }).body);
+    expect(body).not.toContain('sort_by');
+  });
+
+});
+
+describe('the search window', () => {
+  const windowOf = async (from?: string, to?: string, tzOffsetMinutes?: number) => {
+    safeFetch.mockResolvedValue(api({ list: [] }));
+    await svc.searchSynologyPhotos(USER, from, to, 0, 100, tzOffsetMinutes);
+    return new URLSearchParams(String((safeFetch.mock.calls[0][1] as { body: URLSearchParams }).body));
+  };
+
+  it('SYNO-U081: with no offset the day is the UTC day it has always been', async () => {
+    const body = await windowOf('2026-03-15', '2026-03-15');
+
+    expect(body.get('start_time')).toBe(String(Date.UTC(2026, 2, 15) / 1000));
+    expect(body.get('end_time')).toBe(String(Date.UTC(2026, 2, 15) / 1000 + 86400));
+  });
+
+  it("SYNO-U082: the caller's offset moves both bounds onto the day it meant", async () => {
+    // UTC+10: the 15th there runs from 14:00Z on the 14th. Without this the NAS
+    // was asked for 10:00 that morning to 09:59 the next (#2336).
+    const body = await windowOf('2026-03-15', '2026-03-15', 600);
+
+    expect(body.get('start_time')).toBe(String(Date.UTC(2026, 2, 15) / 1000 - 600 * 60));
+    expect(body.get('end_time')).toBe(String(Date.UTC(2026, 2, 15) / 1000 - 600 * 60 + 86400));
+  });
+
+  it('SYNO-U083: a one-sided range still sets only the bound it was given', async () => {
+    // Both are optional on the MCP tool, so this is reachable.
+    const fromOnly = await windowOf('2026-03-15', undefined, 600);
+    expect(fromOnly.get('start_time')).toBe(String(Date.UTC(2026, 2, 15) / 1000 - 600 * 60));
+    expect(fromOnly.get('end_time')).toBeNull();
+
+    vi.clearAllMocks();
+    const toOnly = await windowOf(undefined, '2026-03-15', -480);
+    expect(toOnly.get('start_time')).toBeNull();
+    expect(toOnly.get('end_time')).toBe(String(Date.UTC(2026, 2, 15) / 1000 + 480 * 60 + 86400));
+  });
+
+  it('SYNO-U084: no dates at all still means no window, offset or not', async () => {
+    const body = await windowOf(undefined, undefined, 600);
+
+    expect(body.get('start_time')).toBeNull();
+    expect(body.get('end_time')).toBeNull();
   });
 });
 

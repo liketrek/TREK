@@ -1,4 +1,4 @@
-// FE-ADMIN-DUS-001 to FE-ADMIN-DUS-025
+// FE-ADMIN-DUS-001 to FE-ADMIN-DUS-027
 import { render, screen, waitFor, within, fireEvent } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -61,6 +61,11 @@ function resetLink(label: string): HTMLElement {
 function hasResetLink(label: string): boolean {
   const el = screen.getAllByText(label).find(node => node.tagName === 'LABEL');
   return !!el && within(el).queryByRole('button') !== null;
+}
+
+/** The CARTO key input sits under its label inside the field's own wrapper. */
+function cartoInput(): HTMLInputElement {
+  return within(screen.getByText('Shared CARTO key').closest('div') as HTMLElement).getByRole('textbox');
 }
 
 /** Opens a CustomSelect by its trigger label and picks an option from the portal. */
@@ -418,5 +423,33 @@ describe('DefaultUserSettingsTab', () => {
 
     expect(await screen.findByText(/Request failed with status code 503/)).toBeInTheDocument();
     expect(screen.queryByText('Reset to built-in default')).not.toBeInTheDocument();
+  });
+
+  it('FE-ADMIN-DUS-026: the shared CARTO key is stored on blur and cleared by its reset link', async () => {
+    const user = userEvent.setup();
+    const { puts } = stubDefaults({ carto_api_key: 'ck.old' });
+    render(<DefaultUserSettingsTab />);
+    await screen.findByText('Shared CARTO key');
+
+    const input = cartoInput();
+    expect(input).toHaveValue('ck.old');
+    await user.clear(input);
+    await user.type(input, 'ck.new');
+    fireEvent.blur(input);
+    await waitFor(() => expect(puts).toEqual([{ carto_api_key: 'ck.new' }]));
+
+    // Clicking the reset link also blurs the field again, so only the last PUT is checked
+    await user.click(resetLink('Shared CARTO key'));
+    await waitFor(() => expect(puts[puts.length - 1]).toEqual({ carto_api_key: null }));
+    await waitFor(() => expect(cartoInput()).toHaveValue(''));
+  });
+
+  it('FE-ADMIN-DUS-027: a managed instance hides the shared CARTO key field', async () => {
+    seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin(), managed: true });
+    stubDefaults({ carto_api_key: 'ck.hoster' });
+    render(<DefaultUserSettingsTab />);
+    await screen.findByText('Default User Settings');
+
+    expect(screen.queryByText('Shared CARTO key')).not.toBeInTheDocument();
   });
 });

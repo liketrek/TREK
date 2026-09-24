@@ -82,6 +82,10 @@ export function NavigationMenu({ targets, anchor, onClose, title }: NavigationMe
         minWidth: 186,
         maxHeight: `calc(100vh - ${EDGE * 2}px)`,
         overflowY: 'auto',
+        // Portaled and fixed like CustomSelect's list, so it chains to the viewport
+        // unless told otherwise (#2078). This one reaches the phone through
+        // MPlaceSheet, not only the desktop inspector.
+        overscrollBehavior: 'contain',
         padding: 5,
         background: 'var(--bg-card)',
         backdropFilter: 'blur(24px) saturate(180%)',

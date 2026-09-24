@@ -256,6 +256,24 @@ describe('TodoListPanel', () => {
     expect(html.indexOf('High Prio')).toBeLessThan(html.indexOf('Low Prio'));
   });
 
+  it('FE-COMP-TODO-073: Sort by due date puts the nearest deadline first, undated tasks last (#2205)', async () => {
+    const user = userEvent.setup();
+    const items = [
+      buildTodoItem({ name: 'Due Later', due_date: '2099-07-17', checked: 0 }),
+      buildTodoItem({ name: 'Due Tomorrow', due_date: '2099-07-16', checked: 0 }),
+      buildTodoItem({ name: 'No Due Date', checked: 0 }),
+    ];
+    render(<TodoListPanel tripId={1} items={items} />);
+    const sortBtn = screen.getAllByRole('button').find(
+      b => b.textContent?.includes('Due date') || b.getAttribute('title') === 'Due date'
+    );
+    expect(sortBtn).toBeTruthy();
+    await user.click(sortBtn!);
+    const html = document.body.innerHTML;
+    expect(html.indexOf('Due Tomorrow')).toBeLessThan(html.indexOf('Due Later'));
+    expect(html.indexOf('Due Later')).toBeLessThan(html.indexOf('No Due Date'));
+  });
+
   it('FE-COMP-TODO-019: Detail pane shows task name and allows editing', async () => {
     const user = userEvent.setup();
     const items = [buildTodoItem({ id: 11, name: 'Edit Me', checked: 0 })];

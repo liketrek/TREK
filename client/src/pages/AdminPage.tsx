@@ -1,3 +1,4 @@
+import SchoolHolidayCatalog from '../components/Admin/SchoolHolidayCatalog'
 import React, { Fragment } from 'react'
 import { adminApi } from '../api/client'
 import DevNotificationsPanel from '../components/Admin/DevNotificationsPanel'
@@ -151,6 +152,7 @@ function AdminPageDesktop(): React.ReactElement {
             <div className="space-y-6">
               <PackingTemplateManager />
               <CategoryManager />
+              <SchoolHolidayCatalog />
             </div>
           )}
 

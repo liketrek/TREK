@@ -15,6 +15,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { HOOK_PERMISSION } from '../src/permissions.js';
+import { SETTING_FIELD_KEYS } from '../src/manifest.js';
 import { PLUGIN_SESSION_MAX_KEYS, PLUGIN_SESSION_MAX_KEY_LENGTH, PLUGIN_SESSION_MAX_VALUE_BYTES, EVENT_FAMILIES, EVENT_SNAPSHOT_GRANT, KNOWN_PERMISSIONS } from '../src/index.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -94,5 +95,18 @@ describe.skipIf(!inMonorepo)('core event catalog', () => {
       expect(EVENT_FAMILIES).toContain(family);
       expect(KNOWN_PERMISSIONS).toContain(perm);
     }
+  });
+});
+
+describe.skipIf(!inMonorepo)('settings-field attribute parity', () => {
+  it("SETTING_FIELD_KEYS matches the host's install/manifest.ts", () => {
+    // The `manifest.settings-known-keys` check warns on an attribute the host would
+    // silently drop, so the list must be the host's — compared whole, both ways round.
+    const theirsFile = path.resolve(here, '../../server/src/nest/plugins/install/manifest.ts');
+    const src = fs.readFileSync(theirsFile, 'utf8');
+    const block = src.match(/export const SETTING_FIELD_KEYS = \[([\s\S]*?)\] as const/);
+    expect(block, 'SETTING_FIELD_KEYS not found in install/manifest.ts').toBeTruthy();
+    const theirs = [...block![1].matchAll(/'([^']+)'/g)].map((m) => m[1]);
+    expect([...SETTING_FIELD_KEYS]).toEqual(theirs);
   });
 });

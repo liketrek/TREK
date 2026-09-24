@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const dayplan: TranslationStrings = {
   'dayplan.icsTooltip': 'Eksportuj kalendarz (ICS)',
   'dayplan.emptyDay': 'Brak miejsc zaplanowanych na ten dzień',
+  'dayplan.addPlaceHere': 'Dodaj miejsce do tego dnia',
   'dayplan.cannotReorderTransport': 'Nie można zmieniać kolejności dla rezerwacji z określoną godziną',
   'dayplan.confirmRemoveTimeTitle': 'Usunąć godzinę?',
   'dayplan.confirmRemoveTimeBody':
@@ -89,5 +90,44 @@ const dayplan: TranslationStrings = {
   'dayplan.reorderUndo': 'Zmień kolejność dni',
   'dayplan.reorderError': 'Nie udało się zmienić kolejności dni',
   'dayplan.addDayError': 'Nie udało się dodać dnia',
+  'dayplan.deleteDay': 'Usuń dzień',
+  'dayplan.deleteDayTitle': 'Usunąć {day}?',
+  'dayplan.deleteDayBody': 'Dzień zostanie usunięty z podróży. Tej operacji nie można cofnąć.',
+  'dayplan.deleteDayEmpty': 'Na ten dzień nic nie zaplanowano.',
+  'dayplan.impactPlaces': 'Zaplanowane miejsca: {count}',
+  'dayplan.impactPlacesHint': 'Pozostają na liście miejsc.',
+  'dayplan.impactNotes': 'Notatki: {count}',
+  'dayplan.impactTexts': 'Tytuły i opisy dnia: {count}',
+  'dayplan.impactDeletedHint': 'Również zostaną usunięte.',
+  'dayplan.impactBookings': 'Rezerwacje: {count}',
+  'dayplan.impactStay': 'Nocleg w {name}',
+  'dayplan.deleteDayBookingsHint': 'Pozostają w Rezerwacjach, bez dnia.',
+  'dayplan.deleteDayStayHint': 'Zameldowanie lub wymeldowanie przypada na ten dzień, więc nocleg zostanie anulowany.',
+  'dayplan.deleteDayStayBookedHint':
+    'Zameldowanie lub wymeldowanie przypada na ten dzień, więc nocleg zostanie anulowany razem z rezerwacją „{booking}” i jej wydatkiem.',
+  'dayplan.deleteDayStayBookingHint':
+    'Zameldowanie lub wymeldowanie przypada na ten dzień, więc nocleg zostanie anulowany razem z rezerwacją „{booking}”.',
+  'dayplan.deleteDayStayPaidHint':
+    'Zameldowanie lub wymeldowanie przypada na ten dzień, więc nocleg zostanie anulowany razem z rezerwacją „{booking}” i jej wydatkiem w kwocie {amount}.',
+  'dayplan.deleteDayShift': 'Późniejsze dni: {count}',
+  'dayplan.deleteDayShiftHint': 'Każdy przesuwa się o jedną datę wcześniej.',
+  'dayplan.deleteDayShiftBookingsHint':
+    'Każdy przesuwa się o jedną datę wcześniej. Rezerwacje przesuwane razem z nimi: {count}',
+  'dayplan.deleteDayShrink': 'Podróż kończy się teraz {date}',
+  'dayplan.deleteDayShrinkHint': 'Nie ma dnia bez daty, który mógłby przejąć ostatnią datę.',
+  'dayplan.impactStayShorter': 'Nocleg w {name}: o jedną noc krócej',
+  'dayplan.deleteDayStayShorterHint': 'Obejmuje ten dzień, więc wymeldowanie przypada teraz na {date}.',
+  'dayplan.deleteDayStayShorterUndatedHint': 'Obejmuje ten dzień, więc kończy się teraz dzień wcześniej.',
+  'dayplan.deleteDaySpareDated': '{day} otrzymuje datę {date}',
+  'dayplan.deleteDaySpareDatedHint': 'To pierwszy dzień bez daty i przejmuje ostatnią datę podróży.',
+  'dayplan.deleteDayLast': 'Podróż musi mieć co najmniej jeden dzień',
+  'dayplan.daysOffline': 'Zmiana dni wymaga połączenia',
+  'dayplan.deleteDaySuccess': 'Dzień usunięty',
+  'dayplan.deleteDayError': 'Nie udało się usunąć dnia',
+  'dayplan.addUndatedDay': 'Bez daty',
+  'dayplan.addUndatedDayHint': 'Dodaje na końcu dzień bez daty. Daty podróży się nie zmieniają.',
+  'dayplan.addDatedDay': 'Dodaj {date}',
+  'dayplan.addDatedDayHint': 'Wydłuża podróż o jeden dzień, do {date}.',
+  'dayplan.tripExtended': 'Dodano dzień. Podróż kończy się teraz {date}, dzień później.',
 };
 export default dayplan;

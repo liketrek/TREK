@@ -20,5 +20,6 @@ const undo: TranslationStrings = {
   'undo.importBooking': 'Booking confirmation import',
   'undo.addPlace': 'Place added',
   'undo.done': 'Undone: {action}',
+  'undo.failed': 'Could not undo: {action}',
 };
 export default undo;

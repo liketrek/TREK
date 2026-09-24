@@ -1,4 +1,4 @@
-// FE-PLANNER-LOCSEL-001 to FE-PLANNER-LOCSEL-019
+// FE-PLANNER-LOCSEL-001 to FE-PLANNER-LOCSEL-024
 import { useState } from 'react';
 import { delay, http, HttpResponse } from 'msw';
 import userEvent from '@testing-library/user-event';
@@ -29,10 +29,14 @@ function searchRoute(places: SearchHit[] | (() => Response | Promise<Response>))
 
 // Controlled host — `value` drives the input text and mutes the search for the
 // already-picked name, exactly like ReservationModal wires it up.
-function Host({ initial = null, onPick }: { initial?: LocationPoint | null; onPick?: (l: LocationPoint | null) => void }) {
+function Host({ initial = null, onPick, places }: { initial?: LocationPoint | null; onPick?: (l: LocationPoint | null) => void; places?: LocationPoint[] }) {
   const [value, setValue] = useState<LocationPoint | null>(initial);
-  return <LocationSelect value={value} onChange={(l) => { setValue(l); onPick?.(l); }} />;
+  return <LocationSelect value={value} onChange={(l) => { setValue(l); onPick?.(l); }} places={places} />;
 }
+
+/** The trip's own places, as the transport forms hand them over (#2468). */
+const HOTEL = { name: 'Bach Suites Saigon', lat: 10.78, lng: 106.7, address: 'District 1' };
+const EXPO = { name: 'Textile Exhibition', lat: 10.8, lng: 106.66, address: null };
 
 describe('LocationSelect', () => {
   it('FE-PLANNER-LOCSEL-001: falls back to the translated placeholder', () => {
@@ -262,5 +266,78 @@ describe('LocationSelect', () => {
     await user.type(input, 's');
 
     await waitFor(() => expect(screen.queryByText('Gare du Nord')).not.toBeInTheDocument());
+  });
+
+  it('FE-PLANNER-LOCSEL-020: an empty field offers the trip places, and picking one needs no search', async () => {
+    const user = userEvent.setup();
+    let calls = 0;
+    server.use(searchRoute(() => { calls++; return HttpResponse.json({ places: [GARE] }); }));
+    const onPick = vi.fn();
+
+    render(<Host places={[HOTEL, EXPO]} onPick={onPick} />);
+    await user.click(screen.getByRole('textbox'));
+
+    expect(screen.getByText('Bach Suites Saigon')).toBeInTheDocument();
+    expect(screen.getByText('Textile Exhibition')).toBeInTheDocument();
+    await user.click(screen.getByText('Textile Exhibition'));
+
+    expect(onPick).toHaveBeenLastCalledWith({ name: 'Textile Exhibition', lat: 10.8, lng: 106.66, address: null });
+    await settle();
+    expect(calls).toBe(0);
+  });
+
+  it('FE-PLANNER-LOCSEL-021: one or two typed characters narrow the trip places by name', async () => {
+    const user = userEvent.setup();
+
+    render(<Host places={[HOTEL, EXPO]} />);
+    await user.type(screen.getByRole('textbox'), 'te');
+
+    expect(screen.getByText('Textile Exhibition')).toBeInTheDocument();
+    // "Bach Suites" has a "te" inside "Suites", so it stays; a name without it goes.
+    expect(screen.getByText('Bach Suites Saigon')).toBeInTheDocument();
+    await user.type(screen.getByRole('textbox'), '{backspace}{backspace}ex');
+    expect(screen.getByText('Textile Exhibition')).toBeInTheDocument();
+    expect(screen.queryByText('Bach Suites Saigon')).not.toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-LOCSEL-022: from the third character on the map search answers instead of the trip places', async () => {
+    const user = userEvent.setup();
+    server.use(searchRoute([GARE]));
+
+    render(<Host places={[HOTEL, EXPO]} />);
+    await user.type(screen.getByRole('textbox'), 'Gare');
+
+    expect(await screen.findByText('Gare du Nord')).toBeInTheDocument();
+    expect(screen.queryByText('Bach Suites Saigon')).not.toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-LOCSEL-023: a place already picked does not reopen the trip places when the field is focused', async () => {
+    const user = userEvent.setup();
+
+    render(<Host places={[HOTEL, EXPO]} initial={{ name: 'Ab', lat: 1, lng: 2 }} />);
+    await user.click(screen.getByRole('textbox'));
+
+    expect(screen.queryByText('Bach Suites Saigon')).not.toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-LOCSEL-024: shortening the query after moving down the search results picks nothing stale', async () => {
+    const user = userEvent.setup();
+    server.use(searchRoute([GARE, LYON, { ...GARE, name: 'Gare de l Est', osm_id: 'n3' }]));
+    const onPick = vi.fn();
+
+    render(<Host places={[HOTEL, EXPO]} onPick={onPick} />);
+    const input = screen.getByRole('textbox');
+    await user.type(input, 'Gare');
+    await screen.findByText('Gare de Lyon');
+    await user.keyboard('{ArrowDown}{ArrowDown}{ArrowDown}');
+
+    // Back under three characters: the trip places are shown and nothing is highlighted,
+    // so Enter does nothing rather than reaching for the third row of the old list.
+    await user.type(input, '{backspace}{backspace}{backspace}');
+    await user.keyboard('{Enter}');
+    expect(onPick).not.toHaveBeenCalledWith(expect.objectContaining({ lat: expect.any(Number) }));
+
+    await user.keyboard('{ArrowDown}{Enter}');
+    expect(onPick).toHaveBeenLastCalledWith(expect.objectContaining({ name: 'Bach Suites Saigon' }));
   });
 });

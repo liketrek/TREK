@@ -34,6 +34,7 @@ export const ADVANCED_MENU: MenuItem[] = [
   { value: 'pack', label: 'Pack', hint: 'Build plugin.zip without releasing it' },
   { value: 'keygen', label: 'Generate a signing key', hint: 'Create an Ed25519 signing key' },
   { value: 'sign', label: 'Sign an artifact', hint: 'Print a signature + public key' },
+  { value: 'rotate-key', label: 'Rotate signing key', hint: 'Re-sign every published version with a NEW key' },
   { value: 'entry', label: 'Registry entry', hint: 'Print the ready-to-PR registry JSON' },
   { value: 'preflight', label: 'Preflight', hint: 'The registry checks that need the release to exist' },
   { value: 'submit', label: 'Submit', hint: 'Open the registry PR' },

@@ -87,16 +87,64 @@ const admin: TranslationStrings = {
   'admin.requireMfaHint':
     'A 2FA nélküli felhasználóknak a Beállításokban kell befejezniük a beállítást az alkalmazás használata előtt.',
   'admin.apiKeys': 'API kulcsok',
-  'admin.apiKeysHint': 'Opcionális. Bővített helyadatokat tesz lehetővé, például fotókat és időjárást.',
+  'admin.apiKeysHint': 'Honnan jönnek a helyadatok. A TREK-indexhez nem kell kulcs; az alábbi két szolgáltató nem kötelező.',
+  'admin.trekApi.badgeDefault': 'Ajánlott alapértelmezés',
+  'admin.googleCaveat.badge': 'Nem ajánlott',
+  'admin.googleCaveat.body':
+    'A TREK nyílt forráskódú, és ebben nem vagyunk semlegesek. Ebben a méretben az értékelések és a hétköznapi üzletek fotói csak a Google-nél léteznek, és ez a monopólium. A mező alternatíva híján van itt, nem mert ajánljuk. Minden lekérdezés ilyenkor a Google-höz megy.',
+  'admin.trekApi.tagline':
+    'A TREK saját helyindexe. Keresés Google-kulcs nélkül, kvóta nélkül, és anélkül, hogy bárki számolná a lekérdezéseidet.',
+  'admin.trekApi.factPlaces':
+    '73,6 millió hely világszerte',
+  'admin.trekApi.factNoKey':
+    'Nincs kulcs, nincs kvóta',
+  'admin.trekApi.factOffline':
+    'Az országcsomagok offline is működnek',
+  'admin.trekApi.factPrivacy':
+    'A kereséseket soha nem naplózzuk',
+  'admin.trekApi.more':
+    'Mi van benne',
+  'admin.trekApi.fieldPhone':
+    'Telefon',
+  'admin.trekApi.fieldStableId':
+    'Állandó azonosító',
+  'admin.trekApi.includedNote':
+    'A leírások a hely saját webhelyéről jönnek, a nyitvatartás az OpenStreetMapből, ahol be van írva.',
+  'admin.trekApi.notRatings':
+    'Értékelések',
+  'admin.trekApi.notPhotos':
+    'Hétköznapi üzletek fotói',
+  'admin.trekApi.notIncludedNote':
+    'Egyiket sem kínálja nyílt forrás, semmilyen áron. Ehhez a kettőhöz a Google-kulcs marad az egyetlen út.',
+  'admin.trekApi.sourcesLabel':
+    'Források',
+  'admin.trekApi.sourcesNote':
+    'A válasz minden mezője megmondja, melyikükből származik.',
+  'admin.trekApi.included':
+    'Tartalmazza',
+  'admin.trekApi.notIncluded':
+    'Nem tartalmazza',
   'admin.mapsKey': 'Google Maps API kulcs',
   'admin.mapsKeyHint': 'Helykereséshez szükséges. Létrehozás: console.cloud.google.com',
   'admin.mapsKeyHintLong':
-    'API kulcs nélkül az OpenStreetMap szolgál helykeresésre. Google API kulccsal képek, értékelések és nyitvatartás is betölthetők. Létrehozás: console.cloud.google.com.',
+    'Google API-kulcs nélkül az ajánlott TREK API-t használjuk. Kulccsal ezen felül fotók, értékelések és nyitvatartás is betölthető. Kulcsot a console.cloud.google.com oldalon hozhatsz létre.',
   'admin.recommended': 'Ajánlott',
   'admin.weatherKey': 'OpenWeatherMap API kulcs',
   'admin.weatherKeyHint': 'Időjárás adatokhoz. Ingyenes: openweathermap.org',
   'admin.unsplashKey': 'Unsplash API-kulcs',
   'admin.unsplashKeyHint': 'Képkereséshez. Ingyenes: unsplash.com/developers',
+  'admin.amapKey': 'Amap (高德地图) API-kulcs',
+  'admin.amapKeyHint':
+    'Helykereséshez Kína szárazföldi részén, ahol a Google nem érhető el, az OpenStreetMap adatai pedig hiányosak. „Web 服务" (webszolgáltatás) típusú kulcs kell hozzá, nem JS API-kulcs. A console.amap.com oldalon kérhető.',
+  'admin.placesProvider.title': 'Helykeresési szolgáltató',
+  'admin.placesProvider.subtitle':
+    'A TREK saját indexe és az OpenStreetMap minden keresésre válaszol. Itt választod ki, kit kérdezünk még, ha ők nem találnak semmit: az Automatikus a Google-t részesíti előnyben, ha van kulcs, utána az Amapot.',
+  'admin.placesProvider.auto': 'Automatikus',
+  'admin.placesProvider.google': 'Google Places',
+  'admin.placesProvider.amap': 'Amap (高德地图)',
+  'admin.placesProvider.openstreetmap': 'OpenStreetMap',
+  'admin.placesProvider.missingKey': 'A kiválasztott szolgáltatóhoz nincs API-kulcs beállítva, ezért a helykeresésre csak a TREK indexe és az OpenStreetMap válaszol.',
+  'admin.placesProvider.saved': 'Helykeresési szolgáltató elmentve',
   'admin.validateKey': 'Teszt',
   'admin.keyValid': 'Csatlakozva',
   'admin.keyInvalid': 'Érvénytelen',
@@ -115,6 +163,8 @@ const admin: TranslationStrings = {
   'admin.fileTypesFormat':
     'Vesszővel elválasztott kiterjesztések (pl. jpg,png,pdf,doc). Használj *-ot az összes típus engedélyezéséhez.',
   'admin.fileTypesSaved': 'Fájltípus-beállítások mentve',
+  'admin.googleOptions': 'Mire használja a kulcsot',
+  'admin.googleOptionsSummary': '{on} / {total} bekapcsolva',
   'admin.placesPhotos.title': 'Helyfotók',
   'admin.placesPhotos.subtitle':
     'Fotók lekérése a Google Places API-ból. Tiltsa le az API-kvóta megtakarításához. A Wikimedia-fotók nem érintettek.',
@@ -127,6 +177,21 @@ const admin: TranslationStrings = {
   'admin.placesEnrich.title': 'Helyek gazdagítása',
   'admin.placesEnrich.subtitle':
     'Képeket és leírást mutat hely hozzáadásakor. A Wikipédia és az OpenStreetMap mindig használatban van; a Google akkor jön hozzá, ha a Helyfotók vagy a Helyadatok be vannak kapcsolva.',
+  'admin.placesGoogleOnly.title': 'Keresés csak a Google-lel',
+  'admin.placesGoogleOnly.subtitle': 'Minden keresés és minden javaslat a Google Places-hez megy. Kikapcsolva előbb a TREK saját indexe és az OpenStreetMap válaszol, a Google-t csak akkor kérdezzük, ha ők nem találnak semmit.',
+  'admin.placesGoogleOnly.missingKey': 'Google Maps API-kulcs kell hozzá. Nélküle a keresés a TREK indexén és az OpenStreetMapen fut, bárhogy áll is ez a kapcsoló.',
+  'admin.placesGoogleOnly.otherProvider': 'A Google-t igényli helyszolgáltatóként. Amap vagy OpenStreetMap kiválasztásával egyetlen keresés sem megy a Google-höz, bárhogy áll is ez a kapcsoló.',
+  'admin.transitProvider.title': 'Tömegközlekedési szolgáltató',
+  'admin.transitProvider.subtitle': 'Melyik szolgáltatás válaszol a tömegközlekedési keresésre.',
+  'admin.transitProvider.transitous': 'Transitous (ingyenes)',
+  'admin.transitProvider.google': 'Google',
+  'admin.transitProvider.transitousHint': 'Közösségi GTFS adatforrások. Ingyenes és kulcs nélküli, Európában a legjobb lefedettséggel.',
+  'admin.transitProvider.googleHint': 'A fenti Google-kulcsot használja azokhoz a régiókhoz, amelyekhez a Transitousnak nincs adata. Keresésenként számlázódik – amíg nincs kulcs, a Transitous fut.',
+  'admin.transitProvider.noKeyWarning': 'A Google van kiválasztva, de nincs beállítva Google-kulcs – a közlekedési keresés továbbra is a Transitous-t használja. Adj hozzá kulcsot a fenti API-kulcsoknál.',
+  'admin.transitProvider.personalKeyWarning': 'Csak a saját Google-kulcsod van beállítva, így a többi tag keresése továbbra is a Transitous-ra esik vissza. Mentsd a kulcsot fent adminként, hogy az egész példányra érvényes legyen.',
+  'admin.placeShadow.title': 'Helykeresési napló',
+  'admin.placeShadow.subtitle':
+    'Rögzíti, melyik találatot választották ki, hogy egy másik helyindexet később valódi kereséseken lehessen mérni. Semmi nem hagyja el ezt a példányt, és egy rendszergazda bármikor exportálhatja vagy törölheti a naplót.',
   'admin.bagTracking.title': 'Poggyászkövetés',
   'admin.bagTracking.subtitle': 'Súly- és táskahozzárendelés engedélyezése csomagolási tételeknél',
   'admin.collab.chat.title': 'Chat',
@@ -323,6 +388,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:calendar-source': 'Események biztosítása a naptárhoz',
   'admin.plugins.perm.hook:place-detail-provider':
     'További részletek (értékelések, minősítések, hivatkozások) hozzáadása egy helyhez',
+  'admin.plugins.perm.hook:search-provider':
+    'Helykeresések megválaszolása saját indexből, a TREK saját találatai mellett',
   'admin.plugins.perm.hook:trip-warning-provider':
     'Ellenőrzési figyelmeztetések megjelenítése egy utazáson (a tervezőben látható)',
   'admin.plugins.perm.hook:table-contributor':
@@ -336,6 +403,11 @@ const admin: TranslationStrings = {
     'Időbejegyzések hozzáadása a napi tervhez (töltőmegállók, biztonsági ráhagyások)',
   'admin.plugins.perm.hook:day-tint-provider':
     'A napok színezése a napi tervben (például hogy az út melyik szakaszához tartozik egy nap)',
+  'admin.plugins.cap.mcpTools': 'MI-eszközöket tesz közzé',
+  'admin.plugins.mcpToolsTitle': 'Közzétett MI-eszközök',
+  'admin.plugins.mcpToolsHint': 'Egy asszisztens futtathatja őket a felhasználó nevében. Mindegyik a fent megadott jogosultságokkal működik.',
+  'admin.plugins.perm.mcp:tools':
+    'Olyan eszközök közzététele, amelyeket egy MI-asszisztens futtathat a nevedben (a bővítménynek itt adott jogosultságokkal működik, nem a sajátjával)',
   'admin.plugins.perm.geolocation:read':
     'Az élő tartózkodási helyed lekérdezése, amíg valamelyik nézete nyitva van (a TREK az oldal helymeghatározási engedélyével olvassa ki, nem a bővítmény saját engedélyével)',
   'admin.plugins.perm.hook:pdf-section-provider': 'Szöveges szakaszok hozzáfűzése az utazás PDF-exportjához',
@@ -447,6 +519,13 @@ const admin: TranslationStrings = {
   'admin.plugins.noMatchRegistry': 'Nincs a keresésnek megfelelő plugin a tárban.',
   'admin.plugins.restart': 'Újraindítás',
   'admin.plugins.restarted': 'Plugin újraindítva',
+  'admin.plugins.instanceSettings': 'Példányszintű beállítások',
+  'admin.plugins.settingsSaved': 'Beállítások elmentve',
+  'admin.plugins.settingsSavedRestarted': 'Beállítások elmentve — plugin újraindítva',
+  'admin.plugins.actions': 'Műveletek',
+  'admin.plugins.actions.confirm': 'Végrehajtod ezt a műveletet?',
+  'admin.plugins.actions.inactive': 'Aktiváld a plugint a műveletei futtatásához',
+  'admin.plugins.requiredMissing': '"{field}" kötelező',
   'admin.plugins.cap.readsTrips': 'Olvassa az utazásaidat',
   'admin.plugins.cap.readsUsers': 'Olvassa az alapprofilokat',
   'admin.plugins.cap.readsCosts': 'Olvassa a költségeidet',
@@ -469,6 +548,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.photos': 'Fotókat biztosít',
   'admin.plugins.cap.calendar': 'Naptáreseményeket biztosít',
   'admin.plugins.cap.placeDetails': 'Helyeket gazdagít',
+  'admin.plugins.cap.search': 'Válaszol a keresésekre',
   'admin.plugins.cap.warnings': 'Problémákat jelez',
   'admin.plugins.cap.mapLayers': 'Rajzol a térképre',
   'admin.plugins.cap.routing': 'Útvonaltervezést biztosít',
@@ -491,6 +571,19 @@ const admin: TranslationStrings = {
   'admin.plugins.dep.trekIncompatible': 'TREK {range} szükséges — ez a kiszolgáló {host} verziót futtat',
   'admin.plugins.dep.trekUnknown': 'Nem adja meg, mely TREK-verziókat támogatja',
   'admin.plugins.installCompatible': '{version} telepítése',
+  'admin.plugins.installAnyway': 'Telepítés mindenképp',
+  'admin.plugins.rangeBypass.pill': 'Verzióellenőrzés kikapcsolva',
+  'admin.plugins.rangeBypass.pillHint':
+    'A TREK_PLUGINS_IGNORE_TREK_RANGE be van állítva — a bővítmények a szerzőik által megadott TREK-verziókon kívül is telepíthetők és futtathatók',
+  'admin.plugins.rangeBypass.title': 'A támogatott TREK-verziókon kívül',
+  'admin.plugins.rangeBypass.noticeTitle': 'A támogatott TREK-verziókon kívül telepítve',
+  'admin.plugins.rangeBypass.body':
+    'A(z) „{name}” a TREK {range} verzióihoz készült, ez a szerver pedig {host}-t futtat. A TREK csak azért engedi át, mert a TREK_PLUGINS_IGNORE_TREK_RANGE be van állítva. A szerző nem frissítette a bővítmény verziótartományát ehhez a TREK-hez, így nincs garancia, hogy működik — és ritka esetben egy nem illeszkedő bővítmény megsértheti a TREK adatait. Csak akkor folytasd, ha vállalod ezt a kockázatot.',
+  'admin.plugins.rangeBypass.bodyUnknown':
+    'A(z) „{name}” nem adja meg, mely TREK-verziókat támogatja; ez a szerver {host}-t futtat. A TREK csak azért engedi át, mert a TREK_PLUGINS_IGNORE_TREK_RANGE be van állítva. Semmi sem jelzi, hogy a szerző ezen a TREK-en tesztelte volna, így nincs garancia, hogy működik — és ritka esetben egy nem illeszkedő bővítmény megsértheti a TREK adatait. Csak akkor folytasd, ha vállalod ezt a kockázatot.',
+  'admin.plugins.dep.trekBypassed':
+    'A TREK-tartományán kívül ({range}) — verzióellenőrzés kikapcsolva',
+  'admin.plugins.dep.trekBypassedUnknown': 'Nem ad meg TREK-tartományt — verzióellenőrzés kikapcsolva',
   'admin.plugins.incompatible': 'Nem kompatibilis',
   'admin.plugins.accessTitle': 'Mihez fér hozzá',
   'admin.plugins.connectsTitle': 'Kapcsolódik ehhez',
@@ -506,7 +599,7 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.packing.name': 'Listák',
   'admin.addons.catalog.packing.description': 'Csomagolási listák és teendők az utazásaidhoz',
   'admin.addons.catalog.budget.name': 'Költségek',
-  'admin.addons.catalog.budget.description': 'Kiadások nyomon követése és az utazási költségvetés tervezése',
+  'admin.addons.catalog.budget.description': 'Kövesd az utazás kiadásait, és oszd meg őket az utastársak között',
   'admin.addons.catalog.documents.name': 'Dokumentumok',
   'admin.addons.catalog.documents.description': 'Úti dokumentumok tárolása és kezelése',
   'admin.addons.catalog.vacay.name': 'Vacay',
@@ -514,13 +607,24 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.atlas.name': 'Atlasz',
   'admin.addons.catalog.atlas.description': 'Világtérkép meglátogatott országokkal és utazási statisztikákkal',
   'admin.addons.catalog.collab.name': 'Együttműködés',
-  'admin.addons.catalog.collab.description': 'Valós idejű jegyzetek, szavazások és csevegés az utazás tervezéséhez',
+  'admin.addons.catalog.collab.description': 'Jegyzetek, szavazások, csevegés és javaslatok a közös tervezéshez',
+  'admin.addons.catalog.roadtrip.name': 'Autós út',
+  'admin.addons.catalog.roadtrip.description': 'Tervezz megállókkal tarkított utakat – a vezetési és érkezési idők maguktól újraszámolódnak',
   'admin.addons.catalog.memories.name': 'Fotók (Immich)',
   'admin.addons.catalog.memories.description': 'Utazási fotók megosztása az Immich példányon keresztül',
   'admin.addons.catalog.mcp.name': 'MCP',
   'admin.addons.catalog.mcp.description': 'Model Context Protocol AI asszisztens integrációhoz',
   'admin.addons.subtitleBefore': 'Funkciók engedélyezése vagy letiltása a ',
   'admin.addons.subtitleAfter': ' testreszabásához.',
+  'admin.addons.catalog.naver_list_import.name': 'Naver List Import',
+  'admin.addons.catalog.naver_list_import.description': 'Helyek importálása megosztott Naver Maps-listából',
+  'admin.addons.catalog.airtrail.name': 'AirTrail',
+  'admin.addons.catalog.airtrail.description': 'Járatok szinkronizálása az AirTrail-példányodból',
+  'admin.addons.catalog.dawarich.name': 'Dawarich',
+  'admin.addons.catalog.dawarich.description':
+    'Tartózkodások és rögzített útvonalak olvasása egy Dawarich-példányból, amelyet minden olvasó maga köt be',
+  'admin.addons.catalog.llm_parsing.name': 'MI-elemzés',
+  'admin.addons.catalog.llm_parsing.description': 'Beolvassa azokat a foglalásokat, amelyeket a beépített értelmező nem tud, az általad választott MI-modellel',
   'admin.addons.enabled': 'Engedélyezve',
   'admin.addons.disabled': 'Letiltva',
   'admin.addons.type.trip': 'Utazás',
@@ -531,6 +635,7 @@ const admin: TranslationStrings = {
   'admin.addons.integrationHint': 'Háttérszolgáltatások és API integrációk dedikált oldal nélkül',
   'admin.addons.toast.updated': 'Bővítmény frissítve',
   'admin.addons.toast.error': 'Nem sikerült frissíteni a bővítményt',
+  'admin.addons.group.count': '{total} közül {enabled} bekapcsolva',
   'admin.addons.noAddons': 'Nincsenek elérhető bővítmények',
   'admin.weather.title': 'Időjárás adatok',
   'admin.weather.badge': '2026. március 24. óta',
@@ -666,8 +771,7 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.journey.description':
     'Utazáskövetés és útinapló bejelentkezésekkel, fotókkal és napi történetekkel',
   'admin.addons.catalog.collections.name': 'Gyűjtemények',
-  'admin.addons.catalog.collections.description':
-    'Személyes helykönyvtár — ments helyeket utazásokon átívelően elnevezett listákba, másold bármelyik utazásba, oszd meg másokkal',
+  'admin.addons.catalog.collections.description': 'Gyűjtsd össze bármely utazás helyeit elnevezett listákba, és használd fel őket újra',
   'admin.passkey.title': 'Passkey-bejelentkezés',
   'admin.passkey.cardHint':
     'Engedélyezd a felhasználóknak a bejelentkezést passkey-vel (WebAuthn). Alapból kikapcsolva.',
@@ -700,6 +804,9 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.mapboxStylePlaceholder': 'Válassz stílust…',
   'admin.defaultSettings.mapbox3d': '3D épületek & domborzat',
   'admin.defaultSettings.mapboxQuality': 'Kiváló minőségű mód',
+  'admin.defaultSettings.cartoKey': 'Megosztott CARTO-kulcs',
+  'admin.defaultSettings.cartoKeyHint':
+    'Minden olyan felhasználóhoz használatos, aki nem adta meg a saját kulcsát, így az egész példány vízjel nélküli CARTO-csempéket kap. Titkosítva tárolódik.',
   'admin.group.users': 'Users',
   'admin.group.config': 'Configuration',
   'admin.group.integration': 'Integrations',
@@ -709,5 +816,9 @@ const admin: TranslationStrings = {
   'admin.invite.tripHint':
     'Az új felhasználó automatikusan hozzáadódik ehhez az utazáshoz, amikor a linken keresztül regisztrál.',
   'admin.invite.boundTo': 'hozzáadja a következőhöz: {trip}',
+  'admin.placesUsageTitle': 'Mire használjuk a kulcsot',
+  'admin.mapsKeyHintShort': 'Fényképeket, értékeléseket és nyitvatartást ad hozzá. Minden lekérdezés a Google-höz megy.',
+  'admin.amapKeyHintShort': 'Helykereséshez a szárazföldi Kínában. Webszolgáltatás-kulcs kell, nem JS API-kulcs.',
+  'admin.collab.links.subtitle': 'Megosztott linkek és könyvjelzők',
 };
 export default admin;

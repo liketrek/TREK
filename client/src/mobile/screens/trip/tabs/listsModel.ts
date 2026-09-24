@@ -138,16 +138,22 @@ export function filterTodoItemsByCategory(items: TodoItem[], category: string): 
 
 /**
  * Row order (spec 03 §4.7): done sinks to the end, open-overdue floats to the
- * top, and — only while the priority toggle is on — ties break by ascending
- * priority (0/undefined sorts last within its bucket).
+ * top. Ties break by the active sort toggle: ascending priority (0/undefined
+ * last within its bucket), or nearest due date first with undated tasks after
+ * all dated ones (#2205). With no toggle the manual order stands.
  */
-export function sortTodoRows(items: TodoItem[], sortByPriority: boolean, today: string): TodoItem[] {
+export function sortTodoRows(items: TodoItem[], sortBy: 'priority' | 'due' | null, today: string): TodoItem[] {
   const rank = (i: TodoItem) => (i.checked ? 2 : isTodoOverdue(i, today) ? 0 : 1)
   return [...items].sort((a, b) => {
     const byRank = rank(a) - rank(b)
     if (byRank !== 0) return byRank
-    if (!sortByPriority) return 0
-    return (a.priority || 99) - (b.priority || 99)
+    if (sortBy === 'priority') return (a.priority || 99) - (b.priority || 99)
+    if (sortBy === 'due') {
+      if (!a.due_date) return b.due_date ? 1 : 0
+      if (!b.due_date) return -1
+      return a.due_date < b.due_date ? -1 : a.due_date > b.due_date ? 1 : 0
+    }
+    return 0
   })
 }
 

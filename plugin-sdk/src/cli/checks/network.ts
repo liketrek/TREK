@@ -25,7 +25,7 @@ import { listZipNames } from '../../zip.js';
 import { verifyAuthorSignature, checkSignatureShape, SignatureError } from '../verify-signature.js';
 import type { NetworkCheck, CheckContext, RegistryEntry, RegistryEntryVersion } from './types.js';
 import { pass, fail, skip } from './types.js';
-import { REQUIRED_SECTIONS, MIN_PROSE_CHARS, missingSections, placeholders, proseLength, images, undocumentedPermissions } from './readme.js';
+import { REQUIRED_SECTIONS, MIN_PROSE_CHARS, missingSections, placeholders, proseLength, undocumentedPermissions } from './readme.js';
 
 export const DEFAULT_REGISTRY = 'liketrek/TREK-Plugins';
 
@@ -246,32 +246,26 @@ const readmeAtCommit: NetworkCheck = {
     const n = proseLength(md);
     if (n < MIN_PROSE_CHARS) problems.push(`• only ${n}/${MIN_PROSE_CHARS} chars of prose`);
 
-    // Resolve every image against the pinned commit. A relative path that exists in your tree
-    // but was never committed 404s here — which is exactly the failure this catches.
-    const imgs = images(md);
-    if (!imgs.length) problems.push('• no screenshot (the registry requires at least one real image)');
-    else {
-      let anyOk = false;
-      const reasons: string[] = [];
-      for (const src of imgs) {
-        const url = /^https?:\/\//.test(src)
-          ? src.includes('github.com') && src.includes('/blob/')
-            ? src.replace('github.com', 'raw.githubusercontent.com').replace('/blob/', '/')
-            : src
-          : rawUrl(c.entry.repo, v.commitSha, src);
-        try {
-          const r = await fetch(url, { headers: { 'User-Agent': 'trek-plugin-preflight', Range: 'bytes=0-2047' } });
-          const ct = r.headers.get('content-type') || '';
-          if (r.ok && ct.startsWith('image/')) {
-            anyOk = true;
-            break;
-          }
-          reasons.push(`${src} → ${r.status} ${ct || 'no content-type'}`);
-        } catch {
-          reasons.push(`${src} → unreachable`);
-        }
+    // The store cover, at the pinned commit. The registry's check-readme.mjs fetches EXACTLY
+    // `docs/screenshot.png` here — that precise path is what the store card loads — so a file
+    // that exists in your tree but was never committed 404s, which is exactly the failure this
+    // catches. README image links are irrelevant to this gate; don't scan them.
+    try {
+      const r = await fetch(rawUrl(c.entry.repo, v.commitSha, 'docs/screenshot.png'), {
+        headers: { 'User-Agent': 'trek-plugin-preflight', Range: 'bytes=0-2047' },
+      });
+      const ct = r.headers.get('content-type') || '';
+      if (!r.ok || !ct.startsWith('image/')) {
+        problems.push(
+          `• docs/screenshot.png does not resolve to an image at ${v.commitSha.slice(0, 8)} ` +
+            `(got ${r.status} ${ct || 'no content-type'}) — this exact file is the store cover; ` +
+            'run `trek-plugin shot`, commit it, and re-tag',
+        );
       }
-      if (!anyOk) problems.push('• no screenshot resolved to a real image:\n  ' + reasons.join('\n  '));
+    } catch {
+      problems.push(
+        `• docs/screenshot.png is unreachable at ${v.commitSha.slice(0, 8)} — this exact file is the store cover`,
+      );
     }
 
     // Permission parity, against the manifest AT THE COMMIT (not the tree — they can differ).
@@ -354,6 +348,7 @@ const signingDowngrade: NetworkCheck = {
     // signed, an unsigned update — or one signed with a different key — is REFUSED on every
     // instance that already has it. Merging that would not just fail; it would strand every
     // existing user on the version they have.
+    const keyChanged = !!c.entry.authorPublicKey && c.entry.authorPublicKey !== published.authorPublicKey;
     const problems: string[] = [];
     if (!c.entry.authorPublicKey) {
       problems.push(
@@ -361,19 +356,24 @@ const signingDowngrade: NetworkCheck = {
           '  TREK refuses an unsigned update to a signed plugin — it would break the update for every existing install.\n' +
           '  Sign it: pass --sign (your key should be at ~/.trek-plugin/signing.key).',
       );
-    } else if (c.entry.authorPublicKey !== published.authorPublicKey) {
+    } else if (keyChanged && !c.allowKeyChange) {
       problems.push(
         '• this entry changes authorPublicKey. TREK refuses a key rotation until an admin re-trusts the plugin.\n' +
-          '  Sign with your ORIGINAL key, or ask a maintainer for the allow-key-change label.',
+          '  Sign with your ORIGINAL key — or, if the rotation is deliberate, re-run with --allow-key-change\n' +
+          '  and ask a maintainer for the allow-key-change label.',
       );
     } else {
       // Every version must stay signed, not just the newest — TREK verifies whichever version it
-      // installs, so an unsigned older block is a landmine for a pinned install.
+      // installs, so an unsigned older block is a landmine for a pinned install. Under a declared
+      // rotation this bites twice over: every version must be RE-signed with the new key.
       for (const v of c.entry.versions) {
         if (!v.signature) problems.push(`• ${v.version} has no signature, but this is a signed plugin — TREK will refuse to install it`);
       }
     }
-    return problems.length ? fail(`${problems.length} problem(s)`, problems.join('\n')) : pass('signed with the published key');
+    if (problems.length) return fail(`${problems.length} problem(s)`, problems.join('\n'));
+    return keyChanged
+      ? pass('key rotation declared — merging needs a maintainer\'s allow-key-change label, and every admin must re-trust the new key')
+      : pass('signed with the published key');
   },
 };
 

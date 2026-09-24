@@ -2,11 +2,25 @@ import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import { visualizer } from 'rollup-plugin-visualizer';
+import { rtlTextAlias, plyrSpriteAlias } from './rtlTextAlias.js';
+import { readFileSync } from 'node:fs';
+
+// The version this bundle is built as, baked in at build time. The release image
+// bumps every package.json before it builds, so this matches the server's
+// APP_VERSION there; a source checkout matches the server's own package.json.
+// The server hands the release notice only to a bundle built for its version.
+const UI_VERSION = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')).version;
 
 // `npm run build:analyze` writes dist/stats.html — a treemap of what actually ended
 // up in each chunk. The plain build only reports chunk sizes, which tells you a chunk
 // is too big but not which dependency made it so.
+// Mehrere Worktrees laufen hier parallel. Ohne diese beiden Variablen streiten
+// sie sich um 5173 und 3001; mit ihnen bekommt jeder seinen eigenen Satz.
+const DEV_PORT = Number(process.env.TREK_DEV_PORT) || 5173;
+const API_TARGET = process.env.TREK_DEV_API || 'http://localhost:3001';
+
 export default defineConfig(({ mode }) => ({
+  define: { __TREK_UI_VERSION__: JSON.stringify(UI_VERSION) },
   plugins: [
     react(),
     mode === 'analyze' &&
@@ -46,8 +60,14 @@ export default defineConfig(({ mode }) => ({
         // Every route chunk is precached alongside the shell, deliberately: for an
         // offline-first travel planner a route the user never opened before losing
         // signal still has to work. The trade is that splitting buys first paint and
-        // not install size — 107 entries / 17,795 KiB before any of it, 220 /
-        // 17,855 KiB now.
+        // not install size: 107 entries / 17,795 KiB before any of it, 463 /
+        // 23,292 KiB now (measured, not estimated).
+        //
+        // Keep this figure honest. #2228 traced PWA boot failures to the browser
+        // evicting this origin's whole bucket, precached shell included, and this
+        // comment is the only record of what the install actually costs. Anything
+        // matching the globs below is fetched at service-worker install by every
+        // user, whether or not they ever reach the code.
         globPatterns: ['**/*.{js,css,html,svg,png,woff,woff2,ttf}'],
         // build:analyze drops a treemap next to the app; it must never end up in a
         // precache manifest if someone ships that build by accident.
@@ -66,7 +86,10 @@ export default defineConfig(({ mode }) => ({
             // Carto map tiles (default provider)
             // maxEntries MUST stay >= MAX_TILES in src/sync/tilePrefetcher.ts
             // (both are 12288) so prefetched tiles aren't evicted on arrival.
-            urlPattern: /^https:\/\/[a-d]\.basemaps\.cartocdn\.com\/.*/i,
+            // The apex host counts too: a template without {s} points straight at
+            // basemaps.cartocdn.com, and matching only the shards left those tiles
+            // uncached, so the map went blank offline.
+            urlPattern: /^https:\/\/(?:[a-d]\.)?basemaps\.cartocdn\.com\/.*/i,
             handler: 'CacheFirst',
             options: {
               cacheName: 'map-tiles',
@@ -82,6 +105,40 @@ export default defineConfig(({ mode }) => ({
             // onto the apex host (src/utils/tileUrl.ts), but caches filled before
             // that still hold a/b/c URLs and must keep serving offline.
             urlPattern: /^https:\/\/(?:[a-c]\.)?tile\.openstreetmap\.org\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'map-tiles',
+              expiration: { maxEntries: 12288, maxAgeSeconds: 30 * 24 * 60 * 60 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            // OpenStreetMap DE — a shipped preset that matched no rule at all, so
+            // "Store map tiles offline" fetched thousands of tiles and stored none
+            // of them (#2180). Same cache, same limits as the rules above.
+            urlPattern: /^https:\/\/tile\.openstreetmap\.de\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'map-tiles',
+              expiration: { maxEntries: 12288, maxAgeSeconds: 30 * 24 * 60 * 60 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            // Stadia Smooth — the other shipped raster preset with the same hole (#2180).
+            urlPattern: /^https:\/\/tiles\.stadiamaps\.com\/tiles\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'map-tiles',
+              expiration: { maxEntries: 12288, maxAgeSeconds: 30 * 24 * 60 * 60 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            // Amap road and satellite presets, served from the shard hosts under
+            // is.autonavi.com (src/constants/mapDefaults.ts). Without a rule here
+            // they would be the #2180 hole all over again.
+            urlPattern: /^https:\/\/(?:[a-z0-9]+\.)?is\.autonavi\.com\/.*/i,
             handler: 'CacheFirst',
             options: {
               cacheName: 'map-tiles',
@@ -136,13 +193,23 @@ export default defineConfig(({ mode }) => ({
           {
             // OpenFreeMap MapLibre glyphs, sprites and vector tiles (the style
             // itself is handled by the style rule above).
-            // Same best-effort offline model as Mapbox GL: viewed resources are
-            // reused from cache, but the vector tile pipeline is not prefetched.
+            //
+            // CacheFirst, and sharing its cache with the prefetcher: OpenFreeMap
+            // serves tiles under a versioned planet path, so a cached tile is
+            // never stale — a new planet is a new URL. StaleWhileRevalidate
+            // would revalidate every tile of a pre-downloaded region on the next
+            // online visit for nothing.
+            //
+            // cacheName matches sync/glPrefetcher.ts, which writes here directly:
+            // one cache means normal browsing tops the offline region up instead
+            // of filling a second copy beside it. maxEntries is above the
+            // prefetcher's own cap so a browsing session cannot evict a region
+            // the user asked to keep.
             urlPattern: /^https:\/\/tiles\.openfreemap\.org\/.*/i,
-            handler: 'StaleWhileRevalidate',
+            handler: 'CacheFirst',
             options: {
-              cacheName: 'openfreemap-tiles',
-              expiration: { maxEntries: 3000, maxAgeSeconds: 30 * 24 * 60 * 60 },
+              cacheName: 'gl-map-offline',
+              expiration: { maxEntries: 6000, maxAgeSeconds: 90 * 24 * 60 * 60 },
               cacheableResponse: { statuses: [200] },
             },
           },
@@ -183,12 +250,16 @@ export default defineConfig(({ mode }) => ({
           { src: 'icons/apple-touch-icon-180x180.png', sizes: '180x180', type: 'image/png' },
           { src: 'icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
           { src: 'icons/icon-512x512.png', sizes: '512x512', type: 'image/png' },
-          { src: 'icons/icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          // Dedicated safe-zone renders: the full-bleed icon under a maskable
+          // purpose filled the whole Android launcher tile without any padding.
+          { src: 'icons/icon-maskable-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
+          { src: 'icons/icon-maskable-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
           { src: 'icons/icon.svg', sizes: 'any', type: 'image/svg+xml' },
         ],
       },
     }),
   ].filter(Boolean),
+  resolve: { alias: [rtlTextAlias, plyrSpriteAlias] },
   build: {
     // Pin the output level instead of inheriting whatever the current Vite default
     // is, so a toolchain bump can't silently change which browsers still work.
@@ -252,7 +323,7 @@ export default defineConfig(({ mode }) => ({
     exclude: ['@trek/shared'],
   },
   server: {
-    port: 5173,
+    port: DEV_PORT,
     // And watch the build output, so rebuilding shared reloads the page rather
     // than leaving a stale module graph behind.
     watch: {
@@ -260,46 +331,46 @@ export default defineConfig(({ mode }) => ({
     },
     proxy: {
       '/api': {
-        target: 'http://localhost:3001',
+        target: API_TARGET,
         changeOrigin: true,
       },
       '/plugin-frame': {
-        target: 'http://localhost:3001',
+        target: API_TARGET,
         changeOrigin: true,
       },
       '/uploads': {
-        target: 'http://localhost:3001',
+        target: API_TARGET,
         changeOrigin: true,
       },
       '/ws': {
-        target: 'http://localhost:3001',
+        target: API_TARGET,
         ws: true,
       },
       '/mcp': {
-        target: 'http://localhost:3001',
+        target: API_TARGET,
         changeOrigin: true,
       },
       // OAuth 2.1 endpoints handled by backend (SDK authorize handler + token/revoke)
       // /oauth/authorize goes to backend so the SDK can redirect to /oauth/consent
       // /oauth/consent is served by Vite as a SPA route (no proxy entry needed)
       '/oauth/authorize': {
-        target: 'http://localhost:3001',
+        target: API_TARGET,
         changeOrigin: true,
       },
       '/oauth/token': {
-        target: 'http://localhost:3001',
+        target: API_TARGET,
         changeOrigin: true,
       },
       '/oauth/register': {
-        target: 'http://localhost:3001',
+        target: API_TARGET,
         changeOrigin: true,
       },
       '/oauth/revoke': {
-        target: 'http://localhost:3001',
+        target: API_TARGET,
         changeOrigin: true,
       },
       '/.well-known': {
-        target: 'http://localhost:3001',
+        target: API_TARGET,
         changeOrigin: true,
       },
     },

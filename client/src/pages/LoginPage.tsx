@@ -16,6 +16,7 @@ import ToggleSwitch from '../components/Settings/ToggleSwitch';
 import { SUPPORTED_LANGUAGES, useTranslation } from '../i18n';
 import { useLogin } from './login/useLogin';
 import LoginWorld from './login/LoginWorld';
+import { clearSignedOut } from '../utils/signedOut'
 
 /** Fixed so the sky does not reshuffle on every render. */
 const STARFIELD = [
@@ -496,7 +497,10 @@ export default function LoginPage(): React.ReactElement {
                   </div>
                 )}
                 <a
-                  href={`/api/auth/oidc/login${inviteToken ? '?invite=' + encodeURIComponent(inviteToken) : ''}`}
+                  onClick={clearSignedOut}
+                  // No remember-me switch in OIDC-only mode: the IdP owns the session
+                  // policy, so always ask for the remembered lifetime (#1927).
+                  href={`/api/auth/oidc/login${inviteToken ? '?invite=' + encodeURIComponent(inviteToken) + '&' : '?'}remember=1`}
                   style={{
                     width: '100%',
                     padding: '12px',
@@ -1097,6 +1101,7 @@ export default function LoginPage(): React.ReactElement {
                 <div style={{ flex: 1, height: 1, background: '#e5e7eb' }} />
               </div>
               <a
+                onClick={clearSignedOut}
                 href={`/api/auth/oidc/login${
                   inviteToken ? '?invite=' + encodeURIComponent(inviteToken) : ''
                 }${

@@ -1,4 +1,8 @@
 import type { AssignmentsMap, Day, Place } from '../../../../types'
+import {
+  plannedPlaceIds as sharedPlannedPlaceIds,
+  type PlannedAccommodation, type PlannedReservation,
+} from '../../../../utils/plannedPlaces'
 
 /**
  * Pure filter model of the mobile places browser. Mirrors the desktop
@@ -7,14 +11,12 @@ import type { AssignmentsMap, Day, Place } from '../../../../types'
  * and the map markers always agree (#1541).
  */
 
-export function plannedPlaceIds(assignments: AssignmentsMap): Set<number> {
-  const ids = new Set<number>()
-  for (const dayAssignments of Object.values(assignments)) {
-    for (const a of dayAssignments) {
-      if (a.place?.id != null) ids.add(a.place.id)
-    }
-  }
-  return ids
+export function plannedPlaceIds(
+  assignments: AssignmentsMap,
+  accommodations: PlannedAccommodation[] = [],
+  reservations: PlannedReservation[] = [],
+): Set<number> {
+  return sharedPlannedPlaceIds({ assignments, accommodations, reservations })
 }
 
 /** place id → number of the first (lowest-numbered) day it is planned on. */

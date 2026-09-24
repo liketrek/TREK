@@ -19,5 +19,14 @@ const map: TranslationStrings = {
   'map.baseLayer.satellite': 'Спутник',
   'map.baseLayer.switchToSatellite': 'Переключить на спутниковый вид',
   'map.baseLayer.switchToDefault': 'Переключить на вид карты',
+  'map.location.denied': 'Доступ к геопозиции заблокирован. Проверьте настройки устройства; у установленного приложения есть собственное разрешение на геопозицию, отдельное от браузера.',
+  'map.location.unavailable': 'Не удалось определить ваше местоположение.',
+  'map.location.timeout': 'Определение местоположения заняло слишком много времени. Попробуйте ещё раз под открытым небом.',
+  'map.overview.show': 'Показать всю поездку',
+  'map.overview.hide': 'Скрыть всю поездку',
+  'map.overview.total': 'Общее расстояние',
+  'map.attribution': 'Источники карты',
+  'map.overview.unrouted': 'Не удалось построить {count} участок(ов), поэтому расстояния неполные.',
+  'map.overview.dayUnrouted': 'Не удалось построить {count} участок(ов) этого дня',
 };
 export default map;

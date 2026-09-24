@@ -13,7 +13,7 @@ import {
 } from '@nestjs/common';
 import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 import type { User } from '../../types';
-import { PackingService } from './packing.service';
+import { PackingService, isInvalidBagRef } from './packing.service';
 import { isUpdateConflict } from '../common/conflictResult';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
@@ -85,6 +85,7 @@ export class PackingController {
     for (const item of created) {
       this.packing.broadcastItem(tripId, 'packing:created', { item }, item, socketId);
     }
+    this.packing.broadcastBagTotals(tripId);
     return { items: created, count: created.length };
   }
 
@@ -97,8 +98,14 @@ export class PackingController {
     @Headers('x-socket-id') socketId?: string,
   ) {
     // checked arrives as boolean or legacy 0/1 — the service coerces by truthiness.
-    const item = this.packing.createItem(tripId, { name: body.name, category: body.category, checked: body.checked === undefined ? undefined : !!body.checked, is_private: body.is_private, visibility: body.visibility, recipient_ids: body.recipient_ids }, user.id);
+    const item = this.packing.createItem(tripId, { name: body.name, category: body.category, checked: body.checked === undefined ? undefined : !!body.checked, weight_grams: body.weight_grams, bag_id: body.bag_id, quantity: body.quantity, is_private: body.is_private, visibility: body.visibility, recipient_ids: body.recipient_ids }, user.id);
+    // A bag referenced in the body must exist on this trip (#2154). The payload
+    // is at fault, so 400 — the 404 'Bag not found' stays with the path routes.
+    if (isInvalidBagRef(item)) {
+      throw new HttpException({ error: 'Bag not found' }, 400);
+    }
     this.packing.emitToViewers(tripId, 'packing:created', { item }, item, socketId);
+    this.packing.broadcastBagTotals(tripId);
     return { item };
   }
 
@@ -139,7 +146,17 @@ export class PackingController {
     if (isUpdateConflict(updated)) {
       throw new HttpException({ error: 'conflict', server: updated.server }, 409);
     }
+    // A bag referenced in the body must exist on this trip (#2154) — see create.
+    if (isInvalidBagRef(updated)) {
+      throw new HttpException({ error: 'Bag not found' }, 400);
+    }
     this.packing.broadcastUpdate(tripId, id, updated as PackingItemRow, !!before?.is_private, socketId);
+    // Only when the write could actually move a weight. Checking an item off is
+    // the most frequent packing write there is, and every ping costs every
+    // connected client a listBags round trip.
+    if (['weight_grams', 'quantity', 'bag_id'].some(k => Object.keys(body).includes(k))) {
+      this.packing.broadcastBagTotals(tripId);
+    }
     return { item: updated };
   }
 
@@ -157,6 +174,7 @@ export class PackingController {
     }
     // Scope the delete to the people who could see it (owner + recipients, #858).
     this.packing.emitToViewers(tripId, 'packing:deleted', { itemId: Number(id) }, deleted as PackingItemRow, socketId);
+    this.packing.broadcastBagTotals(tripId);
     return { success: true };
   }
 
@@ -198,6 +216,7 @@ export class PackingController {
     }
     // The clone is personal to the caller — only their sockets need it.
     this.packing.emitToViewers(tripId, 'packing:created', { item }, item, socketId);
+    this.packing.broadcastBagTotals(tripId);
     return { item };
   }
 
@@ -239,7 +258,10 @@ export class PackingController {
 
   @Get('bags')
   listBags(@CurrentUser() user: User, @Param('tripId') tripId: string) {
-    return { bags: this.packing.listBags(tripId) };
+    // unassigned_weight_grams rides along so the "no bag" pile and the grand
+    // total follow the same rule as the bags themselves (#2191) — a screen
+    // mixing true totals with per-viewer ones would be worse than either.
+    return this.packing.listBagsWithWeights(tripId);
   }
 
   @RequirePermission('packing_edit')
@@ -254,7 +276,7 @@ export class PackingController {
     if (!body.name.trim()) {
       throw new HttpException({ error: 'Name is required' }, 400);
     }
-    const bag = this.packing.createBag(tripId, { name: body.name, color: body.color });
+    const bag = this.packing.createBag(tripId, { name: body.name, color: body.color, weight_limit_grams: body.weight_limit_grams });
     this.packing.broadcast(tripId, 'packing:bag-created', { bag }, socketId);
     return { bag };
   }
@@ -291,6 +313,9 @@ export class PackingController {
       throw new HttpException({ error: 'Bag not found' }, 404);
     }
     this.packing.broadcast(tripId, 'packing:bag-deleted', { bagId: Number(bagId) }, socketId);
+    // bag_id is ON DELETE SET NULL, so everything that was in it just landed in
+    // the unassigned pile — both figures moved.
+    this.packing.broadcastBagTotals(tripId);
     return { success: true };
   }
 
@@ -315,6 +340,7 @@ export class PackingController {
       throw new HttpException({ error: 'Template not found or empty' }, 404);
     }
     this.packing.broadcastItem(tripId, 'packing:template-applied', { items: added }, added[0], socketId);
+    this.packing.broadcastBagTotals(tripId);
     return { items: added, count: added.length };
   }
 

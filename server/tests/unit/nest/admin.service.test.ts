@@ -10,6 +10,7 @@
  * (it replaced ADMIN-BR-001 when the old admin bridge died with the cron move).
  */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
+import { ADDON_IDS, MCP_GATED_ADDON_IDS } from '../../../src/addons';
 
 // ── DB setup ──────────────────────────────────────────────────────────────────
 
@@ -502,9 +503,50 @@ describe('updateAddon', () => {
     // real flip of an MCP-relevant addon → invalidate
     expect((updateAddon('packing', { enabled: false }) as any).mcpAffected).toBe(true);
     expect((updateAddon('packing', { enabled: true }) as any).mcpAffected).toBe(true);
-    // real flip of an addon with no MCP surface → sessions survive
+    // real flip of an addon with no MCP surface → sessions survive. Taken from
+    // the list rather than named, because an addon that grows MCP tools joins it
+    // and would otherwise turn this assertion false without changing anything
+    // it is actually about (documents did, when document sync landed).
+    const noMcp = Object.values(ADDON_IDS).find(id => !MCP_GATED_ADDON_IDS.includes(id));
+    if (noMcp) {
+      const flip = updateAddon(noMcp, { enabled: false }) as any;
+      if (!flip.error) expect(flip.mcpAffected).toBe(false);
+    }
+
+    // and the one this change put on the list carries the opposite verdict
     const docsFlip = updateAddon('documents', { enabled: false }) as any;
-    if (!docsFlip.error) expect(docsFlip.mcpAffected).toBe(false);
+    if (!docsFlip.error) expect(docsFlip.mcpAffected).toBe(true);
+  });
+
+  it('ADMIN-SVC-087 — refuses to enable a photo provider while journey is off', () => {
+    testDb.prepare("UPDATE addons SET enabled = 0 WHERE id = 'journey'").run();
+    testDb.prepare("UPDATE photo_providers SET enabled = 0 WHERE id = 'immich'").run();
+
+    const result = updateAddon('immich', { enabled: true }) as any;
+    expect(result).toEqual({ error: 'Enable the Journey addon first', status: 409 });
+    expect(testDb.prepare("SELECT enabled FROM photo_providers WHERE id = 'immich'").get()).toEqual({ enabled: 0 });
+  });
+
+  it('ADMIN-SVC-088 — enables a provider under an enabled journey; disabling never needs journey', () => {
+    testDb.prepare("UPDATE addons SET enabled = 1 WHERE id = 'journey'").run();
+    const enabled = updateAddon('immich', { enabled: true }) as any;
+    expect(enabled.addon).toMatchObject({ id: 'immich', type: 'photo_provider', enabled: true });
+
+    // Switching a provider OFF stays possible with journey off — cleanup must not dead-end.
+    testDb.prepare("UPDATE addons SET enabled = 0 WHERE id = 'journey'").run();
+    const disabled = updateAddon('immich', { enabled: false }) as any;
+    expect(disabled.addon.enabled).toBe(false);
+  });
+
+  it('ADMIN-SVC-089 — disabling journey cascades every photo provider off', () => {
+    testDb.prepare("UPDATE addons SET enabled = 1 WHERE id = 'journey'").run();
+    testDb.prepare('UPDATE photo_providers SET enabled = 1').run();
+
+    const result = updateAddon('journey', { enabled: false }) as any;
+    expect(result.addon.enabled).toBe(false);
+    const rows = testDb.prepare('SELECT enabled FROM photo_providers').all() as Array<{ enabled: number }>;
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.every((r) => r.enabled === 0)).toBe(true);
   });
 });
 

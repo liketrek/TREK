@@ -19,6 +19,7 @@ const undo: TranslationStrings = {
   'undo.importNaverList': 'Naverマップをインポート',
   'undo.addPlace': '場所を追加',
   'undo.done': '元に戻しました: {action}',
+  'undo.failed': '元に戻せませんでした: {action}',
   'undo.importBooking': '予約確認書インポート',
 };
 export default undo;

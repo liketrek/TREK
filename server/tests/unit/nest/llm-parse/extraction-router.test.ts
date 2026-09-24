@@ -114,7 +114,10 @@ describe('routeExtraction', () => {
     expect(res.kiItems).toEqual([{ '@type': 'Mock' }]);
     const flats = mapToKi.mock.calls[0][0];
     expect(flats).toHaveLength(2);
-    expect(flats[0].departure_time).toMatch(/^2025-08-23T\d{2}:\d{2}:00$/); // natural-language → ISO
+    // Exact now, not a pattern: toIso reads and prints local components, so a naive
+    // string is the same wall clock on every machine. It used to parse locally and
+    // print in UTC, which shifted the value by the container's offset (#2094).
+    expect(flats[0].departure_time).toBe('2025-08-23T10:00:00');
     expect(flats[1].arrival_time).toBe('2025-08-31T07:00:00'); // overnight roll (TZ-safe: derived from the ISO departure date)
   });
 
@@ -164,5 +167,93 @@ describe('routeExtraction', () => {
     expect(res.kiItems).toEqual([]);
     expect(res.warnings[0]).toContain('AI parsing failed');
     expect(res.warnings[0]).toContain('connection refused');
+  });
+
+  // #2076 — the lodging keywords used to be tested second and included
+  // "check-in"/"check-out", which is printed on nearly every ticket there is, so a
+  // ferry or train document came back a hotel and the user was handed a booking
+  // form with no transport type on it.
+  it('reads a ferry ticket that mentions check-in as a ferry, not a hotel', async () => {
+    extractEnforced.mockResolvedValue({ name: 'Puttgarden - Roedby' });
+    await routeExtraction('Faehre Puttgarden nach Roedby. Check-in bis 30 Minuten vor Abfahrt.', CTX);
+    expect(mapToKi.mock.calls[0][0][0].type).toBe('ferry');
+  });
+
+  it('reads a train ticket that mentions check-in as a train', async () => {
+    extractEnforced.mockResolvedValue({ name: 'Hamburg - Berlin' });
+    await routeExtraction('Deutsche Bahn. Gleis 7. Online check-in moeglich.', CTX);
+    expect(mapToKi.mock.calls[0][0][0].type).toBe('train');
+  });
+
+  // A rental voucher says who rented it. "Pick-up"/"drop-off" alone is printed on
+  // ferry, bus and airport-transfer documents too.
+  it('does not read a bus voucher with a pick-up time as a rental car', async () => {
+    extractEnforced.mockResolvedValue({ name: 'Shuttle' });
+    await routeExtraction('Flixbus Ticket. Pick-up 08:30 am Terminal 2.', CTX);
+    expect(mapToKi.mock.calls[0][0][0].type).toBe('bus');
+  });
+
+  // A pre-cruise hotel night names a cruise terminal; it is still a hotel.
+  it('keeps a hotel booking that merely names a terminal a hotel', async () => {
+    extractEnforced.mockResolvedValue({ name: 'Harbour Hotel' });
+    await routeExtraction('Hotel Harbour, 1 Uebernachtung vor der Abfahrt am Terminal.', CTX);
+    expect(mapToKi.mock.calls[0][0][0].type).toBe('hotel');
+  });
+
+  // German rail numbers match the two-letters-plus-digits airline test exactly, and
+  // the flight path forces type 'flight' on everything it returns.
+  it('does not send a German rail ticket down the flight path', async () => {
+    extractEnforced.mockResolvedValue({ name: 'Hamburg - Berlin' });
+    await routeExtraction('Deutsche Bahn IC 2023, Hamburg Hbf nach Berlin Hbf, Gleis 7.', CTX);
+    const flats = mapToKi.mock.calls[0][0];
+    expect(flats).toHaveLength(1);
+    expect(flats[0].type).toBe('train');
+  });
+
+  it('still sends a real flight itinerary down the flight path', async () => {
+    extractEnforced.mockResolvedValue({ flights: [{ vehicle_number: 'LH400', from_code: 'FRA', to_code: 'JFK' }] });
+    await routeExtraction('Lufthansa LH 400 FRA-JFK, Gate A12.', CTX);
+    expect(mapToKi.mock.calls[0][0][0].type).toBe('flight');
+  });
+
+});
+
+describe('printed 12-hour clocks and unreadable types (#2094, #2076)', () => {
+  it('fixArrivalDate resolves both meridiems before deciding the day rolled over', () => {
+    // '01:11 pm' used to be read as '01:11', which sorts before the 09:51
+    // departure, so a three-hour hop was rolled onto the next day.
+    const out = fixArrivalDate({ type: 'flight', departure_time: '2026-06-11T09:51 am', arrival_time: '2026-06-11T01:11 pm' });
+    expect(out.arrival_time).toBe('2026-06-11T13:11:00');
+  });
+
+  it('fixArrivalDate still rolls a genuine overnight', () => {
+    const out = fixArrivalDate({ type: 'flight', departure_time: '2026-06-11T10:00 pm', arrival_time: '2026-06-12T06:00 am' });
+    expect(out.arrival_time).toBe('2026-06-12T06:00:00');
+  });
+
+  it('resolves a meridiem that sits behind an ISO date', async () => {
+    extractEnforced.mockResolvedValue({ name: 'B&B Hotel', address: 'Str 1', checkin_time: '2026-05-01T03:00 pm', checkout_time: '2026-05-02T11:00 am' });
+    await routeExtraction('Hotel booking — check-in 1 May', CTX);
+    const flats = mapToKi.mock.calls[0][0];
+    expect(flats[0].checkin_time).toBe('2026-05-01T15:00:00');
+    expect(flats[0].checkout_time).toBe('2026-05-02T11:00:00');
+  });
+
+  it('marks a type it could not read instead of writing it down as a hotel', async () => {
+    extractEnforced.mockResolvedValue({ type: 'shuttle voucher', name: 'Airport Transfer' });
+    await routeExtraction('A document with no obvious type keywords', CTX);
+    const flats = mapToKi.mock.calls[0][0];
+    // Still the hotel shape, so the item survives mapping, but the guess is
+    // declared so the importer can offer the form the user was importing into.
+    expect(flats[0].type).toBe('hotel');
+    expect(flats[0].type_guessed).toBe(true);
+  });
+
+  it('does not mark a type the model picked legitimately', async () => {
+    extractEnforced.mockResolvedValue({ type: 'event', name: 'Concert' });
+    await routeExtraction('A document with no obvious type keywords', CTX);
+    const flats = mapToKi.mock.calls[0][0];
+    expect(flats[0].type).toBe('event');
+    expect(flats[0].type_guessed).toBeUndefined();
   });
 });

@@ -35,6 +35,11 @@ const MAX_FILES = 5;
 const UPLOAD = {
   storage: memoryStorage(),
   limits: { fileSize: MAX_FILE_BYTES, files: MAX_FILES },
+  // Like every other upload route (storage-upload.factory.ts). Multer reads the
+  // name as latin1 otherwise, so "Bestätigung.pdf" came back as "BestÃ¤tigung.pdf"
+  // in the warnings, and the review could not find the file to attach it to the
+  // booking, because the client matches on the name it sent (#2477).
+  defParamCharset: 'utf8' as const,
 };
 
 /**

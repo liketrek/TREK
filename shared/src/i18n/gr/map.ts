@@ -19,5 +19,14 @@ const map: TranslationStrings = {
   'map.baseLayer.satellite': 'Δορυφόρος',
   'map.baseLayer.switchToSatellite': 'Εναλλαγή σε δορυφορική προβολή',
   'map.baseLayer.switchToDefault': 'Εναλλαγή σε προβολή χάρτη',
+  'map.location.denied': 'Η πρόσβαση στην τοποθεσία είναι αποκλεισμένη. Ελέγξτε τις ρυθμίσεις της συσκευής. Μια εγκατεστημένη εφαρμογή έχει δική της άδεια τοποθεσίας, ξεχωριστή από το πρόγραμμα περιήγησης.',
+  'map.location.unavailable': 'Δεν ήταν δυνατός ο προσδιορισμός της τοποθεσίας σας.',
+  'map.location.timeout': 'Ο εντοπισμός της θέσης σας άργησε πολύ. Δοκιμάστε ξανά με καθαρή θέα στον ουρανό.',
+  'map.overview.show': 'Εμφάνιση όλου του ταξιδιού',
+  'map.overview.hide': 'Απόκρυψη όλου του ταξιδιού',
+  'map.overview.total': 'Συνολική απόσταση',
+  'map.attribution': 'Πηγές χάρτη',
+  'map.overview.unrouted': '{count} σκέλος/η δεν μπόρεσαν να υπολογιστούν, οι αποστάσεις είναι ελλιπείς.',
+  'map.overview.dayUnrouted': '{count} σκέλος/η αυτής της ημέρας δεν μπόρεσαν να υπολογιστούν',
 };
 export default map;

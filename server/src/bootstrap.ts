@@ -7,7 +7,8 @@ import type { INestApplication } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 import { AppModule } from './nest/app.module';
 import { httpConfig } from './nest/app-config';
-import { applyGlobalMiddleware } from './middleware/globalMiddleware';
+import { applyGlobalMiddleware, routingCspOrigins } from './middleware/globalMiddleware';
+import { SettingsService } from './nest/settings/settings.service';
 import { applyPlatformUploads, applyPlatformStatic } from './nest/platform/platform.routes';
 import { apiDocsEnabled } from './nest/common/api-docs.kill-switch';
 import { setupApiDocs } from './nest/platform/api-docs';
@@ -17,6 +18,7 @@ import { validateRouteGuards } from './nest/common/validate-route-guards';
 import { validateManagedRoutes } from './nest/common/validate-managed-routes';
 import { TrekWsAdapter } from './nest/realtime/trek-ws.adapter';
 import { StorageService } from './nest/storage/storage.service';
+import { MAX_COLLECTION_FILE_BYTES } from '@trek/shared';
 
 /**
  * Builds the unified TREK NestJS application that serves the ENTIRE surface — the
@@ -84,7 +86,20 @@ export async function buildApp(): Promise<INestApplication> {
   // the one bridge that lets the pre-init Express layer consume the validated
   // config instead of reading process.env itself.
   const http = app.get<ConfigType<typeof httpConfig>>(httpConfig.KEY);
-  applyGlobalMiddleware(instance, { http });
+  // Same pre-init bridge: a self-hosted routing engine has to be named in connect-src, or
+  // the browser blocks every request to it without an error the app could report. Both
+  // engines go through the same door — the second one answers the avoidance questions
+  // the first cannot, and is blocked just as silently when the policy leaves it out.
+  const settings = app.get(SettingsService, { strict: false });
+  const defaults = settings?.getAdminUserDefaults();
+  const asUrl = (value: unknown) => (typeof value === 'string' ? value : null);
+  applyGlobalMiddleware(instance, {
+    http,
+    extraConnectSrc: routingCspOrigins([
+      asUrl(defaults?.routing_base_url),
+      asUrl(defaults?.valhalla_base_url),
+    ]),
+  });
   // Same pre-init consumption bridge as httpConfig above: the StorageService
   // instance is resolvable before init, and the handlers only *register* here —
   // per-request resolution runs after app.init() completed the registry load.
@@ -122,24 +137,36 @@ export async function buildApp(): Promise<INestApplication> {
    * it is the wrong one for a photo book. A Studio document is sent WHOLE on
    * every autosave — deliberately, see book-store.schema.ts, because a patch
    * protocol would need an ordering guarantee and a merge rule per field — and
-   * the contract already caps it at 150 spreads of 60 elements. A real book of
+   * the contract already caps it at 150 spreads of 90 elements. A real book of
    * a fortnight's journey is well past a hundred kilobytes before anybody asks
    * for road geometry, and what the ceiling produces is not an error message
    * but a save that quietly fails and an editor that says "not saved" without
    * saying why.
    *
-   * So the book route, and only the book route, is measured against the size a
-   * book can actually be. Everything else keeps the tighter limit.
+   * So the book route is measured against the size a book can actually be.
+   *
+   * A list file is the same story at a smaller scale. Its contract allows a
+   * megabyte and the import posts it whole, yet a list of a few hundred places
+   * with notes is past a hundred kilobytes already, and so is the favourites
+   * GPX of anybody who uses OsmAnd (#2301). The three routes that carry one,
+   * the import into a new list, the GPX reader and the import into a list that
+   * already exists, are measured against that megabyte, doubled for the JSON
+   * escaping of a document full of quotes. Everything else keeps the tighter
+   * limit.
    */
   const bookBody = express.json({ limit: '8mb', verify: rawBodyKeeper });
+  const listFileBody = express.json({ limit: MAX_COLLECTION_FILE_BYTES * 2, verify: rawBodyKeeper });
   const json = express.json({ limit: '100kb', verify: rawBodyKeeper });
   const urlencoded = express.urlencoded({ limit: '100kb', extended: true, verify: rawBodyKeeper });
   const isMcp = (req: Request) => req.path === '/mcp' || req.path === '/mcp/';
   const isBookWrite = (req: Request) =>
     req.method === 'PUT' && /^\/api\/journeys\/\d+\/book$/.test(req.path);
+  const isListFile = (req: Request) =>
+    req.method === 'POST' && /^\/api\/addons\/collections\/(import|gpx\/read|\d+\/import)$/.test(req.path);
 
   instance.use(function jsonParser(req: Request, res: Response, next: NextFunction) {
     if (isBookWrite(req)) return bookBody(req, res, next);
+    if (isListFile(req)) return listFileBody(req, res, next);
     return isMcp(req) ? next() : json(req, res, next);
   });
   instance.use(function urlencodedParser(req: Request, res: Response, next: NextFunction) {

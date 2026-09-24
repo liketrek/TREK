@@ -9,6 +9,7 @@ import { useSettingsStore } from '../../store/settingsStore';
 import L from 'leaflet';
 import { A2_TO_A3 } from './atlasModel';
 import { useAtlas } from './useAtlas';
+import { maplibreGL } from '@maplibre/maplibre-gl-leaflet';
 
 // FE-HOOK-ATLAS-001 to FE-HOOK-ATLAS-035
 
@@ -29,6 +30,18 @@ interface MockLayer {
   getBounds: ReturnType<typeof vi.fn>;
 }
 
+interface MockMarker {
+  /** One list per event: the bucket marker binds two mouseover handlers. */
+  handlers: Record<string, ((e?: unknown) => void)[]>;
+  tooltipEl: HTMLElement;
+  on: ReturnType<typeof vi.fn>;
+  off: ReturnType<typeof vi.fn>;
+  getLatLng: ReturnType<typeof vi.fn>;
+  bindTooltip: ReturnType<typeof vi.fn>;
+  getTooltip: () => { options: Record<string, unknown> } | undefined;
+  closeTooltip: ReturnType<typeof vi.fn>;
+}
+
 const lf = vi.hoisted(() => ({
   mapHandlers: {} as Record<string, ((e?: unknown) => void)[]>,
   geoJson: [] as unknown[],
@@ -43,6 +56,12 @@ const lf = vi.hoisted(() => ({
   mapsCreated: 0,
   mapsRemoved: 0,
   markers: 0,
+  bucketMarkers: [] as MockMarker[],
+  // Where the map places a marker inside its container; the container itself sits at
+  // 0,0 in jsdom, so this doubles as the marker's screen position.
+  markerPoint: { x: 500, y: 400 },
+  scrollPropagationOff: [] as HTMLElement[],
+  clickPropagationOff: [] as HTMLElement[],
   map: null as null | { setView: ReturnType<typeof vi.fn> },
   reset() {
     this.mapHandlers = {};
@@ -56,8 +75,33 @@ const lf = vi.hoisted(() => ({
     this.mapsCreated = 0;
     this.mapsRemoved = 0;
     this.markers = 0;
+    this.bucketMarkers = [];
+    this.markerPoint = { x: 500, y: 400 };
+    this.scrollPropagationOff = [];
+    this.clickPropagationOff = [];
   },
 }));
+
+// maplibre-gl-leaflet hangs the vector basemap into Leaflet's tile pane. The mock
+// only has to be callable and hand back a layer with the three methods the callers
+// use, since nothing here renders WebGL.
+vi.mock('@maplibre/maplibre-gl-leaflet', () => ({
+  maplibreGL: vi.fn(() => {
+    // One GL map per layer, kept stable: a fresh object per call would hand the
+    // assertions a different spy than the code just used.
+    const gl = {
+      setStyle: vi.fn(), on: vi.fn(), isStyleLoaded: () => false,
+      getStyle: () => ({ layers: [] }), setLayoutProperty: vi.fn(),
+    }
+    const layer: Record<string, unknown> = { remove: vi.fn(), getMaplibreMap: vi.fn(() => gl) }
+    layer.addTo = vi.fn(() => layer)
+    return layer
+  }),
+}));
+vi.mock('../../components/Map/engines/maplibre', () => ({ default: {} }));
+// jsdom refuses a WebGL context, and the basemap now believes it (#2288). These
+// cases are about the GL layer, so the probe says yes here.
+vi.mock('../../utils/webgl', () => ({ hasWebGL: () => true, resetWebGLProbe: () => {} }));
 
 vi.mock('leaflet', () => {
   // The bounds a country layer reports carry its own code, so the map's bounds can
@@ -77,6 +121,8 @@ vi.mock('leaflet', () => {
     };
     return layer;
   };
+
+  const mapContainer = document.createElement('div');
 
   const map = {
     setView: vi.fn(() => map),
@@ -98,6 +144,8 @@ vi.mock('leaflet', () => {
     hasLayer: vi.fn(() => lf.hasLayer),
     createPane: vi.fn((name: string) => { lf.panes[name] = { style: {} }; }),
     getPane: vi.fn((name: string) => lf.panes[name]),
+    getContainer: vi.fn(() => mapContainer),
+    latLngToContainerPoint: vi.fn(() => lf.markerPoint),
   };
   // Published so a test can assert the map actually moved (place search flies
   // there before the region lookup returns).
@@ -105,16 +153,38 @@ vi.mock('leaflet', () => {
 
   const L = {
     map: vi.fn(() => { lf.mapsCreated += 1; return map; }),
-    tileLayer: vi.fn(() => ({ addTo: vi.fn() })),
+    tileLayer: vi.fn(() => ({ addTo: vi.fn(), setUrl: vi.fn() })),
     control: { zoom: vi.fn(() => ({ addTo: vi.fn() })) },
     canvas: vi.fn(() => ({})),
     svg: vi.fn(() => ({})),
     divIcon: vi.fn(() => ({})),
     marker: vi.fn(() => {
       lf.markers += 1;
-      return { bindTooltip: vi.fn(() => ({})) };
+      const handlers: Record<string, ((e?: unknown) => void)[]> = {};
+      const tooltipEl = document.createElement('div');
+      let tooltip: { options: Record<string, unknown>; getElement: () => HTMLElement } | undefined;
+      const m: MockMarker = {
+        handlers,
+        tooltipEl,
+        on: vi.fn((event: string, cb: (e?: unknown) => void) => { (handlers[event] ||= []).push(cb); return m; }),
+        off: vi.fn(() => m),
+        getLatLng: vi.fn(() => ({ lat: 0, lng: 0 })),
+        bindTooltip: vi.fn((html: string, options: Record<string, unknown>) => {
+          tooltipEl.innerHTML = html;
+          tooltip = { options: { ...options }, getElement: () => tooltipEl };
+          return m;
+        }),
+        getTooltip: vi.fn(() => tooltip),
+        closeTooltip: vi.fn(),
+      };
+      lf.bucketMarkers.push(m);
+      return m;
     }),
     layerGroup: vi.fn(() => ({ addTo: vi.fn(() => ({})) })),
+    DomEvent: {
+      disableScrollPropagation: vi.fn((el: HTMLElement) => { lf.scrollPropagationOff.push(el); }),
+      disableClickPropagation: vi.fn((el: HTMLElement) => { lf.clickPropagationOff.push(el); }),
+    },
     geoJSON: vi.fn((data: { features?: Record<string, unknown>[] }, options: Record<string, unknown>) => {
       const record = { data, options, entries: [] as unknown[], styles: [] as unknown[], attached: false };
       const style = options?.style as ((f: unknown) => unknown) | undefined;
@@ -242,6 +312,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
   delete window.__addToast;
 });
 
@@ -684,6 +755,24 @@ describe('useAtlas', () => {
       expect(atlas.confirmAction?.name).not.toBe('GERMANY_EN_ONLY');
     });
 
+    it('FE-HOOK-ATLAS-062: the country tooltip names both dates and shows their months (#1535)', async () => {
+      // FR's dates fall on the 1st, which a UTC parse moves into the month before over here.
+      vi.stubEnv('TZ', 'America/New_York');
+      await mountAtlas({ geo: geoCountries });
+      await waitFor(() => expect(lf.geoJson.length).toBeGreaterThan(0));
+
+      const countryLayer = lf.geoJson[0] as MockGeoJson;
+      const fr = countryLayer.entries.find((e) => (e.feature.properties as Record<string, string>).ISO_A2 === 'FR');
+      const html = fr!.layer.bindTooltip.mock.calls[0][0] as string;
+
+      expect(html).toContain('First trip');
+      expect(html).toContain('Last trip');
+      expect(html).not.toContain('atlas.lastVisitLabel');
+      const month = (y: number, m: number) => new Date(y, m, 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+      expect(html).toContain(month(2023, 0));
+      expect(html).toContain(month(2024, 5));
+    });
+
     it('FE-HOOK-ATLAS-026: plugin tint layers are drawn in their own pane and redrawn on theme change', async () => {
       await mountAtlas({
         geo: geoCountries,
@@ -706,6 +795,34 @@ describe('useAtlas', () => {
       act(() => { seedStore(useSettingsStore, { settings: buildSettings({ dark_mode: true }) }); });
       await waitFor(() => expect(lf.geoJson.length).toBeGreaterThan(before));
       expect(lf.mapsRemoved).toBeGreaterThan(0);
+    });
+
+    it('FE-HOOK-ATLAS-043: the basemap is a single label-free vector layer and the map is still built once', async () => {
+      // Sliced from here: the mock results carry over from earlier tests.
+      const madeBefore = vi.mocked(maplibreGL).mock.results.length;
+      await mountAtlas({ geo: geoCountries });
+      await waitFor(() => expect(lf.geoJson.length).toBeGreaterThan(0));
+
+      // One basemap layer, not two: the second raster layer only warmed the cache
+      // of neighbouring zoom levels, which a vector basemap does not need.
+      const layers = await waitFor(() => {
+        const made = vi.mocked(maplibreGL).mock.results.slice(madeBefore);
+        expect(made.length).toBe(1);
+        return made.map((r) => r.value as { getMaplibreMap: () => { setStyle: ReturnType<typeof vi.fn>; on: ReturnType<typeof vi.fn> } });
+      });
+      // It is a vector style, and it is the label-free variant the country fills
+      // need: OpenFreeMap has no nolabels style, so the symbol layers are switched
+      // off on the live map instead, re-armed on every style.load.
+      const calls = vi.mocked(maplibreGL).mock.calls;
+      const call = calls[calls.length - 1]?.[0] as { style: string };
+      expect(call.style).toContain('openfreemap.org');
+      expect(layers[0].getMaplibreMap().on).toHaveBeenCalledWith('style.load', expect.any(Function));
+
+      // And the map is still built once with its country layer on it: the basemap
+      // swap must not reintroduce the teardown #2097 removed.
+      expect(lf.mapsCreated).toBe(1);
+      expect(lf.mapsRemoved).toBe(0);
+      expect(lf.geoJson.length).toBeGreaterThan(0);
     });
 
     it('FE-HOOK-ATLAS-027: a plugin layer naming no country in the map draws nothing', async () => {
@@ -1196,6 +1313,76 @@ describe('useAtlas', () => {
       // FR is in the fixture as visited with places, so the country flow opens its detail
       // rather than the mark dialog — either way, not a region dialog.
       expect(atlas.confirmAction?.type).not.toBe('choose-region');
+    });
+  });
+
+  // ── Bucket-list note tooltip (#2153) ───────────────────────────────────────
+  describe('the note tooltip on a bucket-list marker', () => {
+    const kyoto = { id: 1, name: 'Kyoto', lat: 35, lng: 135, country_code: 'JP', notes: 'Kinkaku-ji at opening time', target_date: null };
+
+    const fire = (marker: MockMarker, event: string) => (marker.handlers[event] ?? []).forEach((cb) => cb());
+
+    async function mountWithMarker(): Promise<MockMarker> {
+      await mountAtlas({ bucket: [kyoto] });
+      await waitFor(() => expect(lf.bucketMarkers.length).toBeGreaterThan(0));
+      return lf.bucketMarkers[lf.bucketMarkers.length - 1];
+    }
+
+    it('FE-HOOK-ATLAS-057: binds the note as an interactive, scrollable tooltip', async () => {
+      const marker = await mountWithMarker();
+
+      expect(marker.bindTooltip).toHaveBeenCalledWith(
+        expect.stringContaining('atlas-tooltip-scroll-inner'),
+        expect.objectContaining({ className: 'atlas-tooltip atlas-tooltip-scrollable', interactive: true }),
+      );
+    });
+
+    it('FE-HOOK-ATLAS-058: flips the tooltip below a marker with no room for it above', async () => {
+      const marker = await mountWithMarker();
+
+      lf.markerPoint = { x: 500, y: 400 };
+      act(() => fire(marker, 'mouseover'));
+      expect(marker.getTooltip()!.options).toMatchObject({ direction: 'top', offset: [0, -14] });
+
+      // 230px of headroom clears the old 220px threshold but not the 242px the tooltip
+      // really occupies, which is what kept clipping its top edge.
+      lf.markerPoint = { x: 500, y: 230 };
+      act(() => fire(marker, 'mouseover'));
+      expect(marker.getTooltip()!.options).toMatchObject({ direction: 'bottom', offset: [0, 14] });
+    });
+
+    it('FE-HOOK-ATLAS-059: keeps wheel and touch gestures over the tooltip away from the map', async () => {
+      const marker = await mountWithMarker();
+      act(() => fire(marker, 'tooltipopen'));
+
+      expect(lf.scrollPropagationOff).toContain(marker.tooltipEl);
+      expect(lf.clickPropagationOff).toContain(marker.tooltipEl);
+    });
+
+    describe('handing the pointer between marker and tooltip', () => {
+      beforeEach(() => vi.useFakeTimers({ shouldAdvanceTime: true }));
+      afterEach(() => vi.useRealTimers());
+
+      it('FE-HOOK-ATLAS-060: stays open when the pointer walks back from the tooltip onto the marker', async () => {
+        const marker = await mountWithMarker();
+        act(() => fire(marker, 'tooltipopen'));
+
+        act(() => { marker.tooltipEl.dispatchEvent(new MouseEvent('mouseleave')); });
+        act(() => fire(marker, 'mouseover'));
+        await act(async () => { await vi.advanceTimersByTimeAsync(400); });
+
+        expect(marker.closeTooltip).not.toHaveBeenCalled();
+      });
+
+      it('FE-HOOK-ATLAS-061: closes shortly after the pointer leaves the tooltip for good', async () => {
+        const marker = await mountWithMarker();
+        act(() => fire(marker, 'tooltipopen'));
+
+        act(() => { marker.tooltipEl.dispatchEvent(new MouseEvent('mouseleave')); });
+        await act(async () => { await vi.advanceTimersByTimeAsync(400); });
+
+        expect(marker.closeTooltip).toHaveBeenCalled();
+      });
     });
   });
 });

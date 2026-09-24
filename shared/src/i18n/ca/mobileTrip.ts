@@ -6,10 +6,13 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.addPlaceShort': 'Lloc',
   'mobileTrip.addToDayQuestion': 'Afegeix a un dia?',
   'mobileTrip.addTransportShort': 'Transport',
+  'mobileTrip.allDays': 'Tots els dies',
   'mobileTrip.assignedDays': 'Dies assignats',
+  'mobileTrip.assignmentNotes': 'Notes específiques del dia',
   'mobileTrip.bookingsEmpty': 'Encara no hi ha reserves',
   'mobileTrip.collabFeatureDisabled': 'Aquesta funció està desactivada per a aquest viatge',
   'mobileTrip.compactView': 'Vista compacta',
+  'mobileTrip.dayAnnounce': 'Dia {current} de {total}',
   'mobileTrip.dayTitlePlaceholder': 'Títol del dia',
   'mobileTrip.export': 'Exporta',
   'mobileTrip.filesEmpty': 'Encara no hi ha fitxers',
@@ -44,6 +47,31 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.upNext': 'A continuació',
   'mobileTrip.viewDetails': 'Mostra els detalls',
   'mobileTrip.transportsEmpty': 'Encara no hi ha transport',
+  'mobileTrip.rtInfoTitle': 'Dades de conducció',
+  'mobileTrip.rtDesktopNote':
+    'Aquestes dades es configuren a l’escriptori, on també pots comparar rutes alternatives i fer que un dia segueixi una traça importada.',
+  'mobileTrip.rtPlanOnDesktop':
+    'La planificació es fa a l’escriptori. TREK calcula el trajecte quan un dia té dos llocs.',
+  'mobileTrip.rtSearchOffline': 'Cal connexió: la cerca llegeix la ruta que tens per endavant.',
+  'mobileTrip.rtBehind': '{time} de retard sobre el pla',
+  'mobileTrip.rtStart': 'Inici',
+  'mobileTrip.rtStayScope':
+    'L’estada pertany al lloc, així que compta tots els dies en què aquesta parada està planificada.',
+  'mobileTrip.rtStayLess': '{count} minuts menys',
+  'mobileTrip.rtStayMore': '{count} minuts més',
+  'mobileTrip.rtNightDesktopOnly':
+    'Reservar una pernoctació en aquest lloc es fa al planificador d’escriptori. Aquí només la pots descartar.',
+  'mobileTrip.rtReach': 'Fins on',
+  'mobileTrip.rtReachAhead': '{distance} per endavant',
+  'mobileTrip.rtFromNext': 'Des de la teva propera parada',
+  'mobileTrip.rtFromStart': 'Des de l’inici de l’etapa',
+  'mobileTrip.rtNoneAhead': 'No hi ha res a la carretera que tens al davant. Prova tota l’etapa.',
+  'mobileTrip.rtNoneOnStage': 'No hi ha res d’aquest tipus al llarg d’aquesta etapa.',
+  'mobileTrip.rtTruncated.one': '1 tram tenia més del que cap en una resposta. Tria menys tipus per veure la resta.',
+  'mobileTrip.rtTruncated.other':
+    '{count} trams tenien més del que cap en una resposta. Tria menys tipus per veure la resta.',
+  'mobileTrip.rtNoDay': 'Cap dia seleccionat',
+  'mobileTrip.rtNoDayHint': 'El mapa mostra tot el viatge. Toca un dia a dalt per veure’n el trajecte.',
 };
 
 export default mobileTrip;

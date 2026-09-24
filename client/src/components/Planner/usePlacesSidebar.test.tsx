@@ -1,4 +1,4 @@
-// FE-PLANNER-PSHOOK-001 to FE-PLANNER-PSHOOK-048
+// FE-PLANNER-PSHOOK-001 to FE-PLANNER-PSHOOK-052
 import { http, HttpResponse } from 'msw';
 import userEvent from '@testing-library/user-event';
 import { render, screen, fireEvent, act, waitFor } from '../../../tests/helpers/render';
@@ -135,6 +135,39 @@ describe('usePlacesSidebar filtering', () => {
     act(() => { S.setFilter('unplanned'); });
     expect(names()).toEqual(['Loose']);
     expect([...S.plannedIds]).toEqual([1]);
+  });
+
+  // #2072 — a hotel is linked through its stay, never dragged onto a day, so the
+  // pool called it unplanned while the day header printed its name.
+  it('FE-PLANNER-PSHOOK-049: a place linked to a stay counts as planned', () => {
+    const hotel = buildPlace({ id: 1, name: 'Hotel' });
+    const loose = buildPlace({ id: 2, name: 'Loose' });
+    const accommodations = [{ place_id: 1, start_day_id: 3, end_day_id: 5 }];
+    render(<Host {...makeProps({ places: [hotel, loose], accommodations })} />);
+
+    act(() => { S.setFilter('unplanned'); });
+    expect(names()).toEqual(['Loose']);
+    act(() => { S.setFilter('planned'); });
+    expect(names()).toEqual(['Hotel']);
+  });
+
+  it('FE-PLANNER-PSHOOK-050: a place on a day-anchored booking counts as planned', () => {
+    const venue = buildPlace({ id: 1, name: 'Venue' });
+    const loose = buildPlace({ id: 2, name: 'Loose' });
+    seedStore(useTripStore, { reservations: [{ id: 9, place_id: 1, day_id: 3 }] });
+    render(<Host {...makeProps({ places: [venue, loose] })} />);
+
+    act(() => { S.setFilter('unplanned'); });
+    expect(names()).toEqual(['Loose']);
+  });
+
+  it('FE-PLANNER-PSHOOK-051: a booking with no day leaves its place unplanned', () => {
+    const venue = buildPlace({ id: 1, name: 'Venue' });
+    seedStore(useTripStore, { reservations: [{ id: 9, place_id: 1, day_id: null }] });
+    render(<Host {...makeProps({ places: [venue] })} />);
+
+    act(() => { S.setFilter('unplanned'); });
+    expect(names()).toEqual(['Venue']);
   });
 
   it('FE-PLANNER-PSHOOK-006: the planned filter keeps only assigned places', () => {
@@ -299,6 +332,21 @@ describe('usePlacesSidebar day helpers', () => {
     render(<Host {...makeProps({ places: [place], assignments: {}, selectedDayId: 8 })} />);
     expect(S.inDaySet.size).toBe(0);
     expect(S.isAssignedToSelectedDay(5)).toBe(false);
+  });
+
+  it('FE-PLANNER-PSHOOK-052: the stop a booking wrote counts as in the day when the list hides it', () => {
+    // The day view hands the pool the day without the stop a booking wrote, while
+    // the store still holds it. Judged on the list alone the hotel offered "add to
+    // day" on its own check-in day, and that put a second row beside the night.
+    const hotel = buildPlace({ id: 5, name: 'Hotel' });
+    const loose = buildPlace({ id: 6, name: 'Loose' });
+    const booked = buildAssignment({ place: hotel, day_id: 3, accommodation_id: 4 });
+    seedStore(useTripStore, { assignments: { '3': [booked] } });
+    render(<Host {...makeProps({ places: [hotel, loose], assignments: { '3': [] }, selectedDayId: 3 })} />);
+
+    expect([...S.inDaySet]).toEqual([5]);
+    expect(S.isAssignedToSelectedDay(5)).toBe(true);
+    expect(S.isAssignedToSelectedDay(6)).toBe(false);
   });
 });
 

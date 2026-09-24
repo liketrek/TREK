@@ -15,6 +15,7 @@ import { PluginGuards } from '../../../src/nest/plugins/host/plugin-guards.servi
 import { TripsRpc } from '../../../src/nest/trips/trips.rpc';
 import { TripsModule } from '../../../src/nest/trips/trips.module';
 import { NotFoundError, ValidationError } from '../../../src/nest/trips/trips.service';
+import { MAX_TRIP_DAYS } from '@trek/shared';
 import type { TripsService } from '../../../src/nest/trips/trips.service';
 import type { ReservationsService } from '../../../src/nest/reservations/reservations.service';
 import type { DaysService } from '../../../src/nest/days/days.service';
@@ -33,14 +34,17 @@ const req = (method: string, params: Record<string, unknown> = {}): RpcRequest =
 const ALL_TRIP_GRANTS = ['db:read:trips', 'db:write:trips', 'db:create:trips', 'db:write:members'];
 
 /** Trip 1 belongs to user 42. `allow` decides each individual permission check. */
-export function build(opts: { allow?: (action: string) => boolean; updateThrows?: Error } = {}) {
+export function build(opts: { allow?: (action: string) => boolean; updateThrows?: Error; createThrows?: Error } = {}) {
   const trips = {
     list: vi.fn(() => [{ id: 1, title: 'Japan' }]),
     updateTrip: vi.fn(() => {
       if (opts.updateThrows) throw opts.updateThrows;
       return { updatedTrip: { id: 1, title: 'Japan' } };
     }),
-    create: vi.fn((userId: number) => ({ trip: { id: 99, user_id: userId } })),
+    create: vi.fn((userId: number) => {
+      if (opts.createThrows) throw opts.createThrows;
+      return { trip: { id: 99, user_id: userId } };
+    }),
     removeMember: vi.fn(),
   } as unknown as TripsService & Record<string, ReturnType<typeof vi.fn>>;
   const reservations = { list: vi.fn(() => [{ id: 5 }]) } as unknown as ReservationsService & Record<string, ReturnType<typeof vi.fn>>;
@@ -168,6 +172,12 @@ describe('TripsRpc writes', () => {
     const res = (await f.host().dispatch(req('trips.create', { input: { title: 'Japan' } }), 42)) as RpcError;
     expect(res.error.message).toBe('no permission to create trips');
     expect(f.trips.create).not.toHaveBeenCalled();
+  });
+
+  it('TRIPS-RPC-017 a range the service refuses comes back as BAD_PARAMS (#2403)', async () => {
+    const f = build({ createThrows: new ValidationError(`A trip can span at most ${MAX_TRIP_DAYS} days`) });
+    const res = (await f.host().dispatch(req('trips.create', { input: { title: 'Decade', start_date: '2026-01-01', end_date: '2036-01-01' } }), 42)) as RpcError;
+    expect(res.error).toMatchObject({ code: 'BAD_PARAMS', message: `A trip can span at most ${MAX_TRIP_DAYS} days` });
   });
 });
 

@@ -8,6 +8,7 @@ import { useSettingsStore } from '../../store/settingsStore'
 import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
 import type { Day, Place, Accommodation } from '../../types'
+import type { TransitProvider } from '@trek/shared'
 
 /**
  * Public transit route search (#1065), backed by Transitous (MOTIS) through the
@@ -35,6 +36,14 @@ export interface TransitItinerary {
 interface TransitPlaceResult { name: string; lat: number; lng: number; type: string; area: string | null }
 
 export interface PickedPlace { name: string; lat: number; lng: number }
+
+// Backend names as they are written, not translated — the empty state says
+// which one answered so "nothing here" can be told apart from "not the one you
+// picked" (#1699).
+const PROVIDER_NAMES: Record<TransitProvider, string> = {
+  transitous: 'Transitous',
+  google: 'Google',
+}
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -234,12 +243,28 @@ function ItineraryCard({ it, tzFrom, tzTo, is12h, expanded, onToggle, onAdd, add
       {expanded && (
         <div style={{ borderTop: '1px solid var(--border-faint)', padding: '10px 14px 12px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+            {/*
+              Every row is anchored at the leg's START: its time, its stop name and its
+              platform. A leg's arrival shows up as the next row's heading, and the last
+              arrival gets the closing row below.
+
+              The walking legs used to break that and print leg.to.name, which is the stop
+              the NEXT row already names. The stop where you actually get off is a walking
+              leg's from.name, so it had no row of its own and vanished from the card
+              entirely, along with the train's arrival time, which the same branch blanked
+              (#2106). MOTIS brackets every journey in walking legs, so this hit the exit
+              of any real connection.
+
+              The time falls back to scheduledTime for the same reason the save path does
+              (see stopTime below): a feed without realtime data carries only the schedule,
+              and this row is now the one that shows the arrival.
+            */}
             {it.legs.map((leg, i) => {
               const color = leg.mode === 'WALK' ? 'var(--border-primary)' : (leg.lineColor || 'var(--text-muted)')
               return (
                 <div key={i} style={{ display: 'grid', gridTemplateColumns: '44px 18px 1fr', gap: 8, alignItems: 'stretch' }}>
                   <div className="text-content-muted" style={{ fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))', fontWeight: 600, paddingTop: 2, textAlign: 'right' }}>
-                    {leg.mode === 'WALK' ? '' : fmtTimeInTz(leg.from.time, tzAt(leg.from.lat, leg.from.lng), is12h)}
+                    {fmtTimeInTz(leg.from.time ?? leg.from.scheduledTime, tzAt(leg.from.lat, leg.from.lng), is12h)}
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                     <span style={{ width: 10, height: 10, borderRadius: '50%', border: `2.5px solid ${color}`, background: 'var(--bg-card)', flexShrink: 0, marginTop: 4 }} />
@@ -247,13 +272,14 @@ function ItineraryCard({ it, tzFrom, tzTo, is12h, expanded, onToggle, onAdd, add
                   </div>
                   <div style={{ paddingBottom: 14, minWidth: 0 }}>
                     <div className="text-content" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {leg.mode === 'WALK' ? t('transit.walkTo', { name: leg.to.name }) : leg.from.name}
-                      {leg.from.track && leg.mode !== 'WALK' && <span className="text-content-faint" style={{ fontWeight: 500 }}> · {t('transit.platform', { track: leg.from.track })}</span>}
+                      {leg.from.name}
+                      {leg.from.track && <span className="text-content-faint" style={{ fontWeight: 500 }}> · {t('transit.platform', { track: leg.from.track })}</span>}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
                       {leg.mode === 'WALK' ? (
                         <TransitMetaBadges size="sm" items={[
-                          { icon: Footprints, text: fmtDuration(leg.duration, t) },
+                          { icon: Footprints, text: t('transit.walkLabel') },
+                          { text: fmtDuration(leg.duration, t) },
                           { text: leg.distance ? (leg.distance >= 1000 ? `${(leg.distance / 1000).toFixed(1)} km` : `${leg.distance} m`) : '' },
                         ]} />
                       ) : (
@@ -323,7 +349,7 @@ interface TransitSearchPanelProps {
 }
 
 export default function TransitSearchPanel({ day, days, places, accommodations = [], onAdd, initialFrom = null, initialTo = null, initialTime = null }: TransitSearchPanelProps) {
-  const { t } = useTranslation()
+  const { t, language } = useTranslation()
   const toast = useToast()
   const is12h = useSettingsStore(s => s.settings.time_format) === '12h'
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
@@ -338,6 +364,7 @@ export default function TransitSearchPanel({ day, days, places, accommodations =
   const [loading, setLoading] = useState(false)
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null)
   const [addingIdx, setAddingIdx] = useState<number | null>(null)
+  const [provider, setProvider] = useState<TransitProvider | null>(null)
 
   // Quick picks: the day's located places, plus the trip's located accommodations.
   const quickPicks = useMemo<PickedPlace[]>(() => {
@@ -370,6 +397,7 @@ export default function TransitSearchPanel({ day, days, places, accommodations =
     setLoading(true)
     setItineraries(null)
     setExpandedIdx(null)
+    setProvider(null)
     try {
       const tzFrom = tzAt(from.lat, from.lng)
       const tzTo = tzAt(to.lat, to.lng)
@@ -378,7 +406,11 @@ export default function TransitSearchPanel({ day, days, places, accommodations =
       const timeIso = localToUtcIso(day.date, time, arriveBy ? tzTo : tzFrom)
       const allModes = activeModes.size === MODE_GROUPS.length
       const modes = allModes ? undefined : MODE_GROUPS.filter(m => activeModes.has(m.key)).map(m => m.modes).join(',')
-      const d = await transitApi.plan({ from: `${from.lat},${from.lng}`, to: `${to.lat},${to.lng}`, time: timeIso, arriveBy, modes })
+      const d = await transitApi.plan({ from: `${from.lat},${from.lng}`, to: `${to.lat},${to.lng}`, time: timeIso, arriveBy, modes, lang: language })
+      // Which backend actually answered (#1699). Named in the empty state so
+      // "nothing found" can be told apart from "the provider you picked never
+      // ran" — the fallback to Transitous is silent by design.
+      setProvider(d.provider ?? null)
       // MOTIS names the request coordinates START/END — swap in the places the
       // user actually picked so walks read "Walk to Zoologischer Garten".
       const cleanStop = (n: string) => (n === 'START' ? from.name : n === 'END' ? to.name : n)
@@ -589,7 +621,9 @@ export default function TransitSearchPanel({ day, days, places, accommodations =
         )}
         {!loading && ranked && ranked.length === 0 && (
           <div className="text-content-faint" style={{ textAlign: 'center', padding: '24px 0', fontSize: 'calc(13px * var(--fs-scale-body, 1))' }}>
-            {t('transit.noResults')}
+            {provider
+              ? t('transit.noResultsVia', { provider: PROVIDER_NAMES[provider] })
+              : t('transit.noResults')}
           </div>
         )}
         {!loading && ranked && ranked.length > 0 && (

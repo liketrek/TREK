@@ -60,6 +60,22 @@ describe('globalMiddleware request-log redaction', () => {
     expect(out.grant_type).toBe('refresh_token');
   });
 
+  it('redacts the value of a {key, value} settings body when the key names a secret', () => {
+    expect(redact({ key: 'carto_api_key', value: 'carto-secret' })).toEqual({
+      key: 'carto_api_key',
+      value: '[REDACTED]',
+    });
+    expect(redact({ key: 'mapbox_access_token', value: 'pk-1' })).toEqual({
+      key: 'mapbox_access_token',
+      value: '[REDACTED]',
+    });
+    // A harmless setting keeps its value: the name is what decides.
+    expect(redact({ key: 'map_tile_url', value: 'https://tiles.example/{z}/{x}/{y}.png' })).toEqual({
+      key: 'map_tile_url',
+      value: 'https://tiles.example/{z}/{x}/{y}.png',
+    });
+  });
+
   it('matches the suffix on the end of the key only, so identifiers stay readable', () => {
     expect(redact({ accessKeyId: 'ak-1', tokenCount: 5 })).toEqual({ accessKeyId: 'ak-1', tokenCount: 5 });
   });

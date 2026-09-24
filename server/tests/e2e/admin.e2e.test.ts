@@ -38,7 +38,7 @@ const { db } = vi.hoisted(() => {
   // getStats counts these three alongside users.
   tmp.exec('CREATE TABLE trips (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, user_id INTEGER);');
   tmp.exec('CREATE TABLE places (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER);');
-  tmp.exec('CREATE TABLE trip_files (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER);');
+  tmp.exec('CREATE TABLE trip_files (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER, message_id INTEGER);');
   tmp.exec(`CREATE TABLE invite_tokens (id INTEGER PRIMARY KEY AUTOINCREMENT, token TEXT NOT NULL,
     max_uses INTEGER, uses INTEGER DEFAULT 0, expires_at TEXT, created_by INTEGER NOT NULL,
     trip_id INTEGER, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);

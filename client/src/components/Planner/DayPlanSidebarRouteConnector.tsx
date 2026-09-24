@@ -4,7 +4,7 @@ import type { RouteSegment } from '../../types'
 // Walking gets the foot icon; a plugin route profile ('plugin:…') gets the bolt —
 // its legs carry the profile-true durationText anyway, the icon just signals that
 // the time came from a plugin router (e.g. EV routing with charge time folded in).
-function profileIcon(profile: string) {
+export function profileIcon(profile: string) {
   if (profile === 'walking') return Footprints
   if (profile.startsWith('plugin:')) return Zap
   return Car

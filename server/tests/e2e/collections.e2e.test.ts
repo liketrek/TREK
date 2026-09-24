@@ -4,7 +4,8 @@
  * CollectionsModule) against a temp SQLite db (full schema). Only the addon
  * flag, websocket and notification send are mocked. Covers: the addon gate
  * (404 before auth), auth, CRUD happy paths, invite/accept/decline, copy-to-trip,
- * cross-user 404s and the non-owner 403 on /:id/available-users (no enumeration).
+ * cross-user 404s, the non-owner 403 on /:id/available-users (no enumeration), and
+ * a list out as GPX and back in through the reader and the import (#2301).
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import request from 'supertest';
@@ -136,6 +137,37 @@ describe('Collections e2e (real auth guard + real service + temp SQLite)', () =>
     expect(copy.body.copied).toBe(1);
     const placed = db.prepare("SELECT reservation_status FROM places WHERE trip_id = ? AND name = 'Trevi Fountain'").get(tripId) as { reservation_status: string };
     expect(placed.reservation_status).toBe('none'); // itinerary defaults
+  });
+
+  // #2483: a place from the TREK index can carry its website without a scheme,
+  // and the save dialog has no website field to correct it in.
+  it('COLLECTIONS-E2E-089: saving a place whose website has no scheme stores it as https', async () => {
+    const col = (await request(server).post('/api/addons/collections').set('Cookie', sessionCookie(ownerId)).send({ name: 'Bretagne' })).body;
+    const saved = await request(server).post('/api/addons/collections/places')
+      .set('Cookie', sessionCookie(ownerId)).send({
+        collection_id: col.id,
+        name: 'Chapelle Sainte-Barbe',
+        lat: 48.0286,
+        lng: -3.4862,
+        osm_id: 'gers:ceba0e62-172b-4343-bb3b-78b915a18383',
+        website: 'fr.wikipedia.org/wiki/Chapelle_Sainte-Barbe_du_Faouët',
+      });
+    expect(saved.status).toBe(200);
+    expect(saved.body.place.website).toBe('https://fr.wikipedia.org/wiki/Chapelle_Sainte-Barbe_du_Faouët');
+    expect(db.prepare('SELECT website FROM collection_places WHERE id = ?').get(saved.body.place.id)).toEqual({
+      website: 'https://fr.wikipedia.org/wiki/Chapelle_Sainte-Barbe_du_Faouët',
+    });
+  });
+
+  it('COLLECTIONS-E2E-090: a script link on save is still a 400 and stores nothing', async () => {
+    const col = (await request(server).post('/api/addons/collections').set('Cookie', sessionCookie(ownerId)).send({ name: 'Script links' })).body;
+    for (const website of ['javascript:alert(1)', 'mailto:mairie@example.fr', 'Chapelle']) {
+      const res = await request(server).post('/api/addons/collections/places')
+        .set('Cookie', sessionCookie(ownerId)).send({ collection_id: col.id, name: 'Chapelle', website });
+      expect(res.status).toBe(400);
+      expect(res.body.error).toMatch(/^website: /);
+    }
+    expect(db.prepare('SELECT COUNT(*) AS n FROM collection_places WHERE collection_id = ?').get(col.id)).toEqual({ n: 0 });
   });
 
   // Regression for #1437: editing a place (PATCH without a status field) must NOT
@@ -360,6 +392,75 @@ describe('Collections e2e (real auth guard + real service + temp SQLite)', () =>
 
     expect((await request(server).get(`/api/addons/collections/${col.id}/importable/${foreignTrip.id}`).set('Cookie', sessionCookie(ownerId))).status).toBe(404);
     expect((await request(server).get(`/api/addons/collections/${col.id}/importable/${tripId}`).set('Cookie', sessionCookie(otherId))).status).toBe(404);
+  });
+
+  // ── GPX (#2301) ──────────────────────────────────────────────────────────
+  it('COLLECTIONS-E2E-080: a list goes out as GPX and comes back through the reader and the import', async () => {
+    const as = (userId: number) => ({ Cookie: sessionCookie(userId) });
+    const col = (await request(server).post('/api/addons/collections').set(as(ownerId)).send({ name: 'Round trip' })).body;
+    await request(server).post('/api/addons/collections/places').set(as(ownerId))
+      .send({ collection_id: col.id, name: 'Pinned', lat: 41.9, lng: 12.48, status: 'want' });
+    await request(server).post('/api/addons/collections/places').set(as(ownerId)).send({ collection_id: col.id, name: 'Vague' });
+
+    const exported = await request(server).get(`/api/addons/collections/${col.id}/export/gpx`).set(as(ownerId));
+    expect(exported.status).toBe(200);
+    expect(exported.body).toMatchObject({ name: 'Round trip', waypoints: 1, omitted: 1 });
+
+    const read = await request(server).post('/api/addons/collections/gpx/read').set(as(otherId))
+      .send({ gpx: exported.body.gpx, file_name: 'round-trip.gpx' });
+    expect(read.status).toBe(200);
+    expect(read.body).toMatchObject({ skipped: 0, track_points: 0 });
+
+    const imported = await request(server).post('/api/addons/collections/import').set(as(otherId)).send({ file: read.body.file });
+    expect(imported.status).toBe(201);
+    expect(imported.body).toMatchObject({ imported: 1, skipped: 0 });
+    const detail = await request(server).get(`/api/addons/collections/${imported.body.collection.id}`).set(as(otherId));
+    expect(detail.body.places).toEqual([expect.objectContaining({ name: 'Pinned', lat: 41.9, lng: 12.48, status: 'want' })]);
+  });
+
+  it('COLLECTIONS-E2E-081: a refused GPX says why in a code, a body without one is refused by the contract', async () => {
+    const hostile = '<?xml version="1.0"?><!DOCTYPE gpx [<!ENTITY x SYSTEM "file:///etc/passwd">]>'
+      + '<gpx><wpt lat="1" lon="1"><name>&x;</name></wpt></gpx>';
+    const refused = await request(server).post('/api/addons/collections/gpx/read').set('Cookie', sessionCookie(ownerId)).send({ gpx: hostile });
+    expect(refused.status).toBe(400);
+    expect(refused.body).toEqual({ error: expect.any(String), code: 'unreadable' });
+
+    expect((await request(server).post('/api/addons/collections/gpx/read').set('Cookie', sessionCookie(ownerId)).send({})).status).toBe(400);
+    expect((await request(server).post('/api/addons/collections/gpx/read').send({ gpx: '<gpx/>' })).status).toBe(401);
+  });
+
+  it('COLLECTIONS-E2E-082: a list the caller cannot see has no GPX either', async () => {
+    const col = (await request(server).post('/api/addons/collections').set('Cookie', sessionCookie(ownerId)).send({ name: 'Mine' })).body;
+    expect((await request(server).get(`/api/addons/collections/${col.id}/export/gpx`).set('Cookie', sessionCookie(otherId))).status).toBe(404);
+  });
+
+  it('COLLECTIONS-E2E-083: a file goes into a list that already exists, without touching what is in it', async () => {
+    const as = (userId: number) => ({ Cookie: sessionCookie(userId) });
+    const col = (await request(server).post('/api/addons/collections').set(as(ownerId)).send({ name: 'Keep me' })).body;
+    await request(server).post('/api/addons/collections/places').set(as(ownerId))
+      .send({ collection_id: col.id, name: 'Pinned', lat: 41.9, lng: 12.48, status: 'want' });
+
+    const file = {
+      format: 'trek.collection', version: 1, name: 'From a friend', color: '#ef4444',
+      places: [{ name: 'Pinned', lat: 41.9, lng: 12.48 }, { name: 'New one' }],
+    };
+    const added = await request(server).post(`/api/addons/collections/${col.id}/import`).set(as(ownerId)).send({ file });
+
+    expect(added.status).toBe(200);
+    expect(added.body).toMatchObject({ imported: 1, skipped: 0, duplicates: 1 });
+    expect(added.body.collection).toMatchObject({ id: col.id, name: 'Keep me' });
+    const detail = await request(server).get(`/api/addons/collections/${col.id}`).set(as(ownerId));
+    expect(detail.body.places.map((p: { name: string }) => p.name)).toEqual(['Pinned', 'New one']);
+    expect(detail.body.places[0]).toMatchObject({ status: 'want' });
+  });
+
+  it('COLLECTIONS-E2E-084: a list the caller may only read, or cannot see at all, takes no file', async () => {
+    const col = (await request(server).post('/api/addons/collections').set('Cookie', sessionCookie(ownerId)).send({ name: 'Mine' })).body;
+    const file = { format: 'trek.collection', version: 1, name: 'Theirs', places: [{ name: 'Belém' }] };
+
+    expect((await request(server).post(`/api/addons/collections/${col.id}/import`).set('Cookie', sessionCookie(otherId)).send({ file })).status).toBe(404);
+    expect((await request(server).post(`/api/addons/collections/${col.id}/import`).send({ file })).status).toBe(401);
+    expect((await request(server).post(`/api/addons/collections/${col.id}/import`).set('Cookie', sessionCookie(ownerId)).send({ file: { name: 'no format' } })).status).toBe(400);
   });
 
   // ── delete ───────────────────────────────────────────────────────────────

@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { isOutsideChina, normalizePlaceWebsite } from '@trek/shared';
 import type {
   MapsSearchResult,
   MapsAutocompleteResult,
@@ -7,14 +8,36 @@ import type {
   MapsReverseResult,
   MapsResolveUrlResult,
 } from '@trek/shared';
+import { Jimp } from 'jimp';
 import { readEnv, getAppUrl } from '../../app-config';
 import { safeFetchFollow, SsrfBlockedError } from '../../utils/ssrfGuard';
-import { discardBody, exceedsDeclaredLength, readCappedText } from '../../utils/cappedFetch';
+import { discardBody, exceedsDeclaredLength, readCapped, readCappedText } from '../../utils/cappedFetch';
 import { resolveApiKey, type ApiKeySource } from '../settings/instance-api-keys';
+import { isPlacesProviderChoice, type PlacesProviderChoice } from './providers/places-provider';
+import {
+  AMAP_SHORT_HOSTS,
+  AmapPlacesProvider,
+  AmapTipStash,
+  isAmapHost,
+  isAmapPlaceId,
+  parseAmapUrl,
+} from './providers/amap.provider';
 // ── Photo cache (disk-backed) ────────────────────────────────────────────────
 import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
 import { DatabaseService } from '../database/database.service';
 import { nominatimFetch, type GeoLane } from '../geo/nominatim.client';
+import {
+  trekPlacesSearch,
+  indexHitsOnly,
+  isOsmHit,
+  osmPlaceId,
+  trekPlacesById,
+  trekPlacesArea,
+  trekPlacesNearby,
+  toPlaceRecord,
+  POI_CATEGORY_TO_TREK,
+  type TrekPlace,
+} from './trek-places.client';
 import {
   UA,
   SEARCH_TEXT_FIELD_MASK,
@@ -26,13 +49,17 @@ import {
   isGooglePlaceId,
   OSM_PLACE_ID,
   CATEGORY_OSM_FILTERS,
+  parsePoiCategories,
   resolveOverpassEndpoints,
   resolveOverpassTimeoutMs,
+  OVERPASS_QUERY_TIMEOUT_S,
   stripWikiMarkup,
   parseWikipediaTag,
   toWikiLang,
   haversineMetres,
   namesOverlap,
+  mergeSearchResults,
+  readChargingInfo,
   type GoogleOpeningHours,
   type OverpassPoi,
 } from './maps.helpers';
@@ -76,6 +103,9 @@ function logKeyFailure(label: string, status: number, userId: number, source: Ap
   console.error(`[Maps] ${label} failed with ${status} userId=${userId} keySource=${source}`);
 }
 
+/** Ceiling for one Google Places call. Generous — the photo download is the slow one. */
+const GOOGLE_FETCH_TIMEOUT_MS = 20000;
+
 function googleFetch(rawEndpoint: string, label: string, init?: RequestInit): Promise<Response> {
   const endpoint = placesEndpoint(rawEndpoint);
   googleApiCallCount++;
@@ -83,6 +113,11 @@ function googleFetch(rawEndpoint: string, label: string, init?: RequestInit): Pr
   const referer = readEnv().app.appUrl ? getAppUrl() : undefined;
   return fetch(endpoint, {
     ...init,
+    // A default ceiling here rather than at each of the nine call sites, none of
+    // which passed one: a hung upstream held the request handler open for as
+    // long as it liked. A caller that needs longer still wins, it only has to
+    // say so.
+    signal: init?.signal ?? AbortSignal.timeout(GOOGLE_FETCH_TIMEOUT_MS),
     headers: { ...(referer ? { Referer: referer } : {}), ...((init?.headers as Record<string, string>) ?? {}) },
   });
 }
@@ -345,7 +380,7 @@ interface GooglePlaceDetails extends GooglePlaceResult {
 // unbounded body out of memory.
 const MAX_MAPS_PAGE_BYTES = 2_000_000;
 
-const GOOGLE_SHORT_HOSTS = ['goo.gl', 'maps.app.goo.gl'];
+export const GOOGLE_SHORT_HOSTS = ['goo.gl', 'maps.app.goo.gl'];
 
 /**
  * Google Maps lives on every country domain — google.de, maps.google.co.uk,
@@ -354,18 +389,123 @@ const GOOGLE_SHORT_HOSTS = ['goo.gl', 'maps.app.goo.gl'];
  * labels stay short (2-3 letters, optionally two of them) so that
  * `google.evil.com` is not a Google host.
  */
-function isGoogleMapsHost(hostname: string): boolean {
+export function isGoogleMapsHost(hostname: string): boolean {
   return GOOGLE_SHORT_HOSTS.includes(hostname)
     || /^(www\.|maps\.)?google\.[a-z]{2,3}(\.[a-z]{2})?$/.test(hostname);
 }
 
 const WIKI_TIMEOUT_MS = 6000;
 
+// ── Brand logos ──────────────────────────────────────────────────────────────
+//
+// A road trip corridor is mostly chains — Shell, Aral, JET — and the brand is the
+// fastest thing to recognise on a map. OSM carries `brand:wikidata` on most of them,
+// Wikidata carries the logo (P154), and Commons serves it.
+//
+// The bytes are proxied rather than linked so the browser never talks to Wikimedia:
+// one self-hosted instance asking for a handful of logos is a very different egress
+// profile from every visitor's browser announcing which petrol stations they are
+// looking at. The cache is in memory on purpose — a GET must not write to the DB, and
+// there are only so many fuel brands.
+const BRAND_LOGO_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const BRAND_LOGO_CACHE_MAX = 300;
+/** Well past any logo; a Commons original can be a multi-megabyte SVG or print-res PNG. */
+const BRAND_LOGO_MAX_BYTES = 512 * 1024;
+/** A place photo is a full-size image rather than a 128px mark, so its own ceiling. */
+const WIKIMEDIA_PHOTO_MAX_BYTES = 8 * 1024 * 1024;
+const BRAND_LOGO_WIDTH = 128;
+/** The square the logo is centred in, and the breathing room around it. */
+const BRAND_LOGO_CANVAS = 96;
+const BRAND_LOGO_PADDING = 8;
+const WIKIDATA_ID_RE = /^Q[1-9][0-9]{0,11}$/;
+
+export interface BrandLogo {
+  bytes: Buffer;
+  contentType: string;
+}
+
+/**
+ * Puts a logo on a background it can actually be seen against.
+ *
+ * Half the fuel brands ship a white wordmark with a transparent background —
+ * TotalEnergies, Esso and JET among them — and on the white pill the marker used to
+ * draw they were invisible. Which background is right is a property of the image, not
+ * of the brand, so it is measured: the mean brightness of the pixels that are actually
+ * opaque decides between a white and a near-black backdrop.
+ *
+ * Returns the flattened PNG, or null when the bytes cannot be read at all — the pin
+ * then keeps its category icon, which is a fine outcome.
+ */
+async function flattenBrandLogo(bytes: Buffer): Promise<BrandLogo | null> {
+  try {
+    const image = await Jimp.read(bytes);
+    const width = image.bitmap.width;
+    const height = image.bitmap.height;
+    if (!width || !height) return null;
+
+    let sum = 0;
+    let opaque = 0;
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const idx = (y * width + x) * 4;
+        const alpha = image.bitmap.data[idx + 3];
+        // Half-transparent pixels are anti-aliasing, not the mark itself.
+        if (alpha < 128) continue;
+        const r = image.bitmap.data[idx];
+        const g = image.bitmap.data[idx + 1];
+        const b = image.bitmap.data[idx + 2];
+        sum += 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        opaque++;
+      }
+    }
+    // A logo with nothing opaque in it is not a logo.
+    if (opaque === 0) return null;
+
+    // Square, with the logo scaled to fit inside it. Most brand marks are wide wordmarks
+    // — TotalEnergies is three times as wide as it is tall — and a round pin showing the
+    // middle of one is unreadable. Fitting it into a square means the pin can crop to a
+    // circle without ever cutting the mark itself.
+    const scale = Math.min(
+      (BRAND_LOGO_CANVAS - 2 * BRAND_LOGO_PADDING) / width,
+      (BRAND_LOGO_CANVAS - 2 * BRAND_LOGO_PADDING) / height,
+    );
+    // Never upscale: a 16-pixel favicon blown up to 96 looks worse than a small one.
+    if (scale < 1) image.scale(scale);
+
+    const light = sum / opaque > 150;
+    const canvas = new Jimp({
+      width: BRAND_LOGO_CANVAS,
+      height: BRAND_LOGO_CANVAS,
+      color: light ? 0x111827ff : 0xffffffff,
+    });
+    canvas.composite(
+      image,
+      Math.round((BRAND_LOGO_CANVAS - image.bitmap.width) / 2),
+      Math.round((BRAND_LOGO_CANVAS - image.bitmap.height) / 2),
+    );
+    const out = await canvas.getBuffer('image/png');
+    return { bytes: Buffer.from(out), contentType: 'image/png' };
+  } catch {
+    return null;
+  }
+}
+
 // Tighter than the wiki calls, because this one sits at the FRONT of a chain:
 // identity, then sitelinks, then the extract. Nominatim answers a bounded
 // search in 0.2-0.7s in practice, so anything past a couple of seconds is a bad
 // day at the provider rather than a slow answer worth waiting for.
 const IDENTITY_TIMEOUT_MS = 2500;
+
+// The explicit search asks Nominatim alongside the index, and the pair costs
+// the slower one. The index gives up after 3.5 s and the browser after 8 s, so a
+// Nominatim that accepts the connection and then sits on it (the public service
+// under load, a self-hosted one that hung) has to give up in between: without a
+// deadline of its own the request rides undici's 300 s default, and the index's
+// answer is thrown away with the request that timed out waiting for it. The
+// deadline starts after the throttle wait, so it measures the answer alone:
+// generous for a slow one, still inside the browser's budget with the wait
+// added on.
+const SEARCH_TIMEOUT_MS = 6000;
 
 const MAX_CONCURRENT_PHOTO_FETCHES = 5;
 let photoFetchActive = 0;
@@ -416,7 +556,13 @@ interface OverpassPoiElement {
 
 interface PoiSearchResult {
   pois: OverpassPoi[];
-  source: 'openstreetmap';
+  /**
+   * Which index answered. Not decoration: this branch calls naming the sources
+   * a licence obligation rather than a courtesy, and Overture carries more than
+   * OpenStreetMap under more than one licence, so stamping its rows as OSM is a
+   * wrong attribution rather than a rounding of one.
+   */
+  source: 'openstreetmap' | 'trek-places';
   truncated: boolean;
   // True when the requested viewport was too large and got shrunk to a centred
   // window before querying — the results then cover the middle of the view only.
@@ -439,6 +585,12 @@ const POI_CACHE_TTL_MS = 5 * 60 * 1000;
 // Cap the number of cached areas so panning across the globe can't grow the map
 // without bound (entries are evicted oldest-first once the cap is reached).
 const POI_CACHE_MAX = 500;
+/**
+ * Hard ceiling on one POI answer, however many categories it carries. A corridor search
+ * asks for four kinds at once; without a ceiling a dense city box would return a payload
+ * nobody reads and every mirror pays for.
+ */
+const POI_RESULT_CAP = 240;
 
 // POST the query to all mirrors at once and return the first one that answers with
 // valid JSON. Throws {status:502} only if every mirror fails. Racing (rather than
@@ -505,6 +657,41 @@ async function overpassFetch(query: string): Promise<OverpassPoiElement[]> {
 type LocationBias = { low: { lat: number; lng: number }; high: { lat: number; lng: number } };
 
 /**
+ * The app_settings row that names the keyed places provider.
+ *
+ * A setting rather than "whichever key is configured": an install can hold both
+ * credentials (a team split between China and elsewhere), and then only an
+ * admin can say which one should answer. Absent, which is every install that
+ * predates Amap, means `auto`, which keeps Google.
+ */
+export const PLACES_PROVIDER_SETTING = 'places_provider';
+/**
+ * The admin switch that hands search and suggestions to Google alone. Off, the
+ * index and OpenStreetMap answer first and Google is only asked when they find
+ * nothing, which is what every install has had since 4.3.0.
+ */
+export const PLACES_GOOGLE_ONLY_SETTING = 'places_google_only';
+
+/**
+ * A details row as the cache holds it. A row written before #2483 still has a
+ * source's website as it came, `www.hotel.cn` from Amap for one, and keeps for a
+ * week (an expanded one until a refresh), so the website is normalized on the
+ * way out of the cache as well as on the way in.
+ */
+function cachedDetails(payload: string): Record<string, unknown> | null {
+  const place = JSON.parse(payload) as Record<string, unknown> | null;
+  return place && 'website' in place ? { ...place, website: normalizePlaceWebsite(place.website) } : place;
+}
+
+/**
+ * Whoever holds the keyed slot beside the index for one request: Google's
+ * credential, an Amap provider, or nobody (the OpenStreetMap stack alone).
+ */
+type KeyedProvider =
+  | { id: 'google'; key: string; source: ApiKeySource | null }
+  | { id: 'amap'; provider: AmapPlacesProvider };
+
+/**
  * /api/maps domain service — geocoding, the provider fan-out
  * (Nominatim/Overpass/Google), the place-details/photo caches and the SSRF
  * guard on every outbound URL. DI-native since the maps fold: the legacy
@@ -523,12 +710,63 @@ export class MapsService {
     private readonly photoCache: PlacePhotoCacheService,
   ) {}
 
+  /** Brand id → logo bytes, or null for "asked, has none". Insertion-ordered, so the
+   *  oldest entry is the one evicted when it fills up. */
+  private readonly brandLogoCache = new Map<string, { at: number; logo: BrandLogo | null }>();
+
+  /** Amap autocomplete tips for the details fallback. Here rather than on the provider:
+   *  a provider is built per request, and a pick is two requests. */
+  private readonly amapTips = new AmapTipStash();
+
   private isSettingDisabled(key: string): boolean {
     const row = this.database.get<{ value: string }>(
       'SELECT value FROM app_settings WHERE key = ?',
       key,
     );
     return row?.value === 'false';
+  }
+
+  /**
+   * Whether the index answers on this instance.
+   *
+   * On unless TREK_PLACES_ENABLED says otherwise, because the index is the path
+   * we want people on and an upgrade must not quietly drop back to Nominatim,
+   * whose usage policy forbids what TREK was doing with it.
+   *
+   * An environment variable rather than an admin switch on purpose. This decides
+   * whether a search leaves the instance at all, which is a property of the
+   * deployment: an operator pins it in their compose file, and it cannot be
+   * turned off from a browser by whoever holds an admin account that day.
+   */
+  trekPlacesEnabled(): boolean {
+    return readEnv().maps.trekPlacesEnabled;
+  }
+
+  /**
+   * The places in a trip's area, for the offline cache.
+   *
+   * The one call TREK makes that is not driven by something a user just typed.
+   * It runs when a trip is prepared for offline use, alongside the map tiles,
+   * and it is the reason searching a trip works on a plane: without it the
+   * offline instance has the trip's own places and nothing else, so "find a
+   * pharmacy near the hotel" has nothing to answer from.
+   *
+   * Returns null rather than throwing when the index is switched off or the
+   * service is unreachable, because this is a nice-to-have running in the
+   * background of a sync — a failure here must not fail the sync.
+   */
+  async placesInArea(
+    bbox: { minLat: number; minLng: number; maxLat: number; maxLng: number },
+    limit?: number,
+  ): Promise<{ results: Record<string, unknown>[]; truncated: boolean } | null> {
+    if (!this.trekPlacesEnabled()) return null;
+    try {
+      const area = await trekPlacesArea(bbox, limit);
+      return { results: area.results.map(toPlaceRecord), truncated: area.truncated };
+    } catch (err) {
+      console.warn('TREK Places area lookup failed:', (err as Error).message);
+      return null;
+    }
   }
 
   autocompleteDisabled(): boolean {
@@ -543,10 +781,16 @@ export class MapsService {
     return this.isSettingDisabled('places_photos_enabled');
   }
 
-  // ── Controller-facing surface (unchanged signatures) ───────────────────────
+  // ── Controller-facing surface ──────────────────────────────────────────────
 
-  search(userId: number, query: string, lang?: string, locationBias?: { lat: number; lng: number; radius?: number }): Promise<MapsSearchResult> {
-    return this.searchPlaces(userId, query, lang, locationBias) as Promise<MapsSearchResult>;
+  search(
+    userId: number,
+    query: string,
+    lang?: string,
+    locationBias?: { lat: number; lng: number; radius?: number },
+    provider?: 'google',
+  ): Promise<MapsSearchResult> {
+    return this.searchPlaces(userId, query, lang, locationBias, { googleOnly: provider === 'google' }) as Promise<MapsSearchResult>;
   }
 
   autocomplete(userId: number, input: string, lang?: string, locationBias?: LocationBias, sessionToken?: string): Promise<MapsAutocompleteResult> {
@@ -577,9 +821,197 @@ export class MapsService {
     return this.resolveGoogleMapsUrl(url) as Promise<MapsResolveUrlResult>;
   }
 
-  // OSM-only POI search by category within a viewport bbox (never calls Google).
-  pois(category: string, bbox: { south: number; west: number; north: number; east: number }, lang?: string) {
-    return this.searchOverpassPois(category, bbox, lang);
+  /**
+   * The logo of a brand, by its Wikidata id, as bytes.
+   *
+   * Two hops: Wikidata says which Commons file is the logo (property P154), Commons
+   * serves a thumbnail of it. Both answers are cached, including "this brand has no
+   * logo" — otherwise every map pan would ask Wikidata about the same supermarket
+   * chain again. Returns null whenever anything is missing or unreadable; a marker
+   * without a logo falls back to its category icon, which is a fine outcome.
+   */
+  async brandLogo(wikidataId: string): Promise<BrandLogo | null> {
+    if (!WIKIDATA_ID_RE.test(wikidataId)) return null;
+
+    const cached = this.brandLogoCache.get(wikidataId);
+    if (cached && Date.now() - cached.at < BRAND_LOGO_CACHE_TTL_MS) return cached.logo;
+
+    const remember = (logo: BrandLogo | null): BrandLogo | null => {
+      if (this.brandLogoCache.size >= BRAND_LOGO_CACHE_MAX) {
+        const oldest = this.brandLogoCache.keys().next().value;
+        if (oldest !== undefined) this.brandLogoCache.delete(oldest);
+      }
+      this.brandLogoCache.set(wikidataId, { at: Date.now(), logo });
+      return logo;
+    };
+
+    try {
+      const params = new URLSearchParams({
+        action: 'wbgetclaims',
+        entity: wikidataId,
+        property: 'P154',
+        format: 'json',
+      });
+      const claimRes = await fetch(`https://www.wikidata.org/w/api.php?${params}`, {
+        headers: { 'User-Agent': UA },
+        signal: AbortSignal.timeout(WIKI_TIMEOUT_MS),
+      });
+      if (!claimRes.ok) return remember(null);
+      const claims = (await claimRes.json()) as {
+        claims?: { P154?: { mainsnak?: { datavalue?: { value?: unknown } } }[] };
+      };
+      const file = claims.claims?.P154?.[0]?.mainsnak?.datavalue?.value;
+      if (typeof file !== 'string' || !file.trim()) return remember(null);
+
+      // Special:FilePath renders a thumbnail at the width asked for and redirects to
+      // the CDN, so each hop is re-checked by the guard rather than trusted.
+      const url = `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(file)}?width=${BRAND_LOGO_WIDTH}`;
+      // The same six seconds the Wikidata hop above allows. Without a deadline
+      // this waited on undici's five-minute default, holding a request context
+      // and a socket per stalled logo while the pin sat on its fallback icon.
+      const imgRes = await safeFetchFollow(url, { signal: AbortSignal.timeout(WIKI_TIMEOUT_MS) }, { bypassInternalIpAllowed: true });
+      if (!imgRes.ok) return remember(null);
+
+      if (exceedsDeclaredLength(imgRes, BRAND_LOGO_MAX_BYTES)) {
+        discardBody(imgRes);
+        return remember(null);
+      }
+      // Streamed rather than buffered whole: a chunked answer declares no length,
+      // so the post-check only ever ran after the bytes were already in memory.
+      const { bytes, truncated } = await readCapped(imgRes, BRAND_LOGO_MAX_BYTES);
+      if (truncated || bytes.byteLength === 0) return remember(null);
+
+      const contentType = imgRes.headers.get('content-type') ?? '';
+      if (!contentType.startsWith('image/')) return remember(null);
+
+      return remember(await flattenBrandLogo(bytes));
+    } catch (err) {
+      if (err instanceof SsrfBlockedError) return remember(null);
+      return remember(null);
+    }
+  }
+
+  // POI search by category within a viewport. Never calls Google.
+  //
+  // The index answers first: it holds the same places, indexed in an R-Tree, and
+  // the public Overpass mirrors this used to depend on are regularly overloaded.
+  // A miss or a failure drops through to Overpass exactly as before.
+  async pois(
+    category: string,
+    bbox: { south: number; west: number; north: number; east: number },
+    lang?: string,
+    limit = 60,
+  ): Promise<PoiSearchResult> {
+    // One or several categories, the way searchOverpassPois reads them. The
+    // corridor search sends a comma-separated list, and looking the whole string
+    // up as one key missed every time — so every corridor query fell through to
+    // Overpass, on the one path where that hurts most: a single search fans out
+    // over sixteen boxes, and each of those races four public mirrors.
+    const wanted = parsePoiCategories(category);
+    // Which category each Overture term belongs to, so a hit can be labelled
+    // with the category that actually produced it rather than with the whole
+    // list. The client colours and groups its markers by that field.
+    const categoryOfTerm = new Map<string, string>();
+    for (const key of wanted) {
+      for (const term of POI_CATEGORY_TO_TREK[key] ?? []) categoryOfTerm.set(term, key);
+    }
+    // All or nothing: a category the index has no terms for has to be answered
+    // by Overpass, and a mixed answer would silently drop it.
+    const indexKnowsAll = wanted.length > 0 && wanted.every(key => POI_CATEGORY_TO_TREK[key]?.length);
+    const terms = [...categoryOfTerm.keys()];
+    // The index matches a term as a SUBSTRING of `category` and `category_path`
+    // (see POI_CATEGORY_TO_TREK), so an exact lookup misses every leaf that is
+    // not literally a term: `italian_restaurant` is a hit for `restaurant` and
+    // finds nothing here. Falling through to wanted[0] then labelled it with
+    // whichever pill the user happened to tap first, and the corridor panel
+    // groups and colours on exactly that field, so a trattoria came back as a
+    // petrol station. Longest match wins, because `fast_food` must not lose to
+    // `food` when both are terms of different categories.
+    const labelFor = (leaf: string | null, path: string | null): string | undefined => {
+      const haystack = `${leaf ?? ''} ${path ?? ''}`;
+      let best: string | undefined;
+      for (const [term, key] of categoryOfTerm) {
+        if (!haystack.includes(term)) continue;
+        if (best === undefined || term.length > best.length) best = term;
+      }
+      return best === undefined ? undefined : categoryOfTerm.get(best);
+    };
+    if (this.trekPlacesEnabled() && indexKnowsAll) {
+      try {
+        const lat = (bbox.south + bbox.north) / 2;
+        const lng = (bbox.west + bbox.east) / 2;
+        // Half the diagonal, so the circle covers the viewport corners rather
+        // than leaving the edges of the map empty.
+        const reach = Math.round(
+          Math.hypot(
+            (bbox.north - bbox.south) * 111_320,
+            (bbox.east - bbox.west) * 111_320 * Math.cos((lat * Math.PI) / 180),
+          ) / 2,
+        );
+        const radius = Math.min(20000, Math.max(300, reach));
+        // The same budget the Overpass path spends: per category, capped, so a
+        // mixed search does not spend the whole allowance on whichever kind
+        // happens to be densest.
+        const cap = Math.min(limit * wanted.length, POI_RESULT_CAP);
+        const found = await trekPlacesNearby(lat, lng, {
+          radius,
+          limit: cap,
+          category: terms.join(','),
+        });
+        if (found.length > 0) {
+          // Same shape the Overpass path produces, so the client and the map
+          // renderer need no branch — but named as what it is. Overture is not
+          // OpenStreetMap: it carries OSM among other sources under other
+          // licences, and this branch argues elsewhere that naming a source is
+          // a licence obligation. The wire contract keeps `source` an open
+          // string, so widening it costs nothing.
+          //
+          // One thing the index cannot do is localise. The Overpass path picks
+          // `name:<lang>` and falls back to `int_name`; the service has no
+          // language parameter at all, so a German user exploring Tokyo gets
+          // the Japanese primary names here. Named rather than hidden: whoever
+          // adds localisation upstream should find this comment.
+          return {
+            pois: found.map(p => ({
+              osm_id: `gers:${p.gers}`,
+              name: p.name,
+              lat: p.lat,
+              lng: p.lng,
+              // The category that produced the hit, not the list that was
+              // asked for: a mixed search must not label a petrol station as
+              // "fuel,charging,restaurant".
+              category: labelFor(p.category ?? null, p.categoryPath ?? null) ?? wanted[0],
+              poi_type: p.category ?? wanted[0],
+              address: p.address?.freeform ?? null,
+              website: normalizePlaceWebsite(p.contact?.website),
+              phone: p.contact?.phone ?? null,
+              opening_hours: p.hours?.osm ?? null,
+              // The index carries the chain and its Wikidata item, which is what
+              // the logo on the pin is looked up from — so a branch of a chain
+              // gets its own mark here exactly as it does on the Overpass path.
+              brand: p.brand?.name ?? null,
+              brand_wikidata: p.brand?.wikidata ?? null,
+              // Sockets are an OSM thing; the index has no charging fields, so
+              // a station answered from here reports "not stated" rather than
+              // claiming it offers nothing.
+              charging: null,
+              // The index has no cuisine field, so this null is the truth
+              // rather than a field being dropped on the way through.
+              cuisine: null,
+              source: 'trek-places' as const,
+            })),
+            source: 'trek-places' as const,
+            truncated: found.length >= cap,
+            // A wide viewport is narrowed here too, and the caller is told so
+            // for the same reason the Overpass path tells it.
+            clamped: radius < reach,
+          };
+        }
+      } catch (err: unknown) {
+        console.warn('TREK Places nearby failed, falling back:', (err as Error).message);
+      }
+    }
+    return this.searchOverpassPois(category, bbox, lang, limit);
   }
 
   // ── API key retrieval ──────────────────────────────────────────────────────
@@ -605,6 +1037,144 @@ export class MapsService {
     return this.resolveMapsKey(userId).key;
   }
 
+  /** The Amap credential, resolved through the identical three-step chain. */
+  resolveAmapKey(userId: number): { key: string | null; source: ApiKeySource | null } {
+    return resolveApiKey(this.database, 'amap_api_key', userId, readEnv().maps.amapApiKey);
+  }
+
+  // ── Keyed provider selection ───────────────────────────────────────────────
+
+  /**
+   * Which keyed provider the admin picked, or `auto`.
+   *
+   * An unrecognised stored value degrades to `auto` rather than throwing: this
+   * is read on the hot path of every search, and a hand-edited settings row must
+   * not take place search down.
+   */
+  placesProviderChoice(): PlacesProviderChoice {
+    const row = this.database.get<{ value: string }>(
+      'SELECT value FROM app_settings WHERE key = ?',
+      PLACES_PROVIDER_SETTING,
+    );
+    return isPlacesProviderChoice(row?.value) ? row.value : 'auto';
+  }
+
+  /**
+   * Who holds the keyed slot for this request, or null for the OpenStreetMap
+   * stack alone. The index and OpenStreetMap are asked either way; this only
+   * decides what answers once they have nothing.
+   *
+   * `auto`, the default and what every install that predates Amap has, prefers
+   * Google. That is deliberately the incumbent rather than "the newest provider
+   * wins": an existing install must not silently start querying somewhere
+   * else, with a different bill and different results, because a release added
+   * a provider. An admin who wants Amap says so.
+   *
+   * Key resolution is ordered to match: under `auto` the Amap chain is only
+   * walked when there is no Google key, so an install on Google issues exactly
+   * the database reads it always did.
+   */
+  keyedProvider(userId: number): KeyedProvider | null {
+    const choice = this.placesProviderChoice();
+    if (choice === 'openstreetmap') return null;
+
+    if (choice !== 'amap') {
+      const google = this.resolveMapsKey(userId);
+      if (google.key) return { id: 'google', key: google.key, source: google.source };
+      // An explicit 'google' choice with no key is not a reason to query Amap
+      // instead: this install is on Google and is misconfigured. OSM answers,
+      // the way a keyless install has always been answered.
+      if (choice === 'google') return null;
+    }
+
+    const amap = this.resolveAmapKey(userId);
+    return amap.key
+      ? { id: 'amap', provider: new AmapPlacesProvider({ key: amap.key, source: amap.source, userId }, this.amapTips) }
+      : null;
+  }
+
+  /**
+   * Whether this search goes to Google and nowhere else.
+   *
+   * Two ways to ask for that, both born of the same moment: the index answered
+   * a query with something that is not the place the traveller meant, and with
+   * the index and OpenStreetMap answering first, Google was never consulted as
+   * long as they found anything at all. The caller can send one search to
+   * Google (`requested`, the "search Google instead" link under the results),
+   * and the admin can make that the rule for every search and suggestion (the
+   * switch beside the key). Either way it only holds when Google holds the key
+   * slot: on an install without a Google key, or one that picked Amap or
+   * OpenStreetMap, both change nothing, and the admin panel says so.
+   *
+   * Read after the keyed provider on purpose: that lookup already walked the
+   * key chain, and a setting read ahead of it would shift the order of the
+   * app_settings reads every test of the chain stubs by position.
+   */
+  private googleOnly(keyed: KeyedProvider | null, requested = false): boolean {
+    if (keyed?.id !== 'google') return false;
+    if (requested) return true;
+    const row = this.database.get<{ value: string }>(
+      'SELECT value FROM app_settings WHERE key = ?',
+      PLACES_GOOGLE_ONLY_SETTING,
+    );
+    return row?.value === 'true';
+  }
+
+  /** The Amap provider, when Amap holds the keyed slot; null otherwise. */
+  resolvePlacesProvider(userId: number): AmapPlacesProvider | null {
+    const keyed = this.keyedProvider(userId);
+    return keyed?.id === 'amap' ? keyed.provider : null;
+  }
+
+  /**
+   * The Amap provider for an `amap:` id, regardless of which provider is
+   * currently selected.
+   *
+   * Places outlive the setting. An install that ran on Amap for a year and then
+   * switches to Google still holds its `amap:` places, and every one of those
+   * keeps opening against the Amap key that is still configured. Google ids do
+   * not come through here at all: they take the inline Google path, which
+   * resolves its own key the same way.
+   *
+   * Null means nobody can resolve it: a Google id, or an Amap place on an
+   * install that has since dropped its Amap key. Callers treat that as a miss,
+   * not an error.
+   */
+  private providerForPlaceId(userId: number, placeId: string): AmapPlacesProvider | null {
+    if (!isAmapPlaceId(placeId)) return null;
+    const amap = this.resolveAmapKey(userId);
+    return amap.key ? new AmapPlacesProvider({ key: amap.key, source: amap.source, userId }, this.amapTips) : null;
+  }
+
+  /**
+   * A coordinate for a name that came out of an import, from whichever source
+   * has it.
+   *
+   * Booking imports geocode every venue and every uncoordinated endpoint in one
+   * request loop, up to thirty sequential lookups. Every one of those used to be
+   * a Nominatim call on the background lane, waiting out its throttle. The index
+   * answers most of them without leaving our own infrastructure and without a
+   * throttle at all; a street address it does not know still falls through to
+   * Nominatim, which is the source that resolves addresses.
+   *
+   * Never throws: an import that cannot place a hotel still imports the hotel.
+   */
+  async geocodeQuery(query: string): Promise<{ lat: number; lng: number } | null> {
+    if (this.trekPlacesEnabled()) {
+      try {
+        const found = await trekPlacesSearch(query, { limit: 1 });
+        const hit = found[0];
+        if (hit && Number.isFinite(hit.lat) && Number.isFinite(hit.lng)) {
+          return { lat: hit.lat, lng: hit.lng };
+        }
+      } catch (err: unknown) {
+        console.warn('TREK Places geocode failed, falling back:', (err as Error).message);
+      }
+    }
+    const hit = (await this.searchNominatim(query, undefined, 'background'))[0];
+    return hit?.lat != null && hit?.lng != null ? { lat: hit.lat, lng: hit.lng } : null;
+  }
+
   // ── Nominatim search ───────────────────────────────────────────────────────
 
   /**
@@ -617,7 +1187,12 @@ export class MapsService {
    * whole import. Yielding does not make the import faster, it stops it from
    * being the only thing the process will do for half a minute.
    */
-  async searchNominatim(query: string, lang?: string, lane: GeoLane = 'interactive') {
+  async searchNominatim(
+    query: string,
+    lang?: string,
+    lane: GeoLane = 'interactive',
+    bias?: { lat: number; lng: number },
+  ) {
     const params = new URLSearchParams({
       q: query,
       format: 'json',
@@ -630,8 +1205,17 @@ export class MapsService {
       limit: '10',
       'accept-language': toApiLang(lang),
     });
+    // Prefer the area the caller is looking at, never restrict to it
+    // (bounded=0). Without this, "Hase-dera" returns the temple of that name in
+    // Nara rather than the one in Kamakura the user is standing next to; with
+    // bounded=1 a search for somewhere genuinely far away would return nothing.
+    if (bias) {
+      const d = 0.5;
+      params.set('viewbox', [bias.lng - d, bias.lat - d, bias.lng + d, bias.lat + d].join(','));
+      params.set('bounded', '0');
+    }
     // Through the shared client: one throttle for the whole process.
-    const response = await nominatimFetch('search', params, { lane });
+    const response = await nominatimFetch('search', params, { lane, timeoutMs: SEARCH_TIMEOUT_MS });
     if (!response.ok) {
       const text = await response.text().catch(() => '');
       throw new Error(
@@ -796,6 +1380,10 @@ export class MapsService {
     const typeMap: Record<string, string> = { node: 'node', way: 'way', relation: 'rel' };
     const oType = typeMap[osmType];
     if (!oType) return null;
+    // The id is the one thing written into the query, and the query is a
+    // language. An OSM element id is a number and nothing else; anything with
+    // more in it is a statement of its own, sent under TREK's shared user agent.
+    if (!/^\d+$/.test(osmId)) return null;
     const query = `[out:json][timeout:5];${oType}(${osmId});out tags;`;
     try {
       const res = await fetch('https://overpass-api.de/api/interpreter', {
@@ -821,8 +1409,20 @@ export class MapsService {
     lang?: string,
     limit = 60,
   ): Promise<PoiSearchResult> {
-    const filters = CATEGORY_OSM_FILTERS[category];
-    if (!filters) throw Object.assign(new Error('Unknown POI category'), { status: 400 });
+    // One or several categories in one query. Each OSM selector belongs to exactly one
+    // category, so a hit can still be labelled with the category it answered.
+    const categories = parsePoiCategories(category);
+    if (!categories.length) throw Object.assign(new Error('Unknown POI category'), { status: 400 });
+    const categoryOfFilter = new Map<string, string>();
+    for (const key of categories) {
+      const own = CATEGORY_OSM_FILTERS[key];
+      if (!own) throw Object.assign(new Error('Unknown POI category'), { status: 400 });
+      for (const f of own) categoryOfFilter.set(f, key);
+    }
+    const filters = [...categoryOfFilter.keys()];
+    // Each category gets its own share of the cap, or a mixed search would spend the
+    // whole budget on whichever kind happens to be densest.
+    const cap = Math.min(limit * categories.length, POI_RESULT_CAP);
 
     // Clamp an oversized viewport to a centred window so the query stays cheap and
     // returns fast at any zoom, instead of timing out / 502-ing on a huge area.
@@ -849,7 +1449,7 @@ export class MapsService {
     const osmLang = toApiLang(lang).split('-')[0].toLowerCase();
 
     // Serve repeat pans/toggles of the same area straight from the cache.
-    const cacheKey = `${category}|${osmLang}|${south.toFixed(2)},${west.toFixed(2)},${north.toFixed(2)},${east.toFixed(2)}|${limit}`;
+    const cacheKey = `${[...categories].sort((a, b) => a.localeCompare(b)).join('+')}|${osmLang}|${south.toFixed(2)},${west.toFixed(2)},${north.toFixed(2)},${east.toFixed(2)}|${cap}`;
     const cached = POI_CACHE.get(cacheKey);
     if (cached && Date.now() - cached.at < POI_CACHE_TTL_MS) return cached.value;
     if (cached) POI_CACHE.delete(cacheKey); // expired — drop it before refetching
@@ -864,14 +1464,18 @@ export class MapsService {
       .join('\n');
     // `out center tags <n>` returns ways/relations with a computed center and caps
     // the result count in one round-trip.
-    const query = `[out:json][timeout:20];\n(\n${selectors}\n);\nout center tags ${limit + 25};`;
+    const query = `[out:json][timeout:${OVERPASS_QUERY_TIMEOUT_S}];\n(\n${selectors}\n);\nout center tags ${cap + 25};`;
 
     const elements = await overpassFetch(query);
 
     const pois: OverpassPoi[] = [];
     for (const el of elements) {
       const tags = el.tags || {};
-      const name = tags[`name:${osmLang}`] || tags['int_name'] || tags.name || tags.brand || null;
+      // `operator` comes last but matters for the road categories: petrol stations,
+      // charging points and service areas are routinely mapped with an operator and no
+      // name, and dropping those would empty the road trip corridor over long stretches.
+      const name =
+        tags[`name:${osmLang}`] || tags['int_name'] || tags.name || tags.brand || tags.operator || null;
       if (!name) continue; // unnamed POIs aren't useful to add to a plan
       // A shut-down place is not somewhere to plan a visit (#1341). OSM usually
       // re-tags one with a `disused:`/`abandoned:` prefix, and those never match
@@ -897,18 +1501,26 @@ export class MapsService {
         name,
         lat,
         lng,
-        category,
+        category: categoryOfFilter.get(matched) ?? categories[0],
         poi_type: matched,
         address: addr,
-        website: tags.website || tags['contact:website'] || null,
+        website: normalizePlaceWebsite(tags.website) ?? normalizePlaceWebsite(tags['contact:website']),
         phone: tags.phone || tags['contact:phone'] || null,
         opening_hours: tags.opening_hours || null,
         cuisine: tags.cuisine || null,
+        brand: tags.brand || tags.operator || null,
+        // Only the plain Q-id form is passed on; anything else would be a lookup we
+        // would have to guess at.
+        brand_wikidata: /^Q[0-9]+$/.test(tags['brand:wikidata'] || '') ? tags['brand:wikidata'] : null,
+        // Only where it means something. Every POI carries `capacity` and `fee` for its
+        // own reasons — a restaurant's capacity is seats — so reading them as charging
+        // data anywhere else would be wrong on most of the map.
+        charging: categoryOfFilter.get(matched) === 'charging' ? readChargingInfo(tags) : null,
         source: 'openstreetmap',
       });
     }
-    const truncated = pois.length > limit;
-    const value: PoiSearchResult = { pois: pois.slice(0, limit), source: 'openstreetmap', truncated, clamped };
+    const truncated = pois.length > cap;
+    const value: PoiSearchResult = { pois: pois.slice(0, cap), source: 'openstreetmap', truncated, clamped };
     // FIFO eviction: a Map preserves insertion order, so the first key is the oldest.
     if (POI_CACHE.size >= POI_CACHE_MAX) POI_CACHE.delete(POI_CACHE.keys().next().value as string);
     POI_CACHE.set(cacheKey, { at: Date.now(), value });
@@ -966,6 +1578,18 @@ export class MapsService {
    * want a single image (fetchWikimediaPhoto, and through it getPlacePhoto) take
    * the first entry and get exactly the file they got before this existed.
    */
+  /**
+   * Anything photographed near a coordinate. The bottom rung of the picture
+   * ladder, and the only one with no claim on the subject at all.
+   *
+   * 60 metres rather than the 300 it used to be. Three hundred metres in a city
+   * centre is a whole block: the town hall, the church and the underground
+   * entrance are all inside it, and every one of them outranks the doner shop
+   * we were actually asked about. Sixty is roughly "the same building and its
+   * neighbours", which is the widest a picture can be taken and still plausibly
+   * show the place. It does not fix the real problem, which is that nobody
+   * photographed the shop, but it stops the wrong answer from being confident.
+   */
   async fetchCommonsCandidates(lat: number, lng: number, limit = 5): Promise<CommonsCandidate[]> {
     const params = new URLSearchParams({
       action: 'query',
@@ -973,7 +1597,7 @@ export class MapsService {
       generator: 'geosearch',
       ggsprimary: 'all',
       ggsnamespace: '6',
-      ggsradius: '300',
+      ggsradius: '60',
       ggscoord: `${lat}|${lng}`,
       // Deliberately more than the caller asked for. Around anything worth
       // visiting the first few hits are survey tiles, passers-by and the
@@ -1452,22 +2076,111 @@ export class MapsService {
     query: string,
     lang?: string,
     locationBias?: { lat: number; lng: number; radius?: number },
+    opts: { googleIdentityOnly?: boolean; googleOnly?: boolean } = {},
   ): Promise<{ places: Record<string, unknown>[]; source: string }> {
-    const { key: apiKey, source: keySource } = this.resolveMapsKey(userId);
+    const keyed = this.keyedProvider(userId);
+    const { key: apiKey, source: keySource } = keyed?.id === 'google' ? keyed : { key: null, source: null };
+
+    // The TREK index answers first, whether or not a Google key exists. It is
+    // the only source here that may be stored, works offline as a country
+    // package, and costs the caller nothing; a key buys ratings and photos on
+    // top of it, not a better search.
+    //
+    // It never throws upward. A search that used to work must keep working when
+    // the service is slow or down, so a failure drops through to exactly what
+    // this method did before.
+    //
+    // `googleIdentityOnly` skips it. One caller does not want the best answer,
+    // it wants a Google id: list-import enrichment (#886) exists to attach a
+    // `google_place_id` to a bare imported pin, and `pickEnrichmentMatch`
+    // discards every candidate that has none. Index and OpenStreetMap records
+    // both carry `google_place_id: null`, so answering that caller from them
+    // returns matches it must throw away, and the import silently stays
+    // unenriched on an instance that pays for a key. It changes nothing for an
+    // instance without one: enrichment could never resolve anything there
+    // either, before this branch existed or after.
+    // Set once the OpenStreetMap half below has run, so the fallback does not ask
+    // the same question twice. `null` means it never ran.
+    let osmAnswer: Record<string, unknown>[] | null = null;
+
+    // A search sent to Google on purpose, or the admin's "Google only" switch,
+    // skips the pair the same way: the search then reads exactly as it did
+    // before 4.3.0 on an install with a key.
+    if (this.trekPlacesEnabled() && !(opts.googleIdentityOnly && apiKey) && !this.googleOnly(keyed, opts.googleOnly)) {
+      // Both at once. The index is a dataset of businesses and is very good
+      // at those; OpenStreetMap is where the temples, bridges, riverside
+      // walks and viewpoints are, and a travel search asks for those
+      // constantly. Concurrently, so the pair costs the slower one rather
+      // than the sum. This is the explicit search, not the keystroke path
+      // Nominatim's policy rules out.
+      //
+      // Each side catches its own failure. A rejection reaching Promise.all
+      // would throw away the answer the other side had already produced — and
+      // the index refusing a query is ordinary traffic, not an outage: a common
+      // single word without coordinates is turned down upstream as too
+      // expensive. That used to discard ten good OpenStreetMap results and ask
+      // Nominatim the same question a second time, behind its own 1.1 s
+      // process-wide throttle.
+      const [found, osm] = await Promise.all([
+        trekPlacesSearch(query, {
+          lat: locationBias?.lat,
+          lng: locationBias?.lng,
+          limit: 10,
+        }).then(indexHitsOnly).catch((err: unknown) => {
+          console.warn('TREK Places search failed, falling back:', (err as Error).message);
+          return [] as TrekPlace[];
+        }),
+        this.searchNominatim(query, lang, 'interactive', locationBias).catch((err: unknown) => {
+          console.warn('OpenStreetMap search failed, index only:', (err as Error).message);
+          return [] as Record<string, unknown>[];
+        }),
+      ]);
+      osmAnswer = osm;
+      const places = mergeSearchResults(found.map(toPlaceRecord), osm);
+      if (places.length > 0) {
+        // Names the sources that actually contributed, not the ones that were
+        // asked. Either side can come back empty — the index turns down a common
+        // single word without coordinates, and OpenStreetMap can be down — and
+        // the search log writes this into the corpus a candidate index is later
+        // scored against, so a list that is entirely OpenStreetMap must not be
+        // recorded as though the index had a hand in it.
+        const source = found.length > 0
+          ? (osm.length > 0 ? 'trek-places+openstreetmap' : 'trek-places')
+          : 'openstreetmap';
+        return { places, source };
+      }
+    }
+
+    // Amap in the slot Google otherwise holds: asked only once the index and
+    // OpenStreetMap came back empty, exactly like the Google call below.
+    if (keyed?.id === 'amap') {
+      const places = await keyed.provider.searchText(query, lang, locationBias);
+      return { places, source: 'amap' };
+    }
 
     if (!apiKey) {
-      const places = await this.searchNominatim(query, lang);
+      // Reuse what OpenStreetMap already said rather than asking again. The
+      // first call carried a viewbox with bounded=0, which orders results
+      // without changing which ones exist, so a second call can only return the
+      // same empty list a throttle-interval later.
+      const places = osmAnswer ?? (await this.searchNominatim(query, lang));
       return { places, source: 'openstreetmap' };
     }
 
     const searchBody: Record<string, unknown> = { textQuery: query, languageCode: toApiLang(lang) };
     // Bias results toward the caller's area when supplied — without it Google Text
     // Search falls back to the API key's billing region, which skews foreign-region queries.
+    //
+    // Clamped, like the nearby path above: Google caps the circle at 50 km and
+    // answers a wider one with a 400 that this method throws, so a trip spread
+    // across a hundred kilometres would turn an ordinary search into an error
+    // toast. The client keeps its own ceiling; this one is here because the
+    // radius arrives over the wire and the schema cannot know Google's limit.
     if (locationBias) {
       searchBody.locationBias = {
         circle: {
           center: { latitude: locationBias.lat, longitude: locationBias.lng },
-          radius: locationBias.radius ?? 50000,
+          radius: Math.min(50000, Math.max(1, locationBias.radius ?? 50000)),
         },
       };
     }
@@ -1506,7 +2219,7 @@ export class MapsService {
       lat: p.location?.latitude ?? null,
       lng: p.location?.longitude ?? null,
       rating: p.rating || null,
-      website: p.websiteUri || null,
+      website: normalizePlaceWebsite(p.websiteUri),
       phone: p.nationalPhoneNumber || null,
       types: p.types || [],
       source: 'google',
@@ -1523,8 +2236,91 @@ export class MapsService {
     lang?: string,
     locationBias?: { low: { lat: number; lng: number }; high: { lat: number; lng: number } },
     sessionToken?: string,
-  ): Promise<{ suggestions: { placeId: string; mainText: string; secondaryText: string }[]; source: string }> {
-    const { key: apiKey, source: keySource } = this.resolveMapsKey(userId);
+  ): Promise<MapsAutocompleteResult> {
+    const keyed = this.keyedProvider(userId);
+    const { key: apiKey, source: keySource } = keyed?.id === 'google' ? keyed : { key: null, source: null };
+
+    // This is the path that mattered most. Nominatim's usage policy names
+    // autocomplete as unacceptable use in its own words, regardless of rate,
+    // and the whole TREK fleet shares one User-Agent there: one abusive install
+    // could get every instance blocked at once. The index removes that.
+    //
+    // Same contract as search: never throws upward, falls through to what this
+    // method did before. The admin's "Google only" switch skips the index here
+    // too, so the suggestions and the search agree on where they come from.
+    if (this.trekPlacesEnabled() && !this.googleOnly(keyed)) {
+      try {
+        const centre = locationBias
+          ? {
+              lat: (locationBias.low.lat + locationBias.high.lat) / 2,
+              lng: (locationBias.low.lng + locationBias.high.lng) / 2,
+            }
+          : undefined;
+        // Both layers here, unlike the explicit search above. That path asks
+        // Nominatim in parallel and would get the same OpenStreetMap places
+        // twice; this one asks nobody else, because Nominatim's usage policy
+        // names autocomplete as unacceptable use. So the layer is not a second
+        // opinion here, it is the only place the missing names live.
+        //
+        // Measured on the case that surfaced it: "Tokio station" typed from
+        // Tokyo returned a weigh station in Ritzville and a station in Mexico
+        // from the index alone, and "Tokio Hauptbahnhof" in second place with
+        // the layer. The index holds businesses; stations, temples and bridges
+        // are in OpenStreetMap, and so is every exonym a traveller types.
+        const found = await trekPlacesSearch(input, {
+          lat: centre?.lat,
+          lng: centre?.lng,
+          limit: 8,
+          sources: 'index,osm',
+        });
+        if (found.length > 0) {
+          return {
+            suggestions: found.map(p =>
+              isOsmHit(p)
+                ? {
+                    // The service's own id form, translated into the one this
+                    // file already resolves. Leaving it as `osm:node/123` would
+                    // hand the client an id getPlaceDetails does not know, and
+                    // the failure would land after the user had picked it.
+                    placeId: osmPlaceId(p),
+                    mainText: p.name,
+                    // The layer carries no address. The local name is what the
+                    // place is called on the spot, which is more use under a
+                    // translated label than an empty line.
+                    secondaryText: p.local_name && p.local_name !== p.name ? p.local_name : '',
+                    // Per row, because this list is two indexes interleaved.
+                    // The name above the list says `trek-places`, which is true
+                    // of the call and false of half the rows in it — the layer
+                    // is OpenStreetMap, and a reader deciding whether to trust
+                    // a suggestion is asking exactly that.
+                    source: 'openstreetmap',
+                    // Both indexes hand these over with the row. Carried rather
+                    // than dropped so picking a suggestion has something to fall
+                    // back on when the details lookup cannot answer.
+                    lat: p.lat,
+                    lng: p.lng,
+                  }
+                : {
+                    placeId: `gers:${p.gers}`,
+                    mainText: p.name,
+                    secondaryText: [p.address?.locality, p.address?.country].filter(Boolean).join(', '),
+                    source: 'trek-places',
+                    lat: p.lat,
+                    lng: p.lng,
+                  },
+            ),
+            source: 'trek-places',
+          };
+        }
+      } catch (err: unknown) {
+        console.warn('TREK Places autocomplete failed, falling back:', (err as Error).message);
+      }
+    }
+
+    if (keyed?.id === 'amap') {
+      const suggestions = await keyed.provider.autocomplete(input, lang, locationBias);
+      return { suggestions, source: 'amap' };
+    }
 
     if (!apiKey) {
       return this.autocompleteNominatim(input, lang);
@@ -1583,7 +2379,7 @@ export class MapsService {
   private async autocompleteNominatim(
     input: string,
     lang?: string,
-  ): Promise<{ suggestions: { placeId: string; mainText: string; secondaryText: string }[]; source: string }> {
+  ): Promise<MapsAutocompleteResult> {
     try {
       const places = await this.searchNominatim(input, lang);
       const suggestions = places
@@ -1612,8 +2408,90 @@ export class MapsService {
     lang?: string,
     sessionToken?: string,
   ): Promise<{ place: Record<string, unknown> | null }> {
+    // A place picked out of the TREK index. Checked BEFORE the generic
+    // colon branch below, which would otherwise read "gers" as an OSM type
+    // and ask Overpass for an element that does not exist.
+    if (placeId.startsWith('gers:')) {
+      // The switch is a deployment property, and off means nothing leaves for
+      // the index: a place saved while it was on is still opened from what the
+      // trip holds, not looked up again.
+      if (!this.trekPlacesEnabled()) return { place: null };
+      const found = await trekPlacesById(placeId.slice('gers:'.length)).catch(() => null);
+      if (!found) return { place: null };
+
+      // What the index does not have, the free sources still do: cuisine,
+      // wheelchair access, a menu link. OpenStreetMap has all of them for the
+      // same building, and without this the details a user saw while adding the
+      // place disappeared from its card afterwards, which reads like data loss.
+      //
+      // Matched by name and coordinate, with the same two gates
+      // resolveOsmIdentity applies everywhere: within range, and sharing a
+      // substantial word of the name. A confident description of the building
+      // next door is worse than none.
+      const osm = await this.resolveOsmIdentity(found.name, found.lat, found.lng, {
+        lang,
+        maxDistanceM: 150,
+      }).catch(() => null);
+
+      const record = toPlaceRecord(found);
+      // Hours the index read off the operator's own site, run through the same
+      // expansion OSM's go through — the client reads a list of weekday lines,
+      // not the raw syntax, and handing it two shapes for one field would be a
+      // bug on every card that shows it.
+      //
+      // Measured across seven countries, OpenStreetMap has hours for 27.5
+      // percent of gastronomy; this covers part of the rest. It is the
+      // fallback, not the first choice: an OSM entry describes this exact
+      // object and gets corrected by people who walked past, where a chain's
+      // website often carries one set of hours for every branch.
+      const fromSite =
+        typeof found.hours?.osm === 'string' ? buildOsmDetails({ opening_hours: found.hours.osm }, '', '') : null;
+      if (!osm) {
+        return {
+          place: fromSite?.opening_hours
+            ? {
+                ...record,
+                opening_hours: fromSite.opening_hours,
+                open_now: fromSite.open_now,
+                opening_periods: fromSite.opening_periods,
+              }
+            : record,
+        };
+      }
+
+      const osmDetails = buildOsmDetails(osm.tags, '', '');
+      const hoursFrom = osmDetails.opening_hours ? osmDetails : fromSite;
+      return {
+        place: {
+          // Index first: its name, coordinate and contact details are the ones
+          // the user picked. OSM only fills what is still missing.
+          ...osmDetails,
+          ...record,
+          opening_hours: hoursFrom?.opening_hours ?? null,
+          open_now: hoursFrom?.open_now ?? null,
+          opening_periods: hoursFrom?.opening_periods ?? null,
+          website: record.website ?? osmDetails.website ?? null,
+          phone: record.phone ?? osmDetails.phone ?? null,
+          osm_id: placeId,
+          source: 'trek-places',
+        },
+      };
+    }
+
+    // An Amap id is `amap:<poiid>` and so carries a colon too. Before the OSM
+    // branch, which would otherwise send "amap" to Overpass as an element type
+    // and answer every Chinese place with an empty record.
+    if (isAmapPlaceId(placeId)) return this.amapDetails(userId, placeId, lang);
+
     // OSM details: placeId is "node:123456" or "way:123456" etc.
     if (placeId.includes(':')) {
+      // Only an element type with a numeric id is looked up. The id is written
+      // into an Overpass query and a Nominatim lookup as it came in, and nothing
+      // else with a colon in it (a legacy image URL, a coordinate pseudo-id) has
+      // a details source: answering those with an empty record cost two
+      // requests that could not succeed, and let anything after the colon be
+      // sent as a query of its own.
+      if (!OSM_PLACE_ID.test(placeId)) return { place: null };
       const [osmType, osmId] = placeId.split(':');
       // buildOsmDetails never yields name/address/coordinates — Nominatim is
       // always the source for those (Overpass contributes the tag-derived rest).
@@ -1665,7 +2543,7 @@ export class MapsService {
       placeId,
       langKey,
     );
-    if (cached && Date.now() - cached.fetched_at < DETAILS_TTL) return { place: JSON.parse(cached.payload_json) };
+    if (cached && Date.now() - cached.fetched_at < DETAILS_TTL) return { place: cachedDetails(cached.payload_json) };
 
     // Closes the autocomplete session this lookup belongs to, so Google bills
     // the search once instead of per keystroke. A cache hit above never reaches
@@ -1703,7 +2581,7 @@ export class MapsService {
       lng: data.location?.longitude ?? null,
       rating: data.rating || null,
       rating_count: data.userRatingCount || null,
-      website: data.websiteUri || null,
+      website: normalizePlaceWebsite(data.websiteUri),
       phone: data.nationalPhoneNumber || null,
       opening_hours: data.regularOpeningHours?.weekdayDescriptions || null,
       open_now: data.regularOpeningHours?.openNow ?? null,
@@ -1734,6 +2612,50 @@ export class MapsService {
     return { place };
   }
 
+  /**
+   * The Amap half of getPlaceDetails, behind the same cache the Google half
+   * uses. Keyed by place_id, and an Amap id carries its `amap:` prefix, so the
+   * two providers' rows cannot collide.
+   *
+   * No key for the id is an empty result, not a client error, for the same
+   * reason the Google half answers its keyless case that way: an Amap place
+   * opened on an install that has since dropped its Amap key is a miss.
+   */
+  private async amapDetails(
+    userId: number,
+    placeId: string,
+    lang?: string,
+  ): Promise<{ place: Record<string, unknown> | null }> {
+    const provider = this.providerForPlaceId(userId, placeId);
+    if (!provider) return { place: null };
+
+    const langKey = toApiLang(lang);
+    const DETAILS_TTL = 7 * 24 * 60 * 60 * 1000;
+    const cached = this.database.get<{ payload_json: string; fetched_at: number }>(
+      'SELECT payload_json, fetched_at FROM place_details_cache WHERE place_id = ? AND lang = ? AND expanded = 0',
+      placeId,
+      langKey,
+    );
+    if (cached && Date.now() - cached.fetched_at < DETAILS_TTL) return { place: cachedDetails(cached.payload_json) };
+
+    const place = await provider.placeDetails(placeId, lang);
+    if (!place) return { place: null };
+
+    try {
+      this.database.run(
+        'INSERT OR REPLACE INTO place_details_cache (place_id, lang, expanded, payload_json, fetched_at) VALUES (?, ?, 0, ?, ?)',
+        placeId,
+        langKey,
+        JSON.stringify(place),
+        Date.now(),
+      );
+    } catch (dbErr) {
+      console.error('Failed to cache place details:', dbErr);
+    }
+
+    return { place };
+  }
+
   async getPlaceDetailsExpanded(
     userId: number,
     placeId: string,
@@ -1745,8 +2667,17 @@ export class MapsService {
     // keep the details they do have (Overpass, via the plain lookup); coordinate
     // pseudo-ids and legacy image URLs have no details source at all. Neither may be
     // forwarded to Google, which bills the 400 INVALID_ARGUMENT it answers with.
+    //
+    // Index ids degrade the same way, for the same reason: the plain lookup has a
+    // whole record for them — name, address, contact, hours — and only the reviews
+    // and the editorial summary are Google's to add. Answering `expand=1` with a
+    // null while `expand=0` answers in full would make the richer request the
+    // poorer one. An Amap id has no richer tier either, so it takes the plain
+    // lookup as well.
     if (!isGooglePlaceId(placeId)) {
-      return OSM_PLACE_ID.test(placeId) ? this.getPlaceDetails(userId, placeId, lang) : { place: null };
+      return OSM_PLACE_ID.test(placeId) || placeId.startsWith('gers:') || isAmapPlaceId(placeId)
+        ? this.getPlaceDetails(userId, placeId, lang)
+        : { place: null };
     }
 
     const langKey = toApiLang(lang); // 'en' default — see getPlaceDetails
@@ -1761,7 +2692,7 @@ export class MapsService {
         placeId,
         langKey,
       );
-      if (cached) return { place: JSON.parse(cached.payload_json) };
+      if (cached) return { place: cachedDetails(cached.payload_json) };
     }
 
     const response = await googleFetch(
@@ -1795,7 +2726,7 @@ export class MapsService {
       lng: data.location?.longitude ?? null,
       rating: data.rating || null,
       rating_count: data.userRatingCount || null,
-      website: data.websiteUri || null,
+      website: normalizePlaceWebsite(data.websiteUri),
       phone: data.nationalPhoneNumber || null,
       opening_hours: data.regularOpeningHours?.weekdayDescriptions || null,
       open_now: data.regularOpeningHours?.openNow ?? null,
@@ -1881,12 +2812,23 @@ export class MapsService {
             if (!wiki) return null;
             // Follow redirects manually so each hop (the image URL can 3xx to a CDN
             // host) is re-validated against the SSRF guard, not just the first URL.
-            const imgRes = await safeFetchFollow(wiki.photoUrl, undefined, { bypassInternalIpAllowed: true });
+            const imgRes = await safeFetchFollow(
+              wiki.photoUrl, { signal: AbortSignal.timeout(WIKI_TIMEOUT_MS) }, { bypassInternalIpAllowed: true },
+            );
             if (!imgRes.ok) {
               providerFailed = true;
               return null;
             }
-            const bytes = Buffer.from(await imgRes.arrayBuffer());
+            if (exceedsDeclaredLength(imgRes, WIKIMEDIA_PHOTO_MAX_BYTES)) {
+              discardBody(imgRes);
+              providerFailed = true;
+              return null;
+            }
+            const { bytes, truncated } = await readCapped(imgRes, WIKIMEDIA_PHOTO_MAX_BYTES);
+            if (truncated || bytes.byteLength === 0) {
+              providerFailed = true;
+              return null;
+            }
             const cached = await this.photoCache.put(placeId, bytes, wiki.attribution);
             return { attribution: cached.attribution };
           } catch {
@@ -1997,21 +2939,45 @@ export class MapsService {
     lat: string,
     lng: string,
     lang?: string,
-    opts?: { lane?: GeoLane; timeoutMs?: number },
+    opts?: { lane?: GeoLane; timeoutMs?: number; locality?: boolean },
   ): Promise<{ name: string | null; address: string | null }> {
+    // Amap answers first when it holds the keyed slot, and only for a point it
+    // can possibly know: outside its box the call would cost a round trip to
+    // come back empty before Nominatim is asked anyway. Resolved at userId 0,
+    // because most callers here have no person behind them (a booking import,
+    // an Atlas tile, a right-click on a shared map): the chain stops at the
+    // operator env var and the instance-wide row, and nobody's personal key is
+    // read on somebody else's behalf (#1939). Nominatim stays the fallback, so
+    // an Amap outage does not take a right-click down with it.
+    const amap = this.resolvePlacesProvider(0);
+    if (amap) {
+      const latNum = Number.parseFloat(lat);
+      const lngNum = Number.parseFloat(lng);
+      if (Number.isFinite(latNum) && Number.isFinite(lngNum) && !isOutsideChina(latNum, lngNum)) {
+        try {
+          const answer = await amap.reverse(latNum, lngNum, lang);
+          if (answer) return answer;
+        } catch (err) {
+          console.error('[Maps] amap reverse geocode failed, falling back to Nominatim:', (err as Error).message);
+        }
+      }
+    }
+
     const params = new URLSearchParams({
       lat,
       lon: lng,
       format: 'json',
       addressdetails: '1',
-      zoom: '18',
+      zoom: opts?.locality ? '10' : '18',
       'accept-language': toApiLang(lang),
     });
     const response = await nominatimFetch('reverse', params, opts);
     if (!response.ok) return { name: null, address: null };
     const data = (await response.json()) as { name?: string; display_name?: string; address?: Record<string, string> };
     const addr = data.address || {};
-    const name = data.name || addr.tourism || addr.amenity || addr.shop || addr.building || addr.road || null;
+    const name = opts?.locality
+      ? addr.city || addr.town || addr.village || addr.municipality || data.name || null
+      : data.name || addr.tourism || addr.amenity || addr.shop || addr.building || addr.road || null;
     return { name, address: data.display_name || null };
   }
 
@@ -2055,10 +3021,29 @@ export class MapsService {
     // usually carries the !3d!4d data param we can then parse. Redirects are
     // followed manually so every hop is SSRF-re-checked.
     const parsed = new URL(url);
-    const isShort = GOOGLE_SHORT_HOSTS.includes(parsed.hostname);
+    const isShort = GOOGLE_SHORT_HOSTS.includes(parsed.hostname) || AMAP_SHORT_HOSTS.includes(parsed.hostname);
     const isGoogleMaps = isGoogleMapsHost(parsed.hostname);
     if (isShort || (isGoogleMaps && !extractCoords(url))) {
       resolvedUrl = (await followRedirects(url)).url || resolvedUrl;
+    }
+
+    let resolvedHost = '';
+    try { resolvedHost = new URL(resolvedUrl).hostname; } catch { /* keep the empty host, both host branches are skipped */ }
+
+    // Amap links first, and on their own: they spell the coordinate `lng,lat`
+    // in GCJ-02, which the Google patterns below would read as a WGS-84
+    // `lat,lng` and put a Shanghai restaurant in the East China Sea.
+    // parseAmapUrl owns both the ordering and the datum conversion.
+    if (isAmapHost(resolvedHost)) {
+      const amap = parseAmapUrl(resolvedUrl);
+      // A POI page without a coordinate would need a keyed detail lookup, and
+      // this method has no user to resolve a key for: the same answer a Google
+      // page without coordinates gets.
+      if (!amap || !Number.isFinite(amap.lat) || !Number.isFinite(amap.lng)) {
+        throw Object.assign(new Error('Could not extract coordinates from URL'), { status: 400 });
+      }
+      const reverse = await this.reverseGeocode(String(amap.lat), String(amap.lng), undefined, { timeoutMs: 8000 });
+      return { lat: amap.lat, lng: amap.lng, name: amap.name || reverse.name, address: reverse.address, google_ftid: null };
     }
 
     let coords = extractCoords(resolvedUrl);
@@ -2067,8 +3052,6 @@ export class MapsService {
     // page body once and parse the coordinates out of the embedded map data.
     // Only Google's own pages get read; the resolved host is what counts, so a
     // short link that lands on maps.google.com still qualifies.
-    let resolvedHost = '';
-    try { resolvedHost = new URL(resolvedUrl).hostname; } catch { /* keep the empty host, the branch is skipped */ }
     if (!coords && isGoogleMapsHost(resolvedHost)) {
       try {
         const pageRes = await followRedirects(resolvedUrl, {

@@ -242,7 +242,7 @@ describe('ImmichMemoriesController (parity with /api/integrations/memories/immic
       const svc = makeService({ immichSaveSettings, immichSetAutoUpload });
       const res = makeRes();
       await new ImmichMemoriesController(svc).putSettings(user, { immich_url: 'x', immich_api_key: 'k', auto_upload: true }, req, res);
-      expect(immichSaveSettings).toHaveBeenCalledWith(7, 'x', 'k', '1.2.3.4');
+      expect(immichSaveSettings).toHaveBeenCalledWith(7, 'x', 'k', '1.2.3.4', undefined);
       expect(immichSetAutoUpload).toHaveBeenCalledWith(7, true);
       expect(res.json).toHaveBeenCalledWith({ success: true });
     });
@@ -253,6 +253,24 @@ describe('ImmichMemoriesController (parity with /api/integrations/memories/immic
       const svc = makeService({ immichSaveSettings, immichSetAutoUpload });
       await new ImmichMemoriesController(svc).putSettings(user, { auto_upload: 'yes' as unknown as boolean }, req, makeRes());
       expect(immichSetAutoUpload).not.toHaveBeenCalled();
+    });
+
+    it('hands the self-signed switch to the save both ways (#2475)', async () => {
+      const immichSaveSettings = vi.fn().mockResolvedValue({ success: true });
+      const svc = makeService({ immichSaveSettings });
+      const controller = new ImmichMemoriesController(svc);
+
+      await controller.putSettings(user, { immich_url: 'x', immich_api_key: 'k', allow_insecure_tls: true }, req, makeRes());
+      await controller.putSettings(user, { immich_url: 'x', immich_api_key: 'k', allow_insecure_tls: false }, req, makeRes());
+
+      expect(immichSaveSettings.mock.calls.map((call) => call[4])).toEqual([true, false]);
+    });
+
+    it('leaves the switch undefined when the body does not carry it, so the stored choice stays', async () => {
+      const immichSaveSettings = vi.fn().mockResolvedValue({ success: true });
+      const svc = makeService({ immichSaveSettings });
+      await new ImmichMemoriesController(svc).putSettings(user, { immich_url: 'x', immich_api_key: 'k' }, req, makeRes());
+      expect(immichSaveSettings).toHaveBeenCalledWith(7, 'x', 'k', '1.2.3.4', undefined);
     });
 
     it('returns the warning when the save carries one', async () => {
@@ -289,7 +307,19 @@ describe('ImmichMemoriesController (parity with /api/integrations/memories/immic
       const immichTestConnection = vi.fn().mockResolvedValue({ connected: true });
       const svc = makeService({ immichTestConnection });
       expect(await new ImmichMemoriesController(svc).test({ immich_url: 'u', immich_api_key: 'k' })).toEqual({ connected: true });
-      expect(immichTestConnection).toHaveBeenCalledWith('u', 'k');
+      // No switch in the body tests with the certificate check on.
+      expect(immichTestConnection).toHaveBeenCalledWith('u', 'k', false);
+    });
+
+    it('tests with the self-signed switch the form carries (#2475)', async () => {
+      const immichTestConnection = vi.fn().mockResolvedValue({ connected: true });
+      const svc = makeService({ immichTestConnection });
+      const controller = new ImmichMemoriesController(svc);
+
+      await controller.test({ immich_url: 'u', immich_api_key: 'k', allow_insecure_tls: true });
+      await controller.test({ immich_url: 'u', immich_api_key: 'k', allow_insecure_tls: false });
+
+      expect(immichTestConnection.mock.calls.map((call) => call[2])).toEqual([true, false]);
     });
   });
 
@@ -663,14 +693,14 @@ describe('SynologyMemoriesController (parity with /api/integrations/memories/syn
       const synologySearchPhotos = vi.fn().mockResolvedValue({ success: true, data: { assets: [] } });
       const svc = makeService({ synologySearchPhotos });
       await new SynologyMemoriesController(svc).search(user, {}, makeRes());
-      expect(synologySearchPhotos).toHaveBeenCalledWith(7, undefined, undefined, 0, 100);
+      expect(synologySearchPhotos).toHaveBeenCalledWith(7, undefined, undefined, 0, 100, 0);
     });
 
     it('forwards from/to and uses size as the limit when size > 0', async () => {
       const synologySearchPhotos = vi.fn().mockResolvedValue({ success: true, data: { assets: [] } });
       const svc = makeService({ synologySearchPhotos });
       await new SynologyMemoriesController(svc).search(user, { from: '2024-01-01', to: '2024-02-01', size: 30 }, makeRes());
-      expect(synologySearchPhotos).toHaveBeenCalledWith(7, '2024-01-01', '2024-02-01', 0, 30);
+      expect(synologySearchPhotos).toHaveBeenCalledWith(7, '2024-01-01', '2024-02-01', 0, 30, 0);
     });
 
     it('derives the offset from a 1-based page using the limit', async () => {
@@ -678,21 +708,43 @@ describe('SynologyMemoriesController (parity with /api/integrations/memories/syn
       const svc = makeService({ synologySearchPhotos });
       await new SynologyMemoriesController(svc).search(user, { page: 3, limit: 20 }, makeRes());
       // page-1 = 2, offset = 2 * 20 = 40
-      expect(synologySearchPhotos).toHaveBeenCalledWith(7, undefined, undefined, 40, 20);
+      expect(synologySearchPhotos).toHaveBeenCalledWith(7, undefined, undefined, 40, 20, 0);
     });
 
     it('keeps the explicit offset when page resolves to <= 0', async () => {
       const synologySearchPhotos = vi.fn().mockResolvedValue({ success: true, data: { assets: [] } });
       const svc = makeService({ synologySearchPhotos });
       await new SynologyMemoriesController(svc).search(user, { page: 1, offset: 5, limit: 10 }, makeRes());
-      expect(synologySearchPhotos).toHaveBeenCalledWith(7, undefined, undefined, 5, 10);
+      expect(synologySearchPhotos).toHaveBeenCalledWith(7, undefined, undefined, 5, 10, 0);
     });
 
     it('falls back to defaults when numeric fields are non-finite', async () => {
       const synologySearchPhotos = vi.fn().mockResolvedValue({ success: true, data: { assets: [] } });
       const svc = makeService({ synologySearchPhotos });
-      await new SynologyMemoriesController(svc).search(user, { offset: 'x', limit: 'y', page: 'z', size: 'q' }, makeRes());
-      expect(synologySearchPhotos).toHaveBeenCalledWith(7, undefined, undefined, 0, 100);
+      await new SynologyMemoriesController(svc).search(user, { offset: 'x', limit: 'y', page: 'z', size: 'q', utc_offset_minutes: 'q' }, makeRes());
+      expect(synologySearchPhotos).toHaveBeenCalledWith(7, undefined, undefined, 0, 100, 0);
+    });
+
+    it('forwards the zone the dates are meant in, apart from the row offset', async () => {
+      const synologySearchPhotos = vi.fn().mockResolvedValue({ success: true, data: { assets: [] } });
+      const svc = makeService({ synologySearchPhotos });
+      // A UTC+10 reader paging: 600 is the zone, 40 is the row offset. Sharing
+      // one name would have made the NAS skip 600 photos instead (#2336).
+      await new SynologyMemoriesController(svc).search(user, { page: 3, limit: 20, utc_offset_minutes: 600 }, makeRes());
+      expect(synologySearchPhotos).toHaveBeenCalledWith(7, undefined, undefined, 40, 20, 600);
+    });
+
+    it('clamps an impossible zone to the range real ones live in', async () => {
+      const synologySearchPhotos = vi.fn().mockResolvedValue({ success: true, data: { assets: [] } });
+      const svc = makeService({ synologySearchPhotos });
+      await new SynologyMemoriesController(svc).search(user, { utc_offset_minutes: 99999 }, makeRes());
+      expect(synologySearchPhotos).toHaveBeenCalledWith(7, undefined, undefined, 0, 100, 840);
+
+      await new SynologyMemoriesController(svc).search(user, { utc_offset_minutes: '-99999' }, makeRes());
+      expect(synologySearchPhotos).toHaveBeenLastCalledWith(7, undefined, undefined, 0, 100, -720);
+
+      await new SynologyMemoriesController(svc).search(user, { utc_offset_minutes: 90.7 }, makeRes());
+      expect(synologySearchPhotos).toHaveBeenLastCalledWith(7, undefined, undefined, 0, 100, 90);
     });
   });
 

@@ -54,40 +54,37 @@ const system_notice: TranslationStrings = {
   'system_notice.pager.counter': '{current} / {total}',
   'system_notice.pager.goto': '{n}번 공지로 이동',
   'system_notice.pager.position': '공지 {current}/{total}',
-  'system_notice.release_400.eyebrow': '업데이트 완료',
-  'system_notice.release_400.tag': '릴리스',
-  'system_notice.release_400.headline': 'TREK 역사상 가장 큰 릴리스입니다.',
-  'system_notice.release_400.intro':
-    'TREK에 휴대폰과 책이 생겼습니다. 열아홉 명이 함께 만들었고, 보고된 버그 약 150개가 함께 정리되었습니다.',
-  'system_notice.release_400.feature_mobile_title': 'TREK, 모바일로',
-  'system_notice.release_400.feature_mobile_body':
-    '768px 아래는 이제 그 자체로 하나의 인터페이스입니다 — 글라스 독, 전용 시트, 전용 여행 플래너. 휴대폰에서 TREK을 열어보세요.',
-  'system_notice.release_400.feature_studio_title': 'TREK Studio',
-  'system_notice.release_400.feature_studio_badge': 'Beta',
-  'system_notice.release_400.feature_studio_body':
-    'Journey의 PDF가 사진 책 디자이너가 되었습니다. 부탁하면 책을 배치해 주고, 그다음엔 물러나 있습니다.',
-  'system_notice.release_400.feature_vacay_title': 'Vacay, 나머지까지',
-  'system_notice.release_400.feature_vacay_body':
-    '반차, 보상 휴가와 유연 근무일, 달력에 올라온 학교 방학 — 그리고 1월에 시작하지 않아도 되는 휴가 연도.',
-  'system_notice.release_400.feature_places_title': '장소는 스스로 채우고, 파일은 밖으로',
-  'system_notice.release_400.feature_places_body':
-    '장소를 저장하기 전에 사진과 설명이 알아서 채워집니다. 그리고 업로드한 파일은 더 이상 TREK이 도는 디스크에 있지 않아도 됩니다.',
-  'system_notice.release_400.footnote':
-    '그리고 이건 그중 네 가지입니다. 4.0.0에는 Collections와 Atlas부터 그 아래 서버 전체까지 수백 가지 변경이 더 담겨 있습니다.',
-  'system_notice.release_400.note_eyebrow': '개발자의 한마디',
-  'system_notice.release_400.note_title': 'TREK을 사용해 주셔서 감사합니다.',
-  'system_notice.release_400.note_body':
-    'TREK은 제 여행을 위해 여가 시간에 만든 작은 도구로 시작했습니다. 지금도 그렇습니다. 저녁, 주말, 그리고 풀타임 직장 옆의 시간들.\n\n한동안은 저 혼자였습니다. 이제는 아닙니다 — 열아홉 명이 이번 릴리스를 함께 내보냈고, 수천 명이 별과 이슈, 번역과 풀 리퀘스트를 들고 찾아와 주셨습니다. 그 모든 것에 감사합니다.',
-  'system_notice.release_400.promise_label': '약속',
-  'system_notice.release_400.promise_text':
-    'TREK의 오픈 소스 쪽은 영원히 무료입니다. 유료 등급도, 구독도, 숨겨진 조건도 없습니다. 약속드릴게요.',
-  'system_notice.release_400.note_body_after':
-    '4.0.0에는 늦은 밤 몇 주가 들어갔습니다 — 휴대폰 화면, 책 디자이너, 서버 마이그레이션, 대부분 자정과 새벽 두 시 사이에 썼습니다. 불평은 아닙니다. 이걸 만드는 게 좋습니다. 다만 이 정도 규모의 릴리스가 여가 프로젝트에서 어떻게 나오는지에 대한 솔직한 답입니다.',
-  'system_notice.release_400.note_closing': '함께해 주셔서 감사합니다.',
-  'system_notice.release_400.note_signature': '— Maurice',
-  'system_notice.release_400.support_text':
-    '이걸 계속 굴러가게 하는 건 후원입니다 — 서버와 도메인, 그리고 이런 릴리스가 되는 늦은 밤들. TREK이 여러분에게 가치가 있다면, 커피 한 잔이 이어가는 가장 직접적인 방법입니다.',
-  'system_notice.release_400.cta_bmc': 'Buy me a coffee',
-  'system_notice.release_400.cta_kofi': 'Ko-fi에서 후원하기',
+  'system_notice.release_notes.eyebrow': '업데이트 완료',
+  'system_notice.release_notes.headline': 'TREK가 이제 스스로 해내는 네 가지.',
+  'system_notice.release_notes.intro': '자체 장소 API, 처음부터 끝까지 계획되는 로드트립, 내 손에 있는 위치 기록, 그리고 동기화되는 문서.',
+  'system_notice.release_notes.features_label': '이번 릴리스의 주역',
+  'system_notice.release_notes.features_aside': '이게 전부는 아닙니다',
+  'system_notice.release_notes.feature_places_title': 'TREK Places API',
+  'system_notice.release_notes.feature_places_body': '자체 장소 API를 갖춘 최초의 오픈소스 여행 플래너. 7,360만 개 장소, 키 없음, 할당량 없음.',
+  'system_notice.release_notes.feature_roadtrip_title': '로드트립 애드온',
+  'system_notice.release_notes.feature_roadtrip_body': '주행을 스스로 계획합니다: 경로, 거리, 시간, 정차지. 관리자가 켤 때까지 꺼져 있습니다.',
+  'system_notice.release_notes.feature_dawarich_title': 'Dawarich 연동',
+  'system_notice.release_notes.feature_dawarich_body': 'Google Timeline의 자체 호스팅 대안인 Dawarich를 이제 TREK 안에서 읽을 수 있습니다. TREK은 읽기만, 오직 읽기만 합니다.',
+  'system_notice.release_notes.footnote': '그 밖에도 TREK 곳곳에 작은 변경이 많이 담겨 있습니다.',
+  'system_notice.release_notes.notes_label': '릴리스 노트',
+  'system_notice.release_notes.note_eyebrow': '개발자의 한마디',
+  'system_notice.release_notes.note_title': '여러분이 있어서 TREK을 계속 만듭니다.',
+  'system_notice.release_notes.note_body':
+    'TREK은 제 여행을 위한 작은 도구로 시작했습니다. 여행을 더 잘 계획하고 싶어서 퇴근 후에 짬을 내 만들었습니다. 그 뒤로 사실상 한 번도 자라기를 멈춘 적이 없습니다. 여러분이 쓰는 거의 모든 기능은 풀타임 직장을 다니면서 늦은 밤에, 주말에, 기차 안에서 만들었고, 과연 누가 이걸 열어보기나 할까 조용히 생각하던 저녁도 많았습니다.',
+  'system_notice.release_notes.promise_label': '약속',
+  'system_notice.release_notes.promise_lead': 'TREK은 영원히 무료입니다.',
+  'system_notice.release_notes.promise_text':
+    '모든 기능, 모든 업데이트를 모두에게. 유료 등급도, 구독도, 숨겨진 조건도 없습니다.',
+  'system_notice.release_notes.note_body_after':
+    '그런데 여러분이 열어주셨습니다. 몇 달 만에 수천 명이 찾아와 주셨습니다. 별, 버그 보고, 제가 할 줄 모르는 언어로 된 번역, 한 번도 만난 적 없는 분들의 풀 리퀘스트까지. 지금도 매일 아침 가장 먼저 저장소를 확인하는데, 아직도 잘 실감이 나지 않습니다.',
+  'system_notice.release_notes.note_closing': '함께해 주셔서 감사합니다. Maurice 드림',
+  'system_notice.release_notes.support_lead':
+    'TREK은 무료이고 앞으로도 그렇겠지만, 서버와 도메인, 수많은 늦은 밤은 무료가 아닙니다.',
+  'system_notice.release_notes.support_text':
+    'TREK이 여러분의 여행에 자리를 잡았다면, 커피 한 잔으로 다음 릴리스가 계속 나올 수 있게 도와주세요.',
+  'system_notice.release_notes.cta_bmc': 'Buy me a coffee',
+  'system_notice.release_notes.cta_kofi': 'Ko-fi에서 후원하기',
+  'system_notice.release_notes.feature_docsync_title': '문서 동기화',
+  'system_notice.release_notes.feature_docsync_body': 'Paperless-ngx, Papra, Nextcloud, OpenCloud, Synology Drive. 여행의 문서가 이미 운영 중인 저장소와 양방향으로 흐릅니다.',
 };
 export default system_notice;

@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
+<gpx version="1.1" creator="OsmAnd Maps 4.7.10 (4.7.10.10)" xmlns="http://www.topografix.com/GPX/1/1" xmlns:osmand="https://osmand.net" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
+  <metadata>
+    <name>favorites</name>
+  </metadata>
+  <wpt lat="38.7071037" lon="-9.1459227">
+    <time>2024-05-02T10:14:03Z</time>
+    <name>Time Out Market</name>
+    <desc>Go before noon, the queues start at one</desc>
+    <type>Restaurant</type>
+    <extensions>
+      <osmand:address>Av. 24 de Julho 49, 1200-479 Lisboa</osmand:address>
+      <osmand:icon>restaurants</osmand:icon>
+      <osmand:background>circle</osmand:background>
+      <osmand:color>#eecc22</osmand:color>
+      <osmand:amenity_subtype>food_court</osmand:amenity_subtype>
+    </extensions>
+  </wpt>
+  <wpt lat="38.7117512" lon="-9.1301264">
+    <time>2024-05-02T10:21:47Z</time>
+    <name>Miradouro de Santa Luzia</name>
+    <type>Viewpoints</type>
+    <extensions>
+      <osmand:icon>special_star</osmand:icon>
+      <osmand:background>circle</osmand:background>
+      <osmand:color>#10c0f0</osmand:color>
+    </extensions>
+  </wpt>
+  <wpt lat="38.6975462" lon="-9.2032131">
+    <time>2024-05-03T08:02:11Z</time>
+    <name>Pastéis de Belém</name>
+    <desc>Past&#233;is warm from the oven</desc>
+    <extensions>
+      <osmand:address>R. de Belém 84 92, 1300-085 Lisboa</osmand:address>
+      <osmand:icon>shop_pastry</osmand:icon>
+      <osmand:color>#eecc22</osmand:color>
+      <osmand:hidden>false</osmand:hidden>
+    </extensions>
+  </wpt>
+  <extensions>
+    <osmand:points_groups>
+      <group name="Restaurant" color="#eecc22" icon="restaurants" background="circle" />
+      <group name="Viewpoints" color="#10c0f0" icon="special_star" background="circle" />
+    </osmand:points_groups>
+  </extensions>
+</gpx>

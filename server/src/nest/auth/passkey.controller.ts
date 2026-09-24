@@ -49,7 +49,9 @@ export class PasskeyController {
   @UseGuards(PasskeyEnabledGuard, JwtAuthGuard)
   async registerOptions(@CurrentUser() user: User, @Body() body: PasskeyRegisterOptionsDto, @Req() req: Request) {
     this.limit('mfa', req, 5);
-    const result = await this.passkeys.passkeyRegisterOptions(user.id, body?.password);
+    // The Origin header is only a pre-ceremony sanity input (see PasskeyService)
+    // — the RP ID itself is never derived from request headers.
+    const result = await this.passkeys.passkeyRegisterOptions(user.id, body?.password, req.headers.origin);
     if (result.error) throw new HttpException({ error: result.error }, result.status!);
     return result.options;
   }
@@ -72,7 +74,7 @@ export class PasskeyController {
   @UseGuards(PasskeyEnabledGuard)
   async loginOptions(@Req() req: Request) {
     this.limit('login', req, 10);
-    const result = await this.passkeys.passkeyLoginOptions();
+    const result = await this.passkeys.passkeyLoginOptions(req.headers.origin);
     if (result.error) throw new HttpException({ error: result.error }, result.status!);
     return result.options;
   }

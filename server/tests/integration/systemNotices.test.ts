@@ -48,6 +48,7 @@ import { resetTestDb } from '../helpers/test-db';
 import { createUser, createAdmin } from '../helpers/factories';
 import { authCookie } from '../helpers/auth';
 import { SYSTEM_NOTICES } from '../../src/systemNotices/registry';
+import { getCurrentAppVersion } from '../../src/systemNotices/service';
 import type { SystemNotice } from '../../src/systemNotices/types';
 
 let nestApp: INestApplication;
@@ -95,14 +96,21 @@ describe('GET /api/system-notices/active', () => {
   it('returns no login/version-gated notices for an established user', async () => {
     const { user } = createUser(testDb);
     // login_count > 1 means firstLogin does not match; first_seen_version >= 3.0.0 means
-    // existingUserBeforeVersion('3.0.0') does not match either. The always-on thank-you
-    // notice (no conditions) may still apply, so only filter it out.
+    // existingUserBeforeVersion('3.0.0') does not match either. Notices that gate on
+    // nothing but the install being self-hosted still apply, and which ones those are
+    // changes every release (the thank-you modal handed over to the release notes at 4.0.0).
+    // Read the set out of the registry rather than naming them, or this ages out again.
     testDb.prepare('UPDATE users SET login_count = 5, first_seen_version = ? WHERE id = ?').run('3.0.0', user.id);
+    const alwaysOn = new Set(
+      SYSTEM_NOTICES
+        .filter(n => (n.conditions ?? []).every(c => c.kind === 'managed'))
+        .map(n => n.id),
+    );
     const res = await request(app)
       .get('/api/system-notices/active')
       .set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
-    expect(res.body.filter((n: { id: string }) => n.id !== 'thank-you-support')).toEqual([]);
+    expect(res.body.filter((n: { id: string }) => !alwaysOn.has(n.id))).toEqual([]);
   });
 
   it('returns firstLogin notice for user with login_count <= 1', async () => {
@@ -171,33 +179,128 @@ describe('GET /api/system-notices/active', () => {
     }
   });
 
+  // Drives the recurrence mechanism through a notice this test owns. It used to
+  // ride on thank-you-support, which stopped applying the moment that notice was
+  // capped at 4.0.0 — the mechanism was fine, the fixture had retired.
   it('re-surfaces a per-version notice after an upgrade but hides it within the same version', async () => {
-    const TY = 'thank-you-support';
+    const RECURRING: SystemNotice = {
+      id: 'test-per-version-notice',
+      display: 'modal',
+      severity: 'info',
+      titleKey: 'system_notice.test_per_version_notice.title',
+      bodyKey: 'system_notice.test_per_version_notice.body',
+      dismissible: true,
+      conditions: [],
+      recurring: 'per-version',
+      publishedAt: '2026-01-01T00:00:00Z',
+      priority: 0,
+    };
+    SYSTEM_NOTICES.push(RECURRING);
+    try {
+      const { user } = createUser(testDb);
+      testDb.prepare('UPDATE users SET login_count = 5, first_seen_version = ? WHERE id = ?').run('3.0.0', user.id);
+
+      const shows = async () => {
+        const res = await request(app)
+          .get('/api/system-notices/active')
+          .set('Cookie', authCookie(user.id));
+        expect(res.status).toBe(200);
+        return res.body.some((n: { id: string }) => n.id === RECURRING.id);
+      };
+
+      // Fresh user with no dismissal: the recurring notice shows.
+      expect(await shows()).toBe(true);
+
+      // Dismissed at an old version → it returns once the running version is newer.
+      testDb.prepare(
+        'INSERT INTO user_notice_dismissals (user_id, notice_id, dismissed_at, dismissed_app_version) VALUES (?, ?, ?, ?)'
+      ).run(user.id, RECURRING.id, Date.now(), '0.0.1');
+      expect(await shows()).toBe(true);
+
+      // Dismissed at a version >= the running one → stays hidden until the next upgrade.
+      testDb.prepare(
+        'UPDATE user_notice_dismissals SET dismissed_app_version = ? WHERE user_id = ? AND notice_id = ?'
+      ).run('99.0.0', user.id, RECURRING.id);
+      expect(await shows()).toBe(false);
+    } finally {
+      const idx = SYSTEM_NOTICES.indexOf(RECURRING);
+      if (idx !== -1) SYSTEM_NOTICES.splice(idx, 1);
+    }
+  });
+
+  // The release notes carry the support links, so the promise is exact: once per
+  // update for every user, whatever they did with it before, and never again on a
+  // reload of the same version. Driven through the real registry entry and the real
+  // dismiss route, so neither half can drift away from the other unnoticed.
+  it('shows the release notes once per update, however often they were closed before', async () => {
     const { user } = createUser(testDb);
     testDb.prepare('UPDATE users SET login_count = 5, first_seen_version = ? WHERE id = ?').run('3.0.0', user.id);
 
+    // The client announces the release layout and the version it was built as; a
+    // bundle that predates that, or one built for another version, never gets the
+    // notice (pinned separately below).
     const shows = async () => {
       const res = await request(app)
         .get('/api/system-notices/active')
+        .query({ supports: 'release', ui: getCurrentAppVersion() })
         .set('Cookie', authCookie(user.id));
       expect(res.status).toBe(200);
-      return res.body.some((n: { id: string }) => n.id === TY);
+      return res.body.some((n: { id: string }) => n.id === 'release-notes');
+    };
+    const dismiss = async () => {
+      const res = await request(app)
+        .post('/api/system-notices/release-notes/dismiss')
+        .set('Cookie', authCookie(user.id));
+      expect(res.status).toBe(204);
     };
 
-    // Fresh user with no dismissal: the recurring thank-you shows.
     expect(await shows()).toBe(true);
 
-    // Dismissed at an old version → it returns once the running version is newer.
-    testDb.prepare(
-      'INSERT INTO user_notice_dismissals (user_id, notice_id, dismissed_at, dismissed_app_version) VALUES (?, ?, ?, ?)'
-    ).run(user.id, TY, Date.now(), '0.0.1');
-    expect(await shows()).toBe(true);
+    // Closed on this version: gone for every reload after it.
+    await dismiss();
+    expect(await shows()).toBe(false);
+    expect(await shows()).toBe(false);
 
-    // Dismissed at a version >= the running one → stays hidden until the next upgrade.
+    // The next update brings it back, although it was closed before...
     testDb.prepare(
       'UPDATE user_notice_dismissals SET dismissed_app_version = ? WHERE user_id = ? AND notice_id = ?'
-    ).run('99.0.0', user.id, TY);
+    ).run('4.0.0', user.id, 'release-notes');
+    expect(await shows()).toBe(true);
+    expect(await shows()).toBe(true);
+
+    // ...and closing it again holds until the one after that.
+    await dismiss();
     expect(await shows()).toBe(false);
+  });
+
+  // Right after an update the browser still runs the bundle the service worker cached,
+  // which has neither the copy for the new release notice nor a way to tell. It would
+  // draw the keys, or its own older texts, and on close spend the notice for this whole
+  // version. So the notice waits for a client that announces the release layout AND
+  // was built for the version now running; the reload brings one.
+  it('keeps the release notes from a client that does not announce the release layout for this version', async () => {
+    const { user } = createUser(testDb);
+    testDb.prepare('UPDATE users SET login_count = 5, first_seen_version = ? WHERE id = ?').run('3.0.0', user.id);
+
+    const fetchActive = (query: Record<string, string>) => request(app)
+      .get('/api/system-notices/active')
+      .query(query)
+      .set('Cookie', authCookie(user.id));
+
+    const without = await fetchActive({});
+    expect(without.status).toBe(200);
+    expect(without.body.some((n: { id: string }) => n.id === 'release-notes')).toBe(false);
+    expect(without.body.some((n: { release?: unknown }) => n.release !== undefined)).toBe(false);
+
+    // The layout alone is the shell of the previous version after an update.
+    const layoutOnly = await fetchActive({ supports: 'release' });
+    expect(layoutOnly.body.some((n: { id: string }) => n.id === 'release-notes')).toBe(false);
+    const olderBundle = await fetchActive({ supports: 'release', ui: '4.0.0' });
+    expect(olderBundle.body.some((n: { id: string }) => n.id === 'release-notes')).toBe(false);
+
+    const matching = await fetchActive({ supports: 'release', ui: getCurrentAppVersion() });
+    expect(matching.status).toBe(200);
+    expect(matching.body.some((n: { id: string }) => n.id === 'release-notes')).toBe(true);
   });
 });
 

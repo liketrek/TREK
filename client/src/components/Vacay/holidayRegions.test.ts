@@ -112,10 +112,10 @@ describe('fetchSchoolHolidayRegionOptions', () => {
     ])
   })
 
-  it('FE-COMP-VCYREG-008: a failing region request degrades to no regions', async () => {
+  it('FE-COMP-VCYREG-008: a failing request cannot masquerade as a country without regions', async () => {
     server.use(http.get('/api/addons/vacay/school-holidays/regions/:country', () =>
       HttpResponse.json({ error: 'down' }, { status: 500 })))
 
-    expect(await fetchSchoolHolidayRegionOptions('NL')).toEqual([])
+    await expect(fetchSchoolHolidayRegionOptions('NL')).rejects.toThrow('could not be loaded')
   })
 })

@@ -9,6 +9,7 @@ const day: TranslationStrings = {
   'day.hourlyForecast': '時間別予報',
   'day.climateHint': '過去の平均値 — 実際の予報はこの日付の16日前から表示されます。',
   'day.noWeather': '天気データがありません。座標付きの場所を追加してください。',
+  'day.weatherFor': '{name}の予報',
   'day.overview': '1日の概要',
   'day.accommodation': '宿泊先',
   'day.addAccommodation': '宿泊先を追加',

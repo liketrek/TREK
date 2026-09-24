@@ -6,8 +6,9 @@ import type { AuthInfo } from '@modelcontextprotocol/sdk/server/auth/types';
 import type { OAuthRegisteredClientsStore } from '@modelcontextprotocol/sdk/server/auth/clients';
 import { InvalidClientMetadataError, ServerError } from '@modelcontextprotocol/sdk/server/auth/errors';
 import { OauthService } from './oauth.service';
+import { classifyRedirectUri } from './oauth.helpers';
 import { AuditService } from '../audit/audit.service';
-import { ALL_SCOPES } from '../../mcp/scopes';
+import { ALL_SCOPES, DEFAULT_CLIENT_SCOPES } from '../../mcp/scopes';
 import { getMcpSafeUrl } from '../../app-config';
 
 /**
@@ -21,26 +22,21 @@ import { getMcpSafeUrl } from '../../app-config';
  */
 
 // ---------------------------------------------------------------------------
-// Redirect URI validation (mirrors oauth.ts DCR checks)
+// Redirect URI validation
 // ---------------------------------------------------------------------------
 
-const DANGEROUS_SCHEMES = new Set([
-    'javascript:', 'data:', 'vbscript:', 'file:', 'blob:', 'about:', 'chrome:', 'chrome-extension:',
-]);
-
+// DCR runs this and then createOAuthClient's own check; both now decide through
+// the one policy in oauth.helpers, which is what closes #2227. The three error
+// strings stay byte-identical: DCR clients surface error_description verbatim.
 function assertValidRedirectUris(uris: string[]): void {
     for (const u of uris) {
-        let url: URL;
-        try { url = new URL(u); } catch {
+        const verdict = classifyRedirectUri(u);
+        if (verdict === 'malformed')
             throw new InvalidClientMetadataError(`Invalid redirect URI: ${u}`);
-        }
-        if (DANGEROUS_SCHEMES.has(url.protocol))
+        if (verdict === 'dangerous')
             throw new InvalidClientMetadataError(`Dangerous redirect URI scheme: ${u}`);
-        if (url.protocol === 'https:') continue;
-        if (url.protocol === 'http:' && (url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.hostname === '[::1]')) continue;
-        const scheme = url.protocol.slice(0, -1);
-        if (/^[a-z][a-z0-9+.-]*$/i.test(scheme) && scheme.includes('.')) continue;
-        throw new InvalidClientMetadataError('redirect_uris must be HTTPS, loopback HTTP, or a private custom scheme');
+        if (verdict === 'not_allowed')
+            throw new InvalidClientMetadataError('redirect_uris must be HTTPS, loopback HTTP, or a private custom scheme');
     }
 }
 
@@ -82,9 +78,11 @@ export class TrekClientsStore implements OAuthRegisteredClientsStore {
         const isPublic = metadata.token_endpoint_auth_method === 'none';
         const name = (typeof metadata.client_name === 'string' ? metadata.client_name.trim() : '').slice(0, 100) || 'MCP Client';
 
-        // When scope is absent (ChatGPT DCR), default to all scopes.
-        // The user still grants only what they approve at the consent screen.
-        const rawScopes = metadata.scope ? metadata.scope.split(' ') : ALL_SCOPES;
+        // When scope is absent (ChatGPT DCR), default to the safe set rather than
+        // everything: an opt-in-only scope like plugins:use would otherwise be
+        // pre-selected on the consent screen for a client that never asked for
+        // it, and "the user approves it" is not consent to a default nobody chose.
+        const rawScopes = metadata.scope ? metadata.scope.split(' ') : DEFAULT_CLIENT_SCOPES;
         const scopes = rawScopes.filter(s => (ALL_SCOPES as string[]).includes(s));
         if (scopes.length === 0) throw new InvalidClientMetadataError('No valid scopes requested');
 

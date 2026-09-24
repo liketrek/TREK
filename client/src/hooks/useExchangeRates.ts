@@ -52,6 +52,33 @@ export async function fetchExchangeRates(base: string): Promise<Record<string, n
   }
 }
 
+/**
+ * Convert a booked amount the way the server's settlement does (#1335, #1445): the FX
+ * rate frozen when the expense or transfer was entered wins over today's rate, so a cost
+ * keeps the value it was booked at instead of drifting with the market. The frozen rate is
+ * "units of the row's currency per 1 *trip* currency", which is why the amount goes to the
+ * trip currency first and only then, live, to whatever currency the viewer reads in.
+ *
+ * `convertLive` is the hook's own `convert`. Passing it in keeps this a plain function that
+ * both shells and the PDF can share, rather than three copies of the same three branches.
+ */
+export function convertBooked(
+  amount: number,
+  rowCurrency: string | null | undefined,
+  frozenRate: number | null | undefined,
+  tripCurrency: string,
+  convertLive: (amount: number, from: string | null | undefined) => number,
+): number {
+  const trip = (tripCurrency || 'EUR').toUpperCase()
+  // A NULL currency means the trip's own, and then there was never anything to freeze.
+  const cur = (rowCurrency || trip).toUpperCase()
+  if (cur === trip) return convertLive(amount, trip)
+  // A rate of exactly 1 is the column default, not a booked rate: rows written before the
+  // freeze existed carry it, and those still convert live, as they always did.
+  if (frozenRate != null && frozenRate > 0 && frozenRate !== 1) return convertLive(amount / frozenRate, trip)
+  return convertLive(amount, cur)
+}
+
 /** Test-only: the module-level cache outlives a vitest file's individual tests. */
 export function clearExchangeRateCache(): void {
   mem.clear()

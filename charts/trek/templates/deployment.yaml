@@ -75,23 +75,31 @@ spec:
                   name: {{ default (printf "%s-secret" (include "trek.fullname" .)) .Values.existingSecret }}
                   key: UNSPLASH_ACCESS_KEY
                   optional: true
+            - name: AMAP_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ default (printf "%s-secret" (include "trek.fullname" .)) .Values.existingSecret }}
+                  key: AMAP_API_KEY
+                  optional: true
+            - name: AMAP_API_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ default (printf "%s-secret" (include "trek.fullname" .)) .Values.existingSecret }}
+                  key: AMAP_API_SECRET
+                  optional: true
           volumeMounts:
             - name: data
               mountPath: /app/data
             - name: uploads
               mountPath: /app/uploads
+          {{- with (default dict .Values.probes).liveness }}
           livenessProbe:
-            httpGet:
-              path: /api/health
-              port: 3000
-            initialDelaySeconds: 15
-            periodSeconds: 30
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with (default dict .Values.probes).readiness }}
           readinessProbe:
-            httpGet:
-              path: /api/health
-              port: 3000
-            initialDelaySeconds: 5
-            periodSeconds: 10
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
       volumes:
         - name: data
           {{- if .Values.persistence.enabled }}

@@ -24,6 +24,7 @@ const trip: TranslationStrings = {
   'trip.toast.placeDeleted': '場所を削除しました',
   'trip.toast.selectDay': 'まず日を選択してください',
   'trip.toast.assignedToDay': '場所を日に割り当てました',
+  'trip.toast.loadError': '旅行を読み込めませんでした',
   'trip.toast.reorderError': '並び替えに失敗しました',
   'trip.toast.reservationUpdated': '予約を更新しました',
   'trip.toast.reservationAdded': '予約を追加しました',
@@ -63,6 +64,7 @@ const trip: TranslationStrings = {
   'transit.search': '検索',
   'transit.searching': '検索中…',
   'transit.searchError': 'ルート検索に失敗しました。もう一度お試しください。',
+  'transit.noResultsVia': '{provider} では経路が見つかりませんでした。時間やフィルターを変えてお試しください。',
   'transit.noResults': '接続が見つかりませんでした。時間やフィルターを変更してお試しください。',
   'transit.direct': '直通',
   'transit.transfers': '乗り換え{count}回',
@@ -78,6 +80,7 @@ const trip: TranslationStrings = {
   'transport.modeAutomated': '自動',
   'transit.sectionTitle': '公共交通機関の自動検索',
   'transit.changeRoute': '経路を変更',
+  'transit.editDetails': '詳細を編集',
   'transit.journey': '公共交通機関の経路',
   'transit.pickDay': '接続を検索する日を選択してください。',
   'transit.noItinerary': 'この項目には保存された行程がありません。「経路を変更」から検索してください。',
@@ -85,5 +88,8 @@ const trip: TranslationStrings = {
   'transit.transfersLabel': '乗り換え',
   'transit.walkLabel': '徒歩',
   'transit.searchHint': '実際の経路を検索して、そのまま日程に追加できます — データは Transitous 提供。',
+  'trip.confirm.deletePlaceNight': '「{name}」で予約した宿泊も削除されます。',
+  'trip.confirm.deletePlaceBooked': '「{name}」で予約した宿泊、予約「{booking}」、関連する支出も削除されます。',
+  'trip.confirm.deletePlaceBookedSame': '「{name}」で予約した宿泊とその予約、関連する支出も削除されます。',
 };
 export default trip;

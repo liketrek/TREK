@@ -5,7 +5,7 @@ import { SYSTEM_NOTICES } from './registry.js';
 import { evaluate } from './conditions.js';
 import type { SystemNotice, SystemNoticeDTO } from './types.js';
 
-function getCurrentAppVersion(): string {
+export function getCurrentAppVersion(): string {
   const fromEnv = semver.valid(readEnv().app.appVersion ?? '');
   if (fromEnv) return fromEnv;
   try {

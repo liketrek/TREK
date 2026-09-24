@@ -1,15 +1,17 @@
-import { useEffect, useRef, useState } from 'react'
-import { Bike, Bus, Car, CarTaxiFront, Check, Plane, Plus, Route, Sailboat, Ship, Train, TrainFront, TramFront, Trash2 } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Bike, Bus, Car, CarTaxiFront, Check, ChevronDown, ChevronUp, Plane, Plus, Route, Sailboat, Ship, Train, TrainFront, TramFront, Trash2, X } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import { useAddonStore } from '../../../../store/addonStore'
 import { useTranslation } from '../../../../i18n'
 import { formatDate, resolveDayId, splitReservationDateTime } from '../../../../utils/formatters'
-import { orderedEndpoints, parseReservationMetadata } from '../../../../utils/flightLegs'
+import { orderedEndpoints, parseReservationMetadata, stripAirportCode } from '../../../../utils/flightLegs'
 import { typeToCostCategory } from '@trek/shared'
 import CustomSelect from '../../../../components/shared/CustomSelect'
 import CustomTimePicker from '../../../../components/shared/CustomTimePicker'
+import { BookingCodeInput } from '../../../../components/shared/BookingCode'
 import AirportSelect, { type Airport } from '../../../../components/Planner/AirportSelect'
 import LocationSelect, { type LocationPoint } from '../../../../components/Planner/LocationSelect'
+import { toLocationPicks } from '../../../../components/Planner/locationPicks'
 import TransitSearchPanel from '../../../../components/Planner/TransitSearchPanel'
 import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetFooter, FormSheetHeader } from './PlSheetChrome'
 import PlFileAttach from './PlFileAttach'
@@ -54,13 +56,6 @@ function endpointFromAirport(a: Airport, role: 'from' | 'to' | 'stop', sequence:
 function endpointFromLocation(l: LocationPoint, role: 'from' | 'to' | 'stop', sequence: number, date: string | null, time: string | null): Omit<ReservationEndpoint, 'id' | 'reservation_id'> {
   return { role, sequence, name: l.name, code: null, lat: l.lat, lng: l.lng, timezone: null, local_date: date, local_time: time }
 }
-// "Paris Charles de Gaulle (CDG)" → "Paris Charles de Gaulle", the same trim-plus-
-// anchored-test the desktop TransportModal uses instead of /\s*\([A-Z]{3}\)\s*$/,
-// because that leading \s* backtracks over every space in a long name.
-function stripAirportCode(name: string): string {
-  const trimmed = name.trimEnd()
-  return /\([A-Z]{3}\)$/.test(trimmed) ? trimmed.slice(0, -5).trimEnd() : name
-}
 function airportFromEndpoint(e: ReservationEndpoint | undefined): Airport | null {
   if (!e || !e.code) return null
   return { iata: e.code, icao: null, name: e.name, city: stripAirportCode(e.name), country: '', lat: e.lat, lng: e.lng, tz: e.timezone || '' }
@@ -69,6 +64,16 @@ function locationFromEndpoint(e: ReservationEndpoint | undefined): LocationPoint
   if (!e) return null
   return { name: e.name, lat: e.lat, lng: e.lng, address: null }
 }
+
+// The places a driver planned between pick-up and return (#1797), the same shape the
+// desktop TransportModal edits. Without an editor here the save below would rebuild the
+// endpoint list from from/to alone and the server, which replaces every endpoint row of a
+// booking, would drop the stops a phone never showed.
+interface CarStopForm {
+  location: LocationPoint | null
+  time: string
+}
+const emptyCarStop = (): CarStopForm => ({ location: null, time: '' })
 
 // A flight is an ordered list of airports; N waypoints = N-1 legs. The origin
 // only departs, the destination only arrives, each stop does both.
@@ -147,6 +152,8 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
 
   const isBudgetEnabled = useAddonStore(s => s.isEnabled('budget'))
   const tripHasDates = Boolean(trip?.start_date && trip?.end_date)
+  // The trip's places, offered by every location field of the manual tab (#2468).
+  const locationPicks = useMemo(() => toLocationPicks(places), [places])
 
   const [form, setForm] = useState({ ...EMPTY })
   const [automated, setAutomated] = useState(false)
@@ -154,6 +161,7 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
   const [toPick, setToPick] = useState<EndpointPick>({})
   const [waypoints, setWaypoints] = useState<WaypointForm[]>([emptyWaypoint(), emptyWaypoint()])
   const [trainWaypoints, setTrainWaypoints] = useState<StationWaypointForm[]>([emptyStationWaypoint(), emptyStationWaypoint()])
+  const [carStops, setCarStops] = useState<CarStopForm[]>([])
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
   // Travelers assigned to this booking (#1517) — seeded from the editing
   // reservation on open, persisted separately after the save resolves.
@@ -296,6 +304,17 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
         setToPick({ location: locationFromEndpoint(to) || undefined })
         setWaypoints([emptyWaypoint(), emptyWaypoint()])
         setTrainWaypoints([emptyStationWaypoint(), emptyStationWaypoint()])
+        // Stops persist for every type; only a car offers an editor for them, so only a
+        // car reads them back into one. The others keep passing theirs through untouched.
+        setCarStops(
+          src.type === 'car'
+            ? (src.endpoints ?? [])
+                .filter(e => e.role === 'stop')
+                .slice()
+                .sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0))
+                .map(e => ({ location: locationFromEndpoint(e), time: e.local_time ?? '' }))
+            : [],
+        )
       }
     } else {
       setForm({ ...EMPTY, start_day_id: transportModalDayId ?? '', end_day_id: transportModalDayId ?? '' })
@@ -303,6 +322,7 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
       setToPick({})
       setWaypoints([emptyWaypoint(transportModalDayId ?? ''), emptyWaypoint(transportModalDayId ?? '')])
       setTrainWaypoints([emptyStationWaypoint(transportModalDayId ?? ''), emptyStationWaypoint(transportModalDayId ?? '')])
+      setCarStops([])
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showTransportModal])
@@ -310,6 +330,16 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
   const res = snap.res
   const prefill = snap.prefill
   const set = (field: keyof typeof EMPTY, value: string | number) => setForm(prev => ({ ...prev, [field]: value }))
+
+  const moveCarStop = (index: number, delta: number): void => {
+    setCarStops(prev => {
+      const to = index + delta
+      if (to < 0 || to >= prev.length) return prev
+      const next = [...prev]
+      ;[next[index], next[to]] = [next[to], next[index]]
+      return next
+    })
+  }
 
   const toggleTraveler = (id: number) => setTravelerIds(prev => {
     const next = new Set(prev)
@@ -491,7 +521,14 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
         })
       } else {
         if (fromPick.location) endpoints.push(endpointFromLocation(fromPick.location, 'from', 0, startDate, form.departure_time || null))
-        const stops = keepTransit
+        // A car writes the stops the driver planned; every other type keeps passing the
+        // itinerary's transfer stops through while the route is unchanged (#1065).
+        const carEndpoints = form.type === 'car'
+          ? carStops
+              .filter(s => s.location)
+              .map((s, i) => endpointFromLocation(s.location!, 'stop', i + 1, startDate, s.time || null))
+          : []
+        const stops = keepTransit && form.type !== 'car'
           ? prevEndpointsAll.filter(ep => ep.role === 'stop').slice().sort((a, b) => (a.sequence || 0) - (b.sequence || 0))
           : []
         stops.forEach((s, i) => endpoints.push({
@@ -499,7 +536,9 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
           lat: s.lat, lng: s.lng, timezone: s.timezone ?? null,
           local_date: s.local_date ?? null, local_time: s.local_time ?? null,
         }))
-        if (toPick.location) endpoints.push(endpointFromLocation(toPick.location, 'to', stops.length + 1, endDate, form.arrival_time || null))
+        carEndpoints.forEach(e => endpoints.push(e))
+        const stopCount = stops.length + carEndpoints.length
+        if (toPick.location) endpoints.push(endpointFromLocation(toPick.location, 'to', stopCount + 1, endDate, form.arrival_time || null))
       }
 
       const flightDepDay = firstWp && firstWp.depDayId ? Number(firstWp.depDayId) : null
@@ -662,6 +701,7 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
                     onAdd={(p) => saveTransport(p as Record<string, unknown> & { title: string })}
                     initialFrom={transitPrefill?.from ?? null}
                     initialTo={transitPrefill?.to ?? null}
+                    initialTime={transitPrefill?.time ?? null}
                   />
                 </div>
               )
@@ -766,8 +806,7 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
                               {writesFlightLegs && (
                                 <div className="mt-2">
                                   <Eyebrow className="mb-[5px] uppercase">{t('reservations.confirmationCode')}</Eyebrow>
-                                  <input
-                                    type="text"
+                                  <BookingCodeInput
                                     value={wp.confirmation_number}
                                     onChange={e => updateWp({ confirmation_number: e.target.value })}
                                     placeholder={t('reservations.confirmationPlaceholder')}
@@ -807,7 +846,7 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
                           <div className="mb-[8px] flex items-center gap-2">
                             <span className="flex-none font-geist text-[0.625rem] font-bold uppercase tracking-[.09em] text-m-faint">{roleLabel}</span>
                             <div className="min-w-0 flex-1">
-                              <LocationSelect value={wp.location} onChange={l => updateWp({ location: l || null })} />
+                              <LocationSelect value={wp.location} onChange={l => updateWp({ location: l || null })} places={locationPicks} />
                             </div>
                             {!isFirst && !isLast && (
                               <button type="button" onClick={() => setTrainWaypoints(prev => prev.filter((_, j) => j !== i))} aria-label={t('common.delete')} className="flex-none text-m-faint">
@@ -856,8 +895,7 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
                               {writesTrainLegs && (
                                 <div className="mt-2">
                                   <Eyebrow className="mb-[5px] uppercase">{t('reservations.confirmationCode')}</Eyebrow>
-                                  <input
-                                    type="text"
+                                  <BookingCodeInput
                                     value={wp.confirmation_number}
                                     onChange={e => updateWp({ confirmation_number: e.target.value })}
                                     placeholder={t('reservations.confirmationPlaceholder')}
@@ -886,9 +924,76 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
               <>
                 {/* From / To endpoints (non-flight / non-train) */}
                 <Eyebrow className="mb-[5px] mt-3 uppercase">{t('reservations.meta.from')}</Eyebrow>
-                <LocationSelect value={fromPick.location || null} onChange={l => setFromPick({ location: l || undefined })} />
+                <LocationSelect value={fromPick.location || null} onChange={l => setFromPick({ location: l || undefined })} places={locationPicks} />
                 <Eyebrow className="mb-[5px] mt-3 uppercase">{t('reservations.meta.to')}</Eyebrow>
-                <LocationSelect value={toPick.location || null} onChange={l => setToPick({ location: l || undefined })} />
+                <LocationSelect value={toPick.location || null} onChange={l => setToPick({ location: l || undefined })} places={locationPicks} />
+
+                {/* Stops along the drive — cars only (#1797). The rental frame above stays the
+                    pick-up and return; these are the places in between, in order. */}
+                {form.type === 'car' && (
+                  <>
+                    <Eyebrow className="mb-[5px] mt-3 uppercase">{t('roadtrip.stops.label')}</Eyebrow>
+                    <div className="flex flex-col gap-2">
+                      {carStops.map((stop, i) => (
+                        <div key={i} className="flex items-center gap-2">
+                          {/* The order of these stops IS the route: `sequence` is the array
+                              index at save time. Arrows rather than dragging, because the
+                              row already carries a location picker and a time picker. */}
+                          {carStops.length > 1 && (
+                            <div className="flex shrink-0 flex-col">
+                              <button
+                                type="button"
+                                onClick={() => moveCarStop(i, -1)}
+                                disabled={i === 0}
+                                aria-label={t('dayplan.moveUp')}
+                                className="flex items-center px-1 py-[2px] text-m-muted disabled:opacity-30"
+                              >
+                                <ChevronUp size={14} strokeWidth={2.2} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => moveCarStop(i, 1)}
+                                disabled={i === carStops.length - 1}
+                                aria-label={t('dayplan.moveDown')}
+                                className="flex items-center px-1 py-[2px] text-m-muted disabled:opacity-30"
+                              >
+                                <ChevronDown size={14} strokeWidth={2.2} />
+                              </button>
+                            </div>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <LocationSelect
+                              value={stop.location}
+                              onChange={l => setCarStops(prev => prev.map((s, j) => (j === i ? { ...s, location: l || null } : s)))}
+                              places={locationPicks}
+                            />
+                          </div>
+                          <div className="w-[92px] shrink-0">
+                            <CustomTimePicker
+                              value={stop.time}
+                              onChange={v => setCarStops(prev => prev.map((s, j) => (j === i ? { ...s, time: v } : s)))}
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setCarStops(prev => prev.filter((_, j) => j !== i))}
+                            aria-label={t('roadtrip.stops.remove')}
+                            className="flex shrink-0 items-center p-1 text-m-muted"
+                          >
+                            <X size={15} strokeWidth={2.2} />
+                          </button>
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => setCarStops(prev => [...prev, emptyCarStop()])}
+                        className="flex w-full items-center justify-center gap-[5px] rounded-full border-[1.5px] border-dashed border-[color:var(--m-rowbr)] py-2 font-geist text-[0.6875rem] font-semibold text-m-muted"
+                      >
+                        <Plus size={12} strokeWidth={2.2} /> {t('reservations.layover.addStop')}
+                      </button>
+                    </div>
+                  </>
+                )}
 
                 {/* Departure row */}
                 <div className="mt-3 flex gap-2">
@@ -920,8 +1025,7 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
             <div className="mt-3 flex gap-2">
               <div className="min-w-0 flex-1">
                 <Eyebrow className="mb-[5px] uppercase">{t('reservations.confirmationCode')}</Eyebrow>
-                <input
-                  type="text"
+                <BookingCodeInput
                   value={form.confirmation_number}
                   onChange={e => set('confirmation_number', e.target.value)}
                   placeholder={t('reservations.confirmationPlaceholder')}

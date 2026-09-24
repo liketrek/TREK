@@ -246,7 +246,10 @@ describe('placing a map from the panel', () => {
     })
 
     const { getByTitle, unmount } = render(
-      <StudioTravelPanel page={page} stats={journeyStats} path={[]} t={k => k} locale="en" />,
+      <StudioTravelPanel
+        page={page} stats={journeyStats} path={[]} t={k => k} locale="en"
+        canEdit={false} onToggleStop={async () => true}
+      />,
     )
     fireEvent.click(getByTitle('journey.studio.mapStyle.minimal'))
     await vi.waitFor(() => expect(calculateRouteWithLegs).toHaveBeenCalled())

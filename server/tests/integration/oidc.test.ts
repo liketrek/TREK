@@ -56,6 +56,16 @@ import { resetTestDb, resetRateLimits } from '../helpers/test-db';
 import { createUser } from '../helpers/factories';
 import { OidcService } from '../../src/nest/oidc/oidc.service';
 
+/** Read one cookie's value out of a response's Set-Cookie header, as a browser would. */
+function readCookie(res: request.Response, name: string): string | undefined {
+  const raw = res.headers['set-cookie'];
+  const all: string[] = Array.isArray(raw) ? raw : raw ? [raw as unknown as string] : [];
+  const hit = all.filter((c) => c.startsWith(`${name}=`)).pop();
+  const value = hit?.split(';')[0].slice(name.length + 1);
+  // An expired clear-cookie carries an empty value; treat that as "gone".
+  return value ? decodeURIComponent(value) : undefined;
+}
+
 const MOCK_DISCOVERY_DOC = {
   authorization_endpoint: 'https://oidc.example.com/auth',
   token_endpoint: 'https://oidc.example.com/token',
@@ -180,6 +190,27 @@ describe('GET /api/auth/oidc/callback', () => {
     expect(res.headers.location).toContain('/login?oidc_code=');
   });
 
+  it('OIDC-004b: a successful login writes the user.login row every other method writes (#2417)', async () => {
+    const { user } = createUser(testDb, { email: 'audited@example.com' });
+    mockDiscover.mockResolvedValueOnce(MOCK_DISCOVERY_DOC);
+    mockExchangeCode.mockResolvedValueOnce({ access_token: 'test-access-token', id_token: 'fake.id.token', _ok: true, _status: 200 });
+    mockVerifyIdToken.mockResolvedValueOnce({ ok: true, claims: { sub: 'sub-audited-1' } });
+    mockGetUserInfo.mockResolvedValueOnce({ sub: 'sub-audited-1', email: 'audited@example.com', name: 'Audited', email_verified: true });
+    const { state } = oidcSvc.createState('http://localhost:3001/api/auth/oidc/callback');
+
+    const res = await request(app).get(`/api/auth/oidc/callback?code=authcode123&state=${state}`).set('Cookie', `trek_oidc_state=${state}`);
+
+    expect(res.status).toBe(302);
+    // The query from the report, against the same table.
+    const rows = testDb.prepare('SELECT user_id, action, details FROM audit_log WHERE user_id = ? ORDER BY id DESC').all(user.id) as
+      { user_id: number; action: string; details: string | null }[];
+    expect(rows.map(r => r.action)).toContain('user.login');
+    const login = rows.find(r => r.action === 'user.login')!;
+    expect(JSON.parse(login.details || '{}')).toEqual({ method: 'oidc' });
+    const counted = testDb.prepare('SELECT login_count FROM users WHERE id = ?').get(user.id) as { login_count: number };
+    expect(counted.login_count).toBe(1);
+  });
+
   it('OIDC-005: new user gets created when registration is open', async () => {
     mockDiscover.mockResolvedValueOnce(MOCK_DISCOVERY_DOC);
     mockExchangeCode.mockResolvedValueOnce({ access_token: 'new-token', id_token: 'fake.id.token', _ok: true, _status: 200 });
@@ -198,8 +229,14 @@ describe('GET /api/auth/oidc/callback', () => {
     expect(res.headers.location).toContain('/login?oidc_code=');
 
     // Verify user was created in DB
-    const newUser = testDb.prepare("SELECT * FROM users WHERE email = 'newuser@example.com'").get();
+    const newUser = testDb.prepare("SELECT * FROM users WHERE email = 'newuser@example.com'").get() as { id: number; username: string; role: string } | undefined;
     expect(newUser).toBeDefined();
+    // Registered, the way the audit log reports a password signup, and then logged in:
+    // an admin reading user.register for who got an account sees the SSO ones too.
+    const rows = testDb.prepare('SELECT action, details FROM audit_log WHERE user_id = ? ORDER BY id').all(newUser!.id) as
+      { action: string; details: string | null }[];
+    expect(rows.map(r => r.action)).toEqual(['user.register', 'user.login']);
+    expect(JSON.parse(rows[0].details || '{}')).toEqual({ username: newUser!.username, email: 'newuser@example.com', role: newUser!.role, method: 'oidc' });
   });
 
   it('OIDC-006: invalid state → redirects with invalid_state error', async () => {
@@ -307,9 +344,11 @@ describe('GET /api/auth/oidc/callback', () => {
 describe('GET /api/auth/oidc/exchange', () => {
   it('OIDC-011: valid auth code returns JWT and sets cookie', async () => {
     const fakeToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.test.sig';
-    const code = oidcSvc.createAuthCode(fakeToken);
+    const { code, binding } = oidcSvc.createAuthCode(fakeToken);
 
-    const res = await request(app).get(`/api/auth/oidc/exchange?code=${code}`);
+    const res = await request(app)
+      .get(`/api/auth/oidc/exchange?code=${code}`)
+      .set('Cookie', `trek_oidc_exchange=${binding}`);
 
     expect(res.status).toBe(200);
     expect(res.body.token).toBe(fakeToken);
@@ -332,16 +371,28 @@ describe('GET /api/auth/oidc/exchange', () => {
     expect(res.body.error).toBeDefined();
   });
 
+  it('OIDC-013b: a real code without its binding cookie returns 400 and buys nothing', async () => {
+    const { code } = oidcSvc.createAuthCode('valid.but.unbound');
+
+    const res = await request(app).get(`/api/auth/oidc/exchange?code=${code}`);
+
+    expect(res.status).toBe(400);
+    // Same wording as an unknown code: presenting a code must not confirm it exists.
+    expect(res.body.error).toBe('Invalid or expired code');
+    expect(readCookie(res, 'trek_session')).toBeUndefined();
+  });
+
   it('OIDC-014: auth code is single-use (second use returns 400)', async () => {
     const fakeToken = 'test.token.here';
-    const code = oidcSvc.createAuthCode(fakeToken);
+    const { code, binding } = oidcSvc.createAuthCode(fakeToken);
+    const cookie = `trek_oidc_exchange=${binding}`;
 
     // First use: success
-    const res1 = await request(app).get(`/api/auth/oidc/exchange?code=${code}`);
+    const res1 = await request(app).get(`/api/auth/oidc/exchange?code=${code}`).set('Cookie', cookie);
     expect(res1.status).toBe(200);
 
-    // Second use: rejected
-    const res2 = await request(app).get(`/api/auth/oidc/exchange?code=${code}`);
+    // Second use: rejected, even from the same browser
+    const res2 = await request(app).get(`/api/auth/oidc/exchange?code=${code}`).set('Cookie', cookie);
     expect(res2.status).toBe(400);
   });
 });
@@ -367,8 +418,13 @@ describe('OIDC remember-me (#1927)', () => {
     expect(cb.status).toBe(302);
     const oidcCode = new URL(cb.headers.location!, 'http://localhost').searchParams.get('oidc_code')!;
     expect(oidcCode).toBeTruthy();
+    // The browser carries the binding cookie the callback just set back to /exchange.
+    const binding = readCookie(cb, 'trek_oidc_exchange')!;
+    expect(binding).toBeTruthy();
 
-    return request(app).get(`/api/auth/oidc/exchange?code=${oidcCode}`);
+    return request(app)
+      .get(`/api/auth/oidc/exchange?code=${oidcCode}`)
+      .set('Cookie', `trek_oidc_exchange=${binding}`);
   }
 
   function sessionCookie(res: request.Response): string {
@@ -400,5 +456,102 @@ describe('OIDC remember-me (#1927)', () => {
     const res = await runFlow('', 'sub-rm-abs', 'rmabs@example.com');
     expect(res.status).toBe(200);
     expect(sessionCookie(res)).toContain('Max-Age=86400');
+    // The JWT must not carry `remember: false` either — the sliding renewal
+    // re-issues the cookie from that claim, and `false` would turn the
+    // persistent default into a browser-session cookie half a day later.
+    const jwt = require('jsonwebtoken');
+    const decoded = jwt.decode(res.body.token) as { remember?: boolean };
+    expect(decoded.remember).toBeUndefined();
+  });
+});
+
+// ── the auth code is bound to one browser (GHSA / session fixation) ───────────
+
+describe('OIDC auth-code binding', () => {
+  // Walks /login → /callback for one "browser" and hands back everything that
+  // browser holds afterwards: the code out of the redirect URL, and the binding
+  // cookie out of the callback response.
+  async function loginUpToCallback(sub: string, email: string) {
+    mockDiscover.mockResolvedValue(MOCK_DISCOVERY_DOC);
+    mockExchangeCode.mockResolvedValue({ access_token: 'tok', id_token: 'fake.id.token', _ok: true, _status: 200 });
+    mockVerifyIdToken.mockResolvedValue({ ok: true, claims: { sub } });
+    mockGetUserInfo.mockResolvedValue({ sub, email, name: 'Binding User' });
+
+    const login = await request(app).get('/api/auth/oidc/login');
+    const state = new URL(login.headers.location!).searchParams.get('state')!;
+    const cb = await request(app)
+      .get(`/api/auth/oidc/callback?code=anycode&state=${state}`)
+      .set('Cookie', `trek_oidc_state=${state}`);
+
+    return {
+      code: new URL(cb.headers.location!, 'http://localhost').searchParams.get('oidc_code')!,
+      binding: readCookie(cb, 'trek_oidc_exchange'),
+      response: cb,
+    };
+  }
+
+  it('OIDC-018: /callback sets the binding as an httpOnly cookie that dies with the code', async () => {
+    const { response } = await loginUpToCallback('sub-bind-1', 'bind1@example.com');
+
+    const raw = (response.headers['set-cookie'] as unknown as string[]).find((c) => c.startsWith('trek_oidc_exchange='))!;
+    expect(raw).toMatch(/HttpOnly/i);
+    expect(raw).toMatch(/SameSite=Lax/i);
+    // Same minute the code lives; a cookie that outlived it could only ever fail.
+    expect(raw).toContain('Max-Age=60;');
+  });
+
+  it('OIDC-019: a code captured in browser A is refused in browser B', async () => {
+    // Browser A finishes the handshake. B is anything that only got to see the
+    // URL: history on a shared machine, a referrer, a proxy log, a screen share.
+    const a = await loginUpToCallback('sub-bind-2', 'bind2@example.com');
+
+    const inB = await request(app).get(`/api/auth/oidc/exchange?code=${a.code}`);
+
+    expect(inB.status).toBe(400);
+    expect(readCookie(inB, 'trek_session')).toBeUndefined();
+  });
+
+  it('OIDC-020: the failed attempt burns the code, so a stolen code is never redeemable', async () => {
+    const a = await loginUpToCallback('sub-bind-3', 'bind3@example.com');
+
+    await request(app).get(`/api/auth/oidc/exchange?code=${a.code}`);
+    // A retries with the right cookie and is refused too. Deliberate: a code that
+    // someone else has already presented is treated as spent, and A only has to
+    // log in again.
+    const retryInA = await request(app)
+      .get(`/api/auth/oidc/exchange?code=${a.code}`)
+      .set('Cookie', `trek_oidc_exchange=${a.binding}`);
+
+    expect(retryInA.status).toBe(400);
+    expect(readCookie(retryInA, 'trek_session')).toBeUndefined();
+  });
+
+  it('OIDC-021: an attacker-minted code cannot be forced onto a victim browser', async () => {
+    // The session-fixation direction: the attacker completes a real login as
+    // themselves, then makes the victim's browser call /exchange with that code.
+    // If it worked, the victim would be silently signed into the attacker's
+    // account and would write their next trip into it.
+    const attacker = await loginUpToCallback('sub-attacker', 'attacker@example.com');
+    const victimHasHisOwnFlow = await loginUpToCallback('sub-victim', 'victim@example.com');
+
+    const forced = await request(app)
+      .get(`/api/auth/oidc/exchange?code=${attacker.code}`)
+      // The victim's browser carries its own binding, never the attacker's.
+      .set('Cookie', `trek_oidc_exchange=${victimHasHisOwnFlow.binding}`);
+
+    expect(forced.status).toBe(400);
+    expect(readCookie(forced, 'trek_session')).toBeUndefined();
+  });
+
+  it('OIDC-022: /exchange clears the binding cookie on the way out', async () => {
+    const a = await loginUpToCallback('sub-bind-4', 'bind4@example.com');
+
+    const ok = await request(app)
+      .get(`/api/auth/oidc/exchange?code=${a.code}`)
+      .set('Cookie', `trek_oidc_exchange=${a.binding}`);
+
+    expect(ok.status).toBe(200);
+    const cleared = (ok.headers['set-cookie'] as unknown as string[]).find((c) => c.startsWith('trek_oidc_exchange='))!;
+    expect(cleared).toContain('Expires=Thu, 01 Jan 1970');
   });
 });

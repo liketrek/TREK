@@ -144,6 +144,48 @@ const collection: TranslationStrings = {
   'collections.picker.hint': 'Choisissez un lieu dans vos collections',
   'collections.picker.use': 'Utiliser',
 
+  // Export / import a list as a file (#2198)
+  'collections.file.export': 'Exporter',
+  'collections.file.exportTitle': 'Télécharger cette liste sous forme de fichier',
+  'collections.file.importButton': 'Importer une liste depuis un fichier',
+  'collections.file.importTitle': 'Importer une liste',
+  'collections.file.choose': 'Choisir un fichier de liste',
+  'collections.file.confirm': 'Importer',
+  'collections.file.targetNew': 'Nouvelle liste',
+  'collections.file.targetNewHint': 'Le fichier comme liste à part',
+  'collections.file.targetExisting': 'Ajouter à une liste',
+  'collections.file.targetExistingHint': 'À une liste que vous avez déjà',
+  'collections.file.searchLists': 'Rechercher une liste',
+  'collections.file.intoHint': 'Les lieux déjà dans la liste restent tels quels, comme son nom et sa couleur. Les étiquettes du fichier sont ajoutées.',
+  'collections.file.confirmInto': 'Ajouter à la liste',
+  'collections.file.doneInto': '{count} lieux ajoutés à {name}',
+  'collections.file.doneIntoDuplicates': '{count} ajoutés à {name}, {duplicates} y étaient déjà',
+  'collections.file.doneIntoNothing': 'Tous les lieux du fichier sont déjà dans {name}',
+  'collections.file.change': 'Changer',
+  'collections.file.labelCount': '{count} étiquettes',
+  'collections.file.hint':
+    'Les lieux arrivent dans une nouvelle liste qui vous appartient. Les notes, les membres et les photos envoyées restent en arrière.',
+  'collections.file.done': '{count} lieux importés',
+  'collections.file.doneSkipped': '{count} lieux importés, {skipped} ignorés',
+  'collections.file.errorTooLarge': 'Ce fichier est trop volumineux pour être une liste.',
+  'collections.file.errorUnreadable': 'Ce fichier n’a pas pu être lu.',
+  'collections.file.errorNotACollection': 'Ce n’est pas un fichier de liste TREK.',
+  'collections.file.formatTrek': 'Liste TREK',
+  'collections.file.formatTrekHint': 'Pour un autre TREK, avec étiquettes et statut',
+  'collections.file.formatGpxHint':
+    'Points de passage pour OsmAnd, Organic Maps, Garmin et d’autres applications cartographiques',
+  'collections.file.gpxOmitted': '{count} lieux sans coordonnées ont été laissés hors du fichier GPX',
+  'collections.file.gpxNothing':
+    'Aucun de ces lieux n’a de coordonnées, il n’y a donc rien à mettre dans un fichier GPX.',
+  'collections.file.reading': 'Lecture du fichier…',
+  'collections.file.gpxSkipped': '{count} points de passage sans coordonnées utilisables sont écartés.',
+  'collections.file.gpxTrack':
+    'Ce fichier contient aussi {count} points de trace. Les traces ne sont pas importées, seulement les points de passage.',
+  'collections.file.gpxEmpty': 'Ce fichier GPX ne contient aucun point de passage, il n’y a donc rien à importer.',
+  'collections.file.errorNotGpx': 'Ce n’est pas un fichier GPX.',
+  'collections.file.errorTooManyPlaces':
+    'Ce fichier contient plus de {count} lieux. Découpez-le et importez les parties une par une.',
+
   'collections.share.title': 'Partager la liste',
   'collections.share.titleNamed': 'Partager « {name} »',
   'collections.share.button': 'Partager',

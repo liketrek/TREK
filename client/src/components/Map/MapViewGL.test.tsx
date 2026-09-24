@@ -2,7 +2,7 @@ import React from 'react'
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
 import { http, HttpResponse } from 'msw'
 import { render } from '../../../tests/helpers/render'
-import { act, waitFor } from '@testing-library/react'
+import { act, fireEvent, waitFor } from '@testing-library/react'
 import { resetAllStores } from '../../../tests/helpers/store'
 import { buildPlace } from '../../../tests/helpers/factories'
 import { server } from '../../../tests/helpers/msw/server'
@@ -10,6 +10,7 @@ import { useSettingsStore } from '../../store/settingsStore'
 import { useAuthStore } from '../../store/authStore'
 import maplibregl from 'maplibre-gl'
 import { DEFAULT_MAP_ZOOM } from '../../constants/mapDefaults'
+import { MAP_LAYER_SWITCHER_INSET } from './MapLayerSwitcher'
 import type { GeoPosition, TrackingMode } from '../../hooks/useGeolocation'
 import type { PluginMapLayer, PluginMapLayerFeature, PluginMapMarker } from '../../api/client'
 import type { Poi } from './poiCategories'
@@ -34,6 +35,11 @@ const glMap = vi.hoisted(() => ({
   addSource: vi.fn(),
   getSource: vi.fn().mockReturnValue(null),
   addLayer: vi.fn(),
+  // Every overlay that adds a layer takes it away again on cleanup; a real
+  // MapLibre/Mapbox map has both halves, and a double with only the adding half
+  // fails the teardown rather than the behaviour under test.
+  removeLayer: vi.fn(),
+  removeSource: vi.fn(),
   setLayoutProperty: vi.fn(),
   getStyle: vi.fn().mockReturnValue({ layers: [] }),
   isStyleLoaded: vi.fn().mockReturnValue(true),
@@ -42,6 +48,9 @@ const glMap = vi.hoisted(() => ({
   queryRenderedFeatures: vi.fn().mockReturnValue([]),
   querySourceFeatures: vi.fn().mockReturnValue([]),
   unproject: vi.fn(() => ({ lng: 2.3522, lat: 48.8566 })),
+  // The MapLibre place pins position themselves with this, so a mock without it
+  // never exercises the path the real map takes.
+  project: vi.fn((lngLat: [number, number]) => ({ x: lngLat[0] * 10, y: lngLat[1] * 10 })),
   getBounds: vi.fn(() => ({ getSouth: () => 0, getWest: () => 0, getNorth: () => 1, getEast: () => 1 })),
   easeTo: vi.fn(),
   getCanvas: vi.fn(() => document.createElement('canvas')),
@@ -192,6 +201,7 @@ const geoStub = vi.hoisted(() => ({
   position: null as GeoPosition | null,
   mode: 'off' as TrackingMode,
   error: null as string | null,
+  errorCode: null as string | null,
   cycleMode: vi.fn(async () => {}),
   setMode: vi.fn((_m: TrackingMode | ((prev: TrackingMode) => TrackingMode)) => {}),
 }))
@@ -245,6 +255,12 @@ beforeEach(() => {
   glMap.getCanvas.mockImplementation(() => document.createElement('canvas'))
   glMap.getBearing.mockReturnValue(0)
   glMap.queryTerrainElevation.mockReturnValue(null)
+  // A busy style, a refused source and a custom layer list are each set by one test
+  // for the case it covers. Put back here, or every test after it would silently run
+  // against a map that never settles.
+  glMap.isStyleLoaded.mockReturnValue(true)
+  glMap.getStyle.mockReturnValue({ layers: [] })
+  glMap.addSource.mockImplementation(() => undefined)
   glMarkers.clear()
   // clearAllMocks() wipes call history but keeps implementations, so anything a
   // test overrides with mockReturnValue has to be put back here.
@@ -404,11 +420,47 @@ describe('MapViewGL', () => {
     expect(glMap.addSource).toHaveBeenCalledWith('trip-place-clusters', expect.objectContaining({
       type: 'geojson',
       cluster: true,
-      clusterRadius: 30,
-      clusterMaxZoom: 10,
+      clusterRadius: 20,
+      clusterMaxZoom: 8,
     }))
     expect(glMap.addLayer).toHaveBeenCalledWith(expect.objectContaining({ id: 'trip-place-clusters-circle' }))
     expect(glMap.addLayer).toHaveBeenCalledWith(expect.objectContaining({ id: 'trip-place-clusters-count' }))
+  })
+
+  it('FE-COMP-MAPVIEWGL-070: MapLibre place pins are positioned from the map render, not from pointer moves', async () => {
+    glMap.on.mockImplementation((event: string, handlerOrLayer: unknown) => {
+      if (event === 'load' && typeof handlerOrLayer === 'function') (handlerOrLayer as () => void)()
+      return glMap
+    })
+    useSettingsStore.setState({
+      settings: {
+        ...useSettingsStore.getState().settings,
+        map_provider: 'maplibre-gl',
+        mapbox_access_token: '',
+        maplibre_style: 'https://tiles.openfreemap.org/styles/liberty',
+      },
+    } as any)
+
+    render(<MapViewGL places={[buildMapPlace({ id: 1, lat: 3, lng: 2 })]} fitKey={1} glProvider="maplibre-gl" />)
+    await act(async () => {})
+
+    // The pin sits in its own layer inside the canvas container, not in one of the
+    // library's marker wrappers — those follow 'move', which fires per pointer sample.
+    const layer = Array.from(glCanvasContainer.children).find(
+      c => c instanceof HTMLElement && c.style.pointerEvents === 'none',
+    ) as HTMLElement | undefined
+    expect(layer).toBeTruthy()
+    expect(layer!.children).toHaveLength(1)
+    const pin = layer!.children[0] as HTMLElement
+    // project() is mocked as lng*10 / lat*10.
+    expect(pin.style.transform).toContain('translate(20px, 30px)')
+
+    // Moving the camera and drawing a frame moves the pin with it.
+    glMap.project.mockReturnValue({ x: 90, y: 70 })
+    const render1 = glMap.on.mock.calls.find(c => c[0] === 'render')?.[1] as (() => void) | undefined
+    expect(render1).toBeTypeOf('function')
+    act(() => { render1!() })
+    expect(pin.style.transform).toContain('translate(90px, 70px)')
   })
 
   function touchEvent(type: string, touches: Array<{ clientX: number; clientY: number }>) {
@@ -818,6 +870,17 @@ describe('MapViewGL', () => {
     properties: Record<string, unknown>
     geometry: { type: string; coordinates: number[] | number[][] | number[][][] }
   }
+  // A projection for the tests that care how far apart two pins land on screen. The map
+  // double projects 10 px per degree, an overview so coarse that a whole city sits under
+  // one pin; a real map is around 1500 px per degree at the zoom a day is fitted to.
+  // Setting an implementation at all is also what puts project() back: an earlier test
+  // pins it to a single point, and clearAllMocks keeps an implementation once set.
+  const PX_PER_DEGREE = 1500
+  const projectAtDayZoom = () =>
+    glMap.project.mockImplementation((lngLat: [number, number]) => (
+      { x: lngLat[0] * PX_PER_DEGREE, y: lngLat[1] * PX_PER_DEGREE }
+    ))
+
   const geoSource = () => ({ setData: vi.fn((_data: unknown) => {}) })
   function lastData(src: ReturnType<typeof geoSource>): { features: GeoFeature[] } {
     const calls = vi.mocked(src.setData).mock.calls
@@ -1316,6 +1379,33 @@ describe('MapViewGL', () => {
     expect(onReservationClick).toHaveBeenCalledWith(77)
   })
 
+  it('FE-COMP-MAPVIEWGL-087: a booking switched on for another day reaches the overlay unless the map is held to the day', async () => {
+    loadOnAttach()
+    const days = [{ id: 10, trip_id: 1, day_number: 1 }, { id: 11, trip_id: 1, day_number: 2 }]
+    const flight = {
+      id: 44, trip_id: 1, type: 'flight', title: 'A → B', status: 'confirmed', day_id: 10, end_day_id: 10,
+      endpoints: [
+        { role: 'from', sequence: 0, name: 'A', code: 'AAA', lat: 1, lng: 2, timezone: null, local_time: null, local_date: null },
+        { role: 'to', sequence: 1, name: 'B', code: 'BBB', lat: 3, lng: 4, timezone: null, local_time: null, local_date: null },
+      ],
+    }
+    const reservations = [flight]
+    const ids = [44]
+    const drawn = () => (reservationOverlay.update.mock.lastCall?.[0] as { id: number }[]).map(r => r.id)
+
+    const { rerender } = render(
+      <MapViewGL places={[]} fitKey={1} reservations={reservations} visibleConnectionIds={ids} days={days} selectedDayId={11} />,
+    )
+    await act(async () => {})
+    expect(drawn()).toEqual([44])
+
+    rerender(
+      <MapViewGL places={[]} fitKey={1} reservations={reservations} visibleConnectionIds={ids} days={days} selectedDayId={11} scopeConnectionsToDay />,
+    )
+    await act(async () => {})
+    expect(drawn()).toEqual([])
+  })
+
   it('FE-COMP-MAPVIEWGL-042: explore POIs get their own pin, hover popup and click callback', async () => {
     loadOnAttach()
     const basePoi: Poi = {
@@ -1347,6 +1437,32 @@ describe('MapViewGL', () => {
 
     // An unknown category falls back to the neutral grey pin without an icon.
     expect(glMarkers.created[1].element.innerHTML).toContain('#6b7280')
+  })
+
+  it('clusters roadtrip stations and zooms before offering overlapping stations individually', async () => {
+    loadOnAttach()
+    vi.mocked(glMap.getZoom).mockReturnValue(8)
+    const poi: Poi = {
+      osm_id: 'n1', name: 'Station A', lat: 48.854, lng: 2.332, category: 'charging_station',
+      poi_type: 'charging_station', address: null, website: null, phone: null,
+      opening_hours: null, cuisine: null, source: 'openstreetmap',
+    }
+    const other = { ...poi, osm_id: 'n2', name: 'Station B' }
+    const onPoiClick = vi.fn()
+    render(<MapViewGL places={[]} fitKey={1} pois={[poi, other]} clusterLoosely onPoiClick={onPoiClick} />)
+    await act(async () => {})
+    const cluster = glMarkers.created.find(pin => pin.element.querySelector('[data-poi-cluster="2"]'))!
+    expect(cluster).toBeDefined()
+    act(() => { cluster.element.click() })
+    expect(glMap.fitBounds).toHaveBeenCalledWith(expect.anything(), { padding: 70, maxZoom: 18 })
+    expect(onPoiClick).not.toHaveBeenCalled()
+    vi.mocked(glMap.getZoom).mockReturnValueOnce(18)
+    act(() => { cluster.element.click() })
+    const calls = vi.mocked(glPopup.setDOMContent).mock.calls
+    const list = calls[calls.length - 1][0]
+    act(() => { list.querySelectorAll('button')[1].click() })
+    expect(onPoiClick).toHaveBeenCalledWith(other)
+    vi.mocked(glMap.getZoom).mockReturnValue(10)
   })
 
   it('FE-COMP-MAPVIEWGL-043: plugin markers render as tone dots with a text-only popup', async () => {
@@ -1456,6 +1572,7 @@ describe('MapViewGL', () => {
 
   it('FE-COMP-MAPVIEWGL-047: only the unclustered leaves of the cluster source get a rich marker (#1385)', async () => {
     loadOnAttach()
+    projectAtDayZoom()
     const clusterSource = geoSource()
     glMap.getSource.mockImplementation((id: string) => (id === 'trip-place-clusters' ? clusterSource : null))
     glMap.querySourceFeatures.mockReturnValue([
@@ -1487,6 +1604,102 @@ describe('MapViewGL', () => {
     expect(drawn).not.toContainEqual([2.3, 48.3])
   })
 
+  // One building modelled as several stops — drop the bags, check in, the museum inside
+  // it — puts every pin on the same spot, and all but the top one are unreachable. There
+  // is no spiderfy on a GL map, so the stack draws as the one pin worth seeing (#2344).
+  it('FE-COMP-MAPVIEWGL-077: stops on one coordinate draw one pin, and picking a buried one makes it that pin', async () => {
+    loadOnAttach()
+    projectAtDayZoom()
+    const clusterSource = geoSource()
+    glMap.getSource.mockImplementation((id: string) => (id === 'trip-place-clusters' ? clusterSource : null))
+    glMap.querySourceFeatures.mockReturnValue([
+      { properties: { placeId: 71 } },
+      { properties: { placeId: 72 } },
+      { properties: { placeId: 73 } },
+    ])
+    const hotel = { lat: 48.8584, lng: 2.2945 }
+    const places = [
+      buildMapPlace({ id: 71, name: 'Drop the bags', ...hotel }),
+      buildMapPlace({ id: 72, name: 'Check in', ...hotel }),
+      buildMapPlace({ id: 73, name: 'Louvre', lat: 60.1, lng: 9.3 }),
+    ]
+    // The order badge is what tells the two stops on the hotel apart on screen.
+    const dayOrderMap = { 71: [1], 72: [2], 73: [3] }
+    const pinsOnTheHotel = () => glMarkers.created.filter(marker => marker.lngLat?.[0] === hotel.lng)
+
+    const { rerender } = render(<MapViewGL places={places} fitKey={1} dayOrderMap={dayOrderMap} />)
+    await flushFrames()
+
+    expect(pinsOnTheHotel()).toHaveLength(1)
+    expect(pinsOnTheHotel()[0].element.innerHTML).toContain('>1</span>')
+    // The stop elsewhere is untouched by the folding.
+    expect(glMarkers.created.map(m => m.lngLat)).toContainEqual([9.3, 60.1])
+
+    glMarkers.clear()
+    rerender(<MapViewGL places={places} fitKey={1} dayOrderMap={dayOrderMap} selectedPlaceId={72} />)
+    await flushFrames()
+
+    expect(pinsOnTheHotel()).toHaveLength(1)
+    expect(pinsOnTheHotel()[0].element.innerHTML).toContain('>2</span>')
+  })
+
+  // Two ordinary neighbours — a hotel and the restaurant across the street — are not a
+  // pile. Nothing here can fan a bubble open again, so anything the fold reaches beyond
+  // the pins that cover each other is a stop the map simply loses (#2344).
+  it('FE-COMP-MAPVIEWGL-078: stops a few hundred metres apart keep a pin each', async () => {
+    loadOnAttach()
+    projectAtDayZoom()
+    const clusterSource = geoSource()
+    glMap.getSource.mockImplementation((id: string) => (id === 'trip-place-clusters' ? clusterSource : null))
+    glMap.querySourceFeatures.mockReturnValue([
+      { properties: { placeId: 81 } },
+      { properties: { placeId: 82 } },
+    ])
+    // ~300 m apart at this latitude, which the projection above puts 6 px apart: well
+    // inside the width of a pin, and still two stops a user has to be able to reach.
+    const places = [
+      buildMapPlace({ id: 81, name: 'Hotel Le Marais', lat: 48.8584, lng: 2.2945 }),
+      buildMapPlace({ id: 82, name: 'Chez Julien', lat: 48.8584, lng: 2.2986 }),
+    ]
+
+    render(<MapViewGL places={places} fitKey={1} />)
+    await flushFrames()
+
+    const drawn = glMarkers.created.map(m => m.lngLat)
+    expect(drawn).toContainEqual([2.2945, 48.8584])
+    expect(drawn).toContainEqual([2.2986, 48.8584])
+  })
+
+  // Without a projection there is no telling which pins land on each other, and a guess
+  // costs a stop its marker for good. Draw them all instead, as the map always did.
+  it('FE-COMP-MAPVIEWGL-079: a map that cannot place its pins still draws every one of them', async () => {
+    loadOnAttach()
+    const clusterSource = geoSource()
+    glMap.getSource.mockImplementation((id: string) => (id === 'trip-place-clusters' ? clusterSource : null))
+    glMap.querySourceFeatures.mockReturnValue([
+      { properties: { placeId: 91 } },
+      { properties: { placeId: 92 } },
+    ])
+    const places = [
+      buildMapPlace({ id: 91, lat: 48.1, lng: 2.1 }),
+      buildMapPlace({ id: 92, lat: 48.2, lng: 2.2 }),
+    ]
+
+    const projection = glMap.project
+    const engine = glMap as unknown as { project?: unknown }
+    try {
+      engine.project = undefined
+      render(<MapViewGL places={places} fitKey={1} />)
+      await flushFrames()
+    } finally {
+      engine.project = projection
+    }
+
+    const drawn = glMarkers.created.map(m => m.lngLat)
+    expect(drawn).toContainEqual([2.1, 48.1])
+    expect(drawn).toContainEqual([2.2, 48.2])
+  })
+
   it('FE-COMP-MAPVIEWGL-048: the day route becomes one LineString per drawn segment', async () => {
     const routeSource = geoSource()
     glMap.getSource.mockImplementation((id: string) => (id === 'trip-route' ? routeSource : null))
@@ -1498,6 +1711,21 @@ describe('MapViewGL', () => {
     // A one-point segment is not a line.
     expect(features).toHaveLength(1)
     expect(features[0].geometry.coordinates).toEqual([[2, 48], [3, 49]])
+  })
+
+  it('FE-COMP-MAPVIEWGL-048b: a caller-coloured route rides its colours on the feature', async () => {
+    const routeSource = geoSource()
+    glMap.getSource.mockImplementation((id: string) => (id === 'trip-route' ? routeSource : null))
+
+    render(<MapViewGL places={[]} fitKey={1} route={[[[48, 2], [49, 3]], [[50, 4], [51, 5]]]}
+      routeColors={[{ line: '#ff9f0a', casing: '#c2740a' }, undefined]} />)
+    await act(async () => {})
+
+    const { features } = lastData(routeSource)
+    expect(features[0].properties.color).toBe('#ff9f0a')
+    expect(features[0].properties.casing).toBe('#c2740a')
+    // No colour means the day route's own blue, which the layer paint falls back to.
+    expect(features[1].properties.color).toBeNull()
   })
 
   it('FE-COMP-MAPVIEWGL-049: unusable GPX geometry is skipped instead of breaking the layer', async () => {
@@ -1642,7 +1870,7 @@ describe('MapViewGL', () => {
     expect(srcs()).toContain('data:image/png;base64,BBB')
   })
 
-  it('FE-COMP-MAPVIEWGL-056: an in-flight photo is not requested twice and the proxy url is used as the id', async () => {
+  it('FE-COMP-MAPVIEWGL-056: an in-flight photo is not requested twice and a picked proxy url is both id and cache key', async () => {
     vi.mocked(photoService.isLoading).mockImplementation((key: string) => key === 'osm-loading')
     const places = [
       buildMapPlace({ id: 94, lat: 48.4, lng: 2.4, osm_id: 'osm-loading' }),
@@ -1653,7 +1881,56 @@ describe('MapViewGL', () => {
     await act(async () => {})
 
     expect(photoService.fetchPhoto).toHaveBeenCalledTimes(1)
-    expect(photoService.fetchPhoto).toHaveBeenCalledWith('osm-5', '/api/maps/place-photo/abc', 48.5, 2.5, 'Museum')
+    expect(photoService.fetchPhoto).toHaveBeenCalledWith('/api/maps/place-photo/abc', '/api/maps/place-photo/abc', 48.5, 2.5, 'Museum')
+  })
+
+  it('FE-COMP-MAPVIEWGL-101: an uploaded photo fills its marker whatever its proportions', async () => {
+    // A phone photo is no 48px square like the thumbs. Sized by attributes it lost to
+    // the stylesheet's `height: auto` and sat as a sliver in a disc of category colour.
+    loadOnAttach()
+    render(<MapViewGL places={[buildMapPlace({ id: 14, lat: 48.14, lng: 2.14, image_url: '/uploads/places/wide.jpg' })]} fitKey={1} />)
+    await act(async () => {})
+
+    const img = glMarkers.created[0].element.querySelector('img')!
+    expect(img.getAttribute('src')).toBe('/uploads/places/wide.jpg')
+    expect(img.style.width).toBe('100%')
+    expect(img.style.height).toBe('100%')
+  })
+
+  it('FE-COMP-MAPVIEWGL-102: taking the upload off a place asks for its auto photo again, without a reload', async () => {
+    const place = buildMapPlace({ id: 15, lat: 48.15, lng: 2.15, google_place_id: 'gp-15', name: 'Tower', image_url: '/uploads/places/own.jpg' })
+    const { rerender } = render(<MapViewGL places={[place]} fitKey={1} />)
+    await act(async () => {})
+    expect(photoService.fetchPhoto).not.toHaveBeenCalled()
+
+    rerender(<MapViewGL places={[{ ...place, image_url: null }]} fitKey={1} />)
+    await act(async () => {})
+
+    expect(photoService.fetchPhoto).toHaveBeenCalledWith('gp-15', 'gp-15', 48.15, 2.15, 'Tower')
+  })
+
+  it('FE-COMP-MAPVIEWGL-103: picking another suggested photo replaces the thumb of the old one', async () => {
+    loadOnAttach()
+    const first = '/api/maps/place-photo/gp-16~p0/bytes'
+    const second = '/api/maps/place-photo/gp-16~p1/bytes'
+    // Everything seen before the new pick has a thumb: the place's auto photo under
+    // its provider id and the first pick under its own url.
+    vi.mocked(photoService.getCached).mockImplementation((key: string) => (
+      key === 'gp-16' || key === first
+        ? ({ thumbDataUrl: 'data:image/png;base64,OLD' } as unknown as ReturnType<typeof photoService.getCached>)
+        : undefined
+    ))
+    const place = buildMapPlace({ id: 16, lat: 48.16, lng: 2.16, google_place_id: 'gp-16', name: 'Tower', image_url: first })
+    const { rerender } = render(<MapViewGL places={[place]} fitKey={1} />)
+    await flushFrames()
+
+    rerender(<MapViewGL places={[{ ...place, image_url: second }]} fitKey={1} />)
+    await flushFrames()
+
+    expect(photoService.fetchPhoto).toHaveBeenCalledWith(second, second, 48.16, 2.16, 'Tower')
+    // Until its thumb is ready the marker shows the new pick itself, not the old thumb.
+    const latest = glMarkers.created[glMarkers.created.length - 1]
+    expect(latest.element.querySelector('img')?.getAttribute('src')).toBe(second)
   })
 
   it('FE-COMP-MAPVIEWGL-066: a place with neither provider id nor coordinates has no cache key and is skipped', async () => {
@@ -1814,5 +2091,528 @@ describe('MapViewGL', () => {
 
     expect(glMap.off).toHaveBeenCalledWith('moveend', expect.any(Function))
     expect(glMap.off).toHaveBeenCalledWith('zoomend', expect.any(Function))
+  })
+
+  it('FE-COMP-MAPVIEWGL-071: POI suggestions ride the map render clock instead of the pointer', async () => {
+    // Same drift the planned-place pins had: a library Marker repositions on every
+    // `move` event — one per pointer sample — while the canvas draws once a frame, so
+    // the suggestions swam over the map during a drag and snapped back on release.
+    loadOnAttach()
+    glCanvasContainer.replaceChildren()
+    glMap.project.mockReturnValue({ x: 100, y: 80 })
+
+    render(
+      <MapViewGL
+        places={[]}
+        fitKey={1}
+        glProvider="maplibre-gl"
+        pois={[{ osm_id: 'node:1', name: 'Aral', lat: 48.1, lng: 2.1, category: 'fuel', source: 'openstreetmap' } as never]}
+      />,
+    )
+    await flushFrames()
+
+    const layer = glCanvasContainer.firstElementChild as HTMLElement
+    expect(layer.children.length).toBe(1)
+    const pin = layer.firstElementChild as HTMLElement
+    expect(pin.style.transform).toContain('translate(100px, 80px)')
+
+    glMap.project.mockReturnValue({ x: 140, y: 60 })
+    act(() => { mapHandler('render')() })
+
+    expect(pin.style.transform).toContain('translate(140px, 60px)')
+  })
+
+  // A via handle is a DOM element, and a pointerdown belongs to the element it happened
+  // on. Rebuilding the handles on an unrelated render pulled that element out from under
+  // the pointer, so a freshly placed via lost its first drag — the re-route it triggered
+  // landed about a second later, which is exactly when somebody reaches for it.
+  it('FE-COMP-MAPVIEWGL-VIA-001: a via handle survives a render it has nothing to do with', async () => {
+    loadOnAttach()
+    glCanvasContainer.replaceChildren()
+    glMap.project.mockReturnValue({ x: 100, y: 80 })
+
+    const stored = { id: 5, day_id: 1, after_order_index: 0, sequence: 0, lat: 48.1, lng: 2.1 }
+    const { rerender } = render(
+      <MapViewGL
+        places={[]}
+        fitKey={1}
+        glProvider="maplibre-gl"
+        roadtripVias={{ 1: [stored] }}
+        onMoveVia={() => {}}
+      />,
+    )
+    await flushFrames()
+
+    const layer = glCanvasContainer.firstElementChild as HTMLElement
+    const handle = layer.firstElementChild
+    expect(handle).toBeTruthy()
+
+    // The same via in a fresh object, with a fresh callback: what every render of the
+    // planner hands down while the day re-routes.
+    rerender(
+      <MapViewGL
+        places={[]}
+        fitKey={1}
+        glProvider="maplibre-gl"
+        roadtripVias={{ 1: [{ ...stored }] }}
+        onMoveVia={() => {}}
+      />,
+    )
+    await flushFrames()
+
+    expect(layer.firstElementChild).toBe(handle)
+  })
+
+  it('FE-COMP-MAPVIEWGL-VIA-002: a via that actually moved is drawn again', async () => {
+    loadOnAttach()
+    glCanvasContainer.replaceChildren()
+    glMap.project.mockReturnValue({ x: 100, y: 80 })
+
+    const stored = { id: 5, day_id: 1, after_order_index: 0, sequence: 0, lat: 48.1, lng: 2.1 }
+    const { rerender } = render(
+      <MapViewGL places={[]} fitKey={1} glProvider="maplibre-gl" roadtripVias={{ 1: [stored] }} onMoveVia={() => {}} />,
+    )
+    await flushFrames()
+
+    const layer = glCanvasContainer.firstElementChild as HTMLElement
+    const handle = layer.firstElementChild
+
+    rerender(
+      <MapViewGL
+        places={[]}
+        fitKey={1}
+        glProvider="maplibre-gl"
+        roadtripVias={{ 1: [{ ...stored, lat: 48.9 }] }}
+        onMoveVia={() => {}}
+      />,
+    )
+    await flushFrames()
+
+    // The other half of the contract: holding the element still must not mean holding it
+    // in the wrong place.
+    expect(layer.firstElementChild).not.toBe(handle)
+  })
+
+  // Both GL libraries take their clicks from the canvas container, and the handle sits
+  // inside it, right on the route's hit band. Stopping pointerdown does not stop the click
+  // that follows, so a click on a handle also read as a click on the road under it and
+  // dropped a second via exactly there.
+  it('FE-COMP-MAPVIEWGL-VIA-003: a click on a via handle is the handle\'s, not the road\'s', async () => {
+    loadOnAttach()
+    glCanvasContainer.replaceChildren()
+    glMap.project.mockReturnValue({ x: 100, y: 80 })
+    glMap.getLayer.mockImplementation((id: string) => (id === 'trip-route-hit' ? { id } : null))
+    const onRouteClick = vi.fn()
+
+    const stored = { id: 5, day_id: 1, after_order_index: 0, sequence: 0, lat: 48.1, lng: 2.1 }
+    render(
+      <MapViewGL
+        places={[]}
+        fitKey={1}
+        glProvider="maplibre-gl"
+        roadtripVias={{ 1: [stored] }}
+        onMoveVia={() => {}}
+        onRouteClick={onRouteClick}
+      />,
+    )
+    await flushFrames()
+
+    const layer = glCanvasContainer.firstElementChild as HTMLElement
+    const handle = layer.firstElementChild as HTMLElement
+
+    const reachedMap = vi.fn()
+    glCanvasContainer.addEventListener('click', reachedMap)
+    try {
+      act(() => { handle.dispatchEvent(new MouseEvent('click', { bubbles: true })) })
+      expect(reachedMap).not.toHaveBeenCalled()
+    } finally {
+      glCanvasContainer.removeEventListener('click', reachedMap)
+    }
+
+    // And the road's own handler leaves a click that came through the handle alone.
+    const roadClick = layerHandler('click', 'trip-route-hit')
+    expect(roadClick).toBeTypeOf('function')
+    act(() => { roadClick({ lngLat: { lat: 48.1, lng: 2.1 }, point: { x: 100, y: 80 }, originalEvent: { target: handle } }) })
+    expect(onRouteClick).not.toHaveBeenCalled()
+    act(() => { roadClick({ lngLat: { lat: 48.1, lng: 2.1 }, point: { x: 100, y: 80 }, originalEvent: { target: glCanvasContainer } }) })
+    expect(onRouteClick).toHaveBeenCalledWith(48.1, 2.1)
+  })
+
+  it('FE-COMP-MAPVIEWGL-VIA-004: a right-click on a via handle removes it and opens nothing underneath', async () => {
+    loadOnAttach()
+    glCanvasContainer.replaceChildren()
+    glMap.project.mockReturnValue({ x: 100, y: 80 })
+    const onRemoveVia = vi.fn()
+
+    const stored = { id: 5, day_id: 1, after_order_index: 0, sequence: 0, lat: 48.1, lng: 2.1 }
+    render(
+      <MapViewGL
+        places={[]}
+        fitKey={1}
+        glProvider="maplibre-gl"
+        roadtripVias={{ 1: [stored] }}
+        onMoveVia={() => {}}
+        onRemoveVia={onRemoveVia}
+      />,
+    )
+    await flushFrames()
+
+    const layer = glCanvasContainer.firstElementChild as HTMLElement
+    const handle = layer.firstElementChild as HTMLElement
+
+    // The map's contextmenu is the add-place gesture; it must not fire for the spot the
+    // via has just been removed from.
+    const reachedMap = vi.fn()
+    glCanvasContainer.addEventListener('contextmenu', reachedMap)
+    try {
+      act(() => { handle.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true })) })
+    } finally {
+      glCanvasContainer.removeEventListener('contextmenu', reachedMap)
+    }
+
+    expect(onRemoveVia).toHaveBeenCalledWith(1, 5)
+    expect(reachedMap).not.toHaveBeenCalled()
+  })
+
+  it('FE-COMP-MAPVIEWGL-VIA-005: the handles go away below the zoom a via can be aimed at', async () => {
+    loadOnAttach()
+    glCanvasContainer.replaceChildren()
+    glMap.project.mockReturnValue({ x: 100, y: 80 })
+    // Country scale: a day's vias collapse into a heap of dots over one town, and a
+    // short drag on one of them moves the route by kilometres.
+    vi.mocked(glMap.getZoom).mockReturnValue(8)
+    try {
+      const stored = { id: 5, day_id: 1, after_order_index: 0, sequence: 0, lat: 48.1, lng: 2.1 }
+      render(
+        <MapViewGL places={[]} fitKey={1} glProvider="maplibre-gl" roadtripVias={{ 1: [stored] }} onMoveVia={() => {}} />,
+      )
+      await flushFrames()
+
+      const layer = glCanvasContainer.firstElementChild as HTMLElement
+      const handle = layer.firstElementChild as HTMLElement
+      expect(handle.style.display).toBe('none')
+
+      // Back in close enough, the zoom that settles brings them back.
+      vi.mocked(glMap.getZoom).mockReturnValue(12)
+      act(() => {
+        glMap.on.mock.calls
+          .filter(c => c[0] === 'zoomend' && typeof c[1] === 'function')
+          .forEach(c => (c[1] as () => void)())
+      })
+      expect(handle.style.display).toBe('block')
+    } finally {
+      vi.mocked(glMap.getZoom).mockReturnValue(10)
+    }
+  })
+  // ── Satellite ───────────────────────────────────────────────────────────────
+  //
+  // Leaflet has had the imagery for a while and swaps its whole tile layer for it.
+  // A GL map cannot do that, because its basemap is a style with dozens of layers,
+  // so the imagery goes on as a raster layer under everything TREK draws.
+
+  it('FE-COMP-MAPVIEWGL-074: satellite adds the imagery under the first TREK layer', async () => {
+    loadOnAttach()
+    useSettingsStore.setState({
+      settings: { ...useSettingsStore.getState().settings, map_base_layer: 'satellite' },
+    } as never)
+    glMap.getStyle.mockReturnValue({
+      layers: [{ id: 'background' }, { id: 'road' }, { id: 'trip-route' }, { id: 'trip-gpx-hit' }],
+    })
+
+    render(<MapViewGL places={[]} fitKey={1} />)
+    await flushFrames()
+
+    expect(glMap.addSource).toHaveBeenCalledWith('trip-satellite', expect.objectContaining({
+      type: 'raster',
+      tiles: [expect.stringContaining('arcgisonline.com')],
+    }))
+    // Anchored before the route, or the imagery would be painted over it.
+    expect(glMap.addLayer).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'trip-satellite-raster', type: 'raster' }),
+      'trip-route',
+    )
+  })
+
+  it('FE-COMP-MAPVIEWGL-100: the imagery goes under the offered roads too, not just under the route', async () => {
+    // The roads offered for a leg are added before the route source so they sit beneath the
+    // current route, which also puts them before the first `trip-` layer. Anchoring the
+    // imagery on that first `trip-` layer therefore painted it straight over them, and an
+    // offered road on a satellite basemap could not be seen at all.
+    loadOnAttach()
+    useSettingsStore.setState({
+      settings: { ...useSettingsStore.getState().settings, map_base_layer: 'satellite' },
+    } as never)
+    glMap.getStyle.mockReturnValue({
+      layers: [{ id: 'background' }, { id: 'road' }, { id: 'route-alt-hit' }, { id: 'route-alt-line' }, { id: 'trip-route' }],
+    })
+
+    render(<MapViewGL places={[]} fitKey={1} />)
+    await flushFrames()
+
+    expect(glMap.addLayer).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'trip-satellite-raster', type: 'raster' }),
+      'route-alt-hit',
+    )
+  })
+
+  it('FE-COMP-MAPVIEWGL-075: with the default basemap no imagery is fetched at all', async () => {
+    loadOnAttach()
+    useSettingsStore.setState({
+      settings: { ...useSettingsStore.getState().settings, map_base_layer: 'default' },
+    } as never)
+
+    render(<MapViewGL places={[]} fitKey={1} />)
+    await flushFrames()
+
+    expect(glMap.addSource).not.toHaveBeenCalledWith('trip-satellite', expect.anything())
+  })
+
+  it('FE-COMP-MAPVIEWGL-076: switching back hides the layer instead of tearing it down', async () => {
+    loadOnAttach()
+    useSettingsStore.setState({
+      settings: { ...useSettingsStore.getState().settings, map_base_layer: 'satellite' },
+    } as never)
+    glMap.getStyle.mockReturnValue({ layers: [{ id: 'background' }, { id: 'trip-route' }] })
+    // Present from the first pass on, the way the real map reports it afterwards.
+    glMap.getSource.mockImplementation((id: string) => (id === 'trip-satellite' ? {} : null))
+    glMap.getLayer.mockImplementation((id: string) => (id === 'trip-satellite-raster' ? {} : null))
+
+    const { rerender } = render(<MapViewGL places={[]} fitKey={1} />)
+    await flushFrames()
+
+    act(() => {
+      useSettingsStore.setState({
+        settings: { ...useSettingsStore.getState().settings, map_base_layer: 'default' },
+      } as never)
+    })
+    rerender(<MapViewGL places={[]} fitKey={1} />)
+    await flushFrames()
+
+    expect(glMap.setLayoutProperty).toHaveBeenCalledWith('trip-satellite-raster', 'visibility', 'none')
+  })
+
+  // A map is busy (isStyleLoaded() false) for as long as tiles or a setData are in flight,
+  // which on a phone is most of the time and on the road trip stage was every tap. The
+  // imagery used to wait for a settled style that `styledata` never announced.
+
+  it('FE-COMP-MAPVIEWGL-079: a stored satellite choice is drawn even while the map is still busy', async () => {
+    loadOnAttach()
+    useSettingsStore.setState({
+      settings: { ...useSettingsStore.getState().settings, map_base_layer: 'satellite' },
+    } as never)
+    glMap.getStyle.mockReturnValue({ layers: [{ id: 'background' }, { id: 'trip-route' }] })
+    // Right after `load` the basemap tiles and the overlay sources are still loading.
+    glMap.isStyleLoaded.mockReturnValue(false)
+
+    render(<MapViewGL places={[]} fitKey={1} />)
+    await flushFrames()
+
+    expect(glMap.addSource).toHaveBeenCalledWith('trip-satellite', expect.objectContaining({ type: 'raster' }))
+    expect(glMap.addLayer).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'trip-satellite-raster', type: 'raster' }),
+      'trip-route',
+    )
+  })
+
+  it('FE-COMP-MAPVIEWGL-080: a tap on the switcher while a source update is in flight still shows the imagery', async () => {
+    loadOnAttach()
+    glMap.getStyle.mockReturnValue({ layers: [{ id: 'background' }, { id: 'trip-route' }] })
+
+    const { getByRole } = render(<MapViewGL places={[]} fitKey={1} />)
+    await flushFrames()
+    expect(glMap.addSource).not.toHaveBeenCalledWith('trip-satellite', expect.anything())
+
+    glMap.isStyleLoaded.mockReturnValue(false)
+    fireEvent.click(getByRole('button', { name: 'Switch to satellite view' }))
+    await flushFrames()
+
+    expect(useSettingsStore.getState().settings.map_base_layer).toBe('satellite')
+    expect(glMap.addSource).toHaveBeenCalledWith('trip-satellite', expect.objectContaining({ type: 'raster' }))
+    expect(glMap.addLayer).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'trip-satellite-raster' }),
+      'trip-route',
+    )
+  })
+
+  it('FE-COMP-MAPVIEWGL-081: imagery that is already on the map flips visibility at once, busy or not', async () => {
+    loadOnAttach()
+    glMap.getSource.mockImplementation((id: string) => (id === 'trip-satellite' ? {} : null))
+    glMap.getLayer.mockImplementation((id: string) => (id === 'trip-satellite-raster' ? {} : null))
+
+    const { getByRole } = render(<MapViewGL places={[]} fitKey={1} />)
+    await flushFrames()
+    glMap.setLayoutProperty.mockClear()
+
+    glMap.isStyleLoaded.mockReturnValue(false)
+    fireEvent.click(getByRole('button', { name: 'Switch to satellite view' }))
+    await flushFrames()
+
+    expect(glMap.setLayoutProperty).toHaveBeenCalledWith('trip-satellite-raster', 'visibility', 'visible')
+    // Flipping it is all a second tap takes: nothing is built a second time.
+    expect(glMap.addSource).not.toHaveBeenCalledWith('trip-satellite', expect.anything())
+    expect(glMap.addLayer).not.toHaveBeenCalledWith(expect.objectContaining({ id: 'trip-satellite-raster' }), expect.anything())
+  })
+
+  it('FE-COMP-MAPVIEWGL-082: a style that is not in yet keeps the plain basemap until styledata brings it', async () => {
+    loadOnAttach()
+    useSettingsStore.setState({
+      settings: { ...useSettingsStore.getState().settings, map_base_layer: 'satellite' },
+    } as never)
+    glMap.getStyle.mockReturnValue({ layers: [{ id: 'background' }, { id: 'trip-route' }] })
+    // What both engines do when the style document itself has not loaded.
+    let styleIn = false
+    glMap.addSource.mockImplementation((id: string) => {
+      if (id === 'trip-satellite' && !styleIn) throw new Error('Style is not done loading.')
+    })
+
+    render(<MapViewGL places={[]} fitKey={1} />)
+    await flushFrames()
+    expect(glMap.addLayer).not.toHaveBeenCalledWith(expect.objectContaining({ id: 'trip-satellite-raster' }), expect.anything())
+
+    styleIn = true
+    const subscribed = glMap.on.mock.calls.filter(c => c[0] === 'styledata')
+    const styledata = subscribed[subscribed.length - 1]?.[1] as (() => void) | undefined
+    expect(styledata).toBeDefined()
+    act(() => { styledata!() })
+
+    expect(glMap.addLayer).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'trip-satellite-raster' }),
+      'trip-route',
+    )
+  })
+
+  it('FE-COMP-MAPVIEWGL-083: the switcher sits the shared inset off the map edge, past any side panel', async () => {
+    const { getByRole, rerender } = render(<MapViewGL places={[]} fitKey={1} />)
+    await flushFrames()
+    // Button, then its frosted shell, then the positioned wrapper.
+    const wrapper = () => getByRole('button', { name: 'Switch to satellite view' }).parentElement!.parentElement!
+
+    // The phone's compass is placed off the same inset, so the two cannot drift apart.
+    expect(wrapper().style.left).toBe(`${MAP_LAYER_SWITCHER_INSET}px`)
+
+    rerender(<MapViewGL places={[]} fitKey={1} leftWidth={240} />)
+    await flushFrames()
+    expect(wrapper().style.left).toBe(`${240 + MAP_LAYER_SWITCHER_INSET}px`)
+  })
+
+  it('FE-COMP-MAPVIEWGL-084: a source left behind without its layer still gets the layer', async () => {
+    loadOnAttach()
+    useSettingsStore.setState({
+      settings: { ...useSettingsStore.getState().settings, map_base_layer: 'satellite' },
+    } as never)
+    glMap.getStyle.mockReturnValue({ layers: [{ id: 'background' }, { id: 'trip-route' }] })
+    // An earlier pass that got the source in and then failed on the layer.
+    glMap.getSource.mockImplementation((id: string) => (id === 'trip-satellite' ? {} : null))
+
+    render(<MapViewGL places={[]} fitKey={1} />)
+    await flushFrames()
+
+    // Guarded on the source, the pass would have seen it and built nothing, for good.
+    expect(glMap.addLayer).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'trip-satellite-raster', type: 'raster' }),
+      'trip-route',
+    )
+    expect(glMap.addSource).not.toHaveBeenCalledWith('trip-satellite', expect.anything())
+  })
+
+  it('FE-COMP-MAPVIEWGL-085: a caller padding frames the focus points instead of the phone margin, and the day fit keeps its own', async () => {
+    // A phone shell lays a chip rail over the top of the map and a bar plus the dock over
+    // the bottom. The flat 40px margin put the ends of a framed leg under either of them.
+    const original = window.innerWidth
+    Object.defineProperty(window, 'innerWidth', { configurable: true, writable: true, value: 420 })
+    try {
+      const leg: [number, number][] = [[48.1, 2.1], [48.3, 2.4]]
+      const chrome = { top: 120, right: 16, bottom: 290, left: 16 }
+      const { rerender } = render(<MapViewGL places={[]} fitKey={1} />)
+      await act(async () => {})
+      expect(glMap.fitBounds).not.toHaveBeenCalled()
+
+      rerender(<MapViewGL places={[]} fitKey={1} focusPoints={leg} fitPadding={chrome} />)
+      await act(async () => {})
+      expect(glMap.fitBounds).toHaveBeenCalledTimes(1)
+      expect(glMap.fitBounds.mock.calls[0][1]).toMatchObject({ padding: chrome, maxZoom: 15 })
+
+      // Picking a day is not the caller's frame, so that fit keeps the phone margin.
+      const places = [buildMapPlace({ id: 88, lat: 48.1, lng: 2.1 }), buildMapPlace({ id: 89, lat: 48.2, lng: 2.2 })]
+      rerender(<MapViewGL places={places} fitKey={2} focusPoints={leg} fitPadding={chrome} />)
+      await act(async () => {})
+      expect(glMap.fitBounds).toHaveBeenCalledTimes(2)
+      expect(glMap.fitBounds.mock.calls[1][1]).toMatchObject({ padding: { top: 40, right: 20, bottom: 40, left: 20 } })
+
+      // And without one, the focus fit falls back to that margin too.
+      const stage: [number, number][] = [[47, 1], [47.5, 1.5]]
+      rerender(<MapViewGL places={places} fitKey={2} focusPoints={stage} />)
+      await act(async () => {})
+      expect(glMap.fitBounds).toHaveBeenCalledTimes(3)
+      expect(glMap.fitBounds.mock.calls[2][1]).toMatchObject({ padding: { top: 40, right: 20, bottom: 40, left: 20 } })
+    } finally {
+      Object.defineProperty(window, 'innerWidth', { configurable: true, writable: true, value: original })
+    }
+  })
+
+  it('FE-COMP-MAPVIEWGL-086: the caller padding is read by value, so only new numbers refit the points on screen', async () => {
+    const leg: [number, number][] = [[48.1, 2.1], [48.3, 2.4]]
+    const { rerender } = render(
+      <MapViewGL places={[]} fitKey={1} focusPoints={leg} fitPadding={{ top: 120, right: 16, bottom: 290, left: 16 }} />,
+    )
+    await act(async () => {})
+    expect(glMap.fitBounds).toHaveBeenCalledTimes(1)
+
+    // A parent that builds the object inline hands a new one on every render. The camera
+    // belongs to the traveller between fits, so that alone must not take it back.
+    rerender(<MapViewGL places={[]} fitKey={1} focusPoints={leg} fitPadding={{ top: 120, right: 16, bottom: 290, left: 16 }} />)
+    await act(async () => {})
+    expect(glMap.fitBounds).toHaveBeenCalledTimes(1)
+
+    // New numbers mean the chrome moved, so the same points are framed again around it.
+    rerender(<MapViewGL places={[]} fitKey={1} focusPoints={leg} fitPadding={{ top: 120, right: 16, bottom: 98, left: 16 }} />)
+    await act(async () => {})
+    expect(glMap.fitBounds).toHaveBeenCalledTimes(2)
+    expect(glMap.fitBounds.mock.calls[1][1]).toMatchObject({ padding: { top: 120, right: 16, bottom: 98, left: 16 } })
+  })
+})
+describe('MapViewGL attribution', () => {
+  const flushFrames = () => act(async () => { await new Promise(resolve => setTimeout(resolve, 40)) })
+
+  /** The compact control as maplibre leaves it on a narrow map: collapsed class, open. */
+  function compactAttribution(container: HTMLElement): HTMLElement {
+    const el = document.createElement('details')
+    el.className = 'maplibregl-ctrl maplibregl-ctrl-attrib maplibregl-compact maplibregl-compact-show'
+    el.setAttribute('open', '')
+    // Inside the map container itself, where maplibre puts its controls.
+    container.querySelectorAll('div')[1]?.appendChild(el)
+    return el
+  }
+
+  it('FE-COMP-MAPVIEWGL-077: the credit starts as the little button, not as a ribbon', async () => {
+    const { container } = render(<MapViewGL places={[]} fitKey={1} />)
+    await flushFrames()
+    const attrib = compactAttribution(container)
+
+    const idle = glMap.once.mock.calls.find(c => c[0] === 'idle')?.[1] as (() => void) | undefined
+    expect(idle).toBeDefined()
+    act(() => { idle!() })
+
+    // Both engines open theirs on a phone and only tuck it away on the first drag, so
+    // the first thing on a screen the map fills is a two-line band across the bottom.
+    expect(attrib.classList.contains('maplibregl-compact-show')).toBe(false)
+    expect(attrib.hasAttribute('open')).toBe(false)
+    // Still there, still one tap away: nothing about the credit is removed.
+    expect(attrib.classList.contains('maplibregl-ctrl-attrib')).toBe(true)
+  })
+
+  it('FE-COMP-MAPVIEWGL-078: a map wide enough to show the credit in full is left alone', async () => {
+    const { container } = render(<MapViewGL places={[]} fitKey={1} />)
+    await flushFrames()
+    const el = document.createElement('details')
+    // No `compact-show`, which is what a map over 640px reports.
+    el.className = 'maplibregl-ctrl maplibregl-ctrl-attrib'
+    el.setAttribute('open', '')
+    container.querySelectorAll('div')[1]?.appendChild(el)
+
+    const idle = glMap.once.mock.calls.find(c => c[0] === 'idle')?.[1] as (() => void) | undefined
+    act(() => { idle!() })
+
+    expect(el.hasAttribute('open')).toBe(true)
   })
 })

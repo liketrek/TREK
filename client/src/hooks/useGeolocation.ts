@@ -17,10 +17,16 @@ export interface GeoPosition {
 
 export type TrackingMode = 'off' | 'show' | 'follow'
 
+// Typed counterpart to the raw error string. The string is whatever the
+// browser produced (raw WebKit English on iOS), so the UI keys off this
+// code to show a localized, actionable message instead.
+export type GeoWatchErrorCode = 'permission-denied' | 'unavailable' | 'timeout' | 'unsupported' | 'insecure-context'
+
 export interface UseGeolocationReturn {
   position: GeoPosition | null
   mode: TrackingMode
   error: string | null
+  errorCode: GeoWatchErrorCode | null
   /** Toggle through off → show → follow → off. Also triggers iOS orientation permission on first call. */
   cycleMode: () => Promise<void>
   /** Force-set mode. Accepts a function for derived updates like `prev => prev === 'follow' ? 'show' : prev`. */
@@ -101,6 +107,7 @@ export function useGeolocation(): UseGeolocationReturn {
   const modeRef = useRef<TrackingMode>(mode)
   modeRef.current = mode
   const [error, setError] = useState<string | null>(null)
+  const [errorCode, setErrorCode] = useState<GeoWatchErrorCode | null>(null)
   const watchIdRef = useRef<number | null>(null)
   // True between the start of startWatch and the watchPosition call it awaits.
   const startingRef = useRef(false)
@@ -129,6 +136,15 @@ export function useGeolocation(): UseGeolocationReturn {
   const startWatch = useCallback(async () => {
     if (!('geolocation' in navigator)) {
       setError('Geolocation is not supported in this browser')
+      setErrorCode('unsupported')
+      return false
+    }
+    // Same block getCurrentPositionOnce guards against: on a plain-HTTP origin
+    // the browser answers PERMISSION_DENIED, which would otherwise read as a
+    // revoked device permission and send the user into their OS settings.
+    if (window.isSecureContext === false) {
+      setError('Location requires a secure (HTTPS) connection')
+      setErrorCode('insecure-context')
       return false
     }
     // Already watching, or still waiting on the iOS prompt below: a second
@@ -138,6 +154,7 @@ export function useGeolocation(): UseGeolocationReturn {
     startingRef.current = true
     const run = ++startRunRef.current
     setError(null)
+    setErrorCode(null)
 
     // iOS: ask for orientation permission up front; on Android and desktop
     // no prompt is needed and the method is undefined.
@@ -184,6 +201,10 @@ export function useGeolocation(): UseGeolocationReturn {
     startingRef.current = false
     watchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
+        // A fix arriving means any earlier failure (timeout, no signal)
+        // has recovered, so clear the error state alongside it.
+        setError(null)
+        setErrorCode(null)
         setPosition({
           lat: pos.coords.latitude,
           lng: pos.coords.longitude,
@@ -197,6 +218,12 @@ export function useGeolocation(): UseGeolocationReturn {
       },
       (err) => {
         setError(err.message || 'Location unavailable')
+        setErrorCode(
+          err.code === err.PERMISSION_DENIED ? 'permission-denied'
+            : err.code === err.POSITION_UNAVAILABLE ? 'unavailable'
+            : err.code === err.TIMEOUT ? 'timeout'
+            : null,
+        )
         // Stay subscribed so a later fix can still recover (e.g. GPS
         // lock takes a while indoors). Only fully stop on permission denial.
         if (err.code === err.PERMISSION_DENIED) {
@@ -243,5 +270,5 @@ export function useGeolocation(): UseGeolocationReturn {
 
   useEffect(() => stopWatch, [stopWatch])
 
-  return { position, mode, error, cycleMode, setMode }
+  return { position, mode, error, errorCode, cycleMode, setMode }
 }

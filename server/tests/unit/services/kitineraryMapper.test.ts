@@ -68,3 +68,137 @@ describe('kitinerary mapper — multi-leg flight grouping', () => {
     expect((items[0].metadata as any).legs).toBeUndefined();
   });
 });
+
+describe('kitinerary mapper — printed 12-hour clocks (#2094)', () => {
+  it('reads a PM arrival as the afternoon instead of slicing the meridiem off', () => {
+    // Before the fix the endpoint carried '01:11', because splitIso sliced
+    // characters 11..16 out of '2026-06-11T01:11 PM'. The hour survived and the
+    // arrival landed twelve hours early.
+    const { items } = mapReservations([
+      flight('PM1', FRA, BER, '2026-06-11T09:51 am', '2026-06-11T01:11 pm', 'LH 300'),
+    ] as any, 'meridiem.json');
+
+    expect(items).toHaveLength(1);
+    const [dep, arr] = items[0].endpoints!;
+    expect(dep.local_time).toBe('09:51');
+    expect(arr.local_time).toBe('13:11');
+    expect(items[0].reservation_time).toBe('2026-06-11T09:51:00');
+    expect(items[0].reservation_end_time).toBe('2026-06-11T13:11:00');
+  });
+
+  it('leaves a 24-hour document byte for byte where it was', () => {
+    const { items } = mapReservations([
+      flight('H24', FRA, BER, '2026-06-11T10:00:00', '2026-06-11T12:00:00', 'LH 400'),
+    ] as any, 'plain.json');
+
+    expect(items[0].reservation_time).toBe('2026-06-11T10:00:00');
+    expect(items[0].endpoints![1].local_time).toBe('12:00');
+  });
+
+  it('keeps two legs apart that a NaN comparison used to merge', () => {
+    // sameConnection does `new Date(value).getTime()`, which is NaN for a
+    // printed meridiem, and both of its comparisons are false against NaN, so
+    // the guard fell through and merged unrelated legs into one booking.
+    const { items } = mapReservations([
+      flight('SAME', FRA, BER, '2026-06-11T09:00 am', '2026-06-11T10:00 am', 'LH 500'),
+      flight('SAME', HND, FRA, '2026-06-18T09:00 am', '2026-06-18T05:00 pm', 'LH 600'),
+    ] as any, 'two-legs.json');
+
+    expect(items).toHaveLength(2);
+  });
+});
+
+/**
+ * A recognised @type whose mapper cannot build an item used to leave nothing
+ * behind: no item, no warning, no log. With a single node in the file the
+ * service's own "no reservations found" never fired either, so a hotel voucher
+ * the model had read correctly but namelessly came back as an empty preview,
+ * indistinguishable from a document holding no booking at all (#2375).
+ */
+describe('kitinerary mapper — a recognised type that cannot be mapped (#2375)', () => {
+  it('warns instead of dropping a lodging whose reservationFor carries no name', () => {
+    const { items, warnings } = mapReservations([
+      { '@type': 'LodgingReservation', reservationNumber: 'HMTRSX', reservationFor: {} },
+    ] as any, 'airbnb.pdf');
+
+    expect(items).toHaveLength(0);
+    expect(warnings).toEqual([
+      'Incomplete LodgingReservation in airbnb.pdf[0] (no name in reservationFor) — skipped',
+    ]);
+  });
+
+  it('warns for a flight that carries no reservationFor at all', () => {
+    const { items, warnings } = mapReservations([
+      { '@type': 'FlightReservation', reservationNumber: 'ABC123' },
+    ] as any, 'ticket.eml');
+
+    expect(items).toHaveLength(0);
+    expect(warnings).toEqual([
+      'Incomplete FlightReservation in ticket.eml[0] (no reservationFor) — skipped',
+    ]);
+  });
+
+  it('names the type it could not map, TouristAttractionVisit included', () => {
+    const { warnings } = mapReservations([
+      { '@type': 'TouristAttractionVisit', reservationFor: {} },
+    ] as any, 'museum.pdf');
+
+    expect(warnings[0]).toBe('Incomplete TouristAttractionVisit in museum.pdf[0] (no name in reservationFor) — skipped');
+  });
+
+  it('keeps the bookings it could map and warns only about the weak one', () => {
+    const { items, warnings } = mapReservations([
+      flight('MIX1', FRA, BER, '2026-06-11T10:00:00', '2026-06-11T12:00:00', 'LH 800'),
+      { '@type': 'LodgingReservation', reservationFor: {} },
+    ] as any, 'trip.eml');
+
+    expect(items).toHaveLength(1);
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain('trip.eml[1]');
+  });
+
+  it('still warns exactly once for an unknown type', () => {
+    const { items, warnings } = mapReservations([
+      { '@type': 'RocketLaunchReservation', reservationFor: { name: 'Starbase' } },
+    ] as any, 'mars.eml');
+
+    expect(items).toHaveLength(0);
+    expect(warnings).toEqual(['Unknown type "RocketLaunchReservation" in mars.eml[0] — skipped']);
+  });
+});
+
+/**
+ * The node a schema-bound provider writes once `reservationFor` has declared
+ * fields: the venue inside it, times and price at the root, as the prompt asks.
+ * Synthetic data in the shape of a Booking.com print (#2477).
+ */
+describe('kitinerary mapper: a prompt-shaped AI lodging (#2477)', () => {
+  it('maps a LodgingReservation with reservationFor.name to one hotel with its stay and price', () => {
+    const { items, warnings } = mapReservations([
+      {
+        '@type': 'LodgingReservation',
+        checkinTime: '2026-09-06T13:00:00',
+        checkoutTime: '2026-09-07T11:00:00',
+        price: 89.35,
+        priceCurrency: 'EUR',
+        reservationFor: {
+          name: 'Harbour View Inn',
+          address: 'Example Road 1, 1000 Sample Town',
+          telephone: '+00 000 000 000',
+        },
+      },
+    ] as Parameters<typeof mapReservations>[0], 'Bestätigung_1.pdf');
+
+    expect(warnings).toEqual([]);
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({
+      type: 'hotel',
+      title: 'Harbour View Inn',
+      location: 'Example Road 1, 1000 Sample Town',
+      _venue: { name: 'Harbour View Inn', phone: '+00 000 000 000' },
+      _accommodation: { check_in: '2026-09-06T13:00', check_out: '2026-09-07T11:00' },
+      metadata: { check_in_time: '13:00', check_out_time: '11:00', price: 89.35, priceCurrency: 'EUR' },
+      source: { fileName: 'Bestätigung_1.pdf', index: 0 },
+    });
+  });
+});

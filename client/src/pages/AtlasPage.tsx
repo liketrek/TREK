@@ -5,8 +5,10 @@ import Navbar from '../components/Layout/Navbar'
 import apiClient from '../api/client'
 import CustomSelect from '../components/shared/CustomSelect'
 import EmptyState from '../components/shared/EmptyState'
-import { Globe, MapPin, Briefcase, Calendar, Flag, PanelLeftOpen, PanelLeftClose, X, Star, Plus, Trash2, Search } from 'lucide-react'
+import { Globe, MapPin, Briefcase, Calendar, Flag, PanelLeftOpen, PanelLeftClose, X, Star, Plus, Trash2, Search, Check } from 'lucide-react'
 import type { TranslationFn } from '../types'
+import { Tooltip } from '../components/shared/Tooltip'
+import DawarichAtlasSidePanel from '../components/Dawarich/DawarichAtlasSidePanel'
 import { A2_TO_A3, countryCodeToFlag, findBucketDuplicate, isBucketDuplicateError, withCountryMarkedVisited, type AtlasCountry, type AtlasStats, type AtlasData, type CountryDetail } from './atlas/atlasModel'
 import { continentForCountry } from '@trek/shared'
 import { useAtlas } from './atlas/useAtlas'
@@ -41,10 +43,10 @@ function AtlasPageDesktop(): React.ReactElement {
     bucketMonth, setBucketMonth, bucketYear, setBucketYear,
     bucketList, setBucketList, bucketTab, setBucketTab,
     showBucketAdd, setShowBucketAdd, bucketForm, setBucketForm,
-    handleAddBucketItem, handleDeleteBucketItem, handleBucketPoiSearch, handleSelectBucketPoi,
+    handleAddBucketItem, handleDeleteBucketItem, handleClearBucketVisit, handleBucketPoiSearch, handleSelectBucketPoi,
     bucketSearchResults, setBucketSearchResults,
     bucketPoiMonth, setBucketPoiMonth, bucketPoiYear, setBucketPoiYear,
-    bucketSearching, bucketSearch, setBucketSearch,
+    bucketSearching, bucketSearch, setBucketSearch, reloadAfterDawarich,
   } = useAtlas()
   const toast = useToast()
   // Solid surfaces when the user disabled transparency (read at render — the
@@ -60,6 +62,17 @@ function AtlasPageDesktop(): React.ReactElement {
         </div>
       </div>
     )
+  }
+
+  // The glass both bottom panels are cut from. One object, because two panels
+  // side by side that differ by a blur radius look like a mistake.
+  const glassPanel: React.CSSProperties = {
+    background: noTransparency ? (dark ? '#15151c' : '#ffffff') : (dark ? 'rgba(10,10,15,0.55)' : 'rgba(255,255,255,0.2)'),
+    backdropFilter: 'blur(24px) saturate(180%)',
+    WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+    border: '1px solid ' + (dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'),
+    borderRadius: 20,
+    boxShadow: dark ? '0 8px 32px rgba(0,0,0,0.3)' : '0 8px 32px rgba(0,0,0,0.08)',
   }
 
   return (
@@ -121,26 +134,36 @@ function AtlasPageDesktop(): React.ReactElement {
           </div>
         </div>
 
-        {/* Desktop Panel — bottom center, glass effect */}
+        {/* Desktop Panels — bottom center, glass effect.
+            Three columns so the Atlas panel stays exactly centred over the map
+            however wide its neighbour is: Dawarich sits in the left column,
+            right-aligned against the middle one, and stretches to its height. */}
+        <div
+          className="hidden md:grid absolute z-10 items-stretch"
+          style={{
+            bottom: 16,
+            left: 20,
+            right: 20,
+            gridTemplateColumns: '1fr auto 1fr',
+            alignItems: 'stretch',
+            gap: 12,
+            pointerEvents: 'none',
+          }}
+        >
+          <div className="flex justify-end" style={{ pointerEvents: 'auto', minWidth: 0 }}>
+            <DawarichAtlasSidePanel style={glassPanel} dark={dark} onChanged={reloadAfterDawarich} />
+          </div>
         <div
           ref={panelRef}
           onMouseMove={handlePanelMouseMove}
           onMouseLeave={handlePanelMouseLeave}
-          className="hidden md:flex flex-col absolute z-10 overflow-hidden transition-[width,height,transform,box-shadow] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]"
+          className="hidden md:flex flex-col overflow-hidden transition-[width,height,transform,box-shadow] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]"
           style={{
-            bottom: 16,
-            left: '50%',
-            transform: 'translateX(-50%)',
+            ...glassPanel,
             width: 'fit-content',
-            maxWidth: 'calc(100vw - 40px)',
-            background: noTransparency ? (dark ? '#15151c' : '#ffffff') : (dark ? 'rgba(10,10,15,0.55)' : 'rgba(255,255,255,0.2)'),
-            backdropFilter: 'blur(24px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-            border: '1px solid ' + (dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'),
-            borderRadius: 20,
-            boxShadow: dark
-              ? '0 8px 32px rgba(0,0,0,0.3)'
-              : '0 8px 32px rgba(0,0,0,0.08)',
+            maxWidth: '100%',
+            pointerEvents: 'auto',
+            position: 'relative',
           }}
         >
           {/* Liquid glass glare effect */}
@@ -158,12 +181,15 @@ function AtlasPageDesktop(): React.ReactElement {
             showBucketAdd={showBucketAdd} setShowBucketAdd={setShowBucketAdd}
             bucketForm={bucketForm} setBucketForm={setBucketForm}
             onAddBucket={handleAddBucketItem} onDeleteBucket={handleDeleteBucketItem}
+            onClearBucketVisit={handleClearBucketVisit}
             onSearchBucket={handleBucketPoiSearch} onSelectBucketPoi={handleSelectBucketPoi}
             bucketSearchResults={bucketSearchResults} setBucketSearchResults={setBucketSearchResults} bucketPoiMonth={bucketPoiMonth} setBucketPoiMonth={setBucketPoiMonth}
             bucketPoiYear={bucketPoiYear} setBucketPoiYear={setBucketPoiYear} bucketSearching={bucketSearching}
             bucketSearch={bucketSearch} setBucketSearch={setBucketSearch}
             t={t} dark={dark}
           />
+        </div>
+        <div aria-hidden />
         </div>
 
       </div>
@@ -463,6 +489,7 @@ interface SidebarContentProps {
   setBucketForm: (f: { name: string; notes: string; lat: string; lng: string; target_date: string }) => void
   onAddBucket: () => Promise<void>
   onDeleteBucket: (id: number) => Promise<void>
+  onClearBucketVisit: (id: number) => void | Promise<void>
   onSearchBucket: () => Promise<void>
   onSelectBucketPoi: (result: any) => void
   bucketSearchResults: any[]
@@ -478,7 +505,7 @@ interface SidebarContentProps {
   dark: boolean
 }
 
-function SidebarContent({ data, stats, countries, selectedCountry, countryDetail, resolveName, onTripClick, onUnmarkCountry, bucketList, bucketTab, setBucketTab, showBucketAdd, setShowBucketAdd, bucketForm, setBucketForm, onAddBucket, onDeleteBucket, onSearchBucket, onSelectBucketPoi, bucketSearchResults, setBucketSearchResults, bucketPoiMonth, setBucketPoiMonth, bucketPoiYear, setBucketPoiYear, bucketSearching, bucketSearch, setBucketSearch, t, dark }: SidebarContentProps): React.ReactElement {
+function SidebarContent({ data, stats, countries, selectedCountry, countryDetail, resolveName, onTripClick, onUnmarkCountry, bucketList, bucketTab, setBucketTab, showBucketAdd, setShowBucketAdd, bucketForm, setBucketForm, onAddBucket, onDeleteBucket, onClearBucketVisit, onSearchBucket, onSelectBucketPoi, bucketSearchResults, setBucketSearchResults, bucketPoiMonth, setBucketPoiMonth, bucketPoiYear, setBucketPoiYear, bucketSearching, bucketSearch, setBucketSearch, t, dark }: SidebarContentProps): React.ReactElement {
   const { language } = useTranslation()
   const statsContentRef = useRef<HTMLDivElement>(null)
   const bucketSearchRowRef = useRef<HTMLDivElement>(null)
@@ -552,6 +579,41 @@ function SidebarContent({ data, stats, countries, selectedCountry, countryDetail
             return <span className="text-[9px] mt-0.5 text-center" style={{ color: tf }}>{label}</span>
           })()}
           {!item.target_date && item.notes && <span className="text-[9px] mt-0.5 text-center" style={{ color: tf, maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.notes}</span>}
+          {/* Reached (#2279). A tick rather than removing the entry: a wish that
+              came true is the part of the list worth keeping, and the source is
+              named so a recording-derived tick is not mistaken for a manual one. */}
+          {item.visited_at && (
+            <Tooltip
+              label={item.visited_source === 'dawarich'
+                ? `${t('dawarich.bucket.visitedFrom')} — ${t('dawarich.bucket.clearVisit')}`
+                : ''}
+              placement="top"
+            >
+              {/* A tick that came from a recording can be taken back here: the
+                  wishlist is curated by hand, and a suggestion nobody can undo
+                  is not a suggestion. A tick somebody set themselves is text. */}
+              {item.visited_source === 'dawarich' ? (
+                <button
+                  type="button"
+                  onClick={() => { void onClearBucketVisit(item.id) }}
+                  aria-label={t('dawarich.bucket.clearVisit')}
+                  className="text-success mt-0.5 flex items-center gap-1 hover:opacity-70"
+                  style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit' }}
+                >
+                  <Check size={9} />
+                  {new Date(item.visited_at).toLocaleDateString(language)}
+                </button>
+              ) : (
+                <span
+                  className="text-success mt-0.5 flex items-center gap-1"
+                  style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))' }}
+                >
+                  <Check size={9} />
+                  {new Date(item.visited_at).toLocaleDateString(language)}
+                </span>
+              )}
+            </Tooltip>
+          )}
           <button type="button" onClick={() => onDeleteBucket(item.id)}
             className="opacity-0 group-hover:opacity-100"
             style={{ position: 'absolute', top: 4, right: 4, background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: tf, display: 'flex', transition: 'opacity 0.15s' }}>

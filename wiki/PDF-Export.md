@@ -21,7 +21,18 @@ Open the Day Plan sidebar in the trip planner and click the **Export** button in
   - **Days** — total number of days in the trip
   - **Places** — total places in your trip's place list
   - **Planned** — number of unique places assigned to at least one day
+  - **Distance** — the whole trip's routed distance, in your own unit (hidden when no day has a route)
   - **Cost** — sum of all assigned place prices, shown in the trip's currency (hidden if zero). Mixed currencies are converted at current rates and prefixed with "≈"; when a rate is missing, the tile shows a per-currency breakdown instead
+
+### Route map
+
+After the cover comes one map of the whole trip: every planned day's route drawn in its own colour, the stops marked, and the total distance beside the heading. Each day is named under the map with the distance it covers, so the colours on the map and the days in the plan read as the same thing. The same total also appears as a **Distance** tile on the cover.
+
+The backdrop is the same basemap the planner uses, rendered once during the export and baked into the document as a picture — so the map is already there when the print dialog opens, rather than still loading. It follows your own map style, and the default (OpenFreeMap) needs no account or key. A scale bar sits in the corner.
+
+If that basemap cannot be drawn — no WebGL in the browser, no connection, or a style that will not load — the map falls back to country outlines the app bundles, which need neither network nor key. That fallback is built for a route across a region: a trip inside one city becomes a route on a plain ground, with the scale bar carrying the sense of size.
+
+Routes come from the same router the planner uses, and the export does not wait indefinitely for it: legs that answer in time are drawn as real roads, and anything slower stays a straight line between its stops. A trip whose routing is unavailable altogether still prints — the map shows straight lines and the distance figures are left off rather than printed as zero. A trip with no planned day prints with no map at all.
 
 ### Per-day pages
 

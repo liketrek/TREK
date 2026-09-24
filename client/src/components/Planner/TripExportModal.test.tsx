@@ -96,7 +96,8 @@ describe('TripExportModal', () => {
     await user.click(screen.getByText('dayplan.pdf'))
     await waitFor(() => expect(downloadTripPDF).toHaveBeenCalledTimes(1))
     expect(vi.mocked(downloadTripPDF).mock.calls[0][0]).toMatchObject({
-      trip, days, dayNotes: [expect.objectContaining({ id: 1, text: 'Bring cash', day_id: 10 })],
+      trip, days, showServiceStops: true,
+      dayNotes: [expect.objectContaining({ id: 1, text: 'Bring cash', day_id: 10 })],
     })
   })
 

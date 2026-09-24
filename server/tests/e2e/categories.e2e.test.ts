@@ -34,6 +34,7 @@ vi.mock('../../src/db/database', () => ({ db, closeDb: () => {}, reinitialize: (
 
 import { CategoriesModule } from '../../src/nest/categories/categories.module';
 import { DatabaseModule } from '../../src/nest/database/database.module';
+import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
 import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
 
@@ -49,7 +50,10 @@ describe('Categories e2e (real JwtAuthGuard + AdminGuard + temp SQLite)', () => 
   let app: Awaited<ReturnType<typeof build>>;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, CategoriesModule] }).compile();
+    // RealtimeModule is @Global in the app graph but not in a partial container,
+// and CategoriesModule now pulls McpSharedModule in for the admin tools, whose
+// guard service takes it. days.e2e.test.ts imports it for the same reason.
+    const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, RealtimeModule, CategoriesModule] }).compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
     nest.useGlobalFilters(new TrekExceptionFilter());

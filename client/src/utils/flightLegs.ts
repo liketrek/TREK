@@ -49,6 +49,17 @@ export function orderedEndpoints(r: Pick<Reservation, 'endpoints'>): Reservation
 }
 
 /**
+ * An airport endpoint's name without the code every writer appends to it:
+ * "Paris Charles de Gaulle (CDG)" → "Paris Charles de Gaulle". Done as a trim plus an
+ * anchored test instead of /\s*\([A-Z]{3}\)\s*$/, because the leading \s* backtracks over
+ * every space in a long name for a quadratic worst case.
+ */
+export function stripAirportCode(name: string): string {
+  const trimmed = name.trimEnd()
+  return /\([A-Z]{3}\)$/.test(trimmed) ? trimmed.slice(0, -5).trimEnd() : name
+}
+
+/**
  * Ordered legs of a flight. `metadata.legs` is preferred; otherwise a single leg
  * is derived from the endpoints (and finally the flat metadata) so that legacy
  * single-leg flights — and flights created before this feature — still work.

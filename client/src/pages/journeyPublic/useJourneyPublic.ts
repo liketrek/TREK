@@ -5,6 +5,7 @@ import { useSettingsStore } from '../../store/settingsStore'
 import type { JourneyMapHandle } from '../../components/Journey/JourneyMap'
 import { useIsMobile } from '../../hooks/useIsMobile'
 import { DAY_COLORS } from '../../components/Journey/dayColors'
+import { posterlessVideo } from '../journeyDetail/JourneyDetailPage.helpers'
 import { groupByDate, type PublicEntry, type PublicGalleryPhoto } from './journeyPublicModel'
 
 /**
@@ -85,9 +86,18 @@ export function useJourneyPublic() {
         entry_date: e.entry_date,
         dayColor: DAY_COLORS[dayIdx % DAY_COLORS.length],
         dayLabel,
+        // Through the share token, like every other picture on this page: the
+        // reader has no session, so `/api/photos/:id` would answer 401. The
+        // poster rather than the file, as the owner's own map card does, since
+        // /original is the whole clip for a video; a clip that came up without
+        // a poster is dropped instead of holding a blank slot (#2341).
+        photoUrls: (e.photos ?? [])
+          .filter(p => !posterlessVideo(p))
+          .slice(0, 3)
+          .map(p => `/api/public/journey/${token}/photos/${p.photo_id}/thumbnail`),
       }
     })
-  }, [mapEntries, sortedDates])
+  }, [mapEntries, sortedDates, token])
 
   // The same number the marker carries, so the timeline is the key to the map
   // rather than a second, unrelated numbering.

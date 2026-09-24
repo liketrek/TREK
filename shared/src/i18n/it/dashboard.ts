@@ -89,6 +89,7 @@ const dashboard: TranslationStrings = {
   'dashboard.useUnsplashPhoto': 'Usa foto Unsplash di {photographer}',
   'dashboard.titleRequired': 'Il titolo è obbligatorio',
   'dashboard.endDateError': 'La data di fine deve essere successiva alla data di inizio',
+  'dashboard.tripTooLong': 'Un viaggio può durare al massimo {days} giorni',
   'dashboard.dateShiftTitle': 'Nuova data di inizio',
   'dashboard.dateShiftIntro':
     'Hai modificato la data di inizio di questo viaggio. Come devono adattarsi i tuoi piani alle nuove date?',
@@ -98,7 +99,25 @@ const dashboard: TranslationStrings = {
   'dashboard.dateShiftAll': 'Sposta tutto',
   'dashboard.dateShiftAllDesc': "L'intero itinerario si sposta con le nuove date, incluse prenotazioni e alloggi.",
   'dashboard.dateShiftHint':
-    'Suggerimento: per spostare solo una parte dell\'itinerario, usa "Aggiungi giorno" nel planner.',
+    "Suggerimento: per spostare solo una parte dell'itinerario, apri «Riordina i giorni» nel planner, aggiungi il giorno dopo la fine del viaggio con il pulsante che ne mostra la data e sposta quel giorno dove deve crearsi lo spazio.",
+  'dashboard.shrinkTitle': 'Rimuovere dei giorni?',
+  'dashboard.shrinkIntro': 'Salvando le nuove date vengono rimossi questi giorni:',
+  'dashboard.shrinkMoreDays': '+{count} altri',
+  'dashboard.shrinkLastDays': 'Vengono rimossi gli ultimi giorni, non i primi',
+  'dashboard.shrinkLastDaysHint':
+    "I programmi dei giorni seguono le nuove date, quindi vengono sempre rimossi gli ultimi giorni del piano, anche quando è cambiato l'inizio.",
+  'dashboard.shrinkBookingsHint':
+    'Restano in Prenotazioni. Quelle la cui data fa ancora parte del viaggio tornano su quel giorno.',
+  'dashboard.shrinkBookingsShiftHint': 'Restano in Prenotazioni, senza giorno.',
+  'dashboard.shrinkStayHint':
+    "Il check-in o il check-out cade in un giorno rimosso, quindi viene rimosso l'intero soggiorno.",
+  'dashboard.shrinkStayBookedHint':
+    "Il check-in o il check-out cade in un giorno rimosso, quindi viene rimosso l'intero soggiorno. La sua prenotazione «{booking}» e la relativa spesa restano in Prenotazioni.",
+  'dashboard.shrinkStayBookingHint':
+    "Il check-in o il check-out cade in un giorno rimosso, quindi viene rimosso l'intero soggiorno. La sua prenotazione «{booking}» resta in Prenotazioni.",
+  'dashboard.shrinkConfirm': 'Rimuovi i giorni e salva',
+  'dashboard.shrinkUnknown':
+    'Non è stato possibile controllare i giorni di questo viaggio. Se le nuove date hanno meno giorni, salvando vengono rimossi gli ultimi giorni e tutto ciò che vi è pianificato.',
   'dashboard.greeting.morning': 'Buongiorno,',
   'dashboard.greeting.afternoon': 'Buon pomeriggio,',
   'dashboard.greeting.evening': 'Buonasera,',

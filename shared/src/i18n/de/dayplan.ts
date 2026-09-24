@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const dayplan: TranslationStrings = {
   'dayplan.icsTooltip': 'Kalender exportieren (ICS)',
   'dayplan.emptyDay': 'Keine Orte für diesen Tag geplant',
+  'dayplan.addPlaceHere': 'Ort zu diesem Tag',
   'dayplan.cannotReorderTransport': 'Buchungen mit fester Uhrzeit können nicht verschoben werden',
   'dayplan.confirmRemoveTimeTitle': 'Uhrzeit entfernen?',
   'dayplan.confirmRemoveTimeBody':
@@ -88,5 +89,44 @@ const dayplan: TranslationStrings = {
   'dayplan.reorderUndo': 'Tage neu anordnen',
   'dayplan.reorderError': 'Tage konnten nicht neu angeordnet werden',
   'dayplan.addDayError': 'Tag konnte nicht hinzugefügt werden',
+  'dayplan.deleteDay': 'Tag löschen',
+  'dayplan.deleteDayTitle': '{day} löschen?',
+  'dayplan.deleteDayBody': 'Der Tag wird aus der Reise entfernt. Das lässt sich nicht rückgängig machen.',
+  'dayplan.deleteDayEmpty': 'An diesem Tag ist nichts geplant.',
+  'dayplan.impactPlaces': 'Geplante Orte: {count}',
+  'dayplan.impactPlacesHint': 'Sie bleiben in der Ortsliste.',
+  'dayplan.impactNotes': 'Notizen: {count}',
+  'dayplan.impactTexts': 'Tagestitel und Beschreibungen: {count}',
+  'dayplan.impactDeletedHint': 'Werden mitgelöscht.',
+  'dayplan.impactBookings': 'Buchungen: {count}',
+  'dayplan.impactStay': 'Übernachtung in {name}',
+  'dayplan.deleteDayBookingsHint': 'Sie bleiben unter Buchungen, ohne Tag.',
+  'dayplan.deleteDayStayHint': 'Check-in oder Check-out an diesem Tag, sie wird storniert.',
+  'dayplan.deleteDayStayBookedHint':
+    'Check-in oder Check-out an diesem Tag, sie wird storniert, zusammen mit der Buchung „{booking}“ und ihrer Ausgabe.',
+  'dayplan.deleteDayStayBookingHint':
+    'Check-in oder Check-out an diesem Tag, sie wird storniert, zusammen mit der Buchung „{booking}“.',
+  'dayplan.deleteDayStayPaidHint':
+    'Check-in oder Check-out an diesem Tag, sie wird storniert, zusammen mit der Buchung „{booking}“ und ihrer Ausgabe über {amount}.',
+  'dayplan.deleteDayShift': 'Spätere Tage: {count}',
+  'dayplan.deleteDayShiftHint': 'Jeder rückt um einen Kalendertag nach vorn.',
+  'dayplan.deleteDayShiftBookingsHint':
+    'Jeder rückt um einen Kalendertag nach vorn. Buchungen, die mitwandern: {count}',
+  'dayplan.deleteDayShrink': 'Die Reise endet jetzt am {date}',
+  'dayplan.deleteDayShrinkHint': 'Es gibt keinen Tag ohne Datum, der das letzte Datum übernehmen könnte.',
+  'dayplan.impactStayShorter': 'Übernachtung in {name}: eine Nacht weniger',
+  'dayplan.deleteDayStayShorterHint': 'Der Check-out ist jetzt am {date}, weil sie über diesen Tag läuft.',
+  'dayplan.deleteDayStayShorterUndatedHint': 'Sie läuft über diesen Tag und endet jetzt einen Tag früher.',
+  'dayplan.deleteDaySpareDated': '{day} bekommt das Datum {date}',
+  'dayplan.deleteDaySpareDatedHint': 'Er ist der erste Tag ohne Datum und übernimmt das letzte Datum der Reise.',
+  'dayplan.deleteDayLast': 'Eine Reise braucht mindestens einen Tag',
+  'dayplan.daysOffline': 'Tage ändern geht nur mit Verbindung',
+  'dayplan.deleteDaySuccess': 'Tag gelöscht',
+  'dayplan.deleteDayError': 'Tag konnte nicht gelöscht werden',
+  'dayplan.addUndatedDay': 'Ohne Datum',
+  'dayplan.addUndatedDayHint': 'Hängt hinten einen Tag ohne Datum an. Die Reisedaten bleiben, wie sie sind.',
+  'dayplan.addDatedDay': '{date} hinzufügen',
+  'dayplan.addDatedDayHint': 'Fügt {date} hinzu und verlängert die Reise um einen Tag.',
+  'dayplan.tripExtended': 'Tag hinzugefügt. Die Reise endet jetzt am {date}, einen Tag später.',
 };
 export default dayplan;

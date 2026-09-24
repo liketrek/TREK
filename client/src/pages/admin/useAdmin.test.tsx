@@ -1,4 +1,4 @@
-// FE-ADMHOOK-001 to FE-ADMHOOK-049
+// FE-ADMHOOK-001 to FE-ADMHOOK-051
 import { http, HttpResponse } from 'msw';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -274,6 +274,38 @@ describe('useAdmin', () => {
 
     expect(result.current.requireMfa).toBe(false);
     expect(toastCalls.some(c => c.type === 'error')).toBe(true);
+  });
+
+  it('FE-ADMHOOK-050: handleTogglePlacesGoogleOnly flips the switch and PUTs it', async () => {
+    let body: Record<string, unknown> | null = null;
+    server.use(
+      http.put('/api/admin/places-google-only', async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ enabled: true });
+      })
+    );
+    const { result } = await mountAdmin();
+
+    await act(async () => {
+      await result.current.handleTogglePlacesGoogleOnly();
+    });
+
+    expect(body).toEqual({ enabled: true });
+    expect(result.current.placesGoogleOnly).toBe(true);
+  });
+
+  it('FE-ADMHOOK-051: a rejected Google-only update rolls the switch back and toasts', async () => {
+    server.use(
+      http.put('/api/admin/places-google-only', () => HttpResponse.json({ error: 'locked' }, { status: 500 }))
+    );
+    const { result } = await mountAdmin();
+
+    await act(async () => {
+      await result.current.handleTogglePlacesGoogleOnly();
+    });
+
+    expect(result.current.placesGoogleOnly).toBe(false);
+    expect(toastCalls).toContainEqual({ type: 'error', message: 'locked' });
   });
 
   it('FE-ADMHOOK-016: handleSaveWebauthn trims and re-reads the app config', async () => {

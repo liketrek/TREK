@@ -21,7 +21,7 @@
  * GitHub release was cut. Same trap as the one `publish`'s reorder closed. It belongs in step 1.
  */
 import fs from 'node:fs';
-import { defaultKeyPath, generateKeypair } from './sign.js';
+import { defaultKeyPath, generateKeypair, loadPrivateKey, publicKeyBase64 } from './sign.js';
 import { DEFAULT_REGISTRY } from './checks/network.js';
 import { isInteractive, promptConfirm, note, logWarn, logSuccess } from './ui.js';
 
@@ -74,7 +74,31 @@ export async function inspectSigning(
  * most check failures are not: the release is immutable, so an author who learns at step 4 that
  * their update had to be signed has burned the tag.
  */
-export function assertSigningAllowed(state: SigningState, signKeyPath: string | undefined): void {
+export function assertSigningAllowed(
+  state: SigningState,
+  signKeyPath: string | undefined,
+  opts: { allowKeyChange?: boolean } = {},
+): void {
+  if (state.publishedSigned && signKeyPath && state.publishedKey && !opts.allowKeyChange) {
+    // Signing with a DIFFERENT key than the one TREK pinned is refused just as hard as not
+    // signing — instances reject it as SIGNATURE_KEY_CHANGED. Catching it downstream (preflight,
+    // submit) is catching it after the immutable release is cut, so compare identities here.
+    // Best-effort only: an unreadable/missing key file is NOT a mismatch — `entry`/`sign` report
+    // that with the actionable keygen hint, and inventing a "wrong key" error over it would lie.
+    let localKey: string | undefined;
+    try { localKey = publicKeyBase64(loadPrivateKey(signKeyPath)); } catch { /* see above */ }
+    if (localKey && localKey !== state.publishedKey) {
+      throw new Error(
+        'this plugin was published under a DIFFERENT key than the one you are signing with.\n\n' +
+          'TREK pins the author key on first install, so an update signed with another key is refused on every\n' +
+          'instance that already has the plugin (SIGNATURE_KEY_CHANGED).\n\n' +
+          `If this is the wrong key by accident, sign with the original one (expected authorPublicKey ${state.publishedKey}).\n` +
+          'If you MEAN to rotate the key: `trek-plugin rotate-key` rotates without publishing a version, or re-run\n' +
+          'this publish with --allow-key-change to rotate as part of it. Either way a registry maintainer must\n' +
+          'apply the allow-key-change label to the PR, and every admin who has the plugin must re-trust it.',
+      );
+    }
+  }
   if (!state.publishedSigned || signKeyPath) return;
 
   throw new Error(

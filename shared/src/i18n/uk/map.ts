@@ -19,5 +19,14 @@ const map: TranslationStrings = {
   'map.baseLayer.satellite': 'Супутник',
   'map.baseLayer.switchToSatellite': 'Перемкнути на супутниковий вигляд',
   'map.baseLayer.switchToDefault': 'Перемкнути на вигляд карти',
+  'map.location.denied': 'Доступ до геолокації заблоковано. Перевірте налаштування пристрою; встановлений застосунок має власний дозвіл на геолокацію, окремий від браузера.',
+  'map.location.unavailable': 'Не вдалося визначити ваше місцезнаходження.',
+  'map.location.timeout': 'Визначення місцезнаходження тривало надто довго. Спробуйте ще раз просто неба.',
+  'map.overview.show': 'Показати всю подорож',
+  'map.overview.hide': 'Сховати всю подорож',
+  'map.overview.total': 'Загальна відстань',
+  'map.attribution': 'Джерела карти',
+  'map.overview.unrouted': 'Не вдалося прокласти {count} відрізок(ів), тому відстані неповні.',
+  'map.overview.dayUnrouted': 'Не вдалося прокласти {count} відрізок(ів) цього дня',
 };
 export default map;

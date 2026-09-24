@@ -75,6 +75,7 @@ const dashboard: TranslationStrings = {
   'dashboard.coverRemoveError': 'Error en eliminar la imatge',
   'dashboard.titleRequired': 'El títol és obligatori',
   'dashboard.endDateError': "La data de fi ha de ser posterior a la d'inici",
+  'dashboard.tripTooLong': 'Un viatge pot durar com a màxim {days} dies',
   'dashboard.greeting.morning': 'Bon dia,',
   'dashboard.greeting.afternoon': 'Bona tarda,',
   'dashboard.greeting.evening': 'Bona nit,',
@@ -180,7 +181,24 @@ const dashboard: TranslationStrings = {
   'dashboard.dateShiftAll': 'Mou-ho tot',
   'dashboard.dateShiftAllDesc': "Tot l'itinerari es mou amb les noves dates, incloses les reserves i els allotjaments.",
   'dashboard.dateShiftHint':
-    'Consell: per moure només una part de l\'itinerari, fes servir "Afegeix un dia" al planificador.',
+    "Consell: per moure només una part de l'itinerari, obre «Reordena els dies» al planificador, afegeix el dia posterior al viatge amb el botó que mostra la seva data i mou aquest dia on ha de quedar el buit.",
+  'dashboard.shrinkTitle': 'Vols treure dies?',
+  'dashboard.shrinkIntro': 'En desar les noves dates es treuen aquests dies:',
+  'dashboard.shrinkMoreDays': '+{count} més',
+  'dashboard.shrinkLastDays': 'Es treuen els últims dies, no els primers',
+  'dashboard.shrinkLastDaysHint':
+    "Els plans de cada dia es mouen amb les noves dates, així que sempre es treuen els últims dies del pla, també quan ha canviat l'inici.",
+  'dashboard.shrinkBookingsHint':
+    'Es queden a Reserves. Les que tenen una data que encara és dins del viatge tornen a aquell dia.',
+  'dashboard.shrinkBookingsShiftHint': 'Es queden a Reserves, sense dia.',
+  'dashboard.shrinkStayHint': "L'entrada o la sortida és un dia que es treu, així que es treu tota l'estada.",
+  'dashboard.shrinkStayBookedHint':
+    "L'entrada o la sortida és un dia que es treu, així que es treu tota l'estada. La seva reserva «{booking}» i la seva despesa es queden a Reserves.",
+  'dashboard.shrinkStayBookingHint':
+    "L'entrada o la sortida és un dia que es treu, així que es treu tota l'estada. La seva reserva «{booking}» es queda a Reserves.",
+  'dashboard.shrinkConfirm': 'Treu els dies i desa',
+  'dashboard.shrinkUnknown':
+    "No s'han pogut comprovar els dies d'aquest viatge. Si les noves dates tenen menys dies, en desar es treuen els últims dies i tot el que hi ha planificat.",
   'dashboard.subscribeAllTrips': 'Subscriu-te a tots els viatges',
   'dashboard.subscribeAllTripsDesc':
     'Un sol canal de calendari per a tots els teus viatges actius, sincronitzat automàticament. Exclou els viatges arxivats i els que van acabar fa més de 90 dies.',

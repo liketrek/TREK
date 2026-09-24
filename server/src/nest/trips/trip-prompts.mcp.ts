@@ -1,8 +1,8 @@
 import { McpController, Prompt, type McpContext } from '../../nest-mcp';
-import { z } from 'zod';
 import { ADDON_IDS } from '../../addons';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
+import { tripIdPromptArg } from '../mcp-shared/prompt-args';
 import { PackingService } from '../packing/packing.service';
 import { TripReadModelService } from '../trip-read-model/trip-read-model.service';
 import { TripsService } from './trips.service';
@@ -35,7 +35,7 @@ export class TripPromptsMcp {
     title: 'Budget Overview',
     description: 'Get a formatted budget summary for a trip',
     argsSchema: {
-      tripId: z.number().int().positive().describe('Trip ID'),
+      tripId: tripIdPromptArg.describe('Trip ID'),
     },
     when: budgetAddonOn,
   })
@@ -72,7 +72,7 @@ export class TripPromptsMcp {
     title: 'Packing List',
     description: 'Get a formatted packing checklist for a trip',
     argsSchema: {
-      tripId: z.number().int().positive().describe('Trip ID'),
+      tripId: tripIdPromptArg.describe('Trip ID'),
     },
     when: packingAddonOn,
   })

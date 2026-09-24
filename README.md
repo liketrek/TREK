@@ -365,6 +365,16 @@ Caddy handles TLS and WebSockets automatically.
 Every variable, its default and what it does: see
 [Environment Variables](https://github.com/liketrek/TREK/wiki/Environment-Variables).
 
+## Star History
+
+<a href="https://www.star-history.com/?repos=liketrek%2FTREK&type=date&legend=bottom-right">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=liketrek/TREK&type=date&theme=dark&legend=bottom-right&sealed_token=tW9agibKugOyPk0yPURgSdnizM7K72zbJENGD9iyk24ZcwYHtCUn-hk9jh1gdacO0O7xJ3Io7LaNrwYD3mChzcpzZIqDC8_HevYG1qnT0XNTmN6Ez4UZrQ" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=liketrek/TREK&type=date&legend=bottom-right&sealed_token=tW9agibKugOyPk0yPURgSdnizM7K72zbJENGD9iyk24ZcwYHtCUn-hk9jh1gdacO0O7xJ3Io7LaNrwYD3mChzcpzZIqDC8_HevYG1qnT0XNTmN6Ez4UZrQ" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=liketrek/TREK&type=date&legend=bottom-right&sealed_token=tW9agibKugOyPk0yPURgSdnizM7K72zbJENGD9iyk24ZcwYHtCUn-hk9jh1gdacO0O7xJ3Io7LaNrwYD3mChzcpzZIqDC8_HevYG1qnT0XNTmN6Ez4UZrQ" />
+ </picture>
+</a>
+
 ## Data sources
 
 The Atlas map's country and sub-national (province/county) boundaries come from

@@ -35,8 +35,10 @@ export class ImmichMemoriesController {
     @Req() req: Request,
     @Res() res: Response,
   ): Promise<void> {
-    const { immich_url, immich_api_key, auto_upload } = body;
-    const result = await this.memories.immichSaveSettings(user.id, immich_url, immich_api_key, getClientIp(req));
+    const { immich_url, immich_api_key, auto_upload, allow_insecure_tls } = body;
+    // Absent stays undefined and leaves the stored choice alone, so an older
+    // client cannot clear it by saving.
+    const result = await this.memories.immichSaveSettings(user.id, immich_url, immich_api_key, getClientIp(req), allow_insecure_tls);
     if (!result.success) {
       res.status(400).json({ error: result.error });
       return;
@@ -59,11 +61,11 @@ export class ImmichMemoriesController {
   @Post('test')
   @HttpCode(200)
   async test(@Body() body: ImmichTestDto) {
-    const { immich_url, immich_api_key } = body;
+    const { immich_url, immich_api_key, allow_insecure_tls } = body;
     if (!immich_url || !immich_api_key) {
       return { connected: false, error: 'URL and API key required' };
     }
-    return this.memories.immichTestConnection(immich_url, immich_api_key);
+    return this.memories.immichTestConnection(immich_url, immich_api_key, allow_insecure_tls === true);
   }
 
   @Get('browse')

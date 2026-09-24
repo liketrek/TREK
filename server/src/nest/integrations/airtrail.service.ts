@@ -156,6 +156,13 @@ export class AirtrailService {
   /**
    * "Test connection" from the settings form. Uses the typed URL/key when given;
    * falls back to the stored key when the key field still shows the mask.
+   *
+   * The stored key only for the origin it was stored against. The form prefills
+   * the address and never the key, so retyping the address and pressing Test is
+   * the ordinary way to move an instance, and a test button that carried the
+   * stored key to whatever address was just typed would post the credential at
+   * a stranger's server. A path edit on the same origin is the same instance
+   * and keeps it.
    */
   async testConnection(
     userId: number,
@@ -168,7 +175,15 @@ export class AirtrailService {
 
     const stored = this.getAirtrailCredentials(userId);
     const effectiveUrl = trimmedUrl || stored?.baseUrl;
-    const effectiveKey = provided && provided !== KEY_MASK ? provided : stored?.apiKey;
+    const typedKey = provided && provided !== KEY_MASK ? provided : '';
+
+    if (!typedKey && stored && movedHost(stored.baseUrl, trimmedUrl)) {
+      return {
+        connected: false,
+        error: `The stored key was issued for ${stored.baseUrl}. Enter the key for this address to test it.`,
+      };
+    }
+    const effectiveKey = typedKey || stored?.apiKey;
 
     if (!effectiveUrl || !effectiveKey) {
       return { connected: false, error: 'URL and API key required' };
@@ -188,5 +203,23 @@ export class AirtrailService {
     if (!creds) throw new AirtrailRequestError('AirTrail is not connected', 400);
     const raw = await this.client.listFlights(creds);
     return raw.map(normalizeFlight);
+  }
+}
+
+/**
+ * Does the typed address point at a different AirTrail instance than the stored one?
+ *
+ * Scheme, host and port, because that is what decides where a credential is
+ * sent. A path change ("/", "/api", a typo) is the same instance. Anything
+ * unparseable is compared as written, which errs towards withholding the key
+ * rather than shipping it somewhere new. An empty address is no move at all:
+ * the stored one stands in for it.
+ */
+function movedHost(before: string | null, after: string): boolean {
+  if (!before || !after) return false;
+  try {
+    return new URL(before).origin !== new URL(after).origin;
+  } catch {
+    return before !== after;
   }
 }

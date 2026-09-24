@@ -290,6 +290,7 @@ async function main() {
       'admin_ntfy_token',
       'maps_api_key',
       'unsplash_api_key',
+      'amap_api_key',
     ]) {
       const row = db.prepare('SELECT value FROM app_settings WHERE key = ?').get(key) as { value: string } | undefined;
       if (!row?.value) continue;
@@ -312,6 +313,9 @@ async function main() {
     const apiKeyColumns = [
       'maps_api_key',
       'unsplash_api_key',
+      // Added with the Amap provider; filtered against the real table below, so a
+      // database that has not run that migration yet is not a rotation failure.
+      'amap_api_key',
       'openweather_api_key',
       'immich_api_key',
       'synology_password',
@@ -404,7 +408,7 @@ async function main() {
     }
 
     // --- settings: per-user encrypted keys ---
-    const encryptedSettingKeys = ['webhook_url', 'ntfy_token', 'mapbox_access_token', 'llm_api_key'];
+    const encryptedSettingKeys = ['webhook_url', 'ntfy_token', 'mapbox_access_token', 'carto_api_key', 'llm_api_key'];
     const settingRows = db.prepare(
       `SELECT user_id, key, value FROM settings WHERE key IN (${encryptedSettingKeys.map(() => '?').join(', ')})`
     ).all(...encryptedSettingKeys) as { user_id: number; key: string; value: string }[];
@@ -526,12 +530,66 @@ async function main() {
       }
     }
 
+    // --- dawarich_connections: api_key ---
+    // Its own table rather than a users column, so it needs its own block. The
+    // table arrived with a later migration, hence the existence check: an older
+    // database simply has nothing to rotate here.
+    if (tableExists('dawarich_connections')) {
+      const connections = db
+        .prepare('SELECT user_id, api_key FROM dawarich_connections WHERE api_key IS NOT NULL')
+        .all() as { user_id: number; api_key: string }[];
+      for (const row of connections) {
+        const newVal = migrateApiKeyValue(row.api_key, `dawarich_connections[${row.user_id}].api_key`);
+        if (newVal !== null) {
+          db.prepare('UPDATE dawarich_connections SET api_key = ? WHERE user_id = ?').run(newVal, row.user_id);
+        }
+      }
+    }
+
     // --- trek_photos: passphrase ---
     const photos = db.prepare('SELECT id, passphrase FROM trek_photos WHERE passphrase IS NOT NULL').all() as { id: number; passphrase: string }[];
     for (const row of photos) {
       const newVal = migrateApiKeyValue(row.passphrase, `trek_photos[${row.id}].passphrase`);
       if (newVal !== null) {
         db.prepare('UPDATE trek_photos SET passphrase = ? WHERE id = ?').run(newVal, row.id);
+      }
+    }
+
+    // --- document_connections: secrets ---
+    // Every credential of a document connection sits in ONE encrypted JSON blob
+    // (src/nest/doc-sync/doc-sync-secrets.ts) rather than in a column per
+    // provider, so a new provider changes nothing here: the blob is rotated as
+    // an opaque value. It also holds secrets the provider handed out itself,
+    // such as the DSM device token, which no form can re-enter. Left out of a
+    // rotation, every trip binding on the instance reads back as unauthorized
+    // and Synology needs a fresh OTP pairing. The table arrived with a later
+    // migration, hence the existence check.
+    if (tableExists('document_connections')) {
+      const documentConnections = db
+        .prepare('SELECT id, secrets FROM document_connections WHERE secrets IS NOT NULL')
+        .all() as { id: number; secrets: string }[];
+      for (const row of documentConnections) {
+        const newVal = migrateApiKeyValue(row.secrets, `document_connections[${row.id}].secrets`);
+        if (newVal !== null) {
+          db.prepare('UPDATE document_connections SET secrets = ? WHERE id = ?').run(newVal, row.id);
+        }
+      }
+    }
+
+    // --- trip_document_links: webhook_secret ---
+    // The secret a provider signs its webhook calls with, stored through the
+    // same blob helper. It is written once when the link is created and never
+    // regenerated, so a rotation that misses it leaves the link with nothing to
+    // check a signature against.
+    if (tableExists('trip_document_links')) {
+      const documentLinks = db
+        .prepare('SELECT id, webhook_secret FROM trip_document_links WHERE webhook_secret IS NOT NULL')
+        .all() as { id: number; webhook_secret: string }[];
+      for (const row of documentLinks) {
+        const newVal = migrateApiKeyValue(row.webhook_secret, `trip_document_links[${row.id}].webhook_secret`);
+        if (newVal !== null) {
+          db.prepare('UPDATE trip_document_links SET webhook_secret = ? WHERE id = ?').run(newVal, row.id);
+        }
       }
     }
   })();

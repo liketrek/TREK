@@ -17,13 +17,15 @@ import MobileShell from './mobile/MobileShell'
 import MRouteFallback from './mobile/components/MRouteFallback'
 import ErrorBoundary from './components/shared/ErrorBoundary'
 import { lazyWithRetry } from './utils/lazyWithRetry'
+import { reconcileAppVersion } from './utils/versionHandover'
 import { useIsPhone } from './mobile/useIsPhone'
 import { TranslationProvider, useTranslation } from './i18n'
-import { authApi } from './api/client'
+import { authApi, isAuthPublicPath } from './api/client'
 import { tripRepo } from './repo/tripRepo'
 import { readStartDestination, tripStartPath, DEFAULT_START_PAGE, DEFAULT_START_TRIP_TAB, SETTINGS_WAIT_MS, START_DESTINATION_ROUTE } from './utils/startDestination'
 import { usePermissionsStore, PermissionLevel } from './store/permissionsStore'
 import { useInAppNotificationListener } from './hooks/useInAppNotificationListener.ts'
+import { useRoadtripPreferencesSync } from './hooks/useRoadtripPreferencesSync'
 import { registerSyncTriggers, unregisterSyncTriggers } from './sync/syncTriggers'
 import OfflineBanner from './components/Layout/OfflineBanner'
 import { SystemNoticeHost } from './components/SystemNotices/SystemNoticeHost.js'
@@ -106,7 +108,7 @@ function ProtectedRoute({ children, adminRequired = false, addonId }: ProtectedR
     // A session that ended on its own should come back to where it left off; a
     // deliberate sign-out is a fresh start and gets no return ticket, so the
     // startup destination decides where the next login lands.
-    if (loggingOut) return <Navigate to="/login" replace />
+    if (loggingOut) return <Navigate to="/login" replace state={{ noRedirect: true }} />
     const redirectParam = encodeURIComponent(location.pathname + location.search + location.hash)
     return <Navigate to={`/login?redirect=${redirectParam}`} replace />
   }
@@ -283,7 +285,7 @@ function RouteFallback() {
 }
 
 export default function App() {
-  const { loadUser, isAuthenticated, demoMode, setManaged, setDemoMode, setDevMode, setIsPrerelease, setAppVersion, setHasMapsKey, setServerTimezone, setAppRequireMfa, setTripRemindersEnabled, setPlacesPhotosEnabled, setPlacesAutocompleteEnabled, setPlacesDetailsEnabled, setPlacesEnrichEnabled } = useAuthStore()
+  const { loadUser, isAuthenticated, demoMode, setManaged, setDemoMode, setDevMode, setIsPrerelease, setAppVersion, setHasMapsKey, setHasAmapKey, setPlacesProvider, setServerTimezone, setAppRequireMfa, setTripRemindersEnabled, setPlacesPhotosEnabled, setPlacesAutocompleteEnabled, setPlacesDetailsEnabled, setPlacesEnrichEnabled, setPlaceShadowEnabled } = useAuthStore()
   const { loadSettings } = useSettingsStore()
   const { loadAddons } = useAddonStore()
   const { loadPlugins } = usePluginStore()
@@ -300,13 +302,15 @@ export default function App() {
         loadUser()
       }
     }
-    authApi.getAppConfig().then(async (config: { managed?: boolean; demo_mode?: boolean; dev_mode?: boolean; is_prerelease?: boolean; has_maps_key?: boolean; version?: string; timezone?: string; require_mfa?: boolean; trip_reminders_enabled?: boolean; places_photos_enabled?: boolean; places_autocomplete_enabled?: boolean; places_details_enabled?: boolean; places_enrich_enabled?: boolean; permissions?: Record<string, PermissionLevel> }) => {
+    authApi.getAppConfig().then(async (config: { managed?: boolean; demo_mode?: boolean; dev_mode?: boolean; is_prerelease?: boolean; has_maps_key?: boolean; has_amap_key?: boolean; places_provider?: string; version?: string; timezone?: string; require_mfa?: boolean; trip_reminders_enabled?: boolean; places_photos_enabled?: boolean; places_autocomplete_enabled?: boolean; places_details_enabled?: boolean; places_enrich_enabled?: boolean; place_shadow_enabled?: boolean; permissions?: Record<string, PermissionLevel> }) => {
       setManaged(!!config?.managed)
       setDemoMode(!!config?.demo_mode)
       if (config?.dev_mode) setDevMode(true)
       if (config?.is_prerelease !== undefined) setIsPrerelease(config.is_prerelease)
       if (config?.version) setAppVersion(config.version)
       if (config?.has_maps_key !== undefined) setHasMapsKey(config.has_maps_key)
+      if (config?.has_amap_key !== undefined) setHasAmapKey(config.has_amap_key)
+      if (config?.places_provider) setPlacesProvider(config.places_provider)
       if (config?.timezone) setServerTimezone(config.timezone)
       if (config?.require_mfa !== undefined) setAppRequireMfa(!!config.require_mfa)
       if (config?.trip_reminders_enabled !== undefined) setTripRemindersEnabled(config.trip_reminders_enabled)
@@ -314,33 +318,17 @@ export default function App() {
       if (config?.places_autocomplete_enabled !== undefined) setPlacesAutocompleteEnabled(config.places_autocomplete_enabled)
       if (config?.places_details_enabled !== undefined) setPlacesDetailsEnabled(config.places_details_enabled)
       if (config?.places_enrich_enabled !== undefined) setPlacesEnrichEnabled(config.places_enrich_enabled)
+      if (config?.place_shadow_enabled !== undefined) setPlaceShadowEnabled(config.place_shadow_enabled)
       if (config?.permissions) usePermissionsStore.getState().setPermissions(config.permissions)
-
-      if (config?.version) {
-        const storedVersion = localStorage.getItem('trek_app_version')
-        if (storedVersion && storedVersion !== config.version) {
-          try {
-            if ('caches' in window) {
-              const names = await caches.keys()
-              await Promise.all(names.map(n => caches.delete(n)))
-            }
-            if ('serviceWorker' in navigator) {
-              const regs = await navigator.serviceWorker.getRegistrations()
-              await Promise.all(regs.map(r => r.unregister()))
-            }
-          } catch {}
-          localStorage.setItem('trek_app_version', config.version)
-          window.location.reload()
-          return
-        }
-        localStorage.setItem('trek_app_version', config.version)
-      }
+      // Last, since a new release reloads the page from here.
+      await reconcileAppVersion(config?.version)
     }).catch(() => {})
   }, [])
 
   const { settings } = useSettingsStore()
 
   useInAppNotificationListener()
+  useRoadtripPreferencesSync()
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -380,13 +368,22 @@ export default function App() {
     || location.pathname.startsWith('/register')
     || location.pathname.startsWith('/forgot-password')
     || location.pathname.startsWith('/reset-password')
+  // No session on these, so authenticated-only widgets (system notices,
+  // background tasks, save-to-collection) have nothing to do and would only fire
+  // a doomed authenticated request on mount.
+  //
+  // Off isAuthPublicPath rather than a second hand-kept list: the two had already
+  // drifted, this one naming only /public/journey/ while the response
+  // interceptor's covers all of /public/. A route that is public to one and not
+  // to the other is exactly the seam that puts a 401 back.
+  const hideAuthedWidgets = isAuthPage || isAuthPublicPath(location.pathname)
 
   return (
     <TranslationProvider>
-      {!isAuthPage && <ErrorBoundary boundaryId="widget:system-notice" fallback={null}><SystemNoticeHost /></ErrorBoundary>}
+      {!hideAuthedWidgets && <ErrorBoundary boundaryId="widget:system-notice" fallback={null}><SystemNoticeHost /></ErrorBoundary>}
       <ErrorBoundary boundaryId="widget:toast" fallback={null}><ToastContainer /></ErrorBoundary>
-      {!isAuthPage && <ErrorBoundary boundaryId="widget:background-tasks" fallback={null}><BackgroundTasksWidget /></ErrorBoundary>}
-      {!isAuthPage && (isPhone ? <MSaveToCollectionSheet /> : <SaveToCollectionModal />)}
+      {!hideAuthedWidgets && <ErrorBoundary boundaryId="widget:background-tasks" fallback={null}><BackgroundTasksWidget /></ErrorBoundary>}
+      {!hideAuthedWidgets && (isPhone ? <MSaveToCollectionSheet /> : <SaveToCollectionModal />)}
       <ErrorBoundary boundaryId="widget:offline-banner" fallback={null}><OfflineBanner /></ErrorBoundary>
       {/* One boundary for all route chunks, above <Routes> so it stays mounted
           across navigations. react-router runs location updates inside a transition,

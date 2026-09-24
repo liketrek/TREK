@@ -8,7 +8,7 @@ import type { Category } from '../../../../src/types'
 import { resetAllStores } from '../../../helpers/store'
 import { useTranslation } from '../../../../src/i18n'
 
-// FE-MOB-CPLSH-001 to FE-MOB-CPLSH-037
+// FE-MOB-CPLSH-001 to FE-MOB-CPLSH-041
 
 // react-markdown ships ESM-only chunks jsdom chokes on; the sheet only needs
 // the raw description text to reach the renderer.
@@ -417,5 +417,65 @@ describe('MCollPlaceSheet', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
     expect(screen.getByPlaceholderText('Street, City, Country')).toHaveValue('2-6-15 Minami-Aoyama')
+  })
+
+  // ── Cover controls beside the close button ─────────────────────────────────
+
+  it('FE-MOB-CPLSH-038: the camera sits in the top right row, just left of close, and looks like it', () => {
+    setup({ onUploadImage: vi.fn() })
+    const camera = screen.getByRole('button', { name: 'Upload image' })
+    const close = screen.getByRole('button', { name: 'Close' })
+
+    const row = close.parentElement as HTMLElement
+    expect(camera.parentElement).toBe(row)
+    expect(camera.nextElementSibling).toBe(close)
+    expect(camera.className).toBe(close.className)
+    // The category chip has the top left corner to itself again.
+    expect(row.contains(screen.getByText('Restaurant'))).toBe(false)
+
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement
+    const clicked = vi.fn()
+    input.addEventListener('click', clicked)
+    fireEvent.click(camera)
+    expect(clicked).toHaveBeenCalledTimes(1)
+  })
+
+  it('FE-MOB-CPLSH-039: with a custom cover the row reads remove, change, close', () => {
+    setup({ onUploadImage: vi.fn(), place: place({ image_url: '/uploads/places/n.jpg' }) })
+    const remove = screen.getByRole('button', { name: 'Remove image' })
+    const change = screen.getByRole('button', { name: 'Change image' })
+    const close = screen.getByRole('button', { name: 'Close' })
+
+    expect(Array.from((close.parentElement as HTMLElement).querySelectorAll('button'))).toEqual([remove, change, close])
+    expect(remove.className).toBe(close.className)
+  })
+
+  it('FE-MOB-CPLSH-040: without a category chip the name still starts below the full control row', () => {
+    setup({ onUploadImage: vi.fn(), place: place({ category: undefined, category_id: null, image_url: '/uploads/places/n.jpg' }) })
+    const controls = screen.getByRole('button', { name: 'Close' }).parentElement as HTMLElement
+    const top = controls.parentElement as HTMLElement
+
+    expect(controls.querySelectorAll('button')).toHaveLength(3)
+    // The row is in flow rather than pinned over the hero, and the name follows it.
+    expect(top).not.toHaveClass('absolute')
+    expect(controls).not.toHaveClass('absolute')
+    expect(Array.from(top.children)).toEqual([controls])
+    expect(top.nextElementSibling).toBe(screen.getByText('Narisawa'))
+  })
+
+  it('FE-MOB-CPLSH-041: a long category ellipsizes against the controls instead of running under them', () => {
+    const long = 'Restaurants, cafes and late night bars'
+    setup({
+      onUploadImage: vi.fn(),
+      place: place({ category: { id: 3, name: long, color: '#E8843D', icon: 'Utensils' }, image_url: '/uploads/places/n.jpg' }),
+    })
+    const controls = screen.getByRole('button', { name: 'Close' }).parentElement as HTMLElement
+    const text = screen.getByText(long)
+    const chip = text.parentElement as HTMLElement
+
+    expect(Array.from((controls.parentElement as HTMLElement).children)).toEqual([chip, controls])
+    expect(controls).toHaveClass('ms-auto', 'flex-none')
+    expect(chip).toHaveClass('min-w-0')
+    expect(text).toHaveClass('truncate')
   })
 })

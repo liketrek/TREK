@@ -94,5 +94,20 @@ const oauth: TranslationStrings = {
   'oauth.authorize.alwaysIncluded': 'Always included', // en-fallback
   'oauth.authorize.alwaysTool.listTrips': 'List your trips so the AI can discover trip IDs', // en-fallback
   'oauth.authorize.alwaysTool.getTripSummary': 'Read a trip overview needed to use any other tool', // en-fallback
+  'oauth.scope.group.files': 'Archivos',
+  'oauth.scope.group.settings': 'Configuración',
+  'oauth.scope.files:read.label': 'Ver archivos del viaje',
+  'oauth.scope.files:read.description': 'Listar los documentos de un viaje: nombres, tamaños, quién los subió y a qué están vinculados',
+  'oauth.scope.files:write.label': 'Gestionar archivos del viaje',
+  'oauth.scope.files:write.description': 'Renombrar y describir archivos, vincularlos a reservas y lugares, destacarlos y enviarlos a la papelera',
+  'oauth.scope.files:content.label': 'Leer el contenido de archivos',
+  'oauth.scope.files:content.description': 'Leer el contenido de un documento subido, como un PDF de reserva o un billete',
+  'oauth.scope.settings:read.label': 'Ver tus preferencias',
+  'oauth.scope.settings:read.description': 'Leer unidades, formato de hora, idioma, moneda predeterminada y página de inicio',
+  'oauth.scope.settings:write.label': 'Cambiar tus preferencias',
+  'oauth.scope.settings:write.description': 'Cambiar unidades, formato de hora, idioma, moneda predeterminada y página de inicio. Nunca las claves API guardadas',
+  'oauth.scope.group.plugins': 'Complementos',
+  'oauth.scope.plugins:use.label': 'Ejecutar herramientas de complementos',
+  'oauth.scope.plugins:use.description': 'Permite a este cliente llamar a las herramientas publicadas por los complementos que un administrador instaló y aprobó. Cada complemento actúa con los permisos que ya tenía concedidos, no con los ámbitos de este token',
 };
 export default oauth;

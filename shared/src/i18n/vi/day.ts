@@ -9,6 +9,7 @@ const day: TranslationStrings = {
   'day.hourlyForecast': 'Dự báo hàng giờ',
   'day.climateHint': 'Trung bình lịch sử — dự báo thực tế có sẵn trong vòng 16 ngày kể từ ngày này.',
   'day.noWeather': 'Không có dữ liệu thời tiết. Thêm địa điểm có tọa độ.',
+  'day.weatherFor': 'Dự báo cho {name}',
   'day.overview': 'Tổng quan hàng ngày',
   'day.accommodation': 'Chỗ ở',
   'day.addAccommodation': 'Thêm chỗ ở',

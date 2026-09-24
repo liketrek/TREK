@@ -44,6 +44,15 @@ At zoom level 5 and above, the map switches to a sub-national region view (state
 
 The bucket list is separate from "visited". Use it to track countries or places you want to visit in the future. Each bucket list item can have a name, coordinates, country code, optional notes, and a target date.
 
+## Dawarich
+
+With the [Dawarich](Dawarich) addon on and your own instance connected, the Atlas can read your recordings. On the desktop, a Dawarich panel sits at the bottom of the map, left of the statistics, with two buttons: **Wishlist** and **Countries**. On a phone, a **Dawarich** button sits next to **Bucket List**. Both open the same dialog.
+
+- **Wishlist** checks your bucket list against the stays Dawarich recorded. A wish counts as reached within 250 m and after 20 minutes on the spot, and one wish belongs to exactly one stay. **Tick off _n_** marks the selected wishes visited on the day of the stay. On the desktop bucket list such a wish shows that date with the tooltip *Ticked off from your Dawarich recordings*; click the date to undo it.
+- **Countries** lists the countries and cities your recordings cover that are not yet marked visited, with a flag and a city count. **Add _n_ countries** marks them visited, recorded as coming from Dawarich. A country you marked by hand keeps saying it was marked by hand.
+
+Nothing reaches your Atlas until you confirm it. See [Dawarich](Dawarich) for the connection and the full rules.
+
 ## Statistics
 
 Your Atlas statistics panel shows:
@@ -71,3 +80,4 @@ Installed plugins can tint countries on the Atlas map with their own layers — 
 
 - [Addons-Overview](Addons-Overview)
 - [Admin-Addons](Admin-Addons)
+- [Dawarich](Dawarich)

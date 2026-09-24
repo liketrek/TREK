@@ -28,9 +28,10 @@ import MobileEntryView from '../components/Journey/MobileEntryView';
 import MobileMapTimeline from '../components/Journey/MobileMapTimeline';
 import PhotoLightbox from '../components/Journey/PhotoLightbox';
 import EmptyState from '../components/shared/EmptyState';
-import { SUPPORTED_LANGUAGES, useTranslation } from '../i18n';
-import { useSettingsStore } from '../store/settingsStore';
+import PublicLanguagePicker from '../components/shared/PublicLanguagePicker';
+import { useTranslation } from '../i18n';
 import { formatLocationName } from '../utils/formatters';
+import { posterlessVideo } from './journeyDetail/JourneyDetailPage.helpers';
 import { useJourneyPublic } from './journeyPublic/useJourneyPublic';
 
 const MOOD_CONFIG: Record<string, { icon: typeof Smile; label: string; bg: string; text: string }> = {
@@ -71,6 +72,13 @@ const WEATHER_CONFIG: Record<string, { icon: typeof Sun; label: string }> = {
 
 function photoUrl(p: { photo_id: number }, shareToken: string, kind: 'thumbnail' | 'original' = 'original'): string {
   return `/api/public/journey/${shareToken}/photos/${p.photo_id}/${kind}`;
+}
+
+// The share route answers 404 for the thumbnail of a clip that has no poster, and
+// an <img> pointed at it draws the broken-image glyph (#2341). The black ground
+// the layouts give a video stands in for the picture.
+function ClipTile() {
+  return <span className="block h-full w-full bg-black" />;
 }
 
 function formatDate(d: string, locale?: string): { weekday: string; month: string; day: number } {
@@ -139,6 +147,10 @@ export default function JourneyPublicPage() {
       </div>
     );
   }
+
+  // A visitor of a share link has no settings of their own, so the CARTO key
+  // travels in the payload; without it every tile carries the watermark.
+  const cartoApiKey: string | undefined = data.cartoApiKey;
 
   // In desktop two-column mode the map is always visible — exclude the standalone 'map' tab
   const availableViews = [
@@ -247,12 +259,14 @@ export default function JourneyPublicPage() {
                         onClick={() => setLightbox({ photos: lightboxPhotos, index: 0 })}
                       >
                         <div className={`relative h-64 w-full ${photos[0].media_type === 'video' ? 'bg-black' : ''}`}>
-                          <img
-                            src={photoUrl(photos[0], token!, photos[0].media_type === 'video' ? 'thumbnail' : 'original')}
-                            className={`h-full w-full ${photos[0].media_type === 'video' ? 'object-contain' : 'object-cover'
-                              }`}
-                            alt=""
-                          />
+                          {!posterlessVideo(photos[0]) && (
+                            <img
+                              src={photoUrl(photos[0], token!, photos[0].media_type === 'video' ? 'thumbnail' : 'original')}
+                              className={`h-full w-full ${photos[0].media_type === 'video' ? 'object-contain' : 'object-cover'
+                                }`}
+                              alt=""
+                            />
+                          )}
 
                           {photos[0].media_type === 'video' && (
                             <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
@@ -297,12 +311,14 @@ export default function JourneyPublicPage() {
                               }`}
                             onClick={() => setLightbox({ photos: lightboxPhotos, index: i })}
                           >
-                            <img
-                              src={photoUrl(p, token!, 'thumbnail')}
-                              alt=""
-                              className={`h-full w-full ${p.media_type === 'video' ? 'object-contain' : 'object-cover'
-                                }`}
-                            />
+                            {!posterlessVideo(p) && (
+                              <img
+                                src={photoUrl(p, token!, 'thumbnail')}
+                                alt=""
+                                className={`h-full w-full ${p.media_type === 'video' ? 'object-contain' : 'object-cover'
+                                  }`}
+                              />
+                            )}
 
                             {p.media_type === 'video' && (
                               <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
@@ -323,12 +339,16 @@ export default function JourneyPublicPage() {
                           className="min-w-0 flex-1 cursor-pointer"
                           onClick={() => setLightbox({ photos: lightboxPhotos, index: 0 })}
                         >
-                          <img
-                            src={photoUrl(photos[0], token!, 'thumbnail')}
-                            alt=""
-                            className={`h-full w-full ${photos[0].media_type === 'video' ? 'object-contain bg-black' : 'object-cover'
-                              }`}
-                          />
+                          {posterlessVideo(photos[0]) ? (
+                            <ClipTile />
+                          ) : (
+                            <img
+                              src={photoUrl(photos[0], token!, 'thumbnail')}
+                              alt=""
+                              className={`h-full w-full ${photos[0].media_type === 'video' ? 'object-contain bg-black' : 'object-cover'
+                                }`}
+                            />
+                          )}
                         </button>
                         <div className="flex min-w-0 flex-1 flex-col" style={{ gap: 2 }}>
                           <button
@@ -336,24 +356,32 @@ export default function JourneyPublicPage() {
                             className="min-h-0 flex-1 cursor-pointer"
                             onClick={() => setLightbox({ photos: lightboxPhotos, index: 1 })}
                           >
-                            <img
-                              src={photoUrl(photos[1], token!, 'thumbnail')}
-                              alt=""
-                              className={`h-full w-full ${photos[1].media_type === 'video' ? 'object-contain bg-black' : 'object-cover'
-                                }`}
-                            />
+                            {posterlessVideo(photos[1]) ? (
+                              <ClipTile />
+                            ) : (
+                              <img
+                                src={photoUrl(photos[1], token!, 'thumbnail')}
+                                alt=""
+                                className={`h-full w-full ${photos[1].media_type === 'video' ? 'object-contain bg-black' : 'object-cover'
+                                  }`}
+                              />
+                            )}
                           </button>
                           <button
                             type="button"
                             className="relative min-h-0 flex-1 cursor-pointer"
                             onClick={() => setLightbox({ photos: lightboxPhotos, index: 2 })}
                           >
-                            <img
-                              src={photoUrl(photos[2], token!, 'thumbnail')}
-                              alt=""
-                              className={`h-full w-full ${photos[2].media_type === 'video' ? 'object-contain bg-black' : 'object-cover'
-                                }`}
-                            />
+                            {posterlessVideo(photos[2]) ? (
+                              <ClipTile />
+                            ) : (
+                              <img
+                                src={photoUrl(photos[2], token!, 'thumbnail')}
+                                alt=""
+                                className={`h-full w-full ${photos[2].media_type === 'video' ? 'object-contain bg-black' : 'object-cover'
+                                  }`}
+                              />
+                            )}
                             {photos.length > 3 && (
                               <div className="absolute inset-0 flex items-center justify-center bg-black/40">
                                 <span className="flex items-center gap-1 text-[13px] font-semibold text-white">
@@ -525,15 +553,19 @@ export default function JourneyPublicPage() {
             })
           }
         >
-          <img
-            src={photoUrl(photo, token!, 'thumbnail')}
-            className={`h-full w-full transition-transform hover:scale-105 ${photo.media_type === 'video'
-              ? 'object-contain bg-black'
-              : 'object-cover'
-              }`}
-            alt=""
-            loading="lazy"
-          />
+          {posterlessVideo(photo) ? (
+            <ClipTile />
+          ) : (
+            <img
+              src={photoUrl(photo, token!, 'thumbnail')}
+              className={`h-full w-full transition-transform hover:scale-105 ${photo.media_type === 'video'
+                ? 'object-contain bg-black'
+                : 'object-cover'
+                }`}
+              alt=""
+              loading="lazy"
+            />
+          )}
           {photo.media_type === 'video' && (
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
               <span className="flex h-9 w-9 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur">
@@ -612,70 +644,7 @@ export default function JourneyPublicPage() {
           }}
         />
 
-        {/* Language picker */}
-        <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 10 }}>
-          <button type="button"
-            onClick={() => setShowLangPicker((v) => !v)}
-            style={{
-              padding: '5px 12px',
-              borderRadius: 20,
-              border: '1px solid rgba(255,255,255,0.15)',
-              background: 'rgba(255,255,255,0.1)',
-              backdropFilter: 'blur(8px)',
-              color: 'rgba(255,255,255,0.7)',
-              fontSize: 'calc(11px * var(--fs-scale-caption, 1))',
-              fontWeight: 500,
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-            }}
-          >
-            {SUPPORTED_LANGUAGES.find((l) => l.value === (locale?.split('-')[0] || 'en'))?.label || 'Language'}
-          </button>
-          {showLangPicker && (
-            <div
-              style={{
-                position: 'absolute',
-                top: '100%',
-                right: 0,
-                marginTop: 6,
-                background: 'white',
-                borderRadius: 10,
-                boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
-                padding: 4,
-                zIndex: 50,
-                minWidth: 150,
-              }}
-            >
-              {SUPPORTED_LANGUAGES.map((lang) => (
-                <button
-                  type="button"
-                  key={lang.value}
-                  onClick={() => {
-                    useSettingsStore.setState((s) => ({ settings: { ...s.settings, language: lang.value } }));
-                    setShowLangPicker(false);
-                  }}
-                  style={{
-                    display: 'block',
-                    width: '100%',
-                    padding: '6px 12px',
-                    border: 'none',
-                    background: 'none',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    fontSize: 'calc(12px * var(--fs-scale-body, 1))',
-                    color: '#374151',
-                    borderRadius: 6,
-                    fontFamily: 'inherit',
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = '#f3f4f6')}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
-                >
-                  {lang.label}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        <PublicLanguagePicker locale={locale} open={showLangPicker} onOpenChange={setShowLangPicker} />
 
         {/* Logo */}
         <div
@@ -842,6 +811,7 @@ export default function JourneyPublicPage() {
                 fullScreen
                 activeMarkerId={activeEntryId ?? undefined}
                 onMarkerClick={handleMarkerClick}
+                cartoApiKey={cartoApiKey}
               />
             </div>
           </aside>
@@ -883,8 +853,11 @@ export default function JourneyPublicPage() {
               dark={document.documentElement.classList.contains('dark')}
               readOnly
               onEntryClick={(entry) => setViewingEntry(entry as any)}
-              publicPhotoUrl={(photoId) => `/api/public/journey/${token}/photos/${photoId}/original`}
+              publicPhotoUrl={(photoId) => `/api/public/journey/${token}/photos/${photoId}/thumbnail`}
               carouselBottom="calc(env(safe-area-inset-bottom, 16px) + 8px)"
+              cartoApiKey={cartoApiKey}
+              showMood={journey.show_mood !== 0}
+              showWeather={journey.show_weather !== 0}
             />
           )}
 
@@ -897,7 +870,7 @@ export default function JourneyPublicPage() {
           {/* Map (standalone tab — only in single-column mode) */}
           {view === 'map' && perms.share_map && (
             <div className="overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-700">
-              <JourneyMap checkins={[]} entries={sidebarMapItems as any} photos={photoLayer} height={500} />
+              <JourneyMap checkins={[]} entries={sidebarMapItems as any} photos={photoLayer} height={500} cartoApiKey={cartoApiKey} />
             </div>
           )}
         </div>

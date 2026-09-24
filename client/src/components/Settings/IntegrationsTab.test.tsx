@@ -18,6 +18,18 @@ function enableMcp() {
   });
 }
 
+/**
+ * The MCP endpoint row: the URL under its label and the copy button beside it.
+ *
+ * Found through its own label, not as "the first <code>" and "the first Copy
+ * button". The API keys card above it shows the /api/v1 address with a copy
+ * button of its own, and a positional query lands on that one instead.
+ */
+function mcpEndpointRow() {
+  const row = screen.getByText('MCP Endpoint').nextElementSibling as HTMLElement;
+  return { code: row.querySelector('code')!, copy: row.querySelector('button')! };
+}
+
 const clipboardWriteText = vi.fn().mockResolvedValue(undefined);
 
 beforeAll(() => {
@@ -67,9 +79,9 @@ describe('IntegrationsTab', () => {
     enableMcp();
     render(<IntegrationsTab />);
     await screen.findByText('MCP Configuration');
-    const codeEl = document.querySelector('code');
-    expect(codeEl).not.toBeNull();
-    expect(codeEl!.textContent).toContain('/mcp');
+    const { code } = mcpEndpointRow();
+    expect(code).not.toBeNull();
+    expect(code.textContent).toContain('/mcp');
   });
 
   it('FE-COMP-INTEGRATIONS-005: JSON config block is rendered when expanded', async () => {
@@ -273,8 +285,7 @@ describe('IntegrationsTab', () => {
     await screen.findByText('MCP Configuration');
     // Spy after userEvent.setup() may have replaced navigator.clipboard
     const writeSpy = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue(undefined);
-    const copyBtns = screen.getAllByTitle('Copy');
-    await user.click(copyBtns[0]);
+    await user.click(mcpEndpointRow().copy);
     expect(writeSpy).toHaveBeenCalledWith(expect.stringContaining('/mcp'));
   });
 
@@ -284,12 +295,11 @@ describe('IntegrationsTab', () => {
     render(<IntegrationsTab />);
     await screen.findByText('MCP Configuration');
     vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue(undefined);
-    const copyBtns = screen.getAllByTitle('Copy');
-    await user.click(copyBtns[0]);
+    const { copy } = mcpEndpointRow();
+    await user.click(copy);
     await waitFor(() => {
       // After copy, icon changes to Check (green). The button should contain an svg with text-green-500
-      const btn = copyBtns[0];
-      const svg = btn.querySelector('svg');
+      const svg = copy.querySelector('svg');
       expect(svg).toHaveClass('text-green-500');
     });
   });
@@ -634,11 +644,11 @@ describe('IntegrationsTab', () => {
     expect(createBtn).toBeDisabled();
   });
 
-  it('FE-COMP-INTEGRATIONS-032: error toast shown when create OAuth client fails', async () => {
+  it('FE-COMP-INTEGRATIONS-032: a refused client registration toasts the reason the server gave', async () => {
     const user = userEvent.setup();
     server.use(
       http.post('/api/oauth/clients', () =>
-        HttpResponse.json({ error: 'server error' }, { status: 500 })
+        HttpResponse.json({ error: 'Redirect URI must use HTTPS, loopback HTTP, or a private custom scheme: http://192.168.1.5/cb' }, { status: 400 })
       )
     );
     enableMcp();
@@ -647,9 +657,24 @@ describe('IntegrationsTab', () => {
     await user.click(screen.getByRole('button', { name: /New Client/i }));
     await screen.findByText('Register OAuth Client');
     await user.type(screen.getByPlaceholderText(/Claude Web, My MCP App/i), 'Fail Client');
+    await user.type(screen.getByPlaceholderText(/https:\/\/your-app/i), 'http://192.168.1.5/cb');
+    await user.click(screen.getByRole('button', { name: /Register Client/i }));
+    expect(await screen.findByText(/Redirect URI must use HTTPS/)).toBeInTheDocument();
+    expect(screen.queryByText('Failed to register OAuth client')).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-INTEGRATIONS-032b: a failure the server says nothing about keeps the generic text', async () => {
+    const user = userEvent.setup();
+    server.use(http.post('/api/oauth/clients', () => HttpResponse.error()));
+    enableMcp();
+    render(<><ToastContainer /><IntegrationsTab /></>);
+    await screen.findByText('MCP Configuration');
+    await user.click(screen.getByRole('button', { name: /New Client/i }));
+    await screen.findByText('Register OAuth Client');
+    await user.type(screen.getByPlaceholderText(/Claude Web, My MCP App/i), 'Fail Client');
     await user.type(screen.getByPlaceholderText(/https:\/\/your-app/i), 'http://localhost');
     await user.click(screen.getByRole('button', { name: /Register Client/i }));
-    expect(await screen.findByText(/Failed to register/i)).toBeInTheDocument();
+    expect(await screen.findByText('Failed to register OAuth client')).toBeInTheDocument();
   });
 });
 

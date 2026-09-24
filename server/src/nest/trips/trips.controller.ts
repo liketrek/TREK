@@ -18,11 +18,12 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { isDemoWriteBlocked, DEMO_WRITE_ERROR } from '../common/demo-write';
+import { contentDisposition } from '../common/content-disposition';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
 import type { Request, Response } from 'express';
 import type { Options } from 'multer';
 import path from 'path';
-import type { ActiveTripResponse } from '@trek/shared';
+import { MAX_TRIP_DAYS, type ActiveTripResponse } from '@trek/shared';
 import { StorageService } from '../storage/storage.service';
 import type { User } from '../../types';
 import { TripsService } from './trips.service';
@@ -115,11 +116,16 @@ export class TripsController {
     if (start_date && end_date && new Date(end_date) < new Date(start_date)) {
       throw new HttpException({ error: 'End date must be after start date' }, 400);
     }
-    const parsedDayCount = day_count ? Math.min(Math.max(Number(day_count) || 7, 1), 365) : undefined;
-    const { trip, tripId, reminderDays } = this.trips.create(user.id, { title, description, start_date, end_date, currency, reminder_days, day_count: parsedDayCount });
-    this.audit.writeAudit({ userId: user.id, action: 'trip.create', ip: getClientIp(req), details: { tripId, title, reminder_days: reminderDays === 0 ? 'none' : `${reminderDays} days` } });
-    if (reminderDays > 0) logInfo(`${user.email} set ${reminderDays}-day reminder for trip "${title}"`);
-    return { trip };
+    const parsedDayCount = day_count ? Math.min(Math.max(Number(day_count) || 7, 1), MAX_TRIP_DAYS) : undefined;
+    try {
+      const { trip, tripId, reminderDays } = this.trips.create(user.id, { title, description, start_date, end_date, currency, reminder_days, day_count: parsedDayCount });
+      this.audit.writeAudit({ userId: user.id, action: 'trip.create', ip: getClientIp(req), details: { tripId, title, reminder_days: reminderDays === 0 ? 'none' : `${reminderDays} days` } });
+      if (reminderDays > 0) logInfo(`${user.email} set ${reminderDays}-day reminder for trip "${title}"`);
+      return { trip };
+    } catch (e: unknown) {
+      if (e instanceof ValidationError) throw new HttpException({ error: e.message }, 400);
+      throw e;
+    }
   }
 
   @Get(':id')
@@ -273,7 +279,7 @@ export class TripsController {
     try {
       const { ics, filename } = this.calendar.exportICS(id);
       res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
-      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Content-Disposition', contentDisposition(filename, 'attachment'));
       res.send(ics);
     } catch (e: unknown) {
       if (e instanceof NotFoundError) throw new HttpException({ error: e.message }, 404);

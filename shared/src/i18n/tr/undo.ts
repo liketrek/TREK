@@ -19,6 +19,7 @@ const undo: TranslationStrings = {
   'undo.importNaverList': 'Naver Haritalar içe aktarma',
   'undo.addPlace': 'Yer eklendi',
   'undo.done': 'Geri alındı: {action}',
+  'undo.failed': 'Geri alınamadı: {action}',
   'undo.importBooking': 'Rezervasyon onayı içe aktarma',
 };
 export default undo;

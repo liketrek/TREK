@@ -2,9 +2,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import type { WeatherResult } from '@trek/shared'
 
-const get = vi.fn(async (_lat: number, _lng: number, _date: string) => ({} as WeatherResult))
+const get = vi.fn(async (_lat: number, _lng: number, _date: string, _lang?: string) => ({} as WeatherResult))
 
-vi.mock('../api/client', () => ({ weatherApi: { get: (lat: number, lng: number, date: string) => get(lat, lng, date) } }))
+vi.mock('../api/client', () => ({ weatherApi: { get: (lat: number, lng: number, date: string, lang?: string) => get(lat, lng, date, lang) } }))
 
 import { fetchWeather } from './weatherQueue'
 
@@ -25,7 +25,17 @@ describe('fetchWeather', () => {
     get.mockResolvedValue(result)
 
     await expect(fetchWeather(48.1, 11.5, '2026-06-15')).resolves.toBe(result)
-    expect(get).toHaveBeenCalledWith(48.1, 11.5, '2026-06-15')
+    expect(get).toHaveBeenCalledWith(48.1, 11.5, '2026-06-15', undefined)
+  })
+
+  // #2167 — the widget path is the only weather caller that never touched
+  // weatherApi directly, so the language has to travel through the queue.
+  it('FE-W4WQ-006: forwards the language when one is given', async () => {
+    const result = { temp: 21 } as unknown as WeatherResult
+    get.mockResolvedValue(result)
+
+    await expect(fetchWeather(48.1, 11.5, '2026-06-15', 'ja')).resolves.toBe(result)
+    expect(get).toHaveBeenCalledWith(48.1, 11.5, '2026-06-15', 'ja')
   })
 
   it('FE-W4WQ-002: lets at most three requests run at once', async () => {

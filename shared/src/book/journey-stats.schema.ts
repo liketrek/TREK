@@ -55,8 +55,32 @@ export const journeyStatsPointSchema = z.object({
    * photographed honestly is.
    */
   photoId: z.number().int().positive().nullable().default(null),
+  /**
+   * The journal entry this stop was read from, when it was one.
+   *
+   * A stop can be switched off (see `excluded` below) and the switch lives
+   * on the entry, so a panel that offers it needs to know which entry a point
+   * came from. Null for a stop taken from a trip place directly, which is the
+   * fallback route a journey gets before anyone has written an entry.
+   */
+  entryId: z.number().int().positive().nullable().default(null),
 });
 export type JourneyStatsPoint = z.infer<typeof journeyStatsPointSchema>;
+
+/**
+ * A stop that was left out.
+ *
+ * The home airport, the stopover, the place the trip was planned from: a
+ * journal entry can be marked as not counting, and then it is not on the
+ * route, not in the distance and not in the countries. It is still listed
+ * here, because the only way to put a stop back is to be able to see it.
+ */
+export const journeyStatsExcludedStopSchema = z.object({
+  entryId: z.number().int().positive(),
+  label: z.string(),
+  date: z.string().nullable(),
+});
+export type JourneyStatsExcludedStop = z.infer<typeof journeyStatsExcludedStopSchema>;
 
 /**
  * The trips behind a journey, named.
@@ -111,6 +135,8 @@ export const journeyStatsSchema = z.object({
   points: z.array(journeyStatsPointSchema).max(400),
   /** The trips this journey is made of, for a map of one of them. */
   trips: z.array(journeyStatsTripSchema).max(200).default([]),
+  /** Stops switched off by hand. Not in `points` and not in any figure. */
+  excluded: z.array(journeyStatsExcludedStopSchema).max(400).default([]),
   /** ISO dates, null when nothing in the journey is dated. */
   start: z.string().nullable(),
   end: z.string().nullable(),

@@ -7,6 +7,7 @@ import {
   numberOr,
   parseBool,
   parseDurationMs,
+  parseLinkLocalAllowList,
   positiveIntOr,
   positiveNumberOr,
   resolveKeepaliveMs,
@@ -153,5 +154,25 @@ describe('resolveKeepaliveMs', () => {
     expect(resolveKeepaliveMs('10')).toBe(10_000);
     expect(resolveKeepaliveMs('0')).toBe(0);
     expect(resolveKeepaliveMs('abc')).toBe(25_000);
+  });
+});
+
+describe('parseLinkLocalAllowList (ALLOW_LINK_LOCAL_IPS)', () => {
+  it('takes single link-local addresses, trimmed, and ignores empty entries', () => {
+    expect(parseLinkLocalAllowList(' 169.254.1.2 , ,169.254.0.1')).toEqual({ ips: ['169.254.1.2', '169.254.0.1'], invalid: [] });
+    expect(parseLinkLocalAllowList(undefined)).toEqual({ ips: [], invalid: [] });
+    expect(parseLinkLocalAllowList('')).toEqual({ ips: [], invalid: [] });
+  });
+
+  it('never takes the blocks where clouds serve metadata and credentials', () => {
+    const r = parseLinkLocalAllowList('169.254.169.254,169.254.170.2,169.254.169.123,169.254.1.2');
+    expect(r.ips).toEqual(['169.254.1.2']);
+    expect(r.invalid).toEqual(['169.254.169.254', '169.254.170.2', '169.254.169.123']);
+  });
+
+  it('refuses anything that is not one link-local IPv4 in the form a resolver answers with', () => {
+    for (const bad of ['10.0.0.1', '169.254.1', '169.254.1.2/32', '169.254.01.2', '169.254.1.256', 'fe80::1', 'host.example']) {
+      expect(parseLinkLocalAllowList(bad)).toEqual({ ips: [], invalid: [bad] });
+    }
   });
 });

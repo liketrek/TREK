@@ -2,11 +2,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { HttpResponse, delay, http } from 'msw'
 import PlPlaceSearch from '../../../../src/mobile/screens/trip/sheets/PlPlaceSearch'
 import type { TripPlanner } from '../../../../src/mobile/screens/trip/MTripShell'
+import { useAuthStore } from '../../../../src/store/authStore'
 import { buildPlanner } from '../../../helpers/mobileTrip'
 import { server } from '../../../helpers/msw/server'
 import { fireEvent, render, screen, waitFor } from '../../../helpers/render'
+import { resetAllStores, seedStore } from '../../../helpers/store'
 
-// FE-MOB-PLSRCH-001 to FE-MOB-PLSRCH-018
+// FE-MOB-PLSRCH-001 to FE-MOB-PLSRCH-022b
 // planner.t echoes the key, so labels/toasts are asserted as their keys.
 
 const LOUVRE = {
@@ -41,6 +43,21 @@ function recordSearch(places: unknown[] = [LOUVRE]) {
   })
 }
 
+/**
+ * The index answers with the wrong place; only a search sent to Google on
+ * purpose answers with the right one. The real source strings, so the test
+ * pins what the line under the list actually switches on.
+ */
+function recordGoogleRetry() {
+  return http.post('/api/maps/search', async ({ request }) => {
+    const body = await request.json() as Record<string, unknown>
+    searchBodies.push(body)
+    return body.provider === 'google'
+      ? HttpResponse.json({ places: [{ name: 'Tokyo Station', address: 'Chiyoda', lat: 35.68, lng: 139.77 }], source: 'google' })
+      : HttpResponse.json({ places: [{ name: 'Weigh station', address: 'Ritzville', lat: 47.1, lng: -118.4 }], source: 'trek-places+openstreetmap' })
+  })
+}
+
 function setup(plannerOverrides: Partial<TripPlanner> = {}, locationBias?: Parameters<typeof PlPlaceSearch>[0]['locationBias']) {
   const onPick = vi.fn()
   const onResolvingChange = vi.fn()
@@ -54,6 +71,7 @@ function setup(plannerOverrides: Partial<TripPlanner> = {}, locationBias?: Param
 
 describe('PlPlaceSearch', () => {
   beforeEach(() => {
+    resetAllStores()
     autocompleteBodies = []
     searchBodies = []
   })
@@ -130,6 +148,47 @@ describe('PlPlaceSearch', () => {
     await waitFor(() => expect(onPick).toHaveBeenCalledTimes(2))
     expect(searchBodies[0]).toEqual({ query: 'Louvre, Paris, France' })
     expect(onPick).toHaveBeenLastCalledWith(expect.objectContaining({ name: 'Louvre Museum', lat: '48.8606' }))
+  })
+
+  it('FE-MOB-PLSRCH-005b: an OpenStreetMap row keeps its own coordinates instead of searching for its label', async () => {
+    // The layer's second line is the name written on the building, not an
+    // address, so joining the two asks a question nobody typed — and whatever
+    // came back first was taken as the place the user had already picked.
+    server.use(
+      recordAutocomplete([{
+        placeId: 'node:9712313',
+        mainText: 'Tokio Hauptbahnhof',
+        secondaryText: '東京駅丸の内駅舎',
+        source: 'openstreetmap',
+        lat: 35.6811816,
+        lng: 139.76598265,
+      }]),
+      http.get('/api/maps/details/:placeId', () => HttpResponse.json({ place: null, disabled: true })),
+      recordSearch(),
+    )
+    const { input, onPick } = setup()
+    fireEvent.change(input, { target: { value: 'Tok' } })
+    fireEvent.click(await screen.findByText('Tokio Hauptbahnhof'))
+
+    await waitFor(() => expect(onPick).toHaveBeenCalledTimes(2))
+    expect(searchBodies).toHaveLength(0)
+    expect(onPick).toHaveBeenLastCalledWith(expect.objectContaining({
+      name: 'Tokio Hauptbahnhof', lat: '35.6811816', lng: '139.76598265',
+    }))
+  })
+
+  it('FE-MOB-PLSRCH-005c: a suggestion says which index answered', async () => {
+    // Both indexes answer the keystroke path at once, so the name the response
+    // carries for the whole list is true of the call and wrong for half its rows.
+    server.use(recordAutocomplete([
+      { ...SUGGESTION, source: 'trek-places' },
+      { placeId: 'node:1', mainText: 'Louvre Palace', secondaryText: 'Palais du Louvre', source: 'openstreetmap' },
+    ]))
+    const { input } = setup()
+    fireEvent.change(input, { target: { value: 'Lou' } })
+
+    expect(await screen.findByText('TREK')).toBeInTheDocument()
+    expect(await screen.findByText('OpenStreetMap')).toBeInTheDocument()
   })
 
   it('FE-MOB-PLSRCH-006: also falls back when the details hop answers without coordinates', async () => {
@@ -368,5 +427,73 @@ describe('PlPlaceSearch', () => {
     expect(await screen.findByText('Louvre')).toBeInTheDocument()
     fireEvent.blur(input)
     await waitFor(() => expect(screen.queryByText('Louvre')).not.toBeInTheDocument())
+  })
+
+  it('FE-MOB-PLSRCH-019: a list the index answered offers Google instead, and the line sends the same query there alone', async () => {
+    seedStore(useAuthStore, { hasMapsKey: true })
+    server.use(recordGoogleRetry())
+    const { input } = setup()
+    fireEvent.change(input, { target: { value: 'Tokyo Station' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(await screen.findByText('Weigh station')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'places.searchGoogleInstead' }))
+    expect(await screen.findByText('Tokyo Station')).toBeInTheDocument()
+    expect(searchBodies[0]).not.toHaveProperty('provider')
+    expect(searchBodies[1]).toMatchObject({ query: 'Tokyo Station', provider: 'google' })
+    // A list Google produced has nowhere further to go.
+    expect(screen.queryByRole('button', { name: 'places.searchGoogleInstead' })).not.toBeInTheDocument()
+  })
+
+  it('FE-MOB-PLSRCH-020: without a Google key the list offers nothing', async () => {
+    server.use(recordGoogleRetry())
+    const { input } = setup()
+    fireEvent.change(input, { target: { value: 'Tokyo Station' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(await screen.findByText('Weigh station')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'places.searchGoogleInstead' })).not.toBeInTheDocument()
+  })
+
+  it('FE-MOB-PLSRCH-021: a key alone is not enough: with Amap or OpenStreetMap picked the list offers nothing', async () => {
+    // The server only honours the request while Google holds the keyed slot;
+    // under another provider the line would re-run the same search and stay.
+    seedStore(useAuthStore, { hasMapsKey: true, placesProvider: 'amap' })
+    server.use(recordGoogleRetry())
+    const { input } = setup()
+    fireEvent.change(input, { target: { value: 'Tokyo Station' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(await screen.findByText('Weigh station')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'places.searchGoogleInstead' })).not.toBeInTheDocument()
+  })
+
+  it('FE-MOB-PLSRCH-022: the line sends the query the list came from, whatever the field holds by then', async () => {
+    seedStore(useAuthStore, { hasMapsKey: true })
+    server.use(recordAutocomplete([]), recordGoogleRetry())
+    const { input } = setup()
+    fireEvent.change(input, { target: { value: 'Tokyo Station' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(await screen.findByText('Weigh station')).toBeInTheDocument()
+
+    // The list stays while the field is retyped; the line still means this list.
+    fireEvent.change(input, { target: { value: 'Kyoto' } })
+    fireEvent.click(screen.getByRole('button', { name: 'places.searchGoogleInstead' }))
+    expect(await screen.findByText('Tokyo Station')).toBeInTheDocument()
+    expect(searchBodies).toHaveLength(2)
+    expect(searchBodies[1]).toMatchObject({ query: 'Tokyo Station', provider: 'google' })
+  })
+
+  it('FE-MOB-PLSRCH-022b: the line still works after the field was cleared', async () => {
+    seedStore(useAuthStore, { hasMapsKey: true })
+    server.use(recordGoogleRetry())
+    const { input } = setup()
+    fireEvent.change(input, { target: { value: 'Tokyo Station' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(await screen.findByText('Weigh station')).toBeInTheDocument()
+
+    // An empty field used to make the tap a silent no-op.
+    fireEvent.change(input, { target: { value: '' } })
+    fireEvent.click(screen.getByRole('button', { name: 'places.searchGoogleInstead' }))
+    expect(await screen.findByText('Tokyo Station')).toBeInTheDocument()
+    expect(searchBodies[1]).toMatchObject({ query: 'Tokyo Station', provider: 'google' })
   })
 })

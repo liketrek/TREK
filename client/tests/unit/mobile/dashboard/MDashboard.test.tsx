@@ -539,4 +539,30 @@ describe('MDashboard', () => {
     await waitFor(() =>
       expect(screen.queryByText('dashboard.subscribeAllTripsDesc')).not.toBeInTheDocument());
   });
+
+  it('FE-MOB-DASH-038: the filter row cannot widen the document on narrow phones (#discord S26)', async () => {
+    render(<MDashboard />);
+
+    // The chip track scrolls inside its own flexible box; without this the row
+    // was the widest element on the page and dragged the fixed bars off-screen
+    // under Android's forced zoom.
+    const chip = await screen.findByText('dashboard.filter.planned');
+    const track = chip.closest('button')!.parentElement as HTMLElement;
+    expect(track.className).toContain('min-w-max');
+    const wrapper = track.parentElement as HTMLElement;
+    expect(wrapper.className).toContain('m-hscroll');
+    expect(wrapper.className).toContain('min-w-0');
+  });
+
+  it('FE-MOB-DASH-039: the filter pill hugs its chips instead of filling the row', async () => {
+    render(<MDashboard />);
+
+    // flex-1 on the scroll box stretched the grey pill track all the way to the
+    // calendar icon on phones from ~400px up; the icons ride on ml-auto instead.
+    const chip = await screen.findByText('dashboard.filter.planned');
+    const wrapper = chip.closest('button')!.parentElement!.parentElement as HTMLElement;
+    expect(wrapper.className).not.toContain('flex-1');
+    expect(screen.getByRole('button', { name: 'dashboard.subscribeAllTrips' }).className)
+      .toContain('ml-auto');
+  });
 });

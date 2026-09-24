@@ -5,6 +5,7 @@ import { IS_PUBLIC, OPTIONAL_AUTH } from '../auth/public.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CookieAuthGuard } from '../auth/cookie-auth.guard';
 import { OptionalJwtGuard } from '../auth/optional-jwt.guard';
+import { ApiTokenGuard } from '../public-api/api-token.guard';
 
 export interface RouteGuardEntry {
   /** `ControllerClass.methodName` */
@@ -21,7 +22,7 @@ export interface RouteGuardEntry {
  * no req.user, but they never resolve one, so they only ever appear behind one
  * of these three.
  */
-const AUTHENTICATING_GUARDS: unknown[] = [JwtAuthGuard, CookieAuthGuard, OptionalJwtGuard];
+const AUTHENTICATING_GUARDS: unknown[] = [JwtAuthGuard, CookieAuthGuard, OptionalJwtGuard, ApiTokenGuard];
 
 /**
  * Boot-time gate: every registered route must be authenticated, or say why not.
@@ -102,10 +103,16 @@ export const PUBLIC_ROUTE_ALLOW_LIST: string[] = [
   'ConfigController.getConfig',
   // OAuth/OIDC discovery documents + the JSON 404 catchalls that keep
   // /.well-known probes from ever seeing SPA HTML.
+  'DiscoveryController.authorizationServerForMcp',
   'DiscoveryController.openidConfiguration',
   'DiscoveryController.protectedResource',
   'DiscoveryController.wellKnownFallback',
   'DiscoveryController.wellKnownRoot',
+  // A document provider cannot hold a TREK session. The per-binding token in
+  // the path is the credential, a shared secret is checked on top where the
+  // provider can send one, and the handler's only effect is to schedule a sync
+  // run. It never reads the request body as data.
+  'DocSyncWebhookController.nudge',
   'FeaturesController.features',
   // The container/uptime probe.
   'FeaturesController.health',
@@ -123,6 +130,12 @@ export const PUBLIC_ROUTE_ALLOW_LIST: string[] = [
   'JourneyPublicController.legacyPhoto',
   'JourneyPublicController.photo',
   // The MCP transport — bearer tokens are verified inside the handler.
+  // The same documents under the resource URL, for clients that append the
+  // well-known path to the server address they were handed.
+  'McpResourceDiscoveryController.authorizationServer',
+  'McpResourceDiscoveryController.fallback',
+  'McpResourceDiscoveryController.openidConfiguration',
+  'McpResourceDiscoveryController.protectedResource',
   'McpTransportController.delete',
   'McpTransportController.get',
   'McpTransportController.post',

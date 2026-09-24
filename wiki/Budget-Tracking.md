@@ -54,6 +54,7 @@ Click **Add expense**, or the pencil beside a row, to open the expense editor:
 | Who paid? | Who actually put the money down — see [Who paid](#who-paid). |
 | Split | How the total is shared out — see [Splitting costs](#splitting-costs). |
 | Note | Free-text note, shown on the row. |
+| Receipts & Invoices | Images and PDFs attached to the expense, several per expense. See [Receipts and invoices](#receipts-and-invoices). |
 
 ### Expenses linked to a booking or a place
 
@@ -61,15 +62,23 @@ An expense can hang off a **booking** (reservation or transport) or off a **plac
 
 Deleting the booking or the place deletes its linked expense with it. Removing the expense from the record's Costs block deletes only the expense and leaves the record standing.
 
+### Receipts and invoices
+
+An expense can carry the receipt or invoice behind it. **Attach receipt / invoice** in the expense editor opens the file picker for images and PDFs, and several files can go on one expense. They are uploaded when the expense is saved, land in the trip's Files with a link to the expense, and are listed in the editor's **Receipts & Invoices** block from then on. If the save fails after the upload, the uploaded files are taken back out again; any that could not be removed are reported, so you can delete them in the Files tab.
+
+A row with receipts shows a **Receipts** chip beside the name, with the count when there is more than one. Click it to open the viewer: it shows one receipt at a time, pages through them with the **arrow keys**, and offers a download for a PDF.
+
+**Remove receipt** in the editor only unlinks the file from the expense. The file itself stays on the trip, because editing an expense (`budget_edit`) does not carry the file permission: to get rid of the file, delete it in the Files tab, which needs `file_delete`. Uploading a receipt goes through the trip's file upload, so it needs `file_upload` on top of `budget_edit`. A file that is also linked to a place or a booking keeps those links. See [Documents-and-Files](Documents-and-Files).
+
 ## Who paid
 
 **Who paid?** in the expense editor records who actually put the money down. It is the other half of the settlement maths — the split says who owes for the expense, this says who is out of pocket for it:
 
 - **One person paid** — pick a member from the dropdown. This is the default.
 - **Multiple people paid** — switch with the link beside the label, include each payer and type what each of them put in. The amounts have to add up to the total; until they do, the dialog reads *Payer amounts must add up to …* and refuses to save.
-- **No one paid yet** — the first entry in the single-payer dropdown, for an expense you are only planning. The amount still counts toward **Total trip spend**, and everyone on its split is still charged their share in **Balances** — what is missing is the credit side, so nobody is recorded as having covered it.
+- **No one paid yet**: the first entry in the single-payer dropdown, for an expense you are only planning. The amount still counts toward **Total trip spend**, but it creates no debt: with nobody out of pocket for it there is nothing to pay anyone back, so it stays out of **Balances** and out of the settle-up suggestions until you fill in who paid.
 
-An expense with no payer is flagged **Unfinished** on its row and counted into the **Outstanding amount** card, which is where to look when the balances show money owed that nobody is down as having paid.
+An expense with no payer is flagged **Unfinished** on its row and counted into the **Outstanding amount** card, which is where to look for the spending that is recorded but not yet settled between anyone.
 
 ## Splitting costs
 
@@ -83,16 +92,19 @@ An expense with no payer is flagged **Unfinished** on its row and counted into t
 
 ## Settlement calculator
 
-Costs works out the minimum number of transfers needed to settle all debts (using a greedy matching algorithm) and keeps the answer in the right-hand column, split across two cards:
+Costs works out the minimum number of transfers needed to settle all debts (using a greedy matching algorithm) and keeps the answer in the right-hand column, split across three cards:
 
 - **Settle up** — the transfer flows: who pays whom and how much. The number of open flows sits in the card header, and each flow has a **Settle** button that records it as done.
 - **Balances** — net balances: each member's overall surplus or deficit.
+- **Final budget** — what the trip costs each member once every reimbursement is accounted for: **expenses paid − net reimbursements − pending reimbursements**. Clicking a name opens that breakdown, with the expenses the member paid, the payments already recorded and the transfers still open on their side. The server works those rows out in the currency you are viewing in, at the exchange rate each expense was booked at, so every list adds up to the line above it even before live rates have loaded.
+
+The final budget comes to each member's share of the paid expenses (exact in the trip's own currency; in another display currency, rounding can leave a single figure a cent off while the column still adds up), so recording a payment moves an amount from *pending* to *net reimbursements* without changing it. An expense nobody has paid yet stays out of it, as it stays out of the balances.
 
 **Settle up** in the panel header records every open flow at once. **Add payment** on the card records a single transfer by hand, for a repayment that did not follow a suggested flow. Recorded payments then appear in the expense ledger as their own rows, with edit and undo beside them.
 
 Balances are always netted in the **trip currency** and converted to your display currency once, at the end — so they stay stable even when the trip mixes currencies.
 
-A recorded payment carries **its own currency** too: settling a rouble debt with a euro transfer is normal, so the payment modal has a currency picker, and its rate is frozen when you record it. A payment made in another currency shows both amounts in the ledger (`$30.00 → 27,00 €`).
+A recorded payment carries **its own currency** too: settling a rouble debt with a euro transfer is normal, so the payment modal has a currency picker, and its rate is frozen when you record it. A payment made in another currency shows both amounts in the ledger (`$30.00 → 27,00 €`). A payment also carries the day it happened, editable like an expense's date, so a transfer you only get round to recording three days later still lands on the right day; payments recorded before this field existed stay on the day they were recorded.
 
 ![Add payment dialog with From and To member pickers, an amount field and a currency selector](assets/CostsSettleUp.png)
 

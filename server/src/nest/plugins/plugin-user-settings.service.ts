@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import { decrypt_api_key } from '../common/crypto/apiKeyCrypto';
 import { safeParseConfig } from './plugin-config-parse';
+import { isFilled, settingDefaults } from './settings-defaults';
 
 /**
  * A plugin's per-user settings, decrypted host-side.
@@ -31,7 +32,7 @@ export class PluginUserSettingsService {
           .get(pluginId, key) as { secret: number } | undefined
       )?.secret === 1;
     const value = this.storedFor(pluginId, userId)[key];
-    if (value == null) return undefined;
+    if (value == null) return settingDefaults(this.db, pluginId, 'user')[key]; // unset → the manifest default, if any
     return isSecret ? decrypt_api_key(value as string) : value;
   }
 
@@ -50,9 +51,13 @@ export class PluginUserSettingsService {
     // Null-prototype for the same reason as safeParseConfig: never let a field key write
     // through to Object.prototype on the way out to the plugin.
     const out: Record<string, unknown> = Object.create(null);
+    const defaults = settingDefaults(this.db, pluginId, 'user');
     for (const field of fields) {
       const value = stored[field.field_key];
-      if (value == null) continue;
+      if (value == null) {
+        if (field.field_key in defaults) out[field.field_key] = defaults[field.field_key];
+        continue;
+      }
       out[field.field_key] = field.secret === 1 ? decrypt_api_key(value as string) : value;
     }
     return out;
@@ -62,17 +67,22 @@ export class PluginUserSettingsService {
    * Has this user filled in every `required`, `scope:'user'` field the plugin declares?
    * A plugin with no required user fields is configured for everyone (an instance-wide
    * channel, e.g. a shared workspace webhook).
+   *
+   * Same "filled" rule as the save gate (PluginsService.assertRequiredFilled) — a
+   * checkbox is exempt, whitespace is empty, a manifest default counts — because this is
+   * what decides whether a channel dispatches to the user, and a save the form accepted
+   * must not leave them "not configured".
    */
   hasRequired(pluginId: string, userId: number): boolean {
     const required = this.db
-      .prepare("SELECT field_key FROM plugin_settings_fields WHERE plugin_id = ? AND scope = 'user' AND required = 1")
+      .prepare(
+        "SELECT field_key FROM plugin_settings_fields WHERE plugin_id = ? AND scope = 'user' AND required = 1 AND input_type != 'checkbox'",
+      )
       .all(pluginId) as Array<{ field_key: string }>;
     if (required.length === 0) return true;
     const stored = this.storedFor(pluginId, userId);
-    return required.every((field) => {
-      const value = stored[field.field_key];
-      return value != null && String(value) !== '';
-    });
+    const defaults = settingDefaults(this.db, pluginId, 'user');
+    return required.every((field) => isFilled(stored[field.field_key] ?? defaults[field.field_key]));
   }
 
   private storedFor(pluginId: string, userId: number): Record<string, unknown> {

@@ -614,6 +614,54 @@ describe('getAppConfig', () => {
     expect(cfg.password_registration).toBe(true);
     vi.unstubAllEnvs();
   });
+
+  it('AUTH-DB-052d: an instance that declared nothing reports passkeys as not configured (#2147)', () => {
+    // APP_URL unset, so getAppUrl() invents http://localhost:{PORT} and the
+    // resolver hands back a localhost RP. No browser on the real domain can
+    // finish a ceremony against it, and the options step says so, so the client
+    // must not advertise a button whose every click 400s.
+    createUser(testDb);
+    expect(svc.getAppConfig(null).passkey_configured).toBe(false);
+  });
+
+  it('AUTH-DB-052e: a localhost RP the operator declared themselves still counts', () => {
+    createUser(testDb);
+    vi.stubEnv('APP_URL', 'http://localhost:5173');
+    expect(svc.getAppConfig(null).passkey_configured).toBe(true);
+    vi.unstubAllEnvs();
+
+    vi.stubEnv('ALLOWED_ORIGINS', 'http://localhost:5173');
+    expect(svc.getAppConfig(null).passkey_configured).toBe(true);
+    vi.unstubAllEnvs();
+
+    testDb.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('webauthn_rp_id', 'localhost')").run();
+    expect(svc.getAppConfig(null).passkey_configured).toBe(true);
+  });
+
+  it('AUTH-DB-052f: a real domain is configured, a bare IP host is not', () => {
+    createUser(testDb);
+    vi.stubEnv('APP_URL', 'https://trek.example.org');
+    expect(svc.getAppConfig(null).passkey_configured).toBe(true);
+    vi.stubEnv('APP_URL', 'http://192.168.1.50:3001');
+    expect(svc.getAppConfig(null).passkey_configured).toBe(false);
+    vi.unstubAllEnvs();
+  });
+
+  it('AUTH-DB-052g: place_shadow_enabled fails closed, on the unauthenticated payload', () => {
+    createUser(testDb);
+    const set = testDb.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('place_shadow_enabled', ?)");
+    // No row is the state of every install that never touched the switch.
+    expect(svc.getAppConfig(null).place_shadow_enabled).toBe(false);
+    set.run('false');
+    expect(svc.getAppConfig(null).place_shadow_enabled).toBe(false);
+    // Only the literal 'true' opens it, the mirror image of the fail-open
+    // places_* flags beside it, which close only on the literal 'false'.
+    set.run('1');
+    expect(svc.getAppConfig(null).place_shadow_enabled).toBe(false);
+    expect(svc.getAppConfig(null).places_enrich_enabled).toBe(true);
+    set.run('true');
+    expect(svc.getAppConfig(null).place_shadow_enabled).toBe(true);
+  });
 });
 
 describe('demoLogin', () => {

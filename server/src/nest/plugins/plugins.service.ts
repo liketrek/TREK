@@ -7,14 +7,25 @@ import { readAudit } from './host/plugin-audit';
 import { keyFingerprint } from './signature-status';
 import { pluginBudgetUsage } from './host/plugin-host-state';
 import { safeParseConfig as safeParse } from './plugin-config-parse';
+import { isFilled, parseDefaultValue, settingDefaults } from './settings-defaults';
 import { AddonsService } from '../addons/addons.service';
 import { parseDependencies, disabledRequiredAddons, resolveDependencyState, type PluginDepRow, type PluginDependencies, type VersionMismatch } from './dependencies';
-import { hostSatisfies, hostVersion } from './install/host-compat';
+import { bypassedRange, hostSatisfies, hostVersion, trekRangeBypassed } from './install/host-compat';
+import type { TrekRangeBypass } from './install/host-compat';
 import type { PluginDependency } from './install/manifest';
+import type { PluginSettingsField } from '@trek/shared';
 
 const SECRET_MASK = '••••••••';
 
 export type PluginDependencyStatus = 'ok' | 'addonDisabled' | 'missingPlugin' | 'hostIncompatible';
+
+/** A save that would leave a `required` settings field empty — mapped to 400 by both controllers. */
+export class MissingRequiredSettingError extends Error {
+  constructor(public readonly field: string) {
+    super(`Missing required setting "${field}"`);
+    this.name = 'MissingRequiredSettingError';
+  }
+}
 
 /**
  * Read side of the plugin system (#plugins), M0 scaffold. Lists installed
@@ -66,6 +77,12 @@ export interface PluginListItem {
   operatorEgress: boolean;
   /** How many hosts an admin has actually added — so the card can nudge when it's 0. */
   egressHostCount: number;
+  /** How many `scope:'instance'` settings fields the plugin declares — gates the admin
+   * settings menu item without a per-plugin fetch. */
+  instanceSettingsCount: number;
+  /** How many `scope:'instance'` actions the plugin declares — gates the admin settings
+   * menu item together with instanceSettingsCount (a plugin can have actions and no fields). */
+  instanceActionsCount: number;
   /** Declared dependencies (parsed) — required addons + plugin deps. */
   dependencies: PluginDependencies;
   /** Whether this plugin can currently activate, and why not if it can't. */
@@ -74,6 +91,12 @@ export interface PluginListItem {
   trekRange: string | null;
   /** The running TREK, so the UI can say "needs X, you have Y" without doing semver. */
   hostVersion: string;
+  /**
+   * Non-null when the plugin is outside its declared range (or declared none) and only
+   * TREK_PLUGINS_IGNORE_TREK_RANGE lets it activate. The card shows it as a warning
+   * rather than a blocker: the admin chose this, but must keep seeing what they chose.
+   */
+  trekRangeBypassed: TrekRangeBypass | null;
   /** The concrete blockers, so the UI can render chips + the resolve dialog. */
   dependencyIssues: { disabledAddons: string[]; missing: PluginDependency[]; versionMismatch: VersionMismatch[] };
   /**
@@ -113,7 +136,27 @@ export class PluginsService {
     }
   }
 
-  list(): { enabled: boolean; devLink: boolean; plugins: PluginListItem[] } {
+  private instanceSettingsCount(id: string): number {
+    try {
+      return (
+        this.db.prepare("SELECT COUNT(*) AS n FROM plugin_settings_fields WHERE plugin_id = ? AND scope = 'instance'").get(id) as { n: number }
+      ).n;
+    } catch {
+      return 0; // table absent (a slimmed test app)
+    }
+  }
+
+  private instanceActionsCount(id: string): number {
+    try {
+      return (
+        this.db.prepare("SELECT COUNT(*) AS n FROM plugin_actions WHERE plugin_id = ? AND scope = 'instance'").get(id) as { n: number }
+      ).n;
+    } catch {
+      return 0; // table absent (a slimmed test app)
+    }
+  }
+
+  list(): { enabled: boolean; devLink: boolean; ignoreTrekRange: boolean; plugins: PluginListItem[] } {
     const rows = this.db
       .prepare(
         `SELECT id, name, description, type, icon, version, status, enabled, last_error, reviewed_at, source_repo,
@@ -132,7 +175,8 @@ export class PluginsService {
       const state = resolveDependencyState(deps, installed);
       // Mirrors the order of assertActivatable's gate, so the card explains the same
       // blocker the activate call would hit rather than a second, lesser one.
-      const dependencyStatus: PluginDependencyStatus = !hostSatisfies(r.trek_range)
+      const trekBypass = bypassedRange(r.trek_range);
+      const dependencyStatus: PluginDependencyStatus = !hostSatisfies(r.trek_range) && !trekBypass
         ? 'hostIncompatible'
         : disabledAddons.length
           ? 'addonDisabled'
@@ -154,10 +198,13 @@ export class PluginsService {
         ...rest,
         operatorEgress: _oe === 1,
         egressHostCount: this.egressHostCount(r.id),
+        instanceSettingsCount: this.instanceSettingsCount(r.id),
+        instanceActionsCount: this.instanceActionsCount(r.id),
         dependencies: deps,
         dependencyStatus,
         trekRange: trek_range,
         hostVersion: hostVersion(),
+        trekRangeBypassed: trekBypass,
         dependencyIssues: { disabledAddons, missing: state.missing, versionMismatch: state.versionMismatch },
         signed: !!author_pubkey,
         keyFingerprint: keyFingerprint(author_pubkey),
@@ -167,7 +214,7 @@ export class PluginsService {
         updateHold: update_hold === 1,
       };
     });
-    return { enabled: pluginsEnabled(), devLink: devLinkEnabled(), plugins };
+    return { enabled: pluginsEnabled(), devLink: devLinkEnabled(), ignoreTrekRange: trekRangeBypassed(), plugins };
   }
 
   /**
@@ -214,29 +261,44 @@ export class PluginsService {
         config[k] = v;
       }
     }
+    this.assertRequiredFilled(id, 'instance', config);
     this.db.prepare('UPDATE plugins SET config = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(JSON.stringify(config), id);
     return maskSecrets(config, secretKeys);
   }
 
   /** The plugin's `scope:'user'` settings fields, in declared order (for the user form). */
-  userSettingsFields(id: string): Array<Record<string, unknown>> {
+  userSettingsFields(id: string): PluginSettingsField[] {
+    return this.settingsFields(id, 'user');
+  }
+
+  /** The plugin's `scope:'instance'` settings fields, in declared order (for the ADMIN form). */
+  instanceSettingsFields(id: string): PluginSettingsField[] {
+    return this.settingsFields(id, 'instance');
+  }
+
+  private settingsFields(id: string, scope: 'user' | 'instance'): PluginSettingsField[] {
     return this.db
       .prepare(
-        `SELECT field_key AS key, label, input_type, placeholder, hint, required, secret, options
-         FROM plugin_settings_fields WHERE plugin_id = ? AND scope = 'user' ORDER BY sort_order, id`,
+        `SELECT field_key AS key, label, input_type, placeholder, hint, required, secret, options, default_value
+         FROM plugin_settings_fields WHERE plugin_id = ? AND scope = ? ORDER BY sort_order, id`,
       )
-      .all(id)
+      .all(id, scope)
       .map((r) => {
         const row = r as Record<string, unknown>;
         return {
-          key: row.key,
-          label: row.label ?? null,
-          input_type: row.input_type ?? 'text',
-          placeholder: row.placeholder ?? null,
-          hint: row.hint ?? null,
+          key: String(row.key),
+          label: (row.label ?? null) as string | null,
+          input_type: (row.input_type ?? 'text') as string,
+          placeholder: (row.placeholder ?? null) as string | null,
+          hint: (row.hint ?? null) as string | null,
           required: row.required === 1,
           secret: row.secret === 1,
-          options: typeof row.options === 'string' && row.options ? safeArray(row.options as string) : undefined,
+          default: parseDefaultValue(row.default_value),
+          // Stored as manifest-validated JSON ({value,label} pairs) — parse, don't re-check.
+          options:
+            typeof row.options === 'string' && row.options
+              ? (safeArray(row.options as string) as PluginSettingsField['options'])
+              : undefined,
         };
       });
   }
@@ -281,6 +343,7 @@ export class PluginsService {
         config[k] = v;
       }
     }
+    this.assertRequiredFilled(id, 'user', config);
     this.db.prepare(
       `INSERT INTO plugin_user_config (plugin_id, user_id, config, updated_at) VALUES (?, ?, ?, datetime('now'))
        ON CONFLICT(plugin_id, user_id) DO UPDATE SET config = excluded.config, updated_at = excluded.updated_at`,
@@ -334,6 +397,25 @@ export class PluginsService {
       ).map((r) => r.field_key),
     );
     return maskSecrets(safeParse(row.config), secretKeys);
+  }
+
+  /**
+   * `required` used to be a decorative asterisk (PR-87 feedback): the form rendered it, but
+   * nothing refused a save. Enforced on the MERGED result so partial patches stay legal and a
+   * stored secret (non-empty ciphertext) counts as filled. A `checkbox` is exempt — required
+   * would demand `true`, which is a consent flow, not a settings field.
+   */
+  private assertRequiredFilled(id: string, scope: 'instance' | 'user', config: Record<string, unknown>): void {
+    const required = this.db
+      .prepare(
+        "SELECT field_key FROM plugin_settings_fields WHERE plugin_id = ? AND scope = ? AND required = 1 AND input_type != 'checkbox'",
+      )
+      .all(id, scope) as Array<{ field_key: string }>;
+    const defaults = settingDefaults(this.db, id, scope);
+    for (const f of required) {
+      // The runtime resolves the default too, so it counts as filled here as well.
+      if (!isFilled(config[f.field_key] ?? defaults[f.field_key])) throw new MissingRequiredSettingError(f.field_key);
+    }
   }
 }
 

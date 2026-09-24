@@ -14,6 +14,7 @@ import { SchedulingModule } from '../scheduling/scheduling.module';
 import { UnifiedMemoriesController } from './unified.controller';
 import { ImmichMemoriesController } from './immich.controller';
 import { SynologyMemoriesController } from './synology.controller';
+import { MemoriesMcp } from './memories.mcp';
 import { AddonsModule } from '../addons/addons.module';
 import { AuditModule } from '../audit/audit.module';
 import { TrekPhotosModule } from '../photos/trek-photos.module';
@@ -63,6 +64,7 @@ import { StorageModule } from '../storage/storage.module';
     ImmichPhotoProvider,
     SynologyPhotoProvider,
     PhotoProviderRegistry,
+    MemoriesMcp,
     {
       provide: PHOTO_PROVIDERS,
       useFactory: (immich: ImmichPhotoProvider, synology: SynologyPhotoProvider) => [immich, synology],

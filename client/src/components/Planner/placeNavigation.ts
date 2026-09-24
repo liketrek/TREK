@@ -1,11 +1,13 @@
+import { isOutsideChina } from '@trek/shared'
 import type { AssignmentPlace, Place } from '../../types'
+import { getAmapUrlForPlace } from './placeAmap'
 import { getCoMapsUrlForPlace } from './placeCoMaps'
 import { getGoogleMapsUrlForPlace } from './placeGoogleMaps'
 import { getOpenStreetMapUrlForPlace } from './placeOpenStreetMap'
 
 type PlaceLike = Pick<Place | AssignmentPlace, 'name' | 'address' | 'lat' | 'lng' | 'google_place_id' | 'google_ftid'>
 
-export type NavigationAppId = 'google' | 'waze' | 'apple' | 'osm' | 'comaps'
+export type NavigationAppId = 'google' | 'waze' | 'apple' | 'osm' | 'comaps' | 'amap'
 
 export interface NavigationTarget {
   id: NavigationAppId
@@ -92,10 +94,42 @@ export function getNavigationTargets(
   const coMapsUrl = getCoMapsUrlForPlace(place)
   if (coMapsUrl) targets.push({ id: 'comaps', label: 'CoMaps', url: coMapsUrl })
 
+  // Offered by WHERE the place is, not by who is looking at it. Amap only has a
+  // map of China, so it is the right choice for a stop in Shanghai whoever is
+  // planning the trip, and dead weight for one in Lisbon whoever is planning it —
+  // and this row is deliberately short. showsAppleMaps() above narrows by
+  // platform for the same reason; this one narrows by geography because that is
+  // what decides whether the link leads anywhere.
+  if (place.lat != null && place.lng != null && !isOutsideChina(place.lat, place.lng)) {
+    const amapUrl = getAmapUrlForPlace(place)
+    if (amapUrl) targets.push({ id: 'amap', label: '高德地图', url: amapUrl })
+  }
+
   return targets
 }
 
-/** Opens a target the way every external link in the planner is opened. */
+/**
+ * Hands the place over to a maps application.
+ *
+ * In a browser tab this opens a tab, which is what a link should do. In an
+ * installed app it must not: the maps application takes over from the new
+ * context before it paints, so what the user comes back to is an empty window
+ * they have to dismiss before TREK is usable again (#2218). Navigating the
+ * current context instead means the handover happens from the page the user is
+ * already on, and returning lands them back where they were, because the app
+ * shell was never replaced by the time the platform switched away.
+ */
 export function openNavigationTarget(target: NavigationTarget): void {
-  window.open(target.url, '_blank', 'noopener,noreferrer')
+  if (isInstalledApp()) window.location.href = target.url
+  else window.open(target.url, '_blank', 'noopener,noreferrer')
+}
+
+/** True in a display mode that has no tab strip to close a stray window from. */
+function isInstalledApp(): boolean {
+  if (typeof window === 'undefined') return false
+  const standalone = ['standalone', 'fullscreen', 'minimal-ui'].some(
+    mode => window.matchMedia?.(`(display-mode: ${mode})`).matches,
+  )
+  // iOS predates the display-mode query for home-screen apps.
+  return standalone || (window.navigator as { standalone?: boolean }).standalone === true
 }

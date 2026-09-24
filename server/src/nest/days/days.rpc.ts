@@ -5,7 +5,9 @@ import { BadParams, ForbiddenResource } from '../plugins/host/rpc-errors';
 import { num, schemaMessage } from '../plugins/host/rpc-params';
 import type { PluginRpcContext } from '../plugins/host/rpc-kit/types';
 import { RealtimeService } from '../realtime/realtime.service';
-import { DaysService } from './days.service';
+import { DaysService, DayAppendError, type DatedDayAppend, type DaySender } from './days.service';
+import { DayRemovalService, DayDeleteError, type DayRemoval } from './day-removal.service';
+import type { MirrorSender } from '../accommodations/accommodations.service';
 
 const DAY_EDIT_ACTION = 'day_edit';
 
@@ -21,6 +23,7 @@ export class DaysRpc {
     private readonly days: DaysService,
     private readonly realtime: RealtimeService,
     private readonly guards: PluginGuards,
+    private readonly removal: DayRemovalService,
   ) {}
 
   @PluginMethod('days.create', { permission: 'db:write:days' })
@@ -30,10 +33,25 @@ export class DaysRpc {
     const parsed = dayCreateRequestSchema.safeParse(params.input);
     if (!parsed.success) throw new BadParams(`invalid day: ${schemaMessage(parsed.error)}`);
     this.guards.requireTripEdit(tripId, actor, DAY_EDIT_ACTION);
-    const input = parsed.data as { date?: string; notes?: string };
+    const input = parsed.data;
+    if (input.dated) return this.appendDated(tripId, actor, input.notes);
     const day = this.days.create(tripId, input.date, input.notes);
     this.realtime.broadcast(tripId, 'day:created', { day });
     return day;
+  }
+
+  /** days.create with `dated`: the calendar day after the trip's last date, as on REST and MCP. */
+  private appendDated(tripId: number, actor: number, notes: string | undefined): unknown {
+    let append: DatedDayAppend;
+    try {
+      append = this.days.appendDated(tripId, actor, notes);
+    } catch (err) {
+      if (err instanceof DayAppendError) throw new BadParams(err.message);
+      throw err;
+    }
+    const send: DaySender = (event, payload) => this.realtime.broadcast(tripId, event, payload);
+    this.days.announceDatedAppend(append, { all: send, others: send });
+    return append.day;
   }
 
   @PluginMethod('days.update', { permission: 'db:write:days' })
@@ -59,8 +77,15 @@ export class DaysRpc {
     const actor = this.guards.requireActor(ctx, 'day');
     this.guards.requireTripEdit(tripId, actor, DAY_EDIT_ACTION);
     if (!this.days.getDay(dayId, tripId)) throw new ForbiddenResource(`no day ${dayId} on trip ${tripId}`);
-    this.days.remove(dayId);
-    this.realtime.broadcast(tripId, 'day:deleted', { dayId });
+    let removal: DayRemoval;
+    try {
+      removal = this.removal.remove(tripId, dayId, { userId: actor });
+    } catch (err) {
+      if (err instanceof DayDeleteError) throw new BadParams(err.message);
+      throw err;
+    }
+    const send: MirrorSender = (event, payload) => this.realtime.broadcast(tripId, event, payload);
+    this.removal.announce(tripId, removal, { all: send, others: send });
     return { deleted: true };
   }
 }

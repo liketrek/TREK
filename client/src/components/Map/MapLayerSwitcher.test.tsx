@@ -1,8 +1,8 @@
-// FE-COMP-MAPLAYER-001 to FE-COMP-MAPLAYER-005
+// FE-COMP-MAPLAYER-001 to FE-COMP-MAPLAYER-006
 import React from 'react'
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '../../../tests/helpers/render'
-import { MapLayerSwitcher } from './MapLayerSwitcher'
+import { MapLayerSwitcher, MAP_ROUND_CONTROL_SIZE } from './MapLayerSwitcher'
 
 describe('MapLayerSwitcher', () => {
   it('FE-COMP-MAPLAYER-001: on the default layer, offers the switch to satellite', () => {
@@ -40,5 +40,18 @@ describe('MapLayerSwitcher', () => {
     expect(button.style.background).toBe('var(--bg-hover)')
     fireEvent.mouseLeave(button)
     expect(button.style.background).toBe('transparent')
+  })
+
+  it('FE-COMP-MAPLAYER-006: the shell is as wide as the size its neighbours are placed off', () => {
+    render(<MapLayerSwitcher active="default" onToggle={() => {}} />)
+    const button = screen.getByRole('button')
+    const shell = button.parentElement as HTMLElement
+
+    // The phone's compass stands beside the switcher at inset + size + gap. If the
+    // markup grew without the constant, the compass would slide back under the shell.
+    expect(shell.style.padding).toBe('4px')
+    expect(button.style.width).toBe('34px')
+    expect(button.style.height).toBe('34px')
+    expect(parseFloat(button.style.width) + 2 * parseFloat(shell.style.padding)).toBe(MAP_ROUND_CONTROL_SIZE)
   })
 })

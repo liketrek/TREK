@@ -68,7 +68,13 @@ function build(addonOn: boolean) {
     new CollabRpc(spyService(calls, 'collab'), { broadcast: vi.fn() } as never, guards),
     new AtlasRpc(spyService(calls, 'atlas'), guards),
     new VacayRpc(spyService(calls, 'vacay'), guards),
-    new JournalRpc(spyService(calls, 'journey'), guards),
+    // The photo method writes bytes, so its four extra deps need real shapes or the
+    // addon-on half of the table would fail for a reason that is not the gate.
+    new JournalRpc(spyService(calls, 'journey'), guards,
+      { put: async () => undefined, delete: async () => undefined } as never,
+      { get: () => '*' } as never,
+      { schedule: () => undefined } as never,
+      { prepare: () => ({ get: () => ({ email: 'u@example.test' }) }) } as never),
     new CollectionsRpc(spyService(calls, 'collections'), guards),
     new CostsRpc(spyService(calls, 'budget'), db, { broadcast: vi.fn() } as never, guards, spyService(calls, 'membership')),
   ]);
@@ -95,6 +101,7 @@ const GATED: Array<[string, Record<string, unknown>, string]> = [
   ['journal.updateEntry', { entryId: 1, input: {} }, 'journey'],
   ['journal.deleteEntry', { entryId: 1 }, 'journey'],
   ['journal.createJourney', { input: { title: 'J' } }, 'journey'],
+  ['journal.addEntryPhoto', { entryId: 1, input: { name: 'a.jpg', content_base64: 'eA==' } }, 'journey'],
   ['journal.deleteJourney', { journeyId: 7 }, 'journey'],
   ['atlas.visited', {}, 'atlas'],
   ['atlas.bucketList', {}, 'atlas'],
@@ -137,7 +144,7 @@ describe('every addon-gated plugin method refuses when its addon is off', () => 
   it('ADDONGATE-covers-every-gated-method', () => {
     // Guards the table itself: if a later PR adds an addon-gated method without a row
     // here, this number is the reminder.
-    expect(GATED).toHaveLength(37);
+    expect(GATED).toHaveLength(38);
   });
 
   it('ADDONGATE-the-same-calls-succeed-with-the-addon-on', async () => {

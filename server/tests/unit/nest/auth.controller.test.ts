@@ -415,6 +415,29 @@ describe('AuthController (authenticated)', () => {
     expect(ac(asvc({}), rl(), { deleteMcpToken: vi.fn().mockReturnValue({}) }).deleteMcpToken(user, 'tid')).toEqual({ success: true });
   });
 
+  // Same four paths as the MCP block above, against the other token kind. They are
+  // separate routes on purpose — an API key and an MCP token open different doors —
+  // so nothing here is implied by the MCP tests passing.
+  it('api-tokens list + create success/error + delete error/success', () => {
+    expect(ac(asvc({}), rl(), { listApiTokens: vi.fn().mockReturnValue([{ id: 'a' }]) }).listApiTokens(user)).toEqual({ tokens: [{ id: 'a' }] });
+    expect(ac(asvc({}), rl(), { createApiToken: vi.fn().mockReturnValue({ token: 'trek_x' }) }).createApiToken(user, { name: 'Homepage' }, req)).toEqual({ token: 'trek_x' });
+    expect(thrown(() => ac(asvc({}), rl(), { createApiToken: vi.fn().mockReturnValue({ error: 'Name taken', status: 409 }) }).createApiToken(user, { name: 'x' }, req))).toEqual({ status: 409, body: { error: 'Name taken' } });
+    expect(thrown(() => ac(asvc({}), rl(), { deleteApiToken: vi.fn().mockReturnValue({ error: 'Not found', status: 404 }) }).deleteApiToken(user, 'tid'))).toEqual({ status: 404, body: { error: 'Not found' } });
+    expect(ac(asvc({}), rl(), { deleteApiToken: vi.fn().mockReturnValue({}) }).deleteApiToken(user, 'tid')).toEqual({ success: true });
+  });
+
+  // The create route shares the 'login' limiter bucket with the MCP one, at 5/window.
+  // Unlike MCP tokens it is NOT refused on a managed instance, so the limiter is the
+  // only thing standing between a scripted caller and an unbounded key list.
+  it('api-tokens create is rate limited after 5 in the window', () => {
+    const limiter = rl();
+    const createApiToken = vi.fn().mockReturnValue({ token: 'trek_x' });
+    const ctl = ac(asvc({}), limiter, { createApiToken });
+    for (let i = 0; i < 5; i++) expect(ctl.createApiToken(user, { name: `k${i}` }, req)).toEqual({ token: 'trek_x' });
+    expect(thrown(() => ctl.createApiToken(user, { name: 'k5' }, req)).status).toBe(429);
+    expect(createApiToken).toHaveBeenCalledTimes(5);
+  });
+
   it('ws-token maps error, else returns the token', () => {
     expect(thrown(() => ac(asvc({}), rl(), { createWsToken: vi.fn().mockReturnValue({ error: 'down', status: 503 }) }).wsToken(user))).toEqual({ status: 503, body: { error: 'down' } });
     expect(ac(asvc({}), rl(), { createWsToken: vi.fn().mockReturnValue({ token: 'ws' }) }).wsToken(user)).toEqual({ token: 'ws' });

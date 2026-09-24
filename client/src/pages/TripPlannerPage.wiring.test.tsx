@@ -1,4 +1,4 @@
-// FE-PAGE-TPW-001 to FE-PAGE-TPW-060
+// FE-PAGE-TPW-001 to FE-PAGE-TPW-062
 //
 // The planner page is a wiring container: everything stateful lives in
 // useTripPlanner (covered in src/pages/tripPlanner/useTripPlanner.test.tsx).
@@ -141,6 +141,49 @@ function baseState(): HookState {
     collabFeatures: { chat: true, notes: true, polls: true, whatsnext: true },
     tripAccommodations: [],
     setTripAccommodations: vi.fn(),
+    // Road trip mode off, which is the state every assertion below reads: the page keeps
+    // its ordinary map, sidebar and route wiring, and the road-trip branches stay unmounted.
+    // The shapes still have to be here, because the page reaches into routeAlternatives.open,
+    // roadtripRoutes.lines and roadtripVias.byDay before it ever checks whether the mode is on.
+    roadtripMode: false,
+    toggleRoadtripMode: vi.fn(),
+    roadtripActive: false,
+    roadtripRoutes: { lines: [], segments: [], days: [], loading: false, totalStops: 0 },
+    roadtripCorridor: { visible: [], day: null, dayId: '', setDayId: vi.fn(), categories: [], toggleCategory: vi.fn(), widthKm: 5, setWidthKm: vi.fn(), search: vi.fn(), nameFilter: '', setNameFilter: vi.fn(), insertIndexFor: vi.fn() },
+    refuel: { openFor: null, loading: false, outcome: null, results: [], offered: [], ask: vi.fn(), close: vi.fn() },
+    askRefuel: vi.fn(),
+    acceptRefuel: vi.fn(),
+    followTrack: { dayId: null, open: vi.fn(), close: vi.fn(), tracks: [], busy: false, round: 0, error: null, outcome: null, apply: vi.fn(), clear: vi.fn(), viaCount: 0, available: false },
+    // The recorded-route overlay (#2279). Off and empty: the page reads
+    // `dawarichTrail.track` unconditionally, so the fixture has to carry the
+    // shape the hook returns even when the addon is not in play.
+    dawarichEnabled: false,
+    dawarichTrailShown: false,
+    toggleDawarichTrail: vi.fn(),
+    dawarichTrail: { track: null, status: 'idle', reload: vi.fn() },
+    roadtripViaCounts: {},
+    stopDraft: null,
+    setStopDraft: vi.fn(),
+    saveStopDraft: vi.fn(async () => undefined),
+    stopDraftToForm: vi.fn(),
+    stopDraftDuplicate: null,
+    reorderRoadtripStop: vi.fn(async () => undefined),
+    roadtripVias: { byDay: {}, refresh: vi.fn(async () => undefined) },
+    addRoadtripVia: vi.fn(async () => undefined),
+    moveRoadtripVia: vi.fn(async () => undefined),
+    removeRoadtripVia: vi.fn(async () => undefined),
+    routeAlternatives: { open: null, close: vi.fn(), loading: false, ask: vi.fn(async () => undefined) },
+    askRouteAlternatives: vi.fn(async () => undefined),
+    chooseRouteAlternative: vi.fn(async () => undefined),
+    alternativeOverlays: [],
+    alternativeFocusPoints: [],
+    stayDraft: null,
+    setStayDraft: vi.fn(),
+    setRoadtripStay: vi.fn(async () => undefined),
+    highlightedAlternative: null,
+    setHighlightedAlternative: vi.fn(),
+    moveRoadtripStopToDay: vi.fn(async () => undefined),
+    dropPoiOnRoute: vi.fn(async () => undefined),
     allowedFileTypes: 'pdf',
     tripMembers: [],
     setTripMembers: vi.fn(),
@@ -165,6 +208,11 @@ function baseState(): HookState {
     rightCollapsed: false,
     setLeftCollapsed: vi.fn(),
     setRightCollapsed: vi.fn(),
+    leftHidden: false,
+    rightHidden: false,
+    toggleLeft: vi.fn(),
+    toggleRight: vi.fn(),
+    narrowPanels: false,
     startResizeLeft: vi.fn(),
     startResizeRight: vi.fn(),
     selectedPlaceId: null,
@@ -177,12 +225,16 @@ function baseState(): HookState {
     setDayDetailCollapsed: vi.fn(),
     showPlaceForm: false,
     setShowPlaceForm: vi.fn(),
+    setPlaceFormDayId: vi.fn(),
     editingPlace: null,
     setEditingPlace: vi.fn(),
     prefillCoords: null,
     setPrefillCoords: vi.fn(),
     editingAssignmentId: null,
     setEditingAssignmentId: vi.fn(),
+    serviceStopMode: null,
+    setServiceStopForm: vi.fn(),
+    openManualRoadtripStop: vi.fn(),
     showTripForm: false,
     setShowTripForm: vi.fn(),
     showMembersModal: false,
@@ -193,6 +245,8 @@ function baseState(): HookState {
     setEditingReservation: vi.fn(),
     showBookingImport: false,
     setShowBookingImport: vi.fn(),
+    bookingImportKind: 'bookings' as const,
+    setBookingImportKind: vi.fn(),
     bookingImportAvailable: true,
     airTrailAvailable: true,
     showAirTrailImport: false,
@@ -217,6 +271,7 @@ function baseState(): HookState {
     advanceImportReview: vi.fn(),
     routeShown: false,
     setRouteShown: vi.fn(),
+    transitRoutesShown: false,
     routeProfile: 'driving',
     setRouteProfile: vi.fn(),
     routeVias: [],
@@ -230,6 +285,9 @@ function baseState(): HookState {
     setDeletePlaceId: vi.fn(),
     deletePlaceIds: null,
     setDeletePlaceIds: vi.fn(),
+    stayRelease: null,
+    setStayRelease: vi.fn(),
+    confirmStayRelease: vi.fn(async () => undefined),
     visibleConnections: [],
     toggleConnection: vi.fn(),
     allConnectionsShown: false,
@@ -334,9 +392,11 @@ describe('TripPlannerPage — shell', () => {
   it('FE-PAGE-TPW-006: the tab bar renders every tab and forwards a switch to the hook', () => {
     renderPage()
 
-    const tabs = props('tabs').tabs as unknown as Array<{ id: string; title: string }>
+    const tabs = props('tabs').tabs as unknown as Array<{ id: string; title?: string }>
     expect(tabs.map(t => t.id)).toContain('collab')
-    expect(tabs.find(t => t.id === 'buchungen')?.title).toBe('Bookings')
+    // No native tooltip on any of them: the label is right there, so a title
+    // would only repeat it under the cursor.
+    expect(tabs.every(t => t.title === undefined)).toBe(true)
 
     act(() => { props('tabs').onChange('dateien') })
     expect(hookState.handleTabChange).toHaveBeenCalledWith('dateien')
@@ -352,7 +412,7 @@ describe('TripPlannerPage — shell', () => {
 
 describe('TripPlannerPage — plan tab', () => {
   it('FE-PAGE-TPW-008: the map receives the filtered markers, the tile url, the panel widths and the selected day', () => {
-    renderPage()
+    renderPage({ transitRoutesShown: true })
 
     expect(props('map').places).toEqual([place])
     expect(props('map').tileUrl).toBe('https://tiles/{z}/{x}/{y}.png')
@@ -362,10 +422,13 @@ describe('TripPlannerPage — plan tab', () => {
     // transport in the trip as soon as any day's route is on (#2019).
     expect(props('map').days).toEqual([day])
     expect(props('map').selectedDayId).toBe(7)
+    // Transit visibility rides the hook's day-aware derivation, not the raw
+    // toggle — routeShown is still false in this fixture (#2019).
+    expect(props('map').showTransitRoutes).toBe(true)
   })
 
   it('FE-PAGE-TPW-009: collapsed panels report a zero width to the map', () => {
-    renderPage({ leftCollapsed: true, rightCollapsed: true })
+    renderPage({ leftHidden: true, rightHidden: true })
 
     expect(props('map').leftWidth).toBe(0)
     expect(props('map').rightWidth).toBe(0)
@@ -402,21 +465,56 @@ describe('TripPlannerPage — plan tab', () => {
   it('FE-PAGE-TPW-013: the collapse buttons toggle each side panel', () => {
     renderPage()
 
-    const [leftBtn, rightBtn] = screen.getAllByRole('button')
+    // By name, not by position: the map layer carries controls of its own, so the
+    // tabs are not simply the first two buttons on the page.
+    const [leftBtn, rightBtn] = screen.getAllByLabelText('common.collapse')
     fireEvent.click(leftBtn)
-    expect(updaterOf<boolean>(hookState.setLeftCollapsed)(false)).toBe(true)
+    expect(hookState.toggleLeft).toHaveBeenCalled()
 
     fireEvent.mouseEnter(leftBtn)
     fireEvent.mouseLeave(leftBtn)
 
     fireEvent.click(rightBtn)
-    expect(updaterOf<boolean>(hookState.setRightCollapsed)(false)).toBe(true)
+    expect(hookState.toggleRight).toHaveBeenCalled()
     fireEvent.mouseEnter(rightBtn)
     fireEvent.mouseLeave(rightBtn)
   })
 
+  // The tabs are the only way back to a panel on a touch device, and they used to
+  // announce themselves with nothing but a hover colour (#2247).
+  it('FE-PAGE-TPW-013b: each collapse tab is named for what it does', () => {
+    renderPage({ leftHidden: true, rightHidden: false })
+    expect(screen.getByLabelText('trip.mobilePlan')).toBeInTheDocument()
+    expect(screen.getByLabelText('common.collapse')).toBeInTheDocument()
+  })
+
+  // At a foldable's ~860px the viewport centre sits under the Places panel, so the
+  // floating POI/compass cluster covered both tabs and the Add Place button (#2247).
+  it('FE-PAGE-TPW-013c: the floating map controls centre on the map corridor, not the viewport', () => {
+    const { container } = renderPage({ leftWidth: 340, rightWidth: 300 })
+    const cluster = container.querySelector('div[style*="translateX(-50%)"][style*="z-index: 25"]') as HTMLElement
+    expect(cluster.style.left).toBe('calc(350px + 0.5 * (100% - 350px - 310px))')
+  })
+
+  it('FE-PAGE-TPW-013d: a hidden panel takes no corridor away from the map controls', () => {
+    const { container } = renderPage({ leftWidth: 340, rightWidth: 300, rightHidden: true })
+    const cluster = container.querySelector('div[style*="translateX(-50%)"][style*="z-index: 25"]') as HTMLElement
+    expect(cluster.style.left).toBe('calc(350px + 0.5 * (100% - 350px - 0px))')
+  })
+
+  // Leaflet's base-layer switcher owns the bottom-LEFT corner at z-index 1000, so an
+  // overview control placed there is simply covered by it (#1736).
+  it('FE-PAGE-TPW-013d: the trip-overview control hugs the right edge, clear of the layer switcher', () => {
+    renderPage()
+
+    const stack = screen.getByTestId('trip-overview-pill').closest('[style*="position: absolute"]') as HTMLElement
+    expect(stack).not.toBeNull()
+    expect(stack.style.right).not.toBe('')
+    expect(stack.style.left).toBe('')
+  })
+
   it('FE-PAGE-TPW-014: a collapsed panel keeps its toggle but drops the hover highlight', () => {
-    renderPage({ leftCollapsed: true, rightCollapsed: true })
+    renderPage({ leftHidden: true, rightHidden: true })
 
     const [leftBtn, rightBtn] = screen.getAllByRole('button')
     fireEvent.mouseEnter(leftBtn)
@@ -425,6 +523,13 @@ describe('TripPlannerPage — plan tab', () => {
     fireEvent.mouseLeave(rightBtn)
 
     expect(screen.getByTestId('day-plan-sidebar')).toBeInTheDocument()
+  })
+
+  // Mouse-only handles (mousedown + document mousemove) are inert on a tablet, and
+  // a 4px invisible strip on the panel edge is a trap for a fat finger (#2247).
+  it('FE-PAGE-TPW-015b: the narrow layout drops the mouse-only resize handles', () => {
+    const { container } = renderPage({ narrowPanels: true })
+    expect(container.querySelectorAll('div[style*="col-resize"]')).toHaveLength(0)
   })
 
   it('FE-PAGE-TPW-015: the resize handles start a drag on mouse-down and highlight on hover', () => {
@@ -586,11 +691,11 @@ describe('TripPlannerPage — day detail and inspector', () => {
     expect(hookState.loadAccommodations).toHaveBeenCalled()
   })
 
-  it('FE-PAGE-TPW-025: a day without geo stops falls back to any place with coordinates', () => {
+  it('FE-PAGE-TPW-025: a day without geo stops gets no weather anchor from other days (#2167)', () => {
     renderPage({ showDayDetail: { ...day, id: 99 }, assignments: {} })
 
-    expect(props('dayDetail').lat).toBe(34.9)
-    expect(props('dayDetail').lng).toBe(135.7)
+    expect(props('dayDetail').lat).toBeNull()
+    expect(props('dayDetail').lng).toBeNull()
   })
 
   it('FE-PAGE-TPW-026: the desktop inspector edits, deletes and rates through the hook', async () => {
@@ -957,6 +1062,9 @@ describe('TripPlannerPage — modals', () => {
     expect(hookState.setShowPlaceForm).toHaveBeenCalledWith(false)
     expect(hookState.setEditingPlace).toHaveBeenCalledWith(null)
     expect(hookState.setPrefillCoords).toHaveBeenCalledWith(null)
+    // The road trip's manual add is one of the ways this form opens; closing it has to
+    // put the form back to the one every other caller gets.
+    expect(hookState.setServiceStopForm).toHaveBeenCalledWith(false)
 
     act(() => { props('placeForm').onCategoryCreated({ id: 3, name: 'Food' }) })
     const tripActions = hookState.tripActions as Record<string, ReturnType<typeof vi.fn>>
@@ -1111,6 +1219,22 @@ describe('TripPlannerPage — modals', () => {
     expect(hookState.setTransportModalDayId).toHaveBeenCalledWith(null)
   })
 
+  it('FE-PAGE-TPW-061: edit details hands the fresh reservation to the full transport editor', () => {
+    const stale = buildReservation({ id: 9, type: 'transit', day_id: 7 })
+    // The store copy may be newer than the journey held in state — the fresh
+    // one must win.
+    const fresh = { ...stale, title: 'Kyoto → Osaka' }
+    renderPage({ transitJourney: stale, reservations: [fresh] })
+
+    act(() => { props('transitModal').onEditDetails() })
+    expect(hookState.setEditingTransport).toHaveBeenCalledWith(fresh)
+    expect(hookState.setTransportModalDayId).toHaveBeenCalledWith(7)
+    expect(hookState.setTransportModalAutomated).toHaveBeenCalledWith(false)
+    expect(hookState.setTransitPrefill).toHaveBeenCalledWith(null)
+    expect(hookState.setTransitJourney).toHaveBeenCalledWith(null)
+    expect(hookState.setShowTransportModal).toHaveBeenCalledWith(true)
+  })
+
   it('FE-PAGE-TPW-057: a booking opens the expense editor, prefilled or on an existing item', async () => {
     setSettings({ default_currency: 'eur' })
     renderPage()
@@ -1169,5 +1293,20 @@ describe('TripPlannerPage — modals', () => {
     act(() => { bulk.onConfirm() })
     expect(hookState.setDeletePlaceIds).toHaveBeenCalledWith(null)
     expect(hookState.confirmDeletePlaces).toHaveBeenCalled()
+  })
+
+  it('FE-PAGE-TPW-062: the question before a booked night becomes a pause answers through the hook', () => {
+    renderPage({ stayRelease: { stop: { stopType: null, dwellMinutes: 30 }, name: 'Hotel Fjord', booking: 'Booking 4711' } })
+
+    // Found by its handler rather than its place: the delete-day question sits in front of it now.
+    const release = (confirmDialogs as unknown as Array<Record<string, () => unknown> & { isOpen: boolean }>)
+      .find(dialog => dialog.onConfirm === hookState.confirmStayRelease)!
+    expect(release.isOpen).toBe(true)
+
+    act(() => { release.onClose() })
+    expect(hookState.setStayRelease).toHaveBeenCalledWith(null)
+
+    act(() => { release.onConfirm() })
+    expect(hookState.confirmStayRelease).toHaveBeenCalled()
   })
 })

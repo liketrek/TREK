@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Reservation, ReservationEndpoint } from '../types'
 import { calculateRouteWithLegs } from '../components/Map/RouteCalculator'
+import { MAX_DRIVE_KM } from '@trek/shared/roadtrip'
+import { haversineKm } from '../utils/geo'
 
 /**
  * Real road-network geometry for road-based transport bookings (car, bus, taxi,
@@ -20,20 +22,12 @@ const ROAD_PROFILE: Record<string, 'driving' | 'cycling'> = {
   bicycle: 'cycling',
 }
 
-// Beyond this straight-line distance a car/taxi/bike (or even coach) booking is
-// almost always a data quirk or an inter-continental hop the road router can't
-// resolve — keep the straight line and don't hammer the public OSRM demo.
-const MAX_ROUTE_KM = 2000
-
-function haversineKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
-  const R = 6371
-  const dLat = (b.lat - a.lat) * Math.PI / 180
-  const dLng = (b.lng - a.lng) * Math.PI / 180
-  const la1 = a.lat * Math.PI / 180
-  const la2 = b.lat * Math.PI / 180
-  const h = Math.sin(dLat / 2) ** 2 + Math.cos(la1) * Math.cos(la2) * Math.sin(dLng / 2) ** 2
-  return 2 * R * Math.asin(Math.sqrt(h))
-}
+// Beyond this straight-line distance a single leg of a car/taxi/bike (or even coach)
+// booking is almost always a data quirk or an inter-continental hop the road router
+// can't resolve — keep the straight line and don't hammer the public OSRM demo.
+// Shared with the day-route builder, which draws the same conclusion about a
+// booking endpoint that landed next to a local stop (#2133).
+const MAX_ROUTE_KM = MAX_DRIVE_KM
 
 function orderedWaypoints(r: Reservation): ReservationEndpoint[] {
   return (r.endpoints || [])
@@ -67,9 +61,14 @@ export function useTransportRoutes(reservations: Reservation[]): Map<number, [nu
       if (!profile) continue
       const wps = orderedWaypoints(r)
       if (wps.length < 2) continue
-      let dist = 0
-      for (let i = 0; i < wps.length - 1; i++) dist += haversineKm(wps[i], wps[i + 1])
-      if (dist > MAX_ROUTE_KM) continue
+      // Per leg, not over the whole booking: a road trip with stops is long by design
+      // and its total would trip a limit meant to catch a single impossible hop. It is
+      // one leg spanning an ocean that the road router cannot resolve, not the sum (#1797).
+      let tooFar = false
+      for (let i = 0; i < wps.length - 1; i++) {
+        if (haversineKm(wps[i], wps[i + 1]) > MAX_ROUTE_KM) { tooFar = true; break }
+      }
+      if (tooFar) continue
       const key = `${profile}:${wps.map(w => `${w.lat},${w.lng}`).join('|')}`
       if (attempted.get(r.id) === key) continue
       attempted.set(r.id, key)

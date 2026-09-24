@@ -70,8 +70,17 @@ export function isManagedBlocked(env: RuntimeEnvService): boolean {
  * the one that reaches the browser: a managed instance ships with the operator's
  * public pk.* token, injected when the settings are read, and a per-user value
  * saved over it would only break the map for that user.
+ *
+ * carto_api_key is the same shape, injected on read and public in the browser,
+ * and it is the operator's for one more reason: the key is registered to
+ * whoever runs the instance, and CARTO's terms hold that account answerable for
+ * the tiles it fetches.
  */
 export const MANAGED_LOCKED_SETTING_KEYS = [
+  // The operator's for the same reason maps_api_key is: Amap bills the account
+  // the key belongs to, and on a managed install that account is theirs.
+  'amap_api_key',
+  'carto_api_key',
   'llm_api_key',
   'llm_base_url',
   'llm_model',
@@ -82,6 +91,7 @@ export const MANAGED_LOCKED_SETTING_KEYS = [
   'oidc_login',
   'oidc_registration',
   'openweather_api_key',
+  'routing_base_url',
   'smtp_from',
   'smtp_host',
   'smtp_pass',
@@ -89,6 +99,7 @@ export const MANAGED_LOCKED_SETTING_KEYS = [
   'smtp_skip_tls_verify',
   'smtp_user',
   'unsplash_api_key',
+  'valhalla_base_url',
   'webauthn_origins',
   'webauthn_rp_id',
 ] as const;
@@ -102,6 +113,7 @@ export const MANAGED_LOCKED_PROFILE_KEYS = [
   'maps_api_key',
   'openweather_api_key',
   'unsplash_api_key',
+  'amap_api_key',
 ] as const;
 
 /**
@@ -134,6 +146,10 @@ export const MANAGED_CUSTOMER_KEYS = [
   'passkey_login',
   'password_login',
   'password_registration',
+  // WHICH provider answers place search stays the admin's call even when the
+  // operator owns both credentials: it decides what their users see, not what
+  // the operator is billed for — the keys above cover that.
+  'places_provider',
   'require_mfa',
   'temperature_unit',
   'time_format',

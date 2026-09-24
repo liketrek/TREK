@@ -12,7 +12,7 @@ import { buildPlanner, buildTripActions } from '../../../helpers/mobileTrip'
 import { resetAllStores, seedStore } from '../../../helpers/store'
 import { act, renderHook, waitFor } from '../../../helpers/render'
 
-// FE-MOB-PLTL-001 to FE-MOB-PLTL-045
+// FE-MOB-PLTL-001 to FE-MOB-PLTL-051
 
 // The connector calculation is its own hook with real OSRM calls — stubbed here so
 // the timeline sees exactly the legs a test wants to match against.
@@ -133,7 +133,7 @@ describe('useMPlanTimeline', () => {
     expect(result.current.hotelLegs.top?.seg).toBe(out)
     expect(result.current.hotelLegs.bottom?.seg).toBe(back)
     expect(result.current.hotelChips).toEqual([
-      { key: 'stay-71', variant: 'stay', name: 'Hotel Sacher', time: null },
+      { key: 'stay-71', variant: 'stay', name: 'Hotel Sacher', time: null, accId: 71, placeId: null },
     ])
   })
 
@@ -172,8 +172,10 @@ describe('useMPlanTimeline', () => {
   it('FE-MOB-PLTL-007: requests the forecast for the first located stop', async () => {
     const { result } = await renderTimeline(makePlanner())
     await waitFor(() => expect(result.current.weather).not.toBeNull())
-    expect(weatherApi.get).toHaveBeenCalledWith(48, 16.1, '2026-05-02')
+    expect(weatherApi.get).toHaveBeenCalledWith(48, 16.1, '2026-05-02', 'en')
     expect(result.current.weatherTemp).toBe(20)
+    // #2167 — the anchor's name rides along so the chip can say where this is for.
+    expect(result.current.weatherPlaceName).toBe('Museum')
   })
 
   it('FE-MOB-PLTL-008: converts the forecast to Fahrenheit on request', async () => {
@@ -200,8 +202,9 @@ describe('useMPlanTimeline', () => {
       id: 14, day_id: 2, order_index: 0, place_id: 104,
       place: buildPlace({ id: 104, name: 'Idea', lat: null, lng: null }),
     })
-    await renderTimeline(makePlanner({ assignments: { '2': [vague] }, tripAccommodations: [HOTEL] }))
-    expect(weatherApi.get).toHaveBeenCalledWith(48, 16.05, '2026-05-02')
+    const { result } = await renderTimeline(makePlanner({ assignments: { '2': [vague] }, tripAccommodations: [HOTEL] }))
+    expect(weatherApi.get).toHaveBeenCalledWith(48, 16.05, '2026-05-02', 'en')
+    expect(result.current.weatherPlaceName).toBe('Hotel Sacher')
   })
 
   it('FE-MOB-PLTL-012: skips the forecast without any coordinates at all', async () => {
@@ -209,8 +212,9 @@ describe('useMPlanTimeline', () => {
       id: 14, day_id: 2, order_index: 0, place_id: 104,
       place: buildPlace({ id: 104, name: 'Idea', lat: null, lng: null }),
     })
-    await renderTimeline(makePlanner({ assignments: { '2': [vague] } }))
+    const { result } = await renderTimeline(makePlanner({ assignments: { '2': [vague] } }))
     expect(weatherApi.get).not.toHaveBeenCalled()
+    expect(result.current.weatherPlaceName).toBeNull()
   })
 
   it('FE-MOB-PLTL-045: drops a forecast that settles after the timeline is gone', async () => {
@@ -239,7 +243,7 @@ describe('useMPlanTimeline', () => {
     expect(result.current.openTransitKeys.has('tr-61')).toBe(false)
   })
 
-  it('FE-MOB-PLTL-014: counts down on today and never on any other day', () => {
+  it('FE-MOB-PLTL-014: counts down on today and shows nothing for a day gone by', () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date(2026, 4, 2, 10, 15))
     const today = makePlanner({ assignments: { '2': [TIMED_EARLY, TIMED_LATE] } })
@@ -251,7 +255,7 @@ describe('useMPlanTimeline', () => {
       days: DAYS.map(d => (d.id === 2 ? { ...d, date: '2026-04-30' } : d)),
     })
     const other = renderHook(() => useMPlanTimeline(past))
-    expect(other.result.current.upNext).toEqual({ assignment: TIMED_EARLY, minutesUntil: null })
+    expect(other.result.current.upNext).toBeNull()
   })
 
   it('FE-MOB-PLTL-015: re-evaluates the countdown on the half-minute tick', () => {
@@ -263,7 +267,7 @@ describe('useMPlanTimeline', () => {
 
     vi.setSystemTime(new Date(2026, 4, 2, 11, 30))
     act(() => { vi.advanceTimersByTime(30_000) })
-    expect(result.current.upNext).toEqual({ assignment: TIMED_EARLY, minutesUntil: null })
+    expect(result.current.upNext).toBeNull()
   })
 
   it('FE-MOB-PLTL-016: reorders the day when a stop is moved down', async () => {
@@ -598,6 +602,47 @@ describe('useMPlanTimeline', () => {
     const { result } = await renderTimeline(makePlanner({ assignments: { '2': [vague] } }))
     act(() => { result.current.exportGoogleMaps() })
     expect(window.open).not.toHaveBeenCalled()
+  })
+
+  it('FE-MOB-PLTL-050: a moving day that only holds its flight has no route to export (#2476)', async () => {
+    // Day 2 checks out of one hotel and into another, the flight in between saved
+    // without its airports. The exports used to open a drive between the two hotels.
+    const stays = [
+      { ...HOTEL, id: 72, start_day_id: 1, end_day_id: 2, place_name: 'Hotel A' },
+      { ...HOTEL, id: 73, start_day_id: 2, end_day_id: 3, place_name: 'Hotel B', place_lat: 53.55, place_lng: 9.99 },
+    ] as Accommodation[]
+    const flight = buildReservation({ id: 77, type: 'flight', title: 'LH 2078', day_id: 2, end_day_id: 2, reservation_time: '2026-05-02T15:15' })
+    const { result } = await renderTimeline(makePlanner({ assignments: {}, reservations: [flight], tripAccommodations: stays }))
+    expect(result.current.canExportRoute).toBe(false)
+    act(() => { result.current.exportGoogleMaps() })
+    act(() => { result.current.exportCoMaps() })
+    expect(window.open).not.toHaveBeenCalled()
+
+    // The same day without the booking is a drive from one hotel to the other.
+    const byRoad = await renderTimeline(makePlanner({ assignments: {}, reservations: [], tripAccommodations: stays }))
+    expect(byRoad.result.current.canExportRoute).toBe(true)
+    act(() => { byRoad.result.current.exportGoogleMaps() })
+    expect(window.open).toHaveBeenCalledWith(
+      'https://www.google.com/maps/dir/48,16.05/53.55,9.99', '_blank', 'noopener,noreferrer',
+    )
+  })
+
+  it('FE-MOB-PLTL-051: a day with a single stop still offers the hand-offs, which open that stop as a pin', async () => {
+    // No stay in TREK: one sight is the whole export. The #2476 gate only drops a day
+    // with nothing to hand over, not one that opens a pin to navigate to.
+    const { result } = await renderTimeline(makePlanner({ assignments: { '2': [A_MUSEUM] } }))
+    expect(result.current.canExportRoute).toBe(true)
+    act(() => { result.current.exportGoogleMaps() })
+    expect(window.open).toHaveBeenCalledWith(
+      'https://www.google.com/maps/search/?api=1&query=48,16.1', '_blank', 'noopener,noreferrer',
+    )
+
+    const vague = buildAssignment({
+      id: 15, day_id: 2, order_index: 0, place_id: 105,
+      place: buildPlace({ id: 105, name: 'Idea', lat: null, lng: null }),
+    })
+    const nothing = await renderTimeline(makePlanner({ assignments: { '2': [vague] } }))
+    expect(nothing.result.current.canExportRoute).toBe(false)
   })
 
   it('FE-MOB-PLTL-039: renames the day with a trimmed title', async () => {

@@ -1,3 +1,4 @@
+import { normalizeLocalDateTime, splitLocalDateTime } from '@trek/shared';
 import { findByIata } from '../airports/airports.data';
 import type {
   KiReservation, KiFlight, KiTrainTrip, KiBusTrip, KiBoatTrip,
@@ -9,17 +10,31 @@ import type {
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Extract a plain ISO string from either a string or a KDE QDateTime object. */
+/**
+ * Extract a plain ISO string from either a string or a KDE QDateTime object.
+ *
+ * The value passes through normalizeLocalDateTime so a printed 12-hour clock
+ * ("2026-06-11T02:30 PM") becomes 24-hour before anything downstream reads it.
+ * These two functions are the mapper's only exits for a date, so this covers
+ * every type and every emitted field at once, and it keeps `sameConnection`
+ * from comparing a NaN timestamp (#2094).
+ */
 function toIsoString(dt: KiDateTimeish): string | null {
   if (!dt) return null;
-  if (typeof dt === 'string') return dt || null;
-  if (typeof dt === 'object' && dt['@type'] === 'QDateTime') return dt['@value'] || null;
+  if (typeof dt === 'string') return dt ? normalizeLocalDateTime(dt) : null;
+  if (typeof dt === 'object' && dt['@type'] === 'QDateTime') {
+    return dt['@value'] ? normalizeLocalDateTime(dt['@value']) : null;
+  }
   return null;
 }
 
 function splitIso(dt: KiDateTimeish): { date: string | null; time: string | null } {
   const iso = toIsoString(dt);
   if (!iso) return { date: null, time: null };
+  const split = splitLocalDateTime(iso);
+  // The slice is the fallback for anything the normalizer does not recognise,
+  // so a shape that works today cannot start returning null.
+  if (split.date) return split;
   return { date: iso.slice(0, 10) || null, time: iso.length > 10 ? iso.slice(11, 16) || null : null };
 }
 
@@ -261,6 +276,9 @@ function mapLodging(r: KiReservation, source: ParsedBookingItem['source']): Pars
 
   return {
     type: 'hotel',
+    // Only the lodging path can carry this: it is the shape the extractor falls
+    // back to when it could not read a type at all (#2076).
+    ...(r.trekTypeGuessed === true ? { type_guessed: true } : {}),
     title: l.name,
     confirmation_number: r.reservationNumber ?? null,
     location: formatAddress(l.address),
@@ -357,6 +375,21 @@ function applyCommonMeta(item: ParsedBookingItem, r: KiReservation): ParsedBooki
   return item;
 }
 
+/**
+ * Why a mapper answered null, in the words of the node it refused.
+ *
+ * Every type mapper drops out on one of two things: no `reservationFor` at all,
+ * or one that carries no name. Said out loud, because a recognised booking that
+ * cannot be mapped used to disappear between the mapper and the preview, and an
+ * import that found one weak node looked exactly like a document with nothing in
+ * it (#2375). Shaped like the unknown-type warning below so the two read as one
+ * list.
+ */
+function unmappableWarning(r: KiReservation, fileName: string, index: number): string {
+  const reason = r.reservationFor ? 'no name in reservationFor' : 'no reservationFor';
+  return `Incomplete ${r['@type']} in ${fileName}[${index}] (${reason}) — skipped`;
+}
+
 export function mapReservations(kiItems: KiReservation[], fileName: string): { items: ParsedBookingItem[]; warnings: string[] } {
   const items: ParsedBookingItem[] = [];
   const warnings: string[] = [];
@@ -364,7 +397,7 @@ export function mapReservations(kiItems: KiReservation[], fileName: string): { i
   for (let i = 0; i < kiItems.length; i++) {
     const r = kiItems[i];
     const source = { fileName, index: i };
-    let item: ParsedBookingItem | null = null;
+    let item: ParsedBookingItem | null;
 
     // Group consecutive connecting flight legs that share a PNR into one booking.
     if (r['@type'] === 'FlightReservation') {
@@ -380,7 +413,10 @@ export function mapReservations(kiItems: KiReservation[], fileName: string): { i
         group.push(kiItems[++i]);
       }
       item = group.length > 1 ? mapFlightGroup(group, source) : mapFlight(r, source);
+      // `i` sits on the last leg the group swallowed, so the index comes from
+      // `source` — the node the warning is actually describing.
       if (item) items.push(applyCommonMeta(item, r));
+      else warnings.push(unmappableWarning(r, fileName, source.index));
       continue;
     }
 
@@ -395,9 +431,11 @@ export function mapReservations(kiItems: KiReservation[], fileName: string): { i
       case 'TouristAttractionVisit':      item = mapEvent(r, source);   break;
       default:
         warnings.push(`Unknown type "${r['@type']}" in ${fileName}[${i}] — skipped`);
+        continue;
     }
 
     if (item) items.push(applyCommonMeta(item, r));
+    else warnings.push(unmappableWarning(r, fileName, i));
   }
 
   return { items, warnings };

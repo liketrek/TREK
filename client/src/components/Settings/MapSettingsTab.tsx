@@ -11,6 +11,8 @@ import ErrorBoundary from '../shared/ErrorBoundary'
 import { GlMapPreviewMapbox, GlMapPreviewMaplibre } from '../Map/glLazy'
 import Section from './Section'
 import ToggleSwitch from './ToggleSwitch'
+import { withTileApiKey } from '../../utils/tileUrl'
+import { AMAP_ROAD, AMAP_SATELLITE } from '../../constants/mapDefaults'
 import type { Place } from '../../types'
 import {
   MAPBOX_DEFAULT_STYLE,
@@ -30,9 +32,20 @@ interface MapPreset {
 const MAP_PRESETS: MapPreset[] = [
   { name: 'OpenStreetMap', url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png' },
   { name: 'OpenStreetMap DE', url: 'https://tile.openstreetmap.de/{z}/{x}/{y}.png' },
+  // The app default, and a vector style rather than a {z}/{x}/{y} template: no
+  // key, no registration, no request limits.
+  { name: 'OpenFreeMap Positron', url: 'https://tiles.openfreemap.org/styles/positron' },
+  { name: 'OpenFreeMap Bright', url: 'https://tiles.openfreemap.org/styles/bright' },
+  // CARTO watermarks keyless tiles since 26.08.2026 and issues keys by mail, so
+  // these two need one; without it the map falls back to the default (#2054).
   { name: 'CartoDB Light', url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png' },
   { name: 'CartoDB Dark', url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' },
   { name: 'Stadia Smooth', url: 'https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png' },
+  // Amap (高德). GCJ-02 tiles — the map switches to a shifted projection for
+  // these so markers still land on the right street (see gcj02Crs.ts). The only
+  // basemap here that is genuinely good inside mainland China.
+  { name: '高德地图 (Amap)', url: AMAP_ROAD },
+  { name: '高德卫星 (Amap Satellite)', url: AMAP_SATELLITE },
 ]
 
 // Tag → chip color mapping. Keeps the dropdown readable at a glance so a
@@ -164,6 +177,7 @@ export default function MapSettingsTab(): React.ReactElement {
   const [mapTileUrl, setMapTileUrl] = useState<string>(settings.map_tile_url || '')
   const managed = useAuthStore((s) => s.managed)
   const [mapboxToken, setMapboxToken] = useState<string>(settings.mapbox_access_token || '')
+  const [cartoKey, setCartoKey] = useState<string>(settings.carto_api_key || '')
   const [mapboxStyle, setMapboxStyle] = useState<string>(styleForProvider(initialProvider, slotStyle(initialProvider, settings)))
   const [mapbox3d, setMapbox3d] = useState<boolean>(settings.mapbox_3d_enabled !== false)
   const [mapboxQuality, setMapboxQuality] = useState<boolean>(settings.mapbox_quality_mode === true)
@@ -175,6 +189,7 @@ export default function MapSettingsTab(): React.ReactElement {
     setProvider(nextProvider)
     setMapTileUrl(settings.map_tile_url || '')
     setMapboxToken(settings.mapbox_access_token || '')
+    setCartoKey(settings.carto_api_key || '')
     setMapboxStyle(styleForProvider(nextProvider, slotStyle(nextProvider, settings)))
     setMapbox3d(settings.mapbox_3d_enabled !== false)
     setMapboxQuality(settings.mapbox_quality_mode === true)
@@ -209,6 +224,7 @@ export default function MapSettingsTab(): React.ReactElement {
         map_provider: provider,
         map_tile_url: mapTileUrl,
         mapbox_access_token: mapboxToken,
+        carto_api_key: cartoKey,
         ...stylePatch,
         mapbox_3d_enabled: mapbox3d,
         mapbox_quality_mode: mapboxQuality,
@@ -230,6 +246,8 @@ export default function MapSettingsTab(): React.ReactElement {
     setProvider(nextProvider)
     if (nextProvider !== 'leaflet') setMapboxStyle(styleForProvider(nextProvider, mapboxStyle))
   }
+  // Only CARTO burns a watermark into keyless tiles, so the nudge is scoped to its hosts.
+  const cartoNeedsKey = mapTileUrl.includes('basemaps.cartocdn.com') && !cartoKey.trim()
 
   return (
     <Section title={t('settings.map')} icon={Map}>
@@ -318,6 +336,30 @@ export default function MapSettingsTab(): React.ReactElement {
             className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-400 focus:border-transparent"
           />
           <p className="text-xs text-slate-400 mt-1">{t('settings.mapDefaultHint')}</p>
+        </div>
+      )}
+
+      {/* Same deal as the Mapbox token: a managed install brings its own key. */}
+      {provider === 'leaflet' && !managed && (
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('settings.mapCartoKey')}</label>
+          <input
+            type="text"
+            value={cartoKey}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCartoKey(e.target.value)}
+            spellCheck={false}
+            autoComplete="off"
+            className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-slate-400 focus:border-transparent"
+          />
+          <p className="text-xs text-slate-400 mt-1">
+            {t('settings.mapCartoKeyHint')}{' '}
+            <a href="https://carto.com/basemaps/apikey/" target="_blank" rel="noreferrer" className="underline">
+              {t('settings.mapCartoKeyLink')}
+            </a>
+          </p>
+          {cartoNeedsKey && (
+            <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">{t('settings.mapCartoKeyMissing')}</p>
+          )}
         </div>
       )}
 
@@ -438,7 +480,12 @@ export default function MapSettingsTab(): React.ReactElement {
               onMarkerClick: null,
               onMapClick: null,
               onMapContextMenu: null,
-              tileUrl: mapTileUrl,
+              // With the key on it, or the preview resolves the template as a
+              // keyless CARTO one and quietly shows the app default instead of
+              // the basemap being configured. The fields hold what the user is
+              // editing rather than what useTileUrl already resolved, so the key
+              // has to be put back on here.
+              tileUrl: withTileApiKey(mapTileUrl, cartoKey),
               fitKey: null,
               dayOrderMap: [],
               leftWidth: 0,

@@ -10,6 +10,7 @@ import { AdminController } from '../../../src/nest/admin/admin.controller';
 import type { TokenService } from '../../../src/nest/tokens/token.service';
 import type { RegistrationInvitesService } from '../../../src/nest/auth/registration-invites.service';
 import type { OauthService } from '../../../src/nest/oauth/oauth.service';
+import { KitineraryExtractorService } from '../../../src/nest/booking-import/kitinerary-extractor.service';
 import type { AdminService } from '../../../src/nest/admin/admin.service';
 import type { PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.service';
 import type { AuditService } from '../../../src/nest/audit/audit.service';
@@ -41,17 +42,36 @@ const addonsStub = () => ({
   updatePlacesAutocomplete: vi.fn((enabled: boolean) => ({ enabled })),
   getPlacesDetails: vi.fn(() => ({ enabled: false })),
   updatePlacesDetails: vi.fn((enabled: boolean) => ({ enabled })),
+  // Fail-closed with nothing to backfill — see AddonsService.getPlaceShadow.
+  getPlaceShadow: vi.fn(() => ({ enabled: false })),
+  updatePlaceShadow: vi.fn((enabled: boolean) => ({ enabled })),
   // Fail-open, unlike its three neighbours — see AddonsService.getPlacesEnrich.
   getPlacesEnrich: vi.fn(() => ({ enabled: true })),
   updatePlacesEnrich: vi.fn((enabled: boolean) => ({ enabled })),
+  // Fail-closed with nothing to backfill, like the shadow log.
+  getPlacesGoogleOnly: vi.fn(() => ({ enabled: false })),
+  updatePlacesGoogleOnly: vi.fn((enabled: boolean) => ({ enabled })),
+  // Fail-open too, and the only switch here about egress rather than spending.
   getCollabFeatures: vi.fn(() => ({ chat: false })),
   updateCollabFeatures: vi.fn(() => ({ features: { chat: true }, changed: true })),
+  getTransitProvider: vi.fn(() => ({ provider: 'transitous', googleKeySource: null })),
+  updateTransitProvider: vi.fn((provider: string) => ({ provider, googleKeySource: null })),
 }) as unknown as AddonsService;
 
 // The MCP-token routes read TokenService now, not AdminService. Stubbed via a
 // fourth, optional argument so every existing call site stays as it was.
-const adminCtl = (s: AdminService, rt?: PluginRuntimeService, addons: AddonsService = addonsStub(), tokens: Partial<TokenService> = {}, invites: Partial<RegistrationInvitesService> = {}, oauth: Partial<OauthService> = {}) =>
-  new AdminController(s, addons, rt as unknown as PluginRuntimeService, audit, notifications, tokens as TokenService, invites as RegistrationInvitesService, oauth as OauthService);
+const adminCtl = (s: AdminService, rt?: PluginRuntimeService, addons: AddonsService = addonsStub(), tokens: Partial<TokenService> = {}, invites: Partial<RegistrationInvitesService> = {}, oauth: Partial<OauthService> = {}, kitinerary: Partial<KitineraryExtractorService> = {}) =>
+  new AdminController(s, addons, rt as unknown as PluginRuntimeService, audit, notifications, tokens as TokenService, invites as RegistrationInvitesService, oauth as OauthService, kitinerary as KitineraryExtractorService);
+// #2261 — the extractor's version is what tells a stale binary from a provider
+// nobody wrote a script for; both come back empty otherwise.
+describe('AdminController system-info', () => {
+  it('ADM-SYSINFO-001: hands the extractor description through unchanged', () => {
+    const describeFn = vi.fn(() => ({ available: true, path: '/usr/local/bin/kitinerary-extractor', version: '6.3.3', configuredPath: null }));
+    const res = adminCtl({} as AdminService, undefined, addonsStub(), {}, {}, {}, { describe: describeFn }).systemInfo();
+    expect(res).toEqual({ kitinerary: { available: true, path: '/usr/local/bin/kitinerary-extractor', version: '6.3.3', configuredPath: null } });
+  });
+});
+
 function thrown(fn: () => unknown): { status: number; body: unknown } {
   try { fn(); } catch (err) {
     if (err instanceof NotFoundException) return { status: 404, body: err.getResponse() };
@@ -134,6 +154,18 @@ describe('AdminController addons + sessions + jwt + defaults', () => {
     const disable = adminCtl(svc({ updateAddon: vi.fn().mockReturnValue({ addon: { id: 'budget', enabled: false }, mcpAffected: true, auditDetails: {} }), invalidateMcpSessions: vi.fn() } as Partial<AdminService>), runtime2);
     await disable.updateAddon(user, 'budget', { enabled: false }, req);
     expect(runtime2.deactivateForDisabledAddon).toHaveBeenCalledWith('budget');
+  });
+
+  it('addon update maps the journey-dependency refusal to its status, before any audit', async () => {
+    const c = adminCtl(svc({ updateAddon: vi.fn().mockReturnValue({ error: 'Enable the Journey addon first', status: 409 }) } as Partial<AdminService>));
+    const err = await c.updateAddon(user, 'immich', { enabled: true }, req).then(
+      () => null,
+      (e: unknown) => e as HttpException,
+    );
+    expect(err).toBeInstanceOf(HttpException);
+    expect(err!.getStatus()).toBe(409);
+    expect(err!.getResponse()).toEqual({ error: 'Enable the Journey addon first' });
+    expect(writeAudit).not.toHaveBeenCalled();
   });
 
   it('oauth-sessions revoke audits; rotate-jwt maps error', () => {
@@ -230,6 +262,7 @@ describe('AdminController feature toggles', () => {
       [() => c.updatePlacesPhotos(user, { enabled: true }, req), 'admin.places_photos', 'updatePlacesPhotos'],
       [() => c.updatePlacesAutocomplete(user, { enabled: true }, req), 'admin.places_autocomplete', 'updatePlacesAutocomplete'],
       [() => c.updatePlacesDetails(user, { enabled: true }, req), 'admin.places_details', 'updatePlacesDetails'],
+      [() => c.updatePlaceShadow(user, { enabled: true }, req), 'admin.place_shadow', 'updatePlaceShadow'],
     ];
     for (const [run, action, method] of cases) {
       writeAudit.mockClear();
@@ -245,14 +278,58 @@ describe('AdminController feature toggles', () => {
     expect(c.getPlacesPhotos()).toEqual({ enabled: false });
     expect(c.getPlacesAutocomplete()).toEqual({ enabled: false });
     expect(c.getPlacesDetails()).toEqual({ enabled: false });
+    expect(c.getPlaceShadow()).toEqual({ enabled: false });
     expect(c.getPlacesEnrich()).toEqual({ enabled: true });
+    expect(c.getPlacesGoogleOnly()).toEqual({ enabled: false });
     expect(c.getCollabFeatures()).toEqual({ chat: false });
+  });
+
+  it('ADMIN-TOGGLE-002d places-google-only updates through the addons domain and is audited', () => {
+    const c = adminCtl(svc());
+    expect(c.updatePlacesGoogleOnly(user, { enabled: true }, req)).toEqual({ enabled: true });
+    expect(writeAudit).toHaveBeenCalledWith(expect.objectContaining({ action: 'admin.places_google_only', details: { enabled: true } }));
   });
 
   it('ADMIN-TOGGLE-002b places-enrich updates through the addons domain and is audited', () => {
     const c = adminCtl(svc());
     expect(c.updatePlacesEnrich(user, { enabled: false }, req)).toEqual({ enabled: false });
     expect(writeAudit).toHaveBeenCalledWith(expect.objectContaining({ action: 'admin.places_enrich' }));
+  });
+
+  it('ADMIN-TOGGLE-002c transit-provider reads and writes through the addons domain and is audited (#1699)', () => {
+    const addons = addonsStub();
+    const c = adminCtl(svc(), undefined, addons);
+    expect(c.getTransitProvider(user)).toEqual({ provider: 'transitous', googleKeySource: null });
+    expect(c.updateTransitProvider(user, { provider: 'google' }, req)).toEqual({ provider: 'google', googleKeySource: null });
+    // The acting admin's id drives key resolution — the panel warns about the
+    // key THEY would search with.
+    expect(addons.getTransitProvider).toHaveBeenCalledWith(user.id);
+    expect(addons.updateTransitProvider).toHaveBeenCalledWith('google', user.id);
+    expect(writeAudit).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'admin.transit_provider', details: { provider: 'google' } }),
+    );
+  });
+
+  it('ADMIN-TOGGLE-004 place-shadow forwards the body value and audits the stored one', () => {
+    // The handler audits result.enabled. A service that declines the flip must
+    // not leave behind an audit row claiming the shadow log was switched on.
+    const updatePlaceShadow = vi.fn(() => ({ enabled: false }));
+    const c = adminCtl(svc(), undefined, { ...addonsStub(), updatePlaceShadow } as unknown as AddonsService);
+    expect(c.updatePlaceShadow(user, { enabled: true }, req)).toEqual({ enabled: false });
+    expect(updatePlaceShadow).toHaveBeenCalledWith(true);
+    expect(writeAudit).toHaveBeenCalledWith({ userId: user.id, action: 'admin.place_shadow', ip: '1.2.3.4', details: { enabled: false } });
+    // Off is carried too: the table above only ever asks for true, so a handler
+    // that hardcoded the argument would pass it.
+    c.updatePlaceShadow(user, { enabled: false }, req);
+    expect(updatePlaceShadow).toHaveBeenLastCalledWith(false);
+  });
+
+  it('ADMIN-TOGGLE-004b place-shadow reads through to AddonsService instead of a controller-side default', () => {
+    const getPlaceShadow = vi.fn(() => ({ enabled: true }));
+    const c = adminCtl(svc(), undefined, { ...addonsStub(), getPlaceShadow } as unknown as AddonsService);
+    expect(c.getPlaceShadow()).toEqual({ enabled: true });
+    expect(getPlaceShadow).toHaveBeenCalledTimes(1);
+    expect(writeAudit).not.toHaveBeenCalled();
   });
 
   it('ADMIN-TOGGLE-003 collab-features invalidates MCP sessions only when a flag flipped (#1414)', () => {

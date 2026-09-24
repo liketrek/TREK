@@ -190,4 +190,31 @@ describe('MSettingsGeneral', () => {
 
     expect(updateSetting).toHaveBeenCalledWith('start_trip_tab', 'finanzplan');
   });
+
+  // #2456: the account-wide default behind every trip's booking routes. Desktop has it
+  // under Settings -> Display; a phone had no way to reach it, so a booking route on the
+  // phone map only ever came from switching each booking on by hand.
+  it('FE-MOB-SET-015: the travel card carries the always-show-booking-routes default, off until set', async () => {
+    const user = userEvent.setup();
+    const updateSetting = vi.fn().mockResolvedValue(undefined);
+    seedStore(useSettingsStore, { settings: buildSettings({ language: 'en' }), updateSetting });
+    render(<MSettingsGeneral />);
+
+    const toggle = screen.getByRole('switch', { name: 'Always show booking routes' });
+    expect(toggle).toHaveAttribute('aria-checked', 'false');
+    await user.click(toggle);
+    expect(updateSetting).toHaveBeenCalledWith('map_always_show_routes', true);
+  });
+
+  it('FE-MOB-SET-016: the always-show-booking-routes toggle reflects a stored true and switches it off', async () => {
+    const user = userEvent.setup();
+    const updateSetting = vi.fn().mockResolvedValue(undefined);
+    seedStore(useSettingsStore, { settings: buildSettings({ language: 'en', map_always_show_routes: true }), updateSetting });
+    render(<MSettingsGeneral />);
+
+    const toggle = screen.getByRole('switch', { name: 'Always show booking routes' });
+    expect(toggle).toHaveAttribute('aria-checked', 'true');
+    await user.click(toggle);
+    expect(updateSetting).toHaveBeenCalledWith('map_always_show_routes', false);
+  });
 });

@@ -2,9 +2,10 @@ import { Injectable } from '@nestjs/common';
 import crypto from 'node:crypto';
 import { DatabaseService } from '../../database/database.service';
 import { encrypt_api_key, decrypt_api_key } from '../../common/crypto/apiKeyCrypto';
+import { applySettingDefaults, settingDefaults } from '../settings-defaults';
 import { getAppUrl } from '../../../app-config';
 import { isPrivateIp } from '../install/safe-fetch';
-import { safeFetchLlm } from '../../../utils/ssrfGuard';
+import { safeFetchAdminConfigured } from '../../../utils/ssrfGuard';
 
 /**
  * Host-brokered outbound OAuth (#plugins). A plugin becomes an OAuth *client* of a
@@ -82,6 +83,9 @@ export class PluginOAuthService {
     } catch {
       return null;
     }
+    // A provider plugin ships its endpoints/scopes as manifest defaults; the admin types
+    // only the client id/secret (secrets — never defaulted).
+    cfg = applySettingDefaults(cfg, settingDefaults(this.db, pluginId, 'instance'));
     const authorizeUrl = String(cfg.oauth_authorize_url ?? '').trim();
     const tokenUrl = String(cfg.oauth_token_url ?? '').trim();
     const clientId = cfg.oauth_client_id ? String(decrypt_api_key(cfg.oauth_client_id)) : '';
@@ -197,11 +201,16 @@ export class PluginOAuthService {
     // pinning the connection to the resolved IP, so a token_url that is a DNS name
     // (or IPv6 literal) pointing at metadata can't reach it and can't DNS-rebind.
     // Loopback/LAN stay reachable so a self-hosted internal IdP keeps working.
-    const resp = await safeFetchLlm(cfg.tokenUrl, {
+    // maxRedirects 0, same as the OIDC twin: following one would hand
+    // client_secret to a second host, and a token endpoint has no legitimate
+    // reason to redirect. The timeout is not optional either — without it a
+    // hanging provider pins the request handler open indefinitely.
+    const resp = await safeFetchAdminConfigured(cfg.tokenUrl, {
       method: 'POST',
       headers: { 'content-type': 'application/x-www-form-urlencoded', accept: 'application/json' },
       body: body.toString(),
-    });
+      signal: AbortSignal.timeout(15000),
+    }, 0);
     if (!resp.ok) throw new Error(`token endpoint returned ${resp.status}`);
     const json = (await resp.json()) as Record<string, unknown>;
     return {

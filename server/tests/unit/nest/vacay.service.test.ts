@@ -309,6 +309,19 @@ describe('updatePlan', () => {
 // ── addHolidayCalendar ────────────────────────────────────────────────────────
 
 describe('addHolidayCalendar', () => {
+  it('validates manual region references for creates and updates', () => {
+    const { plan } = setupUserWithPlan();
+    testDb.prepare("INSERT INTO school_holiday_countries (code, name) VALUES ('US', 'USA')").run();
+    const inserted = testDb.prepare("INSERT INTO school_holiday_regions (country, name) VALUES ('US', 'Seattle')").run();
+    const code = `US-MANUAL-${inserted.lastInsertRowid}`;
+    const calendar = svc.addHolidayCalendar(plan.id, code, null, undefined, 0, undefined, 'school_holiday');
+    expect(calendar.region).toBe(code);
+    expect(svc.updateHolidayCalendar(calendar.id, plan.id, { label: 'School' }, undefined)?.region).toBe(code);
+    expect(() => svc.updateHolidayCalendar(calendar.id, plan.id, { type: 'public_holiday' }, undefined)).toThrow('Unknown manual');
+    for (const region of ['US-MANUAL-0', 'US-MANUAL-999999', `CA-MANUAL-${inserted.lastInsertRowid}`]) {
+      expect(() => svc.addHolidayCalendar(plan.id, region, null, undefined, 0, undefined, 'school_holiday')).toThrow('Unknown manual');
+    }
+  });
   it('VACAY-SVC-019: inserts a new calendar row and returns the calendar object', () => {
     const { plan } = setupUserWithPlan();
 
@@ -778,6 +791,42 @@ describe('getAvailableUsers', () => {
     const available = svc.getAvailableUsers(owner.id, plan.id) as { id: number }[];
 
     expect(available.map(u => u.id)).not.toContain(alreadyFused.id);
+  });
+
+  // #2112 — guests are trip-scoped accounts, and every other directory in the app
+  // already leaves them out. Vacay's two pickers did not, so a guest stayed
+  // selectable here even after being removed from the trip it was created for.
+  it('VACAY-SVC-073: guest accounts are not offered in the plan invite picker', () => {
+    const { user: owner, plan } = setupUserWithPlan();
+    const { user: guest } = createUser(testDb);
+    testDb.prepare('UPDATE users SET is_guest = 1 WHERE id = ?').run(guest.id);
+
+    const available = svc.getAvailableUsers(owner.id, plan.id) as { id: number }[];
+
+    expect(available.map(u => u.id)).not.toContain(guest.id);
+  });
+
+  it('VACAY-SVC-074: guest accounts are not offered in the shared-calendar picker', () => {
+    const { user: owner } = setupUserWithPlan();
+    const { user: guest } = createUser(testDb);
+    testDb.prepare('UPDATE users SET is_guest = 1 WHERE id = ?').run(guest.id);
+
+    const available = svc.getShareAvailableUsers(owner.id) as { id: number }[];
+
+    expect(available.map(u => u.id)).not.toContain(guest.id);
+  });
+
+  it('VACAY-SVC-075: a guest id sent straight to the write paths is refused', () => {
+    const { user: owner, plan } = setupUserWithPlan();
+    const { user: guest } = createUser(testDb);
+    testDb.prepare('UPDATE users SET is_guest = 1 WHERE id = ?').run(guest.id);
+
+    // The picker is only a list. The id comes back from the client, and the MCP
+    // tools reach the same two methods, so refusing has to happen here.
+    const invited = svc.sendInvite(plan.id, owner.id, 'owner', 'owner@example.test', guest.id);
+    expect(invited.error).toBe('User not found');
+    const shared = svc.shareCalendar(owner.id, 'owner@example.test', guest.id);
+    expect(shared.error).toBe('User not found');
   });
 });
 

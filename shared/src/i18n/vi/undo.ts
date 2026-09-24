@@ -20,5 +20,6 @@ const undo: TranslationStrings = {
   'undo.importBooking': 'Nhập xác nhận đặt chỗ',
   'undo.addPlace': 'Đã thêm địa điểm',
   'undo.done': 'Hoàn tác: {action}',
+  'undo.failed': 'Không thể hoàn tác: {action}',
 };
 export default undo;

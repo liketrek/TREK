@@ -4,6 +4,7 @@ import { useSettingsStore } from '../../store/settingsStore'
 import { isStandardFamily, supportsCustom3d, wantsTerrain, addCustom3dBuildings, addTerrainAndSky } from '../Map/mapboxSetup'
 import { MAPBOX_DEFAULT_STYLE, styleForActiveProvider, basemapLanguage, type GlMapProvider } from '../Map/glProviders'
 import type { JourneyTrack } from '@trek/shared'
+import { SHOT_INDEX_ATTR, ensureJourneyPopupStyle, formatMarkerDate, journeyPopupHtml } from './journeyMapPopup'
 
 export interface JourneyMapGLHandle {
   highlightMarker: (id: string | null) => void
@@ -21,6 +22,8 @@ interface MapEntry {
   entry_date: string
   dayColor?: string
   dayLabel?: number
+  /** Thumbnails for the marker card, already resolved by the caller (the share view signs its own). */
+  photoUrls?: string[]
 }
 
 interface Props {
@@ -35,6 +38,15 @@ interface Props {
   activeMarkerId?: string | null
   onMarkerClick?: (id: string, type?: string) => void
   fullScreen?: boolean
+  /** See the Leaflet twin: no marker labels where a carousel already names the entry. */
+  hideMarkerTooltip?: boolean
+  /**
+   * Open the entry's photos from the card's thumbnail strip.
+   *
+   * Wiring it is what makes the strip take the pointer at all; without it the
+   * card stays the inert label it has always been.
+   */
+  onMarkerPhotoClick?: (entryId: string, photoIndex: number) => void
   paddingBottom?: number
   glProvider?: GlMapProvider
   /**
@@ -55,6 +67,7 @@ interface Item {
   time: string
   dayColor: string
   dayLabel: number
+  photoUrls: string[]
 }
 
 const MARKER_W = 28
@@ -73,114 +86,12 @@ function buildItems(entries: MapEntry[]): Item[] {
         time: e.entry_date,
         dayColor: e.dayColor || '#52525B',
         dayLabel: e.dayLabel ?? 1,
+        photoUrls: e.photoUrls ?? [],
       })
     }
   }
   items.sort((a, b) => a.time.localeCompare(b.time))
   return items
-}
-
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-}
-
-function formatEntryDate(iso: string): string {
-  if (!iso) return ''
-  try {
-    const d = new Date(iso.includes('T') ? iso : iso + 'T00:00:00')
-    if (Number.isNaN(d.getTime())) return iso
-    return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(d)
-  } catch {
-    return iso
-  }
-}
-
-// Inject the popup styles once per document. Two-line frosted-glass card in
-// the Apple/Google Maps idiom — title on top, location / date subtly below.
-function ensureJourneyPopupStyle() {
-  if (document.getElementById('trek-journey-popup-style')) return
-  const s = document.createElement('style')
-  s.id = 'trek-journey-popup-style'
-  s.textContent = `
-    .mapboxgl-popup.trek-journey-popup,
-    .maplibregl-popup.trek-journey-popup { pointer-events: none; animation: trek-journey-popup-in 180ms ease-out; }
-    .mapboxgl-popup.trek-journey-popup .mapboxgl-popup-content,
-    .maplibregl-popup.trek-journey-popup .maplibregl-popup-content {
-      padding: 9px 14px 10px;
-      border-radius: 14px;
-      background: rgba(255, 255, 255, 0.94);
-      backdrop-filter: blur(16px) saturate(180%);
-      -webkit-backdrop-filter: blur(16px) saturate(180%);
-      border: 1px solid rgba(0, 0, 0, 0.06);
-      box-shadow: 0 10px 32px rgba(0, 0, 0, 0.18), 0 2px 6px rgba(0, 0, 0, 0.06);
-      font-family:var(--font-system);
-      min-width: 160px;
-      max-width: 280px;
-    }
-    .mapboxgl-popup.trek-journey-popup.trek-dark .mapboxgl-popup-content,
-    .maplibregl-popup.trek-journey-popup.trek-dark .maplibregl-popup-content {
-      background: rgba(24, 24, 27, 0.88);
-      border-color: rgba(255, 255, 255, 0.08);
-      color: #FAFAFA;
-    }
-    .mapboxgl-popup.trek-journey-popup .mapboxgl-popup-tip,
-    .maplibregl-popup.trek-journey-popup .maplibregl-popup-tip {
-      border-top-color: rgba(255, 255, 255, 0.94);
-      border-bottom-color: rgba(255, 255, 255, 0.94);
-    }
-    .mapboxgl-popup.trek-journey-popup.trek-dark .mapboxgl-popup-tip,
-    .maplibregl-popup.trek-journey-popup.trek-dark .maplibregl-popup-tip {
-      border-top-color: rgba(24, 24, 27, 0.88);
-      border-bottom-color: rgba(24, 24, 27, 0.88);
-    }
-    .mapboxgl-popup.trek-journey-popup .mapboxgl-popup-close-button,
-    .maplibregl-popup.trek-journey-popup .maplibregl-popup-close-button { display: none; }
-    .trek-journey-popup-title {
-      font-size: 13.5px;
-      font-weight: 600;
-      letter-spacing: -0.01em;
-      color: #18181B;
-      line-height: 1.3;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .mapboxgl-popup.trek-journey-popup.trek-dark .trek-journey-popup-title,
-    .maplibregl-popup.trek-journey-popup.trek-dark .trek-journey-popup-title { color: #FAFAFA; }
-    .trek-journey-popup-sub {
-      display: flex;
-      align-items: baseline;
-      gap: 7px;
-      margin-top: 3px;
-      font-size: 11.5px;
-      color: #71717A;
-      line-height: 1.35;
-      white-space: nowrap;
-    }
-    .mapboxgl-popup.trek-journey-popup.trek-dark .trek-journey-popup-sub,
-    .maplibregl-popup.trek-journey-popup.trek-dark .trek-journey-popup-sub { color: #A1A1AA; }
-    .trek-journey-popup-place {
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .trek-journey-popup-sep {
-      flex: 0 0 auto;
-      opacity: 0.55;
-      font-weight: 500;
-    }
-    .trek-journey-popup-date { flex: 0 0 auto; }
-    @keyframes trek-journey-popup-in {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-  `
-  document.head.appendChild(s)
 }
 
 function markerHtml(dayColor: string, dayLabel: number, highlighted: boolean): HTMLDivElement {
@@ -217,8 +128,14 @@ const EMPTY_TRACKS: JourneyTrack[] = []
 const TRACK_FALLBACK_COLOR = '#4f46e5'
 
 function JourneyMapGL(
-  { entries, trail, tracks, height = 220, dark, activeMarkerId, onMarkerClick, fullScreen, paddingBottom, glProvider = 'mapbox-gl', gl, ref }: Props,
+  { entries, trail, tracks, height = 220, dark, activeMarkerId, onMarkerClick, fullScreen, paddingBottom, glProvider = 'mapbox-gl', gl, hideMarkerTooltip, onMarkerPhotoClick, ref }: Props,
 ) {
+  const hideMarkerTooltipRef = useRef(hideMarkerTooltip)
+  hideMarkerTooltipRef.current = hideMarkerTooltip
+  const onMarkerPhotoClickRef = useRef(onMarkerPhotoClick)
+  onMarkerPhotoClickRef.current = onMarkerPhotoClick
+  /** Which entry the card is currently describing, for the delegated photo click. */
+  const popupItemIdRef = useRef<string | null>(null)
   const stableTrail = trail || EMPTY_TRAIL
   const stableTracks = tracks || EMPTY_TRACKS
   const rawMapboxStyle = useSettingsStore(s => s.settings.mapbox_style || MAPBOX_DEFAULT_STYLE)
@@ -247,38 +164,35 @@ function JourneyMapGL(
   mapLangRef.current = mapLang
 
   const showPopup = useCallback((id: string) => {
+    // See `hideMarkerTooltip` on the Leaflet twin: below the carousel the card
+    // already says this, and the popup only covers the map to repeat it.
+    if (hideMarkerTooltipRef.current) return
     const item = itemsRef.current.find(i => i.id === id)
     if (!item || !mapRef.current) return
     ensureJourneyPopupStyle()
     // Primary line: user-given title. If none, fall back to the location
     // name so we always show *something* useful on the top line.
-    const primaryRaw = item.label || item.locationName || 'Entry'
-    const secondaryPlace = item.label ? item.locationName : ''
-    const dateStr = formatEntryDate(item.time)
-    const primary = escapeHtml(primaryRaw)
-    const place = escapeHtml(secondaryPlace)
-    const date = escapeHtml(dateStr)
+    const html = journeyPopupHtml({
+      title: item.label || item.locationName || 'Entry',
+      place: item.label ? item.locationName : '',
+      date: formatMarkerDate(item.time),
+      photoUrls: item.photoUrls,
+    })
 
-    const subParts: string[] = []
-    if (place) subParts.push(`<span class="trek-journey-popup-place">${place}</span>`)
-    if (date) subParts.push(`<span class="trek-journey-popup-date">${date}</span>`)
-    const subline = subParts.length === 2
-      ? `${subParts[0]}<span class="trek-journey-popup-sep">\u00B7</span>${subParts[1]}`
-      : subParts.join('')
-
-    const html = `
-      <div class="trek-journey-popup-title">${primary}</div>
-      ${subline ? `<div class="trek-journey-popup-sub">${subline}</div>` : ''}
-    `
     // Marker is bottom-anchored with a visible height of 36px (1.2× on
     // highlight ≈ 44px), so -46 keeps the popup just clear of the pin top.
     const offset: [number, number] = [0, -46]
+    popupItemIdRef.current = item.id
+    const interactive = !!onMarkerPhotoClickRef.current && item.photoUrls.length > 0
     if (popupRef.current) {
       popupRef.current.setLngLat([item.lng, item.lat])
       popupRef.current.setHTML(html)
       popupRef.current.setOffset(offset)
       const el = popupRef.current.getElement()
-      if (el) el.classList.toggle('trek-dark', !!darkRef.current)
+      if (el) {
+        el.classList.toggle('trek-dark', !!darkRef.current)
+        el.classList.toggle('is-interactive', interactive)
+      }
     } else {
       popupRef.current = new gl.Popup({
         closeButton: false,
@@ -286,12 +200,22 @@ function JourneyMapGL(
         closeOnMove: false,
         anchor: 'bottom',
         offset,
-        className: `trek-journey-popup${darkRef.current ? ' trek-dark' : ''}`,
+        className: `trek-journey-popup${darkRef.current ? ' trek-dark' : ''}${interactive ? ' is-interactive' : ''}`,
         maxWidth: '280px',
       })
         .setLngLat([item.lng, item.lat])
         .setHTML(html)
         .addTo(mapRef.current)
+      // Delegated, and bound once for the popup's whole life: setHTML replaces the
+      // strip on every entry, so a listener on the thumbnails themselves would have
+      // to be rebound each time and would leak the ones it forgot.
+      popupRef.current.getElement()?.addEventListener('click', (ev: Event) => {
+        const shot = (ev.target as HTMLElement | null)?.closest(`[${SHOT_INDEX_ATTR}]`)
+        const entryId = popupItemIdRef.current
+        if (!shot || !entryId) return
+        ev.stopPropagation()
+        onMarkerPhotoClickRef.current?.(entryId, Number(shot.getAttribute(SHOT_INDEX_ATTR)))
+      })
     }
   }, [gl])
 
@@ -330,14 +254,14 @@ function JourneyMapGL(
     }
   }, [setMarkerStyle, showPopup, hidePopup])
 
+  /** Pan to the marker and leave the zoom alone — see the Leaflet twin for why. */
   const focusMarker = useCallback((id: string) => {
     highlightMarker(id)
     const marker = markersRef.current.get(id)
     if (!marker || !mapRef.current) return
     try {
-      mapRef.current.flyTo({
+      mapRef.current.easeTo({
         center: marker.getLngLat(),
-        zoom: Math.max(mapRef.current.getZoom(), 14),
         pitch: enableMapbox3d ? 45 : 0,
         duration: 600,
       })
@@ -370,7 +294,10 @@ function JourneyMapGL(
       center: hasPoints ? bounds.getCenter() : [0, 30],
       zoom: hasPoints ? 2 : 1,
       pitch: enableMapbox3d && fullScreen ? 45 : 0,
-      attributionControl: true,
+      // Collapsed to its ⓘ button rather than a strip of text: the phone lays a card
+      // carousel across the bottom of this map and the strip read through it. The
+      // credit stays one tap away, which is what the OSM licence asks for.
+      attributionControl: { compact: true },
       antialias: mapboxQuality,
     }
     if (!isMapLibre) mapOptions.projection = mapboxQuality ? 'globe' : 'mercator'
@@ -516,9 +443,8 @@ function JourneyMapGL(
       const marker = markersRef.current.get(activeMarkerId)
       if (!marker || !mapRef.current) return
       try {
-        mapRef.current.flyTo({
+        mapRef.current.easeTo({
           center: marker.getLngLat(),
-          zoom: Math.max(mapRef.current.getZoom(), 12),
           pitch: enableMapbox3d && fullScreen ? 45 : 0,
           duration: 500,
         })

@@ -126,10 +126,14 @@ describe('EntryCard', () => {
     expect(screen.getByText('food')).toBeInTheDocument()
   })
 
-  it('FE-JRN-CARD-009: renders the pros/cons verdict and the story body', () => {
+  it('FE-JRN-CARD-009: renders the story body, and the verdict once the fold is opened', async () => {
+    // The verdict moved behind the fold in discussion #2299 — see FE-JRN-CARD-020.
     mountCard(buildEntry({ story: 'A wonderful evening', pros_cons: { pros: ['Great food'], cons: ['Crowded'] } }))
 
     expect(screen.getByText('A wonderful evening')).toBeInTheDocument()
+
+    await userEvent.click(screen.getByText('Show more'))
+
     expect(screen.getByText('Great food')).toBeInTheDocument()
     expect(screen.getByText('Crowded')).toBeInTheDocument()
   })
@@ -189,6 +193,23 @@ describe('EntryCard', () => {
 
     expect(await screen.findByRole('link', { name: 'https://book.example' })).toBeInTheDocument()
   })
+
+  // #2064: a stop switched off the route says so on its card, so a journal
+  // that reads fine still shows which of its days the printed map skips.
+  it('FE-JRN-CARD-018: marks an entry left out of the route, on the header and on the hero', () => {
+    const { unmount } = mountCard(buildEntry({ stats_excluded: true }))
+    expect(screen.getByText('Off route')).toBeInTheDocument()
+    unmount()
+
+    mountCard(buildEntry({ stats_excluded: true, photos: [buildPhoto(100)] }))
+    expect(screen.getByText('Off route')).toBeInTheDocument()
+  })
+
+  it('FE-JRN-CARD-019: carries no such mark on an ordinary entry', () => {
+    mountCard(buildEntry({ photos: [buildPhoto(100)] }))
+
+    expect(screen.queryByText('Off route')).not.toBeInTheDocument()
+  })
 })
 
 describe('SkeletonCard', () => {
@@ -239,5 +260,64 @@ describe('CheckinCard', () => {
 
     expect(screen.getByText('Bare stop')).toBeInTheDocument()
     expect(container.querySelector('.cursor-pointer')).not.toBeInTheDocument()
+  })
+})
+
+
+describe('the fold (discussion #2299)', () => {
+  it('FE-JRN-CARD-020: the verdict rides behind the story fold', async () => {
+    // A feed of open pro/con tables reads as a spreadsheet. The verdict belongs to
+    // one entry, so it comes out when that entry is opened.
+    render(
+      <EntryCard
+        entry={buildEntry({ story: 'A short line.', pros_cons: { pros: ['Great coffee'], cons: ['Loud'] } })}
+        onEdit={() => {}}
+        onDelete={() => {}}
+        onPhotoClick={() => {}}
+      />,
+    )
+
+    expect(screen.queryByText('Great coffee')).toBeNull()
+
+    await userEvent.click(screen.getByText('Show more'))
+
+    expect(screen.getByText('Great coffee')).toBeInTheDocument()
+    expect(screen.getByText('Loud')).toBeInTheDocument()
+  })
+
+  it('FE-JRN-CARD-021: a verdict on an entry with no story stays in the open', () => {
+    // There is no fold to put it behind, and hiding it behind a button that says
+    // "show more story" when there is no story would be a lie.
+    render(
+      <EntryCard
+        entry={buildEntry({ story: null, pros_cons: { pros: ['Great coffee'], cons: [] } })}
+        onEdit={() => {}}
+        onDelete={() => {}}
+        onPhotoClick={() => {}}
+      />,
+    )
+
+    expect(screen.getByText('Great coffee')).toBeInTheDocument()
+    expect(screen.queryByText('Show more')).toBeNull()
+  })
+})
+
+describe('dismissing a suggestion', () => {
+  it('FE-JRN-CARD-022: a suggestion offers a way out, and the way out is not the card itself', async () => {
+    const onClick = vi.fn()
+    const onDismiss = vi.fn()
+    render(<SkeletonCard entry={buildEntry({ type: 'skeleton' })} onClick={onClick} onDismiss={onDismiss} />)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Dismiss this suggestion' }))
+
+    expect(onDismiss).toHaveBeenCalledTimes(1)
+    // The card underneath opens the editor; dismissing must not do both.
+    expect(onClick).not.toHaveBeenCalled()
+  })
+
+  it('FE-JRN-CARD-023: a reader who cannot edit is offered nothing to dismiss', () => {
+    render(<SkeletonCard entry={buildEntry({ type: 'skeleton' })} />)
+
+    expect(screen.queryByRole('button', { name: 'Dismiss this suggestion' })).toBeNull()
   })
 })

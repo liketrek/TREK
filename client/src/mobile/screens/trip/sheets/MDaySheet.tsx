@@ -13,9 +13,11 @@ import { usePluginStore } from '../../../../store/pluginStore'
 import { useDayNotes } from '../../../../hooks/useDayNotes'
 import { RES_ICONS, getNoteIcon } from '../../../../components/Planner/DayPlanSidebar.constants'
 import { getDayBookendHotels, isDayInAccommodationRange } from '../../../../utils/dayOrder'
+import { getTransportForDay, hasCarrierEndpointOnDay } from '../../../../utils/dayMerge'
 import { splitReservationDateTime } from '../../../../utils/formatters'
 import { dayCoMapsUrl, dayGoogleMapsUrl, optimizeDayOrder } from '../lib/dayRoute'
 import GoogleMapsIcon from '../../../../components/shared/GoogleMapsIcon'
+import { BlurredCode } from '../../../../components/shared/BookingCode'
 import { splitNoteTime } from '../lib/dayNotes'
 import { weatherIconFor } from '../plan/planTimelineModel'
 import type { Assignment, DayNote, Reservation } from '../../../../types'
@@ -67,11 +69,17 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
     return [...(planner.assignments[String(day.id)] || [])].sort((a, b) => a.order_index - b.order_index)
   }, [day, planner.assignments])
 
-  // Weather anchor: the first assigned place with coordinates, else any trip place.
-  const geoPlace = dayAssignments.find(a => a.place?.lat && a.place?.lng)?.place
-    || planner.places.find(p => p.lat && p.lng)
-  const lat = geoPlace?.lat ?? null
-  const lng = geoPlace?.lng ?? null
+  // Weather anchor, day-local only (#2167): the day's first located stop, else the
+  // hotel you wake up in (unconditional bookend lookup, mirroring useMPlanTimeline).
+  // Never a place from another day — on a roadtrip that silently showed another
+  // city's weather with nothing naming the place.
+  const locatedPlace = dayAssignments.find(a => a.place?.lat && a.place?.lng)?.place
+  const weatherHotel = day && !locatedPlace
+    ? getDayBookendHotels(day, planner.days, planner.tripAccommodations).morning
+    : undefined
+  const lat = locatedPlace?.lat ?? weatherHotel?.place_lat ?? null
+  const lng = locatedPlace?.lng ?? weatherHotel?.place_lng ?? null
+  const weatherPlaceName = locatedPlace?.name ?? weatherHotel?.place_name ?? null
 
   const [weather, setWeather] = useState<WeatherResult | null>(null)
   const [weatherLoading, setWeatherLoading] = useState(false)
@@ -165,7 +173,7 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
   const optimizeDay = () => {
     if (!day || dayAssignments.length < 3) return
     const result = optimizeDayOrder(
-      day, planner.days, dayAssignments, planner.tripAccommodations, optimizeFromAccommodation !== false,
+      day, planner.days, dayAssignments, planner.tripAccommodations, optimizeFromAccommodation !== false, dayHasCarrier,
     )
     if (!result) return
     planner.handleReorder(day.id, result.order.map(a => a.id))
@@ -174,11 +182,25 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
       : t('dayplan.toast.routeOptimized'))
   }
 
+  // Carrier evidence for the export bookends (#2157) — via the span-aware transport
+  // filter the timeline uses, not dayReservations above, which matches on day_id
+  // only and would miss an overnight carrier that merely arrives today.
+  const dayHasCarrier = useMemo(() => {
+    if (!day) return false
+    return getTransportForDay({
+      reservations: planner.reservations,
+      dayId: day.id,
+      dayAssignmentIds: dayAssignments.map(a => a.id),
+      days: planner.days,
+    }).some(r => hasCarrierEndpointOnDay(r, day.id))
+  }, [day, planner.reservations, planner.days, dayAssignments])
+
   // Google-Maps export of the day's stops, hotel-bookended like the drawn route (#1372/#1465).
   const openInGoogleMaps = () => {
     if (!day) return
     const url = dayGoogleMapsUrl(
       day, planner.days, dayAssignments, planner.tripAccommodations, optimizeFromAccommodation !== false,
+      { located: dayHasCarrier },
     )
     if (url) window.open(url, '_blank', 'noopener,noreferrer')
   }
@@ -188,7 +210,7 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
     if (!day) return
     const url = dayCoMapsUrl(
       day, planner.days, dayAssignments, planner.tripAccommodations, optimizeFromAccommodation !== false,
-      day.default_transport_mode ?? planner.routeProfile,
+      day.default_transport_mode ?? planner.routeProfile, { located: dayHasCarrier },
     )
     if (url) window.open(url, '_blank', 'noopener,noreferrer')
   }
@@ -289,6 +311,13 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
                       <span className="capitalize">{weather.description}</span>
                     </span>
                   </div>
+                  {/* Which place the forecast is for — on a roadtrip "the day's
+                      weather" is ambiguous without it (#2167). */}
+                  {weatherPlaceName && (
+                    <div className="mt-[6px] font-geist text-[0.625rem] text-m-faint">
+                      {t('day.weatherFor', { name: weatherPlaceName })}
+                    </div>
+                  )}
                   {weather.type === 'climate' && (
                     <div className="mt-[6px] font-geist text-[0.625rem] italic text-m-faint">{t('day.climateHint')}</div>
                   )}
@@ -538,7 +567,8 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
                           />
                           <span className="min-w-0 flex-1 truncate font-geist text-[0.6875rem] text-m-muted">
                             {linked.status === 'confirmed' ? t('reservations.confirmed') : t('reservations.pending')}
-                            {linked.confirmation_number ? ` · #${linked.confirmation_number}` : ''}
+                            {/* The strip is a button already, so the code gets the plain blur, not a toggle. */}
+                            {linked.confirmation_number ? <> · <BlurredCode interactive={false}>{`#${linked.confirmation_number}`}</BlurredCode></> : ''}
                           </span>
                         </button>
                       )}

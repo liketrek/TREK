@@ -1,4 +1,4 @@
-// FE-W4BGT-001 to FE-W4BGT-022
+// FE-W4BGT-001 to FE-W4BGT-024
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { screen, act, waitFor } from '@testing-library/react'
 import { render, fireEvent } from '../../../tests/helpers/render'
@@ -274,5 +274,33 @@ describe('BackgroundTasksWidget — AI retry', () => {
     fireEvent.click(await screen.findByRole('button', { name: /AI/i }))
 
     expect(await screen.findByText('No model configured')).toBeInTheDocument()
+  })
+})
+
+/**
+ * The reporter's phone showed a green tick beside "No reservations could be
+ * extracted" and two warnings (#2477). A parse that found nothing is not a
+ * success, so it wears the warning mark; the tick stays for a parse that did.
+ */
+describe('BackgroundTasksWidget: the mark on a finished job (#2477)', () => {
+  it('FE-W4BGT-023: a job that found nothing shows the warning mark, not the success tick', () => {
+    useBackgroundTasksStore.setState({
+      tasks: [task({ items: [], warnings: ['Incomplete LodgingReservation in booking.pdf[0] (no reservationFor)'] })],
+    })
+    const { baseElement } = render(<BackgroundTasksWidget />)
+
+    expect(screen.getByText('No reservations could be extracted from the uploaded files.')).toBeInTheDocument()
+    expect(baseElement.querySelector('svg.lucide-alert-triangle')).toHaveAttribute('stroke', 'var(--warning)')
+    expect(baseElement.querySelector('svg.lucide-check-circle2')).toBeNull()
+    expect(baseElement.querySelector('.animate-spin')).toBeNull()
+  })
+
+  it('FE-W4BGT-024: a job with items keeps the success tick, even with warnings', () => {
+    useBackgroundTasksStore.setState({ tasks: [task({ items: [{ id: 1 }] as never, warnings: ['could not locate "X"'] })] })
+    const { baseElement } = render(<BackgroundTasksWidget />)
+
+    // The theme's own success colour, so it follows light and dark.
+    expect(baseElement.querySelector('svg.lucide-check-circle2')).toHaveAttribute('stroke', 'var(--success)')
+    expect(baseElement.querySelector('svg.lucide-alert-triangle')).toBeNull()
   })
 })

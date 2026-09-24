@@ -94,6 +94,10 @@ describe('MExportSheet', () => {
     expect(arg.trip).toBe(planner.trip)
     expect(arg.days).toBe(planner.days)
     expect(arg.places).toBe(planner.places)
+    // The raw store, not the hook's filtered list: the export applies the plan's
+    // own predicate, and the switch travels with it.
+    expect(arg.assignments).toBe(planner.storedAssignments)
+    expect(arg.showServiceStops).toBe(true)
     expect(arg.reservations).toBe(planner.reservations)
     expect(arg.categories).toBe(planner.categories)
     // dayNotes come out of the store keyed by day, flattened with a numeric day_id.

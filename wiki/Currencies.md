@@ -12,7 +12,7 @@ The short version: **the trip currency is the accounting base, the expense curre
 
 ## Trip currency
 
-Every trip has exactly one currency. It is set when you create the trip and can be changed later in the trip edit dialog (requires the `trip_edit` permission). The new-trip dialog pre-fills it with **your display currency**, falling back to **EUR** when you have left that on *Trip currency*. This is the one moment the display currency touches stored data: it seeds the field, and from then on the trip's currency is its own.
+Every trip has exactly one currency. It is set when you create the trip and can be changed later in the trip edit dialog (requires the `trip_edit` permission). The new-trip dialog pre-fills it with **your display currency**, falling back to **EUR** when you have left that on *Trip currency*. A trip created through MCP or by a plugin without a currency gets the same value. This is the one moment the display currency touches stored data: it seeds the field, and from then on the trip's currency is its own.
 
 This is the trip's **accounting base**. It is not a cosmetic label:
 

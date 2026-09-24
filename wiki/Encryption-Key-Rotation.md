@@ -6,12 +6,17 @@ TREK encrypts sensitive settings at rest using AES-256-GCM. The following values
 
 - Google Maps API key (instance-wide, in `app_settings`; the per-user column is still read as a fallback)
 - Unsplash access key (instance-wide, in `app_settings`; the per-user column is still read as a fallback)
+- Amap API key (instance-wide, in `app_settings`; the per-user column is still read as a fallback)
 - Mapbox access token (per user)
+- CARTO API key (per user, in `settings` table)
 - OpenWeather API key (per user)
 - Immich API key (per user)
 - AirTrail API key (per user)
+- Dawarich API key (per user, in `dawarich_connections`)
 - Synology Photos password, session ID, and device ID (per user)
 - Per-user webhook URL, ntfy notification token, and LLM provider API key (in `settings` table)
+- Instance-wide API key of the AI Parsing addon (in `addons.config`)
+- Document sync credentials of a trip's stores, one encrypted blob per store and trip (in `document_connections`), and the webhook secret of each binding (in `trip_document_links`); see [Document-Sync](Document-Sync)
 - OIDC client secret (global, in `app_settings`)
 - SMTP password (global, in `app_settings`)
 - Admin webhook URL and admin ntfy token (global, in `app_settings`)
@@ -46,7 +51,7 @@ To find your current key: check the `ENCRYPTION_KEY` environment variable or rea
 
 ## Rotating the key
 
-Use `scripts/migrate-encryption.ts` to re-encrypt all stored secrets without downtime or manual re-entry.
+Use `scripts/migrate-encryption.ts` to re-encrypt the stored secrets listed below without downtime or manual re-entry.
 
 **Docker:**
 
@@ -66,15 +71,18 @@ The script:
 2. Asks for confirmation before making any changes.
 3. Creates a timestamped backup of the database (e.g. `travel.db.backup-1713484800000`) before modifying anything.
 4. Re-encrypts all stored secrets across all tables:
-   - `app_settings`: `oidc_client_secret`, `smtp_pass`, `admin_webhook_url`, `admin_ntfy_token`, `maps_api_key`, `unsplash_api_key`
+   - `app_settings`: `oidc_client_secret`, `smtp_pass`, `admin_webhook_url`, `admin_ntfy_token`, `maps_api_key`, `unsplash_api_key`, `amap_api_key`
    - `app_settings['storage.backends']`: the `secretAccessKey` of every S3 storage backend
-   - `users` (per user): `maps_api_key`, `unsplash_api_key`, `openweather_api_key`, `immich_api_key`, `synology_password`, `synology_sid`, `synology_did`, `airtrail_api_key`, `mfa_secret`
-   - `settings` (per user): `webhook_url`, `ntfy_token`, `mapbox_access_token`, `llm_api_key`
+   - `users` (per user): `maps_api_key`, `unsplash_api_key`, `amap_api_key`, `openweather_api_key`, `immich_api_key`, `synology_password`, `synology_sid`, `synology_did`, `airtrail_api_key`, `mfa_secret`
+   - `settings` (per user): `webhook_url`, `ntfy_token`, `mapbox_access_token`, `carto_api_key`, `llm_api_key`
+   - `dawarich_connections` (per user): `api_key`
    - `plugin_oauth_tokens`: `access_token`, `refresh_token` (per plugin and user)
    - `plugins.config` and `plugin_user_config.config`: every settings field a plugin's manifest marks `secret`, resolved per plugin and scope from `plugin_settings_fields`
    - `trip_album_links`: `passphrase`
    - `trek_photos`: `passphrase`
 5. Reports counts of migrated, already-migrated, skipped (empty), and errored values.
+
+**Not covered by the script:** the document sync credentials (`document_connections.secrets` and `trip_document_links.webhook_secret`) and the instance-wide API key of the AI Parsing addon (`addons.config`). They stay encrypted under the old key and read back as empty afterwards. The AI Parsing key has to be entered again under **Admin → Addons**. A document sync binding fails with *The credentials were refused.* and cannot be repaired from the trip: the connection form only opens for a store the trip has not been connected to yet, and **Disconnect** removes the binding but keeps the stored connection. Removing the trip's row from `document_connections` takes its bindings with it and lets the trip owner connect the store again; the documents themselves stay in TREK and at the store. Rotate before trips are bound to a store where you can. See [Document-Sync](Document-Sync).
 
 After a successful migration:
 

@@ -35,6 +35,9 @@ const { db } = vi.hoisted(() => {
     user_id INTEGER NOT NULL, category TEXT DEFAULT 'General', title TEXT NOT NULL, content TEXT,
     color TEXT DEFAULT '#6366f1', pinned INTEGER DEFAULT 0, website TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
+  tmp.exec(`CREATE TABLE collab_links (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL, title TEXT NOT NULL, url TEXT NOT NULL, pinned INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
   tmp.exec(`CREATE TABLE collab_polls (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL,
     user_id INTEGER NOT NULL, question TEXT NOT NULL, options TEXT NOT NULL, multiple INTEGER DEFAULT 0,
     closed INTEGER DEFAULT 0, deadline TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
@@ -48,8 +51,9 @@ const { db } = vi.hoisted(() => {
     message_id INTEGER NOT NULL, user_id INTEGER NOT NULL, emoji TEXT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
   tmp.exec(`CREATE TABLE trip_files (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL,
-    note_id INTEGER, filename TEXT NOT NULL, original_name TEXT NOT NULL, file_size INTEGER,
-    mime_type TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
+    note_id INTEGER, message_id INTEGER, filename TEXT NOT NULL, original_name TEXT NOT NULL,
+    file_size INTEGER, mime_type TEXT, uploaded_by INTEGER, deleted_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
   // StorageRegistryService (behind StorageModule, now in this module chain) reads
   // this at onModuleInit.
   tmp.exec('CREATE TABLE app_settings (key TEXT PRIMARY KEY, value TEXT);');
@@ -69,7 +73,9 @@ import { PermissionsService } from '../../src/nest/permissions/permissions.servi
 let checkPermission: MockInstance;
 
 import { CollabModule } from '../../src/nest/collab/collab.module';
+import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { RateLimitService } from '../../src/nest/common/rate-limit.service';
 
 describe('Collab e2e (real auth guard + temp SQLite)', () => {
   let server: Server;
@@ -80,6 +86,10 @@ describe('Collab e2e (real auth guard + temp SQLite)', () => {
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
     nest.useGlobalFilters(new TrekExceptionFilter());
+    // AppModule registers this as APP_PIPE; the harness only pulls CollabModule,
+    // so without it the write routes would run unvalidated here and a broken
+    // contract would still look green.
+    nest.useGlobalPipes(new ZodValidationPipe());
     await nest.init();
     return nest;
   }
@@ -100,6 +110,7 @@ describe('Collab e2e (real auth guard + temp SQLite)', () => {
     db.prepare('DELETE FROM collab_polls').run();
     db.prepare('DELETE FROM trip_files').run();
     db.prepare('DELETE FROM collab_notes').run();
+    db.prepare('DELETE FROM collab_links').run();
   });
 
   afterAll(async () => {
@@ -168,9 +179,124 @@ describe('Collab e2e (real auth guard + temp SQLite)', () => {
     expect(db.prepare('SELECT COUNT(*) as c FROM collab_message_reactions WHERE message_id = 3').get()).toEqual({ c: 1 });
   });
 
+  // The advisory this route was reported under: it answered anyone with a session,
+  // for any trip id, and drove an outbound fetch from that.
+  it('404 on link-preview for a trip the caller cannot reach', async () => {
+    canAccessTrip.mockReturnValue(undefined);
+    const res = await request(server)
+      .get('/api/trips/5/collab/link-preview?url=https://example.com/')
+      .set('Cookie', sessionCookie(1));
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: 'Trip not found' });
+  });
+
+  it('401 on link-preview without a session cookie', async () => {
+    const res = await request(server).get('/api/trips/5/collab/link-preview?url=https://example.com/');
+    expect(res.status).toBe(401);
+  });
+
+  // A read-only member still gets previews: the route is requested while rendering
+  // the chat, so gating it on the write permission would blank the chat for them.
+  it('200 on link-preview for a member without collab_edit', async () => {
+    checkPermission.mockReturnValue(false);
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true, headers: { get: () => null }, text: async () => '<title>Lesbar</title>',
+    }));
+    const res = await request(server)
+      .get('/api/trips/5/collab/link-preview?url=https://example.com/reader')
+      .set('Cookie', sessionCookie(1));
+    vi.unstubAllGlobals();
+    expect(res.status).toBe(200);
+    expect(res.body.title).toBe('Lesbar');
+  });
+
+  it('429 once the caller has spent a minute of preview fetches', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true, headers: { get: () => null }, text: async () => '<title>T</title>',
+    }));
+    // Distinct URLs, because a repeat is served from the cache and costs nothing.
+    let last = 200;
+    for (let i = 0; i < 61 && last === 200; i++) {
+      last = (await request(server)
+        .get(`/api/trips/5/collab/link-preview?url=${encodeURIComponent(`https://example.com/e2e-${i}`)}`)
+        .set('Cookie', sessionCookie(1))).status;
+    }
+    vi.unstubAllGlobals();
+    expect(last).toBe(429);
+    // The counters live on the container singleton, so a spent budget would
+    // follow this user into every test declared after it.
+    app.get(RateLimitService).reset('collab_link_preview');
+  });
+
   it('400 on link-preview without a url', async () => {
     const res = await request(server).get('/api/trips/5/collab/link-preview').set('Cookie', sessionCookie(1));
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ error: 'URL is required' });
+  });
+
+  describe('shared links', () => {
+    it('401 without a session cookie', async () => {
+      expect((await request(server).get('/api/trips/5/collab/links')).status).toBe(401);
+    });
+
+    it('404 when the trip is not accessible', async () => {
+      canAccessTrip.mockReturnValue(undefined);
+      const res = await request(server).get('/api/trips/5/collab/links').set('Cookie', sessionCookie(1));
+      expect(res.status).toBe(404);
+    });
+
+    it('201 on create, and the row is persisted with the acting user', async () => {
+      const res = await request(server).post('/api/trips/5/collab/links').set('Cookie', sessionCookie(1))
+        .send({ title: 'Ferry', url: 'https://example.com/ferry' });
+      expect(res.status).toBe(201);
+      expect(res.body.link).toMatchObject({ title: 'Ferry', url: 'https://example.com/ferry' });
+      const row = db.prepare('SELECT * FROM collab_links WHERE trip_id = 5').get() as { title: string; user_id: number };
+      expect(row).toMatchObject({ title: 'Ferry', user_id: 1 });
+    });
+
+    it('403 on create without collab_edit', async () => {
+      checkPermission.mockReturnValue(false);
+      const res = await request(server).post('/api/trips/5/collab/links').set('Cookie', sessionCookie(1))
+        .send({ title: 'Ferry', url: 'https://example.com/ferry' });
+      expect(res.status).toBe(403);
+    });
+
+    it('400 when the body does not satisfy the contract', async () => {
+      const res = await request(server).post('/api/trips/5/collab/links').set('Cookie', sessionCookie(1)).send({ title: 'Ferry' });
+      expect(res.status).toBe(400);
+    });
+
+    it('200 on list, pinned first', async () => {
+      db.prepare("INSERT INTO collab_links (id, trip_id, user_id, title, url, pinned) VALUES (1, 5, 1, 'Plain', 'https://a.test', 0)").run();
+      db.prepare("INSERT INTO collab_links (id, trip_id, user_id, title, url, pinned) VALUES (2, 5, 1, 'Pinned', 'https://b.test', 1)").run();
+      const res = await request(server).get('/api/trips/5/collab/links').set('Cookie', sessionCookie(1));
+      expect(res.status).toBe(200);
+      expect(res.body.links.map((l: { title: string }) => l.title)).toEqual(['Pinned', 'Plain']);
+    });
+
+    it('200 on update and the pin lands in the row', async () => {
+      db.prepare("INSERT INTO collab_links (id, trip_id, user_id, title, url) VALUES (1, 5, 1, 'Plain', 'https://a.test')").run();
+      const res = await request(server).put('/api/trips/5/collab/links/1').set('Cookie', sessionCookie(1)).send({ pinned: true });
+      expect(res.status).toBe(200);
+      expect(res.body.link).toMatchObject({ id: 1, pinned: 1 });
+    });
+
+    it('404 on update and delete of a link that is not there', async () => {
+      expect((await request(server).put('/api/trips/5/collab/links/99').set('Cookie', sessionCookie(1)).send({ pinned: true })).status).toBe(404);
+      expect((await request(server).delete('/api/trips/5/collab/links/99').set('Cookie', sessionCookie(1))).status).toBe(404);
+    });
+
+    it('200 on delete and the row is gone', async () => {
+      db.prepare("INSERT INTO collab_links (id, trip_id, user_id, title, url) VALUES (1, 5, 1, 'Plain', 'https://a.test')").run();
+      const res = await request(server).delete('/api/trips/5/collab/links/1').set('Cookie', sessionCookie(1));
+      expect(res.status).toBe(200);
+      expect(db.prepare('SELECT COUNT(*) c FROM collab_links').get()).toEqual({ c: 0 });
+    });
+
+    it('403 on delete without collab_edit', async () => {
+      db.prepare("INSERT INTO collab_links (id, trip_id, user_id, title, url) VALUES (1, 5, 1, 'Plain', 'https://a.test')").run();
+      checkPermission.mockReturnValue(false);
+      expect((await request(server).delete('/api/trips/5/collab/links/1').set('Cookie', sessionCookie(1))).status).toBe(403);
+    });
   });
 });

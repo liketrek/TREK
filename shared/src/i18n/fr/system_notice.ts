@@ -54,40 +54,37 @@ const system_notice: TranslationStrings = {
   'system_notice.v3014_whitespace_collision.title': 'Action requise : conflit de compte utilisateur',
   'system_notice.v3014_whitespace_collision.body':
     "La mise à niveau 3.0.14 a détecté un ou plusieurs conflits de nom d'utilisateur ou d'adresse e-mail causés par des espaces en début ou en fin de valeur dans les comptes enregistrés. Les comptes concernés ont été renommés automatiquement. Consultez les journaux du serveur pour les lignes commençant par **[migration] WHITESPACE COLLISION** afin d'identifier les comptes nécessitant une vérification.",
-  'system_notice.release_400.eyebrow': 'Mise à jour installée',
-  'system_notice.release_400.tag': 'Version',
-  'system_notice.release_400.headline': 'La plus grande version de TREK à ce jour.',
-  'system_notice.release_400.intro':
-    'TREK gagne un téléphone, et un livre. Dix-neuf personnes ont écrit cette version — et environ cent cinquante bugs signalés ont disparu au passage.',
-  'system_notice.release_400.feature_mobile_title': 'TREK passe au mobile',
-  'system_notice.release_400.feature_mobile_body':
-    'Tout ce qui est sous 768px a désormais sa propre interface — un dock en verre, ses feuilles, son planificateur. Ouvre TREK sur ton téléphone.',
-  'system_notice.release_400.feature_studio_title': 'TREK Studio',
-  'system_notice.release_400.feature_studio_badge': 'Beta',
-  'system_notice.release_400.feature_studio_body':
-    "Le PDF de Journey est devenu un concepteur de livre photo. Il met le livre en page quand tu le demandes, puis s'efface.",
-  'system_notice.release_400.feature_vacay_title': 'Vacay apprend le reste',
-  'system_notice.release_400.feature_vacay_body':
-    'Demi-journées, récup et RTT, vacances scolaires dans la grille — et une année de congés qui ne commence pas forcément en janvier.',
-  'system_notice.release_400.feature_places_title': 'Les lieux se présentent, les fichiers déménagent',
-  'system_notice.release_400.feature_places_body':
-    'Photos et description se remplissent toutes seules avant que tu enregistres un lieu. Et tes fichiers ne sont plus obligés de vivre sur le disque où tourne TREK.',
-  'system_notice.release_400.footnote':
-    "Et ce ne sont que quatre d'entre eux. 4.0.0 apporte plusieurs centaines d'autres changements, de Collections et Atlas jusqu'au serveur en dessous.",
-  'system_notice.release_400.note_eyebrow': 'Un mot du mainteneur',
-  'system_notice.release_400.note_title': "Merci d'utiliser TREK.",
-  'system_notice.release_400.note_body':
-    "TREK a commencé comme un petit outil pour mes propres voyages, écrit sur mon temps libre. Ça l'est toujours : le soir, le week-end, les heures à côté d'un travail à temps plein.\n\nPendant un temps, il n'y avait que moi. Plus maintenant — dix-neuf personnes ont livré cette version, et vous êtes des milliers à être arrivés avec des étoiles, des issues, des traductions et des pull requests. Je suis reconnaissant pour tout ça.",
-  'system_notice.release_400.promise_label': 'La promesse',
-  'system_notice.release_400.promise_text':
-    "Le côté open source de TREK reste gratuit, pour toujours. Pas de formules payantes, pas d'abonnements, aucun piège. Promis.",
-  'system_notice.release_400.note_body_after':
-    "4.0.0 a demandé des semaines de nuits blanches — une app mobile, un concepteur de livre, une migration serveur, l'essentiel écrit entre minuit et deux heures. Ce n'est pas une plainte : j'adore construire ça. C'est juste la réponse honnête à comment une version de cette taille sort d'un projet de temps libre.",
-  'system_notice.release_400.note_closing': "Merci d'être là.",
-  'system_notice.release_400.note_signature': '— Maurice',
-  'system_notice.release_400.support_text':
-    'Le soutien est ce qui fait tourner tout ça — serveurs, domaines, et les nuits blanches qui deviennent des versions comme celle-ci. Si TREK vaut quelque chose pour toi, un café est le moyen le plus direct de continuer.',
-  'system_notice.release_400.cta_bmc': 'Buy me a coffee',
-  'system_notice.release_400.cta_kofi': 'Soutenir sur Ko-fi',
+  'system_notice.release_notes.eyebrow': 'Mise à jour installée',
+  'system_notice.release_notes.headline': 'Quatre choses que TREK fait désormais tout seul.',
+  'system_notice.release_notes.intro': 'Sa propre API de lieux, des road trips planifiés de bout en bout, votre historique de position entre vos mains, et vos documents synchronisés.',
+  'system_notice.release_notes.features_label': "Les têtes d'affiche",
+  'system_notice.release_notes.features_aside': "Et ce n'est pas tout",
+  'system_notice.release_notes.feature_places_title': 'API TREK Places',
+  'system_notice.release_notes.feature_places_body': 'Le premier planificateur de voyage open source avec sa propre API de lieux. 73,6 millions de lieux, sans clé, sans quota.',
+  'system_notice.release_notes.feature_roadtrip_title': 'Addon Roadtrip',
+  'system_notice.release_notes.feature_roadtrip_body': 'Planifie le trajet lui-même : itinéraire, distance, heures et arrêts. Désactivé tant qu’un admin ne l’active pas.',
+  'system_notice.release_notes.feature_dawarich_title': 'Intégration Dawarich',
+  'system_notice.release_notes.feature_dawarich_body': 'L’alternative auto-hébergée à Google Timeline, désormais lisible depuis TREK. TREK lit, et ne fait que lire.',
+  'system_notice.release_notes.footnote': 'Et une longue liste de changements plus discrets dans le reste de TREK.',
+  'system_notice.release_notes.notes_label': 'Notes de version',
+  'system_notice.release_notes.note_eyebrow': 'Un mot du mainteneur',
+  'system_notice.release_notes.note_title': "C'est pour vous que je continue à construire TREK.",
+  'system_notice.release_notes.note_body':
+    "TREK est né comme un petit outil pour mes propres voyages, écrit après le travail parce que je voulais une meilleure façon de les préparer. Il n'a jamais vraiment cessé de grandir. Presque tout ce qui existe aujourd'hui a été construit tard le soir, le week-end, dans le train, à côté d'un travail à temps plein, et bien des soirs je me suis demandé en silence si quelqu'un, quelque part, l'ouvrirait un jour.",
+  'system_notice.release_notes.promise_label': 'La promesse',
+  'system_notice.release_notes.promise_lead': 'TREK reste gratuit, pour toujours.',
+  'system_notice.release_notes.promise_text':
+    "Chaque fonctionnalité, chaque mise à jour, pour tout le monde. Pas de formules payantes, pas d'abonnements, aucun piège.",
+  'system_notice.release_notes.note_body_after':
+    "Et puis vous l'avez ouvert. En quelques mois, vous étiez des milliers : des étoiles, des rapports de bugs, des traductions dans des langues que je ne parle pas, des pull requests de personnes que je n'ai jamais rencontrées. Chaque matin, la première chose que je fais est encore d'aller voir le dépôt, et j'ai toujours du mal à y croire.",
+  'system_notice.release_notes.note_closing': "Merci d'être là. Amicalement, Maurice.",
+  'system_notice.release_notes.support_lead':
+    'TREK est gratuit et le restera toujours, mais les serveurs, les noms de domaine et toutes ces nuits blanches, eux, ne le sont pas.',
+  'system_notice.release_notes.support_text':
+    "Si TREK s'est fait une place dans tes voyages, offre-moi un café et aide la prochaine version à voir le jour.",
+  'system_notice.release_notes.cta_bmc': 'Buy me a coffee',
+  'system_notice.release_notes.cta_kofi': 'Soutenir sur Ko-fi',
+  'system_notice.release_notes.feature_docsync_title': 'Synchronisation de documents',
+  'system_notice.release_notes.feature_docsync_body': 'Paperless-ngx, Papra, Nextcloud, OpenCloud et Synology Drive. Les documents d’un voyage circulent dans les deux sens avec le service que vous hébergez déjà.',
 };
 export default system_notice;

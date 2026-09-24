@@ -112,6 +112,13 @@ describe('cacheKey', () => {
   it('preserves the date string as-is', () => {
     expect(cacheKey('0', '0', 'climate')).toBe('0.00_0.00_climate');
   });
+
+  // #2167 — descriptions are localized, so a cached German answer must not be
+  // served to an English caller (REST defaults 'de', the MCP tools 'en').
+  it('separates languages when lang is given', () => {
+    expect(cacheKey('48.8566', '2.3522', '2024-06-15', 'de')).toBe('48.86_2.35_2024-06-15_de');
+    expect(cacheKey('48.8566', '2.3522', '2024-06-15', 'en')).toBe('48.86_2.35_2024-06-15_en');
+  });
 });
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -247,6 +254,63 @@ describe('getWeather', () => {
       await expect(getWeather('12.01', '22.01', date, 'en')).rejects.toThrow(ApiError);
     });
 
+    // #2167 — a location-local yesterday (or today in the hours after the UTC
+    // rollover) can be missing from the forward series; last year's climate is
+    // the wrong answer for a day that just happened.
+    it('asks the past_days window for a local yesterday missing from the forward series', async () => {
+      const date = dateOffset(0); // diffDays in (-1, 0] — forecast branch
+      const missBody = {
+        daily: {
+          time: ['1970-01-01'],
+          temperature_2m_max: [10],
+          temperature_2m_min: [5],
+          weathercode: [0],
+        },
+      };
+      const pastDaysBody = {
+        daily: {
+          time: [date],
+          temperature_2m_max: [22],
+          temperature_2m_min: [12],
+          weathercode: [2],
+        },
+      };
+      vi.mocked(fetch)
+        .mockResolvedValueOnce(mockResponse(missBody))
+        .mockResolvedValueOnce(mockResponse(pastDaysBody));
+
+      const result = await getWeather('50.00', '60.00', date, 'en');
+
+      expect(fetch).toHaveBeenCalledTimes(2);
+      expect(vi.mocked(fetch).mock.calls[1][0]).toContain('api.open-meteo.com/v1/forecast');
+      expect(vi.mocked(fetch).mock.calls[1][0]).toContain('past_days=5');
+      expect(result.type).toBe('forecast'); // NOT climate
+      expect(result.temp).toBe(17);
+    });
+
+    // #2167 — the lang-less cache key served whichever language was asked first.
+    it('keeps languages apart in the cache', async () => {
+      const date = dateOffset(6);
+      const body = {
+        daily: {
+          time: [date],
+          temperature_2m_max: [12],
+          temperature_2m_min: [8],
+          weathercode: [3],
+        },
+      };
+      vi.mocked(fetch)
+        .mockResolvedValueOnce(mockResponse(body))
+        .mockResolvedValueOnce(mockResponse(body));
+
+      const en = await getWeather('50.01', '60.01', date, 'en');
+      const de = await getWeather('50.01', '60.01', date, 'de');
+
+      expect(fetch).toHaveBeenCalledTimes(2);
+      expect(en.description).toBe('Overcast');
+      expect(de.description).toBe('Bewolkt');
+    });
+
     it('falls through to climate path when date is not found in forecast data', async () => {
       // The forecast API returns data but NOT for our target date; the code
       // checks idx === -1 and falls into the diffDays > -1 climate branch.
@@ -279,6 +343,85 @@ describe('getWeather', () => {
 
       expect(result.type).toBe('climate');
       expect(fetch).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  // #2167 — the ERA5 archive lags ~5 days and answered nulls for the last days
+  // of an ongoing trip; the forecast API's past_days window still has them.
+  describe('with date — recent past inside the past_days window', () => {
+    it('routes the date through the forecast API with past_days instead of the archive', async () => {
+      const date = dateOffset(-3);
+      const body = {
+        daily: {
+          time: [date],
+          temperature_2m_max: [18],
+          temperature_2m_min: [10],
+          weathercode: [2],
+        },
+      };
+      vi.mocked(fetch).mockResolvedValueOnce(mockResponse(body));
+
+      const result = await getWeather('51.00', '61.00', date, 'en');
+
+      expect(fetch).toHaveBeenCalledTimes(1);
+      expect(vi.mocked(fetch).mock.calls[0][0]).toContain('api.open-meteo.com/v1/forecast');
+      expect(vi.mocked(fetch).mock.calls[0][0]).toContain('past_days=5');
+      expect(vi.mocked(fetch).mock.calls[0][0]).not.toContain('archive-api');
+      expect(result.type).toBe('forecast');
+      expect(result.temp).toBe(14);
+      expect(result.temp_max).toBe(18);
+      expect(result.temp_min).toBe(10);
+    });
+
+    it('falls back to the archive when the past_days series misses the date', async () => {
+      const date = dateOffset(-3);
+      const missBody = {
+        daily: {
+          time: ['1970-01-01'],
+          temperature_2m_max: [1],
+          temperature_2m_min: [0],
+          weathercode: [0],
+        },
+      };
+      const archiveBody = {
+        daily: {
+          time: [date],
+          temperature_2m_max: [16],
+          temperature_2m_min: [8],
+          weathercode: [61],
+          precipitation_sum: [2],
+        },
+      };
+      vi.mocked(fetch)
+        .mockResolvedValueOnce(mockResponse(missBody))
+        .mockResolvedValueOnce(mockResponse(archiveBody));
+
+      const result = await getWeather('51.01', '61.01', date, 'en');
+
+      expect(fetch).toHaveBeenCalledTimes(2);
+      expect(vi.mocked(fetch).mock.calls[1][0]).toContain('archive-api.open-meteo.com');
+      expect(result.temp).toBe(12);
+      expect(result.main).toBe('Rain'); // WMO 61 — provably the archive answer
+    });
+
+    // #1614 — the hourly series only exists on the archive; a timed request
+    // (journal entry) must keep taking that path.
+    it('keeps a timed request on the archive so the hourly series stays available', async () => {
+      const date = dateOffset(-3);
+      const hourly = { temperature_2m: Array(24).fill(null), weathercode: Array(24).fill(null) };
+      hourly.temperature_2m[9] = 19;
+      hourly.weathercode[9] = 1;
+      vi.mocked(fetch).mockResolvedValueOnce(mockResponse({
+        daily: { time: [date], temperature_2m_max: [18], temperature_2m_min: [10], weathercode: [2], precipitation_sum: [0] },
+        hourly,
+      }));
+
+      const result = await getWeather('51.02', '61.02', date, 'en', '09:15');
+
+      expect(fetch).toHaveBeenCalledTimes(1);
+      expect(vi.mocked(fetch).mock.calls[0][0]).toContain('archive-api.open-meteo.com');
+      expect(vi.mocked(fetch).mock.calls[0][0]).toContain('hourly=temperature_2m,weathercode');
+      expect(result.temp).toBe(19);
     });
   });
 
@@ -513,6 +656,35 @@ describe('getDetailedWeather', () => {
 
       expect(fetch).not.toHaveBeenCalled();
       expect(second).toEqual(first);
+    });
+
+    // #2167 — same lang-in-key rule as getWeather.
+    it('keeps languages apart in the detailed cache', async () => {
+      const date = dateOffset(5);
+      const body = {
+        daily: {
+          time: [date],
+          temperature_2m_max: [20],
+          temperature_2m_min: [10],
+          weathercode: [45],
+          precipitation_sum: [0],
+          precipitation_probability_max: [0],
+          windspeed_10m_max: [5],
+          sunrise: [`${date}T06:00`],
+          sunset: [`${date}T20:00`],
+        },
+        hourly: { time: [], temperature_2m: [] },
+      };
+      vi.mocked(fetch)
+        .mockResolvedValueOnce(mockResponse(body))
+        .mockResolvedValueOnce(mockResponse(body));
+
+      const en = await getDetailedWeather('30.02', '40.02', date, 'en');
+      const de = await getDetailedWeather('30.02', '40.02', date, 'de');
+
+      expect(fetch).toHaveBeenCalledTimes(2);
+      expect(en.description).toBe('Fog');
+      expect(de.description).toBe('Nebel');
     });
   });
 

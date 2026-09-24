@@ -11,11 +11,26 @@ import { useTranslation } from '../../i18n'
 import { CustomDatePicker } from '../shared/CustomDateTimePicker'
 import { normalizeImageFile } from '../../utils/convertHeic'
 import { getApiErrorMessage, type Trip } from '../../types'
-import type { TripCreateRequest } from '@trek/shared'
+import { MAX_TRIP_DAYS, tripSpanDays, type TripCreateRequest } from '@trek/shared'
 import { NumericInput } from '../shared/NumericInput'
 import { currenciesWith, SYMBOLS } from '../Budget/BudgetPanel.constants'
+import TripDateReview, { dateReviewIsWide } from './TripDateReview'
+import { useTripRangeGuard, type RangeCheck } from '../../hooks/useTripRangeGuard'
+import type { ShiftMode } from '../../utils/dayImpactLines'
 
-type DateShiftMode = 'keep_bookings' | 'shift_all'
+type DateShiftMode = ShiftMode
+type TripPayload = TripCreateRequest & { date_shift_mode?: DateShiftMode }
+
+/**
+ * A save held back for a look first: the start of a dated trip moved and the
+ * bookings need a direction (#1288), or the new range removes days with
+ * something on them. The payload waits here until the traveller confirms.
+ */
+interface PendingReview {
+  payload: TripPayload
+  askShift: boolean
+  removal: RangeCheck
+}
 
 interface TripFormModalProps {
   isOpen: boolean
@@ -80,10 +95,10 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
   const [selectedMembers, setSelectedMembers] = useState<number[]>([])
   const [existingMembers, setExistingMembers] = useState<{ id: number; username: string }[]>([])
   const [memberSelectValue, setMemberSelectValue] = useState('')
-  // Set when a start-date change on a dated trip needs the user to pick how the
-  // itinerary follows the new dates (#1288); holds the payload awaiting that choice.
-  const [pendingDateShift, setPendingDateShift] = useState<(TripCreateRequest & { date_shift_mode?: DateShiftMode }) | null>(null)
+  const [pendingReview, setPendingReview] = useState<PendingReview | null>(null)
   const [dateShiftMode, setDateShiftMode] = useState<DateShiftMode>('keep_bookings')
+  const rangeGuard = useTripRangeGuard()
+  const busy = isLoading || rangeGuard.checking
 
   useEffect(() => {
     if (trip) {
@@ -115,7 +130,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
     setCoverSearchResults([])
     setCoverSearchError('')
     setSelectedMembers([])
-    setPendingDateShift(null)
+    setPendingReview(null)
     setDateShiftMode('keep_bookings')
     setError('')
     setExistingMembers([])
@@ -148,37 +163,52 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
     e.preventDefault()
     setError('')
     if (!formData.title.trim()) { setError(t('dashboard.titleRequired')); return }
-    if (formData.start_date && formData.end_date && new Date(formData.end_date) < new Date(formData.start_date)) {
-      setError(t('dashboard.endDateError')); return
+    if (formData.start_date && formData.end_date) {
+      const span = tripSpanDays(formData.start_date, formData.end_date)
+      if (span < 1) { setError(t('dashboard.endDateError')); return }
+      // Only a range being set is held to the limit, as on the server: a trip that
+      // already carries a longer one can still be renamed.
+      const datesTouched = !trip || formData.start_date !== (trip.start_date || '') || formData.end_date !== (trip.end_date || '')
+      if (datesTouched && span > MAX_TRIP_DAYS) { setError(t('dashboard.tripTooLong', { days: MAX_TRIP_DAYS })); return }
     }
     if (!formData.start_date && !formData.end_date) {
       const dc = Number(formData.day_count)
-      if (formData.day_count === '' || !Number.isInteger(dc) || dc < 1 || dc > 365) {
+      if (formData.day_count === '' || !Number.isInteger(dc) || dc < 1 || dc > MAX_TRIP_DAYS) {
         setError(t('dashboard.dayCountRequired')); return
       }
     }
-    const payload: TripCreateRequest & { date_shift_mode?: DateShiftMode } = {
+    // The day count goes along only when it says something new. The trip's own
+    // count goes stale in the planner (adding a day does not reload the trip),
+    // and sending the stale number trims the day just added off a trip that was
+    // only renamed. On a trip left without dates the server keeps its days anyway.
+    const dayCount = Number(formData.day_count)
+    const sendDayCount = !formData.start_date && !formData.end_date && (!isEditing || dayCount !== trip?.day_count)
+    const payload: TripPayload = {
       title: formData.title.trim(),
       description: formData.description.trim() || null,
       start_date: formData.start_date || null,
       end_date: formData.end_date || null,
       currency: formData.currency,
       reminder_days: formData.reminder_days,
-      ...(!formData.start_date && !formData.end_date ? { day_count: Number(formData.day_count) } : {}),
+      ...(sendDayCount ? { day_count: dayCount } : {}),
     }
     // Moving the start of a dated trip shifts the whole day grid, so let the user
     // choose how bookings follow before anything is saved (#1288). End-date-only
     // changes don't shift days and dateless transitions have nothing to shift.
-    if (isEditing && trip?.start_date && trip?.end_date
-      && payload.start_date && payload.end_date && payload.start_date !== trip.start_date) {
+    const askShift = !!(isEditing && trip?.start_date && trip?.end_date
+      && payload.start_date && payload.end_date && payload.start_date !== trip.start_date)
+    // And say which days the new range removes, with what is on them, before
+    // they are gone: the server takes the last days by position.
+    const removal = isEditing && trip ? await rangeGuard.check(trip, payload) : null
+    if (askShift || removal) {
       setDateShiftMode('keep_bookings')
-      setPendingDateShift(payload)
+      setPendingReview({ payload, askShift, removal })
       return
     }
     await performSave(payload)
   }
 
-  const performSave = async (payload: TripCreateRequest & { date_shift_mode?: DateShiftMode }) => {
+  const performSave = async (payload: TripPayload) => {
     setIsLoading(true)
     try {
       const result = await onSave(payload)
@@ -363,6 +393,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
   const labelCls = "flex items-center gap-1 text-caption font-semibold uppercase tracking-[0.14em] text-content-faint mb-2"
   const ghostBtnCls = "px-4 py-2.5 text-body font-medium text-content-secondary hover:text-content border border-edge rounded-xl hover:bg-surface-hover transition-colors"
   const primaryBtnCls = "px-5 py-2.5 text-body font-medium bg-accent hover:bg-accent-hover disabled:opacity-50 text-accent-text rounded-xl shadow-card transition-colors flex items-center gap-2"
+  const dangerBtnCls = "px-5 py-2.5 text-body font-medium whitespace-nowrap bg-danger hover:opacity-90 disabled:opacity-50 text-white rounded-xl shadow-card transition-opacity flex items-center gap-2"
   /* Two columns once there is room for them: the form had grown to eight stacked
      blocks and the create button sat a full screen below the title. Left is what
      the trip looks like, right is when and with whom. One column below md. */
@@ -372,23 +403,31 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
   return (
     <Modal
       isOpen={isOpen}
-      onClose={onClose}
-      title={pendingDateShift ? t('dashboard.dateShiftTitle') : isEditing ? t('dashboard.editTrip') : t('dashboard.createTrip')}
-      /* The date-shift step is two radio buttons and a sentence — it would look
-         lost across the width the form itself needs. */
-      size={pendingDateShift ? 'md' : '2xl'}
+      // In the review step Escape, the close button and a click beside the
+      // dialog go back to the form, like Back, instead of throwing the whole
+      // edit away. Outside that step they close the dialog as before.
+      onClose={pendingReview ? () => { if (!busy) setPendingReview(null) } : onClose}
+      title={pendingReview
+        ? t(pendingReview.askShift ? 'dashboard.dateShiftTitle' : 'dashboard.shrinkTitle')
+        : isEditing ? t('dashboard.editTrip') : t('dashboard.createTrip')}
+      /* The review step is a few radio buttons and a short list; alone, either
+         takes the width of the day dialog, where the same list stands. With both,
+         they stand side by side at the form's own width. */
+      size={pendingReview && !dateReviewIsWide(pendingReview.askShift, pendingReview.removal) ? 'lg' : '2xl'}
       footer={
         <div className="flex gap-3 justify-end">
-          {pendingDateShift ? (
+          {pendingReview ? (
             <>
-              <button type="button" onClick={() => setPendingDateShift(null)} disabled={isLoading} className={ghostBtnCls}>
+              <button type="button" onClick={() => setPendingReview(null)} disabled={busy} className={ghostBtnCls}>
                 {t('common.back')}
               </button>
-              <button type="button" onClick={() => performSave({ ...pendingDateShift, date_shift_mode: dateShiftMode })} disabled={isLoading}
-                className={primaryBtnCls}>
+              {/* Removing days with something on them is the one save here that
+                  loses work, so it asks in the danger tone and says so. */}
+              <button type="button" onClick={() => performSave(pendingReview.askShift ? { ...pendingReview.payload, date_shift_mode: dateShiftMode } : pendingReview.payload)} disabled={busy}
+                className={pendingReview.removal ? dangerBtnCls : primaryBtnCls}>
                 {isLoading
-                  ? <><div className="w-4 h-4 border-2 border-accent-text/30 border-t-accent-text rounded-full animate-spin" />{t('common.saving')}</>
-                  : t('common.update')}
+                  ? <><div className={`w-4 h-4 border-2 rounded-full animate-spin ${pendingReview.removal ? 'border-white/30 border-t-white' : 'border-accent-text/30 border-t-accent-text'}`} />{t('common.saving')}</>
+                  : t(pendingReview.removal ? 'dashboard.shrinkConfirm' : 'common.update')}
               </button>
             </>
           ) : (
@@ -396,8 +435,8 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
               <button type="button" onClick={onClose} className={ghostBtnCls}>
                 {t('common.cancel')}
               </button>
-              <button type="button" onClick={handleSubmit} disabled={isLoading} className={primaryBtnCls}>
-                {isLoading
+              <button type="button" onClick={handleSubmit} disabled={busy} className={primaryBtnCls}>
+                {busy
                   ? <><div className="w-4 h-4 border-2 border-accent-text/30 border-t-accent-text rounded-full animate-spin" />{t('common.saving')}</>
                   : isEditing ? t('common.update') : t('dashboard.createTrip')}
               </button>
@@ -406,30 +445,16 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
         </div>
       }
     >
-      {pendingDateShift && (
-        <div className="space-y-3">
-          {error && (
-            <div className="p-3 bg-danger-soft border border-danger/30 rounded-xl text-body text-danger">{error}</div>
-          )}
-          <p className="text-body text-content-secondary">{t('dashboard.dateShiftIntro')}</p>
-          {([
-            { mode: 'keep_bookings' as DateShiftMode, label: t('dashboard.dateShiftKeepBookings'), desc: t('dashboard.dateShiftKeepBookingsDesc') },
-            { mode: 'shift_all' as DateShiftMode, label: t('dashboard.dateShiftAll'), desc: t('dashboard.dateShiftAllDesc') },
-          ]).map(({ mode, label, desc }) => (
-            <label key={mode}
-              className={`flex items-start gap-3 p-3 border rounded-xl cursor-pointer transition-colors ${dateShiftMode === mode ? 'border-accent bg-surface-selected' : 'border-edge hover:bg-surface-hover'}`}>
-              <input type="radio" name="date_shift_mode" value={mode} checked={dateShiftMode === mode}
-                onChange={() => setDateShiftMode(mode)} className="mt-1 accent-[var(--accent)]" />
-              <span className="block text-body font-medium text-content">
-                {label}
-                <span className="block text-body font-normal text-content-muted mt-0.5">{desc}</span>
-              </span>
-            </label>
-          ))}
-          <p className="text-caption text-content-faint">{t('dashboard.dateShiftHint')}</p>
-        </div>
+      {pendingReview && (
+        <TripDateReview
+          askShift={pendingReview.askShift}
+          shiftMode={dateShiftMode}
+          onShiftMode={setDateShiftMode}
+          removal={pendingReview.removal}
+          error={error}
+        />
       )}
-      <form onSubmit={handleSubmit} className={pendingDateShift ? 'hidden' : 'space-y-4'} onPaste={handlePaste}>
+      <form onSubmit={handleSubmit} className={pendingReview ? 'hidden' : 'space-y-4'} onPaste={handlePaste}>
         {error && (
           <div className="p-3 bg-danger-soft border border-danger/30 rounded-xl text-body text-danger">{error}</div>
         )}
@@ -534,14 +559,17 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
 
         <div className={panelCls}>
 
+        {/* min-w-0 on both cells: a grid item defaults to min-width:auto, so a
+            long date ("12. Sept. 2026" and the keyboard button beside it) pushed
+            the cell past its track and the two columns overlapped (#2267). */}
         <div className="grid grid-cols-2 gap-3">
-          <div>
+          <div className="min-w-0">
             <label className={labelCls}>
               <Calendar className="w-3.5 h-3.5" />{t('dashboard.startDate')}
             </label>
             <CustomDatePicker value={formData.start_date} onChange={v => update('start_date', v)} placeholder={t('dashboard.startDate')} />
           </div>
-          <div>
+          <div className="min-w-0">
             <label className={labelCls}>
               <Calendar className="w-3.5 h-3.5" />{t('dashboard.endDate')}
             </label>
@@ -554,11 +582,11 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
             <label className={labelCls}>
               {t('dashboard.dayCount')}
             </label>
-            <NumericInput min={1} max={365} value={formData.day_count}
+            <NumericInput min={1} max={MAX_TRIP_DAYS} value={formData.day_count}
               onValueChange={raw => {
                 if (raw === '') { update('day_count', ''); return }
                 const n = Math.floor(Number(raw))
-                if (Number.isFinite(n)) update('day_count', Math.min(365, Math.max(1, n)))
+                if (Number.isFinite(n)) update('day_count', Math.min(MAX_TRIP_DAYS, Math.max(1, n)))
               }}
               className={inputCls} />
             <p className="text-caption text-content-faint mt-1.5">{t('dashboard.dayCountHint')}</p>

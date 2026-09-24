@@ -15,6 +15,9 @@ import { validatePassword } from '../common/passwordPolicy';
 import { encryptMfaSecret, decryptMfaSecret } from '../common/crypto/mfaCrypto';
 import { decrypt_api_key, maybe_encrypt_api_key, encrypt_api_key } from '../common/crypto/apiKeyCrypto';
 import { resolveApiKey } from '../settings/instance-api-keys';
+// Type-and-guard only: the app-config read reports the provider choice, it does
+// not construct one, so this does not pull the maps domain into auth.
+import { isPlacesProviderChoice } from '../maps/providers/places-provider';
 import { EphemeralTokenService } from './ephemeral-token.service';
 // Import from sessionManager directly, NOT the ../../mcp barrel: the barrel pulls
 // the whole tools fan-out (and via the domain bridges, the Nest services) into
@@ -230,6 +233,26 @@ export class AuthService {
   // App config (public)
   // -------------------------------------------------------------------------
 
+  /**
+   * Whether a passkey ceremony can actually complete on this deployment. With
+   * nothing configured at all, getAppUrl() invents `http://localhost:{PORT}` and
+   * the resolver returns a localhost RP for it: a phantom config that every real
+   * browser is turned away from at the options step (#2147), so advertising it
+   * as configured only produces a button whose every click 400s. A localhost RP
+   * the operator pointed here themselves (APP_URL, ALLOWED_ORIGINS or the
+   * webauthn settings) is a real single-machine install and still counts.
+   */
+  private passkeyConfigured(): boolean {
+    const cfg = this.webauthn.resolve();
+    if (!cfg) return false;
+    if (cfg.rpID !== 'localhost' || cfg.explicitOrigins) return true;
+    const env = readEnv();
+    const declaredRpId = (
+      env.webauthn.rpId || this.db.get<{ value: string }>("SELECT value FROM app_settings WHERE key = 'webauthn_rp_id'")?.value
+    )?.trim();
+    return !!(declaredRpId || env.app.appUrl || env.http.allowedOriginsRaw);
+  }
+
   getAppConfig(authenticatedUser: User | undefined | null) {
     const userCount = this.db.get<{ count: number }>('SELECT COUNT(*) as count FROM users WHERE COALESCE(is_guest, 0) = 0')!.count;
     const isDemo = readEnv().demo.enabled;
@@ -243,6 +266,12 @@ export class AuthService {
     // question is only about the instance, which is the first two steps of the
     // chain; id 0 matches no row.
     const hasGoogleKey = !!resolveApiKey(this.db, 'maps_api_key', authenticatedUser?.id ?? 0, readEnv().maps.placesApiKey).key;
+    // The same question for Amap, asked the same way. The client needs both to
+    // tell "search is unavailable" from "search runs on OpenStreetMap", and to
+    // know whether the provider the admin selected actually has a credential.
+    const hasAmapKey = !!resolveApiKey(this.db, 'amap_api_key', authenticatedUser?.id ?? 0, readEnv().maps.amapApiKey).key;
+    const placesProviderRow = this.db.get<{ value: string }>("SELECT value FROM app_settings WHERE key = 'places_provider'")?.value;
+    const placesProvider = isPlacesProviderChoice(placesProviderRow) ? placesProviderRow : 'auto';
     const oidcDisplayName = readEnv().oidc.displayName ||
       this.db.get<{ value: string }>("SELECT value FROM app_settings WHERE key = 'oidc_display_name'")?.value || null;
     const oidcConfigured = !!(
@@ -265,6 +294,11 @@ export class AuthService {
     const placesDetailsEnabled = placesDetailsSetting !== 'false';
     const placesEnrichSetting = this.db.get<{ value: string }>("SELECT value FROM app_settings WHERE key = 'places_enrich_enabled'")?.value;
     const placesEnrichEnabled = placesEnrichSetting !== 'false';
+    // Fail-closed, and deliberately on this unauthenticated endpoint: whether an
+    // instance records what its users search for is something a visitor is
+    // entitled to know before logging in, not a detail to keep behind the door.
+    const placeShadowSetting = this.db.get<{ value: string }>("SELECT value FROM app_settings WHERE key = 'place_shadow_enabled'")?.value;
+    const placeShadowEnabled = placeShadowSetting === 'true';
     const setupComplete = userCount > 0 && !this.db.get("SELECT id FROM users WHERE role = 'admin' AND must_change_password = 1 LIMIT 1");
 
     return {
@@ -281,13 +315,15 @@ export class AuthService {
       // are true. `passkey_configured` stays a pure boolean — it never leaks the
       // resolved RP ID / origin / APP_URL on this unauthenticated endpoint.
       passkey_login: toggles.passkey_login,
-      passkey_configured: this.webauthn.isConfigured(),
+      passkey_configured: this.passkeyConfigured(),
       env_override_oidc_only: readEnv().oidc.only,
       has_users: userCount > 0,
       setup_complete: setupComplete,
       version,
       is_prerelease: version.includes('-pre.'),
       has_maps_key: hasGoogleKey,
+      has_amap_key: hasAmapKey,
+      places_provider: placesProvider,
       oidc_configured: oidcConfigured,
       oidc_display_name: oidcConfigured ? (oidcDisplayName || 'SSO') : undefined,
       require_mfa: requireMfaRow?.value === 'true',
@@ -313,6 +349,7 @@ export class AuthService {
       places_autocomplete_enabled: placesAutocompleteEnabled,
       places_details_enabled: placesDetailsEnabled,
       places_enrich_enabled: placesEnrichEnabled,
+      place_shadow_enabled: placeShadowEnabled,
       permissions: authenticatedUser ? this.permissions.getAllPermissions() : undefined,
       // Case-sensitive on purpose (legacy parity).
       dev_mode: readEnv().app.nodeEnv === 'development',
@@ -669,6 +706,10 @@ export class AuthService {
         if (key === 'require_mfa') {
           val = body[key] === true || val === 'true' ? 'true' : 'false';
         }
+        // An unknown provider name is dropped, not stored: the maps service
+        // degrades an unrecognised row to 'auto', so writing one would show the
+        // admin a saved setting that quietly does nothing.
+        if (key === 'places_provider' && !isPlacesProviderChoice(val)) continue;
         if (key === 'smtp_pass' && val === '••••••••') continue;
         if (key === 'smtp_pass') val = encrypt_api_key(val);
         if (key === 'admin_webhook_url' && val === '••••••••') continue;

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.garmin.com/xmlschemas/GpxExtensions/v3 http://www8.garmin.com/xmlschemas/GpxExtensionsv3.xsd http://www.garmin.com/xmlschemas/TrackPointExtension/v1 http://www8.garmin.com/xmlschemas/TrackPointExtensionv1.xsd" xmlns:gpxtpx="http://www.garmin.com/xmlschemas/TrackPointExtension/v1" xmlns:gpxx="http://www.garmin.com/xmlschemas/GpxExtensions/v3" xmlns:gpxpx="http://www.garmin.com/xmlschemas/PowerExtension/v1" creator="https://gpx.studio" version="1.1">
+<metadata>
+<name>Sintra loop</name>
+<author>
+<name>gpx.studio</name>
+<link href="https://gpx.studio"></link>
+</author>
+</metadata>
+<wpt lat="38.787636" lon="-9.390587">
+<ele>412.3</ele>
+<name>Pena Palace</name>
+<desc>Book the palace interior online, the park is walk-in</desc>
+<sym>Flag, Blue</sym>
+</wpt>
+<wpt lat="38.792558" lon="-9.389433">
+<ele>398.0</ele>
+<name>Moorish Castle</name>
+</wpt>
+<trk>
+<name>Sintra loop</name>
+<type>Hiking</type>
+<trkseg>
+<trkpt lat="38.797642" lon="-9.388412"><ele>207.4</ele></trkpt>
+<trkpt lat="38.795131" lon="-9.389120"><ele>256.9</ele></trkpt>
+<trkpt lat="38.793880" lon="-9.389664"><ele>301.2</ele></trkpt>
+<trkpt lat="38.792558" lon="-9.389433"><ele>398.0</ele></trkpt>
+<trkpt lat="38.790412" lon="-9.389981"><ele>421.6</ele></trkpt>
+<trkpt lat="38.787636" lon="-9.390587"><ele>412.3</ele></trkpt>
+</trkseg>
+<trkseg>
+<trkpt lat="38.786201" lon="-9.392110"><ele>388.0</ele><extensions><gpxtpx:TrackPointExtension><gpxtpx:atemp>19</gpxtpx:atemp></gpxtpx:TrackPointExtension></extensions></trkpt>
+<trkpt lat="38.790977" lon="-9.396511"><ele>331.5</ele></trkpt>
+</trkseg>
+</trk>
+</gpx>

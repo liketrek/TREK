@@ -1,0 +1,302 @@
+import { renderHook, waitFor, act } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import type { LatLng } from './corridor'
+
+const { pois } = vi.hoisted(() => ({ pois: vi.fn() }))
+vi.mock('../../repo/roadtripSearchRepo', () => ({ roadtripSearchRepo: { search: pois } }))
+vi.mock('../../i18n', () => ({ useTranslation: () => ({ locale: 'en-US' }) }))
+
+import { useCorridorPois } from './useCorridorPois'
+
+/** A short drive west out of Hamburg — enough route to tile, few enough boxes to be quick. */
+const LINE: LatLng[] = [
+  { lat: 53.55, lng: 9.99 },
+  { lat: 53.5, lng: 9.8 },
+  { lat: 53.45, lng: 9.6 },
+]
+
+const hit = (id: string, lat: number, lng: number, category = 'fuel') => ({
+  osm_id: id,
+  name: id,
+  lat,
+  lng,
+  category,
+  poi_type: 'amenity=fuel',
+  address: null,
+  website: null,
+  phone: null,
+  opening_hours: null,
+  cuisine: null,
+  source: 'openstreetmap',
+})
+
+/** Long enough to tile into a handful of boxes, so a cap and a window can bite. */
+const LONG: LatLng[] = Array.from({ length: 12 }, (_, i) => ({ lat: 53.55 - i * 0.05, lng: 9.99 - i * 0.2 }))
+
+const answer = (...items: ReturnType<typeof hit>[]) => ({ pois: items, sources: ['openstreetmap'], failedSources: [], truncated: false, clamped: false })
+
+beforeEach(() => {
+  pois.mockReset()
+  pois.mockResolvedValue(answer())
+})
+
+describe('useCorridorPois', () => {
+  it('keeps plugin results and exposes failed sources', async () => {
+    pois.mockResolvedValue({ ...answer(hit('plugin:stations:1', 53.5, 9.81)), failedSources: ['plugin:unavailable'] })
+    const { result } = renderHook(() => useCorridorPois(LINE, ['fuel'], 10))
+    act(() => { result.current.search() })
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(result.current.results[0].osm_id).toBe('plugin:stations:1')
+    expect(result.current.failedSources).toEqual(['plugin:unavailable'])
+  })
+  it('FE-ROADTRIP-CORRIDOR-001: asks each box once for every category together', async () => {
+    const { result } = renderHook(() => useCorridorPois(LINE, ['fuel', 'charging', 'rest_area'], 10))
+    act(() => { result.current.search() })
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    expect(pois).toHaveBeenCalled()
+    // The whole point of the batching: the kinds ride along in one query per box.
+    for (const call of pois.mock.calls) expect(call[0]).toEqual(['fuel', 'charging', 'rest_area'])
+    expect(result.current.progress.total).toBe(pois.mock.calls.length)
+  })
+
+  it('FE-ROADTRIP-CORRIDOR-002: keeps what is near the route and drops what is not', async () => {
+    // One beside the line, one far north of it.
+    pois.mockResolvedValue(answer(hit('near', 53.5, 9.81), hit('far', 54.6, 9.8)))
+
+    const { result } = renderHook(() => useCorridorPois(LINE, ['fuel'], 5))
+    act(() => { result.current.search() })
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    expect(result.current.results.map(r => r.osm_id)).toEqual(['near'])
+    expect(result.current.results[0].offRouteKm).toBeLessThan(5)
+    expect(result.current.results[0].alongKm).toBeGreaterThan(0)
+  })
+
+  it('FE-ROADTRIP-CORRIDOR-003: orders hits by how far along the drive they are', async () => {
+    pois.mockResolvedValue(answer(
+      hit('late', 53.45, 9.61),
+      hit('early', 53.55, 9.98),
+      hit('middle', 53.5, 9.8),
+    ))
+
+    const { result } = renderHook(() => useCorridorPois(LINE, ['fuel'], 8))
+    act(() => { result.current.search() })
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    expect(result.current.results.map(r => r.osm_id)).toEqual(['early', 'middle', 'late'])
+  })
+
+  it('FE-ROADTRIP-CORRIDOR-004: the same place found in two overlapping boxes is listed once', async () => {
+    pois.mockResolvedValue(answer(hit('shared', 53.5, 9.81)))
+
+    const { result } = renderHook(() => useCorridorPois(LINE, ['fuel'], 10))
+    act(() => { result.current.search() })
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    expect(result.current.results.filter(r => r.osm_id === 'shared')).toHaveLength(1)
+  })
+
+  it('FE-ROADTRIP-CORRIDOR-005: a box that times out is asked again before it counts as unsearched', async () => {
+    let first = true
+    pois.mockImplementation(async () => {
+      if (first) { first = false; throw new Error('502') }
+      return answer(hit('found', 53.5, 9.81))
+    })
+
+    const { result } = renderHook(() => useCorridorPois(LINE, ['fuel'], 10))
+    act(() => { result.current.search() })
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    expect(result.current.failedAreas).toBe(0)
+    expect(result.current.error).toBe(false)
+    expect(result.current.results.length).toBeGreaterThan(0)
+  })
+
+  it('FE-ROADTRIP-CORRIDOR-006: a box that fails twice is reported rather than silently skipped', async () => {
+    pois.mockRejectedValue(new Error('502'))
+
+    const { result } = renderHook(() => useCorridorPois(LINE, ['fuel'], 10))
+    act(() => { result.current.search() })
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    expect(result.current.failedAreas).toBeGreaterThan(0)
+    // Nothing answered at all, so this is an outage and not a partial result.
+    expect(result.current.error).toBe(true)
+  })
+
+  it('FE-ROADTRIP-CORRIDOR-007: a drive longer than the request budget says the tail went unsearched', async () => {
+    const long: LatLng[] = Array.from({ length: 40 }, (_, i) => ({ lat: 53.5 - i * 0.25, lng: 9.9 + i * 0.35 }))
+
+    const { result } = renderHook(() => useCorridorPois(long, ['fuel'], 5))
+    act(() => { result.current.search() })
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    expect(result.current.capped).toBe(true)
+    expect(result.current.progress.total).toBeLessThanOrEqual(16)
+  })
+
+  it('FE-ROADTRIP-CORRIDOR-008: changing what is wanted drops the answers to the old question', async () => {
+    pois.mockResolvedValue(answer(hit('a', 53.5, 9.81)))
+
+    const { result, rerender } = renderHook(
+      ({ categories }: { categories: string[] }) => useCorridorPois(LINE, categories, 10),
+      { initialProps: { categories: ['fuel'] } },
+    )
+    act(() => { result.current.search() })
+    await waitFor(() => expect(result.current.results.length).toBeGreaterThan(0))
+
+    rerender({ categories: ['campsite'] })
+    await waitFor(() => expect(result.current.results).toEqual([]))
+    expect(result.current.progress).toEqual({ done: 0, total: 0 })
+  })
+
+  it('FE-ROADTRIP-CORRIDOR-009: a route too short to search asks for nothing', async () => {
+    const { result } = renderHook(() => useCorridorPois([LINE[0]], ['fuel'], 10))
+    act(() => { result.current.search() })
+    await act(async () => {})
+
+    expect(pois).not.toHaveBeenCalled()
+    expect(result.current.loading).toBe(false)
+  })
+
+  it('FE-ROADTRIP-CORRIDOR-010: with nothing selected there is nothing to look for', async () => {
+    const { result } = renderHook(() => useCorridorPois(LINE, [], 10))
+    act(() => { result.current.search() })
+    await act(async () => {})
+
+    expect(pois).not.toHaveBeenCalled()
+  })
+
+  it('FE-ROADTRIP-CORRIDOR-011: clearing stops the run and empties the list', async () => {
+    pois.mockResolvedValue(answer(hit('a', 53.5, 9.81)))
+
+    const { result } = renderHook(() => useCorridorPois(LINE, ['fuel'], 10))
+    act(() => { result.current.search() })
+    await waitFor(() => expect(result.current.results.length).toBeGreaterThan(0))
+
+    act(() => { result.current.clear() })
+    expect(result.current.results).toEqual([])
+    expect(result.current.loading).toBe(false)
+    expect(result.current.failedAreas).toBe(0)
+  })
+
+  it('FE-ROADTRIP-CORRIDOR-012: leaving the view aborts the boxes still in flight', async () => {
+    let seen: AbortSignal | undefined
+    pois.mockImplementation((_c: string, _b: unknown, _l: string, signal: AbortSignal) => {
+      seen = signal
+      return new Promise(() => {})
+    })
+
+    const { result, unmount } = renderHook(() => useCorridorPois(LINE, ['fuel'], 10))
+    act(() => { result.current.search() })
+    await waitFor(() => expect(seen).toBeDefined())
+
+    unmount()
+    expect(seen!.aborted).toBe(true)
+  })
+  it('FE-ROADTRIP-CORRIDOR-013: a window cuts the boxes, not the line the hits are measured on', async () => {
+    const full = renderHook(() => useCorridorPois(LONG, ['fuel'], 10))
+    act(() => { full.result.current.search() })
+    await waitFor(() => expect(full.result.current.loading).toBe(false))
+    const whole = pois.mock.calls.length
+    const spine = full.result.current.spine.length
+
+    pois.mockClear()
+    const part = renderHook(() => useCorridorPois(LONG, ['fuel'], 10))
+    act(() => { part.result.current.search({ fromKm: 0, toKm: 20 }) })
+    await waitFor(() => expect(part.result.current.loading).toBe(false))
+
+    // Fewer requests, which is the whole point of asking about a stretch...
+    expect(pois.mock.calls.length).toBeLessThan(whole)
+    // ...and the same spine, which is what keeps `alongKm` meaning the same thing. A
+    // cut spine would renumber every hit and every stop the moment the reach moved.
+    expect(part.result.current.spine.length).toBe(spine)
+  })
+
+  it('FE-ROADTRIP-CORRIDOR-014: the window belongs to the search, so the last answer survives the next question', async () => {
+    pois.mockResolvedValue(answer(hit('a', 53.5, 9.81)))
+    const { result } = renderHook(() => useCorridorPois(LINE, ['fuel'], 10))
+
+    act(() => { result.current.search({ fromKm: 0, toKm: 20 }) })
+    await waitFor(() => expect(result.current.results.length).toBeGreaterThan(0))
+
+    // Re-rendering with a different reach in mind must not empty the list: only
+    // asking again does. The window is an argument, never a dependency.
+    expect(result.current.results.map(r => r.osm_id)).toEqual(['a'])
+  })
+
+  it('FE-ROADTRIP-CORRIDOR-015: a budget caps the boxes and says the tail was left out', async () => {
+    const { result } = renderHook(() =>
+      useCorridorPois(LONG, ['fuel'], 10, { budget: { maxTiles: 2, maxRetries: null, deadlineMs: null } }))
+    act(() => { result.current.search() })
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    expect(pois.mock.calls.length).toBe(2)
+    expect(result.current.capped).toBe(true)
+  })
+
+  it('FE-ROADTRIP-CORRIDOR-016: a capped retry pass reports the boxes it did not ask again', async () => {
+    pois.mockRejectedValue(new Error('mirror down'))
+    const { result } = renderHook(() =>
+      useCorridorPois(LONG, ['fuel'], 10, { budget: { maxTiles: 4, maxRetries: 1, deadlineMs: null } }))
+    act(() => { result.current.search() })
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    // Four boxes, four failures, one retried: the three never asked again are still
+    // failures, because "we did not look" is the honest reading either way.
+    expect(pois.mock.calls.length).toBe(5)
+    expect(result.current.failedAreas).toBe(4)
+    expect(result.current.error).toBe(true)
+  })
+
+  it('FE-ROADTRIP-CORRIDOR-017: a deadline stops starting boxes and files the rest as unsearched', async () => {
+    // Every box answers, slowly. The deadline is what ends the run, not the answers.
+    pois.mockImplementation(() => new Promise(resolve => setTimeout(() => resolve(answer()), 40)))
+    const { result } = renderHook(() =>
+      useCorridorPois(LONG, ['fuel'], 10, { budget: { maxTiles: 16, maxRetries: 0, deadlineMs: 1 } }))
+    act(() => { result.current.search() })
+    await waitFor(() => expect(result.current.loading).toBe(false), { timeout: 4000 })
+
+    expect(result.current.failedAreas).toBeGreaterThan(0)
+    expect(pois.mock.calls.length).toBeLessThan(result.current.progress.total + 1)
+  })
+  it('FE-ROADTRIP-CORRIDOR-018: a ride is left out of the search, and a hit under the flight path is dropped (#2428)', async () => {
+    // A long line whose middle is a flight: boxes are asked for the two driven ends only,
+    // and nothing found between the two terminals is on the way.
+    const from = LONG[3]
+    const to = LONG[8]
+    pois.mockResolvedValue(answer(hit('under-the-flight', LONG[5].lat, LONG[5].lng), hit('on-the-road', LONG[1].lat, LONG[1].lng + 0.01)))
+    const { result } = renderHook(() => useCorridorPois(LONG, ['fuel'], 10, { gaps: [{ from, to }] }))
+    act(() => { result.current.search() })
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    const asked = pois.mock.calls.map(c => c[1] as { south: number; north: number })
+    // No box covers the middle of the ride.
+    expect(asked.some(b => b.south <= LONG[5].lat && b.north >= LONG[5].lat && b.north - b.south < 0.2)).toBe(false)
+    expect(result.current.results.map(r => r.osm_id)).toEqual(['on-the-road'])
+
+    // The same line without the ride searches straight through.
+    const { result: plain } = renderHook(() => useCorridorPois(LONG, ['fuel'], 10))
+    act(() => { plain.current.search() })
+    await waitFor(() => expect(plain.current.loading).toBe(false))
+    expect(plain.current.results.map(r => r.osm_id).sort()).toEqual(['on-the-road', 'under-the-flight'])
+    expect(plain.current.progress.total).toBeGreaterThan(result.current.progress.total)
+  })
+
+  it('FE-ROADTRIP-CORRIDOR-019: the gaps are a dependency like any other, so a memoised array keeps `search` and a fresh one remakes it', () => {
+    // The caller memoises the array per day; the hook does not key it on its contents
+    // behind the lint rule's back.
+    const gaps = [{ from: LONG[3], to: LONG[8] }]
+    const categories = ['fuel']
+    const { result, rerender } = renderHook(
+      ({ options }: { options: { gaps: typeof gaps } }) => useCorridorPois(LONG, categories, 10, options),
+      { initialProps: { options: { gaps } } },
+    )
+    const search = result.current.search
+    rerender({ options: { gaps } })
+    expect(result.current.search).toBe(search)
+    rerender({ options: { gaps: [...gaps] } })
+    expect(result.current.search).not.toBe(search)
+  })
+})

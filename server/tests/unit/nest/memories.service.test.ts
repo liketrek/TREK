@@ -120,8 +120,8 @@ describe('MemoriesService (delegation wrapper over services/memories/*)', () => 
     svc.immichGetConnectionSettings(7);
     expect(immich.getConnectionSettings).toHaveBeenCalledWith(7);
 
-    await svc.immichSaveSettings(7, 'u', 'k', '1.2.3.4');
-    expect(immich.saveImmichSettings).toHaveBeenCalledWith(7, 'u', 'k', '1.2.3.4');
+    await svc.immichSaveSettings(7, 'u', 'k', '1.2.3.4', true);
+    expect(immich.saveImmichSettings).toHaveBeenCalledWith(7, 'u', 'k', '1.2.3.4', true);
 
     svc.immichSetAutoUpload(7, true);
     expect(immich.setImmichAutoUpload).toHaveBeenCalledWith(7, true);
@@ -129,8 +129,8 @@ describe('MemoriesService (delegation wrapper over services/memories/*)', () => 
     await svc.immichGetConnectionStatus(7);
     expect(immich.getConnectionStatus).toHaveBeenCalledWith(7);
 
-    await svc.immichTestConnection('u', 'k');
-    expect(immich.testConnection).toHaveBeenCalledWith('u', 'k');
+    await svc.immichTestConnection('u', 'k', true);
+    expect(immich.testConnection).toHaveBeenCalledWith('u', 'k', true);
 
     await svc.immichBrowseTimeline(7);
     expect(immich.browseTimeline).toHaveBeenCalledWith(7);
@@ -177,7 +177,12 @@ describe('MemoriesService (delegation wrapper over services/memories/*)', () => 
     expect(unified.syncSynologyAlbum).toHaveBeenCalledWith(7, '5', 'l1', 'sock');
 
     await svc.synologySearchPhotos(7, 'f', 't', 0, 100);
-    expect(synology.searchSynologyPhotos).toHaveBeenCalledWith(7, 'f', 't', 0, 100);
+    expect(synology.searchSynologyPhotos).toHaveBeenCalledWith(7, 'f', 't', 0, 100, 0);
+
+    // The zone the days are meant in has to reach the provider, and it is a
+    // different thing from the pagination offset sitting next to it (#2336).
+    await svc.synologySearchPhotos(7, 'f', 't', 0, 100, 600);
+    expect(synology.searchSynologyPhotos).toHaveBeenLastCalledWith(7, 'f', 't', 0, 100, 600);
   });
 
   it('synology album-photos forwards a passphrase when present and omits it when absent', async () => {

@@ -1,4 +1,4 @@
-// FE-COMP-POIPILL-001 to FE-COMP-POIPILL-006
+// FE-COMP-POIPILL-001 to FE-COMP-POIPILL-008
 import React from 'react'
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '../../../tests/helpers/render'
@@ -56,5 +56,23 @@ describe('PoiCategoryPill', () => {
     pill({ active: new Set([CAFE.key]), moved: true, onSearchArea })
     fireEvent.click(screen.getByText('Search this area'))
     expect(onSearchArea).toHaveBeenCalled()
+  })
+
+  // The phone map hands the bar the whole width between the screen margins, so
+  // its segments end up the size of everything else the thumb aims at there.
+  it('FE-COMP-POIPILL-007: fullWidth stretches the bar and spreads the segments', () => {
+    pill({ fullWidth: true })
+    const button = screen.getAllByRole('button')[0]
+    expect(button.style.flexGrow).toBe('1')
+    expect(button.style.width).toBe('auto')
+    expect((button.parentElement as HTMLElement).style.display).toBe('flex')
+  })
+
+  it('FE-COMP-POIPILL-008: without it the bar stays content-width, as the desktop map floats it', () => {
+    pill()
+    const button = screen.getAllByRole('button')[0]
+    expect(button.style.flexGrow).toBe('')
+    expect(button.style.width).toBe('34px')
+    expect((button.parentElement as HTMLElement).style.display).toBe('inline-flex')
   })
 })

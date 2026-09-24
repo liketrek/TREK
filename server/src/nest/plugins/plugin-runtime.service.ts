@@ -11,6 +11,7 @@ import { PLUGIN_CHANNEL_EVENTS } from './install/manifest';
 import { stripEmoji } from './text-sanitize';
 import { applyStagedPluginTrees, setStagedRestoreApplier } from './plugin-backup';
 import { decrypt_api_key } from '../common/crypto/apiKeyCrypto';
+import { applySettingDefaults, settingDefaults } from './settings-defaults';
 import { PluginSupervisor, type PluginRouteInfo } from './supervisor/plugin-supervisor';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -20,20 +21,22 @@ import { ForbiddenResource } from './host/rpc-host';
 import { removePluginData } from './host/plugin-data.service';
 import { isKnownPermission } from './protocol/envelope';
 import { discoverPlugins } from './install/discovery';
-import { parseJsonText, parseManifest } from './install/manifest';
+import { parseJsonText, parseManifest, parseMcpToolCapabilities } from './install/manifest';
 import { scanForNativeBinaries } from './install/native-scan';
 import { devLinkEnabled, DEV_LINK_SOURCE } from './dev-link';
 import { pluginCodeDir, pluginDataDir } from './paths';
 import { assertHostCompatible, PluginRegistryService, RegistryError } from './registry/registry.service';
-import { hostSatisfies, hostVersion } from './install/host-compat';
+import { hostSatisfies, hostVersion, bypassedRange, warnRangeBypass } from './install/host-compat';
+import type { TrekRangeBypass } from './install/host-compat';
 import { keyFingerprint } from './signature-status';
 import { AuditService } from '../audit/audit.service';
 import { AddonsService } from '../addons/addons.service';
-import type { PluginDependency } from './install/manifest';
+import type { McpToolCapability, PluginDependency } from './install/manifest';
 import type { VersionMismatch, PluginDepRow } from './dependencies';
 import { parseDependencies, disabledRequiredAddons, resolveDependencyState, enableOrder, findDependentsTransitive, DependencyCycleError } from './dependencies';
 
 import { HTTP_OUTBOUND_PREFIX as HTTP_OUTBOUND, PLUGIN_API_VERSION } from './protocol/envelope';
+import type { PluginActionDescriptor, PluginActionResult, PluginActionScope } from '@trek/shared';
 
 // Mirrors HOST_RE in install/manifest.ts: an exact hostname or a `*.`-prefixed wildcard
 // with a real multi-label suffix. Rejects a bare `*`, a whole-TLD wildcard, a scheme and
@@ -502,14 +505,18 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
     // it would not make the plugin start. It is also the gate that catches the case
     // install can't — TREK was upgraded PAST the plugin's declared upper bound, so code
     // that was legitimately installed no longer supports the host it's sitting on.
-    if (!row.trek_range) {
+    const bypass = bypassedRange(row.trek_range);
+    if (bypass) {
+      // TREK_PLUGINS_IGNORE_TREK_RANGE: the operator chose to run it anyway. Say so in the
+      // log every time it starts — the plugin list carries the same marker for the UI.
+      warnRangeBypass(id, bypass);
+    } else if (!row.trek_range) {
       throw new PluginDependencyError(
         `plugin ${id} does not declare which TREK versions it supports`,
         'TREK_VERSION_UNKNOWN',
         { trekRange: null, hostVersion: hostVersion() },
       );
-    }
-    if (!hostSatisfies(row.trek_range)) {
+    } else if (!hostSatisfies(row.trek_range)) {
       throw new PluginDependencyError(
         `plugin ${id} requires TREK ${row.trek_range} — this is TREK ${hostVersion()}`,
         'TREK_VERSION_INCOMPATIBLE',
@@ -565,7 +572,9 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
     const declared = parseArray(row.permissions).filter(isKnownPermission);
     // Mark it enabled (admin intent) so it reboots after restarts/crashes.
     this.db.prepare('UPDATE plugins SET granted_permissions = ?, enabled = 1 WHERE id = ?').run(JSON.stringify(declared), id);
-    const config = decryptConfig(parseObject(row.config));
+    // Manifest defaults fill whatever the admin never set, so the child's ctx.config is
+    // the same effective value the settings form shows (see settings-defaults.ts).
+    const config = applySettingDefaults(decryptConfig(parseObject(row.config)), settingDefaults(this.db, id, 'instance'));
     const manifestHosts = declared.filter((p) => p.startsWith(HTTP_OUTBOUND)).map((p) => p.slice(HTTP_OUTBOUND.length));
     // Union in the hosts the ADMIN added post-install. A plugin that talks to a
     // self-hosted service can't name the operator's hostname in its manifest, so without
@@ -625,6 +634,19 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
     return clean;
   }
 
+  /**
+   * Re-spawn a plugin IF it is running, so the child re-reads its instance config —
+   * config is handed to the child once, in the init envelope, and a second init is
+   * refused (same constraint that makes setOperatorEgressHosts re-spawn). An inactive
+   * plugin is left alone: it will read the new config at its next activation.
+   */
+  async respawnIfActive(id: string): Promise<boolean> {
+    if (!this.isActive(id)) return false;
+    await this.supervisor.disable(id);
+    await this.activate(id);
+    return true;
+  }
+
   async deactivate(id: string): Promise<void> {
     await this.supervisor.disable(id);
     closePluginDataDb(id);
@@ -662,7 +684,10 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
    * Install runs first so a failed download/signature/integrity check leaves the
    * currently-running child untouched (it keeps serving the old code from memory).
    */
-  async update(id: string, opts?: { version?: string; retrustKey?: string }): Promise<{ version: string; activated: boolean; newPermissions: string[]; newEgress: string[] }> {
+  async update(
+    id: string,
+    opts?: { version?: string; retrustKey?: string },
+  ): Promise<{ version: string; activated: boolean; newPermissions: string[]; newEgress: string[]; trekRangeBypassed: TrekRangeBypass | null }> {
     const before = this.db.prepare('SELECT enabled, granted_permissions, version FROM plugins WHERE id = ?').get(id) as
       | { enabled: number; granted_permissions: string; version: string | null }
       | undefined;
@@ -691,11 +716,11 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
     if (wasEnabled) await this.deactivate(id); // stop the old child now that new code is in place
     if (newGrants.length === 0 && wasEnabled) {
       await this.activate(id); // no wider rights → transparent restart on the new code
-      return { version: res.version, activated: true, newPermissions, newEgress };
+      return { version: res.version, activated: true, newPermissions, newEgress, trekRangeBypassed: res.trekRangeBypassed };
     }
     // New rights requested (or it was already disabled): leave it inactive until
     // an admin explicitly consents by activating it.
-    return { version: res.version, activated: false, newPermissions, newEgress };
+    return { version: res.version, activated: false, newPermissions, newEgress, trekRangeBypassed: res.trekRangeBypassed };
   }
 
   /**
@@ -771,7 +796,7 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
    * commits it as an INACTIVE sideloaded plugin. Never auto-activates — the admin
    * re-activates (and re-consents to permissions) explicitly.
    */
-  async sideload(bytes: Buffer): Promise<{ id: string; version: string; replaced: boolean }> {
+  async sideload(bytes: Buffer): Promise<{ id: string; version: string; replaced: boolean; trekRangeBypassed: TrekRangeBypass | null }> {
     if (!this.registry) throw new Error('registry service unavailable');
     const staged = this.registry.stageUpload(bytes);
     try {
@@ -783,7 +808,7 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
       // a plugin that isn't running.
       if (replaced) await this.deactivate(staged.id);
       this.registry.commitUpload(staged); // moves code + registers INACTIVE, then clears staging
-      return { id: staged.id, version: staged.version, replaced };
+      return { id: staged.id, version: staged.version, replaced, trekRangeBypassed: staged.trekRangeBypassed };
     } catch (e) {
       // A failure before commitUpload leaves staging behind — clean it up.
       try { fs.rmSync(staged.stagingDir, { recursive: true, force: true }); } catch {}
@@ -799,13 +824,13 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
    * and starts an fs.watch that re-forks on rebuild. Gated behind TREK_PLUGINS_DEV_LINK
    * on top of the controller's admin + kill-switch gates — see dev-link.ts for why.
    */
-  async link(sourceDir: string): Promise<{ id: string; version: string; replaced: boolean }> {
+  async link(sourceDir: string): Promise<{ id: string; version: string; replaced: boolean; trekRangeBypassed: TrekRangeBypass | null }> {
     if (!devLinkEnabled()) throw new Error('dev-link is disabled (set TREK_PLUGINS_DEV_LINK=1)');
     if (!path.isAbsolute(sourceDir)) throw new Error('the dev-link path must be absolute');
     const manifestPath = path.join(sourceDir, 'trek-plugin.json');
     if (!fs.existsSync(manifestPath)) throw new Error(`no trek-plugin.json at ${sourceDir}`);
     const manifest = parseManifest(parseJsonText(fs.readFileSync(manifestPath, 'utf8')), { requireTrek: true });
-    assertHostCompatible(manifest.trekRange, manifest.id);
+    const trekRangeBypassed = assertHostCompatible(manifest.trekRange, manifest.id);
     if (!fs.existsSync(path.join(sourceDir, 'server', 'index.js'))) {
       throw new Error('no built server/index.js — build the plugin first (the loader runs the compiled artifact, not TS source)');
     }
@@ -835,7 +860,7 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
        WHERE id = ?`,
     ).run(DEV_LINK_SOURCE, id);
     this.watchLinked(id, sourceDir);
-    return { id, version: manifest.version, replaced };
+    return { id, version: manifest.version, replaced, trekRangeBypassed };
   }
 
   /**
@@ -945,6 +970,14 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
   }
   routesOf(id: string): PluginRouteInfo[] {
     return this.supervisor.routesOf(id);
+  }
+  /** MCP tool names an active plugin reported implementing at load. */
+  mcpToolsOf(id: string): string[] {
+    return this.supervisor.mcpToolsOf(id);
+  }
+  /** The grants an active plugin holds, for clamping what its tools may claim. */
+  grantsOf(id: string): ReadonlySet<string> {
+    return this.supervisor.grantsOf(id);
   }
   invoke(id: string, method: string, params: Record<string, unknown>, actingUserId?: number): Promise<unknown> {
     return this.supervisor.invoke(id, method, params, { actingUserId });
@@ -1100,27 +1133,29 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
     });
   }
 
-  /** The settings-page action buttons a plugin declared (descriptors, from the DB). */
-  actionsOf(id: string): Array<{ key: string; label: string; hint?: string; danger: boolean }> {
+  /** The settings-form action buttons a plugin declared for ONE scope (descriptors, from the DB). */
+  actionsOf(id: string, scope: PluginActionScope): PluginActionDescriptor[] {
     try {
       return (
-        this.db.prepare('SELECT action_key, label, hint, danger FROM plugin_actions WHERE plugin_id = ? ORDER BY sort_order').all(id) as Array<{
-          action_key: string; label: string; hint: string | null; danger: number;
-        }>
-      ).map((r) => ({ key: r.action_key, label: r.label, hint: r.hint ?? undefined, danger: r.danger === 1 }));
+        this.db
+          .prepare('SELECT action_key, label, hint, danger, scope FROM plugin_actions WHERE plugin_id = ? AND scope = ? ORDER BY sort_order')
+          .all(id, scope) as Array<{ action_key: string; label: string; hint: string | null; danger: number; scope: PluginActionScope }>
+      ).map((r) => ({ key: r.action_key, label: r.label, hint: r.hint ?? undefined, danger: r.danger === 1, scope: r.scope }));
     } catch {
       return []; // table absent (a slimmed test app)
     }
   }
 
   /**
-   * Run a settings-page action for the user who clicked it. The acting user is bound
-   * host-side (never named by the plugin), so the action reads THAT user's settings and
-   * any trip read it makes is membership-checked against them.
+   * Run a settings-form action for the person who clicked it. The acting user is bound
+   * host-side (never named by the plugin): a user for a `scope:'user'` button, an admin
+   * for a `scope:'instance'` one. Either way the action reads THAT person's settings and
+   * any trip read it makes is membership-checked against them. The scope is the
+   * CALLER's route, so a user route can never fire an admin button, nor the reverse.
    */
-  async invokeAction(id: string, key: string, actingUserId: number): Promise<{ ok: boolean; message?: string }> {
-    if (!this.actionsOf(id).some((a) => a.key === key)) {
-      throw new ForbiddenResource(`plugin ${id} did not declare action "${key}"`);
+  async invokeAction(id: string, key: string, actingUserId: number, scope: PluginActionScope): Promise<PluginActionResult> {
+    if (!this.actionsOf(id, scope).some((a) => a.key === key)) {
+      throw new ForbiddenResource(`plugin ${id} did not declare action "${key}" in scope ${scope}`);
     }
     const cap = (v: unknown) => stripEmoji(String(v)).slice(0, 200);
     try {
@@ -1139,6 +1174,30 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
   }
 
   /** A plugin's declared `capabilities.provides`/`capabilities.emits` (from the DB). */
+  /**
+   * A plugin's declared `capabilities.mcpTools`, re-validated.
+   *
+   * capabilityList below cannot carry these: it returns string[]. And the blob
+   * is re-parsed rather than JSON.parse'd straight through, because it was
+   * written by whatever version of parseCapabilities was current at install
+   * time and the caps in it are the security control.
+   *
+   * Public, unlike capabilityList, because PluginMcpToolsService reads it.
+   */
+  mcpToolCapabilities(id: string): McpToolCapability[] {
+    const row = this.db.prepare('SELECT capabilities FROM plugins WHERE id = ?').get(id) as { capabilities: string } | undefined;
+    if (!row) return [];
+    try {
+      const c = JSON.parse(row.capabilities || '{}') as Record<string, unknown>;
+      if (c.mcpTools === undefined) return [];
+      return parseMcpToolCapabilities(c.mcpTools);
+    } catch {
+      // A malformed or now-invalid blob means "advertises nothing", never a throw
+      // on the session-creation path.
+      return [];
+    }
+  }
+
   private capabilityList(id: string, field: 'provides' | 'emits'): string[] {
     const row = this.db.prepare('SELECT capabilities FROM plugins WHERE id = ?').get(id) as { capabilities: string } | undefined;
     if (!row) return [];

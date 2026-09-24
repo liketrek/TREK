@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<gpx xmlns="http://www.topografix.com/GPX/1/1" xmlns:gpxx="http://www.garmin.com/xmlschemas/GpxExtensions/v3" xmlns:wptx1="http://www.garmin.com/xmlschemas/WaypointExtension/v1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" creator="eTrex 32x" version="1.1" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.garmin.com/xmlschemas/GpxExtensions/v3 http://www8.garmin.com/xmlschemas/GpxExtensionsv3.xsd http://www.garmin.com/xmlschemas/WaypointExtension/v1 http://www8.garmin.com/xmlschemas/WaypointExtensionv1.xsd">
+  <metadata>
+    <link href="http://www.garmin.com">
+      <text>Garmin International</text>
+    </link>
+    <time>2024-06-01T08:00:00Z</time>
+  </metadata>
+  <wpt lat="47.268120" lon="11.393510">
+    <ele>574.2</ele>
+    <time>2024-06-01T07:42:10Z</time>
+    <name>007</name>
+    <cmt>Parking at the old town</cmt>
+    <desc>Parking at the old town</desc>
+    <sym>Parking Area</sym>
+    <extensions>
+      <gpxx:WaypointExtension>
+        <gpxx:DisplayMode>SymbolAndName</gpxx:DisplayMode>
+        <gpxx:Address>
+          <gpxx:StreetAddress>Rennweg 1</gpxx:StreetAddress>
+          <gpxx:City>Innsbruck</gpxx:City>
+        </gpxx:Address>
+      </gpxx:WaypointExtension>
+    </extensions>
+  </wpt>
+  <wpt lat="47.268563" lon="11.393436">
+    <ele>574.0</ele>
+    <name>Goldenes Dachl</name>
+    <cmt>Built 1500</cmt>
+    <desc>Late Gothic oriel with 2,657 gilded copper tiles</desc>
+    <link href="https://www.innsbruck.info/">
+      <text>innsbruck.info</text>
+    </link>
+    <sym>Flag, Blue</sym>
+  </wpt>
+  <wpt lat="95.100000" lon="11.400000">
+    <name>Past the pole</name>
+    <sym>Flag, Red</sym>
+  </wpt>
+  <wpt lat="" lon="11.400000">
+    <name>No latitude</name>
+  </wpt>
+  <wpt lat="47.270035" lon="11.391221">
+    <ele>577.9</ele>
+    <sym>Flag, Green</sym>
+  </wpt>
+  <rte>
+    <name>Old town walk</name>
+    <rtept lat="47.268563" lon="11.393436">
+      <name>Goldenes Dachl</name>
+      <sym>Flag, Blue</sym>
+    </rtept>
+    <rtept lat="47.267201" lon="11.393102"/>
+    <rtept lat="47.266306" lon="11.393774">
+      <name>Triumphpforte</name>
+      <sym>Waypoint</sym>
+    </rtept>
+  </rte>
+</gpx>

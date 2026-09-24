@@ -24,7 +24,7 @@ Below the support cards, a chronological timeline lists GitHub releases for the 
 - **Version tag** (e.g., `v2.9.14`)
 - A **Latest** badge on the first (most recent) entry in the displayed list
 - **Release date** and author
-- A **Show details / Hide details** toggle that expands the release notes (Markdown rendered inline)
+- A **Show details / Hide details** toggle that expands the release notes (a small Markdown subset rendered inline: `##` and `###` headings, `-` or `*` list items, **bold**, `code` and http(s) links; anything else is shown as plain text)
 
 Pre-release entries are hidden unless the server has both found a newer version and is itself running a pre-release. In every other case, including a pre-release install that is already on the newest pre-release, the timeline shows stable releases only.
 
@@ -37,6 +37,10 @@ If the admin API request fails, the timeline section shows an error message. If 
 The server checks for available updates daily at 9 AM (server timezone, defaults to UTC) and sends an admin notification when a newer version is published. When an update is available, a banner also appears at the top of the Admin page on next load.
 
 Results are cached for 5 minutes to avoid repeated API calls.
+
+## Release notes notice
+
+After an update, every user is shown a **release notes** notice once: a modal on the desktop with what the release brought (three headline cards), a note from the maintainer, the support links and a **Release notes** link to the release on GitHub. Closing it keeps it closed for the version that is running; the next version brings it back once, a patch release included. It replaces the 4.0.0 notice. There is no switch for it in the admin panel.
 
 ## When to check
 

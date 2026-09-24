@@ -110,7 +110,11 @@ async function boot(config: Record<string, unknown>): Promise<void> {
     // other-plugin events it subscribes to (so the host can route fan-out).
     const exportNames = Object.keys((def.exports ?? {}) as Record<string, unknown>);
     const subscriptions = (def.subscriptions ?? []).map((s) => ({ plugin: s.plugin, event: s.event }));
-    send({ k: 'evt', topic: 'loaded', data: { routes, jobs, hooks, events, exports: exportNames, subscriptions } });
+    // Which of the manifest's mcpTools THIS BUILD implements. Declarative and
+    // synchronous: the host never asks the child what tools it has, it
+    // intersects this with the signed manifest.
+    const mcpTools = (def.hooks?.mcpToolProvider?.tools ?? []).filter((t) => typeof t === 'string');
+    send({ k: 'evt', topic: 'loaded', data: { routes, jobs, hooks, events, exports: exportNames, subscriptions, mcpTools } });
     activated = true; // past load: a later async throw is a runtime CRASH, not a load failure
     // An immediate first heartbeat confirms liveness without waiting a full interval.
     send({ k: 'evt', topic: 'heartbeat', data: { rss: process.memoryUsage().rss } });

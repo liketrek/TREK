@@ -34,6 +34,30 @@ describe('validateEnvAtBoot', () => {
     ).not.toThrow();
   });
 
+  it('refuses an LLM ceiling that would silently become a zero timeout', () => {
+    // Both shapes pass a plain "positive number" check and then degrade into an
+    // immediate abort: a fractional value floors to 0, and anything past the
+    // 32-bit range makes Node clamp the setTimeout delay to 1 ms. The wiki
+    // promises invalid values abort startup, so they have to refuse here.
+    expect(() => validateEnvAtBoot({ LLM_TIMEOUT_MS: '0.5' })).toThrow();
+    expect(() => validateEnvAtBoot({ LLM_TIMEOUT_MS: '900000.5' })).toThrow();
+    expect(() => validateEnvAtBoot({ LLM_TIMEOUT_MS: '2147483648' })).toThrow();
+    expect(() => validateEnvAtBoot({ LLM_TIMEOUT_MS: '0' })).toThrow();
+    expect(() => validateEnvAtBoot({ LLM_TIMEOUT_MS: '-1' })).toThrow();
+    expect(() => validateEnvAtBoot({ LLM_TIMEOUT_MS: 'abc' })).toThrow();
+    expect(() => validateEnvAtBoot({ LLM_TIMEOUT_MS: '900000' })).not.toThrow();
+    expect(() => validateEnvAtBoot({ LLM_TIMEOUT_MS: '' })).not.toThrow();
+  });
+
+  it('refuses an ALLOW_LINK_LOCAL_IPS entry that is not a listable link-local address', () => {
+    // A metadata address would be dropped silently at runtime; saying so at boot
+    // is the difference between an OIDC login that works and a puzzling one.
+    expect(() => validateEnvAtBoot({ ALLOW_LINK_LOCAL_IPS: '169.254.169.254' })).toThrow();
+    expect(() => validateEnvAtBoot({ ALLOW_LINK_LOCAL_IPS: '169.254.1.2,192.168.1.2' })).toThrow();
+    expect(() => validateEnvAtBoot({ ALLOW_LINK_LOCAL_IPS: '169.254.1.2' })).not.toThrow();
+    expect(() => validateEnvAtBoot({ ALLOW_LINK_LOCAL_IPS: '' })).not.toThrow();
+  });
+
   it('treats blank values as unset (defaults apply, no error)', () => {
     expect(() => validateEnvAtBoot({ DEMO_MODE: '', PORT: '  ', TZ: '' })).not.toThrow();
   });

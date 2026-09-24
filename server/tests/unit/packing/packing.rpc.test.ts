@@ -144,6 +144,17 @@ describe('PackingRpc through the router', () => {
     }
   });
 
+  it('PACKING-RPC-007f deleting a bag also pings the weights (#2191)', async () => {
+    // packing_items.bag_id is ON DELETE SET NULL, so the bag's contents land in
+    // the unassigned pile: both the bag figure and the loose figure move.
+    const f = build();
+    await f.host('db:write:packing').dispatch(req('packing.deleteBag', { tripId: 1, bagId: 80 }), 42);
+    expect(fanout(f.realtime)).toEqual([
+      ['packing:bag-deleted', undefined],
+      ['packing:bag-totals', undefined],
+    ]);
+  });
+
   it('PACKING-RPC-007e an invalid item payload is BAD_PARAMS on create and update alike', async () => {
     const f = build();
     const host = f.host('db:write:packing');
@@ -157,6 +168,39 @@ describe('PackingRpc through the router', () => {
     expect(res.error.message).toBe('no packing item 404 on trip 1');
   });
 
+  it('PACKING-RPC-018 create hands the widened fields through the schema (#2154)', async () => {
+    const f = build();
+    await f.host('db:write:packing').dispatch(req('packing.create', { tripId: 1, input: { name: 'Tent', weight_grams: 250, bag_id: 19, quantity: 3 } }), 42);
+    expect(f.data.createItem).toHaveBeenCalledWith('1', { name: 'Tent', weight_grams: 250, bag_id: 19, quantity: 3 }, 42);
+  });
+
+  it('PACKING-RPC-019 an off-trip bag is BAD_PARAMS on create and update alike, broadcasting nothing (#2154)', async () => {
+    const f = build();
+    const host = f.host('db:write:packing');
+
+    f.data.createItem.mockReturnValueOnce({ invalidBag: true } as never);
+    const created = (await host.dispatch(req('packing.create', { tripId: 1, input: { name: 'Tent', bag_id: 404 } }), 42)) as RpcError;
+    expect(created.error.code).toBe('BAD_PARAMS');
+    expect(created.error.message).toBe('no packing bag 404 on trip 1');
+
+    f.data.updateItem.mockReturnValueOnce({ invalidBag: true } as never);
+    const updated = (await host.dispatch(req('packing.update', { tripId: 1, itemId: 70, input: { bag_id: 404 } }), 42)) as RpcError;
+    expect(updated.error.code).toBe('BAD_PARAMS');
+    expect(updated.error.message).toBe('no packing bag 404 on trip 1');
+
+    // The sentinel must never leave the process as an item.
+    expect(f.realtime.broadcast).not.toHaveBeenCalled();
+  });
+
+  it('PACKING-RPC-020 createBag forwards a numeric weight limit and drops a non-number (#2154)', async () => {
+    const f = build();
+    const host = f.host('db:write:packing');
+    await host.dispatch(req('packing.createBag', { tripId: 1, input: { name: 'Bag', weight_limit_grams: 23000 } }), 42);
+    expect(f.data.createBag).toHaveBeenCalledWith('1', { name: 'Bag', color: undefined, weight_limit_grams: 23000 });
+    await host.dispatch(req('packing.createBag', { tripId: 1, input: { name: 'Bag', weight_limit_grams: 'heavy' } }), 42);
+    expect(f.data.createBag).toHaveBeenLastCalledWith('1', { name: 'Bag', color: undefined, weight_limit_grams: undefined });
+  });
+
   it('PACKING-RPC-008 the class is listed in its module providers', () => {
     expectRegisteredProvider(PackingModule, PackingRpc);
   });
@@ -166,16 +210,25 @@ describe('PackingRpc keeps private items off the room (#858)', () => {
   it('PACKING-RPC-009 a common item is created for the whole room', async () => {
     const f = build();
     await f.host('db:write:packing').dispatch(req('packing.create', { tripId: 1, input: { name: 'Socks' } }), 42);
-    expect(fanout(f.realtime)).toEqual([['packing:created', undefined]]);
+    // The trailing bag-totals ping is room-wide and content-free (#2191): bag
+    // weights are summed server-side, so every member has to re-read them even
+    // when the item itself is none of their business.
+    expect(fanout(f.realtime)).toEqual([
+      ['packing:created', undefined],
+      ['packing:bag-totals', undefined],
+    ]);
   });
 
   it('PACKING-RPC-010 a private item is created only for its owner and recipients', async () => {
     const f = build();
     f.data.createItem.mockReturnValueOnce({ id: 70, is_private: 1, owner_id: 42, recipients: [{ user_id: 7 }] });
     await f.host('db:write:packing').dispatch(req('packing.create', { tripId: 1, input: { name: 'Gift', is_private: true } }), 42);
+    // The item goes only to its viewers; the weight ping goes to the room and
+    // says nothing at all (#2191) — that is exactly what makes it safe here.
     expect(fanout(f.realtime)).toEqual([
       ['packing:created', 42],
       ['packing:created', 7],
+      ['packing:bag-totals', undefined],
     ]);
   });
 
@@ -223,9 +276,12 @@ describe('PackingRpc keeps private items off the room (#858)', () => {
     const f = build();
     f.data.deleteItem.mockReturnValueOnce({ id: 70, is_private: 1, owner_id: 42, recipients: [{ user_id: 7 }] });
     await f.host('db:write:packing').dispatch(req('packing.delete', { tripId: 1, itemId: 70 }), 42);
+    // Same split as the create above: private item to its viewers, content-free
+    // weight ping to the room (#2191).
     expect(fanout(f.realtime)).toEqual([
       ['packing:deleted', 42],
       ['packing:deleted', 7],
+      ['packing:bag-totals', undefined],
     ]);
   });
 

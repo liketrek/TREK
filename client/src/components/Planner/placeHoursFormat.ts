@@ -31,8 +31,18 @@ export function convertHoursLine(line: string, timeFormat: string): string {
     })
   }
   if (timeFormat !== '12h' && hasAmPm) {
+    // Google spells a range that stays in one half of the day with the meridiem on
+    // the closing time only: "1:00 – 3:00 PM" is one to three in the afternoon. The
+    // conversion below only sees times that carry their own AM/PM, so the opener
+    // stayed "1:00" next to a "15:00" (#2412). Hand the closing meridiem back to an
+    // opener that has none. It fires only where nothing but the dash sits between
+    // the two times, so "11:00 AM – 1:00 PM" keeps both halves as written.
+    const paired = line.replace(
+      /(\d{1,2}:\d{2})(\s*[–—-]\s*)(\d{1,2}:\d{2}\s*)(AM|PM)\b/gi,
+      (_, open, sep, close, p) => `${open} ${p}${sep}${close}${p}`,
+    )
     // 12h → 24h: "10:00 AM" → "10:00", "9:00 PM" → "21:00"
-    return line.replace(/(\d{1,2}):(\d{2})\s*(AM|PM)/gi, (_, h, m, p) => {
+    return paired.replace(/(\d{1,2}):(\d{2})\s*(AM|PM)/gi, (_, h, m, p) => {
       let hour = Number.parseInt(h)
       if (p.toUpperCase() === 'PM' && hour !== 12) hour += 12
       if (p.toUpperCase() === 'AM' && hour === 12) hour = 0

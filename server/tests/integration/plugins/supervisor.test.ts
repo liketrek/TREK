@@ -140,6 +140,53 @@ describe('PluginSupervisor — isolated runtime', () => {
     expect(got).toEqual({ event: 'place:created', tripId: 3 });
   });
 
+  it('reports its MCP tools at load and dispatches a tool call as the requesting user', async () => {
+    // plugin-host-entry.ts is excluded from coverage (it runs in a forked
+    // subprocess), so this is the only thing proving the loaded payload and the
+    // invoke path for mcpToolProvider.
+    const events: Array<{ topic: string; data: unknown }> = [];
+    sup = makeSupervisor(events);
+    writePlugin(
+      'toolbox',
+      `module.exports = {
+        hooks: {
+          mcpToolProvider: {
+            tools: ['echo', 'whoami'],
+            async callTool(call, ctx) { return { name: call.name, args: call.args }; },
+          },
+        },
+      };`,
+    );
+    await sup.activate('toolbox', new Set(['mcp:tools']), {});
+
+    expect(sup.mcpToolsOf('toolbox')).toEqual(['echo', 'whoami']);
+    expect(sup.providersOf('mcpToolProvider')).toContain('toolbox');
+    expect([...sup.grantsOf('toolbox')]).toContain('mcp:tools');
+
+    const res = await sup.invoke(
+      'toolbox',
+      'invoke.hook',
+      { hook: 'mcpToolProvider', fn: 'callTool', args: [{ name: 'echo', args: { v: 1 } }] },
+      { actingUserId: 5 },
+    );
+    expect(res).toEqual({ name: 'echo', args: { v: 1 } });
+  });
+
+  it('stops reporting MCP tools once the plugin is no longer active', async () => {
+    const events: Array<{ topic: string; data: unknown }> = [];
+    sup = makeSupervisor(events);
+    writePlugin(
+      'toolbox2',
+      `module.exports = { hooks: { mcpToolProvider: { tools: ['echo'], async callTool() { return 1; } } } };`,
+    );
+    await sup.activate('toolbox2', new Set(['mcp:tools']), {});
+    expect(sup.mcpToolsOf('toolbox2')).toEqual(['echo']);
+
+    await sup.disable('toolbox2');
+    expect(sup.mcpToolsOf('toolbox2')).toEqual([]);
+    expect(sup.providersOf('mcpToolProvider')).not.toContain('toolbox2');
+  });
+
   it('seals the raw IPC surface: a plugin cannot forge/sniff over process.send/on(message), and a forged init cannot reopen egress', async () => {
     const events: Array<{ topic: string; data: unknown }> = [];
     sup = makeSupervisor(events);

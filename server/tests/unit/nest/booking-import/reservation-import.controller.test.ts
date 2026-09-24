@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { HttpException } from '@nestjs/common';
+import { HttpException, type Type } from '@nestjs/common';
+import { INTERCEPTORS_METADATA } from '@nestjs/common/constants';
 import { ReservationImportController } from '../../../../src/nest/reservation-import/reservation-import.controller';
 import type { BookingImportService } from '../../../../src/nest/booking-import/booking-import.service';
 import type { User } from '../../../../src/types';
@@ -58,5 +59,24 @@ describe('ReservationImportController.preview', () => {
     const { c, svc } = make();
     await c.preview(user, 't1', [file()], {});
     expect(svc.preview).toHaveBeenCalledWith([expect.anything()], 'no-ai', 1);
+  });
+});
+
+/**
+ * Multer decodes a multipart filename as latin1 unless told otherwise, and the
+ * booking import did not tell it: "Bestätigung.pdf" reached the warnings as
+ * "BestÃ¤tigung.pdf", and the review could not attach the file it no longer
+ * recognised by name (#2477). Read off the interceptor both upload routes carry.
+ */
+describe('ReservationImportController upload options', () => {
+  const multerOf = (handler: keyof ReservationImportController) => {
+    const [Interceptor] = Reflect.getMetadata(INTERCEPTORS_METADATA, ReservationImportController.prototype[handler]) as Type<{ multer: { defParamCharset: string; limits: unknown } }>[];
+    return new Interceptor().multer;
+  };
+
+  it.each(['preview', 'previewAsync'] as const)('%s decodes non-ASCII filenames as UTF-8', (handler) => {
+    const multer = multerOf(handler);
+    expect(multer.defParamCharset).toBe('utf8');
+    expect(multer.limits).toEqual({ fileSize: 10 * 1024 * 1024, files: 5 });
   });
 });

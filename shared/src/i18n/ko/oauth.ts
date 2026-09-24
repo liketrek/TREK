@@ -92,5 +92,20 @@ const oauth: TranslationStrings = {
   'oauth.authorize.alwaysIncluded': 'Always included', // en-fallback
   'oauth.authorize.alwaysTool.listTrips': 'List your trips so the AI can discover trip IDs', // en-fallback
   'oauth.authorize.alwaysTool.getTripSummary': 'Read a trip overview needed to use any other tool', // en-fallback
+  'oauth.scope.group.files': '파일',
+  'oauth.scope.group.settings': '설정',
+  'oauth.scope.files:read.label': '여행 파일 보기',
+  'oauth.scope.files:read.description': '여행의 문서를 나열합니다. 이름, 크기, 업로드한 사람, 연결된 항목',
+  'oauth.scope.files:write.label': '여행 파일 관리',
+  'oauth.scope.files:write.description': '파일 이름과 설명 변경, 예약 및 장소에 연결, 즐겨찾기 및 휴지통 이동',
+  'oauth.scope.files:content.label': '파일 내용 읽기',
+  'oauth.scope.files:content.description': '업로드된 문서의 내용을 읽습니다. 예약 PDF나 티켓 등',
+  'oauth.scope.settings:read.label': '환경설정 보기',
+  'oauth.scope.settings:read.description': '단위, 시간 형식, 언어, 기본 통화, 시작 페이지 읽기',
+  'oauth.scope.settings:write.label': '환경설정 변경',
+  'oauth.scope.settings:write.description': '단위, 시간 형식, 언어, 기본 통화, 시작 페이지 변경. 저장된 API 키는 제외',
+  'oauth.scope.group.plugins': '플러그인',
+  'oauth.scope.plugins:use.label': '플러그인 도구 실행',
+  'oauth.scope.plugins:use.description': '관리자가 설치하고 승인한 플러그인이 제공하는 도구를 이 클라이언트가 호출할 수 있도록 허용합니다. 각 플러그인은 이 토큰의 범위가 아니라 이미 부여받은 권한으로 동작합니다',
 };
 export default oauth;

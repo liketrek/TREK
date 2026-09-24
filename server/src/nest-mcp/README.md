@@ -24,7 +24,7 @@ export class ThingsMcp {
   @Tool({
     name: 'list_things',
     description: 'List all things.',
-    inputSchema: {},                             // ZodRawShape, passed straight to the SDK
+    inputSchema: {},                             // ZodRawShape, registered as a strict object
     annotations: { readOnlyHint: true },
     access: { group: 'things', mode: 'read' },   // resolved by the accessPolicy
   })
@@ -34,10 +34,11 @@ export class ThingsMcp {
 }
 ```
 
-- `@Tool(options)` — mirrors `server.registerTool` (`name`, `title`, `description`, `inputSchema`, `outputSchema`, `annotations`, `_meta`). Handler: `(args, ctx)`; `args` is `{}` when no `inputSchema` was declared.
+- `@Tool(options)` — mirrors `server.registerTool` (`name`, `title`, `description`, `inputSchema`, `outputSchema`, `annotations`, `_meta`). Handler: `(args, ctx)`; `args` is `{}` when no `inputSchema` was declared. A shape is registered as `z.strictObject`, so an argument the tool never declared is refused (`Unrecognized key`) and `tools/list` advertises `additionalProperties: false`; the SDK's own wrapping would strip it and run the handler regardless. A whole Zod schema is passed through as written.
 - `@Resource(options)` — fixed URI (`uri`, `mimeType`, …). Handler: `(uri: URL, ctx)`.
 - `@ResourceTemplate(options)` — `uriTemplate` (RFC 6570). Handler: `(uri: URL, variables, ctx)`. (No `list`/`complete` template callbacks yet — extend when a domain needs them.)
 - `@Prompt(options)` — mirrors `registerPrompt` (`argsSchema` entries must be string-valued Zod schemas). Handler: `(args, ctx)`.
+  Prompt arguments arrive as strings, so every `argsSchema` entry has to accept a string (`PromptArgsShape`): parse numbers with `z.string().regex(...).transform(Number)`, never `z.number()`. The handler receives the transformed values.
 
 `ctx` always takes the SDK `extra` slot — the last handler argument.
 

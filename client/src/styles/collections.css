@@ -27,13 +27,16 @@
   padding: 12px; display: flex; flex-direction: column; gap: 2px;
   max-height: calc(100vh - var(--nav-h) - 44px); overflow-y: auto; overscroll-behavior: contain;
 }
+.trek-dash .col-rail-newrow { display: flex; align-items: stretch; gap: 6px; margin-bottom: 6px; }
 .trek-dash .col-rail-new {
   display: flex; align-items: center; gap: 9px; width: 100%;
-  padding: 10px 12px; margin-bottom: 6px; border-radius: var(--r-sm);
+  padding: 10px 12px; border-radius: var(--r-sm);
   border: 1px dashed var(--line-2); color: var(--ink-2);
   font-size: 13px; font-weight: 500; transition: background .15s, color .15s, border-color .15s;
 }
 .trek-dash .col-rail-new:hover { background: var(--surface-2); color: var(--ink); border-color: var(--ink-3); }
+/* Square, icon-only: "New list" is the primary action and keeps the label. */
+.trek-dash .col-rail-import { width: auto; flex: 0 0 auto; padding: 10px; justify-content: center; }
 .trek-dash .col-rail-label {
   display: flex; align-items: center; gap: 6px; padding: 14px 11px 5px;
   font-size: 10.5px; text-transform: uppercase; letter-spacing: .13em; color: var(--ink-3); font-weight: 600;
@@ -315,6 +318,12 @@
 .trek-dash .col-labelchip.on { color: var(--label, var(--accent)); background: color-mix(in oklch, var(--label, var(--accent)) 16%, transparent); border-color: color-mix(in oklch, var(--label, var(--accent)) 42%, transparent); }
 .trek-dash .col-labelchip.on .col-labelchip-dot { background: var(--label, var(--accent)); }
 .trek-dash .col-labelchip.static { cursor: default; color: var(--label, var(--accent)); background: color-mix(in oklch, var(--label, var(--accent)) 14%, transparent); border-color: transparent; }
+/* One row of badges: what this place scored, and what it is filed under. */
+.trek-dash .col-detail-badges { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 2px 0 4px; }
+.trek-dash .col-detail-rating { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); }
+/* Matched to the rating beside it, so the row reads as one set rather than a pill next
+   to a tag. */
+.trek-dash .col-labelchip.big { padding: 6px 12px; font-size: 12.5px; border-radius: 999px; }
 .trek-dash .col-detail-labels { display: flex; flex-wrap: wrap; gap: 7px; margin: 2px 0 10px; }
 
 /* ----------------- filter bar (status + category dropdowns) ----------------- */
@@ -422,9 +431,10 @@
 .trek-dash .col-detail-cover { position: relative; height: 116px; flex-shrink: 0; background-size: cover; background-position: center; }
 .trek-dash .col-detail-cover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .trek-dash .col-detail-cover-scrim { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.12) 0%, rgba(0,0,0,.55) 100%); }
-.trek-dash .col-detail-cover-cat { position: absolute; top: 12px; left: 14px; z-index: 2; display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px 4px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; color: #fff; background: color-mix(in oklch, var(--cat, #6366f1) 82%, black); box-shadow: 0 2px 8px rgba(0,0,0,.3); }
+/* chip and close sit in the cover's top bar (CollectionPlaceDetail), which places them */
+.trek-dash .col-detail-cover-cat { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px 4px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; color: #fff; background: color-mix(in oklch, var(--cat, #6366f1) 82%, black); box-shadow: 0 2px 8px rgba(0,0,0,.3); }
 .trek-dash .col-detail-close {
-  position: absolute; top: 12px; right: 12px; z-index: 2; width: 32px; height: 32px; border-radius: 50%;
+  width: 32px; height: 32px; border-radius: 50%;
   display: grid; place-items: center; background: rgba(0,0,0,.4); color: #fff; border: 1px solid rgba(255,255,255,.25);
   backdrop-filter: blur(8px); transition: background .12s;
 }
@@ -441,9 +451,6 @@
 .trek-dash .col-detail-addr svg { flex-shrink: 0; }
 /* Directions (#1455): sits on the meta line beside the address, quieter than
    the link chips below — it is an action on the place, not a piece of it. */
-.trek-dash .col-detail-nav { display: inline-flex; align-items: center; gap: 5px; padding: 5px 11px; border-radius: 999px; font-size: 12px; font-weight: 600; color: var(--ink-2); background: var(--surface-2); border: 1px solid var(--line); transition: background .12s, color .12s; white-space: nowrap; }
-.trek-dash .col-detail-nav:hover { background: var(--surface-3, var(--surface-2)); color: var(--ink); }
-.trek-dash .col-detail-nav svg { flex-shrink: 0; }
 
 /* status segmented control */
 .trek-dash .col-detail-seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; border-radius: 12px; background: var(--surface-2); }
@@ -452,7 +459,12 @@
 .trek-dash .col-detail-seg button.on { background: var(--surface); color: var(--ink); box-shadow: var(--sh-xs); }
 
 /* rendered markdown + link chips (view) */
-.trek-dash .col-detail-md { font-size: 13.5px; color: var(--ink-2); line-height: 1.55; }
+/* The note sits on its own ground too, full width: loose in the column it ran into the
+   footer as another paragraph of the panel rather than reading as something somebody
+   wrote about this place. */
+.trek-dash .col-detail-md { font-size: 13.5px; color: var(--ink-2); line-height: 1.55; padding: 10px 14px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--line); }
+.trek-dash .col-detail-md > :first-child { margin-top: 0; }
+.trek-dash .col-detail-md > :last-child { margin-bottom: 0; }
 .trek-dash .col-detail-links { display: flex; flex-wrap: wrap; gap: 7px; }
 .trek-dash .col-detail-link { display: inline-flex; align-items: center; gap: 5px; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 500; color: var(--accent-ink); background: var(--accent-soft); transition: filter .12s; max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .trek-dash .col-detail-link:hover { filter: brightness(1.05); }
@@ -479,8 +491,11 @@
 /* footer action bar */
 .trek-dash .col-detail-footer { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--line); flex-shrink: 0; }
 .trek-dash .col-detail-footer-spacer { flex: 1 1 auto; }
-.trek-dash .col-detail-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 10px; font-size: 12.5px; font-weight: 600; color: var(--ink-2); background: var(--surface-2); border: 1px solid var(--line-2); transition: background .12s, color .12s; }
+/* Pill-shaped, the way the navigation button already was: the footer is one row of
+   things you do with the place, and it should read as one row. */
+.trek-dash .col-detail-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 999px; font-size: 12.5px; font-weight: 600; color: var(--ink-2); background: var(--surface-2); border: 1px solid var(--line); transition: background .12s, color .12s; white-space: nowrap; }
 .trek-dash .col-detail-btn:hover { background: var(--surface); color: var(--ink); }
+.trek-dash .col-detail-btn svg { flex-shrink: 0; }
 .trek-dash .col-detail-btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
 .trek-dash .col-detail-btn.danger { color: oklch(0.6 0.2 25); border-color: transparent; background: transparent; }
 .trek-dash .col-detail-btn.danger:hover { background: oklch(0.6 0.2 25 / .12); }
@@ -539,6 +554,7 @@
   .trek-dash .col-detail-icon-btn { min-width: 40px; min-height: 40px; }
   .trek-dash .col-drawer .col-row-btn { min-height: 44px; }
   .trek-dash .col-drawer .col-rail-new { min-height: 44px; }
+  .trek-dash .col-drawer .col-rail-import { min-width: 44px; }
   /* enlarge the interactive status badge's tap area without changing its look */
   .trek-dash .col-lrow-end > [role="button"] { position: relative; }
   .trek-dash .col-lrow-end > [role="button"]::after { content: ''; position: absolute; inset: -9px -6px; }

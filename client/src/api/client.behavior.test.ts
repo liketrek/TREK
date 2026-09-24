@@ -230,7 +230,8 @@ describe('client > proxy auth challenges', () => {
     return getRegistration
   }
 
-  it('FE-APIWIRE-011: an HTML 401 unregisters the service worker and reloads', async () => {
+  it('FE-APIWIRE-011: an HTML 401 behind a confirmed proxy wall unregisters the service worker and reloads', async () => {
+    probeNow.mockResolvedValue('proxy-wall')
     const unregister = vi.fn(async () => true)
     installServiceWorker(unregister)
     server.use(http.get('/api/auth/me', () =>
@@ -241,6 +242,25 @@ describe('client > proxy auth challenges', () => {
     expect(unregister).toHaveBeenCalled()
     expect(reload).toHaveBeenCalledTimes(1)
     expect(sessionStorage.getItem('proxy_reauth_attempted')).toBe('1')
+  })
+
+  it('FE-APIWIRE-016: an HTML 401 from TREK itself keeps the service worker (#2228)', async () => {
+    // text/html is not proof of a proxy: several of TREK's own routes answer
+    // res.status(401).send('Authentication required'), which Express labels
+    // text/html. Tearing the worker down for one of those costs the user
+    // offline mode for a wall that is not there, so confirm reachability first.
+    probeNow.mockResolvedValue('online')
+    const unregister = vi.fn(async () => true)
+    installServiceWorker(unregister)
+    server.use(http.get('/api/auth/me', () =>
+      new HttpResponse('Authentication required', { status: 401, headers: { 'Content-Type': 'text/html' } })))
+
+    await captureError(() => apiClient.get('/auth/me'))
+
+    expect(probeNow).toHaveBeenCalled()
+    expect(unregister).not.toHaveBeenCalled()
+    expect(reload).not.toHaveBeenCalled()
+    expect(sessionStorage.getItem('proxy_reauth_attempted')).toBeNull()
   })
 
   it('FE-APIWIRE-012: the reauth reload only fires once per session', async () => {
@@ -365,6 +385,33 @@ describe('client > dev-only contract drift checks', () => {
       '[api] weather.get: response did not match the @trek/shared schema',
       expect.anything(),
     )
+  })
+
+  it('FE-APIWIRE-037: search-provider hits are appended to the core results and name their index', async () => {
+    server.use(
+      http.post('/api/maps/search', () => HttpResponse.json({ places: [{ name: 'Core hit' }], source: 'openstreetmap' })),
+      http.get('/api/plugin-search', () =>
+        HttpResponse.json({ places: [{ name: 'Plugin hit', source: 'plugin:demo' }] })),
+    )
+
+    // Appended, not interleaved: the core list keeps the order it earned.
+    await expect(mapsApi.search('Rome')).resolves.toEqual({
+      places: [{ name: 'Core hit' }, { name: 'Plugin hit', source: 'plugin:demo' }],
+      source: 'openstreetmap+plugin:demo',
+    })
+  })
+
+  it('FE-APIWIRE-038: a failing search provider leaves the search exactly as it was', async () => {
+    server.use(
+      http.post('/api/maps/search', () => HttpResponse.json({ places: [{ name: 'Core hit' }], source: 'openstreetmap' })),
+      http.get('/api/plugin-search', () => HttpResponse.json({ error: 'boom' }, { status: 500 })),
+    )
+
+    // The optional index being unwell must never cost the search that worked.
+    await expect(mapsApi.search('Rome')).resolves.toEqual({
+      places: [{ name: 'Core hit' }],
+      source: 'openstreetmap',
+    })
   })
 
   it('FE-APIWIRE-023: a drifting maps response is reported under its own label', async () => {

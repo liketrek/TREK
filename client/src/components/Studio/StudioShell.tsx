@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { useJourneyStudio } from '../../pages/journeyStudio/useJourneyStudio'
 import { PAGE_PRESET_ORDER, PAGE_PRESETS } from './pagePresets'
+import { foliosOf } from './bookSheets'
 import { StudioSidebar } from './StudioSidebar'
 import { StudioCanvas } from './StudioCanvas'
 import { StudioInspector } from './StudioInspector'
@@ -18,6 +19,7 @@ import { PeerBadges } from './PeerBadges'
 import { TrimField } from './TrimField'
 import '../../styles/dashboard.css'
 import '../../styles/studio.css'
+import './bookFontFaces'
 
 /**
  * The Studio shell: top bar, page rail, workbench, inspector.
@@ -88,6 +90,9 @@ export default function StudioShell() {
             path={s.path}
             t={s.t}
             locale={s.locale}
+            canEdit={s.canEdit}
+            onUpload={s.uploadPhotos}
+            onToggleStop={s.setStopExcluded}
           />
           <Workbench s={s} bookView={bookView} />
           <StudioInspector
@@ -423,6 +428,7 @@ function Workbench({ s, bookView }: { s: Studio; bookView: boolean }) {
         <StudioCanvas
           spread={s.spread}
           spreadIndex={s.activeSpread}
+          folios={s.doc ? foliosOf(s.doc.spreads, s.activeSpread, s.page.pageNumbers.startAt) : []}
           page={s.page}
           zoom={s.zoom}
           pxPerMm={s.pxPerMm}
@@ -430,7 +436,20 @@ function Workbench({ s, bookView }: { s: Studio; bookView: boolean }) {
           dropLabel={s.t('journey.studio.dropPhotoHere')}
           cursors={s.cursors}
           onCursor={(x, y) => s.moveCursor(s.activeSpread, x, y)}
+          onDropFiles={s.canEdit ? s.dropFiles : undefined}
+          fileDropLabel={s.t('journey.studio.dropFilesHere')}
         />
+        {/*
+          Pictures dropped on the sheet are on their way. The page keeps
+          rendering underneath; the veil only says that something is happening
+          where the pointer let go, so the second or two before the frame
+          appears does not read as the drop having been ignored.
+        */}
+        {s.canvasUpload && (
+          <div className="st-upload-veil" role="status" aria-live="polite">
+            {s.t('journey.studio.uploading', { done: s.canvasUpload.done, total: s.canvasUpload.total })}
+          </div>
+        )}
       </div>
 
       <div className="st-zoom">

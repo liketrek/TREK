@@ -1,13 +1,15 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { DatabaseService, type TripAccess } from '../database/database.service';
 import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 import { RealtimeService } from '../realtime/realtime.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { ReservationsReadRepository, toTraveler } from './reservations-read.repository';
+import { keepMirroredPrice } from './reservation-metadata';
 import type { Reservation, User } from '../../types';
 import { BudgetService } from '../budget/budget.service';
 import { typeToCostCategory } from '@trek/shared';
 import { NotificationsService } from '../notifications/notifications.service';
+import { AccommodationsService, noStayMirror, type AccommodationMirror } from '../accommodations/accommodations.service';
 
 type Trip = TripAccess;
 type BudgetEntry = { total_price?: number; category?: string } | undefined;
@@ -105,6 +107,17 @@ export interface UpdateReservationData {
   needs_review?: boolean;
 }
 
+/**
+ * True when `reservation_time` actually carries a date and not just a bare
+ * `HH:MM`. Both shapes reach this column — the booking form writes the
+ * datetime-local `YYYY-MM-DDTHH:MM`, while day-anchored rows (the demo seed
+ * among them) hold only a time — and comparing the two against an ISO
+ * timestamp as strings silently sorts `'20:00'` above `'2026-…'` while
+ * dropping `'08:30'` below it, which is how half a trip's bookings vanished
+ * from the dashboard widget (#1934).
+ */
+const DATED = "r.reservation_time GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]*'";
+
 type AccommodationTimesMeta = {
   check_in_time?: string | null;
   check_in_end_time?: string | null;
@@ -137,6 +150,7 @@ export class ReservationsService {
     private readonly realtime: RealtimeService,
     private readonly notifications: NotificationsService,
     private readonly reads: ReservationsReadRepository,
+    private readonly accommodations: AccommodationsService,
   ) {}
 
   verifyTripAccess(tripId: string | number, userId: number) {
@@ -149,6 +163,23 @@ export class ReservationsService {
 
   broadcast<E extends TrekWsTripEventName>(tripId: string, event: E, payload: TrekWsPayload<E>, socketId: string | undefined): void {
     this.realtime.broadcast(tripId, event, payload, socketId);
+  }
+
+  /**
+   * Announce the day stop a hotel booking wrote, the way the accommodations
+   * routes announce theirs.
+   *
+   * Here rather than at each surface: eleven call sites reach create/update/
+   * remove, all but the hotel ones carry an empty mirror, and the fan-out is the
+   * one part that must not exist in eleven copies. Outside the transaction, so a
+   * write that rolls back announces nothing.
+   *
+   * No socket id to skip: the stop is news to the sender too. Every other
+   * booking event on this surface is echo-suppressed because the client already
+   * drew what it sent, and it never sent this.
+   */
+  private announceStayMirror(tripId: string | number, mirror: AccommodationMirror): void {
+    this.accommodations.announceMirror(tripId, mirror, (event, payload) => this.realtime.broadcast(tripId, event, payload));
   }
 
   /** Fire-and-forget booking-change notification, mirroring the legacy dynamic import. */
@@ -404,26 +435,77 @@ export class ReservationsService {
     const now = new Date().toISOString();
 
     const reservations = this.db.all<Record<string, unknown>>(`
-    SELECT r.id, r.trip_id, r.title, r.type, r.status, r.location,
-           r.reservation_time, r.confirmation_number,
-           t.title as trip_title, t.cover_image as trip_cover,
-           d.date as day_date, p.name as place_name, p.image_url as place_image
-    FROM reservations r
-    JOIN trips t ON t.id = r.trip_id
-    LEFT JOIN trip_members tm ON tm.trip_id = t.id AND tm.user_id = ?
-    LEFT JOIN days d ON r.day_id = d.id
-    LEFT JOIN places p ON r.place_id = p.id
-    WHERE (t.user_id = ? OR tm.user_id IS NOT NULL)
-      AND t.is_archived = 0
-      AND r.status != 'cancelled'
-      AND COALESCE(r.type, '') != 'hotel'
-      AND (
-        (r.reservation_time IS NOT NULL AND r.reservation_time >= ?)
-        OR (r.reservation_time IS NULL AND d.date IS NOT NULL AND d.date >= ?)
-      )
-    ORDER BY COALESCE(r.reservation_time, d.date) ASC
+    WITH visible_trips AS (
+      SELECT t.id, t.title, t.cover_image
+      FROM trips t
+      LEFT JOIN trip_members tm ON tm.trip_id = t.id AND tm.user_id = ?
+      WHERE (t.user_id = ? OR tm.user_id IS NOT NULL) AND t.is_archived = 0
+    ),
+    -- One row per candidate with its date and time already separated, so the
+    -- filter and the sort below never have to guess what reservation_time holds.
+    entries AS (
+      SELECT r.id, r.trip_id, r.title, r.type, r.status, r.location,
+             r.reservation_time, r.confirmation_number,
+             tr.title as trip_title, tr.cover_image as trip_cover,
+             d.date as day_date, p.name as place_name, p.image_url as place_image,
+             CASE WHEN ${DATED} THEN substr(r.reservation_time, 1, 10) ELSE d.date END as at_date,
+             CASE WHEN ${DATED} THEN substr(r.reservation_time, 12) ELSE r.reservation_time END as at_time
+      FROM reservations r
+      JOIN visible_trips tr ON tr.id = r.trip_id
+      LEFT JOIN days d ON r.day_id = d.id
+      LEFT JOIN places p ON r.place_id = p.id
+      WHERE r.status != 'cancelled'
+        AND COALESCE(r.type, '') != 'hotel'
+
+      UNION ALL
+
+      -- Check-in and check-out as their own moments (#1934). The stay itself is
+      -- still left out: it covers a range, and a week in one hotel would hold a
+      -- slot in a six-entry widget for the whole week. Arriving and leaving are
+      -- points in time, which is exactly what this widget is for, and they are
+      -- the two the traveller needs reminding of.
+      SELECT a.id, a.trip_id,
+             COALESCE(p.name, (SELECT res.title FROM reservations res
+                                WHERE CAST(res.accommodation_id AS INTEGER) = a.id
+                                  AND res.status != 'cancelled'
+                                ORDER BY res.id LIMIT 1), tr.title) as title,
+             'checkin' as type, 'confirmed' as status, NULL as location,
+             CASE WHEN a.check_in IS NOT NULL THEN d.date || 'T' || a.check_in END as reservation_time,
+             a.confirmation as confirmation_number,
+             tr.title as trip_title, tr.cover_image as trip_cover,
+             d.date as day_date, p.name as place_name, p.image_url as place_image,
+             d.date as at_date, a.check_in as at_time
+      FROM day_accommodations a
+      JOIN visible_trips tr ON tr.id = a.trip_id
+      JOIN days d ON d.id = a.start_day_id
+      LEFT JOIN places p ON p.id = a.place_id
+
+      UNION ALL
+
+      SELECT a.id, a.trip_id,
+             COALESCE(p.name, (SELECT res.title FROM reservations res
+                                WHERE CAST(res.accommodation_id AS INTEGER) = a.id
+                                  AND res.status != 'cancelled'
+                                ORDER BY res.id LIMIT 1), tr.title) as title,
+             'checkout' as type, 'confirmed' as status, NULL as location,
+             CASE WHEN a.check_out IS NOT NULL THEN d.date || 'T' || a.check_out END as reservation_time,
+             a.confirmation as confirmation_number,
+             tr.title as trip_title, tr.cover_image as trip_cover,
+             d.date as day_date, p.name as place_name, p.image_url as place_image,
+             d.date as at_date, a.check_out as at_time
+      FROM day_accommodations a
+      JOIN visible_trips tr ON tr.id = a.trip_id
+      JOIN days d ON d.id = a.end_day_id
+      LEFT JOIN places p ON p.id = a.place_id
+    )
+    SELECT id, trip_id, title, type, status, location, reservation_time,
+           confirmation_number, trip_title, trip_cover, day_date, place_name, place_image
+    FROM entries
+    WHERE at_date IS NOT NULL
+      AND (at_date > ? OR (at_date = ? AND COALESCE(at_time, '23:59') >= ?))
+    ORDER BY at_date ASC, COALESCE(at_time, '00:00') ASC, id ASC
     LIMIT ?
-  `, userId, userId, now, today, limit);
+  `, userId, userId, today, today, now.slice(11, 16), limit);
 
     return reservations;
   }
@@ -483,13 +565,113 @@ export class ReservationsService {
     return offenders;
   }
 
+  /**
+   * Name every id in the body that resolves to nothing on this trip.
+   *
+   * A second guard rather than a stricter referencesOutsideTrip: that one
+   * answers "does this id belong to someone else", and a row that exists
+   * nowhere cannot. accommodation_id depends on that answer staying no, or a
+   * booking whose stay was cascaded away could never be saved again (#522).
+   * The fields here are the ones carrying a real foreign key, where an id that
+   * resolves to nothing is not a gap but a constraint failure, and SQLite
+   * raising it reaches the caller as a bare 500 (#2355). accommodation_id is
+   * absent by design; do not complete the list.
+   *
+   * Only a truthy id is looked up. The write paths below coerce 0 and '' to
+   * NULL before they reach SQL, so naming one here would turn a body that
+   * stores a null today into a 400.
+   *
+   * Returns the offending field names, empty when the body is clean. An id
+   * that belongs to another trip is named here too — the REST controller asks
+   * the older guard first, so that case keeps its own answer.
+   */
+  unresolvedReferences(tripId: string | number, data: CreateReservationData | UpdateReservationData): string[] {
+    const offenders: string[] = [];
+    const onTrip = (table: 'days' | 'places', id: unknown) =>
+      !!this.db.get(`SELECT id FROM ${table} WHERE id = ? AND trip_id = ?`, id, tripId);
+
+    if (data.day_id && !onTrip('days', data.day_id)) offenders.push('day_id');
+    if (data.end_day_id && !onTrip('days', data.end_day_id)) offenders.push('end_day_id');
+    if (data.place_id && !onTrip('places', data.place_id)) offenders.push('place_id');
+    if (data.assignment_id) {
+      // An assignment belongs to a trip through its day, the same join the
+      // other guard walks.
+      const row = this.db.get(
+        'SELECT da.id FROM day_assignments da JOIN days d ON da.day_id = d.id WHERE da.id = ? AND d.trip_id = ?',
+        data.assignment_id, tripId,
+      );
+      if (!row) offenders.push('assignment_id');
+    }
+
+    // Only a hotel booking writes the stay row, so only there do these ids
+    // reach SQL. Any other body carries them as dead weight today, and a 400
+    // on a write that currently succeeds is not what this guard is for.
+    if (data.create_accommodation && data.type === 'hotel') {
+      const acc = data.create_accommodation;
+      const errors = this.accommodations.validateAccommodationRefs(
+        tripId, acc.place_id || undefined, acc.start_day_id || undefined, acc.end_day_id || undefined,
+      );
+      for (const { field } of errors) offenders.push(`create_accommodation.${field}`);
+    }
+
+    return offenders;
+  }
+
+  /** Is there still a row behind this id? Existence only — which trip it sits
+   *  on is the guards' question, and they answer it before the write. */
+  private referenceExists(table: 'days' | 'places' | 'day_assignments', id: unknown): boolean {
+    return !!this.db.get(`SELECT id FROM ${table} WHERE id = ?`, id);
+  }
+
+  /**
+   * An id whose row is gone reads as no id at all.
+   *
+   * day_id, end_day_id, place_id and assignment_id are declared ON DELETE SET
+   * NULL, so a reference that resolves to nothing is precisely the state the
+   * cascade leaves behind, and clearing it is what the column already promises.
+   * Binding it instead is the foreign-key error that arrives as a bare 500
+   * (#2355), and an update rebinds whatever the row already held, so a guard
+   * on the body alone never reaches it.
+   */
+  private resolvedOrNull(table: 'days' | 'places' | 'day_assignments', id: number | null): number | null {
+    return id != null && this.referenceExists(table, id) ? id : null;
+  }
+
+  /**
+   * day_accommodations.start_day_id and end_day_id are NOT NULL, so there is
+   * nothing to heal an unresolvable one to and it can only be refused. The
+   * write surfaces name the field long before this; this is the floor under
+   * the importers and the plugin host, and it refuses rather than skipping so
+   * an edit is never dropped in silence.
+   *
+   * Both days are already known to be set where this is called. A place is
+   * not: the booking form writes stays that never had one.
+   *
+   * BadRequestException rather than a domain error class, because the filter
+   * already knows what to do with it: a caller that reaches this over HTTP gets
+   * the same 400 { error } the controller's own guard sends, and not the 500 an
+   * unplaceable class would collapse to (#2355). Its message survives, so the
+   * importer that logs and moves on still names the field.
+   */
+  private requireResolvableStay(acc: CreateAccommodation): void {
+    const missing: string[] = [];
+    if (acc.place_id && !this.referenceExists('places', acc.place_id)) missing.push('place_id');
+    if (!this.referenceExists('days', acc.start_day_id)) missing.push('start_day_id');
+    if (!this.referenceExists('days', acc.end_day_id)) missing.push('end_day_id');
+    if (missing.length > 0) {
+      throw new BadRequestException(`Unknown reference: ${missing.map((field) => `create_accommodation.${field}`).join(', ')}`);
+    }
+  }
+
   /** The accommodation insert, the reservation insert, the endpoint save and
    *  the metadata sync are one logical write — all-or-nothing. */
   create(tripId: string | number, data: CreateReservationData): { reservation: ReservationRow; accommodationCreated: boolean } {
-    return this.db.transaction(() => this.createInTx(tripId, data));
+    const { stayMirror, ...written } = this.db.transaction(() => this.createInTx(tripId, data));
+    this.announceStayMirror(tripId, stayMirror);
+    return written;
   }
 
-  private createInTx(tripId: string | number, data: CreateReservationData): { reservation: ReservationRow; accommodationCreated: boolean } {
+  private createInTx(tripId: string | number, data: CreateReservationData): { reservation: ReservationRow; accommodationCreated: boolean; stayMirror: AccommodationMirror } {
     const {
       title, reservation_time, reservation_end_time, location,
       confirmation_number, notes, url, day_id, end_day_id, place_id, assignment_id,
@@ -498,18 +680,30 @@ export class ReservationsService {
     } = data;
 
     let accommodationCreated = false;
+    let stayMirror = noStayMirror();
 
-    // Auto-create accommodation for hotel reservations
+    // Auto-create accommodation for hotel reservations.
+    //
+    // The stay row is written here rather than through createAccommodation: this
+    // surface has its own field set and its own COALESCE semantics, and folding
+    // the two together would bend one of them out of shape. The day stop is the
+    // part that must not exist twice, so it comes from AccommodationsService.
     let resolvedAccommodationId: number | null = accommodation_id || null;
     if (type === 'hotel' && !resolvedAccommodationId && create_accommodation) {
       const { place_id: accPlaceId, start_day_id, end_day_id, check_in, check_out, confirmation: accConf } = create_accommodation;
       if (start_day_id && end_day_id) {
+        this.requireResolvableStay(create_accommodation);
         const accResult = this.db.run(
           'INSERT INTO day_accommodations (trip_id, place_id, start_day_id, end_day_id, check_in, check_out, confirmation) VALUES (?, ?, ?, ?, ?, ?, ?)',
           tripId, accPlaceId || null, start_day_id, end_day_id, check_in || null, check_out || null, accConf || confirmation_number || null
         );
         resolvedAccommodationId = Number(accResult.lastInsertRowid);
         accommodationCreated = true;
+        // Same night, same day header, so the same stop the road trip draws for a
+        // night entered under Days. Without it the hotel booked on this form is the
+        // one place the drive does not know about, which is the duplicate entry this
+        // whole change exists to remove.
+        stayMirror = this.accommodations.attachStayStop(resolvedAccommodationId, accPlaceId || null, start_day_id, check_in);
       }
     }
 
@@ -526,6 +720,11 @@ export class ReservationsService {
       resolvedEndDayId = this.resolveDayIdFromTime(tripId, reservation_end_time);
     }
 
+    resolvedDayId = this.resolvedOrNull('days', resolvedDayId);
+    resolvedEndDayId = this.resolvedOrNull('days', resolvedEndDayId);
+    const resolvedPlaceId = this.resolvedOrNull('places', place_id || null);
+    const resolvedAssignmentId = this.resolvedOrNull('day_assignments', assignment_id || null);
+
     const result = this.db.run(`
     INSERT INTO reservations (trip_id, day_id, end_day_id, place_id, assignment_id, title, reservation_time, reservation_end_time, location, confirmation_number, notes, url, status, type, accommodation_id, metadata, needs_review)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -533,8 +732,8 @@ export class ReservationsService {
       tripId,
       resolvedDayId,
       resolvedEndDayId,
-      place_id || null,
-      assignment_id || null,
+      resolvedPlaceId,
+      resolvedAssignmentId,
       title,
       reservation_time || null,
       reservation_end_time || null,
@@ -575,7 +774,7 @@ export class ReservationsService {
 
     // The row was just inserted, so the re-select can't miss (legacy typed this any).
     const reservation = this.getReservationWithJoins(Number(result.lastInsertRowid))!;
-    return { reservation, accommodationCreated };
+    return { reservation, accommodationCreated, stayMirror };
   }
 
   updatePositions(tripId: string | number, positions: { id: number; day_plan_position?: number }[], dayId?: number | string | null) {
@@ -618,10 +817,12 @@ export class ReservationsService {
   /** The accommodation upsert, the reservation update, the endpoint replace
    *  and the metadata sync are one logical write — all-or-nothing. */
   update(id: string | number, tripId: string | number, data: UpdateReservationData, current: Reservation): { reservation: ReservationRow; accommodationChanged: boolean } {
-    return this.db.transaction(() => this.updateInTx(id, tripId, data, current));
+    const { stayMirror, ...written } = this.db.transaction(() => this.updateInTx(id, tripId, data, current));
+    this.announceStayMirror(tripId, stayMirror);
+    return written;
   }
 
-  private updateInTx(id: string | number, tripId: string | number, data: UpdateReservationData, current: Reservation): { reservation: ReservationRow; accommodationChanged: boolean } {
+  private updateInTx(id: string | number, tripId: string | number, data: UpdateReservationData, current: Reservation): { reservation: ReservationRow; accommodationChanged: boolean; stayMirror: AccommodationMirror } {
     const {
       title, reservation_time, reservation_end_time, location,
       confirmation_number, notes, url, day_id, end_day_id, place_id, assignment_id,
@@ -630,6 +831,7 @@ export class ReservationsService {
     } = data;
 
     let accommodationChanged = false;
+    let stayMirror = noStayMirror();
 
     // Update or create accommodation for hotel reservations
     let resolvedAccId: number | null = accommodation_id !== undefined ? (accommodation_id || null) : (current.accommodation_id ?? null);
@@ -642,21 +844,37 @@ export class ReservationsService {
     if (type === 'hotel' && create_accommodation) {
       const { place_id: accPlaceId, start_day_id, end_day_id, check_in, check_out, confirmation: accConf } = create_accommodation;
       if (start_day_id && end_day_id) {
+        this.requireResolvableStay(create_accommodation);
         if (resolvedAccId) {
+          const prior = this.db.get<{ check_in: string | null }>('SELECT check_in FROM day_accommodations WHERE id = ?', resolvedAccId);
           this.db.run(
             'UPDATE day_accommodations SET place_id = ?, start_day_id = ?, end_day_id = ?, check_in = ?, check_out = ?, confirmation = ? WHERE id = ?',
             accPlaceId || null, start_day_id, end_day_id, check_in || null, check_out || null, accConf || confirmation_number || null, resolvedAccId
           );
+          // The stay just moved. Its stop moves with it, or it is left sitting on a
+          // day nobody sleeps there any more, hidden from the day list because it
+          // still carries this booking's id and stranded in the middle of the drive.
+          stayMirror = this.accommodations.moveStayStop(resolvedAccId, accPlaceId || null, start_day_id, check_in, {
+            checkInChanged: (check_in || null) !== (prior?.check_in ?? null),
+          });
         } else if (accPlaceId) {
           const accResult = this.db.run(
             'INSERT INTO day_accommodations (trip_id, place_id, start_day_id, end_day_id, check_in, check_out, confirmation) VALUES (?, ?, ?, ?, ?, ?, ?)',
             tripId, accPlaceId, start_day_id, end_day_id, check_in || null, check_out || null, accConf || confirmation_number || null
           );
           resolvedAccId = Number(accResult.lastInsertRowid);
+          stayMirror = this.accommodations.attachStayStop(resolvedAccId, accPlaceId, start_day_id, check_in);
         }
         accommodationChanged = true;
       }
     }
+
+    // metadata.price / priceCurrency are written by the expense side and by the
+    // booking importer, never by the booking form: the client rebuilds metadata
+    // from its fields on every save and carries only transit / airtrail_ids
+    // over, so a plain edit used to wipe the price off the card until the
+    // expense was re-saved. A payload that does not name the keys keeps them.
+    const nextMetadata = keepMirroredPrice(metadata, current.metadata);
 
     const resolvedType = (type ?? current.type) || 'other';
     const nextReservationTime = resolvedType === 'hotel'
@@ -694,6 +912,11 @@ export class ReservationsService {
       nextEndDayId = current.end_day_id ?? null;
     }
 
+    nextDayId = this.resolvedOrNull('days', nextDayId);
+    nextEndDayId = this.resolvedOrNull('days', nextEndDayId);
+    const nextPlaceId = this.resolvedOrNull('places', place_id !== undefined ? (place_id || null) : (current.place_id ?? null));
+    const nextAssignmentId = this.resolvedOrNull('day_assignments', assignment_id !== undefined ? (assignment_id || null) : (current.assignment_id ?? null));
+
     this.db.run(`
     UPDATE reservations SET
       title = COALESCE(?, title),
@@ -723,12 +946,12 @@ export class ReservationsService {
       url !== undefined ? (url || null) : (current as Reservation & { url?: string | null }).url,
       nextDayId,
       nextEndDayId,
-      place_id !== undefined ? (place_id || null) : current.place_id,
-      assignment_id !== undefined ? (assignment_id || null) : current.assignment_id,
+      nextPlaceId,
+      nextAssignmentId,
       status || null,
       type || null,
       resolvedAccId,
-      metadata !== undefined ? (metadata ? JSON.stringify(metadata) : null) : current.metadata,
+      nextMetadata !== undefined ? (nextMetadata ? JSON.stringify(nextMetadata) : null) : current.metadata,
       needs_review === undefined ? null : (needs_review ? 1 : 0),
       id
     );
@@ -738,7 +961,7 @@ export class ReservationsService {
     }
 
     // Sync check-in/out to accommodation if linked
-    const resolvedMeta = metadata !== undefined ? metadata : (current.metadata ? JSON.parse(current.metadata as string) : null);
+    const resolvedMeta = nextMetadata !== undefined ? nextMetadata : (current.metadata ? JSON.parse(current.metadata as string) : null);
     if (resolvedAccId && resolvedMeta) {
       const meta = (typeof resolvedMeta === 'string' ? JSON.parse(resolvedMeta) : resolvedMeta) as AccommodationTimesMeta;
       if (meta.check_in_time || meta.check_in_end_time || meta.check_out_time) {
@@ -759,27 +982,37 @@ export class ReservationsService {
     // The caller passed the pre-checked `current` row, so the re-select can't
     // miss (legacy typed this any).
     const reservation = this.getReservationWithJoins(id)!;
-    return { reservation, accommodationChanged };
+    return { reservation, accommodationChanged, stayMirror };
   }
 
   /** The accommodation + budget-item + reservation deletes are one logical
    *  cascade — all-or-nothing. */
   remove(id: string | number, tripId: string | number): { deleted: { id: number; title: string; type: string; accommodation_id: number | null } | undefined; accommodationDeleted: boolean; deletedBudgetItemId: number | null } {
-    return this.db.transaction(() => {
+    const removed = this.db.transaction(() => {
       const reservation = this.db.get<{ id: number; title: string; type: string; accommodation_id: number | null }>(
         'SELECT id, title, type, accommodation_id FROM reservations WHERE id = ? AND trip_id = ?', id, tripId
       );
-      if (!reservation) return { deleted: undefined, accommodationDeleted: false, deletedBudgetItemId: null };
+      if (!reservation) return { deleted: undefined, accommodationDeleted: false, deletedBudgetItemId: null, stayMirror: noStayMirror() };
 
       let accommodationDeleted = false;
+      let stayMirror = noStayMirror();
       if (reservation.accommodation_id) {
-        // trip_id in the WHERE, not just the reservation's own scope: a row
-        // written before referencesOutsideTrip existed can still carry a
-        // foreign accommodation_id, and the cascade must not follow it.
-        const removed = this.db.run(
-          'DELETE FROM day_accommodations WHERE id = ? AND trip_id = ?', reservation.accommodation_id, tripId,
+        // trip_id in the check, not just the reservation's own scope: a row written
+        // before referencesOutsideTrip existed can still carry a foreign
+        // accommodation_id, and the cascade must not follow it. The stops go by
+        // accommodation id alone, which is exactly the reach that guard denies.
+        const ownStay = this.db.get<{ id: number }>(
+          'SELECT id FROM day_accommodations WHERE id = ? AND trip_id = ?', reservation.accommodation_id, tripId,
         );
-        accommodationDeleted = removed.changes > 0;
+        if (ownStay) {
+          // Released before the row goes, not after: the release looks the stops up
+          // by accommodation id, and that pointer is cleared the moment the stay is
+          // deleted. Reversed, the stop stands with nothing left to remove it, and
+          // the day list hides it for carrying a booking id.
+          stayMirror = this.accommodations.dropStayStops(reservation.accommodation_id);
+          this.db.run('DELETE FROM day_accommodations WHERE id = ? AND trip_id = ?', reservation.accommodation_id, tripId);
+          accommodationDeleted = true;
+        }
       }
 
       const linkedBudget = this.db.get<{ id: number }>('SELECT id FROM budget_items WHERE trip_id = ? AND reservation_id = ?', tripId, id);
@@ -788,8 +1021,11 @@ export class ReservationsService {
       }
 
       this.db.run('DELETE FROM reservations WHERE id = ?', id);
-      return { deleted: reservation, accommodationDeleted, deletedBudgetItemId: linkedBudget ? linkedBudget.id : null };
+      return { deleted: reservation, accommodationDeleted, deletedBudgetItemId: linkedBudget ? linkedBudget.id : null, stayMirror };
     });
+    const { stayMirror, ...answer } = removed;
+    this.announceStayMirror(tripId, stayMirror);
+    return answer;
   }
 
   /** POST side effect: auto-create a linked budget item when a price is provided. */

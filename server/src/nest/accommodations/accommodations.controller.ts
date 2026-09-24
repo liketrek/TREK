@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  Query,
   Get,
   Headers,
   HttpException,
@@ -11,7 +12,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { User } from '../../types';
-import { AccommodationsService } from './accommodations.service';
+import { AccommodationsService, type MirrorSender } from './accommodations.service';
 import { AccommodationCreateDto, AccommodationUpdateDto } from './accommodations.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
@@ -37,6 +38,11 @@ type AccommodationBody = {
  * found) bodies, create 201 / rest 200, and the cascade broadcasts (a created
  * accommodation also emits reservation:created; a delete emits the linked
  * reservation/budget deletions) with the forwarded X-Socket-Id.
+ *
+ * A booking also writes the day stop that puts it on the route. What that did to
+ * the day plan goes to every socket, the sender's included (see mirrorSender),
+ * and the answers carry the stop alongside the existing fields as well, for a
+ * session whose socket is down at that moment.
  */
 @Controller('api/trips/:tripId/accommodations')
 // TripAccessGuard resolves :tripId and 404s a trip the user cannot reach; mutations
@@ -46,7 +52,20 @@ type AccommodationBody = {
 export class AccommodationsController {
   constructor(private readonly accommodations: AccommodationsService) {}
 
-
+  /**
+   * The mirror's door out, with no socket to skip.
+   *
+   * The booking events above it are echo-suppressed because the client already drew
+   * what it sent. It never sent the day plan's side of the write: the stop is in the
+   * answer, but the order the night was seated into and the vias re-pinned around it
+   * are not, and a session that applies the stop from the answer alone keeps the
+   * stops behind it on their old numbers until a reload. Over the socket the stop
+   * and the order arrive together and in order, and the answer's copy of the stop
+   * is a duplicate the store already drops.
+   */
+  private mirrorSender(tripId: string): MirrorSender {
+    return (event, payload) => this.accommodations.broadcast(tripId, event, payload, undefined);
+  }
 
   @Get()
   list(@CurrentUser() user: User, @Param('tripId') tripId: string) {
@@ -70,10 +89,13 @@ export class AccommodationsController {
     if (errors.length > 0) {
       throw new HttpException({ error: errors[0].message }, 404);
     }
-    const accommodation = this.accommodations.create(tripId, { place_id, start_day_id, end_day_id, check_in, check_in_end, check_out, confirmation, notes } as never);
+    const { accommodation, mirror } = this.accommodations.create(tripId, { place_id, start_day_id, end_day_id, check_in, check_in_end, check_out, confirmation, notes } as never);
     this.accommodations.broadcast(tripId, 'accommodation:created', { accommodation }, socketId);
     this.accommodations.broadcast(tripId, 'reservation:created', {}, socketId);
-    return { accommodation };
+    this.accommodations.announceMirror(tripId, mirror, this.mirrorSender(tripId), socketId);
+    // The stop rides in the answer as well, for the session that booked the night
+    // with its socket down: over the socket it would already have it.
+    return { accommodation, assignment: mirror.created };
   }
 
   @RequirePermission('day_edit')
@@ -95,9 +117,10 @@ export class AccommodationsController {
     if (errors.length > 0) {
       throw new HttpException({ error: errors[0].message }, 404);
     }
-    const accommodation = this.accommodations.update(id, existing as never, { place_id, start_day_id, end_day_id, check_in, check_in_end, check_out, confirmation, notes } as never);
+    const { accommodation, mirror } = this.accommodations.update(id, existing as never, { place_id, start_day_id, end_day_id, check_in, check_in_end, check_out, confirmation, notes } as never);
     this.accommodations.broadcast(tripId, 'accommodation:updated', { accommodation }, socketId);
-    return { accommodation };
+    this.accommodations.announceMirror(tripId, mirror, this.mirrorSender(tripId), socketId);
+    return { accommodation, assignment: mirror.created, movedAssignment: mirror.moved, removedAssignments: mirror.removed };
   }
 
   @RequirePermission('day_edit')
@@ -107,11 +130,16 @@ export class AccommodationsController {
     @Param('tripId') tripId: string,
     @Param('id') id: string,
     @Headers('x-socket-id') socketId?: string,
+    @Query('keepStop') keepStop?: string,
   ) {
     if (!this.accommodations.get(id, tripId)) {
       throw new HttpException({ error: 'Accommodation not found' }, 404);
     }
-    const { linkedReservationIds, deletedBudgetItemIds } = this.accommodations.remove(id);
+    // Turning a night back into a pause in road trip mode: the booking goes, the
+    // stop stays and becomes the traveller's. Everywhere else a cancelled booking
+    // takes the stop it brought with it.
+    const { linkedReservationIds, deletedBudgetItemIds, mirror } = this.accommodations.remove(id, { keepStop: keepStop === 'true' });
+    this.accommodations.announceMirror(tripId, mirror, this.mirrorSender(tripId), socketId);
     for (const reservationId of linkedReservationIds) {
       this.accommodations.broadcast(tripId, 'reservation:deleted', { reservationId }, socketId);
     }
@@ -119,6 +147,6 @@ export class AccommodationsController {
       this.accommodations.broadcast(tripId, 'budget:deleted', { itemId }, socketId);
     }
     this.accommodations.broadcast(tripId, 'accommodation:deleted', { accommodationId: Number(id) }, socketId);
-    return { success: true };
+    return { success: true, removedAssignments: mirror.removed, updatedAssignments: mirror.updated };
   }
 }

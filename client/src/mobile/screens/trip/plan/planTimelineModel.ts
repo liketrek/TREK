@@ -1,6 +1,6 @@
 import { Cloud, CloudDrizzle, CloudLightning, CloudRain, CloudSnow, Sun, Wind } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { getDisplayTimeForDay, getSpanPhase, hidesOnMiddleDay, parseTimeToMinutes } from '../../../../utils/dayMerge'
+import { getAssignmentReservations, getDisplayTimeForDay, getSpanPhase, hidesOnMiddleDay, parseTimeToMinutes } from '../../../../utils/dayMerge'
 import { getDayBookendHotels, isDayInAccommodationRange } from '../../../../utils/dayOrder'
 import type { MergedItem } from '../../../../utils/dayMerge'
 import type { TransitLegDisplay } from '../../../../components/Planner/transitDisplay'
@@ -24,7 +24,7 @@ export interface TransitMeta {
 }
 
 export type PlanRow =
-  | { key: string; kind: 'place'; item: MergedItem; assignment: Assignment; linkedRes: Reservation | null }
+  | { key: string; kind: 'place'; item: MergedItem; assignment: Assignment; linkedReservations: Reservation[] }
   | { key: string; kind: 'transport'; item: MergedItem; res: TransportEntry }
   | { key: string; kind: 'transit'; item: MergedItem; res: TransportEntry; transit: TransitMeta }
   | { key: string; kind: 'note'; item: MergedItem; note: DayNote }
@@ -100,7 +100,10 @@ export function buildPlanRows(opts: {
         kind: 'place',
         item,
         assignment,
-        linkedRes: reservations.find(r => r.assignment_id === assignment.id) ?? null,
+        // All of them: a stop can carry a parking pass and the tickets for the same
+        // attraction, and getTransportForDay keeps every linked booking out of the
+        // timeline, so anything dropped here is gone from the plan tab (#2201).
+        linkedReservations: getAssignmentReservations(reservations, assignment.id),
       })
     } else if (item.type === 'note') {
       const note = item.data as DayNote
@@ -150,6 +153,9 @@ export interface HotelChip {
   variant: 'checkout' | 'checkin' | 'stay'
   name: string
   time: string | null
+  /** The stay behind the chip, so a tap can open it rather than the day (#2210). */
+  accId: number
+  placeId: number | null
 }
 
 const accommodationName = (a: Accommodation): string => a.place_name || a.reservation_title || ''
@@ -159,12 +165,13 @@ export function hotelChipsForDay(day: Day, days: Day[], accommodations: Accommod
   const inRange = accommodations.filter(a => isDayInAccommodationRange(day, a.start_day_id, a.end_day_id, days))
   const chips: HotelChip[] = []
   for (const a of inRange) {
+    const stay = { name: accommodationName(a), accId: a.id, placeId: a.place_id ?? null }
     if (a.end_day_id === day.id) {
-      chips.push({ key: `out-${a.id}`, variant: 'checkout', name: accommodationName(a), time: a.check_out || null })
+      chips.push({ ...stay, key: `out-${a.id}`, variant: 'checkout', time: a.check_out || null })
     } else if (a.start_day_id === day.id) {
-      chips.push({ key: `in-${a.id}`, variant: 'checkin', name: accommodationName(a), time: a.check_in || null })
+      chips.push({ ...stay, key: `in-${a.id}`, variant: 'checkin', time: a.check_in || null })
     } else {
-      chips.push({ key: `stay-${a.id}`, variant: 'stay', name: accommodationName(a), time: null })
+      chips.push({ ...stay, key: `stay-${a.id}`, variant: 'stay', time: null })
     }
   }
   const rank = { checkout: 0, checkin: 1, stay: 2 }
@@ -192,10 +199,21 @@ export function hotelLegsForDay(
   const legAt = (a: Accommodation | undefined, end: 'from' | 'to'): HotelLeg | null => {
     if (!a || a.place_lat == null || a.place_lng == null) return null
     const coord: [number, number] = [a.place_lat, a.place_lng]
-    const seg = routeSegments.find(s => sameCoord(end === 'from' ? s.from : s.to, coord))
+    // The morning leg is the first segment leaving the hotel, the evening leg the
+    // LAST one reaching it. Taking the first for both put an earlier drive that
+    // happens to end on the evening hotel's spot under the day's end, instead of
+    // the drive that closes the day (#2476).
+    const seg = end === 'from'
+      ? routeSegments.find(s => sameCoord(s.from, coord))
+      : [...routeSegments].reverse().find(s => sameCoord(s.to, coord))
     return seg ? { seg, name: accommodationName(a) } : null
   }
-  return { top: legAt(morning, 'from'), bottom: legAt(evening, 'to') }
+  const top = legAt(morning, 'from')
+  const bottom = legAt(evening, 'to')
+  // A moving day without stops is one drive from one hotel to the next (#1297): it
+  // both leaves the morning hotel and reaches the evening one, so it shows once, at
+  // the top, instead of again at the bottom (#2476).
+  return { top, bottom: top && bottom && bottom.seg === top.seg ? null : bottom }
 }
 
 /** The day headline as city pills — a "Tokyo → Kyoto" title becomes two pills with an arrow. */
@@ -220,21 +238,28 @@ const localIsoDate = (d: Date): string =>
 /**
  * The "UP NEXT" pick: on today's day the first timed stop that hasn't started
  * yet (with a real countdown); otherwise the first timed stop of the day, or
- * simply the first stop. Null when the day has no places.
+ * simply the first stop.
+ *
+ * Null when the day has no places, when the day is already behind us, and once
+ * today's timed plan has run out — a card headed "UP NEXT" that points at this
+ * morning's first stop, or at a day from last week, is not a plan, it is noise.
  */
 export function findUpNext(day: Day | undefined, dayAssignments: Assignment[], now: Date): UpNext | null {
   if (dayAssignments.length === 0) return null
   const sorted = [...dayAssignments].sort((a, b) => a.order_index - b.order_index)
   const timeOf = (a: Assignment) => parseTimeToMinutes(a.place?.place_time)
-  const isToday = !!day?.date && day.date.slice(0, 10) === localIsoDate(now)
-  if (isToday) {
-    const nowMinutes = now.getHours() * 60 + now.getMinutes()
-    const upcoming = sorted
-      .filter(a => { const m = timeOf(a); return m != null && m >= nowMinutes })
-      .sort((a, b) => (timeOf(a) ?? 0) - (timeOf(b) ?? 0))
-    if (upcoming.length > 0) return { assignment: upcoming[0], minutesUntil: (timeOf(upcoming[0]) ?? 0) - nowMinutes }
-  }
+  const dayDate = day?.date?.slice(0, 10)
+  const today = localIsoDate(now)
+  if (dayDate && dayDate < today) return null
   const timed = sorted.filter(a => timeOf(a) != null).sort((a, b) => (timeOf(a) ?? 0) - (timeOf(b) ?? 0))
+  if (dayDate === today) {
+    const nowMinutes = now.getHours() * 60 + now.getMinutes()
+    const upcoming = timed.find(a => (timeOf(a) ?? 0) >= nowMinutes)
+    if (upcoming) return { assignment: upcoming, minutesUntil: (timeOf(upcoming) ?? 0) - nowMinutes }
+    // Every timed stop of today has started — a day whose plan carries no times
+    // at all still shows its first stop, there is nothing stale about that.
+    if (timed.length > 0) return null
+  }
   return { assignment: timed[0] ?? sorted[0], minutesUntil: null }
 }
 

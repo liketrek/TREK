@@ -18,6 +18,17 @@ function _parseNumberBodyField(value: unknown, fallback: number): number {
 }
 
 /**
+ * Minutes east of UTC, clamped to the range real zones live in (-12:00 to
+ * +14:00). Anything unreadable is 0, which is the UTC day this route searched
+ * before the browser could say which day it meant.
+ */
+function _parseUtcOffsetBodyField(value: unknown): number {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return 0;
+  return Math.max(-720, Math.min(840, Math.trunc(parsed)));
+}
+
+/**
  * /api/integrations/memories/synologyphotos — Synology Photos connection,
  * search, albums and asset proxy.
  *
@@ -118,10 +129,13 @@ export class SynologyMemoriesController {
     const page = _parseNumberBodyField(body.page, 1) - 1;
     let limit = _parseNumberBodyField(body.limit, 100);
     const size = _parseNumberBodyField(body.size, 0);
+    // `offset` is rows to skip, `utc_offset_minutes` is which 24 hours from/to
+    // name. Two different things that a shared name would silently swap (#2336).
+    const tzOffsetMinutes = _parseUtcOffsetBodyField(body.utc_offset_minutes);
     if (size > 0) limit = size;
     if (page > 0) offset = page * limit;
 
-    this.handle(res, await this.memories.synologySearchPhotos(user.id, from || undefined, to || undefined, offset, limit));
+    this.handle(res, await this.memories.synologySearchPhotos(user.id, from || undefined, to || undefined, offset, limit, tzOffsetMinutes));
   }
 
   @Get('assets/:tripId/:photoId/:ownerId/info')

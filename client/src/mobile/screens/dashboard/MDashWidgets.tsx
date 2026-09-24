@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import {
   ArrowRight, ArrowRightLeft, Bookmark, Calendar, ChevronDown, ChevronRight,
-  Clock, Hotel, MapPin, Plane, Plus, RefreshCw, Ticket, Utensils, X,
+  Clock, Hotel, LogIn, LogOut, MapPin, Plane, Plus, RefreshCw, Ticket, Utensils, X,
 } from 'lucide-react'
 import { useTranslation } from '../../../i18n'
 import { useSettingsStore } from '../../../store/settingsStore'
@@ -12,13 +12,20 @@ import { entityGradient } from '../../../utils/gradients'
 import { CURRENCIES } from '../../../components/Budget/BudgetPanel.constants'
 import { formatTime, splitReservationDateTime } from '../../../utils/formatters'
 import { normalizeAppearance, MOBILE_DASH_TOKENS, type MobileDashToken, type Collection } from '@trek/shared'
-import type { UpcomingReservation } from '../../../pages/dashboard/dashboardModel'
+import { upcomingKey, type UpcomingReservation } from '../../../pages/dashboard/dashboardModel'
 
 const RES_ICON: Record<string, React.ReactElement> = {
   flight: <Plane size={14} strokeWidth={2} />,
   hotel: <Hotel size={14} strokeWidth={2} />,
   restaurant: <Utensils size={14} strokeWidth={2} />,
+  // A stay's two moments (#1934) — the stay itself covers a range and stays out
+  // of a list of what happens next; arriving and leaving are points in time.
+  checkin: <LogIn size={14} strokeWidth={2} />,
+  checkout: <LogOut size={14} strokeWidth={2} />,
 }
+
+/** The label a stay's moment carries in place of a location. */
+const MOMENT_LABEL: Record<string, string> = { checkin: 'day.checkIn', checkout: 'day.checkOut' }
 
 /**
  * Inline dashboard widget panels (currency, collections, timezones, upcoming
@@ -409,8 +416,8 @@ function MUpcomingWidget({ items }: { items: UpcomingReservation[] }): React.Rea
       ? date.toLocaleDateString(locale, { day: 'numeric', month: 'short', timeZone: 'UTC' })
       : null
     const timeStr = parsed.time ? formatTime(parsed.time, locale, timeFormat) : null
-    const place = r.location || r.place_name || r.trip_title || null
-    return [dateStr, timeStr, place].filter(Boolean).join(' · ')
+    const tail = MOMENT_LABEL[r.type] ? t(MOMENT_LABEL[r.type]) : (r.location || r.place_name || r.trip_title || null)
+    return [dateStr, timeStr, tail].filter(Boolean).join(' · ')
   }
 
   return (
@@ -420,7 +427,7 @@ function MUpcomingWidget({ items }: { items: UpcomingReservation[] }): React.Rea
       ) : (
         items.map(r => (
           <button
-            key={r.id}
+            key={upcomingKey(r)}
             type="button"
             onClick={() => openReservation(r.trip_id)}
             className="flex w-full items-center gap-[11px] border-b border-[color:var(--m-rowbr)] py-[9px] text-left"
@@ -429,7 +436,14 @@ function MUpcomingWidget({ items }: { items: UpcomingReservation[] }): React.Rea
               {RES_ICON[r.type] || <Ticket size={14} strokeWidth={2} />}
             </span>
             <div className="min-w-0 flex-1">
-              <div className="truncate text-[0.8125rem] font-semibold">{r.title}</div>
+              <div className="flex min-w-0 items-center gap-1.5">
+                <span className="truncate text-[0.8125rem] font-semibold">{r.title}</span>
+                {r.status === 'pending' && (
+                  <span className="flex-none rounded-full bg-[color:var(--m-ic)] px-[6px] py-px font-geist text-[0.5625rem] font-bold uppercase tracking-[.08em] text-m-muted">
+                    {t('reservations.pending')}
+                  </span>
+                )}
+              </div>
               <div className="truncate font-geist text-[0.625rem] text-m-muted">{subFor(r)}</div>
             </div>
             <ChevronRight size={14} strokeWidth={2} className="flex-none text-m-faint" />

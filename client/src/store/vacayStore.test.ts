@@ -1,4 +1,4 @@
-// FE-STORE-VCY-001 to FE-STORE-VCY-018
+// FE-STORE-VCY-001 to FE-STORE-VCY-023
 // Complements tests/unit/stores/vacayStore.test.ts: optimistic toggles and their
 // rollbacks, the leave-year window plumbing and the holiday-marker merge rules.
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -364,5 +364,62 @@ describe('vacayStore holiday markers', () => {
 
     expect(fetched).not.toHaveBeenCalled();
     expect(useVacayStore.getState().holidays).toEqual({});
+  });
+});
+
+describe('vacayStore year selection', () => {
+  it('FE-STORE-VCY-019: the first load opens on the current period, not on the highest year', async () => {
+    const current = new Date().getFullYear();
+    server.use(http.get('/api/addons/vacay/years', () =>
+      HttpResponse.json({ years: [current - 1, current, current + 4] })));
+
+    await useVacayStore.getState().loadYears();
+
+    expect(useVacayStore.getState().selectedYear).toBe(current);
+  });
+
+  it('FE-STORE-VCY-020: with no year for the current period the closest one is opened', async () => {
+    const current = new Date().getFullYear();
+    server.use(http.get('/api/addons/vacay/years', () =>
+      HttpResponse.json({ years: [current - 3, current + 1] })));
+
+    await useVacayStore.getState().loadYears();
+
+    expect(useVacayStore.getState().selectedYear).toBe(current + 1);
+  });
+
+  it('FE-STORE-VCY-021: a reload keeps the year the viewer is looking at', async () => {
+    const current = new Date().getFullYear();
+    useVacayStore.setState({ years: [current, current + 1], selectedYear: current + 1 });
+    server.use(http.get('/api/addons/vacay/years', () =>
+      HttpResponse.json({ years: [current, current + 1] })));
+
+    await useVacayStore.getState().loadYears();
+
+    expect(useVacayStore.getState().selectedYear).toBe(current + 1);
+  });
+
+  it('FE-STORE-VCY-022: a reload that lost the selected year falls back to the current period', async () => {
+    const current = new Date().getFullYear();
+    useVacayStore.setState({ years: [current, current + 1], selectedYear: current + 1 });
+    server.use(http.get('/api/addons/vacay/years', () =>
+      HttpResponse.json({ years: [current] })));
+
+    await useVacayStore.getState().loadYears();
+
+    expect(useVacayStore.getState().selectedYear).toBe(current);
+  });
+
+  it('FE-STORE-VCY-023: removing the open year drops back to the current period', async () => {
+    const current = new Date().getFullYear();
+    useVacayStore.setState({ years: [current, current + 1], selectedYear: current + 1 });
+    server.use(
+      http.delete('/api/addons/vacay/years/:year', () => HttpResponse.json({ years: [current] })),
+      http.get('/api/addons/vacay/stats/:year', () => HttpResponse.json({ stats: [] })),
+    );
+
+    await useVacayStore.getState().removeYear(current + 1);
+
+    expect(useVacayStore.getState().selectedYear).toBe(current);
   });
 });

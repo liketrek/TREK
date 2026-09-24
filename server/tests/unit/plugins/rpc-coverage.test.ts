@@ -49,13 +49,13 @@ describe('plugin RPC coverage ledger', () => {
     expect(fromRegistry.size).toBe(KNOWN_METHODS.length + UNCONDITIONAL_METHODS.length);
   });
 
-  it('RPCLEDGER-005 the surface is the 113 methods the protocol declares', () => {
+  it('RPCLEDGER-005 the surface is the 114 methods the protocol declares', () => {
     // Pinned rather than derived: a method DELETED from KNOWN_METHODS together with
     // its handler would keep every test above green, and this is the line that makes
     // that show up in the diff.
-    expect(KNOWN_METHODS.length).toBe(110);
+    expect(KNOWN_METHODS.length).toBe(111);
     expect(UNCONDITIONAL_METHODS.length).toBe(3);
-    expect(fromRegistry.size).toBe(113);
+    expect(fromRegistry.size).toBe(114);
   });
 
   it('RPCLEDGER-006 boot-time total coverage is armed in production', () => {

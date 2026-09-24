@@ -8,6 +8,7 @@ import {
   Tool,
   type McpAccessPolicy,
   type McpContext,
+  type PromptArgsShape,
 } from '../../../src/nest-mcp';
 import { createAttachHarness, type AttachHarness, type TestCtx } from './harness';
 
@@ -42,6 +43,13 @@ class FixtureMcp {
     return { content: [{ type: 'text', text: `wrote as ${ctx.userId}` }] };
   }
 
+  // A whole schema, the way a plugin's manifest-built tool arrives: its author
+  // decided how open it is, and the registry must not tighten it.
+  @Tool({ name: 'loose_tool', inputSchema: z.looseObject({ name: z.string() }) })
+  async looseTool(args: Record<string, unknown>, ctx: TestCtx) {
+    return { content: [{ type: 'text', text: JSON.stringify({ args, userId: ctx.userId }) }] };
+  }
+
   @Tool({ name: 'predicate_tool', access: (ctx: McpContext) => (ctx as TestCtx).allow === true })
   async predicateTool(args: Record<string, never>, ctx: TestCtx) {
     return { content: [{ type: 'text', text: JSON.stringify({ args, userId: ctx.userId }) }] };
@@ -70,6 +78,17 @@ class FixtureMcp {
   @Prompt({ name: 'fixture_prompt', description: 'Prompts.', argsSchema: { topic: z.string() } })
   async fixturePrompt({ topic }: { topic: string }, ctx: TestCtx) {
     return { messages: [{ role: 'user', content: { type: 'text', text: `${topic} for ${ctx.userId}` } }] };
+  }
+
+  // Arguments reach the server as strings; a numeric one is parsed on the way in.
+  @Prompt({ name: 'fixture_count', argsSchema: { count: z.string().regex(/^\d+$/).transform(Number) } })
+  async fixtureCount({ count }: { count: number }, ctx: TestCtx) {
+    return { messages: [{ role: 'user', content: { type: 'text', text: `${typeof count} ${count + 1} for ${ctx.userId}` } }] };
+  }
+
+  @Prompt({ name: 'fixture_bare', argsSchema: {} })
+  async fixtureBare(args: Record<string, never>, ctx: TestCtx) {
+    return { messages: [{ role: 'user', content: { type: 'text', text: `${Object.keys(args).length} args for ${ctx.userId}` } }] };
   }
 }
 
@@ -138,25 +157,25 @@ describe('McpRegistry.attach', () => {
   it('registers everything for a ctx passing all access checks', async () => {
     harness = await createAttachHarness(buildRegistry(), { userId: 7, canRead: true, canWrite: true, allow: true });
     const tools = (await harness.client.listTools()).tools.map((t) => t.name).sort();
-    expect(tools).toEqual(['open_tool', 'predicate_tool', 'read_tool', 'write_tool']);
+    expect(tools).toEqual(['loose_tool', 'open_tool', 'predicate_tool', 'read_tool', 'write_tool']);
     const resources = (await harness.client.listResources()).resources.map((r) => r.name);
     expect(resources).toEqual(['fixture_doc']);
     const templates = (await harness.client.listResourceTemplates()).resourceTemplates.map((t) => t.name);
     expect(templates).toEqual(['fixture_item']);
-    const prompts = (await harness.client.listPrompts()).prompts.map((p) => p.name);
-    expect(prompts).toEqual(['fixture_prompt']);
+    const prompts = (await harness.client.listPrompts()).prompts.map((p) => p.name).sort();
+    expect(prompts).toEqual(['fixture_bare', 'fixture_count', 'fixture_prompt']);
   });
 
   it('filters declarative access through the policy per mode', async () => {
     harness = await createAttachHarness(buildRegistry(), { userId: 7, canRead: true, canWrite: false, allow: false });
     const tools = (await harness.client.listTools()).tools.map((t) => t.name).sort();
-    expect(tools).toEqual(['open_tool', 'read_tool']);
+    expect(tools).toEqual(['loose_tool', 'open_tool', 'read_tool']);
   });
 
   it('filters everything gated when the ctx grants nothing, keeping ungated entries', async () => {
     harness = await createAttachHarness(buildRegistry(), { userId: 7 });
     const tools = (await harness.client.listTools()).tools.map((t) => t.name).sort();
-    expect(tools).toEqual(['open_tool']);
+    expect(tools).toEqual(['loose_tool', 'open_tool']);
     expect((await harness.client.listResources()).resources).toEqual([]);
     const templates = (await harness.client.listResourceTemplates()).resourceTemplates.map((t) => t.name);
     expect(templates).toEqual(['fixture_item']);
@@ -174,6 +193,32 @@ describe('McpRegistry.attach', () => {
     harness = await createAttachHarness(buildRegistry(), { userId: 42, canRead: true, canWrite: true, allow: true });
     const result = await harness.client.callTool({ name: 'read_tool', arguments: { name: 'trek' } });
     expect(JSON.parse(textOf(result))).toEqual({ greeting: 'hello trek', userId: 42 });
+  });
+
+  it('refuses an argument the tool never declared instead of stripping it', async () => {
+    harness = await createAttachHarness(buildRegistry(), { userId: 42, canRead: true, canWrite: true, allow: true });
+    // A shape is registered strict: the SDK would otherwise drop `nmae` and run
+    // the handler as if the caller had sent nothing wrong.
+    const refused = await harness.client.callTool({ name: 'read_tool', arguments: { name: 'trek', nmae: 'typo' } });
+    expect(refused.isError).toBe(true);
+    expect(textOf(refused)).toMatch(/Unrecognized key.*nmae/);
+    // An empty shape is strict too: nothing declared means nothing accepted.
+    const stray = await harness.client.callTool({ name: 'write_tool', arguments: { anything: 1 } });
+    expect(stray.isError).toBe(true);
+    expect(textOf(stray)).toMatch(/Unrecognized key.*anything/);
+    expect(textOf(await harness.client.callTool({ name: 'write_tool', arguments: {} }))).toBe('wrote as 42');
+    // tools/list says so up front, so a client that reads the schema never sends it.
+    const tools = (await harness.client.listTools()).tools;
+    expect(tools.find((t) => t.name === 'read_tool')?.inputSchema).toMatchObject({ additionalProperties: false });
+    expect(tools.find((t) => t.name === 'write_tool')?.inputSchema).toMatchObject({ additionalProperties: false });
+  });
+
+  it('hands a whole schema to the SDK as written, however open its author left it', async () => {
+    harness = await createAttachHarness(buildRegistry(), { userId: 42 });
+    const result = await harness.client.callTool({ name: 'loose_tool', arguments: { name: 'trek', extra: 'kept' } });
+    expect(JSON.parse(textOf(result))).toEqual({ args: { name: 'trek', extra: 'kept' }, userId: 42 });
+    const loose = (await harness.client.listTools()).tools.find((t) => t.name === 'loose_tool');
+    expect(loose?.inputSchema).not.toHaveProperty('additionalProperties', false);
   });
 
   it('normalizes args to {} for tools declared without an inputSchema', async () => {
@@ -198,6 +243,34 @@ describe('McpRegistry.attach', () => {
     harness = await createAttachHarness(buildRegistry(), { userId: 3 });
     const result = await harness.client.getPrompt({ name: 'fixture_prompt', arguments: { topic: 'packing' } });
     expect(result.messages[0]?.content).toMatchObject({ type: 'text', text: 'packing for 3' });
+  });
+
+  it('hands prompt handlers the transformed argument, not the wire string (#2207)', async () => {
+    harness = await createAttachHarness(buildRegistry(), { userId: 3 });
+    const result = await harness.client.getPrompt({ name: 'fixture_count', arguments: { count: '41' } });
+    expect(result.messages[0]?.content).toMatchObject({ type: 'text', text: 'number 42 for 3' });
+    await expect(harness.client.getPrompt({ name: 'fixture_count', arguments: { count: 'many' } }))
+      .rejects.toThrow(/Invalid arguments for prompt fixture_count/);
+  });
+
+  it('serves a prompt with an empty argsSchema to a request that omits arguments', async () => {
+    harness = await createAttachHarness(buildRegistry(), { userId: 3 });
+    const result = await harness.client.getPrompt({ name: 'fixture_bare' });
+    expect(result.messages[0]?.content).toMatchObject({ type: 'text', text: '0 args for 3' });
+    const listed = (await harness.client.listPrompts()).prompts.find((p) => p.name === 'fixture_bare');
+    expect(listed?.arguments).toBeUndefined();
+  });
+
+  it('only admits string-input schemas as prompt arguments', () => {
+    // Compile-time contract: a z.number() argument can never be satisfied over
+    // the wire, so PromptArgsShape refuses it while string, optional string and
+    // string-to-number transforms all pass.
+    type Admits<S> = S extends PromptArgsShape ? true : false;
+    const numberRefused: Admits<{ tripId: z.ZodNumber }> = false;
+    const stringAdmitted: Admits<{ topic: z.ZodString }> = true;
+    const optionalAdmitted: Admits<{ topic: z.ZodOptional<z.ZodString> }> = true;
+    const transformAdmitted: Admits<{ count: z.ZodPipe<z.ZodString, z.ZodTransform<number, string>> }> = true;
+    expect([numberRefused, stringAdmitted, optionalAdmitted, transformAdmitted]).toEqual([false, true, true, true]);
   });
 
   it('ANDs `when` in front of declarative access (both must pass)', async () => {

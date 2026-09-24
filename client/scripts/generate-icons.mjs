@@ -26,4 +26,25 @@ for (const { name, size } of sizes) {
   console.log(`  \u2713 ${name} (${size}x${size})`);
 }
 
+// Maskable variants: Android lays a maskable icon edge to edge under the round
+// launcher mask, so the glyph has to sit inside the safe zone (a circle of 80%
+// of the canvas). The master SVG draws the glyph nearly full bleed; shrink and
+// recenter it, keeping the brand gradient as the full background.
+const maskableSvg = svgBuffer
+  .toString()
+  .replace('translate(56,51) scale(0.267)', 'translate(81,81) scale(0.234)');
+
+const maskableSizes = [
+  { name: 'icon-maskable-192x192.png', size: 192 },
+  { name: 'icon-maskable-512x512.png', size: 512 },
+];
+
+for (const { name, size } of maskableSizes) {
+  await sharp(Buffer.from(maskableSvg), { density: 300 })
+    .resize(size, size)
+    .png({ compressionLevel: 9 })
+    .toFile(join(iconsDir, name));
+  console.log(`  \u2713 ${name} (${size}x${size}, maskable)`);
+}
+
 console.log('PWA icons generated.');

@@ -1,10 +1,11 @@
 import { useRef, useState, useEffect, useCallback, useMemo } from 'react'
 import { Plus } from 'lucide-react'
 import JourneyMap from './JourneyMap'
-import MobileEntryCard from './MobileEntryCard'
+import JourneyEntryCover from './JourneyEntryCover'
+import JourneyDayScrubber from './JourneyDayScrubber'
+import { dayColorOf, journeyDays } from './journeyCard'
 import type { JourneyMapHandle } from './JourneyMap'
 import type { JourneyEntry } from '../../store/journeyStore'
-import { DAY_COLORS } from './dayColors'
 import type { JourneyTrack } from '@trek/shared'
 
 interface MapEntry {
@@ -27,6 +28,13 @@ interface Props {
   onAddEntry?: () => void
   publicPhotoUrl?: (photoId: number) => string
   carouselBottom?: string
+  /** CARTO key from the share payload, forwarded to the map (#2054). */
+  cartoApiKey?: string
+  /** Off when the journey has put that field away (journey settings). */
+  showMood?: boolean
+  showWeather?: boolean
+  /** Which entry to open on. Today's, when today is part of the journey (#2299). */
+  initialEntryId?: string | null
 }
 
 export default function MobileMapTimeline({
@@ -40,21 +48,16 @@ export default function MobileMapTimeline({
   onAddEntry,
   publicPhotoUrl,
   carouselBottom = 'calc(var(--bottom-nav-h, 84px) + 8px)',
+  cartoApiKey,
+  showMood = true,
+  showWeather = true,
+  initialEntryId,
 }: Props) {
   const mapRef = useRef<JourneyMapHandle>(null)
   const carouselRef = useRef<HTMLDivElement>(null)
   const [activeIndex, setActiveIndex] = useState(0)
 
-  const entryDayMeta = useMemo(() => {
-    const uniqueDates = [...new Set(entries.map((e: any) => e.entry_date).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)))]
-    const counters = new Map<string, number>()
-    return entries.map((e: any) => {
-      const dayIdx = uniqueDates.indexOf(e.entry_date)
-      const dayLabel = (counters.get(e.entry_date) ?? 0) + 1
-      counters.set(e.entry_date, dayLabel)
-      return { dayLabel, dayColor: DAY_COLORS[dayIdx % DAY_COLORS.length] }
-    })
-  }, [entries])
+  const scrubberDays = useMemo(() => journeyDays(entries), [entries])
   const cardRefs = useRef<Map<number, HTMLDivElement>>(new Map())
   // Sync map focus when carousel scrolls (with guard for uninitialized map)
   const syncMapToCarousel = useCallback((index: number) => {
@@ -138,15 +141,37 @@ export default function MobileMapTimeline({
     }
   }, [activeIndex, onEntryClick, scrollCardIntoCenter])
 
+  // The day bar lands on the first entry of that day, which is where a reader
+  // who asked for "day nine" means.
+  const jumpToDay = useCallback((date: string) => {
+    const idx = entries.findIndex((e: any) => e.entry_date === date)
+    if (idx === -1) return
+    setActiveIndex(idx)
+    syncMapToCarousel(idx)
+    scrollCardIntoCenter(idx)
+  }, [entries, scrollCardIntoCenter, syncMapToCarousel])
+
   // Initial map focus — delay to let Leaflet initialize and fitBounds. Also
   // re-runs when the markers arrive later than the entries, otherwise the
   // focus would fire against an empty map and never be retried.
+  const openedRef = useRef(false)
   useEffect(() => {
-    if (entries.length > 0) {
-      const timer = setTimeout(() => syncMapToCarouselRef.current(activeIndexRef.current), 500)
-      return () => clearTimeout(timer)
-    }
-  }, [entries.length, mapEntries.length])
+    if (entries.length === 0) return
+    const timer = setTimeout(() => {
+      if (!openedRef.current && initialEntryId) {
+        openedRef.current = true
+        const idx = entries.findIndex((e: any) => String(e.id) === initialEntryId)
+        if (idx > 0) {
+          setActiveIndex(idx)
+          cardRefs.current.get(idx)?.scrollIntoView({ inline: 'center', block: 'nearest' })
+          syncMapToCarouselRef.current(idx)
+          return
+        }
+      }
+      syncMapToCarouselRef.current(activeIndexRef.current)
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [entries.length, mapEntries.length, initialEntryId])
 
   const activeEntryId = entries[activeIndex]
     ? String(entries[activeIndex].id)
@@ -168,6 +193,7 @@ export default function MobileMapTimeline({
           dark={dark}
           onMarkerClick={handleMarkerClick}
           fullScreen
+          cartoApiKey={cartoApiKey}
         />
         {!readOnly && onAddEntry && (
           <div className="fixed right-4 z-30" style={{ bottom: 'calc(var(--bottom-nav-h, 84px) + 16px)' }}>
@@ -200,17 +226,23 @@ export default function MobileMapTimeline({
         activeMarkerId={activeEntryId}
         onMarkerClick={handleMarkerClick}
         fullScreen
-        paddingBottom={200}
+        paddingBottom={250}
+        cartoApiKey={cartoApiKey}
       />
 
-      {/* Bottom carousel */}
+      {/* Day bar + card carousel, as one block at the bottom of the map */}
       <div
         className="fixed left-0 right-0 z-40"
         style={{ touchAction: 'pan-x', bottom: carouselBottom }}
       >
+        <JourneyDayScrubber
+          days={scrubberDays}
+          activeDate={entries[activeIndex]?.entry_date ?? null}
+          onPick={jumpToDay}
+        />
         <div
           ref={carouselRef}
-          className="flex gap-3 overflow-x-auto px-4 pb-3 pt-1"
+          className="flex items-end gap-[10px] overflow-x-auto px-4 pb-3 pt-1"
           style={{
             scrollSnapType: 'x mandatory',
             WebkitOverflowScrolling: 'touch',
@@ -225,13 +257,14 @@ export default function MobileMapTimeline({
               ref={node => { if (node) cardRefs.current.set(i, node); else cardRefs.current.delete(i); }}
               style={{ scrollSnapAlign: 'center' }}
             >
-              <MobileEntryCard
+              <JourneyEntryCover
                 entry={entry}
-                dayLabel={entryDayMeta[i]?.dayLabel ?? i + 1}
-                dayColor={entryDayMeta[i]?.dayColor ?? DAY_COLORS[0]}
+                dayColor={dayColorOf(scrubberDays, entry.entry_date)}
                 isActive={i === activeIndex}
                 onClick={() => handleCardTap(entry, i)}
-                publicPhotoUrl={publicPhotoUrl}
+                showMood={showMood}
+                showWeather={showWeather}
+                photoUrlFor={publicPhotoUrl}
               />
             </div>
           ))}
@@ -242,7 +275,7 @@ export default function MobileMapTimeline({
       {!readOnly && onAddEntry && (
         <div
           className="fixed right-4 z-30"
-          style={{ bottom: 'calc(var(--bottom-nav-h, 84px) + 168px)' }}
+          style={{ bottom: 'calc(var(--bottom-nav-h, 84px) + 226px)' }}
         >
           <button type="button"
             onClick={onAddEntry}

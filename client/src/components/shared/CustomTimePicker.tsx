@@ -10,9 +10,15 @@ interface CustomTimePickerProps {
   onChange: (value: string) => void
   placeholder?: string
   style?: React.CSSProperties
+  /** Read-only surfaces keep the field, they just cannot type in it — same
+   *  affordance the native input they replaced offered (#2067). */
+  disabled?: boolean
+  'aria-label'?: string
+  'aria-describedby'?: string
+  'aria-invalid'?: boolean
 }
 
-export default function CustomTimePicker({ value, onChange, placeholder = '00:00', style = {} }: CustomTimePickerProps) {
+export default function CustomTimePicker({ value, onChange, placeholder = '00:00', style = {}, disabled = false, ...aria }: CustomTimePickerProps) {
   const is12h = useSettingsStore(s => s.settings.time_format) === '12h'
   const [open, setOpen] = useState(false)
   const [inputFocused, setInputFocused] = useState(false)
@@ -126,12 +132,14 @@ export default function CustomTimePicker({ value, onChange, placeholder = '00:00
         transition: 'border-color 0.15s',
       }}>
         <input
+          {...aria}
           type="text"
           value={inputFocused ? value : formatClockTime(value, is12h)}
           onChange={handleInput}
           onFocus={() => setInputFocused(true)}
           onBlur={() => { setInputFocused(false); handleBlur() }}
           placeholder={is12h ? '2:30 PM' : placeholder}
+          disabled={disabled}
           style={{
             flex: 1, border: 'none', outline: 'none', background: 'transparent',
             padding: '8px 10px 8px 14px', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontFamily: 'inherit',
@@ -142,8 +150,9 @@ export default function CustomTimePicker({ value, onChange, placeholder = '00:00
         <button
           type="button"
           onClick={() => setOpen(o => !o)}
+          disabled={disabled}
           style={{
-            background: 'none', border: 'none', cursor: 'pointer', padding: '8px 10px',
+            background: 'none', border: 'none', cursor: disabled ? 'default' : 'pointer', padding: '8px 10px',
             display: 'flex', alignItems: 'center', color: 'var(--text-faint)',
             transition: 'color 0.15s', flexShrink: 0,
           }}

@@ -1,12 +1,13 @@
-// FE-JRN-DETHOOK-001 to FE-JRN-DETHOOK-025
+// FE-JRN-DETHOOK-001 to FE-JRN-DETHOOK-029
 import { describe, it, expect, beforeEach, afterEach, vi, type Mock } from 'vitest';
 import { useLocation } from 'react-router';
-import { http, HttpResponse } from 'msw';
+import { delay, http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
 import { render, screen, fireEvent, waitFor } from '../../../tests/helpers/render';
 import { addListener, removeListener } from '../../api/websocket';
 import { useJourneyStore } from '../../store/journeyStore';
 import type { JourneyDetail, JourneyEntry } from '../../store/journeyStore';
+import type { JourneyTrack } from '@trek/shared';
 import { useJourneyDetail } from './useJourneyDetail';
 
 let routeParams: { id?: string } = { id: '7' };
@@ -51,6 +52,20 @@ function buildDetail(over: Partial<JourneyDetail> = {}): JourneyDetail {
 
 function serveJourney(detail: JourneyDetail | Record<string, unknown>): void {
   server.use(http.get('/api/journeys/7', () => HttpResponse.json(detail)));
+}
+
+function buildTrack(over: Partial<JourneyTrack> = {}): JourneyTrack {
+  return { place_id: 4, trip_id: 2, name: 'Ridge walk', color: '#ff0000', points: [[47.1, 11.2], [47.2, 11.3]], ...over };
+}
+
+/** Counts what the map's geometry endpoint is actually asked for. */
+function serveTracks(journeyId: number, tracks: JourneyTrack[] = []) {
+  const asked = vi.fn();
+  server.use(http.get(`/api/journeys/${journeyId}/tracks`, () => {
+    asked();
+    return HttpResponse.json({ tracks });
+  }));
+  return asked;
 }
 
 // ── Harness ──────────────────────────────────────────────────────────────────
@@ -382,5 +397,58 @@ describe('useJourneyDetail', () => {
 
     latest.scrollFeedTo('bottom');
     expect(scrollTo).toHaveBeenLastCalledWith({ top: 9000, behavior: 'smooth' });
+  });
+
+  // ── Trip GPX tracks (#2194) ────────────────────────────────────────────────
+  // The switch gates the request, not the drawing: the endpoint ships unthinned
+  // geometry, megabytes of it for a trip with a season of recorded drives.
+
+  it('FE-JRN-DETHOOK-026: a journey with the switch off never asks for the geometry', async () => {
+    const asked = serveTracks(7, [buildTrack()]);
+    setup();
+    await waitFor(() => expect(latest.current).not.toBeNull());
+    await new Promise(r => setTimeout(r, 20));
+
+    expect(asked).not.toHaveBeenCalled();
+    expect(latest.tracks).toEqual([]);
+  });
+
+  it('FE-JRN-DETHOOK-027: with the switch on the tracks are fetched and handed on', async () => {
+    // The column is INTEGER, so what arrives over the wire is 1, not true.
+    serveJourney(buildDetail({ show_trip_tracks: 1 }));
+    const asked = serveTracks(7, [buildTrack()]);
+    setup();
+
+    await waitFor(() => expect(latest.tracks).toHaveLength(1));
+    expect(latest.tracks[0].name).toBe('Ridge walk');
+    expect(asked).toHaveBeenCalledTimes(1);
+  });
+
+  it('FE-JRN-DETHOOK-028: the geometry follows the route id, not the journey still on screen', async () => {
+    // loadJourney leaves the previous journey in place while the next one loads, so an
+    // unguarded read of the flag would fetch journey B's tracks off journey A's setting.
+    routeParams = { id: '8' };
+    useJourneyStore.setState({ current: buildDetail({ show_trip_tracks: 1 }) });
+    const asked = serveTracks(8, [buildTrack()]);
+    server.use(http.get('/api/journeys/8', async () => {
+      await delay(20);
+      return HttpResponse.json(buildDetail({ id: 8, title: 'Norway 2027' }));
+    }));
+    setup();
+
+    await waitFor(() => expect(latest.current?.id).toBe(8));
+    expect(asked).not.toHaveBeenCalled();
+    expect(latest.tracks).toEqual([]);
+  });
+
+  it('FE-JRN-DETHOOK-029: a failed geometry lookup costs the map its lines, not the page', async () => {
+    serveJourney(buildDetail({ show_trip_tracks: 1 }));
+    server.use(http.get('/api/journeys/7/tracks', () => new HttpResponse(null, { status: 500 })));
+    setup();
+
+    await waitFor(() => expect(latest.current?.title).toBe('Japan 2026'));
+    await new Promise(r => setTimeout(r, 20));
+    expect(latest.tracks).toEqual([]);
+    expect(addToast).not.toHaveBeenCalled();
   });
 });

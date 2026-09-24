@@ -26,7 +26,28 @@ const looseBoolean = z.union([z.boolean(), z.literal('true'), z.literal('false')
 /** `Number(x) || fallback` — the client sends these as strings from query-ish forms. */
 const looseNumber = z.union([z.number(), z.string()]).optional();
 
+/**
+ * The UTC offset the caller means its calendar days in, in minutes east of UTC
+ * (600 for UTC+10, -480 for UTC-8). A date-only `from`/`to` names a day on
+ * somebody's wall clock; without this the server can only read it as a UTC day,
+ * which is the wrong 24 hours for everyone outside UTC.
+ *
+ * Deliberately not called `offset`: that name is taken on the Synology body and
+ * means the NAS pagination offset. One body shape goes to whichever provider, so
+ * reusing the name would make a UTC+10 user ask the NAS to skip 600 photos.
+ */
+const utcOffsetMinutes = looseNumber;
+
 // ── Immich ────────────────────────────────────────────────────────────────
+
+/**
+ * Trust a self-signed certificate on the Immich server (#2475). Absent means
+ * "leave the stored choice as it is", so a client that predates the switch
+ * cannot turn it off by saving. A plain boolean: the field is new, and the
+ * settings form has always sent its checkboxes as booleans, so none of the
+ * string leniency `synology_skip_ssl` carries is owed here.
+ */
+const immichAllowInsecureTls = z.boolean().optional();
 
 export const immichSettingsSchema = z.looseObject({
   immich_url: optionalText,
@@ -34,11 +55,13 @@ export const immichSettingsSchema = z.looseObject({
   // Applied only when it is a real boolean (`typeof auto_upload === 'boolean'`),
   // so anything else is accepted and ignored, exactly as before.
   auto_upload: z.unknown().optional(),
+  allow_insecure_tls: immichAllowInsecureTls,
 });
 
 export const immichTestSchema = z.looseObject({
   immich_url: optionalText,
   immich_api_key: optionalText,
+  allow_insecure_tls: immichAllowInsecureTls,
 });
 
 export const immichSearchSchema = z.looseObject({
@@ -46,6 +69,10 @@ export const immichSearchSchema = z.looseObject({
   to: optionalText,
   size: looseNumber,
   page: looseNumber,
+  // Accepted so the client can send one body to either provider. The Immich
+  // route ignores it: Immich returns each photo's own local capture stamp, so
+  // the day is answered from the photo rather than from the reader's zone.
+  utc_offset_minutes: utcOffsetMinutes,
 });
 
 // ── Synology ──────────────────────────────────────────────────────────────
@@ -64,10 +91,12 @@ export const synologyTestSchema = synologySettingsSchema.extend({
 export const synologySearchSchema = z.looseObject({
   from: optionalText,
   to: optionalText,
+  // Rows to skip on the NAS — pagination, nothing to do with time zones.
   offset: looseNumber,
   page: looseNumber,
   limit: looseNumber,
   size: looseNumber,
+  utc_offset_minutes: utcOffsetMinutes,
 });
 
 // ── Unified (provider-agnostic trip photo surface) ────────────────────────

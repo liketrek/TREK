@@ -212,6 +212,7 @@ export const PERMISSION_FAMILIES: PermissionFamily[] = [
       { value: 'hook:photo-provider', hint: 'Supply place photos to TREK' },
       { value: 'hook:calendar-source', hint: 'Supply calendar events to TREK' },
       { value: 'hook:place-detail-provider', hint: 'Contribute extra details (reviews, ratings, links) to a place' },
+      { value: 'hook:search-provider', hint: 'Answer place searches from your own index, beside the core results' },
       { value: 'hook:trip-warning-provider', hint: 'Raise validation warnings on a trip (shown in the planner)' },
       { value: 'hook:table-contributor', hint: 'Add columns to TREK\'s tables' },
       { value: 'hook:map-marker-provider', hint: 'Add your own markers to the map' },
@@ -257,6 +258,7 @@ export const PERMISSION_FAMILIES: PermissionFamily[] = [
       { value: 'ai:invoke', hint: 'Call the instance\'s configured AI model' },
       { value: 'oauth:client', hint: 'Obtain OAuth access tokens for the user' },
       { value: 'geolocation:read', hint: 'Ask the host for the browser\'s live position in your frames (browser prompt still applies)' },
+      { value: 'mcp:tools', hint: 'Publish MCP tools an assistant can call, running as the requesting user' },
     ],
   },
 ];

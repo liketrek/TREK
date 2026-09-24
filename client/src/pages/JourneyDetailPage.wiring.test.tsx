@@ -98,7 +98,14 @@ function buildHook(over: Record<string, unknown> = {}): Record<string, unknown> 
     unlinkTrip: null, setUnlinkTrip: vi.fn(),
     showSettings: false, setShowSettings: vi.fn(),
     hideSkeletons: false, setHideSkeletons: vi.fn(),
+    query: '', setQuery: vi.fn(), dismissSuggestion: vi.fn(async () => {}),
+    restoreSuggestions: vi.fn(async () => {}), openAtEntryId: null,
+    // The stays Dawarich recorded, by the day they fall on. Empty here: the fold each day
+    // carries has its own suite (FE-JRN-DAYDAW), and what this file pins is the wiring.
+    dawarichByDate: new Map(), dawarichBusyId: null,
+    acceptDawarich: vi.fn(async () => {}), dismissDawarich: vi.fn(),
     mapRef: { current: null }, fullMapRef: { current: null }, galleryUploadRef: { current: null },
+    galleryProviders: [], setGalleryProviders: vi.fn(), galleryBrowseRef: { current: null },
     activeLocationId: null, handleMarkerClick: vi.fn(), handleLocationClick: vi.fn(),
     mapEntries: [], sidebarMapItems: [], tripDates: new Set<string>(), isMobile: false,
     feedEdge: { atTop: true, atBottom: true }, scrollFeedTo: vi.fn(),
@@ -230,22 +237,22 @@ describe('JourneyDetailPage wiring', () => {
 
   it('FE-JRN-DETWIRE-011: the reorder arrows move an entry within its day', async () => {
     const { hook } = setup();
-    const down = screen.getAllByRole('button', { name: 'Move down' })[0];
-    const upFirst = screen.getAllByRole('button', { name: 'Move up' })[0];
+    const down = screen.getAllByRole('button', { name: 'dayplan.moveDown' })[0];
+    const upFirst = screen.getAllByRole('button', { name: 'dayplan.moveUp' })[0];
     expect(upFirst).toBeDisabled();
 
     fireEvent.click(down);
     await waitFor(() => expect(hook.reorderEntries).toHaveBeenCalledWith(7, [2, 1]));
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'Move up' })[1]);
+    fireEvent.click(screen.getAllByRole('button', { name: 'dayplan.moveUp' })[1]);
     expect(hook.reorderEntries).toHaveBeenLastCalledWith(7, [2, 1]);
   });
 
   it('FE-JRN-DETWIRE-012: a failing reorder is reported to the user', async () => {
     const reorderEntries = vi.fn(async () => { throw new Error('conflict'); });
     setup({ reorderEntries });
-    fireEvent.click(screen.getAllByRole('button', { name: 'Move down' })[0]);
-    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('common.errorOccurred'));
+    fireEvent.click(screen.getAllByRole('button', { name: 'dayplan.moveDown' })[0]);
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('common.errorTitle'));
   });
 
   it('FE-JRN-DETWIRE-013: entry-card actions open the editor, the delete confirm and the lightbox', () => {
@@ -522,5 +529,56 @@ describe('JourneyDetailPage wiring', () => {
     setup({ isMobile: true, view: 'gallery' });
     expect(screen.getByRole('button', { name: 'journey.studio.openAria' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'journey.skeletons.hide' })).toBeInTheDocument();
+  });
+
+  // ── Gallery actions between 768 and 1023px ────────────────────────────────
+  // The controls row that hosts them is `hidden` there, and a tablet has no
+  // other door into the gallery (phones run the MJourneyDetail screen instead).
+
+  const immich = [{ id: 'immich', name: 'Immich' }];
+
+  it('FE-JRN-DETWIRE-037: the narrow gallery renders upload and providers outside the hidden controls row', () => {
+    setup({ isMobile: true, view: 'gallery', galleryProviders: immich });
+
+    expect(screen.getByText('common.upload').closest('.hidden')).toBeNull();
+    expect(screen.getByText('Immich').closest('.hidden')).toBeNull();
+  });
+
+  it('FE-JRN-DETWIRE-038: those buttons open the picker and the provider browser', () => {
+    const upload = vi.fn();
+    const browse = vi.fn();
+    setup({
+      isMobile: true, view: 'gallery', galleryProviders: immich,
+      galleryUploadRef: { current: upload }, galleryBrowseRef: { current: browse },
+    });
+
+    fireEvent.click(screen.getByText('common.upload'));
+    expect(upload).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByText('Immich'));
+    expect(browse).toHaveBeenCalledWith('immich');
+  });
+
+  it('FE-JRN-DETWIRE-039: only one host renders them, on either side of the breakpoint', () => {
+    const { unmount } = setup({ isMobile: true, view: 'gallery', galleryProviders: immich });
+    expect(screen.getAllByText('common.upload')).toHaveLength(1);
+    expect(screen.getAllByText('Immich')).toHaveLength(1);
+    unmount();
+
+    setup({ view: 'gallery', galleryProviders: immich });
+    expect(screen.getAllByText('common.upload')).toHaveLength(1);
+    expect(screen.getAllByText('Immich')).toHaveLength(1);
+  });
+
+  it('FE-JRN-DETWIRE-040: a read-only viewer gets no upload or provider button there', () => {
+    setup({ isMobile: true, view: 'gallery', canEditEntries: false, galleryProviders: immich });
+    expect(screen.queryByText('common.upload')).not.toBeInTheDocument();
+    expect(screen.queryByText('Immich')).not.toBeInTheDocument();
+  });
+
+  it('FE-JRN-DETWIRE-041: the narrow timeline tab keeps the gallery actions away', () => {
+    setup({ isMobile: true, view: 'timeline', galleryProviders: immich });
+    expect(screen.queryByText('common.upload')).not.toBeInTheDocument();
+    expect(screen.queryByText('Immich')).not.toBeInTheDocument();
   });
 });

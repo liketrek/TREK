@@ -132,16 +132,25 @@ export default function MDashboard(): React.ReactElement {
     return (
       <>
         <div className="mt-[14px] flex items-center gap-[7px]">
-          <MSegmented<TripFilter>
-            value={tripFilter}
-            onChange={setTripFilter}
-            variant="intrinsic"
-            options={[
-              { value: 'planned', label: t('dashboard.filter.planned') },
-              { value: 'archive', label: t('dashboard.archived') },
-              { value: 'completed', label: t('dashboard.mobile.completed') },
-            ]}
-          />
+          {/* The chips scroll inside their own box on narrow viewports or large
+              system font scales; without it this row was the widest thing on
+              the page and dragged the fixed bars off-screen under Android's
+              forced zoom. min-w-max keeps the pill track wrapping its chips,
+              and the box stays content-wide (no flex-1) so the pill still hugs
+              them on wide phones while ml-auto parks the icons on the right. */}
+          <div className="m-hscroll min-w-0">
+            <MSegmented<TripFilter>
+              value={tripFilter}
+              onChange={setTripFilter}
+              variant="intrinsic"
+              className="min-w-max"
+              options={[
+                { value: 'planned', label: t('dashboard.filter.planned') },
+                { value: 'archive', label: t('dashboard.archived') },
+                { value: 'completed', label: t('dashboard.mobile.completed') },
+              ]}
+            />
+          </div>
           <MIconBtn ariaLabel={t('dashboard.subscribeAllTrips')} size={36} className="ml-auto" onClick={() => setSubOpen(true)}>
             <CalendarPlus size={15} strokeWidth={2} className="text-m-muted" />
           </MIconBtn>
@@ -403,9 +412,20 @@ function MSpotlightCard({ trip, t, onOpen, actions }: {
   )
 }
 
+/**
+ * One fact about the spotlight trip: how long, how many places, how many people.
+ *
+ * Set like the DAY x OF y badge above it, a size down. The three used to be
+ * sentence case while the two badges over them were capitals, so the card had two
+ * voices in the same corner.
+ *
+ * No backdrop blur of its own: the glass panel these sit on already blurs, and a
+ * second backdrop-filter inside one opens a new backdrop root, so the same
+ * white/.28 composited darker here than on the badge two rows up.
+ */
 function SpotlightPill({ icon, label }: { icon: React.ReactElement; label: string }): React.ReactElement {
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-white/20 px-[9px] py-[3px] font-geist text-[0.625rem] font-bold text-white backdrop-blur-[6px]">
+    <span className="inline-flex items-center gap-1 rounded-full bg-white/[.28] px-[9px] py-[3px] font-geist text-[0.5625rem] font-bold tracking-[.07em] text-white uppercase">
       {icon}
       {label}
     </span>

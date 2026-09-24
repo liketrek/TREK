@@ -4,10 +4,21 @@ import { decrypt_api_key, maybe_encrypt_api_key } from '../common/crypto/apiKeyC
 import { MASKED_SETTING_VALUE, normalizeAppearance } from '@trek/shared';
 import { readEnv } from '../../app-config';
 
-const ENCRYPTED_SETTING_KEYS = new Set(['webhook_url', 'ntfy_token', 'mapbox_access_token', 'llm_api_key']);
+/**
+ * Exported so a caller that hands settings to somebody else can assert its own
+ * allow-list against the live values rather than a copy: a sixth key added here
+ * has to fail that assertion, which a hand-typed list would not.
+ */
+export const ENCRYPTED_SETTING_KEYS = new Set([
+  'webhook_url',
+  'ntfy_token',
+  'mapbox_access_token',
+  'carto_api_key',
+  'llm_api_key',
+]);
 // Encrypted keys that are masked (••••••••) when returned to the client.
 // Keys not in this set but in ENCRYPTED_SETTING_KEYS are decrypted and returned.
-const MASKED_SETTING_KEYS = new Set(['webhook_url', 'ntfy_token', 'llm_api_key']);
+export const MASKED_SETTING_KEYS = new Set(['webhook_url', 'ntfy_token', 'llm_api_key']);
 
 export const DEFAULTABLE_USER_SETTING_KEYS = [
   'temperature_unit',
@@ -19,6 +30,34 @@ export const DEFAULTABLE_USER_SETTING_KEYS = [
   'default_currency',
   'blur_booking_codes',
   'map_tile_url',
+  /**
+   * Base URL of the routing engine, when the instance runs its own (#1797).
+   *
+   * Empty means the public OSRM hosts TREK ships with, which allow roughly one request a
+   * second — enough for a day plan, not for a road trip that routes every leg of every
+   * day, and they answer nothing beyond plain routing. Defaultable rather than per-user
+   * because a routing engine is a property of the deployment, not a taste.
+   *
+   * Changing it needs a server restart: the browser's connect-src allowlist is assembled
+   * once at boot, and a router the policy does not name fails silently.
+   */
+  'routing_base_url',
+  /**
+   * The second engine, asked only what OSRM cannot answer: drive this leg without the
+   * tolls, the motorway or the ferry. The shipped OSRM hosts refuse `exclude` outright,
+   * so on a default install that question has never had an answer.
+   *
+   * Same class as the key above and for the same reason: it names an origin the BROWSER
+   * connects to, so it has to be in the boot-time connect-src, and changing it needs a
+   * restart. Empty falls back to the public Valhalla, unless routing_base_url names an
+   * own engine — an operator who chose their own router is not given a public third
+   * party they never asked for.
+   */
+  'valhalla_base_url',
+  // CARTO stamps an "API KEY REQUIRED" watermark into keyless tiles (#2054), and
+  // the key is per-instance rather than per-person: defaultable so one admin
+  // value clears the watermark for everybody at once.
+  'carto_api_key',
   // Instance-wide GL map defaults: admins can set Mapbox token/style or
   // tokenless MapLibre/OpenFreeMap style defaults for new users (#920).
   'map_provider',
@@ -52,18 +91,30 @@ const VALID_VALUES: Partial<Record<DefaultableKey, unknown[]>> = {
 const BOOLEAN_KEYS = new Set<DefaultableKey>(['blur_booking_codes', 'mapbox_3d_enabled', 'mapbox_quality_mode', 'llm_multimodal']);
 
 /**
- * #1772: per-user LLM settings a non-admin must not write. Both of them pick
- * the address this server sends its own LLM requests to (provider 'local' means
- * nothing but "an endpoint I name"), and the SSRF guard in front of those
- * requests allows loopback/LAN on purpose so a self-hosted Ollama works. Only
- * whoever runs the instance can judge what is reachable from it.
+ * Per-user settings that name an address, which a non-admin must not write.
  *
- * Clearing stays open to everyone: both Settings sections always send
- * `llm_base_url: ''` while the field is hidden, so a row written before this
- * rule cleans itself up on the next save instead of blocking it.
+ * #1772 for the LLM pair: both pick where this server sends its own LLM
+ * requests (provider 'local' means nothing but "an endpoint I name"), and the
+ * SSRF guard in front of those requests allows loopback and LAN on purpose so a
+ * self-hosted Ollama works. Only whoever runs the instance can judge what is
+ * reachable from it.
+ *
+ * `routing_base_url` (#1797) is the same class for a different reason: it names
+ * an origin the BROWSER connects to, so it has to appear in the CSP
+ * `connect-src` the server emits at boot — and that list is built from the admin
+ * default, which is the only place a value can take effect. A row on a personal
+ * settings record is read by the route calculator and blocked by the browser, so
+ * the whole app stops routing with no catchable error. Refusing it here means
+ * the caller finds out instead of silently breaking their own map.
+ *
+ * Clearing stays open to everyone: the Settings sections send an empty string
+ * while the field is hidden, so a row written before this rule cleans itself up
+ * on the next save instead of blocking it.
  */
-export function isAdminOnlyLlmSetting(key: string, value: unknown): boolean {
-  if (key === 'llm_base_url') return typeof value === 'string' && value.trim() !== '';
+export function isAdminOnlyEndpointSetting(key: string, value: unknown): boolean {
+  if (key === 'llm_base_url' || key === 'routing_base_url' || key === 'valhalla_base_url') {
+    return typeof value === 'string' && value.trim() !== '';
+  }
   if (key === 'llm_provider') return value === 'local';
   return false;
 }
@@ -215,6 +266,12 @@ export class SettingsService {
       if (!merged.map_provider || merged.map_provider === 'leaflet') {
         merged.map_provider = 'mapbox-gl';
       }
+    }
+    // Injected the same way, but without touching map_provider: a CARTO key only
+    // says whose basemap account the tiles are billed to, nothing about which
+    // renderer the user wants.
+    if (readEnv().managed.enabled && managedMaps.cartoKey) {
+      merged.carto_api_key = managedMaps.cartoKey;
     }
 
     return merged;

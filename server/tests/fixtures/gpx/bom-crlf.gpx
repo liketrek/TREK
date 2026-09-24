@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="Windows export" xmlns="http://www.topografix.com/GPX/1/1">
+  <metadata>
+    <name>Wien</name>
+  </metadata>
+  <wpt lat="48.208493" lon="16.373118">
+    <name>Stephansdom</name>
+    <desc>South tower first,
+the north tower has the bell</desc>
+  </wpt>
+  <wpt lat="48.198558" lon="16.371867">
+    <name>Naschmarkt</name>
+  </wpt>
+</gpx>

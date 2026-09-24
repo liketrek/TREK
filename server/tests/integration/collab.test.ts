@@ -58,6 +58,9 @@ import { CollabService } from '../../src/nest/collab/collab.service';
 
 // Spy on the DI-native service's linkPreview so the SSRF-guarded fetch never
 // runs; the rest of CollabService exercises its real SQL through the container.
+// The original is kept so the guard cases below can put it back for one call —
+// mockRestore would drop the spy for every test declared after them.
+const realLinkPreview = CollabService.prototype.linkPreview;
 const linkPreviewSpy = vi.spyOn(CollabService.prototype, 'linkPreview')
   .mockResolvedValue({ title: null, description: null, image: null, url: '' });
 
@@ -806,6 +809,31 @@ describe('Link preview', () => {
 
     expect(res.status).toBe(400);
     expect(res.body.error).toBeDefined();
+  });
+
+  // Every case above mocks linkPreview out, so the SSRF guard, the redirect
+  // refusal and the pinned dispatcher are unproven over HTTP: swapping
+  // checkSsrf(url, true) for checkSsrf(url) would leave this file green. These
+  // two put the real implementation back for one call each. No traffic leaves
+  // the machine — the guard refuses both targets before any fetch.
+  it.each([
+    ['loopback', 'http://127.0.0.1:9/'],
+    // The unspecified address routes to loopback when connected to, and used to
+    // pass the guard: it is not '::1', and it does not start with '0.'.
+    ['the unspecified address', 'http://[::]:9/'],
+  ])('COLLAB-032 — GET /collab/link-preview refuses %s (%s) through the real guard', async (_label, url) => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    linkPreviewSpy.mockImplementationOnce(realLinkPreview);
+
+    const res = await request(app)
+      .get(`/api/trips/${trip.id}/collab/link-preview?url=${encodeURIComponent(url)}`)
+      .set('Cookie', authCookie(user.id));
+
+    expect(res.status).toBe(400);
+    // One constant reason. The guard knows three, and telling them apart would
+    // map out the internal DNS of the server one guessed hostname at a time.
+    expect(res.body).toEqual({ error: 'URL not allowed' });
   });
 
   it('COLLAB-027 — GET /collab/link-preview catches thrown errors and returns fallback', async () => {

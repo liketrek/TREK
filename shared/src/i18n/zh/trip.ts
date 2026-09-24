@@ -24,6 +24,7 @@ const trip: TranslationStrings = {
   'trip.toast.placeDeleted': '地点已删除',
   'trip.toast.selectDay': '请先选择一天',
   'trip.toast.assignedToDay': '地点已分配到当天',
+  'trip.toast.loadError': '无法加载行程',
   'trip.toast.reorderError': '排序失败',
   'trip.toast.reservationUpdated': '预订已更新',
   'trip.toast.reservationAdded': '预订已添加',
@@ -62,6 +63,7 @@ const trip: TranslationStrings = {
   'transit.search': '搜索',
   'transit.searching': '搜索中…',
   'transit.searchError': '路线搜索失败，请重试。',
+  'transit.noResultsVia': '通过 {provider} 未找到线路。请尝试其他时间或筛选条件。',
   'transit.noResults': '未找到线路，请尝试其他时间或筛选条件。',
   'transit.direct': '直达',
   'transit.transfers': '换乘 {count} 次',
@@ -77,6 +79,7 @@ const trip: TranslationStrings = {
   'transport.modeAutomated': '自动',
   'transit.sectionTitle': '自动公共交通',
   'transit.changeRoute': '更改路线',
+  'transit.editDetails': '编辑详情',
   'transit.journey': '公共交通行程',
   'transit.pickDay': '请选择要查询班次的日期。',
   'transit.noItinerary': '此条目尚未保存行程 — 请使用"更改路线"查询班次。',
@@ -84,5 +87,8 @@ const trip: TranslationStrings = {
   'transit.transfersLabel': '换乘',
   'transit.walkLabel': '步行',
   'transit.searchHint': '搜索真实班次并直接添加到当天行程 — 数据来自 Transitous。',
+  'trip.confirm.deletePlaceNight': '在“{name}”预订的住宿也会一并删除。',
+  'trip.confirm.deletePlaceBooked': '在“{name}”预订的住宿、预订“{booking}”及其关联的费用也会一并删除。',
+  'trip.confirm.deletePlaceBookedSame': '在“{name}”预订的住宿及其预订和关联的费用也会一并删除。',
 };
 export default trip;

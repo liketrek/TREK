@@ -19,5 +19,14 @@ const map: TranslationStrings = {
   'map.baseLayer.satellite': 'قمر صناعي',
   'map.baseLayer.switchToSatellite': 'التبديل إلى عرض القمر الصناعي',
   'map.baseLayer.switchToDefault': 'التبديل إلى عرض الخريطة',
+  'map.location.denied': 'تم حظر الوصول إلى الموقع. تحقق من إعدادات الجهاز؛ فالتطبيق المثبت لديه إذن موقع خاص به منفصل عن المتصفح.',
+  'map.location.unavailable': 'تعذر تحديد موقعك.',
+  'map.location.timeout': 'استغرق تحديد موقعك وقتًا طويلًا. حاول مرة أخرى تحت سماء مكشوفة.',
+  'map.overview.show': 'عرض الرحلة كاملة',
+  'map.overview.hide': 'إخفاء الرحلة كاملة',
+  'map.overview.total': 'المسافة الإجمالية',
+  'map.attribution': 'مصادر الخريطة',
+  'map.overview.unrouted': 'تعذّر حساب {count} مرحلة، لذا المسافات غير مكتملة.',
+  'map.overview.dayUnrouted': 'تعذّر حساب {count} مرحلة من هذا اليوم',
 };
 export default map;

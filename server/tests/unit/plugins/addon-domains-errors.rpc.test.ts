@@ -51,7 +51,7 @@ function build(overrides: {
     new CollabRpc({ createNote: vi.fn(() => ({})), createPoll: vi.fn(() => ({})), votePoll: vi.fn(() => ({ error: null, poll: {} })), createMessage: vi.fn(() => ({ error: null, message: {} })), listNotes: vi.fn(() => []), listPolls: vi.fn(() => []), listMessages: vi.fn(() => []), ...overrides.collab } as never, realtime, guards),
     new AtlasRpc({ listVisitedCountries: vi.fn(() => []), listManuallyVisitedRegions: vi.fn(() => []), bucketList: vi.fn(() => []), markCountry: vi.fn(), unmarkCountry: vi.fn(), markRegion: vi.fn(), unmarkRegion: vi.fn(), createBucketItem: vi.fn(() => ({})), deleteBucketItem: vi.fn(() => true), ...overrides.atlas } as never, guards),
     new VacayRpc({ getPlanData: vi.fn(() => ({})), getActivePlanId: vi.fn(() => 1), toggleEntry: vi.fn(() => ({})), toggleCompanyHoliday: vi.fn(() => ({})), ...overrides.vacay } as never, guards),
-    new JournalRpc({ listJourneys: vi.fn(() => []), listEntries: vi.fn(() => []), createEntry: vi.fn(() => ({})), updateEntry: vi.fn(() => ({})), deleteEntry: vi.fn(() => true), createJourney: vi.fn(() => ({})), deleteJourney: vi.fn(() => true), ...overrides.journey } as never, guards),
+    new JournalRpc({ listJourneys: vi.fn(() => []), listEntries: vi.fn(() => []), createEntry: vi.fn(() => ({})), updateEntry: vi.fn(() => ({})), deleteEntry: vi.fn(() => true), createJourney: vi.fn(() => ({})), deleteJourney: vi.fn(() => true), ...overrides.journey } as never, guards, {} as never, {} as never, {} as never, {} as never),
     // deletePlace is async in production, so its double returns a promise: an
     // un-awaited call in the RPC handler would let a rejection sail past
     // mapCollectionError as an unhandled rejection while the handler still replied
@@ -74,6 +74,7 @@ const USERLESS: Array<[string, Record<string, unknown>, string]> = [
   ['journal.updateEntry', { entryId: 1, input: {} }, 'journal writes require an authenticated user context'],
   ['journal.deleteEntry', { entryId: 1 }, 'journal writes require an authenticated user context'],
   ['journal.createJourney', { input: { title: 'J' } }, 'journal writes require an authenticated user context'],
+  ['journal.addEntryPhoto', { entryId: 1, input: { name: 'a.jpg', content_base64: 'eA==' } }, 'journal writes require an authenticated user context'],
   ['journal.deleteJourney', { journeyId: 7 }, 'journal writes require an authenticated user context'],
   ['atlas.visited', {}, 'atlas reads require an authenticated user context'],
   ['atlas.bucketList', {}, 'atlas reads require an authenticated user context'],

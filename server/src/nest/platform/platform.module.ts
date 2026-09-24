@@ -1,6 +1,6 @@
 import { Module, type MiddlewareConsumer, type NestModule } from '@nestjs/common';
 import { AddonsModule } from '../addons/addons.module';
-import { DiscoveryController } from './discovery.controller';
+import { DiscoveryController, McpResourceDiscoveryController } from './discovery.controller';
 import { DiscoveryMetadataService } from './discovery-metadata.service';
 import { mcpMetadataMiddlewareProvider } from './mcp-metadata.middleware';
 import { ConsentCoopMiddleware } from './consent-coop.middleware';
@@ -23,8 +23,8 @@ import { ConsentCoopMiddleware } from './consent-coop.middleware';
  */
 @Module({
   imports: [AddonsModule],
-  controllers: [DiscoveryController],
-  providers: [DiscoveryMetadataService, mcpMetadataMiddlewareProvider, ConsentCoopMiddleware],
+  controllers: [DiscoveryController, McpResourceDiscoveryController],
+  providers: [DiscoveryMetadataService, DiscoveryController, mcpMetadataMiddlewareProvider, ConsentCoopMiddleware],
 })
 export class PlatformModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {

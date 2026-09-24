@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE gpx [
+  <!ENTITY secret SYSTEM "file:///etc/passwd">
+  <!ENTITY lol "lol">
+  <!ENTITY lol1 "&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;">
+  <!ENTITY lol2 "&lol1;&lol1;&lol1;&lol1;&lol1;&lol1;&lol1;&lol1;&lol1;&lol1;">
+  <!ENTITY lol3 "&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;">
+]>
+<gpx version="1.1" creator="nobody in particular" xmlns="http://www.topografix.com/GPX/1/1">
+  <metadata>
+    <name>&lol3;</name>
+  </metadata>
+  <wpt lat="48.8566" lon="2.3522">
+    <name>&secret;</name>
+    <desc>&lol3;</desc>
+  </wpt>
+</gpx>

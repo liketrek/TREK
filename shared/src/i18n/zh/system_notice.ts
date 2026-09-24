@@ -52,40 +52,36 @@ const system_notice: TranslationStrings = {
   'system_notice.v3014_whitespace_collision.title': '需要操作：用户账户冲突',
   'system_notice.v3014_whitespace_collision.body':
     '3.0.14 版本升级检测到一个或多个由存储账户中首尾空白字符引发的用户名或邮箱冲突。受影响的账户已自动重命名。请检查服务器日志中以 **[migration] WHITESPACE COLLISION** 开头的行，以确认哪些账户需要审查。',
-  // 4.0.0 release modal — the release on the left, the note from the maintainer on the right
-  'system_notice.release_400.eyebrow': '更新已安装',
-  'system_notice.release_400.tag': '发布',
-  'system_notice.release_400.headline': 'TREK 有史以来最大的一次更新。',
-  'system_notice.release_400.intro':
-    'TREK 有了手机端，也有了相册书。这一版由十九个人写成——随之解决的还有大约一百五十个报告过的 bug。',
-  'system_notice.release_400.feature_mobile_title': 'TREK 上手机',
-  'system_notice.release_400.feature_mobile_body':
-    '768px 以下现在是一套独立的界面——毛玻璃底栏、自己的弹出面板、自己的行程规划器。用手机打开 TREK 试试。',
-  'system_notice.release_400.feature_studio_title': 'TREK Studio',
-  'system_notice.release_400.feature_studio_badge': 'Beta',
-  'system_notice.release_400.feature_studio_body':
-    'Journey 的 PDF 变成了一个相册书设计器。你让它排版，它就把书排好，然后退到一边。',
-  'system_notice.release_400.feature_vacay_title': 'Vacay 补齐了剩下的',
-  'system_notice.release_400.feature_vacay_body':
-    '半天、调休和弹性假、日历上的学校假期——还有不必从一月开始的假期年度。',
-  'system_notice.release_400.feature_places_title': '地点自己亮相，文件搬出去',
-  'system_notice.release_400.feature_places_body':
-    '在你保存一个地点之前，图片和描述会自己填好。上传的文件也不必再放在 TREK 所在的磁盘上。',
-  'system_notice.release_400.footnote':
-    '这只是其中四项。4.0.0 还带来数百项其他改动，从 Collections、Atlas 一直到底层的整个服务端。',
-  'system_notice.release_400.note_eyebrow': '来自维护者的话',
-  'system_notice.release_400.note_title': '感谢你使用 TREK。',
-  'system_notice.release_400.note_body':
-    'TREK 最初只是我为自己的旅行、用业余时间做的一个小工具。现在依然如此：晚上、周末，全职工作之外的那些时间。\n\n有一阵子只有我一个人。现在不是了——十九个人一起做出了这一版，还有成千上万的你们带着星标、issue、翻译和 pull request 来到这里。这一切我都心怀感激。',
-  'system_notice.release_400.promise_label': '承诺',
-  'system_notice.release_400.promise_text': 'TREK 的开源部分永远免费。没有付费档位，没有订阅，没有套路。我保证。',
-  'system_notice.release_400.note_body_after':
-    '4.0.0 花掉了好几个星期的深夜——一个手机端、一个相册书设计器、一次服务端迁移，大多写在午夜到两点之间。这不是抱怨：我喜欢做这件事。只是想诚实地说明，这么大的一个版本是怎么从一个业余项目里出来的。',
-  'system_notice.release_400.note_closing': '谢谢你来到这里。',
-  'system_notice.release_400.note_signature': '— Maurice',
-  'system_notice.release_400.support_text':
-    '是这些支持让它继续跑着——服务器、域名，还有那些变成这样一个版本的深夜。如果 TREK 对你有价值，请我喝杯咖啡是最直接的支持方式。',
-  'system_notice.release_400.cta_bmc': 'Buy me a coffee',
-  'system_notice.release_400.cta_kofi': '在 Ko-fi 上支持',
+  // The release modal. One stable set of keys: each big release swaps the copy in place.
+  'system_notice.release_notes.eyebrow': '更新已安装',
+  'system_notice.release_notes.headline': 'TREK 现在能自己完成的四件事。',
+  'system_notice.release_notes.intro': '自有的地点 API、从头到尾规划的公路旅行、掌握在你手中的位置记录，以及保持同步的文档。',
+  'system_notice.release_notes.features_label': '本次重头戏',
+  'system_notice.release_notes.features_aside': '远不止这些',
+  'system_notice.release_notes.feature_places_title': 'TREK Places API',
+  'system_notice.release_notes.feature_places_body': '首个拥有自有地点 API 的开源旅行规划器。7360 万个地点，无需密钥，没有配额。',
+  'system_notice.release_notes.feature_roadtrip_title': '公路旅行扩展',
+  'system_notice.release_notes.feature_roadtrip_body': '自动规划行车：路线、距离、时长和停靠点。管理员开启前默认关闭。',
+  'system_notice.release_notes.feature_dawarich_title': 'Dawarich 集成',
+  'system_notice.release_notes.feature_dawarich_body': 'Google Timeline 的自托管替代方案，现在可以直接在 TREK 里查看。TREK 只读取，仅此而已。',
+  'system_notice.release_notes.footnote': '除此之外，TREK 的其他部分还有一长串小改动。',
+  'system_notice.release_notes.notes_label': '更新说明',
+  'system_notice.release_notes.note_eyebrow': '来自维护者的话',
+  'system_notice.release_notes.note_title': '是你们让我一直坚持做 TREK。',
+  'system_notice.release_notes.note_body':
+    'TREK 最初只是我为自己的旅行做的小工具，下班后一点点写出来，只因为我想更好地规划旅行。后来它就再没停止过成长。你用到的几乎每一样功能，都是在全职工作之外，在深夜、周末和火车上做出来的。也有很多个晚上，我会默默地想，这世上究竟会不会有人打开它。',
+  'system_notice.release_notes.promise_label': '承诺',
+  'system_notice.release_notes.promise_lead': 'TREK 永远免费。',
+  'system_notice.release_notes.promise_text': '每个功能、每次更新，都属于每一个人。没有付费档位，没有订阅，没有套路。',
+  'system_notice.release_notes.note_body_after':
+    '后来，你们真的来了。短短几个月，就来了成千上万的你们：有人点星标、报 bug，有人把它翻译成我不会说的语言，还有素未谋面的人提交 pull request。直到今天，我每天早上第一件事仍是打开仓库看看，而这一切还是有点不像真的。',
+  'system_notice.release_notes.note_closing': '谢谢你来到这里，Maurice 敬上。',
+  'system_notice.release_notes.support_lead': 'TREK 现在免费，以后也永远免费，但服务器、域名和无数个深夜可不是免费的。',
+  'system_notice.release_notes.support_text':
+    '如果它已经在你的旅行中占有一席之地，请我喝杯咖啡，帮我把下一个版本继续做出来吧。',
+  'system_notice.release_notes.cta_bmc': 'Buy me a coffee',
+  'system_notice.release_notes.cta_kofi': '在 Ko-fi 上支持',
+  'system_notice.release_notes.feature_docsync_title': '文档同步',
+  'system_notice.release_notes.feature_docsync_body': 'Paperless-ngx、Papra、Nextcloud、OpenCloud 和 Synology Drive。行程的文档与你已在运行的存储双向流动。',
 };
 export default system_notice;

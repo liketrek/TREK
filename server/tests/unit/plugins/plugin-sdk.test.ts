@@ -29,6 +29,9 @@ describe('createPluginContext', () => {
     await ctx.trips.getById(1);
     expect(rpc).toHaveBeenCalledWith('trips.getById', { tripId: 1, _inv: 'inv-1' });
 
+    await ctx.journal.addEntryPhoto(5, { name: 'a.jpg', content_base64: 'eA==' });
+    expect(rpc).toHaveBeenCalledWith('journal.addEntryPhoto', { entryId: 5, input: { name: 'a.jpg', content_base64: 'eA==' }, _inv: 'inv-1' });
+
     await ctx.ws.broadcastToTrip(1, 'ping', { a: 1 });
     // carries _inv so the host can bind the acting user — without it the broadcast was refused
     expect(rpc).toHaveBeenCalledWith('ws.broadcastToTrip', { tripId: 1, event: 'ping', data: { a: 1 }, _inv: 'inv-1' });

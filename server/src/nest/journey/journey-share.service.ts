@@ -2,6 +2,9 @@ import { Injectable } from '@nestjs/common';
 import crypto from 'crypto';
 import { DatabaseService } from '../database/database.service';
 import { JourneyDomainService } from './journey-domain.service';
+import { decodeEntryRow } from './journey-entry-row';
+import { GALLERY_CHRONOLOGICAL_ORDER } from './journey-gallery-order';
+import { SettingsService } from '../settings/settings.service';
 
 interface JourneySharePermissions {
   share_timeline?: boolean;
@@ -33,6 +36,7 @@ export class JourneyShareService {
   constructor(
     private readonly db: DatabaseService,
     private readonly journey: JourneyDomainService,
+    private readonly settings: SettingsService,
   ) {}
 
   createOrUpdateJourneyShareLink(
@@ -160,7 +164,7 @@ export class JourneyShareService {
     // Entries with photos
     const entries = this.db.prepare(`
       SELECT je.* FROM journey_entries je
-      WHERE je.journey_id = ? AND je.type != 'skeleton'
+      WHERE je.journey_id = ? AND je.type != 'skeleton' AND je.dismissed = 0
       ORDER BY je.entry_date, je.sort_order
     `).all(row.journey_id) as any[];
 
@@ -182,19 +186,17 @@ export class JourneyShareService {
 
     const gallery = this.db.prepare(`
       SELECT gp.id, gp.journey_id, gp.photo_id, gp.caption, gp.shared, gp.sort_order, gp.created_at,
-             tkp.provider, tkp.asset_id, tkp.owner_id, tkp.file_path, tkp.thumbnail_path, tkp.width, tkp.height,
-             tkp.media_type, tkp.duration_ms, tkp.taken_at, tkp.lat, tkp.lng
+             tp.provider, tp.asset_id, tp.owner_id, tp.file_path, tp.thumbnail_path, tp.width, tp.height,
+             tp.media_type, tp.duration_ms, tp.taken_at, tp.lat, tp.lng
       FROM journey_photos gp
-      JOIN trek_photos tkp ON tkp.id = gp.photo_id
+      JOIN trek_photos tp ON tp.id = gp.photo_id
       WHERE gp.journey_id = ?
-      ORDER BY gp.sort_order
+      ${GALLERY_CHRONOLOGICAL_ORDER}
     `).all(row.journey_id) as any[];
 
     const enrichedEntries = entries
       .map(e => ({
-        ...e,
-        tags: e.tags ? JSON.parse(e.tags) : [],
-        pros_cons: e.pros_cons ? JSON.parse(e.pros_cons) : null,
+        ...decodeEntryRow(e),
         photos: photosByEntry[e.id] || [],
       }));
 
@@ -238,12 +240,29 @@ export class JourneyShareService {
       }));
     }
 
+    // Same reason as the trip share payload: CARTO watermarks every tile fetched
+    // without a key (#2054) and the public journey map has no logged-in user to
+    // read one from, so the owner's key travels with it. Only a valid share token
+    // gets this far. getUserSettings composes the owner's own value, the admin
+    // instance default and the managed-instance key in that order; carto_api_key is
+    // encrypted at rest but deliberately unmasked, since it is useless until it
+    // reaches a browser.
+    const ownerCartoKey = this.settings.getUserSettings(journey.user_id)['carto_api_key'];
+    const cartoApiKey = typeof ownerCartoKey === 'string' ? ownerCartoKey.trim() : '';
+
     return {
       journey: {
         title: journey.title,
         subtitle: journey.subtitle,
         cover_image: journey.cover_image,
         status: journey.status,
+        // The three "this journey does not use that field" switches. A public
+        // reader was getting mood and weather chips on a journey that had them
+        // turned off, because the phone card reads these and they were not here
+        // to read: undefined never equals 0, so both always looked switched on.
+        show_verdict: journey.show_verdict ? 1 : 0,
+        show_mood: journey.show_mood ? 1 : 0,
+        show_weather: journey.show_weather ? 1 : 0,
       },
       entries: publicEntries,
       // A photo now carries the coordinates it was taken at, which is a location the
@@ -252,6 +271,7 @@ export class JourneyShareService {
       // would hand out places the map was deliberately turned off for.
       gallery: shareGallery ? (shareMap ? gallery : stripPhotoGps(gallery)) : [],
       stats,
+      cartoApiKey,
       permissions: {
         share_timeline: shareTimeline,
         share_gallery: shareGallery,

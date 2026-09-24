@@ -6,6 +6,8 @@ import { useTripStore } from '../../store/tripStore'
 import { useAddonStore } from '../../store/addonStore'
 import Modal from '../shared/Modal'
 import CustomSelect from '../shared/CustomSelect'
+import { BookingCodeInput } from '../shared/BookingCode'
+import { buildAssignmentOptions } from './assignmentOptions'
 import AddressInput from './AddressInput'
 import { Hotel, Utensils, Ticket, FileText, Users, Paperclip, X, ExternalLink, Link2, ParkingSquare } from 'lucide-react'
 import { useToast } from '../shared/Toast'
@@ -22,6 +24,7 @@ import type { TripMember } from '../Budget/BudgetPanelMemberChips'
 import type { BookingExpenseRequest } from './BookingCostsSection.types'
 import type { BookingReviewDraft } from './parsedItemToDraft'
 import { typeToCostCategory } from '@trek/shared'
+import { stayPlaces } from '../../utils/stayPlaces'
 
 const TYPE_OPTIONS = [
   { value: 'hotel',      labelKey: 'reservations.type.hotel',      Icon: Hotel },
@@ -31,31 +34,6 @@ const TYPE_OPTIONS = [
   { value: 'parking',    labelKey: 'reservations.type.parking',    Icon: ParkingSquare },
   { value: 'other',      labelKey: 'reservations.type.other',      Icon: FileText },
 ]
-
-function buildAssignmentOptions(days, assignments, t, locale) {
-  const options = []
-  for (const day of (days || [])) {
-    const da = (assignments?.[String(day.id)] || []).slice().sort((a, b) => a.order_index - b.order_index)
-    if (da.length === 0) continue
-    const dayLabel = day.title || t('dayplan.dayN', { n: day.day_number })
-    const dateStr = day.date ? ` · ${formatDate(day.date, locale)}` : ''
-    const groupLabel = `${dayLabel}${dateStr}`
-    options.push({ value: `_header_${day.id}`, label: groupLabel, disabled: true, isHeader: true })
-    for (let i = 0; i < da.length; i++) {
-      const place = da[i].place
-      if (!place) continue
-      const timeStr = place.place_time ? ` · ${place.place_time}${place.end_time ? ' – ' + place.end_time : ''}` : ''
-      options.push({
-        value: da[i].id,
-        label: `  ${i + 1}. ${place.name}${timeStr}`,
-        searchLabel: place.name,
-        groupLabel,
-        dayDate: day.date || null,
-      })
-    }
-  }
-  return options
-}
 
 interface ReservationModalProps {
   isOpen: boolean
@@ -108,6 +86,20 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
   const [linkedFileIds, setLinkedFileIds] = useState<number[]>([])
   // Travelers assigned to this booking (#1517) — seeded on open, persisted after the save resolves.
   const [travelerIds, setTravelerIds] = useState<Set<number>>(new Set())
+  const filePickerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!showFilePicker) return
+    const closeOnOutsidePointer = (event: PointerEvent) => {
+      if (!filePickerRef.current?.contains(event.target as Node)) setShowFilePicker(false)
+    }
+    document.addEventListener('pointerdown', closeOnOutsidePointer)
+    return () => document.removeEventListener('pointerdown', closeOnOutsidePointer)
+  }, [showFilePicker])
+
+  useEffect(() => {
+    if (!isOpen) setShowFilePicker(false)
+  }, [isOpen])
 
   const assignmentOptions = useMemo(
     () => buildAssignmentOptions(days, assignments, t, locale),
@@ -224,14 +216,25 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
     return next
   })
 
+  // Mirrors the mobile sheet, which has had this shape since 72a82b3c while the
+  // desktop copy was never pulled across (#2107). Filling a missing clock with '00:00' made a
+  // day-long booking compare as midnight against midnight, and the comparison is
+  // strict, so an all-day permit on a single date was refused. It also left every
+  // booking with a date-only end time uneditable here, which is the shape the booking
+  // import and the mobile sheet both write.
+  //
+  // The hotel guard matters for the same reason it does on mobile: the date panel is
+  // hidden for hotels, so a type switch after typing dates would leave the save button
+  // dead with its explanation inside the hidden block.
   const isEndBeforeStart = (() => {
-    if (!form.end_date || !form.reservation_time) return false
+    if (form.type === 'hotel' || !form.end_date || !form.reservation_time) return false
     const startDate = form.reservation_time.split('T')[0]
-    const startTime = form.reservation_time.split('T')[1] || '00:00'
-    const endTime = form.reservation_end_time || '00:00'
-    const startFull = `${startDate}T${startTime}`
-    const endFull = `${form.end_date}T${endTime}`
-    return endFull <= startFull
+    const startTime = form.reservation_time.split('T')[1] || ''
+    const endTime = form.reservation_end_time || ''
+    // Without a time on either side the booking is all-day, so an end on the
+    // start day is fine — only compare the dates there.
+    if (!startTime || !endTime) return form.end_date < startDate
+    return `${form.end_date}T${endTime}` <= `${startDate}T${startTime}`
   })()
 
   const handleSubmit = async (e?: { preventDefault?: () => void }) => {
@@ -267,8 +270,16 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
         // Hotels link a place through the accommodation record; every other type links
         // the picked trip place/activity directly on the reservation (#1353).
         place_id: form.type === 'hotel' ? null : (form.place_id || null),
-        metadata: Object.keys(metadata).length > 0 ? metadata : null,
-        endpoints: [],
+        // An empty object, not null: null clears the column outright, and that
+        // took the mirrored booking price with it on every edit of a type that
+        // fills no metadata of its own — restaurant, event, tour, parking, other,
+        // a hotel without check-in times (#2233). An object still clears what the
+        // form dropped, and lets the server carry the price across.
+        metadata,
+        // Omitted on an edit: the server replaces the endpoint set whenever the
+        // key is present, and this form never edits endpoints, so sending an
+        // empty list would drop a transit booking's stations (#2216).
+        ...(reservation?.id ? {} : { endpoints: [] }),
         needs_review: false,
       }
       if (form.type === 'hotel' && (form.hotel_start_day || form.hotel_end_day)) {
@@ -550,7 +561,7 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className={labelClass}>{t('reservations.confirmationCode')}</label>
-            <input type="text" value={form.confirmation_number} onChange={e => set('confirmation_number', e.target.value)}
+            <BookingCodeInput value={form.confirmation_number} onChange={e => set('confirmation_number', e.target.value)}
               placeholder={t('reservations.confirmationPlaceholder')} className={inputClass} />
           </div>
           <div>
@@ -591,7 +602,7 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
                   placeholder={t('reservations.meta.pickHotel')}
                   options={[
                     { value: '', label: '—' },
-                    ...places.map(p => ({ value: p.id, label: p.name })),
+                    ...stayPlaces(places, form.hotel_place_id).map(p => ({ value: p.id, label: p.name })),
                   ]}
                   searchable
                   size="sm"
@@ -736,7 +747,7 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
                 {uploadingFile ? t('reservations.uploading') : t('reservations.attachFile')}
               </button>}
               {reservation?.id && files.filter(f => !f.deleted_at && !attachedFiles.some(af => af.id === f.id)).length > 0 && (
-                <div style={{ position: 'relative' }}>
+                <div ref={filePickerRef} style={{ position: 'relative' }}>
                   <button type="button" onClick={() => setShowFilePicker(v => !v)} className="text-content-faint" style={{
                     display: 'flex', alignItems: 'center', gap: 5, padding: '6px 10px',
                     border: '1px dashed var(--border-primary)', borderRadius: 8, background: 'none',

@@ -1,11 +1,13 @@
-// FE-PLANNER-RESMODAL-001 to FE-PLANNER-RESMODAL-080
-import { render, screen, waitFor, fireEvent, within } from '../../../tests/helpers/render';
+// FE-PLANNER-RESMODAL-001 to FE-PLANNER-RESMODAL-102
+import { render, screen, waitFor, fireEvent, within, act } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
 import { useAuthStore } from '../../store/authStore';
 import { useTripStore } from '../../store/tripStore';
 import { useAddonStore } from '../../store/addonStore';
+import { useSettingsStore } from '../../store/settingsStore';
+import { isBlurred } from '../../../tests/helpers/bookingCodeBlur';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import {
   buildUser,
@@ -558,6 +560,35 @@ describe('ReservationModal', () => {
     });
   });
 
+  it('FE-PLANNER-RESMODAL-094: an outside pointer closes the file picker while an inside pointer keeps it open', async () => {
+    const res = buildReservation({ id: 5 });
+    const unattachedFile = buildTripFile({ id: 99, original_name: 'invoice.pdf' });
+
+    render(<ReservationModal {...defaultProps} reservation={res} files={[unattachedFile]} />);
+    await userEvent.click(screen.getByRole('button', { name: /Link existing file/i }));
+
+    const pickerItem = screen.getByText('invoice.pdf');
+    fireEvent.pointerDown(pickerItem);
+    expect(screen.getByText('invoice.pdf')).toBeInTheDocument();
+
+    fireEvent.pointerDown(document.body);
+    expect(screen.queryByText('invoice.pdf')).not.toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-RESMODAL-095: closing and reopening the modal resets the file picker', async () => {
+    const res = buildReservation({ id: 5 });
+    const unattachedFile = buildTripFile({ id: 99, original_name: 'invoice.pdf' });
+    const { rerender } = render(<ReservationModal {...defaultProps} reservation={res} files={[unattachedFile]} />);
+
+    await userEvent.click(screen.getByRole('button', { name: /Link existing file/i }));
+    expect(screen.getByText('invoice.pdf')).toBeInTheDocument();
+
+    rerender(<ReservationModal {...defaultProps} isOpen={false} reservation={res} files={[unattachedFile]} />);
+    rerender(<ReservationModal {...defaultProps} reservation={res} files={[unattachedFile]} />);
+
+    expect(screen.queryByText('invoice.pdf')).not.toBeInTheDocument();
+  });
+
   it('FE-PLANNER-RESMODAL-040: removing pending file removes it from list', async () => {
     render(<ReservationModal {...defaultProps} reservation={null} />);
 
@@ -594,6 +625,29 @@ describe('ReservationModal', () => {
     expect(onSave).toHaveBeenCalledWith(
       expect.objectContaining({ title: 'Grand Hotel', type: 'hotel' })
     );
+  });
+
+  it('FE-PLANNER-RESMODAL-101: an imported track is not offered as the place of a stay', async () => {
+    const hotel = buildPlace({ id: 21, name: 'Hotel Adler' });
+    const track = buildPlace({ id: 22, name: 'Rheinsteig', route_geometry: '[[50.1,7.6],[50.2,7.7]]' });
+    render(<ReservationModal {...defaultProps} places={[hotel, track]} />);
+
+    await userEvent.click(screen.getByRole('button', { name: /Accommodation/i }));
+    const field = screen.getAllByText('Accommodation').find(el => el.tagName === 'LABEL')!.parentElement!;
+    await userEvent.click(within(field).getByRole('button'));
+
+    expect(screen.getByText('Hotel Adler')).toBeInTheDocument();
+    expect(screen.queryByText('Rheinsteig')).not.toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-RESMODAL-102: a stay already booked at a track still shows that track', () => {
+    const track = buildPlace({ id: 22, name: 'Rheinsteig', route_geometry: '[[50.1,7.6],[50.2,7.7]]' });
+    const days = [buildDay({ id: 1 }), buildDay({ id: 2 })];
+    const accommodations = [{ id: 7, trip_id: 1, place_id: 22, start_day_id: 1, end_day_id: 2 }];
+    const res = buildReservation({ id: 9, type: 'hotel', title: 'Hut', accommodation_id: 7 });
+    render(<ReservationModal {...defaultProps} days={days} places={[track]} accommodations={accommodations as never} reservation={res} />);
+
+    expect(screen.getByText('Rheinsteig')).toBeInTheDocument();
   });
 
   it('FE-PLANNER-RESMODAL-043: hover styles applied to file picker items', async () => {
@@ -1437,6 +1491,96 @@ describe('ReservationModal', () => {
     expect(times.map(i => i.value)).toEqual(['', '', '']);
   });
 
+  // #2107 — a booking that lasts a whole day has no clock to compare, and filling the
+  // missing one with midnight made the comparison read as inverted.
+  it('FE-PLANNER-RESMODAL-089: the same start and end date with no times is accepted', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<ReservationModal {...defaultProps} onSave={onSave} days={reviewDays()} />);
+
+    await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'Park permit');
+    const datePickers = screen.getAllByTestId('date-picker');
+    fireEvent.change(datePickers[0], { target: { value: '2026-05-02' } });
+    fireEvent.change(datePickers[1], { target: { value: '2026-05-02' } });
+
+    expect(screen.queryByText(/End date\/time must be after start/i)).toBeNull();
+    fireEvent.submit(document.querySelector('form')!);
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+  });
+
+  it('FE-PLANNER-RESMODAL-090: an all-day booking is saved as bare dates on both ends', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<ReservationModal {...defaultProps} onSave={onSave} days={reviewDays()} />);
+
+    await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'Park permit');
+    const datePickers = screen.getAllByTestId('date-picker');
+    fireEvent.change(datePickers[0], { target: { value: '2026-05-02' } });
+    fireEvent.change(datePickers[1], { target: { value: '2026-05-02' } });
+    fireEvent.submit(document.querySelector('form')!);
+
+    // The stored shape matters: the calendar export branches on whether the value
+    // carries a clock, and a bare date is what makes it an all-day event.
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({ reservation_time: '2026-05-02', reservation_end_time: '2026-05-02' }),
+    ));
+  });
+
+  it('FE-PLANNER-RESMODAL-091: an end date before the start is still refused without times', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    const addToast = vi.fn();
+    window.__addToast = addToast;
+    render(<ReservationModal {...defaultProps} onSave={onSave} days={reviewDays()} />);
+
+    await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'Backwards');
+    const datePickers = screen.getAllByTestId('date-picker');
+    fireEvent.change(datePickers[0], { target: { value: '2026-05-02' } });
+    fireEvent.change(datePickers[1], { target: { value: '2026-05-01' } });
+    fireEvent.submit(document.querySelector('form')!);
+
+    expect(onSave).not.toHaveBeenCalled();
+    expect(addToast).toHaveBeenCalledWith(expect.stringMatching(/End date\/time must be after start/i), 'error', undefined);
+    delete window.__addToast;
+  });
+
+  it('FE-PLANNER-RESMODAL-092: a stored booking whose end is a bare date on the start day stays editable', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    // The shape the booking import and the mobile sheet both write. Nothing is typed
+    // here: the row alone used to leave the save button dead.
+    const res = buildReservation({
+      id: 21, type: 'event', title: 'Day permit',
+      reservation_time: '2026-05-02T10:00:00', reservation_end_time: '2026-05-02',
+    });
+    render(<ReservationModal {...defaultProps} reservation={res} onSave={onSave} days={reviewDays()} />);
+
+    expect(screen.queryByText(/End date\/time must be after start/i)).toBeNull();
+    fireEvent.submit(document.querySelector('form')!);
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+  });
+
+  it('FE-PLANNER-RESMODAL-093: switching to hotel clears a date error the hidden panel cannot explain', async () => {
+    render(<ReservationModal {...defaultProps} days={reviewDays()} />);
+
+    await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'Switched');
+    const datePickers = screen.getAllByTestId('date-picker');
+    const timePickers = screen.getAllByTestId('time-picker');
+    fireEvent.change(datePickers[0], { target: { value: '2026-05-02' } });
+    fireEvent.change(timePickers[0], { target: { value: '19:00' } });
+    fireEvent.change(datePickers[1], { target: { value: '2026-05-01' } });
+    expect(screen.getByText(/End date\/time must be after start/i)).toBeTruthy();
+    // The footer button reads 'Add' while creating and 'Update' while editing.
+    const save = () => Array.from(document.querySelectorAll('button'))
+      .find(b => /^\s*(Add|Update)\s*$/.test(b.textContent || '')) as HTMLButtonElement;
+    expect(save().disabled).toBe(true);
+
+    // The date panel is hidden for hotels, and the message sits inside it, so
+    // asserting on the message proves nothing here. The save button is the part
+    // that stayed dead with no visible reason.
+    // The hotel type is labelled 'Accommodation' in the picker.
+    const hotelBtn = Array.from(document.querySelectorAll('button'))
+      .find(b => /^\s*Accommodation\s*$/.test(b.textContent || ''))!;
+    fireEvent.click(hotelBtn);
+    expect(save().disabled).toBe(false);
+  });
+
   it('FE-PLANNER-RESMODAL-088: double-encoded metadata still fills the check-in times', () => {
     const res = buildReservation({ id: 18, title: 'Grand Hotel', type: 'hotel' });
     (res as unknown as { metadata: string }).metadata =
@@ -1446,5 +1590,58 @@ describe('ReservationModal', () => {
     const times = screen.getAllByTestId('time-picker') as HTMLInputElement[];
     expect(times[0].value).toBe('16:00');
     expect(times[2].value).toBe('10:30');
+  });
+
+  // ── Blur booking codes in the edit form (#2457) ─────────────────────────────
+
+  describe('blur booking codes (#2457)', () => {
+    const blurOn = (on: boolean) => seedStore(useSettingsStore, { settings: { time_format: '24h', blur_booking_codes: on } });
+
+    it('FE-PLANNER-RESMODAL-096: the booking code field is blurred while the setting is on and the field is not focused', () => {
+      blurOn(true);
+      const res = buildReservation({ type: 'restaurant', confirmation_number: 'PNR-SECRET' });
+      render(<ReservationModal {...defaultProps} reservation={res} />);
+      const code = screen.getByDisplayValue('PNR-SECRET');
+      expect(isBlurred(code)).toBe(true);
+    });
+
+    it('FE-PLANNER-RESMODAL-097: a hotel booking hides its code the same way', () => {
+      blurOn(true);
+      const res = buildReservation({ type: 'hotel', title: 'Hotel Adlon', confirmation_number: 'HOTEL-SECRET' });
+      render(<ReservationModal {...defaultProps} reservation={res} />);
+      expect(isBlurred(screen.getByDisplayValue('HOTEL-SECRET'))).toBe(true);
+    });
+
+    it('FE-PLANNER-RESMODAL-098: focusing the field reveals the code for editing, leaving it hides it again', () => {
+      blurOn(true);
+      const res = buildReservation({ type: 'restaurant', confirmation_number: 'PNR-SECRET' });
+      render(<ReservationModal {...defaultProps} reservation={res} />);
+      const code = screen.getByDisplayValue('PNR-SECRET') as HTMLInputElement;
+      expect(isBlurred(code)).toBe(true);
+      act(() => code.focus());
+      expect(isBlurred(code)).toBe(false);
+      act(() => code.blur());
+      expect(isBlurred(code)).toBe(true);
+    });
+
+    it('FE-PLANNER-RESMODAL-099: with the setting off the code stays plain', () => {
+      blurOn(false);
+      const res = buildReservation({ type: 'restaurant', confirmation_number: 'PNR-PLAIN' });
+      render(<ReservationModal {...defaultProps} reservation={res} />);
+      expect(isBlurred(screen.getByDisplayValue('PNR-PLAIN'))).toBe(false);
+    });
+
+    it('FE-PLANNER-RESMODAL-100: a blurred code still saves unchanged, and an edit typed into it is kept', async () => {
+      blurOn(true);
+      const onSave = vi.fn().mockResolvedValue(undefined);
+      const res = buildReservation({ type: 'restaurant', title: 'Dinner', confirmation_number: 'PNR-SECRET' });
+      render(<ReservationModal {...defaultProps} onSave={onSave} reservation={res} />);
+      const code = screen.getByDisplayValue('PNR-SECRET');
+      await userEvent.clear(code);
+      await userEvent.type(code, 'PNR-NEW');
+      await userEvent.click(screen.getByRole('button', { name: /^Update$/i }));
+      await waitFor(() => expect(onSave).toHaveBeenCalled());
+      expect(onSave.mock.calls[0][0].confirmation_number).toBe('PNR-NEW');
+    });
   });
 });

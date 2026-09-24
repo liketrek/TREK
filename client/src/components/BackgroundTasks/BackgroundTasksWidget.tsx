@@ -1,7 +1,7 @@
 import { createPortal } from 'react-dom'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
-import { Loader2, CheckCircle2, AlertCircle, X } from 'lucide-react'
+import { Loader2, CheckCircle2, AlertCircle, AlertTriangle, X } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { addListener, removeListener } from '../../api/websocket'
 import { reservationsApi, healthApi } from '../../api/client'
@@ -141,8 +141,12 @@ export default function BackgroundTasksWidget() {
         >
           <div style={{ flexShrink: 0, marginTop: 1 }}>
             {(task.status === 'running' || (task.status === 'done' && task.items === undefined)) && <Loader2 size={16} className="animate-spin" color="var(--accent)" />}
-            {task.status === 'done' && task.items !== undefined && <CheckCircle2 size={16} color="#10b981" />}
-            {task.status === 'error' && <AlertCircle size={16} color="#ef4444" />}
+            {task.status === 'done' && task.items !== undefined && task.items.length > 0 && <CheckCircle2 size={16} color="var(--success)" />}
+            {/* A parse that found nothing is not a success, whatever the job
+                status says: the same card used to show a green tick next to
+                "no reservations could be extracted" (#2477). */}
+            {task.status === 'done' && task.items?.length === 0 && <AlertTriangle size={16} color="var(--warning)" />}
+            {task.status === 'error' && <AlertCircle size={16} color="var(--danger)" />}
           </div>
 
           <div style={{ flex: 1, minWidth: 0 }}>

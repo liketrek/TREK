@@ -58,9 +58,9 @@ const svc = new ImmichService(dbs, audit as unknown as AuditService, access as u
 
 const USER = 1;
 
-function seedUser(id: number, url: string | null, key: string | null, autoUpload = 0): void {
-  testDb.prepare("INSERT OR REPLACE INTO users (id, username, email, password_hash, immich_url, immich_api_key, immich_auto_upload) VALUES (?, ?, ?, 'x', ?, ?, ?)")
-    .run(id, `u${id}`, `u${id}@example.test`, url, key, autoUpload);
+function seedUser(id: number, url: string | null, key: string | null, autoUpload = 0, allowInsecureTls = 0): void {
+  testDb.prepare("INSERT OR REPLACE INTO users (id, username, email, password_hash, immich_url, immich_api_key, immich_auto_upload, immich_allow_insecure_tls) VALUES (?, ?, ?, 'x', ?, ?, ?, ?)")
+    .run(id, `u${id}`, `u${id}@example.test`, url, key, autoUpload, allowInsecureTls);
 }
 
 /** A Response-ish object with only what the service reads. */
@@ -111,7 +111,7 @@ describe('getImmichCredentials', () => {
   });
 
   it('IMMICH-005: returns the decrypted pair otherwise', () => {
-    expect(svc.getImmichCredentials(USER)).toEqual({ immich_url: 'https://immich.test', immich_api_key: 'key-1' });
+    expect(svc.getImmichCredentials(USER)).toEqual({ immich_url: 'https://immich.test', immich_api_key: 'key-1', allow_insecure_tls: false });
   });
 });
 
@@ -125,12 +125,12 @@ describe('isValidAssetId', () => {
 
 describe('getConnectionSettings / setImmichAutoUpload', () => {
   it('IMMICH-007: reports connected with the URL when configured', () => {
-    expect(svc.getConnectionSettings(USER)).toEqual({ immich_url: 'https://immich.test', connected: true, auto_upload: false });
+    expect(svc.getConnectionSettings(USER)).toEqual({ immich_url: 'https://immich.test', connected: true, auto_upload: false, allow_insecure_tls: false });
   });
 
   it('IMMICH-008: reports an empty URL and not connected when it is not', () => {
     seedUser(4, null, null);
-    expect(svc.getConnectionSettings(4)).toEqual({ immich_url: '', connected: false, auto_upload: false });
+    expect(svc.getConnectionSettings(4)).toEqual({ immich_url: '', connected: false, auto_upload: false, allow_insecure_tls: false });
   });
 
   it('IMMICH-009: surfaces the auto-upload flag both ways', () => {
@@ -155,7 +155,7 @@ describe('saveImmichSettings', () => {
     const result = await svc.saveImmichSettings(USER, '  https://new.test  ', 'k2', null);
 
     expect(result).toEqual({ success: true });
-    expect(svc.getImmichCredentials(USER)).toEqual({ immich_url: 'https://new.test', immich_api_key: 'k2' });
+    expect(svc.getImmichCredentials(USER)).toEqual({ immich_url: 'https://new.test', immich_api_key: 'k2', allow_insecure_tls: false });
   });
 
   it('IMMICH-012: warns and audits when the URL resolves to a private IP', async () => {
@@ -262,6 +262,24 @@ describe('browseTimeline', () => {
   });
 });
 
+/**
+ * Three raw pages of a Sydney library, read newest first: the whole of 16 March
+ * comes back before 15 March starts, which is what makes an answered page cost
+ * more than one raw page once the day filter runs (#2336).
+ */
+const NEXT_DAY = [
+  { id: 'next-1', fileCreatedAt: '2026-03-16T01:00:00.000Z', localDateTime: '2026-03-16T12:00:00.000Z' },
+  { id: 'next-2', fileCreatedAt: '2026-03-16T00:30:00.000Z', localDateTime: '2026-03-16T11:30:00.000Z' },
+];
+const DAY_HEAD = [
+  { id: 'day-1', fileCreatedAt: '2026-03-15T09:00:00.000Z', localDateTime: '2026-03-15T20:00:00.000Z' },
+  { id: 'day-2', fileCreatedAt: '2026-03-15T08:00:00.000Z', localDateTime: '2026-03-15T19:00:00.000Z' },
+];
+const DAY_TAIL = [
+  { id: 'day-3', fileCreatedAt: '2026-03-15T07:00:00.000Z', localDateTime: '2026-03-15T18:00:00.000Z' },
+  { id: 'day-4', fileCreatedAt: '2026-03-15T06:00:00.000Z', localDateTime: '2026-03-15T17:00:00.000Z' },
+];
+
 describe('searchPhotos', () => {
   it('IMMICH-027: 400s without credentials and 502s when the server is unreachable', async () => {
     seedUser(7, null, null);
@@ -298,7 +316,10 @@ describe('searchPhotos', () => {
       ] } },
     }));
 
-    const [a, b] = (await svc.searchPhotos(USER)).assets!;
+    // By id, not by position: the result is ordered newest first, so 'b' leads.
+    const assets = (await svc.searchPhotos(USER)).assets!;
+    const a = assets.find(x => x.id === 'a');
+    const b = assets.find(x => x.id === 'b');
 
     expect(a).toMatchObject({ takenAt: '2026-02-02', city: 'Kyoto', country: 'JP', lat: 35.0, lng: 135.7, mediaType: 'video' });
     // A non-numeric coordinate becomes null rather than reaching the client as a string.
@@ -317,16 +338,151 @@ describe('searchPhotos', () => {
     expect(result.hasMore).toBe(true);
   });
 
-  it('IMMICH-032: turns a from/to pair into the upstream date bounds', async () => {
+  it('IMMICH-032: pads the upstream date bounds by a day on each side', async () => {
+    // The bounds filter on fileCreatedAt, a UTC instant, while from/to name
+    // calendar days on a wall clock. No zone sits further than 14 hours from
+    // UTC, so a day of slack each way reaches every asset that belongs to them;
+    // the local-date filter below narrows the page again (#2336).
     safeFetch.mockResolvedValue(upstream({ json: { assets: { items: [] } } }));
 
     await svc.searchPhotos(USER, '2026-01-01', '2026-01-31');
 
     const body = JSON.parse((safeFetch.mock.calls[0][1] as { body: string }).body);
-    expect(body.takenAfter).toBe('2026-01-01T00:00:00.000Z');
-    expect(body.takenBefore).toBe('2026-01-31T23:59:59.999Z');
+    expect(body.takenAfter).toBe('2025-12-31T00:00:00.000Z');
+    expect(body.takenBefore).toBe('2026-02-01T23:59:59.999Z');
     // Load-bearing on Immich >= 1.133: hidden assets must not cross the wire.
     expect(body.visibility).toBe('timeline');
+    expect(body.order).toBe('desc');
+  });
+
+  it('IMMICH-032c: pads only the bound it was given', async () => {
+    safeFetch.mockResolvedValue(upstream({ json: { assets: { items: [] } } }));
+
+    await svc.searchPhotos(USER, '2026-01-01');
+    const fromOnly = JSON.parse((safeFetch.mock.calls[0][1] as { body: string }).body);
+    expect(fromOnly.takenAfter).toBe('2025-12-31T00:00:00.000Z');
+    expect(fromOnly.takenBefore).toBeUndefined();
+
+    await svc.searchPhotos(USER, undefined, '2026-01-31');
+    const toOnly = JSON.parse((safeFetch.mock.calls[1][1] as { body: string }).body);
+    expect(toOnly.takenAfter).toBeUndefined();
+    expect(toOnly.takenBefore).toBe('2026-02-01T23:59:59.999Z');
+  });
+
+  it('IMMICH-032d: keeps the photos whose OWN local capture date is the day asked for', async () => {
+    // A Sydney reader asking for the 15th: the 07:32 shot is 20:32Z on the 14th
+    // and the UTC window used to miss it, while the next morning leaked in.
+    safeFetch.mockResolvedValue(upstream({
+      json: { assets: { items: [
+        { id: 'morning', fileCreatedAt: '2026-03-14T20:32:00.000Z', localDateTime: '2026-03-15T07:32:00.000Z' },
+        { id: 'evening', fileCreatedAt: '2026-03-15T09:00:00.000Z', localDateTime: '2026-03-15T20:00:00.000Z' },
+        { id: 'next-morning', fileCreatedAt: '2026-03-15T21:00:00.000Z', localDateTime: '2026-03-16T08:00:00.000Z' },
+      ] } },
+    }));
+
+    const result = await svc.searchPhotos(USER, '2026-03-15', '2026-03-15');
+
+    expect(result.assets!.map(a => a.id)).toEqual(['evening', 'morning']);
+    expect(result.assets![1]).toMatchObject({ takenAt: '2026-03-14T20:32:00.000Z', localTakenAt: '2026-03-15T07:32:00.000Z' });
+  });
+
+  it('IMMICH-049: a server without localDateTime answers exactly as it did before', async () => {
+    // An old or forked Immich: the fallback is the capture instant, so the day
+    // is the UTC day the window has always searched, and the padding buys the
+    // neighbouring days nothing.
+    safeFetch.mockResolvedValue(upstream({
+      json: { assets: { items: [
+        { id: 'day-before', fileCreatedAt: '2026-03-14T23:00:00.000Z' },
+        { id: 'in-day', fileCreatedAt: '2026-03-15T09:00:00.000Z' },
+        { id: 'day-after', fileCreatedAt: '2026-03-16T01:00:00.000Z' },
+      ] } },
+    }));
+
+    const result = await svc.searchPhotos(USER, '2026-03-15', '2026-03-15');
+
+    expect(result.assets!.map(a => a.id)).toEqual(['in-day']);
+    expect(result.assets![0].localTakenAt).toBeNull();
+  });
+
+  it('IMMICH-050: fills the answered page from as many raw pages as the day filter costs', async () => {
+    // `order: 'desc'` hands the padding day back first, so the first raw page of
+    // a day whose neighbour was busy is entirely the wrong day. Answering that
+    // page empty made the picker load nothing several times over, and made the
+    // MCP tool report a day that has photos as having none (#2336).
+    safeFetch
+      .mockResolvedValueOnce(upstream({ json: { assets: { items: NEXT_DAY } } }))
+      .mockResolvedValueOnce(upstream({ json: { assets: { items: DAY_HEAD } } }));
+
+    const result = await svc.searchPhotos(USER, '2026-03-15', '2026-03-15', 1, 2);
+
+    expect(result.assets!.map(a => a.id)).toEqual(['day-1', 'day-2']);
+    expect(result.hasMore).toBe(true);
+    expect(safeFetch).toHaveBeenCalledTimes(2);
+    expect(JSON.parse((safeFetch.mock.calls[1][1] as { body: string }).body).page).toBe(2);
+  });
+
+  it('IMMICH-050b: pages on without repeating an asset the page before already answered with', async () => {
+    // The scan restarts at raw page 1 every call, so what it skips has to be
+    // counted in assets that survived the filter rather than in raw rows.
+    const page = (items: unknown[]) => upstream({ json: { assets: { items } } });
+    safeFetch
+      .mockResolvedValueOnce(page(NEXT_DAY))
+      .mockResolvedValueOnce(page(DAY_HEAD))
+      .mockResolvedValueOnce(page(NEXT_DAY))
+      .mockResolvedValueOnce(page(DAY_HEAD))
+      .mockResolvedValueOnce(page(DAY_TAIL));
+
+    const first = await svc.searchPhotos(USER, '2026-03-15', '2026-03-15', 1, 2);
+    const second = await svc.searchPhotos(USER, '2026-03-15', '2026-03-15', 2, 2);
+
+    expect(first.assets!.map(a => a.id)).toEqual(['day-1', 'day-2']);
+    expect(second.assets!.map(a => a.id)).toEqual(['day-3', 'day-4']);
+  });
+
+  it('IMMICH-050c: gives up after the page budget instead of scanning a library forever', async () => {
+    // Every raw page is the padding day, so the answered page can never fill.
+    // hasMore has to go false here: the next call would scan the same pages and
+    // hand back the same empty page for ever.
+    safeFetch.mockResolvedValue(upstream({ json: { assets: { items: NEXT_DAY } } }));
+
+    const result = await svc.searchPhotos(USER, '2026-03-15', '2026-03-15', 1, 2);
+
+    expect(result.assets).toEqual([]);
+    expect(result.hasMore).toBe(false);
+    // SEARCH_MAX_RAW_PAGES.
+    expect(safeFetch).toHaveBeenCalledTimes(20);
+  });
+
+  it('IMMICH-050d: an unfiltered browse still costs one round trip, at the page it was asked for', async () => {
+    // Nothing narrows those pages, so a raw page and an answered page are the
+    // same page and the scan must not start over at page 1.
+    safeFetch.mockResolvedValue(upstream({
+      json: { assets: { items: [{ id: 'x', visibility: 'hidden' }, { id: 'y', visibility: 'hidden' }] } },
+    }));
+
+    const result = await svc.searchPhotos(USER, undefined, undefined, 3, 2);
+
+    expect(safeFetch).toHaveBeenCalledTimes(1);
+    expect(JSON.parse((safeFetch.mock.calls[0][1] as { body: string }).body).page).toBe(3);
+    // Every row was hidden, and pagination still advances past that page.
+    expect(result.assets).toEqual([]);
+    expect(result.hasMore).toBe(true);
+  });
+
+  it('IMMICH-032b: orders each page itself, so an unsorted page still lands chronological within itself', async () => {
+    // Older builds drop the unknown property silently (whitelist: true without
+    // forbidNonWhitelisted), which is exactly why the request cannot be trusted.
+    safeFetch.mockResolvedValue(upstream({
+      json: { assets: { items: [
+        { id: 'older', fileCreatedAt: '2026-03-01T09:00:00Z' },
+        { id: 'newest', fileCreatedAt: '2026-03-31T09:00:00Z' },
+        { id: 'middle', fileCreatedAt: '2026-03-15T09:00:00Z' },
+      ] } },
+    }));
+
+    const result = await svc.searchPhotos(USER);
+
+    expect(result.assets!.map(a => a.id)).toEqual(['newest', 'middle', 'older']);
   });
 });
 
@@ -371,6 +527,47 @@ describe('getAssetInfo', () => {
     safeFetch.mockResolvedValue(upstream({ json: { id: 'bare' } }));
     const data = (await svc.getAssetInfo(USER, 'bare')).data;
     expect(data).toMatchObject({ id: 'bare', width: null, height: null, city: null, fileName: null });
+  });
+
+  it('IMMICH-037b: reports the media type here too, not only in the listing', async () => {
+    // Same mapping as the listing, so the detail route and the picker agree on
+    // what an asset is. Nothing persists it from here yet — trek_photos.media_type
+    // comes from the add call's media_types.
+    safeFetch.mockResolvedValueOnce(upstream({ json: { id: 'clip', type: 'VIDEO' } }));
+    expect((await svc.getAssetInfo(USER, 'clip')).data.mediaType).toBe('video');
+
+    safeFetch.mockResolvedValueOnce(upstream({ json: { id: 'still', type: 'IMAGE' } }));
+    expect((await svc.getAssetInfo(USER, 'still')).data.mediaType).toBe('image');
+  });
+});
+
+describe('getAlbumPhotos', () => {
+  it('IMMICH-037c: 400s without credentials', async () => {
+    seedUser(11, null, null);
+    expect(await svc.getAlbumPhotos(11, 'alb-1')).toEqual({ error: 'Immich not configured', status: 400 });
+  });
+
+  it('IMMICH-037d: orders an album newest first and keeps its coordinates and media type', async () => {
+    // The v2 branch reads /api/albums/{id} directly and never passes a search,
+    // so this ordering is the only one an album on that version ever gets.
+    safeFetch.mockResolvedValue(upstream({
+      json: { assets: [
+        { id: 'older', fileCreatedAt: '2026-03-01T09:00:00Z', localDateTime: '2026-03-01T18:00:00.000Z', type: 'IMAGE', exifInfo: { latitude: 35.0, longitude: 135.7 } },
+        { id: 'clip', fileCreatedAt: '2026-03-31T09:00:00Z', type: 'VIDEO' },
+      ] },
+    }));
+
+    const assets = (await svc.getAlbumPhotos(USER, 'alb-1')).assets!;
+
+    expect(assets.map(a => a.id)).toEqual(['clip', 'older']);
+    expect(assets[0].mediaType).toBe('video');
+    expect(assets[1]).toMatchObject({ lat: 35.0, lng: 135.7 });
+    // The album path carries the same local capture stamp the search path does,
+    // so a photo picked out of an album lands under the day heading a search
+    // would have given it instead of under the UTC one (#2336). A server that
+    // predates the field leaves it null, and the readers fall back to takenAt.
+    expect(assets[1].localTakenAt).toBe('2026-03-01T18:00:00.000Z');
+    expect(assets[0].localTakenAt).toBeNull();
   });
 });
 
@@ -526,5 +723,183 @@ describe('uploadToImmich', () => {
     writeJourneyObject('rej.jpg', 'bytes');
     safeFetch.mockResolvedValueOnce({ ok: false, status: 500 });
     expect(await svc.uploadToImmich(USER, 'journey/rej.jpg', 'rej.jpg')).toBeNull();
+  });
+});
+
+/**
+ * The self-signed switch (#2475). Every request to a user's Immich carries the
+ * TLS options as safeFetch's third argument; these pin that no path was left
+ * on the strict default and that the switch is read fail closed.
+ */
+describe('self-signed certificates', () => {
+  const LAX = { rejectUnauthorized: false };
+  const STRICT = { rejectUnauthorized: true };
+
+  function makeRes() {
+    return { status: vi.fn().mockReturnThis(), json: vi.fn(), set: vi.fn(), end: vi.fn(), headersSent: false };
+  }
+
+  function writeJourneyObject(name: string, bytes: string): void {
+    const dir = path.join(journeyFx.root, 'journey');
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, name), bytes);
+  }
+
+  /** Drives every request the service makes against the user's own server. */
+  async function exerciseEveryPath(userId: number): Promise<void> {
+    access.getAlbumIdFromLink.mockReturnValue({ success: true, data: 'album-1' });
+    safeFetch.mockImplementation(async (url: string) => {
+      if (url.endsWith('/api/albums/album-1')) return upstream({ json: {} });
+      if (url.includes('/api/search/metadata')) return upstream({ json: { assets: { items: [] } } });
+      if (url.includes('/api/albums')) return upstream({ json: [] });
+      if (url.endsWith('/api/assets')) return upstream({ json: { id: 'up-1' } });
+      return upstream({ json: {} });
+    });
+    writeJourneyObject('tls.jpg', 'bytes');
+
+    await svc.getConnectionStatus(userId);
+    await svc.browseTimeline(userId);
+    await svc.searchPhotos(userId);
+    await svc.getAssetInfo(userId, 'a1');
+    await svc.fetchImmichThumbnailBytes(userId, 'a1');
+    await svc.streamImmichAsset(makeRes() as never, userId, 'a1', 'thumbnail');
+    await svc.listAlbums(userId);
+    await svc.getAlbumPhotos(userId, 'album-1');
+    await svc.collectAlbumSelection('1', 'l1', userId);
+    await svc.uploadToImmich(userId, 'journey/tls.jpg', 'tls.jpg');
+  }
+
+  /**
+   * status, timeline, search, info, thumbnail, stream, both album lists, then
+   * the album detail and its v3 search twice (browse and sync), and the upload.
+   */
+  const EVERY_PATH_CALLS = 13;
+
+  it('IMMICH-TLS-001: only a stored 1 turns the switch on', () => {
+    seedUser(USER, 'https://immich.test', 'key-1', 0, 1);
+    expect(svc.getImmichCredentials(USER)!.allow_insecure_tls).toBe(true);
+
+    seedUser(USER, 'https://immich.test', 'key-1', 0, 0);
+    expect(svc.getImmichCredentials(USER)!.allow_insecure_tls).toBe(false);
+
+    // Anything the column should never hold reads as off, not as truthy.
+    seedUser(USER, 'https://immich.test', 'key-1', 0, 2);
+    expect(svc.getImmichCredentials(USER)!.allow_insecure_tls).toBe(false);
+  });
+
+  it('IMMICH-TLS-002: with the switch on, every request to the server skips the certificate check', async () => {
+    seedUser(USER, 'https://immich.test', 'key-1', 0, 1);
+
+    await exerciseEveryPath(USER);
+
+    expect(safeFetch).toHaveBeenCalledTimes(EVERY_PATH_CALLS);
+    for (const call of safeFetch.mock.calls) expect(call[2]).toEqual(LAX);
+  });
+
+  it('IMMICH-TLS-003: with the switch off, every request keeps the certificate check', async () => {
+    await exerciseEveryPath(USER);
+
+    expect(safeFetch).toHaveBeenCalledTimes(EVERY_PATH_CALLS);
+    for (const call of safeFetch.mock.calls) expect(call[2]).toEqual(STRICT);
+  });
+
+  it('IMMICH-TLS-004: a shared photo follows the switch of its owner, not of the viewer', async () => {
+    // The request goes to the owner's server with the owner's key, so the
+    // owner decided whether that server's certificate is trusted.
+    seedUser(USER, 'https://viewer.test', 'viewer-key', 0, 0);
+    seedUser(20, 'https://owner.test', 'owner-key', 0, 1);
+    safeFetch.mockResolvedValue(upstream({ json: { id: 'a1' } }));
+
+    await svc.getAssetInfo(USER, 'a1', 20);
+    await svc.fetchImmichThumbnailBytes(USER, 'a1', 20);
+    await svc.streamImmichAsset(makeRes() as never, USER, 'a1', 'original', 20);
+
+    expect(safeFetch).toHaveBeenCalledTimes(3);
+    for (const call of safeFetch.mock.calls) {
+      expect(call[0]).toContain('https://owner.test');
+      expect(call[2]).toEqual(LAX);
+    }
+
+    safeFetch.mockClear();
+    seedUser(USER, 'https://viewer.test', 'viewer-key', 0, 1);
+    seedUser(20, 'https://owner.test', 'owner-key', 0, 0);
+    await svc.getAssetInfo(USER, 'a1', 20);
+    expect(safeFetch.mock.calls[0][2]).toEqual(STRICT);
+  });
+
+  it('IMMICH-TLS-005: saving without the switch keeps it, saving with it sets it, disconnecting clears it', async () => {
+    await svc.saveImmichSettings(USER, 'https://immich.test', 'key-1', null, true);
+    expect(svc.getConnectionSettings(USER).allow_insecure_tls).toBe(true);
+
+    // An older client does not send the field; its save must not turn the switch off.
+    await svc.saveImmichSettings(USER, 'https://immich.test', 'key-1', null);
+    expect(svc.getConnectionSettings(USER).allow_insecure_tls).toBe(true);
+
+    await svc.saveImmichSettings(USER, 'https://immich.test', 'key-1', null, false);
+    expect(svc.getConnectionSettings(USER).allow_insecure_tls).toBe(false);
+
+    await svc.saveImmichSettings(USER, 'https://immich.test', 'key-1', null, true);
+    await svc.saveImmichSettings(USER, undefined, undefined, null, true);
+    const row = testDb.prepare('SELECT immich_url, immich_allow_insecure_tls FROM users WHERE id = ?').get(USER);
+    expect(row).toEqual({ immich_url: null, immich_allow_insecure_tls: 0 });
+  });
+
+  it('IMMICH-TLS-010: the switch trusts one server, so a new URL saved without it starts off', async () => {
+    seedUser(USER, 'https://nas.local', 'key-1', 0, 1);
+
+    // Same server with a trailing slash: still the same connection, the switch stays.
+    await svc.saveImmichSettings(USER, 'https://nas.local/', 'key-1', null);
+    expect(svc.getConnectionSettings(USER).allow_insecure_tls).toBe(true);
+
+    await svc.saveImmichSettings(USER, 'https://photos.example.com', 'key-2', null);
+    expect(testDb.prepare('SELECT immich_url, immich_allow_insecure_tls FROM users WHERE id = ?').get(USER)).toEqual({
+      immich_url: 'https://photos.example.com', immich_allow_insecure_tls: 0,
+    });
+
+    // Sent along with the new URL, it holds for that server.
+    await svc.saveImmichSettings(USER, 'https://other.example.com', 'key-3', null, true);
+    expect(svc.getConnectionSettings(USER).allow_insecure_tls).toBe(true);
+  });
+
+  it('IMMICH-TLS-006: a URL the guard refuses leaves the stored switch alone', async () => {
+    seedUser(USER, 'https://immich.test', 'key-1', 0, 1);
+    checkSsrf.mockResolvedValue({ allowed: false, error: 'blocked host' });
+
+    await svc.saveImmichSettings(USER, 'http://169.254.169.254', 'k', null, false);
+
+    expect(svc.getConnectionSettings(USER).allow_insecure_tls).toBe(true);
+  });
+
+  it('IMMICH-TLS-007: the connection test uses the switch it is handed, strict by default', async () => {
+    safeFetch.mockResolvedValue(upstream({ json: { name: 'Ada' } }));
+
+    await svc.testConnection('https://immich.test', 'k', true);
+    await svc.testConnection('https://immich.test', 'k', false);
+    await svc.testConnection('https://immich.test', 'k');
+
+    expect(safeFetch.mock.calls.map(call => call[2])).toEqual([LAX, STRICT, STRICT]);
+  });
+
+  it('IMMICH-TLS-008: a refused certificate names itself instead of a bare "fetch failed"', async () => {
+    // undici keeps the reason on `cause`; the settings card used to show only
+    // the outer message, which left the user nothing to go on.
+    const refused = () => new TypeError('fetch failed', { cause: new Error('self-signed certificate') });
+    safeFetch.mockRejectedValueOnce(refused());
+    expect(await svc.testConnection('https://immich.test', 'k')).toEqual({
+      connected: false,
+      error: 'fetch failed (self-signed certificate)',
+    });
+
+    safeFetch.mockRejectedValueOnce(refused());
+    expect(await svc.getConnectionStatus(USER)).toEqual({ connected: false, error: 'fetch failed (self-signed certificate)' });
+  });
+
+  it('IMMICH-TLS-009: the upload mirror gives up on a server that never answers', async () => {
+    writeJourneyObject('slow.jpg', 'bytes');
+    safeFetch.mockResolvedValueOnce(upstream({ json: { id: 'up-2' } }));
+
+    await svc.uploadToImmich(USER, 'journey/slow.jpg', 'slow.jpg');
+
+    expect((safeFetch.mock.calls[0][1] as { signal?: AbortSignal }).signal).toBeInstanceOf(AbortSignal);
   });
 });

@@ -62,7 +62,7 @@ import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createAdmin, createTrip, addTripMember } from '../../helpers/factories';
 import { DatabaseService } from '../../../src/nest/database/database.service';
 import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { PackingService } from '../../../src/nest/packing/packing.service';
+import { PackingService, isInvalidBagRef } from '../../../src/nest/packing/packing.service';
 // Was packing.bridge, deleted with the other three that had no consumer outside the
 // container. The assertions stayed; they point at the service now.
 const bridgeListItems = (tripId: string | number, viewerId?: number) => svc.listItems(tripId, viewerId);
@@ -685,6 +685,121 @@ describe('legacy-quirk fixes', () => {
   });
 });
 
+// ── Create-path fields + bag trip scope (#2154) ───────────────────────────────
+
+describe('create-path fields + bag trip scope (#2154)', () => {
+  it('PACK-SVC-054: createItem persists weight_grams, bag_id and quantity in one write', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const bag = svc.createBag(trip.id, { name: 'Carry-On' }) as any;
+
+    const item = svc.createItem(trip.id, { name: 'Tent', weight_grams: 250, bag_id: bag.id, quantity: 3 }, user.id) as any;
+    expect(item).toMatchObject({ weight_grams: 250, bag_id: bag.id, quantity: 3 });
+  });
+
+  it('PACK-SVC-077: a bag weighs what EVERY member put in it, private items included (#2191)', () => {
+    const { user } = createUser(testDb);
+    const { user: buddy } = createUser(testDb, { username: 'bag-buddy' });
+    const trip = createTrip(testDb, user.id);
+    addTripMember(testDb, trip.id, buddy.id);
+    const bag = svc.createBag(trip.id, { name: 'Duffel' }) as any;
+
+    // The reporter's repro: 500 g of mine (personal) + 300 g common + 200 g of
+    // my buddy's personal list. Their item is invisible to me by design (#858)
+    // and used to be missing from the weight along with it.
+    svc.createItem(trip.id, { name: 'Boots', weight_grams: 500, bag_id: bag.id, visibility: 'personal' }, user.id);
+    svc.createItem(trip.id, { name: 'Stove', weight_grams: 300, bag_id: bag.id }, user.id);
+    svc.createItem(trip.id, { name: 'Book', weight_grams: 200, bag_id: bag.id, visibility: 'personal' }, buddy.id);
+
+    // What I am allowed to SEE is still only my own two items...
+    const visible = svc.listItems(trip.id, user.id) as any[];
+    expect(visible.map(i => i.name).sort()).toEqual(['Boots', 'Stove']);
+    // ...but the bag weighs all three.
+    expect((svc.listBags(trip.id) as any[])[0].total_weight_grams).toBe(1000);
+  });
+
+  it('PACK-SVC-078: bag weight multiplies by quantity and survives null weights (#2191)', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const bag = svc.createBag(trip.id, { name: 'Carry-On' }) as any;
+
+    svc.createItem(trip.id, { name: 'Socks', weight_grams: 60, bag_id: bag.id, quantity: 3 }, user.id);
+    // No weight and no quantity: contributes nothing rather than NaN.
+    svc.createItem(trip.id, { name: 'Passport', bag_id: bag.id }, user.id);
+
+    expect((svc.listBags(trip.id) as any[])[0].total_weight_grams).toBe(180);
+  });
+
+  it('PACK-SVC-079: an empty bag reports 0, and the unassigned pile is summed too (#2191)', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const bag = svc.createBag(trip.id, { name: 'Empty' }) as any;
+
+    // 0, never undefined — the client's fallback keys off the field being absent,
+    // so an empty bag must not read as "the server did not tell me".
+    expect((svc.listBags(trip.id) as any[])[0].total_weight_grams).toBe(0);
+    expect(svc.unassignedWeightGrams(trip.id)).toBe(0);
+
+    svc.createItem(trip.id, { name: 'Loose sandwich', weight_grams: 150 }, user.id);
+    expect(svc.unassignedWeightGrams(trip.id)).toBe(150);
+    // Still empty: the loose item belongs to no bag.
+    expect((svc.listBags(trip.id) as any[]).find(b => b.id === bag.id).total_weight_grams).toBe(0);
+  });
+
+  it('PACK-SVC-080: listBagsWithWeights returns bags and the unassigned pile from one pass (#2191)', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const bag = svc.createBag(trip.id, { name: 'Duffel' }) as any;
+    svc.createItem(trip.id, { name: 'Tent', weight_grams: 900, bag_id: bag.id }, user.id);
+    svc.createItem(trip.id, { name: 'Loose sandwich', weight_grams: 150 }, user.id);
+
+    const { bags, unassigned_weight_grams } = svc.listBagsWithWeights(trip.id) as any;
+    expect(bags[0].total_weight_grams).toBe(900);
+    expect(unassigned_weight_grams).toBe(150);
+  });
+
+  it('PACK-SVC-055: createItem refuses a bag off the trip with the invalidBag sentinel, inserting nothing', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const otherTrip = createTrip(testDb, user.id);
+    const foreignBag = svc.createBag(otherTrip.id, { name: 'Not yours' }) as any;
+
+    // Existence alone is not enough — the bag must belong to THIS trip.
+    expect(svc.createItem(trip.id, { name: 'Tent', bag_id: foreignBag.id }, user.id)).toEqual({ invalidBag: true });
+    // A dead id refuses the same way (it used to be an SQLite FK error).
+    expect(isInvalidBagRef(svc.createItem(trip.id, { name: 'Tent', bag_id: 99999 }, user.id))).toBe(true);
+    expect((testDb.prepare('SELECT COUNT(*) AS n FROM packing_items WHERE trip_id = ?').get(trip.id) as any).n).toBe(0);
+  });
+
+  it('PACK-SVC-056: updateItem refuses a cross-trip bag_id and leaves the row alone; null still clears', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const otherTrip = createTrip(testDb, user.id);
+    const own = svc.createBag(trip.id, { name: 'Mine' }) as any;
+    const foreign = svc.createBag(otherTrip.id, { name: 'Not mine' }) as any;
+    const item = svc.createItem(trip.id, { name: 'Tent', bag_id: own.id }, user.id) as any;
+
+    const refused = svc.updateItem(trip.id, item.id, { bag_id: foreign.id }, ['bag_id'], undefined, user.id);
+    expect(isInvalidBagRef(refused)).toBe(true);
+    expect((testDb.prepare('SELECT bag_id FROM packing_items WHERE id = ?').get(item.id) as any).bag_id).toBe(own.id);
+
+    // Clearing the bag with an explicit null is untouched by the check.
+    const cleared = svc.updateItem(trip.id, item.id, { bag_id: null }, ['bag_id'], undefined, user.id) as any;
+    expect(cleared.bag_id).toBeNull();
+  });
+
+  it('PACK-SVC-057: createBag persists weight_limit_grams; omitted stays null', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+
+    const limited = svc.createBag(trip.id, { name: 'Checked', weight_limit_grams: 23000 }) as any;
+    expect(limited.weight_limit_grams).toBe(23000);
+
+    const bare = svc.createBag(trip.id, { name: 'Day pack' }) as any;
+    expect(bare.weight_limit_grams).toBeNull();
+  });
+});
+
 // ── Wrapper helpers (carried over from the old delegation suite) ──────────────
 
 describe('canEdit', () => {
@@ -698,6 +813,13 @@ describe('broadcast helpers (#858 scoping)', () => {
   it('broadcast forwards to the websocket helper', () => {
     svc.broadcast('5', 'packing:created', { item: 1 }, 'sock');
     expect(broadcastMock).toHaveBeenCalledWith('5', 'packing:created', { item: 1 }, 'sock');
+  });
+
+  it('broadcastBagTotals pings the whole room, content-free and without excluding the sender (#2191)', () => {
+    // No socket exclusion on purpose: the payload carries nothing to echo, and
+    // the writer cannot recompute a server-side total from its own write either.
+    svc.broadcastBagTotals('5');
+    expect(broadcastMock).toHaveBeenCalledWith('5', 'packing:bag-totals', {}, undefined);
   });
 
   it('broadcastItem broadcasts a shared item to the whole room (no onlyUserId)', () => {

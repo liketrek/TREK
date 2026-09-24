@@ -43,6 +43,9 @@ export function ListImportModal(S: SidebarState) {
         )}
         <div className="text-content-faint" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', marginBottom: 16 }}>
           {t(listImportProvider === 'google' ? 'places.googleListHint' : 'places.naverListHint')}
+          {/* Same box, same Share button: which screen the link came from is the URL's
+              business, and until it said so nobody knew a route could be pasted here. */}
+          {listImportProvider === 'google' ? <div style={{ marginTop: 4 }}>{t('places.googleDirHint')}</div> : null}
         </div>
         <input
           type="text"

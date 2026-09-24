@@ -12,7 +12,7 @@ const { testDb } = vi.hoisted(() => {
     status TEXT, enabled INTEGER DEFAULT 0, last_error TEXT, reviewed_at TEXT, source_repo TEXT, config TEXT DEFAULT '{}', permissions TEXT DEFAULT '[]', granted_permissions TEXT DEFAULT '[]', capabilities TEXT DEFAULT '{}', dependencies TEXT DEFAULT '{}', operator_egress INTEGER DEFAULT 0, updated_at TEXT,
     author_pubkey TEXT, update_block_code TEXT, update_block_detail TEXT, update_block_version TEXT,
     trek_range TEXT, sort_order INTEGER DEFAULT 0, update_hold INTEGER NOT NULL DEFAULT 0);
-    CREATE TABLE plugin_settings_fields (plugin_id TEXT, field_key TEXT, scope TEXT, secret INTEGER);
+    CREATE TABLE plugin_settings_fields (plugin_id TEXT, field_key TEXT, scope TEXT, secret INTEGER, required INTEGER DEFAULT 0, input_type TEXT DEFAULT 'text', default_value TEXT);
     CREATE TABLE plugin_error_log (id INTEGER PRIMARY KEY AUTOINCREMENT, plugin_id TEXT, level TEXT, message TEXT, ts TEXT DEFAULT '2026-01-01');`);
   return { testDb: db };
 });
@@ -46,6 +46,47 @@ describe('PluginsService.list', () => {
     expect(out.enabled).toBe(true);
     expect(out.plugins).toHaveLength(1);
     expect(out.plugins[0]).toMatchObject({ id: 'flight', name: 'Flight', status: 'inactive' });
+  });
+
+  describe('TREK-range bypass', () => {
+    const APP_VERSION = process.env.APP_VERSION;
+    afterEach(() => {
+      delete process.env.TREK_PLUGINS_IGNORE_TREK_RANGE;
+      if (APP_VERSION === undefined) delete process.env.APP_VERSION;
+      else process.env.APP_VERSION = APP_VERSION;
+    });
+    const seed = () =>
+      testDb
+        .prepare("INSERT INTO plugins (id, name, type, status, version, trek_range) VALUES ('old','Old','widget','inactive','1.0.0','>=3.0.0 <4.0.0')")
+        .run();
+
+    it('reports the switch off and an outgrown plugin as hostIncompatible by default', () => {
+      process.env.APP_VERSION = '4.1.0';
+      seed();
+      const out = new PluginsService(new DatabaseService(dbConn), new AddonsService(new DatabaseService(dbConn))).list();
+      expect(out.ignoreTrekRange).toBe(false);
+      expect(out.plugins[0]).toMatchObject({ dependencyStatus: 'hostIncompatible', trekRangeBypassed: null });
+    });
+
+    it('with the switch on, the plugin may activate but the row still says it is outside its range', () => {
+      process.env.APP_VERSION = '4.1.0';
+      process.env.TREK_PLUGINS_IGNORE_TREK_RANGE = '1';
+      seed();
+      const out = new PluginsService(new DatabaseService(dbConn), new AddonsService(new DatabaseService(dbConn))).list();
+      expect(out.ignoreTrekRange).toBe(true);
+      expect(out.plugins[0]).toMatchObject({
+        dependencyStatus: 'ok',
+        trekRangeBypassed: { trekRange: '>=3.0.0 <4.0.0', hostVersion: '4.1.0' },
+      });
+    });
+
+    it('a plugin inside its range carries no marker even with the switch on', () => {
+      process.env.APP_VERSION = '3.5.0';
+      process.env.TREK_PLUGINS_IGNORE_TREK_RANGE = '1';
+      seed();
+      const out = new PluginsService(new DatabaseService(dbConn), new AddonsService(new DatabaseService(dbConn))).list();
+      expect(out.plugins[0]).toMatchObject({ dependencyStatus: 'ok', trekRangeBypassed: null });
+    });
   });
 
   it('surfaces updateHold as a boolean (held plugins leave the update banner)', () => {
@@ -222,6 +263,7 @@ describe('PluginsFeedController (client feed)', () => {
 describe('PluginsController M2 endpoints', () => {
   const svc = {
     getInstanceConfig: vi.fn(() => ({ a: 1 })),
+    instanceSettingsFields: vi.fn(() => [{ key: 'a' }]),
     updateInstanceConfig: vi.fn(() => ({ a: 2 })),
   } as unknown as PluginsService;
   // None of the endpoints below carry the marker, so the ordinary install is the
@@ -234,11 +276,11 @@ describe('PluginsController M2 endpoints', () => {
     process.env.TREK_PLUGINS_ENABLED = 'true';
   });
 
-  it('get/update config delegate to the service', () => {
-    const rt = { activate: vi.fn(), deactivate: vi.fn(), isActive: vi.fn() } as never;
+  it('get/update config delegate to the service (get carries the form fields, update the restart)', async () => {
+    const rt = { activate: vi.fn(), deactivate: vi.fn(), isActive: vi.fn(), respawnIfActive: vi.fn(async () => false), actionsOf: vi.fn(() => []) } as never;
     const c = new PluginsController(svc, rt, {} as never, envStub);
-    expect(c.getConfig('x')).toEqual({ config: { a: 1 } });
-    expect(c.updateConfig('x', { a: 2 })).toEqual({ config: { a: 2 } });
+    expect(c.getConfig('x')).toEqual({ fields: [{ key: 'a' }], config: { a: 1 }, actions: [] });
+    expect(await c.updateConfig('x', { a: 2 })).toEqual({ config: { a: 2 }, restarted: false });
   });
 
   it('activate spawns via the runtime when enabled', async () => {

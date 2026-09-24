@@ -5,9 +5,18 @@ import {
 } from '../../nest-mcp';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { z } from 'zod';
+import { NOTE_COLORS, type NoteColor } from '@trek/shared';
 import { AuthService } from '../auth/auth.service';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import { DayNotesService } from './day-notes.service';
+
+/**
+ * The palette itself rather than the REST contract's `z.string().max(9)`.
+ * normalizeNoteColor() stores anything off-palette as "no colour", so a loose
+ * string would let a caller send #ff0000, get a success back and never learn the
+ * colour was dropped. An enum is also how the tool tells a model what it may pick.
+ */
+const noteColorSchema = z.enum(NOTE_COLORS);
 
 function parseId(value: string | string[]): number | null {
   const n = Number(Array.isArray(value) ? value[0] : value);
@@ -23,6 +32,11 @@ function parseId(value: string | string[]): number | null {
  * trips write/read access markers (registerDayTools' whole-registrar
  * `canWrite(scopes, 'trips')` early return and the resource's canReadTrips
  * check, resolved by trekMcpAccessPolicy). No addon gate — day notes are core.
+ *
+ * The write tools have since gained `color` and `sort_order`, which the REST
+ * contract carried all along: without them an MCP note could not be coloured
+ * and landed at the bottom of the day's merged timeline whatever the caller
+ * meant.
  */
 @McpController()
 export class DayNotesMcp {
@@ -41,19 +55,23 @@ export class DayNotesMcp {
       text: z.string().min(1).max(500),
       time: z.string().max(250).optional().describe('Time label (e.g. "09:00" or "Morning")'),
       icon: z.string().max(64).optional().describe('Emoji icon for the note'),
+      color: noteColorSchema.nullable().optional().describe('Card colour from the note palette; null or omitted leaves the neutral card'),
+      sort_order: z.number().optional().describe('Position in the day, lowest first, interleaved with the places of that day. Omit to append at the bottom'),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     access: { group: 'trips', mode: 'write' },
   })
   async createDayNote(
-    { tripId, dayId, text, time, icon }: { tripId: number; dayId: number; text: string; time?: string; icon?: string },
+    { tripId, dayId, text, time, icon, color, sort_order }: {
+      tripId: number; dayId: number; text: string; time?: string; icon?: string; color?: NoteColor | null; sort_order?: number;
+    },
     ctx: McpContext,
   ) {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.notes.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!this.guards.hasTripPermission('day_edit', tripId, ctx.userId)) return permissionDenied();
     if (!this.notes.dayExists(dayId, tripId)) return { content: [{ type: 'text' as const, text: 'Day not found.' }], isError: true };
-    const note = this.notes.create(dayId, tripId, text, time, icon);
+    const note = this.notes.create(dayId, tripId, text, time, icon, sort_order, color);
     this.guards.safeBroadcast(tripId, 'dayNote:created', { dayId, note });
     return ok({ note });
   }
@@ -68,12 +86,16 @@ export class DayNotesMcp {
       text: z.string().min(1).max(500).optional(),
       time: z.string().max(250).nullable().optional().describe('Time label (e.g. "09:00" or "Morning"), or null to clear'),
       icon: z.string().max(64).optional().describe('Emoji icon for the note'),
+      color: noteColorSchema.nullable().optional().describe('Card colour from the note palette, or null to go back to the neutral card'),
+      sort_order: z.number().optional().describe('New position in the day, lowest first, interleaved with the places of that day'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     access: { group: 'trips', mode: 'write' },
   })
   async updateDayNote(
-    { tripId, dayId, noteId, text, time, icon }: { tripId: number; dayId: number; noteId: number; text?: string; time?: string | null; icon?: string },
+    { tripId, dayId, noteId, text, time, icon, color, sort_order }: {
+      tripId: number; dayId: number; noteId: number; text?: string; time?: string | null; icon?: string; color?: NoteColor | null; sort_order?: number;
+    },
     ctx: McpContext,
   ) {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
@@ -81,7 +103,7 @@ export class DayNotesMcp {
     if (!this.guards.hasTripPermission('day_edit', tripId, ctx.userId)) return permissionDenied();
     const existing = this.notes.getNote(noteId, dayId, tripId);
     if (!existing) return { content: [{ type: 'text' as const, text: 'Note not found.' }], isError: true };
-    const note = this.notes.update(noteId, existing, { text, time: time !== undefined ? time : undefined, icon });
+    const note = this.notes.update(noteId, existing, { text, time: time !== undefined ? time : undefined, icon, color, sort_order });
     this.guards.safeBroadcast(tripId, 'dayNote:updated', { dayId, note });
     return ok({ note });
   }

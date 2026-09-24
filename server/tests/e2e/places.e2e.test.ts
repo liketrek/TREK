@@ -27,8 +27,8 @@ const { db } = vi.hoisted(() => {
   tmp.exec(`CREATE TABLE places (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL, name TEXT,
     description TEXT, lat REAL, lng REAL, address TEXT, category_id INTEGER, price REAL, currency TEXT,
     place_time TEXT, end_time TEXT, duration_minutes INTEGER, notes TEXT, image_url TEXT,
-    google_place_id TEXT, google_ftid TEXT, osm_id TEXT, website TEXT, phone TEXT, transport_mode TEXT,
-    route_geometry TEXT, route_color TEXT,
+    google_place_id TEXT, google_ftid TEXT, osm_id TEXT, amap_poi_id TEXT, website TEXT, phone TEXT, transport_mode TEXT,
+    route_geometry TEXT, route_color TEXT, stop_type TEXT, fill_percent INTEGER,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
   tmp.exec(`CREATE TABLE categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, color TEXT, icon TEXT);`);
   tmp.exec(`CREATE TABLE tags (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, color TEXT,
@@ -44,6 +44,11 @@ const { db } = vi.hoisted(() => {
   tmp.exec(`CREATE TABLE day_assignments (id INTEGER PRIMARY KEY AUTOINCREMENT, day_id INTEGER NOT NULL,
     place_id INTEGER NOT NULL, order_index INTEGER DEFAULT 0);`);
   // reclaimPlaceImage ref-counts an uploaded thumbnail across both tables.
+  // Deleting a place cancels the nights booked at it (#2354), so the delete path
+  // reads this table even in a file that never books one.
+  tmp.exec(`CREATE TABLE day_accommodations (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER,
+    place_id INTEGER, start_day_id INTEGER, end_day_id INTEGER, check_in TEXT, check_in_end TEXT,
+    check_out TEXT, confirmation TEXT, notes TEXT, created_at TEXT DEFAULT (datetime('now')));`);
   tmp.exec(`CREATE TABLE collection_places (id INTEGER PRIMARY KEY AUTOINCREMENT, image_url TEXT);`);
   // reclaimPhotoCache's removeIfUnreferenced sweeps the Google photo cache.
   tmp.exec(`CREATE TABLE google_place_photo_meta (place_id TEXT PRIMARY KEY, attribution TEXT, error_at DATETIME);`);
@@ -67,6 +72,7 @@ vi.mock('../../src/db/database', () => ({
   db, canAccessTrip, isOwner: vi.fn(() => true), getPlaceWithTags, closeDb: () => {}, reinitialize: () => {},
 }));
 vi.mock('../../src/websocket', () => ({ broadcast: vi.fn() }));
+import { broadcast } from '../../src/websocket';
 import { JourneyDomainService } from '../../src/nest/journey/journey-domain.service';
 
 import { PermissionsService } from '../../src/nest/permissions/permissions.service';
@@ -229,6 +235,36 @@ describe('Places e2e (real auth guard + temp SQLite)', () => {
     expect(bad.body).toEqual({ error: 'route_color must be a hex colour like #4f46e5' });
   });
 
+  // #2483: a place from the TREK index can carry its website without a scheme.
+  it('PLACES-E2E-2483-01: create and update take a website without a scheme and store it as https', async () => {
+    const created = await request(server).post('/api/trips/5/places').set('Cookie', sessionCookie(1))
+      .send({ name: 'Chapelle Sainte-Barbe', website: 'fr.wikipedia.org/wiki/Chapelle_Sainte-Barbe_du_Faouët' });
+    expect(created.status).toBe(201);
+    expect(created.body.place.website).toBe('https://fr.wikipedia.org/wiki/Chapelle_Sainte-Barbe_du_Faouët');
+
+    const id = created.body.place.id;
+    const updated = await request(server).put(`/api/trips/5/places/${id}`).set('Cookie', sessionCookie(1))
+      .send({ website: '//www.example.fr/patrimoine' });
+    expect(updated.status).toBe(200);
+    expect(db.prepare('SELECT website FROM places WHERE id = ?').get(id)).toEqual({ website: 'https://www.example.fr/patrimoine' });
+
+    // An explicit scheme is stored exactly as sent, and '' still clears the field.
+    const kept = await request(server).put(`/api/trips/5/places/${id}`).set('Cookie', sessionCookie(1))
+      .send({ website: 'http://Example.fr/Pfad?q=1' });
+    expect(kept.body.place.website).toBe('http://Example.fr/Pfad?q=1');
+    const cleared = await request(server).put(`/api/trips/5/places/${id}`).set('Cookie', sessionCookie(1)).send({ website: '' });
+    expect(cleared.status).toBe(200);
+  });
+
+  it('PLACES-E2E-2483-02: a script link, another scheme or a bare word is still a 400 with the same message', async () => {
+    for (const website of ['javascript:alert(1)', 'mailto:mairie@example.fr', 'Chapelle', 42]) {
+      const res = await request(server).post('/api/trips/5/places').set('Cookie', sessionCookie(1)).send({ name: 'Chapelle', website });
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({ error: 'website must be an http or https URL' });
+    }
+    expect(db.prepare('SELECT COUNT(*) AS n FROM places WHERE trip_id = 5').get()).toEqual({ n: 0 });
+  });
+
   it('409 on a stale If-Match token (#1135)', async () => {
     db.prepare("INSERT INTO places (id, trip_id, name, updated_at) VALUES (9, 5, 'Walk', '2026-01-01 00:00:00')").run();
     const res = await request(server)
@@ -275,6 +311,22 @@ describe('Places e2e (real auth guard + temp SQLite)', () => {
 
     expect(res.status).toBe(200);
     expect(db.prepare('SELECT id FROM budget_items ORDER BY id').all()).toEqual([{ id: 45 }]);
+  });
+
+  it('DELETE :id tells the deleting tab about the expense that went with the place', async () => {
+    // X-Socket-Id keeps a tab from hearing back what it did itself. The tab
+    // removed the place; the expense went on the server alone, so that event
+    // goes out without the filter or the tab keeps the expense until a reload.
+    db.prepare("INSERT INTO places (id, trip_id, name) VALUES (13, 5, 'Louvre')").run();
+    db.prepare("INSERT INTO budget_items (id, trip_id, name, total_price, place_id) VALUES (46, 5, 'Tickets', 34, 13)").run();
+    vi.mocked(broadcast).mockClear();
+
+    const res = await request(server).delete('/api/trips/5/places/13')
+      .set('Cookie', sessionCookie(1)).set('X-Socket-Id', 'tab-1');
+
+    expect(res.status).toBe(200);
+    expect(broadcast).toHaveBeenCalledWith('5', 'place:deleted', { placeId: 13 }, 'tab-1');
+    expect(broadcast).toHaveBeenCalledWith('5', 'budget:deleted', { itemId: 46 }, undefined);
   });
 
   it('404 trip when not accessible', async () => {
@@ -332,6 +384,21 @@ describe('Places e2e (real auth guard + temp SQLite)', () => {
       // Self-closing here: these points carry no elevation.
       expect(res.text).toContain('<trkpt lat="47.2" lon="11.3"');
       expect(res.text).toContain('<name>1. Warm up</name>');
+    });
+
+    // The reported repro (#2165): a Japanese trip title crashed setHeader with
+    // ERR_INVALID_CHAR before the first body byte. Now the header folds to
+    // ASCII and carries the real name RFC 5987-encoded.
+    it('a non-ASCII trip title exports 200 with a filename* header instead of a 500 (#2165)', async () => {
+      db.prepare('INSERT INTO trips (id, title) VALUES (5, ?)').run('沖縄 4泊5日');
+      db.prepare('INSERT INTO places (id, trip_id, name, lat, lng) VALUES (1, 5, ?, 26.217, 127.719)').run('首里城');
+
+      const res = await request(server).get('/api/trips/5/places/export.gpx').set('Cookie', sessionCookie(1));
+      expect(res.status).toBe(200);
+      expect(res.headers['content-disposition']).toBe(
+        'attachment; filename="__-4_5_.gpx"; filename*=UTF-8\'\'%E6%B2%96%E7%B8%84-4%E6%B3%8A5%E6%97%A5.gpx',
+      );
+      expect(res.text).toContain('<name>首里城</name>');
     });
 
     it('narrows the document to the requested parts', async () => {

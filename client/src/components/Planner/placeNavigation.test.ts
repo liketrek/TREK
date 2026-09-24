@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { getNavigationTargets, showsAppleMaps } from './placeNavigation'
+import { getNavigationTargets, openNavigationTarget, showsAppleMaps } from './placeNavigation'
 import type { Place } from '../../types'
 
 // FE-PLANNER-NAV-001 to FE-PLANNER-NAV-008
@@ -103,5 +103,44 @@ describe('getNavigationTargets', () => {
     const targets = getNavigationTargets(place({ name: '' }))
     expect(targets.map(t => t.id)).toEqual(['google', 'waze', 'apple', 'osm', 'comaps'])
     expect(targets.find(t => t.id === 'waze')!.url).toBe('https://waze.com/ul?ll=48.2038,16.3616&navigate=yes')
+  })
+})
+
+describe('openNavigationTarget', () => {
+  const target = { id: 'google', label: 'Google Maps', url: 'https://maps.google.com/?q=1,2' } as const
+
+  afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks() })
+
+  function stubDisplayMode(installed: boolean, iosStandalone = false) {
+    const open = vi.fn()
+    const assigned: string[] = []
+    vi.stubGlobal('window', {
+      matchMedia: (q: string) => ({ matches: installed && q.includes('display-mode') }),
+      navigator: { standalone: iosStandalone },
+      open,
+      get location() { return { get href() { return '' }, set href(v: string) { assigned.push(v) } } },
+    })
+    return { open, assigned }
+  }
+
+  it('FE-PLANNER-NAV-101: a browser tab keeps opening a tab', () => {
+    const { open, assigned } = stubDisplayMode(false)
+    openNavigationTarget(target)
+    expect(open).toHaveBeenCalledWith(target.url, '_blank', 'noopener,noreferrer')
+    expect(assigned).toEqual([])
+  })
+
+  it('FE-PLANNER-NAV-102: an installed app hands over from the current context, leaving no blank window (#2218)', () => {
+    const { open, assigned } = stubDisplayMode(true)
+    openNavigationTarget(target)
+    expect(open).not.toHaveBeenCalled()
+    expect(assigned).toEqual([target.url])
+  })
+
+  it('FE-PLANNER-NAV-103: an iOS home-screen app is recognised without the display-mode query', () => {
+    const { open, assigned } = stubDisplayMode(false, true)
+    openNavigationTarget(target)
+    expect(open).not.toHaveBeenCalled()
+    expect(assigned).toEqual([target.url])
   })
 })

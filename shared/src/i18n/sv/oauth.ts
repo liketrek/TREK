@@ -100,5 +100,20 @@ const oauth: TranslationStrings = {
   'oauth.authorize.alwaysTool.listTrips': 'Lista dina resor så att AI:n kan identifiera resenummer',
   'oauth.authorize.alwaysTool.getTripSummary':
     'Läs en översikt över resan som krävs för att kunna använda något annat verktyg',
+  'oauth.scope.group.files': 'Filer',
+  'oauth.scope.group.settings': 'Inställningar',
+  'oauth.scope.files:read.label': 'Visa resans filer',
+  'oauth.scope.files:read.description': 'Lista dokumenten på en resa: namn, storlek, vem som laddade upp dem och vad de är kopplade till',
+  'oauth.scope.files:write.label': 'Hantera resans filer',
+  'oauth.scope.files:write.description': 'Byt namn på och beskriv filer, koppla dem till bokningar och platser, stjärnmärk och släng dem',
+  'oauth.scope.files:content.label': 'Läsa filinnehåll',
+  'oauth.scope.files:content.description': 'Läsa innehållet i ett uppladdat dokument, till exempel en boknings-PDF eller en biljett',
+  'oauth.scope.settings:read.label': 'Visa dina inställningar',
+  'oauth.scope.settings:read.description': 'Läsa enheter, tidsformat, språk, standardvaluta och startsida',
+  'oauth.scope.settings:write.label': 'Ändra dina inställningar',
+  'oauth.scope.settings:write.description': 'Ändra enheter, tidsformat, språk, standardvaluta och startsida. Aldrig sparade API-nycklar',
+  'oauth.scope.group.plugins': 'Tillägg',
+  'oauth.scope.plugins:use.label': 'Kör tilläggsverktyg',
+  'oauth.scope.plugins:use.description': 'Låter den här klienten anropa verktyg som publiceras av de tillägg en administratör har installerat och godkänt. Varje tillägg agerar med de rättigheter det redan har fått, inte med det här tokenets omfattningar',
 };
 export default oauth;

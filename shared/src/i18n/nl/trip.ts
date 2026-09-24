@@ -24,6 +24,7 @@ const trip: TranslationStrings = {
   'trip.toast.placeDeleted': 'Plaats verwijderd',
   'trip.toast.selectDay': 'Selecteer eerst een dag',
   'trip.toast.assignedToDay': 'Plaats toegewezen aan dag',
+  'trip.toast.loadError': 'Kan de reis niet laden',
   'trip.toast.reorderError': 'Herordenen mislukt',
   'trip.toast.reservationUpdated': 'Reservering bijgewerkt',
   'trip.toast.reservationAdded': 'Reservering toegevoegd',
@@ -63,6 +64,7 @@ const trip: TranslationStrings = {
   'transit.search': 'Zoeken',
   'transit.searching': 'Zoeken…',
   'transit.searchError': 'Routezoeken mislukt. Probeer het opnieuw.',
+  'transit.noResultsVia': 'Geen verbindingen gevonden via {provider}. Probeer een andere tijd of andere filters.',
   'transit.noResults': 'Geen verbindingen gevonden. Probeer een andere tijd of andere filters.',
   'transit.direct': 'Direct',
   'transit.transfers': '{count} keer overstappen',
@@ -78,6 +80,7 @@ const trip: TranslationStrings = {
   'transport.modeAutomated': 'Automatisch',
   'transit.sectionTitle': 'Automatisch openbaar vervoer',
   'transit.changeRoute': 'Route wijzigen',
+  'transit.editDetails': 'Details bewerken',
   'transit.journey': 'Reis met openbaar vervoer',
   'transit.pickDay': 'Kies een dag om verbindingen voor te zoeken.',
   'transit.noItinerary': 'Deze invoer heeft geen opgeslagen reisplan — gebruik "Route wijzigen" om er een te zoeken.',
@@ -85,5 +88,10 @@ const trip: TranslationStrings = {
   'transit.transfersLabel': 'Overstappen',
   'transit.walkLabel': 'Lopen',
   'transit.searchHint': 'Zoek echte verbindingen en voeg ze direct toe aan de dag — gegevens via Transitous.',
+  'trip.confirm.deletePlaceNight': 'Hiermee wordt ook het verblijf geboekt bij ‘{name}’ verwijderd.',
+  'trip.confirm.deletePlaceBooked':
+    'Hiermee worden ook het verblijf geboekt bij ‘{name}’, de boeking ‘{booking}’ en elke gekoppelde uitgave verwijderd.',
+  'trip.confirm.deletePlaceBookedSame':
+    'Hiermee worden ook het verblijf geboekt bij ‘{name}’, de bijbehorende boeking en elke gekoppelde uitgave verwijderd.',
 };
 export default trip;

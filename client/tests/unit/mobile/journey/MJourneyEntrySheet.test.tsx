@@ -127,8 +127,13 @@ describe('MJourneyEntrySheet quick capture', () => {
     });
     setup();
 
-    expect(screen.queryByPlaceholderText('Give this moment a name...')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Add details' }));
+    // Quick capture asks for a name now: without one every entry caught on the
+    // move arrived nameless and the day read as a column of placeholders
+    // (discussion #2299). The story field is what Add details still unlocks.
+    expect(screen.getByPlaceholderText('Give this moment a name...')).toBeInTheDocument();
+    // Shortened to "+ Details": the old label wrapped onto two lines in the
+    // sheet's footer beside Cancel and Save (discussion #2299).
+    fireEvent.click(screen.getByRole('button', { name: '+ Details' }));
     expect(screen.getByPlaceholderText('Give this moment a name...')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Write your story...')).toBeInTheDocument();
     await waitFor(() => expect(mapsApi.reverse).toHaveBeenCalled());
@@ -284,8 +289,23 @@ function mountSheet(sheetEntry: JourneyEntry, opts: MountOptions = {}) {
 }
 
 const multiFileInput = () => document.querySelector('input[type="file"][multiple]') as HTMLInputElement;
-const dateField = () => document.querySelector('input[type="date"]') as HTMLInputElement;
-const timeField = () => document.querySelector('input[type="time"]') as HTMLInputElement;
+/**
+ * The date is TREK's own picker (#2067 follow-up): a trigger button whose
+ * accessible name is the date it shows, plus a keyboard button that swaps it for
+ * a DD.MM.YYYY input. `input[type="date"]` is gone — it painted itself from the
+ * OS locale and took no theme.
+ */
+const dateTrigger = () =>
+  document.querySelector('[aria-haspopup="dialog"]') as HTMLButtonElement;
+
+/** What the trigger shows, as the picker formats it: "18 Mar 2026". */
+const shownDate = (iso: string) =>
+  new Date(iso + 'T00:00:00Z').toLocaleDateString('en', {
+    day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC',
+  });
+// The time field is CustomTimePicker's text input, not a native time input — a
+// native one paints 12h/24h from the browser locale and ignored the setting (#2067).
+const timeField = () => document.querySelector('input[placeholder="00:00"], input[placeholder="2:30 PM"]') as HTMLInputElement;
 const jpeg = (name = 'a.jpg') => new File(['x'], name, { type: 'image/jpeg' });
 
 const originalCreateObjectURL = URL.createObjectURL;
@@ -328,7 +348,7 @@ describe('MJourneyEntrySheet full editor', () => {
     expect(screen.getByText('Weather')).toBeInTheDocument();
     expect(screen.getByText('Tags')).toBeInTheDocument();
     // An empty entry_date falls back to today (the LOCAL date), an empty gallery locks the picker.
-    expect(dateField().value).toBe(localIsoDate());
+    expect(dateTrigger()).toHaveAccessibleName(shownDate(localIsoDate()));
     expect(timeField()).toHaveValue('');
     expect(screen.getByRole('button', { name: 'From Gallery' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Upload photos' })).toBeEnabled();
@@ -370,7 +390,14 @@ describe('MJourneyEntrySheet full editor', () => {
 
     await user.type(screen.getByPlaceholderText('Give this moment a name...'), 'Rome');
     await user.type(screen.getByPlaceholderText('Write your story...'), 'Great day');
-    fireEvent.change(dateField(), { target: { value: '2026-03-18' } });
+    // Through the picker's manual entry — the calendar's own path would depend
+    // on which month it opens on.
+    // The keyboard button and the input it opens share a name — they never
+    // exist at the same time, so the same query reaches first one, then the other.
+    fireEvent.click(screen.getByLabelText('Enter date manually'));
+    const manual = screen.getByLabelText('Enter date manually');
+    fireEvent.change(manual, { target: { value: '18.03.2026' } });
+    fireEvent.keyDown(manual, { key: 'Enter' });
     fireEvent.change(timeField(), { target: { value: '18:45' } });
 
     const [addPro, addCon] = screen.getAllByRole('button', { name: /Add another/ });
@@ -903,7 +930,7 @@ describe('MJourneyEntrySheet read-only', () => {
     expect(screen.getByDisplayValue('Gelato')).toHaveAttribute('readonly');
     expect(screen.getByDisplayValue('Queues')).toHaveAttribute('readonly');
     expect(screen.getByDisplayValue('Rome')).toHaveAttribute('readonly');
-    expect(dateField()).toBeDisabled();
+    expect(dateTrigger()).toBeDisabled();
     expect(timeField()).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Good' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Sunny' })).toBeDisabled();
@@ -930,6 +957,52 @@ describe('MJourneyEntrySheet read-only', () => {
     expect(confirmSpy).not.toHaveBeenCalled();
     expect(onClose).toHaveBeenCalledTimes(1);
     confirmSpy.mockRestore();
+  });
+});
+
+// FE-MOB-JENTRY-051 to FE-MOB-JENTRY-054: leaving a stop off the printed route
+// (#2064), the phone sheet's half of the switch the desktop editor has.
+
+describe('MJourneyEntrySheet route switch', () => {
+  it('FE-MOB-JENTRY-051: offers to leave a located entry out of the route and saves it', async () => {
+    const user = userEvent.setup();
+    const { onSave } = mountSheet(buildEntry({
+      id: 5, location_name: 'Keflavík', location_lat: 63.98, location_lng: -22.6,
+    }));
+
+    const toggle = screen.getByRole('switch', { name: 'Leave out of the route' });
+    expect(toggle).toHaveAttribute('aria-checked', 'false');
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute('aria-checked', 'true');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave.mock.calls[0][0]).toMatchObject({ stats_excluded: true });
+  });
+
+  it('FE-MOB-JENTRY-052: keeps the switch away from a new entry, point or no point', () => {
+    mountSheet(buildEntry({ location_lat: 63.98, location_lng: -22.6 }));
+
+    expect(screen.queryByRole('switch', { name: 'Leave out of the route' })).not.toBeInTheDocument();
+  });
+
+  it('FE-MOB-JENTRY-053: keeps the switch away from an entry without a point, and sends nothing for it', async () => {
+    const user = userEvent.setup();
+    const { onSave } = mountSheet(buildEntry({ id: 5 }));
+
+    expect(screen.queryByRole('switch', { name: 'Leave out of the route' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave.mock.calls[0][0].stats_excluded).toBeUndefined();
+  });
+
+  it('FE-MOB-JENTRY-054: shows a left-out entry\'s switch to a viewer, locked', () => {
+    mountSheet(buildEntry({ id: 5, stats_excluded: true }), { readOnly: true });
+
+    const toggle = screen.getByRole('switch', { name: 'Leave out of the route' });
+    expect(toggle).toHaveAttribute('aria-checked', 'true');
+    expect(toggle).toBeDisabled();
   });
 });
 
@@ -1231,5 +1304,31 @@ describe('MJourneyEntrySheet external photos', () => {
 
     await waitFor(() => expect(onSave).toHaveBeenCalled());
     expect(onSave.mock.calls[0][0]).toMatchObject({ type: 'entry' });
+  });
+});
+
+// FE-MOB-JENTRY-055 to FE-MOB-JENTRY-056: the phone half of the desktop editor's
+// play badge for a clip that came up without a poster (#2341).
+
+describe('MJourneyEntrySheet clips', () => {
+  it('FE-MOB-JENTRY-055: a linked clip without a poster is a play badge, not a request for its thumbnail', () => {
+    const clip = { ...buildPhoto(100), media_type: 'video', provider: 'local', thumbnail_path: null };
+    mountSheet(buildEntry({ id: 5, photos: [clip] }));
+
+    expect(document.querySelector('img[src="/api/photos/100/thumbnail"]')).not.toBeInTheDocument();
+    expect(document.querySelector('.h-16 svg.lucide-play')).toBeInTheDocument();
+  });
+
+  it('FE-MOB-JENTRY-056: the gallery picker draws the same badge, and a clip with a poster its poster', async () => {
+    const user = userEvent.setup();
+    const bare = { ...buildGalleryPhoto(200), media_type: 'video', provider: 'local', thumbnail_path: null };
+    const withPoster = { ...buildGalleryPhoto(201), media_type: 'video', provider: 'local', thumbnail_path: 'journey/poster.jpg' };
+    mountSheet(buildEntry(), { galleryPhotos: [bare, withPoster] });
+
+    await user.click(screen.getByRole('button', { name: 'From Gallery' }));
+
+    expect(document.querySelector('img[src="/api/photos/200/thumbnail"]')).not.toBeInTheDocument();
+    expect(document.querySelector('img[src="/api/photos/201/thumbnail"]')).toBeInTheDocument();
+    expect(document.querySelectorAll('svg.lucide-play')).toHaveLength(1);
   });
 });

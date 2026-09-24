@@ -21,6 +21,7 @@ import {
   numberOr,
   parseBool,
   parseDurationMs,
+  parseLinkLocalAllowList,
   positiveIntOr,
   positiveNumberOr,
   resolveDurability,
@@ -134,9 +135,44 @@ export function deriveManaged(raw: RawEnv) {
 export function deriveMaps(raw: RawEnv) {
   return {
     placesApiBase: raw.PLACES_API_BASE || undefined,
+    /**
+     * Base URL of the TREK Places API. Unset means the public instance; an
+     * operator who runs their own copy of the index points at it here, and one
+     * who wants nothing to leave their network points at their own machine.
+     */
+    trekPlacesUrl: raw.TREK_PLACES_URL || undefined,
+    /**
+     * Whether the index answers at all. On unless an operator says otherwise,
+     * because it is the path we want people on and an upgrade must not quietly
+     * drop back to Nominatim, whose usage policy forbids what TREK was doing
+     * with it.
+     *
+     * Deliberately an environment variable and not an admin switch: it decides
+     * whether searches leave the instance, and a setting that reaches for the
+     * network is one an operator wants pinned in their compose file, not one a
+     * second admin can flip in a browser.
+     *
+     * Off only on a value of the false family the schema admits (false, 0,
+     * off, no), so the switch reads like every other boolean here. Unset,
+     * blank and anything else stay on: the schema refuses a value outside the
+     * family at boot, and a path that skips validation must not quietly drop
+     * the install back to Nominatim.
+     */
+    trekPlacesEnabled: parseBool(raw.TREK_PLACES_ENABLED) !== false,
     placesApiKey: raw.PLACES_API_KEY || undefined,
+    /** The same two knobs for Amap (高德), which an install in China uses instead. */
+    amapApiBase: raw.AMAP_API_BASE || undefined,
+    amapApiKey: raw.AMAP_API_KEY || undefined,
+    /**
+     * Amap's optional 数字签名 secret. A key created with one rejects every
+     * unsigned request, so this is not a hardening option — it is required
+     * whenever the operator's key was issued that way.
+     */
+    amapApiSecret: raw.AMAP_API_SECRET || undefined,
     /** Public pk.* token shipped with a managed instance; reaches the browser by design. */
     mapboxToken: raw.MAPBOX_ACCESS_TOKEN || undefined,
+    /** CARTO basemap key; without one the tiles come back watermarked (#2054). Public too. */
+    cartoKey: raw.CARTO_API_KEY || undefined,
   };
 }
 
@@ -198,6 +234,12 @@ export function derivePlugins(raw: RawEnv) {
     /** Kill-switch is default-on: only an explicit falsy value disables (plugins/kill-switch.ts). */
     enabled: parseBool(raw.TREK_PLUGINS_ENABLED) !== false,
     devLink: parseBool(raw.TREK_PLUGINS_DEV_LINK) === true,
+    /**
+     * Range bypass is default-OFF: only an explicit truthy value turns the TREK-version
+     * gates into warnings (plugins/install/host-compat.ts). Never inferred from any
+     * other switch — an admin has to ask for "install it anyway" by name.
+     */
+    ignoreTrekRange: parseBool(raw.TREK_PLUGINS_IGNORE_TREK_RANGE) === true,
     dir: raw.TREK_PLUGINS_DIR,
     dataDir: raw.TREK_PLUGINS_DATA_DIR,
     /** Permission jail is default-on: only an explicit falsy value turns it off. */
@@ -230,9 +272,23 @@ export function deriveIntegrations(raw: RawEnv) {
   return {
     unsplashAccessKey: raw.UNSPLASH_ACCESS_KEY?.trim(),
     transitApiBase: stripTrailingSlashes(raw.TRANSIT_API_URL || 'https://api.transitous.org'),
+    // Trimmed before the default fires: the schema validates the trimmed value and
+    // treats a blank one as unset, so a padded or whitespace-only value would
+    // otherwise pass startup and then be the string that cannot be fetched.
+    nominatimUrl: stripTrailingSlashes(raw.NOMINATIM_URL?.trim() || 'https://nominatim.openstreetmap.org'),
     overpassUrl: raw.OVERPASS_URL,
-    overpassTimeoutMs: positiveNumberOr(raw.OVERPASS_TIMEOUT_MS, 12000),
+    // Longer than the `[timeout:20]` the query itself carries, or we abort an answer the
+    // mirror was still allowed to be working on. See OVERPASS_QUERY_TIMEOUT_S.
+    overpassTimeoutMs: positiveNumberOr(raw.OVERPASS_TIMEOUT_MS, 25000),
     kitineraryExtractorPath: raw.KITINERARY_EXTRACTOR_PATH,
+    /**
+     * One ceiling for a model call, replacing the three per-client constants
+     * that used to disagree. The default is deliberately generous: heavier
+     * parsing work should fit without a code change.
+     * Floored to a whole number — it reaches undici's headersTimeout, which
+     * rejects a fractional value.
+     */
+    llmTimeoutMs: Math.floor(positiveNumberOr(raw.LLM_TIMEOUT_MS, 900_000)),
     // Windows spells it Path; every other platform PATH. Split here so callers
     // get a list and never re-implement the delimiter.
     searchPath: (raw.PATH || raw.Path || '')
@@ -274,6 +330,7 @@ export function derivePaths(raw: RawEnv) {
 export function deriveNet(raw: RawEnv) {
   return {
     allowInternalNetwork: parseBool(raw.ALLOW_INTERNAL_NETWORK) === true,
+    allowLinkLocalIps: parseLinkLocalAllowList(raw.ALLOW_LINK_LOCAL_IPS).ips,
   };
 }
 

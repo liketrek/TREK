@@ -16,6 +16,20 @@ function isConflictError(err: unknown): boolean {
 
 export interface StorageAdmin {
   state: StorageAdminState | null
+  /**
+   * Whether the server is already busy with a storage job: a migration or a
+   * backfill, since its one-job-at-a-time rule spans both. Answered off the
+   * last response rather than off `state`, so it is current the instant that
+   * response lands rather than on the commit that renders it.
+   *
+   * That difference is the whole point. An effect re-run by a DEFERRED commit
+   * still closes over the `state` of the render it belongs to, which under load
+   * is several responses old by the time it runs, and the queue effect deciding
+   * on that closure POSTed a second migration on top of a running one. Anything
+   * deciding whether to fire a request asks this; anything rendering reads
+   * `state`. Never called during render.
+   */
+  storageBusy: () => boolean
   /** The settings-owned document (the PUT body), with local edits layered in. Carries the version the draft was built at. */
   draft: StorageConfigPut | null
   dirty: boolean
@@ -85,6 +99,15 @@ export function useStorageAdmin(genericError: string, conflictError: string): St
     savingRef.current = saving
   }, [saving])
 
+  // Written by every state application, at response time rather than at commit
+  // time, and read back through storageBusy(). See the interface doc.
+  const stateRef = useRef<StorageAdminState | null>(null)
+  const storageBusy = useCallback((): boolean => {
+    const live = stateRef.current
+    if (!live) return false
+    return live.migrations.some((m) => m.status === 'running') || live.backfills.some((b) => b.status === 'running')
+  }, [])
+
   // Bumped by every deliberate state application (initial load, save
   // success). A refreshState() call captures the seq before its GET and
   // drops the response if the seq moved on — i.e. a save applied its own
@@ -93,6 +116,7 @@ export function useStorageAdmin(genericError: string, conflictError: string): St
 
   const applyState = useCallback((next: StorageAdminState) => {
     stateSeq.current += 1
+    stateRef.current = next
     setState(next)
     setDraftState(settingsDocumentOf(next))
     setDirty(false)
@@ -145,6 +169,7 @@ export function useStorageAdmin(genericError: string, conflictError: string): St
     const seq = stateSeq.current
     const next = await adminApi.getStorage()
     if (stateSeq.current !== seq || savingRef.current) return
+    stateRef.current = next
     setState(next)
     if (!dirtyRef.current) setDraftState(settingsDocumentOf(next))
   }, [])
@@ -317,7 +342,14 @@ export function useStorageAdmin(genericError: string, conflictError: string): St
   const refreshStats = useCallback(async (): Promise<string | null> => {
     try {
       const usage = await adminApi.refreshStorageStats()
-      setState((prev) => (prev ? { ...prev, usage } : prev))
+      // Off stateRef rather than a functional updater, so the ref and the
+      // rendered state stay one world: every writer here sets both.
+      const prev = stateRef.current
+      if (prev) {
+        const next = { ...prev, usage }
+        stateRef.current = next
+        setState(next)
+      }
       return null
     } catch (err: unknown) {
       return getApiErrorMessage(err, genericError)
@@ -326,6 +358,7 @@ export function useStorageAdmin(genericError: string, conflictError: string): St
 
   return {
     state,
+    storageBusy,
     draft,
     dirty,
     loading,

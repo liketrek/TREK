@@ -9,7 +9,7 @@
 import { describe, it, expect } from 'vitest';
 import { runOffline } from '../src/cli/checks/index.js';
 import { blocking, type CheckContext, type CheckReport } from '../src/cli/checks/types.js';
-import { proseLength, missingSections, placeholders, images, undocumentedPermissions } from '../src/cli/checks/readme.js';
+import { proseLength, missingSections, placeholders, undocumentedPermissions } from '../src/cli/checks/readme.js';
 
 /** A manifest that passes everything, so each test can break exactly one thing. */
 const GOOD_MANIFEST = {
@@ -188,19 +188,20 @@ describe('README checks', () => {
   });
 
   /**
-   * The old check regexed for an image LINK and passed if it found one — so the scaffold's
-   * `![screenshot](./docs/screenshot.png)`, pointing at a file that was never created, satisfied
-   * it. Resolve the path instead.
+   * The registry's check-readme.mjs fetches EXACTLY docs/screenshot.png at the pinned commit —
+   * README image links are irrelevant to this gate. (A previous version of this check scanned
+   * them instead, which passed a README whose only images had other names and failed it in CI,
+   * after the release was immutable.)
    */
-  it('fails a screenshot link whose file does not exist', () => {
+  it('fails when docs/screenshot.png does not exist, whatever the README links', () => {
     const r = runOffline(ctx({ exists: (rel) => rel === 'server/index.js' }));
     expect(failed(r, 'docs.screenshot')).toBe(true);
     expect(r.errors.find((e) => e.id === 'docs.screenshot')?.next).toBe('trek-plugin shot');
   });
 
-  it('fails a README with no image at all', () => {
+  it('passes on docs/screenshot.png alone — README image links are not what CI checks', () => {
     const r = runOffline(ctx({ readme: GOOD_README.replace('![screenshot](./docs/screenshot.png)', '') }));
-    expect(failed(r, 'docs.screenshot')).toBe(true);
+    expect(failed(r, 'docs.screenshot')).toBe(false);
   });
 });
 
@@ -229,6 +230,20 @@ describe('what blocks what', () => {
   });
 });
 
+describe('manifest.settings-known-keys', () => {
+  it('warns on an attribute the SDK does not know', () => {
+    const r = runOffline(ctx({ manifest: { ...GOOD_MANIFEST, settings: [{ key: 'api_url', defalt: 'oops' }] } }));
+    expect(warned(r, 'manifest.settings-known-keys')).toBe(true);
+    const outcome = r.outcomes.find((o) => o.id === 'manifest.settings-known-keys');
+    expect(outcome?.detail).toMatch(/api_url\.defalt/);
+  });
+
+  it('passes when every attribute is known', () => {
+    const r = runOffline(ctx({ manifest: { ...GOOD_MANIFEST, settings: [{ key: 'api_url', default: 'https://x' }] } }));
+    expect(warned(r, 'manifest.settings-known-keys')).toBe(false);
+  });
+});
+
 describe('README helpers mirror the registry exactly', () => {
   it('strips headings, tables, links, images and code fences before measuring prose', () => {
     const md = '# Title\n\n![x](y.png)\n\n| a | b |\n|---|---|\n\n```js\nconst x = 1;\n```\n\n[link](u)\n';
@@ -241,9 +256,22 @@ describe('README helpers mirror the registry exactly', () => {
     expect(missingSections('## What it does')).toEqual(['Screenshots', 'Permissions', 'Setup']);
   });
 
-  it('ignores data: URIs when looking for a screenshot, like the registry does', () => {
-    expect(images('![a](data:image/png;base64,xxx)')).toEqual([]);
-    expect(images('<img src="shot.png">')).toEqual(['shot.png']);
+  it('still ignores the trailing anchor comment authors hide on a heading', () => {
+    const md = '## What it does <!-- #what -->\n## Screenshots<!--x-->\n##\tPermissions   \n## Setup <!-- unterminated';
+    expect(missingSections(md)).toEqual([]);
+    // A heading that is nothing but a comment names no section.
+    expect(missingSections('# <!-- only -->')).toEqual(['What it does', 'Screenshots', 'Permissions', 'Setup']);
+  });
+
+  it('does not stall on a heading padded with spaces', () => {
+    // The old `(.+?)\s*(?:<!--.*)?$` was quadratic: ~12s at 80k spaces, ~75s at 200k.
+    // READMEs reach this gate from the registry's submission CI, so the padding is
+    // attacker-supplied. The bound is 1000x the real cost, so it fails on the shape
+    // of the regression, not on a slow machine.
+    const md = `## What it does${' '.repeat(200_000)}x\n## Screenshots\n## Permissions\n## Setup`;
+    const started = performance.now();
+    expect(missingSections(md)).toEqual([]);
+    expect(performance.now() - started).toBeLessThan(1000);
   });
 
   it('matches a permission anywhere in the README, case-insensitively', () => {

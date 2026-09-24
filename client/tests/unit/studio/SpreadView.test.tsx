@@ -388,3 +388,28 @@ describe('travel elements', () => {
     expect(el.style.width).toBe('80mm')
   })
 })
+
+describe('text typefaces (#2183)', () => {
+  const text = (font: string): BookElement => ({
+    ...common, id: 't1', kind: 'text', text: 'A heading', font,
+    size: 11, weight: 400, italic: false, align: 'left',
+    leading: 1.45, tracking: 0, color: '#1a1a1a',
+  } as unknown as BookElement)
+
+  it('sets every picker font on the element, not just the three the old map knew', () => {
+    // The regression: a second stack map in bookRender.ts covered sans/serif/
+    // display only, so playfair and friends silently inherited Poppins.
+    expect(firstElement(draw([text('playfair')]).container)!.style.fontFamily).toContain('Playfair Display')
+    expect(firstElement(draw([text('inter')]).container)!.style.fontFamily).toContain('Inter')
+    expect(firstElement(draw([text('garamond')]).container)!.style.fontFamily).toContain('EB Garamond')
+    expect(firstElement(draw([text('bebas')]).container)!.style.fontFamily).toContain('Bebas Neue')
+  })
+
+  it('serif means Lora, matching the picker, not the bare system Georgia', () => {
+    expect(firstElement(draw([text('serif')]).container)!.style.fontFamily).toContain('Lora')
+  })
+
+  it('an unknown family still falls back to Poppins instead of the machine default', () => {
+    expect(firstElement(draw([text('comic-sans')]).container)!.style.fontFamily).toContain('Poppins')
+  })
+})

@@ -187,6 +187,10 @@
 .trek-dash .hero-content {
   position: absolute; inset: 0; z-index: 2; padding: 32px 32px 26px;
   display: grid; grid-template-rows: auto 1fr auto; color: #fff;
+  /* The one column may not grow past the hero. An auto track takes the title's
+     min-content width, and a title that is one long word made the track, the tools
+     row and the boarding pass as wide as that word, with the tools off the card. */
+  grid-template-columns: minmax(0, 1fr);
 }
 .trek-dash .hero-top { display: flex; justify-content: space-between; align-items: start; }
 .trek-dash .hero-badge {
@@ -221,14 +225,29 @@
 }
 .trek-dash .hero-tool:hover { background: oklch(0.22 0.01 260 / .78); transform: scale(1.05); }
 .trek-dash .hero-tool svg { width: 17px; height: 17px; }
-.trek-dash .hero-title-block { align-self: end; padding-bottom: 24px; }
+.trek-dash .hero-title-block { align-self: end; padding-bottom: 24px; min-width: 0; }
 .trek-dash .hero-eyebrow {
   display: inline-flex; align-items: center; gap: 10px;
   font-size: 11.5px; letter-spacing: 0.22em; text-transform: uppercase;
   opacity: .88; margin-bottom: 16px; font-weight: 500;
 }
 .trek-dash .hero-eyebrow::before { content: ""; width: 28px; height: 1px; background: oklch(1 0 0 / .6); }
-.trek-dash .hero-title { font-size: 104px; font-weight: 600; line-height: 0.9; letter-spacing: -0.045em; margin: 0; text-shadow: 0 1px 12px oklch(0 0 0 / .32), 0 1px 3px oklch(0 0 0 / .4); }
+.trek-dash .hero-title {
+  font-size: 104px; font-weight: 600; line-height: 1.12; letter-spacing: -0.045em; margin: 0;
+  text-shadow: 0 1px 12px oklch(0 0 0 / .32), 0 1px 3px oklch(0 0 0 / .4);
+  /* Two lines at most, a word longer than the card broken inside it: the rows above
+     and below have a fixed budget and a third line would run into the badge row. */
+  overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+  /* The clamp clips at the line boxes and Poppins paints past them (ascender 1.05em,
+     descender 0.35em): at 0.9 every y, g and p on the last line lost its tail and
+     É and Å on the first their accent. The padding makes room for the ink and the
+     margin takes it back, so the title sits where it did. At 1.12 a clipped third
+     line keeps its plain ascenders under that padding; an accented capital on it
+     still leaves a sliver, as it does on dev today, and only a much looser title
+     would hide that. */
+  padding-block: .1em; margin-block: -.1em;
+}
 
 /* ----------------- boarding pass ----------------- */
 /* The pass is split into an outer wrapper (left notch) and an inner glass panel
@@ -416,6 +435,11 @@
 .trek-dash .trips.list-view { grid-template-columns: 1fr; gap: 12px; }
 .trek-dash .trips.list-view .trip-card { display: grid; grid-template-columns: 520px 1fr; gap: 0; height: auto; }
 .trek-dash .trips.list-view .trip-cover { border-radius: var(--r-lg) 0 0 var(--r-lg); height: 100px; aspect-ratio: unset; }
+/* The row's cover is 100px and the title hangs from its bottom edge, so every
+   line it gains grows upwards: at 26px a second one starts above the status
+   badge at top 16px and runs through the pill. The row has 484px of text to
+   itself, one line is the whole title either way. */
+.trek-dash .trips.list-view .trip-name { -webkit-line-clamp: 1; }
 .trek-dash .trips.list-view .trip-body { display: flex; align-items: center; justify-content: flex-end; padding: 16px 36px; gap: 28px; }
 /* Date rendered as a peer of the counts, set off by a vertical divider rather than
    floating alone at the far left. */
@@ -470,7 +494,15 @@
 .trek-dash .trip-action-btn:hover { background: oklch(0.22 0.01 260 / .82); transform: scale(1.06); }
 .trek-dash .trip-action-btn svg { width: 17px; height: 17px; }
 .trek-dash .trip-cover-content { position: absolute; left: 18px; right: 18px; bottom: 16px; z-index: 1; color: #fff; }
-.trek-dash .trip-name { font-size: 26px; font-weight: 600; letter-spacing: -0.025em; line-height: 1.05; margin: 0; text-shadow: 0 1px 7px oklch(0 0 0 / .3), 0 1px 2px oklch(0 0 0 / .38); }
+.trek-dash .trip-name {
+  font-size: 26px; font-weight: 600; letter-spacing: -0.025em; line-height: 1.12; margin: 0;
+  text-shadow: 0 1px 7px oklch(0 0 0 / .3), 0 1px 2px oklch(0 0 0 / .38);
+  /* The cover is a fixed width and clipped, so the same clamp and ink room as
+     .hero-title: one long word used to run off the card edge as a single line. */
+  overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+  padding-block: .1em; margin-block: -.1em;
+}
 .trek-dash .trip-where { margin-top: 4px; font-size: 13px; opacity: .85; display: flex; align-items: center; gap: 6px; }
 .trek-dash .trip-where svg { width: 12px; height: 12px; opacity: .8; }
 .trek-dash .trip-body { padding: 18px 20px 20px; }
@@ -593,6 +625,9 @@
 .trek-dash .upc-date .d { font-size: 18px; font-weight: 600; letter-spacing: -0.02em; line-height: 1; }
 .trek-dash .upc-date .m { font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-3); margin-top: 4px; font-weight: 500; }
 .trek-dash .upc-info .t { font-size: 14px; font-weight: 500; margin-bottom: 2px; }
+.trek-dash .upc-info .t { display: flex; align-items: center; gap: 7px; }
+/* An unconfirmed booking looked exactly like a confirmed one here (#1934). */
+.trek-dash .upc-pending { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; padding: 2px 6px; border-radius: 999px; background: var(--bg-2); color: var(--ink-3); }
 .trek-dash .upc-info .s { font-size: 12px; color: var(--ink-3); display: flex; align-items: center; gap: 6px; }
 .trek-dash .upc-info .s svg { width: 11px; height: 11px; }
 .trek-dash .upc-type { width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; }
@@ -716,10 +751,9 @@
   .trek-dash .trips.list-view .trip-card { grid-template-columns: 1fr; min-height: 0; }
   .trek-dash .trips.list-view .trip-cover { height: 110px; aspect-ratio: unset; border-radius: 0; }
   .trek-dash .trips.list-view .trip-cover-content { left: 16px; right: 16px; bottom: 11px; }
-  .trek-dash .trips.list-view .trip-name {
-    font-size: 18px; overflow: hidden; text-overflow: ellipsis;
-    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
-  }
+  /* Taller banner (110px), smaller type and the title 11px off the bottom: two
+     lines end below the badge here, so the phone row keeps them. */
+  .trek-dash .trips.list-view .trip-name { font-size: 18px; -webkit-line-clamp: 2; }
   .trek-dash .trips.list-view .trip-body { display: flex; align-items: center; justify-content: center; padding: 10px 16px; }
   .trek-dash .trips.list-view .trip-dates { margin-bottom: 0; justify-content: center; font-size: 12.5px; }
   .trek-dash .trips.list-view .trip-dates .date-num { font-size: 12.5px; }

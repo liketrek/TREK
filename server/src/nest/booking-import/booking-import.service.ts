@@ -12,7 +12,7 @@ import type { User } from '../../types';
 import { KitineraryExtractorService } from './kitinerary-extractor.service';
 import { LlmParseService } from '../llm-parse/llm-parse.service';
 import { mapReservations } from './kitinerary-mapper';
-import { typeToCostCategory } from '@trek/shared';
+import { normalizePlaceWebsite, typeToCostCategory } from '@trek/shared';
 import type { BookingImportPreviewItem, BookingImportPreviewResponse, BookingImportConfirmResponse, BookingImportMode, BookingImportFileReport, Reservation } from '@trek/shared';
 import type { ParsedBookingItem, KiReservation } from './kitinerary.types';
 
@@ -116,8 +116,8 @@ export class BookingImportService {
       let found: { lat: number; lng: number } | null = null;
       try {
         for (const q of queries) {
-          const hit = (await this.maps.searchNominatim(q, undefined, 'background'))[0];
-          if (hit?.lat != null && hit?.lng != null) { found = { lat: hit.lat, lng: hit.lng }; break; }
+          const hit = await this.maps.geocodeQuery(q);
+          if (hit) { found = hit; break; }
         }
       } catch {
         // geocoding failure is non-fatal — the endpoint stays, and is warned about
@@ -240,9 +240,8 @@ export class BookingImportService {
               ].filter((q): q is string => !!q);
 
               for (const q of queries) {
-                const results = await this.maps.searchNominatim(q, undefined, 'background');
-                const hit = results[0];
-                if (hit?.lat != null && hit?.lng != null) {
+                const hit = await this.maps.geocodeQuery(q);
+                if (hit) {
                   lat = hit.lat;
                   lng = hit.lng;
                   break;
@@ -258,7 +257,9 @@ export class BookingImportService {
             lat,
             lng,
             address: _venue.address,
-            website: _venue.website,
+            // A booking mail gives the venue's site however its sender wrote it;
+            // it lands as https or not at all (#2483).
+            website: normalizePlaceWebsite(_venue.website) ?? undefined,
             phone: _venue.phone,
           });
           placeId = (place as any).id;

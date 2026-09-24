@@ -19,6 +19,7 @@ const undo: TranslationStrings = {
   'undo.importNaverList': 'Importazione Naver Maps',
   'undo.addPlace': 'Luogo aggiunto',
   'undo.done': 'Annullato: {action}',
+  'undo.failed': 'Impossibile annullare: {action}',
   'undo.importBooking': 'Importazione conferma prenotazione',
 };
 export default undo;

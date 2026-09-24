@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { findTodayDayId, localToday } from './today'
+import { findFocusDayId, findTodayDayId, localToday } from './today'
 
 describe('localToday', () => {
   it('FE-TODAY-001: reads the date off the local clock, not UTC', () => {
@@ -42,5 +42,41 @@ describe('findTodayDayId', () => {
 
   it('FE-TODAY-006: tolerates a full timestamp in the date column', () => {
     expect(findTodayDayId([{ id: 7, date: '2026-08-11T00:00:00.000Z' }], at(2026, 8, 11))).toBe(7)
+  })
+})
+
+describe('findFocusDayId', () => {
+  const days = [
+    { id: 1, date: '2026-08-10' },
+    { id: 2, date: '2026-08-12' },
+    { id: 3, date: '2026-08-14' },
+  ]
+  const at = (y: number, m: number, d: number) => new Date(y, m - 1, d, 10, 0, 0)
+
+  it('FE-TODAY-007: is today while the trip is running', () => {
+    expect(findFocusDayId(days, at(2026, 8, 12))).toBe(2)
+  })
+
+  it('FE-TODAY-008: skips to the next dated day across a gap and before the trip', () => {
+    expect(findFocusDayId(days, at(2026, 8, 11))).toBe(2)
+    expect(findFocusDayId(days, at(2026, 8, 9))).toBe(1)
+  })
+
+  it('FE-TODAY-009: is null once the trip is over, leaving the caller its own fallback', () => {
+    expect(findFocusDayId(days, at(2026, 8, 15))).toBeNull()
+  })
+
+  it('FE-TODAY-010: has nothing to focus without dates', () => {
+    expect(findFocusDayId([{ id: 1, date: null }, { id: 2 }], at(2026, 8, 11))).toBeNull()
+    expect(findFocusDayId([], at(2026, 8, 11))).toBeNull()
+  })
+
+  it('FE-TODAY-011: tolerates full timestamps and leaves the caller’s array alone', () => {
+    const unordered = [
+      { id: 2, date: '2026-08-12T00:00:00.000Z' },
+      { id: 1, date: '2026-08-10T00:00:00.000Z' },
+    ]
+    expect(findFocusDayId(unordered, at(2026, 8, 11))).toBe(2)
+    expect(unordered.map(d => d.id)).toEqual([2, 1])
   })
 })

@@ -1,4 +1,4 @@
-// FE-COMP-TRIPFORM-001 to FE-COMP-TRIPFORM-084
+// FE-COMP-TRIPFORM-001 to FE-COMP-TRIPFORM-097
 import type { Mock } from 'vitest';
 import { render, screen, waitFor, fireEvent, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
@@ -8,9 +8,10 @@ import { useTripStore } from '../../store/tripStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { usePermissionsStore } from '../../store/permissionsStore';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
-import { buildUser, buildTrip } from '../../../tests/helpers/factories';
+import { buildUser, buildTrip, buildDay, buildAssignment, buildPlace, buildReservation, buildBudgetItem } from '../../../tests/helpers/factories';
 import { server } from '../../../tests/helpers/msw/server';
-import type { Trip } from '../../types';
+import type { Accommodation, BudgetItem, Reservation, Trip } from '../../types';
+import { MAX_TRIP_DAYS } from '@trek/shared';
 import TripFormModal from './TripFormModal';
 
 const defaultProps = {
@@ -321,7 +322,7 @@ describe('TripFormModal', () => {
 
   it('FE-COMP-TRIPFORM-029: clearing the day count leaves the field empty (no snap to 1)', () => {
     render(<TripFormModal {...defaultProps} trip={null} />);
-    const dayInput = document.querySelector('input[max="365"]') as HTMLInputElement;
+    const dayInput = document.querySelector(`input[max="${MAX_TRIP_DAYS}"]`) as HTMLInputElement;
     expect(dayInput).toBeInTheDocument();
     expect(dayInput.value).toBe('7');
     fireEvent.change(dayInput, { target: { value: '' } });
@@ -333,7 +334,7 @@ describe('TripFormModal', () => {
     const onSave = vi.fn();
     render(<TripFormModal {...defaultProps} trip={null} onSave={onSave} />);
     await user.type(screen.getByPlaceholderText(/Summer in Japan/i), 'No-date Trip');
-    const dayInput = document.querySelector('input[max="365"]') as HTMLInputElement;
+    const dayInput = document.querySelector(`input[max="${MAX_TRIP_DAYS}"]`) as HTMLInputElement;
     fireEvent.change(dayInput, { target: { value: '' } });
     const submitBtn = screen.getAllByText('Create New Trip').find(el => el.closest('button'))!;
     await user.click(submitBtn.closest('button')!);
@@ -534,7 +535,7 @@ describe('TripFormModal', () => {
     expect(screen.getByPlaceholderText(/Summer in Japan/i)).toHaveValue('');
     expect(screen.getByText(/^EUR/)).toBeInTheDocument();
     // No dates -> the day-count field appears and falls back to 7.
-    expect(document.querySelector('input[max="365"]')).toHaveValue('7');
+    expect(document.querySelector(`input[max="${MAX_TRIP_DAYS}"]`)).toHaveValue('7');
   });
 
   // ── Create follow-ups: members and cover ──────────────────────────────────
@@ -921,7 +922,7 @@ describe('TripFormModal', () => {
     fireEvent.keyDown(input, { key: 'Enter' });
 
     // The day-count field disappears once the trip is dated.
-    await waitFor(() => expect(document.querySelector('input[max="365"]')).toBeNull());
+    await waitFor(() => expect(document.querySelector(`input[max="${MAX_TRIP_DAYS}"]`)).toBeNull());
     await submitNewTrip(user);
     await waitFor(() => expect(onSave).toHaveBeenCalledWith(
       expect.objectContaining({ start_date: '2026-04-10', end_date: '2026-04-10' })
@@ -951,18 +952,18 @@ describe('TripFormModal', () => {
     ));
   });
 
-  it('FE-COMP-TRIPFORM-067: the day count is clamped to the 1..365 range', async () => {
+  it('FE-COMP-TRIPFORM-067: the day count is clamped to the 1..MAX_TRIP_DAYS range', async () => {
     const user = userEvent.setup();
     const onSave = vi.fn().mockResolvedValue({});
     render(<TripFormModal {...defaultProps} trip={null} onSave={onSave} />);
 
-    const dayInput = document.querySelector('input[max="365"]') as HTMLInputElement;
-    fireEvent.change(dayInput, { target: { value: '400' } });
-    expect(dayInput.value).toBe('365');
+    const dayInput = document.querySelector(`input[max="${MAX_TRIP_DAYS}"]`) as HTMLInputElement;
+    fireEvent.change(dayInput, { target: { value: String(MAX_TRIP_DAYS + 1) } });
+    expect(dayInput.value).toBe(String(MAX_TRIP_DAYS));
 
     await user.type(screen.getByPlaceholderText(/Summer in Japan/i), 'Long Trip');
     await submitNewTrip(user);
-    await waitFor(() => expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ day_count: 365 })));
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ day_count: MAX_TRIP_DAYS })));
   });
 
   it('FE-COMP-TRIPFORM-068: a currency without a known symbol is labelled with its code', () => {
@@ -1248,5 +1249,251 @@ describe('TripFormModal', () => {
 
     await waitFor(() => expect(revokeObjectURL).toHaveBeenCalledWith('blob:first'));
     Object.defineProperty(URL, 'revokeObjectURL', { writable: true, configurable: true, value: original });
+  });
+
+  it('FE-COMP-TRIPFORM-085: a trip longer than a year is saved with its full range (#2403)', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn().mockResolvedValue({});
+    const trip = buildTrip({ id: 1, title: 'Gap year', start_date: '2025-01-26', end_date: '2026-01-28' });
+    render(<TripFormModal {...defaultProps} trip={trip} onSave={onSave} />);
+    await user.click(screen.getByRole('button', { name: /Update/i }));
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({ start_date: '2025-01-26', end_date: '2026-01-28' })
+    ));
+  });
+
+  it('FE-COMP-TRIPFORM-086: a range past MAX_TRIP_DAYS is refused before anything is sent', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn();
+    const trip = buildTrip({ id: 1, title: 'Week', start_date: '2026-01-01', end_date: '2026-01-07' });
+    render(<TripFormModal {...defaultProps} trip={trip} onSave={onSave} />);
+
+    await user.click(screen.getAllByRole('button', { name: 'Enter date manually' })[1]);
+    const endInput = screen.getByPlaceholderText('DD.MM.YYYY');
+    fireEvent.change(endInput, { target: { value: '2036-01-01' } });
+    fireEvent.keyDown(endInput, { key: 'Enter' });
+
+    await user.click(screen.getByRole('button', { name: /Update/i }));
+    await screen.findByText(`A trip can span at most ${MAX_TRIP_DAYS} days`);
+    expect(onSave).not.toHaveBeenCalled();
+  });
+
+  it('FE-COMP-TRIPFORM-087: a trip stored with a longer range can still be renamed', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn().mockResolvedValue({});
+    const trip = buildTrip({ id: 1, title: 'Legacy', start_date: '2020-01-01', end_date: '2030-01-01' });
+    render(<TripFormModal {...defaultProps} trip={trip} onSave={onSave} />);
+    await user.clear(screen.getByPlaceholderText(/Summer in Japan/i));
+    await user.type(screen.getByPlaceholderText(/Summer in Japan/i), 'Renamed');
+    await user.click(screen.getByRole('button', { name: /Update/i }));
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Renamed', start_date: '2020-01-01', end_date: '2030-01-01' })
+    ));
+  });
+
+  // ── Shortening: the warning before days go ────────────────────────────────
+
+  /** A week in October with a place on its last two days, and the trip's bookings and stays. */
+  const shrinkableTrip = () => buildTrip({ id: 1, title: 'Coast week', start_date: '2026-10-01', end_date: '2026-10-07' });
+  const seedTripDays = (extras: { reservations?: Reservation[]; accommodations?: Accommodation[]; budget?: BudgetItem[]; empty?: boolean } = {}) => {
+    const days = Array.from({ length: 7 }, (_, i) => buildDay({
+      id: 300 + i,
+      trip_id: 1,
+      day_number: i + 1,
+      date: `2026-10-0${i + 1}`,
+      assignments: !extras.empty && i >= 5 ? [buildAssignment({ day_id: 300 + i, place: buildPlace({ id: 400 + i }) })] : [],
+    }));
+    server.use(
+      http.get('/api/trips/:id/days', () => HttpResponse.json({ days })),
+      http.get('/api/trips/:id/reservations', () => HttpResponse.json({ reservations: extras.reservations ?? [] })),
+      http.get('/api/trips/:id/accommodations', () => HttpResponse.json({ accommodations: extras.accommodations ?? [] })),
+      http.get('/api/trips/:id/budget', () => HttpResponse.json({ items: extras.budget ?? [] })),
+    );
+  };
+  const changeEndDate = async (user: ReturnType<typeof userEvent.setup>, iso: string) => {
+    await user.click(screen.getAllByRole('button', { name: 'Enter date manually' })[1]);
+    const input = screen.getByPlaceholderText('DD.MM.YYYY');
+    fireEvent.change(input, { target: { value: iso } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+  };
+
+  it('FE-COMP-TRIPFORM-088: an earlier end asks first and names the days it takes, with what is on them', async () => {
+    seedTripDays({
+      accommodations: [{ id: 9, trip_id: 1, start_day_id: 304, end_day_id: 306, place_name: 'Harbour Hotel' } as Accommodation],
+      reservations: [buildReservation({ id: 70, day_id: 304, type: 'hotel', title: 'Harbour, 2 nights', accommodation_id: 9 })],
+      budget: [buildBudgetItem({ reservation_id: 70, total_price: 240 })],
+    });
+    const user = userEvent.setup();
+    const onSave = vi.fn().mockResolvedValue({});
+    render(<TripFormModal {...defaultProps} trip={shrinkableTrip()} onSave={onSave} />);
+
+    await changeEndDate(user, '2026-10-05');
+    await user.click(screen.getByRole('button', { name: /Update/i }));
+
+    const list = await screen.findByRole('list', { name: 'Remove days?' });
+    expect(screen.getAllByText('Remove days?').length).toBeGreaterThan(0);
+    expect(screen.getByText('Saving the new dates removes these days:')).toBeInTheDocument();
+    expect(within(list).getByText('Tue, Oct 6')).toBeInTheDocument();
+    expect(within(list).getByText('Wed, Oct 7')).toBeInTheDocument();
+    expect(within(list).getByText('Stay at Harbour Hotel').closest('li')).toHaveAttribute('data-tone', 'danger');
+    expect(within(list).getByText(/Its booking "Harbour, 2 nights" and its expense stay under Bookings/)).toBeInTheDocument();
+    expect(within(list).getByText('Planned places: 2')).toBeInTheDocument();
+    // No start moved, so no shift question.
+    expect(screen.queryByText('Keep bookings on their dates')).not.toBeInTheDocument();
+    // The longest confirm label of any language stays on one line.
+    expect(screen.getByRole('button', { name: 'Remove days and save' })).toHaveClass('bg-danger', 'whitespace-nowrap');
+    expect(onSave).not.toHaveBeenCalled();
+  });
+
+  it('FE-COMP-TRIPFORM-089: a later start that also shortens asks both in one step', async () => {
+    seedTripDays();
+    const user = userEvent.setup();
+    render(<TripFormModal {...defaultProps} trip={shrinkableTrip()} onSave={vi.fn()} />);
+
+    // Moving the start keeps the length, so the end is pulled back afterwards.
+    await changeStartDate(user, '2026-10-03');
+    await changeEndDate(user, '2026-10-07');
+    await user.click(screen.getByRole('button', { name: /Update/i }));
+
+    await screen.findByText('Keep bookings on their dates');
+    expect(screen.getByText('New start date')).toBeInTheDocument();
+    const list = screen.getByRole('list', { name: 'Remove days?' });
+    expect(within(list).getByText('The last days go, not the first')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Remove days and save' })).toBeInTheDocument();
+  });
+
+  it('FE-COMP-TRIPFORM-090: a longer trip, or a shorter one that loses only empty days, saves without asking', async () => {
+    seedTripDays({ empty: true });
+    const user = userEvent.setup();
+    const onSave = vi.fn().mockResolvedValue({});
+    render(<TripFormModal {...defaultProps} trip={shrinkableTrip()} onSave={onSave} />);
+
+    await changeEndDate(user, '2026-10-05');
+    await user.click(screen.getByRole('button', { name: /Update/i }));
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ end_date: '2026-10-05' })));
+    expect(onSave).toHaveBeenCalledWith(expect.not.objectContaining({ date_shift_mode: expect.anything() }));
+    expect(screen.queryByRole('list', { name: 'Remove days?' })).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-TRIPFORM-091: confirming saves the held payload, with the shift mode only when it was asked', async () => {
+    seedTripDays();
+    const user = userEvent.setup();
+    const onSave = vi.fn().mockResolvedValue({});
+    render(<TripFormModal {...defaultProps} trip={shrinkableTrip()} onSave={onSave} />);
+
+    await changeEndDate(user, '2026-10-05');
+    await user.click(screen.getByRole('button', { name: /Update/i }));
+    await user.click(await screen.findByRole('button', { name: 'Remove days and save' }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ start_date: '2026-10-01', end_date: '2026-10-05' }));
+    expect(onSave).toHaveBeenCalledWith(expect.not.objectContaining({ date_shift_mode: expect.anything() }));
+  });
+
+  it('FE-COMP-TRIPFORM-092: the booking hint follows the shift mode picked above the list', async () => {
+    seedTripDays({ reservations: [buildReservation({ id: 71, day_id: 306, title: 'Ferry' })] });
+    const user = userEvent.setup();
+    const onSave = vi.fn().mockResolvedValue({});
+    render(<TripFormModal {...defaultProps} trip={shrinkableTrip()} onSave={onSave} />);
+
+    await changeStartDate(user, '2026-10-02');
+    await changeEndDate(user, '2026-10-06');
+    await user.click(screen.getByRole('button', { name: /Update/i }));
+
+    const list = await screen.findByRole('list', { name: 'Remove days?' });
+    expect(within(list).getByText(/One whose date is still part of the trip goes back onto that day/)).toBeInTheDocument();
+    await user.click(screen.getByRole('radio', { name: /Shift everything/i }));
+    expect(within(list).getByText('They stay under Bookings, without a day.')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Remove days and save' }));
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ date_shift_mode: 'shift_all' })));
+  });
+
+  it('FE-COMP-TRIPFORM-093: Back from the warning returns to the form and saves nothing', async () => {
+    seedTripDays();
+    const user = userEvent.setup();
+    const onSave = vi.fn();
+    render(<TripFormModal {...defaultProps} trip={shrinkableTrip()} onSave={onSave} />);
+
+    await changeEndDate(user, '2026-10-05');
+    await user.click(screen.getByRole('button', { name: /Update/i }));
+    await screen.findByRole('list', { name: 'Remove days?' });
+
+    await user.click(screen.getByRole('button', { name: /Back/i }));
+    await waitFor(() => expect(screen.queryByRole('list', { name: 'Remove days?' })).not.toBeInTheDocument());
+    expect(screen.getByDisplayValue('Coast week')).toBeInTheDocument();
+    expect(onSave).not.toHaveBeenCalled();
+  });
+
+  it('FE-COMP-TRIPFORM-096: Escape in the warning goes back to the form, like Back, and keeps the edit', async () => {
+    seedTripDays();
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    render(<TripFormModal {...defaultProps} onClose={onClose} trip={shrinkableTrip()} onSave={vi.fn()} />);
+
+    const title = screen.getByDisplayValue('Coast week');
+    await user.clear(title);
+    await user.type(title, 'Coast week, shorter');
+    await changeEndDate(user, '2026-10-05');
+    await user.click(screen.getByRole('button', { name: /Update/i }));
+    await screen.findByRole('list', { name: 'Remove days?' });
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('list', { name: 'Remove days?' })).not.toBeInTheDocument());
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByDisplayValue('Coast week, shorter')).toBeInTheDocument();
+    // Out of the warning, Escape closes the dialog as before.
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('FE-COMP-TRIPFORM-097: a removed stay whose booking carries no expense does not claim one', async () => {
+    seedTripDays({
+      accommodations: [{ id: 9, trip_id: 1, start_day_id: 304, end_day_id: 306, place_name: 'Harbour Hotel' } as Accommodation],
+      reservations: [buildReservation({ id: 70, day_id: 304, type: 'hotel', title: 'Harbour, 2 nights', accommodation_id: 9 })],
+    });
+    const user = userEvent.setup();
+    render(<TripFormModal {...defaultProps} trip={shrinkableTrip()} onSave={vi.fn()} />);
+
+    await changeEndDate(user, '2026-10-05');
+    await user.click(screen.getByRole('button', { name: /Update/i }));
+
+    const list = await screen.findByRole('list', { name: 'Remove days?' });
+    expect(within(list).getByText('Checks in or out on a removed day, so the whole stay is removed. Its booking "Harbour, 2 nights" stays under Bookings.')).toBeInTheDocument();
+    expect(within(list).queryByText(/its expense/)).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-TRIPFORM-094: when the days cannot be read it still warns, in general terms', async () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    server.use(http.get('/api/trips/:id/days', () => HttpResponse.json({ error: 'boom' }, { status: 500 })));
+    const user = userEvent.setup();
+    render(<TripFormModal {...defaultProps} trip={shrinkableTrip()} onSave={vi.fn()} />);
+
+    await changeEndDate(user, '2026-10-05');
+    await user.click(screen.getByRole('button', { name: /Update/i }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('The days of this trip could not be checked.');
+    expect(screen.queryByRole('list', { name: 'Remove days?' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Remove days and save' })).toBeInTheDocument();
+    spy.mockRestore();
+  });
+
+  it('FE-COMP-TRIPFORM-095: a trip without dates sends its day count only when it changed', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn().mockResolvedValue({});
+    const undated = buildTrip({ id: 1, title: 'Someday', start_date: null, end_date: null, day_count: 4 });
+    const { unmount } = render(<TripFormModal {...defaultProps} trip={undated} onSave={onSave} />);
+
+    await user.click(screen.getByRole('button', { name: /Update/i }));
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    expect(onSave.mock.calls[0][0]).not.toHaveProperty('day_count');
+    unmount();
+
+    render(<TripFormModal {...defaultProps} trip={undated} onSave={onSave} />);
+    const dayInput = document.querySelector(`input[max="${MAX_TRIP_DAYS}"]`) as HTMLInputElement;
+    fireEvent.change(dayInput, { target: { value: '6' } });
+    await user.click(screen.getByRole('button', { name: /Update/i }));
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(2));
+    expect(onSave.mock.calls[1][0]).toMatchObject({ day_count: 6 });
   });
 });

@@ -10,6 +10,9 @@ interface BookingImportModalProps {
   isOpen: boolean
   onClose: () => void
   tripId: number
+  /** The tab this import was started from, carried into the job so the review
+   *  can pick the right form for an item whose type had to be guessed (#2076). */
+  kind?: 'transports' | 'bookings'
 }
 
 const ACCEPTED_EXTS = ['.eml', '.pdf', '.pkpass', '.html', '.htm', '.txt']
@@ -22,7 +25,7 @@ const MAX_FILES = 5
  * (progress over the WebSocket). When it finishes, the trip page opens the per-item
  * review flow — so the user can navigate and keep editing while it works.
  */
-export default function BookingImportModal({ isOpen, onClose, tripId }: BookingImportModalProps) {
+export default function BookingImportModal({ isOpen, onClose, tripId, kind }: BookingImportModalProps) {
   const { t } = useTranslation()
   const addTask = useBackgroundTasksStore((s) => s.addTask)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -100,7 +103,7 @@ export default function BookingImportModal({ isOpen, onClose, tripId }: BookingI
       // Keep the uploaded files so the review can attach each source document to its booking —
       // in memory for the immediate path, and in IndexedDB so it survives a reload mid-parse.
       await saveImportFiles(jobId, files)
-      addTask({ id: jobId, tripId: String(tripId), label: files.map((f) => f.name).join(', '), total: files.length, files, mode })
+      addTask({ id: jobId, tripId: String(tripId), label: files.map((f) => f.name).join(', '), total: files.length, files, mode, kind })
       handleClose()
     } catch (err: any) {
       setError(err?.response?.data?.error ?? t('reservations.import.error'))

@@ -28,3 +28,26 @@ export function findTodayDayId(days: Array<{ id: number; date?: string | null }>
   const match = days.find(d => typeof d.date === 'string' && d.date.slice(0, 10) === today)
   return match ? match.id : null
 }
+
+/**
+ * The day a single-day view should open on: today while the trip is running,
+ * otherwise the next dated day still ahead. A trip with a gap in its dates —
+ * or one that has not started yet — lands on the day that is actually coming
+ * instead of on day one.
+ *
+ * Null once every dated day has passed, and for an undated itinerary, so the
+ * caller keeps its own fallback: a finished trip opens where it always did,
+ * on its first day.
+ *
+ * The desktop plan shows every day at once and only needs findTodayDayId; the
+ * phone plan is single-day and has to land somewhere, which is the only reason
+ * the two differ. Both read "today" off localToday, so that part cannot drift.
+ */
+export function findFocusDayId(days: Array<{ id: number; date?: string | null }>, now?: Date): number | null {
+  const today = localToday(now)
+  const ahead = days
+    .map(d => ({ id: d.id, date: typeof d.date === 'string' ? d.date.slice(0, 10) : '' }))
+    .filter(d => d.date.length === 10 && d.date >= today)
+    .sort((a, b) => a.date.localeCompare(b.date))
+  return ahead[0]?.id ?? null
+}

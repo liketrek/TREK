@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx xmlns="http://www.topografix.com/GPX/1/1" version="1.1" creator="Organic Maps" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
+<metadata>
+  <name>Kyoto &amp; Nara</name>
+  <desc>Temples, gardens and where to eat between them</desc>
+</metadata>
+<wpt lat="34.967146" lon="135.772695">
+  <name>伏見稲荷大社</name>
+  <desc>Start at 7, the upper gates are empty then</desc>
+  <extensions>
+    <color>#FFE51A1A</color>
+  </extensions>
+</wpt>
+<wpt lat="35.039370" lon="135.729243">
+  <name>Kinkaku-ji</name>
+  <desc><![CDATA[Golden Pavilion. Buy tickets at the gate & walk the garden loop clockwise.]]></desc>
+  <link href="https://www.shokoku-ji.jp/kinkakuji/"><text>shokoku-ji.jp</text></link>
+  <extensions>
+    <color>#FF0066CC</color>
+  </extensions>
+</wpt>
+<wpt lat="34.685087" lon="135.843012">
+  <name>Nara Park</name>
+  <link href="javascript:alert(1)"><text>Not a link</text></link>
+</wpt>
+<trk>
+  <name>Philosopher's Path</name>
+  <extensions>
+    <color>#FF1E96F0</color>
+  </extensions>
+  <trkseg>
+    <trkpt lat="35.026839" lon="135.794780"></trkpt>
+    <trkpt lat="35.024110" lon="135.795090"></trkpt>
+    <trkpt lat="35.020470" lon="135.795370"></trkpt>
+    <trkpt lat="35.016302" lon="135.795703"></trkpt>
+    <trkpt lat="35.011860" lon="135.795050"></trkpt>
+  </trkseg>
+</trk>
+</gpx>

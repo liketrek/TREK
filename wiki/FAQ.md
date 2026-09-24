@@ -2,7 +2,7 @@
 
 ## Do I need a Google Maps API key?
 
-No. When no Google Maps key is configured, TREK automatically falls back to OpenStreetMap (Nominatim) for place search — no API key or account required. If you want richer place data (photos, ratings, opening hours), an admin can optionally add a Google Maps key in **Admin Panel → Settings** — see [Admin Panel Overview](Admin-Panel-Overview). A key saved there applies instance-wide to every member; there is no per-user field for it in the UI.
+No. Place search runs on TREK's own place index, the [TREK Places API](TREK-Places-API), asked together with OpenStreetMap, with no API key, no quota and no account. A Google Maps key only answers where both come up empty, and adds ratings and photos for the places Google finds, which no open dataset has. An admin can add one in **Admin → Settings → API Keys**, see [Places and Search](Places-and-Search#with-a-google-maps-api-key). A key saved there applies instance-wide to every member; there is no per-user field for it in the UI.
 
 ## Can I use TREK offline?
 

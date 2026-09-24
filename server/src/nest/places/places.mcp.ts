@@ -2,10 +2,19 @@ import {
   McpController, Tool, ResourceTemplate, type McpContext,
   TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
   TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  demoDenied, ok,
+  demoDenied, errorResult, ok,
 } from '../../nest-mcp';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
-import { placeWebsiteSchema } from '@trek/shared';
+import {
+  mapsSearchRequestSchema,
+  placeImageUrlSchema,
+  placeImportListRequestSchema,
+  placeWebsiteSchema,
+  roadtripStopTypeSchema,
+  roadtripGpxImportSchema,
+  type RoadtripGpxImport,
+  type RoadtripStopType,
+} from '@trek/shared';
 import { z } from 'zod';
 import { AuthService } from '../auth/auth.service';
 import { AssignmentsService } from '../assignments/assignments.service';
@@ -14,6 +23,7 @@ import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import { DatabaseService } from '../database/database.service';
 import { MapsService } from '../maps/maps.service';
 import { PlacesService } from './places.service';
+import { isDirectionsUrl } from './maps-dir.helpers';
 
 function parseId(value: string | string[]): number | null {
   const n = Number(Array.isArray(value) ? value[0] : value);
@@ -51,7 +61,7 @@ export class PlacesMcp {
 
   @Tool({
     name: 'create_place',
-    description: 'Add a new place/POI to a trip. Set google_place_id, google_ftid, or osm_id (from search_place) so the app can show opening hours, ratings, and direct Google Maps links. Set price + currency to record the cost so it shows on the item.',
+    description: 'Add a new place/POI to a trip. Set google_place_id, google_ftid, osm_id or amap_poi_id (from search_place) so the app can show opening hours, ratings, and direct Google Maps links. Set price + currency to record the cost so it shows on the item.',
     inputSchema: {
       tripId: z.number().int().positive(),
       name: z.string().min(1).max(200),
@@ -63,27 +73,31 @@ export class PlacesMcp {
       google_place_id: z.string().optional().describe('Google Place ID from search_place — enables opening hours display'),
       google_ftid: z.string().optional().describe('Google Maps feature ID from search_place — enables direct Google Maps links'),
       osm_id: z.string().optional().describe('OpenStreetMap ID from search_place (e.g. "way:12345") — enables opening hours if no Google ID'),
+      amap_poi_id: z.string().optional().describe('Amap (高德地图) POI ID from search_place, amap:-prefixed, enables opening hours on an install using Amap'),
       notes: z.string().max(2000).optional(),
       website: placeWebsiteSchema.optional(),
       phone: z.string().max(50).optional(),
+      image_url: placeImageUrlSchema.optional().describe('Thumbnail for the place: an /uploads/ path, an /api/maps/place-photo/ path, an inline data: image, or an https URL'),
       price: z.number().nonnegative().optional().describe('Cost of this place/activity (e.g. ticket price, entry fee)'),
       currency: z.string().length(3).optional().describe('ISO 4217 currency code (e.g. "EUR", "USD")'),
+      stop_type: roadtripStopTypeSchema.optional().describe('Marks the place as a stop on a drive rather than a destination: fuel, charging, rest_area, campsite, restaurant, sights or hotel. A service stop is left out of the stop count for the day, so a day with a charger between four places still reads as four stops. Leave unset for an ordinary place. calculate_roadtrip reports the same value on a stop as stopType; this field is stop_type.'),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     access: { group: 'places', mode: 'write' },
   })
   async createPlace(
-    { tripId, name, description, lat, lng, address, category_id, google_place_id, google_ftid, osm_id, notes, website, phone, price, currency }: {
+    { tripId, name, description, lat, lng, address, category_id, google_place_id, google_ftid, osm_id, amap_poi_id, notes, website, phone, image_url, price, currency, stop_type }: {
       tripId: number; name: string; description?: string; lat?: number; lng?: number; address?: string;
-      category_id?: number; google_place_id?: string; google_ftid?: string; osm_id?: string;
-      notes?: string; website?: string; phone?: string; price?: number; currency?: string;
+      category_id?: number; google_place_id?: string; google_ftid?: string; osm_id?: string; amap_poi_id?: string;
+      notes?: string; website?: string; phone?: string; image_url?: string; price?: number; currency?: string;
+      stop_type?: RoadtripStopType;
     },
     ctx: McpContext,
   ) {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.db.canAccessTrip(tripId, ctx.userId)) return noAccess();
     if (!this.guards.hasTripPermission('place_edit', tripId, ctx.userId)) return permissionDenied();
-    const place = this.places.create(String(tripId), { name, description, lat, lng, address, category_id, google_place_id, google_ftid, osm_id, notes, website, phone, price, currency });
+    const place = this.places.create(String(tripId), { name, description, lat, lng, address, category_id, google_place_id, google_ftid, osm_id, amap_poi_id, notes, website, phone, image_url, price, currency, stop_type });
     this.guards.safeBroadcast(tripId, 'place:created', { place });
     return ok({ place });
   }
@@ -103,22 +117,25 @@ export class PlacesMcp {
       google_place_id: z.string().optional().describe('Google Place ID from search_place — enables opening hours display'),
       google_ftid: z.string().optional().describe('Google Maps feature ID from search_place — enables direct Google Maps links'),
       osm_id: z.string().optional().describe('OpenStreetMap ID from search_place (e.g. "way:12345")'),
+      amap_poi_id: z.string().optional().describe('Amap (高德地图) POI ID from search_place, amap:-prefixed'),
       place_notes: z.string().max(2000).optional().describe('Notes for the place'),
       website: placeWebsiteSchema.optional(),
       phone: z.string().max(50).optional(),
+      image_url: placeImageUrlSchema.optional().describe('Thumbnail for the place: an /uploads/ path, an /api/maps/place-photo/ path, an inline data: image, or an https URL'),
       assignment_notes: z.string().max(500).optional().describe('Notes for this day assignment'),
       price: z.number().nonnegative().optional().describe('Cost of this place/activity (e.g. ticket price, entry fee)'),
       currency: z.string().length(3).optional().describe('ISO 4217 currency code (e.g. "EUR", "USD")'),
+      stop_type: roadtripStopTypeSchema.optional().describe('Marks the place as a stop on a drive rather than a destination: fuel, charging, rest_area, campsite, restaurant, sights or hotel. A service stop is left out of the stop count for the day, so a day with a charger between four places still reads as four stops. Leave unset for an ordinary place. calculate_roadtrip reports the same value on a stop as stopType; this field is stop_type.'),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     access: { group: 'places', mode: 'write' },
   })
   async createAndAssignPlace(
-    { tripId, dayId, name, description, lat, lng, address, category_id, google_place_id, google_ftid, osm_id, place_notes, website, phone, assignment_notes, price, currency }: {
+    { tripId, dayId, name, description, lat, lng, address, category_id, google_place_id, google_ftid, osm_id, amap_poi_id, place_notes, website, phone, image_url, assignment_notes, price, currency, stop_type }: {
       tripId: number; dayId: number; name: string; description?: string; lat?: number; lng?: number; address?: string;
-      category_id?: number; google_place_id?: string; google_ftid?: string; osm_id?: string;
-      place_notes?: string; website?: string; phone?: string; assignment_notes?: string;
-      price?: number; currency?: string;
+      category_id?: number; google_place_id?: string; google_ftid?: string; osm_id?: string; amap_poi_id?: string;
+      place_notes?: string; website?: string; phone?: string; image_url?: string; assignment_notes?: string;
+      price?: number; currency?: string; stop_type?: RoadtripStopType;
     },
     ctx: McpContext,
   ) {
@@ -128,7 +145,7 @@ export class PlacesMcp {
     if (!this.assignments.dayExists(dayId, tripId)) return { content: [{ type: 'text' as const, text: 'Day not found.' }], isError: true };
     try {
       const result = this.db.transaction(() => {
-        const place = this.places.create(String(tripId), { name, description, lat, lng, address, category_id, google_place_id, google_ftid, osm_id, notes: place_notes, website, phone, price, currency });
+        const place = this.places.create(String(tripId), { name, description, lat, lng, address, category_id, google_place_id, google_ftid, osm_id, amap_poi_id, notes: place_notes, website, phone, image_url, price, currency, stop_type });
         const assignment = this.assignments.createAssignment(dayId, place.id, assignment_notes ?? null);
         return { place, assignment };
       });
@@ -155,34 +172,40 @@ export class PlacesMcp {
       category_id: z.number().int().positive().optional().describe('Category ID — use list_categories'),
       price: z.number().optional(),
       currency: z.string().length(3).optional(),
-      place_time: z.string().max(50).optional().describe('Scheduled time (e.g. "09:00")'),
-      end_time: z.string().max(50).optional().describe('End time (e.g. "11:00")'),
-      duration_minutes: z.number().int().positive().optional(),
+      place_time: z.string().max(50).nullable().optional().describe('Scheduled time (e.g. "09:00"); null clears it'),
+      end_time: z.string().max(50).nullable().optional().describe('End time (e.g. "11:00"); null clears it'),
+      duration_minutes: z.number().int().nonnegative().nullable().optional().describe('Stay duration in minutes; null clears it'),
       notes: z.string().max(2000).optional(),
       website: placeWebsiteSchema.optional(),
       phone: z.string().max(50).optional(),
+      image_url: placeImageUrlSchema.nullable().optional().describe('Thumbnail for the place: an /uploads/ path, an /api/maps/place-photo/ path, an inline data: image, or an https URL. Pass null to remove the current picture'),
       transport_mode: z.enum(['walking', 'driving', 'cycling', 'transit', 'flight']).optional(),
       osm_id: z.string().optional().describe('OpenStreetMap ID (e.g. "way:12345")'),
       google_place_id: z.string().optional().describe('Google Place ID (e.g. "ChIJd8BlQ2BZwokRAFUEcm_qrcA")'),
       google_ftid: z.string().optional().describe('Google Maps feature ID (e.g. "0x89c259b7abdd4769:0x103aaf1c8bf8a050")'),
+      amap_poi_id: z.string().optional().describe('Amap (高德地图) POI ID, amap:-prefixed (e.g. "amap:B000A83M61")'),
+      stop_type: roadtripStopTypeSchema.nullable().optional().describe('What kind of stop on a drive this is: fuel, charging, rest_area, campsite, restaurant, sights or hotel. Pass null to turn a service stop back into an ordinary place. calculate_roadtrip reports the same value on a stop as stopType; this field is stop_type.'),
+      fill_percent: z.number().int().min(1).max(100).nullable().optional().describe('How full THIS stop fills the tank, 1-100. A motorway rapid charger is worth about 80 %, the one at the hotel 100 %. Pass null to follow whatever the traveller set as their default fill.'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     access: { group: 'places', mode: 'write' },
   })
   async updatePlace(
-    { tripId, placeId, name, description, lat, lng, address, category_id, price, currency, place_time, end_time, duration_minutes, notes, website, phone, transport_mode, osm_id, google_place_id, google_ftid }: {
+    { tripId, placeId, name, description, lat, lng, address, category_id, price, currency, place_time, end_time, duration_minutes, notes, website, phone, image_url, transport_mode, osm_id, google_place_id, google_ftid, amap_poi_id, stop_type, fill_percent }: {
       tripId: number; placeId: number; name?: string; description?: string; lat?: number; lng?: number;
-      address?: string; category_id?: number; price?: number; currency?: string; place_time?: string;
-      end_time?: string; duration_minutes?: number; notes?: string; website?: string; phone?: string;
+      address?: string; category_id?: number; price?: number; currency?: string; place_time?: string | null;
+      end_time?: string | null; duration_minutes?: number | null; notes?: string; website?: string; phone?: string;
+      image_url?: string | null;
       transport_mode?: 'walking' | 'driving' | 'cycling' | 'transit' | 'flight'; osm_id?: string;
-      google_place_id?: string; google_ftid?: string;
+      google_place_id?: string; google_ftid?: string; amap_poi_id?: string; stop_type?: RoadtripStopType | null;
+      fill_percent?: number | null;
     },
     ctx: McpContext,
   ) {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.db.canAccessTrip(tripId, ctx.userId)) return noAccess();
     if (!this.guards.hasTripPermission('place_edit', tripId, ctx.userId)) return permissionDenied();
-    const place = await this.places.update(String(tripId), String(placeId), { name, description, lat, lng, address, category_id, price, currency, place_time, end_time, duration_minutes, notes, website, phone, transport_mode, osm_id, google_place_id, google_ftid });
+    const place = await this.places.update(String(tripId), String(placeId), { name, description, lat, lng, address, category_id, price, currency, place_time, end_time, duration_minutes, notes, website, phone, image_url, transport_mode, osm_id, google_place_id, google_ftid, amap_poi_id, stop_type, fill_percent });
     if (!place) return { content: [{ type: 'text' as const, text: 'Place not found.' }], isError: true };
     this.guards.safeBroadcast(tripId, 'place:updated', { place });
     return ok({ place });
@@ -214,7 +237,7 @@ export class PlacesMcp {
 
   @Tool({
     name: 'delete_place',
-    description: 'Delete a place from a trip.',
+    description: 'Delete a place from a trip. Removes its day assignments, its linked expenses and any nights booked at it, including each night\'s reservation and that reservation\'s expense. Warn the user before calling this on a hotel with a booking: it cannot be undone.',
     inputSchema: {
       tripId: z.number().int().positive(),
       placeId: z.number().int().positive(),
@@ -235,10 +258,14 @@ export class PlacesMcp {
     try { this.journey.onPlaceDeleted(placeId); } catch { /* non-fatal */ } // sync journeys before the row is gone
     // The link is gone once the place is, so read it first (#1298).
     const expenseIds = this.places.linkedExpenseIds(tripId, [placeId]);
-    const deleted = await this.places.remove(String(tripId), String(placeId));
+    const { deleted, cancelled } = await this.places.remove(String(tripId), String(placeId));
     if (!deleted) return { content: [{ type: 'text' as const, text: 'Place not found.' }], isError: true };
     this.guards.safeBroadcast(tripId, 'place:deleted', { placeId });
-    for (const itemId of expenseIds) this.guards.safeBroadcast(tripId, 'budget:deleted', { itemId });
+    // A night booked at this place went with it, and took its partner booking and
+    // that booking's expense along. Neither is covered by place:deleted, and an
+    // expense linked by reservation_id is not one linkedExpenseIds finds.
+    for (const reservationId of cancelled.reservationIds) this.guards.safeBroadcast(tripId, 'reservation:deleted', { reservationId });
+    for (const itemId of [...expenseIds, ...cancelled.budgetItemIds]) this.guards.safeBroadcast(tripId, 'budget:deleted', { itemId });
     return ok({ success: true });
   }
 
@@ -274,19 +301,27 @@ export class PlacesMcp {
 
   @Tool({
     name: 'search_place',
-    description: 'Search for a real-world place by name or address. Returns results with osm_id (and google_place_id/google_ftid if configured). Use these IDs when calling create_place so the app can display opening hours, ratings, and map links.',
+    description: 'Search for a real-world place by name or address. Returns results with osm_id (and google_place_id/google_ftid if configured). Use these IDs when calling create_place so the app can display opening hours, ratings, and map links. Pass locationBias whenever the trip has a destination: a bare name like "Central Station" or "Museum of Modern Art" otherwise resolves wherever the provider guesses, which is regularly the wrong continent. Searches the TREK index and OpenStreetMap, or Google Places alone with provider "google" and whenever the admin switch "Search with Google only" is on: if the instance has a plugin providing its own search index, call search_places_via_plugins as well, and note that ratings can only come from there.',
     inputSchema: {
       query: z.string().min(1).max(500).describe('Place name or address to search for'),
+      locationBias: mapsSearchRequestSchema.shape.locationBias.describe('Centre the search on a coordinate: { lat, lng, radius? } with radius in metres (default 50000). Only the Google provider honours it; the OpenStreetMap fallback ignores it'),
+      lang: z.string().max(35).optional().describe('BCP 47 language for the result names, e.g. "de" or "ja". Defaults to English'),
+      provider: mapsSearchRequestSchema.shape.provider.describe('"google" sends this one search to Google Places alone instead of the TREK index and OpenStreetMap, the same as the "search Google instead" link under the results in the app. Ignored unless Google holds the keyed slot: an instance without a Google key, or one whose admin picked Amap or OpenStreetMap as the places provider, answers from the TREK index and OpenStreetMap as usual'),
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: { group: 'places', mode: 'read' },
   })
-  async searchPlace({ query }: { query: string }, ctx: McpContext) {
+  async searchPlace(
+    { query, locationBias, lang, provider }: {
+      query: string; locationBias?: { lat: number; lng: number; radius?: number }; lang?: string; provider?: 'google';
+    },
+    ctx: McpContext,
+  ) {
     try {
-      const result = await this.maps.searchPlaces(ctx.userId, query);
+      const result = await this.maps.searchPlaces(ctx.userId, query, lang, locationBias, { googleOnly: provider === 'google' });
       return ok(result);
     } catch {
-      return { content: [{ type: 'text' as const, text: 'Place search failed.' }], isError: true };
+      return errorResult('Place search failed.');
     }
   }
 
@@ -295,23 +330,29 @@ export class PlacesMcp {
     description: 'Import places from a shared Google Maps or Naver Maps list URL. Returns the imported places and count. The list must be shared publicly.',
     inputSchema: {
       tripId: z.number().int().positive(),
-      url: z.string().url().describe('Publicly shared Google Maps list URL (maps.app.goo.gl/...) or Naver Maps list URL'),
+      url: z.string().url().describe('Publicly shared Google Maps list URL, a Google Maps directions link (/maps/dir/...), or a Naver Maps list URL. A directions link is read straight out of the URL: its stops become places in driving order, and the ones written as names are geocoded.'),
       source: z.enum(['google-list', 'naver-list']).describe('List source: "google-list" for Google Maps saved places, "naver-list" for Naver Maps'),
+      enrich: placeImportListRequestSchema.shape.enrich.describe('Re-resolve every imported place through the Places API afterwards to fill in photo, address, website and phone (#886). Needs a Google Maps key on the instance, costs a lookup per place, and runs in the background: the tool returns the bare import and the places fill in over the websocket. Off by default'),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     access: { group: 'places', mode: 'write' },
   })
   async importPlacesFromUrl(
-    { tripId, url, source }: { tripId: number; url: string; source: 'google-list' | 'naver-list' },
+    { tripId, url, source, enrich }: { tripId: number; url: string; source: 'google-list' | 'naver-list'; enrich?: boolean },
     ctx: McpContext,
   ) {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.db.canAccessTrip(tripId, ctx.userId)) return noAccess();
     if (!this.guards.hasTripPermission('place_edit', tripId, ctx.userId)) return permissionDenied();
 
+    // Same opts the REST route builds: the enrichment pass is keyed on the calling
+    // user because it spends that user's Places credential.
+    const opts = { enrich: enrich ?? false, userId: ctx.userId };
     const result = source === 'google-list'
-      ? await this.places.importGoogleList(String(tripId), url)
-      : await this.places.importNaverList(String(tripId), url);
+      ? (isDirectionsUrl(url)
+        ? await this.places.importGoogleDirections(String(tripId), url, opts)
+        : await this.places.importGoogleList(String(tripId), url, opts))
+      : await this.places.importNaverList(String(tripId), url, opts);
 
     if ('error' in result) {
       return { content: [{ type: 'text' as const, text: result.error }], isError: true };
@@ -324,8 +365,56 @@ export class PlacesMcp {
   }
 
   @Tool({
+    name: 'import_trip_gpx',
+    description: 'Import GPX waypoints, routes and tracks as places in a trip. Uses the same importer as the file upload. Imported tracks retain their geometry and can be followed with add_route_vias. Does not assign places to days. Use list_places for their ids and geometry, then assign_place_to_day and the Roadtrip tools to plan visits. Existing importer deduplication also applies.',
+    inputSchema: roadtripGpxImportSchema.shape,
+    annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+    access: { group: 'places', mode: 'write' },
+  })
+  async importGpx(input: RoadtripGpxImport, ctx: McpContext) {
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
+    if (!this.db.canAccessTrip(input.tripId, ctx.userId)) return noAccess();
+    if (!this.guards.hasTripPermission('place_edit', input.tripId, ctx.userId)) return permissionDenied();
+    if (!input.importWaypoints && !input.importRoutes && !input.importTracks) return errorResult('No import types selected.');
+    try {
+      const imported = this.places.importGpx(String(input.tripId), Buffer.from(input.gpx, 'utf8'), { importWaypoints: input.importWaypoints, importRoutes: input.importRoutes, importTracks: input.importTracks, defaultName: input.name });
+      if (!imported) return errorResult('No matching places found in GPX.');
+      for (const place of imported.places) this.guards.safeBroadcast(input.tripId, 'place:created', { place });
+      return ok(imported);
+    } catch {
+      return errorResult('Could not import GPX. Check the XML and coordinates.');
+    }
+  }
+
+  @Tool({
+    name: 'export_trip_gpx',
+    description: 'Export a trip as GPX text: its places as waypoints, any imported routes as tracks, and each planned day as a route in visiting order. This is the format handhelds and offline map apps (Organic Maps, OsmAnd, Garmin) read. Prefer export_trip_ics when the user wants the itinerary in a calendar instead.',
+    inputSchema: {
+      tripId: z.number().int().positive(),
+      waypoints: z.boolean().optional().default(true).describe('Write every place with coordinates as a <wpt>'),
+      tracks: z.boolean().optional().default(true).describe('Write places that carry an imported route geometry as a <trk>'),
+      dayRoutes: z.boolean().optional().default(true).describe('Write each planned day as a <rte> through its stops in order'),
+    },
+    annotations: TOOL_ANNOTATIONS_READONLY,
+    access: { group: 'places', mode: 'read' },
+  })
+  async exportTripGpx(
+    { tripId, waypoints, tracks, dayRoutes }: {
+      tripId: number; waypoints?: boolean; tracks?: boolean; dayRoutes?: boolean;
+    },
+    ctx: McpContext,
+  ) {
+    // A read, like the REST route: seeing the trip is enough, no place_edit.
+    if (!this.db.canAccessTrip(tripId, ctx.userId)) return noAccess();
+    if (!waypoints && !tracks && !dayRoutes) return errorResult('No export types selected.');
+    const result = this.places.exportGpx(String(tripId), { waypoints, tracks, dayRoutes });
+    if (!result) return errorResult('Nothing to export.');
+    return ok({ gpx: result.gpx, filename: result.filename });
+  }
+
+  @Tool({
     name: 'bulk_delete_places',
-    description: 'Delete multiple places from a trip at once. Removes all day assignments for each place as well. Warn the user before calling this — it cannot be undone.',
+    description: 'Delete multiple places from a trip at once. Removes all day assignments for each place as well, plus each place\'s linked expenses and any nights booked at it, with their reservations and expenses. Warn the user before calling this: it cannot be undone.',
     inputSchema: {
       tripId: z.number().int().positive(),
       placeIds: z.array(z.number().int().positive()).min(1).max(200),
@@ -347,9 +436,13 @@ export class PlacesMcp {
     }
     // The link is gone once the places are, so read it first (#1298).
     const expenseIds = this.places.linkedExpenseIds(tripId, scoped);
-    const deleted = await this.places.removeMany(String(tripId), placeIds);
+    const { deleted, cancelled } = await this.places.removeMany(String(tripId), placeIds);
     for (const id of deleted) this.guards.safeBroadcast(tripId, 'place:deleted', { placeId: id });
-    for (const itemId of expenseIds) this.guards.safeBroadcast(tripId, 'budget:deleted', { itemId });
+    // A night booked at this place went with it, and took its partner booking and
+    // that booking's expense along. Neither is covered by place:deleted, and an
+    // expense linked by reservation_id is not one linkedExpenseIds finds.
+    for (const reservationId of cancelled.reservationIds) this.guards.safeBroadcast(tripId, 'reservation:deleted', { reservationId });
+    for (const itemId of [...expenseIds, ...cancelled.budgetItemIds]) this.guards.safeBroadcast(tripId, 'budget:deleted', { itemId });
     return ok({ deleted, count: deleted.length });
   }
 
@@ -369,17 +462,21 @@ export class PlacesMcp {
       notes: z.string().max(2000).optional(),
       website: placeWebsiteSchema.optional(),
       phone: z.string().max(50).optional(),
+      image_url: placeImageUrlSchema.nullable().optional().describe('Thumbnail for every listed place: an /uploads/ path, an /api/maps/place-photo/ path, an inline data: image, or an https URL. Pass null to strip the pictures off a batch at once'),
       description: z.string().max(2000).optional(),
+      stop_type: roadtripStopTypeSchema.nullable().optional().describe('What kind of stop on a drive this is: fuel, charging, rest_area, campsite, restaurant, sights or hotel. Pass null to turn a service stop back into an ordinary place. calculate_roadtrip reports the same value on a stop as stopType; this field is stop_type.'),
+      fill_percent: z.number().int().min(1).max(100).nullable().optional().describe('How full THIS stop fills the tank, 1-100. A motorway rapid charger is worth about 80 %, the one at the hotel 100 %. Pass null to follow whatever the traveller set as their default fill.'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     access: { group: 'places', mode: 'write' },
   })
   async bulkUpdatePlaces(
-    { tripId, placeIds, category_id, price, currency, transport_mode, place_time, end_time, duration_minutes, notes, website, phone, description }: {
+    { tripId, placeIds, category_id, price, currency, transport_mode, place_time, end_time, duration_minutes, notes, website, phone, image_url, description, stop_type, fill_percent }: {
       tripId: number; placeIds: number[]; category_id?: number; price?: number; currency?: string;
       transport_mode?: 'walking' | 'driving' | 'cycling' | 'transit' | 'flight'; place_time?: string;
       end_time?: string; duration_minutes?: number; notes?: string; website?: string; phone?: string;
-      description?: string;
+      image_url?: string | null; description?: string; stop_type?: RoadtripStopType | null;
+      fill_percent?: number | null;
     },
     ctx: McpContext,
   ) {
@@ -387,7 +484,7 @@ export class PlacesMcp {
     if (!this.db.canAccessTrip(tripId, ctx.userId)) return noAccess();
     if (!this.guards.hasTripPermission('place_edit', tripId, ctx.userId)) return permissionDenied();
 
-    const fields = { category_id, price, currency, transport_mode, place_time, end_time, duration_minutes, notes, website, phone, description };
+    const fields = { category_id, price, currency, transport_mode, place_time, end_time, duration_minutes, notes, website, phone, image_url, description, stop_type, fill_percent };
     if (Object.values(fields).every(v => v === undefined)) {
       return { content: [{ type: 'text' as const, text: 'Provide at least one field to update.' }], isError: true };
     }

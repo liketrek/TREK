@@ -54,41 +54,38 @@ const system_notice: TranslationStrings = {
   'system_notice.pager.counter': '{current} / {total}',
   'system_notice.pager.goto': 'Gå till meddelandet {n}',
   'system_notice.pager.position': 'Meddlenade {current} av {total}',
-  // 4.0.0 release modal — the release on the left, the note from the maintainer on the right
-  'system_notice.release_400.eyebrow': 'Uppdatering klar',
-  'system_notice.release_400.tag': 'Utgåva',
-  'system_notice.release_400.headline': 'Den största utgåvan TREK har haft.',
-  'system_notice.release_400.intro':
-    'TREK får en telefon, och en bok. Nitton personer skrev den här — och ungefär hundrafemtio rapporterade fel följde med.',
-  'system_notice.release_400.feature_mobile_title': 'TREK blir mobilt',
-  'system_notice.release_400.feature_mobile_body':
-    'Allt under 768px är ett eget gränssnitt nu — en dock i glas, egna paneler, en egen resplanerare. Öppna TREK i telefonen.',
-  'system_notice.release_400.feature_studio_title': 'TREK Studio',
-  'system_notice.release_400.feature_studio_badge': 'Beta',
-  'system_notice.release_400.feature_studio_body':
-    'Journey-PDF:en blev en fotoboksdesigner. Den lägger ut boken när du ber om det, och håller sig sedan undan.',
-  'system_notice.release_400.feature_vacay_title': 'Vacay lär sig resten',
-  'system_notice.release_400.feature_vacay_body':
-    'Halvdagar, komp- och flexdagar, skollov i rutnätet — och ett semesterår som inte måste börja i januari.',
-  'system_notice.release_400.feature_places_title': 'Platser visar sig, filer flyttar ut',
-  'system_notice.release_400.feature_places_body':
-    'Bilder och en beskrivning fyller i sig själva innan du sparar en plats. Och dina uppladdningar behöver inte längre ligga på disken TREK kör på.',
-  'system_notice.release_400.footnote':
-    'Och det här är fyra av dem. 4.0.0 innehåller flera hundra ytterligare ändringar, från Collections och Atlas till hela servern under.',
-  'system_notice.release_400.note_eyebrow': 'Ett ord från utvecklaren',
-  'system_notice.release_400.note_title': 'Tack för att du använder TREK.',
-  'system_notice.release_400.note_body':
-    'TREK började som ett litet verktyg för mina egna resor, skrivet på fritiden. Det är det fortfarande: kvällar, helger, timmarna vid sidan av ett heltidsjobb.\n\nEtt tag var det bara jag. Inte längre — nitton personer levererade den här utgåvan, och tusentals av er kom med stjärnor, ärenden, översättningar och pull requests. Jag är tacksam för varenda del av det.',
-  'system_notice.release_400.promise_label': 'Löftet',
-  'system_notice.release_400.promise_text':
-    'Den öppna delen av TREK är gratis, för alltid. Inga betalnivåer, inga prenumerationer, inga förbehåll. Lovat.',
-  'system_notice.release_400.note_body_after':
-    '4.0.0 tog veckor av sena nätter — en mobilapp, en fotoboksdesigner, en servermigrering, det mesta skrivet mellan midnatt och två. Inget gnäll: jag älskar att bygga det här. Det är bara det ärliga svaret på hur en utgåva av den här storleken kommer ur ett fritidsprojekt.',
-  'system_notice.release_400.note_closing': 'Tack för att du är här.',
-  'system_notice.release_400.note_signature': '— Maurice',
-  'system_notice.release_400.support_text':
-    'Stödet är det som håller igång det här — servrar, domäner och de sena nätter som blir till utgåvor som den här. Om TREK är värt något för dig är en kaffe det mest direkta sättet att hålla det vid liv.',
-  'system_notice.release_400.cta_bmc': 'Buy me a coffee',
-  'system_notice.release_400.cta_kofi': 'Stöd på Ko-fi',
+  // The release modal. One stable set of keys: each big release swaps the copy in place.
+  'system_notice.release_notes.eyebrow': 'Uppdatering klar',
+  'system_notice.release_notes.headline': 'Fyra saker TREK nu gör på egen hand.',
+  'system_notice.release_notes.intro': 'Ett eget plats-API, bilresor planerade från början till slut, din platshistorik i dina händer, och dina dokument i synk.',
+  'system_notice.release_notes.features_label': 'Höjdpunkterna',
+  'system_notice.release_notes.features_aside': 'Långt ifrån allt',
+  'system_notice.release_notes.feature_places_title': 'TREK Places API',
+  'system_notice.release_notes.feature_places_body': 'Den första reseplaneraren med öppen källkod och eget plats-API. 73,6 miljoner platser, ingen nyckel, ingen kvot.',
+  'system_notice.release_notes.feature_roadtrip_title': 'Tillägget Bilresa',
+  'system_notice.release_notes.feature_roadtrip_body': 'Planerar körningen själv: rutt, sträcka, timmar och stopp. Av tills en admin slår på det.',
+  'system_notice.release_notes.feature_dawarich_title': 'Dawarich-integration',
+  'system_notice.release_notes.feature_dawarich_body': 'Det självhostade svaret på Google Timeline, nu läsbart direkt i TREK. TREK läser, och bara läser.',
+  'system_notice.release_notes.footnote': 'Dessutom en lång rad mindre ändringar i resten av TREK.',
+  'system_notice.release_notes.notes_label': 'Versionsnyheter',
+  'system_notice.release_notes.note_eyebrow': 'Ett ord från utvecklaren',
+  'system_notice.release_notes.note_title': 'Du är anledningen till att jag fortsätter bygga TREK.',
+  'system_notice.release_notes.note_body':
+    'TREK började som ett litet verktyg för mina egna resor, skrivet efter jobbet för att jag ville ha ett bättre sätt att planera dem. Det har egentligen aldrig slutat växa. Nästan allt du använder byggdes sent på nätterna, på helger, på tåg, vid sidan av ett heltidsjobb, och många kvällar undrade jag tyst för mig själv om någon där ute någonsin skulle öppna det.',
+  'system_notice.release_notes.promise_label': 'Löftet',
+  'system_notice.release_notes.promise_lead': 'TREK förblir gratis, för alltid.',
+  'system_notice.release_notes.promise_text':
+    'Varje funktion, varje uppdatering, för alla. Inga betalnivåer, inga prenumerationer, inga förbehåll.',
+  'system_notice.release_notes.note_body_after':
+    'Och sedan gjorde ni det. Inom några månader var ni tusentals: stjärnor, felrapporter, översättningar till språk jag inte talar, pull requests från människor jag aldrig har träffat. Jag kollar fortfarande repot varje morgon innan jag gör något annat, och det känns ännu inte riktigt verkligt.',
+  'system_notice.release_notes.note_closing': 'Tack för att du är här. Hälsningar, Maurice.',
+  'system_notice.release_notes.support_lead':
+    'TREK är gratis och kommer alltid att vara det, men servrar, domäner och många sena nätter är det inte.',
+  'system_notice.release_notes.support_text':
+    'Om TREK har förtjänat en plats på dina resor, så bjud mig gärna på en kaffe och hjälp till att nästa utgåva blir av.',
+  'system_notice.release_notes.cta_bmc': 'Buy me a coffee',
+  'system_notice.release_notes.cta_kofi': 'Stöd på Ko-fi',
+  'system_notice.release_notes.feature_docsync_title': 'Dokumentsynk',
+  'system_notice.release_notes.feature_docsync_body': 'Paperless-ngx, Papra, Nextcloud, OpenCloud och Synology Drive. En resas dokument flödar åt båda håll med lagringen du redan kör.',
 };
 export default system_notice;

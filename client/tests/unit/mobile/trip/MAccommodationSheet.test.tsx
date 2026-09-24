@@ -4,9 +4,11 @@ import MAccommodationSheet from '../../../../src/mobile/screens/trip/sheets/MAcc
 import type { Accommodation, Category, Day, Place } from '../../../../src/types'
 import { buildPlanner, buildShell } from '../../../helpers/mobileTrip'
 import { resetAllStores } from '../../../helpers/store'
+import { useSettingsStore } from '../../../../src/store/settingsStore'
+import { isBlurred } from '../../../helpers/bookingCodeBlur'
 import { act, fireEvent, render, screen, waitFor } from '../../../helpers/render'
 
-// FE-MOB-ACCSH-001 to FE-MOB-ACCSH-025
+// FE-MOB-ACCSH-001 to FE-MOB-ACCSH-031
 
 // The pickers have their own suites; here they only need to be addressable, so
 // they render as plain controls. data-value keeps the requested value readable
@@ -189,6 +191,24 @@ describe('MAccommodationSheet', () => {
     expect(shell.openSheet).toHaveBeenCalledWith('day', { dayId: 12 })
   })
 
+  it('FE-MOB-ACCSH-011c: opened from the timeline chip, cancel and X close instead of reopening the day (#2210)', () => {
+    const { shell } = setup(makePlanner(), makeShell({ dayId: 12, accId: 77, from: 'timeline' }))
+    expect(screen.getByRole('dialog', { name: 'Edit accommodation' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+    expect(shell.closeSheet).toHaveBeenCalledTimes(2)
+    expect(shell.openSheet).not.toHaveBeenCalled()
+  })
+
+  it('FE-MOB-ACCSH-011d: a save from the timeline lands back on the timeline', async () => {
+    vi.spyOn(accommodationsApi, 'update').mockResolvedValue({})
+    const { planner, shell } = setup(makePlanner(), makeShell({ dayId: 12, accId: 77, from: 'timeline' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(planner.loadAccommodations).toHaveBeenCalled())
+    expect(shell.closeSheet).toHaveBeenCalledTimes(1)
+    expect(shell.openSheet).not.toHaveBeenCalled()
+  })
+
   it('FE-MOB-ACCSH-012: the All chip spans the whole trip and reaches the payload', async () => {
     const create = vi.spyOn(accommodationsApi, 'create').mockResolvedValue({})
     setup()
@@ -333,5 +353,59 @@ describe('MAccommodationSheet', () => {
     expect(planner.loadAccommodations).not.toHaveBeenCalled()
     expect(shell.openSheet).not.toHaveBeenCalled()
     expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled()
+  })
+
+  // ── Blur booking codes in the stay editor (#2457) ──────────────────────────
+
+  describe('blur booking codes (#2457)', () => {
+    /** Both sources the phone reads the preference from: the settings store and planner.settings. */
+    function plannerWithBlur(on: boolean) {
+      useSettingsStore.setState({ settings: { ...useSettingsStore.getState().settings, blur_booking_codes: on } })
+      return makePlanner({
+        settings: { time_format: '24h', date_format: 'DD.MM.YYYY', default_currency: 'EUR', distance_unit: 'km', blur_booking_codes: on },
+      })
+    }
+    const codeField = () => screen.getByPlaceholderText('ABC-12345') as HTMLInputElement
+
+    it('FE-MOB-ACCSH-026: the confirmation field of an edited stay is blurred while the setting is on', () => {
+      setup(plannerWithBlur(true), makeShell({ dayId: 12, accId: 77 }))
+      expect(codeField()).toHaveValue('ABC-1')
+      expect(isBlurred(codeField())).toBe(true)
+    })
+
+    it('FE-MOB-ACCSH-027: focusing the field reveals the code for editing, leaving it hides it again', () => {
+      setup(plannerWithBlur(true), makeShell({ dayId: 12, accId: 77 }))
+      const field = codeField()
+      act(() => field.focus())
+      expect(isBlurred(field)).toBe(false)
+      act(() => field.blur())
+      expect(isBlurred(field)).toBe(true)
+    })
+
+    it('FE-MOB-ACCSH-028: with the setting off the code stays plain', () => {
+      setup(plannerWithBlur(false), makeShell({ dayId: 12, accId: 77 }))
+      expect(isBlurred(codeField())).toBe(false)
+    })
+
+    it('FE-MOB-ACCSH-029: a blurred code still saves unchanged', async () => {
+      const update = vi.spyOn(accommodationsApi, 'update').mockResolvedValue({})
+      setup(plannerWithBlur(true), makeShell({ dayId: 12, accId: 77 }))
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+      await waitFor(() => expect(update).toHaveBeenCalled())
+      expect(update.mock.calls[0][2]).toMatchObject({ confirmation: 'ABC-1' })
+    })
+  })
+
+  it('FE-MOB-ACCSH-030: an imported track is not offered as the place of a stay', () => {
+    const track = { id: 103, name: 'Donauradweg', address: null, category_id: null, image_url: null, route_geometry: '[[48.2,16.3],[48.3,16.4]]' }
+    setup(makePlanner({ places: [...PLACES, track] }))
+    expect(screen.getByText('Hotel Sacher')).toBeInTheDocument()
+    expect(screen.queryByText('Donauradweg')).toBeNull()
+  })
+
+  it('FE-MOB-ACCSH-031: a stay already at a track still lists that track', () => {
+    const track = { id: 103, name: 'Donauradweg', address: null, category_id: null, image_url: null, route_geometry: '[[48.2,16.3],[48.3,16.4]]' }
+    setup(makePlanner({ places: [...PLACES, track], tripAccommodations: [{ ...EXISTING, place_id: 103 }] }), makeShell({ dayId: 12, accId: 77 }))
+    expect(placeRow('Donauradweg')).toBeInTheDocument()
   })
 })

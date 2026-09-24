@@ -19,6 +19,7 @@ const undo: TranslationStrings = {
   'undo.importNaverList': 'Naver 地图导入',
   'undo.addPlace': '地点已添加',
   'undo.done': '已撤销：{action}',
+  'undo.failed': '无法撤销：{action}',
   'undo.importBooking': '导入预订确认',
 };
 export default undo;

@@ -90,10 +90,16 @@ export default function MSheet({
     return () => clearTimeout(t)
   }, [open])
 
+  // Escape belongs to the sheet on top only: a question opened over another
+  // sheet closes alone, and the sheet under it stays open with whatever was
+  // typed into it. Sheets portal in the order they open, so the top one is the
+  // last open panel in the document.
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key !== 'Escape') return
+      const openPanels = document.querySelectorAll('[data-m-sheet="open"]')
+      if (openPanels[openPanels.length - 1] === panelRef.current) onClose()
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
@@ -192,6 +198,7 @@ export default function MSheet({
           role="dialog"
           aria-modal="true"
           aria-label={ariaLabel}
+          data-m-sheet={open ? 'open' : 'closing'}
           tabIndex={-1}
           className={`relative flex flex-col overflow-hidden outline-none text-m-ink ${SHAPE[variant]} ${MATERIAL[resolvedMaterial]} ${animation} ${className}`}
           style={variant === 'bottom' ? dragStyle : undefined}

@@ -1,4 +1,4 @@
-// FE-MOB-AADD-001 to FE-MOB-AADD-025
+// FE-MOB-AADD-001 to FE-MOB-AADD-032
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { delay, http, HttpResponse } from 'msw';
@@ -242,6 +242,23 @@ describe('MAdminAddonManager', () => {
     expect(onToggleCollabFeature).toHaveBeenCalledWith('polls');
   });
 
+  it('FE-MOB-AADD-032: the links row describes the feature, not an empty list', async () => {
+    // The line under the row is its description. The links tab's empty state
+    // read as a status here, and a status that never changes reads as a
+    // broken feature.
+    server.use(addonsRoute([buildAddon({ id: 'collab', name: 'Collab', enabled: true })]));
+    render(
+      <MAdminAddonManager
+        collabFeatures={{ chat: true, notes: true, links: true, polls: true, whatsnext: true }}
+        onToggleCollabFeature={vi.fn()}
+      />,
+    );
+
+    await screen.findByText('Links');
+    expect(screen.getByText('Shared links and bookmarks')).toBeInTheDocument();
+    expect(screen.queryByText('No shared links yet')).not.toBeInTheDocument();
+  });
+
   it('FE-MOB-AADD-013: collab sub-features stay hidden without the handler props', async () => {
     server.use(addonsRoute([buildAddon({ id: 'collab', name: 'Collab', enabled: true })]));
     render(<MAdminAddonManager />);
@@ -299,6 +316,161 @@ describe('MAdminAddonManager', () => {
     await waitFor(() => expect(screen.getByRole('switch', { name: 'Unsplash' })).toHaveAttribute('aria-checked', 'false'));
   });
 
+  it('FE-MOB-AADD-026: switching the journey addon off and on again shows the cascaded providers as off', async () => {
+    const user = userEvent.setup();
+    let loads = 0;
+    let journeyOn = true;
+    let immichOn = true;
+    server.use(
+      http.get('/api/admin/addons', () => {
+        loads += 1;
+        return HttpResponse.json({
+          addons: [
+            buildAddon({ id: 'journey', name: 'Journey', type: 'global', icon: 'Compass', enabled: journeyOn }),
+            buildAddon({ id: 'immich', name: 'Immich', description: 'Self-hosted photos', type: 'photo_provider', enabled: immichOn }),
+          ],
+        });
+      }),
+      http.put('/api/admin/addons/journey', async ({ request }) => {
+        journeyOn = (await request.json() as { enabled: boolean }).enabled;
+        // Journey off takes its providers with it, see admin.service.ts.
+        if (!journeyOn) immichOn = false;
+        return HttpResponse.json({ success: true });
+      }),
+    );
+    render(<><ToastContainer /><MAdminAddonManager /></>);
+    await screen.findByText('Immich');
+
+    await user.click(screen.getByRole('switch', { name: 'Journey' }));
+    // The toast closes the whole toggle, re-read included.
+    await screen.findByText('Addon updated');
+    expect(loads).toBe(2);
+    expect(screen.queryByText('Immich')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('switch', { name: 'Journey' }));
+
+    await screen.findByText('Immich');
+    expect(screen.getByRole('switch', { name: 'Immich' })).toHaveAttribute('aria-checked', 'false');
+  });
+
+  it('FE-MOB-AADD-027: a toggle the server does not cascade keeps the snapshot it has', async () => {
+    const user = userEvent.setup();
+    let loads = 0;
+    server.use(
+      http.get('/api/admin/addons', () => {
+        loads += 1;
+        return HttpResponse.json({ addons: [buildAddon({ id: 'todo', enabled: false })] });
+      }),
+      http.put('/api/admin/addons/todo', () => HttpResponse.json({ success: true })),
+    );
+    render(<><ToastContainer /><MAdminAddonManager /></>);
+    await screen.findByText('Todo List');
+
+    await user.click(screen.getByRole('switch', { name: 'Todo List' }));
+
+    await screen.findByText('Addon updated');
+    expect(loads).toBe(1);
+    expect(screen.getByRole('switch', { name: 'Todo List' })).toHaveAttribute('aria-checked', 'true');
+  });
+
+  describe('document providers', () => {
+    const documents = (enabled = true) =>
+      buildAddon({ id: 'documents', name: 'Documents', description: 'Store and manage travel documents', icon: 'FileText', enabled });
+    const docProvider = (id: string, name: string, enabled: boolean) =>
+      buildAddon({ id, name, description: `${name} archive`, icon: id, type: 'document_provider', enabled });
+
+    it('FE-MOB-AADD-028: they render as sub-rows under the Documents addon, not as addons of their own', async () => {
+      server.use(
+        addonsRoute([
+          documents(),
+          docProvider('paperless', 'Paperless-ngx', false),
+          docProvider('nextcloud', 'Nextcloud', true),
+        ]),
+      );
+      render(<MAdminAddonManager />);
+
+      await screen.findByText('Paperless-ngx');
+      expect(screen.getByText('Nextcloud archive')).toBeInTheDocument();
+      expect(screen.getByRole('switch', { name: 'Paperless-ngx' })).toHaveAttribute('aria-checked', 'false');
+      expect(screen.getByRole('switch', { name: 'Nextcloud' })).toHaveAttribute('aria-checked', 'true');
+      // Documents plus two providers, and neither provider carries a type badge of its own.
+      expect(screen.getAllByRole('switch')).toHaveLength(3);
+      expect(screen.getAllByText('Trip')).toHaveLength(1);
+    });
+
+    it('FE-MOB-AADD-029: the shelf stays hidden while Documents is off', async () => {
+      server.use(addonsRoute([documents(false), docProvider('paperless', 'Paperless-ngx', false)]));
+      render(<MAdminAddonManager />);
+
+      await screen.findByText('Documents');
+      expect(screen.queryByText('Paperless-ngx')).not.toBeInTheDocument();
+      expect(screen.getAllByRole('switch')).toHaveLength(1);
+    });
+
+    it('FE-MOB-AADD-030: toggling one persists it and rolls back on failure', async () => {
+      const user = userEvent.setup();
+      let body: unknown = null;
+      server.use(
+        addonsRoute([
+          documents(),
+          docProvider('paperless', 'Paperless-ngx', false),
+          docProvider('papra', 'Papra', false),
+        ]),
+        http.put('/api/admin/addons/paperless', async ({ request }) => {
+          body = await request.json();
+          return HttpResponse.json({ success: true });
+        }),
+        http.put('/api/admin/addons/papra', () => HttpResponse.error()),
+      );
+      render(<><ToastContainer /><MAdminAddonManager /></>);
+      await screen.findByText('Paperless-ngx');
+
+      await user.click(screen.getByRole('switch', { name: 'Paperless-ngx' }));
+      await waitFor(() => expect(body).toEqual({ enabled: true }));
+      expect(screen.getByRole('switch', { name: 'Paperless-ngx' })).toHaveAttribute('aria-checked', 'true');
+      await screen.findByText('Addon updated');
+      expect(loadAddonsSpy).toHaveBeenCalled();
+
+      await user.click(screen.getByRole('switch', { name: 'Papra' }));
+      await screen.findByText('Failed to update addon');
+      await waitFor(() => expect(screen.getByRole('switch', { name: 'Papra' })).toHaveAttribute('aria-checked', 'false'));
+      expect(screen.getByRole('switch', { name: 'Paperless-ngx' })).toHaveAttribute('aria-checked', 'true');
+    });
+
+    it('FE-MOB-AADD-031: switching Documents off and on again shows the cascaded providers as off', async () => {
+      const user = userEvent.setup();
+      let loads = 0;
+      let documentsOn = true;
+      let paperlessOn = true;
+      server.use(
+        http.get('/api/admin/addons', () => {
+          loads += 1;
+          return HttpResponse.json({
+            addons: [documents(documentsOn), docProvider('paperless', 'Paperless-ngx', paperlessOn)],
+          });
+        }),
+        http.put('/api/admin/addons/documents', async ({ request }) => {
+          documentsOn = (await request.json() as { enabled: boolean }).enabled;
+          // Documents off takes its providers with it, see admin.service.ts.
+          if (!documentsOn) paperlessOn = false;
+          return HttpResponse.json({ success: true });
+        }),
+      );
+      render(<><ToastContainer /><MAdminAddonManager /></>);
+      await screen.findByText('Paperless-ngx');
+
+      await user.click(screen.getByRole('switch', { name: 'Documents' }));
+      await screen.findByText('Addon updated');
+      expect(loads).toBe(2);
+      expect(screen.queryByText('Paperless-ngx')).not.toBeInTheDocument();
+
+      await user.click(screen.getByRole('switch', { name: 'Documents' }));
+
+      await screen.findByText('Paperless-ngx');
+      expect(screen.getByRole('switch', { name: 'Paperless-ngx' })).toHaveAttribute('aria-checked', 'false');
+    });
+  });
+
   it('FE-MOB-AADD-016: a disabled AI-parsing addon renders the integration row without its config', async () => {
     server.use(addonsRoute([llmAddon({ provider: 'local' })].map(a => ({ ...a, enabled: false }))));
     render(<MAdminAddonManager />);
@@ -311,7 +483,7 @@ describe('MAdminAddonManager', () => {
   it('FE-MOB-AADD-017: the local provider lists installed models and selecting a chip fills the model field', async () => {
     const user = userEvent.setup();
     const urls: (string | null)[] = [];
-    server.use(addonsRoute([llmAddon({ provider: 'local' })]), modelsRoute(['qwen3:8b', 'llama3:8b'], urls));
+    server.use(addonsRoute([llmAddon({ provider: 'local' })]), modelsRoute(['qwen3.5:4b', 'llama3:8b'], urls));
     render(<MAdminAddonManager />);
 
     await screen.findByText('Installed on the server');
@@ -321,9 +493,9 @@ describe('MAdminAddonManager', () => {
     await user.click(screen.getByRole('button', { name: 'llama3:8b' }));
     expect(screen.getByPlaceholderText('select or pull below')).toHaveValue('llama3:8b');
 
-    // qwen3:8b is installed, so the recommended row offers "Use" instead of "Pull".
+    // qwen3.5:4b is installed, so the recommended row offers "Use" instead of "Pull".
     await user.click(screen.getByRole('button', { name: 'Use' }));
-    expect(screen.getByPlaceholderText('select or pull below')).toHaveValue('qwen3:8b');
+    expect(screen.getByPlaceholderText('select or pull below')).toHaveValue('qwen3.5:4b');
     expect(screen.getByRole('button', { name: 'Selected' })).toBeDisabled();
   });
 
@@ -392,7 +564,7 @@ describe('MAdminAddonManager', () => {
       addonsRoute([llmAddon({ provider: 'local' })]),
       http.get('/api/admin/llm/local/models', () => {
         modelCalls += 1;
-        return HttpResponse.json({ models: modelCalls === 1 ? [] : [{ name: 'qwen3:8b', size: 1 }] });
+        return HttpResponse.json({ models: modelCalls === 1 ? [] : [{ name: 'qwen3.5:4b', size: 1 }] });
       }),
       http.post('/api/admin/llm/local/pull', async ({ request }) => {
         pulled = await request.json();
@@ -413,8 +585,8 @@ describe('MAdminAddonManager', () => {
     expect(screen.getByText('starting…')).toBeInTheDocument();
 
     await screen.findByText('Model pulled');
-    expect(pulled).toEqual({ baseUrl: 'http://localhost:11434/v1', model: 'qwen3:8b' });
-    expect(screen.getByPlaceholderText('select or pull below')).toHaveValue('qwen3:8b');
+    expect(pulled).toEqual({ baseUrl: 'http://localhost:11434/v1', model: 'qwen3.5:4b' });
+    expect(screen.getByPlaceholderText('select or pull below')).toHaveValue('qwen3.5:4b');
     // Reloaded models now contain the pulled one, so the row switches to "Selected".
     await waitFor(() => expect(screen.getByRole('button', { name: 'Selected' })).toBeDisabled());
   });

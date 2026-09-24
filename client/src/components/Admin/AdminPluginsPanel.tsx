@@ -6,10 +6,13 @@ import {
   ArrowUpCircle, Github, ExternalLink, ChevronDown, Check, Lock, Search, Link2, KeyRound, ShieldAlert,
   SlidersHorizontal, ArrowUpDown, CircleDot, MoreHorizontal, RotateCw, ArrowRight, Database, Users, LayoutDashboard,
   Radio, Luggage, Globe, Image, CalendarDays, Bell, Info, History, PauseCircle,
-  Wallet, Puzzle, MapPin, ListChecks, Pencil, Tag, FileText, Route, Navigation, Clock, LocateFixed, Palette,
+  Wallet, Puzzle, MapPin, ListChecks, Pencil, Tag, FileText, Route, Navigation, Clock, LocateFixed, Palette, Bot,
+  Loader2,
 } from 'lucide-react'
 import PluginIcon from '../shared/PluginIcon'
 import { adminApi } from '../../api/client'
+import { useInstanceSettings } from './useInstanceSettings'
+import { bypassChip, bypassOffer, useRangeBypass, type RangeWarning, type TrekRangeBypass } from './useRangeBypass'
 import { usePluginStore } from '../../store/pluginStore'
 import { useTranslation } from '../../i18n'
 import { useToast } from '../shared/Toast'
@@ -49,6 +52,12 @@ interface PluginRow {
   operatorEgress?: boolean
   /** How many hosts the admin has added — 0 means the plugin can't reach anything yet. */
   egressHostCount?: number
+  /** How many `scope:'instance'` settings fields the plugin declares — gates the
+   * "Instance settings" menu item without a per-plugin fetch. */
+  instanceSettingsCount?: number
+  /** How many `scope:'instance'` actions the plugin declares — a plugin with actions
+   * but no settings fields still needs the menu item to run them. */
+  instanceActionsCount?: number
   dependencies?: PluginDependencies
   dependencyStatus?: DependencyStatus
   dependencyIssues?: DependencyIssues
@@ -56,6 +65,8 @@ interface PluginRow {
   trekRange?: string | null
   /** The TREK this server is running — the server does the semver, the client just shows it. */
   hostVersion?: string
+  /** Non-null while the plugin runs outside its declared range on the operator's say-so. */
+  trekRangeBypassed?: TrekRangeBypass | null
   /** The author's signature was verified and their key pinned at install. False means the
    * bytes matched the registry's sha256 and nothing more — one fewer guarantee. */
   signed?: boolean
@@ -123,7 +134,12 @@ interface RegistryDetail extends RegistryItem {
     requiredAddons?: string[]
     pluginDependencies?: PluginDep[]
     /** Display slice of the manifest's capabilities — drives the same chips as an installed row. */
-    capabilities?: { widget?: { slot?: string }; tripPage?: { replaces?: string[] } }
+    capabilities?: {
+      widget?: { slot?: string }
+      tripPage?: { replaces?: string[] }
+      /** Tools the plugin will publish on the MCP server once mcp:tools is granted. */
+      mcpTools?: Array<{ name: string; title?: string; description: string }>
+    }
   } | null
 }
 
@@ -241,10 +257,12 @@ function deriveCaps(perms: string[], caps: { widget?: { slot?: string }; tripPag
   }
   // Replacing planner tabs is the one capability that HIDES core UI — always chip it.
   if (caps.tripPage?.replaces?.length) out.push({ icon: LayoutDashboard, label: t('admin.plugins.cap.replacesTabs') })
+  if (perms.includes('mcp:tools')) out.push({ icon: Bot, label: t('admin.plugins.cap.mcpTools') })
   if (perms.some(p => p.startsWith('ws:broadcast'))) out.push({ icon: Radio, label: t('admin.plugins.cap.realtime') })
   if (perms.includes('hook:photo-provider')) out.push({ icon: Image, label: t('admin.plugins.cap.photos') })
   if (perms.includes('hook:calendar-source')) out.push({ icon: CalendarDays, label: t('admin.plugins.cap.calendar') })
   if (perms.includes('hook:place-detail-provider')) out.push({ icon: MapPin, label: t('admin.plugins.cap.placeDetails') })
+  if (perms.includes('hook:search-provider')) out.push({ icon: Search, label: t('admin.plugins.cap.search') })
   if (perms.includes('hook:trip-warning-provider')) out.push({ icon: AlertTriangle, label: t('admin.plugins.cap.warnings') })
   if (perms.includes('hook:map-layer-provider')) out.push({ icon: Route, label: t('admin.plugins.cap.mapLayers') })
   if (perms.includes('hook:route-provider')) out.push({ icon: Navigation, label: t('admin.plugins.cap.routing') })
@@ -259,7 +277,7 @@ function deriveCaps(perms: string[], caps: { widget?: { slot?: string }; tripPag
   return out
 }
 
-interface DepChip { icon: React.ComponentType<{ size?: number; className?: string }>; label: string; blocked: boolean }
+interface DepChip { icon: React.ComponentType<{ size?: number; className?: string }>; label: string; blocked: boolean; warn?: boolean }
 
 // A plugin's declared dependencies as chips — a required addon (amber when that
 // addon is disabled), a plugin dependency (amber when missing / version-mismatched),
@@ -277,6 +295,8 @@ function deriveDeps(p: PluginRow, t: T): DepChip[] {
       blocked: true,
     })
   }
+  const bypassed = bypassChip(p.trekRangeBypassed, t) // TREK_PLUGINS_IGNORE_TREK_RANGE: a warning, not a blocker
+  if (bypassed) out.push(bypassed)
   for (const a of p.dependencies?.requiredAddons ?? []) {
     out.push({ icon: Blocks, label: t('admin.plugins.cap.requiresAddon', { addon: a }), blocked: !!issues?.disabledAddons.includes(a) })
   }
@@ -296,11 +316,12 @@ function deriveDeps(p: PluginRow, t: T): DepChip[] {
  * has outrun this TREK but an older one still fits, offer THAT version rather than a dead
  * grey button. The plugin is perfectly usable, just not at its newest.
  */
-function installOffer(item: RegistryItem, t: T): { blocked: boolean; version?: string; label: string; title?: string } {
+function installOffer(item: RegistryItem, t: T, ignoreTrekRange = false): { blocked: boolean; version?: string; label: string; title?: string; warn?: RangeWarning } {
   if (item.compatible !== false) return { blocked: false, label: t('admin.plugins.install') }
   const title = item.trek
     ? t('admin.plugins.dep.trekIncompatible', { range: item.trek, host: item.hostVersion ?? '?' })
     : t('admin.plugins.dep.trekUnknown')
+  if (ignoreTrekRange) return bypassOffer(item, t, title) // TREK_PLUGINS_IGNORE_TREK_RANGE: "Install anyway"
   if (item.latestCompatible) {
     return { blocked: false, version: item.latestCompatible, label: t('admin.plugins.installCompatible', { version: item.latestCompatible }), title }
   }
@@ -384,6 +405,8 @@ export default function AdminPluginsPanel() {
   const toast = useToast()
   const [runtimeOn, setRuntimeOn] = useState(false)
   const [devLink, setDevLink] = useState(false) // dev-link enabled server-side (TREK_PLUGINS_DEV_LINK)
+  const [ignoreTrekRange, setIgnoreTrekRange] = useState(false) // TREK_PLUGINS_IGNORE_TREK_RANGE set server-side
+  const bypass = useRangeBypass() // its warning dialog/sheet state — shared with the other shell
   const [linkPath, setLinkPath] = useState('')
   const [plugins, setPlugins] = useState<PluginRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -402,6 +425,8 @@ export default function AdminPluginsPanel() {
   const [detailFor, setDetailFor] = useState<RegistryItem | null>(null)
   const [errorsFor, setErrorsFor] = useState<{ id: string; rows: Array<{ ts: string; level: string; message: string }> } | null>(null)
   const [egressFor, setEgressFor] = useState<{ id: string; supported: boolean; hosts: string[] } | null>(null)
+  // The admin-owned scope:'instance' settings form — shared logic with the phone shell.
+  const settings = useInstanceSettings()
   const [egressDraft, setEgressDraft] = useState('')
   const [egressSaving, setEgressSaving] = useState(false)
   const [egressError, setEgressError] = useState('')
@@ -456,9 +481,10 @@ export default function AdminPluginsPanel() {
     // (e.g. the dashboard) reflect an activate/deactivate without a full reload (F5).
     void usePluginStore.getState().loadPlugins()
     adminApi.plugins()
-      .then((d: { enabled: boolean; devLink?: boolean; plugins: PluginRow[] }) => {
+      .then((d: { enabled: boolean; devLink?: boolean; ignoreTrekRange?: boolean; plugins: PluginRow[] }) => {
         setRuntimeOn(!!d.enabled)
         setDevLink(!!d.devLink)
+        setIgnoreTrekRange(!!d.ignoreTrekRange)
         setPlugins(d.plugins || [])
         if ((d.plugins || []).length) {
           adminApi.pluginBrowse().then(indexRegistry).catch(() => {})
@@ -524,6 +550,7 @@ export default function AdminPluginsPanel() {
       const res = await adminApi.pluginUpload(file)
       setView('installed')
       toast.success(t('admin.plugins.uploaded', { name: res.id }))
+      bypass.notice(res.id, res.trekRangeBypassed)
     } catch (e) {
       toast.error((e as { response?: { data?: { error?: string } } })?.response?.data?.error || t('admin.plugins.actionError'))
     } finally {
@@ -567,6 +594,11 @@ export default function AdminPluginsPanel() {
     }
   }
 
+  const openInstanceSettings = (p: { id: string; status: string }) => {
+    setMenu(null)
+    settings.open(p.id, p.status === 'active')
+  }
+
   const openErrors = (id: string) => {
     setMenu(null)
     adminApi.pluginErrors(id)
@@ -589,7 +621,11 @@ export default function AdminPluginsPanel() {
     const range = reg.trek ?? (reg.minTrekVersion ? `>=${reg.minTrekVersion}` : null)
     return range ? { version: reg.latest, range } : null
   }
-  const install = (id: string, version?: string) => act(id, () => adminApi.pluginInstall(id, version ? { version } : undefined), t('admin.plugins.installed'))
+  // `warn` is the pre-install confirm for an entry the registry already flagged as
+  // incompatible; an artifact whose OWN manifest turns out to be out of range (the index
+  // was only a pre-download filter) is caught by the marker on the response instead.
+  const install = (id: string, version?: string, warn?: RangeWarning) => bypass.guard(warn, () =>
+    act(id, () => adminApi.pluginInstall(id, version ? { version } : undefined).then(r => { if (!warn) bypass.notice(id, r?.trekRangeBypassed) }), t('admin.plugins.installed')))
   const restart = (id: string) => act(id, async () => { await adminApi.pluginDeactivate(id); await adminApi.pluginActivate(id) }, t('admin.plugins.restarted'))
   // Dev-link: register a plugin from a local built directory (dev only). Reuses the
   // same busy/toast/refresh loop as uploadPlugin; the server gates it.
@@ -602,6 +638,7 @@ export default function AdminPluginsPanel() {
       setView('installed')
       setLinkPath('')
       toast.success(t('admin.plugins.devLinkLinked', { id: res.id }))
+      bypass.notice(res.id, res.trekRangeBypassed)
     } catch (e) {
       toast.error((e as { response?: { data?: { error?: string } } })?.response?.data?.error || t('admin.plugins.actionError'))
     } finally {
@@ -661,9 +698,10 @@ export default function AdminPluginsPanel() {
     if (busy === parent.id) return
     setBusy(parent.id)
     adminApi.pluginInstall(depId, { constraint, withDependencies: true })
-      .then((r: { installed?: string[]; requiredAddons?: string[] }) => {
+      .then((r: { installed?: string[]; requiredAddons?: string[]; trekRangeBypassed?: TrekRangeBypass | null }) => {
         toast.success(t('admin.plugins.dep.downloaded', { id: depId }))
         if (r?.requiredAddons?.length) toast.error(t('admin.plugins.dep.addonDisabledToast', { addons: r.requiredAddons.join(', ') }))
+        bypass.notice(depId, r?.trekRangeBypassed)
         return attemptActivate(parent)
       })
       // The DEPENDENCY is what's being downloaded, so a signature refusal here is about the
@@ -681,9 +719,10 @@ export default function AdminPluginsPanel() {
   const runUpdate = (p: PluginRow, version?: string) => {
     setBusy(p.id); setMenu(null)
     return adminApi.pluginUpdate(p.id, version)
-      .then((r: { version: string; activated: boolean; newPermissions: string[]; newEgress: string[] }) => {
+      .then((r: { version: string; activated: boolean; newPermissions: string[]; newEgress: string[]; trekRangeBypassed?: TrekRangeBypass | null }) => {
         if (r.activated || (r.newPermissions.length === 0 && r.newEgress.length === 0)) toast.success(t('admin.plugins.updated'))
         else setConsentQueue(qq => [...qq, { plugin: p, version: r.version, newPermissions: r.newPermissions, newEgress: r.newEgress }])
+        bypass.notice(p.name, r.trekRangeBypassed)
       })
       .catch(e => {
         const { error, code } = errBody(e)
@@ -807,11 +846,19 @@ export default function AdminPluginsPanel() {
             <h2 className="text-lg font-semibold tracking-tight text-content">{t('admin.plugins.title')}</h2>
             <p className="text-xs mt-1 text-content-muted max-w-xl">{t('admin.plugins.subtitle')}</p>
           </div>
-          {runtimeOn && (
-            <span className="inline-flex items-center gap-2 shrink-0 text-[11px] font-semibold text-success bg-success-soft px-2.5 py-1.5 rounded-full">
-              <span className="w-1.5 h-1.5 rounded-full bg-success" /> {t('admin.plugins.runtimeOn')}
-            </span>
-          )}
+          <div className="flex items-center gap-2 shrink-0">
+            {runtimeOn && ignoreTrekRange && (
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-warning bg-warning-soft px-2.5 py-1.5 rounded-full"
+                title={t('admin.plugins.rangeBypass.pillHint')}>
+                <AlertTriangle size={12} /> {t('admin.plugins.rangeBypass.pill')}
+              </span>
+            )}
+            {runtimeOn && (
+              <span className="inline-flex items-center gap-2 text-[11px] font-semibold text-success bg-success-soft px-2.5 py-1.5 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-success" /> {t('admin.plugins.runtimeOn')}
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -921,7 +968,7 @@ export default function AdminPluginsPanel() {
         ) : error ? (
           <div className="py-14 text-center text-sm text-danger">{t('admin.plugins.loadError')}</div>
         ) : !runtimeOn ? null : view === 'discover' ? (
-          <RegistryGrid items={shownRegistry} busy={busy} t={t} installedIds={installedIds}
+          <RegistryGrid items={shownRegistry} busy={busy} t={t} installedIds={installedIds} ignoreTrekRange={ignoreTrekRange}
             onInstall={install} onOpenDetail={setDetailFor} filtered={anyFilter} />
         ) : plugins.length === 0 ? (
           <EmptyState t={t} onDiscover={openDiscover} />
@@ -956,6 +1003,7 @@ export default function AdminPluginsPanel() {
                   code: p.updateBlock!.code, detail: p.updateBlock!.detail,
                 })}
                 onErrors={() => openErrors(p.id)} onEgress={() => openEgress(p.id)}
+                onSettings={() => openInstanceSettings(p)}
                 onUninstall={() => { setMenu(null); setConfirmUninstall(p) }} />
             ))}
           </div>
@@ -966,9 +1014,11 @@ export default function AdminPluginsPanel() {
 
       {/* Registry detail dialog */}
       {detailFor && (
-        <PluginDetailModal item={detailFor} t={t} locale={locale} busy={busy}
+        <PluginDetailModal item={detailFor} t={t} locale={locale} busy={busy} ignoreTrekRange={ignoreTrekRange}
           installed={installedIds.has(detailFor.id)} onInstall={install} onClose={() => setDetailFor(null)} />
       )}
+
+      {bypass.copy && <RangeBypassDialog copy={bypass.copy} t={t} onConfirm={bypass.confirm} onClose={bypass.dismiss} />}
 
       {/* Error-log modal */}
       {errorsFor && (
@@ -995,12 +1045,12 @@ export default function AdminPluginsPanel() {
       {/* Operator-supplied egress hosts */}
       {egressFor && (
         <div role="presentation" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setEgressFor(null)}>
-          <div role="presentation" className="bg-surface-card border border-edge rounded-2xl w-full max-w-lg shadow-modal" onClick={e => e.stopPropagation()}>
-            <div className="px-5 py-3.5 border-b border-edge-secondary flex items-center justify-between">
+          <div role="presentation" className="bg-surface-card border border-edge rounded-2xl w-full max-w-lg max-h-[88vh] flex flex-col shadow-modal" onClick={e => e.stopPropagation()}>
+            <div className="shrink-0 px-5 py-3.5 border-b border-edge-secondary flex items-center justify-between">
               <span className="text-sm font-semibold text-content flex items-center gap-2"><Globe size={15} /> {egressFor.id} — {t('admin.plugins.allowedHosts')}</span>
               <button type="button" onClick={() => setEgressFor(null)} className="text-content-faint hover:text-content"><X size={16} /></button>
             </div>
-            <div className="p-5 space-y-3">
+            <div className="p-5 space-y-3 min-h-0 flex-1 overflow-y-auto">
               {!egressFor.supported ? (
                 <p className="text-sm text-content-faint">{t('admin.plugins.allowedHosts.unsupported')}</p>
               ) : (
@@ -1041,6 +1091,110 @@ export default function AdminPluginsPanel() {
           </div>
         </div>
       )}
+
+      {/* Instance-wide settings (the admin-owned scope:'instance' fields) */}
+      {settings.form && (
+        <div role="presentation" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={settings.close}>
+          <div role="presentation" className="bg-surface-card border border-edge rounded-2xl w-full max-w-lg max-h-[80vh] flex flex-col shadow-modal" onClick={e => e.stopPropagation()}>
+            <div className="px-5 py-3.5 border-b border-edge-secondary flex items-center justify-between">
+              <span className="text-sm font-semibold text-content flex items-center gap-2"><SlidersHorizontal size={15} /> {settings.form.id} — {t('admin.plugins.instanceSettings')}</span>
+              <button type="button" aria-label={t('common.close')} onClick={settings.close} className="text-content-faint hover:text-content"><X size={16} /></button>
+            </div>
+            <div className="p-5 space-y-4 overflow-y-auto">
+              {settings.form.fields.map(f => (
+                <label key={f.key} className="block">
+                  <span className="block text-sm font-medium text-content-secondary mb-1">
+                    {f.label || f.key}{f.required && <span className="text-danger"> *</span>}
+                  </span>
+                  {f.input_type === 'checkbox' ? (
+                    <input
+                      type="checkbox"
+                      checked={settings.form.values[f.key] === true}
+                      onChange={e => settings.setValue(f.key, e.target.checked)}
+                      className="h-4 w-4 rounded border-edge"
+                    />
+                  ) : f.input_type === 'select' && f.options ? (
+                    <select
+                      value={String(settings.form.values[f.key] ?? '')}
+                      onChange={e => settings.setValue(f.key, e.target.value)}
+                      className="w-full rounded-lg border border-edge bg-surface px-3 py-2 text-sm text-content"
+                    >
+                      <option value="">—</option>
+                      {f.options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                  ) : (
+                    <input
+                      type={f.secret ? 'password' : (f.input_type === 'number' ? 'number' : 'text')}
+                      value={String(settings.form.values[f.key] ?? '')}
+                      placeholder={f.placeholder || ''}
+                      autoComplete={f.secret ? 'new-password' : 'off'}
+                      onChange={e => settings.setValue(f.key, e.target.value)}
+                      className="w-full rounded-lg border border-edge bg-surface px-3 py-2 text-sm text-content"
+                    />
+                  )}
+                  {f.hint && <span className="block text-xs text-content-muted mt-1">{f.hint}</span>}
+                </label>
+              ))}
+              {(() => {
+                const form = settings.form
+                if (!form || form.actions.length === 0) return null
+                return (
+                  <div className="border-t border-edge-secondary pt-4">
+                    <span className="block text-xs font-semibold uppercase tracking-wide text-content-muted mb-2">
+                      {t('admin.plugins.actions')}
+                    </span>
+                    {!form.active && (
+                      <p className="text-xs text-content-muted mb-2">{t('admin.plugins.actions.inactive')}</p>
+                    )}
+                    <div className="flex flex-col gap-2">
+                      {form.actions.map(a => {
+                        const res = settings.actionResult[a.key]
+                        return (
+                          <div key={a.key} className="flex flex-wrap items-center gap-2">
+                            <button type="button"
+                              onClick={() => settings.runAction(a)}
+                              disabled={!form.active || settings.runningAction !== null || settings.saving}
+                              className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-semibold disabled:opacity-60 ${
+                                a.danger ? 'border-danger text-danger' : 'border-edge text-content'
+                              }`}
+                            >
+                              {settings.runningAction === a.key && <Loader2 className="w-4 h-4 animate-spin" />}
+                              {a.label}
+                            </button>
+                            {a.hint && <span className="text-xs text-content-muted">{a.hint}</span>}
+                            {res && (
+                              <span aria-live="polite" className={`text-xs font-medium ${res.ok ? 'text-success' : 'text-danger'}`}>
+                                {res.message || (res.ok ? t('common.success') : t('common.error'))}
+                              </span>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
+              })()}
+              {settings.error && <p className="text-xs text-danger">{settings.error}</p>}
+            </div>
+            <div className="px-5 py-3.5 border-t border-edge-secondary flex justify-end">
+              <button type="button"
+                disabled={settings.saving || settings.runningAction !== null}
+                onClick={() => void settings.save()}
+                className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-text disabled:opacity-60"
+              >{t('common.save')}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <ConfirmDialog
+        isOpen={settings.pendingAction !== null}
+        onClose={settings.cancelPendingAction}
+        onConfirm={settings.confirmPendingAction}
+        title={settings.pendingAction?.label ?? ''}
+        message={t('admin.plugins.actions.confirm')}
+        confirmLabel={t('common.confirm')}
+      />
 
       <ConfirmDialog
         isOpen={!!confirmUninstall}
@@ -1179,11 +1333,11 @@ function EmptyState({ t, onDiscover }: { t: T; onDiscover: () => void }) {
   )
 }
 
-function InstalledRow({ p, t, busy, menu, setMenu, hasUpdate, latestVer, newerIncompatible, blocked, onToggle, onUpdate, onRestart, onChangeVersion, onResume, onReviewBlock, onErrors, onEgress, onUninstall }: {
+function InstalledRow({ p, t, busy, menu, setMenu, hasUpdate, latestVer, newerIncompatible, blocked, onToggle, onUpdate, onRestart, onChangeVersion, onResume, onReviewBlock, onErrors, onEgress, onSettings, onUninstall }: {
   p: PluginRow; t: T; busy: string | null; menu: string | null; setMenu: (v: string | null) => void
   hasUpdate: boolean; latestVer?: string; newerIncompatible: { version: string; range: string } | null; blocked: boolean
   onToggle: () => void; onUpdate: () => void; onRestart: () => void; onChangeVersion: () => void; onResume: () => void; onReviewBlock: () => void
-  onErrors: () => void; onEgress: () => void; onUninstall: () => void
+  onErrors: () => void; onEgress: () => void; onSettings: () => void; onUninstall: () => void
 }) {
   const caps = deriveCaps(parseJson<string[]>(p.permissions, []), parseJson<{ widget?: { slot?: string } }>(p.capabilities, {}), t)
   const deps = deriveDeps(p, t)
@@ -1298,8 +1452,8 @@ function InstalledRow({ p, t, busy, menu, setMenu, hasUpdate, latestVer, newerIn
           <div className="hidden sm:flex items-center gap-1.5 flex-wrap mt-1.5">
             {deps.map((d, i) => (
               <span key={i} className={`inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-[3px] rounded-md border ${
-                d.blocked ? 'text-warning border-warning/30 bg-warning-soft' : 'text-content-secondary border-edge-secondary bg-surface-tertiary'}`}>
-                <d.icon size={12} className={d.blocked ? 'text-warning' : 'text-content-muted'} />{d.label}
+                d.blocked || d.warn ? 'text-warning border-warning/30 bg-warning-soft' : 'text-content-secondary border-edge-secondary bg-surface-tertiary'}`}>
+                <d.icon size={12} className={d.blocked || d.warn ? 'text-warning' : 'text-content-muted'} />{d.label}
               </span>
             ))}
           </div>
@@ -1328,8 +1482,18 @@ function InstalledRow({ p, t, busy, menu, setMenu, hasUpdate, latestVer, newerIn
               {p.enabled === 1 && (
                 <MenuItem icon={<RotateCw size={14} />} label={t('admin.plugins.restart')} onClick={onRestart} />
               )}
+              {/* A plugin gets the item if it declares scope:'instance' fields OR actions —
+                  an action-only plugin still needs the dialog to run its buttons. */}
+              {((p.instanceSettingsCount ?? 0) > 0 || (p.instanceActionsCount ?? 0) > 0) && (
+                <MenuItem icon={<SlidersHorizontal size={14} />} label={t('admin.plugins.instanceSettings')} onClick={onSettings} />
+              )}
               <MenuItem icon={<Bug size={14} />} label={t('admin.plugins.viewErrors')} onClick={onErrors} />
-              <MenuItem icon={<Globe size={14} />} label={t('admin.plugins.allowedHosts')} onClick={onEgress} />
+              {/* Only a plugin that DECLARED operatorEgress gets the item — an admin must
+                  never be invited to widen egress for a plugin that didn't ask for it
+                  (same rule the row's egress chip follows). */}
+              {p.operatorEgress && (
+                <MenuItem icon={<Globe size={14} />} label={t('admin.plugins.allowedHosts')} onClick={onEgress} />
+              )}
               {/* Registry plugins only — a sideload/dev-link has no registry versions to pick from. */}
               {isRegistrySourced(p.source_repo) && (
                 <MenuItem icon={<History size={14} />} label={t('admin.plugins.changeVersion')} onClick={onChangeVersion} />
@@ -1399,14 +1563,15 @@ function Screenshot({ url, className, iconSize = 28 }: { url: string | null; cla
   )
 }
 
-function RegistryGrid({ items, onInstall, onOpenDetail, busy, t, installedIds, filtered }: {
+function RegistryGrid({ items, onInstall, onOpenDetail, busy, t, installedIds, filtered, ignoreTrekRange }: {
   items: RegistryItem[] | null
-  onInstall: (id: string, version?: string) => void
+  onInstall: (id: string, version?: string, warn?: RangeWarning) => void
   onOpenDetail: (item: RegistryItem) => void
   busy: string | null
   t: T
   installedIds: Set<string>
   filtered: boolean
+  ignoreTrekRange: boolean
 }) {
   if (!items) return <div className="py-14 text-center text-sm text-content-faint">{t('common.loading')}</div>
   if (items.length === 0) return (
@@ -1419,9 +1584,13 @@ function RegistryGrid({ items, onInstall, onOpenDetail, busy, t, installedIds, f
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4 px-4 sm:px-6 pb-5 pt-1">
       {items.map(item => {
         const installed = installedIds.has(item.id)
-        const offer = installOffer(item, t)
+        const offer = installOffer(item, t, ignoreTrekRange)
         return (
           <div key={item.id} role="button" tabIndex={0} onClick={() => onOpenDetail(item)}
+            // No press-scale on the card: shrinking it mid-click slides the Install
+            // button out from under the pointer, so the click retargets onto the card
+            // and opens the detail modal instead of installing (#2158).
+            data-no-press
             onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenDetail(item) } }}
             className="group border border-edge rounded-2xl bg-surface-card overflow-hidden flex flex-col cursor-pointer hover:-translate-y-0.5 hover:shadow-elevated hover:border-edge-faint transition-all duration-150">
             <div className="relative">
@@ -1450,7 +1619,7 @@ function RegistryGrid({ items, onInstall, onOpenDetail, busy, t, installedIds, f
                     <Download size={11} /> {formatCompactCount(item.downloadCount)}
                   </span>
                 )}
-                <button type="button" onClick={e => { e.stopPropagation(); onInstall(item.id, offer.version) }}
+                <button type="button" onClick={e => { e.stopPropagation(); onInstall(item.id, offer.version, offer.warn) }}
                   disabled={busy === item.id || installed || offer.blocked}
                   title={installed ? undefined : offer.title}
                   className="ml-auto text-xs font-semibold px-3.5 py-1.5 rounded-lg bg-accent text-accent-text hover:bg-accent-hover disabled:opacity-50 disabled:bg-surface-tertiary disabled:text-content-faint transition-colors">
@@ -1480,9 +1649,54 @@ function PermLabel({ perm, t }: { perm: string; t: T }) {
     : <code className="font-mono text-[11px] bg-surface-tertiary px-1.5 py-0.5 rounded">{perm}</code>
 }
 
-function PluginDetailModal({ item, installed, busy, onInstall, onClose, t, locale }: {
-  item: RegistryItem; installed: boolean; busy: string | null
-  onInstall: (id: string, version?: string) => void; onClose: () => void; t: T; locale: string
+/**
+ * The TREK_PLUGINS_IGNORE_TREK_RANGE warning (copy and modes from useRangeBypass). Its own
+ * component rather than ConfirmDialog because the notice mode has no cancel button.
+ */
+function RangeBypassDialog({ copy: { title, body, confirm }, onConfirm, onClose, t }: {
+  copy: { title: string; body: string; confirm: boolean }; onConfirm: () => void; onClose: () => void; t: T
+}) {
+  return createPortal(
+    <div role="presentation" className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
+      <div role="dialog" aria-modal="true" aria-label={title}
+        className="bg-surface-card border border-edge rounded-2xl w-full max-w-md p-6 shadow-modal" onClick={e => e.stopPropagation()}>
+        <div className="flex items-start gap-4">
+          <div className="shrink-0 w-10 h-10 rounded-full bg-warning-soft grid place-items-center">
+            <AlertTriangle size={20} className="text-warning" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-base font-semibold text-content">{title}</h3>
+            <p className="mt-1.5 text-sm text-content-secondary leading-relaxed">{body}</p>
+          </div>
+        </div>
+        <div className="flex justify-end gap-3 mt-6">
+          {confirm ? (
+            <>
+              <button type="button" onClick={onClose}
+                className="px-4 py-2 text-sm font-medium rounded-lg text-content-secondary border border-edge-secondary transition-colors">
+                {t('common.cancel')}
+              </button>
+              <button type="button" onClick={onConfirm}
+                className="px-4 py-2 text-sm font-semibold rounded-lg bg-warning text-white hover:opacity-90 transition-opacity">
+                {t('admin.plugins.installAnyway')}
+              </button>
+            </>
+          ) : (
+            <button type="button" onClick={onClose}
+              className="px-4 py-2 text-sm font-semibold rounded-lg bg-accent text-accent-text hover:bg-accent-hover transition-colors">
+              {t('common.ok')}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>,
+    document.body,
+  )
+}
+
+function PluginDetailModal({ item, installed, busy, onInstall, onClose, t, locale, ignoreTrekRange }: {
+  item: RegistryItem; installed: boolean; busy: string | null; ignoreTrekRange: boolean
+  onInstall: (id: string, version?: string, warn?: RangeWarning) => void; onClose: () => void; t: T; locale: string
 }) {
   const [detail, setDetail] = useState<RegistryDetail | null>(null)
   const [failed, setFailed] = useState(false)
@@ -1505,7 +1719,7 @@ function PluginDetailModal({ item, installed, busy, onInstall, onClose, t, local
   const sizeKb = detail?.size ? Math.max(1, Math.round(detail.size / 1024)) : null
   // The detail fetch carries the same compat verdict as the browse list; prefer it once
   // it lands (it is keyed to the same entry) and fall back to the grid item until then.
-  const offer = installOffer(detail ?? item, t)
+  const offer = installOffer(detail ?? item, t, ignoreTrekRange)
 
   return (
     <div role="presentation" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
@@ -1527,7 +1741,7 @@ function PluginDetailModal({ item, installed, busy, onInstall, onClose, t, local
             </div>
             <p className="text-[12.5px] text-content-faint mt-0.5">{item.author}{item.latest ? ` · v${item.latest}` : ''}</p>
           </div>
-          <button type="button" onClick={() => onInstall(item.id, offer.version)}
+          <button type="button" onClick={() => onInstall(item.id, offer.version, offer.warn)}
             disabled={busy === item.id || installed || offer.blocked}
             title={installed ? undefined : offer.title}
             className="self-end text-[13px] font-semibold px-3 sm:px-4 py-2 rounded-lg bg-accent text-accent-text hover:bg-accent-hover disabled:opacity-50 disabled:bg-surface-tertiary disabled:text-content-faint transition-colors shrink-0">
@@ -1565,6 +1779,32 @@ function PluginDetailModal({ item, installed, busy, onInstall, onClose, t, local
                   )}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* The tool text a plugin publishes goes straight into every user's
+              assistant context once mcp:tools is granted, and nothing else in
+              this dialog shows it. An admin approving the grant should read the
+              names and descriptions first, not discover them in a chat. */}
+          {manifest && (manifest.capabilities?.mcpTools?.length ?? 0) > 0 && (
+            <div className="mt-5">
+              <h4 className="text-[11px] font-semibold uppercase tracking-wider text-content-muted">{t('admin.plugins.mcpToolsTitle')}</h4>
+              <ul className="mt-2 space-y-1.5">
+                {(manifest.capabilities?.mcpTools ?? []).map(tool => (
+                  <li key={tool.name} className="flex items-start gap-2.5 py-0.5">
+                    <Bot size={15} className="text-accent mt-0.5 shrink-0" />
+                    <div className="min-w-0">
+                      <code className="text-[12px] font-mono text-content">{tool.name}</code>
+                      {tool.title && <p className="text-[12.5px] font-medium text-content leading-snug">{tool.title}</p>}
+                      {/* The description is the assistant-facing text: it is what the
+                          model reads to decide whether to call the tool, so it is the
+                          line an admin most needs to see. Never hidden behind a title. */}
+                      <p className="text-[12.5px] text-content-secondary leading-snug">{tool.description}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <p className="text-[11.5px] text-content-faint mt-2">{t('admin.plugins.mcpToolsHint')}</p>
             </div>
           )}
 
@@ -1761,15 +2001,15 @@ function SignatureBlockDialog({ data, entry, busy, t, onRetrust, onClose }: {
 
   return (
     <div role="presentation" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
-      <div role="presentation" className="bg-surface-card border border-edge rounded-2xl w-full max-w-md shadow-modal overflow-hidden" onClick={e => e.stopPropagation()}>
-        <div className="px-5 py-4 border-b border-edge-secondary flex items-start gap-3">
+      <div role="presentation" className="bg-surface-card border border-edge rounded-2xl w-full max-w-md max-h-[88vh] flex flex-col shadow-modal overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="shrink-0 px-5 py-4 border-b border-edge-secondary flex items-start gap-3">
           <div className="w-9 h-9 rounded-lg bg-warning-soft grid place-items-center shrink-0"><ShieldAlert size={18} className="text-warning" /></div>
           <div>
             <h3 className="text-sm font-semibold text-content">{t('admin.plugins.sig.title', { name: data.subject.name })}</h3>
             <p className="text-xs text-content-muted mt-1">{t(bodyKey as never)}</p>
           </div>
         </div>
-        <div className="p-5 space-y-4">
+        <div className="p-5 space-y-4 min-h-0 flex-1 overflow-y-auto">
           {/* Fingerprints, not full keys: these exist to be COMPARED by a human — read the
               new one back to the author over the phone. The full key travels in the request. */}
           {canRetrust && (
@@ -1783,7 +2023,7 @@ function SignatureBlockDialog({ data, entry, busy, t, onRetrust, onClose }: {
             <p className="text-xs text-content-faint font-mono break-all bg-surface-tertiary rounded-lg px-3 py-2">{data.detail}</p>
           )}
         </div>
-        <div className="px-5 py-3.5 border-t border-edge-secondary bg-surface-secondary flex items-center justify-end gap-2">
+        <div className="shrink-0 px-5 py-3.5 border-t border-edge-secondary bg-surface-secondary flex items-center justify-end gap-2">
           <button type="button" onClick={onClose}
             className="text-xs font-medium px-3.5 py-2 rounded-lg border border-edge text-content-muted hover:text-content hover:bg-surface-tertiary transition-colors">
             {offerRetrust ? t('admin.plugins.sig.cancel') : t('common.close')}
@@ -1825,15 +2065,15 @@ function UpdateConsentDialog({ data, unsigned, t, onApprove, onLater }: {
 }) {
   return (
     <div role="presentation" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onLater}>
-      <div role="presentation" className="bg-surface-card border border-edge rounded-2xl w-full max-w-md shadow-modal overflow-hidden" onClick={e => e.stopPropagation()}>
-        <div className="px-5 py-4 border-b border-edge-secondary flex items-start gap-3">
+      <div role="presentation" className="bg-surface-card border border-edge rounded-2xl w-full max-w-md max-h-[88vh] flex flex-col shadow-modal overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="shrink-0 px-5 py-4 border-b border-edge-secondary flex items-start gap-3">
           <div className="w-9 h-9 rounded-lg bg-warning-soft grid place-items-center shrink-0"><ShieldCheck size={18} className="text-warning" /></div>
           <div>
             <h3 className="text-sm font-semibold text-content">{t('admin.plugins.updateConsentTitle')}</h3>
             <p className="text-xs text-content-muted mt-1">{t('admin.plugins.updateConsentBody', { name: data.plugin.name, version: data.version })}</p>
           </div>
         </div>
-        <div className="p-5 space-y-4">
+        <div className="p-5 space-y-4 min-h-0 flex-1 overflow-y-auto">
           {/* The admin is about to widen what this code may do — so say, right here, that
               nothing ties this code to its author. One line, no checkbox, no extra click:
               this informs, it does not block. */}
@@ -1862,7 +2102,7 @@ function UpdateConsentDialog({ data, unsigned, t, onApprove, onLater }: {
             </div>
           )}
         </div>
-        <div className="px-5 py-3.5 border-t border-edge-secondary bg-surface-secondary flex items-center justify-end gap-2">
+        <div className="shrink-0 px-5 py-3.5 border-t border-edge-secondary bg-surface-secondary flex items-center justify-end gap-2">
           <button type="button" onClick={onLater} className="text-xs font-medium px-3.5 py-2 rounded-lg border border-edge text-content-muted hover:text-content hover:bg-surface-tertiary transition-colors">{t('admin.plugins.updateLater')}</button>
           <button type="button" onClick={onApprove} className="text-xs font-semibold px-4 py-2 rounded-lg bg-accent text-accent-text hover:bg-accent-hover transition-colors">{t('admin.plugins.updateApprove')}</button>
         </div>
@@ -1885,15 +2125,15 @@ function DependencyResolveDialog({ data, t, busy, installedIds, onDownload, onCl
   ]
   return (
     <div role="presentation" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
-      <div role="presentation" className="bg-surface-card border border-edge rounded-2xl w-full max-w-md shadow-modal overflow-hidden" onClick={e => e.stopPropagation()}>
-        <div className="px-5 py-4 border-b border-edge-secondary flex items-start gap-3">
+      <div role="presentation" className="bg-surface-card border border-edge rounded-2xl w-full max-w-md max-h-[88vh] flex flex-col shadow-modal overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="shrink-0 px-5 py-4 border-b border-edge-secondary flex items-start gap-3">
           <div className="w-9 h-9 rounded-lg bg-warning-soft grid place-items-center shrink-0"><Puzzle size={18} className="text-warning" /></div>
           <div>
             <h3 className="text-sm font-semibold text-content">{t('admin.plugins.dep.resolveTitle')}</h3>
             <p className="text-xs text-content-muted mt-1">{t('admin.plugins.dep.resolveBody', { name: data.plugin.name })}</p>
           </div>
         </div>
-        <div className="p-5 space-y-2.5">
+        <div className="p-5 space-y-2.5 min-h-0 flex-1 overflow-y-auto">
           {rows.map(r => (
             <div key={r.id} className="flex items-center gap-3 p-3 rounded-xl border border-edge-secondary bg-surface-tertiary">
               <div className="min-w-0 flex-1">
@@ -1914,7 +2154,7 @@ function DependencyResolveDialog({ data, t, busy, installedIds, onDownload, onCl
             <p className="text-[11.5px] text-content-faint pt-1">{t('admin.plugins.dep.resolveHint')}</p>
           )}
         </div>
-        <div className="px-5 py-3.5 border-t border-edge-secondary bg-surface-secondary flex items-center justify-end">
+        <div className="shrink-0 px-5 py-3.5 border-t border-edge-secondary bg-surface-secondary flex items-center justify-end">
           <button type="button" onClick={onClose} className="text-xs font-medium px-3.5 py-2 rounded-lg border border-edge text-content-muted hover:text-content hover:bg-surface-tertiary transition-colors">{t('common.cancel')}</button>
         </div>
       </div>

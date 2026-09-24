@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen, within } from '../../../helpers/render'
+import { fireEvent, render, screen, waitFor, within } from '../../../helpers/render'
 import { buildPlanner, buildShell } from '../../../helpers/mobileTrip'
 import type { PluginDaySchedule } from '../../../../src/components/Plugins/PluginDaySchedule'
 import type { MPlanTimelineController } from '../../../../src/mobile/screens/trip/plan/useMPlanTimeline'
@@ -9,7 +9,7 @@ import type { MergedItem } from '../../../../src/utils/dayMerge'
 import type { Assignment, Day, DayNote, Place, RouteSegment } from '../../../../src/types'
 import MPlanTimeline from '../../../../src/mobile/screens/trip/plan/MPlanTimeline'
 
-// FE-MOB-PLTL-001 to FE-MOB-PLTL-038
+// FE-MOB-PLTL-001 to FE-MOB-PLTL-049
 
 const mocks = vi.hoisted(() => ({
   tl: {} as Record<string, unknown>,
@@ -73,12 +73,12 @@ const M_PLACE2: MergedItem = { type: 'place', sortKey: 4, data: PARK }
 const MERGED = [M_PLACE, M_FLIGHT, M_TRANSIT, M_NOTE, M_PLACE2]
 
 const ROWS: PlanRow[] = [
-  { key: 'pl-11', kind: 'place', item: M_PLACE, assignment: MUSEUM, linkedRes: null },
+  { key: 'pl-11', kind: 'place', item: M_PLACE, assignment: MUSEUM, linkedReservations: [] },
   { key: 'conn-pl-11', kind: 'conn', seg: SEG, assignmentId: 11 },
   { key: 'tr-21', kind: 'transport', item: M_FLIGHT, res: FLIGHT },
   { key: 'tr-22', kind: 'transit', item: M_TRANSIT, res: TRANSIT_RES, transit: TRANSIT },
   { key: 'note-41', kind: 'note', item: M_NOTE, note: NOTE },
-  { key: 'pl-12', kind: 'place', item: M_PLACE2, assignment: PARK, linkedRes: null },
+  { key: 'pl-12', kind: 'place', item: M_PLACE2, assignment: PARK, linkedReservations: [] },
   { key: 'conn-orphan', kind: 'conn', seg: { ...SEG, mode: 'walking' } },
 ]
 
@@ -95,6 +95,7 @@ function buildTl(over: Record<string, unknown> = {}): MPlanTimelineController {
     hotelChips: [],
     weather: null,
     weatherTemp: null,
+    weatherPlaceName: null,
     upNext: { assignment: MUSEUM, minutesUntil: 45 },
     language: 'en',
     timeFormat: '24h',
@@ -109,7 +110,9 @@ function buildTl(over: Record<string, unknown> = {}): MPlanTimelineController {
     addBooking: vi.fn(),
     addTransport: vi.fn(),
     optimize: vi.fn(async () => undefined),
+    canExportRoute: true,
     exportGoogleMaps: vi.fn(),
+    exportCoMaps: vi.fn(),
     renameDay: vi.fn(),
     fullPlaceOf: vi.fn(() => undefined as Place | undefined),
     routeModeOptions: [
@@ -118,6 +121,8 @@ function buildTl(over: Record<string, unknown> = {}): MPlanTimelineController {
       { key: 'plugin:ev/fastest', label: 'EV fastest' },
     ],
     setLegMode: vi.fn(),
+    transitLegFor: vi.fn(() => null),
+    planTransitLeg: vi.fn(),
     ...over,
   } as unknown as MPlanTimelineController
 }
@@ -198,14 +203,50 @@ describe('MPlanTimeline', () => {
       expect(screen.getByText('17°')).toBeInTheDocument()
     })
 
-    it('FE-MOB-PLTL-006: a chip opens the day sheet', () => {
-      const { shell } = renderTimeline({
-        hotelChips: [{ key: 'stay-3', variant: 'stay', name: 'Capsule Tokyo', time: null }],
+    it('FE-MOB-PLTL-005b: the weather chip names its anchor place in the accessible label (#2167)', () => {
+      renderTimeline({
+        weather: { main: 'Rain', temp: 17 },
+        weatherTemp: 17,
+        weatherPlaceName: 'Shibuya',
       })
 
-      fireEvent.click(screen.getByText('Capsule Tokyo'))
+      // echoT renders t('day.weatherFor', { name }) as 'day.weatherFor:Shibuya'.
+      expect(screen.getByRole('button', { name: 'day.overview · day.weatherFor:Shibuya' })).toBeInTheDocument()
+      expect(screen.getByTitle('Shibuya')).toBeInTheDocument()
+    })
+
+    it('FE-MOB-PLTL-006: a stay chip opens the stay editor for members who may edit days (#2210)', () => {
+      const { shell } = renderTimeline({
+        hotelChips: [{ key: 'in-3', variant: 'checkin', name: 'Capsule Tokyo', time: '15:00:00', accId: 3, placeId: 301 }],
+      })
+
+      fireEvent.click(screen.getByRole('button', { name: 'day.checkIn · Capsule Tokyo · 15:00' }))
+
+      expect(shell.openSheet).toHaveBeenCalledWith('accommodation', { dayId: 2, accId: 3, from: 'timeline' })
+    })
+
+    it('FE-MOB-PLTL-006b: without day_edit the chip opens the hotel place instead', () => {
+      const { planner, shell } = renderTimeline(
+        { hotelChips: [{ key: 'stay-3', variant: 'stay', name: 'Capsule Tokyo', time: null, accId: 3, placeId: 301 }] },
+        { can: vi.fn(() => false) },
+      )
+
+      fireEvent.click(screen.getByRole('button', { name: 'mobileTrip.stay · Capsule Tokyo' }))
+
+      expect(planner.handlePlaceClick).toHaveBeenCalledWith(301)
+      expect(shell.openSheet).not.toHaveBeenCalled()
+    })
+
+    it('FE-MOB-PLTL-006c: a stay without a place still leads a read-only member to the day sheet', () => {
+      const { planner, shell } = renderTimeline(
+        { hotelChips: [{ key: 'out-3', variant: 'checkout', name: 'Capsule Tokyo', time: '11:00', accId: 3, placeId: null }] },
+        { can: vi.fn(() => false) },
+      )
+
+      fireEvent.click(screen.getByRole('button', { name: 'day.checkOut · Capsule Tokyo · 11:00' }))
 
       expect(shell.openSheet).toHaveBeenCalledWith('day', { dayId: 2 })
+      expect(planner.handlePlaceClick).not.toHaveBeenCalled()
     })
 
     it('FE-MOB-PLTL-007: still renders, with the day pill, without chips or weather (#2004)', () => {
@@ -252,7 +293,7 @@ describe('MPlanTimeline', () => {
 
     it('FE-MOB-PLTL-011: a place row without a place still reports the assignment', () => {
       const orphan = { id: 13, day_id: 2, place_id: 103, order_index: 2, place: null } as unknown as Assignment
-      const rows: PlanRow[] = [{ key: 'pl-13', kind: 'place', item: M_PLACE, assignment: orphan, linkedRes: null }]
+      const rows: PlanRow[] = [{ key: 'pl-13', kind: 'place', item: M_PLACE, assignment: orphan, linkedReservations: [] }]
       const { planner, container } = renderTimeline({ rows })
 
       fireEvent.click(container.querySelector('.cursor-pointer.items-center') as HTMLElement)
@@ -351,6 +392,26 @@ describe('MPlanTimeline', () => {
       expect(mocks.tl.setLegMode).toHaveBeenCalledWith(11, null)
     })
 
+    it('FE-MOB-PLTL-046: a leg with a transit search behind it offers Public transit and opens it (#2398)', () => {
+      const leg = { from: { name: 'Museum', lat: 35.71, lng: 139.79 }, to: { name: 'Ueno Park', lat: 35.72, lng: 139.77 }, time: '09:30' }
+      renderTimeline({ transitLegFor: vi.fn(() => leg) }, {}, { mode: 'edit' })
+      fireEvent.click(connector())
+
+      expect(mocks.tl.transitLegFor).toHaveBeenCalledWith(SEG)
+      fireEvent.click(screen.getByText('transit.title'))
+
+      expect(mocks.tl.planTransitLeg).toHaveBeenCalledWith(leg)
+      expect(mocks.tl.setLegMode).not.toHaveBeenCalled()
+    })
+
+    it('FE-MOB-PLTL-047: without a transit search for the leg the menu keeps to the road profiles', () => {
+      renderEditing()
+      fireEvent.click(connector())
+
+      expect(screen.getByText('Driving')).toBeInTheDocument()
+      expect(screen.queryByText('transit.title')).not.toBeInTheDocument()
+    })
+
     it('FE-MOB-PLTL-020: read-only members get no tappable connectors', () => {
       renderTimeline({}, { can: vi.fn(() => false) }, { mode: 'edit' })
 
@@ -398,7 +459,7 @@ describe('MPlanTimeline', () => {
         byPosition: { 2: { start: [{ pluginId: 'ev', id: 's1', dayId: 2, position: 'start', label: 'Morning prep', tone: 'default' }], end: [] } },
         minutesByDay: { 2: 35 },
       }
-      const rows: PlanRow[] = [{ key: 'pl-11', kind: 'place', item: M_PLACE, assignment: MUSEUM, linkedRes: null }]
+      const rows: PlanRow[] = [{ key: 'pl-11', kind: 'place', item: M_PLACE, assignment: MUSEUM, linkedReservations: [] }]
       renderTimeline({ day: undefined, rows })
 
       expect(screen.queryByText('Charging stop')).not.toBeInTheDocument()
@@ -524,6 +585,16 @@ describe('MPlanTimeline', () => {
       expect(mocks.tl.exportGoogleMaps).toHaveBeenCalledTimes(1)
     })
 
+    it('FE-MOB-PLTL-049: a day with no route to hand over offers no Google Maps or CoMaps tile (#2476)', () => {
+      // A moving day whose only content is the flight: the export would be a drive
+      // from one hotel to the other, so the two tiles are left out, not left dead.
+      renderTimeline({ canExportRoute: false }, {}, { mode: 'edit' })
+
+      expect(screen.queryByText('mobileTrip.googleMaps')).not.toBeInTheDocument()
+      expect(screen.queryByText('mobileTrip.coMaps')).not.toBeInTheDocument()
+      expect(screen.getByText('dayplan.optimize')).toBeInTheDocument()
+    })
+
     it('FE-MOB-PLTL-034: the note tile is inert while no day is selected', () => {
       const { shell } = renderTimeline({ day: undefined, rows: [], merged: [] }, {}, { mode: 'edit' })
 
@@ -563,6 +634,19 @@ describe('MPlanTimeline', () => {
       expect(mocks.tl.removeAssignment).toHaveBeenCalledWith(MUSEUM)
     })
 
+    it('FE-MOB-PLTL-048: without place_edit a place row keeps remove and reorder but loses its edit circle (#2446)', () => {
+      renderTimeline({}, { can: vi.fn((action: string) => action !== 'place_edit') as TripPlanner['can'] }, { mode: 'edit' })
+
+      // the place row keeps its remove circle and loses the edit one; the
+      // transport and note rows keep theirs, editing those is a day right
+      const row = screen.getByText('Museum').closest('[role="button"]') as HTMLElement
+      expect(within(row).getByLabelText('planner.removeFromDay')).toBeInTheDocument()
+      expect(within(row).queryByLabelText('common.edit')).not.toBeInTheDocument()
+      fireEvent.click(within(row).getByLabelText('planner.removeFromDay'))
+      expect(mocks.tl.removeAssignment).toHaveBeenCalledWith(MUSEUM)
+      expect(mocks.tl.editAssignment).not.toHaveBeenCalled()
+    })
+
     it('FE-MOB-PLTL-037: the transit row opens the journey view from its edit circle', () => {
       renderTimeline({}, {}, { mode: 'edit' })
 
@@ -570,6 +654,84 @@ describe('MPlanTimeline', () => {
       fireEvent.click(within(transitCard).getByLabelText('common.edit'))
 
       expect(mocks.tl.openTransitJourney).toHaveBeenCalledWith(TRANSIT_RES)
+    })
+  })
+  describe('day swipe (#2051)', () => {
+    const DAYS = [
+      { id: 1, trip_id: 1, day_number: 1 }, DAY, { id: 3, trip_id: 1, day_number: 3 },
+    ] as unknown as Day[]
+
+    const panel = (container: HTMLElement) => container.firstElementChild as HTMLElement
+
+    /** A committing left swipe across the whole panel. */
+    function swipe(el: HTMLElement, from = 300, to = 180) {
+      fireEvent.touchStart(el, { touches: [{ clientX: from, clientY: 300 }] })
+      fireEvent.touchMove(el, { touches: [{ clientX: from - 20, clientY: 300 }] })
+      fireEvent.touchMove(el, { touches: [{ clientX: to, clientY: 300 }] })
+      fireEvent.touchEnd(el, { touches: [], changedTouches: [{ clientX: to, clientY: 300 }] })
+    }
+
+    it('FE-MOB-PLTL-039: swiping the panel selects the next day without re-framing the map', async () => {
+      const { container, planner } = renderTimeline({}, { days: DAYS, selectedDayId: 2 })
+
+      swipe(panel(container))
+
+      // skipFit must be true: the map stays mounted under the timeline, and
+      // re-fitting it here would move it somewhere nobody asked for.
+      await waitFor(() => expect(planner.handleSelectDay).toHaveBeenCalledWith(3, true))
+    })
+
+    it('FE-MOB-PLTL-040: the header chip strip is excluded from the swipe zone', () => {
+      const { container } = renderTimeline({}, { days: DAYS, selectedDayId: 2 })
+
+      expect(container.querySelector('[data-hswipe-ignore]')).toBeInTheDocument()
+    })
+
+    it('FE-MOB-PLTL-041: the live region is present and silent until a swipe lands', () => {
+      const { container } = renderTimeline({}, { days: DAYS, selectedDayId: 2 })
+
+      const live = container.querySelector('[role="status"]') as HTMLElement
+      expect(live).toHaveAttribute('aria-live', 'polite')
+      expect(live).toHaveAttribute('aria-atomic', 'true')
+      expect(live).toHaveTextContent('')
+    })
+
+    it('FE-MOB-PLTL-042: a committed swipe announces the day it reached', async () => {
+      const { container } = renderTimeline({}, { days: DAYS, selectedDayId: 2 })
+
+      swipe(panel(container))
+
+      await waitFor(() => expect(container.querySelector('[role="status"]'))
+        .toHaveTextContent('mobileTrip.dayAnnounce:3,3'))
+    })
+
+    it('FE-MOB-PLTL-043: edit mode keeps both the swipe and the long-press reorder', async () => {
+      const { container, planner } = renderTimeline({}, { days: DAYS, selectedDayId: 2 }, { mode: 'edit' })
+
+      swipe(panel(container))
+
+      await waitFor(() => expect(planner.handleSelectDay).toHaveBeenCalledWith(3, true))
+      expect(card(container)).toHaveAttribute('data-touch-drag')
+    })
+
+    it('FE-MOB-PLTL-044: a plain tap on a place row still opens it', () => {
+      const { planner } = renderTimeline({}, { days: DAYS, selectedDayId: 2 })
+
+      fireEvent.click(screen.getByText('Ueno Park'))
+
+      expect(planner.handlePlaceClick).toHaveBeenCalledWith(102, 12)
+    })
+
+    it('FE-MOB-PLTL-045: nothing narrows touch-action, and the excluded strip stays tappable', () => {
+      const { container, shell } = renderTimeline({}, { days: DAYS, selectedDayId: 2 })
+
+      // touch-action intersects down the tree, so a pan-y here would take the
+      // header strip's own horizontal pan with it.
+      expect(panel(container).style.touchAction).toBe('')
+      expect(card(container).style.touchAction).toBe('')
+
+      fireEvent.click(screen.getByLabelText('day.overview'))
+      expect(shell.openSheet).toHaveBeenCalledWith('day', { dayId: 2 })
     })
   })
 })

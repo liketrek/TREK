@@ -9,6 +9,7 @@ import { buildUser, buildSettings } from '../../tests/helpers/factories';
 import { useAuthStore } from '../store/authStore';
 import { useSettingsStore } from '../store/settingsStore';
 import AtlasPage from './AtlasPage';
+import { maplibreGL } from '@maplibre/maplibre-gl-leaflet';
 
 // ── Captured style() results, for tests asserting fill/border on a specific
 // feature (e.g. the wishlist hatch pattern) without duplicating the mock's
@@ -16,6 +17,24 @@ import AtlasPage from './AtlasPage';
 const { capturedStyles } = vi.hoisted(() => ({ capturedStyles: [] as { feature: any; result: any }[] }));
 
 // ── Leaflet mock ──────────────────────────────────────────────────────────────
+// maplibre-gl-leaflet hangs the vector basemap into Leaflet's tile pane. The mock
+// only has to be callable and hand back a layer with the three methods the callers
+// use, since nothing here renders WebGL.
+vi.mock('@maplibre/maplibre-gl-leaflet', () => ({
+  maplibreGL: vi.fn(() => {
+    // One GL map per layer, kept stable: a fresh object per call would hand the
+    // assertions a different spy than the code just used.
+    const gl = {
+      setStyle: vi.fn(), on: vi.fn(), isStyleLoaded: () => false,
+      getStyle: () => ({ layers: [] }), setLayoutProperty: vi.fn(),
+    }
+    const layer: Record<string, unknown> = { remove: vi.fn(), getMaplibreMap: vi.fn(() => gl) }
+    layer.addTo = vi.fn(() => layer)
+    return layer
+  }),
+}));
+vi.mock('../components/Map/engines/maplibre', () => ({ default: {} }));
+
 vi.mock('leaflet', () => {
   // Mock layer returned by onEachFeature — supports event registration
   const makeMockLayer = () => {
@@ -71,7 +90,7 @@ vi.mock('leaflet', () => {
 
   const L = {
     map: vi.fn(() => mockMap),
-    tileLayer: vi.fn(() => ({ addTo: vi.fn().mockReturnThis() })),
+    tileLayer: vi.fn(() => ({ addTo: vi.fn().mockReturnThis(), setUrl: vi.fn() })),
     // Call onEachFeature and style callbacks for each feature so those paths are covered
     geoJSON: vi.fn((data: any, options: any) => {
       if (options?.onEachFeature && data?.features) {
@@ -94,12 +113,23 @@ vi.mock('leaflet', () => {
       };
     }),
     divIcon: vi.fn(() => ({})),
-    marker: vi.fn(() => ({
-      addTo: vi.fn().mockReturnThis(),
-      on: vi.fn(),
-      remove: vi.fn(),
-      bindTooltip: vi.fn().mockReturnThis(),
-    })),
+    marker: vi.fn(() => {
+      let tooltip: { options: Record<string, unknown>; getElement: () => null } | undefined;
+      const m = {
+        addTo: vi.fn().mockReturnThis(),
+        on: vi.fn(() => m),
+        off: vi.fn(() => m),
+        remove: vi.fn(),
+        getLatLng: vi.fn(() => ({ lat: 0, lng: 0 })),
+        bindTooltip: vi.fn(() => {
+          tooltip = { options: { direction: 'top', offset: [0, -14] }, getElement: () => null };
+          return m;
+        }),
+        getTooltip: vi.fn(() => tooltip),
+        closeTooltip: vi.fn(),
+      };
+      return m;
+    }),
     latLngBounds: vi.fn(() => ({ extend: vi.fn(), isValid: vi.fn(() => true) })),
     layerGroup: vi.fn(() => ({ addTo: vi.fn().mockReturnThis(), clearLayers: vi.fn() })),
     canvas: vi.fn(() => ({})),

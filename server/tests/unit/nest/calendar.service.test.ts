@@ -56,6 +56,7 @@ import { CalendarService, foldICS } from '../../../src/nest/calendar/calendar.se
 import { CalendarModule } from '../../../src/nest/calendar/calendar.module';
 import { expectRegisteredProvider } from '../../helpers/module-providers';
 import { notificationsStub } from '../../helpers/notifications';
+import { accommodationsOver } from '../../helpers/accommodations-service';
 
 const dbs = () => new DatabaseService(testDb);
 const budgetSvc = new BudgetService(dbs(), new PermissionsService(dbs()), new ExchangeRatesService(), new RealtimeService());
@@ -63,7 +64,7 @@ const budgetSvc = new BudgetService(dbs(), new PermissionsService(dbs()), new Ex
 // Named `svc` so the moved cases below read exactly as they did on TripsService.
 const svc = new CalendarService(
   dbs(),
-  new ReservationsService(dbs(), new PermissionsService(dbs()), budgetSvc, new RealtimeService(), notificationsStub(), new ReservationsReadRepository(dbs())),
+  new ReservationsService(dbs(), new PermissionsService(dbs()), budgetSvc, new RealtimeService(), notificationsStub(), new ReservationsReadRepository(dbs()), accommodationsOver(dbs())),
 );
 
 beforeAll(() => {
@@ -231,6 +232,22 @@ describe('exportICS', () => {
     const { filename } = svc.exportICS(trip.id);
 
     expect(filename).toMatch(/My.Trip.2025\.ics/);
+  });
+
+  // JS \s admitted U+3000 (and \v/\f) into the filename, and Node's header
+  // validation then threw ERR_INVALID_CHAR on the export route (#2165).
+  it('TRIP-SVC-008b: ideographic whitespace in the title folds to _ in the filename', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: '沖縄　4泊5日' });
+
+    expect(svc.exportICS(trip.id).filename).toBe('___4_5_.ics');
+  });
+
+  it('TRIP-SVC-008c: vertical tab and form feed fold too', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'A\vB\fC' });
+
+    expect(svc.exportICS(trip.id).filename).toBe('A_B_C.ics');
   });
 
   it('TRIP-SVC-009: reservation with end time includes DTEND', () => {
@@ -788,6 +805,10 @@ describe('accommodations', () => {
       withReservation?: boolean;
       lat?: number;
       lng?: number;
+      address?: string | null;
+      confirmation?: string;
+      notes?: string;
+      location?: string;
     },
   ) => {
     const place = createPlace(testDb, tripId, {
@@ -795,7 +816,8 @@ describe('accommodations', () => {
       lat: opts.lat ?? 48.8566,
       lng: opts.lng ?? 2.3522,
     });
-    testDb.prepare('UPDATE places SET address = ? WHERE id = ?').run('1 Rue de Rivoli', place.id);
+    testDb.prepare('UPDATE places SET address = ? WHERE id = ?')
+      .run(opts.address === undefined ? '1 Rue de Rivoli' : opts.address, place.id);
     const startDay = createDay(testDb, tripId, { date: opts.start ?? undefined });
     const endDay = opts.end === undefined
       ? startDay
@@ -810,9 +832,13 @@ describe('accommodations', () => {
 
     if (opts.withReservation !== false) {
       testDb.prepare(`
-        INSERT INTO reservations (trip_id, day_id, title, reservation_time, status, type, accommodation_id)
-        VALUES (?, ?, ?, ?, 'confirmed', 'hotel', ?)
-      `).run(tripId, startDay.id, opts.title ?? 'Hotel Bellevue', opts.start, String(stayId));
+        INSERT INTO reservations (trip_id, day_id, title, reservation_time, status, type, accommodation_id,
+                                  confirmation_number, notes, location)
+        VALUES (?, ?, ?, ?, 'confirmed', 'hotel', ?, ?, ?, ?)
+      `).run(
+        tripId, startDay.id, opts.title ?? 'Hotel Bellevue', opts.start, String(stayId),
+        opts.confirmation ?? null, opts.notes ?? null, opts.location ?? null,
+      );
     }
     return { stayId, placeId: place.id };
   };
@@ -827,6 +853,113 @@ describe('accommodations', () => {
     // DTEND is exclusive, so the day after checkout.
     expect(ics).toContain('DTSTART;VALUE=DATE:20260707\r\nDTEND;VALUE=DATE:20260713');
     expect(ics).toContain('SUMMARY:Hotel Bellevue');
+  });
+
+  it('CAL-025b: a stay that records both ends of its clock drops the all-day block (#2136)', () => {
+    // The two markers already say when to arrive and when to leave, which is the
+    // part a subscriber can act on. Keeping the block as well buries the week
+    // under a bar that repeats what the markers say.
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Paris' });
+    createStay(trip.id, {
+      start: '2026-07-07', end: '2026-07-12',
+      check_in: '15:00', check_out: '11:00',
+    });
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).not.toContain('DTSTART;VALUE=DATE:20260707\r\nDTEND;VALUE=DATE:20260713');
+    expect(ics).toContain('SUMMARY:Check-in: Hotel Bellevue');
+    expect(ics).toContain('SUMMARY:Check-out: Hotel Bellevue');
+    // With the block gone the markers are the booking's whole representation, so
+    // they carry the hand-over default hour instead of being points.
+    expect(ics).toContain('DTEND;TZID=Europe/Paris:20260707T160000');
+    expect(ics).toContain('DTEND;TZID=Europe/Paris:20260712T120000');
+  });
+
+  it('CAL-025d: a second room on the same stay keeps its block, since no marker names it', () => {
+    // The markers are emitted once per stay and titled from its lowest-id
+    // booking, so dropping every block would leave the second one with nothing.
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Paris' });
+    const { stayId } = createStay(trip.id, {
+      start: '2026-07-07', end: '2026-07-12',
+      check_in: '15:00', check_out: '11:00',
+    });
+    const day = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY id ASC LIMIT 1').get(trip.id) as { id: number };
+    testDb.prepare(`
+      INSERT INTO reservations (trip_id, day_id, title, reservation_time, status, type, accommodation_id)
+      VALUES (?, ?, 'Bellevue second room', NULL, 'confirmed', 'hotel', ?)
+    `).run(trip.id, day.id, String(stayId));
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).toContain('SUMMARY:Bellevue second room');
+    expect(ics).toContain('SUMMARY:Check-in: Hotel Bellevue');
+  });
+
+  it('CAL-025e: the markers of a fully timed stay carry what the dropped block said (#2136)', () => {
+    // Losing the block must not lose the confirmation number and the notes with
+    // it, the same handover the split window bookings do (#2068).
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Paris' });
+    createStay(trip.id, {
+      start: '2026-07-07', end: '2026-07-12',
+      check_in: '15:00', check_out: '11:00',
+      confirmation: 'HTL-77291', notes: 'Key box code 4711',
+    });
+
+    const { ics } = svc.exportICS(trip.id);
+
+    const unfolded = ics.replaceAll('\r\n ', '');
+    const descriptions = unfolded.split('\r\n').filter(l => l.startsWith('DESCRIPTION:Type: hotel'));
+    expect(descriptions).toHaveLength(2);
+    expect(descriptions[0]).toContain('Confirmation: HTL-77291');
+    expect(descriptions[0]).toContain('Key box code 4711');
+  });
+
+  it('CAL-025f: a stay whose place has no address takes the booking location instead', () => {
+    // place_id is nullable (ON DELETE SET NULL) and an address is optional, so
+    // without the fallback the only two events left name no address at all.
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Paris' });
+    createStay(trip.id, {
+      start: '2026-07-07', end: '2026-07-12',
+      check_in: '15:00', check_out: '11:00',
+      address: null, location: '12 Hotel Street',
+    });
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics.match(/LOCATION:12 Hotel Street/g)).toHaveLength(2);
+  });
+
+  it('CAL-025g: a stay that keeps its block does not repeat the description on its markers', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Paris' });
+    createStay(trip.id, {
+      start: '2026-07-07', end: '2026-07-12',
+      check_in: '15:00', confirmation: 'HTL-77291',
+    });
+
+    const { ics } = svc.exportICS(trip.id);
+
+    // The block is still emitted and still says it; saying it a second time on
+    // the check-in marker would change a feed that already went out.
+    const unfolded = ics.replaceAll('\r\n ', '');
+    expect(unfolded.split('\r\n').filter(l => l.startsWith('DESCRIPTION:Type: hotel'))).toHaveLength(1);
+  });
+
+  it('CAL-025c: knowing only one end keeps the block, since nothing else carries the other', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Paris' });
+    createStay(trip.id, { start: '2026-07-07', end: '2026-07-12', check_in: '15:00' });
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).toContain('DTSTART;VALUE=DATE:20260707\r\nDTEND;VALUE=DATE:20260713');
+    expect(ics).toContain('SUMMARY:Check-in: Hotel Bellevue');
+    expect(ics).not.toContain('SUMMARY:Check-out');
   });
 
   it('CAL-026: check-in and check-out become their own timed events in the stay zone', () => {
@@ -846,6 +979,61 @@ describe('accommodations', () => {
     expect(ics).toContain('DTSTART;TZID=Europe/Paris:20260712T110000');
     expect(ics).toContain('LOCATION:1 Rue de Rivoli');
     expect(ics).toContain('BEGIN:VTIMEZONE\r\nTZID:Europe/Paris');
+  });
+
+  it('CAL-026b: a check-in without an until-clock reads as one hour, not a point (#2136)', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Paris' });
+    createStay(trip.id, { start: '2026-07-07', end: '2026-07-12', check_in: '15:00' });
+
+    const { ics } = svc.exportICS(trip.id);
+
+    // Reporter variant 2: the lone timed end becomes a one-hour slot AND the
+    // all-day block stays, since it is the only carrier of the other end's date.
+    expect(ics).toContain('DTSTART;TZID=Europe/Paris:20260707T150000');
+    expect(ics).toContain('DTEND;TZID=Europe/Paris:20260707T160000');
+    expect(ics).toContain('DTSTART;VALUE=DATE:20260707\r\nDTEND;VALUE=DATE:20260713');
+  });
+
+  it('CAL-026c: the check-out marker carries the same default hour', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Paris' });
+    createStay(trip.id, { start: '2026-07-07', end: '2026-07-12', check_out: '11:00' });
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).toContain('DTSTART;TZID=Europe/Paris:20260712T110000');
+    expect(ics).toContain('DTEND;TZID=Europe/Paris:20260712T120000');
+  });
+
+  it('CAL-026d: a late check-out rolls the DTEND over midnight', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Paris' });
+    createStay(trip.id, { start: '2026-07-07', end: '2026-07-12', check_out: '23:30' });
+
+    const { ics } = svc.exportICS(trip.id);
+
+    // Without the day shift the DTEND would land before its DTSTART, and clients
+    // drop an event whose end precedes its start.
+    expect(ics).toContain('DTSTART;TZID=Europe/Paris:20260712T233000');
+    expect(ics).toContain('DTEND;TZID=Europe/Paris:20260713T003000');
+  });
+
+  it('CAL-026e: a check-in window that ends before it starts runs past midnight (#2136)', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Paris' });
+    createStay(trip.id, {
+      start: '2026-07-07', end: '2026-07-12',
+      check_in: '22:00', check_in_end: '02:00', check_out: '11:00',
+    });
+
+    const { ics } = svc.exportICS(trip.id);
+
+    // A late-arrival window, and nothing on the way in (REST, MCP, plugin SDK)
+    // orders the two clocks. Emitted as recorded the DTEND precedes the DTSTART,
+    // clients drop the event, and since the block is gone the arrival is gone.
+    expect(ics).toContain('DTSTART;TZID=Europe/Paris:20260707T220000');
+    expect(ics).toContain('DTEND;TZID=Europe/Paris:20260708T020000');
   });
 
   it('CAL-027: a stay without times emits the all-day range and nothing else', () => {
@@ -932,6 +1120,29 @@ describe('accommodations', () => {
     expect(ics).toContain('SUMMARY:Check-in: Hotel Bellevue\r\n');
     expect(ics).not.toContain('Check-in: Bellevue second room');
     expect(ics).toContain('SUMMARY:Bellevue second room');
+  });
+
+  it('CAL-060: the stop a booking puts on its check-in day does not list the hotel a second time', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Paris' });
+    const { stayId, placeId } = createStay(trip.id, { start: '2026-07-07', end: '2026-07-12' });
+    const stay = testDb.prepare('SELECT start_day_id FROM day_accommodations WHERE id = ?')
+      .get(stayId) as { start_day_id: number };
+    // The stop a booked night puts on its check-in day, so the route can reach
+    // the hotel. It belongs to the stay, not to the day's plan, and the stay
+    // block already carries the hotel.
+    testDb.prepare('INSERT INTO day_assignments (day_id, place_id, order_index, accommodation_id) VALUES (?, ?, 0, ?)')
+      .run(stay.start_day_id, placeId, stayId);
+    // A place the traveller planned by hand on the same day stays on it.
+    const museum = createPlace(testDb, trip.id, { name: 'Louvre' });
+    createDayAssignment(testDb, stay.start_day_id, museum.id);
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).toContain('DTSTART;VALUE=DATE:20260707\r\nDTEND;VALUE=DATE:20260713');
+    expect(ics.match(/Hotel Bellevue/g)).toHaveLength(1);
+    expect(ics).toContain('• Louvre');
+    expect(ics).not.toContain('• Hotel Bellevue');
   });
 });
 
@@ -1058,6 +1269,280 @@ describe('car rentals', () => {
     expect(ics).toContain('DTSTART;TZID=Europe/Paris:20260707T183000');
     // No 17-character value anywhere: that is what silently drops the zone.
     expect(ics).not.toMatch(/DTSTART[^\r\n]*\d{8}T\d{8}/);
+  });
+
+  // ── Window bookings: two hand-overs, not one block (#2068) ─────────────────
+
+  it('CAL-045: multi-day parking becomes a drop-off and a pick-up instead of one block', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Road Trip' });
+    const parking = createReservation(testDb, trip.id, { title: 'Airport P4', type: 'parking' });
+    testDb.prepare('UPDATE reservations SET reservation_time=?, reservation_end_time=? WHERE id=?')
+      .run('2026-07-01T06:30', '2026-07-10T22:15', parking.id);
+
+    const { ics } = svc.exportICS(trip.id);
+
+    // The two hand-overs, an hour each. Parking is dropped off first.
+    expect(ics).toContain('SUMMARY:Drop-off: Airport P4');
+    expect(ics).toContain('DTSTART:20260701T063000');
+    expect(ics).toContain('DTEND:20260701T073000');
+    expect(ics).toContain('SUMMARY:Pickup: Airport P4');
+    expect(ics).toContain('DTSTART:20260710T221500');
+    expect(ics).toContain('DTEND:20260710T231500');
+    // And the block across the ten days in between is gone.
+    expect(ics).not.toContain('SUMMARY:Airport P4\r\n');
+    expect(ics).not.toContain('DTEND:20260710T221500');
+  });
+
+  it('CAL-046: a same-day parking is one sitting and keeps its single event', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Road Trip' });
+    const parking = createReservation(testDb, trip.id, { title: 'Garage', type: 'parking' });
+    testDb.prepare('UPDATE reservations SET reservation_time=?, reservation_end_time=? WHERE id=?')
+      .run('2026-07-01T08:00', '2026-07-01T18:30', parking.id);
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).toContain('SUMMARY:Garage\r\n');
+    expect(ics).toContain('DTSTART:20260701T080000');
+    expect(ics).toContain('DTEND:20260701T183000');
+    expect(ics).not.toContain('Drop-off: Garage');
+    expect(ics).not.toContain('Pickup: Garage');
+  });
+
+  it('CAL-047: a rental typed with days but no clock finally reaches the feed', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Road Trip' });
+    const first = createDay(testDb, trip.id, { date: '2026-07-03' });
+    const last = createDay(testDb, trip.id, { date: '2026-07-08' });
+    const rental = createReservation(testDb, trip.id, { title: 'Sixt', type: 'car' });
+    // The planner writes reservation_time = NULL when the optional time pickers
+    // are left blank, which is what made this booking invisible.
+    testDb.prepare('UPDATE reservations SET reservation_time=NULL, reservation_end_time=NULL, day_id=?, end_day_id=? WHERE id=?')
+      .run(first.id, last.id, rental.id);
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).toContain('SUMMARY:Pickup: Sixt');
+    expect(ics).toContain('DTSTART;VALUE=DATE:20260703');
+    expect(ics).toContain('SUMMARY:Drop-off: Sixt');
+    expect(ics).toContain('DTSTART;VALUE=DATE:20260708');
+  });
+
+  it('CAL-048: a split rental keeps its zones and everything the block used to say', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Road Trip' });
+    const rental = createReservation(testDb, trip.id, { title: 'Hertz', type: 'car' });
+    testDb.prepare('UPDATE reservations SET reservation_time=NULL, reservation_end_time=NULL, confirmation_number=?, location=? WHERE id=?')
+      .run('HZ-4471', 'Hertz Downtown', rental.id);
+    insertEndpoint(rental.id, 'from', 0, 'Paris Office', 48.8566, 2.3522, 'Europe/Paris', '09:00', '2026-07-07');
+    insertEndpoint(rental.id, 'to', 1, 'Berlin Office', 52.5, 13.4, 'Europe/Berlin', '10:30', '2026-07-14');
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).toContain('DTSTART;TZID=Europe/Paris:20260707T090000');
+    expect(ics).toContain('DTEND;TZID=Europe/Paris:20260707T100000');
+    expect(ics).toContain('DTSTART;TZID=Europe/Berlin:20260714T103000');
+    expect(ics).toContain('DTEND;TZID=Europe/Berlin:20260714T113000');
+    // Dropping the block must not drop what it said: both hand-overs carry it.
+    // Long lines are folded at 75 octets, so unfold before reading them.
+    const unfolded = ics.replaceAll('\r\n ', '');
+    const descriptions = unfolded.split('\r\n').filter(l => l.startsWith('DESCRIPTION:Type: car'));
+    expect(descriptions).toHaveLength(2);
+    expect(descriptions[0]).toContain('Confirmation: HZ-4471');
+    expect(descriptions[0]).toContain('Route: Paris Office → Berlin Office');
+  });
+
+  // #1453 — the block is the only carrier of the return time when just one side
+  // was geocoded, so a one-sided rental must keep it.
+  it('CAL-049: a one-sided rental keeps its block rather than losing the return', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Road Trip' });
+    const place = createPlace(testDb, trip.id, { name: 'Rental Desk', lat: 48.8566, lng: 2.3522 });
+    const rental = createReservation(testDb, trip.id, { title: 'Avis', type: 'car' });
+    testDb.prepare('UPDATE reservations SET reservation_time=?, reservation_end_time=?, place_id=? WHERE id=?')
+      .run('2026-07-02T10:00', '2026-07-09T10:00', place.id, rental.id);
+
+    const { ics } = svc.exportICS(trip.id);
+
+    // Both sides resolve off reservation_time/-_end_time, so this one does split,
+    // and the return keeps the pickup's zone instead of floating.
+    expect(ics).toContain('DTSTART;TZID=Europe/Paris:20260702T100000');
+    expect(ics).toContain('DTSTART;TZID=Europe/Paris:20260709T100000');
+    expect(ics).not.toMatch(/DTSTART:20260709T100000/);
+  });
+
+  it('CAL-050: a rental with only a pickup endpoint is left exactly as it was', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Road Trip' });
+    const rental = createReservation(testDb, trip.id, { title: 'Solo', type: 'car' });
+    testDb.prepare('UPDATE reservations SET reservation_time=NULL, reservation_end_time=NULL WHERE id=?').run(rental.id);
+    insertEndpoint(rental.id, 'from', 0, 'Paris Office', 48.8566, 2.3522, 'Europe/Paris', '09:00', '2026-07-07');
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).toContain('SUMMARY:Solo\r\n');
+    expect(ics).toContain('SUMMARY:Pickup: Solo');
+    expect(ics).not.toContain('Drop-off');
+  });
+
+  it('CAL-051: any transport pinned to days without a clock reaches the feed too', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Road Trip' });
+    const first = createDay(testDb, trip.id, { date: '2026-07-03' });
+    const last = createDay(testDb, trip.id, { date: '2026-07-04' });
+    const bus = createReservation(testDb, trip.id, { title: 'Night Bus', type: 'bus' });
+    testDb.prepare('UPDATE reservations SET reservation_time=NULL, reservation_end_time=NULL, day_id=?, end_day_id=? WHERE id=?')
+      .run(first.id, last.id, bus.id);
+
+    const { ics } = svc.exportICS(trip.id);
+
+    // Not a window booking, so it stays one block — it just exists now.
+    expect(ics).toContain('SUMMARY:Night Bus');
+    expect(ics).toContain('DTSTART;VALUE=DATE:20260703');
+    expect(ics).toContain('DTEND;VALUE=DATE:20260705');
+    expect(ics).not.toContain('Pickup: Night Bus');
+  });
+
+  it('CAL-052: a split rental whose endpoints carry no zone falls back to their coordinates', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Road Trip' });
+    const rental = createReservation(testDb, trip.id, { title: 'Europcar', type: 'car' });
+    testDb.prepare('UPDATE reservations SET reservation_time=NULL, reservation_end_time=NULL WHERE id=?').run(rental.id);
+    // An older import that geocoded both ends but stored no IANA zone.
+    insertEndpoint(rental.id, 'from', 0, 'Paris Office', 48.8566, 2.3522, null, '09:00', '2026-07-07');
+    insertEndpoint(rental.id, 'to', 1, 'Berlin Office', 52.5, 13.4, null, '10:30', '2026-07-14');
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).toContain('DTSTART;TZID=Europe/Paris:20260707T090000');
+    expect(ics).toContain('DTSTART;TZID=Europe/Berlin:20260714T103000');
+  });
+
+  // reservation_end_time is frequently a bare clock next to the booking's own
+  // date, which puts both hand-overs on the same day — so it is one sitting.
+  it('CAL-053: a bare end clock resolves against the start date rather than splitting', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Road Trip' });
+    const parking = createReservation(testDb, trip.id, { title: 'Street Bay', type: 'parking' });
+    testDb.prepare('UPDATE reservations SET reservation_time=?, reservation_end_time=? WHERE id=?')
+      .run('2026-07-01T08:00', '18:30', parking.id);
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).toContain('SUMMARY:Street Bay\r\n');
+    expect(ics).not.toContain('Drop-off: Street Bay');
+    expect(ics).not.toContain('Pickup: Street Bay');
+  });
+
+  it('CAL-054: an unsplit rental with a day but no clock emits no hand-over of its own', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Road Trip' });
+    const day = createDay(testDb, trip.id, { date: '2026-07-03' });
+    const rental = createReservation(testDb, trip.id, { title: 'Dayless', type: 'car' });
+    // A day but no end day and no clock: one side resolves, and it has no time,
+    // so there is nothing to place — the all-day block carries it instead.
+    testDb.prepare('UPDATE reservations SET reservation_time=NULL, reservation_end_time=NULL, day_id=?, end_day_id=NULL WHERE id=?')
+      .run(day.id, rental.id);
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).toContain('SUMMARY:Dayless\r\n');
+    expect(ics).toContain('DTSTART;VALUE=DATE:20260703');
+    expect(ics).not.toContain('Pickup: Dayless');
+    expect(ics).not.toContain('Drop-off: Dayless');
+  });
+});
+
+describe('staged bookings', () => {
+  /** A stay plus, optionally, the bookings that point at it. */
+  const stayWith = (tripId: number, states: Array<{ state: string; title: string }>) => {
+    const place = createPlace(testDb, tripId, { name: 'Hotel Bellevue', lat: 48.8566, lng: 2.3522 });
+    const startDay = createDay(testDb, tripId, { date: '2026-09-01' });
+    const endDay = createDay(testDb, tripId, { date: '2026-09-04' });
+    const stayId = testDb.prepare(`
+      INSERT INTO day_accommodations (trip_id, place_id, start_day_id, end_day_id, check_in, check_out)
+      VALUES (?, ?, ?, ?, '15:00', '11:00')
+    `).run(tripId, place.id, startDay.id, endDay.id).lastInsertRowid as number;
+
+    for (const s of states) {
+      testDb.prepare(`
+        INSERT INTO reservations (trip_id, day_id, title, reservation_time, status, type, accommodation_id, ingest_state)
+        VALUES (?, ?, ?, '2026-09-01T15:00', 'confirmed', 'hotel', ?, ?)
+      `).run(tripId, startDay.id, s.title, String(stayId), s.state);
+    }
+    return { stayId, placeId: place.id };
+  };
+
+  it('CAL-055: a staged booking is left out of the calendar, confirmation number included', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Kyoto' });
+    const day = createDay(testDb, trip.id, { date: '2026-09-01' });
+    const staged = createReservation(testDb, trip.id, { title: 'Parked Flight', type: 'flight', day_id: day.id });
+    testDb.prepare(`UPDATE reservations SET ingest_state='staged', reservation_time='2026-09-01T08:00',
+      confirmation_number='ABC123' WHERE id=?`).run(staged.id);
+    const live = createReservation(testDb, trip.id, { title: 'Booked Flight', type: 'flight', day_id: day.id });
+    testDb.prepare("UPDATE reservations SET reservation_time='2026-09-01T12:00' WHERE id=?").run(live.id);
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).toContain('SUMMARY:Booked Flight');
+    expect(ics).not.toContain('Parked Flight');
+    // The number rides in the DESCRIPTION, not the SUMMARY, so search the whole document.
+    expect(ics).not.toContain('ABC123');
+  });
+
+  it('CAL-056: a booking created before the column existed still exports', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Lisbon' });
+    const day = createDay(testDb, trip.id, { date: '2026-09-02' });
+    // No ingest_state named on the insert: exactly what every writer does today,
+    // and what the ALTER backfilled onto every pre-existing row.
+    const old = createReservation(testDb, trip.id, { title: 'Legacy Booking', type: 'flight', day_id: day.id });
+    testDb.prepare("UPDATE reservations SET reservation_time='2026-09-02T09:00' WHERE id=?").run(old.id);
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).toContain('SUMMARY:Legacy Booking');
+  });
+
+  it('CAL-057: an accommodation whose only booking is staged emits no stay, check-in or check-out', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Osaka' });
+    stayWith(trip.id, [{ state: 'staged', title: 'Parked Hotel' }]);
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).not.toContain('Parked Hotel');
+    expect(ics).not.toMatch(/UID:trek-checkin-\d+@trek/);
+    expect(ics).not.toMatch(/UID:trek-checkout-\d+@trek/);
+  });
+
+  it('CAL-058: an accommodation with no linked booking at all still emits its stay', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Nara' });
+    // The regression this pins: a plain EXISTS(live) instead of
+    // NOT EXISTS(any) OR EXISTS(live) would drop every hand-added hotel out of
+    // trips that are shared today.
+    stayWith(trip.id, []);
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).toContain('Hotel Bellevue');
+    expect(ics).toMatch(/UID:trek-checkin-\d+@trek/);
+  });
+
+  it('CAL-059: a stay with both a staged and a live booking takes its title from the live one', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Kobe' });
+    // The staged row gets the lower id, so the subquery's ORDER BY r.id ASC
+    // would pick it without the predicate.
+    stayWith(trip.id, [{ state: 'staged', title: 'Parked Name' }, { state: 'live', title: 'Real Name' }]);
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).toContain('Real Name');
+    expect(ics).not.toContain('Parked Name');
   });
 });
 

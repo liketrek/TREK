@@ -1,5 +1,5 @@
-// FE-ADMIN-ADDON-001 to FE-ADMIN-ADDON-025
-import { render, screen, waitFor, within } from '../../../tests/helpers/render';
+// FE-ADMIN-ADDON-001 to FE-ADMIN-ADDON-037
+import { render, screen, waitFor } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { delay, http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
@@ -44,20 +44,16 @@ function modelsRoute(names: string[], seen?: (string | null)[]) {
   });
 }
 
-/** The pill toggle of a top-level addon row. */
+/** Every switch is labelled with the thing it controls, top-level tile or shelf
+ *  row alike, so one lookup covers both. */
 function addonToggle(name: string): HTMLElement {
-  const row = screen.getByText(name).closest('.px-6.py-4') as HTMLElement;
-  return within(row).getByRole('button');
+  return screen.getByRole('button', { name });
 }
 
-/** The pill toggle of an indented sub-row (bag tracking, collab feature, photo provider). */
-function subToggle(label: string): HTMLElement {
-  const row = screen.getByText(label).closest('.flex.items-center.gap-4') as HTMLElement;
-  return within(row).getByRole('button');
-}
+const subToggle = addonToggle;
 
 function isOn(toggle: HTMLElement): boolean {
-  return toggle.style.background === 'var(--text-primary)';
+  return toggle.getAttribute('aria-pressed') === 'true';
 }
 
 beforeAll(() => {
@@ -82,6 +78,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  document.documentElement.classList.remove('dark');
 });
 
 describe('AddonManager', () => {
@@ -144,13 +141,10 @@ describe('AddonManager', () => {
     render(<><ToastContainer /><AddonManager /></>);
     await screen.findByText('Todo List');
 
-    // Get toggle button - use getAllByRole since there might be multiple buttons
-    const buttons = screen.getAllByRole('button');
-    const toggleBtn = buttons.find(b => b.classList.contains('rounded-full'));
-    expect(toggleBtn).toBeInTheDocument();
+    const toggleBtn = addonToggle('Todo List');
+    expect(isOn(toggleBtn)).toBe(false);
 
-    // Before click - disabled state (border-primary bg)
-    await user.click(toggleBtn!);
+    await user.click(toggleBtn);
 
     // After click - success toast
     await screen.findByText('Addon updated');
@@ -169,17 +163,14 @@ describe('AddonManager', () => {
     render(<><ToastContainer /><AddonManager /></>);
     await screen.findByText('Todo List');
 
-    const buttons = screen.getAllByRole('button');
-    const toggleBtn = buttons.find(b => b.classList.contains('rounded-full'));
-    await user.click(toggleBtn!);
+    await user.click(addonToggle('Todo List'));
 
     // Error toast appears
     await screen.findByText('Failed to update addon');
 
-    // The disabled text should be back after rollback
+    // The switch is back off after rollback
     await waitFor(() => {
-      const disabledTexts = screen.getAllByText('Disabled');
-      expect(disabledTexts.length).toBeGreaterThan(0);
+      expect(isOn(addonToggle('Todo List'))).toBe(false);
     });
   });
 
@@ -195,13 +186,7 @@ describe('AddonManager', () => {
       <AddonManager bagTrackingEnabled={false} onToggleBagTracking={mockToggle} />
     );
     await screen.findByText('Bag Tracking');
-    const bagTrackingToggle = screen.getAllByRole('button').find(b =>
-      b.closest('[style*="paddingLeft: 70"]') !== null || b.closest('div')?.textContent?.includes('Bag Tracking')
-    );
-    // Click the bag tracking toggle button (the h-6 w-11 button near "Bag Tracking")
-    const allBtns = screen.getAllByRole('button').filter(b => b.classList.contains('rounded-full'));
-    // There should be two toggle buttons: one for the addon, one for bag tracking
-    await user.click(allBtns[allBtns.length - 1]);
+    await user.click(subToggle('Bag Tracking'));
     expect(mockToggle).toHaveBeenCalled();
   });
 
@@ -251,9 +236,10 @@ describe('AddonManager', () => {
     // Journey addon is rendered
     expect(screen.getByText('Journey')).toBeInTheDocument();
 
-    // Toggle buttons: journey toggle + 2 provider toggles
-    const toggleBtns = screen.getAllByRole('button').filter(b => b.classList.contains('rounded-full'));
-    expect(toggleBtns.length).toBe(3);
+    // Journey's own switch plus one per provider, each labelled with what it controls
+    expect(isOn(addonToggle('Journey'))).toBe(true);
+    expect(isOn(subToggle('Unsplash'))).toBe(true);
+    expect(isOn(subToggle('Pexels'))).toBe(false);
   });
 
   it('FE-ADMIN-ADDON-011: icon falls back to Puzzle when icon name unknown', async () => {
@@ -278,7 +264,8 @@ describe('AddonManager', () => {
   });
 
   it('FE-ADMIN-ADDON-013: dark mode swaps the wordmark in the header', async () => {
-    seedStore(useSettingsStore, { settings: { dark_mode: 'dark' } });
+    // The wordmark reads the .dark class, the same source applyAppearance() writes.
+    document.documentElement.classList.add('dark');
     render(<AddonManager />);
 
     await screen.findByText('No addons available');
@@ -309,11 +296,11 @@ describe('AddonManager', () => {
 
     await screen.findByText('Immich');
     // immich and synologyphotos ship a vendor glyph, unsplash does not
-    const immichRow = screen.getByText('Immich').closest('.flex.items-center.gap-4') as HTMLElement;
+    const immichRow = screen.getByText('Immich').closest('li') as HTMLElement;
     expect(immichRow.querySelector('svg')).toBeInTheDocument();
-    const synologyRow = screen.getByText('Synology Photos').closest('.flex.items-center.gap-4') as HTMLElement;
+    const synologyRow = screen.getByText('Synology Photos').closest('li') as HTMLElement;
     expect(synologyRow.querySelector('svg')).toBeInTheDocument();
-    const unsplashRow = screen.getByText('Unsplash').closest('.flex.items-center.gap-4') as HTMLElement;
+    const unsplashRow = screen.getByText('Unsplash').closest('li') as HTMLElement;
     expect(unsplashRow.querySelector('svg')).not.toBeInTheDocument();
 
     expect(isOn(subToggle('Immich'))).toBe(true);
@@ -361,7 +348,172 @@ describe('AddonManager', () => {
     await waitFor(() => expect(isOn(subToggle('Unsplash'))).toBe(true));
   });
 
-  it('FE-ADMIN-ADDON-018: the collab sub-features render their state and report the toggled key', async () => {
+  it('FE-ADMIN-ADDON-030: provider sub-rows stay hidden while Journey itself is off', async () => {
+    server.use(addonsRoute([
+      buildAddon({ id: 'journey', name: 'Journey', type: 'global', icon: 'Compass', enabled: false }),
+      buildAddon({ id: 'immich', name: 'Immich', description: 'Self-hosted photos', type: 'photo_provider', enabled: true }),
+      buildAddon({ id: 'synologyphotos', name: 'Synology Photos', description: 'NAS photos', type: 'photo_provider', enabled: false }),
+    ]));
+    render(<AddonManager />);
+
+    await screen.findByText('Journey');
+    expect(screen.queryByText('Immich')).not.toBeInTheDocument();
+    expect(screen.queryByText('Synology Photos')).not.toBeInTheDocument();
+  });
+
+  it('FE-ADMIN-ADDON-031: switching Journey off and on again shows the cascaded providers as off', async () => {
+    const user = userEvent.setup();
+    let loads = 0;
+    let journeyOn = true;
+    let immichOn = true;
+    server.use(
+      http.get('/api/admin/addons', () => {
+        loads += 1;
+        return HttpResponse.json({
+          addons: [
+            buildAddon({ id: 'journey', name: 'Journey', type: 'global', icon: 'Compass', enabled: journeyOn }),
+            buildAddon({ id: 'immich', name: 'Immich', description: 'Self-hosted photos', type: 'photo_provider', enabled: immichOn }),
+          ],
+        });
+      }),
+      http.put('/api/admin/addons/journey', async ({ request }) => {
+        journeyOn = (await request.json() as { enabled: boolean }).enabled;
+        // Journey off takes its providers with it, see admin.service.ts.
+        if (!journeyOn) immichOn = false;
+        return HttpResponse.json({ success: true });
+      }),
+    );
+    render(<><ToastContainer /><AddonManager /></>);
+    await screen.findByText('Immich');
+
+    await user.click(addonToggle('Journey'));
+    // The toast closes the whole toggle, re-read included.
+    await screen.findByText('Addon updated');
+    expect(loads).toBe(2);
+    expect(screen.queryByText('Immich')).not.toBeInTheDocument();
+
+    await user.click(addonToggle('Journey'));
+
+    await screen.findByText('Immich');
+    expect(isOn(subToggle('Immich'))).toBe(false);
+  });
+
+  it('FE-ADMIN-ADDON-032: a toggle the server does not cascade keeps the snapshot it has', async () => {
+    const user = userEvent.setup();
+    let loads = 0;
+    server.use(
+      http.get('/api/admin/addons', () => {
+        loads += 1;
+        return HttpResponse.json({ addons: [buildAddon({ id: 'todo', enabled: false })] });
+      }),
+      http.put('/api/admin/addons/todo', () => HttpResponse.json({ success: true })),
+    );
+    render(<><ToastContainer /><AddonManager /></>);
+    await screen.findByText('Todo List');
+
+    await user.click(addonToggle('Todo List'));
+
+    await screen.findByText('Addon updated');
+    expect(loads).toBe(1);
+    expect(isOn(addonToggle('Todo List'))).toBe(true);
+  });
+
+  it('FE-ADMIN-ADDON-033: document providers hang off Documents with their glyphs and stay out of the count', async () => {
+    server.use(addonsRoute([
+      buildAddon({ id: 'documents', name: 'Documents', icon: 'FileText', enabled: true }),
+      buildAddon({ id: 'journey', name: 'Journey', type: 'global', icon: 'Compass', enabled: false }),
+      buildAddon({ id: 'paperless', name: 'Paperless-ngx', description: 'Document archive', type: 'document_provider', enabled: true }),
+      buildAddon({ id: 'nextcloud', name: 'Nextcloud', description: 'WebDAV files', type: 'document_provider', enabled: false }),
+    ]));
+    render(<AddonManager />);
+
+    await screen.findByText('Paperless-ngx');
+    const paperlessRow = screen.getByText('Paperless-ngx').closest('li') as HTMLElement;
+    expect(paperlessRow.querySelector('svg')).toBeInTheDocument();
+    expect(isOn(subToggle('Paperless-ngx'))).toBe(true);
+    expect(isOn(subToggle('Nextcloud'))).toBe(false);
+    // Documents and Journey are the addons; an enabled provider is a shelf row
+    // and must not turn 1/2 into 2/2.
+    expect(screen.getByText('1/2')).toBeInTheDocument();
+  });
+
+  it('FE-ADMIN-ADDON-034: document providers stay hidden while Documents itself is off', async () => {
+    server.use(addonsRoute([
+      buildAddon({ id: 'documents', name: 'Documents', icon: 'FileText', enabled: false }),
+      buildAddon({ id: 'paperless', name: 'Paperless-ngx', type: 'document_provider', enabled: true }),
+    ]));
+    render(<AddonManager />);
+
+    await screen.findByText('Documents');
+    expect(screen.queryByText('Paperless-ngx')).not.toBeInTheDocument();
+  });
+
+  it('FE-ADMIN-ADDON-035: switching Documents off and on again shows the cascaded providers as off', async () => {
+    const user = userEvent.setup();
+    let loads = 0;
+    let documentsOn = true;
+    let paperlessOn = true;
+    server.use(
+      http.get('/api/admin/addons', () => {
+        loads += 1;
+        return HttpResponse.json({
+          addons: [
+            buildAddon({ id: 'documents', name: 'Documents', icon: 'FileText', enabled: documentsOn }),
+            buildAddon({ id: 'paperless', name: 'Paperless-ngx', type: 'document_provider', enabled: paperlessOn }),
+          ],
+        });
+      }),
+      http.put('/api/admin/addons/documents', async ({ request }) => {
+        documentsOn = (await request.json() as { enabled: boolean }).enabled;
+        if (!documentsOn) paperlessOn = false;
+        return HttpResponse.json({ success: true });
+      }),
+    );
+    render(<><ToastContainer /><AddonManager /></>);
+    await screen.findByText('Paperless-ngx');
+
+    await user.click(addonToggle('Documents'));
+    await screen.findByText('Addon updated');
+    expect(loads).toBe(2);
+    expect(screen.queryByText('Paperless-ngx')).not.toBeInTheDocument();
+
+    await user.click(addonToggle('Documents'));
+
+    await screen.findByText('Paperless-ngx');
+    expect(isOn(subToggle('Paperless-ngx'))).toBe(false);
+  });
+
+  it('FE-ADMIN-ADDON-036: toggling a document provider persists it without re-reading the list', async () => {
+    const user = userEvent.setup();
+    let loads = 0;
+    let body: unknown = null;
+    server.use(
+      http.get('/api/admin/addons', () => {
+        loads += 1;
+        return HttpResponse.json({
+          addons: [
+            buildAddon({ id: 'documents', name: 'Documents', icon: 'FileText', enabled: true }),
+            buildAddon({ id: 'papra', name: 'Papra', type: 'document_provider', enabled: false }),
+          ],
+        });
+      }),
+      http.put('/api/admin/addons/papra', async ({ request }) => {
+        body = await request.json();
+        return HttpResponse.json({ success: true });
+      }),
+    );
+    render(<><ToastContainer /><AddonManager /></>);
+    await screen.findByText('Papra');
+
+    await user.click(subToggle('Papra'));
+
+    await screen.findByText('Addon updated');
+    expect(body).toEqual({ enabled: true });
+    expect(loads).toBe(1);
+    expect(isOn(subToggle('Papra'))).toBe(true);
+  });
+
+  it('FE-ADMIN-ADDON-018:the collab sub-features render their state and report the toggled key', async () => {
     const user = userEvent.setup();
     const onToggleCollabFeature = vi.fn();
     server.use(addonsRoute([buildAddon({ id: 'collab', name: 'Collab', enabled: true })]));
@@ -391,19 +543,48 @@ describe('AddonManager', () => {
     expect(screen.queryByText('Polls')).not.toBeInTheDocument();
   });
 
+  it('FE-ADMIN-ADDON-037: the links row describes the feature, not an empty list', async () => {
+    // The row's tooltip is its description. The links tab's empty state read as a
+    // status here, and a status that never changes reads as a broken feature.
+    server.use(addonsRoute([buildAddon({ id: 'collab', name: 'Collab', enabled: true })]));
+    render(
+      <AddonManager
+        collabFeatures={{ chat: true, notes: true, links: true, polls: true, whatsnext: true }}
+        onToggleCollabFeature={vi.fn()}
+      />,
+    );
+
+    const links = await screen.findByText('Links');
+    expect(links).toHaveAttribute('title');
+    expect(links.getAttribute('title')).not.toBe('No shared links yet');
+  });
+
   it('FE-ADMIN-ADDON-020: a disabled AI-parsing addon renders the row without its config block', async () => {
     server.use(addonsRoute([{ ...llmAddon({ provider: 'local' }), enabled: false }]));
     render(<AddonManager />);
 
     await screen.findByText('AI Parsing');
-    expect(screen.getByText('Extract bookings from files')).toBeInTheDocument();
-    expect(screen.queryByText('Connection')).not.toBeInTheDocument();
+    // The catalog key now exists, so the tile shows the translation rather than falling
+    // back to the English description the server sent.
+    expect(screen.getByText('Reads bookings the built-in parser cannot, using an AI model you choose')).toBeInTheDocument();
+    expect(screen.queryByText('Provider')).not.toBeInTheDocument();
+  });
+
+  it('FE-ADMIN-ADDON-020b: the config lives in the tile shelf, not as a band below the grid', async () => {
+    server.use(addonsRoute([llmAddon({ provider: 'openai' })]));
+    render(<AddonManager />);
+
+    const label = await screen.findByText('Provider');
+    // Inside the AI Parsing tile's <article>, like the collab toggles sit in theirs.
+    const tile = label.closest('article');
+    expect(tile).not.toBeNull();
+    expect(tile!.textContent).toContain('AI Parsing');
   });
 
   it('FE-ADMIN-ADDON-021: the local provider lists installed models and a chip fills the model field', async () => {
     const user = userEvent.setup();
     const urls: (string | null)[] = [];
-    server.use(addonsRoute([llmAddon({ provider: 'local' })]), modelsRoute(['qwen3:8b', 'llama3:8b'], urls));
+    server.use(addonsRoute([llmAddon({ provider: 'local' })]), modelsRoute(['qwen3.5:4b', 'llama3:8b'], urls));
     render(<AddonManager />);
 
     await screen.findByText('Installed on the server');
@@ -413,9 +594,9 @@ describe('AddonManager', () => {
     await user.click(screen.getByRole('button', { name: 'llama3:8b' }));
     expect(screen.getByPlaceholderText('select or pull below')).toHaveValue('llama3:8b');
 
-    // qwen3:8b is already installed, so the recommended row offers "Use" instead of "Pull"
+    // qwen3.5:4b is already installed, so the recommended row offers "Use" instead of "Pull"
     await user.click(screen.getByRole('button', { name: 'Use' }));
-    expect(screen.getByPlaceholderText('select or pull below')).toHaveValue('qwen3:8b');
+    expect(screen.getByPlaceholderText('select or pull below')).toHaveValue('qwen3.5:4b');
     expect(screen.getByRole('button', { name: 'Selected' })).toBeDisabled();
   });
 
@@ -475,7 +656,7 @@ describe('AddonManager', () => {
       addonsRoute([llmAddon({ provider: 'local' })]),
       http.get('/api/admin/llm/local/models', () => {
         modelCalls += 1;
-        return HttpResponse.json({ models: modelCalls === 1 ? [] : [{ name: 'qwen3:8b', size: 1 }] });
+        return HttpResponse.json({ models: modelCalls === 1 ? [] : [{ name: 'qwen3.5:4b', size: 1 }] });
       }),
       http.post('/api/admin/llm/local/pull', async ({ request }) => {
         pulled = await request.json();
@@ -495,8 +676,8 @@ describe('AddonManager', () => {
     expect(screen.getByText('starting…')).toBeInTheDocument();
 
     await screen.findByText('Model pulled');
-    expect(pulled).toEqual({ baseUrl: 'http://localhost:11434/v1', model: 'qwen3:8b' });
-    expect(screen.getByPlaceholderText('select or pull below')).toHaveValue('qwen3:8b');
+    expect(pulled).toEqual({ baseUrl: 'http://localhost:11434/v1', model: 'qwen3.5:4b' });
+    expect(screen.getByPlaceholderText('select or pull below')).toHaveValue('qwen3.5:4b');
     await waitFor(() => expect(screen.getByRole('button', { name: 'Selected' })).toBeDisabled());
   });
 
@@ -615,7 +796,7 @@ describe('AddonManager', () => {
     server.use(addonsRoute([llmAddon({ provider: 'openai' })]), modelsRoute([], urls));
     render(<AddonManager />);
 
-    await screen.findByText('Connection');
+    await screen.findByText('Provider');
     expect(screen.queryByText('Installed on the server')).not.toBeInTheDocument();
 
     await user.type(screen.getByPlaceholderText('https://api.openai.com/v1'), 'https://proxy.local/v1');

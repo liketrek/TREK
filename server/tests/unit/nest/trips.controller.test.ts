@@ -23,7 +23,7 @@ import type { CalendarService } from '../../../src/nest/calendar/calendar.servic
 import type { TripReadModelService } from '../../../src/nest/trip-read-model/trip-read-model.service';
 import { NotFoundError, ValidationError } from '../../../src/nest/trips/trips.service';
 import type { User } from '../../../src/types';
-import { activeTripResponseSchema, tripCreateRequestSchema, tripTransferOwnershipRequestSchema } from '@trek/shared';
+import { MAX_TRIP_DAYS, activeTripResponseSchema, tripCreateRequestSchema, tripTransferOwnershipRequestSchema } from '@trek/shared';
 
 const user = { id: 1, role: 'user', email: 'u@example.test' } as User;
 const req = { headers: {} } as Request;
@@ -178,6 +178,24 @@ describe('TripsController (parity with the legacy /api/trips route)', () => {
       const create = vi.fn().mockReturnValue({ trip: { id: 9 }, tripId: 9, reminderDays: 0 });
       tc(svc({ create } as Partial<TripsService>)).create(user, prePipeCreateBody({ title: 'T', day_count: 'abc' }), req);
       expect(create).toHaveBeenCalledWith(1, expect.objectContaining({ day_count: 7 }));
+    });
+
+    it('clamps day_count to MAX_TRIP_DAYS', () => {
+      const create = vi.fn().mockReturnValue({ trip: { id: 9 }, tripId: 9, reminderDays: 0 });
+      tc(svc({ create } as Partial<TripsService>)).create(user, { title: 'T', day_count: MAX_TRIP_DAYS + 1 }, req);
+      expect(create).toHaveBeenCalledWith(1, expect.objectContaining({ day_count: MAX_TRIP_DAYS }));
+    });
+
+    it('maps a ValidationError from create to 400 (range past MAX_TRIP_DAYS)', () => {
+      const create = vi.fn().mockImplementation(() => { throw new ValidationError(`A trip can span at most ${MAX_TRIP_DAYS} days`); });
+      expect(thrown(() => tc(svc({ create } as Partial<TripsService>)).create(user, { title: 'T', start_date: '2026-01-01', end_date: '2036-01-01' }, req))).toEqual({
+        status: 400, body: { error: `A trip can span at most ${MAX_TRIP_DAYS} days` },
+      });
+    });
+
+    it('re-throws an unknown error from create', () => {
+      const create = vi.fn().mockImplementation(() => { throw new Error('boom'); });
+      expect(() => tc(svc({ create } as Partial<TripsService>)).create(user, { title: 'T' }, req)).toThrow('boom');
     });
 
     it('logs the reminder when reminderDays is set', () => {
@@ -384,6 +402,16 @@ describe('TripsController (parity with the legacy /api/trips route)', () => {
       expect(res.setHeader).toHaveBeenCalledWith('Content-Type', 'text/calendar; charset=utf-8');
       expect(res.setHeader).toHaveBeenCalledWith('Content-Disposition', 'attachment; filename="trip.ics"');
       expect(res.send).toHaveBeenCalledWith('BEGIN:VCALENDAR');
+    });
+
+    it('folds a non-ASCII filename into an ASCII header with filename* instead of crashing setHeader (#2165)', () => {
+      const res = { setHeader: vi.fn(), send: vi.fn() };
+      const cal = { exportICS: vi.fn().mockReturnValue({ ics: 'BEGIN:VCALENDAR', filename: '沖縄.ics' }) };
+      tc(svc(), cal).exportIcs(user, '9', res as never);
+      expect(res.setHeader).toHaveBeenCalledWith(
+        'Content-Disposition',
+        'attachment; filename="download.ics"; filename*=UTF-8\'\'%E6%B2%96%E7%B8%84.ics',
+      );
     });
 
     it('maps a NotFoundError from the export to 404 and re-throws others', () => {

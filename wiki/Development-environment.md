@@ -7,6 +7,7 @@
 - Node.js 22+
 - npm
 - Git
+- Python 3 and a C++ toolchain (`build-essential` on Debian/Ubuntu, the Xcode Command Line Tools on macOS, the Visual Studio Build Tools on Windows). better-sqlite3 ships prebuilt binaries, but a lockfile-driven `npm install` still runs node-gyp against them and stops without these (npm/cli#9837).
 - A GitHub account
 
 ---

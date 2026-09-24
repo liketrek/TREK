@@ -125,16 +125,64 @@ const admin: TranslationStrings = {
   'admin.requireMfa': '要求雙因素身份驗證（2FA）',
   'admin.requireMfaHint': '未啟用 2FA 的使用者必須先完成設定中的配置才能使用應用。',
   'admin.apiKeys': 'API 金鑰',
-  'admin.apiKeysHint': '可選。啟用地點的擴充套件資料，如照片和天氣。',
+  'admin.apiKeysHint': '地點資料從哪裡來。TREK 索引不需要金鑰，下面兩個提供者是選用的。',
+  'admin.trekApi.badgeDefault': '推薦的預設來源',
+  'admin.googleCaveat.badge': '不建議',
+  'admin.googleCaveat.body':
+    'TREK 是開源軟體，在這件事上我們並不中立。在這個規模上，評分和一般店家的照片只有 Google 有，這就是壟斷。這個欄位存在是因為沒有替代品，而不是因為我們推薦。填了它，每次查詢都會送往 Google。',
+  'admin.trekApi.tagline':
+    'TREK 自己的地點索引。不用 Google 金鑰，沒有配額，也沒有人統計你搜了什麼。',
+  'admin.trekApi.factPlaces':
+    '全球 7363 萬個地點',
+  'admin.trekApi.factNoKey':
+    '不需金鑰，沒有配額',
+  'admin.trekApi.factOffline':
+    '國家資料包可離線使用',
+  'admin.trekApi.factPrivacy':
+    '搜尋內容從不記錄',
+  'admin.trekApi.more':
+    '裡面有什麼',
+  'admin.trekApi.fieldPhone':
+    '電話',
+  'admin.trekApi.fieldStableId':
+    '穩定識別碼',
+  'admin.trekApi.includedNote':
+    '簡介取自地點自己的網站，營業時間在已填寫之處取自 OpenStreetMap。',
+  'admin.trekApi.notRatings':
+    '評分',
+  'admin.trekApi.notPhotos':
+    '一般店家的照片',
+  'admin.trekApi.notIncludedNote':
+    '兩者在任何開放資料集中都沒有，出多少錢也沒有。這兩項仍然只能走 Google 金鑰。',
+  'admin.trekApi.sourcesLabel':
+    '來源',
+  'admin.trekApi.sourcesNote':
+    '回應裡的每個欄位都會標明它來自其中哪一個。',
+  'admin.trekApi.included':
+    '包含',
+  'admin.trekApi.notIncluded':
+    '不包含',
   'admin.mapsKey': 'Google Maps API 金鑰',
   'admin.mapsKeyHint': '用於地點搜尋。在 console.cloud.google.com 獲取',
   'admin.mapsKeyHintLong':
-    '沒有 API 金鑰時，使用 OpenStreetMap 搜尋地點。有了 Google API 金鑰，還可以載入照片、評分和營業時間。在 console.cloud.google.com 獲取。',
+    '沒有 Google API 金鑰時，會使用推薦的 TREK API。有金鑰時可以額外載入照片、評分和營業時間。可在 console.cloud.google.com 建立金鑰。',
   'admin.recommended': '推薦',
   'admin.weatherKey': 'OpenWeatherMap API 金鑰',
   'admin.weatherKeyHint': '用於天氣資料。在 openweathermap.org 免費獲取',
   'admin.unsplashKey': 'Unsplash API 金鑰',
   'admin.unsplashKeyHint': '用於圖片搜尋。在 unsplash.com/developers 免費獲取',
+  'admin.amapKey': '高德地圖 API Key',
+  'admin.amapKeyHint':
+    '用於中國大陸境內的地點搜尋（Google 無法存取，OpenStreetMap 內容也很少）。需要「Web 服務」類型的 Key，而非 JS API Key。在 console.amap.com 申請。',
+  'admin.placesProvider.title': '地點搜尋來源',
+  'admin.placesProvider.subtitle':
+    'TREK 自有索引和 OpenStreetMap 會回應每一次搜尋。這裡選擇的是它們一無所獲時還問誰：自動在有金鑰時優先 Google，其次 Amap。',
+  'admin.placesProvider.auto': '自動',
+  'admin.placesProvider.google': 'Google Places',
+  'admin.placesProvider.amap': '高德地圖',
+  'admin.placesProvider.openstreetmap': 'OpenStreetMap',
+  'admin.placesProvider.missingKey': '所選服務商未設定 API 金鑰，因此地點搜尋僅由 TREK 索引和 OpenStreetMap 回應。',
+  'admin.placesProvider.saved': '地點搜尋來源已儲存',
   'admin.validateKey': '測試',
   'admin.keyValid': '已連線',
   'admin.keyInvalid': '無效',
@@ -151,6 +199,8 @@ const admin: TranslationStrings = {
   'admin.fileTypesHint': '配置使用者可以上傳的檔案型別。',
   'admin.fileTypesFormat': '以逗號分隔的副檔名（如 jpg,png,pdf,doc）。使用 * 允許所有型別。',
   'admin.fileTypesSaved': '檔案型別設定已儲存',
+  'admin.googleOptions': '該金鑰的用途',
+  'admin.googleOptionsSummary': '已開啟 {on}/{total}',
   'admin.placesPhotos.title': '地點照片',
   'admin.placesPhotos.subtitle': '從 Google Places API 獲取照片。停用可節省 API 配額。Wikimedia 照片不受影響。',
   'admin.placesAutocomplete.title': '地點自動補全',
@@ -161,6 +211,21 @@ const admin: TranslationStrings = {
   'admin.placesEnrich.title': '地點資訊補充',
   'admin.placesEnrich.subtitle':
     '新增地點時顯示圖片與描述。一律使用維基百科與 OpenStreetMap；開啟「地點照片」或「地點詳細資料」時會額外使用 Google。',
+  'admin.placesGoogleOnly.title': '僅使用 Google 搜尋',
+  'admin.placesGoogleOnly.subtitle': '所有搜尋和建議都會送到 Google Places。關閉時，TREK 自有索引和 OpenStreetMap 先回答，只有兩者都沒有結果時才詢問 Google。',
+  'admin.placesGoogleOnly.missingKey': '需要 Google Maps API 金鑰。沒有金鑰時，無論此開關如何，搜尋都透過 TREK 索引和 OpenStreetMap 進行。',
+  'admin.placesGoogleOnly.otherProvider': '需要將 Google 設為地點提供者。選擇 Amap 或 OpenStreetMap 時，無論此開關如何設定，搜尋都不會送往 Google。',
+  'admin.transitProvider.title': '公共運輸資料來源',
+  'admin.transitProvider.subtitle': '由哪個服務回應大眾運輸搜尋。',
+  'admin.transitProvider.transitous': 'Transitous（免費）',
+  'admin.transitProvider.google': 'Google',
+  'admin.transitProvider.transitousHint': '社群 GTFS 資料來源。免費且免金鑰，在歐洲的涵蓋率最佳。',
+  'admin.transitProvider.googleHint': '使用上方的 Google 金鑰，涵蓋 Transitous 沒有資料的地區。依每次搜尋計費——未設定金鑰時仍使用 Transitous。',
+  'admin.transitProvider.noKeyWarning': '已選擇 Google，但尚未設定 Google 金鑰——大眾運輸搜尋仍在使用 Transitous。請在上方的 API 金鑰中新增金鑰。',
+  'admin.transitProvider.personalKeyWarning': '只設定了你自己的 Google 金鑰，因此其他成員的搜尋仍會回退到 Transitous。請以管理員身分在上方儲存金鑰，使其套用至整個執行個體。',
+  'admin.placeShadow.title': '地點搜尋紀錄',
+  'admin.placeShadow.subtitle':
+    '記錄使用者選了哪一筆搜尋結果，以便日後用真實的搜尋來評估另一套地點索引。資料不會離開本執行個體，管理員隨時可以匯出或刪除紀錄。',
   'admin.bagTracking.title': '行李追蹤',
   'admin.bagTracking.subtitle': '為打包物品啟用重量和行李分配',
   'admin.collab.chat.title': '聊天',
@@ -327,6 +392,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:photo-provider': '為「回憶」提供照片',
   'admin.plugins.perm.hook:calendar-source': '為行事曆提供事件',
   'admin.plugins.perm.hook:place-detail-provider': '為地點提供額外資訊（評論、評分、連結）',
+  'admin.plugins.perm.hook:search-provider': '從自有索引回答地點搜尋，與 TREK 自身的結果並列顯示',
   'admin.plugins.perm.hook:trip-warning-provider': '對行程發出驗證警告（顯示於規劃工具中）',
   'admin.plugins.perm.hook:table-contributor': '向行程檢視（預訂、地點、日期）新增欄位與操作',
   'admin.plugins.perm.hook:map-marker-provider': '向行程地圖新增標記（例如顯示預訂或興趣點）',
@@ -335,6 +401,11 @@ const admin: TranslationStrings = {
     '提供路線規劃設定檔，供規劃工具計算每日路線（例如含充電停靠站的電動車路線規劃）',
   'admin.plugins.perm.hook:day-schedule-provider': '向每日行程附加時間項目（充電停靠站、緩衝時間）',
   'admin.plugins.perm.hook:day-tint-provider': '為每日行程中的日期標示顏色（例如某天屬於旅程的哪一段）',
+  'admin.plugins.cap.mcpTools': '發布 AI 工具',
+  'admin.plugins.mcpToolsTitle': '發布的 AI 工具',
+  'admin.plugins.mcpToolsHint': '助理可以代用戶執行這些工具。每個工具都以上方授予的權限運作。',
+  'admin.plugins.perm.mcp:tools':
+    '發布 AI 助理可以代你執行的工具（它以你在此處授予外掛的權限運作，而非助理自身的權限）',
   'admin.plugins.perm.geolocation:read': '在其任一檢視開啟時查詢你的即時位置（由 TREK 使用本站台既有的位置權限讀取，不會另外為外掛詢問）',
   'admin.plugins.perm.hook:pdf-section-provider': '向行程 PDF 匯出附加文字段落',
   'admin.plugins.perm.hook:atlas-layer-provider': '在 Atlas 世界地圖上標示國家（例如願望清單或旅遊警示）',
@@ -436,6 +507,13 @@ const admin: TranslationStrings = {
   'admin.plugins.noMatchRegistry': '外掛庫中沒有符合搜尋條件的外掛。',
   'admin.plugins.restart': '重新啟動',
   'admin.plugins.restarted': '外掛已重新啟動',
+  'admin.plugins.instanceSettings': '執行個體設定',
+  'admin.plugins.settingsSaved': '設定已儲存',
+  'admin.plugins.settingsSavedRestarted': '設定已儲存 — 外掛已重新啟動',
+  'admin.plugins.actions': '操作',
+  'admin.plugins.actions.confirm': '執行此操作？',
+  'admin.plugins.actions.inactive': '啟用外掛以執行其操作',
+  'admin.plugins.requiredMissing': '「{field}」為必填項',
   'admin.plugins.cap.readsTrips': '讀取你的行程',
   'admin.plugins.cap.readsUsers': '讀取基本個人資料',
   'admin.plugins.cap.readsCosts': '讀取你的支出',
@@ -458,6 +536,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.photos': '提供照片',
   'admin.plugins.cap.calendar': '提供行事曆事件',
   'admin.plugins.cap.placeDetails': '豐富地點',
+  'admin.plugins.cap.search': '回答搜尋',
   'admin.plugins.cap.warnings': '標記問題',
   'admin.plugins.cap.mapLayers': '在地圖上繪製',
   'admin.plugins.cap.routing': '提供路線規劃',
@@ -480,6 +559,18 @@ const admin: TranslationStrings = {
   'admin.plugins.dep.trekIncompatible': '需要 TREK {range}——此伺服器執行的是 {host}',
   'admin.plugins.dep.trekUnknown': '未宣告支援的 TREK 版本',
   'admin.plugins.installCompatible': '安裝 {version}',
+  'admin.plugins.installAnyway': '仍然安裝',
+  'admin.plugins.rangeBypass.pill': '版本檢查已關閉',
+  'admin.plugins.rangeBypass.pillHint':
+    '已設定 TREK_PLUGINS_IGNORE_TREK_RANGE — 外掛可在作者宣告的 TREK 版本範圍之外安裝與執行',
+  'admin.plugins.rangeBypass.title': '超出支援的 TREK 版本',
+  'admin.plugins.rangeBypass.noticeTitle': '已安裝在支援的 TREK 版本之外',
+  'admin.plugins.rangeBypass.body':
+    '「{name}」宣告支援 TREK {range}，而此伺服器執行的是 {host}。僅因為設定了 TREK_PLUGINS_IGNORE_TREK_RANGE，TREK 才放行。作者尚未為此 TREK 更新外掛的版本範圍，因此無法保證它能正常運作——在極少數情況下，不相容的外掛可能損毀 TREK 資料。只有在接受該風險時才繼續。',
+  'admin.plugins.rangeBypass.bodyUnknown':
+    '「{name}」未宣告支援哪些 TREK 版本；此伺服器執行的是 {host}。僅因為設定了 TREK_PLUGINS_IGNORE_TREK_RANGE，TREK 才放行。沒有跡象顯示作者在此 TREK 上測試過它，因此無法保證它能正常運作——在極少數情況下，不相容的外掛可能損毀 TREK 資料。只有在接受該風險時才繼續。',
+  'admin.plugins.dep.trekBypassed': '超出其 TREK 範圍（{range}）— 版本檢查已關閉',
+  'admin.plugins.dep.trekBypassedUnknown': '未宣告 TREK 範圍 — 版本檢查已關閉',
   'admin.plugins.incompatible': '不相容',
   'admin.plugins.accessTitle': '可存取的內容',
   'admin.plugins.connectsTitle': '連線至',
@@ -499,7 +590,7 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.packing.name': '行李',
   'admin.addons.catalog.packing.description': '每次旅行的行李準備清單',
   'admin.addons.catalog.budget.name': '費用',
-  'admin.addons.catalog.budget.description': '跟蹤支出並規劃旅行預算',
+  'admin.addons.catalog.budget.description': '記錄行程開銷並在同行者之間分攤',
   'admin.addons.catalog.documents.name': '文件',
   'admin.addons.catalog.documents.description': '儲存和管理旅行文件',
   'admin.addons.catalog.vacay.name': 'Vacay',
@@ -507,9 +598,20 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.atlas.name': 'Atlas',
   'admin.addons.catalog.atlas.description': '標記已訪問國家和旅行統計的世界地圖',
   'admin.addons.catalog.collab.name': 'Collab',
-  'admin.addons.catalog.collab.description': '旅行規劃的即時筆記、投票和聊天',
+  'admin.addons.catalog.collab.description': '備註、投票、聊天與建議，方便一起規劃',
+  'admin.addons.catalog.roadtrip.name': '公路旅行',
+  'admin.addons.catalog.roadtrip.description': '規劃含停靠點的駕駛行程，駕駛時間與抵達時間會自動重算',
   'admin.addons.subtitleBefore': '啟用或停用功能以自定義你的 ',
   'admin.addons.subtitleAfter': ' 體驗。',
+  'admin.addons.catalog.naver_list_import.name': 'Naver List Import',
+  'admin.addons.catalog.naver_list_import.description': '從共享的 Naver 地圖清單匯入地點',
+  'admin.addons.catalog.airtrail.name': 'AirTrail',
+  'admin.addons.catalog.airtrail.description': '從你的 AirTrail 執行個體同步航班',
+  'admin.addons.catalog.dawarich.name': 'Dawarich',
+  'admin.addons.catalog.dawarich.description':
+    '從各位使用者自行連接的 Dawarich 執行個體讀取造訪紀錄與記錄的路線',
+  'admin.addons.catalog.llm_parsing.name': 'AI 解析',
+  'admin.addons.catalog.llm_parsing.description': '用你選擇的 AI 模型讀取內建解析器無法識別的訂位',
   'admin.addons.enabled': '已啟用',
   'admin.addons.disabled': '已停用',
   'admin.addons.type.trip': '旅行',
@@ -520,6 +622,7 @@ const admin: TranslationStrings = {
   'admin.addons.integrationHint': '後端服務和 API 整合，無專屬頁面',
   'admin.addons.toast.updated': '擴充套件已更新',
   'admin.addons.toast.error': '更新擴充套件失敗',
+  'admin.addons.group.count': '{total} 項中已啟用 {enabled} 項',
   'admin.addons.noAddons': '暫無可用擴充套件',
   'admin.weather.title': '天氣資料',
   'admin.weather.badge': '自 2026 年 3 月 24 日起',
@@ -606,8 +709,7 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.journey.name': '旅程',
   'admin.addons.catalog.journey.description': '旅行追蹤與旅行日誌，包含打卡、照片和每日故事',
   'admin.addons.catalog.collections.name': '收藏',
-  'admin.addons.catalog.collections.description':
-    '個人地點庫 — 將各行程的地點儲存到具名清單中，複製到任意行程，並與他人分享',
+  'admin.addons.catalog.collections.description': '把任何行程的地點收進命名清單，隨時再次使用',
   'admin.passkey.title': 'Passkey 登入',
   'admin.passkey.cardHint': '讓使用者使用 Passkey（WebAuthn）登入。預設為關閉。',
   'admin.passkey.login': '啟用 Passkey 登入',
@@ -635,6 +737,9 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.mapboxStylePlaceholder': '選擇樣式…',
   'admin.defaultSettings.mapbox3d': '3D 建築物與地形',
   'admin.defaultSettings.mapboxQuality': '高品質模式',
+  'admin.defaultSettings.cartoKey': '共用的 CARTO 金鑰',
+  'admin.defaultSettings.cartoKeyHint':
+    '用於每一位尚未輸入自己金鑰的使用者，如此整個執行個體都能取得沒有浮水印的 CARTO 圖磚。以加密方式儲存。',
   'admin.group.users': 'Users',
   'admin.group.config': 'Configuration',
   'admin.group.integration': 'Integrations',
@@ -643,5 +748,9 @@ const admin: TranslationStrings = {
   'admin.invite.tripNone': '不指定行程',
   'admin.invite.tripHint': '新使用者透過連結註冊時，會自動加入此行程。',
   'admin.invite.boundTo': '加入 {trip}',
+  'admin.placesUsageTitle': '金鑰用於什麼',
+  'admin.mapsKeyHintShort': '增加照片、評分和營業時間。之後每次查詢都會送往 Google。',
+  'admin.amapKeyHintShort': '用於中國大陸的地點搜尋。需要 Web 服務金鑰，而非 JS API 金鑰。',
+  'admin.collab.links.subtitle': '共享連結和書籤',
 };
 export default admin;

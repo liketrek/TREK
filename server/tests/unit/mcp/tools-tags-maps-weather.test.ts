@@ -1,10 +1,10 @@
 /**
  * Unit tests for MCP tag, maps extras, and weather tools:
  * list_tags, create_tag, update_tag, delete_tag,
- * get_place_details, reverse_geocode, resolve_maps_url,
+ * get_place_details, search_pois, reverse_geocode, resolve_maps_url,
  * get_weather, get_detailed_weather.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
 
 const { testDb, dbMock } = vi.hoisted(() => {
   const Database = require('better-sqlite3');
@@ -40,6 +40,22 @@ vi.mock('../../../src/nest/weather/weather.impl', () => ({
   getDetailedWeather: vi.fn().mockResolvedValue({ hourly: [] }),
 }));
 
+// MapsService.pois() asks the TREK Places index before Overpass, and the real
+// client would send that request from a unit test. The gate above it is left
+// alone on purpose: it fails open, so these cases run on the shipping default
+// with the index answering nothing, which is the drop-through they are about.
+const { trekNearbyMock } = vi.hoisted(() => ({
+  trekNearbyMock: vi.fn(async (
+    _lat: number,
+    _lng: number,
+    _opts?: { radius?: number; limit?: number; category?: string },
+  ): Promise<unknown[]> => []),
+}));
+vi.mock('../../../src/nest/maps/trek-places.client', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../src/nest/maps/trek-places.client')>()),
+  trekPlacesNearby: trekNearbyMock,
+}));
+
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
@@ -56,6 +72,21 @@ vi.spyOn(MapsService.prototype, 'getPlaceDetails').mockResolvedValue({
   name: 'Eiffel Tower',
   address: 'Paris',
 } as never);
+vi.spyOn(MapsService.prototype, 'getPlaceDetailsExpanded').mockResolvedValue({
+  name: 'Eiffel Tower',
+  summary: 'Wrought-iron lattice tower.',
+  reviews: [{ author: 'Someone', rating: 5, text: 'Tall.', time: 'a month ago', photo: null }],
+} as never);
+// Overpass is stubbed one level below the facade so MapsService.pois() itself
+// still runs, the way the geo tools reach it.
+vi.spyOn(MapsService.prototype, 'searchOverpassPois').mockResolvedValue({
+  pois: [{ osm_id: 'node:1', name: 'Chez Nous', lat: 48.86, lng: 2.34, category: 'restaurant' }],
+  source: 'openstreetmap',
+  truncated: false,
+  clamped: false,
+} as never);
+// Off by default, so the existing cases exercise the lookup rather than the gate.
+vi.spyOn(MapsService.prototype, 'detailsDisabled').mockReturnValue(false);
 vi.spyOn(MapsService.prototype, 'reverseGeocode').mockResolvedValue({ name: 'Paris', address: 'France' });
 vi.spyOn(MapsService.prototype, 'resolveGoogleMapsUrl').mockResolvedValue({
   lat: 48.8566,
@@ -316,6 +347,255 @@ describe('Tool: get_place_details', () => {
   // The former "isError when service returns null" case pinned a dead branch —
   // MapsService.getPlaceDetails throws or returns an object, never null — and
   // died with the guard in the fix(maps) quirk pass.
+
+  // The expanded field mask bills as a Google Enterprise SKU, so the default has
+  // to stay on the lean lookup: nothing an existing caller does may start costing
+  // more (#31).
+  it('takes the lean path when expand is not asked for', async () => {
+    const { user } = createUser(testDb);
+    vi.mocked(MapsService.prototype.getPlaceDetails).mockClear();
+    vi.mocked(MapsService.prototype.getPlaceDetailsExpanded).mockClear();
+
+    await withHarness(user.id, async (h) => {
+      await h.client.callTool({ name: 'get_place_details', arguments: { placeId: 'ChIJD7fiBh9u5kcRYJSMaMOCCwQ' } });
+      expect(MapsService.prototype.getPlaceDetails).toHaveBeenCalledWith(user.id, 'ChIJD7fiBh9u5kcRYJSMaMOCCwQ', 'en');
+      expect(MapsService.prototype.getPlaceDetailsExpanded).not.toHaveBeenCalled();
+    });
+  });
+
+  it('explicitly passing expand: false also stays on the lean path', async () => {
+    const { user } = createUser(testDb);
+    vi.mocked(MapsService.prototype.getPlaceDetailsExpanded).mockClear();
+
+    await withHarness(user.id, async (h) => {
+      await h.client.callTool({
+        name: 'get_place_details',
+        arguments: { placeId: 'ChIJD7fiBh9u5kcRYJSMaMOCCwQ', expand: false, refresh: true },
+      });
+      expect(MapsService.prototype.getPlaceDetailsExpanded).not.toHaveBeenCalled();
+    });
+  });
+
+  it('expand routes to the expanded lookup and returns reviews and the summary', async () => {
+    const { user } = createUser(testDb);
+    vi.mocked(MapsService.prototype.getPlaceDetails).mockClear();
+    vi.mocked(MapsService.prototype.getPlaceDetailsExpanded).mockClear();
+
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'get_place_details',
+        arguments: { placeId: 'ChIJD7fiBh9u5kcRYJSMaMOCCwQ', expand: true, lang: 'de' },
+      });
+      const data = parseToolResult(result) as any;
+      expect(data.details.summary).toBe('Wrought-iron lattice tower.');
+      expect(data.details.reviews).toHaveLength(1);
+      expect(MapsService.prototype.getPlaceDetailsExpanded).toHaveBeenCalledWith(user.id, 'ChIJD7fiBh9u5kcRYJSMaMOCCwQ', 'de', false);
+      expect(MapsService.prototype.getPlaceDetails).not.toHaveBeenCalled();
+    });
+  });
+
+  it('forwards refresh so a stale expanded payload can be re-fetched', async () => {
+    const { user } = createUser(testDb);
+    vi.mocked(MapsService.prototype.getPlaceDetailsExpanded).mockClear();
+
+    await withHarness(user.id, async (h) => {
+      await h.client.callTool({
+        name: 'get_place_details',
+        arguments: { placeId: 'ChIJD7fiBh9u5kcRYJSMaMOCCwQ', expand: true, refresh: true },
+      });
+      expect(MapsService.prototype.getPlaceDetailsExpanded).toHaveBeenCalledWith(user.id, 'ChIJD7fiBh9u5kcRYJSMaMOCCwQ', 'en', true);
+    });
+  });
+
+  it('refuses a non-boolean expand', async () => {
+    const { user } = createUser(testDb);
+    vi.mocked(MapsService.prototype.getPlaceDetailsExpanded).mockClear();
+
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'get_place_details',
+        arguments: { placeId: 'ChIJD7fiBh9u5kcRYJSMaMOCCwQ', expand: 'yes' },
+      });
+      expect(result.isError).toBe(true);
+      expect(MapsService.prototype.getPlaceDetailsExpanded).not.toHaveBeenCalled();
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// search_pois (#30)
+// ---------------------------------------------------------------------------
+
+describe('Tool: search_pois', () => {
+  const BBOX = { south: 48.85, west: 2.33, north: 48.87, east: 2.36 };
+
+  // The index is asked first and answers nothing here, so this case also pins
+  // the drop-through: an empty index page must reach Overpass rather than come
+  // back as an empty POI list.
+  it('returns the POIs of a category inside the bbox', async () => {
+    const { user } = createUser(testDb);
+    vi.mocked(MapsService.prototype.searchOverpassPois).mockClear();
+    trekNearbyMock.mockClear();
+
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'search_pois',
+        arguments: { category: 'restaurant', bbox: BBOX, lang: 'fr' },
+      });
+      const data = parseToolResult(result) as any;
+      expect(data.pois).toHaveLength(1);
+      expect(data.pois[0].name).toBe('Chez Nous');
+      expect(data.source).toBe('openstreetmap');
+      expect(trekNearbyMock).toHaveBeenCalled();
+      // The caller's per-category budget rides along on the fallback too.
+      expect(MapsService.prototype.searchOverpassPois).toHaveBeenCalledWith('restaurant', BBOX, 'fr', 60);
+    });
+  });
+
+  // Overpass is the fallback now, not the first stop. `source` stays
+  // 'openstreetmap' because the client switches on it and these are the same
+  // places; where they were read is this method's business, not the pill's.
+  it('answers from the TREK Places index and leaves Overpass alone', async () => {
+    const { user } = createUser(testDb);
+    vi.mocked(MapsService.prototype.searchOverpassPois).mockClear();
+    trekNearbyMock.mockClear();
+    trekNearbyMock.mockResolvedValueOnce([
+      {
+        gers: 'abc-123',
+        name: 'Le Comptoir',
+        lat: 48.861,
+        lng: 2.341,
+        category: 'restaurant',
+        address: { freeform: '9 Rue de Rivoli' },
+        contact: { website: 'https://example.test/', phone: null },
+        hours: { osm: 'Mo-Fr 09:00-17:00', source: null, sourceUrl: null },
+      },
+    ]);
+
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'search_pois',
+        arguments: { category: 'restaurant', bbox: BBOX },
+      });
+      const data = parseToolResult(result) as any;
+      expect(data.pois).toHaveLength(1);
+      expect(data.pois[0].osm_id).toBe('gers:abc-123');
+      expect(data.pois[0].name).toBe('Le Comptoir');
+      // The index carries opening hours; dropping them would leave the tool
+      // description promising something the answer never has.
+      expect(data.pois[0].opening_hours).toBe('Mo-Fr 09:00-17:00');
+      // The answer names the index that produced it, over MCP as over REST. An
+      // assistant reading `source` to attribute the data would otherwise credit
+      // OpenStreetMap for rows Overture carries under other licences.
+      expect(data.source).toBe('trek-places');
+      expect(data.pois[0].source).toBe('trek-places');
+      expect(data.clamped).toBe(false);
+      expect(MapsService.prototype.searchOverpassPois).not.toHaveBeenCalled();
+
+      // The bbox becomes a centre plus half its diagonal, and the category
+      // becomes the Overture terms it maps to.
+      const [lat, lng, opts] = trekNearbyMock.mock.calls[0];
+      expect(lat).toBeCloseTo(48.86, 5);
+      expect(lng).toBeCloseTo(2.345, 5);
+      expect(opts?.category).toBe('restaurant,casual_eatery,fast_food');
+      // Sixty per category, the same allowance the Overpass path spends, rather
+      // than a number this branch made up for itself.
+      expect(opts?.limit).toBe(60);
+      expect(opts?.radius).toBeGreaterThan(300);
+      expect(opts?.radius).toBeLessThanOrEqual(20000);
+    });
+  });
+
+  // The index searches a disc, so a viewport wider than 40km is narrowed there
+  // as well — and says so, the same way the Overpass path does.
+  it('reports a viewport the index had to narrow as clamped', async () => {
+    const { user } = createUser(testDb);
+    trekNearbyMock.mockClear();
+    trekNearbyMock.mockResolvedValueOnce([
+      { gers: 'wide-1', name: 'Far Away', lat: 48.9, lng: 2.4, category: null, address: null, contact: null, hours: null },
+    ]);
+
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'search_pois',
+        arguments: { category: 'restaurant', bbox: { south: 48.4, west: 2.0, north: 48.9, east: 2.5 } },
+      });
+      const data = parseToolResult(result) as any;
+      expect(data.clamped).toBe(true);
+      expect(data.pois[0].poi_type).toBe('restaurant');
+      expect(data.pois[0].address).toBeNull();
+      expect(trekNearbyMock.mock.calls[0][2]?.radius).toBe(20000);
+    });
+  });
+
+  it('passes no language through when none is given', async () => {
+    const { user } = createUser(testDb);
+    vi.mocked(MapsService.prototype.searchOverpassPois).mockClear();
+    trekNearbyMock.mockClear();
+
+    await withHarness(user.id, async (h) => {
+      await h.client.callTool({ name: 'search_pois', arguments: { category: 'museum', bbox: BBOX } });
+      expect(MapsService.prototype.searchOverpassPois).toHaveBeenCalledWith('museum', BBOX, undefined, 60);
+    });
+  });
+
+  // The enum is built from CATEGORY_OSM_FILTERS, so a category with no OSM tag
+  // mapping never reaches Overpass in the first place.
+  it('refuses a category that has no OSM mapping', async () => {
+    const { user } = createUser(testDb);
+    vi.mocked(MapsService.prototype.searchOverpassPois).mockClear();
+
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'search_pois',
+        arguments: { category: 'dentist', bbox: BBOX },
+      });
+      expect(result.isError).toBe(true);
+      expect(MapsService.prototype.searchOverpassPois).not.toHaveBeenCalled();
+    });
+  });
+
+  it('refuses a bbox edge outside the coordinate range', async () => {
+    const { user } = createUser(testDb);
+    vi.mocked(MapsService.prototype.searchOverpassPois).mockClear();
+
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'search_pois',
+        arguments: { category: 'cafe', bbox: { ...BBOX, north: 118 } },
+      });
+      expect(result.isError).toBe(true);
+      expect(MapsService.prototype.searchOverpassPois).not.toHaveBeenCalled();
+    });
+  });
+
+  it('answers isError when every Overpass mirror is unreachable', async () => {
+    const { user } = createUser(testDb);
+    vi.mocked(MapsService.prototype.searchOverpassPois).mockRejectedValueOnce(new Error('all mirrors failed'));
+
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({ name: 'search_pois', arguments: { category: 'bar', bbox: BBOX } });
+      expect(result.isError).toBe(true);
+      expect((result as { content: { text: string }[] }).content[0].text).toBe('POI search failed.');
+    });
+  });
+
+  // Dropping through must not turn an outage into an empty answer: the index
+  // failure is logged and Overpass failing under it is still what reaches the
+  // caller.
+  it('answers isError when the index fails and every Overpass mirror is unreachable', async () => {
+    const { user } = createUser(testDb);
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    trekNearbyMock.mockRejectedValueOnce(new Error('index down'));
+    vi.mocked(MapsService.prototype.searchOverpassPois).mockRejectedValueOnce(new Error('all mirrors failed'));
+
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({ name: 'search_pois', arguments: { category: 'bar', bbox: BBOX } });
+      expect(result.isError).toBe(true);
+      expect((result as { content: { text: string }[] }).content[0].text).toBe('POI search failed.');
+    });
+    warn.mockRestore();
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -504,6 +784,70 @@ describe('Tool: get_airport', () => {
       const result = await h.client.callTool({ name: 'get_airport', arguments: { iata: 'QQQ' } });
       expect((result as { isError?: boolean }).isError).toBe(true);
       expect((result as { content: { text: string }[] }).content[0].text).toBe('Airport not found.');
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The admin kill switch
+//
+// An instance owner turns Place Details off to stop Google billing them. REST
+// checks detailsDisabled() before it can reach either lookup; a tool that did
+// not would bill them from the one surface the switch does not cover, and the
+// expanded mask would do it at Enterprise-SKU rates.
+// ---------------------------------------------------------------------------
+
+describe('Tool: get_place_details (admin kill switch)', () => {
+  afterEach(() => {
+    vi.mocked(MapsService.prototype.detailsDisabled).mockReturnValue(false);
+  });
+
+  it('fetches nothing when an admin has turned Place Details off', async () => {
+    const { user } = createUser(testDb);
+    vi.spyOn(MapsService.prototype, 'detailsDisabled').mockReturnValue(true);
+    vi.mocked(MapsService.prototype.getPlaceDetails).mockClear();
+    vi.mocked(MapsService.prototype.getPlaceDetailsExpanded).mockClear();
+
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'get_place_details',
+        arguments: { placeId: 'ChIJD7fiBh9u5kcRYJSMaMOCCwQ' },
+      });
+      const data = parseToolResult(result) as any;
+      expect(data.disabled).toBe(true);
+      expect(data.details).toBeNull();
+      expect(MapsService.prototype.getPlaceDetails).not.toHaveBeenCalled();
+      expect(MapsService.prototype.getPlaceDetailsExpanded).not.toHaveBeenCalled();
+    });
+  });
+
+  it('the switch also stops the expensive expanded path', async () => {
+    const { user } = createUser(testDb);
+    vi.spyOn(MapsService.prototype, 'detailsDisabled').mockReturnValue(true);
+    vi.mocked(MapsService.prototype.getPlaceDetailsExpanded).mockClear();
+
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'get_place_details',
+        arguments: { placeId: 'ChIJD7fiBh9u5kcRYJSMaMOCCwQ', expand: true },
+      });
+      expect((parseToolResult(result) as any).disabled).toBe(true);
+      expect(MapsService.prototype.getPlaceDetailsExpanded).not.toHaveBeenCalled();
+    });
+  });
+
+  it('leaves the lookup alone while the switch is on', async () => {
+    const { user } = createUser(testDb);
+    vi.spyOn(MapsService.prototype, 'detailsDisabled').mockReturnValue(false);
+    vi.mocked(MapsService.prototype.getPlaceDetails).mockClear();
+
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'get_place_details',
+        arguments: { placeId: 'ChIJD7fiBh9u5kcRYJSMaMOCCwQ' },
+      });
+      expect((parseToolResult(result) as any).details.name).toBe('Eiffel Tower');
+      expect(MapsService.prototype.getPlaceDetails).toHaveBeenCalled();
     });
   });
 });

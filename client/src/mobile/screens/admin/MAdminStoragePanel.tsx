@@ -291,8 +291,7 @@ export default function MAdminStoragePanel(): React.ReactElement {
   useEffect(() => {
     if (migrationQueue.length === 0 || !admin.state) return
     if (migrationStartInFlight.current) return
-    if (admin.state.migrations.some((m) => m.status === 'running')) return
-    if (admin.state.backfills.some((b) => b.status === 'running')) return
+    if (admin.storageBusy()) return
     const [next, ...rest] = migrationQueue
     migrationStartInFlight.current = true
     setMigrationQueue(rest)

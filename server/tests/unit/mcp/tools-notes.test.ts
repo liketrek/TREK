@@ -115,6 +115,52 @@ describe('Tool: create_day_note', () => {
     });
   });
 
+  it('persists a palette color and an explicit position', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_day_note',
+        arguments: { tripId: trip.id, dayId: day.id, text: 'Ferry leaves early', color: '#dc2626', sort_order: 2 },
+      });
+      const data = parseToolResult(result) as any;
+      const row = testDb.prepare('SELECT color, sort_order FROM day_notes WHERE id = ?').get(data.note.id) as any;
+      expect(row.color).toBe('#dc2626');
+      expect(row.sort_order).toBe(2);
+    });
+  });
+
+  it('stores no color and appends at the bottom when neither is given', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_day_note',
+        arguments: { tripId: trip.id, dayId: day.id, text: 'A note' },
+      });
+      const data = parseToolResult(result) as any;
+      const row = testDb.prepare('SELECT color, sort_order FROM day_notes WHERE id = ?').get(data.note.id) as any;
+      expect(row.color).toBeNull();
+      expect(row.sort_order).toBe(9999);
+    });
+  });
+
+  it('refuses a color outside the note palette and writes nothing', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_day_note',
+        arguments: { tripId: trip.id, dayId: day.id, text: 'A note', color: '#ff0000' },
+      });
+      expect(result.isError).toBe(true);
+      expect(testDb.prepare('SELECT COUNT(*) AS n FROM day_notes WHERE day_id = ?').get(day.id)).toEqual({ n: 0 });
+    });
+  });
+
   it('returns error when day does not belong to trip', async () => {
     const { user } = createUser(testDb);
     const trip1 = createTrip(testDb, user.id);
@@ -172,6 +218,69 @@ describe('Tool: update_day_note', () => {
       });
       const data = parseToolResult(result) as any;
       expect(data.note.text).toBe('Trimmed');
+    });
+  });
+
+  it('sets color and moves the note within the day', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id);
+    const note = createDayNote(testDb, day.id, trip.id, { sort_order: 9999 });
+    await withHarness(user.id, async (h) => {
+      await h.client.callTool({
+        name: 'update_day_note',
+        arguments: { tripId: trip.id, dayId: day.id, noteId: note.id, color: '#16a34a', sort_order: 1.5 },
+      });
+      const row = testDb.prepare('SELECT color, sort_order FROM day_notes WHERE id = ?').get(note.id) as any;
+      expect(row.color).toBe('#16a34a');
+      expect(row.sort_order).toBe(1.5);
+    });
+  });
+
+  it('clears the color with an explicit null', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id);
+    const note = createDayNote(testDb, day.id, trip.id);
+    testDb.prepare('UPDATE day_notes SET color = ? WHERE id = ?').run('#2563eb', note.id);
+    await withHarness(user.id, async (h) => {
+      await h.client.callTool({
+        name: 'update_day_note',
+        arguments: { tripId: trip.id, dayId: day.id, noteId: note.id, color: null },
+      });
+      expect((testDb.prepare('SELECT color FROM day_notes WHERE id = ?').get(note.id) as any).color).toBeNull();
+    });
+  });
+
+  it('keeps the stored color and position when neither is sent', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id);
+    const note = createDayNote(testDb, day.id, trip.id, { sort_order: 3 });
+    testDb.prepare('UPDATE day_notes SET color = ? WHERE id = ?').run('#9333ea', note.id);
+    await withHarness(user.id, async (h) => {
+      await h.client.callTool({
+        name: 'update_day_note',
+        arguments: { tripId: trip.id, dayId: day.id, noteId: note.id, text: 'Only the text changed' },
+      });
+      const row = testDb.prepare('SELECT color, sort_order FROM day_notes WHERE id = ?').get(note.id) as any;
+      expect(row.color).toBe('#9333ea');
+      expect(row.sort_order).toBe(3);
+    });
+  });
+
+  it('refuses a color outside the note palette', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id);
+    const note = createDayNote(testDb, day.id, trip.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'update_day_note',
+        arguments: { tripId: trip.id, dayId: day.id, noteId: note.id, color: 'red' },
+      });
+      expect(result.isError).toBe(true);
+      expect((testDb.prepare('SELECT color FROM day_notes WHERE id = ?').get(note.id) as any).color).toBeNull();
     });
   });
 
@@ -371,6 +480,31 @@ describe('Tool: create_collab_note', () => {
     });
   });
 
+  it('persists the website link', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_collab_note',
+        arguments: { tripId: trip.id, title: 'Boat tour', website: 'https://example.com/tour' },
+      });
+      const data = parseToolResult(result) as any;
+      expect(data.note.website).toBe('https://example.com/tour');
+      expect((testDb.prepare('SELECT website FROM collab_notes WHERE id = ?').get(data.note.id) as any).website)
+        .toBe('https://example.com/tour');
+    });
+  });
+
+  it('stores no website when none is given', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({ name: 'create_collab_note', arguments: { tripId: trip.id, title: 'Plain note' } });
+      const data = parseToolResult(result) as any;
+      expect((testDb.prepare('SELECT website FROM collab_notes WHERE id = ?').get(data.note.id) as any).website).toBeNull();
+    });
+  });
+
   it('broadcasts collab:note:created event', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
@@ -409,6 +543,57 @@ describe('Tool: update_collab_note', () => {
       expect(data.note.title).toBe('New Title');
       expect(data.note.pinned).toBe(1);
       expect(data.note.color).toBe('#3b82f6');
+    });
+  });
+
+  it('sets the website link on an existing note', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const note = createCollabNote(testDb, trip.id, user.id);
+    await withHarness(user.id, async (h) => {
+      await h.client.callTool({
+        name: 'update_collab_note',
+        arguments: { tripId: trip.id, noteId: note.id, website: 'https://example.com/museum' },
+      });
+      expect((testDb.prepare('SELECT website FROM collab_notes WHERE id = ?').get(note.id) as any).website)
+        .toBe('https://example.com/museum');
+    });
+  });
+
+  it('clears the website with an explicit null', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const note = createCollabNote(testDb, trip.id, user.id);
+    testDb.prepare('UPDATE collab_notes SET website = ? WHERE id = ?').run('https://example.com/old', note.id);
+    await withHarness(user.id, async (h) => {
+      await h.client.callTool({ name: 'update_collab_note', arguments: { tripId: trip.id, noteId: note.id, website: null } });
+      expect((testDb.prepare('SELECT website FROM collab_notes WHERE id = ?').get(note.id) as any).website).toBeNull();
+    });
+  });
+
+  it('keeps the stored website when the field is not sent', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const note = createCollabNote(testDb, trip.id, user.id);
+    testDb.prepare('UPDATE collab_notes SET website = ? WHERE id = ?').run('https://example.com/keep', note.id);
+    await withHarness(user.id, async (h) => {
+      await h.client.callTool({ name: 'update_collab_note', arguments: { tripId: trip.id, noteId: note.id, title: 'Renamed' } });
+      expect((testDb.prepare('SELECT website FROM collab_notes WHERE id = ?').get(note.id) as any).website)
+        .toBe('https://example.com/keep');
+    });
+  });
+
+  it('refuses a website past the tool cap, the way the sibling text fields are capped', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const note = createCollabNote(testDb, trip.id, user.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'update_collab_note',
+        arguments: { tripId: trip.id, noteId: note.id, website: `https://example.com/${'x'.repeat(600)}` },
+      });
+      expect(result.isError).toBe(true);
+      expect((testDb.prepare('SELECT website FROM collab_notes WHERE id = ?').get(note.id) as any).website).toBeNull();
     });
   });
 

@@ -522,6 +522,103 @@ describe('Version cache-busting', () => {
     renderApp('/')
     await waitFor(() => expect(reload).toHaveBeenCalled())
   })
+
+  it('FE-COMP-APP-026: a version bump never deletes the caches or unregisters the worker (#2228)', async () => {
+    // The old handler wiped every Cache Storage bucket and every registration
+    // here, which left the device with no app shell until a fresh ~22 MB
+    // precache finished: anyone who closed the app or lost signal inside that
+    // window could no longer start the PWA offline at all, and it also threw
+    // away the map tiles and documents the user had downloaded on purpose.
+    localStorage.setItem('trek_app_version', '2.9.9')
+    const cachesDelete = vi.fn().mockResolvedValue(true)
+    const unregister = vi.fn().mockResolvedValue(true)
+    const update = vi.fn().mockResolvedValue(undefined)
+    vi.stubGlobal('caches', { keys: vi.fn().mockResolvedValue(['workbox-precache-v2', 'map-tiles']), delete: cachesDelete })
+    Object.defineProperty(navigator, 'serviceWorker', {
+      configurable: true,
+      value: {
+        getRegistration: vi.fn().mockResolvedValue({ update, unregister }),
+        getRegistrations: vi.fn().mockResolvedValue([{ unregister }]),
+        addEventListener: vi.fn(),
+      },
+    })
+
+    server.use(
+      http.get('/api/auth/app-config', () =>
+        HttpResponse.json({ version: '2.9.10' })
+      )
+    )
+    seedAuth()
+    renderApp('/')
+
+    // It asks the worker to fetch the new build; Workbox swaps the precache
+    // atomically once that install completes.
+    await waitFor(() => expect(update).toHaveBeenCalled())
+    expect(cachesDelete).not.toHaveBeenCalled()
+    expect(unregister).not.toHaveBeenCalled()
+  })
+
+  it('FE-COMP-APP-028: a version that does not look like a release tag is ignored', async () => {
+    // The value arrives over the wire and is written to this device's storage,
+    // so it is validated rather than trusted. An unusable one must also not be
+    // compared against the stored marker, or every launch would see a mismatch
+    // and try to update.
+    localStorage.setItem('trek_app_version', '2.9.9')
+    const reload = vi.fn()
+    Object.defineProperty(window, 'location', { writable: true, value: { ...window.location, reload } })
+
+    server.use(
+      http.get('/api/auth/app-config', () =>
+        HttpResponse.json({ version: '<script>alert(1)</script>', managed: false })
+      )
+    )
+    seedAuth()
+    renderApp('/')
+
+    await waitFor(() => expect(screen.queryByText('common.loading')).not.toBeInTheDocument())
+    expect(localStorage.getItem('trek_app_version')).toBe('2.9.9')
+    expect(reload).not.toHaveBeenCalled()
+  })
+
+  it('FE-COMP-APP-027: an update path that throws is retried on the next launch, harmlessly (#2228)', async () => {
+    // A handover that never happened must not be recorded as done, or the
+    // device stays on the old build for good. The retry this buys has to be
+    // harmless: the purge that once repeated on every launch is gone, and a
+    // failure neither deletes anything nor reloads into the old worker's shell.
+    localStorage.setItem('trek_app_version', '2.9.9')
+    const reload = vi.fn()
+    Object.defineProperty(window, 'location', { writable: true, value: { ...window.location, reload } })
+    const cachesDelete = vi.fn().mockResolvedValue(true)
+    const unregister = vi.fn().mockResolvedValue(true)
+    vi.stubGlobal('caches', { keys: vi.fn().mockResolvedValue(['workbox-precache-v2', 'map-tiles']), delete: cachesDelete })
+    const getRegistration = vi.fn().mockRejectedValue(new Error('no worker'))
+    Object.defineProperty(navigator, 'serviceWorker', {
+      configurable: true,
+      value: { getRegistration, getRegistrations: vi.fn().mockResolvedValue([{ unregister }]), addEventListener: vi.fn() },
+    })
+
+    server.use(
+      http.get('/api/auth/app-config', () =>
+        HttpResponse.json({ version: '2.9.10', places_provider: 'google' })
+      )
+    )
+    seedAuth()
+    const first = renderApp('/')
+    await waitFor(() => expect(getRegistration).toHaveBeenCalledTimes(1))
+    await act(async () => { await Promise.resolve() })
+    first.unmount()
+    expect(localStorage.getItem('trek_app_version')).toBe('2.9.9')
+
+    renderApp('/')
+    await waitFor(() => expect(getRegistration).toHaveBeenCalledTimes(2))
+    await act(async () => { await Promise.resolve() })
+    expect(localStorage.getItem('trek_app_version')).toBe('2.9.9')
+    expect(reload).not.toHaveBeenCalled()
+    expect(cachesDelete).not.toHaveBeenCalled()
+    expect(unregister).not.toHaveBeenCalled()
+    // Without a reload the session carries on, so the rest of the config applies.
+    expect(useAuthStore.getState().placesProvider).toBe('google')
+  })
 })
 
 // Regression: a device that has never mirrored the preference must not treat

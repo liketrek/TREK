@@ -97,5 +97,20 @@ const oauth: TranslationStrings = {
   'oauth.authorize.alwaysIncluded': 'Always included', // en-fallback
   'oauth.authorize.alwaysTool.listTrips': 'List your trips so the AI can discover trip IDs', // en-fallback
   'oauth.authorize.alwaysTool.getTripSummary': 'Read a trip overview needed to use any other tool', // en-fallback
+  'oauth.scope.group.files': 'Fájlok',
+  'oauth.scope.group.settings': 'Beállítások',
+  'oauth.scope.files:read.label': 'Az utazás fájljainak megtekintése',
+  'oauth.scope.files:read.description': 'Az utazás dokumentumainak listázása: nevek, méretek, ki töltötte fel és mihez kapcsolódnak',
+  'oauth.scope.files:write.label': 'Az utazás fájljainak kezelése',
+  'oauth.scope.files:write.description': 'Fájlok átnevezése és leírása, foglalásokhoz és helyekhez kapcsolása, megjelölése és kukába helyezése',
+  'oauth.scope.files:content.label': 'Fájltartalom olvasása',
+  'oauth.scope.files:content.description': 'Feltöltött dokumentum tartalmának olvasása, például egy foglalási PDF vagy jegy',
+  'oauth.scope.settings:read.label': 'Beállítások megtekintése',
+  'oauth.scope.settings:read.description': 'Mértékegységek, időformátum, nyelv, alapértelmezett pénznem és kezdőoldal olvasása',
+  'oauth.scope.settings:write.label': 'Beállítások módosítása',
+  'oauth.scope.settings:write.description': 'Mértékegységek, időformátum, nyelv, alapértelmezett pénznem és kezdőoldal módosítása. Soha nem a tárolt API-kulcsok',
+  'oauth.scope.group.plugins': 'Bővítmények',
+  'oauth.scope.plugins:use.label': 'Bővítményeszközök futtatása',
+  'oauth.scope.plugins:use.description': 'Engedélyezi, hogy ez az ügyfél meghívja a rendszergazda által telepített és jóváhagyott bővítmények eszközeit. Minden bővítmény a már megkapott jogosultságaival működik, nem a token hatóköreivel',
 };
 export default oauth;

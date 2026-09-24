@@ -54,6 +54,13 @@ export default function MSettingsGeneral() {
       value: (on) => on,
     },
     {
+      key: 'map_always_show_routes',
+      label: t('settings.alwaysShowRoutes'),
+      sub: t('settings.alwaysShowRoutesHint'),
+      on: settings.map_always_show_routes === true,
+      value: (on) => on,
+    },
+    {
       key: 'map_poi_pill_enabled',
       label: t('settings.mapPoiPill'),
       sub: t('settings.mapPoiPillHint'),

@@ -6,10 +6,13 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.addPlaceShort': 'Miejsce',
   'mobileTrip.addToDayQuestion': 'Dodać do dnia?',
   'mobileTrip.addTransportShort': 'Transport',
+  'mobileTrip.allDays': 'Wszystkie dni',
   'mobileTrip.assignedDays': 'Przypisane dni',
+  'mobileTrip.assignmentNotes': 'Notatki dla dnia',
   'mobileTrip.bookingsEmpty': 'Brak rezerwacji',
   'mobileTrip.collabFeatureDisabled': 'Ta funkcja jest wyłączona dla tej podróży',
   'mobileTrip.compactView': 'Widok kompaktowy',
+  'mobileTrip.dayAnnounce': 'Dzień {current} z {total}',
   'mobileTrip.dayTitlePlaceholder': 'Tytuł dnia',
   'mobileTrip.export': 'Eksportuj',
   'mobileTrip.filesEmpty': 'Brak plików',
@@ -44,5 +47,30 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.upNext': 'Następne',
   'mobileTrip.viewDetails': 'Zobacz szczegóły',
   'mobileTrip.transportsEmpty': 'Brak transportu',
+  'mobileTrip.rtInfoTitle': 'Dane jazdy',
+  'mobileTrip.rtDesktopNote':
+    'Te dane ustawia się na komputerze, gdzie możesz też porównywać warianty trasy i sprawić, by dzień podążał za zaimportowanym śladem.',
+  'mobileTrip.rtPlanOnDesktop': 'Planowanie odbywa się na komputerze. TREK wylicza przejazd, gdy dzień ma dwa miejsca.',
+  'mobileTrip.rtSearchOffline': 'Wymaga połączenia: wyszukiwanie czyta trasę przed tobą.',
+  'mobileTrip.rtBehind': '{time} opóźnienia względem planu',
+  'mobileTrip.rtStart': 'Początek',
+  'mobileTrip.rtStayScope':
+    'Pobyt jest przypisany do miejsca, więc liczy się w każdym dniu, w którym zaplanowano ten przystanek.',
+  'mobileTrip.rtStayLess': '{count} minut mniej',
+  'mobileTrip.rtStayMore': '{count} minut więcej',
+  'mobileTrip.rtNightDesktopOnly':
+    'Nocleg w tym miejscu rezerwuje się w planerze na komputerze. Tutaj możesz go tylko odrzucić.',
+  'mobileTrip.rtReach': 'Jak daleko',
+  'mobileTrip.rtReachAhead': '{distance} przed tobą',
+  'mobileTrip.rtFromNext': 'Od następnego przystanku',
+  'mobileTrip.rtFromStart': 'Od początku etapu',
+  'mobileTrip.rtNoneAhead': 'Na drodze przed tobą nic nie ma. Spróbuj całego etapu.',
+  'mobileTrip.rtNoneOnStage': 'Na tym etapie nie ma nic takiego.',
+  'mobileTrip.rtTruncated.one':
+    '1 odcinek miał więcej, niż mieści się w jednej odpowiedzi. Wybierz mniej rodzajów, by zobaczyć resztę.',
+  'mobileTrip.rtTruncated.other':
+    'Odcinki, na których było więcej, niż mieści się w jednej odpowiedzi: {count}. Wybierz mniej rodzajów, by zobaczyć resztę.',
+  'mobileTrip.rtNoDay': 'Nie wybrano dnia',
+  'mobileTrip.rtNoDayHint': 'Mapa pokazuje całą podróż. Dotknij dnia powyżej, aby zobaczyć jego trasę.',
 };
 export default mobileTrip;

@@ -1,16 +1,17 @@
-import { useState, type MouseEvent } from 'react'
+import { useRef, useState, type MouseEvent } from 'react'
 import {
   ArrowRight, BedDouble, CalendarDays, CalendarRange, ChevronRight, Compass, LogIn, LogOut,
   MapPin, Pencil, PencilLine, Route, Ticket, TrainFront, Undo2,
-  Car, Footprints, Zap, RotateCcw,
+  Car, Footprints, Zap, RotateCcw, TramFront,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useContextMenu, ContextMenu } from '../../../../components/shared/ContextMenu'
+import MarkdownText from '../../../../components/shared/MarkdownText'
 import { fmtTransitDuration } from '../../../../components/Planner/transitDisplay'
 import { formatTime } from '../../../../utils/formatters'
 import { useMPlanTimeline, type MPlanTimelineController } from './useMPlanTimeline'
 import { cityPillsForDay, weatherIconFor } from './planTimelineModel'
-import type { PlanRow } from './planTimelineModel'
+import type { HotelChip, PlanRow } from './planTimelineModel'
 import { useMPlanDragReorder } from './useMPlanDragReorder'
 import { useTouchDragBridge } from '../../../../hooks/useTouchDragBridge'
 import { useIsTouch } from '../../../../hooks/useIsTouch'
@@ -21,9 +22,12 @@ import { Fragment } from 'react'
 import MDancingTrek from '../../../components/MDancingTrek'
 import type { MPlanTimelineProps } from '../MTripShell'
 import type { MergedItem } from '../../../../utils/dayMerge'
+import type { RouteSegment } from '../../../../types'
 import type { Assignment } from '../../../../types'
 import type { ComponentType, ReactNode } from 'react'
 import GoogleMapsIcon from '../../../../components/shared/GoogleMapsIcon'
+import { isRtlLanguage } from '../../../../i18n'
+import { useMPlanDaySwipe } from './useMPlanDaySwipe'
 
 /**
  * Plan-tab timeline of the mobile trip screen: the UP-NEXT card in go mode,
@@ -39,12 +43,16 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
   const { t, trip, can } = planner
   const canEdit = can('day_edit', trip)
   const editing = shell.mode === 'edit' && canEdit
+  const canEditPlaces = can('place_edit', trip)
   // Per-segment travel mode (#1281): tap a connector → pick the leg's mode.
   const legMenu = useContextMenu()
   const modeIcon = (key: string) => (key === 'walking' ? Footprints : key.startsWith('plugin:') ? Zap : Car)
-  const openLegMenu = (e: MouseEvent, assignmentId: number) => {
+  const openLegMenu = (e: MouseEvent, assignmentId: number, seg: RouteSegment) => {
+    // Public transit sits under the road profiles, as on the desktop (#2398).
+    const transitLeg = tl.transitLegFor(seg)
     legMenu.open(e, [
       ...tl.routeModeOptions.map(o => ({ label: o.label, icon: modeIcon(o.key), onClick: () => tl.setLegMode(assignmentId, o.key) })),
+      ...(transitLeg ? [{ label: t('transit.title'), icon: TramFront, onClick: () => tl.planTransitLeg(transitLeg) }] : []),
       { divider: true },
       { label: t('dayplan.transportMode.useDefault'), icon: RotateCcw, onClick: () => tl.setLegMode(assignmentId, null) },
     ])
@@ -54,6 +62,21 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
   const daySchedule = usePluginDaySchedule(planner.tripId)
   const day = tl.day
   const dayId = day?.id
+  // A stay chip opens the stay, the same way the stay card in the day sheet
+  // does: the editor for members who may edit days, otherwise the hotel's
+  // place. A stay with neither still leads to the day sheet, so the chip
+  // never goes dead (#2210).
+  const openStay = (chip: HotelChip) => {
+    if (!day) return
+    if (canEdit) shell.openSheet('accommodation', { dayId: day.id, accId: chip.accId, from: 'timeline' })
+    else if (chip.placeId != null) planner.handlePlaceClick(chip.placeId)
+    else shell.openSheet('day', { dayId: day.id })
+  }
+  // The icon alone tells check-out from check-in; the accessible name says it.
+  const stayLabel = (chip: HotelChip) => {
+    const kind = chip.variant === 'checkin' ? t('day.checkIn') : chip.variant === 'checkout' ? t('day.checkOut') : t('mobileTrip.stay')
+    return `${kind} · ${chip.name}${chip.time ? ` · ${chip.time.slice(0, 5)}` : ''}`
+  }
   // Mirrors MDaySheet's own label so the pill and the sheet it opens agree.
   const dayLabel = day
     ? day.title || t('planner.dayN', { n: day.day_number || planner.days.indexOf(day) + 1 })
@@ -85,6 +108,25 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
     onMove: tl.moveRowTo,
     enabled: editing,
   })
+  // Swipe the whole panel left/right to step days (#2051) — the one-handed way
+  // to the next day, since the chip rail is pinned to the top of the screen.
+  const panelRef = useRef<HTMLDivElement>(null)
+  const cardRef = useRef<HTMLDivElement>(null)
+  const daySwipe = useMPlanDaySwipe({
+    days: planner.days,
+    selectedDayId: planner.selectedDayId,
+    // skipFit, exactly like the chip tap in plan view: the map underneath stays
+    // mounted, and re-framing it here would move it somewhere nobody asked for.
+    onSelectDay: dayId => planner.handleSelectDay(dayId, true),
+    panelRef,
+    cardRef,
+    editing,
+    dragging: dnd.draggingKey != null,
+    menuOpen: legMenu.menu != null,
+    rtl: isRtlLanguage(planner.language),
+    describeDay: (i, n) => t('mobileTrip.dayAnnounce', { current: i + 1, total: n }),
+  })
+
   const dragFor = (row: PlanRow): RowDrag | undefined => {
     const props = dnd.dragPropsFor(row)
     if (!props) return undefined
@@ -107,8 +149,12 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
   const chrome = { editing, t, language: tl.language, timeFormat: tl.timeFormat }
 
   return (
-    <div className="absolute inset-0">
+    <div ref={panelRef} className="absolute inset-0" {...daySwipe.handlers}>
       <ContextMenu menu={legMenu.menu} onClose={legMenu.close} />
+      {/* Swipe-committed day changes only — a chip tap already speaks its own
+          button label plus the aria-current flip, so announcing there would say
+          the day twice. */}
+      <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">{daySwipe.announcement}</span>
       {!editing && <UpNextCard tl={tl} t={t} onOpen={openPlace} />}
       {editing && <EditHeader tl={tl} planner={planner} shell={shell} />}
 
@@ -116,6 +162,7 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
           collapses that reserved space up to the day chips when the day has no
           up-next (no places), so an empty day shows no gap. */}
       <div
+        ref={cardRef}
         data-touch-drag={editing ? '' : undefined}
         className="absolute left-4 right-4 overflow-y-auto overscroll-contain rounded-[22px] border border-[color:var(--m-cbr)] bg-[color:var(--m-card)] px-3.5 pb-2 pt-1 backdrop-blur-[24px] backdrop-saturate-[1.6] bottom-[calc(env(safe-area-inset-bottom,0px)+90px)]"
         style={{ top: `calc(var(--m-safe-top, 12px) + ${editing ? 140 : tl.upNext ? 216 : 102}px)` }}
@@ -127,7 +174,14 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
             // the pill drops to icon-only there rather than saying it twice.
             dayLabel={editing ? '' : dayLabel}
             openLabel={t('day.overview')}
+            // The chip still opens the day sheet, but its accessible name says
+            // WHERE the forecast is for — a roadtrip day is ambiguous otherwise (#2167).
+            weatherLabel={tl.weatherPlaceName
+              ? `${t('day.overview')} · ${t('day.weatherFor', { name: tl.weatherPlaceName })}`
+              : undefined}
             onOpenDay={() => shell.openSheet('day', { dayId: day.id })}
+            onOpenStay={openStay}
+            stayLabel={stayLabel}
           />
         )}
 
@@ -144,12 +198,12 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
                   <PlaceRow
                     assignment={row.assignment}
                     fullPlace={tl.fullPlaceOf(row.assignment)}
-                    linkedRes={row.linkedRes}
+                    linkedReservations={row.linkedReservations}
                     chrome={chrome}
                     reorder={reorderFor(row.item)}
                     drag={dragFor(row)}
                     onOpen={() => openPlace(row.assignment)}
-                    onEdit={() => tl.editAssignment(row.assignment)}
+                    onEdit={canEditPlaces ? () => tl.editAssignment(row.assignment) : undefined}
                     onRemove={() => tl.removeAssignment(row.assignment)}
                   />
                   {dayScheduleFor('assignment', row.assignment.id)}
@@ -201,7 +255,7 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
                 />
               )
             case 'conn':
-              return <ConnRow key={row.key} seg={row.seg} onTap={editing && row.assignmentId != null ? e => openLegMenu(e, row.assignmentId!) : undefined} />
+              return <ConnRow key={row.key} seg={row.seg} onTap={editing && row.assignmentId != null ? e => openLegMenu(e, row.assignmentId!, row.seg) : undefined} />
           }
         })}
 
@@ -228,8 +282,12 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
             <PlanAction icon={Ticket} label={t('mobileTrip.addBookingShort')} onClick={tl.addBooking} />
             <PlanAction icon={TrainFront} label={t('mobileTrip.addTransportShort')} onClick={tl.addTransport} />
             <PlanAction icon={Route} label={t('dayplan.optimize')} onClick={() => void tl.optimize()} />
-            <PlanAction icon={GoogleMapsIcon} label={t('mobileTrip.googleMaps')} onClick={tl.exportGoogleMaps} />
-            <PlanAction icon={Compass} label={t('mobileTrip.coMaps')} onClick={tl.exportCoMaps} />
+            {tl.canExportRoute && (
+              <>
+                <PlanAction icon={GoogleMapsIcon} label={t('mobileTrip.googleMaps')} onClick={tl.exportGoogleMaps} />
+                <PlanAction icon={Compass} label={t('mobileTrip.coMaps')} onClick={tl.exportCoMaps} />
+              </>
+            )}
           </div>
         )}
       </div>
@@ -275,7 +333,7 @@ function UpNextCard({ tl, t, onOpen }: {
             )}
             <span className="min-w-0 truncate text-[1.125rem] font-bold">{place?.name}</span>
           </div>
-          {sub && <div className="mt-[2px] truncate font-geist text-[0.75rem] text-m-muted">{sub}</div>}
+          {sub && <MarkdownText clamp className="mt-[2px] font-geist text-[0.75rem] text-m-muted">{sub}</MarkdownText>}
         </div>
         <span className="ml-2 flex h-8 w-8 flex-none items-center justify-center rounded-full bg-m-act text-m-actfg">
           <ChevronRight size={16} strokeWidth={2.4} />
@@ -365,19 +423,28 @@ function EditHeader({ tl, planner, shell }: {
  * (check-out / check-in / stay) and the weather chip.
  *
  * The day pill leads unconditionally. It used to be the accommodation chip that
- * carried this, which left a day without a stay — and, with no weather either,
- * the whole header — with no way into the day sheet at all (#2004).
+ * carried this, which left a day without a stay (and, with no weather either,
+ * the whole header) with no way into the day sheet at all (#2004). Since then
+ * the stay chips have a target of their own: tapping a hotel opens that stay,
+ * not the day (#2210). Only the weather chip still shares the day pill's target.
  */
-function TimelineHeader({ tl, dayLabel, openLabel, onOpenDay }: {
+function TimelineHeader({ tl, dayLabel, openLabel, weatherLabel, onOpenDay, onOpenStay, stayLabel }: {
   tl: MPlanTimelineController
   dayLabel: string
   openLabel: string
+  /** Weather-chip label naming the forecast's anchor place (#2167); falls back to openLabel. */
+  weatherLabel?: string
   onOpenDay: () => void
+  onOpenStay: (chip: HotelChip) => void
+  stayLabel: (chip: HotelChip) => string
 }) {
   const WeatherIcon = weatherIconFor(tl.weather?.main)
   return (
     <div className="flex items-center gap-1.5 border-b border-[color:var(--m-rowbr)] px-0.5 py-[9px]">
-      <span className="flex min-w-0 items-center gap-1.5 overflow-x-auto">
+      {/* The one horizontal scroller inside the swipe zone, marked so a swipe
+          that starts here is handed back to it — but only while it really
+          overflows, so a short day title still swipes. */}
+      <span data-hswipe-ignore className="flex min-w-0 items-center gap-1.5 overflow-x-auto">
         <button
           type="button"
           onClick={onOpenDay}
@@ -392,7 +459,8 @@ function TimelineHeader({ tl, dayLabel, openLabel, onOpenDay }: {
           <button
             key={chip.key}
             type="button"
-            onClick={onOpenDay}
+            onClick={() => onOpenStay(chip)}
+            aria-label={stayLabel(chip)}
             className="flex flex-none items-center gap-[5px] whitespace-nowrap rounded-full bg-[color:var(--m-ic)] px-2.5 py-1 font-geist text-[0.6875rem] font-semibold"
           >
             <HotelChipIcon variant={chip.variant} />
@@ -405,7 +473,8 @@ function TimelineHeader({ tl, dayLabel, openLabel, onOpenDay }: {
         <button
           type="button"
           onClick={onOpenDay}
-          aria-label={openLabel}
+          aria-label={weatherLabel || openLabel}
+          title={tl.weatherPlaceName || undefined}
           className="ml-auto flex flex-none items-center gap-1 whitespace-nowrap px-1.5 py-1 text-[0.71875rem] font-semibold"
         >
           <WeatherIcon size={13} strokeWidth={2} />

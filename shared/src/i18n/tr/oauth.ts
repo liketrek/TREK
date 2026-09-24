@@ -98,5 +98,20 @@ const oauth: TranslationStrings = {
   'oauth.authorize.alwaysIncluded': 'Always included', // en-fallback
   'oauth.authorize.alwaysTool.listTrips': 'List your trips so the AI can discover trip IDs', // en-fallback
   'oauth.authorize.alwaysTool.getTripSummary': 'Read a trip overview needed to use any other tool', // en-fallback
+  'oauth.scope.group.files': 'Dosyalar',
+  'oauth.scope.group.settings': 'Ayarlar',
+  'oauth.scope.files:read.label': 'Gezi dosyalarını görüntüle',
+  'oauth.scope.files:read.description': 'Bir gezinin belgelerini listele: adlar, boyutlar, kimin yüklediği ve neye bağlı oldukları',
+  'oauth.scope.files:write.label': 'Gezi dosyalarını yönet',
+  'oauth.scope.files:write.description': 'Dosyaları yeniden adlandır ve açıkla, rezervasyonlara ve yerlere bağla, yıldızla ve çöpe taşı',
+  'oauth.scope.files:content.label': 'Dosya içeriğini oku',
+  'oauth.scope.files:content.description': 'Yüklenmiş bir belgenin içeriğini oku, örneğin bir rezervasyon PDF’i veya bir bilet',
+  'oauth.scope.settings:read.label': 'Tercihlerini görüntüle',
+  'oauth.scope.settings:read.description': 'Birimleri, saat biçimini, dili, varsayılan para birimini ve başlangıç sayfasını oku',
+  'oauth.scope.settings:write.label': 'Tercihlerini değiştir',
+  'oauth.scope.settings:write.description': 'Birimleri, saat biçimini, dili, varsayılan para birimini ve başlangıç sayfasını değiştir. Kayıtlı API anahtarlarını asla',
+  'oauth.scope.group.plugins': 'Eklentiler',
+  'oauth.scope.plugins:use.label': 'Eklenti araçlarını çalıştır',
+  'oauth.scope.plugins:use.description': 'Bu istemcinin, bir yöneticinin kurup onayladığı eklentilerin sunduğu araçları çağırmasına izin verir. Her eklenti, bu belirtecin kapsamlarıyla değil, kendisine önceden verilmiş yetkilerle çalışır',
 };
 export default oauth;

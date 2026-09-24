@@ -524,6 +524,27 @@ describe('Shared trip — display currency (issue #1361)', () => {
   });
 });
 
+describe('Shared trip: CARTO tile key (issue #2054)', () => {
+  it('SHARE-029: the payload carries the owner\'s carto_api_key, behind it the admin instance default', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    testDb.prepare("INSERT INTO app_settings (key, value) VALUES ('default_user_setting_carto_api_key', 'instance-key')").run();
+
+    const { body: { token } } = await request(app)
+      .post(`/api/trips/${trip.id}/share-link`)
+      .set('Cookie', authCookie(user.id))
+      .send({ share_map: true });
+
+    const inherited = await request(app).get(`/api/shared/${token}`);
+    expect(inherited.status).toBe(200);
+    expect(inherited.body.cartoApiKey).toBe('instance-key');
+
+    testDb.prepare("INSERT INTO settings (user_id, key, value) VALUES (?, 'carto_api_key', 'owner-key')").run(user.id);
+    const own = await request(app).get(`/api/shared/${token}`);
+    expect(own.body.cartoApiKey).toBe('owner-key');
+  });
+});
+
 describe('Shared trip — place photos in shared links (issue #1100)', () => {
   const PLACE_ID = 'ChIJsharedPhoto1100';
   const PROXY_URL = `/api/maps/place-photo/${encodeURIComponent(PLACE_ID)}/bytes`;

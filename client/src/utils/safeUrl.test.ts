@@ -27,6 +27,14 @@ describe('safeHttpUrl', () => {
     expect(safeHttpUrl('//evil.example')).toBeNull()
   })
 
+  // #2483: the write contract now completes a bare host to https. What is read
+  // back here is the stored text, which is linked only when it is already final.
+  it('FE-UTIL-SAFEURL-007: a value the contract would complete is still not linked as stored', () => {
+    expect(safeHttpUrl('fr.wikipedia.org/wiki/Chapelle_Sainte-Barbe_du_Faouët')).toBeNull()
+    expect(safeHttpUrl(' https://louvre.fr')).toBeNull()
+    expect(safeHttpUrl('https://louvre.fr ')).toBe('https://louvre.fr ')
+  })
+
   it('FE-UTIL-SAFEURL-006: treats absent and empty as nothing to open', () => {
     expect(safeHttpUrl(null)).toBeNull()
     expect(safeHttpUrl(undefined)).toBeNull()

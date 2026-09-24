@@ -613,6 +613,26 @@ describe('ReservationMapboxOverlay declutter floors', () => {
     attach(wide, labelled).update([hop(2, 'cruise', 0.4)], labelled)
     expect(glMarkers.map(m => m.el.textContent)).toEqual(['GOA', 'PMI'])
   })
+
+  it('FE-COMP-RESGL-043: a routed drive whose ends project close together still draws (#2275)', () => {
+    // 50 px between the ends, under the 80 px car floor; the road loops out 300 px.
+    const road: [number, number][] = [[48, 16], [48.3, 16.1], [48.3, 16.3], [48.05, 16]]
+    const bare = freshMap()
+    attach(bare).update([hop(7, 'car', 0.05)], opts)
+    expect(features(bare)).toHaveLength(0)
+
+    const routed = freshMap()
+    attach(routed).update([hop(7, 'car', 0.05)], opts, new Map([[7, road]]))
+    expect(features(routed)).toHaveLength(1)
+    expect(features(routed)[0].geometry.coordinates).toEqual(road.map(([lat, lng]) => [lng, lat]))
+  })
+
+  it('FE-COMP-RESGL-044: a routed drive that really is tiny on screen stays decluttered', () => {
+    const road: [number, number][] = [[48, 16], [48.01, 16.01], [48.02, 16.02], [48.03, 16]]
+    const map = freshMap()
+    attach(map).update([hop(7, 'car', 0.03)], opts, new Map([[7, road]]))
+    expect(features(map)).toHaveLength(0)
+  })
 })
 
 describe('ReservationMapboxOverlay waypoint edge cases', () => {

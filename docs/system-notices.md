@@ -60,8 +60,8 @@ There are **no database rows for notice definitions**. The registry is code-only
 3. SystemNoticeHost mounts → calls useSystemNoticeStore.fetch()
         │   (also triggered on cold page reload if store not yet loaded)
         ▼
-4. GET /api/system-notices/active
-        │
+4. GET /api/system-notices/active?supports=release
+        │   (`supports` lists the layouts this bundle can draw; see section 10)
         ▼
 5. service.getActiveNoticesFor(userId)
    ├── reads user row  (login_count, first_seen_version, role)
@@ -73,6 +73,10 @@ There are **no database rows for notice definitions**. The registry is code-only
    │     – all conditions pass (AND logic)
    ├── sorts by priority → severity → publishedAt (desc)
    └── strips server-only fields (conditions, publishedAt, minVersion, maxVersion, priority)
+        │
+        ▼
+   Nest SystemNoticesService drops every notice with a `release` block unless the
+   request announced `supports=release`
         │
         ▼
 6. Client receives SystemNoticeDTO[]
@@ -500,7 +504,7 @@ system_notice.pager.position   → "Notice {current} of {total}"  (aria-live)
 
 | Action | Behaviour |
 |---|---|
-| `fetch()` | `GET /api/system-notices/active`. Fails silently (non-critical). Sets `loaded = true` regardless. |
+| `fetch()` | `GET /api/system-notices/active?supports=release`. Fails silently (non-critical). Sets `loaded = true` regardless. `supports` names the layouts this bundle can draw: after an update the service worker keeps serving the previous bundle until the new one is installed, and a bundle that does not announce the release layout would draw the release notice as bare keys and could dismiss it for good. The server holds a notice with a `release` block back from such a client and delivers it after the reload. |
 | `dismiss(id)` | Optimistic: removes notice from store immediately. POSTs to `/api/system-notices/{id}/dismiss` in background with one retry on failure. |
 
 `SystemNoticeHost` triggers `fetch()` on mount if `loaded === false`. Auth store also triggers it after login, so on a fresh login the fetch happens exactly once.

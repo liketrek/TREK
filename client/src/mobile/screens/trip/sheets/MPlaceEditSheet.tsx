@@ -14,8 +14,9 @@ import PlPlaceSearch, { type PlSearchPick } from './PlPlaceSearch'
 import PlCategoryPicker from './PlCategoryPicker'
 import PlTimeFields from './PlTimeFields'
 import PlFileAttach from './PlFileAttach'
-import type { Place } from '../../../../types'
+import type { Assignment, AssignmentsMap, Place } from '../../../../types'
 import type { TripPlanner } from '../MTripShell'
+import { useLocationBias } from '../../../../hooks/useLocationBias'
 
 export interface MPlaceEditSheetProps {
   planner: TripPlanner
@@ -48,6 +49,21 @@ function findDuplicateName(
 }
 
 /**
+ * The visit the editor was opened on, looked up in the planner's STORED list.
+ *
+ * Not planner.assignments: the phone filters booked nights (always) and service stops
+ * (while the day lists hide them) out of that one, and the road trip stop sheet opens
+ * this editor on exactly those visits. Looked up there the visit was not found, Start
+ * prefilled from the pool place, and a plain save wrote that over the time the stop was
+ * pinned to; the day note was dropped the same way. Every visit the plan tab shows is in
+ * the stored list as well, so its entry points resolve exactly as they did.
+ */
+function findVisit(stored: AssignmentsMap, assignmentId: number | null): Assignment | null {
+  if (!assignmentId) return null
+  return Object.values(stored).flat().find(a => a.id === assignmentId) ?? null
+}
+
+/**
  * Add/edit place sheet — the mobile counterpart of PlaceFormModal, driven by
  * the planner's own editor flags (showPlaceForm / editingPlace / prefillCoords /
  * editingAssignmentId) so every entry point (timeline edit, browser context
@@ -57,7 +73,7 @@ function findDuplicateName(
  */
 export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSheetProps) {
   const {
-    t, toast, places, assignments, canUploadFiles,
+    t, toast, places, assignments, storedAssignments, canUploadFiles,
     showPlaceForm, setShowPlaceForm,
     editingPlace, setEditingPlace,
     prefillCoords, setPrefillCoords,
@@ -83,10 +99,22 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
   const [sheetPlace, setSheetPlace] = useState<Place | null>(null)
   const [sheetAssignmentId, setSheetAssignmentId] = useState<number | null>(null)
 
-  const dayAssignments = useMemo(
-    () => (sheetPlace ? Object.values(assignments).flat() : []),
-    [sheetPlace, assignments],
+  // Live rather than the open-time snapshot, so the note's dirty check compares against
+  // the note as it stands when Save is tapped.
+  const ctxAssignment = useMemo(
+    () => (sheetPlace ? findVisit(storedAssignments, sheetAssignmentId) : null),
+    [sheetPlace, storedAssignments, sheetAssignmentId],
   )
+
+  // The overlap warning keeps to what the day lists show: on the plan tab a clash with a
+  // pump or a booked night the list does not draw would name a stop nobody can see there.
+  // The visit under edit joins when the lists hide it, because the warning reads the day
+  // to compare against off that very row.
+  const dayAssignments = useMemo(() => {
+    if (!sheetPlace) return []
+    const listed = Object.values(assignments).flat()
+    return ctxAssignment && !listed.some(a => a.id === ctxAssignment.id) ? [...listed, ctxAssignment] : listed
+  }, [sheetPlace, assignments, ctxAssignment])
 
   // Prefill on open — same source order as the desktop form: editing place
   // (times off the in-context assignment), map/POI prefill coords, blank.
@@ -95,9 +123,7 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
     setSheetPlace(editingPlace)
     setSheetAssignmentId(editingAssignmentId)
     if (editingPlace) {
-      const assignment = editingAssignmentId
-        ? Object.values(assignments).flat().find(a => a.id === editingAssignmentId)
-        : null
+      const assignment = findVisit(storedAssignments, editingAssignmentId)
       const timeSource = assignment?.place ?? editingPlace
       setForm({
         name: editingPlace.name || '',
@@ -111,6 +137,9 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
         notes: editingPlace.notes || '',
         transport_mode: editingPlace.transport_mode || 'walking',
         website: editingPlace.website || '',
+        // The day-specific note rides only with an assignment in context (#2163);
+        // otherwise the key stays absent so submit never sends a notes write.
+        ...(assignment ? { assignment_notes: assignment.notes || '' } : {}),
       })
     } else if (prefillCoords) {
       setForm({
@@ -139,29 +168,14 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
     setPendingFiles([])
     setDuplicateWarning(null)
     setDeleteArmed(false)
-    // assignments is a fresh map each load — read at open time only.
+    // storedAssignments is a fresh map each load, so it is read at open time only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showPlaceForm, editingPlace, prefillCoords, editingAssignmentId])
 
-  // Trip-centre bias for search/autocomplete, skipped past ~500 km diagonal.
-  const locationBias = useMemo(() => {
-    const withCoords = (places || []).filter(p => p.lat != null && p.lng != null)
-    if (withCoords.length === 0) return undefined
-    let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity
-    for (const p of withCoords) {
-      const lat = Number(p.lat), lng = Number(p.lng)
-      if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue
-      if (lat < minLat) minLat = lat
-      if (lat > maxLat) maxLat = lat
-      if (lng < minLng) minLng = lng
-      if (lng > maxLng) maxLng = lng
-    }
-    if (!Number.isFinite(minLat)) return undefined
-    const avgLatRad = ((minLat + maxLat) / 2) * (Math.PI / 180)
-    const diagKm = Math.sqrt(((maxLat - minLat) * 111) ** 2 + ((maxLng - minLng) * 111 * Math.cos(avgLatRad)) ** 2)
-    if (diagKm > 500) return undefined
-    return { low: { lat: minLat, lng: minLng }, high: { lat: maxLat, lng: maxLng } }
-  }, [places])
+  // The area being planned, as a hint for search and autocomplete. Same helper
+  // as the desktop dialog: the day currently open first, the whole trip only
+  // while it still fits inside one region.
+  const { box: locationBias } = useLocationBias()
 
   const handleChange = (field: keyof PlaceFormData, value: string) => {
     // Typed by hand, so the next pick must leave it alone.
@@ -237,13 +251,20 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
     expenseIntentRef.current = false
     setIsSaving(true)
     try {
-      const saved = await handleSavePlace({
+      const payload = {
         ...form,
         lat: form.lat ? Number.parseFloat(form.lat) : null,
         lng: form.lng ? Number.parseFloat(form.lng) : null,
         category_id: form.category_id || null,
         _pendingFiles: pendingFiles.length > 0 ? pendingFiles : undefined,
-      })
+      }
+      // #2163: the per-assignment note only travels when an assignment is in
+      // context AND the value actually changed — same dirty-check as the
+      // desktop form, so an untouched note never produces a PUT.
+      if (!ctxAssignment || (form.assignment_notes ?? '') === (ctxAssignment.notes ?? '')) {
+        delete payload.assignment_notes
+      }
+      const saved = await handleSavePlace(payload)
       const savedId = saved?.id ?? sheetPlace?.id ?? null
       if (withExpense && savedId) {
         onOpenExpense({ prefill: { placeId: savedId, name: form.name.trim(), category: 'activities' } })
@@ -348,17 +369,28 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
         <Eyebrow className="mb-[6px] mt-3 uppercase">{t('places.formCategory')}</Eyebrow>
         <PlCategoryPicker planner={planner} value={form.category_id} onChange={id => handleChange('category_id', id)} />
 
-        {/* Times live per day-assignment — only editable when one is in context. */}
+        {/* Times live per day-assignment — only editable when one is in context.
+            Same for the day-specific note (#2163). */}
         {sheetPlace && sheetAssignmentId && (
-          <PlTimeFields
-            planner={planner}
-            startTime={form.place_time}
-            endTime={form.end_time}
-            onChange={handleChange}
-            assignmentId={sheetAssignmentId}
-            dayAssignments={dayAssignments}
-            hasTimeError={hasTimeError}
-          />
+          <>
+            <PlTimeFields
+              planner={planner}
+              startTime={form.place_time}
+              endTime={form.end_time}
+              onChange={handleChange}
+              assignmentId={sheetAssignmentId}
+              dayAssignments={dayAssignments}
+              hasTimeError={hasTimeError}
+            />
+            <Eyebrow className="mb-[5px] mt-3 uppercase">{t('places.assignmentNotes')}</Eyebrow>
+            <textarea
+              value={form.assignment_notes ?? ''}
+              onChange={e => handleChange('assignment_notes', e.target.value)}
+              rows={2}
+              placeholder={t('places.assignmentNotesPlaceholder')}
+              className={FIELD_AREA_CLS}
+            />
+          </>
         )}
 
         <Eyebrow className="mb-[5px] mt-3 uppercase">{t('places.formWebsite')}</Eyebrow>

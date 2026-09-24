@@ -8,7 +8,7 @@ Attach and manage documents, tickets, and other files for your trip.
 
 Open the **Files** tab inside the trip planner, or navigate directly to `/trips/:id/files`.
 
-> **Admin:** Files is an addon. Enable it in [Admin-Addons](Admin-Addons).
+> **Admin:** The Files tab belongs to the **Documents** addon. Enable it in [Admin-Addons](Admin-Addons).
 
 ## Uploading
 
@@ -61,6 +61,16 @@ From a reservation modal, use the "link existing file" picker to attach files di
 
 Click the download icon on any file row to download it. `.pkpass` files (Apple Wallet passes) are served with the `application/vnd.apple.pkpass` MIME type, so Safari on iOS and macOS offers to add the pass to Wallet instead of saving it as a generic download.
 
+## Document sync
+
+A trip's documents can be kept in step with a self-hosted document store: Paperless-ngx, Papra, Nextcloud, OpenCloud or a Synology NAS. Once a store is available, a **Document sync** button sits next to **Trash** in the toolbar; on the phone it is at the top of the Files tab. The trip owner connects the store there once, and from then on what someone uploads here appears in the store, and what someone files in the store appears here.
+
+Synced documents are ordinary files in this manager. Preview, starring, links, trash and download work as described on this page, and a document deleted here is only removed in the store when the binding is set to do so.
+
+See [Document-Sync](Document-Sync) for setup per store, the delete and conflict rules, and troubleshooting.
+
+> **Admin:** Each store is switched on separately under the **Documents** addon in [Admin-Addons](Admin-Addons). They ship switched off.
+
 ## Permissions
 
 | Permission | Controls |
@@ -72,5 +82,6 @@ Click the download icon on any file row to download it. `.pkpass` files (Apple W
 ## See also
 
 - [Reservations-and-Bookings](Reservations-and-Bookings)
+- [Document-Sync](Document-Sync)
 - [Admin-Addons](Admin-Addons)
 - [Trip-Planner-Overview](Trip-Planner-Overview)

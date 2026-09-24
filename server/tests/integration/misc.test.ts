@@ -165,4 +165,36 @@ describe('Request body ceiling', () => {
       .send({ email: 'a@b.c', password: 'x'.repeat(1024) });
     expect(res.status).not.toBe(413);
   });
+
+  // A list file may be a megabyte (#2198), and the three routes that carry one
+  // whole are measured against that instead (#2301): the import into a new
+  // list, the GPX reader, and the import into a list that already exists.
+  // Only those three.
+  it('MISC-011: a list file over 100kb reaches both imports and the GPX reader', async () => {
+    for (const route of [
+      '/api/addons/collections/import',
+      '/api/addons/collections/gpx/read',
+      '/api/addons/collections/7/import',
+    ]) {
+      const res = await request(app)
+        .post(route)
+        .set('Content-Type', 'application/json')
+        .send({ gpx: 'x'.repeat(300 * 1024) });
+      expect(res.status, route).not.toBe(413);
+    }
+  });
+
+  it('MISC-012: a list file past twice the file limit is still refused, and no other route got the larger ceiling', async () => {
+    const huge = await request(app)
+      .post('/api/addons/collections/gpx/read')
+      .set('Content-Type', 'application/json')
+      .send({ gpx: 'x'.repeat(2 * 1024 * 1024 + 1) });
+    expect(huge.status).toBe(413);
+
+    const elsewhere = await request(app)
+      .post('/api/addons/collections')
+      .set('Content-Type', 'application/json')
+      .send({ name: 'x'.repeat(200 * 1024) });
+    expect(elsewhere.status).toBe(413);
+  });
 });

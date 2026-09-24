@@ -19,5 +19,14 @@ const map: TranslationStrings = {
   'map.baseLayer.satellite': '衛星',
   'map.baseLayer.switchToSatellite': '切換到衛星檢視',
   'map.baseLayer.switchToDefault': '切換到地圖檢視',
+  'map.location.denied': '定位權限已被封鎖。請檢查裝置設定,已安裝的應用程式擁有與瀏覽器分開的定位權限。',
+  'map.location.unavailable': '無法判斷你的位置。',
+  'map.location.timeout': '定位花費的時間過長。請在能看到天空的開闊位置重試。',
+  'map.overview.show': '顯示整趟行程',
+  'map.overview.hide': '隱藏整趟行程',
+  'map.overview.total': '總距離',
+  'map.attribution': '地圖來源',
+  'map.overview.unrouted': '有 {count} 段無法計算路線，因此距離不完整。',
+  'map.overview.dayUnrouted': '本日有 {count} 段無法計算路線',
 };
 export default map;

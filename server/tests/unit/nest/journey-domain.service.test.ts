@@ -356,6 +356,30 @@ describe('updateJourney', () => {
     expect(result).not.toBeNull();
     expect(result!.status).toBe('active');
   });
+
+  it('JOURNEY-SVC-021d: trip GPX tracks are off until the owner switches them on (#2194)', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id, { title: 'Norway' });
+
+    // #1260 drew the linked trips' tracks unconditionally; they are opt-in now.
+    expect(svc.updateJourney(journey.id, user.id, {})!.show_trip_tracks).toBe(0);
+
+    // A JS boolean has to survive the trip into an INTEGER column —
+    // better-sqlite3 refuses to bind one, so this would throw uncoerced.
+    expect(svc.updateJourney(journey.id, user.id, { show_trip_tracks: true })!.show_trip_tracks).toBe(1);
+    expect(svc.updateJourney(journey.id, user.id, { show_trip_tracks: false })!.show_trip_tracks).toBe(0);
+  });
+
+  it('JOURNEY-SVC-021e: an editor cannot switch the trip tracks on (#2194)', () => {
+    const { user } = createUser(testDb);
+    const { user: editor } = createUser(testDb, { username: 'tracks-editor' });
+    const journey = createJourney(testDb, user.id, { title: 'Norway' });
+    testDb.prepare("INSERT INTO journey_contributors (journey_id, user_id, role, added_at) VALUES (?, ?, 'editor', 0)")
+      .run(journey.id, editor.id);
+
+    // Journey-level settings stay owner-only, same as title and status.
+    expect(svc.updateJourney(journey.id, editor.id, { show_trip_tracks: true })).toBeNull();
+  });
 });
 
 describe('deleteJourney', () => {
@@ -494,6 +518,25 @@ describe('listEntries', () => {
 
     expect(result).toBeNull();
   });
+
+  /*
+   * The stop switch reads back as a boolean on every path (discussion #2064).
+   * The column holds 0 or 1; a client handed the integer on one read and the
+   * boolean on another could compare against neither.
+   */
+  it('answers stats_excluded as a boolean, on the list and on the full journey alike', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const off = createJourneyEntry(testDb, journey.id, user.id, { entry_date: '2026-03-01', stats_excluded: 1 });
+    const on = createJourneyEntry(testDb, journey.id, user.id, { entry_date: '2026-03-02' });
+
+    const listed = svc.listEntries(journey.id, user.id)!;
+    expect(listed.find(e => e.id === off.id)!.stats_excluded).toBe(true);
+    expect(listed.find(e => e.id === on.id)!.stats_excluded).toBe(false);
+
+    const full = svc.getJourneyFull(journey.id, user.id)!;
+    expect(full.entries.map(e => e.stats_excluded)).toEqual([true, false]);
+  });
 });
 
 describe('createEntry', () => {
@@ -563,6 +606,124 @@ describe('updateEntry', () => {
     expect(updated).not.toBeNull();
     expect(updated!.type).toBe('entry');
     expect(updated!.story).toBe('Now I have a story!');
+  });
+
+  /*
+   * The JSON columns come back decoded, on every path (#2085 follow-up).
+   *
+   * `tags` and `pros_cons` are JSON in TEXT columns. The read paths decoded
+   * them and create/update did not, so an edit answered with `tags` as a
+   * string, the client spread it into an entry it had typed as `string[]`, and
+   * the journey page threw `tags.map is not a function`.
+   */
+  it('answers with tags decoded, not as the JSON string the column holds', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const entry = svc.createEntry(journey.id, user.id, {
+      title: 'Beach Day', entry_date: '2026-03-10', tags: ['beach', 'sunset'],
+    });
+
+    expect(entry!.tags).toEqual(['beach', 'sunset']);
+
+    const updated = svc.updateEntry(entry!.id, user.id, { title: 'Renamed' });
+    expect(updated!.tags).toEqual(['beach', 'sunset']);
+  });
+
+  it('decodes an emptied tag list rather than answering the string "[]"', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const entry = createJourneyEntry(testDb, journey.id, user.id, { entry_date: '2026-03-01' });
+
+    // The update path writes JSON.stringify([]) with no length check, so this
+    // is the ordinary way an entry ends up with a non-null tags column.
+    const updated = svc.updateEntry(entry.id, user.id, { tags: [] });
+    expect(updated!.tags).toEqual([]);
+  });
+
+  it('decodes pros_cons the same way, on create and on update', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const prosCons = { pros: ['warm'], cons: ['crowded'] };
+    const entry = svc.createEntry(journey.id, user.id, {
+      title: 'Verdict', entry_date: '2026-03-10', pros_cons: prosCons,
+    });
+
+    expect(entry!.pros_cons).toEqual(prosCons);
+    expect(svc.updateEntry(entry!.id, user.id, { title: 'Renamed' })!.pros_cons).toEqual(prosCons);
+  });
+
+  /* An update that changes nothing takes its own early return out of the method. */
+  it('decodes on the no-op update too', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const entry = svc.createEntry(journey.id, user.id, {
+      title: 'Beach Day', entry_date: '2026-03-10', tags: ['beach'],
+    });
+
+    expect(svc.updateEntry(entry!.id, user.id, {})!.tags).toEqual(['beach']);
+  });
+
+  /*
+   * The broadcast carries the same shape as the answer. Nothing reads it today
+   * — the journey page reloads on any event — so this is about not leaving a
+   * payload that contradicts every read path for a listener to trust later.
+   */
+  it('broadcasts the decoded entry, not the row', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const entry = svc.createEntry(journey.id, user.id, {
+      title: 'Beach Day', entry_date: '2026-03-10', tags: ['beach', 'sunset'],
+    });
+
+    const spy = vi.spyOn(RealtimeService.prototype, 'broadcastToUser').mockImplementation(() => {});
+    try {
+      svc.updateEntry(entry!.id, user.id, { title: 'Renamed' });
+      const payload = spy.mock.calls.at(-1)?.[1] as { type: string; entry: { tags: unknown } };
+      expect(payload.type).toBe('journey:entry:updated');
+      expect(payload.entry.tags).toEqual(['beach', 'sunset']);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  /*
+   * The stop switch (discussion #2064). The column is an INTEGER, the wire is
+   * a boolean and the client compares with `=== true`, so the answer has to
+   * be the boolean on the way out as well as the integer on the way in, and
+   * the broadcast has to say the same thing the answer does.
+   */
+  it('switches a stop off and back on, and answers with the flag as a boolean', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const entry = createJourneyEntry(testDb, journey.id, user.id, { entry_date: '2026-03-01' });
+    const flagOf = (id: number) =>
+      (testDb.prepare('SELECT stats_excluded FROM journey_entries WHERE id = ?').get(id) as { stats_excluded: number }).stats_excluded;
+
+    const spy = vi.spyOn(RealtimeService.prototype, 'broadcastToUser').mockImplementation(() => {});
+    try {
+      const off = svc.updateEntry(entry.id, user.id, { stats_excluded: true });
+      expect(off!.stats_excluded).toBe(true);
+      expect(flagOf(entry.id)).toBe(1);
+      const payload = spy.mock.calls.at(-1)?.[1] as { type: string; entry: { stats_excluded: unknown } };
+      expect(payload.entry.stats_excluded).toBe(true);
+
+      const on = svc.updateEntry(entry.id, user.id, { stats_excluded: false });
+      expect(on!.stats_excluded).toBe(false);
+      expect(flagOf(entry.id)).toBe(0);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it('a viewer cannot switch a stop off', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: viewer } = createUser(testDb);
+    const journey = createJourney(testDb, owner.id);
+    addJourneyContributor(testDb, journey.id, viewer.id, 'viewer');
+    const entry = createJourneyEntry(testDb, journey.id, owner.id, { entry_date: '2026-03-01' });
+
+    expect(svc.updateEntry(entry.id, viewer.id, { stats_excluded: true })).toBeNull();
+    expect(svc.listEntries(journey.id, owner.id)![0].stats_excluded).toBe(false);
   });
 
   it('JOURNEY-SVC-034: returns null for non-existent entry', () => {
@@ -1727,6 +1888,164 @@ describe('reconcileTripSkeletons', () => {
   });
 });
 
+// -- the same place on two days (#2329) ---------------------------------------
+
+describe('a place standing on more than one day', () => {
+  function linkedJourneyTrip() {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const trip = createTrip(testDb, user.id, {
+      title: 'Repeat Trip',
+      start_date: '2026-05-01',
+      end_date: '2026-05-03',
+    });
+    svc.addTripToJourney(journey.id, trip.id, user.id);
+    return { user, journey, trip };
+  }
+
+  function daysOf(tripId: number) {
+    return testDb.prepare('SELECT id, date FROM days WHERE trip_id = ? ORDER BY date ASC').all(tripId) as {
+      id: number;
+      date: string;
+    }[];
+  }
+
+  function skeletonsFor(journeyId: number, placeId: number) {
+    return testDb
+      .prepare('SELECT * FROM journey_entries WHERE journey_id = ? AND source_place_id = ? ORDER BY entry_date ASC')
+      .all(journeyId, placeId) as any[];
+  }
+
+  it('JOURNEY-SVC-REPEAT-001: syncTripPlaces writes one skeleton per day, not one per place', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const trip = createTrip(testDb, user.id, { title: 'Two Nights', start_date: '2026-05-01', end_date: '2026-05-03' });
+    const days = daysOf(trip.id);
+    const place = createPlace(testDb, trip.id, { name: 'Reykjavík' });
+    createDayAssignment(testDb, days[0].id, place.id);
+    createDayAssignment(testDb, days[1].id, place.id);
+
+    svc.syncTripPlaces(journey.id, trip.id, user.id);
+
+    expect(skeletonsFor(journey.id, place.id).map((e) => e.entry_date)).toEqual([days[0].date, days[1].date]);
+  });
+
+  it('JOURNEY-SVC-REPEAT-002: a second call adds nothing', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const trip = createTrip(testDb, user.id, { title: 'Idempotent', start_date: '2026-05-01', end_date: '2026-05-03' });
+    const days = daysOf(trip.id);
+    const place = createPlace(testDb, trip.id, { name: 'Vík' });
+    createDayAssignment(testDb, days[0].id, place.id);
+    createDayAssignment(testDb, days[1].id, place.id);
+
+    svc.syncTripPlaces(journey.id, trip.id, user.id);
+    svc.syncTripPlaces(journey.id, trip.id, user.id);
+
+    expect(skeletonsFor(journey.id, place.id)).toHaveLength(2);
+  });
+
+  it('JOURNEY-SVC-REPEAT-003: onPlaceCreated fires once per day the place already stands on', () => {
+    const { journey, trip } = linkedJourneyTrip();
+    const days = daysOf(trip.id);
+    const place = createPlace(testDb, trip.id, { name: 'Höfn' });
+    createDayAssignment(testDb, days[1].id, place.id);
+    createDayAssignment(testDb, days[2].id, place.id);
+
+    svc.onPlaceCreated(trip.id, place.id);
+
+    expect(skeletonsFor(journey.id, place.id).map((e) => e.entry_date)).toEqual([days[1].date, days[2].date]);
+  });
+
+  it('JOURNEY-SVC-REPEAT-004: assigning the place to a second day adds a second entry and keeps the first', () => {
+    const { journey, trip } = linkedJourneyTrip();
+    const days = daysOf(trip.id);
+    const place = createPlace(testDb, trip.id, { name: 'Akureyri' });
+    createDayAssignment(testDb, days[0].id, place.id);
+    svc.reconcileTripSkeletons(trip.id);
+    const first = skeletonsFor(journey.id, place.id)[0];
+    testDb.prepare("UPDATE journey_entries SET type = 'entry', story = 'Sunset' WHERE id = ?").run(first.id);
+
+    createDayAssignment(testDb, days[1].id, place.id);
+    svc.reconcileTripSkeletons(trip.id);
+
+    const both = skeletonsFor(journey.id, place.id);
+    expect(both.map((e) => e.entry_date)).toEqual([days[0].date, days[1].date]);
+    expect(both[0].id).toBe(first.id);
+    expect(both[0].story).toBe('Sunset');
+    expect(both[1].type).toBe('skeleton');
+  });
+
+  it('JOURNEY-SVC-REPEAT-005: unassigning one day drops only that day', () => {
+    const { journey, trip } = linkedJourneyTrip();
+    const days = daysOf(trip.id);
+    const place = createPlace(testDb, trip.id, { name: 'Selfoss' });
+    createDayAssignment(testDb, days[0].id, place.id);
+    const second = createDayAssignment(testDb, days[1].id, place.id);
+    svc.reconcileTripSkeletons(trip.id);
+    expect(skeletonsFor(journey.id, place.id)).toHaveLength(2);
+
+    testDb.prepare('DELETE FROM day_assignments WHERE id = ?').run(second.id);
+    svc.reconcileTripSkeletons(trip.id);
+
+    expect(skeletonsFor(journey.id, place.id).map((e) => e.entry_date)).toEqual([days[0].date]);
+  });
+
+  it('JOURNEY-SVC-REPEAT-006: moving one of the two assignments moves its entry rather than replacing it', () => {
+    const { journey, trip } = linkedJourneyTrip();
+    const days = daysOf(trip.id);
+    const place = createPlace(testDb, trip.id, { name: 'Geysir' });
+    createDayAssignment(testDb, days[0].id, place.id);
+    const second = createDayAssignment(testDb, days[1].id, place.id);
+    svc.reconcileTripSkeletons(trip.id);
+    const movedId = skeletonsFor(journey.id, place.id)[1].id;
+
+    testDb.prepare('UPDATE day_assignments SET day_id = ? WHERE id = ?').run(days[2].id, second.id);
+    svc.reconcileTripSkeletons(trip.id);
+
+    const after = skeletonsFor(journey.id, place.id);
+    expect(after.map((e) => e.entry_date)).toEqual([days[0].date, days[2].date]);
+    expect(after[1].id).toBe(movedId);
+  });
+
+  it('JOURNEY-SVC-REPEAT-007: editing the place leaves each entry on its own day', () => {
+    const { journey, trip } = linkedJourneyTrip();
+    const days = daysOf(trip.id);
+    const place = createPlace(testDb, trip.id, { name: 'Old Name' });
+    createDayAssignment(testDb, days[0].id, place.id);
+    createDayAssignment(testDb, days[1].id, place.id);
+    svc.reconcileTripSkeletons(trip.id);
+
+    testDb.prepare('UPDATE places SET name = ? WHERE id = ?').run('New Name', place.id);
+    svc.onPlaceUpdated(place.id);
+
+    const after = skeletonsFor(journey.id, place.id);
+    expect(after.map((e) => e.entry_date)).toEqual([days[0].date, days[1].date]);
+    expect(after.map((e) => e.title)).toEqual(['New Name', 'New Name']);
+  });
+
+  it('JOURNEY-SVC-REPEAT-008: an entry with no assignment link is claimed, not annotated out', () => {
+    const { journey, trip } = linkedJourneyTrip();
+    const days = daysOf(trip.id);
+    const place = createPlace(testDb, trip.id, { name: 'Legacy Stop' });
+    createDayAssignment(testDb, days[0].id, place.id);
+    svc.reconcileTripSkeletons(trip.id);
+    const legacy = skeletonsFor(journey.id, place.id)[0];
+    // What an install upgraded from before the column existed looks like.
+    testDb
+      .prepare("UPDATE journey_entries SET source_assignment_id = NULL, type = 'entry', story = 'Kept' WHERE id = ?")
+      .run(legacy.id);
+
+    svc.reconcileTripSkeletons(trip.id);
+
+    const after = skeletonsFor(journey.id, place.id);
+    expect(after).toHaveLength(1);
+    expect(after[0].id).toBe(legacy.id);
+    expect(after[0].source_assignment_id).not.toBeNull();
+    expect(after[0].story).toBe('Kept');
+  });
+});
+
 // ---------------------------------------------------------------------------
 // Skeleton lifecycle, the photo gallery and the per-user preference row. These
 // paths were reachable only through the REST controller before the fold, so the
@@ -1957,6 +2276,55 @@ describe('journey gallery', () => {
     const [gallery] = svc.uploadGalleryPhotos(journey.id, user.id, [{ path: 'journey/a.jpg' }]);
     expect(svc.deleteGalleryPhoto(gallery.id, stranger.id)).toBeNull();
   });
+
+  // #2200: the gallery used to come out in upload order, so pictures caught up
+  // with after the trip landed behind the ones added while it was running.
+  it('JOURNEY-SVC-PHOTO-008: the gallery reads in capture order, not upload order', () => {
+    const { user } = createUser(testDb);
+    const journey = svc.createJourney(user.id, { title: 'J' });
+
+    const shot = (path: string, takenAt: string) => {
+      const [row] = svc.uploadGalleryPhotos(journey.id, user.id, [{ path }]);
+      testDb.prepare('UPDATE trek_photos SET taken_at = ? WHERE id = ?').run(takenAt, row.photo_id);
+    };
+
+    shot('journey/day3.jpg', '2026-05-03T18:00:00.000Z');
+    shot('journey/day1.jpg', '2026-05-01T08:30:00.000Z');
+    shot('journey/day2.jpg', '2026-05-02T12:00:00.000Z');
+
+    const gallery = svc.getJourneyFull(journey.id, user.id)!.gallery as { file_path: string }[];
+    expect(gallery.map((p) => p.file_path)).toEqual([
+      'journey/day1.jpg',
+      'journey/day2.jpg',
+      'journey/day3.jpg',
+    ]);
+  });
+
+  it('JOURNEY-SVC-PHOTO-009: a photo with no capture time rides on the date of the stop it hangs on', () => {
+    const { user } = createUser(testDb);
+    const journey = svc.createJourney(user.id, { title: 'J' });
+    const day1 = svc.createEntry(journey.id, user.id, { entry_date: '2026-05-01', title: 'Day 1' })!;
+    const day2 = svc.createEntry(journey.id, user.id, { entry_date: '2026-05-02', title: 'Day 2' })!;
+
+    // Day two was sorted out first and day one caught up afterwards, with the
+    // EXIF gone (an iPhone upload is converted before it leaves the browser).
+    const [dayTwoPhoto] = svc.uploadGalleryPhotos(journey.id, user.id, [{ path: 'journey/day2.jpg' }]);
+    const [dayOnePhoto] = svc.uploadGalleryPhotos(journey.id, user.id, [{ path: 'journey/day1.jpg' }]);
+    const [loose] = svc.uploadGalleryPhotos(journey.id, user.id, [{ path: 'journey/loose.jpg' }]);
+    svc.linkPhotoToEntry(day2.id, dayTwoPhoto.id, user.id);
+    svc.linkPhotoToEntry(day1.id, dayOnePhoto.id, user.id);
+    // Pin the loose photo's upload time so the run does not depend on today's date.
+    testDb
+      .prepare('UPDATE journey_photos SET created_at = ? WHERE id = ?')
+      .run(Date.parse('2026-06-01T00:00:00Z'), loose.id);
+
+    const gallery = svc.getJourneyFull(journey.id, user.id)!.gallery as { file_path: string }[];
+    expect(gallery.map((p) => p.file_path)).toEqual([
+      'journey/day1.jpg',
+      'journey/day2.jpg',
+      'journey/loose.jpg',
+    ]);
+  });
 });
 
 describe('per-user journey preferences', () => {
@@ -2122,5 +2490,234 @@ describe('addTripToJourney guards', () => {
     svc.addTripToJourney(journey.id, trip.id, user.id);
 
     expect(testDb.prepare('SELECT 1 FROM journey_photos WHERE journey_id = ?').all(journey.id)).toHaveLength(0);
+  });
+});
+
+
+// -- Dismissing a suggestion (discussion #2299) --------------------------------
+
+describe('dismissed suggestions', () => {
+  it('JOURNEY-SVC-103: a dismissed suggestion leaves every read but keeps its row', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const keep = createJourneyEntry(testDb, journey.id, user.id, { type: 'skeleton', title: 'Museum' });
+    const drop = createJourneyEntry(testDb, journey.id, user.id, { type: 'skeleton', title: 'Aquarium' });
+
+    svc.updateEntry(drop.id, user.id, { dismissed: true });
+
+    const full = svc.getJourneyFull(journey.id, user.id)!;
+    expect(full.entries.map((e: { id: number }) => e.id)).toEqual([keep.id]);
+    expect(svc.listEntries(journey.id, user.id)!.map((e) => e.id)).toEqual([keep.id]);
+    // The row has to survive, or syncTripPlaces offers the same place again.
+    expect(testDb.prepare('SELECT dismissed FROM journey_entries WHERE id = ?').get(drop.id)).toEqual({
+      dismissed: 1,
+    });
+  });
+
+  it('JOURNEY-SVC-104: the journey reports how many were dismissed', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const a = createJourneyEntry(testDb, journey.id, user.id, { type: 'skeleton' });
+    const b = createJourneyEntry(testDb, journey.id, user.id, { type: 'skeleton' });
+    createJourneyEntry(testDb, journey.id, user.id, { type: 'skeleton' });
+
+    svc.updateEntry(a.id, user.id, { dismissed: true });
+    svc.updateEntry(b.id, user.id, { dismissed: true });
+
+    expect(svc.getJourneyFull(journey.id, user.id)!.dismissed_count).toBe(2);
+  });
+
+  it('JOURNEY-SVC-105: a dismissed place is not offered again by the trip sync', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id, { day_number: 1, date: '2026-01-15' });
+    const place = createPlace(testDb, trip.id, { name: 'Aquarium' });
+    createDayAssignment(testDb, day.id, place.id);
+
+    svc.addTripToJourney(journey.id, trip.id, user.id);
+    const skeleton = svc.listEntries(journey.id, user.id)!.find((e) => e.type === 'skeleton')!;
+    svc.updateEntry(skeleton.id, user.id, { dismissed: true });
+
+    svc.syncTripPlaces(journey.id, trip.id, user.id);
+
+    expect(svc.listEntries(journey.id, user.id)!.filter((e) => e.type === 'skeleton')).toHaveLength(0);
+  });
+
+  it('JOURNEY-SVC-106: restoring brings them all back and says how many', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const a = createJourneyEntry(testDb, journey.id, user.id, { type: 'skeleton' });
+    const b = createJourneyEntry(testDb, journey.id, user.id, { type: 'skeleton' });
+    svc.updateEntry(a.id, user.id, { dismissed: true });
+    svc.updateEntry(b.id, user.id, { dismissed: true });
+
+    expect(svc.restoreDismissedSuggestions(journey.id, user.id)).toEqual({ restored: 2 });
+    expect(svc.listEntries(journey.id, user.id)).toHaveLength(2);
+  });
+
+  it('JOURNEY-SVC-107: restoring nothing is not an error', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+
+    expect(svc.restoreDismissedSuggestions(journey.id, user.id)).toEqual({ restored: 0 });
+  });
+
+  it('JOURNEY-SVC-108: a viewer may not restore', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: viewer } = createUser(testDb);
+    const journey = createJourney(testDb, owner.id);
+    addJourneyContributor(testDb, journey.id, viewer.id, 'viewer');
+
+    expect(svc.restoreDismissedSuggestions(journey.id, viewer.id)).toBeNull();
+  });
+});
+
+// -- The country behind an entry's coordinates ---------------------------------
+
+describe('country_code', () => {
+  it('JOURNEY-SVC-109: a created entry resolves its country from its coordinates', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+
+    const entry = svc.createEntry(journey.id, user.id, {
+      entry_date: '2026-01-15',
+      location_lat: 52.52,
+      location_lng: 13.405,
+    })!;
+
+    expect(entry.country_code).toBe('DE');
+  });
+
+  it('JOURNEY-SVC-110: an entry with no coordinates has no country', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+
+    const entry = svc.createEntry(journey.id, user.id, { entry_date: '2026-01-15' })!;
+
+    expect(entry.country_code).toBeNull();
+  });
+
+  it('JOURNEY-SVC-111: moving the pin moves the country with it', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const entry = svc.createEntry(journey.id, user.id, {
+      entry_date: '2026-01-15',
+      location_lat: 52.52,
+      location_lng: 13.405,
+    })!;
+
+    const moved = svc.updateEntry(entry.id, user.id, { location_lat: 48.8584, location_lng: 2.2945 })!;
+
+    expect(moved.country_code).toBe('FR');
+  });
+
+  it('JOURNEY-SVC-112: taking the pin off clears the country', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const entry = svc.createEntry(journey.id, user.id, {
+      entry_date: '2026-01-15',
+      location_lat: 52.52,
+      location_lng: 13.405,
+    })!;
+
+    const cleared = svc.updateEntry(entry.id, user.id, {
+      location_lat: null as unknown as number,
+      location_lng: null as unknown as number,
+    })!;
+
+    expect(cleared.country_code).toBeNull();
+  });
+
+  it('JOURNEY-SVC-114: a place that moves across a border moves its skeleton entry country too', () => {
+    // The pin can also move without anybody editing the entry: the place it came
+    // from is dragged, and the trip sync writes the new coordinates onto the
+    // skeleton. The flag has to follow that write like it follows a manual one.
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const trip = createTrip(testDb, user.id, { title: 'Border', start_date: '2026-08-01', end_date: '2026-08-03' });
+    const place = createPlace(testDb, trip.id, { name: 'Grenzstein', lat: 48.8584, lng: 2.2945 });
+    const day = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY date ASC LIMIT 1').get(trip.id) as { id: number };
+    createDayAssignment(testDb, day.id, place.id);
+    svc.addTripToJourney(journey.id, trip.id, user.id);
+
+    const before = testDb.prepare(
+      "SELECT country_code FROM journey_entries WHERE journey_id = ? AND source_place_id = ? AND type = 'skeleton'"
+    ).get(journey.id, place.id) as { country_code: string | null };
+    expect(before.country_code).toBe('FR');
+
+    testDb.prepare('UPDATE places SET lat = ?, lng = ? WHERE id = ?').run(52.52, 13.405, place.id);
+    svc.onPlaceUpdated(place.id);
+
+    const after = testDb.prepare(
+      "SELECT country_code FROM journey_entries WHERE journey_id = ? AND source_place_id = ? AND type = 'skeleton'"
+    ).get(journey.id, place.id) as { country_code: string | null };
+    expect(after.country_code).toBe('DE');
+  });
+
+  it('JOURNEY-SVC-115: and so does a filled entry, whose location follows the place silently', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const trip = createTrip(testDb, user.id, { title: 'Border 2', start_date: '2026-08-01', end_date: '2026-08-03' });
+    const place = createPlace(testDb, trip.id, { name: 'Grenzstein', lat: 48.8584, lng: 2.2945 });
+    const day = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY date ASC LIMIT 1').get(trip.id) as { id: number };
+    createDayAssignment(testDb, day.id, place.id);
+    svc.addTripToJourney(journey.id, trip.id, user.id);
+    // Writing a story turns the skeleton into a filled entry.
+    testDb.prepare("UPDATE journey_entries SET type = 'entry' WHERE source_place_id = ?").run(place.id);
+
+    testDb.prepare('UPDATE places SET lat = ?, lng = ? WHERE id = ?').run(52.52, 13.405, place.id);
+    svc.onPlaceUpdated(place.id);
+
+    const after = testDb.prepare(
+      'SELECT country_code, location_lat FROM journey_entries WHERE source_place_id = ?'
+    ).get(place.id) as { country_code: string | null; location_lat: number };
+    expect(after).toMatchObject({ country_code: 'DE', location_lat: 52.52 });
+  });
+
+  it('JOURNEY-SVC-113: an edit that does not touch the pin leaves the country alone', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const entry = svc.createEntry(journey.id, user.id, {
+      entry_date: '2026-01-15',
+      location_lat: 52.52,
+      location_lng: 13.405,
+    })!;
+
+    const renamed = svc.updateEntry(entry.id, user.id, { title: 'Berlin' })!;
+
+    expect(renamed.country_code).toBe('DE');
+  });
+});
+
+// -- Which optional fields a journey keeps -------------------------------------
+
+describe('entry field switches', () => {
+  it('JOURNEY-SVC-114: a fresh journey keeps all three', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+
+    const row = svc.getJourneyFull(journey.id, user.id)! as unknown as Record<string, number>;
+
+    expect([row.show_verdict, row.show_mood, row.show_weather]).toEqual([1, 1, 1]);
+  });
+
+  it('JOURNEY-SVC-115: the owner can put one away, and booleans reach the INTEGER column', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+
+    svc.updateJourney(journey.id, user.id, { show_mood: false, show_weather: false });
+
+    const row = svc.getJourneyFull(journey.id, user.id)! as unknown as Record<string, number>;
+    expect([row.show_verdict, row.show_mood, row.show_weather]).toEqual([1, 0, 0]);
+  });
+
+  it('JOURNEY-SVC-116: an editor may not reshape the journey', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: editor } = createUser(testDb);
+    const journey = createJourney(testDb, owner.id);
+    addJourneyContributor(testDb, journey.id, editor.id, 'editor');
+
+    expect(svc.updateJourney(journey.id, editor.id, { show_mood: false })).toBeNull();
   });
 });

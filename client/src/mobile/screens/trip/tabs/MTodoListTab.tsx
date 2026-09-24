@@ -36,7 +36,7 @@ export default function MTodoListTab({ planner }: { planner: TripPlanner }) {
   const tripMembers = planner.tripMembers
 
   const [active, setActive] = useState<ActiveFilter>({ kind: 'smart', id: 'all' })
-  const [sortByPriority, setSortByPriority] = useState(false)
+  const [sortBy, setSortBy] = useState<'priority' | 'due' | null>(null)
   const [editingItemId, setEditingItemId] = useState<number | null>(null)
   const [creatingTask, setCreatingTask] = useState(false)
 
@@ -50,10 +50,10 @@ export default function MTodoListTab({ planner }: { planner: TripPlanner }) {
       active.kind === 'category'
         ? filterTodoItemsByCategory(items, active.name)
         : filterTodoItems(items, active.id, currentUserId, today),
-      sortByPriority,
+      sortBy,
       today,
     ),
-    [items, active, currentUserId, today, sortByPriority],
+    [items, active, currentUserId, today, sortBy],
   )
 
   const pct = items.length > 0 ? Math.round((counts.done / items.length) * 100) : 0
@@ -113,12 +113,21 @@ export default function MTodoListTab({ planner }: { planner: TripPlanner }) {
           ))}
           <button
             type="button"
-            onClick={() => setSortByPriority(v => !v)}
-            aria-pressed={sortByPriority}
-            className={filterPill(sortByPriority)}
+            onClick={() => setSortBy(v => v === 'priority' ? null : 'priority')}
+            aria-pressed={sortBy === 'priority'}
+            className={filterPill(sortBy === 'priority')}
           >
             <Flag size={11} strokeWidth={2.2} />
             {t('todo.priority')}
+          </button>
+          <button
+            type="button"
+            onClick={() => setSortBy(v => v === 'due' ? null : 'due')}
+            aria-pressed={sortBy === 'due'}
+            className={filterPill(sortBy === 'due')}
+          >
+            <Calendar size={11} strokeWidth={2.2} />
+            {t('todo.detail.dueDate')}
           </button>
           {categories.length > 0 && <span className="h-4 w-px flex-none bg-[color:var(--m-rowbr)]" />}
           {categories.map(cat => (

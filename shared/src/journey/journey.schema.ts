@@ -91,6 +91,25 @@ export type JourneyLinkPhotoRequest = z.infer<typeof journeyLinkPhotoRequestSche
 export const journeyPhotoUpdateRequestSchema = z.looseObject({});
 export type JourneyPhotoUpdateRequest = z.infer<typeof journeyPhotoUpdateRequestSchema>;
 
+/**
+ * One photo handed to a journal entry over the plugin RPC (#1365).
+ *
+ * Strict, unlike the REST schemas above: those forward a free-form body to a
+ * handler that picks what it needs, while this one is the whole contract with
+ * third-party code, and an unknown key there is a mistake worth reporting rather
+ * than ignoring.
+ *
+ * The encoded cap is the same 14MB the file surface uses. Base64 runs about a
+ * third larger than the bytes, so it bounds the payload at roughly the 10MB the
+ * handler enforces after decoding, and it does so before anything is decoded.
+ */
+export const journalPluginPhotoInputSchema = z.strictObject({
+  name: z.string().trim().min(1).max(255),
+  content_base64: z.string().min(1).max(14 * 1024 * 1024),
+  caption: z.string().max(2000).optional(),
+});
+export type JournalPluginPhotoInput = z.infer<typeof journalPluginPhotoInputSchema>;
+
 /** Free-form plus the entry_date the handler demands itself. */
 export const journeyEntryCreateRequestSchema = z.looseObject({
   entry_date: z.unknown().optional(),

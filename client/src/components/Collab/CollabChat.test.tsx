@@ -708,4 +708,31 @@ describe('CollabChat', () => {
       { timeout: 3000 }
     );
   });
+
+  // The strip shows the four pictures that will go out; the two the cap turned away
+  // vanish without a word otherwise, and the sender believes all six were sent.
+  it('FE-COMP-CHAT-037: picking more images than fit on one message says so, and says it once', async () => {
+    const addToast = vi.fn();
+    window.__addToast = addToast as unknown as typeof window.__addToast;
+    let minted = 0;
+    const createObjURL = vi.spyOn(URL, 'createObjectURL').mockImplementation(() => `blob:mock/${++minted}`);
+    const revokeObjURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+    try {
+      render(<CollabChat {...defaultProps} />);
+      await screen.findByText('Start the conversation');
+      const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+      const files = Array.from({ length: 6 }, (_, i) => new File([new Uint8Array(8)], `${i}.png`, { type: 'image/png' }));
+
+      fireEvent.change(input, { target: { files } });
+
+      await waitFor(() => expect(document.querySelectorAll('img[src^="blob:mock/"]')).toHaveLength(4));
+      expect(addToast).toHaveBeenCalledTimes(1);
+      const [message, type] = addToast.mock.calls[0];
+      expect(type).toBe('error');
+      expect(message).not.toBe('Only JPEG, PNG, GIF and WebP images up to 10 MB are allowed');
+    } finally {
+      delete window.__addToast;
+      createObjURL.mockRestore(); revokeObjURL.mockRestore();
+    }
+  });
 });

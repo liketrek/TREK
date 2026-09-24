@@ -43,9 +43,31 @@ export const SCOPE_GROUPS: Record<string, ScopeKeys> = {
   'journey:read':        { labelKey: 'oauth.scope.journey:read.label',        descriptionKey: 'oauth.scope.journey:read.description',        groupKey: 'oauth.scope.group.journey' },
   'journey:write':       { labelKey: 'oauth.scope.journey:write.label',       descriptionKey: 'oauth.scope.journey:write.description',       groupKey: 'oauth.scope.group.journey' },
   'journey:share':       { labelKey: 'oauth.scope.journey:share.label',       descriptionKey: 'oauth.scope.journey:share.description',       groupKey: 'oauth.scope.group.journey' },
+  'files:read':          { labelKey: 'oauth.scope.files:read.label',          descriptionKey: 'oauth.scope.files:read.description',          groupKey: 'oauth.scope.group.files' },
+  'files:write':         { labelKey: 'oauth.scope.files:write.label',         descriptionKey: 'oauth.scope.files:write.description',         groupKey: 'oauth.scope.group.files' },
+  'files:content':       { labelKey: 'oauth.scope.files:content.label',       descriptionKey: 'oauth.scope.files:content.description',       groupKey: 'oauth.scope.group.files' },
+  'settings:read':       { labelKey: 'oauth.scope.settings:read.label',       descriptionKey: 'oauth.scope.settings:read.description',       groupKey: 'oauth.scope.group.settings' },
+  'settings:write':      { labelKey: 'oauth.scope.settings:write.label',      descriptionKey: 'oauth.scope.settings:write.description',      groupKey: 'oauth.scope.group.settings' },
+  'plugins:use':         { labelKey: 'oauth.scope.plugins:use.label',         descriptionKey: 'oauth.scope.plugins:use.description',         groupKey: 'oauth.scope.group.plugins' },
 }
 
 export const ALL_SCOPES = Object.keys(SCOPE_GROUPS)
+
+/**
+ * Scopes a client preset must never tick for you.
+ *
+ * The presets are written as "everything except deletes", so a new scope joins
+ * them silently. That is right for a new read or write scope on data the user
+ * already owns, and wrong for plugins:use: it turns on third-party tool
+ * execution, which nobody would have chosen by installing an editor.
+ */
+export const PRESET_OPT_IN_ONLY = new Set(['plugins:use'])
+
+/** The five full-access presets: everything destructive or opt-in-only removed. */
+export const PRESET_SCOPES_DEFAULT = ALL_SCOPES.filter(s => !s.includes(':delete') && !PRESET_OPT_IN_ONLY.has(s))
+
+/** The read-only preset (VS Code). Kept beside the default so the pair stays visible. */
+export const PRESET_SCOPES_READONLY = ALL_SCOPES.filter(s => s.endsWith(':read') && !PRESET_OPT_IN_ONLY.has(s))
 
 // Group all scopes for the client registration form
 export const SCOPE_GROUP_NAMES = [...new Set(Object.values(SCOPE_GROUPS).map(s => s.groupKey))]

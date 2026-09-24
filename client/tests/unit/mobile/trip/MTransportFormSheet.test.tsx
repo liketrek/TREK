@@ -3,12 +3,14 @@ import MTransportFormSheet from '../../../../src/mobile/screens/trip/sheets/MTra
 import type { TripPlanner } from '../../../../src/mobile/screens/trip/MTripShell'
 import { useAddonStore } from '../../../../src/store/addonStore'
 import { useTripStore } from '../../../../src/store/tripStore'
+import { useSettingsStore } from '../../../../src/store/settingsStore'
+import { isBlurred } from '../../../helpers/bookingCodeBlur'
 import type { Day, Reservation, TripMember } from '../../../../src/types'
 import { buildPlanner } from '../../../helpers/mobileTrip'
 import { resetAllStores, seedStore } from '../../../helpers/store'
 import { act, fireEvent, render, screen } from '../../../helpers/render'
 
-// FE-MOB-TRFRM-001 to FE-MOB-TRFRM-048
+// FE-MOB-TRFRM-001 to FE-MOB-TRFRM-052
 //
 // The sheet's own pickers (airport/location search, day select, time picker) and
 // the embedded transit panel are replaced by minimal controlled stand-ins so the
@@ -63,9 +65,10 @@ vi.mock('../../../../src/components/Planner/AirportSelect', () => ({
 }))
 
 vi.mock('../../../../src/components/Planner/LocationSelect', () => ({
-  default: ({ value, onChange }: { value: { name: string } | null; onChange: (l: unknown) => void }) => (
+  default: ({ value, onChange, places }: { value: { name: string } | null; onChange: (l: unknown) => void; places?: { name: string }[] }) => (
     <input
       aria-label="location-select"
+      data-picks={(places ?? []).map(p => p.name).join('|')}
       value={value?.name ?? ''}
       onChange={e => onChange(LOCATIONS[e.target.value] ?? null)}
     />
@@ -73,16 +76,18 @@ vi.mock('../../../../src/components/Planner/LocationSelect', () => ({
 }))
 
 vi.mock('../../../../src/components/Planner/TransitSearchPanel', () => ({
-  default: ({ day, places, onAdd, initialFrom }: {
+  default: ({ day, places, onAdd, initialFrom, initialTime }: {
     day: { id: number }
     places: { name: string }[]
     onAdd: (p: Record<string, unknown>) => void
     initialFrom: { name: string } | null
+    initialTime: string | null
   }) => (
     <div>
       <span data-testid="transit-day">{day.id}</span>
       <span data-testid="transit-places">{places.map(p => p.name).join(',')}</span>
       <span data-testid="transit-from">{initialFrom?.name ?? ''}</span>
+      <span data-testid="transit-time">{initialTime ?? ''}</span>
       <button type="button" onClick={() => onAdd({ title: 'U4 to Prater', type: 'transit' })}>add-itinerary</button>
     </div>
   ),
@@ -921,7 +926,7 @@ describe('MTransportFormSheet', () => {
     const planner = makePlanner({
       transportModalAutomated: true,
       transportModalDayId: 12,
-      transitPrefill: { from: { name: 'Hotel', lat: 34.7, lng: 135.5 }, to: null },
+      transitPrefill: { from: { name: 'Hotel', lat: 34.7, lng: 135.5 }, to: null, time: '08:15' },
       places: [{ id: 1, name: 'Fushimi Inari' }, { id: 2, name: 'Nishiki Market' }],
       assignments: { '12': [{ id: 9, place_id: 2, order_index: 1 }, { id: 8, place_id: 1, order_index: 0 }] },
     })
@@ -929,6 +934,8 @@ describe('MTransportFormSheet', () => {
     expect(screen.getByTestId('transit-day')).toHaveTextContent('12')
     expect(screen.getByTestId('transit-places')).toHaveTextContent('Fushimi Inari,Nishiki Market')
     expect(screen.getByTestId('transit-from')).toHaveTextContent('Hotel')
+    // A leg picked from the timeline's connector menu carries its departure (#2398).
+    expect(screen.getByTestId('transit-time')).toHaveTextContent('08:15')
   })
 
   it('FE-MOB-TRFRM-040: the transit panel saves its itinerary through the shared save path', async () => {
@@ -952,5 +959,82 @@ describe('MTransportFormSheet', () => {
     renderSheet(makePlanner({ transportModalDayId: 13 }))
     fireEvent.click(screen.getByRole('button', { name: 'reservations.type.bus' }))
     expect(daySelects().map(s => s.value)).toEqual(['13', '13'])
+  })
+
+  // ── Blur booking codes in the edit sheet (#2457) ───────────────────────────
+
+  describe('blur booking codes (#2457)', () => {
+    /** Both sources the phone reads the preference from: the settings store and planner.settings. */
+    function plannerWithBlur(on: boolean, overrides: Record<string, unknown> = {}) {
+      useSettingsStore.setState({ settings: { ...useSettingsStore.getState().settings, blur_booking_codes: on } })
+      return makePlanner({
+        settings: { time_format: '24h', date_format: 'DD.MM.YYYY', default_currency: 'EUR', distance_unit: 'km', blur_booking_codes: on },
+        ...overrides,
+      })
+    }
+    const codeFields = () => screen.getAllByPlaceholderText('reservations.confirmationPlaceholder') as HTMLInputElement[]
+
+    const layover = () => ({
+      id: 45, trip_id: 1, type: 'flight', title: 'FRA-IST-HND', status: 'pending',
+      day_id: 11, end_day_id: 12, confirmation_number: 'BOOK1',
+      metadata: {
+        legs: [
+          { from: 'FRA', to: 'IST', confirmation_number: 'ABC123', dep_day_id: 11, dep_time: '10:20', arr_day_id: 11, arr_time: '14:05' },
+          { from: 'IST', to: 'HND', confirmation_number: 'XYZ789', dep_day_id: 11, dep_time: '16:30', arr_day_id: 12, arr_time: '09:00' },
+        ],
+      },
+      endpoints: [
+        { id: 1, reservation_id: 45, role: 'from', sequence: 0, name: 'Frankfurt (FRA)', code: 'FRA', lat: 50.03, lng: 8.57, timezone: 'Europe/Berlin', local_date: null, local_time: null },
+        { id: 2, reservation_id: 45, role: 'stop', sequence: 1, name: 'Istanbul (IST)', code: 'IST', lat: 41.27, lng: 28.75, timezone: 'Europe/Istanbul', local_date: null, local_time: null },
+        { id: 3, reservation_id: 45, role: 'to', sequence: 2, name: 'Tokyo (HND)', code: 'HND', lat: 35.55, lng: 139.78, timezone: 'Asia/Tokyo', local_date: null, local_time: null },
+      ],
+    } as unknown as Reservation)
+
+    it('FE-MOB-TRFRM-049: the booking code and every segment code are blurred while the setting is on', () => {
+      renderSheet(plannerWithBlur(true, { editingTransport: layover() }))
+      const codes = codeFields()
+      expect(codes.map(i => i.value)).toEqual(['ABC123', 'XYZ789', 'BOOK1'])
+      expect(codes.map(i => isBlurred(i))).toEqual([true, true, true])
+    })
+
+    it('FE-MOB-TRFRM-050: focusing a code field reveals it for editing, leaving it hides it again', () => {
+      renderSheet(plannerWithBlur(true, { editingTransport: layover() }))
+      const field = codeFields()[2]
+      expect(isBlurred(field)).toBe(true)
+      act(() => field.focus())
+      expect(isBlurred(field)).toBe(false)
+      act(() => field.blur())
+      expect(isBlurred(field)).toBe(true)
+    })
+
+    it('FE-MOB-TRFRM-051: with the setting off every code field stays plain', () => {
+      renderSheet(plannerWithBlur(false, { editingTransport: layover() }))
+      expect(codeFields().map(i => isBlurred(i))).toEqual([false, false, false])
+    })
+
+    it('FE-MOB-TRFRM-052: blurred codes still save unchanged', async () => {
+      const handleSaveTransport = makeSave()
+      renderSheet(plannerWithBlur(true, { editingTransport: layover(), handleSaveTransport }))
+      await submit('common.update')
+      const payload = handleSaveTransport.mock.calls[0][0]
+      const legs = (payload.metadata as { legs: Record<string, unknown>[] }).legs
+      expect(legs.map(l => l.confirmation_number)).toEqual(['ABC123', 'XYZ789'])
+      expect(payload.confirmation_number).toBe('BOOK1')
+    })
+  })
+
+  it('FE-MOB-TRFRM-053: the manual From and To fields offer the trip places that have a location, each once (#2468)', () => {
+    renderSheet(makePlanner({
+      places: [
+        { id: 1, name: 'Fushimi Inari', lat: 34.97, lng: 135.77 },
+        { id: 2, name: 'No pin yet', lat: null, lng: null },
+        { id: 3, name: 'Fushimi Inari', lat: 34.97, lng: 135.77 },
+      ],
+    }))
+    fireEvent.click(screen.getByRole('button', { name: 'reservations.type.bus' }))
+
+    const fields = locationInputs()
+    expect(fields).toHaveLength(2)
+    for (const field of fields) expect(field).toHaveAttribute('data-picks', 'Fushimi Inari')
   })
 })

@@ -10,7 +10,7 @@ Open the **Transports** tab in the trip planner and click **Add**, or open the p
 
 ## Public transit search
 
-The **Add transport** dialog has two modes: **Manual** (the classic form) and **Automated** — a public-transit route search powered by [Transitous](https://transitous.org/), free open data with no API key or paid provider. The **transit button** (tram icon) on each day header opens the dialog straight in the Automated mode. (The rename pencil this button replaced moved next to the day name in the day detail panel.)
+The **Add transport** dialog has two modes: **Manual** (the classic form) and **Automated** — a public-transit route search powered by [Transitous](https://transitous.org/) by default, free open data with no API key or paid provider; an admin can switch the backend to Google, see below. The **transit button** (tram icon) on each day header opens the dialog straight in the Automated mode. (The rename pencil this button replaced moved next to the day name in the day detail panel.)
 
 You can also start the search from a single leg: click the travel-time connector between two stops in the day plan and pick **Public transit** from the menu. The search opens with that leg's start and end already filled in and the departure time taken from the stop you are leaving.
 
@@ -23,9 +23,13 @@ The mode switch only appears when the trip has a **start date and an end date** 
 
 Self-hosters can point the `TRANSIT_API_URL` environment variable at their own MOTIS instance.
 
+> **Admin:** which service answers the search is set under **Admin → Settings → API Keys → Transit Provider**. **Transitous (free)** is the default: community GTFS feeds, keyless, with the best coverage in Europe. **Google** runs the stop search and the route plan through the Google Maps API key in the same card, for regions Transitous has no data for. Google bills per search, and the key has to be allowed to call the **Routes API** and the **Places API (New)** (text search); the legacy Directions API is not used. A key saved only in a member's own settings serves that member alone, so save it as an admin to apply it instance-wide. While no Google key resolves, the search quietly stays on Transitous even with Google selected, which is why an empty result names the backend that answered (*No connections found via Google*).
+
 ## Transport types
 
 Nine types are available: **Flight**, **Train**, **Bus**, **Car**, **Taxi**, **Bicycle**, **Cruise**, **Ferry**, and **Other**.
+
+> **AI / MCP:** `create_transport` accepts the same nine. Scheduled public transit is its own thing: `create_transit_journey` attaches the provider itinerary. See [MCP-Tools-and-Resources](MCP-Tools-and-Resources).
 
 ## Common fields
 
@@ -57,6 +61,8 @@ Once you select an airport, the **timezone** for that airport appears next to th
 Departure and arrival fields use the **generic location picker** — type at least three characters and pick one of the search results; a name that is only typed, never picked, is not saved. Results come from the maps search service.
 
 For the **Car** type the date fields are relabelled to match a rental: the departure side reads **Pickup** and **Pickup time**, the arrival side **Return** and **Return time**. There is no separate car-rental type — a rental and your own car are both logged as Car.
+
+A car booking can also carry **Stops along the way**, the places the drive passes through between pickup and return. The block sits between the **To** picker and the pickup date: **Add stop** adds a row with the location picker and an optional time, a stop whose location was never picked is dropped on save, and the arrows on the left move a stop up or down. That order is the route: on the map the drive is routed through the stops in that order, so the line runs via each stop instead of straight from pickup to return. The same block is on the phone's transport form.
 
 ## Flight-specific fields
 

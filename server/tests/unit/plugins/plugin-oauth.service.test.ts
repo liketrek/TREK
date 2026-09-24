@@ -44,6 +44,7 @@ function freshDb(cfg: Record<string, unknown> = CFG) {
   const d = new Database(':memory:');
   d.exec(`
     CREATE TABLE plugins (id TEXT PRIMARY KEY, config TEXT, status TEXT);
+    CREATE TABLE plugin_settings_fields (plugin_id TEXT, field_key TEXT, scope TEXT, secret INTEGER, default_value TEXT);
     CREATE TABLE plugin_oauth_tokens (plugin_id TEXT, user_id INTEGER, access_token TEXT, refresh_token TEXT, expires_at INTEGER, scope TEXT, updated_at TEXT, PRIMARY KEY (plugin_id, user_id));
     CREATE TABLE plugin_oauth_state (state TEXT PRIMARY KEY, plugin_id TEXT, user_id INTEGER, verifier TEXT, created_at INTEGER);
   `);
@@ -61,6 +62,26 @@ describe('PluginOAuthService', () => {
     expect(svc.providerConfig('p')).toMatchObject({ clientId: 'client-123', clientSecret: 'secret-abc', scopes: 'read write' });
     getDb.current = freshDb({ ...CFG, oauth_client_secret: '' });
     expect(new PluginOAuthService(new DatabaseService(dbConn)).providerConfig('p')).toBeNull();
+  });
+
+  it('providerConfig falls back to the manifest defaults for the endpoints the admin left unset', () => {
+    // A provider plugin ships its authorize/token URLs as defaults; the admin only ever
+    // types the client id/secret. Those two are secrets and can never carry a default.
+    const { oauth_authorize_url: _a, oauth_token_url: _t, oauth_scopes: _s, ...stored } = CFG;
+    getDb.current = freshDb(stored);
+    const d = getDb.current as import('better-sqlite3').Database;
+    const ins = d.prepare("INSERT INTO plugin_settings_fields (plugin_id, field_key, scope, secret, default_value) VALUES ('p', ?, 'instance', 0, ?)");
+    ins.run('oauth_authorize_url', JSON.stringify('https://provider.example/authorize'));
+    ins.run('oauth_token_url', JSON.stringify('https://provider.example/token'));
+    ins.run('oauth_scopes', JSON.stringify('read'));
+    svc = new PluginOAuthService(new DatabaseService(dbConn));
+    expect(svc.providerConfig('p')).toEqual({
+      authorizeUrl: 'https://provider.example/authorize',
+      tokenUrl: 'https://provider.example/token',
+      scopes: 'read',
+      clientId: 'client-123',
+      clientSecret: 'secret-abc',
+    });
   });
 
   it('startConnect builds a PKCE authorize URL + persists a single fresh state per user', () => {

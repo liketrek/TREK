@@ -6,9 +6,11 @@ import { tripsApi } from '../../../../src/api/client';
 import { useAuthStore } from '../../../../src/store/authStore';
 import { usePermissionsStore } from '../../../../src/store/permissionsStore';
 import { useSettingsStore } from '../../../../src/store/settingsStore';
-import { buildUser } from '../../../helpers/factories';
+import { buildAssignment, buildDay, buildPlace, buildUser } from '../../../helpers/factories';
+import { http, HttpResponse } from 'msw';
+import { server } from '../../../helpers/msw/server';
 import type { DashboardTrip } from '../../../../src/pages/dashboard/dashboardModel';
-import type { Trip, TripCreateRequest } from '@trek/shared';
+import { MAX_TRIP_DAYS, type Trip, type TripCreateRequest } from '@trek/shared';
 
 interface CoverSearchPhoto {
   id: string
@@ -133,6 +135,20 @@ describe('MNewTripSheet', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Create New Trip' }));
 
     expect(screen.getByText('End date must be after start date')).toBeInTheDocument();
+    expect(onSave).not.toHaveBeenCalled();
+  });
+
+  it('FE-MOB-NTSH-036: a range past MAX_TRIP_DAYS blocks the save (#2403)', () => {
+    const onSave = vi.fn(async () => undefined);
+    render(<MNewTripSheet open trip={null} onClose={() => {}} onSave={onSave} />);
+
+    fireEvent.change(screen.getByPlaceholderText('e.g. Summer in Japan'), { target: { value: 'Decade' } });
+    fireEvent.change(screen.getByLabelText('Start Date'), { target: { value: '2026-01-01' } });
+    fireEvent.change(screen.getByLabelText('End Date'), { target: { value: '2036-01-01' } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Create New Trip' }));
+
+    expect(screen.getByText(`A trip can span at most ${MAX_TRIP_DAYS} days`)).toBeInTheDocument();
     expect(onSave).not.toHaveBeenCalled();
   });
 
@@ -544,5 +560,97 @@ describe('MNewTripSheet', () => {
 
     expect(onClose).toHaveBeenCalledTimes(2);
     expect(onSave).not.toHaveBeenCalled();
+  });
+
+  // ── Shortening an existing trip: the same question as on the desktop ─────
+
+  /** The trip's days as the server has them: 1 to 8 May, a place on the last two. */
+  function seedDays(withContent = true) {
+    const days = Array.from({ length: 8 }, (_, i) => buildDay({
+      id: 500 + i,
+      trip_id: 42,
+      day_number: i + 1,
+      date: `2026-05-0${i + 1}`,
+      assignments: withContent && i >= 6 ? [buildAssignment({ day_id: 500 + i, place: buildPlace({ id: 600 + i }) })] : [],
+    }));
+    server.use(
+      http.get('/api/trips/:id/days', () => HttpResponse.json({ days })),
+      http.get('/api/trips/:id/reservations', () => HttpResponse.json({ reservations: [] })),
+      http.get('/api/trips/:id/accommodations', () => HttpResponse.json({ accommodations: [] })),
+    );
+  }
+
+  async function shortenToSixDays(onSave: (data: TripCreateRequest) => Promise<void>, onClose = () => {}) {
+    render(<MNewTripSheet open trip={buildDashTrip()} onClose={onClose} onSave={onSave} />);
+    fireEvent.change(screen.getByLabelText('End Date'), { target: { value: '2026-05-06' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Update' }));
+  }
+
+  it('FE-MOB-NTSH-037: an earlier end opens a danger question that names the days and what is on them', async () => {
+    seedDays();
+    const onSave = vi.fn(async (_data: TripCreateRequest) => undefined);
+    await shortenToSixDays(onSave);
+
+    const sheet = await screen.findByRole('dialog', { name: 'Remove days?' });
+    expect(sheet).toHaveTextContent('Saving the new dates removes these days:');
+    const list = screen.getByRole('list', { name: 'Remove days?' });
+    expect(list).toHaveTextContent('Thu, May 7');
+    expect(list).toHaveTextContent('Fri, May 8');
+    expect(list).toHaveTextContent('Planned places: 2');
+    // The phone has no shift step, so the booking hint is the default one.
+    expect(screen.getByRole('button', { name: 'Remove days and save' })).toBeInTheDocument();
+    expect(onSave).not.toHaveBeenCalled();
+  });
+
+  it('FE-MOB-NTSH-038: cancelling the question saves nothing and keeps the edit sheet', async () => {
+    seedDays();
+    const onSave = vi.fn(async (_data: TripCreateRequest) => undefined);
+    const onClose = vi.fn();
+    await shortenToSixDays(onSave, onClose);
+
+    const sheet = await screen.findByRole('dialog', { name: 'Remove days?' });
+    const cancel = Array.from(sheet.querySelectorAll('button')).find(b => b.textContent === 'Cancel')!;
+    fireEvent.click(cancel);
+
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Remove days?' })).not.toBeInTheDocument());
+    expect(onSave).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByLabelText('End Date')).toHaveValue('2026-05-06');
+  });
+
+  it('FE-MOB-NTSH-039: confirming saves the new dates and closes the sheet', async () => {
+    seedDays();
+    const onSave = vi.fn(async (_data: TripCreateRequest) => undefined);
+    const onClose = vi.fn();
+    await shortenToSixDays(onSave, onClose);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Remove days and save' }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ start_date: '2026-05-01', end_date: '2026-05-06' }));
+    expect(onSave.mock.calls[0][0]).not.toHaveProperty('date_shift_mode');
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+  });
+
+  it('FE-MOB-NTSH-040: when only empty days go there is no question, the save goes through', async () => {
+    seedDays(false);
+    const onSave = vi.fn(async (_data: TripCreateRequest) => undefined);
+    await shortenToSixDays(onSave);
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ end_date: '2026-05-06' })));
+    expect(screen.queryByRole('dialog', { name: 'Remove days?' })).not.toBeInTheDocument();
+  });
+
+  it('FE-MOB-NTSH-041: when the days cannot be read it still asks, in general terms', async () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    server.use(http.get('/api/trips/:id/days', () => HttpResponse.json({ error: 'boom' }, { status: 500 })));
+    const onSave = vi.fn(async (_data: TripCreateRequest) => undefined);
+    await shortenToSixDays(onSave);
+
+    const sheet = await screen.findByRole('dialog', { name: 'Remove days?' });
+    expect(sheet).toHaveTextContent('The days of this trip could not be checked.');
+    expect(screen.queryByRole('list', { name: 'Remove days?' })).not.toBeInTheDocument();
+    expect(onSave).not.toHaveBeenCalled();
+    spy.mockRestore();
   });
 });

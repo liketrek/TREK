@@ -452,6 +452,16 @@ describe('MAdminPluginsPanel — Discover', () => {
     fireEvent.keyDown(card, { key: 'Enter' });
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
   });
+
+  it('FE-MOB-PLUGP-093: the card opts out of the global press-scale (#2158)', async () => {
+    // jsdom cannot replay the browser mechanics behind #2158: the :active scale on
+    // the card shifted the Install button out from under the pointer, so the tap
+    // retargeted onto the card and opened the detail sheet instead of installing.
+    // The data-no-press attribute is the pin.
+    await openDiscover([registryEntry()]);
+
+    expect((await screen.findByText('Acme')).closest('[role="button"]')).toHaveAttribute('data-no-press');
+  });
 });
 
 describe('MAdminPluginsPanel — the registry detail sheet', () => {
@@ -572,8 +582,17 @@ describe('MAdminPluginsPanel — the row action sheet', () => {
     return screen.findByRole('dialog');
   }
 
+  it('FE-MOB-PLUGP-CFG-005: Allowed hosts is offered only to a plugin that declared operatorEgress', async () => {
+    // An admin must never be invited to widen egress for a plugin that didn't ask for it
+    // — same rule the row's egress chip already follows. (Fixture default: operatorEgress false.)
+    const dialog = await openRowMenu();
+
+    expect(within(dialog).getByText('View error log')).toBeInTheDocument(); // sheet is open
+    expect(within(dialog).queryByText('Allowed hosts')).not.toBeInTheDocument();
+  });
+
   it('FE-MOB-PLUGP-034: a registry plugin offers every action plus the repository links', async () => {
-    const dialog = await openRowMenu({ source_repo: 'acme/gotify' });
+    const dialog = await openRowMenu({ source_repo: 'acme/gotify', operatorEgress: true });
 
     for (const label of ['Restart', 'View error log', 'Allowed hosts', 'Source repository', 'Report an issue', 'Delete']) {
       expect(within(dialog).getByText(label)).toBeInTheDocument();
@@ -705,7 +724,9 @@ describe('MAdminPluginsPanel — operator-supplied egress hosts', () => {
   });
 
   it('FE-MOB-PLUGP-044: a plugin with fixed manifest hosts says the sheet does not apply', async () => {
-    mockPanel([plugin({ source_repo: 'acme/gotify' })]);
+    // Declares operatorEgress (so the menu item shows), but the runtime lookup
+    // disagrees — the sheet's unsupported notice is the truth-teller.
+    mockPanel([plugin({ source_repo: 'acme/gotify', operatorEgress: true })]);
     server.use(http.get('*/api/admin/plugins/trek-gotify/egress-hosts', () =>
       HttpResponse.json({ supported: false, hosts: [] })));
     render(<MAdminPluginsPanel />);
@@ -1508,5 +1529,273 @@ describe('MAdminPluginsPanel — the security footer', () => {
 
     fireEvent.click(screen.getByText('How plugins are contained — and the limits'));
     expect(screen.queryByText('Every plugin runs boxed in')).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * The admin-owned `scope:'instance'` settings sheet — the phone counterpart of the
+ * desktop modal. Same contract: gated on declared instance fields, secrets stay
+ * write-only (an untouched mask is never sent), and a save that restarted the
+ * running plugin must say so.
+ */
+describe('MAdminPluginsPanel — instance settings', () => {
+  const FIELDS = [
+    { key: 'apiUrl', label: 'API URL', input_type: 'text', required: true, secret: false },
+    { key: 'apiKey', label: 'API key', input_type: 'text', required: false, secret: true },
+  ];
+
+  async function openRowSheet(p: Row) {
+    mockPanel([p]);
+    render(<MAdminPluginsPanel />);
+    fireEvent.click(await screen.findByTestId('plugin-row-menu-btn-trek-gotify'));
+  }
+
+  async function openSettings() {
+    server.use(
+      http.get('*/api/admin/plugins/trek-gotify/config', () =>
+        HttpResponse.json({ fields: FIELDS, config: { apiUrl: 'https://gotify.mydomain.com', apiKey: '••••••••' } })),
+    );
+    await openRowSheet(plugin({ instanceSettingsCount: 2 }));
+    fireEvent.click(screen.getByText('Instance settings'));
+    await waitFor(() => expect(screen.getByDisplayValue('https://gotify.mydomain.com')).toBeInTheDocument(), { timeout: 5000 });
+  }
+
+  it('FE-MOB-PLUGP-CFG-001: a plugin with instance fields offers the sheet action, opening the form', async () => {
+    await openSettings();
+    expect(screen.getByDisplayValue('••••••••')).toHaveAttribute('type', 'password');
+  });
+
+  it('FE-MOB-PLUGP-CFG-002: a plugin with NO instance fields gets no action', async () => {
+    await openRowSheet(plugin({ instanceSettingsCount: 0 }));
+    expect(screen.getByText('View error log')).toBeInTheDocument(); // the sheet is open
+    expect(screen.queryByText('Instance settings')).not.toBeInTheDocument();
+  });
+
+  it('FE-MOB-PLUGP-CFG-003: saving sends the edits but never the untouched secret mask', async () => {
+    let body: Record<string, unknown> | null = null;
+    server.use(
+      http.put('*/api/admin/plugins/trek-gotify/config', async ({ request }) => {
+        body = await request.json() as Record<string, unknown>;
+        return HttpResponse.json({ config: body, restarted: false });
+      }),
+    );
+    await openSettings();
+
+    fireEvent.change(screen.getByDisplayValue('https://gotify.mydomain.com'), { target: { value: 'https://new.example' } });
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
+
+    await waitFor(() => expect(toastMessages()).toContain('Settings saved'), { timeout: 5000 });
+    expect(body).toEqual({ apiUrl: 'https://new.example' });
+  });
+
+  it('FE-MOB-PLUGP-CFG-004: a save that restarted the running plugin says so', async () => {
+    server.use(
+      http.put('*/api/admin/plugins/trek-gotify/config', () =>
+        HttpResponse.json({ config: { apiUrl: 'https://gotify.mydomain.com' }, restarted: true })),
+    );
+    await openSettings();
+
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
+
+    await waitFor(() => expect(toastMessages()).toContain('Settings saved — plugin restarted'), { timeout: 5000 });
+  });
+
+  it('FE-MOB-PLUGP-CFG-006: renders every declared field type and saves the edited values', async () => {
+    const RICH = [
+      { key: 'mode', label: 'Mode', input_type: 'select', options: [{ value: 'fast', label: 'Fast' }, { value: 'slow', label: 'Slow' }], hint: 'Pick one' },
+      { key: 'enabled', input_type: 'checkbox' }, // no label — the key stands in
+      { key: 'retries', label: 'Retries', input_type: 'number', required: true },
+    ];
+    let body: Record<string, unknown> | null = null;
+    server.use(
+      http.get('*/api/admin/plugins/trek-gotify/config', () =>
+        HttpResponse.json({ fields: RICH, config: { mode: 'slow', enabled: true } })),
+      http.put('*/api/admin/plugins/trek-gotify/config', async ({ request }) => {
+        body = await request.json() as Record<string, unknown>;
+        return HttpResponse.json({ config: body, restarted: false });
+      }),
+    );
+    await openRowSheet(plugin({ instanceSettingsCount: 3 }));
+    fireEvent.click(screen.getByText('Instance settings'));
+
+    const select = await screen.findByRole('combobox', {}, { timeout: 5000 });
+    expect(select).toHaveValue('slow');
+    expect(screen.getByRole('switch', { name: 'enabled' })).toBeInTheDocument(); // label falls back to the key
+    expect(screen.getByRole('spinbutton')).toHaveValue(null);
+    expect(screen.getByText('Pick one')).toBeInTheDocument(); // hint
+
+    fireEvent.change(select, { target: { value: 'fast' } });
+    fireEvent.click(screen.getByRole('switch', { name: 'enabled' }));
+    fireEvent.change(screen.getByRole('spinbutton'), { target: { value: '3' } });
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
+
+    await waitFor(() => expect(toastMessages()).toContain('Settings saved'), { timeout: 5000 });
+    expect(body).toEqual({ mode: 'fast', enabled: false, retries: '3' });
+  });
+
+  it('FE-MOB-PLUGP-CFG-007: a failed config fetch is a toast, not a broken sheet', async () => {
+    server.use(
+      http.get('*/api/admin/plugins/trek-gotify/config', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
+    );
+    await openRowSheet(plugin({ instanceSettingsCount: 2 }));
+    fireEvent.click(screen.getByText('Instance settings'));
+
+    await waitFor(() => expect(toastMessages()).toContain('Error'), { timeout: 5000 });
+  });
+
+  it('FE-MOB-PLUGP-CFG-008: a rejected save shows the server reason and keeps the sheet open', async () => {
+    server.use(
+      http.put('*/api/admin/plugins/trek-gotify/config', () =>
+        HttpResponse.json({ error: 'config refused' }, { status: 400 })),
+    );
+    await openSettings();
+
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
+
+    expect(await screen.findByText('config refused', {}, { timeout: 5000 })).toBeInTheDocument();
+    // Still open — the admin's edits are not thrown away on a refusal.
+    expect(screen.getByDisplayValue('https://gotify.mydomain.com')).toBeInTheDocument();
+  });
+
+  it('FE-MOB-PLUGP-CFG-009: the sheet closes without saving', async () => {
+    await openSettings();
+
+    // Same retry shape as escapeUntilGone, but on the input value — an input's
+    // value is not text content, so the text-based helper would pass vacuously.
+    await waitFor(() => {
+      fireEvent.keyDown(document, { key: 'Escape' });
+      expect(screen.queryByDisplayValue('https://gotify.mydomain.com')).not.toBeInTheDocument();
+    });
+  });
+
+  const ACTIONS = [
+    { key: 'ping', label: 'Ping server', danger: false, scope: 'instance' },
+    { key: 'purge', label: 'Purge cache', hint: 'Drops every cached tile', danger: true, scope: 'instance' },
+  ];
+
+  async function openWithActions(p: Row = plugin({ instanceSettingsCount: 2 })) {
+    server.use(
+      http.get('*/api/admin/plugins/trek-gotify/config', () =>
+        HttpResponse.json({ fields: FIELDS, config: { apiUrl: 'https://gotify.mydomain.com' }, actions: ACTIONS })),
+    );
+    await openRowSheet(p);
+    fireEvent.click(screen.getByText('Instance settings'));
+    await waitFor(() => expect(screen.getByDisplayValue('https://gotify.mydomain.com')).toBeInTheDocument(), { timeout: 5000 });
+  }
+
+  it('FE-MOB-PLUGP-ACT-010: instance actions render from the config response and post to the admin action route', async () => {
+    let posted = '';
+    server.use(
+      http.post('*/api/admin/plugins/trek-gotify/actions/:key', ({ params }) => {
+        posted = String(params.key);
+        return HttpResponse.json({ ok: true, message: 'pong' });
+      }),
+    );
+    await openWithActions();
+    expect(screen.getByText('Drops every cached tile')).toBeInTheDocument(); // hint
+    fireEvent.click(screen.getByRole('button', { name: 'Ping server' }));
+    expect(await screen.findByText('pong', {}, { timeout: 5000 })).toBeInTheDocument();
+    expect(posted).toBe('ping');
+    // The sheet stays open — the admin may run another one.
+    expect(screen.getByDisplayValue('https://gotify.mydomain.com')).toBeInTheDocument();
+  });
+
+  it('FE-MOB-PLUGP-ACT-011: a danger action opens the MConfirmSheet first; confirming posts', async () => {
+    let posted = '';
+    server.use(
+      http.post('*/api/admin/plugins/trek-gotify/actions/:key', ({ params }) => {
+        posted = String(params.key);
+        return HttpResponse.json({ ok: false, message: 'cache locked' });
+      }),
+    );
+    await openWithActions();
+    fireEvent.click(screen.getByRole('button', { name: 'Purge cache' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Purge cache' });
+    expect(within(dialog).getByText('Run this action?')).toBeInTheDocument();
+    expect(posted).toBe('');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Purge cache' }));
+    expect(await screen.findByText('cache locked', {}, { timeout: 5000 })).toBeInTheDocument();
+    expect(posted).toBe('purge');
+  });
+
+  it('FE-MOB-PLUGP-ACT-012: an inactive plugin renders the action buttons disabled with the activation hint', async () => {
+    await openWithActions(plugin({ instanceSettingsCount: 2, status: 'inactive', enabled: 0 }));
+    expect(screen.getByRole('button', { name: 'Ping server' })).toBeDisabled();
+    expect(screen.getByText('Activate the plugin to run its actions')).toBeInTheDocument();
+  });
+});
+
+/**
+ * TREK_PLUGINS_IGNORE_TREK_RANGE on the phone shell — the same three surfaces as the
+ * desktop panel: the header pill, the confirm-before-install sheet, and the notice after a
+ * sideload that could not ask first, plus the persistent warning chip on the row.
+ */
+describe('MAdminPluginsPanel — TREK-range bypass (TREK_PLUGINS_IGNORE_TREK_RANGE)', () => {
+  const incompatibleEntry = () => registryEntry({ trek: '>=4.0.0', hostVersion: '3.3.0', compatible: false, latestCompatible: null });
+
+  it('FE-MOB-PLUGP-BYPASS-001: says so in the header', async () => {
+    mockPanel([plugin()], [], { ignoreTrekRange: true });
+    render(<MAdminPluginsPanel />);
+    expect(await screen.findByText('Version checks off')).toBeInTheDocument();
+  });
+
+  it('FE-MOB-PLUGP-BYPASS-002: offers "Install anyway" and asks before installing', async () => {
+    let body: unknown = null;
+    mockPanel([], [incompatibleEntry()], { ignoreTrekRange: true });
+    server.use(http.post('*/api/admin/plugins/install', async ({ request }) => {
+      body = await request.json();
+      return HttpResponse.json({ id: 'trek-gotify', version: '2.0.0', trekRangeBypassed: { trekRange: '>=4.0.0', hostVersion: '3.3.0' } });
+    }));
+    render(<MAdminPluginsPanel />);
+    fireEvent.click(await screen.findByRole('tab', { name: /Discover/ }));
+
+    const btn = await screen.findByRole('button', { name: 'Install anyway' });
+    expect(btn).toBeEnabled();
+    fireEvent.click(btn);
+
+    const sheet = await screen.findByRole('dialog', { name: 'Outside its supported TREK versions' });
+    expect(within(sheet).getByText(/no guarantee/i)).toBeInTheDocument();
+    expect(body).toBeNull();
+
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Install anyway' }));
+    await waitFor(() => expect(body).toEqual({ id: 'trek-gotify' }));
+  });
+
+  it('FE-MOB-PLUGP-BYPASS-003: cancelling the warning installs nothing', async () => {
+    let posted = false;
+    mockPanel([], [incompatibleEntry()], { ignoreTrekRange: true });
+    server.use(http.post('*/api/admin/plugins/install', () => { posted = true; return HttpResponse.json({ id: 'trek-gotify', version: '2.0.0', trekRangeBypassed: null }); }));
+    render(<MAdminPluginsPanel />);
+    fireEvent.click(await screen.findByRole('tab', { name: /Discover/ }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Install anyway' }));
+
+    const sheet = await screen.findByRole('dialog', { name: 'Outside its supported TREK versions' });
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Outside its supported TREK versions' })).not.toBeInTheDocument());
+    expect(posted).toBe(false);
+  });
+
+  it('FE-MOB-PLUGP-BYPASS-004: a sideload that landed outside its range is warned about afterwards', async () => {
+    mockPanel([plugin()], [], { ignoreTrekRange: true });
+    server.use(http.post('*/api/admin/plugins/upload', () =>
+      HttpResponse.json({ id: 'trek-new', version: '1.0.0', replaced: false, trekRangeBypassed: { trekRange: null, hostVersion: '3.3.0' } })));
+    const { container } = render(<MAdminPluginsPanel />);
+    await screen.findByText('Gotify');
+
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [new File(['zip'], 'plugin.zip', { type: 'application/zip' })] } });
+
+    const sheet = await screen.findByRole('dialog', { name: 'Installed outside its supported TREK versions' });
+    expect(within(sheet).getByText(/no guarantee/i)).toBeInTheDocument();
+    expect(within(sheet).getByText(/trek-new/)).toBeInTheDocument();
+  });
+
+  it('FE-MOB-PLUGP-BYPASS-005: a plugin running outside its range keeps a warning chip on its row', async () => {
+    mockPanel([plugin({
+      dependencyStatus: 'ok', trekRange: '>=3.2.0 <4.0.0', hostVersion: '4.0.0',
+      trekRangeBypassed: { trekRange: '>=3.2.0 <4.0.0', hostVersion: '4.0.0' },
+    })], [], { ignoreTrekRange: true });
+    render(<MAdminPluginsPanel />);
+    expect(await screen.findByText('Outside its TREK range (>=3.2.0 <4.0.0) — version checks off')).toBeInTheDocument();
   });
 });

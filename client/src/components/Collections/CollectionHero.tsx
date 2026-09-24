@@ -3,6 +3,8 @@ import { avatarSrc } from '../../utils/avatarSrc'
 import { Share2, Users, Link2, Pencil } from 'lucide-react'
 import type { CollectionMember, CollectionLink } from '@trek/shared'
 import type { TranslationFn } from '../../types'
+import CollectionExportMenu from './CollectionExportMenu'
+import type { CollectionExportFormat } from './collectionFile'
 
 const AV_COLORS = ['#6366f1', '#ec4899', '#14b8a6', '#f97316', '#8b5cf6', '#3b82f6', '#ef4444', '#22c55e']
 
@@ -26,14 +28,18 @@ interface CollectionHeroProps {
   onEdit: () => void
   shareMemberCount: number
   onShare: () => void
+  /** Absent on the "All saved" pseudo-list, which is a view rather than a list. */
+  onExport?: (format: CollectionExportFormat) => void
+  exporting?: boolean
   t: TranslationFn
 }
 
 /**
  * The page header — a colour-washed (or cover-image) glass hero that gives the
  * active list an identity: an eyebrow with the sharing state + member avatars,
- * the big list name, an optional description + link chips, and a Share action
- * top-right. Filtering lives in the toolbar above the places, not here.
+ * the big list name, an optional description + link chips, and the Edit,
+ * Export and Share actions top-right. Filtering lives in the toolbar above the
+ * places, not here.
  * Modelled on the dashboard hero-trip.
  */
 function linkHost(url: string): string {
@@ -42,7 +48,7 @@ function linkHost(url: string): string {
 
 export default function CollectionHero({
   eyebrow, title, color, coverImage, description, links,
-  members, canShare, isOwner, canEdit, onEdit, shareMemberCount, onShare, t,
+  members, canShare, isOwner, canEdit, onEdit, shareMemberCount, onShare, onExport, exporting, t,
 }: CollectionHeroProps): React.ReactElement {
   const accepted = members.filter(m => m.status === 'accepted' || m.is_owner)
   const showAvatars = accepted.length > 1
@@ -94,6 +100,7 @@ export default function CollectionHero({
                 <span className="txt">{t('common.edit')}</span>
               </button>
             )}
+            {onExport && <CollectionExportMenu onExport={onExport} exporting={exporting} t={t} />}
             {canShare && (
               <button
                 type="button"

@@ -15,7 +15,14 @@ body { height: 100%; overflow: auto; overscroll-behavior: none; -webkit-overflow
    reloads the installed PWA. Desktop/tablet keep the rules above. */
 @media (max-width: 767px) {
   html { overflow: visible; overscroll-behavior: none; }
-  body { height: auto; overflow: visible; }
+  /* overflow-x clip (not hidden: clip creates no scroll container) so a screen
+     that accidentally overflows sideways cannot widen the document. Android's
+     forced-zoom setting reacts to a wider document by growing the layout
+     viewport that position:fixed resolves against, which pushed the top bar
+     and the dock off the right edge on narrow phones. On body, never on html:
+     body's overflow only propagates to the viewport while html stays visible,
+     and the shared body scroll lock relies on that propagation. */
+  body { height: auto; overflow: visible; overflow-x: clip; }
   /* Transparent so the shell's own background layer, which sits behind the page
      on a negative z-index, is not painted over: a negative layer goes above the
      canvas but below the background of ordinary blocks, and body is one. The
@@ -34,6 +41,13 @@ body { height: 100%; overflow: auto; overscroll-behavior: none; -webkit-overflow
    visible scrollbar on the left breaks the polarsteps-style reading feel). */
 .journey-feed-scroll { scrollbar-width: none; -ms-overflow-style: none; }
 .journey-feed-scroll::-webkit-scrollbar { display: none; }
+
+/* Road trip rail: hide the scrollbar of the day list. The totals card is pinned
+   above the list and therefore outside its scroll box, so a visible scrollbar
+   would take width from the day cards alone and leave the two stacks a few
+   pixels out of line — the one thing a column of nested cards cannot hide. */
+.roadtrip-rail-scroll { scrollbar-width: none; -ms-overflow-style: none; }
+.roadtrip-rail-scroll::-webkit-scrollbar { display: none; }
 
 /* Journey video: let the player fill the box the lightbox gives it.
  *
@@ -122,8 +136,32 @@ body { height: 100%; overflow: auto; overscroll-behavior: none; -webkit-overflow
   font-family: inherit !important;
   box-shadow: 0 8px 32px rgba(0,0,0,0.25) !important;
   transition: none !important;
+  max-width: min(280px, calc(100vw - 32px)) !important;
+  white-space: normal !important;
+  word-wrap: break-word !important;
 }
 .atlas-tooltip::before { border-top-color: rgba(10, 10, 20, 0.6) !important; }
+/* Bucket-list marker tooltip only — arbitrary-length user notes need a scroll
+   cap. The scroll happens on .atlas-tooltip-scroll-inner, not this element,
+   so the outer border-radius clips the scrollbar instead of it poking
+   through the rounded corner. overflow-y on the inner div is toggled
+   per-instance in useAtlas.ts, not forced here. */
+.atlas-tooltip-scrollable {
+  width: min(480px, calc(100vw - 32px)) !important;
+  max-width: min(480px, calc(100vw - 32px)) !important;
+  overflow: hidden !important;
+  pointer-events: auto !important;
+}
+.atlas-tooltip-scroll-inner {
+  max-height: min(200px, 40vh);
+  overflow-y: hidden;
+  /* Leaflet puts touch-action: none on the map container; without widening it
+     back here a touch swipe over the note can never scroll it (#2153). */
+  touch-action: pan-y;
+}
+.atlas-tooltip-scroll-inner::-webkit-scrollbar { width: 6px; }
+.atlas-tooltip-scroll-inner::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.25); border-radius: 3px; }
+html:not(.dark) .atlas-tooltip-scroll-inner::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); }
 html:not(.dark) .atlas-tooltip {
   background: rgba(255, 255, 255, 0.75) !important;
   color: #0f172a !important;
@@ -201,8 +239,9 @@ html.dark .border-dashed.border-gray-300 { border-color: var(--border-primary) !
 html.dark .bg-slate-50\/60, html.dark [class*="bg-slate-50/"] { background-color: transparent !important; }
 
 /* Reorder buttons: desktop = original style; touch = always visible, larger touch targets.
-   Keyed on pointer as well as width — a tablet is a wide touch device, and drag reorder is
-   off wherever the pointer is coarse (#1432), so these buttons are the only affordance left. */
+   Keyed on pointer as well as width — a tablet is a wide touch device with no hover, so
+   without this the buttons would never appear there. (Drag reorder itself is no longer off
+   on a coarse pointer: #1616 gave tablets the long-press bridge.) */
 .reorder-buttons {
   flex-direction: column;
   opacity: 0;
@@ -239,9 +278,6 @@ html.dark .bg-slate-50\/60, html.dark [class*="bg-slate-50/"] { background-color
     align-items: center !important;
     justify-content: center !important;
   }
-  .note-edit-buttons {
-    opacity: 1 !important;
-  }
 }
 
 /* Packing list rows: on phones, keep the item name readable and move the dense
@@ -272,15 +308,20 @@ html.dark .bg-slate-50\/60, html.dark [class*="bg-slate-50/"] { background-color
 }
 
 /* ── Press-Feedback + bessere Easings (Emil Kowalski) ─────────── */
-/* Buttons sollen antworten wenn sie gedrückt werden. */
+/* Buttons sollen antworten wenn sie gedrückt werden.
+   Map-Marker sind ausgenommen: MapLibre und Mapbox geben ihrem Marker-Element
+   role="button" und schreiben dessen `transform` bei jedem Frame einer Bewegung
+   neu. Mit einem Übergang darauf hinkt die Nadel dem Kartenzug hinterher und
+   springt am Ende an ihren Ort zurück, und ein Klick würde den scale(0.97) über
+   die Positionierung der Bibliothek legen. */
 button:not(:disabled):not([data-no-press]),
-[role="button"]:not([aria-disabled="true"]):not([data-no-press]) {
+[role="button"]:not([aria-disabled="true"]):not([data-no-press]):not(.maplibregl-marker):not(.mapboxgl-marker) {
   transition-property: transform, color, background-color, border-color, box-shadow, opacity, filter !important;
   transition-duration: 180ms;
   transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
 }
 button:not(:disabled):not([data-no-press]):active,
-[role="button"]:not([aria-disabled="true"]):not([data-no-press]):active {
+[role="button"]:not([aria-disabled="true"]):not([data-no-press]):not(.maplibregl-marker):not(.mapboxgl-marker):active {
   transform: scale(0.97);
   transition-duration: 80ms;
 }
@@ -465,6 +506,47 @@ input[type="number"], input[type="time"], input[type="date"], input[type="dateti
   will-change: transform, opacity;
 }
 
+/* Dokumentenabgleich: die aktive Bahn laeuft, WAEHREND ein Lauf laeuft.
+   Bewegung als Antwort auf eine Handlung, nicht als Dekoration: sie hoert auf,
+   sobald der Lauf durch ist, und sagt in der Zwischenzeit, in welche Richtung
+   gerade etwas unterwegs ist. */
+@keyframes trek-docsync-lane {
+  from { background-position: 0 0; }
+  to   { background-position: 16px 0; }
+}
+.trek-docsync-lane-run {
+  background-image: repeating-linear-gradient(
+    90deg,
+    currentColor 0 5px,
+    transparent 5px 16px
+  );
+  animation: trek-docsync-lane 700ms linear infinite;
+}
+.trek-docsync-lane-run-rev {
+  animation-direction: reverse;
+}
+
+/* Die abgeschaltete Richtung bekommt eine Schraffur, dasselbe Zeichen, das eine
+   gesperrte Flaeche ueberall traegt. Es liest sich als "hier geht nichts durch",
+   ohne dass die Bahn verschwindet und die Zeile zusammenklappt. */
+.trek-docsync-lane-off {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--border-primary) 0 5px,
+    transparent 5px 20px
+  );
+}
+
+/* Dieselbe Schraffur im Telefon-Schema: die mobilen Flaechen kennen die
+   Desktop-Randfarbe nicht, und eine Fremdfarbe faellt dort sofort auf. */
+.trek-docsync-lane-off-m {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--m-rowbr) 0 5px,
+    transparent 5px 20px
+  );
+}
+
 /* Mobile-Drawer-Feel — Modal slidet von unten rein, wird unten am Screen angedockt */
 @keyframes trek-drawer-enter {
   from { opacity: 0; transform: translateY(100%); }
@@ -485,6 +567,44 @@ input[type="number"], input[type="time"], input[type="date"], input[type="dateti
 .trek-toast-enter {
   animation: trek-toast-enter 260ms cubic-bezier(0.23, 1, 0.32, 1);
   will-change: transform, opacity;
+}
+
+/* Roadtrip: die Zzz am Tageswechsel im Streckenstrang. Drei Buchstaben auf einer
+   Grundlinie, jeder ein Drittel des Laufs nach dem vorigen, damit immer einer
+   unterwegs ist. Rein dekorativ — das Wort daneben sagt schon, was das Band ist. */
+@keyframes trek-doze {
+  0%   { opacity: 0; transform: translate(0, 3px) scale(0.7); }
+  22%  { opacity: 0.9; }
+  100% { opacity: 0; transform: translate(6px, -10px) scale(1.15); }
+}
+.trek-doze > * {
+  animation: trek-doze 3s ease-out infinite;
+}
+.trek-doze > *:nth-child(2) { animation-delay: 1s; }
+.trek-doze > *:nth-child(3) { animation-delay: 2s; }
+
+/* Roadtrip: der Block, den eine Nachtfahrt auf dem Folgetag hinterlaesst. Er faellt
+   von oben in die Karte, weil er von der Karte darueber kommt — kurz genug, dass ein
+   Neuberechnen der Ankunftszeiten nicht als Zappeln liest. */
+@keyframes trek-spill-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.985); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.trek-spill-in {
+  animation: trek-spill-in 320ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+/* Roadtrip: die Reserveleuchte am Band, an dem der Tank leerlaeuft. Das Gegenstueck
+   zu den Zzz am Tageswechsel — dort schlaeft der Tag ein, hier geht die Lampe im
+   Armaturenbrett an. Langsam an, kurz aus: eine Warnleuchte blinkt nicht hektisch,
+   sie glimmt. */
+@keyframes trek-lowfuel {
+  0%, 62%, 100% { opacity: 1; }
+  74%           { opacity: 0.28; }
+  86%           { opacity: 1; }
+}
+.trek-lowfuel {
+  animation: trek-lowfuel 2.6s ease-in-out infinite;
 }
 
 /* Stagger-Helpers für Listen — Enter-Animation mit Offset */
@@ -508,12 +628,28 @@ input[type="number"], input[type="time"], input[type="date"], input[type="dateti
 /* Reduced motion — Emil's Accessibility-Regel: fewer and gentler, not zero */
 @media (prefers-reduced-motion: reduce) {
   .trek-menu-enter, .trek-menu-enter-left, .trek-popover-enter,
-  .trek-modal-enter, .trek-toast-enter, .trek-stagger > * {
+  .trek-modal-enter, .trek-toast-enter, .trek-stagger > *, .trek-spill-in {
     animation: trek-backdrop-enter 120ms ease-out;
+  }
+  /* Die Reserveleuchte steht still statt zu glimmen — sie bleibt an, was die Aussage
+     ohnehin ist. */
+  .trek-lowfuel {
+    animation: none;
+  }
+  /* Die Bahn bleibt sichtbar, sie laeuft nur nicht mehr. Die Aussage
+     "hier ist gerade etwas unterwegs" traegt auch im Stillstand. */
+  .trek-docsync-lane-run {
+    animation: none;
   }
   .trek-skeleton {
     animation: none;
     background: var(--bg-tertiary);
+  }
+  /* Die Zzz stehen still statt zu treiben — der Tageswechsel bleibt lesbar. */
+  .trek-doze > * {
+    animation: none;
+    opacity: 0.6;
+    transform: none;
   }
   button:not(:disabled):not([data-no-press]):active,
   [role="button"]:not([aria-disabled="true"]):not([data-no-press]):active,
@@ -536,6 +672,19 @@ input[type="number"], input[type="time"], input[type="date"], input[type="dateti
   --safe-top: env(safe-area-inset-top, 0px);
   --nav-h: 0px;
   --bottom-nav-h: 0px;
+
+  /* Layer scale. Anything fixed or sticky picks a step from here instead of
+     inventing a number, so two overlays can no longer land in the wrong order
+     by accident. The steps are spaced so today's hardcoded z-indexes keep the
+     position they already have; each of those moves onto its token whenever
+     its file gets touched for other reasons. */
+  --z-bar: 60;        /* BottomNav, page-bound sticky bars */
+  --z-nav: 200;       /* the desktop navbar */
+  --z-modal: 10000;   /* shared/Modal, ConfirmDialog */
+  --z-overlay: 99990; /* page-owned full-screen overlays */
+  --z-notice: 99998;  /* app-wide system and release notices */
+  --z-toast: 100000;  /* toasts, tooltips, context menus */
+
   --font-system: 'Poppins', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
   /* Secondary "subtext"/caption tier renders in Geist; primary text + headings stay Poppins. */
   --font-subtext: 'Geist Sans', 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
@@ -1226,6 +1375,141 @@ img[alt="TREK"] {
   justify-content: center;
 }
 
+/* Shared links in the Collab tab: one chip per link, two to a row across the full
+   width, one to a row where the panel is narrow. The chip is the link; edit, pin and
+   delete sit quietly in its tail and come forward on hover or keyboard focus. They
+   keep their width throughout: unfolding them reflowed the row under the pointer,
+   and a chip that grows as you reach for it is a chip you cannot catch. */
+.collab-link-grid {
+  container-type: inline-size;
+}
+.collab-link-grid__cells {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+@container (max-width: 420px) {
+  .collab-link-grid__cells { grid-template-columns: minmax(0, 1fr); }
+}
+.collab-link-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 5px 8px 5px 5px;
+  border-radius: 999px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-faint);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+}
+.collab-link-chip:hover, .collab-link-chip:focus-within {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-primary);
+}
+.collab-link-chip--pinned {
+  background: var(--accent-subtle);
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+}
+.collab-link-chip__main {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--text-primary);
+  text-decoration: none;
+  outline: none;
+}
+.collab-link-chip__icon {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--bg-card);
+  color: var(--text-faint);
+}
+.collab-link-chip__icon img { width: 16px; height: 16px; object-fit: contain; }
+.collab-link-chip__icon > * { transition: opacity 0.15s ease; }
+/* Reaching for the chip turns its favicon into the open-in-new-tab glyph: the
+   affordance without a glyph of its own taking room from the title. */
+.collab-link-chip__go {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--text-primary);
+  opacity: 0;
+}
+.collab-link-chip__main:hover .collab-link-chip__go, .collab-link-chip__main:focus-visible .collab-link-chip__go { opacity: 1; }
+.collab-link-chip__main:hover .collab-link-chip__icon > :not(.collab-link-chip__go),
+.collab-link-chip__main:focus-visible .collab-link-chip__icon > :not(.collab-link-chip__go) { opacity: 0; }
+/* Title first, host with what is left: a max-content track takes its full width
+   before the fr track sees any, and shrinks only once the title alone no longer
+   fits. Two flex items shrank together and both ended in an ellipsis. */
+.collab-link-chip__text {
+  display: grid;
+  grid-template-columns: minmax(0, max-content) minmax(0, 1fr);
+  align-items: baseline;
+  column-gap: 6px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.collab-link-chip__title {
+  font-size: calc(12.5px * var(--fs-scale-body, 1));
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.collab-link-chip__host {
+  font-size: calc(10.5px * var(--fs-scale-caption, 1));
+  color: var(--text-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.collab-link-chip__actions {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 1px;
+  margin-left: auto;
+  opacity: 0.45;
+  transition: opacity 0.15s ease;
+}
+.collab-link-chip:hover .collab-link-chip__actions, .collab-link-chip:focus-within .collab-link-chip__actions { opacity: 1; }
+.collab-link-chip__action {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.collab-link-chip__action:hover, .collab-link-chip__action:focus-visible { background: var(--bg-hover); color: var(--text-primary); }
+.collab-link-chip__action--on { color: var(--accent); }
+/* Fingers, not a pointer: the phone Collab tab mounts this same chip. 22px targets
+   a pixel apart put delete one slip away from pin, so the hit box grows to the
+   30px at a 34px pitch the phone Notes tab uses. The vertical margin gives the
+   height back, the chip stays 36px. */
+@media (hover: none) {
+  .collab-link-chip__actions { opacity: 1; gap: 4px; }
+  .collab-link-chip__action { width: 30px; height: 30px; margin: -4px 0; }
+}
+
 /* Markdown in Collab Notes */
 .collab-note-md strong, .collab-note-md-full strong { font-weight: 700 !important; }
 .collab-note-md em, .collab-note-md-full em { font-style: italic !important; }
@@ -1245,19 +1529,6 @@ img[alt="TREK"] {
 .collab-note-md-full table { border-collapse: collapse; width: 100%; margin: 0.5em 0; }
 .collab-note-md-full th, .collab-note-md-full td { border: 1px solid var(--border-primary); padding: 4px 8px; font-size: 0.9em; }
 .collab-note-md-full hr { border: none; border-top: 1px solid var(--border-primary); margin: 0.8em 0; }
-
-/* Note card actions: stacked beside the card, and big enough to aim at. */
-.note-edit-btn {
-  transition: background-color 0.12s ease, color 0.12s ease;
-}
-.note-edit-btn:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
-}
-.note-edit-btn-danger:hover {
-  background: rgba(220, 38, 38, 0.13);
-  color: #dc2626;
-}
 
 /* Day-plan header action grid (edit / +transport / note / collapse) */
 .dp-day-actions button {

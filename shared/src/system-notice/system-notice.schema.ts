@@ -42,18 +42,18 @@ const noticeCtaSchema = z.discriminatedUnion('kind', [
   }),
 ]);
 
-/** One "what changed" row in the release panel: icon, headline, prose, optional badge. */
+/**
+ * One headline card in the release panel. `visual` names a small illustration the
+ * client draws for it; a name the client does not know falls back to the icon.
+ * `layout: 'wide'` lays the card across the whole row, picture beside the text,
+ * for a headliner that comes after a full row of upright cards.
+ */
 const noticeReleaseFeatureSchema = z.object({
   iconName: z.string(),
+  visual: z.string().optional(),
+  layout: z.enum(['card', 'wide']).optional(),
   titleKey: z.string(),
   bodyKey: z.string(),
-  badgeKey: z.string().optional(),
-});
-
-/** A number worth stating next to the release — the figure itself is not translated. */
-const noticeReleaseStatSchema = z.object({
-  value: z.string(),
-  labelKey: z.string(),
 });
 
 /**
@@ -63,28 +63,32 @@ const noticeReleaseStatSchema = z.object({
  * shows lives here rather than inside the component.
  */
 const noticeReleaseSchema = z.object({
-  /** Shown as the display figure ("4.0.0") — a version string, not a semver gate. */
+  /** Shown as the display figure ("4.3.0"), a version string, not a semver gate. */
   version: z.string(),
   eyebrowKey: z.string(),
-  tagKey: z.string(),
   headlineKey: z.string(),
   introKey: z.string(),
+  featuresLabelKey: z.string(),
+  featuresAsideKey: z.string().optional(),
+  /** Two to four cards; the grid lays out any of those counts. */
   features: z.array(noticeReleaseFeatureSchema),
-  stats: z.array(noticeReleaseStatSchema).optional(),
   notes: z.object({ labelKey: z.string(), href: z.string() }).optional(),
   footnoteKey: z.string().optional(),
   note: z.object({
     eyebrowKey: z.string(),
     titleKey: z.string(),
-    /** Markdown paragraphs above the promise box. */
+    /** Paragraphs above the promise box, separated by a blank line. */
     bodyKey: z.string(),
     promiseLabelKey: z.string(),
+    /** The promise's opening sentence, set in bold before the rest. */
+    promiseLeadKey: z.string(),
     promiseTextKey: z.string(),
-    /** Markdown paragraphs below the promise box. */
+    /** Paragraphs below the promise box, separated by a blank line. */
     bodyAfterKey: z.string(),
     closingKey: z.string(),
-    signatureKey: z.string(),
   }),
+  /** The support footer's opening sentence, set in bold before the rest. */
+  supportLeadKey: z.string(),
   supportTextKey: z.string(),
 });
 

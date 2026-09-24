@@ -65,6 +65,10 @@ function ntfyTokenInput() {
   return Array.from(document.querySelectorAll<HTMLInputElement>('input[type="password"]'))[1];
 }
 
+function smtpPasswordInput() {
+  return Array.from(document.querySelectorAll<HTMLInputElement>('input[type="password"]'))[0];
+}
+
 beforeEach(() => {
   resetAllStores();
 });
@@ -536,5 +540,22 @@ describe('MAdminNotificationsSection', () => {
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Notification settings saved'));
     expect(setTripRemindersEnabled).not.toHaveBeenCalled();
     expect(toast.error).not.toHaveBeenCalled();
+  });
+
+  it('FE-MOB-ANOTIF-032: a stored SMTP password is a placeholder, so a new one replaces it', async () => {
+    const bodies = captureAppSettings();
+    const user = userEvent.setup();
+    render(<Harness initial={{ smtp_host: 'mail.test', smtp_pass: MASK }} />);
+
+    const password = smtpPasswordInput();
+    expect(password).toHaveValue('');
+
+    await user.type(password, 'hunter2');
+    await user.click(screen.getAllByRole('button', { name: 'Save' })[0]);
+
+    // Typing into the eight bullet characters used to save them along with the
+    // password, which then failed to authenticate with nothing in the log.
+    await waitFor(() => expect(bodies).toHaveLength(1));
+    expect(bodies[0].smtp_pass).toBe('hunter2');
   });
 });

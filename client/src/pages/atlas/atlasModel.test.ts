@@ -1,7 +1,12 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   A2_TO_A3,
+  bucketTooltipHeight,
+  bucketTooltipNeedsScroll,
+  bucketTooltipPlacement,
+  bucketTooltipWidth,
   countryStatus,
+  visitMonth,
   findBucketDuplicate,
   isBucketDuplicateError,
   isCountryVisible,
@@ -67,6 +72,31 @@ describe('countryStatus', () => {
   });
 });
 
+describe('visitMonth (#1535)', () => {
+  // West of Greenwich, where new Date('2024-06-01') is still the last evening of May.
+  beforeEach(() => {
+    vi.stubEnv('TZ', 'America/New_York');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('reads the year and month as a local date, so the 1st stays in its own month', () => {
+    const june = visitMonth('2024-06-01')!;
+    expect([june.getFullYear(), june.getMonth(), june.getDate()]).toEqual([2024, 5, 1]);
+    const january = visitMonth('2025-01-01')!;
+    expect([january.getFullYear(), january.getMonth()]).toEqual([2025, 0]);
+  });
+
+  it('gives nothing for a missing or malformed date', () => {
+    expect(visitMonth(null)).toBeNull();
+    expect(visitMonth(undefined)).toBeNull();
+    expect(visitMonth('')).toBeNull();
+    expect(visitMonth('June 2024')).toBeNull();
+  });
+});
+
 describe('isCountryVisible', () => {
   it('always shows visited countries', () => {
     expect(isCountryVisible({ status: 'visited' }, false)).toBe(true);
@@ -117,7 +147,7 @@ describe('withCountryMarkedVisited', () => {
     const prev = base({
       countries: [
         { code: 'FR', tripCount: 2, placeCount: 5, status: 'visited' },
-        { code: 'JP', tripCount: 1, placeCount: 0, status: 'planned' },
+        { code: 'JP', tripCount: 1, placeCount: 0, firstVisit: '2099-05-01', lastVisit: '2099-05-08', status: 'planned' },
       ],
       stats: { totalTrips: 3, totalPlaces: 10, totalCountries: 1, totalDays: 14, totalCountriesPlanned: 1 },
       continents: { Europe: 1 },
@@ -127,7 +157,8 @@ describe('withCountryMarkedVisited', () => {
     const next = withCountryMarkedVisited(prev, 'JP');
 
     expect(next.countries).toHaveLength(2);
-    expect(next.countries.find((c) => c.code === 'JP')?.status).toBe('visited');
+    // The planned trip's dates are not the dates of a visit, as the server agrees (#1535).
+    expect(next.countries.find((c) => c.code === 'JP')).toMatchObject({ status: 'visited', firstVisit: null, lastVisit: null });
     expect(next.stats.totalCountries).toBe(2);
     expect(next.stats.totalCountriesPlanned).toBe(0);
     expect(next.continents).toEqual({ Europe: 1, Asia: 1 });
@@ -294,5 +325,88 @@ describe('isBucketDuplicateError (#1898)', () => {
     expect(isBucketDuplicateError({ response: { status: 500 } })).toBe(false);
     expect(isBucketDuplicateError(new Error('offline'))).toBe(false);
     expect(isBucketDuplicateError(null)).toBe(false);
+  });
+});
+
+describe('bucketTooltipWidth (#2153)', () => {
+  it('caps at 480px on a wide viewport', () => {
+    expect(bucketTooltipWidth(1400)).toBe(480);
+  });
+
+  it('shrinks to fit a narrow viewport, minus 32px of margin', () => {
+    expect(bucketTooltipWidth(390)).toBe(358);
+  });
+});
+
+describe('bucketTooltipHeight (#2153)', () => {
+  it('is the 200px content cap plus the tooltip chrome, offset and arrow margin', () => {
+    expect(bucketTooltipHeight(1080)).toBe(242);
+  });
+
+  it('follows the 40vh cap down on a short viewport', () => {
+    expect(bucketTooltipHeight(400)).toBe(202);
+  });
+});
+
+describe('bucketTooltipPlacement (#2153)', () => {
+  const viewport = { width: 1000, height: 1080 };
+
+  it('opens above a marker with room on all sides, centred with no horizontal nudge', () => {
+    const placement = bucketTooltipPlacement({ x: 500, y: 400 }, viewport, 480);
+    expect(placement.direction).toBe('top');
+    expect(placement.offset).toEqual([0, -14]);
+  });
+
+  it('flips to open below the marker when there is no room above it', () => {
+    const placement = bucketTooltipPlacement({ x: 500, y: 100 }, viewport, 480);
+    expect(placement.direction).toBe('bottom');
+    expect(placement.offset[1]).toBe(14);
+  });
+
+  it('still flips for a marker that clears 220px but not the tooltip itself', () => {
+    // 225px of room used to read as "fits above", which clipped the top 17px away.
+    const placement = bucketTooltipPlacement({ x: 500, y: 225 }, viewport, 480);
+    expect(placement.direction).toBe('bottom');
+  });
+
+  it('keeps the tooltip above when neither side fits but there is more room above', () => {
+    // Landscape phone, 300px tall: the tooltip wants 162px and gets 152 above, 132 below.
+    const placement = bucketTooltipPlacement({ x: 500, y: 160 }, { width: 1000, height: 300 }, 480);
+    expect(placement.direction).toBe('top');
+  });
+
+  it('nudges right when centring the tooltip would clip the left edge', () => {
+    // Marker at x=50 with a 480px-wide tooltip centred on it would start at
+    // x=-190; the offset needs to push the tooltip's left edge to the margin (8px).
+    const placement = bucketTooltipPlacement({ x: 50, y: 400 }, viewport, 480);
+    const defaultLeft = 50 - 480 / 2;
+    expect(placement.offset[0]).toBe(8 - defaultLeft);
+  });
+
+  it('nudges left when centring the tooltip would clip the right edge', () => {
+    const placement = bucketTooltipPlacement({ x: 950, y: 400 }, viewport, 480);
+    const defaultLeft = 950 - 480 / 2;
+    const clampedLeft = 1000 - 8 - 480;
+    expect(placement.offset[0]).toBe(clampedLeft - defaultLeft);
+  });
+
+  it('does not nudge horizontally when the tooltip already fits', () => {
+    const placement = bucketTooltipPlacement({ x: 500, y: 400 }, viewport, 480);
+    expect(placement.offset[0]).toBe(0);
+  });
+});
+
+describe('bucketTooltipNeedsScroll (#2153)', () => {
+  it('is false when content fits within the height cap', () => {
+    expect(bucketTooltipNeedsScroll(180, 200)).toBe(false);
+    expect(bucketTooltipNeedsScroll(200, 200)).toBe(false);
+  });
+
+  it('is true once content actually overflows the cap', () => {
+    expect(bucketTooltipNeedsScroll(260, 200)).toBe(true);
+  });
+
+  it('tolerates a 1px measurement rounding difference without enabling scroll', () => {
+    expect(bucketTooltipNeedsScroll(201, 200)).toBe(false);
   });
 });

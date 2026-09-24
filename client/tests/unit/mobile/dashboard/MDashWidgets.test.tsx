@@ -417,4 +417,36 @@ describe('MUpcomingWidget', () => {
 
     expect(sessionStorage.getItem('trip-tab-7')).toBe('buchungen');
   });
+
+  // #1934 — the two moments of one stay share the accommodation id, so the row
+  // key has to carry the type as well.
+  it('FE-MOB-DWID-034: a stay renders as a check-in and a check-out', () => {
+    render(
+      <MobileDashWidget
+        id="upcomingReservations"
+        upcoming={[
+          res({ id: 9, type: 'checkin', title: 'The Plaza', day_date: '2026-09-18', location: null }),
+          res({ id: 9, type: 'checkout', title: 'The Plaza', day_date: '2026-09-22', location: null }),
+        ]}
+      />,
+    );
+
+    expect(screen.getAllByText('The Plaza')).toHaveLength(2);
+    expect(screen.getByText(/Check-in/)).toBeInTheDocument();
+    expect(screen.getByText(/Check-out/)).toBeInTheDocument();
+  });
+
+  it('FE-MOB-DWID-035: an unconfirmed booking is marked, a confirmed one is not', () => {
+    render(
+      <MobileDashWidget
+        id="upcomingReservations"
+        upcoming={[
+          res({ id: 1, title: 'Broadway Show', status: 'pending' }),
+          res({ id: 2, title: 'Ferry', status: 'confirmed' }),
+        ]}
+      />,
+    );
+
+    expect(screen.getAllByText('Pending')).toHaveLength(1);
+  });
 });

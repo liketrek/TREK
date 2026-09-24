@@ -14,6 +14,25 @@ import { z } from 'zod';
  */
 
 /**
+ * The most days a trip can have, whether from its date range or from the
+ * `day_count` of a dateless trip. A range longer than this is refused rather
+ * than cut short: a trip whose end date lies past its last day is exactly the
+ * kind of half-state #2403 reported, and a mistyped year is easier to spot as
+ * an error than as a few hundred empty days. Three digits keep every day badge
+ * in the planner intact.
+ */
+export const MAX_TRIP_DAYS = 999;
+
+/** Calendar days in an inclusive YYYY-MM-DD range, counted the same way on both sides of the wire. */
+export function tripSpanDays(startDate: string, endDate: string): number {
+  const utcDay = (date: string) => {
+    const [y = NaN, m = NaN, d = NaN] = date.split('-').map(Number);
+    return Date.UTC(y, m - 1, d);
+  };
+  return Math.floor((utcDay(endDate) - utcDay(startDate)) / 86400000) + 1;
+}
+
+/**
  * Trip entity as returned by the trip list / get / create / update endpoints
  * (server/src/services/tripService.ts -> TRIP_SELECT). Columns of the `trips`
  * table plus the computed list fields (day_count, place_count, is_owner as 0/1,

@@ -1,12 +1,18 @@
-import React, { useEffect, useMemo, useState, useRef } from 'react'
+import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react'
 import { useNavigate } from 'react-router'
 import { getIntlLanguage, getLocaleForLanguage, useTranslation } from '../../i18n'
 import { useSettingsStore } from '../../store/settingsStore'
+import { useTileUrl } from '../../hooks/useTileUrl'
+import { OFM_DARK, OFM_POSITRON } from '../../constants/mapDefaults'
+import { attachVectorBasemap, detachBasemapLayer, hideLabelLayers, restyleBasemap, type BasemapLayer } from '../../components/Map/VectorBasemap'
+import { isVectorStyle } from '../../utils/tileUrl'
 import apiClient, { mapsApi, pluginsApi, type PluginAtlasLayer } from '../../api/client'
 import L from 'leaflet'
 import type { GeoJsonFeatureCollection } from '../../types'
-import { A2_TO_A3, countryStatus, findBucketDuplicate, isBucketDuplicateError, isCountryVisible, normalizeRegionName, regionCacheEvictions, withCountryMarkedVisited, wishlistA3Codes, countryColor, REGION_CACHE_MAX, type AtlasData, type AtlasPlaceHit, type CountryDetail, type BucketItem } from './atlasModel'
+import { A2_TO_A3, countryStatus, visitMonth, findBucketDuplicate, isBucketDuplicateError, isCountryVisible, normalizeRegionName, regionCacheEvictions, withCountryMarkedVisited, wishlistA3Codes, countryColor, REGION_CACHE_MAX, bucketTooltipWidth, bucketTooltipPlacement, bucketTooltipNeedsScroll, type AtlasData, type AtlasPlaceHit, type CountryDetail, type BucketItem } from './atlasModel'
 import { continentForCountry, escapeHtml, type VisitStatus } from '@trek/shared'
+import { useGlassGlare } from '../../components/Atlas/useGlassGlare'
+import { dawarichApi } from '../../api/dawarich'
 import { useToast } from '../../components/shared/Toast'
 import { getApiErrorMessage } from '../../types'
 
@@ -79,6 +85,19 @@ export function useAtlas() {
   const resolveName = useCountryNames(language)
   const dm = settings.dark_mode
   const dark = dm === true || dm === 'dark' || (dm === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+  // Label-free tiles on purpose (the country fills carry the names here), so the
+  // user's own template is deliberately not read, only their CARTO key.
+  const tileUrl = useTileUrl(dark ? OFM_DARK : OFM_POSITRON, true)
+  // The template is read through a ref inside the map effect so a template change —
+  // the CARTO key arriving after the first render is the usual one — retiles the
+  // layers below instead of tearing the whole map down and building it again (#2097).
+  const tileUrlRef = useRef(tileUrl)
+  tileUrlRef.current = tileUrl
+  const tileLayersRef = useRef<L.TileLayer[]>([])
+  // GL layer or the raster stand-in a browser without WebGL gets instead (#2288).
+  const glLayerRef = useRef<BasemapLayer | null>(null)
+  // The vector basemap loads async; a map torn down before it lands must not get one.
+  const cancelledRef = useRef(false)
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstance = useRef<L.Map | null>(null)
   const geoLayerRef = useRef<L.GeoJSON | null>(null)
@@ -88,28 +107,10 @@ export function useAtlas() {
   // kept redrawing itself on every pan for the rest of the session (#1950).
   const countryRendererRef = useRef<L.Canvas | null>(null)
   const regionRendererRef = useRef<L.SVG | null>(null)
-  const glareRef = useRef<HTMLDivElement>(null)
-  const borderGlareRef = useRef<HTMLDivElement>(null)
-  const panelRef = useRef<HTMLDivElement>(null)
+  // The panel's hover light, shared with the Dawarich panel beside it.
+  const { panelRef, glareRef, borderGlareRef, onMouseMove: handlePanelMouseMove, onMouseLeave: handlePanelMouseLeave } =
+    useGlassGlare(dark)
   const country_layer_by_a2_ref = useRef<Record<string, any>>({})
-
-  const handlePanelMouseMove = (e: React.MouseEvent<HTMLDivElement>): void => {
-    if (!panelRef.current || !glareRef.current || !borderGlareRef.current) return
-    const rect = panelRef.current.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
-    // Subtle inner glow
-    glareRef.current.style.background = `radial-gradient(circle 300px at ${x}px ${y}px, ${dark ? 'rgba(255,255,255,0.025)' : 'rgba(255,255,255,0.25)'} 0%, transparent 70%)`
-    glareRef.current.style.opacity = '1'
-    // Border glow that follows cursor
-    borderGlareRef.current.style.opacity = '1'
-    borderGlareRef.current.style.maskImage = `radial-gradient(circle 150px at ${x}px ${y}px, black 0%, transparent 100%)`
-    borderGlareRef.current.style.webkitMaskImage = `radial-gradient(circle 150px at ${x}px ${y}px, black 0%, transparent 100%)`
-  }
-  const handlePanelMouseLeave = () => {
-    if (glareRef.current) glareRef.current.style.opacity = '0'
-    if (borderGlareRef.current) borderGlareRef.current.style.opacity = '0'
-  }
 
   const [data, setData] = useState<AtlasData | null>(null)
   const [loading, setLoading] = useState<boolean>(true)
@@ -207,6 +208,30 @@ export function useAtlas() {
   }, [geoData, resolveName])
 
   // Load atlas data + bucket list
+  //
+  // Re-run on `atlasEpoch` so a confirmation made elsewhere on the page — the
+  // Dawarich card ticking wishes off or marking countries (#2279) — lands in the
+  // same numbers the map is drawing, rather than only after a reload.
+  const [atlasEpoch, setAtlasEpoch] = useState(0)
+  const reloadAfterDawarich = useCallback(() => setAtlasEpoch(epoch => epoch + 1), [])
+
+  /**
+   * Undo a wish that a recording ticked off.
+   *
+   * A suggestion that cannot be taken back is not a suggestion, and this one
+   * writes into the wishlist — the one list on this page somebody curates by
+   * hand. The row is kept; only the visit is cleared.
+   */
+  const handleClearBucketVisit = useCallback(async (itemId: number) => {
+    try {
+      await dawarichApi.clearBucketVisit(itemId)
+      setBucketList(prev => prev.map(item => (
+        item.id === itemId ? { ...item, visited_at: null, visited_source: null } : item
+      )))
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, t('common.error')))
+    }
+  }, [t, toast])
   useEffect(() => {
     Promise.all([
       apiClient.get('/addons/atlas/stats'),
@@ -216,7 +241,7 @@ export function useAtlas() {
       setBucketList(bucketRes.data.items || [])
       setLoading(false)
     }).catch(() => setLoading(false))
-  }, [])
+  }, [atlasEpoch])
 
   // Load country-border GeoJSON from our API (geoBoundaries, served server-side —
   // no third-party fetch from the browser). Even gzipped the payload is a few MB, so
@@ -362,30 +387,27 @@ export function useAtlas() {
 
     L.control.zoom({ position: 'bottomright' }).addTo(map)
 
-    const tileUrl = dark
-      ? 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png'
-      : 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png'
-
-    L.tileLayer(tileUrl, {
-      maxZoom: 10,
-      keepBuffer: 25,
-      updateWhenZooming: true,
-      updateWhenIdle: false,
-      tileSize: 256,
-      zoomOffset: 0,
-      crossOrigin: true,
-      referrerPolicy: 'strict-origin-when-cross-origin',
-    } as any).addTo(map)
-
-    // Preload adjacent zoom level tiles
-    L.tileLayer(tileUrl, {
-      maxZoom: 10,
-      keepBuffer: 10,
-      opacity: 0,
-      tileSize: 256,
-      crossOrigin: true,
-      referrerPolicy: 'strict-origin-when-cross-origin',
-    }).addTo(map)
+    // One layer, not two. The second raster layer existed to warm the HTTP cache
+    // of neighbouring zoom levels; a vector basemap scales what it already has, so
+    // a second one would only cost a second WebGL context and a second copy of the
+    // tiles. Labels are hidden because the country fills carry the names here.
+    if (isVectorStyle(tileUrlRef.current)) {
+      cancelledRef.current = false
+      void attachVectorBasemap(map, tileUrlRef.current, glLayerRef, () => cancelledRef.current, { hideLabels: true })
+    } else {
+      const baseTiles = L.tileLayer(tileUrlRef.current, {
+        maxZoom: 10,
+        keepBuffer: 25,
+        updateWhenZooming: true,
+        updateWhenIdle: false,
+        tileSize: 256,
+        zoomOffset: 0,
+        crossOrigin: true,
+        referrerPolicy: 'strict-origin-when-cross-origin',
+      } as any)
+      baseTiles.addTo(map)
+      tileLayersRef.current = [baseTiles]
+    }
 
     // Custom pane for region layer — above overlay (z-index 400)
     map.createPane('regionPane')
@@ -442,8 +464,30 @@ export function useAtlas() {
       // appending a second container to the pane.
       regionLayerRef.current = null
       renderedRegionSigRef.current = ''
+      tileLayersRef.current = []
+      cancelledRef.current = true
+      detachBasemapLayer(glLayerRef.current)
+      glLayerRef.current = null
     }
   }, [dark, loading])
+
+  // Retile in place. A rebuild would drop every layer the effects below hold a ref
+  // to — the country layer is only re-rendered when its own data changes, so the map
+  // would come back bare — and Leaflet keeps redrawing the torn-down canvas renderer
+  // for a frame after the map goes (#2097).
+  useEffect(() => {
+    if (isVectorStyle(tileUrl)) {
+      const layer = glLayerRef.current
+      if (!layer) return
+      restyleBasemap(layer, tileUrl)
+      // setStyle drops the layer list, and style.load fires again with the new
+      // one, so the label rule has to be re-armed rather than assumed. Both calls
+      // are no-ops on the raster stand-in, which has neither styles nor layers.
+      hideLabelLayers(layer)
+      return
+    }
+    for (const layer of tileLayersRef.current) layer.setUrl(tileUrl)
+  }, [tileUrl])
 
   // Render GeoJSON countries
   useEffect(() => {
@@ -516,7 +560,7 @@ export function useAtlas() {
         if (c) {
           country_layer_by_a2_ref.current[c.code] = layer
           const name = resolveName(c.code)
-          const formatDate = (d) => { if (!d) return '—'; const dt = new Date(d); return dt.toLocaleDateString(getLocaleForLanguage(language), { month: 'short', year: 'numeric' }) }
+          const formatDate = (d) => { const month = visitMonth(d); return month ? month.toLocaleDateString(getLocaleForLanguage(language), { month: 'short', year: 'numeric' }) : '—' }
           // "First trip / Last trip" is simply wrong for a country you haven't reached yet —
           // a planned one gets a single departure date instead.
           const planned = countryStatus(c) !== 'visited'
@@ -1057,10 +1101,54 @@ export function useAtlas() {
         iconSize: [28, 28],
         iconAnchor: [14, 14],
       })
-      return L.marker([b.lat!, b.lng!], { icon }).bindTooltip(
-        `<div style="font-size:12px;font-weight:600">${escapeHtml(b.name)}</div>${b.notes ? `<div style="font-size:10px;opacity:0.7;margin-top:2px">${escapeHtml(b.notes)}</div>` : ''}`,
-        { className: 'atlas-tooltip', direction: 'top', offset: [0, -14] }
+      const marker = L.marker([b.lat!, b.lng!], { icon })
+      // Registered before bindTooltip, so this runs ahead of Leaflet's own
+      // mouseover handler and lets it read the corrected direction/offset on open.
+      marker.on('mouseover', () => {
+        const map = mapInstance.current
+        const tooltip = marker.getTooltip()
+        if (!map || !tooltip) return
+        const containerRect = map.getContainer().getBoundingClientRect()
+        const point = map.latLngToContainerPoint(marker.getLatLng())
+        const screenX = containerRect.left + point.x
+        const screenY = containerRect.top + point.y
+        const placement = bucketTooltipPlacement(
+          { x: screenX, y: screenY },
+          { width: window.innerWidth, height: window.innerHeight },
+          bucketTooltipWidth(window.innerWidth),
+        )
+        tooltip.options.direction = placement.direction
+        tooltip.options.offset = placement.offset
+      })
+      marker.bindTooltip(
+        `<div class="atlas-tooltip-scroll-inner"><div style="font-size:12px;font-weight:600">${escapeHtml(b.name)}</div>${b.notes ? `<div style="font-size:10px;opacity:0.7;margin-top:2px">${escapeHtml(b.notes)}</div>` : ''}</div>`,
+        { className: 'atlas-tooltip atlas-tooltip-scrollable', direction: 'top', offset: [0, -14], interactive: true }
       )
+      // Leaflet closes the tooltip the instant the pointer leaves the marker's tiny
+      // hit area — replace that with a delayed close, cancelled while hovering the
+      // tooltip itself, so the pointer has a path from marker to tooltip to scroll it.
+      let closeTimer: ReturnType<typeof setTimeout> | null = null
+      const cancelClose = () => { if (closeTimer) { clearTimeout(closeTimer); closeTimer = null } }
+      const scheduleClose = () => { closeTimer = setTimeout(() => marker.closeTooltip(), 200) }
+      marker.off('mouseout', marker.closeTooltip, marker)
+      marker.on('mouseout', scheduleClose)
+      // The way back from the tooltip onto the marker fires the tooltip's mouseleave
+      // first, so the close it just scheduled has to be taken back here.
+      marker.on('mouseover', cancelClose)
+      marker.on('tooltipopen', () => {
+        const el = marker.getTooltip()?.getElement()
+        if (!el) return
+        el.addEventListener('mouseenter', cancelClose)
+        el.addEventListener('mouseleave', scheduleClose)
+        // The tooltip pane lives inside the map container, where Leaflet cancels both
+        // gestures before they reach the note: the wheel would zoom the map and a touch
+        // swipe would pan it instead of scrolling.
+        L.DomEvent.disableScrollPropagation(el)
+        L.DomEvent.disableClickPropagation(el)
+        const inner = el.querySelector<HTMLElement>('.atlas-tooltip-scroll-inner')
+        if (inner) inner.style.overflowY = bucketTooltipNeedsScroll(inner.scrollHeight, inner.clientHeight) ? 'auto' : 'hidden'
+      })
+      return marker
     })
     bucketMarkersRef.current = L.layerGroup(markers).addTo(mapInstance.current)
   }, [bucketList])
@@ -1096,6 +1184,6 @@ export function useAtlas() {
     handleAddBucketItem, handleDeleteBucketItem, handleBucketPoiSearch, handleSelectBucketPoi,
     bucketSearchResults, setBucketSearchResults,
     bucketPoiMonth, setBucketPoiMonth, bucketPoiYear, setBucketPoiYear,
-    bucketSearching, bucketSearch, setBucketSearch,
+    bucketSearching, bucketSearch, setBucketSearch, reloadAfterDawarich, handleClearBucketVisit,
   }
 }

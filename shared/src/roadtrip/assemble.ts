@@ -1,0 +1,376 @@
+import { spurFor } from './accessSpur';
+import { carriesTheCar, isCarrierMode, isPickupStop } from './carriers';
+import { pointAtMeters } from './corridor';
+import type { RoadtripDayBoundary } from './day-boundary.schema';
+import { planDayWindow, type DayWindow } from './dayWindow';
+import { isStationaryJoin, withStationaryJoins } from './nightBookends';
+import { spillChains } from './nightSpill';
+import type {
+  PlanDay,
+  QuietDay,
+  RoadtripStop,
+  RoadtripDay,
+  RoadtripRoutes,
+  RoutedLeg,
+  RouteSegment,
+  SnappedWaypoint,
+  RouteAvoidClass,
+  DistanceUnit,
+} from './planning-types';
+import {
+  computeSchedule,
+  deriveDriveWarnings,
+  refuelsRange,
+  isServiceStopType,
+  scheduleStopOf,
+  standsAsDay,
+  type DryPoint,
+  type DriveLimits,
+  type VehicleKind,
+} from './roadtripModel';
+import { splitScheduledDays } from './splitScheduledDays';
+
+const stopKey = (s: RoadtripStop): string =>
+  `${s.lat.toFixed(5)},${s.lng.toFixed(5)},${s.legMode ?? ''},${s.incomingLegMode ?? ''}`;
+
+const legKey = (from: RoadtripStop, to: RoadtripStop): string => `${stopKey(from)}>${stopKey(to)}`;
+
+export function assembleRoadtrip({
+  plan,
+  quietDays,
+  window,
+  distanceUnit,
+  allLegs,
+  snapByDay,
+  missedByDay,
+  loading,
+  limits,
+  vehicleKind,
+  connectDays,
+  boundaries,
+  labels,
+}: {
+  plan: PlanDay[];
+  quietDays: QuietDay[];
+  window: DayWindow | null;
+  distanceUnit: DistanceUnit;
+  allLegs: Record<string, RoutedLeg>;
+  snapByDay: Record<number, Record<string, SnappedWaypoint>>;
+  missedByDay: Record<number, RouteAvoidClass[]>;
+  loading: boolean;
+  limits: DriveLimits;
+  vehicleKind: VehicleKind | null;
+  connectDays: boolean;
+  boundaries: RoadtripDayBoundary[];
+  labels: { start: string; end: string };
+}): RoadtripRoutes {
+  // A night spent at one hotel is a leg going nowhere, whatever was fetched for the pair:
+  // the hotel in the evening and the same hotel the next morning are one spot.
+  const storedLegFor = withStationaryJoins((from, to) => allLegs[legKey(from, to)]);
+  const chains = spillChains(plan, quietDays, storedLegFor);
+
+  const allSnaps: Record<string, SnappedWaypoint> = {};
+  for (const day of plan) Object.assign(allSnaps, snapByDay[day.dayId] ?? {});
+  const timed = window
+    ? planDayWindow(
+        [...plan, ...quietDays],
+        window,
+        storedLegFor,
+        distanceUnit,
+        { start: labels.start, end: labels.end },
+        boundaries,
+      )
+    : null;
+  const automaticSchedule = !!timed && timed.issue === null;
+  const displayChains = automaticSchedule
+    ? timed.chains
+    : timed?.issue
+      ? [...plan, ...quietDays]
+          .sort((a, b) => a.dayNumber - b.dayNumber)
+          .filter((d) => d.stops.length)
+          .map((d) => ({
+            ...d,
+            spills: [],
+            schedule: computeSchedule(
+              d.stops.map(scheduleStopOf),
+              d.stops.slice(0, -1).map((s, i) => storedLegFor(s, d.stops[i + 1]!)?.seg.duration),
+            ),
+          }))
+      : splitScheduledDays(chains, [...plan, ...quietDays], storedLegFor);
+  const legFor = automaticSchedule ? timed.legFor : storedLegFor;
+
+  const lines: [number, number][][] = [];
+  const lineDays: number[] = [];
+  // Parallel to `lines`: true where the line is the drive into the NEXT day, drawn in the
+  // leaving day's colour. See `lineJoins` on RoadtripRoutes.
+  const lineJoins: boolean[] = [];
+  const segments: RouteSegment[] = [];
+  const accessLines: RoadtripRoutes['accessLines'] = [];
+  const spurKeys = new Set<string>();
+  const bookendSpots = new Set<string>();
+
+  const out: RoadtripDay[] = [];
+  let carryKm: number | null = 0;
+
+  let previousStop: RoadtripStop | undefined;
+
+  let previousDayNumber: number | undefined;
+  for (const chain of displayChains) {
+    const routed = chain.stops.slice(0, -1).map((s, i) => legFor(s, chain.stops[i + 1]!));
+
+    const inboundAt = new Map<number, { seg: RouteSegment | undefined; line: [number, number][]; drawnAs: number }>();
+    let arrivingLeg: RouteSegment | undefined;
+    let arrivingLine: [number, number][] | undefined;
+    let arrivingFrom: RoadtripStop | undefined;
+    if (connectDays && !automaticSchedule) {
+      for (const spill of chain.spills) {
+        inboundAt.set(spill.at, { seg: spill.leg, line: spill.line, drawnAs: spill.fromDayNumber });
+      }
+
+      // No band for a night spent at one hotel: nothing is driven between the evening and
+      // the morning, and a band would read "0 km" between a hotel and itself.
+      const first = chain.stops[0];
+      const joined =
+        inboundAt.has(0) || !previousStop || !first || isStationaryJoin(previousStop, first)
+          ? undefined
+          : legFor(previousStop, first);
+      if (joined) {
+        inboundAt.set(0, { seg: joined.seg, line: joined.line, drawnAs: previousDayNumber ?? chain.dayNumber });
+        arrivingLeg = joined.seg;
+        arrivingLine = joined.line;
+        arrivingFrom = previousStop;
+      }
+    }
+    previousStop = chain.stops[chain.stops.length - 1]! ?? previousStop;
+    previousDayNumber = chain.stops.length ? chain.dayNumber : previousDayNumber;
+    for (let i = 0; i < chain.stops.length; i++) {
+      const inbound = inboundAt.get(i);
+      if (inbound) {
+        if (inbound.line.length > 1) {
+          lines.push(inbound.line);
+          lineDays.push(inbound.drawnAs);
+          // A spill carries its own `fromDayNumber` and a joined day the number of the day
+          // it left: either way, a line drawn as a day other than the one it runs in is
+          // the connection into this one.
+          lineJoins.push(inbound.drawnAs !== chain.dayNumber);
+        }
+        if (inbound.seg) segments.push(inbound.seg);
+      }
+      const leg = routed[i];
+      if (!leg) continue;
+      if (leg.line.length > 1) {
+        lines.push(leg.line);
+        lineDays.push(chain.dayNumber);
+        // A day that opens on an automatic night opens where the last one stopped, and with
+        // a day window set that is how a connection between two days is built: through this
+        // stop rather than through `inboundAt` above, which the window switches off
+        // entirely. So it is the same line as a join and is marked as one.
+        //
+        // Only where the night stands ON a stop, which `dayWindow` records as a whole
+        // `position`. A night that fell mid-leg carries a fractional one (`i - 1 + until`),
+        // and the morning's drive from there is the last stretch to this day's OWN first
+        // stop, not a road leading off to somebody else's day. Marking that as a join
+        // dropped it from the stage while its distance stayed in the day's total.
+        const opening = chain.stops[i]?.automaticNight;
+        lineJoins.push(opening?.phase === 'start' && Number.isInteger(opening.position ?? 0));
+      }
+      // A ride has no road to label: the map draws the booking's own arc for it.
+      if (!isCarrierMode(leg.seg.mode)) segments.push(leg.seg);
+    }
+
+    const geometry: [number, number][] = [];
+    for (let i = 0; i < chain.stops.length; i++) {
+      const inbound = inboundAt.get(i);
+      if (inbound) geometry.push(...inbound.line);
+      geometry.push(...(routed[i]?.line ?? []));
+    }
+    const legs = routed.map((l) => l?.seg);
+    const legLines = routed.map((l) => l?.line);
+    const inbound = [...inboundAt.values()].map((l) => l.seg);
+    // The day's figures are the drive's: a ride's hours belong to the booking, not to the
+    // wheel, and its distance was never measured (`carrierLeg` stores none).
+    const driven = (l: RouteSegment | undefined): boolean => !!l && !isCarrierMode(l.mode);
+    const distance =
+      legs.filter(driven).reduce((sum, l) => sum + (l?.distance ?? 0), 0) +
+      inbound.filter(driven).reduce((sum, l) => sum + (l?.distance ?? 0), 0);
+    const duration =
+      legs.filter(driven).reduce((sum, l) => sum + (l?.duration ?? 0), 0) +
+      inbound.filter(driven).reduce((sum, l) => sum + (l?.duration ?? 0), 0);
+    const schedule = chain.schedule;
+    const legVias = routed.map((l) => l?.vias ?? []);
+    const stops = chain.stops.map((s) => {
+      const key = stopKey(s);
+      const snap = s.automaticNight ? undefined : allSnaps[key];
+      const line = spurFor(snap);
+      // A hotel the days start and end at is one walk from the road, however many of its
+      // bookends and its own stop stand there: drawn once.
+      const twice = spurKeys.has(key) && (!!s.bookend || bookendSpots.has(key));
+      if (line && !twice) {
+        accessLines.push({ line, meters: snap!.meters, stopKey: key });
+        spurKeys.add(key);
+      }
+      if (s.bookend) bookendSpots.add(key);
+      return { ...s, offRoadMeters: line ? snap!.meters : null };
+    });
+
+    const drive = {
+      warnings: [] as ReturnType<typeof deriveDriveWarnings>['warnings'],
+      day: null as ReturnType<typeof deriveDriveWarnings>['day'],
+    };
+    const dryPoints: (DryPoint & { lat: number; lng: number })[] = [];
+    const drivingLine: [number, number][] = [];
+    let drivenMeters = 0;
+    let drivingSeconds = 0;
+    for (let i = 0; i < stops.length; i++) {
+      const incoming = inboundAt.get(i);
+      if (incoming?.seg && isCarrierMode(incoming.seg.mode)) {
+        // The night's ride into this day: no fuel spent, and after one the car could not
+        // take, the tank the drive goes on with is another car's.
+        if (!carriesTheCar(incoming.seg.mode!)) carryKm = 0;
+      } else if (incoming?.seg) {
+        // Slot 1 is the stop the leg ARRIVES at, which for an inbound leg is this
+        // one. Hard-coded false, the range warning could never be suppressed by
+        // the very charger or petrol station that resolves it.
+        const incomingDrive = deriveDriveWarnings(
+          [incoming.seg],
+          [false, refuelsRange(stops[i]!.stopType, vehicleKind)],
+          limits,
+          carryKm,
+        );
+        carryKm = incomingDrive.carryKm;
+        drive.warnings.push(...incomingDrive.warnings.map((w) => ({ ...w, index: i })));
+        for (const dry of incomingDrive.emptyAt) {
+          const at = pointAtMeters(
+            incoming.line.map(([lat, lng]) => ({ lat, lng })),
+            dry.drivenMeters,
+          );
+          if (at) dryPoints.push({ ...dry, legIndex: -i - 1, inboundLine: incoming.line, lat: at.lat, lng: at.lng });
+        }
+        if (!incoming.seg.mode || incoming.seg.mode === 'driving') drivingSeconds += incoming.seg.duration ?? 0;
+      }
+      // A hire car is picked up full: whatever the drive had spent before, this tank is new.
+      if (isPickupStop(stops[i])) carryKm = 0;
+      const leg = routed[i];
+      if (leg && isCarrierMode(leg.seg.mode)) {
+        if (!carriesTheCar(leg.seg.mode!)) carryKm = 0;
+        continue;
+      }
+      const outgoing = deriveDriveWarnings(
+        i < stops.length - 1 ? [leg?.seg] : [],
+        // Departure, then arrival: this leg leaves stop i and reaches stop i + 1,
+        // so a range warning belongs to the next stop and is the next stop's to
+        // answer for. With false here, a day that stops at a charger 700 km in
+        // still reported running dry at the charger.
+        [refuelsRange(stops[i]!.stopType, vehicleKind), refuelsRange(stops[i + 1]?.stopType, vehicleKind)],
+        limits,
+        carryKm,
+        [stops[i]!.fillPercent],
+      );
+      carryKm = outgoing.carryKm;
+      drive.warnings.push(...outgoing.warnings.map((w) => ({ ...w, index: i + 1 })));
+      for (const dry of outgoing.emptyAt) {
+        const at = pointAtMeters(
+          (leg?.line ?? []).map(([lat, lng]) => ({ lat, lng })),
+          dry.intoLegKm * 1000,
+        );
+        if (at)
+          dryPoints.push({
+            ...dry,
+            legIndex: i,
+            drivenMeters: drivenMeters + dry.intoLegKm * 1000,
+            lat: at.lat,
+            lng: at.lng,
+          });
+      }
+      if (leg && (!leg.seg.mode || leg.seg.mode === 'driving')) {
+        drivingLine.push(...leg.line);
+        drivenMeters += leg.seg.distance ?? 0;
+        drivingSeconds += leg.seg.duration ?? 0;
+      }
+    }
+    const drivingMinutes = Math.round(drivingSeconds / 60);
+    if (limits.dayMinutes && drivingMinutes > limits.dayMinutes) {
+      drive.day = { code: 'dayDriving', minutes: drivingMinutes, limitMinutes: limits.dayMinutes };
+    }
+    const drivingGeometry = drivingLine.length === geometry.length ? geometry : drivingLine;
+    out.push({
+      automaticSchedule,
+      dayId: chain.dayId,
+      dayNumber: chain.dayNumber,
+      date: chain.date,
+      title: chain.title,
+      avoidMissed: missedByDay[chain.dayId],
+      spills: chain.spills,
+      // Only where no stop actually crossed over: a crossing already draws its own band,
+      // with this same road under it, and a second one would be the drive twice.
+      arrivingLeg: chain.spills.length ? undefined : arrivingLeg,
+      // Withheld with the band it belongs to, so a surface never holds a line for a leg the
+      // card does not show.
+      arrivingLine: chain.spills.length ? undefined : arrivingLine,
+      arrivingFrom,
+      stops,
+      legs,
+      legLines,
+      legVias,
+      schedule,
+      geometry,
+      distance,
+      duration,
+      dryPoints,
+      drivingGeometry,
+      driveWarnings: drive.warnings,
+      dayWarning: drive.day,
+    });
+  }
+  const drives = out.filter((d) => standsAsDay(d.stops) || !!d.spills?.length || d.stops.some((s) => s.automaticNight));
+  const originalStops = [...plan, ...quietDays].sort((a, b) => a.dayNumber - b.dayNumber).flatMap((day) => day.stops);
+  const boundaryPath = originalStops.slice(0, -1).flatMap((from, position) => {
+    const to = originalStops[position + 1]!;
+    const leg = storedLegFor(from, to);
+    return leg && (!leg.seg.mode || leg.seg.mode === 'driving') && from.assignmentId > 0 && to.assignmentId > 0
+      ? [{ from, to, position, line: leg.line }]
+      : [];
+  });
+  return {
+    boundaryPath,
+    validateBoundaries: (next: RoadtripDayBoundary[]) =>
+      window
+        ? planDayWindow(
+            [...plan, ...quietDays],
+            window,
+            storedLegFor,
+            distanceUnit,
+            { start: labels.start, end: labels.end },
+            next,
+          ).issue
+        : 'conflict',
+    dayWindowIssue: timed?.issue ?? null,
+    days: drives,
+    lines,
+    lineDays,
+    lineJoins,
+    segments,
+    accessLines,
+    vias: out.flatMap((d) => d.legVias.flat()),
+    totalDistance: drives.reduce((s, d) => s + d.distance, 0),
+    totalDuration: drives.reduce((s, d) => s + d.duration, 0),
+
+    totalStops: drives.reduce(
+      (s, d) => s + d.stops.filter((st) => !st.automaticNight && !st.carrier && !isServiceStopType(st.stopType)).length,
+      0,
+    ),
+
+    // A quiet day lists what could be moved onto it, and a bookend is nothing anybody moves:
+    // it is left behind alone only when every stop after it went on past midnight.
+    quietDays: out
+      .filter((d) => !standsAsDay(d.stops) && !d.spills?.length && !d.stops.some((s) => s.automaticNight))
+      .map((d) => ({
+        dayId: d.dayId,
+        dayNumber: d.dayNumber,
+        date: d.date,
+        title: d.title,
+        stops: d.stops.filter((s) => !s.bookend),
+      })),
+    loading,
+  };
+}

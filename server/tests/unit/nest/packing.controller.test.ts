@@ -16,6 +16,8 @@ function makeService(overrides: Partial<PackingService> = {}): PackingService {
     broadcast: vi.fn(),
     broadcastItem: vi.fn(),
     broadcastToViewers: vi.fn(),
+    // Content-free "the bag weights moved" ping fired after every item write (#2191).
+    broadcastBagTotals: vi.fn(),
     // Real viewer logic so the emit-to-viewers routing is exercised faithfully.
     viewersOf: (item: { is_private?: number; owner_id?: number | null; recipients?: { user_id: number }[] } | null | undefined) =>
       !item || !item.is_private ? null : [item.owner_id, ...(item.recipients || []).map(r => r.user_id)].filter((x): x is number => x != null),
@@ -87,6 +89,45 @@ describe('PackingController (parity with the legacy /api/trips/:tripId/packing r
       expect(broadcast).toHaveBeenCalledWith('5', 'packing:created', { item: { id: 9, name: 'Socks', is_private: 0 } }, 'sock');
     });
 
+    it('pings the room that bag weights moved after a create (#2191)', () => {
+      // The totals are summed server-side, so nothing else tells the other
+      // members' screens to re-read them.
+      const createItem = vi.fn().mockReturnValue({ id: 9, name: 'Socks', is_private: 0 });
+      const broadcastBagTotals = vi.fn();
+      const svc = makeService({ createItem, broadcastBagTotals } as Partial<PackingService>);
+      new PackingController(svc).create(user, '5', { name: 'Socks', weight_grams: 250 }, 'sock');
+      expect(broadcastBagTotals).toHaveBeenCalledWith('5');
+    });
+
+    it('pings after a delete, and after a bag delete that orphans its items (#2191)', () => {
+      const deleteItem = vi.fn().mockReturnValue({ id: 9, is_private: 0 });
+      const broadcastBagTotals = vi.fn();
+      const svc = makeService({ deleteItem, broadcastBagTotals } as Partial<PackingService>);
+      new PackingController(svc).remove(user, '5', '9', 'sock');
+      expect(broadcastBagTotals).toHaveBeenCalledWith('5');
+
+      // bag_id is ON DELETE SET NULL: the bag's items land in the unassigned pile.
+      const deleteBag = vi.fn().mockReturnValue(true);
+      const bagPing = vi.fn();
+      const bagSvc = makeService({ deleteBag, broadcastBagTotals: bagPing } as Partial<PackingService>);
+      new PackingController(bagSvc).deleteBag(user, '5', '7', 'sock');
+      expect(bagPing).toHaveBeenCalledWith('5');
+    });
+
+    it('does NOT ping when the update cannot move a weight (#2191)', () => {
+      // Checking an item off is the most frequent packing write there is, and
+      // every ping costs each connected client a listBags round trip.
+      const updateItem = vi.fn().mockReturnValue({ id: 9, is_private: 0 });
+      const broadcastBagTotals = vi.fn();
+      const svc = makeService({ updateItem, broadcastBagTotals } as Partial<PackingService>);
+
+      new PackingController(svc).update(user, '5', '9', { checked: true }, 'sock');
+      expect(broadcastBagTotals).not.toHaveBeenCalled();
+
+      new PackingController(svc).update(user, '5', '9', { quantity: 3 }, 'sock');
+      expect(broadcastBagTotals).toHaveBeenCalledWith('5');
+    });
+
     it('routes a Shared item create only to the owner + recipients (#858)', () => {
       const item = { id: 9, name: 'Power bank', is_private: 1, owner_id: 1, recipients: [{ user_id: 2 }] };
       const createItem = vi.fn().mockReturnValue(item);
@@ -94,6 +135,26 @@ describe('PackingController (parity with the legacy /api/trips/:tripId/packing r
       const svc = makeService({ createItem, broadcastToViewers } as Partial<PackingService>);
       new PackingController(svc).create(user, '5', { name: 'Power bank', visibility: 'shared', recipient_ids: [2] }, 'sock');
       expect(broadcastToViewers).toHaveBeenCalledWith('5', 'packing:created', { item }, [1, 2], 'sock');
+    });
+
+    it('forwards weight_grams, bag_id and quantity to the service (#2154)', () => {
+      // The create route used to hand only the six legacy fields through, so
+      // the values a caller sent vanished into a 201.
+      const createItem = vi.fn().mockReturnValue({ id: 9, name: 'Tent', is_private: 0 });
+      const svc = makeService({ createItem, broadcast: vi.fn() } as Partial<PackingService>);
+      new PackingController(svc).create(user, '5', { name: 'Tent', weight_grams: 250, bag_id: 3, quantity: 3 }, 'sock');
+      expect(createItem).toHaveBeenCalledWith('5', expect.objectContaining({ weight_grams: 250, bag_id: 3, quantity: 3 }), user.id);
+    });
+
+    it('400 "Bag not found" for a bag off the trip (#2154), broadcasting nothing', () => {
+      // Body validation error, so 400 — the 404 'Bag not found' stays with the
+      // /bags/:bagId path routes.
+      const broadcast = vi.fn();
+      const svc = makeService({ createItem: vi.fn().mockReturnValue({ invalidBag: true }), broadcast } as Partial<PackingService>);
+      expect(thrown(() => new PackingController(svc).create(user, '5', { name: 'Tent', bag_id: 999 }))).toEqual({
+        status: 400, body: { error: 'Bag not found' },
+      });
+      expect(broadcast).not.toHaveBeenCalled();
     });
   });
 
@@ -182,6 +243,15 @@ describe('PackingController (parity with the legacy /api/trips/:tripId/packing r
       new PackingController(svc).update(user, '5', '9', { is_private: false }, 'sock');
       expect(broadcast).toHaveBeenCalledWith('5', 'packing:created', { item: updated }, 'sock');
       expect(broadcast).toHaveBeenCalledWith('5', 'packing:updated', { item: updated }, 'sock');
+    });
+
+    it('400 "Bag not found" for a bag off the trip (#2154), broadcasting nothing', () => {
+      const broadcast = vi.fn();
+      const svc = makeService({ updateItem: vi.fn().mockReturnValue({ invalidBag: true }), broadcast } as Partial<PackingService>);
+      expect(thrown(() => new PackingController(svc).update(user, '5', '9', { bag_id: 999 }))).toEqual({
+        status: 400, body: { error: 'Bag not found' },
+      });
+      expect(broadcast).not.toHaveBeenCalled();
     });
 
     it('forwards the X-Base-Updated-At token and 409s on a conflict (#1135)', () => {
@@ -287,10 +357,19 @@ describe('PackingController (parity with the legacy /api/trips/:tripId/packing r
   });
 
   describe('bags', () => {
-    it('GET /bags lists bags for the trip', () => {
-      const listBags = vi.fn().mockReturnValue([{ id: 3, name: 'Carry-on' }]);
-      const svc = makeService({ listBags } as Partial<PackingService>);
-      expect(new PackingController(svc).listBags(user, '5')).toEqual({ bags: [{ id: 3, name: 'Carry-on' }] });
+    it('GET /bags lists bags for the trip, with the unassigned weight alongside (#2191)', () => {
+      // One service call, so the SUM…GROUP BY runs once per request — this route
+      // now fires on every item write for every connected client.
+      const listBagsWithWeights = vi.fn().mockReturnValue({
+        bags: [{ id: 3, name: 'Carry-on', total_weight_grams: 800 }],
+        unassigned_weight_grams: 150,
+      });
+      const svc = makeService({ listBagsWithWeights } as Partial<PackingService>);
+      expect(new PackingController(svc).listBags(user, '5')).toEqual({
+        bags: [{ id: 3, name: 'Carry-on', total_weight_grams: 800 }],
+        unassigned_weight_grams: 150,
+      });
+      expect(listBagsWithWeights).toHaveBeenCalledTimes(1);
     });
 
     it('400 on bag create with blank name (bespoke check — the schema cannot see whitespace)', () => {
@@ -312,6 +391,13 @@ describe('PackingController (parity with the legacy /api/trips/:tripId/packing r
         bag: { id: 3, name: 'Carry-on' },
       });
       expect(broadcast).toHaveBeenCalledWith('5', 'packing:bag-created', { bag: { id: 3, name: 'Carry-on' } }, 'sock');
+    });
+
+    it('forwards weight_limit_grams on bag create (#2154)', () => {
+      const createBag = vi.fn().mockReturnValue({ id: 3, name: 'Backpack', weight_limit_grams: 8000 });
+      const svc = makeService({ createBag, broadcast: vi.fn() } as Partial<PackingService>);
+      new PackingController(svc).createBag(user, '5', { name: 'Backpack', weight_limit_grams: 8000 });
+      expect(createBag).toHaveBeenCalledWith('5', { name: 'Backpack', color: undefined, weight_limit_grams: 8000 });
     });
 
     it('404 on bag update when missing', () => {

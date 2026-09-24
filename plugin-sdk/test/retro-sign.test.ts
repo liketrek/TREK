@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { generateKeypair, loadPrivateKey, publicKeyBase64, verifyArtifact } from '../src/cli/sign.js';
-import { retroSignVersions } from '../src/cli/retro-sign.js';
+import { retroSignVersions, rotateSignatures } from '../src/cli/retro-sign.js';
 
 const V1_BYTES = Buffer.from('the exact bytes of the v1.0.0 release asset');
 const sha = (b: Buffer) => createHash('sha256').update(b).digest('hex');
@@ -73,5 +73,80 @@ describe('retro-sign — first signed update signs the older versions too', () =
 
   it('key sanity: publicKeyBase64 round-trips through loadPrivateKey', () => {
     expect(publicKeyBase64(loadPrivateKey(keyPath))).toBe(publicKey);
+  });
+});
+
+const V11_BYTES = Buffer.from('the exact bytes of the v1.1.0 release asset');
+
+describe('rotate — re-sign every published version with a NEW key', () => {
+  let tmp: string;
+  let oldKeyPath: string;
+  let oldPublicKey: string;
+  let newKeyPath: string;
+  let newPublicKey: string;
+
+  beforeEach(() => {
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'rotate-sign-'));
+    oldKeyPath = path.join(tmp, 'old.key');
+    oldPublicKey = generateKeypair(oldKeyPath).publicKey;
+    newKeyPath = path.join(tmp, 'new.key');
+    newPublicKey = generateKeypair(newKeyPath).publicKey;
+    vi.stubGlobal('fetch', async (url: string) => {
+      if (String(url).includes('v1.0.0')) return { ok: true, arrayBuffer: async () => V1_BYTES } as unknown as Response;
+      if (String(url).includes('v1.1.0')) return { ok: true, arrayBuffer: async () => V11_BYTES } as unknown as Response;
+      return { ok: false, status: 404 } as Response;
+    });
+  });
+  afterEach(() => {
+    fs.rmSync(tmp, { recursive: true, force: true });
+    vi.unstubAllGlobals();
+  });
+
+  const entry = () => ({
+    id: 'rotate-plug',
+    authorPublicKey: oldPublicKey,
+    versions: [
+      { version: '1.1.0', downloadUrl: 'https://github.com/x/y/releases/download/v1.1.0/plugin.zip', sha256: sha(V11_BYTES), signature: 'old-key-sig-11' },
+      { version: '1.0.0', downloadUrl: 'https://github.com/x/y/releases/download/v1.0.0/plugin.zip', sha256: sha(V1_BYTES), signature: 'old-key-sig-10' },
+    ],
+  });
+
+  it('re-signs EVERY version with the new key and swaps authorPublicKey to it', async () => {
+    const e = entry();
+    const rotated = await rotateSignatures(e, newKeyPath, () => {});
+    expect(rotated).toEqual(['1.1.0', '1.0.0']);
+    expect(e.authorPublicKey).toBe(newPublicKey);
+    expect(verifyArtifact(V11_BYTES, e.versions[0].signature!, newPublicKey)).toBe(true);
+    expect(verifyArtifact(V1_BYTES, e.versions[1].signature!, newPublicKey)).toBe(true);
+  });
+
+  it('REFUSES when the key is already the published one — nothing to rotate', async () => {
+    const e = entry();
+    await expect(rotateSignatures(e, oldKeyPath, () => {})).rejects.toThrow(/already/i);
+    expect(e.authorPublicKey).toBe(oldPublicKey);
+    expect(e.versions[0].signature).toBe('old-key-sig-11');
+  });
+
+  it('REFUSES an unsigned entry — that is signing late, not rotating', async () => {
+    const e = { id: 'rotate-plug', versions: entry().versions } as Parameters<typeof rotateSignatures>[0];
+    delete (e as { authorPublicKey?: string }).authorPublicKey;
+    await expect(rotateSignatures(e, newKeyPath, () => {})).rejects.toThrow(/--sign/);
+  });
+
+  it('is all-or-nothing: one unfetchable artifact leaves the whole entry untouched', async () => {
+    const e = entry();
+    e.versions[1].downloadUrl = 'https://github.com/x/y/releases/download/v9.9.9/plugin.zip'; // 404s
+    await expect(rotateSignatures(e, newKeyPath, () => {})).rejects.toThrow(/1\.0\.0/);
+    expect(e.authorPublicKey).toBe(oldPublicKey);
+    expect(e.versions[0].signature).toBe('old-key-sig-11');
+    expect(e.versions[1].signature).toBe('old-key-sig-10');
+  });
+
+  it('is all-or-nothing: a sha256 mismatch on any version aborts the rotation', async () => {
+    const e = entry();
+    e.versions[1].sha256 = 'not-the-real-hash';
+    await expect(rotateSignatures(e, newKeyPath, () => {})).rejects.toThrow(/1\.0\.0.*sha256/is);
+    expect(e.authorPublicKey).toBe(oldPublicKey);
+    expect(e.versions[0].signature).toBe('old-key-sig-11');
   });
 });

@@ -14,7 +14,7 @@ OAuth 2.1 is the preferred connection method. You grant specific scopes during t
 
 Claude.ai (web) supports native MCP connections — no JSON config file required:
 
-1. In TREK, go to **Settings → Integrations → MCP → OAuth 2.1 Clients** and click **New Client**.
+1. In TREK, go to your **Settings → Integrations → MCP → OAuth 2.1 Clients** and click **New Client**.
 2. Select the **Claude.ai** preset. This fills in the redirect URI (`https://claude.ai/api/mcp/auth_callback`) and a default scope set.
 3. Give the client a name, adjust scopes if needed, and save. Copy the client ID and client secret (`trekcs_` prefix) — the secret is shown only once.
 4. In Claude.ai, open the MCP settings and add a new server using your TREK URL (`https://<your-trek-instance>/mcp`). Claude.ai will open your browser to complete the OAuth consent flow.
@@ -23,7 +23,7 @@ Claude.ai (web) supports native MCP connections — no JSON config file required
 
 Claude Desktop supports native MCP connections — no JSON config file required:
 
-1. In TREK, go to **Settings → Integrations → MCP → OAuth 2.1 Clients** and click **New Client**.
+1. In TREK, go to your **Settings → Integrations → MCP → OAuth 2.1 Clients** and click **New Client**.
 2. Select the **Claude Desktop** preset. This fills in the redirect URI and a default scope set.
 3. Give the client a name, adjust scopes if needed, and save. Copy the client ID and client secret — the secret is shown only once.
 4. In Claude Desktop, open Settings → MCP and add a new server using your TREK URL (`https://<your-trek-instance>/mcp`). Claude Desktop will open your browser to complete the OAuth consent flow.
@@ -72,11 +72,21 @@ Create a client in TREK using the appropriate preset (Cursor, VS Code, Windsurf,
 
 > On Windows, `npx` may need a full path, for example `C:\PROGRA~1\nodejs\npx.cmd`.
 
-> **Requirement:** `APP_URL` must be set on the server for OAuth discovery to work.
+> **Requirement:** `APP_URL` must be set on the server for OAuth discovery to work, and it must be the public `https://` address. A plain-HTTP `APP_URL` is not a valid OAuth issuer, so TREK falls back to `http://localhost:{PORT}` in the discovery document and every remote client is sent to an address it cannot reach. The boot log says so: `APP_URL: not MCP-safe (requires https:// or http://localhost)`.
+
+TREK answers the discovery documents both at the origin (`/.well-known/oauth-authorization-server`, `/.well-known/openid-configuration`, `/.well-known/oauth-protected-resource`) and under the server address a client is given (`/mcp/.well-known/…`), because clients differ on where they look. Anything else below `/.well-known` answers a JSON 404, never the web app.
+
+### Redirect URI
+
+The redirect URI belongs to **your client, not to TREK**: it is the address the client wants the browser sent back to, so it is never your TREK URL and never `/mcp`. Open WebUI, for example, uses `{your Open WebUI URL}/oauth/clients/mcp:{ID}/callback`, where `{ID}` is the ID of the tool server connection with `mcp:` put in front of it (matched exactly, capitals included), the Claude clients use their own callbacks, and the editors use `http://localhost`. When the client supports dynamic registration, let it register itself and the URI is filled in for you. A mismatch shows up at the consent step as `invalid_request: Unregistered redirect_uri`.
+
+TREK accepts `https://` URIs, plain HTTP only on `localhost` or `127.0.0.1`, and private custom schemes such as `myapp://callback`. A client running on a LAN address over plain HTTP is refused for that reason; put it behind HTTPS.
+
+**Open WebUI.** Add TREK as an MCP (Streamable HTTP) tool server with the URL `https://<your-trek-instance>/mcp` and OAuth 2.1 as the auth type, click **Register Client**, save, then open the connection again and authorize. Open WebUI registers the client and trades the code for a token from its own server rather than from your browser, so the Open WebUI container has to reach your public TREK address. Its **WebUI URL** (Admin Panel → Settings → General) has to be the public `https://` address, otherwise the redirect URI goes out as plain HTTP and TREK refuses it.
 
 ### Pre-created OAuth clients
 
-**Settings → Integrations → MCP → OAuth 2.1 Clients** lets you create named OAuth clients before connecting. This gives you:
+Your **Settings → Integrations → MCP → OAuth 2.1 Clients** page (your own settings, not the admin area) lets you create named OAuth clients before connecting. This gives you:
 
 - A fixed, named scope list defined up front
 - A client secret (`trekcs_` prefix, shown once) for confidential client mode
@@ -94,7 +104,7 @@ Use this when your AI agent or automation script needs to authenticate silently 
 
 ### Create a machine client
 
-1. Go to **Settings → Integrations → MCP → OAuth 2.1 Clients** and click **New Client**.
+1. Go to your **Settings → Integrations → MCP → OAuth 2.1 Clients** and click **New Client**.
 2. Tick **Machine client (no browser login)**. The redirect URI field disappears — machine clients don't need one.
 3. Give it a name, select scopes, and click **Register Client**.
 4. Copy the `client_id` and `client_secret` shown — the secret is displayed only once.
@@ -115,7 +125,7 @@ Machine clients are designed for **AI agent frameworks and custom MCP client imp
 
 Static tokens grant full access to all tools and resources with no scope restrictions. A static-token session is warned about the deprecation once, not on every call: the notice rides along with the result of the first `list_trips` or `get_trip_summary` in that session — the trip-discovery tools an AI client normally reaches for first — for the client to surface to you. The tool's own payload still comes with it, and every later call in that session returns a plain result. The notice is also part of the session instructions the server sends when the connection initializes.
 
-1. Go to **Settings → Integrations → MCP**, open the **API Tokens** sub-tab, and click **Create New Token**.
+1. Go to your **Settings → Integrations → MCP**, open the **API Tokens** sub-tab, and click **Create New Token**.
 2. Give the token a name and copy it immediately — it is shown only once. The token starts with `trek_`.
 3. Pass the token as a header in your client config:
 

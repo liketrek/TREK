@@ -1,17 +1,47 @@
 import { Injectable } from '@nestjs/common';
 import type { Response } from 'express';
 import { maybe_encrypt_api_key, decrypt_api_key } from '../common/crypto/apiKeyCrypto';
-import { checkSsrf, safeFetch } from '../../utils/ssrfGuard';
+import { checkSsrf, safeFetch, type SafeFetchOptions } from '../../utils/ssrfGuard';
 import { AuditService } from '../audit/audit.service';
 import { StorageService } from '../storage/storage.service';
 import fsPromises from 'node:fs/promises';
 import path from 'node:path';
 import { DatabaseService } from '../database/database.service';
 import { MemoriesAccessService } from './memories-access.service';
-import { fail, handleServiceResult, pipeAsset, type Selection } from './memories.helpers';
+import { describeFetchFailure, fail, handleServiceResult, isWithinLocalDayRange, pipeAsset, shiftCalendarDay, sortAssetsByTakenAtDesc, type Selection } from './memories.helpers';
 
 const ALBUM_PAGE_SIZE = 1000;
 const ALBUM_MAX_PAGES = 20;
+/**
+ * How many upstream pages one search may read while filling one answered page.
+ *
+ * The day filter runs after the fetch, so the number of raw pages an answered
+ * page costs depends on how much of the padding days sits in front of it. This
+ * is the backstop: a library with thousands of photos on the neighbouring days
+ * would otherwise keep a single request fetching, so the scan stops here and
+ * answers `hasMore: false` rather than spinning or handing back the same
+ * partial page for every page the caller asks for.
+ */
+const SEARCH_MAX_RAW_PAGES = 20;
+/** A mirrored journey upload is one photo; a server that sits on it this long is not coming back. */
+const UPLOAD_TIMEOUT_MS = 60_000;
+
+/** One user's Immich connection, as every request to that server needs it. */
+export interface ImmichCreds {
+  immich_url: string;
+  immich_api_key: string;
+  /** The user trusts a self-signed certificate on this server (#2475). */
+  allow_insecure_tls: boolean;
+}
+
+/**
+ * The TLS half of every request to a user's Immich. The certificate check is
+ * the only thing the switch relaxes: the SSRF guard and the DNS pinning still
+ * run on every hop.
+ */
+function tlsOptions(allowInsecureTls: boolean): SafeFetchOptions {
+  return { rejectUnauthorized: !allowInsecureTls };
+}
 
 /**
  * Immich photo provider: credentials, connection test, timeline/search browsing,
@@ -29,12 +59,19 @@ export class ImmichService {
     private readonly storage: StorageService,
   ) {}
 
-  getImmichCredentials(userId: number) {
-    const user = this.db.prepare('SELECT immich_url, immich_api_key FROM users WHERE id = ?').get(userId) as any;
+  getImmichCredentials(userId: number): ImmichCreds | null {
+    const user = this.db
+      .prepare('SELECT immich_url, immich_api_key, immich_allow_insecure_tls FROM users WHERE id = ?')
+      .get(userId) as { immich_url: string | null; immich_api_key: string | null; immich_allow_insecure_tls: number | null } | undefined;
     if (!user?.immich_url || !user?.immich_api_key) return null;
     const apiKey = decrypt_api_key(user.immich_api_key);
     if (!apiKey) return null;
-    return { immich_url: user.immich_url as string, immich_api_key: apiKey };
+    return {
+      immich_url: user.immich_url,
+      immich_api_key: apiKey,
+      // Fail closed: anything but an explicit 1 keeps the certificate check on.
+      allow_insecure_tls: user.immich_allow_insecure_tls === 1,
+    };
   }
 
   /** Validate that an asset ID is a safe UUID-like string (no path traversal). */
@@ -62,11 +99,14 @@ export class ImmichService {
 
   getConnectionSettings(userId: number) {
     const creds = this.getImmichCredentials(userId);
-    const prefs = this.db.prepare('SELECT immich_auto_upload FROM users WHERE id = ?').get(userId) as { immich_auto_upload?: number } | undefined;
+    const prefs = this.db
+      .prepare('SELECT immich_auto_upload, immich_allow_insecure_tls FROM users WHERE id = ?')
+      .get(userId) as { immich_auto_upload?: number; immich_allow_insecure_tls?: number } | undefined;
     return {
       immich_url: creds?.immich_url || '',
       connected: !!(creds?.immich_url && creds?.immich_api_key),
       auto_upload: !!(prefs?.immich_auto_upload),
+      allow_insecure_tls: prefs?.immich_allow_insecure_tls === 1,
     };
   }
 
@@ -74,11 +114,18 @@ export class ImmichService {
     this.db.prepare('UPDATE users SET immich_auto_upload = ? WHERE id = ?').run(enabled ? 1 : 0, userId);
   }
 
+  /**
+   * `allowInsecureTls` left undefined keeps the stored choice while the URL
+   * stays the same, so a client that does not know the switch cannot clear it
+   * by saving. The switch trusts one server, so a new URL without it starts
+   * off, and disconnecting (no URL) always turns it off again.
+   */
   async saveImmichSettings(
     userId: number,
     immichUrl: string | undefined,
     immichApiKey: string | undefined,
-    clientIp: string | null
+    clientIp: string | null,
+    allowInsecureTls?: boolean,
   ): Promise<{ success: boolean; warning?: string; error?: string }> {
     if (immichUrl) {
       if (immichUrl.endsWith('/')) {
@@ -88,11 +135,17 @@ export class ImmichService {
       if (!ssrf.allowed) {
         return { success: false, error: `Invalid Immich URL: ${ssrf.error}` };
       }
-      this.db.prepare('UPDATE users SET immich_url = ?, immich_api_key = ? WHERE id = ?').run(
-        immichUrl.trim(),
-        maybe_encrypt_api_key(immichApiKey),
-        userId
-      );
+      const url = immichUrl.trim();
+      const insecure = allowInsecureTls === undefined ? null : Number(allowInsecureTls);
+      // SET expressions read the row as it was, so `immich_url IS ?` compares the
+      // stored URL with the new one.
+      this.db
+        .prepare(
+          `UPDATE users SET immich_url = ?, immich_api_key = ?,
+             immich_allow_insecure_tls = CASE WHEN immich_url IS ? THEN COALESCE(?, immich_allow_insecure_tls) ELSE COALESCE(?, 0) END
+           WHERE id = ?`,
+        )
+        .run(url, maybe_encrypt_api_key(immichApiKey), url, insecure, insecure, userId);
       if (ssrf.isPrivate) {
         this.audit.writeAudit({
           userId,
@@ -106,7 +159,7 @@ export class ImmichService {
         };
       }
     } else {
-      this.db.prepare('UPDATE users SET immich_url = ?, immich_api_key = ? WHERE id = ?').run(
+      this.db.prepare('UPDATE users SET immich_url = ?, immich_api_key = ?, immich_allow_insecure_tls = 0 WHERE id = ?').run(
         null,
         maybe_encrypt_api_key(immichApiKey),
         userId
@@ -119,7 +172,8 @@ export class ImmichService {
 
   async testConnection(
     immichUrl: string,
-    immichApiKey: string
+    immichApiKey: string,
+    allowInsecureTls = false,
   ): Promise<{ connected: boolean; error?: string; user?: { name?: string; email?: string }; canonicalUrl?: string }> {
     if (immichUrl.endsWith('/')) {
       immichUrl = immichUrl.slice(0, -1);
@@ -130,7 +184,7 @@ export class ImmichService {
       const resp = await safeFetch(`${immichUrl}/api/users/me`, {
         headers: { 'x-api-key': immichApiKey, 'Accept': 'application/json' },
         signal: AbortSignal.timeout(10000) as any,
-      });
+      }, tlsOptions(allowInsecureTls));
       if (!resp.ok) return { connected: false, error: `HTTP ${resp.status}` };
       const data = await resp.json() as { name?: string; email?: string };
 
@@ -151,7 +205,7 @@ export class ImmichService {
 
       return { connected: true, user: { name: data.name, email: data.email }, canonicalUrl };
     } catch (err: unknown) {
-      return { connected: false, error: err instanceof Error ? err.message : 'Connection failed' };
+      return { connected: false, error: describeFetchFailure(err) };
     }
   }
 
@@ -164,12 +218,12 @@ export class ImmichService {
       const resp = await safeFetch(`${creds.immich_url}/api/users/me`, {
         headers: { 'x-api-key': creds.immich_api_key, 'Accept': 'application/json' },
         signal: AbortSignal.timeout(10000) as any,
-      });
+      }, tlsOptions(creds.allow_insecure_tls));
       if (!resp.ok) return { connected: false, error: `HTTP ${resp.status}` };
       const data = await resp.json() as { name?: string; email?: string };
       return { connected: true, user: { name: data.name, email: data.email } };
     } catch (err: unknown) {
-      return { connected: false, error: err instanceof Error ? err.message : 'Connection failed' };
+      return { connected: false, error: describeFetchFailure(err) };
     }
   }
 
@@ -186,13 +240,71 @@ export class ImmichService {
         method: 'GET',
         headers: { 'x-api-key': creds.immich_api_key, 'Accept': 'application/json' },
         signal: AbortSignal.timeout(15000) as any,
-      });
+      }, tlsOptions(creds.allow_insecure_tls));
       if (!resp.ok) return { error: 'Failed to fetch from Immich', status: resp.status };
       const buckets = await resp.json();
       return { buckets };
     } catch {
       return { error: 'Could not reach Immich', status: 502 };
     }
+  }
+
+  /**
+   * One raw page of /api/search/metadata.
+   *
+   * Split out so the page-filling scan below can ask for the next one without
+   * restating the request body, which carries version-specific compatibility
+   * that has to stay identical on every page of the same search.
+   */
+  private async fetchSearchPage(
+    creds: ImmichCreds,
+    from: string | undefined,
+    to: string | undefined,
+    page: number,
+    size: number,
+  ): Promise<{ items?: any[]; status?: number }> {
+    const resp = await safeFetch(`${creds.immich_url}/api/search/metadata`, {
+      method: 'POST',
+      headers: { 'x-api-key': creds.immich_api_key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        // Padded by a day on each end and narrowed again by the caller. These
+        // two filter on fileCreatedAt, a UTC instant, while `from`/`to` name
+        // calendar days on somebody's wall clock — for a UTC+10 reader the
+        // unpadded window really ran from 10:00 local on the first day to
+        // 09:59 on the day after the last (#2336). The padding is what makes
+        // the assets that belong to those days available to the local-date
+        // filter; nothing wider than a day is needed, since no zone sits
+        // further than 14 hours from UTC.
+        takenAfter: from ? `${shiftCalendarDay(from, -1)}T00:00:00.000Z` : undefined,
+        takenBefore: to ? `${shiftCalendarDay(to, 1)}T23:59:59.999Z` : undefined,
+        // No type filter — surface videos alongside images (#823).
+        // Immich 1.133–1.144 defaulted metadata search to `timeline` visibility;
+        // v3 defaults to any visibility except `locked`, which is what started
+        // surfacing Live Photo motion parts as broken tiles (#1474). Ask for
+        // `timeline` explicitly so hidden assets never cross the wire and a full
+        // page stays a full page of renderable tiles.
+        //
+        // `visibility` only exists from 1.133.0. Older servers strip it — Immich
+        // validates with `whitelist: true` and no `forbidNonWhitelisted`, so an
+        // unknown property is dropped, never a 400 — and they never defaulted
+        // `isVisible` either, so they still return hidden assets. this.isVisibleAsset()
+        // below is the only guard on those versions. Do not remove it.
+        visibility: 'timeline',
+        withExif: true,
+        // Immich's own default order has moved between versions, and the picker
+        // pages lazily: an unordered page 2 lands in the wrong day heading.
+        // Same whitelist reasoning as `visibility` above — an older server that
+        // does not know the property drops it instead of failing the request,
+        // which is why the result is sorted again below.
+        order: 'desc',
+        size,
+        page,
+      }),
+      signal: AbortSignal.timeout(15000) as any,
+    }, tlsOptions(creds.allow_insecure_tls));
+    if (!resp.ok) return { status: resp.status };
+    const data = await resp.json() as { assets?: { items?: any[] } };
+    return { items: data.assets?.items || [] };
   }
 
   async searchPhotos(
@@ -205,54 +317,67 @@ export class ImmichService {
     const creds = this.getImmichCredentials(userId);
     if (!creds) return { error: 'Immich not configured', status: 400 };
 
+    // Once a day filter is in play the raw pages and the answered pages stop
+    // being the same pages: `order: 'desc'` hands back the padding day first and
+    // the filter drops all of it, so a raw page can arrive thinned or empty. An
+    // answered page is therefore filled from as many raw pages as it takes —
+    // otherwise a day with a busy neighbour costs the picker several round trips
+    // of nothing, and the MCP tool answers `{ assets: [], hasMore: true }` for a
+    // day that does have photos (#2336). The scan always restarts at raw page 1
+    // and skips the assets that filled the earlier answered pages, which is what
+    // keeps two calls from handing back the same asset twice. Without bounds
+    // nothing narrows a page, so raw page and answered page still line up and
+    // the single round trip stays a single round trip.
+    const narrowed = Boolean(from || to);
+    const skip = narrowed ? (page - 1) * size : 0;
+    const wanted = skip + size;
+    const maxRawPages = narrowed ? SEARCH_MAX_RAW_PAGES : 1;
+
+    const kept: any[] = [];
+    let rawPage = narrowed ? 1 : page;
+    let rawPagesRead = 0;
+    let windowDrained = false;
+
     try {
-      const resp = await safeFetch(`${creds.immich_url}/api/search/metadata`, {
-        method: 'POST',
-        headers: { 'x-api-key': creds.immich_api_key, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          takenAfter: from ? `${from}T00:00:00.000Z` : undefined,
-          takenBefore: to ? `${to}T23:59:59.999Z` : undefined,
-          // No type filter — surface videos alongside images (#823).
-          // Immich 1.133–1.144 defaulted metadata search to `timeline` visibility;
-          // v3 defaults to any visibility except `locked`, which is what started
-          // surfacing Live Photo motion parts as broken tiles (#1474). Ask for
-          // `timeline` explicitly so hidden assets never cross the wire and a full
-          // page stays a full page of renderable tiles.
-          //
-          // `visibility` only exists from 1.133.0. Older servers strip it — Immich
-          // validates with `whitelist: true` and no `forbidNonWhitelisted`, so an
-          // unknown property is dropped, never a 400 — and they never defaulted
-          // `isVisible` either, so they still return hidden assets. this.isVisibleAsset()
-          // below is the only guard on those versions. Do not remove it.
-          visibility: 'timeline',
-          withExif: true,
-          size,
-          page,
-        }),
-        signal: AbortSignal.timeout(15000) as any,
-      });
-      if (!resp.ok) return { error: 'Search failed', status: resp.status };
-      const data = await resp.json() as { assets?: { items?: any[] } };
-      const items = data.assets?.items || [];
-      // Belt-and-braces: `visibility: 'timeline'` above should mean Immich never
-      // sends a hidden asset, but an older server that ignores the filter would
-      // otherwise render broken tiles. hasMore stays on the raw page length so
-      // pagination still advances past a filtered page.
-      const assets = items
-        .filter((a: unknown) => this.isVisibleAsset(a))
-        .map((a: any) => ({
-          id: a.id,
-          takenAt: a.fileCreatedAt || a.createdAt,
-          city: a.exifInfo?.city || null,
-          country: a.exifInfo?.country || null,
-          lat: typeof a.exifInfo?.latitude === 'number' ? a.exifInfo.latitude : null,
-          lng: typeof a.exifInfo?.longitude === 'number' ? a.exifInfo.longitude : null,
-          mediaType: a.type === 'VIDEO' ? 'video' : 'image',
-        }));
-      return { assets, hasMore: items.length >= size };
+      while (kept.length < wanted && rawPagesRead < maxRawPages && !windowDrained) {
+        const raw = await this.fetchSearchPage(creds, from, to, rawPage, size);
+        if (!raw.items) return { error: 'Search failed', status: raw.status };
+        rawPage++;
+        rawPagesRead++;
+        // A short page is the end of the padded window; a full one may have more
+        // behind it, whatever the filter leaves of this one.
+        windowDrained = raw.items.length < size;
+        for (const a of raw.items) {
+          // Belt-and-braces: `visibility: 'timeline'` above should mean Immich
+          // never sends a hidden asset, but an older server that ignores the
+          // filter would otherwise render broken tiles.
+          if (!this.isVisibleAsset(a)) continue;
+          const asset = {
+            id: a.id,
+            takenAt: a.fileCreatedAt || a.createdAt,
+            // Immich's own timeline groups by this: the photographer's local time,
+            // stored without a zone. Absent on servers that predate it, and the
+            // readers fall back to takenAt, which is the behaviour they had.
+            localTakenAt: a.localDateTime || null,
+            city: a.exifInfo?.city || null,
+            country: a.exifInfo?.country || null,
+            lat: typeof a.exifInfo?.latitude === 'number' ? a.exifInfo.latitude : null,
+            lng: typeof a.exifInfo?.longitude === 'number' ? a.exifInfo.longitude : null,
+            mediaType: a.type === 'VIDEO' ? 'video' : 'image',
+          };
+          if (isWithinLocalDayRange(asset, from, to)) kept.push(asset);
+        }
+      }
     } catch {
       return { error: 'Could not reach Immich', status: 502 };
     }
+
+    // hasMore answers for the padded window rather than for whichever raw page
+    // was read last, so a page the filter emptied still pages forward. Running
+    // out of the page budget is the one case that stops: the next call would
+    // scan the same pages and hand back the same short page for ever.
+    const hasMore = windowDrained ? kept.length > wanted : kept.length >= wanted || !narrowed;
+    return { assets: sortAssetsByTakenAtDesc(kept.slice(skip, wanted)), hasMore };
   }
 
 
@@ -272,13 +397,14 @@ export class ImmichService {
       const resp = await safeFetch(`${creds.immich_url}/api/assets/${assetId}`, {
         headers: { 'x-api-key': creds.immich_api_key, 'Accept': 'application/json' },
         signal: AbortSignal.timeout(10000) as any,
-      });
+      }, tlsOptions(creds.allow_insecure_tls));
       if (!resp.ok) return { error: 'Failed', status: resp.status };
       const asset = await resp.json() as any;
       return {
         data: {
           id: asset.id,
           takenAt: asset.fileCreatedAt || asset.createdAt,
+          mediaType: asset.type === 'VIDEO' ? 'video' as const : 'image' as const,
           width: asset.exifInfo?.exifImageWidth || null,
           height: asset.exifInfo?.exifImageHeight || null,
           camera: asset.exifInfo?.make && asset.exifInfo?.model ? `${asset.exifInfo.make} ${asset.exifInfo.model}` : null,
@@ -315,7 +441,7 @@ export class ImmichService {
       const resp = await safeFetch(url, {
         headers: { 'x-api-key': creds.immich_api_key },
         signal: AbortSignal.timeout(10000) as any,
-      });
+      }, tlsOptions(creds.allow_insecure_tls));
       if (!resp.ok) return { error: 'Upstream error', status: resp.status };
       const contentType = resp.headers.get('content-type') || 'image/jpeg';
       const bytes = Buffer.from(await resp.arrayBuffer());
@@ -376,7 +502,7 @@ export class ImmichService {
       timeout = 30000;
     }
 
-    await pipeAsset(url, response, headers, timeout ? AbortSignal.timeout(timeout) : undefined, cacheControl);
+    await pipeAsset(url, response, headers, timeout ? AbortSignal.timeout(timeout) : undefined, cacheControl, tlsOptions(creds.allow_insecure_tls));
   }
 
   // ── Albums ──────────────────────────────────────────────────────────────────
@@ -393,11 +519,11 @@ export class ImmichService {
         safeFetch(`${creds.immich_url}/api/albums`, {
           headers: { 'x-api-key': creds.immich_api_key, 'Accept': 'application/json' },
           signal: AbortSignal.timeout(10000) as any,
-        }),
+        }, tlsOptions(creds.allow_insecure_tls)),
         safeFetch(`${creds.immich_url}/api/albums?shared=true`, {
           headers: { 'x-api-key': creds.immich_api_key, 'Accept': 'application/json' },
           signal: AbortSignal.timeout(10000) as any,
-        }),
+        }, tlsOptions(creds.allow_insecure_tls)),
       ]);
       if (!ownResp.ok) return { error: 'Failed to fetch albums', status: ownResp.status };
       const ownAlbums = await ownResp.json() as any[];
@@ -451,13 +577,13 @@ export class ImmichService {
    * the search path is correct. A version probe with a wrong boundary would not be.
    */
   private async fetchAlbumAssets(
-    creds: { immich_url: string; immich_api_key: string },
+    creds: ImmichCreds,
     albumId: string,
   ): Promise<{ assets?: any[]; status?: number }> {
     const resp = await safeFetch(`${creds.immich_url}/api/albums/${albumId}`, {
       headers: { 'x-api-key': creds.immich_api_key, 'Accept': 'application/json' },
       signal: AbortSignal.timeout(15000) as any,
-    });
+    }, tlsOptions(creds.allow_insecure_tls));
     if (!resp.ok) return { status: resp.status };
 
     const albumData = await resp.json() as { assets?: any[] };
@@ -474,7 +600,7 @@ export class ImmichService {
    * it Immich omits `exifInfo` entirely and every photo's city/country goes null.
    */
   private async fetchAlbumAssetsViaSearch(
-    creds: { immich_url: string; immich_api_key: string },
+    creds: ImmichCreds,
     albumId: string,
   ): Promise<{ assets?: any[]; status?: number }> {
     const all: any[] = [];
@@ -487,11 +613,12 @@ export class ImmichService {
           albumIds: [albumId],
           withExif: true,
           withDeleted: false,
+          order: 'desc',
           size: ALBUM_PAGE_SIZE,
           page,
         }),
         signal: AbortSignal.timeout(15000) as any,
-      });
+      }, tlsOptions(creds.allow_insecure_tls));
       if (!resp.ok) return { status: resp.status };
 
       const data = await resp.json() as { assets?: { items?: any[] } };
@@ -520,6 +647,9 @@ export class ImmichService {
         .map((a: any) => ({
           id: a.id,
           takenAt: a.fileCreatedAt || a.createdAt,
+          // Same local stamp the search path carries, so an album groups under
+          // the same day headings a search does.
+          localTakenAt: a.localDateTime || null,
           city: a.exifInfo?.city || null,
           country: a.exifInfo?.country || null,
           // The search path has always carried these; dropping them here meant a
@@ -529,7 +659,9 @@ export class ImmichService {
           lng: typeof a.exifInfo?.longitude === 'number' ? a.exifInfo.longitude : null,
           mediaType: a.type === 'VIDEO' ? 'video' : 'image',
         }));
-      return { assets };
+      // The v2 branch reads /api/albums/{id} and never passes a search at all, so
+      // this is the only ordering an album ever gets there.
+      return { assets: sortAssetsByTakenAtDesc(assets) };
     } catch {
       return { error: 'Could not reach Immich', status: 502 };
     }
@@ -621,7 +753,10 @@ export class ImmichService {
           'Content-Length': String(body.length),
         },
         body,
-      });
+        // The journey upload waits on this mirror, so a server that never
+        // answers must not hold the upload open with it.
+        signal: AbortSignal.timeout(UPLOAD_TIMEOUT_MS),
+      }, tlsOptions(creds.allow_insecure_tls));
 
       if (res.ok) {
         const data = await res.json() as { id?: string };

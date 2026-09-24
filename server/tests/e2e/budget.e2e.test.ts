@@ -43,6 +43,7 @@ let checkPermission: MockInstance;
 import { createTables } from '../../src/db/schema';
 import { runMigrations } from '../../src/db/migrations';
 import { BudgetModule } from '../../src/nest/budget/budget.module';
+import { ExchangeRatesService } from '../../src/nest/budget/exchange-rates.service';
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
 import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
 
@@ -52,7 +53,12 @@ describe('Budget e2e (real auth guard + temp SQLite, real budget SQL)', () => {
   let tripId: number;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, RealtimeModule, BudgetModule] }).compile();
+    const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, RealtimeModule, BudgetModule] })
+      // The settlement read awaits live FX rates; the trip here is all-EUR, so a
+      // null result is the identity — and the test never touches the network.
+      .overrideProvider(ExchangeRatesService)
+      .useValue({ getRates: async () => null })
+      .compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
     nest.useGlobalFilters(new TrekExceptionFilter());
@@ -146,22 +152,117 @@ describe('Budget e2e (real auth guard + temp SQLite, real budget SQL)', () => {
     expect(res.body.error.toLowerCase()).toContain('name');
   });
 
-  it('200 on settlement update with permission, persisting the new amount', async () => {
+  it('201 on a negative expense (partial reimbursement) and the settlement nets it out (#2176)', async () => {
+    // The dinner: user 1 fronts 90, split with user 2 → user 2 owes 45.
+    const dinner = await request(server)
+      .post(`/api/trips/${tripId}/budget`)
+      .set('Cookie', sessionCookie(1))
+      .send({ name: 'Dinner', payers: [{ user_id: 1, amount: 90 }], member_ids: [1, 2] });
+    expect(dinner.status).toBe(201);
+
+    // The refund: -30 lands with user 1, shared with user 2 → user 2's debt
+    // drops by 15. The write path used to null this to a payer-less 0 € row.
+    const refund = await request(server)
+      .post(`/api/trips/${tripId}/budget`)
+      .set('Cookie', sessionCookie(1))
+      .send({ name: 'Hotel partial refund', total_price: -30, payers: [{ user_id: 1, amount: -30 }], member_ids: [1, 2] });
+    expect(refund.status).toBe(201);
+    expect(refund.body.item).toMatchObject({ total_price: -30 });
+    expect(refund.body.item.payers).toEqual([expect.objectContaining({ user_id: 1, amount: -30 })]);
+    const row = db.prepare('SELECT total_price FROM budget_items WHERE id = ?').get(refund.body.item.id) as { total_price: number };
+    expect(row.total_price).toBe(-30);
+
+    const settlement = await request(server)
+      .get(`/api/trips/${tripId}/budget/settlement`)
+      .set('Cookie', sessionCookie(1));
+    expect(settlement.status).toBe(200);
+    const balances = settlement.body.balances as { user_id: number; balance: number }[];
+    const balance = (uid: number) => balances.find(b => b.user_id === uid)!.balance;
+    // 45 owed from the dinner minus the 15 refund share = 30, and Σ balances = 0.
+    expect(balance(2)).toBe(-30);
+    expect(balance(1)).toBe(30);
+    expect(balances.reduce((a, b) => a + Math.round(b.balance * 100), 0)).toBe(0);
+
+    // Clean up so the ledger tests below start from an empty trip.
+    for (const id of [dinner.body.item.id, refund.body.item.id]) {
+      const del = await request(server).delete(`/api/trips/${tripId}/budget/${id}`).set('Cookie', sessionCookie(1));
+      expect(del.status).toBe(200);
+    }
+  });
+
+  it('an expense with no payer creates no debt and no flow (#2225)', async () => {
+    // The shape from the report: one bill user 1 fronted for both, plus a row
+    // saved with "No one paid yet" that only user 2 is on. The taxi used to be
+    // debited with no credit behind it and its whole 60 offered to user 1.
+    const dinner = await request(server)
+      .post(`/api/trips/${tripId}/budget`)
+      .set('Cookie', sessionCookie(1))
+      .send({ name: 'Dinner', payers: [{ user_id: 1, amount: 100 }], member_ids: [1, 2] });
+    expect(dinner.status).toBe(201);
+
+    const unpaid = await request(server)
+      .post(`/api/trips/${tripId}/budget`)
+      .set('Cookie', sessionCookie(1))
+      .send({ name: 'Taxi', total_price: 60, payers: [], member_ids: [2] });
+    expect(unpaid.status).toBe(201);
+    expect(unpaid.body.item).toMatchObject({ total_price: 60, payers: [] });
+
+    const settlement = await request(server)
+      .get(`/api/trips/${tripId}/budget/settlement`)
+      .set('Cookie', sessionCookie(1));
+    expect(settlement.status).toBe(200);
+    const balances = settlement.body.balances as { user_id: number; balance: number }[];
+    const balance = (uid: number) => balances.find(b => b.user_id === uid)!.balance;
+    // Only the dinner settles: user 2 owes half of it and not a cent of the taxi.
+    expect(balance(1)).toBe(50);
+    expect(balance(2)).toBe(-50);
+    expect(balances.reduce((a, b) => a + Math.round(b.balance * 100), 0)).toBe(0);
+    expect(settlement.body.flows).toEqual([
+      expect.objectContaining({ amount: 50, from: expect.objectContaining({ user_id: 2 }), to: expect.objectContaining({ user_id: 1 }) }),
+    ]);
+
+    // Clean up so the ledger tests below start from an empty trip.
+    for (const id of [dinner.body.item.id, unpaid.body.item.id]) {
+      const del = await request(server).delete(`/api/trips/${tripId}/budget/${id}`).set('Cookie', sessionCookie(1));
+      expect(del.status).toBe(200);
+    }
+  });
+
+  it('200 on settlement update with permission, persisting the new amount and day', async () => {
     const created = await request(server)
       .post(`/api/trips/${tripId}/budget/settlements`)
       .set('Cookie', sessionCookie(1))
-      .send({ from_user_id: 2, to_user_id: 1, amount: 10 });
+      .send({ from_user_id: 2, to_user_id: 1, amount: 10, settled_at: '2026-01-05' });
+    expect(created.status).toBe(201);
+    expect(created.body.settlement.settled_at).toBe('2026-01-05');
+
+    const res = await request(server)
+      .put(`/api/trips/${tripId}/budget/settlements/${created.body.settlement.id}`)
+      .set('Cookie', sessionCookie(1))
+      .send({ from_user_id: 2, to_user_id: 1, amount: 15, settled_at: '2026-01-09' });
+    expect(res.status).toBe(200);
+    expect(res.body.settlement).toMatchObject({ id: created.body.settlement.id, from_user_id: 2, to_user_id: 1, amount: 15, settled_at: '2026-01-09' });
+
+    const row = db.prepare('SELECT amount, settled_at FROM budget_settlements WHERE id = ?').get(created.body.settlement.id);
+    expect(row).toEqual({ amount: 15, settled_at: '2026-01-09' });
+  });
+
+  it('200 on settlement update that clears the day, leaving NULL in the column', async () => {
+    const created = await request(server)
+      .post(`/api/trips/${tripId}/budget/settlements`)
+      .set('Cookie', sessionCookie(1))
+      .send({ from_user_id: 2, to_user_id: 1, amount: 10, settled_at: '2026-01-05' });
     expect(created.status).toBe(201);
 
     const res = await request(server)
       .put(`/api/trips/${tripId}/budget/settlements/${created.body.settlement.id}`)
       .set('Cookie', sessionCookie(1))
-      .send({ from_user_id: 2, to_user_id: 1, amount: 15 });
+      .send({ from_user_id: 2, to_user_id: 1, amount: 10, settled_at: null });
     expect(res.status).toBe(200);
-    expect(res.body.settlement).toMatchObject({ id: created.body.settlement.id, from_user_id: 2, to_user_id: 1, amount: 15 });
+    expect(res.body.settlement.settled_at).toBeNull();
 
-    const row = db.prepare('SELECT amount FROM budget_settlements WHERE id = ?').get(created.body.settlement.id);
-    expect(row).toEqual({ amount: 15 });
+    const row = db.prepare('SELECT settled_at FROM budget_settlements WHERE id = ?').get(created.body.settlement.id);
+    expect(row).toEqual({ settled_at: null });
   });
 
   it('404 on settlement update when it does not exist', async () => {

@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router'
-import { X, ImagePlus, Plus, Trash2, UserPlus, Archive, ArchiveRestore } from 'lucide-react'
+import { X, ImagePlus, Plus, Trash2, UserPlus, Archive, ArchiveRestore, Undo2 } from 'lucide-react'
 import { useJourneyStore } from '../../store/journeyStore'
 import { useTranslation } from '../../i18n'
 import { journeyApi } from '../../api/client'
@@ -11,13 +11,16 @@ import type { JourneyDetail } from '../../store/journeyStore'
 import { pickGradient } from '../../pages/journeyDetail/JourneyDetailPage.helpers'
 import { AddTripDialog } from './JourneyDetailPageAddTripDialog'
 import { normalizeImageFile } from '../../utils/convertHeic'
+import ToggleSwitch from '../Settings/ToggleSwitch'
 
-export function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite, onRefresh }: {
+export function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite, onRefresh, onRestoreSuggestions }: {
   journey: JourneyDetail
   onClose: () => void
   onSaved: () => void
   onOpenInvite: () => void
   onRefresh: () => void
+  /** Bring back every suggestion waved away card by card. Absent for a viewer. */
+  onRestoreSuggestions?: () => Promise<void> | void
 }) {
   const { t } = useTranslation()
   const [title, setTitle] = useState(journey.title)
@@ -74,6 +77,48 @@ export function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite,
       toast.error(t('journey.settings.saveFailed'))
     } finally {
       setArchiving(false)
+    }
+  }
+
+  // Saved on the spot rather than on Save, like the archive switch above it:
+  // it is a view setting, and the point of it is seeing the map change (#2194).
+  const [savingTracks, setSavingTracks] = useState(false)
+  const handleTracksToggle = async () => {
+    setSavingTracks(true)
+    try {
+      await updateJourney(journey.id, { show_trip_tracks: !journey.show_trip_tracks })
+      // onRefresh, not onSaved: onSaved closes the dialog, which would destroy the
+      // switch the moment it is flipped AND skip handleClose's unsaved-changes
+      // guard, silently dropping a title the owner had typed but not saved yet.
+      onRefresh()
+    } catch {
+      toast.error(t('journey.settings.saveFailed'))
+    } finally {
+      setSavingTracks(false)
+    }
+  }
+
+  /**
+   * Turn one of the optional entry fields off for this journey.
+   *
+   * Saved on the spot for the same reason the tracks switch is, and through
+   * `onRefresh` rather than `onSaved` so flipping a switch does not close the
+   * dialog out from under a half-typed title.
+   *
+   * Nothing is erased: an entry that already carries a mood keeps it in the
+   * database, the form simply stops asking. Switching back on brings it into
+   * view again.
+   */
+  const [savingField, setSavingField] = useState<string | null>(null)
+  const handleFieldToggle = async (field: 'show_verdict' | 'show_mood' | 'show_weather') => {
+    setSavingField(field)
+    try {
+      await updateJourney(journey.id, { [field]: journey[field] === 0 })
+      onRefresh()
+    } catch {
+      toast.error(t('journey.settings.saveFailed'))
+    } finally {
+      setSavingField(null)
     }
   }
 
@@ -140,6 +185,69 @@ export function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite,
               className="w-full px-3.5 py-2.5 border border-zinc-200 dark:border-zinc-700 rounded-xl text-[14px] bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white outline-none focus:border-zinc-400"
             />
           </div>
+
+          {/* Trip GPX tracks on the journey map (#2194) */}
+          <div>
+            <label className="text-[10px] font-semibold tracking-[0.12em] uppercase text-zinc-500 block mb-1.5">{t('journey.settings.tracks')}</label>
+            <div className={`w-full flex items-center gap-3 px-3.5 py-2.5 border border-edge rounded-xl bg-surface-card text-left${savingTracks ? ' opacity-60' : ''}`}>
+              <span className="flex-1 min-w-0">
+                <span className="block text-[14px] text-content-primary">{t('journey.settings.showTripTracks')}</span>
+                <span className="block text-[11px] text-content-faint">{t('journey.settings.showTripTracksHint')}</span>
+              </span>
+              <ToggleSwitch
+                on={!!journey.show_trip_tracks}
+                onToggle={() => { if (!savingTracks) handleTracksToggle() }}
+                label={t('journey.settings.showTripTracks')}
+              />
+            </div>
+          </div>
+
+          {/* The three fields a journey may put away (discussion #2299) */}
+          <div>
+            <label className="text-[10px] font-semibold tracking-[0.12em] uppercase text-zinc-500 block mb-1.5">{t('journey.settings.entryFields')}</label>
+            <p className="text-[11px] leading-snug text-zinc-500 mb-2">{t('journey.settings.entryFieldsHint')}</p>
+            <div className="flex flex-col gap-1.5">
+              {([
+                ['show_verdict', t('journey.settings.showVerdict')],
+                ['show_mood', t('journey.settings.showMood')],
+                ['show_weather', t('journey.settings.showWeather')],
+              ] as const).map(([field, label]) => {
+                const on = journey[field] !== 0
+                return (
+                  <div
+                    key={field}
+                    className={`w-full flex items-center gap-3 px-3.5 py-2.5 border border-edge rounded-xl bg-surface-card text-left${savingField !== null ? ' opacity-60' : ''}`}
+                  >
+                    <span className="flex-1 min-w-0 text-[14px] text-content-primary">{label}</span>
+                    <ToggleSwitch
+                      on={on}
+                      onToggle={() => { if (savingField === null) handleFieldToggle(field) }}
+                      label={label}
+                    />
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* The way back from dismissing suggestions one at a time. Only ever shown
+              when there is something to bring back, so it is not a permanent row
+              about a feature most journeys never touch. */}
+          {onRestoreSuggestions && (journey.dismissed_count ?? 0) > 0 && (
+            <button
+              type="button"
+              onClick={() => { void onRestoreSuggestions() }}
+              className="w-full flex items-center gap-3 px-3.5 py-2.5 border border-zinc-200 dark:border-zinc-700 rounded-xl bg-white dark:bg-zinc-800 text-left hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors"
+            >
+              <Undo2 size={15} className="text-zinc-400 flex-shrink-0" />
+              <span className="flex-1 min-w-0">
+                <span className="block text-[14px] text-zinc-900 dark:text-white">{t('journey.suggestions.restore')}</span>
+                <span className="block text-[11px] text-zinc-500">
+                  {t('journey.suggestions.restoreCount', { count: String(journey.dismissed_count) })}
+                </span>
+              </span>
+            </button>
+          )}
 
           </div>
 

@@ -87,6 +87,7 @@ const dashboard: TranslationStrings = {
   'dashboard.useUnsplashPhoto': 'استخدم صورة من Unsplash بواسطة {photographer}',
   'dashboard.titleRequired': 'العنوان مطلوب',
   'dashboard.endDateError': 'يجب أن يكون تاريخ النهاية بعد البداية',
+  'dashboard.tripTooLong': 'لا يمكن أن تتجاوز مدة الرحلة {days} يومًا',
   'dashboard.dateShiftTitle': 'تاريخ بداية جديد',
   'dashboard.dateShiftIntro': 'لقد غيّرت موعد بداية هذه الرحلة. كيف تريد أن تتبع خططك التواريخ الجديدة؟',
   'dashboard.dateShiftKeepBookings': 'إبقاء الحجوزات في تواريخها',
@@ -94,7 +95,24 @@ const dashboard: TranslationStrings = {
     'تنتقل خطط الأيام مع التواريخ الجديدة، بينما تبقى الحجوزات وأماكن الإقامة في تواريخها الأصلية ما دامت تلك التواريخ لا تزال ضمن الرحلة.',
   'dashboard.dateShiftAll': 'نقل كل شيء',
   'dashboard.dateShiftAllDesc': 'ينتقل خط سير الرحلة بالكامل مع التواريخ الجديدة، بما في ذلك الحجوزات وأماكن الإقامة.',
-  'dashboard.dateShiftHint': 'نصيحة: لنقل جزء من خط سير الرحلة فقط، استخدم "إضافة يوم" في مخطط الرحلة بدلاً من ذلك.',
+  'dashboard.dateShiftHint':
+    'نصيحة: لنقل جزء من خط سير الرحلة فقط، افتح "إعادة ترتيب الأيام" في مخطط الرحلة، وأضف اليوم التالي لنهاية الرحلة بالزر الذي يعرض تاريخه، ثم انقل هذا اليوم إلى المكان الذي يجب أن تكون فيه الفجوة.',
+  'dashboard.shrinkTitle': 'إزالة أيام؟',
+  'dashboard.shrinkIntro': 'عند حفظ التواريخ الجديدة تُزال هذه الأيام:',
+  'dashboard.shrinkMoreDays': '+{count} أخرى',
+  'dashboard.shrinkLastDays': 'تُزال الأيام الأخيرة، لا الأولى',
+  'dashboard.shrinkLastDaysHint':
+    'تنتقل خطط الأيام مع التواريخ الجديدة، لذا تُزال دائمًا الأيام الأخيرة من خطتك، حتى عندما تغيّر تاريخ البداية.',
+  'dashboard.shrinkBookingsHint': 'تبقى ضمن الحجوزات. والحجز الذي لا يزال تاريخه ضمن الرحلة يعود إلى ذلك اليوم.',
+  'dashboard.shrinkBookingsShiftHint': 'تبقى ضمن الحجوزات، دون يوم.',
+  'dashboard.shrinkStayHint': 'يقع تسجيل الوصول أو المغادرة في يوم تتم إزالته، لذا تُزال الإقامة بالكامل.',
+  'dashboard.shrinkStayBookedHint':
+    'يقع تسجيل الوصول أو المغادرة في يوم تتم إزالته، لذا تُزال الإقامة بالكامل. ويبقى حجزها "{booking}" ومصروفه ضمن الحجوزات.',
+  'dashboard.shrinkStayBookingHint':
+    'يقع تسجيل الوصول أو المغادرة في يوم تتم إزالته، لذا تُزال الإقامة بالكامل. ويبقى حجزها "{booking}" ضمن الحجوزات.',
+  'dashboard.shrinkConfirm': 'إزالة الأيام والحفظ',
+  'dashboard.shrinkUnknown':
+    'تعذّر التحقق من أيام هذه الرحلة. إذا كانت التواريخ الجديدة تضم أيامًا أقل، فإن الحفظ يزيل الأيام الأخيرة وكل ما خُطط فيها.',
   'dashboard.filter.planned': 'مخطط لها',
   'dashboard.hero.badgeLive': 'مباشر الآن',
   'dashboard.hero.badgeToday': 'تبدأ اليوم',

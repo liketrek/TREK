@@ -265,17 +265,19 @@ describe('MSettingsMcp', () => {
     expect(writeText).toHaveBeenNthCalledWith(2, 'sec-copy');
   });
 
-  it('FE-MOB-SETMCP-011: a failed registration surfaces an error toast and keeps the form open', async () => {
+  it('FE-MOB-SETMCP-011: a refused registration surfaces the reason the server gave and keeps the form open', async () => {
     const user = userEvent.setup();
-    server.use(http.post('/api/oauth/clients', () => HttpResponse.json({ error: 'boom' }, { status: 500 })));
+    server.use(http.post('/api/oauth/clients', () =>
+      HttpResponse.json({ error: 'Redirect URI must use HTTPS, loopback HTTP, or a private custom scheme: http://192.168.1.5/cb' }, { status: 400 })));
     renderScreen();
 
     await user.click(screen.getByRole('button', { name: 'New Client' }));
     await user.type(await screen.findByPlaceholderText(/Claude Web, My MCP App/), 'Broken');
-    fireEvent.change(screen.getByPlaceholderText(/your-app/), { target: { value: 'http://localhost' } });
+    fireEvent.change(screen.getByPlaceholderText(/your-app/), { target: { value: 'http://192.168.1.5/cb' } });
     await user.click(screen.getByRole('button', { name: 'Register Client' }));
 
-    await screen.findByText('Failed to register OAuth client');
+    await screen.findByText(/Redirect URI must use HTTPS/);
+    expect(screen.queryByText('Failed to register OAuth client')).toBeNull();
     expect(screen.getByText('Register OAuth Client')).toBeInTheDocument();
   });
 

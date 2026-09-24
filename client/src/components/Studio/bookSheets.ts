@@ -110,6 +110,7 @@ export function sheetsFor(doc: BookDocument, mode: SheetMode): Sheet[] {
   doc.spreads.forEach((spread, spreadIndex) => {
     const single = spread.role !== 'inner'
     const spreadWidth = single ? pageWidth : pageWidth * 2
+    const folios = foliosOf(doc.spreads, spreadIndex, pageNumbers.startAt)
 
     if (single || mode === 'spreads') {
       out.push({
@@ -120,7 +121,7 @@ export function sheetsFor(doc: BookDocument, mode: SheetMode): Sheet[] {
         height: pageHeight,
         spreadWidth,
         single,
-        label: single ? '' : folioRange(spreadIndex, pageNumbers.startAt),
+        label: folioLabel(folios),
       })
       return;
     }
@@ -134,7 +135,7 @@ export function sheetsFor(doc: BookDocument, mode: SheetMode): Sheet[] {
         height: pageHeight,
         spreadWidth,
         single: true,
-        label: String(folio(spreadIndex, pageNumbers.startAt) + half),
+        label: String(folios[half]),
       })
     }
   })
@@ -142,18 +143,40 @@ export function sheetsFor(doc: BookDocument, mode: SheetMode): Sheet[] {
   return out
 }
 
-/**
- * The number the left-hand page of a spread carries.
- *
- * Mirrors PageNumbers.tsx: the first inner spread opens at `startAt`, and the
- * cover is a separate sheet, which is why the index is offset rather than used
- * raw. It is only ever a label here — nothing is printed from it.
- */
-function folio(spreadIndex: number, startAt: number): number {
-  return startAt + (spreadIndex - 1) * 2
+/** Which of a book's leaves carry a page number: everything inside the covers. */
+export function isNumbered(role: BookSpread['role']): boolean {
+  return role !== 'cover' && role !== 'back'
 }
 
-function folioRange(spreadIndex: number, startAt: number): string {
-  const left = folio(spreadIndex, startAt)
-  return `${left} – ${left + 1}`
+/**
+ * The page numbers a spread carries, in reading order.
+ *
+ * Counted along the book rather than from the index: the covers carry none,
+ * a first or last page carries one, an inner spread two, and the first
+ * numbered page is `startAt`. A book from before the single first page
+ * existed has `startAt` 2 and no such page, so its first spread still reads
+ * 2 – 3; a book laid out since has a first page and starts at 1, so that page
+ * is 1 and the same spread behind it is 2 – 3 (#2317). Either way the number
+ * follows what is in the book, not where the spread sits in the array.
+ *
+ * The renderer and the print labels both come through here, so a number seen
+ * on screen is the one that is printed.
+ *
+ * Empty for a cover, and for an index past the end.
+ */
+export function foliosOf(spreads: readonly BookSpread[], spreadIndex: number, startAt: number): number[] {
+  const spread = spreads[spreadIndex]
+  if (!spread || !isNumbered(spread.role)) return []
+  let next = startAt
+  for (let i = 0; i < spreadIndex; i++) {
+    const role = spreads[i].role
+    if (!isNumbered(role)) continue
+    next += role === 'inner' ? 2 : 1
+  }
+  return spread.role === 'inner' ? [next, next + 1] : [next]
+}
+
+/** "3", or "2 – 3" for a spread; nothing for a cover. */
+export function folioLabel(folios: readonly number[]): string {
+  return folios.length === 2 ? `${folios[0]} – ${folios[1]}` : folios.length === 1 ? String(folios[0]) : ''
 }

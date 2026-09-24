@@ -10,6 +10,32 @@ export interface HookChannelMessage {
   tripName?: string;
 }
 
+/** One MCP tool call, as the plugin that published the tool receives it. */
+export interface HookMcpToolCall {
+  /** The plugin-local tool name, without the `plugin_<id>_` advertisement prefix. */
+  name: string;
+  /** Whatever the assistant passed. Validated against the declared schema first. */
+  args: unknown;
+}
+
+/**
+ * What a search provider is asked to look for.
+ *
+ * `near` is the same bias the core search uses, and it is what decides which of the
+ * four places called "Hase-dera" the answer is about. Optional, because a search from
+ * a trip with no places yet has nothing to bias toward.
+ */
+export interface HookSearchRequest {
+  query: string;
+  limit: number;
+  /** The caller's language tag, for providers that return localized names. */
+  lang?: string;
+  near?: { lat: number; lng: number };
+  /** Category search within a Roadtrip search rectangle. Older hosts omit these fields. */
+  category?: string;
+  bounds?: { south: number; west: number; north: number; east: number };
+}
+
 /** The waypoint request a route provider is asked to solve. */
 export interface HookRouteRequest {
   tripId: number;
@@ -21,7 +47,7 @@ export interface HookRouteRequest {
 /**
  * Every host-to-plugin hook call, in one place.
  *
- * The 15 hooks the consent screen offers used to be invoked straight from the
+ * The 16 hooks the consent screen offers used to be invoked straight from the
  * controllers, with the fn name and the timeout written out at each call site. That
  * made three things impossible to check: that a granted `hook:*` permission actually
  * has a consumer (a dead grant on the consent screen looks exactly like a live one),
@@ -71,6 +97,20 @@ export class PluginHooks {
   @PluginHook('placeDetailProvider', { permission: 'hook:place-detail-provider', fn: 'getDetails', timeoutMs: 5000 })
   placeDetails(pluginId: string, placeId: number, userId: number): Promise<unknown> {
     return this.runtime.invokeHook(pluginId, 'placeDetailProvider', 'getDetails', [placeId], userId, 5000);
+  }
+
+  /**
+   * The shortest leash of any hook here, because a person is waiting on a list.
+   *
+   * The core search and this one run side by side, so the wait is the slower of the
+   * two rather than their sum, and the client stops waiting at two and a half seconds
+   * whatever happens. Two seconds is therefore the whole of what a provider can
+   * usefully spend: past it the list is already drawn and its answer is discarded, so
+   * a longer budget would only hold an IPC call open for nothing.
+   */
+  @PluginHook('searchProvider', { permission: 'hook:search-provider', fn: 'search', timeoutMs: 2000 })
+  searchPlaces(pluginId: string, request: HookSearchRequest, userId: number): Promise<unknown> {
+    return this.runtime.invokeHook(pluginId, 'searchProvider', 'search', [request], userId, 2000);
   }
 
   @PluginHook('warningProvider', { permission: 'hook:trip-warning-provider', fn: 'getWarnings', timeoutMs: 5000 })
@@ -145,5 +185,25 @@ export class PluginHooks {
   @PluginHook('notificationChannel', { permission: 'hook:notification-channel', fn: 'test', timeoutMs: 8000 })
   testNotification(pluginId: string, userSettings: unknown): Promise<unknown> {
     return this.runtime.invokeHook(pluginId, 'notificationChannel', 'test', [userSettings], undefined, 8000);
+  }
+
+  /**
+   * One MCP tool call the assistant made, dispatched into the plugin that
+   * published the tool.
+   *
+   * The longest budget of any read hook. Every other one backs a render that a
+   * user is waiting on, and falls back to something reasonable when it times
+   * out; this one backs a chat turn, and the plugin is likely talking to a
+   * third-party API of its own. Still well under the supervisor's 30s default,
+   * which no hook uses: 30s of a blocked MCP request is not a budget, it is a
+   * hung client.
+   *
+   * One fn for every tool, because tool names are runtime data and
+   * hookContracts() is keyed by (hook, fn). The name is checked against the
+   * advertised set before we get here.
+   */
+  @PluginHook('mcpToolProvider', { permission: 'mcp:tools', fn: 'callTool', timeoutMs: 15_000 })
+  callMcpTool(pluginId: string, call: HookMcpToolCall, userId: number): Promise<unknown> {
+    return this.runtime.invokeHook(pluginId, 'mcpToolProvider', 'callTool', [call], userId, 15_000);
   }
 }

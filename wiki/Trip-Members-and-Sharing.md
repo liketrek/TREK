@@ -59,6 +59,7 @@ Once added, a guest can be picked anywhere a member can:
 - **Packing** — assigned to packing items and categories (see [Packing-Lists](Packing-Lists)).
 - **To-dos** — set as a task assignee.
 - **Day plan** — added as a participant on activities and places.
+- **Bookings**: set as a traveler on a reservation or a transport (see [Reservations-and-Bookings](Reservations-and-Bookings)).
 
 ### What a guest can never do
 
@@ -78,6 +79,8 @@ In the owner's Guests section, each guest row has a **Rename** (pencil) and a **
 > Remove this guest? Their assignments and cost shares will be removed too.
 
 There is no limit on the number of guests per trip.
+
+> **AI / MCP:** an assistant can do all three (`create_trip_guest`, `rename_trip_guest`, `delete_trip_guest`) and is held to the same owner-only rule. See [MCP-Tools-and-Resources](MCP-Tools-and-Resources).
 
 ## Public Share Link
 

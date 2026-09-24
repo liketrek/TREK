@@ -31,6 +31,12 @@ function getIframe(): HTMLIFrameElement | null {
   return document.querySelector('#pdf-preview-overlay iframe')
 }
 
+/** The cover's "Planned" figure. The stat is read off its label, since days and places print the same markup. */
+function plannedStat(html: string): number | null {
+  const match = /<div class="cover-stat-num">(\d+)<\/div>\s*<div class="cover-stat-lbl">pdf\.planned<\/div>/.exec(html)
+  return match ? Number(match[1]) : null
+}
+
 // ── Setup ─────────────────────────────────────────────────────────────────────
 
 beforeEach(() => {
@@ -251,6 +257,51 @@ describe('downloadTripPDF', () => {
     expect(iframe!.srcdoc).toContain('ABC123')
     // Single-leg flight keeps its full-route subtitle.
     expect(iframe!.srcdoc).toContain('Air Italia · AI123 · CDG → FCO')
+  })
+
+  it('FE-COMP-TRIPPDF-013f: the stop a booked night wrote is not listed, so a morning flight prints before the hotel (#2434)', async () => {
+    // The desktop toolbar hands the export the store's assignments, hidden stop and
+    // all, and that stop heads its check-in day. The day plan hides it and shows the
+    // booking as the accommodation block, and the print lists what the plan lists.
+    const hotelPlace = { id: 101, name: 'Hotel Hafen Hamburg', address: 'Seewartenstr. 9', place_time: null, price: '120' } as any
+    const hotelStop = { id: 201, day_id: 10, place_id: 101, order_index: 0, accommodation_id: 30, place: hotelPlace }
+    const flight = { ...transportReservation, title: 'Morning flight', reservation_time: '2025-06-01T08:00:00' }
+    await downloadTripPDF({
+      ...richArgs,
+      assignments: { '10': [hotelStop, { ...assignmentForDay, order_index: 1 }] } as any,
+      reservations: [flight],
+    })
+    const html = getIframe()!.srcdoc
+    expect(html).not.toContain('Seewartenstr. 9')
+    expect(html.indexOf('Morning flight')).toBeLessThan(html.indexOf('Colosseum'))
+    expect(html.indexOf('Morning flight')).toBeGreaterThan(-1)
+    // The cover and the day header read the same list: the hidden stop is not a planned
+    // stop and its hotel's price is not part of the day, whichever shell asked.
+    expect(plannedStat(html)).toBe(1)
+    const money = html.replace(/[\u00a0\u202f]/g, ' ')
+    expect(money).toContain('15,00 €')
+    expect(money).not.toContain('135,00 €')
+  })
+
+  it('FE-COMP-TRIPPDF-013g: a service stop the plan keeps to the road trip view is not printed either, and comes back with the switch', async () => {
+    // "Show in Days too" off keeps petrol stations and rest areas out of the day lists.
+    // The print follows the same switch, so the desktop, which hands over the store's
+    // assignments, and the phone print the same day.
+    const pump = { id: 102, name: 'Aral Autohof', address: 'Autobahnkreuz 1', stop_type: 'fuel', place_time: null } as any
+    const pumpStop = { id: 202, day_id: 10, place_id: 102, order_index: 1, place: pump }
+    const assignments = { '10': [assignmentForDay, pumpStop] } as any
+    await downloadTripPDF({ ...richArgs, assignments, showServiceStops: false })
+    const hidden = getIframe()!.srcdoc
+    expect(hidden).not.toContain('Aral Autohof')
+    expect(hidden).toContain('Colosseum')
+    expect(plannedStat(hidden)).toBe(1)
+
+    // On, and by default, the stop prints where the plan lists it.
+    getOverlay()?.remove()
+    await downloadTripPDF({ ...richArgs, assignments })
+    const shown = getIframe()!.srcdoc
+    expect(shown).toContain('Aral Autohof')
+    expect(plannedStat(shown)).toBe(2)
   })
 
   it('FE-COMP-TRIPPDF-013c: a flight that lands the same day shows both times (#1310)', async () => {
@@ -577,6 +628,73 @@ describe('downloadTripPDF remaining branches', () => {
   })
 
   const srcdoc = () => getIframe()!.srcdoc
+
+  // #2066 — the document is assembled outside React, so it read no setting at all
+  // and printed the stored column. Four surfaces carried a clock; all four were 24h
+  // whatever the reader had chosen.
+  describe('time format (#2066)', () => {
+    // The place chip reads the assignment's embedded place, not the places array,
+    // so both have to carry the clock under test.
+    const at = (placeTime: string, over: Record<string, unknown> = {}) => {
+      const place = { ...placeWithDetails, place_time: placeTime }
+      return {
+        ...richArgs,
+        places: [place],
+        assignments: { '10': [{ ...assignmentForDay, place }] },
+        reservations: [{
+          id: 700, title: 'Ferry', type: 'ferry', day_id: 10,
+          reservation_time: '2025-06-01T09:05', reservation_end_time: '2025-06-01T16:45',
+        }],
+        ...over,
+      }
+    }
+
+    it('FE-W5PDF-031: a 12h reader gets meridiem clocks on places and transports', async () => {
+      await downloadTripPDF(at('14:30', { timeFormat: '12h' }) as never)
+      const html = srcdoc()
+
+      expect(html).toContain('2:30 PM')
+      expect(html).toContain('9:05 AM')
+      expect(html).toContain('4:45 PM')
+      expect(html).not.toContain('14:30')
+      expect(html).not.toContain('16:45')
+    })
+
+    it('FE-W5PDF-032: a 24h reader gets the same times without a meridiem', async () => {
+      await downloadTripPDF(at('14:30', { timeFormat: '24h' }) as never)
+      const html = srcdoc()
+
+      expect(html).toContain('14:30')
+      expect(html).toContain('09:05')
+      expect(html).toContain('16:45')
+      expect(html).not.toContain('2:30 PM')
+    })
+
+    // check_in / check_out come off the accommodation row and were the one pair
+    // that printed the raw column in BOTH directions.
+    it('FE-W5PDF-033: accommodation check-in and check-out follow the setting too', async () => {
+      server.use(http.get('/api/trips/:id/accommodations', () => HttpResponse.json({
+        accommodations: [{
+          id: 1, place_id: 1, place_name: 'Hotel Roma', place_address: 'Via Roma 1',
+          start_day_id: 10, end_day_id: 10, check_in: '15:00', check_out: '11:00', notes: null,
+        }],
+      })))
+
+      await downloadTripPDF(at('14:30', { timeFormat: '12h' }) as never)
+
+      expect(srcdoc()).toContain('3:00 PM')
+    })
+
+    // A clock stored with a meridiem — the booking importer and a 12h user typing
+    // into the place form both produce one — must not print as 3 AM for a 24h reader.
+    it('FE-W5PDF-034: a stored meridiem is converted, not printed raw', async () => {
+      await downloadTripPDF(at('3:00 PM', { timeFormat: '24h' }) as never)
+
+      const html = srcdoc()
+      expect(html).toContain('15:00')
+      expect(html).not.toContain('3:00 PM')
+    })
+  })
 
   it('FE-W5PDF-001: a multi-day cruise is labelled start / ongoing / end with the right times', async () => {
     await downloadTripPDF(spanArgs([{

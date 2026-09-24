@@ -31,6 +31,7 @@
 - [[Trip Members and Sharing|Trip-Members-and-Sharing]]
 - [[Trip Planner Overview|Trip-Planner-Overview]]
 - [[Places and Search|Places-and-Search]]
+- [[TREK Places API|TREK-Places-API]]
 - [[Day Plans and Notes|Day-Plans-and-Notes]]
 - [[Map Features|Map-Features]]
 - [[Route Optimization|Route-Optimization]]
@@ -47,6 +48,7 @@
 - [[Packing Templates|Packing-Templates]]
 - [[Todos and Tasks|Todos-and-Tasks]]
 - [[Documents and Files|Documents-and-Files]]
+- [[Document Sync|Document-Sync]]
 - [[Tags and Categories|Tags-and-Categories]]
 - [[Calendar Feeds|Calendar-Feeds]]
 
@@ -69,6 +71,7 @@
 - [[Atlas]]
 - [[Journey Journal|Journey-Journal]]
 - [[Collections]]
+- [[Road Trip|Road-Trip]]
 - [[Dashboard Widgets|Dashboard-Widgets]]
 
 ## Plugins
@@ -77,6 +80,10 @@
 - [[Plugin Cookbook|Plugin-Cookbook]]
 - [[Plugin Permissions|Plugin-Permissions]]
 - [[Publishing a Plugin|Plugin-Publishing]]
+
+## Integrations
+- [[Public API|Public-API]]
+- [[Dawarich]]
 
 ## AI / MCP
 - [[MCP Overview|MCP-Overview]]

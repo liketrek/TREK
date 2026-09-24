@@ -1,19 +1,69 @@
 import dns from 'node:dns/promises';
 import { Agent } from 'undici';
 import { readEnv } from '../app-config';
-import { embeddedTransitionIpv4 } from './ipv6';
+import { embeddedTransitionIpv4, expandIpv6 } from './ipv6';
 
 // Frozen at import on purpose (legacy timing; tests reload the module to change it).
 const ALLOW_INTERNAL_NETWORK = readEnv().net.allowInternalNetwork;
+// Link-local addresses an admin listed in ALLOW_LINK_LOCAL_IPS, a rootless Podman
+// host gateway being the reason (#2400). The parser never lets a cloud metadata
+// address in, so the rest of 169.254.0.0/16 stays blocked. Frozen the same way.
+const ALLOWED_LINK_LOCAL = new Set(readEnv().net.allowLinkLocalIps);
 
 export interface SsrfResult {
   allowed: boolean;
+  /** The first of `resolvedIps`, kept for the callers that name one address. */
   resolvedIp?: string;
+  /** Every address the name resolves to, each one checked, IPv4 first. */
+  resolvedIps?: string[];
   isPrivate: boolean;
   error?: string;
 }
 
-// Always blocked — no override possible
+/**
+ * Every address a name resolves to, IPv4 ahead of IPv6.
+ *
+ * One address was never enough. `dns.lookup(name)` hands back whichever record
+ * the resolver lists first, on Node 22 in the resolver's own order, and a
+ * dual-stack name whose AAAA comes first then pinned the connection to an IPv6
+ * that many hosts cannot reach on port 443 while the A record would have
+ * answered at once. The whole list goes to the socket, where Node tries the
+ * addresses in turn (autoSelectFamily, the default since Node 20), so an
+ * unreachable family costs a quarter of a second instead of the caller's whole
+ * timeout. IPv4 leads because that is the family that is reachable from the
+ * containers and LXCs TREK usually runs in.
+ */
+async function resolveAll(hostname: string): Promise<{ address: string; family: number }[]> {
+  const result = await dns.lookup(hostname, { all: true });
+  // The promise API answers an array for `all: true`; a resolver stub in a test
+  // may still answer one record, which is the same thing said shorter.
+  const list = (Array.isArray(result) ? result : [result]).filter((entry) => typeof entry?.address === 'string');
+  if (list.length === 0) {
+    const error = new Error(`getaddrinfo ENOTFOUND ${hostname}`) as NodeJS.ErrnoException;
+    error.code = 'ENOTFOUND';
+    throw error;
+  }
+  const family = (entry: { address: string; family: number }) => entry.family || (entry.address.includes(':') ? 6 : 4);
+  return [...list.filter((entry) => family(entry) === 4), ...list.filter((entry) => family(entry) !== 4)]
+    .map((entry) => ({ address: entry.address, family: family(entry) }));
+}
+
+/**
+ * The IPv4 an IPv4-mapped address (`::ffff:a.b.c.d`) stands for, or null.
+ *
+ * Taken from the hextets rather than from the text, because `::ffff:127.0.0.1`
+ * and `::ffff:7f00:1` are one address in two spellings and `dns.lookup` picks
+ * which one comes back. The prefix regexes this replaces covered the dotted
+ * spelling of two ranges; every other mapped address walked past them.
+ */
+function mappedIpv4(hextets: number[]): string | null {
+  const g = hextets;
+  if (g[0] || g[1] || g[2] || g[3] || g[4] || g[5] !== 0xffff) return null;
+  return `${g[6] >> 8}.${g[6] & 0xff}.${g[7] >> 8}.${g[7] & 0xff}`;
+}
+
+// Blocked whatever ALLOW_INTERNAL_NETWORK says. The only way past is naming a single
+// link-local address in ALLOW_LINK_LOCAL_IPS; loopback and metadata have none.
 function isAlwaysBlocked(ip: string): boolean {
   // Strip IPv6 brackets
   const addr = ip.startsWith('[') ? ip.slice(1, -1) : ip;
@@ -22,10 +72,23 @@ function isAlwaysBlocked(ip: string): boolean {
   if (addr.startsWith('127.') || addr === '::1') return true;
   // Unspecified
   if (addr.startsWith('0.')) return true;
-  // Link-local / cloud metadata
-  if (addr.startsWith('169.254.') || /^fe80:/i.test(addr)) return true;
-  // IPv4-mapped loopback / link-local: ::ffff:127.x.x.x, ::ffff:169.254.x.x
-  if (/^::ffff:127\./i.test(addr) || /^::ffff:169\.254\./i.test(addr)) return true;
+  // Link-local / cloud metadata, apart from an address listed in ALLOW_LINK_LOCAL_IPS,
+  // which isPrivateNetwork then treats as the internal network it is.
+  if (addr.startsWith('169.254.') && !ALLOWED_LINK_LOCAL.has(addr)) return true;
+
+  const hextets = expandIpv6(addr);
+  if (hextets) {
+    // The IPv6 unspecified address. Connecting to it lands on loopback, so it
+    // reaches a local service without naming one, and it has enough spellings
+    // (`::`, `::0`, `0:0:0:0:0:0:0:0`) that only the expanded hextets settle it.
+    // The `0.` check above never saw any of them: they begin with a colon.
+    if (hextets.every(h => h === 0)) return true;
+    // fe80::/10 spans fe80: through febf:, not just the four characters 'fe80'.
+    if ((hextets[0] & 0xffc0) === 0xfe80) return true;
+    // A mapped address inherits the verdict of the IPv4 it carries.
+    const mapped = mappedIpv4(hextets);
+    if (mapped) return isAlwaysBlocked(mapped);
+  }
   // IPv6 transition addresses (NAT64/6to4/Teredo) embedding a hard-blocked IPv4.
   const embedded = embeddedTransitionIpv4(addr);
   if (embedded) return isAlwaysBlocked(embedded);
@@ -37,6 +100,9 @@ function isAlwaysBlocked(ip: string): boolean {
 function isPrivateNetwork(ip: string): boolean {
   const addr = ip.startsWith('[') ? ip.slice(1, -1) : ip;
 
+  // A listed link-local address is a host on this machine's own network, so it
+  // needs ALLOW_INTERNAL_NETWORK here like any other.
+  if (ALLOWED_LINK_LOCAL.has(addr)) return true;
   // RFC-1918 private ranges
   if (addr.startsWith('10.')) return true;
   if (/^172\.(1[6-9]|2\d|3[01])\./.test(addr)) return true;
@@ -45,10 +111,12 @@ function isPrivateNetwork(ip: string): boolean {
   if (/^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(addr)) return true;
   // IPv6 ULA (fc00::/7)
   if (/^f[cd]/i.test(addr)) return true;
-  // IPv4-mapped RFC-1918
-  if (/^::ffff:10\./i.test(addr)) return true;
-  if (/^::ffff:172\.(1[6-9]|2\d|3[01])\./i.test(addr)) return true;
-  if (/^::ffff:192\.168\./i.test(addr)) return true;
+  // A mapped address inherits the verdict of the IPv4 it carries. Deciding on the
+  // hextets rather than on three `::ffff:`-prefix regexes also covers the hex
+  // spelling and the CGNAT range those regexes never listed.
+  const hextets = expandIpv6(addr);
+  const mapped = hextets && mappedIpv4(hextets);
+  if (mapped) return isPrivateNetwork(mapped);
   // IPv6 transition addresses (NAT64/6to4/Teredo) embedding a private IPv4.
   const embedded = embeddedTransitionIpv4(addr);
   if (embedded) return isPrivateNetwork(embedded);
@@ -75,46 +143,54 @@ export async function checkSsrf(rawUrl: string, bypassInternalIpAllowed: boolean
 
   const hostname = url.hostname.toLowerCase();
 
-  // Resolve hostname to IP
-  let resolvedIp: string;
+  // Resolve the name to every address it has. Each one is judged on its own,
+  // and a single blocked address blocks the name: the socket may end up on any
+  // of them, so a list that mixes a public and a private address is a private
+  // target with a public alibi.
+  let resolvedIps: string[];
   try {
-    const result = await dns.lookup(hostname);
-    resolvedIp = result.address;
+    resolvedIps = (await resolveAll(hostname)).map((entry) => entry.address);
   } catch (error_) {
     const code = error_ instanceof Error && 'code' in error_ ? String(error_.code) : 'unknown';
     return { allowed: false, isPrivate: false, error: `Could not resolve hostname (${code})` };
   }
+  const resolvedIp = resolvedIps[0];
 
-  if (isAlwaysBlocked(resolvedIp)) {
+  const blocked = resolvedIps.find((ip) => isAlwaysBlocked(ip));
+  if (blocked) {
     return {
       allowed: false,
       isPrivate: true,
-      resolvedIp,
+      resolvedIp: blocked,
+      resolvedIps,
       error: 'Requests to loopback and link-local addresses are not allowed',
     };
   }
 
-  if (isPrivateNetwork(resolvedIp) || isInternalHostname(hostname)) {
+  const privateIp = resolvedIps.find((ip) => isPrivateNetwork(ip));
+  if (privateIp || isInternalHostname(hostname)) {
     if (!ALLOW_INTERNAL_NETWORK || bypassInternalIpAllowed) {
       return {
         allowed: false,
         isPrivate: true,
-        resolvedIp,
+        resolvedIp: privateIp ?? resolvedIp,
+        resolvedIps,
         error:
           'Requests to private/internal network addresses are not allowed. Set ALLOW_INTERNAL_NETWORK=true to permit this for self-hosted setups.',
       };
     }
-    return { allowed: true, isPrivate: true, resolvedIp };
+    return { allowed: true, isPrivate: true, resolvedIp: privateIp ?? resolvedIp, resolvedIps };
   }
 
-  return { allowed: true, isPrivate: false, resolvedIp };
+  return { allowed: true, isPrivate: false, resolvedIp, resolvedIps };
 }
 
 /** Link-local / cloud-metadata addresses — never a legitimate model host. */
 function isLinkLocal(ip: string): boolean {
   const addr = (ip.startsWith('[') ? ip.slice(1, -1) : ip).toLowerCase();
   // IPv4 link-local — AWS, GCP, Azure and OpenStack all serve credentials from 169.254.169.254.
-  if (addr.startsWith('169.254.')) return true;
+  // An address listed in ALLOW_LINK_LOCAL_IPS is the exception; those never include it.
+  if (addr.startsWith('169.254.')) return !ALLOWED_LINK_LOCAL.has(addr);
   // IPv4-mapped (::ffff:169.254.x) and IPv4-compatible (::a9fe:xxxx = ::169.254.x) spellings.
   if (/^::ffff:169\.254\./.test(addr) || /^::(ffff:)?a9fe:/.test(addr)) return true;
   // IPv6 link-local fe80::/10 — the whole range (fe80: … febf:), not just the fe80: prefix.
@@ -150,9 +226,19 @@ function isLinkLocal(ip: string): boolean {
  * safeFetchFollow) means each hop is re-resolved, re-checked against isLinkLocal,
  * and re-pinned. An http→https upgrade or a proxy redirect between LAN hosts still
  * works because the check re-runs per hop rather than locking to the first IP.
+ *
+ * `responseTimeoutMs` raises undici's own five-minute ceiling for callers that
+ * legitimately wait longer (see safeFetchLlm). Left unset it keeps undici's
+ * default, which is what every other admin-configured endpoint wants.
  */
-export async function safeFetchAdminConfigured(url: string, init?: RequestInit, maxRedirects = 5): Promise<Response> {
+export async function safeFetchAdminConfigured(
+  url: string,
+  init?: RequestInit,
+  maxRedirects = 5,
+  responseTimeoutMs?: number,
+): Promise<Response> {
   let currentUrl = url;
+  let hopInit = init;
 
   for (let hop = 0; ; hop++) {
     let parsed: URL;
@@ -164,19 +250,19 @@ export async function safeFetchAdminConfigured(url: string, init?: RequestInit, 
     if (!['http:', 'https:'].includes(parsed.protocol)) {
       throw new SsrfBlockedError('Only HTTP and HTTPS URLs are allowed');
     }
-    let resolvedIp: string;
+    let resolvedIps: string[];
     try {
-      resolvedIp = (await dns.lookup(parsed.hostname)).address;
+      resolvedIps = (await resolveAll(parsed.hostname)).map((entry) => entry.address);
     } catch (error_) {
       const code = error_ instanceof Error && 'code' in error_ ? String(error_.code) : 'unknown';
       throw new SsrfBlockedError(`Could not resolve hostname (${code})`);
     }
-    if (isLinkLocal(resolvedIp)) {
+    if (resolvedIps.some((ip) => isLinkLocal(ip))) {
       throw new SsrfBlockedError('Requests to link-local / cloud-metadata addresses are not allowed');
     }
 
-    const dispatcher = createPinnedDispatcher(resolvedIp, true);
-    const response = await fetch(currentUrl, { ...init, redirect: 'manual', dispatcher } as any);
+    const dispatcher = createPinnedDispatcher(resolvedIps, true, responseTimeoutMs);
+    const response = await fetch(currentUrl, { ...hopInit, redirect: 'manual', dispatcher } as any);
 
     // Only a 3xx WITH a Location header is a redirect we follow; anything else
     // (2xx/4xx/5xx, or a 3xx with no Location) is the final response.
@@ -197,17 +283,25 @@ export async function safeFetchAdminConfigured(url: string, init?: RequestInit, 
     // Drain the redirect body so the connection can be reused/closed, then loop
     // to re-resolve + re-check + re-pin the next hop.
     void response.body?.cancel().catch(() => {});
+    hopInit = nextHopInit(hopInit, currentUrl, nextUrl, status);
     currentUrl = nextUrl;
   }
 }
 
 /**
- * The original name. Kept so no LLM call site has to change, and because the
- * shape of the problem is identical: an endpoint an admin configured, which may
+ * The original name, now the model lane specifically: the same guard as
+ * safeFetchAdminConfigured — an endpoint an admin configured, which may
  * legitimately live on loopback or the LAN, and must still never reach
- * link-local or a cloud metadata service.
+ * link-local or a cloud metadata service — with LLM_TIMEOUT_MS as the response
+ * ceiling instead of undici's five minutes, so one setting governs the whole
+ * call rather than being overruled by a default nobody chose.
+ *
+ * The ceiling is read once per call rather than per hop, so a redirect chain is
+ * measured against one value even if the variable changes mid-chain.
  */
-export const safeFetchLlm = safeFetchAdminConfigured;
+export function safeFetchLlm(url: string, init?: RequestInit, maxRedirects = 5): Promise<Response> {
+  return safeFetchAdminConfigured(url, init, maxRedirects, readEnv().integrations.llmTimeoutMs);
+}
 
 /**
  * Thrown by safeFetch() when the URL is blocked by the SSRF guard.
@@ -231,19 +325,93 @@ export interface SafeFetchOptions {
  * Pass `{ rejectUnauthorized: false }` for targets that use self-signed TLS
  * certificates (e.g. a Synology NAS on a local network). The SSRF guard still
  * applies — only the TLS certificate check is relaxed.
+ *
+ * Redirects are followed through safeFetchFollow, so every hop is re-checked and
+ * re-pinned. It used to hand the platform a `redirect: 'follow'` with a
+ * dispatcher pinned to the FIRST hop only — the same shape as
+ * GHSA-8mw6-xphx-886m, and pinning does not help there because Node skips the
+ * pinned lookup for an IP-literal host. Sixteen callers ride on this, several
+ * with a URL out of a per-user setting (Immich, Synology, AirTrail), and one
+ * (pipeAsset) streams the response back to the caller, which would have made a
+ * redirect to an internal service readable rather than blind.
  */
 export async function safeFetch(url: string, init?: RequestInit, options?: SafeFetchOptions): Promise<Response> {
-  const ssrf = await checkSsrf(url);
-  if (!ssrf.allowed) {
-    throw new SsrfBlockedError(ssrf.error ?? 'Request blocked by SSRF guard');
+  return safeFetchFollow(url, init, options);
+}
+
+/**
+ * Headers that must not survive a hop to another origin. Following a redirect
+ * by hand means the platform's own protection does not apply: undici drops
+ * `Authorization` across origins itself (Fetch, "HTTP-redirect fetch" step 13),
+ * so a manual follower that replays the caller's headers verbatim is strictly
+ * weaker than the fetch it replaced. The list is credentials-only on purpose —
+ * `User-Agent` has to survive, or the goo.gl chain in maps.service resolves to
+ * a different page than the one its coordinates are parsed out of.
+ */
+const CREDENTIAL_HEADERS = [
+  'authorization', 'proxy-authorization', 'cookie', 'cookie2',
+  'x-api-key', 'api-key', 'x-auth-token',
+];
+
+/** Headers that describe the body, and go when the body does. */
+const BODY_HEADERS = ['content-type', 'content-length', 'content-encoding', 'content-language', 'content-location'];
+
+/**
+ * Cross-origin per Fetch, with one carve-out: the same hostname moving from
+ * http to https is an upgrade, not a host change. A self-hosted IdP or ntfy
+ * behind a redirecting proxy does exactly that, and a strict origin compare
+ * would strip the credential those setups depend on.
+ */
+function isCrossOriginHop(from: string, to: string): boolean {
+  let a: URL, b: URL;
+  try { a = new URL(from); b = new URL(to); } catch { return true; }
+  if (a.origin === b.origin) return false;
+  return !(a.hostname === b.hostname && a.protocol === 'http:' && b.protocol === 'https:');
+}
+
+function stripHeaders(init: RequestInit | undefined, names: string[]): RequestInit | undefined {
+  if (!init?.headers) return init;
+  const headers = new Headers(init.headers as ConstructorParameters<typeof Headers>[0]);
+  for (const name of names) headers.delete(name);
+  return { ...init, headers };
+}
+
+/**
+ * The init for the next hop of a manual redirect follow. Both followers below
+ * go through this: following by hand opts out of the platform's own rules, so
+ * they have to be restated once rather than forgotten twice.
+ */
+function nextHopInit(
+  init: RequestInit | undefined,
+  currentUrl: string,
+  nextUrl: string,
+  status: number,
+  keepCredentials = false,
+): RequestInit | undefined {
+  let next = init;
+  if (!keepCredentials && isCrossOriginHop(currentUrl, nextUrl)) {
+    next = stripHeaders(next, CREDENTIAL_HEADERS);
   }
-  const dispatcher = createPinnedDispatcher(ssrf.resolvedIp!, options?.rejectUnauthorized ?? true);
-  return fetch(url, { ...init, dispatcher } as any);
+  // RFC 9110 15.4.4 for 303, and 15.4.2/15.4.3 plus what every client actually
+  // does for 301/302 on a POST: the next hop is a GET with no body. Replaying
+  // the body would re-POST it — a plugin's client_secret included — at a host
+  // the first one merely pointed at.
+  const method = (next?.method ?? 'GET').toUpperCase();
+  if (status === 303 || ((status === 301 || status === 302) && method !== 'GET' && method !== 'HEAD')) {
+    next = { ...stripHeaders(next, BODY_HEADERS), method: 'GET', body: undefined };
+  }
+  return next;
 }
 
 export interface SafeFetchFollowOptions extends SafeFetchOptions {
   /** Maximum number of redirects to follow before giving up. Defaults to 5. */
   maxRedirects?: number;
+  /**
+   * Keep credential headers across an origin change. Off by default, and no
+   * caller needs it today — it exists so a future one that genuinely does has
+   * to say so here rather than route around the guard.
+   */
+  keepCredentialsOnRedirect?: boolean;
   /**
    * When true, private/internal IPs that ALLOW_INTERNAL_NETWORK would normally
    * permit are still blocked (matches `checkSsrf(url, true)`). Loopback and
@@ -279,6 +447,7 @@ export async function safeFetchFollow(
   const bypassInternalIpAllowed = options?.bypassInternalIpAllowed ?? false;
 
   let currentUrl = url;
+  let hopInit = init;
 
   for (let hop = 0; ; hop++) {
     const ssrf = await checkSsrf(currentUrl, bypassInternalIpAllowed);
@@ -286,9 +455,9 @@ export async function safeFetchFollow(
       throw new SsrfBlockedError(ssrf.error ?? 'Request blocked by SSRF guard');
     }
 
-    const dispatcher = createPinnedDispatcher(ssrf.resolvedIp!, rejectUnauthorized);
+    const dispatcher = createPinnedDispatcher(ssrf.resolvedIps ?? [ssrf.resolvedIp!], rejectUnauthorized);
     const response = await fetch(currentUrl, {
-      ...init,
+      ...hopInit,
       redirect: 'manual',
       dispatcher,
     } as any);
@@ -316,26 +485,45 @@ export async function safeFetchFollow(
       throw new SsrfBlockedError('Invalid redirect location');
     }
     void response.body?.cancel().catch(() => {});
+    hopInit = nextHopInit(hopInit, currentUrl, nextUrl, status, options?.keepCredentialsOnRedirect);
     currentUrl = nextUrl;
   }
 }
 
 /**
  * Returns an undici Agent whose connect.lookup is pinned to the already-validated
- * IP. This prevents DNS rebinding (TOCTOU) by ensuring the outbound connection
- * goes to the IP we checked, not a re-resolved one.
+ * addresses. This prevents DNS rebinding (TOCTOU) by ensuring the outbound
+ * connection goes to an address we checked, not a re-resolved one.
+ *
+ * Given the whole checked list, in the order `resolveAll` put it, the socket
+ * gets every address at once: Node asks for `all: true` and walks the list
+ * itself, moving on after its attempt timeout when one family does not answer.
+ * A caller that still names one address gets exactly the old behaviour.
  */
-export function createPinnedDispatcher(resolvedIp: string, rejectUnauthorized = true): Agent {
+export function createPinnedDispatcher(
+  resolved: string | readonly string[],
+  rejectUnauthorized = true,
+  responseTimeoutMs?: number,
+): Agent {
+  const addresses = (typeof resolved === 'string' ? [resolved] : [...resolved]).map((address) => ({
+    address,
+    family: address.includes(':') ? 6 : 4,
+  }));
   return new Agent({
+    // undici caps the wait for response headers at 5 minutes by default, and
+    // that cap is invisible from the call site: an AbortController set to
+    // fifteen still dies at five.
+    ...(responseTimeoutMs
+      ? { headersTimeout: responseTimeoutMs, bodyTimeout: responseTimeoutMs }
+      : {}),
     connect: {
       rejectUnauthorized,
       lookup: (_hostname: string, opts: Record<string, unknown>, callback: Function) => {
-        const family = resolvedIp.includes(':') ? 6 : 4;
-        // Node.js 18+ may call lookup with `all: true`, expecting an array of address objects
+        // Node asks with `all: true` when it may choose between families itself.
         if (opts?.all) {
-          callback(null, [{ address: resolvedIp, family }]);
+          callback(null, addresses);
         } else {
-          callback(null, resolvedIp, family);
+          callback(null, addresses[0].address, addresses[0].family);
         }
       },
     },

@@ -72,10 +72,12 @@ export interface MockHostOptions {
    * refuses it (and the SDK client swallows the rejection, so subscribers silently
    * never see it). Unset = record every emit, as before. */
   declaredEmits?: string[];
-  /** Action keys this plugin declares in its manifest `actions`. When set, driving an
+  /** Action keys this plugin declares in its manifest `actions`, as plain keys or
+   * `{ key, scope }` entries (the scope is accepted for fixture fidelity; the mock runs
+   * both scopes with the acting-user ctx, as the host does). When set, driving an
    * undeclared key throws — production refuses it before the child is ever woken.
    * Unset = any key the plugin implements can be driven. */
-  declaredActions?: string[];
+  declaredActions?: Array<string | { key: string; scope?: 'user' | 'instance' }>;
   /** Hosts an ADMIN supplies at runtime to an `operatorEgress: true` plugin, which by
    * definition cannot name them in its manifest. Only `trek-plugin dev` reads this (to
    * widen its egress guard); the mock ctx makes no network calls of its own. It lives
@@ -373,6 +375,10 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
   const bucketItems: unknown[] = [...(opts.atlasBucketList ?? [])];
   const journals: unknown[] = [...(opts.journals ?? [])];
   const journalEntries: unknown[] = [...(opts.journalEntries ?? [])];
+  // Photos a plugin attached in this session; the mock keeps them so a test can
+  // assert on what it wrote without a real gallery behind it.
+  const journalPhotos: unknown[] = [];
+  let journalPhotoSeq = 1;
   const savedPlaces: unknown[] = [];
   const vacayEntries = new Set<string>();
   const vacayHolidays = new Set<string>();
@@ -1010,6 +1016,24 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
           journalEntries.push(entry);
           return entry;
         },
+        async addEntryPhoto(entryId, input) {
+          need('db:write:journal', 'journal.addEntryPhoto');
+          requireActingUser();
+          requireAddon(opts.journeyAddonEnabled, 'journey');
+          const entry = rows(journalEntries).find((x) => x.id === entryId);
+          if (!entry) throw new Error(`RESOURCE_FORBIDDEN: no editable journal entry ${entryId} for this user`);
+          if (typeof input?.name !== 'string' || input.name.trim() === '') throw new Error('invalid photo input: name is required');
+          if (typeof input?.content_base64 !== 'string' || input.content_base64 === '') throw new Error('invalid photo input: content_base64 is required');
+          // Same refusals the host applies, so a plugin fails here rather than in production.
+          const ext = (input.name.slice(input.name.lastIndexOf('.')) || '').toLowerCase();
+          if (!['.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif', '.heic', '.heif'].includes(ext)) {
+            throw new Error(`photo extension '${ext || '(none)'}' is not an allowed image type`);
+          }
+          if (input.content_base64.length > 14 * 1024 * 1024) throw new Error('photo exceeds the 10MB plugin upload cap');
+          const photo = { id: journalPhotoSeq++, photo_id: journalPhotoSeq, entry_id: entryId, caption: input.caption };
+          journalPhotos.push(photo);
+          return photo;
+        },
         async createJourney(input) {
           need('db:write:journal', 'journal.createJourney');
           requireActingUser();
@@ -1558,7 +1582,8 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
       return impl[fn](...args, name === 'notificationChannel' ? userlessCtx : ctx) as never;
     },
     action: async (key) => {
-      if (opts.declaredActions && !opts.declaredActions.includes(key)) {
+      const declared = opts.declaredActions?.map((a) => (typeof a === 'string' ? a : a.key));
+      if (declared && !declared.includes(key)) {
         throw new Error(`RESOURCE_FORBIDDEN: plugin did not declare action "${key}"`);
       }
       const fn = def.actions?.[key];

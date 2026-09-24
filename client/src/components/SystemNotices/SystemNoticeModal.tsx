@@ -670,7 +670,7 @@ function MobileNoticeSheet(S: NoticeState) {
   const nextNotice = notices[idx + 1] ?? null;
 
   return (
-    <div className="fixed inset-0 z-50" role="presentation">
+    <div className="fixed inset-0 z-[var(--z-notice)]" role="presentation">
       {/* Screen-reader page announcements */}
       <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">{pageAnnouncement}</span>
       {/* Backdrop */}
@@ -842,7 +842,7 @@ function DesktopNoticeModal(S: NoticeState) {
 
   return (
     <div
-      className={`fixed inset-0 z-50 bg-slate-950/40 backdrop-blur-[2px] transition-opacity ${dur} ${ease} ${visible ? 'opacity-100' : 'opacity-0'}`}
+      className={`fixed inset-0 z-[var(--z-notice)] bg-slate-950/40 backdrop-blur-[2px] transition-opacity ${dur} ${ease} ${visible ? 'opacity-100' : 'opacity-0'}`}
       role="presentation"
     >
       {/* Screen-reader page announcements */}

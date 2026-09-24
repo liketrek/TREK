@@ -54,40 +54,37 @@ const system_notice: TranslationStrings = {
   'system_notice.v3014_whitespace_collision.title': 'Szükséges beavatkozás: felhasználói fiókütközés',
   'system_notice.v3014_whitespace_collision.body':
     'A 3.0.14-es frissítés egy vagy több felhasználónév- vagy e-mail-ütközést észlelt, amelyeket a tárolt értékek elején vagy végén lévő szóközök okoztak. Az érintett fiókok automatikusan át lettek nevezve. Ellenőrizze a szervernaplókat a **[migration] WHITESPACE COLLISION** kezdetű soroknál a felülvizsgálatot igénylő fiókok azonosításához.',
-  'system_notice.release_400.eyebrow': 'Frissítés telepítve',
-  'system_notice.release_400.tag': 'Kiadás',
-  'system_notice.release_400.headline': 'A TREK eddigi legnagyobb kiadása.',
-  'system_notice.release_400.intro':
-    'A TREK kap egy telefont és egy könyvet. Ezt tizenkilencen írták — és nagyjából százötven bejelentett hiba ment vele.',
-  'system_notice.release_400.feature_mobile_title': 'A TREK mobilon',
-  'system_notice.release_400.feature_mobile_body':
-    'Minden 768px alatt már saját felület — üveg dokk, saját panelek, saját utazástervező. Nyisd meg a TREK-et a telefonodon.',
-  'system_notice.release_400.feature_studio_title': 'TREK Studio',
-  'system_notice.release_400.feature_studio_badge': 'Beta',
-  'system_notice.release_400.feature_studio_body':
-    'A Journey PDF fotókönyv-tervezővé vált. Megszerkeszti a könyvet, ha kéred, aztán félreáll.',
-  'system_notice.release_400.feature_vacay_title': 'A Vacay megtanulja a többit',
-  'system_notice.release_400.feature_vacay_body':
-    'Fél napok, csúsztatott és rugalmas napok, iskolai szünetek a naptárban — és szabadságév, aminek nem kell januárban kezdődnie.',
-  'system_notice.release_400.feature_places_title': 'Helyek megmutatkoznak, fájlok költöznek',
-  'system_notice.release_400.feature_places_body':
-    'Képek és leírás maguktól kitöltődnek, mielőtt mentenél egy helyet. A feltöltéseidnek pedig már nem kell azon a lemezen lakniuk, amin a TREK fut.',
-  'system_notice.release_400.footnote':
-    'És ez négy közülük. A 4.0.0 több száz további változást hoz, a Collections-től és az Atlastól az egész alatta futó szerverig.',
-  'system_notice.release_400.note_eyebrow': 'Egy szó a fejlesztőtől',
-  'system_notice.release_400.note_title': 'Köszönöm, hogy a TREK-et használod.',
-  'system_notice.release_400.note_body':
-    'A TREK egy kis eszközként indult a saját utazásaimhoz, a szabadidőmben írva. Ma is az: esték, hétvégék, a teljes állás melletti órák.\n\nEgy ideig csak én voltam. Már nem — ezt a kiadást tizenkilencen szállították, és több ezren érkeztetek csillagokkal, issue-kkal, fordításokkal és pull requestekkel. Mindegyikért hálás vagyok.',
-  'system_notice.release_400.promise_label': 'Az ígéret',
-  'system_notice.release_400.promise_text':
-    'A TREK nyílt forráskódú oldala ingyenes marad, örökre. Nincsenek fizetős csomagok, nincsenek előfizetések, nincs átverés. Ígérem.',
-  'system_notice.release_400.note_body_after':
-    'A 4.0.0 heteknyi késő éjszakába került — egy telefonos felület, egy könyvtervező, egy szerverköltözés, java része éjfél és kettő között írva. Nem panasz: szeretem építeni. Csak az őszinte válasz arra, hogyan születik ekkora kiadás egy szabadidős projektből.',
-  'system_notice.release_400.note_closing': 'Köszönöm, hogy itt vagy.',
-  'system_notice.release_400.note_signature': '— Maurice',
-  'system_notice.release_400.support_text':
-    'A támogatás tartja életben — szerverek, domainek, és a késő éjszakák, amikből ilyen kiadások lesznek. Ha a TREK ér neked valamit, egy kávé a legközvetlenebb módja, hogy tovább menjen.',
-  'system_notice.release_400.cta_bmc': 'Buy me a coffee',
-  'system_notice.release_400.cta_kofi': 'Támogass a Ko-fi-n',
+  'system_notice.release_notes.eyebrow': 'Frissítés telepítve',
+  'system_notice.release_notes.headline': 'Négy dolog, amit a TREK mostantól magától csinál.',
+  'system_notice.release_notes.intro': 'Saját hely-API, teljesen megtervezett autós túrák, a helyelőzményeid a te kezedben, és a dokumentumaid szinkronban.',
+  'system_notice.release_notes.features_label': 'A fő újdonságok',
+  'system_notice.release_notes.features_aside': 'És ez még nem minden',
+  'system_notice.release_notes.feature_places_title': 'TREK Places API',
+  'system_notice.release_notes.feature_places_body': 'Az első nyílt forráskódú útitervező saját hely-API-val. 73,6 millió hely, kulcs és kvóta nélkül.',
+  'system_notice.release_notes.feature_roadtrip_title': 'Autós út bővítmény',
+  'system_notice.release_notes.feature_roadtrip_body': 'Maga tervezi meg az utat: útvonal, távolság, órák és megállók. Kikapcsolva, amíg egy admin be nem kapcsolja.',
+  'system_notice.release_notes.feature_dawarich_title': 'Dawarich-integráció',
+  'system_notice.release_notes.feature_dawarich_body': 'A Google Timeline self-hosted megfelelője, mostantól a TREK-ben is olvasható. A TREK olvas, és csak olvas.',
+  'system_notice.release_notes.footnote': 'Plusz rengeteg kisebb változás a TREK többi részében.',
+  'system_notice.release_notes.notes_label': 'Kiadási jegyzetek',
+  'system_notice.release_notes.note_eyebrow': 'Egy szó a fejlesztőtől',
+  'system_notice.release_notes.note_title': 'Miattad építem tovább a TREK-et.',
+  'system_notice.release_notes.note_body':
+    'A TREK egy kis eszközként indult a saját utazásaimhoz, munka után írtam, mert jobban szerettem volna megtervezni őket. Azóta igazából folyamatosan nő. Szinte mindent, amit használsz, késő éjjel, hétvégén, vonaton, egy teljes állás mellett építettem, és sok olyan este volt, amikor csendben azon tűnődtem, megnyitja-e egyáltalán valaki valaha.',
+  'system_notice.release_notes.promise_label': 'Az ígéret',
+  'system_notice.release_notes.promise_lead': 'A TREK ingyenes marad, örökre.',
+  'system_notice.release_notes.promise_text':
+    'Minden funkció, minden frissítés, mindenkinek. Nincsenek fizetős csomagok, nincsenek előfizetések, nincs átverés.',
+  'system_notice.release_notes.note_body_after':
+    'Aztán megnyitottátok. Néhány hónap alatt több ezren lettetek: csillagok, hibajelentések, fordítások olyan nyelvekre, amelyeket nem beszélek, pull requestek olyanoktól, akikkel sosem találkoztam. Még mindig a repóval kezdem minden reggelt, és még mindig nem egészen tűnik valóságosnak.',
+  'system_notice.release_notes.note_closing': 'Köszönöm, hogy itt vagy. Maurice',
+  'system_notice.release_notes.support_lead':
+    'A TREK ingyenes, és mindig az is marad, de a szerverek, a domainek és a sok késő éjszaka nem azok.',
+  'system_notice.release_notes.support_text':
+    'Ha kiérdemelt egy helyet az utazásaid között, hívj meg egy kávéra, és segíts, hogy jöhessen a következő kiadás.',
+  'system_notice.release_notes.cta_bmc': 'Buy me a coffee',
+  'system_notice.release_notes.cta_kofi': 'Támogass a Ko-fi-n',
+  'system_notice.release_notes.feature_docsync_title': 'Dokumentumszinkron',
+  'system_notice.release_notes.feature_docsync_body': 'Paperless-ngx, Papra, Nextcloud, OpenCloud és Synology Drive. Egy út dokumentumai mindkét irányban áramlanak az általad már használt tárolóval.',
 };
 export default system_notice;

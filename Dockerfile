@@ -20,13 +20,15 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 COPY shared/package.json ./shared/
 COPY client/package.json ./client/
+COPY client/scripts/patch-maplibre.mjs ./client/scripts/
 RUN npm ci --workspace=client
 COPY --from=shared-builder /app/shared/dist ./shared/dist
 COPY client/ ./client/
 RUN npm run build --workspace=client
 
 # ── Stage 3: server ──────────────────────────────────────────────────────────
-# --ignore-scripts skips native builds (better-sqlite3); they happen in the production stage.
+# --ignore-scripts: nothing here needs a postinstall, tsc only reads types. The one
+# native module, better-sqlite3, ships its binaries inside the npm tarball since 13.x.
 FROM node:24-alpine AS server-builder
 WORKDIR /app
 COPY package.json package-lock.json ./
@@ -51,17 +53,27 @@ COPY server/package.json ./server/
 # changeset, so it costs nothing. Everything copied after this point carries
 # --chown=node:node for the same reason — a recursive chown in a later layer
 # would copy up every inode it touches and duplicate the whole tree in the image.
+#
+# No compiler in this stage. better-sqlite3 13.x carries prebuilt binaries for
+# amd64 and arm64 inside its tarball, so there is nothing left to build: the old
+# python3 + build-essential fallback compiled it against whatever Node headers
+# the base image had that day, and 24.19+ headers give an addon that aborts with
+# "Assertion failed: (env) != nullptr" the first time a statement is collected
+# (#2421). --ignore-scripts because a lockfile-driven npm ci still synthesises
+# `node-gyp rebuild` for the binding.gyp it finds, blind to the package's
+# gypfile:false (npm/cli#9837). The only other install scripts among the runtime
+# deps are esbuild's binary check, redundant next to its optional platform
+# package, and a telemetry ping.
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends tzdata dumb-init wget ca-certificates python3 build-essential \
-    libkitinerary-bin && \
-    npm ci --workspace=server --omit=dev && \
+    apt-get install -y --no-install-recommends tzdata dumb-init wget ca-certificates \
+    libkitinerary-bin libsqlite3-0 && \
+    npm ci --workspace=server --omit=dev --ignore-scripts && \
     ln -sf "$(find /usr/lib -name kitinerary-extractor -type f | head -1)" /usr/local/bin/kitinerary-extractor; \
-    apt-get purge -y python3 build-essential && \
-    apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/* /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx && \
     chown -R node:node /app
 
-# gosu rebuilt with a current Go toolchain (stage 0) — used by CMD to drop to node.
+# gosu rebuilt with a current Go toolchain (stage 0) — the entrypoint script uses
+# it to drop to node.
 COPY --from=gosu-build /out/gosu /usr/local/bin/gosu
 
 ENV XDG_CACHE_HOME=/tmp/kf6-cache
@@ -116,9 +128,14 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
   CMD wget -qO- http://localhost:3000/api/health || exit 1
 
+# Start-up lives in a script, not an inline `sh -c` string: container management
+# UIs re-tokenise Config.Cmd when you edit a container in place, and a command
+# carrying quotes does not survive that round-trip (the container then dies with
+# a shell syntax error before Node starts). A CMD of one bare token does.
+COPY server/scripts/entrypoint.sh /usr/local/bin/trek-entrypoint
+# Root-owned on purpose — this is what calls gosu, so it runs before the drop to
+# node. chmod is explicit because a checkout on Windows carries no exec bit.
+RUN chmod 0755 /usr/local/bin/trek-entrypoint
+
 ENTRYPOINT ["dumb-init", "--"]
-# Preflight: if the app code is missing, a volume was almost certainly mounted
-# over /app (it hides the image's node_modules + dist). Fail with actionable
-# guidance instead of a cryptic "Cannot find module 'tsconfig-paths/register'".
-# cd into server/ so tsconfig-paths/register finds tsconfig.json and ../node_modules resolves correctly.
-CMD ["sh", "-c", "if [ ! -f /app/server/dist/index.js ] || [ ! -d /app/node_modules/tsconfig-paths ]; then echo 'FATAL: TREK application files are missing from the image.'; echo 'A volume is likely mounted over /app, which hides the app code.'; echo 'Mount ONLY your data and uploads dirs: -v ./data:/app/data -v ./uploads:/app/uploads'; echo 'Do NOT mount a volume at /app. See the Troubleshooting section of the README.'; exit 1; fi; chown -R node:node /app/data /app/uploads 2>/dev/null || true; cd /app/server && exec gosu node node --require tsconfig-paths/register dist/index.js"]
+CMD ["/usr/local/bin/trek-entrypoint"]

@@ -91,7 +91,7 @@ export class BudgetController {
   ) {
     const settlement = await this.budget.createSettlement(
       tripId,
-      { from_user_id: body.from_user_id, to_user_id: body.to_user_id, amount: body.amount, currency: body.currency },
+      { from_user_id: body.from_user_id, to_user_id: body.to_user_id, amount: body.amount, currency: body.currency, settled_at: body.settled_at },
       user.id,
     );
     // A party who is not on this trip gets the same answer as a settlement that
@@ -117,6 +117,7 @@ export class BudgetController {
       to_user_id: body.to_user_id,
       amount: body.amount,
       currency: body.currency,
+      settled_at: body.settled_at,
     });
     if (!settlement) {
       throw new HttpException({ error: 'Settlement not found' }, 404);

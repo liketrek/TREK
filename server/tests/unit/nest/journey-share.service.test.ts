@@ -39,10 +39,15 @@ import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { TrekPhotosRepository } from '../../../src/nest/photos/trek-photos.repository';
 import { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
 import { JourneyShareService } from '../../../src/nest/journey/journey-share.service';
+import { SettingsService } from '../../../src/nest/settings/settings.service';
 import { db as dbConn } from '../../../src/db/database';
 
 const dbs = new DatabaseService(dbConn);
-const svc = new JourneyShareService(dbs, new JourneyDomainService(dbs, new RealtimeService(), new TrekPhotosRepository(dbs)));
+const svc = new JourneyShareService(
+  dbs,
+  new JourneyDomainService(dbs, new RealtimeService(), new TrekPhotosRepository(dbs)),
+  new SettingsService(dbs),
+);
 
 beforeAll(() => {
   createTables(testDb);
@@ -442,6 +447,10 @@ describe('getPublicJourney', () => {
     expect(result).not.toBeNull();
     expect(result!.journey.title).toBe('Japan 2026');
     expect(result!.journey.subtitle).toBe('Cherry blossom season');
+    // The "this journey does not use that field" switches travel with the share:
+    // the phone card reads them, and reading an absent one made every field look
+    // switched on, so a reader saw chips the owner had turned off.
+    expect(result!.journey).toMatchObject({ show_verdict: 1, show_mood: 1, show_weather: 1 });
     expect(result!.entries).toHaveLength(2);
     expect(result!.stats.entries).toBe(2);
     expect(result!.stats.photos).toBe(1);
@@ -449,6 +458,20 @@ describe('getPublicJourney', () => {
     expect(result!.permissions.share_timeline).toBe(true);
     expect(result!.permissions.share_gallery).toBe(true);
     expect(result!.permissions.share_map).toBe(false);
+  });
+
+  it('JOURNEY-SHARE-017b: a field the owner switched off is switched off for the reader too', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    testDb.prepare('UPDATE journeys SET show_mood = 0, show_weather = 0 WHERE id = ?').run(journey.id);
+    createJourneyEntry(testDb, journey.id, user.id, { type: 'entry', title: 'Tag 1', entry_date: '2026-03-20' });
+    const { token } = svc.createOrUpdateJourneyShareLink(journey.id, user.id, {
+      share_timeline: true, share_gallery: false, share_map: true,
+    });
+
+    const result = svc.getPublicJourney(token)!;
+
+    expect(result.journey).toMatchObject({ show_mood: 0, show_weather: 0, show_verdict: 1 });
   });
 
   it('JOURNEY-SHARE-018: excludes skeleton entries from public view', () => {
@@ -628,5 +651,41 @@ describe('getPublicJourney', () => {
     expect(result.gallery).toEqual([]); // gallery array withheld
     expect(result.entries).toHaveLength(1);
     expect((result.entries[0] as Record<string, unknown>).photos).toEqual([]); // inline photos withheld too
+  });
+
+  // #2200: the reader of a shared journey gets the same chronology as the owner,
+  // so the public gallery cannot fall back to upload order.
+  it('JOURNEY-SHARE-031: the public gallery reads in capture order, not upload order', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const day1 = createJourneyEntry(testDb, journey.id, user.id, {
+      type: 'entry', title: 'Day 1', entry_date: '2026-05-01',
+    });
+    const day2 = createJourneyEntry(testDb, journey.id, user.id, {
+      type: 'entry', title: 'Day 2', entry_date: '2026-05-02',
+    });
+
+    const late = insertJourneyPhoto(day2.id, { filePath: '/photos/day2.jpg' });
+    insertJourneyPhoto(day1.id, { filePath: '/photos/day1.jpg' });
+    testDb.prepare('UPDATE trek_photos SET taken_at = ? WHERE id = ?').run('2026-05-02T16:00:00.000Z', late);
+
+    const { token } = svc.createOrUpdateJourneyShareLink(journey.id, user.id, {
+      share_timeline: true, share_gallery: true, share_map: true,
+    });
+
+    const gallery = svc.getPublicJourney(token)!.gallery as Record<string, unknown>[];
+    expect(gallery.map(p => p.file_path)).toEqual(['/photos/day1.jpg', '/photos/day2.jpg']);
+  });
+
+  it('JOURNEY-SHARE-030: cartoApiKey resolves owner setting → admin instance default → empty (#2054)', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const { token } = svc.createOrUpdateJourneyShareLink(journey.id, user.id, { share_map: true });
+
+    expect(svc.getPublicJourney(token)!.cartoApiKey).toBe('');
+    testDb.prepare("INSERT INTO app_settings (key, value) VALUES ('default_user_setting_carto_api_key', 'instance-key')").run();
+    expect(svc.getPublicJourney(token)!.cartoApiKey).toBe('instance-key');
+    testDb.prepare("INSERT INTO settings (user_id, key, value) VALUES (?, 'carto_api_key', ' owner-key ')").run(user.id);
+    expect(svc.getPublicJourney(token)!.cartoApiKey).toBe('owner-key');
   });
 });

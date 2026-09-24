@@ -16,7 +16,9 @@ When the admin has enabled the Journey addon, a **Journey** entry appears in the
 
 ## Creating a journey
 
-From the Journey list, click **Create journey**. Give it a title and optional subtitle, then select one or more existing trips to link. Linking a trip imports the trip's places as location anchors for your entries. You can link additional trips later from the journal settings.
+From the Journey list, click **Create journey**. Give it a title and optional subtitle, then select one or more existing trips to link. Linking a trip imports the trip's places as location anchors for your entries — one anchor per day the place stands on, so a place you kept across two days gives you an entry on each of them. You can link additional trips later from the journal settings.
+
+A place brought in from a linked trip sits in the timeline as a **suggestion** until you write into it. One you will not use can be dismissed on its own, with **Dismiss this suggestion** on its card (on a phone, in its sheet). A dismissed suggestion leaves the journey without being deleted, and the trip sync does not offer the same place again. **Journey Settings** shows how many you dismissed and **Bring back dismissed suggestions** returns them all.
 
 ## Journal entries
 
@@ -34,16 +36,26 @@ Each entry corresponds to a day in your journey. The entry editor provides:
   | `rough` | Rough | Violet |
 
 - **Weather** — choose one of six values: Sunny, Partly cloudy, Cloudy, Rainy, Stormy, Snowy. (Snowy is stored under the id `cold`.)
-- **Photos** — attach photos to the entry. The first photo becomes the card thumbnail in list views.
+- **Photos and videos** — attach photos to the entry. The first photo becomes the card thumbnail in list views. A video clip goes on an entry the same way: `mp4`, `m4v`, `webm` or `mov`, up to 500 MB per file. The clip is stored as uploaded, without transcoding, and the editor shows its first frame as a preview before you save. The journey gallery takes the same clips.
   > **Note on HEIC files:** HEIC is an Apple-only format that many browsers and platforms do not recognise as an image. To ensure broad compatibility, HEIC/HEIF files are automatically converted to JPEG before upload. This conversion may result in the loss of embedded metadata (EXIF data such as GPS coordinates, camera information, etc.).
 - **Pros / Cons** — optional verdict cards. Add items to a **Pros** list (thumbs-up) or a **Cons** list (thumbs-down) to summarise what you loved or what could have been better. These are stored in the `pros_cons.pros` and `pros_cons.cons` arrays on the entry.
 - **Tags** — free-form labels (e.g. "hidden gem", "best meal").
 - **Location** — pin the entry to a map location.
 - **Time** — optionally record a time of day for the entry.
 
+### Entry fields
+
+Mood, Weather and Pros / Cons can be switched off for a journey that does not use them. Open **Journey Settings** and use the switches under **Entry fields**: **Mood**, **Weather** and **Pros & cons**. Nothing already written is lost: the form stops asking, the stored values stay, and switching a field back on brings them into view. A shared journey hides the fields its owner switched off as well.
+
 ### Getting around a long journal
 
 Everything that adds to a journal sits at the top of the page — the **Add Entry** button, the gallery upload — while what you were last reading sits at the bottom. On desktop, two small round buttons float centred over the timeline, just above its bottom edge, once there is more than 400 px of scroll to travel: one jumps back to the top, the other to the last entry. Each appears only when there is somewhere to go in that direction.
+
+A journey that is still under way opens on today rather than at its first entry, as long as today falls inside it; a day with nothing written lands you on the last entry before it. A journey that has ended opens at the beginning.
+
+On desktop, the **Search this journey** box in the toolbar filters the timeline as you type, across the titles, stories, places and tags of the entries. Matching ignores case and accents, so `cafe` finds `Café`.
+
+Each day header carries a **+** button, **Add an entry on this day**, which opens the editor with that date already set, so an entry for an earlier day no longer starts on today.
 
 ### External photos
 
@@ -53,7 +65,11 @@ External selections are queued with the other editor changes and saved only when
 
 ## Mobile timeline
 
-On mobile, entries are displayed in a horizontal scrolling timeline of card thumbnails. Tap a card to open the full entry view in a modal sheet. Each card shows the entry's first photo (or a placeholder pin), date, day number, mood icon, and weather icon.
+On a phone, entries sit in a horizontal carousel over the map, one photo card per entry. The entry's first photo is the card (a pin placeholder when it has none), with the title and place on it, the country flag and the date in the corners, and the mood and weather icons next to the date. A suggestion from a linked trip shows a plus mark and its title in italics. The day an entry belongs to is carried by the colour of the card's edge, the same colour its map marker uses; there is no day number on the card. Tap the centred card to open the entry in a sheet.
+
+Above the cards, once the journey spans more than one day, a day bar shows one segment per day in the day's colour: it tells you how long the journey is and how far in you are, and tapping a segment, or pressing the date above it and sliding sideways, jumps to that day.
+
+The **+** in the bottom bar starts a quick capture for a moment on the move: a title, a picture (**Photo** takes one with the camera, **Gallery** picks from your phone) and a short note. Your current position is filled in as the entry's location, the place name is looked up from it, and the current weather is set when it can be. **+ Details** opens the full form. From the header of an entry's sheet, the two arrows move the entry earlier or later within its day; suggestions do not take part.
 
 ## Map view
 
@@ -72,6 +88,7 @@ A journey can also be laid out as a printable photo book. Open a journey and cli
 ![The TREK Studio editor with the pages rail on the left, a spread on the workbench and the properties inspector on the right](assets/TREK-Studio-Editor.png)
 
 - **Page format** — Square 21 × 21 cm (the default), Square 30 × 30 cm, A4 landscape, A4 portrait, A5 landscape, or a custom width × height in millimetres. Everything is drawn as a spread (two pages side by side) with 3 mm bleed and a 5 mm safe margin.
+- **The shape of the book** follows a bound one: a cover, a single first page on the right (page 1, where a title page or a dedication goes), the spreads, a single last page on the left, and a back cover. The first and last pages take the cover layouts and, like the covers, stay where they are; new spreads always go between them. Page numbers, when switched on, count from the first page, and the number on screen is the number that prints. Books made before this had no single pages and keep their numbering as it was.
 - **Auto layout** has two entries. **This spread** builds the spread on screen again from the journal entry it came from, and is only offered on a spread that came from one. **The whole book** replaces every page, keeping your title and page setup. Both are ordinary undo steps, so you can press one, look at it, and undo.
 - **Pages, Content, Elements, Travel and Layouts** are the sections of the left rail. Content holds the journey's own photos and entries; Layouts has thirteen spread layouts (Hero and story, Four up, Strip and text, Mosaic and so on) plus a separate set of five for the cover and back; Elements has text styles, shapes, lines, grids, empty frames with their frame styles, and a searchable icon library; Travel builds figures out of the journey itself — route maps, country outlines and lists, flags, date, day and distance marks, and a trip summary.
 - **Properties** on the right edits whatever is selected: position and size, crop and focal point, fill or fit, a look filter, corner radius, frame style, stacking order, lock. An element that auto layout tied to a journal entry follows that entry until you edit it here, which breaks the link.

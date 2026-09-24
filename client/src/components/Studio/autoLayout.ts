@@ -1,6 +1,11 @@
 import type {
   BookDocument, BookElement, BookMetric, BookPageSetup, BookSpread, JourneyStats,
 } from '@trek/shared'
+import {
+  MAX_BOOK_COUNTRIES, MAX_BOOK_TITLE, MAX_COUNTRY_NAME, MAX_MAP_POINTS,
+  MAX_MAP_POINT_LABEL, MAX_PATH_POINTS, MAX_PATH_SEGMENTS, MAX_SPREADS,
+  MAX_SPREAD_ELEMENTS, MAX_TEXT_LENGTH,
+} from '@trek/shared'
 import { SPREAD_TEMPLATES } from './bookTemplates.data'
 import { applyTemplate, templateFit } from './applyTemplate'
 import { formatBookCoords, formatBookDate } from './entryText'
@@ -119,7 +124,7 @@ function text(
     rotation: 0,
     opacity: 1,
     locked: false,
-    text: value,
+    text: value.slice(0, MAX_TEXT_LENGTH),
     font: 'sans',
     size: 11,
     weight: 400,
@@ -260,9 +265,12 @@ function mapEl(
     routeArc: 'bow',
     routeDash: 'arcs',
     pinStyle: 'photo',
-    countries: stats.countries.map(c => c.code),
-    points: stats.points.map(pt => ({
-      lat: pt.lat, lng: pt.lng, label: pt.label, photoId: pt.photoId ?? null,
+    countries: stats.countries.slice(0, MAX_BOOK_COUNTRIES).map(c => c.code),
+    points: stats.points.slice(0, MAX_MAP_POINTS).map(pt => ({
+      lat: pt.lat,
+      lng: pt.lng,
+      label: pt.label.slice(0, MAX_MAP_POINT_LABEL),
+      photoId: pt.photoId ?? null,
     })),
     /*
      * The fields the contract would default for a parsed element, spelled out
@@ -289,8 +297,8 @@ function countriesEl(
     id: uid('co'),
     kind: 'countries',
     frame,
-    codes: stats.countries.map(c => c.code),
-    names,
+    codes: stats.countries.slice(0, MAX_BOOK_COUNTRIES).map(c => c.code),
+    names: names.slice(0, MAX_BOOK_COUNTRIES).map(n => n.slice(0, MAX_COUNTRY_NAME)),
     layout: 'list',
     showOutline: true,
     showFlag: false,
@@ -550,8 +558,23 @@ function hasSubstance(entry: AutoEntry): boolean {
   return entry.photos.length > 0 || !!(entry.story || '').trim()
 }
 
-/** How many stations one page holds before the type gets too tight. */
-const STATIONS_PER_PAGE = 13
+/** What one station row costs: its date, its name, and the rule under it. */
+const STATION_ELEMENTS = 3
+/** And what the heading above the list costs: an accent rule and a word. */
+const STATIONS_HEADING = 2
+
+/**
+ * How many stations one page holds.
+ *
+ * Thirteen is where the type gets too tight — but the contract caps a spread at
+ * MAX_SPREAD_ELEMENTS, and a spread is two of these pages, so thirteen rows a
+ * page is eighty elements and a book the server refuses to store. Whichever
+ * limit runs out first is the answer.
+ */
+const STATIONS_PER_PAGE = Math.min(
+  13,
+  Math.floor((MAX_SPREAD_ELEMENTS - STATIONS_HEADING) / STATION_ELEMENTS / 2),
+)
 
 /**
  * The stops that had nothing to say, as a list.
@@ -1311,7 +1334,9 @@ function summarySpread(input: AutoInput): BookSpread | null {
   if (stats.points.length >= 2) {
     // With the recorded track, when the journey has one: the editor fetches it
     // and this was the line that threw it away.
-    els.push(mapEl({ x: m, y: m, w: W - m * 2, h: H - m * 2 }, stats, { path: input.path ?? [] }))
+    els.push(mapEl({ x: m, y: m, w: W - m * 2, h: H - m * 2 }, stats, {
+      path: (input.path ?? []).slice(0, MAX_PATH_SEGMENTS).map(seg => seg.slice(0, MAX_PATH_POINTS)),
+    }))
   }
 
   // Which figures are worth the space: everything the journey actually has.
@@ -1506,7 +1531,7 @@ function backSpread(input: AutoInput): BookSpread {
 }
 
 export function buildBook(input: AutoInput): BookDocument {
-  const spreads: BookSpread[] = [coverSpread(input)]
+  const spreads: BookSpread[] = [coverSpread(input), blankSpread('first')]
 
   /*
    * The summary and the countries open the book, before the entries.
@@ -1547,13 +1572,39 @@ export function buildBook(input: AutoInput): BookDocument {
     }
   }
   flushRun()
-  spreads.push(backSpread(input))
+  spreads.push(blankSpread('last'), backSpread(input))
   return {
     version: 1,
-    title: input.title,
-    page: input.page,
-    spreads: spreads.slice(0, 150),
+    title: input.title.slice(0, MAX_BOOK_TITLE),
+    page: withFirstPage(input.page),
+    spreads: spreads.slice(0, MAX_SPREADS),
   }
+}
+
+/**
+ * A page with nothing on it, of the given kind.
+ *
+ * The first and the last page of a book are laid down empty on purpose: the
+ * first is where a title page or a dedication goes, the last where a colophon
+ * does, and neither is something a layout should decide for a person.
+ */
+function blankSpread(role: BookSpread['role']): BookSpread {
+  return { id: uid('sp'), role, background: null, elements: [], parked: [], entryId: null }
+}
+
+/**
+ * The page setup for a book that opens on a single page.
+ *
+ * `startAt` numbers the first page inside the covers. A book from before the
+ * single first page existed opened straight onto a spread and started at 2,
+ * so that its left-hand page read as the second page of the object. With a
+ * first page in front of that spread the first page is page 1 — so a book laid
+ * out with one starts there, whatever the setup it inherited said (#2317).
+ * Nothing else of the setup is touched: the format and the folio styling are
+ * the person's, only the count moved with the page that moved.
+ */
+function withFirstPage(page: BookPageSetup): BookPageSetup {
+  return { ...page, pageNumbers: { ...page.pageNumbers, startAt: 1 } }
 }
 
 /**
@@ -1567,17 +1618,15 @@ export function buildBook(input: AutoInput): BookDocument {
  *
  * The covers are here rather than left out because a book has them and there is
  * no other way to add one: the pages rail only inserts inner spreads, between
- * the two. Empty, though, in the same way the page between them is.
+ * the two. The single first and last pages likewise (#2317). Empty, though, in
+ * the same way the spread between them is.
  */
 export function emptyBook(input: AutoInput): BookDocument {
-  const blank = (role: BookSpread['role']): BookSpread => ({
-    id: uid('sp'), role, background: null, elements: [], parked: [], entryId: null,
-  })
   return {
     version: 1,
-    title: input.title,
-    page: input.page,
-    spreads: [blank('cover'), blank('inner'), blank('back')],
+    title: input.title.slice(0, MAX_BOOK_TITLE),
+    page: withFirstPage(input.page),
+    spreads: [blankSpread('cover'), blankSpread('first'), blankSpread('inner'), blankSpread('last'), blankSpread('back')],
   }
 }
 

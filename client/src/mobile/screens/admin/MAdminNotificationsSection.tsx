@@ -187,9 +187,12 @@ export default function MAdminNotificationsSection({ admin, t }: MAdminNotificat
           {smtpLoaded &&
             SMTP_FIELDS.map((field) => (
               <MAdminField key={field.key} label={field.label}>
+                {/* A stored password comes back masked. Showing the mask as the VALUE meant
+                    typing a new one appended it to eight bullet characters and saved that,
+                    so the same treatment as the webhook URL below: mask as placeholder. */}
                 <MAdminInput
                   type={field.type || 'text'}
-                  value={smtpValues[field.key] || ''}
+                  value={smtpValues[field.key] === '••••••••' ? '' : smtpValues[field.key] || ''}
                   onChange={(e) => setSmtpValues((prev) => ({ ...prev, [field.key]: e.target.value }))}
                   placeholder={field.placeholder}
                 />

@@ -18,6 +18,7 @@ const undo: TranslationStrings = {
   'undo.importNaverList': 'Importació de Naver Maps',
   'undo.addPlace': 'Lloc afegit',
   'undo.done': 'Desfet: {action}',
+  'undo.failed': "No s'ha pogut desfer: {action}",
   'undo.importBooking': 'Importa confirmació de reserva',
 
   'undo.changeCategory': 'Categoria canviada',

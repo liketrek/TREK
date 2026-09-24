@@ -155,6 +155,21 @@ describe('Tool: create_packing_bag', () => {
     });
   });
 
+  it('creates a bag with a weight limit (#2154)', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_packing_bag',
+        arguments: { tripId: trip.id, name: 'Checked bag', weight_limit_grams: 23000 },
+      });
+      const data = parseToolResult(result) as any;
+      expect(data.bag.weight_limit_grams).toBe(23000);
+      const row = testDb.prepare('SELECT weight_limit_grams FROM packing_bags WHERE id = ?').get(data.bag.id) as { weight_limit_grams: number | null };
+      expect(row.weight_limit_grams).toBe(23000);
+    });
+  });
+
   it('returns access denied for non-member', async () => {
     const { user } = createUser(testDb);
     const { user: other } = createUser(testDb);
@@ -238,6 +253,27 @@ describe('Tool: delete_packing_bag', () => {
       // { bagId } — aligned with the REST route and the plugin host.
       expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'packing:bag-deleted', expect.objectContaining({ bagId }));
       expect(testDb.prepare('SELECT id FROM packing_bags WHERE id = ?').get(bagId)).toBeUndefined();
+    });
+  });
+
+  it('pings the room to re-read the bag weights (#2191)', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const r = testDb.prepare('INSERT INTO packing_bags (trip_id, name, color) VALUES (?, ?, ?)').run(trip.id, 'Carry-on', '#000000');
+    const bagId = r.lastInsertRowid as number;
+    testDb.prepare('INSERT INTO packing_items (trip_id, name, category, checked, bag_id, weight_grams) VALUES (?, ?, ?, 0, ?, ?)')
+      .run(trip.id, 'Tent', 'Camping', bagId, 3000);
+    await withHarness(user.id, async (h) => {
+      await h.client.callTool({
+        name: 'delete_packing_bag',
+        arguments: { tripId: trip.id, bagId },
+      });
+      // bag_id is ON DELETE SET NULL, so the 3 kg move into the unassigned pile:
+      // both numbers change and every client has to re-read them, exactly as on
+      // the REST route and the plugin RPC.
+      expect(broadcastMock).toHaveBeenCalledWith(String(trip.id), 'packing:bag-totals', {}, undefined);
+      expect(broadcastMock).toHaveBeenCalledTimes(2);
+      expect(testDb.prepare('SELECT bag_id FROM packing_items WHERE trip_id = ?').get(trip.id)).toEqual({ bag_id: null });
     });
   });
 
@@ -366,6 +402,26 @@ describe('Tool: set_packing_category_assignees', () => {
 // ---------------------------------------------------------------------------
 
 describe('Tool: apply_packing_template', () => {
+  it('applies a template and pings the bag weights once (#2191)', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const template = testDb.prepare("INSERT INTO packing_templates (name, created_by) VALUES ('Hiking', ?)").run(user.id);
+    const category = testDb.prepare("INSERT INTO packing_template_categories (template_id, name, sort_order) VALUES (?, 'Gear', 0)")
+      .run(template.lastInsertRowid);
+    testDb.prepare("INSERT INTO packing_template_items (category_id, name, sort_order) VALUES (?, 'Boots', 0)")
+      .run(category.lastInsertRowid);
+
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'apply_packing_template',
+        arguments: { tripId: trip.id, templateId: Number(template.lastInsertRowid) },
+      });
+      expect(result.isError).toBeFalsy();
+      // Applied items can carry weights, so the room has to re-read the totals.
+      expect(broadcastMock).toHaveBeenCalledWith(String(trip.id), 'packing:bag-totals', {}, undefined);
+    });
+  });
+
   it('returns error for non-existent template', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
@@ -550,7 +606,11 @@ describe('Tool: bulk_import_packing', () => {
       expect(data.items).toHaveLength(items.length);
       expect(data.items[0].name).toBe('Passport');
       expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'packing:created', expect.objectContaining({ item: expect.any(Object) }));
-      expect(broadcastMock).toHaveBeenCalledTimes(items.length);
+      // Plus ONE bag-totals ping for the whole import (#2191) — not one per
+      // item: it is content-free and each one costs every connected client a
+      // listBags round trip.
+      expect(broadcastMock).toHaveBeenCalledWith(String(trip.id), 'packing:bag-totals', {}, undefined);
+      expect(broadcastMock).toHaveBeenCalledTimes(items.length + 1);
     });
   });
 

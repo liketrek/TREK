@@ -147,6 +147,29 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
     });
   });
 
+  describe('GET /export.gpx (#2165)', () => {
+    const makeRes = () => ({ setHeader: vi.fn(), send: vi.fn() });
+    const exportQuery = {} as never;
+
+    it('an ASCII filename keeps the exact legacy header', () => {
+      const res = makeRes();
+      const s = svc({ exportGpx: vi.fn().mockReturnValue({ gpx: '<gpx/>', filename: 'Alpine-week.gpx' }) } as Partial<PlacesService>);
+      new PlacesController(s, new RuntimeEnvService(), storageStub).exportGpx(user, '5', exportQuery, res as never);
+      expect(res.setHeader).toHaveBeenCalledWith('Content-Disposition', 'attachment; filename="Alpine-week.gpx"');
+      expect(res.send).toHaveBeenCalledWith('<gpx/>');
+    });
+
+    it('a non-ASCII filename no longer reaches setHeader raw: ASCII fallback + filename*', () => {
+      const res = makeRes();
+      const s = svc({ exportGpx: vi.fn().mockReturnValue({ gpx: '<gpx/>', filename: '沖縄-4泊5日.gpx' }) } as Partial<PlacesService>);
+      new PlacesController(s, new RuntimeEnvService(), storageStub).exportGpx(user, '5', exportQuery, res as never);
+      expect(res.setHeader).toHaveBeenCalledWith(
+        'Content-Disposition',
+        'attachment; filename="__-4_5_.gpx"; filename*=UTF-8\'\'%E6%B2%96%E7%B8%84-4%E6%B3%8A5%E6%97%A5.gpx',
+      );
+    });
+  });
+
   describe('POST /import/google-list + naver-list', () => {
     // The legacy 'URL is required' 400 is gone: placeImportListRequestSchema
     // pins `url`, so the ZodValidationPipe rejects a urlless body before the
@@ -166,6 +189,34 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
       expect(await new PlacesController(s, new RuntimeEnvService(), storageStub).importGoogle(user, '5', { url: 'http://x', enrich: true }, 'sock')).toEqual({ places: [{ id: 1 }, { id: 2 }], count: 2, listName: 'L', skipped: 0 });
       expect(importGoogleList).toHaveBeenCalledWith('5', 'http://x', { enrich: true, userId: 1 });
       expect(broadcast).toHaveBeenCalledTimes(2);
+    });
+    it('sends a directions link to the directions importer, not to the list one', async () => {
+      // Same box, same gesture: somebody pressed Share in Google Maps, and which screen
+      // they were on is the URL's business rather than the traveller's.
+      const importGoogleDirections = vi.fn().mockResolvedValue({ places: [{ id: 9 }], listName: 'Berlin → Prague', skipped: 1 });
+      const importGoogleList = vi.fn();
+      const s = svc({ importGoogleDirections, importGoogleList, broadcast: vi.fn() } as Partial<PlacesService>);
+      const url = 'https://www.google.com/maps/dir/Berlin/Dresden/Prague';
+
+      expect(await new PlacesController(s, new RuntimeEnvService(), storageStub).importGoogle(user, '5', { url })).toEqual({
+        places: [{ id: 9 }], count: 1, listName: 'Berlin → Prague', skipped: 1,
+      });
+      expect(importGoogleDirections).toHaveBeenCalledWith('5', url, { enrich: false, userId: 1 });
+      expect(importGoogleList).not.toHaveBeenCalled();
+    });
+    it('sends a short link to the list importer, which knows where it really goes', async () => {
+      // A short link's path is `/<code>`, so nothing about the raw URL says
+      // whether it is a route or a list. The dispatch cannot know before the
+      // redirect is followed, and the list importer already follows it — so it
+      // is the one that hands a route on. Deciding here would mean a second
+      // network hop and a second copy of the SSRF handling.
+      const importGoogleDirections = vi.fn();
+      const importGoogleList = vi.fn().mockResolvedValue({ places: [], listName: 'L', skipped: 0 });
+      const s = svc({ importGoogleDirections, importGoogleList, broadcast: vi.fn() } as Partial<PlacesService>);
+
+      await new PlacesController(s, new RuntimeEnvService(), storageStub).importGoogle(user, '5', { url: 'https://maps.app.goo.gl/abc' });
+      expect(importGoogleList).toHaveBeenCalled();
+      expect(importGoogleDirections).not.toHaveBeenCalled();
     });
     it('wraps a thrown Error in the provider-specific 400 (Google)', async () => {
       const s = svc({ importGoogleList: vi.fn().mockRejectedValue(new Error('network down')) } as Partial<PlacesService>);
@@ -191,7 +242,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
       expect(removeMany).not.toHaveBeenCalled();
     });
     it('deletes, fires hooks + broadcasts per deleted id', async () => {
-      const removeMany = vi.fn().mockReturnValue([1, 2]); const onDeleted = vi.fn(); const broadcast = vi.fn();
+      const removeMany = vi.fn().mockReturnValue({ deleted: [1, 2], cancelled: { reservationIds: [], budgetItemIds: [] } }); const onDeleted = vi.fn(); const broadcast = vi.fn();
       const scopedIds = vi.fn().mockReturnValue([1, 2]);
       const s = svc({ removeMany, onDeleted, broadcast, scopedIds } as Partial<PlacesService>);
       expect(await new PlacesController(s, new RuntimeEnvService(), storageStub).bulkDelete(user, '5', { ids: [1, 2] }, 'sock')).toEqual({ deleted: [1, 2], count: 2 });
@@ -202,7 +253,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
     // #1745: the hook keys on the place id alone, so an id from another trip
     // would detach that trip's journey entries even though removeMany skips it.
     it('fires the journey hook only for ids that belong to the trip, ahead of the delete', async () => {
-      const removeMany = vi.fn().mockReturnValue([1]);
+      const removeMany = vi.fn().mockReturnValue({ deleted: [1], cancelled: { reservationIds: [], budgetItemIds: [] } });
       const scopedIds = vi.fn().mockReturnValue([1]);
       const onDeleted = vi.fn();
       const s = svc({ removeMany, scopedIds, onDeleted, broadcast: vi.fn() } as Partial<PlacesService>);
@@ -215,7 +266,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
 
     // #1298: the link is gone once the place is, so the ids have to be read first.
     it('announces the expenses the deleted places took with them', async () => {
-      const removeMany = vi.fn().mockReturnValue([1, 2]);
+      const removeMany = vi.fn().mockReturnValue({ deleted: [1, 2], cancelled: { reservationIds: [], budgetItemIds: [] } });
       const linkedExpenseIds = vi.fn().mockReturnValue([77]);
       const broadcast = vi.fn();
       const s = svc({ removeMany, linkedExpenseIds, broadcast } as Partial<PlacesService>);
@@ -223,7 +274,22 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
 
       expect(linkedExpenseIds).toHaveBeenCalledWith('5', [1, 2]);
       expect(linkedExpenseIds.mock.invocationCallOrder[0]).toBeLessThan(removeMany.mock.invocationCallOrder[0]);
-      expect(broadcast).toHaveBeenCalledWith('5', 'budget:deleted', { itemId: 77 }, 'sock');
+      // Without the socket id: the deleting tab removed the places itself, not
+      // the expense, so it has to hear about that one like everybody else.
+      expect(broadcast).toHaveBeenCalledWith('5', 'budget:deleted', { itemId: 77 }, undefined);
+    });
+
+    it('tells the deleting tab about the booking and the expense a cancelled night took down', async () => {
+      const removeMany = vi.fn().mockReturnValue({ deleted: [1], cancelled: { reservationIds: [12], budgetItemIds: [77] } });
+      const broadcast = vi.fn();
+      const s = svc({ removeMany, broadcast, scopedIds: vi.fn().mockReturnValue([1]) } as Partial<PlacesService>);
+      await new PlacesController(s, new RuntimeEnvService(), storageStub).bulkDelete(user, '5', { ids: [1] }, 'sock');
+
+      // The place is the one change the tab made itself, so that echo stays
+      // filtered. The booking and its expense went on the server alone.
+      expect(broadcast).toHaveBeenCalledWith('5', 'place:deleted', { placeId: 1 }, 'sock');
+      expect(broadcast).toHaveBeenCalledWith('5', 'reservation:deleted', { reservationId: 12 }, undefined);
+      expect(broadcast).toHaveBeenCalledWith('5', 'budget:deleted', { itemId: 77 }, undefined);
     });
   });
 
@@ -344,7 +410,9 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
 
     it('400s a website that window.open would not treat as a page', async () => {
       const canEdit = vi.fn().mockReturnValue(false);
-      for (const website of ['javascript:fetch("/api/trips")', 'data:text/html,x', 'louvre.fr', 42]) {
+      // 'louvre' rather than 'louvre.fr': a bare host is completed since #2483,
+      // a single word is still no address.
+      for (const website of ['javascript:fetch("/api/trips")', 'data:text/html,x', 'mailto:info@louvre.fr', 'louvre', 42]) {
         expect(await thrownAsync(() => ctl({ canEdit }).update(user, '5', '9', { website }))).toEqual(siteErr);
       }
       expect(canEdit).not.toHaveBeenCalled();
@@ -354,7 +422,22 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
       const update = vi.fn().mockReturnValue({ id: 9 });
       for (const website of ['https://louvre.fr', 'http://pension.at', '', null]) {
         expect(await ctl({ update } as Partial<PlacesService>).update(user, '5', '9', { website })).toEqual({ place: { id: 9 } });
+        expect(update).toHaveBeenLastCalledWith('5', '9', { website }, undefined);
       }
+    });
+
+    // #2483: the value that reaches the service is the parsed one, on both write
+    // routes. The MCP tools parse the same schema (tools-places.test.ts), so an
+    // agent and the web app store the same string for the same input.
+    it('PLACES-CTRL-2483-01: hands the service a bare host with https, on create and on update', async () => {
+      const site = 'fr.wikipedia.org/wiki/Chapelle_Sainte-Barbe_du_Faouët';
+      const create = vi.fn().mockReturnValue({ id: 9 });
+      ctl({ create } as Partial<PlacesService>).create(user, '5', { name: 'Chapelle', website: site });
+      expect(create).toHaveBeenCalledWith('5', { name: 'Chapelle', website: `https://${site}` });
+
+      const update = vi.fn().mockReturnValue({ id: 9 });
+      await ctl({ update } as Partial<PlacesService>).update(user, '5', '9', { website: '//www.example.fr' });
+      expect(update).toHaveBeenCalledWith('5', '9', { website: 'https://www.example.fr' }, undefined);
     });
   });
 
@@ -372,12 +455,30 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
 
   it('DELETE /:id fires the hook then 404 / success', async () => {
     const onDeleted = vi.fn();
-    const remove = vi.fn().mockReturnValue(false);
+    const remove = vi.fn().mockReturnValue({ deleted: false, cancelled: { reservationIds: [], budgetItemIds: [] } });
     expect(await thrownAsync(() => new PlacesController(svc({ remove, onDeleted } as Partial<PlacesService>), new RuntimeEnvService(), storageStub).remove(user, '5', '9'))).toEqual({ status: 404, body: { error: 'Place not found' } });
     expect(onDeleted).toHaveBeenCalledWith(9);
     expect(onDeleted.mock.invocationCallOrder[0]).toBeLessThan(remove.mock.invocationCallOrder[0]);
-    const s = svc({ remove: vi.fn().mockReturnValue(true), broadcast: vi.fn() } as Partial<PlacesService>);
+    const s = svc({ remove: vi.fn().mockReturnValue({ deleted: true, cancelled: { reservationIds: [], budgetItemIds: [] } }), broadcast: vi.fn() } as Partial<PlacesService>);
     expect(await new PlacesController(s, new RuntimeEnvService(), storageStub).remove(user, '5', '9')).toEqual({ success: true });
+  });
+
+  it('DELETE /:id announces the booking and the expense a cancelled night took down', async () => {
+    // place:deleted says nothing about either, and an expense linked by
+    // reservation_id is not one linkedExpenseIds finds.
+    const broadcast = vi.fn();
+    const remove = vi.fn().mockReturnValue({ deleted: true, cancelled: { reservationIds: [12], budgetItemIds: [77] } });
+    const s = svc({ remove, broadcast, linkedExpenseIds: vi.fn().mockReturnValue([]) } as Partial<PlacesService>);
+
+    await new PlacesController(s, new RuntimeEnvService(), storageStub).remove(user, '5', '9', 'sock');
+
+    // The place echo stays filtered by the socket id; the booking and the
+    // expense are sent to the deleting tab as well, because that tab only
+    // removed the place itself and would otherwise keep showing both until a
+    // reload.
+    expect(broadcast).toHaveBeenCalledWith('5', 'place:deleted', { placeId: 9 }, 'sock');
+    expect(broadcast).toHaveBeenCalledWith('5', 'reservation:deleted', { reservationId: 12 }, undefined);
+    expect(broadcast).toHaveBeenCalledWith('5', 'budget:deleted', { itemId: 77 }, undefined);
   });
 
   // #1745: a place on another trip must 404 without the hook ever running —

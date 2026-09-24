@@ -28,7 +28,7 @@ const userSettings = () => new PluginUserSettingsService(new DatabaseService(dbC
 function freshDb() {
   const d = new Database(':memory:');
   d.exec(`
-    CREATE TABLE plugin_settings_fields (id INTEGER PRIMARY KEY AUTOINCREMENT, plugin_id TEXT, field_key TEXT, label TEXT, input_type TEXT, placeholder TEXT, hint TEXT, required INTEGER, secret INTEGER, scope TEXT, options TEXT, sort_order INTEGER);
+    CREATE TABLE plugin_settings_fields (id INTEGER PRIMARY KEY AUTOINCREMENT, plugin_id TEXT, field_key TEXT, label TEXT, input_type TEXT, placeholder TEXT, hint TEXT, required INTEGER, secret INTEGER, scope TEXT, options TEXT, default_value TEXT, sort_order INTEGER);
     CREATE TABLE plugin_user_config (plugin_id TEXT, user_id INTEGER, config TEXT, updated_at TEXT, PRIMARY KEY (plugin_id, user_id));
   `);
   // p: a user-scope api key (secret) + a user-scope pref (not secret) + an INSTANCE field.
@@ -72,7 +72,9 @@ describe('per-user plugin settings', () => {
   });
 
   it('ignores keys that are not declared user-scope fields', () => {
-    svc.updateUserConfig('p', 42, { adminOnly: 'nope', bogus: 'x', units: 'metric' } as Record<string, unknown>);
+    // apiKey is required — filled here so the save isn't refused; the assertion is
+    // about adminOnly/bogus being dropped, not about required enforcement.
+    svc.updateUserConfig('p', 42, { apiKey: 'sk-123', adminOnly: 'nope', bogus: 'x', units: 'metric' } as Record<string, unknown>);
     const cfg = svc.getUserConfig('p', 42);
     expect(cfg.adminOnly).toBeUndefined(); // instance field — not accepted here
     expect(cfg.bogus).toBeUndefined();
@@ -80,8 +82,80 @@ describe('per-user plugin settings', () => {
   });
 
   it('is per-user — one user cannot see another\'s value', () => {
-    svc.updateUserConfig('p', 42, { units: 'metric' });
+    // apiKey is required — filled here so the save isn't refused; the point of this
+    // test is that user 99 sees none of user 42's values.
+    svc.updateUserConfig('p', 42, { apiKey: 'sk-123', units: 'metric' });
     expect(svc.getUserConfig('p', 99).units).toBeUndefined();
     expect(userSettings().readOne('p', 99, 'apiKey')).toBeUndefined();
+  });
+});
+
+describe('manifest defaults reach the runtime reads', () => {
+  // A `default` is not only a form pre-fill: with nothing stored, the child must see it
+  // through ctx.settings.get() / the channel dispatch's readAll — otherwise a plugin
+  // that ships a sensible default serves nobody until every user opens the form.
+  let svc: PluginsService;
+  beforeEach(() => {
+    getDb.current = freshDb();
+    const dbs = new DatabaseService(dbConn);
+    svc = new PluginsService(dbs, new AddonsService(dbs));
+    const ins = (getDb.current as import('better-sqlite3').Database).prepare(
+      'INSERT INTO plugin_settings_fields (plugin_id, field_key, input_type, required, secret, scope, sort_order, default_value) VALUES (?,?,?,?,?,?,?,?)',
+    );
+    ins.run('p', 'region', 'select', 0, 0, 'user', 3, JSON.stringify('eu'));
+    ins.run('p', 'retries', 'number', 0, 0, 'user', 4, JSON.stringify(3));
+    ins.run('p', 'endpoint', 'text', 1, 0, 'user', 5, JSON.stringify('https://api.example'));
+  });
+
+  it('readOne falls back to the declared default when nothing is stored', () => {
+    expect(userSettings().readOne('p', 42, 'region')).toBe('eu');
+    expect(userSettings().readOne('p', 42, 'retries')).toBe(3); // JSON round-trip keeps the type
+    expect(userSettings().readOne('p', 42, 'apiKey')).toBeUndefined(); // no default declared
+  });
+
+  it('a stored value wins over the default', () => {
+    svc.updateUserConfig('p', 42, { apiKey: 'sk-123', region: 'us' });
+    expect(userSettings().readOne('p', 42, 'region')).toBe('us');
+    expect(userSettings().readOne('p', 99, 'region')).toBe('eu'); // another user still gets the default
+  });
+
+  it('readAll folds defaults in for the fields the user left unset', () => {
+    svc.updateUserConfig('p', 42, { apiKey: 'sk-123', region: 'us' });
+    expect(userSettings().readAll('p', 42)).toMatchObject({ apiKey: 'sk-123', region: 'us', retries: 3, endpoint: 'https://api.example' });
+  });
+
+  it('hasRequired treats a required field with a default as filled', () => {
+    // apiKey is required with no default → not configured until stored.
+    expect(userSettings().hasRequired('p', 42)).toBe(false);
+    svc.updateUserConfig('p', 42, { apiKey: 'sk-123' });
+    // endpoint is required too, but its default satisfies it.
+    expect(userSettings().hasRequired('p', 42)).toBe(true);
+  });
+});
+
+describe('hasRequired applies the same "filled" rule as the save gate', () => {
+  // notifications.service reads hasRequired() to decide who a channel dispatches to; if
+  // it disagreed with assertRequiredFilled() a save the form accepted could still leave
+  // the user "not configured" (or the reverse).
+  let svc: PluginsService;
+  beforeEach(() => {
+    getDb.current = freshDb();
+    const dbs = new DatabaseService(dbConn);
+    svc = new PluginsService(dbs, new AddonsService(dbs));
+    (getDb.current as import('better-sqlite3').Database)
+      .prepare('INSERT INTO plugin_settings_fields (plugin_id, field_key, input_type, required, secret, scope, sort_order) VALUES (?,?,?,?,?,?,?)')
+      .run('p', 'consent', 'checkbox', 1, 0, 'user', 9);
+  });
+
+  it('exempts a required checkbox (consent, not a settings field)', () => {
+    svc.updateUserConfig('p', 42, { apiKey: 'sk-123' }); // consent never set
+    expect(userSettings().hasRequired('p', 42)).toBe(true);
+  });
+
+  it('treats a whitespace-only value as empty', () => {
+    (getDb.current as import('better-sqlite3').Database)
+      .prepare("INSERT INTO plugin_user_config (plugin_id, user_id, config, updated_at) VALUES ('p', 42, ?, '')")
+      .run(JSON.stringify({ apiKey: '   ', consent: true }));
+    expect(userSettings().hasRequired('p', 42)).toBe(false);
   });
 });

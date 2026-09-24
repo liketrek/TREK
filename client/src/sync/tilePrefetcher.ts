@@ -4,7 +4,12 @@
  *
  * Algorithm:
  *   1. Compute bbox from trip's place coordinates + padding.
- *   2. For zooms 10–16, enumerate tile XYZ coordinates within bbox.
+ *   2. For zooms 0–16, enumerate tile XYZ coordinates within bbox. The low
+ *      zooms cost next to nothing (a handful of tiles) but are what the trip
+ *      map actually opens at for a multi-city bbox — a z10 floor left the
+ *      fitBounds view empty offline (#2180). The rectangle is widened to the
+ *      screen that view fills, or the map opens with grey either side of the
+ *      places.
  *   3. Stop when cumulative tile estimate exceeds MAX_TILES (~50 MB).
  *   4. Fetch each tile URL so the Service Worker CacheFirst handler caches it,
  *      at most TILE_CONCURRENCY at a time.
@@ -21,7 +26,10 @@
 import type { Place } from '../types'
 import { offlineDb, upsertSyncMeta } from '../db/offlineDb'
 import { isAuthed } from './authGate'
-import { normalizeTileUrl } from '../utils/tileUrl'
+import { isStoragePersisted } from './persistentStorage'
+import { isVectorStyle, normalizeTileUrl, resolveTileUrl, withTileApiKey } from '../utils/tileUrl'
+import { OFM_POSITRON } from '../constants/mapDefaults'
+import { clearVectorCache, prefetchVectorForPlaces } from './glPrefetcher'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -47,11 +55,23 @@ export const MAX_TILES = Math.floor((180 * 1024) / AVG_TILE_KB) // = 12288
  */
 export const TILE_CONCURRENCY = 6
 
+/**
+ * Deepest zoom prefetched when the browser refused persistent storage. Keeps the
+ * padded quota cost of one trip in the low hundreds of megabytes rather than the
+ * tens of gigabytes a full z16 run bills (#2228).
+ */
+export const UNPERSISTED_MAX_ZOOM = 12
+
 /** Name of the Workbox runtime cache holding map tiles (see vite.config.js). */
 const TILE_CACHE = 'map-tiles'
 
-const DEFAULT_TILE_URL =
-  'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
+/** Leaflet draws raster tiles at 256 px, which is what makes a screen N tiles wide. */
+const TILE_PX = 256
+
+/** Map size to assume where there is no window (SSR, plain-node callers). */
+const FALLBACK_MAP_PX = { width: 1024, height: 768 }
+
+const DEFAULT_TILE_URL = OFM_POSITRON
 
 /**
  * Must stay identical to Leaflet's `subdomains` default ('abc'), because the
@@ -75,18 +95,27 @@ function subdomainFor(x: number, y: number): string {
 
 // ── Tile math ──────────────────────────────────────────────────────────────────
 
+/** Longitude → fractional tile X, i.e. where in the tile grid a coordinate sits. */
+function tileXFor(lng: number, zoom: number): number {
+  return ((lng + 180) / 360) * Math.pow(2, zoom)
+}
+
+/** Latitude → fractional tile Y (Web Mercator, y increases southward). */
+function tileYFor(lat: number, zoom: number): number {
+  const latRad = (lat * Math.PI) / 180
+  return (
+    ((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * Math.pow(2, zoom)
+  )
+}
+
 /** Longitude → tile X at given zoom. */
 export function lngToTileX(lng: number, zoom: number): number {
-  return Math.floor(((lng + 180) / 360) * Math.pow(2, zoom))
+  return Math.floor(tileXFor(lng, zoom))
 }
 
 /** Latitude → tile Y at given zoom (Web Mercator, y increases southward). */
 export function latToTileY(lat: number, zoom: number): number {
-  const n = Math.pow(2, zoom)
-  const latRad = (lat * Math.PI) / 180
-  return Math.floor(
-    ((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * n,
-  )
+  return Math.floor(tileYFor(lat, zoom))
 }
 
 /** Expand a single-point bbox to min 0.1° span (~10 km) in each axis. */
@@ -135,16 +164,63 @@ export function computeBbox(places: Place[], paddingFraction = 0.1): TileBbox | 
 }
 
 /**
+ * The map column is narrower than the window, so taking the window overstates
+ * it. That is the safe direction: it only ever widens the rectangle below.
+ */
+function mapSizePx(): { width: number; height: number } {
+  if (typeof window === 'undefined') return FALLBACK_MAP_PX
+  return {
+    width: window.innerWidth || FALLBACK_MAP_PX.width,
+    height: window.innerHeight || FALLBACK_MAP_PX.height,
+  }
+}
+
+/**
+ * Tile rectangle to prefetch at one zoom: the bbox, widened to the screen the
+ * trip map opens on.
+ *
+ * fitBounds fills the container, so the opening view is only as tight as the
+ * bbox on the axis that limits it: a north-south trip opens with several times
+ * the bbox's longitude in view. Prefetching the places extent alone left that
+ * view grey to the left and right of the trip (#2180). From the zoom where the
+ * bbox outgrows the screen the widening adds nothing, so it costs a few dozen
+ * tiles at the low zooms and nothing at the detail ones.
+ */
+export function tileRange(
+  bbox: TileBbox,
+  zoom: number,
+): { minX: number; maxX: number; minY: number; maxY: number } {
+  const { width, height } = mapSizePx()
+  const west = tileXFor(bbox.minLng, zoom)
+  const east = tileXFor(bbox.maxLng, zoom)
+  const north = tileYFor(bbox.maxLat, zoom)
+  const south = tileYFor(bbox.minLat, zoom)
+
+  // The camera centres the bbox in projected space, the way computeMapViewport does.
+  const centerX = (west + east) / 2
+  const centerY = (north + south) / 2
+  const halfScreenX = width / 2 / TILE_PX
+  const halfScreenY = height / 2 / TILE_PX
+
+  const last = Math.pow(2, zoom) - 1
+  const clamp = (value: number) => Math.max(0, Math.min(last, Math.floor(value)))
+
+  return {
+    minX: clamp(Math.min(west, centerX - halfScreenX)),
+    maxX: clamp(Math.max(east, centerX + halfScreenX)),
+    minY: clamp(Math.min(north, centerY - halfScreenY)),
+    maxY: clamp(Math.max(south, centerY + halfScreenY)),
+  }
+}
+
+/**
  * Count tiles that would be fetched across the zoom range for a bbox.
  * Used to enforce the size guard without actually fetching.
  */
 export function countTiles(bbox: TileBbox, minZoom: number, maxZoom: number): number {
   let total = 0
   for (let z = minZoom; z <= maxZoom; z++) {
-    const minX = lngToTileX(bbox.minLng, z)
-    const maxX = lngToTileX(bbox.maxLng, z)
-    const minY = latToTileY(bbox.maxLat, z) // northern edge → smaller y
-    const maxY = latToTileY(bbox.minLat, z) // southern edge → larger y
+    const { minX, maxX, minY, maxY } = tileRange(bbox, z)
     total += (maxX - minX + 1) * (maxY - minY + 1)
     if (total > MAX_TILES) return total
   }
@@ -158,9 +234,13 @@ export function countTiles(bbox: TileBbox, minZoom: number, maxZoom: number): nu
  * The template is normalized first: this function is also reached with a raw
  * admin default rather than the value from the settings store, so the OSM
  * sharding rewrite has to happen here too.
+ *
+ * The CARTO key is appended here as well, and it has to be: the Workbox cache is
+ * keyed on the whole URL including the query, so a tile prefetched without the
+ * key is a tile the map never asks for.
  */
-export function buildTileUrl(template: string, z: number, x: number, y: number): string {
-  return normalizeTileUrl(template)
+export function buildTileUrl(template: string, z: number, x: number, y: number, cartoKey?: string): string {
+  return withTileApiKey(normalizeTileUrl(template), cartoKey)
     .replace('{z}', String(z))
     .replace('{x}', String(x))
     .replace('{y}', String(y))
@@ -180,10 +260,7 @@ function enumerateTiles(
   const coords: Array<[number, number, number]> = []
 
   for (let z = minZoom; z <= maxZoom; z++) {
-    const minX = lngToTileX(bbox.minLng, z)
-    const maxX = lngToTileX(bbox.maxLng, z)
-    const minY = latToTileY(bbox.maxLat, z)
-    const maxY = latToTileY(bbox.minLat, z)
+    const { minX, maxX, minY, maxY } = tileRange(bbox, z)
 
     if (coords.length + (maxX - minX + 1) * (maxY - minY + 1) > MAX_TILES) break
 
@@ -218,13 +295,15 @@ async function openTileCache(): Promise<Cache | null> {
  * (background sync) leave the promise floating.
  *
  * Returns the number of tiles actually fetched — tiles already in the cache are
- * skipped without touching the network.
+ * skipped without touching the network, and a request the browser refused is not
+ * counted at all.
  */
 export async function prefetchTiles(
   bbox: TileBbox,
   tileUrlTemplate: string,
-  minZoom = 10,
+  minZoom = 0,
   maxZoom = 16,
+  cartoKey?: string,
 ): Promise<number> {
   if (!navigator.onLine) return 0
   if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) return 0
@@ -246,13 +325,16 @@ export async function prefetchTiles(
       if (!navigator.onLine || !isAuthed()) return
 
       const [z, x, y] = coords[cursor++]
-      const url = buildTileUrl(tileUrlTemplate, z, x, y)
+      const url = buildTileUrl(tileUrlTemplate, z, x, y, cartoKey)
 
       if (cache && (await cache.match(url))) continue
 
-      // The SW CacheFirst handler stores the response.
-      await fetch(url, { mode: 'no-cors' }).catch(() => {})
-      fetched++
+      // The SW CacheFirst handler stores the response. A rejected request (a CSP
+      // refusal, a provider that is down, DNS) leaves nothing in the cache and
+      // must not count towards the tally the caller logs as tiles cached: that
+      // is what let a fully blocked prefetch still report success (#2180).
+      const reached = await fetch(url, { mode: 'no-cors' }).then(() => true, () => false)
+      if (reached) fetched++
     }
   }
 
@@ -274,6 +356,10 @@ export async function clearTileCache(): Promise<void> {
   } catch {
     /* Cache Storage unavailable (no SW / private mode) — nothing to clear */
   }
+
+  // The vector basemap lives in its own runtime cache and has to go with it,
+  // or "clear offline maps" leaves the larger half on disk.
+  await clearVectorCache()
 
   // Drop the recorded bboxes too, otherwise prefetchTilesForTrip would consider
   // these trips done and never refill the cache we just emptied.
@@ -312,8 +398,11 @@ export async function prefetchTilesForTrip(
   places: Place[],
   tileUrlTemplate?: string,
   force = false,
+  cartoKey?: string,
 ): Promise<void> {
-  const template = tileUrlTemplate || DEFAULT_TILE_URL
+  // Resolved rather than taken raw, so a keyless CARTO template pre-downloads the
+  // basemap the map will actually draw instead of a few thousand watermarks.
+  const template = resolveTileUrl(tileUrlTemplate, DEFAULT_TILE_URL, cartoKey)
   const bbox = computeBbox(places)
   if (!bbox) return
 
@@ -322,6 +411,22 @@ export async function prefetchTilesForTrip(
   // cached.
   const existing = await offlineDb.syncMeta.get(tripId)
   if (!force && existing?.tilesBbox && sameBbox(existing.tilesBbox, bbox)) return
+
+  // The default basemap is a vector style, and walking a {z}/{x}/{y} template
+  // over one would fetch nothing the map ever asks for. A user who configured
+  // their own raster template keeps the path below unchanged.
+  if (isVectorStyle(template)) {
+    const { tiles } = await prefetchVectorForPlaces(places, template, () => !navigator.onLine || !isAuthed())
+    const meta = await offlineDb.syncMeta.get(tripId)
+    if (meta) {
+      await upsertSyncMeta({
+        ...meta,
+        tilesBbox: [bbox.minLng, bbox.minLat, bbox.maxLng, bbox.maxLat],
+      })
+    }
+    if (tiles > 0) console.info(`[tilePrefetch] trip ${tripId}: cached ${tiles} vector tiles`)
+    return
+  }
 
   // Zoom-clamp rather than skip: prefetchTiles fills zooms low→high and stops
   // once MAX_TILES is reached, so large (region / road-trip) bboxes still get
@@ -333,7 +438,16 @@ export async function prefetchTilesForTrip(
   // tile providers that don't send CORS headers. To stop the browser evicting
   // these tiles under the inflated quota, we request persistent storage at app
   // init instead (sync/persistentStorage.ts).
-  const fetched = await prefetchTiles(bbox, template, 10, 16)
+  //
+  // When that request was refused, the padding stops being an accounting detail:
+  // a full run bills this origin tens of gigabytes it is not exempt from, and
+  // the browser answers by evicting the whole bucket, including the precached
+  // app shell, which then never comes back on its own. So cap the depth instead.
+  // The shallow zooms are the ones the trip map actually opens at and cost a few
+  // dozen tiles (#2180); the deep ones are the volume, and they are what the
+  // user loses rather than the ability to start the app at all (#2228).
+  const maxZoom = isStoragePersisted() ? 16 : UNPERSISTED_MAX_ZOOM
+  const fetched = await prefetchTiles(bbox, template, 0, maxZoom, cartoKey)
 
   // Update syncMeta with bbox and tile count
   const meta = await offlineDb.syncMeta.get(tripId)

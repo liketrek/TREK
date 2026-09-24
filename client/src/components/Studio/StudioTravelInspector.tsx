@@ -9,6 +9,7 @@ import { Swatches } from './StudioSwatches'
 import { BOOK_FONTS, BOOK_FONT_ORDER, hasWeight, nearestWeight } from './bookFonts'
 import { sourceIdOf, useMapSources } from './mapSources'
 import { printDpi, tileView } from './mapTiles'
+import { useCartoApiKey } from '../../hooks/useTileUrl'
 import { routeFor } from './travelRefresh'
 import { Choice, Line, Picks, Section, Switch } from './StudioControls'
 import { fetchRoads } from './roadRoute'
@@ -217,6 +218,7 @@ function ListProps({ el, set, t }: Props<BookListElement>) {
 }
 
 function MapProps({ el, set, t, stats }: Props<BookMapElement> & { stats: JourneyStats | null }) {
+  const cartoKey = useCartoApiKey()
   const [roadState, setRoadState] = useState<'idle' | 'busy'>('idle')
   const [roadDone, setRoadDone] = useState(0)
   const hasRoads = (el.roads ?? []).some(r => r && r.length > 1)
@@ -248,7 +250,7 @@ function MapProps({ el, set, t, stats }: Props<BookMapElement> & { stats: Journe
    * say what it will print at. Same call the renderer makes, same answer.
    */
   const view = el.source === 'tiles' && el.tileUrl
-    ? tileView(el.points, { w: el.frame.w, h: el.frame.h }, el.tileUrl, el.zoom)
+    ? tileView(el.points, { w: el.frame.w, h: el.frame.h }, el.tileUrl, el.zoom, undefined, 'print', cartoKey)
     : null
   const dpi = view ? printDpi(view, el.tileUrl) : null
 

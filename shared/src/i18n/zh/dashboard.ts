@@ -87,6 +87,7 @@ const dashboard: TranslationStrings = {
   'dashboard.useUnsplashPhoto': '使用 {photographer} 的 Unsplash 照片',
   'dashboard.titleRequired': '标题为必填项',
   'dashboard.endDateError': '结束日期必须晚于开始日期',
+  'dashboard.tripTooLong': '行程最长为 {days} 天',
   'dashboard.dateShiftTitle': '新的开始日期',
   'dashboard.dateShiftIntro': '您更改了旅行的开始时间。您的计划应如何适应新的日期？',
   'dashboard.dateShiftKeepBookings': '保留预订的原定日期',
@@ -94,7 +95,23 @@ const dashboard: TranslationStrings = {
     '日程计划将随新日期移动，而预订和住宿只要仍在旅行日期范围内，就保留其原定日期。',
   'dashboard.dateShiftAll': '全部顺移',
   'dashboard.dateShiftAllDesc': '整个行程将随新日期移动，包括预订和住宿。',
-  'dashboard.dateShiftHint': '提示：如需仅移动部分行程，请改用行程规划中的「添加一天」。',
+  'dashboard.dateShiftHint':
+    '提示：如需仅移动部分行程，请在行程规划中打开“调整日期顺序”，用显示日期的按钮添加行程结束后的那一天，再将这一天移到需要留出空档的位置。',
+  'dashboard.shrinkTitle': '移除天数？',
+  'dashboard.shrinkIntro': '保存新日期后，将移除以下这些天：',
+  'dashboard.shrinkMoreDays': '另外 {count} 天',
+  'dashboard.shrinkLastDays': '移除的是最后几天，而不是最前面的几天',
+  'dashboard.shrinkLastDaysHint': '每天的计划会随新日期一起移动，因此即使开始日期变了，移除的也总是计划中的最后几天。',
+  'dashboard.shrinkBookingsHint': '它们会保留在“预订”中。日期仍在旅行范围内的预订会回到对应的那一天。',
+  'dashboard.shrinkBookingsShiftHint': '它们会保留在“预订”中，但不再属于任何一天。',
+  'dashboard.shrinkStayHint': '入住或退房在被移除的某一天，因此整个住宿都会被移除。',
+  'dashboard.shrinkStayBookedHint':
+    '入住或退房在被移除的某一天，因此整个住宿都会被移除。其预订“{booking}”及费用会保留在“预订”中。',
+  'dashboard.shrinkStayBookingHint':
+    '入住或退房在被移除的某一天，因此整个住宿都会被移除。其预订“{booking}”会保留在“预订”中。',
+  'dashboard.shrinkConfirm': '移除天数并保存',
+  'dashboard.shrinkUnknown':
+    '无法检查此旅行的天数。如果新日期包含的天数更少，保存时会移除最后几天及其中计划的所有内容。',
   'dashboard.greeting.morning': '早上好，',
   'dashboard.greeting.afternoon': '下午好，',
   'dashboard.greeting.evening': '晚上好，',

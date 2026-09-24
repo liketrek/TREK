@@ -1,10 +1,13 @@
-// FE-JRN-EDITOR-001 to FE-JRN-EDITOR-040
+// FE-JRN-EDITOR-001 to FE-JRN-EDITOR-059
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { http, HttpResponse, delay } from 'msw'
 import { localIsoDate } from '../../utils/localDate'
 import userEvent from '@testing-library/user-event'
 import { render, screen, waitFor, fireEvent } from '../../../tests/helpers/render'
+import { seedStore } from '../../../tests/helpers/store'
+import { buildSettings } from '../../../tests/helpers/factories'
+import { useSettingsStore } from '../../store/settingsStore'
 import { server } from '../../../tests/helpers/msw/server'
 import type { GalleryPhoto, JourneyEntry, JourneyPhoto, JourneyTrip } from '../../store/journeyStore'
 import type { ResilientResult, UploadProgress } from '../../utils/uploadQueue'
@@ -92,6 +95,9 @@ const originalCreateObjectURL = URL.createObjectURL
 
 beforeEach(() => {
   toastSpy.mockClear()
+  // The time field reads time_format, so pin it: without this the cases that
+  // assert a 24h string depend on whichever test ran before them (#2067).
+  seedStore(useSettingsStore, { settings: buildSettings({ time_format: '24h' }) })
   window.__addToast = toastSpy
   Object.defineProperty(URL, 'createObjectURL', {
     configurable: true, writable: true, value: vi.fn(() => 'blob:preview'),
@@ -865,15 +871,48 @@ describe('EntryEditor', () => {
     const user = userEvent.setup()
     const { onSave } = mountEditor(buildEntry({ id: 10, title: 'Old', entry_time: '14:30:00' }))
 
-    // The column carries HH:MM:SS; a time input only accepts HH:MM.
+    // The column carries HH:MM:SS; the picker is seeded from a HH:MM slice.
     const timeInput = screen.getByDisplayValue('14:30')
-    expect(timeInput).toHaveAttribute('type', 'time')
 
     fireEvent.change(timeInput, { target: { value: '09:05' } })
     await user.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() => expect(onSave).toHaveBeenCalled())
     expect(onSave.mock.calls[0][0]).toEqual(expect.objectContaining({ entry_time: '09:05' }))
+  })
+
+  // #2067 — the field used to be a native <input type="time">, which paints 12h or
+  // 24h from the browser locale and cannot be told otherwise. These pin that the
+  // user's setting decides what is shown, and that storage stays 24h either way.
+  it('FE-JRN-EDITOR-048: a 24h user sees a 24h clock with no meridiem', () => {
+    seedStore(useSettingsStore, { settings: buildSettings({ time_format: '24h' }) })
+    const { container } = mountEditor(buildEntry({ id: 10, title: 'Old', entry_time: '14:30:00' }))
+
+    expect(screen.getByDisplayValue('14:30')).toBeInTheDocument()
+    expect(container.textContent).not.toMatch(/\bPM\b/)
+  })
+
+  it('FE-JRN-EDITOR-049: a 12h user sees the same stored time as a meridiem clock', () => {
+    seedStore(useSettingsStore, { settings: buildSettings({ time_format: '12h' }) })
+    mountEditor(buildEntry({ id: 10, title: 'Old', entry_time: '14:30:00' }))
+
+    expect(screen.getByDisplayValue('2:30 PM')).toBeInTheDocument()
+    expect(screen.queryByDisplayValue('14:30')).not.toBeInTheDocument()
+  })
+
+  it('FE-JRN-EDITOR-050: a meridiem typed by a 12h user is still stored as 24h', async () => {
+    const user = userEvent.setup()
+    seedStore(useSettingsStore, { settings: buildSettings({ time_format: '12h' }) })
+    const { onSave } = mountEditor(buildEntry({ id: 10, title: 'Old', entry_time: '14:30:00' }))
+
+    const field = screen.getByDisplayValue('2:30 PM')
+    fireEvent.focus(field)
+    fireEvent.change(field, { target: { value: '5:30 pm' } })
+    fireEvent.blur(field)
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled())
+    expect(onSave.mock.calls[0][0]).toEqual(expect.objectContaining({ entry_time: '17:30' }))
   })
 
   it('FE-JRN-EDITOR-042: clearing the time sends null rather than an empty string', async () => {
@@ -925,5 +964,111 @@ describe('EntryEditor', () => {
     // The library picker keeps multi-select; forcing capture onto it would drop that.
     expect(library[0]).toHaveAttribute('multiple')
     expect(camera[0]).not.toHaveAttribute('multiple')
+  })
+
+  // #2064: a home airport written up as an entry is a stop on the printed
+  // route. The editor offers the same switch the Studio panel has, but only
+  // to an entry that is (or was) a stop: one without a point never counted,
+  // and a new entry is not on the route yet.
+  it('FE-JRN-EDITOR-051: offers to leave a located entry out of the route and saves it', async () => {
+    const user = userEvent.setup()
+    const { onSave } = mountEditor(buildEntry({
+      id: 10, location_name: 'Keflavík', location_lat: 63.98, location_lng: -22.6,
+    }))
+
+    const toggle = screen.getByRole('button', { name: 'Leave out of the route' })
+    expect(toggle).toHaveAttribute('aria-pressed', 'false')
+    await user.click(toggle)
+    expect(toggle).toHaveAttribute('aria-pressed', 'true')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled())
+    expect(onSave.mock.calls[0][0]).toMatchObject({ stats_excluded: true })
+  })
+
+  it('FE-JRN-EDITOR-052: keeps the switch away from a new entry, point or no point', () => {
+    mountEditor(buildEntry({ location_lat: 63.98, location_lng: -22.6 }))
+
+    expect(screen.queryByRole('button', { name: 'Leave out of the route' })).not.toBeInTheDocument()
+  })
+
+  it('FE-JRN-EDITOR-053: keeps the switch away from an entry without a point, and sends nothing for it', async () => {
+    const user = userEvent.setup()
+    const { onSave } = mountEditor(buildEntry({ id: 10 }))
+
+    expect(screen.queryByRole('button', { name: 'Leave out of the route' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled())
+    expect(onSave.mock.calls[0][0].stats_excluded).toBeUndefined()
+  })
+
+  it('FE-JRN-EDITOR-054: still offers the switch to a left-out entry, so it can be put back', async () => {
+    const user = userEvent.setup()
+    const { onSave } = mountEditor(buildEntry({ id: 10, stats_excluded: true }))
+
+    const toggle = screen.getByRole('button', { name: 'Leave out of the route' })
+    expect(toggle).toHaveAttribute('aria-pressed', 'true')
+    await user.click(toggle)
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled())
+    expect(onSave.mock.calls[0][0]).toMatchObject({ stats_excluded: false })
+  })
+
+  it('FE-JRN-EDITOR-055: flipping the switch is a change worth warning about', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
+    const user = userEvent.setup()
+    const { onClose } = mountEditor(buildEntry({ id: 10, location_lat: 63.98, location_lng: -22.6 }))
+
+    await user.click(screen.getByRole('button', { name: 'Leave out of the route' }))
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    expect(confirmSpy).toHaveBeenCalledWith('You have unsaved changes. Discard them?')
+    expect(onClose).not.toHaveBeenCalled()
+    confirmSpy.mockRestore()
+  })
+  it('FE-JRN-EDITOR-056: a clip without a poster is a play badge, not a request for its thumbnail (#2341)', () => {
+    // The thumbnail route answers 404 for such a clip on purpose, and the old
+    // fallback to /original would have handed an <img> the video file itself.
+    const clip = { ...buildPhoto(100), media_type: 'video', provider: 'local', thumbnail_path: null }
+    const { container } = mountEditor(buildEntry({ id: 10, photos: [clip] }))
+
+    expect(container.querySelector('img[src="/api/photos/100/thumbnail"]')).not.toBeInTheDocument()
+    expect(container.querySelector('svg.lucide-play')).toBeInTheDocument()
+  })
+
+  it('FE-JRN-EDITOR-057: a clip with its poster shows the poster like any photo', () => {
+    const clip = { ...buildPhoto(100), media_type: 'video', provider: 'local', thumbnail_path: 'journey/poster.jpg' }
+    const { container } = mountEditor(buildEntry({ id: 10, photos: [clip] }))
+
+    expect(container.querySelector('img[src="/api/photos/100/thumbnail"]')).toBeInTheDocument()
+    expect(container.querySelector('svg.lucide-play')).not.toBeInTheDocument()
+  })
+
+  it('FE-JRN-EDITOR-058: the gallery picker gives a clip without a poster the same play badge (#2341)', async () => {
+    const user = userEvent.setup()
+    const clip = { ...buildGalleryPhoto(200), media_type: 'video', provider: 'local', thumbnail_path: null }
+    const { container } = mountEditor(buildEntry(), { galleryPhotos: [clip] })
+
+    await user.click(screen.getByRole('button', { name: 'From Gallery' }))
+
+    expect(container.querySelector('img[src="/api/photos/200/thumbnail"]')).not.toBeInTheDocument()
+    expect(container.querySelector('svg.lucide-play')).toBeInTheDocument()
+  })
+
+  it('FE-JRN-EDITOR-059: a clip whose poster fails to load is not retried as the clip itself', async () => {
+    // The /original of a video is the video file, which an <img> cannot draw.
+    const user = userEvent.setup()
+    const strip = { ...buildPhoto(100), media_type: 'video', provider: 'local', thumbnail_path: 'journey/a.jpg' }
+    const picker = { ...buildGalleryPhoto(200), media_type: 'video', provider: 'local', thumbnail_path: 'journey/b.jpg' }
+    const { container } = mountEditor(buildEntry({ id: 10, photos: [strip] }), { galleryPhotos: [picker] })
+
+    await user.click(screen.getByRole('button', { name: 'From Gallery' }))
+    for (const id of [100, 200]) {
+      const img = container.querySelector(`img[src="/api/photos/${id}/thumbnail"]`) as HTMLImageElement
+      fireEvent.error(img)
+      expect(img.getAttribute('src')).toBe(`/api/photos/${id}/thumbnail`)
+    }
   })
 })

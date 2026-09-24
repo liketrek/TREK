@@ -327,18 +327,26 @@ describe('JourneyDetailPage', () => {
 
   // ── FE-PAGE-JOURNEYDETAIL-008 ──────────────────────────────────────────
   describe('FE-PAGE-JOURNEYDETAIL-008: Shows VerdictSection when entry has pros/cons', () => {
-    it('renders the Pros & Cons section header', async () => {
+    // The verdict moved behind the story's fold in discussion #2299: it belongs to
+    // one entry, and a feed of open pro/con tables reads as a spreadsheet.
+    async function openTheFold() {
+      const user = userEvent.setup();
       await renderAndWait();
+      await user.click(screen.getAllByText('Show more')[0]);
+    }
+
+    it('renders the Pros & Cons section header once the entry is opened', async () => {
+      await openTheFold();
       expect(screen.getByText('Pros & Cons')).toBeInTheDocument();
     });
 
     it('renders pro items', async () => {
-      await renderAndWait();
+      await openTheFold();
       expect(screen.getByText('Great food')).toBeInTheDocument();
     });
 
     it('renders con items', async () => {
-      await renderAndWait();
+      await openTheFold();
       expect(screen.getByText('Crowded')).toBeInTheDocument();
     });
   });
@@ -843,14 +851,11 @@ describe('JourneyDetailPage', () => {
 
   // ── Helper: open entry editor ───────────────────────────────────────────
   async function openEntryEditor(user: ReturnType<typeof userEvent.setup>) {
-    // The + button is inside the view controls row, after the tab group
-    // Structure: div.justify-between > [div(tabs), button(+)]
-    // The tab group div contains the Timeline/Gallery/Map buttons
-    const tabGroup = screen.getByRole('button', { name: /timeline/i }).parentElement!;
-    // The + button is the next sibling of the tab group
-    const addBtn = tabGroup.nextElementSibling as HTMLElement;
-    expect(addBtn).toBeTruthy();
-    expect(addBtn.tagName).toBe('BUTTON');
+    // By name rather than by position: the controls row also carries the search
+    // box now, so "next sibling of the tab group" stopped being the + button
+    // (discussion #2299). The day headers' own plus buttons are labelled "Add an
+    // entry on this day" and do not answer to this.
+    const addBtn = screen.getByRole('button', { name: /^add entry$/i });
 
     await user.click(addBtn);
 
@@ -922,10 +927,11 @@ describe('JourneyDetailPage', () => {
       await renderAndWait();
       await openEntryEditor(user);
 
-      // The editor shows "Pros & Cons" label (displayed uppercase via CSS class)
-      // The timeline view already shows "Pros & Cons" from the first entry, so use getAllByText
+      // The editor shows "Pros & Cons" label (displayed uppercase via CSS class).
+      // Exactly one: the timeline's copy sits behind the entry's fold now, and this
+      // test never opens it (discussion #2299).
       const prosConsLabels = screen.getAllByText('Pros & Cons');
-      expect(prosConsLabels.length).toBeGreaterThanOrEqual(2);
+      expect(prosConsLabels).toHaveLength(1);
       // It also shows sub-labels Pros and Cons
       expect(screen.getByText('Pros')).toBeInTheDocument();
       expect(screen.getByText('Cons')).toBeInTheDocument();
@@ -2197,13 +2203,13 @@ describe('JourneyDetailPage', () => {
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
       await openGalleryWithProvider(user);
 
-      // Footer shows "0 selected" initially
+      // The count lives on the Add button alone now: the separate "N selected" pill
+      // beside it said the same thing twice and cost the grid a row (#2299).
       await waitFor(() => {
-        expect(screen.getByText('selected')).toBeInTheDocument();
+        expect(screen.queryByText('selected')).toBeNull();
       });
 
-      // Add button shows "Add" (disabled when 0 selected)
-      const addBtn = screen.getByRole('button', { name: /^Add/ });
+      const addBtn = screen.getByRole('button', { name: /^Add$/ });
       expect(addBtn).toBeDisabled();
     });
   });
@@ -2361,15 +2367,15 @@ describe('JourneyDetailPage', () => {
 
   // ── FE-PAGE-JOURNEYDETAIL-105 ──────────────────────────────────────────
   describe('FE-PAGE-JOURNEYDETAIL-105: EntryEditor has hidden file input', () => {
-    it('has a hidden file input with accept="image/*" and multiple attribute', async () => {
+    it('takes pictures and clips, several at a time', async () => {
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
       await renderAndWait();
       await openEntryEditor(user);
 
-      // The editor has a hidden file input
-      const fileInputs = document.querySelectorAll('input[type="file"][accept="image/*"]');
+      // The picker takes video as well as stills (#2341). The camera input beside
+      // it stays image-only: `capture` is for taking a photo, not filming one.
+      const fileInputs = document.querySelectorAll('input[type="file"][accept="image/*,video/*"]');
       expect(fileInputs.length).toBeGreaterThanOrEqual(1);
-      // Should have the multiple attribute
       const editorFileInput = Array.from(fileInputs).find(input => {
         return input.closest('[class*="fixed"]') !== null;
       });
@@ -2754,7 +2760,7 @@ describe('JourneyDetailPage', () => {
 
       // After selection, the Add button should show count
       await waitFor(() => {
-        const addBtn = screen.getByRole('button', { name: /^Add/ });
+        const addBtn = screen.getByRole('button', { name: /^Add \(\d+\)$/ });
         expect(addBtn.textContent).toContain('1');
       });
     });

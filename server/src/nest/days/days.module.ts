@@ -3,6 +3,9 @@ import { DaysController } from './days.controller';
 import { DaysService } from './days.service';
 import { DaysMcp } from './days.mcp';
 import { DaysRpc } from './days.rpc';
+import { DayRemovalService } from './day-removal.service';
+import { AccommodationsDomainModule } from '../accommodations/accommodations-domain.module';
+import { AssignmentsDomainModule } from '../assignments/assignments-domain.module';
 import { PluginGuardsModule } from '../plugins/host/plugin-guards.module';
 import { RealtimeModule } from '../realtime/realtime.module';
 import { PermissionsModule } from '../permissions/permissions.module';
@@ -19,11 +22,19 @@ import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
  *
  * Day notes used to live here too, with their own full file set; they are their
  * own domain now (day-notes/).
+ *
+ * Deleting a day cancels the stays that check in or out on it and lets the
+ * journey catch up, so DayRemovalService needs the accommodations and
+ * assignments services. Both domain modules are leaves (neither reaches days or
+ * places), and PlacesModule already brings them in, so the edge adds no cycle.
  */
 @Module({
-  imports: [McpSharedModule, PermissionsModule, QueryHelpersModule, PlacesModule, AuthModule, RealtimeModule, PluginGuardsModule],
+  imports: [
+    McpSharedModule, PermissionsModule, QueryHelpersModule, PlacesModule, AuthModule, RealtimeModule, PluginGuardsModule,
+    AccommodationsDomainModule, AssignmentsDomainModule,
+  ],
   controllers: [DaysController],
-  providers: [DaysService, DaysMcp, DaysRpc],
+  providers: [DaysService, DayRemovalService, DaysMcp, DaysRpc],
   exports: [DaysService],
 })
 export class DaysModule {}

@@ -1,13 +1,17 @@
 /**
  * Unit tests for MCP prompts: token_auth_notice, trip-summary, packing-list, budget-overview.
  *
- * Note: MCP prompt arguments must be Record<string, string> per protocol spec.
- * The prompts.ts argsSchema uses z.number() for tripId, which is incompatible
- * with the MCP client's type-safe getPrompt. We therefore test prompt callbacks
- * directly via the registered prompt handlers on the server instance.
+ * Every prompt is fetched the way a real client fetches it: over an in-memory
+ * transport, with the arguments as the strings the protocol carries
+ * (GetPromptRequest.arguments is Record<string, string>). The tripId schemas
+ * used to be z.number(), which no client could ever satisfy (#2207); these
+ * cases used to sidestep that by calling the callbacks directly.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
+import { Client } from '@modelcontextprotocol/sdk/client/index';
+import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory';
+import { ErrorCode } from '@modelcontextprotocol/sdk/types';
 
 const { testDb, dbMock } = vi.hoisted(() => {
   const Database = require('better-sqlite3');
@@ -48,7 +52,7 @@ const { isAddonEnabledMock } = vi.hoisted(() => {
 // of behind an import path.
 const addonsStub = {
   isAddonEnabled: isAddonEnabledMock,
-  getCollabFeatures: () => ({ chat: true, notes: true, polls: true, whatsnext: true }),
+  getCollabFeatures: () => ({ chat: true, notes: true, links: true, polls: true, whatsnext: true }),
 } as unknown as AddonsService;
 
 const { mockGetTripSummary } = vi.hoisted(() => ({
@@ -175,31 +179,42 @@ afterAll(() => {
   testDb.close();
 });
 
-/** Build a fresh McpServer with prompts registered for the given userId. */
-function buildServer(userId: number, opts: { isStaticToken?: boolean } = {}): McpServer {
+const openSessions: Array<{ client: Client; server: McpServer }> = [];
+
+afterEach(async () => {
+  for (const { client, server } of openSessions.splice(0)) {
+    await client.close();
+    await server.close();
+  }
+});
+
+/** A connected client over a fresh McpServer with the prompts registered for the given userId. */
+async function buildServer(userId: number, opts: { isStaticToken?: boolean } = {}): Promise<Client> {
   const server = new McpServer({ name: 'trek-test', version: '1.0.0' });
   // Every prompt is DI-discovered now; attach them the way registerTools does in
   // production, including the isStaticToken flag the notice's `when` gate reads.
   createTestRegistry([tripsMcp, tripPromptsMcp, packingMcp, budgetMcp, authMcp], { accessPolicy: trekMcpAccessPolicy, validateAccess: trekMcpValidateAccess })
     .attach(server, { userId, scopes: null, isStaticToken: opts.isStaticToken ?? false });
-  return server;
+  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+  const client = new Client({ name: 'test-client', version: '1.0.0' });
+  await server.connect(serverTransport);
+  await client.connect(clientTransport);
+  openSessions.push({ client, server });
+  return client;
 }
 
-/** Invoke a registered prompt callback directly, bypassing the MCP transport. */
-async function invokePrompt(server: McpServer, name: string, args: Record<string, unknown>): Promise<string> {
-  const prompts = (server as any)._registeredPrompts;
-  const prompt = prompts[name];
-  if (!prompt) throw new Error(`Prompt "${name}" not registered`);
-  const result = await prompt.callback(args, {});
+/** Fetch a prompt over the transport; numeric ids go out as the strings a client sends. */
+async function invokePrompt(client: Client, name: string, args: Record<string, string | number> = {}): Promise<string> {
+  const wireArgs = Object.fromEntries(Object.entries(args).map(([key, value]) => [key, String(value)]));
+  const result = await client.getPrompt({ name, arguments: wireArgs });
   const msg = result.messages[0];
   if (msg?.content?.type === 'text') return msg.content.text;
   return '';
 }
 
-/** List registered prompt names. */
-function listRegisteredPrompts(server: McpServer): string[] {
-  const prompts = (server as any)._registeredPrompts;
-  return Object.keys(prompts);
+/** Prompt names the session advertises. */
+async function listRegisteredPrompts(client: Client): Promise<string[]> {
+  return (await client.listPrompts()).prompts.map((p) => p.name);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -207,8 +222,8 @@ function listRegisteredPrompts(server: McpServer): string[] {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Return only the text of a prompt result, ignoring error shapes. */
-async function invokePromptText(server: McpServer, name: string, args: Record<string, unknown>): Promise<string> {
-  return invokePrompt(server, name, args);
+async function invokePromptText(client: Client, name: string, args: Record<string, string | number>): Promise<string> {
+  return invokePrompt(client, name, args);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -218,19 +233,65 @@ async function invokePromptText(server: McpServer, name: string, args: Record<st
 describe('Prompt: token_auth_notice', () => {
   it('is registered and returns deprecation notice when isStaticToken=true', async () => {
     const { user } = createUser(testDb);
-    const server = buildServer(user.id, { isStaticToken: true });
-    const names = listRegisteredPrompts(server);
+    const client = await buildServer(user.id, { isStaticToken: true });
+    const names = await listRegisteredPrompts(client);
     expect(names).toContain('token_auth_notice');
-    const text = await invokePrompt(server, 'token_auth_notice', {});
+    const text = await invokePrompt(client, 'token_auth_notice', {});
     expect(text).toContain('static API token');
     expect(text).toContain('deprecated');
   });
 
+  it('answers a request that carries no arguments at all', async () => {
+    const { user } = createUser(testDb);
+    const client = await buildServer(user.id, { isStaticToken: true });
+    // The SDK client sends no `arguments` key when none are given; a prompt
+    // without arguments must not demand an empty object.
+    const result = await client.getPrompt({ name: 'token_auth_notice' });
+    expect(result.messages[0]?.content).toMatchObject({ type: 'text' });
+  });
+
   it('is NOT registered when isStaticToken=false', async () => {
     const { user } = createUser(testDb);
-    const server = buildServer(user.id, { isStaticToken: false });
-    const names = listRegisteredPrompts(server);
+    const client = await buildServer(user.id, { isStaticToken: false });
+    const names = await listRegisteredPrompts(client);
     expect(names).not.toContain('token_auth_notice');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Prompt arguments on the wire (#2207)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('Prompt arguments on the wire', () => {
+  it.each(['trip-summary', 'packing-list', 'budget-overview'])('%s takes the trip id as the string every client sends (#2207)', async (name) => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Wire Trip' });
+    createPackingItem(testDb, trip.id, { name: 'Charger', category: 'Tech' });
+
+    const client = await buildServer(user.id);
+    const result = await client.getPrompt({ name, arguments: { tripId: String(trip.id) } });
+    expect(result.description).toContain('Wire Trip');
+  });
+
+  it.each(['abc', '0', '-3', '1.5', '', '99999999999999999999'])('rejects the trip id %j as invalid params instead of reaching the handler', async (tripId) => {
+    const { user } = createUser(testDb);
+    createTrip(testDb, user.id, { title: 'Untouched' });
+    mockGetTripSummary.mockClear();
+
+    const client = await buildServer(user.id);
+    await expect(client.getPrompt({ name: 'trip-summary', arguments: { tripId } }))
+      .rejects.toMatchObject({ code: ErrorCode.InvalidParams });
+    expect(mockGetTripSummary).not.toHaveBeenCalled();
+  });
+
+  it('advertises tripId as a required argument of every trip prompt', async () => {
+    const { user } = createUser(testDb);
+    const client = await buildServer(user.id);
+    const { prompts } = await client.listPrompts();
+    const byName = Object.fromEntries(prompts.map((p) => [p.name, p.arguments]));
+    expect(byName['trip-summary']).toEqual([{ name: 'tripId', description: 'Trip ID to summarize', required: true }]);
+    expect(byName['packing-list']).toEqual([{ name: 'tripId', description: 'Trip ID', required: true }]);
+    expect(byName['budget-overview']).toEqual([{ name: 'tripId', description: 'Trip ID', required: true }]);
   });
 });
 
@@ -241,8 +302,8 @@ describe('Prompt: token_auth_notice', () => {
 describe('Prompt: trip-summary', () => {
   it('is always registered regardless of addons', async () => {
     const { user } = createUser(testDb);
-    const server = buildServer(user.id);
-    expect(listRegisteredPrompts(server)).toContain('trip-summary');
+    const client = await buildServer(user.id);
+    expect(await listRegisteredPrompts(client)).toContain('trip-summary');
   });
 
   it('returns access denied message for non-member trip', async () => {
@@ -250,8 +311,8 @@ describe('Prompt: trip-summary', () => {
     const { user: other } = createUser(testDb);
     const trip = createTrip(testDb, other.id, { title: 'Private Trip' });
 
-    const server = buildServer(user.id);
-    const text = await invokePrompt(server, 'trip-summary', { tripId: trip.id });
+    const client = await buildServer(user.id);
+    const text = await invokePrompt(client, 'trip-summary', { tripId: trip.id });
     expect(text.toLowerCase()).toContain('access denied');
   });
 
@@ -261,18 +322,10 @@ describe('Prompt: trip-summary', () => {
     const trip = createTrip(testDb, user.id, { title: 'Paris Trip', start_date: '2026-07-01', end_date: '2026-07-03' });
     addTripMember(testDb, trip.id, member.id);
 
-    const server = buildServer(user.id);
-    // The prompt callback accesses packing/budget from getTripSummary which returns
-    // object shapes; this verifies the trip is accessible and a response is produced.
-    try {
-      const text = await invokePrompt(server, 'trip-summary', { tripId: trip.id });
-      expect(text).toContain('Paris Trip');
-    } catch (err: any) {
-      // getTripSummary returns { packing: { items, total, checked }, budget: { items, total, ... } }
-      // but prompts.ts calls packing.filter() expecting an array — known source discrepancy.
-      // Verify the trip IS accessible (access denied would not throw, it returns a message).
-      expect(err.message).not.toContain('access denied');
-    }
+    const client = await buildServer(user.id);
+    const text = await invokePrompt(client, 'trip-summary', { tripId: trip.id });
+    expect(text).toContain('Paris Trip');
+    expect(text).toContain('Dates: 2026-07-01 to 2026-07-03');
   });
 
   it('returns "Trip not found." when getTripSummary returns null for accessible trip', async () => {
@@ -282,8 +335,8 @@ describe('Prompt: trip-summary', () => {
     // Override mock to return null (covers lines 46-48 in prompts.ts)
     mockGetTripSummary.mockReturnValueOnce(null);
 
-    const server = buildServer(user.id);
-    const text = await invokePromptText(server, 'trip-summary', { tripId: trip.id });
+    const client = await buildServer(user.id);
+    const text = await invokePromptText(client, 'trip-summary', { tripId: trip.id });
     expect(text).toContain('Trip not found.');
   });
 
@@ -302,8 +355,8 @@ describe('Prompt: trip-summary', () => {
       collabNotes: [],
     });
 
-    const server = buildServer(user.id);
-    const text = await invokePromptText(server, 'trip-summary', { tripId: trip.id });
+    const client = await buildServer(user.id);
+    const text = await invokePromptText(client, 'trip-summary', { tripId: trip.id });
     expect(text).toContain('Untitled');
     expect(text).toContain('?');   // start/end date fallback
     expect(text).toContain('EUR'); // currency fallback
@@ -318,15 +371,15 @@ describe('Prompt: packing-list', () => {
   it('prompt is NOT registered when packing addon is disabled', async () => {
     isAddonEnabledMock.mockReturnValue(false);
     const { user } = createUser(testDb);
-    const server = buildServer(user.id);
-    expect(listRegisteredPrompts(server)).not.toContain('packing-list');
+    const client = await buildServer(user.id);
+    expect(await listRegisteredPrompts(client)).not.toContain('packing-list');
   });
 
   it('prompt is registered when packing addon is enabled', async () => {
     // isAddonEnabledMock returns true by default
     const { user } = createUser(testDb);
-    const server = buildServer(user.id);
-    expect(listRegisteredPrompts(server)).toContain('packing-list');
+    const client = await buildServer(user.id);
+    expect(await listRegisteredPrompts(client)).toContain('packing-list');
   });
 
   it('returns access denied for non-member trip', async () => {
@@ -334,8 +387,8 @@ describe('Prompt: packing-list', () => {
     const { user: other } = createUser(testDb);
     const trip = createTrip(testDb, other.id);
 
-    const server = buildServer(user.id);
-    const text = await invokePrompt(server, 'packing-list', { tripId: trip.id });
+    const client = await buildServer(user.id);
+    const text = await invokePrompt(client, 'packing-list', { tripId: trip.id });
     expect(text.toLowerCase()).toContain('access denied');
   });
 
@@ -343,8 +396,8 @@ describe('Prompt: packing-list', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'Empty Trip' });
 
-    const server = buildServer(user.id);
-    const text = await invokePrompt(server, 'packing-list', { tripId: trip.id });
+    const client = await buildServer(user.id);
+    const text = await invokePrompt(client, 'packing-list', { tripId: trip.id });
     expect(text).toContain('No packing items found');
   });
 
@@ -354,8 +407,8 @@ describe('Prompt: packing-list', () => {
     createPackingItem(testDb, trip.id, { name: 'Sunscreen', category: 'Essentials' });
     createPackingItem(testDb, trip.id, { name: 'Passport', category: 'Documents' });
 
-    const server = buildServer(user.id);
-    const text = await invokePrompt(server, 'packing-list', { tripId: trip.id });
+    const client = await buildServer(user.id);
+    const text = await invokePrompt(client, 'packing-list', { tripId: trip.id });
     expect(text).toContain('Packing List');
     expect(text).toContain('Sunscreen');
     expect(text).toContain('Passport');
@@ -373,8 +426,8 @@ describe('Prompt: packing-list', () => {
     // Null out the getTripSummary call inside packing-list (line 94: || {})
     mockGetTripSummary.mockReturnValueOnce(null);
 
-    const server = buildServer(user.id);
-    const text = await invokePromptText(server, 'packing-list', { tripId: trip.id });
+    const client = await buildServer(user.id);
+    const text = await invokePromptText(client, 'packing-list', { tripId: trip.id });
     expect(text).toContain('Toothbrush');
     // Falls back to 'Trip' literal since trip?.title is undefined (getTripSummary null → || {})
     expect(text).toContain('Packing List: Trip');
@@ -389,14 +442,14 @@ describe('Prompt: budget-overview', () => {
   it('prompt is NOT registered when budget addon is disabled', async () => {
     isAddonEnabledMock.mockReturnValue(false);
     const { user } = createUser(testDb);
-    const server = buildServer(user.id);
-    expect(listRegisteredPrompts(server)).not.toContain('budget-overview');
+    const client = await buildServer(user.id);
+    expect(await listRegisteredPrompts(client)).not.toContain('budget-overview');
   });
 
   it('prompt is registered when budget addon is enabled', async () => {
     const { user } = createUser(testDb);
-    const server = buildServer(user.id);
-    expect(listRegisteredPrompts(server)).toContain('budget-overview');
+    const client = await buildServer(user.id);
+    expect(await listRegisteredPrompts(client)).toContain('budget-overview');
   });
 
   it('returns access denied for non-member trip', async () => {
@@ -404,8 +457,8 @@ describe('Prompt: budget-overview', () => {
     const { user: other } = createUser(testDb);
     const trip = createTrip(testDb, other.id);
 
-    const server = buildServer(user.id);
-    const text = await invokePrompt(server, 'budget-overview', { tripId: trip.id });
+    const client = await buildServer(user.id);
+    const text = await invokePrompt(client, 'budget-overview', { tripId: trip.id });
     expect(text.toLowerCase()).toContain('access denied');
   });
 
@@ -413,20 +466,9 @@ describe('Prompt: budget-overview', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'Budget Trip' });
 
-    const server = buildServer(user.id);
-    // The prompt destructures budget from getTripSummary, which now returns
-    // { items, item_count, total, currency } instead of an array.
-    // prompts.ts calls budget?.reduce() expecting an array — known source discrepancy.
-    // This test verifies the prompt is reachable and the trip access check passes.
-    try {
-      const text = await invokePrompt(server, 'budget-overview', { tripId: trip.id });
-      // If source shape matches, text should contain the trip title
-      expect(text).toContain('Budget Trip');
-    } catch (err: any) {
-      // The TypeError from budget.reduce confirms the trip was accessible
-      // (access denied produces a message, not an exception).
-      expect(err.message).toContain('is not a function');
-    }
+    const client = await buildServer(user.id);
+    const text = await invokePrompt(client, 'budget-overview', { tripId: trip.id });
+    expect(text).toContain('Budget Trip');
   });
 
   it('produces output for an accessible trip with budget items', async () => {
@@ -435,14 +477,10 @@ describe('Prompt: budget-overview', () => {
     createBudgetItem(testDb, trip.id, { name: 'Flight', category: 'Transport', total_price: 300 });
     createBudgetItem(testDb, trip.id, { name: 'Hotel', category: 'Accommodation', total_price: 500 });
 
-    const server = buildServer(user.id);
-    try {
-      const text = await invokePrompt(server, 'budget-overview', { tripId: trip.id });
-      expect(text).toContain('Italy Trip');
-    } catch (err: any) {
-      // Confirms trip was accessible; TypeError from budget.reduce is a source discrepancy
-      expect(err.message).toContain('is not a function');
-    }
+    const client = await buildServer(user.id);
+    const text = await invokePrompt(client, 'budget-overview', { tripId: trip.id });
+    expect(text).toContain('Italy Trip');
+    expect(text).toContain('Total: 800');
   });
 
   it('returns "Trip not found." when getTripSummary returns null for accessible trip', async () => {
@@ -452,8 +490,8 @@ describe('Prompt: budget-overview', () => {
     // Override mock to return null (covers lines 116-118 in prompts.ts)
     mockGetTripSummary.mockReturnValueOnce(null);
 
-    const server = buildServer(user.id);
-    const text = await invokePromptText(server, 'budget-overview', { tripId: trip.id });
+    const client = await buildServer(user.id);
+    const text = await invokePromptText(client, 'budget-overview', { tripId: trip.id });
     expect(text).toContain('Trip not found.');
   });
 
@@ -466,8 +504,8 @@ describe('Prompt: budget-overview', () => {
     createBudgetItem(testDb, trip.id, { name: 'Bus', category: 'Transport', total_price: 50 });
     createBudgetItem(testDb, trip.id, { name: 'Hotel', category: 'Accommodation', total_price: 300 });
 
-    const server = buildServer(user.id);
-    const text = await invokePromptText(server, 'budget-overview', { tripId: trip.id });
+    const client = await buildServer(user.id);
+    const text = await invokePromptText(client, 'budget-overview', { tripId: trip.id });
     expect(text).toContain('Budget Trip');
     expect(text).toContain('Transport');
     expect(text).toContain('Accommodation');
@@ -479,8 +517,8 @@ describe('Prompt: budget-overview', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'Empty Budget' });
 
-    const server = buildServer(user.id);
-    const text = await invokePromptText(server, 'budget-overview', { tripId: trip.id });
+    const client = await buildServer(user.id);
+    const text = await invokePromptText(client, 'budget-overview', { tripId: trip.id });
     expect(text).toContain('No expenses recorded.');
   });
 });

@@ -39,6 +39,10 @@ Reservations are grouped into two collapsible sections: **Pending** and **Confir
 
 On desktop, a type filter bar lets you show only specific types. Filter selections are kept for the current browser session.
 
+Travelers are set per booking from the trip roster, guests included.
+
+> **AI / MCP:** `set_reservation_travelers` writes that list; it replaces it wholesale and ignores anybody who is not on the trip. See [MCP-Tools-and-Resources](MCP-Tools-and-Resources).
+
 A traveler filter sits next to it — on desktop and mobile — once the trip has more than one member and at least one booking has travelers assigned. Click an avatar to show only that person's bookings; several can be active at once. On desktop the selection is kept for the browser session like the type filter; on mobile it resets when you leave the tab.
 
 ## Reservation card contents
@@ -47,7 +51,7 @@ Each card displays:
 
 - **Status dot** — green for Confirmed, amber for Pending
 - **Type chip** — icon and label for the reservation type
-- **Needs review badge** — an amber badge shown on reservations flagged by importers that may need your attention
+- **Review badge** — an amber badge shown on reservations flagged by importers that may need your attention
 - **Title** — the reservation name
 - **Edit and delete buttons** — visible only if you have edit permission
 
@@ -129,7 +133,7 @@ The **Import from file** button is hidden only when neither the `kitinerary-extr
 
 ### Needs review flag
 
-Items that the extractor could only partially parse are flagged **Needs review** — an amber badge on the card. Review these reservations after import and fill in any missing fields manually.
+Items that the extractor could only partially parse are flagged for review — an amber **Review** badge on the card. Review these reservations after import and fill in any missing fields manually.
 
 ### AI fallback for hard-to-read files
 

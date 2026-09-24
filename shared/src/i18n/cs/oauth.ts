@@ -93,5 +93,20 @@ const oauth: TranslationStrings = {
   'oauth.authorize.alwaysIncluded': 'Always included', // en-fallback
   'oauth.authorize.alwaysTool.listTrips': 'List your trips so the AI can discover trip IDs', // en-fallback
   'oauth.authorize.alwaysTool.getTripSummary': 'Read a trip overview needed to use any other tool', // en-fallback
+  'oauth.scope.group.files': 'Soubory',
+  'oauth.scope.group.settings': 'Nastavení',
+  'oauth.scope.files:read.label': 'Zobrazit soubory cesty',
+  'oauth.scope.files:read.description': 'Vypsat dokumenty cesty: názvy, velikosti, kdo je nahrál a k čemu jsou připojené',
+  'oauth.scope.files:write.label': 'Spravovat soubory cesty',
+  'oauth.scope.files:write.description': 'Přejmenovat a popsat soubory, připojit je k rezervacím a místům, označit hvězdičkou a přesunout do koše',
+  'oauth.scope.files:content.label': 'Číst obsah souborů',
+  'oauth.scope.files:content.description': 'Přečíst obsah nahraného dokumentu, například PDF rezervace nebo jízdenku',
+  'oauth.scope.settings:read.label': 'Zobrazit vaše předvolby',
+  'oauth.scope.settings:read.description': 'Číst jednotky, formát času, jazyk, výchozí měnu a úvodní stránku',
+  'oauth.scope.settings:write.label': 'Změnit vaše předvolby',
+  'oauth.scope.settings:write.description': 'Změnit jednotky, formát času, jazyk, výchozí měnu a úvodní stránku. Nikdy uložené API klíče',
+  'oauth.scope.group.plugins': 'Pluginy',
+  'oauth.scope.plugins:use.label': 'Spouštět nástroje pluginů',
+  'oauth.scope.plugins:use.description': 'Umožní tomuto klientovi volat nástroje zveřejněné pluginy, které správce nainstaloval a schválil. Každý plugin jedná s oprávněními, která už dostal, nikoli s rozsahy tohoto tokenu',
 };
 export default oauth;

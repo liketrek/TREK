@@ -6,10 +6,13 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.addPlaceShort': 'Lugar',
   'mobileTrip.addToDayQuestion': 'Adicionar a um dia?',
   'mobileTrip.addTransportShort': 'Transporte',
+  'mobileTrip.allDays': 'Todos os dias',
   'mobileTrip.assignedDays': 'Dias atribuídos',
+  'mobileTrip.assignmentNotes': 'Notas específicas do dia',
   'mobileTrip.bookingsEmpty': 'Nenhuma reserva ainda',
   'mobileTrip.collabFeatureDisabled': 'Esse recurso está desativado para esta viagem',
   'mobileTrip.compactView': 'Visualização compacta',
+  'mobileTrip.dayAnnounce': 'Dia {current} de {total}',
   'mobileTrip.dayTitlePlaceholder': 'Título do dia',
   'mobileTrip.export': 'Exportar',
   'mobileTrip.filesEmpty': 'Nenhum arquivo ainda',
@@ -44,5 +47,31 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.upNext': 'A seguir',
   'mobileTrip.viewDetails': 'Ver detalhes',
   'mobileTrip.transportsEmpty': 'Nenhum transporte ainda',
+  'mobileTrip.rtInfoTitle': 'Dados de condução',
+  'mobileTrip.rtDesktopNote':
+    'Esses dados são definidos no computador, onde você também pode comparar rotas alternativas e fazer um dia seguir uma trilha importada.',
+  'mobileTrip.rtPlanOnDesktop':
+    'O planejamento acontece no computador. O TREK calcula o trajeto assim que um dia tem dois locais.',
+  'mobileTrip.rtSearchOffline': 'Precisa de conexão: a busca lê a rota à frente.',
+  'mobileTrip.rtBehind': '{time} de atraso em relação ao plano',
+  'mobileTrip.rtStart': 'Início',
+  'mobileTrip.rtStayScope':
+    'A estadia pertence ao local, então ela vale em todos os dias em que esta parada está planejada.',
+  'mobileTrip.rtStayLess': '{count} minutos a menos',
+  'mobileTrip.rtStayMore': '{count} minutos a mais',
+  'mobileTrip.rtNightDesktopOnly':
+    'Reservar um pernoite neste local funciona no planejador do computador. Aqui você só pode descartá-lo.',
+  'mobileTrip.rtReach': 'Até onde',
+  'mobileTrip.rtReachAhead': '{distance} à frente',
+  'mobileTrip.rtFromNext': 'A partir da sua próxima parada',
+  'mobileTrip.rtFromStart': 'A partir do início da etapa',
+  'mobileTrip.rtNoneAhead': 'Nada na estrada à frente. Tente a etapa inteira.',
+  'mobileTrip.rtNoneOnStage': 'Nada desse tipo ao longo desta etapa.',
+  'mobileTrip.rtTruncated.one':
+    '1 trecho tinha mais do que cabe em uma resposta. Escolha menos tipos para ver o resto.',
+  'mobileTrip.rtTruncated.other':
+    '{count} trechos tinham mais do que cabe em uma resposta. Escolha menos tipos para ver o resto.',
+  'mobileTrip.rtNoDay': 'Nenhum dia escolhido',
+  'mobileTrip.rtNoDayHint': 'O mapa mostra a viagem inteira. Toque num dia acima para ver o seu percurso.',
 };
 export default mobileTrip;

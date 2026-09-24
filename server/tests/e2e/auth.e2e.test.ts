@@ -36,9 +36,12 @@ vi.mock('../../src/websocket', () => ({ broadcastToUser: vi.fn(), broadcast: vi.
 // The audit domain is DI-native: writeAudit runs for real against the temp
 // db's audit_log table; only the file logger is silenced.
 vi.mock('../../src/nest/audit/audit-log.logger', () => ({ LOG_LEVEL: 'error', logInfo: vi.fn(), logDebug: vi.fn(), logError: vi.fn(), logWarn: vi.fn() }));
+// Switchable so the passkey cases can reproduce the real APP_URL-unset
+// fallback (http://localhost:{PORT}) without disturbing the other cases.
+const { appUrlRef } = vi.hoisted(() => ({ appUrlRef: { value: 'https://x' } }));
 vi.mock('../../src/app-config', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../src/app-config')>();
-  return { ...actual, getAppUrl: () => 'https://x' };
+  return { ...actual, getAppUrl: () => appUrlRef.value };
 });
 
 import { MailerService } from '../../src/nest/notifications/mailer/mailer.service';
@@ -324,6 +327,56 @@ describe('Auth e2e (real auth guard + real service + real cookie service + temp 
     expect(await hasMapsKey(member.user.id)).toBe(false);
     // That same column still counts for the admin themselves.
     expect(await hasMapsKey(admin.user.id)).toBe(true);
+  });
+
+  describe('passkey origin gate (#2147)', () => {
+    beforeAll(() => {
+      db.prepare("INSERT INTO app_settings (key, value) VALUES ('passkey_login', 'true') ON CONFLICT(key) DO UPDATE SET value = 'true'").run();
+      // What getAppUrl() really yields with APP_URL unset — the phantom config.
+      appUrlRef.value = 'http://localhost:3001';
+    });
+
+    afterAll(() => {
+      db.prepare("DELETE FROM app_settings WHERE key = 'passkey_login'").run();
+      appUrlRef.value = 'https://x';
+    });
+
+    it('register/options answers the actionable not-configured 400 for a remote origin', async () => {
+      const res = await request(server)
+        .post('/api/auth/passkey/register/options')
+        .set('Cookie', sessionCookie(userId))
+        .set('Origin', 'https://trip.example.org')
+        .send({ password: userPassword });
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({ error: 'Passkey login is not configured for this server.' });
+    });
+
+    it('register/options still serves the localhost dev flow (no Origin header, localhost origin)', async () => {
+      const bare = await request(server)
+        .post('/api/auth/passkey/register/options')
+        .set('Cookie', sessionCookie(userId))
+        .send({ password: userPassword });
+      expect(bare.status).toBe(200);
+      expect(bare.body.rp).toEqual({ name: 'TREK', id: 'localhost' });
+
+      const local = await request(server)
+        .post('/api/auth/passkey/register/options')
+        .set('Cookie', sessionCookie(userId))
+        .set('Origin', 'http://localhost:5173')
+        .send({ password: userPassword });
+      expect(local.status).toBe(200);
+      expect(local.body.rp.id).toBe('localhost');
+    });
+
+    it('login/options gets the same gate on the same derivation chain', async () => {
+      resetRateLimits(app); // shares the per-ip 'login' bucket with the login cases above
+      const res = await request(server)
+        .post('/api/auth/passkey/login/options')
+        .set('Origin', 'https://trip.example.org')
+        .send({});
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({ error: 'Passkey login is not configured for this server.' });
+    });
   });
 
   it('POST /logout clears the session cookie', async () => {

@@ -501,6 +501,33 @@ describe('Update trip', () => {
     const all = testDb.prepare('SELECT * FROM day_assignments WHERE id IN (?, ?)').all(a4.id, a5.id) as { id: number }[];
     expect(all).toHaveLength(0);
   });
+
+  it('TRIP-028: An earlier end takes the last day with its stay, while the hotel booking of that stay remains', async () => {
+    // Pins what the trip dialog warns about before such a save: the stay goes as
+    // a whole, even with nights still inside the trip, and its booking does not.
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { start_date: '2026-09-01', end_date: '2026-09-06' });
+    const days = testDb.prepare('SELECT * FROM days WHERE trip_id = ? ORDER BY day_number').all(trip.id) as { id: number }[];
+    const place = createPlace(testDb, trip.id, { name: 'Harbour Hotel' });
+    const stay = createDayAccommodation(testDb, trip.id, place.id, days[3].id, days[5].id);
+    const booking = createReservation(testDb, trip.id, { title: 'Harbour Hotel booking', type: 'hotel', day_id: days[3].id });
+    testDb.prepare('UPDATE reservations SET accommodation_id = ? WHERE id = ?').run(stay.id, booking.id);
+    const sightseeing = createDayAssignment(testDb, days[5].id, place.id);
+
+    const res = await request(app)
+      .put(`/api/trips/${trip.id}`)
+      .set('Cookie', authCookie(user.id))
+      .send({ start_date: '2026-09-01', end_date: '2026-09-05' });
+
+    expect(res.status).toBe(200);
+    const daysAfter = testDb.prepare('SELECT id, date FROM days WHERE trip_id = ? ORDER BY day_number').all(trip.id) as { id: number; date: string }[];
+    expect(daysAfter.map(d => d.id)).toEqual(days.slice(0, 5).map(d => d.id));
+    expect(daysAfter.at(-1)!.date).toBe('2026-09-05');
+    expect(testDb.prepare('SELECT 1 FROM day_accommodations WHERE id = ?').get(stay.id)).toBeUndefined();
+    expect(testDb.prepare('SELECT 1 FROM day_assignments WHERE id = ?').get(sightseeing.id)).toBeUndefined();
+    expect(testDb.prepare('SELECT title FROM reservations WHERE id = ?').get(booking.id)).toEqual({ title: 'Harbour Hotel booking' });
+    expect(testDb.prepare('SELECT 1 FROM places WHERE id = ?').get(place.id)).toBeDefined();
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

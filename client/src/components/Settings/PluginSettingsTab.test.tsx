@@ -275,7 +275,7 @@ describe('PluginSettingsTab', () => {
   });
 
   it('FE-COMP-PLUGINSETTINGS-014: a plugin with only actions gets a card without a Save button', async () => {
-    serve('weather', { actions: [{ key: 'test', label: 'Test connection', hint: 'Pings the API', danger: false }] });
+    serve('weather', { actions: [{ key: 'test', label: 'Test connection', hint: 'Pings the API', danger: false, scope: 'user' }] });
     setPlugins([plugin()]);
     render(<PluginSettingsTab />);
 
@@ -288,7 +288,7 @@ describe('PluginSettingsTab', () => {
 
   it('FE-COMP-PLUGINSETTINGS-015: running an action shows the message it returns', async () => {
     const user = userEvent.setup();
-    serve('weather', { actions: [{ key: 'test', label: 'Test connection', danger: false }] });
+    serve('weather', { actions: [{ key: 'test', label: 'Test connection', danger: false, scope: 'user' }] });
     server.use(http.post('/api/plugin-settings/weather/actions/test', () =>
       HttpResponse.json({ ok: true, message: 'Reached the API' })));
     setPlugins([plugin()]);
@@ -300,7 +300,7 @@ describe('PluginSettingsTab', () => {
 
   it('FE-COMP-PLUGINSETTINGS-016: a message-less result falls back to the generic ok/error labels', async () => {
     const user = userEvent.setup();
-    serve('weather', { actions: [{ key: 'test', label: 'Test connection', danger: false }] });
+    serve('weather', { actions: [{ key: 'test', label: 'Test connection', danger: false, scope: 'user' }] });
     server.use(http.post('/api/plugin-settings/weather/actions/test', () => HttpResponse.json({ ok: false })));
     setPlugins([plugin()]);
     render(<PluginSettingsTab />);
@@ -311,7 +311,7 @@ describe('PluginSettingsTab', () => {
 
   it('FE-COMP-PLUGINSETTINGS-017: a failing action reports an error result', async () => {
     const user = userEvent.setup();
-    serve('weather', { actions: [{ key: 'test', label: 'Test connection', danger: false }] });
+    serve('weather', { actions: [{ key: 'test', label: 'Test connection', danger: false, scope: 'user' }] });
     server.use(http.post('/api/plugin-settings/weather/actions/test', () =>
       HttpResponse.json({ error: 'down' }, { status: 500 })));
     setPlugins([plugin()]);
@@ -327,7 +327,7 @@ describe('PluginSettingsTab', () => {
     const user = userEvent.setup();
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
     let ran = 0;
-    serve('weather', { actions: [{ key: 'wipe', label: 'Wipe cache', danger: true }] });
+    serve('weather', { actions: [{ key: 'wipe', label: 'Wipe cache', danger: true, scope: 'user' }] });
     server.use(http.post('/api/plugin-settings/weather/actions/wipe', () => {
       ran += 1;
       return HttpResponse.json({ ok: true, message: 'Wiped' });
@@ -447,5 +447,68 @@ describe('PluginSettingsTab', () => {
     await screen.findByDisplayValue('Berlin');
     expect(await screen.findByDisplayValue('Trips')).toBeInTheDocument();
     expect(within(cardFor('Notes')).getByText('Folder')).toBeInTheDocument();
+  });
+
+  it('FE-COMP-PLUGINSETTINGS-026: pre-fills a declared default when no value is stored', async () => {
+    serve('weather', {
+      fields: [{ key: 'oauth_authorize_url', label: 'Authorize URL', input_type: 'text', required: true, default: 'https://auth.openbnb.org/authorize' }],
+      config: {},
+    });
+    setPlugins([plugin()]);
+    render(<PluginSettingsTab />);
+
+    expect(await screen.findByDisplayValue('https://auth.openbnb.org/authorize')).toBeInTheDocument();
+  });
+
+  it('FE-COMP-PLUGINSETTINGS-027: a stored value wins over the default', async () => {
+    serve('weather', {
+      fields: [{ key: 'oauth_authorize_url', label: 'Authorize URL', input_type: 'text', default: 'https://auth.openbnb.org/authorize' }],
+      config: { oauth_authorize_url: 'https://mine.example' },
+    });
+    setPlugins([plugin()]);
+    render(<PluginSettingsTab />);
+
+    expect(await screen.findByDisplayValue('https://mine.example')).toBeInTheDocument();
+    expect(screen.queryByDisplayValue('https://auth.openbnb.org/authorize')).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-PLUGINSETTINGS-028: blocks Save while a required field is empty and names it', async () => {
+    const user = userEvent.setup();
+    let called = false;
+    serve('weather', {
+      fields: [{ key: 'client_id', label: 'Client ID', input_type: 'text', required: true }],
+      config: {},
+    });
+    server.use(http.post('/api/plugin-settings/weather', () => {
+      called = true;
+      return HttpResponse.json({ config: {} });
+    }));
+    setPlugins([plugin()]);
+    render(<><ToastContainer /><PluginSettingsTab /></>);
+
+    await screen.findByText('Client ID');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByText('"Client ID" is required')).toBeInTheDocument();
+    expect(called).toBe(false);
+  });
+
+  it('FE-COMP-PLUGINSETTINGS-029: a 400 from the server names the field it refused; a 500 stays generic', async () => {
+    // The field list was loaded before a plugin update made `city` required, so the
+    // client pre-check passes and only the server knows — its message must reach the user.
+    const user = userEvent.setup();
+    serve('weather', {
+      fields: [{ key: 'city', label: 'City', input_type: 'text' }],
+      config: {},
+    });
+    server.use(http.post('/api/plugin-settings/weather', () =>
+      HttpResponse.json({ error: 'Missing required setting "city"' }, { status: 400 })));
+    setPlugins([plugin()]);
+    render(<><ToastContainer /><PluginSettingsTab /></>);
+
+    await screen.findByText('City');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByText('Missing required setting "city"')).toBeInTheDocument();
   });
 });

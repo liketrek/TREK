@@ -101,6 +101,7 @@ const dashboard: TranslationStrings = {
   'dashboard.useUnsplashPhoto': '{photographer} tarafından çekilen Unsplash fotoğrafını kullan',
   'dashboard.titleRequired': 'Başlık gerekli',
   'dashboard.endDateError': 'Bitiş tarihi başlangıçtan sonra olmalı',
+  'dashboard.tripTooLong': 'Bir seyahat en fazla {days} gün sürebilir',
   'dashboard.dateShiftTitle': 'Yeni başlangıç tarihi',
   'dashboard.dateShiftIntro':
     'Bu seyahatin başlangıç tarihini değiştirdiniz. Planlarınız yeni tarihlere nasıl uyum sağlasın?',
@@ -110,7 +111,24 @@ const dashboard: TranslationStrings = {
   'dashboard.dateShiftAll': 'Her şeyi kaydır',
   'dashboard.dateShiftAllDesc': 'Rezervasyonlar ve konaklamalar dahil tüm plan yeni tarihlerle birlikte taşınır.',
   'dashboard.dateShiftHint':
-    'İpucu: planın yalnızca bir kısmını kaydırmak için planlayıcıdaki "Gün ekle" özelliğini kullanın.',
+    'İpucu: planın yalnızca bir kısmını kaydırmak için planlayıcıda “Günleri yeniden sırala”yı açın, seyahatin bitişinden sonraki günü tarihini gösteren düğmeyle ekleyin ve o günü boşluğun olacağı yere taşıyın.',
+  'dashboard.shrinkTitle': 'Günler kaldırılsın mı?',
+  'dashboard.shrinkIntro': 'Yeni tarihler kaydedilince bu günler kaldırılır:',
+  'dashboard.shrinkMoreDays': '+{count} daha',
+  'dashboard.shrinkLastDays': 'İlk günler değil, son günler kaldırılır',
+  'dashboard.shrinkLastDaysHint':
+    'Gün planları yeni tarihlerle birlikte kayar, bu yüzden başlangıç değişse bile her zaman planın son günleri kaldırılır.',
+  'dashboard.shrinkBookingsHint':
+    'Rezervasyonlar altında kalırlar. Tarihi hâlâ seyahatin içinde olan rezervasyon o güne geri döner.',
+  'dashboard.shrinkBookingsShiftHint': 'Rezervasyonlar altında, bir güne bağlı olmadan kalırlar.',
+  'dashboard.shrinkStayHint': 'Giriş veya çıkış kaldırılan bir güne denk geldiği için konaklamanın tamamı kaldırılır.',
+  'dashboard.shrinkStayBookedHint':
+    'Giriş veya çıkış kaldırılan bir güne denk geldiği için konaklamanın tamamı kaldırılır. “{booking}” rezervasyonu ve harcaması Rezervasyonlar altında kalır.',
+  'dashboard.shrinkStayBookingHint':
+    'Giriş veya çıkış kaldırılan bir güne denk geldiği için konaklamanın tamamı kaldırılır. “{booking}” rezervasyonu Rezervasyonlar altında kalır.',
+  'dashboard.shrinkConfirm': 'Günleri kaldır ve kaydet',
+  'dashboard.shrinkUnknown':
+    'Bu seyahatin günleri kontrol edilemedi. Yeni tarihler daha az gün içeriyorsa kaydetmek son günleri ve bunlara planlanan her şeyi kaldırır.',
   'dashboard.greeting.morning': 'Günaydın,',
   'dashboard.greeting.afternoon': 'İyi günler,',
   'dashboard.greeting.evening': 'İyi akşamlar,',

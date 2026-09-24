@@ -331,9 +331,32 @@ describe('computeJourneyStats', () => {
     expect(stats.points[0]).toEqual({
       // `tripId` is null when the stop came from an entry nobody linked to a
       // trip, which is every stop here — the field is what lets a book print a
-      // map of one trip out of several.
-      lat: 64, lng: -22, label: 'Reykjavík', date: '2026-06-02', country: 'IS', tripId: null, photoId: null,
+      // map of one trip out of several. `entryId` is null the same way: the
+      // fixture names no entry, so there is none to switch off.
+      lat: 64, lng: -22, label: 'Reykjavík', date: '2026-06-02', country: 'IS', tripId: null, photoId: null, entryId: null,
     });
+  });
+
+  it('keeps the entry on each stop, and null for a stop that came from a trip place', () => {
+    const stats = computeJourneyStats({
+      ...base,
+      points: [point({ lat: 64, lng: -22, entryId: 12 }), point({ lat: 65, lng: -18 })],
+    });
+    expect(stats.points.map(p => p.entryId)).toEqual([12, null]);
+  });
+
+  /*
+   * The stops switched off by hand ride through untouched (discussion #2064).
+   * The service takes them out of `points` before anything here is measured,
+   * so all this has to do is hand the list back beside the route it was left
+   * off, and hand back nothing when it was given nothing.
+   */
+  it('carries the excluded stops through beside the route', () => {
+    const excluded = [{ entryId: 4, label: 'Keflavík', date: '2026-06-01' }];
+    const stats = computeJourneyStats({ ...base, points: [point({ lat: 64, lng: -22 })], excluded });
+    expect(stats.excluded).toEqual(excluded);
+    expect(stats.points).toHaveLength(1);
+    expect(computeJourneyStats({ ...base, points: [] }).excluded).toEqual([]);
   });
 
   it('names the countries from the map it was given', () => {
@@ -361,6 +384,7 @@ describe('computeJourneyStats', () => {
       countries: [],
       points: [],
       trips: [],
+      excluded: [],
       start: null,
       end: null,
     });

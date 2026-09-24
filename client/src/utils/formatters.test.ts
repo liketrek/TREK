@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { splitReservationDateTime, resolveDayId, formatMoney, formatMoneySum, currencyDecimals, localizeAmountInput } from './formatters'
+import { splitReservationDateTime, resolveDayId, formatMoney, formatMoneySum, currencyDecimals, localizeAmountInput, amountToInputString } from './formatters'
 import { CURRENCIES, SYMBOLS, currenciesWith } from '../components/Budget/BudgetPanel.constants'
 import type { Day } from '../types'
 
@@ -37,6 +37,32 @@ describe('localizeAmountInput (#1624)', () => {
   it('passes an empty/nullish value through unchanged', () => {
     expect(localizeAmountInput('', 'EUR')).toBe('')
     expect(localizeAmountInput(null, 'EUR')).toBe('')
+  })
+})
+
+describe('amountToInputString (#2175)', () => {
+  it('pads a stored number to the currency decimals so the edit form matches the list', () => {
+    expect(amountToInputString(4.9, 'EUR')).toBe('4.90')
+    expect(amountToInputString(5, 'EUR')).toBe('5.00')
+    expect(amountToInputString(163.2, 'USD')).toBe('163.20')
+  })
+  it('gives zero-decimal currencies no fake decimals', () => {
+    expect(amountToInputString(500, 'JPY')).toBe('500')
+    expect(amountToInputString(500, 'HUF')).toBe('500')
+  })
+  it('pads three-decimal currencies to three', () => {
+    expect(amountToInputString(1.5, 'KWD')).toBe('1.500')
+  })
+  it('cent-rounds float noise before padding (#1964)', () => {
+    expect(amountToInputString(163.20999999999998, 'EUR')).toBe('163.21')
+  })
+  it('keeps the sign of a refund (#2176)', () => {
+    expect(amountToInputString(-4.9, 'EUR')).toBe('-4.90')
+  })
+  it('turns nullish and non-finite values into an empty field', () => {
+    expect(amountToInputString(null, 'EUR')).toBe('')
+    expect(amountToInputString(undefined, 'EUR')).toBe('')
+    expect(amountToInputString(Number.NaN, 'EUR')).toBe('')
   })
 })
 

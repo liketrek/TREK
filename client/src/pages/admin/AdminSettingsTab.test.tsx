@@ -1,4 +1,4 @@
-// FE-ADMSET-001 to FE-ADMSET-040
+// FE-ADMSET-001 to FE-ADMSET-042
 import { http, HttpResponse } from 'msw';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -27,6 +27,15 @@ function renderTab(overrides: Record<string, unknown> = {}) {
 /** The card element whose <h2> matches the given heading text. */
 function card(heading: string | RegExp): HTMLElement {
   return screen.getByRole('heading', { name: heading }).closest<HTMLElement>('.rounded-xl')!;
+}
+
+/**
+ * The key input in the block whose show/hide toggle carries the given name. The
+ * toggle is the labelled element and the input its sibling, so this still finds
+ * the right field when the card gains a block, where an index would not.
+ */
+function keyInput(name: string | RegExp): HTMLInputElement {
+  return within(card('API Keys')).getByLabelText(name).parentElement!.querySelector('input')!;
 }
 
 /** The toggle button in the row belonging to a label paragraph. */
@@ -253,23 +262,75 @@ describe('AdminSettingsTab', () => {
     expect(admin.toggleKey).toHaveBeenCalledWith('maps');
   });
 
-  it('FE-ADMSET-021: showKeys switches both key inputs to plain text', () => {
-    renderTab({ showKeys: { maps: true, unsplash: true } });
+  // Selected by accessible name rather than by position: the API-keys card has
+  // grown a field before now (Amap), and an index-based lookup silently starts
+  // asserting about a different input when it does.
+  it('FE-ADMSET-021: showKeys switches every key input to plain text', () => {
+    renderTab({ showKeys: { maps: true, unsplash: true, amap: true } });
 
-    const inputs = within(card('API Keys')).getAllByPlaceholderText('Enter key...');
-    expect(inputs[0]).toHaveAttribute('type', 'text');
-    expect(inputs[1]).toHaveAttribute('type', 'text');
+    expect(keyInput('Google Maps API Key')).toHaveAttribute('type', 'text');
+    expect(keyInput('Unsplash API Key')).toHaveAttribute('type', 'text');
+    expect(keyInput(/Amap/)).toHaveAttribute('type', 'text');
   });
 
   it('FE-ADMSET-022: unsplash key input and its visibility toggle', () => {
     const admin = renderTab({ unsplashKey: '' });
 
-    const unsplashInput = within(card('API Keys')).getAllByPlaceholderText('Enter key...')[1];
+    const unsplashInput = keyInput('Unsplash API Key');
     fireEvent.change(unsplashInput, { target: { value: 'unsplash-key' } });
     expect(admin.setUnsplashKey).toHaveBeenCalledWith('unsplash-key');
 
     fireEvent.click(unsplashInput.parentElement!.querySelector('button')!);
     expect(admin.toggleKey).toHaveBeenCalledWith('unsplash');
+  });
+
+  it('FE-ADMSET-022b: amap key input and its visibility toggle', () => {
+    const admin = renderTab({ amapKey: '' });
+
+    const amapInput = keyInput(/Amap/);
+    fireEvent.change(amapInput, { target: { value: 'amap-key' } });
+    expect(admin.setAmapKey).toHaveBeenCalledWith('amap-key');
+
+    fireEvent.click(amapInput.parentElement!.querySelector('button')!);
+    expect(admin.toggleKey).toHaveBeenCalledWith('amap');
+  });
+
+  it('FE-ADMSET-022c: warns when the selected provider has no key behind it', () => {
+    // A provider chosen without a key answers with OpenStreetMap rather than
+    // failing, which is quiet enough to be mistaken for the provider working.
+    renderTab({ placesProvider: 'amap', hasAmapKey: false });
+    expect(
+      within(card('API Keys')).getByText(/TREK index and OpenStreetMap alone/i),
+    ).toBeInTheDocument();
+  });
+
+  it('FE-ADMSET-022d: saving the provider goes through updateAppSettings, not the keys', () => {
+    const admin = renderTab({ placesProvider: 'auto' });
+    // A CustomSelect: the trigger shows the current choice, the menu is portaled.
+    fireEvent.click(within(card('API Keys')).getByRole('button', { name: 'Automatic' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Amap (高德地图)' }));
+    expect(admin.handleSavePlacesProvider).toHaveBeenCalledWith('amap');
+  });
+
+  it('FE-ADMSET-022e: a managed install hides the keys but keeps the provider choice', () => {
+    // The operator owns the credentials; which of them answers place search is
+    // still the admin's call (server managed.ts lists places_provider as theirs).
+    renderTab({ managed: true, placesProvider: 'auto' });
+
+    const keys = within(card('API Keys'));
+    expect(keys.queryByLabelText('Google Maps API Key')).not.toBeInTheDocument();
+    expect(keys.queryByLabelText(/Amap/)).not.toBeInTheDocument();
+    expect(keys.getByRole('button', { name: 'Automatic' })).toBeInTheDocument();
+  });
+
+  it('FE-ADMSET-022f: an operator key keeps the managed install quiet', () => {
+    // The key fields are not on the page here, and an operator key set through
+    // the environment would not show up in them anyway. app-config knows.
+    renderTab({ managed: true, placesProvider: 'google', mapsKey: '', hasMapsKey: true });
+
+    expect(
+      within(card('API Keys')).queryByText(/falls back to OpenStreetMap/i),
+    ).not.toBeInTheDocument();
   });
 
   it('FE-ADMSET-023: the maps Test button is disabled without a key', () => {
@@ -374,11 +435,39 @@ describe('AdminSettingsTab', () => {
     expect(toggleFor('Place Enrichment')).toHaveAttribute('aria-label', 'Place Enrichment');
   });
 
-  it('FE-ADMSET-031: shows the Open-Meteo info block', () => {
+  it('FE-ADMSET-030d: the Google-only switch sits with the Google options, says what it needs without a key, and toggles through the hook', () => {
+    const admin = renderTab({ placesGoogleOnly: false, hasMapsKey: false });
+    expect(screen.getByText(/Needs a Google Maps API key/)).toBeInTheDocument();
+    expect(toggleFor('Search with Google only')).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(toggleFor('Search with Google only'));
+    expect(admin.handleTogglePlacesGoogleOnly).toHaveBeenCalledTimes(1);
+  });
+
+  it('FE-ADMSET-030e: with a key the Google-only row explains what it changes', () => {
+    renderTab({ placesGoogleOnly: true, hasMapsKey: true });
+    expect(screen.getByText(/Every search and every suggestion goes to Google Places/)).toBeInTheDocument();
+    expect(toggleFor('Search with Google only')).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('FE-ADMSET-030f: with a key but Amap or OpenStreetMap picked, the Google-only row says the switch is idle', () => {
+    // A key alone does not put Google behind the search; the server ignores the
+    // switch under another provider, and the row must not promise otherwise.
+    renderTab({ placesGoogleOnly: true, hasMapsKey: true, placesProvider: 'openstreetmap' });
+    const hint = toggleFor('Search with Google only').closest<HTMLElement>('.flex.items-center.justify-between')!.querySelectorAll('p')[1];
+    expect(hint.textContent).not.toMatch(/Every search and every suggestion goes to Google Places/);
+    expect(hint.textContent).not.toMatch(/Needs a Google Maps API key/);
+    expect(hint.textContent).toMatch(/provider/i);
+  });
+
+  it('FE-ADMSET-031: the API keys card leads with the TREK index and no weather panel', () => {
     renderTab();
 
-    expect(screen.getByText('Weather Data')).toBeInTheDocument();
-    expect(screen.getByText('16-day forecast')).toBeInTheDocument();
+    const keys = card('API Keys');
+    expect(within(keys).getByRole('img', { name: 'TREK Places API' })).toBeInTheDocument();
+    expect(within(keys).getByText('Recommended default')).toBeInTheDocument();
+    // Weather needs no key, so it left a card about keys. The panel itself lives
+    // on in the mobile section, where FE-MOB-ASET-019 asserts it.
+    expect(screen.queryByText('Weather Data')).not.toBeInTheDocument();
   });
 
   it('FE-ADMSET-032: the API keys save button calls handleSaveApiKeys', () => {
@@ -488,5 +577,39 @@ describe('AdminSettingsTab', () => {
     fireEvent.click(screen.getByRole('button', { name: /^rotate$/i }));
 
     expect(admin.setShowRotateJwtModal).toHaveBeenCalledWith(true);
+  });
+
+  it('FE-ADMSET-041: the index has no switch, because turning it off is a deployment decision', () => {
+    // It decides whether a search leaves the instance at all, so it belongs in
+    // the compose file rather than in a browser: TREK_PLACES_ENABLED=false.
+    // A card that offered the choice here also had to explain what answers
+    // instead, which is a paragraph about configuration inside a card about a
+    // data source.
+    renderTab();
+
+    expect(screen.queryByRole('button', { name: /trek place index/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/place search uses openstreetmap/i)).not.toBeInTheDocument();
+  });
+
+  it('FE-ADMSET-042: a failing transit provider save rolls back and says why', async () => {
+    // CustomSelect renders a plain button named after the selected option, so the
+    // trigger is found through its own block, and the menu entry is the button that
+    // is not the trigger.
+    server.use(http.put('/api/admin/transit-provider', () => HttpResponse.json({ error: 'Settings are read-only' }, { status: 500 })));
+    const admin = renderTab({
+      transitProvider: 'transitous',
+      setTransitProviderState: vi.fn(),
+      transitGoogleKeySource: 'instance',
+      setTransitGoogleKeySource: vi.fn(),
+    });
+    const block = screen.getByText('Transit Provider').closest<HTMLElement>('.rounded-xl')!;
+
+    fireEvent.click(within(block).getByRole('button'));
+    fireEvent.click(screen.getByText('Google'));
+
+    expect(admin.setTransitProviderState).toHaveBeenNthCalledWith(1, 'google');
+    await waitFor(() => expect(admin.toast.error).toHaveBeenCalledWith('Settings are read-only'));
+    expect(admin.setTransitProviderState).toHaveBeenLastCalledWith('transitous');
+    expect(admin.setTransitGoogleKeySource).not.toHaveBeenCalled();
   });
 });

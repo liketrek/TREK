@@ -195,6 +195,8 @@ describe('service errors are translated into the RPC taxonomy', () => {
       getReservation: vi.fn(() => ({ id: 5, title: 'Hotel', type: 'lodging' })),
       update: vi.fn(() => ({ reservation: { id: 5 }, accommodationChanged: false })),
       syncBudgetOnUpdate: vi.fn(),
+      referencesOutsideTrip: vi.fn(() => []),
+      unresolvedReferences: vi.fn(() => []),
       notifyBookingChange,
     } as never;
     const host = new PluginRpcHost('p', ALL, makeDeps(), createTestPluginRegistry([new ReservationsRpc(reservations, realtime(), guards)]));
@@ -247,7 +249,7 @@ describe('every schema-validated method rejects a payload its schema refuses', (
     const anything = new Proxy({}, { get: () => vi.fn(() => ({ id: 1, trip: { id: 1 }, updatedTrip: { id: 1 }, reservation: { id: 1 } })) }) as never;
     const registry = createTestPluginRegistry([
       new PlacesRpc(anything, anything, realtime(), guards),
-      new DaysRpc(anything, realtime(), guards),
+      new DaysRpc(anything, realtime(), guards, anything),
       new PackingRpc(anything, realtime(), guards),
       new TripsRpc(anything, anything, anything, anything, db, realtime(), guards, anything, anything),
       new AccommodationsRpc(anything, realtime(), guards),

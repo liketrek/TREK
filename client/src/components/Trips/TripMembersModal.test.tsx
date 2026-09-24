@@ -1,4 +1,4 @@
-// FE-COMP-MEMBERS-001 to FE-COMP-MEMBERS-056
+// FE-COMP-MEMBERS-001 to FE-COMP-MEMBERS-057
 import type { Mock } from 'vitest';
 import { act, render, screen, fireEvent, waitFor } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
@@ -723,6 +723,26 @@ describe('TripMembersModal', () => {
 
     await waitFor(() => expect(onMembersChanged).toHaveBeenCalled());
     expect(addToast).toHaveBeenCalledWith('alice added', 'success', undefined);
+  });
+
+  // #2478: the pick showed nowhere, only the Invite button knew about it.
+  it('FE-COMP-MEMBERS-057: the picked user shows in the field before the invite is sent', async () => {
+    const user = userEvent.setup();
+    server.use(http.post('/api/trips/1/members', () => HttpResponse.json({ success: true })));
+    render(<TripMembersModal {...defaultProps} />);
+
+    await screen.findByText('Invite User');
+    const trigger = screen.getByText('Select user…').closest('button') as HTMLButtonElement;
+    await user.click(trigger);
+    await user.click(await screen.findByRole('button', { name: 'alice' }));
+
+    expect(trigger).toHaveTextContent('alice');
+    expect(screen.queryByText('Select user…')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Invite' })).toBeEnabled();
+
+    // Once sent, the field is free for the next pick again.
+    await user.click(screen.getByRole('button', { name: 'Invite' }));
+    await waitFor(() => expect(trigger).toHaveTextContent('Select user…'));
   });
 
   it('FE-COMP-MEMBERS-042: transferring ownership reloads the app', async () => {

@@ -6,10 +6,13 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.addPlaceShort': 'Место',
   'mobileTrip.addToDayQuestion': 'Добавить в день?',
   'mobileTrip.addTransportShort': 'Транспорт',
+  'mobileTrip.allDays': 'Все дни',
   'mobileTrip.assignedDays': 'Назначенные дни',
+  'mobileTrip.assignmentNotes': 'Заметки на день',
   'mobileTrip.bookingsEmpty': 'Пока нет бронирований',
   'mobileTrip.collabFeatureDisabled': 'Эта функция отключена для этой поездки',
   'mobileTrip.compactView': 'Компактный вид',
+  'mobileTrip.dayAnnounce': 'День {current} из {total}',
   'mobileTrip.dayTitlePlaceholder': 'Название дня',
   'mobileTrip.export': 'Экспорт',
   'mobileTrip.filesEmpty': 'Файлов пока нет',
@@ -44,5 +47,31 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.upNext': 'Далее',
   'mobileTrip.viewDetails': 'Просмотреть детали',
   'mobileTrip.transportsEmpty': 'Пока нет транспорта',
+  'mobileTrip.rtInfoTitle': 'Данные о вождении',
+  'mobileTrip.rtDesktopNote':
+    'Эти данные задаются на компьютере: там же можно сравнивать другие маршруты и провести день по импортированному треку.',
+  'mobileTrip.rtPlanOnDesktop':
+    'Планирование происходит на компьютере. TREK рассчитает маршрут, как только в дне окажется два места.',
+  'mobileTrip.rtSearchOffline': 'Нужна сеть: поиск считывает маршрут впереди.',
+  'mobileTrip.rtBehind': 'на {time} позже плана',
+  'mobileTrip.rtStart': 'Начало',
+  'mobileTrip.rtStayScope':
+    'Стоянка привязана к месту, поэтому она учитывается в каждый день, на который запланирована эта остановка.',
+  'mobileTrip.rtStayLess': 'на {count} минут меньше',
+  'mobileTrip.rtStayMore': 'на {count} минут больше',
+  'mobileTrip.rtNightDesktopOnly':
+    'Забронировать ночёвку в этом месте можно в планировщике на компьютере. Здесь её можно только убрать.',
+  'mobileTrip.rtReach': 'Насколько далеко',
+  'mobileTrip.rtReachAhead': '{distance} впереди',
+  'mobileTrip.rtFromNext': 'От следующей остановки',
+  'mobileTrip.rtFromStart': 'От начала этапа',
+  'mobileTrip.rtNoneAhead': 'На дороге впереди ничего нет. Попробуйте весь этап.',
+  'mobileTrip.rtNoneOnStage': 'На этом этапе ничего такого нет.',
+  'mobileTrip.rtTruncated.one':
+    'На 1 участке нашлось больше, чем помещается в один ответ. Выберите меньше видов, чтобы увидеть остальное.',
+  'mobileTrip.rtTruncated.other':
+    'На {count} участках нашлось больше, чем помещается в один ответ. Выберите меньше видов, чтобы увидеть остальное.',
+  'mobileTrip.rtNoDay': 'День не выбран',
+  'mobileTrip.rtNoDayHint': 'На карте вся поездка. Нажмите на день выше, чтобы увидеть его маршрут.',
 };
 export default mobileTrip;

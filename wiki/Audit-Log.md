@@ -25,7 +25,7 @@ Actions are grouped by area below. The **Action key** is the raw value stored in
 | `user.password_reset_success` | Password reset completed |
 | `user.password_reset_fail` | Password reset attempt rejected (`reason` in details) |
 
-A request for an account that can actually be reset writes **two** rows: one with `delivered: "pending"` when the mail is handed off, one with the delivery result. Every other outcome writes a single row carrying a `reason` instead — `no_user`, `oidc_only`, `throttled_per_email` or `password_login_disabled`. Passkey logins are not a separate key: they land as `user.login` with `method: passkey` in the details.
+A request for an account that can actually be reset writes **two** rows: one with `delivered: "pending"` when the mail is handed off, one with the delivery result. Every other outcome writes a single row carrying a `reason` instead — `no_user`, `oidc_only`, `throttled_per_email` or `password_login_disabled`. Passkey logins are not a separate key: they land as `user.login` with `method: passkey` in the details, and SSO logins the same way with `method: oidc`. An account created by a first SSO login also writes `user.register` with `method: oidc`, carrying the same fields as a password signup.
 
 ### MFA
 
@@ -77,7 +77,10 @@ A request for an account that can actually be reset writes **two** rows: one wit
 | `admin.places_autocomplete` | Places autocomplete feature toggled |
 | `admin.places_details` | Places details feature toggled |
 | `admin.places_enrich` | Place enrichment feature toggled |
+| `admin.place_shadow` | Place Search Log toggled (`enabled` in details) |
+| `admin.places_google_only` | Search with Google only toggled (`enabled` in details) |
 | `admin.collab_features` | Collaboration features updated |
+| `admin.transit_provider` | Public transit backend changed (`provider` in details: `transitous` or `google`) |
 | `admin.packing_template_create` | Packing template created |
 | `admin.packing_template_delete` | Packing template deleted |
 | `admin.plugin_retrust` | Plugin signing key re-trusted (records the old and the new key fingerprint) |
@@ -135,6 +138,8 @@ A request for an account that can actually be reset writes **two** rows: one wit
 |---|---|
 | `immich.private_ip_configured` | Immich URL saved that resolves to a private IP |
 | `airtrail.private_ip_configured` | AirTrail URL saved that resolves to a private IP |
+| `dawarich.private_ip_configured` | Dawarich URL saved that resolves to a private IP |
+| `dawarich.disconnected` | A user disconnected their Dawarich instance |
 
 ## Log columns
 

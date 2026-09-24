@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
+import { manualSchoolRegionId } from '@trek/shared';
 import { RealtimeService } from '../realtime/realtime.service';
 import { DatabaseService } from '../database/database.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -578,6 +579,7 @@ export class VacayService {
   // -------------------------------------------------------------------------
 
   addHolidayCalendar(planId: number, region: string, label: string | null, color: string | undefined, sortOrder: number | undefined, socketId: string | undefined, type: 'public_holiday' | 'school_holiday' = 'public_holiday') {
+    this.validateManualRegion(region, type);
     const result = this.db.run(
       'INSERT INTO vacay_holiday_calendars (plan_id, type, region, label, color, sort_order) VALUES (?, ?, ?, ?, ?, ?)',
       planId, type, region, label || null, color || (type === 'school_holiday' ? '#a5f3fc' : '#fecaca'), sortOrder ?? 0
@@ -595,6 +597,7 @@ export class VacayService {
   ): VacayHolidayCalendar | null {
     const cal = this.db.get<VacayHolidayCalendar>('SELECT * FROM vacay_holiday_calendars WHERE id = ? AND plan_id = ?', calId, planId);
     if (!cal) return null;
+    this.validateManualRegion(body.region ?? cal.region, body.type ?? cal.type);
     const { region, label, color, sort_order, type } = body;
     const updates: string[] = [];
     const params: (string | number | null)[] = [];
@@ -620,6 +623,14 @@ export class VacayService {
     return true;
   }
 
+  private validateManualRegion(code: string, type: string) {
+    if (!code.includes('-MANUAL-')) return;
+    const id = manualSchoolRegionId(code);
+    if (type !== 'school_holiday' || !id || !this.db.get('SELECT id FROM school_holiday_regions WHERE id = ? AND country = ?', id, code.slice(0, 2))) {
+      throw new BadRequestException('Unknown manual school holiday region');
+    }
+  }
+
   // -------------------------------------------------------------------------
   // User colors
   // -------------------------------------------------------------------------
@@ -639,7 +650,9 @@ export class VacayService {
   sendInvite(planId: number, inviterId: number, inviterUsername: string, inviterEmail: string, targetUserId: number): { error?: string; status?: number } {
     if (targetUserId === inviterId) return { error: 'Cannot invite yourself', status: 400 };
 
-    const targetUser = this.db.get('SELECT id, username FROM users WHERE id = ?', targetUserId);
+    // The picker no longer offers guests, but the id arrives from the client, so the
+    // write path has to refuse them too rather than trust the list it handed out.
+    const targetUser = this.db.get('SELECT id, username FROM users WHERE id = ? AND COALESCE(is_guest, 0) = 0', targetUserId);
     if (!targetUser) return { error: 'User not found', status: 404 };
 
     const existing = this.db.get<{ id: number; status: string }>('SELECT id, status FROM vacay_plan_members WHERE plan_id = ? AND user_id = ?', planId, targetUserId);
@@ -785,6 +798,7 @@ export class VacayService {
     return this.db.all(`
     SELECT u.id, u.username, u.email FROM users u
     WHERE u.id != ?
+    AND COALESCE(u.is_guest, 0) = 0
     AND u.id NOT IN (SELECT user_id FROM vacay_plan_members WHERE plan_id = ?)
     AND u.id NOT IN (SELECT user_id FROM vacay_plan_members WHERE status = 'accepted')
     AND u.id NOT IN (SELECT owner_id FROM vacay_plans WHERE id IN (
@@ -877,7 +891,7 @@ export class VacayService {
   shareCalendar(ownerId: number, ownerEmail: string, targetUserId: number, socketId?: string): { error?: string; status?: number } {
     if (targetUserId === ownerId) return { error: 'Cannot share with yourself', status: 400 };
 
-    const targetUser = this.db.get('SELECT id FROM users WHERE id = ?', targetUserId);
+    const targetUser = this.db.get('SELECT id FROM users WHERE id = ? AND COALESCE(is_guest, 0) = 0', targetUserId);
     if (!targetUser) return { error: 'User not found', status: 404 };
 
     const existing = this.db.get('SELECT id FROM vacay_shares WHERE owner_id = ? AND user_id = ?', ownerId, targetUserId);
@@ -931,6 +945,7 @@ export class VacayService {
     return this.db.all(`
     SELECT u.id, u.username FROM users u
     WHERE u.id != ?
+    AND COALESCE(u.is_guest, 0) = 0
     AND u.id NOT IN (SELECT user_id FROM vacay_shares WHERE owner_id = ?)
     AND u.id NOT IN (
       SELECT owner_id FROM vacay_plans WHERE id = ?

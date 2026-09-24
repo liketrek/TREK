@@ -2,7 +2,7 @@ import { Body, Controller, Get, HttpCode, HttpException, Post, Put, Req, UseGuar
 import type { Request } from 'express';
 import { MASKED_SETTING_VALUE } from '@trek/shared';
 import type { User } from '../../types';
-import { SettingsService, isAdminOnlyLlmSetting } from './settings.service';
+import { SettingsService, isAdminOnlyEndpointSetting } from './settings.service';
 import { SettingUpsertDto, SettingsBulkDto } from './settings.dto';
 import { AdminDefaultUserSettingsDto } from '../admin/admin.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -46,9 +46,9 @@ export class SettingsController {
    * behind AdminGuard. A personal row would be a second, invisible place for
    * the same value.
    */
-  private assertMayWriteLlmEndpoint(settings: Record<string, unknown>) {
+  private assertMayWriteInstanceEndpoint(settings: Record<string, unknown>) {
     for (const [key, value] of Object.entries(settings)) {
-      if (isAdminOnlyLlmSetting(key, value)) {
+      if (isAdminOnlyEndpointSetting(key, value)) {
         throw new HttpException({ error: 'Admin access required' }, 403);
       }
     }
@@ -61,8 +61,8 @@ export class SettingsController {
 
   @Put()
   upsert(@CurrentUser() user: User, @Body() body: SettingUpsertDto) {
-    this.assertMayWriteLlmEndpoint({ [body.key]: body.value });
-    // assertMayWriteLlmEndpoint only covers llm_base_url and provider 'local'.
+    this.assertMayWriteInstanceEndpoint({ [body.key]: body.value });
+    // assertMayWriteInstanceEndpoint only covers llm_base_url and provider 'local'.
     // llm_api_key and llm_model are writable by every user, and on a managed
     // install both cost the operator money, so the key list decides here.
     if (isManagedLockedKey(body.key) && this.env.isManaged()) {
@@ -79,7 +79,7 @@ export class SettingsController {
   @Post('bulk')
   @HttpCode(200) // Express answers bulk with res.json (200), not the POST-default 201.
   bulk(@CurrentUser() user: User, @Body() body: SettingsBulkDto) {
-    this.assertMayWriteLlmEndpoint(body.settings);
+    this.assertMayWriteInstanceEndpoint(body.settings);
     const { allowed, blocked } = splitManagedKeys(body.settings, this.env.isManaged());
     try {
       const updated = this.settings.bulkUpsertSettings(user.id, allowed);

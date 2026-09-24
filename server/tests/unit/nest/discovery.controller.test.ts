@@ -24,7 +24,7 @@ import {
   mcpMetadataMiddlewareProvider,
 } from '../../../src/nest/platform/mcp-metadata.middleware';
 import { ConsentCoopMiddleware } from '../../../src/nest/platform/consent-coop.middleware';
-import { DiscoveryController } from '../../../src/nest/platform/discovery.controller';
+import { DiscoveryController, McpResourceDiscoveryController } from '../../../src/nest/platform/discovery.controller';
 import { PlatformModule } from '../../../src/nest/platform/platform.module';
 import { ALL_SCOPES } from '../../../src/mcp/scopes';
 import type { AddonsService } from '../../../src/nest/addons/addons.service';
@@ -196,6 +196,45 @@ describe('DiscoveryController', () => {
     expect(names.indexOf('openidConfiguration')).toBeLessThan(names.indexOf('wellKnownRoot'));
     expect(names.indexOf('protectedResource')).toBeLessThan(names.indexOf('wellKnownRoot'));
     expect(names.indexOf('wellKnownRoot')).toBeLessThan(names.indexOf('wellKnownFallback'));
+  });
+
+  it('DISC-037: the RFC 8414 path-inserted AS metadata is served, not 404', () => {
+    const res = makeRes();
+    controller().authorizationServerForMcp(res as never);
+    expect((res.body as { issuer: string }).issuer).toBe('https://trek.example.test');
+    expect(res.statusCode).toBe(200);
+  });
+});
+
+describe('McpResourceDiscoveryController', () => {
+  function resourceController(enabled = true) {
+    return new McpResourceDiscoveryController(new DiscoveryController(new DiscoveryMetadataService(), addons(enabled)));
+  }
+
+  it('DISC-038: serves the three documents under the resource URL, never SPA HTML', () => {
+    const oidc = makeRes();
+    resourceController().openidConfiguration(oidc as never);
+    expect((oidc.body as { userinfo_endpoint: string }).userinfo_endpoint).toBe('https://trek.example.test/oauth/userinfo');
+
+    const as = makeRes();
+    resourceController().authorizationServer(as as never);
+    expect((as.body as { registration_endpoint: string }).registration_endpoint).toBe('https://trek.example.test/oauth/register');
+
+    const prm = makeRes();
+    resourceController().protectedResource(prm as never);
+    expect((prm.body as { resource: string }).resource).toBe('https://trek.example.test/mcp');
+  });
+
+  it('DISC-039: an unknown path under the resource URL answers 404 JSON, and the PRM follows the addon switch', () => {
+    const res = makeRes();
+    resourceController().fallback(res as never);
+    expect(res.statusCode).toBe(404);
+    expect(res.body).toEqual({ error: 'not_found' });
+
+    const off = makeRes();
+    resourceController(false).protectedResource(off as never);
+    expect(off.statusCode).toBe(404);
+    expect(off.ended).toBe(true);
   });
 });
 

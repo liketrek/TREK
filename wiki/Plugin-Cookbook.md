@@ -49,7 +49,8 @@ Both are membership-checked against the current user — same gate as `ctx.trips
 const place = await ctx.places.create(tripId, { name: 'Teamlab', lat: 35.62, lng: 139.78 })
 const day   = await ctx.days.create(tripId, { date: '2027-04-02', notes: 'Odaiba' })
 await ctx.itinerary.assign(tripId, day.id, place.id, 'buy tickets first')
-// days.create reads { date?, notes? } and always appends at the end — a position is honoured on the REST route only, not on the plugin path.
+// days.create reads { date?, notes?, dated? } and appends at the end; a position is honoured on the REST route only, not on the plugin path.
+// { dated: true } instead adds the day after the trip's last date and extends the trip to it.
 // Set a day title later with ctx.days.update(tripId, day.id, { title: 'Odaiba' }).
 ```
 
@@ -93,6 +94,59 @@ module.exports = {
   },
 }
 ```
+
+## Answer place searches from your own index
+
+**Needs:** `hook:search-provider` (+ `http:outbound:<host>` and a matching `egress` when
+the index is somebody else's server)
+
+TREK searches its own place index and OpenStreetMap. This hook adds a third one, and
+its hits are drawn into the same list the user is already looking at.
+
+`rating` is the reason to reach for it: open data carries no ratings at all, so a
+question like "the best rated hotel around here" cannot be answered from OpenStreetMap.
+Whatever your index knows, this is where it reaches the search list.
+
+```js
+module.exports = {
+  hooks: {
+    searchProvider: {
+      async search({ query, limit, lang, near }, ctx) {
+        const res = await fetch(
+          `https://your-index.example/search?q=${encodeURIComponent(query)}&n=${limit}`,
+        )
+        const { results } = await res.json()
+        return results.map(r => ({
+          id: r.ref,                    // namespaced host-side to plugin:<yourId>:<ref>
+          name: r.title,
+          lat: r.lat,
+          lng: r.lon,
+          address: r.address,
+          rating: r.stars,              // 0..5, clamped host-side
+          website: r.url,               // http/https only
+        }))
+      },
+    },
+  },
+}
+```
+
+Called for an explicit search, never per keystroke, so an index with rate limits is
+safe here. You get two seconds to answer and at most 20 of your places are kept: a
+person is waiting on the list, and the app stops waiting at two and a half seconds
+whatever happens, so a provider that misses that window is left out of the list rather
+than holding it up. `near` is the coordinate the search is biased toward,
+and it is what tells the four places called "Hase-dera" apart — use it when you have it.
+
+The Road trip search along the route reaches the same hook. It calls `search` once per
+kind the person picked, with two more fields on the request: `category` (`fuel`,
+`charging`, `rest_area`, `campsite`, `restaurant`, `sights` or `hotel`) and `bounds`
+(`{ south, west, north, east }`, the rectangle to search, with `near` at its centre).
+`query` is then a fixed English phrase such as `EV charging station` rather than
+something typed, so an index that ignores `category` still gets a usable query. Hits
+outside `bounds` are dropped, and so is a hit whose own `category` names a different one
+of those seven kinds. Both fields are absent on ordinary searches, so read them as
+optional.
 
 ## Raise validation warnings on a trip
 
@@ -299,6 +353,23 @@ beside them. Return `{ ok, message? }`; throwing is the same as `{ ok: false }` 
 the error text. `danger: true` asks for confirmation first. The host refuses any key your
 manifest didn't declare, and bounds the message it shows (200 chars, emoji stripped).
 
+**…and one for the admin.** A button that acts on **instance** configuration rather than one
+person's credentials takes `"scope": "instance"`:
+
+```json
+"actions": [
+  { "key": "purgeCache", "label": "Purge cache", "scope": "instance" }
+]
+```
+
+It renders in **Admin → Plugins → ⋯ → Instance settings** instead of on anyone's settings
+page, and runs as the clicking **admin** — so `ctx.config` is the instance settings shown
+right above it, while `ctx.settings.get()` is still that admin's own value. The button is
+**disabled until the plugin is active** (an action needs a running child), and an edited
+form is saved before the action fires, so you never test against configuration the plugin
+hasn't been given. Needs a manifest `trek` floor of `>=4.2.0` — hosts older than 4.2.0
+ignore `scope` and would show the button to every user.
+
 Contrast with the `notificationChannel` hook, which is **host**-initiated and therefore
 has *no* acting user — there, `ctx.settings.get()` returns `undefined` and the recipient's
 credentials arrive as an argument instead.
@@ -430,7 +501,7 @@ hooks: {
 }
 ```
 
-`tone` is `'default' | 'success' | 'warn' | 'danger'`; any `url` must be http/https/mailto; `icon` is a lucide icon name. A table `action` (instead of a `column`) is a labelled button whose target opens your sandboxed frame or calls one of your routes.
+`tone` is `'default' | 'success' | 'warn' | 'danger'`; any `url` must be http/https/mailto; `icon` is a lucide icon name — and it is the only way to get a glyph in, because every string a hook returns is emoji-stripped at the render boundary before TREK draws it. A table `action` (instead of a `column`) is a labelled button whose target opens your sandboxed frame or calls one of your routes.
 
 ---
 

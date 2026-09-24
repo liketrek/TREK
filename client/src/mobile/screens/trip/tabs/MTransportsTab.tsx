@@ -7,7 +7,7 @@ import { openFile } from '../../../../utils/fileDownload'
 import { useTranslation } from '../../../../i18n'
 import type { Reservation } from '../../../../types'
 import MConfirmSheet from '../../settings/MConfirmSheet'
-import { ConfirmationCode, Field, SectionHeader, StatusDot, TabScroller, TravelerAvatars, TravelerFilterRow } from './tabChrome'
+import { ConfirmationCode, Field, ReservationPluginSlots, SectionHeader, StatusDot, TabScroller, TravelerAvatars, TravelerFilterRow } from './tabChrome'
 import { STATUS_COLOR, type MTabScreenProps } from './tabModel'
 import {
   TRANSPORT_TYPE_COLOR,
@@ -279,6 +279,7 @@ function TransportCard({ res, planner, shell, canEdit, compact }: {
           </button>
         </div>
       )}
+      {!compact && <ReservationPluginSlots tripId={planner.tripId} reservationId={res.id} />}
 
       <MConfirmSheet
         open={confirmDelete}

@@ -116,24 +116,41 @@ bootstrap().catch((err) => {
 });
 
 // Graceful shutdown
+//
+// The sequence itself lives in ./shutdown so it can be tested without a process
+// to exit; this is only the wiring. See that file for why the order matters —
+// in short, #2193: nothing here could ever release a WebSocket, so `docker
+// stop` always ended in SIGKILL and exit 137.
+let shuttingDown = false;
 function shutdown(signal: string): void {
+  // A second signal — the SIGINT that follows a Ctrl-C, or an impatient
+  // orchestrator sending SIGTERM twice — must not start a second teardown on
+  // top of the first one.
+  if (shuttingDown) return;
+  shuttingDown = true;
   const { logInfo: sLogInfo, logError: sLogError } = require('./nest/audit/audit-log.logger');
   const { closeMcpSessions } = require('./mcp');
-  sLogInfo(`${signal} received — shutting down gracefully...`);
-  closeMcpSessions();
-  // nestApp.close() stops every cron via the scheduling registrar's shutdown hook.
-  void nestApp?.close();
-  server.close(() => {
-    sLogInfo('HTTP server closed');
-    const { closeDb } = require('./db/database');
-    closeDb();
-    sLogInfo('Shutdown complete');
-    process.exit(0);
-  });
-  setTimeout(() => {
-    sLogError('Forced shutdown after timeout');
+  const { getServer } = require('./nest/realtime/ws-state');
+  const { runShutdown } = require('./shutdown');
+  runShutdown(signal, {
+    // Both are still undefined if the signal beat bootstrap(); the sequence
+    // handles that and still exits rather than hanging or throwing.
+    server,
+    // nestApp.close() stops every cron via the scheduling registrar's shutdown
+    // hook, and tears the plugin supervisor's forked children down.
+    closeNestApp: async () => { await nestApp?.close(); },
+    getWsClients: () => getServer()?.clients ?? null,
+    closeMcpSessions,
+    closeDb: () => { require('./db/database').closeDb(); },
+    logInfo: sLogInfo,
+    logError: sLogError,
+    exit: (code: number) => process.exit(code),
+  }).catch((err: unknown) => {
+    // Fire-and-forget would make this an unhandled rejection, which on Node 22
+    // is a crash — a worse ending than the one we are here to fix.
+    sLogError(`Shutdown failed: ${err instanceof Error ? err.message : String(err)}`);
     process.exit(1);
-  }, 10000);
+  });
 }
 
 process.on('SIGTERM', () => shutdown('SIGTERM'));

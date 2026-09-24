@@ -20,7 +20,7 @@ const { testDb } = vi.hoisted(() => {
     source_repo TEXT, source_commit TEXT, sha256 TEXT, author_pubkey TEXT, reviewed_at TEXT, last_error TEXT, updated_at TEXT,
     update_block_code TEXT, update_block_detail TEXT, update_block_version TEXT);
     CREATE TABLE plugin_error_log (id INTEGER PRIMARY KEY AUTOINCREMENT, plugin_id TEXT, level TEXT, message TEXT, ts TEXT);
-    CREATE TABLE plugin_settings_fields (plugin_id TEXT, field_key TEXT, label TEXT, input_type TEXT, placeholder TEXT, hint TEXT, required INTEGER, secret INTEGER, scope TEXT, options TEXT, oauth_config TEXT, sort_order INTEGER);
+    CREATE TABLE plugin_settings_fields (plugin_id TEXT, field_key TEXT, label TEXT, input_type TEXT, placeholder TEXT, hint TEXT, required INTEGER, secret INTEGER, scope TEXT, options TEXT, oauth_config TEXT, default_value TEXT, sort_order INTEGER);
     CREATE TABLE settings (user_id INTEGER, key TEXT, value TEXT);
     CREATE TABLE plugin_entity_metadata (id INTEGER PRIMARY KEY AUTOINCREMENT, plugin_id TEXT, entity_type TEXT, entity_id INTEGER, key TEXT, value TEXT, updated_at TEXT);
     CREATE TABLE addons (id TEXT PRIMARY KEY, enabled INTEGER DEFAULT 0);`);
@@ -47,7 +47,7 @@ function writeSource(id: string, opts: { index?: string; native?: boolean; noBui
   fs.mkdirSync(path.join(dir, 'server'), { recursive: true });
   // dev-link requires a `trek` range like any other install front door; `opts.trek`
   // overrides it to exercise the gate.
-  fs.writeFileSync(path.join(dir, 'trek-plugin.json'), JSON.stringify({ id, name: id, version: '1.0.0', type: 'integration', permissions: [], trek: opts.trek ?? '>=3.0.0 <4.0.0' }));
+  fs.writeFileSync(path.join(dir, 'trek-plugin.json'), JSON.stringify({ id, name: id, version: '1.0.0', type: 'integration', permissions: [], trek: opts.trek ?? '>=3.0.0' }));
   if (!opts.noBuild) fs.writeFileSync(path.join(dir, 'server', 'index.js'), opts.index ?? 'module.exports = {};');
   if (opts.native) fs.writeFileSync(path.join(dir, 'server', 'addon.node'), '\0');
   return dir;
@@ -101,6 +101,26 @@ describe('PluginRuntimeService dev-link', () => {
     await expect(runtime.link(path.join(srcRoot, 'ghost-dir'))).rejects.toThrow(/trek-plugin\.json/);
     await expect(runtime.link(writeSource('nobuild', { noBuild: true }))).rejects.toThrow(/server\/index\.js|build/);
     await expect(runtime.link(writeSource('nativeplug', { native: true }))).rejects.toThrow(/native/);
+  });
+
+  it('links a dir outside its TREK range when TREK_PLUGINS_IGNORE_TREK_RANGE is set, and says so', async () => {
+    process.env.APP_VERSION = '3.3.0';
+    process.env.TREK_PLUGINS_IGNORE_TREK_RANGE = '1';
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      await expect(runtime.link(writeSource('oldplug-bypass', { trek: '>=2.0.0 <3.0.0' }))).resolves.toMatchObject({
+        id: 'oldplug-bypass', trekRangeBypassed: { trekRange: '>=2.0.0 <3.0.0', hostVersion: '3.3.0' },
+      });
+      await expect(runtime.link(writeSource('rangeless-bypass', { trek: '' }))).resolves.toMatchObject({
+        id: 'rangeless-bypass', trekRangeBypassed: { trekRange: null, hostVersion: '3.3.0' },
+      });
+      // A dir that fits is a plain link — no marker to alarm anyone with.
+      await expect(runtime.link(writeSource('fits-bypass'))).resolves.toMatchObject({ trekRangeBypassed: null });
+    } finally {
+      warn.mockRestore();
+      delete process.env.APP_VERSION;
+      delete process.env.TREK_PLUGINS_IGNORE_TREK_RANGE;
+    }
   });
 
   it('rejects a local dir whose TREK range this server does not satisfy', async () => {

@@ -89,6 +89,7 @@ const dashboard: TranslationStrings = {
   'dashboard.useUnsplashPhoto': '{photographer} Unsplash-fotójának használata',
   'dashboard.titleRequired': 'A cím megadása kötelező',
   'dashboard.endDateError': 'A záró dátumnak a kezdő dátum után kell lennie',
+  'dashboard.tripTooLong': 'Egy utazás legfeljebb {days} napos lehet',
   'dashboard.dateShiftTitle': 'Új kezdő dátum',
   'dashboard.dateShiftIntro': 'Megváltoztattad az út kezdetét. Hogyan kövessék a terveid az új dátumokat?',
   'dashboard.dateShiftKeepBookings': 'A foglalások maradjanak a saját dátumaikon',
@@ -98,7 +99,25 @@ const dashboard: TranslationStrings = {
   'dashboard.dateShiftAllDesc':
     'A teljes útiterv az új dátumokkal együtt mozog, beleértve a foglalásokat és a szállásokat is.',
   'dashboard.dateShiftHint':
-    'Tipp: ha csak az útiterv egy részét szeretnéd eltolni, használd inkább a "Nap hozzáadása" funkciót a tervezőben.',
+    'Tipp: ha csak az útiterv egy részét szeretnéd eltolni, nyisd meg a tervezőben a „Napok átrendezése” ablakot, add hozzá az utazás utáni napot a dátumát mutató gombbal, és vidd oda, ahol a résnek lennie kell.',
+  'dashboard.shrinkTitle': 'Eltávolítod a napokat?',
+  'dashboard.shrinkIntro': 'Az új dátumok mentésekor ezek a napok eltávolításra kerülnek:',
+  'dashboard.shrinkMoreDays': '+{count} további',
+  'dashboard.shrinkLastDays': 'Az utolsó napok kerülnek ki, nem az elsők',
+  'dashboard.shrinkLastDaysHint':
+    'A napi tervek az új dátumokkal együtt mozognak, ezért mindig a terv utolsó napjai kerülnek ki, akkor is, ha a kezdés változott.',
+  'dashboard.shrinkBookingsHint':
+    'A Foglalások között maradnak. Amelyiknek a dátuma még az utazásba esik, visszakerül arra a napra.',
+  'dashboard.shrinkBookingsShiftHint': 'A Foglalások között maradnak, nap nélkül.',
+  'dashboard.shrinkStayHint':
+    'A bejelentkezés vagy a kijelentkezés egy eltávolított napra esik, ezért az egész szállás eltávolításra kerül.',
+  'dashboard.shrinkStayBookedHint':
+    'A bejelentkezés vagy a kijelentkezés egy eltávolított napra esik, ezért az egész szállás eltávolításra kerül. A(z) „{booking}” foglalás és annak kiadása a Foglalások között marad.',
+  'dashboard.shrinkStayBookingHint':
+    'A bejelentkezés vagy a kijelentkezés egy eltávolított napra esik, ezért az egész szállás eltávolításra kerül. A(z) „{booking}” foglalás a Foglalások között marad.',
+  'dashboard.shrinkConfirm': 'Napok eltávolítása és mentés',
+  'dashboard.shrinkUnknown':
+    'Az utazás napjait nem sikerült ellenőrizni. Ha az új dátumok kevesebb napot fognak át, a mentés eltávolítja az utolsó napokat és mindent, ami rájuk van tervezve.',
   'dashboard.greeting.morning': 'Jó reggelt,',
   'dashboard.greeting.afternoon': 'Jó napot,',
   'dashboard.greeting.evening': 'Jó estét,',

@@ -56,11 +56,33 @@ export interface OidcConfig {
   discoveryUrl: string | null;
 }
 
+export interface OidcRoleResolution {
+  role: 'admin' | 'user';
+  /**
+   * The mapping is configured but the claim it names is not in the payload, so
+   * there is no verdict to act on — which is not the same as a verdict of
+   * "not an admin".
+   */
+  claimMissing: boolean;
+  claimKey: string;
+  /** Claim NAMES only — the values can carry personal data and must not be logged. */
+  seenKeys: string[];
+}
+
+/** What findOrCreateUser hands back so the controller can audit it with the client IP. */
+export interface OidcRoleChange {
+  from: 'admin' | 'user';
+  to: 'admin' | 'user';
+  claim: string;
+}
+
 // ---------------------------------------------------------------------------
 // Constants / TTLs
 // ---------------------------------------------------------------------------
 
-const AUTH_CODE_TTL = 60000;          // 1 minute
+/** 1 minute — the auth-code lifetime AND the controller's binding-cookie maxAge. */
+export const OIDC_AUTH_CODE_TTL_MS = 60000;
+const AUTH_CODE_TTL = OIDC_AUTH_CODE_TTL_MS;
 const AUTH_CODE_CLEANUP = 30000;      // 30 seconds
 /** 5 minutes — the server-side pending-state TTL AND the controller's state-cookie maxAge. */
 export const OIDC_STATE_TTL_MS = 5 * 60 * 1000;
@@ -85,6 +107,19 @@ type JwksEntry = { keys: Array<Record<string, unknown>>; fetchedAt: number };
 
 function base64url(buf: Buffer): string {
   return buf.toString('base64url');
+}
+
+function sha256Hex(value: string): string {
+  return crypto.createHash('sha256').update(value, 'utf8').digest('hex');
+}
+
+/** Constant-time compare of a presented binding secret against its stored hash. */
+function bindingMatches(expectedHash: string, presented: string): boolean {
+  const expected = Buffer.from(expectedHash, 'hex');
+  const actual = crypto.createHash('sha256').update(presented, 'utf8').digest();
+  // Both are sha256 digests, so the lengths always agree; the guard is there
+  // because timingSafeEqual throws rather than returning false on a mismatch.
+  return expected.length === actual.length && crypto.timingSafeEqual(expected, actual);
 }
 
 const isRecord = (v: unknown): v is Record<string, unknown> =>
@@ -170,13 +205,21 @@ export class OidcService implements OnModuleDestroy {
   // Auth code management – short-lived codes exchanged for JWT
   // -------------------------------------------------------------------------
 
-  private readonly authCodes = new Map<string, { token: string; created: number; remember?: boolean }>();
+  // `bindingHash` is the sha256 of a secret that only the browser which finished
+  // the callback holds, in a cookie. The code itself travels in a URL — through
+  // history, referrers and any log in between — so on its own it is not a
+  // credential, and /exchange must not accept it as one.
+  private readonly authCodes = new Map<string, { token: string; created: number; remember?: boolean; bindingHash: string }>();
 
   // Discovery document cache (1 h TTL), keyed by discovery URL so two
   // configured issuers no longer thrash a single slot.
   private readonly discoveryCache = new Map<string, { doc: OidcDiscoveryDoc; fetchedAt: number }>();
 
   private readonly jwksCache = new Map<string, JwksEntry>();
+
+  // Claim names already reported as missing, so the warning is a diagnosis and
+  // not a line on every login.
+  private readonly warnedMissingAdminClaims = new Set<string>();
 
   private readonly stateSweeper: NodeJS.Timeout;
   private readonly codeSweeper: NodeJS.Timeout;
@@ -229,17 +272,31 @@ export class OidcService implements OnModuleDestroy {
     return pending;
   }
 
-  createAuthCode(token: string, remember?: boolean): string {
+  /**
+   * Mint a one-time login code plus the secret that redeems it.
+   *
+   * The caller puts `code` in the redirect URL and `binding` in an httpOnly
+   * cookie, so redeeming the code takes both halves and only the browser that
+   * completed the provider handshake has both.
+   */
+  createAuthCode(token: string, remember?: boolean): { code: string; binding: string } {
     const authCode: string = uuidv4();
-    this.authCodes.set(authCode, { token, created: Date.now(), remember });
-    return authCode;
+    const binding = crypto.randomBytes(32).toString('base64url');
+    this.authCodes.set(authCode, { token, created: Date.now(), remember, bindingHash: sha256Hex(binding) });
+    return { code: authCode, binding };
   }
 
-  consumeAuthCode(code: string): { token: string; remember?: boolean } | { error: string } {
+  consumeAuthCode(code: string, binding?: string): { token: string; remember?: boolean } | { error: string } {
     const entry = this.authCodes.get(code);
     if (!entry) return { error: 'Invalid or expired code' };
+    // Single use, burnt on every outcome: a code seen by someone else must not
+    // survive their attempt for a second guess, and the browser that owns it can
+    // simply log in again.
     this.authCodes.delete(code);
     if (Date.now() - entry.created > AUTH_CODE_TTL) return { error: 'Code expired' };
+    // Same wording as the unknown-code case on purpose — whoever presents a code
+    // without its binding learns nothing about whether the code was real.
+    if (!binding || !bindingMatches(entry.bindingHash, binding)) return { error: 'Invalid or expired code' };
     return { token: entry.token, remember: entry.remember };
   }
 
@@ -318,6 +375,62 @@ export class OidcService implements OnModuleDestroy {
       return claimData === adminValue ? 'admin' : 'user';
     }
     return 'user';
+  }
+
+  // Same mapping, plus the third outcome its callers need: an IdP that never sent
+  // the configured claim — because the scope carrying it was never requested, or
+  // because the name is a typo — says nothing about this user, and must not cost
+  // them a role they already have. #2364
+  resolveOidcRoleDetailed(userInfo: OidcUserInfo, isFirstUser: boolean): OidcRoleResolution {
+    const claimKey = readEnv().oidc.adminClaim;
+    const claimMissing =
+      !isFirstUser &&
+      !!readEnv().oidc.adminValue &&
+      !Object.prototype.hasOwnProperty.call(userInfo, claimKey);
+    return {
+      role: this.resolveOidcRole(userInfo, isFirstUser),
+      claimMissing,
+      claimKey,
+      seenKeys: Object.keys(userInfo),
+    };
+  }
+
+  // Once per claim name per process for the ordinary case: an operator who has not
+  // noticed after the first login will not notice after the thousandth, and this
+  // runs on a path that is hit on every single SSO login.
+  //
+  // A user who is stored as an admin is the exception and is never deduped. Okta
+  // sends a filtered `groups` claim only when the filter matches something and
+  // Entra ID drops `groups` for a user in no group at all, so on those providers
+  // taking somebody out of the admin group makes the claim vanish rather than
+  // arrive empty — which is exactly the login where keeping the role quiet would
+  // hide a revocation that never happened. #2364
+  private warnMissingAdminClaim(
+    resolution: OidcRoleResolution,
+    user: { id: number; username: string; role: 'admin' | 'user' } | null,
+  ): void {
+    const received = `Claims received: ${resolution.seenKeys.join(', ')}.`;
+    const scopeHint =
+      `A provider only sends a claim when one of the requested scopes carries it — add that scope to OIDC_SCOPE ` +
+      `(Authentik's "entitlements", for one, rides a scope of its own).`;
+    if (user?.role === 'admin') {
+      console.warn(
+        `[OIDC] User ${user.id} (${user.username}) is stored as an admin and the configured OIDC_ADMIN_CLAIM ` +
+        `"${resolution.claimKey}" was not in their userinfo response, so the admin role is kept. Providers that omit a ` +
+        `claim instead of sending it empty (Okta filtered groups, Entra ID) cannot take admin away this way — remove it ` +
+        `in TREK's admin panel. ${received} ${scopeHint}`,
+      );
+      return;
+    }
+    if (this.warnedMissingAdminClaims.has(resolution.claimKey)) return;
+    this.warnedMissingAdminClaims.add(resolution.claimKey);
+    const consequence = user === null
+      ? 'during registration, so the new account keeps its default role'
+      : `for user ${user.id}, so their stored role is left unchanged`;
+    console.warn(
+      `[OIDC] The configured OIDC_ADMIN_CLAIM "${resolution.claimKey}" was not in the userinfo response ${consequence}. ` +
+      `${received} ${scopeHint}`,
+    );
   }
 
   // -------------------------------------------------------------------------
@@ -498,7 +611,7 @@ export class OidcService implements OnModuleDestroy {
     userInfo: OidcUserInfo,
     config: OidcConfig,
     inviteToken?: string,
-  ): { user: User } | { error: string } {
+  ): { user: User; roleChange?: OidcRoleChange; created?: true } | { error: string } {
     // Defense-in-depth for direct callers — the controller redirects on a
     // missing email before it ever calls this; the same code flows through its
     // `oidc_error=' + result.error` pass-through if reached here.
@@ -525,11 +638,23 @@ export class OidcService implements OnModuleDestroy {
           return { error: 'email_not_verified' };
         }
         this.db.prepare('UPDATE users SET oidc_sub = ?, oidc_issuer = ? WHERE id = ?').run(sub, config.issuer, user.id);
+        user = { ...user, oidc_sub: sub, oidc_issuer: config.issuer } as User;
+      } else if (user.oidc_issuer !== config.issuer || user.oidc_sub !== sub) {
+        // The admin pointed the instance at a different IdP. We got here through the
+        // verified-email lookup, so this is the same person arriving from the new
+        // provider; leaving the old sub and issuer on the row would keep the account
+        // pinned to a provider that no longer exists (#2110).
+        this.db.prepare('UPDATE users SET oidc_sub = ?, oidc_issuer = ? WHERE id = ?').run(sub, config.issuer, user.id);
+        user = { ...user, oidc_sub: sub, oidc_issuer: config.issuer } as User;
       }
       // Update role based on OIDC claims on every login (if claim mapping is configured)
+      let roleChange: OidcRoleChange | undefined;
       if (readEnv().oidc.adminValue) {
-        const newRole = this.resolveOidcRole(userInfo, false);
-        if (user.role !== newRole) {
+        const resolution = this.resolveOidcRoleDetailed(userInfo, false);
+        const newRole = resolution.role;
+        if (resolution.claimMissing) {
+          this.warnMissingAdminClaim(resolution, user);
+        } else if (user.role !== newRole) {
           // Never let the claim-based downgrade strip the last admin. The bootstrap
           // admin (first SSO user) usually doesn't carry the admin claim, so a forced
           // re-login — e.g. after a JWT-secret rotation — would otherwise demote it and
@@ -542,19 +667,26 @@ export class OidcService implements OnModuleDestroy {
             console.warn(`[OIDC] Kept admin role for user ${user.id}: their OIDC claims map to '${newRole}', but they are the only admin — demoting would lock the instance out.`);
           } else {
             this.db.prepare('UPDATE users SET role = ? WHERE id = ?').run(newRole, user.id);
+            roleChange = { from: user.role, to: newRole, claim: resolution.claimKey };
             user = { ...user, role: newRole } as User;
           }
         }
       }
       // Keep the avatar in sync with the OIDC picture, but never clobber a custom
-      // upload: only fill it when empty or when the current value is itself an OIDC
+      // upload: only touch it when empty or when the current value is itself an OIDC
       // picture URL, so the picture refreshes on each login without overriding an
       // uploaded one. #1399
-      if (picture && picture !== user.avatar && (!user.avatar || /^https:\/\//i.test(user.avatar))) {
+      //
+      // "In sync" includes the provider having no picture for this user any more. That
+      // is what a provider switch looks like from here, and the old value points at a
+      // host this instance no longer talks to, so it renders as a broken image forever
+      // (#2110). An uploaded avatar is a bare filename and stays untouched either way.
+      const avatarIsOidc = !!user.avatar && /^https:\/\//i.test(user.avatar);
+      if (picture ? picture !== user.avatar && (!user.avatar || avatarIsOidc) : avatarIsOidc) {
         this.db.prepare('UPDATE users SET avatar = ? WHERE id = ?').run(picture, user.id);
         user = { ...user, avatar: picture } as User;
       }
-      return { user };
+      return { user, roleChange };
     }
 
     // --- New user registration ---
@@ -577,7 +709,11 @@ export class OidcService implements OnModuleDestroy {
       }
     }
 
-    const role = this.resolveOidcRole(userInfo, isFirstUser);
+    // Same three outcomes as above; a missing claim here means the account is
+    // created with the role it would have had without any mapping at all.
+    const resolution = this.resolveOidcRoleDetailed(userInfo, isFirstUser);
+    if (resolution.claimMissing) this.warnMissingAdminClaim(resolution, null);
+    const role = resolution.role;
     const randomPass = crypto.randomBytes(32).toString('hex');
     const hash = bcrypt.hashSync(randomPass, 10);
 
@@ -616,7 +752,9 @@ export class OidcService implements OnModuleDestroy {
       // is_guest, created_at, …) instead of a hand-built partial — same shape
       // the existing-user branch returns.
       user = this.db.prepare('SELECT * FROM users WHERE id = ?').get(Number(result.lastInsertRowid)) as User;
-      return { user };
+      // The one branch that makes an account. The caller writes the registration row
+      // off this, so it has to be set here and nowhere else.
+      return { user, created: true };
     } catch (err) {
       if (err === inviteRaceError) {
         console.warn(`[OIDC] Invite token ${inviteToken?.slice(0, 8)}... exhausted — concurrent callback won the last slot`);

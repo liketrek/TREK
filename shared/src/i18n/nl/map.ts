@@ -19,5 +19,14 @@ const map: TranslationStrings = {
   'map.baseLayer.satellite': 'Satelliet',
   'map.baseLayer.switchToSatellite': 'Overschakelen naar satellietweergave',
   'map.baseLayer.switchToDefault': 'Overschakelen naar kaartweergave',
+  'map.location.denied': 'Locatietoegang is geblokkeerd. Controleer de apparaatinstellingen; een geïnstalleerde app heeft een eigen locatiemachtiging, los van de browser.',
+  'map.location.unavailable': 'Je locatie kon niet worden bepaald.',
+  'map.location.timeout': 'Het bepalen van je locatie duurde te lang. Probeer het opnieuw met vrij zicht op de lucht.',
+  'map.overview.show': 'Hele reis tonen',
+  'map.overview.hide': 'Hele reis verbergen',
+  'map.overview.total': 'Totale afstand',
+  'map.attribution': 'Kaartvermeldingen',
+  'map.overview.unrouted': '{count} etappe(s) konden niet worden berekend, de afstanden zijn onvolledig.',
+  'map.overview.dayUnrouted': '{count} etappe(s) van deze dag konden niet worden berekend',
 };
 export default map;

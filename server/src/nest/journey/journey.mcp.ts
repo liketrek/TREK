@@ -12,6 +12,7 @@ import type { JourneyContributor } from '../../types';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
 import { AuthService } from '../auth/auth.service';
+import { PhotoCaptureBackfillService } from '../memories/photo-capture-backfill.service';
 
 /** Legacy registrar gate: the whole journey surface rode the journey addon. */
 const journeyAddonOn = addonGate(ADDON_IDS.JOURNEY);
@@ -45,6 +46,42 @@ function jsonContent(uri: string, data: unknown) {
   };
 }
 
+/*
+ * The three entry fields with a fixed set of values. `journey_entries.type` and
+ * `.visibility` are plain TEXT columns and the REST route forwards whatever the
+ * client sent, but the row type (JourneyEntry in src/types) only ever models
+ * these, so the tools name them rather than take a free string: a model that
+ * invents "friends-only" would write a value nothing reads.
+ */
+const ENTRY_TYPE = z.enum(['entry', 'checkin', 'skeleton']);
+const ENTRY_VISIBILITY = z.enum(['private', 'shared', 'public']);
+type EntryType = z.infer<typeof ENTRY_TYPE>;
+type EntryVisibility = z.infer<typeof ENTRY_VISIBILITY>;
+
+/**
+ * The verdict on a place. Either side defaults to empty so a caller can send
+ * only the half it has, which is what the entry editor does when a place was
+ * all good or all bad. The service stores nothing when both come back empty.
+ */
+const PROS_CONS = z.strictObject({
+  pros: z.array(z.string()).default([]),
+  cons: z.array(z.string()).default([]),
+});
+
+/**
+ * The photo backends a journey can reference. The REST route forwards whatever
+ * `provider` string the body carried straight into `trek_photos.provider`, which
+ * would let a model persist a row no resolver can ever match to a backend.
+ */
+const PHOTO_PROVIDER = z.enum(['immich', 'synologyphotos']);
+
+/**
+ * How many provider assets one call may attach. The REST route takes an
+ * unbounded array, but it is driven by a picker where every id was clicked;
+ * a tool call is not, and each id is a row plus a detached provider lookup.
+ */
+const MAX_PROVIDER_PHOTOS_PER_CALL = 100;
+
 /**
  * Journey MCP surface — ported 1:1 from the legacy registrar
  * src/mcp/tools/journey.ts (23 tools): identical names, descriptions, zod input
@@ -55,6 +92,16 @@ function jsonContent(uri: string, data: unknown) {
  * marker could not express, and folding it into a predicate would have put it
  * out of reach of the boot-time scope gate. The registration-time addon
  * early-return becomes the `when:` gate.
+ *
+ * Since the port the surface has grown past the legacy 23: the two entry tools
+ * take the rest of the columns their REST routes always accepted (a place, its
+ * coordinates, weather, tags, the verdict), and get_journey_stats answers what
+ * GET /api/journeys/:id/stats answers.
+ *
+ * So does add_journey_provider_photos, which brings across
+ * POST /api/journeys/entries/:entryId/provider-photos and its gallery twin
+ * POST /api/journeys/:id/gallery/provider-photos. Finding the asset ids it takes
+ * is the memories domain's half of the same job, in memories/memories.mcp.ts.
  */
 @McpController()
 export class JourneyMcp {
@@ -63,6 +110,7 @@ export class JourneyMcp {
     private readonly share: JourneyShareService,
     readonly addons: AddonsService,
     private readonly auth: AuthService,
+    private readonly captureBackfill: PhotoCaptureBackfillService,
   ) {}
 
   // ── Read ────────────────────────────────────────────────────────────────
@@ -91,6 +139,28 @@ export class JourneyMcp {
     const journey = this.journey.getJourneyFull(journeyId, ctx.userId);
     if (!journey) return notFound('Journey not found or access denied.');
     return ok({ journey });
+  }
+
+  @Tool({
+    name: 'get_journey_stats',
+    description: 'What a journey adds up to: distance travelled in metres, calendar days spanned, countries in visit order, the furthest point reached, and entry, photo and place counts. Stops the traveller switched off with update_journey_entry count towards none of those and are listed under excluded instead. Prefer this over get_journey whenever the question is about totals, since the stats get_journey carries are three counts and nothing else.',
+    inputSchema: {
+      journeyId: z.number().int().positive(),
+      include_route: z.boolean().optional().describe('Also return the route itself, up to 400 stops with coordinates. Off by default: the totals and the country list do not need it.'),
+    },
+    annotations: TOOL_ANNOTATIONS_READONLY,
+    when: journeyAddonOn,
+    access: { group: 'journey', mode: 'read' },
+  })
+  getJourneyStats({ journeyId, include_route }: { journeyId: number; include_route?: boolean }, ctx: McpContext) {
+    const stats = this.journey.journeyStats(journeyId, ctx.userId);
+    if (!stats) return notFound('Journey not found or access denied.');
+    // Same payload as GET /api/journeys/:id/stats. The route is left out unless
+    // it was asked for: 400 coordinate pairs answer a different question than
+    // the totals do, and Studio is the caller that actually draws them.
+    if (include_route) return ok({ stats });
+    const { points: _route, ...totals } = stats;
+    return ok({ stats: totals });
   }
 
   @Tool({
@@ -177,19 +247,42 @@ export class JourneyMcp {
       title: z.string().min(1).max(200).optional(),
       subtitle: z.string().max(300).optional(),
       status: z.enum(['draft', 'active', 'completed', 'archived']).optional(),
+      show_verdict: z.boolean().optional().describe('Whether entries in this journey offer a pros/cons list'),
+      show_mood: z.boolean().optional().describe('Whether entries in this journey offer a mood'),
+      show_weather: z.boolean().optional().describe('Whether entries in this journey offer a weather note'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: journeyAddonOn,
     access: { group: 'journey', mode: 'write' },
   })
   updateJourney(
-    { journeyId, title, subtitle, status }: { journeyId: number; title?: string; subtitle?: string; status?: string },
+    { journeyId, ...data }: {
+      journeyId: number; title?: string; subtitle?: string; status?: string;
+      show_verdict?: boolean; show_mood?: boolean; show_weather?: boolean;
+    },
     ctx: McpContext,
   ) {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    const journey = this.journey.updateJourney(journeyId, ctx.userId, { title, subtitle, status });
+    const journey = this.journey.updateJourney(journeyId, ctx.userId, data);
     if (!journey) return notFound('Journey not found or access denied.');
     return ok({ journey });
+  }
+
+  @Tool({
+    name: 'restore_journey_suggestions',
+    description: 'Bring back every trip-derived suggestion that was dismissed from this journey. Answers with how many came back.',
+    inputSchema: {
+      journeyId: z.number().int().positive(),
+    },
+    annotations: TOOL_ANNOTATIONS_WRITE,
+    when: journeyAddonOn,
+    access: { group: 'journey', mode: 'write' },
+  })
+  restoreJourneySuggestions({ journeyId }: { journeyId: number }, ctx: McpContext) {
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
+    const result = this.journey.restoreDismissedSuggestions(journeyId, ctx.userId);
+    if (!result) return notFound('Journey not found or access denied.');
+    return ok(result);
   }
 
   @Tool({
@@ -237,7 +330,7 @@ export class JourneyMcp {
 
   @Tool({
     name: 'create_journey_entry',
-    description: 'Create a new entry in a journey.',
+    description: 'Create a new entry in a journey. Give location_lat/location_lng whenever the place is known, otherwise the entry is text-only and never appears on the journey map or in its distance.',
     inputSchema: {
       journeyId: z.number().int().positive(),
       entry_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).describe('Entry date (YYYY-MM-DD)'),
@@ -245,7 +338,14 @@ export class JourneyMcp {
       story: z.string().optional(),
       entry_time: z.string().optional().describe('Time of day (e.g. "14:30")'),
       location_name: z.string().optional(),
+      location_lat: z.number().min(-90).max(90).optional().describe('Latitude; needed, with location_lng, to place the entry on the journey map'),
+      location_lng: z.number().min(-180).max(180).optional(),
       mood: z.string().optional(),
+      weather: z.string().max(100).optional().describe('Weather as the traveller recorded it (e.g. "sunny", "24C and windy")'),
+      tags: z.array(z.string()).optional(),
+      pros_cons: PROS_CONS.optional().describe('The verdict on the place: what was worth it and what was not'),
+      visibility: ENTRY_VISIBILITY.optional().describe('Defaults to private; "shared" and "public" expose the entry through the journey share link'),
+      type: ENTRY_TYPE.optional().describe('Defaults to "entry"; "skeleton" is the stub TREK derives from a trip place and hides behind the hide-skeletons preference'),
       sort_order: z.number().int().min(0).optional(),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
@@ -253,7 +353,12 @@ export class JourneyMcp {
     access: { group: 'journey', mode: 'write' },
   })
   createJourneyEntry(
-    { journeyId, ...data }: { journeyId: number; entry_date: string; title?: string; story?: string; entry_time?: string; location_name?: string; mood?: string; sort_order?: number },
+    { journeyId, ...data }: {
+      journeyId: number; entry_date: string; title?: string; story?: string; entry_time?: string;
+      location_name?: string; location_lat?: number; location_lng?: number; mood?: string; weather?: string;
+      tags?: string[]; pros_cons?: { pros: string[]; cons: string[] }; visibility?: EntryVisibility;
+      type?: EntryType; sort_order?: number;
+    },
     ctx: McpContext,
   ) {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
@@ -266,21 +371,39 @@ export class JourneyMcp {
 
   @Tool({
     name: 'update_journey_entry',
-    description: 'Update an existing journey entry.',
+    description: 'Update an existing journey entry: its text, date, place, coordinates, weather, tags, verdict, visibility, or whether it counts as a stop. Fields left out keep their value; pass null to clear one. To move an entry within its day use reorder_journey_entries rather than setting sort_order here.',
     inputSchema: {
       entryId: z.number().int().positive(),
-      title: z.string().max(300).optional(),
-      story: z.string().optional(),
+      title: z.string().max(300).nullable().optional(),
+      story: z.string().nullable().optional(),
       entry_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-      entry_time: z.string().optional(),
-      mood: z.string().optional(),
+      entry_time: z.string().nullable().optional(),
+      location_name: z.string().nullable().optional(),
+      location_lat: z.number().min(-90).max(90).nullable().optional().describe('Latitude, or null to take the entry off the journey map'),
+      location_lng: z.number().min(-180).max(180).nullable().optional(),
+      mood: z.string().nullable().optional(),
+      weather: z.string().max(100).nullable().optional(),
+      tags: z.array(z.string()).nullable().optional(),
+      pros_cons: PROS_CONS.nullable().optional().describe('Replaces the whole verdict; null clears it'),
+      visibility: ENTRY_VISIBILITY.optional(),
+      type: ENTRY_TYPE.optional().describe('Promote a trip-derived "skeleton" to a real "entry" once it has been written up'),
+      sort_order: z.number().int().min(0).optional(),
+      stats_excluded: z.boolean().optional().describe('True leaves the entry in the journal but takes it off the journey route and out of its distance, countries and step count (see get_journey_stats); false puts it back. For the home airport, a stopover, the place the trip was planned from'),
+      dismissed: z.boolean().optional().describe('True waves a trip-derived suggestion away: it leaves the journey without being deleted, so the trip sync does not offer it again. restore_journey_suggestions brings every dismissed one back'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: journeyAddonOn,
     access: { group: 'journey', mode: 'write' },
   })
   updateJourneyEntry(
-    { entryId, ...data }: { entryId: number; title?: string; story?: string; entry_date?: string; entry_time?: string; mood?: string },
+    { entryId, ...data }: {
+      entryId: number; title?: string | null; story?: string | null; entry_date?: string;
+      entry_time?: string | null; location_name?: string | null; location_lat?: number | null;
+      location_lng?: number | null; mood?: string | null; weather?: string | null;
+      tags?: string[] | null; pros_cons?: { pros: string[]; cons: string[] } | null;
+      visibility?: EntryVisibility; type?: EntryType; sort_order?: number; stats_excluded?: boolean;
+      dismissed?: boolean;
+    },
     ctx: McpContext,
   ) {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
@@ -402,6 +525,61 @@ export class JourneyMcp {
     if (!result) return notFound('Journey not found or access denied.');
     // Return the service result ({ hide_skeletons }), matching the REST route.
     return ok(result);
+  }
+
+  @Tool({
+    name: 'add_journey_provider_photos',
+    description: 'Attach photos from a connected library (Immich or Synology Photos) to a journey: to one entry when entryId is given, otherwise to the journey gallery only. Find the asset ids first with search_provider_photos or list_provider_album_photos. No image data passes through here, the journey stores a reference and the app fetches the picture, so this also works for photos far too large to hand to a model. An asset already attached is skipped rather than duplicated, which makes re-running the same call safe.',
+    inputSchema: {
+      journeyId: z.number().int().positive(),
+      entryId: z.number().int().positive().optional().describe('Attach to this entry, which must belong to journeyId. The photo lands in the journey gallery either way; omitting this adds it to the gallery alone'),
+      provider: PHOTO_PROVIDER.describe('The library the asset ids came from'),
+      asset_ids: z.array(z.string().min(1)).min(1).max(MAX_PROVIDER_PHOTOS_PER_CALL).describe('Provider asset ids, as returned by the search and album tools'),
+      media_types: z.array(z.enum(['image', 'video'])).optional().describe('Parallel to asset_ids; anything not named here counts as an image'),
+      caption: z.string().max(500).optional().describe('Stored only when entryId is given, matching the REST routes: the gallery add records no caption'),
+      passphrase: z.string().min(1).optional().describe('Only for a Synology Photos album shared with the user: the passphrase list_provider_albums returned for that album'),
+    },
+    annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+    when: journeyAddonOn,
+    access: { group: 'journey', mode: 'write' },
+  })
+  addJourneyProviderPhotos(
+    { journeyId, entryId, provider, asset_ids, media_types, caption, passphrase }: {
+      journeyId: number; entryId?: number; provider: z.infer<typeof PHOTO_PROVIDER>;
+      asset_ids: string[]; media_types?: Array<'image' | 'video'>; caption?: string; passphrase?: string;
+    },
+    ctx: McpContext,
+  ) {
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
+    // The REST routes derive the journey from the entry and let each per-asset
+    // add answer for itself, which in the array branch means a caller with no
+    // access gets an empty 200. Checking up front instead turns that silence
+    // into a sentence, and is what makes journeyId worth asking for: the entry
+    // has to be shown to belong to it before anything is written.
+    if (!this.journey.canEdit(journeyId, ctx.userId)) return notFound('Journey not found or access denied.');
+    if (entryId !== undefined && !this.journey.listEntries(journeyId, ctx.userId)?.some(e => e.id === entryId)) {
+      return notFound('Entry not found in this journey.');
+    }
+
+    const photos: unknown[] = [];
+    asset_ids.forEach((assetId, i) => {
+      const mediaType = media_types?.[i] === 'video' ? 'video' : 'image';
+      const photo = entryId === undefined
+        ? this.journey.addProviderPhotoToGallery(journeyId, ctx.userId, provider, assetId, undefined, passphrase, mediaType)
+        : this.journey.addProviderPhoto(entryId, ctx.userId, provider, assetId, caption, passphrase, mediaType);
+      if (photo) photos.push(photo);
+    });
+
+    // Detached, exactly as the REST routes schedule it: the provider is asked
+    // when and where each photo was taken, and without that answer an attached
+    // photo can never appear on the journey map (#1614).
+    this.captureBackfill.schedule(
+      photos.map(p => (p as { photo_id?: number }).photo_id).filter((id): id is number => typeof id === 'number'),
+      ctx.userId,
+    );
+    // `skipped` is what tells a caller that a shortfall was duplicates rather
+    // than a failure; the REST body carries only photos and added.
+    return ok({ photos, added: photos.length, skipped: asset_ids.length - photos.length });
   }
 
   // ── Share links (journey:share, not implied by journey:write) ────────────

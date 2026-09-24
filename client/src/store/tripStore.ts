@@ -215,8 +215,17 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
 
   updateTrip: async (tripId: number | string, data: Partial<Trip> & { date_shift_mode?: 'keep_bookings' | 'shift_all' }) => {
     try {
+      const before = get().trip
       const result = await tripsApi.update(tripId, data)
       set({ trip: result.trip })
+      // New dates rebuild the day rows, and a stay on a day that went is gone
+      // with it. Stays live in the planner, not here, so every caller of this
+      // action (the phone's trip dialog too) nudges the planner to reload them,
+      // through the existing legacy accommodations:refresh window event rather
+      // than a second channel; a store slice for stays would retire both.
+      if (before?.start_date !== result.trip?.start_date || before?.end_date !== result.trip?.end_date) {
+        window.dispatchEvent(new CustomEvent('accommodations:refresh'))
+      }
       const daysData = await dayRepo.list(tripId)
       const assignmentsMap: AssignmentsMap = {}
       const dayNotesMap: DayNotesMap = {}

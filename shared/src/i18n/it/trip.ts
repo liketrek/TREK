@@ -20,6 +20,7 @@ const trip: TranslationStrings = {
   'trip.toast.placeDeleted': 'Luogo eliminato',
   'trip.toast.selectDay': 'Seleziona prima un giorno',
   'trip.toast.assignedToDay': 'Luogo assegnato al giorno',
+  'trip.toast.loadError': 'Impossibile caricare il viaggio',
   'trip.toast.reorderError': 'Impossibile riordinare',
   'trip.toast.reservationUpdated': 'Prenotazione aggiornata',
   'trip.toast.reservationAdded': 'Prenotazione aggiunta',
@@ -63,6 +64,7 @@ const trip: TranslationStrings = {
   'transit.search': 'Cerca',
   'transit.searching': 'Ricerca in corso…',
   'transit.searchError': 'Ricerca del percorso non riuscita. Riprova.',
+  'transit.noResultsVia': 'Nessun collegamento trovato tramite {provider}. Prova un altro orario o altri filtri.',
   'transit.noResults': 'Nessun collegamento trovato. Prova un altro orario o filtri.',
   'transit.direct': 'Diretto',
   'transit.transfers': '{count} cambi',
@@ -78,6 +80,7 @@ const trip: TranslationStrings = {
   'transport.modeAutomated': 'Automatico',
   'transit.sectionTitle': 'Trasporto pubblico automatico',
   'transit.changeRoute': 'Cambia percorso',
+  'transit.editDetails': 'Modifica dettagli',
   'transit.journey': 'Viaggio in trasporto pubblico',
   'transit.pickDay': 'Scegli un giorno per cui cercare i collegamenti.',
   'transit.noItinerary': 'Questa voce non ha un itinerario salvato: usa "Cambia percorso" per cercarne uno.',
@@ -85,5 +88,10 @@ const trip: TranslationStrings = {
   'transit.transfersLabel': 'Cambi',
   'transit.walkLabel': 'A piedi',
   'transit.searchHint': 'Cerca collegamenti reali e aggiungili direttamente alla giornata — dati via Transitous.',
+  'trip.confirm.deletePlaceNight': 'Verrà eliminato anche il soggiorno prenotato a «{name}».',
+  'trip.confirm.deletePlaceBooked':
+    'Verranno eliminati anche il soggiorno prenotato a «{name}», la prenotazione «{booking}» e ogni spesa collegata.',
+  'trip.confirm.deletePlaceBookedSame':
+    'Verranno eliminati anche il soggiorno prenotato a «{name}», la sua prenotazione e ogni spesa collegata.',
 };
 export default trip;

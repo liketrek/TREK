@@ -95,5 +95,20 @@ const oauth: TranslationStrings = {
   'oauth.authorize.alwaysIncluded': 'Always included', // en-fallback
   'oauth.authorize.alwaysTool.listTrips': 'List your trips so the AI can discover trip IDs', // en-fallback
   'oauth.authorize.alwaysTool.getTripSummary': 'Read a trip overview needed to use any other tool', // en-fallback
+  'oauth.scope.group.files': 'Pliki',
+  'oauth.scope.group.settings': 'Ustawienia',
+  'oauth.scope.files:read.label': 'Przeglądanie plików podróży',
+  'oauth.scope.files:read.description': 'Wyświetlanie dokumentów podróży: nazw, rozmiarów, kto je przesłał i z czym są powiązane',
+  'oauth.scope.files:write.label': 'Zarządzanie plikami podróży',
+  'oauth.scope.files:write.description': 'Zmiana nazw i opisów plików, wiązanie ich z rezerwacjami i miejscami, oznaczanie i przenoszenie do kosza',
+  'oauth.scope.files:content.label': 'Odczyt zawartości plików',
+  'oauth.scope.files:content.description': 'Odczyt zawartości przesłanego dokumentu, na przykład PDF-u rezerwacji lub biletu',
+  'oauth.scope.settings:read.label': 'Przeglądanie preferencji',
+  'oauth.scope.settings:read.description': 'Odczyt jednostek, formatu czasu, języka, waluty domyślnej i strony startowej',
+  'oauth.scope.settings:write.label': 'Zmiana preferencji',
+  'oauth.scope.settings:write.description': 'Zmiana jednostek, formatu czasu, języka, waluty domyślnej i strony startowej. Nigdy zapisanych kluczy API',
+  'oauth.scope.group.plugins': 'Wtyczki',
+  'oauth.scope.plugins:use.label': 'Uruchamianie narzędzi wtyczek',
+  'oauth.scope.plugins:use.description': 'Pozwala temu klientowi wywoływać narzędzia udostępniane przez wtyczki zainstalowane i zatwierdzone przez administratora. Każda wtyczka działa z uprawnieniami, które już otrzymała, a nie z zakresami tego tokenu',
 };
 export default oauth;

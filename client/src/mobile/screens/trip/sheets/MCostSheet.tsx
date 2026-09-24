@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Check, ChevronDown, Plus, Trash2, Wallet } from 'lucide-react'
+import { Check, ChevronDown, Plus, Trash2, Wallet, Receipt, Paperclip } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import CustomSelect from '../../../../components/shared/CustomSelect'
 import { CustomDatePicker } from '../../../../components/shared/CustomDateTimePicker'
@@ -9,16 +9,19 @@ import { useTranslation } from '../../../../i18n'
 import { useToast } from '../../../../components/shared/Toast'
 import { useTripStore } from '../../../../store/tripStore'
 import { useExchangeRates } from '../../../../hooks/useExchangeRates'
-import { formatMoney, localizeAmountInput, cleanAmount } from '../../../../utils/formatters'
+import { formatMoney, localizeAmountInput, amountToInputString } from '../../../../utils/formatters'
+import { openFile } from '../../../../utils/fileDownload'
+import { saveWithReceipts } from '../../../../components/Budget/receiptUploads'
 import { SYMBOLS, SPLIT_COLORS, currenciesWith } from '../../../../components/Budget/BudgetPanel.constants'
 import { COST_CATEGORY_LIST, catMeta } from '../../../../components/Budget/costsCategories'
 import { localToday } from '../../../../components/Planner/today'
-import { calculateTicketShares, hasTicketSplit, NOTE_MAX, readTicketItems, readUserNote, splitEqualShares, writeTicketItems, type TicketItem } from '../../../../components/Budget/CostsPanel.helpers'
+import { amountPattern, calculateTicketShares, hasTicketSplit, NOTE_MAX, readTicketItems, readUserNote, splitEqualShares, writeTicketItems, type TicketItem } from '../../../../components/Budget/CostsPanel.helpers'
 import type { ExpensePrefill } from '../../../../components/Budget/CostsPanel'
 import { payersBalanced, rebalancePayers } from '../../../../components/Budget/CostsPanel.helpers'
 import GuestBadge from '../../../../components/shared/GuestBadge'
 import type { TripMember } from '../../../../components/Budget/BudgetPanelMemberChips'
-import type { BudgetItem } from '../../../../types'
+import { ReceiptPreviewModal } from '../../../../components/Budget/ReceiptPreviewModal'
+import type { BudgetItem, BudgetItemReceipt } from '../../../../types'
 
 export interface MCostSheetProps {
   tripId: number
@@ -74,16 +77,20 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
   const [note, setNote] = useState(() => readUserNote(editing))
   const [currency, setCurrency] = useState((editing?.currency || base).toUpperCase())
   const [day, setDay] = useState(editing?.expense_date || localToday())
+  // Edit and prefill seeds are padded to the currency's decimals (#2175), same
+  // as the desktop modal: a saved 4,90 must reopen as "4,90", not "4,9". A
+  // prefill has no currency of its own and is read as `base`.
   const [total, setTotal] = useState<string>(() => {
-    if (editing) return editing.total_price ? String(cleanAmount(editing.total_price)) : ''
-    if (prefill?.amount != null) return String(prefill.amount)
+    if (editing) return editing.total_price ? amountToInputString(editing.total_price, (editing.currency || base).toUpperCase()) : ''
+    if (prefill?.amount != null) return amountToInputString(prefill.amount, base)
     return ''
   })
   const [participants, setParticipants] = useState<Set<number>>(() =>
     editing ? new Set((editing.members || []).map(m => m.user_id)) : new Set(people.map(p => p.id)))
 
   // Payer state — same model as the desktop modal. 0 = "Nobody (planning entry)".
-  const initialPayers = (editing?.payers || []).filter(p => p.amount > 0)
+  // A negative payer (the recipient of a refund, #2176) must survive the reopen.
+  const initialPayers = (editing?.payers || []).filter(p => p.amount !== 0)
   const [payerId, setPayerId] = useState<number>(() => {
     const existingPayer = initialPayers[0]
     if (existingPayer) return existingPayer.user_id
@@ -93,7 +100,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
   const [payerIds, setPayerIds] = useState<Set<number>>(() => new Set(initialPayers.map(p => p.user_id)))
   const [payerAmounts, setPayerAmounts] = useState<Record<number, string>>(() => {
     const m: Record<number, string> = {}
-    for (const p of initialPayers) m[p.user_id] = String(p.amount)
+    for (const p of initialPayers) m[p.user_id] = amountToInputString(p.amount, currency)
     return m
   })
   const [pinnedPayers, setPinnedPayers] = useState<Set<number>>(() => new Set(initialPayers.map(p => p.user_id)))
@@ -113,11 +120,29 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
     const m: Record<number, string> = {}
     if (editing && editing.members) {
       for (const member of editing.members) {
-        if (member.amount !== null && member.amount !== undefined) m[member.user_id] = String(member.amount)
+        if (member.amount !== null && member.amount !== undefined) m[member.user_id] = amountToInputString(member.amount, currency)
       }
     }
     return m
   })
+
+  const [receipts, setReceipts] = useState<BudgetItemReceipt[]>(() => editing?.receipts || [])
+  const [pendingReceiptFiles, setPendingReceiptFiles] = useState<File[]>([])
+  const [uploadingReceipt, setUploadingReceipt] = useState(false)
+  const [previewReceipts, setPreviewReceipts] = useState<{ receipts: BudgetItemReceipt[]; initialIndex: number } | null>(null)
+
+  const handleReceiptFileSelect = (files: FileList | File[] | null) => {
+    if (!files || files.length === 0) return
+    setPendingReceiptFiles(prev => [...prev, ...Array.from(files)])
+  }
+
+  const handleRemoveReceipt = (receiptId: number) => {
+    setReceipts(prev => prev.filter(r => r.id !== receiptId))
+  }
+
+  const handleRemovePendingReceipt = (index: number) => {
+    setPendingReceiptFiles(prev => prev.filter((_, i) => i !== index))
+  }
 
   const [saving, setSaving] = useState(false)
   const [deleteArmed, setDeleteArmed] = useState(false)
@@ -140,16 +165,20 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
     const enteredSum = [...participants]
       .filter(id => customAmounts[id])
       .reduce((sum, id) => sum + (Number.parseFloat(customAmounts[id]) || 0), 0)
-    const remaining = Math.max(0, totalNum - enteredSum)
+    // Clamped toward zero on the total's own side so a negative total (#2176)
+    // still previews its negative equal shares — same as the desktop modal.
+    const rest = totalNum - enteredSum
+    const remaining = totalNum >= 0 ? Math.max(0, rest) : Math.min(0, rest)
     return splitEqualShares(remaining, emptyParts.map(id => ({ user_id: id })), editing?.id || 0)
   }, [totalNum, participants, customAmounts, editing])
 
   const ticketValid = ticketItems.length > 0 && ticketItems.every(item => item.name.trim().length > 0 && (Number.parseFloat(item.price) || 0) > 0 && item.participants.size > 0)
   const payersOk = !multiPayer || (payerIds.size > 0 && payersBalanced(payerAmounts, payerIds, totalNum))
+  // A negative total is a valid entry (a refund, #2176); only zero has nothing to say.
   const valid = name.trim().length > 0 && payersOk && (
     isTicketMode
       ? ticketValid
-      : totalNum > 0 && (participants.size === 0 || splitMode === 'equally' || customBalanced)
+      : totalNum !== 0 && (participants.size === 0 || splitMode === 'equally' || customBalanced)
   )
 
   const onTotalChange = (v: string) => setTotal(v.replace(',', '.'))
@@ -195,7 +224,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
 
   const handleCustomAmountChange = (id: number, val: string) => {
     val = val.replace(',', '.')
-    if (/^\d*\.?\d{0,2}$/.test(val) || val === '') setCustomAmounts(prev => ({ ...prev, [id]: val }))
+    if (val === '' || amountPattern(currency, true).test(val)) setCustomAmounts(prev => ({ ...prev, [id]: val }))
   }
 
   const handleAddEmptyItem = () => {
@@ -207,7 +236,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
   const handleUpdateItemName = (id: string, itemName: string) => setTicketItems(prev => prev.map(item => item.id === id ? { ...item, name: itemName } : item))
   const handleUpdateItemPrice = (id: string, price: string) => {
     price = price.replace(',', '.')
-    if (/^\d*\.?\d{0,2}$/.test(price) || price === '') setTicketItems(prev => prev.map(item => item.id === id ? { ...item, price } : item))
+    if (price === '' || amountPattern(currency, false).test(price)) setTicketItems(prev => prev.map(item => item.id === id ? { ...item, price } : item))
   }
   const handleRemoveItem = (id: string) => setTicketItems(prev => prev.filter(item => item.id !== id))
   const handleToggleItemParticipant = (itemId: string, userId: number) => {
@@ -237,7 +266,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
     // server re-derives total_price from the payer sum (CostsPanel.helpers), so
     // dropping the payer would store the entry with a total of 0.
     const payerList = multiPayer
-      ? [...payerIds].map(id => ({ user_id: id, amount: Number.parseFloat(payerAmounts[id]) || 0 })).filter(p => p.amount > 0)
+      ? [...payerIds].map(id => ({ user_id: id, amount: Number.parseFloat(payerAmounts[id]) || 0 })).filter(p => p.amount !== 0)
       : payerId > 0 ? [{ user_id: payerId, amount: totalNum }] : []
     const memberList = [...participants].map(id => ({
       user_id: id,
@@ -262,12 +291,20 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
       ...(!editing && prefill?.placeId ? { place_id: prefill.placeId } : {}),
     }
     try {
-      if (editing) await updateBudgetItem(tripId, editing.id, data)
-      else await addBudgetItem(tripId, data)
+      setUploadingReceipt(pendingReceiptFiles.length > 0)
+      await saveWithReceipts(tripId, pendingReceiptFiles, editing ? editing.id : null, ids => (
+        editing
+          ? updateBudgetItem(tripId, editing.id, { ...data, receipt_file_ids: [...receipts.map(r => r.id), ...ids] })
+          : addBudgetItem(tripId, { ...data, receipt_file_ids: ids })
+      ))
+      setPendingReceiptFiles([])
       onSaved()
-    } catch {
-      toast.error(t('common.unknownError'))
+    } catch (err) {
+      const stuck = (err as { stuckReceiptIds?: number[] })?.stuckReceiptIds
+      toast.error(stuck?.length ? t('costs.receiptLeftBehind', { count: stuck.length }) : t('common.unknownError'))
       setSaving(false)
+    } finally {
+      setUploadingReceipt(false)
     }
   }
 
@@ -337,7 +374,8 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
         <div className={`flex items-center gap-1 rounded-[12px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 py-[10px] ${isTicketMode ? 'opacity-60' : ''}`}>
           <span className="text-[0.84375rem] font-medium text-m-faint">{sym(currency)}</span>
           <NumericInput
-            mode="decimal"
+            mode="signed-decimal"
+            signToggleLabel={t('costs.toggleSign')}
             placeholder={localizeAmountInput('0.00', currency)}
             value={localizeAmountInput(isTicketMode ? ticketInfo.total.toFixed(2) : total, currency)}
             onValueChange={onTotalChange}
@@ -366,7 +404,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
         </div>
 
         {/* CONVERSION HINT */}
-        {currency !== base && totalNum > 0 && (
+        {currency !== base && totalNum !== 0 && (
           <div className="mt-2 flex flex-wrap items-center gap-2 rounded-[12px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 py-[9px] text-[0.71875rem] text-m-muted">
             <span>{formatMoney(totalNum, currency, locale)}</span>
             <span className="text-m-faint">≈</span>
@@ -456,7 +494,8 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
                       <div className={`${MINI_INPUT_WRAP} w-[120px] flex-none`}>
                         <span className="text-[0.75rem] text-m-faint">{sym(currency)}</span>
                         <NumericInput
-                          mode="decimal"
+                          mode="signed-decimal"
+                          signToggleLabel={t('costs.toggleSign')}
                           placeholder={localizeAmountInput('0.00', currency)}
                           value={localizeAmountInput(payerAmounts[p.id] || '', currency)}
                           onValueChange={v => onPayerAmountChange(p.id, v)}
@@ -631,6 +670,77 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
           placeholder={t('costs.notePlaceholder')}
           className={FIELD_AREA_CLS}
         />
+
+        {/* RECEIPTS */}
+        <div className="mb-[6px] mt-4 flex items-center justify-between">
+          <Eyebrow className="uppercase">{t('costs.receiptsTitle') || t('costs.receipts')}</Eyebrow>
+          <label className="flex cursor-pointer items-center gap-1 text-[0.75rem] font-semibold text-m-ink">
+            <input
+              type="file"
+              multiple
+              accept="image/*,application/pdf"
+              className="hidden"
+              onChange={e => {
+                handleReceiptFileSelect(e.target.files)
+                e.target.value = ''
+              }}
+            />
+            <span className="flex items-center gap-1 rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-2.5 py-1 text-m-muted">
+              <Plus size={12} /> {t('costs.attachReceipt')}
+            </span>
+          </label>
+        </div>
+
+        {uploadingReceipt && (
+          <div className="mb-2 text-[0.75rem] text-m-faint">
+            {t('common.saving')}...
+          </div>
+        )}
+
+        {receipts.length === 0 && pendingReceiptFiles.length === 0 ? (
+          <div className="py-1 text-[0.75rem] text-m-faint">
+            {t('costs.noReceipts')}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-1.5 pb-2">
+            {receipts.map((r, rIdx) => (
+              <div key={r.id} className={ROW_CLS}>
+                <button
+                  type="button"
+                  onClick={() => setPreviewReceipts({ receipts, initialIndex: rIdx })}
+                  className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                >
+                  <Receipt size={14} className="flex-none text-m-faint" />
+                  <span className="truncate text-[0.8125rem] font-medium text-m-ink">{r.original_name}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveReceipt(r.id)}
+                  title={t('costs.deleteReceipt')}
+                  className="flex-none p-1 text-m-muted hover:text-red-500"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ))}
+            {pendingReceiptFiles.map((file, idx) => (
+              <div key={idx} className={ROW_CLS}>
+                <div className="flex min-w-0 flex-1 items-center gap-2">
+                  <Paperclip size={14} className="flex-none text-m-faint" />
+                  <span className="truncate text-[0.8125rem] font-medium text-m-ink">{file.name}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleRemovePendingReceipt(idx)}
+                  title={t('costs.deleteReceipt')}
+                  className="flex-none p-1 text-m-muted hover:text-red-500"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <FormSheetFooter
@@ -643,6 +753,14 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
         submitLabel={submitLabel}
         submitDisabled={!valid || saving}
       />
+
+      {previewReceipts && (
+        <ReceiptPreviewModal
+          receipts={previewReceipts.receipts}
+          initialIndex={previewReceipts.initialIndex}
+          onClose={() => setPreviewReceipts(null)}
+        />
+      )}
     </MSheet>
   )
 }

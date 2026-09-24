@@ -19,5 +19,14 @@ const map: TranslationStrings = {
   'map.baseLayer.satellite': 'Satélite',
   'map.baseLayer.switchToSatellite': 'Cambiar a vista de satélite',
   'map.baseLayer.switchToDefault': 'Cambiar a vista de mapa',
+  'map.location.denied': 'El acceso a la ubicación está bloqueado. Revisa los ajustes del dispositivo; una app instalada tiene su propio permiso de ubicación, independiente del navegador.',
+  'map.location.unavailable': 'No se pudo determinar tu ubicación.',
+  'map.location.timeout': 'La localización tardó demasiado. Inténtalo de nuevo con una vista más despejada del cielo.',
+  'map.overview.show': 'Mostrar todo el viaje',
+  'map.overview.hide': 'Ocultar todo el viaje',
+  'map.overview.total': 'Distancia total',
+  'map.attribution': 'Créditos del mapa',
+  'map.overview.unrouted': 'No se pudieron calcular {count} tramo(s), así que las distancias están incompletas.',
+  'map.overview.dayUnrouted': 'No se pudieron calcular {count} tramo(s) de este día',
 };
 export default map;

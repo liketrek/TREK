@@ -614,6 +614,9 @@ function TransitJourneyCard({ r, days, onOpen, onDelete, canEdit, tripId, contri
       className="bg-surface-card"
       onClick={() => onOpen(r)}
       role="button"
+      // No press-scale on the card — it would shift the nested controls out
+      // from under the pointer mid-click (#2158).
+      data-no-press
       tabIndex={0}
       onKeyDown={e => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onOpen(r) } }}
       style={{ borderRadius: 12, border: '1px solid rgba(124,58,237,0.22)', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 9, cursor: 'pointer', transition: 'box-shadow 0.15s ease' }}

@@ -27,6 +27,10 @@ const { db } = vi.hoisted(() => {
   const Database = require('better-sqlite3');
   const tmp = new Database(':memory:');
   tmp.exec('PRAGMA journal_mode = WAL');
+  // What production runs (db/database.ts) and what createTestDb gives every
+  // unit suite. Without it the reservation foreign keys are inert here, and an
+  // id that resolves to nothing passes the mount unnoticed.
+  tmp.exec('PRAGMA foreign_keys = ON');
   return { db: tmp };
 });
 
@@ -146,6 +150,54 @@ describe('Reservations + accommodations e2e (real auth guard + temp SQLite, real
     expect(bad.body.error).toContain('title');
   });
 
+  // The reported repro (#2355): an id that resolves to nothing used to reach
+  // the statement and come back as an unhandled SqliteError, i.e. a bare 500.
+  it('400 on an update whose place_id exists nowhere, and the row is left alone', async () => {
+    const rid = Number(db.prepare("INSERT INTO reservations (trip_id, title, type) VALUES (?, 'Dinner', 'other')").run(tripId).lastInsertRowid);
+
+    const res = await request(server)
+      .put(`/api/trips/${tripId}/reservations/${rid}`)
+      .set('Cookie', sessionCookie(1))
+      .send({ title: 'Dinner, later', place_id: 999999 });
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: 'Unknown reference: place_id' });
+    expect(db.prepare('SELECT title, place_id FROM reservations WHERE id = ?').get(rid)).toEqual({ title: 'Dinner', place_id: null });
+  });
+
+  it('400 on a create whose create_accommodation day exists nowhere, and no stay is written', async () => {
+    const placeId = Number(db.prepare('INSERT INTO places (trip_id, name) VALUES (?, ?)').run(tripId, 'Hotel Unknown').lastInsertRowid);
+    const dayId = Number(db.prepare('INSERT INTO days (trip_id, day_number, date) VALUES (?, 7, ?)').run(tripId, '2026-03-07').lastInsertRowid);
+    const before = db.prepare('SELECT COUNT(*) as c FROM day_accommodations WHERE trip_id = ?').get(tripId);
+
+    const res = await request(server)
+      .post(`/api/trips/${tripId}/reservations`)
+      .set('Cookie', sessionCookie(1))
+      .send({ title: 'Stay', type: 'hotel', create_accommodation: { place_id: placeId, start_day_id: dayId, end_day_id: 999999 } });
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: 'Unknown reference: create_accommodation.end_day_id' });
+    expect(db.prepare('SELECT COUNT(*) as c FROM day_accommodations WHERE trip_id = ?').get(tripId)).toEqual(before);
+  });
+
+  // #522, which must survive all of the above: shortening a trip cascades the
+  // stay away and leaves the booking pointing at a gap, and the booking still
+  // has to be savable.
+  it('200 on an update whose stored accommodation_id no longer resolves', async () => {
+    const rid = Number(
+      db.prepare("INSERT INTO reservations (trip_id, title, type, accommodation_id) VALUES (?, 'Stay', 'hotel', 999999)").run(tripId).lastInsertRowid,
+    );
+
+    const res = await request(server)
+      .put(`/api/trips/${tripId}/reservations/${rid}`)
+      .set('Cookie', sessionCookie(1))
+      .send({ title: 'Stay, renamed', accommodation_id: 999999 });
+
+    expect(res.status).toBe(200);
+    expect(db.prepare('SELECT title, accommodation_id FROM reservations WHERE id = ?').get(rid))
+      .toEqual({ title: 'Stay, renamed', accommodation_id: null });
+  });
+
   it('200 list accommodations + 201 create (real insert + auto hotel reservation), 404 on bad refs', async () => {
     const placeId = Number(db.prepare('INSERT INTO places (trip_id, name) VALUES (?, ?)').run(tripId, 'Grand Hotel').lastInsertRowid);
     const dayId = Number(db.prepare('INSERT INTO days (trip_id, day_number, date) VALUES (?, 1, ?)').run(tripId, '2026-03-01').lastInsertRowid);
@@ -168,6 +220,30 @@ describe('Reservations + accommodations e2e (real auth guard + temp SQLite, real
       .send({ place_id: 99999, start_day_id: dayId, end_day_id: dayId });
     expect(badRefs.status).toBe(404);
     expect(badRefs.body).toEqual({ error: 'Place not found' });
+  });
+
+  it('201 create also puts the place on its check-in day, and the delete takes that stop back', async () => {
+    // The road-trip view builds its stops from day_assignments and only looks the stay
+    // up afterwards, so a booking without one never reaches the route: the complaint
+    // was having to enter the same hotel a second time as an ordinary place.
+    const placeId = Number(db.prepare('INSERT INTO places (trip_id, name) VALUES (?, ?)').run(tripId, 'Hotel Adlon').lastInsertRowid);
+    const dayId = Number(db.prepare('INSERT INTO days (trip_id, day_number, date) VALUES (?, 4, ?)').run(tripId, '2026-03-04').lastInsertRowid);
+
+    const create = await request(server)
+      .post(`/api/trips/${tripId}/accommodations`)
+      .set('Cookie', sessionCookie(1))
+      .send({ place_id: placeId, start_day_id: dayId, end_day_id: dayId });
+    expect(create.status).toBe(201);
+    // In the answer, not only on the socket: the broadcast skips the sender.
+    expect(create.body.assignment).toMatchObject({ day_id: dayId, place_id: placeId });
+    expect(db.prepare('SELECT stop_type FROM places WHERE id = ?').get(placeId)).toMatchObject({ stop_type: 'hotel' });
+
+    const del = await request(server)
+      .delete(`/api/trips/${tripId}/accommodations/${create.body.accommodation.id}`)
+      .set('Cookie', sessionCookie(1));
+    expect(del.status).toBe(200);
+    expect(del.body.removedAssignments).toEqual([{ id: create.body.assignment.id, dayId }]);
+    expect(db.prepare('SELECT id FROM day_assignments WHERE day_id = ?').all(dayId)).toEqual([]);
   });
 
   it('404 when trip not accessible (accommodations)', async () => {

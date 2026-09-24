@@ -23,7 +23,8 @@ const { db } = vi.hoisted(() => {
   tmp.exec(`CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL,
     email TEXT NOT NULL UNIQUE, role TEXT NOT NULL DEFAULT 'user', password_version INTEGER NOT NULL DEFAULT 0,
     avatar TEXT);`);
-  tmp.exec('CREATE TABLE trips (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, title TEXT, end_date TEXT);');
+  // start_date + updated_at: deleting a dated day can end the trip a day earlier.
+  tmp.exec('CREATE TABLE trips (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, title TEXT, start_date TEXT, end_date TEXT, feed_token TEXT, updated_at TEXT);');
   tmp.exec('CREATE TABLE trip_members (trip_id INTEGER NOT NULL, user_id INTEGER NOT NULL);');
   // The tables DaysService really queries (real SQL, no service mock).
   tmp.exec(`CREATE TABLE days (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL,
@@ -33,7 +34,7 @@ const { db } = vi.hoisted(() => {
   tmp.exec(`CREATE TABLE places (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL, name TEXT,
     description TEXT, lat REAL, lng REAL, address TEXT, category_id INTEGER, price REAL, currency TEXT,
     place_time TEXT, end_time TEXT, duration_minutes INTEGER, notes TEXT, image_url TEXT, transport_mode TEXT,
-    google_place_id TEXT, google_ftid TEXT, osm_id TEXT, website TEXT, phone TEXT);`);
+    google_place_id TEXT, google_ftid TEXT, osm_id TEXT, amap_poi_id TEXT, website TEXT, phone TEXT, stop_type TEXT, fill_percent INTEGER);`);
   tmp.exec(`CREATE TABLE day_assignments (id INTEGER PRIMARY KEY AUTOINCREMENT, day_id INTEGER NOT NULL,
     place_id INTEGER NOT NULL, order_index INTEGER DEFAULT 0, notes TEXT,
     assignment_time TEXT, assignment_end_time TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
@@ -54,6 +55,9 @@ const { db } = vi.hoisted(() => {
     metadata TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
   tmp.exec(`CREATE TABLE reservation_endpoints (id INTEGER PRIMARY KEY AUTOINCREMENT, reservation_id INTEGER NOT NULL,
     local_date TEXT);`);
+  // A deleted day moves the road trip boundaries after it up with their days.
+  tmp.exec(`CREATE TABLE roadtrip_day_boundaries (trip_id INTEGER NOT NULL, day_number INTEGER NOT NULL CHECK (day_number >= 1),
+    from_assignment_id INTEGER NOT NULL, to_assignment_id INTEGER, fraction REAL NOT NULL, PRIMARY KEY (trip_id, day_number));`);
   // StorageRegistryService (behind StorageModule, now in this module chain) reads
   // this at onModuleInit.
   tmp.exec('CREATE TABLE app_settings (key TEXT PRIMARY KEY, value TEXT);');
@@ -146,6 +150,31 @@ describe('Days + day-notes e2e (real auth guard + temp SQLite, real day SQL)', (
     expect(miss.body).toEqual({ error: 'Trip not found' });
   });
 
+  it('201 create dated day extends the trip, and the days without a date move back', async () => {
+    db.prepare('INSERT INTO trips (id, user_id, title, start_date, end_date) VALUES (10, 1, ?, ?, ?)').run('Grow', '2026-09-01', '2026-09-02');
+    db.prepare('INSERT INTO days (trip_id, day_number, date) VALUES (10, 1, ?)').run('2026-09-01');
+    db.prepare('INSERT INTO days (trip_id, day_number, date) VALUES (10, 2, ?)').run('2026-09-02');
+    const spare = Number(db.prepare('INSERT INTO days (trip_id, day_number) VALUES (10, 3)').run().lastInsertRowid);
+    const res = await request(server).post('/api/trips/10/days').set('Cookie', sessionCookie(1)).send({ dated: true });
+    expect(res.status).toBe(201);
+    expect(res.body.day).toMatchObject({ trip_id: 10, day_number: 3, date: '2026-09-03', assignments: [], notes_items: [] });
+    expect(res.body.trip).toMatchObject({ id: 10, end_date: '2026-09-03', day_count: 4, is_owner: 1 });
+    expect(db.prepare('SELECT end_date FROM trips WHERE id = 10').get()).toEqual({ end_date: '2026-09-03' });
+    expect(db.prepare('SELECT day_number, date FROM days WHERE id = ?').get(spare)).toEqual({ day_number: 4, date: null });
+  });
+
+  it('400 dated with position, 400 dated on a trip without dates', async () => {
+    db.prepare('INSERT INTO trips (id, user_id, title, start_date, end_date) VALUES (11, 1, ?, ?, ?)').run('Mixed', '2026-09-01', '2026-09-01');
+    db.prepare('INSERT INTO days (trip_id, day_number, date) VALUES (11, 1, ?)').run('2026-09-01');
+    const mixed = await request(server).post('/api/trips/11/days').set('Cookie', sessionCookie(1)).send({ dated: true, position: 1 });
+    expect(mixed.status).toBe(400);
+    expect(db.prepare('SELECT COUNT(*) AS n FROM days WHERE trip_id = 11').get()).toEqual({ n: 1 });
+    const undated = await request(server).post('/api/trips/5/days').set('Cookie', sessionCookie(1)).send({ dated: true });
+    expect(undated.status).toBe(400);
+    expect(undated.body).toEqual({ error: 'This trip has no dates. Add a day without a date instead.' });
+    expect(db.prepare('SELECT COUNT(*) AS n FROM days WHERE trip_id = 5').get()).toEqual({ n: 1 });
+  });
+
   it('200 update day notes/title, 404 Day not found, 403 without permission', async () => {
     const res = await request(server).put('/api/trips/5/days/3').set('Cookie', sessionCookie(1))
       .send({ notes: 'Walking day', title: 'Arrival' });
@@ -197,13 +226,38 @@ describe('Days + day-notes e2e (real auth guard + temp SQLite, real day SQL)', (
     expect(bad.body).toEqual({ error: 'orderedIds must be a permutation of the trip day ids.' });
   });
 
-  it('200 delete day removes the row', async () => {
+  it('200 delete day removes the row, closes the gap and answers with the trip', async () => {
     db.prepare('INSERT INTO trips (id, user_id, title) VALUES (7, 1, ?)').run('Delete');
     const id = Number(db.prepare('INSERT INTO days (trip_id, day_number) VALUES (7, 1)').run().lastInsertRowid);
+    const kept = Number(db.prepare('INSERT INTO days (trip_id, day_number) VALUES (7, 2)').run().lastInsertRowid);
     const res = await request(server).delete(`/api/trips/7/days/${id}`).set('Cookie', sessionCookie(1));
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ success: true });
+    expect(res.body).toMatchObject({ success: true, trip: { id: 7, day_count: 1, is_owner: 1 } });
     expect(db.prepare('SELECT * FROM days WHERE id = ?').get(id)).toBeUndefined();
+    expect(db.prepare('SELECT day_number FROM days WHERE id = ?').get(kept)).toEqual({ day_number: 1 });
+  });
+
+  it('200 delete a dated day with no spare day ends the trip a day earlier', async () => {
+    db.prepare('INSERT INTO trips (id, user_id, title, start_date, end_date) VALUES (8, 1, ?, ?, ?)').run('Shrink', '2026-09-01', '2026-09-02');
+    const first = Number(db.prepare('INSERT INTO days (trip_id, day_number, date) VALUES (8, 1, ?)').run('2026-09-01').lastInsertRowid);
+    const second = Number(db.prepare('INSERT INTO days (trip_id, day_number, date) VALUES (8, 2, ?)').run('2026-09-02').lastInsertRowid);
+    const res = await request(server).delete(`/api/trips/8/days/${first}`).set('Cookie', sessionCookie(1));
+    expect(res.status).toBe(200);
+    expect(res.body.trip).toMatchObject({ id: 8, end_date: '2026-09-01', day_count: 1 });
+    expect(db.prepare('SELECT day_number, date FROM days WHERE id = ?').get(second)).toEqual({ day_number: 1, date: '2026-09-01' });
+  });
+
+  it('400 delete the last day of a trip, 403 without day_edit', async () => {
+    db.prepare('INSERT INTO trips (id, user_id, title) VALUES (9, 1, ?)').run('Last');
+    const only = Number(db.prepare('INSERT INTO days (trip_id, day_number) VALUES (9, 1)').run().lastInsertRowid);
+    const last = await request(server).delete(`/api/trips/9/days/${only}`).set('Cookie', sessionCookie(1));
+    expect(last.status).toBe(400);
+    expect(last.body).toEqual({ error: 'A trip needs at least one day.' });
+    expect(db.prepare('SELECT id FROM days WHERE id = ?').get(only)).toEqual({ id: only });
+    checkPermission.mockReturnValue(false);
+    const forbidden = await request(server).delete(`/api/trips/9/days/${only}`).set('Cookie', sessionCookie(1));
+    expect(forbidden.status).toBe(403);
+    expect(forbidden.body).toEqual({ error: 'No permission' });
   });
 
   it('201 create note (real insert: trim, empty-string coercions), 400 on over-long text (before access)', async () => {

@@ -182,3 +182,30 @@ export function resolveDurability(rawJournalMode: string | undefined, rawSynchro
 export function synchronousName(level: unknown): string {
   return SYNCHRONOUS_LEVELS[Number(level)] ?? String(level);
 }
+
+/**
+ * ALLOW_LINK_LOCAL_IPS: single IPv4 addresses out of 169.254.0.0/16 that outbound
+ * requests may reach after all. The case it exists for is the host gateway of a
+ * rootless Podman container, 169.254.1.2, with an identity provider or another
+ * service behind it (#2400).
+ *
+ * 169.254.169.0/24 and 169.254.170.0/24 can never be listed: AWS, GCP, Azure,
+ * OpenStack and the container runtimes on top of them serve instance metadata and
+ * credentials there, which is what the link-local block is for. An entry is taken
+ * only in the form a resolver answers with (no leading zeros, no ranges), because
+ * it is compared as a string with the resolved address.
+ *
+ * `invalid` lists what was refused, for the boot check; `ips` is what may be used,
+ * so a bad entry allows nothing.
+ */
+export function parseLinkLocalAllowList(raw: string | undefined): { ips: string[]; invalid: string[] } {
+  const ips: string[] = [];
+  const invalid: string[] = [];
+  for (const entry of (raw ?? '').split(',').map((e) => e.trim()).filter(Boolean)) {
+    const m = /^169\.254\.(\d{1,3})\.(\d{1,3})$/.exec(entry);
+    const canonical = m !== null && [m[1], m[2]].every((o) => String(Number(o)) === o && Number(o) <= 255);
+    if (canonical && m[1] !== '169' && m[1] !== '170') ips.push(entry);
+    else invalid.push(entry);
+  }
+  return { ips, invalid };
+}

@@ -78,6 +78,10 @@ export default function VacaySharedCalendars() {
           {incomingShares.map(s => (
             <div key={s.id}
               role="button"
+              // No press-scale on the row: shrinking it mid-click slides the remove X
+              // out from under the pointer, so the click retargets onto the row and
+              // toggles visibility instead of removing the share (#2158).
+              data-no-press
               tabIndex={0}
               onClick={() => handleToggleHidden(s.id, !s.hidden)}
               onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleToggleHidden(s.id, !s.hidden) } }}

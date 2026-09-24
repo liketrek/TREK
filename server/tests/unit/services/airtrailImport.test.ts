@@ -22,6 +22,7 @@ import { ReservationsReadRepository } from '../../../src/nest/reservations/reser
 import type { AirtrailClient } from '../../../src/nest/integrations/airtrail.client';
 import type { AirtrailService } from '../../../src/nest/integrations/airtrail.service';
 import { notificationsStub } from '../../helpers/notifications';
+import { accommodationsOver } from '../../helpers/accommodations-service';
 
 // The client and the per-user credentials are the only stubs; the reservation
 // writes go through the real service against the real test DB, as before. They
@@ -43,6 +44,7 @@ function makeImportService(): AirtrailImportService {
       realtime,
       notificationsStub(),
       new ReservationsReadRepository(dbs()),
+      accommodationsOver(dbs()),
     ),
     { listFlights } as unknown as AirtrailClient,
     {

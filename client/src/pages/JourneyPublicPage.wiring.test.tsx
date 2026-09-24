@@ -237,7 +237,7 @@ describe('JourneyPublicPage wiring', () => {
     const { hook } = setup({ showLangPicker: true });
     const german = screen.getByRole('button', { name: 'Deutsch' });
     fireEvent.mouseEnter(german);
-    expect(german).toHaveStyle({ background: 'rgb(243, 244, 246)' });
+    expect(german).toHaveStyle({ background: 'var(--bg-hover)' });
     fireEvent.mouseLeave(german);
 
     fireEvent.click(german);
@@ -269,8 +269,11 @@ describe('JourneyPublicPage wiring', () => {
     const { hook } = setup({ isMobile: true, desktopTwoColumn: false });
     expect(screen.getByTestId('mobile-timeline')).toBeInTheDocument();
 
+    // The cover card draws this URL in an <img>, so it has to be the poster, not
+    // the file itself: /original is the clip for a video and a full-size JPEG for
+    // a photo (#2341). The own-journey cover already asks for /thumbnail.
     const publicPhotoUrl = mocks.captured.mobileTimeline.publicPhotoUrl as (id: number) => string;
-    expect(publicPhotoUrl(55)).toBe('/api/public/journey/tok-1/photos/55/original');
+    expect(publicPhotoUrl(55)).toBe('/api/public/journey/tok-1/photos/55/thumbnail');
 
     (mocks.captured.mobileTimeline.onEntryClick as (e: PublicEntry) => void)(buildEntry({ id: 9 }));
     expect(hook.setViewingEntry).toHaveBeenCalledWith(expect.objectContaining({ id: 9 }));

@@ -1,18 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { localIsoDate } from '../../../utils/localDate'
-import { Camera, Plus, Image, Images, X, MapPin, Locate, Trash2, CheckCircle2, MinusCircle } from 'lucide-react'
+import { Camera, Plus, Image, Images, X, MapPin, Locate, Trash2, CheckCircle2, MinusCircle, ChevronUp, ChevronDown, EyeOff, Play } from 'lucide-react'
 import MSheet from '../../components/MSheet'
 import MIconBtn from '../../components/MIconBtn'
+import MToggle from '../../components/MToggle'
 import { useTranslation } from '../../../i18n'
 import { useToast } from '../../../components/shared/Toast'
+import CustomTimePicker from '../../../components/shared/CustomTimePicker'
+import { CustomDatePicker } from '../../../components/shared/CustomDateTimePicker'
 import { journeyApi, mapsApi, weatherApi } from '../../../api/client'
 import { getApiErrorMessage } from '../../../types'
 import { normalizeImageFiles } from '../../../utils/convertHeic'
+import { isVideoFile } from '../../../utils/videoPoster'
 import { getCurrentPositionOnce } from '../../../hooks/useGeolocation'
 import type { ResilientResult, UploadProgress } from '../../../utils/uploadQueue'
 import type { JourneyEntry, JourneyPhoto, GalleryPhoto, JourneyTrip } from '../../../store/journeyStore'
 import { useAddonStore } from '../../../store/addonStore'
-import { photoUrl, geoOnceErrorKey, isValidGeoPoint } from '../../../pages/journeyDetail/JourneyDetailPage.helpers'
+import { photoUrl, posterlessVideo, geoOnceErrorKey, isValidGeoPoint } from '../../../pages/journeyDetail/JourneyDetailPage.helpers'
 import JournalBody from '../../../components/Journey/JournalBody'
 import { ProviderPicker, type ProviderPhotoGroup } from '../../../components/Journey/JourneyDetailPageProviderPicker'
 import { journeyWeatherCategory, MOBILE_MOODS, MOBILE_WEATHERS } from './mobileJourneyMeta'
@@ -29,6 +33,18 @@ interface LocationResult {
 
 type PendingProviderGroup = ProviderPhotoGroup & { provider: string }
 
+// A clip with no poster to show: the tinted tile and play mark the gallery grid
+// gives it, since an <img> asked for its thumbnail draws the broken glyph (#2341).
+function ClipTile() {
+  return (
+    <span className="absolute inset-0 flex items-center justify-center bg-[color:var(--m-ic)]">
+      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur">
+        <Play size={12} className="ml-[1px]" fill="currentColor" />
+      </span>
+    </span>
+  )
+}
+
 interface MJourneyEntrySheetProps {
   entry: JourneyEntry
   galleryPhotos: GalleryPhoto[]
@@ -36,6 +52,22 @@ interface MJourneyEntrySheetProps {
   readOnly?: boolean
   userId?: number
   trips?: JourneyTrip[]
+  /** The optional fields this journey still keeps (discussion #2299). Values are never cleared. */
+  showVerdict?: boolean
+  showMood?: boolean
+  showWeather?: boolean
+  /**
+   * Move this entry within its day.
+   *
+   * The desktop feed has arrows beside every card; the phone had no way to
+   * reorder at all, so a day's stops stayed in whatever order they were written
+   * (discussion #2299). Absent when the entry is alone on its day, is a
+   * suggestion, or the reader cannot edit.
+   */
+  onMoveEarlier?: () => void
+  onMoveLater?: () => void
+  /** Wave a trip-derived suggestion away. Only ever passed for a skeleton. */
+  onDismiss?: () => void
   onClose: () => void
   onSave: (data: Record<string, unknown>, existingEntryId?: number) => Promise<number>
   onUploadPhotos: (entryId: number, files: File[], cbs?: { onProgress?: (p: UploadProgress) => void }) => Promise<ResilientResult<JourneyPhoto>>
@@ -51,10 +83,13 @@ interface MJourneyEntrySheetProps {
  */
 export default function MJourneyEntrySheet({
   entry, galleryPhotos, quickCapture = false, readOnly = false, userId = 0, trips = [],
+  showVerdict = true, showMood = true, showWeather = true, onMoveEarlier, onMoveLater, onDismiss,
   onClose, onSave, onUploadPhotos, onAddProviderPhotos, onDelete, onDone,
 }: MJourneyEntrySheetProps) {
   const { t, language } = useTranslation()
   const toast = useToast()
+  // Which verdict row to hand the caret after the next render — see addVerdictRow.
+  const verdictFocusRef = useRef<string | null>(null)
 
   const [title, setTitle] = useState(entry.title || '')
   const [story, setStory] = useState(entry.story || '')
@@ -69,6 +104,7 @@ export default function MJourneyEntrySheet({
   const locationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [mood, setMood] = useState(entry.mood || '')
   const [weather, setWeather] = useState(entry.weather || '')
+  const [statsExcluded, setStatsExcluded] = useState(entry.stats_excluded ?? false)
   const [pros, setPros] = useState<string[]>(entry.pros_cons?.pros ?? [])
   const [cons, setCons] = useState<string[]>(entry.pros_cons?.cons ?? [])
   const [tags, setTags] = useState<string[]>(entry.tags ?? [])
@@ -143,6 +179,10 @@ export default function MJourneyEntrySheet({
     ? { lat: locationLat!, lng: locationLng!, name: locationName || undefined }
     : null
 
+  // The route switch belongs to an entry that is a stop, or was one: an entry
+  // without a point was never on the route, and a new one is not on it yet.
+  const offersStatsToggle = entry.id > 0 && (contextLocation != null || !!entry.stats_excluded)
+
   useEffect(() => {
     if (!quickCapture || readOnly || entry.location_lat != null || entry.location_lng != null) return
 
@@ -156,7 +196,7 @@ export default function MJourneyEntrySheet({
 
         const [placeResult, weatherResult] = await Promise.allSettled([
           mapsApi.reverse(pos.lat, pos.lng, language),
-          weatherApi.getCurrent(pos.lat, pos.lng, 'en'),
+          weatherApi.getCurrent(pos.lat, pos.lng, language),
         ])
         if (!active) return
         if (placeResult.status === 'fulfilled') {
@@ -183,12 +223,36 @@ export default function MJourneyEntrySheet({
     locationName !== (entry.location_name || '') ||
     mood !== (entry.mood || '') ||
     weather !== (entry.weather || '') ||
+    statsExcluded !== (entry.stats_excluded ?? false) ||
     pros.filter(p => p.trim()).join('\n') !== (entry.pros_cons?.pros ?? []).join('\n') ||
     cons.filter(c => c.trim()).join('\n') !== (entry.pros_cons?.cons ?? []).join('\n') ||
     tags.join('\n') !== (entry.tags ?? []).join('\n') ||
     pendingFiles.length > 0 ||
     pendingLinkIds.length > 0 ||
     pendingProviderGroups.length > 0
+
+  /**
+   * Enter opens the next pro or con, directly below the one you are in.
+   *
+   * Same behaviour and same reason as the desktop editor: a list of short things
+   * should not need a button press between every item (discussion #2299). On a
+   * phone keyboard the return key is right there, which is more of a gain than
+   * it is with a mouse.
+   */
+  const addVerdictRow = (list: 'pros' | 'cons', index: number) => {
+    const [values, setValues] = list === 'pros' ? [pros, setPros] as const : [cons, setCons] as const
+    const next = [...values]
+    next.splice(index + 1, 0, '')
+    setValues(next)
+    verdictFocusRef.current = `${list}-${index + 1}`
+  }
+
+  const verdictRowRef = (key: string) => (el: HTMLInputElement | null) => {
+    if (el && verdictFocusRef.current === key) {
+      verdictFocusRef.current = null
+      el.focus()
+    }
+  }
 
   const handleClose = () => {
     if (!captureOnly && !readOnly && isDirty && !window.confirm(t('journey.editor.discardChangesConfirm'))) return
@@ -206,6 +270,7 @@ export default function MJourneyEntrySheet({
         location_name: locationName || null,
         location_lat: locationLat,
         location_lng: locationLng,
+        stats_excluded: offersStatsToggle ? statsExcluded : undefined,
         mood: mood || null,
         weather: weather || null,
         tags: tags.filter(tag => tag.trim()),
@@ -343,13 +408,28 @@ export default function MJourneyEntrySheet({
         <span className="flex-1 text-[1.0625rem] font-bold">
           {entry.id === 0 ? t('journey.detail.newEntry') : t('journey.detail.editEntry')}
         </span>
+        {(onMoveEarlier || onMoveLater) && (
+          <span className="mr-1 flex items-center gap-1">
+            <MIconBtn variant="neutral" size={34} onClick={() => onMoveEarlier?.()} disabled={!onMoveEarlier} ariaLabel={t('dayplan.moveUp')}>
+              <ChevronUp size={15} strokeWidth={2.4} />
+            </MIconBtn>
+            <MIconBtn variant="neutral" size={34} onClick={() => onMoveLater?.()} disabled={!onMoveLater} ariaLabel={t('dayplan.moveDown')}>
+              <ChevronDown size={15} strokeWidth={2.4} />
+            </MIconBtn>
+          </span>
+        )}
         <MIconBtn variant="neutral" size={34} onClick={handleClose} ariaLabel={t('common.cancel')}>
           <X size={15} strokeWidth={2.2} />
         </MIconBtn>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-[18px] py-3">
-        {!captureOnly && (readOnly ? (
+        {/* Quick capture had no title field at all: it asked for a note and nothing
+            else, so every entry caught on the move arrived nameless and the day's
+            list read as a column of identical placeholders (discussion #2299). The
+            name is the one thing that makes an entry findable later, and it is one
+            line to type, so it comes first here too. */}
+        {readOnly ? (
           <div className="pb-[10px] pt-1 text-[1.25rem] font-extrabold">{title || t('journey.editor.titlePlaceholder')}</div>
         ) : (
           <input
@@ -358,12 +438,12 @@ export default function MJourneyEntrySheet({
             placeholder={t('journey.editor.titlePlaceholder')}
             className="w-full bg-transparent pb-[10px] pt-1 text-[1.25rem] font-extrabold text-m-ink outline-none placeholder:text-m-faint"
           />
-        ))}
+        )}
 
         {!readOnly && (
           <>
             <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileChange} onClick={e => { (e.target as HTMLInputElement).value = '' }} />
-            <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFileChange} onClick={e => { (e.target as HTMLInputElement).value = '' }} />
+            <input ref={fileRef} type="file" accept="image/*,video/*" multiple className="hidden" onChange={handleFileChange} onClick={e => { (e.target as HTMLInputElement).value = '' }} />
             <div className="flex gap-2">
               <button
                 type="button"
@@ -524,7 +604,11 @@ export default function MJourneyEntrySheet({
                         }
                       }}
                     >
-                      <img src={photoUrl(gp)} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+                      {posterlessVideo(gp) ? (
+                        <ClipTile />
+                      ) : (
+                        <img src={photoUrl(gp)} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+                      )}
                     </button>
                   ))}
                   {availableGalleryPhotos.length === 0 && (
@@ -542,7 +626,11 @@ export default function MJourneyEntrySheet({
           <div className="mt-[10px] flex flex-wrap gap-2">
             {photos.map((p, idx) => (
               <div key={p.id} className="relative h-16 w-16 overflow-hidden rounded-[13px]">
-                <img src={photoUrl(p)} alt="" className="h-full w-full object-cover" />
+                {posterlessVideo(p) ? (
+                  <ClipTile />
+                ) : (
+                  <img src={photoUrl(p)} alt="" className="h-full w-full object-cover" />
+                )}
                 {!readOnly && idx > 0 && photos.length > 1 && (
                   <button
                     type="button"
@@ -589,9 +677,14 @@ export default function MJourneyEntrySheet({
                 )}
               </div>
             ))}
-            {pendingFiles.map((_, i) => (
+            {pendingFiles.map((f, i) => (
               <div key={`pending-${i}`} className="relative h-16 w-16 overflow-hidden rounded-[13px]">
-                <img src={pendingPreviews[i]} alt="" className="h-full w-full object-cover" />
+                {/* A clip in an <img> is a broken-image glyph (issue #2341). */}
+                {isVideoFile(f) ? (
+                  <video src={pendingPreviews[i]} className="h-full w-full object-cover" muted playsInline preload="metadata" />
+                ) : (
+                  <img src={pendingPreviews[i]} alt="" className="h-full w-full object-cover" />
+                )}
                 <button
                   type="button"
                   onClick={() => setPendingFiles(prev => prev.filter((_, j) => j !== i))}
@@ -636,8 +729,8 @@ export default function MJourneyEntrySheet({
             />
           )}
 
-          {/* Pros & Cons */}
-          {(!readOnly || pros.length > 0 || cons.length > 0) && (
+          {/* Pros & Cons — gone when the journey has put the verdict away (#2299) */}
+          {showVerdict && (!readOnly || pros.length > 0 || cons.length > 0) && (
           <div className="mt-3 rounded-2xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] p-[13px]">
             <div className={`${eyebrow} mb-2`}>{t('journey.editor.prosCons')}</div>
             <div className="flex gap-[10px]">
@@ -650,9 +743,11 @@ export default function MJourneyEntrySheet({
                   <div key={i} className="mb-[6px] flex items-center gap-[6px] rounded-[10px] border border-[color:var(--m-rowbr)] bg-m-sheetop px-2 py-[6px]">
                     <span className="h-[5px] w-[5px] flex-none rounded-full" style={{ background: PRO_COLOR }} />
                     <input
+                      ref={verdictRowRef(`pros-${i}`)}
                       value={p}
                       readOnly={readOnly}
                       onChange={e => { const next = [...pros]; next[i] = e.target.value; setPros(next) }}
+                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addVerdictRow('pros', i) } }}
                       placeholder={t('journey.editor.proPlaceholder')}
                       className="min-w-0 flex-1 bg-transparent font-geist text-[0.6875rem] font-semibold text-m-ink outline-none placeholder:text-m-faint"
                     />
@@ -666,7 +761,7 @@ export default function MJourneyEntrySheet({
                 {!readOnly && (
                   <button
                     type="button"
-                    onClick={() => setPros([...pros, ''])}
+                    onClick={() => addVerdictRow('pros', pros.length - 1)}
                     className="block w-full rounded-[10px] border border-dashed py-[9px] text-center font-geist text-[0.6875rem] font-semibold"
                     style={{ borderColor: 'rgba(47,163,122,.35)', color: PRO_COLOR }}
                   >
@@ -683,9 +778,11 @@ export default function MJourneyEntrySheet({
                   <div key={i} className="mb-[6px] flex items-center gap-[6px] rounded-[10px] border border-[color:var(--m-rowbr)] bg-m-sheetop px-2 py-[6px]">
                     <span className="h-[5px] w-[5px] flex-none rounded-full" style={{ background: CON_COLOR }} />
                     <input
+                      ref={verdictRowRef(`cons-${i}`)}
                       value={c}
                       readOnly={readOnly}
                       onChange={e => { const next = [...cons]; next[i] = e.target.value; setCons(next) }}
+                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addVerdictRow('cons', i) } }}
                       placeholder={t('journey.editor.conPlaceholder')}
                       className="min-w-0 flex-1 bg-transparent font-geist text-[0.6875rem] font-semibold text-m-ink outline-none placeholder:text-m-faint"
                     />
@@ -699,7 +796,7 @@ export default function MJourneyEntrySheet({
                 {!readOnly && (
                   <button
                     type="button"
-                    onClick={() => setCons([...cons, ''])}
+                    onClick={() => addVerdictRow('cons', cons.length - 1)}
                     className="block w-full rounded-[10px] border border-dashed py-[9px] text-center font-geist text-[0.6875rem] font-semibold"
                     style={{ borderColor: 'rgba(214,39,59,.35)', color: CON_COLOR }}
                   >
@@ -712,31 +809,22 @@ export default function MJourneyEntrySheet({
           )}
         </>}
 
-        {/* Date + Time */}
-        <div className="mt-3 flex gap-2">
-          <div className="min-w-0 flex-1">
+        {/* Date + Time. Split in the date's favour: a localized date needs the
+            room ("10. Sept. 2026"), a clock never does. */}
+        <div className="mt-3 grid grid-cols-[minmax(0,1fr)_104px] gap-2">
+          <div className="min-w-0">
             <div className={`${eyebrow} mb-[5px]`}>{t('journey.editor.date')}</div>
-            <div className={`${fieldShell} overflow-hidden`}>
-              <input
-                type="date"
-                value={entryDate}
-                disabled={readOnly}
-                onChange={e => setEntryDate(e.target.value)}
-                className="block min-w-0 w-full box-border border-0 bg-transparent px-3 py-[10px] text-center text-[0.78125rem] font-semibold text-m-ink outline-none [font-variant-numeric:tabular-nums]"
-              />
-            </div>
+            {/* TREK's own picker, like the time field beside it: a native
+                `<input type="date">` paints itself from the OS locale and takes
+                no theme, so the two sat in one row looking like two apps. */}
+            <CustomDatePicker value={entryDate} onChange={setEntryDate} disabled={readOnly} />
           </div>
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0">
             <div className={`${eyebrow} mb-[5px]`}>{t('mobileJourney.time')}</div>
-            <div className={`${fieldShell} overflow-hidden`}>
-              <input
-                type="time"
-                value={entryTime}
-                disabled={readOnly}
-                onChange={e => setEntryTime(e.target.value)}
-                className="block min-w-0 w-full box-border border-0 bg-transparent px-3 py-[10px] text-center text-[0.78125rem] font-semibold text-m-ink outline-none [font-variant-numeric:tabular-nums]"
-              />
-            </div>
+            {/* A native <input type="time"> paints 12h or 24h from the browser
+                locale, whatever the user picked in settings (#2067). The picker
+                brings its own shell, so fieldShell goes with the input. */}
+            <CustomTimePicker value={entryTime} onChange={setEntryTime} disabled={readOnly} />
           </div>
         </div>
 
@@ -796,8 +884,21 @@ export default function MJourneyEntrySheet({
           {locationError && <div className="mt-[5px] font-geist text-[0.65625rem] text-[color:var(--m-st-danger)]">{locationError}</div>}
         </div>
 
+        {/* Off the route: the same switch the desktop editor and the Studio
+            travel panel offer (#2064). Read-only keeps it visible but locked,
+            like the date and the mood above and below it. */}
+        {offersStatsToggle && (
+          <div className={`mt-3 flex items-center gap-3 px-3 py-[10px] ${fieldShell}`}>
+            <div className="min-w-0 flex-1">
+              <div className="text-[0.75rem] font-semibold text-m-ink">{t('journey.editor.statsExcluded')}</div>
+              <div className="mt-[2px] font-geist text-[0.65625rem] leading-[1.4] text-m-muted">{t('journey.editor.statsExcludedHint')}</div>
+            </div>
+            <MToggle checked={statsExcluded} onChange={setStatsExcluded} disabled={readOnly} ariaLabel={t('journey.editor.statsExcluded')} />
+          </div>
+        )}
+
         {/* Mood */}
-        {!captureOnly && <>
+        {showMood && !captureOnly && <>
           <div className={`${eyebrow} mb-[6px] mt-3`}>{t('journey.editor.mood')}</div>
           <div className="flex flex-wrap gap-[6px]">
             {MOBILE_MOODS.map(m => {
@@ -822,6 +923,7 @@ export default function MJourneyEntrySheet({
         </>}
 
         {/* Weather */}
+        {showWeather && <>
         <div className={`${eyebrow} mb-[6px] mt-3`}>{t('journey.editor.weather')}</div>
         <div className="flex flex-wrap gap-[6px]">
           {MOBILE_WEATHERS.map(w => {
@@ -844,6 +946,7 @@ export default function MJourneyEntrySheet({
             )
           })}
         </div>
+        </>}
 
         {/* Tags */}
         {!captureOnly && (!readOnly || tags.length > 0) && (
@@ -880,6 +983,24 @@ export default function MJourneyEntrySheet({
         )}
       </div>
 
+      {/* A suggestion is not deleted, it is put down: the row survives so the trip
+          sync does not offer the same place again (discussion #2299).
+
+          Its own row above the buttons rather than among them: the sentence is
+          longer than a button label and wrapped into two lines between Delete and
+          Cancel. Full width, it reads as what it is, an alternative to saving this
+          suggestion rather than a fourth thing competing with them. */}
+      {!readOnly && onDismiss && (
+        <button
+          type="button"
+          onClick={onDismiss}
+          className="mx-[18px] mt-1 mb-[10px] flex flex-none items-center gap-[9px] rounded-[14px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-[13px] py-[10px] text-left"
+        >
+          <EyeOff size={15} strokeWidth={2} className="flex-none text-m-muted" />
+          <span className="min-w-0 flex-1 text-[0.8125rem] font-semibold">{t('journey.suggestions.dismiss')}</span>
+        </button>
+      )}
+
       <div className="flex flex-none items-center gap-2 border-t border-[color:var(--m-rowbr)] px-[18px] pb-4 pt-3">
         {!readOnly && onDelete && (
           <button
@@ -895,9 +1016,9 @@ export default function MJourneyEntrySheet({
           <button
             type="button"
             onClick={() => setCaptureOnly(false)}
-            className="rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-4 py-[9px] text-[0.78125rem] font-semibold"
+            className="whitespace-nowrap rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-4 py-[9px] text-[0.78125rem] font-semibold"
           >
-            {t('collections.addDetails')}
+            {t('journey.editor.addDetails')}
           </button>
         )}
         <button

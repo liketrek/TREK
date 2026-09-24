@@ -44,6 +44,24 @@ export function parsedItemToDraft(item: BookingImportPreviewItem): BookingReview
 
 /** Transport types route to the TransportModal; everything else to the ReservationModal. */
 const TRANSPORT_TYPES = new Set(['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'transit', 'transport_other'])
+/** The types the booking form can express — its own chip list. */
+const BOOKING_TYPES = new Set(['hotel', 'restaurant', 'event', 'tour', 'activity', 'parking', 'other'])
+
 export function isTransportItem(item: BookingImportPreviewItem): boolean {
   return TRANSPORT_TYPES.has(item.type)
+}
+
+/**
+ * Neither form is obviously right, so the tab the user started the import from
+ * breaks the tie (#2076).
+ *
+ * Two cases. A type neither form can express, and a type the extractor filled in
+ * rather than read. The second is the one that actually occurs: the server can
+ * only ever emit its eight known types, so the first branch never fires on a real
+ * document, and a ferry voucher the model could not classify arrived as a
+ * placeholder 'hotel' with no way to tell it from a real one.
+ */
+export function isUnplaceableItem(item: BookingImportPreviewItem): boolean {
+  if (item.type_guessed === true) return true
+  return !TRANSPORT_TYPES.has(item.type) && !BOOKING_TYPES.has(item.type)
 }

@@ -43,6 +43,9 @@ data:
   {{- if .Values.env.ALLOW_INTERNAL_NETWORK }}
   ALLOW_INTERNAL_NETWORK: {{ .Values.env.ALLOW_INTERNAL_NETWORK | quote }}
   {{- end }}
+  {{- if .Values.env.ALLOW_LINK_LOCAL_IPS }}
+  ALLOW_LINK_LOCAL_IPS: {{ .Values.env.ALLOW_LINK_LOCAL_IPS | quote }}
+  {{- end }}
   {{- if .Values.env.OIDC_ISSUER }}
   OIDC_ISSUER: {{ .Values.env.OIDC_ISSUER | quote }}
   {{- end }}
@@ -73,9 +76,24 @@ data:
   {{- if .Values.env.MCP_RATE_LIMIT }}
   MCP_RATE_LIMIT: {{ .Values.env.MCP_RATE_LIMIT | quote }}
   {{- end }}
+  {{- if .Values.env.NOMINATIM_URL }}
+  NOMINATIM_URL: {{ .Values.env.NOMINATIM_URL | quote }}
+  {{- end }}
   {{- if .Values.env.OVERPASS_URL }}
   OVERPASS_URL: {{ .Values.env.OVERPASS_URL | quote }}
   {{- end }}
   {{- if .Values.env.OVERPASS_TIMEOUT_MS }}
   OVERPASS_TIMEOUT_MS: {{ .Values.env.OVERPASS_TIMEOUT_MS | quote }}
+  {{- end }}
+  {{- /* Tested for presence rather than truth: the one value this switch gets set to is
+         false, and an unquoted false (or --set env.TREK_PLACES_ENABLED=false) would
+         otherwise drop the key and leave the index on. */}}
+  {{- if not (kindIs "invalid" .Values.env.TREK_PLACES_ENABLED) }}
+  TREK_PLACES_ENABLED: {{ .Values.env.TREK_PLACES_ENABLED | quote }}
+  {{- end }}
+  {{- if .Values.env.TREK_PLACES_URL }}
+  TREK_PLACES_URL: {{ .Values.env.TREK_PLACES_URL | quote }}
+  {{- end }}
+  {{- if .Values.env.AMAP_API_BASE }}
+  AMAP_API_BASE: {{ .Values.env.AMAP_API_BASE | quote }}
   {{- end }}

@@ -24,6 +24,12 @@ interface ModalProps {
   size?: string
   footer?: React.ReactNode
   hideCloseButton?: boolean
+  /**
+   * Where the panel stands on a wide screen. Centred by default; 'top' pins its
+   * upper edge, so a dialog whose content changes height grows and shrinks at
+   * the bottom only instead of jumping. Phones always start at the top.
+   */
+  align?: 'center' | 'top'
 }
 
 export default function Modal({
@@ -34,6 +40,7 @@ export default function Modal({
   size = 'md',
   footer,
   hideCloseButton = false,
+  align = 'center',
 }: ModalProps) {
   const handleEsc = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape') onClose()
@@ -63,7 +70,7 @@ export default function Modal({
       // click-away, the panel only keeps that click from reaching it. Escape
       // and the header's close button are the keyboard route out.
       role="presentation"
-      className="fixed inset-0 z-[10000] flex items-start sm:items-center justify-center px-4 trek-modal-backdrop trek-backdrop-enter bg-[rgba(15,23,42,0.5)]"
+      className={`fixed inset-0 z-[10000] flex items-start ${align === 'top' ? '' : 'sm:items-center'} justify-center px-4 trek-modal-backdrop trek-backdrop-enter bg-[rgba(15,23,42,0.5)]`}
       style={{ paddingTop: 70, paddingBottom: 'calc(20px + var(--bottom-nav-h))', overflow: 'hidden' }}
       onMouseDown={e => { mouseDownTarget.current = e.target }}
       onClick={e => {

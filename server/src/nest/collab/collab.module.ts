@@ -14,6 +14,7 @@ import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
 import { StorageModule } from '../storage/storage.module';
 import { StorageService } from '../storage/storage.service';
 import { buildStorageUploadOptions } from '../storage/storage-upload.factory';
+import { RateLimitModule } from '../common/rate-limit.module';
 
 @Module({
   imports: [
@@ -29,7 +30,7 @@ import { buildStorageUploadOptions } from '../storage/storage-upload.factory';
         }),
     }),
     StorageModule,
-    McpSharedModule, NotificationsModule, PermissionsModule, AuthModule, RealtimeModule, PluginGuardsModule, AddonsModule],
+    McpSharedModule, NotificationsModule, PermissionsModule, AuthModule, RealtimeModule, PluginGuardsModule, AddonsModule, RateLimitModule],
   controllers: [CollabController],
   providers: [CollabService, CollabMcp, CollabRpc],
   // For in-container consumers (CollabRpc).

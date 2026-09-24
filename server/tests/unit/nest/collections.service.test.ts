@@ -179,6 +179,79 @@ describe('saved places + dedup', () => {
     const col = svc.createCollection(a.id, { name: 'Locked' });
     expect(() => svc.savePlace(b.id, { collection_id: col.id, name: 'X' })).toThrow();
   });
+
+  it('COLLECTIONS-SVC-100: a NAMED candidate does not merge into a different place at the same coordinates', () => {
+    // The wrong-city hazard: findDuplicateCollectionPlace used to fall through to
+    // a coordinate match for a named candidate whose name did not match anything,
+    // which would report two distinct places at one address (the restaurant and
+    // the bar) as duplicates of each other.
+    const u = createUser(testDb).user;
+    const col = svc.createCollection(u.id, { name: 'Berlin' });
+    svc.savePlace(u.id, { collection_id: col.id, name: 'Ground Floor Diner', lat: 52.52, lng: 13.405 });
+
+    const result = svc.savePlace(u.id, { collection_id: col.id, name: 'Rooftop Bar', lat: 52.52, lng: 13.405 });
+
+    expect(result.duplicate).toBeFalsy();
+    expect(result.place).toBeDefined();
+  });
+
+  it('COLLECTIONS-SVC-101: a provider id still recognises a renamed place a name/coords search would miss', () => {
+    // google_place_id/google_ftid/osm_id are stored on every collection_places row
+    // but were never read back for dedup, so a renamed place with no matching
+    // name or coordinates could be saved again under its old provider id.
+    const u = createUser(testDb).user;
+    const col = svc.createCollection(u.id, { name: 'Renames' });
+    svc.savePlace(u.id, {
+      collection_id: col.id,
+      name: 'Original Name',
+      lat: 1,
+      lng: 1,
+      google_place_id: 'ChIJ_abc',
+    });
+
+    const result = svc.savePlace(u.id, {
+      collection_id: col.id,
+      name: 'Renamed By User',
+      lat: 2,
+      lng: 2,
+      google_place_id: 'ChIJ_abc',
+    });
+
+    expect(result.duplicate).toBe(true);
+    expect(result.duplicateOf?.name).toBe('Original Name');
+  });
+
+  it('COLLECTIONS-SVC-102: the bulk import recognises a renamed place by its provider id too', () => {
+    // savePlace was not the only caller. The bulk copy carries the provider ids
+    // into the row it writes, so asking without them would recognise less than
+    // the row it just wrote already knows.
+    const u = createUser(testDb).user;
+    const col = svc.createCollection(u.id, { name: 'Rome' });
+    const trip = createTrip(testDb, u.id);
+    const place = createPlace(testDb, trip.id, { name: 'Trattoria da Enzo' });
+    testDb.prepare('UPDATE places SET google_ftid = ? WHERE id = ?').run('0x1:0x2', place.id);
+    svc.savePlace(u.id, { collection_id: col.id, name: 'Dinner Tuesday', lat: 41.88, lng: 12.47, google_ftid: '0x1:0x2' });
+
+    const out = svc.saveFromTripPlaces(u.id, col.id, trip.id, [place.id]);
+
+    expect(out.copied).toBe(0);
+    expect(out.skipped.map(s => s.name)).toEqual(['Trattoria da Enzo']);
+  });
+
+  it('COLLECTIONS-SVC-103: the import picker marks that same place as already saved', () => {
+    // The dialog and the import have to agree: a row shown as new that the import
+    // then refuses is the drift this method exists to prevent.
+    const u = createUser(testDb).user;
+    const col = svc.createCollection(u.id, { name: 'Rome' });
+    const trip = createTrip(testDb, u.id);
+    const place = createPlace(testDb, trip.id, { name: 'Trattoria da Enzo' });
+    testDb.prepare('UPDATE places SET google_ftid = ? WHERE id = ?').run('0x1:0x2', place.id);
+    svc.savePlace(u.id, { collection_id: col.id, name: 'Dinner Tuesday', lat: 41.88, lng: 12.47, google_ftid: '0x1:0x2' });
+
+    const listed = svc.importablePlaces(u.id, col.id, trip.id).places.find(p => p.place_id === place.id);
+
+    expect(listed?.already_in_list).toBe(true);
+  });
 });
 
 // ── save-from-trip provenance + IDOR ─────────────────────────────────────────
@@ -546,7 +619,8 @@ describe('collection labels', () => {
     const viewer = createUser(testDb).user;
     const col = svc.createCollection(owner.id, { name: 'Trip' });
     addMember(col.id, viewer.id, 'viewer');
-    try { svc.createLabel(viewer.id, col.id, 'X'); } catch (e) { expect((e as { status: number }).status).toBe(403); }
+    expect(() => svc.createLabel(viewer.id, col.id, 'X')).toThrow(expect.objectContaining({ status: 403, message: 'You have read-only access to this list' }));
+    expect(svc.getCollection(owner.id, col.id).collection.labels).toHaveLength(0);
 
     const editor = createUser(testDb).user;
     addMember(col.id, editor.id, 'editor');
@@ -975,5 +1049,467 @@ describe('bulk status', () => {
       { collection_id: readonly.id, name: 'Shared', place_id: saved.id, status: 'visited', can_edit: false },
     ]);
     expect(svc.findMembership(owner.id, { google_place_id: 'gp-9' }).lists[0].can_edit).toBe(true);
+  });
+});
+
+// ── Export / import as a file (#2198) ────────────────────────────────────────
+
+describe('exportCollection / importCollection (#2198)', () => {
+  /** A list with two labels, a category and one place carrying both. */
+  function seedList(ownerId: number) {
+    const cat = createCategory(testDb, { name: 'Restaurant' });
+    const col = svc.createCollection(ownerId, { name: 'Lisbon', description: 'Three days', color: '#ef4444' });
+    const must = svc.createLabel(ownerId, col.id, 'Must see', '#ff0000');
+    const rain = svc.createLabel(ownerId, col.id, 'Rainy day', '#00ff00');
+    const market = svc.savePlace(ownerId, {
+      collection_id: col.id, name: 'Time Out Market', description: 'Market hall',
+      lat: 38.7071, lng: -9.1459, address: 'Av. 24 de Julho 49', notes: 'Before noon',
+      website: 'https://timeoutmarket.com/', phone: '+351 210 606 040', osm_id: 'node/1',
+      status: 'want', category_id: cat.id, price: 12, currency: 'EUR',
+    }).place!;
+    const view = svc.savePlace(ownerId, { collection_id: col.id, name: 'Miradouro', lat: 38.7195, lng: -9.1327 }).place!;
+    svc.assignLabels(ownerId, [must.id], [market.id], false);
+    svc.assignLabels(ownerId, [rain.id], [view.id], false);
+    return { col, cat, must, rain, market, view };
+  }
+
+  it('COLLECTIONS-SVC-100: a file carries the list, its labels and each place with its label names', () => {
+    const owner = createUser(testDb).user;
+    const { col, market } = seedList(owner.id);
+
+    const file = svc.exportCollection(owner.id, col.id);
+
+    expect(file.format).toBe('trek.collection');
+    expect(file.version).toBe(1);
+    expect(file).toMatchObject({ name: 'Lisbon', description: 'Three days', color: '#ef4444' });
+    expect(file.labels).toEqual([
+      { name: 'Must see', color: '#ff0000' },
+      { name: 'Rainy day', color: '#00ff00' },
+    ]);
+    expect(file.places).toHaveLength(2);
+    const first = file.places[0] as Record<string, unknown>;
+    expect(first).toMatchObject({
+      name: 'Time Out Market', description: 'Market hall', lat: 38.7071, lng: -9.1459,
+      address: 'Av. 24 de Julho 49', notes: 'Before noon', website: 'https://timeoutmarket.com/',
+      phone: '+351 210 606 040', osm_id: 'node/1', status: 'want', price: 12, currency: 'EUR',
+      category: 'Restaurant', labels: ['Must see'],
+    });
+    expect(market.id).toBeGreaterThan(0);
+  });
+
+  it('COLLECTIONS-SVC-101: a file carries no ids, no members and no ratings', () => {
+    const owner = createUser(testDb).user;
+    const member = createUser(testDb).user;
+    const { col, market } = seedList(owner.id);
+    addMember(col.id, member.id, 'editor');
+    svc.setRating(member.id, market.id, 5);
+
+    const file = svc.exportCollection(owner.id, col.id);
+    const serialised = JSON.stringify(file);
+
+    for (const forbidden of ['"id"', 'collection_id', 'owner_id', 'saved_by', 'source_trip_id', 'source_place_id', 'rating', 'user_id', 'category_id']) {
+      expect(serialised, forbidden).not.toContain(forbidden);
+    }
+  });
+
+  it('COLLECTIONS-SVC-102: an instance-local image path does not leave the instance', () => {
+    const owner = createUser(testDb).user;
+    const col = svc.createCollection(owner.id, { name: 'Pictures' });
+    svc.savePlace(owner.id, { collection_id: col.id, name: 'Uploaded', image_url: '/uploads/places/secret.jpg' });
+    svc.savePlace(owner.id, { collection_id: col.id, name: 'Proxied', image_url: '/api/maps/place-photo/abc' });
+    svc.savePlace(owner.id, { collection_id: col.id, name: 'Remote', image_url: 'https://example.com/photo.jpg' });
+
+    const images = svc.exportCollection(owner.id, col.id).places.map(p => (p as { image_url?: string | null }).image_url);
+
+    expect(images).toEqual([null, null, 'https://example.com/photo.jpg']);
+  });
+
+  it('COLLECTIONS-SVC-103: a member may export, a stranger may not', () => {
+    const owner = createUser(testDb).user;
+    const viewer = createUser(testDb).user;
+    const stranger = createUser(testDb).user;
+    const { col } = seedList(owner.id);
+    addMember(col.id, viewer.id, 'viewer');
+
+    expect(svc.exportCollection(viewer.id, col.id).places).toHaveLength(2);
+    try {
+      svc.exportCollection(stranger.id, col.id);
+      throw new Error('should have thrown');
+    } catch (e) {
+      expect((e as { status: number }).status).toBe(404);
+    }
+  });
+
+  it('COLLECTIONS-SVC-104: a file round-trips into an equivalent list of the importer', () => {
+    const owner = createUser(testDb).user;
+    const other = createUser(testDb).user;
+    const { col } = seedList(owner.id);
+    const file = svc.exportCollection(owner.id, col.id);
+
+    const result = svc.importCollection(other.id, { file });
+    const created = result.collection as { id: number; owner_id: number; name: string };
+
+    expect(result).toMatchObject({ imported: 2, skipped: 0 });
+    expect(created.owner_id).toBe(other.id);
+    expect(created.name).toBe('Lisbon');
+    // Re-exporting the copy gives the same file, bar the timestamp.
+    const again = svc.exportCollection(other.id, created.id);
+    expect({ ...again, exported_at: undefined }).toEqual({ ...file, exported_at: undefined });
+  });
+
+  it('COLLECTIONS-SVC-105: the importer may rename the list on the way in', () => {
+    const owner = createUser(testDb).user;
+    const { col } = seedList(owner.id);
+    const file = svc.exportCollection(owner.id, col.id);
+
+    const created = svc.importCollection(owner.id, { file, name: 'Lisbon (from Ana)' }).collection as { id: number; name: string };
+
+    expect(created.name).toBe('Lisbon (from Ana)');
+    // And the original is untouched.
+    expect(svc.getCollection(owner.id, col.id).collection.name).toBe('Lisbon');
+  });
+
+  it('COLLECTIONS-SVC-106: a category arrives by name, matched case-insensitively, unknown names drop', () => {
+    const owner = createUser(testDb).user;
+    createCategory(testDb, { name: 'Restaurant' });
+
+    const created = svc.importCollection(owner.id, { file: {
+      format: 'trek.collection', version: 1, name: 'Categories', places: [
+        { name: 'Exact', category: 'Restaurant' },
+        { name: 'Sloppy', category: '  rEsTaUrAnT  ' },
+        { name: 'Unknown', category: 'Not a category here' },
+        { name: 'None' },
+      ],
+    } }).collection as { id: number };
+
+    const places = svc.getCollection(owner.id, created.id).places;
+    expect(places.map(p => p.category?.name ?? null)).toEqual(['Restaurant', 'Restaurant', null, null]);
+  });
+
+  it('COLLECTIONS-SVC-107: labels are recreated and only names the file defines are assigned', () => {
+    const owner = createUser(testDb).user;
+
+    const created = svc.importCollection(owner.id, { file: {
+      format: 'trek.collection', version: 1, name: 'Labelled',
+      labels: [{ name: 'Must see', color: '#ff0000' }, { name: 'Must see', color: '#00ff00' }],
+      places: [
+        { name: 'Tagged', labels: ['Must see'] },
+        { name: 'Sloppy case', labels: ['  MUST SEE '] },
+        { name: 'Ghost label', labels: ['Never defined'] },
+      ],
+    } }).collection as { id: number };
+
+    const detail = svc.getCollection(owner.id, created.id);
+    // The duplicate name collapses to one label.
+    expect(detail.collection.labels).toHaveLength(1);
+    const labelId = detail.collection.labels![0].id;
+    expect(detail.places.map(p => p.label_ids)).toEqual([[labelId], [labelId], []]);
+  });
+
+  it('COLLECTIONS-SVC-108: a place the contract refuses is skipped, the rest still arrive', () => {
+    const owner = createUser(testDb).user;
+
+    const result = svc.importCollection(owner.id, { file: {
+      format: 'trek.collection', version: 1, name: 'Mixed', places: [
+        { name: 'Good' },
+        { noName: true },
+        { name: '' },
+        { name: 'Also good' },
+        null,
+      ],
+    } });
+
+    expect(result).toMatchObject({ imported: 2, skipped: 3 });
+    const created = result.collection as { id: number };
+    expect(svc.getCollection(owner.id, created.id).places.map(p => p.name)).toEqual(['Good', 'Also good']);
+  });
+
+  it('COLLECTIONS-SVC-109: a file cannot hand the importer ids, provenance or other people', () => {
+    const owner = createUser(testDb).user;
+    const victim = createUser(testDb).user;
+    const trip = createTrip(testDb, victim.id);
+    const place = createPlace(testDb, trip.id, { name: 'Private place' });
+
+    const created = svc.importCollection(owner.id, { file: {
+      format: 'trek.collection', version: 1, name: 'Hostile', places: [{
+        name: 'Claims things',
+        id: 9999, collection_id: 1, owner_id: victim.id, saved_by: victim.id,
+        source_trip_id: trip.id, source_place_id: place.id,
+      } as never],
+    } }).collection as { id: number };
+
+    const row = testDb.prepare('SELECT * FROM collection_places WHERE collection_id = ?').get(created.id) as Record<string, unknown>;
+    expect(row.owner_id).toBe(owner.id);
+    expect(row.saved_by).toBe(owner.id);
+    expect(row.source_trip_id).toBeNull();
+    expect(row.source_place_id).toBeNull();
+    expect(row.id).not.toBe(9999);
+  });
+
+  it('COLLECTIONS-SVC-110: a link the browser must not follow arrives as nothing, the place still does', () => {
+    const owner = createUser(testDb).user;
+
+    const created = svc.importCollection(owner.id, { file: {
+      format: 'trek.collection', version: 1, name: 'Links', places: [
+        { name: 'Script', website: 'javascript:alert(1)' as never },
+        { name: 'Local image', image_url: '/uploads/x.jpg' as never },
+        { name: 'Fine', website: 'https://example.com', image_url: 'https://example.com/p.jpg' },
+      ],
+    } }).collection as { id: number };
+
+    const places = svc.getCollection(owner.id, created.id).places;
+    expect(places.map(p => p.name)).toEqual(['Script', 'Local image', 'Fine']);
+    expect(places[0].website).toBeNull();
+    expect(places[1].image_url).toBeNull();
+    expect(places[2]).toMatchObject({ website: 'https://example.com', image_url: 'https://example.com/p.jpg' });
+  });
+
+  it('COLLECTIONS-SVC-111: an import writes nothing at all when one of its writes fails', () => {
+    const owner = createUser(testDb).user;
+    const before = svc.listCollections(owner.id).collections.length;
+    const insert = testDb.prepare.bind(testDb);
+    const spy = vi.spyOn(testDb, 'prepare').mockImplementation((sql: string) => {
+      if (sql.includes('INSERT INTO collection_places')) throw new Error('disk is full');
+      return insert(sql);
+    });
+
+    try {
+      expect(() => svc.importCollection(owner.id, { file: {
+        format: 'trek.collection', version: 1, name: 'Doomed', places: [{ name: 'Never arrives' }],
+      } })).toThrow('disk is full');
+    } finally {
+      spy.mockRestore();
+    }
+
+    expect(svc.listCollections(owner.id).collections).toHaveLength(before);
+  });
+});
+
+// ── The same file into a list that is already there (#2301 follow-up) ────────
+
+describe('importIntoCollection', () => {
+  const file = (places: unknown[], labels?: { name: string; color?: string }[]) => ({
+    format: 'trek.collection' as const, version: 1, name: 'From a friend',
+    description: 'Their notes', color: '#ef4444', ...(labels ? { labels } : {}), places,
+  });
+
+  it('COLLECTIONS-SVC-120: adds the file to the list and leaves the list itself alone', () => {
+    const owner = createUser(testDb).user;
+    const col = svc.createCollection(owner.id, { name: 'Lisbon', description: 'Mine', color: '#111827' });
+    svc.savePlace(owner.id, { collection_id: col.id, name: 'Time Out Market' });
+
+    const result = svc.importIntoCollection(owner.id, col.id, { file: file([{ name: 'Belém' }, { name: 'Alfama' }]) });
+
+    expect(result).toMatchObject({ imported: 2, skipped: 0, duplicates: 0 });
+    const after = svc.getCollection(owner.id, col.id);
+    expect(after.collection).toMatchObject({ name: 'Lisbon', description: 'Mine', color: '#111827' });
+    expect(after.places.map(p => p.name)).toEqual(['Time Out Market', 'Belém', 'Alfama']);
+    // Appended after what was there, so a manual order survives.
+    const orders = testDb.prepare('SELECT name, sort_order FROM collection_places WHERE collection_id = ? ORDER BY sort_order').all(col.id);
+    expect(orders).toEqual([
+      { name: 'Time Out Market', sort_order: 0 },
+      { name: 'Belém', sort_order: 1 },
+      { name: 'Alfama', sort_order: 2 },
+    ]);
+  });
+
+  it('COLLECTIONS-SVC-121: a place the list already has is counted and left exactly as it was', () => {
+    const owner = createUser(testDb).user;
+    const col = svc.createCollection(owner.id, { name: 'Lisbon' });
+    const mine = svc.savePlace(owner.id, {
+      collection_id: col.id, name: 'Time Out Market', notes: 'Before noon', status: 'visited', osm_id: 'node/1',
+    }).place!;
+
+    const result = svc.importIntoCollection(owner.id, col.id, { file: file([
+      { name: 'Time Out Market', notes: 'Overrated', status: 'idea' },
+      { name: 'Renamed at the source', osm_id: 'node/1' },
+      { name: 'Belém' },
+    ]) });
+
+    expect(result).toMatchObject({ imported: 1, duplicates: 2, skipped: 0 });
+    const places = svc.getCollection(owner.id, col.id).places;
+    expect(places.map(p => p.name)).toEqual(['Time Out Market', 'Belém']);
+    expect(places[0]).toMatchObject({ id: mine.id, notes: 'Before noon', status: 'visited' });
+  });
+
+  it('COLLECTIONS-SVC-122: a file that lists the same place twice adds it once', () => {
+    const owner = createUser(testDb).user;
+    const col = svc.createCollection(owner.id, { name: 'Lisbon' });
+
+    const result = svc.importIntoCollection(owner.id, col.id, { file: file([{ name: 'Belém' }, { name: 'belém' }]) });
+
+    expect(result).toMatchObject({ imported: 1, duplicates: 1 });
+  });
+
+  it('COLLECTIONS-SVC-123: labels are matched by name, and only the missing ones are created', () => {
+    const owner = createUser(testDb).user;
+    const col = svc.createCollection(owner.id, { name: 'Lisbon' });
+    const must = svc.createLabel(owner.id, col.id, 'Must see', '#ff0000');
+
+    svc.importIntoCollection(owner.id, col.id, { file: file(
+      [{ name: 'Belém', labels: ['Must see', 'Rainy day'] }],
+      [{ name: 'must see', color: '#00ff00' }, { name: 'Rainy day', color: '#0000ff' }],
+    ) });
+
+    const labels = svc.getCollection(owner.id, col.id).collection.labels ?? [];
+    expect(labels.map(l => ({ name: l.name, color: l.color }))).toEqual([
+      // The list's own label keeps its name and its colour.
+      { name: 'Must see', color: '#ff0000' },
+      { name: 'Rainy day', color: '#0000ff' },
+    ]);
+    const added = svc.getCollection(owner.id, col.id).places.find(p => p.name === 'Belém')!;
+    expect([...(added.label_ids ?? [])].sort()).toEqual([must.id, labels[1].id].sort());
+  });
+
+  it('COLLECTIONS-SVC-124: an editor may add a file, a viewer may not, a stranger does not see the list', () => {
+    const owner = createUser(testDb).user;
+    const editor = createUser(testDb).user;
+    const viewer = createUser(testDb).user;
+    const stranger = createUser(testDb).user;
+    const col = svc.createCollection(owner.id, { name: 'Shared' });
+    addMember(col.id, editor.id, 'editor');
+    addMember(col.id, viewer.id, 'viewer');
+
+    expect(svc.importIntoCollection(editor.id, col.id, { file: file([{ name: 'Belém' }]) })).toMatchObject({ imported: 1 });
+    expect(() => svc.importIntoCollection(viewer.id, col.id, { file: file([{ name: 'Alfama' }]) })).toThrow();
+    try {
+      svc.importIntoCollection(stranger.id, col.id, { file: file([{ name: 'Alfama' }]) });
+      throw new Error('should have thrown');
+    } catch (e) {
+      expect((e as { status: number }).status).toBe(404);
+    }
+    expect(svc.getCollection(owner.id, col.id).places.map(p => p.name)).toEqual(['Belém']);
+  });
+
+  it('COLLECTIONS-SVC-125: the places stay the list owner\'s, saved by whoever brought the file', () => {
+    const owner = createUser(testDb).user;
+    const editor = createUser(testDb).user;
+    const col = svc.createCollection(owner.id, { name: 'Shared' });
+    addMember(col.id, editor.id, 'editor');
+
+    svc.importIntoCollection(editor.id, col.id, { file: file([{ name: 'Belém' }]) });
+
+    const row = testDb.prepare('SELECT owner_id, saved_by FROM collection_places WHERE collection_id = ?').get(col.id);
+    expect(row).toEqual({ owner_id: owner.id, saved_by: editor.id });
+  });
+
+  it('COLLECTIONS-SVC-126: everyone on the list is told once, and nothing is said when nothing changed', () => {
+    const owner = createUser(testDb).user;
+    const member = createUser(testDb).user;
+    const col = svc.createCollection(owner.id, { name: 'Shared' });
+    addMember(col.id, member.id, 'editor');
+    svc.savePlace(owner.id, { collection_id: col.id, name: 'Belém' });
+    broadcastToUser.mockClear();
+
+    svc.importIntoCollection(owner.id, col.id, { file: file([{ name: 'Alfama' }]) });
+    // Once per person on the list, whole import, not once per place.
+    expect(broadcastToUser).toHaveBeenCalledTimes(2);
+    expect(broadcastToUser).toHaveBeenCalledWith(member.id, expect.objectContaining({ type: 'collections:updated' }), undefined);
+
+    broadcastToUser.mockClear();
+    const again = svc.importIntoCollection(owner.id, col.id, { file: file([{ name: 'Alfama' }]) });
+    expect(again).toMatchObject({ imported: 0, duplicates: 1 });
+    expect(broadcastToUser).not.toHaveBeenCalled();
+  });
+
+  it('COLLECTIONS-SVC-127: a file that fails halfway leaves the list as it was', () => {
+    const owner = createUser(testDb).user;
+    const col = svc.createCollection(owner.id, { name: 'Lisbon' });
+    svc.savePlace(owner.id, { collection_id: col.id, name: 'Time Out Market' });
+    const real = testDb.prepare.bind(testDb);
+    const spy = vi.spyOn(testDb, 'prepare').mockImplementation((sql: string) => {
+      if (sql.includes('INSERT INTO collection_places')) throw new Error('disk is full');
+      return real(sql);
+    });
+
+    try {
+      expect(() => svc.importIntoCollection(owner.id, col.id, {
+        file: file([{ name: 'Belém' }], [{ name: 'Rainy day' }]),
+      })).toThrow('disk is full');
+    } finally {
+      spy.mockRestore();
+    }
+
+    expect(svc.getCollection(owner.id, col.id).places.map(p => p.name)).toEqual(['Time Out Market']);
+    expect(svc.getCollection(owner.id, col.id).collection.labels ?? []).toEqual([]);
+  });
+});
+
+// ── The same list as GPX (#2301) ─────────────────────────────────────────────
+
+describe('exportCollectionGpx / readCollectionGpx (#2301)', () => {
+  const fixture = (name: string) => fs.readFileSync(path.join(__dirname, '../../fixtures/gpx', name), 'utf8');
+
+  it('COLLECTIONS-SVC-120: a list that goes out as GPX comes back as the same list', () => {
+    const owner = createUser(testDb).user;
+    const other = createUser(testDb).user;
+    const cat = createCategory(testDb, { name: 'Restaurant' });
+    const col = svc.createCollection(owner.id, { name: 'Lisbon', description: 'Three days', color: '#ef4444' });
+    const must = svc.createLabel(owner.id, col.id, 'Must see', '#ff0000');
+    svc.createLabel(owner.id, col.id, 'Rainy day', '#00ff00');
+    const market = svc.savePlace(owner.id, {
+      collection_id: col.id, name: 'Time Out Market', description: 'Market hall', lat: 38.7071, lng: -9.1459,
+      address: 'Av. 24 de Julho 49', notes: 'Before noon', website: 'https://timeoutmarket.com/',
+      phone: '+351 210 606 040', osm_id: 'node/1', status: 'want', category_id: cat.id, price: 12.5, currency: 'EUR',
+      links: [{ url: 'https://menu.example/', label: 'Menu' }],
+    }).place!;
+    svc.savePlace(owner.id, { collection_id: col.id, name: 'Miradouro', lat: 38.7195, lng: -9.1327, status: 'visited' });
+    svc.assignLabels(owner.id, [must.id], [market.id], false);
+    const original = svc.exportCollection(owner.id, col.id);
+
+    const exported = svc.exportCollectionGpx(owner.id, col.id);
+    const read = svc.readCollectionGpx({ gpx: exported.gpx, file_name: 'lisbon.gpx' });
+    const result = svc.importCollection(other.id, { file: read.file });
+
+    expect(exported).toMatchObject({ name: 'Lisbon', waypoints: 2, omitted: 0 });
+    expect(read).toMatchObject({ skipped: 0, track_points: 0 });
+    expect(result).toMatchObject({ imported: 2, skipped: 0 });
+    // Names, coordinates, notes, website, category, labels, status and the rest:
+    // exported again from the copy, the file is the one the original gave.
+    const again = svc.exportCollection(other.id, (result.collection as { id: number }).id);
+    expect({ ...again, exported_at: undefined }).toEqual({ ...original, exported_at: undefined });
+  });
+
+  it('COLLECTIONS-SVC-121: a place without coordinates is left out and counted, and a stranger gets nothing', () => {
+    const owner = createUser(testDb).user;
+    const stranger = createUser(testDb).user;
+    const col = svc.createCollection(owner.id, { name: 'Mixed' });
+    svc.savePlace(owner.id, { collection_id: col.id, name: 'Pinned', lat: 1, lng: 2 });
+    svc.savePlace(owner.id, { collection_id: col.id, name: 'Somewhere vague' });
+
+    const result = svc.exportCollectionGpx(owner.id, col.id);
+
+    expect(result).toMatchObject({ name: 'Mixed', waypoints: 1, omitted: 1 });
+    expect(result.gpx).toContain('<name>Pinned</name>');
+    expect(result.gpx).not.toContain('Somewhere vague');
+    expect(() => svc.exportCollectionGpx(stranger.id, col.id)).toThrow(expect.objectContaining({ status: 404 }));
+  });
+
+  it('COLLECTIONS-SVC-122: OsmAnd favourites become a list, their groups matched against the palette', () => {
+    const owner = createUser(testDb).user;
+    createCategory(testDb, { name: 'Restaurant' });
+
+    const read = svc.readCollectionGpx({ gpx: fixture('osmand-favourites.gpx'), file_name: 'favourites.gpx' });
+    const created = svc.importCollection(owner.id, { file: read.file, name: 'Lisbon favourites' }).collection as { id: number };
+
+    const detail = svc.getCollection(owner.id, created.id);
+    expect(detail.collection.name).toBe('Lisbon favourites');
+    expect(detail.places.map(p => [p.name, p.category?.name ?? null, p.address ?? null])).toEqual([
+      ['Time Out Market', 'Restaurant', 'Av. 24 de Julho 49, 1200-479 Lisboa'],
+      // No "Viewpoints" in this palette, and a file does not get to add one.
+      ['Miradouro de Santa Luzia', null, null],
+      ['Pastéis de Belém', null, 'R. de Belém 84 92, 1300-085 Lisboa'],
+    ]);
+  });
+
+  it('COLLECTIONS-SVC-123: reading a GPX writes nothing, whatever is in it', () => {
+    const owner = createUser(testDb).user;
+    const before = testDb.prepare('SELECT COUNT(*) AS n FROM collections').get() as { n: number };
+
+    svc.readCollectionGpx({ gpx: fixture('garmin-sym.gpx') });
+    expect(() => svc.readCollectionGpx({ gpx: fixture('hostile-doctype.gpx') })).toThrow(expect.objectContaining({ code: 'unreadable' }));
+
+    expect(testDb.prepare('SELECT COUNT(*) AS n FROM collections').get()).toEqual(before);
+    expect(svc.listCollections(owner.id).collections).toHaveLength(0);
   });
 });

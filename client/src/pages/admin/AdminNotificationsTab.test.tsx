@@ -1,4 +1,4 @@
-// FE-ADMNOT-001 to FE-ADMNOT-041
+// FE-ADMNOT-001 to FE-ADMNOT-043
 import { http, HttpResponse } from 'msw';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -538,5 +538,37 @@ describe('AdminNotificationsTab', () => {
     fireEvent.click(screen.getByRole('button', { name: /^clear$/i }));
 
     await waitFor(() => expect(admin.toast.error).toHaveBeenCalledWith('Error'));
+  });
+
+  it('FE-ADMNOT-042: a stored SMTP password is a placeholder, so a new one replaces it', async () => {
+    let body: Record<string, unknown> | null = null;
+    server.use(
+      http.put('/api/auth/app-settings', async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({});
+      }),
+      http.get('/api/auth/app-config', () => HttpResponse.json({}))
+    );
+    render(<StatefulHarness initial={{ ...EMAIL_ON, smtp_pass: '••••••••' }} />);
+
+    // Typing into the eight bullet characters used to save them along with the
+    // password, which then failed to authenticate with nothing in the log.
+    expect(screen.getByPlaceholderText('••••••••')).toHaveValue('');
+    fireEvent.change(screen.getByPlaceholderText('••••••••'), { target: { value: 'hunter2' } });
+    fireEvent.click(within(card('Email (SMTP)')).getByRole('button', { name: /^save$/i }));
+
+    await waitFor(() => expect(body).toEqual({ smtp_host: 'mail.example.com', smtp_pass: 'hunter2' }));
+  });
+
+  it('FE-ADMNOT-043: a managed install keeps the user channels and drops the operator cards', () => {
+    // The second column is nothing but !managed cards, so the layout falls back to a
+    // single stack there instead of leaving half a grid row empty.
+    renderTab({ managed: true });
+
+    expect(screen.getByRole('heading', { name: /^webhook$/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Trip Reminders' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Email (SMTP)' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Admin Webhook' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Admin Ntfy' })).not.toBeInTheDocument();
   });
 });

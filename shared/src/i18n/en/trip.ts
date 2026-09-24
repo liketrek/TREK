@@ -24,6 +24,7 @@ const trip: TranslationStrings = {
   'trip.toast.placeDeleted': 'Place deleted',
   'trip.toast.selectDay': 'Please select a day first',
   'trip.toast.assignedToDay': 'Place assigned to day',
+  'trip.toast.loadError': 'Could not load the trip',
   'trip.toast.reorderError': 'Failed to reorder',
   'trip.toast.reservationUpdated': 'Reservation updated',
   'trip.toast.reservationAdded': 'Reservation added',
@@ -63,6 +64,7 @@ const trip: TranslationStrings = {
   'transit.search': 'Search',
   'transit.searching': 'Searching…',
   'transit.searchError': 'Route search failed. Please try again.',
+  'transit.noResultsVia': 'No connections found via {provider}. Try a different time or filters.',
   'transit.noResults': 'No connections found. Try a different time or filters.',
   'transit.direct': 'Direct',
   'transit.transfers': '{count} transfers',
@@ -78,6 +80,7 @@ const trip: TranslationStrings = {
   'transport.modeAutomated': 'Automated',
   'transit.sectionTitle': 'Automated public transit',
   'transit.changeRoute': 'Change route',
+  'transit.editDetails': 'Edit details',
   'transit.journey': 'Public transit journey',
   'transit.pickDay': 'Pick a day to search connections for.',
   'transit.noItinerary': 'This entry has no stored itinerary — use "Change route" to search one.',
@@ -85,5 +88,10 @@ const trip: TranslationStrings = {
   'transit.transfersLabel': 'Transfers',
   'transit.walkLabel': 'Walking',
   'transit.searchHint': 'Search real connections and add them straight to the day — data via Transitous.',
+  'trip.confirm.deletePlaceNight': 'This also deletes the stay booked at “{name}”.',
+  'trip.confirm.deletePlaceBooked':
+    'This also deletes the stay booked at “{name}”, the booking “{booking}” and any expense linked to it.',
+  'trip.confirm.deletePlaceBookedSame':
+    'This also deletes the stay booked at “{name}”, its booking and any expense linked to it.',
 };
 export default trip;

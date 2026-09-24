@@ -95,4 +95,21 @@ describe('Maps e2e (real auth guard + temp SQLite)', () => {
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ error: 'lat and lng required' });
   });
+
+  it('200 with no place for an OSM id that carries more than a number, and nothing goes out', async () => {
+    // The path segment reaches the service as it is, and the id used to be
+    // written into an Overpass query as it was: this one would have run a
+    // global scan on the mirror under TREK's shared user agent.
+    const fetchMock = vi.fn(async () => { throw new Error('nothing may leave for this id'); });
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      const injected = encodeURIComponent('node:1);nwr["amenity"](-90,-180,90,180');
+      const res = await request(server).get(`/api/maps/details/${injected}`).set('Cookie', sessionCookie(1));
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ place: null });
+      expect(fetchMock).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 });

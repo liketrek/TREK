@@ -24,6 +24,7 @@ const trip: TranslationStrings = {
   'trip.toast.placeDeleted': 'تم حذف المكان',
   'trip.toast.selectDay': 'يرجى اختيار يوم أولًا',
   'trip.toast.assignedToDay': 'تم إسناد المكان إلى اليوم',
+  'trip.toast.loadError': 'تعذر تحميل الرحلة',
   'trip.toast.reorderError': 'فشل إعادة الترتيب',
   'trip.toast.reservationUpdated': 'تم تحديث الحجز',
   'trip.toast.reservationAdded': 'تمت إضافة الحجز',
@@ -63,6 +64,7 @@ const trip: TranslationStrings = {
   'transit.search': 'بحث',
   'transit.searching': 'جارٍ البحث…',
   'transit.searchError': 'فشل البحث عن المسار. يُرجى المحاولة مرة أخرى.',
+  'transit.noResultsVia': 'لم يتم العثور على أي رحلات عبر {provider}. جرّب وقتًا أو عوامل تصفية مختلفة.',
   'transit.noResults': 'لم يُعثر على أي رحلات. جرّب وقتًا أو عوامل تصفية مختلفة.',
   'transit.direct': 'مباشر',
   'transit.transfers': '{count} تحويلات',
@@ -78,6 +80,7 @@ const trip: TranslationStrings = {
   'transport.modeAutomated': 'تلقائي',
   'transit.sectionTitle': 'النقل العام التلقائي',
   'transit.changeRoute': 'تغيير المسار',
+  'transit.editDetails': 'تعديل التفاصيل',
   'transit.journey': 'رحلة بالنقل العام',
   'transit.pickDay': 'اختر يومًا للبحث عن الرحلات المتاحة.',
   'transit.noItinerary': 'لا يحتوي هذا الإدخال على خط سير محفوظ — استخدم "تغيير المسار" للبحث عن أحدها.',
@@ -85,5 +88,10 @@ const trip: TranslationStrings = {
   'transit.transfersLabel': 'التحويلات',
   'transit.walkLabel': 'المشي',
   'transit.searchHint': 'ابحث عن رحلات فعلية وأضفها مباشرة إلى اليوم — البيانات عبر Transitous.',
+  'trip.confirm.deletePlaceNight': 'سيؤدي ذلك أيضًا إلى حذف الإقامة المحجوزة في "{name}".',
+  'trip.confirm.deletePlaceBooked':
+    'سيؤدي ذلك أيضًا إلى حذف الإقامة المحجوزة في "{name}" والحجز "{booking}" وأي مصروف مرتبط به.',
+  'trip.confirm.deletePlaceBookedSame':
+    'سيؤدي ذلك أيضًا إلى حذف الإقامة المحجوزة في "{name}" وحجزها وأي مصروف مرتبط به.',
 };
 export default trip;

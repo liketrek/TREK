@@ -3,6 +3,7 @@ import type { BookDocument, BookPageSetup, BookTextElement } from '@trek/shared'
 import { bookPageSetupSchema, normalizeBookDocument } from '@trek/shared'
 import { fireEvent, render, screen } from '../../helpers/render'
 import { StudioSidebar, type JourneySource } from '../../../src/components/Studio/StudioSidebar'
+import type { StudioUploader } from '../../../src/components/Studio/studioUpload'
 import { useStudioStore } from '../../../src/store/studioStore'
 
 /**
@@ -39,10 +40,14 @@ const entry = (over: Partial<Entry> = {}): Entry => ({
   weather: null,
   pros: [],
   cons: [],
+  photoIds: [],
   ...over,
 })
 
 const sourceOf = (...entries: Entry[]): JourneySource => ({ entries, photos: [], photoEntries: {} })
+
+/** Nothing ever arrives through these; the chips under test place text. */
+const noUpload: StudioUploader = async () => ({ photoIds: [], failed: 0, skippedVideos: 0 })
 
 /** One empty inner spread, parsed rather than cast, so the store holds a real document. */
 const emptyBook = (): BookDocument => normalizeBookDocument({
@@ -74,6 +79,9 @@ function openEntries(source: JourneySource) {
       path={[]}
       t={(k: string) => k}
       locale="en-US"
+      canEdit
+      onUpload={noUpload}
+      onToggleStop={async () => true}
     />,
   )
   fireEvent.click(screen.getByLabelText('journey.studio.content'))

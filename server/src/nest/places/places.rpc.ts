@@ -30,8 +30,11 @@ function capUrls(input: Record<string, unknown>): void {
     throw new BadParams('invalid place: image_url must be an uploaded path, a photo-proxy path, an inline image or an https URL');
   }
   const website = input.website;
-  if (website !== undefined && website !== null && website !== '' && !placeWebsiteSchema.safeParse(website).success) {
-    throw new BadParams('invalid place: website must be an http or https URL');
+  if (website !== undefined && website !== null && website !== '') {
+    const parsed = placeWebsiteSchema.safeParse(website);
+    if (!parsed.success) throw new BadParams('invalid place: website must be an http or https URL');
+    // Stored in its parsed form, like the REST route: a bare host gains https.
+    input.website = parsed.data;
   }
 }
 
@@ -105,12 +108,17 @@ export class PlacesRpc {
     // The link is gone once the place is, so read it first (#1298).
     const expenseIds = this.places.linkedExpenseIds(tripId, [placeId]);
     // remove is async (it deletes the place's storage object): await it so the
-    // refusal check sees the resolved boolean, not an always-truthy Promise.
-    if (!(await this.places.remove(String(tripId), String(placeId)))) {
+    // refusal check sees the resolved answer, not an always-truthy Promise.
+    const { deleted, cancelled } = await this.places.remove(String(tripId), String(placeId));
+    if (!deleted) {
       throw new ForbiddenResource(`no place ${placeId} on trip ${tripId}`);
     }
     this.realtime.broadcast(tripId, 'place:deleted', { placeId });
-    for (const itemId of expenseIds) this.realtime.broadcast(tripId, 'budget:deleted', { itemId });
+    // A night booked at this place went with it, and took its partner booking and
+    // that booking's expense along. Neither is covered by place:deleted, and an
+    // expense linked by reservation_id is not one linkedExpenseIds finds.
+    for (const reservationId of cancelled.reservationIds) this.realtime.broadcast(tripId, 'reservation:deleted', { reservationId });
+    for (const itemId of [...expenseIds, ...cancelled.budgetItemIds]) this.realtime.broadcast(tripId, 'budget:deleted', { itemId });
     return { deleted: true };
   }
 

@@ -1,6 +1,6 @@
 import type { BookDocument } from '@trek/shared'
 import { SpreadView } from './SpreadView'
-import { MARK_LENGTH, MARK_WEIGHT, sheetBox, sheetsFor, type Sheet, type SheetMode } from './bookSheets'
+import { MARK_LENGTH, MARK_WEIGHT, sheetBox, sheetsFor, type Sheet, type SheetMode, foliosOf } from './bookSheets'
 
 /**
  * The book laid out for a press.
@@ -107,7 +107,7 @@ function SheetView({
           <SpreadView
             spread={sheet.spread}
             page={doc.page}
-            spreadIndex={sheet.spreadIndex}
+            folios={foliosOf(doc.spreads, sheet.spreadIndex, doc.page.pageNumbers.startAt)}
             big
             print
           />

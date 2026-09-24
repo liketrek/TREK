@@ -20,6 +20,8 @@ import {
   buildUserAgent,
   resolveOverpassEndpoints,
   resolveOverpassTimeoutMs,
+  OVERPASS_QUERY_TIMEOUT_S,
+  OVERPASS_TIMEOUT_DEFAULT_MS,
   stripWikiMarkup,
   parseWikipediaTag,
   rankCommonsCandidates,
@@ -27,6 +29,7 @@ import {
 } from '../../../src/nest/maps/maps.helpers';
 
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
+import { Jimp } from 'jimp';
 
 // The seams below stand in for real collaborators, so they are typed from those
 // collaborators' signatures rather than from their own default implementations.
@@ -48,6 +51,7 @@ const {
   mockCacheGetInFlight,
   mockCacheSetInFlight,
   mockServeFilePath,
+  mockProviderGet,
 } = vi.hoisted(() => ({
   mockDbGet: vi.fn((..._args: unknown[]) => undefined as any),
   mockDbRun: vi.fn(),
@@ -56,6 +60,12 @@ const {
   // row holds a key", and would otherwise have its stub eaten by the
   // app_settings lookup.
   mockInstanceGet: vi.fn((..._args: unknown[]) => undefined as any),
+  // The places_provider row is read before the key chain, so it needs a seam of
+  // its own: routed through mockInstanceGet it would eat the mockReturnValueOnce
+  // that a case meant for the instance-wide KEY, and the service would resolve a
+  // key value as a provider name. Default undefined = the 'auto' choice, which is
+  // what every install that predates Amap has.
+  mockProviderGet: vi.fn((..._args: unknown[]) => undefined as any),
   preparedSql: [] as string[],
   mockCheckSsrf: vi.fn(async (_url: string, _bypassInternalIpAllowed?: boolean): Promise<SsrfCheckStub> => ({
     allowed: true,
@@ -80,7 +90,12 @@ vi.mock('../../../src/db/database', () => ({
     prepare: (sql: string) => {
       preparedSql.push(sql);
       return {
-        get: (...args: unknown[]) => (sql.includes('app_settings') ? mockInstanceGet(...args) : mockDbGet(...args)),
+        get: (...args: unknown[]) => {
+          if (!sql.includes('app_settings')) return mockDbGet(...args);
+          // Keyed by the bound parameter, not just by the table: app_settings
+          // holds both the instance-wide API keys and the provider choice.
+          return args[0] === 'places_provider' ? mockProviderGet(...args) : mockInstanceGet(...args);
+        },
         all: vi.fn(() => []),
         run: mockDbRun,
       };
@@ -120,6 +135,28 @@ vi.mock('../../../src/config', () => ({
   ENCRYPTION_KEY: '0'.repeat(64),
 }));
 
+// pois(), searchPlaces() and autocompletePlaces() all ask the index before the
+// old path, and trekPlacesEnabled fails open — so a case that reaches one of
+// them with no fetch stub in place leaves the runner for places.liketrek.com.
+//
+// Search is stubbed for a second reason. The fetch stubs in this file answer
+// with `json()` and no `text()`, which is not what the index client reads, so
+// the index branch was entered and then failed on the stub. That made the cases
+// pass for the wrong reason — 'uses Nominatim when user has no API key' was
+// really testing that a stub is incomplete — and it left the client's circuit
+// breaker counting real consecutive failures, which is process state and leaks
+// into whatever file runs next. The index paths themselves are covered in
+// maps.pois.test.ts, maps.autocomplete.test.ts and maps.search-merge.test.ts.
+const { mockNearby, mockSearch } = vi.hoisted(() => ({
+  mockNearby: vi.fn(async (): Promise<unknown[]> => []),
+  mockSearch: vi.fn(async (): Promise<unknown[]> => []),
+}));
+vi.mock('../../../src/nest/maps/trek-places.client', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../src/nest/maps/trek-places.client')>()),
+  trekPlacesNearby: mockNearby,
+  trekPlacesSearch: mockSearch,
+}));
+
 // Injected stub since the photo-cache fold (was a path mock of the module).
 // Same seven seams, same mock functions behind them.
 const photoCacheStub = {
@@ -144,12 +181,34 @@ import type { SsrfResult } from '../../../src/utils/ssrfGuard';
 // flowing exactly as they did for the legacy module.
 const svc = new MapsService(new DatabaseService(db as never), photoCacheStub);
 
+/**
+ * Switch the TREK Places index off for one case.
+ *
+ * The index now answers search and autocomplete before Google is asked, which
+ * is the point of it. A case that is about the shape of the GOOGLE request has
+ * to take the index out of the way first, or it asserts against the index's URL
+ * and fails for the right reason.
+ *
+ * Spied on the method rather than driven through app_settings, because
+ * trekPlacesEnabled writes its key straight into the SQL and the db stub only
+ * sees bound parameters. The default and the 'false' path are covered in
+ * maps.area.test.ts, which does go through the setting.
+ */
+let indexSpy: { mockRestore: () => void } | null = null;
+function indexOff(): void {
+  indexSpy = vi.spyOn(svc, 'trekPlacesEnabled').mockReturnValue(false);
+}
+
 afterEach(() => {
+  indexSpy?.mockRestore();
+  indexSpy = null;
   vi.unstubAllGlobals();
   mockDbGet.mockReset();
   mockDbGet.mockReturnValue(undefined);
   mockInstanceGet.mockReset();
   mockInstanceGet.mockReturnValue(undefined);
+  mockProviderGet.mockReset();
+  mockProviderGet.mockReturnValue(undefined);
   preparedSql.length = 0;
   mockDbRun.mockReset();
   mockCheckSsrf.mockReset();
@@ -845,6 +904,19 @@ describe('fetchOverpassDetails (fetch stubbed)', () => {
     expect(result).toBeNull();
   });
 
+  it('MAPS-032b: refuses an id that is not a number, without sending anything', async () => {
+    // The id is interpolated into Overpass QL. Anything past the digits is a
+    // statement of its own, run on the mirror under TREK's shared user agent:
+    // this one turns a millisecond lookup into a global scan capped only by the
+    // query's own five second timeout.
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    for (const bad of ['1);nwr["amenity"](-90,-180,90,180', '12345;out geom', '', ' 1', '1e3', '-5']) {
+      expect(await svc.fetchOverpassDetails('node', bad), bad).toBeNull();
+    }
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('MAPS-033: returns null when fetch throws', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Network error')));
     const result = await svc.fetchOverpassDetails('node', '99999');
@@ -1196,6 +1268,7 @@ describe('searchPlaces (fetch stubbed)', () => {
   // on its own. The body field and the query parameter are what Google's
   // reference specifies for each half.
   it('MAPS-039f: sends the session token in the autocomplete body', async () => {
+    indexOff();
     mockDbGet.mockReturnValueOnce({ maps_api_key: 'ENCRYPTED' }).mockReturnValueOnce(null);
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ suggestions: [] }) });
     vi.stubGlobal('fetch', fetchMock);
@@ -1208,6 +1281,7 @@ describe('searchPlaces (fetch stubbed)', () => {
   });
 
   it('MAPS-039g: omits the field entirely when there is no session token', async () => {
+    indexOff();
     mockDbGet.mockReturnValueOnce({ maps_api_key: 'ENCRYPTED' }).mockReturnValueOnce(null);
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ suggestions: [] }) });
     vi.stubGlobal('fetch', fetchMock);
@@ -1335,6 +1409,7 @@ describe('searchPlaces (fetch stubbed)', () => {
   });
 
   it('MAPS-183: drops permanently closed Google results and keeps the rest (#1341)', async () => {
+    indexOff();
     mockDbGet.mockReturnValueOnce({ maps_api_key: 'some-key' });
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
@@ -1530,6 +1605,7 @@ describe('autocompletePlaces (fetch stubbed)', () => {
   });
 
   it('MAPS-088: includes locationBias in Google request when provided', async () => {
+    indexOff();
     mockDbGet.mockReturnValueOnce({ maps_api_key: 'test-key' });
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
@@ -1549,6 +1625,7 @@ describe('autocompletePlaces (fetch stubbed)', () => {
   });
 
   it('MAPS-089: omits locationBias from Google request when not provided', async () => {
+    indexOff();
     mockDbGet.mockReturnValueOnce({ maps_api_key: 'test-key' });
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
@@ -1653,6 +1730,27 @@ describe('getPlaceDetails (fetch stubbed)', () => {
     const result = await svc.getPlaceDetails(1, 'node:99999');
     expect((result.place as any).source).toBe('openstreetmap');
     expect((result.place as any).website).toBeNull();
+  });
+
+  it('MAPS-040c: an OSM id with anything but digits after the colon is no place, and asks nobody', async () => {
+    // The route takes the id as a path segment and nothing validates it before
+    // it reaches here. Split at the colon, the rest went into an Overpass query
+    // as it was and to Nominatim as an osm_ids value, so a doctored id ran a
+    // query of its own on the mirror. A coordinate pseudo-id and a legacy image
+    // URL carry a colon too and have no details source either way.
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    for (const id of [
+      'node:1);nwr["amenity"](-90,-180,90,180',
+      'way:12345;out geom',
+      'relation:',
+      'node:abc',
+      'coords:48.8,2.3',
+      'https://example.test/pic.jpg',
+    ]) {
+      await expect(svc.getPlaceDetails(1, id), id).resolves.toEqual({ place: null });
+    }
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   // A Google id has no OpenStreetMap equivalent, so without a key there is
@@ -2311,6 +2409,22 @@ describe('isGooglePlaceId', () => {
     // The collection views send the bare coordinate pair when a place has no ids.
     expect(isGooglePlaceId('36.7617499,-3.8448432')).toBe(false);
   });
+
+  it('MAPS-045b: rejects the TREK index ids that search and autocomplete now hand out', () => {
+    // The index answers before Google, so `gers:` is what an ordinary new place
+    // carries. Sending one to Google costs a billable 400 INVALID_ARGUMENT and can
+    // never return anything, and three separate call sites gate on this function:
+    // photo refs, the editorial summary, and the place-photo route.
+    expect(isGooglePlaceId('gers:08f2ab12345678901234567890abcd')).toBe(false);
+    expect(isGooglePlaceId('gers:abc-123')).toBe(false);
+    // Case-insensitive, like every other prefix in the list.
+    expect(isGooglePlaceId('GERS:abc-123')).toBe(false);
+    // The photo-picker cache key keeps its suffix meaning on top of the prefix.
+    expect(isGooglePlaceId('gers:abc-123~p3')).toBe(false);
+    // Guard against over-matching: a Google id that merely starts with those
+    // letters is still a Google id, because the prefix only counts before a colon.
+    expect(isGooglePlaceId('gersChIJLU7jZClu5kcR')).toBe(true);
+  });
 });
 
 describe('googleFtidFromMapsUrl', () => {
@@ -2423,10 +2537,10 @@ describe('resolveOverpassEndpoints', () => {
 // ── resolveOverpassTimeoutMs (OVERPASS_TIMEOUT_MS override, #1309) ─────────────
 
 describe('resolveOverpassTimeoutMs', () => {
-  it('MAPS-104: falls back to the 12s default for unset / empty / non-numeric values', () => {
-    expect(resolveOverpassTimeoutMs(undefined)).toBe(12000);
-    expect(resolveOverpassTimeoutMs('')).toBe(12000);
-    expect(resolveOverpassTimeoutMs('abc')).toBe(12000);
+  it('MAPS-104: falls back to the default for unset / empty / non-numeric values', () => {
+    expect(resolveOverpassTimeoutMs(undefined)).toBe(OVERPASS_TIMEOUT_DEFAULT_MS);
+    expect(resolveOverpassTimeoutMs('')).toBe(OVERPASS_TIMEOUT_DEFAULT_MS);
+    expect(resolveOverpassTimeoutMs('abc')).toBe(OVERPASS_TIMEOUT_DEFAULT_MS);
   });
 
   it('MAPS-105: honours a positive numeric override', () => {
@@ -2434,9 +2548,80 @@ describe('resolveOverpassTimeoutMs', () => {
   });
 
   it('MAPS-106: rejects 0, negative and Infinity — a non-positive cap would 502 every search', () => {
-    expect(resolveOverpassTimeoutMs('0')).toBe(12000);
-    expect(resolveOverpassTimeoutMs('-5')).toBe(12000);
-    expect(resolveOverpassTimeoutMs('Infinity')).toBe(12000);
+    expect(resolveOverpassTimeoutMs('0')).toBe(OVERPASS_TIMEOUT_DEFAULT_MS);
+    expect(resolveOverpassTimeoutMs('-5')).toBe(OVERPASS_TIMEOUT_DEFAULT_MS);
+    expect(resolveOverpassTimeoutMs('Infinity')).toBe(OVERPASS_TIMEOUT_DEFAULT_MS);
+  });
+
+  it('MAPS-107: we wait longer than the query we sent is allowed to take', () => {
+    // The query carries `[timeout:N]`, which the mirror enforces itself. Hanging up
+    // before that expires aborts an answer that was still legitimately being computed —
+    // which is how a corridor search came to report half its stretches as unsearchable
+    // while every mirror was in fact working on them.
+    expect(OVERPASS_TIMEOUT_DEFAULT_MS).toBeGreaterThan(OVERPASS_QUERY_TIMEOUT_S * 1000);
+  });
+});
+
+// ── searchOverpassPois with several categories at once (#1797) ────────────────
+
+describe('searchOverpassPois multi-category', () => {
+  const bbox = (n: number) => ({ south: 50 + n / 100, west: 8, north: 50.2 + n / 100, east: 8.2 });
+
+  it('MAPS-155: asks Overpass once for every category and labels each hit with its own', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        elements: [
+          { type: 'node', id: 1, lat: 50.1, lon: 8.1, tags: { name: 'Aral', amenity: 'fuel' } },
+          { type: 'node', id: 2, lat: 50.11, lon: 8.11, tags: { name: 'Ionity', amenity: 'charging_station' } },
+          { type: 'node', id: 3, lat: 50.12, lon: 8.12, tags: { name: 'Rasthof Taunus', highway: 'services' } },
+        ],
+      }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    // One category first, to learn what a single box costs (the service races mirrors).
+    await svc.searchOverpassPois('fuel', bbox(9), 'en-US');
+    const single = fetchMock.mock.calls.length;
+    fetchMock.mockClear();
+
+    const { pois } = await svc.searchOverpassPois('fuel,charging,rest_area', bbox(1), 'en-US');
+
+    // Three categories cost exactly what one does — the whole point of the batching.
+    expect(fetchMock.mock.calls.length).toBe(single);
+    // The query goes out form-encoded, so read it back the way Overpass will.
+    const body = decodeURIComponent(String(fetchMock.mock.calls[0][1]?.body ?? ''));
+    expect(body).toContain('amenity"="fuel');
+    expect(body).toContain('amenity"="charging_station');
+    expect(body).toContain('highway"="services');
+    expect(pois.map(p => [p.name, p.category])).toEqual([
+      ['Aral', 'fuel'],
+      ['Ionity', 'charging'],
+      ['Rasthof Taunus', 'rest_area'],
+    ]);
+  });
+
+  it('MAPS-156: refuses the whole query when one of the categories is not a category', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(svc.searchOverpassPois('fuel,unicorns', bbox(2))).rejects.toMatchObject({ status: 400 });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('MAPS-157: a repeat of the same set is served from the cache whatever the order', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ elements: [{ type: 'node', id: 9, lat: 50.3, lon: 8.3, tags: { name: 'Shell', amenity: 'fuel' } }] }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await svc.searchOverpassPois('fuel,campsite', bbox(3), 'en-US');
+    const asked = fetchMock.mock.calls.length;
+    await svc.searchOverpassPois('campsite,fuel', bbox(3), 'en-US');
+
+    // Same set, written the other way round: the second ask costs nothing.
+    expect(fetchMock.mock.calls.length).toBe(asked);
   });
 });
 
@@ -2536,7 +2721,9 @@ describe('controller-facing wrappers delegate to the folded methods', () => {
     try {
       const circleBias = { lat: 1, lng: 2, radius: 5 };
       await svc.search(3, 'berlin', 'de', circleBias);
-      expect(spies.searchPlaces).toHaveBeenCalledWith(3, 'berlin', 'de', circleBias);
+      expect(spies.searchPlaces).toHaveBeenCalledWith(3, 'berlin', 'de', circleBias, { googleOnly: false });
+      await svc.search(3, 'berlin', 'de', circleBias, 'google');
+      expect(spies.searchPlaces).toHaveBeenLastCalledWith(3, 'berlin', 'de', circleBias, { googleOnly: true });
 
       const rectBias = { low: { lat: 1, lng: 2 }, high: { lat: 3, lng: 4 } };
       await svc.autocomplete(3, 'be', 'en', rectBias);
@@ -2558,8 +2745,12 @@ describe('controller-facing wrappers delegate to the folded methods', () => {
       expect(spies.resolveGoogleMapsUrl).toHaveBeenCalledWith('https://maps.app.goo.gl/x');
 
       const bbox = { south: 1, west: 2, north: 3, east: 4 };
+      // The index answers with an empty page (see the mock above), so what this
+      // measures is the wrapper's own delegation.
       await svc.pois('cafe', bbox, 'de');
-      expect(spies.searchOverpassPois).toHaveBeenCalledWith('cafe', bbox, 'de');
+      // The caller's per-category budget rides along, so a corridor search that
+      // falls through to Overpass gets the allowance it asked the index for.
+      expect(spies.searchOverpassPois).toHaveBeenCalledWith('cafe', bbox, 'de', 60);
     } finally {
       Object.values(spies).forEach((s) => s.mockRestore());
     }
@@ -3186,5 +3377,246 @@ describe('readWikiIdentity', () => {
       cuisine: 'pizza',
     });
     expect(identity).toEqual({ wikidata: null, wikipedia: null, wikimedia_commons: null });
+  });
+});
+
+describe('brandLogo', () => {
+  // A fresh service per case: the logo cache lives on the instance, and a hit from
+  // one case would answer the next one's question before its fetch stub ran.
+  const service = (): MapsService => new MapsService(new DatabaseService(db as never), photoCacheStub);
+
+  const claimResponse = (file: string | null) => ({
+    ok: true,
+    json: async () => (file === null ? { claims: {} } : { claims: { P154: [{ mainsnak: { datavalue: { value: file } } }] } }),
+  });
+
+  const imageResponse = (bytes: number, contentType = 'image/png') => ({
+    ok: true,
+    headers: new Headers({ 'content-type': contentType, 'content-length': String(bytes) }),
+    arrayBuffer: async () => new ArrayBuffer(bytes),
+  });
+
+  /** A real PNG — the flattening path decodes what it is given, so a fake buffer won't do. */
+  const pngBytes = async (width: number, height: number, color: number): Promise<ArrayBuffer> => {
+    const buf = await new Jimp({ width, height, color }).getBuffer('image/png');
+    return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer;
+  };
+
+  const pngResponse = (bytes: ArrayBuffer) => ({
+    ok: true,
+    headers: new Headers({ 'content-type': 'image/png', 'content-length': String(bytes.byteLength) }),
+    arrayBuffer: async () => bytes,
+  });
+
+  it('MAPS-147: reads the logo claim and flattens the returned bytes onto a square', async () => {
+    // A wide, dark wordmark — the shape that used to arrive as a plain white pin.
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(claimResponse('Aral Logo.svg'))
+      .mockResolvedValueOnce(pngResponse(await pngBytes(120, 40, 0x1a3d8fff)));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const logo = await service().brandLogo('Q565734');
+
+    expect(logo?.contentType).toBe('image/png');
+    const out = await Jimp.read(Buffer.from(logo!.bytes));
+    // Square, so the round pin can crop it without ever cutting the mark.
+    expect(out.bitmap.width).toBe(96);
+    expect(out.bitmap.height).toBe(96);
+    // A dark mark gets a light ground, and the padding stays clear of it: the whole
+    // wordmark is visible instead of the pin showing its middle.
+    expect(out.getPixelColor(2, 2)).toBe(0xffffffff);
+    expect(out.getPixelColor(4, 48)).toBe(0xffffffff);
+    expect(out.getPixelColor(48, 48)).toBe(0x1a3d8fff);
+
+    const [claimUrl] = fetchMock.mock.calls[0];
+    expect(claimUrl).toContain('wbgetclaims');
+    expect(claimUrl).toContain('property=P154');
+    const [fileUrl] = fetchMock.mock.calls[1];
+    // Special:FilePath renders the thumbnail and redirects, so the width rides along.
+    expect(fileUrl).toContain('Special:FilePath/Aral%20Logo.svg');
+    expect(fileUrl).toContain('width=128');
+  });
+
+  it('MAPS-153: a near-white logo gets a dark ground instead of vanishing', async () => {
+    // TotalEnergies, Esso and JET all read as white marks; on a white pin they were gone.
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(claimResponse('JET logo.svg'))
+      .mockResolvedValueOnce(pngResponse(await pngBytes(64, 64, 0xfafafaff)));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const out = await Jimp.read(Buffer.from((await service().brandLogo('Q568940'))!.bytes));
+
+    expect(out.getPixelColor(2, 2)).toBe(0x111827ff);
+    expect(out.getPixelColor(48, 48)).toBe(0xfafafaff);
+  });
+
+  it('MAPS-154: a logo smaller than the canvas is left at its own size, not blown up', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(claimResponse('Tiny.png'))
+      .mockResolvedValueOnce(pngResponse(await pngBytes(16, 16, 0x203040ff)));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const out = await Jimp.read(Buffer.from((await service().brandLogo('Q1'))!.bytes));
+
+    // Centred on the 96px canvas: the 16px mark occupies 40..56, the rest is ground.
+    expect(out.getPixelColor(48, 48)).toBe(0x203040ff);
+    expect(out.getPixelColor(30, 48)).toBe(0xffffffff);
+  });
+
+  it('MAPS-148: asks Wikidata nothing when the id is not one', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    for (const bad of ['', 'Q', 'P154', 'Q0', '../secrets', 'Q12; DROP TABLE places']) {
+      expect(await service().brandLogo(bad)).toBeNull();
+    }
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('MAPS-149: answers a repeat from memory instead of asking again', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(claimResponse('Esso.png'))
+      .mockResolvedValueOnce(imageResponse(1024));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const svcOne = service();
+    await svcOne.brandLogo('Q867662');
+    await svcOne.brandLogo('Q867662');
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('MAPS-150: remembers that a brand has no logo, so a map pan does not ask again', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(claimResponse(null));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const svcOne = service();
+    expect(await svcOne.brandLogo('Q89432390')).toBeNull();
+    expect(await svcOne.brandLogo('Q89432390')).toBeNull();
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('MAPS-151: refuses an image that is too big, and one that is not an image', async () => {
+    vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValueOnce(claimResponse('Huge.png'))
+      .mockResolvedValueOnce(imageResponse(4 * 1024 * 1024)));
+    expect(await service().brandLogo('Q1')).toBeNull();
+
+    vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValueOnce(claimResponse('NotAnImage.svg'))
+      .mockResolvedValueOnce(imageResponse(500, 'text/html')));
+    expect(await service().brandLogo('Q2')).toBeNull();
+  });
+
+  it('MAPS-152: a refused hop leaves the marker without a logo rather than failing', async () => {
+    mockCheckSsrf.mockResolvedValue({ allowed: false, error: 'blocked' } as SsrfResult);
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(claimResponse('Blocked.png')));
+
+    expect(await service().brandLogo('Q3')).toBeNull();
+  });
+})
+
+// ── Websites without a scheme (#2483) ─────────────────────────────────────────
+//
+// Every source hands its website through normalizePlaceWebsite, so a place that
+// is picked from any of them saves without a 400 over a field nobody sees.
+
+describe('websites from the map sources (#2483)', () => {
+  it('MAPS-2483-01: OSM details complete a bare host and skip a contact:website that is no website', () => {
+    expect(buildOsmDetails({ website: 'www.example.fr/patrimoine' }, 'way', '1').website).toBe(
+      'https://www.example.fr/patrimoine',
+    );
+    expect(buildOsmDetails({ 'contact:website': 'mailto:mairie@example.fr', website: 'example.fr' }, 'node', '1').website).toBe(
+      'https://example.fr',
+    );
+    expect(buildOsmDetails({ website: 'javascript:alert(1)' }, 'node', '1').website).toBeNull();
+  });
+
+  it('MAPS-2483-02: an Overpass POI gets https on a bare host and falls back past a script link', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          elements: [
+            { type: 'node', id: 1, lat: 48.03, lon: -3.49, tags: { name: 'Chapelle', tourism: 'attraction', website: 'fr.wikipedia.org/wiki/Chapelle_Sainte-Barbe_du_Faouët' } },
+            { type: 'node', id: 2, lat: 48.04, lon: -3.49, tags: { name: 'Mairie', tourism: 'attraction', website: 'javascript:alert(1)', 'contact:website': '//www.example.fr' } },
+            { type: 'node', id: 3, lat: 48.05, lon: -3.49, tags: { name: 'Halles', tourism: 'attraction', website: 'Halles' } },
+          ],
+        }),
+      }),
+    );
+    const { pois } = await svc.searchOverpassPois('sights', { south: 48.0, west: -3.6, north: 48.1, east: -3.4 }, 'fr-FR');
+    expect(pois.map((p) => p.website)).toEqual([
+      'https://fr.wikipedia.org/wiki/Chapelle_Sainte-Barbe_du_Faouët',
+      'https://www.example.fr',
+      null,
+    ]);
+  });
+
+  it('MAPS-2483-03: a Google search result goes through the same helper', async () => {
+    mockDbGet.mockReturnValueOnce({ maps_api_key: 'ENCRYPTED' }).mockReturnValueOnce(null);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          places: [{ id: 'gid-web', displayName: { text: 'Chapelle' }, location: { latitude: 48, longitude: -3 }, websiteUri: 'www.example.fr' }],
+        }),
+      }),
+    );
+    const search = await svc.searchPlaces(1, 'Chapelle');
+    expect((search.places[0] as { website: unknown }).website).toBe('https://www.example.fr');
+  });
+
+  const googleDetails = (websiteUri: string) =>
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ id: 'ChIJWeb', websiteUri }) }));
+
+  it('MAPS-2483-04: so does the website of a Google details lookup', async () => {
+    mockDbGet.mockReturnValueOnce({ maps_api_key: 'gkey' });
+    googleDetails('example.fr/visite');
+    const place = (await svc.getPlaceDetails(1, 'ChIJWeb-lean')).place as { website: unknown };
+    expect(place.website).toBe('https://example.fr/visite');
+  });
+
+  it('MAPS-2483-05: and of the expanded one, where a value that is no page becomes null', async () => {
+    mockDbGet.mockReturnValueOnce({ maps_api_key: 'gkey' });
+    mockDbGet.mockReturnValueOnce(undefined);
+    googleDetails('data:text/html,x');
+    const place = (await svc.getPlaceDetailsExpanded(1, 'ChIJWeb-expanded')).place as { website: unknown };
+    expect(place.website).toBeNull();
+  });
+
+  // A details row cached before the fix still holds the website as the source
+  // sent it, and keeps for a week; an expanded row keeps until a refresh. The
+  // cache hands it out through the same helper.
+  const cachedRow = (place: Record<string, unknown>) => ({ payload_json: JSON.stringify(place), fetched_at: Date.now() });
+
+  it('MAPS-2483-06: a cached details row with a bare website is served with https, without a Google call', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    mockDbGet
+      .mockReturnValueOnce({ maps_api_key: 'gkey' })
+      .mockReturnValueOnce(cachedRow({ google_place_id: 'ChIJOld', name: 'Chapelle', website: 'example.fr/visite' }));
+    const { place } = await svc.getPlaceDetails(1, 'ChIJOld');
+    expect(place).toMatchObject({ name: 'Chapelle', website: 'https://example.fr/visite' });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('MAPS-2483-07: so is an expanded row, where a script link becomes null and a row without the field stays as it is', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    mockDbGet
+      .mockReturnValueOnce({ maps_api_key: 'gkey' })
+      .mockReturnValueOnce(cachedRow({ google_place_id: 'ChIJOldX', website: '//www.example.fr', reviews: [] }))
+      .mockReturnValueOnce({ maps_api_key: 'gkey' })
+      .mockReturnValueOnce(cachedRow({ google_place_id: 'ChIJOldY', website: 'javascript:alert(1)' }))
+      .mockReturnValueOnce({ maps_api_key: 'gkey' })
+      .mockReturnValueOnce(cachedRow({ google_place_id: 'ChIJOldZ', name: 'No site' }));
+    expect((await svc.getPlaceDetailsExpanded(1, 'ChIJOldX')).place).toMatchObject({ website: 'https://www.example.fr', reviews: [] });
+    expect((await svc.getPlaceDetailsExpanded(1, 'ChIJOldY')).place).toMatchObject({ website: null });
+    expect((await svc.getPlaceDetailsExpanded(1, 'ChIJOldZ')).place).toEqual({ google_place_id: 'ChIJOldZ', name: 'No site' });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

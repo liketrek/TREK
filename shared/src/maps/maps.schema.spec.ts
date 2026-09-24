@@ -18,18 +18,24 @@ describe('mapsSearchRequestSchema', () => {
     expect(mapsSearchRequestSchema.safeParse({}).success).toBe(false);
   });
 
+  it('takes "google" as the one provider a search can be sent to alone, and nothing else', () => {
+    expect(mapsSearchRequestSchema.safeParse({ query: 'berlin', provider: 'google' }).success).toBe(true);
+    expect(mapsSearchRequestSchema.safeParse({ query: 'berlin', provider: 'osm' }).success).toBe(false);
+    expect(mapsSearchRequestSchema.safeParse({ query: 'berlin', provider: '' }).success).toBe(false);
+  });
+
   it('allows an optional circle locationBias with numeric lat/lng and optional radius', () => {
-    expect(
-      mapsSearchRequestSchema.safeParse({ query: 'berlin', locationBias: { lat: 52.5, lng: 13.4 } }).success,
-    ).toBe(true);
+    expect(mapsSearchRequestSchema.safeParse({ query: 'berlin', locationBias: { lat: 52.5, lng: 13.4 } }).success).toBe(
+      true,
+    );
     expect(
       mapsSearchRequestSchema.safeParse({ query: 'berlin', locationBias: { lat: 52.5, lng: 13.4, radius: 50000 } })
         .success,
     ).toBe(true);
     // NaN arrives as null over JSON; either way a non-numeric lat must fail.
-    expect(
-      mapsSearchRequestSchema.safeParse({ query: 'berlin', locationBias: { lat: null, lng: 13.4 } }).success,
-    ).toBe(false);
+    expect(mapsSearchRequestSchema.safeParse({ query: 'berlin', locationBias: { lat: null, lng: 13.4 } }).success).toBe(
+      false,
+    );
     expect(mapsSearchRequestSchema.safeParse({ query: 'berlin', locationBias: { lat: 52.5 } }).success).toBe(false);
   });
 });
@@ -172,8 +178,12 @@ describe('mapsPlaceEnrichmentResultSchema', () => {
     ).toBe(true);
     // Google's search results carry a rating but no count.
     expect(
-      mapsPlaceEnrichmentResultSchema.safeParse({ photos: [], description: null, facts: [], rating: { value: 4, count: null } })
-        .success,
+      mapsPlaceEnrichmentResultSchema.safeParse({
+        photos: [],
+        description: null,
+        facts: [],
+        rating: { value: 4, count: null },
+      }).success,
     ).toBe(true);
   });
 

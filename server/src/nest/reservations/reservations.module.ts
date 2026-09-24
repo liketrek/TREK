@@ -13,6 +13,7 @@ import { ReservationsMcp } from './reservations.mcp';
 import { UpcomingReservationsController } from './upcoming-reservations.controller';
 import { AuthModule } from '../auth/auth.module';
 import { AssignmentsModule } from '../assignments/assignments.module';
+import { AccommodationsModule } from '../accommodations/accommodations.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
 
@@ -25,7 +26,10 @@ import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
 @Module({
   // DaysModule: ReservationsMcp injects DaysService for its nine getDay calls.
   // BudgetModule: ReservationsService + ReservationsMcp inject BudgetService (budget-sync seam).
-  imports: [McpSharedModule, NotificationsModule, DaysModule, AssignmentsModule, PermissionsModule, BudgetModule, AuthModule, RealtimeModule, PluginGuardsModule, ReservationsReadModule, AirtrailCoreModule],
+  // AccommodationsModule: a hotel booking writes its own day_accommodations row, and
+  // that stay owes the day plan the same stop one entered under Days does. No edge
+  // back — accommodations reaches neither days nor reservations (ACC-002).
+  imports: [McpSharedModule, NotificationsModule, DaysModule, AssignmentsModule, AccommodationsModule, PermissionsModule, BudgetModule, AuthModule, RealtimeModule, PluginGuardsModule, ReservationsReadModule, AirtrailCoreModule],
   controllers: [ReservationsController, UpcomingReservationsController],
   providers: [ReservationsService, ReservationsMcp, ReservationsRpc],
   // For in-container consumers (ReservationsRpc, TripsService, BookingImportService).

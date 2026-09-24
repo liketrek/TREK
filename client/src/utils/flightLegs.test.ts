@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getFlightLegs, getTrainLegs, isMultiLegTrain } from './flightLegs'
+import { getFlightLegs, getTrainLegs, isMultiLegTrain, stripAirportCode } from './flightLegs'
 import type { Reservation } from '../types'
 
 function res(partial: Partial<Reservation>): Reservation {
@@ -94,5 +94,16 @@ describe('per-segment booking references (#1943)', () => {
       metadata: '{}',
     })
     expect(getTrainLegs(train)[0].confirmation_number).toBe('BOOK2')
+  })
+})
+
+describe('stripAirportCode', () => {
+  it('drops the code the forms and the airport backfill append, and nothing else', () => {
+    expect(stripAirportCode('Paris Charles de Gaulle (CDG)')).toBe('Paris Charles de Gaulle')
+    expect(stripAirportCode('Hamburg (HAM)  ')).toBe('Hamburg')
+    // A station has no such suffix, and a bracket that is not a code stays.
+    expect(stripAirportCode('Hamburg Hbf')).toBe('Hamburg Hbf')
+    expect(stripAirportCode('Frankfurt (Main)')).toBe('Frankfurt (Main)')
+    expect(stripAirportCode('Munich (muc)')).toBe('Munich (muc)')
   })
 })
