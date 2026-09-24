@@ -60,6 +60,7 @@ public class TrekShellPlugin extends Plugin {
 
     /** The server URL is part of the bridge's configuration, so it takes a new activity. */
     private void restart() {
+        TrekServerStore.markRestart(getContext());
         getActivity().runOnUiThread(() -> getActivity().recreate());
     }
 

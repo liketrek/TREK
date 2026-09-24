@@ -17,9 +17,11 @@ const config: CapacitorConfig = {
     // secure context. iOS keeps its default capacitor:// scheme: WKWebView
     // handles https itself and Capacitor silently drops an iosScheme of https.
     androidScheme: 'https',
-    // Shown, from the app bundle, whenever the server fails to load. The page
-    // knows a server is remembered and offers to retry or pick another one;
-    // on iOS it first tries the stored offline copy of the server's start page.
+    // iOS shows this page from the app bundle whenever the server fails to
+    // load. It knows a server is remembered, first tries the stored offline
+    // copy of the server's start page, then offers to retry or pick another
+    // one. Android restarts on the same page instead (TrekWebViewClient.java),
+    // because it injects no bridge into a local page while a server is set.
     errorPath: 'index.html',
   },
   ios: {
