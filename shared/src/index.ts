@@ -63,6 +63,7 @@ export * from './appearance/appearance.schema';
 export * from './backup/backup.schema';
 export * from './auth/auth.schema';
 export * from './oidc/oidc.schema';
+export * from './native-auth/native-auth.schema';
 export * from './oauth/oauth.schema';
 export * from './admin/admin.schema';
 

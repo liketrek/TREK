@@ -93,6 +93,9 @@ export default defineConfig({
         'src/nest/llm-parse/**/*.ts': { statements: 91, branches: 85, functions: 85, lines: 94 },
         'src/nest/maps/**/*.ts': { statements: 93, branches: 86, functions: 97, lines: 96 },
         'src/nest/memories/**/*.ts': { statements: 92, branches: 83, functions: 97, lines: 94 },
+        // New domain in this change, fully covered by its unit and e2e suites.
+        // Pinned a little under that until a full run regenerates the block.
+        'src/nest/native-auth/**/*.ts': { statements: 95, branches: 90, functions: 95, lines: 95 },
         'src/nest/notifications/**/*.ts': { statements: 83, branches: 72, functions: 85, lines: 87 },
         'src/nest/oauth/**/*.ts': { statements: 96, branches: 95, functions: 97, lines: 97 },
         'src/nest/oidc/**/*.ts': { statements: 88, branches: 83, functions: 91, lines: 92 },
