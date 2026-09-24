@@ -1,0 +1,101 @@
+name: Native apps
+
+permissions:
+  contents: read
+
+# Builds the iOS and Android shells whenever they, their address screen or the
+# Capacitor plugins change. Nobody on the team has to own a Mac for the Swift
+# side to be compiled on every change, and every run leaves a debug APK to
+# install on a phone.
+#
+# Unsigned on purpose: signing and store uploads need secrets that fork PRs do
+# not get, and belong in a release workflow of their own.
+on:
+  pull_request:
+    paths:
+      - 'client/android/**'
+      - 'client/ios/**'
+      - 'client/native-shell/**'
+      - 'client/src/native/trekShell.ts'
+      - 'client/src/native/serverAddress.ts'
+      - 'client/capacitor.config.ts'
+      - 'client/vite.native.config.js'
+      - 'client/package.json'
+      - 'package-lock.json'
+      - 'shared/src/i18n/*/native.ts'
+      - '.github/workflows/native.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: native-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Install
+        run: npm ci --workspace shared && npm ci --workspace client
+
+      - name: Build shared
+        run: npm run build --workspace=shared
+
+      - name: Build the address screen and sync it into the shells
+        working-directory: client
+        run: npm run cap:sync -- android
+
+      - name: Assemble debug APK
+        working-directory: client/android
+        run: ./gradlew assembleDebug lintDebug --no-daemon
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: trek-android-debug
+          path: client/android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 14
+
+  ios:
+    runs-on: macos-15
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install
+        run: npm ci --workspace shared && npm ci --workspace client
+
+      - name: Build shared
+        run: npm run build --workspace=shared
+
+      - name: Build the address screen and sync it into the shells
+        working-directory: client
+        run: npm run cap:sync -- ios
+
+      - name: Build for the simulator
+        working-directory: client/ios/App
+        run: |
+          xcodebuild build \
+            -project App.xcodeproj \
+            -scheme App \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO
