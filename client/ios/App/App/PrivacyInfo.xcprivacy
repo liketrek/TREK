@@ -4,19 +4,15 @@
 <dict>
 	<!--
 	  Apple's required-reason API declaration. App Store Connect rejects uploads
-	  that call these APIs without an entry here.
-
-	  NSPrivacyAccessedAPICategoryFileTimestamp / C617.1 is required by
-	  @capacitor/filesystem, which @capacitor/file-transfer depends on to resolve
-	  a native path before it can download or upload. Capacitor's own frameworks
+	  that call these APIs without an entry here. Capacitor's own frameworks
 	  ship their own PrivacyInfo; this file covers the app target only.
-
-	  Add to this file when adding a plugin that touches a required-reason API —
-	  UserDefaults (CA92.1) for @capacitor/preferences, disk space (E174.1),
-	  system boot time (35F9.1).
+	  Add to this file when adding a plugin that touches a required-reason API,
+	  e.g. disk space (E174.1) or system boot time (35F9.1).
 	-->
 	<key>NSPrivacyAccessedAPITypes</key>
 	<array>
+		<!-- @capacitor/filesystem, which writes exports and downloads before
+		     they are handed to the share sheet. -->
 		<dict>
 			<key>NSPrivacyAccessedAPIType</key>
 			<string>NSPrivacyAccessedAPICategoryFileTimestamp</string>
@@ -25,7 +21,8 @@
 				<string>C617.1</string>
 			</array>
 		</dict>
-		<!-- @capacitor/preferences, which backs the saved server profiles. -->
+		<!-- TrekServerStore (TrekBridgeViewController.swift) keeps the chosen
+		     server in UserDefaults. -->
 		<dict>
 			<key>NSPrivacyAccessedAPIType</key>
 			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>

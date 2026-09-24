@@ -51,39 +51,25 @@
 	     logs "Local network prohibited" instead of a useful error. -->
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>TREK connects to the TREK server you choose, which is often running on your home or office network.</string>
-	<!-- Permission usage descriptions. iOS does not merely deny a missing one —
+	<!-- Permission usage descriptions. iOS does not merely deny a missing one:
 	     it terminates the app the first time the API is touched, so every key
 	     below is load-bearing even where the feature is optional.
 
-	     @capacitor/camera -->
+	     The WebView's file picker offers "Take Photo" and "Photo Library". -->
 	<key>NSCameraUsageDescription</key>
 	<string>TREK uses the camera so you can photograph a place, a journey entry or a booking document and add it to your trip.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>TREK needs access to your photos so you can add them to trips, places and journey entries.</string>
+	<!-- "Save Image" in the share sheet that exports and downloads open in. -->
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>TREK saves photos and exports you download from your trips back to your photo library.</string>
-	<!-- @capacitor/geolocation. NSLocationAlwaysAndWhenInUse is required by
-	     Apple because the underlying ion-ios-geolocation library is capable of
-	     background reporting; TREK never asks for it, so the user only ever sees
-	     the when-in-use prompt. -->
+	<!-- navigator.geolocation in the WebView ("locate me" on the map). -->
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>TREK uses your location to centre the map on you and to find places near you.</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>TREK uses your location to centre the map on you and to find places near you.</string>
-	<!-- @capacitor/calendar. iOS 17 split calendar access into full and
-	     write-only, each with its own key; the pre-17 key stays for older
-	     devices. Adding a trip to the device calendar needs only write-only
-	     access, which is the weaker prompt. -->
-	<key>NSCalendarsWriteOnlyAccessUsageDescription</key>
-	<string>TREK adds your trip days and bookings to your calendar.</string>
-	<key>NSCalendarsFullAccessUsageDescription</key>
-	<string>TREK reads your calendar to show existing commitments alongside your trip, and adds trip events to it.</string>
-	<key>NSCalendarsUsageDescription</key>
-	<string>TREK adds your trip days and bookings to your calendar.</string>
 	<!-- Deep links (@capacitor/app appUrlOpen), matching the intent-filter in
 	     AndroidManifest.xml and @string/custom_url_scheme there. This is the
-	     return path for native OIDC/OAuth login, which opens in an
-	     SFSafariViewController and redirects back to com.liketrek.trek://…
+	     return path for SSO and passkey sign-in, which runs in an
+	     ASWebAuthenticationSession and redirects back to com.liketrek.trek://…
 
 	     Not a Universal Link: those are verified against one specific domain via
 	     apple-app-site-association, and a self-hosted app has no single domain to
@@ -127,7 +113,7 @@
 	<string>Main</string>
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
-		<string>armv7</string>
+		<string>arm64</string>
 	</array>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
