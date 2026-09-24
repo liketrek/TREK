@@ -9,6 +9,7 @@ import {
 } from '../../constants/mapDefaults'
 import { hasWebGL } from '../../utils/webgl'
 import { isChunkLoadError, reloadOnceForChunk } from '../../utils/chunkReload'
+import { offlineStyle } from '../../native/offlineTiles'
 
 /** The Leaflet layer maplibre-gl-leaflet hands back. */
 export type GlLeafletLayer = InstanceType<typeof MaplibreGL>
@@ -142,7 +143,7 @@ export function detachBasemapLayer(layer: BasemapLayer | null | undefined): void
  */
 export function restyleBasemap(layer: BasemapLayer | null | undefined, style: string): void {
   if (!layer || !isGlLayer(layer)) return
-  layer.getMaplibreMap()?.setStyle(style)
+  layer.getMaplibreMap()?.setStyle(offlineStyle(style))
 }
 
 /**
@@ -188,7 +189,7 @@ export function VectorBasemap({ style }: { style: string }) {
       // change must retile in place rather than tear the layer down, the same
       // reason the raster maps keep their template out of the build effect (#2097).
       const layer = maplibreGL({
-        style: styleRef.current,
+        style: offlineStyle(styleRef.current),
         interactive: false,
         attributionControl: false,
       })
@@ -264,7 +265,7 @@ export async function attachVectorBasemap(
     return
   }
 
-  const layer = maplibreGL({ style, interactive: false, attributionControl: false })
+  const layer = maplibreGL({ style: offlineStyle(style), interactive: false, attributionControl: false })
   // The raster layer this replaces carried the credit, and OpenFreeMap asks for
   // one of its own; attachGlLayer adds it once the layer is actually on the map.
   if (!attachGlLayer(map, layer, style)) {

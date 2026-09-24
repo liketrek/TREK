@@ -35,7 +35,7 @@ const CONCURRENCY = 6
 const MAX_VECTOR_TILES = 2000
 
 /** Workbox runtime cache for the vector basemap (see vite.config.js). */
-const VECTOR_CACHE = 'gl-map-offline'
+export const VECTOR_CACHE = 'gl-map-offline'
 
 /**
  * Latin glyph ranges. A label needs the range its codepoints fall in, and Latin
