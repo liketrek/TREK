@@ -10,6 +10,9 @@ import { getApiErrorMessage } from '../../types'
 import type { UserWithOidc } from '../../types'
 import Section from './Section'
 import PasskeysSection from './PasskeysSection'
+import NativeServerSection from './NativeServerSection'
+import { isNativeApp } from '../../native/platform'
+import { downloadBlob } from '../../utils/fileDownload'
 
 const MFA_BACKUP_SESSION_KEY = 'trek_mfa_backup_codes_pending'
 
@@ -100,15 +103,7 @@ export default function AccountTab(): React.ReactElement {
 
   const downloadBackupCodes = () => {
     if (!backupCodesText) return
-    const blob = new Blob([backupCodesText + '\n'], { type: 'text/plain;charset=utf-8' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'trek-mfa-backup-codes.txt'
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
-    URL.revokeObjectURL(url)
+    downloadBlob(new Blob([backupCodesText + '\n'], { type: 'text/plain;charset=utf-8' }), 'trek-mfa-backup-codes.txt')
   }
 
   const printBackupCodes = () => {
@@ -160,6 +155,7 @@ export default function AccountTab(): React.ReactElement {
 
   return (
     <>
+      <NativeServerSection />
       <Section title={t('settings.account')} icon={User}>
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('settings.username')}</label>
@@ -405,8 +401,10 @@ export default function AccountTab(): React.ReactElement {
           </div>
         </div>
 
-        {/* Passkeys */}
-        <PasskeysSection demoMode={demoMode} />
+        {/* Passkeys. Not in the app: WebAuthn in its WebView needs a domain
+            association no build can have for every server, so they are managed
+            in the browser (signing in with one works through it too). */}
+        {!isNativeApp() && <PasskeysSection demoMode={demoMode} />}
 
         {/* Avatar */}
         <div className="flex items-center gap-4">

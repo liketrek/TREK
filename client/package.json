@@ -53,6 +53,7 @@
     "@fontsource/poppins": "^5.2.7",
     "@mapbox/mapbox-gl-rtl-text": "^0.4.0",
     "@maplibre/maplibre-gl-leaflet": "0.1.4",
+    "@noble/hashes": "^1.8.0",
     "@simplewebauthn/browser": "^13.1.2",
     "@trek/shared": "*",
     "axios": "^1.6.7",

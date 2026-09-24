@@ -40,6 +40,7 @@ import { managedRoutes } from './managed'
 // for a reload.
 const PluginPage = lazyWithRetry(() => import('./pages/PluginPage'))
 const ForgotPasswordPage = lazyWithRetry(() => import('./pages/ForgotPasswordPage'))
+const NativeHandoffPage = lazyWithRetry(() => import('./pages/NativeHandoffPage'))
 const ResetPasswordPage = lazyWithRetry(() => import('./pages/ResetPasswordPage'))
 const DashboardPage = lazyWithRetry(() => import('./pages/DashboardPage'))
 const TripPlannerPage = lazyWithRetry(() => import('./pages/TripPlannerPage'))
@@ -397,6 +398,7 @@ export default function App() {
           <Route path="/public/journey/:token" element={<PublicRoute><JourneyPublicPage /></PublicRoute>} />
           <Route path="/register" element={<PublicRoute redirectAuthed><LoginPage /></PublicRoute>} />
           <Route path="/forgot-password" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
+          <Route path="/native-handoff" element={<PublicRoute><NativeHandoffPage /></PublicRoute>} />
           <Route path="/reset-password" element={<PublicRoute><ResetPasswordPage /></PublicRoute>} />
           {/* OAuth 2.1 consent page — intentionally outside ProtectedRoute */}
           <Route path="/oauth/consent" element={<PublicRoute><OAuthAuthorizePage /></PublicRoute>} />

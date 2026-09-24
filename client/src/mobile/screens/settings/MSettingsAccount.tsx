@@ -27,6 +27,8 @@ import { getApiErrorMessage } from '../../../types'
 import type { UserWithOidc } from '../../../types'
 import { MSetCard, MSetEyebrow, MSetInput, MSetButton, MSetHint } from './MSettingsUi'
 import MConfirmSheet from './MConfirmSheet'
+import { downloadBlob } from '../../../utils/fileDownload'
+import { isNativeApp } from '../../../native/platform'
 
 const MFA_BACKUP_SESSION_KEY = 'trek_mfa_backup_codes_pending'
 
@@ -130,15 +132,7 @@ export default function MSettingsAccount() {
   }
 
   const downloadBackupCodes = () => {
-    const blob = new Blob([backupCodesText + '\n'], { type: 'text/plain;charset=utf-8' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'trek-mfa-backup-codes.txt'
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
-    URL.revokeObjectURL(url)
+    downloadBlob(new Blob([backupCodesText + '\n'], { type: 'text/plain;charset=utf-8' }), 'trek-mfa-backup-codes.txt')
   }
 
   const printBackupCodes = () => {
@@ -502,7 +496,8 @@ export default function MSettingsAccount() {
         )}
       </MSetCard>
 
-      <MPasskeysCard demoMode={demoMode} />
+      {/* Not in the app: see the passkeys note in components/Settings/AccountTab.tsx. */}
+      {!isNativeApp() && <MPasskeysCard demoMode={demoMode} />}
 
       <MConfirmSheet
         open={showDeleteConfirm === 'blocked'}

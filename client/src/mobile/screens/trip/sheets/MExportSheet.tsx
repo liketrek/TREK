@@ -9,6 +9,7 @@ import { useTranslation } from '../../../../i18n'
 import { INNER_CLS, TileHeader } from './MTripSheetUi'
 import type { MTripSheetsProps } from '../MTripShell'
 import type { LucideIcon } from 'lucide-react'
+import { downloadBlob } from '../../../../utils/fileDownload'
 
 /**
  * Export sheet ('export', opened from the Mehr sheet): the desktop day-plan
@@ -71,16 +72,7 @@ export default function MExportSheet({ planner, shell }: MTripSheetsProps) {
     try {
       const res = await fetch(`/api/trips/${planner.tripId}/export.ics`, { credentials: 'include' })
       if (!res.ok) throw new Error()
-      const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `${planner.trip?.title || 'trip'}.ics`
-      document.body.appendChild(a)
-      a.click()
-      // Firefox/Safari cancel the download when the object URL is revoked
-      // before they picked the blob up.
-      setTimeout(() => { URL.revokeObjectURL(url); a.remove() }, 100)
+      downloadBlob(await res.blob(), `${planner.trip?.title || 'trip'}.ics`)
       shell.closeSheet()
     } catch {
       planner.toast.error(t('planner.icsExportFailed'))
@@ -99,14 +91,7 @@ export default function MExportSheet({ planner, shell }: MTripSheetsProps) {
       const res = await fetch(`/api/trips/${planner.tripId}/places/export.gpx`, { credentials: 'include' })
       if (res.status === 404) { planner.toast.info(t('dayplan.gpxEmpty')); return }
       if (!res.ok) throw new Error()
-      const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `${planner.trip?.title || 'trip'}.gpx`
-      document.body.appendChild(a)
-      a.click()
-      setTimeout(() => { URL.revokeObjectURL(url); a.remove() }, 100)
+      downloadBlob(await res.blob(), `${planner.trip?.title || 'trip'}.gpx`)
       shell.closeSheet()
     } catch {
       planner.toast.error(t('dayplan.gpxFailed'))

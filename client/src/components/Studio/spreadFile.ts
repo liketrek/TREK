@@ -1,5 +1,6 @@
 import type { BookPageSetup, BookSpread } from '@trek/shared'
 import { bookElementSchema } from '@trek/shared'
+import { downloadBlob } from '../../utils/fileDownload'
 
 /**
  * A spread as a file, so a design can leave the book it was made in.
@@ -202,16 +203,7 @@ export function importSpread(raw: unknown, page: BookPageSetup): BookSpread | nu
 /** Hand the file to the browser as a download. */
 export function downloadSpread(spread: BookSpread, page: BookPageSetup, name: string) {
   const json = JSON.stringify(exportSpread(spread, page, name), null, 2)
-  const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }))
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `${slug(name) || 'spread'}.trekspread.json`
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
-  // Revoked on the next tick: revoking synchronously can cancel the download
-  // in some browsers before it has started reading the blob.
-  setTimeout(() => URL.revokeObjectURL(url), 0)
+  downloadBlob(new Blob([json], { type: 'application/json' }), `${slug(name) || 'spread'}.trekspread.json`)
 }
 
 function slug(name: string): string {
