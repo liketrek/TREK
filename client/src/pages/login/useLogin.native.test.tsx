@@ -66,10 +66,11 @@ afterEach(() => {
 });
 
 describe('useLogin in the native app', () => {
-  it('FE-LOGIN-NATIVE-001: reports that it runs in the app', async () => {
+  it('FE-LOGIN-NATIVE-001: reports that it runs in the app and remembers the login by default', async () => {
     const { result } = renderLogin();
     await waitFor(() => expect(result.current.appConfig).not.toBeNull());
     expect(result.current.nativeApp).toBe(true);
+    expect(result.current.rememberMe).toBe(true);
   });
 
   it('FE-LOGIN-NATIVE-002: does not bounce an OIDC-only install to the IdP inside the WebView', async () => {

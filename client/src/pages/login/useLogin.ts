@@ -43,7 +43,9 @@ export function useLogin() {
   const [username, setUsername] = useState<string>('')
   const [email, setEmail] = useState<string>('')
   const [password, setPassword] = useState<string>('')
-  const [rememberMe, setRememberMe] = useState<boolean>(false)
+  // On by default in the app: a session cookie there dies with the app process,
+  // and nobody expects to sign in again every time the phone unloads an app.
+  const [rememberMe, setRememberMe] = useState<boolean>(isNativeApp)
   const [showPassword, setShowPassword] = useState<boolean>(false)
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [error, setError] = useState<string>('')
