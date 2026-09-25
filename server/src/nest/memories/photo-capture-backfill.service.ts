@@ -183,7 +183,7 @@ export class PhotoCaptureBackfillService {
     try {
       parsed = await this.storage.withLocalFile('journey', name, async abs =>
         (await exifr.parse(abs, {
-          pick: ['DateTimeOriginal', 'CreateDate', 'latitude', 'longitude'],
+          pick: ['DateTimeOriginal', 'CreateDate', 'GPSLatitudeRef', 'GPSLatitude', 'GPSLongitudeRef', 'GPSLongitude'],
         })) as Exif | null,
       );
     } catch {

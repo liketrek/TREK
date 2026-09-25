@@ -345,6 +345,8 @@ describe('PhotoCaptureBackfillService — local files', () => {
     expect(recordCaptureMetadata).toHaveBeenCalledWith(7, {
       takenAt: '2026-03-15T10:20:00.000Z', lat: 48.8584, lng: 2.2945,
     });
+    const pick = (vi.mocked(exifr.parse).mock.calls[0][1] as { pick?: string[] }).pick;
+    expect(pick).toEqual(expect.arrayContaining(['GPSLatitudeRef', 'GPSLatitude', 'GPSLongitudeRef', 'GPSLongitude']));
   });
 
   it('CAPTURE-008: falls back to CreateDate when the original timestamp is missing', async () => {
