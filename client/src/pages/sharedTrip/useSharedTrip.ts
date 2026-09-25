@@ -15,14 +15,14 @@ export function useSharedTrip() {
   // The shared payload is an open-ended snapshot (trip, days, assignments, …),
   // matched 1:1 from the public share endpoint — kept loosely typed as before.
   const [data, setData] = useState<any>(null)
-  const [error, setError] = useState(false)
+  const [error, setError] = useState<'expired' | 'unavailable' | false>(false)
   const [selectedDay, setSelectedDay] = useState<number | null>(null)
   const [activeTab, setActiveTab] = useState('plan')
   const [showLangPicker, setShowLangPicker] = useState(false)
 
   useEffect(() => {
     if (!token) return
-    shareApi.getSharedTrip(token).then(setData).catch(() => setError(true))
+    shareApi.getSharedTrip(token).then(setData).catch((err: { response?: { status?: number } }) => setError(err?.response?.status === 404 ? 'expired' : 'unavailable'))
   }, [token])
 
   // The server now withholds the whole itinerary when the owner disabled the map

@@ -117,10 +117,10 @@ export default function SharedTripPage() {
         <div style={{ textAlign: 'center', padding: 40 }}>
           <div style={{ fontSize: 'calc(48px * var(--fs-scale-title, 1))', marginBottom: 16 }}>🔒</div>
           <h1 className="text-[#111827]" style={{ fontSize: 'calc(20px * var(--fs-scale-title, 1))', fontWeight: 700 }}>
-            {t('shared.expired')}
+            {t(error === 'expired' ? 'shared.expired' : 'trip.toast.loadError')}
           </h1>
           <p className="text-[#6b7280]" style={{ marginTop: 8 }}>
-            {t('shared.expiredHint')}
+            {t(error === 'expired' ? 'shared.expiredHint' : 'dashboard.loadErrorBanner')}
           </p>
         </div>
       </div>
