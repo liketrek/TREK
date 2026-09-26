@@ -1,4 +1,4 @@
-// FE-ADMSET-001 to FE-ADMSET-042
+// FE-ADMSET-001 to FE-ADMSET-043
 import { http, HttpResponse } from 'msw';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -337,6 +337,21 @@ describe('AdminSettingsTab', () => {
     renderTab({ mapsKey: '' });
 
     expect(within(card('API Keys')).getByRole('button', { name: /^test$/i })).toBeDisabled();
+  });
+
+  it('FE-ADMSET-043: a key the environment sets is read-only and names its variable (#1881)', () => {
+    const admin = renderTab({
+      keyInputProps: (field: string) =>
+        field === 'maps' ? { disabled: true, placeholder: 'Set via PLACES_API_KEY' } : { disabled: false, placeholder: 'Enter key...' },
+      mapsKeyTestable: true,
+    });
+
+    expect(keyInput('Google Maps API Key')).toBeDisabled();
+    expect(keyInput('Google Maps API Key')).toHaveAttribute('placeholder', 'Set via PLACES_API_KEY');
+    expect(keyInput(/unsplash/i)).toBeEnabled();
+    // The empty field still tests: the probe uses the key a search resolves to.
+    fireEvent.click(within(card('API Keys')).getByRole('button', { name: /^test$/i }));
+    expect(admin.handleValidateKey).toHaveBeenCalledWith('maps');
   });
 
   it('FE-ADMSET-024: the maps Test button validates the maps key', () => {

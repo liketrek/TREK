@@ -12,7 +12,10 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
-const dbFile = path.join(here, '.tmp', 'e2e.db')
+// The port is in the name, so two runs on two port pairs keep two databases
+// and can render different guide files at the same time.
+const apiPort = process.env.E2E_API_PORT || '3001'
+const dbFile = path.join(here, '.tmp', `e2e-${apiPort}.db`)
 const serverDir = path.join(here, '..', '..', 'server')
 
 for (const f of [dbFile, `${dbFile}-wal`, `${dbFile}-shm`]) {
@@ -27,7 +30,8 @@ const env = {
   TREK_DB_FILE: dbFile,
   ADMIN_EMAIL: 'e2e@trek.local',
   ADMIN_PASSWORD: 'E2eTest12345!',
-  PORT: '3001',
+  // playwright.config.ts picks the port; 3001 is the historical default.
+  PORT: process.env.E2E_API_PORT || '3001',
   NODE_ENV: 'development',
 }
 

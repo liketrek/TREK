@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { Bell, Link2, Send } from 'lucide-react'
+import { WEB_PUSH_CHANNEL_ID } from '@trek/shared'
 import { useTranslation } from '../../../i18n'
 import { notificationsApi, settingsApi } from '../../../api/client'
 import { useToast } from '../../../components/shared/Toast'
 import { MSetCard, MSetEyebrow, MSetInput, MSetButton, MSetHint } from './MSettingsUi'
 import MChip from '../../components/MChip'
+import MWebPushCard from './MWebPushCard'
 
 interface ChannelDescriptor {
   id: string
@@ -52,8 +54,8 @@ const MASKED = '••••••••'
 
 /**
  * "Notifications" section — NotificationsTab parity: webhook + ntfy channel
- * credentials, plugin channels and the event/channel preference matrix,
- * rendered as chip rows instead of the desktop grid.
+ * credentials, push on this device, plugin channels and the event/channel
+ * preference matrix, rendered as chip rows instead of the desktop grid.
  */
 export default function MSettingsNotifications() {
   const { t } = useTranslation()
@@ -281,6 +283,8 @@ export default function MSettingsNotifications() {
               </div>
             </div>
           )}
+
+          {hasChannel(WEB_PUSH_CHANNEL_ID) && <MWebPushCard />}
 
           {pluginChannels.map((ch) => (
             <div key={ch.id} className="mb-3 rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheet)] p-3">

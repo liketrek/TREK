@@ -982,6 +982,52 @@ describe('Immich searchPhotos pagination pass-through', () => {
     expect(res.body.hasMore).toBe(false);
   });
 
+  it('IMMICH-094: POST /search reaches a date-filtered page past the twentieth at the picker page size (#1587)', async () => {
+    const { user } = createUser(testDb);
+    setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'test-api-key');
+
+    // Every raw page is 200 photos of the searched day, so answered page 21
+    // needs raw pages 1 to 21. The old flat budget of 20 answered it empty with
+    // hasMore false, which is where a trip stopped without a word.
+    const previous = vi.mocked(safeFetch).getMockImplementation();
+    vi.mocked(safeFetch).mockClear();
+    vi.mocked(safeFetch).mockImplementation(async (_url: unknown, init?: { body?: unknown }) => {
+      const rawPage = JSON.parse(String(init?.body ?? '{}')).page as number;
+      return {
+        ok: true, status: 200,
+        headers: { get: () => null },
+        json: () => Promise.resolve({
+          assets: {
+            items: Array.from({ length: 200 }, (_, i) => ({
+              id: `deep-${rawPage}-${i}`,
+              fileCreatedAt: '2024-06-01T10:00:00.000Z',
+              localDateTime: '2024-06-01T12:00:00.000Z',
+            })),
+          },
+        }),
+        body: null,
+      } as never;
+    });
+
+    let res: request.Response;
+    try {
+      res = await request(app)
+        .post(`${IMMICH}/search`)
+        .set('Cookie', authCookie(user.id))
+        .send({ from: '2024-06-01', to: '2024-06-01', page: 21, size: 200 });
+    } finally {
+      if (previous) vi.mocked(safeFetch).mockImplementation(previous);
+    }
+
+    expect(res.status).toBe(200);
+    expect(res.body.assets).toHaveLength(200);
+    expect(res.body.assets[0].id).toMatch(/^deep-21-/);
+    expect(res.body.hasMore).toBe(true);
+    expect(vi.mocked(safeFetch)).toHaveBeenCalledTimes(21);
+    const sizes = vi.mocked(safeFetch).mock.calls.map(c => JSON.parse(String((c[1] as { body?: unknown }).body)).size);
+    expect(new Set(sizes)).toEqual(new Set([200]));
+  });
+
   it('IMMICH-093 — POST /search requests timeline visibility so Immich v3 never returns hidden assets (#1474)', async () => {
     const { user } = createUser(testDb);
     setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'test-api-key');

@@ -19,6 +19,9 @@ const admin: TranslationStrings = {
   'admin.notifications.testNtfyFailed': '테스트 ntfy 실패',
   'admin.notifications.emailPanel.title': '이메일 (SMTP)',
   'admin.notifications.webhookPanel.title': '웹훅',
+  'admin.notifications.webPushPanel.title': '웹 푸시',
+  'admin.notifications.webPushPanel.hint':
+    'TREK이 닫혀 있어도 사용자가 브라우저를 통해 휴대폰과 컴퓨터에서 알림을 받을 수 있습니다. HTTPS가 필요하며, iPhone과 iPad에서는 TREK을 홈 화면에 추가해야 합니다.',
   'admin.notifications.inappPanel.title': '앱 내',
   'admin.notifications.inappPanel.hint': '앱 내 알림은 항상 활성화되어 있으며 전역으로 비활성화할 수 없습니다.',
   'admin.notifications.adminWebhookPanel.title': '관리자 웹훅',
@@ -175,6 +178,7 @@ const admin: TranslationStrings = {
   'admin.amapKey': 'Amap(高德地图) API 키',
   'admin.amapKeyHint':
     'Google에 접속할 수 없고 OpenStreetMap 데이터도 부족한 중국 본토에서 장소를 검색할 때 사용합니다. JS API 키가 아니라 "Web 服务"(웹 서비스) 유형의 키가 필요합니다. console.amap.com에서 발급받을 수 있습니다.',
+  'admin.keyFromEnv': '{name}(으)로 설정됨',
   'admin.placesProvider.title': '장소 검색 제공자',
   'admin.placesProvider.subtitle':
     'TREK 자체 색인과 OpenStreetMap이 모든 검색에 답합니다. 여기서는 둘이 아무것도 찾지 못했을 때 누구에게 더 물을지 고릅니다. 자동은 키가 있으면 Google을, 그다음 Amap을 씁니다.',
@@ -406,6 +410,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:calendar-source': '캘린더에 일정 제공',
   'admin.plugins.perm.hook:place-detail-provider': '장소에 추가 정보(리뷰, 평점, 링크)를 제공',
   'admin.plugins.perm.hook:search-provider': '자체 색인에서 장소 검색에 응답 (TREK 자체 결과와 함께 표시)',
+  'admin.plugins.perm.hook:poi-category-provider':
+    '자체 장소 카테고리를 ‘지도에서 장소 탐색’에 추가 (카테고리를 선택하면 보고 있는 지도 영역이 플러그인에 전송됨)',
   'admin.plugins.perm.hook:trip-warning-provider': '여행에 검증 경고를 표시 (플래너에 표시됨)',
   'admin.plugins.perm.hook:table-contributor': '여행 보기(예약, 장소, 일자)에 열과 작업 추가',
   'admin.plugins.perm.hook:map-marker-provider': '여행 지도에 마커 추가(예: 예약 또는 POI 표시)',
@@ -417,6 +423,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.mcpTools': 'AI 도구 게시',
   'admin.plugins.mcpToolsTitle': '게시하는 AI 도구',
   'admin.plugins.mcpToolsHint': '어시스턴트가 사용자를 대신해 실행할 수 있습니다. 각 도구는 위에서 부여한 권한으로 동작합니다.',
+  'admin.plugins.poiCategoriesTitle': '추가하는 지도 카테고리',
   'admin.plugins.perm.mcp:tools':
     'AI 어시스턴트가 사용자를 대신해 실행할 수 있는 도구 게시 (여기서 플러그인에 부여한 권한으로 동작하며, 어시스턴트 자신의 권한이 아닙니다)',
   'admin.plugins.perm.geolocation:read':
@@ -555,6 +562,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': '캘린더 일정 제공',
   'admin.plugins.cap.placeDetails': '장소 정보 강화',
   'admin.plugins.cap.search': '검색에 응답',
+  'admin.plugins.cap.poiCategories': '지도 카테고리 추가',
   'admin.plugins.cap.warnings': '문제 표시',
   'admin.plugins.cap.mapLayers': '지도에 그리기',
   'admin.plugins.cap.routing': '라우팅 제공',
@@ -630,6 +638,11 @@ const admin: TranslationStrings = {
     '사용자가 각자 연결한 Dawarich 인스턴스에서 방문 기록과 기록된 경로를 읽어옵니다',
   'admin.addons.catalog.llm_parsing.name': 'AI 분석',
   'admin.addons.catalog.llm_parsing.description': '기본 분석기가 읽지 못하는 예약을 원하는 AI 모델로 읽어냅니다',
+  'admin.addons.llm.vision.auto': '자동',
+  'admin.addons.llm.vision.on': '예',
+  'admin.addons.llm.vision.off': '아니요',
+  'admin.addons.llm.vision.hintLocal': '자동은 이 모델이 이미지를 읽을 수 있는지 Ollama 서버에 묻습니다.',
+  'admin.addons.llm.vision.hintCloud': '클라우드 모델에서 자동은 아니요를 뜻합니다. 이 모델이 이미지를 읽을 수 있으면 예를 선택하세요.',
   'admin.addons.enabled': '활성화됨',
   'admin.addons.disabled': '비활성화됨',
   'admin.addons.type.trip': '여행',

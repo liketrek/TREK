@@ -409,6 +409,35 @@ describe('Tool: delete_transport', () => {
       expect(parseToolResult(result)).toEqual({ success: true });
       expect(testDb.prepare('SELECT id FROM reservations WHERE id = ?').get(reservation.id)).toBeUndefined();
       expect(broadcastMock.mock.calls.some(c => c[1] === 'reservation:deleted')).toBe(true);
+      expect(broadcastMock.mock.calls.some(c => c[1] === 'budget:deleted')).toBe(false);
+    });
+  });
+
+  it('takes every expense linked to the transport with it and announces each one (#2084)', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const created = await h.client.callTool({
+        name: 'create_transport',
+        arguments: { tripId: trip.id, type: 'flight', title: 'ZRH → CDG', endpoints: flightEndpoints },
+      });
+      const { reservation } = parseToolResult(created) as { reservation: { id: number } };
+      const expense = (name: string) => Number(testDb.prepare(
+        'INSERT INTO budget_items (trip_id, name, category, total_price, reservation_id) VALUES (?, ?, ?, ?, ?)',
+      ).run(trip.id, name, 'flights', 50, reservation.id).lastInsertRowid);
+      const fare = expense('Fare');
+      const seat = expense('Seat');
+      broadcastMock.mockClear();
+
+      const result = await h.client.callTool({
+        name: 'delete_transport',
+        arguments: { tripId: trip.id, reservationId: reservation.id },
+      });
+      expect(parseToolResult(result)).toEqual({ success: true });
+      expect(testDb.prepare('SELECT COUNT(*) AS n FROM budget_items WHERE trip_id = ?').get(trip.id)).toEqual({ n: 0 });
+      // One event per expense, and all of them before the transport itself goes.
+      expect(broadcastMock.mock.calls.map(c => c[1])).toEqual(['budget:deleted', 'budget:deleted', 'reservation:deleted']);
+      expect(broadcastMock.mock.calls.slice(0, 2).map(c => (c[2] as { itemId: number }).itemId)).toEqual([fare, seat]);
     });
   });
 

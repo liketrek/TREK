@@ -4,6 +4,7 @@ import type { z } from 'zod'
 import type { Day, Place, Trip } from '../types'
 import type { TransitProvider } from '@trek/shared'
 import { randomId } from '../utils/randomId'
+import { postProviderPhotosInBatches } from './providerPhotoBatches'
 import {
   weatherResultSchema, type WeatherResult,
   inAppListResultSchema, type InAppListResult,
@@ -53,6 +54,7 @@ import {
   type BookingImportPreviewResponse,
   type BookingImportConfirmResponse,
   type BookingImportMode,
+  type ReceiptScanResult,
   type StorageAdminState,
   type StorageBackend,
   type StorageConfigPut,
@@ -114,11 +116,13 @@ const RATE_LIMIT_MESSAGES: Record<string, string> = {
   en:      'Too many attempts. Please try again later.',
   de:      'Zu viele Versuche. Bitte versuchen Sie es später erneut.',
   es:      'Demasiados intentos. Inténtelo de nuevo más tarde.',
+  et:      'Liiga palju katseid. Palun proovi hiljem uuesti.',
   fr:      'Trop de tentatives. Veuillez réessayer plus tard.',
   hu:      'Túl sok próbálkozás. Kérjük, próbálja újra később.',
   nl:      'Te veel pogingen. Probeer het later opnieuw.',
   br:      'Muitas tentativas. Tente novamente mais tarde.',
   cs:      'Příliš mnoho pokusů. Zkuste to prosím znovu.',
+  sk:      'Príliš veľa pokusov. Skúste to prosím neskôr.',
   pl:      'Zbyt wiele prób. Spróbuj ponownie później.',
   ru:      'Слишком много попыток. Попробуйте позже.',
   zh:      '尝试次数过多，请稍后再试。',
@@ -126,9 +130,11 @@ const RATE_LIMIT_MESSAGES: Record<string, string> = {
   it:      'Troppi tentativi. Riprova più tardi.',
   tr:      'Çok fazla deneme. Lütfen daha sonra tekrar deneyin.',
   ar:      'محاولات كثيرة جدًا. يرجى المحاولة لاحقًا.',
+  az:      'Həddindən çox cəhd edildi. Bir az sonra yenidən cəhd edin.',
   id:      'Terlalu banyak percobaan. Coba lagi nanti.',
   ja:      '試行回数が多すぎます。時間をおいて再度お試しください。',
   ko:      '시도 횟수가 너무 많습니다. 잠시 후 다시 시도해 주세요.',
+  th:      'พยายามหลายครั้งเกินไป โปรดลองอีกครั้งภายหลัง',
   uk:      'Занадто багато спроб. Спробуйте пізніше.',
   sv:      'För många försök. Prova igen senare.',
   ca:      'Massa intents. Torneu-ho a provar més tard.',
@@ -1016,9 +1022,13 @@ export const journeyApi = {
   /** A clip on one entry: the video plus the poster frame the browser grabbed (issue #2341). */
   uploadEntryVideo: (entryId: number, formData: FormData, opts?: UploadOptions) =>
     postMultipart(`/journeys/entries/${entryId}/video`, formData, opts),
-  addProviderPhotosToGallery: (journeyId: number, provider: string, assetIds: string[], passphrase?: string, mediaTypes?: string[]) => apiClient.post(`/journeys/${journeyId}/gallery/provider-photos`, { provider, asset_ids: assetIds, ...(passphrase ? { passphrase } : {}), ...(mediaTypes ? { media_types: mediaTypes } : {}) } satisfies JourneyProviderPhotosRequest).then(r => r.data),
+  // Both provider-photo adds go out in batches of PROVIDER_PHOTO_BATCH ids: one
+  // request for a whole trip ran into the 100 kB body limit (#1587).
+  addProviderPhotosToGallery: (journeyId: number, provider: string, assetIds: string[], passphrase?: string, mediaTypes?: string[]) =>
+    postProviderPhotosInBatches(assetIds, mediaTypes, (ids, types) => apiClient.post(`/journeys/${journeyId}/gallery/provider-photos`, { provider, asset_ids: ids, ...(passphrase ? { passphrase } : {}), ...(types ? { media_types: types } : {}) } satisfies JourneyProviderPhotosRequest).then(r => r.data)),
   addProviderPhoto: (entryId: number, provider: string, assetId: string, caption?: string, passphrase?: string) => apiClient.post(`/journeys/entries/${entryId}/provider-photos`, { provider, asset_id: assetId, caption, ...(passphrase ? { passphrase } : {}) }).then(r => r.data),
-  addProviderPhotos: (entryId: number, provider: string, assetIds: string[], caption?: string, passphrase?: string, mediaTypes?: string[]) => apiClient.post(`/journeys/entries/${entryId}/provider-photos`, { provider, asset_ids: assetIds, caption, ...(passphrase ? { passphrase } : {}), ...(mediaTypes ? { media_types: mediaTypes } : {}) }).then(r => r.data),
+  addProviderPhotos: (entryId: number, provider: string, assetIds: string[], caption?: string, passphrase?: string, mediaTypes?: string[]) =>
+    postProviderPhotosInBatches(assetIds, mediaTypes, (ids, types) => apiClient.post(`/journeys/entries/${entryId}/provider-photos`, { provider, asset_ids: ids, caption, ...(passphrase ? { passphrase } : {}), ...(types ? { media_types: types } : {}) }).then(r => r.data)),
   linkPhoto: (entryId: number, journeyPhotoId: number) => apiClient.post(`/journeys/entries/${entryId}/link-photo`, { journey_photo_id: journeyPhotoId }).then(r => r.data),
   unlinkPhoto: (entryId: number, journeyPhotoId: number) => apiClient.delete(`/journeys/entries/${entryId}/photos/${journeyPhotoId}`).then(r => r.data),
   deleteGalleryPhoto: (journeyId: number, journeyPhotoId: number) => apiClient.delete(`/journeys/${journeyId}/gallery/${journeyPhotoId}`).then(r => r.data),
@@ -1100,7 +1110,7 @@ export const memoriesApi = {
  * They filter on the axios cancel code and on the DOMException name, so an
  * abort from the cache path has to look like one or it surfaces as a toast.
  */
-function abortedError(): Error & { code: string } {
+export function abortedError(): Error & { code: string } {
   const err = new Error('canceled') as Error & { code: string }
   err.name = 'CanceledError'
   err.code = 'ERR_CANCELED'
@@ -1466,7 +1476,7 @@ export const reservationsApi = {
     return postMultipart(`/trips/${tripId}/reservations/import/booking/async`, fd)
   },
   // Poll a background job — recovery path when a WebSocket push was missed.
-  importJobStatus: (tripId: number | string, jobId: string): Promise<{ status: 'running' | 'done' | 'error'; done: number; total: number; result?: BookingImportPreviewResponse; error?: string }> =>
+  importJobStatus: (tripId: number | string, jobId: string): Promise<{ status: 'running' | 'done' | 'error'; done: number; total: number; result?: BookingImportPreviewResponse | ReceiptScanResult; error?: string }> =>
     apiClient.get(`/trips/${tripId}/reservations/import/jobs/${jobId}`).then(r => r.data),
 }
 

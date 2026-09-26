@@ -109,6 +109,38 @@ describe('validateManifest', () => {
     expect(bad('ev')).toBe(false);
   });
 
+  it('validates capabilities.poiCategories exactly like the host and ties it to hook:poi-category-provider', () => {
+    const category = { id: 'trailheads', label: 'Trailheads', labels: { de: 'Wanderparkplätze', xx: 'ignored' }, icon: 'Signpost', color: '#2f855a' };
+    const withGrant = (poiCategories: unknown) =>
+      validateManifest({ ...base, permissions: ['hook:poi-category-provider'], capabilities: { poiCategories } });
+    const ok = withGrant([category]);
+    expect(ok.errors).toEqual([]);
+    expect(ok.manifest?.capabilities?.poiCategories?.[0].id).toBe('trailheads');
+    // chips without the grant never show, so validate says so rather than the empty pill
+    expect(validateManifest({ ...base, capabilities: { poiCategories: [category] } }).errors)
+      .toContain('capabilities.poiCategories requires the "hook:poi-category-provider" permission');
+    const bad = (over: Record<string, unknown>) => withGrant([{ ...category, ...over }]).ok;
+    expect(bad({ id: 'Trail' })).toBe(false);
+    expect(bad({ label: '  ' })).toBe(false);
+    expect(bad({ label: 'L'.repeat(41) })).toBe(false);
+    expect(bad({ icon: 'Toilet' })).toBe(false);
+    expect(bad({ icon: undefined })).toBe(false);
+    expect(bad({ color: 'red' })).toBe(false);
+    expect(bad({ color: '#2f855a;background:url(x)' })).toBe(false);
+    expect(bad({ labels: ['de'] })).toBe(false);
+    expect(bad({ labels: { 'de_DE': 'x' } })).toBe(false);
+    expect(bad({ labels: { de: '' } })).toBe(false);
+    expect(bad({ id: 5 })).toBe(false);
+    expect(bad({ label: 5 })).toBe(false);
+    expect(withGrant([1]).errors).toContain('capabilities.poiCategories: entries must be objects');
+    // the per-language labels are optional, as on the host
+    const plain = { id: category.id, label: category.label, icon: category.icon, color: category.color };
+    expect(withGrant([plain]).ok).toBe(true);
+    expect(withGrant([category, category]).errors).toContain('capabilities.poiCategories: duplicate id "trailheads"');
+    expect(withGrant([1, 2, 3, 4, 5].map((i) => ({ ...category, id: `c${i}` }))).ok).toBe(false);
+    expect(withGrant('trailheads').ok).toBe(false);
+  });
+
   it('accepts the read-symmetry + broker permissions (collab, file content, trip create, rates)', () => {
     const permissions = ['db:read:collab', 'db:create:trips', 'rates:read', 'db:read:files:content'];
     const r = validateManifest({ ...base, permissions });

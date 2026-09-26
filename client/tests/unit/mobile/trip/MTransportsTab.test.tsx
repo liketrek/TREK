@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import MTransportsTab from '../../../../src/mobile/screens/trip/tabs/MTransportsTab'
 import type { MTripShellApi, TripPlanner } from '../../../../src/mobile/screens/trip/MTripShell'
 import { openFile } from '../../../../src/utils/fileDownload'
+import { formatMoney } from '../../../../src/utils/formatters'
 import type { Day, Reservation, TripFile } from '../../../../src/types'
 import { usePluginStore } from '../../../../src/store/pluginStore'
 import { buildSettings } from '../../../helpers/factories'
@@ -10,6 +11,10 @@ import { fireEvent, render, screen, waitFor, within } from '../../../helpers/ren
 import { seedStore } from '../../../helpers/store'
 
 // FE-MOB-TRTAB-001 to FE-MOB-TRTAB-028
+
+// A card shows a price the way formatMoney writes it; getByText collapses the
+// no-break space Intl puts between amount and symbol, so the expectation does too.
+const money = (amount: number, currency: string) => formatMoney(amount, currency, 'en').replace(/\s/g, ' ')
 
 vi.mock('../../../../src/utils/fileDownload', async importOriginal => ({
   ...(await importOriginal<typeof import('../../../../src/utils/fileDownload')>()),
@@ -192,11 +197,11 @@ describe('MTransportsTab', () => {
     expect(within(card).getByText('reservations.needsReview')).toBeInTheDocument()
   })
 
-  it('FE-MOB-TRTAB-011: appends the currency to the price cell', () => {
+  it('FE-MOB-TRTAB-011: formats the price cell as money in its own currency', () => {
     renderTab()
     const card = cardOf('Airport shuttle')
     expect(within(card).getByText('reservations.price')).toBeInTheDocument()
-    expect(within(card).getByText('25 CHF')).toBeInTheDocument()
+    expect(within(card).getByText(money(25, 'CHF'))).toBeInTheDocument()
   })
 
   it('FE-MOB-TRTAB-012: uses the airport meta cells when no endpoints are stored', () => {
@@ -327,9 +332,9 @@ describe('MTransportsTab', () => {
     }))
     const card = cardOf('Heli transfer')
     expect(within(card).getByText('reservations.type.helicopter')).toBeInTheDocument()
-    // seat without a class and a price without a currency stay bare
+    // a seat without a class stays bare; a price without a currency is in the trip's (EUR)
     expect(within(card).getByText('3B')).toBeInTheDocument()
-    expect(within(card).getByText('99')).toBeInTheDocument()
+    expect(within(card).getByText(money(99, 'EUR'))).toBeInTheDocument()
     // nobody is assigned, so the traveler filter row stays away
     expect(screen.queryByTitle('Ada')).not.toBeInTheDocument()
   })

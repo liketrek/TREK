@@ -1,5 +1,5 @@
 // FE-COMP-COSTS: settlements surfaced inline in the Costs ledger (issue #1241)
-// FE-W5COSTS-001 to FE-W5COSTS-035: the rest of the Costs panel
+// FE-W5COSTS-001 to FE-W5COSTS-096: the rest of the Costs panel
 import { render, screen, waitFor, fireEvent, within } from '../../../tests/helpers/render'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
@@ -1623,6 +1623,33 @@ describe('CostsPanel — expense modal', () => {
     await waitFor(() => expect(posted).toBeTruthy())
     expect(posted).toMatchObject({ name: 'Hotel Astoria', category: 'accommodation', total_price: 240, reservation_id: 12 })
     expect(onSaved).toHaveBeenCalled()
+  })
+
+  it('FE-W5COSTS-096: offers Scan receipt beside Add expense only when the AI model reads images', async () => {
+    server.use(http.get('/api/llm/capabilities', () => HttpResponse.json({ images: true })))
+    const { unmount } = render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+    fireEvent.click((await screen.findAllByRole('button', { name: 'Scan receipt' }))[0])
+    expect(screen.getByRole('dialog', { name: 'Scan a receipt' })).toBeInTheDocument()
+    unmount()
+
+    server.use(http.get('/api/llm/capabilities', () => HttpResponse.json({ images: false })))
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+    await screen.findAllByRole('button', { name: 'Add expense' })
+    expect(screen.queryByRole('button', { name: 'Scan receipt' })).not.toBeInTheDocument()
+  })
+
+  it('FE-W5COSTS-095: a scanned receipt opens in its own currency and day, with its photo waiting to be attached', () => {
+    const photo = new File(['x'], 'bill.jpg', { type: 'image/jpeg' })
+    render(
+      <ExpenseModal tripId={1} base="EUR" people={tripMembers} me={1} editing={null}
+        prefill={{ name: 'Sushi Dai', amount: 4200, currency: 'JPY', date: '2026-09-20', lines: [{ name: 'Omakase', price: 4200 }], receiptFiles: [photo] }}
+        onClose={() => {}} onSaved={() => {}} />
+    )
+
+    expect(screen.getByDisplayValue('Sushi Dai')).toBeInTheDocument()
+    // Yen has no minor unit, so the amount is not padded.
+    expect(screen.getByDisplayValue('4200')).toBeInTheDocument()
+    expect(screen.getByText('bill.jpg')).toBeInTheDocument()
   })
 
   // The mobile sheet already dates a new expense by the traveller's own clock;

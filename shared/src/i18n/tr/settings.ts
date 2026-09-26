@@ -77,6 +77,8 @@ const settings: TranslationStrings = {
   'settings.temperature': 'Sıcaklık Birimi',
   'settings.distance': 'Mesafe Birimi',
   'settings.timeFormat': 'Saat Biçimi',
+  'settings.weekStart': 'Hafta başlangıcı',
+  'settings.weekStartHint': "Tüm tarih seçicilerde haftanın ilk günü. Vacay'in kendi ayarı vardır.",
   'settings.bookingLabels': 'Rezervasyon rota etiketleri',
   'settings.bookingLabelsHint': 'Haritada istasyon / havalimanı adlarını göster. Kapalıyken yalnızca simge görünür.',
   'settings.blurBookingCodes': 'Rezervasyon Kodlarını Bulanıklaştır',
@@ -114,6 +116,19 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.pluginConfigured':
     'Yapılandırıldı. Kimlik bilgilerini eklentinin ayarlar sayfasından yönetin.',
   'settings.notificationPreferences.ntfy': 'Ntfy',
+  'settings.notificationPreferences.push': 'Anlık bildirim',
+  'settings.webPush.title': 'Bu cihazda anlık bildirimler',
+  'settings.webPush.hint':
+    'TREK kapalıyken bile TREK bildirimlerini bu cihazda gösterir. Hangi olayların geleceğini Anlık bildirim sütunu belirler.',
+  'settings.webPush.enable': 'Bu cihaz için aç',
+  'settings.webPush.disable': 'Bu cihaz için kapat',
+  'settings.webPush.enabled': 'Bu cihaz için açık',
+  'settings.webPush.unsupported': 'Bu tarayıcı anlık bildirim alamıyor.',
+  'settings.webPush.insecure': "Anlık bildirimler için TREK'in HTTPS üzerinden açılması gerekir.",
+  'settings.webPush.iosInstall': "iPhone ve iPad'de önce TREK'i Ana Ekran'a ekleyin ve oradan açın.",
+  'settings.webPush.denied':
+    'TREK bildirimleri bu tarayıcıda engellendi. Tarayıcı ayarlarından izin verin, ardından yeniden deneyin.',
+  'settings.webPush.failed': 'Anlık bildirimler bu cihaz için açılamadı.',
   'settings.notificationPreferences.noChannels':
     'Bildirim kanalı yapılandırılmadı. Yöneticiden e-posta veya webhook kurmasını isteyin.',
   'settings.webhookUrl.label': "Web kancası URL'si",
@@ -380,9 +395,9 @@ const settings: TranslationStrings = {
     'Modelin çalıştığı yer — yerel bir Ollama sunucusu veya OpenAI uyumlu bir uç nokta.',
   'settings.aiParsing.apiKey': 'API anahtarı',
   'settings.aiParsing.apiKeyHint': 'Şifrelenmiş olarak saklanır. Mevcut anahtarı korumak için boş bırak.',
-  'settings.aiParsing.multimodal': 'Belgeleri görsel olarak gönder',
+  'settings.aiParsing.multimodal': 'Model görselleri okur',
   'settings.aiParsing.multimodalHint':
-    "Görüntü işleyebilen modeller için — çıkarılan metin yerine orijinal PDF'yi gönderir.",
+    'Görselleri okuyan bir model için aç; böylece bir fotoğraf içe aktarılabilir veya taranabilir.',
   'settings.aiParsing.toast.saved': 'Yapay zekâ ayarları kaydedildi',
   'settings.aiParsing.toast.saveError': 'Yapay zekâ ayarları kaydedilemedi',
   'settings.tabs.appearance': 'Appearance',

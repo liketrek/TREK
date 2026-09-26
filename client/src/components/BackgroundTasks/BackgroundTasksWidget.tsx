@@ -6,7 +6,23 @@ import { useTranslation } from '../../i18n'
 import { addListener, removeListener } from '../../api/websocket'
 import { reservationsApi, healthApi } from '../../api/client'
 import { saveImportFiles } from '../../db/offlineDb'
-import { useBackgroundTasksStore, type BackgroundImportTask } from '../../store/backgroundTasksStore'
+import { useBackgroundTasksStore, taskFoundSomething, type BackgroundImportTask } from '../../store/backgroundTasksStore'
+import type { ReceiptRead } from '@trek/shared'
+
+/**
+ * One reading of a finished job's result, wherever it arrives from (the push,
+ * the reload reconcile, the poll): a booking parse answers `items`, a receipt
+ * scan `receipt`.
+ */
+function settleJob(id: string, tripId: string, result: unknown): void {
+  const r = result as { items?: unknown[]; warnings?: string[]; receipt?: ReceiptRead | null } | undefined
+  useBackgroundTasksStore.getState().setDone(id, tripId, (r?.items ?? []) as never, r?.warnings ?? [], r?.receipt)
+}
+
+/** What a job that is still reading says: a receipt scan reads, a booking import parses. */
+function readingKey(task: BackgroundImportTask): string {
+  return task.kind === 'costs' ? 'costs.scan.reading' : 'reservations.import.parsing'
+}
 
 /**
  * Global, route-independent widget (bottom-right) that tracks background booking
@@ -20,7 +36,6 @@ export default function BackgroundTasksWidget() {
   const navigate = useNavigate()
   const tasks = useBackgroundTasksStore((s) => s.tasks)
   const setProgress = useBackgroundTasksStore((s) => s.setProgress)
-  const setDone = useBackgroundTasksStore((s) => s.setDone)
   const setError = useBackgroundTasksStore((s) => s.setError)
   const requestReview = useBackgroundTasksStore((s) => s.requestReview)
   const dismiss = useBackgroundTasksStore((s) => s.dismiss)
@@ -66,7 +81,7 @@ export default function BackgroundTasksWidget() {
       reservationsApi
         .importJobStatus(task.tripId, task.id)
         .then((s) => {
-          if (s.status === 'done') setDone(task.id, task.tripId, (s.result?.items ?? []) as never, s.result?.warnings ?? [])
+          if (s.status === 'done') settleJob(task.id, task.tripId, s.result)
           else if (s.status === 'error') setError(task.id, task.tripId, s.error ?? 'error')
           else setProgress(task.id, task.tripId, s.done, s.total)
         })
@@ -87,14 +102,12 @@ export default function BackgroundTasksWidget() {
       const tripId = String(e.tripId ?? '')
       if (!id) return
       if (type === 'import:progress') setProgress(id, tripId, Number(e.done ?? 0), Number(e.total ?? 1))
-      else if (type === 'import:done') {
-        const result = e.result as { items?: unknown[]; warnings?: string[] } | undefined
-        setDone(id, tripId, (result?.items ?? []) as never, result?.warnings ?? [])
-      } else if (type === 'import:error') setError(id, tripId, String(e.message ?? 'error'))
+      else if (type === 'import:done') settleJob(id, tripId, e.result)
+      else if (type === 'import:error') setError(id, tripId, String(e.message ?? 'error'))
     }
     addListener(handler)
     return () => removeListener(handler)
-  }, [setProgress, setDone, setError])
+  }, [setProgress, setError])
 
   // Backstop: poll jobs whose state we still need — running ones (in case a WebSocket push
   // was missed) and a restored 'done' task whose items haven't been re-fetched yet (so a
@@ -107,7 +120,7 @@ export default function BackgroundTasksWidget() {
         reservationsApi
           .importJobStatus(task.tripId, task.id)
           .then((s) => {
-            if (s.status === 'done') setDone(task.id, task.tripId, (s.result?.items ?? []) as never, s.result?.warnings ?? [])
+            if (s.status === 'done') settleJob(task.id, task.tripId, s.result)
             else if (s.status === 'error') setError(task.id, task.tripId, s.error ?? 'error')
             else setProgress(task.id, task.tripId, s.done, s.total)
           })
@@ -120,7 +133,7 @@ export default function BackgroundTasksWidget() {
       }
     }, 5000)
     return () => clearInterval(iv)
-  }, [tasks, setProgress, setDone, setError, t])
+  }, [tasks, setProgress, setError, t])
 
   if (tasks.length === 0) return null
 
@@ -141,11 +154,11 @@ export default function BackgroundTasksWidget() {
         >
           <div style={{ flexShrink: 0, marginTop: 1 }}>
             {(task.status === 'running' || (task.status === 'done' && task.items === undefined)) && <Loader2 size={16} className="animate-spin" color="var(--accent)" />}
-            {task.status === 'done' && task.items !== undefined && task.items.length > 0 && <CheckCircle2 size={16} color="var(--success)" />}
+            {task.status === 'done' && task.items !== undefined && taskFoundSomething(task) && <CheckCircle2 size={16} color="var(--success)" />}
             {/* A parse that found nothing is not a success, whatever the job
                 status says: the same card used to show a green tick next to
                 "no reservations could be extracted" (#2477). */}
-            {task.status === 'done' && task.items?.length === 0 && <AlertTriangle size={16} color="var(--warning)" />}
+            {task.status === 'done' && task.items !== undefined && !taskFoundSomething(task) && <AlertTriangle size={16} color="var(--warning)" />}
             {task.status === 'error' && <AlertCircle size={16} color="var(--danger)" />}
           </div>
 
@@ -156,7 +169,7 @@ export default function BackgroundTasksWidget() {
 
             {task.status === 'running' && (
               <div style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', marginTop: 1 }}>
-                {t('reservations.import.parsing')}
+                {t(readingKey(task))}
                 {task.total > 1 ? ` · ${task.done}/${task.total}` : ''}
               </div>
             )}
@@ -164,15 +177,15 @@ export default function BackgroundTasksWidget() {
             {task.status === 'done' && (
               task.items === undefined ? (
                 // Restored from a reload; items are being re-fetched (see the poll backstop).
-                <div style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', marginTop: 1 }}>{t('reservations.import.parsing')}</div>
-              ) : task.items.length > 0 ? (
+                <div style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', marginTop: 1 }}>{t(readingKey(task))}</div>
+              ) : taskFoundSomething(task) ? (
                 <div>
                   <button type="button"
                     onClick={() => review(task)}
                     className="bg-accent text-accent-text"
                     style={{ marginTop: 4, border: 'none', borderRadius: 8, padding: '4px 12px', fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
                   >
-                    {t('common.import')}
+                    {t(task.kind === 'costs' ? 'costs.scan.review' : 'common.import')}
                   </button>
                   {/* A partly-understood import warns too. Warnings used to be
                       shown only when nothing at all was found, so anything the
@@ -188,14 +201,14 @@ export default function BackgroundTasksWidget() {
               ) : (
                 <div>
                   <div style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', marginTop: 1 }}>
-                    {t('reservations.import.previewEmpty')}
+                    {t(task.kind === 'costs' ? 'costs.scan.nothingRead' : 'reservations.import.previewEmpty')}
                     {(task.warnings?.length ?? 0) > 0 && (
                       <div style={{ color: '#b45309', marginTop: 3, whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: 96, overflowY: 'auto' }}>
                         {task.warnings!.join('\n')}
                       </div>
                     )}
                   </div>
-                  {aiParsing && task.mode !== 'force-ai' && task.sourceFiles && task.sourceFiles.length > 0 && (
+                  {aiParsing && task.kind !== 'costs' && task.mode !== 'force-ai' && task.sourceFiles && task.sourceFiles.length > 0 && (
                     <button type="button"
                       onClick={() => retryWithAi(task)}
                       disabled={retrying === task.id}

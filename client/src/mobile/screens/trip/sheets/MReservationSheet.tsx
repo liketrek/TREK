@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Check, ExternalLink, FileText, Hotel, Link2, ParkingSquare, Plus, Ticket, Users, Utensils } from 'lucide-react'
+import { Check, FileText, Hotel, Link2, ParkingSquare, Ticket, Users, Utensils } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import { useAddonStore } from '../../../../store/addonStore'
 import { useTranslation } from '../../../../i18n'
@@ -11,9 +11,8 @@ import CustomTimePicker from '../../../../components/shared/CustomTimePicker'
 import { CustomDatePicker } from '../../../../components/shared/CustomDateTimePicker'
 import { BookingCodeInput } from '../../../../components/shared/BookingCode'
 import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetFooter, FormSheetHeader } from './PlSheetChrome'
-import PlFileAttach from './PlFileAttach'
+import MBookingFilesCosts from './MBookingFilesCosts'
 import { buildAssignmentOptions } from '../../../../components/Planner/assignmentOptions'
-import { openFile } from '../../../../utils/fileDownload'
 import GuestBadge from '../../../../components/shared/GuestBadge'
 import { SPLIT_COLORS } from '../../../../components/Budget/BudgetPanel.constants'
 import { useTripStore } from '../../../../store/tripStore'
@@ -61,7 +60,7 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
     showReservationModal, setShowReservationModal,
     editingReservation, setEditingReservation, reservationPrefill,
     bookingForAssignmentId, setBookingForAssignmentId,
-    assignments, files,
+    assignments,
     importReviewActive, advanceImportReview,
     handleSaveReservation, canUploadFiles, tripActions,
   } = planner
@@ -162,16 +161,6 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
   }, [showReservationModal])
 
   const res = snap.res
-  // Files already on this booking. The sheet used to list only the ones picked
-  // in this session, so an upload from the desktop was invisible here (#2217).
-  const attachedFiles = res?.id
-    ? (files || []).filter(f =>
-        !f.deleted_at && (
-          String(f.reservation_id) === String(res.id) ||
-          (f.linked_reservation_ids || []).includes(res.id)
-        ),
-      )
-    : []
   const isHotel = form.type === 'hotel'
   const set = (field: keyof typeof EMPTY, value: string | number) => setForm(prev => ({ ...prev, [field]: value }))
 
@@ -611,51 +600,18 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
           </>
         )}
 
-        {/* FILES */}
-        {attachedFiles.length > 0 && (
-          <>
-            <Eyebrow className="mb-[6px] mt-3 uppercase">{t('files.title')}</Eyebrow>
-            <div className="flex flex-col gap-1">
-              {attachedFiles.map(f => (
-                <button
-                  key={f.id}
-                  type="button"
-                  onClick={() => openFile(f.url, f.original_name)}
-                  className="flex w-full items-center gap-2 rounded-[10px] bg-[color:var(--m-ic)] px-[10px] py-[7px] text-left"
-                >
-                  <span className="min-w-0 flex-1 truncate text-[0.75rem] font-medium">{f.original_name}</span>
-                  <ExternalLink size={11} strokeWidth={2} className="flex-none text-m-faint" />
-                </button>
-              ))}
-            </div>
-          </>
-        )}
-        {canUploadFiles && (
-          <PlFileAttach
-            planner={planner}
-            files={pendingFiles}
-            onAdd={files => setPendingFiles(prev => [...prev, ...files])}
-            onRemove={idx => setPendingFiles(prev => prev.filter((_, i) => i !== idx))}
-            hideHint
-          />
-        )}
-
-        {/* COSTS */}
-        {isBudgetEnabled && (
-          <>
-            <Eyebrow className="mb-[6px] mt-3 uppercase">{t('reservations.costsLabel')}</Eyebrow>
-            <button
-              type="button"
-              onClick={() => { expenseIntentRef.current = true; handleSubmit() }}
-              disabled={!form.title.trim() || isSaving}
-              className="flex w-full items-center justify-center gap-[6px] rounded-[13px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] py-[11px] text-[0.78125rem] font-semibold text-m-ink disabled:opacity-40"
-            >
-              <Plus size={13} strokeWidth={2.2} />
-              {t('reservations.createExpense')}
-            </button>
-            <div className="mt-[5px] font-geist text-[0.625rem] text-m-faint">{t('reservations.createExpenseHint')}</div>
-          </>
-        )}
+        {/* FILES + COSTS */}
+        <MBookingFilesCosts
+          planner={planner}
+          reservationId={res?.id}
+          pendingFiles={pendingFiles}
+          setPendingFiles={setPendingFiles}
+          canUploadFiles={canUploadFiles}
+          showCosts={isBudgetEnabled}
+          createDisabled={!form.title.trim() || isSaving}
+          onCreate={() => { expenseIntentRef.current = true; handleSubmit() }}
+          onEdit={item => onOpenExpense({ editItem: item })}
+        />
       </div>
 
       <FormSheetFooter

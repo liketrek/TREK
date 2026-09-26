@@ -19,6 +19,9 @@ const admin: TranslationStrings = {
   'admin.notifications.testNtfyFailed': 'Test ntfy failed',
   'admin.notifications.emailPanel.title': 'Email (SMTP)',
   'admin.notifications.webhookPanel.title': 'Webhook',
+  'admin.notifications.webPushPanel.title': 'Web Push',
+  'admin.notifications.webPushPanel.hint':
+    'Lets users receive notifications on their phones and computers through the browser, even while TREK is closed. Needs HTTPS; on iPhone and iPad TREK has to be added to the Home Screen.',
   'admin.notifications.inappPanel.title': 'In-App',
   'admin.notifications.inappPanel.hint': 'In-app notifications are always active and cannot be disabled globally.',
   'admin.notifications.adminWebhookPanel.title': 'Admin Webhook',
@@ -177,6 +180,7 @@ const admin: TranslationStrings = {
   'admin.amapKey': 'Amap (高德地图) API Key',
   'admin.amapKeyHint':
     'For place search inside mainland China, where Google is unreachable and OpenStreetMap coverage is thin. Needs a "Web 服务" (web service) key, not a JS API key. Get one at console.amap.com.',
+  'admin.keyFromEnv': 'Set via {name}',
   'admin.placesProvider.title': 'Place search provider',
   'admin.placesProvider.subtitle': "TREK's own index and OpenStreetMap answer every search. This picks who else is asked when they find nothing: Automatic prefers Google where a key exists, then Amap.",
   'admin.placesProvider.auto': 'Automatic',
@@ -426,6 +430,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:calendar-source': 'Provide events to the calendar',
   'admin.plugins.perm.hook:place-detail-provider': 'Contribute extra details (reviews, ratings, links) to a place',
   'admin.plugins.perm.hook:search-provider': "Answer place searches from its own index, beside TREK's own results",
+  'admin.plugins.perm.hook:poi-category-provider':
+    'Add its own place categories to Explore places on the map; picking one sends the plugin the map area you are viewing',
   'admin.plugins.perm.hook:trip-warning-provider': 'Raise validation warnings on a trip (shown in the planner)',
   'admin.plugins.perm.hook:table-contributor': 'Add columns and actions to trip views (reservations, places, days)',
   'admin.plugins.perm.hook:map-marker-provider': 'Add markers to the trip map (e.g. show bookings or POIs)',
@@ -439,6 +445,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.mcpTools': 'Publishes AI tools',
   'admin.plugins.mcpToolsTitle': 'AI tools it publishes',
   'admin.plugins.mcpToolsHint': 'An assistant can run these on a user’s behalf. Each one acts with the access granted above.',
+  'admin.plugins.poiCategoriesTitle': 'Map categories it adds',
   'admin.plugins.perm.mcp:tools':
     'Publish tools that an AI assistant can run on your behalf (it acts with the access you grant the plugin here, not with the assistant’s own)',
   'admin.plugins.perm.geolocation:read':
@@ -580,6 +587,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'Provides calendar events',
   'admin.plugins.cap.placeDetails': 'Enriches places',
   'admin.plugins.cap.search': 'Answers searches',
+  'admin.plugins.cap.poiCategories': 'Adds map categories',
   'admin.plugins.cap.warnings': 'Flags issues',
   'admin.plugins.cap.mapLayers': 'Draws on the map',
   'admin.plugins.cap.routing': 'Offers routing',
@@ -655,6 +663,11 @@ const admin: TranslationStrings = {
     'Read visits and recorded routes from a Dawarich instance each reader connects themselves',
   'admin.addons.catalog.llm_parsing.name': 'AI Parsing',
   'admin.addons.catalog.llm_parsing.description': 'Reads bookings the built-in parser cannot, using an AI model you choose',
+  'admin.addons.llm.vision.auto': 'Automatic',
+  'admin.addons.llm.vision.on': 'Yes',
+  'admin.addons.llm.vision.off': 'No',
+  'admin.addons.llm.vision.hintLocal': 'Automatic asks the Ollama server whether this model reads images.',
+  'admin.addons.llm.vision.hintCloud': 'Automatic means no for a cloud model. Choose Yes if this model reads images.',
   'admin.addons.enabled': 'Enabled',
   'admin.addons.disabled': 'Disabled',
   'admin.addons.type.trip': 'Trip',

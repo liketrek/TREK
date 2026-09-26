@@ -461,8 +461,10 @@ export default function TripMembersModal({ isOpen, onClose, tripId, tripTitle, o
               placeholder={t('members.selectUser')}
               options={[
                 { value: '', label: t('members.selectUser') },
+                // As a string: the select compares values strictly, and the chosen id is
+                // kept as a string, so a number here left the trigger on its placeholder.
                 ...availableUsers.map(u => ({
-                  value: u.id,
+                  value: String(u.id),
                   label: u.username,
                 })),
               ]}

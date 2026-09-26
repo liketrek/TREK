@@ -18,7 +18,15 @@ const packing: TranslationStrings = {
     'Satu item per baris. Format: Kategori, Nama, Berat dalam g (opsional), Tas (opsional), checked/unchecked (opsional)',
   'packing.importPlaceholder':
     'Kebersihan, Sikat Gigi\nPakaian, Kaos, 200\nDokumen, Paspor, , Kabin\nElektronik, Charger, 50, Koper, checked',
-  'packing.importCsv': 'Muat CSV/TXT',
+  'packing.importCsv': 'Muat CSV/TXT/MD',
+  'packing.export': 'Ekspor',
+  'packing.exportPrint': 'Cetak atau simpan sebagai PDF',
+  'packing.exportMarkdown': 'Daftar periksa Markdown (.md)',
+  'packing.exportCsv': 'CSV untuk impor (.csv)',
+  'packing.printItems': 'Item',
+  'packing.printPacked': 'Sudah dikemas',
+  'packing.importHintMarkdown':
+    'Daftar Markdown juga bisa: judul menentukan kategori, "- [ ]" dan "- [x]" menjadi item, dan "3x" di depan nama menentukan jumlahnya.',
   'packing.importAction': 'Impor {count}',
   'packing.importSuccess': '{count} item berhasil diimpor',
   'packing.importError': 'Impor gagal',
@@ -26,9 +34,6 @@ const packing: TranslationStrings = {
   'packing.progress': '{packed} dari {total} sudah dikemas ({percent}%)',
   'packing.clearChecked': 'Hapus {count} yang dicentang',
   'packing.clearCheckedShort': 'Hapus {count}',
-  'packing.suggestions': 'Saran',
-  'packing.suggestionsTitle': 'Tambah Saran',
-  'packing.allSuggested': 'Semua saran sudah ditambahkan',
   'packing.allPacked': 'Semua sudah dikemas!',
   'packing.addPlaceholder': 'Tambah item baru...',
   'packing.categoryPlaceholder': 'Daftar...',
@@ -36,7 +41,6 @@ const packing: TranslationStrings = {
   'packing.filterOpen': 'Belum',
   'packing.filterDone': 'Selesai',
   'packing.emptyTitle': 'Daftar bawaan kosong',
-  'packing.emptyHint': 'Tambah item atau gunakan saran',
   'packing.emptyFiltered': 'Tidak ada item yang cocok dengan filter ini',
   'packing.menuRename': 'Ganti Nama',
   'packing.menuCheckAll': 'Centang Semua',
@@ -68,128 +72,6 @@ const packing: TranslationStrings = {
   'packing.toast.deleteError': 'Gagal menghapus',
   'packing.toast.renameError': 'Gagal mengganti nama',
   'packing.toast.addError': 'Gagal menambahkan',
-  'packing.suggestions.items': [
-    {
-      name: 'Paspor',
-      category: 'Dokumen',
-    },
-    {
-      name: 'KTP',
-      category: 'Dokumen',
-    },
-    {
-      name: 'Asuransi Perjalanan',
-      category: 'Dokumen',
-    },
-    {
-      name: 'Tiket Penerbangan',
-      category: 'Dokumen',
-    },
-    {
-      name: 'Kartu Kredit',
-      category: 'Keuangan',
-    },
-    {
-      name: 'Uang Tunai',
-      category: 'Keuangan',
-    },
-    {
-      name: 'Visa',
-      category: 'Dokumen',
-    },
-    {
-      name: 'Kaos',
-      category: 'Pakaian',
-    },
-    {
-      name: 'Celana',
-      category: 'Pakaian',
-    },
-    {
-      name: 'Pakaian Dalam',
-      category: 'Pakaian',
-    },
-    {
-      name: 'Kaos Kaki',
-      category: 'Pakaian',
-    },
-    {
-      name: 'Jaket',
-      category: 'Pakaian',
-    },
-    {
-      name: 'Pakaian Tidur',
-      category: 'Pakaian',
-    },
-    {
-      name: 'Pakaian Renang',
-      category: 'Pakaian',
-    },
-    {
-      name: 'Jas Hujan',
-      category: 'Pakaian',
-    },
-    {
-      name: 'Sepatu Nyaman',
-      category: 'Pakaian',
-    },
-    {
-      name: 'Sikat Gigi',
-      category: 'Perlengkapan Mandi',
-    },
-    {
-      name: 'Pasta Gigi',
-      category: 'Perlengkapan Mandi',
-    },
-    {
-      name: 'Sampo',
-      category: 'Perlengkapan Mandi',
-    },
-    {
-      name: 'Deodoran',
-      category: 'Perlengkapan Mandi',
-    },
-    {
-      name: 'Tabir Surya',
-      category: 'Perlengkapan Mandi',
-    },
-    {
-      name: 'Pisau Cukur',
-      category: 'Perlengkapan Mandi',
-    },
-    {
-      name: 'Charger',
-      category: 'Elektronik',
-    },
-    {
-      name: 'Power Bank',
-      category: 'Elektronik',
-    },
-    {
-      name: 'Headphone',
-      category: 'Elektronik',
-    },
-    {
-      name: 'Adaptor Perjalanan',
-      category: 'Elektronik',
-    },
-    {
-      name: 'Kamera',
-      category: 'Elektronik',
-    },
-    {
-      name: 'Obat Pereda Nyeri',
-      category: 'Kesehatan',
-    },
-    {
-      name: 'Plester',
-      category: 'Kesehatan',
-    },
-    {
-      name: 'Disinfektan',
-      category: 'Kesehatan',
-    },
-  ],
   'packing.makePrivate': 'Jadikan pribadi',
   'packing.makePublic': 'Bagikan',
   'packing.privateHint': 'Pribadi — hanya terlihat oleh Anda',

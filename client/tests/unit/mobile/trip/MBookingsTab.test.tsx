@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import MBookingsTab from '../../../../src/mobile/screens/trip/tabs/MBookingsTab'
 import type { MTripShellApi, TripPlanner } from '../../../../src/mobile/screens/trip/MTripShell'
 import { openFile } from '../../../../src/utils/fileDownload'
+import { formatMoney } from '../../../../src/utils/formatters'
 import type { Day, Reservation, TripFile } from '../../../../src/types'
 import { usePluginStore } from '../../../../src/store/pluginStore'
 import { buildSettings } from '../../../helpers/factories'
@@ -10,6 +11,10 @@ import { fireEvent, render, screen, waitFor, within } from '../../../helpers/ren
 import { seedStore } from '../../../helpers/store'
 
 // FE-MOB-BKTAB-001 to FE-MOB-BKTAB-023
+
+// A card shows a price the way formatMoney writes it; getByText collapses the
+// no-break space Intl puts between amount and symbol, so the expectation does too.
+const money = (amount: number, currency: string) => formatMoney(amount, currency, 'en').replace(/\s/g, ' ')
 
 vi.mock('../../../../src/utils/fileDownload', async importOriginal => ({
   ...(await importOriginal<typeof import('../../../../src/utils/fileDownload')>()),
@@ -191,7 +196,8 @@ describe('MBookingsTab', () => {
     const card = cardOf('Bamboo walk')
     expect(within(card).queryByText('reservations.meta.from')).not.toBeInTheDocument()
     expect(within(card).getByText('reservations.price')).toBeInTheDocument()
-    expect(within(card).getByText('30 JPY')).toBeInTheDocument()
+    // Formatted as money in the booking's own currency.
+    expect(within(card).getByText(money(30, 'JPY'))).toBeInTheDocument()
     expect(within(card).getAllByText('—')).toHaveLength(2)
   })
 

@@ -11,7 +11,7 @@ export default function ContributorInviteDialog({ journeyId, existingUserIds, on
   onInvited: () => void
 }) {
   const { t } = useTranslation()
-  const [users, setUsers] = useState<{ id: number; username: string; email: string; avatar?: string | null }[]>([])
+  const [users, setUsers] = useState<{ id: number; username: string; email?: string; avatar?: string | null }[]>([])
   const [search, setSearch] = useState('')
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null)
   const [role, setRole] = useState<'editor' | 'viewer'>('viewer')
@@ -26,7 +26,8 @@ export default function ContributorInviteDialog({ journeyId, existingUserIds, on
     if (existingUserIds.includes(u.id)) return false
     if (!search) return true
     const q = search.toLowerCase()
-    return u.username.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
+    // The directory lists username and avatar only; email is not sent to non-admins.
+    return u.username.toLowerCase().includes(q) || (u.email ?? '').toLowerCase().includes(q)
   })
 
   const handleInvite = async () => {

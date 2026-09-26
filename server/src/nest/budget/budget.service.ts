@@ -704,6 +704,8 @@ export class BudgetService {
       persons?: number | null; days?: number | null; note?: string | null; sort_order?: number; expense_date?: string | null;
       ticket_json?: string | null;
       receipt_file_ids?: number[];
+      reservation_id?: number | null;
+      place_id?: number | null;
     },
   ) {
     return this.db.transaction(() => {
@@ -728,7 +730,9 @@ export class BudgetService {
       note = CASE WHEN ? THEN ? ELSE note END,
       ticket_json = CASE WHEN ? THEN ? ELSE ticket_json END,
       sort_order = CASE WHEN ? IS NOT NULL THEN ? ELSE sort_order END,
-      expense_date = CASE WHEN ? THEN ? ELSE expense_date END
+      expense_date = CASE WHEN ? THEN ? ELSE expense_date END,
+      reservation_id = CASE WHEN ? THEN ? ELSE reservation_id END,
+      place_id = CASE WHEN ? THEN ? ELSE place_id END
     WHERE id = ?
   `,
         data.category || null,
@@ -742,6 +746,8 @@ export class BudgetService {
         ticketTouched ? 1 : 0, ticketTouched ? ticket : null,
         data.sort_order !== undefined ? 1 : null, data.sort_order !== undefined ? data.sort_order : 0,
         data.expense_date !== undefined ? 1 : 0, data.expense_date !== undefined ? (data.expense_date || null) : null,
+        data.reservation_id !== undefined ? 1 : 0, data.reservation_id ?? null,
+        data.place_id !== undefined ? 1 : 0, data.place_id ?? null,
         id,
       );
 
@@ -854,13 +860,75 @@ export class BudgetService {
       this.unlinkReceipts(id);
       this.db.run('DELETE FROM budget_items WHERE id = ?', id);
 
-      // The booking keeps a copy of this expense's total in its metadata, and
-      // the reservation update path preserves that copy across edits. With the
-      // expense gone there is nothing left to mirror, so drop it here rather
-      // than leave a price on the card that no longer has anything behind it.
-      if (item.reservation_id) this.clearReservationPrice(tripId, item.reservation_id);
+      // The booking keeps a copy of its expenses' total in its metadata, and
+      // the reservation update path preserves that copy across edits. With this
+      // expense gone the copy is worked out again from what is still linked, and
+      // dropped when nothing is, rather than leave a price on the card that no
+      // longer has anything behind it.
+      if (item.reservation_id) this.resyncReservationPrice(tripId, item.reservation_id);
       return true;
     });
+  }
+
+  /**
+   * After an update, the bookings whose mirrored price may have moved: the one
+   * the expense is linked to when its total changed, and on a re-link both the
+   * booking it left and the one it joined.
+   */
+  resyncLinkedPrices(
+    tripId: string | number,
+    previousReservationId: number | null | undefined,
+    updated: { reservation_id?: number | null },
+    data: { total_price?: number; reservation_id?: number | null },
+    socketId?: string,
+  ): void {
+    const affected = new Set<number>();
+    if (data.reservation_id !== undefined && previousReservationId) affected.add(previousReservationId);
+    // Not only a new total: the currency and the payers (which derive the total)
+    // move the booking's price as well, so any edit of a linked expense resyncs.
+    if (updated.reservation_id) affected.add(updated.reservation_id);
+    for (const reservationId of affected) this.resyncReservationPrice(tripId, reservationId, socketId);
+  }
+
+  /**
+   * Why a link from an expense can't be made, or null when it can: a booking or
+   * a place it points at has to exist on the same trip (#2084). REST and MCP
+   * both ask this before they write, so neither can reach into another trip.
+   */
+  linkRefusal(tripId: string | number, data: { reservation_id?: number | null; place_id?: number | null }): string | null {
+    if (data.reservation_id != null && !this.db.get('SELECT id FROM reservations WHERE id = ? AND trip_id = ?', data.reservation_id, tripId)) {
+      return 'reservation_id does not belong to this trip.';
+    }
+    if (data.place_id != null && !this.db.get('SELECT id FROM places WHERE id = ? AND trip_id = ?', data.place_id, tripId)) {
+      return 'place_id does not belong to this trip.';
+    }
+    return null;
+  }
+
+  /**
+   * Works the booking's mirrored price out again from every expense linked to
+   * it (#2084): their sum while they share one currency, the first one's total
+   * when they don't (a sum across currencies would be meaningless), and no
+   * price at all once none is linked. One expense gives exactly the old mirror.
+   */
+  resyncReservationPrice(tripId: string | number, reservationId: number, socketId?: string): void {
+    const linked = this.db.all<{ total_price: number | null; currency: string | null }>(
+      'SELECT total_price, currency FROM budget_items WHERE trip_id = ? AND reservation_id = ? ORDER BY id',
+      tripId, reservationId,
+    );
+    if (linked.length === 0) {
+      this.clearReservationPrice(tripId, reservationId);
+      return;
+    }
+    // No currency means the trip's, and a code is a code whatever its case, so
+    // an expense in EUR and one without a currency on a EUR trip do add up.
+    const tripCurrency = (this.db.get<{ currency: string | null }>('SELECT currency FROM trips WHERE id = ?', tripId)?.currency || '').toUpperCase();
+    const codeOf = (currency: string | null) => (currency || tripCurrency).toUpperCase();
+    const oneCurrency = new Set(linked.map(row => codeOf(row.currency))).size === 1;
+    const total = oneCurrency ? sumMoney(linked.map(row => row.total_price || 0)) : (linked[0].total_price || 0);
+    // Either way the figure is in the first expense's currency; none means the trip's.
+    const allInTripCurrency = oneCurrency && linked.every(row => !row.currency);
+    this.syncReservationPrice(String(tripId), reservationId, total, socketId, allInTripCurrency ? null : codeOf(linked[0].currency) || null);
   }
 
   /**
@@ -1600,7 +1668,7 @@ export class BudgetService {
    * total_price changes, write it into the reservation's metadata and broadcast
    * reservation:updated. Non-fatal — a failure here never breaks the budget update.
    */
-  syncReservationPrice(tripId: string, reservationId: number, totalPrice: number, socketId: string | undefined): void {
+  syncReservationPrice(tripId: string, reservationId: number, totalPrice: number, socketId: string | undefined, currency?: string | null): void {
     try {
       const reservation = this.db.get<{ id: number; metadata: string | null }>(
         'SELECT id, metadata FROM reservations WHERE id = ? AND trip_id = ?',
@@ -1612,6 +1680,12 @@ export class BudgetService {
       // it is linked to — and so a row stamped before #1964 heals on the next
       // edit. The panels print this string as it stands.
       meta.price = String(Math.round(totalPrice * 100) / 100);
+      // The card names the currency beside the figure (#2084). An expense in the
+      // trip's own currency carries none, and neither does its mirror then.
+      if (currency !== undefined) {
+        if (currency) meta.priceCurrency = currency.toUpperCase();
+        else delete meta.priceCurrency;
+      }
       this.db.run('UPDATE reservations SET metadata = ? WHERE id = ?', JSON.stringify(meta), reservation.id);
       const updatedRes = this.db.get('SELECT * FROM reservations WHERE id = ?', reservation.id);
       this.realtime.broadcast(tripId, 'reservation:updated', { reservation: updatedRes }, socketId);

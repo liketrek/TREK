@@ -49,6 +49,7 @@ import type { MemoriesAccessService } from '../../../src/nest/memories/memories-
 import fs from 'node:fs';
 import path from 'node:path';
 import { makeStorageFixture } from '../../helpers/storage-fixture';
+import { PROVIDER_SELECT_ALL_MAX_PAGES } from '@trek/shared';
 
 const audit = { writeAudit: vi.fn() };
 const access = { getAlbumIdFromLink: vi.fn() };
@@ -451,6 +452,91 @@ describe('searchPhotos', () => {
     expect(result.hasMore).toBe(false);
     // SEARCH_MAX_RAW_PAGES.
     expect(safeFetch).toHaveBeenCalledTimes(20);
+  });
+
+  it('IMMICH-050e: a page past the twentieth still answers on a window full of the searched day', async () => {
+    // The budget used to be 20 raw pages whatever page was asked for, and every
+    // call restarts at raw page 1, so answered page 21 onwards was always empty
+    // with hasMore false: a trip stopped at 1,000 photos without a word (#1587).
+    safeFetch.mockImplementation(async (_url: string, init: { body: string }) => {
+      const rawPage = JSON.parse(init.body).page as number;
+      return upstream({ json: { assets: { items: [
+        { id: `d-${rawPage}-1`, fileCreatedAt: '2026-03-15T09:00:00.000Z', localDateTime: '2026-03-15T20:00:00.000Z' },
+        { id: `d-${rawPage}-2`, fileCreatedAt: '2026-03-15T08:00:00.000Z', localDateTime: '2026-03-15T19:00:00.000Z' },
+      ] } } });
+    });
+
+    const result = await svc.searchPhotos(USER, '2026-03-15', '2026-03-15', 25, 2);
+
+    expect(result.assets!.map(a => a.id)).toEqual(['d-25-1', 'd-25-2']);
+    expect(result.hasMore).toBe(true);
+    expect(safeFetch).toHaveBeenCalledTimes(25);
+  });
+
+  it('IMMICH-050f: a deep page still stops once its own allowance of padding pages is spent', async () => {
+    // Page 3 needs the two pages in front of it plus the same allowance page 1
+    // gets, and a window of nothing but the neighbouring day never fills it.
+    safeFetch.mockResolvedValue(upstream({ json: { assets: { items: NEXT_DAY } } }));
+
+    const result = await svc.searchPhotos(USER, '2026-03-15', '2026-03-15', 3, 2);
+
+    expect(result.assets).toEqual([]);
+    expect(result.hasMore).toBe(false);
+    expect(safeFetch).toHaveBeenCalledTimes(22);
+  });
+
+  it('IMMICH-050g: a huge page stops at the absolute ceiling instead of walking the whole library', async () => {
+    // page is not bounded by the routes, and the relative allowance alone would
+    // have read a million raw pages here before answering.
+    safeFetch.mockImplementation(async (_url: string, init: { body: string }) => {
+      const rawPage = JSON.parse(init.body).page as number;
+      return upstream({ json: { assets: { items: [
+        { id: `h-${rawPage}-1`, fileCreatedAt: '2026-03-15T09:00:00.000Z', localDateTime: '2026-03-15T20:00:00.000Z' },
+        { id: `h-${rawPage}-2`, fileCreatedAt: '2026-03-15T08:00:00.000Z', localDateTime: '2026-03-15T19:00:00.000Z' },
+      ] } } });
+    });
+
+    const result = await svc.searchPhotos(USER, '2026-03-15', '2026-03-15', 1_000_000, 2);
+
+    expect(result.assets).toEqual([]);
+    expect(result.hasMore).toBe(false);
+    // The ceiling: the pages in front of the picker's deepest page plus its
+    // allowance, 250 + 20.
+    expect(safeFetch).toHaveBeenCalledTimes(270);
+  });
+
+  it('IMMICH-050h: the deepest page the picker asks for still gets its full allowance under the ceiling', async () => {
+    // The picker never asks a date-bounded search past page 251, by Select all
+    // or by scrolling: 250 pages in front of it plus the allowance of 20.
+    safeFetch.mockResolvedValue(upstream({ json: { assets: { items: NEXT_DAY } } }));
+
+    const deepest = await svc.searchPhotos(USER, '2026-03-15', '2026-03-15', PROVIDER_SELECT_ALL_MAX_PAGES + 1, 2);
+
+    expect(deepest.hasMore).toBe(false);
+    expect(safeFetch).toHaveBeenCalledTimes(270);
+
+    // One page further the ceiling already bites: the allowance shrinks by one.
+    safeFetch.mockClear();
+    await svc.searchPhotos(USER, '2026-03-15', '2026-03-15', PROVIDER_SELECT_ALL_MAX_PAGES + 2, 2);
+    expect(safeFetch).toHaveBeenCalledTimes(270);
+  });
+
+  it('IMMICH-050i: at the picker page size of 200 the deepest page it asks for answers in full', async () => {
+    // A trip of more than 50,000 photos, every raw page full of the searched
+    // day: page 251 is photos 50,001 to 50,200, read off raw page 251.
+    safeFetch.mockImplementation(async (_url: string, init: { body: string }) => {
+      const { page, size } = JSON.parse(init.body) as { page: number; size: number };
+      return upstream({ json: { assets: { items: Array.from({ length: size }, (_, i) => ({
+        id: `p-${page}-${i}`, fileCreatedAt: '2026-03-15T09:00:00.000Z', localDateTime: '2026-03-15T20:00:00.000Z',
+      })) } } });
+    });
+
+    const result = await svc.searchPhotos(USER, '2026-03-15', '2026-03-15', PROVIDER_SELECT_ALL_MAX_PAGES + 1, 200);
+
+    expect(result.assets).toHaveLength(200);
+    expect(result.assets!.every(a => a.id.startsWith('p-251-'))).toBe(true);
+    expect(result.hasMore).toBe(true);
+    expect(safeFetch).toHaveBeenCalledTimes(251);
   });
 
   it('IMMICH-050d: an unfiltered browse still costs one round trip, at the page it was asked for', async () => {

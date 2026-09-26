@@ -472,11 +472,12 @@ export class ReservationsMcp {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.reservations.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!this.guards.hasTripPermission('reservation_edit', tripId, ctx.userId)) return permissionDenied();
-    const { deleted, accommodationDeleted } = this.reservations.remove(reservationId, tripId);
+    const { deleted, accommodationDeleted, deletedBudgetItemIds } = this.reservations.remove(reservationId, tripId);
     if (!deleted) return errorResult('Reservation not found.');
     if (accommodationDeleted) {
       this.guards.safeBroadcast(tripId, 'accommodation:deleted', { accommodationId: deleted.accommodation_id });
     }
+    for (const itemId of deletedBudgetItemIds) this.guards.safeBroadcast(tripId, 'budget:deleted', { itemId });
     this.guards.safeBroadcast(tripId, 'reservation:deleted', { reservationId });
     return ok({ success: true });
   }
@@ -902,8 +903,9 @@ export class ReservationsMcp {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.reservations.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!this.guards.hasTripPermission('reservation_edit', tripId, ctx.userId)) return permissionDenied();
-    const { deleted } = this.reservations.remove(reservationId, tripId);
+    const { deleted, deletedBudgetItemIds } = this.reservations.remove(reservationId, tripId);
     if (!deleted) return errorResult('Transport not found.');
+    for (const itemId of deletedBudgetItemIds) this.guards.safeBroadcast(tripId, 'budget:deleted', { itemId });
     this.guards.safeBroadcast(tripId, 'reservation:deleted', { reservationId });
     return ok({ success: true });
   }

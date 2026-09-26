@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState, useCallback } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import {
   Briefcase, Check, CheckCheck, ChevronDown, ChevronUp, HandHelping,
-  Download, LayoutTemplate, MoreHorizontal, Package, Pencil, Plus, RotateCcw, Save as SaveIcon, Trash2, UserPlus, UserRound,
+  Download, FileSpreadsheet, FileText, LayoutTemplate, MoreHorizontal, Package, Pencil, Plus, Printer, RotateCcw, Save as SaveIcon,
+  Trash2, UserPlus, UserRound,
 } from 'lucide-react'
 import MDancingTrek from '../../../components/MDancingTrek'
 import { useAuthStore } from '../../../../store/authStore'
@@ -27,6 +28,8 @@ import {
 import MBagsSheet from './MBagsSheet'
 import MPackItemSheet from './MPackItemSheet'
 import MPackingImportSheet from './MPackingImportSheet'
+import PackingPrintPreview from '../../../../components/Packing/PackingPrintPreview'
+import { usePackingExport } from '../../../../components/Packing/usePackingExport'
 
 type ActionView = 'menu' | 'apply' | 'save'
 interface CategoryAssignee { user_id: number; username: string }
@@ -49,6 +52,9 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
   const tripMembers = planner.tripMembers
 
   const [view, setView] = useState<PackingView>('common')
+  const packingExport = usePackingExport(tripId, view)
+  // Exporting changes nothing, so the menu is there for anyone with a list to take along.
+  const hasActions = canEdit || packingExport.hasItems
   const [statusFilter, setStatusFilter] = useState<PackingStatusFilter>('all')
   const [editMode, setEditMode] = useState(false)
   const [actionsOpen, setActionsOpen] = useState(false)
@@ -306,7 +312,7 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
                 {editMode ? t('packing.editDone') : t('common.edit')}
               </button>
             )}
-            {canEdit && (
+            {hasActions && (
               <button
                 type="button"
                 onClick={() => setActionsOpen(v => !v)}
@@ -325,11 +331,11 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
       </div>
 
       {/* ── Action menu (spec §4.2) ── */}
-      {actionsOpen && canEdit && (
+      {actionsOpen && hasActions && (
         <div className="mt-[6px] overflow-hidden rounded-2xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-glass)] backdrop-blur-[24px]">
           {actionView === 'menu' && (
             <>
-              {checkedCount > 0 && (
+              {canEdit && checkedCount > 0 && (
                 <ActionRow
                   icon={Trash2}
                   label={t('packing.clearChecked', { count: checkedCount })}
@@ -337,13 +343,22 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
                   onClick={() => { setActionsOpen(false); setConfirmClear(true) }}
                 />
               )}
-              {templates.length > 0 && (
+              {canEdit && templates.length > 0 && (
                 <ActionRow icon={LayoutTemplate} label={t('packing.applyTemplate')} onClick={() => setActionView('apply')} />
               )}
-              {isAdmin && items.length > 0 && (
+              {canEdit && isAdmin && items.length > 0 && (
                 <ActionRow icon={SaveIcon} label={t('packing.saveAsTemplate')} onClick={() => setActionView('save')} />
               )}
-              <ActionRow icon={Download} label={t('packing.import')} onClick={() => { setActionsOpen(false); setShowImportSheet(true) }} />
+              {canEdit && (
+                <ActionRow icon={Download} label={t('packing.import')} onClick={() => { setActionsOpen(false); setShowImportSheet(true) }} />
+              )}
+              {packingExport.hasItems && (
+                <>
+                  <ActionRow icon={Printer} label={t('packing.exportPrint')} onClick={() => { setActionsOpen(false); void packingExport.openPrint() }} />
+                  <ActionRow icon={FileText} label={t('packing.exportMarkdown')} onClick={() => { setActionsOpen(false); packingExport.exportMarkdown() }} />
+                  <ActionRow icon={FileSpreadsheet} label={t('packing.exportCsv')} onClick={() => { setActionsOpen(false); void packingExport.exportCsv() }} />
+                </>
+              )}
             </>
           )}
           {actionView === 'apply' && (
@@ -512,6 +527,7 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
       />
 
       <MPackingImportSheet planner={planner} open={showImportSheet} onClose={() => setShowImportSheet(false)} />
+      <PackingPrintPreview html={packingExport.printHtml} title={packingExport.printTitle} onClose={packingExport.closePrint} />
 
       <MConfirmSheet
         open={confirmClear}

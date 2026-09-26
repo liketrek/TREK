@@ -19,7 +19,15 @@ const packing: TranslationStrings = {
     'Ein Eintrag pro Zeile. Format: Kategorie, Name, Gewicht in g (optional), Tasche (optional), checked/unchecked (optional)',
   'packing.importPlaceholder':
     'Hygiene, Zahnbürste\nKleidung, T-Shirts, 200\nDokumente, Reisepass, , Handgepäck\nElektronik, Ladekabel, 50, Koffer, checked',
-  'packing.importCsv': 'CSV/TXT laden',
+  'packing.importCsv': 'CSV/TXT/MD laden',
+  'packing.export': 'Exportieren',
+  'packing.exportPrint': 'Drucken oder als PDF speichern',
+  'packing.exportMarkdown': 'Markdown-Checkliste (.md)',
+  'packing.exportCsv': 'CSV für den Import (.csv)',
+  'packing.printItems': 'Einträge',
+  'packing.printPacked': 'Gepackt',
+  'packing.importHintMarkdown':
+    'Auch eine Markdown-Liste geht: Eine Überschrift benennt die Kategorie, "- [ ]" und "- [x]" werden zu Einträgen, und "3x" vor einem Namen setzt die Menge.',
   'packing.importAction': '{count} importieren',
   'packing.importSuccess': '{count} Einträge importiert',
   'packing.importError': 'Import fehlgeschlagen',
@@ -27,9 +35,6 @@ const packing: TranslationStrings = {
   'packing.progress': '{packed} von {total} gepackt ({percent}%)',
   'packing.clearChecked': '{count} abgehakte entfernen',
   'packing.clearCheckedShort': '{count} entfernen',
-  'packing.suggestions': 'Vorschläge',
-  'packing.suggestionsTitle': 'Vorschläge hinzufügen',
-  'packing.allSuggested': 'Alle Vorschläge hinzugefügt',
   'packing.allPacked': 'Alles gepackt!',
   'packing.addPlaceholder': 'Neuen Gegenstand hinzufügen...',
   'packing.categoryPlaceholder': 'Liste...',
@@ -37,7 +42,6 @@ const packing: TranslationStrings = {
   'packing.filterOpen': 'Offen',
   'packing.filterDone': 'Erledigt',
   'packing.emptyTitle': 'Packliste ist leer',
-  'packing.emptyHint': 'Füge Gegenstände hinzu oder nutze die Vorschläge',
   'packing.emptyFiltered': 'Keine Gegenstände in diesem Filter',
   'packing.menuRename': 'Umbenennen',
   'packing.menuCheckAll': 'Alle abhaken',
@@ -86,128 +90,6 @@ const packing: TranslationStrings = {
   'packing.toast.deleteError': 'Fehler beim Löschen',
   'packing.toast.renameError': 'Fehler beim Umbenennen',
   'packing.toast.addError': 'Fehler beim Hinzufügen',
-  'packing.suggestions.items': [
-    {
-      name: 'Reisepass',
-      category: 'Dokumente',
-    },
-    {
-      name: 'Personalausweis',
-      category: 'Dokumente',
-    },
-    {
-      name: 'Reiseversicherung',
-      category: 'Dokumente',
-    },
-    {
-      name: 'Flugtickets',
-      category: 'Dokumente',
-    },
-    {
-      name: 'Kreditkarte',
-      category: 'Finanzen',
-    },
-    {
-      name: 'Bargeld',
-      category: 'Finanzen',
-    },
-    {
-      name: 'Visum',
-      category: 'Dokumente',
-    },
-    {
-      name: 'T-Shirts',
-      category: 'Kleidung',
-    },
-    {
-      name: 'Hosen',
-      category: 'Kleidung',
-    },
-    {
-      name: 'Unterwäsche',
-      category: 'Kleidung',
-    },
-    {
-      name: 'Socken',
-      category: 'Kleidung',
-    },
-    {
-      name: 'Jacke',
-      category: 'Kleidung',
-    },
-    {
-      name: 'Schlafkleidung',
-      category: 'Kleidung',
-    },
-    {
-      name: 'Badekleidung',
-      category: 'Kleidung',
-    },
-    {
-      name: 'Regenjacke',
-      category: 'Kleidung',
-    },
-    {
-      name: 'Bequeme Schuhe',
-      category: 'Kleidung',
-    },
-    {
-      name: 'Zahnbürste',
-      category: 'Hygiene',
-    },
-    {
-      name: 'Zahnpasta',
-      category: 'Hygiene',
-    },
-    {
-      name: 'Shampoo',
-      category: 'Hygiene',
-    },
-    {
-      name: 'Deo',
-      category: 'Hygiene',
-    },
-    {
-      name: 'Sonnencreme',
-      category: 'Hygiene',
-    },
-    {
-      name: 'Rasierer',
-      category: 'Hygiene',
-    },
-    {
-      name: 'Ladegerät',
-      category: 'Elektronik',
-    },
-    {
-      name: 'Powerbank',
-      category: 'Elektronik',
-    },
-    {
-      name: 'Kopfhörer',
-      category: 'Elektronik',
-    },
-    {
-      name: 'Reiseadapter',
-      category: 'Elektronik',
-    },
-    {
-      name: 'Kamera',
-      category: 'Elektronik',
-    },
-    {
-      name: 'Schmerzmittel',
-      category: 'Gesundheit',
-    },
-    {
-      name: 'Pflaster',
-      category: 'Gesundheit',
-    },
-    {
-      name: 'Desinfektionsmittel',
-      category: 'Gesundheit',
-    },
-  ],
   'packing.bagLimit': 'Gewichtslimit',
   'packing.setBagLimit': 'Limit setzen',
 };

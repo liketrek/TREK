@@ -29,6 +29,7 @@ import type {
   Tag,
   Category,
   AppearanceConfig,
+  WeekStart,
 } from '@trek/shared'
 
 export type {
@@ -53,6 +54,7 @@ export type {
   Tag,
   Category,
   AppearanceConfig,
+  WeekStart,
 }
 
 export interface User {
@@ -128,6 +130,8 @@ export interface Settings {
   temperature_unit: string
   distance_unit?: DistanceUnit
   time_format: string
+  /** First column of every date picker (#2029); missing means Monday. */
+  week_start?: WeekStart
   show_place_description: boolean
   blur_booking_codes?: boolean
   map_booking_labels?: boolean

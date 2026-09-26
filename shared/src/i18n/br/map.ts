@@ -13,6 +13,7 @@ const map: TranslationStrings = {
   'poi.cat.museums': 'Museus e cultura',
   'poi.cat.nature': 'Natureza e parques',
   'poi.cat.activities': 'Atividades',
+  'poi.pluginCategories': 'Categorias de plugins',
   'map.showAllConnections': 'Mostrar todas as rotas de reservas',
   'map.hideAllConnections': 'Ocultar todas as rotas de reservas',
   'map.baseLayer.default': 'Mapa',

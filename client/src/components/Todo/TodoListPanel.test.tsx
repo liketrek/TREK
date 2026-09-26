@@ -502,7 +502,7 @@ describe('TodoListPanel — sidebar', () => {
     const done = screen.getByRole('button', { name: /^Done/ });
 
     fireEvent.mouseEnter(done);
-    expect(done.style.background).toBe('var(--bg-hover)');
+    expect(done.style.background).toBe('var(--bg-secondary)');
     fireEvent.mouseLeave(done);
     expect(done.style.background).toBe('transparent');
   });
@@ -513,23 +513,27 @@ describe('TodoListPanel — sidebar', () => {
 
     fireEvent.mouseLeave(all);
     // 'all' is the active filter, so the hover handlers must leave it alone.
-    expect(all.style.background).toBe('var(--bg-hover)');
+    expect(all.style.background).toBe('var(--bg-tertiary)');
   });
 
-  it('FE-COMP-TODO-032: hovering the priority sort toggles its background only while off', async () => {
+  it('FE-COMP-TODO-032: the sort track in the list head switches between priority, due date and the manual order', async () => {
     const user = userEvent.setup();
     render(<TodoListPanel tripId={1} items={[]} />);
-    const sort = screen.getByRole('button', { name: 'Priority' });
+    const prio = screen.getByRole('button', { name: 'Priority' });
+    const due = screen.getByRole('button', { name: 'Due date' });
 
-    fireEvent.mouseEnter(sort);
-    expect(sort.style.background).toBe('var(--bg-hover)');
-    fireEvent.mouseLeave(sort);
-    expect(sort.style.background).toBe('transparent');
+    await user.click(prio);
+    expect(prio).toHaveAttribute('aria-pressed', 'true');
+    expect(prio.style.background).toBe('var(--text-primary)');
 
-    await user.click(sort);
-    fireEvent.mouseEnter(sort);
-    // Active sort keeps its amber tint instead of the neutral hover.
-    expect(sort.style.background).toBe('rgba(245, 158, 11, 0.07)');
+    await user.click(due);
+    expect(prio).toHaveAttribute('aria-pressed', 'false');
+    expect(due).toHaveAttribute('aria-pressed', 'true');
+
+    // A second click on the active one goes back to the manual order.
+    await user.click(due);
+    expect(due).toHaveAttribute('aria-pressed', 'false');
+    expect(due.style.background).toBe('transparent');
   });
 
   it('FE-COMP-TODO-033: Escape abandons the new-list input', async () => {
@@ -554,7 +558,7 @@ describe('TodoListPanel — sidebar', () => {
     await user.click(screen.getByRole('button', { name: 'Add list' }));
     const input = await screen.findByPlaceholderText('List name');
     await user.type(input, 'Errands');
-    fireEvent.click(input.nextElementSibling as HTMLElement);
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
 
     expect(posted).toBe(false);
     expect(screen.queryByPlaceholderText('List name')).not.toBeInTheDocument();
@@ -687,11 +691,11 @@ describe('TodoListPanel — detail pane', () => {
     );
     await openDetail(user);
 
-    await user.click(screen.getByRole('button', { name: 'List name' }));
+    await user.click(within(screen.getByRole('region', { name: 'Task' })).getByRole('button', { name: 'Add list' }));
     await user.type(await screen.findByPlaceholderText('List name'), 'Logistics');
     await user.keyboard('{Enter}');
 
-    // Enter closes the inline editor and the typed list is offered as a new option.
+    // Enter confirms the name dialog and the typed list is offered as a new option.
     expect(screen.queryByPlaceholderText('List name')).not.toBeInTheDocument();
     expect(screen.getByText(/^Logistics/)).toBeInTheDocument();
 
@@ -705,7 +709,7 @@ describe('TodoListPanel — detail pane', () => {
     withMembers();
     await openDetail(user);
 
-    await user.click(screen.getByRole('button', { name: 'List name' }));
+    await user.click(within(screen.getByRole('region', { name: 'Task' })).getByRole('button', { name: 'Add list' }));
     await user.type(await screen.findByPlaceholderText('List name'), 'Logistics');
     await user.keyboard('{Escape}');
 
@@ -725,7 +729,7 @@ describe('TodoListPanel — detail pane', () => {
     await user.click(screen.getByText('Plan route'));
     await screen.findByText('Task');
 
-    const pane = screen.getByText('Task').closest('div[style*="border-left"]') as HTMLElement;
+    const pane = screen.getByRole('region', { name: 'Task' });
     await user.click(within(pane).getByRole('button', { name: 'No list' }));
     pickOption('Errands');
 
@@ -864,7 +868,7 @@ describe('TodoListPanel — new task pane', () => {
 
     await user.type(screen.getByPlaceholderText('Task name'), 'Pack bags');
     await user.type(screen.getByPlaceholderText('Description (optional)'), 'rain gear');
-    await user.click(screen.getByRole('button', { name: 'List name' }));
+    await user.click(within(screen.getByRole('region', { name: 'New task' })).getByRole('button', { name: 'Add list' }));
     await user.type(await screen.findByPlaceholderText('List name'), 'Prep ');
     await user.keyboard('{Enter}');
     await user.click(screen.getByRole('button', { name: 'P1' }));
@@ -886,7 +890,7 @@ describe('TodoListPanel — new task pane', () => {
     const user = userEvent.setup();
     await openNew();
 
-    await user.click(screen.getByRole('button', { name: 'List name' }));
+    await user.click(within(screen.getByRole('region', { name: 'New task' })).getByRole('button', { name: 'Add list' }));
     await user.type(await screen.findByPlaceholderText('List name'), 'Prep');
     await user.keyboard('{Escape}');
 
@@ -999,7 +1003,7 @@ describe('TodoListPanel — mobile layout', () => {
     await user.click(header);
     expect(screen.getByText('Save changes')).toBeInTheDocument();
 
-    await user.click(header.parentElement!.querySelectorAll('button')[0]);
+    await user.click(within(screen.getByRole('region', { name: 'Task' })).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(screen.queryByText('Save changes')).not.toBeInTheDocument());
   });
 
@@ -1083,12 +1087,12 @@ describe('TodoListPanel — remaining paths', () => {
 
     const all = screen.getByRole('button', { name: /^All/ });
     fireEvent.mouseEnter(all);
-    expect(all.style.background).toBe('var(--bg-hover)');
+    expect(all.style.background).toBe('var(--bg-tertiary)');
 
     const sort = screen.getByRole('button', { name: 'Priority' });
     await user.click(sort);
     fireEvent.mouseLeave(sort);
-    expect(sort.style.background).toBe('rgba(245, 158, 11, 0.07)');
+    expect(sort.style.background).toBe('var(--text-primary)');
   });
 
   it('FE-COMP-TODO-065: clearing the task name blocks the save', async () => {
@@ -1104,24 +1108,24 @@ describe('TodoListPanel — remaining paths', () => {
     expect(put).toBe(false);
   });
 
-  it('FE-COMP-TODO-066: the check button closes the inline list editor in both panes', async () => {
+  it('FE-COMP-TODO-066: the name dialog adds a new list in both panes', async () => {
     const user = userEvent.setup();
     const { rerender } = render(<TodoListPanel tripId={1} items={[buildTodoItem({ id: 40, name: 'Plan route', checked: 0 })]} addItemSignal={0} />);
 
     await user.click(screen.getByText('Plan route'));
-    await user.click(await screen.findByRole('button', { name: 'List name' }));
+    await user.click(within(await screen.findByRole('region', { name: 'Task' })).getByRole('button', { name: 'Add list' }));
     let input = await screen.findByPlaceholderText('List name');
     await user.type(input, 'Logistics');
-    fireEvent.click(input.nextElementSibling as HTMLElement);
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
     expect(screen.queryByPlaceholderText('List name')).not.toBeInTheDocument();
     expect(screen.getByText(/^Logistics/)).toBeInTheDocument();
 
     rerender(<TodoListPanel tripId={1} items={[buildTodoItem({ id: 40, name: 'Plan route', checked: 0 })]} addItemSignal={1} />);
     await screen.findByText('Create task');
-    await user.click(screen.getByRole('button', { name: 'List name' }));
+    await user.click(within(screen.getByRole('region', { name: 'New task' })).getByRole('button', { name: 'Add list' }));
     input = await screen.findByPlaceholderText('List name');
     await user.type(input, 'Prep');
-    fireEvent.click(input.nextElementSibling as HTMLElement);
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
     expect(screen.queryByPlaceholderText('List name')).not.toBeInTheDocument();
     expect(screen.getByText(/^Prep/)).toBeInTheDocument();
   });
@@ -1289,3 +1293,23 @@ describe('TodoListPanel — plugin contributions', () => {
     expect(screen.getByText('Rainy')).toBeInTheDocument();
   });
 });
+
+describe('TodoListPanel — detail pane head', () => {
+  it('FE-COMP-TODO-090: the box in the pane head ticks the task off', async () => {
+    const user = userEvent.setup();
+    let body: Record<string, unknown> | null = null;
+    server.use(http.put('/api/trips/1/todo/60', async ({ request }) => {
+      body = (await request.json()) as Record<string, unknown>;
+      return HttpResponse.json({ item: buildTodoItem({ id: 60, name: 'Buy SIM', checked: 1 }) });
+    }));
+    render(<TodoListPanel tripId={1} items={[buildTodoItem({ id: 60, name: 'Buy SIM', checked: 0 })]} />);
+
+    await user.click(screen.getByText('Buy SIM'));
+    const box = within(await screen.findByRole('region', { name: 'Task' })).getByRole('button', { name: 'Done' });
+    expect(box).toHaveAttribute('aria-pressed', 'false');
+    await user.click(box);
+
+    await waitFor(() => expect(body).toMatchObject({ checked: true }));
+  });
+});
+

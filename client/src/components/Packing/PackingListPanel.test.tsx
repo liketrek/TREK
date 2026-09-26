@@ -248,8 +248,8 @@ describe('PackingListPanel', () => {
     );
     render(<PackingListPanel tripId={1} items={[item]} />);
 
-    // Click the rename (pencil) button
-    await user.click(screen.getByTitle('Rename'));
+    // A click on the name opens it for renaming
+    await user.click(screen.getByText('Sunscreen'));
 
     // Input appears pre-filled with 'Sunscreen'
     const input = screen.getByDisplayValue('Sunscreen');
@@ -275,8 +275,8 @@ describe('PackingListPanel', () => {
     );
     const { container } = render(<PackingListPanel tripId={1} items={[item]} />);
 
-    // The toggle button contains the Square icon for unchecked items
-    const toggleBtn = container.querySelector('svg.lucide-square')?.closest('button');
+    // The checkbox is the button marked packing-check
+    const toggleBtn = container.querySelector<HTMLButtonElement>('.packing-check');
     expect(toggleBtn).toBeTruthy();
     await user.click(toggleBtn!);
 
@@ -546,8 +546,8 @@ describe('PackingListPanel', () => {
     const textarea = screen.getByPlaceholderText(/Hygiene, Toothbrush/);
     expect(textarea).toBeInTheDocument();
 
-    // "Load CSV/TXT" button is present inside the modal
-    expect(screen.getByText('Load CSV/TXT')).toBeInTheDocument();
+    // "Load CSV/TXT/MD" button is present inside the modal
+    expect(screen.getByText('Load CSV/TXT/MD')).toBeInTheDocument();
 
     // Close by clicking backdrop (covers the onClick on the backdrop div)
     const modalTitle = screen.getByText('Import Packing List');
@@ -861,9 +861,9 @@ describe('PackingListPanel', () => {
     // In jsdom, CSS classes don't apply so the buttons are accessible
     // The dot button has a circle span inside with category color
     // Find all buttons with the 'Move to List' title
-    const catChangeBtn = screen.getAllByTitle('Move to List');
-    expect(catChangeBtn.length).toBeGreaterThan(0);
-    await user.click(catChangeBtn[0]);
+    // Moving an item goes through its menu: the three dots, then Move to List.
+    await user.click(container.querySelector<HTMLButtonElement>('.packing-row-overflow button')!);
+    await user.click(screen.getByText('Move to List'));
 
     // Category picker shows both category names
     await waitFor(() => {
@@ -1059,11 +1059,11 @@ describe('PackingListPanel', () => {
         return HttpResponse.json({ item: buildPackingItem({ id: 74, category: 'Documents' }) });
       })
     );
-    render(<PackingListPanel tripId={1} items={[itemA, itemB]} />);
+    const { container } = render(<PackingListPanel tripId={1} items={[itemA, itemB]} />);
 
-    // Use fireEvent (no pointer events) to open the category picker — avoids mouseLeave closing picker
-    const catChangeBtns = screen.getAllByTitle('Move to List');
-    fireEvent.click(catChangeBtns[0]);
+    // Open the first item's menu and its Move to List entry
+    fireEvent.click(container.querySelector<HTMLButtonElement>('.packing-row-overflow button')!);
+    fireEvent.click(screen.getByText('Move to List'));
 
     // Picker shows available categories — find and click the 'Documents' button (role=button, text=Documents)
     const docBtn = await screen.findByRole('button', { name: 'Documents' });
@@ -1248,9 +1248,10 @@ describe('PackingListPanel', () => {
     const items = [buildPackingItem({ name: 'Boots', category: 'Clothing' })];
     render(<PackingListPanel tripId={1} items={items} />);
 
-    // Wait for sidebar "Add bag" button (sidebar renders when bags.length > 0)
-    await waitFor(() => expect(screen.getAllByText('Add bag').length).toBeGreaterThan(0));
-    const addBagBtns = screen.getAllByText('Add bag');
+    // Wait for the sidebar's add button (sidebar renders when bags.length > 0); it
+    // reads just "Bags" and carries "Add bag" as its accessible name.
+    await waitFor(() => expect(screen.getAllByRole('button', { name: 'Add bag' }).length).toBeGreaterThan(0));
+    const addBagBtns = screen.getAllByRole('button', { name: 'Add bag' });
     await user.click(addBagBtns[0]);
 
     // Bag name input appears
@@ -1496,7 +1497,21 @@ describe('PackingListPanel', () => {
     await waitFor(() => expect(createBody).toMatchObject({ name: 'New Bag' }));
   });
 
-  it('FE-COMP-PACKING-069: Load CSV/TXT button clicks the hidden file input', async () => {
+  it('FE-COMP-PACKING-082: the import dialog explains the Markdown form, takes .md files and counts a pasted checklist (#875)', async () => {
+    const user = userEvent.setup();
+    const { container } = render(<PackingListPanel tripId={1} items={[]} />);
+    await user.click(container.querySelector('svg.lucide-download')!.closest('button')!);
+    await screen.findByText('Import Packing List');
+
+    expect(screen.getByText(/A Markdown list works too/)).toBeInTheDocument();
+    expect(document.querySelector('input[type="file"]')).toHaveAttribute('accept', '.csv,.txt,.md,.markdown,text/markdown');
+    fireEvent.change(screen.getByPlaceholderText(/Hygiene, Toothbrush/), {
+      target: { value: '# Packing List\n## Clothing\n- [x] 3x Socks\n- [ ] Rain jacket (350 g)\nA note' },
+    });
+    expect(screen.getByRole('button', { name: 'Import 2' })).toBeInTheDocument();
+  });
+
+  it('FE-COMP-PACKING-069: Load CSV/TXT/MD button clicks the hidden file input', async () => {
     const user = userEvent.setup();
     const { container } = render(<PackingListPanel tripId={1} items={[]} />);
 
@@ -1510,8 +1525,8 @@ describe('PackingListPanel', () => {
     expect(fileInput).toBeTruthy();
     const clickSpy = vi.spyOn(fileInput, 'click').mockImplementation(() => {});
 
-    // Click the "Load CSV/TXT" button
-    await user.click(screen.getByText('Load CSV/TXT'));
+    // Click the "Load CSV/TXT/MD" button
+    await user.click(screen.getByText('Load CSV/TXT/MD'));
 
     expect(clickSpy).toHaveBeenCalled();
     clickSpy.mockRestore();
@@ -1623,7 +1638,55 @@ describe('PackingListPanel', () => {
     render(<PackingListPanel tripId={1} items={items} />);
     await userEvent.click(screen.getByText('My list'));
     await screen.findByText('Power bank');
-    // "by Bob" — taken care of by the bringer.
-    expect(screen.getByText('by Bob')).toBeInTheDocument();
+    // "by Bob" — taken care of by the bringer, as the chip's tooltip and label.
+    expect(screen.getByLabelText('by Bob')).toBeInTheDocument();
+  });
+});
+
+describe('PackingListPanel — under the Lists bar', () => {
+  beforeEach(() => {
+    resetAllStores();
+    seedStore(useAuthStore, { user: buildAdmin({ id: 1 }), isAuthenticated: true });
+    seedStore(useTripStore, { trip: buildTrip({ id: 1 }) });
+  });
+
+  it('FE-COMP-PACKING-090: the clean-up sits in the progress card and clears what is ticked', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    let deleted = false;
+    server.use(http.delete('/api/trips/1/packing/91', () => { deleted = true; return HttpResponse.json({ success: true }); }));
+    render(<PackingListPanel tripId={1} inlineHeader={false} items={[buildPackingItem({ id: 91, name: 'Towel', checked: 1 }), buildPackingItem({ id: 92, name: 'Soap' })]} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remove 1 checked' }));
+    await waitFor(() => expect(deleted).toBe(true));
+    // No dashed Add list under the bar: the Lists bar carries it.
+    expect(screen.queryByRole('button', { name: 'Add list' })).toBeNull();
+  });
+
+  it('FE-COMP-PACKING-091: a raised add-list signal opens the name dialog, which creates the list', async () => {
+    let body: Record<string, unknown> | null = null;
+    server.use(http.post('/api/trips/1/packing', async ({ request }) => {
+      body = await request.json() as Record<string, unknown>;
+      return HttpResponse.json({ item: buildPackingItem({ id: 93, name: '...', category: 'Rain kit' }) });
+    }));
+    const { rerender } = render(<PackingListPanel tripId={1} inlineHeader={false} items={[buildPackingItem({ id: 92, name: 'Soap' })]} addCategorySignal={0} />);
+    rerender(<PackingListPanel tripId={1} inlineHeader={false} items={[buildPackingItem({ id: 92, name: 'Soap' })]} addCategorySignal={1} />);
+
+    fireEvent.change(await screen.findByPlaceholderText('List name (e.g. Clothing)'), { target: { value: 'Rain kit' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+    await waitFor(() => expect(body).toMatchObject({ category: 'Rain kit' }));
+  });
+
+  it('FE-COMP-PACKING-092: Save as template asks for the name in a dialog', async () => {
+    let body: Record<string, unknown> | null = null;
+    server.use(http.post('/api/trips/1/packing/save-as-template', async ({ request }) => {
+      body = await request.json() as Record<string, unknown>;
+      return HttpResponse.json({ template: { id: 1, name: 'Beach' } });
+    }));
+    const { rerender } = render(<PackingListPanel tripId={1} inlineHeader={false} items={[buildPackingItem({ id: 92, name: 'Soap' })]} saveTemplateSignal={0} />);
+    rerender(<PackingListPanel tripId={1} inlineHeader={false} items={[buildPackingItem({ id: 92, name: 'Soap' })]} saveTemplateSignal={1} />);
+
+    fireEvent.change(await screen.findByPlaceholderText('Template name'), { target: { value: 'Beach' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(body).toMatchObject({ name: 'Beach' }));
   });
 });

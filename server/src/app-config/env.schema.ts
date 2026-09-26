@@ -11,7 +11,13 @@
  */
 import { z } from 'zod';
 import { SUPPORTED_LANGUAGE_CODES } from '@trek/shared';
-import { parseDurationMs, parseLinkLocalAllowList } from './parsers';
+import {
+  isP256PrivateKey,
+  isUncompressedP256Key,
+  isVapidSubject,
+  parseDurationMs,
+  parseLinkLocalAllowList,
+} from './parsers';
 
 /** Present-but-malformed fails; unset/blank always passes (defaults apply). */
 function optionalWith(test: (v: string) => boolean, message: string) {
@@ -103,6 +109,18 @@ export const envSchema = z.object({
   // WebAuthn
   WEBAUTHN_RP_ID: anyString,
   WEBAUTHN_ORIGINS: anyString,
+
+  // Web Push (VAPID). All optional: without them the server keeps a pair of its
+  // own in the database. Only the shape is checked here; whether the two keys
+  // belong together is checked where they are used, which turns push off while
+  // they do not (never signing with a stored pair in their place) and says so
+  // in the log instead of refusing to boot.
+  VAPID_PUBLIC_KEY: optionalWith(
+    isUncompressedP256Key,
+    'must be a base64url-encoded P-256 public key (65 bytes, uncompressed, starting with 0x04)',
+  ),
+  VAPID_PRIVATE_KEY: optionalWith(isP256PrivateKey, 'must be a base64url-encoded P-256 private key (32 bytes)'),
+  VAPID_SUBJECT: optionalWith(isVapidSubject, 'must be a mailto: address or an https:// URL'),
 
   // MCP
   MCP_SESSION_TTL: positiveNumber,

@@ -8,7 +8,7 @@ The General tab (Settings → General) controls your locale preferences and a fe
 
 Open the user menu in the top navigation bar, select **Settings**, and stay on the **General** tab — it is the tab the page opens on.
 
-The tab is split into three sections: **Startup** (where opening TREK lands), **Language & region** (currency, language, temperature, distance, time format) and **Travel & map** (booking route labels, always show booking routes, explore places on the map, blur booking codes, optimize route from accommodation).
+The tab is split into three sections: **Startup** (where opening TREK lands), **Language & region** (currency, language, temperature, distance, time format, week start) and **Travel & map** (booking route labels, always show booking routes, explore places on the map, blur booking codes, optimize route from accommodation).
 
 > Color mode (Light / Dark / Auto) is **not** here — it lives on the **Appearance** tab. See [Appearance-Settings](Appearance-Settings).
 
@@ -99,13 +99,21 @@ Affects all time displays throughout the app.
 | 24h | 14:30 |
 | 12h | 2:30 PM |
 
+## Week starts on
+
+The first column of every calendar in TREK: trip dates, bookings, expenses, to-dos, journal entries and photo date ranges. Choose **Monday** (the default), **Sunday** or **Saturday**; the choices show the day names in your language, and so do the weekday headers of the calendars.
+
+An administrator can set the default for everyone under **Admin → User Defaults**; your own choice always wins. Vacay keeps its own **Week start** per plan, see [Vacay](Vacay).
+
+The poll deadline on the phone uses the browser's own date field, which follows the device's region rather than this setting.
+
 ## Booking route labels
 
 Shows or hides station / airport names on the endpoint markers of booking routes on the map. When off, only the icon is shown. Set to **On** or **Off**.
 
 ## Explore places on the map
 
-Shows a row of category buttons on the trip map for finding nearby restaurants, accommodation, sights and more. TREK's own place index answers first and OpenStreetMap fills in; see [Exploring the map by category](Places-and-Search#exploring-the-map-by-category). Set to **On** or **Off**.
+Shows a row of category buttons on the trip map for finding nearby restaurants, accommodation, sights and more. TREK's own place index answers first and OpenStreetMap fills in, and installed plugins can add buttons of their own; see [Exploring the map by category](Places-and-Search#exploring-the-map-by-category). Set to **On** or **Off**.
 
 ## Always show booking routes
 

@@ -55,7 +55,7 @@ Restore and delete operations require the `file_delete` permission.
 
 A file can be attached to multiple places and reservations at the same time (many-to-many). From the file manager, click the **link (pencil) icon** on a file to open the assign modal. From there you can toggle links to any trip place or reservation. You can also add a descriptive note to the file in the same modal.
 
-From a reservation modal, use the "link existing file" picker to attach files directly.
+From a booking or transport form, **Link existing file** next to **Attach file** picks a file the trip already has. On the phone it is the **Link** pill in the Files row of the booking and transport sheets.
 
 ## Downloading
 

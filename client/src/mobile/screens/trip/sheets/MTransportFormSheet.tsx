@@ -15,7 +15,7 @@ import { toLocationPicks } from '../../../../components/Planner/locationPicks'
 import { importedPriceEntry } from '../../../../components/Planner/importedPrice'
 import TransitSearchPanel from '../../../../components/Planner/TransitSearchPanel'
 import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetFooter, FormSheetHeader } from './PlSheetChrome'
-import PlFileAttach from './PlFileAttach'
+import MBookingFilesCosts from './MBookingFilesCosts'
 import GuestBadge from '../../../../components/shared/GuestBadge'
 import { SPLIT_COLORS } from '../../../../components/Budget/BudgetPanel.constants'
 import { useTripStore } from '../../../../store/tripStore'
@@ -1084,33 +1084,18 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
               </div>
             )}
 
-            {/* FILES */}
-            {canUploadFiles && (
-              <PlFileAttach
-                planner={planner}
-                files={pendingFiles}
-                onAdd={files => setPendingFiles(prev => [...prev, ...files])}
-                onRemove={idx => setPendingFiles(prev => prev.filter((_, i) => i !== idx))}
-                hideHint
-              />
-            )}
-
-            {/* COSTS */}
-            {isBudgetEnabled && (
-              <>
-                <Eyebrow className="mb-[6px] mt-3 uppercase">{t('reservations.costsLabel')}</Eyebrow>
-                <button
-                  type="button"
-                  onClick={() => { expenseIntentRef.current = true; handleSubmit() }}
-                  disabled={!form.title.trim() || isSaving}
-                  className="flex w-full items-center justify-center gap-[6px] rounded-[13px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] py-[11px] text-[0.78125rem] font-semibold text-m-ink disabled:opacity-40"
-                >
-                  <Plus size={13} strokeWidth={2.2} />
-                  {t('reservations.createExpense')}
-                </button>
-                <div className="mt-[5px] font-geist text-[0.625rem] text-m-faint">{t('reservations.createExpenseHint')}</div>
-              </>
-            )}
+            {/* FILES + COSTS */}
+            <MBookingFilesCosts
+              planner={planner}
+              reservationId={res?.id}
+              pendingFiles={pendingFiles}
+              setPendingFiles={setPendingFiles}
+              canUploadFiles={canUploadFiles}
+              showCosts={isBudgetEnabled}
+              createDisabled={!form.title.trim() || isSaving}
+              onCreate={() => { expenseIntentRef.current = true; handleSubmit() }}
+              onEdit={item => onOpenExpense({ editItem: item })}
+            />
           </>
         )}
       </div>

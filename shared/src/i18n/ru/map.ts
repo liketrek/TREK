@@ -13,6 +13,7 @@ const map: TranslationStrings = {
   'poi.cat.museums': 'Музеи и культура',
   'poi.cat.nature': 'Природа и парки',
   'poi.cat.activities': 'Развлечения',
+  'poi.pluginCategories': 'Категории из плагинов',
   'map.showAllConnections': 'Показать все маршруты бронирований',
   'map.hideAllConnections': 'Скрыть все маршруты бронирований',
   'map.baseLayer.default': 'Карта',

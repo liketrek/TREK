@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router'
 import { Lock } from 'lucide-react'
+import { WEB_PUSH_CHANNEL_ID } from '@trek/shared'
 import { useTranslation } from '../../i18n'
 import { notificationsApi, settingsApi } from '../../api/client'
 import { useToast } from '../shared/Toast'
 import ToggleSwitch from './ToggleSwitch'
 import Section from './Section'
+import WebPushCard from './WebPushCard'
 
 interface ChannelDescriptor {
   id: string
@@ -323,6 +325,9 @@ export default function NotificationsTab(): React.ReactElement {
             </div>
           </div>
         )}
+        {/* Per device rather than per account: the column below picks the events,
+            this card decides whether this browser is one of the places they go. */}
+        {hasChannel(WEB_PUSH_CHANNEL_ID) && <WebPushCard />}
         {pluginChannels.map(ch => (
           <div key={ch.id} style={{ marginBottom: 16, padding: '12px', background: 'var(--bg-secondary)', borderRadius: 8, border: '1px solid var(--border-primary)' }}>
             <label style={{ display: 'block', fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4 }}>

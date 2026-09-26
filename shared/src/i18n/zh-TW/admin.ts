@@ -13,6 +13,9 @@ const admin: TranslationStrings = {
   'admin.notifications.testWebhookFailed': '測試 Webhook 傳送失敗',
   'admin.notifications.emailPanel.title': '電子郵件 (SMTP)',
   'admin.notifications.webhookPanel.title': 'Webhook',
+  'admin.notifications.webPushPanel.title': 'Web 推播',
+  'admin.notifications.webPushPanel.hint':
+    '讓使用者即使在 TREK 關閉時，也能透過瀏覽器在手機和電腦上接收通知。需要 HTTPS；在 iPhone 和 iPad 上，必須將 TREK 加入主畫面。',
   'admin.notifications.inappPanel.title': '應用程式內通知',
   'admin.notifications.inappPanel.hint': '應用程式內通知始終啟用，無法全域性停用。',
   'admin.notifications.adminWebhookPanel.title': '管理員 Webhook',
@@ -174,6 +177,7 @@ const admin: TranslationStrings = {
   'admin.amapKey': '高德地圖 API Key',
   'admin.amapKeyHint':
     '用於中國大陸境內的地點搜尋（Google 無法存取，OpenStreetMap 內容也很少）。需要「Web 服務」類型的 Key，而非 JS API Key。在 console.amap.com 申請。',
+  'admin.keyFromEnv': '已透過 {name} 設定',
   'admin.placesProvider.title': '地點搜尋來源',
   'admin.placesProvider.subtitle':
     'TREK 自有索引和 OpenStreetMap 會回應每一次搜尋。這裡選擇的是它們一無所獲時還問誰：自動在有金鑰時優先 Google，其次 Amap。',
@@ -393,6 +397,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:calendar-source': '為行事曆提供事件',
   'admin.plugins.perm.hook:place-detail-provider': '為地點提供額外資訊（評論、評分、連結）',
   'admin.plugins.perm.hook:search-provider': '從自有索引回答地點搜尋，與 TREK 自身的結果並列顯示',
+  'admin.plugins.perm.hook:poi-category-provider':
+    '在「在地圖上探索地點」加入自己的地點分類（選擇其中一個時，外掛會收到你正在檢視的地圖範圍）',
   'admin.plugins.perm.hook:trip-warning-provider': '對行程發出驗證警告（顯示於規劃工具中）',
   'admin.plugins.perm.hook:table-contributor': '向行程檢視（預訂、地點、日期）新增欄位與操作',
   'admin.plugins.perm.hook:map-marker-provider': '向行程地圖新增標記（例如顯示預訂或興趣點）',
@@ -404,6 +410,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.mcpTools': '發布 AI 工具',
   'admin.plugins.mcpToolsTitle': '發布的 AI 工具',
   'admin.plugins.mcpToolsHint': '助理可以代用戶執行這些工具。每個工具都以上方授予的權限運作。',
+  'admin.plugins.poiCategoriesTitle': '新增的地圖分類',
   'admin.plugins.perm.mcp:tools':
     '發布 AI 助理可以代你執行的工具（它以你在此處授予外掛的權限運作，而非助理自身的權限）',
   'admin.plugins.perm.geolocation:read': '在其任一檢視開啟時查詢你的即時位置（由 TREK 使用本站台既有的位置權限讀取，不會另外為外掛詢問）',
@@ -537,6 +544,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': '提供行事曆事件',
   'admin.plugins.cap.placeDetails': '豐富地點',
   'admin.plugins.cap.search': '回答搜尋',
+  'admin.plugins.cap.poiCategories': '新增地圖分類',
   'admin.plugins.cap.warnings': '標記問題',
   'admin.plugins.cap.mapLayers': '在地圖上繪製',
   'admin.plugins.cap.routing': '提供路線規劃',
@@ -612,6 +620,11 @@ const admin: TranslationStrings = {
     '從各位使用者自行連接的 Dawarich 執行個體讀取造訪紀錄與記錄的路線',
   'admin.addons.catalog.llm_parsing.name': 'AI 解析',
   'admin.addons.catalog.llm_parsing.description': '用你選擇的 AI 模型讀取內建解析器無法識別的訂位',
+  'admin.addons.llm.vision.auto': '自動',
+  'admin.addons.llm.vision.on': '是',
+  'admin.addons.llm.vision.off': '否',
+  'admin.addons.llm.vision.hintLocal': '「自動」會詢問 Ollama 伺服器此模型能否讀取圖片。',
+  'admin.addons.llm.vision.hintCloud': '對雲端模型而言，「自動」即為「否」。若此模型能讀取圖片，請選擇「是」。',
   'admin.addons.enabled': '已啟用',
   'admin.addons.disabled': '已停用',
   'admin.addons.type.trip': '旅行',

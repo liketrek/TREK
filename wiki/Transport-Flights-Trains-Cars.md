@@ -44,7 +44,11 @@ All transport types share these fields:
 | Arrival time | Optional |
 | Booking / confirmation code | Optional |
 | Status | Pending or Confirmed |
+| Link | Optional booking URL, beside Files |
 | Notes | Optional free text |
+| Travelers | Next to the type at the top of the form: who is on this ride, members and named guests |
+| Files | Attach a ticket, or link a file the trip already has |
+| Costs | With the Budget addon: create an expense, or link one already in Costs. See [Budget-Tracking](Budget-Tracking) |
 
 ## Endpoints
 

@@ -66,7 +66,7 @@ describe('MLlmConnectionSection', () => {
 
     expect(screen.getByRole('button', { name: /OpenAI/ })).toBeInTheDocument();
     expect(screen.getByDisplayValue('gpt-4o-mini')).toBeInTheDocument();
-    expect(screen.getByRole('switch', { name: 'Send documents as images' })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByRole('switch', { name: 'Model reads images' })).toHaveAttribute('aria-checked', 'true');
   });
 
   it('FE-MOB-SETLLM-003: nothing is hydrated while the settings are still loading', () => {
@@ -158,7 +158,7 @@ describe('MLlmConnectionSection', () => {
     const updateSettings = seedLlm();
     renderSection();
 
-    await user.click(screen.getByRole('switch', { name: 'Send documents as images' }));
+    await user.click(screen.getByRole('switch', { name: 'Model reads images' }));
     await user.click(screen.getByRole('button', { name: /Save/ }));
 
     expect(updateSettings).toHaveBeenCalledWith(expect.objectContaining({ llm_multimodal: true }));

@@ -75,6 +75,12 @@ spec:
                   name: {{ default (printf "%s-secret" (include "trek.fullname" .)) .Values.existingSecret }}
                   key: UNSPLASH_ACCESS_KEY
                   optional: true
+            - name: PLACES_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ default (printf "%s-secret" (include "trek.fullname" .)) .Values.existingSecret }}
+                  key: PLACES_API_KEY
+                  optional: true
             - name: AMAP_API_KEY
               valueFrom:
                 secretKeyRef:
@@ -86,6 +92,12 @@ spec:
                 secretKeyRef:
                   name: {{ default (printf "%s-secret" (include "trek.fullname" .)) .Values.existingSecret }}
                   key: AMAP_API_SECRET
+                  optional: true
+            - name: VAPID_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ default (printf "%s-secret" (include "trek.fullname" .)) .Values.existingSecret }}
+                  key: VAPID_PRIVATE_KEY
                   optional: true
           volumeMounts:
             - name: data

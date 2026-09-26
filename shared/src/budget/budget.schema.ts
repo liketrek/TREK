@@ -225,6 +225,10 @@ export const budgetUpdateItemRequestSchema = z.object({
   ticket_json: z.string().nullable().optional(),
   expense_date: z.string().nullable().optional(),
   receipt_file_ids: z.array(z.number()).optional(),
+  // Link an existing expense to a booking or a place on the same trip (#2084);
+  // null lets go of the link and keeps the expense. Omitted leaves it as is.
+  reservation_id: z.number().int().positive().nullable().optional(),
+  place_id: z.number().int().positive().nullable().optional(),
   fallback_fx: budgetFallbackFxSchema.optional(),
 });
 export type BudgetUpdateItemRequest = z.infer<typeof budgetUpdateItemRequestSchema>;

@@ -143,6 +143,59 @@ describe('parseManifest capabilities', () => {
     expect(() => parseManifest({ ...base, capabilities: { routeProfiles: 'ev' } })).toThrow(ManifestError);
   });
 
+  describe('poiCategories (#1781)', () => {
+    const cat = { id: 'trailheads', label: 'Trailheads', icon: 'Signpost', color: '#2F855A' };
+    const parse = (poiCategories: unknown) => parseManifest({ ...base, capabilities: { poiCategories } });
+
+    it('parses a category, lowercasing the colour and keeping known languages only', () => {
+      const m = parse([{ ...cat, label: '  Trailheads  ', labels: { de: 'Wanderparkplätze', 'pt-PT': 'Não' } }]);
+      expect(m.capabilities.poiCategories).toEqual([
+        { id: 'trailheads', label: 'Trailheads', labels: { de: 'Wanderparkplätze' }, icon: 'Signpost', color: '#2f855a' },
+      ]);
+    });
+
+    it('installs without the hook grant, like routeProfiles (the feed gates the chips on it)', () => {
+      expect(parse([cat]).permissions).toEqual([]);
+      expect(parse([cat]).capabilities.poiCategories).toHaveLength(1);
+    });
+
+    it('strips emoji and control characters from labels and falls back to the id', () => {
+      const m = parse([{ ...cat, label: 'Water\u0007 \u{1F6B0} taps', labels: { de: '\u{1F6BB}' } }, { ...cat, id: 'wc', label: '\u{1F6BB}' }]);
+      expect(m.capabilities.poiCategories?.[0]).toEqual({ id: 'trailheads', label: 'Water taps', icon: 'Signpost', color: '#2f855a' });
+      expect(m.capabilities.poiCategories?.[1].label).toBe('wc');
+    });
+
+    it('refuses every malformed declaration with a manifest error', () => {
+      const bad: unknown[] = [
+        'trailheads',
+        [1],
+        [{ ...cat, id: 'Trail' }],
+        [{ ...cat, label: '' }],
+        [{ ...cat, label: 'L'.repeat(41) }],
+        [{ ...cat, icon: 'Toilet' }],
+        [{ ...cat, icon: undefined }],
+        [{ ...cat, color: 'green' }],
+        [{ ...cat, color: '#2f855a;background:url(https://x)' }],
+        [{ ...cat, labels: ['de'] }],
+        [{ ...cat, labels: null }],
+        [{ ...cat, labels: { __proto__x: 'x' } }],
+        [{ ...cat, labels: { de: '' } }],
+        [cat, cat],
+        [1, 2, 3, 4, 5].map((i) => ({ ...cat, id: `c${i}` })),
+      ];
+      for (const poiCategories of bad) expect(() => parse(poiCategories), JSON.stringify(poiCategories)).toThrow(ManifestError);
+    });
+
+    it('names the rule that failed', () => {
+      expect(() => parse([{ ...cat, color: 'green' }])).toThrow('capabilities.poiCategories: "trailheads" color must be a #rrggbb hex colour');
+      expect(() => parse([cat, cat])).toThrow('capabilities.poiCategories: duplicate id "trailheads"');
+    });
+
+    it('omits an empty declaration', () => {
+      expect(parse([]).capabilities.poiCategories).toBeUndefined();
+    });
+  });
+
   it('parses mcpTools, bounding the text and normalising the schema', () => {
     const perms = { permissions: ['mcp:tools'] };
     const m = parseManifest({

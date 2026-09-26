@@ -319,6 +319,19 @@ export const TREK_WS_EVENTS = {
     scope: 'user',
     payload: z.object({ journeyId: id, targetUserId: id, role: z.unknown() }),
   },
+  /*
+   * Photos on the journey learned when (or where) they were taken (#1587).
+   *
+   * Sent once per batch of provider photos (Immich, Synology) added, after the
+   * detached capture-time backfill wrote something, and to everyone on the
+   * journey including whoever added them: the add answered before the backfill
+   * ran, so the importer's own reload still had the new photos at the end of the
+   * gallery. Content-free, the gallery order is the server's to work out.
+   *
+   * Never for a device upload: those go one file per request, so an event per
+   * request would reload every open client once per uploaded photo.
+   */
+  'journey:photos:updated': { scope: 'user', payload: z.object({ journeyId: id }) },
 
   /*
    * The Studio book was saved (#1973).

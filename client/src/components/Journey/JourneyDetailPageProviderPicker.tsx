@@ -1,18 +1,39 @@
-import { Calendar, Camera, Check, ChevronRight, Play, X } from 'lucide-react';
+import { Calendar, Camera, Check, ChevronRight, Loader2, Play, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { memoriesApi } from '../../api/client';
 import { useTranslation } from '../../i18n';
 import {
+  fetchRemainingProviderPages,
   groupPhotosByDate,
+  PROVIDER_SEARCH_LAST_PAGE,
+  PROVIDER_SEARCH_PAGE_SIZE,
+  sortByCaptureTimeAsc,
   sortProviderPhotos,
   utcOffsetMinutesForDay,
   type GeoPoint,
+  type ProviderPhotoAsset,
 } from '../../pages/journeyDetail/JourneyDetailPage.helpers';
 import type { JourneyEntry, JourneyTrip } from '../../store/journeyStore';
 import { DatePicker } from './JourneyDetailPageDatePicker';
 import { ScrollTrigger } from './JourneyDetailPageScrollTrigger';
 
 export type ProviderPhotoGroup = { assetIds: string[]; passphrase?: string; mediaTypes?: string[] };
+
+/** A tile as the search and album routes answer it; only what a pick needs is spelled out. */
+type PickerAsset = ProviderPhotoAsset & { mediaType?: string };
+
+/**
+ * One picked asset. The capture times ride along only to order the ids at
+ * submit (#1587): a pick survives tab and album switches, and by then the asset
+ * may no longer be in the loaded list to look them up in.
+ */
+type SelectedAsset = {
+  albumId?: string;
+  passphrase?: string;
+  mediaType?: string;
+  takenAt?: string | null;
+  localTakenAt?: string | null;
+};
 
 export function ProviderPicker({
   provider,
@@ -53,9 +74,9 @@ export function ProviderPicker({
   const [searchPage, setSearchPage] = useState(1);
   const [searchFrom, setSearchFrom] = useState('');
   const [searchTo, setSearchTo] = useState('');
-  const [selected, setSelected] = useState<Map<string, { albumId?: string; passphrase?: string; mediaType?: string }>>(
-    new Map()
-  );
+  const [selected, setSelected] = useState<Map<string, SelectedAsset>>(new Map());
+  // "Select all" is loading the pages that were still missing (#1587).
+  const [draining, setDraining] = useState(false);
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
   const [targetEntryId, setTargetEntryId] = useState<number | null>(initialEntryId ?? null);
@@ -83,11 +104,37 @@ export function ProviderPicker({
     return abortRef.current.signal;
   };
 
+  // Closing the picker cancels whatever it is still loading, a "Select all" that
+  // is working through the remaining pages included.
+  useEffect(() => () => abortRef.current?.abort(), []);
+
+  // The body of one page of a search. Shared by the page a search opens with,
+  // the pages scrolled into view and the ones "Select all" loads, so every page
+  // asks for the same days in the same zone (#1587).
+  //
+  // The bounds are calendar days as this browser reads them, so the zone they
+  // are meant in travels with them. Without it the server can only take them
+  // as UTC days and a reader outside UTC gets somebody else's 24 hours
+  // (#2336). A single offset leaves a one-hour sliver at the far end of a
+  // multi-day range that crosses a DST change, and none at all for a single
+  // day, which is the case this fixes.
+  const searchRequest = (from: string, to: string, page: number) => ({
+    from,
+    to,
+    page,
+    size: PROVIDER_SEARCH_PAGE_SIZE,
+    utc_offset_minutes: utcOffsetMinutesForDay(from || to),
+  });
+
   const searchPhotos = async (from: string, to: string, page: number = 1, append: boolean = false) => {
     const signal = cancelPending();
     if (page === 1) {
       setLoading(true);
       setPhotos([]);
+      // A search shows no album, so none may colour its picks, its thumbnails or
+      // its paging. Left set, a trip search after an album never paged again.
+      setSelectedAlbum(null);
+      setSelectedAlbumPassphrase(undefined);
     } else {
       setLoadingMore(true);
     }
@@ -95,17 +142,7 @@ export function ProviderPicker({
     setSearchTo(to);
     setSearchPage(page);
     try {
-      // The bounds are calendar days as this browser reads them, so the zone they
-      // are meant in travels with them. Without it the server can only take them
-      // as UTC days and a reader outside UTC gets somebody else's 24 hours
-      // (#2336). A single offset leaves a one-hour sliver at the far end of a
-      // multi-day range that crosses a DST change, and none at all for a single
-      // day, which is the case this fixes.
-      const data = await memoriesApi.search(
-        provider,
-        { from, to, page, size: 50, utc_offset_minutes: utcOffsetMinutesForDay(from || to) },
-        signal,
-      );
+      const data = await memoriesApi.search(provider, searchRequest(from, to, page), signal);
       const assets = data.assets || [];
       setPhotos((prev) => (append ? [...prev, ...assets] : assets));
       setHasMore(!!data.hasMore);
@@ -118,11 +155,6 @@ export function ProviderPicker({
       setLoading(false);
       setLoadingMore(false);
     }
-  };
-
-  const loadMorePhotos = () => {
-    if (loadingMore || !hasMore) return;
-    searchPhotos(searchFrom, searchTo, searchPage + 1, true);
   };
 
   const loadAlbumPhotos = async (album: { id: string; passphrase?: string }) => {
@@ -175,6 +207,29 @@ export function ProviderPicker({
 
   // Albums come back whole, so they never page.
   const morePagesPending = hasMore && !selectedAlbum;
+  const dateBounded = Boolean(searchFrom || searchTo);
+  // A date-bounded search ends at PROVIDER_SEARCH_LAST_PAGE, scrolled or loaded
+  // by "Select all" (#1587). Past it the server's scan ceiling could only answer
+  // an empty page with no more to come, so the picker stops asking and keeps
+  // what the server last said: the count keeps its "+".
+  const canLoadMore = morePagesPending && !(dateBounded && searchPage >= PROVIDER_SEARCH_LAST_PAGE);
+  // A date-bounded search is a trip or a day, so "Select all" loads the rest of
+  // it first (#1587). The All Photos tab is the whole library: there it stays
+  // "everything loaded so far", and the count says there is more.
+  const selectAllLoadsRest = canLoadMore && dateBounded;
+
+  const loadMorePhotos = () => {
+    if (loadingMore || !canLoadMore) return;
+    searchPhotos(searchFrom, searchTo, searchPage + 1, true);
+  };
+
+  const selectionEntry = (asset: PickerAsset | undefined): SelectedAsset => ({
+    albumId: selectedAlbum ?? undefined,
+    passphrase: selectedAlbumPassphrase,
+    mediaType: asset?.mediaType,
+    takenAt: asset?.takenAt ?? null,
+    localTakenAt: asset?.localTakenAt ?? null,
+  });
 
   const toggleAsset = (id: string) => {
     setSelected((prev) => {
@@ -182,12 +237,77 @@ export function ProviderPicker({
       if (next.has(id)) {
         next.delete(id);
       } else {
-        const mediaType = (photos as any[]).find((p) => p.id === id)?.mediaType;
-        next.set(id, { albumId: selectedAlbum ?? undefined, passphrase: selectedAlbumPassphrase, mediaType });
+        next.set(id, selectionEntry(photos.find((p) => p.id === id)));
       }
       return next;
     });
   };
+
+  // Adds to what is picked rather than replacing it: picks made on another tab
+  // or in an album survive a "Select all" here.
+  const addToSelection = (assets: PickerAsset[]) => {
+    setSelected((prev) => {
+      const next = new Map(prev);
+      for (const asset of assets) {
+        if (existingAssetIds.has(asset.id) || next.has(asset.id)) continue;
+        next.set(asset.id, selectionEntry(asset));
+      }
+      return next;
+    });
+  };
+
+  const removeFromSelection = (assets: PickerAsset[]) => {
+    setSelected((prev) => {
+      const next = new Map(prev);
+      for (const asset of assets) next.delete(asset.id);
+      return next;
+    });
+  };
+
+  const selectAll = async (inView: PickerAsset[]) => {
+    const controller = abortRef.current;
+    if (!selectAllLoadsRest || !controller) {
+      addToSelection(inView);
+      return;
+    }
+    // The search's own controller: a new search, a tab switch or closing the
+    // picker aborts it, and with it this run.
+    const signal = controller.signal;
+    const loaded: PickerAsset[] = [];
+    setDraining(true);
+    setLoadingMore(true);
+    try {
+      await fetchRemainingProviderPages<PickerAsset>(
+        (page) => memoriesApi.search(provider, searchRequest(searchFrom, searchTo, page), signal),
+        searchPage + 1,
+        signal,
+        (assets, page, more) => {
+          loaded.push(...assets);
+          setPhotos((prev) => [...prev, ...assets]);
+          setSearchPage(page);
+          setHasMore(more);
+        },
+      );
+    } catch {
+      // A page that failed leaves the rest pending: what did arrive is still
+      // selected below, the count keeps its "+", and pressing again carries on
+      // from the page that failed.
+    } finally {
+      setDraining(false);
+      setLoadingMore(false);
+    }
+    if (!signal.aborted) addToSelection([...inView, ...loaded]);
+  };
+
+  // Leaving a tab ends a "Select all" that is still loading its pages.
+  const switchTab = (id: typeof filter) => {
+    if (draining && id !== filter) cancelPending();
+    setFilter(id);
+  };
+
+  // While Select all is still loading pages, the selection holds only the picks
+  // from before it: an Add then would send those and drop the rest (#1587).
+  const addDisabled = selected.size === 0 || adding || draining;
 
   const targetLabel = targetEntryId
     ? entries.find((e) => e.id === targetEntryId)?.title ||
@@ -251,7 +371,7 @@ export function ProviderPicker({
               <button
                 type="button"
                 key={f.id}
-                onClick={() => setFilter(f.id)}
+                onClick={() => switchTab(f.id)}
                 className={`rounded-lg px-3 py-1.5 text-[12px] font-medium transition-colors ${
                   filter === f.id
                     ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900'
@@ -441,42 +561,42 @@ export function ProviderPicker({
           sortedPhotos.length > 0 &&
           (() => {
             const selectable = sortedPhotos.filter((a: any) => !existingAssetIds.has(a.id));
-            const allSelected = selectable.length > 0 && selectable.every((a: any) => selected.has(a.id));
-            if (selectable.length === 0) return null;
+            // Pages still to load on a trip or a day mean not everything is picked yet.
+            const allSelected =
+              selectable.length > 0 && !selectAllLoadsRest && selectable.every((a) => selected.has(a.id));
+            // Every photo in view may already be in the journey while the rest of
+            // the trip is not: the button is what loads that rest, so it stays.
+            if (selectable.length === 0 && !selectAllLoadsRest) return null;
             return (
               <div className="flex-shrink-0 border-b border-zinc-200 bg-white px-4 py-2 dark:border-zinc-700 dark:bg-zinc-900">
                 <button
                   type="button"
+                  disabled={loadingMore}
+                  aria-busy={draining}
                   onClick={() => {
                     if (allSelected) {
-                      setSelected(new Map());
+                      removeFromSelection(selectable);
                     } else {
-                      setSelected(
-                        new Map(
-                          selectable.map((a: any) => [
-                            a.id,
-                            {
-                              albumId: selectedAlbum ?? undefined,
-                              passphrase: selectedAlbumPassphrase,
-                              mediaType: a.mediaType,
-                            },
-                          ])
-                        )
-                      );
+                      void selectAll(selectable);
                     }
                   }}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 px-2.5 py-1 text-[11px] font-medium text-zinc-500 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 px-2.5 py-1 text-[11px] font-medium text-zinc-500 hover:bg-zinc-50 disabled:cursor-wait disabled:opacity-60 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800"
                 >
-                  <div
-                    className={`flex h-3.5 w-3.5 items-center justify-center rounded border ${
-                      allSelected
-                        ? 'border-zinc-900 bg-zinc-900 dark:border-white dark:bg-white'
-                        : 'border-zinc-300 dark:border-zinc-600'
-                    }`}
-                  >
-                    {allSelected && <Check size={9} className="text-white dark:text-zinc-900" strokeWidth={3} />}
-                  </div>
-                  {allSelected ? t('journey.picker.deselectAll') : t('journey.picker.selectAll')} ({selectable.length})
+                  {draining ? (
+                    <Loader2 size={14} className="animate-spin text-content-muted" aria-hidden="true" />
+                  ) : (
+                    <div
+                      className={`flex h-3.5 w-3.5 items-center justify-center rounded border ${
+                        allSelected
+                          ? 'border-zinc-900 bg-zinc-900 dark:border-white dark:bg-white'
+                          : 'border-zinc-300 dark:border-zinc-600'
+                      }`}
+                    >
+                      {allSelected && <Check size={9} className="text-white dark:text-zinc-900" strokeWidth={3} />}
+                    </div>
+                  )}
+                  {allSelected ? t('journey.picker.deselectAll') : t('journey.picker.selectAll')} ({selectable.length}
+                  {morePagesPending ? '+' : ''})
                 </button>
               </div>
             );
@@ -572,7 +692,7 @@ export function ProviderPicker({
                   belong to a neighbouring day leaves the grid empty, and a sentinel
                   that only exists next to photos would never ask for the next page
                   (#2336). */}
-              {morePagesPending && <ScrollTrigger onVisible={loadMorePhotos} loading={loadingMore} />}
+              {canLoadMore && <ScrollTrigger onVisible={loadMorePhotos} loading={loadingMore} />}
             </div>
           )}
         </div>
@@ -596,24 +716,28 @@ export function ProviderPicker({
                 if (adding) return;
                 setAdding(true);
                 try {
-                  const groupMap = new Map<string | undefined, { assetIds: string[]; mediaTypes: string[] }>();
-                  for (const [assetId, { passphrase, mediaType }] of selected.entries()) {
-                    const g = groupMap.get(passphrase) || { assetIds: [], mediaTypes: [] };
-                    g.assetIds.push(assetId);
-                    g.mediaTypes.push(mediaType === 'video' ? 'video' : 'image');
-                    groupMap.set(passphrase, g);
+                  const groupMap = new Map<string | undefined, Array<SelectedAsset & { assetId: string }>>();
+                  for (const [assetId, pick] of selected.entries()) {
+                    const g = groupMap.get(pick.passphrase) || [];
+                    g.push({ ...pick, assetId });
+                    groupMap.set(pick.passphrase, g);
                   }
-                  const groups = [...groupMap.entries()].map(([passphrase, g]) => ({
-                    assetIds: g.assetIds,
-                    mediaTypes: g.mediaTypes,
-                    passphrase,
-                  }));
+                  // Oldest first, so an entry numbers its new photos in the order
+                  // they were taken rather than the grid's newest-first (#1587).
+                  const groups = [...groupMap.entries()].map(([passphrase, picks]) => {
+                    const ordered = sortByCaptureTimeAsc(picks);
+                    return {
+                      assetIds: ordered.map((p) => p.assetId),
+                      mediaTypes: ordered.map((p) => (p.mediaType === 'video' ? 'video' : 'image')),
+                      passphrase,
+                    };
+                  });
                   await onAdd(groups, targetEntryId);
                 } finally {
                   setAdding(false);
                 }
               }}
-              disabled={selected.size === 0 || adding}
+              disabled={addDisabled}
               className="rounded-lg bg-zinc-900 px-3.5 py-2 text-[13px] font-medium text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100"
             >
               {adding ? (

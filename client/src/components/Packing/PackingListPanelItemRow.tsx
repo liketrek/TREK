@@ -1,16 +1,18 @@
-import { useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { useRef, useState, type CSSProperties } from 'react'
 import { useTripStore } from '../../store/tripStore'
 import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
 import {
-  CheckSquare, Square, Trash2, Plus, Pencil, Package, GripVertical, UserRound, Users, HandHelping,
-  MoreHorizontal,
+  Check, Trash2, Plus, Pencil, Package, GripVertical, UserRound, HandHelping,
+  MoreHorizontal, ChevronDown, ChevronRight,
 } from 'lucide-react'
 import type { PackingItem, PackingBag } from '../../types'
 import { katColor } from './packingListPanel.helpers'
 import { PACKING_PLACEHOLDER_NAME } from './packingListPanel.constants'
 import { QuantityInput } from './PackingListPanelQuantityInput'
 import PackingShareControl from './PackingShareControl'
+import { PopoverItem } from './PackingPopover'
+import { POPOVER, POPOVER_CAPTION, POPOVER_DIVIDER } from './packingPopoverStyles'
 import type { TripMember } from './usePackingListPanel'
 import { NumericInput } from '../shared/NumericInput'
 
@@ -31,6 +33,8 @@ interface ArtikelZeileProps {
   onClone?: (id: number) => void
   onJoin?: (id: number) => void
   onLeave?: (id: number, userId: number) => void
+  /** Draws the hairline above the row; the category group leaves it off its first row. */
+  divider?: boolean
   // Drag-to-reorder (#969) — wired by the category group, which owns the order.
   drag?: {
     isDragging: boolean
@@ -42,12 +46,14 @@ interface ArtikelZeileProps {
   }
 }
 
-export function ArtikelZeile({ item, tripId, categories, onCategoryChange: _onCategoryChange, onDelete, bagTrackingEnabled, bags = [], onCreateBag, canEdit = true, tripMembers = [], currentUserId, onSetSharing, onClone, onJoin, onLeave, drag }: ArtikelZeileProps) {
+export function ArtikelZeile({ item, tripId, categories, onCategoryChange: _onCategoryChange, onDelete, bagTrackingEnabled, bags = [], onCreateBag, canEdit = true, tripMembers = [], currentUserId, onSetSharing, onClone, onJoin, onLeave, divider = false, drag }: ArtikelZeileProps) {
   const isPlaceholder = item.name === PACKING_PLACEHOLDER_NAME
   const [editing, setEditing] = useState(false)
   const [editName, setEditName] = useState(isPlaceholder ? '' : item.name)
   const [hovered, setHovered] = useState(false)
-  const [showCatPicker, setShowCatPicker] = useState(false)
+  // Keyboard focus anywhere in the row counts as hovering it, so every control
+  // that only shows on hover is also there for someone tabbing through.
+  const [focused, setFocused] = useState(false)
   const [showBagPicker, setShowBagPicker] = useState(false)
   const [showItemMenu, setShowItemMenu] = useState(false)
   const [showMenuCategories, setShowMenuCategories] = useState(false)
@@ -83,7 +89,6 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange: _onCa
   }
 
   const handleCatChange = async (cat: string) => {
-    setShowCatPicker(false)
     setShowMenuCategories(false)
     setShowItemMenu(false)
     if (cat === item.category) return
@@ -93,13 +98,28 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange: _onCa
 
   const canDrag = canEdit && !isPlaceholder && !!drag
   const selectedBag = bags.find(b => b.id === item.bag_id)
+  const quantity = item.quantity || 1
+  const owner = tripMembers.find(m => m.id === item.owner_id)
+  const ownerAvatar = owner?.avatar_url ?? owner?.avatar ?? null
+
+  // At rest a row reads as what it holds (owner, a quantity above one, a
+  // weight, the bag) and everything else stays in place but dimmed: nothing
+  // leaves a hole and nothing jumps. Pointer or focus brings it all up.
+  const active = hovered || focused || showItemMenu || showBagPicker
+  const reveal = (visible: boolean): CSSProperties => ({ opacity: visible ? 1 : 0.4, transition: 'opacity 120ms ease' })
+  // Quantity and weight read as quiet pills; under the pointer an outline
+  // shows they can be typed into.
+  const badge = (visible: boolean): CSSProperties => ({
+    ...reveal(visible), background: 'var(--bg-tertiary)', borderRadius: 99, padding: '2px 8px',
+    borderColor: active ? 'var(--border-primary)' : 'transparent',
+  })
 
   // Shared by both shells of the name: a renameable name is a real button so
   // the rename can be reached with the keyboard, everything else is plain text.
   const nameStyle: CSSProperties = {
     flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-    fontSize: 'calc(13.5px * var(--fs-scale-body, 1))',
-    cursor: !canEdit || item.checked ? 'default' : 'text',
+    fontSize: 'calc(13.5px * var(--fs-scale-body, 1))', fontWeight: 500,
+    cursor: canEdit ? 'text' : 'default',
     color: isPlaceholder ? 'var(--text-faint)' : (item.checked ? 'var(--text-faint)' : 'var(--text-primary)'),
     transition: 'color 200ms cubic-bezier(0.23,1,0.32,1)',
     textDecoration: item.checked ? 'line-through' : 'none',
@@ -109,19 +129,22 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange: _onCa
     <div
       className="group packing-item-row"
       onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => { setHovered(false); setShowCatPicker(false); setShowBagPicker(false) }}
+      onMouseLeave={() => setHovered(false)}
+      onFocus={() => setFocused(true)}
+      onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setFocused(false) }}
       onDragOver={canDrag ? (e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; drag!.onOver(item.id) }) : undefined}
       onDragLeave={canDrag ? (e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) drag!.onOver(-1) }) : undefined}
       onDrop={canDrag ? (e => { e.preventDefault(); e.stopPropagation(); drag!.onDrop(item.id) }) : undefined}
       style={{
-        display: 'flex', alignItems: 'center', gap: 8,
-        padding: '6px 10px', borderRadius: 10, position: 'relative',
+        display: 'flex', alignItems: 'center', gap: 9,
+        padding: '8px 10px', borderRadius: 10, position: 'relative',
         background: hovered ? 'var(--bg-secondary)' : 'transparent',
         opacity: drag?.isDragging ? 0.4 : 1,
         boxShadow: drag?.isOver ? 'inset 3px 0 0 0 var(--accent)' : 'none',
         transition: 'background 0.1s, opacity 0.15s',
       }}
     >
+      {divider && !hovered && <span aria-hidden className="pointer-events-none absolute inset-x-2.5 top-0 h-px bg-edge-faint" />}
       {canDrag && (
         <div
           draggable
@@ -133,20 +156,16 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange: _onCa
           <GripVertical size={13} />
         </div>
       )}
-      <button type="button" onClick={handleToggle} style={{
-        flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', padding: 0, position: 'relative',
-        width: 18, height: 18,
-        color: item.checked ? '#10b981' : 'var(--text-faint)',
-        transition: 'color 200ms cubic-bezier(0.23,1,0.32,1)',
+      {/* The phone's box: filled with the accent once packed, an outline until then. */}
+      <button type="button" onClick={handleToggle} className="packing-check" aria-pressed={!!item.checked} style={{
+        flexShrink: 0, cursor: 'pointer', padding: 0, width: 20, height: 20, borderRadius: 6,
+        display: 'grid', placeItems: 'center',
+        border: `1.5px solid ${item.checked ? 'var(--accent)' : 'var(--text-faint)'}`,
+        background: item.checked ? 'var(--accent)' : 'transparent',
+        color: 'var(--accent-text)',
+        transition: 'background 180ms cubic-bezier(0.23,1,0.32,1), border-color 180ms cubic-bezier(0.23,1,0.32,1)',
       }}>
-        <Square size={18} style={{
-          position: 'absolute', inset: 0,
-          opacity: item.checked ? 0 : 1,
-          transform: item.checked ? 'scale(0.7)' : 'scale(1)',
-          transition: 'opacity 180ms cubic-bezier(0.23,1,0.32,1), transform 180ms cubic-bezier(0.23,1,0.32,1)',
-        }} />
-        <CheckSquare size={18} style={{
-          position: 'absolute', inset: 0,
+        <Check size={12} strokeWidth={3} style={{
           opacity: item.checked ? 1 : 0,
           transform: item.checked ? 'scale(1)' : 'scale(0.5)',
           transition: 'opacity 200ms cubic-bezier(0.23,1,0.32,1), transform 220ms cubic-bezier(0.34,1.56,0.64,1)',
@@ -162,7 +181,7 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange: _onCa
           onKeyDown={e => { if (e.key === 'Enter') handleSaveName(); if (e.key === 'Escape') { setEditing(false); setEditName(isPlaceholder ? '' : item.name) } }}
           style={{ flex: 1, minWidth: 0, fontSize: 'calc(13.5px * var(--fs-scale-body, 1))', padding: '2px 8px', borderRadius: 6, border: '1px solid var(--border-primary)', outline: 'none', fontFamily: 'inherit' }}
         />
-      ) : canEdit && !item.checked ? (
+      ) : canEdit ? (
         <button
           type="button"
           onClick={() => setEditing(true)}
@@ -176,34 +195,44 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange: _onCa
         </span>
       )}
 
-      {/* Sharing badges (#858 three-tier) */}
+      {/* Sharing badges (#858 three-tier), as compact chips like the phone's
+          (#1525): the full sentence is the tooltip and the accessible name. */}
       {!isPlaceholder && sharedToMe && (
-        <span className="packing-row-badge" title={t('packing.takenCareOf', { name: item.owner_username || '' })}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0, fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--accent)', background: 'color-mix(in srgb, var(--accent) 12%, transparent)', padding: '1px 7px', borderRadius: 99 }}>
-          <HandHelping size={10} /> {t('packing.takenCareOf', { name: item.owner_username || '' })}
+        <span className="packing-row-badge" title={t('packing.takenCareOf', { name: item.owner_username || '' })} aria-label={t('packing.takenCareOf', { name: item.owner_username || '' })}
+          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, width: 22, height: 22, borderRadius: 99, color: 'var(--accent)', background: 'color-mix(in srgb, var(--accent) 12%, transparent)' }}>
+          <HandHelping size={12} />
         </span>
       )}
       {!isPlaceholder && sharedByMe && (
-        <span className="packing-row-badge" title={recipients.map(r => r.username).join(', ')}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0, fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-muted)', background: 'var(--bg-tertiary)', padding: '1px 7px', borderRadius: 99 }}>
-          <UserRound size={10} /> {t('packing.sharedWithCount', { count: recipients.length })}
+        <span className="packing-row-badge" title={`${t('packing.sharedWithCount', { count: recipients.length })}: ${recipients.map(r => r.username).join(', ')}`} aria-label={t('packing.sharedWithCount', { count: recipients.length })}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0, height: 22, padding: '0 7px', borderRadius: 99, fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 700, color: 'var(--text-muted)', background: 'var(--bg-tertiary)' }}>
+          <UserRound size={11} /> {recipients.length}
         </span>
       )}
       {!isPlaceholder && broughtBy && (
-        <span className="packing-row-badge" title={t('packing.broughtBy', { name: broughtBy })}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0, fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-faint)', padding: '1px 4px' }}>
-          <Users size={10} /> {broughtBy}{contributors.length > 0 ? ` +${contributors.length}` : ''}
+        <span className="packing-row-badge" title={t('packing.broughtBy', { name: broughtBy })} aria-label={t('packing.broughtBy', { name: broughtBy })}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0 }}>
+          {ownerAvatar
+            ? <img src={ownerAvatar} alt="" style={{ width: 20, height: 20, borderRadius: '50%', objectFit: 'cover', display: 'block' }} />
+            : (
+              <span aria-hidden style={{
+                width: 20, height: 20, borderRadius: '50%', display: 'grid', placeItems: 'center',
+                background: `hsl(${(broughtBy.codePointAt(0) ?? 0) * 37 % 360}, 55%, 55%)`, // theme-lint-disable: the colour comes from the bringer's name
+                color: 'white', fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 700, textTransform: 'uppercase',
+              }}>{broughtBy[0]}</span>
+            )}
+          {contributors.length > 0 && <span style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 700, color: 'var(--text-faint)' }}>+{contributors.length}</span>}
         </span>
       )}
 
       <div className="packing-row-inline-actions" style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
         {/* Quantity */}
-        {canEdit && <QuantityInput value={item.quantity || 1} onSave={qty => updatePackingItem(tripId, item.id, { quantity: qty })} />}
+        {canEdit && <QuantityInput value={quantity} onSave={qty => updatePackingItem(tripId, item.id, { quantity: qty })} style={badge(active || quantity > 1)} />}
 
         {/* Weight + Bag (when enabled) */}
         {bagTrackingEnabled && (
           <>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 2, border: '1px solid var(--border-primary)', borderRadius: 8, padding: '3px 6px', background: 'transparent' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 2, border: '1px solid var(--border-primary)', borderRadius: 8, padding: '3px 6px', background: 'transparent', ...badge(active || item.weight_grams != null) }}>
             <NumericInput
               value={item.weight_grams ?? ''}
               readOnly={!canEdit}
@@ -224,127 +253,65 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange: _onCa
                 width: 22, height: 22, borderRadius: '50%', cursor: canEdit ? 'pointer' : 'default', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
                 border: item.bag_id ? `2.5px solid ${selectedBag?.color || 'var(--border-primary)'}` : '2px dashed var(--border-primary)',
                 background: item.bag_id ? `${selectedBag?.color || 'var(--border-primary)'}30` : 'transparent',
+                opacity: item.bag_id || active ? 1 : 0.45, transition: 'opacity 120ms ease',
               }}
             >
               {!item.bag_id && <Package size={9} className="text-content-faint" />}
             </button>
             {showBagPicker && (
-              <div style={{
-                position: 'absolute', right: 0, top: '100%', marginTop: 4, zIndex: 50,
-                background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 10,
-                boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: 4, minWidth: 160,
-              }}>
+              <>
+              <div role="presentation" style={{ position: 'fixed', inset: 0, zIndex: 49 }} onClick={() => { setShowBagPicker(false); setBagInlineCreate(false); setBagInlineName('') }} />
+              <div className="trek-menu-enter" style={{ ...POPOVER, position: 'absolute', right: 0, top: '100%', marginTop: 6, zIndex: 50, width: 210 }}>
+                <div style={POPOVER_CAPTION}>{t('packing.bags')}</div>
                 {item.bag_id && (
-                  <button type="button" onClick={async () => { setShowBagPicker(false); try { await updatePackingItem(tripId, item.id, { bag_id: null }) } catch { toast.error(t('packing.toast.saveError')) } }}
-                    style={{ display: 'flex', alignItems: 'center', gap: 7, width: '100%', padding: '6px 10px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontFamily: 'inherit', color: 'var(--text-faint)', borderRadius: 7 }}>
-                    <span style={{ width: 10, height: 10, borderRadius: '50%', border: '2px dashed var(--border-primary)' }} />
-                    {t('packing.noBag')}
-                  </button>
+                  <PopoverItem icon={<span style={{ width: 10, height: 10, borderRadius: '50%', border: '1.5px dashed var(--text-faint)', display: 'inline-block' }} />} label={t('packing.noBag')}
+                    onClick={async () => { setShowBagPicker(false); try { await updatePackingItem(tripId, item.id, { bag_id: null }) } catch { toast.error(t('packing.toast.saveError')) } }} />
                 )}
                 {bags.map(b => (
-                  <button type="button" key={b.id} onClick={async () => { setShowBagPicker(false); try { await updatePackingItem(tripId, item.id, { bag_id: b.id }) } catch { toast.error(t('packing.toast.saveError')) } }}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 7, width: '100%', padding: '6px 10px',
-                      background: item.bag_id === b.id ? 'var(--bg-tertiary)' : 'none',
-                      border: 'none', cursor: 'pointer', fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontFamily: 'inherit', color: 'var(--text-secondary)', borderRadius: 7,
-                    }}
-                    onMouseEnter={e => { if (item.bag_id !== b.id) e.currentTarget.style.background = 'var(--bg-tertiary)' }}
-                    onMouseLeave={e => { if (item.bag_id !== b.id) e.currentTarget.style.background = 'none' }}>
-                    <span style={{ width: 10, height: 10, borderRadius: '50%', background: b.color, flexShrink: 0 }} />
-                    {b.name}
-                  </button>
+                  <PopoverItem key={b.id} icon={<span style={{ width: 10, height: 10, borderRadius: '50%', background: b.color, display: 'inline-block' }} />} label={b.name} active={item.bag_id === b.id}
+                    onClick={async () => { setShowBagPicker(false); try { await updatePackingItem(tripId, item.id, { bag_id: b.id }) } catch { toast.error(t('packing.toast.saveError')) } }} />
                 ))}
-                {bags.length > 0 && <div style={{ height: 1, background: 'var(--bg-tertiary)', margin: '4px 0' }} />}
-                <div style={{ padding: '4px 6px' }}>
-                  {bagInlineCreate ? (
-                    <div style={{ display: 'flex', gap: 4 }}>
-                      <input autoFocus value={bagInlineName} onChange={e => setBagInlineName(e.target.value)}
-                        onKeyDown={async e => {
-                          if (e.key === 'Enter' && bagInlineName.trim()) {
-                            const newBag = await onCreateBag(bagInlineName.trim())
-                            if (newBag) { try { await updatePackingItem(tripId, item.id, { bag_id: newBag.id }) } catch { toast.error(t('packing.toast.saveError')) } }
-                            setBagInlineName(''); setBagInlineCreate(false); setShowBagPicker(false)
-                          }
-                          if (e.key === 'Escape') { setBagInlineCreate(false); setBagInlineName('') }
-                        }}
-                        placeholder={t('packing.bagName')}
-                        style={{ flex: 1, padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border-primary)', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontFamily: 'inherit', outline: 'none' }} />
-                      <button type="button" onClick={async () => {
-                        if (bagInlineName.trim()) {
+                {bags.length > 0 && <div style={POPOVER_DIVIDER} />}
+                {bagInlineCreate ? (
+                  <div style={{ display: 'flex', gap: 6, padding: 4 }}>
+                    <input autoFocus value={bagInlineName} onChange={e => setBagInlineName(e.target.value)}
+                      onKeyDown={async e => {
+                        if (e.key === 'Enter' && bagInlineName.trim()) {
                           const newBag = await onCreateBag(bagInlineName.trim())
                           if (newBag) { try { await updatePackingItem(tripId, item.id, { bag_id: newBag.id }) } catch { toast.error(t('packing.toast.saveError')) } }
                           setBagInlineName(''); setBagInlineCreate(false); setShowBagPicker(false)
                         }
+                        if (e.key === 'Escape') { setBagInlineCreate(false); setBagInlineName('') }
                       }}
-                        style={{ padding: '3px 6px', borderRadius: 6, border: 'none', background: 'var(--text-primary)', color: 'var(--bg-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-                        <Plus size={11} />
-                      </button>
-                    </div>
-                  ) : (
-                    <button type="button" onClick={() => setBagInlineCreate(true)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 5, width: '100%', padding: '5px 6px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontFamily: 'inherit', color: 'var(--text-faint)', borderRadius: 7 }}
-                      onMouseEnter={e => e.currentTarget.style.color = 'var(--text-secondary)'}
-                      onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
-                      <Plus size={11} /> {t('packing.addBag')}
+                      placeholder={t('packing.bagName')}
+                      style={{ flex: 1, minWidth: 0, padding: '6px 9px', borderRadius: 8, border: '1px solid var(--border-primary)', fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontFamily: 'inherit', outline: 'none', color: 'var(--text-primary)', background: 'var(--bg-input)' }} />
+                    <button type="button" aria-label={t('common.add')} onClick={async () => {
+                      if (bagInlineName.trim()) {
+                        const newBag = await onCreateBag(bagInlineName.trim())
+                        if (newBag) { try { await updatePackingItem(tripId, item.id, { bag_id: newBag.id }) } catch { toast.error(t('packing.toast.saveError')) } }
+                        setBagInlineName(''); setBagInlineCreate(false); setShowBagPicker(false)
+                      }
+                    }}
+                      style={{ width: 30, borderRadius: 8, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', cursor: 'pointer', display: 'grid', placeItems: 'center', flexShrink: 0, opacity: bagInlineName.trim() ? 1 : 0.35 }}>
+                      <Plus size={13} strokeWidth={2.5} />
                     </button>
-                  )}
-                </div>
+                  </div>
+                ) : (
+                  <PopoverItem icon={<Plus size={13} />} label={t('packing.addBag')} muted onClick={() => setBagInlineCreate(true)} />
+                )}
               </div>
+              </>
             )}
           </div>
           </>
         )}
       </div>
 
+      {/* Deleting stays one click away; moving, sharing and renaming live in the
+          menu next to it, and a click on the name renames as well. */}
       {canEdit && (
-      <div className="packing-row-inline-actions" style={{ display: 'flex', gap: 2, alignItems: 'center', flexShrink: 0 }}>
-        <div style={{ position: 'relative' }}>
-          <button type="button"
-            onClick={() => setShowCatPicker(p => !p)}
-            title={t('packing.changeCategory')}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '3px 5px', borderRadius: 6, display: 'flex', alignItems: 'center', color: 'var(--text-faint)', fontSize: 'calc(10px * var(--fs-scale-caption, 1))', gap: 2 }}
-          >
-            <span style={{ width: 7, height: 7, borderRadius: '50%', background: katColor(item.category || t('packing.defaultCategory'), categories), display: 'inline-block' }} />
-          </button>
-          {showCatPicker && (
-            <div style={{
-              position: 'absolute', right: 0, top: '100%', zIndex: 50, background: 'var(--bg-card)',
-              border: '1px solid var(--border-primary)', borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
-              padding: 4, minWidth: 140,
-            }}>
-              {categories.map(cat => (
-                <button type="button" key={cat} onClick={() => handleCatChange(cat)} style={{
-                  display: 'flex', alignItems: 'center', gap: 7, width: '100%',
-                  padding: '6px 10px', background: cat === (item.category || t('packing.defaultCategory')) ? 'var(--bg-tertiary)' : 'none',
-                  border: 'none', cursor: 'pointer', fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', fontFamily: 'inherit',
-                  color: 'var(--text-secondary)', borderRadius: 7, textAlign: 'left',
-                }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: katColor(cat, categories), flexShrink: 0 }} />
-                  {cat}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {canShare && onClone && onJoin && onLeave && (
-          <PackingShareControl
-            item={item}
-            tripMembers={tripMembers}
-            currentUserId={currentUserId}
-            onSetSharing={onSetSharing!}
-            onClone={onClone}
-            onJoin={onJoin}
-            onLeave={onLeave}
-          />
-        )}
-
-        <button type="button" onClick={() => setEditing(true)} title={t('common.rename')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '3px 4px', borderRadius: 6, display: 'flex', color: 'var(--text-faint)' }}
-          onMouseEnter={e => e.currentTarget.style.color = 'var(--text-secondary)'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
-          <Pencil size={13} />
-        </button>
-
-        <button type="button" onClick={handleDelete} title={t('common.delete')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '3px 4px', borderRadius: 6, display: 'flex', color: 'var(--text-faint)' }}
+      <div className="packing-row-inline-actions" style={{ display: 'flex', gap: 2, alignItems: 'center', flexShrink: 0, ...reveal(active) }}>
+        <button type="button" onClick={handleDelete} title={t('common.delete')} aria-label={t('common.delete')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '3px 4px', borderRadius: 6, display: 'flex', color: 'var(--text-faint)' }}
           onMouseEnter={e => e.currentTarget.style.color = '#ef4444'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
           <Trash2 size={13} />
         </button>
@@ -352,12 +319,13 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange: _onCa
       )}
 
       {canEdit && (
-        <div className="packing-row-overflow" style={{ display: 'none', flexShrink: 0, position: 'relative' }}>
+        <div className="packing-row-overflow" style={{ display: 'flex', flexShrink: 0, position: 'relative', ...reveal(active) }}>
           <button type="button"
             ref={itemMenuBtnRef}
             onClick={() => setShowItemMenu(m => !m)}
             title={t('common.showMore')}
-            style={{ width: 30, height: 30, borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-faint)', padding: 0 }}
+            aria-label={t('common.showMore')} aria-expanded={showItemMenu}
+            style={{ width: 26, height: 26, borderRadius: 7, border: 'none', background: showItemMenu ? 'var(--bg-tertiary)' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-faint)', padding: 0 }}
           >
             <MoreHorizontal size={16} />
           </button>
@@ -367,19 +335,17 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange: _onCa
               <>
                 <div role="presentation" style={{ position: 'fixed', inset: 0, zIndex: 1098 }} onClick={() => { setShowItemMenu(false); setShowMenuCategories(false) }} />
                 <div className="trek-menu-enter" style={{
+                  ...POPOVER,
                   position: 'fixed',
                   right: rect ? Math.max(8, window.innerWidth - rect.right) : 8,
-                  top: rect ? rect.bottom + 4 : 0,
+                  top: rect ? rect.bottom + 6 : 0,
                   zIndex: 1099,
-                  width: 'min(260px, calc(100vw - 16px))',
+                  width: 'min(240px, calc(100vw - 16px))',
                   maxHeight: '70vh',
                   overflowY: 'auto',
-                  background: 'var(--bg-card)',
-                  border: '1px solid var(--border-primary)',
-                  borderRadius: 10,
-                  boxShadow: '0 8px 28px rgba(0,0,0,0.18)',
-                  padding: 6,
                 }}>
+                  {/* Quantity, weight and bag sit in the row itself on a wide screen. */}
+                  <div className="packing-menu-phone-only">
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '6px 8px' }}>
                     <span style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 700, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: 0 }}>{t('packing.quantity')}</span>
                     <QuantityInput value={item.quantity || 1} onSave={qty => updatePackingItem(tripId, item.id, { quantity: qty })} />
@@ -405,13 +371,13 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange: _onCa
                         </div>
                       </div>
                       <div style={{ padding: '2px 0' }}>
-                        <OverflowMenuItem icon={<Package size={13} />} label={selectedBag?.name || t('packing.noBag')} onClick={async () => {
+                        <PopoverItem icon={<Package size={13} />} label={selectedBag?.name || t('packing.noBag')} onClick={async () => {
                           if (item.bag_id) {
                             try { await updatePackingItem(tripId, item.id, { bag_id: null }) } catch { toast.error(t('packing.toast.saveError')) }
                           }
                         }} />
                         {bags.map(b => (
-                          <OverflowMenuItem key={b.id} icon={<span style={{ width: 10, height: 10, borderRadius: '50%', background: b.color, display: 'inline-block' }} />} label={b.name} active={item.bag_id === b.id} onClick={async () => {
+                          <PopoverItem key={b.id} icon={<span style={{ width: 10, height: 10, borderRadius: '50%', background: b.color, display: 'inline-block' }} />} label={b.name} active={item.bag_id === b.id} onClick={async () => {
                             setShowItemMenu(false)
                             try { await updatePackingItem(tripId, item.id, { bag_id: b.id }) } catch { toast.error(t('packing.toast.saveError')) }
                           }} />
@@ -420,34 +386,35 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange: _onCa
                     </>
                   )}
 
-                  <div style={{ height: 1, background: 'var(--bg-tertiary)', margin: '4px 0' }} />
-                  <OverflowMenuItem icon={<span style={{ width: 9, height: 9, borderRadius: '50%', background: katColor(item.category || t('packing.defaultCategory'), categories), display: 'inline-block' }} />} label={t('packing.changeCategory')} onClick={() => setShowMenuCategories(v => !v)} />
+                  <div style={POPOVER_DIVIDER} />
+                  </div>
+                  <PopoverItem icon={<span style={{ width: 9, height: 9, borderRadius: '50%', background: katColor(item.category || t('packing.defaultCategory'), categories), display: 'inline-block' }} />} label={t('packing.changeCategory')} onClick={() => setShowMenuCategories(v => !v)}
+                    trailing={showMenuCategories ? <ChevronDown size={13} style={{ color: 'var(--text-faint)', flexShrink: 0 }} /> : <ChevronRight size={13} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />} />
                   {showMenuCategories && (
-                    <div style={{ padding: '2px 0 4px 18px' }}>
+                    <div style={{ margin: '2px 0 4px 18px', paddingLeft: 6, borderLeft: '1px solid var(--border-faint)' }}>
                       {categories.map(cat => (
-                        <OverflowMenuItem key={cat} icon={<span style={{ width: 8, height: 8, borderRadius: '50%', background: katColor(cat, categories), display: 'inline-block' }} />} label={cat} active={cat === (item.category || t('packing.defaultCategory'))} onClick={() => handleCatChange(cat)} />
+                        <PopoverItem key={cat} icon={<span style={{ width: 8, height: 8, borderRadius: '50%', background: katColor(cat, categories), display: 'inline-block' }} />} label={cat} active={cat === (item.category || t('packing.defaultCategory'))} onClick={() => handleCatChange(cat)} />
                       ))}
                     </div>
                   )}
 
                   {canShare && onClone && onJoin && onLeave && (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '6px 8px' }}>
-                      <span style={{ fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', color: 'var(--text-secondary)' }}>{t('packing.share')}</span>
-                      <PackingShareControl
-                        item={item}
-                        tripMembers={tripMembers}
-                        currentUserId={currentUserId}
-                        onSetSharing={onSetSharing!}
-                        onClone={onClone}
-                        onJoin={onJoin}
-                        onLeave={onLeave}
-                      />
-                    </div>
+                    <PackingShareControl
+                      variant="menu"
+                      item={item}
+                      tripMembers={tripMembers}
+                      currentUserId={currentUserId}
+                      onSetSharing={onSetSharing!}
+                      onClone={onClone}
+                      onJoin={onJoin}
+                      onLeave={onLeave}
+                      onAction={() => setShowItemMenu(false)}
+                    />
                   )}
 
-                  <div style={{ height: 1, background: 'var(--bg-tertiary)', margin: '4px 0' }} />
-                  <OverflowMenuItem icon={<Pencil size={13} />} label={t('common.rename')} onClick={() => { setEditing(true); setShowItemMenu(false) }} />
-                  <OverflowMenuItem icon={<Trash2 size={13} />} label={t('common.delete')} danger onClick={() => { setShowItemMenu(false); handleDelete() }} />
+                  <div style={POPOVER_DIVIDER} />
+                  <PopoverItem icon={<Pencil size={13} />} label={t('common.rename')} onClick={() => { setEditing(true); setShowItemMenu(false) }} />
+                  <PopoverItem icon={<Trash2 size={13} />} label={t('common.delete')} danger onClick={() => { setShowItemMenu(false); handleDelete() }} />
                 </div>
               </>
             )
@@ -455,33 +422,5 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange: _onCa
         </div>
       )}
     </div>
-  )
-}
-
-interface OverflowMenuItemProps {
-  icon: ReactNode
-  label: string
-  onClick: () => void
-  active?: boolean
-  danger?: boolean
-}
-
-function OverflowMenuItem({ icon, label, onClick, active = false, danger = false }: OverflowMenuItemProps) {
-  return (
-    <button type="button"
-      onClick={onClick}
-      style={{
-        display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-        padding: '7px 9px', borderRadius: 7, border: 'none', cursor: 'pointer',
-        background: active ? 'var(--bg-tertiary)' : 'none',
-        color: danger ? '#ef4444' : 'var(--text-secondary)',
-        fontFamily: 'inherit', fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', textAlign: 'left',
-      }}
-      onMouseEnter={e => { if (!active) e.currentTarget.style.background = danger ? '#fef2f2' : 'var(--bg-tertiary)' }}
-      onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'none' }}
-    >
-      <span style={{ width: 14, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{icon}</span>
-      <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
-    </button>
   )
 }

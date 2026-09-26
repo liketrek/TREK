@@ -23,6 +23,7 @@ import type { KiReservation } from '../../booking-import/kitinerary.types';
 import { nuExtractToKiReservations } from '../clients/nuextract';
 import { FLAT_SCHEMA_BY_TYPE, FLAT_TYPES, FLIGHTS_ARRAY_SCHEMA, UNION_SINGLE_SCHEMA, type FlatType, type FlatLike } from './flat-schemas';
 import { extractEnforced } from './ollama-format.client';
+import { parseLenientJson } from '../lenient-json';
 
 export interface RouterContext {
   baseUrl: string;
@@ -44,6 +45,24 @@ const TYPE_HINT: Record<FlatType, string> = {
   restaurant: 'restaurant booking. name = the restaurant, address = its street address, start_time = the reservation date-time as full ISO (24-hour), price/currency = total if shown.',
   event: 'event/attraction. name = the event/ticket, address = the venue, start_time/end_time = full ISO, price/currency = ticket price.',
 };
+
+/**
+ * The union prompt for a photo. Text has keywords that pick a type-specific
+ * schema and hint before the call; a photo has none, so the model gets every
+ * type's field meanings at once. Without them qwen3.5:4b read a train ticket
+ * as bare clock times with no stations, and its price as a JSON object inside
+ * the string.
+ */
+const PHOTO_UNION_HINT = [
+  'Pick the correct "type", then fill its fields:',
+  '- flight: vehicle_number = flight number, from_code/to_code = IATA codes.',
+  '- train, bus, ferry: from_name/to_name = stations, stops or ports, vehicle_number = train or line number.',
+  '- car: operator = rental company, from_name = pick-up location, to_name = return location.',
+  '- hotel: name, address, checkin_time/checkout_time.',
+  '- restaurant, event: name, address = the venue, start_time (and end_time).',
+  "Every time is full ISO 'YYYY-MM-DDTHH:MM:00' (a transport uses departure_time/arrival_time).",
+  'price = the total paid as a plain number like 49.00, currency = its ISO 4217 code.',
+].join('\n');
 
 /**
  * Keyword → reservation type, so an obvious document skips the costlier union/strong path.
@@ -213,21 +232,23 @@ async function extractFlights(text: string, ctx: RouterContext): Promise<FlatLik
 
 /** One enforced call for a single reservation — a type-specific schema when the type is
  *  obvious from keywords, else a union schema the model fills with the type it picks. */
-async function extractSingle(text: string, ctx: RouterContext): Promise<FlatLike> {
+async function extractSingle(text: string, ctx: RouterContext, images?: Buffer[]): Promise<FlatLike> {
   const known = detectType(text);
   const call = (schema: Record<string, unknown>, hint: string) =>
     extractEnforced({
       baseUrl: ctx.baseUrl, model: ctx.model, apiKey: ctx.apiKey,
       system: `Extract the single reservation from the document into the flat fields. ${hint} Omit any field that is truly absent.`,
-      user: `Document:\n${text}`,
+      user: images?.length ? 'The document is the attached photo.' : `Document:\n${text}`,
       schema,
+      // A photo costs far more prompt tokens than the text of the same page.
+      ...(images?.length ? { images: images.map((image) => image.toString('base64')), numCtx: 16384 } : {}),
     });
 
   if (known) {
     const out = (await call(FLAT_SCHEMA_BY_TYPE[known], `It is a ${TYPE_HINT[known]}`)) ?? {};
     return fixArrivalDate(normalizeDates({ ...out, type: known }));
   }
-  const out = (await call(UNION_SINGLE_SCHEMA, 'Pick the correct "type".')) ?? {};
+  const out = (await call(UNION_SINGLE_SCHEMA, images?.length ? PHOTO_UNION_HINT : 'Pick the correct "type".')) ?? {};
   // "I could not tell" used to be written down as "hotel", and a hotel is a
   // booking, so a ferry voucher imported from the Transport tab opened the
   // booking form with no transport type to pick and stayed 'other' (#2076).
@@ -297,4 +318,39 @@ export async function routeExtraction(text: string, ctx: RouterContext): Promise
 
   const kiItems = nuExtractToKiReservations(flats as unknown as Record<string, unknown>[]) as unknown as KiReservation[];
   return { kiItems, warnings };
+}
+
+/**
+ * The router for a photographed document: one enforced call with the photo
+ * attached, or the pages of a scanned PDF, one image each. There is no text to
+ * spot a flight number or a vendor in, so the model picks the type, and the
+ * booking-wide fields come from its answer alone.
+ */
+export async function routeImageExtraction(images: Buffer[], ctx: RouterContext): Promise<{ kiItems: KiReservation[]; warnings: string[] }> {
+  let flat: FlatLike;
+  try {
+    flat = unwrapPrice(await extractSingle('', ctx, images));
+  } catch (err) {
+    return { kiItems: [], warnings: [`AI parsing failed — ${err instanceof Error ? err.message : String(err)}`] };
+  }
+  const kiItems = nuExtractToKiReservations([flat] as unknown as Record<string, unknown>[]) as unknown as KiReservation[];
+  return { kiItems, warnings: [] };
+}
+
+/**
+ * The price as the amount alone. With no document text to take the total from,
+ * the model's `price` is all there is, and qwen3.5:4b writes it as an object
+ * inside the string (`{"amount": 49.00, "currency": "EUR"}`), which the amount
+ * parser then reads as 4900.
+ */
+function unwrapPrice(flat: FlatLike): FlatLike {
+  if (typeof flat.price !== 'string' || !flat.price.trim().startsWith('{')) return flat;
+  const inner = parseLenientJson(flat.price);
+  if (!inner || typeof inner !== 'object' || Array.isArray(inner)) return flat;
+  const { amount, currency } = inner as { amount?: unknown; currency?: unknown };
+  const out: FlatLike = { ...flat };
+  if (typeof amount === 'number' || typeof amount === 'string') out.price = String(amount);
+  else delete out.price;
+  if (!out.currency && typeof currency === 'string') out.currency = currency;
+  return out;
 }

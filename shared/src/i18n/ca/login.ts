@@ -67,6 +67,8 @@ const login: TranslationStrings = {
   'login.oidcOnly':
     "L'autenticació per contrasenya està desactivada. Si us plau, inicia la sessió amb el teu proveïdor SSO.",
   'login.oidcLoggedOut': 'Has tancat la sessió. Torna a iniciar-la amb el teu proveïdor SSO.',
+  'login.oidcRedirecting': 'Redirigint a {name}…',
+  'login.oidcRedirectSlow': 'Encara aquí? Continua a {name}',
   'login.passkey.signIn': 'Inicia la sessió amb una passkey',
   'login.passkey.failed': 'Error en iniciar la sessió amb la passkey. Torna-ho a provar.',
 

@@ -9,11 +9,11 @@ import { useToast } from '../shared/Toast'
 import { getApiErrorMessage } from '../../types'
 import type { JourneyEntry, GalleryPhoto, JourneyTrip } from '../../store/journeyStore'
 import { photoUrl, posterlessVideo } from '../../pages/journeyDetail/JourneyDetailPage.helpers'
-import { ProviderPicker } from './JourneyDetailPageProviderPicker'
+import { ProviderPicker, type ProviderPhotoGroup } from './JourneyDetailPageProviderPicker'
 import { ScrollTrigger } from './JourneyDetailPageScrollTrigger'
 import EmptyState from '../shared/EmptyState'
 
-export function GalleryView({ entries, gallery, journeyId, userId, trips, onPhotoClick, onRefresh, onRegisterUpload, onRegisterProviders }: {
+export function GalleryView({ entries, gallery, journeyId, userId, trips, onPhotoClick, onRefresh, onAddProviderPhotos, onRegisterUpload, onRegisterProviders }: {
   entries: JourneyEntry[]
   gallery: GalleryPhoto[]
   journeyId: number
@@ -21,6 +21,8 @@ export function GalleryView({ entries, gallery, journeyId, userId, trips, onPhot
   trips: JourneyTrip[]
   onPhotoClick: (photos: GalleryPhoto[], index: number) => void
   onRefresh: () => void
+  /** What the picker's Add does: the host's useProviderPhotoAdds, shared with the phone screen. */
+  onAddProviderPhotos: (journeyId: number, provider: string, groups: ProviderPhotoGroup[], entryId: number | null) => Promise<void>
   onRegisterUpload?: (fn: () => void) => void
   onRegisterProviders?: (providers: { id: string; name: string }[], browse: (provider: string) => void) => void
 }) {
@@ -208,27 +210,7 @@ export function GalleryView({ entries, gallery, journeyId, userId, trips, onPhot
           existingAssetIds={new Set(gallery.filter(p => p.asset_id).map(p => p.asset_id!))}
           onClose={() => setShowPicker(false)}
           onAdd={async (groups, entryId) => {
-            let added = 0
-            let anyFailed = false
-            for (const group of groups) {
-              try {
-                if (entryId) {
-                  const result = await journeyApi.addProviderPhotos(entryId, pickerProvider!, group.assetIds, undefined, group.passphrase, group.mediaTypes)
-                  added += result.added || 0
-                } else {
-                  const result = await journeyApi.addProviderPhotosToGallery(journeyId, pickerProvider!, group.assetIds, group.passphrase, group.mediaTypes)
-                  added += result.added || 0
-                }
-              } catch {
-                anyFailed = true
-              }
-            }
-            if (added > 0) {
-              toast.success(t('journey.photosAdded', { count: added }))
-              onRefresh()
-            } else if (anyFailed) {
-              toast.error(t('common.error'))
-            }
+            await onAddProviderPhotos(journeyId, pickerProvider!, groups, entryId)
             setShowPicker(false)
           }}
         />

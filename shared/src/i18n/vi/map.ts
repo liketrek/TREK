@@ -13,6 +13,7 @@ const map: TranslationStrings = {
   'poi.cat.museums': 'Bảo tàng & văn hóa',
   'poi.cat.nature': 'Thiên nhiên & công viên',
   'poi.cat.activities': 'Các hoạt động',
+  'poi.pluginCategories': 'Danh mục từ plugin',
   'map.showAllConnections': 'Hiển thị tất cả lộ trình đặt chỗ',
   'map.hideAllConnections': 'Ẩn tất cả lộ trình đặt chỗ',
   'map.baseLayer.default': 'Bản đồ',

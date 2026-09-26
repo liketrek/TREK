@@ -226,6 +226,9 @@ export class AdminService {
             id,
           );
         } catch { /* very old installs predate oauth_tokens */ }
+        // Push devices outlive every session, so the intruder's browser would
+        // keep receiving this account's notifications. They go with the rest.
+        this.db.run('DELETE FROM push_subscriptions WHERE user_id = ?', id);
       }
     });
 

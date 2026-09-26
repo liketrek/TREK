@@ -78,6 +78,8 @@ const settings: TranslationStrings = {
   'settings.temperature': 'Đơn vị nhiệt độ',
   'settings.distance': 'Đơn vị khoảng cách',
   'settings.timeFormat': 'Định dạng thời gian',
+  'settings.weekStart': 'Tuần bắt đầu vào',
+  'settings.weekStartHint': 'Ngày đầu tuần trong mọi bộ chọn ngày. Vacay có cài đặt riêng.',
   'settings.bookingLabels': 'Nhãn lộ trình đặt chỗ',
   'settings.bookingLabelsHint': 'Hiển thị tên ga/sân bay trên bản đồ. Khi tắt, chỉ có biểu tượng được hiển thị.',
   'settings.mapPoiPill': 'Khám phá các địa điểm trên bản đồ',
@@ -119,6 +121,19 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.pluginConfigured':
     'Đã cấu hình. Quản lý thông tin đăng nhập ở trang cài đặt của plugin.',
   'settings.notificationPreferences.ntfy': 'Ntfy',
+  'settings.notificationPreferences.push': 'Thông báo đẩy',
+  'settings.webPush.title': 'Thông báo đẩy trên thiết bị này',
+  'settings.webPush.hint':
+    'Hiển thị thông báo của TREK trên thiết bị này ngay cả khi TREK đang đóng. Những sự kiện nào được gửi đến tuân theo cột Thông báo đẩy.',
+  'settings.webPush.enable': 'Bật cho thiết bị này',
+  'settings.webPush.disable': 'Tắt cho thiết bị này',
+  'settings.webPush.enabled': 'Đã bật cho thiết bị này',
+  'settings.webPush.unsupported': 'Trình duyệt này không thể nhận thông báo đẩy.',
+  'settings.webPush.insecure': 'Thông báo đẩy cần mở TREK qua HTTPS.',
+  'settings.webPush.iosInstall': 'Trên iPhone và iPad, hãy thêm TREK vào Màn hình chính trước rồi mở từ đó.',
+  'settings.webPush.denied':
+    'Thông báo của TREK đang bị chặn trong trình duyệt này. Hãy cho phép trong cài đặt trình duyệt rồi thử lại.',
+  'settings.webPush.failed': 'Không thể bật thông báo đẩy cho thiết bị này.',
   'settings.notificationPreferences.noChannels':
     'Không có kênh thông báo nào được cấu hình. Yêu cầu quản trị viên thiết lập thông báo qua email hoặc webhook.',
   'settings.webhookUrl.label': 'Webhook URL',
@@ -384,9 +399,9 @@ const settings: TranslationStrings = {
   'settings.aiParsing.baseUrlHint': 'Nơi mô hình chạy — máy chủ Ollama cục bộ hoặc endpoint tương thích với OpenAI.',
   'settings.aiParsing.apiKey': 'Khóa API',
   'settings.aiParsing.apiKeyHint': 'Được lưu trữ mã hóa. Để trống để giữ khóa hiện tại.',
-  'settings.aiParsing.multimodal': 'Gửi tài liệu dưới dạng hình ảnh',
+  'settings.aiParsing.multimodal': 'Mô hình đọc được hình ảnh',
   'settings.aiParsing.multimodalHint':
-    'Dành cho các mô hình hỗ trợ thị giác — gửi PDF gốc thay vì văn bản đã trích xuất.',
+    'Bật cho mô hình đọc được hình ảnh để có thể nhập hoặc quét ảnh.',
   'settings.aiParsing.toast.saved': 'Đã lưu cài đặt AI',
   'settings.aiParsing.toast.saveError': 'Không thể lưu cài đặt AI',
   'settings.tabs.appearance': 'Giao diện',

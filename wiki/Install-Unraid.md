@@ -45,7 +45,7 @@ The Unraid template exposes the following fields in the container UI:
 
 ### Advanced Variables
 
-Additional variables (`PORT`, `NODE_ENV`, `LOG_LEVEL`, `TREK_WIKI_DIR`, `DEFAULT_LANGUAGE`, `FORCE_HTTPS`, `HSTS_INCLUDE_SUBDOMAINS`, `TRUST_PROXY`, `COOKIE_SECURE`, `ALLOW_INTERNAL_NETWORK`, `SESSION_DURATION`, `SESSION_DURATION_REMEMBER`, all OIDC variables, `MCP_RATE_LIMIT`, `MCP_MAX_SESSION_PER_USER`, `DEMO_MODE`, `UNSPLASH_ACCESS_KEY`) are available under **Advanced View** in the template editor.
+Additional variables (`PORT`, `NODE_ENV`, `LOG_LEVEL`, `TREK_WIKI_DIR`, `DEFAULT_LANGUAGE`, `FORCE_HTTPS`, `HSTS_INCLUDE_SUBDOMAINS`, `TRUST_PROXY`, `COOKIE_SECURE`, `ALLOW_INTERNAL_NETWORK`, `SESSION_DURATION`, `SESSION_DURATION_REMEMBER`, all OIDC variables, `MCP_RATE_LIMIT`, `MCP_MAX_SESSION_PER_USER`, `DEMO_MODE`, `UNSPLASH_ACCESS_KEY`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`) are available under **Advanced View** in the template editor.
 
 ## Setting the Encryption Key
 

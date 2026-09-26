@@ -18,8 +18,9 @@ import { useTranslation } from '../../i18n'
 import CustomTimePicker from '../shared/CustomTimePicker'
 import { DEFAULT_FORM, isMapUrl, mergeResult, type PlaceFormData, type ResultField } from './PlaceFormModal.helpers'
 import { getApiErrorMessage } from '../../utils/apiError'
-import { offersGoogleRetry, selectGoogleHoldsSlot, sourceLabelFor } from '../../utils/placeSource'
+import { corePickRank, offersGoogleRetry, selectGoogleHoldsSlot } from '../../utils/placeSource'
 import { useLocationBias } from '../../hooks/useLocationBias'
+import { usePlaceSuggestions } from '../../hooks/usePlaceSuggestions'
 import { BookingCostsSection } from './BookingCostsSection'
 import type { BookingExpenseRequest } from './BookingCostsSection.types'
 import type { Place, Category, Assignment, BudgetItem } from '../../types'
@@ -78,7 +79,8 @@ interface PlaceFormModalProps {
  *
  * `source`, `lat` and `lng` are optional because not every index fills them:
  * Google answers with neither, and the mark falls back to the name the whole
- * list carries.
+ * list carries. `place` is only on a plugin's row, which brings its whole place
+ * along because no details lookup knows a plugin id (#2221).
  */
 type Suggestion = {
   placeId: string
@@ -87,6 +89,7 @@ type Suggestion = {
   source?: string
   lat?: number
   lng?: number
+  place?: Record<string, unknown>
 }
 
 /** The mark itself. Quiet on purpose: it answers a question, it does not advertise. */
@@ -363,6 +366,7 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
   // thousand identically named places is meant. Autocomplete wants a box, the
   // search wants a point; useLocationBias derives both from the same places.
   const { box: locationBias, point: locationBiasPoint } = useLocationBias()
+  const { autocomplete, sourceLabel } = usePlaceSuggestions()
 
   /**
    * What a stop on a drive might be a second copy of, said while the form is being filled.
@@ -388,7 +392,7 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
     const controller = new AbortController()
     acAbortRef.current = controller
     try {
-      const result = await mapsApi.autocomplete(query, language, locationBias, controller.signal, placesSessionRef.current.current())
+      const result = await autocomplete(query, language, locationBias, controller.signal, placesSessionRef.current.current())
       acMetaRef.current = { query, source: result.source || 'unknown' }
       setAcSuggestions(result.suggestions || [])
       setAcSource(result.source || '')
@@ -399,7 +403,7 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
       console.error('Autocomplete failed:', err)
       setAcSuggestions([])
     }
-  }, [language, locationBias])
+  }, [autocomplete, language, locationBias])
 
   // Debounce effect — only watches mapsSearch
   useEffect(() => {
@@ -407,6 +411,8 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
 
     const trimmed = mapsSearch.trim()
     if (trimmed.length < 2 || isMapUrl(trimmed)) {
+      // A list still on its way belongs to a query that is gone.
+      acAbortRef.current?.abort()
       setAcSuggestions([])
       setAcHighlight(-1)
       placesSessionRef.current.end()
@@ -518,8 +524,8 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
 
   const handleSelectSuggestion = async (suggestion: Suggestion) => {
     // Read before the list is cleared: this is the rank the user saw.
-    const acRank = acSuggestions.findIndex(s => s.placeId === suggestion.placeId)
-    const acCount = acSuggestions.length
+    const acPick = corePickRank(acSuggestions, suggestion)
+    acAbortRef.current?.abort()
     setAcSuggestions([])
     setAcHighlight(-1)
     const previousSearch = mapsSearch
@@ -534,16 +540,18 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
       // miss and fall back to the reliable text-search path the search button
       // uses (its results already carry coordinates), so dropdown items stay
       // clickable instead of dead-ending on "Place search failed". (#1192)
-      let place: Record<string, unknown> | null = null
-      try {
-        // Spends the session the suggestions opened, so Google bills the search
-        // once rather than per keystroke.
-        const result = await mapsApi.details(suggestion.placeId, language, placesSessionRef.current.peek())
-        if (result.place && result.place.lat != null && result.place.lng != null) {
-          place = result.place
+      let place: Record<string, unknown> | null = suggestion.place ?? null
+      if (!place) {
+        try {
+          // Spends the session the suggestions opened, so Google bills the search
+          // once rather than per keystroke.
+          const result = await mapsApi.details(suggestion.placeId, language, placesSessionRef.current.peek())
+          if (result.place && result.place.lat != null && result.place.lng != null) {
+            place = result.place
+          }
+        } catch (err) {
+          console.error('Failed to fetch place details:', err)
         }
-      } catch (err) {
-        console.error('Failed to fetch place details:', err)
       }
       // Closed while the details were on their way: the pick belongs to an
       // opening that is over, and the fallback search below is not worth a
@@ -571,7 +579,7 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
         place = search.places?.[0] ?? null
       }
       if (place) {
-        handleSelectMapsResult(place, acRank >= 0 ? { mode: 'autocomplete', rank: acRank, count: acCount } : undefined)
+        handleSelectMapsResult(place, acPick && { mode: 'autocomplete', ...acPick })
       } else {
         setMapsSearch(previousSearch)
         toast.error(t('places.mapsSearchError'))
@@ -817,6 +825,7 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
     locationBias,
     searchInputRef,
     fetchSuggestions,
+    sourceLabel,
     handleChange,
     handleMapsSearch,
     handleSelectMapsResult,
@@ -895,6 +904,7 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
     locationBias,
     searchInputRef,
     fetchSuggestions,
+    sourceLabel,
     handleChange,
     handleMapsSearch,
     handleSelectMapsResult,
@@ -922,10 +932,11 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
   // Desktop + Collections addon → the saved-place picker on the right. Mobile
   // always keeps the original single-column form untouched.
   const twoColumn = !isMobile && collectionsEnabled
-  // The detail column sits on the left on desktop whenever enrichment is on. It
+  // The detail column sits on the left on desktop whenever enrichment is on; on
+  // mobile it stacks above the form (the aside is w-full below sm already). It
   // stays mounted with the selection null rather than appearing on the first
   // pick — otherwise the dialog would jump sideways mid-typing.
-  const showDetails = !isMobile && placesEnrichEnabled
+  const showDetails = placesEnrichEnabled
   const modalSize = isMobile ? 'lg' : showDetails && twoColumn ? '5xl' : showDetails || twoColumn ? '4xl' : 'lg'
   const descriptionRef = useRef<HTMLTextAreaElement | null>(null)
   const notesRef = useRef<HTMLTextAreaElement | null>(null)
@@ -957,7 +968,7 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
         </div>
       }
     >
-      <div className={twoColumn || showDetails ? 'flex gap-5 items-stretch' : ''}>
+      <div className={twoColumn || showDetails ? (isMobile ? 'flex flex-col gap-5' : 'flex gap-5 items-stretch') : ''}>
       {showDetails && (
         <PlaceDetailsColumn
           selection={detailsSelection}
@@ -1001,12 +1012,15 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
               </button>
             </div>
 
-            {/* Autocomplete dropdown */}
+            {/* Autocomplete dropdown. Capped and scrolling, because plugin rows can
+                follow the core ones (#2221) and the list must stay inside the dialog;
+                the row the arrow keys land on is scrolled into view. */}
             {acSuggestions.length > 0 && (
-              <div className="absolute left-0 right-0 z-20 mt-1 bg-surface-card rounded-lg border border-edge shadow-dropdown overflow-hidden">
+              <div className="absolute left-0 right-0 z-20 mt-1 max-h-96 overflow-y-auto bg-surface-card rounded-lg border border-edge shadow-dropdown">
                 {acSuggestions.map((s, idx) => (
                   <button
                     key={s.placeId}
+                    ref={idx === acHighlight ? (el) => el?.scrollIntoView?.({ block: 'nearest' }) : undefined}
                     type="button"
                     onMouseDown={() => handleSelectSuggestion(s)}
                     onMouseEnter={() => setAcHighlight(idx)}
@@ -1021,7 +1035,7 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
                           <div className="text-xs text-content-muted truncate">{s.secondaryText}</div>
                         )}
                       </div>
-                      <SourceBadge label={sourceLabelFor(s, acSource, t)} />
+                      <SourceBadge label={sourceLabel(s, acSource)} />
                     </div>
                   </button>
                 ))}
@@ -1044,7 +1058,7 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
                       <div className="font-medium text-sm truncate">{result.name}</div>
                       <div className="text-xs text-content-muted truncate">{result.address}</div>
                     </div>
-                    <SourceBadge label={sourceLabelFor(result, searchSource, t)} />
+                    <SourceBadge label={sourceLabel(result, searchSource)} />
                   </div>
                 </button>
               ))}

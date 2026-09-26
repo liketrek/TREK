@@ -3,14 +3,18 @@ import MTransportFormSheet from '../../../../src/mobile/screens/trip/sheets/MTra
 import type { TripPlanner } from '../../../../src/mobile/screens/trip/MTripShell'
 import { useAddonStore } from '../../../../src/store/addonStore'
 import { useTripStore } from '../../../../src/store/tripStore'
+import { useAuthStore } from '../../../../src/store/authStore'
+import { server } from '../../../helpers/msw/server'
+import { http, HttpResponse } from 'msw'
+import { buildBudgetItem, buildUser } from '../../../helpers/factories'
 import { useSettingsStore } from '../../../../src/store/settingsStore'
 import { isBlurred } from '../../../helpers/bookingCodeBlur'
 import type { Day, Reservation, TripMember } from '../../../../src/types'
 import { buildPlanner } from '../../../helpers/mobileTrip'
 import { resetAllStores, seedStore } from '../../../helpers/store'
-import { act, fireEvent, render, screen } from '../../../helpers/render'
+import { act, fireEvent, render, screen, waitFor } from '../../../helpers/render'
 
-// FE-MOB-TRFRM-001 to FE-MOB-TRFRM-052
+// FE-MOB-TRFRM-001 to FE-MOB-TRFRM-057
 //
 // The sheet's own pickers (airport/location search, day select, time picker) and
 // the embedded transit panel are replaced by minimal controlled stand-ins so the
@@ -94,11 +98,23 @@ vi.mock('../../../../src/components/Planner/TransitSearchPanel', () => ({
 }))
 
 vi.mock('../../../../src/mobile/screens/trip/sheets/PlFileAttach', () => ({
-  default: ({ files, onAdd, onRemove }: { files: File[]; onAdd: (f: File[]) => void; onRemove: (i: number) => void }) => (
+  default: ({ files, onAdd, onRemove, canAttach = true, attached = [], linkable = [], onLink }: {
+    files: File[]
+    onAdd: (f: File[]) => void
+    onRemove: (i: number) => void
+    canAttach?: boolean
+    attached?: { id: number; original_name: string }[]
+    linkable?: { id: number; original_name: string }[]
+    onLink?: (f: { id: number; original_name: string }) => Promise<boolean>
+  }) => (
     <div>
-      <button type="button" onClick={() => onAdd([new File(['x'], 'extra.pdf')])}>attach-file</button>
+      {canAttach && <button type="button" onClick={() => onAdd([new File(['x'], 'extra.pdf')])}>attach-file</button>}
       {files.map((f, i) => (
         <button key={`${f.name}-${i}`} type="button" onClick={() => onRemove(i)}>{`drop-${f.name}`}</button>
+      ))}
+      {attached.map(f => <span key={f.id}>{`attached-${f.original_name}`}</span>)}
+      {linkable.map(f => (
+        <button key={f.id} type="button" onClick={() => { void onLink?.(f) }}>{`link-${f.original_name}`}</button>
       ))}
     </div>
   ),
@@ -846,7 +862,7 @@ describe('MTransportFormSheet', () => {
       handleSaveTransport,
     })
     renderSheet(planner)
-    expect(screen.queryByRole('button', { name: 'reservations.createExpense' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Create expense' })).not.toBeInTheDocument()
     await submit()
     expect(handleSaveTransport.mock.calls[0][0]).not.toHaveProperty('create_budget_entry')
   })
@@ -910,7 +926,7 @@ describe('MTransportFormSheet', () => {
     fireEvent.click(screen.getByRole('button', { name: 'reservations.type.ferry' }))
     typeTitle('Ferry ticket')
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'reservations.createExpense' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Create expense' }))
     })
     expect(handleSaveTransport).toHaveBeenCalledTimes(1)
     expect(onOpenExpense).toHaveBeenCalledWith({
@@ -1048,5 +1064,57 @@ describe('MTransportFormSheet', () => {
     const fields = locationInputs()
     expect(fields).toHaveLength(2)
     for (const field of fields) expect(field).toHaveAttribute('data-picks', 'Fushimi Inari')
+  })
+
+  // ── Files and costs of a saved transport (#2084) ───────────────────────────
+
+  const SHINKANSEN = {
+    id: 61, trip_id: 1, type: 'train', title: 'Shinkansen', status: 'confirmed', day_id: 12, metadata: {}, endpoints: [],
+  } as unknown as Reservation
+  const TRIP_FILES = [
+    { id: 7, trip_id: 1, reservation_id: 61, original_name: 'eticket.pdf', url: '/uploads/eticket.pdf', deleted_at: null },
+    { id: 8, trip_id: 1, original_name: 'railpass.pdf', url: '/uploads/railpass.pdf', deleted_at: null },
+  ]
+
+  it('FE-MOB-TRFRM-054: an edited transport lists its files and links another trip file to itself', async () => {
+    seedStore(useAuthStore, { user: buildUser({ id: 1 }) })
+    seedStore(useTripStore, { trip: { id: 1, user_id: 1, currency: 'EUR' } as never, files: TRIP_FILES as never })
+    let body: unknown = null
+    server.use(
+      http.post('/api/trips/1/files/8/link', async ({ request }) => {
+        body = await request.json()
+        return HttpResponse.json({ success: true })
+      }),
+      http.get('/api/trips/1/files', () => HttpResponse.json({ files: TRIP_FILES })),
+    )
+    renderSheet(makePlanner({ editingTransport: SHINKANSEN }))
+    expect(screen.getByText('attached-eticket.pdf')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'link-railpass.pdf' }))
+    await waitFor(() => expect(body).toEqual({ reservation_id: 61 }))
+  })
+
+  it('FE-MOB-TRFRM-055: without upload permission the files of a transport are still shown, without the picker', () => {
+    seedStore(useTripStore, { files: TRIP_FILES as never })
+    renderSheet(makePlanner({ editingTransport: SHINKANSEN, canUploadFiles: false }))
+    expect(screen.getByText('attached-eticket.pdf')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'attach-file' })).not.toBeInTheDocument()
+    // Nobody is signed in here, so linking is not offered either.
+    expect(screen.queryByRole('button', { name: 'link-railpass.pdf' })).not.toBeInTheDocument()
+  })
+
+  it('FE-MOB-TRFRM-056: a linked expense of the transport opens in the cost sheet for editing', () => {
+    const fare = buildBudgetItem({ id: 90, trip_id: 1, name: 'Train fare', total_price: 140, reservation_id: 61 })
+    seedStore(useTripStore, { trip: { id: 1, currency: 'EUR' } as never, budgetItems: [fare] })
+    const onOpenExpense = vi.fn()
+    renderSheet(makePlanner({ editingTransport: SHINKANSEN }), onOpenExpense)
+    fireEvent.click(screen.getByText('Train fare'))
+    expect(onOpenExpense).toHaveBeenCalledWith({ editItem: fare })
+  })
+
+  it('FE-MOB-TRFRM-057: a new transport has nothing to link its costs to yet', () => {
+    seedStore(useTripStore, { trip: { id: 1, currency: 'EUR' } as never, budgetItems: [buildBudgetItem({ id: 91, trip_id: 1, name: 'Loose' })] })
+    renderSheet(makePlanner())
+    expect(screen.getByRole('button', { name: 'Create expense' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Link' })).not.toBeInTheDocument()
   })
 })

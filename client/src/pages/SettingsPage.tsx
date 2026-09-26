@@ -10,6 +10,8 @@ import NotificationsTab from '../components/Settings/NotificationsTab'
 import IntegrationsTab from '../components/Settings/IntegrationsTab'
 import AccountTab from '../components/Settings/AccountTab'
 import AboutTab from '../components/Settings/AboutTab'
+import HelpAnchor from '../components/Help/HelpAnchor'
+import { getHelpContext } from '../help/registry'
 import OfflineTab from '../components/Settings/OfflineTab'
 import PluginSettingsTab from '../components/Settings/PluginSettingsTab'
 import { usePluginStore } from '../store/pluginStore'
@@ -26,6 +28,8 @@ function SettingsPageDesktop(): React.ReactElement {
   // Page = wiring container: addon/version loading + active-tab state in the hook.
   const { hasIntegrations, appVersion, activeTab, setActiveTab, managed } = useSettings()
   const hasPlugins = usePluginStore(s => s.plugins.length > 0)
+  // Every tab is its own help screen; a tab without one falls back to the settings overview.
+  const helpId = getHelpContext(`settings-${activeTab}`) ? `settings-${activeTab}` : 'settings'
 
   const tabs: PageSidebarTab[] = [
     { id: 'display', label: t('settings.tabs.display'), icon: SlidersHorizontal },
@@ -53,6 +57,7 @@ function SettingsPageDesktop(): React.ReactElement {
     <PageShell background="var(--bg-secondary)">
       <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
+          <HelpAnchor id={helpId} />
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-surface-tertiary">
               <Settings className="w-5 h-5 text-content-secondary" />

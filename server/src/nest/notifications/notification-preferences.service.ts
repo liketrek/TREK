@@ -80,6 +80,16 @@ export class NotificationPreferencesService {
     return channel.source === 'plugin' || this.getActiveChannels().includes(channel.id);
   }
 
+  /**
+   * Is the channel offered to users at all right now? Switched on, and for a
+   * channel that says so, ready on this instance too: Web Push without a usable
+   * key pair is off for everyone, whatever the admin switch says.
+   */
+  private isChannelOffered(channel: ExternalChannel): boolean {
+    if (!this.isChannelActive(channel)) return false;
+    return !channel.hiddenWhileInstanceUnconfigured || channel.isInstanceConfigured?.() !== false;
+  }
+
   // ── Per-user preference checks ─────────────────────────────────────────────
 
   /**
@@ -123,8 +133,10 @@ export class NotificationPreferencesService {
       const hasAdminNtfy = !!this.getAppSetting('admin_ntfy_topic');
       const adminActive: Record<string, boolean> = { email: hasSmtp, webhook: hasAdminWebhook, ntfy: hasAdminNtfy };
       for (const channel of listChannels()) {
-        // Plugin channels are user-scoped only — they never carry admin-global events.
-        if (channel.source !== 'builtin') continue;
+        // Only the channels with an admin-global copy. Plugin channels and push are
+        // user-scoped: they never carry an admin-scoped event, so a column for them
+        // here could never be switched on.
+        if (channel.source !== 'builtin' || !isAdminGlobalChannel(channel.id)) continue;
         const active = adminActive[channel.id] ?? false;
         out.push({
           id: channel.id,
@@ -147,7 +159,7 @@ export class NotificationPreferencesService {
         settingsPath: channel.settingsPath,
         // A live plugin channel is always a column. `configured` tells the user whether
         // they still need to enter credentials — it does not hide the channel from them.
-        active: this.isChannelActive(channel),
+        active: this.isChannelOffered(channel),
         configured: channel.isConfiguredFor(userId),
       });
     }

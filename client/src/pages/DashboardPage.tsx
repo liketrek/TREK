@@ -10,6 +10,7 @@ import PlaceAvatar from '../components/shared/PlaceAvatar'
 import EmptyState from '../components/shared/EmptyState'
 import { Skeleton, SpotlightSkeleton, TripCardSkeleton } from '../components/shared/Skeleton'
 import MobileTopBar from '../components/Layout/MobileTopBar'
+import HelpAnchor from '../components/Help/HelpAnchor'
 import { useDashboard } from './dashboard/useDashboard'
 import {
   type DashboardTrip, type HeroBundle, type TravelStats, type UpcomingReservation,
@@ -150,6 +151,7 @@ function DashboardPageDesktop(): React.ReactElement {
           styling instead of inheriting the dashboard scope's font and the
           `.trek-dash button` reset (which shifted the bell icon + menu items). */}
       <Navbar />
+      <HelpAnchor id="dashboard" />
       <div className="trek-dash trek-dash-shell">
       {demoMode && <DemoBanner />}
       <div className="trek-dash-scroll">

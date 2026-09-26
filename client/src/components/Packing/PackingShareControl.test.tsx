@@ -282,3 +282,37 @@ describe('PackingShareControl — optional fields', () => {
     expect(onJoin).toHaveBeenCalledWith(8)
   })
 })
+
+describe('PackingShareControl — menu variant', () => {
+  function setupMenu(it_: PackingItem, currentUserId = 1) {
+    const handlers = { onSetSharing: vi.fn(), onClone: vi.fn(), onJoin: vi.fn(), onLeave: vi.fn(), onAction: vi.fn() }
+    render(<PackingShareControl variant="menu" item={it_} tripMembers={MEMBERS} currentUserId={currentUserId} {...handlers} />)
+    return handlers
+  }
+
+  it('FE-W6PSC-001: the owner gets one whole line naming the current tier', () => {
+    setupMenu(item())
+    const line = screen.getByText('Sharing').closest('button')!
+
+    expect(line).toHaveTextContent('Shared')
+    fireEvent.click(line)
+    expect(screen.getByText(/^Personal$/)).toBeInTheDocument()
+  })
+
+  it('FE-W6PSC-002: someone else pledges or copies from full lines, and the menu closes after', () => {
+    const h = setupMenu(item({ owner_id: 2 }))
+
+    fireEvent.click(screen.getByRole('button', { name: 'I can bring that too' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Copy to my list' }))
+    expect(h.onJoin).toHaveBeenCalledWith(5)
+    expect(h.onClone).toHaveBeenCalledWith(5)
+    expect(h.onAction).toHaveBeenCalledTimes(2)
+  })
+
+  it('FE-W6PSC-003: a co-bringer takes the pledge back from the same line', () => {
+    const h = setupMenu(item({ owner_id: 2, contributors: [{ user_id: 1, username: 'ada' }] } as Partial<PackingItem>))
+
+    fireEvent.click(screen.getByRole('button', { name: "I'm not bringing it" }))
+    expect(h.onLeave).toHaveBeenCalledWith(5, 1)
+  })
+})

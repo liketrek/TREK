@@ -1,6 +1,6 @@
 import { McpController, Tool, TOOL_ANNOTATIONS_READONLY, errorResult, ok, type McpContext } from '../../nest-mcp';
 import { z } from 'zod';
-import { POI_CATEGORY_KEYS, MAX_POI_CATEGORIES } from './maps.helpers';
+import { POI_BBOX_TOOL_INPUT, POI_CATEGORY_KEYS, MAX_POI_CATEGORIES } from './maps.helpers';
 import { MapsService } from './maps.service';
 
 /**
@@ -95,12 +95,7 @@ export class MapsMcp {
         z.enum(POI_CATEGORY_KEYS),
         z.array(z.enum(POI_CATEGORY_KEYS)).min(1).max(MAX_POI_CATEGORIES),
       ]).describe('Which kind of place to look for. Pass several to cover them in one query rather than one request per kind'),
-      bbox: z.strictObject({
-        south: z.number().min(-90).max(90).describe('Southern edge, latitude'),
-        west: z.number().min(-180).max(180).describe('Western edge, longitude'),
-        north: z.number().min(-90).max(90).describe('Northern edge, latitude'),
-        east: z.number().min(-180).max(180).describe('Eastern edge, longitude'),
-      }).describe('The rectangle to search. Anything wider than 0.5 degrees is narrowed to a centred window so the query stays fast; the answer reports that as `clamped`'),
+      bbox: POI_BBOX_TOOL_INPUT,
       lang: z.string().max(35).optional().describe('Language for the POI names, e.g. "de" or "ja". Falls back to the OSM international name and then the local one'),
     },
     annotations: TOOL_ANNOTATIONS_READONLY,

@@ -1,6 +1,7 @@
 import { createPortal } from 'react-dom'
 import { FileDown } from 'lucide-react'
 import type { PackingState } from './usePackingListPanel'
+import { PACKING_IMPORT_ACCEPT } from './packingListPanel.constants'
 
 export function BulkImportModal(S: PackingState) {
   const { setShowImportModal, t, importText, setImportText, csvInputRef, handleCsvFile, handleBulkImport, parseImportLines } = S
@@ -16,7 +17,11 @@ export function BulkImportModal(S: PackingState) {
         display: 'flex', flexDirection: 'column', gap: 14,
       }}>
         <div style={{ fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))', fontWeight: 600, color: 'var(--text-primary)' }}>{t('packing.importTitle')}</div>
-        <div style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'var(--text-faint)', lineHeight: 1.5 }}>{t('packing.importHint')}</div>
+        <div style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'var(--text-faint)', lineHeight: 1.5 }}>
+          {t('packing.importHint')}
+          <br />
+          {t('packing.importHintMarkdown')}
+        </div>
         <div style={{ display: 'flex', border: '1px solid var(--border-primary)', borderRadius: 10, overflow: 'hidden', background: 'var(--bg-input)' }}>
           <div style={{
             padding: '10px 0', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontFamily: 'monospace', lineHeight: 1.5,
@@ -42,7 +47,7 @@ export function BulkImportModal(S: PackingState) {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <input ref={csvInputRef} type="file" accept=".csv,.txt" style={{ display: 'none' }} onChange={handleCsvFile} />
+            <input ref={csvInputRef} type="file" accept={PACKING_IMPORT_ACCEPT} style={{ display: 'none' }} onChange={handleCsvFile} />
             <button type="button" onClick={() => csvInputRef.current?.click()} style={{
               display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px',
               border: '1px dashed var(--border-primary)', borderRadius: 8, background: 'none',

@@ -137,6 +137,7 @@ const admin: TranslationStrings = {
   'admin.amapKey': 'API-ключ Amap (高德地图)',
   'admin.amapKeyHint':
     'Для поиска мест в континентальном Китае, где Google недоступен, а данных OpenStreetMap мало. Нужен ключ типа «Web 服务» (веб-сервис), а не ключ JS API. Получить можно на console.amap.com.',
+  'admin.keyFromEnv': 'Задан через {name}',
   'admin.placesProvider.title': 'Провайдер поиска мест',
   'admin.placesProvider.subtitle':
     'Собственный индекс TREK и OpenStreetMap отвечают на каждый поиск. Здесь выбирается, кого спросить дополнительно, если они ничего не нашли: «Автоматически» предпочитает Google при наличии ключа, затем Amap.',
@@ -386,6 +387,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:place-detail-provider': 'Добавлять дополнительные сведения (отзывы, оценки, ссылки) к месту',
   'admin.plugins.perm.hook:search-provider':
     'Отвечать на поиск мест из собственного индекса, рядом с результатами TREK',
+  'admin.plugins.perm.hook:poi-category-provider':
+    'Добавлять собственные категории мест в «Поиск мест на карте»; при выборе одной из них плагин получает область карты, которую вы просматриваете',
   'admin.plugins.perm.hook:trip-warning-provider':
     'Выдавать предупреждения проверки для поездки (отображаются в планировщике)',
   'admin.plugins.perm.hook:table-contributor':
@@ -402,6 +405,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.mcpTools': 'Публикует ИИ-инструменты',
   'admin.plugins.mcpToolsTitle': 'Публикуемые ИИ-инструменты',
   'admin.plugins.mcpToolsHint': 'Ассистент может запускать их от имени пользователя. Каждый действует с правами, выданными выше.',
+  'admin.plugins.poiCategoriesTitle': 'Категории карты, которые он добавляет',
   'admin.plugins.perm.mcp:tools':
     'Публиковать инструменты, которые ИИ-ассистент может запускать от вашего имени (он действует с правами, выданными плагину здесь, а не со своими)',
   'admin.plugins.perm.geolocation:read':
@@ -545,6 +549,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'Предоставляет события календаря',
   'admin.plugins.cap.placeDetails': 'Обогащает места',
   'admin.plugins.cap.search': 'Отвечает на поиск',
+  'admin.plugins.cap.poiCategories': 'Добавляет категории на карту',
   'admin.plugins.cap.warnings': 'Отмечает проблемы',
   'admin.plugins.cap.mapLayers': 'Рисует на карте',
   'admin.plugins.cap.routing': 'Предоставляет маршрутизацию',
@@ -621,6 +626,11 @@ const admin: TranslationStrings = {
     'Чтение посещений и записанных маршрутов из экземпляра Dawarich, который каждый пользователь подключает сам',
   'admin.addons.catalog.llm_parsing.name': 'Разбор с помощью ИИ',
   'admin.addons.catalog.llm_parsing.description': 'Читает брони, которые не понимает встроенный анализатор, с помощью выбранной вами модели ИИ',
+  'admin.addons.llm.vision.auto': 'Автоматически',
+  'admin.addons.llm.vision.on': 'Да',
+  'admin.addons.llm.vision.off': 'Нет',
+  'admin.addons.llm.vision.hintLocal': '«Автоматически» спрашивает сервер Ollama, читает ли эта модель изображения.',
+  'admin.addons.llm.vision.hintCloud': 'Для облачной модели «Автоматически» означает «нет». Выберите «Да», если эта модель читает изображения.',
   'admin.addons.enabled': 'Включено',
   'admin.addons.disabled': 'Отключено',
   'admin.addons.type.trip': 'Поездка',
@@ -721,6 +731,9 @@ const admin: TranslationStrings = {
   'admin.tabs.permissions': 'Разрешения',
   'admin.notifications.emailPanel.title': 'Email (SMTP)',
   'admin.notifications.webhookPanel.title': 'Webhook',
+  'admin.notifications.webPushPanel.title': 'Web Push',
+  'admin.notifications.webPushPanel.hint':
+    'Позволяет пользователям получать уведомления на телефонах и компьютерах через браузер, даже когда TREK закрыт. Требуется HTTPS; на iPhone и iPad TREK нужно добавить на экран «Домой».',
   'admin.notifications.inappPanel.title': 'In-App',
   'admin.notifications.inappPanel.hint': 'Уведомления в приложении всегда активны и не могут быть отключены глобально.',
   'admin.notifications.adminWebhookPanel.title': 'Вебхук администратора',

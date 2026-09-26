@@ -1,9 +1,9 @@
-// FE-JRN-DETHOOK-001 to FE-JRN-DETHOOK-029
+// FE-JRN-DETHOOK-001 to FE-JRN-DETHOOK-031
 import { describe, it, expect, beforeEach, afterEach, vi, type Mock } from 'vitest';
 import { useLocation } from 'react-router';
 import { delay, http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
-import { render, screen, fireEvent, waitFor } from '../../../tests/helpers/render';
+import { act, render, screen, fireEvent, waitFor } from '../../../tests/helpers/render';
 import { addListener, removeListener } from '../../api/websocket';
 import { useJourneyStore } from '../../store/journeyStore';
 import type { JourneyDetail, JourneyEntry } from '../../store/journeyStore';
@@ -186,6 +186,34 @@ describe('useJourneyDetail', () => {
     serveJourney(buildDetail({ title: 'Japan renamed' }));
     handler({ type: 'journey:entry_created', journeyId: 7 });
     await waitFor(() => expect(latest.current?.title).toBe('Japan renamed'));
+  });
+
+  it('FE-JRN-DETHOOK-030: capture times landing after an import reload the journey so the gallery re-sorts (#1587)', async () => {
+    setup();
+    await waitFor(() => expect(latest.current).not.toBeNull());
+    const handler = vi.mocked(addListener).mock.calls[0][0] as (e: Record<string, unknown>) => void;
+
+    serveJourney(buildDetail({ gallery: [{ id: 3, photo_id: 30, taken_at: '2026-05-01T09:00:00Z' }] as never }));
+    handler({ type: 'journey:photos:updated', journeyId: 7 });
+    await waitFor(() => expect(latest.current?.gallery).toHaveLength(1));
+  });
+
+  it('FE-JRN-DETHOOK-031: provider photos added from the picker or the editor reload this journey once some landed (#1587)', async () => {
+    setup();
+    await waitFor(() => expect(latest.current).not.toBeNull());
+    const toGallery = vi.fn(async () => ({ photos: [], added: 2 }));
+    const toEntry = vi.fn(async () => ({ photos: [], added: 1 }));
+    useJourneyStore.setState({ addProviderPhotosToGallery: toGallery, addProviderPhotos: toEntry } as never);
+
+    serveJourney(buildDetail({ title: 'After the import' }));
+    await act(() => latest.addPickedProviderPhotos(7, 'immich', [{ assetIds: ['a1', 'a2'] }], null));
+    expect(toGallery).toHaveBeenCalledWith(7, 'immich', { assetIds: ['a1', 'a2'] });
+    expect(addToast).toHaveBeenCalledWith('2 photos added', 'success', undefined);
+    await waitFor(() => expect(latest.current?.title).toBe('After the import'));
+
+    const group = { provider: 'immich', assetIds: ['b1'] };
+    await act(() => latest.addEntryProviderPhotos(1, group));
+    expect(toEntry).toHaveBeenCalledWith(1, 'immich', group);
   });
 
   it('FE-JRN-DETHOOK-009: events of another type or another journey are ignored', async () => {

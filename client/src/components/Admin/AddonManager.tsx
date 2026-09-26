@@ -6,6 +6,7 @@ import { useIsDark } from '../../hooks/useIsDark'
 import { useToast } from '../shared/Toast'
 import { Puzzle, ListChecks, Wallet, FileText, CalendarDays, Globe, Briefcase, Image, Terminal, Link2, Compass, BookOpen, MessageCircle, StickyNote, BarChart3, Sparkles, Luggage, Plane, Server, Cloud, Bookmark, Users, Loader2 } from 'lucide-react'
 import CustomSelect from '../shared/CustomSelect'
+import { asLlmVision, LLM_VISION_MODES, type LlmVision } from '@trek/shared'
 import EmptyState from '../shared/EmptyState'
 import DawarichIcon from '../shared/DawarichIcon'
 import AirTrailIcon from '../shared/AirTrailIcon'
@@ -371,12 +372,14 @@ const RECOMMENDED_MODELS: { id: string; label: string; note: string; recommended
  * provider, it also lists installed Ollama models and can pull NuExtract models.
  */
 function LlmParsingConfig({ addon }: { addon: Addon }) {
+  const { t } = useTranslation()
   const toast = useToast()
   const cfg = (addon.config ?? {}) as Record<string, unknown>
   const [provider, setProvider] = useState<string>((cfg.provider as string) ?? 'local')
   const [model, setModel] = useState<string>((cfg.model as string) ?? '')
   const [baseUrl, setBaseUrl] = useState<string>((cfg.baseUrl as string) ?? '')
   const [apiKey, setApiKey] = useState<string>((cfg.apiKey as string) ?? '')
+  const [vision, setVision] = useState<LlmVision>(asLlmVision(cfg.vision))
   const [saving, setSaving] = useState(false)
 
   // Local-provider model management.
@@ -438,7 +441,7 @@ function LlmParsingConfig({ addon }: { addon: Addon }) {
     setSaving(true)
     try {
       // Send the masked sentinel unchanged so the server keeps the stored key.
-      await adminApi.updateAddon(addon.id, { config: { provider, model: model.trim(), baseUrl: provider === 'anthropic' ? '' : baseUrl.trim(), apiKey, multimodal: cfg.multimodal === true } })
+      await adminApi.updateAddon(addon.id, { config: { provider, model: model.trim(), baseUrl: provider === 'anthropic' ? '' : baseUrl.trim(), apiKey, vision } })
       toast.success('Saved')
     } catch {
       toast.error('Failed to save')
@@ -455,6 +458,7 @@ function LlmParsingConfig({ addon }: { addon: Addon }) {
     { value: 'openai', label: 'OpenAI', icon: <Cloud size={14} /> },
     { value: 'anthropic', label: 'Anthropic', icon: <Sparkles size={14} /> },
   ]
+  const visionOptions = LLM_VISION_MODES.map(value => ({ value, label: t(`admin.addons.llm.vision.${value}`) }))
 
   /* Lives in the tile's shelf like the collab toggles, so everything is caption-
      sized and single-column — the band this used to be had a whole page width. */
@@ -485,6 +489,14 @@ function LlmParsingConfig({ addon }: { addon: Addon }) {
         <span className={labelCls}>Model</span>
         <input autoComplete="off" className={fieldCls} value={model} onChange={e => setModel(e.target.value)} placeholder={provider === 'anthropic' ? 'claude-opus-4-8' : provider === 'openai' ? 'gpt-4o' : 'select or pull below'} />
       </label>
+
+      <div>
+        <span className={labelCls}>{t('settings.aiParsing.multimodal')}</span>
+        <CustomSelect value={vision} onChange={v => setVision(asLlmVision(v))} options={visionOptions} />
+        <p className="mt-1 text-caption text-content-faint">
+          {t(provider === 'local' ? 'admin.addons.llm.vision.hintLocal' : 'admin.addons.llm.vision.hintCloud')}
+        </p>
+      </div>
 
       {/* Local model management (Ollama) */}
       {provider === 'local' && (

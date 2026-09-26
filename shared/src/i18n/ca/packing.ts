@@ -6,9 +6,18 @@ const packing: TranslationStrings = {
   'packing.import': 'Importa',
   'packing.importTitle': "Importa una llista d'equipatge",
   'packing.importHint':
-    'Un element per línia. Categoria i quantitat opcionals separades per coma, punt i coma o tabulació: Nom, Categoria, Quantitat',
-  'packing.importPlaceholder': 'Raspall de dents\nProtector solar, Higiene\nSamarretes, Roba, 5\nPassaport, Documents',
-  'packing.importCsv': 'Carrega CSV/TXT',
+    'Un element per línia. Format: Categoria, Nom, Pes en g (opcional), Bossa (opcional), checked/unchecked (opcional)',
+  'packing.importPlaceholder':
+    'Higiene, Raspall de dents\nRoba, Samarretes, 200\nDocuments, Passaport, , Equipatge de mà\nElectrònica, Carregador, 50, Maleta, checked',
+  'packing.importCsv': 'Carrega CSV/TXT/MD',
+  'packing.export': 'Exporta',
+  'packing.exportPrint': 'Imprimeix o desa com a PDF',
+  'packing.exportMarkdown': 'Llista de comprovació en Markdown (.md)',
+  'packing.exportCsv': 'CSV per importar (.csv)',
+  'packing.printItems': 'Elements',
+  'packing.printPacked': 'Preparats',
+  'packing.importHintMarkdown':
+    'També funciona una llista en Markdown: un títol indica la categoria, "- [ ]" i "- [x]" es converteixen en elements, i "3x" davant d’un nom en fixa la quantitat.',
   'packing.importAction': 'Importa {count}',
   'packing.importSuccess': '{count} elements importats',
   'packing.importError': 'Error en importar',
@@ -16,9 +25,6 @@ const packing: TranslationStrings = {
   'packing.progress': '{packed} de {total} preparats ({percent}%)',
   'packing.clearChecked': 'Elimina {count} marcats',
   'packing.clearCheckedShort': 'Elimina {count}',
-  'packing.suggestions': 'Suggeriments',
-  'packing.suggestionsTitle': 'Afegeix suggeriments',
-  'packing.allSuggested': 'Tots els suggeriments afegits',
   'packing.allPacked': 'Tot preparat!',
   'packing.addPlaceholder': 'Afegeix un element nou...',
   'packing.categoryPlaceholder': 'Categoria...',
@@ -26,7 +32,6 @@ const packing: TranslationStrings = {
   'packing.filterOpen': 'Pendents',
   'packing.filterDone': 'Fet',
   'packing.emptyTitle': "La llista d'equipatge és buida",
-  'packing.emptyHint': 'Afegeix elements o utilitza els suggeriments',
   'packing.emptyFiltered': 'Cap element coincideix amb aquest filtre',
   'packing.menuRename': 'Canvia el nom',
   'packing.menuCheckAll': 'Marca-ho tot',
@@ -57,128 +62,6 @@ const packing: TranslationStrings = {
   'packing.toast.deleteError': "No s'ha pogut eliminar",
   'packing.toast.renameError': "No s'ha pogut canviar el nom",
   'packing.toast.addError': "No s'ha pogut afegir",
-  'packing.suggestions.items': [
-    {
-      name: 'Passaport',
-      category: 'Documents',
-    },
-    {
-      name: "Document d'identitat",
-      category: 'Documents',
-    },
-    {
-      name: 'Assegurança de viatge',
-      category: 'Documents',
-    },
-    {
-      name: 'Bitllets de vol',
-      category: 'Documents',
-    },
-    {
-      name: 'Targeta de crèdit',
-      category: 'Finances',
-    },
-    {
-      name: 'Efectiu',
-      category: 'Finances',
-    },
-    {
-      name: 'Visat',
-      category: 'Documents',
-    },
-    {
-      name: 'Samarretes',
-      category: 'Roba',
-    },
-    {
-      name: 'Pantalons',
-      category: 'Roba',
-    },
-    {
-      name: 'Roba interior',
-      category: 'Roba',
-    },
-    {
-      name: 'Mitjons',
-      category: 'Roba',
-    },
-    {
-      name: 'Jaqueta',
-      category: 'Roba',
-    },
-    {
-      name: 'Pijama',
-      category: 'Roba',
-    },
-    {
-      name: 'Roba de bany',
-      category: 'Roba',
-    },
-    {
-      name: 'Impermeable',
-      category: 'Roba',
-    },
-    {
-      name: 'Sabates còmodes',
-      category: 'Roba',
-    },
-    {
-      name: 'Raspall de dents',
-      category: 'Higiene',
-    },
-    {
-      name: 'Pasta de dents',
-      category: 'Higiene',
-    },
-    {
-      name: 'Xampú',
-      category: 'Higiene',
-    },
-    {
-      name: 'Desodorant',
-      category: 'Higiene',
-    },
-    {
-      name: 'Protector solar',
-      category: 'Higiene',
-    },
-    {
-      name: "Màquina d'afaitar",
-      category: 'Higiene',
-    },
-    {
-      name: 'Carregador',
-      category: 'Electrònica',
-    },
-    {
-      name: 'Bateria externa',
-      category: 'Electrònica',
-    },
-    {
-      name: 'Auriculars',
-      category: 'Electrònica',
-    },
-    {
-      name: 'Adaptador de viatge',
-      category: 'Electrònica',
-    },
-    {
-      name: 'Càmera',
-      category: 'Electrònica',
-    },
-    {
-      name: 'Analgèsics',
-      category: 'Salut',
-    },
-    {
-      name: 'Tires',
-      category: 'Salut',
-    },
-    {
-      name: 'Desinfectant',
-      category: 'Salut',
-    },
-  ],
 
   'packing.makePrivate': 'Fer privat',
   'packing.makePublic': 'Compartir amb el grup',

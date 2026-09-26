@@ -16,6 +16,7 @@ import {
   deriveBackup,
   deriveNet,
   derivePaths,
+  derivePush,
   deriveAll,
 } from '../../../src/app-config/derive';
 
@@ -277,7 +278,7 @@ describe('deriveAll', () => {
     expect(env.demo.enabled).toBe(true);
     for (const ns of [
       'app', 'http', 'session', 'demo', 'adminBootstrap', 'oidc', 'smtp', 'mcp',
-      'plugins', 'webauthn', 'integrations', 'backup', 'db', 'paths', 'net',
+      'plugins', 'webauthn', 'integrations', 'backup', 'db', 'paths', 'net', 'push',
     ] as const) {
       expect(env[ns]).toBeDefined();
     }
@@ -307,5 +308,19 @@ describe('deriveMaps', () => {
     for (const value of ['', '  ', 'maybe', 'fasle']) {
       expect(deriveMaps({ TREK_PLACES_ENABLED: value } as never).trekPlacesEnabled, value).toBe(true);
     }
+  });
+});
+
+describe('derivePush', () => {
+  it('passes the VAPID_* values through trimmed, blank counting as unset', () => {
+    expect(derivePush({})).toEqual({ vapidPublicKey: undefined, vapidPrivateKey: undefined, vapidSubject: undefined });
+    expect(
+      derivePush({ VAPID_PUBLIC_KEY: ' BPub ', VAPID_PRIVATE_KEY: 'priv', VAPID_SUBJECT: ' mailto:ops@example.com ' }),
+    ).toEqual({ vapidPublicKey: 'BPub', vapidPrivateKey: 'priv', vapidSubject: 'mailto:ops@example.com' });
+    expect(derivePush({ VAPID_PUBLIC_KEY: '   ', VAPID_SUBJECT: '' })).toEqual({
+      vapidPublicKey: undefined,
+      vapidPrivateKey: undefined,
+      vapidSubject: undefined,
+    });
   });
 });

@@ -1441,7 +1441,8 @@ describe('AdminPage', () => {
 
       // Find the webhook panel heading ('Webhook') — exact match to avoid 'Admin Webhook'
       const webhookHeading = screen.getByRole('heading', { name: /^webhook$/i });
-      const webhookCard = webhookHeading.closest<HTMLElement>('.bg-white');
+      // The channel switch cards are drawn with theme tokens, so the card is found by its shape.
+      const webhookCard = webhookHeading.closest<HTMLElement>('.rounded-xl');
       // Find the toggle button in webhook card
       const webhookToggle = within(webhookCard!).getByRole('button');
       fireEvent.click(webhookToggle);

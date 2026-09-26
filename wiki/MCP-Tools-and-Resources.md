@@ -153,7 +153,7 @@ Requires `budget:read` or `budget:write` scope. The Budget addon must be enabled
 | Tool | Description |
 |---|---|
 | `create_budget_item` | Add an expense with name, category, and price. |
-| `update_budget_item` | Update an expense's details, split (persons/days), or notes. |
+| `update_budget_item` | Update an expense's details, split (persons/days), or notes. `reservation_id` / `place_id` link it to a booking or place of the same trip; `null` unlinks it. |
 | `delete_budget_item` | Remove a budget item. |
 | `set_budget_item_members` | Set which members are splitting a budget item (replaces current list). |
 | `toggle_budget_member_paid` | Mark or unmark a member as having paid their share. |
@@ -183,6 +183,8 @@ Requires `places:read` or `places:write` scope.
 | `reverse_geocode` | `geo:read` | Get a human-readable address for given coordinates. |
 | `resolve_maps_url` | `geo:read` | Resolve a Google Maps or Amap (高德地图) share URL to coordinates and place name. |
 | `search_pois` | `geo:read` | List places of one or more categories inside a map rectangle, the MCP side of the category buttons on the trip map. Answers from TREK's place index where it can and from OpenStreetMap (Overpass) otherwise, names the source of each result, and never calls Google. |
+| `list_plugin_poi_categories` | `geo:read` | List the extra categories installed plugins add to the category buttons on the trip map (trailheads, EV chargers, step-free places, drinking water, campsites and the like), each with the `pluginId` and category `id` that `search_plugin_pois` takes and its label in the requested `lang`. Empty when no plugin adds categories, which is the normal case. |
+| `search_plugin_pois` | `geo:read` | List the places of one plugin category inside a map rectangle, the MCP side of a plugin's category button. Takes `pluginId`, `category`, a `bbox` (narrowed to a centred 0.5 degree window when larger, reported as `clamped`) and an optional `lang`. Results have the `search_pois` shape plus the answering `pluginId`, a `rating` where the plugin has one and up to six `details` rows (label and value) only that plugin knows. An unknown category or a failing plugin is an error result. Never calls Google. |
 | `search_airports` | `geo:read` | Search for airports by name, city, or IATA code. Returns IATA code, name, city, country, timezone. |
 | `get_airport` | `geo:read` | Look up an airport by IATA code (e.g. `"ZRH"`, `"CDG"`). |
 | `get_weather` | `weather:read` | Get a weather forecast for a location and date. |
@@ -219,7 +221,7 @@ Requires `settings:read` or `settings:write`.
 
 | Tool | Description |
 |---|---|
-| `get_display_settings` | Read the user's units, time format, language, default currency and start page. Read this before rendering a temperature, a distance or a clock time. |
+| `get_display_settings` | Read the user's units, time format, first day of the week, language, default currency and start page. Read this before rendering a temperature, a distance or a clock time. |
 | `update_display_settings` | Change one or more of those preferences. Only display preferences: API keys, map tokens and LLM settings are refused, whatever is passed. |
 
 ### Calendar feeds

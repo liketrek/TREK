@@ -15,9 +15,18 @@ const packing: TranslationStrings = {
   'packing.import': 'Імпорт',
   'packing.importTitle': 'Імпорт списку речей',
   'packing.importHint':
-    'Один предмет у рядок. Категорію та кількість — через кому, крапку з комою або табуляцію: Назва, Категорія, Кількість',
-  'packing.importPlaceholder': 'Зубна щітка\nСонцезахисний крем, Гігієна\nФутболки, Одяг, 5\nПаспорт, Документи',
-  'packing.importCsv': 'Завантажити CSV/TXT',
+    'Один предмет у рядок. Формат: Категорія, Назва, Вага в г (необов’язково), Сумка (необов’язково), checked/unchecked (необов’язково)',
+  'packing.importPlaceholder':
+    'Гігієна, Зубна щітка\nОдяг, Футболки, 200\nДокументи, Паспорт, , Ручна поклажа\nЕлектроніка, Зарядний пристрій, 50, Валіза, checked',
+  'packing.importCsv': 'Завантажити CSV/TXT/MD',
+  'packing.export': 'Експорт',
+  'packing.exportPrint': 'Друк або збереження в PDF',
+  'packing.exportMarkdown': 'Чек-лист у Markdown (.md)',
+  'packing.exportCsv': 'CSV для імпорту (.csv)',
+  'packing.printItems': 'Речі',
+  'packing.printPacked': 'Зібрано',
+  'packing.importHintMarkdown':
+    'Підійде і список у Markdown: заголовок задає категорію, "- [ ]" і "- [x]" стають пунктами, а "3x" перед назвою задає кількість.',
   'packing.importAction': 'Імпортувати {count}',
   'packing.importSuccess': '{count} предметів імпортовано',
   'packing.importError': 'Помилка імпорту',
@@ -25,9 +34,6 @@ const packing: TranslationStrings = {
   'packing.progress': '{packed} з {total} зібрано ({percent}%)',
   'packing.clearChecked': 'Видалити {count} позначених',
   'packing.clearCheckedShort': 'Видалити {count}',
-  'packing.suggestions': 'Підказки',
-  'packing.suggestionsTitle': 'Додати підказки',
-  'packing.allSuggested': 'Усі підказки додано',
   'packing.allPacked': 'Усе зібрано!',
   'packing.addPlaceholder': 'Додати річ...',
   'packing.categoryPlaceholder': 'Список...',
@@ -35,7 +41,6 @@ const packing: TranslationStrings = {
   'packing.filterOpen': 'Не зібрано',
   'packing.filterDone': 'Зібрано',
   'packing.emptyTitle': 'Список речей порожній',
-  'packing.emptyHint': 'Додайте речі або використайте підказки',
   'packing.emptyFiltered': 'Немає речей, що відповідають фільтру',
   'packing.menuRename': 'Перейменувати',
   'packing.menuCheckAll': 'Позначити все',
@@ -67,128 +72,6 @@ const packing: TranslationStrings = {
   'packing.toast.deleteError': 'Помилка видалення',
   'packing.toast.renameError': 'Помилка перейменування',
   'packing.toast.addError': 'Помилка додавання',
-  'packing.suggestions.items': [
-    {
-      name: 'Паспорт',
-      category: 'Документи',
-    },
-    {
-      name: 'Посвідчення особи',
-      category: 'Документи',
-    },
-    {
-      name: 'Страхування',
-      category: 'Документи',
-    },
-    {
-      name: 'Авіаквитки',
-      category: 'Документи',
-    },
-    {
-      name: 'Банківська картка',
-      category: 'Фінанси',
-    },
-    {
-      name: 'Готівка',
-      category: 'Фінанси',
-    },
-    {
-      name: 'Віза',
-      category: 'Документи',
-    },
-    {
-      name: 'Футболки',
-      category: 'Одяг',
-    },
-    {
-      name: 'Штани',
-      category: 'Одяг',
-    },
-    {
-      name: 'Нижня білизна',
-      category: 'Одяг',
-    },
-    {
-      name: 'Шкарпетки',
-      category: 'Одяг',
-    },
-    {
-      name: 'Куртка',
-      category: 'Одяг',
-    },
-    {
-      name: 'Піжама',
-      category: 'Одяг',
-    },
-    {
-      name: 'Купальник',
-      category: 'Одяг',
-    },
-    {
-      name: 'Дощовик',
-      category: 'Одяг',
-    },
-    {
-      name: 'Зручне взуття',
-      category: 'Одяг',
-    },
-    {
-      name: 'Зубна щітка',
-      category: 'Гігієна',
-    },
-    {
-      name: 'Зубна паста',
-      category: 'Гігієна',
-    },
-    {
-      name: 'Шампунь',
-      category: 'Гігієна',
-    },
-    {
-      name: 'Дезодорант',
-      category: 'Гігієна',
-    },
-    {
-      name: 'Сонцезахисний крем',
-      category: 'Гігієна',
-    },
-    {
-      name: 'Пасок',
-      category: 'Гігієна',
-    },
-    {
-      name: 'Зарядний пристрій',
-      category: 'Електроніка',
-    },
-    {
-      name: 'Зовнішній акумулятор',
-      category: 'Електроніка',
-    },
-    {
-      name: 'Навушники',
-      category: 'Електроніка',
-    },
-    {
-      name: 'Адаптер для розеток',
-      category: 'Електроніка',
-    },
-    {
-      name: 'Фотоапарат',
-      category: 'Електроніка',
-    },
-    {
-      name: 'Знеболювальні',
-      category: 'Здоров’я',
-    },
-    {
-      name: 'Пластирі',
-      category: 'Здоров’я',
-    },
-    {
-      name: 'Антисептик',
-      category: 'Здоров’я',
-    },
-  ],
   'packing.makePrivate': 'Зробити приватним',
   'packing.makePublic': 'Зробити спільним',
   'packing.privateHint': 'Приватне — бачите лише ви',

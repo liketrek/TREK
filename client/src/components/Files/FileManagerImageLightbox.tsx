@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { ExternalLink, Download, X, ChevronLeft, ChevronRight, Play } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import type { TripFile } from '../../types'
@@ -66,7 +67,10 @@ export function ImageLightbox({ files, initialIndex, onClose }: ImageLightboxPro
     </button>
   ) : null
 
-  return (
+  // A portal, as the two document previews are. Rendered in place, the overlay
+  // sits inside the trip page's stacking context, below the navbar's z-[200],
+  // which then covered the header and its buttons.
+  return createPortal(
     <div
       // Backdrop only — Escape and the header's close button do the same job for
       // the keyboard. Closing on the backdrop's own clicks (rather than letting
@@ -130,7 +134,8 @@ export function ImageLightbox({ files, initialIndex, onClose }: ImageLightboxPro
           ))}
         </div>
       )}
-    </div>
+    </div>,
+    document.body,
   )
 }
 

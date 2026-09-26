@@ -1054,3 +1054,102 @@ describe('OIDC-only auto-redirect suppression', () => {
     expect(result.current.appConfig?.password_login).toBe(true);
   });
 });
+
+describe('useLogin — the wait before the sign-in is known (#1167)', () => {
+  const oidcOnlyConfig = () =>
+    buildAppConfig({ password_login: false, oidc_configured: true, oidc_login: true, oidc_display_name: 'Keycloak' });
+
+  /** An app-config probe that answers only when the test lets it. */
+  function heldConfig(answer: ReturnType<typeof buildAppConfig> | 'error'): () => void {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    server.use(
+      http.get('/api/auth/app-config', async () => {
+        await gate;
+        return answer === 'error' ? HttpResponse.error() : HttpResponse.json(answer);
+      }),
+    );
+    return release;
+  }
+
+  beforeEach(() => { localStorage.removeItem(CONFIG_CACHE_KEY); });
+  afterEach(() => { localStorage.removeItem(CONFIG_CACHE_KEY); });
+
+  it('FE-LOGIN-HOOK-205: offers no form while the config is still out, only a wait', async () => {
+    const release = heldConfig(buildAppConfig());
+    const { result } = renderLogin();
+
+    expect(result.current.configWait).toBe(true);
+    expect(result.current.redirectScreen).toBe(false);
+
+    release();
+    await ready(result);
+    expect(result.current.configWait).toBe(false);
+  });
+
+  it('FE-LOGIN-HOOK-206: an OIDC-only instance turns the page into the redirect, named after its provider', async () => {
+    server.use(http.get('/api/auth/app-config', () => HttpResponse.json(oidcOnlyConfig())));
+    const { result } = renderLogin();
+
+    await waitFor(() => expect(window.location.href).toBe('/api/auth/oidc/login?remember=1'));
+    expect(result.current.redirectScreen).toBe(true);
+    expect(result.current.configWait).toBe(false);
+    expect(result.current.idpName).toBe('Keycloak');
+  });
+
+  it('FE-LOGIN-HOOK-207: a cached OIDC-only config announces the redirect at once, and a failed probe takes it back', async () => {
+    localStorage.setItem(CONFIG_CACHE_KEY, JSON.stringify(oidcOnlyConfig()));
+    const release = heldConfig('error');
+    const { result } = renderLogin();
+
+    expect(result.current.redirectScreen).toBe(true);
+    expect(result.current.idpName).toBe('Keycloak');
+
+    release();
+    await ready(result);
+    // A config from the cache never redirects, so the page falls back to its button.
+    await waitFor(() => expect(result.current.redirectScreen).toBe(false));
+    expect(result.current.configWait).toBe(false);
+    expect(result.current.oidcOnly).toBe(true);
+    expect(window.location.href).toBe('http://localhost/login');
+  });
+
+  it('FE-LOGIN-HOOK-208: a redirect that stalls offers the way on by hand after eight seconds', () => {
+    vi.useFakeTimers();
+    localStorage.setItem(CONFIG_CACHE_KEY, JSON.stringify(oidcOnlyConfig()));
+    heldConfig(oidcOnlyConfig());
+    const { result } = renderLogin();
+
+    expect(result.current.redirectScreen).toBe(true);
+    act(() => { vi.advanceTimersByTime(7999); });
+    expect(result.current.idpSlow).toBe(false);
+    act(() => { vi.advanceTimersByTime(1); });
+    expect(result.current.idpSlow).toBe(true);
+  });
+
+  it('FE-LOGIN-HOOK-209: a failed sign-in at the IdP shows the OIDC-only screen and its error, without going back', async () => {
+    server.use(http.get('/api/auth/app-config', () => HttpResponse.json(oidcOnlyConfig())));
+    setSearch('?oidc_error=token_failed');
+    const { result } = renderLogin();
+    await ready(result);
+
+    expect(result.current.oidcOnly).toBe(true);
+    expect(result.current.configWait).toBe(false);
+    expect(result.current.redirectScreen).toBe(false);
+    expect(result.current.error).not.toBe('');
+    expect(window.location.href).toBe('http://localhost/login');
+  });
+
+  it('FE-LOGIN-HOOK-210: right after a sign-out the cached redirect is not announced', async () => {
+    localStorage.setItem(CONFIG_CACHE_KEY, JSON.stringify(oidcOnlyConfig()));
+    const release = heldConfig(oidcOnlyConfig());
+    const { result } = renderLogin([{ pathname: '/login', state: { noRedirect: true } }]);
+
+    expect(result.current.redirectScreen).toBe(false);
+    expect(result.current.configWait).toBe(true);
+
+    release();
+    await ready(result);
+    expect(window.location.href).toBe('http://localhost/login');
+  });
+});

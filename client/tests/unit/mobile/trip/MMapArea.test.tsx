@@ -15,8 +15,9 @@ import type { AlternativeOverlay } from '../../../../src/components/Roadtrip/alt
 import type { LegAlternatives } from '../../../../src/components/Roadtrip/useRouteAlternatives'
 import { openLeg } from '../../../helpers/legAlternatives'
 import { RT_ALT_BAR_LIFT } from '../../../../src/mobile/screens/trip/roadtrip/useMRtAlternatives'
+import { corePoiCategories, pluginPoiCategories } from '../../../../src/components/Map/usePoiCategories'
 
-// FE-MOB-MAPAREA-001 to FE-MOB-MAPAREA-043
+// FE-MOB-MAPAREA-001 to FE-MOB-MAPAREA-045
 //
 // The stage's pins come out of the trip store rather than the planner's map list, so the
 // stage fixtures seed the store and leave `mapPlaces` to stand for what the plan tab shows.
@@ -177,6 +178,7 @@ beforeEach(() => {
   mocks.glMap = COMPASS
   mocks.prefs = {}
   mocks.poi = {
+    categories: { core: corePoiCategories(key => key), plugin: [] },
     active: new Set<string>(), pois: [], loadingKeys: new Set<string>(), errorKeys: new Set<string>(),
     moved: false, toggle: vi.fn(), searchArea: vi.fn(), onViewportChange: vi.fn(),
   }
@@ -313,6 +315,21 @@ describe('MMapArea', () => {
 
     expect(planner.openAddPlaceFromPoi).toHaveBeenCalledWith(marker, 5)
     expect(planner.handlePoiClick).not.toHaveBeenCalled()
+  })
+
+  it('FE-MOB-MAPAREA-045: a plugin POI is drawn from the search and tapped into the place form like any other', () => {
+    const trailhead = {
+      osm_id: 'plugin:trail-finder:th-1', name: 'Trailhead', lat: 53.3, lng: 9.6, category: 'plugin:trail-finder/trailheads',
+      source: 'plugin:trail-finder', pluginId: 'trail-finder', icon: 'Signpost', color: '#2f855a',
+      details: [{ label: 'Length', value: '12 km' }],
+    }
+    mocks.poi = { ...mocks.poi, pois: [trailhead] }
+    const { planner } = renderArea({ trTab: 'plan' }, { selectedDayId: 5 })
+
+    // Handed to the renderer whole, so the pin and the hover card can read its look and rows.
+    expect(mocks.props.pois).toEqual([trailhead])
+    ;(mocks.props.onPoiClick as (m: unknown) => void)(trailhead)
+    expect(planner.openAddPlaceFromPoi).toHaveBeenCalledWith(trailhead, 5)
   })
 
   it('FE-MOB-MAPAREA-012: a focused hit takes the camera; with nothing pending the stage frames itself', () => {
@@ -919,5 +936,22 @@ describe('MMapArea and a booked night at the edge of the stage', () => {
     tapPin(99)
     expect(other.openSheet).not.toHaveBeenCalled()
     expect(only.handleMarkerClick).toHaveBeenCalledWith(99)
+  })
+
+  it('FE-MOB-MAPAREA-044: the POI bar offers the plugin categories after its divider, without shrinking a segment', () => {
+    const plugin = pluginPoiCategories([{
+      id: 'trail-finder', name: 'Trail finder', type: 'integration', icon: null,
+      poiCategories: [{ id: 'trailheads', label: 'Trailheads', icon: 'Signpost', color: '#2f855a' }],
+    }], 'en')
+    mocks.poi = { ...mocks.poi, categories: { core: corePoiCategories(key => key), plugin } }
+    renderArea()
+
+    const divider = screen.getByRole('separator')
+    const trailheads = screen.getByRole('button', { name: 'Trailheads' })
+    expect(divider.nextElementSibling).toBe(trailheads)
+    expect(trailheads.style.minWidth).toBe('34px')
+    expect((divider.parentElement as HTMLElement).style.overflowX).toBe('auto')
+    trailheads.click()
+    expect(mocks.poi.toggle).toHaveBeenCalledWith('plugin:trail-finder/trailheads')
   })
 })

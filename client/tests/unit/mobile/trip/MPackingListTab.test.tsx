@@ -11,8 +11,9 @@ import { buildUser } from '../../../helpers/factories'
 import { buildPlanner } from '../../../helpers/mobileTrip'
 import { resetAllStores, seedStore } from '../../../helpers/store'
 import { act, fireEvent, render, screen, waitFor, within } from '../../../helpers/render'
+import * as fileDownload from '../../../../src/utils/fileDownload'
 
-// FE-MOB-PACKTAB-001 to FE-MOB-PACKTAB-046 (plus 060-062)
+// FE-MOB-PACKTAB-001 to FE-MOB-PACKTAB-046 (plus 060-068)
 
 const ME = 7
 const ANNA = { id: 11, username: 'anna', avatar: null, avatar_url: 'https://cdn.example/anna.png' } as unknown as TripMember
@@ -933,5 +934,48 @@ describe('MPackingListTab', () => {
     // The wording is still reachable — it just does not eat the row any more.
     expect(screen.queryByText('packing.takenCareOf:owner')).not.toBeInTheDocument()
     expect(screen.getByLabelText('packing.takenCareOf:owner')).toBeInTheDocument()
+  })
+
+  // ── Export (#875, #1420) ──────────────────────────────────────────────
+
+  it('FE-MOB-PACKTAB-066: offers the three exports in the action menu, after Import', async () => {
+    seedStore(useTripStore, { packingItems: ITEMS })
+    await setup()
+    openActions()
+    const labels = screen.getAllByRole('button').map(b => b.textContent)
+    const importAt = labels.indexOf('packing.import')
+    expect(labels.slice(importAt, importAt + 4)).toEqual([
+      'packing.import', 'packing.exportPrint', 'packing.exportMarkdown', 'packing.exportCsv',
+    ])
+  })
+
+  it('FE-MOB-PACKTAB-067: a member who may not edit still gets the menu, with the exports and nothing else', async () => {
+    seedStore(useTripStore, { packingItems: ITEMS })
+    await setup({ planner: { can: vi.fn(() => false) } })
+    openActions()
+    expect(screen.getByRole('button', { name: 'packing.exportMarkdown' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'packing.import' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /packing.clearChecked/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'packing.applyTemplate' })).not.toBeInTheDocument()
+  })
+
+  it('FE-MOB-PACKTAB-068: downloads the open view as Markdown, and opens the print preview', async () => {
+    const download = vi.spyOn(fileDownload, 'downloadBlob').mockImplementation(() => {})
+    seedStore(useTripStore, { packingItems: ITEMS })
+    await setup()
+    openActions()
+    fireEvent.click(screen.getByRole('button', { name: 'packing.exportMarkdown' }))
+    expect(download).toHaveBeenCalledTimes(1)
+    const [blob, name] = download.mock.calls[0]
+    expect(name).toMatch(/^packing-list.*\.md$/)
+    const text = await (blob as Blob).text()
+    expect(text).toContain('- [x] Passport')
+    expect(text).toContain('- [ ] 3 × Socks (120 g)')
+    expect(text).not.toContain('Diary')
+    expect(screen.queryByRole('button', { name: 'packing.exportMarkdown' })).not.toBeInTheDocument()
+
+    openActions()
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'packing.exportPrint' })) })
+    expect(await screen.findByTitle(/Packing List/)).toBeInTheDocument()
   })
 })

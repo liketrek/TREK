@@ -135,6 +135,7 @@ const admin: TranslationStrings = {
   'admin.amapKey': '高德地图 API Key',
   'admin.amapKeyHint':
     '用于中国大陆境内的地点搜索（Google 无法访问，OpenStreetMap 内容也很少）。需要「Web 服务」类型的 Key，不是 JS API Key。在 console.amap.com 申请。',
+  'admin.keyFromEnv': '已通过 {name} 设置',
   'admin.placesProvider.title': '地点搜索源',
   'admin.placesProvider.subtitle':
     'TREK 自有索引和 OpenStreetMap 会回应每一次搜索。这里选择的是它们一无所获时还问谁：自动在有密钥时优先 Google，其次 Amap。',
@@ -352,6 +353,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:calendar-source': '为日历提供事件',
   'admin.plugins.perm.hook:place-detail-provider': '为地点补充额外信息（评论、评分、链接）',
   'admin.plugins.perm.hook:search-provider': '从自有索引回答地点搜索，与 TREK 自身的结果并列显示',
+  'admin.plugins.perm.hook:poi-category-provider':
+    '向“在地图上探索地点”添加自己的地点分类（选择其中一个时，插件会收到你正在查看的地图区域）',
   'admin.plugins.perm.hook:trip-warning-provider': '对行程发出校验警告（显示在规划器中）',
   'admin.plugins.perm.hook:table-contributor': '向行程视图（预订、地点、日期）添加列和操作',
   'admin.plugins.perm.hook:map-marker-provider': '向旅行地图添加标记（例如显示预订或兴趣点）',
@@ -362,6 +365,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.mcpTools': '发布 AI 工具',
   'admin.plugins.mcpToolsTitle': '发布的 AI 工具',
   'admin.plugins.mcpToolsHint': '助手可以代用户运行这些工具。每个工具都以上方授予的权限运行。',
+  'admin.plugins.poiCategoriesTitle': '添加的地图分类',
   'admin.plugins.perm.mcp:tools':
     '发布 AI 助手可以代你运行的工具（它以你在此处授予插件的权限运行，而非助手自身的权限）',
   'admin.plugins.perm.geolocation:read': '在其某个视图打开时请求你的实时位置（由 TREK 使用本站点已有的位置权限读取，不会单独为插件询问）',
@@ -497,6 +501,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': '提供日历事件',
   'admin.plugins.cap.placeDetails': '丰富地点信息',
   'admin.plugins.cap.search': '回答搜索',
+  'admin.plugins.cap.poiCategories': '添加地图分类',
   'admin.plugins.cap.warnings': '标记问题',
   'admin.plugins.cap.mapLayers': '在地图上绘制',
   'admin.plugins.cap.routing': '提供路线规划',
@@ -572,6 +577,11 @@ const admin: TranslationStrings = {
     '从每位使用者自行连接的 Dawarich 实例读取到访记录和记录的路线',
   'admin.addons.catalog.llm_parsing.name': 'AI 解析',
   'admin.addons.catalog.llm_parsing.description': '用你选择的 AI 模型读取内置解析器无法识别的预订',
+  'admin.addons.llm.vision.auto': '自动',
+  'admin.addons.llm.vision.on': '是',
+  'admin.addons.llm.vision.off': '否',
+  'admin.addons.llm.vision.hintLocal': '“自动”会询问 Ollama 服务器该模型能否读取图像。',
+  'admin.addons.llm.vision.hintCloud': '对云端模型，“自动”即为“否”。如果该模型能读取图像，请选择“是”。',
   'admin.addons.enabled': '已启用',
   'admin.addons.disabled': '已禁用',
   'admin.addons.type.trip': '旅行',
@@ -667,6 +677,9 @@ const admin: TranslationStrings = {
   'admin.tabs.permissions': '权限',
   'admin.notifications.emailPanel.title': '电子邮件（SMTP）',
   'admin.notifications.webhookPanel.title': 'Webhook',
+  'admin.notifications.webPushPanel.title': 'Web 推送',
+  'admin.notifications.webPushPanel.hint':
+    '让用户即使在 TREK 关闭时，也能通过浏览器在手机和电脑上接收通知。需要 HTTPS；在 iPhone 和 iPad 上，必须将 TREK 添加到主屏幕。',
   'admin.notifications.inappPanel.title': '应用内通知',
   'admin.notifications.inappPanel.hint': '应用内通知始终处于活跃状态，无法全局禁用。',
   'admin.notifications.adminWebhookPanel.title': '管理员 Webhook',

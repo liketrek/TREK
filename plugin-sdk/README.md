@@ -225,7 +225,8 @@ skipped, never fatal):
 | `mapMarkerProvider` | ≤200 markers per provider |
 | `warningProvider` | ≤20 warnings per provider, each message ≤300 chars |
 | `placeDetailProvider` | ≤12 items per provider |
-| `searchProvider` | ≤20 places per provider, 2 s to answer |
+| `searchProvider` | `search`: ≤20 places per provider, 2 s to answer. `suggest` (optional): ≤3 places in the dropdown across all providers, 800 ms to answer |
+| `poiCategoryProvider` | ≤4 declared categories per plugin; ≤60 places per answer (inside `bounds` only), ≤6 detail rows per place, 8 s to answer |
 | `photoProvider` | ≤60 photos per page |
 | `calendarSource` | ≤500 events per source per request |
 | `tableContributor` | ≤20 columns / ≤10 actions per entity |
@@ -411,3 +412,56 @@ The SDK tooling in this repo is MIT. Your plugin is your own code under your own
 ### Roadtrip category searches
 
 The `searchProvider.search` request can include `category` and `bounds` (south, west, north, east). Search within that rectangle for the category; `query` remains a readable category query and `near` its centre, so existing providers continue to work. These optional fields are absent on older hosts and ordinary name searches. The host validates and filters coordinates, namespaces IDs, and applies the exact route corridor after combining sources. The existing permission and two-second hook timeout still apply.
+
+### Suggestions while the user types
+
+`searchProvider.suggest` is optional. Implement it only when your index can take a request per keystroke, typically one you keep in your own database; your rows then appear in the place search's dropdown while the person types, after TREK's own suggestions and labelled with your plugin's name. It gets the same `SearchRequest` as `search`, from the second typed character on, with `limit` 3 and 800 ms to answer, and the dropdown keeps at most three plugin rows across all providers. A picked row is taken as it is, without a details lookup, so fill in address, website and phone right away. The host learns whether your hook has `suggest` when the plugin loads (a class method counts), and never calls it on a plugin without one.
+
+### POI categories on the trip map
+
+A plugin can add up to four chips of its own to the trip map's **Explore places** pill
+(trailheads, EV chargers, step-free places, drinking water, campsites...) and answer the
+searches for them. Declare them in the manifest and ask for `hook:poi-category-provider`:
+
+```json
+"permissions": ["hook:poi-category-provider"],
+"capabilities": {
+  "poiCategories": [
+    { "id": "trailheads", "label": "Trailheads", "labels": { "de": "Wanderparkplätze" },
+      "icon": "Signpost", "color": "#2f855a" }
+  ]
+}
+```
+
+| Field | Rule |
+|---|---|
+| `id` | `^[a-z][a-z0-9-]{0,23}$`, unique within the plugin. It is what `getPois` receives as `request.category`. |
+| `label` | Plain text, at most 40 characters, shown when `labels` has nothing for the user's language. Emoji and control characters are stripped. |
+| `labels` | Optional: TREK language code to label (`de`, `fr`, `zh-TW`...), same rules as `label`. A code this TREK does not ship is ignored. |
+| `icon` | One of `POI_CATEGORY_ICONS` (exported): Footprints, Mountain, MountainSnow, Signpost, Trees, TentTree, Tent, Accessibility, Droplet, Droplets, PlugZap, Zap, Bath, Bike, Waves, Landmark, MapPin, Star, Heart, Info. Lucide has no toilet glyph; use Bath. |
+| `color` | `#rrggbb` only. It colours the chip and the markers. |
+
+Then implement the hook:
+
+```ts
+hooks: {
+  poiCategoryProvider: {
+    async getPois({ category, bounds, lang, limit }, ctx) {
+      const rows = await myIndex.within(category, bounds, limit);
+      return rows.map((r) => ({
+        id: r.id, name: r.name, lat: r.lat, lng: r.lng,
+        details: [{ label: 'Length', value: `${r.km} km` }],
+      }));
+    },
+  },
+},
+```
+
+The host asks only the plugin that declared the chip, only for a declared id, and only
+while the grant is held. `bounds` is the viewport narrowed to at most 0.5 degrees a side.
+The host drops places outside `bounds`, keeps 60, caps strings and details (label 40,
+value 120 characters, 6 rows), allows only http/https websites, and namespaces ids as
+`plugin:<yourId>:<id>`. A timeout or a thrown error shows as an error on that chip only.
+Answers are not cached, because the hook runs as the user who picked the chip. Also
+`GET /api/plugin-pois` and, for a connected assistant, the `list_plugin_poi_categories`
+and `search_plugin_pois` MCP tools.

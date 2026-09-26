@@ -55,6 +55,7 @@ interface Supervised {
   jobs: ScheduledJob[]; // declared background jobs (id + cron schedule)
   jobTasks?: ReturnType<typeof scheduleJobs>; // live cron jobs (only when jobs:run granted)
   hooks: string[]; // provider hooks the plugin implements (e.g. 'placeDetailProvider')
+  hookFns: Record<string, string[]>; // the functions each of those hooks answers to (e.g. searchProvider: ['search', 'suggest'])
   events: string[]; // core events the plugin subscribes to (names or '*')
   exports: string[]; // functions the plugin exposes to dependents (ctx.plugins.call)
   mcpTools: string[]; // MCP tool names the plugin reported implementing at load
@@ -94,6 +95,21 @@ const DEFAULTS: Required<SupervisorTuning> = {
   maxRssBytes: readEnv().plugins.maxRssMb * 1024 * 1024,
 };
 
+/**
+ * The `hookFns` of a `loaded` report. The child is untrusted, so only hooks the host
+ * knows survive (which also keeps a `__proto__` key off the record), each with its
+ * string entries.
+ */
+function readHookFns(raw: unknown): Record<string, string[]> {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+  const out: Record<string, string[]> = {};
+  for (const [hook, fns] of Object.entries(raw)) {
+    if (Object.hasOwn(HOOK_PERMISSION, hook) && Array.isArray(fns)) {
+      out[hook] = fns.filter((fn): fn is string => typeof fn === 'string');
+    }
+  }
+  return out;
+}
 
 export class PluginSupervisor {
   private running = new Map<string, Supervised>();
@@ -143,6 +159,7 @@ export class PluginSupervisor {
       routes: [],
       jobs: [],
       hooks: [],
+      hookFns: {},
       events: [],
       exports: [],
       mcpTools: [],
@@ -240,15 +257,20 @@ export class PluginSupervisor {
    * Ids of ACTIVE plugins that may act as a given provider hook — they implement it
    * (reported at load) AND hold the matching hook:* grant the admin consented to.
    * An unknown hook, or one with no permission mapping, resolves to nobody.
+   *
+   * `fn` narrows that to the plugins whose hook also carries one optional function,
+   * such as `searchProvider.suggest`, which most search providers leave out.
    */
-  providersOf(hook: string): string[] {
+  providersOf(hook: string, fn?: string): string[] {
     // Cast: `hook` is a plain string off the child's report, and HOOK_PERMISSION is
     // now a literal object, so indexing it needs the same widening envelope.ts uses.
     const perm = (HOOK_PERMISSION as Readonly<Record<string, string | undefined>>)[hook];
     if (!perm) return [];
     const out: string[] = [];
     for (const [id, sup] of this.running) {
-      if (sup.status === 'active' && sup.hooks.includes(hook) && sup.granted.has(perm)) out.push(id);
+      if (sup.status !== 'active' || !sup.hooks.includes(hook) || !sup.granted.has(perm)) continue;
+      if (fn && !sup.hookFns[hook]?.includes(fn)) continue;
+      out.push(id);
     }
     return out;
   }
@@ -590,7 +612,7 @@ export class PluginSupervisor {
           if (this.running.get(sup.id) !== sup || sup.status !== 'starting') break;
           sup.lastBeat = Date.now();
           const d = msg.data as {
-            routes?: PluginRouteInfo[]; jobs?: ScheduledJob[]; hooks?: string[]; events?: string[];
+            routes?: PluginRouteInfo[]; jobs?: ScheduledJob[]; hooks?: string[]; hookFns?: unknown; events?: string[];
             exports?: string[]; subscriptions?: Array<{ plugin: string; event: string }>;
             mcpTools?: string[];
           };
@@ -599,6 +621,7 @@ export class PluginSupervisor {
             ? d.jobs.filter((j): j is ScheduledJob => !!j && typeof j.id === 'string' && typeof j.schedule === 'string')
             : [];
           sup.hooks = d.hooks ?? [];
+          sup.hookFns = readHookFns(d.hookFns);
           sup.events = d.events ?? [];
           sup.exports = Array.isArray(d.exports) ? d.exports.filter((e): e is string => typeof e === 'string') : [];
           sup.mcpTools = Array.isArray(d.mcpTools) ? d.mcpTools.filter((t): t is string => typeof t === 'string') : [];

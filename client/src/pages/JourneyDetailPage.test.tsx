@@ -2284,13 +2284,13 @@ describe('JourneyDetailPage', () => {
 
       // Calendar dropdown should show weekday headers
       await waitFor(() => {
-        expect(screen.getByText('Su')).toBeInTheDocument();
-        expect(screen.getByText('Mo')).toBeInTheDocument();
-        expect(screen.getByText('Tu')).toBeInTheDocument();
-        expect(screen.getByText('We')).toBeInTheDocument();
-        expect(screen.getByText('Th')).toBeInTheDocument();
-        expect(screen.getByText('Fr')).toBeInTheDocument();
-        expect(screen.getByText('Sa')).toBeInTheDocument();
+        expect(screen.getByText('Sun')).toBeInTheDocument();
+        expect(screen.getByText('Mon')).toBeInTheDocument();
+        expect(screen.getByText('Tue')).toBeInTheDocument();
+        expect(screen.getByText('Wed')).toBeInTheDocument();
+        expect(screen.getByText('Thu')).toBeInTheDocument();
+        expect(screen.getByText('Fri')).toBeInTheDocument();
+        expect(screen.getByText('Sat')).toBeInTheDocument();
       });
     });
   });
@@ -2309,12 +2309,12 @@ describe('JourneyDetailPage', () => {
 
       // The calendar should have the month name and two navigation buttons
       await waitFor(() => {
-        expect(screen.getByText('Su')).toBeInTheDocument();
+        expect(screen.getByText('Sun')).toBeInTheDocument();
       });
 
       // The calendar header has prev/next buttons. They are type="button" within the calendar dropdown.
       // There should be navigation buttons around the month name
-      const calendarDropdown = screen.getByText('Su').closest('[class*="rounded-xl"]')!;
+      const calendarDropdown = screen.getByText('Sun').closest('[class*="rounded-xl"]')!;
       const navButtons = calendarDropdown.querySelectorAll('button[type="button"]');
       // At minimum: 2 nav buttons + day cells
       expect(navButtons.length).toBeGreaterThanOrEqual(2);
@@ -2823,7 +2823,7 @@ describe('JourneyDetailPage', () => {
 
       // Wait for calendar to open
       await waitFor(() => {
-        expect(screen.getByText('Su')).toBeInTheDocument();
+        expect(screen.getByText('Sun')).toBeInTheDocument();
       });
 
       // Click day 15 (should be a button in the grid)
@@ -2835,7 +2835,7 @@ describe('JourneyDetailPage', () => {
 
       // Calendar should close after selection
       await waitFor(() => {
-        expect(screen.queryByText('Su')).not.toBeInTheDocument();
+        expect(screen.queryByText('Sun')).not.toBeInTheDocument();
       });
     });
   });
@@ -2853,11 +2853,11 @@ describe('JourneyDetailPage', () => {
       await user.click(dateBtn as HTMLElement);
 
       await waitFor(() => {
-        expect(screen.getByText('Su')).toBeInTheDocument();
+        expect(screen.getByText('Sun')).toBeInTheDocument();
       });
 
       // Get current month name
-      const calendarDropdown = screen.getByText('Su').closest('[class*="rounded-xl"]')!;
+      const calendarDropdown = screen.getByText('Sun').closest('[class*="rounded-xl"]')!;
       const monthText = calendarDropdown.querySelector('[class*="font-semibold"][class*="text-\\[13px\\]"]');
       const currentMonth = monthText?.textContent || '';
 

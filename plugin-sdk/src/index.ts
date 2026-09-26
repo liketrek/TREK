@@ -517,6 +517,61 @@ export interface SearchProvider {
    * Called for an explicit search, not for every keystroke: an external index has rate
    * limits, and a request per typed letter would spend them on words nobody finished. */
   search(request: SearchRequest, ctx: PluginContext): Promise<SearchResultPlace[]>;
+  /** Optional: places for the query while it is still being typed, shown under the
+   * core suggestions in the place search's dropdown. Implement it only when your index
+   * can take a request per keystroke, such as one you keep locally; leave it out and
+   * your places appear once the search is run, as before.
+   *
+   * Called from the second typed character on, with `limit` 3, and given 800 ms. The
+   * host keeps at most 3 rows across every provider, so return your best few, and
+   * `near` is where the person is planning. Picking a row takes it as it is, so fill in
+   * what you know (address, website, phone) here rather than later. */
+  suggest?(request: SearchRequest, ctx: PluginContext): Promise<SearchResultPlace[]>;
+}
+/**
+ * What the host asks a POI category provider for: the places of ONE of your declared
+ * `capabilities.poiCategories` inside the map area the user is looking at.
+ */
+export interface PoiCategoryRequest {
+  /** One of your own `capabilities.poiCategories` ids. The host never sends any other. */
+  category: string;
+  /** The viewport, narrowed to at most 0.5 degrees a side and folded onto -180..180. */
+  bounds: { south: number; west: number; north: number; east: number };
+  /** The user's TREK language (`de`, `zh-TW`...), for indexes with localized names. */
+  lang?: string;
+  /** The most places worth returning. The host keeps at most 60 whatever you send. */
+  limit: number;
+}
+/** One row only your index knows, shown in the map popup: a trail length, a step-free entrance. */
+export interface PoiDetail {
+  /** At most 40 characters. */
+  label: string;
+  /** At most 120 characters. */
+  value: string;
+}
+/** A place in one of your categories. */
+export interface PoiCategoryPlace {
+  /** Stable id in your own index. The host namespaces it as `plugin:<yourId>:<id>`. */
+  id?: string;
+  name: string;
+  lat: number;
+  lng: number;
+  address?: string;
+  website?: string;
+  phone?: string;
+  /** Zero to five. */
+  rating?: number;
+  /** At most 6 rows. */
+  details?: PoiDetail[];
+}
+export interface PoiCategoryProvider {
+  /** Places for a chip you added to the trip map's "Explore places" pill.
+   * Needs `hook:poi-category-provider` and the category declared in
+   * `capabilities.poiCategories`. Runs as the user who picked the chip, so
+   * `ctx.settings.get()` is theirs. The host keeps places inside `bounds` only, at most
+   * 60 of them, and gives you 8 seconds to answer. Called when the user picks the chip
+   * or asks to search the area again, not on every pan. */
+  getPois(request: PoiCategoryRequest, ctx: PluginContext): Promise<PoiCategoryPlace[]>;
 }
 /** A validation/warning a plugin raises on a trip; TREK surfaces it in the planner. */
 export interface TripWarning { level: 'info' | 'warning' | 'error'; message: string; dayId?: number; placeId?: number; }
@@ -871,6 +926,7 @@ export interface PluginDefinition {
     calendarSource?: CalendarSource;
     placeDetailProvider?: PlaceDetailProvider;
     searchProvider?: SearchProvider;
+    poiCategoryProvider?: PoiCategoryProvider;
     warningProvider?: WarningProvider;
     tableContributor?: TableContributor;
     mapMarkerProvider?: MapMarkerProvider;
@@ -920,6 +976,8 @@ export {
 export {
   EVENT_FAMILIES, EVENT_SNAPSHOT_GRANT, KNOWN_PERMISSIONS,
 } from './generated/host-facts.js';
+// The lucide icons a `capabilities.poiCategories` entry may use, and the per-plugin cap.
+export { POI_CATEGORY_ICONS, POI_CATEGORY_MAX } from './generated/host-facts.js';
 
 /** Scope for host-managed, per-user session state in a sandboxed plugin UI. */
 export type PluginSessionStorageScope = 'plugin' | 'trip';

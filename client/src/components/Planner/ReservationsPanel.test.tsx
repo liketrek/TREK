@@ -11,10 +11,15 @@ import { usePluginStore } from '../../store/pluginStore';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildUser, buildTrip, buildReservation, buildDay, buildPlace } from '../../../tests/helpers/factories';
 import { openFile } from '../../utils/fileDownload';
+import { formatMoney } from '../../utils/formatters';
 import ReservationsPanel from './ReservationsPanel';
 
 vi.mock('../../api/authUrl', () => ({ getAuthUrl: vi.fn().mockResolvedValue('http://test/file') }));
 vi.mock('../../utils/fileDownload', () => ({ openFile: vi.fn(async () => {}) }));
+
+// A card shows a price the way formatMoney writes it; getByText collapses the
+// no-break space Intl puts between amount and symbol, so the expectation does too.
+const money = (amount: number, currency: string) => formatMoney(amount, currency, 'en').replace(/\s/g, ' ');
 
 const defaultProps = {
   tripId: 1,
@@ -730,8 +735,23 @@ describe('ReservationsPanel', () => {
     expect(screen.getByText('Reykjavik')).toBeInTheDocument();
     // The raw airport codes are dropped in favour of the route line…
     expect(screen.queryByText('AMS')).not.toBeInTheDocument();
-    // …but the price still gets its own cell.
-    expect(screen.getByText('320 EUR')).toBeInTheDocument();
+    // …but the price still gets its own cell, formatted as money in its own currency.
+    expect(screen.getByText(money(320, 'EUR'))).toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-RESP-063b: a price without a currency is shown in the trip currency, a non-numeric one as written', () => {
+    seedStore(useTripStore, { trip: buildTrip({ id: 1, currency: 'CHF' }) });
+    const priced = buildReservation({
+      id: 1, title: 'Lake cruise', type: 'cruise', status: 'confirmed',
+      metadata: JSON.stringify({ price: '45' }),
+    });
+    const vague = buildReservation({
+      id: 2, title: 'Mountain hut', type: 'other', status: 'confirmed',
+      metadata: JSON.stringify({ price: 'on request', priceCurrency: 'EUR' }),
+    });
+    render(<ReservationsPanel {...defaultProps} reservations={[priced, vague]} />);
+    expect(screen.getByText(money(45, 'CHF'))).toBeInTheDocument();
+    expect(screen.getByText('on request EUR')).toBeInTheDocument();
   });
 
   it('FE-PLANNER-RESP-064: an attached file opens through the download helper', async () => {

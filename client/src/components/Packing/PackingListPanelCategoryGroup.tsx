@@ -10,6 +10,8 @@ import type { PackingItem, PackingBag } from '../../types'
 import { katColor } from './packingListPanel.helpers'
 import type { TripMember, CategoryAssignee } from './usePackingListPanel'
 import { ArtikelZeile } from './PackingListPanelItemRow'
+import { PopoverItem } from './PackingPopover'
+import { COMPOSER, POPOVER, POPOVER_DIVIDER, composerConfirm } from './packingPopoverStyles'
 import { usePluginViewContributions, PluginCardFooter } from '../Plugins/PluginContributions'
 import GuestBadge from '../shared/GuestBadge'
 
@@ -113,12 +115,10 @@ export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRen
   }
 
   return (
-    <div style={{ marginBottom: 6, background: 'var(--bg-card)', borderRadius: 14, border: '1px solid var(--border-secondary)', overflow: 'visible' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderBottom: offen ? '1px solid var(--border-secondary)' : 'none' }}>
-        <button type="button" onClick={() => setOffen(o => !o)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', color: 'var(--text-faint)', flexShrink: 0 }}>
-          {offen ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
-        </button>
-
+    // Shaped after the phone's category card: a tinted head band carrying the
+    // name as written, the count, and the fold arrow on the far right.
+    <div style={{ marginBottom: 6, background: 'var(--bg-card)', borderRadius: 16, border: '1px solid var(--border-secondary)', overflow: 'visible' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 12px 11px 14px', background: 'var(--bg-tertiary)', borderRadius: offen ? '15px 15px 0 0' : 15 }}>
         <span style={{ width: 10, height: 10, borderRadius: '50%', background: dot, flexShrink: 0 }} />
 
         {editingName && canEdit ? (
@@ -127,10 +127,10 @@ export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRen
             onChange={e => setEditKatName(e.target.value)}
             onBlur={handleSaveKatName}
             onKeyDown={e => { if (e.key === 'Enter') handleSaveKatName(); if (e.key === 'Escape') { setEditingName(false); setEditKatName(kategorie) } }}
-            style={{ flex: 1, fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', fontWeight: 600, border: 'none', borderBottom: '2px solid var(--text-primary)', outline: 'none', background: 'transparent', fontFamily: 'inherit', color: 'var(--text-primary)', padding: '0 2px' }}
+            style={{ flex: 1, fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 700, border: 'none', borderBottom: '2px solid var(--text-primary)', outline: 'none', background: 'transparent', fontFamily: 'inherit', color: 'var(--text-primary)', padding: '0 2px' }}
           />
         ) : (
-          <span style={{ fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          <span style={{ fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>
             {kategorie}
           </span>
         )}
@@ -188,11 +188,7 @@ export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRen
               <UserPlus size={10} />
             </button>
             {showAssigneeDropdown && (
-              <div style={{
-                position: 'absolute', left: 0, top: '100%', marginTop: 4, zIndex: 50,
-                background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 10,
-                boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: 4, minWidth: 160,
-              }}>
+              <div className="trek-menu-enter" style={{ ...POPOVER, position: 'absolute', left: 0, top: '100%', marginTop: 6, zIndex: 50, minWidth: 190 }}>
                 {tripMembers.map(m => {
                   const isAssigned = assignees.some(a => a.user_id === m.id)
                   return (
@@ -239,8 +235,9 @@ export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRen
         </div>
 
         <span style={{
-          fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, padding: '1px 8px', borderRadius: 99,
-          background: alleAbgehakt ? 'rgba(22,163,74,0.12)' : 'var(--bg-tertiary)',
+          fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 700, padding: '2px 8px', borderRadius: 99,
+          fontVariantNumeric: 'tabular-nums',
+          background: alleAbgehakt ? 'rgba(22,163,74,0.12)' : 'var(--bg-card)',
           color: alleAbgehakt ? '#16a34a' : 'var(--text-muted)',
         }}>
           {abgehakt}/{items.length}
@@ -256,28 +253,32 @@ export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRen
             return (
             <>
               <div role="presentation" style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setShowMenu(false)} />
-              <div style={{ position: 'fixed', right: rect ? window.innerWidth - rect.right : 0, top: rect ? rect.bottom + 4 : 0, zIndex: 100, background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.1)', padding: 4, minWidth: 170 }}>
-                {canEdit && <MenuItem icon={<Pencil size={13} />} label={t('packing.menuRename')} onClick={() => { setEditingName(true); setShowMenu(false) }} />}
-                <MenuItem icon={<CheckCheck size={13} />} label={t('packing.menuCheckAll')} onClick={() => { handleCheckAll(); setShowMenu(false) }} />
-                <MenuItem icon={<RotateCcw size={13} />} label={t('packing.menuUncheckAll')} onClick={() => { handleUncheckAll(); setShowMenu(false) }} />
+              <div className="trek-menu-enter" style={{ ...POPOVER, position: 'fixed', right: rect ? window.innerWidth - rect.right : 0, top: rect ? rect.bottom + 6 : 0, zIndex: 100, minWidth: 200 }}>
+                {canEdit && <PopoverItem icon={<Pencil size={13} />} label={t('packing.menuRename')} onClick={() => { setEditingName(true); setShowMenu(false) }} />}
+                <PopoverItem icon={<CheckCheck size={13} />} label={t('packing.menuCheckAll')} onClick={() => { handleCheckAll(); setShowMenu(false) }} />
+                <PopoverItem icon={<RotateCcw size={13} />} label={t('packing.menuUncheckAll')} onClick={() => { handleUncheckAll(); setShowMenu(false) }} />
                 {canEdit && <>
-                <div style={{ height: 1, background: 'var(--bg-tertiary)', margin: '4px 0' }} />
-                <MenuItem icon={<Trash2 size={13} />} label={t('packing.menuDeleteCat')} danger onClick={handleDeleteAll} />
+                <div style={POPOVER_DIVIDER} />
+                <PopoverItem icon={<Trash2 size={13} />} label={t('packing.menuDeleteCat')} danger onClick={handleDeleteAll} />
                 </>}
               </div>
             </>
             );
           })()}
         </div>
+
+        <button type="button" onClick={() => setOffen(o => !o)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', color: 'var(--text-faint)', flexShrink: 0 }}>
+          {offen ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
+        </button>
       </div>
 
       {offen && (
         <div style={{ padding: '4px 4px 6px' }}>
-          {items.map(item => {
+          {items.map((item, index) => {
             const contributions = contribFor(item.id)
             return (
               <React.Fragment key={item.id}>
-                <ArtikelZeile item={item} tripId={tripId} categories={allCategories} onCategoryChange={() => {}} onDelete={onDeleteItem} bagTrackingEnabled={bagTrackingEnabled} bags={bags} onCreateBag={onCreateBag} canEdit={canEdit}
+                <ArtikelZeile item={item} tripId={tripId} categories={allCategories} onCategoryChange={() => {}} onDelete={onDeleteItem} bagTrackingEnabled={bagTrackingEnabled} bags={bags} onCreateBag={onCreateBag} canEdit={canEdit} divider={index > 0}
                   tripMembers={tripMembers} currentUserId={currentUserId} onSetSharing={onSetSharing} onClone={onClone} onJoin={onJoin} onLeave={onLeave}
                   drag={canEdit ? {
                     isDragging: dragId === item.id,
@@ -293,7 +294,10 @@ export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRen
           })}
           {/* Inline add item */}
           {canEdit && (showAddItem ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px' }}>
+            // The new item already looks like a row: an empty box in the checkbox
+            // column, the name typed where names sit, and the add as the accent.
+            <div style={{ ...COMPOSER, gap: 9, margin: '6px 4px 0', padding: '4px 4px 4px 27px' }}>
+              <span aria-hidden style={{ width: 20, height: 20, borderRadius: 6, border: '1.5px solid var(--text-faint)', opacity: 0.6, flexShrink: 0 }} />
               <input
                 ref={addItemRef}
                 autoFocus
@@ -308,52 +312,35 @@ export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRen
                   if (e.key === 'Escape') { setShowAddItem(false); setNewItemName('') }
                 }}
                 placeholder={t('packing.addItemPlaceholder')}
-                style={{ flex: 1, padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border-primary)', fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', fontFamily: 'inherit', outline: 'none', color: 'var(--text-primary)', background: 'var(--bg-input)' }}
+                style={{ flex: 1, minWidth: 0, padding: '5px 0', border: 'none', fontSize: 'calc(13.5px * var(--fs-scale-body, 1))', fontWeight: 500, fontFamily: 'inherit', outline: 'none', color: 'var(--text-primary)', background: 'transparent' }}
               />
               {/* disabled while the field is empty, so no extra guard here */}
               <button type="button" onClick={() => { onAddItem(kategorie, newItemName.trim()); setNewItemName(''); setTimeout(() => addItemRef.current?.focus(), 30) }}
-                disabled={!newItemName.trim()}
-                style={{ padding: '5px 8px', borderRadius: 8, border: 'none', background: newItemName.trim() ? 'var(--text-primary)' : 'var(--border-primary)', color: 'var(--bg-primary)', cursor: newItemName.trim() ? 'pointer' : 'default', display: 'flex' }}>
-                <Plus size={14} />
+                disabled={!newItemName.trim()} aria-label={t('common.add')}
+                style={composerConfirm(!!newItemName.trim())}>
+                <Plus size={15} strokeWidth={2.5} />
               </button>
-              <button type="button" onClick={() => { setShowAddItem(false); setNewItemName('') }}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, display: 'flex', color: 'var(--text-faint)' }}>
+              <button type="button" onClick={() => { setShowAddItem(false); setNewItemName('') }} aria-label={t('common.cancel')}
+                style={{ width: 28, height: 28, borderRadius: 8, border: 'none', background: 'none', cursor: 'pointer', display: 'grid', placeItems: 'center', flexShrink: 0, color: 'var(--text-faint)' }}>
                 <X size={14} />
               </button>
             </div>
           ) : (
+            // A row of its own on a faint tint, so it closes the card instead
+            // of trailing off: a dashed box in the checkbox column (past the drag
+            // grip's width) and the label where an item's name sits.
             <button type="button" onClick={() => { setShowAddItem(true); setTimeout(() => addItemRef.current?.focus(), 30) }}
-              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', margin: '2px 4px', borderRadius: 8, border: 'none', background: 'none', cursor: 'pointer', fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'var(--text-faint)', fontFamily: 'inherit' }}
+              style={{ display: 'flex', alignItems: 'center', gap: 9, width: 'calc(100% - 8px)', margin: '6px 4px 0', padding: '8px 10px 8px 28px', borderRadius: 10, border: 'none', background: 'var(--bg-secondary)', cursor: 'pointer', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500, color: 'var(--text-faint)', fontFamily: 'inherit', textAlign: 'left' }}
               onMouseEnter={e => e.currentTarget.style.color = 'var(--text-secondary)'}
               onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
-              <Plus size={12} /> {t('packing.addItem')}
+              <span style={{ width: 20, height: 20, borderRadius: 6, border: '1.5px dashed currentColor', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                <Plus size={12} strokeWidth={2.5} />
+              </span>
+              {t('packing.addItem')}
             </button>
           ))}
         </div>
       )}
     </div>
-  )
-}
-
-interface MenuItemProps {
-  icon: React.ReactNode
-  label: string
-  onClick: () => void
-  danger?: boolean
-}
-
-function MenuItem({ icon, label, onClick, danger = false }: MenuItemProps) {
-  return (
-    <button type="button" onClick={onClick} style={{
-      display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-      padding: '7px 10px', background: 'none', border: 'none', cursor: 'pointer',
-      fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', fontFamily: 'inherit', borderRadius: 7, textAlign: 'left',
-      color: danger ? '#ef4444' : 'var(--text-secondary)',
-    }}
-      onMouseEnter={e => e.currentTarget.style.background = danger ? '#fef2f2' : 'var(--bg-tertiary)'}
-      onMouseLeave={e => e.currentTarget.style.background = 'none'}
-    >
-      {icon}{label}
-    </button>
   )
 }

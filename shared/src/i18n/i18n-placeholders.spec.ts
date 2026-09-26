@@ -1,10 +1,12 @@
 import ar from './ar';
+import az from './az';
 import br from './br';
 import ca from './ca';
 import cs from './cs';
 import de from './de';
 import en from './en';
 import es from './es';
+import et from './et';
 import fr from './fr';
 import gr from './gr';
 import hu from './hu';
@@ -15,7 +17,9 @@ import ko from './ko';
 import nl from './nl';
 import pl from './pl';
 import ru from './ru';
+import sk from './sk';
 import sv from './sv';
+import th from './th';
 import tr from './tr';
 import type { TranslationStrings } from './types';
 import uk from './uk';
@@ -39,11 +43,13 @@ import { describe, it, expect } from 'vitest';
  */
 const LOCALES: Record<string, TranslationStrings> = {
   ar,
+  az,
   br,
   ca,
   cs,
   de,
   es,
+  et,
   fr,
   gr,
   hu,
@@ -54,7 +60,9 @@ const LOCALES: Record<string, TranslationStrings> = {
   nl,
   pl,
   ru,
+  sk,
   sv,
+  th,
   tr,
   uk,
   vi,
@@ -69,9 +77,6 @@ describe('i18n placeholder parity', () => {
     const violations: string[] = [];
 
     for (const [enKey, enValue] of Object.entries(en)) {
-      // A few catalog entries are structured data, not strings
-      // (e.g. packing.suggestions.items) — placeholders only apply to strings.
-      if (typeof enValue !== 'string') continue;
       const placeholders = enValue.match(PLACEHOLDER_RE);
       if (!placeholders) continue;
 

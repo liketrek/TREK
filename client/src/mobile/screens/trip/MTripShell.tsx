@@ -13,6 +13,7 @@ import MMapArea from './map/MMapArea'
 import MPlacesBrowser from './places/MPlacesBrowser'
 import MTripTabPanel from './tabs/MTripTabPanel'
 import MTripSheets from './sheets/MTripSheets'
+import MReceiptScanButton from './tabs/MReceiptScanButton'
 import MTripLoadingSplash from './MTripLoadingSplash'
 import { usePluginDayTints, dayTintBackground } from '../../../components/Plugins/PluginDaySchedule'
 import { stageOf } from '../../../components/Roadtrip/roadtripRowModel'
@@ -593,6 +594,7 @@ export default function MTripShell({
         {trTab === 'finanzplan' && (
           <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-[7px]">
             <PrimaryPill label={t('costs.addExpense')} onClick={() => setAddExpenseSignal(s => s + 1)} />
+            <MReceiptScanButton tripId={tripId} canEdit={planner.can('budget_edit', trip)} />
             <MIconBtn ariaLabel={t('budget.exportCsv')} onClick={() => setExportCostsCsvSignal(s => s + 1)} size={40} className="text-m-muted backdrop-blur-[24px] backdrop-saturate-[1.7]">
               <FileDown size={15} strokeWidth={2} />
             </MIconBtn>

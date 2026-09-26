@@ -137,6 +137,7 @@ const admin: TranslationStrings = {
   'admin.amapKey': 'Amap (高德地图) API-Key',
   'admin.amapKeyHint':
     'Für die Ortssuche in Festlandchina, wo Google nicht erreichbar ist und OpenStreetMap kaum Daten hat. Benötigt einen Key vom Typ „Web 服务" (Webdienst), nicht einen JS-API-Key. Erhältlich auf console.amap.com.',
+  'admin.keyFromEnv': 'Gesetzt über {name}',
   'admin.placesProvider.title': 'Anbieter für die Ortssuche',
   'admin.placesProvider.subtitle': 'Der TREK-Index und OpenStreetMap beantworten jede Suche. Hier wird gewählt, wer zusätzlich gefragt wird, wenn die beiden nichts finden: Automatisch bevorzugt Google, wenn ein Schlüssel da ist, danach Amap.',
   'admin.placesProvider.auto': 'Automatisch',
@@ -384,6 +385,8 @@ const admin: TranslationStrings = {
     'Zusatzdetails (Bewertungen, Ratings, Links) zu einem Ort beisteuern',
   'admin.plugins.perm.hook:search-provider':
     'Ortssuchen aus einem eigenen Index beantworten, neben TREKs eigenen Ergebnissen',
+  'admin.plugins.perm.hook:poi-category-provider':
+    'Eigene Ortskategorien zu „Orte auf der Karte entdecken“ hinzufügen; wählst du eine davon, erhält das Plugin den Kartenausschnitt, den du gerade ansiehst',
   'admin.plugins.perm.hook:trip-warning-provider':
     'Validierungswarnungen zu einer Reise ausgeben (im Planer angezeigt)',
   'admin.plugins.perm.hook:table-contributor':
@@ -399,6 +402,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.mcpTools': 'Veröffentlicht KI-Tools',
   'admin.plugins.mcpToolsTitle': 'Veröffentlichte KI-Tools',
   'admin.plugins.mcpToolsHint': 'Ein Assistent kann sie im Namen eines Nutzers ausführen. Jedes handelt mit den oben erteilten Rechten.',
+  'admin.plugins.poiCategoriesTitle': 'Kartenkategorien, die es hinzufügt',
   'admin.plugins.perm.mcp:tools':
     'Tools veröffentlichen, die ein KI-Assistent in deinem Namen ausführen kann (es handelt mit den Rechten, die du dem Plugin hier erteilst, nicht mit denen des Assistenten)',
   'admin.plugins.perm.geolocation:read':
@@ -543,6 +547,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'Liefert Kalender-Events',
   'admin.plugins.cap.placeDetails': 'Reichert Orte an',
   'admin.plugins.cap.search': 'Beantwortet Suchen',
+  'admin.plugins.cap.poiCategories': 'Fügt Kartenkategorien hinzu',
   'admin.plugins.cap.warnings': 'Meldet Probleme',
   'admin.plugins.cap.mapLayers': 'Zeichnet auf der Karte',
   'admin.plugins.cap.routing': 'Bietet Routing an',
@@ -619,6 +624,11 @@ const admin: TranslationStrings = {
     'Aufenthalte und aufgezeichnete Routen aus einer Dawarich-Instanz lesen, die jeder selbst verbindet',
   'admin.addons.catalog.llm_parsing.name': 'KI-Auswertung',
   'admin.addons.catalog.llm_parsing.description': 'Liest Buchungen, an denen der eingebaute Parser scheitert, mit einem KI-Modell deiner Wahl',
+  'admin.addons.llm.vision.auto': 'Automatisch',
+  'admin.addons.llm.vision.on': 'Ja',
+  'admin.addons.llm.vision.off': 'Nein',
+  'admin.addons.llm.vision.hintLocal': 'Automatisch fragt den Ollama-Server, ob dieses Modell Bilder liest.',
+  'admin.addons.llm.vision.hintCloud': 'Automatisch bedeutet bei einem Cloud-Modell Nein. Wähle Ja, wenn dieses Modell Bilder liest.',
   'admin.addons.enabled': 'Aktiviert',
   'admin.addons.disabled': 'Deaktiviert',
   'admin.addons.type.trip': 'Reise',
@@ -720,6 +730,9 @@ const admin: TranslationStrings = {
   'admin.tabs.permissions': 'Berechtigungen',
   'admin.notifications.emailPanel.title': 'Email (SMTP)',
   'admin.notifications.webhookPanel.title': 'Webhook',
+  'admin.notifications.webPushPanel.title': 'Web Push',
+  'admin.notifications.webPushPanel.hint':
+    'Ermöglicht Benutzern, über den Browser Benachrichtigungen auf ihren Smartphones und Computern zu empfangen, auch wenn TREK geschlossen ist. Erfordert HTTPS; auf iPhone und iPad muss TREK zum Home-Bildschirm hinzugefügt werden.',
   'admin.notifications.inappPanel.title': 'In-App',
   'admin.notifications.inappPanel.hint':
     'In-App-Benachrichtigungen sind immer aktiv und können nicht global deaktiviert werden.',

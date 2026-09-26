@@ -12,6 +12,7 @@ import DawarichIcon from '../../../components/shared/DawarichIcon'
 import AirTrailIcon from '../../../components/shared/AirTrailIcon'
 import { DOCUMENT_PROVIDER_ICONS } from '../../../components/shared/DocumentProviderIcons'
 import MToggle from '../../components/MToggle'
+import { asLlmVision, LLM_VISION_MODES, type LlmVision } from '@trek/shared'
 import { MAdminButton, MAdminCard, MAdminField, MAdminInput, MAdminSecretInput } from './MAdminUi'
 
 const ICON_MAP = {
@@ -391,12 +392,14 @@ const RECOMMENDED_MODELS: { id: string; label: string; note: string; recommended
  * provider, it also lists installed Ollama models and can pull NuExtract models.
  */
 function LlmParsingConfig({ addon }: { addon: Addon }) {
+  const { t } = useTranslation()
   const toast = useToast()
   const cfg = (addon.config ?? {}) as Record<string, unknown>
   const [provider, setProvider] = useState<string>((cfg.provider as string) ?? 'local')
   const [model, setModel] = useState<string>((cfg.model as string) ?? '')
   const [baseUrl, setBaseUrl] = useState<string>((cfg.baseUrl as string) ?? '')
   const [apiKey, setApiKey] = useState<string>((cfg.apiKey as string) ?? '')
+  const [vision, setVision] = useState<LlmVision>(asLlmVision(cfg.vision))
   const [saving, setSaving] = useState(false)
 
   // Local-provider model management.
@@ -458,7 +461,7 @@ function LlmParsingConfig({ addon }: { addon: Addon }) {
     setSaving(true)
     try {
       // Send the masked sentinel unchanged so the server keeps the stored key.
-      await adminApi.updateAddon(addon.id, { config: { provider, model: model.trim(), baseUrl: baseUrl.trim(), apiKey, multimodal: cfg.multimodal === true } })
+      await adminApi.updateAddon(addon.id, { config: { provider, model: model.trim(), baseUrl: baseUrl.trim(), apiKey, vision } })
       toast.success('Saved')
     } catch {
       toast.error('Failed to save')
@@ -545,6 +548,31 @@ function LlmParsingConfig({ addon }: { addon: Addon }) {
           onChange={e => setModel(e.target.value)}
           placeholder={provider === 'anthropic' ? 'claude-opus-4-8' : provider === 'openai' ? 'gpt-4o' : 'select or pull below'}
         />
+
+        <MAdminField label={t('settings.aiParsing.multimodal')}>
+          <div role="radiogroup" aria-label={t('settings.aiParsing.multimodal')} className="flex gap-[6px]">
+            {LLM_VISION_MODES.map((mode) => {
+              const active = vision === mode
+              return (
+                <button
+                  key={mode}
+                  type="button"
+                  role="radio"
+                  aria-checked={active}
+                  onClick={() => setVision(mode)}
+                  className={`flex-1 rounded-xl border px-3 py-[10px] text-[0.8125rem] font-semibold text-m-ink ${
+                    active ? 'border-[color:var(--m-act)] bg-[color:var(--m-ic)]' : 'border-[color:var(--m-rowbr)]'
+                  }`}
+                >
+                  {t(`admin.addons.llm.vision.${mode}`)}
+                </button>
+              )
+            })}
+          </div>
+        </MAdminField>
+        <p className="font-geist text-[0.625rem] leading-relaxed text-m-faint">
+          {t(provider === 'local' ? 'admin.addons.llm.vision.hintLocal' : 'admin.addons.llm.vision.hintCloud')}
+        </p>
 
         {/* Local model management (Ollama) */}
         {provider === 'local' && (

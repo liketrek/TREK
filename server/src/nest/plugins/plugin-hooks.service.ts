@@ -36,6 +36,22 @@ export interface HookSearchRequest {
   bounds?: { south: number; west: number; north: number; east: number };
 }
 
+/**
+ * What a POI category provider is asked for (#1781): the places of ONE of its own
+ * declared categories inside the map area the user is looking at.
+ *
+ * `category` is the plugin-local id from `capabilities.poiCategories`, never a pill
+ * key, and the host only ever sends an id the manifest declared. `bounds` is the
+ * viewport after the host narrowed it to a search window, so a provider never has to
+ * answer for a whole continent.
+ */
+export interface HookPoiRequest {
+  category: string;
+  bounds: { south: number; west: number; north: number; east: number };
+  lang?: string;
+  limit: number;
+}
+
 /** The waypoint request a route provider is asked to solve. */
 export interface HookRouteRequest {
   tripId: number;
@@ -47,8 +63,9 @@ export interface HookRouteRequest {
 /**
  * Every host-to-plugin hook call, in one place.
  *
- * The 16 hooks the consent screen offers used to be invoked straight from the
- * controllers, with the fn name and the timeout written out at each call site. That
+ * The hooks the consent screen offers (one per HOOK_PERMISSION key, 18 of them now)
+ * used to be invoked straight from the controllers, with the fn name and the timeout
+ * written out at each call site. That
  * made three things impossible to check: that a granted `hook:*` permission actually
  * has a consumer (a dead grant on the consent screen looks exactly like a live one),
  * that the fn name the host asks for matches the one the SDK documents, and that two
@@ -67,9 +84,9 @@ export interface HookRouteRequest {
 export class PluginHooks {
   constructor(private readonly runtime: PluginRuntimeService) {}
 
-  /** The plugins that declared `hook`, in manifest order. */
-  providersOf(hook: string): string[] {
-    return this.runtime.providersOf(hook);
+  /** The plugins that declared `hook`, in manifest order; with `fn`, only those whose hook also has that function. */
+  providersOf(hook: string, fn?: string): string[] {
+    return this.runtime.providersOf(hook, fn);
   }
 
   @PluginHook('photoProvider', { permission: 'hook:photo-provider', fn: 'search', timeoutMs: 5000 })
@@ -100,7 +117,7 @@ export class PluginHooks {
   }
 
   /**
-   * The shortest leash of any hook here, because a person is waiting on a list.
+   * A short leash, because a person is waiting on a list.
    *
    * The core search and this one run side by side, so the wait is the slower of the
    * two rather than their sum, and the client stops waiting at two and a half seconds
@@ -111,6 +128,34 @@ export class PluginHooks {
   @PluginHook('searchProvider', { permission: 'hook:search-provider', fn: 'search', timeoutMs: 2000 })
   searchPlaces(pluginId: string, request: HookSearchRequest, userId: number): Promise<unknown> {
     return this.runtime.invokeHook(pluginId, 'searchProvider', 'search', [request], userId, 2000);
+  }
+
+  /**
+   * The same question asked while it is still being typed (#2221), and the shortest
+   * leash of any hook here.
+   *
+   * Only for a provider that implements `suggest`, which says its index can take a
+   * request per keystroke. The typed-ahead list waits for it beside the core
+   * suggestions, which arrive in a few hundred milliseconds, and the next keystroke
+   * replaces the question anyway, so an answer later than this is one nobody reads.
+   */
+  @PluginHook('searchProvider', { permission: 'hook:search-provider', fn: 'suggest', timeoutMs: 800 })
+  suggestPlaces(pluginId: string, request: HookSearchRequest, userId: number): Promise<unknown> {
+    return this.runtime.invokeHook(pluginId, 'searchProvider', 'suggest', [request], userId, 800);
+  }
+
+  /**
+   * A chip in the explore pill, answered by the plugin that declared it.
+   *
+   * Longer than the search budget because nobody is typing: the person picked a
+   * category and waits for markers, the way they wait for the core categories, whose
+   * Overpass path is allowed far more. It is still well short of that, because a
+   * provider behind an external API that has not answered in eight seconds is not
+   * going to, and the chip should show its error dot rather than spin.
+   */
+  @PluginHook('poiCategoryProvider', { permission: 'hook:poi-category-provider', fn: 'getPois', timeoutMs: 8000 })
+  categoryPois(pluginId: string, request: HookPoiRequest, userId: number): Promise<unknown> {
+    return this.runtime.invokeHook(pluginId, 'poiCategoryProvider', 'getPois', [request], userId, 8000);
   }
 
   @PluginHook('warningProvider', { permission: 'hook:trip-warning-provider', fn: 'getWarnings', timeoutMs: 5000 })

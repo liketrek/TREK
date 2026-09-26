@@ -787,3 +787,35 @@ describe('CustomDateTimePicker branches', () => {
     expect(onChange).toHaveBeenCalledWith('2026-03-15');
   });
 });
+
+// ─── Week start (#2029) ───────────────────────────────────────────────────────
+
+describe('CustomDatePicker week start (#2029)', () => {
+  const onChange = vi.fn();
+  const original = useSettingsStore.getState().settings;
+  afterEach(() => useSettingsStore.setState({ settings: original }));
+
+  /** The weekday header row and how many blanks precede the 1st, read off the open calendar. */
+  async function openMarch2026(weekStart?: 'monday' | 'sunday' | 'saturday') {
+    useSettingsStore.setState({ settings: { ...original, week_start: weekStart } });
+    const user = userEvent.setup();
+    render(<CustomDatePicker value="2026-03-15" onChange={onChange} />);
+    await user.click(screen.getAllByRole('button')[0]);
+    const day1 = screen.getAllByRole('button').find((b) => b.textContent?.trim() === '1')!;
+    const grid = day1.parentElement!;
+    return { header: grid.previousElementSibling!.textContent, blanks: Array.from(grid.children).indexOf(day1) };
+  }
+
+  it('FE-COMP-DATEPICKER-033: rows start on Monday when nothing is set', async () => {
+    // 1 March 2026 is a Sunday: the last column of a Monday-first row.
+    expect(await openMarch2026(undefined)).toEqual({ header: 'MTWTFSS', blanks: 6 });
+  });
+
+  it('FE-COMP-DATEPICKER-034: rows start on the day the user picked', async () => {
+    expect(await openMarch2026('sunday')).toEqual({ header: 'SMTWTFS', blanks: 0 });
+  });
+
+  it('FE-COMP-DATEPICKER-035: a Saturday start puts the Sunday 1st in the second column', async () => {
+    expect(await openMarch2026('saturday')).toEqual({ header: 'SSMTWTF', blanks: 1 });
+  });
+});

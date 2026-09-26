@@ -1,4 +1,4 @@
-// FE-COMP-DISPLAY-001 to FE-COMP-DISPLAY-052
+// FE-COMP-DISPLAY-001 to FE-COMP-DISPLAY-054
 import { render, screen, within, fireEvent } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -442,5 +442,34 @@ describe('DisplaySettingsTab – startup destination', () => {
     await user.click(within(optionBlock(/^Start page$/)).getByText('Active trip'));
 
     expect(await screen.findByText('Start locked')).toBeInTheDocument();
+  });
+});
+
+// ── Week start (053, 054) ─────────────────────────────────────────────────────
+
+describe('DisplaySettingsTab week start (#2029)', () => {
+  it('FE-COMP-DISPLAY-053: shows Monday when unset and saves the day picked', async () => {
+    const user = userEvent.setup();
+    const updateSetting = vi.fn().mockResolvedValue(undefined);
+    seedStore(useSettingsStore, { settings: buildSettings({ week_start: undefined }), updateSetting });
+    render(<DisplaySettingsTab />);
+
+    expect(screen.getByText('Week starts on')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /Monday/ }));
+    await user.click(await screen.findByText('Sunday'));
+
+    expect(updateSetting).toHaveBeenCalledWith('week_start', 'sunday');
+  });
+
+  it('FE-COMP-DISPLAY-054: a rejected change surfaces the error', async () => {
+    const user = userEvent.setup();
+    const updateSetting = vi.fn().mockRejectedValue(new Error('Save failed'));
+    seedStore(useSettingsStore, { settings: buildSettings({ week_start: 'sunday' }), updateSetting });
+    render(<><ToastContainer /><DisplaySettingsTab /></>);
+
+    await user.click(screen.getByRole('button', { name: /Sunday/ }));
+    await user.click(await screen.findByText('Saturday'));
+
+    expect(await screen.findByText('Save failed')).toBeInTheDocument();
   });
 });

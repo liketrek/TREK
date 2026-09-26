@@ -17,7 +17,15 @@ const packing: TranslationStrings = {
   'packing.importHint': '1行につき1項目。形式：カテゴリ, 名前, 重量(g・任意), バッグ(任意), checked/unchecked(任意)',
   'packing.importPlaceholder':
     '衛生用品, 歯ブラシ\n衣類, Tシャツ, 200\n書類, パスポート, , 機内持ち込み\n電子機器, 充電器, 50, スーツケース, checked',
-  'packing.importCsv': 'CSV/TXTを読み込む',
+  'packing.importCsv': 'CSV/TXT/MDを読み込む',
+  'packing.export': 'エクスポート',
+  'packing.exportPrint': '印刷または PDF として保存',
+  'packing.exportMarkdown': 'Markdown チェックリスト (.md)',
+  'packing.exportCsv': 'インポート用 CSV (.csv)',
+  'packing.printItems': 'アイテム',
+  'packing.printPacked': '梱包済み',
+  'packing.importHintMarkdown':
+    'Markdown のリストも使えます。見出しがカテゴリになり、「- [ ]」と「- [x]」がアイテムになり、名前の前の「3x」で数量を指定できます。',
   'packing.importAction': '{count}件をインポート',
   'packing.importSuccess': '{count}件インポートしました',
   'packing.importError': 'インポートに失敗しました',
@@ -25,9 +33,6 @@ const packing: TranslationStrings = {
   'packing.progress': '{packed}/{total} 梱包済み（{percent}%）',
   'packing.clearChecked': 'チェック済み{count}件を削除',
   'packing.clearCheckedShort': '{count}件を削除',
-  'packing.suggestions': 'おすすめ',
-  'packing.suggestionsTitle': 'おすすめを追加',
-  'packing.allSuggested': 'おすすめはすべて追加済み',
   'packing.allPacked': 'すべて梱包済み！',
   'packing.addPlaceholder': '新しい項目を追加...',
   'packing.categoryPlaceholder': 'リスト...',
@@ -35,7 +40,6 @@ const packing: TranslationStrings = {
   'packing.filterOpen': '未完了',
   'packing.filterDone': '完了',
   'packing.emptyTitle': '持ち物リストは空です',
-  'packing.emptyHint': '項目を追加するか、おすすめを使いましょう',
   'packing.emptyFiltered': 'このフィルターに一致する項目はありません',
   'packing.menuRename': '名前を変更',
   'packing.menuCheckAll': 'すべてチェック',
@@ -67,128 +71,6 @@ const packing: TranslationStrings = {
   'packing.toast.deleteError': '削除に失敗しました',
   'packing.toast.renameError': '名前の変更に失敗しました',
   'packing.toast.addError': '追加に失敗しました',
-  'packing.suggestions.items': [
-    {
-      name: 'パスポート',
-      category: '書類',
-    },
-    {
-      name: '身分証明書',
-      category: '書類',
-    },
-    {
-      name: '海外旅行保険',
-      category: '書類',
-    },
-    {
-      name: '航空券',
-      category: '書類',
-    },
-    {
-      name: 'クレジットカード',
-      category: '金融',
-    },
-    {
-      name: '現金',
-      category: '金融',
-    },
-    {
-      name: 'ビザ',
-      category: '書類',
-    },
-    {
-      name: 'Tシャツ',
-      category: '衣類',
-    },
-    {
-      name: 'ズボン',
-      category: '衣類',
-    },
-    {
-      name: '下着',
-      category: '衣類',
-    },
-    {
-      name: '靴下',
-      category: '衣類',
-    },
-    {
-      name: '上着',
-      category: '衣類',
-    },
-    {
-      name: '寝間着',
-      category: '衣類',
-    },
-    {
-      name: '水着',
-      category: '衣類',
-    },
-    {
-      name: 'レインジャケット',
-      category: '衣類',
-    },
-    {
-      name: '歩きやすい靴',
-      category: '衣類',
-    },
-    {
-      name: '歯ブラシ',
-      category: '洗面用具',
-    },
-    {
-      name: '歯磨き粉',
-      category: '洗面用具',
-    },
-    {
-      name: 'シャンプー',
-      category: '洗面用具',
-    },
-    {
-      name: 'デオドラント',
-      category: '洗面用具',
-    },
-    {
-      name: '日焼け止め',
-      category: '洗面用具',
-    },
-    {
-      name: 'カミソリ',
-      category: '洗面用具',
-    },
-    {
-      name: '充電器',
-      category: '電子機器',
-    },
-    {
-      name: 'モバイルバッテリー',
-      category: '電子機器',
-    },
-    {
-      name: 'ヘッドホン',
-      category: '電子機器',
-    },
-    {
-      name: '変換プラグ',
-      category: '電子機器',
-    },
-    {
-      name: 'カメラ',
-      category: '電子機器',
-    },
-    {
-      name: '鎮痛薬',
-      category: '健康',
-    },
-    {
-      name: '絆創膏',
-      category: '健康',
-    },
-    {
-      name: '消毒液',
-      category: '健康',
-    },
-  ],
   'packing.makePrivate': '非公開にする',
   'packing.makePublic': '共有する',
   'packing.privateHint': '非公開 — 自分のみ表示',

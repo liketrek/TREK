@@ -38,7 +38,7 @@ vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, createBudgetItem, createPlace, addTripMember } from '../../helpers/factories';
+import { createUser, createTrip, createBudgetItem, createPlace, createReservation, addTripMember } from '../../helpers/factories';
 import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
 import { BudgetService } from '../../../src/nest/budget/budget.service';
 import { invalidatePermissionsCache } from '../../../src/nest/permissions/permissions-cache';
@@ -762,6 +762,155 @@ describe('Budget tools: place link', () => {
       expect(result.isError).toBe(true);
       expect(errorText(result)).toBe('place_id does not belong to this trip.');
       expect(itemCount(trip.id)).toBe(0);
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Linking an existing expense to a booking or a place (#2084), the MCP twin of
+// PUT /budget/:id with reservation_id / place_id
+// ---------------------------------------------------------------------------
+
+describe('Tool: update_budget_item (links)', () => {
+  function links(itemId: number) {
+    return testDb.prepare('SELECT reservation_id, place_id FROM budget_items WHERE id = ?')
+      .get(itemId) as { reservation_id: number | null; place_id: number | null };
+  }
+
+  function priceOf(reservationId: number): Record<string, unknown> {
+    const row = testDb.prepare('SELECT metadata FROM reservations WHERE id = ?').get(reservationId) as { metadata: string | null };
+    return row.metadata ? JSON.parse(row.metadata) : {};
+  }
+
+  function update(h: McpHarness, args: Record<string, unknown>) {
+    return h.client.callTool({ name: 'update_budget_item', arguments: args });
+  }
+
+  it('links two expenses to one booking, which then mirrors their sum', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const booking = createReservation(testDb, trip.id, { title: 'Flight' });
+    const fare = createBudgetItem(testDb, trip.id, { name: 'Fare', total_price: 180 });
+    const luggage = createBudgetItem(testDb, trip.id, { name: 'Luggage', total_price: 35.5 });
+    await withHarness(user.id, async (h) => {
+      const result = await update(h, { tripId: trip.id, itemId: fare.id, reservation_id: booking.id });
+      expect((parseToolResult(result) as any).item.reservation_id).toBe(booking.id);
+      expect(priceOf(booking.id)).toEqual({ price: '180' });
+
+      await update(h, { tripId: trip.id, itemId: luggage.id, reservation_id: booking.id });
+      expect(links(luggage.id).reservation_id).toBe(booking.id);
+      expect(priceOf(booking.id)).toEqual({ price: '215.5' });
+      // The booking card updates in every open session, not only the expense row.
+      expect(broadcastMock).toHaveBeenCalledWith(String(trip.id), 'reservation:updated', expect.objectContaining({ reservation: expect.objectContaining({ id: booking.id }) }), undefined);
+      expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'budget:updated', expect.objectContaining({ item: expect.objectContaining({ id: luggage.id }) }));
+    });
+  });
+
+  it('refuses a booking from another trip, in the words the REST route uses, and writes nothing', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const elsewhere = createTrip(testDb, user.id);
+    const foreign = createReservation(testDb, elsewhere.id);
+    const item = createBudgetItem(testDb, trip.id, { name: 'Fare' });
+    await withHarness(user.id, async (h) => {
+      const result = await update(h, { tripId: trip.id, itemId: item.id, reservation_id: foreign.id, name: 'Renamed' });
+      expect(result.isError).toBe(true);
+      expect(errorText(result)).toBe('reservation_id does not belong to this trip.');
+    });
+    expect(links(item.id)).toEqual({ reservation_id: null, place_id: null });
+    expect(testDb.prepare('SELECT name FROM budget_items WHERE id = ?').get(item.id)).toEqual({ name: 'Fare' });
+    expect(priceOf(foreign.id)).toEqual({});
+    expect(broadcastMock).not.toHaveBeenCalled();
+  });
+
+  it('refuses a place from another trip', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const elsewhere = createTrip(testDb, user.id);
+    const foreign = createPlace(testDb, elsewhere.id);
+    const item = createBudgetItem(testDb, trip.id);
+    await withHarness(user.id, async (h) => {
+      const result = await update(h, { tripId: trip.id, itemId: item.id, place_id: foreign.id });
+      expect(result.isError).toBe(true);
+      expect(errorText(result)).toBe('place_id does not belong to this trip.');
+    });
+    expect(links(item.id).place_id).toBeNull();
+  });
+
+  it('links an expense to a place, and null lets go of it while the expense stays', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id, { name: 'Louvre' });
+    const item = createBudgetItem(testDb, trip.id, { name: 'Tickets', total_price: 34 });
+    await withHarness(user.id, async (h) => {
+      await update(h, { tripId: trip.id, itemId: item.id, place_id: place.id });
+      expect(links(item.id).place_id).toBe(place.id);
+      // An edit that leaves the link out keeps it.
+      await update(h, { tripId: trip.id, itemId: item.id, name: 'Museum tickets' });
+      expect(links(item.id).place_id).toBe(place.id);
+      await update(h, { tripId: trip.id, itemId: item.id, place_id: null });
+    });
+    expect(links(item.id).place_id).toBeNull();
+    expect(itemRow(item.id).total_price).toBe(34);
+  });
+
+  it('null lets go of the booking, keeps the expense and takes its share off the booking price', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const booking = createReservation(testDb, trip.id);
+    const fare = createBudgetItem(testDb, trip.id, { total_price: 100 });
+    const extra = createBudgetItem(testDb, trip.id, { total_price: 20 });
+    await withHarness(user.id, async (h) => {
+      await update(h, { tripId: trip.id, itemId: fare.id, reservation_id: booking.id });
+      await update(h, { tripId: trip.id, itemId: extra.id, reservation_id: booking.id });
+      expect(priceOf(booking.id)).toEqual({ price: '120' });
+
+      await update(h, { tripId: trip.id, itemId: extra.id, reservation_id: null });
+      expect(priceOf(booking.id)).toEqual({ price: '100' });
+      await update(h, { tripId: trip.id, itemId: fare.id, reservation_id: null });
+      expect(priceOf(booking.id)).toEqual({});
+    });
+    expect(itemCount(trip.id)).toBe(2);
+  });
+
+  it('moving an expense to another booking resyncs both', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const outbound = createReservation(testDb, trip.id, { title: 'Out' });
+    const inbound = createReservation(testDb, trip.id, { title: 'Back' });
+    const item = createBudgetItem(testDb, trip.id, { total_price: 75 });
+    await withHarness(user.id, async (h) => {
+      await update(h, { tripId: trip.id, itemId: item.id, reservation_id: outbound.id });
+      await update(h, { tripId: trip.id, itemId: item.id, reservation_id: inbound.id });
+    });
+    expect(priceOf(outbound.id)).toEqual({});
+    expect(priceOf(inbound.id)).toEqual({ price: '75' });
+  });
+
+  it('a new total on a linked expense reaches the booking price', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const booking = createReservation(testDb, trip.id);
+    const item = createBudgetItem(testDb, trip.id, { total_price: 50 });
+    testDb.prepare('UPDATE budget_items SET reservation_id = ? WHERE id = ?').run(booking.id, item.id);
+    await withHarness(user.id, async (h) => {
+      await update(h, { tripId: trip.id, itemId: item.id, total_price: 64.2 });
+    });
+    expect(priceOf(booking.id)).toEqual({ price: '64.2' });
+  });
+
+  it('a currency change alone on a linked expense re-names the booking price', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const booking = createReservation(testDb, trip.id);
+    const item = createBudgetItem(testDb, trip.id, { total_price: 50 });
+    testDb.prepare('UPDATE budget_items SET reservation_id = ? WHERE id = ?').run(booking.id, item.id);
+    stubRates({ USD: 1.1 });
+    await withHarness(user.id, async (h) => {
+      await update(h, { tripId: trip.id, itemId: item.id, currency: 'USD' });
+      expect(priceOf(booking.id)).toEqual({ price: '50', priceCurrency: 'USD' });
+      await update(h, { tripId: trip.id, itemId: item.id, currency: null });
+      expect(priceOf(booking.id)).toEqual({ price: '50' });
     });
   });
 });

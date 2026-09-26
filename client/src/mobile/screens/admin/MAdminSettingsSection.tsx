@@ -44,7 +44,7 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
     passkeyLogin, setPasskeyLogin, passkeyConfigured,
     webauthnRpId, setWebauthnRpId, webauthnOrigins, setWebauthnOrigins, savingWebauthn, handleSaveWebauthn,
     allowedFileTypes, setAllowedFileTypes, savingFileTypes, setSavingFileTypes,
-    mapsKey, setMapsKey, unsplashKey, setUnsplashKey, amapKey, setAmapKey, hasMapsKey, hasAmapKey, savingKeys, validating, validation,
+    mapsKey, setMapsKey, unsplashKey, setUnsplashKey, amapKey, setAmapKey, hasMapsKey, hasAmapKey, keyInputProps, mapsKeyTestable, savingKeys, validating, validation,
     placesProvider, savingPlacesProvider, handleSavePlacesProvider,
     managed,
     setShowRotateJwtModal,
@@ -245,12 +245,12 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
                   aria-label={t('admin.mapsKey')}
                   value={mapsKey}
                   onChange={(e) => setMapsKey(e.target.value)}
-                  placeholder={t('settings.keyPlaceholder')}
+                  {...keyInputProps('maps')}
                 />
               </div>
               <MAdminButton
                 variant="ghost"
-                disabled={!mapsKey}
+                disabled={!mapsKeyTestable}
                 busy={!!validating.maps}
                 onClick={() => handleValidateKey('maps')}
                 className="h-[42px]"
@@ -374,7 +374,7 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
               aria-label={t('admin.amapKey')}
               value={amapKey}
               onChange={(e) => setAmapKey(e.target.value)}
-              placeholder={t('settings.keyPlaceholder')}
+              {...keyInputProps('amap')}
             />
           </MProviderBlock>
 
@@ -384,7 +384,7 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
               aria-label={t('admin.unsplashKey')}
               value={unsplashKey}
               onChange={(e) => setUnsplashKey(e.target.value)}
-              placeholder={t('settings.keyPlaceholder')}
+              {...keyInputProps('unsplash')}
             />
           </MProviderBlock>
           </>)}

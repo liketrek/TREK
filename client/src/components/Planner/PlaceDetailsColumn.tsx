@@ -51,6 +51,12 @@ interface PlaceDetailsColumnProps {
   timeFormat?: string
   /** For grouping the rating count's digits. */
   locale?: string
+  /**
+   * Full width at every breakpoint. The desktop dialog sits the column beside
+   * the form (sm:w-80); the mobile sheet stacks it inside a scrolling column,
+   * where a 320 px cap would leave it hugging the left half of a wide screen.
+   */
+  fluid?: boolean
   /** False on an instance with no Google key, which is most of them. */
   t: TranslationFn
 }
@@ -117,6 +123,7 @@ export default function PlaceDetailsColumn({
   language,
   timeFormat = '24h',
   locale = 'en-US',
+  fluid = false,
   t,
 }: PlaceDetailsColumnProps): React.ReactElement {
   const [data, setData] = useState<MapsPlaceEnrichmentResult | null>(null)
@@ -150,31 +157,48 @@ export default function PlaceDetailsColumn({
     setState('loading')
     setData(null)
 
-    mapsApi
-      .placeEnrichment(
-        {
-          placeId: selection.placeId,
-          lat: selection.lat,
-          lng: selection.lng,
-          name: selection.name,
-          lang: language,
-          details: selection.details,
-        },
-        controller.signal,
-      )
-      .then((result) => {
-        if (controller.signal.aborted) return
-        enrichmentCache.set(selectionKey, result)
-        writeSession(selectionKey, result)
-        setData(result)
-        setState('ready')
-      })
-      .catch((err: unknown) => {
-        if (controller.signal.aborted || (err as { code?: string })?.code === 'ERR_CANCELED') return
-        setState('error')
-      })
+    // One quiet retry before the error state: on a phone the first attempt
+    // regularly dies to a network blip rather than a real failure, and an
+    // error card the user can only clear by re-picking the place is worse than
+    // a second and a half of extra spinner.
+    let retried = false
+    let retryTimer: ReturnType<typeof setTimeout> | null = null
+    const run = () => {
+      mapsApi
+        .placeEnrichment(
+          {
+            placeId: selection.placeId,
+            lat: selection.lat,
+            lng: selection.lng,
+            name: selection.name,
+            lang: language,
+            details: selection.details,
+          },
+          controller.signal,
+        )
+        .then((result) => {
+          if (controller.signal.aborted) return
+          enrichmentCache.set(selectionKey, result)
+          writeSession(selectionKey, result)
+          setData(result)
+          setState('ready')
+        })
+        .catch((err: unknown) => {
+          if (controller.signal.aborted || (err as { code?: string })?.code === 'ERR_CANCELED') return
+          if (!retried) {
+            retried = true
+            retryTimer = setTimeout(run, 1500)
+            return
+          }
+          setState('error')
+        })
+    }
+    run()
 
-    return () => controller.abort()
+    return () => {
+      controller.abort()
+      if (retryTimer) clearTimeout(retryTimer)
+    }
     // selectionKey folds in the place id (or its coordinates) and the language,
     // which is everything the answer depends on. Depending on `selection` itself
     // would refetch whenever the object identity changes without the place
@@ -198,7 +222,7 @@ export default function PlaceDetailsColumn({
     // tiles, which is too small to tell a facade from a foyer. The column is
     // stretched to the form's height by the row it sits in, so the extra room
     // costs nothing that was being used.
-    <aside className="w-full sm:w-80 shrink-0 flex flex-col rounded-xl border border-edge bg-surface-secondary overflow-hidden self-stretch">
+    <aside className={`w-full ${fluid ? '' : 'sm:w-80'} shrink-0 flex flex-col rounded-xl border border-edge bg-surface-secondary overflow-hidden self-stretch`}>
       <div className="flex items-center gap-2 px-3 py-2.5 border-b border-edge shrink-0">
         <Landmark size={15} className="text-accent" />
         <span className="text-body font-semibold text-content">{t('places.details.title')}</span>

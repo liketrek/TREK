@@ -20,6 +20,7 @@ import { TrimField } from './TrimField'
 import '../../styles/dashboard.css'
 import '../../styles/studio.css'
 import './bookFontFaces'
+import HelpButton from '../Help/HelpButton'
 
 /**
  * The Studio shell: top bar, page rail, workbench, inspector.
@@ -205,6 +206,8 @@ function StudioBar({
           <Download size={14} />
           <span className="st-tool-label">{s.t('journey.studio.export')}</span>
         </button>
+        {/* Studio has no navbar, so the help center's button rides on its own bar. */}
+        <HelpButton className="st-tool is-icon" />
       </div>
     </div>
   )

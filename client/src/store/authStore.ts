@@ -15,6 +15,7 @@ import { clearAllPluginSessions } from './pluginStore'
 import { forgetStartDestination } from '../utils/startDestination'
 import { forgetServerLanguage } from './settingsStore'
 import { markSignedOut, clearSignedOut } from '../utils/signedOut'
+import { forgetPushDeviceOnLogout, resyncPushSubscription } from '../push/webPush'
 
 interface AuthResponse {
   user: User
@@ -119,6 +120,9 @@ async function onAuthSuccess(userId: number): Promise<void> {
   // an SPA session, so a second login in the same tab would leave the mutation
   // queue without a flush trigger. Re-registering is a no-op while they are up.
   registerSyncTriggers()
+  // Tell the server again which push subscription this device holds, in the
+  // background: sign-in must not wait on it, and it never rejects.
+  void resyncPushSubscription()
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -264,6 +268,11 @@ export const useAuthStore = create<AuthState>()(
     // and the next account would come up believing it is offline over a working
     // connection, with nothing cached to answer from.
     setForcedOffline(false)
+    // Forget this device's push subscription, on the server and in the browser,
+    // or the next account on a shared device keeps receiving this one's
+    // notifications. It has to happen here: the DELETE needs the session cookie
+    // that step 4 clears. Best effort and bounded, so logout never hangs on it.
+    await forgetPushDeviceOnLogout()
     // 4. Tell server to clear the httpOnly cookie (best-effort).
     await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {})
     // 5. Clear service worker caches containing sensitive data.

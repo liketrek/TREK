@@ -14,9 +14,18 @@ const packing: TranslationStrings = {
   'packing.empty': '行李清单为空',
   'packing.import': '导入',
   'packing.importTitle': '导入装箱清单',
-  'packing.importHint': '每行一个物品。可选用逗号、分号或制表符分隔类别和数量：名称, 类别, 数量',
-  'packing.importPlaceholder': '牙刷\n防晒霜, 卫生\nT恤, 衣物, 5\n护照, 证件',
-  'packing.importCsv': '加载 CSV/TXT',
+  'packing.importHint': '每行一个物品。格式：类别, 名称, 重量（克，可选）, 包（可选）, checked/unchecked（可选）',
+  'packing.importPlaceholder':
+    '洗漱, 牙刷\n衣物, T恤, 200\n证件, 护照, , 随身包\n电子产品, 充电器, 50, 行李箱, checked',
+  'packing.importCsv': '加载 CSV/TXT/MD',
+  'packing.export': '导出',
+  'packing.exportPrint': '打印或另存为 PDF',
+  'packing.exportMarkdown': 'Markdown 清单 (.md)',
+  'packing.exportCsv': '用于导入的 CSV (.csv)',
+  'packing.printItems': '物品',
+  'packing.printPacked': '已打包',
+  'packing.importHintMarkdown':
+    '也可以使用 Markdown 列表：标题作为分类，"- [ ]" 和 "- [x]" 会变成物品，名称前的 "3x" 用于设置数量。',
   'packing.importAction': '导入 {count}',
   'packing.importSuccess': '已导入 {count} 项',
   'packing.importError': '导入失败',
@@ -24,9 +33,6 @@ const packing: TranslationStrings = {
   'packing.progress': '已打包 {packed}/{total}（{percent}%）',
   'packing.clearChecked': '移除 {count} 个已勾选',
   'packing.clearCheckedShort': '移除 {count} 个',
-  'packing.suggestions': '建议',
-  'packing.suggestionsTitle': '添加建议',
-  'packing.allSuggested': '所有建议已添加',
   'packing.allPacked': '全部打包完成！',
   'packing.addPlaceholder': '添加新物品...',
   'packing.categoryPlaceholder': '清单...',
@@ -34,7 +40,6 @@ const packing: TranslationStrings = {
   'packing.filterOpen': '未完成',
   'packing.filterDone': '已完成',
   'packing.emptyTitle': '行李清单为空',
-  'packing.emptyHint': '添加物品或使用建议',
   'packing.emptyFiltered': '没有匹配的物品',
   'packing.menuRename': '重命名',
   'packing.menuCheckAll': '全部勾选',
@@ -66,128 +71,6 @@ const packing: TranslationStrings = {
   'packing.toast.deleteError': '删除失败',
   'packing.toast.renameError': '重命名失败',
   'packing.toast.addError': '添加失败',
-  'packing.suggestions.items': [
-    {
-      name: '护照',
-      category: '证件',
-    },
-    {
-      name: '身份证',
-      category: '证件',
-    },
-    {
-      name: '旅行保险',
-      category: '证件',
-    },
-    {
-      name: '机票',
-      category: '证件',
-    },
-    {
-      name: '信用卡',
-      category: '财务',
-    },
-    {
-      name: '现金',
-      category: '财务',
-    },
-    {
-      name: '签证',
-      category: '证件',
-    },
-    {
-      name: 'T恤',
-      category: '衣物',
-    },
-    {
-      name: '裤子',
-      category: '衣物',
-    },
-    {
-      name: '内衣',
-      category: '衣物',
-    },
-    {
-      name: '袜子',
-      category: '衣物',
-    },
-    {
-      name: '外套',
-      category: '衣物',
-    },
-    {
-      name: '睡衣',
-      category: '衣物',
-    },
-    {
-      name: '泳衣',
-      category: '衣物',
-    },
-    {
-      name: '雨衣',
-      category: '衣物',
-    },
-    {
-      name: '舒适的鞋子',
-      category: '衣物',
-    },
-    {
-      name: '牙刷',
-      category: '洗漱用品',
-    },
-    {
-      name: '牙膏',
-      category: '洗漱用品',
-    },
-    {
-      name: '洗发水',
-      category: '洗漱用品',
-    },
-    {
-      name: '除臭剂',
-      category: '洗漱用品',
-    },
-    {
-      name: '防晒霜',
-      category: '洗漱用品',
-    },
-    {
-      name: '剃须刀',
-      category: '洗漱用品',
-    },
-    {
-      name: '充电器',
-      category: '电子产品',
-    },
-    {
-      name: '充电宝',
-      category: '电子产品',
-    },
-    {
-      name: '耳机',
-      category: '电子产品',
-    },
-    {
-      name: '旅行转换插头',
-      category: '电子产品',
-    },
-    {
-      name: '相机',
-      category: '电子产品',
-    },
-    {
-      name: '止痛药',
-      category: '健康',
-    },
-    {
-      name: '创可贴',
-      category: '健康',
-    },
-    {
-      name: '消毒液',
-      category: '健康',
-    },
-  ],
   'packing.makePrivate': '设为私密',
   'packing.makePublic': '共享',
   'packing.privateHint': '私密 — 仅你可见',

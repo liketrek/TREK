@@ -15,6 +15,11 @@ function makeService(overrides: Partial<BudgetService> = {}): BudgetService {
     canEdit: vi.fn().mockReturnValue(true),
     broadcast: vi.fn(),
     syncReservationPrice: vi.fn(),
+    // Both write routes ask this before they write (#2084); null lets them through.
+    linkRefusal: vi.fn().mockReturnValue(null),
+    getBudgetItem: vi.fn().mockReturnValue(null),
+    resyncLinkedPrices: vi.fn(),
+    resyncReservationPrice: vi.fn(),
     ...overrides,
   } as unknown as BudgetService;
 }
@@ -193,36 +198,130 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
     it('creates and broadcasts', async () => {
       const create = vi.fn().mockReturnValue({ id: 9, name: 'Hotel' });
       const broadcast = vi.fn();
-      const svc = makeService({ create, broadcast } as Partial<BudgetService>);
+      const linkRefusal = vi.fn().mockReturnValue(null);
+      const resyncReservationPrice = vi.fn();
+      const svc = makeService({ create, broadcast, linkRefusal, resyncReservationPrice } as Partial<BudgetService>);
       expect(await new BudgetController(svc).create(user, '5', { name: 'Hotel', total_price: 200 }, 'sock')).toEqual({ item: { id: 9, name: 'Hotel' } });
+      expect(linkRefusal).toHaveBeenCalledWith('5', { name: 'Hotel', total_price: 200 });
       expect(broadcast).toHaveBeenCalledWith('5', 'budget:created', { item: { id: 9, name: 'Hotel' } }, 'sock');
+      // Not linked to a booking, so no booking price to work out.
+      expect(resyncReservationPrice).not.toHaveBeenCalled();
+    });
+
+    it('an expense created on a booking adds to the price the booking mirrors (#2084)', async () => {
+      const item = { id: 9, name: 'Seat', total_price: 15, reservation_id: 42 };
+      const resyncReservationPrice = vi.fn();
+      const broadcast = vi.fn();
+      const svc = makeService({ create: vi.fn().mockReturnValue(item), resyncReservationPrice, broadcast } as Partial<BudgetService>);
+      expect(await new BudgetController(svc).create(user, '5', { name: 'Seat', total_price: 15, reservation_id: 42 }, 'sock')).toEqual({ item });
+      expect(resyncReservationPrice).toHaveBeenCalledWith('5', 42, 'sock');
+      expect(broadcast).toHaveBeenCalledWith('5', 'budget:created', { item }, 'sock');
+    });
+
+    // #2084: an expense can only point at a booking or a place of its own trip.
+    // The body and the status are the contract the MCP tool mirrors word for word.
+    it('400s on a reservation_id from another trip, without writing or broadcasting', async () => {
+      const create = vi.fn();
+      const broadcast = vi.fn();
+      const resyncReservationPrice = vi.fn();
+      const linkRefusal = vi.fn().mockReturnValue('reservation_id does not belong to this trip.');
+      const svc = makeService({ create, broadcast, linkRefusal, resyncReservationPrice } as Partial<BudgetService>);
+      const body = { name: 'Hotel', total_price: 200, reservation_id: 4711 };
+      expect(await thrownAsync(() => new BudgetController(svc).create(user, '5', body, 'sock'))).toEqual({
+        status: 400, body: { error: 'reservation_id does not belong to this trip.' },
+      });
+      expect(linkRefusal).toHaveBeenCalledWith('5', body);
+      expect(create).not.toHaveBeenCalled();
+      expect(resyncReservationPrice).not.toHaveBeenCalled();
+      expect(broadcast).not.toHaveBeenCalled();
+    });
+
+    it('400s on a place_id from another trip, without writing', async () => {
+      const create = vi.fn();
+      const svc = makeService({
+        create,
+        linkRefusal: vi.fn().mockReturnValue('place_id does not belong to this trip.'),
+      } as Partial<BudgetService>);
+      expect(await thrownAsync(() => new BudgetController(svc).create(user, '5', { name: 'Tickets', place_id: 4711 }))).toEqual({
+        status: 400, body: { error: 'place_id does not belong to this trip.' },
+      });
+      expect(create).not.toHaveBeenCalled();
     });
   });
 
   describe('PUT /:id', () => {
-    it('404 when item missing', async () => {
-      const svc = makeService({ update: vi.fn().mockReturnValue(null) } as Partial<BudgetService>);
+    it('404 when item missing, without resyncing any booking', async () => {
+      const resyncLinkedPrices = vi.fn();
+      const svc = makeService({ update: vi.fn().mockReturnValue(null), resyncLinkedPrices } as Partial<BudgetService>);
       expect(await thrownAsync(() => new BudgetController(svc).update(user, '5', '9', { name: 'X' }))).toEqual({
         status: 404, body: { error: 'Budget item not found' },
       });
+      expect(resyncLinkedPrices).not.toHaveBeenCalled();
     });
 
-    it('syncs the reservation price when a linked item changes total_price', async () => {
-      const update = vi.fn().mockReturnValue({ id: 9, reservation_id: 42, total_price: 250 });
-      const syncReservationPrice = vi.fn();
+    it('hands a total change to resyncLinkedPrices without snapshotting the item first', async () => {
+      const updated = { id: 9, reservation_id: 42, total_price: 250 };
+      const update = vi.fn().mockReturnValue(updated);
+      const getBudgetItem = vi.fn();
+      const resyncLinkedPrices = vi.fn();
       const broadcast = vi.fn();
-      const svc = makeService({ update, syncReservationPrice, broadcast } as Partial<BudgetService>);
-      await new BudgetController(svc).update(user, '5', '9', { total_price: 250 }, 'sock');
-      expect(syncReservationPrice).toHaveBeenCalledWith('5', 42, 250, 'sock');
-      expect(broadcast).toHaveBeenCalledWith('5', 'budget:updated', { item: { id: 9, reservation_id: 42, total_price: 250 } }, 'sock');
+      const svc = makeService({ update, getBudgetItem, resyncLinkedPrices, broadcast } as Partial<BudgetService>);
+      expect(await new BudgetController(svc).update(user, '5', '9', { total_price: 250 }, 'sock')).toEqual({ item: updated });
+      // No link in the body, so the booking cannot have changed and the stored row is not read.
+      expect(getBudgetItem).not.toHaveBeenCalled();
+      expect(resyncLinkedPrices).toHaveBeenCalledWith('5', undefined, updated, { total_price: 250 }, 'sock');
+      expect(broadcast).toHaveBeenCalledWith('5', 'budget:updated', { item: updated }, 'sock');
     });
 
-    it('does not sync when the item has no linked reservation', async () => {
-      const update = vi.fn().mockReturnValue({ id: 9, reservation_id: null, total_price: 250 });
-      const syncReservationPrice = vi.fn();
-      const svc = makeService({ update, syncReservationPrice } as Partial<BudgetService>);
-      await new BudgetController(svc).update(user, '5', '9', { total_price: 250 });
-      expect(syncReservationPrice).not.toHaveBeenCalled();
+    it('snapshots the item before a re-link, so the booking it leaves is resynced too', async () => {
+      const calls: string[] = [];
+      const getBudgetItem = vi.fn().mockImplementation(() => { calls.push('snapshot'); return { id: 9, reservation_id: 42 }; });
+      const updated = { id: 9, reservation_id: 43, total_price: 80 };
+      const update = vi.fn().mockImplementation(() => { calls.push('write'); return updated; });
+      const resyncLinkedPrices = vi.fn();
+      const svc = makeService({ update, getBudgetItem, resyncLinkedPrices } as Partial<BudgetService>);
+      await new BudgetController(svc).update(user, '5', '9', { reservation_id: 43 }, 'sock');
+      expect(getBudgetItem).toHaveBeenCalledWith('9', '5');
+      expect(calls).toEqual(['snapshot', 'write']);
+      expect(resyncLinkedPrices).toHaveBeenCalledWith('5', 42, updated, { reservation_id: 43 }, 'sock');
+    });
+
+    it('snapshots on an unlink (reservation_id null) as well', async () => {
+      const getBudgetItem = vi.fn().mockReturnValue({ id: 9, reservation_id: 42 });
+      const updated = { id: 9, reservation_id: null, total_price: 80 };
+      const resyncLinkedPrices = vi.fn();
+      const svc = makeService({ update: vi.fn().mockReturnValue(updated), getBudgetItem, resyncLinkedPrices } as Partial<BudgetService>);
+      expect(await new BudgetController(svc).update(user, '5', '9', { reservation_id: null })).toEqual({ item: updated });
+      expect(resyncLinkedPrices).toHaveBeenCalledWith('5', 42, updated, { reservation_id: null }, undefined);
+    });
+
+    it('400s on a reservation_id from another trip, before reading, writing or resyncing', async () => {
+      const update = vi.fn();
+      const getBudgetItem = vi.fn();
+      const resyncLinkedPrices = vi.fn();
+      const broadcast = vi.fn();
+      const linkRefusal = vi.fn().mockReturnValue('reservation_id does not belong to this trip.');
+      const svc = makeService({ update, getBudgetItem, resyncLinkedPrices, broadcast, linkRefusal } as Partial<BudgetService>);
+      expect(await thrownAsync(() => new BudgetController(svc).update(user, '5', '9', { reservation_id: 4711 }, 'sock'))).toEqual({
+        status: 400, body: { error: 'reservation_id does not belong to this trip.' },
+      });
+      expect(linkRefusal).toHaveBeenCalledWith('5', { reservation_id: 4711 });
+      expect(getBudgetItem).not.toHaveBeenCalled();
+      expect(update).not.toHaveBeenCalled();
+      expect(resyncLinkedPrices).not.toHaveBeenCalled();
+      expect(broadcast).not.toHaveBeenCalled();
+    });
+
+    it('400s on a place_id from another trip, without writing', async () => {
+      const update = vi.fn();
+      const svc = makeService({
+        update,
+        linkRefusal: vi.fn().mockReturnValue('place_id does not belong to this trip.'),
+      } as Partial<BudgetService>);
+      expect(await thrownAsync(() => new BudgetController(svc).update(user, '5', '9', { place_id: 4711 }))).toEqual({
+        status: 400, body: { error: 'place_id does not belong to this trip.' },
+      });
+      expect(update).not.toHaveBeenCalled();
     });
   });
 
@@ -253,20 +352,34 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
     // ZodValidationPipe (budgetUpdatePayersRequestSchema) before the handler runs.
 
     it('404 when the item is missing', () => {
-      const svc = makeService({ setPayers: vi.fn().mockReturnValue(null) } as Partial<BudgetService>);
+      const resyncReservationPrice = vi.fn();
+      const svc = makeService({ setPayers: vi.fn().mockReturnValue(null), resyncReservationPrice } as Partial<BudgetService>);
       expect(thrown(() => new BudgetController(svc).setPayers(user, '5', '9', { payers: [{ user_id: 2, amount: 10 }] }))).toEqual({
         status: 404, body: { error: 'Budget item not found' },
       });
+      expect(resyncReservationPrice).not.toHaveBeenCalled();
     });
 
     it('sets payers and broadcasts budget:updated', () => {
       const setPayers = vi.fn().mockReturnValue({ id: 9, payers: [{ user_id: 2, amount: 10 }] });
       const broadcast = vi.fn();
-      const svc = makeService({ setPayers, broadcast } as Partial<BudgetService>);
+      const resyncReservationPrice = vi.fn();
+      const svc = makeService({ setPayers, broadcast, resyncReservationPrice } as Partial<BudgetService>);
       const res = new BudgetController(svc).setPayers(user, '5', '9', { payers: [{ user_id: 2, amount: 10 }] }, 'sock');
       expect(res).toEqual({ item: { id: 9, payers: [{ user_id: 2, amount: 10 }] } });
       expect(setPayers).toHaveBeenCalledWith('9', '5', [{ user_id: 2, amount: 10 }]);
       expect(broadcast).toHaveBeenCalledWith('5', 'budget:updated', { item: { id: 9, payers: [{ user_id: 2, amount: 10 }] } }, 'sock');
+      expect(resyncReservationPrice).not.toHaveBeenCalled();
+    });
+
+    it('resyncs the linked booking, since the payers derive the total it mirrors (#2084)', () => {
+      const item = { id: 9, reservation_id: 42, total_price: 30, payers: [{ user_id: 2, amount: 30 }] };
+      const resyncReservationPrice = vi.fn();
+      const broadcast = vi.fn();
+      const svc = makeService({ setPayers: vi.fn().mockReturnValue(item), resyncReservationPrice, broadcast } as Partial<BudgetService>);
+      expect(new BudgetController(svc).setPayers(user, '5', '9', { payers: [{ user_id: 2, amount: 30 }] }, 'sock')).toEqual({ item });
+      expect(resyncReservationPrice).toHaveBeenCalledWith('5', 42, 'sock');
+      expect(broadcast).toHaveBeenCalledWith('5', 'budget:updated', { item }, 'sock');
     });
   });
 

@@ -28,6 +28,8 @@ const login: TranslationStrings = {
   'login.oidcSignIn': '{name}으로 로그인',
   'login.oidcOnly': '비밀번호 인증이 비활성화되었습니다. SSO 공급자로 로그인하세요.',
   'login.oidcLoggedOut': '로그아웃되었습니다. SSO 공급자로 다시 로그인하세요.',
+  'login.oidcRedirecting': '{name}(으)로 이동하는 중…',
+  'login.oidcRedirectSlow': '아직 이 화면인가요? {name}(으)로 계속',
   'login.demoHint': '데모 체험 — 회원가입 불필요',
   'login.mfaTitle': '2단계 인증',
   'login.mfaSubtitle': '인증 앱의 6자리 코드를 입력하세요.',

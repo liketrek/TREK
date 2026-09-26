@@ -43,10 +43,16 @@ import { registerBuiltinChannels } from '../../../src/nest/notifications/channel
 import { NtfyService } from '../../../src/nest/notifications/transports/ntfy.service';
 import { WebhookService } from '../../../src/nest/notifications/transports/webhook.service';
 import { __resetChannelsForTest } from '../../../src/nest/notifications/channel-registry';
+import { makeWebPushService } from '../../helpers/notifications';
 
 const dbs = new DatabaseService(testDb);
 const mailer = new MailerService(dbs);
-registerBuiltinChannels({ mailer, webhook: new WebhookService(dbs), ntfy: new NtfyService(dbs) });
+registerBuiltinChannels({
+  mailer,
+  webhook: new WebhookService(dbs),
+  ntfy: new NtfyService(dbs),
+  push: makeWebPushService(dbs),
+});
 const svc = new NotificationPreferencesService(dbs, mailer);
 
 // Legacy free-function names bound to the service, so the moved cases read as before.

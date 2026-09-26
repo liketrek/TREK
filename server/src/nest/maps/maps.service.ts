@@ -50,6 +50,7 @@ import {
   OSM_PLACE_ID,
   CATEGORY_OSM_FILTERS,
   parsePoiCategories,
+  clampPoiBbox,
   resolveOverpassEndpoints,
   resolveOverpassTimeoutMs,
   OVERPASS_QUERY_TIMEOUT_S,
@@ -573,11 +574,6 @@ interface PoiSearchResult {
 // see src/app-config/README.md).
 const OVERPASS_MIRRORS = resolveOverpassEndpoints();
 const OVERPASS_TIMEOUT_MS = resolveOverpassTimeoutMs();
-// Largest viewport side we send to Overpass. A country/continent-sized bbox makes
-// Overpass scan millions of elements and time out; clamping to a centred window
-// keeps the query cheap so the explore pill returns fast at ANY zoom level.
-const MAX_BBOX_SPAN_DEG = 0.5;
-
 // Short-lived cache so panning back over / re-toggling the same area doesn't
 // re-hit Overpass. Keyed by category + rounded (post-clamp) bbox.
 const POI_CACHE = new Map<string, { at: number; value: PoiSearchResult }>();
@@ -1426,20 +1422,9 @@ export class MapsService {
 
     // Clamp an oversized viewport to a centred window so the query stays cheap and
     // returns fast at any zoom, instead of timing out / 502-ing on a huge area.
-    let { south, west, north, east } = bbox;
-    let clamped = false;
-    if (north - south > MAX_BBOX_SPAN_DEG) {
-      const c = (north + south) / 2;
-      south = c - MAX_BBOX_SPAN_DEG / 2;
-      north = c + MAX_BBOX_SPAN_DEG / 2;
-      clamped = true;
-    }
-    if (east - west > MAX_BBOX_SPAN_DEG) {
-      const c = (east + west) / 2;
-      west = c - MAX_BBOX_SPAN_DEG / 2;
-      east = c + MAX_BBOX_SPAN_DEG / 2;
-      clamped = true;
-    }
+    const searchWindow = clampPoiBbox(bbox);
+    const { south, west, north, east } = searchWindow.bbox;
+    const clamped = searchWindow.clamped;
 
     // OSM `name:*` tags are keyed by language subtag: prefer the user's language
     // (the same localization the search/autocomplete path asks the geocoder for)

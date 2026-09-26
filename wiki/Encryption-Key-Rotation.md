@@ -20,6 +20,7 @@ TREK encrypts sensitive settings at rest using AES-256-GCM. The following values
 - OIDC client secret (global, in `app_settings`)
 - SMTP password (global, in `app_settings`)
 - Admin webhook URL and admin ntfy token (global, in `app_settings`)
+- Web Push VAPID private key, the one TREK generates and signs push messages with when the `VAPID_*` variables supply no key pair (global, in `app_settings`; see [Notifications](Notifications#server-keys))
 - MFA (TOTP) secrets for all users
 - Photo passphrases for Synology shared-link photos (in `trek_photos`)
 - Passphrases for shared trip album links (in `trip_album_links`)
@@ -40,6 +41,8 @@ On startup, TREK resolves the encryption key in this order:
 ## What happens if the key is lost
 
 All encrypted settings (API keys, SMTP password, OIDC secret, MFA secrets, notification tokens, etc.) become unreadable — TREK cannot decrypt them. They must be re-entered manually after the key is restored or replaced. Unencrypted data (trips, places, users, etc.) is unaffected.
+
+The Web Push key pair cannot be re-entered, and TREK never replaces it on its own: unless the `VAPID_*` variables supply a pair, push stays off, with an error in the log, until TREK runs with the original key again, and then every device receives as before. To give it up instead, delete both `web_push_vapid_public_key` and `web_push_vapid_private_key` from `app_settings`. TREK then generates a new pair, and every device has to subscribe again (see [Environment-Variables](Environment-Variables#web-push)).
 
 ## Backing up the key
 
@@ -71,7 +74,7 @@ The script:
 2. Asks for confirmation before making any changes.
 3. Creates a timestamped backup of the database (e.g. `travel.db.backup-1713484800000`) before modifying anything.
 4. Re-encrypts all stored secrets across all tables:
-   - `app_settings`: `oidc_client_secret`, `smtp_pass`, `admin_webhook_url`, `admin_ntfy_token`, `maps_api_key`, `unsplash_api_key`, `amap_api_key`
+   - `app_settings`: `oidc_client_secret`, `smtp_pass`, `admin_webhook_url`, `admin_ntfy_token`, `maps_api_key`, `unsplash_api_key`, `amap_api_key`, `web_push_vapid_private_key`
    - `app_settings['storage.backends']`: the `secretAccessKey` of every S3 storage backend
    - `users` (per user): `maps_api_key`, `unsplash_api_key`, `amap_api_key`, `openweather_api_key`, `immich_api_key`, `synology_password`, `synology_sid`, `synology_did`, `airtrail_api_key`, `mfa_secret`
    - `settings` (per user): `webhook_url`, `ntfy_token`, `mapbox_access_token`, `carto_api_key`, `llm_api_key`

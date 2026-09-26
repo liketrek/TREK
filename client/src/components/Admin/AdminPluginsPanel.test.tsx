@@ -381,6 +381,23 @@ describe('AdminPluginsPanel — update consent', () => {
     // Falls back to the installed row's `signed: false` rather than going quiet.
     expect(await screen.findByText(/nothing ties this version to its author/i)).toBeInTheDocument()
   })
+
+  it('FE-COMP-PLUGINS-PANEL-054: an update asking for the POI category grant spells out what it sends (#1781)', async () => {
+    mockPanel(plugin({ source_repo: 'acme/gotify', signed: true }), registryEntry())
+    server.use(
+      http.post('*/api/admin/plugins/trek-gotify/update', () =>
+        HttpResponse.json({ version: '2.0.0', activated: false, newPermissions: ['hook:poi-category-provider'], newEgress: [] }),
+      ),
+    )
+    render(<AdminPluginsPanel />)
+    await screen.findByText('Gotify')
+    fireEvent.click(await screen.findByRole('button', { name: /update to|2\.0\.0/i }))
+
+    expect(await screen.findByText(
+      'Add its own place categories to Explore places on the map; picking one sends the plugin the map area you are viewing',
+    )).toBeInTheDocument()
+    expect(screen.queryByText('hook:poi-category-provider')).not.toBeInTheDocument()
+  })
 })
 
 /**
@@ -1425,6 +1442,20 @@ describe('AdminPluginsPanel — capability and dependency chips', () => {
 
     expect(await screen.findByText('Does not say which TREK versions it supports')).toBeInTheDocument()
   })
+
+  it('FE-COMP-PLUGINS-PANEL-051: a plugin adding explore-pill categories says so on its row (#1781)', async () => {
+    panelWith([plugin({
+      operatorEgress: false,
+      permissions: JSON.stringify(['hook:poi-category-provider']),
+      capabilities: JSON.stringify({
+        poiCategories: [{ id: 'trailheads', label: 'Trailheads', icon: 'Signpost', color: '#2f855a' }],
+      }),
+    })])
+    render(<AdminPluginsPanel />)
+    await screen.findByText('Gotify')
+
+    expect(screen.getByText('Adds map categories')).toBeInTheDocument()
+  })
 })
 
 describe('AdminPluginsPanel — Discover cards and the detail modal', () => {
@@ -1587,6 +1618,42 @@ describe('AdminPluginsPanel — Discover cards and the detail modal', () => {
     await clickDiscover()
 
     expect(await screen.findByText('No plugins available in the registry yet.')).toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-PANEL-052: the detail lists the map categories a plugin adds, before the install (#1781)', async () => {
+    discoverWith({}, manifestDetail({}, {
+      permissions: ['hook:poi-category-provider'],
+      capabilities: {
+        poiCategories: [
+          { id: 'trailheads', label: 'Trailheads', icon: 'Signpost', color: '#2f855a' },
+          { id: 'swimming', label: 'Swimming spots', icon: 'Waves', color: '#0369a1' },
+        ],
+      },
+    }))
+    render(<AdminPluginsPanel />)
+    await clickDiscover()
+    fireEvent.click(await screen.findByText('Gotify'))
+
+    const title = await screen.findByRole('heading', { name: 'Map categories it adds' })
+    const section = title.parentElement as HTMLElement
+    expect(within(section).getAllByRole('listitem').map(li => li.textContent)).toEqual(['Trailheads', 'Swimming spots'])
+    expect(within(section).getAllByTestId('poi-category-swatch')[0].style.backgroundColor).toBe('rgb(47, 133, 90)')
+    // The grant itself is listed with the rest of what the plugin can do.
+    expect(screen.getByText('Adds map categories')).toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-PANEL-053: declared categories without the grant are not shown, the feed would never serve them', async () => {
+    discoverWith({}, manifestDetail({}, {
+      permissions: ['hook:search-provider'],
+      capabilities: { poiCategories: [{ id: 'trailheads', label: 'Trailheads', icon: 'Signpost', color: '#2f855a' }] },
+    }))
+    render(<AdminPluginsPanel />)
+    await clickDiscover()
+    fireEvent.click(await screen.findByText('Gotify'))
+
+    expect(await screen.findByText('Answers searches')).toBeInTheDocument()
+    expect(screen.queryByText('Map categories it adds')).not.toBeInTheDocument()
+    expect(screen.queryByText('Trailheads')).not.toBeInTheDocument()
   })
 })
 

@@ -143,7 +143,8 @@ describe('TodoRow', () => {
   it('FE-W4TDR-014: renders the assignee avatar for a member with a picture', () => {
     const { container } = setup(todo({ assigned_user_id: 1 } as Partial<TodoItem>))
 
-    expect(screen.getByText('ada')).toBeInTheDocument()
+    // The assignee is an avatar; the name is its tooltip and label.
+    expect(screen.getByTitle('ada')).toHaveAttribute('aria-label', 'ada')
     expect(container.querySelector('img')).toHaveAttribute('src', '/uploads/avatars/ada.png')
   })
 

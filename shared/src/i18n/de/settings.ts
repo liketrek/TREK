@@ -77,6 +77,8 @@ const settings: TranslationStrings = {
   'settings.temperature': 'Temperatureinheit',
   'settings.distance': 'Entfernungseinheit',
   'settings.timeFormat': 'Zeitformat',
+  'settings.weekStart': 'Woche beginnt am',
+  'settings.weekStartHint': 'Erster Tag der Woche in jedem Datumswähler. Vacay hat eine eigene Einstellung.',
   'settings.bookingLabels': 'Orts-Labels auf Buchungsrouten',
   'settings.bookingLabelsHint': 'Zeigt Bahnhofs-/Flughafennamen auf der Karte. Wenn aus, wird nur das Icon angezeigt.',
   'settings.blurBookingCodes': 'Buchungscodes verbergen',
@@ -321,6 +323,20 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.webhook': 'Webhook',
   'settings.notificationPreferences.email': 'Email',
   'settings.notificationPreferences.ntfy': 'Ntfy',
+  'settings.notificationPreferences.push': 'Push',
+  'settings.webPush.title': 'Push-Benachrichtigungen auf diesem Gerät',
+  'settings.webPush.hint':
+    'Zeigt TREK-Benachrichtigungen auf diesem Gerät an, auch wenn TREK geschlossen ist. Welche Ereignisse ankommen, richtet sich nach der Spalte Push.',
+  'settings.webPush.enable': 'Für dieses Gerät einschalten',
+  'settings.webPush.disable': 'Für dieses Gerät ausschalten',
+  'settings.webPush.enabled': 'Für dieses Gerät eingeschaltet',
+  'settings.webPush.unsupported': 'Dieser Browser kann keine Push-Benachrichtigungen empfangen.',
+  'settings.webPush.insecure': 'Für Push muss TREK über HTTPS geöffnet werden.',
+  'settings.webPush.iosInstall':
+    'Füge TREK auf iPhone und iPad zuerst zum Home-Bildschirm hinzu und öffne es von dort.',
+  'settings.webPush.denied':
+    'Benachrichtigungen für TREK sind in diesem Browser blockiert. Erlaube sie in den Browsereinstellungen und versuche es dann erneut.',
+  'settings.webPush.failed': 'Push konnte für dieses Gerät nicht eingeschaltet werden.',
   'settings.currency': 'Anzeigewährung',
   'settings.currencyHint':
     'Beträge unter Kosten werden nur zur Anzeige in diese Währung umgerechnet – die ursprünglichen Beträge bleiben unverändert.',
@@ -385,9 +401,9 @@ const settings: TranslationStrings = {
     'Wo das Modell läuft — ein lokaler Ollama-Server oder ein OpenAI-kompatibler Endpunkt.',
   'settings.aiParsing.apiKey': 'API-Schlüssel',
   'settings.aiParsing.apiKeyHint': 'Verschlüsselt gespeichert. Leer lassen, um den aktuellen Schlüssel zu behalten.',
-  'settings.aiParsing.multimodal': 'Dokumente als Bilder senden',
+  'settings.aiParsing.multimodal': 'Modell liest Bilder',
   'settings.aiParsing.multimodalHint':
-    'Für Modelle mit Bildverständnis — sendet das Original-PDF statt extrahiertem Text.',
+    'Für ein Modell, das Bilder liest: Dann lässt sich ein Foto importieren oder scannen.',
   'settings.aiParsing.toast.saved': 'KI-Einstellungen gespeichert',
   'settings.aiParsing.toast.saveError': 'KI-Einstellungen konnten nicht gespeichert werden',
   'settings.tabs.appearance': 'Erscheinungsbild',

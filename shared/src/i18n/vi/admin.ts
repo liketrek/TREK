@@ -19,6 +19,9 @@ const admin: TranslationStrings = {
   'admin.notifications.testNtfyFailed': 'Kiểm tra ntfy không thành công',
   'admin.notifications.emailPanel.title': 'Email (SMTP)',
   'admin.notifications.webhookPanel.title': 'Webhook',
+  'admin.notifications.webPushPanel.title': 'Web Push',
+  'admin.notifications.webPushPanel.hint':
+    'Cho phép người dùng nhận thông báo trên điện thoại và máy tính qua trình duyệt, ngay cả khi TREK đang đóng. Cần HTTPS; trên iPhone và iPad, TREK phải được thêm vào Màn hình chính.',
   'admin.notifications.inappPanel.title': 'Trong ứng dụng',
   'admin.notifications.inappPanel.hint': 'Thông báo trong ứng dụng luôn hoạt động và không thể tắt trên toàn cầu.',
   'admin.notifications.adminWebhookPanel.title': 'Webhook quản trị viên',
@@ -178,6 +181,7 @@ const admin: TranslationStrings = {
   'admin.amapKey': 'Khóa API Amap (高德地图)',
   'admin.amapKeyHint':
     'Dùng cho tìm kiếm địa điểm tại Trung Quốc đại lục, nơi không truy cập được Google và dữ liệu OpenStreetMap còn thưa. Cần khóa loại "Web 服务" (dịch vụ web), không phải khóa JS API. Lấy khóa tại console.amap.com.',
+  'admin.keyFromEnv': 'Đặt qua {name}',
   'admin.placesProvider.title': 'Nhà cung cấp tìm kiếm địa điểm',
   'admin.placesProvider.subtitle':
     'Chỉ mục riêng của TREK và OpenStreetMap trả lời mọi tìm kiếm. Ở đây chọn ai được hỏi thêm khi chúng không tìm thấy gì: Tự động ưu tiên Google nếu có khóa, rồi đến Amap.',
@@ -386,6 +390,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:place-detail-provider':
     'Đóng góp thêm thông tin chi tiết (đánh giá, xếp hạng, liên kết) cho một địa điểm',
   'admin.plugins.perm.hook:search-provider': 'Trả lời tìm kiếm địa điểm từ chỉ mục riêng, bên cạnh kết quả của TREK',
+  'admin.plugins.perm.hook:poi-category-provider':
+    'Thêm các danh mục địa điểm riêng vào “Khám phá các địa điểm trên bản đồ”; khi bạn chọn một danh mục, plugin sẽ nhận vùng bản đồ bạn đang xem',
   'admin.plugins.perm.hook:trip-warning-provider':
     'Đưa ra cảnh báo xác thực trên một chuyến đi (hiển thị trong trình lập kế hoạch)',
   'admin.plugins.perm.hook:table-contributor':
@@ -402,6 +408,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.mcpTools': 'Xuất bản công cụ AI',
   'admin.plugins.mcpToolsTitle': 'Công cụ AI được xuất bản',
   'admin.plugins.mcpToolsHint': 'Trợ lý có thể chạy chúng thay cho người dùng. Mỗi công cụ hoạt động với quyền được cấp ở trên.',
+  'admin.plugins.poiCategoriesTitle': 'Danh mục bản đồ mà plugin thêm vào',
   'admin.plugins.perm.mcp:tools':
     'Xuất bản các công cụ mà trợ lý AI có thể chạy thay bạn (nó hoạt động với quyền bạn cấp cho tiện ích tại đây, không phải quyền của trợ lý)',
   'admin.plugins.perm.geolocation:read':
@@ -544,6 +551,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'Cung cấp sự kiện lịch',
   'admin.plugins.cap.placeDetails': 'Làm phong phú địa điểm',
   'admin.plugins.cap.search': 'Trả lời tìm kiếm',
+  'admin.plugins.cap.poiCategories': 'Thêm danh mục bản đồ',
   'admin.plugins.cap.warnings': 'Gắn cờ vấn đề',
   'admin.plugins.cap.mapLayers': 'Vẽ trên bản đồ',
   'admin.plugins.cap.routing': 'Cung cấp định tuyến',
@@ -620,6 +628,11 @@ const admin: TranslationStrings = {
     'Đọc các điểm lưu trú và lộ trình đã ghi từ phiên bản Dawarich mà mỗi người tự kết nối',
   'admin.addons.catalog.llm_parsing.name': 'Phân tích bằng AI',
   'admin.addons.catalog.llm_parsing.description': 'Đọc các đặt chỗ mà bộ phân tích tích hợp không hiểu, bằng mô hình AI bạn chọn',
+  'admin.addons.llm.vision.auto': 'Tự động',
+  'admin.addons.llm.vision.on': 'Có',
+  'admin.addons.llm.vision.off': 'Không',
+  'admin.addons.llm.vision.hintLocal': 'Tự động sẽ hỏi máy chủ Ollama xem mô hình này có đọc được hình ảnh không.',
+  'admin.addons.llm.vision.hintCloud': 'Với mô hình đám mây, Tự động nghĩa là không. Chọn Có nếu mô hình này đọc được hình ảnh.',
   'admin.addons.enabled': 'Đã bật',
   'admin.addons.disabled': 'Tắt',
   'admin.addons.type.trip': 'Chuyến đi',

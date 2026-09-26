@@ -265,17 +265,19 @@ export class BudgetMcp {
       days: z.number().int().positive().nullable().optional(),
       expense_date: z.string().max(40).nullable().optional().describe('Date the expense occurred, YYYY-MM-DD; null clears it. Omit to leave unchanged.'),
       note: z.string().max(500).nullable().optional(),
+      reservation_id: z.number().int().positive().nullable().optional().describe('Booking or transport on this trip to link the expense to (a booking can carry several); null unlinks it and keeps the expense. Omit to leave unchanged.'),
+      place_id: z.number().int().positive().nullable().optional().describe('Place on this trip to link the expense to; null unlinks it and keeps the expense. Omit to leave unchanged.'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: budgetAddonOn,
     access: { group: 'budget', mode: 'write' },
   })
   async updateBudgetItem(
-    { tripId, itemId, name, category, total_price, currency, member_ids, members, payers, persons, days, expense_date, note }: {
+    { tripId, itemId, name, category, total_price, currency, member_ids, members, payers, persons, days, expense_date, note, reservation_id, place_id }: {
       tripId: number; itemId: number; name?: string; category?: string; total_price?: number; currency?: string | null;
       member_ids?: number[]; members?: { user_id: number; amount: number }[];
       payers?: { user_id: number; amount: number }[]; persons?: number | null; days?: number | null;
-      expense_date?: string | null; note?: string | null;
+      expense_date?: string | null; note?: string | null; reservation_id?: number | null; place_id?: number | null;
     },
     ctx: McpContext,
   ) {
@@ -283,6 +285,8 @@ export class BudgetMcp {
     if (!this.budget.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!this.guards.hasTripPermission('budget_edit', tripId, ctx.userId)) return permissionDenied();
     if (members !== undefined && member_ids !== undefined) return errorResult('Pass either members (uneven split) or member_ids (equal split), not both.');
+    const refusal = this.budget.linkRefusal(tripId, { reservation_id, place_id });
+    if (refusal) return errorResult(refusal);
     if (members !== undefined) {
       // An edit that leaves the total alone still has to reconcile against it, so
       // the stored figure stands in when the call does not restate one.
@@ -293,8 +297,10 @@ export class BudgetMcp {
     }
     // Freeze-then-write composite: a currency change re-freezes the rate at entry
     // time (#1445) on the same code path the REST update uses.
-    const item = await this.budget.update(itemId, tripId, { name, category, total_price, currency, member_ids, members, payers, persons, days, expense_date, note });
+    const before = reservation_id !== undefined ? this.budget.getBudgetItem(itemId, tripId) : null;
+    const item = await this.budget.update(itemId, tripId, { name, category, total_price, currency, member_ids, members, payers, persons, days, expense_date, note, reservation_id, place_id });
     if (!item) return errorResult('Budget item not found.');
+    this.budget.resyncLinkedPrices(tripId, before?.reservation_id, item, { total_price, reservation_id });
     this.guards.safeBroadcast(tripId, 'budget:updated', { item });
     return ok({ item });
   }

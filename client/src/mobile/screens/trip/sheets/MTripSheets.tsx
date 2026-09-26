@@ -5,6 +5,7 @@ import AirTrailImportModal from '../../../../components/Planner/AirTrailImportMo
 import TripFormModal from '../../../../components/Trips/TripFormModal'
 import TripMembersModal from '../../../../components/Trips/TripMembersModal'
 import type { ExpensePrefill } from '../../../../components/Budget/CostsPanel'
+import { expenseEditorFor } from '../../../../components/Budget/CostsPanel.helpers'
 import { useAuthStore } from '../../../../store/authStore'
 import { useSettingsStore } from '../../../../store/settingsStore'
 import { useTripStore } from '../../../../store/tripStore'
@@ -59,6 +60,7 @@ export default function MTripSheets({ planner, shell }: MTripSheetsProps) {
     else if (req.prefill) setBookingExpense({ editing: null, prefill: req.prefill })
   }
   const costsBase = (displayCurrency || trip?.currency || 'EUR').toUpperCase()
+  const expenseEditor = expenseEditorFor(bookingExpense, () => setBookingExpense(null), planner.receiptExpense, planner.clearReceiptExpense)
 
   return (
     <>
@@ -142,16 +144,17 @@ export default function MTripSheets({ planner, shell }: MTripSheetsProps) {
         />
       )}
 
-      {bookingExpense && (
+      {expenseEditor && (
         <MCostSheet
+          key={expenseEditor.key}
           tripId={tripId}
           base={costsBase}
           people={planner.tripMembers}
           me={meId}
-          editing={bookingExpense.editing}
-          prefill={bookingExpense.prefill}
-          onClose={() => setBookingExpense(null)}
-          onSaved={() => { setBookingExpense(null); loadBudgetItems(tripId) }}
+          editing={expenseEditor.editing}
+          prefill={expenseEditor.prefill}
+          onClose={expenseEditor.close}
+          onSaved={() => { expenseEditor.close(); loadBudgetItems(tripId) }}
         />
       )}
 

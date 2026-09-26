@@ -60,13 +60,16 @@ export function parseLenientJson(content: string | undefined | null): unknown {
  * would have been accepted inside an array is accepted alone rather than thrown
  * away without a word (#2375). It is still not guessing: an object without that
  * key stays refused.
+ *
+ * `rootKey` names the wrapper for a caller that asks for another list than
+ * reservations (the receipt read asks for `receipts`).
  */
-export function toReservationList(value: unknown): Record<string, unknown>[] {
+export function toReservationList(value: unknown, rootKey = 'reservations'): Record<string, unknown>[] {
   const list = (v: unknown): Record<string, unknown>[] | null => {
     if (Array.isArray(v)) return v as Record<string, unknown>[];
     if (v && typeof v === 'object') {
-      const o = v as { reservations?: unknown; '@type'?: unknown };
-      if (Array.isArray(o.reservations)) return o.reservations as Record<string, unknown>[];
+      const o = v as Record<string, unknown>;
+      if (Array.isArray(o[rootKey])) return o[rootKey] as Record<string, unknown>[];
       if (typeof o['@type'] === 'string') return [v as Record<string, unknown>];
     }
     return null;

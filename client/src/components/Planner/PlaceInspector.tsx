@@ -403,8 +403,8 @@ export default function PlaceInspector({
         {/* Content — scrollable */}
         <div data-testid="inspector-scroll" style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
 
-          {/* Info-Chips — hidden on mobile, shown on desktop */}
-          <div className="hidden sm:flex" style={{ flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+          {/* Info-Chips — wraps on narrow screens; the review snippet inside stays desktop-only */}
+          <div className="flex" style={{ flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
             {googleDetails?.rating && (() => {
               const shortReview = (googleDetails.reviews || []).find(r => r.text && r.text.length > 5)
               return (

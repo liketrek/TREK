@@ -334,6 +334,16 @@ export function deriveNet(raw: RawEnv) {
   };
 }
 
+export function derivePush(raw: RawEnv) {
+  return {
+    // Trimmed, and blank counts as unset: the schema validated the trimmed value,
+    // so a padded key must not reach the crypto as a different string.
+    vapidPublicKey: raw.VAPID_PUBLIC_KEY?.trim() || undefined,
+    vapidPrivateKey: raw.VAPID_PRIVATE_KEY?.trim() || undefined,
+    vapidSubject: raw.VAPID_SUBJECT?.trim() || undefined,
+  };
+}
+
 export function deriveAll(raw: RawEnv) {
   return {
     app: deriveApp(raw),
@@ -353,6 +363,7 @@ export function deriveAll(raw: RawEnv) {
     db: deriveDb(raw),
     paths: derivePaths(raw),
     net: deriveNet(raw),
+    push: derivePush(raw),
   };
 }
 

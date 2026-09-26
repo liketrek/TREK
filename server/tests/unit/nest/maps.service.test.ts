@@ -17,6 +17,8 @@ import {
   buildOsmDetails,
   googleFtidFromMapsUrl,
   isGooglePlaceId,
+  clampPoiBbox,
+  MAX_POI_BBOX_SPAN_DEG,
   buildUserAgent,
   resolveOverpassEndpoints,
   resolveOverpassTimeoutMs,
@@ -2424,6 +2426,34 @@ describe('isGooglePlaceId', () => {
     // Guard against over-matching: a Google id that merely starts with those
     // letters is still a Google id, because the prefix only counts before a colon.
     expect(isGooglePlaceId('gersChIJLU7jZClu5kcR')).toBe(true);
+  });
+
+  it('MAPS-045c: rejects plugin ids, which name a plugin index and never a Google record (#2221, #1781)', () => {
+    // A place picked from a plugin search or a plugin POI category keeps
+    // plugin:<pluginId>:<id>. With a Google key configured, letting it through billed
+    // an invalid photo lookup, an editorial summary and the photo route per place.
+    expect(isGooglePlaceId('plugin:trail-finder:th-1')).toBe(false);
+    expect(isGooglePlaceId('PLUGIN:trail-finder:th-1')).toBe(false);
+    expect(isGooglePlaceId('plugin:trail-finder:th-1~p2')).toBe(false);
+    expect(isGooglePlaceId('pluginChIJLU7jZClu5kcR')).toBe(true);
+  });
+});
+
+describe('clampPoiBbox', () => {
+  it('MAPS-POIBOX-001: narrows each oversized side to a centred window and says so', () => {
+    expect(MAX_POI_BBOX_SPAN_DEG).toBe(0.5);
+    expect(clampPoiBbox({ south: 48, west: 11, north: 48.25, east: 11.25 })).toEqual({
+      bbox: { south: 48, west: 11, north: 48.25, east: 11.25 },
+      clamped: false,
+    });
+    expect(clampPoiBbox({ south: 40, west: 11, north: 50, east: 11.25 })).toEqual({
+      bbox: { south: 44.75, west: 11, north: 45.25, east: 11.25 },
+      clamped: true,
+    });
+    expect(clampPoiBbox({ south: 48, west: 0, north: 48.25, east: 20 })).toEqual({
+      bbox: { south: 48, west: 9.75, north: 48.25, east: 10.25 },
+      clamped: true,
+    });
   });
 });
 

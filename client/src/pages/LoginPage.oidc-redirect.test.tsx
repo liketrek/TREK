@@ -3,6 +3,7 @@ import { render, screen, waitFor } from '../../tests/helpers/render';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../tests/helpers/msw/server';
 import { resetAllStores } from '../../tests/helpers/store';
+import { buildAppConfig } from '../../tests/helpers/factories';
 import { START_DESTINATION_ROUTE } from '../utils/startDestination';
 import LoginPage from './LoginPage';
 
@@ -101,6 +102,46 @@ describe('LoginPage — OIDC redirect preservation', () => {
       await waitFor(() => {
         expect(sessionStorage.getItem('oidc_redirect')).toBeNull();
       });
+    });
+  });
+  describe('FE-PAGE-LOGIN-025: an OIDC-only instance shows where it is going and nothing to fill in (#1167)', () => {
+    afterEach(() => { localStorage.removeItem('trek_app_config_cache'); });
+
+    it('names the provider and draws neither a password field nor a sign-in button', async () => {
+      setSearch('');
+      server.use(
+        http.get('/api/auth/app-config', () =>
+          HttpResponse.json(buildAppConfig({ password_login: false, oidc_configured: true, oidc_login: true, oidc_display_name: 'Keycloak' })),
+        ),
+      );
+      render(<LoginPage />);
+
+      expect(await screen.findByText('Taking you to Keycloak…')).toBeInTheDocument();
+      expect(screen.queryByPlaceholderText('your@email.com')).toBeNull();
+      expect(screen.queryByText('Sign in with Keycloak')).toBeNull();
+    });
+  });
+
+  describe('FE-PAGE-LOGIN-026: no password form while the sign-in is still unknown (#1167)', () => {
+    afterEach(() => { localStorage.removeItem('trek_app_config_cache'); });
+
+    it('shows a wait instead of the form until the config answers', async () => {
+      localStorage.removeItem('trek_app_config_cache');
+      let release!: () => void;
+      const gate = new Promise<void>((resolve) => { release = resolve; });
+      server.use(
+        http.get('/api/auth/app-config', async () => {
+          await gate;
+          return HttpResponse.json(buildAppConfig());
+        }),
+      );
+      render(<LoginPage />);
+
+      expect(screen.queryByPlaceholderText('your@email.com')).toBeNull();
+      expect(screen.getByRole('status', { name: 'Loading...' })).toBeInTheDocument();
+
+      release();
+      expect(await screen.findByPlaceholderText('your@email.com')).toBeInTheDocument();
     });
   });
 });

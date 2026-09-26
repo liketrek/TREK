@@ -1,3 +1,4 @@
+import { asLlmVision, type LlmVision } from '@trek/shared';
 import { maybe_encrypt_api_key, decrypt_api_key } from '../common/crypto/apiKeyCrypto';
 
 /**
@@ -21,7 +22,7 @@ export interface ResolvedLlmConfig {
   model: string;
   baseUrl?: string;
   apiKey?: string;
-  multimodal: boolean;
+  vision: LlmVision;
 }
 
 /** Shape of the admin instance config stored in `addons.config` (apiKey encrypted). */
@@ -30,7 +31,11 @@ export interface LlmAddonConfig {
   model?: string;
   baseUrl?: string;
   apiKey?: string;
-  multimodal?: boolean;
+  /**
+   * Replaces `multimodal`, which the admin screens wrote as `false` on every
+   * save whatever the model: a stored `false` means nothing, so it is not read.
+   */
+  vision?: LlmVision;
 }
 
 export const LLM_PROVIDERS: LlmProvider[] = ['local', 'openai', 'anthropic'];
@@ -46,6 +51,7 @@ export function prepareLlmAddonConfigForWrite(
   existingStored: Record<string, unknown> | undefined,
 ): Record<string, unknown> {
   const out: Record<string, unknown> = { ...incoming };
+  if ('vision' in incoming) out.vision = asLlmVision(incoming.vision);
   const key = incoming.apiKey;
   if (key === undefined || key === null || key === '' || key === MASKED_VALUE) {
     // Keep the existing encrypted key untouched (mask echoed or no key supplied).

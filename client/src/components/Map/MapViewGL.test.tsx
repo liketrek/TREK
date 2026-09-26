@@ -14,6 +14,8 @@ import { MAP_LAYER_SWITCHER_INSET } from './MapLayerSwitcher'
 import type { GeoPosition, TrackingMode } from '../../hooks/useGeolocation'
 import type { PluginMapLayer, PluginMapLayerFeature, PluginMapMarker } from '../../api/client'
 import type { Poi } from './poiCategories'
+import { Coffee, type LucideIcon } from 'lucide-react'
+import { renderIconMarkup } from '../../utils/iconMarkup'
 import type { RouteVia } from '../../types'
 
 // Stable fake map so fitBounds call counts survive re-renders. The canvas
@@ -1463,6 +1465,58 @@ describe('MapViewGL', () => {
     act(() => { list.querySelectorAll('button')[1].click() })
     expect(onPoiClick).toHaveBeenCalledWith(other)
     vi.mocked(glMap.getZoom).mockReturnValue(10)
+  })
+
+  const pinGlyph = (Icon: LucideIcon) => renderIconMarkup(React.createElement(Icon, { size: 13, color: 'white', strokeWidth: 2.5 }))
+  const explorePoi = (overrides: Partial<Poi>): Poi => ({
+    osm_id: 'n1', name: 'Café de Flore', lat: 48.854, lng: 2.332, category: 'cafe',
+    poi_type: 'cafe', address: null, website: null, phone: null, opening_hours: null,
+    cuisine: null, source: 'openstreetmap', ...overrides,
+  })
+
+  it('FE-COMP-MAPVIEWGL-104: a core POI pin is the disc it always was', async () => {
+    loadOnAttach()
+    render(<MapViewGL places={[]} fitKey={1} pois={[explorePoi({})]} />)
+    await act(async () => {})
+    // Parsed the same way the element's own markup was, so only a real change shows up.
+    const expected = document.createElement('div')
+    expected.innerHTML = '<div style="position:relative;width:26px;height:26px;border-radius:50%;background:#B45309;border:2px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;box-sizing:border-box;overflow:hidden;">'
+      + `${pinGlyph(Coffee)}</div>`
+    expect(glMarkers.created[0].element.innerHTML).toBe(expected.innerHTML)
+  })
+
+  it('FE-COMP-MAPVIEWGL-105: a plugin POI pin and its hover card use its checked colour and icon, and its details stay text', async () => {
+    loadOnAttach()
+    const plugin = explorePoi({
+      osm_id: 'plugin:trail-finder:1', name: '<img src=x onerror=alert(1)>', category: 'plugin:trail-finder/trailheads',
+      source: 'plugin:trail-finder', pluginId: 'trail-finder', color: '#2f855a', icon: 'Signpost',
+      details: [{ label: 'Length', value: '12.4 km' }, { label: '<b>Fee</b>', value: '"><svg onload=alert(2)>' }],
+    })
+    const bad = explorePoi({
+      osm_id: 'plugin:trail-finder:2', category: 'plugin:trail-finder/trailheads',
+      color: 'red;background:url(https://evil.example/x)', icon: '<img src=x onerror=alert(3)>',
+    })
+    render(<MapViewGL places={[]} fitKey={1} pois={[plugin, bad]} />)
+    await act(async () => {})
+
+    const [good, fallback] = glMarkers.created.map(pin => pin.element)
+    expect(good.innerHTML).toContain('background:#2f855a;')
+    expect(good.querySelectorAll('svg')).toHaveLength(1)
+    expect(good.querySelector('svg.lucide-signpost')).not.toBeNull()
+    expect(fallback.innerHTML).toContain('background:#6b7280;')
+    expect(fallback.innerHTML).not.toContain('evil.example')
+    expect(fallback.querySelectorAll('img')).toHaveLength(0)
+    expect(fallback.querySelector('svg.lucide-map-pin')).not.toBeNull()
+
+    act(() => { good.dispatchEvent(new MouseEvent('mouseenter')) })
+    const card = document.createElement('div')
+    card.innerHTML = vi.mocked(glPopup.setHTML).mock.lastCall![0]
+    expect(card.querySelectorAll('img, b')).toHaveLength(0)
+    expect(card.querySelectorAll('svg')).toHaveLength(1)
+    expect(card.textContent).toContain('<img src=x onerror=alert(1)>')
+    expect([...card.querySelectorAll('div[style*="grid-template-columns"] > span')].map(el => el.textContent)).toEqual([
+      'Length', '12.4 km', '<b>Fee</b>', '"><svg onload=alert(2)>',
+    ])
   })
 
   it('FE-COMP-MAPVIEWGL-043: plugin markers render as tone dots with a text-only popup', async () => {

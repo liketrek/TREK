@@ -1500,6 +1500,19 @@ export class JourneyDomainService {
 
   // ── Photos ───────────────────────────────────────────────────────────────
 
+  /**
+   * The journey an entry belongs to, or null when there is no such entry.
+   *
+   * No access check: it answers for a caller that has already added photos to
+   * the entry, and only decides which journey hears about their capture times.
+   */
+  journeyIdOfEntry(entryId: number): number | null {
+    const row = this.db.prepare('SELECT journey_id FROM journey_entries WHERE id = ?').get(entryId) as
+      | { journey_id: number }
+      | undefined;
+    return row?.journey_id ?? null;
+  }
+
   // Promote a skeleton suggestion to a concrete entry. Called whenever the user
   // adds content (photo upload, provider photo, gallery link) — a suggestion
   // with photos is no longer just a suggestion.

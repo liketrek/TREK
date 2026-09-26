@@ -1,7 +1,11 @@
-import { useState, useRef, useCallback, useMemo } from 'react'
+import { useState, useRef, useCallback, useMemo, useEffect } from 'react'
+import { parsePluginPoiCategoryKey } from '@trek/shared'
 import { mapsApi } from '../../api/client'
 import { useTranslation } from '../../i18n'
+import { pluginPoiRepo } from '../../repo/pluginPoiRepo'
+import { usePluginStore } from '../../store/pluginStore'
 import type { Poi } from './poiCategories'
+import { findPoiCategory, usePoiCategories } from './usePoiCategories'
 
 export interface Bbox { south: number; west: number; north: number; east: number }
 
@@ -11,14 +15,24 @@ function isAbortError(err: unknown): boolean {
   return e?.name === 'CanceledError' || e?.code === 'ERR_CANCELED' || e?.name === 'AbortError'
 }
 
+function isNotFound(err: unknown): boolean {
+  return (err as { response?: { status?: number } } | null)?.response?.status === 404
+}
+
 /**
  * State for the map POI "explore" pill. Toggling a category fetches its OSM POIs
  * for the current viewport; panning/zooming does NOT auto-refetch — it just marks
  * the results stale (`moved`) so the pill can offer "search this area". This keeps
  * Overpass load (and visual churn) down.
+ *
+ * A category a plugin added (#1781) is asked of that plugin instead, through the
+ * plugin POI repo, with the same single selection, cancelling and retry. It also
+ * carries the pill's chips, so the selection and the chips on offer come from the
+ * same list.
  */
 export function usePoiExplore() {
-  const { locale } = useTranslation()
+  const { locale, language } = useTranslation()
+  const categories = usePoiCategories()
   const [active, setActive] = useState<Set<string>>(() => new Set())
   const [byCat, setByCat] = useState<Record<string, Poi[]>>({})
   const [loadingKeys, setLoadingKeys] = useState<Set<string>>(() => new Set())
@@ -49,6 +63,22 @@ export function usePoiExplore() {
     return next
   }), [])
 
+  // A plugin key goes to its plugin, a core key to the core search; both answer in the
+  // same row shape, so nothing after this line knows which one it was.
+  const search = useCallback(async (key: string, bbox: Bbox, signal: AbortSignal): Promise<Poi[]> => {
+    const plugin = parsePluginPoiCategoryKey(key)
+    if (!plugin) return (await mapsApi.pois(key, bbox, locale, signal)).pois
+    try {
+      return (await pluginPoiRepo.search(plugin.pluginId, plugin.categoryId, bbox, language, signal)).pois
+    } catch (err) {
+      // The server no longer answers for this category: the plugin was switched off,
+      // uninstalled or lost its grant since the feed was read. Reading the feed again
+      // takes the chip away, and the selection with it (the effect below).
+      if (isNotFound(err)) void usePluginStore.getState().loadPlugins()
+      throw err
+    }
+  }, [locale, language])
+
   const fetchCat = useCallback(async (key: string, bbox: Bbox) => {
     abortRef.current[key]?.abort()
     const ctrl = new AbortController()
@@ -56,10 +86,10 @@ export function usePoiExplore() {
     setLoading(key, true)
     setError(key, false)
     try {
-      const res = await mapsApi.pois(key, bbox, locale, ctrl.signal)
+      const found = await search(key, bbox, ctrl.signal)
       // Drop the result if the user toggled this category off while the (slow)
       // Overpass request was in flight — otherwise stale results re-appear.
-      setByCat(prev => (activeRef.current.has(key) ? { ...prev, [key]: res.pois } : prev))
+      setByCat(prev => (activeRef.current.has(key) ? { ...prev, [key]: found } : prev))
     } catch (err) {
       // A superseded request was aborted on purpose — leave its state untouched
       // so the newer request owns the spinner and results.
@@ -81,11 +111,21 @@ export function usePoiExplore() {
         setLoading(key, false)
       }
     }
-  }, [setLoading, setError, locale])
+  }, [setLoading, setError, search])
 
   const onViewportChange = useCallback((bbox: Bbox) => {
     bboxRef.current = bbox
     if (activeRef.current.size > 0) setMoved(true)
+  }, [])
+
+  // Drops the results and cancels every in-flight fetch, so nothing lands after the
+  // selection changed.
+  const reset = useCallback(() => {
+    setMoved(false)
+    setErrorKeys(new Set())
+    Object.values(abortRef.current).forEach(c => c.abort())
+    abortRef.current = {}
+    setByCat({})
   }, [])
 
   // Single-select: clicking a category switches to it (dropping the previous one
@@ -93,21 +133,25 @@ export function usePoiExplore() {
   // the already-active category turns it off.
   const toggle = useCallback((key: string) => {
     const isOnlyActive = activeRef.current.has(key) && activeRef.current.size === 1
-    setMoved(false)
-    setErrorKeys(new Set())
-    // Switching to another category (or turning off) — cancel any in-flight
-    // fetches so their results can't land after the selection changed.
-    Object.values(abortRef.current).forEach(c => c.abort())
-    abortRef.current = {}
+    reset()
     if (isOnlyActive) {
       setActive(new Set())
-      setByCat({})
       return
     }
     setActive(new Set([key]))
-    setByCat({})
     if (bboxRef.current) fetchCat(key, bboxRef.current)
-  }, [fetchCat])
+  }, [fetchCat, reset])
+
+  // A plugin chip that stopped being offered (the plugin was switched off,
+  // uninstalled or lost its grant, and the feed was read again) takes its selection
+  // and its markers with it, rather than leaving pins on the map for a chip nobody
+  // can press any more to hide them.
+  useEffect(() => {
+    const orphaned = Array.from(active).some(key => parsePluginPoiCategoryKey(key) !== null && !findPoiCategory(categories, key))
+    if (!orphaned) return
+    reset()
+    setActive(new Set())
+  }, [active, categories, reset])
 
   const searchArea = useCallback(() => {
     const bbox = bboxRef.current
@@ -118,5 +162,5 @@ export function usePoiExplore() {
 
   const pois = useMemo(() => Object.values(byCat).flat(), [byCat])
 
-  return { active, pois, loadingKeys, errorKeys, moved, toggle, searchArea, onViewportChange }
+  return { categories, active, pois, loadingKeys, errorKeys, moved, toggle, searchArea, onViewportChange }
 }

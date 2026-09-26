@@ -28,6 +28,11 @@ export const SENSITIVE_KEYS = new Set([
   'code',
   'smtp_pass',
   'secretaccesskey',
+  // A Web Push subscription's keys: whoever holds them together with the
+  // endpoint can encrypt messages for that browser. No other request body has
+  // either field, and an `auth` anywhere else would be a credential as well.
+  'p256dh',
+  'auth',
 ]);
 
 /**
@@ -43,7 +48,26 @@ function isSensitiveName(name: string): boolean {
   return SENSITIVE_KEYS.has(lower) || SENSITIVE_SUFFIXES.some((suffix) => lower.endsWith(suffix));
 }
 
-/** Deep-redacts every key in `SENSITIVE_KEYS` (case-insensitive) from a request-log value. */
+/**
+ * The fields PushSubscription.toJSON() puts next to `endpoint`. Either one is
+ * enough to know the object is a subscription, so a body that arrives without
+ * its keys (which the route then refuses) still keeps its endpoint out of the log.
+ */
+const PUSH_SUBSCRIPTION_FIELDS = new Set(['keys', 'expirationtime']);
+
+/**
+ * A Web Push endpoint is a capability URL: anyone holding it can post to that
+ * browser's push service. It arrives inside a subscription, or on its own in
+ * the body that forgets a device. Anywhere else `endpoint` is an ordinary
+ * setting (the S3 backend's URL, for one) and stays readable.
+ */
+function isPushEndpoint(entries: Record<string, unknown>, name: string): boolean {
+  if (name.toLowerCase() !== 'endpoint') return false;
+  const siblings = Object.keys(entries).filter((k) => k !== name);
+  return siblings.length === 0 || siblings.some((k) => PUSH_SUBSCRIPTION_FIELDS.has(k.toLowerCase()));
+}
+
+/** Deep-redacts every key in `SENSITIVE_KEYS` (case-insensitive) and every Web Push endpoint from a request-log value. */
 export function redact(value: unknown): unknown {
   if (!value || typeof value !== 'object') return value;
   if (Array.isArray(value)) return (value as unknown[]).map(redact);
@@ -54,7 +78,8 @@ export function redact(value: unknown): unknown {
   const namedSecret = typeof entries.key === 'string' && isSensitiveName(entries.key);
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(entries)) {
-    out[k] = isSensitiveName(k) || (namedSecret && k === 'value') ? '[REDACTED]' : redact(v);
+    const hidden = isSensitiveName(k) || (namedSecret && k === 'value') || isPushEndpoint(entries, k);
+    out[k] = hidden ? '[REDACTED]' : redact(v);
   }
   return out;
 }

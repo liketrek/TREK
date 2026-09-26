@@ -28,6 +28,8 @@ const login: TranslationStrings = {
   'login.oidcSignIn': 'Đăng nhập bằng {name}',
   'login.oidcOnly': 'Xác thực mật khẩu bị vô hiệu hóa. Vui lòng đăng nhập bằng nhà cung cấp SSO của bạn.',
   'login.oidcLoggedOut': 'Bạn đã đăng xuất. Đăng nhập lại bằng nhà cung cấp SSO của bạn.',
+  'login.oidcRedirecting': 'Đang chuyển đến {name}…',
+  'login.oidcRedirectSlow': 'Vẫn ở đây? Tiếp tục đến {name}',
   'login.demoHint': 'Hãy thử bản demo - không cần đăng ký',
   'login.mfaTitle': 'Xác thực hai yếu tố',
   'login.mfaSubtitle': 'Nhập mã gồm 6 chữ số từ ứng dụng xác thực của bạn.',

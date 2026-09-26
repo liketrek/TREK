@@ -18,7 +18,15 @@ const packing: TranslationStrings = {
     'Một mục trên mỗi dòng. Định dạng: Danh mục, Tên, Trọng lượng tính bằng g (tùy chọn), Túi (tùy chọn), đã chọn/bỏ chọn (tùy chọn)',
   'packing.importPlaceholder':
     'Vệ sinh, Bàn chải đánh răng\nQuần áo, Áo sơ mi, 200\nGiấy tờ, Hộ chiếu, Hành lý xách tay\nĐiện tử, Sạc, 50, Vali, đã kiểm tra',
-  'packing.importCsv': 'Tải CSV/TXT',
+  'packing.importCsv': 'Tải CSV/TXT/MD',
+  'packing.export': 'Xuất',
+  'packing.exportPrint': 'In hoặc lưu thành PDF',
+  'packing.exportMarkdown': 'Danh sách kiểm tra Markdown (.md)',
+  'packing.exportCsv': 'CSV để nhập (.csv)',
+  'packing.printItems': 'Mục',
+  'packing.printPacked': 'Đã đóng gói',
+  'packing.importHintMarkdown':
+    'Danh sách Markdown cũng dùng được: tiêu đề đặt tên danh mục, "- [ ]" và "- [x]" trở thành mục, còn "3x" trước tên sẽ đặt số lượng.',
   'packing.importAction': 'Nhập {count}',
   'packing.importSuccess': '{count} mặt hàng đã được nhập',
   'packing.importError': 'Nhập không thành công',
@@ -26,9 +34,6 @@ const packing: TranslationStrings = {
   'packing.progress': '{packed} trong số {total} được đóng gói ({percent}%)',
   'packing.clearChecked': 'Xóa {count} đã chọn',
   'packing.clearCheckedShort': 'Xóa {count}',
-  'packing.suggestions': 'Đề xuất',
-  'packing.suggestionsTitle': 'Thêm đề xuất',
-  'packing.allSuggested': 'Đã thêm tất cả đề xuất',
   'packing.allPacked': 'Tất cả đã được đóng gói!',
   'packing.addPlaceholder': 'Thêm mục mới...',
   'packing.categoryPlaceholder': 'Danh sách...',
@@ -36,7 +41,6 @@ const packing: TranslationStrings = {
   'packing.filterOpen': 'Mở',
   'packing.filterDone': 'Xong',
   'packing.emptyTitle': 'Danh sách đóng gói trống',
-  'packing.emptyHint': 'Thêm mục hoặc sử dụng các đề xuất',
   'packing.emptyFiltered': 'Không có mục nào phù hợp với bộ lọc này',
   'packing.menuRename': 'Đổi tên',
   'packing.menuCheckAll': 'Kiểm tra tất cả',
@@ -68,128 +72,6 @@ const packing: TranslationStrings = {
   'packing.toast.deleteError': 'Không thể xóa',
   'packing.toast.renameError': 'Không thể đổi tên',
   'packing.toast.addError': 'Không thể thêm',
-  'packing.suggestions.items': [
-    {
-      name: 'Hộ chiếu',
-      category: 'Tài liệu',
-    },
-    {
-      name: 'Thẻ ID',
-      category: 'Tài liệu',
-    },
-    {
-      name: 'Bảo hiểm du lịch',
-      category: 'Tài liệu',
-    },
-    {
-      name: 'Vé máy bay',
-      category: 'Tài liệu',
-    },
-    {
-      name: 'Thẻ tín dụng',
-      category: 'Tài chính',
-    },
-    {
-      name: 'Tiền mặt',
-      category: 'Tài chính',
-    },
-    {
-      name: 'Visa',
-      category: 'Tài liệu',
-    },
-    {
-      name: 'Áo sơ mi',
-      category: 'Quần áo',
-    },
-    {
-      name: 'Quần dài',
-      category: 'Quần áo',
-    },
-    {
-      name: 'Đồ lót',
-      category: 'Quần áo',
-    },
-    {
-      name: 'Tất',
-      category: 'Quần áo',
-    },
-    {
-      name: 'Áo khoác',
-      category: 'Quần áo',
-    },
-    {
-      name: 'Đồ ngủ',
-      category: 'Quần áo',
-    },
-    {
-      name: 'Đồ bơi',
-      category: 'Quần áo',
-    },
-    {
-      name: 'Áo mưa',
-      category: 'Quần áo',
-    },
-    {
-      name: 'Giày thoải mái',
-      category: 'Quần áo',
-    },
-    {
-      name: 'Bàn chải đánh răng',
-      category: 'Đồ vệ sinh cá nhân',
-    },
-    {
-      name: 'Kem đánh răng',
-      category: 'Đồ vệ sinh cá nhân',
-    },
-    {
-      name: 'Dầu gội đầu',
-      category: 'Đồ vệ sinh cá nhân',
-    },
-    {
-      name: 'Khử mùi',
-      category: 'Đồ vệ sinh cá nhân',
-    },
-    {
-      name: 'Kem chống nắng',
-      category: 'Đồ vệ sinh cá nhân',
-    },
-    {
-      name: 'dao cạo',
-      category: 'Đồ vệ sinh cá nhân',
-    },
-    {
-      name: 'Bộ sạc',
-      category: 'Điện tử',
-    },
-    {
-      name: 'Ngân hàng điện',
-      category: 'Điện tử',
-    },
-    {
-      name: 'Tai nghe',
-      category: 'Điện tử',
-    },
-    {
-      name: 'Bộ chuyển đổi du lịch',
-      category: 'Điện tử',
-    },
-    {
-      name: 'Máy ảnh',
-      category: 'Điện tử',
-    },
-    {
-      name: 'Thuốc giảm đau',
-      category: 'Sức khỏe',
-    },
-    {
-      name: 'Băng cá nhân',
-      category: 'Sức khỏe',
-    },
-    {
-      name: 'Thuốc khử trùng',
-      category: 'Sức khỏe',
-    },
-  ],
   'packing.makePrivate': 'Đặt riêng tư',
   'packing.makePublic': 'Chia sẻ',
   'packing.privateHint': 'Riêng tư — chỉ mình bạn thấy',

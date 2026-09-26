@@ -55,6 +55,33 @@ function mockClipboard(): Mock<(text: string) => Promise<void>> {
   return writeText;
 }
 
+/**
+ * A `location` whose `reload` is a spy.
+ *
+ * jsdom's own `reload` cannot be redefined, so the whole object has to be
+ * replaced, and `{ ...window.location }` is the trap: its fields are getters on
+ * the prototype, so the copy has no `href` for axios to resolve a relative URL
+ * against and the request never reaches MSW. The fields are therefore read out
+ * by name.
+ */
+/**
+ * A `location` whose `reload` is a spy, for the two flows that reload the app.
+ *
+ * jsdom's own `reload` cannot be redefined, so the whole object is replaced, and
+ * the replacement is a flat copy without the prototype's getters. That is enough
+ * for a test that only asserts the reload, but it leaves a request with nothing
+ * to resolve a relative URL against, so a test that asserts the call itself must
+ * not use this. The original is put back after every test: left in place, it
+ * broke every later case in the file.
+ */
+let realLocation: PropertyDescriptor | undefined;
+function stubReload(): Mock<() => void> {
+  const reload = vi.fn();
+  realLocation ??= Object.getOwnPropertyDescriptor(window, 'location');
+  Object.defineProperty(window, 'location', { value: { ...window.location, reload }, writable: true, configurable: true });
+  return reload;
+}
+
 beforeEach(() => {
   resetAllStores();
   server.use(
@@ -82,6 +109,10 @@ afterEach(() => {
   delete window.__addToast;
   vi.useRealTimers();
   vi.restoreAllMocks();
+  if (realLocation) {
+    Object.defineProperty(window, 'location', realLocation);
+    realLocation = undefined;
+  }
   Object.defineProperty(window, 'isSecureContext', { value: false, configurable: true, writable: true });
 });
 
@@ -410,11 +441,9 @@ describe('TripMembersModal', () => {
   it('FE-COMP-MEMBERS-024: leave trip calls DELETE for current user', async () => {
     const user = userEvent.setup();
     vi.spyOn(window, 'confirm').mockReturnValue(true);
-    Object.defineProperty(window, 'location', {
-      value: { ...window.location, reload: vi.fn() },
-      writable: true,
-      configurable: true,
-    });
+    // No reload stub here on purpose: this case asserts the DELETE, and a stubbed
+    // location is exactly what stops the request from reaching it. jsdom's own
+    // reload is a no-op that only logs.
 
     seedStore(useAuthStore, { user: memberUser, isAuthenticated: true });
     seedStore(useTripStore, { trip: buildTrip({ id: 1, user_id: ownerUser.id }) });
@@ -747,8 +776,7 @@ describe('TripMembersModal', () => {
 
   it('FE-COMP-MEMBERS-042: transferring ownership reloads the app', async () => {
     const onClose = vi.fn();
-    const reload = vi.fn();
-    Object.defineProperty(window, 'location', { value: { ...window.location, reload }, writable: true, configurable: true });
+    const reload = stubReload();
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     mockRoster([{ id: memberUser.id, username: 'alice', avatar_url: null }]);
     let transferBody: Record<string, unknown> | null = null;

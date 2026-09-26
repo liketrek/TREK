@@ -9,6 +9,7 @@ import { useTranslation } from '../../i18n'
 import { Plane, LogOut, Settings, ChevronDown, Shield, ArrowLeft, Users, Moon, Sun, Monitor, CalendarDays, Briefcase, Globe, Compass, BookOpen, Bookmark } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import InAppNotificationBell from './InAppNotificationBell.tsx'
+import HelpButton from '../Help/HelpButton'
 import { resolvePluginIcon } from '../shared/PluginIcon'
 import { visibleManagedNavItems } from '../../managed'
 
@@ -233,6 +234,9 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
           {appVersion}
         </span>
       )}
+
+      {/* Contextual help for the current screen — same footprint as the theme toggle beside it */}
+      {user && <HelpButton />}
 
       {/* Dark mode toggle (light ↔ dark, overrides auto) — hidden on mobile */}
       <button type="button" onClick={toggleDarkMode} title={dark ? t('nav.lightMode') : t('nav.darkMode')}

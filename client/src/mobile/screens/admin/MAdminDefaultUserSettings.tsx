@@ -5,7 +5,8 @@ import { useTranslation } from '../../../i18n'
 import { useToast } from '../../../components/shared/Toast'
 import { MapView } from '../../../components/Map/MapView'
 import { SYMBOLS, currenciesWith } from '../../../components/Budget/BudgetPanel.constants'
-import { getApiErrorMessage, type DistanceUnit, type Place } from '../../../types'
+import { getApiErrorMessage, type DistanceUnit, type Place, type WeekStart } from '../../../types'
+import { weekStartOptions } from '../../../utils/calendarWeek'
 import { normalizeTileUrl, withTileApiKey } from '../../../utils/tileUrl'
 import {
   MAPBOX_DEFAULT_STYLE,
@@ -43,6 +44,7 @@ type Defaults = RoutingDefaults & {
   distance_unit?: DistanceUnit
   dark_mode?: string | boolean
   time_format?: string
+  week_start?: WeekStart
   default_currency?: string
   blur_booking_codes?: boolean
   map_tile_url?: string
@@ -71,7 +73,7 @@ function styleForProvider(provider: MapProvider, style?: string | null): string 
 // layer (adminApi defaults, per-change auto-save, reset-to-built-in) — only the
 // presentation is relaid on the admin mobile design system.
 export default function MAdminDefaultUserSettings(): React.ReactElement {
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
   const toast = useToast()
   const [defaults, setDefaults] = useState<Defaults>({})
   const [loaded, setLoaded] = useState(false)
@@ -251,6 +253,11 @@ export default function MAdminDefaultUserSettings(): React.ReactElement {
           {/* Time Format */}
           <MAdminField label={<>{t('settings.timeFormat')} <ResetButton field="time_format" /></>}>
             <MSegmented value={defaults.time_format || ''} onChange={(v) => save({ time_format: v })} options={timeOptions} />
+          </MAdminField>
+
+          {/* Week start (#2029) */}
+          <MAdminField label={<>{t('settings.weekStart')} <ResetButton field="week_start" /></>}>
+            <MSegmented value={defaults.week_start || ''} onChange={(v) => save({ week_start: v as WeekStart })} options={weekStartOptions(locale)} />
           </MAdminField>
 
           {/* Default Currency */}

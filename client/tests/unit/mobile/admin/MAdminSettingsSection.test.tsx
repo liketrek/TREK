@@ -1,4 +1,4 @@
-// FE-MOB-ASET-001 to FE-MOB-ASET-023
+// FE-MOB-ASET-001 to FE-MOB-ASET-024
 import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
@@ -231,6 +231,21 @@ describe('MAdminSettingsSection', () => {
 
     await user.click(screen.getByRole('button', { name: 'Test' }));
 
+    expect(admin.handleValidateKey).toHaveBeenCalledWith('maps');
+  });
+
+  it('FE-MOB-ASET-024: a key the environment sets is read-only and names its variable (#1881)', async () => {
+    const user = userEvent.setup();
+    const admin = renderSettings({
+      keyInputProps: (field: string) =>
+        field === 'maps' ? { disabled: true, placeholder: 'Set via PLACES_API_KEY' } : { disabled: false, placeholder: 'Enter key...' },
+      mapsKeyTestable: true,
+    });
+
+    expect(screen.getByLabelText('Google Maps API Key')).toBeDisabled();
+    expect(screen.getByLabelText('Google Maps API Key')).toHaveAttribute('placeholder', 'Set via PLACES_API_KEY');
+    expect(screen.getByLabelText('Unsplash API Key')).toBeEnabled();
+    await user.click(screen.getByRole('button', { name: 'Test' }));
     expect(admin.handleValidateKey).toHaveBeenCalledWith('maps');
   });
 

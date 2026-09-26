@@ -1,6 +1,6 @@
 import { Fragment, useState, useEffect, useMemo, useCallback } from 'react'
 import { useSearchParams } from 'react-router'
-import { ArrowDown, ArrowUp, BarChart3, Plus, Search, ArrowRight, ArrowLeftRight, Check, RotateCcw, Pencil, Trash2, AlertCircle, Download, StickyNote, ChevronDown, Receipt, Paperclip } from 'lucide-react'
+import { ArrowDown, ArrowUp, BarChart3, Plus, Search, ArrowRight, ArrowLeftRight, Check, RotateCcw, Pencil, Trash2, AlertCircle, Download, StickyNote, ChevronDown, Receipt, Paperclip, ScanLine } from 'lucide-react'
 import { useTripStore } from '../../store/tripStore'
 import { useAuthStore } from '../../store/authStore'
 import { useSettingsStore } from '../../store/settingsStore'
@@ -19,16 +19,19 @@ import Modal from '../shared/Modal'
 import CustomSelect from '../shared/CustomSelect'
 import { CustomDatePicker } from '../shared/CustomDateTimePicker'
 import { localToday } from '../Planner/today'
+import { useReceiptScan } from './useReceiptScan'
+import { ReceiptScanModal } from './ReceiptScanModal'
 import { SYMBOLS, currenciesWith, SPLIT_COLORS } from './BudgetPanel.constants'
-import { amountPattern, calculateTicketShares, finalBudgetFor, finalBudgetSources, hasTicketSplit, NOTE_MAX, paidByUser, payersBalanced, readTicketItems, readUserNote, rebalancePayers, settlementDate, splitEqualShares, writeTicketItems, type TicketItem } from './CostsPanel.helpers'
+import { amountPattern, calculateTicketShares, finalBudgetFor, finalBudgetSources, hasTicketSplit, NOTE_MAX, paidByUser, payersBalanced, readTicketItems, newExpenseSeed, readUserNote, rebalancePayers, settlementDate, splitEqualShares, writeTicketItems, type TicketItem } from './CostsPanel.helpers'
 import { COST_CATEGORY_LIST, catMeta } from './costsCategories'
 import { ReceiptPreviewModal } from './ReceiptPreviewModal'
-import type { BudgetParticipantFinal, BudgetUnconverted } from '@trek/shared'
+import type { BudgetParticipantFinal, BudgetUnconverted, ReceiptLine } from '@trek/shared'
 import type { BudgetItem, BudgetItemReceipt } from '../../types'
 import type { TripMember } from './BudgetPanelMemberChips'
 import GuestBadge from '../shared/GuestBadge'
 import { NumericInput } from '../shared/NumericInput'
 import EmptyState from '../shared/EmptyState'
+import CostsToolbar from './CostsToolbar'
 
 interface CostsPanelProps {
   tripId: number
@@ -82,6 +85,7 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
   const me = useAuthStore(s => s.user?.id ?? -1)
   const can = useCanDo()
   const canEdit = can('budget_edit', trip)
+  const receiptScan = useReceiptScan(tripId, canEdit)
   const toast = useToast()
   const { t, locale } = useTranslation()
   const isMobile = useIsMobile()
@@ -381,44 +385,13 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
   ) : null
 
   return (
-    <div className="costs-root" style={{ minHeight: '100%', background: 'var(--c-bg)', padding: isMobile ? '6px 14px 28px' : '40px 24px 48px' }}>
+    <div className="costs-root" style={{ minHeight: '100%', background: 'var(--c-bg)', padding: isMobile ? '6px 14px 28px' : '24px 28px 48px' }}>
      {isMobile ? MobileBody() : (
      <div style={{ maxWidth: '100%', margin: '0 auto' }}>
-      {/* ── Header bar ── */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, marginBottom: 28, flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          {dateMeta && (
-            <span className="bg-surface-card border border-edge text-content-muted" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 999, fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500, whiteSpace: 'nowrap' }}>
-              {dateMeta.range} · <b className="text-content">{t('costs.daysCount', { count: dateMeta.days })}</b>
-            </span>
-          )}
-          <span className="bg-surface-card border border-edge text-content-muted" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 14px 8px 10px', borderRadius: 999, fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500 }}>
-            <span style={{ display: 'inline-flex' }}>
-              {people.slice(0, 4).map((p, i) => {
-                const common = { width: 22, height: 22, borderRadius: '50%', border: '2px solid var(--bg-card)', marginLeft: i ? -8 : 0, flexShrink: 0 } as const
-                return p.avatar_url
-                  ? <img key={p.id} src={p.avatar_url} alt="" style={{ ...common, objectFit: 'cover', display: 'block' }} />
-                  : <span key={p.id} style={{ ...common, background: colorFor(p.id), color: '#fff', display: 'grid', placeItems: 'center', fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 700 }}>{(p.id === me ? t('costs.youShort') : p.username.charAt(0)).toUpperCase()}</span>
-              })}
-            </span>
-            <b className="text-content">{t('costs.travelers', { count: people.length })}</b>
-          </span>
-        </div>
-        {canEdit && (
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button type="button" onClick={settleAll} disabled={!(settlement?.flows || []).length}
-              className="bg-surface-card border border-edge text-content disabled:opacity-40"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '10px 16px', borderRadius: 12, fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}>
-              <Check size={16} /> {t('costs.settleUp')}
-            </button>
-            <button type="button" onClick={() => { setEditing(null); setModalOpen(true) }}
-              className="bg-[var(--text-primary)] text-[var(--bg-primary)]"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '10px 18px', borderRadius: 12, fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 600, border: 0, cursor: 'pointer', fontFamily: 'inherit' }}>
-              <Plus size={16} /> {t('costs.addExpense')}
-            </button>
-          </div>
-        )}
-      </div>
+      <CostsToolbar dateMeta={dateMeta} people={people} me={me} colorFor={colorFor}
+        canEdit={canEdit} canSettle={(settlement?.flows || []).length > 0}
+        onSettleAll={settleAll} onAddExpense={() => { setEditing(null); setModalOpen(true) }}
+        onScanReceipt={receiptScan.offered ? receiptScan.open : undefined} />
 
       {/* ── Summary cards ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 36 }} className="costs-summary">
@@ -539,6 +512,8 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
         </div>
       </div>
       </div>)}
+
+      <ReceiptScanModal scan={receiptScan} />
 
       {modalOpen && (
         <ExpenseModal tripId={tripId} base={base} people={people} me={me} editing={editing}
@@ -663,6 +638,13 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
           {canEdit && (
             <button type="button" onClick={() => { setEditing(null); setModalOpen(true) }} style={{ marginTop: 16, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'rgba(255,255,255,0.14)', border: '1px solid rgba(255,255,255,0.16)', color: '#fff', padding: 13, borderRadius: 14, fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
               <Plus size={17} /> {t('costs.addExpense')}
+            </button>
+          )}
+          {receiptScan.offered && (
+            <button type="button" onClick={receiptScan.open}
+              style={{ marginTop: 8, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'transparent', border: '1px solid rgba(255,255,255,0.16)', color: '#fff', padding: 11, borderRadius: 14, fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }} // theme-lint-disable — on the dark total card, drawn like Add expense above it
+            >
+              <ScanLine size={16} /> {t('costs.scan.button')}
             </button>
           )}
         </section>
@@ -1268,6 +1250,11 @@ export interface ExpensePrefill {
   reservationId?: number
   /** Set when the expense is being created from a place (#1298). */
   placeId?: number
+  /** The rest comes from a scanned receipt: its currency, day and lines, and the photo, attached on save. */
+  currency?: string
+  date?: string
+  lines?: ReceiptLine[]
+  receiptFiles?: File[]
 }
 
 export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClose, onSaved }: {
@@ -1283,17 +1270,16 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
 
   const [name, setName] = useState(editing?.name || prefill?.name || '')
   const [cat, setCat] = useState<string>(editing ? catMeta(editing.category).key : (prefill?.category || 'food'))
-  const [currency, setCurrency] = useState(editingCurrency)
-  const [day, setDay] = useState(editing?.expense_date || localToday())
+  const [seed] = useState(() => newExpenseSeed(prefill, base, people.map(p => p.id), localToday()))
+  const [currency, setCurrency] = useState(editing ? editingCurrency : seed.currency)
+  const [day, setDay] = useState(editing ? (editing.expense_date || localToday()) : seed.day)
   const [note, setNote] = useState(() => readUserNote(editing))
   // Edit and prefill seeds are padded to the currency's decimals (#2175): the DB
   // returns numbers, so a saved 4,90 would otherwise reopen as "4,9" and a saved
-  // 5,00 as "5". A prefill has no currency of its own — it is read as `base`,
-  // which is also what the currency field starts on.
+  // 5,00 as "5".
   const [total, setTotal] = useState<string>(() => {
     if (editing) return editing.total_price ? amountToInputString(editing.total_price, editingCurrency) : ''
-    if (prefill?.amount != null) return amountToInputString(prefill.amount, base)
-    return ''
+    return seed.total
   })
   const [participants, setParticipants] = useState<Set<number>>(() =>
     editing ? new Set((editing.members || []).map(m => m.user_id)) : new Set(people.map(p => p.id)))
@@ -1334,7 +1320,7 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
     return 'equally'
   })
 
-  const [ticketItems, setTicketItems] = useState<TicketItem[]>(() => readTicketItems(editing))
+  const [ticketItems, setTicketItems] = useState<TicketItem[]>(() => editing ? readTicketItems(editing) : seed.ticketItems)
 
   const [customAmounts, setCustomAmounts] = useState<Record<number, string>>(() => {
     const m: Record<number, string> = {}
@@ -1349,7 +1335,7 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
   })
 
   const [receipts, setReceipts] = useState<BudgetItemReceipt[]>(() => editing?.receipts || [])
-  const [pendingReceiptFiles, setPendingReceiptFiles] = useState<File[]>([])
+  const [pendingReceiptFiles, setPendingReceiptFiles] = useState<File[]>(() => editing ? [] : seed.receiptFiles)
   const [uploadingReceipt, setUploadingReceipt] = useState(false)
   const [modalPreviewReceipts, setModalPreviewReceipts] = useState<{ receipts: BudgetItemReceipt[]; initialIndex: number } | null>(null)
 
@@ -1425,11 +1411,11 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
   }, [totalNum])
 
   const enableMultiPayer = () => {
-    const seed = payerIds.size > 0 ? new Set(payerIds) : new Set<number>([payerId > 0 ? payerId : me])
+    const startPayers = payerIds.size > 0 ? new Set(payerIds) : new Set<number>([payerId > 0 ? payerId : me])
     const pinned = new Set<number>()
-    setPayerIds(seed)
+    setPayerIds(startPayers)
     setPinnedPayers(pinned)
-    setPayerAmounts(prev => rebalancePayers(prev, pinned, seed, totalNum))
+    setPayerAmounts(prev => rebalancePayers(prev, pinned, startPayers, totalNum))
     setMultiPayer(true)
   }
 

@@ -1,0 +1,30 @@
+import type { TranslationStrings } from '../types';
+
+const inspector: TranslationStrings = {
+  'inspector.opened': 'Otvorené',
+  'inspector.closed': 'Zatvorené',
+  'inspector.openingHours': 'Otváracie hodiny',
+  'inspector.showHours': 'Zobraziť otváracie hodiny',
+  'inspector.files': 'Súbory',
+  'inspector.filesCount': '{count} súborov',
+  'inspector.remove': 'Odstrániť',
+  'inspector.removeFromDay': 'Odobrať z dňa',
+  'inspector.addToDay': 'Pridať k dňu',
+  'inspector.confirmedRes': 'Potvrdená rezervácia',
+  'inspector.pendingRes': 'Čakajúca rezervácia',
+  'inspector.google': 'Google Maps',
+  'inspector.navigation': 'Navigácia',
+  'inspector.openWith': 'Otvoriť v',
+  'inspector.openStreetMap': 'OpenStreetMap',
+  'inspector.website': 'Otvoriť webovú stránku',
+  'inspector.saveToCollection': 'Uložiť do zbierky',
+  'inspector.savedToCollection': 'Uložené',
+  'inspector.addRes': 'Rezervácia',
+  'inspector.editRes': 'Upraviť rezerváciu',
+  'inspector.participants': 'Účastníci',
+  'inspector.trackStats': 'Dáta trasy',
+  'inspector.trackColor': 'Farba trasy',
+  'inspector.trackColorAuto': 'Automatická farba',
+  'inspector.trackColorCustom': 'Vybrať vlastnú farbu',
+};
+export default inspector;

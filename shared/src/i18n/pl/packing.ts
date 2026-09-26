@@ -18,7 +18,15 @@ const packing: TranslationStrings = {
     'Jedna pozycja w wierszu. Format: kategoria, nazwa, waga w gramach (opcjonalnie), Torba (opcjonalnie), checked/unchecked (opcjonalnie)',
   'packing.importPlaceholder':
     'Higiena, Szczoteczka do zębów\nOdzież, Koszulki, 200\nDokumenty, Paszport, , Podręczny\nElektronika, Ładowarka, 50, Walizka, checked',
-  'packing.importCsv': 'Załaduj CSV/TXT',
+  'packing.importCsv': 'Załaduj CSV/TXT/MD',
+  'packing.export': 'Eksportuj',
+  'packing.exportPrint': 'Drukuj lub zapisz jako PDF',
+  'packing.exportMarkdown': 'Lista kontrolna w Markdown (.md)',
+  'packing.exportCsv': 'CSV do importu (.csv)',
+  'packing.printItems': 'Pozycje',
+  'packing.printPacked': 'Spakowane',
+  'packing.importHintMarkdown':
+    'Działa też lista w Markdown: nagłówek określa kategorię, "- [ ]" i "- [x]" stają się pozycjami, a "3x" przed nazwą ustawia ilość.',
   'packing.importAction': 'Importuj {count}',
   'packing.importSuccess': '{count} pozycji zaimportowanych',
   'packing.importError': 'Import nie powiódł się',
@@ -26,9 +34,6 @@ const packing: TranslationStrings = {
   'packing.progress': '{packed} z {total} spakowanych ({percent}%)',
   'packing.clearChecked': 'Usuń {count} spakowanych',
   'packing.clearCheckedShort': 'Usuń {count}',
-  'packing.suggestions': 'Sugestie',
-  'packing.suggestionsTitle': 'Dodaj sugestie',
-  'packing.allSuggested': 'Dodano wszystkie sugestie',
   'packing.allPacked': 'Wszystko spakowane!',
   'packing.addPlaceholder': 'Dodaj nowy przedmiot...',
   'packing.categoryPlaceholder': 'Lista...',
@@ -36,7 +41,6 @@ const packing: TranslationStrings = {
   'packing.filterOpen': 'Do spakowania',
   'packing.filterDone': 'Spakowane',
   'packing.emptyTitle': 'Lista pakowania jest pusta',
-  'packing.emptyHint': 'Dodaj przedmioty lub użyj sugestii',
   'packing.emptyFiltered': 'Brak przedmiotów pasujących do filtra',
   'packing.menuRename': 'Zmień nazwę',
   'packing.menuCheckAll': 'Zaznacz wszystko',
@@ -68,128 +72,6 @@ const packing: TranslationStrings = {
   'packing.toast.deleteError': 'Nie udało się usunąć',
   'packing.toast.renameError': 'Nie udało się zmienić nazwy',
   'packing.toast.addError': 'Nie udało się dodać',
-  'packing.suggestions.items': [
-    {
-      name: 'Paszport',
-      category: 'Dokumenty',
-    },
-    {
-      name: 'Dowód osobisty',
-      category: 'Dokumenty',
-    },
-    {
-      name: 'Ubezpieczenie turystyczne',
-      category: 'Dokumenty',
-    },
-    {
-      name: 'Bilety lotnicze',
-      category: 'Dokumenty',
-    },
-    {
-      name: 'Karta kredytowa',
-      category: 'Finanse',
-    },
-    {
-      name: 'Gotówka',
-      category: 'Finanse',
-    },
-    {
-      name: 'Wiza',
-      category: 'Dokumenty',
-    },
-    {
-      name: 'Koszulki',
-      category: 'Odzież',
-    },
-    {
-      name: 'Spodnie',
-      category: 'Odzież',
-    },
-    {
-      name: 'Bielizna',
-      category: 'Odzież',
-    },
-    {
-      name: 'Skarpetki',
-      category: 'Odzież',
-    },
-    {
-      name: 'Kurtka',
-      category: 'Odzież',
-    },
-    {
-      name: 'Piżama',
-      category: 'Odzież',
-    },
-    {
-      name: 'Strój kąpielowy',
-      category: 'Odzież',
-    },
-    {
-      name: 'Kurtka przeciwdeszczowa',
-      category: 'Odzież',
-    },
-    {
-      name: 'Wygodne buty',
-      category: 'Obuwie',
-    },
-    {
-      name: 'Szczoteczka do zębów',
-      category: 'Higiena',
-    },
-    {
-      name: 'Pasta do zębów',
-      category: 'Higiena',
-    },
-    {
-      name: 'Szampon',
-      category: 'Higiena',
-    },
-    {
-      name: 'Dezodorant',
-      category: 'Higiena',
-    },
-    {
-      name: 'Krem z filtrem',
-      category: 'Higiena',
-    },
-    {
-      name: 'Maszynka do golenia',
-      category: 'Higiena',
-    },
-    {
-      name: 'Ładowarka',
-      category: 'Elektronika',
-    },
-    {
-      name: 'Powerbank',
-      category: 'Elektronika',
-    },
-    {
-      name: 'Słuchawki',
-      category: 'Elektronika',
-    },
-    {
-      name: 'Adapter podróżny',
-      category: 'Elektronika',
-    },
-    {
-      name: 'Aparat',
-      category: 'Elektronika',
-    },
-    {
-      name: 'Leki',
-      category: 'Zdrowie',
-    },
-    {
-      name: 'Plastry',
-      category: 'Zdrowie',
-    },
-    {
-      name: 'Środek dezynfekujący',
-      category: 'Zdrowie',
-    },
-  ],
   'packing.makePrivate': 'Ustaw jako prywatne',
   'packing.makePublic': 'Udostępnij',
   'packing.privateHint': 'Prywatne — widoczne tylko dla Ciebie',

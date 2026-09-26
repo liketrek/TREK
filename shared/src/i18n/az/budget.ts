@@ -1,0 +1,207 @@
+import type { TranslationStrings } from '../types';
+
+const budget: TranslationStrings = {
+  'costs.confirm.deleteTitle': 'Xərc silinsin?',
+  'costs.confirm.deleteBody': '“{name}” həmişəlik silinəcək.',
+
+  'budget.title': 'Büdcə',
+  'budget.exportCsv': 'CSV ixrac et',
+  'budget.emptyTitle': 'Hələ büdcə yaradılmayıb',
+  'budget.emptyText':
+    'Səyahət büdcənizi planlaşdırmaq üçün kateqoriyalar və qeydlər yaradın',
+  'budget.emptyPlaceholder': 'Kateqoriyanın adını daxil edin...',
+  'budget.createCategory': 'Kateqoriya yarat',
+  'budget.category': 'Kateqoriya',
+  'budget.categoryName': 'Kateqoriyanın adı',
+
+  'budget.table.name': 'Ad',
+  'budget.table.total': 'Ümumi',
+  'budget.table.persons': 'Nəfər',
+  'budget.table.days': 'Gün',
+  'budget.table.perPerson': 'Nəfər başına',
+  'budget.table.perDay': 'Gün başına',
+  'budget.table.perPersonDay': 'Nəfər/gün',
+  'budget.table.note': 'Qeyd',
+  'budget.table.date': 'Tarix',
+
+  'budget.newEntry': 'Yeni qeyd',
+  'budget.defaultEntry': 'Yeni qeyd',
+  'budget.defaultCategory': 'Yeni kateqoriya',
+  'budget.total': 'Ümumi',
+  'budget.totalBudget': 'Ümumi büdcə',
+  'budget.byCategory': 'Kateqoriya üzrə',
+  'budget.editTooltip': 'Redaktə etmək üçün klikləyin',
+  'budget.linkedToReservation':
+    'Rezervasiya ilə əlaqələndirilib — adı orada redaktə edin',
+  'budget.confirm.deleteCategory':
+    '“{name}” kateqoriyasını daxilindəki {count} qeydlə birlikdə silmək istədiyinizə əminsiniz?',
+  'budget.deleteCategory': 'Kateqoriyanı sil',
+  'budget.perPerson': 'Nəfər başına',
+  'budget.paid': 'Ödənilib',
+  'budget.open': 'Açıq',
+  'budget.noMembers': 'Heç bir üzv təyin edilməyib',
+
+  'budget.settlement': 'Hesablaşma',
+  'budget.settlementInfo':
+    'Büdcə qeydində üzvün avatarına klikləyərək onu yaşıl rənglə işarələyin — bu, həmin şəxsin ödəniş etdiyini bildirir. Bundan sonra hesablaşma kimin kimə nə qədər borclu olduğunu göstərəcək.',
+  'budget.netBalances': 'Xalis balanslar',
+  'budget.categoriesLabel': 'kateqoriya',
+
+  'costs.you': 'Siz',
+  'costs.youShort': 'S',
+  'costs.youLower': 'siz',
+  'costs.youOwe': 'Sizin borcunuz',
+  'costs.youOweSub': 'Başqalarına ödəməli olduğunuz məbləğ',
+  'costs.youreOwed': 'Sizə olan borc',
+  'costs.youreOwedSub': 'Başqalarının sizə ödəməli olduğu məbləğ',
+  'costs.totalSpend': 'Səyahətin ümumi xərci',
+  'costs.totalSpendSub': 'Bütün səyahətçilər üzrə',
+  'costs.to': 'Kimə',
+  'costs.from': 'Kimdən',
+  'costs.allSettled': 'Bütün hesablar bağlanıb',
+  'costs.nothingOwed': 'Sizə ödəniləcək borc yoxdur',
+  'costs.yourShare': 'Sizin payınız',
+  'costs.youPaid': 'Siz ödəmisiniz',
+  'costs.outstanding': 'Gözləyən məbləğ',
+  'costs.outstandingSub': 'Ödəyicisi hələ təyin edilməyən xərclər',
+  'costs.outstandingItems': 'xərc üçün ödəyici təyin edilməlidir',
+
+  'costs.expenses': 'Xərclər',
+  'costs.entries': '{count} qeyd',
+  'costs.searchPlaceholder': 'Xərcləri axtarın…',
+  'costs.filter.all': 'Hamısı',
+  'costs.filter.mine': 'Mənim ödədiklərim',
+  'costs.filter.owed': 'Mənə borcludurlar',
+  'costs.filter.allCategories': 'Bütün kateqoriyalar',
+  'costs.filter.allDays': 'Bütün günlər',
+  'costs.expensesCount': '{count} xərc',
+
+  'costs.addExpense': 'Xərc əlavə et',
+  'costs.editExpense': 'Xərci redaktə et',
+  'costs.noMatch': 'Axtarışınıza uyğun xərc yoxdur.',
+  'costs.emptyText': 'Hələ xərc yoxdur. İlk xərci əlavə edin.',
+  'costs.spent': '{amount} xərclənib',
+  'costs.noDate': 'Tarix yoxdur',
+  'costs.noOnePaid': 'Hələ heç kim ödəməyib',
+  'costs.youLent': '{amount} borc verdiniz',
+  'costs.youBorrowed': '{amount} borc aldınız',
+
+  'costs.settleUp': 'Hesablaş',
+  'costs.history': 'Tarixçə',
+  'costs.everyoneSquare': 'Hamının hesabı bağlanıb',
+  'costs.nothingOutstanding':
+    'Hazırda gözləyən heç bir ödəniş yoxdur.',
+  'costs.pay': 'ödə',
+  'costs.pays': 'ödəyir',
+  'costs.settle': 'Hesablaş',
+  'costs.balances': 'Balanslar',
+
+  'costs.finalBudget': 'Yekun büdcə',
+  'costs.finalExpenses': 'Ödənilmiş xərclər',
+  'costs.finalReimbursed': 'Xalis geri ödənişlər',
+  'costs.finalPending': 'Gözləyən geri ödənişlər',
+  'costs.byCategory': 'Kateqoriya üzrə',
+  'costs.noCategories': 'Hələ xərc yoxdur.',
+
+  'costs.settleHistory': 'Hesablaşma tarixçəsi',
+  'costs.noSettlements': 'Hələ hesablaşmış ödəniş yoxdur.',
+  'costs.paymentsSettled': '{count} ödəniş üzrə hesablaşılıb',
+  'costs.paid': 'ödədi',
+  'costs.undo': 'Geri qaytar',
+
+  'costs.whatFor': 'Bu xərc nə üçün idi?',
+  'costs.namePlaceholder':
+    'məs. Şam yeməyi, suvenirlər, yanacaq…',
+  'costs.note': 'Qeyd',
+  'costs.notePlaceholder':
+    'Nələri əhatə etdiyi, kimin nə qədər qaytarmalı olduğu…',
+  'costs.addNote': 'Qeyd əlavə et',
+  'costs.showNote': 'Qeydi göstər',
+  'costs.hideNote': 'Qeydi gizlət',
+
+  'costs.totalAmount': 'Ümumi məbləğ',
+  'costs.currency': 'Valyuta',
+  'costs.day': 'Gün',
+  'costs.rateLabel': '1 {from} məbləğinin {to} qarşılığı',
+  'costs.category': 'Kateqoriya',
+
+  'costs.whoPaid': 'Kim ödədi?',
+  'costs.multiplePayers': 'Bir neçə nəfər ödədi',
+  'costs.singlePayer': 'Bir nəfər ödədi',
+  'costs.payersUnbalanced':
+    'Ödəyicilərin məbləğlərinin cəmi {amount} olmalıdır',
+
+  'costs.splitBetween': 'Bərabər bölüşdürüləcək şəxslər',
+  'costs.split': 'Bölüşdür',
+  'costs.splitEqually': 'Bərabər',
+  'costs.splitCustom': 'Fərdi',
+  'costs.splitTicket': 'Qəbz üzrə',
+  'costs.pickSomeone':
+    'Bölüşdürmək üçün ən azı bir nəfər seçin.',
+  'costs.splitSummary':
+    '{count} nəfər arasında bölünüb · hərəsinə {amount}',
+
+  'costs.cat.accommodation': 'Yaşayış yeri',
+  'costs.cat.food': 'Yemək və içki',
+  'costs.cat.groceries': 'Ərzaq',
+  'costs.cat.transport': 'Nəqliyyat',
+  'costs.cat.flights': 'Uçuşlar',
+  'costs.cat.activities': 'Fəaliyyətlər',
+  'costs.cat.sightseeing': 'Görməli yerlər',
+  'costs.cat.shopping': 'Alış-veriş',
+  'costs.cat.fees': 'Rüsumlar və biletlər',
+  'costs.cat.health': 'Sağlamlıq',
+  'costs.cat.tips': 'Bəxşişlər',
+  'costs.cat.fuel': 'Yanacaq',
+  'costs.cat.parking': 'Parkinq',
+  'costs.cat.other': 'Digər',
+
+  'costs.daysCount': '{count} gün',
+  'costs.travelers': '{count} səyahətçi',
+  'costs.liveRate': 'cari məzənnə',
+
+  'costs.settleAll': 'Hamısı üzrə hesablaş',
+  'costs.payment': 'Ödəniş',
+  'costs.editPayment': 'Ödənişi redaktə et',
+  'costs.addPayment': 'Ödəniş əlavə et',
+
+  'costs.unfinished': 'Tamamlanmayıb',
+  'costs.unfinishedHint': 'Yalnız ümumi məbləğ — hələ hesablaşmayıb',
+  'costs.tapToInclude': 'Daxil etmək üçün toxunun',
+  'costs.amount': 'Məbləğ',
+
+  'costs.ticketItemName': 'Elementin adı',
+  'costs.ticketSplitting': 'Bölüşdürmə:',
+  'costs.ticketAddItem': 'Element əlavə et',
+  'costs.ticketShares': 'Fərdi paylar',
+  'costs.excluded': 'Daxil edilməyib',
+  'costs.splitBalanced': 'Bölüşdürmə ümumi məbləğə uyğundur',
+  'costs.splitSumUnder':
+    'Payların cəmi: {total} məbləğindən {sum} ({diff} azdır)',
+  'costs.splitSumOver':
+    'Payların cəmi: {total} məbləğindən {sum} ({diff} çoxdur)',
+  'costs.toggleSign':
+    'Xərc və geri ödəniş arasında keçid et',
+
+  'costs.receipts': 'Qəbzlər',
+  'costs.receiptsTitle': 'Qəbzlər və fakturalar',
+  'costs.attachReceipt': 'Qəbz / faktura əlavə et',
+  'costs.scan.button': 'Qəbzi skan et',
+  'costs.scan.reading': 'Qəbz oxunur…',
+  'costs.scan.review': 'Xərci yoxla',
+  'costs.scan.nothingRead': 'Bu fotodan qəbz oxunmadı.',
+  'costs.scan.failed': 'Qəbzin oxunmasına başlamaq mümkün olmadı.',
+  'costs.scan.title': 'Qəbzi skan et',
+  'costs.scan.accepted': 'Bir qəbzin fotosu (JPG, PNG və ya WEBP, 10 MB-a qədər). Süni intellekt modeli onu arxa planda oxuyur, sonra xərci saxlamazdan əvvəl yoxlayırsan.',
+  'costs.scan.dropHere': 'Qəbzin fotosunu bura burax və ya seçmək ya çəkmək üçün kliklə',
+  'costs.scan.dropActive': 'Skan etmək üçün fotonu burax',
+  'costs.scan.start': 'Skan et',
+  'costs.scan.unsupported': 'Yalnız foto skan edilə bilər: JPG, PNG və ya WEBP.',
+  'costs.noReceipts': 'Əlavə edilmiş qəbz yoxdur',
+  'costs.deleteReceipt': 'Qəbzi sil',
+  'costs.viewReceipt': 'Qəbzə bax',
+  'costs.receiptLeftBehind':
+    'Yadda saxlamaq mümkün olmadı və yüklənmiş {count} qəbz hələ də qalır. Onları Fayllar bölməsindən silin.',
+};
+
+export default budget;

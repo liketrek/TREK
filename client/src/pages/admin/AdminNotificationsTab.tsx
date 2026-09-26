@@ -4,42 +4,38 @@ import { Save } from 'lucide-react'
 import type { TranslationFn } from '../../types'
 import type { useAdmin } from './useAdmin'
 import AdminNotificationsPanel from './AdminNotificationsPanel'
+import { SWITCH_ONLY_CHANNELS, useNotificationChannels } from '../../components/Admin/useNotificationChannels'
 
 interface AdminNotificationsTabProps {
   admin: ReturnType<typeof useAdmin>
   t: TranslationFn
 }
 
-// "Notifications" admin tab: email/webhook/ntfy channel toggles, SMTP credentials,
-// trip reminders, admin webhook + ntfy targets, and the per-event preference matrix.
-// Derives channel state from smtpValues exactly as the original inline IIFE did.
+/** The on/off switch at the right of a channel card. */
+function ChannelSwitch({ on, label, onToggle }: { on: boolean; label: string; onToggle: () => void }): React.ReactElement {
+  return (
+    <button type="button"
+      onClick={onToggle}
+      aria-pressed={on}
+      aria-label={label}
+      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${on ? 'bg-content' : 'bg-edge'}`}
+    >
+      <span className="absolute left-0.5 h-5 w-5 rounded-full bg-surface-card transition-transform duration-200"
+        style={{ transform: on ? 'translateX(20px)' : 'translateX(0)' }} />
+    </button>
+  )
+}
+
+// "Notifications" admin tab: email/webhook/ntfy/web push channel toggles, SMTP
+// credentials, trip reminders, admin webhook + ntfy targets, and the per-event
+// preference matrix. The channel switches come from useNotificationChannels,
+// which the phone section shares.
 export default function AdminNotificationsTab({ admin, t }: AdminNotificationsTabProps): React.ReactElement {
   const { toast, smtpValues, setSmtpValues, smtpLoaded, setTripRemindersEnabled, managed } = admin
 
-  // Derive active channels from smtpValues.notification_channels (plural)
-  // with fallback to notification_channel (singular) for existing installs
-  const rawChannels = smtpValues.notification_channels ?? smtpValues.notification_channel ?? 'none'
-  const activeChans = rawChannels === 'none' ? [] : rawChannels.split(',').map((c: string) => c.trim())
-  const emailActive = activeChans.includes('email')
-  const webhookActive = activeChans.includes('webhook')
-  const ntfyActive = activeChans.includes('ntfy')
+  const channels = useNotificationChannels(admin, t)
+  const emailActive = channels.isActive('email')
   const tripRemindersActive = smtpValues.notify_trip_reminder !== 'false'
-
-  const setChannels = async (email: boolean, webhook: boolean, ntfy: boolean) => {
-    // Preserve any id this toggle doesn't know about instead of rebuilding the CSV from
-    // just these three booleans — that used to silently DROP anything else stored here.
-    const others = activeChans.filter((c: string) => c !== 'email' && c !== 'webhook' && c !== 'ntfy')
-    const chans = [email && 'email', webhook && 'webhook', ntfy && 'ntfy', ...others].filter(Boolean).join(',') || 'none'
-    setSmtpValues(prev => ({ ...prev, notification_channels: chans }))
-    try {
-      await authApi.updateAppSettings({ notification_channels: chans })
-    } catch {
-      // Revert state on failure
-      const reverted = [emailActive && 'email', webhookActive && 'webhook', ntfyActive && 'ntfy', ...others].filter(Boolean).join(',') || 'none'
-      setSmtpValues(prev => ({ ...prev, notification_channels: reverted }))
-      toast.error(t('common.error'))
-    }
-  }
 
   const smtpConfigured = !!(smtpValues.smtp_host?.trim())
   const saveNotifications = async () => {
@@ -64,7 +60,7 @@ export default function AdminNotificationsTab({ admin, t }: AdminNotificationsTa
         pairs cards row by row and leaves a hole under the shorter one, and the SMTP
         card is taller than all the toggle rows together. Grouped by audience, not by
         height — the channels a user can receive on the left, everything the operator
-        sends or receives themselves on the right. The three channel switches stay
+        sends or receives themselves on the right. The channel switches stay
         together because they all write the same notification_channels list.
         On a managed install the two admin-target cards are gone and the right column
         is the matrix alone — still a column, so the grid keeps working. */}
@@ -81,13 +77,7 @@ export default function AdminNotificationsTab({ admin, t }: AdminNotificationsTa
             <h2 className="font-semibold text-slate-900">{t('admin.notifications.emailPanel.title')}</h2>
             <p className="text-xs text-slate-400 mt-1">{t('admin.smtp.hint')}</p>
           </div>
-          <button type="button"
-            onClick={() => setChannels(!emailActive, webhookActive, ntfyActive)}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${emailActive ? 'bg-content' : 'bg-edge'}`}
-          >
-            <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200"
-              style={{ transform: emailActive ? 'translateX(20px)' : 'translateX(0)' }} />
-          </button>
+          <ChannelSwitch on={emailActive} label={t('admin.notifications.emailPanel.title')} onToggle={() => channels.toggle('email')} />
         </div>
         <div className={`p-6 space-y-3 ${!emailActive ? 'opacity-50 pointer-events-none' : ''}`}>
           {smtpLoaded && [
@@ -152,39 +142,18 @@ export default function AdminNotificationsTab({ admin, t }: AdminNotificationsTa
       </div>
 
       </>)}
-      {/* Webhook Panel */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="px-6 py-4 flex items-center justify-between">
-          <div>
-            <h2 className="font-semibold text-slate-900">{t('admin.notifications.webhookPanel.title')}</h2>
-            <p className="text-xs text-slate-400 mt-1">{t('admin.webhook.hint')}</p>
+      {/* Webhook, Ntfy and Web Push: a title, a hint and the switch each */}
+      {SWITCH_ONLY_CHANNELS.map(ch => (
+        <div key={ch.id} className="bg-surface-card rounded-xl border border-edge overflow-hidden">
+          <div className="px-6 py-4 flex items-center justify-between">
+            <div>
+              <h2 className="font-semibold text-content">{t(ch.titleKey)}</h2>
+              <p className="text-caption text-content-faint mt-1">{t(ch.hintKey)}</p>
+            </div>
+            <ChannelSwitch on={channels.isActive(ch.id)} label={t(ch.titleKey)} onToggle={() => channels.toggle(ch.id)} />
           </div>
-          <button type="button"
-            onClick={() => setChannels(emailActive, !webhookActive, ntfyActive)}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${webhookActive ? 'bg-content' : 'bg-edge'}`}
-          >
-            <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200"
-              style={{ transform: webhookActive ? 'translateX(20px)' : 'translateX(0)' }} />
-          </button>
         </div>
-      </div>
-
-      {/* Ntfy Panel */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="px-6 py-4 flex items-center justify-between">
-          <div>
-            <h2 className="font-semibold text-slate-900">{t('admin.notifications.ntfy')}</h2>
-            <p className="text-xs text-slate-400 mt-1">{t('admin.ntfy.hint') || 'Allow users to configure their own ntfy topics for push notifications.'}</p>
-          </div>
-          <button type="button"
-            onClick={() => setChannels(emailActive, webhookActive, !ntfyActive)}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${ntfyActive ? 'bg-content' : 'bg-edge'}`}
-          >
-            <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200"
-              style={{ transform: ntfyActive ? 'translateX(20px)' : 'translateX(0)' }} />
-          </button>
-        </div>
-      </div>
+      ))}
 
       {/* In-App Panel */}
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">

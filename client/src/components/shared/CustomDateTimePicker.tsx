@@ -4,12 +4,11 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from '../../i18n';
 import { useRemeasureSignal } from '../../hooks/useAnchoredPosition';
+import { useWeekStartDay } from '../../hooks/useWeekStartDay';
+import { leadingBlanks, weekdayLabels } from '../../utils/calendarWeek';
 
 function daysInMonth(year: number, month: number): number {
   return new Date(year, month + 1, 0).getDate();
-}
-function getWeekday(year: number, month: number, day: number): number {
-  return new Date(year, month, day).getDay();
 }
 const YEAR_PAGE_SIZE = 12;
 type CalendarView = 'days' | 'months' | 'years';
@@ -41,6 +40,7 @@ export function CustomDatePicker({
   max,
 }: CustomDatePickerProps) {
   const { locale, t } = useTranslation();
+  const weekStart = useWeekStartDay();
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<CalendarView>('days');
   const [yearPageStart, setYearPageStart] = useState(0);
@@ -140,10 +140,8 @@ export function CustomDatePicker({
   };
 
   const days = daysInMonth(viewYear, viewMonth);
-  const startDay = (getWeekday(viewYear, viewMonth, 1) + 6) % 7;
-  const weekdays = Array.from({ length: 7 }, (_, i) =>
-    new Date(2024, 0, i + 1).toLocaleDateString(locale, { weekday: 'narrow' })
-  );
+  const startDay = leadingBlanks(viewYear, viewMonth, weekStart);
+  const weekdays = weekdayLabels(locale, weekStart);
 
   const monthNames = Array.from({ length: 12 }, (_, i) =>
     new Date(viewYear, i).toLocaleDateString(locale, { month: 'short' })

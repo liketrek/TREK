@@ -1,4 +1,4 @@
-// FE-JRN-PICKER-001 to FE-JRN-PICKER-023
+// FE-JRN-PICKER-001 to FE-JRN-PICKER-036
 
 import { describe, it, expect, afterAll, beforeAll, beforeEach, vi } from 'vitest'
 import { http, HttpResponse, delay } from 'msw'
@@ -6,6 +6,7 @@ import userEvent from '@testing-library/user-event'
 import { render, screen, waitFor, within, fireEvent } from '../../../tests/helpers/render'
 import { server } from '../../../tests/helpers/msw/server'
 import type { JourneyEntry, JourneyTrip } from '../../store/journeyStore'
+import { PROVIDER_SEARCH_LAST_PAGE } from '../../pages/journeyDetail/JourneyDetailPage.helpers'
 import { ProviderPicker } from './JourneyDetailPageProviderPicker'
 
 const trips: JourneyTrip[] = [
@@ -115,7 +116,7 @@ describe('ProviderPicker', () => {
     await waitFor(() => expect(ranges).toHaveLength(2))
     // utc_offset_minutes rides along on every search: the server cannot tell
     // which 24 hours a date-only bound means without it (#2336).
-    expect(ranges[1]).toEqual({ from: '', to: '', page: 1, size: 50, utc_offset_minutes: 0 })
+    expect(ranges[1]).toEqual({ from: '', to: '', page: 1, size: 200, utc_offset_minutes: 0 })
   })
 
   it('FE-JRN-PICKER-006: the album tab loads albums and reports when there are none', async () => {
@@ -416,6 +417,339 @@ describe('ProviderPicker', () => {
     rerender(<ProviderPicker {...props} contextLocation={{ lat: 41.9, lng: 12.5, name: 'Rome' }} />)
 
     await waitFor(() => expect(order()).toEqual(['rome', 'helsinki']))
+  })
+
+  describe('select all across pages (#1587)', () => {
+    const SEARCH = '/api/integrations/memories/immich/search'
+    /** The tile button of one asset, found by the thumbnail it shows. */
+    const tile = (container: HTMLElement, id: string) =>
+      container.querySelector(`img[src*="/assets/0/${id}/"]`)!.closest('button') as HTMLButtonElement
+
+    function pagedTrip(pages: Record<number, Record<string, unknown>[]>, bodies: Record<string, unknown>[] = []) {
+      const last = Math.max(...Object.keys(pages).map(Number))
+      server.use(http.post(SEARCH, async ({ request }) => {
+        const body = await request.json() as { page: number }
+        bodies.push(body)
+        return HttpResponse.json({ assets: pages[body.page] ?? [], hasMore: body.page < last })
+      }))
+      return bodies
+    }
+
+    it('FE-JRN-PICKER-024: on a trip, loads the pages still missing with the same search, then selects every photo', async () => {
+      const bodies = pagedTrip({ 1: [asset('p1a'), asset('p1b')], 2: [asset('p2a')], 3: [asset('p3a')] })
+      const user = userEvent.setup()
+      mountPicker()
+
+      // Pages are still pending, so the count says it is a floor.
+      await user.click(await screen.findByRole('button', { name: /Select all \(2\+\)/ }))
+
+      expect(await screen.findByRole('button', { name: 'Add (4)' })).toBeEnabled()
+      expect(bodies.map((b) => b.page)).toEqual([1, 2, 3])
+      expect(bodies[2]).toEqual({ from: '2026-03-14', to: '2026-03-20', page: 3, size: 200, utc_offset_minutes: 0 })
+      // Everything is in now: the count is exact and the next press takes them back.
+      expect(screen.getByRole('button', { name: /Deselect all \(4\)/ })).toBeInTheDocument()
+      expect(await screen.findAllByAltText('')).toHaveLength(4)
+    })
+
+    it('FE-JRN-PICKER-025: the button is busy while the pages load', async () => {
+      let release!: () => void
+      const gate = new Promise<void>((resolve) => { release = resolve })
+      server.use(http.post(SEARCH, async ({ request }) => {
+        const body = await request.json() as { page: number }
+        if (body.page === 2) await gate
+        return HttpResponse.json({ assets: [asset(`p${body.page}`)], hasMore: body.page < 2 })
+      }))
+      const user = userEvent.setup()
+      mountPicker()
+
+      const button = await screen.findByRole('button', { name: /Select all \(1\+\)/ })
+      await user.click(button)
+
+      await waitFor(() => expect(button).toHaveAttribute('aria-busy', 'true'))
+      expect(button).toBeDisabled()
+      release()
+      await waitFor(() => expect(button).toHaveAttribute('aria-busy', 'false'))
+      expect(button).toBeEnabled()
+      expect(screen.getByRole('button', { name: 'Add (2)' })).toBeEnabled()
+    })
+
+    it('FE-JRN-PICKER-026: on All Photos, selects what is loaded and never drains the library', async () => {
+      const bodies: Record<string, unknown>[] = []
+      server.use(http.post(SEARCH, async ({ request }) => {
+        const body = await request.json() as { from: string }
+        bodies.push(body)
+        return body.from
+          ? HttpResponse.json({ assets: [asset('t1')], hasMore: false })
+          : HttpResponse.json({ assets: [asset('lib1'), asset('lib2')], hasMore: true })
+      }))
+      const user = userEvent.setup()
+      mountPicker()
+      await screen.findByRole('button', { name: /Select all \(1\)/ })
+
+      await user.click(screen.getByRole('button', { name: /All Photos/ }))
+      await user.click(await screen.findByRole('button', { name: /Select all \(2\+\)/ }))
+
+      expect(screen.getByRole('button', { name: 'Add (2)' })).toBeEnabled()
+      expect(screen.getByRole('button', { name: /Deselect all \(2\+\)/ })).toBeInTheDocument()
+      // The trip search and the first library page, nothing after them.
+      expect(bodies).toHaveLength(2)
+    })
+
+    it('FE-JRN-PICKER-027: adds to picks from another tab, and deselect all takes back only the photos in view', async () => {
+      server.use(http.post(SEARCH, async ({ request }) => {
+        const body = await request.json() as { from: string }
+        return body.from
+          ? HttpResponse.json({ assets: [asset('t1'), asset('t2')], hasMore: false })
+          : HttpResponse.json({ assets: [asset('lib1')], hasMore: false })
+      }))
+      const user = userEvent.setup()
+      const { container, onAdd } = mountPicker()
+      await screen.findByRole('button', { name: /Select all \(2\)/ })
+
+      await user.click(tile(container, 't1'))
+      await user.click(screen.getByRole('button', { name: /All Photos/ }))
+      await user.click(await screen.findByRole('button', { name: /Select all \(1\)/ }))
+      expect(screen.getByRole('button', { name: 'Add (2)' })).toBeEnabled()
+
+      await user.click(screen.getByRole('button', { name: /Deselect all \(1\)/ }))
+      await user.click(screen.getByRole('button', { name: 'Add (1)' }))
+      expect(onAdd).toHaveBeenCalledWith([{ assetIds: ['t1'], mediaTypes: ['image'], passphrase: undefined }], null)
+    })
+
+    it('FE-JRN-PICKER-028: switching tab mid-run cancels it and selects nothing', async () => {
+      let release!: () => void
+      const gate = new Promise<void>((resolve) => { release = resolve })
+      const pages: number[] = []
+      server.use(http.post(SEARCH, async ({ request }) => {
+        const body = await request.json() as { page: number }
+        pages.push(body.page)
+        if (body.page === 2) await gate
+        return HttpResponse.json({ assets: [asset(`p${body.page}`)], hasMore: body.page < 3 })
+      }))
+      const user = userEvent.setup()
+      mountPicker()
+
+      await user.click(await screen.findByRole('button', { name: /Select all \(1\+\)/ }))
+      await waitFor(() => expect(pages).toEqual([1, 2]))
+      await user.click(screen.getByRole('button', { name: 'Date Range' }))
+      release()
+      await new Promise((resolve) => setTimeout(resolve, 30))
+
+      expect(pages).toEqual([1, 2])
+      expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled()
+      expect(screen.getByRole('button', { name: /Select all \(1\+\)/ })).toHaveAttribute('aria-busy', 'false')
+    })
+
+    it('FE-JRN-PICKER-029: closing the picker mid-run stops it', async () => {
+      let release!: () => void
+      const gate = new Promise<void>((resolve) => { release = resolve })
+      const pages: number[] = []
+      server.use(http.post(SEARCH, async ({ request }) => {
+        const body = await request.json() as { page: number }
+        pages.push(body.page)
+        if (body.page === 2) await gate
+        return HttpResponse.json({ assets: [asset(`p${body.page}`)], hasMore: body.page < 3 })
+      }))
+      const user = userEvent.setup()
+      const { unmount } = mountPicker()
+
+      await user.click(await screen.findByRole('button', { name: /Select all \(1\+\)/ }))
+      await waitFor(() => expect(pages).toEqual([1, 2]))
+      unmount()
+      release()
+      await new Promise((resolve) => setTimeout(resolve, 30))
+
+      expect(pages).toEqual([1, 2])
+    })
+
+    it('FE-JRN-PICKER-030: a page that fails keeps what arrived selected, and pressing again carries on', async () => {
+      let failPage2 = true
+      const pages: number[] = []
+      server.use(http.post(SEARCH, async ({ request }) => {
+        const body = await request.json() as { page: number }
+        pages.push(body.page)
+        if (body.page === 2 && failPage2) return new HttpResponse(null, { status: 502 })
+        return HttpResponse.json({ assets: [asset(`p${body.page}`)], hasMore: body.page < 2 })
+      }))
+      const user = userEvent.setup()
+      mountPicker()
+
+      await user.click(await screen.findByRole('button', { name: /Select all \(1\+\)/ }))
+      expect(await screen.findByRole('button', { name: 'Add (1)' })).toBeEnabled()
+      // Still pending, so still a floor, and still a select rather than a deselect.
+      const again = await screen.findByRole('button', { name: /Select all \(1\+\)/ })
+
+      failPage2 = false
+      await user.click(again)
+      expect(await screen.findByRole('button', { name: 'Add (2)' })).toBeEnabled()
+      expect(pages).toEqual([1, 2, 2])
+    })
+
+    it('FE-JRN-PICKER-033: Add waits for a Select all that is still loading, so it never sends only the earlier picks', async () => {
+      let release!: () => void
+      const gate = new Promise<void>((resolve) => { release = resolve })
+      server.use(http.post(SEARCH, async ({ request }) => {
+        const body = await request.json() as { page: number }
+        if (body.page === 2) await gate
+        return HttpResponse.json({ assets: [asset(`p${body.page}`)], hasMore: body.page < 2 })
+      }))
+      const user = userEvent.setup()
+      const { container, onAdd } = mountPicker()
+      await screen.findByRole('button', { name: /Select all \(1\+\)/ })
+
+      // A pick from before the run makes Add live on its own.
+      await user.click(tile(container, 'p1'))
+      const add = screen.getByRole('button', { name: 'Add (1)' })
+      expect(add).toBeEnabled()
+
+      await user.click(screen.getByRole('button', { name: /Select all \(1\+\)/ }))
+      await waitFor(() => expect(add).toBeDisabled())
+      fireEvent.click(add)
+      expect(onAdd).not.toHaveBeenCalled()
+
+      release()
+      const full = await screen.findByRole('button', { name: 'Add (2)' })
+      await waitFor(() => expect(full).toBeEnabled())
+      await user.click(full)
+      expect(onAdd).toHaveBeenCalledTimes(1)
+      expect(onAdd).toHaveBeenCalledWith([{ assetIds: ['p1', 'p2'], mediaTypes: ['image', 'image'], passphrase: undefined }], null)
+    })
+
+    it('FE-JRN-PICKER-034: a Select all cancelled by a tab switch gives Add back, with only the earlier picks', async () => {
+      let release!: () => void
+      const gate = new Promise<void>((resolve) => { release = resolve })
+      const pages: number[] = []
+      server.use(http.post(SEARCH, async ({ request }) => {
+        const body = await request.json() as { page: number }
+        pages.push(body.page)
+        if (body.page === 2) await gate
+        return HttpResponse.json({ assets: [asset(`p${body.page}`)], hasMore: body.page < 2 })
+      }))
+      const user = userEvent.setup()
+      const { container, onAdd } = mountPicker()
+      await screen.findByRole('button', { name: /Select all \(1\+\)/ })
+      await user.click(tile(container, 'p1'))
+
+      await user.click(screen.getByRole('button', { name: /Select all \(1\+\)/ }))
+      await waitFor(() => expect(pages).toEqual([1, 2]))
+      expect(screen.getByRole('button', { name: 'Add (1)' })).toBeDisabled()
+
+      await user.click(screen.getByRole('button', { name: 'Date Range' }))
+      const add = screen.getByRole('button', { name: 'Add (1)' })
+      await waitFor(() => expect(add).toBeEnabled())
+      release()
+      await new Promise((resolve) => setTimeout(resolve, 30))
+
+      // The page that arrived after the cancel selected nothing.
+      expect(screen.getByRole('button', { name: 'Add (1)' })).toBeEnabled()
+      await user.click(add)
+      expect(onAdd).toHaveBeenCalledWith([{ assetIds: ['p1'], mediaTypes: ['image'], passphrase: undefined }], null)
+    })
+
+    it('FE-JRN-PICKER-035: offers Select all while every photo in view is already added but more pages are pending', async () => {
+      // Say the trip's last day came in earlier from the Day tab: the newest page
+      // is all greyed out, and the older days are still to load.
+      const bodies = pagedTrip({ 1: [asset('old1'), asset('old2')], 2: [asset('new1')] })
+      const user = userEvent.setup()
+      const { onAdd } = mountPicker({ existingAssetIds: new Set(['old1', 'old2']) })
+
+      await user.click(await screen.findByRole('button', { name: /Select all \(0\+\)/ }))
+
+      expect(await screen.findByRole('button', { name: 'Add (1)' })).toBeEnabled()
+      expect(bodies.map((b) => b.page)).toEqual([1, 2])
+      await user.click(screen.getByRole('button', { name: 'Add (1)' }))
+      expect(onAdd).toHaveBeenCalledWith([{ assetIds: ['new1'], mediaTypes: ['image'], passphrase: undefined }], null)
+    })
+
+    /** A trip that never runs out: every page says there is more, only the first and the last hold a photo. */
+    function endlessTrip(pages: number[]) {
+      server.use(http.post(SEARCH, async ({ request }) => {
+        const body = await request.json() as { page: number }
+        pages.push(body.page)
+        const photos = body.page === 1 || body.page === PROVIDER_SEARCH_LAST_PAGE ? [asset(`p${body.page}`)] : []
+        return HttpResponse.json({ assets: photos, hasMore: true })
+      }))
+    }
+
+    it('FE-JRN-PICKER-036: Select all stops at the last page and keeps the "+", and nothing past it is asked for, by a second press or by scrolling', async () => {
+      const pages: number[] = []
+      endlessTrip(pages)
+      const user = userEvent.setup()
+      const { container } = mountPicker()
+      /** The scroll trigger at the foot of the grid, the spinner that loads the next page. */
+      const scrollTrigger = () => container.querySelector('.mt-2.py-4 .animate-spin')
+      const selectAll = await screen.findByRole('button', { name: /Select all \(1\+\)/ })
+      expect(scrollTrigger()).toBeInTheDocument()
+
+      await user.click(selectAll)
+
+      // The server's scan ceiling is sized for this page, so it is still
+      // answered, and nothing past it is asked for.
+      expect(await screen.findByRole('button', { name: 'Add (2)' }, { timeout: 10000 })).toBeEnabled()
+      expect(pages).toHaveLength(PROVIDER_SEARCH_LAST_PAGE)
+      expect(Math.max(...pages)).toBe(PROVIDER_SEARCH_LAST_PAGE)
+      expect(scrollTrigger()).not.toBeInTheDocument()
+      // Everything loaded is picked and there is more: a deselect, with the "+",
+      // and selecting again takes what is loaded without asking any further.
+      await user.click(screen.getByRole('button', { name: /Deselect all \(2\+\)/ }))
+      expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled()
+      await user.click(screen.getByRole('button', { name: /Select all \(2\+\)/ }))
+      expect(screen.getByRole('button', { name: 'Add (2)' })).toBeEnabled()
+      expect(pages).toHaveLength(PROVIDER_SEARCH_LAST_PAGE)
+    }, 20000)
+  })
+
+  it('FE-JRN-PICKER-031: sends each group oldest first, by wall clock where the provider has one (#1587)', async () => {
+    searchReturns([
+      asset('late', { takenAt: '2026-03-15T12:00:00.000Z' }),
+      asset('early', { takenAt: '2026-03-15T08:00:00.000Z', mediaType: 'video' }),
+      // Later as an instant, earliest on the photographer's own clock.
+      asset('wallclock', { takenAt: '2026-03-15T20:00:00.000Z', localTakenAt: '2026-03-15T06:00:00.000Z' }),
+      asset('undated', { takenAt: null }),
+    ])
+    const user = userEvent.setup()
+    const { onAdd } = mountPicker()
+
+    await user.click(await screen.findByRole('button', { name: /Select all \(4\)/ }))
+    await user.click(screen.getByRole('button', { name: 'Add (4)' }))
+
+    expect(onAdd).toHaveBeenCalledWith(
+      [{
+        assetIds: ['wallclock', 'early', 'late', 'undated'],
+        mediaTypes: ['image', 'video', 'image', 'image'],
+        passphrase: undefined,
+      }],
+      null,
+    )
+  })
+
+  it('FE-JRN-PICKER-032: a search after an album pages again and carries no album passphrase', async () => {
+    const pages: number[] = []
+    server.use(
+      http.get('/api/integrations/memories/immich/albums', () => HttpResponse.json({
+        albums: [{ id: 'alb1', albumName: 'Rome', assetCount: 1, passphrase: 'pw' }],
+      })),
+      http.get('/api/integrations/memories/immich/albums/alb1/photos', () => HttpResponse.json({ assets: [asset('alb-a1')] })),
+      http.post('/api/integrations/memories/immich/search', async ({ request }) => {
+        const body = await request.json() as { page: number }
+        pages.push(body.page)
+        return HttpResponse.json({ assets: [asset(`p${body.page}`)], hasMore: body.page < 2 })
+      }),
+    )
+    const user = userEvent.setup()
+    const { onAdd } = mountPicker()
+    await screen.findByRole('button', { name: /Select all \(1\+\)/ })
+
+    await user.click(screen.getByRole('button', { name: 'Albums' }))
+    await user.click(await screen.findByRole('button', { name: 'Rome (1)' }))
+    await screen.findByRole('button', { name: /Select all \(1\)/ })
+    await user.click(screen.getByRole('button', { name: 'Trip Period' }))
+
+    // The trip is paged again: without the reset the album left behind hid the "+".
+    await user.click(await screen.findByRole('button', { name: /Select all \(1\+\)/ }))
+    expect(await screen.findByRole('button', { name: 'Add (2)' })).toBeEnabled()
+    await user.click(screen.getByRole('button', { name: 'Add (2)' }))
+    expect(onAdd).toHaveBeenCalledWith([{ assetIds: ['p1', 'p2'], mediaTypes: ['image', 'image'], passphrase: undefined }], null)
   })
 
   it('FE-JRN-PICKER-020: closes through the header button and the backdrop', async () => {

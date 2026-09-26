@@ -18,7 +18,15 @@ const packing: TranslationStrings = {
     'Un elemento per riga. Formato: Categoria, Nome, Peso in g (opzionale), Borsa (opzionale), checked/unchecked (opzionale)',
   'packing.importPlaceholder':
     'Igiene, Spazzolino\nAbbigliamento, Magliette, 200\nDocumenti, Passaporto, , Bagaglio a mano\nElettronica, Caricabatterie, 50, Valigia, checked',
-  'packing.importCsv': 'Carica CSV/TXT',
+  'packing.importCsv': 'Carica CSV/TXT/MD',
+  'packing.export': 'Esporta',
+  'packing.exportPrint': 'Stampa o salva come PDF',
+  'packing.exportMarkdown': 'Checklist in Markdown (.md)',
+  'packing.exportCsv': 'CSV per l’importazione (.csv)',
+  'packing.printItems': 'Articoli',
+  'packing.printPacked': 'In valigia',
+  'packing.importHintMarkdown':
+    'Funziona anche un elenco in Markdown: un titolo indica la categoria, "- [ ]" e "- [x]" diventano articoli e "3x" davanti a un nome imposta la quantità.',
   'packing.importAction': 'Importa {count}',
   'packing.importSuccess': '{count} elementi importati',
   'packing.importError': 'Importazione non riuscita',
@@ -26,9 +34,6 @@ const packing: TranslationStrings = {
   'packing.progress': '{packed} di {total} in valigia ({percent}%)',
   'packing.clearChecked': 'Rimuovi {count} spuntati',
   'packing.clearCheckedShort': 'Rimuovi {count}',
-  'packing.suggestions': 'Suggerimenti',
-  'packing.suggestionsTitle': 'Aggiungi suggerimenti',
-  'packing.allSuggested': 'Tutti i suggerimenti aggiunti',
   'packing.allPacked': 'Tutto in valigia!',
   'packing.addPlaceholder': 'Aggiungi nuovo elemento...',
   'packing.categoryPlaceholder': 'Lista...',
@@ -36,7 +41,6 @@ const packing: TranslationStrings = {
   'packing.filterOpen': 'Da fare',
   'packing.filterDone': 'Fatto',
   'packing.emptyTitle': 'La lista valigia è vuota',
-  'packing.emptyHint': 'Aggiungi elementi o usa i suggerimenti',
   'packing.emptyFiltered': 'Nessun elemento corrisponde a questo filtro',
   'packing.menuRename': 'Rinomina',
   'packing.menuCheckAll': 'Seleziona tutti',
@@ -68,128 +72,6 @@ const packing: TranslationStrings = {
   'packing.toast.deleteError': 'Impossibile eliminare',
   'packing.toast.renameError': 'Impossibile rinominare',
   'packing.toast.addError': 'Impossibile aggiungere',
-  'packing.suggestions.items': [
-    {
-      name: 'Passaporto',
-      category: 'Documenti',
-    },
-    {
-      name: "Carta d'identità",
-      category: 'Documenti',
-    },
-    {
-      name: 'Assicurazione di viaggio',
-      category: 'Documenti',
-    },
-    {
-      name: 'Biglietti aerei',
-      category: 'Documenti',
-    },
-    {
-      name: 'Carta di credito',
-      category: 'Finanze',
-    },
-    {
-      name: 'Contanti',
-      category: 'Finanze',
-    },
-    {
-      name: 'Visto',
-      category: 'Documenti',
-    },
-    {
-      name: 'Magliette',
-      category: 'Abbigliamento',
-    },
-    {
-      name: 'Pantaloni',
-      category: 'Abbigliamento',
-    },
-    {
-      name: 'Intimo',
-      category: 'Abbigliamento',
-    },
-    {
-      name: 'Calzini',
-      category: 'Abbigliamento',
-    },
-    {
-      name: 'Giacca',
-      category: 'Abbigliamento',
-    },
-    {
-      name: 'Pigiama',
-      category: 'Abbigliamento',
-    },
-    {
-      name: 'Costume da bagno',
-      category: 'Abbigliamento',
-    },
-    {
-      name: 'Giacca a vento',
-      category: 'Abbigliamento',
-    },
-    {
-      name: 'Scarpe comode',
-      category: 'Abbigliamento',
-    },
-    {
-      name: 'Spazzolino da denti',
-      category: 'Igiene personale',
-    },
-    {
-      name: 'Dentifricio',
-      category: 'Igiene personale',
-    },
-    {
-      name: 'Shampoo',
-      category: 'Igiene personale',
-    },
-    {
-      name: 'Deodorante',
-      category: 'Igiene personale',
-    },
-    {
-      name: 'Crema solare',
-      category: 'Igiene personale',
-    },
-    {
-      name: 'Rasoio',
-      category: 'Igiene personale',
-    },
-    {
-      name: 'Caricabatterie',
-      category: 'Elettronica',
-    },
-    {
-      name: 'Power bank',
-      category: 'Elettronica',
-    },
-    {
-      name: 'Cuffie',
-      category: 'Elettronica',
-    },
-    {
-      name: 'Adattatore da viaggio',
-      category: 'Elettronica',
-    },
-    {
-      name: 'Macchina fotografica',
-      category: 'Elettronica',
-    },
-    {
-      name: 'Antidolorifici',
-      category: 'Salute',
-    },
-    {
-      name: 'Cerotti',
-      category: 'Salute',
-    },
-    {
-      name: 'Disinfettante',
-      category: 'Salute',
-    },
-  ],
   'packing.makePrivate': 'Rendi privato',
   'packing.makePublic': 'Condividi',
   'packing.privateHint': 'Privato — visibile solo a te',

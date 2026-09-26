@@ -126,6 +126,8 @@ env:
   # OIDC_ADMIN_VALUE: ""         # value of that claim that grants admin role
   # OIDC_SCOPE: "openid email profile groups"
   # OIDC_DISCOVERY_URL: ""       # override for providers with non-standard discovery paths (e.g. Authentik)
+  # VAPID_PUBLIC_KEY: ""         # Web Push: public half of your own key pair; leave unset to use the generated one
+  # VAPID_SUBJECT: "mailto:admin@example.com"  # Web Push contact; defaults to APP_URL when it is https
 ```
 
 > **Note:** `DEFAULT_LANGUAGE` is not declared in the chart's ConfigMap, so a value under `env:` is dropped and the fallback stays `en`. Patch it onto the Deployment if you need it. See [Environment-Variables](Environment-Variables#default_language--supported-codes) for the codes.
@@ -141,9 +143,13 @@ secretEnv:
   ADMIN_PASSWORD: ""        # initial admin password (first boot only)
   OIDC_CLIENT_SECRET: ""    # set if using OIDC
   UNSPLASH_ACCESS_KEY: ""   # optional; free key from unsplash.com/developers
+  PLACES_API_KEY: ""        # optional; Google Maps API key, wins over the one in Admin > Settings
+  VAPID_PRIVATE_KEY: ""     # optional; Web Push private half, only together with env.VAPID_PUBLIC_KEY
 ```
 
 Alternatively, use `generateEncryptionKey: true` to let the chart generate and manage the encryption key, or point `existingSecret` / `existingSecretKey` at an existing Kubernetes Secret.
+
+> **Note:** Web Push needs none of the `VAPID_*` values. TREK generates its key pair on first start and keeps it in the database on the data PVC, so it survives upgrades and restores. Set `env.VAPID_PUBLIC_KEY` and `secretEnv.VAPID_PRIVATE_KEY` together only to bring a pair of your own; changing the pair later means every device has to subscribe again. See [Environment-Variables](Environment-Variables#web-push).
 
 > **Note:** Without `UNSPLASH_ACCESS_KEY` the server queries Unsplash's unauthenticated endpoint, which many datacenter and VPS IP ranges — including a lot of Kubernetes clusters — are blocked or rate-limited on. Trip-cover and place-image search then fail with **"Unsplash search unavailable"**. A free Access Key switches the server to Unsplash's authenticated API (`api.unsplash.com`), which is not subject to that block. The key can also be set in **Admin → Settings → API Keys**; this value takes priority over that one. See [Environment-Variables](Environment-Variables#image-search-unsplash).
 

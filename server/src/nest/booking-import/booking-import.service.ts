@@ -4,6 +4,7 @@ import { PermissionsService } from '../permissions/permissions.service';
 import { ReservationsService } from '../reservations/reservations.service';
 import { PlacesService } from '../places/places.service';
 import { BudgetService } from '../budget/budget.service';
+import { imageMimeType } from '../llm-parse/image-input';
 import { AddonsService } from '../addons/addons.service';
 import { ADDON_IDS } from '../../addons';
 import { MapsService } from '../maps/maps.service';
@@ -54,6 +55,11 @@ export class BookingImportService {
   /** True when the LLM fallback is enabled and configured for this user. */
   aiAvailable(userId: number): boolean {
     return this.llmParse.isAvailable(userId);
+  }
+
+  /** Whether a photo this user imports can be read (see LlmParseService.readsImages). */
+  readsImages(userId: number): Promise<boolean> {
+    return this.llmParse.readsImages(userId);
   }
 
   /**
@@ -155,8 +161,10 @@ export class BookingImportService {
       let kiItems: KiReservation[] = [];
       let aiUsed = false;
 
-      // Stage 1: kitinerary (skipped entirely when forcing AI).
-      if (mode !== 'force-ai' && kitineraryAvailable) {
+      // Stage 1: kitinerary (skipped entirely when forcing AI, and for a photo,
+      // which only a model can read).
+      const photo = imageMimeType(file.originalname) !== null;
+      if (mode !== 'force-ai' && kitineraryAvailable && !photo) {
         try {
           kiItems = await this.extractor.extract(file.buffer, file.originalname);
         } catch (err) {

@@ -1,4 +1,4 @@
-// FE-ADMHOOK-001 to FE-ADMHOOK-051
+// FE-ADMHOOK-001 to FE-ADMHOOK-053
 import { http, HttpResponse } from 'msw';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -376,6 +376,50 @@ describe('useAdmin', () => {
     expect(body).toMatchObject({ maps_api_key: 'm', openweather_api_key: 'w', unsplash_api_key: 'u' });
     expect(toastCalls).toContainEqual({ type: 'success', message: 'API keys saved' });
     expect(result.current.savingKeys).toBe(false);
+  });
+
+  it('FE-ADMHOOK-052: a key set by the environment locks its field and stays testable (#1881)', async () => {
+    server.use(
+      http.get('/api/auth/me/settings', () =>
+        HttpResponse.json({
+          settings: { maps_api_key: null, unsplash_api_key: 'unsplash-k', env_keys: { maps_api_key: 'PLACES_API_KEY' } },
+        })
+      )
+    );
+
+    const { result } = await mountAdmin();
+
+    await waitFor(() => expect(result.current.keyInputProps('maps').disabled).toBe(true));
+    expect(result.current.keyInputProps('maps').placeholder).toBe('Set via PLACES_API_KEY');
+    expect(result.current.keyInputProps('unsplash')).toEqual({ disabled: false, placeholder: 'Enter key...' });
+    // Test probes what a search resolves to, so the empty field does not block it.
+    expect(result.current.mapsKey).toBe('');
+    expect(result.current.mapsKeyTestable).toBe(true);
+  });
+
+  it('FE-ADMHOOK-053: saving leaves a key the environment sets out of the body', async () => {
+    let body: Record<string, unknown> | null = null;
+    server.use(
+      http.get('/api/auth/me/settings', () =>
+        HttpResponse.json({ settings: { maps_api_key: null, env_keys: { maps_api_key: 'PLACES_API_KEY' } } })
+      ),
+      http.put('/api/auth/me/api-keys', async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ success: true });
+      })
+    );
+    const { result } = await mountAdmin();
+    await waitFor(() => expect(result.current.mapsKeyTestable).toBe(true));
+
+    act(() => result.current.setUnsplashKey('u'));
+    await act(async () => {
+      await result.current.handleSaveApiKeys();
+    });
+
+    // Sending the empty field would clear the stored value the install falls
+    // back to once the variable is removed.
+    expect(body).not.toHaveProperty('maps_api_key');
+    expect(body).toMatchObject({ unsplash_api_key: 'u' });
   });
 
   it('FE-ADMHOOK-020: handleSaveApiKeys surfaces the thrown error message', async () => {

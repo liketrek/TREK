@@ -172,6 +172,37 @@ describe('PluginSupervisor — isolated runtime', () => {
     expect(res).toEqual({ name: 'echo', args: { v: 1 } });
   });
 
+  it('reports the functions each hook carries at load, class methods included (#2221)', async () => {
+    // Only the forked child knows whether searchProvider has the optional suggest, and
+    // plugin-host-entry.ts is excluded from coverage, so this is the proof that the
+    // report reaches the host for a literal and for a class instance alike.
+    const events: Array<{ topic: string; data: unknown }> = [];
+    sup = makeSupervisor(events);
+    writePlugin(
+      'typeahead',
+      `class LocalIndex {
+        async search() { return []; }
+        async suggest(request) { return [{ id: 'x', name: request.query, lat: 1, lng: 2 }]; }
+        // Reading the hook's functions must not run a getter, let alone fail the load on one.
+        get broken() { throw new Error('getter ran at load'); }
+      }
+      module.exports = { hooks: { searchProvider: new LocalIndex() } };`,
+    );
+    writePlugin('search-only', `module.exports = { hooks: { searchProvider: { async search() { return []; } } } };`);
+    await sup.activate('typeahead', new Set(['hook:search-provider']), {});
+    await sup.activate('search-only', new Set(['hook:search-provider']), {});
+
+    expect(sup.providersOf('searchProvider').sort()).toEqual(['search-only', 'typeahead']);
+    expect(sup.providersOf('searchProvider', 'suggest')).toEqual(['typeahead']);
+    const res = await sup.invoke(
+      'typeahead',
+      'invoke.hook',
+      { hook: 'searchProvider', fn: 'suggest', args: [{ query: 'ic', limit: 3 }] },
+      { actingUserId: 5 },
+    );
+    expect(res).toEqual([{ id: 'x', name: 'ic', lat: 1, lng: 2 }]);
+  });
+
   it('stops reporting MCP tools once the plugin is no longer active', async () => {
     const events: Array<{ topic: string; data: unknown }> = [];
     sup = makeSupervisor(events);

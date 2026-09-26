@@ -78,6 +78,8 @@ const settings: TranslationStrings = {
   'settings.temperature': 'Одиниця температури',
   'settings.distance': 'Одиниця відстані',
   'settings.timeFormat': 'Формат часу',
+  'settings.weekStart': 'Тиждень починається з',
+  'settings.weekStartHint': 'Перший день тижня в усіх виборах дати. Vacay має власне налаштування.',
   'settings.blurBookingCodes': 'Приховати коди бронювання',
   'settings.aiAlwaysRetry': 'Always retry booking imports with AI',
   'settings.aiAlwaysRetryHint': 'When a file cannot be read by the standard parser, automatically retry it with AI.',
@@ -313,6 +315,19 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.webhook': 'Webhook',
   'settings.notificationPreferences.email': 'Email',
   'settings.notificationPreferences.ntfy': 'Ntfy',
+  'settings.notificationPreferences.push': 'Push',
+  'settings.webPush.title': 'Push-сповіщення на цьому пристрої',
+  'settings.webPush.hint':
+    'Показує сповіщення TREK на цьому пристрої, навіть коли TREK закрито. Які події надходять, визначає стовпець Push.',
+  'settings.webPush.enable': 'Увімкнути на цьому пристрої',
+  'settings.webPush.disable': 'Вимкнути на цьому пристрої',
+  'settings.webPush.enabled': 'Увімкнено на цьому пристрої',
+  'settings.webPush.unsupported': 'Цей браузер не може отримувати push-сповіщення.',
+  'settings.webPush.insecure': 'Для push TREK має бути відкрито через HTTPS.',
+  'settings.webPush.iosInstall': 'На iPhone та iPad спершу додайте TREK на початковий екран і відкрийте його звідти.',
+  'settings.webPush.denied':
+    'Сповіщення для TREK заблоковано в цьому браузері. Дозвольте їх у налаштуваннях браузера й спробуйте ще раз.',
+  'settings.webPush.failed': 'Не вдалося увімкнути push на цьому пристрої.',
   'settings.oauth.modal.machineClient': 'Машинний клієнт (без входу через браузер)',
   'settings.oauth.modal.machineClientHint':
     'Використовуйте надання client_credentials — URI перенаправлення не потрібні. Токен видається безпосередньо через client_id + client_secret і діє від вашого імені в межах вибраних областей.',
@@ -383,9 +398,9 @@ const settings: TranslationStrings = {
   'settings.aiParsing.apiKey': 'Ключ API',
   'settings.aiParsing.apiKeyHint':
     'Зберігається в зашифрованому вигляді. Залиште порожнім, щоб зберегти поточний ключ.',
-  'settings.aiParsing.multimodal': 'Надсилати документи як зображення',
+  'settings.aiParsing.multimodal': 'Модель читає зображення',
   'settings.aiParsing.multimodalHint':
-    'Для моделей із підтримкою зображень — надсилає оригінальний PDF замість вилученого тексту.',
+    'Увімкніть для моделі, яка читає зображення, щоб фотографію можна було імпортувати чи відсканувати.',
   'settings.aiParsing.toast.saved': 'Налаштування ШІ збережено',
   'settings.aiParsing.toast.saveError': 'Не вдалося зберегти налаштування ШІ',
   'settings.tabs.appearance': 'Appearance',

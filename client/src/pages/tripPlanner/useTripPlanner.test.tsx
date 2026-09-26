@@ -1,4 +1,4 @@
-// FE-TP-HOOK-001 to FE-TP-HOOK-135
+// FE-TP-HOOK-001 to FE-TP-HOOK-163
 import React from 'react'
 import { renderHook, act, waitFor } from '@testing-library/react'
 import { TranslationProvider } from '../../i18n/TranslationContext'
@@ -17,7 +17,7 @@ import {
   healthApi, airtrailApi, mapsApi,
 } from '../../api/client'
 import { accommodationRepo } from '../../repo/accommodationRepo'
-import { offlineDb } from '../../db/offlineDb'
+import { offlineDb, saveImportFiles, getImportFiles } from '../../db/offlineDb'
 import { getCached, fetchPhoto } from '../../services/photoService'
 import type { Accommodation, Place, Reservation, Settings } from '../../types'
 
@@ -1062,6 +1062,44 @@ describe('useTripPlanner — add place entry points', () => {
     expect(mapsApi.reverse).not.toHaveBeenCalled()
   })
 
+  it('FE-TP-HOOK-141: a plugin POI prefills with its own id, and a website only when it is a web address', async () => {
+    seedTrip()
+    const { result } = await renderPlanner()
+    const trailhead = {
+      lat: 47.1, lng: 11.2, name: 'Trailhead', address: 'Hut 1', website: 'https://trails.example/th-1', phone: '+43 1',
+      osm_id: 'plugin:trail-finder:th-1', category: 'plugin:trail-finder/trailheads', source: 'plugin:trail-finder',
+      details: [{ label: 'Length', value: '12 km' }], icon: 'Signpost', color: '#2f855a',
+    }
+
+    act(() => { result.current.openAddPlaceFromPoi(trailhead) })
+
+    // Only the fields the form has: the details, icon and colour stay on the map.
+    expect(result.current.prefillCoords).toEqual({
+      lat: 47.1, lng: 11.2, name: 'Trailhead', address: 'Hut 1', website: 'https://trails.example/th-1', phone: '+43 1',
+      osm_id: 'plugin:trail-finder:th-1', stop_type: null, duration_minutes: undefined,
+    })
+    expect(mapsApi.reverse).not.toHaveBeenCalled()
+
+    act(() => { result.current.openAddPlaceFromPoi({ ...trailhead, website: 'javascript:alert(1)' }) })
+    expect(result.current.prefillCoords?.website).toBeUndefined()
+    act(() => { result.current.openAddPlaceFromPoi({ ...trailhead, website: 'trails.example' }) })
+    expect(result.current.prefillCoords?.website).toBe('https://trails.example')
+  })
+
+  it('FE-TP-HOOK-142: a plugin POI tapped on the map opens the same prefilled form', async () => {
+    seedTrip()
+    const { result } = await renderPlanner()
+
+    act(() => {
+      result.current.handlePoiClick({
+        lat: 47.1, lng: 11.2, name: 'Trailhead', address: null, website: null, phone: null, osm_id: 'plugin:trail-finder:th-1',
+      })
+    })
+
+    expect(result.current.showPlaceForm).toBe(true)
+    expect(result.current.prefillCoords).toMatchObject({ name: 'Trailhead', osm_id: 'plugin:trail-finder:th-1', website: undefined })
+  })
+
   it('FE-TP-HOOK-050: the pool editor resolves a place\'s lone assignment for its times', async () => {
     const place = buildPlace({ id: 1, lat: 1, lng: 2 })
     seedTrip({
@@ -2063,6 +2101,86 @@ describe('useTripPlanner — booking import review', () => {
     await waitFor(() => expect(result.current.tripId).toBe(42))
     expect(result.current.showTransportModal).toBe(false)
     expect(useBackgroundTasksStore.getState().tasks).toHaveLength(1)
+  })
+})
+
+describe('useTripPlanner — a receipt scanned from Costs', () => {
+  const RECEIPT = { merchant: 'Café', date: '2026-09-20', total: 12.5, currency: 'EUR', items: [{ name: 'Tart', price: 12.5 }] }
+
+  it('FE-TP-HOOK-160: a read receipt opens the expense editor pre-filled, with the photo to attach, and clears the widget', async () => {
+    seedTrip()
+    const photo = new File(['x'], 'bill.jpg', { type: 'image/jpeg' })
+    useBackgroundTasksStore.setState({
+      tasks: [{
+        id: 'job-r', tripId: '42', label: 'bill.jpg', status: 'done', done: 1, total: 1, kind: 'costs',
+        reviewRequested: true, items: [], receipt: RECEIPT, sourceFiles: [photo],
+      }] as never,
+    })
+
+    const { result } = await renderPlanner()
+
+    await waitFor(() => expect(result.current.receiptExpense).not.toBeNull())
+    expect(result.current.receiptExpense).toEqual({
+      name: 'Café', amount: 12.5, currency: 'EUR', date: '2026-09-20', lines: [{ name: 'Tart', price: 12.5 }], receiptFiles: [photo],
+    })
+    expect(result.current.showReservationModal).toBe(false)
+    expect(useBackgroundTasksStore.getState().tasks).toHaveLength(0)
+
+    act(() => { result.current.clearReceiptExpense() })
+    expect(result.current.receiptExpense).toBeNull()
+  })
+
+  it('FE-TP-HOOK-162: after a reload the photo comes back from IndexedDB for the review', async () => {
+    seedTrip()
+    const photo = new File(['x'], 'bill.jpg', { type: 'image/jpeg' })
+    await saveImportFiles('job-db', [photo])
+    useBackgroundTasksStore.setState({
+      tasks: [{
+        id: 'job-db', tripId: '42', label: 'bill.jpg', status: 'done', done: 1, total: 1, kind: 'costs',
+        reviewRequested: true, items: [], receipt: RECEIPT,
+      }] as never,
+    })
+
+    const { result } = await renderPlanner()
+
+    await waitFor(() => expect(result.current.receiptExpense).not.toBeNull())
+    expect(result.current.receiptExpense?.receiptFiles?.map(f => f.name)).toEqual(['bill.jpg'])
+    await waitFor(async () => expect(await getImportFiles('job-db')).toEqual([]))
+  })
+
+  it('FE-TP-HOOK-161: a scan that read nothing just clears the widget', async () => {
+    seedTrip()
+    useBackgroundTasksStore.setState({
+      tasks: [{
+        id: 'job-n', tripId: '42', label: 'bill.jpg', status: 'done', done: 1, total: 1, kind: 'costs',
+        reviewRequested: true, items: [], receipt: null,
+      }] as never,
+    })
+
+    const { result } = await renderPlanner()
+
+    await waitFor(() => expect(useBackgroundTasksStore.getState().tasks).toHaveLength(0))
+    expect(result.current.receiptExpense).toBeNull()
+  })
+
+  it('FE-TP-HOOK-163: a member who may add expenses but not upload files gets the reading without the photo', async () => {
+    // The photo goes up through the file upload on save, and a refused upload
+    // used to take the whole expense down with it.
+    seedStore(useAuthStore, { user: buildUser({ id: 2, role: 'user' }) })
+    usePermissionsStore.setState({ permissions: { file_upload: 'trip_owner' } })
+    seedTrip()
+    const photo = new File(['x'], 'bill.jpg', { type: 'image/jpeg' })
+    useBackgroundTasksStore.setState({
+      tasks: [{
+        id: 'job-u', tripId: '42', label: 'bill.jpg', status: 'done', done: 1, total: 1, kind: 'costs',
+        reviewRequested: true, items: [], receipt: RECEIPT, sourceFiles: [photo],
+      }] as never,
+    })
+
+    const { result } = await renderPlanner()
+
+    await waitFor(() => expect(result.current.receiptExpense).not.toBeNull())
+    expect(result.current.receiptExpense).toMatchObject({ name: 'Café', amount: 12.5, receiptFiles: [] })
   })
 })
 

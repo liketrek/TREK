@@ -7,7 +7,7 @@ Complete reference for all environment variables TREK reads.
 - **Docker Compose** — use the `environment:` block or a `.env` file alongside `docker-compose.yml`
 - **Docker run** — pass each variable with `-e VARIABLE=value`
 - **Helm** — use `env:` for plain values and `secretEnv:` for sensitive values in `values.yaml`. The chart only
-  passes through the keys it declares (31 in `templates/configmap.yaml`, the credentials in `templates/secret.yaml`), so a variable
+  passes through the keys it declares (33 in `templates/configmap.yaml`, the credentials in `templates/secret.yaml`), so a variable
   that is not one of them is dropped silently — patch it onto the Deployment or add it to the chart
 - **Unraid** — set in the container template editor
 - **Proxmox Community Script** — set in `/opt/trek/server/.env`
@@ -25,6 +25,9 @@ Invalid environment configuration:
   - PORT="not-a-port": must be a port number (1-65535)
   - SESSION_DURATION="bogus": must be a duration like "1h", "7d" or "30d"
 ```
+
+The value of a secret is never printed: `ENCRYPTION_KEY`, `SMTP_PASS`, `OIDC_CLIENT_SECRET`, `VAPID_PRIVATE_KEY` and
+the other keys, secrets and passwords appear as `***`, so the report names the variable and the problem only.
 
 In Docker this crash-loops the container until the value is corrected or removed. Boolean switches accept
 `true`/`false`, `1`/`0`, `on`/`off`, `yes`/`no` in any casing — anything else counts as malformed. Variables TREK
@@ -93,18 +96,20 @@ Setting `ENCRYPTION_KEY` explicitly is recommended so you can back it up indepen
 
 ### `DEFAULT_LANGUAGE` — Supported Codes
 
-You can set `DEFAULT_LANGUAGE` to any of the 23 languages TREK ships. The currently supported codes are:
+You can set `DEFAULT_LANGUAGE` to any of the 27 languages TREK ships. The currently supported codes are:
 
 | Code    | Language           |
 |---------|--------------------|
 | `en`    | English            |
 | `de`    | Deutsch            |
 | `es`    | Español            |
+| `et`    | Eesti              |
 | `fr`    | Français           |
 | `hu`    | Magyar             |
 | `nl`    | Nederlands         |
 | `br`    | Português (Brasil) |
 | `cs`    | Česky              |
+| `sk`    | Slovenčina         |
 | `pl`    | Polski             |
 | `ru`    | Русский            |
 | `zh`    | 简体中文               |
@@ -112,9 +117,11 @@ You can set `DEFAULT_LANGUAGE` to any of the 23 languages TREK ships. The curren
 | `it`    | Italiano           |
 | `tr`    | Türkçe             |
 | `ar`    | العربية            |
+| `az`    | Azərbaycanca       |
 | `id`    | Bahasa Indonesia   |
 | `ja`    | 日本語                |
 | `ko`    | 한국어                |
+| `th`    | ไทย                |
 | `uk`    | Українська         |
 | `gr`    | Ελληνικά           |
 | `sv`    | Svenska            |
@@ -223,6 +230,53 @@ optional (for unauthenticated relays).
 
 ---
 
+## Web Push
+
+[Web Push](Notifications#web-push) signs every message with a VAPID key pair. None of these variables is needed:
+without them TREK generates a pair on first start and keeps it in the database, the private half encrypted with
+`ENCRYPTION_KEY`, so it moves with every backup and survives a restore.
+
+| Variable            | Description                                                                                                                        | Default                                                                     |
+|---------------------|------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------|
+| `VAPID_PUBLIC_KEY`  | Public half of your own key pair: the uncompressed P-256 point, base64url (65 bytes). Only used together with `VAPID_PRIVATE_KEY`. | generated                                                                   |
+| `VAPID_PRIVATE_KEY` | Private half of that pair: the 32-byte P-256 key, base64url.                                                                       | generated                                                                   |
+| `VAPID_SUBJECT`     | The contact the push services see with every message: a `mailto:` address or an `https://` URL.                                    | `APP_URL` when it is `https://`, else `https://github.com/liketrek/TREK`    |
+
+A value in the wrong shape aborts startup like any other variable on this page; for `VAPID_PRIVATE_KEY` the report
+prints `***` instead of the value. A pair whose halves do not belong together, or only one half of a pair, does not
+stop TREK from starting, but push is off with an error in the log until the variables are fixed: the Push card and
+column disappear from **Settings → Notifications**, the routes that register a device answer `503`, nothing is sent,
+and every registered device stays registered. TREK never signs with another pair in its place, neither one stored in
+the database (from a start without the variables) nor a newly generated one: no device registered with yours holds
+that key, and the first message sent with it would drop every one of them. Once both variables hold the two halves of
+your pair again, every device receives as before.
+Any tool that prints the standard Web Push pair works, for example `npx web-push generate-vapid-keys`.
+
+Without `VAPID_SUBJECT`, the contact is `APP_URL` when that is an `https://` address other than `localhost`, and
+otherwise the project page. Unlike links in emails, it never falls back on the first `ALLOWED_ORIGINS` entry, which may
+be another site that is only allowed to call the API. TREK never fills in an email address on its own, so no admin
+address travels to the push services.
+
+TREK generates a pair only while neither `web_push_vapid_public_key` nor `web_push_vapid_private_key` exists in
+`app_settings`, and never overwrites a pair that is there. When no pair comes from the variables and the stored
+private key cannot be decrypted with the current `ENCRYPTION_KEY` (after a restore under a different key, for example),
+push is off: the log says why, the Push card and column disappear from every user's **Settings → Notifications** (the
+routes that register a device answer `503`), nothing is sent, and every registered device stays registered.
+Starting TREK with the original `ENCRYPTION_KEY` again brings push back on every device as it was. A stored private key
+that does not belong to the stored public key, or only one of the two rows, turns push off the same way. To start over
+with a new pair instead, delete both rows from `app_settings`; TREK then generates a new pair, and every device has to
+subscribe again.
+
+Browsers bind each subscription to the public key it was made with. After a switch to another pair (setting the
+variables on an instance that has been using its generated pair, changing them, removing them again, or a newly
+generated pair), TREK drops each old subscription the first time it would have sent to it. A device subscribes again
+with the new key on its own the next time TREK is opened on it, where the browser allows that without a tap;
+elsewhere, push shows as off in **Settings → Notifications** and has to be turned on again there.
+
+On Helm, `VAPID_PUBLIC_KEY` and `VAPID_SUBJECT` go under `env:` and `VAPID_PRIVATE_KEY` under `secretEnv:`.
+
+---
+
 ## Initial Setup
 
 These variables only take effect on first boot, before any user exists.
@@ -311,7 +365,7 @@ Some hosting environments — commonly VPS and datacenter IP ranges (and many Ku
 
 **Two ways to configure it** — pick one; the env var wins if both are present:
 
-1. **Environment variable** (this page) — instance-wide, ideal for Docker/Helm/Unraid where you already manage config as env.
+1. **Environment variable** (this page) — instance-wide, ideal for Docker/Helm/Unraid where you already manage config as env. The **Unsplash API Key** field in the admin panel is then read-only and names the variable.
 2. **Admin → Settings → API Keys** — paste the key into the **Unsplash API Key** field. Stored encrypted at rest and used as a fallback for every user when no env var is set. This is the better option if you'd rather not restart the container to change it.
 
 To get a key: create a free account at [unsplash.com/developers](https://unsplash.com/developers), register a new application, and copy its **Access Key** (not the Secret Key). The Unsplash free tier (demo) allows 50 requests/hour, which is ample for cover search.
@@ -328,6 +382,25 @@ TREK's own place index, the [TREK Places API](TREK-Places-API), answers the sugg
 | `TREK_PLACES_URL`     | Base URL of a copy of the service you run yourself; it has to answer the same `/v1` API. Unset or blank uses the public service. A trailing slash is stripped, and a value that is not a full URL aborts startup. It is configuration rather than user input and is not run through the SSRF guard, so an address on your LAN or Docker network works without `ALLOW_INTERNAL_NETWORK`. | `https://places.liketrek.com` |
 
 On Helm both go under `env:` in `values.yaml`. The chart passes `TREK_PLACES_ENABLED` through whenever it is set at all, so an unquoted `false` or `--set env.TREK_PLACES_ENABLED=false` reaches the container as well.
+
+---
+
+## Place Search (Google Places)
+
+A Google Maps API key gives place search Google as the keyed provider beside the TREK Places index and OpenStreetMap, and switches on Google photos, place details and the Google transit backend. What the key is used for, and the switches that limit it, are on [Places and Search](Places-and-Search#with-a-google-maps-api-key).
+
+| Variable         | Description | Default |
+|------------------|-------------|---------|
+| `PLACES_API_KEY` | Google Maps API key with the **Places API (New)** enabled. When set, it takes priority over the key configured in **Admin → Settings → API Keys** and is used for every member of the instance. | unset |
+
+**Two ways to configure it**, pick one; the env var wins if both are present:
+
+1. **Environment variable** (this page): instance-wide, ideal for Docker/Helm/Unraid where you already manage config as env. In the chart it is a credential and goes under `secretEnv:`, not `env:`.
+2. **Admin → Settings → API Keys**: paste it into the **Google Maps API Key** field. Stored encrypted at rest.
+
+While the variable is set, the **Google Maps API Key** field in the admin panel is read-only and names `PLACES_API_KEY` instead of showing a value. **Test** beside it still works and checks the key from the environment. The same goes for `UNSPLASH_ACCESS_KEY` and `AMAP_API_KEY` and their fields. The value itself never reaches the browser.
+
+If you restrict the key to **HTTP referrers** in Google Cloud Console, set `APP_URL` as well: TREK sends it as the `Referer` header on every Google request, and without it Google rejects them.
 
 ---
 
@@ -351,7 +424,7 @@ type **Web 服务**. A **Web 端 (JS API)** key is a different kind of credentia
 
 **Two ways to configure it**, pick one; the env var wins if both are present:
 
-1. **Environment variable** (this page): instance-wide, ideal for Docker/Helm where you already manage config as env. In the chart the key and the secret are credentials and go under `secretEnv:`, not `env:`; only `AMAP_API_BASE` is a plain `env:` value.
+1. **Environment variable** (this page): instance-wide, ideal for Docker/Helm where you already manage config as env. In the chart the key and the secret are credentials and go under `secretEnv:`, not `env:`; only `AMAP_API_BASE` is a plain `env:` value. The **Amap (高德地图) API Key** field in the admin panel is then read-only and names the variable.
 2. **Admin → Settings → API Keys**: paste it into the **Amap (高德地图) API Key** field. Stored encrypted at rest.
 
 Setting a key is not enough on its own: **Admin → Settings → API Keys → Place search provider** decides which keyed

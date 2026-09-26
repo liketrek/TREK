@@ -233,6 +233,11 @@ const admin: TranslationStrings = {
     'Llegeix estades i recorreguts enregistrats d’una instància de Dawarich que cada lector connecta pel seu compte',
   'admin.addons.catalog.llm_parsing.name': 'Anàlisi amb IA',
   'admin.addons.catalog.llm_parsing.description': 'Llegeix reserves que l’analitzador integrat no entén, amb un model d’IA que triïs',
+  'admin.addons.llm.vision.auto': 'Automàtic',
+  'admin.addons.llm.vision.on': 'Sí',
+  'admin.addons.llm.vision.off': 'No',
+  'admin.addons.llm.vision.hintLocal': 'Automàtic pregunta al servidor Ollama si aquest model llegeix imatges.',
+  'admin.addons.llm.vision.hintCloud': 'Automàtic vol dir no per a un model al núvol. Tria Sí si aquest model llegeix imatges.',
   'admin.addons.enabled': 'Actiu',
   'admin.addons.disabled': 'Desactivat',
   'admin.addons.type.trip': 'Viatge',
@@ -361,6 +366,9 @@ const admin: TranslationStrings = {
   'admin.group.maintenance': 'Manteniment',
   'admin.notifications.emailPanel.title': 'Correu (SMTP)',
   'admin.notifications.webhookPanel.title': 'Webhook',
+  'admin.notifications.webPushPanel.title': 'Web Push',
+  'admin.notifications.webPushPanel.hint':
+    "Permet als usuaris rebre notificacions als telèfons i ordinadors a través del navegador, fins i tot amb TREK tancat. Cal HTTPS; a l'iPhone i l'iPad, TREK s'ha d'afegir a la pantalla d'inici.",
   'admin.notifications.inappPanel.title': 'In-App',
   'admin.notifications.inappPanel.hint':
     'Les notificacions in-app sempre estan actives i no es poden desactivar globalment.',
@@ -446,6 +454,7 @@ const admin: TranslationStrings = {
   'admin.amapKey': "Clau API d'Amap (高德地图)",
   'admin.amapKeyHint':
     "Per a la cerca de llocs a la Xina continental, on Google no és accessible i la cobertura d'OpenStreetMap és escassa. Cal una clau «Web 服务» (servei web), no una clau de l'API JS. Se n'obté una a console.amap.com.",
+  'admin.keyFromEnv': 'Definida mitjançant {name}',
   'admin.placesProvider.title': 'Proveïdor de la cerca de llocs',
   'admin.placesProvider.subtitle':
     "L'índex propi de TREK i OpenStreetMap responen cada cerca. Aquí es tria a qui més es consulta quan no troben res: Automàtic prefereix Google si hi ha clau, després Amap.",
@@ -544,6 +553,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:map-layer-provider': 'Dibuixar rutes, corredors i zones al mapa del viatge',
   'admin.plugins.perm.hook:search-provider':
     "Respondre cerques de llocs des d'un índex propi, al costat dels resultats de TREK",
+  'admin.plugins.perm.hook:poi-category-provider':
+    'Afegir categories de llocs pròpies a «Explora llocs al mapa»; triar-ne una envia al connector la zona del mapa que estàs mirant',
   'admin.plugins.perm.hook:route-provider':
     'Oferir perfils de ruta amb què el planificador pot calcular els dies (p. ex. rutes per a cotxe elèctric amb parades de recàrrega)',
   'admin.plugins.perm.hook:day-schedule-provider':
@@ -553,6 +564,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.mcpTools': 'Publica eines d’IA',
   'admin.plugins.mcpToolsTitle': 'Eines d’IA que publica',
   'admin.plugins.mcpToolsHint': 'Un assistent pot executar-les en nom d’un usuari. Cadascuna actua amb els permisos concedits a dalt.',
+  'admin.plugins.poiCategoriesTitle': 'Categories del mapa que afegeix',
   'admin.plugins.perm.mcp:tools':
     "Publicar eines que un assistent d'IA pot executar en nom teu (actua amb els permisos que concedeixes aquí al connector, no amb els seus)",
   'admin.plugins.perm.geolocation:read':
@@ -677,6 +689,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'Proporciona esdeveniments de calendari',
   'admin.plugins.cap.placeDetails': 'Enriqueix els llocs',
   'admin.plugins.cap.search': 'Respon cerques',
+  'admin.plugins.cap.poiCategories': 'Afegeix categories al mapa',
   'admin.plugins.cap.warnings': 'Marca problemes',
   'admin.plugins.cap.mapLayers': 'Dibuixa al mapa',
   'admin.plugins.cap.routing': 'Calcula rutes',

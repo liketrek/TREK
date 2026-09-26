@@ -12,10 +12,10 @@ If your account requires MFA setup, TREK redirects you directly to the **Account
 
 | Tab | Purpose | Shown when |
 |-----|---------|------------|
-| General | Start page and start tab, currency, language, temperature unit, distance unit, time format, booking route labels, always show booking routes, map POI pills, blur booking codes, and optimize route from accommodation | Always |
+| General | Start page and start tab, currency, language, temperature unit, distance unit, time format, week start, booking route labels, always show booking routes, map POI pills, blur booking codes, and optimize route from accommodation | Always |
 | Appearance | Color mode, color scheme / accent, readability (transparency, reduce motion, density, text size), and which widgets appear on your dashboard | Always |
 | Map | Map provider (Leaflet, Mapbox GL, or MapLibre GL), tile presets, map style and Mapbox token, 3D buildings, high-quality mode | Always |
-| Notifications | Email, webhook, ntfy, and in-app notification preferences | Always |
+| Notifications | Email, webhook, ntfy, push and in-app notification preferences, plus switching push on or off for this device (every device is switched on separately) | Always |
 | Integrations | Photo providers (Immich, Synology, etc.), the AirTrail connection, the Dawarich connection, your own AI parsing model, public API keys, and MCP OAuth clients / API tokens | Only when a photo provider (Immich or Synology Photos), MCP, AirTrail, AI Parsing or Dawarich is enabled |
 | Plugins | Per-user settings for installed plugins | Only when at least one plugin is installed |
 | Offline | Cached trips, pending changes, re-sync and clear cache | Always |
@@ -38,6 +38,7 @@ The General tab controls the following preferences, all saved immediately on cha
 - **Temperature unit** — Celsius (°C) or Fahrenheit (°F).
 - **Distance unit** — Metric (km) or Imperial (mi).
 - **Time format** — 24h (14:30) or 12h (2:30 PM).
+- **Week starts on**: Monday (the default), Sunday or Saturday: the first column of every date picker. See [Display-Settings](Display-Settings#week-starts-on).
 
 **Travel & map**
 
@@ -96,7 +97,7 @@ The Integrations tab is only visible when a **photo provider** (Immich or Synolo
 - **Photo Providers** (only when a photo provider is enabled) — Configure Immich, Synology Photos, and other photo integrations. One card appears per enabled provider.
 - **AirTrail** (only when the AirTrail addon is enabled) — Instance URL and API key for your self-hosted AirTrail, plus a self-signed-certificate switch and a **Write changes back to AirTrail** toggle (off by default: AirTrail is the source of truth and TREK only reads from it). **Test connection** reports how many flights it can see. The key is stored encrypted and never prefilled — leaving the field blank keeps the stored one.
 - **Dawarich** (only when the Dawarich addon is enabled): the **Instance address** and **API key** of your own Dawarich, a self-signed-certificate switch, **Test connection** and **Disconnect**. The key is stored encrypted and never handed back. See [Dawarich](Dawarich).
-- **AI parsing** (only when the AI Parsing addon is enabled) — The provider (OpenAI or Anthropic), model and API key used to extract bookings from your uploaded files, plus **Send documents as images** for vision-capable models. This is the per-user fallback: it only takes effect when your administrator has not configured a model for the whole instance. A local Ollama endpoint is not offered here — that is set up once, instance-wide, in the admin settings (#1772). See [AI-Booking-Import](AI-Booking-Import).
+- **AI parsing** (only when the AI Parsing addon is enabled): the provider (OpenAI or Anthropic), model and API key used to extract bookings from your uploaded files, plus **Model reads images**. Turn that on for a model that reads images: a photo of a ticket can then be imported as a booking, and a receipt scanned in Costs. This is the per-user fallback: it only takes effect when your administrator has not configured a model for the whole instance. A local Ollama endpoint is not offered here; that is set up once, instance-wide, in the admin settings (#1772). See [AI-Booking-Import](AI-Booking-Import#photos) and [Budget-Tracking](Budget-Tracking#scanning-a-receipt).
 - **API Keys** (whenever the tab is shown): read-only keys for the public API, so other software can read your trips. **Create key** names the key and lets you narrow **what this key may read** to single areas; the key is shown once. See [Public-API](Public-API).
 - **MCP section** (only when MCP addon is enabled):
   - Shows the MCP server endpoint URL.

@@ -277,7 +277,10 @@ describe('PlaceDetailsColumn', () => {
     placeEnrichment.mockRejectedValue(new Error('network'))
     renderColumn()
 
-    expect(await screen.findByText('places.details.error')).toBeInTheDocument()
+    // The load retries once after 1.5 s before showing the error, so the
+    // default 1 s findBy timeout is too short.
+    expect(await screen.findByText('places.details.error', undefined, { timeout: 4000 })).toBeInTheDocument()
+    expect(placeEnrichment).toHaveBeenCalledTimes(2)
   })
 
   it('FE-PDC-014: serves a second look at the same place from cache', async () => {

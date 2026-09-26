@@ -15,10 +15,18 @@ const packing: TranslationStrings = {
   'packing.import': 'Importar',
   'packing.importTitle': 'Importar lista de equipaje',
   'packing.importHint':
-    'Un elemento por línea. Categoría y cantidad opcionales separadas por coma, punto y coma o tabulación: Nombre, Categoría, Cantidad',
+    'Un elemento por línea. Formato: Categoría, Nombre, Peso en g (opcional), Bolsa (opcional), checked/unchecked (opcional)',
   'packing.importPlaceholder':
-    'Cepillo de dientes\nProtector solar, Higiene\nCamisetas, Ropa, 5\nPasaporte, Documentos',
-  'packing.importCsv': 'Cargar CSV/TXT',
+    'Higiene, Cepillo de dientes\nRopa, Camisetas, 200\nDocumentos, Pasaporte, , Equipaje de mano\nElectrónica, Cargador, 50, Maleta, checked',
+  'packing.importCsv': 'Cargar CSV/TXT/MD',
+  'packing.export': 'Exportar',
+  'packing.exportPrint': 'Imprimir o guardar como PDF',
+  'packing.exportMarkdown': 'Lista de verificación en Markdown (.md)',
+  'packing.exportCsv': 'CSV para importar (.csv)',
+  'packing.printItems': 'Artículos',
+  'packing.printPacked': 'Preparados',
+  'packing.importHintMarkdown':
+    'También sirve una lista en Markdown: un encabezado indica la categoría, "- [ ]" y "- [x]" se convierten en artículos y "3x" delante de un nombre fija la cantidad.',
   'packing.importAction': 'Importar {count}',
   'packing.importSuccess': '{count} elementos importados',
   'packing.importError': 'Error al importar',
@@ -26,9 +34,6 @@ const packing: TranslationStrings = {
   'packing.progress': '{packed} de {total} preparados ({percent}%)',
   'packing.clearChecked': 'Eliminar {count} marcados',
   'packing.clearCheckedShort': 'Eliminar {count}',
-  'packing.suggestions': 'Sugerencias',
-  'packing.suggestionsTitle': 'Añadir sugerencias',
-  'packing.allSuggested': 'Todas las sugerencias añadidas',
   'packing.allPacked': '¡Todo preparado!',
   'packing.addPlaceholder': 'Añadir nuevo elemento...',
   'packing.categoryPlaceholder': 'Lista...',
@@ -36,7 +41,6 @@ const packing: TranslationStrings = {
   'packing.filterOpen': 'Pendientes',
   'packing.filterDone': 'Hecho',
   'packing.emptyTitle': 'La lista de equipaje está vacía',
-  'packing.emptyHint': 'Añade elementos o usa las sugerencias',
   'packing.emptyFiltered': 'Ningún elemento coincide con este filtro',
   'packing.menuRename': 'Renombrar',
   'packing.menuCheckAll': 'Marcar todo',
@@ -68,128 +72,6 @@ const packing: TranslationStrings = {
   'packing.toast.deleteError': 'No se pudo eliminar',
   'packing.toast.renameError': 'No se pudo renombrar',
   'packing.toast.addError': 'No se pudo añadir',
-  'packing.suggestions.items': [
-    {
-      name: 'Pasaporte',
-      category: 'Documentos',
-    },
-    {
-      name: 'Documento de identidad',
-      category: 'Documentos',
-    },
-    {
-      name: 'Seguro de viaje',
-      category: 'Documentos',
-    },
-    {
-      name: 'Billetes de vuelo',
-      category: 'Documentos',
-    },
-    {
-      name: 'Tarjeta de crédito',
-      category: 'Finanzas',
-    },
-    {
-      name: 'Efectivo',
-      category: 'Finanzas',
-    },
-    {
-      name: 'Visado',
-      category: 'Documentos',
-    },
-    {
-      name: 'Camisetas',
-      category: 'Ropa',
-    },
-    {
-      name: 'Pantalones',
-      category: 'Ropa',
-    },
-    {
-      name: 'Ropa interior',
-      category: 'Ropa',
-    },
-    {
-      name: 'Calcetines',
-      category: 'Ropa',
-    },
-    {
-      name: 'Chaqueta',
-      category: 'Ropa',
-    },
-    {
-      name: 'Pijama',
-      category: 'Ropa',
-    },
-    {
-      name: 'Ropa de baño',
-      category: 'Ropa',
-    },
-    {
-      name: 'Impermeable',
-      category: 'Ropa',
-    },
-    {
-      name: 'Zapatos cómodos',
-      category: 'Ropa',
-    },
-    {
-      name: 'Cepillo de dientes',
-      category: 'Aseo',
-    },
-    {
-      name: 'Pasta de dientes',
-      category: 'Aseo',
-    },
-    {
-      name: 'Champú',
-      category: 'Aseo',
-    },
-    {
-      name: 'Desodorante',
-      category: 'Aseo',
-    },
-    {
-      name: 'Protector solar',
-      category: 'Aseo',
-    },
-    {
-      name: 'Maquinilla de afeitar',
-      category: 'Aseo',
-    },
-    {
-      name: 'Cargador',
-      category: 'Electrónica',
-    },
-    {
-      name: 'Batería externa',
-      category: 'Electrónica',
-    },
-    {
-      name: 'Auriculares',
-      category: 'Electrónica',
-    },
-    {
-      name: 'Adaptador de viaje',
-      category: 'Electrónica',
-    },
-    {
-      name: 'Cámara',
-      category: 'Electrónica',
-    },
-    {
-      name: 'Analgésicos',
-      category: 'Salud',
-    },
-    {
-      name: 'Tiritas',
-      category: 'Salud',
-    },
-    {
-      name: 'Desinfectante',
-      category: 'Salud',
-    },
-  ],
   'packing.makePrivate': 'Hacer privado',
   'packing.makePublic': 'Compartir',
   'packing.privateHint': 'Privado — solo visible para ti',

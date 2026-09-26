@@ -1,4 +1,4 @@
-// FE-PAGE-TPW-001 to FE-PAGE-TPW-062
+// FE-PAGE-TPW-001 to FE-PAGE-TPW-064
 //
 // The planner page is a wiring container: everything stateful lives in
 // useTripPlanner (covered in src/pages/tripPlanner/useTripPlanner.test.tsx).
@@ -44,9 +44,19 @@ function props(name: string): Record<string, AnyProp> {
 
 vi.mock('../components/Map/MapViewAuto', () => ({ MapViewAuto: stub('map', 'map-view') }))
 vi.mock('../components/Map/MapCompassPill', () => ({ MapCompassPill: stub('compass', 'compass-pill') }))
-vi.mock('../components/Map/PoiCategoryPill', () => ({ default: stub('poiPill', 'poi-pill') }))
+// Every pill mount records its props here, so a test can check each one of them.
+const poiPillMounts = vi.hoisted(() => [] as Record<string, unknown>[])
+const poiCategories = vi.hoisted(() => ({ core: [], plugin: [] }))
+vi.mock('../components/Map/PoiCategoryPill', () => ({
+  default: (props: Record<string, unknown>) => {
+    captured.poiPill = props
+    poiPillMounts.push(props)
+    return React.createElement('div', { 'data-testid': 'poi-pill' })
+  },
+}))
 vi.mock('../components/Map/usePoiExplore', () => ({
   usePoiExplore: () => ({
+    categories: poiCategories,
     active: [], pois: [], loadingKeys: [], errorKeys: [], moved: false,
     toggle: vi.fn(), searchArea: vi.fn(), onViewportChange: vi.fn(),
   }),
@@ -80,6 +90,7 @@ vi.mock('../components/Trips/TripFormModal', () => ({ default: stub('tripForm') 
 vi.mock('../components/Trips/TripMembersModal', () => ({ default: stub('membersModal') }))
 vi.mock('../components/Packing/PackingListPanel', () => ({ default: stub('packingPanel', 'packing-list-panel') }))
 vi.mock('../components/Packing/ApplyTemplateButton', () => ({ default: stub('applyTemplate', 'apply-template') }))
+vi.mock('../components/Packing/PackingExportMenu', () => ({ default: stub('exportMenu', 'export-menu') }))
 vi.mock('../components/Todo/TodoListPanel', () => ({ default: stub('todoPanel', 'todo-list-panel') }))
 vi.mock('../components/Files/FileManager', () => ({ default: stub('fileManager', 'file-manager') }))
 vi.mock('../components/Budget/CostsPanel', () => ({
@@ -494,6 +505,24 @@ describe('TripPlannerPage — plan tab', () => {
     const { container } = renderPage({ leftWidth: 340, rightWidth: 300 })
     const cluster = container.querySelector('div[style*="translateX(-50%)"][style*="z-index: 25"]') as HTMLElement
     expect(cluster.style.left).toBe('calc(350px + 0.5 * (100% - 350px - 310px))')
+  })
+
+  // Plugins can add POI categories (#1781), so the pill may outgrow the corridor; bounded
+  // to it, the pill scrolls there instead of running on under a panel.
+  it('FE-PAGE-TPW-063: the floating map controls are no wider than the corridor', () => {
+    const { container } = renderPage({ leftWidth: 340, rightWidth: 300 })
+    const cluster = container.querySelector('div[style*="translateX(-50%)"][style*="z-index: 25"]') as HTMLElement
+    // The two panel insets (350 and 310) and a 12px margin on either side.
+    expect(cluster.style.maxWidth).toBe('calc(100% - 684px)')
+  })
+
+  it('FE-PAGE-TPW-064: both pill mounts offer the categories the explore hook merged', () => {
+    poiPillMounts.length = 0
+    renderPage()
+    // The floating desktop pill and the portal the narrow layout uses.
+    expect(poiPillMounts.length).toBeGreaterThanOrEqual(2)
+    expect(poiPillMounts.every(mount => mount.categories === poiCategories)).toBe(true)
+    expect(screen.getByTestId('mobile-poi-category-pill')).toContainElement(screen.getAllByTestId('poi-pill')[1])
   })
 
   it('FE-PAGE-TPW-013d: a hidden panel takes no corridor away from the map controls', () => {
@@ -1017,13 +1046,14 @@ describe('TripPlannerPage — lists tab', () => {
     expect(props('todoPanel').addItemSignal).toBe(1)
   })
 
-  it('FE-PAGE-TPW-041: the clear-checked action only appears once something is checked', async () => {
+  it('FE-PAGE-TPW-041: Add list in the bar opens the list name field in the panel', async () => {
     renderPage({ activeTab: 'listen', packingItems: [buildPackingItem({ checked: 1 })] })
     await screen.findByTestId('packing-list-panel')
 
-    const clear = screen.getByRole('button', { name: /Remove 1 checked/i })
-    fireEvent.click(clear)
-    expect(props('packingPanel').clearCheckedSignal).toBe(1)
+    // Removing checked items moved into the panel's progress card.
+    expect(screen.queryByRole('button', { name: /Remove 1 checked/i })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: /Add list/i }))
+    expect(props('packingPanel').addCategorySignal).toBe(1)
   })
 
   it('FE-PAGE-TPW-042: an admin can save the current list as a template', async () => {
@@ -1051,6 +1081,21 @@ describe('TripPlannerPage — lists tab', () => {
     expect(props('applyTemplate').visibility).toBe('common')
     act(() => { props('packingPanel').onViewChange('personal') })
     expect(props('applyTemplate').visibility).toBe('personal')
+  })
+
+  it('FE-PAGE-TPW-044b: export and import sit in the header as icons, export following the open view (#875, #1420)', async () => {
+    renderPage({ activeTab: 'listen', packingItems: [buildPackingItem({ checked: 0 })] })
+    await screen.findByTestId('packing-list-panel')
+
+    expect(screen.getByTestId('export-menu')).toBeInTheDocument()
+    expect(props('exportMenu').tripId).toBe(42)
+    expect(props('exportMenu').view).toBe('common')
+    act(() => { props('packingPanel').onViewChange('personal') })
+    expect(props('exportMenu').view).toBe('personal')
+
+    const importButton = screen.getByRole('button', { name: 'Import' })
+    expect(importButton).toHaveAttribute('title', 'Import')
+    expect(importButton).toHaveTextContent('')
   })
 })
 

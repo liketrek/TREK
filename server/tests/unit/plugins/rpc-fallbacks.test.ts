@@ -180,7 +180,7 @@ describe('service errors are translated into the RPC taxonomy', () => {
     const { guards } = guardsFor();
     const notifyBookingChange = vi.fn();
     const reservations = {
-      remove: vi.fn(() => ({ deleted: { title: 'Hotel', type: null, accommodation_id: null }, accommodationDeleted: false, deletedBudgetItemId: null })),
+      remove: vi.fn(() => ({ deleted: { title: 'Hotel', type: null, accommodation_id: null }, accommodationDeleted: false, deletedBudgetItemId: null, deletedBudgetItemIds: [] })),
       notifyBookingChange,
     } as never;
     const host = new PluginRpcHost('p', ALL, makeDeps(), createTestPluginRegistry([new ReservationsRpc(reservations, realtime(), guards)]));

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ClipboardEvent } from 'react'
-import { MapPin, Plus } from 'lucide-react'
+import { MapPin } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import {
   DEFAULT_FORM,
@@ -14,6 +14,11 @@ import PlPlaceSearch, { type PlSearchPick } from './PlPlaceSearch'
 import PlCategoryPicker from './PlCategoryPicker'
 import PlTimeFields from './PlTimeFields'
 import PlFileAttach from './PlFileAttach'
+import MLinkedCosts from './MLinkedCosts'
+import PlaceDetailsColumn, { type PlaceDetailsSelection } from '../../../../components/Planner/PlaceDetailsColumn'
+import { useTranslation } from '../../../../i18n'
+import { useAuthStore } from '../../../../store/authStore'
+import { useSettingsStore } from '../../../../store/settingsStore'
 import type { Assignment, AssignmentsMap, Place } from '../../../../types'
 import type { TripPlanner } from '../MTripShell'
 import { useLocationBias } from '../../../../hooks/useLocationBias'
@@ -99,6 +104,14 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
   const [sheetPlace, setSheetPlace] = useState<Place | null>(null)
   const [sheetAssignmentId, setSheetAssignmentId] = useState<number | null>(null)
 
+  // The details block under the search field follows the same selection rules
+  // as the desktop dialog's left column: the picked search result, else the
+  // place being edited, else whatever a map POI prefilled.
+  const [detailsSelection, setDetailsSelection] = useState<PlaceDetailsSelection | null>(null)
+  const placesEnrichEnabled = useAuthStore(s => s.placesEnrichEnabled)
+  const { language, locale } = useTranslation()
+  const timeFormat = useSettingsStore(s => s.settings.time_format) || '24h'
+
   // Live rather than the open-time snapshot, so the note's dirty check compares against
   // the note as it stands when Save is tapped.
   const ctxAssignment = useMemo(
@@ -155,6 +168,26 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
     } else {
       setForm(DEFAULT_FORM)
     }
+    // Same source order as the desktop dialog: an existing place's provider id
+    // and coordinates, a map POI's prefill, or nothing. Without this the block
+    // would keep showing the previous sheet's place.
+    if (editingPlace && editingPlace.lat != null && editingPlace.lng != null) {
+      setDetailsSelection({
+        placeId: editingPlace.google_place_id || editingPlace.amap_poi_id || editingPlace.osm_id || undefined,
+        lat: Number(editingPlace.lat),
+        lng: Number(editingPlace.lng),
+        name: editingPlace.name || '',
+      })
+    } else if (prefillCoords) {
+      setDetailsSelection({
+        placeId: prefillCoords.osm_id || undefined,
+        lat: prefillCoords.lat,
+        lng: prefillCoords.lng,
+        name: prefillCoords.name || '',
+      })
+    } else {
+      setDetailsSelection(null)
+    }
     // A fresh sheet owns nothing yet; one opened on a map POI owns whatever
     // that POI filled in. An existing place being edited owns nothing either —
     // everything on that form came out of the database.
@@ -188,6 +221,21 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
   // airport and then a station left the airport's website in the field.
   const applyPick = (pick: PlSearchPick) => {
     setForm(prev => mergeResult(prev, pick as unknown as Record<string, unknown>, autoFilledRef.current))
+    // The details block hangs off the same pick, like the desktop column. A
+    // pick without usable coordinates leaves the previous selection alone.
+    const lat = Number.parseFloat(pick.lat ?? '')
+    const lng = Number.parseFloat(pick.lng ?? '')
+    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+      setDetailsSelection({
+        placeId: pick.google_place_id || pick.amap_poi_id || pick.osm_id || undefined,
+        lat,
+        lng,
+        name: pick.name || '',
+        // Hand the record along: the server needs the same record for the
+        // enrichment call, and looking it up again costs a provider round trip.
+        details: pick.details,
+      })
+    }
   }
 
   const handleClose = () => {
@@ -310,6 +358,23 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
       <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[6px] pt-[2px]" onPaste={handlePaste}>
         <PlPlaceSearch planner={planner} locationBias={locationBias} onPick={applyPick} onResolvingChange={setResolvingPick} />
 
+        {placesEnrichEnabled && (
+          <div className="mt-3">
+            <PlaceDetailsColumn
+              selection={detailsSelection}
+              selectedImageUrl={form.image_url}
+              onPickImage={(url) => setForm(prev => ({ ...prev, image_url: url ?? undefined }))}
+              onAdoptDescription={(text) => setForm(prev => ({ ...prev, description: text }))}
+              hasDescription={!!form.description.trim()}
+              language={language}
+              timeFormat={timeFormat}
+              locale={locale}
+              fluid
+              t={t}
+            />
+          </div>
+        )}
+
         <Eyebrow className="mb-[5px] mt-3 uppercase">{t('places.formName')} *</Eyebrow>
         <input
           type="text"
@@ -413,19 +478,13 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
 
         {/* COSTS — same block, same flow as the booking sheet (#1298) */}
         {isBudgetEnabled && (
-          <>
-            <Eyebrow className="mb-[6px] mt-3 uppercase">{t('reservations.costsLabel')}</Eyebrow>
-            <button
-              type="button"
-              onClick={() => { expenseIntentRef.current = true; handleSubmit() }}
-              disabled={!form.name.trim() || isSaving}
-              className="flex w-full items-center justify-center gap-[6px] rounded-[13px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] py-[11px] text-[0.78125rem] font-semibold text-m-ink disabled:opacity-40"
-            >
-              <Plus size={13} strokeWidth={2.2} />
-              {t('reservations.createExpense')}
-            </button>
-            <div className="mt-[5px] font-geist text-[0.625rem] text-m-faint">{t('places.createExpenseHint')}</div>
-          </>
+          <MLinkedCosts
+            placeId={sheetPlace?.id}
+            hintKey="places.createExpenseHint"
+            createDisabled={!form.name.trim() || isSaving}
+            onCreate={() => { expenseIntentRef.current = true; handleSubmit() }}
+            onEdit={item => onOpenExpense({ editItem: item })}
+          />
         )}
       </div>
 

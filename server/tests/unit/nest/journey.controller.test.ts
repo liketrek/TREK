@@ -4,7 +4,7 @@ import type { Response } from 'express';
 
 import { JourneyController } from '../../../src/nest/journey/journey.controller';
 import { journeyThumbName } from '../../../src/nest/memories/thumbnail.service';
-import type { PhotoCaptureBackfillService } from '../../../src/nest/memories/photo-capture-backfill.service';
+import type { JourneyPhotoCaptureService } from '../../../src/nest/journey/journey-photo-capture.service';
 import { JourneyPublicController } from '../../../src/nest/journey/journey-public.controller';
 import { AddonGuard } from '../../../src/nest/addons/addon.guard';
 import { REQUIRE_ADDON } from '../../../src/nest/addons/require-addon.decorator';
@@ -28,9 +28,14 @@ const storageStub = {
   exists: storageExists,
   sendToResponse: storageSendToResponse,
 } as unknown as StorageService;
-// The capture backfill is detached and irrelevant to every case here — it only has
-// to exist so the constructor can call it.
-const captureBackfillStub = { schedule: vi.fn(), run: vi.fn() } as unknown as PhotoCaptureBackfillService;
+// The capture backfill is detached; most cases here only need it to exist so the
+// constructor can call it. The spies are read by the cases that pin which journey
+// (or entry) a provider batch is reported against, and that uploads get the
+// backfill without the refresh (#1587).
+const scheduleForEntry = vi.fn();
+const scheduleForJourney = vi.fn();
+const scheduleUpload = vi.fn();
+const captureBackfillStub = { scheduleForEntry, scheduleForJourney, scheduleUpload } as unknown as JourneyPhotoCaptureService;
 
 /**
  * Build the controller.
@@ -91,6 +96,42 @@ describe('JourneyController', () => {
     expect(ctl(batch).providerPhotos(user, '3', { provider: 'immich', asset_ids: ['a', 'b'] })).toEqual({ photos: [{ id: 1 }, { id: 1 }], added: 2 });
     expect(thrown(() => ctl(svc()).providerPhotos(user, '3', { provider: 'immich' }))).toEqual({ status: 400, body: { error: 'provider and asset_id required' } });
     expect(thrown(() => ctl(svc({ addProviderPhoto: vi.fn().mockReturnValue(null) } as Partial<JourneyService>)).providerPhotos(user, '3', { provider: 'immich', asset_id: 'a' }))).toEqual({ status: 403, body: { error: 'Not allowed or duplicate' } });
+  });
+
+  it('provider-photos hand what they added to the shared capture refresh, by entry or by journey; uploads only backfill (#1587)', async () => {
+    const entryPhoto = { id: 1, photo_id: 11 };
+    const galleryPhoto = { id: 2, photo_id: 12 };
+    const withAdds = svc({
+      addProviderPhoto: vi.fn().mockReturnValue(entryPhoto),
+      addProviderPhotoToGallery: vi.fn().mockReturnValue(galleryPhoto),
+      addPhoto: vi.fn().mockReturnValue(entryPhoto),
+      uploadGalleryPhotos: vi.fn().mockReturnValue([galleryPhoto]),
+      immichAutoUploadEnabled: vi.fn().mockReturnValue(false),
+    } as Partial<JourneyService>);
+    const c = ctl(withAdds);
+
+    c.providerPhotos(user, '3', { provider: 'immich', asset_ids: ['a'] });
+    c.providerPhotos(user, '3', { provider: 'immich', asset_id: 'b' });
+    await c.uploadEntryPhotos(user, '3', [{ filename: 'a.jpg', originalname: 'a.jpg' } as Express.Multer.File], {});
+    expect(scheduleForEntry.mock.calls).toEqual([
+      [3, [entryPhoto], 1],
+      [3, [entryPhoto], 1],
+    ]);
+
+    c.galleryProviderPhotos(user, '9', { provider: 'immich', asset_ids: ['a'] });
+    c.galleryProviderPhotos(user, '9', { provider: 'immich', asset_id: 'b' });
+    await c.uploadGalleryPhotos(user, '9', [{ filename: 'g.jpg' } as Express.Multer.File]);
+    expect(scheduleForJourney.mock.calls).toEqual([
+      [9, [galleryPhoto], 1],
+      [9, [galleryPhoto], 1],
+    ]);
+
+    // The client uploads one file per request, so a refresh per upload would
+    // reload every open client once per photo: uploads backfill and stay quiet.
+    expect(scheduleUpload.mock.calls).toEqual([
+      [[entryPhoto], 1],
+      [[galleryPhoto], 1],
+    ]);
   });
 
   it('link-photo: 400 without id (accepts legacy photo_id), 403, success', () => {

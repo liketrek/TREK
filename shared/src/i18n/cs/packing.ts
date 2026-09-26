@@ -18,7 +18,15 @@ const packing: TranslationStrings = {
     'Jedna položka na řádek. Formát: Kategorie, Název, Váha v g (volitelné), Zavazadlo (volitelné), checked/unchecked (volitelné)',
   'packing.importPlaceholder':
     'Hygiena, Zubní kartáček\nOblečení, Trička, 200\nDokumenty, Pas, , Příruční zavazadlo\nElektronika, Nabíječka, 50, Kufr, checked',
-  'packing.importCsv': 'Načíst CSV/TXT',
+  'packing.importCsv': 'Načíst CSV/TXT/MD',
+  'packing.export': 'Exportovat',
+  'packing.exportPrint': 'Vytisknout nebo uložit jako PDF',
+  'packing.exportMarkdown': 'Kontrolní seznam v Markdownu (.md)',
+  'packing.exportCsv': 'CSV pro import (.csv)',
+  'packing.printItems': 'Položky',
+  'packing.printPacked': 'Zabaleno',
+  'packing.importHintMarkdown':
+    'Funguje i seznam v Markdownu: nadpis určuje kategorii, z "- [ ]" a "- [x]" se stanou položky a "3x" před názvem nastaví množství.',
   'packing.importAction': 'Importovat {count}',
   'packing.importSuccess': '{count} položek importováno',
   'packing.importError': 'Import se nezdařil',
@@ -26,9 +34,6 @@ const packing: TranslationStrings = {
   'packing.progress': '{packed} z {total} zabaleno ({percent} %)',
   'packing.clearChecked': 'Odstranit {count} hotových',
   'packing.clearCheckedShort': 'Odstranit {count}',
-  'packing.suggestions': 'Návrhy',
-  'packing.suggestionsTitle': 'Přidat návrhy',
-  'packing.allSuggested': 'Všechny návrhy byly přidány',
   'packing.allPacked': 'Vše je zabaleno!',
   'packing.addPlaceholder': 'Přidat novou položku...',
   'packing.categoryPlaceholder': 'Seznam...',
@@ -36,7 +41,6 @@ const packing: TranslationStrings = {
   'packing.filterOpen': 'K zabalení',
   'packing.filterDone': 'Hotovo',
   'packing.emptyTitle': 'Seznam věcí je prázdný',
-  'packing.emptyHint': 'Přidejte položky nebo použijte návrhy',
   'packing.emptyFiltered': 'Žádné položky neodpovídají filtru',
   'packing.menuRename': 'Přejmenovat',
   'packing.menuCheckAll': 'Označit vše',
@@ -68,128 +72,6 @@ const packing: TranslationStrings = {
   'packing.toast.deleteError': 'Smazání se nezdařilo',
   'packing.toast.renameError': 'Přejmenování se nezdařilo',
   'packing.toast.addError': 'Přidání se nezdařilo',
-  'packing.suggestions.items': [
-    {
-      name: 'Pas',
-      category: 'Dokumenty',
-    },
-    {
-      name: 'Občanský průkaz',
-      category: 'Dokumenty',
-    },
-    {
-      name: 'Cestovní pojištění',
-      category: 'Dokumenty',
-    },
-    {
-      name: 'Letenky',
-      category: 'Dokumenty',
-    },
-    {
-      name: 'Platební karta',
-      category: 'Finance',
-    },
-    {
-      name: 'Hotovost',
-      category: 'Finance',
-    },
-    {
-      name: 'Víza',
-      category: 'Dokumenty',
-    },
-    {
-      name: 'Trička',
-      category: 'Oblečení',
-    },
-    {
-      name: 'Kalhoty',
-      category: 'Oblečení',
-    },
-    {
-      name: 'Spodní prádlo',
-      category: 'Oblečení',
-    },
-    {
-      name: 'Ponožky',
-      category: 'Oblečení',
-    },
-    {
-      name: 'Bunda',
-      category: 'Oblečení',
-    },
-    {
-      name: 'Pyžamo',
-      category: 'Oblečení',
-    },
-    {
-      name: 'Plavky',
-      category: 'Oblečení',
-    },
-    {
-      name: 'Pláštěnka',
-      category: 'Oblečení',
-    },
-    {
-      name: 'Pohodlné boty',
-      category: 'Oblečení',
-    },
-    {
-      name: 'Zubní kartáček',
-      category: 'Hygiena',
-    },
-    {
-      name: 'Zubní pasta',
-      category: 'Hygiena',
-    },
-    {
-      name: 'Šampón',
-      category: 'Hygiena',
-    },
-    {
-      name: 'Deodorant',
-      category: 'Hygiena',
-    },
-    {
-      name: 'Opalovací krém',
-      category: 'Hygiena',
-    },
-    {
-      name: 'Holicí strojek',
-      category: 'Hygiena',
-    },
-    {
-      name: 'Nabíječka',
-      category: 'Elektronika',
-    },
-    {
-      name: 'Powerbanka',
-      category: 'Elektronika',
-    },
-    {
-      name: 'Sluchátka',
-      category: 'Elektronika',
-    },
-    {
-      name: 'Cestovní adaptér',
-      category: 'Elektronika',
-    },
-    {
-      name: 'Fotoaparát',
-      category: 'Elektronika',
-    },
-    {
-      name: 'Léky proti bolesti',
-      category: 'Zdraví',
-    },
-    {
-      name: 'Náplasti',
-      category: 'Zdraví',
-    },
-    {
-      name: 'Dezinfekce',
-      category: 'Zdraví',
-    },
-  ],
   'packing.makePrivate': 'Nastavit jako soukromé',
   'packing.makePublic': 'Sdílet',
   'packing.privateHint': 'Soukromé — vidíte jen vy',

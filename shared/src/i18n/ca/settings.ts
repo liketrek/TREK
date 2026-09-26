@@ -63,6 +63,8 @@ const settings: TranslationStrings = {
   'settings.language': 'Idioma',
   'settings.temperature': 'Unitat de temperatura',
   'settings.timeFormat': "Format d'hora",
+  'settings.weekStart': 'La setmana comença el',
+  'settings.weekStartHint': 'Primer dia de la setmana a tots els selectors de data. Vacay té la seva pròpia opció.',
   'settings.blurBookingCodes': 'Difumina els codis de reserva',
   'settings.optimizeFromAccommodation': "Optimitza la ruta des de l'allotjament",
   'settings.optimizeFromAccommodationHint':
@@ -294,6 +296,19 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.webhook': 'Webhook',
   'settings.notificationPreferences.email': 'Correu electrònic',
   'settings.notificationPreferences.ntfy': 'Ntfy',
+  'settings.notificationPreferences.push': 'Push',
+  'settings.webPush.title': 'Notificacions push en aquest dispositiu',
+  'settings.webPush.hint':
+    'Mostra les notificacions de TREK en aquest dispositiu fins i tot quan TREK està tancat. Els esdeveniments que arriben segueixen la columna Push.',
+  'settings.webPush.enable': 'Activa en aquest dispositiu',
+  'settings.webPush.disable': 'Desactiva en aquest dispositiu',
+  'settings.webPush.enabled': 'Activat en aquest dispositiu',
+  'settings.webPush.unsupported': 'Aquest navegador no pot rebre notificacions push.',
+  'settings.webPush.insecure': "Push necessita que TREK s'obri per HTTPS.",
+  'settings.webPush.iosInstall': "A l'iPhone i l'iPad, afegeix primer TREK a la pantalla d'inici i obre'l des d'allà.",
+  'settings.webPush.denied':
+    'Les notificacions de TREK estan bloquejades en aquest navegador. Permet-les a la configuració del navegador i torna-ho a provar.',
+  'settings.webPush.failed': "No s'ha pogut activar push en aquest dispositiu.",
   'settings.passkey.title': 'Passkeys',
   'settings.passkey.description':
     'Inicia la sessió més ràpidament i amb protecció contra el phishing utilitzant una passkey: la teva empremta, la teva cara, el teu PIN o una clau de seguretat física. La teva contrasenya continua disponible com a alternativa.',
@@ -364,9 +379,9 @@ const settings: TranslationStrings = {
     "On s'executa el model — un servidor local d'Ollama o un punt final compatible amb OpenAI.",
   'settings.aiParsing.apiKey': "Clau de l'API",
   'settings.aiParsing.apiKeyHint': "S'emmagatzema xifrada. Deixa-ho en blanc per mantenir la clau actual.",
-  'settings.aiParsing.multimodal': 'Enviar documents com a imatges',
+  'settings.aiParsing.multimodal': 'El model llegeix imatges',
   'settings.aiParsing.multimodalHint':
-    'Per a models amb capacitats de visió — envia el PDF original en comptes del text extret.',
+    'Activa-ho per a un model que llegeix imatges, així es pot importar o escanejar una foto.',
   'settings.aiParsing.toast.saved': "Ajustos d'IA desats",
   'settings.aiParsing.toast.saveError': "No s'han pogut desar els ajustos d'IA",
   'settings.tabs.appearance': 'Aparença',

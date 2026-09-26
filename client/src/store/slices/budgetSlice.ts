@@ -48,6 +48,8 @@ export const createBudgetSlice = (set: SetState, get: GetState): BudgetSlice => 
       // can freeze one even when its own fetch fails.
       const result = await budgetApi.create(tripId, withFallbackFx(data, openTripCurrency(get, tripId)))
       set(state => ({ budgetItems: [...state.budgetItems, result.item] }))
+      // The booking mirrors its expenses' total (#2084), so a new one on it changes its card.
+      if (result.item.reservation_id) get().loadReservations(tripId)
       return result.item
     } catch (err: unknown) {
       throw new Error(getApiErrorMessage(err, 'Error adding budget item'))
@@ -60,7 +62,9 @@ export const createBudgetSlice = (set: SetState, get: GetState): BudgetSlice => 
       set(state => ({
         budgetItems: state.budgetItems.map(item => item.id === id ? result.item : item)
       }))
-      if (result.item.reservation_id && data.total_price !== undefined) {
+      // The booking mirrors its expenses' total, so any edit of an expense on one
+      // (total, currency, payers) or a link that moved (#2084) changes its card.
+      if (result.item.reservation_id || data.reservation_id !== undefined) {
         get().loadReservations(tripId)
       }
       return result.item

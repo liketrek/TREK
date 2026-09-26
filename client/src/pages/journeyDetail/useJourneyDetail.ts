@@ -17,6 +17,7 @@ import { openStaysByDate } from '../../components/Dawarich/dawarichSuggestionMod
 import type { DawarichSuggestion, DawarichSuggestionTarget } from '@trek/shared'
 
 import { useDawarichJournalTrail } from '../../hooks/useDawarichJournalTrail'
+import { useProviderPhotoAdds } from './useProviderPhotoAdds'
 
 /** Stable identity for "this journey draws no trip tracks" (#2194). */
 const NO_TRACKS: JourneyTrack[] = []
@@ -290,6 +291,10 @@ export function useJourneyDetail() {
     }
   }, [updateEntry, loadJourney, current, toast, t])
 
+  // Provider photos from the gallery picker and from the entry editor, the same
+  // way on desktop and phone (#1587).
+  const providerPhotos = useProviderPhotoAdds(() => { void loadJourney(Number(id)) })
+
   const restoreSuggestions = useCallback(async () => {
     if (!current) return
     try {
@@ -541,5 +546,7 @@ export function useJourneyDetail() {
     mapEntries, sidebarMapItems, tripDates, isMobile, tracks: mapTracks, dawarichTrail,
     feedEdge, scrollFeedTo,
     loadJourney, updateEntry, deleteEntry, reorderEntries, uploadPhotos, deletePhoto,
+    addPickedProviderPhotos: providerPhotos.addPickedPhotos,
+    addEntryProviderPhotos: providerPhotos.addEntryPhotos,
   }
 }

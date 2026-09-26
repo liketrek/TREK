@@ -76,6 +76,8 @@ const settings: TranslationStrings = {
   'settings.temperature': 'Satuan Suhu',
   'settings.distance': 'Satuan Jarak',
   'settings.timeFormat': 'Format Waktu',
+  'settings.weekStart': 'Awal minggu',
+  'settings.weekStartHint': 'Hari pertama dalam seminggu di setiap pemilih tanggal. Vacay punya pengaturannya sendiri.',
   'settings.blurBookingCodes': 'Sembunyikan Kode Pemesanan',
   'settings.aiAlwaysRetry': 'Always retry booking imports with AI',
   'settings.aiAlwaysRetryHint': 'When a file cannot be read by the standard parser, automatically retry it with AI.',
@@ -110,6 +112,20 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.testFailed': 'Tes gagal.',
   'settings.notificationPreferences.pluginConfigured': 'Sudah diatur. Kelola kredensial di halaman pengaturan plugin.',
   'settings.notificationPreferences.ntfy': 'Ntfy',
+  'settings.notificationPreferences.push': 'Push',
+  'settings.webPush.title': 'Notifikasi push di perangkat ini',
+  'settings.webPush.hint':
+    'Menampilkan notifikasi TREK di perangkat ini meskipun TREK sedang ditutup. Peristiwa yang dikirim mengikuti kolom Push.',
+  'settings.webPush.enable': 'Aktifkan untuk perangkat ini',
+  'settings.webPush.disable': 'Nonaktifkan untuk perangkat ini',
+  'settings.webPush.enabled': 'Aktif untuk perangkat ini',
+  'settings.webPush.unsupported': 'Browser ini tidak dapat menerima notifikasi push.',
+  'settings.webPush.insecure': 'Push memerlukan TREK dibuka melalui HTTPS.',
+  'settings.webPush.iosInstall':
+    'Di iPhone dan iPad, tambahkan TREK ke Layar Utama terlebih dahulu, lalu buka dari sana.',
+  'settings.webPush.denied':
+    'Notifikasi untuk TREK diblokir di browser ini. Izinkan di pengaturan browser, lalu coba lagi.',
+  'settings.webPush.failed': 'Push tidak dapat diaktifkan untuk perangkat ini.',
   'settings.notificationPreferences.noChannels':
     'Belum ada saluran notifikasi yang dikonfigurasi. Minta admin untuk mengatur notifikasi email atau webhook.',
   'settings.webhookUrl.label': 'Webhook URL',
@@ -380,9 +396,9 @@ const settings: TranslationStrings = {
     'Tempat model berjalan — server Ollama lokal atau endpoint yang kompatibel dengan OpenAI.',
   'settings.aiParsing.apiKey': 'Kunci API',
   'settings.aiParsing.apiKeyHint': 'Disimpan secara terenkripsi. Biarkan kosong untuk mempertahankan kunci saat ini.',
-  'settings.aiParsing.multimodal': 'Kirim dokumen sebagai gambar',
+  'settings.aiParsing.multimodal': 'Model membaca gambar',
   'settings.aiParsing.multimodalHint':
-    'Untuk model yang mendukung visi — mengirim PDF asli alih-alih teks yang diekstrak.',
+    'Aktifkan untuk model yang membaca gambar, agar foto dapat diimpor atau dipindai.',
   'settings.aiParsing.toast.saved': 'Pengaturan AI disimpan',
   'settings.aiParsing.toast.saveError': 'Tidak dapat menyimpan pengaturan AI',
   'settings.tabs.appearance': 'Appearance',

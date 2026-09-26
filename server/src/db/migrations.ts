@@ -70,6 +70,22 @@ export function trimUserWhitespace(db: Database.Database): boolean {
   return hadCollision;
 }
 
+/**
+ * Keeps place_regions in step with the place it was resolved from (#2527): a
+ * change to lat, lng or address drops the cached row. Migrations 244 and 246
+ * both create it, see there.
+ */
+function createPlaceRegionsFollowPlaceTrigger(db: Database.Database): void {
+  db.exec(`
+    CREATE TRIGGER IF NOT EXISTS trg_place_regions_follow_place
+    AFTER UPDATE OF lat, lng, address ON places
+    WHEN OLD.lat IS NOT NEW.lat OR OLD.lng IS NOT NEW.lng OR OLD.address IS NOT NEW.address
+    BEGIN
+      DELETE FROM place_regions WHERE place_id = NEW.id;
+    END
+  `);
+}
+
 function runMigrations(db: Database.Database): void {
   db.exec('CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL)');
   const versionRow = db.prepare('SELECT version FROM schema_version').get() as { version: number } | undefined;
@@ -5274,17 +5290,52 @@ function runMigrations(db: Database.Database): void {
      * clause matters because every place edit writes lat, lng and address
      * back whether they changed or not, and renaming a place must not throw
      * away a good row. The next Atlas load resolves the place where it is now.
+     *
+     * This is 244 on main (4.3.3) as well, so it sits here, ahead of Web Push.
+     */
+    () => createPlaceRegionsFollowPlaceTrigger(db),
+
+    /*
+     * Web Push (#894): one row per browser a user switched push on in.
+     *
+     * The endpoint is the push service URL that browser handed out, so it is
+     * unique: a browser shared by two accounts belongs to whoever subscribed on
+     * it last. p256dh and auth are the browser's keys for the RFC 8291 message
+     * encryption. vapid_public_key is the server key the subscription was made
+     * against, so a changed key pair shows up as a mismatch the sender can clean
+     * up, rather than as a push service refusing every message. failure_count
+     * and last_success_at are bookkeeping for the sender; the rows go with the
+     * user.
+     *
+     * Web Push was 244 before the #2527 trigger took that slot to match main.
+     * A 4.3.3 install is already at 244 with the trigger and gets the table
+     * here; an instance that ran this at 244 replays it as a no-op.
      */
     () => {
       db.exec(`
-        CREATE TRIGGER IF NOT EXISTS trg_place_regions_follow_place
-        AFTER UPDATE OF lat, lng, address ON places
-        WHEN OLD.lat IS NOT NEW.lat OR OLD.lng IS NOT NEW.lng OR OLD.address IS NOT NEW.address
-        BEGIN
-          DELETE FROM place_regions WHERE place_id = NEW.id;
-        END
+        CREATE TABLE IF NOT EXISTS push_subscriptions (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          endpoint TEXT NOT NULL UNIQUE,
+          p256dh TEXT NOT NULL,
+          auth TEXT NOT NULL,
+          vapid_public_key TEXT NOT NULL,
+          user_agent TEXT,
+          created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          last_success_at TEXT,
+          failure_count INTEGER NOT NULL DEFAULT 0
+        );
+        CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions(user_id);
       `);
     },
+
+    /*
+     * The #2527 trigger once more, for an instance that ran Web Push at 244
+     * before the trigger took that slot. Such an instance never runs 244 again,
+     * so it gets the trigger here. Everywhere else it already exists and this
+     * is a no-op.
+     */
+    () => createPlaceRegionsFollowPlaceTrigger(db),
   ];
 
   if (currentVersion < migrations.length) {

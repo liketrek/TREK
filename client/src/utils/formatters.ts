@@ -127,6 +127,24 @@ export function cleanAmountText(value: string | number | null | undefined): stri
 }
 
 /**
+ * A booking's price for its card: formatted as money when it is a number, in
+ * its own currency or else the trip's (a price with none is in the trip's
+ * currency), and passed through as written otherwise.
+ */
+export function formatPriceText(
+  price: string | number | null | undefined,
+  currency: string | null | undefined,
+  tripCurrency: string | null | undefined,
+  locale: string,
+): string {
+  if (price == null || price === '') return ''
+  const n = Number(price)
+  const code = (currency || tripCurrency || '').toUpperCase()
+  if (Number.isFinite(n) && String(price).trim() !== '' && code) return formatMoney(n, code, locale)
+  return `${cleanAmountText(price)}${currency ? ` ${currency.toUpperCase()}` : ''}`
+}
+
+/**
  * Locale- and currency-correct money formatting via Intl: the symbol position,
  * thousands/decimal separators and decimal count all follow the user's locale
  * and the currency itself (e.g. de-DE EUR → "1.234,56 €", en-US USD → "$1,234.56",

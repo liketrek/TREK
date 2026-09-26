@@ -29,6 +29,8 @@ const login: TranslationStrings = {
   'login.oidcSignIn': '{name} ile oturum açın',
   'login.oidcOnly': 'Parola kimlik doğrulaması devre dışı. Lütfen SSO sağlayıcınızı kullanarak oturum açın.',
   'login.oidcLoggedOut': 'Çıkış yaptınız. SSO sağlayıcınızı kullanarak tekrar oturum açın.',
+  'login.oidcRedirecting': '{name} adresine yönlendiriliyorsunuz…',
+  'login.oidcRedirectSlow': 'Hâlâ burada mısınız? {name} ile devam edin',
   'login.demoHint': 'Demoyu deneyin; kayıt olmanıza gerek yok',
   'login.mfaTitle': 'İki faktörlü kimlik doğrulama',
   'login.mfaSubtitle': 'Kimlik doğrulayıcı uygulamanızdan 6 haneli kodu girin.',

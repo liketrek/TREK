@@ -99,24 +99,35 @@ export class TrekPhotosRepository {
    * and a later, emptier answer must not blank what is already there.
    *
    * A photo with neither is the normal case, not a failure.
+   *
+   * Answers whether the row learned anything. The guard in the WHERE clause is
+   * what makes that answer mean something: SQLite counts a matched row as changed
+   * even when every COALESCE kept the old value, and the caller broadcasts a
+   * journey refresh on it (#1587).
    */
   recordCaptureMetadata(
     photoId: number,
     meta: { takenAt?: string | null; lat?: number | null; lng?: number | null },
-  ): void {
+  ): boolean {
     const { takenAt = null, lat = null, lng = null } = meta;
-    if (takenAt == null && lat == null && lng == null) return;
+    if (takenAt == null && lat == null && lng == null) return false;
     // Coordinates are stored as a pair or not at all — a lone latitude is not a
     // place, and half a pair would put the photo on the null island.
     const hasPair = Number.isFinite(lat) && Number.isFinite(lng);
-    this.db.run(
+    const pairLat = hasPair ? lat : null;
+    const pairLng = hasPair ? lng : null;
+    const result = this.db.run(
       `UPDATE trek_photos
           SET taken_at = COALESCE(taken_at, ?),
               lat      = COALESCE(lat, ?),
               lng      = COALESCE(lng, ?)
-        WHERE id = ?`,
-      takenAt, hasPair ? lat : null, hasPair ? lng : null, photoId,
+        WHERE id = ?
+          AND ((taken_at IS NULL AND ? IS NOT NULL)
+            OR (lat IS NULL AND ? IS NOT NULL)
+            OR (lng IS NULL AND ? IS NOT NULL))`,
+      takenAt, pairLat, pairLng, photoId, takenAt, pairLat, pairLng,
     );
+    return result.changes > 0;
   }
 
   /**

@@ -1,0 +1,36 @@
+import type { TranslationStrings } from '../types';
+
+const notifications: TranslationStrings = {
+  'notifications.title': 'Oznámenia',
+  'notifications.markAllRead': 'Označiť všetko ako prečítané',
+  'notifications.deleteAll': 'Zmazať všetko',
+  'notifications.showAll': 'Zobraziť všetky oznámenia',
+  'notifications.empty': 'Žiadne oznámenia',
+  'notifications.emptyDescription': 'Všetko máte prečítané!',
+  'notifications.all': 'Všetko',
+  'notifications.unreadOnly': 'Neprečítané',
+  'notifications.markRead': 'Označiť ako prečítané',
+  'notifications.markUnread': 'Označiť ako neprečítané',
+  'notifications.delete': 'Zmazať',
+  'notifications.system': 'Systém',
+  'notifications.synologySessionCleared.title': 'Synology Photos odpojené',
+  'notifications.synologySessionCleared.text':
+    'Váš server alebo účet sa zmenil — prejdite do Nastavení a znovu otestujte pripojenie.',
+  'notifications.versionAvailable.title': 'Dostupná aktualizácia',
+  'notifications.versionAvailable.text': 'TREK {version} je teraz k dispozícii.',
+  'notifications.versionAvailable.button': 'Zobraziť podrobnosti',
+  'notifications.test.title': 'Testovacie oznámenie od {actor}',
+  'notifications.test.text': 'Toto je jednoduché testovacie oznámenie.',
+  'notifications.test.booleanTitle': '{actor} žiada o vaše schválenie',
+  'notifications.test.booleanText': 'Toto je testovacie oznámenie s voľbou. Vyberte akciu nižšie.',
+  'notifications.test.accept': 'Schváliť',
+  'notifications.test.decline': 'Odmietnuť',
+  'notifications.test.navigateTitle': 'Pozrite sa na toto',
+  'notifications.test.navigateText': 'Toto je testovacie navigačné oznámenie.',
+  'notifications.test.goThere': 'Prejsť tam',
+  'notifications.test.adminTitle': 'Hromadná správa pre správcov',
+  'notifications.test.adminText': '{actor} odoslal testovacie oznámenie všetkým správcom.',
+  'notifications.test.tripTitle': '{actor} prispel do vášho výletu',
+  'notifications.test.tripText': 'Testovacie oznámenie pre výlet "{trip}".',
+};
+export default notifications;

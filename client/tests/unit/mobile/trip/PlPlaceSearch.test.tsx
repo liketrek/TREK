@@ -1,14 +1,15 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { HttpResponse, delay, http } from 'msw'
 import PlPlaceSearch from '../../../../src/mobile/screens/trip/sheets/PlPlaceSearch'
 import type { TripPlanner } from '../../../../src/mobile/screens/trip/MTripShell'
 import { useAuthStore } from '../../../../src/store/authStore'
+import { usePluginStore } from '../../../../src/store/pluginStore'
 import { buildPlanner } from '../../../helpers/mobileTrip'
 import { server } from '../../../helpers/msw/server'
-import { fireEvent, render, screen, waitFor } from '../../../helpers/render'
+import { fireEvent, render, screen, waitFor, within } from '../../../helpers/render'
 import { resetAllStores, seedStore } from '../../../helpers/store'
 
-// FE-MOB-PLSRCH-001 to FE-MOB-PLSRCH-022b
+// FE-MOB-PLSRCH-001 to FE-MOB-PLSRCH-025
 // planner.t echoes the key, so labels/toasts are asserted as their keys.
 
 const LOUVRE = {
@@ -131,6 +132,9 @@ describe('PlPlaceSearch', () => {
       osm_id: 'W7444,',
       website: 'https://louvre.fr',
       phone: '+33 1',
+      // The full record rides along so the details block can hand it to the
+      // enrichment call and skip the server's own details lookup.
+      details: LOUVRE,
     })
     expect(input).toHaveValue('')
   })
@@ -495,5 +499,75 @@ describe('PlPlaceSearch', () => {
     fireEvent.click(screen.getByRole('button', { name: 'places.searchGoogleInstead' }))
     expect(await screen.findByText('Tokyo Station')).toBeInTheDocument()
     expect(searchBodies[1]).toMatchObject({ query: 'Tokyo Station', provider: 'google' })
+  })
+})
+
+describe('PlPlaceSearch plugin search (#2221)', () => {
+  const ATP = { id: 'all-the-places', name: 'All the Places', type: 'integration' as const, icon: null }
+  const HIT = {
+    osm_id: 'plugin:all-the-places:ichiran-ueno', name: 'Ichiran Ueno', address: 'Ueno 6-11-12, Taito',
+    lat: 35.7101, lng: 139.7745, rating: 4.3, website: 'https://ichiran.com/shop/ueno', phone: null,
+    category: 'restaurant', description: null, source: 'plugin:all-the-places', pluginId: 'all-the-places',
+  }
+
+  beforeEach(() => {
+    resetAllStores()
+    autocompleteBodies = []
+    searchBodies = []
+  })
+
+  afterEach(() => {
+    usePluginStore.setState({ plugins: [] })
+  })
+
+  it('FE-MOB-PLSRCH-023: a plugin that answers as you type adds its rows under the core ones, marked with its name', async () => {
+    usePluginStore.setState({ plugins: [{ ...ATP, searchProvider: true }] })
+    server.use(recordAutocomplete(), http.get('/api/plugin-search/suggest', () => HttpResponse.json({ places: [HIT] })))
+    const { input } = setup()
+    fireEvent.change(input, { target: { value: 'Ichi' } })
+    const pluginRow = (await screen.findByText('Ichiran Ueno')).closest('button')!
+    expect(within(pluginRow).getByText('All the Places')).toBeInTheDocument()
+    const coreRow = screen.getByText('Louvre').closest('button')!
+    expect(coreRow.compareDocumentPosition(pluginRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('FE-MOB-PLSRCH-024: picking a plugin row hands over its place without a details lookup', async () => {
+    usePluginStore.setState({ plugins: [{ ...ATP, searchProvider: true }] })
+    const details = vi.fn()
+    server.use(
+      recordAutocomplete([]),
+      http.get('/api/plugin-search/suggest', () => HttpResponse.json({ places: [HIT] })),
+      http.get('/api/maps/details/:placeId', () => { details(); return HttpResponse.json({ place: null }) }),
+      recordSearch([]),
+    )
+    const { input, onPick } = setup()
+    fireEvent.change(input, { target: { value: 'Ichi' } })
+    fireEvent.click(await screen.findByText('Ichiran Ueno'))
+    await waitFor(() => expect(onPick).toHaveBeenCalledTimes(2))
+    expect(onPick).toHaveBeenLastCalledWith(expect.objectContaining({
+      name: 'Ichiran Ueno', address: 'Ueno 6-11-12, Taito', lat: '35.7101', lng: '139.7745',
+      osm_id: 'plugin:all-the-places:ichiran-ueno', website: 'https://ichiran.com/shop/ueno',
+    }))
+    expect(details).not.toHaveBeenCalled()
+    expect(searchBodies).toHaveLength(0)
+  })
+
+  it('FE-MOB-PLSRCH-025: a searched list marks every row with its source, as the desktop form does', async () => {
+    usePluginStore.setState({ plugins: [ATP] })
+    const perKeystroke = vi.fn()
+    server.use(
+      recordAutocomplete([]),
+      http.get('/api/plugin-search/suggest', () => { perKeystroke(); return HttpResponse.json({ places: [] }) }),
+      http.post('/api/maps/search', () =>
+        HttpResponse.json({ places: [{ name: 'Ichiran Shibuya', address: 'Jinnan', lat: 35.66, lng: 139.7, source: 'trek-places' }], source: 'trek-places' })),
+      http.get('/api/plugin-search', () => HttpResponse.json({ places: [HIT] })),
+    )
+    const { input } = setup()
+    fireEvent.change(input, { target: { value: 'Ichiran' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    const pluginRow = (await screen.findByText('Ichiran Ueno')).closest('button')!
+    expect(within(pluginRow).getByText('All the Places')).toBeInTheDocument()
+    expect(within(screen.getByText('Ichiran Shibuya').closest('button')!).getByText('TREK')).toBeInTheDocument()
+    expect(perKeystroke).not.toHaveBeenCalled()
   })
 })

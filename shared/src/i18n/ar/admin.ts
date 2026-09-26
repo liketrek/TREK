@@ -157,6 +157,7 @@ const admin: TranslationStrings = {
   'admin.amapKey': 'مفتاح واجهة برمجة تطبيقات Amap (高德地图)',
   'admin.amapKeyHint':
     'للبحث عن الأماكن في البر الرئيسي للصين، حيث لا يمكن الوصول إلى Google وتكون بيانات OpenStreetMap شحيحة. يتطلب مفتاحًا من نوع «Web 服务» (خدمة ويب)، وليس مفتاح JS API. يمكن الحصول عليه من console.amap.com.',
+  'admin.keyFromEnv': 'مُعيَّن عبر {name}',
   'admin.placesProvider.title': 'مزوّد البحث عن الأماكن',
   'admin.placesProvider.subtitle':
     'يجيب فهرس TREK الخاص وOpenStreetMap عن كل بحث. هنا يُختار من يُسأل أيضاً عندما لا يجدان شيئاً: «تلقائي» يفضّل Google عند وجود مفتاح، ثم Amap.',
@@ -395,6 +396,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:calendar-source': 'توفير الأحداث للتقويم',
   'admin.plugins.perm.hook:place-detail-provider': 'المساهمة بتفاصيل إضافية (مراجعات، تقييمات، روابط) لمكان ما',
   'admin.plugins.perm.hook:search-provider': 'الإجابة على عمليات البحث عن الأماكن من فهرس خاص به، إلى جانب نتائج TREK',
+  'admin.plugins.perm.hook:poi-category-provider':
+    'إضافة فئات أماكن خاصة بها إلى «استكشاف الأماكن على الخريطة»؛ وعند اختيار إحداها تتلقى الإضافة منطقة الخريطة التي تعرضها',
   'admin.plugins.perm.hook:trip-warning-provider': 'إظهار تحذيرات التحقق على الرحلة (تظهر في المخطط)',
   'admin.plugins.perm.hook:table-contributor': 'إضافة أعمدة وإجراءات إلى عروض الرحلة (الحجوزات، الأماكن، الأيام)',
   'admin.plugins.perm.hook:map-marker-provider': 'إضافة علامات إلى خريطة الرحلة (مثل عرض الحجوزات أو نقاط الاهتمام)',
@@ -407,6 +410,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.mcpTools': 'ينشر أدوات ذكاء اصطناعي',
   'admin.plugins.mcpToolsTitle': 'أدوات الذكاء الاصطناعي المنشورة',
   'admin.plugins.mcpToolsHint': 'يمكن لمساعد ذكي تشغيلها نيابة عن المستخدم. وتعمل كل أداة بالصلاحيات الممنوحة أعلاه.',
+  'admin.plugins.poiCategoriesTitle': 'فئات الخريطة التي يضيفها',
   'admin.plugins.perm.mcp:tools':
     'نشر أدوات يمكن لمساعد ذكاء اصطناعي تشغيلها نيابة عنك (يعمل بالصلاحيات التي تمنحها للإضافة هنا، وليس بصلاحياته هو)',
   'admin.plugins.perm.geolocation:read':
@@ -547,6 +551,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'يوفّر أحداث التقويم',
   'admin.plugins.cap.placeDetails': 'يُثري الأماكن',
   'admin.plugins.cap.search': 'يجيب على عمليات البحث',
+  'admin.plugins.cap.poiCategories': 'يضيف فئات إلى الخريطة',
   'admin.plugins.cap.warnings': 'يرصد المشكلات',
   'admin.plugins.cap.mapLayers': 'يرسم على الخريطة',
   'admin.plugins.cap.routing': 'يوفّر التوجيه',
@@ -621,6 +626,11 @@ const admin: TranslationStrings = {
     'قراءة الزيارات والمسارات المسجَّلة من خادم Dawarich يربطه كل قارئ بنفسه',
   'admin.addons.catalog.llm_parsing.name': 'التحليل بالذكاء الاصطناعي',
   'admin.addons.catalog.llm_parsing.description': 'يقرأ الحجوزات التي يعجز المحلل المدمج عن فهمها، بنموذج ذكاء اصطناعي تختاره',
+  'admin.addons.llm.vision.auto': 'تلقائي',
+  'admin.addons.llm.vision.on': 'نعم',
+  'admin.addons.llm.vision.off': 'لا',
+  'admin.addons.llm.vision.hintLocal': 'يسأل الخيار «تلقائي» خادم Ollama عمّا إذا كان هذا النموذج يقرأ الصور.',
+  'admin.addons.llm.vision.hintCloud': 'يعني «تلقائي» «لا» للنموذج السحابي. اختر «نعم» إذا كان هذا النموذج يقرأ الصور.',
   'admin.addons.enabled': 'مفعّل',
   'admin.addons.disabled': 'معطّل',
   'admin.addons.type.trip': 'رحلة',
@@ -719,6 +729,9 @@ const admin: TranslationStrings = {
   'admin.notifications.ntfy': 'Ntfy', // en-fallback
   'admin.notifications.emailPanel.title': 'Email (SMTP)', // en-fallback
   'admin.notifications.webhookPanel.title': 'Webhook', // en-fallback
+  'admin.notifications.webPushPanel.title': 'إشعارات الويب الفورية',
+  'admin.notifications.webPushPanel.hint':
+    'تتيح للمستخدمين تلقي الإشعارات على هواتفهم وحواسيبهم عبر المتصفح، حتى عندما يكون TREK مغلقًا. يتطلب HTTPS؛ وعلى iPhone وiPad يجب إضافة TREK إلى الشاشة الرئيسية.',
   'admin.notifications.inappPanel.title': 'In-App', // en-fallback
   'admin.notifications.adminNtfyPanel.serverPlaceholder': 'https://ntfy.sh', // en-fallback
   'admin.notifications.adminNtfyPanel.topicPlaceholder': 'trek-admin-alerts', // en-fallback

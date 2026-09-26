@@ -108,6 +108,15 @@ env:
   # Send the Amap (高德地图) calls through an egress proxy, a cache or a gateway that speaks the same API instead of
   # restapi.amap.com directly. The key itself is a credential and goes under secretEnv.AMAP_API_KEY, or into
   # Admin > Settings > API Keys. Defaults to https://restapi.amap.com.
+  # VAPID_PUBLIC_KEY: ""
+  # Web Push key pair, public half (base64url, 65 bytes). Leave both halves empty and TREK generates a pair on
+  # first start and keeps it in the database, so it travels with backups. To use your own pair, set this and
+  # secretEnv.VAPID_PRIVATE_KEY together, e.g. from `npx web-push generate-vapid-keys`. Changing the pair later
+  # means every device has to turn push on again.
+  # VAPID_SUBJECT: ""
+  # The contact push services see with every Web Push message: a mailto: address or an https:// URL. Defaults to
+  # APP_URL when it is an https:// address other than localhost, else https://github.com/liketrek/TREK. No email
+  # address is sent unless you set one here.
 
 
 # Secret environment variables stored in a Kubernetes Secret.
@@ -133,6 +142,11 @@ secretEnv:
   # Get a free key at https://unsplash.com/developers. Can also be set per-admin
   # in Admin > Settings; this value overrides that. Leave empty to disable.
   UNSPLASH_ACCESS_KEY: ""
+  # Optional Google Maps API key (Places API (New) enabled) for place search, photos,
+  # details and Google transit. Overrides the key set in Admin > Settings > API Keys,
+  # whose field then shows this variable read-only. Leave empty to use the key from the
+  # admin panel, or none.
+  PLACES_API_KEY: ""
   # Optional Amap (高德地图) Web 服务 key for place search and geocoding inside mainland
   # China. Overrides the key set in Admin > Settings > API Keys. A Web 端 (JS API) key is
   # a different credential and is rejected with INVALID_USER_KEY. Leave empty to use the
@@ -142,6 +156,11 @@ secretEnv:
   # with signing enabled, because such a key rejects every unsigned request. Leave empty
   # otherwise. The endpoint itself is not a secret and is set under env.AMAP_API_BASE.
   AMAP_API_SECRET: ""
+  # Optional Web Push key pair, private half (base64url, 32 bytes). Only used together with
+  # env.VAPID_PUBLIC_KEY; a pair whose halves do not belong together, or only one half, turns
+  # push off with an error in the log until it is fixed, and every device stays registered.
+  # Leave both empty to let TREK keep a generated pair in its database.
+  VAPID_PRIVATE_KEY: ""
 
 # If true, a random ENCRYPTION_KEY is generated at install and preserved across upgrades
 generateEncryptionKey: false

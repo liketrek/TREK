@@ -62,6 +62,10 @@ TREK is a self-hosted, real-time collaborative travel planner licensed under AGP
 - **35 OAuth Scopes**: granular permissions across 17 permission groups
 - **Pre-built Prompts**: `trip-summary`, `packing-list`, and `budget-overview` context loaders
 
+### Help
+- **Help Center**: the `?` in the navbar opens guides for the screen you are on, with a picture of every step and search across guides and the wiki, in every language TREK speaks (see [Help Center](Help-Center))
+- **In-App Help**: the whole wiki, bundled with your install and read inside TREK at `/help` (see [In-App Help](In-App-Help))
+
 ### Admin
 - User management, invite links, packing templates, global categories
 - Addon management, API key storage, scheduled auto-backups
@@ -75,6 +79,7 @@ TREK is a self-hosted, real-time collaborative travel planner licensed under AGP
 |---|---|
 | [Quick Start](Quick-Start) | Install in minutes with a single Docker command |
 | [My Trips Dashboard](My-Trips-Dashboard) | Start planning your first trip |
+| [Help Center](Help-Center) | The `?` in the navbar: guides for the screen you are on |
 | [Admin Panel](Admin-Panel-Overview) | Configure your instance |
 | [MCP / AI Integration](MCP-Overview) | Connect Claude, Cursor, or any MCP client |
 | [Contributing](Contributing) | Guidelines for submitting pull requests |

@@ -292,6 +292,22 @@ describe('Auth e2e (real auth guard + real service + real cookie service + temp 
     expect(auditRows('settings.api_keys_update')).toBe(before + 1);
   }, 10000);
 
+  it('GET /me/settings names the variable behind a key set in the environment, never its value (#1881)', async () => {
+    const admin = createUser(db as never, { username: 'env-keys-admin', email: 'env-keys-admin@example.test', role: 'admin' });
+    const prev = process.env.PLACES_API_KEY;
+    process.env.PLACES_API_KEY = 'e2e-google-from-env';
+    try {
+      const res = await request(server).get('/api/auth/me/settings').set('Cookie', sessionCookie(admin.user.id));
+      expect(res.status).toBe(200);
+      expect(res.body.settings.maps_api_key).toBeNull();
+      expect(res.body.settings.env_keys).toEqual({ maps_api_key: 'PLACES_API_KEY' });
+      expect(JSON.stringify(res.body)).not.toContain('e2e-google-from-env');
+    } finally {
+      if (prev === undefined) delete process.env.PLACES_API_KEY;
+      else process.env.PLACES_API_KEY = prev;
+    }
+  });
+
   it('GET /app-config answers has_maps_key from the instance row, never from an admin column (#1939)', async () => {
     const member = createUser(db as never, { username: 'keys-member', email: 'keys-member@example.test' });
     const admin = createUser(db as never, { username: 'keys-cfg-admin', email: 'keys-cfg-admin@example.test', role: 'admin' });

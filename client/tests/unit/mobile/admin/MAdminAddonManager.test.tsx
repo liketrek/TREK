@@ -1,4 +1,4 @@
-// FE-MOB-AADD-001 to FE-MOB-AADD-032
+// FE-MOB-AADD-001 to FE-MOB-AADD-033
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { delay, http, HttpResponse } from 'msw';
@@ -649,12 +649,36 @@ describe('MAdminAddonManager', () => {
         model: 'gpt-4o',
         baseUrl: 'https://api.openai.com/v1',
         apiKey: '••••••••',
-        multimodal: true,
+        vision: 'auto',
       },
     });
 
     await user.click(screen.getByRole('button', { name: 'Save' }));
     await screen.findByText('Failed to save');
+  });
+
+  it('FE-MOB-AADD-033: whether the model reads images is a three-way choice, saved as picked', async () => {
+    const user = userEvent.setup();
+    const bodies: unknown[] = [];
+    server.use(
+      addonsRoute([llmAddon({ provider: 'local', model: 'llava:7b', baseUrl: '', apiKey: '', vision: 'on' })]),
+      http.get('/api/admin/llm/local/models', () => HttpResponse.json({ models: [] })),
+      http.put('/api/admin/addons/llm_parsing', async ({ request }) => {
+        bodies.push(await request.json());
+        return HttpResponse.json({ success: true });
+      }),
+    );
+    render(<><ToastContainer /><MAdminAddonManager /></>);
+
+    const group = await screen.findByRole('radiogroup', { name: 'Model reads images' });
+    expect(within(group).getByRole('radio', { name: 'Yes' })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByText('Automatic asks the Ollama server whether this model reads images.')).toBeInTheDocument();
+    await user.click(within(group).getByRole('radio', { name: 'No' }));
+    expect(within(group).getByRole('radio', { name: 'No' })).toHaveAttribute('aria-checked', 'true');
+
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await screen.findByText('Saved');
+    expect(bodies[0]).toMatchObject({ config: { vision: 'off' } });
   });
 
   it('FE-MOB-AADD-024: the API key field can be revealed', async () => {

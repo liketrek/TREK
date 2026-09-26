@@ -71,6 +71,10 @@ export interface ManifestCapabilities {
   tripPage?: { replaces?: string[]; position?: number };
   notificationChannel?: { title?: string; events?: string[] };
   routeProfiles?: Array<{ id: string; label: string; icon?: string }>;
+  /** Chips in the trip map's Explore places pill, answered by the poiCategoryProvider
+   * hook. Requires `hook:poi-category-provider`. At most 4; `icon` is one of
+   * POI_CATEGORY_ICONS, `color` a `#rrggbb` hex, `labels` per TREK language code. */
+  poiCategories?: Array<{ id: string; label: string; labels?: Record<string, string>; icon: string; color: string }>;
   /** MCP tools published via the mcpToolProvider hook. Requires `mcp:tools`. */
   mcpTools?: Array<{
     name: string;
@@ -171,7 +175,7 @@ export const CHANNEL_EVENTS = [
 // in cli/ui.ts, which only supplies the grouping and hints), so a permission added here can
 // never again go missing from the scaffolder — test/cli.test.ts fails until it has an entry.
 export { KNOWN_PERMISSIONS } from './generated/host-facts.js';
-import { KNOWN_PERMISSIONS } from './generated/host-facts.js';
+import { KNOWN_PERMISSIONS, POI_CATEGORY_ICONS, POI_CATEGORY_LABEL_MAX, POI_CATEGORY_MAX } from './generated/host-facts.js';
 
 function isKnownPermission(p: string): boolean {
   return KNOWN_PERMISSIONS.includes(p) || p.startsWith('http:outbound:');
@@ -257,6 +261,7 @@ export function validateManifest(raw: unknown): ValidationResult {
     tripPage?: { replaces?: unknown; position?: unknown };
     notificationChannel?: { title?: unknown; events?: unknown };
     routeProfiles?: unknown;
+    poiCategories?: unknown;
     mcpTools?: unknown;
     provides?: unknown;
     emits?: unknown;
@@ -335,6 +340,7 @@ export function validateManifest(raw: unknown): ValidationResult {
       }
     }
   }
+  validatePoiCategories(capabilities?.poiCategories, permissions, errors);
   // MCP tools go into every user's assistant context, so the declaration is
   // checked here too rather than only at install: an author should hear about a
   // malformed one from `trek-plugin validate`, not from a tool that never shows up.
@@ -495,6 +501,70 @@ export function validateManifest(raw: unknown): ValidationResult {
   if (m.tags !== undefined) manifest.tags = m.tags as string[];
   if (m.license !== undefined) manifest.license = m.license as string;
   return { ok: true, errors: [], manifest };
+}
+
+// Mirrors the host's reader for capabilities.poiCategories (server
+// src/nest/plugins/poi-categories.ts): the same checks, so `validate` refuses exactly
+// what an install would. The icon list and the caps are generated from the host.
+const POI_CATEGORY_ID_RE = /^[a-z][a-z0-9-]{0,23}$/;
+const POI_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
+const POI_LANGUAGE_KEY_RE = /^[a-z]{2,3}(?:-[A-Z]{2})?$/;
+
+function poiLabelOk(v: unknown): boolean {
+  const label = typeof v === 'string' ? v.trim() : '';
+  return label.length > 0 && label.length <= POI_CATEGORY_LABEL_MAX;
+}
+
+// The per-language labels are optional; when present every key must be a language
+// code and every value a label, like the host's reader.
+function poiLabelsProblem(id: string, labels: unknown): string | null {
+  if (labels === undefined) return null;
+  if (!labels || typeof labels !== 'object' || Array.isArray(labels)) {
+    return `"${id}" labels must be an object of language code to label`;
+  }
+  for (const [code, label] of Object.entries(labels as Record<string, unknown>)) {
+    if (!POI_LANGUAGE_KEY_RE.test(code)) return `"${id}" labels: "${code}" is not a language code`;
+    if (!poiLabelOk(label)) return `"${id}" labels.${code} is required (max ${POI_CATEGORY_LABEL_MAX} chars)`;
+  }
+  return null;
+}
+
+function poiCategoryProblem(v: unknown): string | null {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return 'entries must be objects';
+  const p = v as Record<string, unknown>;
+  const id = typeof p.id === 'string' ? p.id : '';
+  if (!POI_CATEGORY_ID_RE.test(id)) return 'id must be lowercase [a-z][a-z0-9-], max 24 chars';
+  if (!poiLabelOk(p.label)) return `"${id}" label is required (max ${POI_CATEGORY_LABEL_MAX} chars)`;
+  if (typeof p.icon !== 'string' || !POI_CATEGORY_ICONS.includes(p.icon)) {
+    return `"${id}" icon must be one of ${POI_CATEGORY_ICONS.join(', ')}`;
+  }
+  if (typeof p.color !== 'string' || !POI_COLOR_RE.test(p.color)) return `"${id}" color must be a #rrggbb hex colour`;
+  return poiLabelsProblem(id, p.labels);
+}
+
+function validatePoiCategories(raw: unknown, permissions: string[], errors: string[]): void {
+  if (raw === undefined) return;
+  // The host installs a declaration without the grant but never shows its chips, so
+  // the author hears about it here instead of from an empty pill.
+  if (!permissions.includes('hook:poi-category-provider')) {
+    errors.push('capabilities.poiCategories requires the "hook:poi-category-provider" permission');
+  }
+  if (!Array.isArray(raw)) {
+    errors.push('capabilities.poiCategories must be an array');
+    return;
+  }
+  if (raw.length > POI_CATEGORY_MAX) errors.push(`capabilities.poiCategories: at most ${POI_CATEGORY_MAX} categories`);
+  const seen = new Set<string>();
+  for (const v of raw) {
+    const problem = poiCategoryProblem(v);
+    if (problem) {
+      errors.push(`capabilities.poiCategories: ${problem}`);
+      continue;
+    }
+    const id = (v as { id: string }).id;
+    if (seen.has(id)) errors.push(`capabilities.poiCategories: duplicate id "${id}"`);
+    seen.add(id);
+  }
 }
 
 // Export/event names exposed to other plugins (dots allowed for event names).

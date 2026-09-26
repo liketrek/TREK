@@ -76,13 +76,16 @@ export const unassignedTotalWeight = (
 export const bagFillPct = (bagWeight: number, limitGrams: number | null | undefined, heaviestBagWeight: number): number =>
   Math.min(100, Math.round((bagWeight / (limitGrams || Math.max(heaviestBagWeight, 1))) * 100))
 
-// Parse CSV line respecting quoted values (e.g. "Shirt, blue" stays as one field)
+// Parse CSV line respecting quoted values (e.g. "Shirt, blue" stays as one field).
+// A doubled quote inside a quoted field is a literal one, which is how the CSV
+// export writes a name that contains a quote.
 export const parseCsvLine = (line: string): string[] => {
   const parts: string[] = []
   let current = ''
   let inQuotes = false
   for (let i = 0; i < line.length; i++) {
     const ch = line[i]
+    if (ch === '"' && inQuotes && line[i + 1] === '"') { current += '"'; i++; continue }
     if (ch === '"') { inQuotes = !inQuotes; continue }
     if (!inQuotes && (ch === ',' || ch === ';' || ch === '\t')) { parts.push(current.trim()); current = ''; continue }
     current += ch
@@ -97,21 +100,83 @@ export interface ParsedImportItem {
   weight_grams: string | undefined
   bag: string | undefined
   checked: boolean
+  /** From a leading "3x" or "3 ×" on the name. Absent means one. */
+  quantity?: number
+}
+
+// "3x Socks", "3 x Socks", "3 × Socks". The space after the x is required, so
+// "4x4 adapter" stays a name.
+const QUANTITY_PREFIX = /^(\d{1,3})\s*[x×]\s+(\S.*)$/i
+
+/** A name with its quantity prefix split off, the same way for CSV rows and Markdown items. */
+export const splitQuantity = (raw: string): { name: string; quantity?: number } => {
+  const match = QUANTITY_PREFIX.exec(raw.trim())
+  const quantity = match ? Number(match[1]) : 0
+  return match && quantity >= 1 ? { name: match[2].trim(), quantity } : { name: raw.trim() }
+}
+
+const MD_HEADING = /^#{1,6}\s+(\S.*)$/
+const MD_ITEM = /^(?:[-*+]|\d+[.)])\s+(?:\[([ xX])\]\s+)?(\S.*)$/
+// The weight the Markdown export writes after a name: "(200 g)" or "(1.2 kg)".
+// Only a parenthesis that holds nothing but a weight counts, so "Charger (USB-C)"
+// keeps its name.
+const MD_WEIGHT = /\((\d+(?:[.,]\d+)?)\s?(g|kg)\)$/i
+
+/** Links, emphasis and code marks as plain text: a list copied from a notes app is full of them. */
+const plainMarkdown = (text: string): string =>
+  text.replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/\*\*|__|~~|`/g, '').trim()
+
+/**
+ * Whether pasted text is a Markdown list rather than CSV rows (#875): any heading or
+ * list item decides it, the way Obsidian, Notion, GitHub and most notes apps export.
+ */
+export const isMarkdownList = (text: string): boolean =>
+  text.split('\n').some(line => MD_HEADING.test(line.trim()) || MD_ITEM.test(line.trim()))
+
+/**
+ * A Markdown list as import rows. Every heading names the category of the items
+ * under it, "- [x]" marks an item packed, and anything that is neither heading nor
+ * list item (a note, a blank line, a rule) is left out.
+ */
+const parseMarkdownLines = (text: string): ParsedImportItem[] => {
+  const out: ParsedImportItem[] = []
+  let category: string | undefined
+  for (const line of text.split('\n').map(l => l.trim())) {
+    const heading = MD_HEADING.exec(line)
+    if (heading) {
+      // A closing run of hashes ("## Clothing ##") is decoration, not part of the name.
+      category = plainMarkdown(heading[1].replace(/\s#+$/, '')) || undefined
+      continue
+    }
+    const item = MD_ITEM.exec(line)
+    // "- [ ]" with nothing after it is an empty checkbox, not an item called "[ ]".
+    if (!item || /^\[[ xX]\]$/.test(item[2])) continue
+    let label = plainMarkdown(item[2])
+    let weight_grams: string | undefined
+    const weight = MD_WEIGHT.exec(label)
+    if (weight) {
+      const grams = Number(weight[1].replace(',', '.')) * (weight[2].toLowerCase() === 'kg' ? 1000 : 1)
+      weight_grams = String(Math.round(grams))
+      label = label.slice(0, weight.index).trim()
+    }
+    out.push({ ...splitQuantity(label), category, weight_grams, bag: undefined, checked: item[1]?.toLowerCase() === 'x' })
+  }
+  return out.filter(i => i.name)
 }
 
 export const parseImportLines = (text: string): ParsedImportItem[] => {
+  if (isMarkdownList(text)) return parseMarkdownLines(text)
   return text.split('\n').map(line => line.trim()).filter(Boolean).map(line => {
     // Format: Category, Name, Weight (optional), Bag (optional), checked/unchecked (optional)
     const parts = parseCsvLine(line)
     if (parts.length >= 2) {
       const category = parts[0]
-      const name = parts[1]
       const weight_grams = parts[2] || undefined
       const bag = parts[3] || undefined
       const checked = parts[4]?.toLowerCase() === 'checked' || parts[4] === '1'
-      return { name, category, weight_grams, bag, checked }
+      return { ...splitQuantity(parts[1]), category, weight_grams, bag, checked }
     }
     // Single value = just a name
-    return { name: parts[0], category: undefined, weight_grams: undefined, bag: undefined, checked: false }
+    return { ...splitQuantity(parts[0]), category: undefined, weight_grams: undefined, bag: undefined, checked: false }
   }).filter(i => i.name)
 }

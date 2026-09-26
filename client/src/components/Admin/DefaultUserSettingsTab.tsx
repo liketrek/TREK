@@ -7,7 +7,8 @@ import Section from '../Settings/Section'
 import CustomSelect from '../shared/CustomSelect'
 import { MapView } from '../Map/MapView'
 import { SYMBOLS, currenciesWith } from '../Budget/BudgetPanel.constants'
-import type { DistanceUnit, Place } from '../../types'
+import type { DistanceUnit, Place, WeekStart } from '../../types'
+import { weekStartOptions } from '../../utils/calendarWeek'
 import { normalizeTileUrl, withTileApiKey } from '../../utils/tileUrl'
 import {
   MAPBOX_DEFAULT_STYLE,
@@ -40,6 +41,7 @@ type Defaults = RoutingDefaults & {
   distance_unit?: DistanceUnit
   dark_mode?: string | boolean
   time_format?: string
+  week_start?: WeekStart
   default_currency?: string
   blur_booking_codes?: boolean
   map_tile_url?: string
@@ -112,7 +114,7 @@ function OptionButton({
 }
 
 export default function DefaultUserSettingsTab(): React.ReactElement {
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
   const toast = useToast()
   const [defaults, setDefaults] = useState<Defaults>({})
   const [loaded, setLoaded] = useState(false)
@@ -297,6 +299,15 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
             active={defaults.time_format === opt.value}
             onClick={() => save({ time_format: opt.value })}
           >
+            {opt.label}
+          </OptionButton>
+        ))}
+      </OptionRow>
+
+      {/* Week start: the first column of every date picker (#2029) */}
+      <OptionRow label={<>{t('settings.weekStart')} <ResetButton field="week_start" /></>}>
+        {weekStartOptions(locale).map(opt => (
+          <OptionButton key={opt.value} active={defaults.week_start === opt.value} onClick={() => save({ week_start: opt.value })}>
             {opt.label}
           </OptionButton>
         ))}

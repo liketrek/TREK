@@ -13,4 +13,5 @@ import { http, HttpResponse } from 'msw';
  */
 export const pluginSearchHandlers = [
   http.get('/api/plugin-search', () => HttpResponse.json({ places: [] })),
+  http.get('/api/plugin-search/suggest', () => HttpResponse.json({ places: [] })),
 ];

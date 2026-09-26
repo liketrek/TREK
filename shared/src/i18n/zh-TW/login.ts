@@ -62,6 +62,8 @@ const login: TranslationStrings = {
   'login.oidcSignIn': '透過 {name} 登入',
   'login.oidcOnly': '密碼登入已關閉。請透過 SSO 提供商登入。',
   'login.oidcLoggedOut': '您已登出。請重新透過 SSO 提供商登入。',
+  'login.oidcRedirecting': '正在跳轉到 {name}…',
+  'login.oidcRedirectSlow': '還在這裡？繼續前往 {name}',
   'login.demoHint': '試用演示——無需註冊',
   'login.passkey.signIn': '使用 Passkey 登入',
   'login.passkey.failed': 'Passkey 登入失敗，請重試。',

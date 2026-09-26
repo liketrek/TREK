@@ -6,15 +6,15 @@ Link an accommodation to specific check-in and check-out days so it appears for 
 
 There are two ways to create an accommodation:
 
-**From the Reservations panel:** Click **Manual Booking** and select **Hotel** as the booking type. When the type is set to Hotel, the date/time and location fields are replaced by accommodation-specific inputs (see below). Saving the form creates both the hotel reservation and the underlying accommodation record at the same time.
+**From the Reservations panel:** Click **Manual Booking** and choose **Accommodation** under **Booking Type** at the top of the form. With that type the date and time fields are replaced by accommodation-specific inputs (see below). Saving the form creates both the hotel reservation and the underlying accommodation record at the same time.
 
 **From the Day Detail panel:** Click the hotel icon or the **Add accommodation** button in the Day Detail overlay. A picker appears that lets you select a place from the trip, choose the day range, and optionally fill in check-in/check-out times and a confirmation code. This creates the accommodation record and its linked Hotel reservation together.
 
-![Accommodation reservation card showing check-in details](assets/Hotel-ReservationCard.png)
+![Edit Reservation dialog of an accommodation: Booking Type and Travelers at the top, the stay with its place, nights and check-in and check-out times, the link beside the files, and the linked expense](assets/Hotel-ReservationCard.png)
 
 ## Accommodation-specific fields
 
-When creating or editing via the Reservations panel with type set to **Hotel**, the date/time and location fields are replaced by accommodation-specific inputs:
+When creating or editing via the Reservations panel with the type set to **Accommodation**, the date/time and location fields are replaced by accommodation-specific inputs:
 
 | Field | Description |
 |-------|-------------|
@@ -91,7 +91,7 @@ planned before 4.3.1 are seated the same way on upgrade, see
 
 A stay is tied to its check-in and check-out day, so it cannot outlive either of them. What happens to its booking depends on how the day goes:
 
-- **Deleting the day** in the **Reorder days** dialog cancels the stay cleanly, together with its Hotel booking and the expense of that booking. The question before the delete shows this line in red. See [Deleting a day](Day-Plans-and-Notes#deleting-a-day).
+- **Deleting the day** in the **Reorder days** dialog cancels the stay cleanly, together with its Hotel booking and the expenses of that booking. The question before the delete shows this line in red. See [Deleting a day](Day-Plans-and-Notes#deleting-a-day).
 - **Shortening the trip** removes the whole stay, also its nights that are still part of the trip, but leaves its booking under Bookings and its expense under Costs. The trip dialog shows the stay in red before it saves. See [Shortening a trip](Day-Plans-and-Notes#shortening-a-trip).
 
 A stay that only runs across a deleted day, with its check-in before and its check-out after it, is kept, one night shorter: its check-out day moves up with the days after the deleted one. The question before the delete names the stay and its new check-out date. Its Hotel booking is not changed, so a booking made with the hotel itself may need the same change there.

@@ -137,6 +137,7 @@ const admin: TranslationStrings = {
   'admin.amapKey': 'API-ключ Amap (高德地图)',
   'admin.amapKeyHint':
     'Для пошуку місць у континентальному Китаї, де Google недоступний, а даних OpenStreetMap обмаль. Потрібен ключ типу «Web 服务» (вебсервіс), а не ключ JS API. Отримати можна на console.amap.com.',
+  'admin.keyFromEnv': 'Задано через {name}',
   'admin.placesProvider.title': 'Постачальник пошуку місць',
   'admin.placesProvider.subtitle':
     'Власний індекс TREK і OpenStreetMap відповідають на кожен пошук. Тут обирається, кого запитати додатково, якщо вони нічого не знайшли: «Автоматично» надає перевагу Google за наявності ключа, потім Amap.',
@@ -230,7 +231,7 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.deleteCategoryError': 'Не вдалося видалити категорію',
   'admin.packingTemplates.deleteItemError': 'Не вдалося видалити елемент',
   'admin.packingTemplates.saveError': 'Помилка збереження',
-  'admin.tabs.addons': 'Дополнения',
+  'admin.tabs.addons': 'Доповнення',
   'admin.tabs.plugins': 'Плагіни',
   'admin.tabs.storage': 'Сховище',
   'admin.plugins.rescan': 'Пересканувати',
@@ -384,6 +385,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:place-detail-provider': 'Додавати додаткові деталі (відгуки, оцінки, посилання) до місця',
   'admin.plugins.perm.hook:search-provider':
     'Відповідати на пошук місць із власного індексу, поряд із результатами TREK',
+  'admin.plugins.perm.hook:poi-category-provider':
+    'Додавати власні категорії місць до «Досліджуйте місця на карті»; коли ви обираєте одну з них, розширення отримує область карти, яку ви переглядаєте',
   'admin.plugins.perm.hook:trip-warning-provider':
     'Створювати попередження перевірки для подорожі (показуються в планувальнику)',
   'admin.plugins.perm.hook:table-contributor': 'Додавати стовпці та дії до подань подорожі (бронювання, місця, дні)',
@@ -399,6 +402,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.mcpTools': 'Публікує ШІ-інструменти',
   'admin.plugins.mcpToolsTitle': 'Опубліковані ШІ-інструменти',
   'admin.plugins.mcpToolsHint': 'Асистент може запускати їх від імені користувача. Кожен діє з правами, наданими вище.',
+  'admin.plugins.poiCategoriesTitle': 'Категорії карти, які він додає',
   'admin.plugins.perm.mcp:tools':
     'Публікувати інструменти, які ШІ-асистент може запускати від вашого імені (він діє з правами, наданими плаґіну тут, а не зі своїми)',
   'admin.plugins.perm.geolocation:read':
@@ -542,6 +546,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'Надає події календаря',
   'admin.plugins.cap.placeDetails': 'Збагачує місця',
   'admin.plugins.cap.search': 'Відповідає на пошук',
+  'admin.plugins.cap.poiCategories': 'Додає категорії на карту',
   'admin.plugins.cap.warnings': 'Позначає проблеми',
   'admin.plugins.cap.mapLayers': 'Малює на карті',
   'admin.plugins.cap.routing': 'Пропонує маршрутизацію',
@@ -618,6 +623,11 @@ const admin: TranslationStrings = {
     'Читає перебування та записані маршрути із сервера Dawarich, який кожен користувач підключає сам',
   'admin.addons.catalog.llm_parsing.name': 'Розбір за допомогою ШІ',
   'admin.addons.catalog.llm_parsing.description': 'Читає бронювання, які не розпізнає вбудований аналізатор, за допомогою обраної вами моделі ШІ',
+  'admin.addons.llm.vision.auto': 'Автоматично',
+  'admin.addons.llm.vision.on': 'Так',
+  'admin.addons.llm.vision.off': 'Ні',
+  'admin.addons.llm.vision.hintLocal': '«Автоматично» запитує сервер Ollama, чи читає ця модель зображення.',
+  'admin.addons.llm.vision.hintCloud': 'Для хмарної моделі «Автоматично» означає «ні». Виберіть «Так», якщо ця модель читає зображення.',
   'admin.addons.enabled': 'Увімкнено',
   'admin.addons.disabled': 'Вимкнено',
   'admin.addons.type.trip': 'Поїздка',
@@ -717,6 +727,9 @@ const admin: TranslationStrings = {
   'admin.tabs.permissions': 'Дозволи',
   'admin.notifications.emailPanel.title': 'Email (SMTP)',
   'admin.notifications.webhookPanel.title': 'Webhook',
+  'admin.notifications.webPushPanel.title': 'Web Push',
+  'admin.notifications.webPushPanel.hint':
+    'Дозволяє користувачам отримувати сповіщення на телефонах і комп’ютерах через браузер, навіть коли TREK закрито. Потрібен HTTPS; на iPhone та iPad TREK треба додати на початковий екран.',
   'admin.notifications.inappPanel.title': 'In-App',
   'admin.notifications.inappPanel.hint': 'Сповіщення в додатку завжди активні і не можуть бути вимкнені глобально.',
   'admin.notifications.adminWebhookPanel.title': 'Webhook адміністратора',

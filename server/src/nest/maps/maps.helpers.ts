@@ -2,6 +2,7 @@ import { normalizePlaceWebsite } from '@trek/shared';
 import { readEnv, getAppUrl } from '../../app-config';
 import { stripHtmlTags } from '../common/stripHtmlTags';
 import { haversineMetres } from '../common/geo';
+import { z } from 'zod';
 
 /**
  * Pure maps/geo helpers — no DB, no Nest, no side effects beyond reading env.
@@ -374,6 +375,51 @@ export const CATEGORY_OSM_FILTERS: Record<string, string[]> = {
 
 export const POI_CATEGORY_KEYS = Object.keys(CATEGORY_OSM_FILTERS);
 
+/**
+ * Largest viewport side one POI search covers. A country-sized box makes Overpass scan
+ * millions of elements and time out, and a plugin POI provider is no better placed to
+ * answer for a continent, so both paths narrow a larger box to a centred window.
+ */
+export const MAX_POI_BBOX_SPAN_DEG = 0.5;
+
+export interface PoiBbox {
+  south: number;
+  west: number;
+  north: number;
+  east: number;
+}
+
+/** Narrow an oversized viewport to a centred window; `clamped` says it happened. */
+export function clampPoiBbox(bbox: PoiBbox): { bbox: PoiBbox; clamped: boolean } {
+  let { south, west, north, east } = bbox;
+  let clamped = false;
+  if (north - south > MAX_POI_BBOX_SPAN_DEG) {
+    const c = (north + south) / 2;
+    south = c - MAX_POI_BBOX_SPAN_DEG / 2;
+    north = c + MAX_POI_BBOX_SPAN_DEG / 2;
+    clamped = true;
+  }
+  if (east - west > MAX_POI_BBOX_SPAN_DEG) {
+    const c = (east + west) / 2;
+    west = c - MAX_POI_BBOX_SPAN_DEG / 2;
+    east = c + MAX_POI_BBOX_SPAN_DEG / 2;
+    clamped = true;
+  }
+  return { bbox: { south, west, north, east }, clamped };
+}
+
+/**
+ * The rectangle the MCP POI tools take: search_pois for the core categories and
+ * search_plugin_pois for the plugin ones. One definition, so both accept the same box
+ * and describe the same window it is narrowed to.
+ */
+export const POI_BBOX_TOOL_INPUT = z.strictObject({
+  south: z.number().min(-90).max(90).describe('Southern edge, latitude'),
+  west: z.number().min(-180).max(180).describe('Western edge, longitude'),
+  north: z.number().min(-90).max(90).describe('Northern edge, latitude'),
+  east: z.number().min(-180).max(180).describe('Eastern edge, longitude'),
+}).describe(`The rectangle to search. Anything wider than ${MAX_POI_BBOX_SPAN_DEG} degrees is narrowed to a centred window so the query stays fast; the answer reports that as \`clamped\``);
+
 /** How many categories one POI query may carry, so a caller can't fan out the mirrors. */
 export const MAX_POI_CATEGORIES = 8;
 
@@ -740,13 +786,18 @@ export function parseWikipediaTag(tag: string | undefined | null): { lang: strin
 // per place — photo refs, editorial summary, and the photo route.
 const NON_GOOGLE_PLACE_ID =
   /^(?:coords|gers|node|way|relation|amap):|^https?:\/\/|^-?\d+(?:\.\d+)?,\s*-?\d+(?:\.\d+)?$|~p\d+$/i;
+// `plugin:` too (`plugin:<pluginId>:<id>`, #2221 and #1781): a place picked from a
+// plugin search or a plugin POI category keeps the plugin's id, and it names the
+// plugin's own index, never a Google record. A pattern of its own, because the one
+// above is already as tangled as a pattern should get.
+const PLUGIN_PLACE_ID = /^plugin:/i;
 // The subset that still has a provider behind it — Overpass for details,
 // Wikimedia for photos. The id has to be the whole of what follows the colon:
 // it is written into an Overpass query as it is, and an element id is a number.
 export const OSM_PLACE_ID = /^(?:node|way|relation):\d+$/i;
 
 export function isGooglePlaceId(placeId: string): boolean {
-  return !NON_GOOGLE_PLACE_ID.test(placeId);
+  return !NON_GOOGLE_PLACE_ID.test(placeId) && !PLUGIN_PLACE_ID.test(placeId);
 }
 
 // ── Ranking Commons candidates ───────────────────────────────────────────────

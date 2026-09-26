@@ -82,6 +82,8 @@ const settings: TranslationStrings = {
   'settings.temperature': 'Μονάδα Θερμοκρασίας',
   'settings.distance': 'Μονάδα Απόστασης',
   'settings.timeFormat': 'Μορφή Ώρας',
+  'settings.weekStart': 'Η εβδομάδα ξεκινά την',
+  'settings.weekStartHint': 'Πρώτη ημέρα της εβδομάδας σε κάθε επιλογέα ημερομηνίας. Το Vacay έχει δική του ρύθμιση.',
   'settings.bookingLabels': 'Ετικέτες διαδρομής κρατήσεων',
   'settings.bookingLabelsHint':
     'Εμφάνιση ονομάτων σταθμών / αεροδρομίων στον χάρτη. Όταν είναι απενεργοποιημένο, εμφανίζεται μόνο το εικονίδιο.',
@@ -121,6 +123,20 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.pluginConfigured':
     'Ρυθμίστηκε. Διαχειριστείτε τα διαπιστευτήρια στη σελίδα ρυθμίσεων του πρόσθετου.',
   'settings.notificationPreferences.ntfy': 'Ntfy',
+  'settings.notificationPreferences.push': 'Push',
+  'settings.webPush.title': 'Push ειδοποιήσεις σε αυτή τη συσκευή',
+  'settings.webPush.hint':
+    'Εμφανίζει τις ειδοποιήσεις του TREK σε αυτή τη συσκευή ακόμη και όταν το TREK είναι κλειστό. Ποια συμβάντα φτάνουν καθορίζεται από τη στήλη Push.',
+  'settings.webPush.enable': 'Ενεργοποίηση για αυτή τη συσκευή',
+  'settings.webPush.disable': 'Απενεργοποίηση για αυτή τη συσκευή',
+  'settings.webPush.enabled': 'Ενεργό για αυτή τη συσκευή',
+  'settings.webPush.unsupported': 'Αυτό το πρόγραμμα περιήγησης δεν μπορεί να λάβει push ειδοποιήσεις.',
+  'settings.webPush.insecure': 'Για το push, το TREK πρέπει να ανοίγει μέσω HTTPS.',
+  'settings.webPush.iosInstall':
+    'Σε iPhone και iPad, προσθέστε πρώτα το TREK στην οθόνη Αφετηρίας και ανοίξτε το από εκεί.',
+  'settings.webPush.denied':
+    'Οι ειδοποιήσεις για το TREK είναι αποκλεισμένες σε αυτό το πρόγραμμα περιήγησης. Επιτρέψτε τις στις ρυθμίσεις του προγράμματος περιήγησης και δοκιμάστε ξανά.',
+  'settings.webPush.failed': 'Δεν ήταν δυνατή η ενεργοποίηση του push για αυτή τη συσκευή.',
   'settings.notificationPreferences.noChannels':
     'Δεν έχουν διαμορφωθεί κανάλια ειδοποιήσεων. Ζητήστε από έναν διαχειριστή να ρυθμίσει ειδοποιήσεις email ή webhook.',
   'settings.webhookUrl.label': 'Webhook URL',
@@ -393,9 +409,9 @@ const settings: TranslationStrings = {
     'Πού εκτελείται το μοντέλο — ένας τοπικός διακομιστής Ollama ή ένα τελικό σημείο συμβατό με OpenAI.',
   'settings.aiParsing.apiKey': 'Κλειδί API',
   'settings.aiParsing.apiKeyHint': 'Αποθηκεύεται κρυπτογραφημένο. Αφήστε το κενό για να διατηρήσετε το τρέχον κλειδί.',
-  'settings.aiParsing.multimodal': 'Αποστολή εγγράφων ως εικόνες',
+  'settings.aiParsing.multimodal': 'Το μοντέλο διαβάζει εικόνες',
   'settings.aiParsing.multimodalHint':
-    'Για μοντέλα με δυνατότητα όρασης — στέλνει το αρχικό PDF αντί για το εξαγόμενο κείμενο.',
+    'Ενεργοποιήστε το για μοντέλο που διαβάζει εικόνες, ώστε μια φωτογραφία να μπορεί να εισαχθεί ή να σαρωθεί.',
   'settings.aiParsing.toast.saved': 'Οι ρυθμίσεις AI αποθηκεύτηκαν',
   'settings.aiParsing.toast.saveError': 'Δεν ήταν δυνατή η αποθήκευση των ρυθμίσεων AI',
   'settings.tabs.appearance': 'Appearance',

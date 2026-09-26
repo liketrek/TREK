@@ -13,6 +13,7 @@ const map: TranslationStrings = {
   'poi.cat.museums': 'Múzeumok és kultúra',
   'poi.cat.nature': 'Természet és parkok',
   'poi.cat.activities': 'Programok',
+  'poi.pluginCategories': 'Pluginok kategóriái',
   'map.showAllConnections': 'Összes foglalási útvonal megjelenítése',
   'map.hideAllConnections': 'Összes foglalási útvonal elrejtése',
   'map.baseLayer.default': 'Térkép',

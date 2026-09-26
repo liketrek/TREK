@@ -9,6 +9,7 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vites
 import request from 'supertest';
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
+import path from 'node:path';
 import { DatabaseModule } from '../../src/nest/database/database.module';
 import { Test } from '@nestjs/testing';
 import { seedUser, sessionCookie } from './harness';
@@ -50,9 +51,17 @@ const { jsvc } = vi.hoisted(() => ({
   jsvc: {
     listJourneys: vi.fn(), createJourney: vi.fn(), getJourneyFull: vi.fn(),
     journeyStats: vi.fn(), updateEntry: vi.fn(), restoreDismissedSuggestions: vi.fn(),
+    addProviderPhoto: vi.fn(), addProviderPhotoToGallery: vi.fn(), uploadGalleryPhotos: vi.fn(),
+    broadcastJourneyEvent: vi.fn(), journeyIdOfEntry: vi.fn(),
   },
 }));
 import { JourneyDomainService } from '../../src/nest/journey/journey-domain.service';
+
+// The capture-time lookup itself asks a real provider; what these cases pin is
+// the wiring around it: the route answers, the backfill runs detached, and the
+// journey hears about it after a provider add, never after an upload (#1587).
+const { backfillRun, backfillSchedule } = vi.hoisted(() => ({ backfillRun: vi.fn(), backfillSchedule: vi.fn() }));
+import { PhotoCaptureBackfillService } from '../../src/nest/memories/photo-capture-backfill.service';
 
 const { sharesvc } = vi.hoisted(() => ({ sharesvc: { getPublicJourney: vi.fn() } }));
 import { JourneyShareService } from '../../src/nest/journey/journey-share.service';
@@ -67,6 +76,7 @@ import { JourneyBookService } from '../../src/nest/journey/journey-book.service'
 import { MAX_SPREAD_ELEMENTS } from '@trek/shared';
 
 import { JourneyModule } from '../../src/nest/journey/journey.module';
+import { StorageService } from '../../src/nest/storage/storage.service';
 import { AddonsService } from '../../src/nest/addons/addons.service';
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
 import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
@@ -85,6 +95,8 @@ describe('Journey e2e (real auth guard + temp SQLite)', () => {
       .useValue(booksvc)
       .overrideProvider(AddonsService)
       .useValue({ isAddonEnabled })
+      .overrideProvider(PhotoCaptureBackfillService)
+      .useValue({ run: backfillRun, schedule: backfillSchedule })
       .compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
@@ -413,6 +425,80 @@ describe('Journey e2e (real auth guard + temp SQLite)', () => {
       .set('Cookie', sessionCookie(1));
     expect(res.status).toBe(403);
     expect(res.body).toEqual({ error: 'Not allowed' });
+  });
+
+  it('a gallery provider-photo add answers at once, then tells the journey when the capture times land (#1587)', async () => {
+    jsvc.broadcastJourneyEvent.mockReset();
+    jsvc.addProviderPhotoToGallery.mockReturnValue({ id: 5, journey_id: 9, photo_id: 77 });
+    backfillRun.mockReset().mockResolvedValue(true);
+
+    const res = await request(server)
+      .post('/api/journeys/9/gallery/provider-photos')
+      .set('Cookie', sessionCookie(1))
+      .send({ provider: 'immich', asset_ids: ['a1'], media_types: ['image'] });
+
+    expect(res.status).toBe(201);
+    expect(res.body).toEqual({ photos: [{ id: 5, journey_id: 9, photo_id: 77 }], added: 1 });
+    await vi.waitFor(() => expect(jsvc.broadcastJourneyEvent).toHaveBeenCalledWith(9, 'journey:photos:updated', {}));
+    expect(backfillRun).toHaveBeenCalledWith([77], 1);
+  });
+
+  it('an entry provider-photo add is told to the journey of that entry, and only when something was learned', async () => {
+    jsvc.broadcastJourneyEvent.mockReset();
+    jsvc.addProviderPhoto.mockReturnValue({ id: 6, entry_id: 3, photo_id: 78 });
+    jsvc.journeyIdOfEntry.mockReturnValue(9);
+    backfillRun.mockReset().mockResolvedValue(true);
+
+    const res = await request(server)
+      .post('/api/journeys/entries/3/provider-photos')
+      .set('Cookie', sessionCookie(1))
+      .send({ provider: 'immich', asset_ids: ['a2'] });
+
+    expect(res.status).toBe(201);
+    expect(res.body).toEqual({ photos: [{ id: 6, entry_id: 3, photo_id: 78 }], added: 1 });
+    await vi.waitFor(() => expect(jsvc.broadcastJourneyEvent).toHaveBeenCalledWith(9, 'journey:photos:updated', {}));
+    expect(jsvc.journeyIdOfEntry).toHaveBeenCalledWith(3);
+
+    // Nothing learned: the photos are where they already were, so no refresh.
+    jsvc.broadcastJourneyEvent.mockReset();
+    backfillRun.mockReset().mockResolvedValue(false);
+    await request(server)
+      .post('/api/journeys/entries/3/provider-photos')
+      .set('Cookie', sessionCookie(1))
+      .send({ provider: 'immich', asset_ids: ['a3'] });
+    await vi.waitFor(() => expect(backfillRun).toHaveBeenCalled());
+    await new Promise(resolve => setTimeout(resolve, 10));
+    expect(jsvc.broadcastJourneyEvent).not.toHaveBeenCalled();
+  });
+
+  it('a gallery upload gets its capture time read, and no journey refresh: the client sends one file per request (#1587)', async () => {
+    jsvc.broadcastJourneyEvent.mockReset();
+    backfillRun.mockReset().mockResolvedValue(true);
+    backfillSchedule.mockReset();
+    jsvc.uploadGalleryPhotos.mockImplementation((_id: number, _userId: number, files: Array<{ path: string }>) =>
+      files.map((f, i) => ({ id: 30 + i, journey_id: 9, photo_id: 90 + i, file_path: f.path })));
+
+    const res = await request(server)
+      .post('/api/journeys/9/gallery/photos')
+      .set('Cookie', sessionCookie(1))
+      .attach('photos', path.join(__dirname, '../fixtures/small-image.jpg'));
+
+    try {
+      expect(res.status).toBe(201);
+      expect(res.body.photos).toHaveLength(1);
+      // The plain backfill, the same one the provider adds run...
+      expect(backfillSchedule).toHaveBeenCalledWith([90], 1);
+      // ...but not the refreshing run behind it: a bulk upload would otherwise
+      // reload every open client once per photo.
+      await new Promise(resolve => setTimeout(resolve, 10));
+      expect(backfillRun).not.toHaveBeenCalled();
+      expect(jsvc.broadcastJourneyEvent).not.toHaveBeenCalled();
+    } finally {
+      const storage = app.get(StorageService);
+      for (const photo of (res.body.photos ?? []) as Array<{ file_path: string }>) {
+        await storage.delete('journey', photo.file_path.slice('journey/'.length));
+      }
+    }
   });
 
   it('public journey 404 for an unknown token', async () => {

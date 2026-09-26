@@ -1,10 +1,11 @@
 import { McpController, Tool, TOOL_ANNOTATIONS_READONLY, errorResult, ok, type McpContext } from '../../nest-mcp';
 import { z } from 'zod';
-import { getWikiIndex, getWikiPage, WikiNotFound, type WikiPage } from './wiki';
+import { getWikiIndex, getWikiPage, searchWiki, WikiNotFound, type WikiPage } from './wiki';
 
 /**
  * Help MCP surface over the bundled wiki, reading through the same functions
- * HelpController does (GET /api/help/index, GET /api/help/page/:slug).
+ * HelpController does (GET /api/help/index, GET /api/help/search, GET
+ * /api/help/page/:slug).
  *
  * Neither tool declares an `access` marker, so both stay registered for every
  * session. Both routes are @Public and serve versioned product documentation
@@ -91,5 +92,24 @@ export class HelpMcp {
       truncated,
       next_offset: truncated ? from + markdown.length : null,
     });
+  }
+
+  @Tool({
+    name: 'search_help',
+    description:
+      "Full-text search across the bundled TREK user manual, the same search the in-app help panel uses. Returns the best-matching pages with the section heading the match sits under and a snippet, so a question like 'how do I split a cost' lands on the right page without reading the whole table of contents first. Follow up with get_help_page on a hit's slug.",
+    inputSchema: {
+      query: z.string().min(1).max(120).describe('Free text to search for, e.g. "cover image" or "invite link"'),
+      limit: z.number().int().min(1).max(20).optional().describe('Maximum number of hits, default 8'),
+    },
+    annotations: TOOL_ANNOTATIONS_READONLY,
+  })
+  async searchHelp({ query, limit }: { query: string; limit?: number }, _ctx: McpContext) {
+    try {
+      const hits = await searchWiki(query, limit);
+      return ok({ hits });
+    } catch {
+      return errorResult('Help search unavailable.');
+    }
   }
 }

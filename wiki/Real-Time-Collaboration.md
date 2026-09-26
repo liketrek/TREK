@@ -34,7 +34,7 @@ The Collab addon (`collab`) must be enabled by an admin before the panel is visi
 |-------------|-----------------|
 | **Chat** | Group chat with reactions, replies, images, and URL previews |
 | **Notes** | Categorized, pinnable, markdown-formatted shared notes |
-| **Links** | Shared web addresses with a title, pinnable, synced live between members |
+| **Links** | Shared web addresses with a title, editable and pinnable, synced live between members |
 | **Polls** | Single- or multiple-choice votes with optional deadlines |
 | **What's Next** | Upcoming assigned places across all trip days |
 
@@ -56,7 +56,7 @@ There is no operational-transform or CRDT merge — simultaneous edits to the sa
 
 ## Access control
 
-All Collab reads require trip membership. Writing — sending messages, creating notes, adding links, creating polls, voting — requires the `collab_edit` permission. Members without `collab_edit` can read but cannot post or interact.
+All Collab reads require trip membership. Writing (sending messages, creating notes, adding or editing links, creating polls, voting) requires the `collab_edit` permission. Members without `collab_edit` can read but cannot post or interact.
 
 ## Related pages
 

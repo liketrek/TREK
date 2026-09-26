@@ -78,6 +78,9 @@ const settings: TranslationStrings = {
   'settings.temperature': 'Unidade de temperatura',
   'settings.distance': 'Unidade de distância',
   'settings.timeFormat': 'Formato de hora',
+  'settings.weekStart': 'Semana começa em',
+  'settings.weekStartHint':
+    'Primeiro dia da semana em todos os seletores de data. O Vacay tem sua própria configuração.',
   'settings.blurBookingCodes': 'Ocultar códigos de reserva',
   'settings.aiAlwaysRetry': 'Always retry booking imports with AI',
   'settings.aiAlwaysRetryHint': 'When a file cannot be read by the standard parser, automatically retry it with AI.',
@@ -319,6 +322,19 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.webhook': 'Webhook',
   'settings.notificationPreferences.email': 'Email',
   'settings.notificationPreferences.ntfy': 'Ntfy',
+  'settings.notificationPreferences.push': 'Push',
+  'settings.webPush.title': 'Notificações push neste dispositivo',
+  'settings.webPush.hint':
+    'Mostra as notificações do TREK neste dispositivo mesmo com o TREK fechado. Os eventos que chegam seguem a coluna Push.',
+  'settings.webPush.enable': 'Ativar neste dispositivo',
+  'settings.webPush.disable': 'Desativar neste dispositivo',
+  'settings.webPush.enabled': 'Ativado neste dispositivo',
+  'settings.webPush.unsupported': 'Este navegador não pode receber notificações push.',
+  'settings.webPush.insecure': 'O push exige que o TREK seja aberto via HTTPS.',
+  'settings.webPush.iosInstall': 'No iPhone e no iPad, adicione primeiro o TREK à Tela de Início e abra-o por lá.',
+  'settings.webPush.denied':
+    'As notificações do TREK estão bloqueadas neste navegador. Permita-as nas configurações do navegador e tente novamente.',
+  'settings.webPush.failed': 'Não foi possível ativar o push neste dispositivo.',
   'settings.currency': 'Moeda de exibição',
   'settings.currencyHint':
     'Os valores em Custos são exibidos convertidos para esta moeda apenas para visualização — os valores originais permanecem inalterados.',
@@ -382,9 +398,9 @@ const settings: TranslationStrings = {
     'Onde o modelo é executado — um servidor Ollama local ou um endpoint compatível com OpenAI.',
   'settings.aiParsing.apiKey': 'Chave de API',
   'settings.aiParsing.apiKeyHint': 'Armazenada de forma criptografada. Deixe em branco para manter a chave atual.',
-  'settings.aiParsing.multimodal': 'Enviar documentos como imagens',
+  'settings.aiParsing.multimodal': 'O modelo lê imagens',
   'settings.aiParsing.multimodalHint':
-    'Para modelos com capacidade de visão — envia o PDF original em vez do texto extraído.',
+    'Ative para um modelo que lê imagens, assim uma foto pode ser importada ou escaneada.',
   'settings.aiParsing.toast.saved': 'Configurações de IA salvas',
   'settings.aiParsing.toast.saveError': 'Não foi possível salvar as configurações de IA',
   'settings.tabs.appearance': 'Appearance',

@@ -1,4 +1,4 @@
-// FE-STORE-JOURNEY-001 to FE-STORE-JOURNEY-015
+// FE-STORE-JOURNEY-001 to FE-STORE-JOURNEY-021
 import { http, HttpResponse } from 'msw';
 import { server } from '../../tests/helpers/msw/server';
 import { journeyApi } from '../api/client';
@@ -412,6 +412,50 @@ describe('journeyStore', () => {
     const storedEntry = useJourneyStore.getState().current?.entries.find(e => e.id === 100);
     expect(storedEntry?.photos).toHaveLength(1);
     expect(storedEntry?.photos[0].id).toBe(201);
+  });
+
+  // ── provider photos (#1587) ──────────────────────────────────────────────
+
+  it('FE-STORE-JOURNEY-020: addProviderPhotos sends the group to the entry and answers what was added', async () => {
+    const detail = buildJourneyDetail({ id: 50 });
+    useJourneyStore.setState({ current: detail });
+    const bodies: Record<string, unknown>[] = [];
+    server.use(
+      http.post('/api/journeys/entries/100/provider-photos', async ({ request }) => {
+        bodies.push(await request.json() as Record<string, unknown>);
+        return HttpResponse.json({ photos: [{ id: 1 }], added: 1 });
+      })
+    );
+
+    const result = await useJourneyStore.getState().addProviderPhotos(100, 'immich', {
+      assetIds: ['a1'], passphrase: 'pw', mediaTypes: ['video'],
+    });
+
+    expect(result).toEqual({ photos: [{ id: 1 }], added: 1 });
+    expect(bodies).toEqual([{ provider: 'immich', asset_ids: ['a1'], passphrase: 'pw', media_types: ['video'] }]);
+    // The caller reloads: where the photo sorts is only known once the server
+    // has its capture time.
+    expect(useJourneyStore.getState().current).toBe(detail);
+  });
+
+  it('FE-STORE-JOURNEY-021: addProviderPhotosToGallery sends the group to the gallery, and a failure comes through', async () => {
+    const bodies: Record<string, unknown>[] = [];
+    server.use(
+      http.post('/api/journeys/50/gallery/provider-photos', async ({ request }) => {
+        bodies.push(await request.json() as Record<string, unknown>);
+        return bodies.length === 1
+          ? HttpResponse.json({ photos: [], added: 2 })
+          : new HttpResponse(null, { status: 500 });
+      })
+    );
+
+    const result = await useJourneyStore.getState().addProviderPhotosToGallery(50, 'synologyphotos', { assetIds: ['s1', 's2'] });
+
+    expect(result).toEqual({ photos: [], added: 2 });
+    expect(bodies).toEqual([{ provider: 'synologyphotos', asset_ids: ['s1', 's2'] }]);
+    await expect(
+      useJourneyStore.getState().addProviderPhotosToGallery(50, 'synologyphotos', { assetIds: ['s3'] }),
+    ).rejects.toMatchObject({ response: { status: 500 } });
   });
 
   // ── loadJourney silent refresh ───────────────────────────────────────────

@@ -87,6 +87,35 @@ describe('GET /api/help', () => {
     await request(app).get('/api/help/asset/%2e%2e%2fserver%2f.env').expect(404);
   });
 
+  it('searches the shipped pages and lands on the section that carries the words', async () => {
+    const res = await request(app).get('/api/help/search').query({ q: 'cover image' }).expect(200);
+
+    expect(res.body.hits.length).toBeGreaterThan(0);
+    const hit = res.body.hits[0];
+    expect(hit).toEqual({
+      slug: expect.any(String),
+      title: expect.any(String),
+      section: expect.any(String),
+      anchor: expect.anything(),
+      heading: expect.anything(),
+      snippet: expect.any(String),
+      score: expect.any(Number),
+    });
+    expect(hit.snippet.toLowerCase()).toContain('cover');
+  });
+
+  it('clamps the hit count to the requested limit', async () => {
+    const res = await request(app).get('/api/help/search').query({ q: 'trip', limit: 2 }).expect(200);
+    expect(res.body.hits).toHaveLength(2);
+  });
+
+  it('400s a missing, blank, overlong or non-integer-limited query', async () => {
+    await request(app).get('/api/help/search').expect(400);
+    await request(app).get('/api/help/search').query({ q: '   ' }).expect(400);
+    await request(app).get('/api/help/search').query({ q: 'x'.repeat(121) }).expect(400);
+    await request(app).get('/api/help/search').query({ q: 'trip', limit: 'many' }).expect(400);
+  });
+
   it('never calls out to GitHub', () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });

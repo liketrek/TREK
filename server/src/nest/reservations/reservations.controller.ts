@@ -153,15 +153,15 @@ export class ReservationsController {
     @Param('id') id: string,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const { deleted, accommodationDeleted, deletedBudgetItemId } = this.reservations.remove(id, tripId);
+    const { deleted, accommodationDeleted, deletedBudgetItemIds } = this.reservations.remove(id, tripId);
     if (!deleted) {
       throw new HttpException({ error: 'Reservation not found' }, 404);
     }
     if (accommodationDeleted) {
       this.reservations.broadcast(tripId, 'accommodation:deleted', { accommodationId: deleted.accommodation_id }, socketId);
     }
-    if (deletedBudgetItemId) {
-      this.reservations.broadcast(tripId, 'budget:deleted', { itemId: deletedBudgetItemId }, socketId);
+    for (const itemId of deletedBudgetItemIds) {
+      this.reservations.broadcast(tripId, 'budget:deleted', { itemId }, socketId);
     }
     this.reservations.broadcast(tripId, 'reservation:deleted', { reservationId: Number(id) }, socketId);
     this.reservations.notifyBookingChange(tripId, user.id, deleted.title, deleted.type || '');

@@ -36,7 +36,7 @@ vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, createDay, createPlace, createReservation, createDayAssignment, createDayAccommodation, createCategory, addTripMember } from '../../helpers/factories';
+import { createUser, createTrip, createDay, createPlace, createReservation, createBudgetItem, createDayAssignment, createDayAccommodation, createCategory, addTripMember } from '../../helpers/factories';
 import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
 
 beforeAll(() => {
@@ -319,7 +319,29 @@ describe('Tool: delete_reservation', () => {
     await withHarness(user.id, async (h) => {
       await h.client.callTool({ name: 'delete_reservation', arguments: { tripId: trip.id, reservationId: reservation.id } });
       expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'reservation:deleted', expect.any(Object));
+      // Nothing was linked, so no expense is announced gone.
+      expect(broadcastMock.mock.calls.some(c => c[1] === 'budget:deleted')).toBe(false);
     });
+  });
+
+  it('takes every linked expense with it and announces each one, as the REST route does (#2084)', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const reservation = createReservation(testDb, trip.id);
+    const fare = createBudgetItem(testDb, trip.id, { name: 'Fare' });
+    const luggage = createBudgetItem(testDb, trip.id, { name: 'Luggage' });
+    const unrelated = createBudgetItem(testDb, trip.id, { name: 'Coffee' });
+    testDb.prepare('UPDATE budget_items SET reservation_id = ? WHERE id IN (?, ?)').run(reservation.id, fare.id, luggage.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({ name: 'delete_reservation', arguments: { tripId: trip.id, reservationId: reservation.id } });
+      expect(parseToolResult(result)).toEqual({ success: true });
+    });
+    expect(testDb.prepare('SELECT id FROM budget_items WHERE trip_id = ?').all(trip.id)).toEqual([{ id: unrelated.id }]);
+    const deleted = broadcastMock.mock.calls.filter(c => c[1] === 'budget:deleted').map(c => (c[2] as { itemId: number }).itemId);
+    expect(deleted).toEqual([fare.id, luggage.id]);
+    // The expenses go out before the booking, so no client is left holding a link to nothing.
+    const events = broadcastMock.mock.calls.map(c => c[1]);
+    expect(events.lastIndexOf('budget:deleted')).toBeLessThan(events.indexOf('reservation:deleted'));
   });
 
   it('returns error for reservation not found', async () => {

@@ -18,6 +18,9 @@ const admin: TranslationStrings = {
   'admin.notifications.testNtfyFailed': 'テストntfyに失敗しました',
   'admin.notifications.emailPanel.title': 'メール（SMTP）',
   'admin.notifications.webhookPanel.title': 'Webhook',
+  'admin.notifications.webPushPanel.title': 'Webプッシュ',
+  'admin.notifications.webPushPanel.hint':
+    'TREKを閉じている間も、ユーザーがブラウザ経由でスマートフォンやパソコンに通知を受け取れるようにします。HTTPSが必要です。iPhoneとiPadでは、TREKをホーム画面に追加する必要があります。',
   'admin.notifications.inappPanel.title': 'アプリ内',
   'admin.notifications.inappPanel.hint': 'アプリ内通知は常に有効で、全体では無効にできません。',
   'admin.notifications.adminWebhookPanel.title': '管理者Webhook',
@@ -170,6 +173,7 @@ const admin: TranslationStrings = {
   'admin.amapKey': 'Amap（高德地图）API キー',
   'admin.amapKeyHint':
     'Google に接続できず OpenStreetMap のデータも少ない中国本土での地点検索用です。JS API キーではなく「Web 服务」（Web サービス）タイプのキーが必要です。console.amap.com で取得できます。',
+  'admin.keyFromEnv': '{name} で設定済み',
   'admin.placesProvider.title': '地点検索のプロバイダー',
   'admin.placesProvider.subtitle':
     'TREK 自身の索引と OpenStreetMap がすべての検索に答えます。ここでは、それらが何も見つけられなかったときに誰に尋ねるかを選びます。自動はキーがあれば Google を、次に Amap を選びます。',
@@ -404,6 +408,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:calendar-source': 'カレンダーへの予定の提供',
   'admin.plugins.perm.hook:place-detail-provider': '場所に追加の詳細情報（レビュー、評価、リンク）を提供',
   'admin.plugins.perm.hook:search-provider': '独自のインデックスから場所の検索に回答（TREK 自身の結果と並べて表示）',
+  'admin.plugins.perm.hook:poi-category-provider':
+    '独自のスポットカテゴリを「地図でスポットを探す」に追加（カテゴリを選ぶと、表示中の地図の範囲がプラグインに送られます）',
   'admin.plugins.perm.hook:trip-warning-provider': '旅程に検証警告を表示（プランナー内に表示）',
   'admin.plugins.perm.hook:table-contributor': '旅行のビュー（予約、場所、日程）に列とアクションを追加',
   'admin.plugins.perm.hook:map-marker-provider': '旅行の地図にマーカーを追加（例: 予約や POI を表示）',
@@ -416,6 +422,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.mcpTools': 'AI ツールを公開',
   'admin.plugins.mcpToolsTitle': '公開する AI ツール',
   'admin.plugins.mcpToolsHint': 'アシスタントがユーザーの代わりに実行できます。各ツールは上記で付与した権限で動作します。',
+  'admin.plugins.poiCategoriesTitle': '追加する地図カテゴリ',
   'admin.plugins.perm.mcp:tools':
     'AI アシスタントがあなたの代わりに実行できるツールを公開する（ここでプラグインに付与した権限で動作し、アシスタント自身の権限ではありません）',
   'admin.plugins.perm.geolocation:read':
@@ -555,6 +562,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'カレンダー予定を提供',
   'admin.plugins.cap.placeDetails': '場所を充実',
   'admin.plugins.cap.search': '検索に回答',
+  'admin.plugins.cap.poiCategories': '地図にカテゴリを追加',
   'admin.plugins.cap.warnings': '問題を検出',
   'admin.plugins.cap.mapLayers': '地図に描画',
   'admin.plugins.cap.routing': 'ルーティングを提供',
@@ -630,6 +638,11 @@ const admin: TranslationStrings = {
     '各自が接続した Dawarich インスタンスから、滞在と記録されたルートを読み取ります',
   'admin.addons.catalog.llm_parsing.name': 'AI 解析',
   'admin.addons.catalog.llm_parsing.description': '内蔵パーサーが読めない予約を、選んだ AI モデルで読み取ります',
+  'admin.addons.llm.vision.auto': '自動',
+  'admin.addons.llm.vision.on': 'はい',
+  'admin.addons.llm.vision.off': 'いいえ',
+  'admin.addons.llm.vision.hintLocal': '「自動」では、このモデルが画像を読めるかを Ollama サーバーに問い合わせます。',
+  'admin.addons.llm.vision.hintCloud': 'クラウドのモデルでは「自動」は「いいえ」になります。このモデルが画像を読める場合は「はい」を選んでください。',
   'admin.addons.enabled': '有効',
   'admin.addons.disabled': '無効',
   'admin.addons.type.trip': '旅行',

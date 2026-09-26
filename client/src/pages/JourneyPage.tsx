@@ -8,6 +8,7 @@ import {
 import type { Journey } from '../store/journeyStore'
 import { computeJourneyLifecycle } from '../utils/journeyLifecycle'
 import { useJourney } from './journey/useJourney'
+import HelpAnchor from '../components/Help/HelpAnchor'
 
 const GRADIENTS = [
   'linear-gradient(135deg, #0F172A 0%, #6366F1 45%, #EC4899 100%)',
@@ -25,7 +26,12 @@ function pickGradient(id: number): string {
 export default function JourneyPage() {
   // ViewportRoute in App.tsx picks the branch now, so the phone screen is a
   // chunk of its own instead of a dead limb in this one.
-  return <JourneyPageDesktop />
+  return (
+    <>
+      <HelpAnchor id="journey" />
+      <JourneyPageDesktop />
+    </>
+  )
 }
 
 function JourneyPageDesktop() {

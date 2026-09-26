@@ -1,4 +1,4 @@
-/** A single binary file (e.g. a PDF) sent natively to a multimodal provider. */
+/** A single binary file (a PDF, or a photo) sent natively to a provider that reads it. */
 export interface LlmExtractionFile {
   mimeType: string;
   data: Buffer;
@@ -15,8 +15,17 @@ export interface LlmExtractionInput {
   apiKey?: string;
   /** Pre-extracted text (text-like files, or text-only-model mode). */
   text?: string;
-  /** Native binary (PDF) for multimodal providers. */
+  /** Native binary: a PDF for Anthropic, a photo for a model that reads images. */
   file?: LlmExtractionFile;
+  /** The following pages of a scanned PDF, as images after `file`, which holds the first. */
+  pageImages?: LlmExtractionFile[];
+  /**
+   * The key the answer's array sits under, `jsonSchema` being `{ [rootKey]: [...] }`.
+   * Defaults to `reservations`; the receipt read asks for `receipts`.
+   */
+  rootKey?: string;
+  /** The user-turn instruction. Defaults to the booking import's. */
+  userText?: string;
 }
 
 /**

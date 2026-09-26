@@ -62,6 +62,12 @@ function fieldOf(container: HTMLElement, label: string) {
   return within(menu(container).getByText(label).parentElement!).getByRole('textbox', { hidden: true })
 }
 
+/** Opens the item menu and its Move to List entry. */
+function openMoveToList(container: HTMLElement) {
+  fireEvent.click(overflowTrigger(container))
+  fireEvent.click(menuButton(container, 'Move to List'))
+}
+
 function bagButton(container: HTMLElement) {
   // The bag picker trigger is the round button right after the weight field.
   return container.querySelectorAll<HTMLButtonElement>('button[style*="border-radius: 50%"]')[0]
@@ -92,19 +98,21 @@ describe('ArtikelZeile — basics', () => {
     const { container } = setup()
 
     expect(screen.getByText('Tent')).toBeInTheDocument()
-    fireEvent.click(container.querySelector('svg.lucide-square')!.closest('button')!)
+    const box = container.querySelector<HTMLButtonElement>('.packing-check')!
+    expect(box).toHaveAttribute('aria-pressed', 'false')
+    fireEvent.click(box)
 
     await waitFor(() => expect(body).toMatchObject({ checked: true }))
   })
 
-  it('FE-W5ROW-002: a checked item is struck through and not editable by click', () => {
+  it('FE-W5ROW-002: a checked item is struck through and still renames on a click', () => {
     setup({ item: buildPackingItem({ id: 1, name: 'Tent', checked: 1 }) })
     const label = screen.getByText('Tent')
 
     expect(label).toHaveStyle({ textDecoration: 'line-through' })
     fireEvent.click(label)
 
-    expect(screen.queryByDisplayValue('Tent')).toBeNull()
+    expect(screen.getByDisplayValue('Tent')).toBeInTheDocument()
   })
 
   it('FE-W5ROW-003: the placeholder row edits from an empty field', () => {
@@ -126,19 +134,43 @@ describe('ArtikelZeile — basics', () => {
     expect(screen.queryByDisplayValue('Tent')).toBeNull()
   })
 
-  it('FE-W5ROW-005: hovering the row lifts its background and dismisses open pickers', () => {
+  it('FE-W5ROW-005: hovering the row lifts its background and brings its controls up', () => {
     const { container } = setup()
     const row = container.querySelector<HTMLElement>('.packing-item-row')!
+    const actions = container.querySelector<HTMLElement>('.packing-row-overflow')!
+    expect(actions.style.opacity).toBe('0.4')
 
     fireEvent.mouseEnter(row)
     expect(row.style.background).toBe('var(--bg-secondary)')
-
-    fireEvent.click(screen.getByTitle('Move to List'))
-    expect(screen.getByRole('button', { name: 'Docs' })).toBeInTheDocument()
+    expect(actions.style.opacity).toBe('1')
 
     fireEvent.mouseLeave(row)
     expect(row.style.background).toBe('transparent')
-    expect(screen.queryByRole('button', { name: 'Docs' })).toBeNull()
+    expect(actions.style.opacity).toBe('0.4')
+  })
+
+  it('FE-W5ROW-005b: keyboard focus inside the row counts as hovering it', () => {
+    const { container } = setup()
+    const actions = container.querySelector<HTMLElement>('.packing-row-overflow')!
+
+    fireEvent.focus(overflowTrigger(container))
+    expect(actions.style.opacity).toBe('1')
+
+    fireEvent.blur(overflowTrigger(container), { relatedTarget: document.body })
+    expect(actions.style.opacity).toBe('0.4')
+  })
+
+  it('FE-W5ROW-005c: the bag picker stays open when the pointer leaves and closes on a click beside it', () => {
+    const { container } = setup({ bagTrackingEnabled: true, bags: BAGS })
+    const row = container.querySelector<HTMLElement>('.packing-item-row')!
+    fireEvent.click(bagButton(container))
+    expect(screen.getByRole('button', { name: 'Trolley' })).toBeInTheDocument()
+
+    fireEvent.mouseLeave(row)
+    expect(screen.getByRole('button', { name: 'Trolley' })).toBeInTheDocument()
+
+    fireEvent.click(container.querySelector('div[role="presentation"]')!)
+    expect(screen.queryByRole('button', { name: 'Trolley' })).toBeNull()
   })
 })
 
@@ -172,7 +204,7 @@ describe('ArtikelZeile — renaming', () => {
       }),
     )
     setup()
-    fireEvent.click(screen.getByTitle('Rename'))
+    fireEvent.click(screen.getByText('Tent'))
 
     const input = screen.getByDisplayValue('Tent')
     fireEvent.change(input, { target: { value: '  Tarp  ' } })
@@ -185,7 +217,7 @@ describe('ArtikelZeile — renaming', () => {
     let called = false
     server.use(http.put('/api/trips/1/packing/1', () => { called = true; return HttpResponse.json({ item: buildPackingItem() }) }))
     setup()
-    fireEvent.click(screen.getByTitle('Rename'))
+    fireEvent.click(screen.getByText('Tent'))
 
     const input = screen.getByDisplayValue('Tent')
     fireEvent.change(input, { target: { value: '   ' } })
@@ -227,7 +259,7 @@ describe('ArtikelZeile — renaming', () => {
   it('FE-W5ROW-009: a failing rename surfaces a save error', async () => {
     server.use(http.put('/api/trips/1/packing/1', () => new HttpResponse(null, { status: 500 })))
     setup()
-    fireEvent.click(screen.getByTitle('Rename'))
+    fireEvent.click(screen.getByText('Tent'))
 
     fireEvent.change(screen.getByDisplayValue('Tent'), { target: { value: 'Tarp' } })
     fireEvent.keyDown(screen.getByDisplayValue('Tarp'), { key: 'Enter' })
@@ -265,15 +297,9 @@ describe('ArtikelZeile — deleting', () => {
     await waitFor(() => expect(toastSpy).toHaveBeenCalledWith('Failed to delete', 'error', undefined))
   })
 
-  it('FE-W5ROW-013: the rename and delete buttons highlight on hover', () => {
+  it('FE-W5ROW-013: the delete button turns red on hover', () => {
     setup()
-    const rename = screen.getByTitle('Rename')
     const remove = screen.getByTitle('Delete')
-
-    fireEvent.mouseEnter(rename)
-    expect(rename.style.color).toBe('var(--text-secondary)')
-    fireEvent.mouseLeave(rename)
-    expect(rename.style.color).toBe('var(--text-faint)')
 
     fireEvent.mouseEnter(remove)
     expect(remove.style.color).toBe('rgb(239, 68, 68)')
@@ -291,8 +317,8 @@ describe('ArtikelZeile — category picker', () => {
         return HttpResponse.json({ item: buildPackingItem({ id: 1, category: 'Docs' }) })
       }),
     )
-    setup()
-    fireEvent.click(screen.getByTitle('Move to List'))
+    const { container } = setup()
+    openMoveToList(container)
 
     fireEvent.click(screen.getByRole('button', { name: 'Docs' }))
 
@@ -303,8 +329,8 @@ describe('ArtikelZeile — category picker', () => {
   it('FE-W5ROW-015: picking the current list closes the picker without a request', async () => {
     let called = false
     server.use(http.put('/api/trips/1/packing/1', () => { called = true; return HttpResponse.json({ item: buildPackingItem() }) }))
-    setup()
-    fireEvent.click(screen.getByTitle('Move to List'))
+    const { container } = setup()
+    openMoveToList(container)
 
     fireEvent.click(screen.getByRole('button', { name: 'Gear' }))
 
@@ -314,8 +340,8 @@ describe('ArtikelZeile — category picker', () => {
 
   it('FE-W5ROW-016: a failing move surfaces a generic error', async () => {
     server.use(http.put('/api/trips/1/packing/1', () => new HttpResponse(null, { status: 500 })))
-    setup()
-    fireEvent.click(screen.getByTitle('Move to List'))
+    const { container } = setup()
+    openMoveToList(container)
 
     fireEvent.click(screen.getByRole('button', { name: 'Docs' }))
 
@@ -323,11 +349,11 @@ describe('ArtikelZeile — category picker', () => {
   })
 
   it('FE-W5ROW-017: an uncategorized item marks the default list as current', () => {
-    setup({
+    const { container } = setup({
       item: buildPackingItem({ id: 1, name: 'Soap', category: null }),
       categories: ['Other', 'Gear'],
     })
-    fireEvent.click(screen.getByTitle('Move to List'))
+    openMoveToList(container)
 
     expect(screen.getByRole('button', { name: 'Other' })).toHaveStyle({ background: 'var(--bg-tertiary)' })
     expect(screen.getByRole('button', { name: 'Gear' })).not.toHaveStyle({ background: 'var(--bg-tertiary)' })
@@ -341,7 +367,7 @@ describe('ArtikelZeile — sharing badges', () => {
       currentUserId: 1,
     })
 
-    expect(screen.getByText('by Bob')).toBeInTheDocument()
+    expect(screen.getByLabelText('by Bob')).toHaveAttribute('title', 'by Bob')
   })
 
   it('FE-W5ROW-019: a nameless bringer degrades to an empty name', () => {
@@ -362,8 +388,8 @@ describe('ArtikelZeile — sharing badges', () => {
       currentUserId: 1,
     })
 
-    expect(screen.getByText('shared with 2')).toBeInTheDocument()
-    expect(screen.getByTitle('alice, bob')).toBeInTheDocument()
+    expect(screen.getByLabelText('shared with 2')).toHaveTextContent('2')
+    expect(screen.getByTitle('shared with 2: alice, bob')).toBeInTheDocument()
   })
 
   it('FE-W5ROW-021: a common item names its bringer and counts co-bringers', () => {
@@ -375,7 +401,8 @@ describe('ArtikelZeile — sharing badges', () => {
       currentUserId: 1,
     })
 
-    expect(screen.getByTitle('brought by Bob')).toHaveTextContent('Bob +1')
+    // The bringer's initial on an avatar, the co-bringers as a count.
+    expect(screen.getByTitle('brought by Bob')).toHaveTextContent('B+1')
   })
 
   it('FE-W5ROW-022: a bringer without co-bringers shows no counter', () => {
@@ -384,7 +411,7 @@ describe('ArtikelZeile — sharing badges', () => {
       currentUserId: 1,
     })
 
-    expect(screen.getByTitle('brought by Bob')).toHaveTextContent(/^Bob$/)
+    expect(screen.getByTitle('brought by Bob')).toHaveTextContent(/^B$/)
   })
 
   it('FE-W5ROW-023: the placeholder row carries no badges and no share control', () => {
@@ -403,7 +430,7 @@ describe('ArtikelZeile — sharing badges', () => {
 
   it('FE-W5ROW-024: the share control is wired up for an editable item', () => {
     const onSetSharing = vi.fn()
-    setup({
+    const { container } = setup({
       currentUserId: 1,
       tripMembers: MEMBERS,
       onSetSharing,
@@ -412,7 +439,9 @@ describe('ArtikelZeile — sharing badges', () => {
       onLeave: () => {},
     })
 
-    fireEvent.click(screen.getByTitle('Sharing'))
+    // Sharing lives in the item menu, as a whole line to click.
+    fireEvent.click(overflowTrigger(container))
+    fireEvent.click(menu(container).getByText('Sharing').closest('button')!)
     fireEvent.click(screen.getByText(/^Personal$/))
 
     expect(onSetSharing).toHaveBeenCalledWith(1, 'personal', [])
@@ -799,9 +828,9 @@ describe('ArtikelZeile — weight and bag', () => {
     const add = screen.getByText('Add bag').closest('button')!
 
     fireEvent.mouseEnter(add)
-    expect(add.style.color).toBe('var(--text-secondary)')
+    expect(add.style.background).toBe('var(--bg-tertiary)')
     fireEvent.mouseLeave(add)
-    expect(add.style.color).toBe('var(--text-faint)')
+    expect(add.style.background).toBe('none')
   })
 })
 
@@ -988,9 +1017,7 @@ describe('ArtikelZeile — overflow menu', () => {
     })
     fireEvent.click(overflowTrigger(container))
 
-    expect(screen.getByText('Sharing')).toBeInTheDocument()
-    const triggers = screen.getAllByTitle('Sharing')
-    fireEvent.click(triggers[triggers.length - 1])
+    fireEvent.click(menu(container).getByText('Sharing').closest('button')!)
     fireEvent.click(screen.getByText(/^Personal$/))
 
     expect(onSetSharing).toHaveBeenCalledWith(1, 'personal', [])
@@ -1015,6 +1042,6 @@ describe('ArtikelZeile — overflow menu', () => {
     expect(active.style.background).toBe('var(--bg-tertiary)')
 
     fireEvent.mouseEnter(danger)
-    expect(danger.style.background).toBe('rgb(254, 242, 242)')
+    expect(danger.style.background).toBe('rgba(239, 68, 68, 0.1)')
   })
 })

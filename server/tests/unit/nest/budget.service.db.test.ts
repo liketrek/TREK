@@ -714,6 +714,234 @@ describe('deleting an expense takes its price off the booking (#2233)', () => {
   });
 });
 
+describe('linking existing expenses to bookings and places (#2084)', () => {
+  function tripWithBooking(metadata: Record<string, unknown> | null = null) {
+    const { user } = createUser(testDb, { username: 'owner' });
+    const trip = createTrip(testDb, user.id, { title: 'Trip' });
+    const reservationId = insertReservation(trip.id, 'Flight', metadata);
+    return { user, trip, reservationId };
+  }
+
+  function insertReservation(tripId: number, title: string, metadata: Record<string, unknown> | null = null): number {
+    return Number(testDb
+      .prepare("INSERT INTO reservations (trip_id, title, type, metadata) VALUES (?, ?, 'flight', ?)")
+      .run(tripId, title, metadata ? JSON.stringify(metadata) : null).lastInsertRowid);
+  }
+
+  function insertPlace(tripId: number, name = 'Louvre'): number {
+    return Number(testDb.prepare('INSERT INTO places (trip_id, name) VALUES (?, ?)').run(tripId, name).lastInsertRowid);
+  }
+
+  function metadataOf(reservationId: number): Record<string, unknown> | null {
+    const row = testDb.prepare('SELECT metadata FROM reservations WHERE id = ?').get(reservationId) as { metadata: string | null };
+    return row.metadata ? JSON.parse(row.metadata) : null;
+  }
+
+  function linksOf(itemId: number) {
+    return testDb.prepare('SELECT reservation_id, place_id FROM budget_items WHERE id = ?').get(itemId) as {
+      reservation_id: number | null; place_id: number | null;
+    };
+  }
+
+  it('BUDGET-SVC-DB-044: an update links an existing expense, leaves the link alone when omitted, and null lets go of it', () => {
+    const { trip, reservationId } = tripWithBooking();
+    const placeId = insertPlace(trip.id);
+    const item = budget.createBudgetItem(trip.id, { name: 'Tickets', total_price: 34 });
+
+    const linked = budget.updateBudgetItem(item.id, trip.id, { reservation_id: reservationId, place_id: placeId });
+    expect(linked).toMatchObject({ reservation_id: reservationId, place_id: placeId });
+    expect(linksOf(item.id)).toEqual({ reservation_id: reservationId, place_id: placeId });
+
+    // An edit that does not name the links keeps both.
+    budget.updateBudgetItem(item.id, trip.id, { name: 'Museum tickets' });
+    expect(linksOf(item.id)).toEqual({ reservation_id: reservationId, place_id: placeId });
+
+    // null unlinks, one field at a time, and the expense itself stays.
+    budget.updateBudgetItem(item.id, trip.id, { reservation_id: null });
+    expect(linksOf(item.id)).toEqual({ reservation_id: null, place_id: placeId });
+    budget.updateBudgetItem(item.id, trip.id, { place_id: null });
+    expect(linksOf(item.id)).toEqual({ reservation_id: null, place_id: null });
+    expect(testDb.prepare('SELECT name, total_price FROM budget_items WHERE id = ?').get(item.id)).toEqual({ name: 'Museum tickets', total_price: 34 });
+  });
+
+  it('BUDGET-SVC-DB-045: linkRefusal passes this trip\'s ids and names the foreign or missing one', () => {
+    const { user, trip, reservationId } = tripWithBooking();
+    const placeId = insertPlace(trip.id);
+    const elsewhere = createTrip(testDb, user.id, { title: 'Elsewhere' });
+    const foreignReservation = insertReservation(elsewhere.id, 'Other flight');
+    const foreignPlace = insertPlace(elsewhere.id, 'Elsewhere');
+
+    expect(budget.linkRefusal(trip.id, {})).toBeNull();
+    expect(budget.linkRefusal(trip.id, { reservation_id: null, place_id: null })).toBeNull();
+    expect(budget.linkRefusal(trip.id, { reservation_id: reservationId, place_id: placeId })).toBeNull();
+    // The route param arrives as a string; the lookup still matches.
+    expect(budget.linkRefusal(String(trip.id), { reservation_id: reservationId })).toBeNull();
+
+    expect(budget.linkRefusal(trip.id, { reservation_id: foreignReservation })).toBe('reservation_id does not belong to this trip.');
+    expect(budget.linkRefusal(trip.id, { place_id: foreignPlace })).toBe('place_id does not belong to this trip.');
+    // An id that exists nowhere is refused the same way, never a foreign-key 500.
+    expect(budget.linkRefusal(trip.id, { reservation_id: 999999 })).toBe('reservation_id does not belong to this trip.');
+    expect(budget.linkRefusal(trip.id, { place_id: 999999 })).toBe('place_id does not belong to this trip.');
+    // Both wrong: the booking is named first.
+    expect(budget.linkRefusal(trip.id, { reservation_id: foreignReservation, place_id: foreignPlace }))
+      .toBe('reservation_id does not belong to this trip.');
+  });
+
+  it('BUDGET-SVC-DB-046: the booking mirrors the sum of its expenses while they share one currency', () => {
+    const { trip, reservationId } = tripWithBooking({ seat: '12A' });
+    const first = budget.createBudgetItem(trip.id, { name: 'Fare', total_price: 10.1, currency: 'usd' });
+    const second = budget.createBudgetItem(trip.id, { name: 'Luggage', total_price: 20.2, currency: 'usd' });
+    // An expense on another booking of the same trip is not part of the sum.
+    const other = insertReservation(trip.id, 'Return');
+    const unrelated = budget.createBudgetItem(trip.id, { name: 'Return fare', total_price: 99, currency: 'usd' });
+    testDb.prepare('UPDATE budget_items SET reservation_id = ? WHERE id IN (?, ?)').run(reservationId, first.id, second.id);
+    testDb.prepare('UPDATE budget_items SET reservation_id = ? WHERE id = ?').run(other, unrelated.id);
+
+    budget.resyncReservationPrice(trip.id, reservationId);
+
+    // Cent-clean (10.1 + 20.2 is 30.299999... in floats), upper-cased currency,
+    // and the rest of the metadata untouched.
+    expect(metadataOf(reservationId)).toEqual({ seat: '12A', price: '30.3', priceCurrency: 'USD' });
+  });
+
+  it('BUDGET-SVC-DB-052: an expense without a currency and one in the trip currency by code add up', () => {
+    // No currency means the trip's; the two rows are in the same money and the
+    // booking shows their sum, not the first one alone.
+    const { trip, reservationId } = tripWithBooking();
+    testDb.prepare("UPDATE trips SET currency = 'EUR' WHERE id = ?").run(trip.id);
+    const implicit = budget.createBudgetItem(trip.id, { name: 'Fare', total_price: 40 });
+    const explicit = budget.createBudgetItem(trip.id, { name: 'Seat', total_price: 12, currency: 'eur' });
+    testDb.prepare('UPDATE budget_items SET reservation_id = ? WHERE id IN (?, ?)').run(reservationId, implicit.id, explicit.id);
+
+    budget.resyncReservationPrice(trip.id, reservationId);
+
+    // Named by its code once one of them names it.
+    expect(metadataOf(reservationId)).toEqual({ price: '52', priceCurrency: 'EUR' });
+  });
+
+  it('BUDGET-SVC-DB-053: a currency code is the same currency whatever its case', () => {
+    const { trip, reservationId } = tripWithBooking();
+    const lower = budget.createBudgetItem(trip.id, { name: 'Fare', total_price: 100, currency: 'usd' });
+    const upper = budget.createBudgetItem(trip.id, { name: 'Seat', total_price: 25, currency: 'USD' });
+    testDb.prepare('UPDATE budget_items SET reservation_id = ? WHERE id IN (?, ?)').run(reservationId, lower.id, upper.id);
+
+    budget.resyncReservationPrice(trip.id, reservationId);
+
+    expect(metadataOf(reservationId)).toEqual({ price: '125', priceCurrency: 'USD' });
+  });
+
+  it('BUDGET-SVC-DB-054: a first expense in the trip currency, beside a foreign one, is named by the trip code', () => {
+    const { trip, reservationId } = tripWithBooking();
+    testDb.prepare("UPDATE trips SET currency = 'eur' WHERE id = ?").run(trip.id);
+    const implicit = budget.createBudgetItem(trip.id, { name: 'Fare', total_price: 100 });
+    const foreign = budget.createBudgetItem(trip.id, { name: 'Seat', total_price: 20, currency: 'USD' });
+    testDb.prepare('UPDATE budget_items SET reservation_id = ? WHERE id IN (?, ?)').run(reservationId, implicit.id, foreign.id);
+
+    budget.resyncReservationPrice(trip.id, reservationId);
+    // The currencies differ, so the first expense stands alone, and its implicit
+    // currency is spelled out so the card does not read the figure as dollars.
+    expect(metadataOf(reservationId)).toEqual({ price: '100', priceCurrency: 'EUR' });
+
+    // A trip with no currency at all leaves nothing to spell out.
+    testDb.prepare('UPDATE trips SET currency = NULL WHERE id = ?').run(trip.id);
+    budget.resyncReservationPrice(trip.id, reservationId);
+    expect(metadataOf(reservationId)).toEqual({ price: '100' });
+  });
+
+  it('BUDGET-SVC-DB-047: expenses in different currencies mirror the first one alone, in its currency', () => {
+    const { trip, reservationId } = tripWithBooking();
+    const first = budget.createBudgetItem(trip.id, { name: 'Fare', total_price: 120, currency: 'CHF' });
+    const second = budget.createBudgetItem(trip.id, { name: 'Seat', total_price: 15, currency: 'EUR' });
+    testDb.prepare('UPDATE budget_items SET reservation_id = ? WHERE id IN (?, ?)').run(reservationId, first.id, second.id);
+
+    budget.resyncReservationPrice(trip.id, reservationId);
+
+    expect(metadataOf(reservationId)).toEqual({ price: '120', priceCurrency: 'CHF' });
+  });
+
+  it('BUDGET-SVC-DB-048: expenses in the trip currency sum up and carry no currency of their own', () => {
+    // An imported booking can carry a currency stamped by the importer; once the
+    // mirror comes from expenses in the trip's own currency, that stamp goes.
+    const { trip, reservationId } = tripWithBooking({ price: '5', priceCurrency: 'CNY' });
+    const first = budget.createBudgetItem(trip.id, { name: 'Fare', total_price: 40 });
+    const second = budget.createBudgetItem(trip.id, { name: 'Seat', total_price: 2.5 });
+    testDb.prepare('UPDATE budget_items SET reservation_id = ? WHERE id IN (?, ?)').run(reservationId, first.id, second.id);
+
+    budget.resyncReservationPrice(trip.id, reservationId);
+
+    expect(metadataOf(reservationId)).toEqual({ price: '42.5' });
+  });
+
+  it('BUDGET-SVC-DB-049: a booking with nothing linked loses its price and currency, and nothing else', () => {
+    const { trip, reservationId } = tripWithBooking({ seat: '12A', price: '30', priceCurrency: 'USD' });
+
+    budget.resyncReservationPrice(trip.id, reservationId);
+    expect(metadataOf(reservationId)).toEqual({ seat: '12A' });
+
+    // A booking without a price, or without metadata at all, is not rewritten.
+    const bare = insertReservation(trip.id, 'Bare');
+    budget.resyncReservationPrice(trip.id, bare);
+    expect(metadataOf(bare)).toBeNull();
+  });
+
+  it('BUDGET-SVC-DB-050: deleting one of two expenses leaves the booking with the other one\'s total', () => {
+    const { trip, reservationId } = tripWithBooking({ price: '30' });
+    const first = budget.createBudgetItem(trip.id, { name: 'Fare', total_price: 25 });
+    const second = budget.createBudgetItem(trip.id, { name: 'Seat', total_price: 5 });
+    testDb.prepare('UPDATE budget_items SET reservation_id = ? WHERE id IN (?, ?)').run(reservationId, first.id, second.id);
+
+    expect(budget.deleteBudgetItem(first.id, trip.id)).toBe(true);
+    // Before #2084 the price was dropped outright, though an expense still stood behind it.
+    expect(metadataOf(reservationId)).toEqual({ price: '5' });
+
+    expect(budget.deleteBudgetItem(second.id, trip.id)).toBe(true);
+    expect(metadataOf(reservationId)).toEqual({});
+  });
+
+  it('BUDGET-SVC-DB-051: moving an expense to another booking moves its share of the price along', () => {
+    const { trip, reservationId: from } = tripWithBooking();
+    const to = insertReservation(trip.id, 'Return');
+    const stays = budget.createBudgetItem(trip.id, { name: 'Fare', total_price: 100 });
+    const moves = budget.createBudgetItem(trip.id, { name: 'Seat', total_price: 20 });
+    testDb.prepare('UPDATE budget_items SET reservation_id = ? WHERE id IN (?, ?)').run(from, stays.id, moves.id);
+    budget.resyncReservationPrice(trip.id, from);
+    expect(metadataOf(from)).toEqual({ price: '120' });
+
+    const before = budget.getBudgetItem(moves.id, trip.id)!;
+    const data = { reservation_id: to };
+    const updated = budget.updateBudgetItem(moves.id, trip.id, data)!;
+    budget.resyncLinkedPrices(trip.id, before.reservation_id, updated, data);
+
+    expect(metadataOf(from)).toEqual({ price: '100' });
+    expect(metadataOf(to)).toEqual({ price: '20' });
+
+    // And letting go of the link takes the price off the booking it left.
+    const unlink = { reservation_id: null };
+    const unlinked = budget.updateBudgetItem(moves.id, trip.id, unlink)!;
+    budget.resyncLinkedPrices(trip.id, to, unlinked, unlink);
+    expect(metadataOf(to)).toEqual({});
+    expect(testDb.prepare('SELECT id FROM budget_items WHERE id = ?').get(moves.id)).toEqual({ id: moves.id });
+  });
+
+  it('BUDGET-SVC-DB-055: an edit that only changes the currency of a linked expense re-names the booking price', () => {
+    const { trip, reservationId } = tripWithBooking();
+    const item = budget.createBudgetItem(trip.id, { name: 'Fare', total_price: 80 });
+    testDb.prepare('UPDATE budget_items SET reservation_id = ? WHERE id = ?').run(reservationId, item.id);
+    budget.resyncReservationPrice(trip.id, reservationId);
+    expect(metadataOf(reservationId)).toEqual({ price: '80' });
+
+    // Shaped like the route body, which names neither the total nor the link here.
+    type Body = { currency: string | null; total_price?: number; reservation_id?: number | null };
+    const toChf: Body = { currency: 'chf' };
+    budget.resyncLinkedPrices(trip.id, undefined, budget.updateBudgetItem(item.id, trip.id, toChf)!, toChf);
+    expect(metadataOf(reservationId)).toEqual({ price: '80', priceCurrency: 'CHF' });
+
+    const back: Body = { currency: null };
+    budget.resyncLinkedPrices(trip.id, undefined, budget.updateBudgetItem(item.id, trip.id, back)!, back);
+    expect(metadataOf(reservationId)).toEqual({ price: '80' });
+  });
+});
+
 describe('an expense nobody paid stays out of the ledger (#2225)', () => {
   it('BUDGET-SVC-DB-037: an unpaid expense moves neither the balances nor the offered flows', () => {
     const { user: alice } = createUser(testDb, { username: 'alice' });

@@ -6,7 +6,9 @@ import { useToast } from '../../../components/shared/Toast'
 import { SYMBOLS, currenciesWith } from '../../../components/Budget/BudgetPanel.constants'
 import { TRIP_TAB_IDS, TRIP_TAB_LABEL_KEYS, isTripTabId } from '../../../constants/tripTabs'
 import { DEFAULT_START_PAGE, DEFAULT_START_TRIP_TAB, type StartPage } from '../../../utils/startDestination'
-import type { Settings, DistanceUnit } from '../../../types'
+import type { Settings, DistanceUnit, WeekStart } from '../../../types'
+import { DEFAULT_WEEK_START } from '@trek/shared'
+import { weekStartOptions } from '../../../utils/calendarWeek'
 import { MSetCard, MSetEyebrow, MSetSelectRow, MSetSegments, MSetRow } from './MSettingsUi'
 import MToggle from '../../components/MToggle'
 import MSetPickerSheet from './MSetPickerSheet'
@@ -16,7 +18,7 @@ import MSetPickerSheet from './MSetPickerSheet'
  * cards, wired to the real user preferences (DisplaySettingsTab parity).
  */
 export default function MSettingsGeneral() {
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
   const toast = useToast()
   const { settings, updateSetting } = useSettingsStore()
   const [currencyOpen, setCurrencyOpen] = useState(false)
@@ -142,6 +144,13 @@ export default function MSettingsGeneral() {
             { value: '24h', label: '24h' },
             { value: '12h', label: '12h' },
           ]}
+        />
+
+        <MSetEyebrow className="mb-[6px] mt-[14px]">{t('settings.weekStart')}</MSetEyebrow>
+        <MSetSegments<WeekStart>
+          value={settings.week_start || DEFAULT_WEEK_START}
+          onChange={(v) => save('week_start', v)}
+          options={weekStartOptions(locale)}
         />
       </MSetCard>
 

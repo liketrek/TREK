@@ -9,10 +9,12 @@ import Section from './Section'
 import { TRIP_TAB_IDS, TRIP_TAB_LABEL_KEYS } from '../../constants/tripTabs'
 import { DEFAULT_START_PAGE, DEFAULT_START_TRIP_TAB } from '../../utils/startDestination'
 import type { DistanceUnit } from '../../types'
+import { DEFAULT_WEEK_START } from '@trek/shared'
+import { weekStartOptions } from '../../utils/calendarWeek'
 
 export default function DisplaySettingsTab(): React.ReactElement {
   const { settings, updateSetting } = useSettingsStore()
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
   const toast = useToast()
   const [tempUnit, setTempUnit] = useState<string>(settings.temperature_unit || DEFAULT_SETTINGS.temperature_unit)
   const [distanceUnit, setDistanceUnit] = useState<DistanceUnit>(settings.distance_unit || DEFAULT_SETTINGS.distance_unit)
@@ -284,6 +286,20 @@ export default function DisplaySettingsTab(): React.ReactElement {
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Week start: the first column of every date picker (#2029) */}
+      <div>
+        <label className="block text-sm font-medium mb-2 text-content-secondary">{t('settings.weekStart')}</label>
+        <CustomSelect
+          value={settings.week_start || DEFAULT_WEEK_START}
+          onChange={async v => {
+            try { await updateSetting('week_start', String(v)) }
+            catch (e: unknown) { toast.error(e instanceof Error ? e.message : t('common.error')) }
+          }}
+          options={weekStartOptions(locale)}
+        />
+        <p className="text-xs text-content-faint mt-2">{t('settings.weekStartHint')}</p>
       </div>
       </Section>
 

@@ -6,6 +6,7 @@ import { Search, ChevronRight, Loader2, AlertCircle, BookOpen, PanelLeft, X } fr
 import PageShell from '../components/Layout/PageShell'
 import { useTranslation } from '../i18n'
 import { useHelp } from './help/useHelp'
+import { headingSlug } from '../help/headingSlug'
 
 export default function HelpPage() {
   const { t } = useTranslation()
@@ -126,17 +127,14 @@ export default function HelpPage() {
  * GitHub's heading-anchor slug: lowercase, punctuation dropped, spaces to
  * hyphens. Wiki pages link to their own sections with `](#some-heading)`, and
  * those hrefs are written against GitHub's scheme — so ours has to match it, or
- * in-app anchors point at nothing.
+ * in-app anchors point at nothing. The slug itself lives in `help/headingSlug`,
+ * so the help center's doc links are checked against the same rule.
  */
 function headingId(children: ReactNode): string {
   const text = Children.toArray(children)
     .map(c => (typeof c === 'string' || typeof c === 'number' ? String(c) : ''))
     .join('')
-  return text
-    .toLowerCase()
-    .replace(/[^\w\s-]/g, '')
-    .trim()
-    .replace(/\s+/g, '-')
+  return headingSlug(text)
 }
 
 /** Markdown renderer with TREK-styled elements and SPA-internal links. */

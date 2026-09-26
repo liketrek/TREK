@@ -16,11 +16,17 @@ import AtlasCountrySearch from './atlas/AtlasCountrySearch'
 import AtlasLayerToggle from './atlas/AtlasLayerToggle'
 import { useToast } from '../components/shared/Toast'
 import { getApiErrorMessage } from '../types'
+import HelpAnchor from '../components/Help/HelpAnchor'
 
 export default function AtlasPage(): React.ReactElement {
   // ViewportRoute in App.tsx picks the branch now, so the phone screen is a
   // chunk of its own instead of a dead limb in this one.
-  return <AtlasPageDesktop />
+  return (
+    <>
+      <HelpAnchor id="atlas" />
+      <AtlasPageDesktop />
+    </>
+  )
 }
 
 function AtlasPageDesktop(): React.ReactElement {

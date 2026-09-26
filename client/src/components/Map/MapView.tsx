@@ -54,7 +54,8 @@ import NightPauseTooltip from './NightPauseTooltip'
 import ClusteredPois from './ClusteredPois'
 import { NightPauseDrag } from './NightPauseDrag'
 import type { DayBoundaryControls } from './dayBoundaryDrag'
-import { POI_CATEGORY_BY_KEY, type Poi } from './poiCategories'
+import type { Poi } from './poiCategories'
+import { poiDetailRowKey, poiDetailRows, poiPinCacheKey, poiPinParts } from './poiMarker'
 import { resolveTrackColor, hasManualTrackColor } from './trackColors'
 import DawarichTrailLayer from './DawarichTrailLayer'
 import { OFM_POSITRON, DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM, MAP_MAX_ZOOM, SATELLITE_TILE_URL, SATELLITE_TILE_MAXZOOM, AMAP_SATELLITE, attributionForTile } from '../../constants/mapDefaults'
@@ -232,18 +233,18 @@ function createPlaceIcon(place, orderNumbers, isSelected) {
 // Small coloured pin for an OSM "explore" POI — distinct from the photo-circle
 // markers of planned places; the colour matches its pill category.
 const poiIconCache = new Map<string, L.DivIcon>()
-function createPoiIcon(category: string, brandWikidata?: string | null) {
+function createPoiIcon(poi: Pick<Poi, 'category' | 'icon' | 'color'>, brandWikidata?: string | null) {
   // One flat disc in the category's colour with its icon, and never the chain's logo.
   // The brands turned a corridor full of petrol stations into a row of advertisements,
   // they were unreadable at pin size, and a brand with no logo on file fell back to a
   // different picture entirely — so no two pins looked alike. `brandWikidata` is kept in
   // the signature because the callers still have it; it simply no longer changes anything.
   void brandWikidata
-  const cached = poiIconCache.get(category)
+  // A plugin category's key carries its colour and icon too, so two looks never share a pin.
+  const cacheKey = poiPinCacheKey(poi)
+  const cached = poiIconCache.get(cacheKey)
   if (cached) return cached
-  const cat = POI_CATEGORY_BY_KEY[category]
-  const color = cat?.color || '#6b7280'
-  const svg = cat ? renderIconMarkup(createElement(cat.Icon, { size: 13, color: 'white', strokeWidth: 2.5 })) : ''
+  const { color, svg } = poiPinParts(poi)
   const icon = L.divIcon({
     className: '',
     html: `<div style="position:relative;width:26px;height:26px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 1px 5px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;">${svg}</div>`,
@@ -251,8 +252,35 @@ function createPoiIcon(category: string, brandWikidata?: string | null) {
     iconAnchor: [13, 13],
     tooltipAnchor: [0, -14],
   })
-  poiIconCache.set(category, icon)
+  poiIconCache.set(cacheKey, icon)
   return icon
+}
+
+/**
+ * The hover tooltip of an explore POI: its name, and for a plugin POI the rows the
+ * plugin knows about it (the GL hover card shows the same, see buildPoiPopupHtml).
+ * React text throughout, so nothing a plugin sends is ever read as markup. A POI
+ * without rows keeps the bare name it has always had.
+ */
+function PoiTooltipBody({ poi }: Readonly<{ poi: Poi }>) {
+  const rows = poiDetailRows(poi)
+  if (!rows.length) return poi.name
+  // w-max because Leaflet's tooltip pane is 0px wide: without an intrinsic width the
+  // tooltip shrinks to its narrowest layout and the values wrap a letter per line. The
+  // label column stops at 45% and wraps, so a long label leaves its value room too.
+  return (
+    <div className="w-max max-w-56 whitespace-normal">
+      <div className="truncate font-semibold">{poi.name}</div>
+      <div className="mt-1 grid grid-cols-[fit-content(45%)_1fr] gap-x-1.5 font-normal" data-testid="poi-details">
+        {rows.map(row => (
+          <div key={poiDetailRowKey(row)} className="contents">
+            <span className="text-content-muted [overflow-wrap:anywhere]">{row.label}</span>
+            <span className="[overflow-wrap:anywhere]">{row.value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 // Clears the hover tooltip the moment the camera starts moving and suppresses
@@ -776,7 +804,7 @@ export const MapView = memo(function MapView({
       key={`poi-${poi.osm_id}`}
       alt={poi.name}
       position={[poi.lat, poi.lng]}
-      icon={createPoiIcon(poi.category, poi.brand_wikidata)}
+      icon={createPoiIcon(poi, poi.brand_wikidata)}
       zIndexOffset={500}
       eventHandlers={{
         click: () => onPoiClick?.(poi),
@@ -792,7 +820,7 @@ export const MapView = memo(function MapView({
         },
       }}
     >
-      <Tooltip direction="top" offset={[0, -10]} opacity={1} className="map-tooltip">{poi.name}</Tooltip>
+      <Tooltip direction="top" offset={[0, -10]} opacity={1} className="map-tooltip"><PoiTooltipBody poi={poi} /></Tooltip>
     </Marker>
   )), [pois, onPoiClick, onPoiDropOnRoute])
   const visibleReservations = useMemo(() => (

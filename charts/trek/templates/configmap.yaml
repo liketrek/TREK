@@ -97,3 +97,9 @@ data:
   {{- if .Values.env.AMAP_API_BASE }}
   AMAP_API_BASE: {{ .Values.env.AMAP_API_BASE | quote }}
   {{- end }}
+  {{- if .Values.env.VAPID_PUBLIC_KEY }}
+  VAPID_PUBLIC_KEY: {{ .Values.env.VAPID_PUBLIC_KEY | quote }}
+  {{- end }}
+  {{- if .Values.env.VAPID_SUBJECT }}
+  VAPID_SUBJECT: {{ .Values.env.VAPID_SUBJECT | quote }}
+  {{- end }}

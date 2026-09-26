@@ -68,6 +68,8 @@ const login: TranslationStrings = {
   'login.oidcOnly':
     "L'authentification par mot de passe est désactivée. Veuillez vous connecter via votre fournisseur SSO.",
   'login.oidcLoggedOut': 'Vous avez été déconnecté. Reconnectez-vous via votre fournisseur SSO.',
+  'login.oidcRedirecting': 'Redirection vers {name}…',
+  'login.oidcRedirectSlow': 'Toujours ici ? Continuer vers {name}',
   'login.demoHint': 'Essayez la démo — aucune inscription nécessaire',
   'login.passkey.signIn': 'Se connecter avec une passkey',
   'login.passkey.failed': 'Échec de la connexion par passkey. Veuillez réessayer.',

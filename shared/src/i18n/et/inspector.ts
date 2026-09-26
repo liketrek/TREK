@@ -1,0 +1,30 @@
+import type { TranslationStrings } from '../types';
+
+const inspector: TranslationStrings = {
+  'inspector.opened': 'Avatud',
+  'inspector.closed': 'Suletud',
+  'inspector.openingHours': 'Lahtiolekuajad',
+  'inspector.showHours': 'Näita lahtiolekuaegu',
+  'inspector.files': 'Failid',
+  'inspector.filesCount': '{count} faili',
+  'inspector.remove': 'Eemalda',
+  'inspector.removeFromDay': 'Eemalda päevast',
+  'inspector.addToDay': 'Lisa päevale',
+  'inspector.confirmedRes': 'Kinnitatud broneering',
+  'inspector.pendingRes': 'Ootel broneering',
+  'inspector.google': 'Google Maps',
+  'inspector.navigation': 'Navigeerimine',
+  'inspector.openWith': 'Ava rakendusega',
+  'inspector.openStreetMap': 'OpenStreetMap',
+  'inspector.website': 'Ava veebisait',
+  'inspector.saveToCollection': 'Salvesta kogumikku',
+  'inspector.savedToCollection': 'Salvestatud',
+  'inspector.addRes': 'Broneering',
+  'inspector.editRes': 'Muuda broneeringut',
+  'inspector.participants': 'Osalejad',
+  'inspector.trackStats': 'Raja statistika',
+  'inspector.trackColor': 'Raja värv',
+  'inspector.trackColorAuto': 'Automaatne värv',
+  'inspector.trackColorCustom': 'Vali kohandatud värv',
+};
+export default inspector;

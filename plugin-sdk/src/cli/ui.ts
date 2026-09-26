@@ -213,6 +213,7 @@ export const PERMISSION_FAMILIES: PermissionFamily[] = [
       { value: 'hook:calendar-source', hint: 'Supply calendar events to TREK' },
       { value: 'hook:place-detail-provider', hint: 'Contribute extra details (reviews, ratings, links) to a place' },
       { value: 'hook:search-provider', hint: 'Answer place searches from your own index, beside the core results' },
+      { value: 'hook:poi-category-provider', hint: 'Add your own categories to the map\'s Explore bar and answer them for the visible area' },
       { value: 'hook:trip-warning-provider', hint: 'Raise validation warnings on a trip (shown in the planner)' },
       { value: 'hook:table-contributor', hint: 'Add columns to TREK\'s tables' },
       { value: 'hook:map-marker-provider', hint: 'Add your own markers to the map' },

@@ -37,7 +37,7 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
     passkeyLogin, setPasskeyLogin, passkeyConfigured,
     webauthnRpId, setWebauthnRpId, webauthnOrigins, setWebauthnOrigins, savingWebauthn, handleSaveWebauthn,
     allowedFileTypes, setAllowedFileTypes, savingFileTypes, setSavingFileTypes,
-    mapsKey, setMapsKey, unsplashKey, setUnsplashKey, amapKey, setAmapKey, hasMapsKey, hasAmapKey, showKeys, savingKeys, validating, validation,
+    mapsKey, setMapsKey, unsplashKey, setUnsplashKey, amapKey, setAmapKey, hasMapsKey, hasAmapKey, keyInputProps, mapsKeyTestable, showKeys, savingKeys, validating, validation,
     placesProvider, savingPlacesProvider, handleSavePlacesProvider,
     managed,
     setShowRotateJwtModal,
@@ -401,8 +401,8 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
                     type={showKeys.maps ? 'text' : 'password'}
                     value={mapsKey}
                     onChange={e => setMapsKey(e.target.value)}
-                    placeholder={t('settings.keyPlaceholder')}
-                    className="w-full pr-10 px-3 py-2 border border-edge rounded-lg text-sm bg-surface-input text-content focus:ring-2 focus:ring-accent focus:border-transparent"
+                    {...keyInputProps('maps')}
+                    className="w-full pr-10 px-3 py-2 border border-edge rounded-lg text-sm bg-surface-input text-content focus:ring-2 focus:ring-accent focus:border-transparent disabled:opacity-60 disabled:cursor-not-allowed"
                   />
                   <button
                     type="button"
@@ -415,7 +415,7 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
                 </div>
                 <button type="button"
                   onClick={() => handleValidateKey('maps')}
-                  disabled={!mapsKey || validating.maps}
+                  disabled={!mapsKeyTestable || validating.maps}
                   className="px-3 py-2 text-sm border border-edge rounded-lg hover:bg-surface-hover disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 text-content-secondary"
                 >
                   {validating.maps ? (
@@ -549,8 +549,8 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
                   type={showKeys.unsplash ? 'text' : 'password'}
                   value={unsplashKey}
                   onChange={e => setUnsplashKey(e.target.value)}
-                  placeholder={t('settings.keyPlaceholder')}
-                  className="w-full pr-10 px-3 py-2 border border-edge rounded-lg text-sm bg-surface-input text-content focus:ring-2 focus:ring-accent focus:border-transparent"
+                  {...keyInputProps('unsplash')}
+                  className="w-full pr-10 px-3 py-2 border border-edge rounded-lg text-sm bg-surface-input text-content focus:ring-2 focus:ring-accent focus:border-transparent disabled:opacity-60 disabled:cursor-not-allowed"
                 />
                 <button
                   type="button"
@@ -575,8 +575,8 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
                   type={showKeys.amap ? 'text' : 'password'}
                   value={amapKey}
                   onChange={e => setAmapKey(e.target.value)}
-                  placeholder={t('settings.keyPlaceholder')}
-                  className="w-full pr-10 px-3 py-2 border border-edge rounded-lg text-sm bg-surface-input text-content focus:ring-2 focus:ring-accent focus:border-transparent"
+                  {...keyInputProps('amap')}
+                  className="w-full pr-10 px-3 py-2 border border-edge rounded-lg text-sm bg-surface-input text-content focus:ring-2 focus:ring-accent focus:border-transparent disabled:opacity-60 disabled:cursor-not-allowed"
                 />
                 <button
                   type="button"

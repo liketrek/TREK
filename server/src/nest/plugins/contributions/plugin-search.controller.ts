@@ -1,14 +1,14 @@
 import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
+import { PLUGIN_SEARCH_SUGGEST_MAX } from '@trek/shared';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { pluginsEnabled } from '../kill-switch';
 import { PluginHooks } from '../plugin-hooks.service';
 import {
+  collectHits,
   interleave,
   limitFrom,
-  MAX_QUERY,
-  nearFrom,
-  normalizeSearchHits,
+  searchRequestFrom,
   type SearchHit,
 } from './plugin-search.helpers';
 
@@ -47,29 +47,42 @@ export class PluginSearchController {
   ): Promise<{ places: SearchHit[] }> {
     if (!pluginsEnabled()) return { places: [] };
     const userId = req.user?.id;
-    const query = String(q ?? '').trim().slice(0, MAX_QUERY);
     // An empty query is not an error here: the client fires this beside every search,
     // and a blank box simply has nothing to ask a provider about.
-    if (!query || userId == null) return { places: [] };
+    const request = searchRequestFrom(q, lat, lng, lang, limitFrom(limit));
+    if (!request || userId == null) return { places: [] };
 
     const ids = this.hooks.providersOf('searchProvider');
     if (ids.length === 0) return { places: [] };
+    return { places: interleave(await collectHits(ids, (id) => this.hooks.searchPlaces(id, request, userId))) };
+  }
 
-    const request = {
-      query,
-      limit: limitFrom(limit),
-      lang: lang ? String(lang).slice(0, 20) : undefined,
-      near: nearFrom(lat, lng),
-    };
-    const results = await Promise.all(
-      ids.map(async (id): Promise<SearchHit[]> => {
-        try {
-          return normalizeSearchHits(id, await this.hooks.searchPlaces(id, request, userId));
-        } catch {
-          return []; // a slow / failing provider is skipped, never fatal
-        }
-      }),
-    );
-    return { places: interleave(results) };
+  /**
+   * GET /api/plugin-search/suggest: the same indexes, asked while the query is typed.
+   *
+   * Only a provider that implements `suggest` is asked. One that implements `search`
+   * alone has said its index cannot take a request per keystroke, which is the
+   * normal case for anything behind a rate-limited API. At most three rows across
+   * all providers, because they sit under the core suggestions in a list that has to
+   * stay short enough to read while typing.
+   */
+  @Get('suggest')
+  async suggest(
+    @Query('q') q: string | undefined,
+    @Query('lat') lat: string | undefined,
+    @Query('lng') lng: string | undefined,
+    @Query('lang') lang: string | undefined,
+    @Req() req: Request & { user?: { id: number } },
+  ): Promise<{ places: SearchHit[] }> {
+    if (!pluginsEnabled()) return { places: [] };
+    const userId = req.user?.id;
+    // From the second character on, as the core autocomplete asks.
+    const request = searchRequestFrom(q, lat, lng, lang, PLUGIN_SEARCH_SUGGEST_MAX, 2);
+    if (!request || userId == null) return { places: [] };
+
+    const ids = this.hooks.providersOf('searchProvider', 'suggest');
+    if (ids.length === 0) return { places: [] };
+    const found = await collectHits(ids, (id) => this.hooks.suggestPlaces(id, request, userId));
+    return { places: interleave(found).slice(0, PLUGIN_SEARCH_SUGGEST_MAX) };
   }
 }

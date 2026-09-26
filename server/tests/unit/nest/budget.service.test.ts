@@ -224,5 +224,78 @@ describe('BudgetService', () => {
       expect(() => svc().syncReservationPrice('5', 42, 250, 'sock')).not.toThrow();
       expect(broadcast).not.toHaveBeenCalled();
     });
+
+    // #2084: the card names the currency beside the mirrored figure.
+    it('writes the currency beside the price, upper-cased', () => {
+      dbMock._stmt.get.mockReturnValueOnce({ id: 42, metadata: '{"seat":"1A"}' }).mockReturnValueOnce({ id: 42 });
+      svc().syncReservationPrice('5', 42, 99.5, 'sock', 'usd');
+      expect(JSON.parse(dbMock._stmt.run.mock.calls[0][0] as string)).toEqual({ seat: '1A', price: '99.5', priceCurrency: 'USD' });
+    });
+
+    it('drops a stored currency when the expense is in the trip currency (null)', () => {
+      dbMock._stmt.get.mockReturnValueOnce({ id: 42, metadata: '{"price":"10","priceCurrency":"CNY"}' }).mockReturnValueOnce({ id: 42 });
+      svc().syncReservationPrice('5', 42, 12, undefined, null);
+      expect(JSON.parse(dbMock._stmt.run.mock.calls[0][0] as string)).toEqual({ price: '12' });
+    });
+
+    it('leaves a stored currency alone when none is passed at all', () => {
+      dbMock._stmt.get.mockReturnValueOnce({ id: 42, metadata: '{"price":"10","priceCurrency":"CNY"}' }).mockReturnValueOnce({ id: 42 });
+      svc().syncReservationPrice('5', 42, 12, undefined);
+      expect(JSON.parse(dbMock._stmt.run.mock.calls[0][0] as string)).toEqual({ price: '12', priceCurrency: 'CNY' });
+    });
+  });
+
+  describe('resyncLinkedPrices', () => {
+    // Which bookings an update touches is pure bookkeeping over the before/after
+    // link and the body; the SQL behind resyncReservationPrice is pinned in
+    // budget.service.db.test.ts.
+    function resynced(
+      previous: number | null | undefined,
+      updated: { reservation_id?: number | null },
+      data: { total_price?: number; reservation_id?: number | null },
+      socketId?: string,
+    ) {
+      const s = svc();
+      const spy = vi.spyOn(s, 'resyncReservationPrice').mockImplementation(() => {});
+      s.resyncLinkedPrices('5', previous, updated, data, socketId);
+      return spy.mock.calls;
+    }
+
+    it('resyncs the linked booking when the total changes', () => {
+      expect(resynced(undefined, { reservation_id: 42 }, { total_price: 250 }, 'sock')).toEqual([['5', 42, 'sock']]);
+    });
+
+    it('resyncs the linked booking on an edit that names neither the total nor the link', () => {
+      // A new currency, or payers that derive a new total, move the booking's
+      // price too, and neither shows up in the two fields this looks at.
+      expect(resynced(undefined, { reservation_id: 42 }, {}, 'sock')).toEqual([['5', 42, 'sock']]);
+    });
+
+    it('leaves every booking alone when the expense is linked to none', () => {
+      expect(resynced(undefined, { reservation_id: null }, { total_price: 250 })).toEqual([]);
+      expect(resynced(undefined, {}, {})).toEqual([]);
+    });
+
+    it('resyncs both the booking left and the booking joined on a re-link', () => {
+      expect(resynced(42, { reservation_id: 43 }, { reservation_id: 43 }, 'sock')).toEqual([['5', 42, 'sock'], ['5', 43, 'sock']]);
+    });
+
+    it('resyncs only the booking left on an unlink', () => {
+      expect(resynced(42, { reservation_id: null }, { reservation_id: null })).toEqual([['5', 42, undefined]]);
+    });
+
+    it('resyncs only the booking joined when the expense had none before', () => {
+      expect(resynced(null, { reservation_id: 43 }, { reservation_id: 43, total_price: 10 })).toEqual([['5', 43, undefined]]);
+    });
+
+    it('resyncs a booking once when the expense is re-linked to the one it already had', () => {
+      expect(resynced(42, { reservation_id: 42 }, { reservation_id: 42, total_price: 10 })).toEqual([['5', 42, undefined]]);
+    });
+
+    it('ignores the stored link when the body does not name one', () => {
+      // A total change on an expense that stays put must not touch some other booking
+      // the caller happened to pass as the previous one.
+      expect(resynced(41, { reservation_id: 42 }, { total_price: 10 })).toEqual([['5', 42, undefined]]);
+    });
   });
 });

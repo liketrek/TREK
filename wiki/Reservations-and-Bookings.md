@@ -76,7 +76,7 @@ Each card displays:
 
 Click **Add** (or the + button) in the Bookings panel. Fill in the form:
 
-1. **Type** — choose Hotel, Restaurant, Event, Tour, Parking, or Other
+1. **Type** and **Travelers**, side by side at the top of the form. Type is a dropdown: Hotel, Restaurant, Event, Tour, Parking, or Other. Travelers opens the trip roster, members and named guests alike, and every person ticked there is on this booking
 2. **Title** — required
 3. **Link to day-plan assignment** — optional; search across all days and places, grouped by day. Not available for Hotel type
 4. **Start date and time** — not shown for Hotel type
@@ -86,11 +86,9 @@ Click **Add** (or the + button) in the Bookings panel. Fill in the form:
 8. **Confirmation code**
 9. **Status** — Pending or Confirmed
 10. **Hotel-specific fields** — shown only for Hotel type, immediately after status: hotel place, check-in day, check-out day, location / address, check-in time (window start and end), and check-out time. The address is pre-filled from the picked hotel place, and a hand-typed one is kept if that place has none. See [Accommodations](Accommodations)
-11. **Link** — an optional booking URL, shown for every type
+11. **Link** and **Files**, side by side. Link is an optional booking URL, shown for every type. Files attaches from your device (PDF, Word documents, text files, images) or, on a saved booking, links a file the trip already has with **Link existing file**. Files added before saving are uploaded automatically after the reservation is created
 12. **Notes**
-13. **Travelers** — assign trip members and named guests to this booking. Guests appear in the same picker as members
-14. **Files** — attach from your device (PDF, Word documents, text files, images) or link an existing trip file. Files added before saving are uploaded automatically after the reservation is created
-15. **Costs** — shown only when the Budget addon is enabled. Instead of a price field, the form carries a **Create expense** button: it saves the booking and then opens the Costs editor for a new expense linked to it, so the expense gets a payer, a split and a date like any other. Once linked, the block shows that expense with edit and remove actions. See [Budget-Tracking](Budget-Tracking)
+13. **Costs**, shown only when the Budget addon is enabled. Instead of a price field, the form carries **Create expense**: it saves the booking and then opens the Costs editor for a new expense linked to it, so the expense gets a payer, a split and a date like any other. On a saved booking, **Link existing expense** next to it ties an expense that is already in Costs and belongs nowhere yet. A booking can carry several expenses; each is listed with edit, unlink (the expense stays in Costs) and remove actions, and the price on the card is their sum when they share one currency. See [Budget-Tracking](Budget-Tracking)
 
 <!-- TODO: screenshot: Create Reservation modal -->
 
@@ -107,8 +105,9 @@ TREK can parse booking confirmation emails, PDFs, and pass files and create rese
 | Apple Wallet pass | `.pkpass` |
 | HTML confirmation page | `.html`, `.htm` |
 | Plain-text email | `.txt` |
+| Photo of a ticket or confirmation | `.jpg`, `.jpeg`, `.png`, `.webp` (only with the AI Parsing addon and a model that reads images) |
 
-Up to 5 files, 10 MB each, per import.
+Up to 5 files, 10 MB each, per import. A photo always goes to the AI model, never to KDE Itinerary, and the upload dialog only offers photos when the model reads images. See [AI-Booking-Import](AI-Booking-Import#photos).
 
 ### How to import
 

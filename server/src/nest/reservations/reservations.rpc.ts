@@ -79,10 +79,10 @@ export class ReservationsRpc {
     const reservationId = num(params.reservationId, 'reservationId');
     const actor = this.guards.requireActor(ctx, 'reservation');
     this.guards.requireTripEdit(tripId, actor, RESERVATION_EDIT_ACTION);
-    const { deleted, accommodationDeleted, deletedBudgetItemId } = this.reservations.remove(String(reservationId), String(tripId));
+    const { deleted, accommodationDeleted, deletedBudgetItemIds } = this.reservations.remove(String(reservationId), String(tripId));
     if (!deleted) throw new ForbiddenResource(`no reservation ${reservationId} on trip ${tripId}`);
     if (accommodationDeleted) this.realtime.broadcast(tripId, 'accommodation:deleted', { accommodationId: deleted.accommodation_id }, undefined);
-    if (deletedBudgetItemId) this.realtime.broadcast(tripId, 'budget:deleted', { itemId: deletedBudgetItemId }, undefined);
+    for (const itemId of deletedBudgetItemIds) this.realtime.broadcast(tripId, 'budget:deleted', { itemId }, undefined);
     this.realtime.broadcast(tripId, 'reservation:deleted', { reservationId }, undefined);
     this.notifyBooking(actor, tripId, deleted.title, deleted.type || '');
     return { deleted: true };

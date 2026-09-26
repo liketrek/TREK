@@ -29,6 +29,8 @@ const login: TranslationStrings = {
   'login.oidcSignIn': 'Accedi con {name}',
   'login.oidcOnly': "L'autenticazione tramite password è disabilitata. Accedi utilizzando il tuo provider SSO.",
   'login.oidcLoggedOut': 'Sei stato disconnesso. Accedi nuovamente tramite il tuo provider SSO.',
+  'login.oidcRedirecting': 'Reindirizzamento a {name}…',
+  'login.oidcRedirectSlow': 'Ancora qui? Continua su {name}',
   'login.demoHint': 'Prova la demo — nessuna registrazione necessaria',
   'login.mfaTitle': 'Autenticazione a due fattori',
   'login.mfaSubtitle': 'Inserisci il codice a 6 cifre dalla tua app authenticator.',

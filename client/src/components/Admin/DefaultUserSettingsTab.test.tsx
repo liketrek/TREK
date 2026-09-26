@@ -1,4 +1,4 @@
-// FE-ADMIN-DUS-001 to FE-ADMIN-DUS-027
+// FE-ADMIN-DUS-001 to FE-ADMIN-DUS-028
 import { render, screen, waitFor, within, fireEvent } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -451,5 +451,20 @@ describe('DefaultUserSettingsTab', () => {
     await screen.findByText('Default User Settings');
 
     expect(screen.queryByText('Shared CARTO key')).not.toBeInTheDocument();
+  });
+});
+
+describe('DefaultUserSettingsTab week start (#2029)', () => {
+  it('FE-ADMIN-DUS-028: the week-start default saves its own key and can be reset', async () => {
+    const user = userEvent.setup();
+    const { puts } = stubDefaults();
+    render(<DefaultUserSettingsTab />);
+    await screen.findByText('Default User Settings');
+
+    await user.click(screen.getByRole('button', { name: 'Sunday' }));
+    await waitFor(() => expect(resetLink('Week starts on')).toBeInTheDocument());
+    await user.click(resetLink('Week starts on'));
+
+    await waitFor(() => expect(puts).toEqual([{ week_start: 'sunday' }, { week_start: null }]));
   });
 });

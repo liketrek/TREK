@@ -14,10 +14,19 @@ const packing: TranslationStrings = {
   'packing.empty': 'Packlistan är tom',
   'packing.import': 'Importera',
   'packing.importTitle': 'Importera packlista',
-  'packing.importHint': 'Ett föremål per rad. Format: Kategori, Namn, Vikt i g (valfritt), Påse (valfritt)',
+  'packing.importHint':
+    'Ett föremål per rad. Format: Kategori, Namn, Vikt i g (valfritt), Väska (valfritt), checked/unchecked (valfritt)',
   'packing.importPlaceholder':
-    'Hygiene, tandborste\nKläder, T-shirts, 200\nDokument, pass, handbagage\nElektronik, laddare, 50, resväska',
-  'packing.importCsv': 'Ladda CSV/TXT',
+    'Hygien, Tandborste\nKläder, T-shirts, 200\nDokument, Pass, , Handbagage\nElektronik, Laddare, 50, Resväska, checked',
+  'packing.importCsv': 'Ladda CSV/TXT/MD',
+  'packing.export': 'Exportera',
+  'packing.exportPrint': 'Skriv ut eller spara som PDF',
+  'packing.exportMarkdown': 'Checklista i Markdown (.md)',
+  'packing.exportCsv': 'CSV för import (.csv)',
+  'packing.printItems': 'Saker',
+  'packing.printPacked': 'Packade',
+  'packing.importHintMarkdown':
+    'En Markdown-lista fungerar också: en rubrik anger kategorin, "- [ ]" och "- [x]" blir objekt och "3x" före ett namn anger antalet.',
   'packing.importAction': 'Importera {count}',
   'packing.importSuccess': '{count} föremål imported',
   'packing.importError': 'Importen misslyckades',
@@ -25,9 +34,6 @@ const packing: TranslationStrings = {
   'packing.progress': '{packed} av {total} packade ({percent}%)',
   'packing.clearChecked': 'Ta bort {count} markerade',
   'packing.clearCheckedShort': 'Ta bort {count}',
-  'packing.suggestions': 'Förslag',
-  'packing.suggestionsTitle': 'Lägg till förslag',
-  'packing.allSuggested': 'All förslag tillagd',
   'packing.allPacked': 'Allt packat!',
   'packing.addPlaceholder': 'Lägg till nytt föremål',
   'packing.categoryPlaceholder': 'Lista...',
@@ -35,7 +41,6 @@ const packing: TranslationStrings = {
   'packing.filterOpen': 'Öppna',
   'packing.filterDone': 'Klar',
   'packing.emptyTitle': 'Packlistan är tom',
-  'packing.emptyHint': 'Lägg till föremål eller använd förslagen',
   'packing.emptyFiltered': 'Inga föremål matchar detta filter',
   'packing.menuRename': 'Döp om',
   'packing.menuCheckAll': 'Markera alla',
@@ -67,128 +72,6 @@ const packing: TranslationStrings = {
   'packing.toast.deleteError': 'Kunde inte ta bort',
   'packing.toast.renameError': 'Kunde inte döpa om',
   'packing.toast.addError': 'Kunde inte lägga till',
-  'packing.suggestions.items': [
-    {
-      name: 'Pass',
-      category: 'Dokument',
-    },
-    {
-      name: 'ID-kort',
-      category: 'Dokument',
-    },
-    {
-      name: 'Reseförsäkring',
-      category: 'Dokument',
-    },
-    {
-      name: 'Flygbiljetter',
-      category: 'Dokument',
-    },
-    {
-      name: 'Kreditkort',
-      category: 'Ekonomi',
-    },
-    {
-      name: 'Kontanter',
-      category: 'Ekonomi',
-    },
-    {
-      name: 'Visum',
-      category: 'Dokument',
-    },
-    {
-      name: 'T-shirts',
-      category: 'Kläder',
-    },
-    {
-      name: 'Byxor',
-      category: 'Kläder',
-    },
-    {
-      name: 'Underkläder',
-      category: 'Kläder',
-    },
-    {
-      name: 'Strumpor',
-      category: 'Kläder',
-    },
-    {
-      name: 'Jacka',
-      category: 'Kläder',
-    },
-    {
-      name: 'Nattkläder',
-      category: 'Kläder',
-    },
-    {
-      name: 'Badkläder',
-      category: 'Kläder',
-    },
-    {
-      name: 'Regnjacka',
-      category: 'Kläder',
-    },
-    {
-      name: 'Bekväma skor',
-      category: 'Kläder',
-    },
-    {
-      name: 'Tandborste',
-      category: 'Toalettartiklar',
-    },
-    {
-      name: 'Tandkräm',
-      category: 'Toalettartiklar',
-    },
-    {
-      name: 'Schampo',
-      category: 'Toalettartiklar',
-    },
-    {
-      name: 'Deodorant',
-      category: 'Toalettartiklar',
-    },
-    {
-      name: 'Solskyddsmedel',
-      category: 'Toalettartiklar',
-    },
-    {
-      name: 'Rakhyvel',
-      category: 'Toalettartiklar',
-    },
-    {
-      name: 'Laddare',
-      category: 'Elektronik',
-    },
-    {
-      name: 'Powerbank',
-      category: 'Elektronik',
-    },
-    {
-      name: 'Hörlurar',
-      category: 'Elektronik',
-    },
-    {
-      name: 'Resadapter',
-      category: 'Elektronik',
-    },
-    {
-      name: 'Kamera',
-      category: 'Elektronik',
-    },
-    {
-      name: 'Smärtstillande läkemedel',
-      category: 'Hälsa',
-    },
-    {
-      name: 'Plåster',
-      category: 'Hälsa',
-    },
-    {
-      name: 'Desinfektionsmedel',
-      category: 'Hälsa',
-    },
-  ],
   'packing.makePrivate': 'Gör privat',
   'packing.makePublic': 'Dela',
   'packing.privateHint': 'Privat — endast synligt för dig',

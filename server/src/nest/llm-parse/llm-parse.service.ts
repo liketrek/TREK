@@ -1,13 +1,25 @@
 import type { KiReservation } from '../booking-import/kitinerary.types';
 import { createLlmClient } from './llm-client.factory';
 import { LlmConfigResolver } from './llm-config.resolver';
+import type { ResolvedLlmConfig } from './llm-config';
+import { LlmLocalService } from './llm-local.service';
+import { capImage, imageMimeType, renderPdfPages } from './image-input';
+import { extractEnforced } from './router/ollama-format.client';
+import {
+  buildReceiptPrompt,
+  RECEIPT_JSON_SCHEMA,
+  RECEIPT_LIST_JSON_SCHEMA,
+  RECEIPT_ROOT_KEY,
+  RECEIPT_USER_TEXT,
+  toReceiptRead,
+} from './receipt-read';
 import { buildSystemPrompt, KI_RESERVATION_JSON_SCHEMA } from './llm-prompt';
-import type { LlmExtractionInput } from './llm-provider.interface';
+import type { LlmExtractionFile, LlmExtractionInput } from './llm-provider.interface';
 import { isPdf, extractText } from './text-extract';
-import { routeExtraction, detectFlightNumbers, extractTotalPrice } from './router/extraction-router';
+import { routeExtraction, routeImageExtraction, detectFlightNumbers, extractTotalPrice } from './router/extraction-router';
 import { toIsoCurrency } from './currency-code';
 import { Injectable } from '@nestjs/common';
-import { kiReservationSchema } from '@trek/shared';
+import { kiReservationSchema, type ReceiptScanResult } from '@trek/shared';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
 
 const MIME_BY_EXT: Record<string, string> = {
@@ -21,7 +33,8 @@ export interface LlmParseResult {
 
 /**
  * Orchestrates the LLM fallback: resolve config → pick client → build input
- * (native bytes vs extracted text by the `multimodal` flag) → call provider →
+ * (a photo as an image when the model reads one, a PDF natively for Anthropic,
+ * extracted text otherwise) → call provider →
  * validate the response → return schema.org `KiReservation[]` for the shared
  * mapper. Never throws for content/provider reasons — degrades to `[]` + a
  * warning, mirroring the kitinerary extractor's tolerance.
@@ -31,11 +44,90 @@ export class LlmParseService {
   constructor(
     private readonly llmConfig: LlmConfigResolver,
     private readonly env: RuntimeEnvService,
+    private readonly local: LlmLocalService,
   ) {}
 
   /** True when the addon is enabled AND a usable config resolves for this user. */
   isAvailable(userId: number): boolean {
     return this.llmConfig.resolve(userId) !== null;
+  }
+
+  /** Whether a photo this user uploads can be read: AI parsing is set up and its model takes images. */
+  async readsImages(userId: number): Promise<boolean> {
+    const config = this.llmConfig.resolve(userId);
+    return config ? this.visionFor(config) : false;
+  }
+
+  /**
+   * Read a photographed receipt for the Costs tab. Like parse(), it never throws
+   * for content or provider reasons: a refusal comes back as a null receipt and
+   * a warning naming the file.
+   */
+  async readReceipt(file: { buffer: Buffer; originalName: string }, userId: number): Promise<ReceiptScanResult> {
+    const config = this.llmConfig.resolve(userId);
+    if (!config) return { receipt: null, warnings: ['AI parsing is not configured'] };
+    const imageType = imageMimeType(file.originalName);
+    if (!imageType) return { receipt: null, warnings: [`${file.originalName}: not a photo`] };
+    if (!(await this.visionFor(config))) {
+      return { receipt: null, warnings: [`${file.originalName}: the configured model does not read images`] };
+    }
+
+    let image: LlmExtractionFile;
+    try {
+      image = await capImage(file.buffer, imageType);
+    } catch (err) {
+      // A photo too large to decode or to send, refused like one that cannot be read.
+      return { receipt: null, warnings: [`${file.originalName}: ${err instanceof Error ? err.message : String(err)}`] };
+    }
+    const local = config.provider === 'local';
+    const prompt = buildReceiptPrompt(new Date(), !local);
+    let raw: unknown;
+    try {
+      if (local) {
+        // Ollama's own chat API, as the booking router uses: `think: false` and
+        // `num_ctx` exist there and not on /v1, and a hybrid model that is left
+        // to reason spends the whole token budget on it and answers nothing.
+        raw = await extractEnforced({
+          baseUrl: config.baseUrl ?? 'http://localhost:11434/v1',
+          model: config.model,
+          apiKey: config.apiKey,
+          system: prompt,
+          user: RECEIPT_USER_TEXT,
+          schema: RECEIPT_JSON_SCHEMA,
+          images: [image.data.toString('base64')],
+          numCtx: 16384,
+          // A supermarket receipt is a long list of lines.
+          numPredict: 2048,
+        });
+      } else {
+        const list = await createLlmClient(config).extract({
+          prompt,
+          jsonSchema: RECEIPT_LIST_JSON_SCHEMA,
+          rootKey: RECEIPT_ROOT_KEY,
+          userText: RECEIPT_USER_TEXT,
+          model: config.model,
+          baseUrl: config.baseUrl,
+          apiKey: config.apiKey,
+          file: image,
+        });
+        raw = list[0];
+      }
+    } catch (err) {
+      console.error(`[llm-parse] Receipt read failed for "${file.originalName}" (provider=${config.provider}):`, err instanceof Error ? err.message : err);
+      return { receipt: null, warnings: [`${file.originalName}: AI parsing failed — ${err instanceof Error ? err.message : String(err)}`] };
+    }
+
+    const receipt = toReceiptRead(raw);
+    return receipt ? { receipt, warnings: [] } : { receipt: null, warnings: [`${file.originalName}: no receipt could be read`] };
+  }
+
+  private async visionFor(config: ResolvedLlmConfig): Promise<boolean> {
+    if (config.vision !== 'auto') return config.vision === 'on';
+    // Only a local Ollama can be asked. A cloud model is not assumed to read
+    // images: an admin who knows it does says so.
+    if (config.provider !== 'local') return false;
+    const capabilities = await this.local.modelCapabilities(config.baseUrl, config.model, config.apiKey);
+    return capabilities?.includes('vision') ?? false;
   }
 
   async parse(file: { buffer: Buffer; originalName: string }, userId: number): Promise<LlmParseResult> {
@@ -51,11 +143,22 @@ export class LlmParseService {
       apiKey: config.apiKey,
     };
 
-    // Native PDF only for Anthropic (its document block reads text AND scans).
-    // OpenAI-compatible servers (incl. Ollama/NuExtract) can't ingest PDFs/`file`
-    // parts, so every other provider gets extracted text.
+    const imageType = imageMimeType(file.originalName);
+    if (imageType && !(await this.visionFor(config))) {
+      return { kiItems: [], warnings: [`${file.originalName}: the configured model does not read images`] };
+    }
+
+    // A photo goes as an image to every provider. Native PDF only for Anthropic
+    // (its document block reads text AND scans). OpenAI-compatible servers
+    // (incl. Ollama/NuExtract) can't ingest PDFs/`file` parts, so every other
+    // provider gets extracted text.
     try {
-      if (config.provider === 'anthropic' && isPdf(file.originalName)) {
+      if (imageType) {
+        input.file = await capImage(file.buffer, imageType);
+        console.debug(
+          `[DEBUG] Photo (${input.file.data.length} bytes) sent to ${config.provider}: ${file.originalName}`,
+        );
+      } else if (config.provider === 'anthropic' && isPdf(file.originalName)) {
         input.file = { mimeType: MIME_BY_EXT['.pdf'], data: file.buffer };
         console.debug(
           `[DEBUG] Extracted (native PDF, ${file.buffer.length} bytes) sent to ${config.provider}: ${file.originalName}`,
@@ -78,10 +181,18 @@ export class LlmParseService {
           console.debug(`[DEBUG] Extracted text from ${file.originalName} (${input.text.length} chars):\n`, input.text);
         }
         if (!input.text.trim()) {
-          return {
-            kiItems: [],
-            warnings: [`${file.originalName}: no readable text found (a scanned PDF needs a cloud/vision provider)`],
-          };
+          // A scan has no text layer, but a model that reads images can read its pages.
+          const pages = isPdf(file.originalName) && (await this.visionFor(config)) ? await renderPdfPages(file.buffer) : [];
+          if (pages.length === 0) {
+            return {
+              kiItems: [],
+              warnings: [`${file.originalName}: no readable text found (a scanned PDF needs a model that reads images)`],
+            };
+          }
+          input.text = undefined;
+          input.file = pages[0];
+          input.pageImages = pages.slice(1);
+          console.debug(`[DEBUG] Scanned PDF sent to ${config.provider} as ${pages.length} page image(s): ${file.originalName}`);
         }
       }
     } catch (err) {
@@ -96,13 +207,16 @@ export class LlmParseService {
     // templates → decompose + grammar-enforced per-reservation extraction → validate
     // + repair. Far more reliable on small CPU models than the single-shot path below
     // (which stays for cloud providers, whose strong models handle one-shot well).
-    if (config.provider === 'local' && input.text) {
+    if (config.provider === 'local' && (input.text || input.file)) {
       try {
-        const routed = await routeExtraction(input.text, {
+        const ctx = {
           baseUrl: config.baseUrl ?? 'http://localhost:11434/v1',
           model: config.model,
           apiKey: config.apiKey,
-        });
+        };
+        const routed = input.file
+          ? await routeImageExtraction([input.file, ...(input.pageImages ?? [])].map((f) => f.data), ctx)
+          : await routeExtraction(input.text ?? '', ctx);
         return { kiItems: routed.kiItems, warnings: [...warnings, ...routed.warnings] };
       } catch (err) {
         console.error(`[llm-parse] AI parsing failed for "${file.originalName}" (provider=${config.provider}):`, err instanceof Error ? err.message : err);

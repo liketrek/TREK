@@ -32,7 +32,8 @@ export interface PackingListPanelProps {
   tripId: number
   items: PackingItem[]
   openImportSignal?: number
-  clearCheckedSignal?: number
+  // Raised by the Lists bar's Add list button, which opens the name field here.
+  addCategorySignal?: number
   saveTemplateSignal?: number
   inlineHeader?: boolean
   // Lifted so an out-of-panel Apply Template button knows the active view (#1565).
@@ -47,7 +48,7 @@ export interface PackingListPanelProps {
  * sections below render header, filters, the grouped list, the bag sidebar/
  * modal and the import dialog.
  */
-export function usePackingList({ tripId, items, openImportSignal = 0, clearCheckedSignal = 0, saveTemplateSignal = 0, inlineHeader = true, view: viewProp, onViewChange }: PackingListPanelProps) {
+export function usePackingList({ tripId, items, openImportSignal = 0, addCategorySignal = 0, saveTemplateSignal = 0, inlineHeader = true, view: viewProp, onViewChange }: PackingListPanelProps) {
   const [filter, setFilter] = useState('alle') // 'alle' | 'offen' | 'erledigt'
   // Three-tier sharing (#858): 'common' = the group pool (where existing items
   // live — non-breaking), 'personal' = my own list (private + shared-to-me).
@@ -298,7 +299,7 @@ export function usePackingList({ tripId, items, openImportSignal = 0, clearCheck
   const [showImportModal, setShowImportModal] = useState(false)
   const [importText, setImportText] = useState('')
   const lastHandledImportSignal = useRef(openImportSignal)
-  const lastHandledClearSignal = useRef(clearCheckedSignal)
+  const lastHandledAddCategorySignal = useRef(addCategorySignal)
   const lastHandledSaveSignal = useRef(saveTemplateSignal)
 
   useEffect(() => {
@@ -309,12 +310,11 @@ export function usePackingList({ tripId, items, openImportSignal = 0, clearCheck
   }, [openImportSignal])
 
   useEffect(() => {
-    if (clearCheckedSignal !== lastHandledClearSignal.current && clearCheckedSignal > 0) {
-      handleClearChecked()
+    if (addCategorySignal !== lastHandledAddCategorySignal.current && addCategorySignal > 0) {
+      setAddingCategory(true)
     }
-    lastHandledClearSignal.current = clearCheckedSignal
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clearCheckedSignal])
+    lastHandledAddCategorySignal.current = addCategorySignal
+  }, [addCategorySignal])
 
   useEffect(() => {
     if (saveTemplateSignal !== lastHandledSaveSignal.current && saveTemplateSignal > 0) {

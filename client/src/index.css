@@ -281,9 +281,13 @@ html.dark .bg-slate-50\/60, html.dark [class*="bg-slate-50/"] { background-color
 }
 
 /* Packing list rows: on phones, keep the item name readable and move the dense
-   per-item controls behind the overflow menu. */
-.packing-row-overflow {
-  display: none !important;
+   per-item controls behind the overflow menu. On a wide screen the row shows
+   them itself, so the menu leaves them out; on a phone, with no hover to bring
+   it up, the menu button stays in sight. */
+@media (min-width: 640px) {
+  .packing-menu-phone-only {
+    display: none;
+  }
 }
 @media (max-width: 639px) {
   .packing-item-row {
@@ -298,7 +302,7 @@ html.dark .bg-slate-50\/60, html.dark [class*="bg-slate-50/"] { background-color
     display: none !important;
   }
   .packing-row-overflow {
-    display: flex !important;
+    opacity: 1 !important;
   }
 }
 

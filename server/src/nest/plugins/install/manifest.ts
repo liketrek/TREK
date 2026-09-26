@@ -10,6 +10,8 @@ import {
   sanitiseToolText,
 } from '../mcp-tool-schema';
 import type { NotifEventType } from '../../notifications/notification-events';
+import { PLUGIN_POI_MAX_CATEGORIES, type PluginPoiCategory } from '@trek/shared';
+import { readPoiCategory } from '../poi-categories';
 
 /**
  * Parse + validate a plugin's trek-plugin.json (#plugins, M4). Kept deliberately
@@ -105,6 +107,8 @@ export interface PluginCapabilities {
   notificationChannel?: NotificationChannelCapability;
   /** Routing profiles offered via the routeProvider hook (max 3). */
   routeProfiles?: RouteProfileCapability[];
+  /** Explore-pill categories answered via the poiCategoryProvider hook (max 4, #1781). */
+  poiCategories?: PluginPoiCategory[];
   /** MCP tools offered via the mcpToolProvider hook (max 8). */
   mcpTools?: McpToolCapability[];
   /** Function names this plugin exposes to its dependents via ctx.plugins.call. */
@@ -414,6 +418,10 @@ function parseCapabilities(raw: unknown): PluginCapabilities {
     }
     if (profiles.length) out.routeProfiles = profiles;
   }
+  if (c.poiCategories !== undefined) {
+    const categories = parsePoiCategories(c.poiCategories);
+    if (categories.length) out.poiCategories = categories;
+  }
   if (c.mcpTools !== undefined) {
     out.mcpTools = parseMcpToolCapabilities(c.mcpTools);
   }
@@ -457,6 +465,31 @@ void _channelEventDriftGuard;
 // deliberately NOT in this list — a trip always keeps its planner view, so a
 // plugin can take over bookings/transports/…, never the whole trip.
 const REPLACEABLE_TABS = ['transports', 'buchungen', 'listen', 'finanzplan', 'dateien', 'collab'];
+
+/**
+ * Validate `capabilities.poiCategories`: the plugin's own chips in the explore pill.
+ *
+ * Like routeProfiles, a declaration without the `hook:poi-category-provider` grant
+ * still installs; the feed shows the chips only while the grant is held, so an admin
+ * who withholds it gets a plugin without them rather than a failed install. Every
+ * entry is otherwise checked here, loudly, by the reader the feed re-validates with.
+ */
+function parsePoiCategories(raw: unknown): PluginPoiCategory[] {
+  if (!Array.isArray(raw)) throw new ManifestError('capabilities.poiCategories must be an array');
+  if (raw.length > PLUGIN_POI_MAX_CATEGORIES) {
+    throw new ManifestError(`capabilities.poiCategories: at most ${PLUGIN_POI_MAX_CATEGORIES} categories`);
+  }
+  const out: PluginPoiCategory[] = [];
+  for (const v of raw) {
+    const read = readPoiCategory(v);
+    if ('reason' in read) throw new ManifestError(`capabilities.poiCategories: ${read.reason}`);
+    if (out.some((x) => x.id === read.value.id)) {
+      throw new ManifestError(`capabilities.poiCategories: duplicate id "${read.value.id}"`);
+    }
+    out.push(read.value);
+  }
+  return out;
+}
 
 /** Validate a `provides`/`emits` array: de-duplicated, well-formed names. */
 /**

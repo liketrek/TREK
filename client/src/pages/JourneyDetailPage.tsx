@@ -25,11 +25,17 @@ import { GalleryView } from '../components/Journey/JourneyDetailPageGalleryView'
 import { EntryEditor } from '../components/Journey/JourneyDetailPageEntryEditor'
 import { AddTripDialog } from '../components/Journey/JourneyDetailPageAddTripDialog'
 import { JourneySettingsDialog } from '../components/Journey/JourneyDetailPageSettingsDialog'
+import HelpAnchor from '../components/Help/HelpAnchor'
 
 export default function JourneyDetailPage() {
   // ViewportRoute in App.tsx picks the branch now, so the phone screen is a
   // chunk of its own instead of a dead limb in this one.
-  return <JourneyDetailPageDesktop />
+  return (
+    <>
+      <HelpAnchor id="journey-detail" />
+      <JourneyDetailPageDesktop />
+    </>
+  )
 }
 
 function JourneyDetailPageDesktop() {
@@ -53,6 +59,7 @@ function JourneyDetailPageDesktop() {
     mapEntries, sidebarMapItems, tripDates, isMobile, tracks,
     feedEdge, scrollFeedTo,
     loadJourney, updateEntry, deleteEntry, reorderEntries, uploadPhotos, deletePhoto,
+    addPickedProviderPhotos, addEntryProviderPhotos,
   } = useJourneyDetail()
 
   if (loading || !current) {
@@ -596,6 +603,7 @@ function JourneyDetailPageDesktop() {
                   trips={current.trips}
                   onPhotoClick={(photos, idx) => setLightbox({ photos: photos.map(p => ({ id: p.id, src: photoUrl(p, 'original'), caption: p.caption ?? null, provider: p.provider, asset_id: p.asset_id, owner_id: p.owner_id, mediaType: p.media_type })), index: idx })}
                   onRefresh={() => loadJourney(Number(id))}
+                  onAddProviderPhotos={addPickedProviderPhotos}
                 />
               </div>
 
@@ -696,9 +704,7 @@ function JourneyDetailPageDesktop() {
           showVerdict={current.show_verdict !== 0}
           showMood={current.show_mood !== 0}
           showWeather={current.show_weather !== 0}
-          onAddProviderPhotos={async (entryId, group) => {
-            await journeyApi.addProviderPhotos(entryId, group.provider, group.assetIds, undefined, group.passphrase, group.mediaTypes)
-          }}
+          onAddProviderPhotos={addEntryProviderPhotos}
           onDone={() => {
             setEditingEntry(null)
             loadJourney(Number(id))

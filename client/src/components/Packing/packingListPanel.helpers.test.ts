@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { katColor, itemWeight, bagFillPct, bagTotalWeight, countsTowardsMyLoad, parseCsvLine, parseImportLines, unassignedTotalWeight } from './packingListPanel.helpers'
+import { katColor, itemWeight, bagFillPct, bagTotalWeight, countsTowardsMyLoad, isMarkdownList, parseCsvLine, parseImportLines, unassignedTotalWeight } from './packingListPanel.helpers'
 import { KAT_COLORS } from './packingListPanel.constants'
 
 describe('packingListPanel.helpers', () => {
@@ -126,6 +126,72 @@ describe('packingListPanel.helpers', () => {
       const rows = parseImportLines('Documents, Passport\n\n   \n,')
       expect(rows).toHaveLength(1)
       expect(rows[0].name).toBe('Passport')
+    })
+
+    it('reads a leading "3x" as the quantity in CSV rows too, and leaves "4x4 adapter" a name', () => {
+      expect(parseImportLines('Clothing, 3x Socks, 40')[0]).toMatchObject({ name: 'Socks', quantity: 3, weight_grams: '40' })
+      expect(parseImportLines('Clothing, 2 × T-Shirts')[0]).toMatchObject({ name: 'T-Shirts', quantity: 2 })
+      expect(parseImportLines('Car, 4x4 adapter')[0]).toMatchObject({ name: '4x4 adapter' })
+      expect(parseImportLines('Car, 4x4 adapter')[0].quantity).toBeUndefined()
+    })
+
+    it('keeps a doubled quote inside a quoted field as one quote (#875 CSV export)', () => {
+      expect(parseCsvLine('Other,"12"" pizza tray, round",,,')).toEqual(['Other', '12" pizza tray, round', '', '', ''])
+    })
+  })
+
+  describe('parseImportLines with Markdown (#875)', () => {
+    it('recognises a Markdown list by a heading or a list item, and leaves CSV rows alone', () => {
+      expect(isMarkdownList('## Clothing\nSocks')).toBe(true)
+      expect(isMarkdownList('- [ ] Socks')).toBe(true)
+      expect(isMarkdownList('1. Passport')).toBe(true)
+      expect(isMarkdownList('Clothing, Socks\nDocuments, Passport')).toBe(false)
+    })
+
+    it('takes the category from the heading above, checkmarks from the box, and ignores everything else', () => {
+      const rows = parseImportLines([
+        '# Packing List: Lisbon (Shared)',
+        '',
+        'A note that is not an item.',
+        '## Clothing ##',
+        '- [x] T-Shirts',
+        '* [ ] Rain jacket',
+        '---',
+        '### Documents',
+        '1. Passport',
+        '+ Boarding pass',
+      ].join('\n'))
+      expect(rows).toEqual([
+        { name: 'T-Shirts', category: 'Clothing', weight_grams: undefined, bag: undefined, checked: true },
+        { name: 'Rain jacket', category: 'Clothing', weight_grams: undefined, bag: undefined, checked: false },
+        { name: 'Passport', category: 'Documents', weight_grams: undefined, bag: undefined, checked: false },
+        { name: 'Boarding pass', category: 'Documents', weight_grams: undefined, bag: undefined, checked: false },
+      ])
+    })
+
+    it('reads the export’s quantity and weight back, in g or kg, and keeps other brackets in the name', () => {
+      const rows = parseImportLines('## Kit\n- [ ] 5 × T-Shirts (180 g)\n- [ ] Tent (1,2 kg)\n- [x] Phone charger (USB-C) (90 g)\n- [ ] Charger (USB-C)')
+      expect(rows.map(r => [r.name, r.quantity, r.weight_grams, r.checked])).toEqual([
+        ['T-Shirts', 5, '180', false],
+        ['Tent', undefined, '1200', false],
+        ['Phone charger (USB-C)', undefined, '90', true],
+        ['Charger (USB-C)', undefined, undefined, false],
+      ])
+    })
+
+    it('turns links, emphasis and code marks into plain text, and skips an empty checkbox', () => {
+      const rows = parseImportLines('- [ ] **Sun**screen\n- [ ] [Adapter](https://example.com/adapter) `EU`\n- [ ]\n- [x]')
+      expect(rows.map(r => r.name)).toEqual(['Sunscreen', 'Adapter EU'])
+    })
+
+    it('puts items before the first heading in no category, so the import files them under Other', () => {
+      expect(parseImportLines('- Sunglasses\n## Hats\n- Cap').map(r => r.category)).toEqual([undefined, 'Hats'])
+    })
+
+    it('stays linear on hostile input', () => {
+      const started = performance.now()
+      parseImportLines(`#${' '.repeat(50_000)}x\n-${' '.repeat(50_000)}\n- [ ] ${'('.repeat(50_000)}`)
+      expect(performance.now() - started).toBeLessThan(500)
     })
   })
 

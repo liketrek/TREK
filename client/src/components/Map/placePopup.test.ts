@@ -1,5 +1,8 @@
-// FE-COMP-PLACEPOPUP-001 to FE-COMP-PLACEPOPUP-014
+// FE-COMP-PLACEPOPUP-001 to FE-COMP-PLACEPOPUP-021
 import { describe, it, expect } from 'vitest'
+import { createElement } from 'react'
+import { Coffee, MapPin, Signpost, type LucideIcon } from 'lucide-react'
+import { renderIconMarkup } from '../../utils/iconMarkup'
 import { buildPlacePopupHtml, buildPoiPopupHtml } from './placePopup'
 import { buildPlace } from '../../../tests/helpers/factories'
 import type { Poi } from './poiCategories'
@@ -45,6 +48,13 @@ describe('buildPlacePopupHtml', () => {
     expect(html).toContain('Louvre')
     expect(html).not.toContain('<img')
     expect(html).not.toContain('<svg')
+  })
+
+  it('FE-COMP-PLACEPOPUP-021: a place without a name keeps an empty name line, never the word undefined', () => {
+    const html = buildPlacePopupHtml(popupPlace({ name: undefined as never, address: null }), null)
+    // The name line is there and empty.
+    expect(html).toContain('white-space:nowrap;"></div>')
+    expect(html).not.toContain('undefined')
   })
 
   it('FE-COMP-PLACEPOPUP-002: escapes HTML metacharacters in the name', () => {
@@ -128,5 +138,80 @@ describe('buildPoiPopupHtml', () => {
   it('FE-COMP-PLACEPOPUP-014: escapes the POI address and omits it when absent', () => {
     expect(buildPoiPopupHtml(poi({ address: null }))).not.toContain('margin-top:3px')
     expect(buildPoiPopupHtml(poi({ address: 'Herrengasse 14 & 16' }))).toContain('Herrengasse 14 &amp; 16')
+  })
+})
+
+describe('buildPoiPopupHtml looks and plugin details', () => {
+  const PLUGIN_KEY = 'plugin:trail-finder/trailheads'
+  const icon = (Icon: LucideIcon, color: string) => renderIconMarkup(createElement(Icon, { size: 12, color, strokeWidth: 2 }))
+  const parse = (html: string) => {
+    const box = document.createElement('div')
+    box.innerHTML = html
+    return box
+  }
+
+  it('FE-COMP-PLACEPOPUP-015: a core POI card is the one it always was, with no details block', () => {
+    const html = buildPoiPopupHtml(poi({ name: 'Café Central', category: 'cafe', address: 'Herrengasse 14' }))
+    expect(html).toBe(
+      '<div style="font-family:var(--font-system);max-width:220px;">'
+      + `<div style="display:flex;align-items:center;gap:5px;"><span style="flex-shrink:0;display:inline-flex;line-height:0;">${icon(Coffee, '#B45309')}</span>`
+      + '<span style="font-weight:600;font-size:12.5px;color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Café Central</span></div>'
+      + '<div style="font-size:11px;color:#9ca3af;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Herrengasse 14</div></div>',
+    )
+  })
+
+  it('FE-COMP-PLACEPOPUP-016: shows the icon and colour the POI carries and its detail rows in order', () => {
+    const html = buildPoiPopupHtml(poi({
+      category: PLUGIN_KEY, name: 'Trailhead', color: '#2f855a', icon: 'Signpost',
+      details: [{ label: 'Length', value: '12.4 km' }, { label: 'Step-free', value: 'Yes' }],
+    }))
+    expect(html).toContain(icon(Signpost, '#2f855a'))
+    const cells = [...parse(html).querySelectorAll('div[style*="grid-template-columns"] > span')].map(el => el.textContent)
+    expect(cells).toEqual(['Length', '12.4 km', 'Step-free', 'Yes'])
+  })
+
+  it('FE-COMP-PLACEPOPUP-017: markup in the name, the address and the details stays text', () => {
+    const html = buildPoiPopupHtml(poi({
+      category: PLUGIN_KEY,
+      name: '<img src=x onerror=alert(1)>',
+      address: '</div><script>alert(2)</script>',
+      color: '#2f855a', icon: 'Signpost',
+      details: [{ label: '<b onclick=alert(3)>Fee</b>', value: '"><svg onload=alert(4)>' }],
+    }))
+    const box = parse(html)
+    expect(box.querySelectorAll('img, script, b')).toHaveLength(0)
+    // The only svg is the category glyph, never one a value smuggled in.
+    expect(box.querySelectorAll('svg')).toHaveLength(1)
+    expect(box.textContent).toContain('<img src=x onerror=alert(1)>')
+    expect(box.textContent).toContain('<b onclick=alert(3)>Fee</b>')
+    expect(box.textContent).toContain('"><svg onload=alert(4)>')
+  })
+
+  it('FE-COMP-PLACEPOPUP-018: a colour or icon that fails the checks is drawn grey with a pin', () => {
+    const html = buildPoiPopupHtml(poi({
+      category: PLUGIN_KEY, color: 'red;background:url(https://evil.example/x)', icon: '<img src=x onerror=alert(1)>',
+    }))
+    expect(html).toContain(icon(MapPin, '#6b7280'))
+    expect(html).not.toContain('evil.example')
+    expect(parse(html).querySelectorAll('img')).toHaveLength(0)
+  })
+
+  it('FE-COMP-PLACEPOPUP-019: shows at most the six rows the contract allows', () => {
+    const details = Array.from({ length: 9 }, (_, i) => ({ label: `Row ${i}`, value: String(i) }))
+    const html = buildPoiPopupHtml(poi({ category: PLUGIN_KEY, color: '#2f855a', icon: 'Signpost', details }))
+    expect(parse(html).querySelectorAll('div[style*="grid-template-columns"] > span')).toHaveLength(12)
+    expect(html).not.toContain('Row 6')
+  })
+
+  it('FE-COMP-PLACEPOPUP-020: a long label wraps inside a capped column and leaves its value the wider share', () => {
+    const html = buildPoiPopupHtml(poi({
+      category: PLUGIN_KEY, color: '#2f855a', icon: 'Signpost',
+      details: [{ label: 'Wheelchair accessible toilet, ground fl', value: 'Step-free via the side door on the left' }],
+    }))
+    const grid = parse(html).querySelector<HTMLElement>('div[style*="grid-template-columns"]')!
+    expect(grid.style.gridTemplateColumns).toBe('fit-content(45%) 1fr')
+    const [label, value] = [...grid.querySelectorAll<HTMLElement>(':scope > span')]
+    expect(label.style.overflowWrap).toBe('anywhere')
+    expect(value.style.overflowWrap).toBe('anywhere')
   })
 })

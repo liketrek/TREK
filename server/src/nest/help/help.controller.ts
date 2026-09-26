@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Req, Res } from '@nestjs/common';
+import { Controller, Get, HttpException, Param, Query, Req, Res } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { Public } from '../auth/public.decorator';
 import {
@@ -6,10 +6,15 @@ import {
   getWikiPage,
   getWikiAsset,
   isLocalWiki,
+  searchWiki,
   WikiNotFound,
   type WikiPage,
   type WikiNavSection,
+  type WikiSearchHit,
 } from './wiki';
+
+/** Longest query the search accepts; anything past it is noise, not a question. */
+const SEARCH_MAX_QUERY = 120;
 
 /**
  * /api/help — embedded TREK wiki, served from the `wiki/` directory that ships
@@ -23,6 +28,26 @@ export class HelpController {
   @Get('index')
   index(): Promise<{ sections: WikiNavSection[] }> {
     return getWikiIndex();
+  }
+
+  /**
+   * Full-text search over the bundled pages, for the help panel's search box.
+   * `q` is required; `limit` is optional and clamped by the search itself.
+   */
+  @Get('search')
+  async search(@Query('q') q?: string, @Query('limit') limit?: string): Promise<{ hits: WikiSearchHit[] }> {
+    const query = (q ?? '').trim();
+    if (!query) throw new HttpException({ error: 'A search query is required' }, 400);
+    if (query.length > SEARCH_MAX_QUERY) {
+      throw new HttpException({ error: `Search query too long (max ${SEARCH_MAX_QUERY} chars)` }, 400);
+    }
+    const n = limit === undefined ? undefined : Number(limit);
+    if (n !== undefined && !Number.isInteger(n)) throw new HttpException({ error: 'limit must be an integer' }, 400);
+    try {
+      return { hits: await searchWiki(query, n) };
+    } catch {
+      throw new HttpException({ error: 'Help search unavailable' }, 502);
+    }
   }
 
   @Get('page/:slug')

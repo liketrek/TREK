@@ -137,6 +137,7 @@ const admin: TranslationStrings = {
   'admin.amapKey': 'Amap (高德地图) API-sleutel',
   'admin.amapKeyHint':
     'Voor het zoeken naar plaatsen in het Chinese vasteland, waar Google onbereikbaar is en OpenStreetMap weinig gegevens heeft. Vereist een sleutel van het type ‘Web 服务’ (webservice), geen JS API-sleutel. Verkrijgbaar op console.amap.com.',
+  'admin.keyFromEnv': 'Ingesteld via {name}',
   'admin.placesProvider.title': 'Provider voor plaatszoeken',
   'admin.placesProvider.subtitle': 'De eigen index van TREK en OpenStreetMap beantwoorden elke zoekopdracht. Hier kies je wie er nog meer wordt gevraagd als zij niets vinden: Automatisch geeft de voorkeur aan Google als er een sleutel is, daarna Amap.',
   'admin.placesProvider.auto': 'Automatisch',
@@ -385,6 +386,8 @@ const admin: TranslationStrings = {
     'Extra details (reviews, beoordelingen, links) aan een plek toevoegen',
   'admin.plugins.perm.hook:search-provider':
     'Zoekopdrachten naar locaties beantwoorden vanuit een eigen index, naast de resultaten van TREK',
+  'admin.plugins.perm.hook:poi-category-provider':
+    'Eigen plaatscategorieën toevoegen aan “Plaatsen op de kaart ontdekken”; kies je er een, dan ontvangt de plug-in het kaartgebied dat je bekijkt',
   'admin.plugins.perm.hook:trip-warning-provider':
     'Validatiewaarschuwingen tonen bij een reis (zichtbaar in de planner)',
   'admin.plugins.perm.hook:table-contributor':
@@ -400,6 +403,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.mcpTools': 'Publiceert AI-tools',
   'admin.plugins.mcpToolsTitle': 'Gepubliceerde AI-tools',
   'admin.plugins.mcpToolsHint': 'Een assistent kan deze namens een gebruiker uitvoeren. Elke tool handelt met de hierboven verleende rechten.',
+  'admin.plugins.poiCategoriesTitle': 'Kaartcategorieën die het toevoegt',
   'admin.plugins.perm.mcp:tools':
     'Tools publiceren die een AI-assistent namens jou kan uitvoeren (die handelt met de rechten die je de plug-in hier geeft, niet met die van de assistent)',
   'admin.plugins.perm.geolocation:read':
@@ -542,6 +546,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'Levert kalenderevenementen',
   'admin.plugins.cap.placeDetails': 'Verrijkt plekken',
   'admin.plugins.cap.search': 'Beantwoordt zoekopdrachten',
+  'admin.plugins.cap.poiCategories': 'Voegt kaartcategorieën toe',
   'admin.plugins.cap.warnings': 'Signaleert problemen',
   'admin.plugins.cap.mapLayers': 'Tekent op de kaart',
   'admin.plugins.cap.routing': 'Biedt routering aan',
@@ -617,6 +622,11 @@ const admin: TranslationStrings = {
     'Lees bezoeken en opgenomen routes uit een Dawarich-instantie die elke lezer zelf koppelt',
   'admin.addons.catalog.llm_parsing.name': 'AI-analyse',
   'admin.addons.catalog.llm_parsing.description': 'Leest boekingen die de ingebouwde parser niet begrijpt, met een AI-model naar keuze',
+  'admin.addons.llm.vision.auto': 'Automatisch',
+  'admin.addons.llm.vision.on': 'Ja',
+  'admin.addons.llm.vision.off': 'Nee',
+  'admin.addons.llm.vision.hintLocal': 'Automatisch vraagt de Ollama-server of dit model afbeeldingen leest.',
+  'admin.addons.llm.vision.hintCloud': 'Automatisch betekent nee voor een cloudmodel. Kies Ja als dit model afbeeldingen leest.',
   'admin.addons.enabled': 'Ingeschakeld',
   'admin.addons.disabled': 'Uitgeschakeld',
   'admin.addons.type.trip': 'Reis',
@@ -718,6 +728,9 @@ const admin: TranslationStrings = {
   'admin.tabs.permissions': 'Rechten',
   'admin.notifications.emailPanel.title': 'Email (SMTP)',
   'admin.notifications.webhookPanel.title': 'Webhook',
+  'admin.notifications.webPushPanel.title': 'Web Push',
+  'admin.notifications.webPushPanel.hint':
+    'Laat gebruikers via de browser meldingen ontvangen op hun telefoons en computers, ook als TREK gesloten is. Vereist HTTPS; op iPhone en iPad moet TREK aan het beginscherm worden toegevoegd.',
   'admin.notifications.inappPanel.title': 'In-App',
   'admin.notifications.inappPanel.hint':
     'In-app-meldingen zijn altijd actief en kunnen niet globaal worden uitgeschakeld.',

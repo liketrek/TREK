@@ -114,6 +114,7 @@
 - [[Security Hardening|Security-Hardening]]
 
 ## Help
+- [[Help Center|Help-Center]]
 - [[In-App Help|In-App-Help]]
 - [[FAQ]]
 - [[Troubleshooting]]

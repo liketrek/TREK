@@ -26,7 +26,9 @@ import BookingImportModal from '../components/Planner/BookingImportModal'
 import AirTrailImportModal from '../components/Planner/AirTrailImportModal'
 // MemoriesPanel moved to Journey addon
 import ApplyTemplateButton from '../components/Packing/ApplyTemplateButton'
+import PackingExportMenu from '../components/Packing/PackingExportMenu'
 import type { ExpensePrefill } from '../components/Budget/CostsPanel'
+import { expenseEditorFor } from '../components/Budget/CostsPanel.helpers'
 import type { BookingExpenseRequest } from '../components/Planner/BookingCostsSection.types'
 import type { BudgetItem } from '../types'
 import PluginFrame from '../components/Plugins/PluginFrame'
@@ -35,6 +37,8 @@ import { lazyWithRetry } from '../utils/lazyWithRetry'
 import { getDayBookendHotels } from '../utils/dayOrder'
 import TripWarningsBanner from '../components/Planner/TripWarningsBanner'
 import Navbar from '../components/Layout/Navbar'
+import HelpAnchor from '../components/Help/HelpAnchor'
+import { getHelpContext } from '../help/registry'
 import { useToast } from '../components/shared/Toast'
 import { Map, X, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Ticket, PackageCheck, Wallet, FolderOpen, Users, Train } from 'lucide-react'
 import { useTranslation } from '../i18n'
@@ -47,7 +51,7 @@ import { useRouteCalculation } from '../hooks/useRouteCalculation'
 import { usePlaceSelection } from '../hooks/usePlaceSelection'
 import { usePlannerHistory } from '../hooks/usePlannerHistory'
 import type { Accommodation, TripMember, Day, Place, Reservation, PackingItem, TodoItem } from '../types'
-import { ListTodo, Download, Plus, Trash2, FolderPlus } from 'lucide-react'
+import { ListTodo, ListPlus, Download, Plus, FolderPlus } from 'lucide-react'
 import { useTripPlanner } from './tripPlanner/useTripPlanner'
 import { usePoiExplore } from '../components/Map/usePoiExplore'
 import { useMergedMapPois } from '../components/Map/useMergedMapPois'
@@ -118,21 +122,26 @@ function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; p
   })
   const setSubTabPersist = (tab: 'packing' | 'todo') => { setSubTab(tab); sessionStorage.setItem(`trip-lists-subtab-${tripId}`, tab) }
   const [importPackingSignal, setImportPackingSignal] = useState(0)
-  const [clearCheckedSignal, setClearCheckedSignal] = useState(0)
+  const [addCategorySignal, setAddCategorySignal] = useState(0)
   const [saveTemplateSignal, setSaveTemplateSignal] = useState(0)
   const [addTodoSignal, setAddTodoSignal] = useState(0)
   const [packingView, setPackingView] = useState<'common' | 'personal'>('common')
   const { t } = useTranslation()
   const isAdmin = useAuthStore(s => s.user?.role === 'admin')
+  const trip = useTripStore(s => s.trip)
+  const canEditPacking = useCanDo()('packing_edit', trip)
 
   const tabs = [
     { id: 'packing' as const, label: t('todo.subtab.packing'), icon: PackageCheck, count: packingItems.length },
     { id: 'todo' as const, label: t('todo.subtab.todo'), icon: ListTodo, count: todoItems.length },
   ]
 
+  // The to-do view fills what is left under the bar, so its list and detail pane
+  // scroll inside the screen and the pane's buttons stay in sight.
+  const fill = subTab === 'todo'
   return (
-    <div>
-      <div style={{ padding: '24px 28px 0' }} className="max-md:!px-4 max-md:!pt-4">
+    <div style={fill ? { display: 'flex', flexDirection: 'column', height: '100%' } : undefined}>
+      <div style={{ padding: '24px 28px 0', flexShrink: 0 }} className="max-md:!px-4 max-md:!pt-4">
         <div className="bg-surface-tertiary" style={{
           borderRadius: 18,
           padding: '14px 16px 14px 22px',
@@ -170,21 +179,22 @@ function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; p
           </div>
 
           {subTab === 'packing' && (() => {
-            const packingAbgehakt = packingItems.filter(i => i.checked).length
             const sharedBtnClass = 'inline-flex items-center gap-1.5 px-2.5 sm:px-[14px] py-[7px] sm:py-[9px] hover:opacity-[0.88]'
+            // Export and Import carry only their icon, with the name as tooltip and label.
+            const iconBtnClass = 'inline-flex items-center justify-center px-2.5 py-[7px] sm:py-[9px] hover:opacity-[0.88] bg-accent text-accent-text'
             const sharedBtnStyle: React.CSSProperties = {
               appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
               borderRadius: 10, fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500,
             }
             return (
               <div style={{ display: 'flex', gap: 6, flexShrink: 0, marginLeft: 'auto', flexWrap: 'wrap' }}>
-                {packingAbgehakt > 0 && (
-                  <button type="button" onClick={() => setClearCheckedSignal(s => s + 1)}
-                    className={`hidden sm:inline-flex items-center gap-1.5 px-[14px] py-[9px] hover:opacity-[0.88] bg-[rgba(239,68,68,0.14)] text-[#ef4444]`}
+                {canEditPacking && (
+                  <button type="button" onClick={() => setAddCategorySignal(s => s + 1)}
+                    className={`${sharedBtnClass} bg-accent text-accent-text`}
                     style={sharedBtnStyle}
                   >
-                    <Trash2 size={14} strokeWidth={2.5} />
-                    <span>{t('packing.clearChecked', { count: packingAbgehakt })}</span>
+                    <ListPlus size={14} strokeWidth={2.5} />
+                    <span className="hidden sm:inline">{t('packing.addCategory')}</span>
                   </button>
                 )}
                 <ApplyTemplateButton
@@ -202,12 +212,14 @@ function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; p
                     <span className="hidden sm:inline">{t('packing.saveAsTemplate')}</span>
                   </button>
                 )}
+                <PackingExportMenu tripId={tripId} view={packingView} className={iconBtnClass} style={sharedBtnStyle} />
                 <button type="button" onClick={() => setImportPackingSignal(s => s + 1)}
-                  className={`${sharedBtnClass} bg-accent text-accent-text`}
+                  className={iconBtnClass}
                   style={sharedBtnStyle}
+                  aria-label={t('packing.import')}
+                  title={t('packing.import')}
                 >
                   <Download size={14} strokeWidth={2.5} />
-                  <span className="hidden sm:inline">{t('packing.import')}</span>
                 </button>
               </div>
             )
@@ -229,10 +241,10 @@ function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; p
           )}
         </div>
       </div>
-      <div style={{ padding: '16px 28px 0' }} className="max-md:!px-4">
+      <div style={fill ? { padding: '16px 28px 16px', flex: 1, minHeight: 0 } : { padding: '16px 28px 0' }} className="max-md:!px-4">
         {subTab === 'packing' && (
           <LazyPanel id="packing">
-            <PackingListPanel tripId={tripId} items={packingItems} openImportSignal={importPackingSignal} clearCheckedSignal={clearCheckedSignal} saveTemplateSignal={saveTemplateSignal} inlineHeader={false} view={packingView} onViewChange={setPackingView} />
+            <PackingListPanel tripId={tripId} items={packingItems} openImportSignal={importPackingSignal} addCategorySignal={addCategorySignal} saveTemplateSignal={saveTemplateSignal} inlineHeader={false} view={packingView} onViewChange={setPackingView} />
           </LazyPanel>
         )}
         {subTab === 'todo' && (
@@ -243,6 +255,11 @@ function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; p
       </div>
     </div>
   )
+}
+
+/** The tab ids are historical; the help screens carry the names the tabs show. */
+const TRIP_TAB_HELP: Record<string, string> = {
+  transports: 'transports', buchungen: 'bookings', listen: 'lists', finanzplan: 'costs', dateien: 'files', collab: 'collab', roadtrip: 'roadtrip',
 }
 
 export default function TripPlannerPage(): React.ReactElement | null {
@@ -293,6 +310,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
     transportModalDayId, setTransportModalDayId,
     transportModalAutomated, setTransportModalAutomated, transitPrefill, setTransitPrefill, transitJourney, setTransitJourney,
     reservationPrefill, transportPrefill, importReviewActive, advanceImportReview,
+    receiptExpense, clearReceiptExpense,
     routeShown, setRouteShown, transitRoutesShown, routeProfile, setRouteProfile, routeVias, fitKey, setFitKey,
     mobileSidebarOpen, setMobileSidebarOpen, mobilePlanScrollTopRef, mobilePlacesScrollTopRef,
     deletePlaceId, setDeletePlaceId, deletePlaceIds, setDeletePlaceIds, deletePlaceNote, deletePlacesNote,
@@ -359,6 +377,9 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
     if (req.editItem) setBookingExpense({ editing: req.editItem })
     else if (req.prefill) setBookingExpense({ editing: null, prefill: req.prefill })
   }
+  // One expense editor for both openers: a booking's Costs block, and a scanned
+  // receipt sent here from the background tasks widget.
+  const expenseEditor = expenseEditorFor(bookingExpense, () => setBookingExpense(null), receiptExpense, clearReceiptExpense)
 
   if (isLoading || !splashDone) {
     return (
@@ -380,8 +401,17 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
   const mapInsetLeft = leftPanelPx ? leftPanelPx + 10 : 0
   const mapInsetRight = rightPanelPx ? rightPanelPx + 10 : 0
 
+  // The trip is a family of help screens: the frame, then one per tab, and on
+  // the plan one per overlay that is open. A screen that has no help yet falls
+  // back to the frame.
+  const helpFor = (id: string) => (getHelpContext(id) ? id : 'trip')
+  const helpId = activeTab === 'plan'
+    ? helpFor(roadtripActive ? 'trip-roadtrip' : selectedPlace ? 'trip-place' : showDayDetail ? 'trip-day-detail' : 'trip')
+    : helpFor(`trip-${TRIP_TAB_HELP[activeTab] ?? activeTab}`)
+
   return (
     <div style={{ position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', ...fontStyle }}>
+      <HelpAnchor id={helpId} />
       <Navbar tripTitle={trip.title} tripId={tripId} showBack onBack={() => navigate('/dashboard')} onShare={() => setShowMembersModal(true)} />
 
       <div className="bg-surface-elevated border-b border-edge-faint" style={{
@@ -537,10 +567,13 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
                 // 860px the viewport centre sits under the Places panel, where this
                 // cluster covered both collapse tabs and Add Place/Activity (#2247).
                 left: `calc(${mapInsetLeft}px + (100% - ${mapInsetLeft}px - ${mapInsetRight}px) / 2)`,
+                // No wider than that corridor either: once plugins add categories the pill
+                // scrolls inside it instead of running on under a panel.
+                maxWidth: `calc(100% - ${mapInsetLeft}px - ${mapInsetRight}px - 24px)`,
                 transform: 'translateX(-50%)', zIndex: 25, pointerEvents: 'none', alignItems: 'flex-start', gap: 8,
               }}>
                 {poiPillEnabled && (
-                  <PoiCategoryPill active={poi.active} onToggle={poi.toggle} loadingKeys={poi.loadingKeys} errorKeys={poi.errorKeys} moved={poi.moved} onSearchArea={poi.searchArea} />
+                  <PoiCategoryPill categories={poi.categories} active={poi.active} onToggle={poi.toggle} loadingKeys={poi.loadingKeys} errorKeys={poi.errorKeys} moved={poi.moved} onSearchArea={poi.searchArea} />
                 )}
                 {glMap && <MapCompassPill map={glMap} />}
               </div>
@@ -558,7 +591,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
                 buttons so map touch handlers cannot swallow the tap targets. */}
             {poiPillEnabled && !mobileSidebarOpen && !showPlaceForm && !showMembersModal && !showReservationModal && createPortal(
               <div data-testid="mobile-poi-category-pill" className="flex md:hidden" style={{ position: 'fixed', left: 12, right: 12, bottom: 'calc(var(--bottom-nav-h, 0px) + 12px)', justifyContent: 'center', zIndex: 100, pointerEvents: 'none' }}>
-                <PoiCategoryPill active={poi.active} onToggle={poi.toggle} loadingKeys={poi.loadingKeys} errorKeys={poi.errorKeys} moved={poi.moved} onSearchArea={poi.searchArea} />
+                <PoiCategoryPill categories={poi.categories} active={poi.active} onToggle={poi.toggle} loadingKeys={poi.loadingKeys} errorKeys={poi.errorKeys} moved={poi.moved} onSearchArea={poi.searchArea} />
               </div>,
               document.body
             )}
@@ -1146,18 +1179,19 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
           }}
         />
       )}
-      {bookingExpense && (
+      {expenseEditor && (
         <ErrorBoundary boundaryId="planner-panel:expense" fallback={null}>
           <Suspense fallback={null}>
             <ExpenseModal
+              key={expenseEditor.key}
               tripId={tripId}
               base={costsBase}
               people={tripMembers}
               me={meId}
-              editing={bookingExpense.editing}
-              prefill={bookingExpense.prefill}
-              onClose={() => setBookingExpense(null)}
-              onSaved={() => { setBookingExpense(null); loadBudgetItems(tripId) }}
+              editing={expenseEditor.editing}
+              prefill={expenseEditor.prefill}
+              onClose={expenseEditor.close}
+              onSaved={() => { expenseEditor.close(); loadBudgetItems(tripId) }}
             />
           </Suspense>
         </ErrorBoundary>

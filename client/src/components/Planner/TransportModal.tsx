@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useParams } from 'react-router'
-import { Plane, Train, Car, Ship, Bus, Sailboat, Bike, CarTaxiFront, Route, TramFront, Paperclip, FileText, X, ExternalLink, Link2, Plus, Trash2, ChevronUp, ChevronDown } from 'lucide-react'
+import { Plane, Train, Car, Ship, Bus, Sailboat, Bike, CarTaxiFront, Route, TramFront, X, Plus, Trash2, ChevronUp, ChevronDown } from 'lucide-react'
 import Modal from '../shared/Modal'
 import ConfirmDialog from '../shared/ConfirmDialog'
 import CustomSelect from '../shared/CustomSelect'
@@ -14,11 +14,11 @@ import { useToast } from '../shared/Toast'
 import { useTripStore } from '../../store/tripStore'
 import { useAddonStore } from '../../store/addonStore'
 import { formatDate, splitReservationDateTime, resolveDayId } from '../../utils/formatters'
-import { openFile } from '../../utils/fileDownload'
-import apiClient from '../../api/client'
 import type { Day, Place, Accommodation, Reservation, ReservationEndpoint, TripFile, BudgetItem, AssignmentsMap } from '../../types'
 import { parseReservationMetadata, orderedEndpoints, stripAirportCode } from '../../utils/flightLegs'
 import { BookingCostsSection } from './BookingCostsSection'
+import { BookingLinkAndFiles } from './BookingLinkAndFiles'
+import { BookingTypeSelect } from './BookingTypeSelect'
 import { importedPriceEntry } from './importedPrice'
 import { TravelerPicker } from './TravelerPicker'
 import type { TripMember } from '../Budget/BudgetPanelMemberChips'
@@ -151,6 +151,7 @@ const defaultForm = {
   arrival_time: '',
   confirmation_number: '',
   notes: '',
+  url: '',
   meta_airline: '',
   meta_flight_number: '',
   meta_train_number: '',
@@ -197,7 +198,6 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
   const isBudgetEnabled = useAddonStore(s => s.isEnabled('budget'))
   const budgetItems = useTripStore(s => s.budgetItems)
   const deleteBudgetItem = useTripStore(s => s.deleteBudgetItem)
-  const loadFiles = useTripStore(s => s.loadFiles)
   const setReservationTravelers = useTripStore(s => s.setReservationTravelers)
   const { id: tripId } = useParams<{ id: string }>()
   // Set right before submitting when the user clicked "create/edit expense", so
@@ -230,25 +230,10 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
   }
   const [uploadingFile, setUploadingFile] = useState(false)
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
-  const [showFilePicker, setShowFilePicker] = useState(false)
   const [linkedFileIds, setLinkedFileIds] = useState<number[]>([])
   // Travelers assigned to this booking (#1517) — seeded on open, persisted after save.
   const [travelerIds, setTravelerIds] = useState<Set<number>>(new Set())
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const filePickerRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!showFilePicker) return
-    const closeOnOutsidePointer = (event: PointerEvent) => {
-      if (!filePickerRef.current?.contains(event.target as Node)) setShowFilePicker(false)
-    }
-    document.addEventListener('pointerdown', closeOnOutsidePointer)
-    return () => document.removeEventListener('pointerdown', closeOnOutsidePointer)
-  }, [showFilePicker])
-
-  useEffect(() => {
-    if (!isOpen) setShowFilePicker(false)
-  }, [isOpen])
 
   useEffect(() => {
     if (!isOpen) return
@@ -285,6 +270,7 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
         arrival_time: splitReservationDateTime(src.reservation_end_time).time ?? '',
         confirmation_number: src.confirmation_number || '',
         notes: src.notes || '',
+        url: src.url || '',
         meta_airline: meta.airline || '',
         meta_flight_number: meta.flight_number || '',
         meta_train_number: meta.train_number || '',
@@ -605,6 +591,7 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
         location: null,
         confirmation_number: form.confirmation_number || null,
         notes: form.notes || null,
+        url: form.url || null,
         // An empty object, not null: null clears the column outright, and that
         // took the mirrored booking price with it on every edit of a type that
         // fills no metadata of its own — restaurant, event, tour, parking, other,
@@ -809,20 +796,16 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
       ) : (
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-        {/* Type selector */}
-        <div>
-          <label className={labelClass}>{t('reservations.bookingType')}</label>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-            {TYPE_OPTIONS.map(({ value, labelKey, Icon }) => (
-              <button key={value} type="button" onClick={() => set('type', value)} className={form.type === value ? 'bg-[var(--text-primary)] text-[var(--bg-primary)]' : 'bg-surface-card text-content-muted'} style={{
-                display: 'flex', alignItems: 'center', gap: 4,
-                padding: '5px 10px', borderRadius: 99, border: '1px solid',
-                fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.12s',
-                borderColor: form.type === value ? 'var(--text-primary)' : 'var(--border-primary)',
-              }}>
-                <Icon size={11} /> {t(labelKey)}
-              </button>
-            ))}
+        {/* Type and travelers side by side at the head of the dialog */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
+          <div>
+            <label className={labelClass}>{t('reservations.bookingType')}</label>
+            <BookingTypeSelect options={TYPE_OPTIONS} value={form.type} onChange={value => set('type', value as TransportType)} />
+          </div>
+          {/* Travelers: trip members and guests on this booking (#1517) */}
+          <div>
+            <label className={labelClass}>{t('reservations.travelers.label')}</label>
+            <TravelerPicker tripMembers={tripMembers} selectedIds={travelerIds} onToggle={toggleTraveler} />
           </div>
         </div>
 
@@ -1150,100 +1133,24 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
             className={inputClass} style={{ resize: 'none', lineHeight: 1.5 }} />
         </div>
 
-        {/* Travelers — assign trip members & guests to this transport (#1517) */}
-        <div>
-          <label className={labelClass}>{t('reservations.travelers.label')}</label>
-          <TravelerPicker tripMembers={tripMembers} selectedIds={travelerIds} onToggle={toggleTraveler} />
-        </div>
-
-        {/* Files */}
-        <div>
-          <label className={labelClass}>{t('files.title')}</label>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            {attachedFiles.map(f => (
-              <div key={f.id} className="bg-surface-secondary" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 10px', borderRadius: 8 }}>
-                <FileText size={12} className="text-content-muted" style={{ flexShrink: 0 }} />
-                <span className="text-content-secondary" style={{ flex: 1, fontSize: 'calc(12px * var(--fs-scale-body, 1))', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.original_name}</span>
-                <button type="button" onClick={() => { openFile(f.url).catch(() => {}) }} aria-label={t('common.open')} className="text-content-faint" style={{ background: 'none', border: 'none', padding: 0, display: 'flex', flexShrink: 0, cursor: 'pointer' }}><ExternalLink size={11} /></button>
-                <button type="button" onClick={async () => {
-                  if (f.reservation_id === reservation?.id) {
-                    try { await apiClient.put(`/trips/${tripId}/files/${f.id}`, { reservation_id: null }) } catch { toast.error(t('reservations.toast.updateError')) }
-                  }
-                  try {
-                    const linksRes = await apiClient.get(`/trips/${tripId}/files/${f.id}/links`)
-                    const link = (linksRes.data.links || []).find((l: any) => l.reservation_id === reservation?.id)
-                    if (link) await apiClient.delete(`/trips/${tripId}/files/${f.id}/link/${link.id}`)
-                  } catch { toast.error(t('reservations.toast.updateError')) }
-                  setLinkedFileIds(prev => prev.filter(id => id !== f.id))
-                  if (tripId) loadFiles(tripId)
-                }} className="text-content-faint" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', padding: 0, flexShrink: 0 }}>
-                  <X size={11} />
-                </button>
-              </div>
-            ))}
-            {pendingFiles.map((f, i) => (
-              <div key={i} className="bg-surface-secondary" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 10px', borderRadius: 8 }}>
-                <FileText size={12} className="text-content-muted" style={{ flexShrink: 0 }} />
-                <span className="text-content-secondary" style={{ flex: 1, fontSize: 'calc(12px * var(--fs-scale-body, 1))', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
-                <button type="button" onClick={() => setPendingFiles(prev => prev.filter((_, j) => j !== i))}
-                  className="text-content-faint" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', padding: 0, flexShrink: 0 }}>
-                  <X size={11} />
-                </button>
-              </div>
-            ))}
-            <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.txt,.pkpass,.pkpasses,image/*,application/vnd.apple.pkpass,application/vnd.apple.pkpasses" style={{ display: 'none' }} onChange={handleFileChange} />
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {onFileUpload && <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploadingFile} className="text-content-faint" style={{
-                display: 'flex', alignItems: 'center', gap: 5, padding: '6px 10px',
-                border: '1px dashed var(--border-primary)', borderRadius: 8, background: 'none',
-                fontSize: 'calc(11px * var(--fs-scale-caption, 1))', cursor: uploadingFile ? 'default' : 'pointer', fontFamily: 'inherit',
-              }}>
-                <Paperclip size={11} />
-                {uploadingFile ? t('reservations.uploading') : t('reservations.attachFile')}
-              </button>}
-              {reservation?.id && files.filter(f => !f.deleted_at && !attachedFiles.some(af => af.id === f.id)).length > 0 && (
-                <div ref={filePickerRef} style={{ position: 'relative' }}>
-                  <button type="button" onClick={() => setShowFilePicker(v => !v)} className="text-content-faint" style={{
-                    display: 'flex', alignItems: 'center', gap: 5, padding: '6px 10px',
-                    border: '1px dashed var(--border-primary)', borderRadius: 8, background: 'none',
-                    fontSize: 'calc(11px * var(--fs-scale-caption, 1))', cursor: 'pointer', fontFamily: 'inherit',
-                  }}>
-                    <Link2 size={11} /> {t('reservations.linkExisting')}
-                  </button>
-                  {showFilePicker && (
-                    <div className="bg-surface-card" style={{
-                      position: 'absolute', bottom: '100%', left: 0, marginBottom: 4, zIndex: 50,
-                      border: '1px solid var(--border-primary)', borderRadius: 10,
-                      boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: 4, minWidth: 220, maxHeight: 200, overflowY: 'auto',
-                    }}>
-                      {files.filter(f => !f.deleted_at && !attachedFiles.some(af => af.id === f.id)).map(f => (
-                        <button key={f.id} type="button" onClick={async () => {
-                          try {
-                            await apiClient.post(`/trips/${tripId}/files/${f.id}/link`, { reservation_id: reservation.id })
-                            setLinkedFileIds(prev => [...prev, f.id])
-                            setShowFilePicker(false)
-                            if (tripId) loadFiles(tripId)
-                          } catch { toast.error(t('reservations.toast.updateError')) }
-                        }}
-                          className="text-content-secondary"
-                          style={{
-                            display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '6px 10px',
-                            background: 'none', border: 'none', cursor: 'pointer', fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontFamily: 'inherit',
-                            borderRadius: 7, textAlign: 'left',
-                          }}
-                          onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-tertiary)'}
-                          onMouseLeave={e => e.currentTarget.style.background = 'none'}>
-                          <FileText size={12} className="text-content-faint" style={{ flexShrink: 0 }} />
-                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.original_name}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        {/* Link and files side by side */}
+        <BookingLinkAndFiles
+          url={form.url}
+          onUrlChange={value => set('url', value)}
+          labelClass={labelClass}
+          inputClass={inputClass}
+          reservationId={reservation?.id}
+          tripFiles={files}
+          attachedFiles={attachedFiles}
+          pendingFiles={pendingFiles}
+          onRemovePending={index => setPendingFiles(prev => prev.filter((_, j) => j !== index))}
+          fileInputRef={fileInputRef}
+          onFileChange={handleFileChange}
+          canAttach={!!onFileUpload}
+          uploading={uploadingFile}
+          onLinked={fileId => setLinkedFileIds(prev => [...prev, fileId])}
+          onDetached={fileId => setLinkedFileIds(prev => prev.filter(id => id !== fileId))}
+        />
 
         {/* Costs — create / view the expense linked to this booking */}
         {isBudgetEnabled && (

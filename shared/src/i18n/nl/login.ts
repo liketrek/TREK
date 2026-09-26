@@ -65,6 +65,8 @@ const login: TranslationStrings = {
   'login.oidcSignIn': 'Inloggen met {name}',
   'login.oidcOnly': 'Wachtwoordauthenticatie is uitgeschakeld. Log in via je SSO-provider.',
   'login.oidcLoggedOut': 'Je bent uitgelogd. Log opnieuw in via je SSO-provider.',
+  'login.oidcRedirecting': 'Je wordt doorgestuurd naar {name}…',
+  'login.oidcRedirectSlow': 'Nog steeds hier? Verder naar {name}',
   'login.demoHint': 'Probeer de demo — geen registratie nodig',
   'login.passkey.signIn': 'Inloggen met een passkey',
   'login.passkey.failed': 'Inloggen met passkey mislukt. Probeer het opnieuw.',

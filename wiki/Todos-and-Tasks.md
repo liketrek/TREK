@@ -14,10 +14,10 @@ Open the **Lists** tab inside the trip planner and select **Todo**. The Todo fea
 
 The panel is divided into two columns by default:
 
-- **Left sidebar** — list navigation, smart filters, sort toggle, and a completion progress card.
-- **Task list** — the tasks that match the active filter.
+- **Left sidebar**: a progress card (done of all, as a count, a percentage and a bar), the smart filters, one row per list, and **Add list**, which asks for the name in a dialog.
+- **Task list**: a card whose head names the active filter with its count and holds the sort, **Priority** or **Due date**. Each row is a checkbox, the name, the description, the priority, due date and list as small badges, and the assignee as an avatar with the name as its tooltip.
 
-When you click a task, a **detail pane** opens as a third column on the right side of the task list (on desktop) or slides up as a bottom sheet (on mobile). The new-task form also opens as a modal overlay.
+When you click a task, a **detail pane** opens as a third column on the right side of the task list (on desktop) or slides up as a bottom sheet (on mobile). Its head carries a checkbox that ticks the task off, and **Delete** and **Save changes** stay in sight at its foot while the fields scroll. The new-task form opens as a modal overlay with the same fields; the **+** beside the List field names a new list in a dialog.
 
 On small screens the sidebar collapses to a narrow icon rail showing only colored dots and icons with badge counts.
 
@@ -57,9 +57,9 @@ Tasks with no priority set show no badge.
 | **Done** | Checked tasks. |
 | Per-list rows | All tasks in that specific list (checked and unchecked). |
 
-## Sort by priority
+## Sorting
 
-Toggle the **Priority** button in the sidebar to sort the current task list from P1 → P2 → P3 (tasks with no priority appear last).
+The sort sits in the head of the task list. **Priority** orders the tasks from P1 to P2 to P3 (tasks with no priority appear last), **Due date** puts the nearest deadline first. Only one of the two is on at a time; a second click on the active one goes back to your own order, which you can then change by dragging the rows.
 
 ## Adding tasks
 

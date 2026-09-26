@@ -128,6 +128,7 @@ const admin: TranslationStrings = {
   'admin.amapKey': 'Klucz API Amap (高德地图)',
   'admin.amapKeyHint':
     'Do wyszukiwania miejsc w Chinach kontynentalnych, gdzie Google jest nieosiągalny, a OpenStreetMap ma niewiele danych. Wymaga klucza typu „Web 服务" (usługa sieciowa), a nie klucza JS API. Można go uzyskać na console.amap.com.',
+  'admin.keyFromEnv': 'Ustawiono przez {name}',
   'admin.placesProvider.title': 'Dostawca wyszukiwania miejsc',
   'admin.placesProvider.subtitle':
     'Własny indeks TREK i OpenStreetMap odpowiadają na każde wyszukiwanie. Tutaj wybierasz, kogo zapytać dodatkowo, gdy nic nie znajdą: Automatycznie preferuje Google, jeśli jest klucz, potem Amap.',
@@ -381,6 +382,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:place-detail-provider':
     'Dodawanie dodatkowych szczegółów (recenzji, ocen, linków) do miejsca',
   'admin.plugins.perm.hook:search-provider': 'Odpowiadać na wyszukiwania miejsc z własnego indeksu, obok wyników TREK',
+  'admin.plugins.perm.hook:poi-category-provider':
+    'Dodawanie własnych kategorii miejsc do „Odkrywaj miejsca na mapie”; wybranie jednej z nich wysyła wtyczce obszar mapy, który oglądasz',
   'admin.plugins.perm.hook:trip-warning-provider':
     'Zgłaszanie ostrzeżeń walidacyjnych dla podróży (widocznych w planerze)',
   'admin.plugins.perm.hook:table-contributor': 'Dodawanie kolumn i akcji do widoków podróży (rezerwacje, miejsca, dni)',
@@ -396,6 +399,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.mcpTools': 'Publikuje narzędzia AI',
   'admin.plugins.mcpToolsTitle': 'Publikowane narzędzia AI',
   'admin.plugins.mcpToolsHint': 'Asystent może je uruchomić w imieniu użytkownika. Każde działa z uprawnieniami nadanymi powyżej.',
+  'admin.plugins.poiCategoriesTitle': 'Kategorie mapy, które dodaje',
   'admin.plugins.perm.mcp:tools':
     'Publikowanie narzędzi, które asystent AI może uruchomić w Twoim imieniu (działa z uprawnieniami nadanymi tutaj wtyczce, nie z własnymi)',
   'admin.plugins.perm.geolocation:read':
@@ -540,6 +544,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'Dostarcza wydarzenia kalendarza',
   'admin.plugins.cap.placeDetails': 'Wzbogaca miejsca',
   'admin.plugins.cap.search': 'Odpowiada na wyszukiwania',
+  'admin.plugins.cap.poiCategories': 'Dodaje kategorie mapy',
   'admin.plugins.cap.warnings': 'Zgłasza problemy',
   'admin.plugins.cap.mapLayers': 'Rysuje na mapie',
   'admin.plugins.cap.routing': 'Oferuje trasowanie',
@@ -616,6 +621,11 @@ const admin: TranslationStrings = {
     'Odczytuj pobyty i zapisane trasy z instancji Dawarich, którą każdy użytkownik podłącza sam',
   'admin.addons.catalog.llm_parsing.name': 'Analiza AI',
   'admin.addons.catalog.llm_parsing.description': 'Odczytuje rezerwacje, których nie rozumie wbudowany parser, przy użyciu wybranego modelu AI',
+  'admin.addons.llm.vision.auto': 'Automatycznie',
+  'admin.addons.llm.vision.on': 'Tak',
+  'admin.addons.llm.vision.off': 'Nie',
+  'admin.addons.llm.vision.hintLocal': 'Automatycznie pyta serwer Ollama, czy ten model czyta obrazy.',
+  'admin.addons.llm.vision.hintCloud': 'Automatycznie oznacza „nie” dla modelu w chmurze. Wybierz Tak, jeśli ten model czyta obrazy.',
   'admin.addons.enabled': 'Włączone',
   'admin.addons.disabled': 'Wyłączone',
   'admin.addons.type.trip': 'Podróż',
@@ -726,6 +736,9 @@ const admin: TranslationStrings = {
   'admin.notifications.testWebhookFailed': 'Testowy webhook nie powiódł się',
   'admin.notifications.emailPanel.title': 'Email (SMTP)',
   'admin.notifications.webhookPanel.title': 'Webhook',
+  'admin.notifications.webPushPanel.title': 'Web Push',
+  'admin.notifications.webPushPanel.hint':
+    'Pozwala użytkownikom otrzymywać powiadomienia na telefonach i komputerach przez przeglądarkę, nawet gdy TREK jest zamknięty. Wymaga HTTPS; na iPhonie i iPadzie TREK musi zostać dodany do ekranu początkowego.',
   'admin.notifications.inappPanel.title': 'In-App',
   'admin.notifications.inappPanel.hint':
     'Powiadomienia w aplikacji są zawsze aktywne i nie można ich globalnie wyłączyć.',

@@ -13,6 +13,7 @@ const map: TranslationStrings = {
   'poi.cat.museums': 'Museer och kultur',
   'poi.cat.nature': 'Natur och parker',
   'poi.cat.activities': 'Aktiviteter',
+  'poi.pluginCategories': 'Kategorier från tillägg',
   'map.showAllConnections': 'Visa alla bokningsvägar',
   'map.hideAllConnections': 'Dölj alla bokningsvägar',
   'map.baseLayer.default': 'Karta',

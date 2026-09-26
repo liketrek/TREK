@@ -40,7 +40,7 @@ function renderSection() {
 }
 
 function multimodalToggle(): HTMLElement {
-  const row = screen.getByText('Send documents as images').parentElement as HTMLElement;
+  const row = screen.getByText('Model reads images').parentElement as HTMLElement;
   return row.querySelector('button') as HTMLElement;
 }
 

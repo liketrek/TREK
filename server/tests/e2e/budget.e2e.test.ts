@@ -4,6 +4,8 @@
  * schema (createTables + runMigrations), so the folded BudgetService runs its
  * real SQL. Only the db singleton (trip access) and the WebSocket broadcast are
  * mocked; the permission check is a spy on the container's PermissionsService.
+ * ReservationsModule is mounted beside it because an expense can be linked to a
+ * booking (#2084), and deleting that booking has to take the expense with it.
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi, type MockInstance } from 'vitest';
 import request from 'supertest';
@@ -43,6 +45,8 @@ let checkPermission: MockInstance;
 import { createTables } from '../../src/db/schema';
 import { runMigrations } from '../../src/db/migrations';
 import { BudgetModule } from '../../src/nest/budget/budget.module';
+import { ReservationsModule } from '../../src/nest/reservations/reservations.module';
+import { NotificationsService } from '../../src/nest/notifications/notifications.service';
 import { ExchangeRatesService } from '../../src/nest/budget/exchange-rates.service';
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
 import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
@@ -53,11 +57,14 @@ describe('Budget e2e (real auth guard + temp SQLite, real budget SQL)', () => {
   let tripId: number;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, RealtimeModule, BudgetModule] })
+    const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, RealtimeModule, BudgetModule, ReservationsModule] })
       // The settlement read awaits live FX rates; the trip here is all-EUR, so a
       // null result is the identity — and the test never touches the network.
       .overrideProvider(ExchangeRatesService)
       .useValue({ getRates: async () => null })
+      // A booking delete notifies the trip; nothing here is listening.
+      .overrideProvider(NotificationsService)
+      .useValue({ send: vi.fn().mockResolvedValue(undefined) })
       .compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
@@ -293,6 +300,156 @@ describe('Budget e2e (real auth guard + temp SQLite, real budget SQL)', () => {
       .send({ from_user_id: 2, to_user_id: 1, amount: 15 });
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'Settlement not found' });
+  });
+
+  // #2084: an expense that already exists can be linked to a booking of its trip
+  // (several per booking), let go of again, and goes with the booking it is on.
+  describe('linking expenses to bookings (#2084)', () => {
+    let bookingId: number;
+    let foreignBookingId: number;
+    let foreignPlaceId: number;
+    let fareId: number;
+    let luggageId: number;
+    let seatId: number;
+
+    const metadataOf = (id: number) => {
+      const row = db.prepare('SELECT metadata FROM reservations WHERE id = ?').get(id) as { metadata: string | null };
+      return row.metadata ? JSON.parse(row.metadata) : null;
+    };
+    const linkOf = (id: number) =>
+      db.prepare('SELECT reservation_id FROM budget_items WHERE id = ?').get(id) as { reservation_id: number | null } | undefined;
+    const put = (id: number, body: Record<string, unknown>) =>
+      request(server).put(`/api/trips/${tripId}/budget/${id}`).set('Cookie', sessionCookie(1)).send(body);
+    const create = (body: Record<string, unknown>) =>
+      request(server).post(`/api/trips/${tripId}/budget`).set('Cookie', sessionCookie(1)).send(body);
+
+    beforeAll(async () => {
+      bookingId = Number(db.prepare(
+        "INSERT INTO reservations (trip_id, title, type, metadata) VALUES (?, 'Flight', 'flight', ?)",
+      ).run(tripId, JSON.stringify({ seat: '12A' })).lastInsertRowid);
+      const otherTripId = Number(db.prepare("INSERT INTO trips (user_id, title, currency) VALUES (1, 'Other Trip', 'EUR')").run().lastInsertRowid);
+      foreignBookingId = Number(db.prepare("INSERT INTO reservations (trip_id, title, type) VALUES (?, 'Elsewhere', 'flight')").run(otherTripId).lastInsertRowid);
+      foreignPlaceId = Number(db.prepare("INSERT INTO places (trip_id, name) VALUES (?, 'Elsewhere')").run(otherTripId).lastInsertRowid);
+    });
+
+    it('200 on linking two expenses to one booking, which then mirrors their sum', async () => {
+      const fare = await create({ name: 'Fare', total_price: 120 });
+      const luggage = await create({ name: 'Luggage', total_price: 30.5 });
+      expect(fare.status).toBe(201);
+      expect(luggage.status).toBe(201);
+      fareId = fare.body.item.id;
+      luggageId = luggage.body.item.id;
+
+      const first = await put(fareId, { reservation_id: bookingId });
+      expect(first.status).toBe(200);
+      expect(first.body.item).toMatchObject({ id: fareId, reservation_id: bookingId, total_price: 120 });
+      expect(metadataOf(bookingId)).toEqual({ seat: '12A', price: '120' });
+
+      const second = await put(luggageId, { reservation_id: bookingId });
+      expect(second.status).toBe(200);
+      expect(metadataOf(bookingId)).toEqual({ seat: '12A', price: '150.5' });
+
+      const list = await request(server).get(`/api/trips/${tripId}/budget`).set('Cookie', sessionCookie(1));
+      const linked = (list.body.items as { id: number; reservation_id: number | null }[])
+        .filter(i => i.reservation_id === bookingId).map(i => i.id);
+      expect(linked).toEqual([fareId, luggageId]);
+    });
+
+    it('400 on a booking or a place from another trip, on update and on create, writing nothing', async () => {
+      const relink = await put(fareId, { reservation_id: foreignBookingId, name: 'Hijacked' });
+      expect(relink.status).toBe(400);
+      expect(relink.body).toEqual({ error: 'reservation_id does not belong to this trip.' });
+      expect(linkOf(fareId)).toEqual({ reservation_id: bookingId });
+      expect(db.prepare('SELECT name FROM budget_items WHERE id = ?').get(fareId)).toEqual({ name: 'Fare' });
+      expect(metadataOf(foreignBookingId)).toBeNull();
+
+      const place = await put(fareId, { place_id: foreignPlaceId });
+      expect(place.status).toBe(400);
+      expect(place.body).toEqual({ error: 'place_id does not belong to this trip.' });
+
+      const before = (db.prepare('SELECT COUNT(*) AS n FROM budget_items').get() as { n: number }).n;
+      const created = await create({ name: 'Smuggled', total_price: 5, reservation_id: foreignBookingId });
+      expect(created.status).toBe(400);
+      expect(created.body).toEqual({ error: 'reservation_id does not belong to this trip.' });
+      expect((db.prepare('SELECT COUNT(*) AS n FROM budget_items').get() as { n: number }).n).toBe(before);
+    });
+
+    it('400 on a reservation_id that is not a positive integer (Zod pipe envelope)', async () => {
+      const res = await put(fareId, { reservation_id: 0 });
+      expect(res.status).toBe(400);
+      expect(res.body.error).toContain('reservation_id');
+      expect(linkOf(fareId)).toEqual({ reservation_id: bookingId });
+    });
+
+    it('200 on unlinking: the expense stays and the booking price is worked out again', async () => {
+      const res = await put(luggageId, { reservation_id: null });
+      expect(res.status).toBe(200);
+      expect(res.body.item).toMatchObject({ id: luggageId, reservation_id: null, total_price: 30.5 });
+      expect(linkOf(luggageId)).toEqual({ reservation_id: null });
+      expect(metadataOf(bookingId)).toEqual({ seat: '12A', price: '120' });
+    });
+
+    it('201 on a second expense created straight onto the booking, which raises its price to the sum', async () => {
+      const seat = await create({ name: 'Seat', total_price: 15, reservation_id: bookingId });
+      expect(seat.status).toBe(201);
+      expect(seat.body.item.reservation_id).toBe(bookingId);
+      seatId = seat.body.item.id;
+      expect(metadataOf(bookingId)).toEqual({ seat: '12A', price: '135' });
+    });
+
+    it('200 on new payers for a linked expense, whose derived total the booking price follows', async () => {
+      const res = await request(server)
+        .put(`/api/trips/${tripId}/budget/${seatId}/payers`)
+        .set('Cookie', sessionCookie(1))
+        .send({ payers: [{ user_id: 1, amount: 12 }, { user_id: 2, amount: 6 }] });
+      expect(res.status).toBe(200);
+      expect(res.body.item).toMatchObject({ id: seatId, total_price: 18 });
+      expect(metadataOf(bookingId)).toEqual({ seat: '12A', price: '138' });
+    });
+
+    it('200 on a currency-only change of a linked expense, which re-names the booking price', async () => {
+      const trainId = Number(db.prepare("INSERT INTO reservations (trip_id, title, type) VALUES (?, 'Train', 'train')").run(tripId).lastInsertRowid);
+      const ticket = await create({ name: 'Ticket', total_price: 60, reservation_id: trainId });
+      expect(ticket.status).toBe(201);
+      // In the trip currency, so the price carries no currency of its own.
+      expect(metadataOf(trainId)).toEqual({ price: '60' });
+
+      const chf = await put(ticket.body.item.id, { currency: 'CHF' });
+      expect(chf.status).toBe(200);
+      expect(chf.body.item).toMatchObject({ currency: 'CHF', total_price: 60 });
+      expect(metadataOf(trainId)).toEqual({ price: '60', priceCurrency: 'CHF' });
+
+      const back = await put(ticket.body.item.id, { currency: null });
+      expect(back.status).toBe(200);
+      expect(metadataOf(trainId)).toEqual({ price: '60' });
+
+      // An expense with no currency and one naming the trip's own (EUR, in any
+      // case) are in the same money, so the booking shows their sum.
+      const bike = await create({ name: 'Bike ticket', total_price: 9.5, currency: 'eur', reservation_id: trainId });
+      expect(bike.status).toBe(201);
+      expect(metadataOf(trainId)).toEqual({ price: '69.5', priceCurrency: 'EUR' });
+    });
+
+    it('deleting the booking removes every expense linked to it, and only those', async () => {
+      const unlinkedId = luggageId;
+
+      const res = await request(server)
+        .delete(`/api/trips/${tripId}/reservations/${bookingId}`)
+        .set('Cookie', sessionCookie(1));
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ success: true });
+
+      expect(db.prepare('SELECT id FROM reservations WHERE id = ?').get(bookingId)).toBeUndefined();
+      expect(linkOf(fareId)).toBeUndefined();
+      expect(linkOf(seatId)).toBeUndefined();
+      expect(linkOf(unlinkedId)).toEqual({ reservation_id: null });
+
+      const list = await request(server).get(`/api/trips/${tripId}/budget`).set('Cookie', sessionCookie(1));
+      const ids = (list.body.items as { id: number }[]).map(i => i.id);
+      expect(ids).not.toContain(fareId);
+      expect(ids).not.toContain(seatId);
+      expect(ids).toContain(unlinkedId);
+    });
   });
 
   // The VND/AUD report. The rates override above answers null for every base, which is

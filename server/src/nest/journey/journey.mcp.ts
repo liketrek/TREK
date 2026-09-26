@@ -12,7 +12,7 @@ import type { JourneyContributor } from '../../types';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
 import { AuthService } from '../auth/auth.service';
-import { PhotoCaptureBackfillService } from '../memories/photo-capture-backfill.service';
+import { JourneyPhotoCaptureService } from './journey-photo-capture.service';
 
 /** Legacy registrar gate: the whole journey surface rode the journey addon. */
 const journeyAddonOn = addonGate(ADDON_IDS.JOURNEY);
@@ -110,7 +110,7 @@ export class JourneyMcp {
     private readonly share: JourneyShareService,
     readonly addons: AddonsService,
     private readonly auth: AuthService,
-    private readonly captureBackfill: PhotoCaptureBackfillService,
+    private readonly photoCapture: JourneyPhotoCaptureService,
   ) {}
 
   // ── Read ────────────────────────────────────────────────────────────────
@@ -572,11 +572,9 @@ export class JourneyMcp {
 
     // Detached, exactly as the REST routes schedule it: the provider is asked
     // when and where each photo was taken, and without that answer an attached
-    // photo can never appear on the journey map (#1614).
-    this.captureBackfill.schedule(
-      photos.map(p => (p as { photo_id?: number }).photo_id).filter((id): id is number => typeof id === 'number'),
-      ctx.userId,
-    );
+    // photo can never appear on the journey map (#1614). Open clients are told
+    // once it lands, so the gallery re-sorts without a reload (#1587).
+    this.photoCapture.scheduleForJourney(journeyId, photos, ctx.userId);
     // `skipped` is what tells a caller that a shortfall was duplicates rather
     // than a failure; the REST body carries only photos and added.
     return ok({ photos, added: photos.length, skipped: asset_ids.length - photos.length });

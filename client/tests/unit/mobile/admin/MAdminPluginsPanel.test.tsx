@@ -137,6 +137,18 @@ describe('MAdminPluginsPanel — the installed row', () => {
     expect(screen.getByText('gotify.net')).toBeInTheDocument();
   });
 
+  it('FE-MOB-PLUGP-094: a plugin adding explore-pill categories says so on its row (#1781)', async () => {
+    mockPanel([plugin({
+      permissions: JSON.stringify(['hook:poi-category-provider']),
+      capabilities: JSON.stringify({
+        poiCategories: [{ id: 'trailheads', label: 'Trailheads', icon: 'Signpost', color: '#2f855a' }],
+      }),
+    })]);
+    render(<MAdminPluginsPanel />);
+
+    expect(await screen.findByText('Adds map categories')).toBeInTheDocument();
+  });
+
   it('FE-MOB-PLUGP-005: covers the whole capability vocabulary, including a replaced planner tab', async () => {
     mockPanel([plugin({
       permissions: JSON.stringify([
@@ -527,6 +539,46 @@ describe('MAdminPluginsPanel — the registry detail sheet', () => {
     expect(screen.getByText('Boarding-pass widget')).toBeInTheDocument();
   });
 
+  it('FE-MOB-PLUGP-095: the sheet lists the map categories a plugin adds, before the install (#1781)', async () => {
+    await openDetail({
+      ...registryEntry(),
+      size: null,
+      publishedAt: null,
+      manifest: {
+        ...manifest,
+        permissions: ['hook:poi-category-provider'],
+        capabilities: {
+          poiCategories: [
+            { id: 'trailheads', label: 'Trailheads', icon: 'Signpost', color: '#2f855a' },
+            { id: 'swimming', label: 'Swimming spots', icon: 'Waves', color: '#0369a1' },
+          ],
+        },
+      },
+    });
+
+    const title = await screen.findByRole('heading', { name: 'Map categories it adds' });
+    const section = title.parentElement as HTMLElement;
+    expect(within(section).getAllByRole('listitem').map(li => li.textContent)).toEqual(['Trailheads', 'Swimming spots']);
+    expect(within(section).getAllByTestId('poi-category-swatch')[1].style.backgroundColor).toBe('rgb(3, 105, 161)');
+    expect(screen.getByText('Adds map categories')).toBeInTheDocument();
+  });
+
+  it('FE-MOB-PLUGP-096: declared categories without the grant are not shown, the feed would never serve them', async () => {
+    await openDetail({
+      ...registryEntry(),
+      size: null,
+      publishedAt: null,
+      manifest: {
+        ...manifest,
+        capabilities: { poiCategories: [{ id: 'trailheads', label: 'Trailheads', icon: 'Signpost', color: '#2f855a' }] },
+      },
+    });
+
+    expect(await screen.findByText('Reads your trips')).toBeInTheDocument();
+    expect(screen.queryByText('Map categories it adds')).not.toBeInTheDocument();
+    expect(screen.queryByText('Trailheads')).not.toBeInTheDocument();
+  });
+
   it('FE-MOB-PLUGP-030: a failed detail fetch is reported inside the sheet', async () => {
     mockPanel([], [registryEntry()]);
     server.use(http.get('*/api/admin/plugins/registry/trek-gotify', () =>
@@ -908,6 +960,21 @@ describe('MAdminPluginsPanel — updates and consent', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Approve & turn on' }));
     await waitFor(() => expect(consentBody).toEqual({ consent: true }));
+  });
+
+  it('FE-MOB-PLUGP-097: an update asking for the POI category grant spells out what it sends (#1781)', async () => {
+    mockPanel([plugin({ source_repo: 'acme/gotify', signed: true, version: '1.0.0' })], [registryEntry()]);
+    server.use(
+      http.post('*/api/admin/plugins/trek-gotify/update', () =>
+        HttpResponse.json({ version: '2.0.0', activated: false, newPermissions: ['hook:poi-category-provider'], newEgress: [] })),
+    );
+    render(<MAdminPluginsPanel />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Update → v2.0.0' }));
+    expect(await screen.findByText(
+      'Add its own place categories to Explore places on the map; picking one sends the plugin the map area you are viewing',
+    )).toBeInTheDocument();
+    expect(screen.queryByText('hook:poi-category-provider')).not.toBeInTheDocument();
   });
 
   it('FE-MOB-PLUGP-048: "Keep off for now" drops the prompt and says the update stays off', async () => {

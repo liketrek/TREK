@@ -20,12 +20,18 @@ import BulkAssignLabelModal from '../components/Collections/BulkAssignLabelModal
 import { useCollections } from './collections/useCollections'
 import EmptyState from '../components/shared/EmptyState'
 import '../styles/dashboard.css'
+import HelpAnchor from '../components/Help/HelpAnchor'
 import '../styles/collections.css'
 
 export default function CollectionsPage(): React.ReactElement {
   // ViewportRoute in App.tsx picks the branch now, so the phone screen is a
   // chunk of its own instead of a dead limb in this one.
-  return <CollectionsPageDesktop />
+  return (
+    <>
+      <HelpAnchor id="collections" />
+      <CollectionsPageDesktop />
+    </>
+  )
 }
 
 function CollectionsPageDesktop(): React.ReactElement {

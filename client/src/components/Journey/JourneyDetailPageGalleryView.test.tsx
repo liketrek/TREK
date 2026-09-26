@@ -1,4 +1,4 @@
-// FE-JRN-GALLERY-001 to FE-JRN-GALLERY-019
+// FE-JRN-GALLERY-001 to FE-JRN-GALLERY-020
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { act, useRef, useState } from 'react'
@@ -9,6 +9,9 @@ import { server } from '../../../tests/helpers/msw/server'
 import { useJourneyStore, type GalleryPhoto, type JourneyEntry, type JourneyTrip } from '../../store/journeyStore'
 import type { UploadProgress } from '../../utils/uploadQueue'
 import { GalleryView } from './JourneyDetailPageGalleryView'
+import { useProviderPhotoAdds } from '../../pages/journeyDetail/useProviderPhotoAdds'
+import { journeyApi } from '../../api/client'
+import { ProviderPhotoBatchError } from '../../api/providerPhotoBatches'
 
 type ToastKind = 'success' | 'error' | 'warning' | 'info'
 
@@ -74,7 +77,8 @@ const entries: JourneyEntry[] = [
 ]
 
 /** Mirrors the page wiring: the gallery reports its connected providers up,
-    and the host renders one button per provider next to Upload. */
+    and the host renders one button per provider next to Upload. The picker's
+    Add goes through the same hook the page takes from useJourneyDetail. */
 function GalleryHarness({ gallery, onPhotoClick, onRefresh, onRegisterUpload }: {
   gallery: GalleryPhoto[]
   onPhotoClick: (photos: GalleryPhoto[], index: number) => void
@@ -83,6 +87,7 @@ function GalleryHarness({ gallery, onPhotoClick, onRefresh, onRegisterUpload }: 
 }) {
   const [providers, setProviders] = useState<{ id: string; name: string }[]>([])
   const browseRef = useRef<((provider: string) => void) | null>(null)
+  const { addPickedPhotos } = useProviderPhotoAdds(onRefresh)
   return (
     <>
       {providers.map(p => (
@@ -96,6 +101,7 @@ function GalleryHarness({ gallery, onPhotoClick, onRefresh, onRegisterUpload }: 
         trips={trips}
         onPhotoClick={onPhotoClick}
         onRefresh={onRefresh}
+        onAddProviderPhotos={addPickedPhotos}
         onRegisterUpload={onRegisterUpload}
         onRegisterProviders={(p, browse) => { setProviders(p); browseRef.current = browse }}
       />
@@ -307,6 +313,26 @@ describe('GalleryView', () => {
 
     await waitFor(() => expect(toastSpy).toHaveBeenCalledWith('Error', 'error', undefined))
     expect(onRefresh).not.toHaveBeenCalled()
+  })
+
+  it('FE-JRN-GALLERY-020: an add that fails after earlier batches landed counts those, refreshes, and still reports the failure (#1587)', async () => {
+    useConnectedImmich()
+    const add = vi.spyOn(journeyApi, 'addProviderPhotosToGallery')
+      .mockRejectedValueOnce(new ProviderPhotoBatchError({ photos: [], added: 500 }, new Error('502')))
+    const user = userEvent.setup()
+    const { onRefresh } = mountGallery([])
+
+    try {
+      await user.click(await screen.findByRole('button', { name: 'Immich' }))
+      await user.click(await screen.findByAltText(''))
+      await user.click(screen.getByRole('button', { name: 'Add (1)' }))
+
+      await waitFor(() => expect(onRefresh).toHaveBeenCalledTimes(1))
+      expect(toastSpy).toHaveBeenCalledWith('500 photos added', 'success', undefined)
+      expect(toastSpy).toHaveBeenCalledWith('Error', 'error', undefined)
+    } finally {
+      add.mockRestore()
+    }
   })
 
   it('FE-JRN-GALLERY-014: uploads picked files and refreshes on success', async () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { splitReservationDateTime, resolveDayId, formatMoney, formatMoneySum, currencyDecimals, localizeAmountInput, amountToInputString } from './formatters'
+import { splitReservationDateTime, resolveDayId, formatMoney, formatMoneySum, formatPriceText, currencyDecimals, localizeAmountInput, amountToInputString } from './formatters'
 import { CURRENCIES, SYMBOLS, currenciesWith } from '../components/Budget/BudgetPanel.constants'
 import type { Day } from '../types'
 
@@ -197,6 +197,35 @@ describe('formatMoneySum (#1561)', () => {
     const out = formatMoneySum([{ amount: 12, currency: 'XYZ' }], 'XYZ', 'en')
     expect(out).toContain('XYZ')
     expect(out).toContain('12')
+  })
+})
+
+describe('formatPriceText (#2084)', () => {
+  it('formats a numeric price as money in its own currency', () => {
+    expect(formatPriceText(320, 'EUR', 'USD', 'en')).toBe(formatMoney(320, 'EUR', 'en'))
+    expect(formatPriceText('12.5', 'chf', 'EUR', 'en')).toBe(formatMoney(12.5, 'CHF', 'en'))
+  })
+
+  it("takes the trip's currency when the price names none", () => {
+    expect(formatPriceText('45', null, 'jpy', 'en')).toBe(formatMoney(45, 'JPY', 'en'))
+    expect(formatPriceText(45, '', 'CHF', 'en')).toBe(formatMoney(45, 'CHF', 'en'))
+  })
+
+  it('shows nothing for a missing or empty price', () => {
+    expect(formatPriceText(null, 'EUR', 'EUR', 'en')).toBe('')
+    expect(formatPriceText(undefined, 'EUR', 'EUR', 'en')).toBe('')
+    expect(formatPriceText('', 'EUR', 'EUR', 'en')).toBe('')
+  })
+
+  it('passes a price that is not a number through as written, with its own currency', () => {
+    expect(formatPriceText('on request', 'EUR', 'USD', 'en')).toBe('on request EUR')
+    expect(formatPriceText('on request', 'eur', 'USD', 'en')).toBe('on request EUR')
+    expect(formatPriceText('included', null, 'USD', 'en')).toBe('included')
+  })
+
+  it('keeps a bare number bare when neither the price nor the trip names a currency', () => {
+    expect(formatPriceText('99', null, null, 'en')).toBe('99')
+    expect(formatPriceText(12.5, undefined, undefined, 'en')).toBe('12.5')
   })
 })
 

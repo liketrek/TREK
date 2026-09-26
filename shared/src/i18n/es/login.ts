@@ -67,6 +67,8 @@ const login: TranslationStrings = {
   'login.demoHint': 'Prueba la demo: no necesitas registrarte',
   'login.oidcOnly': 'La autenticación por contraseña está desactivada. Por favor, inicia sesión con tu proveedor SSO.',
   'login.oidcLoggedOut': 'Has cerrado sesión. Vuelve a iniciar sesión con tu proveedor SSO.',
+  'login.oidcRedirecting': 'Redirigiendo a {name}…',
+  'login.oidcRedirectSlow': '¿Sigues aquí? Continuar a {name}',
   'login.passkey.signIn': 'Iniciar sesión con una passkey',
   'login.passkey.failed': 'Error al iniciar sesión con la passkey. Inténtalo de nuevo.',
   'login.insecureCookie.title': "Login won't stick over HTTP",

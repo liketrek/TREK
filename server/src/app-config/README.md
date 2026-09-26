@@ -31,6 +31,10 @@ tokens, `RuntimeEnvService`) and consumes the SAME derive functions.
    together wrong. It is empty without the switch, so a self-hoster never meets
    it. Put a rule there only if booting anyway would be a security or data
    problem — not to enforce a preference.
+   The report prints each malformed value, because that is what makes a typo
+   findable, except for the credentials in `SECRET_ENV_KEYS` (`env.ts`), which
+   print as `***`. A new password, token, key or secret variable goes into that
+   set; `validate.test.ts` fails on a credential-sounding name missing from it.
 3. **Parity is law — with one deliberate exception.** Every derived field pins
    the exact coercion of the call site(s) it replaced (`Number(x) || d`
    treating `"0"` as unset, per-site defaults for the same variable, …). Do not
@@ -82,7 +86,8 @@ TREK_PLUGINS_ENABLED / _DEV_LINK / _IGNORE_TREK_RANGE / _DIR / _DATA_DIR / TREK_
 OIDC_*, SMTP_*, FORCE_HTTPS, COOKIE_SECURE, HSTS_INCLUDE_SUBDOMAINS,
 ALLOWED_ORIGINS, UNSPLASH_ACCESS_KEY, WEBAUTHN_*, TZ, ADMIN_EMAIL,
 ADMIN_PASSWORD, IDEMPOTENCY_TTL_SECONDS, MCP_RATE_LIMIT (request-path check),
-LLM_TIMEOUT_MS, NOMINATIM_URL.
+LLM_TIMEOUT_MS, NOMINATIM_URL, VAPID_* (resolved per use by the Web Push key
+service, which the notification suites build without the container).
 
 ## Exemptions — raw `process.env` stays
 

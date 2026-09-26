@@ -59,6 +59,7 @@ No permission gates the help browser; any signed-in user sees the same pages. Th
 
 ## See also
 
+- [Help Center](Help-Center) - the `?` panel, which is a different thing: guides for the screen you are on
 - [FAQ](FAQ)
 - [Troubleshooting](Troubleshooting)
 - [Environment-Variables](Environment-Variables)

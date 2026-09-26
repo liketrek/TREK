@@ -1,13 +1,16 @@
+import { WEB_PUSH_CHANNEL_ID } from '@trek/shared';
 import { registerChannel } from '../channel-registry';
-import type { ChannelMessage, ExternalChannel } from '../notification-events';
+import { ADMIN_SCOPED_EVENTS, type ChannelMessage, type ExternalChannel } from '../notification-events';
 import type { MailerService } from '../mailer/mailer.service';
 import { resolveAdminNtfyUrl, resolveNtfyToken, resolveNtfyUrl, type NtfyService } from '../transports/ntfy.service';
 import type { WebhookService } from '../transports/webhook.service';
+import type { WebPushService } from '../transports/web-push.service';
 
-// The three built-in external channels, wrapping the transports that were free
-// functions in services/notifications.ts before the fold. No delivery logic is
-// rewritten here - it is only relocated behind the ExternalChannel interface so
-// NotificationsService.send() can iterate instead of branching.
+// The built-in external channels. Email, webhook and ntfy wrap the transports
+// that were free functions in services/notifications.ts before the fold; no
+// delivery logic is rewritten here, it is only relocated behind the
+// ExternalChannel interface so NotificationsService.send() can iterate instead
+// of branching. Web Push (#894) joined later on the same terms.
 
 function supportsAllButSynology(event: string): boolean {
   return event !== 'synology_session_cleared';
@@ -17,10 +20,11 @@ export interface BuiltinChannelDeps {
   mailer: MailerService;
   webhook: WebhookService;
   ntfy: NtfyService;
+  push: WebPushService;
 }
 
 /**
- * Build the three built-in channels over the given transports.
+ * Build the built-in channels over the given transports.
  *
  * They take their dependencies as an argument rather than importing them,
  * because the registry they land in is a module singleton while the transports
@@ -32,7 +36,7 @@ export interface BuiltinChannelDeps {
  * preferences; dropping that import would have silenced email, webhook and ntfy
  * without a single error.
  */
-export function buildBuiltinChannels({ mailer, webhook, ntfy }: BuiltinChannelDeps): ExternalChannel[] {
+export function buildBuiltinChannels({ mailer, webhook, ntfy, push }: BuiltinChannelDeps): ExternalChannel[] {
   const emailChannel: ExternalChannel = {
     id: 'email',
     source: 'builtin',
@@ -114,7 +118,26 @@ export function buildBuiltinChannels({ mailer, webhook, ntfy }: BuiltinChannelDe
     },
   };
 
-  return [emailChannel, webhookChannel, ntfyChannel];
+  // Per user and per browser. It carries no admin-scoped events: those have
+  // their own admin-global copy on the channels above, and a push column in
+  // the admin matrix could never be switched on. There is no sendGlobal for the
+  // same reason, and no credentials to check beyond the user having turned it
+  // on in at least one browser. Subscribing is a browser-only act, so there is
+  // no MCP twin for the routes behind it. While the server's key pair cannot be
+  // used, push is not sent and not offered, and every device stays subscribed.
+  const pushChannel: ExternalChannel = {
+    id: WEB_PUSH_CHANNEL_ID,
+    source: 'builtin',
+    labelKey: 'settings.notificationPreferences.push',
+    hiddenWhileInstanceUnconfigured: true,
+    supportsEvent: (event) => supportsAllButSynology(event) && !ADMIN_SCOPED_EVENTS.has(event),
+    isInstanceConfigured: () => push.isAvailable(),
+    isConfiguredFor: (userId) => push.hasDevices(userId),
+    sendToUser: (userId, msg) => push.sendToUser(userId, msg),
+    test: (userId) => push.sendTest(userId),
+  };
+
+  return [emailChannel, webhookChannel, ntfyChannel, pushChannel];
 }
 
 /** Idempotent - safe to call from every entry point that needs the registry populated. */

@@ -29,6 +29,8 @@ const login: TranslationStrings = {
   'login.oidcSignIn': 'Logga in med {name}',
   'login.oidcOnly': 'Lösenordsautentisering är inaktiverad. Logga in via din SSO-leverantör.',
   'login.oidcLoggedOut': 'Du har loggats ut. Logga in igen via din SSO-leverantör.',
+  'login.oidcRedirecting': 'Skickar dig till {name}…',
+  'login.oidcRedirectSlow': 'Fortfarande här? Fortsätt till {name}',
   'login.demoHint': 'Prova demoversionen – ingen registrering krävs',
   'login.mfaTitle': 'Tvåfaktorsautentisering',
   'login.mfaSubtitle': 'Ange den 6-siffriga koden från din autentiseringsapp.',

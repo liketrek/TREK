@@ -259,6 +259,17 @@ describe('Tool: update_display_settings', () => {
     });
   });
 
+  it('writes week_start and refuses a day outside the three the app offers (#2029)', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const ok = parseToolResult(await update(h, { week_start: 'sunday' })) as any;
+      expect(ok.settings.week_start).toBe('sunday');
+      const refused = await update(h, { week_start: 'friday' });
+      expect(refused.isError).toBe(true);
+      expect(readSetting(user.id, 'week_start')).toBe('sunday');
+    });
+  });
+
   it('accepts every boolean display preference', async () => {
     const { user } = createUser(testDb);
     await withHarness(user.id, async (h) => {

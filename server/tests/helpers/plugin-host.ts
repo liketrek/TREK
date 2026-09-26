@@ -139,7 +139,7 @@ export function createPluginRpcHostFactory(dbs: DatabaseService): PluginRpcHostF
     new VacayRpc(vacay, guards),
     // The photo half needs storage plus the allowed-types setting and the EXIF
     // backfill; none of the tests on this harness write bytes, so they are stubs.
-    new JournalRpc(journey, guards, generalStorage, { get: () => '*' } as never, { schedule: () => {} } as never, dbs),
+    new JournalRpc(journey, guards, generalStorage, { get: () => '*' } as never, { scheduleUpload: () => {} } as never, dbs),
     new CollectionsRpc(collections, guards),
     new DbRpc(new PluginUserSettingsService(dbs)),
     new MetaRpc(dbs, guards),

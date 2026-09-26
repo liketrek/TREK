@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { journeyApi } from '../api/client'
+import type { ProviderPhotosAdded } from '../api/providerPhotoBatches'
 import { uploadFilesResilient, type ResilientResult, type UploadProgress } from '../utils/uploadQueue'
 import { captureVideoPoster, isVideoFile } from '../utils/videoPoster'
 
@@ -142,6 +143,13 @@ export interface JourneyDetail extends Journey {
   my_role?: 'owner' | 'editor' | 'viewer'
 }
 
+/** Assets picked from one provider, with what the add needs besides their ids. */
+interface ProviderAssets {
+  assetIds: string[]
+  passphrase?: string
+  mediaTypes?: string[]
+}
+
 interface JourneyState {
   journeys: Journey[]
   current: JourneyDetail | null
@@ -170,6 +178,16 @@ interface JourneyState {
 
   uploadPhotos: (entryId: number, files: File[], cbs?: { onProgress?: (p: UploadProgress) => void }) => Promise<ResilientResult<JourneyPhoto>>
   uploadGalleryPhotos: (journeyId: number, files: File[], cbs?: { onProgress?: (p: UploadProgress) => void }) => Promise<ResilientResult<GalleryPhoto>>
+  /**
+   * Photos from a connected provider (Immich, Synology Photos) onto one entry,
+   * or onto the gallery. They answer what was added and leave `current` alone:
+   * the caller reloads the journey, because where a new photo sorts depends on
+   * the capture time the server looks up after answering (#1587). A large add
+   * goes out in batches, and one that fails part way rejects with a
+   * ProviderPhotoBatchError that carries what the earlier batches stored.
+   */
+  addProviderPhotos: (entryId: number, provider: string, group: ProviderAssets) => Promise<ProviderPhotosAdded>
+  addProviderPhotosToGallery: (journeyId: number, provider: string, group: ProviderAssets) => Promise<ProviderPhotosAdded>
   unlinkPhoto: (entryId: number, journeyPhotoId: number) => Promise<void>
   deleteGalleryPhoto: (journeyId: number, journeyPhotoId: number) => Promise<void>
   deletePhoto: (photoId: number) => Promise<void>
@@ -375,6 +393,12 @@ export const useJourneyStore = create<JourneyState>((set, get) => ({
       { onProgress: cbs?.onProgress },
     )
   },
+
+  addProviderPhotos: (entryId, provider, group) =>
+    journeyApi.addProviderPhotos(entryId, provider, group.assetIds, undefined, group.passphrase, group.mediaTypes),
+
+  addProviderPhotosToGallery: (journeyId, provider, group) =>
+    journeyApi.addProviderPhotosToGallery(journeyId, provider, group.assetIds, group.passphrase, group.mediaTypes),
 
   unlinkPhoto: async (entryId, journeyPhotoId) => {
     await journeyApi.unlinkPhoto(entryId, journeyPhotoId)

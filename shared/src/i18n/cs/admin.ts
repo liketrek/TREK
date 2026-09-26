@@ -135,6 +135,7 @@ const admin: TranslationStrings = {
   'admin.amapKey': 'API klíč Amap (高德地图)',
   'admin.amapKeyHint':
     'Pro hledání míst v kontinentální Číně, kde Google není dostupný a OpenStreetMap má málo dat. Vyžaduje klíč typu „Web 服务" (webová služba), nikoli klíč JS API. Získáte na console.amap.com.',
+  'admin.keyFromEnv': 'Nastaveno přes {name}',
   'admin.placesProvider.title': 'Poskytovatel hledání míst',
   'admin.placesProvider.subtitle':
     'Vlastní index TREKu a OpenStreetMap odpovídají na každé hledání. Zde se volí, koho se zeptat navíc, když nic nenajdou: Automaticky upřednostní Google, pokud je klíč, pak Amap.',
@@ -381,6 +382,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:calendar-source': 'Poskytovat události do kalendáře',
   'admin.plugins.perm.hook:place-detail-provider': 'Přidávat další podrobnosti (recenze, hodnocení, odkazy) k místu',
   'admin.plugins.perm.hook:search-provider': 'Odpovídat na vyhledávání míst z vlastního indexu, vedle výsledků TREK',
+  'admin.plugins.perm.hook:poi-category-provider':
+    'Přidávat vlastní kategorie míst do „Objevovat místa na mapě“; výběrem některé z nich doplněk obdrží oblast mapy, kterou si právě prohlížíte',
   'admin.plugins.perm.hook:trip-warning-provider': 'Vyvolávat ověřovací upozornění u cesty (zobrazená v plánovači)',
   'admin.plugins.perm.hook:table-contributor': 'Přidávat sloupce a akce do zobrazení cesty (rezervace, místa, dny)',
   'admin.plugins.perm.hook:map-marker-provider': 'Přidávat značky na mapu cesty (např. zobrazit rezervace nebo POI)',
@@ -394,6 +397,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.mcpTools': 'Zveřejňuje AI nástroje',
   'admin.plugins.mcpToolsTitle': 'Zveřejněné AI nástroje',
   'admin.plugins.mcpToolsHint': 'Asistent je může spustit jménem uživatele. Každý jedná s oprávněními udělenými výše.',
+  'admin.plugins.poiCategoriesTitle': 'Kategorie mapy, které přidává',
   'admin.plugins.perm.mcp:tools':
     'Zveřejňovat nástroje, které může AI asistent spustit vaším jménem (jedná s oprávněními, která zde pluginu udělíte, ne se svými)',
   'admin.plugins.perm.geolocation:read':
@@ -534,6 +538,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'Poskytuje události kalendáře',
   'admin.plugins.cap.placeDetails': 'Obohacuje místa',
   'admin.plugins.cap.search': 'Odpovídá na vyhledávání',
+  'admin.plugins.cap.poiCategories': 'Přidává kategorie na mapu',
   'admin.plugins.cap.warnings': 'Označuje problémy',
   'admin.plugins.cap.mapLayers': 'Kreslí na mapě',
   'admin.plugins.cap.routing': 'Nabízí trasování',
@@ -603,6 +608,11 @@ const admin: TranslationStrings = {
     'Načtěte návštěvy a zaznamenané trasy z instance Dawarich, kterou si každý čtenář připojí sám',
   'admin.addons.catalog.llm_parsing.name': 'Analýza pomocí AI',
   'admin.addons.catalog.llm_parsing.description': 'Přečte rezervace, které vestavěný analyzátor nezvládne, pomocí zvoleného modelu AI',
+  'admin.addons.llm.vision.auto': 'Automaticky',
+  'admin.addons.llm.vision.on': 'Ano',
+  'admin.addons.llm.vision.off': 'Ne',
+  'admin.addons.llm.vision.hintLocal': 'Automaticky se zeptá serveru Ollama, zda tento model čte obrázky.',
+  'admin.addons.llm.vision.hintCloud': 'Automaticky znamená u cloudového modelu ne. Zvolte Ano, pokud tento model čte obrázky.',
   'admin.addons.catalog.roadtrip.name': 'Cesta autem',
   'admin.addons.catalog.roadtrip.description': 'Plánujte jízdy se zastávkami – doby jízdy a časy příjezdu se přepočítají samy',
   'admin.addons.enabled': 'Povoleno',
@@ -708,6 +718,9 @@ const admin: TranslationStrings = {
   'admin.tabs.permissions': 'Oprávnění',
   'admin.notifications.emailPanel.title': 'Email (SMTP)',
   'admin.notifications.webhookPanel.title': 'Webhook',
+  'admin.notifications.webPushPanel.title': 'Web Push',
+  'admin.notifications.webPushPanel.hint':
+    'Umožňuje uživatelům přijímat oznámení na telefonech a počítačích přes prohlížeč, i když je TREK zavřený. Vyžaduje HTTPS; na iPhonu a iPadu musí být TREK přidán na plochu.',
   'admin.notifications.inappPanel.title': 'In-App',
   'admin.notifications.inappPanel.hint': 'In-app oznámení jsou vždy aktivní a nelze je globálně vypnout.',
   'admin.notifications.adminWebhookPanel.title': 'Admin webhook',

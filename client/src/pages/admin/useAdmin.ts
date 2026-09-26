@@ -179,6 +179,8 @@ export function useAdmin() {
   const [weatherKey, setWeatherKey] = useState<string>('')
   const [unsplashKey, setUnsplashKey] = useState<string>('')
   const [amapKey, setAmapKey] = useState<string>('')
+  // Keys the operator set in an environment variable: key name → variable (#1881).
+  const [envKeys, setEnvKeys] = useState<Record<string, string>>({})
   /**
    * Which provider answers place search. Not a key, so it saves through
    * updateAppSettings rather than with the keys — and it is saved on change
@@ -269,6 +271,7 @@ export function useAdmin() {
       setWeatherKey(data.settings?.openweather_api_key || '')
       setUnsplashKey(data.settings?.unsplash_api_key || '')
       setAmapKey(data.settings?.amap_api_key || '')
+      setEnvKeys(data.settings?.env_keys ?? {})
     } catch (err: unknown) {
       // ignore
     }
@@ -317,15 +320,30 @@ export function useAdmin() {
     setShowKeys(prev => ({ ...prev, [key]: !prev[key] }))
   }
 
+  // A key the environment sets leaves its field empty, and saving that '' would
+  // clear the stored value the install falls back to once the variable is gone.
+  // So those names stay out of every save.
+  const apiKeysBody = () => Object.fromEntries(
+    Object.entries({ maps_api_key: mapsKey, openweather_api_key: weatherKey, unsplash_api_key: unsplashKey, amap_api_key: amapKey })
+      .filter(([name]) => !envKeys[name]),
+  )
+
+  /** A key field's lock: read-only, naming the variable, while the environment sets that key. */
+  const keyInputProps = (field: 'maps' | 'unsplash' | 'amap') => {
+    const variable = envKeys[`${field}_api_key`]
+    return {
+      disabled: !!variable,
+      placeholder: variable ? t('admin.keyFromEnv', { name: variable }) : t('settings.keyPlaceholder'),
+    }
+  }
+  // Test probes the key a search resolves to, so one from the environment is
+  // testable with the field left empty.
+  const mapsKeyTestable = !!(mapsKey || envKeys.maps_api_key)
+
   const handleSaveApiKeys = async () => {
     setSavingKeys(true)
     try {
-      await updateApiKeys({
-        maps_api_key: mapsKey,
-        openweather_api_key: weatherKey,
-        unsplash_api_key: unsplashKey,
-        amap_api_key: amapKey,
-      })
+      await updateApiKeys(apiKeysBody())
       toast.success(t('admin.keySaved'))
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Unknown error')
@@ -338,7 +356,7 @@ export function useAdmin() {
     setValidating({ maps: true, weather: true })
     try {
       // Save first so validation uses the current values
-      await updateApiKeys({ maps_api_key: mapsKey, openweather_api_key: weatherKey, unsplash_api_key: unsplashKey, amap_api_key: amapKey })
+      await updateApiKeys(apiKeysBody())
       const result = await authApi.validateKeys()
       setValidation(result)
     } catch (err: unknown) {
@@ -352,7 +370,7 @@ export function useAdmin() {
     setValidating(prev => ({ ...prev, [keyType]: true }))
     try {
       // Save first so validation uses the current values
-      await updateApiKeys({ maps_api_key: mapsKey, openweather_api_key: weatherKey, unsplash_api_key: unsplashKey, amap_api_key: amapKey })
+      await updateApiKeys(apiKeysBody())
       const result = await authApi.validateKeys()
       setValidation(prev => ({ ...prev, [keyType]: result[keyType] }))
     } catch (err: unknown) {
@@ -517,7 +535,7 @@ export function useAdmin() {
     allowedFileTypes, setAllowedFileTypes, savingFileTypes, setSavingFileTypes,
     smtpValues, setSmtpValues, smtpLoaded,
     mapsKey, setMapsKey, weatherKey, setWeatherKey, unsplashKey, setUnsplashKey,
-    amapKey, setAmapKey, hasMapsKey, hasAmapKey,
+    amapKey, setAmapKey, hasMapsKey, hasAmapKey, keyInputProps, mapsKeyTestable,
     placesProvider, savingPlacesProvider, handleSavePlacesProvider,
     showKeys, setShowKeys, savingKeys, validating, validation,
     updateInfo, setUpdateInfo, showUpdateModal, setShowUpdateModal,

@@ -3,12 +3,11 @@ import { McpController, Tool, TOOL_ANNOTATIONS_READONLY, ok, type McpContext, ty
 import { pluginsEnabled } from '../kill-switch';
 import { PluginHooks } from '../plugin-hooks.service';
 import {
+  collectHits,
   interleave,
   limitFrom,
   MAX_QUERY,
   nearFrom,
-  normalizeSearchHits,
-  type SearchHit,
 } from './plugin-search.helpers';
 
 /**
@@ -63,15 +62,7 @@ export class PluginSearchMcp {
       lang,
       near: nearFrom(near?.lat, near?.lng),
     };
-    const results = await Promise.all(
-      ids.map(async (id): Promise<SearchHit[]> => {
-        try {
-          return normalizeSearchHits(id, await this.hooks.searchPlaces(id, request, ctx.userId));
-        } catch {
-          return []; // a slow or failing provider contributes nothing, it does not fail the tool
-        }
-      }),
-    );
-    return ok({ places: interleave(results) });
+    // A slow or failing provider contributes nothing, it does not fail the tool.
+    return ok({ places: interleave(await collectHits(ids, (id) => this.hooks.searchPlaces(id, request, ctx.userId))) });
   }
 }

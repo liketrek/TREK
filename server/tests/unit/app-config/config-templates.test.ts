@@ -38,7 +38,7 @@ describe('OVERPASS_TIMEOUT_MS in the templates', () => {
 describe('the Places and Amap switches in the templates', () => {
   // The index is asked by default and the only way to stop that is this
   // variable, so an operator has to be able to find it where they look.
-  const documented = ['TREK_PLACES_ENABLED', 'TREK_PLACES_URL', 'AMAP_API_KEY', 'AMAP_API_SECRET', 'AMAP_API_BASE'];
+  const documented = ['TREK_PLACES_ENABLED', 'TREK_PLACES_URL', 'PLACES_API_KEY', 'AMAP_API_KEY', 'AMAP_API_SECRET', 'AMAP_API_BASE'];
 
   it('.env.example documents every one of them', () => {
     for (const name of documented) {
@@ -66,12 +66,12 @@ describe('the Places and Amap switches in the templates', () => {
     expect(helmConfigMap).toContain('{{- if not (kindIs "invalid" .Values.env.TREK_PLACES_ENABLED) }}');
   });
 
-  it('the Helm chart carries the Amap credentials in the Secret, never in the ConfigMap', () => {
+  it('the Helm chart carries the Google and Amap credentials in the Secret, never in the ConfigMap', () => {
     // A ConfigMap is readable by anyone who can read the namespace; the key and
     // its signing secret belong next to the other credentials, in both the
     // plain and the generated branch of the Secret, and the pod reads them from
     // there like it reads the Unsplash key.
-    for (const name of ['AMAP_API_KEY', 'AMAP_API_SECRET']) {
+    for (const name of ['PLACES_API_KEY', 'AMAP_API_KEY', 'AMAP_API_SECRET']) {
       expect(helmValues).toContain(`  ${name}: ""`);
       expect(helmSecret).toContain(`${name}: {{ .Values.secretEnv.${name} | b64enc | quote }}`);
       expect(helmSecret).toContain(`${name}: {{ .Values.secretEnv.${name} }}`);
@@ -79,5 +79,64 @@ describe('the Places and Amap switches in the templates', () => {
       expect(helmDeployment).toContain(`key: ${name}\n                  optional: true`);
       expect(helmConfigMap).not.toContain(name);
     }
+  });
+});
+
+describe('the Web Push keys in the templates', () => {
+  // All optional, since TREK keeps a generated pair in its database; an
+  // operator who wants their own pair has to find the names somewhere.
+  const documented = ['VAPID_PUBLIC_KEY', 'VAPID_PRIVATE_KEY', 'VAPID_SUBJECT'];
+
+  it('.env.example and docker-compose.yml document every one of them', () => {
+    for (const name of documented) {
+      expect(envExample).toContain(`# ${name}=`);
+      expect(compose).toContain(`#      - ${name}=`);
+    }
+  });
+
+  it('the Helm ConfigMap passes through the public key and the subject', () => {
+    for (const name of ['VAPID_PUBLIC_KEY', 'VAPID_SUBJECT']) {
+      expect(helmValues).toContain(`# ${name}:`);
+      expect(helmConfigMap).toContain(`${name}: {{ .Values.env.${name} | quote }}`);
+    }
+  });
+
+  it('no template promises an admin address as the push contact, since TREK never sends one on its own', () => {
+    const subjectDocs = [
+      envExample.split(/\r?\n/).find((l) => l.includes('# VAPID_SUBJECT=')),
+      compose.split(/\r?\n/).find((l) => l.includes('- VAPID_SUBJECT=')),
+      helmValues.slice(helmValues.indexOf('# VAPID_SUBJECT:')).split(/\r?\n\r?\n/)[0],
+    ];
+    for (const doc of subjectDocs) {
+      expect(doc).toContain('APP_URL');
+      expect(doc).not.toContain('ADMIN_EMAIL');
+    }
+  });
+
+  it('no template says a broken pair is ignored, since push is off until it is fixed and no stored pair stands in', () => {
+    // The Helm comment wraps, so its lines are joined back into one sentence first.
+    const helmPrivateKey = helmValues
+      .slice(helmValues.indexOf('# Optional Web Push key pair, private half'), helmValues.indexOf('  VAPID_PRIVATE_KEY: ""'))
+      .replace(/\s*\n\s*#\s*/g, ' ');
+    const privateKeyDocs = [
+      envExample.split(/\r?\n/).find((l) => l.includes('# VAPID_PRIVATE_KEY=')),
+      compose.split(/\r?\n/).find((l) => l.includes('- VAPID_PRIVATE_KEY=')),
+      helmPrivateKey,
+    ];
+    for (const doc of privateKeyDocs) {
+      expect(doc).toContain('turns push off');
+      expect(doc).not.toContain('ignored');
+      expect(doc).not.toContain('keeps working');
+    }
+  });
+
+  it('the Helm chart carries the private key in the Secret, never in the ConfigMap', () => {
+    const name = 'VAPID_PRIVATE_KEY';
+    expect(helmValues).toContain(`  ${name}: ""`);
+    expect(helmSecret).toContain(`${name}: {{ .Values.secretEnv.${name} | b64enc | quote }}`);
+    expect(helmSecret).toContain(`${name}: {{ .Values.secretEnv.${name} }}`);
+    expect(helmDeployment).toContain(`- name: ${name}\n              valueFrom:\n                secretKeyRef:`);
+    expect(helmDeployment).toContain(`key: ${name}\n                  optional: true`);
+    expect(helmConfigMap).not.toContain(name);
   });
 });

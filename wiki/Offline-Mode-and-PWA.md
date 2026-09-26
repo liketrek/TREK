@@ -20,6 +20,15 @@ Once installed, TREK launches in **standalone** mode (fullscreen, no browser UI)
 
 The installed app starts at the app root, so the **Start page** setting decides what you see when you tap the icon — the dashboard, or straight into your active trip on a tab of your choice. See [Display-Settings](Display-Settings).
 
+### Push notifications
+
+Web Push shows TREK notifications on a phone or computer even while TREK is closed. It needs two things from the setup above:
+
+- **HTTPS everywhere.** Browsers only allow push on a secure origin. On plain `http://` (for example a LAN address) the card under **Settings → Notifications** says that push needs HTTPS.
+- **The installed app on iPhone and iPad.** iOS and iPadOS 16.4 or later deliver push only to TREK added to the Home Screen. Install it as described above, open it from the Home Screen icon, and switch push on there. In a Safari tab the card asks you to add TREK to the Home Screen first.
+
+Push is switched on per device: each phone, tablet or browser you want to receive notifications on needs its own **Turn on for this device**. Logging out switches it off for that device. The admin has to enable the Web Push channel first, and which events arrive follows the **Push** column. See [Notifications](Notifications).
+
 ## What works offline
 
 TREK uses Workbox service-worker caching plus an IndexedDB database (Dexie) for structured trip data. The following content is available offline after the first sync:
@@ -94,3 +103,4 @@ The stats panel shows cached trips, pending changes, conflicts and failed change
 
 - [User-Settings](User-Settings)
 - [Display-Settings](Display-Settings)
+- [Notifications](Notifications)

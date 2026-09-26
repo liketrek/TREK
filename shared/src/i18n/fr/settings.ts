@@ -80,6 +80,8 @@ const settings: TranslationStrings = {
   'settings.temperature': 'Unité de température',
   'settings.distance': 'Unité de distance',
   'settings.timeFormat': "Format de l'heure",
+  'settings.weekStart': 'La semaine commence le',
+  'settings.weekStartHint': 'Premier jour de la semaine dans tous les sélecteurs de date. Vacay a son propre réglage.',
   'settings.blurBookingCodes': 'Masquer les codes de réservation',
   'settings.aiAlwaysRetry': 'Always retry booking imports with AI',
   'settings.aiAlwaysRetryHint': 'When a file cannot be read by the standard parser, automatically retry it with AI.',
@@ -325,6 +327,20 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.webhook': 'Webhook',
   'settings.notificationPreferences.email': 'Email',
   'settings.notificationPreferences.ntfy': 'Ntfy',
+  'settings.notificationPreferences.push': 'Push',
+  'settings.webPush.title': 'Notifications push sur cet appareil',
+  'settings.webPush.hint':
+    'Affiche les notifications de TREK sur cet appareil, même quand TREK est fermé. Les événements reçus suivent la colonne Push.',
+  'settings.webPush.enable': 'Activer sur cet appareil',
+  'settings.webPush.disable': 'Désactiver sur cet appareil',
+  'settings.webPush.enabled': 'Activé sur cet appareil',
+  'settings.webPush.unsupported': 'Ce navigateur ne peut pas recevoir de notifications push.',
+  'settings.webPush.insecure': 'Le push nécessite que TREK soit ouvert en HTTPS.',
+  'settings.webPush.iosInstall':
+    "Sur iPhone et iPad, ajoutez d'abord TREK à l'écran d'accueil, puis ouvrez-le depuis celui-ci.",
+  'settings.webPush.denied':
+    'Les notifications sont bloquées pour TREK dans ce navigateur. Autorisez-les dans les réglages du navigateur, puis réessayez.',
+  'settings.webPush.failed': "Le push n'a pas pu être activé sur cet appareil.",
   'settings.currency': "Devise d'affichage",
   'settings.currencyHint':
     "Les montants dans Coûts sont convertis dans cette devise uniquement pour l'affichage — les montants d'origine restent inchangés.",
@@ -390,9 +406,9 @@ const settings: TranslationStrings = {
     "Emplacement d'exécution du modèle — un serveur Ollama local ou un point de terminaison compatible OpenAI.",
   'settings.aiParsing.apiKey': 'Clé API',
   'settings.aiParsing.apiKeyHint': 'Stockée de façon chiffrée. Laissez vide pour conserver la clé actuelle.',
-  'settings.aiParsing.multimodal': "Envoyer les documents sous forme d'images",
+  'settings.aiParsing.multimodal': 'Le modèle lit les images',
   'settings.aiParsing.multimodalHint':
-    "Pour les modèles capables d'analyser des images — envoie le PDF d'origine au lieu du texte extrait.",
+    'À activer pour un modèle qui lit les images : une photo peut alors être importée ou scannée.',
   'settings.aiParsing.toast.saved': "Paramètres d'IA enregistrés",
   'settings.aiParsing.toast.saveError': "Impossible d'enregistrer les paramètres d'IA",
   'settings.tabs.appearance': 'Appearance',

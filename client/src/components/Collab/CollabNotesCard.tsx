@@ -81,7 +81,7 @@ export function NoteCard({ note, currentUser, canEdit, onUpdate, onDelete, onEdi
             display: 'flex', gap: 2,
           }}>
             {note.content && (
-              <button type="button" onClick={() => onView?.(note)} title={t('collab.notes.expand') || 'Expand'}
+              <button type="button" onClick={() => onView?.(note)} title={t('common.expand')} aria-label={t('common.expand')}
                 style={{ padding: 3, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex' }}
                 onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
                 onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>

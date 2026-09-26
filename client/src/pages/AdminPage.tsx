@@ -10,6 +10,8 @@ import BackupPanel from '../components/Admin/BackupPanel'
 import GitHubPanel from '../components/Admin/GitHubPanel'
 import AddonManager from '../components/Admin/AddonManager'
 import PackingTemplateManager from '../components/Admin/PackingTemplateManager'
+import HelpAnchor from '../components/Help/HelpAnchor'
+import { getHelpContext } from '../help/registry'
 import AuditLogPanel from '../components/Admin/AuditLogPanel'
 import AdminMcpTokensPanel from '../components/Admin/AdminMcpTokensPanel'
 import AdminPluginsPanel from '../components/Admin/AdminPluginsPanel'
@@ -79,8 +81,11 @@ function AdminPageDesktop(): React.ReactElement {
     })),
   ]
 
+  // Every tab is its own help screen; a tab without one falls back to the admin overview.
+  const helpId = getHelpContext(`admin-${activeTab}`) ? `admin-${activeTab}` : 'admin'
   return (
     <PageShell background="var(--bg-secondary)">
+      <HelpAnchor id={helpId} />
         <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
           <div className="flex items-center gap-3 mb-6">

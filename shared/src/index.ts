@@ -29,6 +29,7 @@ export * from './vacay/vacay.schema';
 export * from './packing/packing.schema';
 export * from './todo/todo.schema';
 export * from './budget/budget.schema';
+export * from './budget/receipt-scan.schema';
 export * from './reservation/reservation.schema';
 export * from './reservation/ki-reservation.schema';
 export * from './datetime/datetime-normalize';
@@ -86,6 +87,11 @@ export * from './i18n/languages';
 export * from './plugin-permissions';
 // Plugin settings contracts: the settings-field descriptor + admin instance-config wire shapes.
 export * from './plugins/plugins.schema';
+// Plugin POI categories (#1781): the declared category, the icon allow-list and GET /api/plugin-pois.
+export * from './plugins/plugin-poi-facts';
+export * from './plugins/plugin-poi.schema';
+// Plugin search providers (#2221): the row GET /api/plugin-search and its typed-ahead twin answer with.
+export * from './plugins/plugin-search.schema';
 export * from './roadtrip/preferences.schema';
 export * from './roadtrip/hazards.schema';
 export * from './roadtrip/planning.schema';

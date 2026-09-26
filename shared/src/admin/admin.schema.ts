@@ -80,6 +80,30 @@ export const adminAddonUpdateRequestSchema = z.object({
 });
 export type AdminAddonUpdateRequest = z.infer<typeof adminAddonUpdateRequestSchema>;
 
+/**
+ * Whether the AI Parsing model is handed a photo, stored as `vision` on that
+ * addon's config. `auto` asks a local Ollama server what the model can do and
+ * means no for a cloud provider; `on` and `off` are the admin's word.
+ */
+export const LLM_VISION_MODES = ['auto', 'on', 'off'] as const;
+export type LlmVision = (typeof LLM_VISION_MODES)[number];
+
+/**
+ * The photos handed to a model that reads images. HEIC is not here: no provider
+ * TREK talks to reads it, and a browser picking from the camera roll hands over
+ * a JPEG anyway.
+ */
+export const LLM_PHOTO_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp'] as const;
+
+/** GET /api/llm/capabilities: what the caller's AI model can be handed. */
+export const llmCapabilitiesResponseSchema = z.object({ images: z.boolean() });
+export type LlmCapabilitiesResponse = z.infer<typeof llmCapabilitiesResponseSchema>;
+
+/** A stored or submitted value as a mode; anything else, a missing value included, is `auto`. */
+export function asLlmVision(value: unknown): LlmVision {
+  return (LLM_VISION_MODES as readonly unknown[]).includes(value) ? (value as LlmVision) : 'auto';
+}
+
 // Fully partial — the client PUTs one computed key at a time.
 export const adminCollabFeaturesRequestSchema = z.object({
   chat: z.boolean().optional(),

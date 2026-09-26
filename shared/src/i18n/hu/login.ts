@@ -29,6 +29,8 @@ const login: TranslationStrings = {
   'login.oidcSignIn': 'Bejelentkezés ezzel: {name}',
   'login.oidcOnly': 'A jelszavas hitelesítés le van tiltva. Kérjük, jelentkezz be az SSO szolgáltatódon keresztül.',
   'login.oidcLoggedOut': 'Kijelentkeztél. Jelentkezz be újra az SSO szolgáltatódon keresztül.',
+  'login.oidcRedirecting': 'Átirányítás ide: {name}…',
+  'login.oidcRedirectSlow': 'Még mindig itt? Tovább ide: {name}',
   'login.demoHint': 'Próbáld ki a demót — regisztráció nélkül',
   'login.mfaTitle': 'Kétfaktoros hitelesítés',
   'login.mfaSubtitle': 'Add meg a 6 jegyű kódot a hitelesítő alkalmazásból.',

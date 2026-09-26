@@ -60,7 +60,7 @@ Each toggle's icon in the toolbar is the marker it places, so you can see what a
 **Settings** (gear icon) let you configure:
 
 - **Block weekends** — prevents logging on weekend days. You choose which days count as the weekend.
-- **Week start** — Monday or Sunday.
+- **Week start** — Monday or Sunday. This one is per plan and applies to the Vacay calendar only; every other calendar in TREK follows **Week starts on** under Settings → General.
 - **Carry-over** — toggle as described above.
 - **Vacation year** — Calendar, Fiscal or Hire date, as described under Leave year above. Unlike the rest of this panel it is personal to you rather than to the plan.
 - **Company holidays** — enable a shared company holiday layer that any fused user can edit.

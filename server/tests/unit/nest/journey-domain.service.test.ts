@@ -2721,3 +2721,16 @@ describe('entry field switches', () => {
     expect(svc.updateJourney(journey.id, editor.id, { show_mood: false })).toBeNull();
   });
 });
+
+describe('journeyIdOfEntry', () => {
+  it('JOURNEY-SVC-ENTRY-JOURNEY-001: names the journey an entry sits in, and null for an entry that does not exist', () => {
+    // The capture refresh (#1587) only knows the entry the photos went to and has
+    // to tell the journey they belong to.
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const entry = createJourneyEntry(testDb, journey.id, user.id);
+
+    expect(svc.journeyIdOfEntry(entry.id)).toBe(journey.id);
+    expect(svc.journeyIdOfEntry(999999)).toBeNull();
+  });
+});

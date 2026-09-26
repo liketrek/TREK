@@ -1,4 +1,4 @@
-// FE-ADMNOT-001 to FE-ADMNOT-043
+// FE-ADMNOT-001 to FE-ADMNOT-046
 import { http, HttpResponse } from 'msw';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -570,5 +570,48 @@ describe('AdminNotificationsTab', () => {
     expect(screen.queryByRole('heading', { name: 'Email (SMTP)' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Admin Webhook' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Admin Ntfy' })).not.toBeInTheDocument();
+  });
+
+  it('FE-ADMNOT-044: Web Push has its own card after Ntfy, before In-App', () => {
+    renderTab({ smtpValues: { notification_channels: 'email' } });
+
+    const headings = screen.getAllByRole('heading').map(h => h.textContent);
+    expect(headings.indexOf('Web Push')).toBe(headings.indexOf('Ntfy') + 1);
+    expect(headings.indexOf('In-App')).toBe(headings.indexOf('Web Push') + 1);
+    expect(within(card('Web Push')).getByText(/receive notifications on their phones/)).toBeInTheDocument();
+    expect(within(card('Web Push')).getByRole('button', { name: 'Web Push' })).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('FE-ADMNOT-045: switching Web Push on adds push to the list and keeps the rest', async () => {
+    let body: Record<string, unknown> | null = null;
+    server.use(
+      http.put('/api/auth/app-settings', async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({});
+      })
+    );
+    const admin = renderTab({ smtpValues: { notification_channels: 'email,plugin-gotify' } });
+
+    fireEvent.click(within(card('Web Push')).getByRole('button', { name: 'Web Push' }));
+
+    await waitFor(() => expect(body).toEqual({ notification_channels: 'email,push,plugin-gotify' }));
+    expect(replaySmtp(admin.setSmtpValues, 0).notification_channels).toBe('email,push,plugin-gotify');
+  });
+
+  it('FE-ADMNOT-046: an active push channel shows its switch on, and switching it off keeps email', async () => {
+    let body: Record<string, unknown> | null = null;
+    server.use(
+      http.put('/api/auth/app-settings', async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({});
+      })
+    );
+    renderTab({ smtpValues: { notification_channels: 'email,push' } });
+
+    const toggle = within(card('Web Push')).getByRole('button', { name: 'Web Push' });
+    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(toggle);
+
+    await waitFor(() => expect(body).toEqual({ notification_channels: 'email' }));
   });
 });

@@ -347,6 +347,35 @@ describe('deleteAccommodation', () => {
     expect(testDb.prepare('SELECT id FROM budget_items WHERE id = ?').get(budgetItemId)).toBeUndefined();
   });
 
+  it('ACC-035 — every expense on every linked booking goes with the stay (#2084)', () => {
+    // A booking can carry several expenses now; taking only the first stranded the
+    // rest on a reservation id that no longer exists.
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id) as any;
+    const place = createPlace(testDb, trip.id, { name: 'Hotel' }) as any;
+    const { accommodation: accom } = svc.createAccommodation(trip.id, {
+      place_id: place.id, start_day_id: day.id, end_day_id: day.id,
+    }) as any;
+    const first = testDb.prepare('SELECT id FROM reservations WHERE accommodation_id = ?').get(accom.id) as any;
+    const second = testDb.prepare(
+      'INSERT INTO reservations (trip_id, type, title, accommodation_id) VALUES (?, ?, ?, ?)'
+    ).run(trip.id, 'hotel', 'Second booking', accom.id).lastInsertRowid as number;
+    const expense = (reservationId: number | null, name: string) => testDb.prepare(
+      'INSERT INTO budget_items (trip_id, name, category, total_price, reservation_id) VALUES (?, ?, ?, ?, ?)'
+    ).run(trip.id, name, 'accommodation', 50, reservationId).lastInsertRowid as number;
+    const room = expense(first.id, 'Room');
+    const breakfast = expense(first.id, 'Breakfast');
+    const parking = expense(second, 'Parking');
+    const unrelated = expense(null, 'Coffee');
+
+    const result = svc.deleteAccommodation(accom.id);
+
+    expect(result.deletedBudgetItemIds).toEqual([room, breakfast, parking]);
+    expect(result.deletedBudgetItemId).toBe(room);
+    expect(testDb.prepare('SELECT id FROM budget_items WHERE trip_id = ?').all(trip.id)).toEqual([{ id: unrelated }]);
+  });
+
   it('ACC-010 — a second booking pointed at the same stay goes too, instead of being orphaned', () => {
     // reservations.accommodation_id carries no foreign key and no unique constraint,
     // and the booking form lets a hotel booking pick an existing stay. Deleting only

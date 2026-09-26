@@ -84,18 +84,21 @@ export class OpenAiCompatibleClient implements LlmExtractionClient {
     const base = (input.baseUrl ?? 'https://api.openai.com/v1').replace(/(?<!\/)\/+$/, '');
     const url = `${base}/chat/completions`;
     const nuextract = isNuExtractModel(input.model);
+    const rootKey = input.rootKey ?? 'reservations';
+    const userText = input.userText ?? USER_TEXT;
 
     const userContent: unknown[] = nuextract
       ? [{ type: 'text', text: buildNuExtractUserText(input.text ?? '') }]
-      : [{ type: 'text', text: input.text ? `${USER_TEXT}\n\n${input.text}` : USER_TEXT }];
+      : [{ type: 'text', text: input.text ? `${userText}\n\n${input.text}` : userText }];
     // Only genuine images go natively (as image_url) — OpenAI-compatible servers
     // (notably Ollama) reject `file`/PDF content parts. PDFs reach this client as
-    // pre-extracted text (see llm-parse.service.ts), never as bytes.
-    if (!nuextract && input.file && input.file.mimeType.startsWith('image/')) {
-      const b64 = input.file.data.toString('base64');
+    // pre-extracted text (see llm-parse.service.ts), or a scan as its pages drawn
+    // as images, never as PDF bytes.
+    for (const file of !nuextract && input.file ? [input.file, ...(input.pageImages ?? [])] : []) {
+      if (!file.mimeType.startsWith('image/')) continue;
       userContent.push({
         type: 'image_url',
-        image_url: { url: `data:${input.file.mimeType};base64,${b64}` },
+        image_url: { url: `data:${file.mimeType};base64,${file.data.toString('base64')}` },
       });
     }
 
@@ -130,7 +133,7 @@ export class OpenAiCompatibleClient implements LlmExtractionClient {
         ...baseBody,
         response_format: shape.jsonObject
           ? { type: 'json_object' as const }
-          : { type: 'json_schema' as const, json_schema: { name: 'reservations', schema: input.jsonSchema, strict: false } },
+          : { type: 'json_schema' as const, json_schema: { name: rootKey, schema: input.jsonSchema, strict: false } },
       };
     };
 
@@ -185,7 +188,7 @@ export class OpenAiCompatibleClient implements LlmExtractionClient {
       choices?: { message?: { content?: string } }[];
     };
     const content = data.choices?.[0]?.message?.content;
-    return nuextract ? parseNuExtract(content) : parseReservations(content);
+    return nuextract ? parseNuExtract(content) : parseReservations(content, rootKey);
   }
 
   private async send(url: string, body: unknown, apiKey?: string): Promise<Response> {
@@ -216,9 +219,9 @@ function parseNuExtract(content: string | undefined | null): Record<string, unkn
 
 const USER_TEXT = 'Extract every travel reservation from the following document as schema.org JSON-LD.';
 
-/** Tolerant parse: strip code fences, JSON(5).parse, pull `reservations`. */
-function parseReservations(content: string | undefined | null): Record<string, unknown>[] {
-  return toReservationList(readAnswer(content));
+/** Tolerant parse: strip code fences, JSON(5).parse, pull the `rootKey` array. */
+function parseReservations(content: string | undefined | null, rootKey: string): Record<string, unknown>[] {
+  return toReservationList(readAnswer(content), rootKey);
 }
 
 /**

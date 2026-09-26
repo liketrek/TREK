@@ -4,7 +4,7 @@ import {
   demoDenied, errorResult, ok,
 } from '../../nest-mcp';
 import { z } from 'zod';
-import { MASKED_SETTING_VALUE, SUPPORTED_LANGUAGE_CODES, settingsBulkRequestSchema } from '@trek/shared';
+import { MASKED_SETTING_VALUE, SUPPORTED_LANGUAGE_CODES, settingsBulkRequestSchema, weekStartSchema } from '@trek/shared';
 import { AuthService } from '../auth/auth.service';
 import { SettingsService } from './settings.service';
 
@@ -47,6 +47,7 @@ const DISPLAY_PREFERENCES = {
   temperature_unit: z.enum(['celsius', 'fahrenheit']),
   distance_unit: z.enum(['metric', 'imperial']),
   time_format: z.enum(['12h', '24h']),
+  week_start: weekStartSchema,
   // Booleans are the pre-'auto' form and still sit in older rows, so they stay
   // writable: this is exactly the VALID_VALUES.dark_mode set the admin-defaults
   // path accepts, and refusing them here would make a value TREK itself wrote
@@ -112,7 +113,7 @@ export class SettingsMcp {
 
   @Tool({
     name: 'get_display_settings',
-    description: `Read the current user's display preferences: ${KEY_LIST}. Call this before rendering a temperature, a distance, a time of day or an amount, so the answer matches what the person sees inside TREK instead of being guessed, and call it before update_display_settings whenever the request is relative ("switch me back", "use the other unit"). Only keys that are actually set are returned; TREK's own fallbacks for the rest are celsius, metric, 24h, language en, start_page dashboard, start_trip_tab plan, and no personal default currency, which means amounts fall back to the currency of the trip they belong to. Stored credentials (map tokens, LLM API keys, webhook URLs, SMTP) are deliberately not part of this surface and never appear in the result.`,
+    description: `Read the current user's display preferences: ${KEY_LIST}. Call this before rendering a temperature, a distance, a time of day or an amount, so the answer matches what the person sees inside TREK instead of being guessed, and call it before update_display_settings whenever the request is relative ("switch me back", "use the other unit"). Only keys that are actually set are returned; TREK's own fallbacks for the rest are celsius, metric, 24h, week_start monday, language en, start_page dashboard, start_trip_tab plan, and no personal default currency, which means amounts fall back to the currency of the trip they belong to. Stored credentials (map tokens, LLM API keys, webhook URLs, SMTP) are deliberately not part of this surface and never appear in the result.`,
     inputSchema: {},
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: { group: 'settings', mode: 'read' },
@@ -123,7 +124,7 @@ export class SettingsMcp {
 
   @Tool({
     name: 'update_display_settings',
-    description: `Change one or more of the current user's display preferences. Pass a settings object holding only the keys to change; anything left out keeps its current value. Writable keys: ${KEY_LIST}. start_page is dashboard or active_trip, start_trip_tab is one of plan, transports, buchungen, listen, finanzplan, dateien, collab (the ids are the planner's internal German ones) or plugin:<id> for a plugin tab, default_currency is a three-letter ISO code or "" to fall back to each trip's own currency, dark_mode is light, dark or auto. Every other key is refused, including API keys, map tokens, LLM endpoint settings and SMTP: those belong to the account owner or to whoever operates the instance and are set in TREK itself, not here. Prefer get_display_settings when you only need to read a value.`,
+    description: `Change one or more of the current user's display preferences. Pass a settings object holding only the keys to change; anything left out keeps its current value. Writable keys: ${KEY_LIST}. start_page is dashboard or active_trip, start_trip_tab is one of plan, transports, buchungen, listen, finanzplan, dateien, collab (the ids are the planner's internal German ones) or plugin:<id> for a plugin tab, default_currency is a three-letter ISO code or "" to fall back to each trip's own currency, dark_mode is light, dark or auto, week_start is monday, sunday or saturday and sets the first column of every date picker in TREK. Every other key is refused, including API keys, map tokens, LLM endpoint settings and SMTP: those belong to the account owner or to whoever operates the instance and are set in TREK itself, not here. Prefer get_display_settings when you only need to read a value.`,
     inputSchema: {
       settings: settingsBulkRequestSchema.shape.settings
         .describe(`Object of preference key to new value, e.g. {"temperature_unit": "fahrenheit", "distance_unit": "imperial"}. At least one key, and every key must be one of: ${KEY_LIST}.`),

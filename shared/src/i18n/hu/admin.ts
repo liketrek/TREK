@@ -136,6 +136,7 @@ const admin: TranslationStrings = {
   'admin.amapKey': 'Amap (高德地图) API-kulcs',
   'admin.amapKeyHint':
     'Helykereséshez Kína szárazföldi részén, ahol a Google nem érhető el, az OpenStreetMap adatai pedig hiányosak. „Web 服务" (webszolgáltatás) típusú kulcs kell hozzá, nem JS API-kulcs. A console.amap.com oldalon kérhető.',
+  'admin.keyFromEnv': 'Beállítva: {name}',
   'admin.placesProvider.title': 'Helykeresési szolgáltató',
   'admin.placesProvider.subtitle':
     'A TREK saját indexe és az OpenStreetMap minden keresésre válaszol. Itt választod ki, kit kérdezünk még, ha ők nem találnak semmit: az Automatikus a Google-t részesíti előnyben, ha van kulcs, utána az Amapot.',
@@ -390,6 +391,8 @@ const admin: TranslationStrings = {
     'További részletek (értékelések, minősítések, hivatkozások) hozzáadása egy helyhez',
   'admin.plugins.perm.hook:search-provider':
     'Helykeresések megválaszolása saját indexből, a TREK saját találatai mellett',
+  'admin.plugins.perm.hook:poi-category-provider':
+    'Saját helykategóriák hozzáadása a „Helyek felfedezése a térképen” sávhoz; ha kiválasztasz egyet, a bővítmény megkapja a térképnek azt a részét, amelyet éppen nézel',
   'admin.plugins.perm.hook:trip-warning-provider':
     'Ellenőrzési figyelmeztetések megjelenítése egy utazáson (a tervezőben látható)',
   'admin.plugins.perm.hook:table-contributor':
@@ -406,6 +409,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.mcpTools': 'MI-eszközöket tesz közzé',
   'admin.plugins.mcpToolsTitle': 'Közzétett MI-eszközök',
   'admin.plugins.mcpToolsHint': 'Egy asszisztens futtathatja őket a felhasználó nevében. Mindegyik a fent megadott jogosultságokkal működik.',
+  'admin.plugins.poiCategoriesTitle': 'Térképkategóriák, amelyeket hozzáad',
   'admin.plugins.perm.mcp:tools':
     'Olyan eszközök közzététele, amelyeket egy MI-asszisztens futtathat a nevedben (a bővítménynek itt adott jogosultságokkal működik, nem a sajátjával)',
   'admin.plugins.perm.geolocation:read':
@@ -549,6 +553,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'Naptáreseményeket biztosít',
   'admin.plugins.cap.placeDetails': 'Helyeket gazdagít',
   'admin.plugins.cap.search': 'Válaszol a keresésekre',
+  'admin.plugins.cap.poiCategories': 'Térképkategóriákat ad hozzá',
   'admin.plugins.cap.warnings': 'Problémákat jelez',
   'admin.plugins.cap.mapLayers': 'Rajzol a térképre',
   'admin.plugins.cap.routing': 'Útvonaltervezést biztosít',
@@ -625,6 +630,11 @@ const admin: TranslationStrings = {
     'Tartózkodások és rögzített útvonalak olvasása egy Dawarich-példányból, amelyet minden olvasó maga köt be',
   'admin.addons.catalog.llm_parsing.name': 'MI-elemzés',
   'admin.addons.catalog.llm_parsing.description': 'Beolvassa azokat a foglalásokat, amelyeket a beépített értelmező nem tud, az általad választott MI-modellel',
+  'admin.addons.llm.vision.auto': 'Automatikus',
+  'admin.addons.llm.vision.on': 'Igen',
+  'admin.addons.llm.vision.off': 'Nem',
+  'admin.addons.llm.vision.hintLocal': 'Az Automatikus megkérdezi az Ollama-szervert, hogy ez a modell olvas-e képeket.',
+  'admin.addons.llm.vision.hintCloud': 'Felhőalapú modellnél az Automatikus nemet jelent. Válaszd az Igent, ha ez a modell olvas képeket.',
   'admin.addons.enabled': 'Engedélyezve',
   'admin.addons.disabled': 'Letiltva',
   'admin.addons.type.trip': 'Utazás',
@@ -727,6 +737,9 @@ const admin: TranslationStrings = {
   'admin.tabs.permissions': 'Jogosultságok',
   'admin.notifications.emailPanel.title': 'Email (SMTP)',
   'admin.notifications.webhookPanel.title': 'Webhook',
+  'admin.notifications.webPushPanel.title': 'Web Push',
+  'admin.notifications.webPushPanel.hint':
+    'Lehetővé teszi a felhasználóknak, hogy a böngészőn keresztül értesítéseket kapjanak telefonjukon és számítógépükön, akkor is, ha a TREK be van zárva. HTTPS szükséges; iPhone-on és iPaden a TREK-et hozzá kell adni a Főképernyőhöz.',
   'admin.notifications.inappPanel.title': 'In-App',
   'admin.notifications.inappPanel.hint':
     'Az alkalmazáson belüli értesítések mindig aktívak, és globálisan nem kapcsolhatók ki.',

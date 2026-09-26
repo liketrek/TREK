@@ -12,6 +12,8 @@ Track trip expenses by category, split costs between members, and visualize spen
 
 Open the **Costs** tab inside the trip planner. The tab is only visible when the Costs addon is enabled.
 
+The tab opens with the same bar as Transports, Bookings, Lists and Files: its name, then the trip's dates with the number of days and the travelers the costs are shared between, and on the right **Settle up** and **Add expense**.
+
 > **Admin:** Costs is an addon. Enable it in [Admin-Addons](Admin-Addons).
 
 ![Create Budget](assets/BudgetCreateBudget.gif)
@@ -58,9 +60,15 @@ Click **Add expense**, or the pencil beside a row, to open the expense editor:
 
 ### Expenses linked to a booking or a place
 
-An expense can hang off a **booking** (reservation or transport) or off a **place** — both offer a **Create expense** button in their form, which saves the record first and then opens the expense editor for it. A linked expense is an ordinary expense: it takes a payer, a split, a date and a currency like any other, and it shows up in the settlement.
+An expense can hang off a **booking** (reservation or transport) or off a **place**. Both forms carry a Costs block: **Create expense** saves the record first and then opens the expense editor for it, and on a saved record **Link existing expense** ties an expense that is already in Costs and belongs nowhere yet. A record can carry several expenses, the flight and the seat upgrade bought for it later. A linked expense is an ordinary expense: it takes a payer, a split, a date and a currency like any other, and it shows up in the settlement.
 
-Deleting the booking or the place deletes its linked expense with it. Removing the expense from the record's Costs block deletes only the expense and leaves the record standing.
+Every linked expense is listed in the record's Costs block with three actions. The pencil edits it, **Unlink, keep the expense** lets go of it and leaves it in Costs, and the bin deletes only the expense. The record stands either way. Deleting the booking or the place deletes all of its linked expenses with it.
+
+A booking's price follows its expenses: it shows their sum when they share one currency, otherwise the first one, and it is cleared once nothing is linked any more.
+
+On the phone the booking, transport and place sheets carry the same block. Tap a linked expense to edit it, and **Link** opens the unlinked expenses right under the buttons, with a search once there are more than a handful.
+
+> **AI / MCP:** `update_budget_item` takes `reservation_id` and `place_id`; `null` unlinks. An id from another trip is refused. See [MCP-Tools-and-Resources](MCP-Tools-and-Resources).
 
 ### Receipts and invoices
 
@@ -69,6 +77,17 @@ An expense can carry the receipt or invoice behind it. **Attach receipt / invoic
 A row with receipts shows a **Receipts** chip beside the name, with the count when there is more than one. Click it to open the viewer: it shows one receipt at a time, pages through them with the **arrow keys**, and offers a download for a PDF.
 
 **Remove receipt** in the editor only unlinks the file from the expense. The file itself stays on the trip, because editing an expense (`budget_edit`) does not carry the file permission: to get rid of the file, delete it in the Files tab, which needs `file_delete`. Uploading a receipt goes through the trip's file upload, so it needs `file_upload` on top of `budget_edit`. A file that is also linked to a place or a booking keeps those links. See [Documents-and-Files](Documents-and-Files).
+
+### Scanning a receipt
+
+With the [AI Parsing](AI-Booking-Import) addon on and a model that reads images (see *Model reads images* there), a **Scan receipt** button sits beside **Add expense**, and on a phone the Costs header carries a scan icon. It is offered to whoever may add expenses.
+
+1. Click **Scan receipt**. A dialog like the booking import's takes one photo of the receipt (JPG, PNG or WEBP, up to 10 MB; a photo over 40 megapixels or a WEBP over 3.5 MB is refused): drop it on the box, or click the box to pick one or, on a phone, take one. Then click **Scan**.
+2. The dialog closes and the model reads the photo in the background: the **background tasks** widget shows *Reading the receipt…*, and you can keep using TREK meanwhile. On a local model running on CPU this takes from a few seconds to a couple of minutes.
+3. When it is done, **Review expense** opens the expense editor pre-filled with what was read: the merchant as the name, the total, the currency and the day. The split stays **Equally**; switch it to **Ticket** and the receipt's lines are already listed, each shared by everyone. Discount and free lines are left out, since a Ticket line needs a price. If you may upload files (`file_upload`), the photo is already in **Receipts & Invoices**, uploaded when you save like any receipt you attach yourself. Without that permission the editor opens pre-filled all the same, just without the photo.
+4. Check everything, pick the category, who paid and the split, and save. Nothing is stored before that.
+
+The scan reads one photo per expense and does not guess the category. A photo nothing could be read from ends on *No receipt could be read from this photo.*, with the reason under it. Scan jobs are kept for about 10 minutes after they finish, like [booking imports](AI-Booking-Import#good-to-know).
 
 ## Who paid
 
@@ -100,7 +119,7 @@ Costs works out the minimum number of transfers needed to settle all debts (usin
 
 The final budget comes to each member's share of the paid expenses (exact in the trip's own currency; in another display currency, rounding can leave a single figure a cent off while the column still adds up), so recording a payment moves an amount from *pending* to *net reimbursements* without changing it. An expense nobody has paid yet stays out of it, as it stays out of the balances.
 
-**Settle up** in the panel header records every open flow at once. **Add payment** on the card records a single transfer by hand, for a repayment that did not follow a suggested flow. Recorded payments then appear in the expense ledger as their own rows, with edit and undo beside them.
+**Settle up** in the bar at the top of the tab records every open flow at once. **Add payment** on the card records a single transfer by hand, for a repayment that did not follow a suggested flow. Recorded payments then appear in the expense ledger as their own rows, with edit and undo beside them.
 
 Balances are always netted in the **trip currency** and converted to your display currency once, at the end — so they stay stable even when the trip mixes currencies.
 

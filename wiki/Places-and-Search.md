@@ -21,6 +21,7 @@ After 2 or more characters, and a 300 ms pause, suggestions appear in a dropdown
 - Use **↑ / ↓** to move through them, **Enter** to pick one, **Esc** to close the list.
 - Suggestions come from the TREK API, from its index and from an OpenStreetMap layer it keeps. A suggestion from that layer shows the name that matched what you typed, with the name used on the spot underneath when the two differ.
 - Only when the TREK API has nothing does TREK ask the keyed provider (Google or Amap), or, without one, OpenStreetMap's own search service.
+- An installed [search plugin](Plugin-Cookbook#suggestions-while-the-user-types) whose index can keep up with typing adds up to three of its places under the suggestions, marked with the plugin's name. Picking one fills in what the plugin knows about the place, with no second lookup.
 
 ### The full search
 
@@ -28,11 +29,11 @@ Press **Enter** without picking a suggestion, or click the search button, to run
 
 A Google or Amap key does not change this. The keyed provider is asked only when the TREK API and OpenStreetMap both come back empty; see [Google and Amap](#google-and-amap).
 
-Installed [search plugins](Plugin-Cookbook#answer-place-searches-from-your-own-index) add their results below the core list, on the full search only.
+Installed [search plugins](Plugin-Cookbook#answer-place-searches-from-your-own-index) add their results below the core list. Only the ones built for it also answer while you type; the others appear here, once the search is run.
 
 ### Where each result came from
 
-On the desktop every row, in the suggestions and in the search results, carries a small mark naming its source: **TREK**, **OpenStreetMap**, **Google** or **Amap** (高德地图, or 高德地圖 in traditional Chinese). On the phone the suggestions carry it. A list that mixes the TREK API and OpenStreetMap stays readable that way. Results from the offline cache carry no mark; see [Searching offline](#searching-offline).
+Every row, in the suggestions and in the search results, on the desktop and on the phone, carries a small mark naming its source: **TREK**, **OpenStreetMap**, **Google** or **Amap** (高德地图, or 高德地圖 in traditional Chinese), and for a row from a search plugin the name the plugin was installed under. A list that mixes several sources stays readable that way. Results from the offline cache carry no mark; see [Searching offline](#searching-offline).
 
 ### The open day steers the search
 
@@ -51,7 +52,7 @@ The place form on the desktop and the search sheet on the phone use the same hin
 
 ### With a Google Maps API key
 
-> **Admin:** The Google Maps API key is instance-wide, set in **Admin → Settings → API Keys → Google Maps API Key**. It is stored encrypted at rest and used for every member of the instance.
+> **Admin:** The Google Maps API key is instance-wide, set in **Admin → Settings → API Keys → Google Maps API Key**. It is stored encrypted at rest and used for every member of the instance. It can also come from the `PLACES_API_KEY` environment variable, which wins over the field and leaves it read-only; see [Environment Variables](Environment-Variables#place-search-google-places).
 
 A key does not buy a different search by itself. Google fills the slot that answers once the TREK API and OpenStreetMap both have nothing, and it adds what only a commercial provider has: ratings and photos. No open dataset carries either of those for ordinary businesses. A place found through Google keeps its Google id, so its details, rating and photos keep coming from Google.
 
@@ -141,6 +142,28 @@ With **Explore places on the map** switched on in [Display Settings](Display-Set
 
 The TREK API answers these first, from the map centre out to a radius that covers the view, at most 20 km. When it has nothing for the area, or cannot be reached, the public Overpass mirrors of OpenStreetMap answer instead, narrowed to a window of half a degree around the centre; `OVERPASS_URL` and `OVERPASS_TIMEOUT_MS` on [Environment Variables](Environment-Variables) steer those. Results from the TREK API come with address, website, phone and opening hours where the index has them, under the names used on the spot rather than translations. The [Road trip](Road-Trip#search-along-the-route) search along the drive asks the same two sources.
 
+### Categories from plugins
+
+An installed [plugin](Plugins) can add up to four buttons of its own to the row: trailheads, EV chargers, step-free places, public toilets and drinking water, campsites, or a community's own list of places. They come after the built-in buttons, behind a thin divider. When the row holds more buttons than it has room for, it scrolls sideways instead of shrinking them, on the phone as on the desktop.
+
+A plugin's buttons are there while the plugin is switched on and the admin has granted it the permission to add map categories (`hook:poi-category-provider`, see [Plugin Permissions](Plugin-Permissions)). Like the built-in ones they show only an icon, and a picked one fills with the plugin's colour. Rest the pointer on one for its name: in your language when the plugin ships a name for it, otherwise in the plugin's own wording.
+
+A plugin button works like a built-in one: one category at a time, and **Search this area** after you move the map. Only the plugin that added the button is asked, for the part of the map you are looking at, narrowed to the same half-degree window as OpenStreetMap, and at most 60 of its places are shown. The request carries that area, the category and your language, and names no trip. The plugin answers as you, so it can follow your own settings for it, and TREK keeps no copy of the answer. A plugin that takes longer than eight seconds, or fails, gets a red dot on its button and a **Search this area** to try again. The built-in buttons never wait for it.
+
+Plugin categories need a connection. Offline, or with **Force offline mode** on, TREK does not ask the plugin at all: a picked button shows the red dot, and **Search this area** tries again once you are back online. See [Offline Mode and PWA](Offline-Mode-and-PWA).
+
+The markers carry the icon and colour the plugin chose for the category. On the desktop, resting the pointer on a marker shows the place's name and, where the plugin sends them, up to six rows only it knows, such as a trail's length or a step-free entrance. They are always shown as plain text. The phone has no hover, so it does not show these rows.
+
+Clicking or tapping a marker opens the place form with the name, address, website, phone and coordinates filled in, the same as for a marker from a built-in button, for anyone allowed to edit places. A website only comes along when it is an http or https address. Once saved it is an ordinary place of the trip, and it stays when the plugin goes.
+
+When the admin switches a plugin off, uninstalls it or takes the permission away, its buttons disappear, and their markers with them: for the admin straight away, for everyone else the next time TREK loads, or as soon as they press one.
+
+> **Admin:** the Plugins panel marks a plugin that asks for the permission with an **Adds map categories** chip, and a registry plugin's detail lists the categories it would add, with their icons, colours and names, before you install it. See [Admin-Plugins](Admin-Plugins#the-pre-install-review-dialog).
+
+> **AI / MCP:** `list_plugin_poi_categories` names the categories plugins add, and `search_plugin_pois` asks the plugin behind one of them for its places in a map rectangle; see [MCP-Tools-and-Resources](MCP-Tools-and-Resources).
+
+To build such a plugin, see [Plugin Cookbook](Plugin-Cookbook#add-your-own-place-categories-to-the-map).
+
 ## Searching offline
 
 When a trip is kept for offline use, TREK also downloads the places around it from the TREK API: one request of up to 3000 places, in a box around the trip's places with some margin, at most 1.5 degrees a side (a trip spread wider gets its centre). For a city the size of Rostock that is about a megabyte. The download is repeated only when the trip's area changes, and it happens whether or not **Store map tiles offline** is on: the tiles are the big part, the places are not.
@@ -192,11 +215,11 @@ Two inline warnings are shown when editing times: one if the end time is set to 
 
 ## Costs for a place
 
-With the [Costs/Budget addon](Budget-Tracking) enabled, the place form carries the same **Costs** block that bookings and transports have. **Create expense** saves the place and then opens the Costs editor for a new expense linked to it: the museum ticket, the guided tour, the entry fee. Once linked, the block shows that expense with edit and remove actions.
+With the [Costs/Budget addon](Budget-Tracking) enabled, the place form carries the same **Costs** block that bookings and transports have. **Create expense** saves the place and then opens the Costs editor for a new expense linked to it: the museum ticket, the guided tour, the entry fee. On a saved place, **Link existing expense** ties one that is already in Costs. Every linked expense is listed with edit, unlink and remove actions, and a place can carry several.
 
 The expense belongs to the **place**, not to a day. Putting the same place on several days does not multiply it: you bought the ticket once. If you really pay each time, add a second expense from the Costs tab.
 
-Deleting the place deletes its linked expense too, the same way deleting a booking does.
+Deleting the place deletes its linked expenses too, the same way deleting a booking does.
 
 ## Rating a place
 

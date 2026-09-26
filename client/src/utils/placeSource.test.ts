@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { googleHoldsSlot, offersGoogleRetry, placesGoogleOnlyHint, selectGoogleHoldsSlot, sourceLabelFor } from './placeSource'
+import { corePickRank, googleHoldsSlot, offersGoogleRetry, placesGoogleOnlyHint, selectGoogleHoldsSlot, sourceLabelFor } from './placeSource'
 
 describe('offersGoogleRetry', () => {
   it('FE-PLACESOURCE-001: offers Google for a list the index or OpenStreetMap answered, only where Google answers', () => {
@@ -54,5 +54,31 @@ describe('sourceLabelFor', () => {
     expect(sourceLabelFor({ source: 'openstreetmap' }, 'trek-places+openstreetmap', t)).toBe('OpenStreetMap')
     expect(sourceLabelFor({}, 'google', t)).toBe('Google')
     expect(sourceLabelFor({}, 'amap', t)).toBe('places.source.amap')
+  })
+
+  it('FE-PLACESOURCE-007: a plugin row names its plugin, by the installed name when there is one', () => {
+    const t = (k: string) => k
+    const names: Record<string, string> = { 'all-the-places': 'All the Places' }
+    const pluginName = (id: string) => names[id]
+    expect(sourceLabelFor({ source: 'plugin:all-the-places' }, 'trek-places', t, pluginName)).toBe('All the Places')
+    // Uninstalled since the list was drawn, or no lookup at hand: the id still says where it came from.
+    expect(sourceLabelFor({ source: 'plugin:gone' }, 'trek-places', t, pluginName)).toBe('gone')
+    expect(sourceLabelFor({ source: 'plugin:all-the-places' }, 'trek-places', t)).toBe('all-the-places')
+    // A merged list's own source names no single row, so an unmarked core row stays unlabelled.
+    expect(sourceLabelFor({}, 'trek-places+plugin:all-the-places', t, pluginName)).toBeNull()
+  })
+})
+
+describe('corePickRank', () => {
+  it('FE-PLACESOURCE-008: ranks a core row among the core rows only, and gives a plugin row no rank at all', () => {
+    const rows = [
+      { placeId: 'gers:1' },
+      { placeId: 'node:2' },
+      { placeId: 'plugin:atp:3', place: { osm_id: 'plugin:atp:3' } },
+      { placeId: 'plugin:atp:4', place: { osm_id: 'plugin:atp:4' } },
+    ]
+    expect(corePickRank(rows, rows[1])).toEqual({ rank: 1, count: 2 })
+    expect(corePickRank(rows, rows[2])).toBeUndefined()
+    expect(corePickRank(rows, { placeId: 'gone' })).toBeUndefined()
   })
 })

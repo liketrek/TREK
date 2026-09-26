@@ -27,6 +27,8 @@ const login: TranslationStrings = {
   'login.oidcSignIn': 'تسجيل الدخول عبر {name}',
   'login.oidcOnly': 'تم تعطيل المصادقة بكلمة المرور. يرجى تسجيل الدخول عبر مزود SSO.',
   'login.oidcLoggedOut': 'تم تسجيل خروجك. سجّل الدخول مجدداً عبر مزود SSO.',
+  'login.oidcRedirecting': 'جارٍ تحويلك إلى {name}…',
+  'login.oidcRedirectSlow': 'ما زلت هنا؟ تابع إلى {name}',
   'login.demoHint': 'جرّب العرض التجريبي دون الحاجة للتسجيل',
   'login.mfaTitle': 'المصادقة الثنائية',
   'login.mfaSubtitle': 'أدخل الرمز المكون من 6 أرقام من تطبيق المصادقة.',

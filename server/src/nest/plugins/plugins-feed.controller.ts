@@ -1,7 +1,9 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
+import type { PluginPoiCategory } from '@trek/shared';
 import { DatabaseService } from '../database/database.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { pluginsEnabled } from './kill-switch';
+import { POI_CATEGORY_PERMISSION, poiCategoriesOf } from './poi-categories';
 
 /**
  * GET /api/plugins — the authenticated feed of ACTIVE plugins the client renders
@@ -22,6 +24,15 @@ interface ActivePlugin {
   settingsUi?: true;
   /** Routing profiles the planner's route toggle offers (routeProvider hook, granted only). */
   routeProfiles?: Array<{ id: string; label: string; icon?: string }>;
+  /** Categories the explore pill offers (poiCategoryProvider hook, granted only, #1781). */
+  poiCategories?: PluginPoiCategory[];
+  /**
+   * The plugin holds hook:search-provider, so the place search asks the plugin routes
+   * while it is typed too (#2221). Read off the grant rather than the running child, so
+   * a feed loaded while plugins are still starting says the same; the suggest route
+   * itself only asks the providers whose build implements `suggest`.
+   */
+  searchProvider?: true;
   /** The plugin holds the geolocation:read grant — its frames may request the
    * browser position over the host bridge (the browser prompt still applies). */
   geolocation?: true;
@@ -41,12 +52,15 @@ export class PluginsFeedController {
     const plugins = rows.map(({ capabilities, granted_permissions, ...p }) => {
       const tripPage = p.type === 'trip-page' ? tripPageOf(capabilities) : undefined;
       const routeProfiles = routeProfilesOf(capabilities, granted_permissions);
+      const poiCategories = hasGrant(granted_permissions, POI_CATEGORY_PERMISSION) ? poiCategoriesOf(capabilities) : [];
       return {
         ...p,
         slot: slotOf(capabilities),
         ...(tripPage ? { tripPage } : {}),
         ...(settingsUiOf(capabilities) ? { settingsUi: true as const } : {}),
         ...(routeProfiles ? { routeProfiles } : {}),
+        ...(poiCategories.length ? { poiCategories } : {}),
+        ...(hasGrant(granted_permissions, 'hook:search-provider') ? { searchProvider: true as const } : {}),
         ...(hasGrant(granted_permissions, 'geolocation:read') ? { geolocation: true as const } : {}),
       };
     });

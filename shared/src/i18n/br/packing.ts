@@ -17,7 +17,15 @@ const packing: TranslationStrings = {
   'packing.importHint': 'Um item por linha. Formato: Categoria, Nome, Peso (g), Bolsa, checked/unchecked (opcional)',
   'packing.importPlaceholder':
     'Higiene, Escova de dentes\nRoupas, Camisetas, 200\nDocumentos, Passaporte, , Mala de mão\nEletrônicos, Carregador, 50, Mala, checked',
-  'packing.importCsv': 'Carregar CSV/TXT',
+  'packing.importCsv': 'Carregar CSV/TXT/MD',
+  'packing.export': 'Exportar',
+  'packing.exportPrint': 'Imprimir ou salvar como PDF',
+  'packing.exportMarkdown': 'Checklist em Markdown (.md)',
+  'packing.exportCsv': 'CSV para importação (.csv)',
+  'packing.printItems': 'Itens',
+  'packing.printPacked': 'Na mala',
+  'packing.importHintMarkdown':
+    'Uma lista em Markdown também funciona: um título define a categoria, "- [ ]" e "- [x]" viram itens e "3x" antes do nome define a quantidade.',
   'packing.importAction': 'Importar {count}',
   'packing.importSuccess': '{count} itens importados',
   'packing.importError': 'Falha na importação',
@@ -25,9 +33,6 @@ const packing: TranslationStrings = {
   'packing.progress': '{packed} de {total} na mala ({percent}%)',
   'packing.clearChecked': 'Remover {count} marcado(s)',
   'packing.clearCheckedShort': 'Remover {count}',
-  'packing.suggestions': 'Sugestões',
-  'packing.suggestionsTitle': 'Adicionar sugestões',
-  'packing.allSuggested': 'Todas as sugestões adicionadas',
   'packing.allPacked': 'Tudo na mala!',
   'packing.addPlaceholder': 'Adicionar item...',
   'packing.categoryPlaceholder': 'Lista...',
@@ -38,7 +43,6 @@ const packing: TranslationStrings = {
   'packing.filterOpen': 'Abertos',
   'packing.filterDone': 'Prontos',
   'packing.emptyTitle': 'A lista de mala está vazia',
-  'packing.emptyHint': 'Adicione itens ou use as sugestões',
   'packing.emptyFiltered': 'Nenhum item corresponde ao filtro',
   'packing.menuRename': 'Renomear',
   'packing.menuCheckAll': 'Marcar todos',
@@ -67,128 +71,6 @@ const packing: TranslationStrings = {
   'packing.toast.deleteError': 'Falha ao excluir',
   'packing.toast.renameError': 'Falha ao renomear',
   'packing.toast.addError': 'Falha ao adicionar',
-  'packing.suggestions.items': [
-    {
-      name: 'Passaporte',
-      category: 'Documentos',
-    },
-    {
-      name: 'Documento de identidade',
-      category: 'Documentos',
-    },
-    {
-      name: 'Seguro viagem',
-      category: 'Documentos',
-    },
-    {
-      name: 'Passagens aéreas',
-      category: 'Documentos',
-    },
-    {
-      name: 'Cartão de crédito',
-      category: 'Finanças',
-    },
-    {
-      name: 'Dinheiro',
-      category: 'Finanças',
-    },
-    {
-      name: 'Visto',
-      category: 'Documentos',
-    },
-    {
-      name: 'Camisetas',
-      category: 'Roupas',
-    },
-    {
-      name: 'Calças',
-      category: 'Roupas',
-    },
-    {
-      name: 'Roupa íntima',
-      category: 'Roupas',
-    },
-    {
-      name: 'Meias',
-      category: 'Roupas',
-    },
-    {
-      name: 'Jaqueta',
-      category: 'Roupas',
-    },
-    {
-      name: 'Pijama',
-      category: 'Roupas',
-    },
-    {
-      name: 'Traje de banho',
-      category: 'Roupas',
-    },
-    {
-      name: 'Capa de chuva',
-      category: 'Roupas',
-    },
-    {
-      name: 'Sapatos confortáveis',
-      category: 'Roupas',
-    },
-    {
-      name: 'Escova de dentes',
-      category: 'Higiene',
-    },
-    {
-      name: 'Creme dental',
-      category: 'Higiene',
-    },
-    {
-      name: 'Shampoo',
-      category: 'Higiene',
-    },
-    {
-      name: 'Desodorante',
-      category: 'Higiene',
-    },
-    {
-      name: 'Protetor solar',
-      category: 'Higiene',
-    },
-    {
-      name: 'Aparelho de barbear',
-      category: 'Higiene',
-    },
-    {
-      name: 'Carregador',
-      category: 'Eletrônicos',
-    },
-    {
-      name: 'Power bank',
-      category: 'Eletrônicos',
-    },
-    {
-      name: 'Fones de ouvido',
-      category: 'Eletrônicos',
-    },
-    {
-      name: 'Adaptador de viagem',
-      category: 'Eletrônicos',
-    },
-    {
-      name: 'Câmera',
-      category: 'Eletrônicos',
-    },
-    {
-      name: 'Medicamento para dor',
-      category: 'Saúde',
-    },
-    {
-      name: 'Curativos',
-      category: 'Saúde',
-    },
-    {
-      name: 'Desinfetante',
-      category: 'Saúde',
-    },
-  ],
   'packing.makePrivate': 'Tornar privado',
   'packing.makePublic': 'Compartilhar',
   'packing.privateHint': 'Privado — visível apenas para você',

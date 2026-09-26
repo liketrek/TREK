@@ -110,7 +110,7 @@ function clean(value: unknown): unknown {
  * treating the right-most separator as the decimal point. Returns null when there
  * is no parseable amount.
  */
-function parseAmount(raw: unknown): number | null {
+export function parseAmount(raw: unknown): number | null {
   if (typeof raw === 'number') return Number.isFinite(raw) ? raw : null;
   if (typeof raw !== 'string') return null;
   let s = raw.replace(/[^\d.,]/g, '');

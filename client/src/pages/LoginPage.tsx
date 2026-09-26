@@ -5,6 +5,7 @@ import {
   Fingerprint,
   Globe,
   KeyRound,
+  Loader2,
   Lock,
   Mail,
   Plane,
@@ -14,7 +15,7 @@ import {
 import React from 'react';
 import ToggleSwitch from '../components/Settings/ToggleSwitch';
 import { SUPPORTED_LANGUAGES, useTranslation } from '../i18n';
-import { useLogin } from './login/useLogin';
+import { IDP_LOGIN_URL, useLogin } from './login/useLogin';
 import LoginWorld from './login/LoginWorld';
 import { clearSignedOut } from '../utils/signedOut'
 
@@ -79,6 +80,10 @@ export default function LoginPage(): React.ReactElement {
     noRedirect,
     showRegisterOption,
     oidcOnly,
+    redirectScreen,
+    configWait,
+    idpSlow,
+    idpName,
     handleDemoLogin,
     handleSubmit,
     handlePasskeyLogin,
@@ -466,7 +471,36 @@ export default function LoginPage(): React.ReactElement {
               boxShadow: '0 2px 16px rgba(0,0,0,0.06)',
             }}
           >
-            {oidcOnly ? (
+            {redirectScreen ? (
+              // On the way to the IdP: nothing here asks for input, the page only
+              // says where it is going (#1167). The link comes after a while, for
+              // a redirect that stalls.
+              <div
+                role="status"
+                aria-live="polite"
+                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, padding: '16px 0', textAlign: 'center' }}
+              >
+                <Loader2 size={24} className="animate-spin" style={{ color: '#6b7280' }} aria-hidden="true" />
+                <p style={{ margin: 0, fontSize: 'calc(15px * var(--fs-scale-body, 1))', fontWeight: 600, color: '#111827' }}>
+                  {t('login.oidcRedirecting', { name: idpName })}
+                </p>
+                {idpSlow && (
+                  <a
+                    href={IDP_LOGIN_URL}
+                    onClick={clearSignedOut}
+                    style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', color: '#6b7280' }}
+                  >
+                    {t('login.oidcRedirectSlow', { name: idpName })}
+                  </a>
+                )}
+              </div>
+            ) : configWait ? (
+              // Which sign-in this instance offers is not known yet: no form it
+              // might not accept, only that something is on its way.
+              <div role="status" aria-label={t('common.loading')} style={{ display: 'flex', justifyContent: 'center', padding: '40px 0' }}>
+                <Loader2 size={24} className="animate-spin" style={{ color: '#9ca3af' }} aria-hidden="true" />
+              </div>
+            ) : oidcOnly ? (
               <>
                 <h2
                   style={{

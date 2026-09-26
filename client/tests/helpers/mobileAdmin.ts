@@ -150,6 +150,8 @@ export function buildAdminHook(overrides: Record<string, unknown> = {}): AdminHo
     setAmapKey: vi.fn(),
     hasMapsKey: false,
     hasAmapKey: false,
+    // No key set by the environment unless a test says so (#1881).
+    keyInputProps: () => ({ disabled: false, placeholder: 'Enter key...' }),
     placesProvider: 'auto',
     savingPlacesProvider: false,
     showKeys: {},
@@ -188,5 +190,8 @@ export function buildAdminHook(overrides: Record<string, unknown> = {}): AdminHo
     handleDeleteUser: vi.fn(),
   };
 
-  return { ...base, ...overrides } as unknown as AdminHook;
+  // Derived like the hook does, so a test that only sets mapsKey keeps its Test button.
+  const merged = { ...base, ...overrides };
+  if (!('mapsKeyTestable' in overrides)) merged.mapsKeyTestable = !!merged.mapsKey;
+  return merged as unknown as AdminHook;
 }

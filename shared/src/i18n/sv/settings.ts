@@ -77,6 +77,8 @@ const settings: TranslationStrings = {
   'settings.temperature': 'Temperaturenhet',
   'settings.distance': 'Avståndsenhet',
   'settings.timeFormat': 'Tidsformat',
+  'settings.weekStart': 'Vecka börjar på',
+  'settings.weekStartHint': 'Veckans första dag i alla datumväljare. Vacay har en egen inställning.',
   'settings.bookingLabels': 'Etiketter för bokningsrutter',
   'settings.bookingLabelsHint':
     'Visa stations- och flygplatsnamn på kartan. När funktionen är avstängd visas endast ikonen.',
@@ -118,6 +120,19 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.pluginConfigured':
     'Konfigurerat. Hantera dina uppgifter på pluginets inställningssida.',
   'settings.notificationPreferences.ntfy': 'Ntfy',
+  'settings.notificationPreferences.push': 'Push',
+  'settings.webPush.title': 'Push-meddelanden på den här enheten',
+  'settings.webPush.hint':
+    'Visar TREK-meddelanden på den här enheten även när TREK är stängt. Vilka händelser som kommer fram styrs av kolumnen Push.',
+  'settings.webPush.enable': 'Slå på för den här enheten',
+  'settings.webPush.disable': 'Slå av för den här enheten',
+  'settings.webPush.enabled': 'På för den här enheten',
+  'settings.webPush.unsupported': 'Den här webbläsaren kan inte ta emot push-meddelanden.',
+  'settings.webPush.insecure': 'Push kräver att TREK öppnas via HTTPS.',
+  'settings.webPush.iosInstall': 'På iPhone och iPad lägger du först till TREK på hemskärmen och öppnar det därifrån.',
+  'settings.webPush.denied':
+    'Meddelanden från TREK är blockerade i den här webbläsaren. Tillåt dem i webbläsarens inställningar och försök sedan igen.',
+  'settings.webPush.failed': 'Push kunde inte slås på för den här enheten.',
   'settings.notificationPreferences.noChannels':
     'Inga meddelandekanaler har konfigurerats. Be en administratör att ställa in e-post- eller webhook-meddelanden.',
   'settings.webhookUrl.label': 'Webhook URL',
@@ -381,9 +396,9 @@ const settings: TranslationStrings = {
   'settings.aiParsing.baseUrlHint': 'Var modellen körs — en lokal Ollama-server eller en OpenAI-kompatibel slutpunkt.',
   'settings.aiParsing.apiKey': 'API-nyckel',
   'settings.aiParsing.apiKeyHint': 'Lagras krypterad. Lämna tomt för att behålla den nuvarande nyckeln.',
-  'settings.aiParsing.multimodal': 'Skicka dokument som bilder',
+  'settings.aiParsing.multimodal': 'Modellen läser bilder',
   'settings.aiParsing.multimodalHint':
-    'För modeller med bildstöd — skickar original-PDF:en istället för extraherad text.',
+    'Slå på för en modell som läser bilder, så att ett foto kan importeras eller skannas.',
   'settings.aiParsing.toast.saved': 'AI-inställningar sparade',
   'settings.aiParsing.toast.saveError': 'Kunde inte spara AI-inställningarna',
   'settings.tabs.appearance': 'Appearance',

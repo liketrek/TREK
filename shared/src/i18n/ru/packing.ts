@@ -15,9 +15,18 @@ const packing: TranslationStrings = {
   'packing.import': 'Импорт',
   'packing.importTitle': 'Импорт списка вещей',
   'packing.importHint':
-    'Один предмет на строку. Категория и количество — через запятую, точку с запятой или табуляцию: Название, Категория, Количество',
-  'packing.importPlaceholder': 'Зубная щётка\nСолнцезащитный крем, Гигиена\nФутболки, Одежда, 5\nПаспорт, Документы',
-  'packing.importCsv': 'Загрузить CSV/TXT',
+    'Один предмет на строку. Формат: Категория, Название, Вес в г (необязательно), Сумка (необязательно), checked/unchecked (необязательно)',
+  'packing.importPlaceholder':
+    'Гигиена, Зубная щётка\nОдежда, Футболки, 200\nДокументы, Паспорт, , Ручная кладь\nЭлектроника, Зарядка, 50, Чемодан, checked',
+  'packing.importCsv': 'Загрузить CSV/TXT/MD',
+  'packing.export': 'Экспорт',
+  'packing.exportPrint': 'Печать или сохранение в PDF',
+  'packing.exportMarkdown': 'Чек-лист в Markdown (.md)',
+  'packing.exportCsv': 'CSV для импорта (.csv)',
+  'packing.printItems': 'Вещи',
+  'packing.printPacked': 'Собрано',
+  'packing.importHintMarkdown':
+    'Подойдёт и список в Markdown: заголовок задаёт категорию, "- [ ]" и "- [x]" становятся пунктами, а "3x" перед названием задаёт количество.',
   'packing.importAction': 'Импортировать {count}',
   'packing.importSuccess': '{count} предметов импортировано',
   'packing.importError': 'Ошибка импорта',
@@ -25,9 +34,6 @@ const packing: TranslationStrings = {
   'packing.progress': '{packed} из {total} собрано ({percent}%)',
   'packing.clearChecked': 'Удалить {count} отмеченных',
   'packing.clearCheckedShort': 'Удалить {count}',
-  'packing.suggestions': 'Подсказки',
-  'packing.suggestionsTitle': 'Добавить подсказки',
-  'packing.allSuggested': 'Все подсказки добавлены',
   'packing.allPacked': 'Всё собрано!',
   'packing.addPlaceholder': 'Добавить вещь...',
   'packing.categoryPlaceholder': 'Список...',
@@ -35,7 +41,6 @@ const packing: TranslationStrings = {
   'packing.filterOpen': 'Не собрано',
   'packing.filterDone': 'Собрано',
   'packing.emptyTitle': 'Список вещей пуст',
-  'packing.emptyHint': 'Добавьте вещи или используйте подсказки',
   'packing.emptyFiltered': 'Нет вещей, соответствующих фильтру',
   'packing.menuRename': 'Переименовать',
   'packing.menuCheckAll': 'Отметить все',
@@ -67,128 +72,6 @@ const packing: TranslationStrings = {
   'packing.toast.deleteError': 'Ошибка удаления',
   'packing.toast.renameError': 'Ошибка переименования',
   'packing.toast.addError': 'Ошибка добавления',
-  'packing.suggestions.items': [
-    {
-      name: 'Паспорт',
-      category: 'Документы',
-    },
-    {
-      name: 'Удостоверение личности',
-      category: 'Документы',
-    },
-    {
-      name: 'Страховка',
-      category: 'Документы',
-    },
-    {
-      name: 'Авиабилеты',
-      category: 'Документы',
-    },
-    {
-      name: 'Банковская карта',
-      category: 'Финансы',
-    },
-    {
-      name: 'Наличные',
-      category: 'Финансы',
-    },
-    {
-      name: 'Виза',
-      category: 'Документы',
-    },
-    {
-      name: 'Футболки',
-      category: 'Одежда',
-    },
-    {
-      name: 'Брюки',
-      category: 'Одежда',
-    },
-    {
-      name: 'Нижнее бельё',
-      category: 'Одежда',
-    },
-    {
-      name: 'Носки',
-      category: 'Одежда',
-    },
-    {
-      name: 'Куртка',
-      category: 'Одежда',
-    },
-    {
-      name: 'Пижама',
-      category: 'Одежда',
-    },
-    {
-      name: 'Купальник',
-      category: 'Одежда',
-    },
-    {
-      name: 'Дождевик',
-      category: 'Одежда',
-    },
-    {
-      name: 'Удобная обувь',
-      category: 'Одежда',
-    },
-    {
-      name: 'Зубная щётка',
-      category: 'Гигиена',
-    },
-    {
-      name: 'Зубная паста',
-      category: 'Гигиена',
-    },
-    {
-      name: 'Шампунь',
-      category: 'Гигиена',
-    },
-    {
-      name: 'Дезодорант',
-      category: 'Гигиена',
-    },
-    {
-      name: 'Солнцезащитный крем',
-      category: 'Гигиена',
-    },
-    {
-      name: 'Бритва',
-      category: 'Гигиена',
-    },
-    {
-      name: 'Зарядное устройство',
-      category: 'Электроника',
-    },
-    {
-      name: 'Внешний аккумулятор',
-      category: 'Электроника',
-    },
-    {
-      name: 'Наушники',
-      category: 'Электроника',
-    },
-    {
-      name: 'Адаптер для розеток',
-      category: 'Электроника',
-    },
-    {
-      name: 'Фотоаппарат',
-      category: 'Электроника',
-    },
-    {
-      name: 'Обезболивающее',
-      category: 'Здоровье',
-    },
-    {
-      name: 'Пластыри',
-      category: 'Здоровье',
-    },
-    {
-      name: 'Антисептик',
-      category: 'Здоровье',
-    },
-  ],
   'packing.makePrivate': 'Сделать личным',
   'packing.makePublic': 'Сделать общим',
   'packing.privateHint': 'Личное — видно только вам',

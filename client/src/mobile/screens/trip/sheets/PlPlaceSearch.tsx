@@ -2,12 +2,13 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Loader2, RotateCcw, Search } from 'lucide-react'
 import { mapsApi } from '../../../../api/client'
 import { useAuthStore } from '../../../../store/authStore'
-import { offersGoogleRetry, selectGoogleHoldsSlot, sourceLabelFor } from '../../../../utils/placeSource'
+import { corePickRank, offersGoogleRetry, selectGoogleHoldsSlot } from '../../../../utils/placeSource'
 import { recordPlacePick } from '../../../../api/placeShadow'
 import { PlacesSession } from '../../../../utils/placesSession'
 import { isMapUrl } from '../../../../components/Planner/PlaceFormModal.helpers'
 import { getApiErrorMessage } from '../../../../utils/apiError'
 import { pointFromBox } from '../../../../hooks/useLocationBias'
+import { usePlaceSuggestions } from '../../../../hooks/usePlaceSuggestions'
 import { FIELD_CLS } from './PlSheetChrome'
 import type { TripPlanner } from '../MTripShell'
 
@@ -23,6 +24,13 @@ export interface PlSearchPick {
   amap_poi_id?: string
   website?: string
   phone?: string
+  /**
+   * The full record the pick came from. mergeResult ignores unknown keys, so
+   * this rides along for free, and the details block hands it to the server so
+   * the enrichment call can skip its own details lookup — one fewer provider
+   * round trip on a phone network.
+   */
+  details?: MapsPlace
 }
 
 interface Suggestion {
@@ -33,6 +41,8 @@ interface Suggestion {
   source?: string
   lat?: number
   lng?: number
+  /** Only on a plugin's row: its whole place, since no details lookup knows a plugin id. */
+  place?: MapsPlace
 }
 
 type MapsPlace = Record<string, unknown>
@@ -72,6 +82,7 @@ function placeToPick(place: MapsPlace): PlSearchPick {
     amap_poi_id: s(place.amap_poi_id),
     website: s(place.website),
     phone: s(place.phone),
+    details: place,
   }
 }
 
@@ -99,6 +110,7 @@ export default function PlPlaceSearch({ planner, locationBias, onPick, onResolvi
   // What answered the last full search, for the line that offers Google instead.
   const [searchSource, setSearchSource] = useState('')
   const googleAnswers = useAuthStore(selectGoogleHoldsSlot)
+  const { autocomplete, sourceLabel } = usePlaceSuggestions()
 
   const setResolving = useCallback(
     (v: boolean) => {
@@ -114,7 +126,7 @@ export default function PlPlaceSearch({ planner, locationBias, onPick, onResolvi
       const controller = new AbortController()
       abortRef.current = controller
       try {
-        const result = await mapsApi.autocomplete(input, language, locationBias, controller.signal, placesSessionRef.current.current())
+        const result = await autocomplete(input, language, locationBias, controller.signal, placesSessionRef.current.current())
         acMetaRef.current = { query: input, source: result.source || 'unknown' }
         setAcSource(result.source || '')
         setSuggestions(result.suggestions || [])
@@ -124,7 +136,7 @@ export default function PlPlaceSearch({ planner, locationBias, onPick, onResolvi
         setSuggestions([])
       }
     },
-    [language, locationBias],
+    [autocomplete, language, locationBias],
   )
 
   // Debounced autocomplete — URLs and coordinate pastes go to the search button.
@@ -132,6 +144,8 @@ export default function PlPlaceSearch({ planner, locationBias, onPick, onResolvi
     if (debounceRef.current) clearTimeout(debounceRef.current)
     const trimmed = query.trim()
     if (trimmed.length < 2 || isMapUrl(trimmed) || COORD_RE.test(trimmed)) {
+      // A list still on its way belongs to a query that is gone.
+      abortRef.current?.abort()
       setSuggestions([])
       return
     }
@@ -220,8 +234,8 @@ export default function PlPlaceSearch({ planner, locationBias, onPick, onResolvi
 
   const handleSelectSuggestion = async (suggestion: Suggestion) => {
     // Read before the list is cleared: this is the rank the user saw.
-    const acRank = suggestions.findIndex(s => s.placeId === suggestion.placeId)
-    const acCount = suggestions.length
+    const acPick = corePickRank(suggestions, suggestion)
+    abortRef.current?.abort()
     setSuggestions([])
     const previousQuery = query
     setQuery('')
@@ -230,13 +244,15 @@ export default function PlPlaceSearch({ planner, locationBias, onPick, onResolvi
     try {
       // Details are a fragile second hop (kill-switch, Overpass load) — fall
       // back to the text-search path so suggestions never dead-end. (#1192)
-      let place: MapsPlace | null = null
-      try {
-        // Spends the session the suggestions opened.
-        const result = await mapsApi.details(suggestion.placeId, language, placesSessionRef.current.peek())
-        if (result.place && result.place.lat != null && result.place.lng != null) place = result.place
-      } catch {
-        // fall through to text search
+      let place: MapsPlace | null = suggestion.place ?? null
+      if (!place) {
+        try {
+          // Spends the session the suggestions opened.
+          const result = await mapsApi.details(suggestion.placeId, language, placesSessionRef.current.peek())
+          if (result.place && result.place.lat != null && result.place.lng != null) place = result.place
+        } catch {
+          // fall through to text search
+        }
       }
       if (!place && suggestion.source === 'openstreetmap' && suggestion.lat != null && suggestion.lng != null) {
         // The layer's second line is the local name, not an address, so joining
@@ -258,7 +274,7 @@ export default function PlPlaceSearch({ planner, locationBias, onPick, onResolvi
         place = (search.places?.[0] as MapsPlace | undefined) ?? null
       }
       if (place) {
-        applyPlace(place, acRank >= 0 ? { mode: 'autocomplete', rank: acRank, count: acCount } : undefined)
+        applyPlace(place, acPick && { mode: 'autocomplete', ...acPick })
       } else {
         setQuery(previousQuery)
         toast.error(t('places.mapsSearchError'))
@@ -317,7 +333,7 @@ export default function PlPlaceSearch({ planner, locationBias, onPick, onResolvi
                     <div className="truncate font-geist text-[0.65625rem] text-m-muted">{s.secondaryText}</div>
                   )}
                 </div>
-                <SourceMark label={sourceLabelFor(s, acSource, t)} />
+                <SourceMark label={sourceLabel(s, acSource)} />
               </div>
             </button>
           ))}
@@ -333,8 +349,13 @@ export default function PlPlaceSearch({ planner, locationBias, onPick, onResolvi
               onClick={() => applyPlace(result, { mode: 'search', rank: idx, count: results.length })}
               className="block w-full border-t border-[color:var(--m-rowbr)] px-[13px] py-[10px] text-left first:border-t-0"
             >
-              <div className="truncate text-[0.8125rem] font-semibold text-m-ink">{String(result.name ?? '')}</div>
-              <div className="truncate font-geist text-[0.65625rem] text-m-muted">{String(result.address ?? '')}</div>
+              <div className="flex items-center gap-2">
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-[0.8125rem] font-semibold text-m-ink">{String(result.name ?? '')}</div>
+                  <div className="truncate font-geist text-[0.65625rem] text-m-muted">{String(result.address ?? '')}</div>
+                </div>
+                <SourceMark label={sourceLabel(result, searchSource)} />
+              </div>
             </button>
           ))}
         </div>

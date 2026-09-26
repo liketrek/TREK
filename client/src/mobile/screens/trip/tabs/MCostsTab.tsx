@@ -72,15 +72,17 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
   }, [tripId, base, tripCurrency, displayPerTrip])
 
   // Mirrors CostsPanel.tsx: items reload on trip change, settlement reloads on
-  // trip/base change; further refreshes are explicit after each mutation below
-  // (add/edit/delete expense, add payment) rather than watching budgetItems, so
-  // an unrelated re-render doesn't refetch the settlement.
+  // trip/base change and when the number of expenses changes; further refreshes
+  // are explicit after each mutation below (add/edit/delete expense, add
+  // payment), so an unrelated re-render doesn't refetch the settlement. The count
+  // is for an expense saved outside this tab: a scanned receipt is reviewed in
+  // the trip sheets, which reload the items but cannot reach this settlement.
   useEffect(() => {
     planner.tripActions.loadBudgetItems(tripId)
   }, [tripId, planner.tripActions])
   useEffect(() => {
     loadSettlement()
-  }, [loadSettlement])
+  }, [budgetItems.length, loadSettlement])
   useFreezeMissingRates({ tripId, tripCurrency, canEdit, unconverted: settlement?.unconverted, onHealed: loadSettlement })
 
   const [search, setSearch] = useState('')
