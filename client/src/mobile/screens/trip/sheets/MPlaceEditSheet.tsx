@@ -8,6 +8,8 @@ import {
   type ResultField,
 } from '../../../../components/Planner/PlaceFormModal.helpers'
 import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetFooter, FormSheetHeader } from './PlSheetChrome'
+import PlaceAvatarUpload from '../../../../components/shared/PlaceAvatarUpload'
+import { normalizeImageFile } from '../../../../utils/convertHeic'
 import { useAddonStore } from '../../../../store/addonStore'
 import type { BookingExpenseRequest } from '../../../../components/Planner/BookingCostsSection.types'
 import PlPlaceSearch, { type PlSearchPick } from './PlPlaceSearch'
@@ -104,6 +106,10 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
   const [sheetPlace, setSheetPlace] = useState<Place | null>(null)
   const [sheetAssignmentId, setSheetAssignmentId] = useState<number | null>(null)
 
+  // The custom thumbnail as it stands in this sheet. Kept here rather than read off
+  // sheetPlace, which is an open-time snapshot the store update does not touch.
+  const [imageUrl, setImageUrl] = useState<string | null>(null)
+
   // The details block under the search field follows the same selection rules
   // as the desktop dialog's left column: the picked search result, else the
   // place being edited, else whatever a map POI prefilled.
@@ -135,6 +141,7 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
     if (!showPlaceForm) return
     setSheetPlace(editingPlace)
     setSheetAssignmentId(editingAssignmentId)
+    setImageUrl(editingPlace?.image_url ?? null)
     if (editingPlace) {
       const assignment = findVisit(storedAssignments, editingAssignmentId)
       const timeSource = assignment?.place ?? editingPlace
@@ -214,6 +221,19 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
     // Typed by hand, so the next pick must leave it alone.
     autoFilledRef.current.delete(field as ResultField)
     setForm(prev => ({ ...prev, [field]: value }))
+  }
+
+  // Custom thumbnail. Only while editing — an upload needs an id to attach to.
+  const handleImageUpload = async (file: File) => {
+    if (!sheetPlace) return
+    const place = await planner.tripActions.uploadPlaceImage(planner.tripId, sheetPlace.id, await normalizeImageFile(file))
+    setImageUrl(place?.image_url ?? null)
+  }
+
+  const handleImageRemove = async () => {
+    if (!sheetPlace) return
+    await planner.tripActions.updatePlace(planner.tripId, sheetPlace.id, { image_url: null })
+    setImageUrl(null)
   }
 
   // Same fix as the desktop dialog, same helper. `?? prev.X` cannot tell a
@@ -357,6 +377,18 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
 
       <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[6px] pt-[2px]" onPaste={handlePaste}>
         <PlPlaceSearch planner={planner} locationBias={locationBias} onPick={applyPick} onResolvingChange={setResolvingPick} />
+
+        {/* Custom thumbnail — only while editing, because an upload needs an id. */}
+        {sheetPlace && (
+          <div className="mt-3 flex items-center gap-3">
+            <PlaceAvatarUpload
+              place={{ ...sheetPlace, image_url: form.image_url ?? imageUrl }}
+              onUpload={handleImageUpload}
+              onRemove={handleImageRemove}
+            />
+            <Eyebrow className="uppercase">{t('places.changeImage')}</Eyebrow>
+          </div>
+        )}
 
         {placesEnrichEnabled && (
           <div className="mt-3">

@@ -27,16 +27,15 @@ import { convertHoursLine, isUnknownHoursLine, splitHoursLine } from './placeHou
 import { safeHttpUrl } from '../../utils/safeUrl'
 import EmptyState from '../shared/EmptyState'
 import type { TranslationFn } from '../../types'
+import {
+  cacheKeyFor,
+  readCachedEnrichment,
+  storeEnrichment,
+  type PlaceDetailsSelection,
+} from './placeEnrichment'
+import { creditOf } from './placePhotoCredit'
 
-/** The place the column is describing. Null while nothing is selected. */
-export interface PlaceDetailsSelection {
-  placeId?: string
-  lat: number
-  lng: number
-  name: string
-  /** The picked search result, so the server can skip its own details lookup. */
-  details?: Record<string, unknown>
-}
+export type { PlaceDetailsSelection } from './placeEnrichment'
 
 interface PlaceDetailsColumnProps {
   selection: PlaceDetailsSelection | null
@@ -59,47 +58,9 @@ interface PlaceDetailsColumnProps {
   fluid?: boolean
   /** False on an instance with no Google key, which is most of them. */
   t: TranslationFn
-}
-
-/**
- * Module-level cache plus sessionStorage, same shape as usePlaceDetails in
- * PlaceInspector. Clicking back and forth between two search results must not
- * pay for the provider fan-out twice.
- */
-const enrichmentCache = new Map<string, MapsPlaceEnrichmentResult>()
-
-/** Test seam: the module-level cache otherwise leaks between cases. */
-export function __clearEnrichmentCacheForTests(): void {
-  enrichmentCache.clear()
-}
-
-function readSession(key: string): MapsPlaceEnrichmentResult | undefined {
-  try {
-    const raw = sessionStorage.getItem(key)
-    return raw ? (JSON.parse(raw) as MapsPlaceEnrichmentResult) : undefined
-  } catch {
-    return undefined
-  }
-}
-
-function writeSession(key: string, value: MapsPlaceEnrichmentResult): void {
-  try {
-    sessionStorage.setItem(key, JSON.stringify(value))
-  } catch {
-    /* private mode / quota — the in-memory cache still helps for this session */
-  }
-}
-
-/**
- * Bumped with the server's CACHE_VERSION. sessionStorage outlives a deploy, so
- * without it the tab that was open while the fix shipped keeps replaying the
- * answer the fix was about — and reports it as still broken.
- */
-const ENRICH_CACHE_V = 4
-
-function cacheKeyFor(selection: PlaceDetailsSelection, language: string): string {
-  const id = selection.placeId || `coords:${selection.lat}:${selection.lng}`
-  return `enrich_v${ENRICH_CACHE_V}_${id}_${language}`
+  /** Rendered above the panel's own title — the editor drops the custom-image
+   *  avatar here, so it sits on top of the place details rather than in the form. */
+  header?: React.ReactNode
 }
 
 type LoadState = 'idle' | 'loading' | 'ready' | 'error'
@@ -125,6 +86,7 @@ export default function PlaceDetailsColumn({
   locale = 'en-US',
   fluid = false,
   t,
+  header,
 }: PlaceDetailsColumnProps): React.ReactElement {
   const [data, setData] = useState<MapsPlaceEnrichmentResult | null>(null)
   const [state, setState] = useState<LoadState>('idle')
@@ -144,9 +106,8 @@ export default function PlaceDetailsColumn({
       return
     }
 
-    const cached = enrichmentCache.get(selectionKey) ?? readSession(selectionKey)
+    const cached = readCachedEnrichment(selection, language)
     if (cached) {
-      enrichmentCache.set(selectionKey, cached)
       setData(cached)
       setState('ready')
       return
@@ -178,8 +139,7 @@ export default function PlaceDetailsColumn({
         )
         .then((result) => {
           if (controller.signal.aborted) return
-          enrichmentCache.set(selectionKey, result)
-          writeSession(selectionKey, result)
+          storeEnrichment(selection, language, result)
           setData(result)
           setState('ready')
         })
@@ -223,6 +183,7 @@ export default function PlaceDetailsColumn({
     // stretched to the form's height by the row it sits in, so the extra room
     // costs nothing that was being used.
     <aside className={`w-full ${fluid ? '' : 'sm:w-80'} shrink-0 flex flex-col rounded-xl border border-edge bg-surface-secondary overflow-hidden self-stretch`}>
+      {header}
       <div className="flex items-center gap-2 px-3 py-2.5 border-b border-edge shrink-0">
         <Landmark size={15} className="text-accent" />
         <span className="text-body font-semibold text-content">{t('places.details.title')}</span>
@@ -310,11 +271,6 @@ export default function PlaceDetailsColumn({
       )}
     </aside>
   )
-}
-
-/** The name to put under a picture. Google gives no author, so it gets its own name. */
-function creditOf(photo: PlacePhotoCandidate): string {
-  return photo.attribution || sourceLabelFor(photo.source)
 }
 
 /**
@@ -442,12 +398,6 @@ function descriptionSourceLabel(
         return 'Website'
       }
   }
-}
-
-function sourceLabelFor(source: PlacePhotoCandidate['source']): string {
-  if (source === 'google') return 'Google'
-  if (source === 'wikipedia') return 'Wikipedia'
-  return 'Wikimedia Commons'
 }
 
 /**

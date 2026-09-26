@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { http, HttpResponse } from 'msw'
+import { server } from '../../../helpers/msw/server'
 import { assignmentsApi } from '../../../../src/api/client'
 import MPlaceSheet from '../../../../src/mobile/screens/trip/sheets/MPlaceSheet'
 import type { MTripShellApi, TripPlanner } from '../../../../src/mobile/screens/trip/MTripShell'
@@ -154,7 +156,10 @@ describe('MPlaceSheet', () => {
     expect(screen.getByText('Museum')).toBeInTheDocument()
     expect(screen.getByText('Habsburg collections')).toBeInTheDocument()
     expect(screen.getByText('Book the skip-the-line ticket')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Change image' })).toBeInTheDocument()
+    // The thumbnail is shown as it is; editing it belongs to the editor sheet.
+    expect(screen.queryByRole('button', { name: 'Upload image' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Change image' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Remove image' })).not.toBeInTheDocument()
   })
 
   it('FE-MOB-PLSH-003: clears the place selection when closed', () => {
@@ -319,47 +324,17 @@ describe('MPlaceSheet', () => {
     await waitFor(() => expect(planner.toast.error).toHaveBeenCalledWith('Upload failed'))
   })
 
-  it('FE-MOB-PLSH-019: uploads and removes the custom place image', async () => {
-    const { planner } = renderSheet()
-    const input = document.querySelector('input[type="file"][accept*="image"]') as HTMLInputElement
-    const openPicker = vi.spyOn(input, 'click')
-    fireEvent.click(screen.getByRole('button', { name: 'Change image' }))
-    expect(openPicker).toHaveBeenCalledTimes(1)
-
-    const picture = new File(['x'], 'front.png', { type: 'image/png' })
-    selectFiles(input, [picture])
-    await waitFor(() => expect(planner.tripActions.uploadPlaceImage).toHaveBeenCalledWith(5, 101, picture))
-
-    fireEvent.click(screen.getByRole('button', { name: 'Remove image' }))
-    await waitFor(() => expect(planner.tripActions.updatePlace).toHaveBeenCalledWith(5, 101, { image_url: null }))
+  it('FE-MOB-PLSH-019: the read sheet exposes no image file input', () => {
+    renderSheet()
+    // The editor sheet carries the camera, the remove button and the file input.
+    expect(document.querySelector('input[type="file"][accept*="image"]')).toBeNull()
   })
 
-  it('FE-MOB-PLSH-020: reports a failing image upload and offers upload on a place without one', async () => {
-    const planner = makePlanner({ selectedPlace: { ...PLACE, image_url: null } })
-    vi.mocked(planner.tripActions.uploadPlaceImage).mockRejectedValue(new Error('unsupported'))
-    renderSheet(planner)
-    expect(screen.getByRole('button', { name: 'Upload image' })).toBeInTheDocument()
+  it('FE-MOB-PLSH-020: a place without an image still gets no upload control', () => {
+    renderSheet(makePlanner({ selectedPlace: { ...PLACE, image_url: null } }))
+    expect(screen.queryByRole('button', { name: 'Upload image' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Change image' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Remove image' })).not.toBeInTheDocument()
-
-    const input = document.querySelector('input[type="file"][accept*="image"]') as HTMLInputElement
-    selectFiles(input, [new File(['x'], 'front.png', { type: 'image/png' })])
-    await waitFor(() => expect(planner.toast.error).toHaveBeenCalledWith('Could not upload image'))
-  })
-
-  it('FE-MOB-PLSH-021: blocks the picker while an image request runs and reports its failure', async () => {
-    const planner = makePlanner()
-    let rejectUpdate: (err: Error) => void = () => {}
-    vi.mocked(planner.tripActions.updatePlace).mockReturnValue(new Promise((_res, rej) => { rejectUpdate = rej }))
-    renderSheet(planner)
-
-    fireEvent.click(screen.getByRole('button', { name: 'Remove image' }))
-    const input = document.querySelector('input[type="file"][accept*="image"]') as HTMLInputElement
-    const openPicker = vi.spyOn(input, 'click')
-    fireEvent.click(screen.getByRole('button', { name: 'Change image' }))
-    expect(openPicker).not.toHaveBeenCalled()
-
-    await act(async () => { rejectUpdate(new Error('nope')) })
-    await waitFor(() => expect(planner.toast.error).toHaveBeenCalledWith('Could not remove image'))
   })
 
   it('FE-MOB-PLSH-022: hands the place to the save-to-collection picker', () => {
@@ -523,5 +498,26 @@ describe('MPlaceSheet', () => {
     renderSheet(bookingPlanner({ id: 9, assignment_id: 999, title: 'Someone elses ferry', status: 'pending', type: 'ferry' }))
 
     expect(screen.queryByText('Someone elses ferry')).not.toBeInTheDocument()
+  })
+
+  it('FE-MOB-PLSH-033: the place photo opens the gallery with the custom and provider pictures', async () => {
+    server.use(http.post('/api/maps/enrichment', () => HttpResponse.json({
+      photos: [{
+        key: 'p1', url: '/api/maps/place-photo/p1/bytes', attribution: 'Jane Doe',
+        license: 'CC BY-SA 4.0', licenseUrl: null, sourceUrl: null, source: 'wikimedia',
+      }],
+      description: null,
+      facts: [],
+    })))
+
+    renderSheet()
+    fireEvent.click(screen.getByRole('button', { name: 'Photos' }))
+
+    await waitFor(() => expect(screen.getByText('1 / 2')).toBeInTheDocument())
+  })
+
+  it('FE-MOB-PLSH-034: a place with no picture and no coordinates has no gallery trigger', () => {
+    renderSheet(makePlanner({ selectedPlace: { ...PLACE, image_url: null, lat: null, lng: null } }))
+    expect(screen.queryByRole('button', { name: 'Photos' })).not.toBeInTheDocument()
   })
 })

@@ -608,4 +608,20 @@ describe('MPlaceEditSheet', () => {
     expect(planner.handleSavePlace).toHaveBeenCalledWith(expect.objectContaining({ name: 'Trailhead', osm_id: 'plugin:trail-finder:th-043' }))
     expect(planner.handleSavePlace).not.toHaveBeenCalledWith(expect.objectContaining({ google_place_id: expect.anything() }))
   })
+
+  it('FE-MOB-PLEDIT-046: uploading a picture sends it for the place under edit', async () => {
+    const { planner } = setup({ editingPlace: EDITED })
+    const input = document.querySelector('input[type="file"][accept*="image"]') as HTMLInputElement
+    const picture = new File(['x'], 'front.png', { type: 'image/png' })
+    Object.defineProperty(input, 'files', { value: [picture], configurable: true, writable: true })
+    fireEvent.change(input)
+    await waitFor(() => expect(planner.tripActions.uploadPlaceImage).toHaveBeenCalledWith(1, 42, picture))
+  })
+
+  it('FE-MOB-PLEDIT-047: removing the picture clears image_url on the place under edit', async () => {
+    const pictured = { ...EDITED, image_url: '/uploads/places/senso.jpg' } as unknown as Place
+    const { planner } = setup({ editingPlace: pictured })
+    fireEvent.click(screen.getByRole('button', { name: 'Remove image' }))
+    await waitFor(() => expect(planner.tripActions.updatePlace).toHaveBeenCalledWith(1, 42, { image_url: null }))
+  })
 })

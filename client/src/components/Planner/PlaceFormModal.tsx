@@ -12,6 +12,7 @@ import { useTripStore } from '../../store/tripStore'
 import { useSettingsStore } from '../../store/settingsStore'
 import CollectionPicker from '../Collections/CollectionPicker'
 import PlaceDetailsColumn, { type PlaceDetailsSelection } from './PlaceDetailsColumn'
+import PlaceAvatarUpload from '../shared/PlaceAvatarUpload'
 import { useToast } from '../shared/Toast'
 import { Search, Paperclip, X, AlertTriangle, Loader2, Plus, RotateCcw } from 'lucide-react'
 import { useTranslation } from '../../i18n'
@@ -71,6 +72,16 @@ interface PlaceFormModalProps {
   serviceStop?: ServiceStopMode | null
   /** Road trip mode is on, where a visit's End is when the drive leaves it. */
   roadtripActive?: boolean
+  /**
+   * Sets a custom place thumbnail from a picked file and resolves to the stored
+   * URL. Only ever called while editing an existing place (the upload needs an
+   * id), so create mode leaves the avatar out. The URL comes back so the avatar
+   * shows the new picture at once — the editor holds an open-time snapshot of the
+   * place and would otherwise keep drawing the old one.
+   */
+  onUploadImage?: (placeId: number, file: File) => Promise<string | null>
+  /** Clears the custom thumbnail; the auto-fetched default returns (#1136). */
+  onRemoveImage?: (placeId: number) => Promise<void> | void
 }
 
 
@@ -149,7 +160,7 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
   const {
   isOpen, onClose, onSave, place, prefillCoords, tripId, categories,
   onCategoryCreated, assignmentId, dayAssignments = [], isMobile = false,
-  onOpenExpense, serviceStop = null,
+  onOpenExpense, serviceStop = null, onUploadImage, onRemoveImage,
   } = props
   // Hidden while the addon is off, because the kinds only mean anything to the road trip
   // rail: on an instance without it they would be six labels that change nothing.
@@ -785,6 +796,8 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
     assignmentId,
     dayAssignments,
     isMobile,
+    onUploadImage,
+    onRemoveImage,
     collectionsEnabled,
     form,
     setForm,
@@ -866,6 +879,8 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
     assignmentId,
     dayAssignments,
     isMobile,
+    onUploadImage,
+    onRemoveImage,
     collectionsEnabled,
     form,
     setForm,
@@ -929,6 +944,38 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
     handleStopKind,
     handleStopMinutes,
   } = S
+  // The picture the editor shows is the form's own image_url, which both the
+  // detail column's tiles and the upload/remove below write. The one extra fact
+  // needed is an explicit clear: without it an emptied form would fall back to
+  // the place's open-time snapshot and the removed picture would come back.
+  const [imageCleared, setImageCleared] = useState(false)
+  useEffect(() => {
+    if (isOpen) setImageCleared(false)
+  }, [isOpen, place?.id])
+  const handleImageUpload = async (file: File) => {
+    if (!place?.id || !onUploadImage) return
+    const url = await onUploadImage(place.id, file)
+    setForm(prev => ({ ...prev, image_url: url ?? undefined }))
+    setImageCleared(false)
+  }
+  const handleImageRemove = async () => {
+    if (!place?.id) return
+    await onRemoveImage?.(place.id)
+    setForm(prev => ({ ...prev, image_url: undefined }))
+    setImageCleared(true)
+  }
+  // The avatar goes on top of the details pane; with enrichment off there is no
+  // such pane, so it heads the form instead.
+  const imageEditor = place?.id && onUploadImage
+    ? (
+      <PlaceAvatarUpload
+        place={{ ...place, image_url: form.image_url ?? (imageCleared ? null : place.image_url) }}
+        size={96}
+        onUpload={handleImageUpload}
+        onRemove={handleImageRemove}
+      />
+    )
+    : null
   // Desktop + Collections addon → the saved-place picker on the right. Mobile
   // always keeps the original single-column form untouched.
   const twoColumn = !isMobile && collectionsEnabled
@@ -979,6 +1026,7 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
           language={language}
           timeFormat={S.timeFormat}
           locale={S.locale}
+          header={imageEditor && <div className="flex justify-center p-3 border-b border-edge shrink-0">{imageEditor}</div>}
           t={t}
         />
       )}
@@ -1081,6 +1129,11 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
             </button>
           )}
         </div>
+
+        {/* No details pane (enrichment off) → the avatar heads the form instead. */}
+        {!showDetails && imageEditor && (
+          <div className="flex justify-center">{imageEditor}</div>
+        )}
 
         {/* Name */}
         <div>

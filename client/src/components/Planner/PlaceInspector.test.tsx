@@ -20,7 +20,7 @@ vi.mock('../../api/client', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../api/client')>();
   return {
     ...actual,
-    mapsApi: { details: vi.fn().mockResolvedValue({ place: null }) },
+    mapsApi: { details: vi.fn().mockResolvedValue({ place: null }), placeEnrichment: vi.fn() },
   };
 });
 
@@ -97,6 +97,7 @@ beforeEach(() => {
   seedStore(useSettingsStore, { settings: { time_format: '24h', temperature_unit: 'celsius' } });
 
   vi.mocked(mapsApi.details).mockResolvedValue({ place: null });
+  vi.mocked(mapsApi.placeEnrichment).mockResolvedValue({ photos: [], description: null, facts: [] });
 });
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
@@ -174,13 +175,7 @@ describe('PlaceInspector', () => {
     const user = userEvent.setup();
     const onClose = vi.fn();
     render(<PlaceInspector {...defaultProps} onClose={onClose} />);
-    // Find the X button — it's the close button with an X icon inside
-    const buttons = screen.getAllByRole('button');
-    // The close button is typically in the header, first button with X icon
-    const closeBtn = buttons.find(btn => btn.querySelector('svg'));
-    // Click the last-found header button that has no text label (the X)
-    // More reliable: find button by its position as close button
-    await user.click(buttons[0]); // first button is the close X
+    await user.click(screen.getByRole('button', { name: 'Close' }));
     expect(onClose).toHaveBeenCalled();
   });
 
@@ -856,18 +851,16 @@ describe('PlaceInspector', () => {
     }
   });
 
-  // ── Custom thumbnail upload (#1136) ──────────────────────────────────────────
+  // ── Custom thumbnail is edited in the editor, not here (#1136) ───────────────
 
-  it('FE-PLANNER-INSPECTOR-049: onUploadImage in trip mode renders the upload-capable avatar', () => {
-    render(<PlaceInspector {...defaultProps} onUploadImage={vi.fn()} />);
-    // The place carries no image yet, so the avatar offers "Upload image".
-    expect(screen.getByRole('button', { name: 'Upload image' })).toBeTruthy();
-  });
-
-  it('FE-PLANNER-INSPECTOR-050: without onUploadImage the avatar has no upload control', () => {
-    render(<PlaceInspector {...defaultProps} />);
+  it('FE-PLANNER-INSPECTOR-049: the read-only inspector never offers an image upload control', () => {
+    // Editing a place's image only happens in the editor (PlaceFormModal); the
+    // inspector shows the thumbnail as it is, with no camera and no remove button.
+    const withImage = buildPlace({ id: 203, name: 'Pictured', image_url: '/uploads/places/x.jpg' });
+    render(<PlaceInspector {...defaultProps} place={withImage} onUpdatePlace={vi.fn()} />);
     expect(screen.queryByRole('button', { name: 'Upload image' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Change image' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Remove image' })).toBeNull();
   });
 
 // ── Track colour (#776) ──────────────────────────────────────────────────────
@@ -1281,15 +1274,12 @@ describe('PlaceInspector', () => {
     expect(document.querySelector('iframe[src*="tide-widget"]')).toBeNull();
   });
 
-  // ── Custom thumbnail callbacks (#1136) ───────────────────────────────────────
+  // ── Custom thumbnail is edited in the editor (#1136) ─────────────────────────
 
-  it('FE-PLANNER-INSPECTOR-088: removing the custom image clears image_url through onUpdatePlace', async () => {
-    const onUpdatePlace = vi.fn();
-    const onUploadImage = vi.fn(async () => {});
+  it('FE-PLANNER-INSPECTOR-088: the read-only inspector has no remove-image control', () => {
     const withImage = buildPlace({ id: 706, name: 'Pictured', image_url: '/uploads/places/x.jpg' });
-    render(<PlaceInspector {...defaultProps} place={withImage} onUpdatePlace={onUpdatePlace} onUploadImage={onUploadImage} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Remove image' }));
-    expect(onUpdatePlace).toHaveBeenCalledWith(706, { image_url: null });
+    render(<PlaceInspector {...defaultProps} place={withImage} onUpdatePlace={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: 'Remove image' })).toBeNull();
   });
 
   it('FE-PLANNER-INSPECTOR-090: opening hours are read for the selected day, not for today', async () => {
@@ -1408,13 +1398,9 @@ describe('PlaceInspector', () => {
     }
   });
 
-  it('FE-PLANNER-INSPECTOR-089: picking a file hands it to onUploadImage', async () => {
-    const onUploadImage = vi.fn(async () => {});
-    render(<PlaceInspector {...defaultProps} onUploadImage={onUploadImage} />);
-    const input = document.querySelector('input[accept*="image"]') as HTMLInputElement;
-    const file = new File(['x'], 'thumb.png', { type: 'image/png' });
-    fireEvent.change(input, { target: { files: [file] } });
-    await waitFor(() => expect(onUploadImage).toHaveBeenCalledWith(place.id, file));
+  it('FE-PLANNER-INSPECTOR-089: the read-only inspector exposes no image file input', () => {
+    render(<PlaceInspector {...defaultProps} />);
+    expect(document.querySelector('input[accept*="image"]')).toBeNull();
   });
 
   it('FE-PLANNER-INSPECTOR-098: deselecting and reselecting a place survives a rerender', async () => {
@@ -1586,5 +1572,40 @@ describe('PlaceInspector blur booking codes (#2457)', () => {
   it('FE-PLANNER-INSPECTOR-104: with the setting off the strip shows the code plainly', () => {
     renderWithBooking(false);
     expect(isBlurred(screen.getByText(/TABLE-SECRET/))).toBe(false);
+  });
+});
+
+// ── View-mode photo gallery ───────────────────────────────────────────────────
+
+describe('PlaceInspector photo gallery', () => {
+  const candidate = {
+    key: 'p1',
+    url: '/api/maps/place-photo/p1/bytes',
+    attribution: 'Jane Doe',
+    license: 'CC BY-SA 4.0',
+    licenseUrl: null,
+    sourceUrl: null,
+    source: 'wikimedia' as const,
+  };
+
+  it('FE-PLANNER-INSPECTOR-105: the place photo opens the gallery with the custom image and the provider pictures', async () => {
+    const user = userEvent.setup();
+    const pictured = buildPlace({ id: 401, name: 'Pictured', image_url: '/uploads/places/mine.jpg', lat: 48.85, lng: 2.29, google_place_id: 'gp-401' });
+    vi.mocked(mapsApi.placeEnrichment).mockResolvedValue({ photos: [candidate], description: null, facts: [] });
+    render(<PlaceInspector {...defaultProps} place={pictured} />);
+
+    await user.click(screen.getByRole('button', { name: 'Photos' }));
+
+    // Two pictures: the stored one, then the provider candidate it fetched.
+    await waitFor(() => expect(screen.getByText('1 / 2')).toBeTruthy());
+    // The provider picture is the second slide, credited by its author and licence.
+    await user.click(document.querySelector('.lucide-chevron-right')!.closest('button')!);
+    expect(screen.getByAltText('Jane Doe · CC BY-SA 4.0')).toBeTruthy();
+  });
+
+  it('FE-PLANNER-INSPECTOR-106: no picture and no coordinates means no gallery trigger', () => {
+    const bare = buildPlace({ id: 402, name: 'Bare', image_url: null, lat: null, lng: null });
+    render(<PlaceInspector {...defaultProps} place={bare} />);
+    expect(screen.queryByRole('button', { name: 'Photos' })).toBeNull();
   });
 });

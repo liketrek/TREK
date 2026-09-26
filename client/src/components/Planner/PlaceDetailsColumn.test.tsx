@@ -9,7 +9,8 @@ import React from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import type { MapsPlaceEnrichmentResult } from '@trek/shared'
-import PlaceDetailsColumn, { __clearEnrichmentCacheForTests, type PlaceDetailsSelection } from './PlaceDetailsColumn'
+import PlaceDetailsColumn from './PlaceDetailsColumn'
+import { __clearEnrichmentCacheForTests, type PlaceDetailsSelection } from './placeEnrichment'
 
 const placeEnrichment = vi.fn()
 vi.mock('../../api/client', () => ({ mapsApi: { placeEnrichment: (...a: unknown[]) => placeEnrichment(...a) } }))

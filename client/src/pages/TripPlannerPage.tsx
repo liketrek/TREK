@@ -920,7 +920,6 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
                   } catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.unknownError')) }
                 }}
                 onUpdatePlace={async (placeId, data) => { try { await tripActions.updatePlace(tripId, placeId, data) } catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.unknownError')) } }}
-                onUploadImage={async (placeId, file) => { await tripActions.uploadPlaceImage(tripId, placeId, file) }}
                 onRate={async (placeId, rating) => { try { await tripActions.ratePlace(tripId, placeId, rating) } catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.unknownError')) } }}
                 leftWidth={isMobile ? 0 : leftPanelPx}
                 rightWidth={isMobile ? 0 : rightPanelPx}
@@ -964,7 +963,6 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
                       } catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.unknownError')) }
                     }}
                     onUpdatePlace={async (placeId, data) => { try { await tripActions.updatePlace(tripId, placeId, data) } catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.unknownError')) } }}
-                    onUploadImage={async (placeId, file) => { await tripActions.uploadPlaceImage(tripId, placeId, file) }}
                     onRate={async (placeId, rating) => { try { await tripActions.ratePlace(tripId, placeId, rating) } catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.unknownError')) } }}
                     leftWidth={0}
                     rightWidth={0}
@@ -1123,7 +1121,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
           />
         </LazyPanel>
       )}
-      <PlaceFormModal isOpen={showPlaceForm} onClose={() => { setShowPlaceForm(false); setEditingPlace(null); setEditingAssignmentId(null); setPrefillCoords(null); setServiceStopForm(false) }} onSave={handleSavePlace} place={editingPlace} prefillCoords={prefillCoords} assignmentId={editingAssignmentId} dayAssignments={editingPlace ? Object.values(assignments).flat() : []} tripId={tripId} categories={categories} onCategoryCreated={cat => tripActions.addCategory?.(cat)} isMobile={isMobile} onOpenExpense={openBookingExpense} serviceStop={serviceStopMode} roadtripActive={roadtripActive} />
+      <PlaceFormModal isOpen={showPlaceForm} onClose={() => { setShowPlaceForm(false); setEditingPlace(null); setEditingAssignmentId(null); setPrefillCoords(null); setServiceStopForm(false) }} onSave={handleSavePlace} place={editingPlace} prefillCoords={prefillCoords} assignmentId={editingAssignmentId} dayAssignments={editingPlace ? Object.values(assignments).flat() : []} tripId={tripId} categories={categories} onCategoryCreated={cat => tripActions.addCategory?.(cat)} isMobile={isMobile} onOpenExpense={openBookingExpense} serviceStop={serviceStopMode} roadtripActive={roadtripActive} onUploadImage={async (placeId, file) => (await tripActions.uploadPlaceImage(tripId, placeId, file))?.image_url ?? null} onRemoveImage={async (placeId) => { await tripActions.updatePlace(tripId, placeId, { image_url: null }) }} />
       <TripFormModal
         isOpen={showTripForm}
         onClose={() => setShowTripForm(false)}

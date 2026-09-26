@@ -2206,6 +2206,42 @@ describe('PlaceFormModal as a road trip service stop', () => {
       _serviceStop: { dayId: 5, position: 2, offRouteKm: 0 },
     }));
   });
+
+  // ── Custom thumbnail, edit mode only (#1136) ─────────────────────────────────
+
+  it('FE-PLANNER-PLACEFORM-092: editing a place offers the thumbnail upload', () => {
+    const place = buildPlace({ id: 55, name: 'Pictured' });
+    render(<PlaceFormModal {...defaultProps} place={place} onUploadImage={vi.fn(async () => null)} />);
+    expect(screen.getByRole('button', { name: 'Upload image' })).toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-PLACEFORM-093: creating a place shows no thumbnail upload', () => {
+    render(<PlaceFormModal {...defaultProps} place={null} onUploadImage={vi.fn(async () => null)} />);
+    expect(screen.queryByRole('button', { name: 'Upload image' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Change image' })).toBeNull();
+  });
+
+  it('FE-PLANNER-PLACEFORM-094: picking a thumbnail file hands it to onUploadImage', async () => {
+    const onUploadImage = vi.fn(async () => '/uploads/places/new.jpg');
+    const place = buildPlace({ id: 56, name: 'Pictured' });
+    render(<PlaceFormModal {...defaultProps} place={place} onUploadImage={onUploadImage} />);
+    const input = document.querySelector('input[accept*="image"]') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [new File(['x'], 'thumb.png', { type: 'image/png' })] } });
+    await waitFor(() => expect(onUploadImage).toHaveBeenCalledWith(56, expect.any(File)));
+    // The returned URL drives the avatar, so the new picture shows without waiting
+    // on the editor's open-time snapshot of the place to refresh.
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Change image' })).toBeInTheDocument());
+  });
+
+  it('FE-PLANNER-PLACEFORM-095: removing the thumbnail clears image_url', async () => {
+    const onRemoveImage = vi.fn();
+    const place = buildPlace({ id: 57, name: 'Pictured', image_url: '/uploads/places/x.jpg' });
+    render(<PlaceFormModal {...defaultProps} place={place} onUploadImage={vi.fn(async () => null)} onRemoveImage={onRemoveImage} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Remove image' }));
+    await waitFor(() => expect(onRemoveImage).toHaveBeenCalledWith(57));
+    // Gone from the avatar too, rather than lingering as the open-time snapshot.
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Remove image' })).toBeNull());
+  });
 });
 
 describe('PlaceFormModal plugin search (#2221)', () => {

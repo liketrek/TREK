@@ -9,7 +9,7 @@ import remarkBreaks from 'remark-breaks'
 import { markdownLinkComponents } from '../shared/markdownLink'
 import { X, Clock, MapPin, ExternalLink, Phone, Banknote, Edit2, Trash2, Plus, Minus, ChevronDown, ChevronUp, FileText, Upload, File, FileImage, Star, Navigation, Map as MapIcon, Users, Mountain, TrendingUp, Bookmark, BookmarkCheck, Copy, Route, StickyNote } from 'lucide-react'
 import PlaceAvatar from '../shared/PlaceAvatar'
-import PlaceAvatarUpload from '../shared/PlaceAvatarUpload'
+import PlacePhotoGallery from './PlacePhotoGallery'
 import { BlurredCode } from '../shared/BookingCode'
 import PlaceRating from '../shared/StarRating'
 import TrackColorPicker from '../shared/TrackColorPicker'
@@ -170,8 +170,6 @@ interface PlaceInspectorProps {
   tripMembers?: TripMember[]
   onSetParticipants?: (assignmentId: number, dayId: number, participantIds: number[]) => void
   onUpdatePlace?: (placeId: number, data: Partial<Place>) => void
-  /** Upload a custom thumbnail (#1136); enables the click-to-change avatar in trip mode. */
-  onUploadImage?: (placeId: number, file: File) => Promise<void>
   /** Cast/clear the current user's star vote (#1435); enables the rating row. */
   onRate?: (placeId: number, rating: number | null) => Promise<void> | void
   leftWidth?: number
@@ -187,7 +185,7 @@ export default function PlaceInspector({
   place, categories, mode = 'trip', days = [], selectedDayId = null, selectedAssignmentId = null,
   assignments = {}, reservations = [], onEditTransport, onEditReservation,
   onClose, onEdit: editPlace, onDelete: deletePlace, onAssignToDay, onRemoveAssignment,
-  files = [], onFileUpload, tripMembers = [], onSetParticipants, onUpdatePlace: updatePlace, onUploadImage, onRate,
+  files = [], onFileUpload, tripMembers = [], onSetParticipants, onUpdatePlace: updatePlace, onRate,
   leftWidth = 0, rightWidth = 0,
   collectionStatus, onCopyToTrip, onSetStatus, onRemoveFromList, roadtripEndDay, roadtripStay, roadtripActive,
 }: PlaceInspectorProps) {
@@ -397,8 +395,7 @@ export default function PlaceInspector({
         <PlaceInspectorHeader openNow={openNow} place={place} category={category} t={t} editingName={editingName}
           nameInputRef={nameInputRef} nameValue={nameValue} setNameValue={setNameValue} commitNameEdit={commitNameEdit}
           handleNameKeyDown={handleNameKeyDown} startNameEdit={startNameEdit} onUpdatePlace={onUpdatePlace}
-          onUploadImage={mode === 'trip' && onUpdatePlace ? onUploadImage : undefined}
-          locale={locale} timeFormat={timeFormat} onClose={onClose} />
+          locale={locale} language={language} timeFormat={timeFormat} onClose={onClose} />
 
         {/* Content — scrollable */}
         <div data-testid="inspector-scroll" style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -777,21 +774,37 @@ function ParticipantsBox({ tripMembers, participantIds, allJoined, onSetParticip
 
 
 function PlaceInspectorHeader({ openNow, place, category, t, editingName, nameInputRef, nameValue, setNameValue,
-  commitNameEdit, handleNameKeyDown, startNameEdit, onUpdatePlace, onUploadImage, locale, timeFormat, onClose }: any) {
+  commitNameEdit, handleNameKeyDown, startNameEdit, onUpdatePlace, locale, language, timeFormat, onClose }: any) {
   return (
         <div style={{ display: 'flex', alignItems: 'center', gap: openNow !== null ? 26 : 14, padding: openNow !== null ? '18px 16px 14px 28px' : '18px 16px 14px', borderBottom: '1px solid var(--border-faint)', flexShrink: 0 }}>
           {/* Avatar with open/closed ring + tag */}
           <div style={{ position: 'relative', flexShrink: 0, marginBottom: openNow !== null ? 8 : 0 }}>
-            <div style={{
-              borderRadius: '50%', padding: 2.5,
-              background: openNow === true ? '#22c55e' : openNow === false ? '#ef4444' : 'transparent',
-            }}>
-              {onUploadImage
-                ? <PlaceAvatarUpload place={place} category={category} size={52}
-                    onUpload={(file: File) => onUploadImage(place.id, file)}
-                    onRemove={() => onUpdatePlace(place.id, { image_url: null })} />
-                : <PlaceAvatar place={place} category={category} size={52} />}
-            </div>
+            <PlacePhotoGallery place={place} language={language}>
+              {(openGallery, canOpen, loading) => {
+                const ringStyle = {
+                  borderRadius: '50%', padding: 2.5,
+                  background: openNow === true ? '#22c55e' : openNow === false ? '#ef4444' : 'transparent',
+                }
+                return canOpen ? (
+                  <button
+                    type="button"
+                    onClick={openGallery}
+                    disabled={loading}
+                    aria-label={t('photos.title')}
+                    title={t('photos.title')}
+                    style={{ display: 'block', padding: 0, border: 'none', background: 'none', lineHeight: 0, cursor: loading ? 'progress' : 'zoom-in', opacity: loading ? 0.6 : 1 }}
+                  >
+                    <div className="transition-transform hover:scale-[1.04]" style={ringStyle}>
+                      <PlaceAvatar place={place} category={category} size={52} />
+                    </div>
+                  </button>
+                ) : (
+                  <div style={ringStyle}>
+                    <PlaceAvatar place={place} category={category} size={52} />
+                  </div>
+                )
+              }}
+            </PlacePhotoGallery>
             {openNow === null && <PhotoCredit imageUrl={place.image_url} />}
             {openNow !== null && (
               <span style={{
@@ -874,6 +887,7 @@ function PlaceInspectorHeader({ openNow, place, category, t, editingName, nameIn
           </div>
           <button type="button"
             onClick={onClose}
+            aria-label={t('common.close')}
             className="bg-surface-hover"
             style={{ width: 28, height: 28, borderRadius: '50%', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, alignSelf: 'flex-start', transition: 'background 0.15s' }}
             onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-tertiary)'}

@@ -748,15 +748,24 @@ describe('TripPlannerPage — day detail and inspector', () => {
     expect(useTripStore.getState().assignments['7'][0].participants).toEqual([{ user_id: 5 }])
 
     await act(async () => { await props('inspector').onUpdatePlace(1, { name: 'X' }) })
-    await act(async () => { await props('inspector').onUploadImage(1, new File(['x'], 'a.png')) })
     await act(async () => { await props('inspector').onRate(1, 4) })
     await act(async () => { await props('inspector').onFileUpload(new FormData()) })
 
     const tripActions = hookState.tripActions as Record<string, ReturnType<typeof vi.fn>>
     expect(tripActions.addFile).toHaveBeenCalled()
     expect(tripActions.updatePlace).toHaveBeenCalledWith(42, 1, { name: 'X' })
-    expect(tripActions.uploadPlaceImage).toHaveBeenCalled()
     expect(tripActions.ratePlace).toHaveBeenCalledWith(42, 1, 4)
+  })
+
+  it('FE-PAGE-TPW-026b: the place form uploads and clears a thumbnail through the hook', async () => {
+    renderPage({ selectedPlace: place })
+
+    await act(async () => { await props('placeForm').onUploadImage(1, new File(['x'], 'a.png')) })
+    await act(async () => { await props('placeForm').onRemoveImage(1) })
+
+    const tripActions = hookState.tripActions as Record<string, ReturnType<typeof vi.fn>>
+    expect(tripActions.uploadPlaceImage).toHaveBeenCalledWith(42, 1, expect.any(File))
+    expect(tripActions.updatePlace).toHaveBeenCalledWith(42, 1, { image_url: null })
   })
 
   it('FE-PAGE-TPW-027: inspector write failures are surfaced as toasts', async () => {
@@ -797,7 +806,6 @@ describe('TripPlannerPage — day detail and inspector', () => {
     expect(hookState.handleDeletePlace).toHaveBeenCalledWith(1)
 
     await act(async () => { await props('inspector').onUpdatePlace(1, { name: 'Y' }) })
-    await act(async () => { await props('inspector').onUploadImage(1, new File(['x'], 'a.png')) })
     await act(async () => { await props('inspector').onRate(1, 3) })
     await act(async () => { await props('inspector').onFileUpload(new FormData()) })
 
