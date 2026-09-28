@@ -41,6 +41,7 @@ export function buildEmailHtml(
   const s = I18N[lang] || I18N.en;
   const appUrl = getAppUrl();
   const ctaHref = escapeHtml(navigateTarget ? `${appUrl}${navigateTarget}` : appUrl || '');
+  const manageHref = escapeHtml(`${appUrl}/settings?tab=notifications`);
   const safeSubject = escapeHtml(subject);
   const safeBody = rawBody ? body : escapeHtml(body);
 
@@ -73,7 +74,7 @@ export function buildEmailHtml(
         }
         <!-- Footer -->
         <tr><td style="padding: 20px 32px; background: #f9fafb; border-top: 1px solid #f3f4f6; text-align: center;">
-          <p style="margin: 0 0 8px; font-size: 11px; color: #9ca3af; line-height: 1.5;">${s.footer}<br>${s.manage}</p>
+          <p style="margin: 0 0 8px; font-size: 11px; color: #9ca3af; line-height: 1.5;">${s.footer}<br><a href="${manageHref}" style="color: #9ca3af; text-decoration: underline;">${s.manage}</a></p>
           <p style="margin: 0; font-size: 10px; color: #d1d5db;">${s.madeWith} <span style="color: #ef4444;">&hearts;</span> by Maurice &middot; <a href="https://github.com/liketrek/TREK" style="color: #9ca3af; text-decoration: none;">GitHub</a></p>
         </td></tr>
       </table>

@@ -221,6 +221,13 @@ describe('buildEmailHtml', () => {
     expect(html).toContain('notifications enabled in TREK');
   });
 
+  it('links notification preferences to the notifications settings tab', () => {
+    const html = buildEmailHtml('Subject', 'Body', 'en');
+    expect(html).toMatch(
+      /<a href="https?:\/\/[^"]+\/settings\?tab=notifications"[^>]*>Manage preferences in Settings<\/a>/,
+    );
+  });
+
   it('uses German i18n strings for lang=de', () => {
     const html = buildEmailHtml('Subject', 'Body', 'de');
     expect(html).toContain('TREK aktiviert');
