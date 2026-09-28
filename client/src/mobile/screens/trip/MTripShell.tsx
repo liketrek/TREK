@@ -204,7 +204,7 @@ export default function MTripShell({
   Sheets = MTripSheets,
 }: MTripShellProps) {
   const planner = useTripPlanner()
-  const { t, language, tripId, days, trip, navigate, packingItems, todoItems } = planner
+  const { t, language, tripId, days, trip, navigate, packingItems, todoItems, isLoading } = planner
 
   // Per-day colours from the dayTintProvider plugin hook — the mobile counterpart
   // of the desktop day-card wash, carried on the day chips. Empty without a plugin.
@@ -240,6 +240,14 @@ export default function MTripShell({
   // back to the first day once the whole trip is behind us.
   const seededDayRef = useRef(false)
   useEffect(() => {
+    // Re-entering the same trip from the dashboard starts with that trip's old
+    // selection still in the store. The first render treats it as seeded, then
+    // loadTrip clears it. Reset the guard with that load cycle so the freshly
+    // loaded days get their normal today/Day 1 selection.
+    if (isLoading) {
+      seededDayRef.current = false
+      return
+    }
     if (seededDayRef.current) return
     // A day that is already active counts as seeded: a later deselect is the
     // user's, and re-seeding it here would be exactly the fight this guard
@@ -250,7 +258,7 @@ export default function MTripShell({
     // Off the same helper file as the desktop day plan (#1567), so the two
     // cannot drift on what "today" means.
     planner.tripActions.setSelectedDay(findFocusDayId(days) ?? days[0].id)
-  }, [planner.selectedDayId, days, planner.tripActions])
+  }, [isLoading, planner.selectedDayId, days, planner.tripActions])
 
   // Swiping the day panel (#2051) can move the day well past the chips on
   // screen — the rail overflows from roughly six days on — so the active chip

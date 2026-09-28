@@ -202,6 +202,24 @@ describe('MTripShell', () => {
     expect(screen.queryByRole('button', { name: 'Sat 2' })).not.toBeInTheDocument()
   })
 
+  it('FE-MOB-SHELL-007b: re-seeds after re-entering the same trip from the dashboard', () => {
+    const { planner, rerenderShell } = renderShell()
+    expect(planner.tripActions.setSelectedDay).not.toHaveBeenCalled()
+
+    // The dashboard leaves the previous trip snapshot in the store. loadTrip
+    // clears that selection while it reloads the same trip.
+    planner.isLoading = true
+    planner.days = []
+    planner.selectedDayId = null
+    rerenderShell()
+
+    planner.isLoading = false
+    planner.days = DAYS
+    rerenderShell()
+
+    expect(planner.tripActions.setSelectedDay).toHaveBeenCalledWith(11)
+  })
+
   it('FE-MOB-SHELL-008: the back button leaves for the dashboard', () => {
     const { planner } = renderShell()
     fireEvent.click(screen.getByRole('button', { name: 'common.back' }))
